@@ -19,12 +19,14 @@ interface ResultCardProps {
   onPublish: () => void;
   /** Foto original de la persona: el resultado se muestra como antes / después. */
   beforeImageUri?: string;
+  /** Weë Writer: llevar el texto al editor. */
+  onOpenInEditor?: () => void;
 }
 
 /**
  * "✨ Listo" + resultado + [Crear otra versión] [Editar] [Publicar en mi comunidad]
  */
-const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor }) => {
   const { theme } = useTheme();
   const [editing, setEditing] = useState(false);
   const [instruction, setInstruction] = useState('');
@@ -206,6 +208,17 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         </View>
       ) : (
         <View style={styles.actions}>
+          {onOpenInEditor && (
+            <TouchableOpacity
+              onPress={onOpenInEditor}
+              disabled={busy}
+              style={[styles.actionButton, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="create-outline" size={scale(18)} color="#1F2937" />
+              <Text style={[styles.actionText, { color: '#1F2937' }]}>Usar en el editor</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={onAnotherVersion}
             disabled={busy}

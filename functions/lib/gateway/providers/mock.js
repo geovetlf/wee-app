@@ -176,6 +176,30 @@ const demoText = (kind, purpose, brief, ctx) => {
             ].join('\n');
         case 'copy':
             return `📱 Publicación lista · ${goal}\n\n"Hoy toca algo especial 🍽️ Ven a probar lo nuevo y cuéntanos qué te pareció. Te esperamos."\n\n#tunegocio #hechoconcariño #hoy\n\n${DEMO_NOTE}`;
+        case 'skincare':
+            return `🧴 Tu rutina de cuidado · ${goal}\n\nMañana:\n1. Limpiador suave\n2. Hidratante ligera\n3. Protector solar (todos los días)\n\nNoche:\n1. Limpiador\n2. Hidratante\n\nUna vez por semana: exfoliante suave.\n\n${DEMO_NOTE}`;
+        case 'facestyle':
+            return `🪞 Lo que mejor te va · ${goal}\n\nRostro: ovalado (demo).\nCortes: capas medias o corte a la mandíbula.\nLentes: marcos redondos o ligeramente cuadrados.\nEvita: flequillos muy rectos.\n\n${DEMO_NOTE}`;
+        case 'layout':
+            return `📐 Distribución propuesta · ${goal}\n\n1. Sofá contra la pared más larga, mirando a la ventana.\n2. Mesa de centro pequeña y ligera.\n3. Estantería vertical en la esquina para ganar suelo.\n4. Deja libre el paso de la puerta al balcón.\n\n${DEMO_NOTE}`;
+        case 'story':
+            return `📖 ${goal}\n\nCapítulo 1\n\nLa mañana en que todo cambió, nadie en el pueblo se dio cuenta. Solo Ana notó que el reloj de la plaza se había detenido a las 7:07…\n\n(Continúa con el conflicto, un giro y un cierre que deje ganas de seguir.)\n\n${DEMO_NOTE}`;
+        case 'article':
+            return `📰 ${goal}\n\nTítulo que engancha\n\nEntrada: en dos líneas, por qué esto importa hoy.\n\n1. La idea principal, explicada con un ejemplo.\n2. Un dato o historia que la respalde.\n3. Qué puede hacer el lector desde mañana.\n\nCierre con una pregunta para comentar.\n\n${DEMO_NOTE}`;
+        case 'email':
+            return `✉️ Asunto: ${goal}\n\nHola,\n\nTe escribo para… (contexto en una línea).\n\nLo que necesito / propongo: …\n\nQuedo atento a tu respuesta. ¡Gracias!\n\nSaludos,\n[Tu nombre]\n\n${DEMO_NOTE}`;
+        case 'document':
+            return `📄 ${goal}\n\n1. Resumen\n2. Contexto\n3. Propuesta\n4. Próximos pasos\n\nCada sección en 3–5 líneas, con lo importante primero.\n\n${DEMO_NOTE}`;
+        case 'translate':
+            return `🌐 Traducción (${brief || 'al inglés'})\n\n"Hello! Thanks for writing to us. We have exactly what you're looking for…"\n\n${DEMO_NOTE}`;
+        case 'summary':
+            return `🗒️ Resumen · ${goal}\n\n• Idea principal en una línea.\n• Segundo punto clave.\n• Tercer punto clave.\n\nEn una frase: lo esencial, sin rodeos.\n\n${DEMO_NOTE}`;
+        case 'fix':
+            return `✔️ Texto corregido\n\n(Aquí va tu texto con la ortografía, la puntuación y el estilo corregidos, sin cambiar lo que quisiste decir.)\n\nCambios: 3 tildes, 2 comas y una frase más clara.\n\n${DEMO_NOTE}`;
+        case 'rewrite':
+            return `🔁 Nueva versión (${brief || 'tono cercano'})\n\n(Aquí va tu texto reescrito con el nuevo tono, manteniendo la idea y el largo aproximado.)\n\n${DEMO_NOTE}`;
+        case 'ideas':
+            return `💡 Ideas para escribir · ${goal}\n\n1. Empieza por el momento más sorprendente.\n2. Cuéntalo como si fuera una carta a un amigo.\n3. Haz una lista de tres cosas que aprendiste.\n4. Describe un lugar con los cinco sentidos.\n\nPunto de partida: escribe solo la primera frase, sin corregir.\n\n${DEMO_NOTE}`;
         case 'analysis':
             return `🔎 Lo que entendí · ${goal}\n\nObjetivo: ${brief || 'avanzar con claridad'}.\nPúblico: personas como tus clientes actuales.\nPrioridad: algo concreto que puedas usar esta semana.\n\n${DEMO_NOTE}`;
         case 'answer':

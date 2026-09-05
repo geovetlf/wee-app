@@ -30,13 +30,16 @@ const CreatorFlowScreen: React.FC = () => {
     jobId?: string;
     preset?: { questionId: string; optionId: string };
     imageUri?: string;
+    /** Documento del editor que pidió la ayuda (Weë Writer). */
+    editorDocId?: string;
   };
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   // Photo, Home y Beauty trabajan sobre una foto de la persona
   const needsPhoto =
     ['photo', 'home', 'beauty'].includes(experience.id) ||
-    (experience.id === 'studio' && (params.preset?.optionId === 'animate' || /foto|imagen/i.test(params.goal || '')));
+    (experience.id === 'studio' && (params.preset?.optionId === 'animate' || /foto|imagen/i.test(params.goal || ''))) ||
+    (experience.id === 'chef' && (params.preset?.optionId === 'cook' || /ingredientes|nevera|refri|foto/i.test(params.goal || '')));
   const [imageUri, setImageUri] = useState<string | undefined>(params.imageUri);
   const [jobId, setJobId] = useState<string | null>(params.jobId || null);
   const [job, setJob] = useState<CreatorJob | null>(null);
@@ -126,6 +129,16 @@ const CreatorFlowScreen: React.FC = () => {
     }
   };
 
+  const handleOpenInEditor = () => {
+    if (!job) return;
+    const content = job.results.filter((r) => r.content && r.kind !== 'audio').map((r) => r.content).join('\n\n');
+    if (params.editorDocId) {
+      navigation.navigate('WriterEditor', { docId: params.editorDocId, replaceText: content });
+    } else {
+      navigation.navigate('WriterEditor', { text: content, title: job.goal.slice(0, 60) });
+    }
+  };
+
   const handleAnotherVersion = () => start(job?.goal || params.goal);
   const handleEdit = (instruction: string) => start(`${job?.goal || params.goal || experience.name} · Cambio: ${instruction}`);
 
@@ -191,6 +204,7 @@ const CreatorFlowScreen: React.FC = () => {
             onEdit={handleEdit}
             onPublish={handlePublish}
             beforeImageUri={needsPhoto ? imageUri : undefined}
+            onOpenInEditor={experience.id === 'writer' ? handleOpenInEditor : undefined}
           />
         )}
 

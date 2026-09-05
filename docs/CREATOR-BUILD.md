@@ -106,10 +106,10 @@ No un prototipo bonito: una aplicación navegable. Botones importantes funcionan
 | 6 | WEE Music | ✅ Canción, beat, jingle, voz, letra, mezcla y **videoclip propio** ("Crear tu video con IA": canción + escenas + videoclip sin salir de Weë Music); preguntas condicionales (estilo/ánimo solo cuando aplican, voz solo para narración); reproductor simulado en el resultado |
 | 7 | WEE Studio | ✅ Video desde una idea, animar una foto (con foto), video para redes, anuncio, historia, no sé; deduce tipo/estilo/dónde se publica del texto y pregunta "¿Dónde lo vas a publicar?" en lenguaje humano; resultado con play y duración |
 | 8 | WEE Business | ✅ Pantalla propia: atajos (Ideas, Marketing, Redes sociales, Analizar, Documentos, Vender más, Trabajo y carrera), **Mis redes sociales** (conectar/desconectar, simulado), "Weë está listo para ayudarte", calendario de publicaciones, mensajes de clientes con Responder, resultados de la semana; flujos de contenido, programar, publicar, responder, analizar, campaña, CV, presentación, plan e ideas |
-| 9 | WEE Chef | 🔜 |
-| 10 | WEE Home | 🔜 |
-| 11 | WEE Beauty | 🔜 |
-| 12 | WEE Writer | 🔜 (con editor) |
+| 9 | WEE Chef | ✅ Receta, cocinar con lo que tengo (con foto de los ingredientes), menú (con lista de compras), saludable, postre, no sé; pregunta personas y tiempo solo cuando aplica; deduce todo lo posible del texto |
+| 10 | WEE Home | ✅ Diseñar, remodelar, probar muebles, colores, distribución, ideas, exterior y jardín; pregunta espacio y estilo en lenguaje humano; foto del espacio con antes/después y lista de cambios y compras |
+| 11 | WEE Beauty | ✅ Maquillaje, corte, color, barba, outfit, uñas, accesorios, cuidado de la piel (rutina), estilo por rostro y cambio de look; ocasión solo cuando aplica; foto con antes/después |
+| 12 | WEE Writer | ✅ Publicación, historia, guion, artículo, email, documento, CV, portada, traducir, resumir, ideas, corregir, reescribir; **editor** cómodo (`WriterEditorScreen`) con ayudas en lenguaje humano (Mejorar, Corregir, Acortar, Alargar, Cambiar tono, Traducir, Resumir) que vuelven al editor; "Mis documentos" guardados en el dispositivo |
 | 13 | Proyectos | 🔜 |
 | 14 | Credits (simulados) | 🔜 |
 | 15 | Perfil, configuración y elementos comunes | 🔜 |

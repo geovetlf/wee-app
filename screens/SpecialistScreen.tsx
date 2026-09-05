@@ -14,6 +14,7 @@ import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
 import UploadBox from '../components/creator/UploadBox';
 import ExamplesRow from '../components/creator/ExamplesRow';
+import WriterDocuments from '../components/creator/WriterDocuments';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -84,6 +85,8 @@ const SpecialistScreen: React.FC = () => {
       </View>
 
       {spec.upload && spec.id !== 'chef' && <UploadBox config={spec.upload} onPick={(uri) => startFlow(undefined, undefined, uri)} />}
+
+      {spec.id === 'writer' && <WriterDocuments />}
 
       <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} greeting={spec.id === 'chef'} />
 

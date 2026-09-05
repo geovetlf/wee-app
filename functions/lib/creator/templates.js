@@ -281,10 +281,18 @@ const writer = {
     questions: [
         q('what', '¿Qué escribimos?', [
             opt('post', '📱 Una publicación'),
-            opt('story', '📖 Una historia'),
+            opt('story', '📖 Una historia o novela'),
             opt('script', '🎬 Un guion'),
+            opt('article', '📰 Un artículo o blog'),
             opt('email', '✉️ Un email o carta'),
-            opt('fix', '✏️ Corregir un texto'),
+            opt('document', '📄 Un documento'),
+            opt('cv', '🧑‍💼 Mi CV'),
+            opt('cover', '📕 La portada de mi libro'),
+            opt('translate', '🌐 Traducir'),
+            opt('summary', '🗒️ Resumir'),
+            opt('ideas', '💡 Ideas'),
+            opt('fix', '✔️ Corregir'),
+            opt('rewrite', '🔁 Reescribir'),
             IDK,
         ]),
         q('tone', '¿Qué tono?', [
@@ -293,22 +301,132 @@ const writer = {
             opt('fun', '😄 Divertido'),
             opt('emotional', '💛 Emotivo'),
             SURPRISE,
-        ]),
+        ], true, (a) => { var _a; return !['translate', 'summary', 'fix', 'cover'].includes((_a = a.what) !== null && _a !== void 0 ? _a : ''); }),
+        q('language', '¿A qué idioma?', [
+            opt('en', '🇺🇸 Inglés'),
+            opt('pt', '🇧🇷 Portugués'),
+            opt('fr', '🇫🇷 Francés'),
+            opt('it', '🇮🇹 Italiano'),
+            IDK,
+        ], true, (a) => a.what === 'translate'),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            translate: ['traducir', 'traduce', 'traducción', 'traduccion', 'en inglés', 'en ingles', 'al inglés', 'al ingles'],
+            summary: ['resumir', 'resume', 'resumen', 'ideas clave'],
+            fix: ['corregir', 'corrige', 'ortografía', 'ortografia', 'revisar'],
+            rewrite: ['reescribir', 'mejorar este texto', 'acortar', 'alargar', 'desarrollar más', 'otro tono', 'reescribe', 'mejora este'],
+            cover: ['portada'],
+            cv: ['cv', 'currículum', 'curriculum', 'hoja de vida'],
+            script: ['guion', 'guión'],
+            email: ['email', 'correo', 'carta', 'mensaje para'],
+            article: ['artículo', 'articulo', 'blog', 'nota'],
+            story: ['historia', 'cuento', 'novela', 'relato', 'capítulo', 'capitulo'],
+            document: ['documento', 'informe', 'plan', 'propuesta', 'ensayo'],
+            ideas: ['ideas', 'bloqueo', 'no sé qué escribir', 'no se que escribir'],
+            post: ['publicación', 'publicacion', 'post', 'instagram', 'redes', 'caption'],
+        });
+        if (what)
+            answers.what = what;
+        const tone = inferByKeywords(goal, {
+            pro: ['profesional', 'formal', 'cliente', 'empresa', 'trabajo'],
+            fun: ['divertid', 'gracioso', 'humor'],
+            emotional: ['emotivo', 'emocional', 'amor', 'sentimiento', 'mis hijos', 'para mi mamá', 'para mi mama'],
+            friendly: ['cercano', 'amigable', 'informal'],
+        });
+        if (tone)
+            answers.tone = tone;
+        const language = inferByKeywords(goal, {
+            en: ['inglés', 'ingles', 'english'],
+            pt: ['portugués', 'portugues'],
+            fr: ['francés', 'frances'],
+            it: ['italiano'],
+        });
+        if (language)
+            answers.language = language;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const what = chosen(writer.questions[0], answers);
         const tone = chosen(writer.questions[1], answers);
-        const piece = what.idk ? 'una publicación' : what.label.toLowerCase();
+        const language = chosen(writer.questions[2], answers);
+        const kind = what.idk ? 'post' : what.id;
         const voice = tone.idk ? 'cercano' : tone.label.toLowerCase();
-        return {
+        const lang = language.idk ? 'inglés' : language.label.replace(/^\S+\s+/, '').toLowerCase();
+        const one = (id, purpose, textKind, brief) => ({
             experience: 'writer',
             goal,
-            steps: [
-                step('draft', 'text.generate', 'Escribir un primer borrador', { input: { kind: what.id === 'script' ? 'script' : 'copy', brief: `${piece}, tono ${voice}` } }),
-                step('polish', 'text.generate', 'Pulir el texto y dejarlo listo', { dependsOn: ['draft'], input: { kind: 'polish', brief: `tono ${voice}` } }),
-            ],
-            explainToUser: `Voy a escribir ${piece} con un tono ${voice} y después la pulo para que quede lista para usar.${decided(what.idk, 'empiezo por una publicación')}${decided(tone.idk, 'elegí un tono cercano')}`,
-        };
+            steps: [step(id, 'text.generate', purpose, { input: { kind: textKind, brief } })],
+            explainToUser: '',
+        });
+        switch (kind) {
+            case 'translate': {
+                const plan = one('translate', `Traducir al ${lang}`, 'translate', `al ${lang}`);
+                plan.explainToUser = `Voy a traducir tu texto al ${lang} manteniendo el sentido y el tono.${decided(language.idk, 'lo traduzco al inglés')}`;
+                return plan;
+            }
+            case 'summary': {
+                const plan = one('summary', 'Resumir en ideas clave', 'summary', goal);
+                plan.explainToUser = 'Voy a resumir tu texto en las ideas clave, en pocas líneas.';
+                return plan;
+            }
+            case 'fix': {
+                const plan = one('fix', 'Corregir ortografía, estilo y claridad', 'fix', goal);
+                plan.explainToUser = 'Voy a corregir la ortografía, el estilo y la claridad sin cambiar lo que quisiste decir.';
+                return plan;
+            }
+            case 'rewrite': {
+                const plan = one('rewrite', 'Reescribir el texto', 'rewrite', `tono ${voice}`);
+                plan.explainToUser = `Voy a reescribir tu texto con un tono ${voice}, manteniendo la idea.${decided(tone.idk, 'uso un tono cercano')}`;
+                return plan;
+            }
+            case 'cover':
+                return {
+                    experience: 'writer',
+                    goal,
+                    steps: [
+                        step('concept', 'text.generate', 'Definir el concepto de la portada', { input: { kind: 'concept', brief: goal } }),
+                        step('covers', 'image.generate', 'Crear 3 propuestas de portada', { dependsOn: ['concept'], input: { count: 3, brief: goal } }),
+                    ],
+                    explainToUser: 'Voy a definir el concepto de la portada y crear tres propuestas para que elijas.',
+                };
+            case 'cv':
+                return {
+                    experience: 'writer',
+                    goal,
+                    steps: [
+                        step('cv', 'text.generate', 'Redactar tu CV', { input: { kind: 'cv', brief: `tono ${voice}` } }),
+                        step('file', 'doc.render', 'Generar el documento listo para enviar', { dependsOn: ['cv'] }),
+                    ],
+                    explainToUser: `Voy a redactar tu CV con un tono ${voice}, listo para enviar.${decided(tone.idk, 'uso un tono profesional')}`,
+                };
+            case 'ideas': {
+                const plan = one('ideas', 'Proponerte ideas para escribir', 'ideas', `tono ${voice}`);
+                plan.explainToUser = 'Voy a proponerte varias ideas y un punto de partida para que escribas sin bloqueo.';
+                return plan;
+            }
+            default: {
+                const kinds = {
+                    post: ['Escribir la publicación', 'copy'],
+                    story: ['Escribir la historia', 'story'],
+                    script: ['Escribir el guion', 'script'],
+                    article: ['Escribir el artículo', 'article'],
+                    email: ['Redactar el email', 'email'],
+                    document: ['Redactar el documento', 'document'],
+                };
+                const [purpose, textKind] = kinds[kind] || kinds.post;
+                return {
+                    experience: 'writer',
+                    goal,
+                    steps: [
+                        step('draft', 'text.generate', purpose, { input: { kind: textKind, brief: `tono ${voice}` } }),
+                        step('polish', 'text.generate', 'Pulir el texto y dejarlo listo', { dependsOn: ['draft'], input: { kind: 'polish', brief: `tono ${voice}` } }),
+                    ],
+                    explainToUser: `Voy a ${purpose.toLowerCase()} con un tono ${voice} y después lo pulo para que quede listo.${decided(what.idk, 'empiezo por una publicación')}${decided(tone.idk, 'uso un tono cercano')}`,
+                };
+            }
+        }
     },
 };
 const music = {
@@ -446,10 +564,16 @@ const beauty = {
     defaultGoal: 'Probar un cambio de look',
     questions: [
         q('what', '¿Qué quieres probar?', [
-            opt('hair', '💇 Otro corte o color de cabello'),
             opt('makeup', '💄 Un maquillaje'),
+            opt('hair', '💇 Otro corte o peinado'),
+            opt('haircolor', '🎨 Otro color de cabello'),
             opt('beard', '🧔 Barba o afeitado'),
             opt('outfit', '👗 Un outfit'),
+            opt('nails', '💅 Uñas'),
+            opt('accessories', '🕶️ Accesorios'),
+            opt('skin', '🧴 Cuidado de la piel'),
+            opt('face', '🪞 El estilo que va con mi rostro'),
+            opt('transform', '✨ Un cambio de look completo'),
             SURPRISE,
         ]),
         q('occasion', '¿Para qué ocasión?', [
@@ -458,13 +582,62 @@ const beauty = {
             opt('work', '💼 Trabajo'),
             opt('date', '💘 Una cita'),
             IDK,
-        ]),
+        ], true, (a) => { var _a; return !['skin', 'face'].includes((_a = a.what) !== null && _a !== void 0 ? _a : ''); }),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            haircolor: ['color de cabello', 'color de pelo', 'rubio', 'rubia', 'castaño', 'castano', 'pelirroj', 'teñir', 'tenir', 'mechas', 'platinado'],
+            hair: ['cabello', 'pelo', 'corte', 'peinado', 'flequillo', 'largo', 'corto'],
+            makeup: ['maquillaje', 'labios', 'sombras', 'delineado', 'maquillar'],
+            beard: ['barba', 'afeitad', 'bigote'],
+            outfit: ['outfit', 'ropa', 'vestido', 'look casual', 'qué me pongo', 'que me pongo', 'combinar'],
+            nails: ['uñas', 'unas', 'manicura'],
+            accessories: ['lentes', 'gafas', 'accesorio', 'aretes', 'collar', 'bolso', 'sombrero'],
+            skin: ['piel', 'rutina', 'acné', 'acne', 'manchas', 'hidrat', 'cuidado'],
+            face: ['rostro', 'cara', 'mi tipo de cara', 'qué me queda', 'que me queda'],
+            transform: ['cambio de look', 'transform', 'look completo', 'nueva imagen'],
+        });
+        if (what)
+            answers.what = what;
+        const occasion = inferByKeywords(goal, {
+            party: ['fiesta', 'boda', 'noche', 'glam', 'evento', 'cumpleaños', 'cumpleanos'],
+            work: ['trabajo', 'oficina', 'entrevista', 'profesional'],
+            date: ['cita', 'romántic', 'romantic'],
+            daily: ['día a día', 'dia a dia', 'diario', 'natural', 'casual'],
+        });
+        if (occasion)
+            answers.occasion = occasion;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const what = chosen(beauty.questions[0], answers);
         const occasion = chosen(beauty.questions[1], answers);
         const change = what.idk ? 'un cambio de look completo' : what.label.toLowerCase();
         const when = occasion.idk ? 'el día a día' : occasion.label.toLowerCase();
+        if (what.id === 'skin') {
+            return {
+                experience: 'beauty',
+                goal,
+                steps: [
+                    step('look', 'vision.describe', 'Mirar tu foto', { input: { kind: 'describe' } }),
+                    step('routine', 'text.generate', 'Armar tu rutina de cuidado', { dependsOn: ['look'], input: { kind: 'skincare', brief: goal } }),
+                ],
+                explainToUser: 'Voy a mirar tu foto y armar una rutina de cuidado de la piel sencilla, con productos fáciles de conseguir.',
+            };
+        }
+        if (what.id === 'face') {
+            return {
+                experience: 'beauty',
+                goal,
+                steps: [
+                    step('look', 'vision.describe', 'Mirar tu rostro', { input: { kind: 'describe' } }),
+                    step('advice', 'text.generate', 'Recomendarte cortes, lentes y estilos', { dependsOn: ['look'], input: { kind: 'facestyle', brief: goal } }),
+                    step('try', 'image.identity_edit', 'Probar los dos estilos que mejor te van', { dependsOn: ['advice'], input: { count: 2, brief: 'estilos que favorecen el rostro' } }),
+                ],
+                explainToUser: 'Voy a mirar tu rostro, recomendarte los cortes y estilos que mejor te van y probarte dos en tu foto.',
+            };
+        }
         return {
             experience: 'beauty',
             goal,
@@ -482,31 +655,91 @@ const chef = {
     defaultGoal: 'Algo rico para comer hoy',
     questions: [
         q('what', '¿Qué quieres hacer?', [
-            opt('cook', '🍳 Quiero cocinar algo'),
             opt('recipe', '🍽️ Quiero una receta'),
-            opt('menu', '📋 Quiero crear un menú'),
+            opt('cook', '🧊 Cocinar con lo que tengo'),
+            opt('menu', '📋 Crear un menú'),
+            opt('healthy', '🥗 Algo saludable'),
+            opt('dessert', '🍰 Un postre'),
             opt('idk', '💡 No sé qué cocinar'),
+        ]),
+        q('people', '¿Para cuántas personas?', [
+            opt('1', '👤 Solo para mí'),
+            opt('2', '👥 Para dos'),
+            opt('4', '👨‍👩‍👧 Para la familia'),
+            opt('8', '🎉 Para muchos'),
+            IDK,
         ]),
         q('time', '¿Cuánto tiempo tienes?', [
             opt('15', '⚡ 15 minutos'),
             opt('30', '⏱️ Media hora'),
             opt('60', '🕐 Una hora o más'),
             opt('idk', '🤷 Da igual'),
-        ]),
+        ], true, (a) => a.what !== 'menu'),
+        q('days', '¿Para cuántos días?', [
+            opt('3', '📆 Tres días'),
+            opt('7', '🗓️ Toda la semana'),
+            IDK,
+        ], true, (a) => a.what === 'menu'),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            menu: ['menú', 'menu', 'semana', 'plan de comidas', 'planificar'],
+            cook: ['ingredientes', 'lo que tengo', 'nevera', 'refrigerador', 'refri', 'heladera', 'sobró', 'sobro', 'qué puedo hacer con', 'que puedo hacer con'],
+            dessert: ['postre', 'torta', 'pastel', 'dulce', 'galletas', 'chocolate', 'helado'],
+            healthy: ['saludable', 'sano', 'ligero', 'light', 'dieta', 'fit', 'vegan', 'vegetarian'],
+            recipe: ['receta', 'cocinar', 'preparar', 'cena', 'almuerzo', 'desayuno', 'pollo', 'pasta', 'arroz', 'carne', 'pescado'],
+        });
+        if (what)
+            answers.what = what;
+        const people = inferByKeywords(goal, {
+            '8': ['fiesta', 'reunión', 'reunion', 'muchos', 'invitados', 'cumpleaños', 'cumpleanos'],
+            '4': ['familia', 'niños', 'ninos', 'hijos', 'cuatro'],
+            '2': ['para dos', 'pareja', 'romántic', 'romantic'],
+            '1': ['para mí', 'para mi', 'solo yo', 'una persona'],
+        });
+        if (people)
+            answers.people = people;
+        const time = inferByKeywords(goal, {
+            '15': ['rápid', 'rapid', '15 min', 'quince', 'express', 'algo rápido'],
+            '30': ['media hora', '30 min', 'treinta'],
+            '60': ['sin apuro', 'con tiempo', 'una hora', 'elaborad', 'fin de semana'],
+        });
+        if (time)
+            answers.time = time;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const what = chosen(chef.questions[0], answers);
-        const time = chosen(chef.questions[1], answers);
-        const piece = what.id === 'menu' ? 'un menú' : 'una receta paso a paso';
+        const people = chosen(chef.questions[1], answers);
+        const time = chosen(chef.questions[2], answers);
+        const days = chosen(chef.questions[3], answers);
+        const kind = what.idk ? 'recipe' : what.id;
+        const forWhom = people.idk ? 'para dos' : people.label.toLowerCase();
         const minutes = time.idk ? 'sin apuro' : `en ${time.label.toLowerCase()}`;
+        if (kind === 'menu') {
+            const span = days.idk ? 'para la semana' : days.label.toLowerCase();
+            return {
+                experience: 'chef',
+                goal,
+                steps: [
+                    step('menu', 'text.generate', 'Armar el menú', { input: { kind: 'menu', brief: `${span}, ${forWhom}` } }),
+                    step('list', 'text.generate', 'Hacer la lista de compras', { dependsOn: ['menu'], input: { kind: 'shopping', brief: 'lista de compras del menú' } }),
+                ],
+                explainToUser: `Voy a armar un menú ${span}, ${forWhom}, y te dejo la lista de compras.${decided(people.idk, 'lo pensé para dos')}${decided(days.idk, 'lo hago para toda la semana')}`,
+            };
+        }
+        const piece = kind === 'cook' ? 'una receta con lo que tienes en casa' : kind === 'dessert' ? 'un postre' : kind === 'healthy' ? 'una receta saludable' : 'una receta paso a paso';
+        const steps = [];
+        if (kind === 'cook')
+            steps.push(step('look', 'vision.describe', 'Mirar qué ingredientes tienes', { input: { kind: 'describe' } }));
+        steps.push(step('recipe', 'text.generate', 'Escribir la receta paso a paso', { dependsOn: kind === 'cook' ? ['look'] : undefined, input: { kind: 'recipe', brief: `${piece} ${minutes}, ${forWhom}` } }));
+        steps.push(step('dish', 'image.generate', 'Crear una foto del plato', { dependsOn: ['recipe'], input: { count: 1 } }));
         return {
             experience: 'chef',
             goal,
-            steps: [
-                step('recipe', 'text.generate', what.id === 'menu' ? 'Armar el menú' : 'Escribir la receta paso a paso', { input: { kind: what.id === 'menu' ? 'menu' : 'recipe', brief: `${piece} ${minutes}` } }),
-                step('dish', 'image.generate', 'Crear una foto del plato', { dependsOn: ['recipe'], input: { count: 1 } }),
-            ],
-            explainToUser: `Voy a preparar ${piece} ${minutes} y una foto de cómo queda el plato.${decided(what.idk, 'te propongo algo rico y fácil con lo que sueles tener en casa')}`,
+            steps,
+            explainToUser: `Voy a preparar ${piece} ${minutes}, ${forWhom}, y una foto de cómo queda el plato.${decided(what.idk, 'te propongo algo rico y fácil con lo que sueles tener en casa')}${decided(people.idk, 'lo pensé para dos')}${decided(time.idk, 'sin apuro')}`,
         };
     },
 };
@@ -515,13 +748,24 @@ const home = {
     emoji: '🏠',
     defaultGoal: 'Renovar un espacio de mi casa',
     questions: [
+        q('what', '¿Qué quieres hacer?', [
+            opt('design', '🛋️ Diseñar el espacio'),
+            opt('remodel', '🧱 Remodelar'),
+            opt('furniture', '🪑 Probar muebles'),
+            opt('colors', '🎨 Cambiar colores'),
+            opt('layout', '📐 Mejorar la distribución'),
+            opt('ideas', '💡 Buscar ideas'),
+            opt('garden', '🌿 Exterior y jardín'),
+            IDK,
+        ]),
         q('space', '¿Qué espacio?', [
             opt('living', '🛋️ La sala'),
             opt('bedroom', '🛏️ Un dormitorio'),
             opt('kitchen', '🍳 La cocina'),
-            opt('garden', '🌿 Jardín o exterior'),
+            opt('bath', '🛁 El baño'),
+            opt('office', '💻 Mi oficina'),
             IDK,
-        ]),
+        ], true, (a) => a.what !== 'garden'),
         q('style', '¿Qué estilo?', [
             opt('modern', '🏙️ Moderno'),
             opt('cozy', '🕯️ Acogedor'),
@@ -530,20 +774,78 @@ const home = {
             SURPRISE,
         ]),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            garden: ['jardín', 'jardin', 'terraza', 'patio', 'fachada', 'exterior', 'balcón', 'balcon'],
+            colors: ['color', 'pintar', 'pintura', 'paleta'],
+            furniture: ['mueble', 'sofá', 'sofa', 'mesa', 'silla', 'cama'],
+            layout: ['distribución', 'distribucion', 'plano', 'espacio pequeño', 'espacio pequeno', 'aprovechar', 'organizar'],
+            remodel: ['remodel', 'piso', 'pared', 'reforma', 'renovar'],
+            ideas: ['ideas', 'inspiración', 'inspiracion', 'tendencia'],
+            design: ['diseñar', 'disenar', 'cómo se vería', 'como se veria', 'moderna', 'acogedor'],
+        });
+        if (what)
+            answers.what = what;
+        const space = inferByKeywords(goal, {
+            living: ['sala', 'living', 'comedor'],
+            bedroom: ['dormitorio', 'cuarto', 'habitación', 'habitacion', 'recámara', 'recamara'],
+            kitchen: ['cocina'],
+            bath: ['baño', 'bano'],
+            office: ['oficina', 'escritorio', 'estudio'],
+        });
+        if (space)
+            answers.space = space;
+        const style = inferByKeywords(goal, {
+            minimal: ['minimalista', 'simple', 'limpio'],
+            cozy: ['acogedor', 'cálid', 'calid', 'rústic', 'rustic'],
+            boho: ['boho', 'bohemio', 'plantas'],
+            modern: ['moderno', 'moderna', 'contemporán', 'contemporan', 'industrial'],
+        });
+        if (style)
+            answers.style = style;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
-        const space = chosen(home.questions[0], answers);
-        const style = chosen(home.questions[1], answers);
-        const room = space.idk ? 'la sala' : space.label.toLowerCase();
+        const what = chosen(home.questions[0], answers);
+        const space = chosen(home.questions[1], answers);
+        const style = chosen(home.questions[2], answers);
+        const kind = what.idk ? 'design' : what.id;
+        const room = kind === 'garden' ? 'tu exterior' : space.idk ? 'la sala' : space.label.toLowerCase();
         const look = style.idk ? 'acogedor' : style.label.toLowerCase();
+        if (kind === 'ideas') {
+            return {
+                experience: 'home',
+                goal,
+                steps: [
+                    step('ideas', 'image.generate', `Buscar ideas para ${room}`, { input: { count: 3, brief: `${room}, estilo ${look}` } }),
+                    step('tips', 'text.generate', 'Explicarte cómo lograrlo', { dependsOn: ['ideas'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
+                ],
+                explainToUser: `Voy a buscar tres ideas para ${room} en estilo ${look} y te explico cómo lograrlas.${decided(style.idk, 'elegí un estilo acogedor')}`,
+            };
+        }
+        if (kind === 'layout') {
+            return {
+                experience: 'home',
+                goal,
+                steps: [
+                    step('look', 'vision.describe', 'Mirar la foto del espacio', { input: { kind: 'describe' } }),
+                    step('plan', 'text.generate', 'Proponer una distribución mejor', { dependsOn: ['look'], input: { kind: 'layout', brief: room } }),
+                    step('view', 'image.space_restyle', 'Mostrarte cómo quedaría', { dependsOn: ['plan'], input: { count: 1, brief: `${room}, distribución nueva` } }),
+                ],
+                explainToUser: `Voy a mirar ${room}, proponerte una distribución que aproveche mejor el espacio y mostrarte cómo quedaría.`,
+            };
+        }
+        const action = kind === 'remodel' ? 'remodelar' : kind === 'furniture' ? 'probar muebles nuevos en' : kind === 'colors' ? 'cambiar los colores de' : kind === 'garden' ? 'diseñar' : 'rediseñar';
         return {
             experience: 'home',
             goal,
             steps: [
                 step('look', 'vision.describe', 'Mirar la foto del espacio', { input: { kind: 'describe' } }),
-                step('restyle', 'image.space_restyle', `Rediseñar ${room} en estilo ${look}`, { dependsOn: ['look'], input: { count: 2, brief: `${room}, estilo ${look}` } }),
+                step('restyle', 'image.space_restyle', `${action.replace(/^./, (c) => c.toUpperCase())} ${room} en estilo ${look}`, { dependsOn: ['look'], input: { count: 2, brief: `${room}, estilo ${look}` } }),
                 step('list', 'text.generate', 'Armar la lista de cambios y compras', { dependsOn: ['restyle'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
             ],
-            explainToUser: `Voy a rediseñar ${room} en un estilo ${look}, en dos propuestas, y te dejo la lista de cambios y compras.${decided(space.idk, 'empiezo por la sala')}${decided(style.idk, 'elegí un estilo acogedor')}`,
+            explainToUser: `Voy a ${action} ${room} en un estilo ${look}, en dos propuestas, y te dejo la lista de cambios y compras.${decided(what.idk, 'empiezo por rediseñarlo')}${decided(space.idk && kind !== 'garden', 'empiezo por la sala')}${decided(style.idk, 'elegí un estilo acogedor')}`,
         };
     },
 };
