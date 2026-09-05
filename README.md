@@ -42,7 +42,7 @@ Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
 - **Backend:** Firebase — Authentication (anónimo, email/contraseña, Google), Firestore, Storage, Cloud Functions (Node 20)
 - **IA:** Cloud Functions que llaman a **Gemini** (`gemini-3-pro-image-preview`) para generar el avatar del perfil WEE y reemplazar personas en fotos (`functions/src/`)
 - **Media:** Cloudinary (transformaciones de imagen por URL), `react-native-compressor`, `expo-av`
-- **Builds y actualizaciones:** EAS Build + `expo-updates` (actualizaciones OTA sin pasar por las tiendas)
+- **Builds:** Gradle local para Android (sin cuenta de Expo, sin EAS, sin Android Studio). `expo-updates` está desactivado en `app.json`; EAS y las actualizaciones OTA quedan como opción futura
 - **Web:** Metro bundler; landing y páginas legales estáticas en `public/` (Firebase Hosting / Vercel)
 
 > **Expo Go no funciona con este proyecto.** Usa módulos nativos (`@react-native-google-signin`, `expo-notifications`, `expo-media-library`, `react-native-compressor`, `expo-updates`). Para móvil se necesita un **development build** (ver más abajo).
@@ -84,7 +84,7 @@ firebase deploy --only firestore,storage
 
 ## Puesta en marcha
 
-Requisitos: Node 20+ y npm. Para móvil, además, cuenta en [expo.dev](https://expo.dev) y la CLI de EAS.
+Requisitos: Node 20+ y npm. Para Android, además, JDK 17 y el Android SDK (ver más abajo). No hace falta cuenta de Expo.
 
 ```bash
 git clone https://github.com/geovetlf/wee-app.git
@@ -101,28 +101,35 @@ npx expo start --web
 
 Abre `http://localhost:8081`. Cada cambio se recarga solo.
 
-### Android / iOS — compilar una vez, iterar al instante
+### Android — compilar una vez, iterar al instante (sin cuenta de Expo)
 
-El development build es un "contenedor" con los módulos nativos. Se compila **una sola vez**; después el código JS llega al dispositivo por WiFi en segundos. Solo hay que recompilar si cambian dependencias nativas o `app.json`.
+En la PC: **JDK 17** y el **Android SDK** (bastan las *command-line tools*; no hace falta Android Studio) con `ANDROID_HOME` apuntando a él y `platform-tools` en el PATH. En el celular: *Opciones de desarrollador → Depuración USB* (en Xiaomi/HyperOS, además *Instalar vía USB* y *Depuración USB (ajustes de seguridad)*).
 
-```bash
-npm install -g eas-cli
-eas login
-eas build --profile development --platform android   # genera un APK instalable
-npx expo start --dev-client                           # conecta el dispositivo por WiFi
-```
-
-Para iOS desde Windows no hay compilación local: se usa EAS Build en la nube y hace falta cuenta Apple Developer para instalar en un iPhone.
-
-### Actualizar las apps publicadas sin pasar por las tiendas
+El development build es un "contenedor" con los módulos nativos. Se compila **una sola vez**; después el código JS llega al celular en segundos. Solo hay que recompilar si cambian dependencias nativas o `app.json`.
 
 ```bash
-eas update --branch production --message "descripción del cambio"
+npx expo prebuild --platform android --no-install   # genera android/ (ignorada por git, regenerable)
+npm run android:build                                # APK debug, solo arm64-v8a
+npm run android:install                              # instala por USB (adb install -r)
+adb reverse tcp:8081 tcp:8081                        # Metro llega al celular por el cable, sin WiFi
+npx expo start --dev-client                          # Metro para celular y web
 ```
 
-Envía el JS nuevo a iOS y Android a la vez. Solo los cambios nativos requieren un build nuevo y resubir a las tiendas.
+Luego abrí la app en el celular y elegí `http://localhost:8081`, o lanzala ya conectada:
 
-> **Pendiente:** `app.json` y `eas.json` todavía apuntan a la cuenta de Expo y al Apple ID del desarrollador anterior (`owner`, `extra.eas.projectId`, `updates.url`, `submit.production.ios`). Hay que reapuntarlos a la cuenta actual antes del primer build.
+```bash
+adb shell am start -a android.intent.action.VIEW -d "wee://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+```
+
+La primera compilación es larga (descarga Gradle, dependencias y el NDK; ~45 min si se compilan las 4 arquitecturas). `android:build` compila solo `arm64-v8a`, así que las siguientes tardan mucho menos.
+
+### iOS
+
+Desde Windows no hay compilación local: hace falta una Mac con Xcode, o un servicio en la nube con Macs (EAS Build, Codemagic, GitHub Actions), y una cuenta Apple Developer para instalar en un iPhone. Pendiente de decidir.
+
+### EAS y actualizaciones OTA (opcional, no configurado)
+
+`expo-updates` está **desactivado** (`app.json` → `updates.enabled: false`): `app.json` y `eas.json` todavía referencian la cuenta de Expo y el Apple ID del desarrollador anterior (`owner`, `extra.eas.projectId`, `submit.production.ios`). Si algún día se usa EAS, hay que reapuntar esos campos a la cuenta actual antes del primer build.
 
 ---
 
