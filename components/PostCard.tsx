@@ -20,6 +20,7 @@ import {
 import { Image } from 'expo-image';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import HowIMadeIt from './HowIMadeIt';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import ShareablePostCard from './ShareablePostCard';
@@ -1142,6 +1143,7 @@ const PostCard: React.FC<PostCardProps> = ({
               ))}
             </View>
           )}
+          <HowIMadeIt post={displayPost} />
         </TouchableOpacity>
         {/* Video rendered outside the content TouchableOpacity so taps reach onVideoPress */}
         {displayPost.videoUrl && onVideoPress && renderMedia()}

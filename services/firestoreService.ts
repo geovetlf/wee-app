@@ -44,6 +44,11 @@ export interface Post {
   videoUrl?: string;
   poll?: PostPoll; // Encuesta opcional
 
+  // === Cómo lo hice (creaciones con IA) ===
+  aiTools?: string[]; // Herramientas de IA usadas (ej. ["Kling", "ElevenLabs"])
+  aiPrompt?: string; // Prompt que usó el autor (se puede copiar)
+  aiProcess?: string; // Breve explicación del proceso
+
   // === NUEVO: Sistema de comunidades ===
   communityId?: string; // ID de la comunidad (requerido para nuevos posts)
   communitySlug?: string; // Slug para navegación rápida

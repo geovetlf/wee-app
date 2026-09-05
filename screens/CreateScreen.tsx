@@ -61,12 +61,27 @@ const CreateScreen: React.FC = () => {
   const { triggerScrollToTop, triggerRefresh } = useScroll();
   const routeParams = (route.params as any) || {};
   const presetCommunitySlug = routeParams.communitySlug || null;
+  // Tipo elegido en la hoja Crear (post | weel | image | video | text | question)
+  const presetKind: string | null = routeParams.kind || null;
+  const composerPlaceholder =
+    presetKind === 'question' ? '¿Qué quieres preguntarle a la comunidad?' :
+    presetKind === 'weel' ? 'Cuenta qué creaste para tu Weël y con qué IA…' :
+    presetKind === 'video' ? 'Cuenta qué creaste y con qué IA…' :
+    presetKind === 'image' ? 'Muestra tu imagen y cómo la hiciste…' :
+    presetKind === 'text' ? 'Comparte un texto, un prompt o una idea…' :
+    '¿Qué está pasando?';
 
   const [postText, setPostText] = useState('');
   const [attachedMedia, setAttachedMedia] = useState<MediaItem[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [poll, setPoll] = useState<Poll | null>(null);
+
+  // "Cómo lo hice": herramientas de IA, prompt y proceso (opcional)
+  const [showHowIMadeIt, setShowHowIMadeIt] = useState(presetKind === 'weel' || presetKind === 'video' || presetKind === 'image');
+  const [aiToolsText, setAiToolsText] = useState('');
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiProcess, setAiProcess] = useState('');
 
   const [faceSwapLoading, setFaceSwapLoading] = useState(false);
 
@@ -473,6 +488,9 @@ const CreateScreen: React.FC = () => {
         .map(m => m.aspectRatio || 4 / 3);
 
       // Crear el post en Firestore (usar uid del perfil activo)
+      // Herramientas de IA: "Kling, ElevenLabs" -> ["Kling", "ElevenLabs"]
+      const aiToolsList = aiToolsText.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 6);
+
       const postData: any = {
         userId: userProfile?.uid || user.uid,
         content: postText.trim(),
@@ -480,6 +498,9 @@ const CreateScreen: React.FC = () => {
         imageUrlsThumbnails: thumbnailUrls,
         ...(imageUrls.length > 0 ? { imageAspectRatios } : {}),
         ...(videoUrl ? { videoUrl } : {}),
+        ...(aiToolsList.length > 0 ? { aiTools: aiToolsList } : {}),
+        ...(aiPrompt.trim() ? { aiPrompt: aiPrompt.trim() } : {}),
+        ...(aiProcess.trim() ? { aiProcess: aiProcess.trim() } : {}),
         likes: 0,
         comments: 0,
         shares: 0,
@@ -552,7 +573,7 @@ const CreateScreen: React.FC = () => {
         style={[styles.textInput, {
           color: theme.colors.text,
         }]}
-        placeholder="¿Qué está pasando?"
+        placeholder={composerPlaceholder}
         placeholderTextColor={theme.colors.textSecondary}
         value={postText}
         onChangeText={setPostText}
@@ -561,6 +582,52 @@ const CreateScreen: React.FC = () => {
         textAlignVertical="top"
         autoFocus={false}
       />
+    </View>
+  );
+
+  // Sección "Cómo lo hice": convierte la publicación en algo que también enseña
+  const renderHowIMadeIt = () => (
+    <View style={[styles.howBox, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
+      <TouchableOpacity style={styles.howHeader} onPress={() => setShowHowIMadeIt((v) => !v)} activeOpacity={0.7}>
+        <Text style={styles.howEmoji}>🤖</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.howTitle, { color: theme.colors.text }]}>Cómo lo hice</Text>
+          <Text style={[styles.howHint, { color: theme.colors.textSecondary }]}>Herramientas de IA, prompt y proceso (opcional)</Text>
+        </View>
+        <Ionicons name={showHowIMadeIt ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
+      {showHowIMadeIt && (
+        <View style={styles.howBody}>
+          <TextInput
+            style={[styles.howInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+            placeholder="Herramientas de IA (ej. Kling, ElevenLabs)"
+            placeholderTextColor={theme.colors.textSecondary}
+            value={aiToolsText}
+            onChangeText={setAiToolsText}
+            maxLength={120}
+          />
+          <TextInput
+            style={[styles.howInput, styles.howInputMultiline, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+            placeholder="Prompt que usaste (otros podrán copiarlo)"
+            placeholderTextColor={theme.colors.textSecondary}
+            value={aiPrompt}
+            onChangeText={setAiPrompt}
+            multiline
+            maxLength={1000}
+            textAlignVertical="top"
+          />
+          <TextInput
+            style={[styles.howInput, styles.howInputMultiline, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+            placeholder="Proceso: pasos, ajustes, tips"
+            placeholderTextColor={theme.colors.textSecondary}
+            value={aiProcess}
+            onChangeText={setAiProcess}
+            multiline
+            maxLength={600}
+            textAlignVertical="top"
+          />
+        </View>
+      )}
     </View>
   );
 
@@ -946,6 +1013,7 @@ const CreateScreen: React.FC = () => {
               {renderTextInput()}
               {renderMediaPreview()}
               {renderPoll()}
+              {renderHowIMadeIt()}
             </View>
           </View>
         </ScrollView>
@@ -1020,6 +1088,43 @@ const CreateScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  howBox: {
+    marginTop: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  howHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    padding: SPACING.md,
+  },
+  howEmoji: {
+    fontSize: scale(18),
+  },
+  howTitle: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  howHint: {
+    fontSize: FONT_SIZE.xs,
+  },
+  howBody: {
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.md,
+  },
+  howInput: {
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZE.sm,
+  },
+  howInputMultiline: {
+    minHeight: scale(64),
+  },
   container: {
     flex: 1,
   },

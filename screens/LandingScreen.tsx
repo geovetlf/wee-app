@@ -48,6 +48,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { downloadVideoWithWatermark } from '../services/videoDownload';
+import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -685,6 +686,9 @@ const LandingScreen: React.FC = () => {
   const [trendingIndex, setTrendingIndex] = useState(0);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
+  // Filtro de "Creado por la comunidad": Publicaciones · Imágenes · Videos · Preguntas · Tutoriales
+  type FeedFilter = 'all' | 'images' | 'videos' | 'questions' | 'tutorials';
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -865,8 +869,8 @@ const LandingScreen: React.FC = () => {
 
   // Auto-switch to Weëls when opened with params
   useEffect(() => {
-    if (openWeelsParam && weelsCommunitySlug) {
-      setWeelsFilter(weelsCommunitySlug);
+    if (openWeelsParam) {
+      if (weelsCommunitySlug) setWeelsFilter(weelsCommunitySlug);
       setActiveTab('hids');
       tabScrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
       // Clear params to avoid re-triggering
@@ -876,7 +880,7 @@ const LandingScreen: React.FC = () => {
 
   // Hero content
   const HERO_PHRASES = useRef([
-    { title: 'Crea tu alter ego digital Weë', subtitle: 'World Encode Entity' },
+    { title: 'Tu creatividad no tiene límites.', subtitle: 'Crea con IA. Comparte con personas.' },
   ]);
 
   useEffect(() => {
@@ -1621,7 +1625,7 @@ const LandingScreen: React.FC = () => {
               : (highlightedTab === 'flow' ? theme.colors.text : theme.colors.textSecondary) },
             highlightedTab === 'flow' && styles.tabItemTextActive,
           ]}>
-            Wall
+            Comunidad
           </Text>
         </TouchableOpacity>
 
@@ -1647,6 +1651,97 @@ const LandingScreen: React.FC = () => {
     );
   }, [theme, scrollToTab]);
 
+  // Feed filtrado según el chip elegido
+  const filteredFeedPosts = useMemo(() => {
+    if (feedFilter === 'all') return feedPosts;
+    return feedPosts.filter((p) => {
+      const hasImages = !!(p.imageUrls && p.imageUrls.length > 0) || !!p.imageUrl;
+      const hasVideo = !!p.videoUrl;
+      const text = (p.content || '').toLowerCase();
+      switch (feedFilter) {
+        case 'images': return hasImages && !hasVideo;
+        case 'videos': return hasVideo;
+        case 'questions': return !!p.poll || text.includes('?') || text.includes('¿');
+        case 'tutorials': return !!p.aiProcess || !!p.aiPrompt || /tutorial|paso a paso|c[oó]mo (lo )?hice|c[oó]mo hacer/.test(text) || (p.tags || []).some((t) => /tutorial/i.test(t));
+        default: return true;
+      }
+    });
+  }, [feedPosts, feedFilter]);
+
+  const FEED_FILTERS: { id: FeedFilter; label: string }[] = [
+    { id: 'all', label: 'Publicaciones' },
+    { id: 'images', label: 'Imágenes' },
+    { id: 'videos', label: 'Videos' },
+    { id: 'questions', label: 'Preguntas' },
+    { id: 'tutorials', label: 'Tutoriales' },
+  ];
+
+  const renderFeedFilters = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.feedFiltersRow}
+      style={{ backgroundColor: theme.colors.background }}
+    >
+      {FEED_FILTERS.map((f) => {
+        const active = feedFilter === f.id;
+        return (
+          <TouchableOpacity
+            key={f.id}
+            style={[
+              styles.feedFilterChip,
+              { backgroundColor: active ? theme.colors.accent : theme.colors.surface },
+            ]}
+            onPress={() => setFeedFilter(f.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.feedFilterText, { color: active ? '#1F2937' : theme.colors.text }, active && styles.feedFilterTextActive]}>
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+
+  // Fila de Weëls: videos cortos de la comunidad; lleva a la pestaña Weëls
+  const renderWeelsRow = () => {
+    if (videoPosts.length === 0) return null;
+    return (
+      <View style={[styles.weelsSection, { backgroundColor: theme.colors.surface }]}>
+        <View style={styles.weelsHeader}>
+          <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>Weëls</Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => scrollToTab('hids')}>
+            <Text style={[styles.communityViewAll, { color: theme.colors.accent }]}>Ver todos</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weelsRow}>
+          {videoPosts.slice(0, 10).map((post) => {
+            const thumb = post.videoUrl && post.videoUrl.includes('cloudinary.com') ? cloudinaryVideoThumb(post.videoUrl, 300) : null;
+            return (
+              <TouchableOpacity
+                key={post.id}
+                style={[styles.weelCard, { backgroundColor: '#1F2937' }]}
+                onPress={() => scrollToTab('hids')}
+                activeOpacity={0.85}
+              >
+                {thumb ? (
+                  <Image source={{ uri: thumb }} style={styles.weelThumb} contentFit="cover" cachePolicy="memory-disk" />
+                ) : null}
+                <View style={styles.weelPlay}>
+                  <Ionicons name="play" size={scale(16)} color="#1F2937" />
+                </View>
+                {typeof post.views === 'number' && post.views > 0 && (
+                  <Text style={styles.weelViews}>{formatNumber(post.views)}</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
   const listHeader = useMemo(() => (
     <>
       {renderHero()}
@@ -1654,16 +1749,18 @@ const LandingScreen: React.FC = () => {
       {renderCommunityCategories()}
       {renderTrendingTopic()}
       {renderFeaturedOpinion()}
+      {renderWeelsRow()}
       {feedPosts.length > 0 && (
         <>
           <View style={[styles.feedSeparator, { backgroundColor: theme.colors.surface }]} />
           <View onLayout={(e) => { tabsOffsetY.current = e.nativeEvent.layout.y; }}>
             {renderTabBar()}
           </View>
+          {renderFeedFilters()}
         </>
       )}
     </>
-  ), [theme, trendingPosts, featuredPosts, trendingIndex, featuredIndex, feedPosts.length > 0, userCreatedCommunities, isMember, joiningId, user, renderTabBar, categoriesExpanded]);
+  ), [theme, trendingPosts, featuredPosts, trendingIndex, featuredIndex, feedPosts.length > 0, videoPosts, feedFilter, userCreatedCommunities, isMember, joiningId, user, renderTabBar, categoriesExpanded]);
 
   const renderPostItem = useCallback(({ item }: { item: Post }) => (
     <PostCard
@@ -1795,7 +1892,7 @@ const LandingScreen: React.FC = () => {
           <View style={{ width: SCREEN_WIDTH, height: '100%' }}>
             <FlatList
               ref={flatListRef}
-              data={feedPosts}
+              data={filteredFeedPosts}
               renderItem={renderPostItem}
               keyExtractor={(item: Post) => item.id || Math.random().toString()}
               ListHeaderComponent={listHeader}
@@ -1890,6 +1987,66 @@ const LandingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  weelsSection: {
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
+  },
+  weelsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+  },
+  weelsRow: {
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  weelCard: {
+    width: scale(96),
+    height: scale(132),
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  weelThumb: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  weelPlay: {
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weelViews: {
+    position: 'absolute',
+    left: SPACING.sm,
+    bottom: SPACING.sm,
+    color: 'white',
+    fontSize: scale(11),
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  feedFiltersRow: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  feedFilterChip: {
+    height: scale(32),
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    justifyContent: 'center',
+  },
+  feedFilterText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  feedFilterTextActive: {
+    fontWeight: FONT_WEIGHT.bold,
+  },
   container: {
     flex: 1,
   },

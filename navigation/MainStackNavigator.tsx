@@ -20,6 +20,7 @@ import AiAvatarScreen from '../screens/AiAvatarScreen';
 import ReelsScreen from '../screens/ReelsScreen';
 import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
+import WeeCreatorScreen from '../screens/WeeCreatorScreen';
 import WeeBizScreen from '../screens/WeeBizScreen';
 import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
 import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
@@ -35,7 +36,8 @@ export type MainStackParamList = {
   Main: undefined;
   Settings: undefined;
   Search: undefined;
-  Create: { communitySlug?: string } | undefined;
+  Create: { communitySlug?: string; kind?: string } | undefined;
+  WeeCreator: { category?: string } | undefined;
   PostDetail: {
     post: Post;
   };
@@ -193,6 +195,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="AiAvatar" component={AiAvatarScreen} />
       <Stack.Screen name="CreditStore" component={CreditStoreScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
+      <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
       <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
       <Stack.Screen name="WeeBizProfile" component={WeeBizProfileScreen} />

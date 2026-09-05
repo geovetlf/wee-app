@@ -33,8 +33,8 @@ const WebLandingScreen: React.FC = () => {
   useEffect(() => {
     const loadPosts = async () => {
       try {
-        const { posts: loadedPosts } = await postsService.getPostsPaginated(null, 20);
-        setPosts(loadedPosts);
+        const result = await postsService.getPublicPostsPaginated(20);
+        setPosts(result?.documents || []);
       } catch (error) {
         console.error('Error loading posts:', error);
       } finally {
@@ -50,6 +50,21 @@ const WebLandingScreen: React.FC = () => {
 
   const handlePostPress = (post: Post) => {
     navigation.navigate('PostDetail', { postId: post.id });
+  };
+
+  const handleComment = (postId: string) => {
+    navigation.navigate('PostDetail', { postId });
+  };
+
+  const handlePrivateMessage = (userId: string, userData?: any) => {
+    if (!user) {
+      navigation.navigate('Register');
+      return;
+    }
+    navigation.navigate('Inbox', {
+      screen: 'Conversation',
+      params: { otherUserId: userId, otherUserData: userData },
+    });
   };
 
   if (loading) {
@@ -93,8 +108,8 @@ const WebLandingScreen: React.FC = () => {
           >
             <View style={styles.heroContent}>
               <View style={styles.heroTextArea}>
-                <Text style={styles.heroTitle}>Crea tu alter ego digital Weë</Text>
-                <Text style={styles.heroSubtitle}>World Encode Entity</Text>
+                <Text style={styles.heroTitle}>Tu creatividad no tiene límites.</Text>
+                <Text style={styles.heroSubtitle}>Crea con IA. Comparte con personas.</Text>
               </View>
               <Image
                 source={require('../assets/images/hero-couple.png')}
@@ -151,8 +166,9 @@ const WebLandingScreen: React.FC = () => {
                 <PostCard
                   post={post}
                   onPress={() => handlePostPress(post)}
+                  onComment={handleComment}
+                  onPrivateMessage={handlePrivateMessage}
                   isVisible={true}
-                  isFocused={true}
                 />
               </div>
             ))

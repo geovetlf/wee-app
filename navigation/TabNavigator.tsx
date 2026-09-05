@@ -30,41 +30,75 @@ import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import { messagesService } from '../services/messagesService';
 import CustomTabBar from '../components/CustomTabBar';
+import CreateSheet, { CreateKind } from '../components/CreateSheet';
 
-// Create sigue como modal (fullscreen)
-const CreateTabPlaceholder = () => null;
+// La pestaña "Create" no tiene pantalla propia: si alguien llega aquí por URL
+// directa (web), lo devolvemos al inicio. Crear sigue siendo un modal fullscreen.
+const CreateTabPlaceholder = () => {
+  const navigation = useNavigation<any>();
+  useEffect(() => {
+    navigation.navigate('Home');
+  }, [navigation]);
+  return null;
+};
 
 const Tab = createBottomTabNavigator();
 
 type TabNavigatorNavigationProp = StackNavigationProp<MainStackParamList>;
 
-const CreateTabButton = (props: any) => {
+/**
+ * Botón "+": abre la hoja Crear (Publicación, Weël, Imagen, Video, Texto, Pregunta)
+ * y, si el usuario necesita una herramienta de IA, lo lleva a WEE Creator.
+ */
+// Se descartan href/onPress del tab bar: en web el href convertiría el botón en un
+// enlace real a /create (recarga la página) en vez de abrir la hoja Crear.
+const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
   const navigation = useNavigation<TabNavigatorNavigationProp>();
   const { user } = useAuth();
+  const [sheetVisible, setSheetVisible] = useState(false);
+
+  const rootNavigate = (screen: string, params?: object) => {
+    try {
+      const parentNav = navigation.getParent();
+      if (parentNav) {
+        (parentNav as any).navigate(screen, params);
+      } else {
+        (navigation as any).navigate(screen, params);
+      }
+    } catch (error) {
+      console.error(`Error navigating to ${screen}:`, error);
+    }
+  };
+
+  const handleSelect = (kind: CreateKind) => {
+    setSheetVisible(false);
+    setTimeout(() => rootNavigate('Create', { kind }), isWeb ? 0 : 150);
+  };
+
+  const handleOpenCreator = () => {
+    setSheetVisible(false);
+    setTimeout(() => rootNavigate('WeeCreator'), isWeb ? 0 : 150);
+  };
 
   return (
-    <TouchableOpacity
-      {...props}
-      onPress={() => {
-        if (!user) {
-          const parentNav = navigation.getParent();
-          if (parentNav) {
-            (parentNav as any).navigate('Register');
+    <>
+      <TouchableOpacity
+        {...props}
+        onPress={() => {
+          if (!user) {
+            rootNavigate('Register');
+            return;
           }
-          return;
-        }
-        try {
-          const parentNav = navigation.getParent();
-          if (parentNav) {
-            (parentNav as any).navigate('Create');
-          } else {
-            (navigation as any).navigate('Create');
-          }
-        } catch (error) {
-          console.error('Error navigating to Create:', error);
-        }
-      }}
-    />
+          setSheetVisible(true);
+        }}
+      />
+      <CreateSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        onSelect={handleSelect}
+        onOpenCreator={handleOpenCreator}
+      />
+    </>
   );
 };
 

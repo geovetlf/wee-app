@@ -8,9 +8,9 @@ import {
   Animated,
   Dimensions,
   Alert,
-  Image,
   Linking,
   Platform,
+  ScrollView,
 } from 'react-native';
 
 const isWeb = Platform.OS === 'web';
@@ -21,26 +21,31 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, ICON_SIZE, BORDER_RADIUS } from '../constants/design';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { weeBizService, Business } from '../services/weeBizService';
+import { useWallet } from '../hooks/useWallet';
+import { AI_APP_CATEGORIES } from '../constants/aiAppCategories';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DRAWER_WIDTH = SCREEN_WIDTH * 0.667;
+const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
 
 interface DrawerMenuProps {
   visible: boolean;
   onClose: () => void;
 }
 
-interface MenuItem {
-  label: string;
-  icon: string;
-  action: () => void;
-  separator?: boolean;
-  logoUrl?: string;
-}
-
+/**
+ * El único menú ☰ de WEE.
+ *
+ *   PERFIL        Perfil Real · Perfil WEE
+ *   EXPLORA       Comunidades · Weëls
+ *   WeeTalk
+ *   WEE CREATOR   AI Video · AI Imagen · … · Otras herramientas
+ *   💳 Credits · 🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
+ *
+ * Lo social no lleva nombre propio: el Home ya es la experiencia social.
+ */
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const { theme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
@@ -49,6 +54,10 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
 
   const [myBusiness, setMyBusiness] = useState<Business | null>(null);
+  const [creatorExpanded, setCreatorExpanded] = useState(true);
+
+  const activeUid = userProfile?.uid || user?.uid;
+  const { balance } = useWallet(activeUid);
 
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -85,162 +94,165 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
   useEffect(() => {
     if (isWeb) {
-      // Web: instant show/hide without animation
       translateX.setValue(visible ? 0 : -DRAWER_WIDTH);
       overlayOpacity.setValue(visible ? 1 : 0);
-    } else {
-      // Mobile: animated
-      if (visible) {
-        Animated.parallel([
-          Animated.timing(translateX, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: true,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 1,
-            duration: 250,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      } else {
-        Animated.parallel([
-          Animated.timing(translateX, {
-            toValue: -DRAWER_WIDTH,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
+      return;
     }
+    Animated.parallel([
+      Animated.timing(translateX, { toValue: visible ? 0 : -DRAWER_WIDTH, duration: visible ? 250 : 200, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: visible ? 1 : 0, duration: visible ? 250 : 200, useNativeDriver: true }),
+    ]).start();
   }, [visible]);
 
   const closeDrawer = () => {
     if (isWeb) {
-      // Web: instant close
       onClose();
-    } else {
-      // Mobile: animated
-      Animated.parallel([
-        Animated.timing(translateX, {
-          toValue: -DRAWER_WIDTH,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        onClose();
-      });
+      return;
     }
+    Animated.parallel([
+      Animated.timing(translateX, { toValue: -DRAWER_WIDTH, duration: 200, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start(() => onClose());
   };
 
-  const handleNavigate = (screen: string) => {
+  /** Cierra el menú y ejecuta la acción cuando terminó la animación. */
+  const after = (fn: () => void) => {
     closeDrawer();
-    // Small delay to let the drawer close animation play (not needed on web)
-    const delay = isWeb ? 0 : 220;
-    setTimeout(() => {
-      const tabNav = navigation.getParent();
-      if (tabNav) {
-        tabNav.navigate(screen);
-      } else {
-        navigation.navigate(screen);
-      }
-    }, delay);
+    setTimeout(fn, isWeb ? 0 : 220);
   };
 
-  const handleExploreCommunities = () => {
-    closeDrawer();
-    setTimeout(() => {
-      navigation.navigate('ExploreCommunities');
-    }, 220);
+  const navigateTab = (screen: string, params?: object) => {
+    const tabNav = navigation.getParent();
+    if (tabNav) tabNav.navigate(screen, params);
+    else navigation.navigate(screen, params);
+  };
+
+  const navigateRoot = (screen: string, params?: object) => {
+    // Rutas del stack principal (Create, Settings, CreditStore, WeeCreator, Reels…)
+    navigation.navigate(screen, params);
+  };
+
+  const showComingSoon = () => {
+    after(() => {
+      if (isWeb) window.alert('Próximamente: esta función estará disponible pronto.');
+      else Alert.alert('Próximamente', 'Esta función estará disponible pronto.');
+    });
   };
 
   const handleLogout = () => {
-    closeDrawer();
-    setTimeout(async () => {
+    after(async () => {
       try {
         await logout();
       } catch (error) {
         console.error('Error during logout:', error);
       }
-    }, 220);
+    });
   };
 
-  const showComingSoon = () => {
+  const requireLogin = () => {
+    after(() => navigateRoot('Login'));
+  };
+
+  // ── Perfil ──
+  const goRealProfile = () => {
+    if (!user) return requireLogin();
+    if (activeProfileType === 'real') return after(() => navigateTab('Profile'));
+    if (activeProfileType === 'biz') switchToBiz();
+    else switchIdentity();
+    setThemeMode('light');
     closeDrawer();
-    setTimeout(() => {
-      Alert.alert('Próximamente', 'Esta función estará disponible pronto.');
-    }, 220);
   };
 
-  const menuItems: MenuItem[] = [
-    ...(hasHidiProfile ? [{
-      label: activeProfileType === 'hidi' ? 'Cambiar a Real' : 'Cambiar a Weë',
-      icon: 'swap-horizontal',
-      action: () => {
-        switchIdentity();
-        const nextType = activeProfileType === 'real' ? 'hidi' : 'real';
-        setThemeMode(nextType === 'hidi' ? 'dark' : 'light');
-      },
-    }] : []),
-    { label: 'Contactos', icon: 'people-outline', action: showComingSoon },
-    { label: 'Comunidades', icon: 'globe-outline', action: handleExploreCommunities },
-    { label: 'WeëTalk', icon: 'chatbubble-outline', action: () => handleNavigate('Inbox') },
-    // Créditos oculto temporalmente - requiere In-App Purchases para App Store
-    // { label: 'Créditos', icon: 'wallet-outline', action: () => handleNavigate('Wallet') },
-    { label: 'Reweërds', icon: 'gift-outline', action: showComingSoon },
-    { label: 'Weë Biz', icon: 'business-outline', action: () => {
+  const goWeeProfile = () => {
+    if (!user) return requireLogin();
+    if (!hasHidiProfile) return after(() => navigateRoot('HidiCreation'));
+    if (activeProfileType === 'hidi') return after(() => navigateTab('Profile'));
+    if (activeProfileType === 'biz') {
+      switchToBiz();
+      setThemeMode('light');
       closeDrawer();
-      setTimeout(() => navigation.navigate('WeeBiz' as never), 220);
-    } },
-    ...(activeProfileType === 'biz' ? [{
-      label: 'Volver a mi perfil',
-      icon: 'person-outline',
-      action: () => {
-        switchToBiz();
-        setThemeMode('light');
-      },
-    }] : []),
-    ...(myBusiness && activeProfileType !== 'biz' ? [{
-      label: myBusiness.name,
-      icon: 'storefront-outline',
-      logoUrl: myBusiness.logo || undefined,
-      action: () => {
-        switchToBiz();
-        setThemeMode('biz');
-        closeDrawer();
-      },
-    }] : []),
-    { label: 'Términos y condiciones', icon: 'document-text-outline', action: () => {
-      closeDrawer();
-      Linking.openURL('https://wee.zone/terms');
-    }, separator: true },
-    { label: 'Política de privacidad', icon: 'shield-checkmark-outline', action: () => {
-      closeDrawer();
-      Linking.openURL('https://wee.zone/privacy');
-    }},
-    { label: 'Cerrar sesión', icon: 'log-out-outline', action: handleLogout },
-  ];
+      return;
+    }
+    switchIdentity();
+    setThemeMode('dark');
+    closeDrawer();
+  };
+
+  const goBizProfile = () => {
+    if (activeProfileType === 'biz') return after(() => navigateTab('Profile'));
+    switchToBiz();
+    setThemeMode('biz');
+    closeDrawer();
+  };
+
+  // ── Explora ──
+  const goCommunities = () => after(() => navigation.navigate('ExploreCommunities'));
+  // Weëls vive en el Home (pestaña "Weëls" del Landing): abrimos el Home y saltamos a esa pestaña.
+  const goWeels = () => after(() => navigateTab('Home', { screen: 'Landing', params: { openWeels: true } }));
+  const goWeeTalk = () => after(() => navigateTab('Inbox'));
+
+  // ── WEE Creator ──
+  const goCreator = (category?: string) => after(() => navigateRoot('WeeCreator', category ? { category } : undefined));
+
+  // ── Resto ──
+  const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());
+  const goNotifications = () => {
+    if (!user) return requireLogin();
+    after(() => {
+      const tabNav = navigation.getParent();
+      if (tabNav) tabNav.navigate('Home', { screen: 'Notifications' });
+      else navigation.navigate('Notifications');
+    });
+  };
+  const goSettings = () => after(() => navigateRoot('Settings'));
+  const goHelp = () => after(() => Linking.openURL('https://wee.zone/support'));
 
   if (!visible) return null;
 
+  const accentTint = theme.colors.accent + '22';
+  const displayName = userProfile?.displayName || user?.displayName || 'Invitado';
+  const isWee = activeProfileType === 'hidi';
+
+  const renderRow = (
+    emoji: string,
+    label: string,
+    onPress: () => void,
+    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean } = {},
+  ) => (
+    <TouchableOpacity
+      key={label}
+      style={[
+        opts.small ? styles.subRow : styles.row,
+        opts.active && { backgroundColor: accentTint },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.rowEmoji, opts.small && styles.subRowEmoji]}>{emoji}</Text>
+      <Text
+        style={[
+          opts.small ? styles.subRowText : styles.rowText,
+          { color: opts.danger ? theme.colors.error : theme.colors.text },
+          opts.active && styles.rowTextActive,
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      {opts.right}
+    </TouchableOpacity>
+  );
+
+  const renderSectionLabel = (label: string) => (
+    <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
+  );
+
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 50 }]} pointerEvents="box-none">
-      {/* Overlay */}
       <TouchableWithoutFeedback onPress={closeDrawer}>
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} />
       </TouchableWithoutFeedback>
 
-      {/* Drawer panel */}
       <Animated.View
         style={[
           styles.drawer,
@@ -251,19 +263,19 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           },
         ]}
       >
-        <View style={[styles.drawerContent, { paddingTop: insets.top + SPACING.lg }]}>
-          {/* User header - tap to go to profile */}
+        <ScrollView
+          contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + SPACING.md, paddingBottom: insets.bottom + SPACING.xl }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Cabecera: quién soy */}
           <TouchableOpacity
             style={[styles.userHeader, { borderBottomColor: theme.colors.border }]}
-            onPress={() => {
-              closeDrawer();
-              setTimeout(() => navigation.navigate('Profile' as never), 250);
-            }}
+            onPress={() => (user ? after(() => navigateTab('Profile')) : requireLogin())}
             activeOpacity={0.7}
           >
             {user ? (
               <AvatarDisplay
-                size={scale(56)}
+                size={scale(48)}
                 avatarType={userProfile?.avatarType || 'predefined'}
                 avatarId={userProfile?.avatarId || 'male'}
                 photoURL={typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined}
@@ -271,50 +283,92 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 backgroundColor="#F5B731"
               />
             ) : (
-              <View style={{ width: scale(56), height: scale(56), borderRadius: scale(28), backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' }}>
-                <Ionicons name="person-circle-outline" size={scale(40)} color="#9CA3AF" />
+              <View style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.surface }]}>
+                <Ionicons name="person-circle-outline" size={scale(36)} color={theme.colors.textSecondary} />
               </View>
             )}
             <View style={styles.userInfo}>
               <Text style={[styles.userName, { color: theme.colors.text }]} numberOfLines={1}>
-                {userProfile?.displayName || user?.displayName || 'Usuario'}
+                {displayName}
+              </Text>
+              <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                {!user ? 'Toca para iniciar sesión' : isWee ? 'Perfil WEE activo' : activeProfileType === 'biz' ? 'Perfil Biz activo' : 'Perfil Real activo'}
               </Text>
             </View>
+            <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
-          {/* Menu items */}
-          <View style={styles.menuList}>
-            {menuItems.map((item, index) => (
-              <React.Fragment key={item.label}>
-                {item.separator && <View style={[styles.separator, { backgroundColor: theme.colors.border }]} />}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={item.action}
-                  activeOpacity={0.7}
-                >
-                  {item.logoUrl ? (
-                    <Image
-                      source={{ uri: item.logoUrl }}
-                      style={{ width: ICON_SIZE.lg, height: ICON_SIZE.lg, borderRadius: ICON_SIZE.lg / 2 }}
-                    />
-                  ) : (
-                    <Ionicons
-                      name={item.icon as any}
-                      size={ICON_SIZE.lg}
-                      color={item.label === 'Cerrar sesión' ? theme.colors.error : (activeProfileType === 'biz' ? '#7C3AED' : activeProfileType === 'hidi' ? '#22C55E' : '#F5B731')}
-                    />
-                  )}
-                  <Text style={[
-                    styles.menuItemText,
-                    { color: item.label === 'Cerrar sesión' ? theme.colors.error : theme.colors.text },
-                  ]}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              </React.Fragment>
-            ))}
+          {/* PERFIL */}
+          {renderSectionLabel('PERFIL')}
+          {renderRow('👤', 'Perfil Real', goRealProfile, { active: !!user && activeProfileType === 'real' })}
+          {renderRow('🎭', hasHidiProfile || !user ? 'Perfil WEE' : 'Crear mi perfil WEE', goWeeProfile, {
+            active: isWee,
+            right: !hasHidiProfile && user ? (
+              <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
+                <Text style={styles.tagText}>Nuevo</Text>
+              </View>
+            ) : undefined,
+          })}
+          {myBusiness && renderRow('🏪', myBusiness.name, goBizProfile, { active: activeProfileType === 'biz' })}
+
+          {/* EXPLORA */}
+          {renderSectionLabel('EXPLORA')}
+          {renderRow('👥', 'Comunidades', goCommunities)}
+          {renderRow('📹', 'Weëls', goWeels)}
+
+          {renderRow('💬', 'WeeTalk', goWeeTalk)}
+
+          {/* WEE CREATOR */}
+          <View style={[styles.creatorBlock, { backgroundColor: accentTint }]}>
+            <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
+              <Text style={styles.rowEmoji}>🤖</Text>
+              <View style={styles.creatorTitles}>
+                <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>WEE Creator</Text>
+                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Herramientas de IA para crear</Text>
+              </View>
+              <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+            {creatorExpanded && (
+              <View style={styles.creatorList}>
+                {AI_APP_CATEGORIES.map((cat) => renderRow(cat.emoji, cat.name, () => goCreator(cat.id), { small: true }))}
+              </View>
+            )}
           </View>
-        </View>
+
+          {/* Credits y resto */}
+          {renderRow('💳', 'Credits', goCredits, {
+            right: user ? (
+              <View style={[styles.creditsBadge, { backgroundColor: theme.colors.accent }]}>
+                <Text style={styles.creditsBadgeText}>
+                  {balance === null ? '…' : `${balance.toLocaleString('es')} Credits`}
+                </Text>
+              </View>
+            ) : undefined,
+          })}
+          {renderRow('🔔', 'Notificaciones', goNotifications)}
+          {renderRow('🔖', 'Guardados', showComingSoon)}
+          {renderRow('⚙️', 'Configuración', goSettings)}
+          {renderRow('❓', 'Ayuda', goHelp)}
+
+          {/* Pie */}
+          <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
+            <TouchableOpacity onPress={() => after(() => Linking.openURL('https://wee.zone/terms'))} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Términos</Text>
+            </TouchableOpacity>
+            <Text style={[styles.footerDot, { color: theme.colors.textSecondary }]}>·</Text>
+            <TouchableOpacity onPress={() => after(() => Linking.openURL('https://wee.zone/privacy'))} activeOpacity={0.7}>
+              <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Privacidad</Text>
+            </TouchableOpacity>
+            {user && (
+              <>
+                <Text style={[styles.footerDot, { color: theme.colors.textSecondary }]}>·</Text>
+                <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
+                  <Text style={[styles.footerLink, { color: theme.colors.error }]}>Cerrar sesión</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </ScrollView>
       </Animated.View>
     </View>
   );
@@ -337,56 +391,133 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   drawerContent: {
-    flex: 1,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
   },
   userHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    paddingBottom: SPACING.lg,
-    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingBottom: SPACING.md,
+    marginBottom: SPACING.xs,
     borderBottomWidth: 1,
+  },
+  avatarPlaceholder: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   userInfo: {
     flex: 1,
-    gap: SPACING.xs,
+    gap: scale(1),
   },
   userName: {
-    fontSize: FONT_SIZE.xl,
+    fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.bold,
   },
-  profileBadgeRow: {
+  userMeta: {
+    fontSize: FONT_SIZE.xs,
+  },
+  sectionLabel: {
+    fontSize: scale(11),
+    fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: 0.6,
+    paddingHorizontal: SPACING.sm,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    gap: SPACING.md,
+    minHeight: scale(44),
+    paddingHorizontal: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
   },
-  profileBadge: {
-    alignSelf: 'flex-start',
+  rowEmoji: {
+    width: scale(24),
+    fontSize: scale(16),
+    textAlign: 'center',
+  },
+  rowText: {
+    flex: 1,
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  rowTextActive: {
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: scale(34),
+    paddingHorizontal: SPACING.sm,
+    paddingLeft: SPACING.lg,
+  },
+  subRowEmoji: {
+    width: scale(22),
+    fontSize: scale(13),
+  },
+  subRowText: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  creatorBlock: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingBottom: SPACING.xs,
+  },
+  creatorTitles: {
+    flex: 1,
+    gap: scale(1),
+  },
+  creatorHint: {
+    fontSize: FONT_SIZE.xs,
+  },
+  creatorList: {
+    paddingBottom: SPACING.xs,
+  },
+  tag: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: scale(2),
     borderRadius: BORDER_RADIUS.sm,
   },
-  profileBadgeText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
+  tagText: {
+    color: '#1F2937',
+    fontSize: scale(11),
+    fontWeight: FONT_WEIGHT.bold,
   },
-  menuList: {
-    paddingTop: SPACING.sm,
+  creditsBadge: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(3),
+    borderRadius: BORDER_RADIUS.sm,
   },
-  menuItem: {
+  creditsBadgeText: {
+    color: '#1F2937',
+    fontSize: scale(12),
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
-    paddingVertical: SPACING.md,
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    borderTopWidth: 1,
   },
-  menuItemText: {
-    fontSize: FONT_SIZE.md,
+  footerLink: {
+    fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.medium,
   },
-  separator: {
-    height: 1,
-    marginVertical: SPACING.sm,
+  footerDot: {
+    fontSize: FONT_SIZE.xs,
   },
 });
 

@@ -34,7 +34,12 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Comunidades | `CommunityScreen`, `communityService` |
 | Perfil WEE (identidad alterna) | `HidiCreationScreen`, `AiAvatarScreen`, `getHidiProfile` — "Hidi" es el nombre heredado |
 | Credits | `CreditStoreScreen`, `WalletScreen`, `creditsService` |
-| WEE Creator, menú ☰ con Creator, hoja Crear del +, "Cómo lo hice", prompts | no existen todavía; diseño en `design/canvas/` |
+| Menú ☰ único | `components/DrawerMenu.tsx` |
+| Hoja Crear del + | `components/CreateSheet.tsx`, botón en `navigation/TabNavigator.tsx`, `CreateScreen` recibe `kind` |
+| WEE Creator (AI Apps por categoría) | `screens/WeeCreatorScreen.tsx`, `constants/aiAppCategories.ts` (integraciones reales pendientes) |
+| "Cómo lo hice" y prompts | `Post.aiTools/aiPrompt/aiProcess` (`firestoreService`), `CreateScreen`, `components/HowIMadeIt.tsx` en `PostCard` |
+| Credits visibles en el header | `components/CreditsPill.tsx`, `hooks/useWallet.ts` |
+| Diseño de referencia | `design/canvas/` |
 
 Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a medias.
 

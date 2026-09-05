@@ -17,18 +17,21 @@ El código actual nace de una versión anterior del producto (red social anónim
 
 | Área de la visión | Hoy en el código | Estado |
 |---|---|---|
-| **Wave** (feed principal) | `HomeScreen` — feed paginado, categorías, votos acuerdo/desacuerdo, likes, reposts, follows | ✅ Base existente |
-| **Weels** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`) | ✅ Base existente (falta: renombrar, límite de 15 s, watermark de marca) |
-| **Weetalk** (chat) | `InboxScreen` / `ConversationScreen` — mensajes, audio, temas de chat | ✅ Base existente |
-| **Communities** | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService` | ✅ Base existente |
+| **Home** (feed + comunidades + Weëls) | `LandingScreen` (nativo) / `WebLandingScreen` (web) — banner "Tu creatividad no tiene límites", "Explora comunidades" (8 categorías sociales), fila de Weëls, pestaña **Comunidad** con filtros (Publicaciones · Imágenes · Videos · Preguntas · Tutoriales) | ✅ Implementado según `docs/UX.md` |
+| **Menú ☰ único** | `DrawerMenu` — Perfil Real / Perfil WEE, Comunidades, Weëls, WeeTalk, **WEE Creator** (con categorías), Credits, Notificaciones, Guardados, Configuración, Ayuda | ✅ Implementado |
+| **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a WEE Creator; `CreateScreen` recibe `kind` | ✅ Implementado |
+| **"Cómo lo hice"** (herramientas, prompt, proceso) | `CreateScreen` → `Post.aiTools / aiPrompt / aiProcess` → `HowIMadeIt` dentro de `PostCard` (prompt copiable) | ✅ Implementado |
+| **Credits siempre visibles** | `CreditsPill` en `Header` (`hooks/useWallet.ts`) → `CreditStoreScreen` / `WalletScreen` / `creditsService` | ✅ Implementado |
+| **WEE Creator** (hub de AI Apps por categoría) | `WeeCreatorScreen` + `constants/aiAppCategories.ts` — buscador "¿Qué quieres crear?", 10 categorías, "Disponible hoy: Avatar IA"; el resto muestra "Avísame cuando esté" | ⚠️ Pantalla lista; integraciones reales de AI Apps pendientes |
+| **Descubrimiento de IA** ("quiero hacer X" → herramientas recomendadas) | buscador de `WeeCreatorScreen` (`matchAiAppCategories`, por palabras clave) | ⚠️ Base |
+| **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`) | ✅ Base existente (falta: límite de 15 s y watermark de marca WEE) |
+| **WeeTalk** (chat) | `InboxScreen` / `ConversationScreen` — mensajes, audio, temas de chat | ✅ Base existente |
+| **Comunidades** (WEE Filmmakers, WEE Influencers, WEE Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
 | **Perfil doble (Real + WEE)** | `HidiCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (`Hidi` es el nombre interno heredado del perfil WEE) |
-| **Credits** | `CreditStoreScreen`, `WalletScreen`, `creditsService` — packs y costos por función de IA | ✅ Base existente |
-| Búsqueda, notificaciones push, landing web, páginas legales | `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
+| Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
 | WeeBiz (perfiles y productos de negocios) | `WeeBiz*Screen`, `weeBizService` | ⚠️ Heredado; no está en la visión actual, a evaluar |
-| **WEE Creator** (hub de apps de IA por categoría) | — | ❌ No existe aún |
-| **Descubrimiento de IA** ("quiero hacer X" → herramientas recomendadas) | — | ❌ No existe aún |
-| **WEE Influencer** (idea → guion → video → voz → subtítulos → thumbnail) | — | ❌ No existe aún |
-| IA dentro de Weetalk, marketplace, contenido promocionado | — | ❌ No existe aún |
+| Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de WEE Creator; "WEE Influencers" es una comunidad) | ❌ No existe aún |
+| Guardados, trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — ("Guardados" aparece en el menú como "Pronto") | ❌ No existe aún |
 
 Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
 
@@ -160,7 +163,7 @@ wee-app/
 ├── contexts/                # Auth, UserProfile, Theme, PushNotification, TabBar, Scroll
 ├── hooks/                   # useCommunities, useFollow, useLikes, useReposts, useVote, useResponsive…
 ├── navigation/              # Auth / Main / Home / Inbox / Profile stacks + TabNavigator
-├── screens/                 # Home (Wave), Reels (Weels), Inbox/Conversation (Weetalk), Community,
+├── screens/                 # Landing/Home, WeeCreator, Reels (Weëls), Inbox/Conversation (WeeTalk), Community,
 │                            # HidiCreation + AiAvatar (perfil WEE), CreditStore/Wallet, WeeBiz*, Search…
 ├── services/                # firestoreService, messagesService, communityService, creditsService,
 │                            # avatarGenerationService, storageService, cloudinaryService, videoDownload…
@@ -186,7 +189,8 @@ wee-app/
 
 ## Problemas conocidos
 
-- `screens/WebLandingScreen.tsx` llama a `postsService.getPostsPaginated(null, 20)`, que no existe; el método real es `getPublicPostsPaginated(limitCount, lastDoc)`. Por eso el feed de la landing web aparece vacío.
+- En web, `PushNotificationProvider` lanza `Notifications.removeNotificationSubscription is not a function` (lo atrapa el ErrorBoundary; no afecta el uso).
+- Con sesión cerrada, la landing lee `communities` y Firestore responde `permission-denied` (en dev aparece un diálogo "Error detectado").
 - `firestore.rules` compila con advertencias (funciones sin usar, variables que sombrean `request`).
 - Varios paquetes de Expo están por debajo de la versión esperada por el SDK 54 (`npx expo install --fix`).
 
