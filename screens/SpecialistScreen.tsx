@@ -8,6 +8,7 @@ import { getSpecialist, SpecialistAction, SpecialistExample } from '../constants
 import { creatorService, CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
 import CreatorShell from '../components/creator/CreatorShell';
 import BrainChatScreen from './BrainChatScreen';
+import BusinessScreen from './BusinessScreen';
 import SpecialistHero from '../components/creator/SpecialistHero';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
@@ -56,6 +57,7 @@ const SpecialistScreen: React.FC = () => {
     return null;
   }
   if (isBrain) return <BrainChatScreen />;
+  if (id === 'business') return <BusinessScreen />;
 
   const startFlow = (goal?: string, preset?: SpecialistAction['preset'], imageUri?: string) => {
     if (!user) {

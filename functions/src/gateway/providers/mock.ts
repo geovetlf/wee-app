@@ -129,6 +129,58 @@ const demoText = (kind: string, purpose: string, brief: string, ctx: GatewayCont
       ].join('\n');
     case 'cv':
       return `📄 CV · ${goal}\n\nPerfil: profesional con experiencia comprobada, orientado a resultados y trabajo en equipo.\n\nExperiencia:\n• Puesto reciente — logros medibles\n• Puesto anterior — responsabilidades clave\n\nHabilidades: comunicación, organización, herramientas digitales.\n\n${DEMO_NOTE}`;
+    case 'reply':
+      return `💬 Respuesta para tu cliente\n\n"¡Hola! Gracias por escribirnos 😊 Sí, tenemos justo lo que buscas. Te cuento los detalles y, si quieres, te lo reservo ahora mismo. ¿Para cuándo lo necesitas?"\n\nConsejo: responde en menos de una hora; los clientes que reciben respuesta rápida compran el doble.\n\n${DEMO_NOTE}`;
+    case 'schedule':
+      return [
+        `📅 Calendario de la semana · ${goal}`,
+        '',
+        'Lun 12:00 · Instagram · Foto del plato del día',
+        'Mar 19:00 · Facebook · Promo 2x1',
+        'Mié 18:00 · TikTok · Video corto detrás de cámaras',
+        'Jue 12:00 · Instagram · Tips del chef',
+        'Vie 19:00 · Facebook · Nuevo producto',
+        'Sáb 18:00 · TikTok · Reseña de un cliente',
+        'Dom 17:00 · Instagram · Resumen de la semana',
+        '',
+        'Todo queda programado; solo tienes que aprobar cada pieza.',
+        '',
+        DEMO_NOTE,
+      ].join('\n');
+    case 'published':
+      return `🚀 Publicación lista\n\nRedes: Instagram · Facebook · TikTok\nProgramada para hoy a las 19:00\n\nCuando tus redes habiliten sus permisos oficiales, Weë la publicará de verdad desde aquí.\n\n${DEMO_NOTE}`;
+    case 'metrics':
+      return [
+        `📊 Resultados de la semana · ${goal}`,
+        '',
+        '• 24 publicaciones (+40%)',
+        '• 125.4K personas alcanzadas (+60%)',
+        '• 2.8K interacciones (+35%)',
+        '• 186 mensajes recibidos (+70%)',
+        '',
+        'Qué funcionó: los videos cortos y las promos de martes.',
+        '',
+        'Qué hacer esta semana:',
+        '1. Publica 2 videos cortos más.',
+        '2. Responde los 12 mensajes pendientes hoy.',
+        '3. Repite la promo del martes con otro producto.',
+        '',
+        DEMO_NOTE,
+      ].join('\n');
+    case 'campaign':
+      return [
+        `📣 Campaña · ${goal}`,
+        '',
+        'Objetivo: más clientes esta semana.',
+        'Mensaje: "Ven a probarlo hoy: el sabor que todos comentan".',
+        'Piezas: 3 publicaciones, 1 video corto y 1 promo.',
+        'Calendario: martes, jueves y sábado a las 19:00.',
+        'Presupuesto sugerido: bajo (orgánico) o medio (con anuncios).',
+        '',
+        DEMO_NOTE,
+      ].join('\n');
+    case 'copy':
+      return `📱 Publicación lista · ${goal}\n\n"Hoy toca algo especial 🍽️ Ven a probar lo nuevo y cuéntanos qué te pareció. Te esperamos."\n\n#tunegocio #hechoconcariño #hoy\n\n${DEMO_NOTE}`;
     case 'analysis':
       return `🔎 Lo que entendí · ${goal}\n\nObjetivo: ${brief || 'avanzar con claridad'}.\nPúblico: personas como tus clientes actuales.\nPrioridad: algo concreto que puedas usar esta semana.\n\n${DEMO_NOTE}`;
     case 'answer':

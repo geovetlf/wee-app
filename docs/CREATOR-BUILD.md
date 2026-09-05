@@ -105,7 +105,7 @@ No un prototipo bonito: una aplicación navegable. Botones importantes funcionan
 | 5 | WEE Photo | ✅ Todas las acciones de la pantalla (mejorar, quitar objetos, fondo, restaurar, retoque, colorizar, transformar, crear imagen, no sé) con deducción por texto ("más nítida y con colores vivos" → no pregunta nada); la foto entra al flujo (subir/cambiar) y el resultado se muestra **antes / después** |
 | 6 | WEE Music | ✅ Canción, beat, jingle, voz, letra, mezcla y **videoclip propio** ("Crear tu video con IA": canción + escenas + videoclip sin salir de Weë Music); preguntas condicionales (estilo/ánimo solo cuando aplican, voz solo para narración); reproductor simulado en el resultado |
 | 7 | WEE Studio | ✅ Video desde una idea, animar una foto (con foto), video para redes, anuncio, historia, no sé; deduce tipo/estilo/dónde se publica del texto y pregunta "¿Dónde lo vas a publicar?" en lenguaje humano; resultado con play y duración |
-| 8 | WEE Business | 🔜 (con "Mis redes" simulado) |
+| 8 | WEE Business | ✅ Pantalla propia: atajos (Ideas, Marketing, Redes sociales, Analizar, Documentos, Vender más, Trabajo y carrera), **Mis redes sociales** (conectar/desconectar, simulado), "Weë está listo para ayudarte", calendario de publicaciones, mensajes de clientes con Responder, resultados de la semana; flujos de contenido, programar, publicar, responder, analizar, campaña, CV, presentación, plan e ideas |
 | 9 | WEE Chef | 🔜 |
 | 10 | WEE Home | 🔜 |
 | 11 | WEE Beauty | 🔜 |

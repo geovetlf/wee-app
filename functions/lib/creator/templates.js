@@ -553,40 +553,117 @@ const business = {
     defaultGoal: 'Hacer crecer mi negocio',
     questions: [
         q('what', '¿En qué te ayudo?', [
-            opt('idea', '💡 Ideas de negocio'),
-            opt('marketing', '📣 Marketing o publicidad'),
+            opt('idea', '💡 Ideas y estrategia'),
+            opt('content', '✨ Crear contenido para mis redes'),
+            opt('schedule', '📅 Programar publicaciones'),
+            opt('publish', '🚀 Publicar en mis redes'),
+            opt('reply', '💬 Responder a clientes'),
+            opt('analyze', '📊 Analizar resultados'),
+            opt('marketing', '📣 Una campaña o publicidad'),
             opt('cv', '📄 Mi CV'),
-            opt('deck', '📊 Una presentación'),
-            opt('plan', '🗺️ Un plan'),
+            opt('deck', '📽️ Una presentación'),
+            opt('plan', '🗺️ Un plan o documento'),
             IDK,
         ]),
         q('tone', '¿Qué tan formal?', [
             opt('casual', '😊 Cercano'),
             opt('pro', '💼 Profesional'),
             IDK,
-        ]),
+        ], true, (a) => { var _a; return !['schedule', 'publish', 'analyze'].includes((_a = a.what) !== null && _a !== void 0 ? _a : ''); }),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            reply: ['responder', 'respuesta', 'cliente', 'mensaje', 'comentario'],
+            schedule: ['programar', 'calendario', 'horario', 'fecha'],
+            publish: ['publicar', 'publica'],
+            analyze: ['analizar', 'análisis', 'analisis', 'resultados', 'métricas', 'metricas', 'estadística', 'estadistica'],
+            content: ['contenido', 'post', 'redes', 'instagram', 'tiktok', 'facebook'],
+            marketing: ['campaña', 'campana', 'publicidad', 'anuncio', 'promoción', 'promocion', 'vender', 'ventas'],
+            cv: ['cv', 'currículum', 'curriculum', 'hoja de vida', 'trabajo', 'carrera', 'entrevista', 'perfil profesional'],
+            deck: ['presentación', 'presentacion', 'inversor', 'pitch', 'diapositiva'],
+            plan: ['plan', 'documento', 'informe', 'propuesta'],
+            idea: ['idea', 'emprend', 'estrategia', 'crecer'],
+        });
+        if (what)
+            answers.what = what;
+        const tone = inferByKeywords(goal, {
+            pro: ['formal', 'profesional', 'inversor', 'corporativ', 'empresa'],
+            casual: ['cercano', 'amigable', 'informal', 'divertido'],
+        });
+        if (tone)
+            answers.tone = tone;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const what = chosen(business.questions[0], answers);
         const tone = chosen(business.questions[1], answers);
-        const piece = what.idk ? 'ideas para tu negocio' : what.label.toLowerCase();
         const voice = tone.idk ? 'profesional pero cercano' : tone.label.toLowerCase();
-        const steps = [
-            step('analysis', 'text.generate', 'Entender tu negocio y tu objetivo', { input: { kind: 'analysis', brief: piece } }),
-            step('doc', 'text.generate', what.id === 'cv' ? 'Redactar tu CV' : what.id === 'deck' ? 'Escribir la presentación' : `Preparar ${piece}`, { dependsOn: ['analysis'], input: { kind: what.id === 'cv' ? 'cv' : 'business', brief: `${piece}, tono ${voice}` } }),
-        ];
-        if (what.id === 'cv' || what.id === 'deck' || what.id === 'plan') {
-            steps.push(step('file', 'doc.render', what.id === 'deck' ? 'Armar las diapositivas' : 'Generar el documento listo para enviar', { dependsOn: ['doc'] }));
+        const kind = what.idk ? 'idea' : what.id;
+        const understand = step('analysis', 'text.generate', 'Entender tu negocio y tu objetivo', { input: { kind: 'analysis', brief: goal } });
+        let steps;
+        let explain;
+        switch (kind) {
+            case 'content':
+                steps = [
+                    understand,
+                    step('copy', 'text.generate', 'Escribir la publicación', { dependsOn: ['analysis'], input: { kind: 'copy', brief: `tono ${voice}` } }),
+                    step('image', 'image.generate', 'Crear la imagen para la publicación', { dependsOn: ['copy'], input: { count: 1 } }),
+                ];
+                explain = `Voy a entender tu negocio, escribir la publicación con un tono ${voice} y crear la imagen que la acompaña.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
+                break;
+            case 'schedule':
+                steps = [step('calendar', 'text.generate', 'Armar el calendario de publicaciones', { input: { kind: 'schedule', brief: goal } })];
+                explain = 'Voy a armar tu calendario de publicaciones de la semana, con día, hora y red para cada una.';
+                break;
+            case 'publish':
+                steps = [
+                    step('copy', 'text.generate', 'Preparar la publicación', { input: { kind: 'copy', brief: 'lista para publicar' } }),
+                    step('publish', 'text.generate', 'Dejarla lista en tus redes', { dependsOn: ['copy'], input: { kind: 'published', brief: goal } }),
+                ];
+                explain = 'Voy a preparar la publicación y dejarla lista en tus redes. Mientras las redes no habiliten sus permisos oficiales, la publicación es simulada.';
+                break;
+            case 'reply':
+                steps = [step('reply', 'text.generate', 'Escribir la respuesta para tu cliente', { input: { kind: 'reply', brief: `tono ${voice}` } })];
+                explain = `Voy a escribir una respuesta amable y clara para tu cliente, lista para enviar.${decided(tone.idk, 'uso un tono cercano y profesional')}`;
+                break;
+            case 'analyze':
+                steps = [step('metrics', 'text.generate', 'Revisar tus resultados y explicarlos', { input: { kind: 'metrics', brief: goal } })];
+                explain = 'Voy a revisar tus resultados, contarte qué funcionó y qué conviene hacer esta semana.';
+                break;
+            case 'marketing':
+                steps = [
+                    understand,
+                    step('campaign', 'text.generate', 'Diseñar la campaña', { dependsOn: ['analysis'], input: { kind: 'campaign', brief: `tono ${voice}` } }),
+                    step('visual', 'image.generate', 'Crear la imagen de la campaña', { dependsOn: ['campaign'], input: { count: 1 } }),
+                ];
+                explain = `Voy a entender tu negocio, diseñar la campaña con un tono ${voice} y crear su imagen principal.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
+                break;
+            case 'cv':
+                steps = [
+                    understand,
+                    step('cv', 'text.generate', 'Redactar tu CV', { dependsOn: ['analysis'], input: { kind: 'cv', brief: `tono ${voice}` } }),
+                    step('file', 'doc.render', 'Generar el documento listo para enviar', { dependsOn: ['cv'] }),
+                ];
+                explain = `Voy a entender tu experiencia y redactar tu CV con un tono ${voice}, listo para enviar.${decided(tone.idk, 'uso un tono profesional')}`;
+                break;
+            case 'deck':
+            case 'plan':
+                steps = [
+                    understand,
+                    step('doc', 'text.generate', kind === 'deck' ? 'Escribir la presentación' : 'Redactar el documento', { dependsOn: ['analysis'], input: { kind: 'business', brief: `tono ${voice}` } }),
+                    step('file', 'doc.render', kind === 'deck' ? 'Armar las diapositivas' : 'Generar el documento', { dependsOn: ['doc'] }),
+                ];
+                explain = `Primero entiendo tu negocio y después ${kind === 'deck' ? 'escribo la presentación y armo las diapositivas' : 'redacto el documento'} con un tono ${voice}.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
+                break;
+            default:
+                steps = [
+                    understand,
+                    step('ideas', 'text.generate', 'Proponer ideas y una estrategia', { dependsOn: ['analysis'], input: { kind: 'business', brief: `ideas para crecer, tono ${voice}` } }),
+                ];
+                explain = `Primero entiendo tu negocio y después te propongo ideas concretas y una estrategia para crecer.${decided(what.idk, 'empiezo por ideas concretas')}${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
         }
-        else if (what.id === 'marketing') {
-            steps.push(step('visual', 'image.generate', 'Crear una imagen para la campaña', { dependsOn: ['doc'], input: { count: 1 } }));
-        }
-        return {
-            experience: 'business',
-            goal,
-            steps,
-            explainToUser: `Primero entiendo tu negocio y después preparo ${piece} con un tono ${voice}.${decided(what.idk, 'empiezo por ideas concretas para crecer')}${decided(tone.idk, 'uso un tono profesional pero cercano')}`,
-        };
+        return { experience: 'business', goal, steps, explainToUser: explain };
     },
 };
 const brain = {
