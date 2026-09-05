@@ -34,7 +34,9 @@ const CreatorFlowScreen: React.FC = () => {
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   // Photo, Home y Beauty trabajan sobre una foto de la persona
-  const needsPhoto = ['photo', 'home', 'beauty'].includes(experience.id);
+  const needsPhoto =
+    ['photo', 'home', 'beauty'].includes(experience.id) ||
+    (experience.id === 'studio' && (params.preset?.optionId === 'animate' || /foto|imagen/i.test(params.goal || '')));
   const [imageUri, setImageUri] = useState<string | undefined>(params.imageUri);
   const [jobId, setJobId] = useState<string | null>(params.jobId || null);
   const [job, setJob] = useState<CreatorJob | null>(null);

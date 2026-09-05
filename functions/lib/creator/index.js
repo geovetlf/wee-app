@@ -134,7 +134,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
         for (const inferred of turn.inferred) {
             const question = templates_1.TEMPLATES[job.experienceId].questions.find((q) => q.id === inferred.questionId);
             if (question && !job.questions.some((q) => q.id === question.id))
-                job.questions = [...job.questions, question];
+                job.questions = [...job.questions, (0, templates_1.plainQuestion)(question)];
         }
     }
     if (turn.question) {

@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TEMPLATES = void 0;
+exports.TEMPLATES = exports.plainQuestion = void 0;
+/** Copia sin la condición, tal como se guarda y se envía a la app. */
+const plainQuestion = (question) => ({
+    id: question.id,
+    text: question.text,
+    options: question.options,
+    allowFreeText: question.allowFreeText,
+});
+exports.plainQuestion = plainQuestion;
 /** Devuelve el optionId cuya lista de palabras aparece en el texto. */
 const inferByKeywords = (text, table) => {
     const lower = text.toLowerCase();
@@ -26,12 +34,10 @@ const chosen = (question, answers) => {
 };
 /** Frase didáctica cuando la persona eligió "No sé": Weë decide y lo explica. */
 const decided = (idk, what) => (idk ? ` Como no estabas seguro, ${what}.` : '');
-const q = (id, text, options, allowFreeText = true) => ({
-    id,
+const q = (id, text, options, allowFreeText = true, when) => (Object.assign({ id,
     text,
     options,
-    allowFreeText,
-});
+    allowFreeText }, (when ? { when } : {})));
 // ─────────────────────────────────────────────────────────────────────────────
 const design = {
     name: 'Weë Design',
@@ -124,23 +130,70 @@ const studio = {
             opt('fun', '😂 Divertido'),
             SURPRISE,
         ]),
+        q('where', '¿Dónde lo vas a publicar?', [
+            opt('vertical', '📱 Instagram o TikTok'),
+            opt('horizontal', '▶️ YouTube'),
+            opt('square', '💬 WhatsApp o Facebook'),
+            IDK,
+        ], true, (a) => a.type !== 'animate'),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const type = inferByKeywords(goal, {
+            animate: ['animar', 'anima', 'animación de una foto', 'cobre vida', 'mi foto', 'una foto', 'imagen'],
+            promo: ['promocion', 'anuncio', 'publicidad', 'vender', 'oferta', 'negocio', 'restaurante', 'tienda', 'producto', 'comercial'],
+            story: ['historia', 'cuento', 'relato', 'escena por escena', 'película', 'pelicula'],
+            social: ['redes', 'instagram', 'tiktok', 'reel', 'youtube', 'saludo', 'mascota', 'presentación', 'presentacion'],
+        });
+        if (type)
+            answers.type = type;
+        const style = inferByKeywords(goal, {
+            fun: ['divertid', 'gracioso', 'humor', 'mascota'],
+            elegant: ['elegante', 'premium', 'lujo', 'sofisticad'],
+            impact: ['impact', 'épic', 'epic', 'potente', 'fuerte'],
+            warm: ['cercano', 'cálido', 'calido', 'familiar', 'saludo', 'especial'],
+        });
+        if (style)
+            answers.style = style;
+        const where = inferByKeywords(goal, {
+            vertical: ['instagram', 'tiktok', 'reel', 'historia de instagram', 'vertical'],
+            horizontal: ['youtube', 'horizontal', 'pantalla'],
+            square: ['whatsapp', 'facebook'],
+        });
+        if (where)
+            answers.where = where;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const type = chosen(studio.questions[0], answers);
         const style = chosen(studio.questions[1], answers);
+        const where = chosen(studio.questions[2], answers);
         const kind = type.idk ? 'un video para tus redes' : type.label.toLowerCase();
         const look = style.idk ? 'cercano y con ritmo' : style.label.toLowerCase();
+        const format = where.id === 'horizontal' ? 'horizontal para YouTube' : where.id === 'square' ? 'cuadrado para WhatsApp y Facebook' : 'vertical para Instagram y TikTok';
+        if (type.id === 'animate') {
+            return {
+                experience: 'studio',
+                goal,
+                steps: [
+                    step('look', 'vision.describe', 'Mirar tu foto', { input: { kind: 'describe' } }),
+                    step('motion', 'video.image_to_video', 'Darle movimiento a la foto', { dependsOn: ['look'], input: { brief: look } }),
+                    step('video', 'video.compose', 'Armar el video de 15 segundos con watermark Weë', { dependsOn: ['motion'] }),
+                ],
+                explainToUser: `Voy a mirar tu foto, darle movimiento con un estilo ${look} y armar un video de 15 segundos listo para compartir.${decided(style.idk, 'elegí un estilo cercano y con ritmo')}`,
+            };
+        }
         return {
             experience: 'studio',
             goal,
             steps: [
-                step('script', 'text.generate', 'Escribir el guion de 4 escenas', { input: { kind: 'script', brief: `${kind}, estilo ${look}, 15 segundos` } }),
+                step('script', 'text.generate', 'Escribir el guion de 4 escenas', { input: { kind: 'script', brief: `${kind}, estilo ${look}, 15 segundos, formato ${format}` } }),
                 step('frames', 'image.generate', 'Crear las imágenes de cada escena', { dependsOn: ['script'], input: { count: 4 } }),
                 step('voice', 'voice.tts', 'Grabar la narración', { dependsOn: ['script'] }),
                 step('music', 'music.generate', 'Elegir la música', { dependsOn: ['script'], input: { mood: look } }),
-                step('video', 'video.compose', 'Armar el video de 15 segundos con watermark Weë', { dependsOn: ['frames', 'voice', 'music'] }),
+                step('video', 'video.compose', `Armar el video ${format} de 15 segundos con watermark Weë`, { dependsOn: ['frames', 'voice', 'music'] }),
             ],
-            explainToUser: `Voy a escribir un guion corto, crear las imágenes, grabar la narración y armar ${kind} de 15 segundos con estilo ${look}.${decided(type.idk, 'lo preparo para tus redes')}${decided(style.idk, 'elegí un estilo cercano y con ritmo')}`,
+            explainToUser: `Voy a escribir un guion corto, crear las imágenes, grabar la narración y armar ${kind} de 15 segundos, ${format}, con estilo ${look}.${decided(type.idk, 'lo preparo para tus redes')}${decided(style.idk, 'elegí un estilo cercano y con ritmo')}${decided(where.idk, 'lo hago vertical, que sirve para Instagram y TikTok')}`,
         };
     },
 };
@@ -263,38 +316,128 @@ const music = {
     emoji: '🎵',
     defaultGoal: 'Música para mi contenido',
     questions: [
-        q('what', '¿Qué necesitas?', [
+        q('what', '¿Qué quieres crear?', [
             opt('song', '🎤 Una canción'),
-            opt('instrumental', '🎹 Música instrumental'),
-            opt('jingle', '📣 Un jingle'),
+            opt('instrumental', '🎹 Un beat o instrumental'),
+            opt('jingle', '📣 Un jingle para mi marca'),
             opt('voice', '🗣️ Una voz o narración'),
+            opt('lyrics', '📝 Una letra'),
+            opt('mix', '🎚️ Mezclar y masterizar mi canción'),
+            opt('video', '🎬 Un videoclip para mi canción'),
             IDK,
         ]),
+        q('style', '¿Qué estilo?', [
+            opt('pop', '🎵 Pop'),
+            opt('urban', '🔥 Reggaetón o urbano'),
+            opt('rock', '🎸 Rock'),
+            opt('ballad', '🎹 Balada'),
+            opt('electronic', '🎧 Electrónica'),
+            SURPRISE,
+        ], true, (a) => { var _a; return ['song', 'instrumental', 'jingle', 'video', 'lyrics', 'idk'].includes((_a = a.what) !== null && _a !== void 0 ? _a : 'idk'); }),
         q('mood', '¿Qué ánimo?', [
             opt('happy', '☀️ Alegre'),
             opt('calm', '🌙 Tranquilo'),
             opt('epic', '⚡ Épico'),
             opt('romantic', '💘 Romántico'),
             SURPRISE,
-        ]),
+        ], true, (a) => { var _a; return ['song', 'instrumental', 'jingle', 'video', 'idk'].includes((_a = a.what) !== null && _a !== void 0 ? _a : 'idk'); }),
+        q('voice', '¿Qué voz?', [
+            opt('female', '👩 Femenina'),
+            opt('male', '👨 Masculina'),
+            opt('neutral', '🤖 Neutra'),
+            SURPRISE,
+        ], true, (a) => a.what === 'voice'),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            video: ['videoclip', 'video clip', 'video con ia', 'video'],
+            mix: ['mezclar', 'masterizar', 'mezcla', 'máster', 'master'],
+            lyrics: ['letra'],
+            voice: ['voz', 'narración', 'narracion', 'locución', 'locucion', 'doblaje'],
+            jingle: ['jingle', 'marca', 'comercial', 'anuncio', 'negocio', 'restaurante', 'tienda'],
+            instrumental: ['beat', 'instrumental', 'pista', 'base musical'],
+            song: ['canción', 'cancion', 'tema', 'song'],
+        });
+        if (what)
+            answers.what = what;
+        const style = inferByKeywords(goal, {
+            urban: ['reggaet', 'urbano', 'trap', 'rap', 'hip hop', 'perreo'],
+            rock: ['rock', 'metal', 'punk'],
+            ballad: ['balada', 'lenta'],
+            electronic: ['electrónic', 'electronic', 'techno', 'house', 'edm'],
+            pop: ['pop'],
+        });
+        if (style)
+            answers.style = style;
+        const mood = inferByKeywords(goal, {
+            happy: ['alegre', 'feliz', 'fiesta', 'divertid', 'bailar'],
+            calm: ['tranquil', 'relaj', 'suave', 'calma', 'dormir'],
+            epic: ['épic', 'epic', 'poderos', 'motivador', 'gym', 'deporte'],
+            romantic: ['romántic', 'romantic', 'amor', 'enamorad'],
+        });
+        if (mood)
+            answers.mood = mood;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const what = chosen(music.questions[0], answers);
-        const mood = chosen(music.questions[1], answers);
-        const piece = what.idk ? 'una pista instrumental' : what.label.toLowerCase();
+        const style = chosen(music.questions[1], answers);
+        const mood = chosen(music.questions[2], answers);
+        const voice = chosen(music.questions[3], answers);
+        const genre = style.idk ? 'pop' : style.label.toLowerCase();
         const feel = mood.idk ? 'alegre' : mood.label.toLowerCase();
-        const steps = [
-            step('idea', 'text.generate', what.id === 'voice' ? 'Preparar el texto de la narración' : 'Escribir la idea y la letra', { input: { kind: what.id === 'voice' ? 'narration' : 'lyrics', brief: `${piece}, ánimo ${feel}` } }),
-            what.id === 'voice'
-                ? step('audio', 'voice.tts', 'Grabar la voz', { dependsOn: ['idea'] })
-                : step('audio', 'music.generate', `Crear ${piece}`, { dependsOn: ['idea'], input: { mood: feel } }),
-        ];
-        return {
-            experience: 'music',
-            goal,
-            steps,
-            explainToUser: `Voy a preparar ${piece} con un ánimo ${feel}.${decided(what.idk, 'empiezo por una pista instrumental')}${decided(mood.idk, 'elegí un ánimo alegre')}`,
-        };
+        const kind = what.idk ? 'song' : what.id;
+        const brief = `${genre}, ánimo ${feel}`;
+        let steps;
+        let explain;
+        switch (kind) {
+            case 'voice': {
+                const v = voice.idk ? 'una voz cálida y clara' : `una voz ${voice.label.toLowerCase()}`;
+                steps = [
+                    step('text', 'text.generate', 'Preparar el texto de la narración', { input: { kind: 'narration', brief: v } }),
+                    step('audio', 'voice.tts', 'Grabar la voz', { dependsOn: ['text'], input: { voice: voice.id } }),
+                ];
+                explain = `Voy a preparar el texto y grabarlo con ${v}.${decided(voice.idk, 'elegí una voz cálida y clara')}`;
+                break;
+            }
+            case 'lyrics':
+                steps = [step('lyrics', 'text.generate', 'Escribir la letra completa', { input: { kind: 'lyrics', brief } })];
+                explain = `Voy a escribir la letra completa, estilo ${genre}.${decided(style.idk, 'elegí un estilo pop')}`;
+                break;
+            case 'mix':
+                steps = [
+                    step('notes', 'text.generate', 'Escuchar tu canción y anotar la mezcla', { input: { kind: 'mixnotes', brief: goal } }),
+                    step('master', 'music.generate', 'Mezclar y masterizar', { dependsOn: ['notes'], input: { mode: 'master' } }),
+                ];
+                explain = 'Voy a escuchar tu canción, mezclarla y masterizarla para que suene profesional.';
+                break;
+            case 'video':
+                steps = [
+                    step('concept', 'text.generate', 'Escribir la idea y la letra', { input: { kind: 'lyrics', brief } }),
+                    step('song', 'music.generate', 'Crear la canción', { dependsOn: ['concept'], input: { mood: feel, genre } }),
+                    step('scenes', 'image.generate', 'Crear las escenas del videoclip', { dependsOn: ['concept'], input: { count: 4, brief } }),
+                    step('clip', 'video.compose', 'Armar el videoclip con tu canción', { dependsOn: ['song', 'scenes'] }),
+                ];
+                explain = `Voy a crear la canción (${genre}, ${feel}), las escenas y armar tu videoclip completo. No tienes que salir de Weë Music.${decided(style.idk, 'elegí un estilo pop')}${decided(mood.idk, 'con ánimo alegre')}`;
+                break;
+            case 'jingle':
+            case 'instrumental':
+                steps = [
+                    step('idea', 'text.generate', kind === 'jingle' ? 'Escribir la frase del jingle' : 'Definir la idea musical', { input: { kind: 'lyrics', brief } }),
+                    step('audio', 'music.generate', kind === 'jingle' ? 'Crear el jingle' : 'Crear el beat', { dependsOn: ['idea'], input: { mood: feel, genre } }),
+                ];
+                explain = `Voy a crear ${kind === 'jingle' ? 'un jingle corto y pegajoso' : 'un beat'} en estilo ${genre}, ánimo ${feel}.${decided(style.idk, 'elegí un estilo pop')}${decided(mood.idk, 'con ánimo alegre')}`;
+                break;
+            default:
+                steps = [
+                    step('lyrics', 'text.generate', 'Escribir la letra', { input: { kind: 'lyrics', brief } }),
+                    step('song', 'music.generate', 'Crear la canción', { dependsOn: ['lyrics'], input: { mood: feel, genre } }),
+                    step('cover', 'image.generate', 'Diseñar la portada', { dependsOn: ['lyrics'], input: { count: 1, brief } }),
+                ];
+                explain = `Voy a escribir la letra, crear la canción en estilo ${genre} con ánimo ${feel} y diseñar su portada.${decided(what.idk, 'empiezo por una canción')}${decided(style.idk, 'elegí un estilo pop')}${decided(mood.idk, 'con ánimo alegre')}`;
+        }
+        return { experience: 'music', goal, steps, explainToUser: explain };
     },
 };
 const beauty = {

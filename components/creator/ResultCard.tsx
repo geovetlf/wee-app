@@ -7,6 +7,9 @@ import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
+/** Forma de onda decorativa del reproductor simulado. */
+const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
+
 interface ResultCardProps {
   experienceName: string;
   job: CreatorJob;
@@ -26,12 +29,14 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   const [editing, setEditing] = useState(false);
   const [instruction, setInstruction] = useState('');
   const [chosen, setChosen] = useState<Record<string, number>>({});
+  const [playingId, setPlayingId] = useState<string | null>(null);
 
   // Frases de edición en lenguaje humano (docs/CREATOR-BUILD.md §14)
   const quickEdits = ['Hazlo más realista', 'Cámbiale el color', 'Más simple', 'Más llamativo'];
 
   const visuals = job.results.filter((r) => r.url);
-  const texts = job.results.filter((r) => r.content);
+  const audios = job.results.filter((r) => r.kind === 'audio');
+  const texts = job.results.filter((r) => r.content && r.kind !== 'audio');
 
   const submitEdit = () => {
     const text = instruction.trim();
@@ -67,7 +72,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                     key={uri.slice(0, 40) + index}
                     onPress={() => setChosen((prev) => ({ ...prev, [result.stepId]: index }))}
                     activeOpacity={0.85}
-                    style={[styles.variant, { borderColor: selected ? theme.colors.accent : theme.colors.border, borderWidth: selected ? 3 : 1 }]}
+                    style={[styles.variant, { width: result.urls!.length === 3 ? '31%' : '48%', borderColor: selected ? theme.colors.accent : theme.colors.border, borderWidth: selected ? 3 : 1 }]}
                     accessibilityLabel={`Propuesta ${index + 1}`}
                   >
                     <Image source={{ uri }} style={styles.variantImage} contentFit="cover" transition={200} />
@@ -93,6 +98,16 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                 </View>
               </View>
             </View>
+          ) : result.kind === 'video' ? (
+            <TouchableOpacity onPress={() => setPlayingId(playingId === result.stepId ? null : result.stepId)} activeOpacity={0.9} accessibilityLabel="Reproducir video">
+              <Image source={{ uri: result.url }} style={styles.visual} contentFit="cover" transition={200} />
+              <View style={styles.playOverlay}>
+                <Ionicons name={playingId === result.stepId ? 'pause' : 'play'} size={scale(24)} color="#1F2937" style={playingId === result.stepId ? undefined : { marginLeft: 3 }} />
+              </View>
+              <View style={styles.durationTag}>
+                <Text style={styles.durationText}>{playingId === result.stepId ? 'Vista previa · demo' : '0:15'}</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
             <Image source={{ uri: result.url }} style={styles.visual} contentFit="cover" transition={200} />
           )}
@@ -105,6 +120,34 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           </View>
         </View>
       ))}
+
+      {audios.map((result) => {
+        const playing = playingId === result.stepId;
+        return (
+          <View key={result.stepId} style={[styles.audioCard, { backgroundColor: theme.colors.text }]}>
+            <TouchableOpacity
+              onPress={() => setPlayingId(playing ? null : result.stepId)}
+              style={[styles.playButton, { backgroundColor: theme.colors.accent }]}
+              activeOpacity={0.85}
+              accessibilityLabel={playing ? 'Pausar' : 'Reproducir'}
+            >
+              <Ionicons name={playing ? 'pause' : 'play'} size={scale(20)} color="#1F2937" style={playing ? undefined : { marginLeft: 2 }} />
+            </TouchableOpacity>
+            <View style={styles.audioBody}>
+              <Text style={styles.audioTitle} numberOfLines={1}>{result.title}</Text>
+              <View style={styles.waveform}>
+                {WAVE.map((height, index) => (
+                  <View
+                    key={index}
+                    style={[styles.waveBar, { height, backgroundColor: playing && index < 9 ? theme.colors.accent : 'rgba(255,255,255,0.45)' }]}
+                  />
+                ))}
+              </View>
+              <Text style={styles.audioMeta}>{playing ? 'Reproduciendo · vista previa' : '0:32 · vista previa'}{result.demo ? ' (demo)' : ''}</Text>
+            </View>
+          </View>
+        );
+      })}
 
       {texts
         .filter((r) => !r.url)
@@ -272,11 +315,35 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
   },
   variant: {
-    width: '31%',
     minWidth: scale(96),
-    flexGrow: 1,
     borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
+  },
+  playOverlay: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
+    marginTop: -scale(26),
+    width: scale(52),
+    height: scale(52),
+    borderRadius: scale(26),
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationTag: {
+    position: 'absolute',
+    right: SPACING.sm,
+    bottom: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(3),
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(31,41,55,0.7)',
+  },
+  durationText: {
+    color: 'white',
+    fontSize: scale(10),
+    fontWeight: FONT_WEIGHT.bold,
   },
   variantImage: {
     width: '100%',
@@ -315,6 +382,43 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
     gap: SPACING.xs,
+  },
+  audioCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  playButton: {
+    width: scale(46),
+    height: scale(46),
+    borderRadius: scale(23),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioBody: {
+    flex: 1,
+    gap: scale(4),
+  },
+  audioTitle: {
+    color: 'white',
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  waveform: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 2,
+    height: scale(28),
+  },
+  waveBar: {
+    width: 3,
+    borderRadius: 2,
+  },
+  audioMeta: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FONT_SIZE.xs,
   },
   resultTitle: {
     fontSize: FONT_SIZE.sm,

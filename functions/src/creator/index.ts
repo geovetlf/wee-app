@@ -2,7 +2,7 @@ import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep } from './types';
 import { getPlanner } from './planner';
-import { TEMPLATES } from './templates';
+import { TEMPLATES, plainQuestion } from './templates';
 import { estimatePlanCredits, holdCredits, settleCredits } from './credits';
 import { runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
@@ -148,7 +148,7 @@ export const creatorChat = onCall(
       job.answers = [...job.answers, ...turn.inferred];
       for (const inferred of turn.inferred) {
         const question = TEMPLATES[job.experienceId].questions.find((q) => q.id === inferred.questionId);
-        if (question && !job.questions.some((q) => q.id === question.id)) job.questions = [...job.questions, question];
+        if (question && !job.questions.some((q) => q.id === question.id)) job.questions = [...job.questions, plainQuestion(question)];
       }
     }
     if (turn.question) {

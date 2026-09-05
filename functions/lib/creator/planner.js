@@ -36,9 +36,11 @@ exports.templatePlanner = {
                 inferred.push({ questionId, optionId, inferred: true });
             }
         }
-        const pending = template.questions.find((question) => !(question.id in record));
+        // Solo se hacen las preguntas que aplican a lo ya respondido (when)
+        const applicable = template.questions.filter((question) => !question.when || question.when(record));
+        const pending = applicable.find((question) => !(question.id in record));
         if (pending)
-            return { question: pending, inferred };
+            return { question: (0, templates_1.plainQuestion)(pending), inferred };
         return { plan: template.buildPlan(goal, record), inferred };
     },
 };

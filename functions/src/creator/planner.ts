@@ -1,5 +1,5 @@
 import { Answer, BrainTurn, ExperienceId, Question } from './types';
-import { TEMPLATES } from './templates';
+import { TEMPLATES, plainQuestion } from './templates';
 import { BRAIN_SYSTEM } from './prompts';
 import { runCapability } from '../gateway';
 import { GatewayContext } from '../gateway/types';
@@ -57,8 +57,10 @@ export const templatePlanner: Planner = {
       }
     }
 
-    const pending: Question | undefined = template.questions.find((question) => !(question.id in record));
-    if (pending) return { question: pending, inferred };
+    // Solo se hacen las preguntas que aplican a lo ya respondido (when)
+    const applicable = template.questions.filter((question) => !question.when || question.when(record));
+    const pending: Question | undefined = applicable.find((question) => !(question.id in record));
+    if (pending) return { question: plainQuestion(pending), inferred };
     return { plan: template.buildPlan(goal, record), inferred };
   },
 };

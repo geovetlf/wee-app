@@ -103,8 +103,8 @@ No un prototipo bonito: una aplicación navegable. Botones importantes funcionan
 | 3 | WEE Brain | ✅ `screens/BrainChatScreen.tsx`: chat grande con saludo, opciones numeradas, atajos (Tengo una idea… No sé cómo hacerlo), entrada con Adjuntar / Hablar / Buscar en internet, y derivación al especialista adecuado ("Ir a Weë Studio · Seguir aquí") |
 | 4 | WEE Design | ✅ "Diseña lo que imagines": Weë deduce del texto qué se diseña (auto, botella, logo, personaje…) y solo pregunta estilo y uso (§15); 3 propuestas visuales con "Elegida"; ediciones en lenguaje humano ("Hazlo más realista", "Cámbiale el color", "Más simple", "Más llamativo") |
 | 5 | WEE Photo | ✅ Todas las acciones de la pantalla (mejorar, quitar objetos, fondo, restaurar, retoque, colorizar, transformar, crear imagen, no sé) con deducción por texto ("más nítida y con colores vivos" → no pregunta nada); la foto entra al flujo (subir/cambiar) y el resultado se muestra **antes / después** |
-| 6 | WEE Music | 🔜 (con "Crear tu video con IA" propio) |
-| 7 | WEE Studio | 🔜 |
+| 6 | WEE Music | ✅ Canción, beat, jingle, voz, letra, mezcla y **videoclip propio** ("Crear tu video con IA": canción + escenas + videoclip sin salir de Weë Music); preguntas condicionales (estilo/ánimo solo cuando aplican, voz solo para narración); reproductor simulado en el resultado |
+| 7 | WEE Studio | ✅ Video desde una idea, animar una foto (con foto), video para redes, anuncio, historia, no sé; deduce tipo/estilo/dónde se publica del texto y pregunta "¿Dónde lo vas a publicar?" en lenguaje humano; resultado con play y duración |
 | 8 | WEE Business | 🔜 (con "Mis redes" simulado) |
 | 9 | WEE Chef | 🔜 |
 | 10 | WEE Home | 🔜 |
