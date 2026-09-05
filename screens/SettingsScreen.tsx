@@ -18,6 +18,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import ResponsiveLayout from '../components/ResponsiveLayout';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
+import { confirmAction, notify } from '../utils/notify';
 
 type SettingsNavigationProp = StackNavigationProp<ProfileStackParamList, 'Settings'>;
 
@@ -34,61 +35,41 @@ const SettingsScreen: React.FC = () => {
   const joinedCommunitiesCount = userProfile?.joinedCommunities?.length || 0;
 
   const handleAbout = () => {
-    Alert.alert(
+    notify(
       'Acerca de Weë',
-      'Weë v1.0.0\n\nUna plataforma social anónima donde puedes expresarte libremente.\n\n© 2024 Weë. Todos los derechos reservados.',
-      [{ text: 'OK', style: 'default' }]
+      'Weë (World Encode Entity) es la red social de las personas que crean con Inteligencia Artificial.\n\nVersión 1.0.0 · © ' + new Date().getFullYear() + ' Weë. Todos los derechos reservados.'
     );
   };
 
   const handlePrivacy = () => {
-    Alert.alert(
-      'Política de Privacidad',
-      'Tu privacidad es importante para nosotros. Todos los datos se mantienen anónimos y seguros.\n\nEsta es una aplicación demo sin conexión a servidores reales.',
-      [{ text: 'Entendido', style: 'default' }]
-    );
+    (navigation as any).navigate('Help', { section: 'legal' });
   };
 
   const handleSupport = () => {
-    Alert.alert(
-      'Soporte',
-      '¿Necesitas ayuda?\n\nEsta es una aplicación demo. En una versión real, aquí encontrarías:\n\n• FAQ\n• Contacto\n• Reportar problemas\n• Guías de uso',
-      [{ text: 'OK', style: 'default' }]
-    );
+    (navigation as any).navigate('Help');
   };
 
   const handleCommunities = () => {
     navigation.navigate('CommunitiesManagement');
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que quieres cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Navegar al root antes de hacer logout para evitar errores
-              // en pantallas que intentan acceder a datos del usuario
-              const rootNav = navigation.getParent()?.getParent() || navigation.getParent() || navigation;
-              rootNav.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [{ name: 'Main' }],
-                })
-              );
-              await logout();
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cerrar la sesión');
-            }
-          },
-        },
-      ]
-    );
+  const handleLogout = async () => {
+    const ok = await confirmAction('Cerrar sesión', '¿Quieres salir de Weë?', 'Cerrar sesión', true);
+    if (!ok) return;
+    try {
+      // Navegar al root antes de hacer logout para evitar errores
+      // en pantallas que intentan acceder a datos del usuario
+      const rootNav = navigation.getParent()?.getParent() || navigation.getParent() || navigation;
+      rootNav.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        })
+      );
+      await logout();
+    } catch (error) {
+      notify('No pudimos cerrar la sesión', 'Inténtalo de nuevo.');
+    }
   };
 
   const renderSettingItem = (
@@ -153,7 +134,7 @@ const SettingsScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Ajustes
+          Configuración
         </Text>
         <View style={styles.headerRight} />
       </View>
@@ -168,7 +149,7 @@ const SettingsScreen: React.FC = () => {
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
               'people',
-              'Mis Comunidades',
+              'Mis comunidades',
               `${joinedCommunitiesCount} ${joinedCommunitiesCount === 1 ? 'comunidad' : 'comunidades'} unidas`,
               handleCommunities
             )}
@@ -199,7 +180,7 @@ const SettingsScreen: React.FC = () => {
             {renderSettingItem(
               'shield-checkmark',
               'Política de privacidad',
-              'Lee nuestra política de privacidad',
+              'Qué hacemos con tus datos, en palabras simples',
               handlePrivacy
             )}
           </View>
@@ -238,14 +219,14 @@ const SettingsScreen: React.FC = () => {
             {renderSettingItem(
               'information-circle',
               'Acerca de Weë',
-              'Versión, términos y información de la app',
+              'Qué es Weë y en qué versión estás',
               handleAbout
             )}
             
             {renderSettingItem(
               'help-circle',
-              'Soporte',
-              'Centro de ayuda y contacto',
+              'Ayuda',
+              'Preguntas frecuentes y contacto',
               handleSupport
             )}
           </View>
@@ -289,7 +270,7 @@ const SettingsScreen: React.FC = () => {
             Weë v1.0.0
           </Text>
           <Text style={[styles.versionSubtext, { color: theme.colors.textSecondary }]}>
-            Aplicación demo • Sin conexión real
+            World Encode Entity
           </Text>
         </View>
       </ScrollView>

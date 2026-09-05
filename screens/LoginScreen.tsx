@@ -257,7 +257,7 @@ const LoginScreen: React.FC = () => {
 
               {/* Login Button */}
               <TouchableOpacity style={styles.primaryButton} onPress={handleEmailLogin}>
-                <Text style={styles.primaryButtonText}>Iniciar Sesión</Text>
+                <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
               </TouchableOpacity>
 
               {/* Divider */}
@@ -279,8 +279,8 @@ const LoginScreen: React.FC = () => {
 
               {/* Anonymous Login Button */}
               <TouchableOpacity style={styles.anonymousButton} onPress={handleAnonymousLogin}>
-                <Ionicons name="person-outline" size={20} color="#FFF" style={styles.anonymousIcon} />
-                <Text style={styles.anonymousButtonText}>Iniciar sesión anónimamente</Text>
+                <Ionicons name="person-outline" size={20} color="#1F2937" style={styles.anonymousIcon} />
+                <Text style={styles.anonymousButtonText}>Entrar como invitado</Text>
               </TouchableOpacity>
 
               {/* Register Link */}
@@ -300,7 +300,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#FFFFFF',
   },
   handleBar: {
     alignItems: 'center',
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
   content: {
     flex: 1,
@@ -328,10 +328,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
-    color: '#FFF',
+    color: '#1F2937',
     marginTop: 14,
     fontSize: 14,
   },
@@ -347,13 +347,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 27,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#6B7280',
     textAlign: 'center',
   },
   form: {
@@ -365,32 +365,32 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 6,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 12,
     fontSize: 14,
-    color: '#FFF',
+    color: '#1F2937',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
     ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}),
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
   },
   passwordInput: {
     flex: 1,
     padding: 12,
     fontSize: 14,
-    color: '#FFF',
+    color: '#1F2937',
     ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}),
   },
   eyeButton: {
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryButtonText: {
-    color: '#FFF',
+    color: '#1F2937',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -432,15 +432,17 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    color: '#9CA3AF',
+    color: '#6B7280',
     paddingHorizontal: 12,
     fontSize: 12,
   },
   googleButton: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 10,
     padding: 12,
     flexDirection: 'row',
@@ -459,7 +461,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   anonymousButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 12,
     flexDirection: 'row',
@@ -467,13 +469,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
   },
   anonymousIcon: {
     marginRight: 10,
   },
   anonymousButtonText: {
-    color: '#FFF',
+    color: '#1F2937',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -484,7 +486,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   registerText: {
-    color: '#9CA3AF',
+    color: '#6B7280',
     fontSize: 12,
   },
   registerLink: {

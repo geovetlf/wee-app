@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { Image } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +25,7 @@ const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [weels, setWeels] = useState<Post[]>([]);
@@ -78,6 +79,14 @@ const WebLandingScreen: React.FC = () => {
     }
     navigation.navigate('Reels', { initialPost: weels[0], initialVideoPosts: weels });
   };
+
+  // "Weëls" desde el menú o la barra lateral llega con openWeels
+  useEffect(() => {
+    if (!route.params?.openWeels) return;
+    navigation.setParams({ openWeels: undefined });
+    handleOpenWeels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.openWeels]);
 
   const handleNotificationsPress = () => {
     navigation.navigate('Notifications');

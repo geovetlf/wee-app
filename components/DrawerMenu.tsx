@@ -41,7 +41,7 @@ interface DrawerMenuProps {
  *   PERFIL        Perfil Real · Perfil Weë
  *   EXPLORA       Comunidades · Weëls
  *   WeeTalk
- *   Weë Creator   AI Video · AI Imagen · … · Otras herramientas
+ *   Weë Creator   🎨 Weë Design · 🎬 Weë Studio · … · 🧠 Weë Brain · 📁 Mis proyectos
  *   💳 Credits · 🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
  *
  * Lo social no lleva nombre propio: el Home ya es la experiencia social.
@@ -132,13 +132,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     navigation.navigate(screen, params);
   };
 
-  const showComingSoon = () => {
-    after(() => {
-      if (isWeb) window.alert('Próximamente: esta función estará disponible pronto.');
-      else Alert.alert('Próximamente', 'Esta función estará disponible pronto.');
-    });
-  };
-
   const handleLogout = () => {
     after(async () => {
       try {
@@ -206,7 +199,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   };
   const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
   const goSettings = () => after(() => navigateRoot('Settings'));
-  const goHelp = () => after(() => Linking.openURL('https://wee.zone/support'));
+  const goHelp = () => after(() => navigateRoot('Help'));
 
   if (!visible) return null;
 
@@ -354,11 +347,11 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
           {/* Pie */}
           <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
-            <TouchableOpacity onPress={() => after(() => Linking.openURL('https://wee.zone/terms'))} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => after(() => navigateRoot('Help', { section: 'legal' }))} activeOpacity={0.7}>
               <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Términos</Text>
             </TouchableOpacity>
             <Text style={[styles.footerDot, { color: theme.colors.textSecondary }]}>·</Text>
-            <TouchableOpacity onPress={() => after(() => Linking.openURL('https://wee.zone/privacy'))} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => after(() => navigateRoot('Help', { section: 'legal' }))} activeOpacity={0.7}>
               <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Privacidad</Text>
             </TouchableOpacity>
             {user && (

@@ -41,6 +41,9 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Credits visibles en el header | `components/CreditsPill.tsx`, `hooks/useWallet.ts` |
 | Mis proyectos (Weë Creator) | `services/projectsService.ts` (`creatorProjects`, `projectId` en `creatorJobs`), `screens/ProjectsScreen.tsx`, `screens/ProjectScreen.tsx`, `components/creator/ProjectPicker.tsx` ("Guardar en proyecto" en `ResultCard`) |
 | Guardados (🔖 del menú) | `services/bookmarksService.ts` (`users/{uid}/bookmarks/{postId}`, reglas en `firestore.rules`), `hooks/useBookmarks.ts`, botón en `PostCard`, `screens/SavedPostsScreen.tsx` |
+| Ayuda (❓ del menú, también Términos/Privacidad y Configuración → Ayuda) | `screens/HelpScreen.tsx` (ruta `Help {section?}`) |
+| Avisos y confirmaciones que funcionan en web | `utils/notify.ts` (`notify`, `confirmAction`): en React Native Web `Alert.alert` no muestra nada |
+| Barra lateral de escritorio (mismo menú que el ☰) | `components/Sidebar.tsx`; columna derecha `components/RightSidebar.tsx` |
 | Diseño de referencia | `design/canvas/` |
 
 Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a medias.

@@ -16,6 +16,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { notify } from '../utils/notify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -181,26 +182,26 @@ const OnboardingScreen: React.FC = () => {
     if (step === 1) {
       // Validar nombre real
       if (!realName.trim()) {
-        Alert.alert('Nombre requerido', 'Por favor ingresa tu nombre para continuar');
+        notify('Falta tu nombre', 'Escribe tu nombre para continuar.');
         return;
       }
       if (realName.trim().length < 2) {
-        Alert.alert('Nombre muy corto', 'Tu nombre debe tener al menos 2 caracteres');
+        notify('Nombre muy corto', 'Tu nombre debe tener al menos 2 letras.');
         return;
       }
       // Validar fecha de nacimiento
       if (!birthDay || !birthMonth || !birthYear) {
-        Alert.alert('Fecha requerida', 'Por favor ingresa tu fecha de nacimiento completa');
+        notify('Falta tu fecha de nacimiento', 'Elige día, mes y año.');
         return;
       }
       // Validar género
       if (!gender) {
-        Alert.alert('Género requerido', 'Por favor selecciona tu género');
+        notify('Falta tu género', 'Elige una opción para continuar.');
         return;
       }
       // Validar país
       if (!selectedCountry) {
-        Alert.alert('País requerido', 'Por favor selecciona tu país');
+        notify('Falta tu país', 'Elige tu país para continuar.');
         return;
       }
       setStep(2);
@@ -238,7 +239,6 @@ const OnboardingScreen: React.FC = () => {
 
         await updateProfile(updateData);
 
-        console.log('✅ Onboarding completado! Perfil actualizado:', updateData);
 
         // Marcar como completado
         setCompleted(true);
@@ -246,10 +246,9 @@ const OnboardingScreen: React.FC = () => {
 
         // Esperar un momento para que el estado se propague
         // El MainStackNavigator detectará el cambio y mostrará la app automáticamente
-        console.log('⏳ Esperando que MainStackNavigator detecte el cambio...');
       } catch (error) {
         console.error('Error saving profile:', error);
-        Alert.alert('Error', 'No se pudo guardar tu perfil. Intenta de nuevo.');
+        notify('No pudimos guardar tu perfil', 'Inténtalo de nuevo.');
         setUploading(false);
       }
     }
@@ -288,13 +287,13 @@ const OnboardingScreen: React.FC = () => {
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <View style={[styles.iconContainer, { backgroundColor: `${theme.colors.accent}20` }]}>
-          <Ionicons name="shield-checkmark" size={40} color={theme.colors.accent} />
+          <Ionicons name="sparkles" size={40} color={theme.colors.accent} />
         </View>
         <Text style={[styles.title, { color: theme.colors.text }]}>
           Bienvenido a Weë
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          Configura tu perfil principal. Después podrás crear un perfil Weë anónimo desde tu perfil.
+          Cuéntanos quién eres. Después podrás crear tu Perfil Weë: tu identidad para crear con IA.
         </Text>
       </View>
 
@@ -641,7 +640,7 @@ const OnboardingScreen: React.FC = () => {
                     <Text style={styles.continueButtonText}>
                       {getButtonText()}
                     </Text>
-                    <Ionicons name={getButtonIcon()} size={18} color="white" />
+                    <Ionicons name={getButtonIcon()} size={18} color="#1F2937" />
                   </>
                 )}
               </TouchableOpacity>
@@ -708,7 +707,7 @@ const OnboardingScreen: React.FC = () => {
                   <Text style={styles.continueButtonText}>
                     {getButtonText()}
                   </Text>
-                  <Ionicons name={getButtonIcon()} size={scale(20)} color="white" />
+                  <Ionicons name={getButtonIcon()} size={scale(20)} color="#1F2937" />
                 </>
               )}
             </TouchableOpacity>
@@ -1107,7 +1106,7 @@ const styles = StyleSheet.create({
     gap: scale(6),
   },
   continueButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: scale(15),
     fontWeight: '600',
   },

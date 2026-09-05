@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,7 +37,13 @@ const SearchScreen: React.FC = () => {
   const { isDesktop } = useResponsive();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
-  const [searchQuery, setSearchQuery] = useState('');
+  const route = useRoute<any>();
+  const [searchQuery, setSearchQuery] = useState<string>(route.params?.query ?? '');
+
+  // Lo que se escribió en el buscador de la columna derecha llega aquí
+  useEffect(() => {
+    if (typeof route.params?.query === 'string' && route.params.query) setSearchQuery(route.params.query);
+  }, [route.params?.query]);
   const [activeCategory, setActiveCategory] = useState<SearchCategory>('comunidades');
   const [communities, setCommunities] = useState<Community[]>([]);
   const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
@@ -222,7 +228,7 @@ const SearchScreen: React.FC = () => {
           <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.textInput, { color: theme.colors.text }]}
-            placeholder="Buscar comunidades, usuarios o posts..."
+            placeholder="Buscar comunidades, personas o publicaciones"
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={(text) => {
@@ -259,11 +265,11 @@ const SearchScreen: React.FC = () => {
             <Ionicons
               name="people"
               size={14}
-              color={activeCategory === 'comunidades' ? 'white' : theme.colors.textSecondary}
+              color={activeCategory === 'comunidades' ? '#1F2937' : theme.colors.textSecondary}
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.categoryText, {
-              color: activeCategory === 'comunidades' ? 'white' : theme.colors.textSecondary,
+              color: activeCategory === 'comunidades' ? '#1F2937' : theme.colors.textSecondary,
               fontWeight: activeCategory === 'comunidades' ? '600' : '400',
             }]}>
               Comunidades
@@ -280,11 +286,11 @@ const SearchScreen: React.FC = () => {
             <Ionicons
               name="person"
               size={14}
-              color={activeCategory === 'usuarios' ? 'white' : theme.colors.textSecondary}
+              color={activeCategory === 'usuarios' ? '#1F2937' : theme.colors.textSecondary}
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.categoryText, {
-              color: activeCategory === 'usuarios' ? 'white' : theme.colors.textSecondary,
+              color: activeCategory === 'usuarios' ? '#1F2937' : theme.colors.textSecondary,
               fontWeight: activeCategory === 'usuarios' ? '600' : '400',
             }]}>
               Usuarios
@@ -301,14 +307,14 @@ const SearchScreen: React.FC = () => {
             <Ionicons
               name="document-text"
               size={14}
-              color={activeCategory === 'posts' ? 'white' : theme.colors.textSecondary}
+              color={activeCategory === 'posts' ? '#1F2937' : theme.colors.textSecondary}
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.categoryText, {
-              color: activeCategory === 'posts' ? 'white' : theme.colors.textSecondary,
+              color: activeCategory === 'posts' ? '#1F2937' : theme.colors.textSecondary,
               fontWeight: activeCategory === 'posts' ? '600' : '400',
             }]}>
-              Posts
+              Publicaciones
             </Text>
           </TouchableOpacity>
         </View>
@@ -342,7 +348,7 @@ const SearchScreen: React.FC = () => {
                     <View style={styles.sectionHeader}>
                       <Ionicons name="trending-up" size={20} color={theme.colors.accent} />
                       <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 0, marginLeft: 8 }]}>
-                        Hashtags Populares
+                        Temas populares
                       </Text>
                     </View>
                     <ScrollView
@@ -378,7 +384,7 @@ const SearchScreen: React.FC = () => {
                     <View style={styles.sectionHeader}>
                       <Ionicons name="flame" size={20} color="#F97316" />
                       <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 0, marginLeft: 8 }]}>
-                        Trending
+                        Tendencias
                       </Text>
                     </View>
                     {trendingPosts.slice(0, 5).map((post, index) => (
@@ -441,7 +447,7 @@ const SearchScreen: React.FC = () => {
                   <View style={styles.noResults}>
                     <Ionicons name="document-text-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      No hay posts con este hashtag
+                      No hay publicaciones con este tema
                     </Text>
                   </View>
                 ) : (
@@ -527,7 +533,7 @@ const SearchScreen: React.FC = () => {
                           </Text>
                           <Ionicons name="document-text" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(community.postCount)} posts
+                            {formatNumber(community.postCount)} publicaciones
                           </Text>
                         </View>
                       </View>
@@ -554,7 +560,7 @@ const SearchScreen: React.FC = () => {
                             activeOpacity={0.7}
                           >
                             <Ionicons name="add" size={14} color="white" />
-                            <Text style={[styles.joinButtonText, { color: 'white' }]}>Unirse</Text>
+                            <Text style={[styles.joinButtonText, { color: '#1F2937' }]}>Unirse</Text>
                           </TouchableOpacity>
                         )
                       )}
@@ -615,7 +621,7 @@ const SearchScreen: React.FC = () => {
                         )}
                         <View style={styles.userStats}>
                           <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(user.posts || 0)} posts
+                            {formatNumber(user.posts || 0)} publicaciones
                           </Text>
                           <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
                             {formatNumber(user.followers || 0)} seguidores
@@ -633,20 +639,20 @@ const SearchScreen: React.FC = () => {
             {activeCategory === 'posts' && searchQuery.trim() && !selectedHashtag && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  {searchQuery.trim().length >= 2 ? 'Posts encontrados' : 'Busca posts'}
+                  {searchQuery.trim().length >= 2 ? 'Publicaciones encontradas' : 'Busca publicaciones'}
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
                     <Ionicons name="search-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      Escribe al menos 2 caracteres para buscar posts
+                      Escribe al menos 2 letras para buscar publicaciones
                     </Text>
                   </View>
                 ) : searchedPosts.length === 0 ? (
                   <View style={styles.noResults}>
                     <Ionicons name="document-text-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      No se encontraron posts para "{searchQuery}"
+                      No encontramos publicaciones para "{searchQuery}"
                     </Text>
                   </View>
                 ) : (

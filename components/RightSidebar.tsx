@@ -1,48 +1,51 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
+import { useTheme } from '../contexts/ThemeContext';
+import { COMMUNITY_CATEGORIES } from '../constants/communityCategories';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
 const isWeb = Platform.OS === 'web';
 
+/**
+ * Columna derecha de escritorio: buscador, temáticas reales de la comunidad
+ * y un atajo a Weë Creator. Sin datos inventados ni botones que no hacen nada.
+ */
 const RightSidebar: React.FC = () => {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const navigation = useNavigation();
-
-  const trendingTopics = [
-    { topic: 'Tecnología & IA', posts: '15.2K' },
-    { topic: 'Cine & Animación', posts: '8.9K' },
-    { topic: 'Arte & Creatividad', posts: '12.5K' },
-    { topic: 'Creadores & Influencers', posts: '6.3K' },
-  ];
+  const navigation = useNavigation<any>();
+  const year = new Date().getFullYear();
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
-      navigation.navigate('Search' as never);
-    }
+    const query = searchQuery.trim();
+    if (!query) return;
+    navigation.navigate('Search', { query });
+    setSearchQuery('');
   };
 
+  const goCommunity = (slug: string) =>
+    navigation.navigate('Main', { screen: 'Home', params: { screen: 'Feed', params: { communitySlug: slug } } });
+  const goExplore = () => navigation.navigate('Main', { screen: 'Home', params: { screen: 'ExploreCommunities' } });
+
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: theme.colors.card,
+      borderColor: theme.colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+    },
+  ];
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Search Box */}
-      <View style={[
-        styles.searchContainer,
-        {
-          backgroundColor: theme.colors.surface,
-        }
-      ]}>
-        {isWeb ? (
-          <Text style={{ fontSize: 16 }}>🔍</Text>
-        ) : (
-          <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
-        )}
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Buscador */}
+      <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
+        {isWeb ? <Text style={{ fontSize: 16 }}>🔍</Text> : <Ionicons name="search" size={18} color={theme.colors.textSecondary} />}
         <TextInput
           style={[styles.searchInput, { color: theme.colors.text }]}
           placeholder="Buscar en Weë"
@@ -50,138 +53,64 @@ const RightSidebar: React.FC = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
+          returnKeyType="search"
+          accessibilityLabel="Buscar en Weë"
         />
       </View>
 
-      {/* Trending Topics */}
-      <View style={[
-        styles.card,
-        {
-          backgroundColor: theme.colors.card,
-          borderColor: theme.colors.border,
-          shadowColor: theme.dark ? theme.colors.glow : '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: theme.dark ? 0.1 : 0.05,
-          shadowRadius: 3,
-        }
-      ]}>
-        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
-          Tendencias
-        </Text>
-
-        {trendingTopics.map((item, index) => (
+      {/* Temáticas de la comunidad */}
+      <View style={cardStyle}>
+        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Explora comunidades</Text>
+        {COMMUNITY_CATEGORIES.slice(0, 6).map((cat, index) => (
           <TouchableOpacity
-            key={index}
-            style={[
-              styles.trendItem,
-              index !== trendingTopics.length - 1 && {
-                borderBottomWidth: 0.5,
-                borderBottomColor: theme.colors.border
-              }
-            ]}
+            key={cat.id}
+            style={[styles.row, index !== 5 && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}
+            onPress={() => goCommunity(cat.slug)}
             activeOpacity={0.7}
+            accessibilityLabel={cat.name}
           >
-            <View style={styles.trendInfo}>
-              <Text style={[styles.trendTopic, { color: theme.colors.text }]}>
-                #{item.topic}
-              </Text>
-              <Text style={[styles.trendCount, { color: theme.colors.textSecondary }]}>
-                {item.posts} publicaciones
+            <Text style={styles.rowEmoji}>{cat.emoji}</Text>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{cat.name}</Text>
+              <Text style={[styles.rowSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                {cat.description}
               </Text>
             </View>
-            {isWeb ? (
-              <Text style={{ fontSize: 14, color: theme.colors.textSecondary }}>›</Text>
-            ) : (
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
-            )}
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         ))}
-
-        <TouchableOpacity
-          style={styles.showMore}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.showMoreText, { color: theme.colors.accent }]}>
-            Ver más
-          </Text>
+        <TouchableOpacity style={styles.showMore} onPress={goExplore} activeOpacity={0.7} accessibilityLabel="Ver todas las comunidades">
+          <Text style={[styles.showMoreText, { color: theme.colors.accentDark }]}>Ver todas ›</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Who to Follow */}
-      <View style={[
-        styles.card,
-        {
-          backgroundColor: theme.colors.card,
-          borderColor: theme.colors.border,
-          shadowColor: theme.dark ? theme.colors.glow : '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: theme.dark ? 0.1 : 0.05,
-          shadowRadius: 3,
-        }
-      ]}>
-        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
-          Usuarios sugeridos
+      {/* Weë Creator */}
+      <TouchableOpacity
+        style={[styles.creatorCard, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}
+        onPress={() => navigation.navigate('WeeCreator')}
+        activeOpacity={0.85}
+        accessibilityLabel="Abrir Weë Creator"
+      >
+        <Text style={styles.creatorEmoji}>🤖</Text>
+        <Text style={[styles.creatorTitle, { color: theme.colors.text }]}>¿Qué quieres crear hoy?</Text>
+        <Text style={[styles.creatorText, { color: theme.colors.textSecondary }]}>
+          Cuéntale a Weë lo que quieres. Weë se encarga de la IA.
         </Text>
+        <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
+          <Text style={styles.creatorButtonText}>Ir a Weë Creator</Text>
+        </View>
+      </TouchableOpacity>
 
-        {[1, 2, 3].map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.suggestedUser,
-              index !== 2 && {
-                borderBottomWidth: 0.5,
-                borderBottomColor: theme.colors.border
-              }
-            ]}
-          >
-            <View style={[styles.suggestedAvatar, { backgroundColor: theme.colors.accent }]}>
-              {isWeb ? (
-                <Text style={{ fontSize: 18, color: 'white' }}>👤</Text>
-              ) : (
-                <Ionicons name="person" size={20} color="white" />
-              )}
-            </View>
-            <View style={styles.suggestedInfo}>
-              <Text style={[styles.suggestedName, { color: theme.colors.text }]}>
-                Usuario {index + 1}
-              </Text>
-              <Text style={[styles.suggestedHandle, { color: theme.colors.textSecondary }]}>
-                @usuario{index + 1}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.followButton,
-                {
-                  backgroundColor: theme.colors.accent,
-                  shadowColor: theme.colors.accent,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 4,
-                }
-              ]}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.followButtonText}>Seguir</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-
-        <TouchableOpacity
-          style={styles.showMore}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.showMoreText, { color: theme.colors.accent }]}>
-            Ver más
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Footer Links */}
+      {/* Pie */}
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
-          Términos · Privacidad · © 2025 Weë
-        </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
+          <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Términos</Text>
+        </TouchableOpacity>
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
+          <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Privacidad</Text>
+        </TouchableOpacity>
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · © {year} Weë</Text>
       </View>
     </ScrollView>
   );
@@ -208,7 +137,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.regular,
-    outlineStyle: 'none',
+    ...(isWeb ? ({ outlineStyle: 'none' } as any) : {}),
   },
   card: {
     borderRadius: BORDER_RADIUS.lg,
@@ -217,85 +146,83 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardTitle: {
-    fontSize: FONT_SIZE.xl,
+    fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.bold,
     padding: SPACING.lg,
-    paddingBottom: SPACING.md,
-    letterSpacing: -0.3,
+    paddingBottom: SPACING.sm,
   },
-  trendItem: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  trendInfo: {
-    flex: 1,
-  },
-  trendTopic: {
-    fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.semibold,
-    marginBottom: 4,
-    letterSpacing: -0.2,
-  },
-  trendCount: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.regular,
-  },
-  suggestedUser: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.lg,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm + 2,
     gap: SPACING.md,
   },
-  suggestedAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  rowEmoji: {
+    fontSize: 20,
   },
-  suggestedInfo: {
+  rowInfo: {
     flex: 1,
   },
-  suggestedName: {
-    fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.semibold,
-    marginBottom: 2,
-    letterSpacing: -0.2,
-  },
-  suggestedHandle: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.regular,
-  },
-  followButton: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  followButtonText: {
-    color: 'white',
+  rowTitle: {
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.semibold,
-    letterSpacing: -0.1,
+  },
+  rowSubtitle: {
+    fontSize: FONT_SIZE.xs,
+    marginTop: 1,
   },
   showMore: {
     padding: SPACING.lg,
     paddingVertical: SPACING.md,
   },
   showMoreText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  creatorCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    padding: SPACING.lg,
+    gap: SPACING.xs,
+    marginBottom: SPACING.lg,
+  },
+  creatorEmoji: {
+    fontSize: 26,
+  },
+  creatorTitle: {
     fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.regular,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  creatorText: {
+    fontSize: FONT_SIZE.sm,
+    lineHeight: 20,
+  },
+  creatorButton: {
+    alignSelf: 'flex-start',
+    marginTop: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  creatorButtonText: {
+    color: '#1F2937',
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.bold,
   },
   footer: {
-    padding: SPACING.lg,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    padding: SPACING.md,
+  },
+  footerLink: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.medium,
+    textDecorationLine: 'underline',
   },
   footerText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.regular,
-    lineHeight: 18,
+    fontSize: FONT_SIZE.xs,
   },
 });
 

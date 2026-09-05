@@ -10,6 +10,7 @@ interface ErrorBoundaryProps {
   children: React.ReactNode;
 }
 
+/** Pantalla de error con la identidad de Weë (fondo blanco, botón amarillo con texto oscuro). */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -21,27 +22,19 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('🚨 App Error Boundary caught an error:', error, errorInfo);
+    console.error('Error inesperado en Weë:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>¡Oops! Algo salió mal</Text>
-          <Text style={styles.message}>
-            La aplicación encontró un error inesperado.
-          </Text>
-          {__DEV__ && this.state.error && (
-            <Text style={styles.errorDetails}>
-              {this.state.error.toString()}
-            </Text>
-          )}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => this.setState({ hasError: false, error: undefined })}
-          >
-            <Text style={styles.buttonText}>Reintentar</Text>
+          <Text style={styles.emoji}>😵‍💫</Text>
+          <Text style={styles.title}>Algo salió mal</Text>
+          <Text style={styles.message}>Weë encontró un error inesperado. Intenta de nuevo; si sigue pasando, cuéntanoslo desde Ayuda.</Text>
+          {__DEV__ && this.state.error && <Text style={styles.errorDetails}>{this.state.error.toString()}</Text>}
+          <TouchableOpacity style={styles.button} onPress={() => this.setState({ hasError: false, error: undefined })} accessibilityLabel="Intentar de nuevo">
+            <Text style={styles.buttonText}>Intentar de nuevo</Text>
           </TouchableOpacity>
         </View>
       );
@@ -56,40 +49,46 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#000',
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+  },
+  emoji: {
+    fontSize: 40,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
+    color: '#1F2937',
+    marginBottom: 8,
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
-    color: '#ccc',
+    fontSize: 15,
+    color: '#6B7280',
     marginBottom: 20,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
+    maxWidth: 420,
   },
   errorDetails: {
     fontSize: 12,
-    color: '#ff6b6b',
+    color: '#B91C1C',
     marginBottom: 20,
     textAlign: 'center',
     fontFamily: 'monospace',
+    maxWidth: 480,
   },
   button: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#F5B731',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 999,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#1F2937',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

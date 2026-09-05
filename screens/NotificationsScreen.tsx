@@ -143,11 +143,24 @@ const NotificationsScreen: React.FC = () => {
     }
 
     // Navegar según el tipo
+    const nav = navigation as any;
     if (notification.type === 'follow' && notification.senderId) {
-      (navigation as any).navigate('UserProfile', { userId: notification.senderId });
+      nav.navigate('UserProfile', { userId: notification.senderId });
+      return;
     }
-    // Para otros tipos, podrías navegar al post
-    // TODO: Implementar navegación al post cuando tengamos PostDetailScreen accesible
+    const postId = (notification as any).postId;
+    if (postId) {
+      nav.navigate('PostDetail', { postId });
+      return;
+    }
+    const communityId = (notification as any).communityId;
+    if (communityId) {
+      nav.navigate('Community', { communityId });
+      return;
+    }
+    if (notification.senderId) {
+      nav.navigate('UserProfile', { userId: notification.senderId });
+    }
   };
 
   // Marcar todas como leídas
@@ -243,7 +256,7 @@ const NotificationsScreen: React.FC = () => {
   const renderHeader = () => (
     <View>
       {/* Header - solo en móvil */}
-      {!isDesktop && <Header onNotificationsPress={handleNotificationsPress} />}
+      {!isDesktop && <Header onBackPress={() => navigation.goBack()} onNotificationsPress={handleNotificationsPress} />}
 
       {/* Título y acciones */}
       <View style={[styles.titleContainer, { borderBottomColor: theme.colors.border }]}>
@@ -264,7 +277,7 @@ const NotificationsScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Text style={[styles.markAllText, { color: theme.colors.accent }]}>
-              Marcar todas
+              Marcar todas como leídas
             </Text>
           </TouchableOpacity>
         )}

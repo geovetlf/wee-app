@@ -7,6 +7,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../contexts/ThemeContext';
 import MainTabsScreen from '../screens/MainTabsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import HelpScreen from '../screens/HelpScreen';
 import SearchScreen from '../screens/SearchScreen';
 import CreateScreen from '../screens/CreateScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -41,7 +42,8 @@ import { scale } from '../utils/scale';
 export type MainStackParamList = {
   Main: undefined;
   Settings: undefined;
-  Search: undefined;
+  Help: { section?: 'faq' | 'legal' } | undefined;
+  Search: { query?: string } | undefined;
   Create: { communitySlug?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string } } | undefined;
   WeeCreator: { category?: string } | undefined;
   SavedPosts: undefined;
@@ -213,6 +215,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
+      <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
       <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />

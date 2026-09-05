@@ -147,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
           {/* Actions */}
           <View style={styles.actions}>
             {/* Credits siempre visibles (solo con sesión) */}
-            <CreditsPill compact light={transparent} />
+            <CreditsPill light={transparent} />
 
             {/* Switch Identity Button - visible si tiene perfil HIDI o está en modo BIZ */}
             {user && (hasHidiProfile || activeProfileType === 'biz') && (
@@ -169,11 +169,11 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
               >
                 {isWeb ? (
                   <Text style={{ fontSize: 14 }}>
-                    {activeProfileType === 'biz' ? '🏪' : activeProfileType === 'hidi' ? '🙈' : '👁️'}
+                    {activeProfileType === 'biz' ? '🏪' : activeProfileType === 'hidi' ? '🎭' : '👤'}
                   </Text>
                 ) : (
                   <Ionicons
-                    name={activeProfileType === 'biz' ? 'storefront' : (activeProfileType === 'hidi' ? 'eye-off' : 'eye')}
+                    name={activeProfileType === 'biz' ? 'storefront' : (activeProfileType === 'hidi' ? 'color-wand' : 'person')}
                     size={ICON_SIZE.md}
                     color={transparent ? 'white' : (activeProfileType === 'biz' ? '#7C3AED' : activeProfileType === 'hidi' ? theme.colors.accent : textColor)}
                   />
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
   },
   loginButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.semibold,
   },

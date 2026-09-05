@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -49,28 +50,28 @@ const RegisterScreen: React.FC = () => {
     const { email, password, confirmPassword } = formData;
 
     if (!email.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu email');
+      notify('Falta tu email', 'Escribe tu email para continuar.');
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Por favor ingresa un email válido');
+      notify('Revisa tu email', 'Ese email no parece válido.');
       return false;
     }
 
     if (!password) {
-      Alert.alert('Error', 'Por favor ingresa tu contraseña');
+      notify('Falta tu contraseña', 'Escribe una contraseña para continuar.');
       return false;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      notify('Contraseña muy corta', 'Usa al menos 6 caracteres.');
       return false;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      notify('Las contraseñas no coinciden', 'Escribe la misma contraseña en los dos campos.');
       return false;
     }
 
@@ -109,7 +110,7 @@ const RegisterScreen: React.FC = () => {
           errorMessage = error.message;
       }
 
-      Alert.alert('Error de Registro', errorMessage);
+      notify('No pudimos crear tu cuenta', errorMessage);
     }
   };
 
@@ -119,7 +120,7 @@ const RegisterScreen: React.FC = () => {
       await signInWithGoogle();
       // Login exitoso
     } catch (error: any) {
-      Alert.alert('Error', 'Error al registrarse con Google: ' + error.message);
+      notify('No pudimos continuar con Google', error.message);
     } finally {
       // Siempre resetear el loading
       setLoading(false);
@@ -132,7 +133,7 @@ const RegisterScreen: React.FC = () => {
       await signInAnonymously();
       // Login exitoso
     } catch (error: any) {
-      Alert.alert('Error', 'Error al acceder de forma anónima: ' + error.message);
+      notify('No pudimos entrar como invitado', error.message);
     } finally {
       // Siempre resetear el loading
       setLoading(false);
@@ -261,7 +262,7 @@ const RegisterScreen: React.FC = () => {
 
             {/* Register Button */}
             <TouchableOpacity style={styles.primaryButton} onPress={handleEmailRegister}>
-              <Text style={styles.primaryButtonText}>Crear Cuenta</Text>
+              <Text style={styles.primaryButtonText}>Crear cuenta</Text>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -283,8 +284,8 @@ const RegisterScreen: React.FC = () => {
 
             {/* Anonymous Access Button */}
             <TouchableOpacity style={styles.anonymousButton} onPress={handleAnonymousAccess}>
-              <Ionicons name="person-outline" size={20} color="#FFF" style={styles.anonymousIcon} />
-              <Text style={styles.anonymousButtonText}>Iniciar sesión anónimamente</Text>
+              <Ionicons name="person-outline" size={20} color="#1F2937" style={styles.anonymousIcon} />
+              <Text style={styles.anonymousButtonText}>Entrar como invitado</Text>
             </TouchableOpacity>
 
             {/* Login Link */}
@@ -298,9 +299,9 @@ const RegisterScreen: React.FC = () => {
             {/* Terms Notice */}
             <Text style={styles.termsText}>
               Al crear una cuenta, aceptas nuestros{' '}
-              <Text style={styles.termsLink}>Términos de Servicio</Text>
+              <Text style={styles.termsLink} onPress={() => navigation.navigate('Help' as never, { section: 'legal' } as never)}>Términos de servicio</Text>
               {' '}y{' '}
-              <Text style={styles.termsLink}>Política de Privacidad</Text>
+              <Text style={styles.termsLink} onPress={() => navigation.navigate('Help' as never, { section: 'legal' } as never)}>Política de privacidad</Text>
             </Text>
           </View>
         </ScrollView>
@@ -312,7 +313,7 @@ const RegisterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#FFFFFF',
   },
   handleBar: {
     alignItems: 'center',
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
   content: {
     flex: 1,
@@ -340,10 +341,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
-    color: '#FFF',
+    color: '#1F2937',
     marginTop: 10,
     fontSize: 14,
   },
@@ -359,13 +360,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 4,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     textAlign: 'center',
   },
   form: {
@@ -377,31 +378,31 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 4,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 10,
     fontSize: 13,
-    color: '#FFF',
+    color: '#1F2937',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
   },
   passwordInput: {
     flex: 1,
     padding: 10,
     fontSize: 13,
-    color: '#FFF',
+    color: '#1F2937',
   },
   eyeButton: {
     padding: 10,
@@ -422,7 +423,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryButtonText: {
-    color: '#FFF',
+    color: '#1F2937',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -434,15 +435,17 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    color: '#9CA3AF',
+    color: '#6B7280',
     paddingHorizontal: 10,
     fontSize: 11,
   },
   googleButton: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 10,
     padding: 10,
     flexDirection: 'row',
@@ -461,7 +464,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   anonymousButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 10,
     flexDirection: 'row',
@@ -469,13 +472,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E5E7EB',
   },
   anonymousIcon: {
     marginRight: 8,
   },
   anonymousButtonText: {
-    color: '#FFF',
+    color: '#1F2937',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -487,7 +490,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   loginText: {
-    color: '#9CA3AF',
+    color: '#6B7280',
     fontSize: 11,
   },
   loginLink: {
@@ -496,7 +499,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   termsText: {
-    color: '#9CA3AF',
+    color: '#6B7280',
     fontSize: 10,
     textAlign: 'center',
     lineHeight: 14,

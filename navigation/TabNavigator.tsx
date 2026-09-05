@@ -210,7 +210,7 @@ const TabNavigator: React.FC = () => {
         },
         tabBarActiveTintColor: theme.colors.accent,
         tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: (isDesktop || isTablet) ? {
+        tabBarStyle: isDesktop ? {
           display: 'none',
         } : {
           position: 'absolute' as const,
@@ -275,11 +275,11 @@ const TabNavigator: React.FC = () => {
         options={({ route }) => {
           const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'InboxList';
           return {
-            tabBarLabel: 'WeëTalk',
+            tabBarLabel: 'WeeTalk',
             tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
             tabBarBadgeStyle: {
               backgroundColor: theme.colors.accent,
-              color: '#FFFFFF',
+              color: '#1F2937',
               fontSize: 11,
               fontWeight: '600',
               minWidth: 18,
