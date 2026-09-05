@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #E9EBEF; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1F2937; -webkit-font-smoothing: antialiased; }
+    a { color: #E5A020; text-decoration: none; } a:hover { color: #B8800F; }
+    svg.ic { width: 24px; height: 24px; flex: 0 0 auto; }
+    svg.ic-s { width: 20px; height: 20px; flex: 0 0 auto; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF;">
+
+  <div style="position: absolute; inset: 0; padding: 16px; display: flex; flex-direction: column; gap: 16px; opacity: 0.35;">
+    <div style="display: flex; align-items: center; justify-content: space-between;"><div style="width: 90px; height: 32px; border-radius: 16px; background: #F5B731;"></div><div style="width: 110px; height: 32px; border-radius: 16px; background: #E5E7EB;"></div></div>
+    <div style="height: 170px; border-radius: 16px; background: linear-gradient(135deg, #F5B731, #E5A020);"></div>
+    <div style="height: 20px; width: 180px; border-radius: 10px; background: #E5E7EB;"></div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;"><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div></div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;"><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div><div style="height: 80px; border-radius: 12px; background: #F3F4F6;"></div></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(31,41,55,0.45);"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 72px; background: #FFFFFF; border-radius: 20px 20px 0 0; padding: 10px 16px 16px 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 -8px 24px rgba(0,0,0,0.12);">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: #E5E7EB; margin: 0 auto;"></div>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 18px; font-weight: 700; color: #1F2937;">Crear</div>
+      <div style="font-size: 13px; color: #6B7280;">¿Qué vas a compartir hoy?</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 92px; border-radius: 14px; background: #F8F9FA; border: 1px solid #E5E7EB;"><div style="font-size: 26px; line-height: 30px;">📝</div><div style="font-size: 12px; font-weight: 600; color: #1F2937;">Publicación</div></div>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 92px; border-radius: 14px; background: #FFF4D6; border: 1px solid #F5B731;"><div style="font-size: 26px; line-height: 30px;">📹</div><div style="font-size: 12px; font-weight: 700; color: #1F2937;">Weël</div></div>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 92px; border-radius: 14px; background: #F8F9FA; border: 1px solid #E5E7EB;"><div style="font-size: 26px; line-height: 30px;">🖼️</div><div style="font-size: 12px; font-weight: 600; color: #1F2937;">Imagen</div></div>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 92px; border-radius: 14px; background: #F8F9FA; border: 1px solid #E5E7EB;"><div style="font-size: 26px; line-height: 30px;">🎥</div><div style="font-size: 12px; font-weight: 600; color: #1F2937;">Video</div></div>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 92px; border-radius: 14px; background: #F8F9FA; border: 1px solid #E5E7EB;"><div style="font-size: 26px; line-height: 30px;">✍️</div><div style="font-size: 12px; font-weight: 600; color: #1F2937;">Texto</div></div>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 92px; border-radius: 14px; background: #F8F9FA; border: 1px solid #E5E7EB;"><div style="font-size: 26px; line-height: 30px;">❓</div><div style="font-size: 12px; font-weight: 600; color: #1F2937;">Pregunta</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: #1F2937; color: #FFFFFF;">
+      <div style="font-size: 22px; line-height: 26px;">🤖</div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 13px; font-weight: 700;">¿Necesitás una herramienta de IA?</div>
+        <div style="font-size: 12px; color: #D1D5DB;">Video, imagen, texto, música y más</div>
+      </div>
+      <div style="display: flex; align-items: center; height: 34px; padding: 0 14px; border-radius: 17px; background: #F5B731; color: #1F2937; font-size: 12px; font-weight: 700; white-space: nowrap;">WEE Creator ›</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 72px; background: #FFFFFF; border-top: 1px solid #E5E7EB; display: flex; align-items: flex-start; justify-content: space-around; padding: 8px 8px 0 8px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; height: 56px; color: #6B7280;">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
+      <span style="font-size: 11px; font-weight: 600;">Inicio</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; height: 56px; color: #6B7280;">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      <span style="font-size: 11px; font-weight: 600;">Buscar</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; height: 56px; color: #F5B731;">
+      <div style="width: 56px; height: 56px; border-radius: 28px; background: #F5B731; box-shadow: 0 6px 16px rgba(245,183,49,0.45); display: flex; align-items: center; justify-content: center; color: #FFFFFF; margin-top: -28px;">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </div>
+      <span style="font-size: 11px; font-weight: 700;">Crear</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; height: 56px; color: #6B7280;">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.2L4 21l1.8-4.9A8 8 0 1 1 21 12z"></path></svg>
+      <span style="font-size: 11px; font-weight: 600;">WeeTalk</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; height: 56px; color: #6B7280;">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+      <span style="font-size: 11px; font-weight: 600;">Perfil</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,18 +1,117 @@
 {
   "artboards": [
-    { "file": "Mapa.dc.html", "title": "Los dos mundos de Weë", "x": 0, "y": 0, "w": 980, "h": 720 },
-    { "file": "Wave.dc.html", "title": "WEE Social · Wave (inicio)", "x": 0, "y": 860, "w": 390, "h": 844 },
-    { "file": "Weels.dc.html", "title": "WEE Social · Weels", "x": 470, "y": 860, "w": 390, "h": 844 },
-    { "file": "Perfil.dc.html", "title": "WEE Social · Perfil Real ⇄ WEE", "x": 940, "y": 860, "w": 390, "h": 844 },
-    { "file": "Main.dc.html", "title": "WEE Creator · AI Apps", "x": 1530, "y": 860, "w": 390, "h": 844 },
-    { "file": "Descubrir.dc.html", "title": "WEE Creator · Descubrir", "x": 2000, "y": 860, "w": 390, "h": 844 },
-    { "file": "CreatorWeb.dc.html", "title": "WEE Creator · web", "x": 0, "y": 1840, "w": 1440, "h": 900 }
+    {
+      "file": "Mapa.dc.html",
+      "title": "Cómo se organiza Weë",
+      "x": 0,
+      "y": 0,
+      "w": 980,
+      "h": 720
+    },
+    {
+      "file": "Wave.dc.html",
+      "title": "Home",
+      "x": 0,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Menu.dc.html",
+      "title": "Menú ☰",
+      "x": 470,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Crear.dc.html",
+      "title": "Crear (botón +)",
+      "x": 940,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Weels.dc.html",
+      "title": "Weëls",
+      "x": 1410,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Comunidad.dc.html",
+      "title": "Comunidad · WEE Filmmakers",
+      "x": 1880,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Perfil.dc.html",
+      "title": "Perfil Real ⇄ WEE",
+      "x": 2350,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Main.dc.html",
+      "title": "WEE Creator · AI Apps",
+      "x": 2940,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Descubrir.dc.html",
+      "title": "WEE Creator · Descubrir",
+      "x": 3410,
+      "y": 860,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "CreatorWeb.dc.html",
+      "title": "WEE Creator · web",
+      "x": 0,
+      "y": 1840,
+      "w": 1440,
+      "h": 900
+    }
   ],
   "annotations": [
-    { "id": "dos-mundos", "x": 1060, "y": 0, "w": 360, "text": "PROPUESTA · DOS MUNDOS\n\n• Barra inferior con solo dos destinos: WEE Social (azul oscuro) y WEE Creator (amarillo). No hay tercera sección.\n• Dentro de Social: pestañas Wave · Weels · Comunidades. Perfil, WeëTalk, notificaciones y búsqueda desde la barra superior.\n• Dentro de Creator: la barra \"¿Qué querés crear hoy?\", AI Apps por tipo, recomendadas y Mis creaciones. WEE Influencers, Filmmakers, Designers… NO están acá: son comunidades de Social.\n• Un solo acento (#F5B731) sobre blanco, tarjetas radio 16 y sombra suave: los tokens que la app ya tiene. Iconos de línea en la interfaz; emojis solo en las categorías y comunidades, como en la app." },
-    { "id": "social", "x": -380, "y": 860, "w": 340, "text": "WEE SOCIAL\n\"Quiero compartir, aprender y conectar.\"\n\nWave es la pantalla principal: atajo a Creator arriba, \"Explora comunidades\" con las 8 categorías sociales (ya implementadas en la app), \"Comunidades populares\" (WEE Filmmakers, WEE Influencers, WEE Designers…) y el feed con \"Hecho con\" y \"Ver prompt\".\n\nWeels: videos de hasta 15 s con la marca Weë. Perfil: Real ⇄ WEE con portafolio." },
-    { "id": "creator", "x": 1530, "y": 1750, "w": 340, "text": "WEE CREATOR\n\"Quiero crear.\"\n\n1. Barra: decís qué querés hacer y Descubrir muestra 3 AI Apps con afinidad y costo en créditos.\n2. AI Apps por tipo: Video, Imagen, Diseño, Escritura, Libros, Música, Audio, Código, Marketing, Productividad.\n3. Recomendadas y Mis creaciones, con \"Publicar en Social\" para cerrar el ciclo.\n\nNombres de herramientas y precios: ilustrativos, no acuerdos." },
-    { "id": "estado-app", "x": 1520, "y": 1840, "w": 340, "text": "YA EN EL CÓDIGO (dev)\n\nLa pantalla principal de la app ya muestra \"Explora comunidades\" con las 8 categorías sociales y \"Comunidades populares\" con las comunidades WEE (constants/communityCategories.ts es la fuente única). El resto de este canvas es propuesta: la barra de dos mundos y WEE Creator todavía no existen en la app." }
+    {
+      "id": "propuesta",
+      "x": 1060,
+      "y": 0,
+      "w": 360,
+      "text": "PROPUESTA · INSTRUCCIONES DEFINITIVAS\n\n• Muchas posibilidades por detrás, una experiencia simple por delante.\n• Home = la experiencia social, sin nombre propio: héroe, Explora comunidades, Weëls, Creado por la comunidad; barra Inicio · Buscar · + · WeeTalk · Perfil.\n• WEE Creator = el único espacio con nombre: AI Video, AI Imagen, AI Diseño, AI Escritura, AI Libros, AI Música & Audio, AI Código, AI Marketing, AI Productividad, Otras herramientas. Se abre desde el menú ☰.\n• WEE Filmmakers, WEE Influencers, WEE Designers… son comunidades, nunca secciones.\n• Credits visibles en Home, Creator y menú.\n• Identidad visual: blanco + amarillo/dorado, gris oscuro, tarjetas blancas, sombras ligeras. Nada de oscuro/neón."
+    },
+    {
+      "id": "home",
+      "x": -380,
+      "y": 860,
+      "w": 340,
+      "text": "HOME\n\"Descubrir y conectar.\"\n\n☰ · logo · 💳 250 Credits · Iniciar sesión. Banner \"Tu creatividad no tiene límites.\" Explora comunidades (8 temáticas, ya en la app). Weëls (≤15 s, marca Weë). Creado por la comunidad: Publicaciones · Imágenes · Videos · Preguntas · Tutoriales, con \"Creado con…\" y \"Ver cómo lo hice\".\n\nMenú ☰ único: Perfil (Real / WEE) · Explora (Comunidades, Weëls) · WeeTalk · WEE Creator con iconos pequeños · Credits · Notificaciones · Guardados · Configuración · Ayuda.\n\nBotón +: Publicación, Weël, Imagen, Video, Texto, Pregunta; enlace a WEE Creator si hace falta una herramienta."
+    },
+    {
+      "id": "creator",
+      "x": 2940,
+      "y": 1750,
+      "w": 340,
+      "text": "WEE CREATOR\n\"¿Qué quieres crear?\"\n\nSe abre desde el menú ☰ (o desde una categoría concreta). Barra \"¿Qué querés crear hoy?\" → Descubrir muestra 3 AI Apps con afinidad y costo en Credits. AI Apps por tipo, recomendadas y Mis creaciones con \"Publicar\" para cerrar el ciclo Comunidad → Inspiración → Creator → Creación → Publicación → Comunidad.\n\nNombres de herramientas y precios: ilustrativos."
+    },
+    {
+      "id": "estado-app",
+      "x": 1520,
+      "y": 1840,
+      "w": 340,
+      "text": "YA EN EL CÓDIGO (dev)\n\nLa pantalla principal ya muestra \"Explora comunidades\" con las 8 categorías sociales y \"Comunidades populares\" con las comunidades WEE (constants/communityCategories.ts). Lo demás es propuesta: menú ☰ con WEE Creator, hoja Crear del botón +, fila de Weëls, filtros de \"Creado por la comunidad\", \"Cómo lo hice\" y prompts."
+    }
   ],
-  "launch": { "view": "canvas" }
+  "launch": {
+    "view": "canvas"
+  }
 }
