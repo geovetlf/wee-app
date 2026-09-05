@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "get-wee"
+    "default": "wee-dev-geovet",
+    "dev": "wee-dev-geovet",
+    "prod": "get-wee"
   }
 }
