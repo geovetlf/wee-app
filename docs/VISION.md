@@ -1,4 +1,4 @@
-# WEE — World Enhanced Entity
+# WEE — World Encode Entity
 
 Documento de visión del producto. Es la referencia para evaluar cualquier decisión de diseño o funcionalidad.
 
@@ -30,7 +30,7 @@ La idea central es construir un ecosistema social para la era de la IA.
 
 ## 2. Concepto del nombre
 
-**WEE = World Enhanced Entity**
+**WEE = World Encode Entity**
 
 El concepto representa una nueva clase de identidad digital:
 
@@ -215,7 +215,7 @@ Cada usuario puede tener dos identidades dentro de WEE.
 
 **Perfil Real** — la identidad real del usuario: nombre, fotografía, información personal, publicaciones, actividad.
 
-**Perfil WEE** — la identidad digital/alternativa del usuario. World Enhanced Entity. Una identidad diferente dentro del ecosistema.
+**Perfil WEE** — la identidad digital/alternativa del usuario. World Encode Entity. Una identidad diferente dentro del ecosistema.
 
 ## 21. Función de las dos identidades
 
@@ -231,7 +231,7 @@ El usuario elige qué identidad utilizar según el contexto.
 
 ## 22. WEE no es simplemente anonimato
 
-La identidad WEE no debe entenderse únicamente como una cuenta anónima. Es una identidad digital alternativa y personalizable: una representación de la persona dentro del mundo digital. Por eso «World Enhanced Entity»: una entidad digital mejorada/potenciada mediante tecnología.
+La identidad WEE no debe entenderse únicamente como una cuenta anónima. Es una identidad digital alternativa y personalizable: una representación de la persona dentro del mundo digital. Por eso «World Encode Entity»: una entidad digital mejorada/potenciada mediante tecnología.
 
 ## 23. Social graph
 
@@ -376,3 +376,18 @@ Toda funcionalidad futura se evalúa con una sola pregunta:
 > **«¿Esto ayuda a una persona a crear, compartir, aprender, conectar o trabajar mejor con Inteligencia Artificial?»**
 
 Si la respuesta es sí, puede tener sentido dentro del ecosistema WEE.
+
+## 40. Arquitectura definitiva (2026-09-04/05)
+
+WEE tiene solamente **dos secciones principales**:
+
+- **WEE Creator** — herramientas y AI Apps para crear con IA. «Quiero crear.»
+- **Home (experiencia social)** — personas, comunidades y contenido. «Quiero compartir, aprender y conectar.» En la interfaz no se usa el nombre «WEE Social».
+
+Dentro del Home viven Explora comunidades, Weëls, las comunidades (WEE Filmmakers, WEE Influencers, WEE Designers, WEE Writers… — comunidades, nunca secciones), Perfil Real / Perfil WEE y WeeTalk. Dentro de **WEE Creator** viven las AI Apps por tipo (Video, Imagen, Diseño, Escritura, Libros, Música, Audio, Código, Marketing, Productividad), la barra «¿Qué querés crear hoy?», Mis creaciones y los créditos.
+
+No se crea una tercera sección principal. En la app, el Home es la pantalla principal (barra Inicio · Buscar · Crear · WeëTalk · Perfil) y WEE Creator se abre desde el menú ☰ como sección desplegable con las AI Apps por tipo.
+
+Las comunidades de WEE Social se descubren por ocho categorías —Cine & Animación, Arte & Creatividad, Creadores & Influencers, Negocios & Emprendimiento, Tecnología & IA, Gaming & Mundos Virtuales, Educación & Aprendizaje, Futuro & Sociedad— e incluyen comunidades como WEE Filmmakers, WEE Influencers, WEE Designers, WEE Writers, WEE Musicians, WEE Developers, WEE Entrepreneurs y WEE Gamers. Estas categorías son sociales, no de herramientas: no se nombran «Video IA», «Imagen IA», etc.
+
+Donde una sección anterior de este documento (§5, §10, §13, §26) contradiga esto, prevalece esta sección. Las **instrucciones definitivas de producto, estructura y UX** (2026-09-05) están en [`UX.md`](./UX.md) y prevalecen sobre todo este documento.

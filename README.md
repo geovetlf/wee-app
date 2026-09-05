@@ -1,11 +1,11 @@
-# Weë — World Enhanced Entity
+# Weë — World Encode Entity
 
 > **La red social para la generación de la IA.**
 > Una plataforma donde las personas descubren y usan herramientas de Inteligencia Artificial para crear, y comparten lo creado con comunidades que también crean con IA.
 
 WEE combina en un solo ecosistema lo que hoy está disperso: **red social + herramientas de IA + creación de contenido + comunidades + descubrimiento**. La IA es el motor. La comunidad es el ecosistema. La red social es el tejido que conecta todo.
 
-La visión completa del producto está en [`docs/VISION.md`](./docs/VISION.md). Este README describe **lo que existe hoy en el código** y cómo trabajar con él.
+Las instrucciones definitivas de producto y UX están en [`docs/UX.md`](./docs/UX.md); la visión original, en [`docs/VISION.md`](./docs/VISION.md). Este README describe **lo que existe hoy en el código** y cómo trabajar con él.
 
 Una app, tres plataformas: **iOS, Android y Web** desde el mismo código (React Native + Expo).
 
@@ -174,6 +174,7 @@ wee-app/
 
 ## Documentación adicional
 
+- [`docs/UX.md`](./docs/UX.md) — **instrucciones definitivas** de producto, estructura y UX (prevalecen)
 - [`docs/VISION.md`](./docs/VISION.md) — visión y principios del producto
 - [`DEPLOY_WEB.md`](./DEPLOY_WEB.md) — despliegue web (Vercel / Firebase Hosting)
 - [`VERCEL_ENV_SETUP.md`](./VERCEL_ENV_SETUP.md) — variables de entorno en Vercel
