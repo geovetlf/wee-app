@@ -56,6 +56,8 @@ export interface JobResult {
   title: string;
   content?: string;
   url?: string;
+  /** Varias propuestas (p. ej. tres diseños); url es la primera. */
+  urls?: string[];
   /** Producido por el proveedor de prueba (muestra). */
   demo?: boolean;
 }

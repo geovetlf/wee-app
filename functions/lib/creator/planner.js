@@ -22,10 +22,24 @@ exports.templatePlanner = {
     async next({ experienceId, goal, answers }) {
         const template = templates_1.TEMPLATES[experienceId];
         const record = toRecord(answers);
+        // Lo que ya se entiende del texto de la persona no se vuelve a preguntar
+        const inferred = [];
+        if (template.infer && goal && goal !== template.defaultGoal) {
+            const guessed = template.infer(goal);
+            for (const [questionId, optionId] of Object.entries(guessed)) {
+                const question = template.questions.find((q) => q.id === questionId);
+                if (!question || questionId in record)
+                    continue;
+                if (!question.options.some((o) => o.id === optionId))
+                    continue;
+                record[questionId] = optionId;
+                inferred.push({ questionId, optionId, inferred: true });
+            }
+        }
         const pending = template.questions.find((question) => !(question.id in record));
         if (pending)
-            return { question: pending, inferred: [] };
-        return { plan: template.buildPlan(goal, record), inferred: [] };
+            return { question: pending, inferred };
+        return { plan: template.buildPlan(goal, record), inferred };
     },
 };
 const INFER_SCHEMA = {

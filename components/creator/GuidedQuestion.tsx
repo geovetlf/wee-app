@@ -18,13 +18,15 @@ interface GuidedQuestionProps {
   question: Question | null;
   busy: boolean;
   onAnswer: (optionId?: string, text?: string) => void;
+  /** Solo historial (p. ej. cuando ya hay plan): sin "está pensando…". */
+  hideThinking?: boolean;
 }
 
 /**
  * Una pregunta por pantalla, con opciones grandes y siempre "🤷 No sé".
  * La persona también puede escribirlo con sus palabras.
  */
-const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, history, question, busy, onAnswer }) => {
+const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
   const [freeText, setFreeText] = useState('');
 
@@ -114,7 +116,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
             </View>
           )}
         </View>
-      ) : (
+      ) : hideThinking ? null : (
         <View style={styles.thinking}>
           <ActivityIndicator color={theme.colors.accent} />
           <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{experienceName} está pensando…</Text>

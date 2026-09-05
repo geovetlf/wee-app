@@ -127,8 +127,16 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
         answers: job.answers,
         gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) },
     });
-    if (turn.inferred.length > 0)
+    if (turn.inferred.length > 0) {
+        // Lo deducido se guarda como respuesta y también su pregunta, para que la
+        // persona vea "Entendí que…" en la conversación
         job.answers = [...job.answers, ...turn.inferred];
+        for (const inferred of turn.inferred) {
+            const question = templates_1.TEMPLATES[job.experienceId].questions.find((q) => q.id === inferred.questionId);
+            if (question && !job.questions.some((q) => q.id === question.id))
+                job.questions = [...job.questions, question];
+        }
+    }
     if (turn.question) {
         const question = turn.question;
         if (!job.questions.some((q) => q.id === question.id))
@@ -200,6 +208,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
                 title: next.purpose,
                 content: run.output.content,
                 url: run.output.url,
+                urls: run.output.urls,
                 demo: run.provider === 'mock',
             });
             next.status = 'done';

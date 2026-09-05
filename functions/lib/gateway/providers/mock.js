@@ -142,7 +142,7 @@ exports.mockProvider = {
     id: 'mock',
     supports: () => true,
     async run(capability, input, ctx) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         const start = Date.now();
         await sleep(600 + Math.floor(Math.random() * 500));
         const purpose = String((_a = input.purpose) !== null && _a !== void 0 ? _a : capability);
@@ -157,7 +157,9 @@ exports.mockProvider = {
             output = { kind: 'document', content: `📎 Documento listo (demo): "${ctx.goal}". En la versión real recibirás un PDF o una presentación para descargar.` };
         }
         else if (capability.startsWith('image.')) {
-            output = { kind: 'image', url: demoImage(purpose, ctx.goal, emoji) };
+            const count = Math.max(1, Math.min(4, Number((_e = input.count) !== null && _e !== void 0 ? _e : 1)));
+            const urls = Array.from({ length: count }, (_, i) => demoImage(count > 1 ? `Propuesta ${i + 1}` : purpose, ctx.goal, emoji));
+            output = { kind: 'image', url: urls[0], urls: count > 1 ? urls : undefined };
         }
         else if (capability.startsWith('video.')) {
             output = { kind: 'video', url: demoImage('Video de 15 s', ctx.goal, emoji), content: 'Vista previa del video (demo). El video real llegará con narración, música y watermark Weë.' };

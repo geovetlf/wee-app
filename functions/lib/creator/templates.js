@@ -1,6 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TEMPLATES = void 0;
+/** Devuelve el optionId cuya lista de palabras aparece en el texto. */
+const inferByKeywords = (text, table) => {
+    const lower = text.toLowerCase();
+    for (const [optionId, words] of Object.entries(table)) {
+        if (words.some((w) => lower.includes(w)))
+            return optionId;
+    }
+    return undefined;
+};
 const IDK = { id: 'idk', label: '🤷 No sé' };
 const SURPRISE = { id: 'idk', label: '🤷 Sorpréndeme' };
 const opt = (id, label) => ({ id, label });
@@ -27,36 +36,72 @@ const q = (id, text, options, allowFreeText = true) => ({
 const design = {
     name: 'Weë Design',
     emoji: '🎨',
-    defaultGoal: 'Un diseño para mi marca',
+    defaultGoal: 'Diseñar algo que imagino',
     questions: [
-        q('what', '¿Qué quieres crear?', [
-            opt('logo', '🏷️ Un logo'),
-            opt('post', '📱 Un post para redes'),
-            opt('poster', '🖼️ Un afiche o flyer'),
-            opt('cover', '📚 Una portada'),
+        q('what', '¿Qué quieres diseñar?', [
+            opt('object', '🚗 Un objeto o vehículo'),
+            opt('product', '🧴 Un producto o envase'),
+            opt('character', '🧑‍🚀 Un personaje o criatura'),
+            opt('logo', '🏷️ Un logo o identidad'),
+            opt('poster', '🪧 Un afiche o pieza para redes'),
+            opt('scene', '🌄 Un mundo o escena'),
             IDK,
         ]),
-        q('style', '¿Qué estilo te gusta?', [
-            opt('minimal', '✨ Limpio y minimalista'),
-            opt('bold', '🔥 Llamativo'),
+        q('style', '¿Qué estilo buscas?', [
+            opt('realistic', '📷 Realista'),
+            opt('futuristic', '🚀 Futurista'),
             opt('elegant', '🎩 Elegante'),
             opt('fun', '😄 Divertido'),
+            opt('minimal', '✨ Minimalista'),
             SURPRISE,
         ]),
+        q('purpose', '¿Para qué lo necesitas?', [
+            opt('pitch', '💼 Para vender una idea'),
+            opt('brand', '🏷️ Para una marca'),
+            opt('project', '📁 Para un proyecto'),
+            opt('imagine', '🎨 Solo quiero imaginarlo'),
+            IDK,
+        ]),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            logo: ['logo', 'logotipo', 'identidad', 'marca'],
+            poster: ['afiche', 'flyer', 'poster', 'póster', 'post ', 'publicidad', 'anuncio', 'redes', 'instagram', 'portada'],
+            character: ['personaje', 'criatura', 'mascota', 'héroe', 'heroe', 'robot', 'monstruo', 'avatar'],
+            scene: ['mundo', 'escena', 'paisaje', 'ciudad', 'ambiente', 'planeta'],
+            product: ['botella', 'vaso', 'envase', 'empaque', 'packaging', 'zapatilla', 'ropa', 'mueble', 'silla', 'mesa', 'lámpara', 'lampara', 'producto', 'celular', 'reloj', 'juguete'],
+            object: ['auto', 'carro', 'coche', 'vehículo', 'vehiculo', 'moto', 'helicóptero', 'helicoptero', 'avión', 'avion', 'dron', 'nave', 'casa', 'edificio', 'máquina', 'maquina', 'motor', 'invento'],
+        });
+        if (what)
+            answers.what = what;
+        const style = inferByKeywords(goal, {
+            futuristic: ['futurista', 'del futuro', 'futuro', 'espacial', 'cyber'],
+            realistic: ['realista', 'foto', 'real '],
+            elegant: ['elegante', 'lujo', 'premium', 'sofisticad'],
+            fun: ['divertid', 'infantil', 'caricatura', 'cartoon', 'para niños'],
+            minimal: ['minimalista', 'simple', 'limpio', 'sencillo'],
+        });
+        if (style)
+            answers.style = style;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const what = chosen(design.questions[0], answers);
         const style = chosen(design.questions[1], answers);
-        const piece = what.idk ? 'un post para redes' : what.label.toLowerCase();
-        const look = style.idk ? 'limpio y llamativo' : style.label.toLowerCase();
+        const purpose = chosen(design.questions[2], answers);
+        const piece = what.idk ? 'lo que describiste' : what.label.toLowerCase();
+        const look = style.idk ? 'realista y cuidado' : style.label.toLowerCase();
+        const use = purpose.idk ? 'para que lo veas y decidas' : purpose.label.toLowerCase();
+        const count = what.id === 'logo' ? 3 : 3;
         return {
             experience: 'design',
             goal,
             steps: [
-                step('concept', 'text.generate', 'Pensar el concepto y los textos', { input: { kind: 'concept', brief: `${piece}, estilo ${look}` } }),
-                step('images', 'image.generate', 'Crear dos propuestas de diseño', { dependsOn: ['concept'], input: { count: 2, brief: `${piece}, estilo ${look}` } }),
+                step('concept', 'text.generate', 'Definir el concepto', { input: { kind: 'concept', brief: `${piece}, estilo ${look}, ${use}` } }),
+                step('images', 'image.generate', `Crear ${count} propuestas de diseño`, { dependsOn: ['concept'], input: { count, brief: `${piece}, estilo ${look}` } }),
             ],
-            explainToUser: `Voy a pensar el concepto y crear dos propuestas de ${piece} con un estilo ${look}.${decided(what.idk, 'empiezo por un post para redes, que es lo más útil')}${decided(style.idk, 'elegí un estilo limpio y llamativo')}`,
+            explainToUser: `Voy a definir el concepto y crear ${count} propuestas de ${piece}, con un estilo ${look}, ${use}.${decided(what.idk, 'me guío por lo que escribiste')}${decided(style.idk, 'elegí un estilo realista y cuidado')}${decided(purpose.idk, 'lo preparo para que lo veas y decidas')}`,
         };
     },
 };
@@ -106,27 +151,73 @@ const photo = {
     questions: [
         q('action', '¿Qué hacemos con tu foto?', [
             opt('enhance', '✨ Mejorar la calidad'),
-            opt('background', '🪄 Cambiar o quitar el fondo'),
             opt('remove', '🧽 Quitar algo que sobra'),
-            opt('restore', '🕰️ Restaurar una foto vieja'),
+            opt('background', '🪄 Cambiar o quitar el fondo'),
+            opt('restore', '🕰️ Restaurar una foto antigua'),
+            opt('retouch', '🙂 Retoque natural del rostro'),
+            opt('colorize', '🌈 Colorizar blanco y negro'),
+            opt('transform', '🎇 Transformar con un estilo'),
+            opt('generate', '🖼️ Crear una imagen desde cero'),
             IDK,
         ]),
+        q('detail', '¿Cómo lo quieres?', [
+            opt('natural', '🍃 Natural, que no se note'),
+            opt('vivid', '🌈 Con colores vivos'),
+            opt('clean', '⬜ Fondo limpio o blanco'),
+            opt('artistic', '🎨 Artístico o vintage'),
+            SURPRISE,
+        ]),
     ],
+    infer: (goal) => {
+        const answers = {};
+        const action = inferByKeywords(goal, {
+            background: ['fondo'],
+            remove: ['quitar', 'quita', 'eliminar', 'elimina', 'borrar', 'borra', 'sobra'],
+            restore: ['restaurar', 'restaura', 'antigua', 'vieja', 'dañada', 'danada', 'rota'],
+            colorize: ['coloriz', 'blanco y negro', 'ponerle color', 'dar color'],
+            retouch: ['retoque', 'retocar', 'rostro', 'cara', 'piel', 'arrugas'],
+            transform: ['estilo', 'vintage', 'caricatura', 'cartoon', 'anime', 'pintura', 'artístic', 'artistic', 'transformar'],
+            generate: ['crear una imagen', 'generar', 'genera', 'crea una imagen', 'desde cero', 'dibuja', 'imagina'],
+            enhance: ['mejorar', 'mejora', 'calidad', 'nítid', 'nitid', 'resolución', 'resolucion', 'borrosa', 'vivos', 'iluminar', 'brillo'],
+        });
+        if (action)
+            answers.action = action;
+        const detail = inferByKeywords(goal, {
+            vivid: ['vivos', 'vibrante', 'más color', 'mas color'],
+            clean: ['fondo blanco', 'fondo limpio', 'limpio', 'blanco'],
+            artistic: ['vintage', 'artístic', 'artistic', 'caricatura', 'anime', 'pintura'],
+            natural: ['natural', 'que no se note', 'sutil'],
+        });
+        if (detail)
+            answers.detail = detail;
+        return answers;
+    },
     buildPlan: (goal, answers) => {
         const action = chosen(photo.questions[0], answers);
+        const detail = chosen(photo.questions[1], answers);
         const capability = action.id === 'background' ? 'image.background_remove' :
             action.id === 'remove' ? 'image.object_remove' :
                 action.id === 'restore' ? 'image.upscale' :
-                    action.id === 'enhance' ? 'image.upscale' : 'image.edit';
-        const what = action.idk ? 'mejorar la foto y dejarla lo más natural posible' : action.label.toLowerCase();
+                    action.id === 'colorize' ? 'image.edit' :
+                        action.id === 'retouch' ? 'image.identity_edit' :
+                            action.id === 'transform' ? 'image.edit' :
+                                action.id === 'generate' ? 'image.generate' : 'image.upscale';
+        const what = action.idk ? 'mejorar la calidad' : action.label.toLowerCase();
+        const how = detail.idk ? 'lo más natural posible' : detail.label.toLowerCase();
+        const purpose = action.idk ? 'Mejorar la foto' : action.label.replace(/^./, (c) => c.toUpperCase());
+        const steps = action.id === 'generate'
+            ? [step('images', 'image.generate', 'Crear 3 imágenes', { input: { count: 3, brief: `${goal}, ${how}` } })]
+            : [
+                step('look', 'vision.describe', 'Mirar la foto para entender qué tiene', { input: { kind: 'describe' } }),
+                step('edit', capability, purpose, { dependsOn: ['look'], input: { brief: `${what}, ${how}`, count: action.id === 'transform' ? 2 : 1 } }),
+            ];
         return {
             experience: 'photo',
             goal,
-            steps: [
-                step('look', 'vision.describe', 'Mirar la foto para entender qué tiene', { input: { kind: 'describe' } }),
-                step('edit', capability, `${action.idk ? 'Mejorar la foto' : action.label.replace(/^./, (c) => c.toUpperCase())}`, { dependsOn: ['look'], input: { brief: what } }),
-            ],
-            explainToUser: `Primero miro tu foto y después me encargo de ${what}. Conservo todo lo demás tal cual.${decided(action.idk, 'empiezo por mejorar la calidad')}`,
+            steps,
+            explainToUser: action.id === 'generate'
+                ? `Voy a crear 3 imágenes a partir de lo que me contaste, ${how}.${decided(detail.idk, 'las hago lo más naturales posible')}`
+                : `Primero miro tu foto y después me encargo de ${what}, ${how}. Conservo todo lo demás tal cual.${decided(action.idk, 'empiezo por mejorar la calidad')}${decided(detail.idk, 'lo hago lo más natural posible')}`,
         };
     },
 };

@@ -161,7 +161,11 @@ export const mockProvider: ProviderAdapter = {
     } else if (capability === 'doc.render') {
       output = { kind: 'document', content: `📎 Documento listo (demo): "${ctx.goal}". En la versión real recibirás un PDF o una presentación para descargar.` };
     } else if (capability.startsWith('image.')) {
-      output = { kind: 'image', url: demoImage(purpose, ctx.goal, emoji) };
+      const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+      const urls = Array.from({ length: count }, (_, i) =>
+        demoImage(count > 1 ? `Propuesta ${i + 1}` : purpose, ctx.goal, emoji)
+      );
+      output = { kind: 'image', url: urls[0], urls: count > 1 ? urls : undefined };
     } else if (capability.startsWith('video.')) {
       output = { kind: 'video', url: demoImage('Video de 15 s', ctx.goal, emoji), content: 'Vista previa del video (demo). El video real llegará con narración, música y watermark Weë.' };
     } else {

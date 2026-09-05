@@ -101,8 +101,8 @@ No un prototipo bonito: una aplicación navegable. Botones importantes funcionan
 | 1 | Arquitectura general de WEE | ✅ WEE Brain + AI Gateway + trabajos (`functions/src/creator`, `functions/src/gateway`), capacidades abstractas, proveedor `mock`, configuración por especialista (`constants/specialists.ts`), acciones con respuesta preelegida (`presetAnswers`) |
 | 2 | Navegación y layout principal | ✅ `CreatorShell` (escritorio: `CreatorSidebar` con Home, WEE Creator, los 10 especialistas y Credits + barra superior; móvil: cabecera compacta), pantalla genérica `SpecialistScreen` (hero, "¿Qué quieres hacer hoy?", foto, idea, ejemplos, mis creaciones), entradas desde ☰, barra lateral social y WEE Creator |
 | 3 | WEE Brain | ✅ `screens/BrainChatScreen.tsx`: chat grande con saludo, opciones numeradas, atajos (Tengo una idea… No sé cómo hacerlo), entrada con Adjuntar / Hablar / Buscar en internet, y derivación al especialista adecuado ("Ir a Weë Studio · Seguir aquí") |
-| 4 | WEE Design | 🔜 |
-| 5 | WEE Photo | 🔜 |
+| 4 | WEE Design | ✅ "Diseña lo que imagines": Weë deduce del texto qué se diseña (auto, botella, logo, personaje…) y solo pregunta estilo y uso (§15); 3 propuestas visuales con "Elegida"; ediciones en lenguaje humano ("Hazlo más realista", "Cámbiale el color", "Más simple", "Más llamativo") |
+| 5 | WEE Photo | ✅ Todas las acciones de la pantalla (mejorar, quitar objetos, fondo, restaurar, retoque, colorizar, transformar, crear imagen, no sé) con deducción por texto ("más nítida y con colores vivos" → no pregunta nada); la foto entra al flujo (subir/cambiar) y el resultado se muestra **antes / después** |
 | 6 | WEE Music | 🔜 (con "Crear tu video con IA" propio) |
 | 7 | WEE Studio | 🔜 |
 | 8 | WEE Business | 🔜 (con "Mis redes" simulado) |

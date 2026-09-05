@@ -25,6 +25,8 @@ export interface ProviderOutput {
   kind: ResultKind;
   content?: string;
   url?: string;
+  /** Varias propuestas cuando el paso pide count > 1. */
+  urls?: string[];
 }
 
 export interface ProviderResult {

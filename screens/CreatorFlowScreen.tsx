@@ -5,6 +5,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorShell from '../components/creator/CreatorShell';
+import UploadBox from '../components/creator/UploadBox';
 import GuidedQuestion, { QaHistoryItem } from '../components/creator/GuidedQuestion';
 import PlanCard from '../components/creator/PlanCard';
 import JobProgress from '../components/creator/JobProgress';
@@ -32,6 +33,9 @@ const CreatorFlowScreen: React.FC = () => {
   };
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
+  // Photo, Home y Beauty trabajan sobre una foto de la persona
+  const needsPhoto = ['photo', 'home', 'beauty'].includes(experience.id);
+  const [imageUri, setImageUri] = useState<string | undefined>(params.imageUri);
   const [jobId, setJobId] = useState<string | null>(params.jobId || null);
   const [job, setJob] = useState<CreatorJob | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
@@ -144,10 +148,21 @@ const CreatorFlowScreen: React.FC = () => {
 
   return (
     <CreatorShell activeId={experience.id} overline="🤖 Weë Creator" title={`${experience.emoji} ${experience.name}`} breadcrumb={experience.name} contentStyle={styles.content}>
-        {!!params.imageUri && (
+        {needsPhoto && !imageUri && status !== 'done' && status !== 'running' && (
+          <UploadBox
+            config={{ title: 'Sube tu foto para trabajarla', subtitle: 'Desde tu galería o con la cámara', hint: 'JPG, PNG o WEBP (máx. 10 MB)' }}
+            onPick={setImageUri}
+          />
+        )}
+        {!!imageUri && (
           <View style={[styles.attachment, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Image source={{ uri: params.imageUri }} style={styles.attachmentImage} contentFit="cover" />
+            <Image source={{ uri: imageUri }} style={styles.attachmentImage} contentFit="cover" />
             <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>Tu foto está lista. Cuéntame qué hacemos con ella.</Text>
+            {status !== 'done' && status !== 'running' && (
+              <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel="Cambiar foto" style={styles.attachmentAction}>
+                <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>Cambiar</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
         {error && (
@@ -173,6 +188,7 @@ const CreatorFlowScreen: React.FC = () => {
             onAnotherVersion={handleAnotherVersion}
             onEdit={handleEdit}
             onPublish={handlePublish}
+            beforeImageUri={needsPhoto ? imageUri : undefined}
           />
         )}
 
@@ -197,6 +213,7 @@ const CreatorFlowScreen: React.FC = () => {
               history={history}
               question={null}
               busy={false}
+              hideThinking
               onAnswer={() => undefined}
             />
             <PlanCard
@@ -279,6 +296,11 @@ const styles = StyleSheet.create({
   attachmentText: {
     flex: 1,
     fontSize: FONT_SIZE.sm,
+  },
+  attachmentAction: {
+    minHeight: scale(36),
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.sm,
   },
   errorBox: {
     padding: SPACING.lg,

@@ -88,6 +88,8 @@ export interface JobResult {
   title: string;
   content?: string;
   url?: string;
+  /** Varias propuestas (p. ej. tres diseños); url es la primera. */
+  urls?: string[];
   /** true si lo produjo el proveedor de prueba (muestra). */
   demo?: boolean;
 }
