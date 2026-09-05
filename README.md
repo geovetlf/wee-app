@@ -205,7 +205,6 @@ Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guia
 
 ## Problemas conocidos
 
-- En web, `PushNotificationProvider` lanza `Notifications.removeNotificationSubscription is not a function` (lo atrapa el ErrorBoundary; no afecta el uso).
 - Con sesión cerrada, la landing lee `communities` y Firestore responde `permission-denied` (en dev aparece un diálogo "Error detectado").
 - `firestore.rules` compila con advertencias (funciones sin usar, variables que sombrean `request`).
 - Varios paquetes de Expo están por debajo de la versión esperada por el SDK 54 (`npx expo install --fix`).

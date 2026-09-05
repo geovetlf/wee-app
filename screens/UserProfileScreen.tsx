@@ -455,7 +455,7 @@ const UserProfileScreen: React.FC = () => {
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.posts)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Posts</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Publicaciones</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.statItem}>
@@ -542,7 +542,7 @@ const UserProfileScreen: React.FC = () => {
 
         {/* Tabs de filtros */}
         <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
-          {renderTabButton('posts', 'document-text-outline', 'Posts')}
+          {renderTabButton('posts', 'document-text-outline', 'Publicaciones')}
           {renderTabButton('reposts', 'repeat-outline', 'Repost')}
           {renderTabButton('photos', 'image-outline', 'Multimedia')}
           {renderTabButton('polls', 'stats-chart-outline', 'Encuestas')}

@@ -102,13 +102,17 @@ Chat de WEE: mensajes privados, conversaciones, grupos, compartir publicaciones,
 
 Se mantienen los dos perfiles. **WEE = World Encode Entity** (definición que se mantiene). El usuario decide con qué identidad participar; la interfaz deja muy clara la diferencia. No complicar el sistema.
 
+**Cómo se nota la diferencia (decisión del 2026-09-05):** con el **Perfil Real** la app es blanca; con el **Perfil Weë** activo la app se viste de **oscuro**. Es la única excepción a la regla de "nunca estética oscura" del §16, y es deliberada: el cambio de tema es la señal más clara de con qué identidad se está participando.
+
+**Perfil Biz (decisión del 2026-09-05):** se mantiene como tercera identidad opcional para negocios (tienda y productos, pantallas `WeeBiz*`), con su propio acento morado. Solo aparece cuando la persona registra un negocio; no complica a quien no lo usa.
+
 ## 15. Botón "+"
 
 Importante. Abre **Crear** y ofrece: Publicación, Weël, Imagen, Video, Texto, Pregunta. Si el usuario necesita una herramienta de IA, conecta con WEE Creator. Crear rápido, sin navegar demasiado.
 
 ## 16. Home — estructura
 
-Mantiene el estilo visual actual: fondo blanco, amarillo/dorado como color principal, gris oscuro para textos, tarjetas blancas, bordes suaves, sombras ligeras, diseño limpio, amigable, moderno y con mucho espacio. **No cambiar a una estética oscura/neón.**
+Mantiene el estilo visual actual: fondo blanco, amarillo/dorado como color principal, gris oscuro para textos, tarjetas blancas, bordes suaves, sombras ligeras, diseño limpio, amigable, moderno y con mucho espacio. **No cambiar a una estética oscura/neón** (única excepción: el tema oscuro mientras el Perfil Weë está activo, §14).
 
 ```
 WEE   ☰   💳 250 Credits   Iniciar sesión

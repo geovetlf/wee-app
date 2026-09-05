@@ -738,26 +738,26 @@ const ProfileScreen: React.FC = () => {
 
           {/* Estadísticas horizontales */}
           <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+            <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.posts)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Posts</Text>
-            </TouchableOpacity>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Publicaciones</Text>
+            </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-            <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+            <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.followers)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Seguidores</Text>
-            </TouchableOpacity>
+            </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-            <TouchableOpacity style={styles.statItem} activeOpacity={0.7}>
+            <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.following)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Siguiendo</Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
           {/* Botones de acción */}
@@ -804,7 +804,7 @@ const ProfileScreen: React.FC = () => {
 
         {/* Tabs de filtros simplificados */}
         <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
-          {renderTabButton('posts', 'Posts')}
+          {renderTabButton('posts', 'Publicaciones')}
           {renderTabButton('media', 'Media')}
           {renderTabButton('reposts', 'Reposts')}
           {renderTabButton('likes', 'Likes')}

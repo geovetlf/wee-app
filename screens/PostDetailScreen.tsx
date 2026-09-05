@@ -16,6 +16,7 @@ import {
   Alert,
   LayoutAnimation,
   UIManager,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,7 +33,8 @@ import { Post, Comment, commentsService, postsService, PollOption } from '../ser
 import { notificationService } from '../services/notificationService';
 import { uploadCommentImage } from '../services/storageService';
 import { formatNumber, getRelativeTime } from '../data/mockData';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { Video, ResizeMode, Audio } from 'expo-av';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import ImageViewer from '../components/ImageViewer';
@@ -69,7 +71,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const PostDetailScreen: React.FC = () => {
+const PostDetailContent: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -244,6 +246,18 @@ const PostDetailScreen: React.FC = () => {
   const handleImagePress = (index: number) => {
     setSelectedImageIndex(index);
     setImageViewerVisible(true);
+  };
+
+  const commentInputRef = useRef<TextInput>(null);
+
+  // Compartir la publicación fuera de Weë
+  const handleSharePost = async () => {
+    if (!post) return;
+    try {
+      await Share.share({ message: `${post.content || 'Mira esta publicación en Weë'}\n\nCreado en Weë · World Encode Entity` });
+    } catch (error) {
+      console.warn('No se pudo compartir:', error);
+    }
   };
 
   const handleCommentProfilePress = (userId: string) => {
@@ -685,7 +699,7 @@ const PostDetailScreen: React.FC = () => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Post</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Publicación</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -828,7 +842,7 @@ const PostDetailScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Comentarios */}
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => commentInputRef.current?.focus()} accessibilityLabel="Comentar">
             <Ionicons
               name="chatbubble-outline"
               size={ICON_SIZE.md}
@@ -890,7 +904,7 @@ const PostDetailScreen: React.FC = () => {
           )}
 
           {/* Compartir */}
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleSharePost} accessibilityLabel="Compartir">
             <Ionicons
               name="share-social-outline"
               size={ICON_SIZE.md}
@@ -973,6 +987,7 @@ const PostDetailScreen: React.FC = () => {
           backgroundColor: theme.colors.surface,
         }]}>
           <TextInput
+            ref={commentInputRef}
             style={[styles.commentInput, {
               color: theme.colors.text,
             }]}
@@ -1370,5 +1385,60 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
   },
 });
+
+/**
+ * Acepta { post } o { postId }: si solo llega el id (Home web, notificaciones),
+ * carga la publicación antes de mostrar el detalle.
+ */
+const PostDetailScreen: React.FC = () => {
+  const { theme } = useTheme();
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const hasPost = !!route.params?.post;
+  const postId: string | undefined = route.params?.postId;
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (hasPost) return;
+    if (!postId) {
+      setFailed(true);
+      return;
+    }
+    let cancelled = false;
+    getDoc(doc(db, 'posts', postId))
+      .then((snap) => {
+        if (cancelled) return;
+        if (!snap.exists()) {
+          setFailed(true);
+          return;
+        }
+        navigation.setParams({ post: { id: snap.id, ...snap.data() } as Post });
+      })
+      .catch((error) => {
+        console.warn('No se pudo cargar la publicación:', error);
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPost, postId]);
+
+  if (hasPost) return <PostDetailContent />;
+
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background, padding: 24, gap: 12 }}>
+      {failed ? (
+        <>
+          <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>No encontramos esta publicación</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Volver">
+            <Text style={{ color: theme.colors.accentDark, fontWeight: '700' }}>Volver</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <ActivityIndicator color={theme.colors.accent} />
+      )}
+    </View>
+  );
+};
 
 export default PostDetailScreen;

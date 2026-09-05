@@ -21,8 +21,8 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 - **Botón +** abre Crear: Publicación, Weël, Imagen, Video, Texto, Pregunta; conecta con Weë Creator si hace falta una herramienta.
 - **Weëls:** videos de hasta 15 s, compartibles fuera de Weë, con pequeño watermark de Weë. Sección "Weëls" en el Home.
 - **"Cómo lo hice" y prompts:** una publicación puede mostrar resultado, herramientas usadas, prompt (con "Copiar prompt") y proceso.
-- **Perfil Real + Perfil Weë** (Weë = World Encode Entity), diferencia muy clara, sin complicar.
-- **Identidad visual:** fondo blanco, amarillo/dorado #F5B731 como color principal, gris oscuro #1F2937 para textos, tarjetas blancas con bordes suaves y sombras ligeras, mucho espacio. No cambiar a estética oscura/neón.
+- **Perfil Real + Perfil Weë** (Weë = World Encode Entity), diferencia muy clara, sin complicar. **Perfil Real = app blanca; Perfil Weë activo = app oscura** (decisión del usuario, 2026-09-05; el cambio de tema vive en `DrawerMenu`/`Header` con `setThemeMode`). No "corregirlo". El **Perfil Biz** (negocio/tienda, pantallas `WeeBiz*`, acento morado) se mantiene como tercera identidad opcional (decisión del usuario, 2026-09-05).
+- **Identidad visual:** fondo blanco, amarillo/dorado #F5B731 como color principal, gris oscuro #1F2937 para textos, tarjetas blancas con bordes suaves y sombras ligeras, mucho espacio. No cambiar a estética oscura/neón; la única excepción es el tema oscuro mientras el Perfil Weë está activo.
 
 ## Mapa de nombres (producto → código actual)
 

@@ -1196,6 +1196,7 @@ const PostCard: React.FC<PostCardProps> = ({
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => { if (!user) { navigateToRegister(); return; } onComment(post.id!); }}
+          accessibilityLabel="Comentar"
           activeOpacity={0.7}
         >
           <Ionicons
@@ -1267,6 +1268,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={handleShare}
           disabled={isSharing}
           activeOpacity={0.7}
+          accessibilityLabel="Compartir"
         >
           <Ionicons
             name="share-social-outline"

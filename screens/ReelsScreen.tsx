@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
   Animated,
+  Share,
 } from 'react-native';
 import { isWeb } from '../utils/platform';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
@@ -324,8 +325,12 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, onBack, 
               </Text>
             </TouchableOpacity>
 
-            {/* Share */}
-            <TouchableOpacity style={styles.sidebarBtn}>
+            {/* Compartir fuera de Weë */}
+            <TouchableOpacity
+              style={styles.sidebarBtn}
+              accessibilityLabel="Compartir Weël"
+              onPress={() => Share.share({ message: `${post.content || 'Mira este Weël en Weë'}\n${post.videoUrl || ''}\n\nCreado en Weë` }).catch((error) => console.warn('No se pudo compartir:', error))}
+            >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
                 {formatNumber(post.shares)}

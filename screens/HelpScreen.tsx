@@ -25,7 +25,7 @@ const FAQ: FaqItem[] = [
     emoji: '👤',
     question: '¿Qué diferencia hay entre Perfil Real y Perfil Weë?',
     answer:
-      'Tu Perfil Real es tu identidad de siempre. Tu Perfil Weë es tu identidad para crear con IA: un avatar y un nombre propios para publicar tus creaciones. Cambias de uno a otro desde el menú ☰ o el botón del encabezado.',
+      'Tu Perfil Real es tu identidad de siempre y la app se ve blanca. Tu Perfil Weë es tu identidad para crear con IA: un avatar y un nombre propios para publicar tus creaciones, y con él la app se viste de oscuro para que siempre sepas con quién estás participando. Cambias de uno a otro desde el menú ☰ o el botón del encabezado.',
   },
   {
     emoji: '🤖',

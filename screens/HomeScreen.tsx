@@ -60,13 +60,13 @@ const CATEGORY_CUSTOM_ICONS: Record<string, any> = {
 const COMMUNITY_HERO_DATA: Record<string, { description: string; image: string; color: string; icon: string }> = {
   // === Categorías sociales actuales (constants/communityCategories.ts) ===
   'cine-animacion': {
-    description: 'Filmmaking, cortometrajes, animación y personajes creados con IA. Mostrá tu proceso y aprendé del de otros.',
+    description: 'Filmmaking, cortometrajes, animación y personajes creados con IA. Muestra tu proceso y aprende del de otros.',
     image: 'https://images.unsplash.com/photo-1603190287605-e6ade32fa852?w=800&h=400&fit=crop&q=80',
     color: '#EF4444',
     icon: 'film-outline',
   },
   'arte-creatividad': {
-    description: 'Arte digital, ilustración, fotografía y diseño potenciados con IA. Compartí prompts, estilos y resultados.',
+    description: 'Arte digital, ilustración, fotografía y diseño potenciados con IA. Comparte prompts, estilos y resultados.',
     image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=400&fit=crop&q=80',
     color: '#EC4899',
     icon: 'color-palette-outline',

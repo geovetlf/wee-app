@@ -176,7 +176,7 @@ const AiAvatarScreen: React.FC = () => {
     const selections = getSelections();
 
     setLoading(true);
-    setLoadingMessage('Generando avatar con Gemini AI...');
+    setLoadingMessage('Weë está creando tu avatar…');
     try {
       const imageUrl = await generateAvatarWithGemini(selections);
       setGeneratedAvatarUrl(imageUrl);
@@ -278,7 +278,7 @@ const AiAvatarScreen: React.FC = () => {
     }
 
     setLoading(true);
-    setLoadingMessage('Regenerando avatar con Gemini AI...');
+    setLoadingMessage('Weë está creando otra versión de tu avatar…');
     try {
       const imageUrl = await generateAvatarWithGemini(getSelections());
       setGeneratedAvatarUrl(imageUrl);
@@ -373,7 +373,7 @@ const AiAvatarScreen: React.FC = () => {
     setLoadingMessage('Subiendo foto...');
     try {
       const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
-      setLoadingMessage('Reemplazando persona por avatar con Gemini AI...\n(Esto puede tomar 30-60 segundos)');
+      setLoadingMessage('Weë está poniendo tu avatar en la foto…\n(puede tardar entre 30 y 60 segundos)');
       const generatedImageUrl = await performAvatarReplacement(uploadedUrl, avatarUrl);
       setLoadingMessage('Guardando resultado...');
       const savedUrl = await saveFaceSwapResult(user.uid, generatedImageUrl);

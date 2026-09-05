@@ -71,12 +71,10 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
     // tocadas se manejan a través del responseListener en tiempo real.
 
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      // Cada suscripción se retira con su propio remove() (la función global
+      // removeNotificationSubscription ya no existe y en web rompía la pantalla)
+      notificationListener.current?.remove?.();
+      responseListener.current?.remove?.();
     };
   }, []);
 

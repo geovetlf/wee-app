@@ -134,7 +134,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
     icon: 'film-outline',
     color: '#EF4444',
     members: 12400,
-    description: 'Personas que usan IA para cine y producción audiovisual. Mostrá tu proceso y aprendé del de otros.',
+    description: 'Personas que usan IA para cine y producción audiovisual. Muestra tu proceso y aprende del de otros.',
     categoryId: 'cine-animacion',
   },
   {

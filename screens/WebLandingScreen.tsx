@@ -93,7 +93,7 @@ const WebLandingScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { postId: post.id });
+    navigation.navigate('PostDetail', { post });
   };
 
   const handleComment = (postId: string) => {
