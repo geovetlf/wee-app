@@ -1,0 +1,18 @@
+{
+  "artboards": [
+    { "file": "Mapa.dc.html", "title": "Los dos mundos de Weë", "x": 0, "y": 0, "w": 980, "h": 720 },
+    { "file": "Wave.dc.html", "title": "WEE Social · Wave (inicio)", "x": 0, "y": 860, "w": 390, "h": 844 },
+    { "file": "Weels.dc.html", "title": "WEE Social · Weels", "x": 470, "y": 860, "w": 390, "h": 844 },
+    { "file": "Perfil.dc.html", "title": "WEE Social · Perfil Real ⇄ WEE", "x": 940, "y": 860, "w": 390, "h": 844 },
+    { "file": "Main.dc.html", "title": "WEE Creator · AI Apps", "x": 1530, "y": 860, "w": 390, "h": 844 },
+    { "file": "Descubrir.dc.html", "title": "WEE Creator · Descubrir", "x": 2000, "y": 860, "w": 390, "h": 844 },
+    { "file": "CreatorWeb.dc.html", "title": "WEE Creator · web", "x": 0, "y": 1840, "w": 1440, "h": 900 }
+  ],
+  "annotations": [
+    { "id": "dos-mundos", "x": 1060, "y": 0, "w": 360, "text": "PROPUESTA · DOS MUNDOS\n\n• Barra inferior con solo dos destinos: WEE Social (azul oscuro) y WEE Creator (amarillo). No hay tercera sección.\n• Dentro de Social: pestañas Wave · Weels · Comunidades. Perfil, WeëTalk, notificaciones y búsqueda desde la barra superior.\n• Dentro de Creator: la barra \"¿Qué querés crear hoy?\", AI Apps por tipo, recomendadas y Mis creaciones. WEE Influencers, Filmmakers, Designers… NO están acá: son comunidades de Social.\n• Un solo acento (#F5B731) sobre blanco, tarjetas radio 16 y sombra suave: los tokens que la app ya tiene. Iconos de línea en la interfaz; emojis solo en las categorías y comunidades, como en la app." },
+    { "id": "social", "x": -380, "y": 860, "w": 340, "text": "WEE SOCIAL\n\"Quiero compartir, aprender y conectar.\"\n\nWave es la pantalla principal: atajo a Creator arriba, \"Explora comunidades\" con las 8 categorías sociales (ya implementadas en la app), \"Comunidades populares\" (WEE Filmmakers, WEE Influencers, WEE Designers…) y el feed con \"Hecho con\" y \"Ver prompt\".\n\nWeels: videos de hasta 15 s con la marca Weë. Perfil: Real ⇄ WEE con portafolio." },
+    { "id": "creator", "x": 1530, "y": 1750, "w": 340, "text": "WEE CREATOR\n\"Quiero crear.\"\n\n1. Barra: decís qué querés hacer y Descubrir muestra 3 AI Apps con afinidad y costo en créditos.\n2. AI Apps por tipo: Video, Imagen, Diseño, Escritura, Libros, Música, Audio, Código, Marketing, Productividad.\n3. Recomendadas y Mis creaciones, con \"Publicar en Social\" para cerrar el ciclo.\n\nNombres de herramientas y precios: ilustrativos, no acuerdos." },
+    { "id": "estado-app", "x": 1520, "y": 1840, "w": 340, "text": "YA EN EL CÓDIGO (dev)\n\nLa pantalla principal de la app ya muestra \"Explora comunidades\" con las 8 categorías sociales y \"Comunidades populares\" con las comunidades WEE (constants/communityCategories.ts es la fuente única). El resto de este canvas es propuesta: la barra de dos mundos y WEE Creator todavía no existen en la app." }
+  ],
+  "launch": { "view": "canvas" }
+}

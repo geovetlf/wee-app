@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #E9EBEF; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1F2937; -webkit-font-smoothing: antialiased; }
+    a { color: #E5A020; text-decoration: none; } a:hover { color: #B8800F; }
+    svg.ic { width: 24px; height: 24px; flex: 0 0 auto; }
+    svg.ic-s { width: 20px; height: 20px; flex: 0 0 auto; }
+    svg.ic-xs { width: 16px; height: 16px; flex: 0 0 auto; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F8F9FA; display: flex; flex-direction: column;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 6px 4px 16px; color: #1F2937;">
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #6B7280;">WEE SOCIAL</div>
+      <div style="font-size: 20px; font-weight: 700;">Perfil</div>
+    </div>
+    <div style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><circle cx="17" cy="7" r="2.5"></circle><path d="M20 12h-10"></path><circle cx="7" cy="12" r="2.5"></circle><path d="M4 17h10"></path><circle cx="17" cy="17" r="2.5"></circle></svg>
+    </div>
+  </div>
+
+  <div style="padding: 8px 16px 0 16px; display: flex; flex-direction: column; gap: 8px;">
+    <div style="display: flex; height: 44px; padding: 4px; border-radius: 22px; background: #E5E7EB;">
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; border-radius: 18px; font-size: 14px; font-weight: 600; color: #6B7280;">Real</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 18px; background: #1F2937; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+        <div style="width: 8px; height: 8px; border-radius: 4px; background: #F5B731;"></div>
+        <span>WEE</span>
+      </div>
+    </div>
+    <div style="font-size: 12px; line-height: 16px; color: #6B7280; text-align: center;">Tu perfil WEE es tu alter ego para crear y opinar. El perfil Real es tu identidad pública.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 16px 0 16px;">
+    <div style="width: 96px; height: 96px; border-radius: 48px; background: linear-gradient(135deg, #FDE68A 0%, #F5B731 45%, #7C3AED 100%); border: 3px solid #FFFFFF; box-shadow: 0 0 0 3px #F5B731;"></div>
+    <div style="font-size: 22px; font-weight: 700; color: #1F2937; padding-top: 4px;">Nova</div>
+    <div style="font-size: 14px; color: #6B7280; margin-top: -4px;">@nova.wee · en WEE Filmmakers y 5 más</div>
+    <div style="font-size: 15px; line-height: 21px; color: #1F2937; text-align: center; max-width: 300px;">Creo mundos con IA. Video y diseño. Preguntame cómo lo hice.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 16px 16px 0 16px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0; background: #FFFFFF; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+      <div style="font-size: 18px; font-weight: 700; color: #1F2937;">48</div>
+      <div style="font-size: 12px; color: #6B7280;">Creaciones</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0; background: #FFFFFF; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+      <div style="font-size: 18px; font-weight: 700; color: #1F2937;">1.2K</div>
+      <div style="font-size: 12px; color: #6B7280;">Seguidores</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0; background: #FFFFFF; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+      <div style="font-size: 18px; font-weight: 700; color: #1F2937;">6</div>
+      <div style="font-size: 12px; color: #6B7280;">Comunidades</div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; padding: 12px 16px 0 16px;">
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; height: 44px; border-radius: 22px; background: #FFFFFF; border: 1.5px solid #E5E7EB; font-size: 14px; font-weight: 600; color: #1F2937;">Editar perfil</div>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; height: 44px; border-radius: 22px; background: #FFFFFF; border: 1.5px solid #E5E7EB; font-size: 14px; font-weight: 600; color: #1F2937;">Compartir</div>
+  </div>
+
+  <div style="display: flex; padding: 16px 16px 0 16px; border-bottom: 1px solid #E5E7EB;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px;">
+      <div style="font-size: 14px; font-weight: 700; color: #1F2937;">Portafolio</div>
+      <div style="width: 100%; height: 3px; border-radius: 2px; background: #F5B731;"></div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px;">
+      <div style="font-size: 14px; font-weight: 600; color: #6B7280;">AI Apps que usa</div>
+      <div style="width: 100%; height: 3px;"></div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px;">
+      <div style="font-size: 14px; font-weight: 600; color: #6B7280;">Preguntas</div>
+      <div style="width: 100%; height: 3px;"></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 12px 16px 0 16px;">
+    <div style="position: relative; height: 114px; border-radius: 12px; background: radial-gradient(120% 90% at 30% 20%, #F59E0B 0%, #B45309 55%, #451A03 100%);">
+      <div style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #FFFFFF; background: rgba(0,0,0,0.45); padding: 3px 7px; border-radius: 8px;"><svg class="ic-xs" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6v12l10-6z"></path></svg><span>8 s</span></div>
+    </div>
+    <div style="position: relative; height: 114px; border-radius: 12px; background: radial-gradient(120% 90% at 70% 30%, #C7D2FE 0%, #6366F1 60%, #1E1B4B 100%);"></div>
+    <div style="position: relative; height: 114px; border-radius: 12px; background: radial-gradient(120% 90% at 40% 60%, #A7F3D0 0%, #059669 55%, #064E3B 100%);">
+      <div style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #FFFFFF; background: rgba(0,0,0,0.45); padding: 3px 7px; border-radius: 8px;"><svg class="ic-xs" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6v12l10-6z"></path></svg><span>12 s</span></div>
+    </div>
+    <div style="position: relative; height: 114px; border-radius: 12px; background: radial-gradient(120% 90% at 30% 20%, #FCA5A5 0%, #7F1D1D 60%, #1F2937 100%);"></div>
+    <div style="position: relative; height: 114px; border-radius: 12px; background: radial-gradient(120% 90% at 60% 40%, #FDE68A 0%, #F5B731 50%, #78350F 100%);"></div>
+    <div style="position: relative; height: 114px; border-radius: 12px; background: radial-gradient(120% 90% at 30% 70%, #E5E7EB 0%, #6B7280 60%, #1F2937 100%);">
+      <div style="position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #FFFFFF; background: rgba(0,0,0,0.45); padding: 3px 7px; border-radius: 8px;"><svg class="ic-xs" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6v12l10-6z"></path></svg><span>15 s</span></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: #FFFFFF; border-top: 1px solid #E5E7EB; padding: 10px 16px 0 16px;">
+    <div style="display: flex; height: 52px; padding: 4px; border-radius: 26px; background: #F3F4F6; gap: 4px;">
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; background: #1F2937; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 2px 8px rgba(31,41,55,0.25);">
+        <svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7"></path><path d="M17.5 13.5a6.5 6.5 0 0 1 4 6.5"></path></svg>
+        <span>WEE Social</span>
+      </div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; color: #6B7280; font-size: 14px; font-weight: 600;">
+        <svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>
+        <span>WEE Creator</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
