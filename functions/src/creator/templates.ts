@@ -2,9 +2,9 @@ import { CapabilityId, ExperienceId, Plan, PlanStep, Question, QuestionOption } 
 
 /**
  * Plantillas por experiencia (docs/CREATOR.md §6 y §7): preguntas sencillas con
- * opciones (siempre con "🤷 No sé") y el plan de pasos que WEE ejecuta por dentro.
+ * opciones (siempre con "🤷 No sé") y el plan de pasos que Weë ejecuta por dentro.
  *
- * Fase 0: WEE Brain usa estas plantillas de forma determinista.
+ * Fase 0: Weë Brain usa estas plantillas de forma determinista.
  * Fase 1: el LLM (text.structure) las usa como base para preguntar y planificar.
  */
 export interface ExperienceTemplate {
@@ -37,7 +37,7 @@ const chosen = (question: Question, answers: Record<string, string>): { id: stri
   return { id: 'free', label: value, idk: value.trim().length === 0 };
 };
 
-/** Frase didáctica cuando la persona eligió "No sé": WEE decide y lo explica. */
+/** Frase didáctica cuando la persona eligió "No sé": Weë decide y lo explica. */
 const decided = (idk: boolean, what: string) => (idk ? ` Como no estabas seguro, ${what}.` : '');
 
 const q = (id: string, text: string, options: QuestionOption[], allowFreeText = true): Question => ({
@@ -50,7 +50,7 @@ const q = (id: string, text: string, options: QuestionOption[], allowFreeText = 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const design: ExperienceTemplate = {
-  name: 'WEE Design',
+  name: 'Weë Design',
   emoji: '🎨',
   defaultGoal: 'Un diseño para mi marca',
   questions: [
@@ -87,7 +87,7 @@ const design: ExperienceTemplate = {
 };
 
 const studio: ExperienceTemplate = {
-  name: 'WEE Studio',
+  name: 'Weë Studio',
   emoji: '🎬',
   defaultGoal: 'Un video corto para mis redes',
   questions: [
@@ -119,7 +119,7 @@ const studio: ExperienceTemplate = {
         step('frames', 'image.generate', 'Crear las imágenes de cada escena', { dependsOn: ['script'], input: { count: 4 } }),
         step('voice', 'voice.tts', 'Grabar la narración', { dependsOn: ['script'] }),
         step('music', 'music.generate', 'Elegir la música', { dependsOn: ['script'], input: { mood: look } }),
-        step('video', 'video.compose', 'Armar el video de 15 segundos con watermark WEE', { dependsOn: ['frames', 'voice', 'music'] }),
+        step('video', 'video.compose', 'Armar el video de 15 segundos con watermark Weë', { dependsOn: ['frames', 'voice', 'music'] }),
       ],
       explainToUser: `Voy a escribir un guion corto, crear las imágenes, grabar la narración y armar ${kind} de 15 segundos con estilo ${look}.${decided(type.idk, 'lo preparo para tus redes')}${decided(style.idk, 'elegí un estilo cercano y con ritmo')}`,
     };
@@ -127,7 +127,7 @@ const studio: ExperienceTemplate = {
 };
 
 const photo: ExperienceTemplate = {
-  name: 'WEE Photo',
+  name: 'Weë Photo',
   emoji: '📸',
   defaultGoal: 'Mejorar una foto',
   questions: [
@@ -160,7 +160,7 @@ const photo: ExperienceTemplate = {
 };
 
 const writer: ExperienceTemplate = {
-  name: 'WEE Writer',
+  name: 'Weë Writer',
   emoji: '✍️',
   defaultGoal: 'Un texto para publicar',
   questions: [
@@ -198,7 +198,7 @@ const writer: ExperienceTemplate = {
 };
 
 const music: ExperienceTemplate = {
-  name: 'WEE Music',
+  name: 'Weë Music',
   emoji: '🎵',
   defaultGoal: 'Música para mi contenido',
   questions: [
@@ -238,7 +238,7 @@ const music: ExperienceTemplate = {
 };
 
 const beauty: ExperienceTemplate = {
-  name: 'WEE Beauty',
+  name: 'Weë Beauty',
   emoji: '💄',
   defaultGoal: 'Probar un cambio de look',
   questions: [
@@ -275,7 +275,7 @@ const beauty: ExperienceTemplate = {
 };
 
 const chef: ExperienceTemplate = {
-  name: 'WEE Chef',
+  name: 'Weë Chef',
   emoji: '👨‍🍳',
   defaultGoal: 'Algo rico para comer hoy',
   questions: [
@@ -310,7 +310,7 @@ const chef: ExperienceTemplate = {
 };
 
 const home: ExperienceTemplate = {
-  name: 'WEE Home',
+  name: 'Weë Home',
   emoji: '🏠',
   defaultGoal: 'Renovar un espacio de mi casa',
   questions: [
@@ -348,7 +348,7 @@ const home: ExperienceTemplate = {
 };
 
 const business: ExperienceTemplate = {
-  name: 'WEE Business',
+  name: 'Weë Business',
   emoji: '💼',
   defaultGoal: 'Hacer crecer mi negocio',
   questions: [
@@ -372,7 +372,7 @@ const business: ExperienceTemplate = {
     const piece = what.idk ? 'ideas para tu negocio' : what.label.toLowerCase();
     const voice = tone.idk ? 'profesional pero cercano' : tone.label.toLowerCase();
     const steps: PlanStep[] = [
-      step('analysis', 'text.structure', 'Entender tu negocio y tu objetivo', { input: { kind: 'analysis', brief: piece } }),
+      step('analysis', 'text.generate', 'Entender tu negocio y tu objetivo', { input: { kind: 'analysis', brief: piece } }),
       step('doc', 'text.generate', what.id === 'cv' ? 'Redactar tu CV' : what.id === 'deck' ? 'Escribir la presentación' : `Preparar ${piece}`, { dependsOn: ['analysis'], input: { kind: what.id === 'cv' ? 'cv' : 'business', brief: `${piece}, tono ${voice}` } }),
     ];
     if (what.id === 'cv' || what.id === 'deck' || what.id === 'plan') {
@@ -390,7 +390,7 @@ const business: ExperienceTemplate = {
 };
 
 const brain: ExperienceTemplate = {
-  name: 'WEE Brain',
+  name: 'Weë Brain',
   emoji: '🧠',
   defaultGoal: 'Necesito ayuda y no sé por dónde empezar',
   questions: [
@@ -409,10 +409,10 @@ const brain: ExperienceTemplate = {
       experience: 'brain',
       goal,
       steps: [
-        step('understand', 'text.structure', 'Entender bien lo que necesitas', { input: { kind: 'analysis', brief: need } }),
+        step('understand', 'text.generate', 'Entender bien lo que necesitas', { input: { kind: 'analysis', brief: need } }),
         step('answer', 'text.generate', 'Prepararte una respuesta clara con próximos pasos', { dependsOn: ['understand'], input: { kind: 'answer', brief: need } }),
       ],
-      explainToUser: `Voy a entender bien lo que necesitas y te preparo una respuesta clara, con los próximos pasos.${decided(what.idk, 'te propongo un punto de partida y, si hace falta, te llevo al especialista de WEE que corresponda')}`,
+      explainToUser: `Voy a entender bien lo que necesitas y te preparo una respuesta clara, con los próximos pasos.${decided(what.idk, 'te propongo un punto de partida y, si hace falta, te llevo al especialista de Weë que corresponda')}`,
     };
   },
 };

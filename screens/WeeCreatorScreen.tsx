@@ -18,6 +18,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
 import { creatorInterestService } from '../services/creatorInterestService';
 import CreditsPill from '../components/CreditsPill';
+import CreatorShell from '../components/creator/CreatorShell';
 import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById } from '../constants/weeExperiences';
 import { creatorService, CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -26,13 +27,13 @@ import { scale } from '../utils/scale';
 const isWeb = Platform.OS === 'web';
 
 /**
- * WEE Creator — "El usuario elige el resultado. WEE elige la IA." (docs/CREATOR.md)
+ * Weë Creator — "El usuario elige el resultado. Weë elige la IA." (docs/CREATOR.md)
  * Responde a "¿Qué quieres crear?": la persona describe lo que quiere lograr y
- * WEE le muestra el especialista (una de las 10 experiencias) que se encarga.
+ * Weë le muestra el especialista (una de las 10 experiencias) que se encarga.
  * Nunca se muestran proveedores, modelos ni prompts técnicos.
  *
  * Estado actual: las experiencias están en camino (registran interés); la única
- * herramienta activa hoy es el avatar IA del perfil WEE.
+ * herramienta activa hoy es el avatar IA del perfil Weë.
  */
 const WeeCreatorScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -82,7 +83,7 @@ const WeeCreatorScreen: React.FC = () => {
   };
 
   const handleCategoryPress = (cat: WeeExperience) => {
-    setSelectedId(cat.id === selectedId ? null : cat.id);
+    navigation.navigate('Specialist', { id: cat.id });
   };
 
   // Registra (o quita) el interés en una categoría: así sabemos qué AI Apps
@@ -173,20 +174,7 @@ const WeeCreatorScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerTitles}>
-          <Text style={[styles.headerOverline, { color: theme.colors.accentDark }]}>🤖 WEE CREATOR</Text>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>¿Qué quieres crear?</Text>
-        </View>
-        <CreditsPill compact />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <CreatorShell activeId="creator" overline="🤖 Weë Creator" title="¿Qué quieres crear?" breadcrumb="Weë Creator" contentStyle={styles.content}>
         {/* Buscador por intención */}
         <View style={[styles.searchBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={styles.searchEmoji}>✨</Text>
@@ -205,7 +193,7 @@ const WeeCreatorScreen: React.FC = () => {
           )}
         </View>
         <Text style={[styles.motto, { color: theme.colors.textSecondary }]}>
-          Tú eliges el resultado. WEE elige la IA.
+          Tú eliges el resultado. Weë elige la IA.
         </Text>
 
         {query.trim().length > 0 && (
@@ -217,7 +205,7 @@ const WeeCreatorScreen: React.FC = () => {
               <View style={styles.grid}>{matches.map(renderCategory)}</View>
             ) : (
               <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
-                Prueba con palabras como logo, video, foto, texto, canción, look, receta, casa o negocio. O pregúntale a WEE Brain.
+                Prueba con palabras como logo, video, foto, texto, canción, look, receta, casa o negocio. O pregúntale a Weë Brain.
               </Text>
             )}
           </View>
@@ -284,7 +272,7 @@ const WeeCreatorScreen: React.FC = () => {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
                     <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
-                      {exp?.name ?? 'WEE'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
+                      {exp?.name ?? 'Weë'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -304,7 +292,7 @@ const WeeCreatorScreen: React.FC = () => {
           >
             <Text style={styles.availableEmoji}>🎭</Text>
             <View style={styles.availableBody}>
-              <Text style={styles.availableTitle}>Avatar IA para tu perfil WEE</Text>
+              <Text style={styles.availableTitle}>Avatar IA para tu perfil Weë</Text>
               <Text style={styles.availableText}>
                 {hasHidiProfile ? 'Genera o cambia el avatar de tu alter ego con IA.' : 'Crea tu alter ego digital y genera su avatar con IA.'}
               </Text>
@@ -315,7 +303,7 @@ const WeeCreatorScreen: React.FC = () => {
 
         {/* Todas las categorías */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Los 10 especialistas de WEE</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Los 10 especialistas de Weë</Text>
           <View style={styles.grid}>{WEE_EXPERIENCES.map(renderCategory)}</View>
         </View>
 
@@ -327,7 +315,7 @@ const WeeCreatorScreen: React.FC = () => {
               {balance === null ? 'Tus Credits' : `Tienes ${balance.toLocaleString('es')} Credits`}
             </Text>
             <Text style={[styles.creditsText, { color: theme.colors.textSecondary }]}>
-              Los especialistas de WEE usan Credits. Recarga cuando quieras.
+              Los especialistas de Weë usan Credits. Recarga cuando quieras.
             </Text>
           </View>
           <TouchableOpacity
@@ -338,8 +326,7 @@ const WeeCreatorScreen: React.FC = () => {
             <Text style={[styles.creditsButtonText, { color: theme.colors.text }]}>Recargar</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </CreatorShell>
   );
 };
 
@@ -375,8 +362,6 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
   },
   content: {
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxxl * 2,
     gap: SPACING.xl,
   },
   searchBox: {

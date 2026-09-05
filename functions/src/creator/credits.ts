@@ -3,7 +3,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import { Plan } from './types';
 
 /**
- * Credits de WEE Creator: reservar al empezar, ajustar al terminar.
+ * Credits de Weë Creator: reservar al empezar, ajustar al terminar.
  * Precios por capacidad en pricing/{capabilityId}.credits. Mientras la tabla
  * esté vacía (fase 0, modo demo) todo cuesta 0: los precios no se inventan.
  */

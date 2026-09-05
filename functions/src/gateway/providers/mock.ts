@@ -32,7 +32,7 @@ const wrap = (text: string, maxChars: number, maxLines: number): string[] => {
   return lines;
 };
 
-/** Imagen SVG de muestra (tarjeta blanca sobre amarillo WEE) como data URI. */
+/** Imagen SVG de muestra (tarjeta blanca sobre amarillo Weë) como data URI. */
 const demoImage = (title: string, subtitle: string, emoji: string): string => {
   const titleLines = wrap(title, 24, 5);
   const subtitleLines = wrap(subtitle, 40, 2);
@@ -132,7 +132,7 @@ const demoText = (kind: string, purpose: string, brief: string, ctx: GatewayCont
     case 'analysis':
       return `🔎 Lo que entendí · ${goal}\n\nObjetivo: ${brief || 'avanzar con claridad'}.\nPúblico: personas como tus clientes actuales.\nPrioridad: algo concreto que puedas usar esta semana.\n\n${DEMO_NOTE}`;
     case 'answer':
-      return `🧠 Respuesta · ${goal}\n\nEmpecemos por lo más simple: define qué quieres lograr en una frase. Después, elige una sola acción para hoy.\n\nPróximos pasos:\n1. Escribe tu objetivo en una línea.\n2. Elige el especialista de WEE que te ayuda con eso.\n3. Empieza con la versión más sencilla.\n\n${DEMO_NOTE}`;
+      return `🧠 Respuesta · ${goal}\n\nEmpecemos por lo más simple: define qué quieres lograr en una frase. Después, elige una sola acción para hoy.\n\nPróximos pasos:\n1. Escribe tu objetivo en una línea.\n2. Elige el especialista de Weë que te ayuda con eso.\n3. Empieza con la versión más sencilla.\n\n${DEMO_NOTE}`;
     case 'describe':
       return `👀 Lo que veo en la foto (demo): una imagen bien iluminada, con el sujeto centrado y un fondo sencillo. Conservaré la luz y los colores originales.\n\n${DEMO_NOTE}`;
     case 'polish':
@@ -163,7 +163,7 @@ export const mockProvider: ProviderAdapter = {
     } else if (capability.startsWith('image.')) {
       output = { kind: 'image', url: demoImage(purpose, ctx.goal, emoji) };
     } else if (capability.startsWith('video.')) {
-      output = { kind: 'video', url: demoImage('Video de 15 s', ctx.goal, emoji), content: 'Vista previa del video (demo). El video real llegará con narración, música y watermark WEE.' };
+      output = { kind: 'video', url: demoImage('Video de 15 s', ctx.goal, emoji), content: 'Vista previa del video (demo). El video real llegará con narración, música y watermark Weë.' };
     } else {
       output = { kind: 'audio', content: `🔊 ${purpose} (demo). El audio real se generará en la versión conectada.` };
     }

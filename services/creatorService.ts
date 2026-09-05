@@ -3,7 +3,7 @@ import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } fr
 import { db, functions } from '../config/firebase';
 
 /**
- * WEE Creator en la app: habla con WEE Brain (creatorChat), lanza el trabajo
+ * Weë Creator en la app: habla con Weë Brain (creatorChat), lanza el trabajo
  * (creatorRun) y escucha su progreso en creatorJobs/{jobId}.
  * La app nunca conoce proveedores, modelos ni prompts.
  */
@@ -27,6 +27,8 @@ export interface Answer {
   questionId: string;
   optionId?: string;
   text?: string;
+  /** Weë Brain la dedujo de lo que escribió la persona. */
+  inferred?: boolean;
 }
 
 export interface PlanStep {
@@ -54,6 +56,8 @@ export interface JobResult {
   title: string;
   content?: string;
   url?: string;
+  /** Producido por el proveedor de prueba (muestra). */
+  demo?: boolean;
 }
 
 export interface CreatorJob {
@@ -105,19 +109,19 @@ export const humanizeCreatorError = (error: unknown): string => {
   const code = String((error as any)?.code || '');
   const message = String((error as any)?.message || '');
   if (message.includes('insufficient-credits')) return 'Te faltan Credits para este trabajo. Recarga y vuelve a intentarlo.';
-  if (code.includes('unauthenticated')) return 'Inicia sesión para crear con WEE.';
+  if (code.includes('unauthenticated')) return 'Inicia sesión para crear con Weë.';
   if (code.includes('unavailable') || code.includes('internal') || message.includes('Failed to fetch')) {
-    return 'No pude conectar con WEE Creator. Revisa tu conexión y vuelve a intentarlo.';
+    return 'No pude conectar con Weë Creator. Revisa tu conexión y vuelve a intentarlo.';
   }
   return 'No me salió bien. ¿Probamos otra vez? No te cobré.';
 };
 
 export const creatorService = {
   /** Empieza una conversación con un especialista (crea el trabajo). */
-  start: (experienceId: string, goal?: string) =>
-    call<ChatResponse>('creatorChat', { experienceId, goal: goal || '' }),
+  start: (experienceId: string, goal?: string, presetAnswers?: Answer[]) =>
+    call<ChatResponse>('creatorChat', { experienceId, goal: goal || '', presetAnswers: presetAnswers || [] }),
 
-  /** Responde la pregunta actual; WEE Brain devuelve la siguiente o el plan. */
+  /** Responde la pregunta actual; Weë Brain devuelve la siguiente o el plan. */
   answer: (jobId: string, answer: Answer) => call<ChatResponse>('creatorChat', { jobId, answer }),
 
   /** Ejecuta el plan; el progreso llega por subscribeToJob. */

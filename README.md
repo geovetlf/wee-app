@@ -3,7 +3,7 @@
 > **La red social para la generación de la IA.**
 > Una plataforma donde las personas descubren y usan herramientas de Inteligencia Artificial para crear, y comparten lo creado con comunidades que también crean con IA.
 
-WEE combina en un solo ecosistema lo que hoy está disperso: **red social + herramientas de IA + creación de contenido + comunidades + descubrimiento**. La IA es el motor. La comunidad es el ecosistema. La red social es el tejido que conecta todo.
+Weë combina en un solo ecosistema lo que hoy está disperso: **red social + herramientas de IA + creación de contenido + comunidades + descubrimiento**. La IA es el motor. La comunidad es el ecosistema. La red social es el tejido que conecta todo.
 
 Las instrucciones definitivas de producto y UX están en [`docs/UX.md`](./docs/UX.md); la visión original, en [`docs/VISION.md`](./docs/VISION.md). Este README describe **lo que existe hoy en el código** y cómo trabajar con él.
 
@@ -18,20 +18,20 @@ El código actual nace de una versión anterior del producto (red social anónim
 | Área de la visión | Hoy en el código | Estado |
 |---|---|---|
 | **Home** (feed + comunidades + Weëls) | `LandingScreen` (nativo) / `WebLandingScreen` (web) — banner "Tu creatividad no tiene límites", "Explora comunidades" (8 categorías sociales), fila de Weëls, pestaña **Comunidad** con filtros (Publicaciones · Imágenes · Videos · Preguntas · Tutoriales) | ✅ Implementado según `docs/UX.md` |
-| **Menú ☰ único** | `DrawerMenu` — Perfil Real / Perfil WEE, Comunidades, Weëls, WeeTalk, **WEE Creator** (con categorías), Credits, Notificaciones, Guardados, Configuración, Ayuda | ✅ Implementado |
-| **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a WEE Creator; `CreateScreen` recibe `kind` | ✅ Implementado |
+| **Menú ☰ único** | `DrawerMenu` — Perfil Real / Perfil Weë, Comunidades, Weëls, WeeTalk, **Weë Creator** (con categorías), Credits, Notificaciones, Guardados, Configuración, Ayuda | ✅ Implementado |
+| **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a Weë Creator; `CreateScreen` recibe `kind` | ✅ Implementado |
 | **"Cómo lo hice"** (herramientas, prompt, proceso) | `CreateScreen` → `Post.aiTools / aiPrompt / aiProcess` → `HowIMadeIt` dentro de `PostCard` (prompt copiable) | ✅ Implementado |
 | **Credits siempre visibles** | `CreditsPill` en `Header` (`hooks/useWallet.ts`) → `CreditStoreScreen` / `WalletScreen` / `creditsService` | ✅ Implementado |
-| **WEE Creator** (10 experiencias: WEE Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Brain) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia, "Disponible hoy: Avatar IA"; el resto ofrece "Avísame cuando esté", que registra el interés en `creatorInterests` (`creatorInterestService`). Regla: "El usuario elige el resultado. WEE elige la IA." (`docs/CREATOR.md`) | ⚠️ Fase 0 lista: conversación guiada (preguntas con opciones y "🤷 No sé"), plan, progreso y resultado en **modo demo** vía WEE Brain + AI Gateway (`functions/src/creator`, `functions/src/gateway`, proveedor `mock`); integraciones reales pendientes |
-| **Descubrimiento de IA** ("quiero hacer X" → especialista recomendado) | buscador de `WeeCreatorScreen` (`matchExperiences`, por palabras clave; WEE Brain lo hará con un LLM) | ⚠️ Base |
-| **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`); el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel` | ✅ Base existente (falta: watermark de marca WEE al compartir) |
+| **Weë Creator** (10 experiencias: Weë Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Brain) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia, "Disponible hoy: Avatar IA"; el resto ofrece "Avísame cuando esté", que registra el interés en `creatorInterests` (`creatorInterestService`). Regla: "El usuario elige el resultado. Weë elige la IA." (`docs/CREATOR.md`) | ⚠️ Fase 0 lista: conversación guiada (preguntas con opciones y "🤷 No sé"), plan, progreso y resultado en **modo demo** vía Weë Brain + AI Gateway (`functions/src/creator`, `functions/src/gateway`, proveedor `mock`); integraciones reales pendientes |
+| **Descubrimiento de IA** ("quiero hacer X" → especialista recomendado) | buscador de `WeeCreatorScreen` (`matchExperiences`, por palabras clave; Weë Brain lo hará con un LLM) | ⚠️ Base |
+| **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`); el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel` | ✅ Base existente (falta: watermark de marca Weë al compartir) |
 | **Guardados** (🔖) | `bookmarksService` (`users/{uid}/bookmarks`), `hooks/useBookmarks.ts`, botón en `PostCard`, `SavedPostsScreen` desde el menú ☰ | ✅ Implementado |
 | **WeeTalk** (chat) | `InboxScreen` / `ConversationScreen` — mensajes, audio, temas de chat | ✅ Base existente |
-| **Comunidades** (WEE Filmmakers, WEE Influencers, WEE Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
-| **Perfil doble (Real + WEE)** | `HidiCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (`Hidi` es el nombre interno heredado del perfil WEE) |
+| **Comunidades** (Weë Filmmakers, Weë Influencers, Weë Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
+| **Perfil doble (Real + Weë)** | `HidiCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (`Hidi` es el nombre interno heredado del perfil Weë) |
 | Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
 | WeeBiz (perfiles y productos de negocios) | `WeeBiz*Screen`, `weeBizService` | ⚠️ Heredado; no está en la visión actual, a evaluar |
-| Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de WEE Creator; "WEE Influencers" es una comunidad) | ❌ No existe aún |
+| Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de Weë Creator; "Weë Influencers" es una comunidad) | ❌ No existe aún |
 | Trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — | ❌ No existe aún |
 
 Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
@@ -44,7 +44,7 @@ Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
 
 - **App:** Expo SDK 54 (managed) · React Native 0.81 · React 19 · TypeScript · React Navigation 7 · React Native Web
 - **Backend:** Firebase — Authentication (anónimo, email/contraseña, Google), Firestore, Storage, Cloud Functions (Node 20)
-- **IA:** Cloud Functions que llaman a **Gemini** (`gemini-3-pro-image-preview`) para generar el avatar del perfil WEE y reemplazar personas en fotos (`functions/src/`)
+- **IA:** Cloud Functions que llaman a **Gemini** (`gemini-3-pro-image-preview`) para generar el avatar del perfil Weë y reemplazar personas en fotos (`functions/src/`)
 - **Media:** Cloudinary (transformaciones de imagen por URL), `react-native-compressor`, `expo-av`
 - **Builds:** Gradle local para Android (sin cuenta de Expo, sin EAS, sin Android Studio). `expo-updates` está desactivado en `app.json`; EAS y las actualizaciones OTA quedan como opción futura
 - **Web:** Metro bundler; landing y páginas legales estáticas en `public/` (Firebase Hosting / Vercel)
@@ -165,7 +165,7 @@ wee-app/
 ├── hooks/                   # useCommunities, useFollow, useLikes, useReposts, useVote, useResponsive…
 ├── navigation/              # Auth / Main / Home / Inbox / Profile stacks + TabNavigator
 ├── screens/                 # Landing/Home, WeeCreator, Reels (Weëls), Inbox/Conversation (WeeTalk), Community,
-│                            # HidiCreation + AiAvatar (perfil WEE), CreditStore/Wallet, WeeBiz*, Search…
+│                            # HidiCreation + AiAvatar (perfil Weë), CreditStore/Wallet, WeeBiz*, Search…
 ├── services/                # firestoreService, messagesService, communityService, creditsService,
 │                            # avatarGenerationService, storageService, cloudinaryService, videoDownload…
 ├── functions/src/           # Cloud Functions: generateAvatar.ts, vertexAI.ts (Gemini)
@@ -188,9 +188,9 @@ wee-app/
 
 ---
 
-## WEE Creator en desarrollo (fase 0, modo demo)
+## Weë Creator en desarrollo (fase 0, modo demo)
 
-WEE Brain y el AI Gateway viven en Cloud Functions (`functions/src/creator`, `functions/src/gateway`). El proyecto **dev** está en el plan Spark, así que en desarrollo las Functions corren en el **emulador local**:
+Weë Brain y el AI Gateway viven en Cloud Functions (`functions/src/creator`, `functions/src/gateway`). El proyecto **dev** está en el plan Spark, así que en desarrollo las Functions corren en el **emulador local**:
 
 ```bash
 npm run functions:install   # una vez
@@ -198,6 +198,8 @@ npm run functions:emulator  # compila y levanta creatorChat / creatorRun en http
 ```
 
 La app apunta al emulador cuando `.env` tiene `EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST=localhost` (reinicia Metro al cambiarlo). En el celular, además: `adb reverse tcp:5001 tcp:5001`. Sin esa variable, la app usa las Functions desplegadas del proyecto.
+
+**Gemini (fase 1):** con una clave de Google AI Studio en `functions/.env.local` (`GEMINI_API_KEY=…`, ver `functions/.env.example`; no se versiona) Weë Brain entiende lo que la persona escribe con sus palabras y responde por ella las preguntas que ya quedaron claras, y los pasos de texto (recetas, guiones, CV, respuestas de Weë Brain…) se generan de verdad con `gemini-2.5-flash` (`WEE_BRAIN_MODEL` para cambiarlo). Sin clave, todo sigue en modo demo. El coste real de cada llamada se guarda en `creatorJobs/{id}/private/costs` y acumulado por día y capacidad en `creatorUsage/{día}`; de ahí salen los precios en Credits (`pricing/{capacidad}`) con la fórmula coste API + infraestructura + otros + margen.
 
 Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guiada (2–3 preguntas con opciones, siempre con "🤷 No sé"), muestra el plan y su coste ("Gratis en modo demo"), ejecuta los pasos por el AI Gateway con el proveedor de prueba `mock` (sin gastar dinero) y devuelve un resultado de muestra con **Crear otra versión / Editar / Publicar en mi comunidad**. Los trabajos se guardan en `creatorJobs` ("Mis creaciones"). Los precios (`pricing/{capacidad}`) siguen vacíos a propósito: se llenan cuando se midan los costes reales de cada API.
 

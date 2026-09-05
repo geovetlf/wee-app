@@ -2,9 +2,9 @@
  * Categorías sociales de Weë (Comunidades).
  *
  * Son TEMÁTICAS de comunidad — personas, intereses y conversaciones —,
- * no herramientas de IA. Las herramientas viven en WEE Creator.
+ * no herramientas de IA. Las herramientas viven en Weë Creator.
  *
- *   WEE Creator = herramientas de IA   = "¿Qué querés crear?"
+ *   Weë Creator = herramientas de IA   = "¿Qué querés crear?"
  *   Comunidades = personas + intereses = "¿Con quién querés compartir, aprender e interactuar?"
  *
  * Fuente única de verdad para: landing (nativa y web), home logueada,
@@ -128,7 +128,7 @@ export interface PopularCommunity {
 export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   {
     id: 'wee-filmmakers',
-    name: 'WEE Filmmakers',
+    name: 'Weë Filmmakers',
     slug: 'wee-filmmakers',
     communitySlug: 'wee-filmmakers',
     icon: 'film-outline',
@@ -139,7 +139,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-influencers',
-    name: 'WEE Influencers',
+    name: 'Weë Influencers',
     slug: 'wee-influencers',
     communitySlug: 'wee-influencers',
     icon: 'phone-portrait-outline',
@@ -150,7 +150,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-designers',
-    name: 'WEE Designers',
+    name: 'Weë Designers',
     slug: 'wee-designers',
     communitySlug: 'wee-designers',
     icon: 'color-palette-outline',
@@ -161,7 +161,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-writers',
-    name: 'WEE Writers',
+    name: 'Weë Writers',
     slug: 'wee-writers',
     communitySlug: 'wee-writers',
     icon: 'create-outline',
@@ -172,7 +172,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-musicians',
-    name: 'WEE Musicians',
+    name: 'Weë Musicians',
     slug: 'wee-musicians',
     communitySlug: 'wee-musicians',
     icon: 'musical-notes-outline',
@@ -183,7 +183,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-developers',
-    name: 'WEE Developers',
+    name: 'Weë Developers',
     slug: 'wee-developers',
     communitySlug: 'wee-developers',
     icon: 'code-slash-outline',
@@ -194,7 +194,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-entrepreneurs',
-    name: 'WEE Entrepreneurs',
+    name: 'Weë Entrepreneurs',
     slug: 'wee-entrepreneurs',
     communitySlug: 'wee-entrepreneurs',
     icon: 'briefcase-outline',
@@ -205,7 +205,7 @@ export const POPULAR_COMMUNITIES: PopularCommunity[] = [
   },
   {
     id: 'wee-gamers',
-    name: 'WEE Gamers',
+    name: 'Weë Gamers',
     slug: 'wee-gamers',
     communitySlug: 'wee-gamers',
     icon: 'game-controller-outline',

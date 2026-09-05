@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import CreditsPill from '../components/CreditsPill';
+import CreatorShell from '../components/creator/CreatorShell';
 import GuidedQuestion, { QaHistoryItem } from '../components/creator/GuidedQuestion';
 import PlanCard from '../components/creator/PlanCard';
 import JobProgress from '../components/creator/JobProgress';
@@ -15,10 +14,8 @@ import { WEE_EXPERIENCES, getExperienceById } from '../constants/weeExperiences'
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
-const isWeb = Platform.OS === 'web';
-
 /**
- * Conversación guiada con un especialista de WEE (docs/CREATOR-ARQUITECTURA.md §3 y §7):
+ * Conversación guiada con un especialista de Weë (docs/CREATOR-ARQUITECTURA.md §3 y §7):
  * pregunta → plan → progreso → resultado. Todo lo técnico pasa en el servidor.
  */
 const CreatorFlowScreen: React.FC = () => {
@@ -26,7 +23,13 @@ const CreatorFlowScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const params = (route.params || {}) as { experienceId?: string; goal?: string; jobId?: string };
+  const params = (route.params || {}) as {
+    experienceId?: string;
+    goal?: string;
+    jobId?: string;
+    preset?: { questionId: string; optionId: string };
+    imageUri?: string;
+  };
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   const [jobId, setJobId] = useState<string | null>(params.jobId || null);
@@ -42,7 +45,7 @@ const CreatorFlowScreen: React.FC = () => {
       setJob(null);
       setQuestion(null);
       try {
-        const response = await creatorService.start(experience.id, goal);
+        const response = await creatorService.start(experience.id, goal, params.preset ? [params.preset] : undefined);
         setJobId(response.jobId);
         setQuestion(response.question);
       } catch (e) {
@@ -84,7 +87,8 @@ const CreatorFlowScreen: React.FC = () => {
         const q = job.questions.find((item) => item.id === answer.questionId);
         if (!q) return null;
         const option = q.options.find((o) => o.id === answer.optionId);
-        return { question: q.text, answer: option ? option.label : answer.text || '' };
+        const label = option ? option.label : answer.text || '';
+        return { question: q.text, answer: answer.inferred ? `${label} · lo entendí de lo que escribiste` : label };
       })
       .filter((item): item is QaHistoryItem => !!item);
   }, [job]);
@@ -131,7 +135,7 @@ const CreatorFlowScreen: React.FC = () => {
       prefill: {
         content: content || job.goal,
         aiTools: [experience.name],
-        aiProcess: `${job.plan?.explainToUser || `Creado con ${experience.name} en WEE Creator`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
+        aiProcess: `${job.plan?.explainToUser || `Creado con ${experience.name} en Weë Creator`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
       },
     });
   };
@@ -139,22 +143,13 @@ const CreatorFlowScreen: React.FC = () => {
   const status = job?.status;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel="Volver">
-          <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerTitles}>
-          <Text style={[styles.headerOverline, { color: theme.colors.accentDark }]}>🤖 WEE CREATOR</Text>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>
-            {experience.emoji} {experience.name}
-          </Text>
-        </View>
-        <CreditsPill compact />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <CreatorShell activeId={experience.id} overline="🤖 Weë Creator" title={`${experience.emoji} ${experience.name}`} breadcrumb={experience.name} contentStyle={styles.content}>
+        {!!params.imageUri && (
+          <View style={[styles.attachment, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <Image source={{ uri: params.imageUri }} style={styles.attachmentImage} contentFit="cover" />
+            <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>Tu foto está lista. Cuéntame qué hacemos con ella.</Text>
+          </View>
+        )}
         {error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
@@ -228,10 +223,9 @@ const CreatorFlowScreen: React.FC = () => {
         )}
 
         <Text style={[styles.footnote, { color: theme.colors.textSecondary }]}>
-          Tú eliges el resultado. WEE elige la IA.{isWeb ? '' : ' '}
+          Tú eliges el resultado. Weë elige la IA.
         </Text>
-      </ScrollView>
-    </SafeAreaView>
+    </CreatorShell>
   );
 };
 
@@ -266,9 +260,25 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
   },
   content: {
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxxl * 2,
     gap: SPACING.lg,
+    maxWidth: scale(760),
+  },
+  attachment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+  },
+  attachmentImage: {
+    width: scale(64),
+    height: scale(64),
+    borderRadius: BORDER_RADIUS.md,
+  },
+  attachmentText: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
   },
   errorBox: {
     padding: SPACING.lg,

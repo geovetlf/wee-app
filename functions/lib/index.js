@@ -12,7 +12,7 @@ const db = admin.firestore();
 var generateAvatar_1 = require("./generateAvatar");
 Object.defineProperty(exports, "generateAvatarWithGemini", { enumerable: true, get: function () { return generateAvatar_1.generateAvatarWithGemini; } });
 Object.defineProperty(exports, "avatarReplacement", { enumerable: true, get: function () { return generateAvatar_1.avatarReplacement; } });
-// WEE Creator (WEE Brain + AI Gateway)
+// Weë Creator (Weë Brain + AI Gateway)
 var creator_1 = require("./creator");
 Object.defineProperty(exports, "creatorChat", { enumerable: true, get: function () { return creator_1.creatorChat; } });
 Object.defineProperty(exports, "creatorRun", { enumerable: true, get: function () { return creator_1.creatorRun; } });

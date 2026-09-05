@@ -36,12 +36,12 @@ interface DrawerMenuProps {
 }
 
 /**
- * El único menú ☰ de WEE.
+ * El único menú ☰ de Weë.
  *
- *   PERFIL        Perfil Real · Perfil WEE
+ *   PERFIL        Perfil Real · Perfil Weë
  *   EXPLORA       Comunidades · Weëls
  *   WeeTalk
- *   WEE CREATOR   AI Video · AI Imagen · … · Otras herramientas
+ *   Weë Creator   AI Video · AI Imagen · … · Otras herramientas
  *   💳 Credits · 🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
  *
  * Lo social no lleva nombre propio: el Home ya es la experiencia social.
@@ -191,8 +191,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goWeels = () => after(() => navigateTab('Home', { screen: 'Landing', params: { openWeels: true } }));
   const goWeeTalk = () => after(() => navigateTab('Inbox'));
 
-  // ── WEE Creator ──
-  const goCreator = (category?: string) => after(() => navigateRoot('WeeCreator', category ? { category } : undefined));
+  // ── Weë Creator ──
+  const goCreator = (category?: string) => after(() => (category ? navigateRoot('Specialist', { id: category }) : navigateRoot('WeeCreator')));
 
   // ── Resto ──
   const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());
@@ -293,7 +293,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 {displayName}
               </Text>
               <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {!user ? 'Toca para iniciar sesión' : isWee ? 'Perfil WEE activo' : activeProfileType === 'biz' ? 'Perfil Biz activo' : 'Perfil Real activo'}
+                {!user ? 'Toca para iniciar sesión' : isWee ? 'Perfil Weë activo' : activeProfileType === 'biz' ? 'Perfil Biz activo' : 'Perfil Real activo'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -302,7 +302,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {/* PERFIL */}
           {renderSectionLabel('PERFIL')}
           {renderRow('👤', 'Perfil Real', goRealProfile, { active: !!user && activeProfileType === 'real' })}
-          {renderRow('🎭', hasHidiProfile || !user ? 'Perfil WEE' : 'Crear mi perfil WEE', goWeeProfile, {
+          {renderRow('🎭', hasHidiProfile || !user ? 'Perfil Weë' : 'Crear mi perfil Weë', goWeeProfile, {
             active: isWee,
             right: !hasHidiProfile && user ? (
               <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
@@ -319,13 +319,13 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
           {renderRow('💬', 'WeeTalk', goWeeTalk)}
 
-          {/* WEE CREATOR */}
+          {/* Weë Creator */}
           <View style={[styles.creatorBlock, { backgroundColor: accentTint }]}>
             <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
               <Text style={styles.rowEmoji}>🤖</Text>
               <View style={styles.creatorTitles}>
-                <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>WEE Creator</Text>
-                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Tú eliges el resultado. WEE elige la IA.</Text>
+                <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>Weë Creator</Text>
+                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Tú eliges el resultado. Weë elige la IA.</Text>
               </View>
               <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>

@@ -1,6 +1,7 @@
 import { CapabilityId } from '../creator/types';
 import { GatewayContext, ProviderAdapter, ProviderRef, ProviderResult } from './types';
 import { mockProvider } from './providers/mock';
+import { geminiProvider, isGeminiConfigured } from './providers/gemini';
 
 /**
  * AI Gateway (docs/CREATOR-ARQUITECTURA.md §4).
@@ -8,31 +9,22 @@ import { mockProvider } from './providers/mock';
  * Fase 0: todo lo resuelve el proveedor de prueba. Cambiar de proveedor es
  * cambiar este catálogo (o, más adelante, la colección capabilities/{id}).
  */
-const ALL_CAPABILITIES: CapabilityId[] = [
-  'text.generate',
-  'text.structure',
-  'image.generate',
-  'image.edit',
-  'image.background_remove',
-  'image.upscale',
-  'image.object_remove',
-  'image.identity_edit',
-  'image.space_restyle',
-  'vision.describe',
-  'video.generate',
-  'video.image_to_video',
-  'video.compose',
-  'voice.tts',
-  'music.generate',
-  'doc.render',
-];
+const MOCK: ProviderRef = { id: 'mock', priority: 9, enabled: true };
 
-const CATALOG: Record<CapabilityId, ProviderRef[]> = ALL_CAPABILITIES.reduce((catalog, id) => {
-  catalog[id] = [{ id: 'mock', priority: 1, enabled: true }];
-  return catalog;
-}, {} as Record<CapabilityId, ProviderRef[]>);
+/** Proveedores por capacidad, en orden de prioridad. Se evalúa en cada llamada
+ *  para que activar una clave (p. ej. GEMINI_API_KEY) baste para cambiar de proveedor. */
+const catalogFor = (capability: CapabilityId): ProviderRef[] => {
+  switch (capability) {
+    case 'text.generate':
+    case 'text.structure':
+      return [{ id: 'gemini', priority: 1, enabled: isGeminiConfigured() }, MOCK];
+    default:
+      return [MOCK];
+  }
+};
 
 const ADAPTERS: Record<string, ProviderAdapter> = {
+  gemini: geminiProvider,
   mock: mockProvider,
 };
 
@@ -45,7 +37,7 @@ export async function runCapability(
   input: Record<string, unknown>,
   ctx: GatewayContext
 ): Promise<GatewayRun> {
-  const refs = (CATALOG[capability] || [])
+  const refs = catalogFor(capability)
     .filter((ref) => ref.enabled)
     .sort((a, b) => a.priority - b.priority);
 
@@ -55,6 +47,9 @@ export async function runCapability(
     if (!adapter || !adapter.supports(capability)) continue;
     try {
       const result = await adapter.run(capability, input, ctx);
+      if (ctx.record) {
+        await ctx.record({ capability, provider: ref.id, costUSD: result.costUSD, latencyMs: result.latencyMs, usage: result.usage || {} });
+      }
       return { ...result, provider: ref.id };
     } catch (error) {
       lastError = error;

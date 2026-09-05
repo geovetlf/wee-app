@@ -1,19 +1,19 @@
 /**
- * Las 10 experiencias de WEE Creator (docs/CREATOR.md §1 y §8).
+ * Las 10 experiencias de Weë Creator (docs/CREATOR.md §1 y §8).
  *
- * "El usuario elige el resultado. WEE elige la IA."
+ * "El usuario elige el resultado. Weë elige la IA."
  * Cada experiencia es un especialista visible; por detrás puede usar una o
  * varias APIs, modelos y servicios. La persona nunca ve proveedores ni prompts.
  *
  * No confundir con las categorías sociales de "Explora comunidades"
  * (constants/communityCategories.ts): aquí van RESULTADOS, allá van PERSONAS.
  *
- * Fuente única para el menú ☰, la pantalla WEE Creator y el registro de interés.
+ * Fuente única para el menú ☰, la pantalla Weë Creator y el registro de interés.
  */
 
 export interface WeeExperience {
   id: string;
-  /** Nombre de identidad (WEE Design, WEE Studio…). No traducir ni cambiar. */
+  /** Nombre de identidad (Weë Design, Weë Studio…). No traducir ni cambiar. */
   name: string;
   emoji: string;
   /** Qué consigue la persona con esta experiencia (una línea, en resultados). */
@@ -27,7 +27,7 @@ export interface WeeExperience {
 export const WEE_EXPERIENCES: WeeExperience[] = [
   {
     id: 'design',
-    name: 'WEE Design',
+    name: 'Weë Design',
     emoji: '🎨',
     description: 'Logos, posters, ilustraciones y material para tus redes',
     examples: ['Un logo para mi negocio', 'Un post para Instagram', 'La portada de mi libro'],
@@ -35,7 +35,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'studio',
-    name: 'WEE Studio',
+    name: 'Weë Studio',
     emoji: '🎬',
     description: 'Videos, animaciones y publicidad con voz y música',
     examples: ['Un video para promocionar mi restaurante', 'Convertir mi foto en un video', 'Un Weël con mi producto'],
@@ -43,7 +43,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'photo',
-    name: 'WEE Photo',
+    name: 'Weë Photo',
     emoji: '📸',
     description: 'Mejora, restaura y transforma tus fotos',
     examples: ['Mejorar la calidad de una foto', 'Quitar algo que sobra en la foto', 'Cambiar el fondo de mi foto'],
@@ -51,7 +51,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'writer',
-    name: 'WEE Writer',
+    name: 'Weë Writer',
     emoji: '✍️',
     description: 'Publicaciones, historias, guiones, emails y libros',
     examples: ['Un guion para mi video', 'Un email para un cliente', 'Corregir mi texto'],
@@ -59,7 +59,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'music',
-    name: 'WEE Music',
+    name: 'Weë Music',
     emoji: '🎵',
     description: 'Canciones, música instrumental, voces y narración',
     examples: ['Un jingle para mi marca', 'Música de fondo para mi video', 'Convertir mi texto en voz'],
@@ -67,7 +67,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'beauty',
-    name: 'WEE Beauty',
+    name: 'Weë Beauty',
     emoji: '💄',
     description: 'Maquillaje, cabello, barba, outfits y cambios de look',
     examples: ['Cómo me quedaría el cabello largo', 'Un look para una fiesta', 'Probar otro color de cabello'],
@@ -75,7 +75,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'chef',
-    name: 'WEE Chef',
+    name: 'Weë Chef',
     emoji: '👨‍🍳',
     description: 'Tu chef personal: qué cocinar, recetas y menús',
     examples: ['Una receta con lo que tengo en casa', 'Un menú semanal saludable', 'No sé qué cocinar hoy'],
@@ -83,7 +83,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'home',
-    name: 'WEE Home',
+    name: 'Weë Home',
     emoji: '🏠',
     description: 'Decoración, diseño interior, remodelación y jardines',
     examples: ['Cómo se vería mi sala con otro estilo', 'Ideas para decorar mi cuarto', 'Un jardín pequeño para mi patio'],
@@ -91,7 +91,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'business',
-    name: 'WEE Business',
+    name: 'Weë Business',
     emoji: '💼',
     description: 'Ideas de negocio, marketing, CV, documentos y presentaciones',
     examples: ['Un plan para mi emprendimiento', 'Mi CV actualizado', 'Una presentación para inversores'],
@@ -99,9 +99,9 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'brain',
-    name: 'WEE Brain',
+    name: 'Weë Brain',
     emoji: '🧠',
-    description: '¿No sabes dónde buscar? Pregúntale a WEE',
+    description: '¿No sabes dónde buscar? Pregúntale a Weë',
     examples: ['No sé por dónde empezar', 'Explícame esto fácil', 'Traduce este texto'],
     keywords: ['ayuda', 'ayúdame', 'ayudame', 'pregunta', 'pensar', 'aprender', 'explicar', 'explícame', 'explicame', 'resumen', 'resumir', 'organizar', 'planear', 'planificar', 'estudiar', 'tarea', 'investigar', 'investigación', 'investigacion', 'traducir', 'traduce', 'problema', 'consejo', 'no sé', 'no se'],
   },

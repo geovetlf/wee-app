@@ -13,6 +13,7 @@ const isWeb = Platform.OS === 'web';
 // Emoji fallbacks for web
 const ICON_EMOJI: Record<string, string> = {
   'home': '🏠',
+  'sparkles': '🤖',
   'search': '🔍',
   'mail': '✉️',
   'person': '👤',
@@ -148,6 +149,12 @@ const Sidebar: React.FC = () => {
             label="Buscar"
             active={isActive('Search')}
             onPress={() => handleNavigate('Search')}
+          />
+          <SidebarItem
+            icon="sparkles"
+            label="Weë Creator"
+            active={isActive('WeeCreator')}
+            onPress={() => navigation.navigate('WeeCreator' as never)}
           />
           <SidebarItem
             icon="mail"

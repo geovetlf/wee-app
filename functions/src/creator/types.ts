@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
 /**
- * Tipos de WEE Creator (WEE Brain, planes y trabajos).
+ * Tipos de Weë Creator (Weë Brain, planes y trabajos).
  * El cliente tiene una copia mínima en services/creatorService.ts.
  */
 export type ExperienceId =
@@ -52,6 +52,8 @@ export interface Answer {
   questionId: string;
   optionId?: string;
   text?: string;
+  /** true si Weë Brain la dedujo del texto de la persona (no se preguntó). */
+  inferred?: boolean;
 }
 
 export interface PlanStep {
@@ -67,7 +69,7 @@ export interface Plan {
   experience: ExperienceId;
   goal: string;
   steps: PlanStep[];
-  /** Lo que WEE le dice a la persona antes de crear. */
+  /** Lo que Weë le dice a la persona antes de crear. */
   explainToUser: string;
 }
 
@@ -86,6 +88,8 @@ export interface JobResult {
   title: string;
   content?: string;
   url?: string;
+  /** true si lo produjo el proveedor de prueba (muestra). */
+  demo?: boolean;
 }
 
 export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';
@@ -111,7 +115,7 @@ export interface CreatorJob {
   finishedAt?: Timestamp;
 }
 
-/** Lo que devuelve WEE Brain en cada turno: o pregunta algo o ya tiene el plan. */
+/** Lo que devuelve Weë Brain en cada turno: o pregunta algo o ya tiene el plan. */
 export interface BrainTurn {
   question?: Question;
   plan?: Plan;

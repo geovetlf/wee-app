@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { db } from '../config/firebase';
 
 /**
- * "Avísame cuando esté" de WEE Creator.
+ * "Avísame cuando esté" de Weë Creator.
  * Un documento por persona y categoría (creatorInterests/{uid}_{categoryId}):
  * sirve para saber qué AI Apps pide la comunidad y a quién avisar cuando estén.
  */

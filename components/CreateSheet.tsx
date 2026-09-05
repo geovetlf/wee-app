@@ -26,7 +26,7 @@ const OPTIONS: { kind: CreateKind; emoji: string; label: string }[] = [
 ];
 
 /**
- * Hoja "Crear" del botón +: seis maneras de compartir, y un atajo a WEE Creator
+ * Hoja "Crear" del botón +: seis maneras de compartir, y un atajo a Weë Creator
  * por si el usuario necesita una herramienta de IA antes de publicar.
  */
 const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, onOpenCreator }) => {
@@ -77,7 +77,7 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
               <Text style={styles.creatorText}>Video, imagen, texto, música y más</Text>
             </View>
             <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
-              <Text style={styles.creatorButtonText}>WEE Creator ›</Text>
+              <Text style={styles.creatorButtonText}>Weë Creator ›</Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -1,14 +1,16 @@
-import { getFirestore, Timestamp, DocumentReference } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep } from './types';
 import { getPlanner } from './planner';
 import { TEMPLATES } from './templates';
 import { estimatePlanCredits, holdCredits, settleCredits } from './credits';
 import { runCapability } from '../gateway';
+import { UsageEntry } from '../gateway/types';
+import { buildTextPrompt } from './prompts';
 
 /**
- * WEE Creator — funciones que llama la app.
- *  - creatorChat: WEE Brain conversa (pregunta sencilla o plan).
+ * Weë Creator — funciones que llama la app.
+ *  - creatorChat: Weë Brain conversa (pregunta sencilla o plan).
  *  - creatorRun:  ejecuta el plan paso a paso vía el AI Gateway.
  * La app solo ve preguntas, progreso y resultados; nunca proveedores ni prompts.
  */
@@ -31,11 +33,49 @@ const clean = <T>(value: T): T => {
   return value;
 };
 
+/**
+ * Registra el coste real de cada llamada: en el trabajo (privado) y en un
+ * acumulado diario por capacidad (creatorUsage/{día}) para fijar precios en Credits.
+ */
+const usageRecorder = (ref: DocumentReference) => async (entry: UsageEntry): Promise<void> => {
+  const day = new Date().toISOString().slice(0, 10);
+  const line = { ...entry, at: Timestamp.now() };
+  await Promise.all([
+    ref.collection('private').doc('costs').set(
+      {
+        totalUSD: FieldValue.increment(entry.costUSD),
+        calls: FieldValue.increment(1),
+        byProvider: { [entry.provider]: FieldValue.increment(entry.costUSD) },
+        entries: FieldValue.arrayUnion(line),
+      },
+      { merge: true }
+    ),
+    db().collection('creatorUsage').doc(day).set(
+      {
+        [entry.capability]: {
+          [entry.provider]: {
+            calls: FieldValue.increment(1),
+            usd: FieldValue.increment(entry.costUSD),
+            inputTokens: FieldValue.increment(entry.usage.inputTokens || 0),
+            outputTokens: FieldValue.increment(entry.usage.outputTokens || 0),
+            latencyMs: FieldValue.increment(entry.latencyMs),
+          },
+        },
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    ),
+  ]);
+  console.log(`💰 ${entry.capability} · ${entry.provider} · ${entry.costUSD.toFixed(6)} · ${entry.latencyMs} ms`);
+};
+
 interface ChatInput {
   jobId?: string;
   experienceId?: string;
   goal?: string;
   answer?: Answer;
+  /** Respuestas ya decididas por la acción elegida en la pantalla del especialista. */
+  presetAnswers?: Answer[];
 }
 
 export const creatorChat = onCall(
@@ -86,9 +126,23 @@ export const creatorChat = onCall(
         createdAt: now(),
         updatedAt: now(),
       };
+      // Solo se aceptan presets que existan en la plantilla; lo demás se pregunta
+      const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
+      for (const preset of presets) {
+        const question = TEMPLATES[experienceId].questions.find((q) => q.id === String(preset?.questionId));
+        if (question && question.options.some((o) => o.id === String(preset?.optionId))) {
+          job.answers.push({ questionId: question.id, optionId: String(preset.optionId) });
+        }
+      }
     }
 
-    const turn = await getPlanner().next({ experienceId: job.experienceId, goal: job.goal, answers: job.answers });
+    const turn = await getPlanner().next({
+      experienceId: job.experienceId,
+      goal: job.goal,
+      answers: job.answers,
+      gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) },
+    });
+    if (turn.inferred.length > 0) job.answers = [...job.answers, ...turn.inferred];
     if (turn.question) {
       const question = turn.question;
       if (!job.questions.some((q) => q.id === question.id)) job.questions = [...job.questions, question];
@@ -128,14 +182,13 @@ export const creatorRun = onCall(
     if (job.userId !== uid) throw new HttpsError('permission-denied', 'Este trabajo no es tuyo');
     if (job.status !== 'planned' || !job.plan) throw new HttpsError('failed-precondition', 'Este trabajo todavía no tiene plan');
 
-    const description = `WEE Creator · ${TEMPLATES[job.experienceId].name}`;
+    const description = `Weë Creator · ${TEMPLATES[job.experienceId].name}`;
     await holdCredits(uid, job.creditsEstimated, description);
     await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
 
     const steps: JobStep[] = job.steps.map((s) => ({ ...s }));
     const results: JobResult[] = [];
-    const ctx = { userId: uid, jobId, experienceId: job.experienceId, goal: job.goal };
-    let demo = false;
+    const ctx = { userId: uid, jobId, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) };
 
     try {
       const done = new Set<string>();
@@ -151,17 +204,25 @@ export const creatorRun = onCall(
         const previous = results
           .filter((r) => (next.dependsOn || []).includes(r.stepId))
           .map((r) => r.content || r.url || '');
-        const run = await runCapability(next.capability, { ...(next.input || {}), purpose: next.purpose, previous }, ctx);
-        if (run.provider === 'mock') demo = true;
+        // Brain arma el prompt interno de los pasos de texto; la persona nunca lo ve
+        const baseInput: Record<string, unknown> = { ...(next.input || {}), purpose: next.purpose, previous };
+        const input =
+          next.capability === 'text.generate' && !baseInput.prompt
+            ? { ...baseInput, ...buildTextPrompt(job.experienceId, String(baseInput.kind ?? ''), String(baseInput.brief ?? ''), job.goal, next.purpose, previous) }
+            : baseInput;
+        const run = await runCapability(next.capability, input, ctx);
 
-        results.push({ stepId: next.id, kind: run.output.kind, title: next.purpose, content: run.output.content, url: run.output.url });
+        results.push({
+          stepId: next.id,
+          kind: run.output.kind,
+          title: next.purpose,
+          content: run.output.content,
+          url: run.output.url,
+          demo: run.provider === 'mock',
+        });
         next.status = 'done';
         done.add(next.id);
         await ref.update({ steps: clean(steps), results: clean(results), updatedAt: now() });
-        await ref
-          .collection('private')
-          .doc('costs')
-          .set({ [next.id]: { provider: run.provider, costUSD: run.costUSD, latencyMs: run.latencyMs, usage: run.usage || {} } }, { merge: true });
       }
 
       // Fase 0: sin medición real de consumo, se cobra lo estimado (0 en modo demo)
@@ -171,7 +232,7 @@ export const creatorRun = onCall(
         status: 'done',
         progressText: '✨ Listo',
         creditsCharged: used,
-        demo,
+        demo: results.every((r) => r.demo === true),
         finishedAt: now(),
         updatedAt: now(),
       });

@@ -48,7 +48,7 @@ type TabNavigatorNavigationProp = StackNavigationProp<MainStackParamList>;
 
 /**
  * Botón "+": abre la hoja Crear (Publicación, Weël, Imagen, Video, Texto, Pregunta)
- * y, si el usuario necesita una herramienta de IA, lo lleva a WEE Creator.
+ * y, si el usuario necesita una herramienta de IA, lo lleva a Weë Creator.
  */
 // Se descartan href/onPress del tab bar: en web el href convertiría el botón en un
 // enlace real a /create (recarga la página) en vez de abrir la hoja Crear.

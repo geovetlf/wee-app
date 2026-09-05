@@ -4,11 +4,21 @@ import { CapabilityId, ResultKind } from '../creator/types';
  * AI Gateway: una capacidad, N proveedores. Cada proveedor implementa esta
  * interfaz; toda la rareza de su API vive en su adaptador.
  */
+export interface UsageEntry {
+  capability: CapabilityId;
+  provider: string;
+  costUSD: number;
+  latencyMs: number;
+  usage: Record<string, number>;
+}
+
 export interface GatewayContext {
   userId: string;
   jobId: string;
   experienceId: string;
   goal: string;
+  /** Registro de coste real por llamada (lo escribe Weë Creator, nunca el cliente). */
+  record?: (entry: UsageEntry) => Promise<void>;
 }
 
 export interface ProviderOutput {

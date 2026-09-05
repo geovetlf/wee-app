@@ -596,7 +596,7 @@ ${message}`);
       />
       {isWeel && (
         <Text style={[styles.kindHint, { color: theme.colors.textSecondary }]}>
-          📹 Weël: video de hasta 15 segundos. Se comparte fuera de WEE con un pequeño watermark.
+          📹 Weël: video de hasta 15 segundos. Se comparte fuera de Weë con un pequeño watermark.
         </Text>
       )}
     </View>

@@ -6,7 +6,7 @@ exports.settleCredits = settleCredits;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 /**
- * Credits de WEE Creator: reservar al empezar, ajustar al terminar.
+ * Credits de Weë Creator: reservar al empezar, ajustar al terminar.
  * Precios por capacidad en pricing/{capabilityId}.credits. Mientras la tabla
  * esté vacía (fase 0, modo demo) todo cuesta 0: los precios no se inventan.
  */

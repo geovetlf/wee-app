@@ -7,9 +7,10 @@ const planner_1 = require("./planner");
 const templates_1 = require("./templates");
 const credits_1 = require("./credits");
 const gateway_1 = require("../gateway");
+const prompts_1 = require("./prompts");
 /**
- * WEE Creator — funciones que llama la app.
- *  - creatorChat: WEE Brain conversa (pregunta sencilla o plan).
+ * Weë Creator — funciones que llama la app.
+ *  - creatorChat: Weë Brain conversa (pregunta sencilla o plan).
  *  - creatorRun:  ejecuta el plan paso a paso vía el AI Gateway.
  * La app solo ve preguntas, progreso y resultados; nunca proveedores ni prompts.
  */
@@ -30,6 +31,35 @@ const clean = (value) => {
         return out;
     }
     return value;
+};
+/**
+ * Registra el coste real de cada llamada: en el trabajo (privado) y en un
+ * acumulado diario por capacidad (creatorUsage/{día}) para fijar precios en Credits.
+ */
+const usageRecorder = (ref) => async (entry) => {
+    const day = new Date().toISOString().slice(0, 10);
+    const line = Object.assign(Object.assign({}, entry), { at: firestore_1.Timestamp.now() });
+    await Promise.all([
+        ref.collection('private').doc('costs').set({
+            totalUSD: firestore_1.FieldValue.increment(entry.costUSD),
+            calls: firestore_1.FieldValue.increment(1),
+            byProvider: { [entry.provider]: firestore_1.FieldValue.increment(entry.costUSD) },
+            entries: firestore_1.FieldValue.arrayUnion(line),
+        }, { merge: true }),
+        db().collection('creatorUsage').doc(day).set({
+            [entry.capability]: {
+                [entry.provider]: {
+                    calls: firestore_1.FieldValue.increment(1),
+                    usd: firestore_1.FieldValue.increment(entry.costUSD),
+                    inputTokens: firestore_1.FieldValue.increment(entry.usage.inputTokens || 0),
+                    outputTokens: firestore_1.FieldValue.increment(entry.usage.outputTokens || 0),
+                    latencyMs: firestore_1.FieldValue.increment(entry.latencyMs),
+                },
+            },
+            updatedAt: firestore_1.Timestamp.now(),
+        }, { merge: true }),
+    ]);
+    console.log(`💰 ${entry.capability} · ${entry.provider} · ${entry.costUSD.toFixed(6)} · ${entry.latencyMs} ms`);
 };
 exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 60, memory: '256MiB' }, async (request) => {
     var _a, _b;
@@ -82,8 +112,23 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
             createdAt: now(),
             updatedAt: now(),
         };
+        // Solo se aceptan presets que existan en la plantilla; lo demás se pregunta
+        const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
+        for (const preset of presets) {
+            const question = templates_1.TEMPLATES[experienceId].questions.find((q) => q.id === String(preset === null || preset === void 0 ? void 0 : preset.questionId));
+            if (question && question.options.some((o) => o.id === String(preset === null || preset === void 0 ? void 0 : preset.optionId))) {
+                job.answers.push({ questionId: question.id, optionId: String(preset.optionId) });
+            }
+        }
     }
-    const turn = await (0, planner_1.getPlanner)().next({ experienceId: job.experienceId, goal: job.goal, answers: job.answers });
+    const turn = await (0, planner_1.getPlanner)().next({
+        experienceId: job.experienceId,
+        goal: job.goal,
+        answers: job.answers,
+        gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) },
+    });
+    if (turn.inferred.length > 0)
+        job.answers = [...job.answers, ...turn.inferred];
     if (turn.question) {
         const question = turn.question;
         if (!job.questions.some((q) => q.id === question.id))
@@ -108,6 +153,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
     };
 });
 exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 300, memory: '512MiB' }, async (request) => {
+    var _a, _b;
     if (!request.auth)
         throw new https_1.HttpsError('unauthenticated', 'Debes iniciar sesión');
     const uid = request.auth.uid;
@@ -123,13 +169,12 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
         throw new https_1.HttpsError('permission-denied', 'Este trabajo no es tuyo');
     if (job.status !== 'planned' || !job.plan)
         throw new https_1.HttpsError('failed-precondition', 'Este trabajo todavía no tiene plan');
-    const description = `WEE Creator · ${templates_1.TEMPLATES[job.experienceId].name}`;
+    const description = `Weë Creator · ${templates_1.TEMPLATES[job.experienceId].name}`;
     await (0, credits_1.holdCredits)(uid, job.creditsEstimated, description);
     await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
     const steps = job.steps.map((s) => (Object.assign({}, s)));
     const results = [];
-    const ctx = { userId: uid, jobId, experienceId: job.experienceId, goal: job.goal };
-    let demo = false;
+    const ctx = { userId: uid, jobId, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) };
     try {
         const done = new Set();
         let guard = 0;
@@ -144,17 +189,22 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             const previous = results
                 .filter((r) => (next.dependsOn || []).includes(r.stepId))
                 .map((r) => r.content || r.url || '');
-            const run = await (0, gateway_1.runCapability)(next.capability, Object.assign(Object.assign({}, (next.input || {})), { purpose: next.purpose, previous }), ctx);
-            if (run.provider === 'mock')
-                demo = true;
-            results.push({ stepId: next.id, kind: run.output.kind, title: next.purpose, content: run.output.content, url: run.output.url });
+            // Brain arma el prompt interno de los pasos de texto; la persona nunca lo ve
+            const baseInput = Object.assign(Object.assign({}, (next.input || {})), { purpose: next.purpose, previous });
+            const input = next.capability === 'text.generate' && !baseInput.prompt
+                ? Object.assign(Object.assign({}, baseInput), (0, prompts_1.buildTextPrompt)(job.experienceId, String((_a = baseInput.kind) !== null && _a !== void 0 ? _a : ''), String((_b = baseInput.brief) !== null && _b !== void 0 ? _b : ''), job.goal, next.purpose, previous)) : baseInput;
+            const run = await (0, gateway_1.runCapability)(next.capability, input, ctx);
+            results.push({
+                stepId: next.id,
+                kind: run.output.kind,
+                title: next.purpose,
+                content: run.output.content,
+                url: run.output.url,
+                demo: run.provider === 'mock',
+            });
             next.status = 'done';
             done.add(next.id);
             await ref.update({ steps: clean(steps), results: clean(results), updatedAt: now() });
-            await ref
-                .collection('private')
-                .doc('costs')
-                .set({ [next.id]: { provider: run.provider, costUSD: run.costUSD, latencyMs: run.latencyMs, usage: run.usage || {} } }, { merge: true });
         }
         // Fase 0: sin medición real de consumo, se cobra lo estimado (0 en modo demo)
         const used = job.creditsEstimated;
@@ -163,7 +213,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             status: 'done',
             progressText: '✨ Listo',
             creditsCharged: used,
-            demo,
+            demo: results.every((r) => r.demo === true),
             finishedAt: now(),
             updatedAt: now(),
         });

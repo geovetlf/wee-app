@@ -54,7 +54,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         <View key={result.stepId} style={[styles.visualCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Image source={{ uri: result.url }} style={styles.visual} contentFit="cover" transition={200} />
           <View style={styles.visualCaption}>
-            <Text style={[styles.resultTitle, { color: theme.colors.text }]}>{result.title}</Text>
+            <Text style={[styles.resultTitle, { color: theme.colors.text }]}>
+              {result.title}
+              {result.demo && !job.demo ? '  · muestra' : ''}
+            </Text>
             {!!result.content && <Text style={[styles.resultNote, { color: theme.colors.textSecondary }]}>{result.content}</Text>}
           </View>
         </View>
@@ -64,7 +67,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         .filter((r) => !r.url)
         .map((result) => (
           <View key={result.stepId} style={[styles.textCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.resultTitle, { color: theme.colors.text }]}>{result.title}</Text>
+            <Text style={[styles.resultTitle, { color: theme.colors.text }]}>
+              {result.title}
+              {result.demo && !job.demo ? '  · muestra' : ''}
+            </Text>
             <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{result.content}</Text>
           </View>
         ))}

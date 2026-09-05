@@ -17,7 +17,7 @@ interface PlanCardProps {
 
 /**
  * "Voy a … (≈ X Credits)" · [Crear] · [Cambiar algo]
- * Lo único que la persona necesita saber antes de que WEE trabaje.
+ * Lo único que la persona necesita saber antes de que Weë trabaje.
  */
 const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstimated, demo, busy, onCreate, onChange }) => {
   const { theme } = useTheme();
