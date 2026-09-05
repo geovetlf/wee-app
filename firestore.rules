@@ -37,6 +37,11 @@ service cloud.firestore {
            .hasOnly(['followers', 'following']));
 
       allow delete: if false; // No permitir eliminar usuarios
+
+      // Guardados: solo el dueño lee y escribe sus marcadores
+      match /bookmarks/{postId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
     // === COMUNIDADES ===

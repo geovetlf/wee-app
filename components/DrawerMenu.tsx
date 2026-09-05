@@ -204,6 +204,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
       else navigation.navigate('Notifications');
     });
   };
+  const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
   const goSettings = () => after(() => navigateRoot('Settings'));
   const goHelp = () => after(() => Linking.openURL('https://wee.zone/support'));
 
@@ -346,7 +347,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             ) : undefined,
           })}
           {renderRow('🔔', 'Notificaciones', goNotifications)}
-          {renderRow('🔖', 'Guardados', showComingSoon)}
+          {renderRow('🔖', 'Guardados', goSaved)}
           {renderRow('⚙️', 'Configuración', goSettings)}
           {renderRow('❓', 'Ayuda', goHelp)}
 

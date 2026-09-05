@@ -33,6 +33,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
 import { useVote } from '../hooks/useVote';
 import { useReposts } from '../hooks/useReposts';
+import { useBookmarks } from '../hooks/useBookmarks';
 import { useCommunityById } from '../hooks/useCommunityById';
 import { Post, postsService, PollOption } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
@@ -121,6 +122,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const targetPostId = isRepost && originalPost ? originalPost.id! : post.id!;
   const targetRepostsCount = isRepost && originalPost ? (originalPost.reposts || 0) : (post.reposts || 0);
   const { hasReposted, repostsCount, toggleRepost, loading: isReposting } = useReposts(targetPostId, targetRepostsCount);
+  const { isSaved, toggle: toggleBookmark } = useBookmarks();
+  const isBookmarked = isSaved(targetPostId);
 
   // Hook para obtener info de la comunidad
   const { community } = useCommunityById(post.communityId);
@@ -1243,6 +1246,20 @@ const PostCard: React.FC<PostCardProps> = ({
             />
           </TouchableOpacity>
         )}
+
+        {/* Guardar */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => { if (!user) { navigateToRegister(); return; } toggleBookmark(targetPostId); }}
+          activeOpacity={0.7}
+          accessibilityLabel={isBookmarked ? 'Quitar de Guardados' : 'Guardar'}
+        >
+          <Ionicons
+            name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+            size={ICON_SIZE.md}
+            color={isBookmarked ? theme.colors.accent : theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
 
         {/* Compartir */}
         <TouchableOpacity

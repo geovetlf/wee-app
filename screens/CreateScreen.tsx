@@ -170,7 +170,18 @@ const CreateScreen: React.FC = () => {
 
   const maxTextLength = 500;
   const maxImages = 4;
-  const maxVideoDurationSeconds = 180; // 3 minutos
+  // Weëls duran máximo 15 s (docs/UX.md §10); el resto de videos, 3 minutos
+  const isWeel = presetKind === 'weel';
+  const maxVideoDurationSeconds = isWeel ? 15 : 180;
+  const notifyVideoTooLong = (seconds: number) => {
+    const title = isWeel ? 'Weël muy largo' : 'Video muy largo';
+    const lasted = seconds < 60 ? `${Math.ceil(seconds)} segundos` : `${Math.ceil(seconds / 60)} minutos`;
+    const message = `${isWeel ? 'Un Weël' : 'El video'} no puede durar más de ${isWeel ? '15 segundos' : '3 minutos'}. Tu video dura ${lasted}.`;
+    if (typeof document !== 'undefined') window.alert(`${title}
+
+${message}`);
+    else Alert.alert(title, message);
+  };
   const maxPollOptions = 4;
   const minPollOptions = 2;
   const textProgress = postText.length / maxTextLength;
@@ -229,7 +240,7 @@ const CreateScreen: React.FC = () => {
                   videoEl.src = uri;
                 });
                 if (duration > maxVideoDurationSeconds) {
-                  Alert.alert('Video muy largo', `El video no puede durar más de 3 minutos. Tu video dura ${Math.ceil(duration / 60)} minutos.`);
+                  notifyVideoTooLong(duration);
                   URL.revokeObjectURL(uri);
                   continue;
                 }
@@ -299,7 +310,7 @@ const CreateScreen: React.FC = () => {
             // Validar duración (asset.duration viene en milisegundos)
             const durationSec = (asset.duration || 0) / 1000;
             if (durationSec > maxVideoDurationSeconds) {
-              Alert.alert('Video muy largo', `El video no puede durar más de 3 minutos. Tu video dura ${Math.ceil(durationSec / 60)} minutos.`);
+              notifyVideoTooLong(durationSec);
               continue;
             }
             newMedia.push({
@@ -498,6 +509,7 @@ const CreateScreen: React.FC = () => {
         imageUrlsThumbnails: thumbnailUrls,
         ...(imageUrls.length > 0 ? { imageAspectRatios } : {}),
         ...(videoUrl ? { videoUrl } : {}),
+        ...(videoUrl && isWeel ? { isWeel: true } : {}),
         ...(aiToolsList.length > 0 ? { aiTools: aiToolsList } : {}),
         ...(aiPrompt.trim() ? { aiPrompt: aiPrompt.trim() } : {}),
         ...(aiProcess.trim() ? { aiProcess: aiProcess.trim() } : {}),
@@ -582,6 +594,11 @@ const CreateScreen: React.FC = () => {
         textAlignVertical="top"
         autoFocus={false}
       />
+      {isWeel && (
+        <Text style={[styles.kindHint, { color: theme.colors.textSecondary }]}>
+          📹 Weël: video de hasta 15 segundos. Se comparte fuera de WEE con un pequeño watermark.
+        </Text>
+      )}
     </View>
   );
 
@@ -1088,6 +1105,11 @@ const CreateScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  kindHint: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
+  },
   howBox: {
     marginTop: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,

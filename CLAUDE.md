@@ -29,7 +29,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Producto | Código hoy |
 |---|---|
 | Home (feed, Explora comunidades, Comunidades populares) | `HomeScreen`, `LandingScreen`, `WebLandingScreen`, `postsService`, `constants/communityCategories.ts` |
-| Weëls (videos ≤15 s con watermark) | `ReelsScreen`, `videoDownload.ts` |
+| Weëls (videos ≤15 s con watermark) | `ReelsScreen`, `videoDownload.ts`; el compositor (`CreateScreen`, `kind: 'weel'`) limita a 15 s y marca `Post.isWeel` |
 | WeeTalk (chat) | `InboxScreen`, `ConversationScreen`, `messagesService` |
 | Comunidades | `CommunityScreen`, `communityService` |
 | Perfil WEE (identidad alterna) | `HidiCreationScreen`, `AiAvatarScreen`, `getHidiProfile` — "Hidi" es el nombre heredado |
@@ -39,6 +39,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | WEE Creator (AI Apps por categoría) | `screens/WeeCreatorScreen.tsx`, `constants/aiAppCategories.ts` (integraciones reales pendientes) |
 | "Cómo lo hice" y prompts | `Post.aiTools/aiPrompt/aiProcess` (`firestoreService`), `CreateScreen`, `components/HowIMadeIt.tsx` en `PostCard` |
 | Credits visibles en el header | `components/CreditsPill.tsx`, `hooks/useWallet.ts` |
+| Guardados (🔖 del menú) | `services/bookmarksService.ts` (`users/{uid}/bookmarks/{postId}`, reglas en `firestore.rules`), `hooks/useBookmarks.ts`, botón en `PostCard`, `screens/SavedPostsScreen.tsx` |
 | Diseño de referencia | `design/canvas/` |
 
 Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a medias.

@@ -42,6 +42,7 @@ export interface Post {
   imageUrlsThumbnails?: string[]; // Thumbnails para carga rápida en el feed
   imageAspectRatios?: number[]; // Aspect ratios (width/height) alineados 1:1 con imageUrls
   videoUrl?: string;
+  isWeel?: boolean; // Weël: video corto (máx. 15 s) creado desde el botón +
   poll?: PostPoll; // Encuesta opcional
 
   // === Cómo lo hice (creaciones con IA) ===

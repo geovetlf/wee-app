@@ -24,14 +24,15 @@ El código actual nace de una versión anterior del producto (red social anónim
 | **Credits siempre visibles** | `CreditsPill` en `Header` (`hooks/useWallet.ts`) → `CreditStoreScreen` / `WalletScreen` / `creditsService` | ✅ Implementado |
 | **WEE Creator** (hub de AI Apps por categoría) | `WeeCreatorScreen` + `constants/aiAppCategories.ts` — buscador "¿Qué quieres crear?", 10 categorías, "Disponible hoy: Avatar IA"; el resto muestra "Avísame cuando esté" | ⚠️ Pantalla lista; integraciones reales de AI Apps pendientes |
 | **Descubrimiento de IA** ("quiero hacer X" → herramientas recomendadas) | buscador de `WeeCreatorScreen` (`matchAiAppCategories`, por palabras clave) | ⚠️ Base |
-| **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`) | ✅ Base existente (falta: límite de 15 s y watermark de marca WEE) |
+| **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`); el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel` | ✅ Base existente (falta: watermark de marca WEE al compartir) |
+| **Guardados** (🔖) | `bookmarksService` (`users/{uid}/bookmarks`), `hooks/useBookmarks.ts`, botón en `PostCard`, `SavedPostsScreen` desde el menú ☰ | ✅ Implementado |
 | **WeeTalk** (chat) | `InboxScreen` / `ConversationScreen` — mensajes, audio, temas de chat | ✅ Base existente |
 | **Comunidades** (WEE Filmmakers, WEE Influencers, WEE Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
 | **Perfil doble (Real + WEE)** | `HidiCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (`Hidi` es el nombre interno heredado del perfil WEE) |
 | Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
 | WeeBiz (perfiles y productos de negocios) | `WeeBiz*Screen`, `weeBizService` | ⚠️ Heredado; no está en la visión actual, a evaluar |
 | Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de WEE Creator; "WEE Influencers" es una comunidad) | ❌ No existe aún |
-| Guardados, trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — ("Guardados" aparece en el menú como "Pronto") | ❌ No existe aún |
+| Trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — | ❌ No existe aún |
 
 Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
 
