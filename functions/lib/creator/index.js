@@ -93,25 +93,10 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
         if (!EXPERIENCES.includes(experienceId))
             throw new https_1.HttpsError('invalid-argument', 'Experiencia desconocida');
         const goal = String(data.goal || '').trim().slice(0, 300) || templates_1.TEMPLATES[experienceId].defaultGoal;
+        await (0, credits_1.ensureDemoWallet)(uid);
         ref = jobs().doc();
-        job = {
-            id: ref.id,
-            userId: uid,
-            experienceId,
-            goal,
-            questions: [],
-            answers: [],
-            plan: null,
-            steps: [],
-            results: [],
-            status: 'asking',
-            progressText: '',
-            creditsEstimated: 0,
-            creditsCharged: 0,
-            demo: true,
-            createdAt: now(),
-            updatedAt: now(),
-        };
+        job = Object.assign(Object.assign({ id: ref.id, userId: uid, experienceId,
+            goal, questions: [], answers: [], plan: null, steps: [], results: [], status: 'asking', progressText: '', creditsEstimated: 0, creditsCharged: 0, demo: true, pricingMode: (0, credits_1.pricingMode)() }, (data.projectId ? { projectId: String(data.projectId) } : {})), { createdAt: now(), updatedAt: now() });
         // Solo se aceptan presets que existan en la plantilla; lo demás se pregunta
         const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
         for (const preset of presets) {

@@ -77,6 +77,8 @@ export interface CreatorJob {
   creditsEstimated: number;
   creditsCharged: number;
   demo: boolean;
+  projectId?: string;
+  pricingMode?: 'simulated' | 'real';
   createdAt: any;
   updatedAt: any;
   finishedAt?: any;

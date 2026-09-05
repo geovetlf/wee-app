@@ -13,12 +13,13 @@ import { postsService, Post } from '../services/firestoreService';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
+import WeelsRow from '../components/WeelsRow';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { COMMUNITY_CATEGORIES } from '../constants/communityCategories';
 
 // Categorías sociales (comunidades). Fuente única: constants/communityCategories.ts
-const CATEGORIES = COMMUNITY_CATEGORIES.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji, color: c.color }));
+const CATEGORIES = COMMUNITY_CATEGORIES.map((c) => ({ id: c.id, slug: c.slug, name: c.name, emoji: c.emoji, color: c.color }));
 
 const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -26,6 +27,7 @@ const WebLandingScreen: React.FC = () => {
   const navigation = useNavigation<any>();
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [weels, setWeels] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -43,6 +45,39 @@ const WebLandingScreen: React.FC = () => {
     };
     loadPosts();
   }, []);
+
+  // Weëls (videos cortos) para la fila del Home
+  useEffect(() => {
+    postsService
+      .getVideoPostsPaginated(10)
+      .then((result) => setWeels(result?.documents || []))
+      .catch((error) => console.error('Error loading Weëls:', error));
+  }, []);
+
+  // Explora comunidades: una temática abre su feed; "Ver todas" abre el explorador
+  const handleCategoryPress = (category: (typeof CATEGORIES)[number]) => {
+    navigation.navigate('Feed', { communitySlug: category.slug });
+  };
+
+  const handleAllCommunities = () => {
+    navigation.navigate('ExploreCommunities');
+  };
+
+  const handleCreateWeel = () => {
+    if (!user) {
+      navigation.navigate('Login');
+      return;
+    }
+    navigation.navigate('Create', { kind: 'weel' });
+  };
+
+  const handleOpenWeels = () => {
+    if (weels.length === 0) {
+      handleCreateWeel();
+      return;
+    }
+    navigation.navigate('Reels', { initialPost: weels[0], initialVideoPosts: weels });
+  };
 
   const handleNotificationsPress = () => {
     navigation.navigate('Notifications');
@@ -120,26 +155,24 @@ const WebLandingScreen: React.FC = () => {
           </LinearGradient>
         </div>
 
-        {/* Categories */}
-        <div style={{ padding: '0 16px 16px' }}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Explora comunidades
-          </Text>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 12,
-            justifyContent: 'center',
-          }}>
+        {/* Explora comunidades: compacto, dos filas de cuatro (design/canvas/Wave.dc.html) */}
+        <div style={{ padding: '0 16px 4px' }}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 0 }]}>Explora comunidades</Text>
+            <TouchableOpacity onPress={handleAllCommunities} activeOpacity={0.7} accessibilityLabel="Ver todas las comunidades">
+              <Text style={[styles.viewAll, { color: theme.colors.accent }]}>Ver todas ›</Text>
+            </TouchableOpacity>
+          </View>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
-                style={[styles.categoryItem, { backgroundColor: theme.colors.card }]}
+                style={[styles.categoryItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                onPress={() => handleCategoryPress(cat)}
                 activeOpacity={0.7}
+                accessibilityLabel={cat.name}
               >
-                <View style={[styles.categoryIcon, { backgroundColor: cat.color + '20' }]}>
-                  <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-                </View>
+                <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
                 <Text style={[styles.categoryName, { color: theme.colors.text }]} numberOfLines={2}>
                   {cat.name}
                 </Text>
@@ -148,10 +181,15 @@ const WebLandingScreen: React.FC = () => {
           </div>
         </div>
 
+        {/* Weëls */}
+        <div style={{ padding: '0 0 8px' }}>
+          <WeelsRow posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
+        </div>
+
         {/* Feed */}
         <div style={{ padding: '0 16px 100px' }}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Publicaciones recientes
+            Creado por la comunidad
           </Text>
 
           {posts.length === 0 ? (
@@ -222,11 +260,25 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
     marginBottom: SPACING.md,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  viewAll: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
   categoryItem: {
-    width: 80,
+    height: 80,
     alignItems: 'center',
-    padding: SPACING.sm,
-    borderRadius: BORDER_RADIUS.lg,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   categoryIcon: {
     width: 48,
@@ -242,10 +294,12 @@ const styles = StyleSheet.create({
   },
   categoryEmoji: {
     fontSize: 26,
-    lineHeight: 32,
+    lineHeight: 30,
   },
   categoryName: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: FONT_WEIGHT.semibold,
     textAlign: 'center',
   },
   emptyState: {

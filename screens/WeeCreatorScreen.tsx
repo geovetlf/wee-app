@@ -282,6 +282,21 @@ const WeeCreatorScreen: React.FC = () => {
           </View>
         )}
 
+        {/* Mis proyectos */}
+        <TouchableOpacity
+          style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
+          onPress={() => navigation.navigate(user ? 'Projects' : 'Login')}
+          activeOpacity={0.8}
+          accessibilityLabel="Mis proyectos"
+        >
+          <Text style={styles.jobEmoji}>📁</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.jobGoal, { color: theme.colors.text }]}>Mis proyectos</Text>
+            <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>Agrupa tus creaciones: logo, fotos, videos, música y documentos en un solo lugar.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Disponible hoy */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Disponible hoy</Text>

@@ -21,12 +21,16 @@ interface ResultCardProps {
   beforeImageUri?: string;
   /** Weë Writer: llevar el texto al editor. */
   onOpenInEditor?: () => void;
+  /** Guardar en "Mis proyectos". */
+  onSaveToProject?: () => void;
+  /** Nombre del proyecto donde ya está guardada. */
+  projectName?: string;
 }
 
 /**
  * "✨ Listo" + resultado + [Crear otra versión] [Editar] [Publicar en mi comunidad]
  */
-const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onSaveToProject, projectName }) => {
   const { theme } = useTheme();
   const [editing, setEditing] = useState(false);
   const [instruction, setInstruction] = useState('');
@@ -60,8 +64,25 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       </View>
       <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
         {experienceName} terminó "{job.goal}".
-        {job.creditsCharged > 0 ? ` Usaste ${job.creditsCharged.toLocaleString('es')} Credits.` : ' No gastaste Credits.'}
+        {job.creditsCharged > 0
+          ? ` Usaste ${job.creditsCharged.toLocaleString('es')} Credits${job.pricingMode === 'simulated' ? ' (precio de prueba)' : ''}.`
+          : ' No gastaste Credits.'}
       </Text>
+      {onSaveToProject && (
+        <TouchableOpacity
+          onPress={onSaveToProject}
+          disabled={busy}
+          activeOpacity={0.8}
+          style={[styles.projectRow, { backgroundColor: theme.colors.card, borderColor: projectName ? theme.colors.accent : theme.colors.border }]}
+          accessibilityLabel={projectName ? `Guardado en ${projectName}` : 'Guardar en proyecto'}
+        >
+          <Ionicons name={projectName ? 'folder-open' : 'folder-open-outline'} size={scale(18)} color={theme.colors.accentDark} />
+          <Text style={[styles.projectText, { color: theme.colors.text }]}>
+            {projectName ? `Guardado en ${projectName}` : 'Guardar en un proyecto'}
+          </Text>
+          <Text style={[styles.projectAction, { color: theme.colors.accentDark }]}>{projectName ? 'Cambiar' : 'Elegir'}</Text>
+        </TouchableOpacity>
+      )}
 
       {visuals.map((result) => (
         <View key={result.stepId} style={[styles.visualCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -280,6 +301,24 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     lineHeight: scale(20),
     marginTop: -SPACING.xs,
+  },
+  projectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: scale(44),
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  projectText: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  projectAction: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.bold,
   },
   visualCard: {
     borderRadius: BORDER_RADIUS.lg,

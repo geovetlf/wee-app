@@ -365,7 +365,10 @@ service cloud.firestore {
     // Los escribe solo el servidor (Cloud Functions); la persona lee los suyos.
     match /creatorJobs/{jobId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow write: if false;
+      allow create, delete: if false;
+      // La persona solo puede mover su creación a un proyecto
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['projectId', 'updatedAt']);
 
       match /private/{document} {
         allow read, write: if false;
@@ -378,6 +381,13 @@ service cloud.firestore {
     }
     match /pricing/{capabilityId} {
       allow read, write: if false;
+    }
+
+    // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
+    match /creatorProjects/{projectId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

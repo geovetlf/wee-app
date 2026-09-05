@@ -49,6 +49,7 @@ import { scale } from '../utils/scale';
 import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { downloadVideoWithWatermark } from '../services/videoDownload';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
+import WeelsRow from '../components/WeelsRow';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -1704,52 +1705,28 @@ const LandingScreen: React.FC = () => {
     </ScrollView>
   );
 
-  // Fila de Weëls: videos cortos de la comunidad; lleva a la pestaña Weëls
-  const renderWeelsRow = () => {
-    if (videoPosts.length === 0) return null;
-    return (
-      <View style={[styles.weelsSection, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.weelsHeader}>
-          <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>Weëls</Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => scrollToTab('hids')}>
-            <Text style={[styles.communityViewAll, { color: theme.colors.accent }]}>Ver todos</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weelsRow}>
-          {videoPosts.slice(0, 10).map((post) => {
-            const thumb = post.videoUrl && post.videoUrl.includes('cloudinary.com') ? cloudinaryVideoThumb(post.videoUrl, 300) : null;
-            return (
-              <TouchableOpacity
-                key={post.id}
-                style={[styles.weelCard, { backgroundColor: '#1F2937' }]}
-                onPress={() => scrollToTab('hids')}
-                activeOpacity={0.85}
-              >
-                {thumb ? (
-                  <Image source={{ uri: thumb }} style={styles.weelThumb} contentFit="cover" cachePolicy="memory-disk" />
-                ) : null}
-                <View style={styles.weelPlay}>
-                  <Ionicons name="play" size={scale(16)} color="#1F2937" />
-                </View>
-                {typeof post.views === 'number' && post.views > 0 && (
-                  <Text style={styles.weelViews}>{formatNumber(post.views)}</Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-    );
-  };
+  // Fila de Weëls: videos cortos de la comunidad; lleva a la pestaña Weëls o a crear el primero
+  const renderWeelsRow = () => (
+    <View style={{ backgroundColor: theme.colors.surface }}>
+      <WeelsRow
+        posts={videoPosts}
+        onOpenWeels={() => scrollToTab('hids')}
+        onCreateWeel={() => {
+          const mainNavigation = navigation.getParent()?.getParent();
+          (mainNavigation as any)?.navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
+        }}
+      />
+    </View>
+  );
 
   const listHeader = useMemo(() => (
     <>
       {renderHero()}
       {renderCategories()}
       {renderCommunityCategories()}
+      {renderWeelsRow()}
       {renderTrendingTopic()}
       {renderFeaturedOpinion()}
-      {renderWeelsRow()}
       {feedPosts.length > 0 && (
         <>
           <View style={[styles.feedSeparator, { backgroundColor: theme.colors.surface }]} />

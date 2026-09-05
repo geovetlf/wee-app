@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -13,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
-import { creditsService, CREDIT_PACKAGES, CREDIT_COSTS, Wallet, CreditPackage } from '../services/creditsService';
+import { creditsService, CREDIT_PACKAGES, Wallet, CreditPackage } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
 const CreditStoreScreen = () => {
@@ -41,9 +42,13 @@ const CreditStoreScreen = () => {
     setPurchasing(true);
     try {
       await creditsService.addCredits(activeUid, pkg.id, pkg.credits);
-      Alert.alert('Compra exitosa', `${pkg.credits} créditos agregados a tu cuenta`);
+      const message = `${pkg.credits} Credits agregados a tu cuenta. Es una recarga de prueba: no se cobró nada.`;
+      if (Platform.OS === 'web') window.alert(message);
+      else Alert.alert('Recarga de prueba lista', message);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo completar la compra');
+      const message = 'No se pudo completar la recarga. Inténtalo de nuevo.';
+      if (Platform.OS === 'web') window.alert(message);
+      else Alert.alert('Ups', message);
     }
     setPurchasing(false);
   };
@@ -55,7 +60,7 @@ const CreditStoreScreen = () => {
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8}>
           <Ionicons name="close" size={26} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Créditos</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Credits</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -69,23 +74,28 @@ const CreditStoreScreen = () => {
               {wallet?.balance ?? 0}
             </Text>
           </View>
-          <Text style={[styles.balanceSub, { color: theme.colors.textSecondary }]}>créditos disponibles</Text>
+          <Text style={[styles.balanceSub, { color: theme.colors.textSecondary }]}>Credits disponibles</Text>
         </View>
 
-        {/* Costs info */}
+        {/* Precios de prueba + historial */}
         <View style={styles.costsRow}>
           <View style={[styles.costChip, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="camera-outline" size={16} color={theme.colors.text} />
-            <Text style={[styles.costText, { color: theme.colors.text }]}>Foto IA: {CREDIT_COSTS.AI_PHOTO} cr</Text>
+            <Ionicons name="flask-outline" size={16} color={theme.colors.text} />
+            <Text style={[styles.costText, { color: theme.colors.text }]}>Precios de prueba mientras construimos Weë Creator</Text>
           </View>
-          <View style={[styles.costChip, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="videocam-outline" size={16} color={theme.colors.text} />
-            <Text style={[styles.costText, { color: theme.colors.text }]}>Video IA: {CREDIT_COSTS.AI_VIDEO} cr</Text>
-          </View>
+          <TouchableOpacity
+            style={[styles.costChip, { backgroundColor: theme.colors.surface }]}
+            onPress={() => (nav as any).navigate('Wallet')}
+            activeOpacity={0.8}
+            accessibilityLabel="Ver historial"
+          >
+            <Ionicons name="time-outline" size={16} color={theme.colors.text} />
+            <Text style={[styles.costText, { color: theme.colors.text }]}>Ver historial →</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Packages */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Elige tu paquete</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recarga de prueba</Text>
 
         {CREDIT_PACKAGES.map((pkg) => {
           const selected = selectedPkg === pkg.id;
@@ -110,15 +120,15 @@ const CreditStoreScreen = () => {
                 <View>
                   <Text style={[styles.packageName, { color: theme.colors.text }]}>{pkg.name}</Text>
                   <Text style={[styles.packageCredits, { color: theme.colors.textSecondary }]}>
-                    {pkg.credits} créditos
+                    {pkg.credits} Credits
                   </Text>
                 </View>
               </View>
 
               <View style={styles.packageRight}>
-                <Text style={[styles.packagePrice, { color: theme.colors.text }]}>{pkg.priceLabel}</Text>
+                <Text style={[styles.packagePrice, { color: theme.colors.text }]}>Gratis</Text>
                 <Text style={[styles.packagePer, { color: theme.colors.textSecondary }]}>
-                  ${(pkg.price / pkg.credits).toFixed(2)}/cr
+                  recarga de prueba
                 </Text>
               </View>
 
@@ -133,7 +143,7 @@ const CreditStoreScreen = () => {
 
         {/* Terms */}
         <Text style={[styles.terms, { color: theme.colors.textSecondary }]}>
-          Los créditos no tienen fecha de vencimiento. Las compras son procesadas por Apple/Google y no son reembolsables.
+          Recarga de prueba: no se cobra nada todavía. Los precios definitivos llegarán cuando Weë Creator use sus IAs reales; mientras tanto, cada creación muestra su coste de prueba antes de empezar.
         </Text>
       </ScrollView>
 
@@ -150,7 +160,7 @@ const CreditStoreScreen = () => {
         >
           <Ionicons name="diamond" size={20} color="#fff" />
           <Text style={styles.buyBtnText}>
-            Comprar {CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.credits} créditos
+            Recargar {CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.credits} Credits · prueba
           </Text>
         </TouchableOpacity>
       </View>

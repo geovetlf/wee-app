@@ -10,6 +10,8 @@ interface PlanCardProps {
   plan: Plan;
   creditsEstimated: number;
   demo: boolean;
+  /** Si el precio es simulado se dice claramente. */
+  pricingMode?: 'simulated' | 'real';
   busy: boolean;
   onCreate: () => void;
   onChange: () => void;
@@ -19,9 +21,14 @@ interface PlanCardProps {
  * "Voy a … (≈ X Credits)" · [Crear] · [Cambiar algo]
  * Lo único que la persona necesita saber antes de que Weë trabaje.
  */
-const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstimated, demo, busy, onCreate, onChange }) => {
+const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstimated, demo, pricingMode, busy, onCreate, onChange }) => {
   const { theme } = useTheme();
-  const costLabel = demo || creditsEstimated === 0 ? 'Gratis en modo demo' : `≈ ${creditsEstimated.toLocaleString('es')} Credits`;
+  const costLabel =
+    creditsEstimated === 0
+      ? 'Sin costo'
+      : `≈ ${creditsEstimated.toLocaleString('es')} Credits${pricingMode === 'simulated' ? ' · precio de prueba' : ''}`;
+  const costHint =
+    creditsEstimated > 0 ? 'Se descuentan al terminar. Si algo falla, se devuelven.' : demo ? 'Modo demo: nada que pagar.' : '';
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
@@ -41,6 +48,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
 
       <View style={styles.footer}>
         <Text style={[styles.cost, { color: theme.colors.textSecondary }]}>💳 {costLabel}</Text>
+        {!!costHint && <Text style={[styles.costHint, { color: theme.colors.textSecondary }]}>{costHint}</Text>}
         <View style={styles.actions}>
           <TouchableOpacity onPress={onChange} disabled={busy} activeOpacity={0.7} style={styles.linkButton}>
             <Text style={[styles.linkText, { color: theme.colors.accentDark }]}>Cambiar algo</Text>
@@ -109,6 +117,10 @@ const styles = StyleSheet.create({
   cost: {
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.semibold,
+  },
+  costHint: {
+    fontSize: FONT_SIZE.xs,
+    marginTop: -scale(4),
   },
   actions: {
     flexDirection: 'row',

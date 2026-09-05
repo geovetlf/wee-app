@@ -10,6 +10,8 @@ import GuidedQuestion, { QaHistoryItem } from '../components/creator/GuidedQuest
 import PlanCard from '../components/creator/PlanCard';
 import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
+import ProjectPicker from '../components/creator/ProjectPicker';
+import { projectsService } from '../services/projectsService';
 import { creatorService, CreatorJob, Question, humanizeCreatorError } from '../services/creatorService';
 import { WEE_EXPERIENCES, getExperienceById } from '../constants/weeExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -46,6 +48,34 @@ const CreatorFlowScreen: React.FC = () => {
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [projectName, setProjectName] = useState<string | undefined>(undefined);
+
+  // Nombre del proyecto donde está guardada la creación
+  useEffect(() => {
+    if (!job?.projectId) {
+      setProjectName(undefined);
+      return;
+    }
+    let cancelled = false;
+    projectsService.get(job.projectId).then((project) => {
+      if (!cancelled) setProjectName(project?.name);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [job?.projectId]);
+
+  const handleSaveToProject = async (projectId: string, name: string) => {
+    if (!job) return;
+    setPickerVisible(false);
+    try {
+      await projectsService.assignJob(job.id, projectId);
+      setProjectName(name);
+    } catch (e) {
+      setError('No pude guardar en el proyecto. Inténtalo de nuevo.');
+    }
+  };
 
   const start = useCallback(
     async (goal?: string) => {
@@ -205,6 +235,8 @@ const CreatorFlowScreen: React.FC = () => {
             onPublish={handlePublish}
             beforeImageUri={needsPhoto ? imageUri : undefined}
             onOpenInEditor={experience.id === 'writer' ? handleOpenInEditor : undefined}
+            onSaveToProject={() => setPickerVisible(true)}
+            projectName={projectName}
           />
         )}
 
@@ -237,6 +269,7 @@ const CreatorFlowScreen: React.FC = () => {
               plan={job.plan}
               creditsEstimated={job.creditsEstimated}
               demo={job.demo}
+              pricingMode={job.pricingMode}
               busy={busy}
               onCreate={handleCreate}
               onChange={() => start(job.goal)}
@@ -258,6 +291,12 @@ const CreatorFlowScreen: React.FC = () => {
         <Text style={[styles.footnote, { color: theme.colors.textSecondary }]}>
           Tú eliges el resultado. Weë elige la IA.
         </Text>
+        <ProjectPicker
+          visible={pickerVisible}
+          goal={job?.goal || params.goal || ''}
+          onClose={() => setPickerVisible(false)}
+          onPick={(project) => handleSaveToProject(project.id, project.name)}
+        />
     </CreatorShell>
   );
 };

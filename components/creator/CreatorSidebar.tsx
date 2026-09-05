@@ -77,6 +77,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
             if (!exp) return null;
             return renderItem(id, ICONS[id] || 'sparkles-outline', exp.name, () => goSpecialist(id), true);
           })}
+          {renderItem('projects', 'folder-open-outline', 'Mis proyectos', () => navigation.navigate(user ? 'Projects' : 'Login'), true)}
         </View>
 
         {/* Credits */}

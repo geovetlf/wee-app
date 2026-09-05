@@ -110,8 +110,8 @@ No un prototipo bonito: una aplicación navegable. Botones importantes funcionan
 | 10 | WEE Home | ✅ Diseñar, remodelar, probar muebles, colores, distribución, ideas, exterior y jardín; pregunta espacio y estilo en lenguaje humano; foto del espacio con antes/después y lista de cambios y compras |
 | 11 | WEE Beauty | ✅ Maquillaje, corte, color, barba, outfit, uñas, accesorios, cuidado de la piel (rutina), estilo por rostro y cambio de look; ocasión solo cuando aplica; foto con antes/después |
 | 12 | WEE Writer | ✅ Publicación, historia, guion, artículo, email, documento, CV, portada, traducir, resumir, ideas, corregir, reescribir; **editor** cómodo (`WriterEditorScreen`) con ayudas en lenguaje humano (Mejorar, Corregir, Acortar, Alargar, Cambiar tono, Traducir, Resumir) que vuelven al editor; "Mis documentos" guardados en el dispositivo |
-| 13 | Proyectos | 🔜 |
-| 14 | Credits (simulados) | 🔜 |
+| 13 | Proyectos | ✅ `creatorProjects` (propios), "Mis proyectos" (lista + crear con emoji), detalle con las creaciones de todos los especialistas (renombrar, eliminar, añadir), "Guardar en proyecto" desde cualquier resultado con nombre sugerido ("Mi restaurante"); accesos en barra lateral, ☰ y Weë Creator |
+| 14 | Credits (simulados) | ✅ Precios **de prueba** por capacidad en el servidor (`CREATOR_PRICING_MODE=simulated`; `real` usa `pricing/{capacidad}`), 240 Credits de bienvenida simulados, coste visible antes de crear ("≈ 12 Credits · precio de prueba", se descuentan al terminar y se devuelven si falla), historial en Wallet, compra simulada en la tienda |
 | 15 | Perfil, configuración y elementos comunes | 🔜 |
 | 16 | Revisión de toda la experiencia | 🔜 |
 

@@ -112,6 +112,10 @@ export interface CreatorJob {
   creditsCharged: number;
   /** true cuando algún paso lo resolvió el proveedor de prueba (mock). */
   demo: boolean;
+  /** Proyecto de "Mis proyectos" al que pertenece (lo asigna la persona). */
+  projectId?: string;
+  /** De dónde salió el precio: simulado (fase de construcción) o real. */
+  pricingMode?: 'simulated' | 'real';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   finishedAt?: Timestamp;

@@ -332,6 +332,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             {creatorExpanded && (
               <View style={styles.creatorList}>
                 {WEE_EXPERIENCES.map((exp) => renderRow(exp.emoji, exp.name, () => goCreator(exp.id), { small: true }))}
+                {renderRow('📁', 'Mis proyectos', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
               </View>
             )}
           </View>

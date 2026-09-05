@@ -115,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
           <View style={styles.leftSection}>
             {/* Back or hamburger menu */}
             {onBackPress ? (
-              <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton}>
+              <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel="Volver">
                 {isWeb ? (
                   <Text style={{ fontSize: 20, color: textColor }}>←</Text>
                 ) : (
@@ -123,7 +123,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
                 )}
               </TouchableOpacity>
             ) : onMenuPress ? (
-              <TouchableOpacity onPress={onMenuPress} activeOpacity={0.7} style={styles.menuButton}>
+              <TouchableOpacity onPress={onMenuPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel="Abrir menú">
                 {isWeb ? (
                   <Text style={{ fontSize: 20, color: textColor }}>☰</Text>
                 ) : (

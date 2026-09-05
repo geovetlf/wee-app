@@ -33,12 +33,13 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | WeeTalk (chat) | `InboxScreen`, `ConversationScreen`, `messagesService` |
 | Comunidades | `CommunityScreen`, `communityService` |
 | Perfil Weë (identidad alterna) | `HidiCreationScreen`, `AiAvatarScreen`, `getHidiProfile` — "Hidi" es el nombre heredado |
-| Credits | `CreditStoreScreen`, `WalletScreen`, `creditsService` |
+| Credits | `CreditStoreScreen`, `WalletScreen`, `creditsService`; en Weë Creator los precios son **de prueba** (`functions/src/creator/credits.ts`, `CREATOR_PRICING_MODE=simulated` por defecto, 240 Credits de bienvenida) hasta medir las APIs reales (`pricing/{capacidad}`, modo `real`) |
 | Menú ☰ único | `components/DrawerMenu.tsx` |
 | Hoja Crear del + | `components/CreateSheet.tsx`, botón en `navigation/TabNavigator.tsx`, `CreateScreen` recibe `kind` |
 | Weë Creator (10 experiencias) | `screens/WeeCreatorScreen.tsx`, `constants/weeExperiences.ts`; "Avísame cuando esté" → `services/creatorInterestService.ts` (`creatorInterests/{uid}_{experienceId}`). Weë Brain (orquestación) e integraciones reales pendientes |
 | "Cómo lo hice" y prompts | `Post.aiTools/aiPrompt/aiProcess` (`firestoreService`), `CreateScreen`, `components/HowIMadeIt.tsx` en `PostCard` |
 | Credits visibles en el header | `components/CreditsPill.tsx`, `hooks/useWallet.ts` |
+| Mis proyectos (Weë Creator) | `services/projectsService.ts` (`creatorProjects`, `projectId` en `creatorJobs`), `screens/ProjectsScreen.tsx`, `screens/ProjectScreen.tsx`, `components/creator/ProjectPicker.tsx` ("Guardar en proyecto" en `ResultCard`) |
 | Guardados (🔖 del menú) | `services/bookmarksService.ts` (`users/{uid}/bookmarks/{postId}`, reglas en `firestore.rules`), `hooks/useBookmarks.ts`, botón en `PostCard`, `screens/SavedPostsScreen.tsx` |
 | Diseño de referencia | `design/canvas/` |
 

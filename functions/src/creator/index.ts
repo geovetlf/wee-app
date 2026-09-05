@@ -3,7 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep } from './types';
 import { getPlanner } from './planner';
 import { TEMPLATES, plainQuestion } from './templates';
-import { estimatePlanCredits, holdCredits, settleCredits } from './credits';
+import { estimatePlanCredits, holdCredits, settleCredits, ensureDemoWallet, pricingMode } from './credits';
 import { runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { buildTextPrompt } from './prompts';
@@ -76,6 +76,8 @@ interface ChatInput {
   answer?: Answer;
   /** Respuestas ya decididas por la acción elegida en la pantalla del especialista. */
   presetAnswers?: Answer[];
+  /** Proyecto al que se guarda la creación desde el inicio (opcional). */
+  projectId?: string;
 }
 
 export const creatorChat = onCall(
@@ -107,6 +109,7 @@ export const creatorChat = onCall(
       const experienceId = String(data.experienceId || '') as ExperienceId;
       if (!EXPERIENCES.includes(experienceId)) throw new HttpsError('invalid-argument', 'Experiencia desconocida');
       const goal = String(data.goal || '').trim().slice(0, 300) || TEMPLATES[experienceId].defaultGoal;
+      await ensureDemoWallet(uid);
       ref = jobs().doc();
       job = {
         id: ref.id,
@@ -123,6 +126,8 @@ export const creatorChat = onCall(
         creditsEstimated: 0,
         creditsCharged: 0,
         demo: true,
+        pricingMode: pricingMode(),
+        ...(data.projectId ? { projectId: String(data.projectId) } : {}),
         createdAt: now(),
         updatedAt: now(),
       };

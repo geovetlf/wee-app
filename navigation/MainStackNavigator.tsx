@@ -25,6 +25,8 @@ import SavedPostsScreen from '../screens/SavedPostsScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
+import ProjectsScreen from '../screens/ProjectsScreen';
+import ProjectScreen from '../screens/ProjectScreen';
 import WeeBizScreen from '../screens/WeeBizScreen';
 import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
 import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
@@ -46,6 +48,8 @@ export type MainStackParamList = {
   CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; imageUri?: string };
   Specialist: { id: string };
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
+  Projects: undefined;
+  Project: { id: string };
   PostDetail: {
     post: Post;
   };
@@ -208,6 +212,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
+      <Stack.Screen name="Projects" component={ProjectsScreen} />
+      <Stack.Screen name="Project" component={ProjectScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
       <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
       <Stack.Screen name="WeeBizProfile" component={WeeBizProfileScreen} />
