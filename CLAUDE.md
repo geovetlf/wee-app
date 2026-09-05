@@ -64,3 +64,4 @@ Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a
 2. Bugs conocidos listados en README → "Problemas conocidos". No corregirlos sin que el usuario lo pida.
 3. Commits y push solo cuando el usuario lo pida.
 4. El canvas de diseño (`design/canvas/`) se actualiza reensamblando desde los `.dc.html`; el HTML ensamblado no se versiona.
+5. WEE Creator (fase 0): la lógica vive en `functions/src/creator` (WEE Brain: `planner.ts` + `templates.ts`, trabajos en `creatorJobs`) y `functions/src/gateway` (capacidades → proveedores; hoy solo `mock`). En dev las Functions corren en el emulador (`npm run functions:emulator`, `.env` con `EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST=localhost`). Nunca poner claves de proveedores en el cliente; nunca inventar precios en `pricing`; el cliente (`services/creatorService.ts`, `screens/CreatorFlowScreen.tsx`, `components/creator/`) solo muestra preguntas, plan, progreso y resultados.

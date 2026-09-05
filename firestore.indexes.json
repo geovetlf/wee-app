@@ -115,6 +115,15 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
+,
+    {
+      "collectionGroup": "creatorJobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
   ],
   "fieldOverrides": []
 }

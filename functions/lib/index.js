@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.creatorRun = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -12,6 +12,10 @@ const db = admin.firestore();
 var generateAvatar_1 = require("./generateAvatar");
 Object.defineProperty(exports, "generateAvatarWithGemini", { enumerable: true, get: function () { return generateAvatar_1.generateAvatarWithGemini; } });
 Object.defineProperty(exports, "avatarReplacement", { enumerable: true, get: function () { return generateAvatar_1.avatarReplacement; } });
+// WEE Creator (WEE Brain + AI Gateway)
+var creator_1 = require("./creator");
+Object.defineProperty(exports, "creatorChat", { enumerable: true, get: function () { return creator_1.creatorChat; } });
+Object.defineProperty(exports, "creatorRun", { enumerable: true, get: function () { return creator_1.creatorRun; } });
 // Tipos de notificación y sus mensajes
 const notificationMessages = {
     like: (senderName) => ({

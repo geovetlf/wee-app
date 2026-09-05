@@ -11,6 +11,9 @@ const db = admin.firestore();
 // Re-export avatar generation functions (Gemini only)
 export { generateAvatarWithGemini, avatarReplacement } from './generateAvatar';
 
+// WEE Creator (WEE Brain + AI Gateway)
+export { creatorChat, creatorRun } from './creator';
+
 // Tipos de notificación y sus mensajes
 const notificationMessages: Record<string, (senderName: string) => { title: string; body: string }> = {
   like: (senderName) => ({

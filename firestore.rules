@@ -360,5 +360,24 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
+
+    // === WEE CREATOR: TRABAJOS ===
+    // Los escribe solo el servidor (Cloud Functions); la persona lee los suyos.
+    match /creatorJobs/{jobId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+
+      match /private/{document} {
+        allow read, write: if false;
+      }
+    }
+
+    // Catálogo y precios de WEE Creator: solo servidor / consola
+    match /capabilities/{capabilityId} {
+      allow read, write: if false;
+    }
+    match /pricing/{capabilityId} {
+      allow read, write: if false;
+    }
   }
 }

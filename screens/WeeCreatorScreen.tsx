@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
 import { creatorInterestService } from '../services/creatorInterestService';
 import CreditsPill from '../components/CreditsPill';
-import { WEE_EXPERIENCES, WeeExperience, matchExperiences } from '../constants/weeExperiences';
+import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById } from '../constants/weeExperiences';
+import { creatorService, CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -106,6 +107,36 @@ const WeeCreatorScreen: React.FC = () => {
       setSavingInterestId(null);
     }
   };
+
+  // Conversación guiada con el especialista (fase 0: modo demo)
+  const handleStart = (exp: WeeExperience) => {
+    if (!user) {
+      navigation.navigate('Login');
+      return;
+    }
+    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: query.trim() || undefined });
+  };
+
+  // Mis creaciones: últimos trabajos de la persona
+  const [myJobs, setMyJobs] = useState<CreatorJob[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) {
+        setMyJobs([]);
+        return;
+      }
+      let cancelled = false;
+      creatorService
+        .getMyJobs(user.uid, 6)
+        .then((jobs) => {
+          if (!cancelled) setMyJobs(jobs);
+        })
+        .catch((error) => console.warn('No se pudieron cargar tus creaciones:', error));
+      return () => {
+        cancelled = true;
+      };
+    }, [user])
+  );
 
   const handleAvatarTool = () => {
     if (!user) {
@@ -199,7 +230,7 @@ const WeeCreatorScreen: React.FC = () => {
             <View style={styles.detailBody}>
               <Text style={[styles.detailTitle, { color: theme.colors.text }]}>{selected.name}</Text>
               <Text style={[styles.detailText, { color: theme.colors.text }]}>
-                {selected.name} está en camino: tú dices qué quieres lograr y WEE se encarga de elegir la IA, los prompts y los pasos. Después publicas directo en tu comunidad.
+                Cuéntale a {selected.name} qué quieres lograr: te hace dos o tres preguntas sencillas y se encarga del resto. Después publicas directo en tu comunidad.
               </Text>
               <View style={styles.exampleRow}>
                 {selected.examples.map((example) => (
@@ -208,28 +239,58 @@ const WeeCreatorScreen: React.FC = () => {
                   </View>
                 ))}
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.detailButton,
-                  selectedInterested
-                    ? { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.accent }
-                    : { backgroundColor: theme.colors.accent },
-                ]}
-                onPress={() => handleNotifyMe(selected)}
-                disabled={savingInterestId === selected.id}
-                activeOpacity={0.8}
-                accessibilityLabel={selectedInterested ? 'Ya no avisarme' : 'Avísame cuando esté'}
-              >
-                <Text style={[styles.detailButtonText, selectedInterested && { color: theme.colors.text }]}>
-                  {selectedInterested ? '✓ Te avisaremos' : 'Avísame cuando esté'}
-                </Text>
-              </TouchableOpacity>
-              {selectedInterested && (
-                <Text style={[styles.detailNote, { color: theme.colors.textSecondary }]}>
-                  Anotado. Toca de nuevo si ya no quieres el aviso.
-                </Text>
-              )}
+              <View style={styles.detailActions}>
+                <TouchableOpacity
+                  style={[styles.detailButton, { backgroundColor: theme.colors.accent }]}
+                  onPress={() => handleStart(selected)}
+                  activeOpacity={0.8}
+                  accessibilityLabel={`Empezar con ${selected.name}`}
+                >
+                  <Text style={styles.detailButtonText}>Empezar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleNotifyMe(selected)}
+                  disabled={savingInterestId === selected.id}
+                  activeOpacity={0.7}
+                  style={styles.detailLink}
+                  accessibilityLabel={selectedInterested ? 'Ya no avisarme' : 'Avísame cuando esté'}
+                >
+                  <Text style={[styles.detailLinkText, { color: theme.colors.accentDark }]}>
+                    {selectedInterested ? '✓ Te avisaremos cuando esté de verdad' : 'Avísame cuando esté de verdad'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.detailNote, { color: theme.colors.textSecondary }]}>
+                Hoy en modo demo: ves cómo funciona sin gastar Credits.
+              </Text>
             </View>
+          </View>
+        )}
+
+        {/* Mis creaciones */}
+        {myJobs.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Mis creaciones</Text>
+            {myJobs.map((job) => {
+              const exp = getExperienceById(job.experienceId);
+              return (
+                <TouchableOpacity
+                  key={job.id}
+                  style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.jobEmoji}>{exp?.emoji ?? '✨'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
+                    <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
+                      {exp?.name ?? 'WEE'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -412,6 +473,40 @@ const styles = StyleSheet.create({
   },
   exampleText: {
     fontSize: FONT_SIZE.xs,
+  },
+  detailActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: SPACING.md,
+  },
+  detailLink: {
+    minHeight: scale(40),
+    justifyContent: 'center',
+  },
+  detailLinkText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  jobRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    marginTop: SPACING.sm,
+  },
+  jobEmoji: {
+    fontSize: scale(22),
+  },
+  jobGoal: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  jobMeta: {
+    fontSize: FONT_SIZE.xs,
+    marginTop: scale(2),
   },
   detailNote: {
     fontSize: FONT_SIZE.xs,

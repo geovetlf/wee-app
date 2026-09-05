@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getFunctions } from 'firebase/functions';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -90,6 +90,14 @@ try {
 
   functions = getFunctions(app, 'us-central1');
   console.log('✅ Firebase Functions initialized');
+
+  // Desarrollo: Functions locales con el emulador (npm run functions:emulator).
+  // En el celular: adb reverse tcp:5001 tcp:5001 y el mismo host "localhost".
+  const emulatorHost = process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST;
+  if (emulatorHost) {
+    connectFunctionsEmulator(functions, emulatorHost, Number(process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_PORT || 5001));
+    console.log(`🧪 Firebase Functions → emulador en ${emulatorHost}`);
+  }
 
 } catch (error) {
   console.error('❌ Error initializing Firebase:', error);

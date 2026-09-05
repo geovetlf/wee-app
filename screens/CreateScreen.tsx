@@ -71,17 +71,17 @@ const CreateScreen: React.FC = () => {
     presetKind === 'text' ? 'Comparte un texto, un prompt o una idea…' :
     '¿Qué está pasando?';
 
-  const [postText, setPostText] = useState('');
+  const [postText, setPostText] = useState<string>(routeParams.prefill?.content || '');
   const [attachedMedia, setAttachedMedia] = useState<MediaItem[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [poll, setPoll] = useState<Poll | null>(null);
 
   // "Cómo lo hice": herramientas de IA, prompt y proceso (opcional)
-  const [showHowIMadeIt, setShowHowIMadeIt] = useState(presetKind === 'weel' || presetKind === 'video' || presetKind === 'image');
-  const [aiToolsText, setAiToolsText] = useState('');
+  const [showHowIMadeIt, setShowHowIMadeIt] = useState(presetKind === 'weel' || presetKind === 'video' || presetKind === 'image' || !!routeParams.prefill);
+  const [aiToolsText, setAiToolsText] = useState<string>((routeParams.prefill?.aiTools || []).join(', '));
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiProcess, setAiProcess] = useState('');
+  const [aiProcess, setAiProcess] = useState<string>(routeParams.prefill?.aiProcess || '');
 
   const [faceSwapLoading, setFaceSwapLoading] = useState(false);
 

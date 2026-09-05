@@ -10,6 +10,14 @@
     "source": "functions",
     "runtime": "nodejs20"
   },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "ui": {
+      "enabled": false
+    }
+  },
   "hosting": {
     "public": "public",
     "ignore": [

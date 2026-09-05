@@ -1,0 +1,118 @@
+import { Timestamp } from 'firebase-admin/firestore';
+
+/**
+ * Tipos de WEE Creator (WEE Brain, planes y trabajos).
+ * El cliente tiene una copia mínima en services/creatorService.ts.
+ */
+export type ExperienceId =
+  | 'design'
+  | 'studio'
+  | 'photo'
+  | 'writer'
+  | 'music'
+  | 'beauty'
+  | 'chef'
+  | 'home'
+  | 'business'
+  | 'brain';
+
+export type CapabilityId =
+  | 'text.generate'
+  | 'text.structure'
+  | 'image.generate'
+  | 'image.edit'
+  | 'image.background_remove'
+  | 'image.upscale'
+  | 'image.object_remove'
+  | 'image.identity_edit'
+  | 'image.space_restyle'
+  | 'vision.describe'
+  | 'video.generate'
+  | 'video.image_to_video'
+  | 'video.compose'
+  | 'voice.tts'
+  | 'music.generate'
+  | 'doc.render';
+
+export interface QuestionOption {
+  id: string;
+  /** Etiqueta tal como se muestra (con emoji): "🍔 Una hamburguesa". */
+  label: string;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  options: QuestionOption[];
+  /** Además de las opciones, la persona puede escribirlo con sus palabras. */
+  allowFreeText?: boolean;
+}
+
+export interface Answer {
+  questionId: string;
+  optionId?: string;
+  text?: string;
+}
+
+export interface PlanStep {
+  id: string;
+  capability: CapabilityId;
+  /** En lenguaje humano: "Escribir el guion". Se muestra como progreso. */
+  purpose: string;
+  dependsOn?: string[];
+  input?: Record<string, unknown>;
+}
+
+export interface Plan {
+  experience: ExperienceId;
+  goal: string;
+  steps: PlanStep[];
+  /** Lo que WEE le dice a la persona antes de crear. */
+  explainToUser: string;
+}
+
+export type StepStatus = 'pending' | 'running' | 'done' | 'failed';
+
+export interface JobStep extends PlanStep {
+  status: StepStatus;
+  error?: string;
+}
+
+export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document';
+
+export interface JobResult {
+  stepId: string;
+  kind: ResultKind;
+  title: string;
+  content?: string;
+  url?: string;
+}
+
+export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';
+
+export interface CreatorJob {
+  id: string;
+  userId: string;
+  experienceId: ExperienceId;
+  goal: string;
+  questions: Question[];
+  answers: Answer[];
+  plan: Plan | null;
+  steps: JobStep[];
+  results: JobResult[];
+  status: JobStatus;
+  progressText: string;
+  creditsEstimated: number;
+  creditsCharged: number;
+  /** true cuando algún paso lo resolvió el proveedor de prueba (mock). */
+  demo: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  finishedAt?: Timestamp;
+}
+
+/** Lo que devuelve WEE Brain en cada turno: o pregunta algo o ya tiene el plan. */
+export interface BrainTurn {
+  question?: Question;
+  plan?: Plan;
+}

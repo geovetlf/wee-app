@@ -222,12 +222,8 @@ Por cada capacidad, una fila por candidato. **Nada se da por hecho**: el primer 
 | `music.generate` | a investigar | | | | | | | | | | | |
 | `image.identity_edit` | a investigar | | | | | | | | | | | |
 
-## 11. Estado actual y qué decidir
+## 11. Estado actual
 
-**Ya existe en el código**: las 10 experiencias (`constants/weeExperiences.ts`), la pantalla WEE Creator con búsqueda por intención y "Avísame cuando esté", Credits (wallet, tienda, `creditsService`), Cloud Functions con Gemini (avatar del perfil WEE), Cloudinary para media. **No existe**: Brain, Gateway, jobs, flujos guiados.
+**Ya existe en el código** (fase 0 completada el 2026-09-05): las 10 experiencias (`constants/weeExperiences.ts`); WEE Brain por plantillas (`functions/src/creator/planner.ts`, `templates.ts`) con las funciones `creatorChat` y `creatorRun`; AI Gateway con catálogo de capacidades y proveedor `mock` (`functions/src/gateway`); trabajos en `creatorJobs` con reglas e índice; Credits reservar/ajustar con `pricing` vacío; en la app, `CreatorFlowScreen` + `GuidedQuestion` / `PlanCard` / `JobProgress` / `ResultCard`, "Mis creaciones" y "Publicar en mi comunidad" con "Cómo lo hice" prellenado. En desarrollo las Functions corren en el emulador local (proyecto dev en plan Spark). **No existe**: proveedores reales, Brain con LLM (fase 1), subida de fotos para Photo/Beauty/Home, cola para trabajos largos.
 
-Decisiones para arrancar la fase 0:
-
-1. **Confirmar esta arquitectura** (o pedir cambios).
-2. **LLM inicial para WEE Brain** en fase 1. Recomendación: empezar por **Gemini**, porque ya está integrado en las Functions y en el mismo proyecto de Google Cloud; el adaptador permite cambiar después sin tocar la app.
-3. **Arrancar la fase 0 en dev en modo demo** (sin gastar en APIs) para tener toda la experiencia guiada visible y probable en web y en el celular.
+Decisiones tomadas (2026-09-05): arquitectura confirmada; **Gemini** será el LLM inicial de WEE Brain (fase 1); la fase 0 se construyó en dev en modo demo. Siguiente paso: fase 1 (texto real con Gemini, medición de coste y primeros precios en Credits).

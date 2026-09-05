@@ -22,6 +22,7 @@ import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
+import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import WeeBizScreen from '../screens/WeeBizScreen';
 import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
 import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
@@ -37,9 +38,10 @@ export type MainStackParamList = {
   Main: undefined;
   Settings: undefined;
   Search: undefined;
-  Create: { communitySlug?: string; kind?: string } | undefined;
+  Create: { communitySlug?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string } } | undefined;
   WeeCreator: { category?: string } | undefined;
   SavedPosts: undefined;
+  CreatorFlow: { experienceId: string; goal?: string; jobId?: string };
   PostDetail: {
     post: Post;
   };
@@ -199,6 +201,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
+      <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
       <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
       <Stack.Screen name="WeeBizProfile" component={WeeBizProfileScreen} />

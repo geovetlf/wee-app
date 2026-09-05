@@ -22,7 +22,7 @@ El código actual nace de una versión anterior del producto (red social anónim
 | **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a WEE Creator; `CreateScreen` recibe `kind` | ✅ Implementado |
 | **"Cómo lo hice"** (herramientas, prompt, proceso) | `CreateScreen` → `Post.aiTools / aiPrompt / aiProcess` → `HowIMadeIt` dentro de `PostCard` (prompt copiable) | ✅ Implementado |
 | **Credits siempre visibles** | `CreditsPill` en `Header` (`hooks/useWallet.ts`) → `CreditStoreScreen` / `WalletScreen` / `creditsService` | ✅ Implementado |
-| **WEE Creator** (10 experiencias: WEE Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Brain) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia, "Disponible hoy: Avatar IA"; el resto ofrece "Avísame cuando esté", que registra el interés en `creatorInterests` (`creatorInterestService`). Regla: "El usuario elige el resultado. WEE elige la IA." (`docs/CREATOR.md`) | ⚠️ Pantalla lista; WEE Brain e integraciones reales pendientes |
+| **WEE Creator** (10 experiencias: WEE Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Brain) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia, "Disponible hoy: Avatar IA"; el resto ofrece "Avísame cuando esté", que registra el interés en `creatorInterests` (`creatorInterestService`). Regla: "El usuario elige el resultado. WEE elige la IA." (`docs/CREATOR.md`) | ⚠️ Fase 0 lista: conversación guiada (preguntas con opciones y "🤷 No sé"), plan, progreso y resultado en **modo demo** vía WEE Brain + AI Gateway (`functions/src/creator`, `functions/src/gateway`, proveedor `mock`); integraciones reales pendientes |
 | **Descubrimiento de IA** ("quiero hacer X" → especialista recomendado) | buscador de `WeeCreatorScreen` (`matchExperiences`, por palabras clave; WEE Brain lo hará con un LLM) | ⚠️ Base |
 | **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`); el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel` | ✅ Base existente (falta: watermark de marca WEE al compartir) |
 | **Guardados** (🔖) | `bookmarksService` (`users/{uid}/bookmarks`), `hooks/useBookmarks.ts`, botón en `PostCard`, `SavedPostsScreen` desde el menú ☰ | ✅ Implementado |
@@ -187,6 +187,19 @@ wee-app/
 - [`LIKES_AND_FOLLOWS_GUIDE.md`](./LIKES_AND_FOLLOWS_GUIDE.md) — modelo de likes y follows
 
 ---
+
+## WEE Creator en desarrollo (fase 0, modo demo)
+
+WEE Brain y el AI Gateway viven en Cloud Functions (`functions/src/creator`, `functions/src/gateway`). El proyecto **dev** está en el plan Spark, así que en desarrollo las Functions corren en el **emulador local**:
+
+```bash
+npm run functions:install   # una vez
+npm run functions:emulator  # compila y levanta creatorChat / creatorRun en http://localhost:5001
+```
+
+La app apunta al emulador cuando `.env` tiene `EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST=localhost` (reinicia Metro al cambiarlo). En el celular, además: `adb reverse tcp:5001 tcp:5001`. Sin esa variable, la app usa las Functions desplegadas del proyecto.
+
+Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guiada (2–3 preguntas con opciones, siempre con "🤷 No sé"), muestra el plan y su coste ("Gratis en modo demo"), ejecuta los pasos por el AI Gateway con el proveedor de prueba `mock` (sin gastar dinero) y devuelve un resultado de muestra con **Crear otra versión / Editar / Publicar en mi comunidad**. Los trabajos se guardan en `creatorJobs` ("Mis creaciones"). Los precios (`pricing/{capacidad}`) siguen vacíos a propósito: se llenan cuando se midan los costes reales de cada API.
 
 ## Problemas conocidos
 
