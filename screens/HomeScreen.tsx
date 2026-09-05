@@ -58,6 +58,56 @@ const CATEGORY_CUSTOM_ICONS: Record<string, any> = {
 };
 
 const COMMUNITY_HERO_DATA: Record<string, { description: string; image: string; color: string; icon: string }> = {
+  // === Categorías sociales actuales (constants/communityCategories.ts) ===
+  'cine-animacion': {
+    description: 'Filmmaking, cortometrajes, animación y personajes creados con IA. Mostrá tu proceso y aprendé del de otros.',
+    image: 'https://images.unsplash.com/photo-1603190287605-e6ade32fa852?w=800&h=400&fit=crop&q=80',
+    color: '#EF4444',
+    icon: 'film-outline',
+  },
+  'arte-creatividad': {
+    description: 'Arte digital, ilustración, fotografía y diseño potenciados con IA. Compartí prompts, estilos y resultados.',
+    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=400&fit=crop&q=80',
+    color: '#EC4899',
+    icon: 'color-palette-outline',
+  },
+  'creadores-influencers': {
+    description: 'Creadores de contenido, YouTubers, TikTokers e Instagramers que producen con IA.',
+    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=400&fit=crop&q=80',
+    color: '#F5B731',
+    icon: 'phone-portrait-outline',
+  },
+  'negocios-emprendimiento': {
+    description: 'Emprendedores, startups, marketing y oportunidades de negocio con IA.',
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=400&fit=crop&q=80',
+    color: '#059669',
+    icon: 'briefcase-outline',
+  },
+  'tecnologia-ia': {
+    description: 'Noticias, modelos, herramientas y discusión sobre Inteligencia Artificial.',
+    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop&q=80',
+    color: '#06B6D4',
+    icon: 'hardware-chip-outline',
+  },
+  'gaming-mundos-virtuales': {
+    description: 'Videojuegos, personajes, mundos virtuales y experiencias digitales creadas con IA.',
+    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=400&fit=crop&q=80',
+    color: '#7C3AED',
+    icon: 'game-controller-outline',
+  },
+  'educacion-aprendizaje': {
+    description: 'Estudiantes, profesores e investigadores que usan IA para aprender y enseñar.',
+    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop&q=80',
+    color: '#0EA5E9',
+    icon: 'school-outline',
+  },
+  'futuro-sociedad': {
+    description: 'El futuro del trabajo, las profesiones y la sociedad en la era de la IA. Debate abierto.',
+    image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&h=400&fit=crop&q=80',
+    color: '#6366F1',
+    icon: 'rocket-outline',
+  },
+  // === Slugs heredados del concepto anterior (aún presentes en producción) ===
   'noticias': {
     description: 'Lo que está pasando en el mundo, contado por la comunidad. Debates, análisis y opiniones en tiempo real.',
     image: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=400&fit=crop&q=80',

@@ -46,214 +46,31 @@ import { useVote } from '../hooks/useVote';
 import { formatNumber, getRelativeTime } from '../data/mockData';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { downloadVideoWithWatermark } from '../services/videoDownload';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 
-// Categorias del landing con iconos y colores
-const LANDING_CATEGORIES = [
-  {
-    id: 'noticias',
-    name: 'Noticias',
-    icon: 'newspaper-outline',
-    customIcon: require('../assets/icons/category-noticias.png'),
-    color: '#10B981',
-    communitySlug: 'noticias',
-  },
-  {
-    id: 'marketplace',
-    name: 'Marketplace',
-    icon: 'storefront-outline',
-    customIcon: require('../assets/icons/category-marketplace.png'),
-    color: '#D97706',
-    communitySlug: 'marketplace',
-  },
-  {
-    id: 'relaciones',
-    name: 'Relaciones & Amor',
-    icon: 'heart-outline',
-    customIcon: require('../assets/icons/category-relaciones.png'),
-    color: '#EC4899',
-    communitySlug: 'relaciones-amor',
-  },
-  {
-    id: 'finanzas',
-    name: 'Finanzas & Dinero',
-    icon: 'cash-outline',
-    customIcon: require('../assets/icons/category-trabajo.png'),
-    color: '#6366F1',
-    communitySlug: 'finanzas-dinero',
-  },
-  {
-    id: 'laboral',
-    name: 'Laboral',
-    icon: 'briefcase-outline',
-    customIcon: require('../assets/icons/category-laboral.png'),
-    color: '#F59E0B',
-    communitySlug: 'laboral',
-  },
-  {
-    id: 'salud',
-    name: 'Salud & Bienestar',
-    icon: 'fitness-outline',
-    customIcon: require('../assets/icons/category-salud.png'),
-    color: '#22C55E',
-    communitySlug: 'salud-bienestar',
-  },
-  {
-    id: 'entretenimiento',
-    name: 'Entretenimiento',
-    icon: 'film-outline',
-    customIcon: require('../assets/icons/category-entretenimiento.png'),
-    color: '#F59E0B',
-    communitySlug: 'entretenimiento',
-  },
-  {
-    id: 'gaming',
-    name: 'Gaming & Tech',
-    icon: 'game-controller-outline',
-    customIcon: require('../assets/icons/category-gaming.png'),
-    color: '#F5B731',
-    communitySlug: 'gaming-tech',
-  },
-  {
-    id: 'educacion',
-    name: 'Educacion & Carrera',
-    icon: 'school-outline',
-    customIcon: require('../assets/icons/category-educacion.png'),
-    color: '#0EA5E9',
-    communitySlug: 'educacion-carrera',
-  },
-  {
-    id: 'deportes',
-    name: 'Deportes',
-    icon: 'football-outline',
-    customIcon: require('../assets/icons/category-deportes.png'),
-    color: '#EF4444',
-    communitySlug: 'deportes',
-  },
-  {
-    id: 'confesiones',
-    name: 'Confesiones',
-    icon: 'eye-off-outline',
-    customIcon: require('../assets/icons/category-confesiones.png'),
-    color: '#6B7280',
-    communitySlug: 'confesiones',
-  },
-  {
-    id: 'debates',
-    name: 'Debates Calientes',
-    icon: 'flame-outline',
-    customIcon: require('../assets/icons/category-debates.png'),
-    color: '#F97316',
-    communitySlug: 'debates-calientes',
-  },
-  {
-    id: 'viajes',
-    name: 'Viajes & Lugares',
-    icon: 'airplane-outline',
-    customIcon: require('../assets/icons/category-viajes.png'),
-    color: '#14B8A6',
-    communitySlug: 'viajes-lugares',
-  },
-  {
-    id: 'comida',
-    name: 'Comida & Cocina',
-    icon: 'restaurant-outline',
-    customIcon: require('../assets/icons/category-comida.png'),
-    color: '#F472B6',
-    communitySlug: 'comida-cocina',
-  },
-  {
-    id: 'moda',
-    name: 'Moda & Estilo',
-    icon: 'shirt-outline',
-    customIcon: require('../assets/icons/category-moda.png'),
-    color: '#A855F7',
-    communitySlug: 'moda-estilo',
-  },
-  {
-    id: 'espiritualidad',
-    name: 'Espiritualidad',
-    icon: 'sparkles-outline',
-    customIcon: require('../assets/icons/category-espiritualidad.png'),
-    color: '#FBBF24',
-    communitySlug: 'espiritualidad',
-  },
-  {
-    id: 'anime',
-    name: 'Anime & Manga',
-    icon: 'sparkles-outline',
-    customIcon: require('../assets/icons/category-anime.png'),
-    color: '#FF6B9D',
-    communitySlug: 'anime-manga',
-  },
-  {
-    id: 'cripto',
-    name: 'Criptomonedas',
-    icon: 'logo-bitcoin',
-    customIcon: require('../assets/icons/category-cripto.png'),
-    color: '#F7931A',
-    communitySlug: 'criptomonedas',
-  },
-  {
-    id: 'kpop',
-    name: 'K-Pop & K-Drama',
-    icon: 'musical-notes-outline',
-    customIcon: require('../assets/icons/category-kpop.png'),
-    color: '#FF2D78',
-    communitySlug: 'kpop-kdrama',
-  },
-  {
-    id: 'esoterico',
-    name: 'Esoterico',
-    icon: 'moon-outline',
-    customIcon: require('../assets/icons/category-esoterico.png'),
-    color: '#E5A020',
-    communitySlug: 'esoterico',
-  },
-  {
-    id: 'accion-poetica',
-    name: 'Accion Poetica',
-    icon: 'pencil-outline',
-    customIcon: require('../assets/icons/category-accion-poetica.png'),
-    color: '#EC4899',
-    communitySlug: 'accion-poetica',
-  },
-  {
-    id: 'ai-tecnologia',
-    name: 'AI & Tecnologia',
-    icon: 'hardware-chip-outline',
-    customIcon: require('../assets/icons/category-ai-tecnologia.png'),
-    color: '#06B6D4',
-    communitySlug: 'ai-tecnologia',
-  },
-  {
-    id: 'eventos',
-    name: 'Eventos & Salidas',
-    icon: 'calendar-outline',
-    customIcon: require('../assets/icons/category-eventos.png'),
-    color: '#F43F5E',
-    communitySlug: 'eventos-salidas',
-  },
-  {
-    id: 'negocios',
-    name: 'Negocios & Inversiones',
-    icon: 'trending-up-outline',
-    customIcon: require('../assets/icons/category-negocios.png'),
-    color: '#059669',
-    communitySlug: 'negocios-inversiones',
-  },
-  {
-    id: 'bares',
-    name: 'Bares & Restaurantes',
-    icon: 'beer-outline',
-    customIcon: require('../assets/icons/category-bares.png'),
-    color: '#B45309',
-    communitySlug: 'bares-restaurantes',
-  },
-];
+// Categorías sociales de la landing (temáticas de comunidad, no herramientas de IA).
+// Fuente única: constants/communityCategories.ts
+interface LandingCategory {
+  id: string;
+  name: string;
+  icon: string;
+  emoji?: string;
+  customIcon?: any;
+  color: string;
+  communitySlug: string;
+}
+const LANDING_CATEGORIES: LandingCategory[] = COMMUNITY_CATEGORIES.map((c) => ({
+  id: c.id,
+  name: c.name,
+  icon: c.icon + '-outline',
+  emoji: c.emoji,
+  color: c.color,
+  communitySlug: c.slug,
+}));
 
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
@@ -1348,7 +1165,9 @@ const LandingScreen: React.FC = () => {
     >
       <View style={[
         styles.categoryIcon,
-        category.customIcon ? {} : {
+        category.customIcon ? {} : category.emoji ? {
+          backgroundColor: category.color + '22',
+        } : {
           backgroundColor: category.color,
           shadowColor: category.color,
           shadowOffset: { width: 0, height: 4 },
@@ -1359,6 +1178,8 @@ const LandingScreen: React.FC = () => {
       ]}>
         {category.customIcon ? (
           <Image source={category.customIcon} style={styles.customCategoryIcon} />
+        ) : category.emoji ? (
+          <Text style={styles.categoryEmoji}>{category.emoji}</Text>
         ) : (
           <Ionicons name={category.icon as any} size={scale(24)} color="white" />
         )}
@@ -1385,7 +1206,7 @@ const LandingScreen: React.FC = () => {
         activeOpacity={0.7}
       >
         <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>
-          Explora por categoria
+          Explora comunidades
         </Text>
         <Ionicons
           name={categoriesExpanded ? 'chevron-up' : 'chevron-down'}
@@ -1431,16 +1252,7 @@ const LandingScreen: React.FC = () => {
     </View>
   );
 
-  const COMMUNITY_CATEGORIES = [
-    { id: 'beatles', name: 'Los Beatles', icon: 'musical-notes-outline', color: '#3B82F6', members: 4820, communitySlug: 'los-beatles' },
-    { id: 'tarot', name: 'Tarot & Lectura', icon: 'moon-outline', color: '#F5B731', members: 3150, communitySlug: 'tarot-lectura' },
-    { id: 'recetas-abuela', name: 'Recetas de la Abuela', icon: 'cafe-outline', color: '#F59E0B', members: 2670, communitySlug: 'recetas-abuela' },
-    { id: 'memes-arg', name: 'Memes Argentinos', icon: 'happy-outline', color: '#F97316', members: 5420, communitySlug: 'memes-argentinos' },
-    { id: 'true-crime', name: 'True Crime Latino', icon: 'skull-outline', color: '#EF4444', members: 1980, communitySlug: 'true-crime-latino' },
-    { id: 'plantas', name: 'Plantitas & Jardin', icon: 'leaf-outline', color: '#10B981', members: 1340, communitySlug: 'plantitas-jardin' },
-    { id: 'rock-nacional', name: 'Rock Nacional', icon: 'radio-outline', color: '#6366F1', members: 3890, communitySlug: 'rock-nacional' },
-    { id: 'cats-lovers', name: 'Cat Lovers', icon: 'paw-outline', color: '#EC4899', members: 4210, communitySlug: 'cat-lovers' },
-  ];
+  const POPULAR_COMMUNITY_EXAMPLES = POPULAR_COMMUNITIES;
 
   const [userCreatedCommunities, setUserCreatedCommunities] = useState<Community[]>([]);
 
@@ -1510,8 +1322,8 @@ const LandingScreen: React.FC = () => {
             </TouchableOpacity>
           );
         })}
-        {/* Comunidades hardcoded de ejemplo */}
-        {COMMUNITY_CATEGORIES.map((cat) => (
+        {/* Comunidades populares de ejemplo */}
+        {POPULAR_COMMUNITY_EXAMPLES.map((cat) => (
           <TouchableOpacity
             key={cat.id}
             style={[styles.communityChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
@@ -1539,7 +1351,7 @@ const LandingScreen: React.FC = () => {
         <View style={styles.communityHeader}>
           <View>
             <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>
-              Creadas por la comunidad
+              Comunidades populares
             </Text>
           </View>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('ExploreCommunities' as any)}>
@@ -2210,6 +2022,10 @@ const styles = StyleSheet.create({
     width: scale(43),
     height: scale(43),
     borderRadius: scale(13),
+  },
+  categoryEmoji: {
+    fontSize: scale(24),
+    lineHeight: scale(30),
   },
 
   // Community Categories

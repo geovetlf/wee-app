@@ -21,6 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { communityService, Community } from '../services/communityService';
+import { POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -31,21 +32,22 @@ const CommunitiesManagementScreen: React.FC = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  // Comunidades de ejemplo (simulan comunidades creadas por usuarios)
-  const EXAMPLE_COMMUNITIES: Community[] = [
-    { id: 'ex-beatles', name: 'Los Beatles', slug: 'los-beatles', description: 'Para fans de los Beatles. Discutimos albums, canciones y la historia de la banda.', icon: 'musical-notes', rules: [], memberCount: 4820, postCount: 312, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-tarot', name: 'Tarot & Lectura', slug: 'tarot-lectura', description: 'Comunidad de tarot, astrologia y lectura de cartas. Comparte tus tiradas.', icon: 'moon', rules: [], memberCount: 3150, postCount: 187, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-recetas', name: 'Recetas de la Abuela', slug: 'recetas-abuela', description: 'Recetas caseras tradicionales que nos recuerdan a la abuela. Cocina con amor.', icon: 'cafe', rules: [], memberCount: 2670, postCount: 245, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-memes', name: 'Memes Argentinos', slug: 'memes-argentinos', description: 'Los mejores memes argentinos. Humor criollo para alegrar el dia.', icon: 'happy', rules: [], memberCount: 5420, postCount: 890, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-truecrime', name: 'True Crime Latino', slug: 'true-crime-latino', description: 'Casos criminales reales de Latinoamerica. Analisis y discusion respetuosa.', icon: 'skull', rules: [], memberCount: 1980, postCount: 134, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-plantas', name: 'Plantitas & Jardin', slug: 'plantitas-jardin', description: 'Consejos de jardineria, cuidado de plantas, propagacion y mas.', icon: 'leaf', rules: [], memberCount: 1340, postCount: 98, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-rock', name: 'Rock Nacional', slug: 'rock-nacional', description: 'Rock argentino y latinoamericano. Clasicos y nuevas bandas.', icon: 'radio', rules: [], memberCount: 3890, postCount: 267, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-cats', name: 'Cat Lovers', slug: 'cat-lovers', description: 'Amantes de los gatos. Comparte fotos, consejos y experiencias felinas.', icon: 'paw', rules: [], memberCount: 4210, postCount: 523, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-yoga', name: 'Yoga & Meditacion', slug: 'yoga-meditacion', description: 'Practica yoga, meditacion y mindfulness. Comparte tu camino interior.', icon: 'body', rules: [], memberCount: 2100, postCount: 156, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-fotografia', name: 'Fotografia Urbana', slug: 'fotografia-urbana', description: 'Fotos de ciudades, street photography y paisajes urbanos.', icon: 'camera', rules: [], memberCount: 1870, postCount: 342, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-pelis', name: 'Cinefilia Total', slug: 'cinefilia-total', description: 'Cine de autor, clasicos, peliculas independientes. Debate y recomendaciones.', icon: 'videocam', rules: [], memberCount: 3340, postCount: 412, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-    { id: 'ex-runners', name: 'Runners BA', slug: 'runners-ba', description: 'Corredores de Buenos Aires. Carreras, entrenamientos y rutas.', icon: 'walk', rules: [], memberCount: 1560, postCount: 89, createdAt: {} as any, updatedAt: {} as any, isOfficial: false, moderators: [], status: 'active' },
-  ];
+  // Comunidades populares de ejemplo (simulan comunidades creadas por usuarios)
+  const EXAMPLE_COMMUNITIES: Community[] = POPULAR_COMMUNITIES.map((c) => ({
+    id: 'ex-' + c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description,
+    icon: c.icon.replace('-outline', ''),
+    rules: [],
+    memberCount: c.members,
+    postCount: 0,
+    createdAt: {} as any,
+    updatedAt: {} as any,
+    isOfficial: false,
+    moderators: [],
+    status: 'active' as const,
+  }));
 
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);

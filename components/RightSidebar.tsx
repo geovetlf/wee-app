@@ -13,10 +13,10 @@ const RightSidebar: React.FC = () => {
   const navigation = useNavigation();
 
   const trendingTopics = [
-    { topic: 'Tecnología', posts: '15.2K' },
-    { topic: 'Deportes', posts: '8.9K' },
-    { topic: 'Entretenimiento', posts: '12.5K' },
-    { topic: 'Noticias', posts: '6.3K' },
+    { topic: 'Tecnología & IA', posts: '15.2K' },
+    { topic: 'Cine & Animación', posts: '8.9K' },
+    { topic: 'Arte & Creatividad', posts: '12.5K' },
+    { topic: 'Creadores & Influencers', posts: '6.3K' },
   ];
 
   const handleSearch = () => {

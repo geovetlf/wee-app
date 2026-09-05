@@ -15,18 +15,10 @@ import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { COMMUNITY_CATEGORIES } from '../constants/communityCategories';
 
-// Categories
-const CATEGORIES = [
-  { id: 'noticias', name: 'Noticias', icon: require('../assets/icons/category-noticias.png'), color: '#10B981' },
-  { id: 'marketplace', name: 'Marketplace', icon: require('../assets/icons/category-marketplace.png'), color: '#D97706' },
-  { id: 'relaciones', name: 'Relaciones', icon: require('../assets/icons/category-relaciones.png'), color: '#EC4899' },
-  { id: 'finanzas', name: 'Finanzas', icon: require('../assets/icons/category-trabajo.png'), color: '#6366F1' },
-  { id: 'laboral', name: 'Laboral', icon: require('../assets/icons/category-laboral.png'), color: '#F59E0B' },
-  { id: 'salud', name: 'Salud', icon: require('../assets/icons/category-salud.png'), color: '#22C55E' },
-  { id: 'entretenimiento', name: 'Entretenimiento', icon: require('../assets/icons/category-entretenimiento.png'), color: '#F59E0B' },
-  { id: 'gaming', name: 'Gaming', icon: require('../assets/icons/category-gaming.png'), color: '#F5B731' },
-];
+// Categorías sociales (comunidades). Fuente única: constants/communityCategories.ts
+const CATEGORIES = COMMUNITY_CATEGORIES.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji, color: c.color }));
 
 const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -116,7 +108,7 @@ const WebLandingScreen: React.FC = () => {
         {/* Categories */}
         <div style={{ padding: '0 16px 16px' }}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Explora por categoría
+            Explora comunidades
           </Text>
           <div style={{
             display: 'flex',
@@ -131,9 +123,9 @@ const WebLandingScreen: React.FC = () => {
                 activeOpacity={0.7}
               >
                 <View style={[styles.categoryIcon, { backgroundColor: cat.color + '20' }]}>
-                  <Image source={cat.icon} style={styles.categoryIconImage} contentFit="contain" />
+                  <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
                 </View>
-                <Text style={[styles.categoryName, { color: theme.colors.text }]} numberOfLines={1}>
+                <Text style={[styles.categoryName, { color: theme.colors.text }]} numberOfLines={2}>
                   {cat.name}
                 </Text>
               </TouchableOpacity>
@@ -231,6 +223,10 @@ const styles = StyleSheet.create({
   categoryIconImage: {
     width: 28,
     height: 28,
+  },
+  categoryEmoji: {
+    fontSize: 26,
+    lineHeight: 32,
   },
   categoryName: {
     fontSize: FONT_SIZE.xs,

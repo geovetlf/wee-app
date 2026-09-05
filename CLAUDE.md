@@ -8,17 +8,24 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 
 > ¿Esto ayuda a una persona a crear, compartir, aprender, conectar o trabajar mejor con Inteligencia Artificial?
 
+## Arquitectura definitiva: solo DOS mundos
+
+- **WEE Creator** = herramientas y AI Apps de IA = "Quiero crear." Tipos: Video, Imagen, Diseño, Escritura, Libros, Música, Audio, Código, Marketing, Productividad.
+- **WEE Social** = personas + comunidades = "Quiero compartir, aprender y conectar." Contiene Wave (feed), Weels, comunidades, perfiles Real/WEE, WeëTalk.
+- **No crear una tercera sección.** WEE Influencer, WEE Filmmaker, WEE Designer, WEE Writer, etc. NO son secciones: son **comunidades dentro de WEE Social** (WEE Filmmakers, WEE Influencers, WEE Designers, WEE Writers, WEE Musicians, WEE Developers, WEE Entrepreneurs, WEE Gamers).
+- Las categorías de la pantalla social son temáticas de comunidad, no herramientas: Cine & Animación, Arte & Creatividad, Creadores & Influencers, Negocios & Emprendimiento, Tecnología & IA, Gaming & Mundos Virtuales, Educación & Aprendizaje, Futuro & Sociedad. Fuente única: `constants/communityCategories.ts` (alimenta landing nativa y web, home, semilla de Firestore y tags). Nunca nombrarlas "Video IA / Imagen IA": eso es Creator.
+
 ## Mapa de nombres (visión → código actual)
 
 | Visión | Código hoy |
 |---|---|
-| Wave (feed) | `HomeScreen`, `postsService` |
+| Wave (feed) | `HomeScreen`, `LandingScreen`, `postsService` |
 | Weels (videos ≤15 s con watermark) | `ReelsScreen`, `videoDownload.ts` |
-| Weetalk (chat) | `InboxScreen`, `ConversationScreen`, `messagesService` |
-| Communities | `CommunityScreen`, `communityService` |
+| WeëTalk (chat) | `InboxScreen`, `ConversationScreen`, `messagesService` |
+| Comunidades | `CommunityScreen`, `communityService`, `constants/communityCategories.ts` |
 | Perfil WEE (identidad alterna) | `HidiCreationScreen`, `AiAvatarScreen`, `getHidiProfile` — "Hidi" es el nombre heredado |
 | Credits | `CreditStoreScreen`, `WalletScreen`, `creditsService` |
-| WEE Creator / AI Apps / Influencer / Descubrimiento de IA | no existen todavía |
+| WEE Creator (AI Apps, barra "¿Qué querés crear hoy?") y la barra de dos mundos | no existen todavía; diseño en `design/canvas/` |
 
 Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a medias.
 
