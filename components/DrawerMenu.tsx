@@ -25,7 +25,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { weeBizService, Business } from '../services/weeBizService';
 import { useWallet } from '../hooks/useWallet';
-import { AI_APP_CATEGORIES } from '../constants/aiAppCategories';
+import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -325,13 +325,13 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               <Text style={styles.rowEmoji}>🤖</Text>
               <View style={styles.creatorTitles}>
                 <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>WEE Creator</Text>
-                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Herramientas de IA para crear</Text>
+                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Tú eliges el resultado. WEE elige la IA.</Text>
               </View>
               <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             {creatorExpanded && (
               <View style={styles.creatorList}>
-                {AI_APP_CATEGORIES.map((cat) => renderRow(cat.emoji, cat.name, () => goCreator(cat.id), { small: true }))}
+                {WEE_EXPERIENCES.map((exp) => renderRow(exp.emoji, exp.name, () => goCreator(exp.id), { small: true }))}
               </View>
             )}
           </View>

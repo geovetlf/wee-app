@@ -349,5 +349,16 @@ service cloud.firestore {
          resource.data.recipientId == ("hidi_" + request.auth.uid) ||
          resource.data.recipientId.matches('biz_.*'));
     }
+
+    // === INTERÉS EN AI APPS (WEE Creator: "Avísame cuando esté") ===
+    // Un documento por persona y categoría: {uid}_{categoryId}
+    match /creatorInterests/{interestId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        interestId == request.auth.uid + '_' + request.resource.data.categoryId;
+      allow update: if false;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
   }
 }

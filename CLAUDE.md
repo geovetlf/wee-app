@@ -2,7 +2,7 @@
 
 ## Qué es este proyecto
 
-Red social para personas que utilizan Inteligencia Artificial: descubrir, aprender, crear, compartir y conectar. La IA es el motor; la comunidad es el corazón. Las **instrucciones definitivas de producto, estructura y UX** están en [`docs/UX.md`](docs/UX.md) y prevalecen sobre [`docs/VISION.md`](docs/VISION.md) (visión original) cuando se contradicen. Estado real del código en [`README.md`](README.md).
+Red social para personas que utilizan Inteligencia Artificial: descubrir, aprender, crear, compartir y conectar. La IA es el motor; la comunidad es el corazón. Las **instrucciones definitivas de producto, estructura y UX** están en [`docs/UX.md`](docs/UX.md) y prevalecen sobre [`docs/VISION.md`](docs/VISION.md) (visión original) cuando se contradicen. Estado real del código en [`README.md`](README.md). La arquitectura de IA de WEE Creator (10 experiencias, WEE Brain, multi-proveedor) está en [`docs/CREATOR.md`](docs/CREATOR.md) y actualiza el §6–§7 de UX.md.
 
 Filosofía de UX: **"Muchas posibilidades por detrás. Una experiencia simple por delante."** Toda decisión de UX/UI prioriza simplicidad, claridad, amigabilidad, descubrimiento, creación y comunidad. No agregar funciones, menús ni secciones solo porque sean posibles.
 
@@ -13,7 +13,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 ## Arquitectura definitiva (docs/UX.md)
 
 - **Home = la experiencia social.** Contenido, usuarios, comunidades, Weëls, trabajos con IA, preguntas y tendencias. Debe sentirse como una red social, no como un catálogo de herramientas. **Nunca usar "WEE Social" como nombre** de sección ni en el menú: el Home ya es lo social.
-- **WEE Creator = herramientas y AI Apps de IA.** Es el único espacio que conserva nombre propio. Responde a "¿Qué quieres crear?". Categorías: 🎬 AI Video, 🖼️ AI Imagen, 🎨 AI Diseño, ✍️ AI Escritura, 📚 AI Libros, 🎵 AI Música & Audio, 💻 AI Código, 📣 AI Marketing, 🧠 AI Productividad, ▦ Otras herramientas. Se abre desde el menú ☰ (iconos pequeños y discretos, sin tarjetas enormes).
+- **WEE Creator = la IA que trabaja por ti.** Es el único espacio que conserva nombre propio. Responde a "¿Qué quieres crear?" bajo la regla **"El usuario elige el resultado. WEE elige la IA."**: la persona dice qué quiere lograr en lenguaje normal; nunca ve modelos, APIs, proveedores ni prompts técnicos. Solo hay **10 experiencias visibles**, nombres de identidad que no se cambian: 🎨 WEE Design, 🎬 WEE Studio, 📸 WEE Photo, ✍️ WEE Writer, 🎵 WEE Music, 💄 WEE Beauty, 👨‍🍳 WEE Chef, 🏠 WEE Home, 💼 WEE Business, 🧠 WEE Brain. Una experiencia ≠ una API: cada una puede combinar varios proveedores, y **WEE Brain** es el cerebro/orquestador (entiende, pregunta, arma prompts internos, elige y coordina herramientas, explica resultados). Fuente única: `constants/weeExperiences.ts`. Se abre desde el menú ☰ (iconos pequeños y discretos, sin tarjetas enormes). Detalle en `docs/CREATOR.md`.
 - **Un solo menú ☰:** Perfil (Perfil Real · Perfil WEE) · Explora (Comunidades · Weëls) · WeeTalk · WEE Creator (categorías) · 💳 Credits · 🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda. Barra inferior: Inicio · Buscar · + · WeeTalk · Perfil.
 - **Comunidades, no secciones.** WEE Filmmakers, WEE Influencers, WEE Designers, WEE Writers, WEE Musicians, WEE Developers, WEE Entrepreneurs, WEE Gamers, etc. son comunidades dentro del Home. Nunca crear "WEE Influencer Section", "WEE Filmmaker Section", "WEE Communities" ni similares. Las herramientas que usan viven en WEE Creator (conectados, no mezclados).
 - **"Explora comunidades"** (Home) muestra temáticas sociales, no herramientas: Cine & Animación, Arte & Creatividad, Creadores & Influencers, Negocios & Emprendimiento, Tecnología & IA, Gaming & Mundos Virtuales, Educación & Aprendizaje, Futuro & Sociedad. Fuente única: `constants/communityCategories.ts` (alimenta landing nativa y web, home, semilla de Firestore y tags). Nunca nombrarlas "Video IA / Imagen IA".
@@ -36,7 +36,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Credits | `CreditStoreScreen`, `WalletScreen`, `creditsService` |
 | Menú ☰ único | `components/DrawerMenu.tsx` |
 | Hoja Crear del + | `components/CreateSheet.tsx`, botón en `navigation/TabNavigator.tsx`, `CreateScreen` recibe `kind` |
-| WEE Creator (AI Apps por categoría) | `screens/WeeCreatorScreen.tsx`, `constants/aiAppCategories.ts` (integraciones reales pendientes) |
+| WEE Creator (10 experiencias) | `screens/WeeCreatorScreen.tsx`, `constants/weeExperiences.ts`; "Avísame cuando esté" → `services/creatorInterestService.ts` (`creatorInterests/{uid}_{experienceId}`). WEE Brain (orquestación) e integraciones reales pendientes |
 | "Cómo lo hice" y prompts | `Post.aiTools/aiPrompt/aiProcess` (`firestoreService`), `CreateScreen`, `components/HowIMadeIt.tsx` en `PostCard` |
 | Credits visibles en el header | `components/CreditsPill.tsx`, `hooks/useWallet.ts` |
 | Guardados (🔖 del menú) | `services/bookmarksService.ts` (`users/{uid}/bookmarks/{postId}`, reglas en `firestore.rules`), `hooks/useBookmarks.ts`, botón en `PostCard`, `screens/SavedPostsScreen.tsx` |

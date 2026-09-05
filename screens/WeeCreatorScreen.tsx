@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,19 +16,21 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
+import { creatorInterestService } from '../services/creatorInterestService';
 import CreditsPill from '../components/CreditsPill';
-import { AI_APP_CATEGORIES, AiAppCategory, matchAiAppCategories } from '../constants/aiAppCategories';
+import { WEE_EXPERIENCES, WeeExperience, matchExperiences } from '../constants/weeExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
 /**
- * WEE Creator — el espacio de herramientas de IA.
- * Responde a "¿Qué quieres crear?": el usuario describe lo que quiere y
- * WEE le muestra la categoría de AI Apps que corresponde.
+ * WEE Creator — "El usuario elige el resultado. WEE elige la IA." (docs/CREATOR.md)
+ * Responde a "¿Qué quieres crear?": la persona describe lo que quiere lograr y
+ * WEE le muestra el especialista (una de las 10 experiencias) que se encarga.
+ * Nunca se muestran proveedores, modelos ni prompts técnicos.
  *
- * Estado actual: las integraciones con apps de IA están en camino; la única
+ * Estado actual: las experiencias están en camino (registran interés); la única
  * herramienta activa hoy es el avatar IA del perfil WEE.
  */
 const WeeCreatorScreen: React.FC = () => {
@@ -45,8 +47,30 @@ const WeeCreatorScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(initialCategory || null);
 
-  const matches = useMemo(() => matchAiAppCategories(query), [query]);
-  const selected = AI_APP_CATEGORIES.find((c) => c.id === selectedId) || null;
+  const matches = useMemo(() => matchExperiences(query), [query]);
+  const selected = WEE_EXPERIENCES.find((c) => c.id === selectedId) || null;
+
+  // "Avísame cuando esté": categorías en las que la persona ya se anotó
+  const [interestedIds, setInterestedIds] = useState<string[]>([]);
+  const [savingInterestId, setSavingInterestId] = useState<string | null>(null);
+  const selectedInterested = !!selected && interestedIds.includes(selected.id);
+
+  useEffect(() => {
+    if (!user) {
+      setInterestedIds([]);
+      return;
+    }
+    let cancelled = false;
+    creatorInterestService
+      .getMyCategoryIds(user.uid)
+      .then((ids) => {
+        if (!cancelled) setInterestedIds(ids);
+      })
+      .catch((error) => console.warn('No se pudo leer el interés en AI Apps:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const notify = (title: string, message: string) => {
     if (isWeb) {
@@ -56,12 +80,31 @@ const WeeCreatorScreen: React.FC = () => {
     }
   };
 
-  const handleCategoryPress = (cat: AiAppCategory) => {
+  const handleCategoryPress = (cat: WeeExperience) => {
     setSelectedId(cat.id === selectedId ? null : cat.id);
   };
 
-  const handleNotifyMe = (cat: AiAppCategory) => {
-    notify('Te avisamos', `Cuando ${cat.name} esté disponible en WEE Creator te lo contamos.`);
+  // Registra (o quita) el interés en una categoría: así sabemos qué AI Apps
+  // pide la comunidad y a quién avisar cuando estén listas.
+  const handleNotifyMe = async (cat: WeeExperience) => {
+    if (!user) {
+      navigation.navigate('Login');
+      return;
+    }
+    if (savingInterestId) return;
+    const alreadyInterested = interestedIds.includes(cat.id);
+    setSavingInterestId(cat.id);
+    setInterestedIds((ids) => (alreadyInterested ? ids.filter((id) => id !== cat.id) : [...ids, cat.id]));
+    try {
+      if (alreadyInterested) await creatorInterestService.remove(user.uid, cat.id);
+      else await creatorInterestService.register(user.uid, cat.id, cat.name);
+    } catch (error) {
+      console.warn('No se pudo guardar el interés en AI Apps:', error);
+      setInterestedIds((ids) => (alreadyInterested ? [...ids, cat.id] : ids.filter((id) => id !== cat.id)));
+      notify('No se pudo guardar', 'Inténtalo de nuevo en un momento.');
+    } finally {
+      setSavingInterestId(null);
+    }
   };
 
   const handleAvatarTool = () => {
@@ -72,7 +115,7 @@ const WeeCreatorScreen: React.FC = () => {
     navigation.navigate(hasHidiProfile ? 'AiAvatar' : 'HidiCreation');
   };
 
-  const renderCategory = (cat: AiAppCategory) => {
+  const renderCategory = (cat: WeeExperience) => {
     const isSelected = cat.id === selectedId;
     return (
       <TouchableOpacity
@@ -118,7 +161,7 @@ const WeeCreatorScreen: React.FC = () => {
           <Text style={styles.searchEmoji}>✨</Text>
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Un video corto de mi producto…"
+            placeholder="Quiero un video bonito para promocionar mi restaurante…"
             placeholderTextColor={theme.colors.textSecondary}
             value={query}
             onChangeText={setQuery}
@@ -130,17 +173,20 @@ const WeeCreatorScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+        <Text style={[styles.motto, { color: theme.colors.textSecondary }]}>
+          Tú eliges el resultado. WEE elige la IA.
+        </Text>
 
         {query.trim().length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              {matches.length > 0 ? 'Para eso te sirve' : 'No encontramos una categoría'}
+              {matches.length > 0 ? 'Para eso está' : 'Aún no sabemos quién se encarga de eso'}
             </Text>
             {matches.length > 0 ? (
               <View style={styles.grid}>{matches.map(renderCategory)}</View>
             ) : (
               <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
-                Prueba con palabras como video, imagen, logo, guion, libro, música, código o marketing.
+                Prueba con palabras como logo, video, foto, texto, canción, look, receta, casa o negocio. O pregúntale a WEE Brain.
               </Text>
             )}
           </View>
@@ -153,15 +199,36 @@ const WeeCreatorScreen: React.FC = () => {
             <View style={styles.detailBody}>
               <Text style={[styles.detailTitle, { color: theme.colors.text }]}>{selected.name}</Text>
               <Text style={[styles.detailText, { color: theme.colors.text }]}>
-                Estamos integrando apps de {selected.name.replace('AI ', '')} en WEE Creator. Muy pronto vas a poder crear aquí y publicar directo en tu comunidad.
+                {selected.name} está en camino: tú dices qué quieres lograr y WEE se encarga de elegir la IA, los prompts y los pasos. Después publicas directo en tu comunidad.
               </Text>
+              <View style={styles.exampleRow}>
+                {selected.examples.map((example) => (
+                  <View key={example} style={[styles.exampleChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>“{example}”</Text>
+                  </View>
+                ))}
+              </View>
               <TouchableOpacity
-                style={[styles.detailButton, { backgroundColor: theme.colors.accent }]}
+                style={[
+                  styles.detailButton,
+                  selectedInterested
+                    ? { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.accent }
+                    : { backgroundColor: theme.colors.accent },
+                ]}
                 onPress={() => handleNotifyMe(selected)}
+                disabled={savingInterestId === selected.id}
                 activeOpacity={0.8}
+                accessibilityLabel={selectedInterested ? 'Ya no avisarme' : 'Avísame cuando esté'}
               >
-                <Text style={styles.detailButtonText}>Avísame cuando esté</Text>
+                <Text style={[styles.detailButtonText, selectedInterested && { color: theme.colors.text }]}>
+                  {selectedInterested ? '✓ Te avisaremos' : 'Avísame cuando esté'}
+                </Text>
               </TouchableOpacity>
+              {selectedInterested && (
+                <Text style={[styles.detailNote, { color: theme.colors.textSecondary }]}>
+                  Anotado. Toca de nuevo si ya no quieres el aviso.
+                </Text>
+              )}
             </View>
           </View>
         )}
@@ -187,8 +254,8 @@ const WeeCreatorScreen: React.FC = () => {
 
         {/* Todas las categorías */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>AI Apps por tipo</Text>
-          <View style={styles.grid}>{AI_APP_CATEGORIES.map(renderCategory)}</View>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Los 10 especialistas de WEE</Text>
+          <View style={styles.grid}>{WEE_EXPERIENCES.map(renderCategory)}</View>
         </View>
 
         {/* Credits */}
@@ -199,7 +266,7 @@ const WeeCreatorScreen: React.FC = () => {
               {balance === null ? 'Tus Credits' : `Tienes ${balance.toLocaleString('es')} Credits`}
             </Text>
             <Text style={[styles.creditsText, { color: theme.colors.textSecondary }]}>
-              Las AI Apps usan Credits. Recarga cuando quieras.
+              Los especialistas de WEE usan Credits. Recarga cuando quieras.
             </Text>
           </View>
           <TouchableOpacity
@@ -326,6 +393,28 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: FONT_SIZE.sm,
     lineHeight: scale(19),
+  },
+  motto: {
+    fontSize: FONT_SIZE.xs,
+    textAlign: 'center',
+    marginTop: -SPACING.md,
+  },
+  exampleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  exampleChip: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(4),
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  exampleText: {
+    fontSize: FONT_SIZE.xs,
+  },
+  detailNote: {
+    fontSize: FONT_SIZE.xs,
   },
   detailButton: {
     alignSelf: 'flex-start',
