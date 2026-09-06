@@ -229,8 +229,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, onBack, 
       {/* Top gradient */}
       <LinearGradient
         colors={['rgba(0,0,0,0.5)', 'transparent']}
-        style={[styles.topGradient, { paddingTop: insets.top }]}
-        pointerEvents="box-none"
+        style={[styles.topGradient, { paddingTop: insets.top, pointerEvents: 'box-none' }]}
       >
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={scale(26)} color="white" />
@@ -249,8 +248,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, onBack, 
       {/* Bottom gradient + info */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={[styles.bottomGradient, { paddingBottom: insets.bottom + scale(16) }]}
-        pointerEvents="box-none"
+        style={[styles.bottomGradient, { paddingBottom: insets.bottom + scale(16), pointerEvents: 'box-none' }]}
       >
         <View style={styles.bottomContent}>
           {/* Left: user info + description */}

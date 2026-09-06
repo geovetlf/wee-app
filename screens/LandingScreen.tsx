@@ -368,15 +368,13 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
       {/* Top gradient for header/tabs readability */}
       <LinearGradient
         colors={['rgba(0,0,0,0.5)', 'transparent']}
-        style={hidReelStyles.topGradient}
-        pointerEvents="none"
+        style={[hidReelStyles.topGradient, { pointerEvents: 'none' }]}
       />
 
       {/* Bottom gradient + info - zIndex mayor que el touch overlay */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={[hidReelStyles.bottomGradient, { zIndex: 10 }]}
-        pointerEvents="box-none"
+        style={[hidReelStyles.bottomGradient, { zIndex: 10, pointerEvents: 'box-none' }]}
       >
         <View style={hidReelStyles.bottomContent} pointerEvents="box-none">
           {/* Left: user info + description */}
@@ -436,8 +434,8 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
                     }),
                   }],
                 },
+                { pointerEvents: sidebarExpanded ? 'auto' : 'none' },
               ]}
-              pointerEvents={sidebarExpanded ? 'auto' : 'none'}
             >
               <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={voteAgree}>
                 <Ionicons
@@ -1758,9 +1756,8 @@ const LandingScreen: React.FC = () => {
     >
       {/* Header — two layers cross-fading between normal and transparent */}
       <View
-        style={styles.headerOverlay}
+        style={[styles.headerOverlay, { pointerEvents: 'box-none' }]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
-        pointerEvents="box-none"
       >
         {/* Normal header (dark icons, solid bg) — visible on Wall */}
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: headerNormalOpacity }]} pointerEvents={isHidsMode ? 'none' : 'auto'}>
@@ -1888,8 +1885,8 @@ const LandingScreen: React.FC = () => {
 
         {/* Sticky tab bar — cross-fade between normal and transparent */}
         <Animated.View
-          pointerEvents={(isHidsMode || isTabsSticky) ? 'auto' : 'none'}
           style={[
+            { pointerEvents: (isHidsMode || isTabsSticky) ? 'auto' : 'none' },
             styles.tabBarStickyWrapper,
             {
               top: headerHeight,
@@ -1905,7 +1902,7 @@ const LandingScreen: React.FC = () => {
                 outputRange: [-scale(44), 0],
               }),
             }],
-          }]} pointerEvents={isHidsMode ? 'none' : 'auto'}>
+          }, { pointerEvents: isHidsMode ? 'none' : 'auto' }]}>
             {renderTabBar()}
           </Animated.View>
           {/* Transparent tab bar (white text) — visible on Weëls */}

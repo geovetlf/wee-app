@@ -34,7 +34,7 @@ console.log('🔍 Firebase config values:', {
   measurementId: firebaseConfig.measurementId ? 'SET' : 'UNSET',
 });
 
-console.log('📋 Firebase config assembled:', firebaseConfig);
+console.log('📋 Firebase config lista para el proyecto', firebaseConfig.projectId);
 
 // Validar que todas las variables de entorno estén configuradas
 const validateConfig = () => {
