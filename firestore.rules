@@ -383,6 +383,26 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // === WEË AI ENGINE (docs/AI-ENGINE.md) ===
+    // Configuración de proveedores, cadenas de fallback y ajustes: solo servidor / consola
+    match /aiProviders/{providerId} {
+      allow read, write: if false;
+    }
+    match /aiRouting/{capabilityId} {
+      allow read, write: if false;
+    }
+    match /aiSettings/{settingId} {
+      allow read, write: if false;
+    }
+    match /aiUsage/{day} {
+      allow read, write: if false;
+    }
+    // Libro de generaciones: cada persona lee las suyas; escribe solo el servidor
+    match /aiGenerations/{generationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
     match /creatorProjects/{projectId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

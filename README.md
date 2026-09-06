@@ -188,6 +188,10 @@ wee-app/
 
 ---
 
+## WEË AI ENGINE (multimodelo)
+
+Weë no usa "una IA": orquesta muchas. Cada paso de Weë Creator pasa por `functions/src/engine` — **Weë → WEË AI ENGINE → AI ROUTER → proveedor especializado** — y la persona solo ve "✨ Crear con IA" / "Generando tu Weël…". El router elige modelo según calidad, velocidad, coste y disponibilidad, hace fallback automático (por defecto video: Veo → Seedance → Kling → Hailuo → Runway), registra cada generación en `aiGenerations` (usuario, proveedor, modelo, tipo, coste, Credits, estado, duración, error) y se configura desde Firestore (`aiProviders`, `aiRouting`, `aiSettings`) sin tocar código. Adaptadores preparados: Veo, Seedance, Kling, MiniMax (Hailuo y voz), Runway, Gemini (texto, visión, Nano Banana), FLUX, Seedream, ElevenLabs, Claude, OpenAI; música con hueco reservado (sin Suno mientras no haya API oficial con licencia). Sin clave, un proveedor no existe para el router y todo sigue en modo prueba. Detalle y hoja de ruta de AI Drama en [`docs/AI-ENGINE.md`](docs/AI-ENGINE.md).
+
 ## Weë Creator en desarrollo (fase 0, modo demo)
 
 Weë Brain y el AI Gateway viven en Cloud Functions (`functions/src/creator`, `functions/src/gateway`). El proyecto **dev** está en el plan Spark, así que en desarrollo las Functions corren en el **emulador local**:

@@ -41,6 +41,12 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // === Resultados del WEË AI ENGINE (imágenes, videos, voces): lectura pública, escritura solo backend ===
+    match /users/{userId}/ai-generations/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Sin catch-all — cualquier otra ruta queda denegada por defecto.
   }
 }

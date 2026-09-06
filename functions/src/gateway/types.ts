@@ -1,4 +1,5 @@
 import { CapabilityId, ResultKind } from '../creator/types';
+import { RoutingPrefs } from '../engine/types';
 
 /**
  * AI Gateway: una capacidad, N proveedores. Cada proveedor implementa esta
@@ -19,6 +20,10 @@ export interface GatewayContext {
   goal: string;
   /** Registro de coste real por llamada (lo escribe Weë Creator, nunca el cliente). */
   record?: (entry: UsageEntry) => Promise<void>;
+  /** Paso del plan que se está ejecutando (para aiGenerations). */
+  stepId?: string;
+  /** Preferencias de enrutamiento del paso (calidad, duración, tope de Credits). */
+  prefs?: RoutingPrefs;
 }
 
 export interface ProviderOutput {

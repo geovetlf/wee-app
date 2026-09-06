@@ -32,7 +32,15 @@ export type CapabilityId =
   | 'video.compose'
   | 'voice.tts'
   | 'music.generate'
-  | 'doc.render';
+  | 'doc.render'
+  // AI Drama y pipelines futuros (docs/AI-ENGINE.md)
+  | 'script.write'
+  | 'scene.split'
+  | 'subtitle.generate'
+  | 'image.reference'
+  | 'video.montage'
+  | 'video.vertical'
+  | 'audio.sfx';
 
 export interface QuestionOption {
   id: string;
@@ -78,6 +86,10 @@ export type StepStatus = 'pending' | 'running' | 'done' | 'failed';
 export interface JobStep extends PlanStep {
   status: StepStatus;
   error?: string;
+  /** Documento aiGenerations del intento que produjo el resultado. */
+  generationId?: string;
+  /** Credits que costó este paso (precio de prueba o real). */
+  credits?: number;
 }
 
 export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document';
@@ -92,6 +104,8 @@ export interface JobResult {
   urls?: string[];
   /** true si lo produjo el proveedor de prueba (muestra). */
   demo?: boolean;
+  /** Credits que costó este resultado. */
+  credits?: number;
 }
 
 export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';

@@ -13,6 +13,7 @@ export { generateAvatarWithGemini, avatarReplacement } from './generateAvatar';
 
 // Weë Creator (Weë Brain + AI Gateway)
 export { creatorChat, creatorRun } from './creator';
+export { engineAdmin } from './engine/admin';
 
 // Tipos de notificación y sus mensajes
 const notificationMessages: Record<string, (senderName: string) => { title: string; body: string }> = {

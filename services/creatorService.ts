@@ -46,6 +46,9 @@ export interface Plan {
 }
 
 export interface JobStep extends PlanStep {
+  /** Registro aiGenerations del paso y Credits que costó (los escribe el servidor). */
+  generationId?: string;
+  credits?: number;
   status: StepStatus;
   error?: string;
 }
@@ -60,6 +63,8 @@ export interface JobResult {
   urls?: string[];
   /** Producido por el proveedor de prueba (muestra). */
   demo?: boolean;
+  /** Credits que costó este resultado. */
+  credits?: number;
 }
 
 export interface CreatorJob {

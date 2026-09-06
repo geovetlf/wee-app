@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.creatorRun = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.engineAdmin = exports.creatorRun = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -16,6 +16,8 @@ Object.defineProperty(exports, "avatarReplacement", { enumerable: true, get: fun
 var creator_1 = require("./creator");
 Object.defineProperty(exports, "creatorChat", { enumerable: true, get: function () { return creator_1.creatorChat; } });
 Object.defineProperty(exports, "creatorRun", { enumerable: true, get: function () { return creator_1.creatorRun; } });
+var admin_1 = require("./engine/admin");
+Object.defineProperty(exports, "engineAdmin", { enumerable: true, get: function () { return admin_1.engineAdmin; } });
 // Tipos de notificación y sus mensajes
 const notificationMessages = {
     like: (senderName) => ({

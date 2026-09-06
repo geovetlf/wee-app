@@ -7,6 +7,8 @@ import { estimatePlanCredits, holdCredits, settleCredits, ensureDemoWallet, pric
 import { runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { buildTextPrompt } from './prompts';
+import { progressTextFor, friendlyFailure } from '../engine/humanize';
+import { RoutingPrefs } from '../engine/types';
 
 /**
  * Weë Creator — funciones que llama la app.
@@ -163,7 +165,7 @@ export const creatorChat = onCall(
     } else if (turn.plan) {
       job.plan = turn.plan;
       job.steps = turn.plan.steps.map((s) => ({ ...s, status: 'pending' as const }));
-      job.creditsEstimated = await estimatePlanCredits(turn.plan);
+      job.creditsEstimated = await estimatePlanCredits(turn.plan, uid);
       job.status = 'planned';
     }
     job.updatedAt = now();
@@ -212,7 +214,7 @@ export const creatorRun = onCall(
         if (!next) throw new Error('No hay pasos ejecutables');
 
         next.status = 'running';
-        await ref.update({ steps: clean(steps), progressText: `${next.purpose}…`, updatedAt: now() });
+        await ref.update({ steps: clean(steps), progressText: progressTextFor(next.capability, next.purpose), updatedAt: now() });
 
         const previous = results
           .filter((r) => (next.dependsOn || []).includes(r.stepId))
@@ -223,7 +225,13 @@ export const creatorRun = onCall(
           next.capability === 'text.generate' && !baseInput.prompt
             ? { ...baseInput, ...buildTextPrompt(job.experienceId, String(baseInput.kind ?? ''), String(baseInput.brief ?? ''), job.goal, next.purpose, previous) }
             : baseInput;
-        const run = await runCapability(next.capability, input, ctx);
+        // Preferencias para el AI Router: la persona nunca las ve; salen del plan
+        const stepInput = next.input || {};
+        const prefs: RoutingPrefs = {
+          quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
+          durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
+        };
+        const run = await runCapability(next.capability, input, { ...ctx, stepId: next.id, prefs });
 
         results.push({
           stepId: next.id,
@@ -232,15 +240,20 @@ export const creatorRun = onCall(
           content: run.output.content,
           url: run.output.url,
           urls: run.output.urls,
-          demo: run.provider === 'mock',
+          demo: run.demo,
+          credits: run.credits,
         });
         next.status = 'done';
+        next.generationId = run.generationId;
+        next.credits = run.credits;
         done.add(next.id);
         await ref.update({ steps: clean(steps), results: clean(results), updatedAt: now() });
       }
 
-      // Fase 0: sin medición real de consumo, se cobra lo estimado (0 en modo demo)
-      const used = job.creditsEstimated;
+      // Modo prueba: se cobra lo estimado. Modo real: lo medido por el engine,
+      // nunca más de lo que la persona vio antes de crear.
+      const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
+      const used = pricingMode() === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
       await settleCredits(uid, job.creditsEstimated, used, description);
       await ref.update({
         status: 'done',
@@ -263,7 +276,7 @@ export const creatorRun = onCall(
         status: 'failed',
         steps: clean(steps),
         results: clean(results),
-        progressText: 'No me salió bien. No te cobré.',
+        progressText: failing ? friendlyFailure(failing.capability) : 'No me salió bien. No te cobré.',
         creditsCharged: 0,
         updatedAt: now(),
       });

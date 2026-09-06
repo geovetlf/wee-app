@@ -7,6 +7,8 @@ exports.holdCredits = holdCredits;
 exports.settleCredits = settleCredits;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const pricing_1 = require("../engine/pricing");
+const engine_1 = require("../engine");
 /**
  * Credits de Weë Creator: reservar al empezar, ajustar al terminar.
  * Precios por capacidad en pricing/{capabilityId}.credits. Mientras la tabla
@@ -14,44 +16,33 @@ const https_1 = require("firebase-functions/v2/https");
  */
 const db = () => (0, firestore_1.getFirestore)();
 /**
- * Precios SIMULADOS por capacidad (docs/CREATOR-BUILD.md §16): sirven para
- * probar la experiencia completa. No son costos reales; los reales se fijan
- * en pricing/{capabilityId} cuando se midan las APIs (CREATOR_PRICING_MODE=real).
+ * Precios de PRUEBA por capacidad: viven en el engine (functions/src/engine/pricing.ts).
+ * En modo real, la estimación la da el AI Router (mejor candidato disponible).
  */
-const SIMULATED_PRICING = {
-    'text.generate': 1,
-    'text.structure': 0,
-    'image.generate': 3,
-    'image.edit': 2,
-    'image.background_remove': 2,
-    'image.upscale': 2,
-    'image.object_remove': 2,
-    'image.identity_edit': 4,
-    'image.space_restyle': 4,
-    'vision.describe': 1,
-    'video.generate': 10,
-    'video.image_to_video': 8,
-    'video.compose': 6,
-    'voice.tts': 2,
-    'music.generate': 6,
-    'doc.render': 1,
-};
 /** Credits de bienvenida en modo simulado (la referencia muestra 240). */
 const WELCOME_CREDITS = 240;
 const pricingMode = () => (process.env.CREATOR_PRICING_MODE === 'real' ? 'real' : 'simulated');
 exports.pricingMode = pricingMode;
-async function estimatePlanCredits(plan) {
+async function estimatePlanCredits(plan, userId = 'anonymous') {
+    var _a, _b;
     if ((0, exports.pricingMode)() === 'simulated') {
-        return plan.steps.reduce((sum, s) => { var _a; return sum + ((_a = SIMULATED_PRICING[s.capability]) !== null && _a !== void 0 ? _a : 1); }, 0);
+        return plan.steps.reduce((sum, s) => { var _a; return sum + ((_a = pricing_1.SIMULATED_PRICING[s.capability]) !== null && _a !== void 0 ? _a : 1); }, 0);
     }
-    const ids = Array.from(new Set(plan.steps.map((s) => s.capability)));
-    const snaps = await Promise.all(ids.map((id) => db().collection('pricing').doc(id).get()));
-    const price = {};
-    snaps.forEach((snap, index) => {
-        var _a, _b;
-        price[ids[index]] = snap.exists ? Number((_b = (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.credits) !== null && _b !== void 0 ? _b : 0) : 0;
-    });
-    return plan.steps.reduce((sum, s) => sum + (price[s.capability] || 0), 0);
+    // Modo real: lo que costaría el mejor proveedor disponible para cada paso
+    let total = 0;
+    for (const step of plan.steps) {
+        const input = step.input || {};
+        const decision = await engine_1.engine.route({
+            capability: step.capability,
+            input,
+            userId,
+            goal: plan.goal,
+            experienceId: plan.experience,
+            prefs: { quality: input.quality || 'auto', durationSec: input.durationSec ? Number(input.durationSec) : undefined },
+        });
+        total += (_b = (_a = decision.candidates[0]) === null || _a === void 0 ? void 0 : _a.estimatedCredits) !== null && _b !== void 0 ? _b : 0;
+    }
+    return total;
 }
 /** En modo simulado, cada persona empieza con Credits de bienvenida para probar Weë Creator. */
 async function ensureDemoWallet(userId) {

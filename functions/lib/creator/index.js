@@ -8,6 +8,7 @@ const templates_1 = require("./templates");
 const credits_1 = require("./credits");
 const gateway_1 = require("../gateway");
 const prompts_1 = require("./prompts");
+const humanize_1 = require("../engine/humanize");
 /**
  * Weë Creator — funciones que llama la app.
  *  - creatorChat: Weë Brain conversa (pregunta sencilla o plan).
@@ -131,7 +132,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
     else if (turn.plan) {
         job.plan = turn.plan;
         job.steps = turn.plan.steps.map((s) => (Object.assign(Object.assign({}, s), { status: 'pending' })));
-        job.creditsEstimated = await (0, credits_1.estimatePlanCredits)(turn.plan);
+        job.creditsEstimated = await (0, credits_1.estimatePlanCredits)(turn.plan, uid);
         job.status = 'planned';
     }
     job.updatedAt = now();
@@ -178,7 +179,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             if (!next)
                 throw new Error('No hay pasos ejecutables');
             next.status = 'running';
-            await ref.update({ steps: clean(steps), progressText: `${next.purpose}…`, updatedAt: now() });
+            await ref.update({ steps: clean(steps), progressText: (0, humanize_1.progressTextFor)(next.capability, next.purpose), updatedAt: now() });
             const previous = results
                 .filter((r) => (next.dependsOn || []).includes(r.stepId))
                 .map((r) => r.content || r.url || '');
@@ -186,7 +187,13 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             const baseInput = Object.assign(Object.assign({}, (next.input || {})), { purpose: next.purpose, previous });
             const input = next.capability === 'text.generate' && !baseInput.prompt
                 ? Object.assign(Object.assign({}, baseInput), (0, prompts_1.buildTextPrompt)(job.experienceId, String((_a = baseInput.kind) !== null && _a !== void 0 ? _a : ''), String((_b = baseInput.brief) !== null && _b !== void 0 ? _b : ''), job.goal, next.purpose, previous)) : baseInput;
-            const run = await (0, gateway_1.runCapability)(next.capability, input, ctx);
+            // Preferencias para el AI Router: la persona nunca las ve; salen del plan
+            const stepInput = next.input || {};
+            const prefs = {
+                quality: stepInput.quality || 'auto',
+                durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
+            };
+            const run = await (0, gateway_1.runCapability)(next.capability, input, Object.assign(Object.assign({}, ctx), { stepId: next.id, prefs }));
             results.push({
                 stepId: next.id,
                 kind: run.output.kind,
@@ -194,14 +201,19 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
                 content: run.output.content,
                 url: run.output.url,
                 urls: run.output.urls,
-                demo: run.provider === 'mock',
+                demo: run.demo,
+                credits: run.credits,
             });
             next.status = 'done';
+            next.generationId = run.generationId;
+            next.credits = run.credits;
             done.add(next.id);
             await ref.update({ steps: clean(steps), results: clean(results), updatedAt: now() });
         }
-        // Fase 0: sin medición real de consumo, se cobra lo estimado (0 en modo demo)
-        const used = job.creditsEstimated;
+        // Modo prueba: se cobra lo estimado. Modo real: lo medido por el engine,
+        // nunca más de lo que la persona vio antes de crear.
+        const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
+        const used = (0, credits_1.pricingMode)() === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
         await (0, credits_1.settleCredits)(uid, job.creditsEstimated, used, description);
         await ref.update({
             status: 'done',
@@ -225,7 +237,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             status: 'failed',
             steps: clean(steps),
             results: clean(results),
-            progressText: 'No me salió bien. No te cobré.',
+            progressText: failing ? (0, humanize_1.friendlyFailure)(failing.capability) : 'No me salió bien. No te cobré.',
             creditsCharged: 0,
             updatedAt: now(),
         });
