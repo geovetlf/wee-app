@@ -7,10 +7,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
     // === USUARIOS ===
     match /users/{userId} {
       // Cualquiera puede leer perfiles públicos
@@ -72,15 +68,6 @@ service cloud.firestore {
         allow delete: if isAuthenticated() &&
           (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId);
       }
-    }
-
-    // Helper: verifica si un userId pertenece al usuario autenticado (real, hidi o biz)
-    function isOwnIdentity(userId) {
-      return userId == request.auth.uid ||
-        userId == ("hidi_" + request.auth.uid) ||
-        (userId.matches('biz_.*') &&
-         exists(/databases/$(database)/documents/users/$(userId)) == false ||
-         get(/databases/$(database)/documents/users/$(userId)).data.linkedAccountId == request.auth.uid);
     }
 
     // === POSTS ===

@@ -127,4 +127,4 @@ Para activarlo no hay que rehacer nada: falta un proveedor de montaje/subtítulo
 
 ## Pruebas
 
-`functions/lib` se prueba con un script de unidad del router (proveedores falsos): orden de cadena y saltos con motivo, fallback con registro de cada intento, calidad por escena, política de coste y tope de Credits, cortacircuitos, proveedor desactivado por administración, modo demo y error claro cuando nadie puede atender. La experiencia completa se prueba en web con el emulador (`npm run functions:emulator`).
+`npm run test:engine` compila las Functions y corre `functions/test/router.test.mjs` (router con proveedores falsos) y `functions/test/providers.test.mjs` (cada adaptador con respuestas simuladas de su API): orden de cadena y saltos con motivo, fallback con registro de cada intento, calidad por escena, política de coste y tope de Credits, cortacircuitos, proveedor desactivado por administración, modo demo y error claro cuando nadie puede atender. La experiencia completa se prueba en web con el emulador (`npm run functions:emulator`).

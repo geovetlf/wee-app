@@ -210,11 +210,9 @@ Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guia
 
 ## Problemas conocidos
 
-- El chequeo de tipos (`npx tsc --noEmit`) está limpio (0 errores desde el 2026-09-06); mantenerlo así al añadir código.
+- El chequeo de tipos (`npx tsc --noEmit`) está limpio (0 errores desde el 2026-09-06); mantenerlo así al añadir código. Las pruebas del WEË AI ENGINE se corren con `npm run test:engine`.
+- `PushNotificationProvider` en web: resuelto (se retiran las suscripciones con `remove()`).
 
-- Con sesión cerrada, la landing lee `communities` y Firestore responde `permission-denied` (en dev aparece un diálogo "Error detectado").
-- `firestore.rules` compila con advertencias (funciones sin usar, variables que sombrean `request`).
-- Varios paquetes de Expo están por debajo de la versión esperada por el SDK 54 (`npx expo install --fix`).
 
 ---
 

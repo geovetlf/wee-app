@@ -1251,17 +1251,7 @@ const LandingScreen: React.FC = () => {
 
   const [userCreatedCommunities, setUserCreatedCommunities] = useState<Community[]>([]);
 
-  useEffect(() => {
-    const loadUserCommunities = async () => {
-      try {
-        const result = await communityService.getUserCommunities();
-        setUserCreatedCommunities(result);
-      } catch (error) {
-        console.error('Error loading user communities:', error);
-      }
-    };
-    loadUserCommunities();
-  }, []);
+  // Las comunidades ya no se listan en el Home (docs/UX.md §16): se buscan o se crean
 
   const renderCommunityCategories = () => {
     const communityContent = (
