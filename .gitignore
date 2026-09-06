@@ -73,3 +73,7 @@ android/
 
 # Canvas ensamblado de la propuesta de diseño (se regenera desde los .dc.html)
 design/canvas/propuesta-diseno-wee.html
+
+# Secretos de producción de Cloud Functions (claves de IA, uids de administración): nunca versionar
+functions/.env.get-wee
+functions/.env.prod
