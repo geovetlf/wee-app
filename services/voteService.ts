@@ -1,3 +1,4 @@
+import { Post } from './firestoreService';
 import {
   collection,
   doc,
@@ -381,7 +382,7 @@ export const voteService = {
         const postDoc = await getDoc(postRef);
 
         if (postDoc.exists()) {
-          return { id: postDoc.id, ...postDoc.data() };
+          return { id: postDoc.id, ...(postDoc.data() as object) } as Post;
         }
         return null;
       });

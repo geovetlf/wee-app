@@ -146,7 +146,7 @@ const ProfileScreen: React.FC = () => {
     const parentNavigation = navigation.getParent();
     if (!parentNavigation) return;
 
-    const unsubscribe = parentNavigation.addListener('tabPress', (e: any) => {
+    const unsubscribe = (parentNavigation as any).addListener('tabPress', (e: any) => {
       // Solo hacer scroll si el tab presionado es Profile
       if (e.target?.includes('Profile')) {
         // Si ya estamos arriba (menos de 50px), refrescar
@@ -230,7 +230,7 @@ const ProfileScreen: React.FC = () => {
         </Text>
         <TouchableOpacity 
           style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
-          onPress={handleLogout}
+          onPress={() => handleLogout()}
         >
           <Text style={styles.retryButtonText}>Volver al Login</Text>
         </TouchableOpacity>
@@ -1211,16 +1211,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
-  },
-  retryButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
   },
   // Modal styles
   modalContainer: {

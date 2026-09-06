@@ -175,7 +175,7 @@ const CommunitiesManagementScreen: React.FC = () => {
     return (
       <TouchableOpacity
         style={[styles.communityItem, { backgroundColor: theme.colors.card }]}
-        onPress={() => navigation.navigate('Feed' as any, { communitySlug: item.slug })}
+        onPress={() => (navigation as any).navigate('Feed', { communitySlug: item.slug })}
         activeOpacity={0.7}
       >
         {item.imageUrl ? (
@@ -350,13 +350,13 @@ const CommunitiesManagementScreen: React.FC = () => {
         ]}
         renderItem={({ item }) => {
           if (item.type === 'header-mine') {
-            return renderSectionHeader('Mis comunidades', item.count as number);
+            return renderSectionHeader('Mis comunidades', (item as any).count as number);
           }
           if (item.type === 'header-joined') {
-            return renderSectionHeader('Comunidades unidas', item.count as number);
+            return renderSectionHeader('Comunidades unidas', (item as any).count as number);
           }
           if (item.type === 'header-available') {
-            return renderSectionHeader('Descubrir comunidades', item.count as number);
+            return renderSectionHeader('Descubrir comunidades', (item as any).count as number);
           }
           return renderCommunityItem({ item: (item as any).data });
         }}

@@ -8,7 +8,7 @@ interface ResponsiveValues {
   isDesktop: boolean;
   width: number;
   height: number;
-  contentMaxWidth: number;
+  contentMaxWidth: number | '100%';
   isLandscape: boolean;
 }
 
@@ -54,7 +54,7 @@ export const useResponsive = (): ResponsiveValues => {
   const isLandscape = width > height;
 
   // Determinar ancho máximo del contenido
-  let contentMaxWidth: number | string = '100%';
+  let contentMaxWidth: number | '100%' = '100%';
   if (isDesktop) {
     contentMaxWidth = CONTENT_MAX_WIDTHS.desktop;
   } else if (isTablet) {

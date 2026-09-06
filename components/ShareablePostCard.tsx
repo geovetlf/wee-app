@@ -95,7 +95,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
           <View style={styles.authorSection}>
             <AvatarDisplay
               size={44}
-              avatarType={authorAvatarType || 'predefined'}
+              avatarType={(authorAvatarType || 'predefined') as 'predefined' | 'custom'}
               avatarId={authorAvatarId || 'male'}
               photoURL={authorPhotoURL}
               backgroundColor="#F5B731"

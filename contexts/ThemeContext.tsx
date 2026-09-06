@@ -21,6 +21,8 @@ export interface Theme {
     error: string;
     glow: string;
     backdrop: string;
+    success: string;
+    warning: string;
   };
 }
 
@@ -41,6 +43,8 @@ const lightTheme: Theme = {
     error: '#EF4444',
     glow: 'rgba(245, 183, 49, 0.15)',
     backdrop: 'rgba(0, 0, 0, 0.4)',
+    success: '#22C55E',
+    warning: '#F59E0B',
   },
 };
 
@@ -61,6 +65,8 @@ const darkTheme: Theme = {
     error: '#FF6B6B',
     glow: 'rgba(245, 183, 49, 0.25)',
     backdrop: 'rgba(0, 0, 0, 0.7)',
+    success: '#22C55E',
+    warning: '#F59E0B',
   },
 };
 
@@ -81,6 +87,8 @@ const bizTheme: Theme = {
     error: '#EF4444',
     glow: 'rgba(124, 58, 237, 0.15)',
     backdrop: 'rgba(0, 0, 0, 0.4)',
+    success: '#22C55E',
+    warning: '#F59E0B',
   },
 };
 

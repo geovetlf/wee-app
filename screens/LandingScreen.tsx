@@ -465,7 +465,7 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
                   {formatNumber(post.comments)}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={toggleRepost}>
+              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={() => toggleRepost()}>
                 <Ionicons name="repeat" size={scale(24)} color={hasReposted ? '#F5B731' : 'white'} />
                 <Text style={hidReelStyles.sidebarCount}>
                   {formatNumber(repostsCount)}
@@ -1707,7 +1707,7 @@ const LandingScreen: React.FC = () => {
     </>
   ), [theme, feedPosts.length > 0, videoPosts, feedFilter, user, hasHidiProfile, renderTabBar]);
 
-  const renderPostItem = useCallback(({ item }: { item: Post }) => (
+  const renderPostItem = useCallback(({ item }: { item: Post; index?: number }) => (
     <PostCard
       post={item}
       onComment={handleComment}
@@ -2148,7 +2148,7 @@ const styles = StyleSheet.create({
   },
   communityViewAll: {
     fontSize: scale(13),
-    fontWeight: FONT_WEIGHT.semiBold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   communityScrollContent: {
     paddingHorizontal: SPACING.lg,
@@ -2187,7 +2187,7 @@ const styles = StyleSheet.create({
   },
   communityChipName: {
     fontSize: scale(12),
-    fontWeight: FONT_WEIGHT.semiBold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   communityChipMembers: {
     fontSize: scale(10),

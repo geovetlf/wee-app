@@ -774,7 +774,7 @@ const PostCard: React.FC<PostCardProps> = ({
             cachePolicy="disk"
             allowDownscaling={false}
             onError={(error) => {
-              console.log('Error loading single image:', displayPost.imageUrls[0]);
+              console.log('Error loading single image:', displayPost.imageUrls?.[0]);
             }}
           />
         </TouchableOpacity>

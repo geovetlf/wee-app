@@ -182,8 +182,8 @@ const MainStackNavigator: React.FC = () => {
           cardStyle: { opacity: current.progress },
         }),
         transitionSpec: {
-          open: { animation: 'timing', config: { duration: 350, useNativeDriver: true } },
-          close: { animation: 'timing', config: { duration: 250, useNativeDriver: true } },
+          open: { animation: 'timing', config: { duration: 350 } },
+          close: { animation: 'timing', config: { duration: 250 } },
         },
         detachPreviousScreen: false,
       }}

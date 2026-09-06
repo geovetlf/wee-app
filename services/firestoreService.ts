@@ -16,6 +16,7 @@ import {
   Timestamp,
   DocumentData,
   QuerySnapshot,
+  QueryDocumentSnapshot,
   DocumentSnapshot
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -125,10 +126,14 @@ export interface UserProfile {
     facialHair: string;
     accessories: string;
     expression: string;
-    background: string;
-    photoStyle: string;
+    background?: string;
+    photoStyle?: string;
   };
-  aiAvatarGenerationCount?: number; // Contador de generaciones de avatar IA (límite temporal)
+  aiAvatarGenerationCount?: number;
+  /** Portada del perfil, nombre de usuario y verificación (se usan en Perfil) */
+  bannerURL?: string;
+  username?: string;
+  verified?: boolean; // Contador de generaciones de avatar IA (límite temporal)
 }
 
 export interface Comment {
@@ -213,7 +218,7 @@ class FirestoreService {
       const documents: T[] = [];
 
       querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() } as T);
+        documents.push({ id: doc.id, ...(doc.data() as object) } as T);
       });
 
       return documents;
@@ -260,11 +265,11 @@ class FirestoreService {
       const documents: T[] = [];
 
       querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() } as T);
+        documents.push({ id: doc.id, ...(doc.data() as object) } as T);
       });
 
       // Obtener el último documento para el siguiente cursor
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+      const lastVisible = (querySnapshot.docs[querySnapshot.docs.length - 1] as unknown as DocumentSnapshot | undefined) || null;
 
       return { documents, lastDoc: lastVisible };
     } catch (error) {
@@ -332,10 +337,10 @@ class FirestoreService {
         queryRef = query(queryRef, limit(limitCount));
       }
 
-      return onSnapshot(queryRef, (querySnapshot) => {
+      return onSnapshot(queryRef, (querySnapshot: QuerySnapshot) => {
         const documents: T[] = [];
-        querySnapshot.forEach((doc) => {
-          documents.push({ id: doc.id, ...doc.data() } as T);
+        querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
+          documents.push({ id: doc.id, ...(doc.data() as object) } as T);
         });
         callback(documents);
       });

@@ -67,7 +67,7 @@ Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a
 ## Forma de trabajar acordada
 
 1. Web primero (ciclo instantáneo), después Android (dev build), iOS al final.
-2. Bugs conocidos listados en README → "Problemas conocidos". No corregirlos sin que el usuario lo pida.
+2. Bugs conocidos listados en README → "Problemas conocidos". No corregirlos sin que el usuario lo pida. El chequeo de tipos de la app (`npx tsc --noEmit`) está en **0 errores** desde el 2026-09-06: no dejar errores nuevos.
 3. Commits y push solo cuando el usuario lo pida.
 4. El canvas de diseño (`design/canvas/`) se actualiza reensamblando desde los `.dc.html`; el HTML ensamblado no se versiona.
 5. Weë Creator se construye según `docs/CREATOR-BUILD.md`: primero toda la experiencia navegable con el proveedor `mock` (sin APIs reales, sin costos reales: Credits simulados y marcados como tales), cada especialista con su propia pantalla (configuración en `constants/specialists.ts` + piezas compartidas en `components/creator/`), en escritorio con barra lateral y en móvil con ☰ + barra inferior. El adaptador de Gemini existe pero queda dormido sin clave.

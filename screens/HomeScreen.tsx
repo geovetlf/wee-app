@@ -443,7 +443,7 @@ const HomeScreen: React.FC = () => {
     const parentNavigation = navigation.getParent();
     if (!parentNavigation) return;
 
-    const unsubscribe = parentNavigation.addListener('tabPress', (e: any) => {
+    const unsubscribe = (parentNavigation as any).addListener('tabPress', (e: any) => {
       // Solo hacer scroll si el tab presionado es Home
       if (e.target?.includes('Home')) {
         // Si ya estamos arriba (menos de 50px), refrescar
@@ -602,7 +602,7 @@ const HomeScreen: React.FC = () => {
     if (!user || user.uid === userId) return; // No enviar mensaje a sí mismo
 
     // Navegar a la pantalla de conversación en el tab de Inbox
-    navigation.navigate('Main' as never, {
+    (navigation as any).navigate('Main', {
       screen: 'Inbox',
       params: {
         screen: 'Conversation',
@@ -611,7 +611,7 @@ const HomeScreen: React.FC = () => {
           otherUserData: userData,
         },
       },
-    } as never);
+    });
   };
 
   const handlePostPress = (post: Post) => {
@@ -774,7 +774,7 @@ const HomeScreen: React.FC = () => {
               shadowRadius: scale(8),
             }
           ]}
-          onPress={loadPosts}
+          onPress={() => loadPosts()}
         >
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>

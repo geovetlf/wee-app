@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '../contexts/ThemeContext';
 import { Message } from '../services/messagesService';
-import { formatRelativeTime } from '../utils/dateUtils';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
 interface MessageBubbleProps {

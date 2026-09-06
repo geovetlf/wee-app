@@ -52,8 +52,8 @@ const HomeStackNavigator: React.FC = () => {
           },
         }),
         transitionSpec: {
-          open: { animation: 'timing', config: { duration: 280, useNativeDriver: true } },
-          close: { animation: 'timing', config: { duration: 220, useNativeDriver: true } },
+          open: { animation: 'timing', config: { duration: 280 } },
+          close: { animation: 'timing', config: { duration: 220 } },
         },
         detachPreviousScreen: false,
         cardOverlayEnabled: true,

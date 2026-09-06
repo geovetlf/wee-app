@@ -20,7 +20,6 @@ const AuthStackNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         cardStyle: { backgroundColor: theme.colors.background },
-        animationEnabled: true,
         gestureEnabled: true,
       }}
     >

@@ -25,8 +25,8 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
 
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
+  const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
   // Registrar para push notifications
   const registerForPush = async () => {
@@ -61,7 +61,7 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
     responseListener.current = pushNotificationService.addNotificationResponseListener(
       (response) => {
         console.log('👆 Notificación tocada:', response);
-        const data = response.notification.request.content.data as PushNotificationData;
+        const data = response.notification.request.content.data as unknown as PushNotificationData;
         handleNotificationNavigation(data);
       }
     );

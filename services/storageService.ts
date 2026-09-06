@@ -59,7 +59,7 @@ export const uploadPostImage = async (
   userId: string,
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<{ fullSize: string; thumbnail: string }> => {
-  const blob = imageFile instanceof Blob ? imageFile : new Blob([imageFile], { type: 'image/jpeg' });
+  const blob = imageFile instanceof Blob ? imageFile : new Blob([imageFile as BlobPart], { type: 'image/jpeg' });
   const url = await uploadBlobToCloudinary(blob, `posts/${userId}`, wrapProgress(onProgress));
   return { fullSize: url, thumbnail: cloudinaryThumb(url) };
 };
@@ -113,7 +113,7 @@ export const uploadProfileImage = async (
   userId: string,
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<string> => {
-  const blob = imageFile instanceof Blob ? imageFile : new Blob([imageFile], { type: 'image/jpeg' });
+  const blob = imageFile instanceof Blob ? imageFile : new Blob([imageFile as BlobPart], { type: 'image/jpeg' });
   return uploadBlobToCloudinary(blob, `profile/${userId}`, wrapProgress(onProgress));
 };
 
@@ -126,7 +126,7 @@ export const uploadPostVideo = async (
 ): Promise<string> => {
   // Videos still use the dedicated uploadVideoToCloudinary from cloudinaryService
   const { uploadVideoToCloudinary } = await import('./cloudinaryService');
-  const blob = videoFile instanceof Blob ? videoFile : new Blob([videoFile], { type: 'video/mp4' });
+  const blob = videoFile instanceof Blob ? videoFile : new Blob([videoFile as BlobPart], { type: 'video/mp4' });
   const url = URL.createObjectURL(blob);
   const result = await uploadVideoToCloudinary(url, wrapProgress(onProgress));
   URL.revokeObjectURL(url);

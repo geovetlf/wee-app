@@ -357,8 +357,8 @@ const ConversationScreen = () => {
     const msg = messages[index];
     const next = messages[index + 1];
     if (!next) return true;
-    const d1 = msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp);
-    const d2 = next.timestamp?.toDate ? next.timestamp.toDate() : new Date(next.timestamp);
+    const d1 = msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp as any);
+    const d2 = next.timestamp?.toDate ? next.timestamp.toDate() : new Date(next.timestamp as any);
     return d1.toDateString() !== d2.toDateString();
   };
 

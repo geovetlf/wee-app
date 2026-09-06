@@ -131,13 +131,13 @@ const CommunityScreen: React.FC = () => {
 
   const handlePrivateMessage = (userId: string, userData?: any) => {
     if (!user || user.uid === userId) return;
-    navigation.navigate('Main' as never, {
+    (navigation as any).navigate('Main', {
       screen: 'Inbox',
       params: {
         screen: 'Conversation',
         params: { otherUserId: userId, otherUserData: userData },
       },
-    } as never);
+    });
   };
 
   const handlePostPress = (post: Post) => {

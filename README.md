@@ -210,6 +210,8 @@ Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guia
 
 ## Problemas conocidos
 
+- El chequeo de tipos (`npx tsc --noEmit`) está limpio (0 errores desde el 2026-09-06); mantenerlo así al añadir código.
+
 - Con sesión cerrada, la landing lee `communities` y Firestore responde `permission-denied` (en dev aparece un diálogo "Error detectado").
 - `firestore.rules` compila con advertencias (funciones sin usar, variables que sombrean `request`).
 - Varios paquetes de Expo están por debajo de la versión esperada por el SDK 54 (`npx expo install --fix`).

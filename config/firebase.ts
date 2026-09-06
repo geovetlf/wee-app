@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import { initializeAuth, getAuth } from 'firebase/auth';
+// @ts-ignore: los tipos web de firebase/auth no declaran getReactNativePersistence (existe en runtime nativo)
+import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';

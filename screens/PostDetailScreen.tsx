@@ -856,7 +856,7 @@ const PostDetailContent: React.FC = () => {
           {/* Repost */}
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={toggleRepost}
+            onPress={() => toggleRepost()}
             disabled={isReposting}
           >
             <Ionicons
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
-    outlineStyle: 'none',
+    outlineWidth: 0,
   },
   imageButton: {
     padding: SPACING.xs,

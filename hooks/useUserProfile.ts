@@ -36,6 +36,7 @@ export const useUserProfile = () => {
             followers: 0,
             following: 0,
             posts: 0,
+            joinedCommunities: [] as string[],
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
           };

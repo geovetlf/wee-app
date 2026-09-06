@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
+  Image as RNImage,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -79,7 +80,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
     try {
       // Obtener dimensiones de la imagen
       const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
-        Image.getSize(uri, (w, h) => resolve({ width: w, height: h }));
+        RNImage.getSize(uri, (w: number, h: number) => resolve({ width: w, height: h }));
       });
 
       // Calcular recorte cuadrado desde el centro
