@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platfo
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { COMMUNITY_CATEGORIES } from '../constants/communityCategories';
+import { useAuth } from '../contexts/AuthContext';
+import CommunitiesEntry from './CommunitiesEntry';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
 const isWeb = Platform.OS === 'web';
@@ -16,6 +17,7 @@ const RightSidebar: React.FC = () => {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const year = new Date().getFullYear();
 
   const handleSearch = () => {
@@ -25,9 +27,12 @@ const RightSidebar: React.FC = () => {
     setSearchQuery('');
   };
 
-  const goCommunity = (slug: string) =>
-    navigation.navigate('Main', { screen: 'Home', params: { screen: 'Feed', params: { communitySlug: slug } } });
-  const goExplore = () => navigation.navigate('Main', { screen: 'Home', params: { screen: 'ExploreCommunities' } });
+  const goCommunitySearch = (query: string) =>
+    navigation.navigate('Main', { screen: 'Home', params: { screen: 'ExploreCommunities', params: query ? { query } : undefined } });
+  const goCreateCommunity = () => {
+    if (!user) return navigation.navigate('Register');
+    navigation.navigate('Main', { screen: 'Home', params: { screen: 'ExploreCommunities', params: { create: true } } });
+  };
 
   const cardStyle = [
     styles.card,
@@ -58,30 +63,11 @@ const RightSidebar: React.FC = () => {
         />
       </View>
 
-      {/* Temáticas de la comunidad */}
+      {/* Comunidades: buscar o crear (sin catálogo en el Home) */}
       <View style={cardStyle}>
-        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Explora comunidades</Text>
-        {COMMUNITY_CATEGORIES.slice(0, 6).map((cat, index) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[styles.row, index !== 5 && { borderBottomWidth: 0.5, borderBottomColor: theme.colors.border }]}
-            onPress={() => goCommunity(cat.slug)}
-            activeOpacity={0.7}
-            accessibilityLabel={cat.name}
-          >
-            <Text style={styles.rowEmoji}>{cat.emoji}</Text>
-            <View style={styles.rowInfo}>
-              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{cat.name}</Text>
-              <Text style={[styles.rowSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {cat.description}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        ))}
-        <TouchableOpacity style={styles.showMore} onPress={goExplore} activeOpacity={0.7} accessibilityLabel="Ver todas las comunidades">
-          <Text style={[styles.showMoreText, { color: theme.colors.accentDark }]}>Ver todas ›</Text>
-        </TouchableOpacity>
+        <View style={{ padding: SPACING.lg }}>
+          <CommunitiesEntry compact onSearch={goCommunitySearch} onCreate={goCreateCommunity} />
+        </View>
       </View>
 
       {/* Weë Creator */}

@@ -49,15 +49,22 @@ const CommunitiesManagementScreen: React.FC = () => {
     status: 'active' as const,
   }));
 
+  // Desde el Home: buscar una comunidad o crear la tuya
+  const homeParams = (useRoute<any>().params || {}) as { query?: string; create?: boolean };
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(homeParams.query || '');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (homeParams.create) setShowCreateModal(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Comunidades a las que el usuario pertenece
   const joinedCommunityIds = userProfile?.joinedCommunities || [];
@@ -306,8 +313,9 @@ const CommunitiesManagementScreen: React.FC = () => {
           style={[styles.createCommunityBtn, { backgroundColor: theme.colors.accent }]}
           onPress={() => setShowCreateModal(true)}
           activeOpacity={0.7}
+          accessibilityLabel="Crear comunidad"
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons name="add" size={20} color="#1F2937" />
         </TouchableOpacity>
       </View>
 

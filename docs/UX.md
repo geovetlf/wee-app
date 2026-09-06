@@ -112,6 +112,17 @@ Importante. Abre **Crear** y ofrece: Publicación, Weël, Imagen, Video, Texto, 
 
 ## 16. Home — estructura
 
+**Rediseño del 2026-09-06 (solo lo esencial; una persona nueva entiende Weë en 5–10 segundos):**
+
+1. **Header**: ☰ · Weë · Credits · campana (o "Iniciar sesión"). Limpio y compacto.
+2. **Hero**: "Crea tu alter ego digital Weë" · "Imagina. Crea. Comparte. Evoluciona." · botón "Únete ahora →" (con sesión: "Crear mi Weë →" / "Ver mi Weë →"). Atractivo, poco alto.
+3. **Comunidades**: "Encuentra las tuyas." · buscador "Buscar comunidades..." · botón "+ Crear comunidad". **Sin catálogo, sin categorías, sin tarjetas ni imágenes**: portadas, iconos, descripción y reglas se ven al entrar a cada comunidad.
+4. **Weëls**: "Descubre videos creados por la comunidad." · fila horizontal de miniaturas · "Ver todos →".
+5. **Creado por la comunidad**: filtros Todo · Imágenes · Videos · Preguntas · Tutoriales · publicaciones reales.
+6. **Barra inferior**: Inicio · Buscar · + (amarillo, destacado) · WeeTalk · Perfil.
+
+Weë Creator no aparece en el Home: es una sección propia (menú ☰) donde la persona dice "quiero hacer un video / una imagen / escribir algo / música / un libro" y Weë la guía.
+
 Mantiene el estilo visual actual: fondo blanco, amarillo/dorado como color principal, gris oscuro para textos, tarjetas blancas, bordes suaves, sombras ligeras, diseño limpio, amigable, moderno y con mucho espacio. **No cambiar a una estética oscura/neón** (única excepción: el tema oscuro mientras el Perfil Weë está activo, §14).
 
 ```

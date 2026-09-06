@@ -16,7 +16,7 @@ export type HomeStackParamList = {
   Feed: { communityId?: string | null; communitySlug?: string | null } | undefined;
   HomeFeed: undefined;
   Notifications: undefined;
-  ExploreCommunities: undefined;
+  ExploreCommunities: { query?: string; create?: boolean } | undefined;
 };
 
 const Stack = createStackNavigator<HomeStackParamList>();

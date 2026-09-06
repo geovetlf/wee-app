@@ -1,29 +1,32 @@
 /**
- * WebLandingScreen - Simplified landing screen for web browsers (desktop & mobile)
- * Uses native HTML elements for reliable scrolling on all browsers
+ * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
+ *
+ * Estructura (docs/UX.md §16): Header → Hero "Crea tu alter ego digital Weë"
+ * → Comunidades ("Encuentra las tuyas": buscar o crear) → Weëls → Creado por
+ * la comunidad (feed con filtros simples). Solo lo esencial: nada de catálogos,
+ * categorías ni herramientas en el Home.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Image } from 'expo-image';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserProfile } from '../contexts/UserProfileContext';
 import { postsService, Post } from '../services/firestoreService';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
+import HomeHero from '../components/HomeHero';
+import CommunitiesEntry from '../components/CommunitiesEntry';
+import { FEED_FILTER_OPTIONS, FeedFilterId, filterPosts } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-import { COMMUNITY_CATEGORIES } from '../constants/communityCategories';
-
-// Categorías sociales (comunidades). Fuente única: constants/communityCategories.ts
-const CATEGORIES = COMMUNITY_CATEGORIES.map((c) => ({ id: c.id, slug: c.slug, name: c.name, emoji: c.emoji, color: c.color }));
 
 const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { hasHidiProfile } = useUserProfile();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
@@ -31,8 +34,9 @@ const WebLandingScreen: React.FC = () => {
   const [weels, setWeels] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [feedFilter, setFeedFilter] = useState<FeedFilterId>('all');
 
-  // Load posts
+  // Publicaciones
   useEffect(() => {
     const loadPosts = async () => {
       try {
@@ -55,32 +59,32 @@ const WebLandingScreen: React.FC = () => {
       .catch((error) => console.error('Error loading Weëls:', error));
   }, []);
 
-  // Explora comunidades: una temática abre su feed; "Ver todas" abre el explorador
-  const handleCategoryPress = (category: (typeof CATEGORIES)[number]) => {
-    navigation.navigate('Feed', { communitySlug: category.slug });
+  const filteredPosts = useMemo(() => filterPosts(posts, feedFilter), [posts, feedFilter]);
+
+  // ── Hero: unirse, o crear/ver el Perfil Weë ──
+  const heroCta = !user ? 'Únete ahora →' : hasHidiProfile ? 'Ver mi Weë →' : 'Crear mi Weë →';
+  const handleHero = () => {
+    if (!user) return navigation.navigate('Register');
+    if (!hasHidiProfile) return navigation.navigate('HidiCreation');
+    navigation.navigate('Profile');
   };
 
-  const handleAllCommunities = () => {
-    navigation.navigate('ExploreCommunities');
+  // ── Comunidades: buscar o crear ──
+  const handleSearchCommunities = (query: string) => navigation.navigate('ExploreCommunities', query ? { query } : undefined);
+  const handleCreateCommunity = () => {
+    if (!user) return navigation.navigate('Register');
+    navigation.navigate('ExploreCommunities', { create: true });
   };
 
+  // ── Weëls ──
   const handleCreateWeel = () => {
-    if (!user) {
-      navigation.navigate('Login');
-      return;
-    }
+    if (!user) return navigation.navigate('Login');
     navigation.navigate('Create', { kind: 'weel' });
   };
-
   const handleOpenWeels = () => {
-    if (weels.length === 0) {
-      handleCreateWeel();
-      return;
-    }
+    if (weels.length === 0) return handleCreateWeel();
     navigation.navigate('Reels', { initialPost: weels[0], initialVideoPosts: weels });
   };
-
-  // "Weëls" desde el menú o la barra lateral llega con openWeels
   useEffect(() => {
     if (!route.params?.openWeels) return;
     navigation.setParams({ openWeels: undefined });
@@ -88,27 +92,12 @@ const WebLandingScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.openWeels]);
 
-  const handleNotificationsPress = () => {
-    navigation.navigate('Notifications');
-  };
-
-  const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
-  };
-
-  const handleComment = (postId: string) => {
-    navigation.navigate('PostDetail', { postId });
-  };
-
+  // ── Feed ──
+  const handlePostPress = (post: Post) => navigation.navigate('PostDetail', { post });
+  const handleComment = (postId: string) => navigation.navigate('PostDetail', { postId });
   const handlePrivateMessage = (userId: string, userData?: any) => {
-    if (!user) {
-      navigation.navigate('Register');
-      return;
-    }
-    navigation.navigate('Inbox', {
-      screen: 'Conversation',
-      params: { otherUserId: userId, otherUserData: userData },
-    });
+    if (!user) return navigation.navigate('Register');
+    navigation.navigate('Inbox', { screen: 'Conversation', params: { otherUserId: userId, otherUserData: userData } });
   };
 
   if (loading) {
@@ -120,110 +109,64 @@ const WebLandingScreen: React.FC = () => {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      backgroundColor: theme.colors.background,
-      overflow: 'hidden',
-    }}>
-      {/* Fixed Header */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: theme.colors.background, overflow: 'hidden' }}>
+      {/* Header fijo: ☰ · Weë · Credits · campana / Iniciar sesión */}
       <div style={{ flexShrink: 0, zIndex: 100 }}>
-        <Header
-          onNotificationsPress={handleNotificationsPress}
-          onMenuPress={() => setDrawerVisible(true)}
-        />
+        <Header onNotificationsPress={() => navigation.navigate('Notifications')} onMenuPress={() => setDrawerVisible(true)} />
       </div>
 
-      {/* Scrollable Content */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        WebkitOverflowScrolling: 'touch',
-      }}>
-        {/* Hero Section */}
-        <div style={{ padding: 16 }}>
-          <LinearGradient
-            colors={['#E5A020', '#F5B731', '#D4911A']}
-            style={styles.heroContainer}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.heroContent}>
-              <View style={styles.heroTextArea}>
-                <Text style={styles.heroTitle}>Tu creatividad no tiene límites.</Text>
-                <Text style={styles.heroSubtitle}>Crea con IA. Comparte con personas.</Text>
-              </View>
-              <Image
-                source={require('../assets/images/hero-couple.png')}
-                style={styles.heroImage}
-                contentFit="contain"
-              />
-            </View>
-          </LinearGradient>
-        </div>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+        {/* Hero */}
+        <HomeHero ctaLabel={heroCta} onPress={handleHero} />
 
-        {/* Explora comunidades: compacto, dos filas de cuatro (design/canvas/Wave.dc.html) */}
-        <div style={{ padding: '0 16px 4px' }}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 0 }]}>Explora comunidades</Text>
-            <TouchableOpacity onPress={handleAllCommunities} activeOpacity={0.7} accessibilityLabel="Ver todas las comunidades">
-              <Text style={[styles.viewAll, { color: theme.colors.accent }]}>Ver todas ›</Text>
-            </TouchableOpacity>
-          </View>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.categoryItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-                onPress={() => handleCategoryPress(cat)}
-                activeOpacity={0.7}
-                accessibilityLabel={cat.name}
-              >
-                <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-                <Text style={[styles.categoryName, { color: theme.colors.text }]} numberOfLines={2}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </div>
-        </div>
+        {/* Comunidades: buscar o crear */}
+        <CommunitiesEntry onSearch={handleSearchCommunities} onCreate={handleCreateCommunity} />
 
         {/* Weëls */}
-        <div style={{ padding: '0 0 8px' }}>
-          <WeelsRow posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
-        </div>
+        <WeelsRow posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
 
-        {/* Feed */}
-        <div style={{ padding: '0 16px 100px' }}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Creado por la comunidad
-          </Text>
+        {/* Creado por la comunidad */}
+        <div style={{ padding: '8px 16px 100px' }}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Creado por la comunidad</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filtersScroll}>
+            {FEED_FILTER_OPTIONS.map((f) => {
+              const active = feedFilter === f.id;
+              return (
+                <TouchableOpacity
+                  key={f.id}
+                  onPress={() => setFeedFilter(f.id)}
+                  style={[styles.chip, { backgroundColor: active ? theme.colors.accent : theme.colors.surface }]}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Filtrar: ${f.label}`}
+                >
+                  <Text style={[styles.chipText, { color: '#1F2937', fontWeight: active ? FONT_WEIGHT.bold : FONT_WEIGHT.semibold }]}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
-          {posts.length === 0 ? (
-            <View style={styles.emptyState}>
+          {filteredPosts.length === 0 ? (
+            <View style={[styles.emptyState, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <Text style={styles.emptyEmoji}>✨</Text>
+              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? 'Todavía no hay publicaciones' : 'Nada por aquí con este filtro'}</Text>
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-                No hay publicaciones aún
+                {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otro filtro o comparte algo tú.'}
               </Text>
+              <TouchableOpacity onPress={() => (user ? navigation.navigate('Create') : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear una publicación">
+                <Text style={styles.emptyButtonText}>Crear</Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            posts.map((post) => (
+            filteredPosts.map((post) => (
               <div key={post.id} style={{ marginBottom: 16 }}>
-                <PostCard
-                  post={post}
-                  onPress={() => handlePostPress(post)}
-                  onComment={handleComment}
-                  onPrivateMessage={handlePrivateMessage}
-                  isVisible={true}
-                />
+                <PostCard post={post} onPress={() => handlePostPress(post)} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} />
               </div>
             ))
           )}
         </div>
       </div>
 
-      {/* Drawer Menu */}
       <DrawerMenu visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
     </div>
   );
@@ -235,88 +178,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  heroContainer: {
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
-  },
-  heroContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  heroTextArea: {
-    flex: 1,
-    paddingRight: SPACING.md,
-  },
-  heroTitle: {
+  sectionTitle: {
     fontSize: scale(18),
     fontWeight: FONT_WEIGHT.bold,
-    color: 'white',
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: scale(12),
-    color: 'rgba(255,255,255,0.8)',
-  },
-  heroImage: {
-    width: scale(100),
-    height: scale(100),
-  },
-  sectionTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: FONT_WEIGHT.bold,
-    marginBottom: SPACING.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
     marginBottom: SPACING.sm,
   },
-  viewAll: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
+  filtersScroll: {
+    marginBottom: SPACING.md,
   },
-  categoryItem: {
-    height: 80,
+  filters: {
+    gap: SPACING.sm,
+    paddingRight: SPACING.lg,
+  },
+  chip: {
+    height: scale(32),
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderRadius: 12,
-    borderWidth: 1,
   },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  categoryIconImage: {
-    width: 28,
-    height: 28,
-  },
-  categoryEmoji: {
-    fontSize: 26,
-    lineHeight: 30,
-  },
-  categoryName: {
-    fontSize: 11,
-    lineHeight: 13,
-    fontWeight: FONT_WEIGHT.semibold,
-    textAlign: 'center',
+  chipText: {
+    fontSize: FONT_SIZE.xs,
   },
   emptyState: {
-    padding: SPACING.xl,
     alignItems: 'center',
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    gap: scale(6),
+  },
+  emptyEmoji: {
+    fontSize: scale(32),
+  },
+  emptyTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.bold,
   },
   emptyText: {
-    fontSize: FONT_SIZE.base,
+    fontSize: FONT_SIZE.sm,
+    textAlign: 'center',
+    lineHeight: scale(20),
+  },
+  emptyButton: {
+    marginTop: SPACING.sm,
+    height: scale(40),
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyButtonText: {
+    color: '#1F2937',
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
   },
 });
 

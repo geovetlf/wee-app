@@ -51,9 +51,12 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel })
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Weëls</Text>
-        <TouchableOpacity activeOpacity={0.7} onPress={onOpenWeels} accessibilityLabel="Ver todas las Weëls">
-          <Text style={[styles.viewAll, { color: theme.colors.accent }]}>Ver todas ›</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Weëls</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Descubre videos creados por la comunidad.</Text>
+        </View>
+        <TouchableOpacity activeOpacity={0.7} onPress={onOpenWeels} accessibilityLabel="Ver todos los Weëls">
+          <Text style={[styles.viewAll, { color: theme.colors.accentDark }]}>Ver todos →</Text>
         </TouchableOpacity>
       </View>
 
@@ -121,9 +124,14 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
+    gap: SPACING.md,
     paddingHorizontal: SPACING.lg,
+  },
+  subtitle: {
+    fontSize: FONT_SIZE.sm,
+    marginTop: scale(2),
   },
   title: {
     fontSize: scale(18),

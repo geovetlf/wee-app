@@ -50,6 +50,9 @@ import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communit
 import { downloadVideoWithWatermark } from '../services/videoDownload';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import WeelsRow from '../components/WeelsRow';
+import HomeHero from '../components/HomeHero';
+import CommunitiesEntry from '../components/CommunitiesEntry';
+import { FEED_FILTER_OPTIONS, filterPosts } from '../utils/feedFilters';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -667,7 +670,7 @@ const hidReelStyles = StyleSheet.create({
 const LandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
+  const { userProfile, hasHidiProfile } = useUserProfile();
   const { scrollToTopTrigger, refreshTrigger } = useScroll();
   const { setIsTransparent: setTabBarTransparent, scrollProgress: tabBarProgress } = useTabBar();
   const navigation = useNavigation<LandingScreenNavigationProp>();
@@ -878,11 +881,6 @@ const LandingScreen: React.FC = () => {
       navigation.setParams({ openWeels: undefined, weelsCommunitySlug: undefined } as any);
     }
   }, [openWeelsParam, weelsCommunitySlug]);
-
-  // Hero content
-  const HERO_PHRASES = useRef([
-    { title: 'Tu creatividad no tiene límites.', subtitle: 'Crea con IA. Comparte con personas.' },
-  ]);
 
   useEffect(() => {
     loadData();
@@ -1122,32 +1120,24 @@ const LandingScreen: React.FC = () => {
     navigation.navigate('Notifications' as any);
   };
 
-  const renderHero = () => {
-    return (
-      <View style={styles.heroWrapper}>
-        <LinearGradient
-          colors={['#E5A020', '#F5B731', '#D4911A', '#C07D0E']}
-          style={styles.heroContainer}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          {/* Simple static hero - first phrase with image */}
-          <View style={styles.heroContent}>
-            <View style={styles.heroTextArea}>
-              <Text style={styles.heroTitle}>{HERO_PHRASES.current[0].title}</Text>
-              <Text style={styles.heroSubtitleFirst}>{HERO_PHRASES.current[0].subtitle}</Text>
-            </View>
-            <Image
-              source={require('../assets/images/hero-couple.png')}
-              style={styles.heroImage}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-            />
-          </View>
-        </LinearGradient>
-      </View>
-    );
+  // Hero: unirse, o crear/ver el Perfil Weë (docs/UX.md §16)
+  const heroCta = !user ? 'Únete ahora →' : hasHidiProfile ? 'Ver mi Weë →' : 'Crear mi Weë →';
+  const handleHeroPress = () => {
+    const tabNavigation = navigation.getParent();
+    const mainNavigation = tabNavigation?.getParent();
+    if (!user) return (mainNavigation as any)?.navigate('Register');
+    if (!hasHidiProfile) return (mainNavigation as any)?.navigate('HidiCreation');
+    (tabNavigation as any)?.navigate('Profile');
   };
+  const renderHero = () => <HomeHero ctaLabel={heroCta} onPress={handleHeroPress} />;
+
+  // Comunidades: buscar o crear (sin catálogo en el Home)
+  const handleSearchCommunities = (query: string) => (navigation as any).navigate('ExploreCommunities', query ? { query } : undefined);
+  const handleCreateCommunity = () => {
+    if (!user) return handleLogin();
+    (navigation as any).navigate('ExploreCommunities', { create: true });
+  };
+  const renderCommunitiesEntry = () => <CommunitiesEntry onSearch={handleSearchCommunities} onCreate={handleCreateCommunity} />;
 
   // Dividir categorías en 2 filas independientes
   const categoryRows = useMemo(() => {
@@ -1653,29 +1643,9 @@ const LandingScreen: React.FC = () => {
   }, [theme, scrollToTab]);
 
   // Feed filtrado según el chip elegido
-  const filteredFeedPosts = useMemo(() => {
-    if (feedFilter === 'all') return feedPosts;
-    return feedPosts.filter((p) => {
-      const hasImages = !!(p.imageUrls && p.imageUrls.length > 0) || !!p.imageUrl;
-      const hasVideo = !!p.videoUrl;
-      const text = (p.content || '').toLowerCase();
-      switch (feedFilter) {
-        case 'images': return hasImages && !hasVideo;
-        case 'videos': return hasVideo;
-        case 'questions': return !!p.poll || text.includes('?') || text.includes('¿');
-        case 'tutorials': return !!p.aiProcess || !!p.aiPrompt || /tutorial|paso a paso|c[oó]mo (lo )?hice|c[oó]mo hacer/.test(text) || (p.tags || []).some((t) => /tutorial/i.test(t));
-        default: return true;
-      }
-    });
-  }, [feedPosts, feedFilter]);
+  const filteredFeedPosts = useMemo(() => filterPosts(feedPosts, feedFilter), [feedPosts, feedFilter]);
 
-  const FEED_FILTERS: { id: FeedFilter; label: string }[] = [
-    { id: 'all', label: 'Publicaciones' },
-    { id: 'images', label: 'Imágenes' },
-    { id: 'videos', label: 'Videos' },
-    { id: 'questions', label: 'Preguntas' },
-    { id: 'tutorials', label: 'Tutoriales' },
-  ];
+  const FEED_FILTERS: { id: FeedFilter; label: string }[] = FEED_FILTER_OPTIONS;
 
   const renderFeedFilters = () => (
     <ScrollView
@@ -1719,14 +1689,12 @@ const LandingScreen: React.FC = () => {
     </View>
   );
 
+  // Home = solo lo esencial (docs/UX.md §16): hero → comunidades → Weëls → creado por la comunidad
   const listHeader = useMemo(() => (
     <>
       {renderHero()}
-      {renderCategories()}
-      {renderCommunityCategories()}
+      {renderCommunitiesEntry()}
       {renderWeelsRow()}
-      {renderTrendingTopic()}
-      {renderFeaturedOpinion()}
       {feedPosts.length > 0 && (
         <>
           <View style={[styles.feedSeparator, { backgroundColor: theme.colors.surface }]} />
@@ -1737,7 +1705,7 @@ const LandingScreen: React.FC = () => {
         </>
       )}
     </>
-  ), [theme, trendingPosts, featuredPosts, trendingIndex, featuredIndex, feedPosts.length > 0, videoPosts, feedFilter, userCreatedCommunities, isMember, joiningId, user, renderTabBar, categoriesExpanded]);
+  ), [theme, feedPosts.length > 0, videoPosts, feedFilter, user, hasHidiProfile, renderTabBar]);
 
   const renderPostItem = useCallback(({ item }: { item: Post }) => (
     <PostCard
