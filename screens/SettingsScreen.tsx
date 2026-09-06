@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import { useResponsive } from '../hooks/useResponsive';
 import ResponsiveLayout from '../components/ResponsiveLayout';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import { confirmAction, notify } from '../utils/notify';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ENGINE_ADMIN_FLAG } from './EngineAdminScreen';
 
 type SettingsNavigationProp = StackNavigationProp<ProfileStackParamList, 'Settings'>;
 
@@ -31,6 +33,15 @@ const SettingsScreen: React.FC = () => {
   const { isDesktop } = useResponsive();
   const [allowPrivateReplies, setAllowPrivateReplies] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  // Panel del WEË AI ENGINE: visible en desarrollo o para quien ya entró como administración
+  const [engineAdmin, setEngineAdmin] = useState<boolean>(__DEV__);
+  useEffect(() => {
+    AsyncStorage.getItem(ENGINE_ADMIN_FLAG)
+      .then((value) => {
+        if (value === '1') setEngineAdmin(true);
+      })
+      .catch(() => {});
+  }, []);
 
   const joinedCommunitiesCount = userProfile?.joinedCommunities?.length || 0;
 
@@ -229,6 +240,14 @@ const SettingsScreen: React.FC = () => {
               'Preguntas frecuentes y contacto',
               handleSupport
             )}
+
+            {engineAdmin &&
+              renderSettingItem(
+                'hardware-chip-outline',
+                'Weë AI Engine',
+                'Proveedores, cadenas de fallback y ajustes (solo administración)',
+                () => (navigation as any).navigate('EngineAdmin')
+              )}
           </View>
         </View>
 

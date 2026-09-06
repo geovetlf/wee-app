@@ -60,7 +60,8 @@ export async function loadConfig(force = false): Promise<EngineConfig> {
         circuitBreaker: { ...config.settings.circuitBreaker, ...(data.circuitBreaker || {}) },
       };
     }
-    config.source = 'firestore';
+    // Solo cuenta como Firestore si hay algo guardado allí
+    config.source = providers.size > 0 || routing.size > 0 || settings.exists ? 'firestore' : 'defaults';
   } catch (error) {
     console.warn('WEË AI ENGINE: no se pudo leer la configuración, se usan los valores por defecto:', error);
   }

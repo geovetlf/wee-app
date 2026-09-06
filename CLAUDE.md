@@ -42,6 +42,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Mis proyectos (Weë Creator) | `services/projectsService.ts` (`creatorProjects`, `projectId` en `creatorJobs`), `screens/ProjectsScreen.tsx`, `screens/ProjectScreen.tsx`, `components/creator/ProjectPicker.tsx` ("Guardar en proyecto" en `ResultCard`) |
 | Guardados (🔖 del menú) | `services/bookmarksService.ts` (`users/{uid}/bookmarks/{postId}`, reglas en `firestore.rules`), `hooks/useBookmarks.ts`, botón en `PostCard`, `screens/SavedPostsScreen.tsx` |
 | Ayuda (❓ del menú, también Términos/Privacidad y Configuración → Ayuda) | `screens/HelpScreen.tsx` (ruta `Help {section?}`) |
+| Panel del WEË AI ENGINE (Configuración → Weë AI Engine, solo administración) | `screens/EngineAdminScreen.tsx` (ruta `EngineAdmin`), `services/aiEngineService.ts` → callable `engineAdmin`; admin = claim `admin` o uid en `WEE_ADMIN_UIDS` (`functions/.env.wee-dev-geovet` en dev) |
 | Avisos y confirmaciones que funcionan en web | `utils/notify.ts` (`notify`, `confirmAction`): en React Native Web `Alert.alert` no muestra nada |
 | Barra lateral de escritorio (mismo menú que el ☰) | `components/Sidebar.tsx`; columna derecha `components/RightSidebar.tsx` |
 | Diseño de referencia | `design/canvas/` |

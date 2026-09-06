@@ -74,7 +74,7 @@ pricingMode · durationMs · error · usage · createdAt · finishedAt
 | `aiRouting/{capacidad}` | `chain: [{ provider, model?, minQuality?, maxQuality? }]`, `policy: quality-first \| balanced \| cost-first` |
 | `aiSettings/global` | `pricingMode`, `creditsPerUsd`, `margin`, `defaultPolicy`, `allowMockFallback`, `timeoutsMs` por modalidad, `circuitBreaker { failures, windowMs, openMs }` |
 
-Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids en `WEE_ADMIN_UIDS` o con claim `admin`): acciones `status`, `seedDefaults`, `setProvider`, `setRouting`, `setSettings`, `resetHealth`. Un panel visual puede construirse encima cuando haga falta. Ejemplo para cambiar el fallback de video:
+Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids en `WEE_ADMIN_UIDS` o con claim `admin`): acciones `status`, `seedDefaults`, `setProvider`, `setRouting`, `setSettings`, `resetHealth`. La app trae un panel (**Configuración → Weë AI Engine**, `screens/EngineAdminScreen.tsx`, visible en desarrollo o para quien ya entró como administración) que muestra ajustes, proveedores con clave/activo/salud y modelos, y las cadenas de fallback; permite sembrar los valores por defecto, activar o desactivar proveedores, cambiar la política de cada capacidad y reiniciar la salud. En dev, `functions/.env.wee-dev-geovet` da permisos al usuario de prueba; en producción, `functions/.env.get-wee` (no versionado) con tu uid. Ejemplo para cambiar el fallback de video:
 
 ```json
 // aiRouting/video.generate

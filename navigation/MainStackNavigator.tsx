@@ -8,6 +8,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import MainTabsScreen from '../screens/MainTabsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
+import EngineAdminScreen from '../screens/EngineAdminScreen';
 import SearchScreen from '../screens/SearchScreen';
 import CreateScreen from '../screens/CreateScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -43,6 +44,7 @@ export type MainStackParamList = {
   Main: undefined;
   Settings: undefined;
   Help: { section?: 'faq' | 'legal' } | undefined;
+  EngineAdmin: undefined;
   Search: { query?: string } | undefined;
   Create: { communitySlug?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string } } | undefined;
   WeeCreator: { category?: string } | undefined;
@@ -216,6 +218,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
       <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
