@@ -4,7 +4,7 @@ exports.getPlanner = exports.llmPlanner = exports.templatePlanner = void 0;
 const templates_1 = require("./templates");
 const prompts_1 = require("./prompts");
 const gateway_1 = require("../gateway");
-const gemini_1 = require("../gateway/providers/gemini");
+const gemini_1 = require("../engine/providers/gemini");
 const toRecord = (answers) => {
     var _a, _b;
     const record = {};
@@ -121,6 +121,6 @@ exports.llmPlanner = {
         return Object.assign(Object.assign({}, base), { inferred });
     },
 };
-const getPlanner = () => ((0, gemini_1.isGeminiConfigured)() ? exports.llmPlanner : exports.templatePlanner);
+const getPlanner = () => (gemini_1.geminiAdapter.isConfigured() ? exports.llmPlanner : exports.templatePlanner);
 exports.getPlanner = getPlanner;
 //# sourceMappingURL=planner.js.map

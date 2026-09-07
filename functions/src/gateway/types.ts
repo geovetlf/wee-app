@@ -24,6 +24,12 @@ export interface GatewayContext {
   stepId?: string;
   /** Preferencias de enrutamiento del paso (calidad, duración, tope de Credits). */
   prefs?: RoutingPrefs;
+  /** Identificador único de la operación (jobId:stepId) para aiGenerations e idempotencia. */
+  requestId?: string;
+  /** Servicio del catálogo de Credits que paga el paso. */
+  service?: string;
+  /** Transacción de Credits que autorizó el cobro del trabajo. */
+  creditTransactionId?: string;
 }
 
 export interface ProviderOutput {
@@ -32,6 +38,10 @@ export interface ProviderOutput {
   url?: string;
   /** Varias propuestas cuando el paso pide count > 1. */
   urls?: string[];
+  /** Duración real (audio/video) cuando se conoce. */
+  durationSec?: number;
+  /** Fuentes de la búsqueda web (cuando corresponde). */
+  sources?: { url: string; title?: string }[];
 }
 
 export interface ProviderResult {

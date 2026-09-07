@@ -233,7 +233,8 @@ export const mockProvider: ProviderAdapter = {
 
     let output: ProviderOutput;
     if (capability.startsWith('text.') || capability === 'vision.describe') {
-      output = { kind: 'text', content: demoText(kind || (capability === 'vision.describe' ? 'describe' : ''), purpose, brief, ctx) };
+      const searchNote = capability === 'text.search' ? '\n\nFuentes (demo): en la versión conectada verás aquí las páginas consultadas.' : '';
+      output = { kind: 'text', content: demoText(kind || (capability === 'vision.describe' ? 'describe' : ''), purpose, brief, ctx) + searchNote };
     } else if (capability === 'doc.render') {
       output = { kind: 'document', content: `📎 Documento listo (demo): "${ctx.goal}". En la versión real recibirás un PDF o una presentación para descargar.` };
     } else if (capability.startsWith('image.')) {

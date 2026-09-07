@@ -9,7 +9,8 @@
 // sharp is lazy-loaded to avoid deployment timeout
 
 // Project configuration
-const BUCKET_NAME = 'hidetok-9a642.firebasestorage.app';
+// Bucket de Weë: el del proyecto activo (FIREBASE_CONFIG) salvo que STORAGE_BUCKET indique otro
+const BUCKET_NAME = process.env.STORAGE_BUCKET && process.env.STORAGE_BUCKET.trim() ? process.env.STORAGE_BUCKET.trim() : undefined;
 
 // Max image dimension before sending to Gemini (pixels)
 const MAX_IMAGE_DIMENSION = 1024;
@@ -329,7 +330,7 @@ export async function uploadImageToStorage(
   const buffer = Buffer.from(base64Clean, 'base64');
 
   const downloadToken = uuidv4();
-  const bucket = admin.storage().bucket(BUCKET_NAME);
+  const bucket = BUCKET_NAME ? admin.storage().bucket(BUCKET_NAME) : admin.storage().bucket();
   const file = bucket.file(storagePath);
 
   await file.save(buffer, {
@@ -341,8 +342,9 @@ export async function uploadImageToStorage(
     },
   });
 
-  const encodedPath = encodeURIComponent(storagePath);
-  return `https://firebasestorage.googleapis.com/v0/b/${BUCKET_NAME}/o/${encodedPath}?alt=media&token=${downloadToken}`;
+  // URL de descarga estable (producción o emulador de Storage)
+  const { downloadUrlFor } = await import('./engine/http');
+  return downloadUrlFor(bucket.name, storagePath, downloadToken);
 }
 
 /**

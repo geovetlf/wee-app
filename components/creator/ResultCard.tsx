@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { Image } from 'expo-image';
+import { Audio, ResizeMode, Video } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
-/** Forma de onda decorativa del reproductor simulado. */
+/** Forma de onda decorativa del reproductor. */
 const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
+
+/** Un archivo real (mp4, mp3) frente a la vista previa del modo demo (SVG en línea). */
+const isRealMedia = (url?: string): boolean => !!url && /^https?:\/\//.test(url);
+
+const formatDuration = (seconds?: number): string => {
+  const total = Math.max(0, Math.round(seconds || 0));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+};
 
 interface ResultCardProps {
   experienceName: string;
@@ -36,6 +45,47 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   const [instruction, setInstruction] = useState('');
   const [chosen, setChosen] = useState<Record<string, number>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // Audio real (voz de Weë): un solo reproductor a la vez
+  const stopSound = async () => {
+    const sound = soundRef.current;
+    soundRef.current = null;
+    if (sound) {
+      try {
+        await sound.unloadAsync();
+      } catch {
+        // ya estaba descargado
+      }
+    }
+  };
+  useEffect(() => () => {
+    stopSound();
+  }, []);
+  const toggleAudio = async (stepId: string, url?: string) => {
+    if (playingId === stepId) {
+      await stopSound();
+      setPlayingId(null);
+      return;
+    }
+    await stopSound();
+    setPlayingId(stepId);
+    if (!isRealMedia(url)) return;
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync({ uri: url as string }, { shouldPlay: true });
+      soundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setPlayingId((current) => (current === stepId ? null : current));
+          stopSound();
+        }
+      });
+    } catch (error) {
+      console.warn('No se pudo reproducir el audio:', error);
+      setPlayingId(null);
+    }
+  };
 
   // Frases de edición en lenguaje humano (docs/CREATOR-BUILD.md §14)
   const quickEdits = ['Hazlo más realista', 'Cámbiale el color', 'Más simple', 'Más llamativo'];
@@ -121,6 +171,15 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                 </View>
               </View>
             </View>
+          ) : result.kind === 'video' && isRealMedia(result.url) ? (
+            <View>
+              <Video source={{ uri: result.url as string }} style={styles.visual} resizeMode={ResizeMode.CONTAIN} useNativeControls accessibilityLabel="Video generado" />
+              {!!result.durationSec && (
+                <View style={styles.durationTag}>
+                  <Text style={styles.durationText}>{formatDuration(result.durationSec)}</Text>
+                </View>
+              )}
+            </View>
           ) : result.kind === 'video' ? (
             <TouchableOpacity onPress={() => setPlayingId(playingId === result.stepId ? null : result.stepId)} activeOpacity={0.9} accessibilityLabel="Reproducir video">
               <Image source={{ uri: result.url }} style={styles.visual} contentFit="cover" transition={200} />
@@ -149,7 +208,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         return (
           <View key={result.stepId} style={[styles.audioCard, { backgroundColor: theme.colors.text }]}>
             <TouchableOpacity
-              onPress={() => setPlayingId(playing ? null : result.stepId)}
+              onPress={() => toggleAudio(result.stepId, result.url)}
               style={[styles.playButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
               accessibilityLabel={playing ? 'Pausar' : 'Reproducir'}
@@ -166,7 +225,12 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                   />
                 ))}
               </View>
-              <Text style={styles.audioMeta}>{playing ? 'Reproduciendo · vista previa' : '0:32 · vista previa'}{result.demo ? ' (demo)' : ''}</Text>
+              <Text style={styles.audioMeta}>
+                {isRealMedia(result.url)
+                  ? playing ? 'Reproduciendo' : result.durationSec ? `${formatDuration(result.durationSec)} · voz de Weë` : 'Voz de Weë'
+                  : playing ? 'Reproduciendo · vista previa' : '0:32 · vista previa'}
+                {result.demo ? ' (demo)' : ''}
+              </Text>
             </View>
           </View>
         );
@@ -181,6 +245,16 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               {result.demo && !job.demo ? '  · muestra' : ''}
             </Text>
             <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{result.content}</Text>
+            {!!result.sources?.length && (
+              <View style={styles.sources}>
+                {result.sources.map((source) => (
+                  <TouchableOpacity key={source.url} onPress={() => Linking.openURL(source.url)} activeOpacity={0.7} style={[styles.source, { borderColor: theme.colors.border }]} accessibilityLabel={source.title || source.url}>
+                    <Ionicons name="link-outline" size={scale(12)} color={theme.colors.accentDark} />
+                    <Text style={[styles.sourceText, { color: theme.colors.textSecondary }]} numberOfLines={1}>{source.title || source.url}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         ))}
 
@@ -483,6 +557,26 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: FONT_SIZE.sm,
     lineHeight: scale(21),
+  },
+  sources: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: SPACING.xs,
+  },
+  source: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    maxWidth: '100%',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(3),
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  sourceText: {
+    fontSize: scale(11),
+    maxWidth: scale(220),
   },
   actions: {
     gap: SPACING.sm,

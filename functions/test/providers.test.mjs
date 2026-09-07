@@ -8,7 +8,7 @@ const lib = (p) => require(path.resolve(here, '../lib/engine/' + p));
 // Claves falsas: solo para que isConfigured() sea true
 Object.assign(process.env, {
   KLING_ACCESS_KEY: 'ak', KLING_SECRET_KEY: 'sk', MINIMAX_API_KEY: 'mm', RUNWAY_API_KEY: 'rw', ARK_API_KEY: 'ark',
-  BFL_API_KEY: 'bfl', ELEVENLABS_API_KEY: 'el', ANTHROPIC_API_KEY: 'an', OPENAI_API_KEY: 'oa',
+  BFL_API_KEY: 'bfl', ELEVENLABS_API_KEY: 'el', ANTHROPIC_API_KEY: 'an', OPENAI_API_KEY: 'oa', FAL_KEY: 'fal-secret', GEMINI_API_KEY: 'gem',
 });
 
 const http = lib('http.js');
@@ -137,6 +137,80 @@ const runWith = (adapter, capability, input, prefs = {}, modelId) => {
   stub([[/openai\.com\/v1\/chat\/completions/, { choices: [{ message: { content: 'Hola' } }], usage: { prompt_tokens: 10, completion_tokens: 5 } }]]);
   const o = await runWith(openaiAdapter, 'text.generate', { prompt: 'saluda' });
   check('openai: Bearer, system+user y respuesta', calls[0].headers.Authorization === 'Bearer oa' && calls[0].body.messages.length === 2 && o.output.content === 'Hola');
+}
+
+// ── fal.ai (cola: submit → status → response) ──
+{
+  const { falAdapter, falCostUsd } = lib('providers/fal.js');
+  http.readImage = async () => ({ buffer: Buffer.from('img'), contentType: 'image/png' });
+  stub([
+    [/queue\.fal\.run\/fal-ai\/kling-video\/v2\.5-turbo\/pro\/text-to-video$/, { request_id: 'fal-1', status_url: 'https://queue.fal.run/fal-ai/kling-video/requests/fal-1/status', response_url: 'https://queue.fal.run/fal-ai/kling-video/requests/fal-1' }],
+    [/requests\/fal-1\/status$/, { status: 'COMPLETED' }],
+    [/requests\/fal-1$/, { video: { url: 'https://fal.media/v.mp4' } }],
+  ]);
+  const r = await runWith(falAdapter, 'video.generate', { prompt: 'Lima de noche', aspectRatio: '9:16' }, { durationSec: 10 });
+  check('fal: Authorization "Key …", modelo Kling 2.5 turbo pro, duración "10" y 9:16', calls[0].headers.Authorization === 'Key fal-secret' && /kling-video\/v2\.5-turbo\/pro\/text-to-video$/.test(calls[0].url) && calls[0].body.duration === '10' && calls[0].body.aspect_ratio === '9:16' && calls[0].body.prompt === 'Lima de noche', JSON.stringify(calls[0].body));
+  check('fal: sondea status_url y luego lee response_url', calls[1].url.endsWith('/status') && calls[2].url.endsWith('/requests/fal-1'), calls.map((c) => c.url).join(' | '));
+  check('fal: video guardado en Storage y coste de lista ($0.35 + 5 × $0.07)', r.output.kind === 'video' && r.output.url.startsWith('stored://fal/') && r.output.durationSec === 10 && Math.abs(r.costUSD - 0.7) < 1e-9 && falCostUsd('fal-ai/kling-video/v2.1/standard/image-to-video', 5) === 0.25, `${r.output.url} $${r.costUSD}`);
+
+  stub([
+    [/image-to-video$/, { request_id: 'fal-2', status_url: 'https://queue.fal.run/x/requests/fal-2/status', response_url: 'https://queue.fal.run/x/requests/fal-2' }],
+    [/requests\/fal-2\/status$/, { status: 'COMPLETED' }],
+    [/requests\/fal-2$/, { video: { url: 'https://fal.media/v2.mp4' } }],
+  ]);
+  const i = await runWith(falAdapter, 'video.image_to_video', { prompt: 'anima esta foto', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fcreator-inputs%2Fa.png?alt=media' }, { durationSec: 5 });
+  check('fal imagen→video: la foto viaja como data URI (nunca la URL privada)', String(calls[0].body.image_url).startsWith('data:image/png;base64,') && calls[0].body.duration === '5' && !('aspect_ratio' in calls[0].body), JSON.stringify(Object.keys(calls[0].body)));
+  check('fal imagen→video: resultado guardado', i.output.url.startsWith('stored://fal/'));
+
+  stub([
+    [/text-to-video$/, { request_id: 'fal-3', status_url: 'https://queue.fal.run/x/requests/fal-3/status', response_url: 'https://queue.fal.run/x/requests/fal-3' }],
+    [/requests\/fal-3\/status$/, { status: 'IN_PROGRESS', error: 'content policy', error_type: 'validation' }],
+  ]);
+  let failed = '';
+  try { await runWith(falAdapter, 'video.generate', { prompt: 'x' }); } catch (e) { failed = e.message; }
+  check('fal: un error de la cola se propaga como fallo del proveedor', /content policy/.test(failed), failed);
+}
+
+// ── Gemini (texto con historial, búsqueda con fuentes, imagen) con cliente falso ──
+{
+  const { geminiAdapter, __setGeminiClient } = lib('providers/gemini.js');
+  let requests = [];
+  const fakeAi = {
+    models: {
+      generateContent: async (params) => {
+        requests.push(params);
+        if (params.config?.responseModalities) {
+          return { candidates: [{ content: { parts: [{ text: 'listo' }, { inlineData: { mimeType: 'image/png', data: Buffer.from('png').toString('base64') } }] } }] };
+        }
+        if (params.config?.tools) {
+          return {
+            text: 'Hoy el dólar cerró estable. [[WEE:business]]',
+            usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 50 },
+            candidates: [{ groundingMetadata: { webSearchQueries: ['dólar hoy'], groundingChunks: [{ web: { uri: 'https://ejemplo.com/a', title: 'Ejemplo' } }, { web: { uri: 'https://ejemplo.com/a', title: 'Repetido' } }] } }],
+          };
+        }
+        return { text: 'Hola, soy Weë.', usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, thoughtsTokenCount: 5 } };
+      },
+    },
+  };
+  __setGeminiClient(fakeAi);
+  http.readImage = async () => ({ buffer: Buffer.from('jpg'), contentType: 'image/jpeg' });
+  const textModel = geminiAdapter.models.find((m) => m.capabilities.includes('text.generate'));
+  const t = await geminiAdapter.run({ capability: 'text.generate', model: textModel, input: { system: 'Eres Weë', prompt: 'Hola', history: [{ role: 'user', text: 'antes' }, { role: 'wee', text: 'respuesta previa' }] }, ctx, prefs: {}, timeoutMs: 30_000 });
+  const contents = requests[0].contents;
+  check('gemini texto: historial user/model + mensaje actual y systemInstruction', contents.length === 3 && contents[0].role === 'user' && contents[1].role === 'model' && contents[2].parts[0].text === 'Hola' && requests[0].config.systemInstruction === 'Eres Weë', JSON.stringify(contents.map((c) => c.role)));
+  check('gemini texto: respuesta y coste por tokens (incluye tokens de pensamiento)', t.output.content === 'Hola, soy Weë.' && t.usage.outputTokens === 10 && t.costUSD > 0, `$${t.costUSD}`);
+
+  requests = [];
+  const s = await geminiAdapter.run({ capability: 'text.search', model: textModel, input: { prompt: '¿Cómo está el dólar hoy?' }, ctx, prefs: {}, timeoutMs: 30_000 });
+  check('gemini búsqueda: activa googleSearch y devuelve fuentes sin repetir', JSON.stringify(requests[0].config.tools) === JSON.stringify([{ googleSearch: {} }]) && s.output.sources.length === 1 && s.output.sources[0].url === 'https://ejemplo.com/a', JSON.stringify(s.output.sources));
+  check('gemini búsqueda: suma el coste por consulta de búsqueda', s.usage.searchQueries === 1 && s.costUSD > 0.014, `$${s.costUSD}`);
+
+  requests = [];
+  const imageModel = geminiAdapter.models.find((m) => m.capabilities.includes('image.edit'));
+  const img = await geminiAdapter.run({ capability: 'image.edit', model: imageModel, input: { prompt: 'restaura esta foto', kind: 'restore', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fa.jpg?alt=media', count: 2 }, ctx, prefs: { quality: 'max' }, timeoutMs: 30_000 });
+  check('gemini imagen: la foto va en línea, con la instrucción de restaurar y responseModalities de imagen', requests.length === 2 && requests[0].contents[0].parts.length === 2 && requests[0].contents[0].parts[1].inlineData.mimeType === 'image/jpeg' && /Restore this old photo/.test(requests[0].contents[0].parts[0].text) && requests[0].config.responseModalities.includes('IMAGE'), JSON.stringify(requests[0].config));
+  check('gemini imagen: calidad max → 2K, dos propuestas guardadas y coste por imagen', requests[0].config.imageConfig.imageSize === '2K' && img.output.urls.length === 2 && img.output.url.startsWith('stored://b64/') && img.costUSD === 2 * imageModel.cost.usd, `$${img.costUSD}`);
 }
 
 // ── Sin clave: NotConfiguredError no reintentable ──

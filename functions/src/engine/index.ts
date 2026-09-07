@@ -1,8 +1,10 @@
+import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../creator/types';
 import { ADAPTERS } from './registry';
 import { loadConfig } from './config';
 import { firestoreLedger } from './ledger';
 import { createRouter, memoryHealth } from './router';
+import { dayKey } from './limits';
 import { EngineRequest, EngineResult, RouteDecision } from './types';
 
 /**
@@ -16,7 +18,17 @@ import { EngineRequest, EngineResult, RouteDecision } from './types';
  * engine.status(): estado de proveedores, cadenas y salud (administración).
  */
 const health = memoryHealth();
-const router = createRouter({ adapters: ADAPTERS, loadConfig, ledger: firestoreLedger, health });
+
+let usageCache: { day: string; at: number; data: Record<string, any> | undefined } | null = null;
+const usageToday = async (): Promise<Record<string, any> | undefined> => {
+  const day = dayKey();
+  if (usageCache && usageCache.day === day && Date.now() - usageCache.at < 60_000) return usageCache.data;
+  const snap = await getFirestore().collection('aiUsage').doc(day).get();
+  usageCache = { day, at: Date.now(), data: snap.data() };
+  return usageCache.data;
+};
+
+const router = createRouter({ adapters: ADAPTERS, loadConfig, ledger: firestoreLedger, health, usageToday });
 
 export interface ProviderStatus {
   id: string;
@@ -70,3 +82,5 @@ export const engine = {
 
 export * from './types';
 export { progressTextFor, friendlyFailure } from './humanize';
+export { EngineError, toEngineHttpsError, classifyError, assertText } from './errors';
+export { limiter } from './limits';

@@ -9,7 +9,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node test/router.test.mjs && node test/providers.test.mjs && node test/credits.test.mjs"
+    "test": "node test/router.test.mjs && node test/providers.test.mjs && node test/credits.test.mjs && node test/creator.test.mjs"
   },
   "engines": {
     "node": "20"

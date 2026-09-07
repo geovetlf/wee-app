@@ -35,6 +35,9 @@ export async function runCapability(
     goal: ctx.goal,
     prefs: ctx.prefs,
     record: ctx.record,
+    requestId: ctx.requestId,
+    service: ctx.service,
+    creditTransactionId: ctx.creditTransactionId,
   });
   return {
     output: result.output,

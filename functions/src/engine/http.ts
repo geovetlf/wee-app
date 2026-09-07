@@ -3,7 +3,8 @@ import { getStorage } from 'firebase-admin/storage';
 
 /**
  * Utilidades compartidas por los adaptadores: HTTP con tiempo límite,
- * espera de tareas asíncronas y guardado de resultados en Storage.
+ * espera de tareas asíncronas, lectura de imágenes de entrada y guardado de
+ * resultados en Storage (el sistema de archivos de Weë: Firebase Storage).
  */
 
 export class ProviderError extends Error {
@@ -21,7 +22,7 @@ export class NotConfiguredError extends ProviderError {
 }
 
 export interface FetchOptions {
-  method?: 'GET' | 'POST' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: unknown;
   timeoutMs?: number;
@@ -108,19 +109,34 @@ const extensionFor = (contentType: string): string => {
   return 'bin';
 };
 
+export const env = (name: string): string | undefined => {
+  const value = process.env[name];
+  return value && value.trim() ? value.trim() : undefined;
+};
+
+/** Bucket de Weë: el del proyecto (FIREBASE_CONFIG) salvo que STORAGE_BUCKET diga otro. */
+export const storageBucket = () => (env('STORAGE_BUCKET') ? getStorage().bucket(env('STORAGE_BUCKET')) : getStorage().bucket());
+
+/** URL de descarga estable para un archivo guardado (emulador o producción). */
+export function downloadUrlFor(bucket: string, path: string, token: string): string {
+  const emulator = env('FIREBASE_STORAGE_EMULATOR_HOST');
+  const base = emulator ? `http://${emulator.replace(/^https?:\/\//, '')}` : 'https://firebasestorage.googleapis.com';
+  return `${base}/v0/b/${bucket}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+}
+
 /**
  * Guarda un resultado en Storage (users/{uid}/ai-generations/…) y devuelve una
  * URL de descarga estable. Los proveedores suelen dar URLs temporales.
  */
 export async function saveGeneratedFile(userId: string, buffer: Buffer, contentType: string, label = 'result'): Promise<string> {
-  const bucket = getStorage().bucket();
+  const bucket = storageBucket();
   const token = randomUUID();
   const path = `users/${userId}/ai-generations/${Date.now()}-${label}.${extensionFor(contentType)}`;
   await bucket.file(path).save(buffer, {
     metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } },
     resumable: false,
   });
-  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+  return downloadUrlFor(bucket.name, path, token);
 }
 
 /** Descarga la URL temporal de un proveedor y la guarda en Storage. */
@@ -134,7 +150,49 @@ export async function persistBase64(userId: string, base64: string, contentType:
   return saveGeneratedFile(userId, Buffer.from(base64, 'base64'), contentType, label);
 }
 
-export const env = (name: string): string | undefined => {
-  const value = process.env[name];
-  return value && value.trim() ? value.trim() : undefined;
-};
+// ── Archivos de entrada (fotos que sube la persona) ─────────────────────────
+
+/** Reconoce URLs de nuestro Storage (producción, emulador, gs://) y devuelve bucket + ruta. */
+export function parseStorageUrl(url: string): { bucket: string; path: string } | null {
+  const gs = url.match(/^gs:\/\/([^/]+)\/(.+)$/);
+  if (gs) return { bucket: gs[1], path: decodeURIComponent(gs[2]) };
+  const firebase = url.match(/^https?:\/\/[^/]+\/v0\/b\/([^/]+)\/o\/([^?]+)/);
+  if (firebase) return { bucket: firebase[1], path: decodeURIComponent(firebase[2]) };
+  const gcs = url.match(/^https:\/\/storage\.googleapis\.com\/([^/]+)\/([^?]+)/);
+  if (gcs) return { bucket: gcs[1], path: decodeURIComponent(gcs[2]) };
+  return null;
+}
+
+export const MAX_INPUT_BYTES = 12 * 1024 * 1024;
+
+/**
+ * Lee una imagen de entrada: data URI, archivo de nuestro Storage (con el Admin
+ * SDK, sin depender de tokens) o cualquier URL pública.
+ */
+export async function readImage(url: string, provider: string): Promise<{ buffer: Buffer; contentType: string }> {
+  if (url.startsWith('data:')) {
+    const [meta, data] = url.split(',');
+    const contentType = meta.slice(5).split(';')[0] || 'image/png';
+    const buffer = Buffer.from(data || '', 'base64');
+    if (buffer.length > MAX_INPUT_BYTES) throw new ProviderError(`${provider}: la imagen es demasiado grande`, provider, undefined, false);
+    return { buffer, contentType };
+  }
+  const own = parseStorageUrl(url);
+  if (own) {
+    try {
+      const file = getStorage().bucket(own.bucket).file(own.path);
+      const [buffer] = await file.download();
+      const [metadata] = await file.getMetadata().catch(() => [{ contentType: undefined }] as any);
+      if (buffer.length > MAX_INPUT_BYTES) throw new ProviderError(`${provider}: la imagen es demasiado grande`, provider, undefined, false);
+      return { buffer, contentType: String(metadata?.contentType || 'image/jpeg') };
+    } catch (error) {
+      if (error instanceof ProviderError) throw error;
+      // Si el Admin SDK no puede (p. ej. bucket de otro proyecto), se intenta por HTTP
+    }
+  }
+  const result = await fetchBytes(url, { provider, timeoutMs: 60_000 });
+  if (result.buffer.length > MAX_INPUT_BYTES) throw new ProviderError(`${provider}: la imagen es demasiado grande`, provider, undefined, false);
+  return { buffer: result.buffer, contentType: result.contentType.split(';')[0] || 'image/jpeg' };
+}
+
+export const toDataUri = (file: { buffer: Buffer; contentType: string }): string => `data:${file.contentType};base64,${file.buffer.toString('base64')}`;

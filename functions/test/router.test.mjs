@@ -70,7 +70,8 @@ const req = (extra = {}) => ({ capability: 'video.generate', input: { prompt: 'u
   const result = await router.execute(req());
   check('Veo falla → Seedance atiende', result.provider === 'seedance' && result.attempts === 2, `${result.provider} en ${result.attempts} intentos`);
   const records = Object.values(ledger.records);
-  check('cada intento queda registrado (fallido + exitoso)', records.length === 2 && records[0].status === 'failed' && records[1].status === 'done', JSON.stringify(records.map((r) => [r.provider, r.status, r.credits])));
+  check('cada intento queda registrado (fallido + exitoso) con estados del libro', records.length === 2 && records[0].status === 'FAILED' && records[1].status === 'COMPLETED', JSON.stringify(records.map((r) => [r.provider, r.status, r.creditsCharged])));
+  check('el registro separa providerCost (USD) de creditsCharged y guarda la salida', records[1].providerCost === 1 && records[1].providerCurrency === 'USD' && records[1].creditsCharged === Math.ceil(1 * 100 * 1.3) && records[1].outputType === 'video' && records[1].inputType === 'text', JSON.stringify(records[1]));
   check('el registro guarda usuario, modelo, tipo, duración y error', records[0].userId === 'u1' && records[0].model === 'veo-3' && records[0].capability === 'video.generate' && typeof records[0].durationMs === 'number' && /falló/.test(records[0].error), JSON.stringify(records[0]));
   check('Credits reales = USD × creditsPerUsd × (1+margen)', result.credits === Math.ceil(1 * 100 * 1.3), String(result.credits));
   check('en modo real el demo NO entra si hay candidatos reales', !result.decision.candidates.some((c) => c.provider === 'mock'));
@@ -135,9 +136,9 @@ const req = (extra = {}) => ({ capability: 'video.generate', input: { prompt: 'u
 {
   const veo = fake('veo', [{ id: 'veo-3', quality: 5 }], { configured: false });
   const { router } = build({ veo, mock }, config({ settings: { pricingMode: 'real', allowMockFallback: false } }));
-  let message = '';
-  try { await router.execute(req()); } catch (e) { message = e.message; }
-  check('error explica por qué nadie pudo atender', /Ningún proveedor disponible/.test(message) && /sin clave/.test(message), message);
+  let error = null;
+  try { await router.execute(req()); } catch (e) { error = e; }
+  check('error controlado NOT_AVAILABLE con mensaje amable (el motivo técnico queda en el registro)', error && error.code === 'NOT_AVAILABLE' && /no hay un proveedor disponible/.test(error.message) && !/sin clave/.test(error.message), error && error.message);
 }
 
 // 9) pickModel y resolveQuality directos

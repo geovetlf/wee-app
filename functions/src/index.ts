@@ -11,8 +11,9 @@ const db = admin.firestore();
 // Re-export avatar generation functions (Gemini only)
 export { generateAvatarWithGemini, avatarReplacement } from './generateAvatar';
 
-// Weë Creator (Weë Brain + AI Gateway)
+// Weë Creator (Weë Brain + WEË AI ENGINE)
 export { creatorChat, creatorRun } from './creator';
+export { brainChat } from './creator/brain';
 export { engineAdmin } from './engine/admin';
 
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits

@@ -51,6 +51,11 @@ service cloud.firestore {
       match /bookmarks/{postId} {
         allow read, write: if isAuthenticated() && request.auth.uid == userId;
       }
+
+      // "Mis documentos" de Weë Writer: solo el dueño
+      match /writerDocuments/{docId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
     // === COMUNIDADES ===
@@ -404,6 +409,23 @@ service cloud.firestore {
     match /aiGenerations/{generationId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+    // Límites de uso por persona y día: solo servidor
+    match /aiRateLimits/{limitId} {
+      allow read, write: if false;
+    }
+
+    // === WEË BRAIN: conversaciones ===
+    // La persona lee sus conversaciones y mensajes; escribe solo el servidor (brainChat)
+    match /brainChats/{chatId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() &&
+          get(/databases/$(database)/documents/brainChats/$(chatId)).data.userId == request.auth.uid;
+        allow write: if false;
+      }
     }
 
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===

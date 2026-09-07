@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -12,8 +12,10 @@ import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
-import { creatorService, CreatorJob, Question, humanizeCreatorError } from '../services/creatorService';
+import { creatorService, CreatorJob, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
+import { uploadCreatorImage } from '../services/creatorUploads';
+import { documentsService } from '../services/documentsService';
 import { WEE_EXPERIENCES, getExperienceById } from '../constants/weeExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -53,6 +55,10 @@ const CreatorFlowScreen: React.FC = () => {
   const [shortfall, setShortfall] = useState<CreditsShortfall | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
+  /** La foto sube al Storage de Weë y al servidor solo va la URL. */
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const uploadedUrl = useRef<string | undefined>(undefined);
+  const savedDocFor = useRef<string | null>(null);
 
   // Nombre del proyecto donde está guardada la creación
   useEffect(() => {
@@ -80,6 +86,22 @@ const CreatorFlowScreen: React.FC = () => {
     }
   };
 
+  const uploadPhoto = useCallback(
+    async (uri: string): Promise<string | undefined> => {
+      if (!user) return undefined;
+      if (uploadedUrl.current && uploadedUrl.current.startsWith('http') && uri === imageUri) return uploadedUrl.current;
+      setUploadingPhoto(true);
+      try {
+        const url = await uploadCreatorImage(user.uid, uri);
+        uploadedUrl.current = url;
+        return url;
+      } finally {
+        setUploadingPhoto(false);
+      }
+    },
+    [user, imageUri]
+  );
+
   const start = useCallback(
     async (goal?: string) => {
       setBusy(true);
@@ -88,7 +110,8 @@ const CreatorFlowScreen: React.FC = () => {
       setJob(null);
       setQuestion(null);
       try {
-        const response = await creatorService.start(experience.id, goal, params.preset ? [params.preset] : undefined);
+        const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
+        const response = await creatorService.start(experience.id, goal, params.preset ? [params.preset] : undefined, imageUrl);
         setJobId(response.jobId);
         setQuestion(response.question);
       } catch (e) {
@@ -97,8 +120,35 @@ const CreatorFlowScreen: React.FC = () => {
         setBusy(false);
       }
     },
-    [experience.id]
+    [experience.id, imageUri, uploadPhoto]
   );
+
+  // Foto elegida después de empezar: se sube y se adjunta al trabajo en curso
+  const handlePickPhoto = useCallback(
+    async (uri: string) => {
+      setImageUri(uri);
+      uploadedUrl.current = undefined;
+      if (!jobId) return;
+      setError(null);
+      try {
+        const url = await uploadCreatorImage(user ? user.uid : '', uri);
+        uploadedUrl.current = url;
+        await creatorService.attachImage(jobId, url);
+      } catch (e) {
+        setError(humanizeCreatorError(e));
+      }
+    },
+    [jobId, user]
+  );
+
+  // Weë Writer: lo que genera queda en "Mis documentos"
+  useEffect(() => {
+    if (!job || job.status !== 'done' || experience.id !== 'writer' || savedDocFor.current === job.id) return;
+    const text = job.results.filter((r) => r.content && r.kind !== 'audio' && !r.url).map((r) => r.content).join('\n\n').trim();
+    if (!text) return;
+    savedDocFor.current = job.id;
+    documentsService.save({ id: `job_${job.id}`, title: job.goal, text, jobId: job.id }).catch((e) => console.warn('No se pudo guardar en Mis documentos:', e));
+  }, [job, experience.id]);
 
   // Sin sesión no hay trabajos; sin jobId, se empieza la conversación
   useEffect(() => {
@@ -152,12 +202,23 @@ const CreatorFlowScreen: React.FC = () => {
 
   const handleCreate = async () => {
     if (!jobId) return;
+    if (needsPhoto && !imageUri) {
+      setError('Sube una foto para que Weë pueda trabajar con ella.');
+      return;
+    }
     setBusy(true);
     setError(null);
     setShortfall(null);
     try {
+      // Si la foto todavía no está adjunta al trabajo (p. ej. se eligió tarde), se adjunta ahora
+      if (imageUri && !uploadedUrl.current) {
+        const url = await uploadPhoto(imageUri);
+        if (url) await creatorService.attachImage(jobId, url);
+      }
       await creatorService.run(jobId);
     } catch (e) {
+      // La app se cansó de esperar, pero el trabajo sigue en el servidor y llega por Firestore
+      if (isClientTimeout(e)) return;
       const short = creditsShortfall(e);
       setShortfall(short);
       if (!short) setError(humanizeCreatorError(e));
@@ -203,13 +264,13 @@ const CreatorFlowScreen: React.FC = () => {
         {needsPhoto && !imageUri && status !== 'done' && status !== 'running' && (
           <UploadBox
             config={{ title: 'Sube tu foto para trabajarla', subtitle: 'Desde tu galería o con la cámara', hint: 'JPG, PNG o WEBP (máx. 10 MB)' }}
-            onPick={setImageUri}
+            onPick={handlePickPhoto}
           />
         )}
         {!!imageUri && (
           <View style={[styles.attachment, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Image source={{ uri: imageUri }} style={styles.attachmentImage} contentFit="cover" />
-            <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>Tu foto está lista. Cuéntame qué hacemos con ella.</Text>
+            <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>{uploadingPhoto ? 'Subiendo tu foto…' : 'Tu foto está lista. Cuéntame qué hacemos con ella.'}</Text>
             {status !== 'done' && status !== 'running' && (
               <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel="Cambiar foto" style={styles.attachmentAction}>
                 <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>Cambiar</Text>

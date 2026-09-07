@@ -19,6 +19,7 @@ export type ExperienceId =
 export type CapabilityId =
   | 'text.generate'
   | 'text.structure'
+  | 'text.search'
   | 'image.generate'
   | 'image.edit'
   | 'image.background_remove'
@@ -106,6 +107,10 @@ export interface JobResult {
   demo?: boolean;
   /** Credits que costó este resultado. */
   credits?: number;
+  /** Duración real (video/audio) cuando se conoce. */
+  durationSec?: number;
+  /** Fuentes citadas cuando el paso usó búsqueda web. */
+  sources?: { url: string; title?: string }[];
 }
 
 export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';
@@ -130,6 +135,8 @@ export interface CreatorJob {
   projectId?: string;
   /** De dónde salió el precio: simulado (fase de construcción) o real. */
   pricingMode?: 'simulated' | 'real';
+  /** Foto que subió la persona (Storage de Weë) para trabajar sobre ella. */
+  inputImageUrl?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   finishedAt?: Timestamp;

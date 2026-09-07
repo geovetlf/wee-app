@@ -3,6 +3,8 @@ import { EngineConfig } from './config';
 import { Ledger } from './ledger';
 import { creditsFor, estimateUsd } from './pricing';
 import { NotConfiguredError, ProviderError } from './http';
+import { classifyError, EngineError } from './errors';
+import { providerCallsToday } from './limits';
 import {
   ChainLink,
   EngineRequest,
@@ -18,7 +20,9 @@ import {
   RouteDecision,
   RoutingPolicy,
   RoutingPrefs,
+  inputTypeOf,
   modalityOf,
+  outputTypeOf,
 } from './types';
 
 /**
@@ -110,6 +114,8 @@ export interface RouterDeps {
   ledger: Ledger;
   health: HealthStore;
   now?: () => number;
+  /** Consumo de hoy (aiUsage/{día}) para aplicar límites diarios por proveedor. */
+  usageToday?: () => Promise<Record<string, any> | undefined>;
 }
 
 interface InternalCandidate extends RouteCandidate {
@@ -156,6 +162,7 @@ export function createRouter(deps: RouterDeps) {
     const excluded = new Set(prefs.excludeProviders || []);
     const candidates: InternalCandidate[] = [];
     const skipped: RouteDecision['skipped'] = [];
+    const usage = deps.usageToday ? await deps.usageToday().catch(() => undefined) : undefined;
 
     links.forEach((link, index) => {
       const skip = (reason: string): void => {
@@ -169,6 +176,8 @@ export function createRouter(deps: RouterDeps) {
       if (!adapter.isConfigured()) return skip('sin clave configurada');
       if (!adapter.supports(capability)) return skip('no atiende esta capacidad');
       if (deps.health.isOpen(link.provider)) return skip('en pausa por fallos recientes');
+      const maxCalls = providerConfig.limits?.maxCallsPerDay;
+      if (maxCalls && maxCalls > 0 && providerCallsToday(usage, link.provider) >= maxCalls) return skip('límite diario del proveedor alcanzado');
       if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad');
       if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea');
       const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model);
@@ -223,13 +232,23 @@ export function createRouter(deps: RouterDeps) {
     const decision = await route(request, config);
     const { capability, input } = request;
     const modality = modalityOf(capability);
-    const ctx = { userId: request.userId, jobId: request.jobId, stepId: request.stepId, experienceId: request.experienceId, goal: request.goal };
+    const ctx = {
+      userId: request.userId,
+      jobId: request.jobId,
+      stepId: request.stepId,
+      experienceId: request.experienceId,
+      goal: request.goal,
+      requestId: request.requestId,
+      service: request.service,
+      creditTransactionId: request.creditTransactionId,
+    };
     const prefs: RoutingPrefs = request.prefs || {};
     const timeoutMs = settings.timeoutsMs[modality] ?? 120_000;
 
     if (!decision.candidates.length) {
       const why = decision.skipped.map((s) => `${s.provider}: ${s.reason}`).join('; ');
-      throw new ProviderError(`Ningún proveedor disponible para ${capability}${why ? ` (${why})` : ''}`, 'engine', undefined, false);
+      console.warn(`WEË AI ENGINE: ningún proveedor disponible para ${capability} (${why})`);
+      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay un proveedor disponible para esto. Inténtalo más tarde.', { capability });
     }
 
     let lastError: unknown = null;
@@ -246,6 +265,7 @@ export function createRouter(deps: RouterDeps) {
         attempt,
         estimatedUsd: candidate.estimatedUsd,
         pricingMode: settings.pricingMode,
+        inputType: inputTypeOf(capability, input),
       });
       const start = now();
       try {
@@ -253,7 +273,7 @@ export function createRouter(deps: RouterDeps) {
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
         const credits = creditsFor(capability, result.costUSD, settings, demo, input);
-        await deps.ledger.close(generationId, { status: 'done', actualUsd: result.costUSD, credits, durationMs, usage: result.usage });
+        await deps.ledger.close(generationId, { status: 'COMPLETED', providerCost: result.costUSD, creditsCharged: credits, durationMs, usage: result.usage, outputType: outputTypeOf(result.output.kind) });
         deps.health.success(candidate.provider);
         console.log(`WEË AI ENGINE: ${candidate.provider}/${result.model || candidate.model.id} atendió ${capability} en ${durationMs} ms (${credits} Credits, registro ${generationId}, intento ${attempt})`);
         if (request.record) {
@@ -263,13 +283,13 @@ export function createRouter(deps: RouterDeps) {
       } catch (error) {
         lastError = error;
         const message = error instanceof Error ? error.message : String(error);
-        await deps.ledger.close(generationId, { status: 'failed', actualUsd: 0, credits: 0, durationMs: now() - start, error: message.slice(0, 500) });
+        await deps.ledger.close(generationId, { status: 'FAILED', providerCost: 0, creditsCharged: 0, durationMs: now() - start, error: message.slice(0, 500) });
         const countsAsFailure = !(error instanceof NotConfiguredError) && (!(error instanceof ProviderError) || error.retryable);
         if (countsAsFailure) deps.health.failure(candidate.provider, settings);
         console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${message}`);
       }
     }
-    throw lastError instanceof Error ? lastError : new Error(`Todos los proveedores fallaron para ${capability}`);
+    throw classifyError(lastError);
   };
 
   return { route, execute };

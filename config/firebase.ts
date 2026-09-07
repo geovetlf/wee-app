@@ -3,7 +3,7 @@ import { initializeAuth, getAuth } from 'firebase/auth';
 // @ts-ignore: los tipos web de firebase/auth no declaran getReactNativePersistence (existe en runtime nativo)
 import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -99,6 +99,14 @@ try {
   if (emulatorHost) {
     connectFunctionsEmulator(functions, emulatorHost, Number(process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_PORT || 5001));
     console.log(`🧪 Firebase Functions → emulador en ${emulatorHost}`);
+  }
+
+  // Desarrollo sin bucket real (plan Spark): Storage local con el emulador
+  // (npm run functions:emulator arranca functions + storage). En el celular: adb reverse tcp:9199 tcp:9199.
+  const storageEmulatorHost = process.env.EXPO_PUBLIC_STORAGE_EMULATOR_HOST;
+  if (storageEmulatorHost && storage) {
+    connectStorageEmulator(storage, storageEmulatorHost, Number(process.env.EXPO_PUBLIC_STORAGE_EMULATOR_PORT || 9199));
+    console.log(`🧪 Firebase Storage → emulador en ${storageEmulatorHost}`);
   }
 
 } catch (error) {

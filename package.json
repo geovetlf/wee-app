@@ -11,7 +11,7 @@
     "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
     "functions:install": "npm --prefix functions install",
     "functions:build": "npm --prefix functions run build",
-    "functions:emulator": "npm --prefix functions run build && firebase emulators:start --only functions --project dev",
+    "functions:emulator": "npm --prefix functions run build && node scripts/emulators.mjs",
     "deploy:prod:functions": "firebase deploy --only functions,storage --project prod",
     "deploy:prod:firestore": "firebase deploy --only firestore --project prod",
     "test:engine": "npm --prefix functions run build && npm --prefix functions test"

@@ -14,11 +14,13 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.friendlyFailure = exports.progressTextFor = exports.engine = void 0;
+exports.limiter = exports.assertText = exports.classifyError = exports.toEngineHttpsError = exports.EngineError = exports.friendlyFailure = exports.progressTextFor = exports.engine = void 0;
+const firestore_1 = require("firebase-admin/firestore");
 const registry_1 = require("./registry");
 const config_1 = require("./config");
 const ledger_1 = require("./ledger");
 const router_1 = require("./router");
+const limits_1 = require("./limits");
 /**
  * WEË AI ENGINE — punto de entrada (docs/AI-ENGINE.md).
  *
@@ -30,7 +32,16 @@ const router_1 = require("./router");
  * engine.status(): estado de proveedores, cadenas y salud (administración).
  */
 const health = (0, router_1.memoryHealth)();
-const router = (0, router_1.createRouter)({ adapters: registry_1.ADAPTERS, loadConfig: config_1.loadConfig, ledger: ledger_1.firestoreLedger, health });
+let usageCache = null;
+const usageToday = async () => {
+    const day = (0, limits_1.dayKey)();
+    if (usageCache && usageCache.day === day && Date.now() - usageCache.at < 60000)
+        return usageCache.data;
+    const snap = await (0, firestore_1.getFirestore)().collection('aiUsage').doc(day).get();
+    usageCache = { day, at: Date.now(), data: snap.data() };
+    return usageCache.data;
+};
+const router = (0, router_1.createRouter)({ adapters: registry_1.ADAPTERS, loadConfig: config_1.loadConfig, ledger: ledger_1.firestoreLedger, health, usageToday });
 exports.engine = {
     generate: (request) => router.execute(request),
     route: (request) => router.route(request),
@@ -72,4 +83,11 @@ __exportStar(require("./types"), exports);
 var humanize_1 = require("./humanize");
 Object.defineProperty(exports, "progressTextFor", { enumerable: true, get: function () { return humanize_1.progressTextFor; } });
 Object.defineProperty(exports, "friendlyFailure", { enumerable: true, get: function () { return humanize_1.friendlyFailure; } });
+var errors_1 = require("./errors");
+Object.defineProperty(exports, "EngineError", { enumerable: true, get: function () { return errors_1.EngineError; } });
+Object.defineProperty(exports, "toEngineHttpsError", { enumerable: true, get: function () { return errors_1.toEngineHttpsError; } });
+Object.defineProperty(exports, "classifyError", { enumerable: true, get: function () { return errors_1.classifyError; } });
+Object.defineProperty(exports, "assertText", { enumerable: true, get: function () { return errors_1.assertText; } });
+var limits_2 = require("./limits");
+Object.defineProperty(exports, "limiter", { enumerable: true, get: function () { return limits_2.limiter; } });
 //# sourceMappingURL=index.js.map

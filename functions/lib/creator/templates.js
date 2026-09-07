@@ -105,7 +105,7 @@ const design = {
             goal,
             steps: [
                 step('concept', 'text.generate', 'Definir el concepto', { input: { kind: 'concept', brief: `${piece}, estilo ${look}, ${use}` } }),
-                step('images', 'image.generate', `Crear ${count} propuestas de diseño`, { dependsOn: ['concept'], input: { count, brief: `${piece}, estilo ${look}` } }),
+                step('images', 'image.generate', `Crear ${count} propuestas de diseño`, { dependsOn: ['concept'], input: { count, kind: what.id === 'logo' ? 'design' : 'design', brief: `${piece}, estilo ${look}` } }),
             ],
             explainToUser: `Voy a definir el concepto y crear ${count} propuestas de ${piece}, con un estilo ${look}, ${use}.${decided(what.idk, 'me guío por lo que escribiste')}${decided(style.idk, 'elegí un estilo realista y cuidado')}${decided(purpose.idk, 'lo preparo para que lo veas y decidas')}`,
         };
@@ -171,29 +171,27 @@ const studio = {
         const kind = type.idk ? 'un video para tus redes' : type.label.toLowerCase();
         const look = style.idk ? 'cercano y con ritmo' : style.label.toLowerCase();
         const format = where.id === 'horizontal' ? 'horizontal para YouTube' : where.id === 'square' ? 'cuadrado para WhatsApp y Facebook' : 'vertical para Instagram y TikTok';
+        const aspectRatio = where.id === 'horizontal' ? '16:9' : where.id === 'square' ? '1:1' : '9:16';
         if (type.id === 'animate') {
             return {
                 experience: 'studio',
                 goal,
                 steps: [
                     step('look', 'vision.describe', 'Mirar tu foto', { input: { kind: 'describe' } }),
-                    step('motion', 'video.image_to_video', 'Darle movimiento a la foto', { dependsOn: ['look'], input: { brief: look } }),
-                    step('video', 'video.compose', 'Armar el video de 15 segundos con watermark Weë', { dependsOn: ['motion'] }),
+                    step('motion', 'video.image_to_video', 'Darle movimiento a la foto', { dependsOn: ['look'], input: { kind: 'clip', brief: look, durationSec: 5 } }),
                 ],
-                explainToUser: `Voy a mirar tu foto, darle movimiento con un estilo ${look} y armar un video de 15 segundos listo para compartir.${decided(style.idk, 'elegí un estilo cercano y con ritmo')}`,
+                explainToUser: `Voy a mirar tu foto y darle movimiento con un estilo ${look}: un clip de 5 segundos listo para compartir.${decided(style.idk, 'elegí un estilo cercano y con ritmo')}`,
             };
         }
         return {
             experience: 'studio',
             goal,
             steps: [
-                step('script', 'text.generate', 'Escribir el guion de 4 escenas', { input: { kind: 'script', brief: `${kind}, estilo ${look}, 15 segundos, formato ${format}` } }),
-                step('frames', 'image.generate', 'Crear las imágenes de cada escena', { dependsOn: ['script'], input: { count: 4 } }),
-                step('voice', 'voice.tts', 'Grabar la narración', { dependsOn: ['script'] }),
-                step('music', 'music.generate', 'Elegir la música', { dependsOn: ['script'], input: { mood: look } }),
-                step('video', 'video.compose', `Armar el video ${format} de 15 segundos con watermark Weë`, { dependsOn: ['frames', 'voice', 'music'] }),
+                step('script', 'text.generate', 'Escribir el guion de 3 escenas', { input: { kind: 'script', brief: `${kind}, estilo ${look}, 10 segundos, formato ${format}` } }),
+                step('clip', 'video.generate', 'Generar el video', { dependsOn: ['script'], input: { kind: 'clip', brief: `${kind}, estilo ${look}`, durationSec: 10, aspectRatio } }),
+                step('voice', 'voice.tts', 'Grabar la narración', { dependsOn: ['script'], input: { kind: 'narration' } }),
             ],
-            explainToUser: `Voy a escribir un guion corto, crear las imágenes, grabar la narración y armar ${kind} de 15 segundos, ${format}, con estilo ${look}.${decided(type.idk, 'lo preparo para tus redes')}${decided(style.idk, 'elegí un estilo cercano y con ritmo')}${decided(where.idk, 'lo hago vertical, que sirve para Instagram y TikTok')}`,
+            explainToUser: `Voy a escribir un guion corto, generar ${kind} de 10 segundos, ${format}, con estilo ${look}, y grabar la narración.${decided(type.idk, 'lo preparo para tus redes')}${decided(style.idk, 'elegí un estilo cercano y con ritmo')}${decided(where.idk, 'lo hago vertical, que sirve para Instagram y TikTok')}`,
         };
     },
 };
@@ -250,19 +248,17 @@ const photo = {
         const detail = chosen(photo.questions[1], answers);
         const capability = action.id === 'background' ? 'image.background_remove' :
             action.id === 'remove' ? 'image.object_remove' :
-                action.id === 'restore' ? 'image.upscale' :
-                    action.id === 'colorize' ? 'image.edit' :
-                        action.id === 'retouch' ? 'image.identity_edit' :
-                            action.id === 'transform' ? 'image.edit' :
-                                action.id === 'generate' ? 'image.generate' : 'image.upscale';
+                action.id === 'retouch' ? 'image.identity_edit' :
+                    action.id === 'generate' ? 'image.generate' : 'image.edit';
+        const editKind = action.idk ? 'enhance' : action.id;
         const what = action.idk ? 'mejorar la calidad' : action.label.toLowerCase();
         const how = detail.idk ? 'lo más natural posible' : detail.label.toLowerCase();
         const purpose = action.idk ? 'Mejorar la foto' : action.label.replace(/^./, (c) => c.toUpperCase());
         const steps = action.id === 'generate'
-            ? [step('images', 'image.generate', 'Crear 3 imágenes', { input: { count: 3, brief: `${goal}, ${how}` } })]
+            ? [step('images', 'image.generate', 'Crear 3 imágenes', { input: { count: 3, kind: 'photo', brief: `${goal}, ${how}` } })]
             : [
                 step('look', 'vision.describe', 'Mirar la foto para entender qué tiene', { input: { kind: 'describe' } }),
-                step('edit', capability, purpose, { dependsOn: ['look'], input: { brief: `${what}, ${how}`, count: action.id === 'transform' ? 2 : 1 } }),
+                step('edit', capability, purpose, { dependsOn: ['look'], input: { kind: editKind, brief: `${what}, ${how}`, count: action.id === 'transform' ? 2 : 1 } }),
             ];
         return {
             experience: 'photo',
@@ -387,7 +383,7 @@ const writer = {
                     goal,
                     steps: [
                         step('concept', 'text.generate', 'Definir el concepto de la portada', { input: { kind: 'concept', brief: goal } }),
-                        step('covers', 'image.generate', 'Crear 3 propuestas de portada', { dependsOn: ['concept'], input: { count: 3, brief: goal } }),
+                        step('covers', 'image.generate', 'Crear 3 propuestas de portada', { dependsOn: ['concept'], input: { count: 3, kind: 'cover', brief: goal } }),
                     ],
                     explainToUser: 'Voy a definir el concepto de la portada y crear tres propuestas para que elijas.',
                 };
@@ -395,11 +391,8 @@ const writer = {
                 return {
                     experience: 'writer',
                     goal,
-                    steps: [
-                        step('cv', 'text.generate', 'Redactar tu CV', { input: { kind: 'cv', brief: `tono ${voice}` } }),
-                        step('file', 'doc.render', 'Generar el documento listo para enviar', { dependsOn: ['cv'] }),
-                    ],
-                    explainToUser: `Voy a redactar tu CV con un tono ${voice}, listo para enviar.${decided(tone.idk, 'uso un tono profesional')}`,
+                    steps: [step('cv', 'text.generate', 'Redactar tu CV', { input: { kind: 'cv', brief: `tono ${voice}` } })],
+                    explainToUser: `Voy a redactar tu CV con un tono ${voice}, listo para usar en el editor y enviar.${decided(tone.idk, 'uso un tono profesional')}`,
                 };
             case 'ideas': {
                 const plan = one('ideas', 'Proponerte ideas para escribir', 'ideas', `tono ${voice}`);
@@ -633,7 +626,7 @@ const beauty = {
                 steps: [
                     step('look', 'vision.describe', 'Mirar tu rostro', { input: { kind: 'describe' } }),
                     step('advice', 'text.generate', 'Recomendarte cortes, lentes y estilos', { dependsOn: ['look'], input: { kind: 'facestyle', brief: goal } }),
-                    step('try', 'image.identity_edit', 'Probar los dos estilos que mejor te van', { dependsOn: ['advice'], input: { count: 2, brief: 'estilos que favorecen el rostro' } }),
+                    step('try', 'image.identity_edit', 'Probar los dos estilos que mejor te van', { dependsOn: ['advice'], input: { count: 2, kind: 'look', brief: 'estilos que favorecen el rostro' } }),
                 ],
                 explainToUser: 'Voy a mirar tu rostro, recomendarte los cortes y estilos que mejor te van y probarte dos en tu foto.',
             };
@@ -643,7 +636,7 @@ const beauty = {
             goal,
             steps: [
                 step('look', 'vision.describe', 'Mirar tu foto', { input: { kind: 'describe' } }),
-                step('edit', 'image.identity_edit', `Probar ${change} conservando tu rostro`, { dependsOn: ['look'], input: { count: 2, brief: `${change} para ${when}` } }),
+                step('edit', 'image.identity_edit', `Probar ${change} conservando tu rostro`, { dependsOn: ['look'], input: { count: 2, kind: 'look', brief: `${change} para ${when}` } }),
             ],
             explainToUser: `Voy a probar ${change} para ${when} en dos versiones, conservando tu rostro, tu piel y la luz de la foto.${decided(what.idk, 'propongo un cambio de look completo')}${decided(occasion.idk, 'lo pensé para el día a día')}`,
         };
@@ -734,7 +727,7 @@ const chef = {
         if (kind === 'cook')
             steps.push(step('look', 'vision.describe', 'Mirar qué ingredientes tienes', { input: { kind: 'describe' } }));
         steps.push(step('recipe', 'text.generate', 'Escribir la receta paso a paso', { dependsOn: kind === 'cook' ? ['look'] : undefined, input: { kind: 'recipe', brief: `${piece} ${minutes}, ${forWhom}` } }));
-        steps.push(step('dish', 'image.generate', 'Crear una foto del plato', { dependsOn: ['recipe'], input: { count: 1 } }));
+        steps.push(step('dish', 'image.generate', 'Crear una foto del plato', { dependsOn: ['recipe'], input: { count: 1, kind: 'dish' } }));
         return {
             experience: 'chef',
             goal,
@@ -818,7 +811,7 @@ const home = {
                 experience: 'home',
                 goal,
                 steps: [
-                    step('ideas', 'image.generate', `Buscar ideas para ${room}`, { input: { count: 3, brief: `${room}, estilo ${look}` } }),
+                    step('ideas', 'image.generate', `Buscar ideas para ${room}`, { input: { count: 3, kind: 'space', brief: `${room}, estilo ${look}` } }),
                     step('tips', 'text.generate', 'Explicarte cómo lograrlo', { dependsOn: ['ideas'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
                 ],
                 explainToUser: `Voy a buscar tres ideas para ${room} en estilo ${look} y te explico cómo lograrlas.${decided(style.idk, 'elegí un estilo acogedor')}`,
@@ -831,7 +824,7 @@ const home = {
                 steps: [
                     step('look', 'vision.describe', 'Mirar la foto del espacio', { input: { kind: 'describe' } }),
                     step('plan', 'text.generate', 'Proponer una distribución mejor', { dependsOn: ['look'], input: { kind: 'layout', brief: room } }),
-                    step('view', 'image.space_restyle', 'Mostrarte cómo quedaría', { dependsOn: ['plan'], input: { count: 1, brief: `${room}, distribución nueva` } }),
+                    step('view', 'image.space_restyle', 'Mostrarte cómo quedaría', { dependsOn: ['plan'], input: { count: 1, kind: 'space', brief: `${room}, distribución nueva` } }),
                 ],
                 explainToUser: `Voy a mirar ${room}, proponerte una distribución que aproveche mejor el espacio y mostrarte cómo quedaría.`,
             };
@@ -842,7 +835,7 @@ const home = {
             goal,
             steps: [
                 step('look', 'vision.describe', 'Mirar la foto del espacio', { input: { kind: 'describe' } }),
-                step('restyle', 'image.space_restyle', `${action.replace(/^./, (c) => c.toUpperCase())} ${room} en estilo ${look}`, { dependsOn: ['look'], input: { count: 2, brief: `${room}, estilo ${look}` } }),
+                step('restyle', 'image.space_restyle', `${action.replace(/^./, (c) => c.toUpperCase())} ${room} en estilo ${look}`, { dependsOn: ['look'], input: { count: 2, kind: 'space', brief: `${room}, estilo ${look}` } }),
                 step('list', 'text.generate', 'Armar la lista de cambios y compras', { dependsOn: ['restyle'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
             ],
             explainToUser: `Voy a ${action} ${room} en un estilo ${look}, en dos propuestas, y te dejo la lista de cambios y compras.${decided(what.idk, 'empiezo por rediseñarlo')}${decided(space.idk && kind !== 'garden', 'empiezo por la sala')}${decided(style.idk, 'elegí un estilo acogedor')}`,
@@ -910,7 +903,7 @@ const business = {
                 steps = [
                     understand,
                     step('copy', 'text.generate', 'Escribir la publicación', { dependsOn: ['analysis'], input: { kind: 'copy', brief: `tono ${voice}` } }),
-                    step('image', 'image.generate', 'Crear la imagen para la publicación', { dependsOn: ['copy'], input: { count: 1 } }),
+                    step('image', 'image.generate', 'Crear la imagen para la publicación', { dependsOn: ['copy'], input: { count: 1, kind: 'business' } }),
                 ];
                 explain = `Voy a entender tu negocio, escribir la publicación con un tono ${voice} y crear la imagen que la acompaña.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
                 break;
@@ -937,7 +930,7 @@ const business = {
                 steps = [
                     understand,
                     step('campaign', 'text.generate', 'Diseñar la campaña', { dependsOn: ['analysis'], input: { kind: 'campaign', brief: `tono ${voice}` } }),
-                    step('visual', 'image.generate', 'Crear la imagen de la campaña', { dependsOn: ['campaign'], input: { count: 1 } }),
+                    step('visual', 'image.generate', 'Crear la imagen de la campaña', { dependsOn: ['campaign'], input: { count: 1, kind: 'business' } }),
                 ];
                 explain = `Voy a entender tu negocio, diseñar la campaña con un tono ${voice} y crear su imagen principal.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
                 break;
@@ -945,18 +938,16 @@ const business = {
                 steps = [
                     understand,
                     step('cv', 'text.generate', 'Redactar tu CV', { dependsOn: ['analysis'], input: { kind: 'cv', brief: `tono ${voice}` } }),
-                    step('file', 'doc.render', 'Generar el documento listo para enviar', { dependsOn: ['cv'] }),
                 ];
-                explain = `Voy a entender tu experiencia y redactar tu CV con un tono ${voice}, listo para enviar.${decided(tone.idk, 'uso un tono profesional')}`;
+                explain = `Voy a entender tu experiencia y redactar tu CV con un tono ${voice}, listo para usar.${decided(tone.idk, 'uso un tono profesional')}`;
                 break;
             case 'deck':
             case 'plan':
                 steps = [
                     understand,
-                    step('doc', 'text.generate', kind === 'deck' ? 'Escribir la presentación' : 'Redactar el documento', { dependsOn: ['analysis'], input: { kind: 'business', brief: `tono ${voice}` } }),
-                    step('file', 'doc.render', kind === 'deck' ? 'Armar las diapositivas' : 'Generar el documento', { dependsOn: ['doc'] }),
+                    step('doc', 'text.generate', kind === 'deck' ? 'Escribir la presentación (diapositiva por diapositiva)' : 'Redactar el documento', { dependsOn: ['analysis'], input: { kind: 'business', brief: `tono ${voice}${kind === 'deck' ? ', organizado diapositiva por diapositiva' : ''}` } }),
                 ];
-                explain = `Primero entiendo tu negocio y después ${kind === 'deck' ? 'escribo la presentación y armo las diapositivas' : 'redacto el documento'} con un tono ${voice}.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
+                explain = `Primero entiendo tu negocio y después ${kind === 'deck' ? 'escribo la presentación diapositiva por diapositiva' : 'redacto el documento'} con un tono ${voice}.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
                 break;
             default:
                 steps = [

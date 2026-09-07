@@ -37,6 +37,12 @@ export interface EngineContext {
   stepId?: string;
   experienceId?: string;
   goal?: string;
+  /** Identificador único de la operación (idempotencia y trazabilidad): jobId:stepId, brain_<id>… */
+  requestId?: string;
+  /** Servicio del catálogo de Credits que paga esta generación (ai_image, ai_video…). */
+  service?: string;
+  /** Transacción de Credits que autorizó el cobro (usage_<requestId>). */
+  creditTransactionId?: string;
 }
 
 export interface EngineRequest extends EngineContext {
@@ -48,7 +54,7 @@ export interface EngineRequest extends EngineContext {
 }
 
 /** Coste de lista de un modelo. SOLO para ordenar candidatos: los Credits que
- *  ve la persona salen de pricing.ts (modo prueba) o del coste medido (modo real). */
+ *  ve la persona salen del catálogo del Credit Engine (modo prueba) o del coste medido (modo real). */
 export interface ModelCost {
   unit: 'second' | 'image' | 'kchar' | 'mtoken' | 'call' | 'minute';
   usd: number;
@@ -72,6 +78,12 @@ export interface ModelSpec {
   note?: string;
 }
 
+/** Fuente citada cuando la respuesta usó búsqueda web (Weë Brain). */
+export interface SourceRef {
+  url: string;
+  title?: string;
+}
+
 export interface ProviderOutput {
   kind: ResultKind;
   content?: string;
@@ -80,6 +92,8 @@ export interface ProviderOutput {
   urls?: string[];
   /** Duración real (audio/video) cuando se conoce. */
   durationSec?: number;
+  /** Fuentes de la búsqueda web (cuando corresponde). */
+  sources?: SourceRef[];
 }
 
 export interface ProviderResult {
@@ -138,6 +152,11 @@ export interface ProviderConfig {
   note?: string;
 }
 
+/** Límites por persona y día, por modalidad (0 = sin límite). */
+export interface UsageLimits {
+  perUserPerDay: Partial<Record<Modality, number>>;
+}
+
 export interface EngineSettings {
   pricingMode: PricingMode;
   /** Cuántos Credits vale 1 USD de coste (antes de margen). */
@@ -149,6 +168,8 @@ export interface EngineSettings {
   allowMockFallback: boolean;
   timeoutsMs: Partial<Record<Modality, number>>;
   circuitBreaker: { failures: number; windowMs: number; openMs: number };
+  /** Límites de uso para evitar abusos (por persona; los de proveedor van en aiProviders/{id}.limits). */
+  limits: UsageLimits;
 }
 
 export interface RouteCandidate {
@@ -168,31 +189,43 @@ export interface RouteDecision {
   skipped: { provider: string; model?: string; reason: string }[];
 }
 
-export type GenerationStatus = 'running' | 'done' | 'failed';
+/** Estados de una generación (docs/CREDITS.md §generations). */
+export type GenerationStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
-/** Documento aiGenerations/{id}: lo que Weë sabe de cada generación. */
+/** Documento aiGenerations/{generationId}: lo que Weë sabe de cada generación. */
 export interface GenerationRecord {
   id: string;
+  /** jobId:stepId, brain_<mensaje>… (misma operación → mismo requestId). */
+  requestId?: string;
   userId: string;
   jobId?: string;
   stepId?: string;
   experienceId?: string;
   capability: CapabilityId;
+  /** Servicio del catálogo de Credits (ai_image, ai_video…). */
+  service?: string;
   modality: Modality;
   provider: string;
   model: string;
   status: GenerationStatus;
   /** 1 = primer intento; >1 = fallback tras un fallo. */
   attempt: number;
+  /** Coste del proveedor: estimado antes de llamar y medido/estimado al terminar. */
   estimatedUsd: number;
-  actualUsd: number;
-  credits: number;
+  providerCost: number;
+  providerCurrency: 'USD';
+  /** Credits que pagó la persona por este resultado (0 en demo o si falló). */
+  creditsCharged: number;
+  creditTransactionId?: string;
   pricingMode: PricingMode;
+  inputType?: string;
+  outputType?: string;
   durationMs: number;
   error?: string;
   usage?: Record<string, number>;
   createdAt: unknown;
-  finishedAt?: unknown;
+  updatedAt: unknown;
+  completedAt?: unknown;
 }
 
 export interface EngineResult extends ProviderResult {
@@ -231,6 +264,16 @@ export const MODALITY_OF: Record<string, Modality> = {
 };
 
 export const modalityOf = (capability: CapabilityId): Modality => MODALITY_OF[capability.split('.')[0]] || 'text';
+
+/** Tipo de entrada / salida que se guarda en cada generación. */
+export const inputTypeOf = (capability: CapabilityId, input: Record<string, unknown>): string => {
+  const hasImage = !!(input.imageUrl || (Array.isArray(input.imageUrls) && input.imageUrls.length));
+  if (capability.startsWith('video.image_to_video')) return 'image';
+  if (hasImage) return capability.startsWith('image.') ? 'image' : 'text+image';
+  return 'text';
+};
+
+export const outputTypeOf = (kind: ResultKind): string => kind;
 
 export const QUALITY_RANK: Record<QualityTier, number> = { standard: 1, high: 2, max: 3 };
 /** Calidad mínima de modelo (1–5) que satisface cada nivel. */

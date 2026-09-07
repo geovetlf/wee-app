@@ -21,6 +21,7 @@ exports.CREDIT_COSTS = {
     ai_audio: 20,
     ai_music: 30,
     ai_text: 2,
+    ai_search: 3,
     ai_book: 100,
     wee_avatar: 50,
 };
@@ -35,6 +36,7 @@ exports.SERVICE_LABEL = {
     ai_audio: 'Generación de voz',
     ai_music: 'Generación de música',
     ai_text: 'Generación de texto',
+    ai_search: 'Búsqueda con IA',
     ai_book: 'Creación de libro',
     wee_avatar: 'Avatar Weë',
 };
@@ -73,6 +75,8 @@ function serviceForCapability(capability, input = {}) {
         case 'video.montage':
         case 'video.vertical':
             return 'ai_video_edit';
+        case 'text.search':
+            return 'ai_search';
         case 'voice.tts':
             return 'ai_audio';
         case 'music.generate':

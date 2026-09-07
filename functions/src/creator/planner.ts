@@ -3,7 +3,7 @@ import { TEMPLATES, plainQuestion } from './templates';
 import { BRAIN_SYSTEM } from './prompts';
 import { runCapability } from '../gateway';
 import { GatewayContext } from '../gateway/types';
-import { isGeminiConfigured } from '../gateway/providers/gemini';
+import { geminiAdapter } from '../engine/providers/gemini';
 
 /**
  * Weë Brain — planificador.
@@ -152,4 +152,4 @@ export const llmPlanner: Planner = {
   },
 };
 
-export const getPlanner = (): Planner => (isGeminiConfigured() ? llmPlanner : templatePlanner);
+export const getPlanner = (): Planner => (geminiAdapter.isConfigured() ? llmPlanner : templatePlanner);

@@ -1,18 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Platform, Alert } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Platform, Alert, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { useCreatorJob } from '../hooks/useCreatorJob';
+import { useBrainChat } from '../hooks/useBrainChat';
 import { getSpecialist, SpecialistAction } from '../constants/specialists';
-import { matchExperiences, WeeExperience } from '../constants/weeExperiences';
+import { getExperienceById, WeeExperience } from '../constants/weeExperiences';
+import { BrainMessage } from '../services/brainService';
 import CreatorShell from '../components/creator/CreatorShell';
 import SpecialistHero from '../components/creator/SpecialistHero';
-import JobProgress from '../components/creator/JobProgress';
-import ResultCard from '../components/creator/ResultCard';
 import { Chip } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -25,42 +24,60 @@ interface Bubble {
   key: string;
   role: 'wee' | 'user';
   text: string;
+  imageUrl?: string;
+  sources?: { url: string; title?: string }[];
+  suggestedExperience?: string;
+  credits?: number;
+  demo?: boolean;
 }
 
 /**
- * Weë Brain: chat grande (docs/CREATOR-BUILD.md §4). Entiende lo que la persona
- * necesita, pregunta lo justo con opciones y, cuando conviene, la lleva al
- * especialista de Weë que corresponde. Por debajo usa el mismo motor que todos.
+ * Weë Brain: chat grande (docs/CREATOR-BUILD.md §4). Conversa con contexto,
+ * explica, investiga en internet cuando se lo pides (con fuentes), analiza una
+ * foto adjunta y, cuando conviene, te lleva al especialista de Weë que corresponde.
+ * Por debajo usa el mismo motor que todos (WEË AI ENGINE + Credit Engine).
  */
 const BrainChatScreen: React.FC = () => {
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
   const spec = getSpecialist('brain');
-  const flow = useCreatorJob('brain');
+  const chat = useBrainChat();
 
   const [draft, setDraft] = useState('');
-  const [archive, setArchive] = useState<Bubble[]>([]);
   const [attachment, setAttachment] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
-  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  const [suggestionDismissed, setSuggestionDismissed] = useState<string | null>(null);
+  const lastSent = useRef<{ text: string; imageUri: string | null; webSearch: boolean } | null>(null);
 
-  // Bubbles de la conversación actual, derivadas del trabajo
-  const current: Bubble[] = useMemo(() => {
-    const items: Bubble[] = [];
-    if (flow.goal) items.push({ key: 'goal', role: 'user', text: flow.goal });
-    flow.history.forEach((qa, index) => {
-      items.push({ key: `q${index}`, role: 'wee', text: qa.question });
-      items.push({ key: `a${index}`, role: 'user', text: qa.answer });
-    });
-    return items;
-  }, [flow.goal, flow.history]);
+  const bubbles: Bubble[] = useMemo(
+    () =>
+      chat.messages.map((m: BrainMessage) => ({
+        key: m.id,
+        role: m.role === 'user' ? 'user' : 'wee',
+        text: m.text,
+        imageUrl: m.imageUrl,
+        sources: m.sources,
+        suggestedExperience: m.suggestedExperience,
+        credits: m.credits,
+        demo: m.demo,
+      })),
+    [chat.messages]
+  );
 
+  // Derivación: la propone el servidor en su última respuesta
+  const lastWee = [...bubbles].reverse().find((b) => b.role === 'wee');
   const suggestion: WeeExperience | null = useMemo(() => {
-    if (!flow.goal || suggestionDismissed) return null;
-    const matches = matchExperiences(flow.goal).filter((e) => e.id !== 'brain');
-    return matches[0] || null;
-  }, [flow.goal, suggestionDismissed]);
+    if (!lastWee?.suggestedExperience || suggestionDismissed === lastWee.key) return null;
+    const exp = getExperienceById(lastWee.suggestedExperience);
+    return exp && exp.id !== 'brain' ? exp : null;
+  }, [lastWee, suggestionDismissed]);
+
+  const lastUserText = [...bubbles].reverse().find((b) => b.role === 'user')?.text || '';
+
+  useEffect(() => {
+    if (!chat.busy) setSuggestionDismissed((current) => current);
+  }, [chat.busy]);
 
   const notify = (title: string, message: string) => {
     if (isWeb) window.alert(`${title}\n\n${message}`);
@@ -68,31 +85,34 @@ const BrainChatScreen: React.FC = () => {
   };
 
   const requireLogin = () => {
-    if (flow.user) return true;
+    if (chat.user) return true;
     navigation.navigate('Login');
     return false;
   };
 
-  const startWith = async (goal: string, preset?: SpecialistAction['preset']) => {
+  const sendText = async (text: string) => {
     if (!requireLogin()) return;
-    if (flow.job || flow.goal) {
-      setArchive((prev) => [...prev, ...current, ...(flow.job?.status === 'done' ? [{ key: `done-${flow.jobId}`, role: 'wee' as const, text: '✨ Listo. Aquí arriba tienes el resultado.' }] : [])]);
-    }
-    setSuggestionDismissed(false);
-    const text = attachment ? `${goal} (adjunté una foto)` : goal;
+    const payload = { text, imageUri: attachment, webSearch };
+    lastSent.current = payload;
     setAttachment(null);
-    await flow.start(text, preset ? [preset] : undefined);
+    await chat.send(text, { imageUri: payload.imageUri, webSearch: payload.webSearch });
   };
+
+  const startWith = (goal: string, _preset?: SpecialistAction['preset']) => sendText(goal);
 
   const submitDraft = () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || chat.busy) return;
     setDraft('');
-    if (flow.question && flow.job?.status === 'asking') {
-      flow.answer(undefined, text);
-    } else {
-      startWith(text);
-    }
+    sendText(text);
+  };
+
+  const retry = () => {
+    const last = lastSent.current;
+    if (!last) return;
+    setAttachment(last.imageUri);
+    setWebSearch(last.webSearch);
+    chat.send(last.text, { imageUri: last.imageUri, webSearch: last.webSearch });
   };
 
   const attach = async () => {
@@ -105,17 +125,7 @@ const BrainChatScreen: React.FC = () => {
   };
 
   const goToSpecialist = (exp: WeeExperience) => {
-    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: flow.goal });
-  };
-
-  const publish = () => {
-    const job = flow.job;
-    if (!job) return;
-    const content = job.results.filter((r) => r.content).map((r) => r.content).join('\n\n').slice(0, 480);
-    navigation.navigate('Create', {
-      kind: 'post',
-      prefill: { content: content || job.goal, aiTools: ['Weë Brain'], aiProcess: job.plan?.explainToUser || 'Creado con Weë Brain' },
-    });
+    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: lastUserText || undefined });
   };
 
   const renderBubble = (bubble: Bubble) => (
@@ -126,12 +136,23 @@ const BrainChatScreen: React.FC = () => {
         </View>
       )}
       <View style={[styles.bubble, bubble.role === 'user' ? { backgroundColor: theme.colors.accent + '33' } : { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
-        <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{bubble.text}</Text>
+        {!!bubble.imageUrl && <Image source={{ uri: bubble.imageUrl }} style={styles.bubbleImage} contentFit="cover" />}
+        <Text selectable style={[styles.bubbleText, { color: theme.colors.text }]}>{bubble.text}</Text>
+        {!!bubble.sources?.length && (
+          <View style={styles.sources}>
+            {bubble.sources.map((source) => (
+              <TouchableOpacity key={source.url} onPress={() => Linking.openURL(source.url)} activeOpacity={0.7} style={[styles.source, { borderColor: theme.colors.border }]} accessibilityLabel={source.title || source.url}>
+                <Ionicons name="link-outline" size={scale(12)} color={theme.colors.accentDark} />
+                <Text style={[styles.sourceText, { color: theme.colors.textSecondary }]} numberOfLines={1}>{source.title || source.url}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        {bubble.role === 'wee' && bubble.demo && <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Vista previa · demo</Text>}
       </View>
     </View>
   );
 
-  const status = flow.job?.status;
   if (!spec) return null;
 
   return (
@@ -141,10 +162,9 @@ const BrainChatScreen: React.FC = () => {
       {/* Chat */}
       <View style={[styles.chat, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         {renderBubble({ key: 'greeting', role: 'wee', text: GREETING })}
-        {archive.map(renderBubble)}
-        {current.map(renderBubble)}
+        {bubbles.map(renderBubble)}
 
-        {suggestion && status === 'asking' && (
+        {suggestion && !chat.busy && (
           <View style={[styles.bubbleRow, styles.bubbleRowWee]}>
             <View style={[styles.avatar, { backgroundColor: theme.colors.accent }]}>
               <Text style={styles.avatarText}>W</Text>
@@ -155,92 +175,55 @@ const BrainChatScreen: React.FC = () => {
               </Text>
               <View style={styles.chipRow}>
                 <Chip label={`Ir a ${suggestion.name}`} icon="arrow-forward-outline" active onPress={() => goToSpecialist(suggestion)} />
-                <Chip label="Seguir aquí" onPress={() => setSuggestionDismissed(true)} />
+                <Chip label="Seguir aquí" onPress={() => setSuggestionDismissed(lastWee?.key || null)} />
               </View>
             </View>
           </View>
         )}
 
-        {flow.error && (
+        {chat.shortfall && (
           <View style={[styles.bubbleRow, styles.bubbleRowWee]}>
             <View style={[styles.avatar, { backgroundColor: theme.colors.accent }]}>
               <Text style={styles.avatarText}>W</Text>
             </View>
             <View style={[styles.bubble, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{flow.error}</Text>
+              <Text style={[styles.bubbleText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>No tienes suficientes Credits</Text>
+              <Text style={[styles.bubbleText, { color: theme.colors.textSecondary }]}>
+                Credits disponibles: {chat.shortfall.available.toLocaleString('es')} · Costo: {chat.shortfall.required.toLocaleString('es')}
+              </Text>
               <View style={styles.chipRow}>
-                <Chip label="Probar otra vez" active onPress={() => (status === 'planned' ? flow.create() : flow.start(flow.goal))} />
+                <Chip label="Obtener Credits" icon="diamond-outline" active onPress={() => navigation.navigate('CreditStore')} />
               </View>
             </View>
           </View>
         )}
 
-        {status === 'asking' && flow.question && !flow.error && (
+        {chat.error && (
           <View style={[styles.bubbleRow, styles.bubbleRowWee]}>
             <View style={[styles.avatar, { backgroundColor: theme.colors.accent }]}>
               <Text style={styles.avatarText}>W</Text>
             </View>
-            <View style={[styles.bubble, styles.bubbleWide, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{flow.question.text}</Text>
-              <View style={styles.options}>
-                {flow.question.options.map((option, index) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    onPress={() => flow.answer(option.id)}
-                    disabled={flow.busy}
-                    activeOpacity={0.7}
-                    style={[styles.option, { borderColor: option.id === 'idk' ? theme.colors.accent : theme.colors.border, borderStyle: option.id === 'idk' ? 'dashed' : 'solid' }]}
-                    accessibilityLabel={option.label}
-                  >
-                    <Text style={[styles.optionNumber, { color: theme.colors.accentDark }]}>{index + 1}.</Text>
-                    <Text style={[styles.optionText, { color: theme.colors.text }]}>{option.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>O escríbelo abajo con tus propias palabras.</Text>
-            </View>
-          </View>
-        )}
-
-        {status === 'planned' && flow.job?.plan && (
-          <View style={[styles.bubbleRow, styles.bubbleRowWee]}>
-            <View style={[styles.avatar, { backgroundColor: theme.colors.accent }]}>
-              <Text style={styles.avatarText}>W</Text>
-            </View>
-            <View style={[styles.bubble, styles.bubbleWide, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent, borderWidth: 1 }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{flow.job.plan.explainToUser}</Text>
-              <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>💳 {flow.job.demo || flow.job.creditsEstimated === 0 ? 'Gratis en modo demo' : `≈ ${flow.job.creditsEstimated} Credits`}</Text>
+            <View style={[styles.bubble, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
+              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{chat.error}</Text>
               <View style={styles.chipRow}>
-                <Chip label={flow.busy ? 'Un momento…' : 'Dale, hazlo'} icon="sparkles-outline" active onPress={flow.busy ? undefined : flow.create} />
-                <Chip label="Cambiar algo" onPress={() => flow.start(flow.goal)} />
+                <Chip label="Probar otra vez" active onPress={retry} />
               </View>
             </View>
           </View>
         )}
 
-        {status === 'running' && flow.job && <JobProgress experienceName="Weë Brain" job={flow.job} />}
-
-        {status === 'done' && flow.job && (
-          <ResultCard
-            experienceName="Weë Brain"
-            job={flow.job}
-            busy={flow.busy}
-            onAnotherVersion={() => flow.start(flow.goal)}
-            onEdit={(instruction) => flow.start(`${flow.goal || ''} · Cambio: ${instruction}`)}
-            onPublish={publish}
-          />
-        )}
-
-        {flow.busy && status !== 'running' && (
+        {chat.busy && (
           <View style={styles.thinking}>
             <ActivityIndicator color={theme.colors.accent} />
-            <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>Weë Brain está pensando…</Text>
+            <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>
+              {chat.uploading ? 'Subiendo tu foto…' : webSearch ? 'Weë Brain está buscando…' : 'Weë Brain está pensando…'}
+            </Text>
           </View>
         )}
       </View>
 
       {/* Atajos */}
-      {!flow.job && (
+      {bubbles.length === 0 && (
         <View style={[styles.tiles, { marginHorizontal: -SPACING.xs }]}>
           {spec.actions.map((action) => (
             <View key={action.id} style={{ width: isDesktop ? `${100 / 7}%` : '50%', padding: SPACING.xs }}>
@@ -272,16 +255,16 @@ const BrainChatScreen: React.FC = () => {
         <View style={styles.composerRow}>
           <TextInput
             style={[styles.input, { color: theme.colors.text }]}
-            placeholder={status === 'asking' ? 'O escríbelo con tus palabras…' : spec.idea.placeholder}
+            placeholder={bubbles.length > 0 ? 'Sigue contándome…' : spec.idea.placeholder}
             placeholderTextColor={theme.colors.textSecondary}
             value={draft}
             onChangeText={setDraft}
             onSubmitEditing={submitDraft}
             returnKeyType="send"
-            editable={!flow.busy}
+            editable={!chat.busy}
             multiline
           />
-          <TouchableOpacity onPress={submitDraft} disabled={!draft.trim() || flow.busy} style={[styles.send, { backgroundColor: draft.trim() ? theme.colors.accent : theme.colors.border }]} activeOpacity={0.85} accessibilityLabel="Enviar">
+          <TouchableOpacity onPress={submitDraft} disabled={!draft.trim() || chat.busy} style={[styles.send, { backgroundColor: draft.trim() ? theme.colors.accent : theme.colors.border }]} activeOpacity={0.85} accessibilityLabel="Enviar">
             <Ionicons name="arrow-up" size={scale(20)} color="#1F2937" />
           </TouchableOpacity>
         </View>
@@ -289,6 +272,7 @@ const BrainChatScreen: React.FC = () => {
           <Chip label="Adjuntar" icon="attach-outline" onPress={attach} />
           <Chip label="Hablar" icon="mic-outline" onPress={() => notify('Muy pronto', 'Hablar con Weë llegará en una próxima versión. Por ahora, escríbelo.')} />
           <Chip label={webSearch ? 'Buscar en internet: sí' : 'Buscar en internet'} icon="globe-outline" active={webSearch} onPress={() => setWebSearch((v) => !v)} />
+          {bubbles.length > 0 && <Chip label="Nueva conversación" icon="add-outline" onPress={chat.reset} />}
         </View>
       </View>
     </CreatorShell>
@@ -335,32 +319,33 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.sm,
   },
-  bubbleWide: {
-    flex: 1,
-  },
   bubbleText: {
     fontSize: FONT_SIZE.sm,
     lineHeight: scale(21),
   },
-  options: {
-    gap: scale(6),
+  bubbleImage: {
+    width: scale(160),
+    height: scale(160),
+    borderRadius: BORDER_RADIUS.md,
   },
-  option: {
+  sources: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  source: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
-    minHeight: scale(40),
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
+    gap: scale(4),
+    maxWidth: '100%',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(3),
+    borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
   },
-  optionNumber: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  optionText: {
-    fontSize: FONT_SIZE.sm,
-    flex: 1,
+  sourceText: {
+    fontSize: scale(11),
+    maxWidth: scale(220),
   },
   hint: {
     fontSize: FONT_SIZE.xs,

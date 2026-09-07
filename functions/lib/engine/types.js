@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QUALITY_MIN_SCORE = exports.QUALITY_RANK = exports.modalityOf = exports.MODALITY_OF = void 0;
+exports.QUALITY_MIN_SCORE = exports.QUALITY_RANK = exports.outputTypeOf = exports.inputTypeOf = exports.modalityOf = exports.MODALITY_OF = void 0;
 exports.MODALITY_OF = {
     text: 'text',
     vision: 'vision',
@@ -16,6 +16,18 @@ exports.MODALITY_OF = {
 };
 const modalityOf = (capability) => exports.MODALITY_OF[capability.split('.')[0]] || 'text';
 exports.modalityOf = modalityOf;
+/** Tipo de entrada / salida que se guarda en cada generación. */
+const inputTypeOf = (capability, input) => {
+    const hasImage = !!(input.imageUrl || (Array.isArray(input.imageUrls) && input.imageUrls.length));
+    if (capability.startsWith('video.image_to_video'))
+        return 'image';
+    if (hasImage)
+        return capability.startsWith('image.') ? 'image' : 'text+image';
+    return 'text';
+};
+exports.inputTypeOf = inputTypeOf;
+const outputTypeOf = (kind) => kind;
+exports.outputTypeOf = outputTypeOf;
 exports.QUALITY_RANK = { standard: 1, high: 2, max: 3 };
 /** Calidad mínima de modelo (1–5) que satisface cada nivel. */
 exports.QUALITY_MIN_SCORE = { standard: 2, high: 4, max: 5 };
