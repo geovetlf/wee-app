@@ -106,9 +106,58 @@ check('DUPLICATE_REQUEST → already-exists', dup.code === 'already-exists' && /
 console.log('\n── Libro de generaciones ──');
 const ledger = memoryLedger();
 const id = await ledger.open({ userId: 'u1', requestId: 'j1:s1', service: 'ai_image', capability: 'image.generate', modality: 'image', provider: 'gemini', model: 'x', attempt: 1, estimatedUsd: 0.05, pricingMode: 'simulated', inputType: 'text' });
-check('al abrir queda PROCESSING con coste 0 y moneda USD', ledger.records[id].status === 'PROCESSING' && ledger.records[id].providerCost === 0 && ledger.records[id].providerCurrency === 'USD' && ledger.records[id].requestId === 'j1:s1');
+check('al abrir queda QUEUED (en cola) con coste 0 y moneda USD; pasa a PROCESSING cuando el proveedor acepta la tarea', ledger.records[id].status === 'QUEUED' && ledger.records[id].providerCost === 0 && ledger.records[id].providerCurrency === 'USD' && ledger.records[id].requestId === 'j1:s1');
+await ledger.progress(id, { status: 'PROCESSING', providerTaskId: 'cgt-1', estimatedTokens: 102960 });
+check('cuando el proveedor acepta la tarea pasa a PROCESSING con providerTaskId y tokens estimados', ledger.records[id].status === 'PROCESSING' && ledger.records[id].providerTaskId === 'cgt-1' && ledger.records[id].estimatedTokens === 102960);
 await ledger.close(id, { status: 'COMPLETED', providerCost: 0.067, creditsCharged: 10, durationMs: 1200, outputType: 'image' });
 check('al cerrar guarda providerCost separado de creditsCharged', ledger.records[id].status === 'COMPLETED' && ledger.records[id].providerCost === 0.067 && ledger.records[id].creditsCharged === 10 && ledger.records[id].outputType === 'image');
 
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Creator: entradas, planes, Brain, límites y errores en orden');
+console.log('\n── Weë Video Engine: petición abstracta → Seedance ──');
+const { normalizeVideoRequest, chooseSeedanceModel, videoRequestFromStep, VIDEO_PROVIDERS } = lib('engine/video.js');
+const { SEEDANCE_MODEL_IDS } = lib('engine/providers/seedance.js');
+check('solo la familia Seedance puede atender video', VIDEO_PROVIDERS.join() === 'seedance');
+check('por defecto Seedance 2.0; más de 15 s → 2.5; calidad máxima → 2.5; 4K → 2.0; borrador → 2.0 fast; preferencia explícita manda',
+  chooseSeedanceModel({ prompt: 'un anuncio' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 &&
+  chooseSeedanceModel({ prompt: 'x', durationSec: 20 }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 &&
+  chooseSeedanceModel({ prompt: 'x', quality: 'max' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 &&
+  chooseSeedanceModel({ prompt: 'x', resolution: '4k' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 &&
+  chooseSeedanceModel({ prompt: 'un borrador rápido' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST &&
+  chooseSeedanceModel({ prompt: 'x', model: 'SEEDANCE_2_0_MINI' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI &&
+  chooseSeedanceModel({ prompt: 'x' }, { defaultPolicy: 'balanced', video: { defaultModel: 'SEEDANCE_2_5' } }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_5);
+const t2v = normalizeVideoRequest({ prompt: 'Lima de noche', durationSec: 10, aspectRatio: '9:16' });
+check('texto → video.generate con familia y modelo fijados en las preferencias', t2v.capability === 'video.generate' && t2v.prefs.allowedProviders.join() === 'seedance' && t2v.prefs.modelId === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 && t2v.input.durationSec === 10 && t2v.input.aspectRatio === '9:16');
+const i2v = normalizeVideoRequest({ prompt: 'anima', inputImage: 'https://x/a.png', durationSec: 40 });
+check('imagen → video.image_to_video y la duración se recorta al máximo del modelo (2.5 por > 15 s → 30)', i2v.capability === 'video.image_to_video' && i2v.input.imageUrl === 'https://x/a.png' && i2v.modelId === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 && i2v.input.durationSec === 30);
+const refv = normalizeVideoRequest({ prompt: 'anuncio', references: { images: ['https://x/p.png'] } });
+check('referencias → video.reference', refv.capability === 'video.reference' && refv.input.referenceImages[0] === 'https://x/p.png');
+err = null;
+try { normalizeVideoRequest({ prompt: '' }); } catch (e) { err = e; }
+check('sin descripción → INVALID_REQUEST antes de tocar al proveedor', err instanceof EngineError && err.code === 'INVALID_REQUEST');
+const fromStep = videoRequestFromStep('video.generate', { prompt: 'p', referenceImages: [OWN], durationSec: 10, aspectRatio: '16:9' });
+check('un paso de Weë Studio con foto adjunta se convierte en referencia omni', fromStep.references.images[0] === OWN && normalizeVideoRequest(fromStep).capability === 'video.reference');
+const animateInput = stepInputFor({ experienceId: 'studio', goal: 'Animar mi foto', inputImageUrl: OWN }, { id: 'motion', capability: 'video.image_to_video', purpose: 'Darle movimiento', status: 'pending', input: { kind: 'clip', durationSec: 5 } }, ['Veo una plaza.']);
+check('"Animar una foto" manda la foto como primer cuadro', animateInput.imageUrl === OWN && !animateInput.referenceImages);
+const clipInput = stepInputFor({ experienceId: 'studio', goal: 'Un anuncio', inputImageUrl: OWN }, { id: 'clip', capability: 'video.generate', purpose: 'Generar el video', status: 'pending', input: { kind: 'clip', durationSec: 10 } }, ['Escena 1 (0–3 s): la cafetería.']);
+check('"Crear un video" con foto adjunta la usa como referencia (no como primer cuadro)', clipInput.referenceImages[0] === OWN && clipInput.imageUrl === undefined);
+
+console.log('\n── Router: familia permitida y sin respaldo de otro modelo para video ──');
+const { createRouter, memoryHealth } = lib('engine/router.js');
+const { DEFAULT_SETTINGS } = lib('engine/registry.js');
+const fakeVideo = (id, fail = false) => ({ id, name: id, modalities: ['video'], models: [{ id: id + '-m', provider: id, capabilities: ['video.generate'], quality: 4, speed: 3, cost: { unit: 'second', usd: 0.1 } }], isConfigured: () => true, supports: (c) => c === 'video.generate', calls: 0, async run() { this.calls++; if (fail) throw new (lib('engine/http.js').ProviderError)(id + ' falló', id); return { output: { kind: 'video', url: 'u' }, costUSD: 1, latencyMs: 1 }; } });
+const mockVideo = { id: 'mock', name: 'demo', modalities: ['video'], models: [{ id: 'demo', provider: 'mock', capabilities: ['video.generate'], quality: 1, speed: 5, cost: { unit: 'call', usd: 0 } }], isConfigured: () => true, supports: () => true, calls: 0, async run() { this.calls++; return { output: { kind: 'video', url: 'demo' }, costUSD: 0, latencyMs: 1 }; } };
+const otherVideo = fakeVideo('otro');
+const seedanceFake = fakeVideo('seedance', true);
+const cfg = { providers: { seedance: { enabled: true, priority: 1 }, otro: { enabled: true, priority: 2 }, mock: { enabled: true, priority: 99 } }, routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'seedance' }, { provider: 'otro' }], policy: 'balanced' } }, settings: { ...DEFAULT_SETTINGS, pricingMode: 'simulated' }, source: 'test' };
+const router = createRouter({ adapters: { seedance: seedanceFake, otro: otherVideo, mock: mockVideo }, loadConfig: async () => cfg, ledger: memoryLedger(), health: memoryHealth() });
+const decision = await router.route({ capability: 'video.generate', input: { prompt: 'x' }, userId: 'u1', prefs: { allowedProviders: ['seedance'] } });
+check('con la familia permitida, el otro proveedor de video queda fuera con motivo', decision.candidates.every((c) => c.provider === 'seedance') && decision.skipped.some((s) => s.provider === 'otro' && /familia/.test(s.reason)), JSON.stringify(decision.skipped));
+let routerError = null;
+try { await router.execute({ capability: 'video.generate', input: { prompt: 'x' }, userId: 'u1', prefs: { allowedProviders: ['seedance'] } }); } catch (e) { routerError = e; }
+check('si Seedance falla, NO se cambia a otro modelo ni al demo: error controlado y reembolsable', routerError && routerError.code === 'PROVIDER_ERROR' && otherVideo.calls === 0 && mockVideo.calls === 0, routerError && routerError.code);
+const noKey = { ...seedanceFake, isConfigured: () => false };
+const demoRouter = createRouter({ adapters: { seedance: noKey, mock: mockVideo }, loadConfig: async () => cfg, ledger: memoryLedger(), health: memoryHealth() });
+const demo = await demoRouter.execute({ capability: 'video.generate', input: { prompt: 'x' }, userId: 'u1', prefs: { allowedProviders: ['seedance'] } });
+check('sin clave de Seedance, el modo demo atiende para poder desarrollar', demo.provider === 'mock' && demo.demo === true);
+
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Creator: entradas, planes, Brain, límites, errores y Video Engine en orden');
 process.exit(failures ? 1 : 0);

@@ -70,7 +70,8 @@ function serviceForCapability(capability, input = {}) {
             return 'ai_image_enhance';
         case 'video.generate':
         case 'video.image_to_video':
-            return input.quality === 'max' ? 'ai_video_advanced' : 'ai_video';
+        case 'video.reference':
+            return input.quality === 'max' || Number(input.durationSec) > 15 ? 'ai_video_advanced' : 'ai_video';
         case 'video.compose':
         case 'video.montage':
         case 'video.vertical':

@@ -14,8 +14,11 @@ exports.firestoreLedger = {
     async open(record) {
         const ref = db().collection('aiGenerations').doc();
         const now = firestore_1.Timestamp.now();
-        await ref.set(stripUndefined(Object.assign(Object.assign({}, record), { status: 'PROCESSING', providerCost: 0, providerCurrency: 'USD', creditsCharged: 0, durationMs: 0, createdAt: now, updatedAt: now })));
+        await ref.set(stripUndefined(Object.assign(Object.assign({}, record), { status: 'QUEUED', providerCost: 0, providerCurrency: 'USD', creditsCharged: 0, durationMs: 0, createdAt: now, updatedAt: now })));
         return ref.id;
+    },
+    async progress(id, patch) {
+        await db().collection('aiGenerations').doc(id).set(stripUndefined(Object.assign(Object.assign({}, patch), { updatedAt: firestore_1.Timestamp.now() })), { merge: true });
     },
     async close(id, patch) {
         const ref = db().collection('aiGenerations').doc(id);
@@ -55,8 +58,11 @@ const memoryLedger = () => {
         records,
         async open(record) {
             const id = `gen-${++counter}`;
-            records[id] = Object.assign(Object.assign({}, record), { status: 'PROCESSING', providerCost: 0, providerCurrency: 'USD', creditsCharged: 0 });
+            records[id] = Object.assign(Object.assign({}, record), { status: 'QUEUED', providerCost: 0, providerCurrency: 'USD', creditsCharged: 0 });
             return id;
+        },
+        async progress(id, patch) {
+            records[id] = Object.assign(Object.assign({}, (records[id] || {})), patch);
         },
         async close(id, patch) {
             records[id] = Object.assign(Object.assign({}, (records[id] || {})), patch);

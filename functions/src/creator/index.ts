@@ -5,11 +5,12 @@ import { getPlanner } from './planner';
 import { TEMPLATES, plainQuestion } from './templates';
 import { estimatePlanCredits, holdCredits, settleCredits, ensureAccount, pricingMode } from './credits';
 import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
-import { runCapability } from '../gateway';
+import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { progressTextFor, friendlyFailure } from '../engine/humanize';
-import { RoutingPrefs } from '../engine/types';
-import { EngineError, toEngineHttpsError } from '../engine/errors';
+import { EngineResult, RoutingPrefs } from '../engine/types';
+import { classifyError, EngineError, toEngineHttpsError } from '../engine/errors';
+import { videoEngine, videoRequestFromStep } from '../engine/video';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
 import { serviceForCapability } from '../credits/creditCosts';
@@ -91,6 +92,19 @@ interface ChatInput {
   /** Foto subida por la persona a Storage de Weë (users/{uid}/creator-inputs/…). */
   imageUrl?: string;
 }
+
+/** Un resultado del Weë Video Engine con la misma forma que devuelve el gateway. */
+const toGatewayRun = (result: EngineResult): GatewayRun => ({
+  output: result.output,
+  usage: result.usage,
+  costUSD: result.costUSD,
+  latencyMs: result.latencyMs,
+  provider: result.provider,
+  credits: result.credits,
+  generationId: result.generationId,
+  demo: result.demo,
+  attempts: result.attempts,
+});
 
 const chatResponse = (job: CreatorJob, question: Question | null) => ({
   jobId: job.id,
@@ -262,13 +276,11 @@ export const creatorRun = onCall(
             quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
             durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
           };
-          const run = await runCapability(next.capability, input, {
-            ...ctx,
-            stepId: next.id,
-            prefs,
-            requestId: `${jobId}:${next.id}`,
-            service: serviceForCapability(next.capability, stepInput),
-          });
+          const stepCtx = { ...ctx, stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: serviceForCapability(next.capability, stepInput) };
+          // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
+          const run = next.capability.startsWith('video.')
+            ? toGatewayRun(await videoEngine.generate(videoRequestFromStep(next.capability, input), stepCtx))
+            : await runCapability(next.capability, input, stepCtx);
 
           results.push({
             stepId: next.id,
@@ -312,11 +324,12 @@ export const creatorRun = onCall(
         console.error(`Trabajo ${jobId} falló:`, error);
         // FAILED → REFUND: se devuelve exactamente lo autorizado (idempotente)
         await settleCredits(uid, jobId, job.creditsEstimated, 0, description);
+        const classified = classifyError(error);
         await ref.update({
           status: 'failed',
           steps: clean(steps),
           results: clean(results),
-          progressText: failing ? friendlyFailure(failing.capability) : 'No me salió bien. No te cobré.',
+          progressText: classified.details?.reason === 'input_rejected' ? classified.message : failing ? friendlyFailure(failing.capability) : 'No me salió bien. No te cobré.',
           creditsCharged: 0,
           updatedAt: now(),
         });

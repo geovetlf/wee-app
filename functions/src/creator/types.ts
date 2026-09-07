@@ -30,6 +30,7 @@ export type CapabilityId =
   | 'vision.describe'
   | 'video.generate'
   | 'video.image_to_video'
+  | 'video.reference'
   | 'video.compose'
   | 'voice.tts'
   | 'music.generate'

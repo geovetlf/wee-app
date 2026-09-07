@@ -29,6 +29,10 @@ export interface RoutingPrefs {
   excludeProviders?: string[];
   /** Duración deseada (video, voz, música) en segundos. */
   durationSec?: number;
+  /** Solo estos proveedores pueden atender (p. ej. la familia Seedance para video). */
+  allowedProviders?: string[];
+  /** Modelo concreto elegido por un motor de dominio (Weë Video Engine). */
+  modelId?: string;
 }
 
 export interface EngineContext {
@@ -104,7 +108,12 @@ export interface ProviderResult {
   latencyMs: number;
   /** Modelo realmente usado (si el adaptador cambió el pedido). */
   model?: string;
+  /** Datos del proveedor para el libro (id de tarea, resolución, tokens estimados y reales…). */
+  meta?: Record<string, unknown>;
 }
+
+/** Avance de una generación asíncrona (la tarea ya está en el proveedor). */
+export type ProviderStatusHook = (status: 'PROCESSING', meta: Record<string, unknown>) => Promise<void> | void;
 
 export interface ProviderRunRequest {
   capability: CapabilityId;
@@ -113,6 +122,7 @@ export interface ProviderRunRequest {
   ctx: EngineContext;
   prefs: RoutingPrefs;
   timeoutMs: number;
+  onStatus?: ProviderStatusHook;
 }
 
 /** Contrato que implementa cada adaptador (video, imagen, voz, música, LLM…). */
@@ -170,6 +180,8 @@ export interface EngineSettings {
   circuitBreaker: { failures: number; windowMs: number; openMs: number };
   /** Límites de uso para evitar abusos (por persona; los de proveedor van en aiProviders/{id}.limits). */
   limits: UsageLimits;
+  /** Weë Video Engine: versión de Seedance por defecto (auto | SEEDANCE_2_5 | SEEDANCE_2_0 | SEEDANCE_2_0_FAST | SEEDANCE_2_0_MINI). */
+  video?: { defaultModel?: string };
 }
 
 export interface RouteCandidate {
@@ -189,8 +201,8 @@ export interface RouteDecision {
   skipped: { provider: string; model?: string; reason: string }[];
 }
 
-/** Estados de una generación (docs/CREDITS.md §generations). */
-export type GenerationStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+/** Estados de una generación (docs/CREDITS.md §generations): QUEUED al crearla, PROCESSING cuando el proveedor la acepta. */
+export type GenerationStatus = 'PENDING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
 /** Documento aiGenerations/{generationId}: lo que Weë sabe de cada generación. */
 export interface GenerationRecord {
@@ -223,6 +235,13 @@ export interface GenerationRecord {
   durationMs: number;
   error?: string;
   usage?: Record<string, number>;
+  /** Video: id de tarea en el proveedor, resolución, duración y tokens estimados/reales (Pricing Engine). */
+  providerTaskId?: string;
+  resolution?: string;
+  videoDurationSec?: number;
+  estimatedTokens?: number;
+  providerTokens?: number;
+  providerMeta?: Record<string, unknown>;
   createdAt: unknown;
   updatedAt: unknown;
   completedAt?: unknown;

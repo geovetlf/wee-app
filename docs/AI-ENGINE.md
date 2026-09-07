@@ -17,13 +17,13 @@ Weë (app)                      9 secciones conectadas: Brain · Design · Photo
                 → Search Service      gemini + Google Search grounding (fuentes)
                 → Vision Service      gemini (describe fotos)
                 → Image Service       gemini Nano Banana 2 / Pro (genera y edita) · flux · seedream
-                → Video Service       fal (Kling 2.5 Turbo Pro, Kling 2.1) · veo · seedance · kling · minimax (Hailuo) · runway
+                → Video Service       Weë Video Engine (video.ts) → seedance: SOLO Seedance 2.5 · 2.0 · 2.0 fast · 2.0 mini (ByteDance, API oficial de BytePlus ModelArk)
                 → Audio Service       elevenlabs · minimax
                 → Music               hueco preparado (sin Suno mientras no haya API oficial con licencia)
                 → mock                modo demo: último recurso, nunca sustituye a un proveedor real en producción
 ```
 
-Proveedores iniciales de esta fase: **Gemini** (texto, búsqueda con información actual, visión, imagen), **fal.ai** (video, empezando por Kling) y **ElevenLabs** (voz). Las claves viven solo en el backend (`functions/.env.local` en dev; Secret Manager / `.env.get-wee` en producción). Sin claves, todo sigue en modo demo.
+Proveedores de esta fase: **Gemini** (texto, búsqueda con información actual, visión, imagen), **Seedance** (video: únicamente la familia Seedance 2.5 / 2.0 de ByteDance por la API oficial de BytePlus ModelArk; ver "Weë Video Engine") y **ElevenLabs** (voz). Las claves viven solo en el backend (`functions/.env.local` en dev; Secret Manager / `.env.get-wee` en producción). Sin claves, todo sigue en modo demo.
 
 Nada de la app está atado a un proveedor: cambiar de proveedor es cambiar una
 cadena en Firestore o añadir un adaptador. Ningún nombre de proveedor ni de
@@ -59,9 +59,9 @@ modelo llega a la interfaz.
 3. **Modelo dentro del proveedor** (`pickModel`): el más barato que cumple la calidad pedida (o el mejor si la política es `quality-first`); se puede fijar un modelo en la cadena.
 4. **Orden** según la política: `quality-first` (mejor calidad primero), `balanced` (el orden de la cadena entre los que cumplen), `cost-first` (el más barato que cumple). Los que no llegan a la duración pedida van al final.
 5. **Ejecución con fallback**: intenta en orden; cada intento deja su registro. Tres fallos de un proveedor en diez minutos lo ponen en pausa cinco minutos (cortacircuitos configurable).
-6. **Modo demo**: en modo `simulated` siempre cierra la cadena; en modo `real` solo entra si nadie más puede (y se puede desactivar con `allowMockFallback`).
+6. **Modo demo**: en modo `simulated` cierra la cadena; en modo `real` solo entra si nadie más puede (y se puede desactivar con `allowMockFallback`). **Video es la excepción**: el demo solo atiende cuando no hay ningún candidato real (sin `ARK_API_KEY`); si Seedance falla no lo sustituye nadie: error controlado y reembolso.
 
-Ejemplo: *"Créame un video cinematográfico de 30 segundos de una persona caminando por Lima de noche"* → `video.generate`, calidad `max`; cadena por defecto Veo → Seedance → Kling → Hailuo → Runway; se elige el modelo de calidad 5 disponible; si Veo falla, Seedance; si la escena fuera sencilla ("un borrador rápido"), calidad `standard` y el modelo más económico. Como ningún modelo hace 30 s de un tirón, el router prioriza los que más se acercan y Weë Brain puede dividir en escenas y montarlas (`video.compose`).
+Ejemplo: *"Créame un video cinematográfico de 30 segundos de una persona caminando por Lima de noche"* → `video.generate`, calidad `max`; el Weë Video Engine fija la familia (`allowedProviders: ['seedance']`) y la versión: 30 s → Seedance 2.5 (hasta 30 s, 1080p); si la escena fuera sencilla ("un borrador rápido") → Seedance 2.0 fast; con "4K" → Seedance 2.0. Un plan con varias escenas sigue pudiendo dividirse y montarse (`video.compose`).
 
 ## Credits
 
@@ -91,11 +91,11 @@ createdAt · updatedAt · completedAt
 | `aiRouting/{capacidad}` | `chain: [{ provider, model?, minQuality?, maxQuality? }]`, `policy: quality-first \| balanced \| cost-first` |
 | `aiSettings/global` | `pricingMode`, `creditsPerUsd`, `margin`, `defaultPolicy`, `allowMockFallback`, `timeoutsMs` por modalidad, `circuitBreaker { failures, windowMs, openMs }` |
 
-Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids en `WEE_ADMIN_UIDS` o con claim `admin`): acciones `status`, `seedDefaults`, `setProvider`, `setRouting`, `setSettings`, `resetHealth`. La app trae un panel (**Configuración → Weë AI Engine**, `screens/EngineAdminScreen.tsx`, visible en desarrollo o para quien ya entró como administración) que muestra ajustes, proveedores con clave/activo/salud y modelos, y las cadenas de fallback; permite sembrar los valores por defecto, activar o desactivar proveedores, cambiar la política de cada capacidad y reiniciar la salud. En dev, `functions/.env.wee-dev-geovet` da permisos al usuario de prueba; en producción, `functions/.env.get-wee` (no versionado) con tu uid. Ejemplo para cambiar el fallback de video:
+Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids en `WEE_ADMIN_UIDS` o con claim `admin`): acciones `status`, `seedDefaults`, `setProvider`, `setRouting`, `setSettings`, `resetHealth`. La app trae un panel (**Configuración → Weë AI Engine**, `screens/EngineAdminScreen.tsx`, visible en desarrollo o para quien ya entró como administración) que muestra ajustes, proveedores con clave/activo/salud y modelos, y las cadenas de fallback; permite sembrar los valores por defecto, activar o desactivar proveedores, cambiar la política de cada capacidad y reiniciar la salud. En dev, `functions/.env.wee-dev-geovet` da permisos al usuario de prueba; en producción, `functions/.env.get-wee` (no versionado) con tu uid. Ejemplo para fijar una versión de Seedance desde Firestore (para video solo se admite la familia Seedance; `aiSettings/global.video.defaultModel` hace lo mismo sin tocar la cadena):
 
 ```json
 // aiRouting/video.generate
-{ "chain": [ { "provider": "kling" }, { "provider": "veo", "minQuality": "max" }, { "provider": "seedance" } ], "policy": "balanced" }
+{ "chain": [ { "provider": "seedance", "model": "dreamina-seedance-2-5-260628" } ], "policy": "quality-first" }
 ```
 
 ## Proveedores preparados
@@ -103,13 +103,8 @@ Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids 
 | Proveedor | Modalidad | Clave | Estado |
 |---|---|---|---|
 | **Gemini** (fase actual) | texto con historial, búsqueda con Google Search grounding (fuentes), visión, imagen Nano Banana 2 / Pro / legado (genera y edita) | `GEMINI_API_KEY` (+ `GEMINI_TEXT_MODEL`, `GEMINI_IMAGE_MODEL`… opcionales) | contrato según la documentación oficial (sept. 2026); texto verificado en fase 1, búsqueda e imagen pendientes de clave |
-| **fal.ai** (fase actual) | video: Kling 2.5 Turbo Pro texto→video e imagen→video, Kling 2.1 imagen→video (cola asíncrona con sondeo) | `FAL_KEY` | contrato según fal.ai/docs; pendiente de verificar con clave |
+| **Seedance** (fase actual; único proveedor de video) | video: texto→video, imagen→video (primer y último cuadro), referencias omni (imágenes, videos, audio) con Seedance 2.5, 2.0, 2.0 fast y 2.0 mini; tarea asíncrona con sondeo o webhook; audio generado | `ARK_API_KEY` (BytePlus ModelArk; ids opcionales `SEEDANCE_2_5_MODEL`…; webhook `SEEDANCE_CALLBACK_URL` + `SEEDANCE_CALLBACK_TOKEN`) | contrato según docs.byteplus.com (sept. 2026); pendiente de verificar con clave |
 | **ElevenLabs** (fase actual) | voz (`eleven_multilingual_v2`, `eleven_flash_v2_5`) | `ELEVENLABS_API_KEY` (+ `ELEVENLABS_VOICE_ID`) | pendiente de verificar con clave |
-| Google Veo | video (texto→video, imagen→video, 8 s) | `GEMINI_API_KEY` | contrato escrito, pendiente de verificar con clave |
-| ByteDance Seedance | video | `ARK_API_KEY` (BytePlus ModelArk) | pendiente de verificar |
-| Kling | video | `KLING_ACCESS_KEY` + `KLING_SECRET_KEY` (JWT) | pendiente de verificar |
-| MiniMax Hailuo | video | `MINIMAX_API_KEY` | pendiente de verificar |
-| Runway | video | `RUNWAY_API_KEY` | pendiente de verificar |
 | FLUX (Black Forest Labs) | imagen, edición (Kontext) | `BFL_API_KEY` | pendiente de verificar |
 | ByteDance Seedream | imagen | `ARK_API_KEY` | pendiente de verificar |
 | MiniMax voz | voz | `MINIMAX_API_KEY` | pendiente de verificar |
@@ -131,7 +126,47 @@ Sin clave, el adaptador responde `isConfigured() = false` y el router lo ignora:
 
 Nunca llamar a una API de IA fuera de un adaptador; nunca poner claves en el cliente.
 
-**Cambiar de proveedor sin tocar la app:** editar `aiRouting/{capacidad}.chain` en Firestore (o `DEFAULT_ROUTING`), p. ej. poner `veo` antes de `fal` en `video.generate`, o desactivar `fal` en `aiProviders/fal.enabled`. Las secciones de Weë Creator llaman capacidades (`image.generate`, `video.generate`…), nunca proveedores.
+**Cambiar de proveedor sin tocar la app:** editar `aiRouting/{capacidad}.chain` en Firestore (o `DEFAULT_ROUTING`), p. ej. poner `flux` antes de `gemini` en `image.generate`, o desactivar un proveedor en `aiProviders/{id}.enabled`. Las secciones de Weë Creator llaman capacidades (`image.generate`, `video.generate`…), nunca proveedores. **Video es la excepción por decisión de producto (2026-09-07)**: solo la familia Seedance; lo configurable es la versión (`aiSettings/global.video.defaultModel`: `auto`, `SEEDANCE_2_5`, `SEEDANCE_2_0`, `SEEDANCE_2_0_FAST`, `SEEDANCE_2_0_MINI`).
+
+## Weë Video Engine (Seedance 2.5 / 2.0)
+
+Decisión de producto (2026-09-07): Weë Studio genera video **solo con la familia Seedance de ByteDance**, a través de la API oficial de **BytePlus ModelArk**. No hay Kling, Runway, Veo, Hailuo ni otro modelo como sustituto: si Seedance falla, la persona recibe un error controlado y el reembolso íntegro. El modo demo (`mock`) solo existe para desarrollar sin clave.
+
+```
+Weë Studio → creatorRun (planes) / generateVideo (petición directa)
+  → Weë Video Engine (engine/video.ts): petición abstracta { prompt, inputImage, references, duration, aspectRatio, quality, model }
+    → elige la versión de Seedance y traduce a capacidad + input; allowedProviders = [seedance]
+      → AI ROUTER → adaptador Seedance (engine/providers/seedance.ts)
+        → ModelArk: POST /contents/generations/tasks → GET /tasks/{id} (o webhook seedanceCallback)
+          → mp4 → Weë Storage users/{uid}/ai-generations/ → aiGenerations (estados, tokens, coste) → persona
+```
+
+**API oficial** (docs.byteplus.com › ModelArk › Video generation, verificada el 2026-09-07):
+
+- Crear tarea: `POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks`, cabecera `Authorization: Bearer ARK_API_KEY` (`ARK_BASE_URL` opcional). Cuerpo: `model`, `content[]` (`text`; `image_url` con `role` `first_frame` / `last_frame` / `reference_image`; `video_url` con `role` `reference_video`; `audio_url` con `role` `reference_audio`), `omni_reference_task_type`, `resolution`, `ratio`, `duration`, `generate_audio`, `watermark`, `seed`, `camera_fixed`, `callback_url`. Las fotos de la persona van en línea como data URI (nunca sale una URL privada de Weë).
+- Consultar: `GET …/contents/generations/tasks/{id}` → `status` (`queued` · `running` · `succeeded` · `failed` · `cancelled`), `content.video_url` (válida 24 h: por eso se copia a Weë Storage), `usage.completion_tokens` (lo que factura BytePlus), `resolution`, `ratio`, `duration`, `framespersecond`.
+- Webhook opcional: `callback_url` → función HTTP `seedanceCallback` (`SEEDANCE_CALLBACK_URL` pública + `SEEDANCE_CALLBACK_TOKEN`), que guarda el aviso en `aiProviderCallbacks/{taskId}` (solo servidor). Sin webhook, el adaptador sondea cada 10 s hasta 20 minutos.
+
+**Modelos** (ids oficiales; se pueden cambiar por variable de entorno sin tocar código):
+
+| Clave en Weë | Id oficial (ModelArk) | Resolución | Duración | Referencias | USD por millón de tokens: sin video de entrada · con video |
+|---|---|---|---|---|---|
+| `SEEDANCE_2_5` | `dreamina-seedance-2-5-260628` | 480p · 720p · 1080p | 4–30 s (`-1` en edición de video) | 30 imágenes / 10 clips | 10.70 · 6.40 (1080p: 11.70 · 7.00) |
+| `SEEDANCE_2_0` | `dreamina-seedance-2-0-260128` | 480p · 720p · 1080p · 4K | 4–15 s | 9 imágenes / 3 videos / 3 audios | 7.00 · 4.30 (1080p: 7.70 · 4.70; 4K: 4.00 · 2.40) |
+| `SEEDANCE_2_0_FAST` | `dreamina-seedance-2-0-fast-260128` | 480p · 720p | 4–15 s | como 2.0 | 5.60 · 3.30 |
+| `SEEDANCE_2_0_MINI` | `dreamina-seedance-2-0-mini-260615` | 480p · 720p | 4–15 s | como 2.0 | 3.50 · 2.10 |
+
+Tokens ≈ (segundos de video de entrada + segundos de salida) × ancho × alto × 24 / 1024, con los píxeles reales de cada resolución y ratio (720p 16:9 = 1248×704 → 102 960 tokens por 5 s → USD 1.10 en 2.5, 0.72 en 2.0, 0.36 en 2.0 mini). La página de precios de BytePlus redondea a 1280×720 (USD 1.156); la factura real sale de `usage.completion_tokens`. **Ningún precio en Credits está fijado para Seedance**: el catálogo placeholder del Credit Engine sigue vigente hasta medir `providerTokens` / `providerCost` en `aiGenerations`.
+
+**Qué versión usa Weë** (`chooseSeedanceModel`, siempre dentro de la familia): preferencia explícita (`model`) › más de 15 s → 2.5 › 4K → 2.0 › calidad `max` → 2.5 › calidad `standard` o "borrador / rápido / de prueba" → 2.0 fast › política `cost-first` → 2.0 mini › `aiSettings/global.video.defaultModel` › por defecto 2.0. La duración se recorta a lo que admite el modelo; imagen→video en 2.5 exige `ratio: adaptive` (lo pone el adaptador). Capacidades: `video.generate` (texto), `video.image_to_video` (primer / último cuadro), `video.reference` (referencias omni: en Weë Studio, una foto adjunta a "Crear un video" o "Publicidad" entra como referencia; "Animar una foto" la usa como primer cuadro).
+
+**Estados y registro**: `aiGenerations/{id}` pasa por `QUEUED` → `PROCESSING` (con `providerTaskId`, `estimatedTokens`, `estimatedUsd`, `resolution`) → `COMPLETED` (`providerTokens`, `providerCost` real, `videoDurationSec`, `providerMeta`) o `FAILED`. `creatorRun` mantiene el trabajo en `creatorJobs` aunque la app deje de esperar.
+
+**Credits (un request = una generación = un cobro)**: precio del catálogo (`serviceForCapability`: `ai_video`, o `ai_video_advanced` con calidad `max` o más de 15 s) → `spendCredits` con `requestId` (`jobId` en Weë Studio; `requestId` de la app en `generateVideo`) → generación → `completeCredits`; cualquier fallo, tiempo agotado o rechazo → `refundCredits` íntegro. Repetir un `requestId` ya completado devuelve el mismo video sin cobrar; uno en curso responde `DUPLICATE_REQUEST`.
+
+**Seguridad**: `ARK_API_KEY` solo en `functions/.env.local` / Secret Manager; el cliente llama a callables autenticadas (`creatorRun`, `generateVideo`) y solo puede mandar fotos de su propia carpeta de Storage; `aiGenerations`, `aiProviderCallbacks` y `aiRateLimits` no son escribibles desde la app.
+
+**Limitaciones conocidas**: los modelos hay que activarlos en la consola de BytePlus (saldo mayor de USD 30, plan o paquete de recursos) antes de la primera llamada; la serie 2.0 rechaza imágenes o videos de referencia con rostros reales (Weë responde `INVALID_REQUEST` con `reason: input_rejected` y reembolsa); 2.5 llega a 1080p (no 4K) y 2.0 a 15 s; la URL del proveedor caduca a las 24 h (Weë guarda el archivo); sin clave en la máquina de desarrollo, el contrato está probado solo con respuestas simuladas (`verified: false` hasta la primera llamada real).
 
 ## Fotos de entrada y archivos
 
@@ -142,9 +177,9 @@ En desarrollo (plan Spark, sin bucket real) el Storage corre en el **emulador** 
 ## Límites de uso y errores controlados
 
 - **Por persona y día** (`aiSettings/global.limits.perUserPerDay`, por defecto texto 400 · visión 200 · imagen 80 · video 12 · voz 60): `creatorRun` y `brainChat` reservan el cupo en `aiRateLimits/{uid}_{día}` antes de cobrar; si se supera responden `RATE_LIMITED` sin tocar Credits.
-- **Por proveedor** (`aiProviders/{id}.limits.maxCallsPerDay`, p. ej. fal 500): el router lo salta con motivo "límite diario del proveedor alcanzado" usando `aiUsage/{día}`.
+- **Por proveedor** (`aiProviders/{id}.limits.maxCallsPerDay`, p. ej. seedance 500): el router lo salta con motivo "límite diario del proveedor alcanzado" usando `aiUsage/{día}`.
 - **Errores** (`engine/errors.ts`): la app recibe `details.code` y una frase en español (INVALID_REQUEST, UNAUTHORIZED, PROVIDER_ERROR, GENERATION_FAILED, TIMEOUT, RATE_LIMITED, DUPLICATE_REQUEST, NOT_AVAILABLE; INSUFFICIENT_CREDITS lo emite el Credit Engine). Claves, trazas y mensajes de los proveedores quedan solo en el registro del servidor.
-- **Video asíncrono**: fal encola la generación; el adaptador sondea `status_url` y luego lee `response_url`; el trabajo sigue en Firestore (`creatorJobs`) aunque la app deje de esperar (`creatorRun` admite hasta 15 minutos). Un webhook (`?fal_webhook=`) puede sustituir el sondeo cuando haya una URL pública.
+- **Video asíncrono**: Seedance crea una tarea (`QUEUED` → `PROCESSING` en `aiGenerations`, con `providerTaskId`); el adaptador sondea `GET /tasks/{id}` cada 10 s o espera el webhook `seedanceCallback`, y al terminar guarda el mp4 en Weë Storage; el trabajo sigue en Firestore (`creatorJobs`) aunque la app deje de esperar (`creatorRun` admite hasta 15 minutos; `generateVideo`, hasta 25).
 
 ## Weë Brain (asistente general)
 
@@ -160,8 +195,8 @@ Para activarlo no hay que rehacer nada: falta un proveedor de montaje/subtítulo
 
 ## Capacidades
 
-`text.generate` · `text.structure` · `script.write` · `scene.split` · `subtitle.generate` · `vision.describe` · `image.generate` · `image.reference` · `image.edit` · `image.background_remove` · `image.object_remove` · `image.identity_edit` · `image.space_restyle` · `image.upscale` · `video.generate` · `video.image_to_video` · `video.compose` · `video.montage` · `video.vertical` · `voice.tts` · `music.generate` · `audio.sfx` · `doc.render`
+`text.generate` · `text.structure` · `script.write` · `scene.split` · `subtitle.generate` · `vision.describe` · `image.generate` · `image.reference` · `image.edit` · `image.background_remove` · `image.object_remove` · `image.identity_edit` · `image.space_restyle` · `image.upscale` · `video.generate` · `video.image_to_video` · `video.reference` · `video.compose` · `video.montage` · `video.vertical` · `voice.tts` · `music.generate` · `audio.sfx` · `doc.render`
 
 ## Pruebas
 
-`npm run test:engine` compila las Functions y corre `functions/test/router.test.mjs` (router con proveedores falsos: cadena, fallback con registro de cada intento con providerCost y creditsCharged, calidad, coste, cortacircuitos, límite de proveedor, modo demo, error controlado), `functions/test/providers.test.mjs` (cada adaptador con respuestas simuladas de su API, incluidos fal.ai — cola submit/status/response, data URI para imagen→video, error de cola — y Gemini con cliente falso — historial, búsqueda con fuentes, imagen en línea con 2K), `functions/test/credits.test.mjs` (Credit Engine) y `functions/test/creator.test.mjs` (foto propia vs ajena, prompts internos, narración, planes por sección, Weë Brain, límites, errores sin filtrar nada interno, libro de generaciones). La experiencia completa se prueba en web con el emulador (`npm run functions:emulator`).
+`npm run test:engine` compila las Functions y corre `functions/test/router.test.mjs` (router con proveedores falsos: cadena, fallback con registro de cada intento con providerCost y creditsCharged, calidad, coste, cortacircuitos, límite de proveedor, modo demo, error controlado), `functions/test/providers.test.mjs` (cada adaptador con respuestas simuladas de su API, incluido Seedance — cuerpo oficial de texto→video, imagen→video con data URI y `ratio: adaptive`, referencias omni, tokens y tarifas oficiales, tarea fallida, rostro rechazado, 4xx sin reintento, sin clave — y Gemini con cliente falso — historial, búsqueda con fuentes, imagen en línea con 2K), `functions/test/credits.test.mjs` (Credit Engine) y `functions/test/creator.test.mjs` (foto propia vs ajena, prompts internos, narración, planes por sección, Weë Brain, límites, errores sin filtrar nada interno, libro de generaciones; Weë Video Engine: elección de versión de Seedance, familia permitida en el router y ningún otro modelo ni el demo como respaldo si Seedance falla). La experiencia completa se prueba en web con el emulador (`npm run functions:emulator`).

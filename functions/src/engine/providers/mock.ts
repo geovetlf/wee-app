@@ -10,7 +10,7 @@ import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '
 const ALL: CapabilityId[] = [
   'text.generate', 'text.structure', 'text.search', 'image.generate', 'image.edit', 'image.background_remove', 'image.upscale',
   'image.object_remove', 'image.identity_edit', 'image.space_restyle', 'image.reference', 'vision.describe',
-  'video.generate', 'video.image_to_video', 'video.compose', 'video.montage', 'video.vertical', 'voice.tts',
+  'video.generate', 'video.image_to_video', 'video.reference', 'video.compose', 'video.montage', 'video.vertical', 'voice.tts',
   'music.generate', 'audio.sfx', 'doc.render', 'script.write', 'scene.split', 'subtitle.generate',
 ];
 

@@ -139,6 +139,8 @@ function createRouter(deps) {
                 return skip('desactivado por administración');
             if (excluded.has(link.provider))
                 return skip('excluido en esta petición');
+            if (prefs.allowedProviders && !prefs.allowedProviders.includes(link.provider))
+                return skip('fuera de la familia de modelos permitida');
             if (!adapter.isConfigured())
                 return skip('sin clave configurada');
             if (!adapter.supports(capability))
@@ -152,9 +154,9 @@ function createRouter(deps) {
                 return skip('reservado para tareas de más calidad');
             if (link.maxQuality && types_1.QUALITY_RANK[quality] > types_1.QUALITY_RANK[link.maxQuality])
                 return skip('no alcanza la calidad que pide la tarea');
-            const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model);
+            const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId);
             if (!model)
-                return skip('sin modelo disponible para esta capacidad');
+                return skip(prefs.modelId ? `sin el modelo ${prefs.modelId} disponible` : 'sin modelo disponible para esta capacidad');
             const estimatedUsd = (0, pricing_1.estimateUsd)(model, capability, input, prefs);
             const estimatedCredits = (0, pricing_1.creditsFor)(capability, estimatedUsd, settings, adapter.id === 'mock', input);
             if (prefs.maxCredits !== undefined && estimatedCredits > prefs.maxCredits)
@@ -184,9 +186,12 @@ function createRouter(deps) {
             return a.priority - b.priority;
         };
         candidates.sort(byPolicy);
-        // Último recurso: modo demo (siempre en modo prueba; en modo real solo si nadie más puede)
+        // Último recurso: modo demo (siempre en modo prueba; en modo real solo si nadie más puede).
+        // Video: el demo solo entra cuando NO hay ningún candidato real; nunca sustituye a Seedance si este falla.
         const mock = deps.adapters.mock;
-        if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && (settings.pricingMode === 'simulated' || candidates.length === 0)) {
+        const modality = (0, types_1.modalityOf)(capability);
+        const mockAllowed = modality === 'video' ? candidates.length === 0 : settings.pricingMode === 'simulated' || candidates.length === 0;
+        if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && mockAllowed) {
             const model = pickModel(mock, capability, quality, policy, config.providers.mock);
             if (model) {
                 candidates.push({ provider: 'mock', model, priority: 999, estimatedUsd: 0, estimatedCredits: (0, pricing_1.creditsFor)(capability, 0, settings, true, input), durationOk: true, meetsQuality: false, reason: 'modo demo (sin IA real)' });
@@ -204,7 +209,7 @@ function createRouter(deps) {
         };
     };
     const execute = async (request) => {
-        var _a;
+        var _a, _b, _c;
         const config = await deps.loadConfig();
         const { settings } = config;
         const decision = await route(request, config);
@@ -235,12 +240,32 @@ function createRouter(deps) {
             const generationId = await deps.ledger.open(Object.assign(Object.assign({}, ctx), { capability,
                 modality, provider: candidate.provider, model: candidate.model.id, attempt, estimatedUsd: candidate.estimatedUsd, pricingMode: settings.pricingMode, inputType: (0, types_1.inputTypeOf)(capability, input) }));
             const start = now();
+            const onStatus = async (status, meta) => {
+                await deps.ledger.progress(generationId, {
+                    status,
+                    providerTaskId: typeof meta.providerTaskId === 'string' ? meta.providerTaskId : undefined,
+                    estimatedTokens: typeof meta.estimatedTokens === 'number' ? meta.estimatedTokens : undefined,
+                    estimatedUsd: typeof meta.estimatedUsd === 'number' ? meta.estimatedUsd : undefined,
+                    resolution: typeof meta.resolution === 'string' ? meta.resolution : undefined,
+                });
+            };
             try {
-                const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs }), timeoutMs, candidate.provider);
+                const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs, onStatus }), timeoutMs, candidate.provider);
                 const durationMs = now() - start;
                 const demo = candidate.provider === 'mock';
                 const credits = (0, pricing_1.creditsFor)(capability, result.costUSD, settings, demo, input);
-                await deps.ledger.close(generationId, { status: 'COMPLETED', providerCost: result.costUSD, creditsCharged: credits, durationMs, usage: result.usage, outputType: (0, types_1.outputTypeOf)(result.output.kind) });
+                await deps.ledger.close(generationId, {
+                    status: 'COMPLETED',
+                    providerCost: result.costUSD,
+                    creditsCharged: credits,
+                    durationMs,
+                    usage: result.usage,
+                    outputType: (0, types_1.outputTypeOf)(result.output.kind),
+                    videoDurationSec: result.output.durationSec,
+                    resolution: typeof ((_b = result.meta) === null || _b === void 0 ? void 0 : _b.resolution) === 'string' ? result.meta.resolution : undefined,
+                    providerTokens: typeof ((_c = result.meta) === null || _c === void 0 ? void 0 : _c.actualTokens) === 'number' ? result.meta.actualTokens : undefined,
+                    providerMeta: result.meta,
+                });
                 deps.health.success(candidate.provider);
                 console.log(`WEË AI ENGINE: ${candidate.provider}/${result.model || candidate.model.id} atendió ${capability} en ${durationMs} ms (${credits} Credits, registro ${generationId}, intento ${attempt})`);
                 if (request.record) {

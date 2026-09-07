@@ -61,6 +61,8 @@ export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'in
   const capability = step.capability;
 
   if (job.inputImageUrl && IMAGE_INPUT_CAPS.includes(capability) && !base.imageUrl) base.imageUrl = job.inputImageUrl;
+  // Weë Studio con una foto adjunta (que no sea "animar"): la foto va como referencia omni de Seedance
+  if (job.inputImageUrl && (capability === 'video.generate' || capability === 'video.reference') && !base.referenceImages) base.referenceImages = [job.inputImageUrl];
 
   if (TEXT_CAPS.includes(capability) && !base.prompt) {
     const built = buildTextPrompt(job.experienceId, capability === 'vision.describe' ? 'describe' : kind, brief, job.goal, step.purpose, previous);
@@ -68,7 +70,7 @@ export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'in
     base.prompt = built.prompt;
   } else if (capability.startsWith('image.') && !base.prompt) {
     base.prompt = buildImagePrompt(job.experienceId, kind, brief, job.goal, step.purpose, previous);
-  } else if ((capability === 'video.generate' || capability === 'video.image_to_video') && !base.prompt) {
+  } else if ((capability === 'video.generate' || capability === 'video.image_to_video' || capability === 'video.reference') && !base.prompt) {
     base.prompt = buildVideoPrompt(job.goal, brief, previous);
   } else if (capability === 'voice.tts' && !base.text) {
     base.text = narrationFrom(previous, job.goal);

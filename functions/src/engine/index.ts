@@ -45,6 +45,8 @@ export interface ProviderStatus {
 export const engine = {
   generate: (request: EngineRequest): Promise<EngineResult> => router.execute(request),
   route: (request: EngineRequest): Promise<RouteDecision> => router.route(request),
+  /** Ajustes vivos (aiSettings/global + defaults). */
+  settings: async () => (await loadConfig()).settings,
   health,
   async status() {
     const config = await loadConfig(true);

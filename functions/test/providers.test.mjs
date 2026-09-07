@@ -7,8 +7,7 @@ const lib = (p) => require(path.resolve(here, '../lib/engine/' + p));
 
 // Claves falsas: solo para que isConfigured() sea true
 Object.assign(process.env, {
-  KLING_ACCESS_KEY: 'ak', KLING_SECRET_KEY: 'sk', MINIMAX_API_KEY: 'mm', RUNWAY_API_KEY: 'rw', ARK_API_KEY: 'ark',
-  BFL_API_KEY: 'bfl', ELEVENLABS_API_KEY: 'el', ANTHROPIC_API_KEY: 'an', OPENAI_API_KEY: 'oa', FAL_KEY: 'fal-secret', GEMINI_API_KEY: 'gem',
+  MINIMAX_API_KEY: 'mm', ARK_API_KEY: 'ark', BFL_API_KEY: 'bfl', ELEVENLABS_API_KEY: 'el', ANTHROPIC_API_KEY: 'an', OPENAI_API_KEY: 'oa', GEMINI_API_KEY: 'gem',
 });
 
 const http = lib('http.js');
@@ -31,72 +30,103 @@ const stub = (routes) => {
   http.persistRemoteFile = async (uid, url, provider, label) => `stored://${provider}/${label}?from=${encodeURIComponent(url)}`;
   http.saveGeneratedFile = async (uid, buffer, contentType, label) => `stored://buffer/${label}/${contentType}/${buffer.length}`;
   http.persistBase64 = async (uid, b64, ct, label) => `stored://b64/${label}`;
+  http.readImage = async () => ({ buffer: Buffer.from('img'), contentType: 'image/png' });
 };
 
 const ctx = { userId: 'u1', jobId: 'j1', experienceId: 'studio', goal: 'un video de Lima de noche' };
-const runWith = (adapter, capability, input, prefs = {}, modelId) => {
+const runWith = (adapter, capability, input, prefs = {}, modelId, extra = {}) => {
   const model = adapter.models.find((m) => (modelId ? m.id === modelId : m.capabilities.includes(capability)));
-  return adapter.run({ capability, model, input, ctx, prefs, timeoutMs: 30_000 });
+  return adapter.run({ capability, model, input, ctx, prefs, timeoutMs: 30_000, ...extra });
 };
 
-// ── Kling ──
+// ── Seedance (BytePlus ModelArk): la única familia de video de Weë Studio ──
 {
-  const { klingAdapter } = lib('providers/kling.js');
+  const { seedanceAdapter, SEEDANCE_MODEL_IDS, seedanceTokens, seedanceRate, seedanceUsd, resolveResolution, clampDuration, buildSeedanceBody } = lib('providers/seedance.js');
+  check('seedance: cuatro modelos oficiales (2.5, 2.0, 2.0 fast, 2.0 mini)', seedanceAdapter.models.map((m) => m.id).join(',') === 'dreamina-seedance-2-5-260628,dreamina-seedance-2-0-260128,dreamina-seedance-2-0-fast-260128,dreamina-seedance-2-0-mini-260615', seedanceAdapter.models.map((m) => m.id).join(','));
+  check('seedance: solo modalidad video y capacidades texto/imagen/referencia', seedanceAdapter.modalities.join() === 'video' && seedanceAdapter.supports('video.reference') && !seedanceAdapter.supports('image.generate'));
+
+  // Texto → video con Seedance 2.0
+  const taskUrl = /\/api\/v3\/contents\/generations\/tasks$/;
   stub([
-    [/\/v1\/videos\/text2video$/, { code: 0, data: { task_id: 'k-1' } }],
-    [/\/v1\/videos\/text2video\/k-1$/, { data: { task_status: 'succeed', task_result: { videos: [{ url: 'https://kling/v.mp4' }] } } }],
+    [taskUrl, { id: 'cgt-2026-1' }],
+    [/\/tasks\/cgt-2026-1$/, { id: 'cgt-2026-1', status: 'succeeded', content: { video_url: 'https://ark-content.volces.com/v.mp4' }, usage: { completion_tokens: 108900, total_tokens: 108900 }, resolution: '720p', ratio: '16:9', duration: 5, framespersecond: 24 }],
   ]);
-  const r = await runWith(klingAdapter, 'video.generate', { prompt: 'Lima de noche', aspectRatio: '9:16' }, { durationSec: 10, quality: 'max' });
-  const auth = calls[0].headers.Authorization || '';
-  check('kling: JWT HS256 en Authorization', /^Bearer [\w-]+\.[\w-]+\.[\w-]+$/.test(auth), auth.slice(0, 40));
-  check('kling: cuerpo con model_name, duration 10, 9:16 y modo pro', calls[0].body.model_name === 'kling-v2-1-master' && calls[0].body.duration === '10' && calls[0].body.aspect_ratio === '9:16' && calls[0].body.mode === 'pro', JSON.stringify(calls[0].body));
-  check('kling: video guardado en Storage y coste por segundo', r.output.kind === 'video' && r.output.url.startsWith('stored://kling/') && r.costUSD === 10 * 0.14, `${r.output.url} $${r.costUSD}`);
+  const progress = [];
+  const t2v = await runWith(seedanceAdapter, 'video.generate', { prompt: 'Lima de noche', aspectRatio: '16:9', durationSec: 5 }, { quality: 'high' }, SEEDANCE_MODEL_IDS.SEEDANCE_2_0, { onStatus: async (s, meta) => progress.push([s, meta]) });
+  const create = calls[0];
+  check('seedance t2v: POST oficial de ModelArk con Bearer ARK_API_KEY', /ark\.ap-southeast\.bytepluses\.com\/api\/v3\/contents\/generations\/tasks$/.test(create.url) && create.headers.Authorization === 'Bearer ark', create.url);
+  check('seedance t2v: cuerpo con model, content de texto, resolution 720p, ratio 16:9, duration 5, audio y sin marca de agua', create.body.model === 'dreamina-seedance-2-0-260128' && create.body.content[0].type === 'text' && create.body.content[0].text === 'Lima de noche' && create.body.resolution === '720p' && create.body.ratio === '16:9' && create.body.duration === 5 && create.body.generate_audio === true && create.body.watermark === false, JSON.stringify(create.body));
+  check('seedance t2v: QUEUED → PROCESSING con el id de tarea y el coste estimado', progress.length === 1 && progress[0][0] === 'PROCESSING' && progress[0][1].providerTaskId === 'cgt-2026-1' && progress[0][1].estimatedTokens > 0 && progress[0][1].estimatedUsd > 0, JSON.stringify(progress));
+  check('seedance t2v: sondea GET /tasks/{id} y guarda el video en Weë Storage', calls[1].url.endsWith('/tasks/cgt-2026-1') && t2v.output.kind === 'video' && t2v.output.url.startsWith('stored://seedance/') && t2v.output.durationSec === 5, t2v.output.url);
+  check('seedance t2v: coste real = completion_tokens × tarifa oficial (7.0 USD/M sin video de entrada, 720p)', Math.abs(t2v.costUSD - (108900 * 7.0) / 1e6) < 1e-9 && t2v.meta.actualTokens === 108900 && t2v.meta.resolution === '720p', `$${t2v.costUSD}`);
+  check('seedance: tokens estimados según la fórmula oficial (5 s · 1248×704 · 24 fps / 1024)', seedanceTokens('720p', '16:9', 5) === Math.round((5 * 1248 * 704 * 24) / 1024) && seedanceTokens('720p', '9:16', 5) === seedanceTokens('720p', '16:9', 5));
+  check('seedance: tarifas oficiales por modelo y resolución', seedanceRate(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, '1080p', false) === 11.7 && seedanceRate(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, '720p', true) === 6.4 && seedanceRate(SEEDANCE_MODEL_IDS.SEEDANCE_2_0, '4k', false) === 4.0 && seedanceRate(SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI, '480p', false) === 3.5);
+  check('seedance: 2.5 720p 16:9 5 s ≈ USD 1.10 (102 960 tokens reales a 1248×704; la página de precios redondea a 1280×720 → 1.156)', Math.abs(seedanceUsd(seedanceTokens('720p', '16:9', 5), seedanceRate(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, '720p', false)) - 1.1017) < 0.001 && seedanceTokens('720p', '16:9', 5) === 102960, String(seedanceUsd(seedanceTokens('720p', '16:9', 5), 10.7)));
+  check('seedance: la resolución respeta lo que cada modelo permite', resolveResolution(SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI, undefined, 'max') === '720p' && resolveResolution(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, undefined, 'max') === '1080p' && resolveResolution(SEEDANCE_MODEL_IDS.SEEDANCE_2_0, '4k') === '4k' && resolveResolution(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, '4k', 'max') === '1080p');
+  check('seedance: la duración se recorta a 4–15 s (2.0) o 4–30 s (2.5) y admite -1', clampDuration(SEEDANCE_MODEL_IDS.SEEDANCE_2_0, 30) === 15 && clampDuration(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, 30) === 30 && clampDuration(SEEDANCE_MODEL_IDS.SEEDANCE_2_0, 1) === 4 && clampDuration(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, -1) === -1);
+
+  // Imagen → video con Seedance 2.5: primer cuadro en línea y ratio adaptive
+  stub([
+    [taskUrl, { id: 'cgt-2026-2' }],
+    [/\/tasks\/cgt-2026-2$/, { id: 'cgt-2026-2', status: 'succeeded', content: { video_url: 'https://ark-content.volces.com/i2v.mp4' }, usage: { completion_tokens: 200000 }, resolution: '1080p', ratio: 'adaptive', duration: 8 }],
+  ]);
+  const i2v = await runWith(seedanceAdapter, 'video.image_to_video', { prompt: 'anima esta foto', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fcreator-inputs%2Fa.png?alt=media', durationSec: 8 }, { quality: 'max' }, SEEDANCE_MODEL_IDS.SEEDANCE_2_5);
+  const body = calls[0].body;
+  check('seedance i2v: la foto viaja como data URI con role first_frame y ratio adaptive (obligatorio en 2.5)', body.content[1].type === 'image_url' && body.content[1].role === 'first_frame' && String(body.content[1].image_url.url).startsWith('data:image/png;base64,') && body.ratio === 'adaptive' && body.resolution === '1080p' && body.duration === 8, JSON.stringify({ ratio: body.ratio, resolution: body.resolution, role: body.content[1].role }));
+  check('seedance i2v: coste real a la tarifa 1080p de 2.5 (11.7 USD/M)', Math.abs(i2v.costUSD - (200000 * 11.7) / 1e6) < 1e-9 && i2v.output.durationSec === 8, `$${i2v.costUSD}`);
+
+  // Referencia omni → video: imágenes y videos de referencia
+  stub([
+    [taskUrl, { id: 'cgt-2026-3' }],
+    [/\/tasks\/cgt-2026-3$/, { id: 'cgt-2026-3', status: 'succeeded', content: { video_url: 'https://ark-content.volces.com/ref.mp4' }, usage: { completion_tokens: 150000 }, resolution: '720p', duration: 5 }],
+  ]);
+  const ref = await runWith(seedanceAdapter, 'video.reference', { prompt: 'un anuncio con este producto como @Image1', referenceImages: ['https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fcreator-inputs%2Fp.png?alt=media'], referenceVideos: ['https://cdn/ref.mp4'], referenceVideoSec: 5, durationSec: 5 }, {}, SEEDANCE_MODEL_IDS.SEEDANCE_2_0);
+  const rb = calls[0].body;
+  check('seedance referencia: reference_image en línea, reference_video por URL y omni_reference_task_type=reference', rb.content[1].role === 'reference_image' && rb.content[2].type === 'video_url' && rb.content[2].role === 'reference_video' && rb.omni_reference_task_type === 'reference', JSON.stringify(rb.content.map((c) => c.role || c.type)));
+  check('seedance referencia: con video de entrada se usa la tarifa "con video" (4.3 USD/M en 2.0)', Math.abs(ref.costUSD - (150000 * 4.3) / 1e6) < 1e-9 && ref.meta.withVideoInput === true, `$${ref.costUSD}`);
+
+  // Fallos: tarea fallida, rostro rechazado, 4xx al crear
+  stub([
+    [taskUrl, { id: 'cgt-2026-4' }],
+    [/\/tasks\/cgt-2026-4$/, { id: 'cgt-2026-4', status: 'failed', error: { code: 'InternalServiceError', message: 'generation failed' } }],
+  ]);
+  let failed = '';
+  try { await runWith(seedanceAdapter, 'video.generate', { prompt: 'x' }); } catch (e) { failed = e.message; }
+  check('seedance: una tarea fallida se propaga como fallo del proveedor (reembolsable)', /generation failed/.test(failed), failed);
+  stub([
+    [taskUrl, { id: 'cgt-2026-5' }],
+    [/\/tasks\/cgt-2026-5$/, { id: 'cgt-2026-5', status: 'failed', error: { code: 'InputImageSensitiveContentDetected', message: 'input image contains real human face' } }],
+  ]);
+  let rejected = '';
+  try { await runWith(seedanceAdapter, 'video.image_to_video', { prompt: 'x', imageUrl: 'data:image/png;base64,aaa' }); } catch (e) { rejected = e.message; }
+  check('seedance: un rostro real rechazado se marca como rechazo de entrada', /rechazo de entrada/.test(rejected), rejected);
+  const { classifyError } = lib('errors.js');
+  const classified = classifyError(new (lib('http.js').ProviderError)(rejected, 'seedance'));
+  check('errores: el rechazo de entrada llega a la app como INVALID_REQUEST con motivo input_rejected y frase amable', classified.code === 'INVALID_REQUEST' && classified.details.reason === 'input_rejected' && /rostros reales/.test(classified.message), classified.message);
+  stub([[taskUrl, () => { const err = new http.ProviderError('seedance respondió 400: InvalidParameter', 'seedance', 400, true); throw err; }]]);
+  let sync = null;
+  try { await runWith(seedanceAdapter, 'video.generate', { prompt: 'x' }); } catch (e) { sync = e; }
+  check('seedance: un 4xx al crear la tarea no se reintenta', sync && sync.retryable === false, sync && sync.message);
+  stub([]);
+  let missing = '';
+  try { await runWith(seedanceAdapter, 'video.generate', { prompt: '' }); } catch (e) { missing = e.message; }
+  check('seedance: sin descripción no se llama al proveedor', /falta la descripción/.test(missing) && calls.length === 0);
+  const built = await buildSeedanceBody({ capability: 'video.generate', model: seedanceAdapter.models[1], input: { prompt: 'p', aspectRatio: '2:1', durationSec: 40 }, ctx, prefs: {}, timeoutMs: 1 });
+  check('seedance: un ratio inválido cae a 16:9 y la duración a 15 s en 2.0', built.body.ratio === '16:9' && built.body.duration === 15);
 }
 
-// ── MiniMax video (Hailuo) y voz ──
+// ── MiniMax: solo voz (el video de Weë Studio es Seedance) ──
 {
   const { minimaxAdapter } = lib('providers/minimax.js');
-  stub([
-    [/\/v1\/video_generation/, { task_id: 'm-1', base_resp: { status_code: 0 } }],
-    [/\/v1\/query\/video_generation\?task_id=m-1/, { status: 'Success', file_id: 'f-9' }],
-    [/\/v1\/files\/retrieve\?file_id=f-9/, { file: { download_url: 'https://mm/v.mp4' } }],
-  ]);
-  const v = await runWith(minimaxAdapter, 'video.generate', { prompt: 'Lima' }, { durationSec: 6 });
-  check('minimax video: Bearer, modelo Hailuo, duración 6 y 768P', calls[0].headers.Authorization === 'Bearer mm' && calls[0].body.model === 'MiniMax-Hailuo-02' && calls[0].body.duration === 6 && calls[0].body.resolution === '768P', JSON.stringify(calls[0].body));
-  check('minimax video: descarga por file_id y guarda', v.output.url.includes('stored://minimax/') && v.costUSD === 6 * 0.045, `${v.output.url} $${v.costUSD}`);
-
+  check('minimax: sin modelos de video', minimaxAdapter.modalities.join() === 'voice' && !minimaxAdapter.supports('video.generate') && minimaxAdapter.supports('voice.tts'));
   stub([[/\/v1\/t2a_v2/, { data: { audio: Buffer.from('mp3-bytes').toString('hex') }, extra_info: { audio_length: 2500 } }]]);
   const a = await runWith(minimaxAdapter, 'voice.tts', { text: 'Hola Weë' }, {}, 'speech-02-hd');
   check('minimax voz: texto, voice_setting y mp3', calls[0].body.text === 'Hola Weë' && calls[0].body.voice_setting.voice_id && calls[0].body.audio_setting.format === 'mp3', JSON.stringify(calls[0].body.audio_setting));
   check('minimax voz: hex → bytes → Storage, duración 2.5 s', a.output.kind === 'audio' && a.output.url.includes('/audio/mpeg/9') && a.output.durationSec === 2.5, `${a.output.url} ${a.output.durationSec}`);
 }
 
-// ── Runway ──
+// ── Seedream (ARK, imagen) ──
 {
-  const { runwayAdapter } = lib('providers/runway.js');
-  stub([
-    [/\/v1\/image_to_video$/, { id: 'r-1' }],
-    [/\/v1\/tasks\/r-1$/, { status: 'SUCCEEDED', output: ['https://rw/v.mp4'] }],
-  ]);
-  const r = await runWith(runwayAdapter, 'video.image_to_video', { prompt: 'anima esta foto', imageUrl: 'https://img/1.png' }, { durationSec: 5 }, 'gen4_turbo');
-  check('runway: cabecera X-Runway-Version y promptImage', calls[0].headers['X-Runway-Version'] === '2024-11-06' && calls[0].body.promptImage === 'https://img/1.png' && calls[0].body.ratio === '720:1280', JSON.stringify(calls[0].body));
-  check('runway: resultado guardado', r.output.url.startsWith('stored://runway/'), r.output.url);
-  let err = '';
-  try { await runWith(runwayAdapter, 'video.image_to_video', { prompt: 'sin foto' }, {}, 'gen4_turbo'); } catch (e) { err = e.message; }
-  check('runway: sin imagen para gen4_turbo → error claro no reintentable', /necesita una imagen/.test(err), err);
-}
-
-// ── Seedance / Seedream (ARK) ──
-{
-  const { seedanceAdapter } = lib('providers/seedance.js');
-  stub([
-    [/\/contents\/generations\/tasks$/, { id: 'sd-1' }],
-    [/\/contents\/generations\/tasks\/sd-1$/, { status: 'succeeded', content: { video_url: 'https://ark/v.mp4' } }],
-  ]);
-  const r = await runWith(seedanceAdapter, 'video.generate', { prompt: 'Lima de noche' }, { durationSec: 8 });
-  check('seedance: Bearer ARK, modelo pro, prompt con --ratio y --duration', calls[0].headers.Authorization === 'Bearer ark' && calls[0].body.model === 'seedance-1-0-pro-250528' && /--ratio 9:16 --duration 8/.test(calls[0].body.content[0].text), calls[0].body.content[0].text);
-  check('seedance: video guardado', r.output.url.startsWith('stored://seedance/') && r.output.durationSec === 8, r.output.url);
-
   const { seedreamAdapter } = lib('providers/seedream.js');
   stub([[/\/images\/generations$/, { data: [{ url: 'https://ark/i.png' }] }]]);
   const i = await runWith(seedreamAdapter, 'image.generate', { prompt: 'un logo', count: 2, aspectRatio: '1:1' });
@@ -139,38 +169,6 @@ const runWith = (adapter, capability, input, prefs = {}, modelId) => {
   check('openai: Bearer, system+user y respuesta', calls[0].headers.Authorization === 'Bearer oa' && calls[0].body.messages.length === 2 && o.output.content === 'Hola');
 }
 
-// ── fal.ai (cola: submit → status → response) ──
-{
-  const { falAdapter, falCostUsd } = lib('providers/fal.js');
-  http.readImage = async () => ({ buffer: Buffer.from('img'), contentType: 'image/png' });
-  stub([
-    [/queue\.fal\.run\/fal-ai\/kling-video\/v2\.5-turbo\/pro\/text-to-video$/, { request_id: 'fal-1', status_url: 'https://queue.fal.run/fal-ai/kling-video/requests/fal-1/status', response_url: 'https://queue.fal.run/fal-ai/kling-video/requests/fal-1' }],
-    [/requests\/fal-1\/status$/, { status: 'COMPLETED' }],
-    [/requests\/fal-1$/, { video: { url: 'https://fal.media/v.mp4' } }],
-  ]);
-  const r = await runWith(falAdapter, 'video.generate', { prompt: 'Lima de noche', aspectRatio: '9:16' }, { durationSec: 10 });
-  check('fal: Authorization "Key …", modelo Kling 2.5 turbo pro, duración "10" y 9:16', calls[0].headers.Authorization === 'Key fal-secret' && /kling-video\/v2\.5-turbo\/pro\/text-to-video$/.test(calls[0].url) && calls[0].body.duration === '10' && calls[0].body.aspect_ratio === '9:16' && calls[0].body.prompt === 'Lima de noche', JSON.stringify(calls[0].body));
-  check('fal: sondea status_url y luego lee response_url', calls[1].url.endsWith('/status') && calls[2].url.endsWith('/requests/fal-1'), calls.map((c) => c.url).join(' | '));
-  check('fal: video guardado en Storage y coste de lista ($0.35 + 5 × $0.07)', r.output.kind === 'video' && r.output.url.startsWith('stored://fal/') && r.output.durationSec === 10 && Math.abs(r.costUSD - 0.7) < 1e-9 && falCostUsd('fal-ai/kling-video/v2.1/standard/image-to-video', 5) === 0.25, `${r.output.url} $${r.costUSD}`);
-
-  stub([
-    [/image-to-video$/, { request_id: 'fal-2', status_url: 'https://queue.fal.run/x/requests/fal-2/status', response_url: 'https://queue.fal.run/x/requests/fal-2' }],
-    [/requests\/fal-2\/status$/, { status: 'COMPLETED' }],
-    [/requests\/fal-2$/, { video: { url: 'https://fal.media/v2.mp4' } }],
-  ]);
-  const i = await runWith(falAdapter, 'video.image_to_video', { prompt: 'anima esta foto', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fcreator-inputs%2Fa.png?alt=media' }, { durationSec: 5 });
-  check('fal imagen→video: la foto viaja como data URI (nunca la URL privada)', String(calls[0].body.image_url).startsWith('data:image/png;base64,') && calls[0].body.duration === '5' && !('aspect_ratio' in calls[0].body), JSON.stringify(Object.keys(calls[0].body)));
-  check('fal imagen→video: resultado guardado', i.output.url.startsWith('stored://fal/'));
-
-  stub([
-    [/text-to-video$/, { request_id: 'fal-3', status_url: 'https://queue.fal.run/x/requests/fal-3/status', response_url: 'https://queue.fal.run/x/requests/fal-3' }],
-    [/requests\/fal-3\/status$/, { status: 'IN_PROGRESS', error: 'content policy', error_type: 'validation' }],
-  ]);
-  let failed = '';
-  try { await runWith(falAdapter, 'video.generate', { prompt: 'x' }); } catch (e) { failed = e.message; }
-  check('fal: un error de la cola se propaga como fallo del proveedor', /content policy/.test(failed), failed);
-}
-
 // ── Gemini (texto con historial, búsqueda con fuentes, imagen) con cliente falso ──
 {
   const { geminiAdapter, __setGeminiClient } = lib('providers/gemini.js');
@@ -194,6 +192,7 @@ const runWith = (adapter, capability, input, prefs = {}, modelId) => {
     },
   };
   __setGeminiClient(fakeAi);
+  stub([]);
   http.readImage = async () => ({ buffer: Buffer.from('jpg'), contentType: 'image/jpeg' });
   const textModel = geminiAdapter.models.find((m) => m.capabilities.includes('text.generate'));
   const t = await geminiAdapter.run({ capability: 'text.generate', model: textModel, input: { system: 'Eres Weë', prompt: 'Hola', history: [{ role: 'user', text: 'antes' }, { role: 'wee', text: 'respuesta previa' }] }, ctx, prefs: {}, timeoutMs: 30_000 });
@@ -215,12 +214,12 @@ const runWith = (adapter, capability, input, prefs = {}, modelId) => {
 
 // ── Sin clave: NotConfiguredError no reintentable ──
 {
-  delete process.env.RUNWAY_API_KEY;
-  const { runwayAdapter } = lib('providers/runway.js');
-  check('sin clave → isConfigured false', runwayAdapter.isConfigured() === false);
+  delete process.env.ARK_API_KEY;
+  const { seedanceAdapter } = lib('providers/seedance.js');
+  check('sin ARK_API_KEY → Seedance no está configurado (modo demo)', seedanceAdapter.isConfigured() === false);
   let err;
-  try { await runWith(runwayAdapter, 'video.generate', { prompt: 'x' }, {}, 'gen4.5'); } catch (e) { err = e; }
-  check('sin clave → error claro y no reintentable', err && /RUNWAY_API_KEY/.test(err.message) && err.retryable === false, err && err.message);
+  try { await runWith(seedanceAdapter, 'video.generate', { prompt: 'x' }); } catch (e) { err = e; }
+  check('sin clave → error claro y no reintentable', err && /ARK_API_KEY/.test(err.message) && err.retryable === false, err && err.message);
 }
 
 console.log(failures ? `\n${failures} prueba(s) fallaron` : '\nTodos los adaptadores responden como dice su documentación');

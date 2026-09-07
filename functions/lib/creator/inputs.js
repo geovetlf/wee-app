@@ -65,6 +65,9 @@ function stepInputFor(job, step, previous) {
     const capability = step.capability;
     if (job.inputImageUrl && exports.IMAGE_INPUT_CAPS.includes(capability) && !base.imageUrl)
         base.imageUrl = job.inputImageUrl;
+    // Weë Studio con una foto adjunta (que no sea "animar"): la foto va como referencia omni de Seedance
+    if (job.inputImageUrl && (capability === 'video.generate' || capability === 'video.reference') && !base.referenceImages)
+        base.referenceImages = [job.inputImageUrl];
     if (TEXT_CAPS.includes(capability) && !base.prompt) {
         const built = (0, prompts_1.buildTextPrompt)(job.experienceId, capability === 'vision.describe' ? 'describe' : kind, brief, job.goal, step.purpose, previous);
         base.system = built.system;
@@ -73,7 +76,7 @@ function stepInputFor(job, step, previous) {
     else if (capability.startsWith('image.') && !base.prompt) {
         base.prompt = (0, prompts_1.buildImagePrompt)(job.experienceId, kind, brief, job.goal, step.purpose, previous);
     }
-    else if ((capability === 'video.generate' || capability === 'video.image_to_video') && !base.prompt) {
+    else if ((capability === 'video.generate' || capability === 'video.image_to_video' || capability === 'video.reference') && !base.prompt) {
         base.prompt = (0, prompts_1.buildVideoPrompt)(job.goal, brief, previous);
     }
     else if (capability === 'voice.tts' && !base.text) {

@@ -45,6 +45,8 @@ const router = (0, router_1.createRouter)({ adapters: registry_1.ADAPTERS, loadC
 exports.engine = {
     generate: (request) => router.execute(request),
     route: (request) => router.route(request),
+    /** Ajustes vivos (aiSettings/global + defaults). */
+    settings: async () => (await (0, config_1.loadConfig)()).settings,
     health,
     async status() {
         const config = await (0, config_1.loadConfig)(true);

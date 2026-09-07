@@ -173,6 +173,7 @@ export function createRouter(deps: RouterDeps) {
       const providerConfig = config.providers[link.provider] || { enabled: true, priority: 50 };
       if (!providerConfig.enabled) return skip('desactivado por administración');
       if (excluded.has(link.provider)) return skip('excluido en esta petición');
+      if (prefs.allowedProviders && !prefs.allowedProviders.includes(link.provider)) return skip('fuera de la familia de modelos permitida');
       if (!adapter.isConfigured()) return skip('sin clave configurada');
       if (!adapter.supports(capability)) return skip('no atiende esta capacidad');
       if (deps.health.isOpen(link.provider)) return skip('en pausa por fallos recientes');
@@ -180,8 +181,8 @@ export function createRouter(deps: RouterDeps) {
       if (maxCalls && maxCalls > 0 && providerCallsToday(usage, link.provider) >= maxCalls) return skip('límite diario del proveedor alcanzado');
       if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad');
       if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea');
-      const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model);
-      if (!model) return skip('sin modelo disponible para esta capacidad');
+      const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId);
+      if (!model) return skip(prefs.modelId ? `sin el modelo ${prefs.modelId} disponible` : 'sin modelo disponible para esta capacidad');
       const estimatedUsd = estimateUsd(model, capability, input, prefs);
       const estimatedCredits = creditsFor(capability, estimatedUsd, settings, adapter.id === 'mock', input);
       if (prefs.maxCredits !== undefined && estimatedCredits > prefs.maxCredits) return skip(`supera el tope de ${prefs.maxCredits} Credits`);
@@ -208,9 +209,12 @@ export function createRouter(deps: RouterDeps) {
     };
     candidates.sort(byPolicy);
 
-    // Último recurso: modo demo (siempre en modo prueba; en modo real solo si nadie más puede)
+    // Último recurso: modo demo (siempre en modo prueba; en modo real solo si nadie más puede).
+    // Video: el demo solo entra cuando NO hay ningún candidato real; nunca sustituye a Seedance si este falla.
     const mock = deps.adapters.mock;
-    if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && (settings.pricingMode === 'simulated' || candidates.length === 0)) {
+    const modality = modalityOf(capability);
+    const mockAllowed = modality === 'video' ? candidates.length === 0 : settings.pricingMode === 'simulated' || candidates.length === 0;
+    if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && mockAllowed) {
       const model = pickModel(mock, capability, quality, policy, config.providers.mock);
       if (model) {
         candidates.push({ provider: 'mock', model, priority: 999, estimatedUsd: 0, estimatedCredits: creditsFor(capability, 0, settings, true, input), durationOk: true, meetsQuality: false, reason: 'modo demo (sin IA real)' });
@@ -268,12 +272,32 @@ export function createRouter(deps: RouterDeps) {
         inputType: inputTypeOf(capability, input),
       });
       const start = now();
+      const onStatus = async (status: 'PROCESSING', meta: Record<string, unknown>) => {
+        await deps.ledger.progress(generationId, {
+          status,
+          providerTaskId: typeof meta.providerTaskId === 'string' ? meta.providerTaskId : undefined,
+          estimatedTokens: typeof meta.estimatedTokens === 'number' ? meta.estimatedTokens : undefined,
+          estimatedUsd: typeof meta.estimatedUsd === 'number' ? meta.estimatedUsd : undefined,
+          resolution: typeof meta.resolution === 'string' ? meta.resolution : undefined,
+        });
+      };
       try {
-        const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs }), timeoutMs, candidate.provider);
+        const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs, onStatus }), timeoutMs, candidate.provider);
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
         const credits = creditsFor(capability, result.costUSD, settings, demo, input);
-        await deps.ledger.close(generationId, { status: 'COMPLETED', providerCost: result.costUSD, creditsCharged: credits, durationMs, usage: result.usage, outputType: outputTypeOf(result.output.kind) });
+        await deps.ledger.close(generationId, {
+          status: 'COMPLETED',
+          providerCost: result.costUSD,
+          creditsCharged: credits,
+          durationMs,
+          usage: result.usage,
+          outputType: outputTypeOf(result.output.kind),
+          videoDurationSec: result.output.durationSec,
+          resolution: typeof result.meta?.resolution === 'string' ? result.meta.resolution : undefined,
+          providerTokens: typeof result.meta?.actualTokens === 'number' ? result.meta.actualTokens : undefined,
+          providerMeta: result.meta,
+        });
         deps.health.success(candidate.provider);
         console.log(`WEË AI ENGINE: ${candidate.provider}/${result.model || candidate.model.id} atendió ${capability} en ${durationMs} ms (${credits} Credits, registro ${generationId}, intento ${attempt})`);
         if (request.record) {

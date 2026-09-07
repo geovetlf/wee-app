@@ -10,6 +10,7 @@ const inputs_1 = require("./inputs");
 const gateway_1 = require("../gateway");
 const humanize_1 = require("../engine/humanize");
 const errors_1 = require("../engine/errors");
+const video_1 = require("../engine/video");
 const limits_1 = require("../engine/limits");
 const config_1 = require("../engine/config");
 const creditCosts_1 = require("../credits/creditCosts");
@@ -70,6 +71,18 @@ const usageRecorder = (ref) => async (entry) => {
     ]);
     console.log(`💰 ${entry.capability} · ${entry.provider} · ${entry.costUSD.toFixed(6)} · ${entry.latencyMs} ms`);
 };
+/** Un resultado del Weë Video Engine con la misma forma que devuelve el gateway. */
+const toGatewayRun = (result) => ({
+    output: result.output,
+    usage: result.usage,
+    costUSD: result.costUSD,
+    latencyMs: result.latencyMs,
+    provider: result.provider,
+    credits: result.credits,
+    generationId: result.generationId,
+    demo: result.demo,
+    attempts: result.attempts,
+});
 const chatResponse = (job, question) => {
     var _a;
     return ({
@@ -174,6 +187,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
     }
 });
 exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 900, memory: '1GiB' }, async (request) => {
+    var _a;
     try {
         if (!request.auth)
             throw new errors_1.EngineError('UNAUTHORIZED');
@@ -227,7 +241,11 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
                     quality: stepInput.quality || 'auto',
                     durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
                 };
-                const run = await (0, gateway_1.runCapability)(next.capability, input, Object.assign(Object.assign({}, ctx), { stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: (0, creditCosts_1.serviceForCapability)(next.capability, stepInput) }));
+                const stepCtx = Object.assign(Object.assign({}, ctx), { stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: (0, creditCosts_1.serviceForCapability)(next.capability, stepInput) });
+                // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
+                const run = next.capability.startsWith('video.')
+                    ? toGatewayRun(await video_1.videoEngine.generate((0, video_1.videoRequestFromStep)(next.capability, input), stepCtx))
+                    : await (0, gateway_1.runCapability)(next.capability, input, stepCtx);
                 results.push({
                     stepId: next.id,
                     kind: run.output.kind,
@@ -270,11 +288,12 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             console.error(`Trabajo ${jobId} falló:`, error);
             // FAILED → REFUND: se devuelve exactamente lo autorizado (idempotente)
             await (0, credits_1.settleCredits)(uid, jobId, job.creditsEstimated, 0, description);
+            const classified = (0, errors_1.classifyError)(error);
             await ref.update({
                 status: 'failed',
                 steps: clean(steps),
                 results: clean(results),
-                progressText: failing ? (0, humanize_1.friendlyFailure)(failing.capability) : 'No me salió bien. No te cobré.',
+                progressText: ((_a = classified.details) === null || _a === void 0 ? void 0 : _a.reason) === 'input_rejected' ? classified.message : failing ? (0, humanize_1.friendlyFailure)(failing.capability) : 'No me salió bien. No te cobré.',
                 creditsCharged: 0,
                 updatedAt: now(),
             });

@@ -20,10 +20,24 @@ export interface CloseRecord {
   outputType?: string;
   error?: string;
   usage?: Record<string, number>;
+  videoDurationSec?: number;
+  resolution?: string;
+  providerTokens?: number;
+  providerMeta?: Record<string, unknown>;
+}
+
+/** Avance de una tarea asíncrona: el proveedor la aceptó (QUEUED → PROCESSING). */
+export interface ProgressRecord {
+  status: Extract<GenerationStatus, 'PROCESSING'>;
+  providerTaskId?: string;
+  estimatedTokens?: number;
+  estimatedUsd?: number;
+  resolution?: string;
 }
 
 export interface Ledger {
   open(record: OpenRecord): Promise<string>;
+  progress(id: string, patch: ProgressRecord): Promise<void>;
   close(id: string, patch: CloseRecord): Promise<void>;
 }
 
@@ -42,7 +56,7 @@ export const firestoreLedger: Ledger = {
     await ref.set(
       stripUndefined({
         ...record,
-        status: 'PROCESSING' as GenerationStatus,
+        status: 'QUEUED' as GenerationStatus,
         providerCost: 0,
         providerCurrency: 'USD',
         creditsCharged: 0,
@@ -52,6 +66,9 @@ export const firestoreLedger: Ledger = {
       })
     );
     return ref.id;
+  },
+  async progress(id, patch) {
+    await db().collection('aiGenerations').doc(id).set(stripUndefined({ ...patch, updatedAt: Timestamp.now() }), { merge: true });
   },
   async close(id, patch) {
     const ref = db().collection('aiGenerations').doc(id);
@@ -95,8 +112,11 @@ export const memoryLedger = (): Ledger & { records: Record<string, Record<string
     records,
     async open(record) {
       const id = `gen-${++counter}`;
-      records[id] = { ...record, status: 'PROCESSING', providerCost: 0, providerCurrency: 'USD', creditsCharged: 0 };
+      records[id] = { ...record, status: 'QUEUED', providerCost: 0, providerCurrency: 'USD', creditsCharged: 0 };
       return id;
+    },
+    async progress(id, patch) {
+      records[id] = { ...(records[id] || {}), ...patch };
     },
     async close(id, patch) {
       records[id] = { ...(records[id] || {}), ...patch };

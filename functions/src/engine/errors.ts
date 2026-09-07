@@ -54,6 +54,9 @@ export function classifyError(error: unknown): EngineError {
   if (error instanceof NotConfiguredError) return new EngineError('NOT_AVAILABLE');
   if (error instanceof ProviderError) {
     if (/tardó más de|timed out|timeout/i.test(error.message)) return new EngineError('TIMEOUT', undefined, { provider: error.provider });
+    if (/rechazo de entrada|sensitive|moderat|InputImage|InputVideo|TaskTypeConstraint|TaskTypeMismatch/i.test(error.message)) {
+      return new EngineError('INVALID_REQUEST', 'La foto o el video no se pudieron usar para generar: el proveedor no acepta rostros reales ni ese contenido. Prueba con otra imagen o descripción.', { provider: error.provider, reason: 'input_rejected' });
+    }
     return new EngineError('PROVIDER_ERROR', undefined, { provider: error.provider, retryable: error.retryable });
   }
   const message = error instanceof Error ? error.message : String(error);
