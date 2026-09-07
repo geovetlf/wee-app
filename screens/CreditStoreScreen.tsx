@@ -13,45 +13,70 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserProfile } from '../contexts/UserProfileContext';
-import { creditsService, CREDIT_PACKAGES, Wallet, CreditPackage } from '../services/creditsService';
+import { creditsService, CREDIT_PACKAGES, CreditsBalance, CreditPackage } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
+/**
+ * Tienda de Credits (docs/CREDITS.md §10). La app solo elige el paquete: el
+ * servidor valida la compra y acredita los Credits. Mientras no haya pagos
+ * conectados, la "recarga de prueba" la resuelve el proveedor `test` (solo dev).
+ */
 const CreditStoreScreen = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
 
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [account, setAccount] = useState<CreditsBalance | null>(null);
+  const [packages, setPackages] = useState<CreditPackage[]>(CREDIT_PACKAGES);
   const [selectedPkg, setSelectedPkg] = useState<string>('plus');
   const [purchasing, setPurchasing] = useState(false);
 
-  const activeUid = userProfile?.uid || user?.uid;
+  // Los Credits son por cuenta (uid de Auth): el Perfil Weë comparte el saldo
+  const accountUid = user?.uid;
 
   useEffect(() => {
-    if (!activeUid) return;
-    return creditsService.subscribeToWallet(activeUid, setWallet);
-  }, [activeUid]);
+    if (!accountUid) return;
+    return creditsService.subscribeToBalance(accountUid, setAccount);
+  }, [accountUid]);
+
+  // Los paquetes vigentes los decide el servidor; si no responde, se muestran los locales
+  useEffect(() => {
+    let cancelled = false;
+    creditsService
+      .getCosts()
+      .then(({ packages: fromServer }) => {
+        if (!cancelled && fromServer.length > 0) setPackages(fromServer);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const notify = (title: string, message: string) => {
+    if (Platform.OS === 'web') window.alert(message);
+    else Alert.alert(title, message);
+  };
 
   const handlePurchase = async (pkg: CreditPackage) => {
-    if (!activeUid || purchasing) return;
-    // TODO: Replace with real IAP flow
-    // For now, simulate purchase
+    if (!accountUid || purchasing) return;
     setPurchasing(true);
     try {
-      await creditsService.addCredits(activeUid, pkg.id, pkg.credits);
-      const message = `${pkg.credits} Credits agregados a tu cuenta. Es una recarga de prueba: no se cobró nada.`;
-      if (Platform.OS === 'web') window.alert(message);
-      else Alert.alert('Recarga de prueba lista', message);
+      // Sin pagos conectados todavía: recarga de prueba validada por el servidor (solo dev)
+      const result = await creditsService.purchase(pkg.id, 'test');
+      notify('Recarga de prueba lista', `${result.credits} Credits agregados a tu cuenta. Es una recarga de prueba: no se cobró nada.`);
     } catch (e) {
-      const message = 'No se pudo completar la recarga. Inténtalo de nuevo.';
-      if (Platform.OS === 'web') window.alert(message);
-      else Alert.alert('Ups', message);
+      const code = String((e as any)?.details?.code || (e as any)?.code || '');
+      const message = code.includes('PURCHASE_INVALID') || code.includes('unimplemented') || code.includes('NOT_IMPLEMENTED')
+        ? 'Las compras de Credits llegarán pronto. Por ahora no se pueden hacer recargas aquí.'
+        : 'No se pudo completar la recarga. Inténtalo de nuevo.';
+      notify('Ups', message);
     }
     setPurchasing(false);
   };
+
+  const selected = packages.find(p => p.id === selectedPkg) || packages[0];
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -71,7 +96,7 @@ const CreditStoreScreen = () => {
           <View style={styles.balanceRow}>
             <Ionicons name="diamond" size={28} color="#F5B731" />
             <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>
-              {wallet?.balance ?? 0}
+              {(account?.balance ?? 0).toLocaleString('es')}
             </Text>
           </View>
           <Text style={[styles.balanceSub, { color: theme.colors.textSecondary }]}>Credits disponibles</Text>
@@ -97,14 +122,14 @@ const CreditStoreScreen = () => {
         {/* Packages */}
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recarga de prueba</Text>
 
-        {CREDIT_PACKAGES.map((pkg) => {
-          const selected = selectedPkg === pkg.id;
+        {packages.map((pkg) => {
+          const isSelected = selected?.id === pkg.id;
           return (
             <TouchableOpacity
               key={pkg.id}
               style={[
                 styles.packageCard,
-                { backgroundColor: theme.colors.surface, borderColor: selected ? '#F5B731' : 'transparent' },
+                { backgroundColor: theme.colors.surface, borderColor: isSelected ? '#F5B731' : 'transparent' },
               ]}
               onPress={() => setSelectedPkg(pkg.id)}
               activeOpacity={0.8}
@@ -132,7 +157,7 @@ const CreditStoreScreen = () => {
                 </Text>
               </View>
 
-              {selected && (
+              {isSelected && (
                 <View style={styles.checkMark}>
                   <Ionicons name="checkmark-circle" size={24} color="#F5B731" />
                 </View>
@@ -152,15 +177,14 @@ const CreditStoreScreen = () => {
         <TouchableOpacity
           style={[styles.buyBtn, { opacity: purchasing ? 0.6 : 1 }]}
           onPress={() => {
-            const pkg = CREDIT_PACKAGES.find(p => p.id === selectedPkg);
-            if (pkg) handlePurchase(pkg);
+            if (selected) handlePurchase(selected);
           }}
-          disabled={purchasing}
+          disabled={purchasing || !selected}
           activeOpacity={0.8}
         >
           <Ionicons name="diamond" size={20} color="#fff" />
           <Text style={styles.buyBtnText}>
-            Recargar {CREDIT_PACKAGES.find(p => p.id === selectedPkg)?.credits} Credits · prueba
+            Recargar {selected?.credits} Credits · prueba
           </Text>
         </TouchableOpacity>
       </View>

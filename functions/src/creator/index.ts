@@ -3,7 +3,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep } from './types';
 import { getPlanner } from './planner';
 import { TEMPLATES, plainQuestion } from './templates';
-import { estimatePlanCredits, holdCredits, settleCredits, ensureDemoWallet, pricingMode } from './credits';
+import { estimatePlanCredits, holdCredits, settleCredits, ensureAccount, pricingMode } from './credits';
 import { runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { buildTextPrompt } from './prompts';
@@ -111,7 +111,7 @@ export const creatorChat = onCall(
       const experienceId = String(data.experienceId || '') as ExperienceId;
       if (!EXPERIENCES.includes(experienceId)) throw new HttpsError('invalid-argument', 'Experiencia desconocida');
       const goal = String(data.goal || '').trim().slice(0, 300) || TEMPLATES[experienceId].defaultGoal;
-      await ensureDemoWallet(uid);
+      await ensureAccount(uid);
       ref = jobs().doc();
       job = {
         id: ref.id,
@@ -198,7 +198,7 @@ export const creatorRun = onCall(
     if (job.status !== 'planned' || !job.plan) throw new HttpsError('failed-precondition', 'Este trabajo todavía no tiene plan');
 
     const description = `Weë Creator · ${TEMPLATES[job.experienceId].name}`;
-    await holdCredits(uid, job.creditsEstimated, description);
+    await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
     await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
 
     const steps: JobStep[] = job.steps.map((s) => ({ ...s }));
@@ -254,7 +254,7 @@ export const creatorRun = onCall(
       // nunca más de lo que la persona vio antes de crear.
       const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
       const used = pricingMode() === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
-      await settleCredits(uid, job.creditsEstimated, used, description);
+      await settleCredits(uid, jobId, job.creditsEstimated, used, description);
       await ref.update({
         status: 'done',
         progressText: '✨ Listo',
@@ -271,7 +271,7 @@ export const creatorRun = onCall(
         failing.error = error instanceof Error ? error.message : String(error);
       }
       console.error(`Trabajo ${jobId} falló:`, error);
-      await settleCredits(uid, job.creditsEstimated, 0, description);
+      await settleCredits(uid, jobId, job.creditsEstimated, 0, description);
       await ref.update({
         status: 'failed',
         steps: clean(steps),

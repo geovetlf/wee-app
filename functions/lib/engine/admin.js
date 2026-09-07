@@ -6,6 +6,7 @@ const https_1 = require("firebase-functions/v2/https");
 const index_1 = require("./index");
 const registry_1 = require("./registry");
 const config_1 = require("./config");
+const admin_1 = require("../shared/admin");
 /**
  * Administración del engine sin tocar código (Firestore):
  *   aiProviders/{id}      { enabled, priority, models: { [modelo]: { enabled, quality, speed, cost, maxDurationSec } }, limits, note }
@@ -17,14 +18,6 @@ const config_1 = require("./config");
  */
 const db = () => (0, firestore_1.getFirestore)();
 const POLICIES = ['quality-first', 'balanced', 'cost-first'];
-const assertAdmin = (auth) => {
-    if (!auth)
-        throw new https_1.HttpsError('unauthenticated', 'Debes iniciar sesión');
-    const allowed = (process.env.WEE_ADMIN_UIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
-    if (auth.token.admin === true || allowed.includes(auth.uid))
-        return;
-    throw new https_1.HttpsError('permission-denied', 'Solo administración');
-};
 const validateChain = (chain) => {
     if (!Array.isArray(chain))
         throw new https_1.HttpsError('invalid-argument', 'chain debe ser una lista');
@@ -43,7 +36,7 @@ const validateChain = (chain) => {
     });
 };
 exports.engineAdmin = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 60 }, async (request) => {
-    assertAdmin(request.auth);
+    (0, admin_1.assertAdmin)(request.auth);
     const data = (request.data || {});
     const action = String(data.action || 'status');
     switch (action) {

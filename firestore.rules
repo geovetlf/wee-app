@@ -7,6 +7,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Credit Engine (docs/CREDITS.md): el saldo vive en el perfil y SOLO lo
+    // escribe el servidor (Cloud Functions). Ninguna escritura del cliente
+    // puede crear, cambiar ni borrar estos campos.
+    function creditFields() {
+      return ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt'];
+    }
+    function createsCreditFields() {
+      return request.resource.data.keys().hasAny(creditFields());
+    }
+    function touchesCreditFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(creditFields());
+    }
+
     // === USUARIOS ===
     match /users/{userId} {
       // Cualquiera puede leer perfiles públicos
@@ -14,7 +27,7 @@ service cloud.firestore {
 
       // Solo el dueño puede crear/actualizar su perfil
       // Permite crear perfil real (uid == auth.uid), HIDI (uid == "hidi_" + auth.uid), o BIZ (uid starts with "biz_")
-      allow create: if isAuthenticated() &&
+      allow create: if isAuthenticated() && !createsCreditFields() &&
         (request.auth.uid == request.resource.data.uid ||
          (request.resource.data.uid == ("hidi_" + request.auth.uid) &&
           request.resource.data.profileType == 'hidi' &&
@@ -22,7 +35,7 @@ service cloud.firestore {
          (request.resource.data.profileType == 'biz' &&
           request.resource.data.linkedAccountId == request.auth.uid));
 
-      allow update: if isAuthenticated() &&
+      allow update: if isAuthenticated() && !touchesCreditFields() &&
         (request.auth.uid == resource.data.uid ||
          (resource.data.uid == ("hidi_" + request.auth.uid) &&
           resource.data.profileType == 'hidi') ||
@@ -288,29 +301,32 @@ service cloud.firestore {
       }
     }
 
-    // === WALLETS (créditos, dinero real vía IAP) ===
-    // walletId == userId. Solo el dueño puede leer/escribir su wallet.
-    // IMPORTANTE: El ideal de seguridad sería que addCredits solo se llame
-    // desde una Cloud Function tras validar el recibo de IAP. Por ahora el
-    // cliente escribe directo, pero al menos restringimos a su propia wallet.
-    match /wallets/{walletId} {
-      allow read: if isAuthenticated() && request.auth.uid == walletId;
-      allow create: if isAuthenticated() &&
-        request.auth.uid == walletId &&
-        request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && request.auth.uid == walletId;
-      allow delete: if false;
+    // === CREDIT ENGINE (docs/CREDITS.md) ===
+    // Historial de Credits: cada persona lee el suyo; escribe solo el servidor.
+    match /creditTransactions/{transactionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    // Acumulados para administración: solo servidor / consola
+    match /creditStats/{statId} {
+      allow read, write: if false;
+    }
+    // Sobreescritura de costos (administración): la app los consulta por Cloud Function
+    match /creditCosts/{costId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
 
-    // === TRANSACTIONS (audit log de créditos) ===
-    // Solo el dueño puede leer sus transacciones. Los docs son inmutables.
+    // === WALLETS / TRANSACTIONS (billetera anterior, solo lectura) ===
+    // Migrada al Credit Engine (users.creditsBalance + creditTransactions).
+    // Se conserva de solo lectura hasta que la migración termine; nadie escribe.
+    match /wallets/{walletId} {
+      allow read: if isAuthenticated() && request.auth.uid == walletId;
+      allow write: if false;
+    }
     match /transactions/{transactionId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() &&
-        request.resource.data.userId == request.auth.uid;
-      allow update: if false;
-      allow delete: if false;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
     }
 
     // === NOTIFICACIONES ===

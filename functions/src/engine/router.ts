@@ -174,7 +174,7 @@ export function createRouter(deps: RouterDeps) {
       const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model);
       if (!model) return skip('sin modelo disponible para esta capacidad');
       const estimatedUsd = estimateUsd(model, capability, input, prefs);
-      const estimatedCredits = creditsFor(capability, estimatedUsd, settings, adapter.id === 'mock');
+      const estimatedCredits = creditsFor(capability, estimatedUsd, settings, adapter.id === 'mock', input);
       if (prefs.maxCredits !== undefined && estimatedCredits > prefs.maxCredits) return skip(`supera el tope de ${prefs.maxCredits} Credits`);
       const durationOk = !(prefs.durationSec && model.maxDurationSec && model.maxDurationSec < prefs.durationSec);
       const meetsQuality = model.quality >= QUALITY_MIN_SCORE[quality];
@@ -204,7 +204,7 @@ export function createRouter(deps: RouterDeps) {
     if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && (settings.pricingMode === 'simulated' || candidates.length === 0)) {
       const model = pickModel(mock, capability, quality, policy, config.providers.mock);
       if (model) {
-        candidates.push({ provider: 'mock', model, priority: 999, estimatedUsd: 0, estimatedCredits: creditsFor(capability, 0, settings, true), durationOk: true, meetsQuality: false, reason: 'modo demo (sin IA real)' });
+        candidates.push({ provider: 'mock', model, priority: 999, estimatedUsd: 0, estimatedCredits: creditsFor(capability, 0, settings, true, input), durationOk: true, meetsQuality: false, reason: 'modo demo (sin IA real)' });
       }
     }
 
@@ -252,7 +252,7 @@ export function createRouter(deps: RouterDeps) {
         const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs }), timeoutMs, candidate.provider);
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
-        const credits = creditsFor(capability, result.costUSD, settings, demo);
+        const credits = creditsFor(capability, result.costUSD, settings, demo, input);
         await deps.ledger.close(generationId, { status: 'done', actualUsd: result.costUSD, credits, durationMs, usage: result.usage });
         deps.health.success(candidate.provider);
         console.log(`WEË AI ENGINE: ${candidate.provider}/${result.model || candidate.model.id} atendió ${capability} en ${durationMs} ms (${credits} Credits, registro ${generationId}, intento ${attempt})`);

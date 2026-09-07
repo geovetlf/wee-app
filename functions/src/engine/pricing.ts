@@ -1,39 +1,15 @@
 import { CapabilityId } from '../creator/types';
 import { EngineSettings, ModelSpec, RoutingPrefs, modalityOf } from './types';
+import { getCreditCost, serviceForCapability } from '../credits/creditCosts';
 
 /**
  * De coste a Credits.
- * - Modo "simulated" (mientras se construye Weë Creator): precios de PRUEBA por
- *   capacidad; lo ve la persona como "precio de prueba". No son costes reales.
+ * - Modo "simulated" (mientras se construye Weë Creator): el catálogo del
+ *   Credit Engine (functions/src/credits/creditCosts.ts, sobreescribible desde
+ *   creditCosts/{servicio} en Firestore). Son valores de prueba, no costes reales.
  * - Modo "real": Credits = USD medido/estimado × creditsPerUsd × (1 + margen).
  *   Los precios de lista de los modelos son orientativos hasta verificarlos.
  */
-export const SIMULATED_PRICING: Record<CapabilityId, number> = {
-  'text.generate': 1,
-  'text.structure': 0,
-  'script.write': 2,
-  'scene.split': 1,
-  'subtitle.generate': 1,
-  'image.generate': 3,
-  'image.reference': 3,
-  'image.edit': 2,
-  'image.background_remove': 2,
-  'image.upscale': 2,
-  'image.object_remove': 2,
-  'image.identity_edit': 4,
-  'image.space_restyle': 4,
-  'vision.describe': 1,
-  'video.generate': 10,
-  'video.image_to_video': 8,
-  'video.compose': 6,
-  'video.montage': 6,
-  'video.vertical': 2,
-  'voice.tts': 2,
-  'music.generate': 6,
-  'audio.sfx': 2,
-  'doc.render': 1,
-};
-
 const DEFAULT_SECONDS: Partial<Record<CapabilityId, number>> = {
   'video.generate': 8,
   'video.image_to_video': 8,
@@ -78,15 +54,15 @@ export function usdToCredits(usd: number, settings: EngineSettings): number {
 }
 
 /** Credits que se cobran por una generación (lo que ve la persona). */
-export function creditsFor(capability: CapabilityId, usd: number, settings: EngineSettings, demo: boolean): number {
-  if (settings.pricingMode === 'simulated') return SIMULATED_PRICING[capability] ?? 1;
+export function creditsFor(capability: CapabilityId, usd: number, settings: EngineSettings, demo: boolean, input: Record<string, unknown> = {}): number {
+  if (settings.pricingMode === 'simulated') return getCreditCost(serviceForCapability(capability, input));
   if (demo) return 0;
   return usdToCredits(usd, settings);
 }
 
 /** Estimación previa (antes de crear) para un paso de un plan. */
-export function estimateStepCredits(capability: CapabilityId, estimatedUsd: number, settings: EngineSettings): number {
-  return creditsFor(capability, estimatedUsd, settings, false);
+export function estimateStepCredits(capability: CapabilityId, estimatedUsd: number, settings: EngineSettings, input: Record<string, unknown> = {}): number {
+  return creditsFor(capability, estimatedUsd, settings, false, input);
 }
 
 export const isCheap = (capability: CapabilityId): boolean => modalityOf(capability) === 'text' || modalityOf(capability) === 'vision';

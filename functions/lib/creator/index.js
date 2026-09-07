@@ -94,7 +94,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
         if (!EXPERIENCES.includes(experienceId))
             throw new https_1.HttpsError('invalid-argument', 'Experiencia desconocida');
         const goal = String(data.goal || '').trim().slice(0, 300) || templates_1.TEMPLATES[experienceId].defaultGoal;
-        await (0, credits_1.ensureDemoWallet)(uid);
+        await (0, credits_1.ensureAccount)(uid);
         ref = jobs().doc();
         job = Object.assign(Object.assign({ id: ref.id, userId: uid, experienceId,
             goal, questions: [], answers: [], plan: null, steps: [], results: [], status: 'asking', progressText: '', creditsEstimated: 0, creditsCharged: 0, demo: true, pricingMode: (0, credits_1.pricingMode)() }, (data.projectId ? { projectId: String(data.projectId) } : {})), { createdAt: now(), updatedAt: now() });
@@ -164,7 +164,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
     if (job.status !== 'planned' || !job.plan)
         throw new https_1.HttpsError('failed-precondition', 'Este trabajo todavía no tiene plan');
     const description = `Weë Creator · ${templates_1.TEMPLATES[job.experienceId].name}`;
-    await (0, credits_1.holdCredits)(uid, job.creditsEstimated, description);
+    await (0, credits_1.holdCredits)(uid, jobId, job.plan, job.creditsEstimated, description);
     await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
     const steps = job.steps.map((s) => (Object.assign({}, s)));
     const results = [];
@@ -214,7 +214,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
         // nunca más de lo que la persona vio antes de crear.
         const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
         const used = (0, credits_1.pricingMode)() === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
-        await (0, credits_1.settleCredits)(uid, job.creditsEstimated, used, description);
+        await (0, credits_1.settleCredits)(uid, jobId, job.creditsEstimated, used, description);
         await ref.update({
             status: 'done',
             progressText: '✨ Listo',
@@ -232,7 +232,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             failing.error = error instanceof Error ? error.message : String(error);
         }
         console.error(`Trabajo ${jobId} falló:`, error);
-        await (0, credits_1.settleCredits)(uid, job.creditsEstimated, 0, description);
+        await (0, credits_1.settleCredits)(uid, jobId, job.creditsEstimated, 0, description);
         await ref.update({
             status: 'failed',
             steps: clean(steps),

@@ -11,28 +11,31 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserProfile } from '../contexts/UserProfileContext';
-import { creditsService, Wallet, Transaction } from '../services/creditsService';
+import { creditsService, describeTransaction, CreditsBalance, CreditTransaction } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
+/**
+ * Mi billetera: saldo, acumulados e historial de Credits (docs/CREDITS.md).
+ * Todo se lee del Credit Engine; la app nunca escribe Credits.
+ */
 const WalletScreen = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
 
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [account, setAccount] = useState<CreditsBalance | null>(null);
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
 
-  const activeUid = userProfile?.uid || user?.uid;
+  // Los Credits son por cuenta (uid de Auth): el Perfil Weë comparte el saldo
+  const accountUid = user?.uid;
 
   useEffect(() => {
-    if (!activeUid) return;
-    const unsub1 = creditsService.subscribeToWallet(activeUid, setWallet);
-    const unsub2 = creditsService.subscribeToTransactions(activeUid, setTransactions);
+    if (!accountUid) return;
+    const unsub1 = creditsService.subscribeToBalance(accountUid, setAccount);
+    const unsub2 = creditsService.subscribeToTransactions(accountUid, setTransactions);
     return () => { unsub1(); unsub2(); };
-  }, [activeUid]);
+  }, [accountUid]);
 
   const fmtDate = (ts: any) => {
     if (!ts) return '';
@@ -40,24 +43,31 @@ const WalletScreen = () => {
     return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderTransaction = ({ item }: { item: Transaction }) => {
-    const isSpend = item.type === 'spend';
+  const renderTransaction = ({ item }: { item: CreditTransaction }) => {
+    const view = describeTransaction(item);
+    const isSpend = !view.positive;
+    const color = isSpend ? '#EF4444' : '#22C55E';
     return (
       <View style={[styles.txnItem, { borderColor: theme.colors.border }]}>
         <View style={[styles.txnIcon, { backgroundColor: isSpend ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)' }]}>
           <Ionicons
             name={isSpend ? 'arrow-up' : 'arrow-down'}
             size={18}
-            color={isSpend ? '#EF4444' : '#22C55E'}
+            color={color}
           />
         </View>
         <View style={styles.txnBody}>
-          <Text style={[styles.txnDesc, { color: theme.colors.text }]}>{item.description}</Text>
-          <Text style={[styles.txnDate, { color: theme.colors.textSecondary }]}>{fmtDate(item.createdAt)}</Text>
+          <Text style={[styles.txnDesc, { color: theme.colors.text }]}>{view.title}</Text>
+          <Text style={[styles.txnDate, { color: theme.colors.textSecondary }]}>
+            {fmtDate(item.createdAt)}{view.detail ? ` · ${view.detail}` : ''}
+          </Text>
         </View>
-        <Text style={[styles.txnAmount, { color: isSpend ? '#EF4444' : '#22C55E' }]}>
-          {isSpend ? '' : '+'}{item.amount}
-        </Text>
+        <View style={styles.txnRight}>
+          <Text style={[styles.txnAmount, { color }]}>
+            {view.positive ? '+' : ''}{view.amount.toLocaleString('es')}
+          </Text>
+          <Text style={[styles.txnBalance, { color: theme.colors.textSecondary }]}>Saldo: {view.balanceAfter.toLocaleString('es')}</Text>
+        </View>
       </View>
     );
   };
@@ -80,7 +90,7 @@ const WalletScreen = () => {
             <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>Saldo actual</Text>
             <View style={styles.balanceRow}>
               <Ionicons name="diamond" size={24} color="#F5B731" />
-              <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{wallet?.balance ?? 0}</Text>
+              <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{(account?.balance ?? 0).toLocaleString('es')}</Text>
             </View>
           </View>
           <TouchableOpacity
@@ -95,12 +105,12 @@ const WalletScreen = () => {
 
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: '#22C55E' }]}>{wallet?.totalPurchased ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Comprados</Text>
+            <Text style={[styles.statValue, { color: '#22C55E' }]}>{(account?.lifetimeEarned ?? 0).toLocaleString('es')}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Obtenidos</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: '#EF4444' }]}>{wallet?.totalSpent ?? 0}</Text>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>{(account?.lifetimeSpent ?? 0).toLocaleString('es')}</Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Usados</Text>
           </View>
         </View>
@@ -112,12 +122,12 @@ const WalletScreen = () => {
       <FlatList
         data={transactions}
         renderItem={renderTransaction}
-        keyExtractor={t => t.id || ''}
+        keyExtractor={t => t.id}
         contentContainerStyle={transactions.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={44} color={theme.colors.textSecondary} style={{ opacity: 0.4 }} />
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Sin transacciones</Text>
+            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Sin movimientos todavía</Text>
           </View>
         }
         showsVerticalScrollIndicator={false}
@@ -181,7 +191,9 @@ const styles = StyleSheet.create({
   txnBody: { flex: 1 },
   txnDesc: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium },
   txnDate: { fontSize: FONT_SIZE.xs, marginTop: 2 },
+  txnRight: { alignItems: 'flex-end' },
   txnAmount: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.bold },
+  txnBalance: { fontSize: FONT_SIZE.xs, marginTop: 2 },
 
   // Empty
   emptyContainer: { flex: 1, justifyContent: 'center' },

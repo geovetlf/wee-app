@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.engineAdmin = exports.creatorRun = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.engineAdmin = exports.creatorRun = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -18,6 +18,17 @@ Object.defineProperty(exports, "creatorChat", { enumerable: true, get: function 
 Object.defineProperty(exports, "creatorRun", { enumerable: true, get: function () { return creator_1.creatorRun; } });
 var admin_1 = require("./engine/admin");
 Object.defineProperty(exports, "engineAdmin", { enumerable: true, get: function () { return admin_1.engineAdmin; } });
+// Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
+var credits_1 = require("./credits");
+Object.defineProperty(exports, "getCreditsBalance", { enumerable: true, get: function () { return credits_1.getCreditsBalance; } });
+Object.defineProperty(exports, "getCreditHistory", { enumerable: true, get: function () { return credits_1.getCreditHistory; } });
+Object.defineProperty(exports, "getCreditCost", { enumerable: true, get: function () { return credits_1.getCreditCost; } });
+Object.defineProperty(exports, "spendCredits", { enumerable: true, get: function () { return credits_1.spendCredits; } });
+Object.defineProperty(exports, "grantCredits", { enumerable: true, get: function () { return credits_1.grantCredits; } });
+Object.defineProperty(exports, "refundCredits", { enumerable: true, get: function () { return credits_1.refundCredits; } });
+Object.defineProperty(exports, "validatePurchase", { enumerable: true, get: function () { return credits_1.validatePurchaseCallable; } });
+Object.defineProperty(exports, "restorePurchase", { enumerable: true, get: function () { return credits_1.restorePurchaseCallable; } });
+Object.defineProperty(exports, "creditsAdmin", { enumerable: true, get: function () { return credits_1.creditsAdmin; } });
 // Tipos de notificación y sus mensajes
 const notificationMessages = {
     like: (senderName) => ({

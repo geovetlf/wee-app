@@ -5,6 +5,7 @@ import { engine } from './index';
 import { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } from './registry';
 import { invalidateConfig } from './config';
 import { ChainLink, RoutingPolicy } from './types';
+import { assertAdmin } from '../shared/admin';
 
 /**
  * Administración del engine sin tocar código (Firestore):
@@ -17,13 +18,6 @@ import { ChainLink, RoutingPolicy } from './types';
  */
 const db = () => getFirestore();
 const POLICIES: RoutingPolicy[] = ['quality-first', 'balanced', 'cost-first'];
-
-const assertAdmin = (auth: { uid: string; token: Record<string, unknown> } | undefined) => {
-  if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión');
-  const allowed = (process.env.WEE_ADMIN_UIDS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
-  if (auth.token.admin === true || allowed.includes(auth.uid)) return;
-  throw new HttpsError('permission-denied', 'Solo administración');
-};
 
 const validateChain = (chain: unknown): ChainLink[] => {
   if (!Array.isArray(chain)) throw new HttpsError('invalid-argument', 'chain debe ser una lista');

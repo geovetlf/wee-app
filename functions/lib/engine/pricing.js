@@ -1,43 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isCheap = exports.SIMULATED_PRICING = void 0;
+exports.isCheap = void 0;
 exports.estimateUsd = estimateUsd;
 exports.usdToCredits = usdToCredits;
 exports.creditsFor = creditsFor;
 exports.estimateStepCredits = estimateStepCredits;
 const types_1 = require("./types");
+const creditCosts_1 = require("../credits/creditCosts");
 /**
  * De coste a Credits.
- * - Modo "simulated" (mientras se construye Weë Creator): precios de PRUEBA por
- *   capacidad; lo ve la persona como "precio de prueba". No son costes reales.
+ * - Modo "simulated" (mientras se construye Weë Creator): el catálogo del
+ *   Credit Engine (functions/src/credits/creditCosts.ts, sobreescribible desde
+ *   creditCosts/{servicio} en Firestore). Son valores de prueba, no costes reales.
  * - Modo "real": Credits = USD medido/estimado × creditsPerUsd × (1 + margen).
  *   Los precios de lista de los modelos son orientativos hasta verificarlos.
  */
-exports.SIMULATED_PRICING = {
-    'text.generate': 1,
-    'text.structure': 0,
-    'script.write': 2,
-    'scene.split': 1,
-    'subtitle.generate': 1,
-    'image.generate': 3,
-    'image.reference': 3,
-    'image.edit': 2,
-    'image.background_remove': 2,
-    'image.upscale': 2,
-    'image.object_remove': 2,
-    'image.identity_edit': 4,
-    'image.space_restyle': 4,
-    'vision.describe': 1,
-    'video.generate': 10,
-    'video.image_to_video': 8,
-    'video.compose': 6,
-    'video.montage': 6,
-    'video.vertical': 2,
-    'voice.tts': 2,
-    'music.generate': 6,
-    'audio.sfx': 2,
-    'doc.render': 1,
-};
 const DEFAULT_SECONDS = {
     'video.generate': 8,
     'video.image_to_video': 8,
@@ -81,17 +58,16 @@ function usdToCredits(usd, settings) {
     return Math.max(1, Math.ceil(usd * settings.creditsPerUsd * (1 + settings.margin)));
 }
 /** Credits que se cobran por una generación (lo que ve la persona). */
-function creditsFor(capability, usd, settings, demo) {
-    var _a;
+function creditsFor(capability, usd, settings, demo, input = {}) {
     if (settings.pricingMode === 'simulated')
-        return (_a = exports.SIMULATED_PRICING[capability]) !== null && _a !== void 0 ? _a : 1;
+        return (0, creditCosts_1.getCreditCost)((0, creditCosts_1.serviceForCapability)(capability, input));
     if (demo)
         return 0;
     return usdToCredits(usd, settings);
 }
 /** Estimación previa (antes de crear) para un paso de un plan. */
-function estimateStepCredits(capability, estimatedUsd, settings) {
-    return creditsFor(capability, estimatedUsd, settings, false);
+function estimateStepCredits(capability, estimatedUsd, settings, input = {}) {
+    return creditsFor(capability, estimatedUsd, settings, false, input);
 }
 const isCheap = (capability) => (0, types_1.modalityOf)(capability) === 'text' || (0, types_1.modalityOf)(capability) === 'vision';
 exports.isCheap = isCheap;

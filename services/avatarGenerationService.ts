@@ -2,6 +2,7 @@ import { httpsCallable } from 'firebase/functions';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { functions, storage } from '../config/firebase';
 import { usersService } from './firestoreService';
+import { newRequestId } from './creditsService';
 
 // --- Prompt builders ---
 
@@ -110,8 +111,10 @@ function buildPortraitPrompt(selections: AvatarSelections): string {
 
 // Generate avatar using Gemini AI
 // Cloud function now returns a public Storage URL (not data URL)
+// requestId identifica la operación para el Credit Engine: repetirla no cobra dos veces
 export async function generateAvatarWithGemini(
-  selections: AvatarSelections
+  selections: AvatarSelections,
+  requestId: string = newRequestId('avatar')
 ): Promise<string> {
   if (!functions) {
     throw new Error('Firebase functions not initialized');
@@ -119,12 +122,12 @@ export async function generateAvatarWithGemini(
   const prompt = buildPortraitPrompt(selections);
   console.log('Calling generateAvatarWithGemini with selections:', JSON.stringify(selections).substring(0, 100));
 
-  const callable = httpsCallable<{ prompt: string; selections: AvatarSelections }, { imageUrl: string }>(
+  const callable = httpsCallable<{ prompt: string; selections: AvatarSelections; requestId: string }, { imageUrl: string }>(
     functions,
     'generateAvatarWithGemini',
     { timeout: 120_000 }
   );
-  const result = await callable({ prompt, selections });
+  const result = await callable({ prompt, selections, requestId });
   return result.data.imageUrl; // Returns public Storage URL
 }
 
@@ -134,16 +137,17 @@ export async function generateAvatarWithGemini(
 export async function performAvatarReplacement(
   selfieUrl: string,
   avatarUrl: string,
+  requestId: string = newRequestId('swap'),
 ): Promise<string> {
   if (!functions) {
     throw new Error('Firebase functions not initialized');
   }
   console.log('Calling avatarReplacement cloud function...');
   const callable = httpsCallable<
-    { selfieUrl: string; avatarUrl: string },
+    { selfieUrl: string; avatarUrl: string; requestId: string },
     { imageUrl: string }
   >(functions, 'avatarReplacement', { timeout: 300_000 });
-  const result = await callable({ selfieUrl, avatarUrl });
+  const result = await callable({ selfieUrl, avatarUrl, requestId });
   return result.data.imageUrl; // Returns public Storage URL
 }
 

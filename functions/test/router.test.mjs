@@ -8,6 +8,7 @@ const lib = (p) => require(path.resolve(here, '../lib/engine/' + p));
 const { createRouter, memoryHealth, resolveQuality, pickModel } = lib('router.js');
 const { memoryLedger } = lib('ledger.js');
 const { DEFAULT_SETTINGS } = lib('registry.js');
+const { CREDIT_COSTS, serviceForCapability } = require(path.resolve(here, '../lib/credits/creditCosts.js'));
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -127,7 +128,7 @@ const req = (extra = {}) => ({ capability: 'video.generate', input: { prompt: 'u
   const { router } = build({ veo, mock }, config());
   const result = await router.execute(req());
   check('sin claves, atiende el modo demo', result.provider === 'mock' && result.demo === true);
-  check('en modo prueba cobra el precio de prueba de la capacidad', result.credits === 10, String(result.credits));
+  check('en modo prueba cobra el precio del catálogo de Credits de la capacidad', result.credits === CREDIT_COSTS[serviceForCapability('video.generate', {})], String(result.credits));
 }
 
 // 8) Nada disponible en modo real sin fallback demo → error claro

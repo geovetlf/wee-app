@@ -8,7 +8,49 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const crypto_1 = require("crypto");
+const creditEngine_1 = require("./credits/creditEngine");
+const creditValidation_1 = require("./credits/creditValidation");
 const vertexAI_1 = require("./vertexAI");
+// ============================================
+// CREDITS: cada generación pasa por el Credit Engine (docs/CREDITS.md)
+//   autorizar (AUTHORIZED) → generar → completar (COMPLETED)
+//   si falla → reembolso exacto (REFUNDED). requestId lo manda la app para
+//   que un reintento de la misma operación no cobre dos veces.
+// ============================================
+const requestIdFrom = (value, prefix) => typeof value === 'string' && /^[A-Za-z0-9_.:-]{4,160}$/.test(value) ? value : `${prefix}_${(0, crypto_1.randomUUID)()}`;
+async function withCredits(userId, service, requestId, reason, work) {
+    var _a, _b;
+    let authorized;
+    try {
+        await creditEngine_1.creditEngine.ensureAccount(userId);
+        authorized = await creditEngine_1.creditEngine.spendCredits({ userId, service, requestId, reason, source: 'wee-avatar' });
+    }
+    catch (error) {
+        throw (0, creditValidation_1.toHttpsError)(error);
+    }
+    if (authorized.duplicate && authorized.status === 'COMPLETED') {
+        // Misma operación repetida y ya terminada: se devuelve el mismo resultado sin volver a cobrar
+        const previous = await creditEngine_1.creditEngine.getCreditHistory(userId, 200);
+        const stored = (_b = (_a = previous.find((t) => t.id === authorized.transactionId)) === null || _a === void 0 ? void 0 : _a.meta) === null || _b === void 0 ? void 0 : _b.imageUrl;
+        if (typeof stored === 'string' && stored)
+            return { imageUrl: stored };
+    }
+    try {
+        const result = await work();
+        await creditEngine_1.creditEngine.completeCredits({ userId, requestId, meta: { imageUrl: result.imageUrl } });
+        return result;
+    }
+    catch (error) {
+        try {
+            await creditEngine_1.creditEngine.refundCredits({ userId, requestId, reason: `${reason} · no se pudo terminar`, source: 'wee-avatar' });
+        }
+        catch (refundError) {
+            console.error('Credit Engine: no se pudo reembolsar', requestId, refundError);
+        }
+        throw error;
+    }
+}
 // ============================================
 // CLOUD FUNCTION: Generate Avatar with Vertex AI
 // ============================================
@@ -23,11 +65,13 @@ exports.generateAvatarWithGemini = (0, https_1.onCall)({
     timeoutSeconds: 120,
     memory: '512MiB',
 }, async (request) => {
+    var _a;
     // Validate authentication
     if (!request.auth) {
         throw new https_1.HttpsError('unauthenticated', 'Must be authenticated');
     }
     const { prompt, selections } = request.data;
+    const requestId = requestIdFrom((_a = request.data) === null || _a === void 0 ? void 0 : _a.requestId, 'avatar');
     // Support both legacy prompt and new selections format
     let avatarConfig;
     if (selections) {
@@ -53,20 +97,22 @@ exports.generateAvatarWithGemini = (0, https_1.onCall)({
     console.log('Generating avatar with Vertex AI...');
     console.log('Config:', JSON.stringify(avatarConfig));
     const startTime = Date.now();
-    try {
-        const imageDataUrl = await (0, vertexAI_1.generateAvatarWithImagen)(avatarConfig);
-        // Upload to Cloud Storage and return public URL
-        const userId = request.auth.uid;
-        const storagePath = `users/${userId}/ai-avatar/avatar_${Date.now()}.png`;
-        const publicUrl = await (0, vertexAI_1.uploadImageToStorage)(imageDataUrl, storagePath);
-        const totalTime = Date.now() - startTime;
-        console.log(`Avatar generated and uploaded in ${totalTime}ms`);
-        return { imageUrl: publicUrl };
-    }
-    catch (error) {
-        console.error('Avatar generation failed:', error);
-        throw new https_1.HttpsError('internal', `Avatar generation failed: ${error.message}`);
-    }
+    const userId = request.auth.uid;
+    return withCredits(userId, 'wee_avatar', requestId, 'Avatar Weë', async () => {
+        try {
+            const imageDataUrl = await (0, vertexAI_1.generateAvatarWithImagen)(avatarConfig);
+            // Upload to Cloud Storage and return public URL
+            const storagePath = `users/${userId}/ai-avatar/avatar_${Date.now()}.png`;
+            const publicUrl = await (0, vertexAI_1.uploadImageToStorage)(imageDataUrl, storagePath);
+            const totalTime = Date.now() - startTime;
+            console.log(`Avatar generated and uploaded in ${totalTime}ms`);
+            return { imageUrl: publicUrl };
+        }
+        catch (error) {
+            console.error('Avatar generation failed:', error);
+            throw new https_1.HttpsError('internal', `Avatar generation failed: ${error.message}`);
+        }
+    });
 });
 // ============================================
 // CLOUD FUNCTION: Avatar Replacement with Vertex AI
@@ -86,11 +132,13 @@ exports.avatarReplacement = (0, https_1.onCall)({
     timeoutSeconds: 300,
     memory: '1GiB',
 }, async (request) => {
+    var _a;
     // Validate authentication
     if (!request.auth) {
         throw new https_1.HttpsError('unauthenticated', 'Must be authenticated');
     }
     const { selfieUrl, avatarUrl } = request.data;
+    const requestId = requestIdFrom((_a = request.data) === null || _a === void 0 ? void 0 : _a.requestId, 'swap');
     if (!selfieUrl || typeof selfieUrl !== 'string') {
         throw new https_1.HttpsError('invalid-argument', 'selfieUrl is required');
     }
@@ -103,30 +151,32 @@ exports.avatarReplacement = (0, https_1.onCall)({
     console.log('Selfie URL:', selfieUrl.substring(0, 80) + '...');
     console.log('Avatar URL:', avatarUrl.substring(0, 80) + '...');
     const startTime = Date.now();
-    try {
-        // Step 1: Download images
-        console.log('\n[1/2] Downloading images...');
-        const [selfieData, avatarData] = await Promise.all([
-            (0, vertexAI_1.urlToBase64)(selfieUrl),
-            (0, vertexAI_1.urlToBase64)(avatarUrl),
-        ]);
-        console.log('    ✓ Images downloaded');
-        // Step 2: Replace person with Gemini 2.5 Flash Image
-        console.log('\n[2/2] Replacing person with Gemini 2.5 Flash Image...');
-        const resultDataUrl = await (0, vertexAI_1.replacePersonWithAvatar)(selfieData.base64, selfieData.mimeType, avatarData.base64, avatarData.mimeType);
-        console.log('    ✓ Person replaced');
-        // Upload result to Cloud Storage and return public URL
-        const userId = request.auth.uid;
-        const storagePath = `users/${userId}/avatar-replacement/result_${Date.now()}.png`;
-        const publicUrl = await (0, vertexAI_1.uploadImageToStorage)(resultDataUrl, storagePath);
-        const totalTime = Date.now() - startTime;
-        console.log(`\n✓ Avatar replacement completed and uploaded in ${totalTime}ms`);
-        return { imageUrl: publicUrl };
-    }
-    catch (error) {
-        console.error('Avatar replacement failed:', error);
-        throw new https_1.HttpsError('internal', `Avatar replacement failed: ${error.message}`);
-    }
+    const userId = request.auth.uid;
+    return withCredits(userId, 'ai_image_enhance', requestId, 'Foto con tu avatar Weë', async () => {
+        try {
+            // Step 1: Download images
+            console.log('\n[1/2] Downloading images...');
+            const [selfieData, avatarData] = await Promise.all([
+                (0, vertexAI_1.urlToBase64)(selfieUrl),
+                (0, vertexAI_1.urlToBase64)(avatarUrl),
+            ]);
+            console.log('    ✓ Images downloaded');
+            // Step 2: Replace person with Gemini 2.5 Flash Image
+            console.log('\n[2/2] Replacing person with Gemini 2.5 Flash Image...');
+            const resultDataUrl = await (0, vertexAI_1.replacePersonWithAvatar)(selfieData.base64, selfieData.mimeType, avatarData.base64, avatarData.mimeType);
+            console.log('    ✓ Person replaced');
+            // Upload result to Cloud Storage and return public URL
+            const storagePath = `users/${userId}/avatar-replacement/result_${Date.now()}.png`;
+            const publicUrl = await (0, vertexAI_1.uploadImageToStorage)(resultDataUrl, storagePath);
+            const totalTime = Date.now() - startTime;
+            console.log(`\n✓ Avatar replacement completed and uploaded in ${totalTime}ms`);
+            return { imageUrl: publicUrl };
+        }
+        catch (error) {
+            console.error('Avatar replacement failed:', error);
+            throw new https_1.HttpsError('internal', `Avatar replacement failed: ${error.message}`);
+        }
+    });
 });
 // ============================================
 // MAPPING FUNCTIONS

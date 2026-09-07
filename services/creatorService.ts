@@ -1,6 +1,7 @@
 import { httpsCallable } from 'firebase/functions';
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db, functions } from '../config/firebase';
+import { creditsShortfall } from './creditsService';
 
 /**
  * Weë Creator en la app: habla con Weë Brain (creatorChat), lanza el trabajo
@@ -117,7 +118,7 @@ const call = async <T,>(name: string, data: Record<string, unknown>): Promise<T>
 export const humanizeCreatorError = (error: unknown): string => {
   const code = String((error as any)?.code || '');
   const message = String((error as any)?.message || '');
-  if (message.includes('insufficient-credits')) return 'Te faltan Credits para este trabajo. Recarga y vuelve a intentarlo.';
+  if (creditsShortfall(error)) return 'No tienes suficientes Credits para este trabajo. Obtén Credits y vuelve a intentarlo.';
   if (code.includes('unauthenticated')) return 'Inicia sesión para crear con Weë.';
   if (code.includes('unavailable') || code.includes('internal') || message.includes('Failed to fetch')) {
     return 'No pude conectar con Weë Creator. Revisa tu conexión y vuelve a intentarlo.';

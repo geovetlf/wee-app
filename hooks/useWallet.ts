@@ -1,24 +1,31 @@
 import { useEffect, useState } from 'react';
-import { creditsService, Wallet } from '../services/creditsService';
+import { useAuth } from '../contexts/AuthContext';
+import { accountUidOf, creditsService, CreditsBalance } from '../services/creditsService';
 
 /**
- * Saldo de Credits del usuario activo, en tiempo real.
- * Devuelve null mientras carga o si no hay usuario.
+ * Saldo de Credits de la cuenta activa, en tiempo real (docs/CREDITS.md).
+ * Los Credits son por cuenta: el Perfil Weë comparte el saldo del perfil real,
+ * así que se escucha siempre el uid de Firebase Auth.
+ * Devuelve balance null mientras carga o si no hay sesión.
  */
 export const useWallet = (uid?: string | null) => {
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const { user } = useAuth();
+  const accountUid = user?.uid || accountUidOf(uid);
+  const [account, setAccount] = useState<CreditsBalance | null>(null);
 
   useEffect(() => {
-    if (!uid) {
-      setWallet(null);
+    if (!accountUid) {
+      setAccount(null);
       return;
     }
-    return creditsService.subscribeToWallet(uid, setWallet);
-  }, [uid]);
+    return creditsService.subscribeToBalance(accountUid, setAccount);
+  }, [accountUid]);
 
   return {
-    wallet,
-    balance: wallet ? wallet.balance : null,
+    /** Nombre heredado: la cuenta de Credits (saldo y acumulados). */
+    wallet: account,
+    account,
+    balance: account ? account.balance : null,
   };
 };
 

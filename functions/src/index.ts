@@ -15,6 +15,19 @@ export { generateAvatarWithGemini, avatarReplacement } from './generateAvatar';
 export { creatorChat, creatorRun } from './creator';
 export { engineAdmin } from './engine/admin';
 
+// Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
+export {
+  getCreditsBalance,
+  getCreditHistory,
+  getCreditCost,
+  spendCredits,
+  grantCredits,
+  refundCredits,
+  validatePurchaseCallable as validatePurchase,
+  restorePurchaseCallable as restorePurchase,
+  creditsAdmin,
+} from './credits';
+
 // Tipos de notificación y sus mensajes
 const notificationMessages: Record<string, (senderName: string) => { title: string; body: string }> = {
   like: (senderName) => ({

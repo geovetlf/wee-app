@@ -6,6 +6,10 @@
  */
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { randomUUID } from 'crypto';
+import { creditEngine } from './credits/creditEngine';
+import { CreditService } from './credits/creditCosts';
+import { toHttpsError } from './credits/creditValidation';
 import {
   generateAvatarWithImagen,
   replacePersonWithAvatar,
@@ -13,6 +17,44 @@ import {
   urlToBase64,
   type AvatarConfig,
 } from './vertexAI';
+
+// ============================================
+// CREDITS: cada generación pasa por el Credit Engine (docs/CREDITS.md)
+//   autorizar (AUTHORIZED) → generar → completar (COMPLETED)
+//   si falla → reembolso exacto (REFUNDED). requestId lo manda la app para
+//   que un reintento de la misma operación no cobre dos veces.
+// ============================================
+
+const requestIdFrom = (value: unknown, prefix: string): string =>
+  typeof value === 'string' && /^[A-Za-z0-9_.:-]{4,160}$/.test(value) ? value : `${prefix}_${randomUUID()}`;
+
+async function withCredits<T extends { imageUrl: string }>(userId: string, service: CreditService, requestId: string, reason: string, work: () => Promise<T>): Promise<T> {
+  let authorized;
+  try {
+    await creditEngine.ensureAccount(userId);
+    authorized = await creditEngine.spendCredits({ userId, service, requestId, reason, source: 'wee-avatar' });
+  } catch (error) {
+    throw toHttpsError(error);
+  }
+  if (authorized.duplicate && authorized.status === 'COMPLETED') {
+    // Misma operación repetida y ya terminada: se devuelve el mismo resultado sin volver a cobrar
+    const previous = await creditEngine.getCreditHistory(userId, 200);
+    const stored = previous.find((t) => t.id === authorized.transactionId)?.meta?.imageUrl;
+    if (typeof stored === 'string' && stored) return { imageUrl: stored } as T;
+  }
+  try {
+    const result = await work();
+    await creditEngine.completeCredits({ userId, requestId, meta: { imageUrl: result.imageUrl } });
+    return result;
+  } catch (error) {
+    try {
+      await creditEngine.refundCredits({ userId, requestId, reason: `${reason} · no se pudo terminar`, source: 'wee-avatar' });
+    } catch (refundError) {
+      console.error('Credit Engine: no se pudo reembolsar', requestId, refundError);
+    }
+    throw error;
+  }
+}
 
 // ============================================
 // CLOUD FUNCTION: Generate Avatar with Vertex AI
@@ -37,6 +79,7 @@ export const generateAvatarWithGemini = onCall(
     }
 
     const { prompt, selections } = request.data;
+    const requestId = requestIdFrom(request.data?.requestId, 'avatar');
 
     // Support both legacy prompt and new selections format
     let avatarConfig: AvatarConfig;
@@ -63,23 +106,25 @@ export const generateAvatarWithGemini = onCall(
     console.log('Generating avatar with Vertex AI...');
     console.log('Config:', JSON.stringify(avatarConfig));
     const startTime = Date.now();
+    const userId = request.auth.uid;
 
-    try {
-      const imageDataUrl = await generateAvatarWithImagen(avatarConfig);
+    return withCredits(userId, 'wee_avatar', requestId, 'Avatar Weë', async () => {
+      try {
+        const imageDataUrl = await generateAvatarWithImagen(avatarConfig);
 
-      // Upload to Cloud Storage and return public URL
-      const userId = request.auth.uid;
-      const storagePath = `users/${userId}/ai-avatar/avatar_${Date.now()}.png`;
-      const publicUrl = await uploadImageToStorage(imageDataUrl, storagePath);
+        // Upload to Cloud Storage and return public URL
+        const storagePath = `users/${userId}/ai-avatar/avatar_${Date.now()}.png`;
+        const publicUrl = await uploadImageToStorage(imageDataUrl, storagePath);
 
-      const totalTime = Date.now() - startTime;
-      console.log(`Avatar generated and uploaded in ${totalTime}ms`);
+        const totalTime = Date.now() - startTime;
+        console.log(`Avatar generated and uploaded in ${totalTime}ms`);
 
-      return { imageUrl: publicUrl };
-    } catch (error: any) {
-      console.error('Avatar generation failed:', error);
-      throw new HttpsError('internal', `Avatar generation failed: ${error.message}`);
-    }
+        return { imageUrl: publicUrl };
+      } catch (error: any) {
+        console.error('Avatar generation failed:', error);
+        throw new HttpsError('internal', `Avatar generation failed: ${error.message}`);
+      }
+    });
   }
 );
 
@@ -110,6 +155,7 @@ export const avatarReplacement = onCall(
     }
 
     const { selfieUrl, avatarUrl } = request.data;
+    const requestId = requestIdFrom(request.data?.requestId, 'swap');
 
     if (!selfieUrl || typeof selfieUrl !== 'string') {
       throw new HttpsError('invalid-argument', 'selfieUrl is required');
@@ -124,7 +170,9 @@ export const avatarReplacement = onCall(
     console.log('Selfie URL:', selfieUrl.substring(0, 80) + '...');
     console.log('Avatar URL:', avatarUrl.substring(0, 80) + '...');
     const startTime = Date.now();
+    const userId = request.auth.uid;
 
+    return withCredits(userId, 'ai_image_enhance', requestId, 'Foto con tu avatar Weë', async () => {
     try {
       // Step 1: Download images
       console.log('\n[1/2] Downloading images...');
@@ -145,7 +193,6 @@ export const avatarReplacement = onCall(
       console.log('    ✓ Person replaced');
 
       // Upload result to Cloud Storage and return public URL
-      const userId = request.auth!.uid;
       const storagePath = `users/${userId}/avatar-replacement/result_${Date.now()}.png`;
       const publicUrl = await uploadImageToStorage(resultDataUrl, storagePath);
 
@@ -157,6 +204,7 @@ export const avatarReplacement = onCall(
       console.error('Avatar replacement failed:', error);
       throw new HttpsError('internal', `Avatar replacement failed: ${error.message}`);
     }
+    });
   }
 );
 

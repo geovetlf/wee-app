@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ import { scale } from '../utils/scale';
 import * as ImagePicker from 'expo-image-picker';
 import { generateAvatarWithGemini, saveGeneratedAvatar, performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
 import { usersService } from '../services/firestoreService';
+import { creditsShortfall } from '../services/creditsService';
 
 // --- Option data ---
 const GENDER_OPTIONS = [
@@ -103,6 +105,24 @@ const AiAvatarScreen: React.FC = () => {
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
   const navigation = useNavigation();
+
+  // Sin Credits suficientes: aviso con saldo, costo y acceso a la tienda (docs/CREDITS.md)
+  const showGenerationError = (error: unknown, fallback: string) => {
+    const short = creditsShortfall(error);
+    if (!short) {
+      Alert.alert('Error', fallback);
+      return;
+    }
+    const message = `Credits disponibles: ${short.available}\nCosto: ${short.required}`;
+    if (Platform.OS === 'web') {
+      if (window.confirm(`No tienes suficientes Credits\n${message}\n\n¿Obtener Credits?`)) (navigation as any).navigate('CreditStore');
+      return;
+    }
+    Alert.alert('No tienes suficientes Credits', message, [
+      { text: 'Ahora no', style: 'cancel' },
+      { text: 'Obtener Credits', onPress: () => (navigation as any).navigate('CreditStore') },
+    ]);
+  };
 
   // Contador de generaciones
   const generationCount = userProfile?.aiAvatarGenerationCount || 0;
@@ -190,7 +210,7 @@ const AiAvatarScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error generating avatar:', error);
-      Alert.alert('Error', 'No se pudo generar el avatar. Intenta de nuevo.');
+      showGenerationError(error, 'No se pudo generar el avatar. Intenta de nuevo.');
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -292,7 +312,7 @@ const AiAvatarScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error regenerating avatar:', error);
-      Alert.alert('Error', 'No se pudo regenerar el avatar. Intenta de nuevo.');
+      showGenerationError(error, 'No se pudo regenerar el avatar. Intenta de nuevo.');
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -380,7 +400,7 @@ const AiAvatarScreen: React.FC = () => {
       setSwapResultUrl(savedUrl);
     } catch (error: any) {
       console.error('Error avatar replacement:', error);
-      Alert.alert('Error', 'No se pudo reemplazar el avatar. Intenta de nuevo.');
+      showGenerationError(error, 'No se pudo reemplazar el avatar. Intenta de nuevo.');
     } finally {
       setLoading(false);
       setLoadingMessage('');

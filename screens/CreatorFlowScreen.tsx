@@ -13,6 +13,7 @@ import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
 import { creatorService, CreatorJob, Question, humanizeCreatorError } from '../services/creatorService';
+import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { WEE_EXPERIENCES, getExperienceById } from '../constants/weeExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -48,6 +49,8 @@ const CreatorFlowScreen: React.FC = () => {
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Saldo insuficiente al crear: se muestra el aviso con saldo, costo y tienda (docs/CREDITS.md). */
+  const [shortfall, setShortfall] = useState<CreditsShortfall | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
 
@@ -81,6 +84,7 @@ const CreatorFlowScreen: React.FC = () => {
     async (goal?: string) => {
       setBusy(true);
       setError(null);
+      setShortfall(null);
       setJob(null);
       setQuestion(null);
       try {
@@ -150,10 +154,13 @@ const CreatorFlowScreen: React.FC = () => {
     if (!jobId) return;
     setBusy(true);
     setError(null);
+    setShortfall(null);
     try {
       await creatorService.run(jobId);
     } catch (e) {
-      setError(humanizeCreatorError(e));
+      const short = creditsShortfall(e);
+      setShortfall(short);
+      if (!short) setError(humanizeCreatorError(e));
     } finally {
       setBusy(false);
     }
@@ -208,6 +215,21 @@ const CreatorFlowScreen: React.FC = () => {
                 <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>Cambiar</Text>
               </TouchableOpacity>
             )}
+          </View>
+        )}
+        {shortfall && (
+          <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <Text style={[styles.errorText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>No tienes suficientes Credits</Text>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>Credits disponibles: {shortfall.available.toLocaleString('es')}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>Costo: {shortfall.required.toLocaleString('es')}</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CreditStore')}
+              style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
+              activeOpacity={0.85}
+              accessibilityLabel="Obtener Credits"
+            >
+              <Text style={styles.retryText}>Obtener Credits</Text>
+            </TouchableOpacity>
           </View>
         )}
         {error && (
