@@ -16,6 +16,7 @@ exports.resolveQuality = resolveQuality;
 exports.pickModel = pickModel;
 exports.createRouter = createRouter;
 const pricing_1 = require("./pricing");
+const verification_1 = require("./verification");
 const http_1 = require("./http");
 const errors_1 = require("./errors");
 const limits_1 = require("./limits");
@@ -254,6 +255,9 @@ function createRouter(deps) {
                 const durationMs = now() - start;
                 const demo = candidate.provider === 'mock';
                 const credits = (0, pricing_1.creditsFor)(capability, result.costUSD, settings, demo, input);
+                // Una respuesta real es lo único que asciende un proveedor a REAL_API_VERIFIED
+                if (!demo)
+                    void (0, verification_1.recordRealSuccess)(candidate.provider, result.model || candidate.model.id, capability, generationId);
                 await deps.ledger.close(generationId, {
                     status: 'COMPLETED',
                     providerCost: result.costUSD,

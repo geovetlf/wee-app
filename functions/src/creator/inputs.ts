@@ -22,6 +22,12 @@ export const IMAGE_INPUT_CAPS: CapabilityId[] = [
   'video.image_to_video',
 ];
 
+/** Tipos de archivo que Weë acepta además de las fotos, con su límite oficial. */
+export const ATTACHMENT_KINDS = {
+  document: { mime: ['application/pdf'], maxBytes: 50 * 1024 * 1024, label: 'documento' },
+  audio: { mime: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/aac', 'audio/ogg', 'audio/flac', 'audio/mp4'], maxBytes: 20 * 1024 * 1024, label: 'audio' },
+} as const;
+
 const TEXT_CAPS: CapabilityId[] = ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split', 'subtitle.generate', 'vision.describe'];
 
 /**
@@ -38,6 +44,20 @@ export const assertInputImageUrl = (url: unknown, uid: string): string => {
 };
 
 export const needsInputImage = (steps: { capability: CapabilityId }[]): boolean => steps.some((s) => IMAGE_INPUT_CAPS.includes(s.capability));
+
+/**
+ * Igual que assertInputImageUrl pero para documentos y audio: solo se aceptan
+ * archivos de la carpeta de la propia persona en Weë Storage.
+ */
+export const assertAttachmentUrl = (url: unknown, uid: string, kind: keyof typeof ATTACHMENT_KINDS): string => {
+  const { label } = ATTACHMENT_KINDS[kind];
+  if (typeof url !== 'string' || !url.trim()) throw new EngineError('INVALID_REQUEST', `Sube el ${label} para que Weë pueda leerlo.`, { reason: 'needs_file' });
+  if (url.length > 2000) throw new EngineError('INVALID_REQUEST', `La dirección del ${label} no es válida.`, { reason: 'bad_file_url' });
+  const parsed = parseStorageUrl(url);
+  if (!parsed) throw new EngineError('INVALID_REQUEST', `El ${label} debe subirse a Weë antes de usarlo.`, { reason: 'bad_file_url' });
+  if (!parsed.path.startsWith(`users/${uid}/`)) throw new EngineError('INVALID_REQUEST', `Ese ${label} no es tuyo.`, { reason: 'bad_file_url' });
+  return url;
+};
 
 /** Cuántas generaciones de cada modalidad pide un plan (para los límites por persona). */
 export const modalityCounts = (steps: { capability: CapabilityId }[]): Partial<Record<Modality, number>> => {

@@ -7,9 +7,16 @@ const ark_1 = require("./ark");
  * ByteDance Seedream (imagen) vía BytePlus ModelArk.
  * Contrato: POST /images/generations → data[].url. Pendiente de verificar con clave real.
  */
+// Precios oficiales por imagen (docs.byteplus.com/en/docs/ModelArk/1544106, sept. 2026).
+// Seedream 5.0 pro cobra 0.045 hasta 2.61 millones de píxeles y 0.09 por encima.
 exports.seedreamModels = [
-    { id: 'seedream-4-0-250828', provider: 'seedream', capabilities: ['image.generate', 'image.edit', 'image.reference'], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.03 }, verified: false },
+    { id: 'dola-seedream-5-0-pro-260628', provider: 'seedream', capabilities: ['image.generate', 'image.edit', 'image.reference'], quality: 5, speed: 3, cost: { unit: 'image', usd: 0.045 }, tags: ['máxima calidad', 'capas editables'], note: 'Admite layer_decomposition: devuelve el diseño separado en capas.', verified: false },
+    { id: 'seedream-5-0-lite-260128', provider: 'seedream', capabilities: ['image.generate', 'image.edit', 'image.reference'], quality: 4, speed: 5, cost: { unit: 'image', usd: 0.035 }, tags: ['económico'], verified: false },
+    { id: 'seedream-4-5-251128', provider: 'seedream', capabilities: ['image.generate', 'image.edit', 'image.reference'], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.04 }, verified: false },
+    { id: 'seedream-4-0-250828', provider: 'seedream', capabilities: ['image.generate', 'image.edit', 'image.reference'], quality: 3, speed: 4, cost: { unit: 'image', usd: 0.03 }, tags: ['legado'], verified: false },
 ];
+/** Alfa transparente: solo Seedream 5.0 lo admite (parámetro background). */
+const supportsAlpha = (modelId) => modelId.includes('seedream-5-0');
 const sizeFor = (aspect) => {
     if (aspect === '9:16')
         return '1024x1792';
@@ -38,7 +45,7 @@ exports.seedreamAdapter = {
                 provider: 'seedream',
                 headers,
                 timeoutMs: request.timeoutMs,
-                body: Object.assign({ model: model.id, prompt, size: sizeFor(String((_f = input.aspectRatio) !== null && _f !== void 0 ? _f : '1:1')), response_format: 'url', watermark: false }, (imageUrl ? { image: imageUrl } : {})),
+                body: Object.assign(Object.assign({ model: model.id, prompt, size: sizeFor(String((_f = input.aspectRatio) !== null && _f !== void 0 ? _f : '1:1')), response_format: 'url', watermark: false }, (imageUrl ? { image: imageUrl } : {})), (input.transparent && supportsAlpha(model.id) ? { background: 'transparent', output_format: 'png' } : {})),
             });
             const remote = (_h = (_g = data.data) === null || _g === void 0 ? void 0 : _g[0]) === null || _h === void 0 ? void 0 : _h.url;
             if (!remote)

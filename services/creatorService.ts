@@ -97,6 +97,29 @@ export interface CreatorJob {
   finishedAt?: any;
 }
 
+/** Nivel de calidad que la persona puede elegir antes de crear. */
+export type QualityChoice = 'standard' | 'high' | 'max';
+
+/** Lo que Weë va a usar en un paso y lo que cuesta. El servidor manda estos datos. */
+export interface StepEstimate {
+  stepId: string;
+  capability: string;
+  service: string;
+  credits: number;
+  /** "Estándar", "Alta calidad"… Nunca el nombre del modelo. */
+  label?: string;
+  resolution?: string;
+  count?: number;
+  durationSec?: number;
+  volumeDiscount?: number;
+}
+
+export interface PlanPricing {
+  total: number;
+  steps: StepEstimate[];
+  options: { quality: QualityChoice; label: string; credits: number }[] | null;
+}
+
 export interface ChatResponse {
   jobId: string;
   status: JobStatus;
@@ -105,6 +128,15 @@ export interface ChatResponse {
   creditsEstimated: number;
   demo: boolean;
   inputImageUrl?: string | null;
+  /** Desglose de lo que se va a gastar y niveles entre los que elegir. */
+  pricing?: PlanPricing | null;
+}
+
+export interface QuoteResponse {
+  jobId: string;
+  quality: QualityChoice | null;
+  creditsEstimated: number;
+  pricing: PlanPricing | null;
 }
 
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
@@ -166,6 +198,9 @@ export const creatorService = {
 
   /** Adjunta (o cambia) la foto de un trabajo que todavía no empezó. */
   attachImage: (jobId: string, imageUrl: string) => call<ChatResponse>('creatorChat', { jobId, imageUrl }),
+
+  /** Cambiar el nivel de calidad antes de crear y ver al momento lo que costaría. */
+  quote: (jobId: string, quality?: QualityChoice) => call<QuoteResponse>('creatorQuote', { jobId, ...(quality ? { quality } : {}) }),
 
   /** Ejecuta el plan; el progreso llega por subscribeToJob. */
   run: (jobId: string) => call<{ jobId: string; status: JobStatus }>('creatorRun', { jobId }, RUN_TIMEOUT_MS),

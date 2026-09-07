@@ -12,8 +12,8 @@ const db = admin.firestore();
 export { generateAvatarWithGemini, avatarReplacement } from './generateAvatar';
 
 // Weë Creator (Weë Brain + WEË AI ENGINE)
-export { creatorChat, creatorRun } from './creator';
-export { brainChat } from './creator/brain';
+export { creatorChat, creatorQuote, creatorRun } from './creator';
+export { brainChat, brainQuote } from './creator/brain';
 
 // Weë Video Engine (Weë Studio → Seedance): petición abstracta de video y webhook preparado
 export { generateVideo } from './creator/video';

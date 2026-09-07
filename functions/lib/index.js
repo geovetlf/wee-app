@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainChat = exports.creatorRun = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -15,9 +15,11 @@ Object.defineProperty(exports, "avatarReplacement", { enumerable: true, get: fun
 // Weë Creator (Weë Brain + WEË AI ENGINE)
 var creator_1 = require("./creator");
 Object.defineProperty(exports, "creatorChat", { enumerable: true, get: function () { return creator_1.creatorChat; } });
+Object.defineProperty(exports, "creatorQuote", { enumerable: true, get: function () { return creator_1.creatorQuote; } });
 Object.defineProperty(exports, "creatorRun", { enumerable: true, get: function () { return creator_1.creatorRun; } });
 var brain_1 = require("./creator/brain");
 Object.defineProperty(exports, "brainChat", { enumerable: true, get: function () { return brain_1.brainChat; } });
+Object.defineProperty(exports, "brainQuote", { enumerable: true, get: function () { return brain_1.brainQuote; } });
 // Weë Video Engine (Weë Studio → Seedance): petición abstracta de video y webhook preparado
 var video_1 = require("./creator/video");
 Object.defineProperty(exports, "generateVideo", { enumerable: true, get: function () { return video_1.generateVideo; } });

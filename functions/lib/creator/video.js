@@ -9,7 +9,7 @@ const config_1 = require("../engine/config");
 const video_1 = require("../engine/video");
 const creditEngine_1 = require("../credits/creditEngine");
 const creditValidation_1 = require("../credits/creditValidation");
-const creditCosts_1 = require("../credits/creditCosts");
+const aiPricing_1 = require("../credits/aiPricing");
 const creditTransactions_1 = require("../credits/creditTransactions");
 const credits_1 = require("./credits");
 const inputs_1 = require("./inputs");
@@ -26,13 +26,14 @@ const inputs_1 = require("./inputs");
  */
 const MODELS = new Set(['auto', 'SEEDANCE_2_5', 'SEEDANCE_2_0', 'SEEDANCE_2_0_FAST', 'SEEDANCE_2_0_MINI']);
 const QUALITIES = new Set(['auto', 'standard', 'high', 'max']);
+const MODES = new Set(['reference', 'extend', 'edit']);
 const ownUrls = (values, uid) => {
     if (!Array.isArray(values) || !values.length)
         return undefined;
     return values.slice(0, 30).map((value) => (0, inputs_1.assertInputImageUrl)(value, uid));
 };
 exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 1500, memory: '1GiB' }, async (request) => {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     try {
         if (!request.auth)
             throw new errors_1.EngineError('UNAUTHORIZED');
@@ -55,21 +56,40 @@ exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeco
             quality: QUALITIES.has(data.quality) ? data.quality : 'auto',
             generateAudio: data.generateAudio === undefined ? undefined : Boolean(data.generateAudio),
             model: MODELS.has(data.model) ? data.model : 'auto',
+            mode: MODES.has(String(data.mode)) ? data.mode : undefined,
         };
         // Límites y Credits antes de tocar al proveedor
         const { settings } = await (0, config_1.loadConfig)();
         await limits_1.limiter.reserve(uid, { video: 1 }, settings.limits);
         await (0, credits_1.ensureAccount)(uid);
-        const service = (0, creditCosts_1.serviceForCapability)('video.generate', { quality: videoRequest.quality, durationSec: videoRequest.durationSec });
-        const spend = await creditEngine_1.creditEngine.spendCredits({ userId: uid, service, requestId, reason: 'Weë Studio · video', source: 'weë-studio' });
+        // Precio calculado con la tarifa oficial de ByteDance para el modelo que
+        // elegirá el Weë Video Engine; el Credit Engine sigue siendo quien cobra.
+        const price = (0, aiPricing_1.priceVideo)({
+            modelId: (0, video_1.chooseSeedanceModel)(videoRequest, settings),
+            durationSec: videoRequest.durationSec,
+            aspectRatio: videoRequest.aspectRatio,
+            resolution: videoRequest.resolution,
+            quality: videoRequest.quality,
+            inputVideoSec: (_a = videoRequest.references) === null || _a === void 0 ? void 0 : _a.videoSeconds,
+        }, settings);
+        const service = price.service;
+        const spend = await creditEngine_1.creditEngine.spendCredits({
+            userId: uid,
+            service,
+            amount: price.credits,
+            requestId,
+            reason: 'Weë Studio · video',
+            source: 'weë-studio',
+            meta: Object.assign({ model: price.model, estimatedUsd: price.usd }, price.detail),
+        });
         // Mismo requestId: UN REQUEST = UNA GENERACIÓN = UN COBRO
         if (spend.duplicate) {
             if (spend.status === 'COMPLETED') {
                 // Ya terminó: se devuelve el mismo video sin volver a generar ni cobrar
                 const previous = await (0, firestore_1.getFirestore)().collection('aiGenerations').where('requestId', '==', requestId).where('status', '==', 'COMPLETED').limit(1).get();
-                const doc = (_a = previous.docs[0]) === null || _a === void 0 ? void 0 : _a.data();
-                if (((_b = doc === null || doc === void 0 ? void 0 : doc.providerMeta) === null || _b === void 0 ? void 0 : _b.videoUrl) || (doc === null || doc === void 0 ? void 0 : doc.videoUrl)) {
-                    return { generationId: previous.docs[0].id, url: doc.videoUrl || doc.providerMeta.videoUrl, durationSec: (_c = doc.videoDurationSec) !== null && _c !== void 0 ? _c : null, credits: 0, demo: doc.provider === 'mock', status: 'COMPLETED', duplicate: true };
+                const doc = (_b = previous.docs[0]) === null || _b === void 0 ? void 0 : _b.data();
+                if (((_c = doc === null || doc === void 0 ? void 0 : doc.providerMeta) === null || _c === void 0 ? void 0 : _c.videoUrl) || (doc === null || doc === void 0 ? void 0 : doc.videoUrl)) {
+                    return { generationId: previous.docs[0].id, url: doc.videoUrl || doc.providerMeta.videoUrl, durationSec: (_d = doc.videoDurationSec) !== null && _d !== void 0 ? _d : null, credits: 0, demo: doc.provider === 'mock', status: 'COMPLETED', duplicate: true };
                 }
             }
             else {
@@ -81,7 +101,7 @@ exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeco
             const result = await video_1.videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: (0, creditTransactions_1.usageTransactionId)(requestId) });
             await (0, firestore_1.getFirestore)().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
             await creditEngine_1.creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
-            return { generationId: result.generationId, url: result.output.url, durationSec: (_d = result.output.durationSec) !== null && _d !== void 0 ? _d : null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
+            return { generationId: result.generationId, url: result.output.url, durationSec: (_e = result.output.durationSec) !== null && _e !== void 0 ? _e : null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
         }
         catch (error) {
             // FAILED → reembolso exacto e idempotente

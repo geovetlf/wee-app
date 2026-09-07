@@ -10,8 +10,10 @@ const http_1 = require("../http");
 const KEY = 'OPENAI_API_KEY';
 const API = 'https://api.openai.com/v1/chat/completions';
 exports.openaiModels = [
-    { id: (0, http_1.env)('OPENAI_MODEL') || 'gpt-5', provider: 'openai', capabilities: ['text.generate', 'text.structure', 'script.write', 'scene.split', 'subtitle.generate'], quality: 5, speed: 3, cost: { unit: 'mtoken', usd: 1.25, usdOutput: 10 }, verified: false },
-    { id: (0, http_1.env)('OPENAI_MODEL_MINI') || 'gpt-5-mini', provider: 'openai', capabilities: ['text.generate', 'text.structure', 'subtitle.generate'], quality: 3, speed: 5, cost: { unit: 'mtoken', usd: 0.25, usdOutput: 2 }, verified: false },
+    // Precios de lista oficiales (developers.openai.com/api/docs/pricing, sept. 2026), USD por millón de tokens.
+    // gpt-5 y gpt-5-mini siguen disponibles, pero OpenAI los marca como generación anterior.
+    { id: (0, http_1.env)('OPENAI_MODEL') || 'gpt-5.6-terra', provider: 'openai', capabilities: ['text.generate', 'text.structure', 'script.write', 'scene.split', 'subtitle.generate'], quality: 5, speed: 3, cost: { unit: 'mtoken', usd: 2, usdOutput: 12 }, verified: false },
+    { id: (0, http_1.env)('OPENAI_MODEL_MINI') || 'gpt-5.6-luna', provider: 'openai', capabilities: ['text.generate', 'text.structure', 'subtitle.generate'], quality: 3, speed: 5, cost: { unit: 'mtoken', usd: 0.2, usdOutput: 1.2 }, tags: ['económico'], verified: false },
 ];
 exports.openaiAdapter = {
     id: 'openai',

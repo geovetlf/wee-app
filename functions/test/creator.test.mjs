@@ -112,6 +112,37 @@ check('cuando el proveedor acepta la tarea pasa a PROCESSING con providerTaskId 
 await ledger.close(id, { status: 'COMPLETED', providerCost: 0.067, creditsCharged: 10, durationMs: 1200, outputType: 'image' });
 check('al cerrar guarda providerCost separado de creditsCharged', ledger.records[id].status === 'COMPLETED' && ledger.records[id].providerCost === 0.067 && ledger.records[id].creditsCharged === 10 && ledger.records[id].outputType === 'image');
 
+console.log('\n── Adjuntos: documentos y audio de la propia persona ──');
+const { assertAttachmentUrl, ATTACHMENT_KINDS } = lib('creator/inputs.js');
+const { modalityOf: modOf } = lib('engine/types.js');
+const OWN_PDF = 'https://firebasestorage.googleapis.com/v0/b/wee-dev-geovet.firebasestorage.app/o/users%2Fu1%2Fbrain-attachments%2Finforme.pdf?alt=media';
+check('un documento propio se acepta', assertAttachmentUrl(OWN_PDF, 'u1', 'document') === OWN_PDF);
+err = null;
+try { assertAttachmentUrl(OWN_PDF, 'otro', 'document'); } catch (e) { err = e; }
+check('un documento de otra persona se rechaza', err instanceof EngineError && err.code === 'INVALID_REQUEST' && /no es tuyo/.test(err.message), err && err.message);
+err = null;
+try { assertAttachmentUrl('https://example.com/x.pdf', 'u1', 'document'); } catch (e) { err = e; }
+check('una URL de internet nunca llega al proveedor', err instanceof EngineError && /subirse a Weë/.test(err.message));
+err = null;
+try { assertAttachmentUrl('', 'u1', 'audio'); } catch (e) { err = e; }
+check('sin archivo se pide el audio con un mensaje claro', err instanceof EngineError && /audio/.test(err.message), err && err.message);
+check('los límites son los oficiales: PDF 50 MB, audio 20 MB', ATTACHMENT_KINDS.document.maxBytes === 50 * 1024 * 1024 && ATTACHMENT_KINDS.document.mime.includes('application/pdf') && ATTACHMENT_KINDS.audio.maxBytes === 20 * 1024 * 1024);
+check('las capacidades nuevas tienen su modalidad y su límite diario', modOf('doc.read') === 'vision' && modOf('audio.transcribe') === 'voice');
+check('cada capacidad nueva tiene su servicio de Credits', serviceForCapability('audio.transcribe', {}) === 'ai_transcribe' && serviceForCapability('doc.read', {}) === 'ai_search' && serviceForCapability('image.try_on', {}) === 'ai_tryon');
+check('los logos y las fotos restauradas van al servicio de máxima precisión', serviceForCapability('image.generate', { kind: 'logo' }) === 'ai_image_pro' && serviceForCapability('image.edit', { kind: 'restore' }) === 'ai_image_pro' && serviceForCapability('image.generate', { kind: 'design' }) === 'ai_image');
+
+console.log('\n── Weë Studio: video a video con la misma API de ByteDance ──');
+console.log('\n── Por defecto, lo más barato ──');
+const { TEMPLATES: TPL } = lib('creator/templates.js');
+const planOf = (exp, goal, answers) => TPL[exp].buildPlan(goal, answers);
+const qOf = (plan, id) => (plan.steps.find((s) => s.id === id) || {}).input?.quality;
+const economico = (q) => q === undefined || q === 'standard'; // sin nivel, el router usa el más económico para texto
+check('un artículo, un CV y una presentación arrancan en el nivel económico', economico(qOf(planOf('writer', 'Un articulo', { what: 'article', tone: 'pro' }), 'draft')) && economico(qOf(planOf('writer', 'Mi CV', { what: 'cv', tone: 'pro' }), 'cv')) && economico(qOf(planOf('business', 'Una presentacion', { what: 'deck', tone: 'pro' }), 'doc')) && economico(qOf(planOf('business', 'Una campana', { what: 'marketing', tone: 'pro' }), 'campaign')));
+check('una novela y un guion sí piden el mejor modelo: uno flojo arruina el resultado', qOf(planOf('writer', 'Una novela', { what: 'story', tone: 'pro' }), 'draft') === 'max' && qOf(planOf('writer', 'Un guion', { what: 'script', tone: 'pro' }), 'draft') === 'max');
+check('un anuncio de Studio no necesita el mejor modelo; una historia sí', qOf(planOf('studio', 'Un anuncio', { type: 'promo', style: 'impact', where: 'vertical' }), 'script') === 'standard' && qOf(planOf('studio', 'Una historia', { type: 'story', style: 'warm', where: 'vertical' }), 'script') === 'max');
+check('los logos no fuerzan más resolución: suben de nivel solo por llevar texto', (planOf('design', 'Un logo', { what: 'logo', style: 'elegant', purpose: 'brand' }).steps.find((s) => s.id === 'images') || {}).input?.resolution === undefined);
+check('conservar el rostro sigue pidiendo el mejor modelo', qOf(planOf('beauty', 'Un maquillaje', { what: 'makeup', occasion: 'party' }), 'edit') === 'max');
+
 console.log('\n── Weë Video Engine: petición abstracta → Seedance ──');
 const { normalizeVideoRequest, chooseSeedanceModel, videoRequestFromStep, VIDEO_PROVIDERS } = lib('engine/video.js');
 const { SEEDANCE_MODEL_IDS } = lib('engine/providers/seedance.js');
@@ -128,6 +159,11 @@ const t2v = normalizeVideoRequest({ prompt: 'Lima de noche', durationSec: 10, as
 check('texto → video.generate con familia y modelo fijados en las preferencias', t2v.capability === 'video.generate' && t2v.prefs.allowedProviders.join() === 'seedance' && t2v.prefs.modelId === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 && t2v.input.durationSec === 10 && t2v.input.aspectRatio === '9:16');
 const i2v = normalizeVideoRequest({ prompt: 'anima', inputImage: 'https://x/a.png', durationSec: 40 });
 check('imagen → video.image_to_video y la duración se recorta al máximo del modelo (2.5 por > 15 s → 30)', i2v.capability === 'video.image_to_video' && i2v.input.imageUrl === 'https://x/a.png' && i2v.modelId === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 && i2v.input.durationSec === 30);
+const vExtend = normalizeVideoRequest({ prompt: 'continua este clip', references: { videos: ['https://x/c.mp4'], videoSeconds: 6 }, mode: 'extend', durationSec: 10 });
+check('continuar un clip: video.reference con taskType extend y los segundos de entrada', vExtend.capability === 'video.reference' && vExtend.input.taskType === 'extend' && vExtend.input.referenceVideoSec === 6 && vExtend.input.durationSec === 10);
+const vEdit = normalizeVideoRequest({ prompt: 'cambia el cielo', references: { videos: ['https://x/c.mp4'] }, mode: 'edit', durationSec: 10 });
+check('editar un video usa duración -1, como pide Seedance', vEdit.input.taskType === 'edit' && vEdit.input.durationSec === -1);
+check('el modo viaja de vuelta al convertir un paso del plan', videoRequestFromStep('video.reference', { prompt: 'p', referenceVideos: ['https://x/c.mp4'], taskType: 'extend' }).mode === 'extend');
 const refv = normalizeVideoRequest({ prompt: 'anuncio', references: { images: ['https://x/p.png'] } });
 check('referencias → video.reference', refv.capability === 'video.reference' && refv.input.referenceImages[0] === 'https://x/p.png');
 err = null;

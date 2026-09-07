@@ -105,8 +105,8 @@ Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids 
 | **Gemini** (fase actual) | texto con historial, búsqueda con Google Search grounding (fuentes), visión, imagen Nano Banana 2 / Pro / legado (genera y edita) | `GEMINI_API_KEY` (+ `GEMINI_TEXT_MODEL`, `GEMINI_IMAGE_MODEL`… opcionales) | contrato según la documentación oficial (sept. 2026); texto verificado en fase 1, búsqueda e imagen pendientes de clave |
 | **Seedance** (fase actual; único proveedor de video) | video: texto→video, imagen→video (primer y último cuadro), referencias omni (imágenes, videos, audio) con Seedance 2.5, 2.0, 2.0 fast y 2.0 mini; tarea asíncrona con sondeo o webhook; audio generado | `ARK_API_KEY` (BytePlus ModelArk; ids opcionales `SEEDANCE_2_5_MODEL`…; webhook `SEEDANCE_CALLBACK_URL` + `SEEDANCE_CALLBACK_TOKEN`) | contrato según docs.byteplus.com (sept. 2026); pendiente de verificar con clave |
 | **ElevenLabs** (fase actual) | voz (`eleven_multilingual_v2`, `eleven_flash_v2_5`) | `ELEVENLABS_API_KEY` (+ `ELEVENLABS_VOICE_ID`) | pendiente de verificar con clave |
-| FLUX (Black Forest Labs) | imagen, edición (Kontext) | `BFL_API_KEY` | pendiente de verificar |
-| ByteDance Seedream | imagen | `ARK_API_KEY` | pendiente de verificar |
+| FLUX (Black Forest Labs) | imagen y edición con la familia FLUX.2 (`flux-2-pro`, `flux-2-max`, `flux-2-flex`, `flux-2-klein-9b`) y la anterior (`flux-pro-1.1`, `flux-kontext-pro`); hasta 8 imágenes de referencia; cola asíncrona con `polling_url` | `BFL_API_KEY` | contrato según docs.bfl.ai (sept. 2026); pendiente de verificar con clave |
+| ByteDance Seedream | imagen: 5.0 pro (con descomposición en capas), 5.0 lite, 4.5 y 4.0 | `ARK_API_KEY` | pendiente de verificar |
 | MiniMax voz | voz | `MINIMAX_API_KEY` | pendiente de verificar |
 | Claude | LLM | `ANTHROPIC_API_KEY` | pendiente de verificar |
 | OpenAI | LLM | `OPENAI_API_KEY` | pendiente de verificar |
@@ -127,6 +127,57 @@ Sin clave, el adaptador responde `isConfigured() = false` y el router lo ignora:
 Nunca llamar a una API de IA fuera de un adaptador; nunca poner claves en el cliente.
 
 **Cambiar de proveedor sin tocar la app:** editar `aiRouting/{capacidad}.chain` en Firestore (o `DEFAULT_ROUTING`), p. ej. poner `flux` antes de `gemini` en `image.generate`, o desactivar un proveedor en `aiProviders/{id}.enabled`. Las secciones de Weë Creator llaman capacidades (`image.generate`, `video.generate`…), nunca proveedores. **Video es la excepción por decisión de producto (2026-09-07)**: solo la familia Seedance; lo configurable es la versión (`aiSettings/global.video.defaultModel`: `auto`, `SEEDANCE_2_5`, `SEEDANCE_2_0`, `SEEDANCE_2_0_FAST`, `SEEDANCE_2_0_MINI`).
+
+## Precio de cada operación (del coste oficial a los Credits)
+
+Ninguna sección de Weë fija precios. Todas preguntan al Credit Engine, y el
+precio sale del coste oficial publicado por el proveedor:
+
+```
+proveedor → modelo → operación → coste oficial en USD → Credits
+```
+
+`functions/src/credits/aiPricing.ts` es el único sitio donde se hace esa cuenta:
+`priceVideo()` usa la fórmula y las tarifas de BytePlus para Seedance; `priceImage()`
+usa el precio por resolución de Gemini. Devuelven `{ service, credits, usd, model, detail }`,
+y el Credit Engine cobra ese importe con `spendCredits({ service, amount })`.
+
+Qué se puede cambiar sin tocar código ni desplegar:
+
+| Ajuste | Dónde | Efecto |
+|---|---|---|
+| Precio fijo de un servicio | `creditCosts/{servicio}.credits` en Firestore | Ese servicio pasa a costar lo que digas |
+| Margen sobre el coste real | `aiSettings/global.margin` (0.30 por defecto) | Sube o baja todos los precios calculados |
+| Credits por dólar | `aiSettings/global.creditsPerUsd` (100 por defecto) | Cambia la equivalencia 100 Credits = USD 1 |
+| Modo de precios | `aiSettings/global.pricingMode` | `simulated` usa el catálogo · `real` usa el coste medido |
+| Versión de Seedance por defecto | `aiSettings/global.video.defaultModel` | Cambia el modelo y, con él, el tramo de precio |
+
+**Video (tarifas oficiales de BytePlus, 10 s a 720p 16:9):**
+
+| Servicio | Modelo | Coste | Credits |
+|---|---|---|---|
+| `ai_video_draft` | Seedance 2.0 fast a 480p | USD 0.56 | 75 |
+| `ai_video` | Seedance 2.0 fast a 720p (por defecto) | USD 1.21 | 160 |
+| `ai_video_hd` | Seedance 2.0 a 720p | USD 1.51 | 200 |
+| `ai_video_advanced` | Seedance 2.5 a 720p | USD 2.31 | 300 |
+| `ai_video_max` | Seedance 2.5 a 1080p | USD 5.69 | 740 |
+
+Los tokens salen de la fórmula oficial `(entrada + salida en s) × ancho × alto × 24 / 1024`
+con los píxeles que reproducen los ejemplos de precio de BytePlus (720p = 1280×720).
+El coste real que se registra en `aiGenerations` es `usage.completion_tokens` × tarifa.
+
+**Imagen (precio oficial de Gemini por resolución):**
+
+| Servicio | Modelo | Coste | Credits | Cuándo |
+|---|---|---|---|---|
+| `ai_image` | Nano Banana 2 a 1K | USD 0.067 | 10 | Crear una imagen |
+| `ai_image_enhance` | Nano Banana 2, edición | USD 0.067 | 10 | Fondo, objetos, estilo, espacios |
+| `ai_image_pro` | Nano Banana Pro | USD 0.134 | 18 | Conservar el rostro, restaurar, identidad de marca |
+
+La decisión de cuándo entra el modelo Pro vive en `creditCosts.ts` (`serviceForCapability`)
+y en `aiPricing.ts` (`needsProImage`), no dentro de Weë Beauty ni de Weë Photo:
+`image.identity_edit` siempre, y las piezas de tipo `restore`, `retouch`, `look`, `identity`
+o `logo`. El router lo respeta porque `aiRouting/image.identity_edit` fija el modelo Pro.
 
 ## Weë Video Engine (Seedance 2.5 / 2.0)
 
@@ -160,6 +211,10 @@ Tokens ≈ (segundos de video de entrada + segundos de salida) × ancho × alto 
 
 **Qué versión usa Weë** (`chooseSeedanceModel`, siempre dentro de la familia): preferencia explícita (`model`) › más de 15 s → 2.5 › 4K → 2.0 › calidad `max` → 2.5 › calidad `standard` o "borrador / rápido / de prueba" → 2.0 fast › política `cost-first` → 2.0 mini › `aiSettings/global.video.defaultModel` › por defecto 2.0. La duración se recorta a lo que admite el modelo; imagen→video en 2.5 exige `ratio: adaptive` (lo pone el adaptador). Capacidades: `video.generate` (texto), `video.image_to_video` (primer / último cuadro), `video.reference` (referencias omni: en Weë Studio, una foto adjunta a "Crear un video" o "Publicidad" entra como referencia; "Animar una foto" la usa como primer cuadro).
 
+**Video a video**: `generateVideo` acepta `mode`: `reference` (inspirarse en un clip),
+`extend` (continuarlo) o `edit` (editarlo, con duración `-1` como pide Seedance).
+Se traduce a `omni_reference_task_type` en la misma llamada oficial de ModelArk.
+
 **Estados y registro**: `aiGenerations/{id}` pasa por `QUEUED` → `PROCESSING` (con `providerTaskId`, `estimatedTokens`, `estimatedUsd`, `resolution`) → `COMPLETED` (`providerTokens`, `providerCost` real, `videoDurationSec`, `providerMeta`) o `FAILED`. `creatorRun` mantiene el trabajo en `creatorJobs` aunque la app deje de esperar.
 
 **Credits (un request = una generación = un cobro)**: precio del catálogo (`serviceForCapability`: `ai_video`, o `ai_video_advanced` con calidad `max` o más de 15 s) → `spendCredits` con `requestId` (`jobId` en Weë Studio; `requestId` de la app en `generateVideo`) → generación → `completeCredits`; cualquier fallo, tiempo agotado o rechazo → `refundCredits` íntegro. Repetir un `requestId` ya completado devuelve el mismo video sin cobrar; uno en curso responde `DUPLICATE_REQUEST`.
@@ -167,6 +222,121 @@ Tokens ≈ (segundos de video de entrada + segundos de salida) × ancho × alto 
 **Seguridad**: `ARK_API_KEY` solo en `functions/.env.local` / Secret Manager; el cliente llama a callables autenticadas (`creatorRun`, `generateVideo`) y solo puede mandar fotos de su propia carpeta de Storage; `aiGenerations`, `aiProviderCallbacks` y `aiRateLimits` no son escribibles desde la app.
 
 **Limitaciones conocidas**: los modelos hay que activarlos en la consola de BytePlus (saldo mayor de USD 30, plan o paquete de recursos) antes de la primera llamada; la serie 2.0 rechaza imágenes o videos de referencia con rostros reales (Weë responde `INVALID_REQUEST` con `reason: input_rejected` y reembolsa); 2.5 llega a 1080p (no 4K) y 2.0 a 15 s; la URL del proveedor caduca a las 24 h (Weë guarda el archivo); sin clave en la máquina de desarrollo, el contrato está probado solo con respuestas simuladas (`verified: false` hasta la primera llamada real).
+
+## Hasta dónde está comprobada cada integración
+
+Weë distingue cinco estados y no se salta ninguno (`engine/verification.ts`):
+
+| Estado | Qué significa |
+|---|---|
+| `CODE_COMPLETE` | El adaptador está escrito y compila |
+| `TESTED_WITH_MOCK` | Hay pruebas con respuestas simuladas de esa API |
+| `DOCUMENTATION_VERIFIED` | El contrato se leyó en la documentación oficial del proveedor |
+| `REAL_API_VERIFIED` | El proveedor respondió de verdad al menos una vez |
+| `PRODUCTION_READY` | Además se midió el coste real y el precio está ajustado |
+
+Los tres primeros se declaran a mano. **Los dos últimos no**: el router escribe
+`aiProviderVerification/{proveedor}` la primera vez que ese proveedor devuelve un
+resultado real (nunca en modo demo), y de ahí sale `REAL_API_VERIFIED`. Nada se
+puede marcar como probado de verdad sin que haya ocurrido la llamada.
+
+Cada proveedor declara además qué credencial le falta, en qué documentación se
+basa su contrato y cómo hacer la primera prueba real. El panel de administración
+lo muestra en `engineAdmin { action: "status" }`.
+
+## Protección económica: el suelo de coste
+
+Ninguna operación con coste de proveedor se cobra por debajo de lo que cuesta.
+El suelo cubre **todas** las modalidades:
+
+| Modalidad | Cómo se estima el coste |
+|---|---|
+| Imagen | Modelo elegido × resolución × cantidad, con descuento de volumen |
+| Video | Fórmula oficial de tokens de Seedance × tarifa del modelo y la resolución |
+| Texto, búsqueda, visión, documentos | Tarifa del modelo **más caro** del nivel × tokens de entrada y salida |
+| Voz | Caracteres × tarifa oficial por mil |
+| Transcripción | Segundos × 32 tokens × tarifa del nivel |
+
+El coste de texto cuenta **todo** lo que se envía: prompt, instrucciones, historial
+de la conversación, fotos (1 300 tokens), documentos (258 por página) y audio
+(32 por segundo). Se usa el modelo más caro del nivel a propósito: el precio que
+ve la persona tiene que ser un techo, porque después de confirmar no se le puede
+cobrar más.
+
+**Tope de entrada**: una petición cuya entrada superaría `GEMINI_MAX_INPUT_TOKENS`
+(120 000 por defecto, unas 465 páginas de PDF) se rechaza con un mensaje claro
+antes de llamar al proveedor, en vez de generarse a pérdida.
+
+## Weë Image Engine: el modelo más barato que sirve
+
+Para una imagen sencilla, un post o un borrador, Weë usa el modelo más económico
+que da un resultado adecuado. Los modelos caros se reservan para lo que de
+verdad los necesita. La escalera vive en `engine/imageModels.ts` y el gateway
+que la aplica, en `engine/image.ts`:
+
+```
+Weë → Weë AI Gateway (image.ts) → adaptador → API oficial → modelo
+```
+
+| Nivel | Modelo | USD por imagen | Cuándo entra |
+|---|---|---|---|
+| Estándar | FLUX.2 klein 9B (`flux-2-klein-9b`) | 0.015 | Imágenes sencillas, posts, borradores, ediciones normales |
+| Estándar (sin BFL) | Nano Banana 2 Lite · Seedream 5.0 lite | 0.0336 · 0.035 | Cuando falta la clave del anterior |
+| Alta calidad | Nano Banana 2 (`gemini-3.1-flash-image`) | 0.045 (512 px) · 0.067 (1K) · 0.101 (2K) · 0.151 (4K) | Texto legible dentro de la imagen, más resolución |
+| Alta calidad (sin texto) | FLUX.2 pro | 0.03 crear · 0.045 editar | Alternativa más barata cuando no hay texto |
+| Máxima | Nano Banana Pro (`gemini-3-pro-image`) | 0.134 (1K/2K) · 0.24 (4K) | Conservar el rostro, restaurar, máxima calidad |
+
+**Qué hace subir de nivel** (`imageRequirements`): conservar el rostro de una
+persona sube a máxima; una pieza con texto (logo, afiche, portada, campaña) sube
+a alta; pedir 2K o 4K sube a alta; el resto se queda en estándar. Solo se ofrece
+lo que se puede servir: un proveedor sin clave no entra en la elección.
+
+**El precio depende de tres cosas y se calcula siempre**: modelo, resolución y
+cantidad. Tres imágenes cuestan tres veces una, con un 5 % de descuento desde la
+tercera y un 10 % desde la quinta (`volumeFactor`). Nunca hay una tarifa fija
+independiente de lo que se genera.
+
+**Weë no esconde el costo**: antes de crear, el plan enseña por cada paso qué se
+va a usar ("3 imágenes · Estándar · 1K · 5 Credits") y los niveles entre los que
+elegir con su precio. La callable `creatorQuote` recalcula al instante cuando la
+persona cambia de nivel, y ese nivel se guarda en el trabajo para que se genere
+y se cobre igual que se prometió.
+
+## Qué modelo usa cada función
+
+Weë no usa un modelo para todo. Las secciones **no eligen proveedor ni modelo**:
+declaran la capacidad y el nivel de exigencia, y el AI ROUTER busca el mejor
+candidato de la cadena. Así se cambia un modelo sin tocar ninguna sección.
+
+| Nivel (`input.quality`) | Qué pide | Dónde se usa |
+|---|---|---|
+| `max` | El mejor modelo disponible de la cadena | Novela y guion (Writers), estrategia, campaña y documentos (Business), historia (Studio), rostro (Beauty), restaurar y retocar (Photo), logos (Design) |
+| `high` | Un modelo de trabajo | Artículo, documento y CV (Writers), guion corto (Studio) |
+| `standard` | El más económico | Publicación, email, resumen y corrección (Writers), respuesta a clientes (Business) |
+
+Casos que además fijan el modelo en la cadena, porque la función depende de él:
+
+| Capacidad | Modelo fijado | Motivo |
+|---|---|---|
+| `image.identity_edit` | Nano Banana Pro (`gemini-3-pro-image`) | Si la persona no se reconoce, el resultado no sirve |
+| `image.try_on` | FLUX Virtual Try-On v2 (`flux-tools/vto-v2`) | Modelo dedicado a prendas; Nano Banana Pro de respaldo |
+| `video.*` | Familia Seedance | Decisión de producto (ver Weë Video Engine) |
+
+Funciones donde inventar sería el peor error usan **búsqueda con fuentes**
+(`text.search`): las citas de Weë Writers, la estrategia de Weë Business y el
+presupuesto del menú de Weë Chef.
+
+## Documentos y audio de entrada
+
+Gemini entiende PDF y audio de forma nativa, así que Weë no convierte nada antes
+de enviarlo (ai.google.dev/gemini-api/docs/document-processing y /docs/audio):
+
+- **`doc.read`**: PDF hasta 50 MB o 1 000 páginas, 258 tokens por página. Weë Brain acepta `documentUrl`.
+- **`audio.transcribe`**: audio hasta 20 MB por petición, 32 tokens por segundo. Weë Brain acepta `audioUrl`.
+
+Los archivos se validan igual que las fotos: solo se aceptan los que la persona
+subió a `users/{uid}/` en el Storage de Weë (`creator/inputs.ts`, `assertAttachmentUrl`),
+viajan en línea en base64 y su URL privada nunca sale de Weë.
 
 ## Fotos de entrada y archivos
 
@@ -195,7 +365,7 @@ Para activarlo no hay que rehacer nada: falta un proveedor de montaje/subtítulo
 
 ## Capacidades
 
-`text.generate` · `text.structure` · `script.write` · `scene.split` · `subtitle.generate` · `vision.describe` · `image.generate` · `image.reference` · `image.edit` · `image.background_remove` · `image.object_remove` · `image.identity_edit` · `image.space_restyle` · `image.upscale` · `video.generate` · `video.image_to_video` · `video.reference` · `video.compose` · `video.montage` · `video.vertical` · `voice.tts` · `music.generate` · `audio.sfx` · `doc.render`
+`text.generate` · `text.structure` · `text.search` · `script.write` · `scene.split` · `subtitle.generate` · `vision.describe` · `doc.read` · `image.generate` · `image.reference` · `image.edit` · `image.background_remove` · `image.object_remove` · `image.identity_edit` · `image.space_restyle` · `image.try_on` · `image.upscale` · `video.generate` · `video.image_to_video` · `video.reference` · `video.compose` · `video.montage` · `video.vertical` · `voice.tts` · `audio.transcribe` · `music.generate` · `audio.sfx` · `doc.render`
 
 ## Pruebas
 

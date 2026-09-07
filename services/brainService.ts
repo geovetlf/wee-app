@@ -47,7 +47,27 @@ export interface BrainReply {
 /** Id único por mensaje: idempotencia del cobro (reenviar no cobra dos veces). */
 export const newMessageId = (): string => `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 
+/**
+ * Lo que costará el próximo mensaje. Lo calcula el servidor con el MISMO
+ * mecanismo que usará para cobrar (credits/aiPricing.ts), así que el precio que
+ * se enseña y el que se cobra salen de la misma fuente.
+ */
+export interface BrainQuote {
+  service: string;
+  label: string;
+  credits: number;
+  usd: number;
+  creditsPerUsd: number;
+}
+
 export const brainService = {
+  /** Precio del próximo mensaje, antes de enviarlo. No cobra ni escribe nada. */
+  quote: async (input: { chatId?: string; message: string; imageUrl?: string; webSearch?: boolean }): Promise<BrainQuote> => {
+    const fn = httpsCallable<typeof input, BrainQuote>(functions, 'brainQuote', { timeout: 30_000 });
+    const result = await fn(input);
+    return result.data;
+  },
+
   send: async (input: { chatId?: string; message: string; messageId: string; imageUrl?: string; webSearch?: boolean }): Promise<BrainReply> => {
     const fn = httpsCallable<typeof input, BrainReply>(functions, 'brainChat', { timeout: 120_000 });
     const result = await fn(input);

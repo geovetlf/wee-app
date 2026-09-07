@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.seedanceFailureReason = exports.seedanceAdapter = exports.seedanceUsd = exports.specOf = exports.seedanceModels = exports.SEEDANCE_SPECS = exports.SEEDANCE_MODEL_IDS = void 0;
 exports.seedanceTokens = seedanceTokens;
 exports.seedanceRate = seedanceRate;
+exports.seedanceCostUsd = seedanceCostUsd;
 exports.resolveResolution = resolveResolution;
 exports.clampDuration = clampDuration;
 exports.buildSeedanceBody = buildSeedanceBody;
@@ -84,12 +85,17 @@ exports.seedanceModels = [
 const specOf = (modelId) => exports.SEEDANCE_SPECS[modelId] || exports.SEEDANCE_SPECS[exports.SEEDANCE_MODEL_IDS.SEEDANCE_2_0];
 exports.specOf = specOf;
 const RATIOS = new Set(['21:9', '16:9', '4:3', '1:1', '3:4', '9:16', 'adaptive']);
-/** Píxeles (lado largo × lado corto) por resolución y ratio según la tabla oficial de ModelArk. */
+/**
+ * Píxeles por resolución y ratio. Estos valores reproducen exactamente los
+ * ejemplos de precio publicados por BytePlus para la serie Seedance 2.x
+ * (docs.byteplus.com/en/docs/ModelArk/1544106): 720p 16:9 de 5 s en Seedance 2.5
+ * = 108 000 tokens = USD 1.156, y en Seedance 2.0 = USD 0.756.
+ */
 const PIXELS = {
-    '480p': { '16:9': [864, 480], '4:3': [736, 544], '1:1': [640, 640], '21:9': [960, 416] },
-    '720p': { '16:9': [1248, 704], '4:3': [1120, 832], '1:1': [960, 960], '21:9': [1504, 640] },
-    '1080p': { '16:9': [1920, 1088], '4:3': [1664, 1248], '1:1': [1440, 1440], '21:9': [2176, 928] },
-    '4k': { '16:9': [3840, 2160], '4:3': [3200, 2400], '1:1': [2880, 2880], '21:9': [4352, 1856] },
+    '480p': { '16:9': [854, 480], '4:3': [640, 480], '1:1': [480, 480], '21:9': [1120, 480] },
+    '720p': { '16:9': [1280, 720], '4:3': [960, 720], '1:1': [720, 720], '21:9': [1680, 720] },
+    '1080p': { '16:9': [1920, 1080], '4:3': [1440, 1080], '1:1': [1080, 1080], '21:9': [2520, 1080] },
+    '4k': { '16:9': [3840, 2160], '4:3': [2880, 2160], '1:1': [2160, 2160], '21:9': [5040, 2160] },
 };
 const FPS = 24;
 const canonicalRatio = (ratio) => (ratio === '9:16' ? '16:9' : ratio === '3:4' ? '4:3' : ratio === 'adaptive' ? '16:9' : ratio);
@@ -106,6 +112,19 @@ function seedanceRate(modelId, resolution, withVideoInput) {
 }
 const seedanceUsd = (tokens, ratePerMillion) => (tokens * ratePerMillion) / 1000000;
 exports.seedanceUsd = seedanceUsd;
+/**
+ * Coste oficial estimado en USD de una generación, con la fórmula y las tarifas
+ * publicadas por BytePlus. Es lo que usa el Credit Engine para fijar el precio
+ * antes de generar; el coste real que se registra sale de usage.completion_tokens.
+ */
+function seedanceCostUsd(input) {
+    var _a;
+    const outputSec = input.durationSec === -1 ? 5 : Math.max(1, input.durationSec);
+    const inputVideoSec = Math.max(0, Number((_a = input.inputVideoSec) !== null && _a !== void 0 ? _a : 0));
+    const tokens = seedanceTokens(input.resolution, input.ratio || '16:9', outputSec, inputVideoSec);
+    const ratePerMillion = seedanceRate(input.modelId, input.resolution, inputVideoSec > 0);
+    return { usd: (0, exports.seedanceUsd)(tokens, ratePerMillion), tokens, ratePerMillion };
+}
 /** Resolución permitida para el modelo según la calidad pedida o la explícita. */
 function resolveResolution(modelId, wanted, quality) {
     const spec = (0, exports.specOf)(modelId);

@@ -1,6 +1,9 @@
 import { CapabilityId } from '../creator/types';
 import { EngineSettings, ModelSpec, RoutingPrefs, modalityOf } from './types';
-import { getCreditCost, serviceForCapability } from '../credits/creditCosts';
+import { serviceForCapability } from '../credits/creditCosts';
+import { priceImage, priceOperation, usdToCredits } from '../credits/aiPricing';
+
+export { usdToCredits };
 
 /**
  * De coste a Credits.
@@ -48,16 +51,37 @@ export function estimateUsd(model: ModelSpec, capability: CapabilityId, input: R
   }
 }
 
-export function usdToCredits(usd: number, settings: EngineSettings): number {
-  if (usd <= 0) return 0;
-  return Math.max(1, Math.ceil(usd * settings.creditsPerUsd * (1 + settings.margin)));
-}
 
-/** Credits que se cobran por una generación (lo que ve la persona). */
+/**
+ * Credits que se cobran por una generación (lo que ve la persona).
+ *
+ * SUELO UNIVERSAL: ninguna operación con coste de proveedor se cobra por debajo
+ * de lo que cuesta. Imagen y video tienen su cálculo propio (modelo, resolución,
+ * cantidad, duración); el resto usa el coste oficial estimado del modelo más caro
+ * del nivel, que es un techo y no un promedio. Si al ejecutar se midió un coste
+ * mayor que el estimado, manda el medido.
+ */
 export function creditsFor(capability: CapabilityId, usd: number, settings: EngineSettings, demo: boolean, input: Record<string, unknown> = {}): number {
-  if (settings.pricingMode === 'simulated') return getCreditCost(serviceForCapability(capability, input));
+  if (capability.startsWith('image.')) {
+    return priceImage(
+      {
+        capability,
+        count: input.count === undefined ? undefined : Number(input.count),
+        quality: input.quality as string | undefined,
+        resolution: input.resolution as string | undefined,
+        kind: input.kind as string | undefined,
+      },
+      settings,
+    ).credits;
+  }
+  const service = serviceForCapability(capability, input);
+  const catalogo = priceOperation(capability, input, service, settings).credits;
+  // En modo prueba se cobra el precio de muestra, también con el proveedor demo,
+  // para que los números que ve la persona sean realistas mientras se desarrolla.
+  if (settings.pricingMode === 'simulated') return catalogo;
   if (demo) return 0;
-  return usdToCredits(usd, settings);
+  const medido = usd > 0 ? usdToCredits(usd, settings) : 0;
+  return Math.max(catalogo, medido);
 }
 
 /** Estimación previa (antes de crear) para un paso de un plan. */

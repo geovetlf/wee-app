@@ -9,9 +9,12 @@ const http_1 = require("../http");
  */
 const KEY = 'MINIMAX_API_KEY';
 const base = () => (0, http_1.env)('MINIMAX_BASE_URL') || 'https://api.minimax.io';
+// Ids según platform.minimax.io/docs/api-reference/speech-t2a-http (sept. 2026).
+// MiniMax no publica precios en su documentación: las cifras de abajo son una estimación
+// prudente y deben confirmarse en la consola antes de usar el modo de precios real.
 exports.minimaxModels = [
-    { id: 'speech-02-hd', provider: 'minimax', capabilities: ['voice.tts'], quality: 4, speed: 4, cost: { unit: 'kchar', usd: 0.05 }, verified: false },
-    { id: 'speech-02-turbo', provider: 'minimax', capabilities: ['voice.tts'], quality: 3, speed: 5, cost: { unit: 'kchar', usd: 0.03 }, tags: ['económico'], verified: false },
+    { id: 'speech-2.8-hd', provider: 'minimax', capabilities: ['voice.tts'], quality: 4, speed: 4, cost: { unit: 'kchar', usd: 0.1 }, note: 'Precio pendiente de confirmar en la consola de MiniMax.', verified: false },
+    { id: 'speech-2.8-turbo', provider: 'minimax', capabilities: ['voice.tts'], quality: 3, speed: 5, cost: { unit: 'kchar', usd: 0.06 }, tags: ['económico'], note: 'Precio pendiente de confirmar en la consola de MiniMax.', verified: false },
 ];
 const headers = () => {
     const apiKey = (0, http_1.env)(KEY);

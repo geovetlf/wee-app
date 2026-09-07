@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isCheap = void 0;
+exports.isCheap = exports.usdToCredits = void 0;
 exports.estimateUsd = estimateUsd;
-exports.usdToCredits = usdToCredits;
 exports.creditsFor = creditsFor;
 exports.estimateStepCredits = estimateStepCredits;
 const types_1 = require("./types");
 const creditCosts_1 = require("../credits/creditCosts");
+const aiPricing_1 = require("../credits/aiPricing");
+Object.defineProperty(exports, "usdToCredits", { enumerable: true, get: function () { return aiPricing_1.usdToCredits; } });
 /**
  * De coste a Credits.
  * - Modo "simulated" (mientras se construye Weë Creator): el catálogo del
@@ -52,18 +53,35 @@ function estimateUsd(model, capability, input, prefs) {
             return cost.usd;
     }
 }
-function usdToCredits(usd, settings) {
-    if (usd <= 0)
-        return 0;
-    return Math.max(1, Math.ceil(usd * settings.creditsPerUsd * (1 + settings.margin)));
-}
-/** Credits que se cobran por una generación (lo que ve la persona). */
+/**
+ * Credits que se cobran por una generación (lo que ve la persona).
+ *
+ * SUELO UNIVERSAL: ninguna operación con coste de proveedor se cobra por debajo
+ * de lo que cuesta. Imagen y video tienen su cálculo propio (modelo, resolución,
+ * cantidad, duración); el resto usa el coste oficial estimado del modelo más caro
+ * del nivel, que es un techo y no un promedio. Si al ejecutar se midió un coste
+ * mayor que el estimado, manda el medido.
+ */
 function creditsFor(capability, usd, settings, demo, input = {}) {
+    if (capability.startsWith('image.')) {
+        return (0, aiPricing_1.priceImage)({
+            capability,
+            count: input.count === undefined ? undefined : Number(input.count),
+            quality: input.quality,
+            resolution: input.resolution,
+            kind: input.kind,
+        }, settings).credits;
+    }
+    const service = (0, creditCosts_1.serviceForCapability)(capability, input);
+    const catalogo = (0, aiPricing_1.priceOperation)(capability, input, service, settings).credits;
+    // En modo prueba se cobra el precio de muestra, también con el proveedor demo,
+    // para que los números que ve la persona sean realistas mientras se desarrolla.
     if (settings.pricingMode === 'simulated')
-        return (0, creditCosts_1.getCreditCost)((0, creditCosts_1.serviceForCapability)(capability, input));
+        return catalogo;
     if (demo)
         return 0;
-    return usdToCredits(usd, settings);
+    const medido = usd > 0 ? (0, aiPricing_1.usdToCredits)(usd, settings) : 0;
+    return Math.max(catalogo, medido);
 }
 /** Estimación previa (antes de crear) para un paso de un plan. */
 function estimateStepCredits(capability, estimatedUsd, settings, input = {}) {

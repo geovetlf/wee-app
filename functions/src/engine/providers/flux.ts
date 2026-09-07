@@ -1,24 +1,101 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
-import { env, fetchBytes, fetchJson, NotConfiguredError, persistRemoteFile, pollUntil, ProviderError } from '../http';
+import { env, fetchJson, NotConfiguredError, persistRemoteFile, pollUntil, ProviderError, readImage } from '../http';
 
 /**
- * FLUX (Black Forest Labs, clave BFL_API_KEY). Imagen de alta calidad y edición
- * con Kontext. Contrato: POST /v1/{modelo} → { id, polling_url }; GET polling_url
- * hasta status "Ready" con result.sample (URL temporal). Pendiente de verificar.
+ * FLUX — Black Forest Labs, API oficial directa (api.bfl.ai, cabecera x-key).
+ * Documentación: docs.bfl.ai (verificada el 2026-09-07).
+ *
+ * Contrato:
+ *   POST /v1/{modelo}  → { id, polling_url }
+ *   GET  polling_url   → { status, result: { sample } }
+ * Estados: Pending · Reasoning · Generating · Ready · Error · Request Moderated · Content Moderated.
+ * La URL del resultado caduca a los 10 minutos: el archivo se copia a Weë Storage.
+ * Límite oficial: 24 tareas simultáneas por cuenta (6 en flux-kontext-max).
+ *
+ * El id del modelo es a la vez el segmento del endpoint, así que añadir un
+ * modelo nuevo de BFL es añadir una línea a FLUX_MODELS.
  */
 const KEY = 'BFL_API_KEY';
 const base = () => env('BFL_BASE_URL') || 'https://api.bfl.ai';
 
+/** Máximo de imágenes de referencia que acepta la familia FLUX.2 (input_image … input_image_8). */
+const MAX_REFERENCES = 8;
+
+/** Precios de lista oficiales (docs.bfl.ai/quick_start/pricing): USD por imagen. */
+interface FluxPrice {
+  generate: number;
+  edit: number;
+}
+const PRICES: Record<string, FluxPrice> = {
+  'flux-2-pro': { generate: 0.03, edit: 0.045 },
+  'flux-2-max': { generate: 0.07, edit: 0.07 },
+  'flux-2-flex': { generate: 0.05, edit: 0.05 },
+  'flux-2-klein-9b': { generate: 0.015, edit: 0.015 },
+  'flux-pro-1.1': { generate: 0.04, edit: 0.04 },
+  'flux-pro-1.1-ultra': { generate: 0.06, edit: 0.06 },
+  'flux-kontext-pro': { generate: 0.04, edit: 0.04 },
+};
+
+/**
+ * Las herramientas de FLUX se cobran por megapíxel y BFL no publica una tarifa
+ * fija: la respuesta trae el coste liquidado en créditos de BFL. Estos valores
+ * solo sirven para ordenar candidatos hasta la primera llamada real.
+ */
+const TOOL_ESTIMATE_USD = 0.06;
+
+/** 1 crédito de BFL = USD 0.01 (docs.bfl.ai/quick_start/pricing). */
+export const BFL_CREDIT_USD = 0.01;
+
+export const fluxUsd = (modelId: string, withReference: boolean): number => {
+  if (!PRICES[modelId]) return TOOL_ESTIMATE_USD;
+  const price = PRICES[modelId] || PRICES['flux-2-pro'];
+  return withReference ? price.edit : price.generate;
+};
+
+const GENERATE = ['image.generate', 'image.reference'] as const;
+const EDIT = ['image.edit', 'image.background_remove', 'image.object_remove', 'image.identity_edit', 'image.space_restyle'] as const;
+const ALL = [...GENERATE, ...EDIT];
+
+/** Herramientas dedicadas: el id es el resto de la ruta bajo /v1/. */
+const TOOL_MODELS = new Set(['flux-tools/vto-v2']);
+
 export const fluxModels: ModelSpec[] = [
-  { id: 'flux-pro-1.1', provider: 'flux', capabilities: ['image.generate', 'image.reference'], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.04 }, verified: false },
-  { id: 'flux-pro-1.1-ultra', provider: 'flux', capabilities: ['image.generate', 'image.reference'], quality: 5, speed: 3, cost: { unit: 'image', usd: 0.06 }, tags: ['máxima calidad'], verified: false },
-  { id: 'flux-kontext-pro', provider: 'flux', capabilities: ['image.edit', 'image.background_remove', 'image.object_remove', 'image.identity_edit', 'image.space_restyle'], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.04 }, tags: ['edición'], verified: false },
+  // FLUX.2: la generación que BFL recomienda para proyectos nuevos
+  { id: 'flux-2-pro', provider: 'flux', capabilities: [...ALL], quality: 5, speed: 4, cost: { unit: 'image', usd: 0.03 }, tags: ['flux.2', 'producto', 'hasta 8 referencias'], note: 'Genera y edita con hasta 8 imágenes de referencia.', verified: false },
+  { id: 'flux-2-max', provider: 'flux', capabilities: [...ALL], quality: 5, speed: 3, cost: { unit: 'image', usd: 0.07 }, tags: ['flux.2', 'máxima calidad'], verified: false },
+  { id: 'flux-2-flex', provider: 'flux', capabilities: [...ALL], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.05 }, tags: ['flux.2'], verified: false },
+  { id: 'flux-2-klein-9b', provider: 'flux', capabilities: [...ALL], quality: 3, speed: 5, cost: { unit: 'image', usd: 0.015 }, tags: ['flux.2', 'económico'], verified: false },
+  // Generación anterior: se mantiene para poder volver atrás sin desplegar
+  { id: 'flux-pro-1.1', provider: 'flux', capabilities: [...GENERATE], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.04 }, tags: ['legado'], verified: false },
+  { id: 'flux-kontext-pro', provider: 'flux', capabilities: [...EDIT], quality: 4, speed: 4, cost: { unit: 'image', usd: 0.04 }, tags: ['legado', 'edición'], verified: false },
+  // Prueba virtual de ropa: modelo dedicado, hasta 4 megapíxeles de entrada y salida
+  { id: 'flux-tools/vto-v2', provider: 'flux', capabilities: ['image.try_on'], quality: 5, speed: 4, cost: { unit: 'image', usd: TOOL_ESTIMATE_USD }, tags: ['probarse ropa'], note: 'Foto de la persona + foto de la prenda. Se cobra por megapíxel: el coste real llega en la respuesta.', verified: false },
 ];
+
+const isFlux2 = (modelId: string): boolean => modelId.startsWith('flux-2-');
 
 const dims = (aspect: string): { width: number; height: number } => {
   if (aspect === '9:16') return { width: 768, height: 1344 };
   if (aspect === '16:9') return { width: 1344, height: 768 };
+  if (aspect === '2:3') return { width: 832, height: 1248 };
+  if (aspect === '3:2') return { width: 1248, height: 832 };
   return { width: 1024, height: 1024 };
+};
+
+/** Fotos de la persona y referencias: siempre en base64, nunca como URL privada. */
+const referencesOf = (input: Record<string, unknown>): string[] => {
+  const list: string[] = [];
+  const single = input.imageUrl;
+  if (typeof single === 'string' && single) list.push(single);
+  const refs = input.referenceImages;
+  if (Array.isArray(refs)) for (const r of refs) if (typeof r === 'string' && r && !list.includes(r)) list.push(r);
+  return list.slice(0, MAX_REFERENCES);
+};
+
+const asBase64 = async (url: string): Promise<string> => {
+  if (url.startsWith('data:')) return url.slice(url.indexOf(',') + 1);
+  const { buffer } = await readImage(url, 'flux');
+  return buffer.toString('base64');
 };
 
 export const fluxAdapter: ProviderAdapter = {
@@ -36,25 +113,47 @@ export const fluxAdapter: ProviderAdapter = {
     const headers = { 'x-key': apiKey };
     const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
     const prompt = [String(input.prompt ?? input.purpose ?? ''), String(input.brief ?? '')].filter(Boolean).join('\n');
-    const body: Record<string, unknown> = { prompt, output_format: 'png', ...dims(String(input.aspectRatio ?? '1:1')) };
+    if (!prompt.trim()) throw new ProviderError('flux: falta la descripción de la imagen', 'flux', undefined, false);
 
-    const imageUrl = String(input.imageUrl ?? '');
-    if (model.id === 'flux-kontext-pro' && imageUrl) {
-      const { buffer } = await fetchBytes(imageUrl, { provider: 'flux' });
-      body.input_image = buffer.toString('base64');
-      delete body.width;
-      delete body.height;
+    const references = referencesOf(input);
+    const body: Record<string, unknown> = { prompt, output_format: 'png' };
+
+    if (references.length) {
+      // FLUX.2 admite hasta 8 referencias: input_image, input_image_2 … input_image_8
+      // FLUX.2 y las herramientas aceptan varias; la generación anterior, solo una
+      const limit = isFlux2(model.id) || TOOL_MODELS.has(model.id) ? MAX_REFERENCES : 1;
+      for (let i = 0; i < Math.min(references.length, limit); i++) {
+        body[i === 0 ? 'input_image' : `input_image_${i + 1}`] = await asBase64(references[i]);
+      }
+    } else {
+      Object.assign(body, dims(String(input.aspectRatio ?? '1:1')));
+    }
+    if (input.seed !== undefined) body.seed = Number(input.seed);
+
+    if (TOOL_MODELS.has(model.id) && references.length < 2) {
+      throw new ProviderError('flux: la prueba de ropa necesita la foto de la persona y la de la prenda', 'flux', undefined, false);
     }
 
+    const usdPerImage = fluxUsd(model.id, references.length > 0);
+    // BFL liquida el coste en su respuesta cuando cobra por megapíxel
+    let settledUsd = 0;
     const urls: string[] = [];
     for (let i = 0; i < count; i++) {
       const created = await fetchJson<any>(`${base()}/v1/${model.id}`, { provider: 'flux', headers, body, timeoutMs: 60_000 });
-      const pollingUrl = created.polling_url || `${base()}/v1/get_result?id=${created.id}`;
+      // La documentación exige sondear la polling_url devuelta, no construirla
+      const pollingUrl = created.polling_url;
+      if (!pollingUrl) throw new ProviderError('flux: la tarea no devolvió polling_url', 'flux');
       const remote = await pollUntil<string>(
         async () => {
           const state = await fetchJson<any>(pollingUrl, { provider: 'flux', headers, timeoutMs: 30_000 });
-          if (state.status === 'Ready') return { done: true, value: String(state.result?.sample ?? '') };
-          if (state.status === 'Error' || state.status === 'Failed' || state.status === 'Content Moderated' || state.status === 'Request Moderated') return { done: true, error: String(state.status) };
+          if (state.status === 'Ready') {
+            if (typeof state.cost === 'number') settledUsd += state.cost * BFL_CREDIT_USD;
+            return { done: true, value: String(state.result?.sample ?? '') };
+          }
+          if (state.status === 'Error' || state.status === 'Failed' || state.status === 'Task not found') return { done: true, error: `flux: ${state.status}` };
+          if (state.status === 'Content Moderated' || state.status === 'Request Moderated') {
+            return { done: true, error: 'rechazo de entrada: el contenido no pasó la moderación de FLUX' };
+          }
           return { done: false };
         },
         { intervalMs: 2_000, timeoutMs: request.timeoutMs, provider: 'flux' }
@@ -63,6 +162,14 @@ export const fluxAdapter: ProviderAdapter = {
       urls.push(await persistRemoteFile(ctx.userId, remote, 'flux', `image-${i + 1}`));
     }
 
-    return { output: { kind: 'image', url: urls[0], urls: urls.length > 1 ? urls : undefined }, usage: { images: urls.length }, costUSD: urls.length * model.cost.usd, latencyMs: Date.now() - start, model: model.id };
+    return {
+      output: { kind: 'image', url: urls[0], urls: urls.length > 1 ? urls : undefined },
+      usage: { images: urls.length },
+      // El coste liquidado por BFL manda sobre el precio de lista cuando existe
+      costUSD: settledUsd > 0 ? settledUsd : urls.length * usdPerImage,
+      latencyMs: Date.now() - start,
+      model: model.id,
+      meta: { references: references.length, usdPerImage, edited: references.length > 0, settledUsd: settledUsd || undefined },
+    };
   },
 };

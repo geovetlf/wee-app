@@ -6,6 +6,7 @@
  * - Gemini 3 Pro Image Preview (API key): Avatar generation + Person replacement
  *   Uses generateContent with both images as input (like the Gemini chatbot)
  */
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateAvatarWithImagen = generateAvatarWithImagen;
 exports.replacePersonWithAvatar = replacePersonWithAvatar;
@@ -18,6 +19,13 @@ exports.getMimeTypeFromUrl = getMimeTypeFromUrl;
 const BUCKET_NAME = process.env.STORAGE_BUCKET && process.env.STORAGE_BUCKET.trim() ? process.env.STORAGE_BUCKET.trim() : undefined;
 // Max image dimension before sending to Gemini (pixels)
 const MAX_IMAGE_DIMENSION = 1024;
+/**
+ * Nano Banana Pro (edición de imagen conservando la identidad).
+ * `gemini-3-pro-image-preview` se retiró el 25 de junio de 2026: el id estable
+ * es `gemini-3-pro-image` (ai.google.dev/gemini-api/docs/deprecations).
+ * Configurable por si Google publica una versión nueva.
+ */
+const IMAGE_MODEL = ((_a = process.env.GEMINI_IMAGE_MODEL_PRO) === null || _a === void 0 ? void 0 : _a.trim()) || 'gemini-3-pro-image';
 // Get API key from environment
 function getGeminiApiKey() {
     const key = process.env.GEMINI_API_KEY;
@@ -88,7 +96,7 @@ async function generateAvatarWithImagen(avatarConfig) {
     let response;
     try {
         response = await withTimeout(ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: IMAGE_MODEL,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 responseModalities: ['IMAGE', 'TEXT'],
@@ -179,7 +187,7 @@ async function replacePersonWithAvatar(selfieBase64, selfieMimeType, avatarBase6
     let response;
     try {
         response = await withTimeout(ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: IMAGE_MODEL,
             contents: [
                 {
                     role: 'user',

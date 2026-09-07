@@ -2,6 +2,7 @@ import { CapabilityId } from '../creator/types';
 import { EngineConfig } from './config';
 import { Ledger } from './ledger';
 import { creditsFor, estimateUsd } from './pricing';
+import { recordRealSuccess } from './verification';
 import { NotConfiguredError, ProviderError } from './http';
 import { classifyError, EngineError } from './errors';
 import { providerCallsToday } from './limits';
@@ -286,6 +287,8 @@ export function createRouter(deps: RouterDeps) {
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
         const credits = creditsFor(capability, result.costUSD, settings, demo, input);
+        // Una respuesta real es lo único que asciende un proveedor a REAL_API_VERIFIED
+        if (!demo) void recordRealSuccess(candidate.provider, result.model || candidate.model.id, capability, generationId);
         await deps.ledger.close(generationId, {
           status: 'COMPLETED',
           providerCost: result.costUSD,

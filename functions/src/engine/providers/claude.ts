@@ -10,8 +10,9 @@ const KEY = 'ANTHROPIC_API_KEY';
 const API = 'https://api.anthropic.com/v1/messages';
 
 export const claudeModels: ModelSpec[] = [
-  { id: 'claude-sonnet-5', provider: 'claude', capabilities: ['text.generate', 'text.structure', 'script.write', 'scene.split', 'subtitle.generate'], quality: 5, speed: 3, cost: { unit: 'mtoken', usd: 3, usdOutput: 15 }, verified: false },
-  { id: 'claude-haiku-4-5-20251001', provider: 'claude', capabilities: ['text.generate', 'text.structure', 'subtitle.generate'], quality: 3, speed: 5, cost: { unit: 'mtoken', usd: 1, usdOutput: 5 }, verified: false },
+  // Precios de lista oficiales (platform.claude.com/docs/en/about-claude/models/overview, sept. 2026), USD por millón de tokens.
+  { id: 'claude-sonnet-5', provider: 'claude', capabilities: ['text.generate', 'text.structure', 'script.write', 'scene.split', 'subtitle.generate'], quality: 5, speed: 3, cost: { unit: 'mtoken', usd: 2, usdOutput: 10 }, tags: ['razonamiento', 'textos largos'], note: '1M de contexto y 128K de salida: guiones, novela y planes de negocio.', verified: false },
+  { id: 'claude-haiku-4-5-20251001', provider: 'claude', capabilities: ['text.generate', 'text.structure', 'subtitle.generate'], quality: 3, speed: 5, cost: { unit: 'mtoken', usd: 1, usdOutput: 5 }, tags: ['económico'], note: 'Retiro anunciado no antes del 15 de octubre de 2026.', verified: false },
 ];
 
 export const claudeAdapter: ProviderAdapter = {

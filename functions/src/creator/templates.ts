@@ -144,7 +144,7 @@ const design: ExperienceTemplate = {
       goal,
       steps: [
         step('concept', 'text.generate', 'Definir el concepto', { input: { kind: 'concept', brief: `${piece}, estilo ${look}, ${use}` } }),
-        step('images', 'image.generate', `Crear ${count} propuestas de diseño`, { dependsOn: ['concept'], input: { count, kind: what.id === 'logo' ? 'design' : 'design', brief: `${piece}, estilo ${look}` } }),
+        step('images', 'image.generate', `Crear ${count} propuestas de diseño`, { dependsOn: ['concept'], input: { count, kind: what.id === 'logo' ? 'logo' : 'design', brief: `${piece}, estilo ${look}` } }),
       ],
       explainToUser: `Voy a definir el concepto y crear ${count} propuestas de ${piece}, con un estilo ${look}, ${use}.${decided(what.idk, 'me guío por lo que escribiste')}${decided(style.idk, 'elegí un estilo realista y cuidado')}${decided(purpose.idk, 'lo preparo para que lo veas y decidas')}`,
     };
@@ -224,7 +224,7 @@ const studio: ExperienceTemplate = {
       experience: 'studio',
       goal,
       steps: [
-        step('script', 'text.generate', 'Escribir el guion de 3 escenas', { input: { kind: 'script', brief: `${kind}, estilo ${look}, 10 segundos, formato ${format}` } }),
+        step('script', 'text.generate', 'Escribir el guion de 3 escenas', { input: { kind: 'script', brief: `${kind}, estilo ${look}, 10 segundos, formato ${format}`, quality: type.id === 'story' ? 'max' : 'standard' } }),
         step('clip', 'video.generate', 'Generar el video', { dependsOn: ['script'], input: { kind: 'clip', brief: `${kind}, estilo ${look}`, durationSec: 10, aspectRatio } }),
         step('voice', 'voice.tts', 'Grabar la narración', { dependsOn: ['script'], input: { kind: 'narration' } }),
       ],
@@ -233,13 +233,22 @@ const studio: ExperienceTemplate = {
   },
 };
 
+/** Acciones de Weë Photo que exigen conservar el rostro o el detalle original. */
+const PRO_PHOTO = new Set(['restore', 'retouch']);
+/**
+ * Acciones donde la persona espera más píxeles, no solo otra versión. Se pide
+ * 2K de salida y se cobra la resolución real (credits/aiPricing.ts), en vez de
+ * prometer una ampliación que ningún proveedor auditado ofrece con API oficial.
+ */
+const HIGH_RES_PHOTO = new Set(['enhance', 'restore']);
+
 const photo: ExperienceTemplate = {
   name: 'Weë Photo',
   emoji: '📸',
   defaultGoal: 'Mejorar una foto',
   questions: [
     q('action', '¿Qué hacemos con tu foto?', [
-      opt('enhance', '✨ Mejorar la calidad'),
+      opt('enhance', '✨ Mejorar la calidad y la resolución'),
       opt('remove', '🧽 Quitar algo que sobra'),
       opt('background', '🪄 Cambiar o quitar el fondo'),
       opt('restore', '🕰️ Restaurar una foto antigua'),
@@ -296,7 +305,7 @@ const photo: ExperienceTemplate = {
         ? [step('images', 'image.generate', 'Crear 3 imágenes', { input: { count: 3, kind: 'photo', brief: `${goal}, ${how}` } })]
         : [
             step('look', 'vision.describe', 'Mirar la foto para entender qué tiene', { input: { kind: 'describe' } }),
-            step('edit', capability, purpose, { dependsOn: ['look'], input: { kind: editKind, brief: `${what}, ${how}`, count: action.id === 'transform' ? 2 : 1 } }),
+            step('edit', capability, purpose, { dependsOn: ['look'], input: { kind: editKind, brief: `${what}, ${how}`, count: action.id === 'transform' ? 2 : 1, ...(PRO_PHOTO.has(editKind) ? { quality: 'max' as const } : {}), ...(HIGH_RES_PHOTO.has(editKind) ? { resolution: '2K' } : {}) } }),
           ];
     return {
       experience: 'photo',
@@ -308,6 +317,31 @@ const photo: ExperienceTemplate = {
           : `Primero miro tu foto y después me encargo de ${what}, ${how}. Conservo todo lo demás tal cual.${decided(action.idk, 'empiezo por mejorar la calidad')}${decided(detail.idk, 'lo hago lo más natural posible')}`,
     };
   },
+};
+
+/**
+ * Nivel de modelo por tipo de texto. La sección no elige proveedor ni modelo:
+ * declara la exigencia y el AI ROUTER busca el mejor candidato de la cadena.
+ *   'max'      → sostener una trama o una estructura larga (novela, guion)
+ *   'high'     → textos de trabajo (artículo, documento)
+ *   'standard' → textos cortos y de mucho volumen (post, email, resumen)
+ */
+/**
+ * Nivel de modelo por tipo de texto. **Por defecto, el más económico.**
+ * Solo suben los dos casos donde un modelo flojo arruina el resultado: sostener
+ * una trama larga (novela) y un guion con estructura. Todo lo demás arranca en
+ * estándar y la persona puede subirlo desde el presupuesto si lo quiere mejor.
+ */
+const TEXT_QUALITY: Record<string, 'max' | 'high' | 'standard'> = {
+  story: 'max',
+  script: 'max',
+  article: 'standard',
+  document: 'standard',
+  cv: 'standard',
+  post: 'standard',
+  email: 'standard',
+  summary: 'standard',
+  fix: 'standard',
 };
 
 const writer: ExperienceTemplate = {
@@ -329,6 +363,7 @@ const writer: ExperienceTemplate = {
       opt('ideas', '💡 Ideas'),
       opt('fix', '✔️ Corregir'),
       opt('rewrite', '🔁 Reescribir'),
+      opt('citations', '❝ Citas y referencias'),
       IDK,
     ]),
     q('tone', '¿Qué tono?', [
@@ -361,6 +396,7 @@ const writer: ExperienceTemplate = {
       story: ['historia', 'cuento', 'novela', 'relato', 'capítulo', 'capitulo'],
       document: ['documento', 'informe', 'plan', 'propuesta', 'ensayo'],
       ideas: ['ideas', 'bloqueo', 'no sé qué escribir', 'no se que escribir'],
+      citations: ['cita', 'citas', 'referencia', 'referencias', 'bibliografía', 'bibliografia', 'fuentes'],
       post: ['publicación', 'publicacion', 'post', 'instagram', 'redes', 'caption'],
     });
     if (what) answers.what = what;
@@ -390,10 +426,19 @@ const writer: ExperienceTemplate = {
     const one = (id: string, purpose: string, textKind: string, brief: string): Plan => ({
       experience: 'writer',
       goal,
-      steps: [step(id, 'text.generate', purpose, { input: { kind: textKind, brief } })],
+      steps: [step(id, 'text.generate', purpose, { input: { kind: textKind, brief, quality: TEXT_QUALITY[kind] } })],
       explainToUser: '',
     });
     switch (kind) {
+      case 'citations': {
+        // Una cita inventada es el peor error posible aquí: se buscan fuentes reales
+        return {
+          experience: 'writer',
+          goal,
+          steps: [step('citations', 'text.search', 'Buscar las citas y sus fuentes', { input: { kind: 'ideas', brief: `citas y referencias verificables sobre ${goal}` } })],
+          explainToUser: 'Busco citas reales sobre el tema y te dejo la fuente de cada una para que puedas comprobarlas.',
+        };
+      }
       case 'translate': {
         const plan = one('translate', `Traducir al ${lang}`, 'translate', `al ${lang}`);
         plan.explainToUser = `Voy a traducir tu texto al ${lang} manteniendo el sentido y el tono.${decided(language.idk, 'lo traduzco al inglés')}`;
@@ -450,8 +495,8 @@ const writer: ExperienceTemplate = {
           experience: 'writer',
           goal,
           steps: [
-            step('draft', 'text.generate', purpose, { input: { kind: textKind, brief: `tono ${voice}` } }),
-            step('polish', 'text.generate', 'Pulir el texto y dejarlo listo', { dependsOn: ['draft'], input: { kind: 'polish', brief: `tono ${voice}` } }),
+            step('draft', 'text.generate', purpose, { input: { kind: textKind, brief: `tono ${voice}`, quality: TEXT_QUALITY[kind] } }),
+            step('polish', 'text.generate', 'Pulir el texto y dejarlo listo', { dependsOn: ['draft'], input: { kind: 'polish', brief: `tono ${voice}`, quality: TEXT_QUALITY[kind] === 'max' ? 'high' : TEXT_QUALITY[kind] } }),
           ],
           explainToUser: `Voy a ${purpose.toLowerCase()} con un tono ${voice} y después lo pulo para que quede listo.${decided(what.idk, 'empiezo por una publicación')}${decided(tone.idk, 'uso un tono cercano')}`,
         };
@@ -660,7 +705,7 @@ const beauty: ExperienceTemplate = {
         steps: [
           step('look', 'vision.describe', 'Mirar tu rostro', { input: { kind: 'describe' } }),
           step('advice', 'text.generate', 'Recomendarte cortes, lentes y estilos', { dependsOn: ['look'], input: { kind: 'facestyle', brief: goal } }),
-          step('try', 'image.identity_edit', 'Probar los dos estilos que mejor te van', { dependsOn: ['advice'], input: { count: 2, kind: 'look', brief: 'estilos que favorecen el rostro' } }),
+          step('try', 'image.identity_edit', 'Probar los dos estilos que mejor te van', { dependsOn: ['advice'], input: { count: 2, kind: 'look', quality: 'max' as const, brief: 'estilos que favorecen el rostro' } }),
         ],
         explainToUser: 'Voy a mirar tu rostro, recomendarte los cortes y estilos que mejor te van y probarte dos en tu foto.',
       };
@@ -670,7 +715,7 @@ const beauty: ExperienceTemplate = {
       goal,
       steps: [
         step('look', 'vision.describe', 'Mirar tu foto', { input: { kind: 'describe' } }),
-        step('edit', 'image.identity_edit', `Probar ${change} conservando tu rostro`, { dependsOn: ['look'], input: { count: 2, kind: 'look', brief: `${change} para ${when}` } }),
+        step('edit', what.id === 'outfit' ? 'image.try_on' : 'image.identity_edit', `Probar ${change} conservando tu rostro`, { dependsOn: ['look'], input: { count: what.id === 'outfit' ? 1 : 2, kind: 'look', quality: 'max' as const, brief: `${change} para ${when}` } }),
       ],
       explainToUser: `Voy a probar ${change} para ${when} en dos versiones, conservando tu rostro, tu piel y la luz de la foto.${decided(what.idk, 'propongo un cambio de look completo')}${decided(occasion.idk, 'lo pensé para el día a día')}`,
     };
@@ -749,6 +794,7 @@ const chef: ExperienceTemplate = {
         goal,
         steps: [
           step('menu', 'text.generate', 'Armar el menú', { input: { kind: 'menu', brief: `${span}, ${forWhom}` } }),
+          step('prices', 'text.search', 'Mirar cuánto cuestan los ingredientes', { dependsOn: ['menu'], input: { kind: 'shopping', brief: `precios actuales de los ingredientes del menú, con la fuente` } }),
           step('list', 'text.generate', 'Hacer la lista de compras', { dependsOn: ['menu'], input: { kind: 'shopping', brief: 'lista de compras del menú' } }),
         ],
         explainToUser: `Voy a armar un menú ${span}, ${forWhom}, y te dejo la lista de compras.${decided(people.idk, 'lo pensé para dos')}${decided(days.idk, 'lo hago para toda la semana')}`,
@@ -948,7 +994,7 @@ const business: ExperienceTemplate = {
         explain = 'Voy a preparar la publicación y dejarla lista en tus redes. Mientras las redes no habiliten sus permisos oficiales, la publicación es simulada.';
         break;
       case 'reply':
-        steps = [step('reply', 'text.generate', 'Escribir la respuesta para tu cliente', { input: { kind: 'reply', brief: `tono ${voice}` } })];
+        steps = [step('reply', 'text.generate', 'Escribir la respuesta para tu cliente', { input: { kind: 'reply', brief: `tono ${voice}`, quality: 'standard' } })];
         explain = `Voy a escribir una respuesta amable y clara para tu cliente, lista para enviar.${decided(tone.idk, 'uso un tono cercano y profesional')}`;
         break;
       case 'analyze':
@@ -979,9 +1025,11 @@ const business: ExperienceTemplate = {
         explain = `Primero entiendo tu negocio y después ${kind === 'deck' ? 'escribo la presentación diapositiva por diapositiva' : 'redacto el documento'} con un tono ${voice}.${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
         break;
       default:
+        // Estrategia: datos actuales del mercado con fuentes + razonamiento sobre ellos
         steps = [
           understand,
-          step('ideas', 'text.generate', 'Proponer ideas y una estrategia', { dependsOn: ['analysis'], input: { kind: 'business', brief: `ideas para crecer, tono ${voice}` } }),
+          step('market', 'text.search', 'Buscar cómo está tu mercado ahora', { dependsOn: ['analysis'], input: { kind: 'analysis', brief: `mercado, competencia y tendencias de ${goal}` } }),
+          step('ideas', 'text.generate', 'Proponer ideas y una estrategia', { dependsOn: ['analysis', 'market'], input: { kind: 'business', brief: `ideas para crecer, tono ${voice}`, quality: 'max' } }),
         ];
         explain = `Primero entiendo tu negocio y después te propongo ideas concretas y una estrategia para crecer.${decided(what.idk, 'empiezo por ideas concretas')}${decided(tone.idk, 'uso un tono profesional pero cercano')}`;
     }

@@ -27,6 +27,7 @@ export type CapabilityId =
   | 'image.object_remove'
   | 'image.identity_edit'
   | 'image.space_restyle'
+  | 'image.try_on'
   | 'vision.describe'
   | 'video.generate'
   | 'video.image_to_video'
@@ -42,7 +43,9 @@ export type CapabilityId =
   | 'image.reference'
   | 'video.montage'
   | 'video.vertical'
-  | 'audio.sfx';
+  | 'audio.sfx'
+  | 'audio.transcribe'
+  | 'doc.read';
 
 export interface QuestionOption {
   id: string;
@@ -129,6 +132,8 @@ export interface CreatorJob {
   status: JobStatus;
   progressText: string;
   creditsEstimated: number;
+  /** Nivel de calidad elegido por la persona antes de crear ('standard' | 'high' | 'max'). */
+  quality?: 'standard' | 'high' | 'max' | null;
   creditsCharged: number;
   /** true cuando algún paso lo resolvió el proveedor de prueba (mock). */
   demo: boolean;

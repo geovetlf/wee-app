@@ -176,10 +176,16 @@ function parseStorageUrl(url) {
         return { bucket: gcs[1], path: decodeURIComponent(gcs[2]) };
     return null;
 }
-exports.MAX_INPUT_BYTES = 12 * 1024 * 1024;
+/** Máximo por archivo enviado en línea. Gemini admite 20 MB por petición completa. */
+exports.MAX_INPUT_BYTES = 20 * 1024 * 1024;
 /**
  * Lee una imagen de entrada: data URI, archivo de nuestro Storage (con el Admin
  * SDK, sin depender de tokens) o cualquier URL pública.
+ */
+/**
+ * Lee un archivo que la persona subió a su carpeta de Weë Storage (foto,
+ * documento o audio) y lo devuelve en memoria para enviarlo en línea al
+ * proveedor. Las URLs privadas de Weë nunca salen de Weë.
  */
 async function readImage(url, provider) {
     if (url.startsWith('data:')) {
@@ -187,7 +193,7 @@ async function readImage(url, provider) {
         const contentType = meta.slice(5).split(';')[0] || 'image/png';
         const buffer = Buffer.from(data || '', 'base64');
         if (buffer.length > exports.MAX_INPUT_BYTES)
-            throw new ProviderError(`${provider}: la imagen es demasiado grande`, provider, undefined, false);
+            throw new ProviderError(`${provider}: el archivo es demasiado grande`, provider, undefined, false);
         return { buffer, contentType };
     }
     const own = parseStorageUrl(url);

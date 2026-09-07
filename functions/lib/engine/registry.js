@@ -59,13 +59,19 @@ exports.DEFAULT_ROUTING = {
     'scene.split': routing('scene.split', chain('gemini', 'claude', 'openai'), 'balanced'),
     'subtitle.generate': routing('subtitle.generate', chain('gemini', 'openai', 'claude'), 'cost-first'),
     'vision.describe': routing('vision.describe', chain('gemini'), 'balanced'),
+    // Leer un PDF y transcribir audio: Gemini los entiende de forma nativa, sin convertirlos antes
+    'doc.read': routing('doc.read', chain('gemini', 'claude'), 'balanced'),
+    'audio.transcribe': routing('audio.transcribe', chain('gemini'), 'cost-first'),
     'image.generate': routing('image.generate', chain('gemini', 'flux', 'seedream'), 'balanced'),
     'image.reference': routing('image.reference', chain('gemini', 'flux', 'seedream'), 'quality-first'),
     'image.edit': routing('image.edit', chain('gemini', 'flux', 'seedream'), 'balanced'),
     'image.background_remove': routing('image.background_remove', chain('gemini', 'flux'), 'balanced'),
     'image.object_remove': routing('image.object_remove', chain('gemini', 'flux'), 'balanced'),
-    'image.identity_edit': routing('image.identity_edit', chain('gemini', 'flux'), 'quality-first'),
+    // Conservar el rostro es lo que decide esta capacidad: Nano Banana Pro fijado.
+    'image.identity_edit': routing('image.identity_edit', [{ provider: 'gemini', model: gemini_1.IMAGE_MODEL_PRO }, { provider: 'flux' }], 'quality-first'),
     'image.space_restyle': routing('image.space_restyle', chain('gemini', 'flux'), 'balanced'),
+    // Probarse ropa: modelo dedicado de BFL, con Nano Banana Pro como respaldo
+    'image.try_on': routing('image.try_on', [{ provider: 'flux', model: 'flux-tools/vto-v2' }, { provider: 'gemini', model: gemini_1.IMAGE_MODEL_PRO }], 'quality-first'),
     'image.upscale': routing('image.upscale', chain('gemini'), 'balanced'),
     // Video: exclusivamente Seedance (el Weë Video Engine elige la versión)
     'video.generate': routing('video.generate', chain('seedance'), 'quality-first'),
@@ -88,6 +94,9 @@ exports.DEFAULT_SETTINGS = {
     timeoutsMs: { text: 90000, vision: 90000, image: 240000, video: 1200000, voice: 120000, music: 300000, doc: 60000 },
     circuitBreaker: { failures: 3, windowMs: 10 * 60000, openMs: 5 * 60000 },
     limits: limits_1.DEFAULT_LIMITS,
-    video: { defaultModel: 'SEEDANCE_2_0' },
+    // Modelo de video por defecto. Seedance 2.0 fast cuesta USD 0.12 por segundo a 720p
+    // frente a 0.15 de Seedance 2.0, con calidad de la misma generación; la calidad alta
+    // y la máxima suben a 2.0 y 2.5. Cambiable en aiSettings/global.video.defaultModel.
+    video: { defaultModel: 'SEEDANCE_2_0_FAST' },
 };
 //# sourceMappingURL=registry.js.map

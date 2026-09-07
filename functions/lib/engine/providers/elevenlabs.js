@@ -9,10 +9,14 @@ const http_1 = require("../http");
  */
 const KEY = 'ELEVENLABS_API_KEY';
 const base = () => (0, http_1.env)('ELEVENLABS_BASE_URL') || 'https://api.elevenlabs.io';
+// Voz por defecto de ElevenLabs. La de fábrica está en inglés: para el español de Weë
+// conviene fijar ELEVENLABS_VOICE_ID con una voz del catálogo de la cuenta.
 const DEFAULT_VOICE = '21m00Tcm4TlvDq8ikWAM';
+// Precios oficiales de la API (elevenlabs.io/pricing/api, sept. 2026): USD por 1 000 caracteres.
 exports.elevenlabsModels = [
-    { id: 'eleven_multilingual_v2', provider: 'elevenlabs', capabilities: ['voice.tts'], quality: 5, speed: 4, cost: { unit: 'kchar', usd: 0.24 }, verified: false },
-    { id: 'eleven_flash_v2_5', provider: 'elevenlabs', capabilities: ['voice.tts'], quality: 4, speed: 5, cost: { unit: 'kchar', usd: 0.12 }, tags: ['rápido'], verified: false },
+    { id: 'eleven_v3', provider: 'elevenlabs', capabilities: ['voice.tts'], quality: 5, speed: 3, cost: { unit: 'kchar', usd: 0.1 }, tags: ['máxima expresividad'], note: '70+ idiomas, hasta 5 000 caracteres por petición.', verified: false },
+    { id: 'eleven_multilingual_v2', provider: 'elevenlabs', capabilities: ['voice.tts'], quality: 5, speed: 4, cost: { unit: 'kchar', usd: 0.1 }, note: '29 idiomas, hasta 10 000 caracteres por petición.', verified: false },
+    { id: 'eleven_flash_v2_5', provider: 'elevenlabs', capabilities: ['voice.tts'], quality: 4, speed: 5, cost: { unit: 'kchar', usd: 0.05 }, tags: ['rápido', 'económico'], note: '32 idiomas, hasta 40 000 caracteres por petición.', verified: false },
 ];
 exports.elevenlabsAdapter = {
     id: 'elevenlabs',

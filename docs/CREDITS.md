@@ -118,8 +118,17 @@ Quién lo usa hoy:
 |---|---|
 | `ai_image` | 10 |
 | `ai_image_enhance` | 8 |
-| `ai_video` | 50 |
-| `ai_video_advanced` | 100 |
+| `ai_video` | 160 |
+| `ai_video_advanced` | 300 |
+| `ai_video_draft` | 75 |
+| `ai_video_hd` | 200 |
+| `ai_video_max` | 740 |
+| `ai_image_lite` | 3 |
+| `ai_image_enhance_lite` | 3 |
+| `ai_image_pro` | 18 |
+| `ai_text_pro` | 7 |
+| `ai_tryon` | 15 |
+| `ai_transcribe` | 2 |
 | `ai_video_edit` | 20 |
 | `ai_audio` | 20 |
 | `ai_music` | 30 |

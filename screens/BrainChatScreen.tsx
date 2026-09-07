@@ -14,6 +14,7 @@ import CreatorShell from '../components/creator/CreatorShell';
 import SpecialistHero from '../components/creator/SpecialistHero';
 import { Chip } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { useWallet } from '../hooks/useWallet';
 import { scale } from '../utils/scale';
 
 const isWeb = Platform.OS === 'web';
@@ -44,11 +45,22 @@ const BrainChatScreen: React.FC = () => {
   const spec = getSpecialist('brain');
   const chat = useBrainChat();
 
+  const wallet = useWallet();
   const [draft, setDraft] = useState('');
   const [attachment, setAttachment] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
   const [suggestionDismissed, setSuggestionDismissed] = useState<string | null>(null);
   const lastSent = useRef<{ text: string; imageUri: string | null; webSearch: boolean } | null>(null);
+
+  // Weë no esconde el costo: se pide al servidor el precio del próximo mensaje
+  // cada vez que cambia el texto, la foto adjunta o la búsqueda en internet.
+  const { refreshQuote } = chat;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void refreshQuote(draft, { imageUri: attachment, webSearch });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [draft, attachment, webSearch, refreshQuote]);
 
   const bubbles: Bubble[] = useMemo(
     () =>
@@ -99,6 +111,11 @@ const BrainChatScreen: React.FC = () => {
   };
 
   const startWith = (goal: string, _preset?: SpecialistAction['preset']) => sendText(goal);
+
+  // No se puede enviar sin saber lo que cuesta: si el precio no está calculado,
+  // el botón espera. Si la estimación falló, tampoco se ejecuta a ciegas.
+  const canSend = !!draft.trim() && !chat.busy && !chat.quoting && !!chat.quote && !chat.quoteError;
+  const sendLabel = chat.quote ? `Enviar por ${chat.quote.credits} Credits` : chat.quoteError ? 'No se pudo calcular el costo' : 'Calculando el costo';
 
   const submitDraft = () => {
     const text = draft.trim();
@@ -264,9 +281,27 @@ const BrainChatScreen: React.FC = () => {
             editable={!chat.busy}
             multiline
           />
-          <TouchableOpacity onPress={submitDraft} disabled={!draft.trim() || chat.busy} style={[styles.send, { backgroundColor: draft.trim() ? theme.colors.accent : theme.colors.border }]} activeOpacity={0.85} accessibilityLabel="Enviar">
+          <TouchableOpacity onPress={submitDraft} disabled={!canSend} style={[styles.send, { backgroundColor: canSend ? theme.colors.accent : theme.colors.border }]} activeOpacity={0.85} accessibilityLabel={sendLabel}>
             <Ionicons name="arrow-up" size={scale(20)} color="#1F2937" />
           </TouchableOpacity>
+        </View>
+        {/* Costo antes de enviar: operación, Credits, equivalencia y saldo */}
+        <View style={styles.priceRow}>
+          {chat.quoteError ? (
+            <Text style={[styles.priceError, { color: theme.colors.error }]}>{chat.quoteError}</Text>
+          ) : !draft.trim() ? (
+            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>Escribe tu mensaje y te digo cuánto cuesta antes de enviarlo.</Text>
+          ) : chat.quoting || !chat.quote ? (
+            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>Calculando el costo…</Text>
+          ) : (
+            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>
+              <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{chat.quote.label}</Text>
+              {' · '}
+              <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{chat.quote.credits} Credits</Text>
+              {chat.quote.usd > 0 ? ` · unos ${chat.quote.usd < 0.01 ? '<0.01' : chat.quote.usd.toFixed(2)} USD` : ''}
+              {typeof wallet.balance === 'number' ? ` · te quedan ${wallet.balance.toLocaleString('es')}` : ''}
+            </Text>
+          )}
         </View>
         <View style={styles.tools}>
           <Chip label="Adjuntar" icon="attach-outline" onPress={attach} />
@@ -395,6 +430,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: SPACING.sm,
+  },
+  priceRow: {
+    paddingTop: SPACING.xs,
+  },
+  priceHint: {
+    fontSize: scale(11.5),
+  },
+  priceError: {
+    fontSize: scale(11.5),
+    fontWeight: FONT_WEIGHT.semibold,
   },
   input: {
     flex: 1,

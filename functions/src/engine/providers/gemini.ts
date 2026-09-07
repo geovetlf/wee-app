@@ -1,6 +1,7 @@
 import { CapabilityId } from '../../creator/types';
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
 import { env, NotConfiguredError, persistBase64, ProviderError, readImage } from '../http';
+import { estimateInputTokens } from '../../credits/aiPricing';
 
 /**
  * Google Gemini (clave GEMINI_API_KEY, SDK @google/genai, método generateContent).
@@ -22,8 +23,10 @@ const TEXT_MODEL = env('GEMINI_TEXT_MODEL') || 'gemini-3.8-flash';
 const TEXT_MODEL_LITE = env('GEMINI_TEXT_MODEL_LITE') || 'gemini-2.5-flash-lite';
 const TEXT_MODEL_PRO = env('GEMINI_TEXT_MODEL_PRO') || 'gemini-3.1-pro-preview';
 const TEXT_MODEL_LEGACY = 'gemini-2.5-flash';
-const IMAGE_MODEL = env('GEMINI_IMAGE_MODEL') || 'gemini-3.1-flash-image';
-const IMAGE_MODEL_PRO = env('GEMINI_IMAGE_MODEL_PRO') || 'gemini-3-pro-image';
+export const IMAGE_MODEL = env('GEMINI_IMAGE_MODEL') || 'gemini-3.1-flash-image';
+/** Nano Banana Pro: el modelo de identidad (Beauty, retoque, restauración, logos). */
+export const IMAGE_MODEL_PRO = env('GEMINI_IMAGE_MODEL_PRO') || 'gemini-3-pro-image';
+export const IMAGE_MODEL_LITE = env('GEMINI_IMAGE_MODEL_LITE') || 'gemini-3.1-flash-lite-image';
 const IMAGE_MODEL_LEGACY = 'gemini-2.5-flash-image';
 
 /** USD por millón de tokens (entrada / salida) — página oficial de precios. */
@@ -33,19 +36,51 @@ const TEXT_RATES: Record<string, { input: number; output: number }> = {
   'gemini-2.5-flash': { input: 0.3, output: 2.5 },
   'gemini-2.5-flash-lite': { input: 0.1, output: 0.4 },
 };
-/** USD por imagen (1K); Nano Banana 2 factura por tokens de salida (≈ $0.067 por imagen 1K). */
-const IMAGE_RATES: Record<string, number> = {
-  'gemini-3.1-flash-image': 0.067,
-  'gemini-3-pro-image': 0.134,
-  'gemini-2.5-flash-image': 0.039,
+/**
+ * USD por imagen según la resolución de salida (ai.google.dev/gemini-api/docs/pricing,
+ * sept. 2026). Cada modelo admite tamaños distintos: el que no está en la tabla
+ * cae al más cercano hacia abajo.
+ */
+export type ImageSize = '512px' | '1K' | '2K' | '4K';
+
+const IMAGE_RATES: Record<string, Partial<Record<ImageSize, number>>> = {
+  'gemini-3.1-flash-image': { '512px': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
+  'gemini-3.1-flash-lite-image': { '1K': 0.0336 },
+  'gemini-3-pro-image': { '1K': 0.134, '2K': 0.134, '4K': 0.24 },
+  'gemini-2.5-flash-image': { '1K': 0.039 },
 };
+
+/** Tamaños que admite cada modelo, de menor a mayor. */
+const IMAGE_SIZES: Record<string, ImageSize[]> = {
+  'gemini-3.1-flash-image': ['512px', '1K', '2K', '4K'],
+  'gemini-3.1-flash-lite-image': ['1K'],
+  'gemini-3-pro-image': ['1K', '2K', '4K'],
+  'gemini-2.5-flash-image': ['1K'],
+};
+
+/** Resolución pedida (o deducida de la calidad) recortada a lo que admite el modelo. */
+export function resolveImageSize(modelId: string, quality?: string, requested?: string): ImageSize {
+  const allowed = IMAGE_SIZES[modelId] || ['1K'];
+  const wanted = (requested as ImageSize) || (quality === 'max' ? '2K' : quality === 'standard' ? '512px' : '1K');
+  if (allowed.includes(wanted)) return wanted;
+  const order: ImageSize[] = ['512px', '1K', '2K', '4K'];
+  const target = Math.max(0, order.indexOf(wanted));
+  for (let i = target; i >= 0; i--) if (allowed.includes(order[i])) return order[i];
+  return allowed[0] || '1K';
+}
+
+/** USD por imagen de ese modelo en esa resolución. */
+export function imageUsd(modelId: string, size: ImageSize): number {
+  const table = IMAGE_RATES[modelId] || IMAGE_RATES[IMAGE_MODEL];
+  return table?.[size] ?? table?.['1K'] ?? 0.067;
+}
 /** Google Search grounding: $14 por 1 000 consultas tras el cupo gratuito mensual. */
 const SEARCH_QUERY_USD = 0.014;
 
 const textRate = (id: string, fallback: string) => TEXT_RATES[id] || TEXT_RATES[fallback] || TEXT_RATES['gemini-2.5-flash'];
-const imageRate = (id: string, fallback: string) => IMAGE_RATES[id] ?? IMAGE_RATES[fallback] ?? 0.05;
+const imageRate = (id: string, fallback: string) => imageUsd(IMAGE_RATES[id] ? id : fallback, '1K');
 
-const TEXT_CAPS: CapabilityId[] = ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split', 'subtitle.generate', 'vision.describe'];
+const TEXT_CAPS: CapabilityId[] = ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split', 'subtitle.generate', 'vision.describe', 'doc.read', 'audio.transcribe'];
 const IMAGE_CAPS: CapabilityId[] = ['image.generate', 'image.edit', 'image.background_remove', 'image.object_remove', 'image.identity_edit', 'image.space_restyle', 'image.reference', 'image.upscale'];
 
 const text = (id: string, quality: ModelSpec['quality'], speed: ModelSpec['speed'], fallback: string, capabilities: CapabilityId[], extra: Partial<ModelSpec> = {}): ModelSpec => {
@@ -70,8 +105,9 @@ export const geminiModels: ModelSpec[] = unique([
   text(TEXT_MODEL_LEGACY, 3, 5, 'gemini-2.5-flash', TEXT_CAPS, { verified: true }),
   text(TEXT_MODEL_LITE, 2, 5, 'gemini-2.5-flash-lite', ['text.generate', 'text.structure', 'subtitle.generate'], { tags: ['económico'] }),
   text(TEXT_MODEL_PRO, 5, 3, 'gemini-3.1-pro-preview', ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split'], { tags: ['máxima calidad'] }),
-  image(IMAGE_MODEL, 4, 4, 'gemini-3.1-flash-image', { note: 'Nano Banana 2: genera y edita con instrucciones en lenguaje natural.' }),
-  image(IMAGE_MODEL_PRO, 5, 3, 'gemini-3-pro-image', { tags: ['máxima calidad'] }),
+  image(IMAGE_MODEL, 4, 4, 'gemini-3.1-flash-image', { note: 'Nano Banana 2: genera y edita con instrucciones en lenguaje natural; 512px a 4K.' }),
+  image(IMAGE_MODEL_PRO, 5, 3, 'gemini-3-pro-image', { tags: ['máxima calidad', 'identidad'], note: 'Nano Banana Pro: conserva mejor el rostro (retoque, restauración, looks).' }),
+  image(IMAGE_MODEL_LITE, 3, 5, 'gemini-3.1-flash-lite-image', { tags: ['económico'], note: 'Nano Banana 2 Lite: solo texto a imagen a 1K.' }),
   image(IMAGE_MODEL_LEGACY, 3, 4, 'gemini-2.5-flash-image', { tags: ['legado'] }),
 ]);
 
@@ -88,9 +124,45 @@ const getClient = async () => {
 
 const DEFAULT_SYSTEM = 'Eres Weë. Respondes en español, claro, cálido y directo. Nunca mencionas modelos, proveedores ni términos técnicos.';
 
-const imagePart = async (url: string) => {
+/**
+ * Cualquier archivo de la persona viaja en línea (base64). Gemini entiende de
+ * forma nativa imágenes, PDF (258 tokens por página) y audio (32 tokens por
+ * segundo), así que no hay que convertir nada antes de enviarlo.
+ * ai.google.dev/gemini-api/docs/document-processing y /docs/audio.
+ */
+const filePart = async (url: string, fallbackMime = 'image/jpeg') => {
   const file = await readImage(url, 'gemini');
-  return { inlineData: { mimeType: file.contentType || 'image/jpeg', data: file.buffer.toString('base64') } };
+  return { inlineData: { mimeType: file.contentType || fallbackMime, data: file.buffer.toString('base64') } };
+};
+
+const imagePart = (url: string) => filePart(url);
+
+/**
+ * Tope de tokens de entrada por petición. El precio se le enseña a la persona
+ * ANTES de generar y no puede cambiar después, así que una entrada que costaría
+ * más de lo mostrado se rechaza con un mensaje claro en vez de generarse a pérdida.
+ * Configurable con GEMINI_MAX_INPUT_TOKENS.
+ */
+export const MAX_INPUT_TOKENS = Number(env('GEMINI_MAX_INPUT_TOKENS') || 120_000);
+
+const assertInputBudget = (input: Record<string, unknown>, images: number, attachments: number): void => {
+  if (!attachments && images <= 4) return;
+  const tokens = estimateInputTokens(input);
+  if (tokens <= MAX_INPUT_TOKENS) return;
+  throw new ProviderError(
+    `rechazo de entrada: el archivo es demasiado largo para procesarlo de una vez (${Math.round(tokens / 1000)}k de ${Math.round(MAX_INPUT_TOKENS / 1000)}k)`,
+    'gemini',
+    undefined,
+    false,
+  );
+};
+
+/** Documentos y audio que acompañan a la petición (uno de cada, como máximo). */
+const attachmentsOf = (input: Record<string, unknown>): { url: string; mime: string }[] => {
+  const out: { url: string; mime: string }[] = [];
+  if (typeof input.documentUrl === 'string' && input.documentUrl) out.push({ url: input.documentUrl, mime: 'application/pdf' });
+  if (typeof input.audioUrl === 'string' && input.audioUrl) out.push({ url: input.audioUrl, mime: 'audio/mpeg' });
+  return out;
 };
 
 const imageUrlsOf = (input: Record<string, unknown>): string[] => {
@@ -161,10 +233,13 @@ async function runText(ai: any, request: ProviderRunRequest, start: number): Pro
   const system = String(input.system ?? DEFAULT_SYSTEM);
   const prompt = String(input.prompt ?? input.purpose ?? (vision ? 'Describe esta foto con detalle y en español: qué se ve, luz, colores, estado y todo lo que ayude a trabajar con ella.' : ''));
   const images = imageUrlsOf(input);
+  const attachments = attachmentsOf(input);
+  assertInputBudget(input, images.length, attachments.length);
   if (vision && images.length === 0) throw new ProviderError('gemini: falta la foto para describir', 'gemini', undefined, false);
 
   const parts: any[] = [{ text: prompt || 'Hola' }];
   for (const url of images) parts.push(await imagePart(url));
+  for (const file of attachments) parts.push(await filePart(file.url, file.mime));
 
   const rate = textRate(model.id, TEXT_MODEL);
   const response = await ai.models.generateContent({
@@ -209,12 +284,14 @@ async function runImage(ai: any, request: ProviderRunRequest, start: number): Pr
 
   const legacy = model.id === IMAGE_MODEL_LEGACY;
   const aspectRatio = String(input.aspectRatio ?? (kind === 'cover' ? '2:3' : '1:1'));
+  const size = resolveImageSize(model.id, prefs.quality, typeof input.resolution === 'string' ? input.resolution : undefined);
   const config: Record<string, unknown> = {
     responseModalities: legacy ? ['IMAGE'] : ['IMAGE', 'TEXT'],
-    imageConfig: { aspectRatio, ...(legacy ? {} : { imageSize: prefs.quality === 'max' ? '2K' : '1K' }) },
+    imageConfig: { aspectRatio, ...(legacy ? {} : { imageSize: size }) },
   };
 
-  const rate = imageRate(model.id, IMAGE_MODEL);
+  // El coste depende de la resolución de salida, no solo del modelo
+  const rate = imageUsd(model.id, size);
   const urls: string[] = [];
   for (let i = 0; i < count; i++) {
     const response = await ai.models.generateContent({ model: model.id, contents: [{ role: 'user', parts }], config });
@@ -233,6 +310,7 @@ async function runImage(ai: any, request: ProviderRunRequest, start: number): Pr
     costUSD: urls.length * rate,
     latencyMs: Date.now() - start,
     model: model.id,
+    meta: { imageSize: size, usdPerImage: rate },
   };
 }
 

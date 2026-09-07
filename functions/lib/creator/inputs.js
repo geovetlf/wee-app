@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.modalityCounts = exports.needsInputImage = exports.assertInputImageUrl = exports.IMAGE_INPUT_CAPS = void 0;
+exports.modalityCounts = exports.assertAttachmentUrl = exports.needsInputImage = exports.assertInputImageUrl = exports.ATTACHMENT_KINDS = exports.IMAGE_INPUT_CAPS = void 0;
 exports.stepInputFor = stepInputFor;
 const errors_1 = require("../engine/errors");
 const http_1 = require("../engine/http");
@@ -22,6 +22,11 @@ exports.IMAGE_INPUT_CAPS = [
     'image.upscale',
     'video.image_to_video',
 ];
+/** Tipos de archivo que Weë acepta además de las fotos, con su límite oficial. */
+exports.ATTACHMENT_KINDS = {
+    document: { mime: ['application/pdf'], maxBytes: 50 * 1024 * 1024, label: 'documento' },
+    audio: { mime: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/aac', 'audio/ogg', 'audio/flac', 'audio/mp4'], maxBytes: 20 * 1024 * 1024, label: 'audio' },
+};
 const TEXT_CAPS = ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split', 'subtitle.generate', 'vision.describe'];
 /**
  * Solo se aceptan fotos que la propia persona subió a Storage de Weë
@@ -42,6 +47,24 @@ const assertInputImageUrl = (url, uid) => {
 exports.assertInputImageUrl = assertInputImageUrl;
 const needsInputImage = (steps) => steps.some((s) => exports.IMAGE_INPUT_CAPS.includes(s.capability));
 exports.needsInputImage = needsInputImage;
+/**
+ * Igual que assertInputImageUrl pero para documentos y audio: solo se aceptan
+ * archivos de la carpeta de la propia persona en Weë Storage.
+ */
+const assertAttachmentUrl = (url, uid, kind) => {
+    const { label } = exports.ATTACHMENT_KINDS[kind];
+    if (typeof url !== 'string' || !url.trim())
+        throw new errors_1.EngineError('INVALID_REQUEST', `Sube el ${label} para que Weë pueda leerlo.`, { reason: 'needs_file' });
+    if (url.length > 2000)
+        throw new errors_1.EngineError('INVALID_REQUEST', `La dirección del ${label} no es válida.`, { reason: 'bad_file_url' });
+    const parsed = (0, http_1.parseStorageUrl)(url);
+    if (!parsed)
+        throw new errors_1.EngineError('INVALID_REQUEST', `El ${label} debe subirse a Weë antes de usarlo.`, { reason: 'bad_file_url' });
+    if (!parsed.path.startsWith(`users/${uid}/`))
+        throw new errors_1.EngineError('INVALID_REQUEST', `Ese ${label} no es tuyo.`, { reason: 'bad_file_url' });
+    return url;
+};
+exports.assertAttachmentUrl = assertAttachmentUrl;
 /** Cuántas generaciones de cada modalidad pide un plan (para los límites por persona). */
 const modalityCounts = (steps) => {
     const counts = {};

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { brainService, BrainMessage, newMessageId } from '../services/brainService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
+import { BrainQuote } from '../services/brainService';
 import { humanizeCreatorError } from '../services/creatorService';
 
 const RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -21,7 +22,13 @@ export const useBrainChat = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shortfall, setShortfall] = useState<CreditsShortfall | null>(null);
+  // Precio del próximo mensaje: lo calcula el servidor con el mismo mecanismo
+  // que usará para cobrar, y se enseña antes de que la persona pulse enviar.
+  const [quote, setQuote] = useState<BrainQuote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const resumed = useRef(false);
+  const quoteRun = useRef(0);
 
   // Retomar la última conversación reciente
   useEffect(() => {
@@ -44,6 +51,41 @@ export const useBrainChat = () => {
     }
     return brainService.subscribeToMessages(chatId, setMessages);
   }, [chatId]);
+
+  /**
+   * Pide al servidor cuánto costará el mensaje tal y como está ahora. Se llama
+   * cada vez que cambia lo que la persona escribió o adjuntó, para que el precio
+   * de la pantalla siempre corresponda al contenido actual.
+   */
+  const refreshQuote = useCallback(
+    async (text: string, options: { imageUri?: string | null; webSearch?: boolean } = {}) => {
+      const message = text.trim();
+      if (!user || !message) {
+        setQuote(null);
+        setQuoteError(null);
+        return;
+      }
+      const run = ++quoteRun.current;
+      setQuoting(true);
+      setQuoteError(null);
+      try {
+        const next = await brainService.quote({
+          chatId: chatId || undefined,
+          message,
+          webSearch: options.webSearch === true,
+        });
+        if (run !== quoteRun.current) return;
+        setQuote(next);
+      } catch (e) {
+        if (run !== quoteRun.current) return;
+        setQuote(null);
+        setQuoteError('No pudimos calcular el costo. Inténtalo de nuevo.');
+      } finally {
+        if (run === quoteRun.current) setQuoting(false);
+      }
+    },
+    [user, chatId]
+  );
 
   const send = useCallback(
     async (text: string, options: { imageUri?: string | null; webSearch?: boolean } = {}): Promise<boolean> => {
@@ -88,5 +130,5 @@ export const useBrainChat = () => {
 
   const visible = pending && !messages.some((m) => m.id === pending.id) ? [...messages, pending] : messages;
 
-  return { user, chatId, messages: visible, busy, uploading, error, shortfall, send, reset };
+  return { user, chatId, messages: visible, busy, uploading, error, shortfall, quote, quoting, quoteError, refreshQuote, send, reset };
 };

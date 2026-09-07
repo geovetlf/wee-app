@@ -6,6 +6,7 @@ import { firestoreLedger } from './ledger';
 import { createRouter, memoryHealth } from './router';
 import { dayKey } from './limits';
 import { EngineRequest, EngineResult, RouteDecision } from './types';
+import { verificationStatus } from './verification';
 
 /**
  * WEË AI ENGINE — punto de entrada (docs/AI-ENGINE.md).
@@ -51,6 +52,10 @@ export const engine = {
   async status() {
     const config = await loadConfig(true);
     const snapshot = health.snapshot();
+    const configured: Record<string, boolean> = {};
+    for (const adapter of Object.values(ADAPTERS)) configured[adapter.id] = adapter.isConfigured();
+    const verification = await verificationStatus(configured);
+    const verificationOf = (id: string) => verification.find((v) => v.provider === id) || null;
     const providers: ProviderStatus[] = Object.values(ADAPTERS).map((adapter) => {
       const conf = config.providers[adapter.id] || { enabled: true, priority: 50 };
       return {
@@ -62,6 +67,7 @@ export const engine = {
         priority: conf.priority,
         note: conf.note,
         health: snapshot[adapter.id] || null,
+        verification: verificationOf(adapter.id),
         models: adapter.models.map((m) => ({
           id: m.id,
           capabilities: m.capabilities,

@@ -33,6 +33,8 @@ function chooseSeedanceModel(request, settings) {
         return seedance_1.SEEDANCE_MODEL_IDS.SEEDANCE_2_0;
     if (request.quality === 'max')
         return seedance_1.SEEDANCE_MODEL_IDS.SEEDANCE_2_5;
+    if (request.quality === 'high')
+        return seedance_1.SEEDANCE_MODEL_IDS.SEEDANCE_2_0;
     if (request.quality === 'standard' || DRAFT_HINT.test(request.prompt || ''))
         return seedance_1.SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST;
     if ((settings === null || settings === void 0 ? void 0 : settings.defaultPolicy) === 'cost-first')
@@ -73,6 +75,11 @@ function normalizeVideoRequest(request, settings) {
             input.referenceAudios = refs.audios.slice(0, spec.maxReferenceClips);
         if (refs.videoSeconds)
             input.referenceVideoSec = refs.videoSeconds;
+        if (request.mode)
+            input.taskType = request.mode;
+        // Editar un video conserva la duración del original: Seedance lo indica con -1
+        if (request.mode === 'edit')
+            input.durationSec = -1;
     }
     const prefs = {
         quality: request.quality && request.quality !== 'auto' ? request.quality : 'auto',
@@ -100,6 +107,7 @@ function videoRequestFromStep(capability, input) {
         quality: input.quality || 'auto',
         generateAudio: input.generateAudio === undefined ? undefined : Boolean(input.generateAudio),
         model: input.videoModel || 'auto',
+        mode: input.taskType,
     };
 }
 exports.videoEngine = {

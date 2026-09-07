@@ -9,9 +9,9 @@ const mock_1 = require("../../gateway/providers/mock");
  */
 const ALL = [
     'text.generate', 'text.structure', 'text.search', 'image.generate', 'image.edit', 'image.background_remove', 'image.upscale',
-    'image.object_remove', 'image.identity_edit', 'image.space_restyle', 'image.reference', 'vision.describe',
+    'image.object_remove', 'image.identity_edit', 'image.space_restyle', 'image.try_on', 'image.reference', 'vision.describe',
     'video.generate', 'video.image_to_video', 'video.reference', 'video.compose', 'video.montage', 'video.vertical', 'voice.tts',
-    'music.generate', 'audio.sfx', 'doc.render', 'script.write', 'scene.split', 'subtitle.generate',
+    'music.generate', 'audio.sfx', 'audio.transcribe', 'doc.render', 'doc.read', 'script.write', 'scene.split', 'subtitle.generate',
 ];
 const MODEL = {
     id: 'demo',

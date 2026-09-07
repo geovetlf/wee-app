@@ -3,10 +3,10 @@ import { onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
-import { videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
+import { chooseSeedanceModel, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
-import { serviceForCapability } from '../credits/creditCosts';
+import { priceVideo } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
@@ -24,6 +24,7 @@ import { assertInputImageUrl } from './inputs';
  */
 const MODELS = new Set<VideoModelPreference>(['auto', 'SEEDANCE_2_5', 'SEEDANCE_2_0', 'SEEDANCE_2_0_FAST', 'SEEDANCE_2_0_MINI']);
 const QUALITIES = new Set<VideoQuality>(['auto', 'standard', 'high', 'max']);
+const MODES = new Set(['reference', 'extend', 'edit']);
 
 interface GenerateVideoInput {
   requestId?: string;
@@ -38,6 +39,8 @@ interface GenerateVideoInput {
   quality?: string;
   generateAudio?: boolean;
   model?: string;
+  /** reference (por defecto) · extend (continuar un clip) · edit (editarlo). */
+  mode?: string;
 }
 
 const ownUrls = (values: unknown, uid: string): string[] | undefined => {
@@ -67,14 +70,37 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: 150
       quality: QUALITIES.has(data.quality as VideoQuality) ? (data.quality as VideoQuality) : 'auto',
       generateAudio: data.generateAudio === undefined ? undefined : Boolean(data.generateAudio),
       model: MODELS.has(data.model as VideoModelPreference) ? (data.model as VideoModelPreference) : 'auto',
+      mode: MODES.has(String(data.mode)) ? (data.mode as VideoRequest['mode']) : undefined,
     };
 
     // Límites y Credits antes de tocar al proveedor
     const { settings } = await loadConfig();
     await limiter.reserve(uid, { video: 1 }, settings.limits);
     await ensureAccount(uid);
-    const service = serviceForCapability('video.generate', { quality: videoRequest.quality, durationSec: videoRequest.durationSec });
-    const spend = await creditEngine.spendCredits({ userId: uid, service, requestId, reason: 'Weë Studio · video', source: 'weë-studio' });
+
+    // Precio calculado con la tarifa oficial de ByteDance para el modelo que
+    // elegirá el Weë Video Engine; el Credit Engine sigue siendo quien cobra.
+    const price = priceVideo(
+      {
+        modelId: chooseSeedanceModel(videoRequest, settings),
+        durationSec: videoRequest.durationSec,
+        aspectRatio: videoRequest.aspectRatio,
+        resolution: videoRequest.resolution,
+        quality: videoRequest.quality,
+        inputVideoSec: videoRequest.references?.videoSeconds,
+      },
+      settings,
+    );
+    const service = price.service;
+    const spend = await creditEngine.spendCredits({
+      userId: uid,
+      service,
+      amount: price.credits,
+      requestId,
+      reason: 'Weë Studio · video',
+      source: 'weë-studio',
+      meta: { model: price.model, estimatedUsd: price.usd, ...price.detail },
+    });
 
     // Mismo requestId: UN REQUEST = UNA GENERACIÓN = UN COBRO
     if (spend.duplicate) {

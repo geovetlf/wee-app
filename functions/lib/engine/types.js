@@ -14,11 +14,20 @@ exports.MODALITY_OF = {
     subtitle: 'text',
     audio: 'music',
 };
-const modalityOf = (capability) => exports.MODALITY_OF[capability.split('.')[0]] || 'text';
+/** Capacidades con modalidad propia que no se deduce del prefijo. */
+const MODALITY_EXACT = {
+    'audio.transcribe': 'voice',
+    'doc.read': 'vision',
+};
+const modalityOf = (capability) => MODALITY_EXACT[capability] || exports.MODALITY_OF[capability.split('.')[0]] || 'text';
 exports.modalityOf = modalityOf;
 /** Tipo de entrada / salida que se guarda en cada generación. */
 const inputTypeOf = (capability, input) => {
     const hasImage = !!(input.imageUrl || (Array.isArray(input.imageUrls) && input.imageUrls.length));
+    if (input.audioUrl)
+        return 'audio';
+    if (input.documentUrl)
+        return 'document';
     if (capability.startsWith('video.image_to_video'))
         return 'image';
     if (hasImage)

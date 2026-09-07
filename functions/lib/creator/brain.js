@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.brainChat = exports.guessExperience = exports.parseSuggestion = void 0;
+exports.brainChat = exports.brainQuote = exports.guessExperience = exports.parseSuggestion = void 0;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const engine_1 = require("../engine");
 const errors_1 = require("../engine/errors");
 const limits_1 = require("../engine/limits");
 const config_1 = require("../engine/config");
+const aiPricing_1 = require("../credits/aiPricing");
 const creditEngine_1 = require("../credits/creditEngine");
 const creditValidation_1 = require("../credits/creditValidation");
 const creditTransactions_1 = require("../credits/creditTransactions");
@@ -64,6 +65,87 @@ const stripUndefined = (value) => {
             out[k] = v;
     return out;
 };
+/** Salida máxima de una respuesta de Weë Brain. Es el techo del coste de salida. */
+const BRAIN_MAX_OUTPUT_TOKENS = 1400;
+/** Últimos mensajes de la conversación, en el formato que entiende el motor. */
+async function readHistory(messages) {
+    const snap = await messages.orderBy('createdAt', 'desc').limit(MAX_HISTORY).get();
+    return snap.docs
+        .map((d) => d.data())
+        .reverse()
+        .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', text: String(m.text || '') }));
+}
+/**
+ * Input EXACTO que recibe el motor. Lo usan por igual la cotización previa
+ * (brainQuote) y el cobro real (brainChat): así el precio que ve la persona
+ * y el que se le cobra salen del mismo sitio.
+ */
+function brainInput(message, history, files) {
+    return {
+        system: prompts_1.BRAIN_CHAT_SYSTEM,
+        prompt: message,
+        history,
+        imageUrl: files.imageUrl,
+        documentUrl: files.documentUrl,
+        audioUrl: files.audioUrl,
+        kind: 'answer',
+        maxOutputTokens: BRAIN_MAX_OUTPUT_TOKENS,
+        temperature: 0.7,
+    };
+}
+/**
+ * Precio de un mensaje de Weë Brain. Pasa por el mismo suelo que el resto:
+ * coste oficial estimado del proveedor, margen y Credits por dólar del Credit
+ * Engine. Si el historial, una foto, un documento o un audio encarecen la
+ * petición, el precio sube solo; nunca baja del coste estimado.
+ */
+async function priceBrainMessage(input, webSearch) {
+    const { settings } = await (0, config_1.loadConfig)();
+    const capability = webSearch ? 'text.search' : 'text.generate';
+    const service = webSearch ? 'ai_search' : 'ai_text';
+    const price = (0, aiPricing_1.priceOperation)(capability, input, service, settings);
+    return { price, settings, capability, service };
+}
+/**
+ * Cuánto costaría el siguiente mensaje, antes de enviarlo. La app lo llama para
+ * enseñar el precio junto al botón de enviar; no cobra ni escribe nada.
+ */
+exports.brainQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+    var _a, _b;
+    try {
+        if (!request.auth)
+            throw new errors_1.EngineError('UNAUTHORIZED');
+        const uid = request.auth.uid;
+        const data = (request.data || {});
+        const message = (0, errors_1.assertText)((_a = data.message) !== null && _a !== void 0 ? _a : ' ', 'tu mensaje', 4000);
+        const webSearch = data.webSearch === true;
+        const files = {
+            imageUrl: data.imageUrl ? (0, inputs_1.assertInputImageUrl)(data.imageUrl, uid) : undefined,
+            documentUrl: data.documentUrl ? (0, inputs_1.assertAttachmentUrl)(data.documentUrl, uid, 'document') : undefined,
+            audioUrl: data.audioUrl ? (0, inputs_1.assertAttachmentUrl)(data.audioUrl, uid, 'audio') : undefined,
+        };
+        let history = [];
+        if (data.chatId) {
+            const chatRef = (0, firestore_1.getFirestore)().collection('brainChats').doc(String(data.chatId));
+            const snap = await chatRef.get();
+            if (!snap.exists || ((_b = snap.data()) === null || _b === void 0 ? void 0 : _b.userId) !== uid)
+                throw new errors_1.EngineError('INVALID_REQUEST', 'No encontramos esta conversación.');
+            history = await readHistory(chatRef.collection('messages'));
+        }
+        const { price, settings, service } = await priceBrainMessage(brainInput(message, history, files), webSearch);
+        return {
+            service,
+            label: webSearch ? 'Búsqueda con fuentes' : 'Respuesta de Weë Brain',
+            credits: price.credits,
+            usd: Number(price.usd.toFixed(5)),
+            creditsPerUsd: settings.creditsPerUsd,
+            detail: price.detail,
+        };
+    }
+    catch (error) {
+        throw (0, errors_1.toEngineHttpsError)(error);
+    }
+});
 exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
     var _a, _b;
     try {
@@ -75,6 +157,8 @@ exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds:
         const messageId = (0, creditValidation_1.assertRequestId)(data.messageId);
         const webSearch = data.webSearch === true;
         const imageUrl = data.imageUrl ? (0, inputs_1.assertInputImageUrl)(data.imageUrl, uid) : undefined;
+        const documentUrl = data.documentUrl ? (0, inputs_1.assertAttachmentUrl)(data.documentUrl, uid, 'document') : undefined;
+        const audioUrl = data.audioUrl ? (0, inputs_1.assertAttachmentUrl)(data.audioUrl, uid, 'audio') : undefined;
         const db = (0, firestore_1.getFirestore)();
         let chatRef;
         let isNew = false;
@@ -101,26 +185,27 @@ exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds:
         await (0, credits_1.ensureAccount)(uid);
         const service = webSearch ? 'ai_search' : 'ai_text';
         const requestId = `brain_${messageId}`;
+        // El historial se lee ANTES de cobrar: encarece la petición y tiene que
+        // estar dentro del precio, igual que las fotos y los documentos adjuntos.
+        const history = await readHistory(messages);
+        const engineInput = brainInput(message, history, { imageUrl, documentUrl, audioUrl });
+        const { price } = await priceBrainMessage(engineInput, webSearch);
         const spend = await creditEngine_1.creditEngine.spendCredits({
             userId: uid,
             service,
+            amount: price.credits,
             requestId,
             reason: webSearch ? 'Weë Brain · búsqueda' : 'Weë Brain',
             source: 'weë-brain',
-            meta: { chatId: chatRef.id },
+            meta: Object.assign({ chatId: chatRef.id, estimatedUsd: price.usd }, price.detail),
         });
         if (isNew)
             await chatRef.set({ userId: uid, title: message.slice(0, 60), messageCount: 0, createdAt: now(), updatedAt: now() });
-        const historySnap = await messages.orderBy('createdAt', 'desc').limit(MAX_HISTORY).get();
-        const history = historySnap.docs
-            .map((d) => d.data())
-            .reverse()
-            .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', text: String(m.text || '') }));
-        await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, webSearch, createdAt: now() }));
+        await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
         try {
             const run = await engine_1.engine.generate({
                 capability: webSearch ? 'text.search' : 'text.generate',
-                input: { system: prompts_1.BRAIN_CHAT_SYSTEM, prompt: message, history, imageUrl, kind: 'answer', maxOutputTokens: 1400, temperature: 0.7 },
+                input: engineInput,
                 userId: uid,
                 jobId: chatRef.id,
                 stepId: messageId,
@@ -135,7 +220,7 @@ exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds:
             const sources = run.output.sources || [];
             const credits = spend.duplicate ? 0 : spend.amount;
             await messages.doc(`${messageId}_wee`).set(stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: run.generationId, demo: run.demo, webSearch, createdAt: now() }));
-            await chatRef.set(Object.assign({ updatedAt: now(), messageCount: firestore_1.FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120) }, (historySnap.empty ? { title: message.slice(0, 60) } : {})), { merge: true });
+            await chatRef.set(Object.assign({ updatedAt: now(), messageCount: firestore_1.FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120) }, (history.length === 0 ? { title: message.slice(0, 60) } : {})), { merge: true });
             await creditEngine_1.creditEngine.completeCredits({ userId: uid, requestId, meta: { chatId: chatRef.id, generationId: run.generationId } });
             return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience !== null && suggestedExperience !== void 0 ? suggestedExperience : null, credits, demo: run.demo, duplicate: false };
         }

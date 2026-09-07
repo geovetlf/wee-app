@@ -44,6 +44,12 @@ export interface VideoRequest {
   model?: VideoModelPreference;
   seed?: number;
   cameraFixed?: boolean;
+  /**
+   * Qué hacer con las referencias (Seedance omni_reference_task_type):
+   *   reference → inspirarse en ellas · extend → continuar un clip · edit → editarlo.
+   * Editar exige duración -1 (la fija el propio video de entrada).
+   */
+  mode?: 'reference' | 'extend' | 'edit';
 }
 
 export interface NormalizedVideo {
@@ -64,6 +70,7 @@ export function chooseSeedanceModel(request: VideoRequest, settings?: Pick<Engin
   if (duration > 15) return SEEDANCE_MODEL_IDS.SEEDANCE_2_5;
   if (request.resolution === '4k') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0;
   if (request.quality === 'max') return SEEDANCE_MODEL_IDS.SEEDANCE_2_5;
+  if (request.quality === 'high') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0;
   if (request.quality === 'standard' || DRAFT_HINT.test(request.prompt || '')) return SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST;
   if (settings?.defaultPolicy === 'cost-first') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI;
   const configured = settings?.video?.defaultModel as VideoModelPreference | undefined;
@@ -102,6 +109,9 @@ export function normalizeVideoRequest(request: VideoRequest, settings?: Pick<Eng
     if (refs.videos?.length) input.referenceVideos = refs.videos.slice(0, spec.maxReferenceClips);
     if (refs.audios?.length) input.referenceAudios = refs.audios.slice(0, spec.maxReferenceClips);
     if (refs.videoSeconds) input.referenceVideoSec = refs.videoSeconds;
+    if (request.mode) input.taskType = request.mode;
+    // Editar un video conserva la duración del original: Seedance lo indica con -1
+    if (request.mode === 'edit') input.durationSec = -1;
   }
   const prefs: RoutingPrefs = {
     quality: request.quality && request.quality !== 'auto' ? request.quality : 'auto',
@@ -129,6 +139,7 @@ export function videoRequestFromStep(capability: CapabilityId, input: Record<str
     quality: (input.quality as VideoQuality) || 'auto',
     generateAudio: input.generateAudio === undefined ? undefined : Boolean(input.generateAudio),
     model: (input.videoModel as VideoModelPreference) || 'auto',
+    mode: input.taskType as VideoRequest['mode'],
   };
 }
 

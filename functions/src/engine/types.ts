@@ -82,6 +82,32 @@ export interface ModelSpec {
   note?: string;
 }
 
+/**
+ * Hasta dónde está comprobada una integración. Solo se llega a REAL_API_VERIFIED
+ * cuando el proveedor ha respondido de verdad al menos una vez: lo escribe el
+ * router en aiProviderVerification/{proveedor}, nunca se pone a mano.
+ */
+export type VerificationState =
+  | 'CODE_COMPLETE'
+  | 'TESTED_WITH_MOCK'
+  | 'DOCUMENTATION_VERIFIED'
+  | 'REAL_API_VERIFIED'
+  | 'PRODUCTION_READY';
+
+export interface ProviderVerification {
+  state: VerificationState;
+  /** Variable de entorno con la credencial que hace falta. */
+  credential: string;
+  /** Documentación oficial en la que se basa el contrato. */
+  docsUrl: string;
+  /** Cómo hacer la primera llamada real, en una frase. */
+  firstTest: string;
+  /** Fecha en que se leyó la documentación oficial. */
+  documentedAt?: string;
+  /** Primera respuesta real del proveedor, si la hubo. */
+  firstSuccessAt?: string;
+}
+
 /** Fuente citada cuando la respuesta usó búsqueda web (Weë Brain). */
 export interface SourceRef {
   url: string;
@@ -135,6 +161,8 @@ export interface ProviderAdapter {
   isConfigured(): boolean;
   supports(capability: CapabilityId): boolean;
   run(request: ProviderRunRequest): Promise<ProviderResult>;
+  /** Hasta dónde está comprobada esta integración (ver VerificationState). */
+  verification?: ProviderVerification;
 }
 
 /** Un eslabón de la cadena de enrutamiento de una capacidad. */
@@ -282,11 +310,19 @@ export const MODALITY_OF: Record<string, Modality> = {
   audio: 'music',
 };
 
-export const modalityOf = (capability: CapabilityId): Modality => MODALITY_OF[capability.split('.')[0]] || 'text';
+/** Capacidades con modalidad propia que no se deduce del prefijo. */
+const MODALITY_EXACT: Partial<Record<CapabilityId, Modality>> = {
+  'audio.transcribe': 'voice',
+  'doc.read': 'vision',
+};
+
+export const modalityOf = (capability: CapabilityId): Modality => MODALITY_EXACT[capability] || MODALITY_OF[capability.split('.')[0]] || 'text';
 
 /** Tipo de entrada / salida que se guarda en cada generación. */
 export const inputTypeOf = (capability: CapabilityId, input: Record<string, unknown>): string => {
   const hasImage = !!(input.imageUrl || (Array.isArray(input.imageUrls) && input.imageUrls.length));
+  if (input.audioUrl) return 'audio';
+  if (input.documentUrl) return 'document';
   if (capability.startsWith('video.image_to_video')) return 'image';
   if (hasImage) return capability.startsWith('image.') ? 'image' : 'text+image';
   return 'text';

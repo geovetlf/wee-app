@@ -21,6 +21,7 @@ const config_1 = require("./config");
 const ledger_1 = require("./ledger");
 const router_1 = require("./router");
 const limits_1 = require("./limits");
+const verification_1 = require("./verification");
 /**
  * WEË AI ENGINE — punto de entrada (docs/AI-ENGINE.md).
  *
@@ -51,6 +52,11 @@ exports.engine = {
     async status() {
         const config = await (0, config_1.loadConfig)(true);
         const snapshot = health.snapshot();
+        const configured = {};
+        for (const adapter of Object.values(registry_1.ADAPTERS))
+            configured[adapter.id] = adapter.isConfigured();
+        const verification = await (0, verification_1.verificationStatus)(configured);
+        const verificationOf = (id) => verification.find((v) => v.provider === id) || null;
         const providers = Object.values(registry_1.ADAPTERS).map((adapter) => {
             const conf = config.providers[adapter.id] || { enabled: true, priority: 50 };
             return {
@@ -62,6 +68,7 @@ exports.engine = {
                 priority: conf.priority,
                 note: conf.note,
                 health: snapshot[adapter.id] || null,
+                verification: verificationOf(adapter.id),
                 models: adapter.models.map((m) => ({
                     id: m.id,
                     capabilities: m.capabilities,

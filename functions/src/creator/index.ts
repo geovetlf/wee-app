@@ -3,7 +3,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { getPlanner } from './planner';
 import { TEMPLATES, plainQuestion } from './templates';
-import { estimatePlanCredits, holdCredits, settleCredits, ensureAccount, pricingMode } from './credits';
+import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
 import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
 import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
@@ -11,6 +11,7 @@ import { progressTextFor, friendlyFailure } from '../engine/humanize';
 import { EngineResult, RoutingPrefs } from '../engine/types';
 import { classifyError, EngineError, toEngineHttpsError } from '../engine/errors';
 import { videoEngine, videoRequestFromStep } from '../engine/video';
+import { planImage } from '../engine/image';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
 import { serviceForCapability } from '../credits/creditCosts';
@@ -106,7 +107,11 @@ const toGatewayRun = (result: EngineResult): GatewayRun => ({
   attempts: result.attempts,
 });
 
-const chatResponse = (job: CreatorJob, question: Question | null) => ({
+/**
+ * Weë nunca esconde el costo: antes de crear se enseña qué se va a usar
+ * (nivel, resolución, cantidad) y cuántos Credits cuesta cada nivel.
+ */
+const chatResponse = (job: CreatorJob, question: Question | null, pricing?: PlanEstimate | null) => ({
   jobId: job.id,
   status: job.status,
   question,
@@ -114,7 +119,16 @@ const chatResponse = (job: CreatorJob, question: Question | null) => ({
   creditsEstimated: job.creditsEstimated,
   demo: job.demo,
   inputImageUrl: job.inputImageUrl ?? null,
+  pricing: pricing ? { total: pricing.total, steps: pricing.steps, options: pricing.options ?? null } : null,
 });
+
+/** Desglose + niveles disponibles para un plan ya armado. */
+const pricingFor = async (job: CreatorJob, uid: string, quality?: QualityChoice): Promise<PlanEstimate | null> => {
+  if (!job.plan) return null;
+  const estimate = await estimatePlan(job.plan, uid, quality);
+  estimate.options = await planOptions(job.plan, uid);
+  return estimate;
+};
 
 export const creatorChat = onCall(
   { region: 'us-central1', timeoutSeconds: 60, memory: '256MiB' },
@@ -139,7 +153,7 @@ export const creatorChat = onCall(
           // Solo se adjuntó la foto: el plan sigue siendo el mismo
           job.updatedAt = now();
           await ref.set(clean(job));
-          return chatResponse(job, null);
+          return chatResponse(job, null, await pricingFor(job, uid));
         }
         if (job.status !== 'asking') throw new EngineError('INVALID_REQUEST', 'Este trabajo ya tiene un plan.');
         if (answering) {
@@ -215,12 +229,44 @@ export const creatorChat = onCall(
       job.updatedAt = now();
       await ref.set(clean(job));
 
-      return chatResponse(job, turn.question ?? null);
+      return chatResponse(job, turn.question ?? null, job.status === 'planned' ? await pricingFor(job, uid) : null);
     } catch (error) {
       throw toEngineHttpsError(error);
     }
   }
 );
+
+/**
+ * Cambiar el nivel de calidad de un plan antes de crearlo. Devuelve el nuevo
+ * presupuesto para que la persona vea al momento cuánto va a gastar.
+ */
+export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+  try {
+    if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    const uid = request.auth.uid;
+    const data = (request.data || {}) as { jobId?: string; quality?: string };
+    const jobId = String(data.jobId || '');
+    if (!jobId) throw new EngineError('INVALID_REQUEST', 'Falta el trabajo.');
+    const quality = ['standard', 'high', 'max'].includes(String(data.quality)) ? (data.quality as QualityChoice) : undefined;
+
+    const ref = jobs().doc(jobId);
+    const snap = await ref.get();
+    const job = snap.data() as CreatorJob | undefined;
+    if (!snap.exists || !job || job.userId !== uid) throw new EngineError('INVALID_REQUEST', 'No encontramos este trabajo.');
+    if (!job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene un plan.');
+
+    const pricing = await pricingFor(job, uid, quality);
+    if (!pricing) return { jobId, creditsEstimated: job.creditsEstimated, pricing: null };
+    // El nivel elegido queda guardado para que creatorRun cobre y genere igual
+    job.quality = quality ?? null;
+    job.creditsEstimated = pricing.total;
+    job.updatedAt = now();
+    await ref.set(clean(job));
+    return { jobId, quality: quality ?? null, creditsEstimated: pricing.total, pricing: { total: pricing.total, steps: pricing.steps, options: pricing.options ?? null } };
+  } catch (error) {
+    throw toEngineHttpsError(error);
+  }
+});
 
 export const creatorRun = onCall(
   { region: 'us-central1', timeoutSeconds: 900, memory: '1GiB' },
@@ -271,6 +317,8 @@ export const creatorRun = onCall(
             .map((r) => r.content || r.url || '');
           // Weë Brain arma el input interno del paso (prompt, foto, narración); la persona nunca lo ve
           const input = stepInputFor(job, next, previous);
+          // El nivel que la persona eligió en el presupuesto manda sobre el de la plantilla
+          if (job.quality) input.quality = job.quality;
           const stepInput = next.input || {};
           const prefs: RoutingPrefs = {
             quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
@@ -278,9 +326,16 @@ export const creatorRun = onCall(
           };
           const stepCtx = { ...ctx, stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: serviceForCapability(next.capability, stepInput) };
           // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
-          const run = next.capability.startsWith('video.')
-            ? toGatewayRun(await videoEngine.generate(videoRequestFromStep(next.capability, input), stepCtx))
-            : await runCapability(next.capability, input, stepCtx);
+          let run: GatewayRun;
+          if (next.capability.startsWith('video.')) {
+            run = toGatewayRun(await videoEngine.generate(videoRequestFromStep(next.capability, input), stepCtx));
+          } else if (next.capability.startsWith('image.')) {
+            // Imagen: el Weë Image Engine elige el modelo más barato que sirve
+            const planned = planImage({ capability: next.capability, input });
+            run = await runCapability(next.capability, planned.input, { ...stepCtx, prefs: { ...prefs, ...planned.prefs } });
+          } else {
+            run = await runCapability(next.capability, input, stepCtx);
+          }
 
           results.push({
             stepId: next.id,

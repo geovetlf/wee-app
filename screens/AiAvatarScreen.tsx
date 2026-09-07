@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,8 @@ import { scale } from '../utils/scale';
 import * as ImagePicker from 'expo-image-picker';
 import { generateAvatarWithGemini, saveGeneratedAvatar, performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
 import { usersService } from '../services/firestoreService';
-import { creditsShortfall } from '../services/creditsService';
+import { creditsService, creditsShortfall } from '../services/creditsService';
+import { useWallet } from '../hooks/useWallet';
 
 // --- Option data ---
 const GENDER_OPTIONS = [
@@ -171,6 +172,22 @@ const AiAvatarScreen: React.FC = () => {
     accessories: selectedAccessories || 'none',
     expression: selectedExpression!,
   });
+
+  // Precio del avatar: lo dice el Credit Engine (getCreditCost), nunca la pantalla.
+  const wallet = useWallet();
+  const walletBalance = typeof wallet.balance === 'number' ? wallet.balance : null;
+  const [avatarCost, setAvatarCost] = useState<number | null>(null);
+  const [avatarCostError, setAvatarCostError] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    creditsService
+      .getCost('wee_avatar')
+      .then((credits) => { if (alive) { setAvatarCost(credits); setAvatarCostError(false); } })
+      .catch(() => { if (alive) { setAvatarCost(null); setAvatarCostError(true); } });
+    return () => { alive = false; };
+  }, []);
+  // No se genera sin saber lo que cuesta
+  const canGenerate = step2Complete && avatarCost !== null && !avatarCostError;
 
   const handleNextStep = () => {
     if (step === 1 && step1Complete) setStep(2);
@@ -811,16 +828,26 @@ const AiAvatarScreen: React.FC = () => {
                 <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>Paso anterior</Text>
               </TouchableOpacity>
 
+              {/* Costo antes de generar: Weë nunca cobra sin decir cuánto */}
+              <Text style={[styles.costNotice, { color: avatarCostError ? theme.colors.error : theme.colors.textSecondary }]}>
+                {avatarCostError
+                  ? 'No pudimos calcular el costo. Inténtalo de nuevo.'
+                  : avatarCost === null
+                    ? 'Calculando el costo…'
+                    : `Avatar Weë · ${avatarCost} Credits${walletBalance !== null ? ` · te quedan ${walletBalance.toLocaleString('es')}` : ''}`}
+              </Text>
+
               {/* Generate button */}
               <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: step2Complete ? theme.colors.accent : theme.colors.surface, opacity: step2Complete ? 1 : 0.5 }]}
+                style={[styles.primaryButton, { backgroundColor: canGenerate ? theme.colors.accent : theme.colors.surface, opacity: canGenerate ? 1 : 0.5 }]}
                 onPress={handleGenerate}
-                disabled={!step2Complete}
+                disabled={!canGenerate}
                 activeOpacity={0.8}
+                accessibilityLabel={avatarCost === null ? 'Calculando el costo' : `Generar Avatar por ${avatarCost} Credits`}
               >
-                <Ionicons name="sparkles" size={scale(18)} color={step2Complete ? '#FFFFFF' : theme.colors.textSecondary} />
-                <Text style={[styles.primaryButtonText, { color: step2Complete ? '#FFFFFF' : theme.colors.textSecondary }]}>
-                  Generar Avatar
+                <Ionicons name="sparkles" size={scale(18)} color={canGenerate ? '#FFFFFF' : theme.colors.textSecondary} />
+                <Text style={[styles.primaryButtonText, { color: canGenerate ? '#FFFFFF' : theme.colors.textSecondary }]}>
+                  {avatarCost === null ? 'Calculando el costo…' : `Generar Avatar · ${avatarCost} Credits`}
                 </Text>
               </TouchableOpacity>
             </>
@@ -1098,6 +1125,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   // Buttons
+  costNotice: {
+    fontSize: scale(12),
+    textAlign: 'center',
+    marginBottom: SPACING.xs,
+  },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',

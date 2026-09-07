@@ -12,7 +12,7 @@ import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
-import { creatorService, CreatorJob, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
+import { creatorService, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
@@ -57,6 +57,10 @@ const CreatorFlowScreen: React.FC = () => {
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
   /** La foto sube al Storage de Weë y al servidor solo va la URL. */
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // Presupuesto: qué se va a usar y cuánto cuesta cada nivel (lo calcula el servidor)
+  const [pricing, setPricing] = useState<PlanPricing | null>(null);
+  const [quality, setQuality] = useState<QualityChoice | null>(null);
+  const [quoting, setQuoting] = useState(false);
   const uploadedUrl = useRef<string | undefined>(undefined);
   const savedDocFor = useRef<string | null>(null);
 
@@ -114,6 +118,8 @@ const CreatorFlowScreen: React.FC = () => {
         const response = await creatorService.start(experience.id, goal, params.preset ? [params.preset] : undefined, imageUrl);
         setJobId(response.jobId);
         setQuestion(response.question);
+        setPricing(response.pricing ?? null);
+        setQuality(null);
       } catch (e) {
         setError(humanizeCreatorError(e));
       } finally {
@@ -193,12 +199,33 @@ const CreatorFlowScreen: React.FC = () => {
     try {
       const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text });
       setQuestion(response.question);
+      setPricing(response.pricing ?? null);
     } catch (e) {
       setError(humanizeCreatorError(e));
     } finally {
       setBusy(false);
     }
   };
+
+  // Cambiar de nivel antes de crear: el servidor recalcula y la persona ve el precio al momento
+  const handleQuality = useCallback(
+    async (next: QualityChoice) => {
+      if (!jobId) return;
+      setQuoting(true);
+      setError(null);
+      try {
+        const response = await creatorService.quote(jobId, next);
+        setQuality(response.quality ?? next);
+        setPricing(response.pricing ?? null);
+        setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
+      } catch (e) {
+        setError(humanizeCreatorError(e));
+      } finally {
+        setQuoting(false);
+      }
+    },
+    [jobId]
+  );
 
   const handleCreate = async () => {
     if (!jobId) return;
@@ -350,9 +377,13 @@ const CreatorFlowScreen: React.FC = () => {
             <PlanCard
               experienceName={experience.name}
               plan={job.plan}
-              creditsEstimated={job.creditsEstimated}
+              creditsEstimated={pricing ? pricing.total : job.creditsEstimated}
               demo={job.demo}
               pricingMode={job.pricingMode}
+              pricing={pricing}
+              quality={quality}
+              quoting={quoting}
+              onQuality={handleQuality}
               busy={busy}
               onCreate={handleCreate}
               onChange={() => start(job.goal)}
