@@ -115,7 +115,7 @@ Importante. Abre **Crear** y ofrece: Publicación, Weël, Imagen, Video, Texto, 
 **Rediseño del 2026-09-06 (solo lo esencial; una persona nueva entiende Weë en 5–10 segundos):**
 
 1. **Header**: ☰ · Weë · Credits · campana (o "Iniciar sesión"). Limpio y compacto.
-2. **Hero**: "Crea tu alter ego digital Weë" · "Imagina. Crea. Comparte. Evoluciona." · botón "Únete ahora →" (con sesión: "Crear mi Weë →" / "Ver mi Weë →"). Atractivo, poco alto.
+2. **Hero**: carrusel de **4 banners entregados por diseño** (`assets/images/hero/slide-1..4.jpg`: "Crea tu alter ego digital Weë", "La IA está al alcance de todos", "Convierte tus ideas en realidad", "Imagina. Crea. Comparte. Evoluciona."), una imagen a la vez, deslizable, con indicadores ● ○ ○ ○ y avance automático cada ~5,5 s que se pausa al interactuar. Sin textos, botones ni logos encima: las imágenes son el diseño definitivo (`components/HeroCarousel.tsx`).
 3. **Comunidades**: "Encuentra las tuyas." · buscador "Buscar comunidades..." · botón "+ Crear comunidad". **Sin catálogo, sin categorías, sin tarjetas ni imágenes**: portadas, iconos, descripción y reglas se ven al entrar a cada comunidad.
 4. **Weëls**: "Descubre videos creados por la comunidad." · fila horizontal de miniaturas · "Ver todos →".
 5. **Creado por la comunidad**: filtros Todo · Imágenes · Videos · Preguntas · Tutoriales · publicaciones reales.

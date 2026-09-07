@@ -1,7 +1,7 @@
 /**
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
- * Estructura (docs/UX.md §16): Header → Hero "Crea tu alter ego digital Weë"
+ * Estructura (docs/UX.md §16): Header → carrusel de 4 banners de diseño
  * → Comunidades ("Encuentra las tuyas": buscar o crear) → Weëls → Creado por
  * la comunidad (feed con filtros simples). Solo lo esencial: nada de catálogos,
  * categorías ni herramientas en el Home.
@@ -11,13 +11,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserProfile } from '../contexts/UserProfileContext';
 import { postsService, Post } from '../services/firestoreService';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
-import HomeHero from '../components/HomeHero';
+import HeroCarousel from '../components/HeroCarousel';
 import CommunitiesEntry from '../components/CommunitiesEntry';
 import { FEED_FILTER_OPTIONS, FeedFilterId, filterPosts } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -26,7 +25,6 @@ import { scale } from '../utils/scale';
 const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { hasHidiProfile } = useUserProfile();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
@@ -60,14 +58,6 @@ const WebLandingScreen: React.FC = () => {
   }, []);
 
   const filteredPosts = useMemo(() => filterPosts(posts, feedFilter), [posts, feedFilter]);
-
-  // ── Hero: unirse, o crear/ver el Perfil Weë ──
-  const heroCta = !user ? 'Únete ahora →' : hasHidiProfile ? 'Ver mi Weë →' : 'Crear mi Weë →';
-  const handleHero = () => {
-    if (!user) return navigation.navigate('Register');
-    if (!hasHidiProfile) return navigation.navigate('HidiCreation');
-    navigation.navigate('Profile');
-  };
 
   // ── Comunidades: buscar o crear ──
   const handleSearchCommunities = (query: string) => navigation.navigate('ExploreCommunities', query ? { query } : undefined);
@@ -116,8 +106,8 @@ const WebLandingScreen: React.FC = () => {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-        {/* Hero */}
-        <HomeHero ctaLabel={heroCta} onPress={handleHero} />
+        {/* Carrusel de 4 banners de diseño */}
+        <HeroCarousel />
 
         {/* Comunidades: buscar o crear */}
         <CommunitiesEntry onSearch={handleSearchCommunities} onCreate={handleCreateCommunity} />

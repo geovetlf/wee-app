@@ -50,7 +50,7 @@ import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communit
 import { downloadVideoWithWatermark } from '../services/videoDownload';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import WeelsRow from '../components/WeelsRow';
-import HomeHero from '../components/HomeHero';
+import HeroCarousel from '../components/HeroCarousel';
 import CommunitiesEntry from '../components/CommunitiesEntry';
 import { FEED_FILTER_OPTIONS, filterPosts } from '../utils/feedFilters';
 
@@ -1118,16 +1118,8 @@ const LandingScreen: React.FC = () => {
     navigation.navigate('Notifications' as any);
   };
 
-  // Hero: unirse, o crear/ver el Perfil Weë (docs/UX.md §16)
-  const heroCta = !user ? 'Únete ahora →' : hasHidiProfile ? 'Ver mi Weë →' : 'Crear mi Weë →';
-  const handleHeroPress = () => {
-    const tabNavigation = navigation.getParent();
-    const mainNavigation = tabNavigation?.getParent();
-    if (!user) return (mainNavigation as any)?.navigate('Register');
-    if (!hasHidiProfile) return (mainNavigation as any)?.navigate('HidiCreation');
-    (tabNavigation as any)?.navigate('Profile');
-  };
-  const renderHero = () => <HomeHero ctaLabel={heroCta} onPress={handleHeroPress} />;
+  // Hero: carrusel de 4 banners de diseño (docs/UX.md §16)
+  const renderHero = () => <HeroCarousel />;
 
   // Comunidades: buscar o crear (sin catálogo en el Home)
   const handleSearchCommunities = (query: string) => (navigation as any).navigate('ExploreCommunities', query ? { query } : undefined);

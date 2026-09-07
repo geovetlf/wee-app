@@ -18,7 +18,7 @@ El código actual nace de una versión anterior del producto (red social anónim
 | Área de la visión | Hoy en el código | Estado |
 |---|---|---|
 | **Home** (feed + comunidades + Weëls) | `LandingScreen` (nativo) / `WebLandingScreen` (web) — banner "Tu creatividad no tiene límites", "Explora comunidades" (8 categorías sociales), fila de Weëls, pestaña **Comunidad** con filtros (Publicaciones · Imágenes · Videos · Preguntas · Tutoriales) | ✅ Implementado según `docs/UX.md` |
-| **Home (solo lo esencial)** | `WebLandingScreen` (web) y `LandingScreen` (nativo): `HomeHero` ("Crea tu alter ego digital Weë"), `CommunitiesEntry` (buscar o crear comunidad, sin catálogo), `WeelsRow`, feed "Creado por la comunidad" con `utils/feedFilters.ts` | ✅ Rediseñado 2026-09-06 |
+| **Home (solo lo esencial)** | `WebLandingScreen` (web) y `LandingScreen` (nativo): `HeroCarousel` (4 banners de diseño en `assets/images/hero/`), `CommunitiesEntry` (buscar o crear comunidad, sin catálogo), `WeelsRow`, feed "Creado por la comunidad" con `utils/feedFilters.ts` | ✅ Rediseñado 2026-09-06 |
 | **Menú ☰ único** | `DrawerMenu` — Perfil Real / Perfil Weë, Comunidades, Weëls, WeeTalk, **Weë Creator** (con categorías), Credits, Notificaciones, Guardados, Configuración, Ayuda | ✅ Implementado |
 | **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a Weë Creator; `CreateScreen` recibe `kind` | ✅ Implementado |
 | **"Cómo lo hice"** (herramientas, prompt, proceso) | `CreateScreen` → `Post.aiTools / aiPrompt / aiProcess` → `HowIMadeIt` dentro de `PostCard` (prompt copiable) | ✅ Implementado |
