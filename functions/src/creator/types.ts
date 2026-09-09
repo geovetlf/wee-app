@@ -14,6 +14,7 @@ export type ExperienceId =
   | 'chef'
   | 'home'
   | 'business'
+  | 'travel'
   | 'brain';
 
 export type CapabilityId =
@@ -59,6 +60,18 @@ export interface Question {
   options: QuestionOption[];
   /** Además de las opciones, la persona puede escribirlo con sus palabras. */
   allowFreeText?: boolean;
+  /**
+   * Cómo se contesta, cuando una lista de botones no sirve.
+   *
+   * 'dates' pide dos fechas y la pantalla dibuja un calendario. Nació porque en
+   * un viaje la duración NO es una opción de una lista: "una semana" no es lo
+   * mismo que del 12 al 22 de octubre, y un itinerario sin fechas no puede
+   * saber si el museo abre o si es temporada de lluvias (fase 2E-65).
+   *
+   * Sin este campo se contesta como siempre, con botones y texto libre, así que
+   * las preguntas de las otras diez experiencias no cambian en nada.
+   */
+  kind?: 'dates';
 }
 
 export interface Answer {

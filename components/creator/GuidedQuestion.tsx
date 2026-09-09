@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator 
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Question } from '../../services/creatorService';
+import DateRangePicker from './DateRangePicker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -68,6 +69,18 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
         <View style={styles.current}>
           <Text style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</Text>
           <Text style={[styles.questionText, { color: theme.colors.text }]}>{question.text}</Text>
+          {question.kind === 'dates' ? (
+            /*
+             * El calendario devuelve la frase que cualquiera escribiría —"del 12
+             * al 22 de octubre de 2026"—, así que viaja por el mismo camino que
+             * el texto libre y se lee igual de bien en la conversación.
+             */
+            <DateRangePicker
+              busy={busy}
+              onConfirm={(frase) => onAnswer(undefined, frase)}
+              onSkip={() => onAnswer('idk')}
+            />
+          ) : (
           <View style={styles.options}>
             {question.options.map((option) => {
               const isIdk = option.id === 'idk';
@@ -92,7 +105,8 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
               );
             })}
           </View>
-          {question.allowFreeText !== false && (
+          )}
+          {question.allowFreeText !== false && question.kind !== 'dates' && (
             <View style={[styles.freeRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <TextInput
                 style={[styles.freeInput, { color: theme.colors.text }]}

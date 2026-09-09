@@ -12,7 +12,7 @@ import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
-import { creatorService, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
+import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
@@ -124,7 +124,13 @@ const CreatorFlowScreen: React.FC = () => {
   );
 
   const start = useCallback(
-    async (goal?: string) => {
+    /*
+     * `yaDichas` son respuestas que viajan con el trabajo nuevo. Sin ellas, quien
+     * abre otro trabajo empieza de cero; con ellas, sigue donde estaba. Cuando no
+     * se pasan, manda lo de siempre —lo que traiga la ruta—, así que ninguna otra
+     * pantalla nota nada (fase 2E-65.1).
+     */
+    async (goal?: string, yaDichas?: Answer[]) => {
       setBusy(true);
       setError(null);
       setShortfall(null);
@@ -132,7 +138,7 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(null);
       try {
         const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
-        const response = await creatorService.start(experience.id, goal, params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl);
+        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl);
         setJobId(response.jobId);
         setQuestion(response.question);
         setPricing(response.pricing ?? null);
@@ -304,7 +310,33 @@ const CreatorFlowScreen: React.FC = () => {
   };
 
   const handleAnotherVersion = () => start(job?.goal || params.goal);
-  const handleEdit = (instruction: string) => start(`${job?.goal || params.goal || nombre} · Cambio: ${instruction}`);
+
+  /*
+   * Ajustar un viaje no es empezar otro (fase 2E-65.1).
+   *
+   * Weë Travel es la única sección donde una respuesta puede ser algo que no cabe
+   * en un botón: unas fechas, o dos intereses a la vez. Al pedir un cambio se
+   * abría un trabajo nuevo con el objetivo y nada más, así que del 12 al 22 de
+   * octubre se convertía en aire y había que volver a elegirlo en el calendario.
+   *
+   * Ahora las respuestas viajan con el cambio. El servidor las admite con la
+   * misma regla que usa para deducir (`respuestaPara`), de modo que la fecha
+   * sigue siendo una fecha y la duración se sigue calculando de ella.
+   *
+   * Solo Travel: las otras diez experiencias siguen abriendo el trabajo como
+   * siempre, con el objetivo y sin arrastrar nada.
+   */
+  const CONSERVA_EL_CONTEXTO = experience.id === 'travel';
+  const handleEdit = (instruction: string) => {
+    const goal = `${job?.goal || params.goal || nombre} · Cambio: ${instruction}`;
+    if (!CONSERVA_EL_CONTEXTO || !job) return start(goal);
+    const contexto: Answer[] = job.answers.map((a) => ({
+      questionId: a.questionId,
+      ...(a.optionId ? { optionId: a.optionId } : {}),
+      ...(a.text ? { text: a.text } : {}),
+    }));
+    return start(goal, contexto);
+  };
 
   /*
    * Compartir lo que se acaba de crear. Solo navega: no vuelve a planificar, no

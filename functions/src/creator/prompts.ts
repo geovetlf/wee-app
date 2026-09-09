@@ -41,6 +41,8 @@ export const BRAIN_CHAT_SYSTEM = [
 ].join(' ');
 
 const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
+  travel:
+    'Ahora eres Weë Travel, alguien que ha viajado mucho y ayuda a preparar un viaje con los pies en la tierra. No vendes nada ni reservas nada: ordenas la idea, propones lo que de verdad merece la pena y avisas de lo que conviene comprobar antes de ir.',
   design: 'Ahora eres Weë Design, un director creativo que convierte ideas en conceptos visuales concretos.',
   studio: 'Ahora eres Weë Studio, un director de videos cortos para redes que piensa en escenas de pocos segundos.',
   photo: 'Ahora eres Weë Photo, un retocador fotográfico cuidadoso que explica en simple.',
@@ -54,6 +56,20 @@ const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
 };
 
 const KIND_INSTRUCTIONS: Record<string, string> = {
+  /*
+   * Weë Travel. Cuatro tareas y una regla común: nunca inventar un sitio que se
+   * pueda visitar. Un restaurante que no existe o un museo cerrado hace daño de
+   * verdad —alguien coge un tren para llegar allí—, así que lo que no se sepa se
+   * dice, y lo que cambie se marca para comprobar.
+   */
+  itinerary:
+    'Escribe un itinerario día a día. Empieza SIEMPRE con estos tres renglones, sin nada más delante:\n\n<emoji de bandera> <DESTINO EN MAYÚSCULAS>\n<las fechas exactas que te den, o "Fechas por decidir" si no te dan ninguna>\n<cuántos días y cuántas noches, o solo los días si no hay fechas>\n\nDespués, un bloque por día con exactamente este formato:\n\nDÍA 1 · <fecha corta, p. ej. 12 oct> · Ciudad\nTítulo corto del día\n- Momento: qué hacer y por qué merece la pena (una línea)\n- Momento: ...\n\nCOPIA las fechas del encargo; no inventes ninguna. Si el encargo no trae fechas, escribe los días sin fecha ("DÍA 1 · Ciudad") y no te las inventes. Usa "Mañana", "Tarde" y "Noche" solo cuando el día se reparta así de verdad; si el día es una excursión o una sola cosa, escribe un único momento ("Todo el día"). No rellenes con actividades de relleno: un día con tres cosas buenas vale más que uno con siete. Nombra sitios que existan de verdad; si no estás seguro de uno, no lo pongas. Si las fechas caen en temporada de lluvias, en un festival o en fiestas en las que cierran los sitios, dilo en el día que toque. Al final añade un bloque "PRESUPUESTO:" con rangos aproximados por concepto (vuelos, alojamiento por noche, comida por día, transporte) y el total estimado como rango. Nunca des una cifra exacta. Cierra con una línea recordando que los precios son estimaciones.',
+  destinations:
+    'Propón EXACTAMENTE TRES destinos, ni uno más. Para cada uno escribe:\n\nCiudad, País\nDos líneas como máximo explicando por qué encaja con lo que la persona busca.\nUna línea con lo práctico: distancia o duración de vuelo aproximada, y si es un viaje económico, medio o caro.\n\nNombra solo sitios que existan de verdad y que se pueda viajar allí hoy; si dudas de uno, propón otro. Que los tres sean de verdad distintos entre sí, para que haya algo que decidir. No des una lista larga: el trabajo es reducir la decisión, no ampliarla.',
+  activities:
+    'Haz una lista corta —entre cinco y ocho— de lo que merece la pena en ese sitio, mezclando cosas que hacer y sitios donde comer. Agrúpalas por zona o barrio, con el nombre de la zona en una línea suelta, para que se puedan encadenar en un mismo paseo. Cada cosa ocupa exactamente dos renglones y siempre en este orden:\n\nNombre — qué es (museo, mercado, restaurante…)\nPor qué merece la pena, en una sola línea corta.\n\nNada de párrafos largos: si no cabe en una línea, recórtalo. Nombra solo sitios que existan de verdad. Si has usado una búsqueda, cita la fuente de donde salió cada dato que pueda cambiar. Al final, una sola línea: "Comprueba horarios y precios antes de ir." No repitas ese aviso en cada elemento.',
+  transport:
+    'Responde a la pregunta concreta sobre cómo moverse, sin convertirlo en una guía general. Da dos o tres opciones reales y, para cada una, una línea con: cómo se llama, cuánto tarda aproximadamente, cuánto cuesta aproximadamente y para quién es mejor (con maletas, con prisa, con poco presupuesto). Si no tienes datos fiables de horarios o precios, dilo en vez de inventarlos. Termina con una sola línea: "Tiempos y precios aproximados. Comprueba antes de viajar."',
   recipe:
     'Escribe una receta paso a paso: título con un emoji, para cuántas personas, tiempo total, lista de ingredientes con cantidades (usa •), pasos numerados y cortos, y un consejo final. Usa ingredientes fáciles de conseguir. Si hay una descripción de la foto de los ingredientes, cocina con esos ingredientes y menciona qué falta comprar. Termina con una línea "IMAGEN:" describiendo en inglés (máximo 40 palabras) cómo se ve el plato terminado.',
   menu: 'Arma el menú pedido día por día (o comida por comida): nombre del plato, una línea de por qué funciona y una lista corta de compras al final.',
@@ -141,6 +157,9 @@ export const extractMarker = (texts: string[], marker: string): string => {
 };
 
 const STYLE_WORDS: Record<ExperienceId, string> = {
+  // Travel no genera imágenes en la fase A. La entrada existe porque el tipo la
+  // pide, y si algún día se generara una, sería una foto de viaje de verdad.
+  travel: 'travel photography, natural light, real place',
   design: 'professional concept design, clean composition, studio lighting',
   studio: 'cinematic frame, coherent lighting',
   photo: 'photorealistic, natural',

@@ -1,7 +1,7 @@
 # WEE Creator — Arquitectura general de IA
 
 > Instrucciones del dueño del producto (2026-09-05, documento completo). Actualizan el §6 y §7 de [`UX.md`](UX.md):
-> las categorías de herramientas se reemplazan por las **10 experiencias de WEE**.
+> las categorías de herramientas se reemplazan por las **experiencias de WEE** (§1).
 > Diseñar toda la arquitectura, UX y lógica de WEE Creator respetando estos principios.
 
 WEE Creator está pensado principalmente para personas que **no** dominan la inteligencia artificial. El usuario no debe saber qué modelo utilizar, qué API existe, cómo escribir prompts ni ningún concepto técnico.
@@ -12,9 +12,9 @@ La filosofía central es:
 
 WEE se encarga de toda la complejidad tecnológica internamente.
 
-## 1. Las 10 experiencias de WEE
+## 1. Las 11 experiencias de WEE
 
-WEE Creator tendrá solamente 10 grandes especialistas visibles:
+WEE Creator tiene solamente 11 grandes especialistas visibles:
 
 | | Experiencia |
 |---|---|
@@ -27,11 +27,12 @@ WEE Creator tendrá solamente 10 grandes especialistas visibles:
 | 👨‍🍳 | WEE Chef |
 | 🏠 | WEE Home |
 | 💼 | WEE Business |
+| ✈️ | WEE Travel |
 | 🧠 | WEE Brain |
 
 Estos nombres son parte de la identidad de WEE y deben mantenerse.
 
-**Importante:** estas 10 secciones **no** significan necesariamente que exista una sola IA detrás de cada una. Son *experiencias de usuario*. Detrás de cada experiencia WEE puede utilizar una o varias APIs, modelos y servicios especializados.
+**Importante:** estas 11 secciones **no** significan necesariamente que exista una sola IA detrás de cada una. Son *experiencias de usuario*. Detrás de cada experiencia WEE puede utilizar una o varias APIs, modelos y servicios especializados.
 
 ## 2. El usuario no debe ver la complejidad
 
@@ -115,7 +116,7 @@ Ejemplo — 👨‍🍳 WEE Chef, *"¿Qué quieres hacer?"*:
 
 La opción **🤷 NO SÉ** es muy importante. WEE debe poder ayudar incluso cuando el usuario no sabe qué herramienta necesita.
 
-## 8. Las 10 secciones
+## 8. Las 11 secciones
 
 | Sección | Debe permitir | Ejemplos |
 |---|---|---|
@@ -128,9 +129,29 @@ La opción **🤷 NO SÉ** es muy importante. WEE debe poder ayudar incluso cuan
 | 👨‍🍳 **WEE Chef** | funcionar como un chef personal | qué cocinar, recetas, ingredientes disponibles, menús, postres, sustituciones, ideas gastronómicas |
 | 🏠 **WEE Home** | ayudar con casas y espacios | decoración, diseño interior, habitaciones, muebles, remodelación, exteriores, jardines, estilos, visualización de espacios |
 | 💼 **WEE Business** | ayudar con trabajo y negocios | ideas de negocio, marketing, publicidad, contenido para redes, CV, documentos, presentaciones, planificación, análisis |
+| ✈️ **WEE Travel** | preparar un viaje | planificar un viaje día a día, elegir destino cuando no se sabe a dónde ir, qué hacer y dónde comer, cómo moverse. **No reserva nada**: ni vuelos, ni hoteles, ni entradas |
 | 🧠 **WEE Brain** | ser el asistente general | preguntas, investigación, aprendizaje, explicaciones, documentos, traducción, planificación, resolver problemas, **cualquier cosa que no encaje claramente en otra sección** |
 
 Debe existir una idea como: **"¿No sabes dónde buscar? Pregúntale a WEE."**
+
+### WEE Travel es una sección, no una aplicación aparte
+
+WEE Travel (fase 2E-64C, Fase A) se añadió como la undécima experiencia sin estrenar
+ni una pieza propia. Entra por el menú ☰ igual que las demás, por la ruta
+`Specialist { id: 'travel' }`, y reutiliza todo lo que ya existía:
+
+| Reutiliza | En vez de |
+|---|---|
+| el Wall general + `SectionWall` filtrado | un feed propio |
+| `WeeTag` y `sourceSection` | una marca de origen distinta |
+| 📍 Lugar, que es transversal a todo WEE | una ubicación propia de viajes |
+| `CreatorFlow` y `ResultCard` | pantallas nuevas |
+| el WEË AI ENGINE y el Credit Engine | proveedores o precios propios |
+
+Y **no tiene**, ni en Fase A ni por defecto más adelante: colección `trips`, feed
+separado (`travelPosts`, `travelFeed`…), sistema de ubicación propio, GPS, mapa,
+ni APIs de reservas de vuelos, hoteles o entradas. Prepara el viaje; ir es cosa
+de la persona.
 
 ## 9. WEE debe poder elegir la mejor IA
 
@@ -228,6 +249,6 @@ Diseñar toda la arquitectura, UX y lógica de WEE Creator respetando estos prin
 
 ## Cómo se refleja hoy en el código
 
-- `constants/weeExperiences.ts`: las 10 experiencias (nombre, emoji, qué consigue la persona, ejemplos en lenguaje normal, palabras clave), alineadas con el §8. Fuente única para el menú ☰, `WeeCreatorScreen` y el registro de interés.
+- `constants/weeExperiences.ts`: las 11 experiencias (nombre, emoji, qué consigue la persona, ejemplos en lenguaje normal, palabras clave), alineadas con el §8. Fuente única para el menú ☰, `WeeCreatorScreen` y el registro de interés.
 - `screens/WeeCreatorScreen.tsx`: entrada por intención ("¿Qué quieres crear?") que sugiere el especialista; cada experiencia muestra ejemplos y "Avísame cuando esté" (`services/creatorInterestService.ts`, colección `creatorInterests`).
 - Pendiente: WEE Brain + AI Gateway (orquestación server-side en Cloud Functions, claves de proveedores fuera del cliente), los flujos guiados con opciones y "🤷 No sé" (§7 y §12), la investigación de APIs (§10) y el modelo de costes en Credits (§11). La propuesta de arquitectura está en [`CREATOR-ARQUITECTURA.md`](CREATOR-ARQUITECTURA.md).

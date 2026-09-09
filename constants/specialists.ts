@@ -126,6 +126,15 @@ export interface SpecialistConfig {
    * el piloto (fase 2E-37); las demás lo adoptan cuando les toque.
    */
   wall?: SectionWallConfig;
+  /**
+   * La caja de escribir va antes que la cuadrícula de funciones (fase 2E-64C).
+   *
+   * En una sección con muro, el orden normal es: herramientas plegadas y luego
+   * el muro. Weë Travel invierte los dos primeros porque su entrada natural es
+   * una frase —"Japón 10 días en octubre"—, no elegir de un menú. Sin esta marca
+   * el orden no cambia, así que las demás secciones siguen exactamente igual.
+   */
+  ideaFirst?: boolean;
   /** Caja "¿Tienes una idea en mente?" */
   idea: {
     title: string;
@@ -689,6 +698,74 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       { title: 'CV profesional', subtitle: 'Moderno y limpio', kind: 'document', emoji: '🧑‍💼', tone: T.mint },
     ],
   },
+  /*
+   * Weë Travel (fase 2E-64C).
+   *
+   * Cuatro funciones y ni una más: planificar, elegir destino, qué hacer y cómo
+   * moverse. La entrada principal NO es la cuadrícula sino la caja de escribir
+   * —un viaje se cuenta con una frase, no eligiendo de un menú—, y por eso lleva
+   * `ideaFirst`: el texto arriba, las cuatro funciones plegadas debajo y el muro
+   * de la comunidad después.
+   *
+   * Lo que Weë Travel NO hace, y conviene decirlo aquí: no reserva vuelos, no
+   * reserva hoteles, no cobra nada y no abre un mapa. Prepara el viaje; ir es
+   * cosa de la persona.
+   */
+  travel: {
+    id: 'travel',
+    headline: 'Prepara tu viaje con alguien que ya ha viajado.',
+    intro: 'Cuéntame a dónde vas —o que no lo sabes todavía— y te preparo el viaje: qué ver, dónde comer y cómo moverte.',
+    chips: ['Sin reservas', 'Con fuentes', 'A tu ritmo'],
+    note: 'Los mejores viajes empiezan con una frase',
+    heroEmoji: '✈️',
+    gridTitle: '¿Qué necesitas?',
+    gridHint: 'Cuatro formas de empezar.',
+    actionLayout: 'compact',
+    actions: [
+      { id: 'plan', icon: 'map-outline', emoji: '🗺️', title: 'Planificar un viaje', subtitle: 'Un itinerario día a día', goal: 'Planificar un viaje', preset: { questionId: 'what', optionId: 'plan' } },
+      { id: 'where', icon: 'earth-outline', emoji: '🌎', title: 'No sé a dónde ir', subtitle: 'Te propongo tres destinos', goal: 'No sé a dónde viajar', preset: { questionId: 'what', optionId: 'where' }, idk: true },
+      { id: 'doing', icon: 'restaurant-outline', emoji: '🍽️', title: 'Qué hacer y dónde comer', subtitle: 'Lo que merece la pena, con su fuente', goal: 'Qué hacer y dónde comer en mi destino', preset: { questionId: 'what', optionId: 'doing' } },
+      { id: 'moving', icon: 'compass-outline', emoji: '🧭', title: 'Cómo moverme', subtitle: 'Tiempos y precios aproximados', goal: 'Cómo moverme en mi destino', preset: { questionId: 'what', optionId: 'moving' } },
+    ],
+    inputs: ['text'],
+    /*
+     * La caja de escribir va ARRIBA del todo, antes que las cuatro funciones.
+     * Es la diferencia entre "elige una herramienta" y "cuéntame tu viaje", y en
+     * viajes lo segundo es lo natural: casi todo lo que Weë necesita ya está
+     * dentro de la frase que la persona escribiría igualmente.
+     */
+    ideaFirst: true,
+    idea: {
+      title: '✈️ ¿Qué viaje tienes en mente?',
+      subtitle: 'Escríbelo con tus palabras: cuanto más me cuentes, menos te pregunto.',
+      placeholder: 'Ejemplo: Japón del 12 al 22 de octubre, me gusta comer…',
+      chips: ['🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'],
+    },
+    wall: {
+      tabs: [
+        { id: 'all', label: 'Muro Travel' },
+        { id: 'images', label: 'Fotos del viaje' },
+        { id: 'tutorials', label: 'Consejos' },
+        { id: 'mine', label: 'Mis viajes' },
+        { id: 'saved', label: 'Guardados' },
+      ],
+      placeholder: 'Comparte un viaje, una recomendación o una pregunta…',
+      empty: {
+        emoji: '🧳',
+        title: 'Todavía no hay nada en el muro de Weë Travel',
+        text: 'Comparte tu último viaje, una recomendación o una duda con la comunidad.',
+        button: 'Crear publicación',
+      },
+    },
+    examplesTitle: 'Viajes que preparó Weë',
+    examples: [
+      { title: 'Japón en 10 días', subtitle: 'Tokio, Kioto y Osaka', kind: 'document', emoji: '🗾', tone: T.rose },
+      { title: 'Un fin de semana en Cusco', subtitle: 'Sin prisas', kind: 'document', emoji: '🏔️', tone: T.mint },
+      { title: 'Dónde comer en Lisboa', subtitle: 'Por barrios', kind: 'document', emoji: '🍽️', tone: T.sand },
+      { title: 'Del aeropuerto al centro', subtitle: 'Tiempos y precios', kind: 'document', emoji: '🚊', tone: T.sky },
+    ],
+  },
+
 };
 
 /** Orden de la barra lateral y de la pantalla de Weë Creator (referencias visuales). */
@@ -699,7 +776,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
  * configuraciones siguen enteras más arriba, porque sus mesas de trabajo se
  * siguen usando.
  */
-export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'];
+export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'];
 
 export const getSpecialist = (id: string): (SpecialistConfig & { experience: WeeExperience }) | null => {
   const config = SPECIALISTS[id as SpecialistId];

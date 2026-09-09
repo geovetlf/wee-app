@@ -1,7 +1,7 @@
 /**
- * Las 10 experiencias de Weë Creator (docs/CREATOR.md §1 y §8).
+ * Las experiencias de Weë Creator (docs/CREATOR.md §1 y §8).
  *
- * Diez existen; ocho se ven. Weë Photo y Weë Beauty dejaron de ser secciones
+ * Once existen; nueve se ven. Weë Travel es la última en llegar (fase 2E-64C). Weë Photo y Weë Beauty dejaron de ser secciones
  * del menú y pasaron a ser áreas dentro de Weë Studio (fase 2E-50), pero sus
  * identificadores, sus plantillas y sus rutas siguen enteros: de eso vive todo
  * el trabajo ya creado. Por eso hay dos listas y no una.
@@ -30,7 +30,7 @@ export interface WeeExperience {
 }
 
 /**
- * Las diez, sin excepción. Es la lista con la que se resuelve un identificador:
+ * Todas, sin excepción. Es la lista con la que se resuelve un identificador:
  * un trabajo de hace meses tiene que seguir abriéndose con su nombre y su emoji.
  */
 export const ALL_EXPERIENCES: WeeExperience[] = [
@@ -111,6 +111,14 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     keywords: ['negocio', 'emprendimiento', 'emprender', 'marketing', 'ventas', 'vender', 'presentación', 'presentacion', 'pitch', 'plan', 'campaña', 'campana', 'cliente', 'clientes', 'tienda', 'empresa', 'estrategia', 'publicidad', 'precio', 'cv', 'currículum', 'curriculum', 'documento', 'análisis', 'analisis', 'trabajo'],
   },
   {
+    id: 'travel',
+    name: 'Weë Travel',
+    emoji: '✈️',
+    description: 'Prepara tu viaje: a dónde ir, qué hacer y cómo moverte',
+    examples: ['Japón en octubre', 'Quiero una playa tranquila y barata', 'No sé dónde viajar'],
+    keywords: ['viaje', 'viajar', 'viajes', 'vacaciones', 'itinerario', 'destino', 'destinos', 'turismo', 'turista', 'vuelo', 'vuelos', 'hotel', 'hoteles', 'playa', 'mochilero', 'ruta', 'excursión', 'excursion', 'maleta', 'pasaporte', 'visa', 'aeropuerto', 'tren', 'crucero', 'guía', 'guia', 'ciudad', 'país', 'pais', 'extranjero'],
+  },
+  {
     id: 'brain',
     name: 'Weë Brain',
     emoji: '🧠',
@@ -166,7 +174,7 @@ export const getExperienceById = (id: string): WeeExperience | undefined =>
 
 /**
  * Experiencias cuyo nombre o palabras clave coinciden con lo que la persona
- * quiere lograr. Busca entre las diez a propósito: quien escribe "maquillaje" o
+ * quiere lograr. Busca entre todas a propósito: quien escribe "maquillaje" o
  * "retocar" tiene que llegar a esa capacidad aunque su sección ya no esté en el
  * menú. Esconder una sección no es esconder lo que sabe hacer.
  */

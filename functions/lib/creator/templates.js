@@ -1,13 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TEMPLATES = exports.plainQuestion = void 0;
+exports.TEMPLATES = exports.duracionEscrita = exports.leerDuracion = exports.leerFechas = exports.frasedeFechas = exports.plainQuestion = void 0;
 /** Copia sin la condición, tal como se guarda y se envía a la app. */
-const plainQuestion = (question) => ({
-    id: question.id,
-    text: question.text,
-    options: question.options,
-    allowFreeText: question.allowFreeText,
-});
+const plainQuestion = (question) => (Object.assign({ id: question.id, text: question.text, options: question.options, allowFreeText: question.allowFreeText }, (question.kind ? { kind: question.kind } : {})));
 exports.plainQuestion = plainQuestion;
 /** Devuelve el optionId cuya lista de palabras aparece en el texto. */
 const inferByKeywords = (text, table) => {
@@ -34,10 +29,172 @@ const chosen = (question, answers) => {
 };
 /** Frase didáctica cuando la persona eligió "No sé": Weë decide y lo explica. */
 const decided = (idk, what) => (idk ? ` Como no estabas seguro, ${what}.` : '');
-const q = (id, text, options, allowFreeText = true, when) => (Object.assign({ id,
+const q = (id, text, options, allowFreeText = true, when, kind, freeInfer) => (Object.assign(Object.assign(Object.assign({ id,
     text,
     options,
-    allowFreeText }, (when ? { when } : {})));
+    allowFreeText }, (when ? { when } : {})), (kind ? { kind } : {})), (freeInfer ? { freeInfer } : {})));
+// ─────────────────────────────────────────────────────────────────────────────
+// Fechas de viaje: lo que la persona dice, entendido de verdad
+// ─────────────────────────────────────────────────────────────────────────────
+/*
+ * "Del 12 al 22 de octubre" son once días y diez noches, y eso cambia el viaje.
+ * Antes esto era una lista de botones —una semana, dos semanas, un mes— y diez
+ * días se convertían en "una semana": Weë le mentía al modelo y el itinerario no
+ * podía saber ni en qué época se viaja (fase 2E-65).
+ *
+ * Se lee de dos sitios y con el mismo código: de lo que la persona escribió, y
+ * de lo que eligió en el calendario, porque el calendario devuelve una frase que
+ * cualquiera podría haber tecleado ("del 12 al 22 de octubre de 2026"). Un solo
+ * formato y un solo lector.
+ */
+const MESES = {
+    enero: 0, ene: 0,
+    febrero: 1, feb: 1,
+    marzo: 2, mar: 2,
+    abril: 3, abr: 3,
+    mayo: 4, may: 4,
+    junio: 5, jun: 5,
+    julio: 6, jul: 6,
+    agosto: 7, ago: 7,
+    septiembre: 8, setiembre: 8, sep: 8, sept: 8, set: 8,
+    octubre: 9, oct: 9,
+    noviembre: 10, nov: 10,
+    diciembre: 11, dic: 11,
+};
+const NOMBRE_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const MES = Object.keys(MESES).sort((a, b) => b.length - a.length).join('|');
+/** Sin tildes y en minúsculas, para leer igual "Octubre" que "octubre". */
+const llano = (texto) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const dia = (anio, mes, numero) => new Date(Date.UTC(anio, mes, numero, 12));
+const valido = (fecha, mes) => !isNaN(fecha.getTime()) && fecha.getUTCMonth() === mes;
+/** Cómo se escribe un día suelto: "12 de octubre de 2026". */
+const diaEscrito = (fecha, conAnio = true) => `${fecha.getUTCDate()} de ${NOMBRE_MES[fecha.getUTCMonth()]}${conAnio ? ` de ${fecha.getUTCFullYear()}` : ''}`;
+/** La frase con la que Weë y la persona hablan de las mismas fechas. */
+const frasedeFechas = (salida, regreso) => {
+    if (salida.getTime() === regreso.getTime())
+        return `el ${diaEscrito(salida)}`;
+    const mismoMes = salida.getUTCMonth() === regreso.getUTCMonth() && salida.getUTCFullYear() === regreso.getUTCFullYear();
+    if (mismoMes)
+        return `del ${salida.getUTCDate()} al ${diaEscrito(regreso)}`;
+    return `del ${diaEscrito(salida)} al ${diaEscrito(regreso)}`;
+};
+exports.frasedeFechas = frasedeFechas;
+const conFechas = (salida, regreso) => {
+    const noches = Math.round((regreso.getTime() - salida.getTime()) / 86400000);
+    return { salida, regreso, dias: noches + 1, noches, etiqueta: (0, exports.frasedeFechas)(salida, regreso) };
+};
+/**
+ * Las fechas que hay dentro de un texto, o undefined si no hay ninguna.
+ *
+ * `hoy` existe para que el año se pueda deducir sin depender del reloj en las
+ * pruebas: quien dice "12 de octubre" en noviembre habla del octubre siguiente.
+ */
+const leerFechas = (texto, hoy = new Date()) => {
+    const t = llano(texto);
+    const A = `(?:de(?:l)?\\s+)?(\\d{4})`;
+    const SEP = `(?:\\s*(?:al?|hasta|[-–—])\\s*)`;
+    // 1) Los dos extremos con su mes: "del 28 de diciembre al 5 de enero".
+    const dosMeses = t.match(new RegExp(`(\\d{1,2})\\s*(?:de\\s+)?(${MES})\\b(?:\\s+${A})?${SEP}(\\d{1,2})\\s*(?:de\\s+)?(${MES})\\b(?:\\s+${A})?`));
+    if (dosMeses) {
+        const [, d1, m1, a1, d2, m2, a2] = dosMeses;
+        const mes1 = MESES[m1];
+        const mes2 = MESES[m2];
+        let anio1 = a1 ? Number(a1) : hoy.getUTCFullYear();
+        let salida = dia(anio1, mes1, Number(d1));
+        // Sin año escrito: si ya pasó, habla del año que viene.
+        if (!a1 && salida.getTime() < hoy.getTime() - 86400000) {
+            anio1 += 1;
+            salida = dia(anio1, mes1, Number(d1));
+        }
+        // Diciembre → enero cruza de año.
+        const anio2 = a2 ? Number(a2) : mes2 < mes1 ? anio1 + 1 : anio1;
+        const regreso = dia(anio2, mes2, Number(d2));
+        if (valido(salida, mes1) && valido(regreso, mes2) && regreso.getTime() >= salida.getTime())
+            return conFechas(salida, regreso);
+    }
+    // 2) Dos días y un mes compartido: "del 12 al 22 de octubre".
+    const unMes = t.match(new RegExp(`(\\d{1,2})${SEP}(\\d{1,2})\\s*(?:de\\s+)?(${MES})\\b(?:\\s+${A})?`));
+    if (unMes) {
+        const [, d1, d2, m, a] = unMes;
+        const mes = MESES[m];
+        let anio = a ? Number(a) : hoy.getUTCFullYear();
+        let salida = dia(anio, mes, Number(d1));
+        if (!a && salida.getTime() < hoy.getTime() - 86400000) {
+            anio += 1;
+            salida = dia(anio, mes, Number(d1));
+        }
+        const regreso = dia(anio, mes, Number(d2));
+        if (valido(salida, mes) && valido(regreso, mes) && regreso.getTime() >= salida.getTime())
+            return conFechas(salida, regreso);
+    }
+    // 3) En cifras: "del 12/10/2026 al 22/10/2026".
+    const cifras = t.match(/(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\s*(?:al?|hasta|[-–—])\s*(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?/);
+    if (cifras) {
+        const anioDe = (v, porDefecto) => (v ? (v.length === 2 ? 2000 + Number(v) : Number(v)) : porDefecto);
+        const anio1 = anioDe(cifras[3], hoy.getUTCFullYear());
+        const salida = dia(anio1, Number(cifras[2]) - 1, Number(cifras[1]));
+        const regreso = dia(anioDe(cifras[6], anio1), Number(cifras[5]) - 1, Number(cifras[4]));
+        if (valido(salida, Number(cifras[2]) - 1) && valido(regreso, Number(cifras[5]) - 1) && regreso.getTime() >= salida.getTime())
+            return conFechas(salida, regreso);
+    }
+    // 4) Un solo día: "salgo el 12 de octubre". Sin regreso todavía.
+    const suelto = t.match(new RegExp(`(\\d{1,2})\\s*(?:de\\s+)?(${MES})\\b(?:\\s+${A})?`));
+    if (suelto) {
+        const [, d, m, a] = suelto;
+        const mes = MESES[m];
+        let anio = a ? Number(a) : hoy.getUTCFullYear();
+        let salida = dia(anio, mes, Number(d));
+        if (!a && salida.getTime() < hoy.getTime() - 86400000) {
+            anio += 1;
+            salida = dia(anio, mes, Number(d));
+        }
+        if (valido(salida, mes))
+            return conFechas(salida, salida);
+    }
+    return undefined;
+};
+exports.leerFechas = leerFechas;
+const NUMEROS = {
+    un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
+    once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, veinte: 20, treinta: 30,
+};
+/**
+ * Cuántos días dura, cuando lo dice pero no dice cuándo: "Japón 10 días".
+ * Es un dato distinto de las fechas y sirve para no perderlo mientras se
+ * pregunta cuándo viaja.
+ */
+const leerDuracion = (texto) => {
+    const t = llano(texto);
+    if (/\bfin(?:es)? de semana\b|\bfinde\b/.test(t))
+        return 3;
+    const cantidad = (bruto) => {
+        const n = /^\d+$/.test(bruto) ? Number(bruto) : NUMEROS[bruto];
+        return n && n > 0 && n <= 120 ? n : undefined;
+    };
+    const enDias = t.match(new RegExp(`(\\d{1,3}|${Object.keys(NUMEROS).join('|')})\\s+(?:dias|noches)\\b`));
+    if (enDias) {
+        const n = cantidad(enDias[1]);
+        if (n)
+            return /noches/.test(enDias[0]) ? n + 1 : n;
+    }
+    const enSemanas = t.match(new RegExp(`(\\d{1,2}|${Object.keys(NUMEROS).join('|')})\\s+semanas?\\b`));
+    if (enSemanas) {
+        const n = cantidad(enSemanas[1]);
+        if (n)
+            return n * 7;
+    }
+    const enMeses = t.match(new RegExp(`(\\d{1,2}|${Object.keys(NUMEROS).join('|')})\\s+mes(?:es)?\\b`));
+    if (enMeses) {
+        const n = cantidad(enMeses[1]);
+        if (n)
+            return n * 30;
+    }
+    return undefined;
+};
+exports.leerDuracion = leerDuracion;
+/** Cómo se cuenta un viaje: "11 días · 10 noches". */
+const duracionEscrita = (dias) => `${dias} ${dias === 1 ? 'día' : 'días'} · ${dias - 1} ${dias - 1 === 1 ? 'noche' : 'noches'}`;
+exports.duracionEscrita = duracionEscrita;
 // ─────────────────────────────────────────────────────────────────────────────
 /**
  * Cómo se dice en el encargo cada respuesta de Weë Design. Se escriben aquí, y no
@@ -1401,6 +1558,244 @@ const brain = {
         };
     },
 };
+/*
+ * ─── Weë Travel ─────────────────────────────────────────────────────────────
+ *
+ * La regla de esta plantilla: GENERAR PRONTO, AFINAR DESPUÉS.
+ *
+ * Un viaje se cuenta con una frase —"Japón 10 días en octubre"— y casi todo lo
+ * que hace falta ya está dentro de esa frase. Por eso `infer` lee qué necesita,
+ * cuánto tiempo tiene y qué le apetece antes de preguntar nada. Con un sitio y
+ * una duración ya se puede hacer algo útil; lo demás tiene un valor razonable y
+ * se ajusta después. Nada de un cuestionario de ocho pasos para empezar.
+ *
+ * Y la regla de los resultados: Weë Travel no reserva nada y no inventa sitios.
+ * Lo que puede cambiar —horarios, precios— se marca para comprobar.
+ */
+const travel = {
+    name: 'Weë Travel',
+    emoji: '✈️',
+    defaultGoal: 'Un viaje que quiero hacer',
+    questions: [
+        q('what', '¿Qué necesitas?', [
+            opt('plan', '🗺️ Planificar un viaje'),
+            opt('where', '🌎 No sé a dónde ir'),
+            opt('doing', '🍽️ Qué hacer y dónde comer'),
+            opt('moving', '🧭 Cómo moverme'),
+        ]),
+        // Solo para quien no sabe a dónde ir: lo que de verdad reduce la decisión.
+        q('vibe', '¿Qué buscas en este viaje?', [
+            opt('rest', '🌴 Descansar'),
+            opt('discover', '🏛️ Descubrir'),
+            opt('food', '🍽️ Comer bien'),
+            opt('nature', '🏔️ Naturaleza'),
+            opt('party', '🎉 Salir'),
+            IDK,
+        ], true, (a) => a.what === 'where'),
+        /*
+         * Fechas de verdad, no una lista de duraciones.
+         *
+         * Aquí había cuatro botones —fin de semana, una semana, dos semanas, más—
+         * y con ellos "del 12 al 22 de octubre" se convertía en "una semana": once
+         * días contados como siete, y ni rastro de la época. Un itinerario que no
+         * sabe cuándo se viaja no puede avisar de que el museo cierra ese mes ni de
+         * que es temporada de lluvias, así que la duración se deduce de las fechas
+         * y no al revés (fase 2E-65).
+         *
+         * "Todavía no lo sé" es una respuesta entera: Weë sigue y lo dice.
+         */
+        q('dates', '¿Cuándo viajas?', [
+            { id: 'idk', label: '🤷 Todavía no lo sé' },
+        ], true, (a) => a.what === 'plan' || a.what === 'where', 'dates', true),
+        q('interest', '¿Qué te apetece más?', [
+            opt('culture', '🏛️ Cultura e historia'),
+            opt('nature', '🏔️ Naturaleza'),
+            opt('food', '🍽️ Comer'),
+            opt('rest', '🌴 Descansar'),
+            opt('party', '🎉 Vida nocturna'),
+            SURPRISE,
+        ], true, (a) => a.what === 'plan', undefined, true),
+        q('pace', '¿A qué ritmo?', [
+            opt('slow', '🐢 Tranquilo, sin prisas'),
+            opt('balanced', '🚶 Equilibrado'),
+            opt('intense', '⚡ Intenso, aprovechar cada día'),
+            SURPRISE,
+        ], true, (a) => a.what === 'plan'),
+    ],
+    /*
+     * Lo que la persona ya dijo no se le vuelve a preguntar. Se leen cuatro cosas
+     * del texto: qué necesita, cuánto tiempo tiene, qué le apetece y —lo último—
+     * si nombró un sitio, porque eso ya decide que no está buscando a dónde ir.
+     */
+    infer: (goal) => {
+        const answers = {};
+        const what = inferByKeywords(goal, {
+            moving: ['como llego', 'cómo llego', 'como voy', 'cómo voy', 'como me muevo', 'cómo me muevo', 'del aeropuerto', 'moverme', 'transporte', 'metro'],
+            doing: ['que hacer', 'qué hacer', 'donde comer', 'dónde comer', 'restaurante', 'que ver', 'qué ver', 'que visitar', 'qué visitar', 'actividades'],
+            where: ['no se donde', 'no sé dónde', 'no se a donde', 'no sé a dónde', 'donde viajar', 'dónde viajar', 'donde ir', 'dónde ir', 'recomiendame un destino', 'recomiéndame un destino', 'algun destino', 'algún destino', 'sugiereme', 'sugiéreme'],
+            plan: ['planificar', 'planear', 'itinerario', 'organizar', 'quiero ir a', 'quiero viajar a', 'viaje a'],
+        });
+        if (what)
+            answers.what = what;
+        /*
+         * Si ya dijo cuándo viaja, no se le pregunta otra vez. Se guarda la frase
+         * tal y como se dice —"del 12 al 22 de octubre de 2026"—, que es la misma
+         * que devuelve el calendario: un solo formato, legible en la conversación y
+         * releíble por el propio código.
+         *
+         * Decir "en octubre" o "10 días" NO es decir cuándo: ahí el calendario sí
+         * hace falta, y se pregunta.
+         */
+        const fechas = (0, exports.leerFechas)(goal);
+        if (fechas)
+            answers.dates = fechas.etiqueta;
+        const gusto = inferByKeywords(goal, {
+            rest: ['descansar', 'tranquil', 'relajad', 'playa', 'desconectar'],
+            food: ['comer', 'gastronom', 'comida', 'restaurantes'],
+            nature: ['naturaleza', 'montaña', 'senderismo', 'trekking', 'paisaje'],
+            party: ['fiesta', 'salir de noche', 'vida nocturna', 'discotec'],
+            culture: ['cultura', 'museos', 'historia', 'monumentos'],
+        });
+        if (gusto) {
+            // La misma señal sirve para las dos preguntas: qué busca y qué le apetece.
+            answers.vibe = gusto === 'culture' ? 'discover' : gusto;
+            answers.interest = gusto;
+        }
+        /*
+         * Un viaje no se disfruta de una sola cosa. Quien escribe "me gusta la
+         * comida y la cultura" está diciendo DOS, y elegir una de una lista sería
+         * hacerle perder la mitad. Cuando aparece más de un interés se guarda con
+         * sus propias palabras, que `chosen` sabe tratar como texto libre.
+         */
+        const INTERESES = {
+            'la cultura': ['cultura', 'museos', 'historia', 'monumentos', 'arte'],
+            'la naturaleza': ['naturaleza', 'montaña', 'senderismo', 'trekking', 'paisaje'],
+            'la comida': ['comer', 'gastronom', 'comida', 'restaurantes'],
+            'descansar': ['descansar', 'tranquil', 'relajad', 'playa', 'desconectar'],
+            'la vida nocturna': ['fiesta', 'salir de noche', 'vida nocturna', 'discotec'],
+        };
+        const bajo = goal.toLowerCase();
+        const varios = Object.entries(INTERESES).filter(([, palabras]) => palabras.some((w) => bajo.includes(w))).map(([nombre]) => nombre);
+        if (varios.length > 1)
+            answers.interest = varios.join(' y ');
+        const pace = inferByKeywords(goal, {
+            slow: ['sin prisa', 'tranquilo', 'relajado', 'con calma', 'sin correr', 'no correr', 'no quiero correr', 'despacio', 'con tiempo', 'sin agobios'],
+            intense: ['intenso', 'aprovechar', 'ver todo', 'todo lo posible', 'a tope', 'sin parar'],
+        });
+        if (pace)
+            answers.pace = pace;
+        /*
+         * Dos señales de que lo que quiere es planificar, para no preguntárselo.
+         *
+         * Una: nombró un sitio. "Quiero ir a Japón" no es una duda sobre a dónde ir.
+         * Otra: dijo cuánto tiempo tiene. Nadie dice "diez días" cuando lo que
+         * pregunta es cómo llegar del aeropuerto al centro; una duración es de quien
+         * ya sabe que va a viajar.
+         *
+         * Y ninguna de las dos adivina por adivinar: un texto que no dice nada —"Hola"—
+         * se queda sin deducir y Weë pregunta, que es lo honrado.
+         */
+        const NOMBRE_PROPIO = /\b(?:a|en|por|para|hacia)\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñü]{2,}/;
+        if (!answers.what && (NOMBRE_PROPIO.test(goal) || answers.dates || (0, exports.leerDuracion)(goal)))
+            answers.what = 'plan';
+        return answers;
+    },
+    buildPlan: (goal, answers) => {
+        const pregunta = (id) => travel.questions.find((q2) => q2.id === id);
+        const what = chosen(pregunta('what'), answers);
+        const vibe = chosen(pregunta('vibe'), answers);
+        const interest = chosen(pregunta('interest'), answers);
+        const pace = chosen(pregunta('pace'), answers);
+        /*
+         * Cuándo viaja, dicho de la forma más completa que se sepa.
+         *
+         * Tres estados, y los tres son válidos: con fechas, con duración pero sin
+         * fechas ("Japón 10 días"), o sin nada. Ninguno bloquea; lo único que cambia
+         * es lo que Weë promete y lo que le cuenta al modelo. Inventarle unas fechas
+         * a alguien que no las tiene sería mandarle a un sitio en la época
+         * equivocada, así que no se inventan.
+         */
+        const elegidas = answers.dates && answers.dates !== 'idk' ? (0, exports.leerFechas)(answers.dates) : undefined;
+        const diasSueltos = (0, exports.leerDuracion)(goal);
+        const cuando = elegidas
+            ? `${elegidas.etiqueta} (${(0, exports.duracionEscrita)(elegidas.dias)})`
+            : diasSueltos
+                ? `${(0, exports.duracionEscrita)(diasSueltos)}, todavía sin fechas`
+                : 'todavía sin fechas ni duración';
+        const cuantoDura = elegidas ? (0, exports.duracionEscrita)(elegidas.dias) : diasSueltos ? (0, exports.duracionEscrita)(diasSueltos) : 'tu viaje';
+        // "del 12 al 22 de octubre (11 días · 10 noches)" o, sin fechas, "de una semana".
+        const elViaje = elegidas ? `${elegidas.etiqueta} (${(0, exports.duracionEscrita)(elegidas.dias)})` : `de ${cuantoDura}`;
+        // Para el renglón de progreso, corto: "Preparar el itinerario de 11 días".
+        const cuantosDias = elegidas ? `${elegidas.dias} días` : diasSueltos ? `${diasSueltos} días` : 'tu viaje';
+        const sinFechas = !elegidas;
+        const avisoDeFechas = sinFechas ? ' Cuando sepas las fechas, dímelas y lo cuadro con la temporada.' : '';
+        const gusto = interest.idk ? 'un poco de todo' : interest.label.toLowerCase();
+        const ritmo = pace.idk ? 'a un ritmo equilibrado' : `a ritmo ${pace.label.toLowerCase()}`;
+        const busca = vibe.idk ? 'algo que le sorprenda' : vibe.label.toLowerCase();
+        switch (what.idk ? 'plan' : what.id) {
+            /*
+             * No sé a dónde ir. Con buscador, porque proponer destinos sin mirar qué
+             * pasa este año —una frontera cerrada, una temporada de lluvias— sería
+             * mandar a alguien a un sitio equivocado. Y con las fechas delante, que es
+             * lo que distingue un buen destino en octubre de uno malo.
+             */
+            case 'where':
+                return {
+                    experience: 'travel',
+                    goal,
+                    steps: [
+                        step('destinations', 'text.search', 'Buscar tres destinos que encajen', {
+                            input: { kind: 'destinations', brief: `busca ${busca}, viaja ${cuando}` },
+                        }),
+                    ],
+                    explainToUser: `Voy a proponerte tres destinos ${elegidas ? `para ${elegidas.etiqueta}` : `para ${cuantoDura}`}, pensando en que buscas ${busca}. Con el que elijas, te preparo el viaje entero.${decided(vibe.idk, 'te propongo tres viajes distintos entre sí')}${avisoDeFechas}`,
+                };
+            /* Qué hacer y dónde comer: siempre con búsqueda y con fuentes. */
+            case 'doing':
+                return {
+                    experience: 'travel',
+                    goal,
+                    steps: [
+                        step('activities', 'text.search', 'Buscar qué merece la pena y dónde comer', {
+                            input: { kind: 'activities', brief: goal },
+                        }),
+                    ],
+                    explainToUser: 'Voy a buscar qué merece la pena y dónde comer, y te dejo la fuente de cada cosa para que puedas comprobarla.',
+                };
+            /* Cómo moverme: una pregunta concreta, una respuesta concreta. */
+            case 'moving':
+                return {
+                    experience: 'travel',
+                    goal,
+                    steps: [
+                        step('transport', 'text.search', 'Buscar cómo moverse', { input: { kind: 'transport', brief: goal } }),
+                    ],
+                    explainToUser: 'Voy a buscar las formas de moverte, con lo que tardan y lo que cuestan aproximadamente.',
+                };
+            /*
+             * Planificar. Un solo paso, pero con buscador: un itinerario escrito de
+             * memoria manda a la gente a sitios que ese mes no abren o que cerraron
+             * hace dos años. Buscando, y con las fechas exactas delante, el itinerario
+             * sale con la temporada y los horarios puestos. Y es un solo precio.
+             */
+            default:
+                return {
+                    experience: 'travel',
+                    goal,
+                    steps: [
+                        step('itinerary', 'text.search', `Preparar el itinerario de ${cuantosDias}`, {
+                            input: {
+                                kind: 'itinerary',
+                                brief: `viaja ${cuando}, le interesa ${gusto}, ${ritmo}`,
+                                quality: 'max',
+                            },
+                        }),
+                    ],
+                    explainToUser: `Voy a prepararte el itinerario ${elViaje}, día a día y con un presupuesto aproximado.${decided(interest.idk, 'reparto los días entre lo mejor de cada cosa')}${avisoDeFechas}`,
+                };
+        }
+    },
+};
 exports.TEMPLATES = {
     design,
     studio,
@@ -1411,6 +1806,7 @@ exports.TEMPLATES = {
     chef,
     home,
     business,
+    travel,
     brain,
 };
 //# sourceMappingURL=templates.js.map

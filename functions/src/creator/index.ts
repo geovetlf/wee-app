@@ -2,7 +2,7 @@ import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase
 import { AI_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
-import { PlannerInput, getPlanner } from './planner';
+import { PlannerInput, getPlanner, respuestaPara } from './planner';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
 import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
@@ -32,7 +32,15 @@ import { usageTransactionId } from '../credits/creditTransactions';
  *   Credits: autorizar (AUTHORIZED) → ejecutar → completar (COMPLETED) o reembolsar (REFUNDED).
  *   Cada paso queda en aiGenerations con requestId jobId:stepId y la transacción usage_<jobId>.
  */
-const EXPERIENCES: ExperienceId[] = ['design', 'studio', 'photo', 'writer', 'music', 'beauty', 'chef', 'home', 'business', 'brain'];
+/*
+ * Las experiencias que el servidor sabe atender son, exactamente, las que tienen
+ * plantilla. No se escriben aquí a mano: esto era una lista de diez y se quedó
+ * atrás cuando llegó Weë Travel —`ExperienceId[]` obliga a que cada elemento sea
+ * válido, no a que estén todos—, así que el compilador calló y Travel respondía
+ * "Experiencia desconocida". `TEMPLATES` sí es un Record completo y el compilador
+ * lo comprueba, de modo que derivándola de ahí no puede volver a desfasarse.
+ */
+const EXPERIENCES = new Set<string>(Object.keys(TEMPLATES));
 
 const db = () => getFirestore();
 const jobs = () => db().collection('creatorJobs');
@@ -197,7 +205,7 @@ export const creatorChat = onCall(
         }
       } else {
         const experienceId = String(data.experienceId || '') as ExperienceId;
-        if (!EXPERIENCES.includes(experienceId)) throw new EngineError('INVALID_REQUEST', 'Experiencia desconocida.');
+        if (!EXPERIENCES.has(experienceId)) throw new EngineError('INVALID_REQUEST', 'Experiencia desconocida.');
         const goal = String(data.goal || '').trim().slice(0, 300) || TEMPLATES[experienceId].defaultGoal;
         await ensureAccount(uid);
         ref = jobs().doc();
@@ -222,13 +230,22 @@ export const creatorChat = onCall(
           createdAt: now(),
           updatedAt: now(),
         };
-        // Solo se aceptan presets que existan en la plantilla; lo demás se pregunta
+        /*
+         * Solo se aceptan presets que existan en la plantilla; lo demás se pregunta.
+         *
+         * Qué vale lo decide `respuestaPara`, la misma función que usa la deducción
+         * automática. Antes esto tenía su propia copia de la regla —solo ids de
+         * opción— y por eso las fechas elegidas en el calendario se perdían al
+         * pulsar "Ajustar": no son un botón, así que no cabían aquí (fase 2E-65.1).
+         */
         const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
         for (const preset of presets) {
           const question = TEMPLATES[experienceId].questions.find((q) => q.id === String(preset?.questionId));
-          if (question && question.options.some((o) => o.id === String(preset?.optionId))) {
-            job.answers.push({ questionId: question.id, optionId: String(preset.optionId) });
-          }
+          if (!question) continue;
+          // El id de opción manda; si no lo hay, se prueba con lo escrito.
+          const bruto = preset?.optionId != null ? String(preset.optionId) : preset?.text != null ? String(preset.text) : undefined;
+          const respuesta = respuestaPara(question, bruto);
+          if (respuesta) job.answers.push({ questionId: question.id, ...respuesta });
         }
       }
 

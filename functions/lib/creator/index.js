@@ -31,7 +31,15 @@ const creditTransactions_1 = require("../credits/creditTransactions");
  *   Credits: autorizar (AUTHORIZED) → ejecutar → completar (COMPLETED) o reembolsar (REFUNDED).
  *   Cada paso queda en aiGenerations con requestId jobId:stepId y la transacción usage_<jobId>.
  */
-const EXPERIENCES = ['design', 'studio', 'photo', 'writer', 'music', 'beauty', 'chef', 'home', 'business', 'brain'];
+/*
+ * Las experiencias que el servidor sabe atender son, exactamente, las que tienen
+ * plantilla. No se escriben aquí a mano: esto era una lista de diez y se quedó
+ * atrás cuando llegó Weë Travel —`ExperienceId[]` obliga a que cada elemento sea
+ * válido, no a que estén todos—, así que el compilador calló y Travel respondía
+ * "Experiencia desconocida". `TEMPLATES` sí es un Record completo y el compilador
+ * lo comprueba, de modo que derivándola de ahí no puede volver a desfasarse.
+ */
+const EXPERIENCES = new Set(Object.keys(templates_1.TEMPLATES));
 const db = () => (0, firestore_1.getFirestore)();
 const jobs = () => db().collection('creatorJobs');
 const now = () => firestore_1.Timestamp.now();
@@ -180,20 +188,31 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
         }
         else {
             const experienceId = String(data.experienceId || '');
-            if (!EXPERIENCES.includes(experienceId))
+            if (!EXPERIENCES.has(experienceId))
                 throw new errors_1.EngineError('INVALID_REQUEST', 'Experiencia desconocida.');
             const goal = String(data.goal || '').trim().slice(0, 300) || templates_1.TEMPLATES[experienceId].defaultGoal;
             await (0, credits_1.ensureAccount)(uid);
             ref = jobs().doc();
             job = Object.assign(Object.assign(Object.assign({ id: ref.id, userId: uid, experienceId,
                 goal, questions: [], answers: [], plan: null, steps: [], results: [], status: 'asking', progressText: '', creditsEstimated: 0, creditsCharged: 0, demo: true, pricingMode: await (0, credits_1.pricingMode)() }, (data.projectId ? { projectId: String(data.projectId) } : {})), (data.imageUrl ? { inputImageUrl: (0, inputs_1.assertInputImageUrl)(data.imageUrl, uid) } : {})), { createdAt: now(), updatedAt: now() });
-            // Solo se aceptan presets que existan en la plantilla; lo demás se pregunta
+            /*
+             * Solo se aceptan presets que existan en la plantilla; lo demás se pregunta.
+             *
+             * Qué vale lo decide `respuestaPara`, la misma función que usa la deducción
+             * automática. Antes esto tenía su propia copia de la regla —solo ids de
+             * opción— y por eso las fechas elegidas en el calendario se perdían al
+             * pulsar "Ajustar": no son un botón, así que no cabían aquí (fase 2E-65.1).
+             */
             const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
             for (const preset of presets) {
                 const question = templates_1.TEMPLATES[experienceId].questions.find((q) => q.id === String(preset === null || preset === void 0 ? void 0 : preset.questionId));
-                if (question && question.options.some((o) => o.id === String(preset === null || preset === void 0 ? void 0 : preset.optionId))) {
-                    job.answers.push({ questionId: question.id, optionId: String(preset.optionId) });
-                }
+                if (!question)
+                    continue;
+                // El id de opción manda; si no lo hay, se prueba con lo escrito.
+                const bruto = (preset === null || preset === void 0 ? void 0 : preset.optionId) != null ? String(preset.optionId) : (preset === null || preset === void 0 ? void 0 : preset.text) != null ? String(preset.text) : undefined;
+                const respuesta = (0, planner_1.respuestaPara)(question, bruto);
+                if (respuesta)
+                    job.answers.push(Object.assign({ questionId: question.id }, respuesta));
             }
         }
         const turn = await (0, planner_1.getPlanner)().next(Object.assign({ experienceId: job.experienceId, goal: job.goal, answers: job.answers, gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) } }, (turno ? { turn: turno } : {})));

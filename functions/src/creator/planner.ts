@@ -56,16 +56,51 @@ const toRecord = (answers: Answer[]): Record<string, string> => {
  * estado de respuestas: el que consulta al LLM necesita ese estado para evaluar
  * las condiciones `when` igual que lo hará después el de plantilla.
  */
+/** Lo más largo que se acepta como respuesta escrita, igual de generoso que el objetivo. */
+const MAXIMO_TEXTO = 200;
+
+/**
+ * Qué vale como respuesta a una pregunta, venga de donde venga.
+ *
+ * Hay dos puertas por las que entra una respuesta sin que nadie la haya tocado:
+ * lo que Weë deduce del texto (`localInference`) y lo que llega ya contestado al
+ * abrir un trabajo (`presetAnswers`, en creator/index.ts). Las dos aplicaban la
+ * misma regla por su cuenta, y al cambiar una se olvidó la otra: las fechas
+ * elegidas en el calendario sobrevivían a la conversación pero se perdían al
+ * pulsar "Ajustar" (GAP 1 de la fase 2E-65).
+ *
+ * Por eso la regla vive aquí y solo aquí:
+ *
+ *   · si el valor es una de las opciones, es esa opción;
+ *   · si no lo es, solo vale cuando la pregunta declara `freeInfer` —unas fechas
+ *     o dos intereses a la vez no caben en una lista de botones—;
+ *   · cualquier otra cosa se descarta, como siempre.
+ *
+ * Ninguna pregunta de las otras diez experiencias declara `freeInfer`, así que
+ * para ellas esto sigue aceptando únicamente opciones.
+ */
+export const respuestaPara = (
+  question: TemplateQuestion,
+  valor: string | undefined
+): { optionId?: string; text?: string } | null => {
+  const limpio = (valor ?? '').trim();
+  if (!limpio) return null;
+  if (question.options.some((o) => o.id === limpio)) return { optionId: limpio };
+  if (question.freeInfer) return { text: limpio.slice(0, MAXIMO_TEXTO) };
+  return null;
+};
+
 const localInference = (template: ExperienceTemplate, goal: string, record: Record<string, string>): Answer[] => {
   const inferred: Answer[] = [];
   if (!template.infer || !goal || goal === template.defaultGoal) return inferred;
   const guessed = template.infer(goal);
-  for (const [questionId, optionId] of Object.entries(guessed)) {
+  for (const [questionId, valor] of Object.entries(guessed)) {
     const question = template.questions.find((q) => q.id === questionId);
     if (!question || questionId in record) continue;
-    if (!question.options.some((o) => o.id === optionId)) continue;
-    record[questionId] = optionId;
-    inferred.push({ questionId, optionId, inferred: true });
+    const respuesta = respuestaPara(question, valor);
+    if (!respuesta) continue;
+    record[questionId] = respuesta.optionId ?? (respuesta.text as string);
+    inferred.push({ questionId, ...respuesta, inferred: true });
   }
   return inferred;
 };

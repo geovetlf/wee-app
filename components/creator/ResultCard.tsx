@@ -20,6 +20,118 @@ const formatDuration = (seconds?: number): string => {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 };
 
+/*
+ * Un itinerario de diez días son varios miles de caracteres, y de un tirón no se
+ * lee: se hace scroll hasta el final buscando el presupuesto. Así que los días se
+ * pliegan —el primero abierto, para que se vea de qué va— y cada uno se abre
+ * cuando toca.
+ *
+ * Solo se pliega lo que de verdad son días. Un texto sin bloques "DÍA n" pasa
+ * entero, igual que siempre: esto no cambia ni una línea del resto de Weë.
+ */
+const LINEA_DIA = /^d[íi]a\s+\d+/i;
+const LINEA_CIERRE = /^presupuesto\b/i;
+
+interface Dia {
+  titulo: string;
+  cuerpo: string;
+}
+
+export const partirEnDias = (texto: string): { intro: string; dias: Dia[]; cierre: string } | null => {
+  const dias: Dia[] = [];
+  const intro: string[] = [];
+  const cierre: string[] = [];
+  let actual: { titulo: string; cuerpo: string[] } | null = null;
+  let cerrado = false;
+
+  const guardar = () => {
+    if (!actual) return;
+    dias.push({ titulo: actual.titulo, cuerpo: actual.cuerpo.join('\n').trim() });
+    actual = null;
+  };
+
+  for (const linea of texto.split('\n')) {
+    const limpia = linea.trim();
+    if (cerrado) {
+      cierre.push(linea);
+    } else if (LINEA_CIERRE.test(limpia)) {
+      // El presupuesto no se pliega nunca: es lo primero que se busca.
+      guardar();
+      cerrado = true;
+      cierre.push(linea);
+    } else if (LINEA_DIA.test(limpia)) {
+      guardar();
+      actual = { titulo: limpia, cuerpo: [] };
+    } else if (actual) {
+      actual.cuerpo.push(linea);
+    } else {
+      intro.push(linea);
+    }
+  }
+  guardar();
+
+  // Con un solo día no hay nada que plegar.
+  if (dias.length < 2) return null;
+  return { intro: intro.join('\n').trim(), dias, cierre: cierre.join('\n').trim() };
+};
+
+/** El texto de un resultado: entero, o por días cuando es un itinerario. */
+const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
+  const { theme } = useTheme();
+  const partes = React.useMemo(() => partirEnDias(texto), [texto]);
+  // El primero abierto: quien llega ve enseguida de qué va el viaje.
+  const [abiertos, setAbiertos] = useState<Record<number, boolean>>({ 0: true });
+
+  if (!partes) {
+    return <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{texto}</Text>;
+  }
+
+  // Destino, fechas y duración: el primero grande, los otros dos debajo.
+  const cabecera = partes.intro.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  return (
+    <View style={styles.dias}>
+      {cabecera.length > 0 && (
+        <View style={[styles.cabeceraViaje, { borderColor: theme.colors.accent }]}>
+          <Text selectable style={[styles.destino, { color: theme.colors.text }]}>{cabecera[0]}</Text>
+          {cabecera.slice(1).map((linea, indice) => (
+            <Text
+              key={linea + indice}
+              selectable
+              style={[indice === 0 ? styles.fechasViaje : styles.duracionViaje, { color: indice === 0 ? theme.colors.text : theme.colors.textSecondary }]}
+            >
+              {linea}
+            </Text>
+          ))}
+        </View>
+      )}
+      {partes.dias.map((dia, indice) => {
+        const abierto = !!abiertos[indice];
+        return (
+          <View key={dia.titulo + indice} style={[styles.dia, { borderColor: abierto ? theme.colors.accent : theme.colors.border }]}>
+            <TouchableOpacity
+              onPress={() => setAbiertos((previo) => ({ ...previo, [indice]: !previo[indice] }))}
+              activeOpacity={0.8}
+              style={styles.diaHead}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: abierto }}
+              aria-expanded={abierto}
+              accessibilityLabel={`${dia.titulo}. ${abierto ? 'Tocar para plegar' : 'Tocar para ver el día'}`}
+            >
+              <Text style={[styles.diaTitulo, { color: theme.colors.text }]}>{dia.titulo}</Text>
+              <Ionicons name={abierto ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+            {abierto && !!dia.cuerpo && (
+              <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{dia.cuerpo}</Text>
+            )}
+          </View>
+        );
+      })}
+      {!!partes.cierre && <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{partes.cierre}</Text>}
+    </View>
+  );
+};
+
 interface ResultCardProps {
   experienceName: string;
   job: CreatorJob;
@@ -234,7 +346,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             {result.title}
             {result.demo && !job.demo ? '  · muestra' : ''}
           </Text>
-          <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{result.content}</Text>
+          <TextoDelResultado texto={result.content || ''} />
           {!!result.sources?.length && (
             <View style={styles.sources}>
               {result.sources.map((source) => (
@@ -838,6 +950,44 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: FONT_SIZE.sm,
     lineHeight: scale(21),
+  },
+  dias: {
+    gap: SPACING.sm,
+  },
+  cabeceraViaje: {
+    borderLeftWidth: scale(3),
+    paddingLeft: SPACING.md,
+    paddingVertical: scale(2),
+    gap: scale(2),
+  },
+  destino: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  fechasViaje: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  duracionViaje: {
+    fontSize: FONT_SIZE.xs,
+  },
+  dia: {
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  diaHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  diaTitulo: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
   },
   sources: {
     flexDirection: 'row',

@@ -168,6 +168,39 @@ export const SECTION_MARKERS: Record<string, string[]> = {
     'weel',
     'weels',
   ],
+  /*
+   * Weë Travel (fase 2E-64C). Fuera las palabras que se dicen en media app:
+   * "ruta" es también una ruta de bicicleta, "guía" una guía de estilo y "playa"
+   * sale en cualquier foto de verano. Se reconoce un viaje por su vocabulario
+   * propio —el itinerario, el destino, el vuelo, la maleta— y sobre todo por
+   * 'travel', que es la firma que queda en aiTools al publicar desde aquí.
+   */
+  travel: [
+    'travel',
+    'viaje',
+    'viajes',
+    'viajar',
+    'viajando',
+    'vacaciones',
+    'itinerario',
+    'itinerarios',
+    'destino',
+    'destinos',
+    'turismo',
+    'turista',
+    'vuelo',
+    'vuelos',
+    'aeropuerto',
+    'mochilero',
+    'mochilera',
+    'excursion',
+    'excursiones',
+    'maleta',
+    'maletas',
+    'pasaporte',
+    'crucero',
+    'roadtrip',
+  ],
 };
 
 /** Todo el texto de la publicación donde puede aparecer una pista de sección. */

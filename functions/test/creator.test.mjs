@@ -710,7 +710,7 @@ console.log('\n── Weë Chef · la sección se convierte en comunidad ──'
   // 7) Ninguna otra sección se movió.
   // Muro y cuadrícula compacta van siempre juntos, y solo donde toca.
   check('7) las secciones con muro son las que tienen cuadrícula compacta', (specialists.match(/^    wall: \{/gm) || []).length === (specialists.match(/actionLayout: 'compact'/g) || []).length);
-  check('7) y hoy son Chef, Design y Studio', (specialists.match(/^    wall: \{/gm) || []).length === 3);
+  check('7) y hoy son Chef, Design, Studio y Travel', (specialists.match(/^    wall: \{/gm) || []).length === 4);
   check('7) las demás conservan su caja de idea y sus ejemplos', /\{!wall && <IdeaBox/.test(pantalla) && /\{!wall && <ExamplesRow/.test(pantalla));
   check('7) y su caja de subida de siempre', /\{spec\.upload && <UploadBox/.test(pantalla) && (specialists.match(/^    upload: \{/gm) || []).length === 3);
 
@@ -897,7 +897,7 @@ console.log('\n── Weë Chef · las herramientas se pliegan ──');
   // Una sola implementación: el gesto de plegar deja de copiarse a mano.
   check('el plegable es un componente compartido', /export const Collapsible/.test(ui) && (ui.match(/export const Collapsible/g) || []).length === 1);
   check('y las secciones sin muro conservan su cuadrícula siempre abierta', /\) : \([\s\S]{0,400}<SectionTitle[\s\S]{0,400}<ActionGrid/.test(pantalla));
-  check('lo usan las secciones con muro, y solo esas', (specialists.match(/^    wall: \{/gm) || []).length === 3);
+  check('lo usan las secciones con muro, y solo esas', (specialists.match(/^    wall: \{/gm) || []).length === 4);
 }
 
 // ── WEË DESIGN: CATORCE PUERTAS, SIETE INTENCIONES ──────────────────────────
@@ -1262,12 +1262,13 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
   };
   const exp = await cargar('constants/weeExperiences.ts');
 
-  // 1 a 7) Diez existen; siete se ven desde que home se mudó a Design (2E-56).
+  // 1 a 7) Once existen; ocho se ven: home se mudó a Design (2E-56) y llegó
+  // Weë Travel (2E-64C).
   {
     const visibles = exp.WEE_EXPERIENCES.map((e) => e.id);
     const todas = exp.ALL_EXPERIENCES.map((e) => e.id);
-    check('1) siete secciones visibles', visibles.length === 7, visibles.join(','));
-    check('2) y diez experiencias en total', todas.length === 10, todas.join(','));
+    check('1) ocho secciones visibles', visibles.length === 8, visibles.join(','));
+    check('2) y once experiencias en total', todas.length === 11, todas.join(','));
     check('3) photo sigue existiendo', todas.includes('photo'));
     check('4) beauty sigue existiendo', todas.includes('beauty'));
     check('5) photo ya no es una sección', !visibles.includes('photo'));
@@ -1296,7 +1297,7 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     // Fuera de Studio, `opens` solo lo usa Weë Design, y solo para Hogar & Diseño.
     check('12) fuera de Studio, opens es solo el de Hogar & Diseño', (fuera.match(/opens: '/g) || []).length === 1 && /opens: 'home'/.test(fuera));
     check('12) y sin opens se abre la propia sección', /const startFlow = \(goal\?: string, preset\?: SpecialistAction\['preset'\], imageUri\?: string, opens\?: SpecialistAction\['opens'\]\)/.test(pantalla));
-    check('12) el orden de secciones pierde tres y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'\]/.test(specialists));
+    check('12) el orden de secciones pierde tres y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'\]/.test(specialists));
   }
 
   // 13 a 15) El historial no se rompe y nadie acaba en Brain sin querer.
@@ -1550,10 +1551,10 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
 
   // 12 a 14) Identificadores, historial y las otras siete.
   check('12) photo y beauty siguen en ALL_EXPERIENCES', ['photo', 'beauty'].every((id) => exp.ALL_EXPERIENCES.some((e) => e.id === id)));
-  check('12) y no como secciones del menú', exp.WEE_EXPERIENCES.length === 7 && !exp.WEE_EXPERIENCES.some((e) => ['photo', 'beauty', 'home'].includes(e.id)));
+  check('12) y no como secciones del menú', exp.WEE_EXPERIENCES.length === 8 && !exp.WEE_EXPERIENCES.some((e) => ['photo', 'beauty', 'home'].includes(e.id)));
   check('13) un trabajo histórico de Photo resuelve a Weë Photo', exp.getExperienceById('photo')?.name === 'Weë Photo');
   check('13) y uno de Beauty, a Weë Beauty', exp.getExperienceById('beauty')?.name === 'Weë Beauty');
-  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'\]/.test(specialists));
+  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'\]/.test(specialists));
   {
     const fuera = specialists.replace(bloque, '');
     // Fuera de Studio solo Weë Design usa este mecanismo, y solo una vez (2E-56).
@@ -1614,7 +1615,7 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
   // A y B) Se va del menú, se queda en el sistema.
   check('A) home ya no es sección principal', !exp.WEE_EXPERIENCES.some((e) => e.id === 'home') && exp.HIDDEN_AS_SECTION.includes('home'));
   check('A) ni aparece en el orden de la barra lateral', !/SPECIALIST_ORDER[^\]]*'home'/.test(specialists));
-  check('B) pero sigue existiendo como experiencia', exp.ALL_EXPERIENCES.some((e) => e.id === 'home') && exp.ALL_EXPERIENCES.length === 10);
+  check('B) pero sigue existiendo como experiencia', exp.ALL_EXPERIENCES.some((e) => e.id === 'home') && exp.ALL_EXPERIENCES.length === 11);
   check('B) y su pantalla de sección no se ha borrado', /^  home: \{/m.test(specialists));
 
   // C, D y E) La entrada dentro de Weë Design.
@@ -1743,7 +1744,7 @@ console.log('\n── Hogar & Diseño · seis caminos, una foto, un antes y un d
   {
     check('4) un trabajo con "remodel" sigue armando su plan', caps('remodel').join(' + ') === 'vision.describe + image.space_restyle + text.generate');
     check('4) y lo arma como rediseñar', focus('remodel') === focus('design'));
-    check('4) el identificador home sigue vivo', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 10);
+    check('4) el identificador home sigue vivo', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 11);
     check('4) los otros identificadores siguen resolviendo', ['design', 'furniture', 'colors', 'layout', 'garden', 'ideas'].every((w) => plan(w).steps.length >= 2));
   }
 
@@ -2015,7 +2016,7 @@ console.log('\n── Hogar & Diseño · que se vea, y que se llame como se llam
     check('G) home se presenta como Hogar & Diseño', exp.experienceLabel(exp.getExperienceById('home')) === 'Hogar & Diseño');
     check('H) "Mis creaciones" usa la etiqueta, no el nombre crudo', /\{exp \? experienceLabel\(exp\) : 'Weë'\}/.test(creator) && !/\{exp\?\.name \?\? 'Weë'\}/.test(creator));
     check('H) y una sola fuente de verdad para el nombre', /experienceLabel/.test(creator) && !/HOME_LABEL|NOMBRES_VISIBLES/.test(creator));
-    check('I) el identificador interno no se ha tocado', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 10);
+    check('I) el identificador interno no se ha tocado', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 11);
     check('I) ni su nombre propio, que sigue guardado', exp.getExperienceById('home')?.name === 'Weë Home');
     check('J) las demás conservan el suyo', ['design', 'studio', 'chef', 'writer', 'music', 'business', 'brain', 'photo', 'beauty'].every((id) => exp.experienceLabel(exp.getExperienceById(id)) === exp.getExperienceById(id).name));
     check('J) y ninguna otra experiencia cambia de etiqueta', Object.keys(exp.EXPERIENCE_AREA).filter((id) => exp.EXPERIENCE_AREA[id].name).join(',') === 'home');
@@ -2101,6 +2102,110 @@ console.log('\n── Hogar & Diseño · propuestas, comparación y la foto en g
   check('9) el video sigue teniendo su rama', /result\.kind === 'video' && isRealMedia\(result\.url\)/.test(tarjeta));
   check('9) y las demás experiencias siguen recortando como siempre', /contentFit="cover"/.test(tarjeta));
   check('9) no hay un segundo ResultCard ni un workspace nuevo', !/ResultCardEspacio|HomeWorkspace|SpaceWorkspace/.test(tarjeta + flujo));
+}
+
+// ── LOS CREDITS VIVEN CON TU CUENTA, NO EN EL ENCABEZADO ───────────────────
+// Cambio de sitio, no de comportamiento: mismo saldo, mismo destino, otro lugar.
+console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
+{
+  const fs2 = await import('node:fs');
+  const leer = (p2) => fs2.readFileSync(new URL('../../' + p2, import.meta.url), 'utf8');
+  const sinComentarios = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const cabecera = leer('components/Header.tsx');
+  const menu = leer('components/DrawerMenu.tsx');
+  const codigoMenu = sinComentarios(menu);
+
+  // 1) El Home ya no lo muestra.
+  check('C1) el encabezado del Home no pinta Credits', !/<CreditsPill/.test(sinComentarios(cabecera)));
+  check('C1) ni lo importa', !/import CreditsPill/.test(cabecera));
+  check('C1) y el resto del encabezado sigue entero', /styles\.actions/.test(cabecera) && /switchButton/.test(cabecera));
+
+  // 2) En el menú aparece una sola vez.
+  check('C2) el menú tiene Credits una sola vez', (codigoMenu.match(/fila\('credits'/g) || []).length === 1);
+
+  // 3) Debajo de los dos perfiles y antes de EXPLORA.
+  const real = codigoMenu.indexOf("fila('realProfile'");
+  const wee = codigoMenu.indexOf('goWeeProfile');
+  const credits = codigoMenu.indexOf("fila('credits'");
+  const explora = codigoMenu.indexOf("renderSectionLabel('EXPLORA')");
+  const comunidades = codigoMenu.indexOf("fila('communities'");
+  check('C3) va después de Perfil Real y Perfil Weë', credits > real && credits > wee, `real ${real} · weë ${wee} · credits ${credits}`);
+  check('C4) y antes de EXPLORA', credits < explora && explora < comunidades, `credits ${credits} · explora ${explora}`);
+
+  // 5) El saldo sale de donde salía; no hay una segunda fuente.
+  check('C5) el saldo sigue viniendo de useWallet', /const \{ balance \} = useWallet\(activeUid\)/.test(menu));
+  check('C5) y no hay un saldo inventado en el menú', !/balance\s*=\s*\d/.test(codigoMenu) && (menu.match(/useWallet\(/g) || []).length === 1);
+
+  // 6) Tocar Credits sigue llevando al mismo sitio.
+  check('C6) Credits sigue abriendo CreditStore', codigoMenu.includes("const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());"));
+  check('C6) y el resto de filas del menú siguen ahí', ["fila('notifications'", "fila('saved'", "fila('settings'", "fila('help'"].every((t) => codigoMenu.includes(t)));
+
+  // 7) Nadie más cambió de sitio: las otras superficies conservan su píldora.
+  check('C7) Weë Creator conserva la suya', /<CreditsPill compact \/>/.test(leer('components/creator/CreatorShell.tsx')));
+  check('C7) y la barra lateral lo enseña como fila, junto a los perfiles', /<Opcion\s+id="credits"/.test(leer('components/Sidebar.tsx')) && !/<CreditsPill/.test(sinComentarios(leer('components/Sidebar.tsx'))));
+  check('C7) el componente no se ha duplicado', fs2.existsSync(new URL('../../components/CreditsPill.tsx', import.meta.url)));
+}
+
+// ── UN SOLO MENÚ: EL CAJÓN Y LA BARRA DICEN LO MISMO ───────────────────────
+console.log('\n── El menú ☰, igual en la app y en la web ──');
+{
+  const fs3 = await import('node:fs');
+  const leer3 = (x) => fs3.readFileSync(new URL('../../' + x, import.meta.url), 'utf8');
+  const limpio = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const cajon = leer3('components/DrawerMenu.tsx');
+  const barra = leer3('components/Sidebar.tsx');
+  const fuente = leer3('constants/weeMenu.ts');
+
+  const ts3 = (await import('node:module')).createRequire(import.meta.url)('typescript');
+  const js3 = ts3.transpileModule(fuente, { compilerOptions: { module: ts3.ModuleKind.ESNext, target: ts3.ScriptTarget.ES2020 } }).outputText;
+  const menu = await import('data:text/javascript;base64,' + Buffer.from(js3).toString('base64'));
+
+  // 1) Hay una fuente única y las dos la leen.
+  check('M1) existe una sola fuente del menú', menu.MENU_ORDER.length === 11 && !!menu.MENU_ITEM.credits, menu.MENU_ORDER.join(','));
+  check('M1) y "Mis proyectos" está en ella, dentro de Weë Creator', !!menu.MENU_ITEM.projects && !menu.MENU_ORDER.includes('projects'));
+  check('M1) el cajón la lee', /from '\.\.\/constants\/weeMenu'/.test(cajon));
+  check('M1) y la barra de escritorio también', /from '\.\.\/constants\/weeMenu'/.test(barra));
+
+  // 2) Ninguna de las dos escribe ya sus propias etiquetas.
+  const etiquetas = ['Comunidades', 'WeeTalk', 'Notificaciones', 'Guardados', 'Configuración', 'Ayuda', 'Mis proyectos'];
+  const aMano = (texto) => etiquetas.filter((e) => new RegExp('label="' + e + '"|\'' + e + '\',').test(limpio(texto)));
+  check('M2) el cajón no repite etiquetas a mano', aMano(cajon).length === 0, aMano(cajon).join(','));
+  check('M2) la barra tampoco', aMano(barra).length === 0, aMano(barra).join(','));
+
+  // 3) Mismo orden conceptual: PERFIL (con Credits) y luego EXPLORA.
+  const orden = menu.MENU_ORDER.join(',');
+  check('M3) Credits va tras los dos perfiles', orden.startsWith('realProfile,weeProfile,credits'), orden);
+  check('M3) y antes de Comunidades', menu.MENU_ORDER.indexOf('credits') < menu.MENU_ORDER.indexOf('communities'));
+  const grupos = menu.WEE_MENU.map((g) => g.label).filter(Boolean).join(',');
+  check('M3) los grupos son PERFIL y EXPLORA', grupos === 'PERFIL,EXPLORA', grupos);
+
+  // 4) Los dos pintan los mismos grupos y la misma cabecera de cuenta.
+  for (const [nombre, texto] of [['el cajón', cajon], ['la barra', barra]]) {
+    check(`M4) ${nombre} rotula PERFIL y EXPLORA`, /PERFIL/.test(texto) && /EXPLORA/.test(texto));
+    check(`M4) ${nombre} tiene cabecera de cuenta con el perfil activo`, /Perfil Real activo/.test(texto) && /AvatarDisplay/.test(texto));
+    check(`M4) ${nombre} ofrece los dos perfiles`, /realProfile/.test(texto) && /weeProfile/.test(texto));
+  }
+
+  // 5) Sin duplicados, y Weë Creator entero en los dos.
+  check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/'credits'|"credits"/g) || []).length === 1 && (limpio(barra).match(/id="credits"/g) || []).length === 1);
+  check('M5) la barra ya no tiene un "Perfil" suelto además de los dos', !/label="Perfil"/.test(limpio(barra)));
+  check('M5) las experiencias salen de su fuente de siempre en los dos', /WEE_EXPERIENCES\.map/.test(cajon) && /WEE_EXPERIENCES\.map/.test(barra));
+  check('M5) y ninguno escribe a mano una experiencia', !/Weë Travel|Weë Design|Weë Chef/.test(limpio(cajon) + limpio(barra)));
+
+  // 6) Travel sigue llegando por el mismo sitio, una sola vez.
+  const experiencias = ts3.transpileModule(leer3('constants/weeExperiences.ts'), { compilerOptions: { module: ts3.ModuleKind.ESNext, target: ts3.ScriptTarget.ES2020 } }).outputText;
+  const exp3 = await import('data:text/javascript;base64,' + Buffer.from(experiencias).toString('base64'));
+  check('M6) Weë Travel está en el menú una sola vez', exp3.WEE_EXPERIENCES.filter((e) => e.id === 'travel').length === 1);
+  check('M6) y las ocho visibles son las mismas para los dos', exp3.WEE_EXPERIENCES.length === 8, String(exp3.WEE_EXPERIENCES.length));
+
+  // 7) La navegación no cambió: cada uno sigue yendo a donde iba.
+  check('M7) el cajón sigue cerrándose antes de navegar', /const after = \(fn: \(\) => void\)/.test(cajon) && /after\(\(\) => navigateRoot\('CreditStore'\)\)/.test(cajon));
+  check('M7) la barra sigue navegando directamente', /navigation\.navigate\('CreditStore'\)/.test(barra));
+  check('M7) y las dos llevan a la misma pantalla de Credits', /CreditStore/.test(cajon) && /CreditStore/.test(barra));
+
+  // 8) Inicio y Buscar son la única diferencia, y está explicada.
+  check('M8) solo la barra tiene Inicio y Buscar', /label="Inicio"/.test(barra) && !/'Inicio'/.test(limpio(cajon)));
+  check('M8) porque en el móvil los da la barra inferior', /barra inferior/.test(barra));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Creator: entradas, planes, Brain, límites, errores y Video Engine en orden');

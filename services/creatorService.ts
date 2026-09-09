@@ -23,6 +23,14 @@ export interface Question {
   text: string;
   options: QuestionOption[];
   allowFreeText?: boolean;
+  /**
+   * Cómo se contesta, cuando una lista de botones no sirve. Espejo del mismo
+   * campo del servidor (functions/src/creator/types.ts).
+   *
+   * 'dates' pide dos fechas y la pantalla dibuja un calendario. Hoy solo lo usa
+   * Weë Travel: sin este campo se contesta como siempre (fase 2E-65).
+   */
+  kind?: 'dates';
 }
 
 export interface Answer {

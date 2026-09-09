@@ -108,6 +108,14 @@ const SpecialistScreen: React.FC = () => {
       <SpecialistHero spec={spec} compact={!!wall} />
 
       {/*
+        Weë Travel entra por la caja de escribir, no por la cuadrícula (fase
+        2E-64C): un viaje se cuenta con una frase y esa frase ya trae casi todo
+        lo que hace falta. Sin `ideaFirst` nada cambia de sitio, así que las
+        otras secciones conservan su orden exacto.
+      */}
+      {wall && spec.ideaFirst && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />}
+
+      {/*
         Con muro, las herramientas van plegadas: la franja dice qué hay dentro y
         el muro sube casi media pantalla. Sin muro, la sección conserva su
         cuadrícula siempre abierta, que es su única puerta de entrada.

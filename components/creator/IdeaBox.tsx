@@ -14,6 +14,18 @@ interface IdeaBoxProps {
   greeting?: boolean;
 }
 
+/*
+ * Un ejemplo puede llevar un emoji delante —"🇯🇵 Japón en octubre"— porque ayuda
+ * a reconocerlo de un vistazo. Pero lo que se envía es el objetivo del trabajo:
+ * viaja al servidor, entra en el prompt y da título al trabajo. Así que el emoji
+ * se queda en la pantalla y lo que sale es la frase.
+ *
+ * Solo quita lo que es un emoji de verdad: una palabra normal al principio, como
+ * "Quiero" o "Recetas", no se toca.
+ */
+const EMOJI_AL_PRINCIPIO = /^[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]+[\u{FE0F}\u{200D}\u{1F000}-\u{1FAFF}]*\s+/u;
+const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCIPIO, '').trim() || chip;
+
 /** "¿Tienes una idea en mente?": la persona lo cuenta con sus palabras y Weë empieza. */
 const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
   const { theme } = useTheme();
@@ -61,7 +73,7 @@ const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
       {config.chips.length > 0 && (
         <View style={styles.chips}>
           {config.chips.map((chip) => (
-            <Chip key={chip} label={chip} onPress={() => onSubmit(chip)} />
+            <Chip key={chip} label={chip} onPress={() => onSubmit(objetivoDe(chip))} />
           ))}
         </View>
       )}
