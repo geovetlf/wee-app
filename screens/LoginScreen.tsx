@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, googleSignInDisponible } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
 const LoginScreen: React.FC = () => {
@@ -24,6 +24,14 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const { user, signIn, signInWithGoogle, signInAnonymously, resetPassword } = useAuth();
+  /*
+   * Un botón que no puede funcionar no se ofrece.
+   *
+   * Mientras Google no esté activado como proveedor en Firebase, el módulo nativo
+   * se queda sin configurar y tocar el botón solo devolvía un error del SDK. Se
+   * esconde, y quedan los dos caminos que sí funcionan: el correo y el invitado.
+   */
+  const conGoogle = googleSignInDisponible();
   const navigation = useNavigation<any>();
 
   // Cerrar la modal automáticamente cuando se detecte que el usuario inició sesión.
@@ -267,15 +275,17 @@ const LoginScreen: React.FC = () => {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* Google Login Button */}
-              <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-                <Image
-                  source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
-                  style={styles.googleLogo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.googleButtonText}>Continuar con Google</Text>
-              </TouchableOpacity>
+              {/* Google Login Button: solo si de verdad puede funcionar */}
+              {conGoogle && (
+                <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
+                  <Image
+                    source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                    style={styles.googleLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Anonymous Login Button */}
               <TouchableOpacity style={styles.anonymousButton} onPress={handleAnonymousLogin}>

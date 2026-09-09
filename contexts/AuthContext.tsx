@@ -18,21 +18,37 @@ import * as WebBrowser from 'expo-web-browser';
 
 // Importación condicional para Google Sign-In nativo
 let GoogleSignin: any = null;
-if (Platform.OS !== 'web') {
-  try {
-    const googleSigninModule = require('@react-native-google-signin/google-signin');
-    GoogleSignin = googleSigninModule.GoogleSignin;
+/** Por qué no está disponible, para poder decirlo en vez de fallar a medias. */
+let googleNoDisponible: string | null = null;
 
-    // Configurar Google Sign-In
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-      offlineAccess: true,
-    });
-  } catch (e) {
-    console.log('Google Sign-In nativo no disponible');
+if (Platform.OS !== 'web') {
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+  if (!webClientId) {
+    /*
+     * Sin identificador no se puede configurar, y sin configurar el módulo no
+     * sirve: se queda apagado a propósito. Es lo que pasa cuando Google todavía
+     * no está activado como proveedor en Firebase Auth —entonces
+     * google-services.json llega sin ningún oauth_client y no hay id que poner—.
+     */
+    googleNoDisponible = 'Iniciar sesión con Google todavía no está configurado en esta versión. Entra con tu correo o como invitado.';
+    console.log('Google Sign-In: falta EXPO_PUBLIC_GOOGLE_CLIENT_ID; el botón quedará desactivado');
+  } else {
+    try {
+      const googleSigninModule = require('@react-native-google-signin/google-signin');
+      const modulo = googleSigninModule.GoogleSignin;
+      modulo.configure({ webClientId, offlineAccess: true });
+      // Solo después de configurarlo de verdad se da por bueno.
+      GoogleSignin = modulo;
+    } catch (e) {
+      googleNoDisponible = 'No pude preparar el inicio de sesión con Google. Entra con tu correo o como invitado.';
+      console.log('Google Sign-In nativo no disponible:', e);
+    }
   }
   WebBrowser.maybeCompleteAuthSession();
 }
+
+/** true cuando el botón de Google puede funcionar de verdad. */
+export const googleSignInDisponible = (): boolean => Platform.OS === 'web' || GoogleSignin !== null;
 
 interface AuthContextType {
   user: User | null;
@@ -186,7 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('📱 Iniciando Google Sign-In en Mobile...');
 
       if (!GoogleSignin) {
-        throw new Error('Google Sign-In no está disponible en esta plataforma');
+        throw new Error(googleNoDisponible || 'Iniciar sesión con Google no está disponible ahora mismo. Entra con tu correo o como invitado.');
       }
 
       // Verificar si hay sesión previa

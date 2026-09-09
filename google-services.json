@@ -1,26 +1,59 @@
 {
   "project_info": {
-    "project_number": "491933326407",
-    "project_id": "wee-dev-geovet",
-    "storage_bucket": "wee-dev-geovet.firebasestorage.app"
+    "project_number": "546769059837",
+    "project_id": "get-wee",
+    "storage_bucket": "get-wee.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:491933326407:android:22bf5869f49fe14f26e562",
+        "mobilesdk_app_id": "1:546769059837:android:e5d17079432d091da4a394",
         "android_client_info": {
           "package_name": "zone.wee.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "546769059837-dos6c453rs6epiclb5fg9bkpdcduei9n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "zone.wee.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "546769059837-ehudcfdad6rlnf6q4dahk2p42glrq21k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "zone.wee.app",
+            "certificate_hash": "be7e4c63e67ef7dbd8d51d80668e0ad774521272"
+          }
+        },
+        {
+          "client_id": "546769059837-uradjj25om3cgb06h8tvsfu64k0rab3i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBjNytms5HS_forWOQIegU7tc7izNeui8g"
+          "current_key": "AIzaSyC8OZxtx8fi7OPU2WCM3IG248MVLvrfiL8"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "546769059837-uradjj25om3cgb06h8tvsfu64k0rab3i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "546769059837-dnbs4q376nuj3dunrdfm6nt8og65v1cg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "zone.wee.app"
+              }
+            }
+          ]
         }
       }
     }

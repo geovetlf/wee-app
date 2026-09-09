@@ -53,6 +53,14 @@ if (javaHome) {
   console.log(`Emuladores con Java 21 portable: ${javaHome}`);
 }
 
-const args = ['emulators:start', '--only', 'functions,storage', '--project', 'dev'];
+/*
+ * El proyecto lo decide .firebaserc, no este archivo.
+ *
+ * Estaba clavado en 'dev', asi que al mudar el trabajo a get-wee las funciones
+ * emuladas habrian seguido escribiendo en el Firestore del proyecto anterior:
+ * la app en un sitio y el servidor en otro. Con el alias por defecto, los dos
+ * miran siempre al mismo.
+ */
+const args = ['emulators:start', '--only', 'functions,storage'];
 const child = spawn(isWindows ? 'firebase.cmd' : 'firebase', args, { stdio: 'inherit', env, cwd: process.cwd(), shell: isWindows });
 child.on('exit', (code) => process.exit(code ?? 0));
