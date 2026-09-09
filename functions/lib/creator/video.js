@@ -11,8 +11,10 @@ const creditEngine_1 = require("../credits/creditEngine");
 const creditValidation_1 = require("../credits/creditValidation");
 const aiPricing_1 = require("../credits/aiPricing");
 const creditTransactions_1 = require("../credits/creditTransactions");
+const ledger_1 = require("../engine/ledger");
 const credits_1 = require("./credits");
 const inputs_1 = require("./inputs");
+const secrets_1 = require("../secrets");
 /**
  * generateVideo — entrada abstracta del Weë Video Engine para la app.
  *
@@ -32,7 +34,7 @@ const ownUrls = (values, uid) => {
         return undefined;
     return values.slice(0, 30).map((value) => (0, inputs_1.assertInputImageUrl)(value, uid));
 };
-exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 1500, memory: '1GiB' }, async (request) => {
+exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 1500, memory: '1GiB', secrets: secrets_1.AI_SECRETS }, async (request) => {
     var _a, _b, _c, _d, _e;
     try {
         if (!request.auth)
@@ -101,6 +103,10 @@ exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeco
             const result = await video_1.videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: (0, creditTransactions_1.usageTransactionId)(requestId) });
             await (0, firestore_1.getFirestore)().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
             await creditEngine_1.creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
+            // El desenlace ya se conoce: se liquida el libro con lo capturado.
+            await ledger_1.firestoreLedger
+                .settle({ creditTransactionId: (0, creditTransactions_1.usageTransactionId)(requestId), finalAmount: spend.amount })
+                .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
             return { generationId: result.generationId, url: result.output.url, durationSec: (_e = result.output.durationSec) !== null && _e !== void 0 ? _e : null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
         }
         catch (error) {
@@ -108,6 +114,10 @@ exports.generateVideo = (0, https_1.onCall)({ region: 'us-central1', timeoutSeco
             await creditEngine_1.creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' }).catch((refundError) => {
                 console.error('Weë Video Engine: no se pudo reembolsar', requestId, refundError);
             });
+            // Reembolsado: ninguna fila puede quedar diciendo que cobró.
+            await ledger_1.firestoreLedger
+                .settle({ creditTransactionId: (0, creditTransactions_1.usageTransactionId)(requestId), finalAmount: 0 })
+                .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
             throw error;
         }
     }

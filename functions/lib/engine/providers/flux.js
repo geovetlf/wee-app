@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fluxAdapter = exports.fluxModels = exports.fluxUsd = exports.BFL_CREDIT_USD = void 0;
+exports.fluxAdapter = exports.plannedDims = exports.fluxModels = exports.fluxUsd = exports.BFL_CREDIT_USD = void 0;
 const http_1 = require("../http");
+const imageModels_1 = require("../imageModels");
+const imageMeta_1 = require("../imageMeta");
 /**
  * FLUX — Black Forest Labs, API oficial directa (api.bfl.ai, cabecera x-key).
  * Documentación: docs.bfl.ai (verificada el 2026-09-07).
@@ -62,17 +64,41 @@ exports.fluxModels = [
     { id: 'flux-tools/vto-v2', provider: 'flux', capabilities: ['image.try_on'], quality: 5, speed: 4, cost: { unit: 'image', usd: TOOL_ESTIMATE_USD }, tags: ['probarse ropa'], note: 'Foto de la persona + foto de la prenda. Se cobra por megapíxel: el coste real llega en la respuesta.', verified: false },
 ];
 const isFlux2 = (modelId) => modelId.startsWith('flux-2-');
-const dims = (aspect) => {
-    if (aspect === '9:16')
-        return { width: 768, height: 1344 };
-    if (aspect === '16:9')
-        return { width: 1344, height: 768 };
-    if (aspect === '2:3')
-        return { width: 832, height: 1248 };
-    if (aspect === '3:2')
-        return { width: 1248, height: 832 };
-    return { width: 1024, height: 1024 };
+/**
+ * DIMENSIONES: las decide la Weë Resolution Policy (engine/resolutionPolicy.ts)
+ * y llegan ya resueltas en el input, en `outputWidth` y `outputHeight`.
+ *
+ * Este adaptador YA NO TIENE TABLA PROPIA. Tenerla era el problema: el precio
+ * razonaba con una etiqueta ("1K") y aquí se decidía por separado qué píxeles
+ * eran esa etiqueta, así que podían no coincidir. Ahora hay una sola decisión.
+ *
+ * Los límites oficiales de FLUX.2 (mínimo 64 px por lado, máximo 4 MP de salida)
+ * viven en la rejilla del modelo dentro de la política, no aquí.
+ *
+ * Si no llega ningún plan no se envían dimensiones: BFL aplica su propio
+ * comportamiento, que en una edición es seguir la forma de la imagen de entrada.
+ * Nunca se inventa un tamaño en este archivo.
+ */
+/** Máximo oficial de salida de FLUX.2, como última red de seguridad. */
+const MAX_OUTPUT_PIXELS = 4 * 1024 * 1024;
+const MIN_SIDE = 64;
+/**
+ * Las dimensiones que decidió la política, si vinieron. Se validan contra los
+ * límites del proveedor antes de enviarlas: es una comprobación, no una segunda
+ * decisión. Si algo no cuadra se prefiere no mandar nada a mandar algo inválido.
+ */
+const plannedDims = (input) => {
+    const width = Number(input.outputWidth);
+    const height = Number(input.outputHeight);
+    if (!Number.isFinite(width) || !Number.isFinite(height))
+        return undefined;
+    if (width < MIN_SIDE || height < MIN_SIDE)
+        return undefined;
+    if (width * height > MAX_OUTPUT_PIXELS)
+        return undefined;
+    return { width: Math.round(width), height: Math.round(height) };
 };
+exports.plannedDims = plannedDims;
 /** Fotos de la persona y referencias: siempre en base64, nunca como URL privada. */
 const referencesOf = (input) => {
     const list = [];
@@ -86,11 +112,20 @@ const referencesOf = (input) => {
                 list.push(r);
     return list.slice(0, MAX_REFERENCES);
 };
+/**
+ * La referencia en base64 y, de paso, su tamaño.
+ *
+ * BFL cobra la edición por megapíxeles de ENTRADA más los de salida, así que hay
+ * que saber cuánto mide la foto que se le manda. Se mide aquí porque el archivo ya
+ * está descargado para convertirlo: no se vuelve a pedir por la red.
+ */
 const asBase64 = async (url) => {
-    if (url.startsWith('data:'))
-        return url.slice(url.indexOf(',') + 1);
+    if (url.startsWith('data:')) {
+        const base64 = url.slice(url.indexOf(',') + 1);
+        return { base64, size: (0, imageMeta_1.dimensionsOf)(Buffer.from(base64, 'base64')) || undefined };
+    }
     const { buffer } = await (0, http_1.readImage)(url, 'flux');
-    return buffer.toString('base64');
+    return { base64: buffer.toString('base64'), size: (0, imageMeta_1.dimensionsOf)(buffer) || undefined };
 };
 exports.fluxAdapter = {
     id: 'flux',
@@ -100,7 +135,7 @@ exports.fluxAdapter = {
     isConfigured: () => !!(0, http_1.env)(KEY),
     supports: (capability) => exports.fluxModels.some((m) => m.capabilities.includes(capability)),
     async run(request) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d;
         const apiKey = (0, http_1.env)(KEY);
         if (!apiKey)
             throw new http_1.NotConfiguredError('flux', KEY);
@@ -113,23 +148,57 @@ exports.fluxAdapter = {
             throw new http_1.ProviderError('flux: falta la descripción de la imagen', 'flux', undefined, false);
         const references = referencesOf(input);
         const body = { prompt, output_format: 'png' };
+        // Lo que mide cada referencia que de verdad se envía; alimenta el coste.
+        const medidasDeEntrada = [];
         if (references.length) {
             // FLUX.2 admite hasta 8 referencias: input_image, input_image_2 … input_image_8
             // FLUX.2 y las herramientas aceptan varias; la generación anterior, solo una
             const limit = isFlux2(model.id) || TOOL_MODELS.has(model.id) ? MAX_REFERENCES : 1;
             for (let i = 0; i < Math.min(references.length, limit); i++) {
-                body[i === 0 ? 'input_image' : `input_image_${i + 1}`] = await asBase64(references[i]);
+                const referencia = await asBase64(references[i]);
+                body[i === 0 ? 'input_image' : `input_image_${i + 1}`] = referencia.base64;
+                if (referencia.size)
+                    medidasDeEntrada.push(referencia.size);
             }
         }
-        else {
-            Object.assign(body, dims(String((_e = input.aspectRatio) !== null && _e !== void 0 ? _e : '1:1')));
-        }
+        /*
+         * Las dimensiones se aplican SIEMPRE que la política las haya decidido,
+         * también al editar. No deforman: la política ya derivó la proporción de la
+         * propia foto de entrada, así que la salida conserva su forma y solo cambia
+         * de tamaño. Sin plan no se manda nada y decide BFL.
+         */
+        const medidas = (0, exports.plannedDims)(input);
+        if (medidas)
+            Object.assign(body, medidas);
         if (input.seed !== undefined)
             body.seed = Number(input.seed);
         if (TOOL_MODELS.has(model.id) && references.length < 2) {
             throw new http_1.ProviderError('flux: la prueba de ropa necesita la foto de la persona y la de la prenda', 'flux', undefined, false);
         }
-        const usdPerImage = (0, exports.fluxUsd)(model.id, references.length > 0);
+        /*
+         * COSTE DEL PROVEEDOR.
+         *
+         * Manda lo que liquide BFL en su respuesta. Cuando no lo devuelve —que es lo
+         * normal— hay que calcularlo, y para eso vale la MISMA función que usó el
+         * precio: `usdFor` con los megapíxeles reales de entrada y de salida.
+         *
+         * Antes se usaba aquí `fluxUsd`, una tarifa plana por imagen. Para una creación
+         * de 1 MP coincide, pero una edición suma la foto de entrada: en la primera
+         * edición real, con una entrada de 1600x1200 y una salida de 1168x880, BFL cobró
+         * $0,019 y el libro anotó $0,015. El precio a la persona era correcto; lo que
+         * quedaba corto era la contabilidad del coste.
+         *
+         * Sin catálogo del modelo se conserva la tarifa plana: es preferible el número
+         * antiguo a inventar uno.
+         */
+        const catalogo = imageModels_1.IMAGE_MODELS.find((m) => m.modelId === model.id);
+        const usdPerImage = catalogo
+            ? (0, imageModels_1.usdFor)(catalogo, '1K', references.length > 0, {
+                output: medidas,
+                references: references.length,
+                referenceSizes: medidasDeEntrada.length ? medidasDeEntrada : undefined,
+            })
+            : (0, exports.fluxUsd)(model.id, references.length > 0);
         // BFL liquida el coste en su respuesta cuando cobra por megapíxel
         let settledUsd = 0;
         const urls = [];
@@ -165,7 +234,9 @@ exports.fluxAdapter = {
             costUSD: settledUsd > 0 ? settledUsd : urls.length * usdPerImage,
             latencyMs: Date.now() - start,
             model: model.id,
-            meta: { references: references.length, usdPerImage, edited: references.length > 0, settledUsd: settledUsd || undefined },
+            // `medidas` es exactamente lo que se envió a BFL. Si la política no decidió
+            // dimensiones no se manda nada y decide BFL, y entonces tampoco se declaran.
+            meta: Object.assign({ references: references.length, usdPerImage, edited: references.length > 0, settledUsd: settledUsd || undefined }, (medidas || {})),
         };
     },
 };

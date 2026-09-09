@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.seedanceCallback = void 0;
 const firestore_1 = require("firebase-admin/firestore");
+const secrets_1 = require("../secrets");
 const https_1 = require("firebase-functions/v2/https");
 /**
  * Webhook preparado para Seedance (BytePlus ModelArk `callback_url`).
@@ -12,7 +13,7 @@ const https_1 = require("firebase-functions/v2/https");
  * lo usa para terminar antes su sondeo. Sin webhook, el sondeo a la API basta.
  * El cuerpo llega tal cual lo manda el proveedor (id, status, content, usage, error).
  */
-exports.seedanceCallback = (0, https_1.onRequest)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request, response) => {
+exports.seedanceCallback = (0, https_1.onRequest)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: secrets_1.CALLBACK_SECRETS }, async (request, response) => {
     var _a, _b, _c;
     if (request.method !== 'POST') {
         response.status(405).send('POST only');

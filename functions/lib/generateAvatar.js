@@ -8,6 +8,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const secrets_1 = require("./secrets");
 const crypto_1 = require("crypto");
 const creditEngine_1 = require("./credits/creditEngine");
 const creditValidation_1 = require("./credits/creditValidation");
@@ -64,6 +65,7 @@ exports.generateAvatarWithGemini = (0, https_1.onCall)({
     region: 'us-central1',
     timeoutSeconds: 120,
     memory: '512MiB',
+    secrets: secrets_1.AI_SECRETS,
 }, async (request) => {
     var _a;
     // Validate authentication
@@ -131,6 +133,7 @@ exports.avatarReplacement = (0, https_1.onCall)({
     region: 'us-central1',
     timeoutSeconds: 300,
     memory: '1GiB',
+    secrets: secrets_1.AI_SECRETS,
 }, async (request) => {
     var _a;
     // Validate authentication

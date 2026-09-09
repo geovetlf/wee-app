@@ -46,10 +46,22 @@ export type MainStackParamList = {
   Help: { section?: 'faq' | 'legal' } | undefined;
   EngineAdmin: undefined;
   Search: { query?: string } | undefined;
-  Create: { communitySlug?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string } } | undefined;
+  /**
+   * `prefill.media` es lo que trae quien llega desde un resultado de Weë: la
+   * imagen ya creada, con su dirección en el Storage de Weë. Es una lista y no
+   * un campo suelto para que valga igual para una foto, un antes y un después o
+   * un video, sin volver a tocar este tipo.
+   */
+  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number }[] } } | undefined;
   WeeCreator: { category?: string } | undefined;
   SavedPosts: undefined;
-  CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; imageUri?: string };
+  /**
+   * `presets` lleva VARIAS respuestas ya dadas, no una. Lo usa el puente de
+   * "No sé qué hacer": cuando Weë ya miró la foto y la persona elige un camino,
+   * el espacio y el estilo que ya dijo viajan con ella y no se le vuelven a
+   * preguntar (fase 2E-60). `preset` sigue igual para quien solo lleva una.
+   */
+  CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; presets?: { questionId: string; optionId: string }[]; imageUri?: string };
   Specialist: { id: string };
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
   Projects: undefined;

@@ -11,9 +11,11 @@ const aiPricing_1 = require("../credits/aiPricing");
 const creditEngine_1 = require("../credits/creditEngine");
 const creditValidation_1 = require("../credits/creditValidation");
 const creditTransactions_1 = require("../credits/creditTransactions");
+const ledger_1 = require("../engine/ledger");
 const credits_1 = require("./credits");
 const inputs_1 = require("./inputs");
 const prompts_1 = require("./prompts");
+const secrets_1 = require("../secrets");
 /**
  * Weë Brain — el asistente general de Weë (docs/CREATOR.md §4).
  * Conversa con contexto, explica, investiga (búsqueda web con fuentes),
@@ -110,7 +112,7 @@ async function priceBrainMessage(input, webSearch) {
  * Cuánto costaría el siguiente mensaje, antes de enviarlo. La app lo llama para
  * enseñar el precio junto al botón de enviar; no cobra ni escribe nada.
  */
-exports.brainQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+exports.brainQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: secrets_1.AI_SECRETS }, async (request) => {
     var _a, _b;
     try {
         if (!request.auth)
@@ -146,7 +148,7 @@ exports.brainQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
         throw (0, errors_1.toEngineHttpsError)(error);
     }
 });
-exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB', secrets: secrets_1.AI_SECRETS }, async (request) => {
     var _a, _b;
     try {
         if (!request.auth)
@@ -222,12 +224,20 @@ exports.brainChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds:
             await messages.doc(`${messageId}_wee`).set(stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: run.generationId, demo: run.demo, webSearch, createdAt: now() }));
             await chatRef.set(Object.assign({ updatedAt: now(), messageCount: firestore_1.FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120) }, (history.length === 0 ? { title: message.slice(0, 60) } : {})), { merge: true });
             await creditEngine_1.creditEngine.completeCredits({ userId: uid, requestId, meta: { chatId: chatRef.id, generationId: run.generationId } });
+            // El desenlace ya se conoce: se liquida el libro con lo capturado.
+            await ledger_1.firestoreLedger
+                .settle({ creditTransactionId: (0, creditTransactions_1.usageTransactionId)(requestId), finalAmount: spend.amount })
+                .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
             return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience !== null && suggestedExperience !== void 0 ? suggestedExperience : null, credits, demo: run.demo, duplicate: false };
         }
         catch (error) {
             await creditEngine_1.creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · no pudo responder', source: 'weë-brain' }).catch((refundError) => {
                 console.error('Weë Brain: no se pudo reembolsar', requestId, refundError);
             });
+            // Reembolsado: ninguna fila puede quedar diciendo que cobró.
+            await ledger_1.firestoreLedger
+                .settle({ creditTransactionId: (0, creditTransactions_1.usageTransactionId)(requestId), finalAmount: 0 })
+                .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
             throw error;
         }
     }

@@ -1,4 +1,6 @@
 import { randomUUID } from 'crypto';
+import { sanitizeForLog } from './sanitize';
+import { secretValue } from '../secrets';
 import { getStorage } from 'firebase-admin/storage';
 
 /**
@@ -43,13 +45,19 @@ export async function fetchJson<T = any>(url: string, options: FetchOptions): Pr
     if (!response.ok) {
       // 4xx de configuración/validación no se reintentan con el mismo proveedor
       const retryable = response.status >= 500 || response.status === 429;
-      throw new ProviderError(`${options.provider} respondió ${response.status}: ${text.slice(0, 300)}`, options.provider, response.status, retryable);
+      // El cuerpo del proveedor puede traer la cabecera que le enviamos: se censura aquí,
+      // antes de que el mensaje exista, para que no llegue a ningún registro.
+      throw new ProviderError(
+        `${options.provider} respondió ${response.status}: ${sanitizeForLog(text)}`,
+        options.provider,
+        response.status,
+        retryable,
+      );
     }
     return (text ? JSON.parse(text) : {}) as T;
   } catch (error) {
     if (error instanceof ProviderError) throw error;
-    const message = error instanceof Error ? error.message : String(error);
-    throw new ProviderError(`${options.provider}: ${message}`, options.provider);
+    throw new ProviderError(`${options.provider}: ${sanitizeForLog(error)}`, options.provider);
   } finally {
     clearTimeout(timer);
   }
@@ -67,14 +75,13 @@ export async function fetchBytes(url: string, options: FetchOptions): Promise<{ 
     });
     if (!response.ok) {
       const text = await response.text();
-      throw new ProviderError(`${options.provider} respondió ${response.status}: ${text.slice(0, 300)}`, options.provider, response.status, response.status >= 500);
+      throw new ProviderError(`${options.provider} respondió ${response.status}: ${sanitizeForLog(text)}`, options.provider, response.status, response.status >= 500);
     }
     const buffer = Buffer.from(await response.arrayBuffer());
     return { buffer, contentType: response.headers.get('content-type') || 'application/octet-stream' };
   } catch (error) {
     if (error instanceof ProviderError) throw error;
-    const message = error instanceof Error ? error.message : String(error);
-    throw new ProviderError(`${options.provider}: ${message}`, options.provider);
+    throw new ProviderError(`${options.provider}: ${sanitizeForLog(error)}`, options.provider);
   } finally {
     clearTimeout(timer);
   }
@@ -109,9 +116,16 @@ const extensionFor = (contentType: string): string => {
   return 'bin';
 };
 
+/**
+ * Valor de una variable de entorno. En producción los secretos llegan por Cloud
+ * Secret Manager: Firebase los expone como variables de entorno con el mismo
+ * nombre, y si no estuvieran se piden al parámetro declarado en secrets.ts.
+ * Nunca se registra ni se devuelve al cliente.
+ */
 export const env = (name: string): string | undefined => {
   const value = process.env[name];
-  return value && value.trim() ? value.trim() : undefined;
+  if (value && value.trim()) return value.trim();
+  return secretValue(name);
 };
 
 /** Bucket de Weë: el del proyecto (FIREBASE_CONFIG) salvo que STORAGE_BUCKET diga otro. */

@@ -2,6 +2,7 @@ import { CapabilityId } from '../creator/types';
 import { EngineSettings } from '../engine/types';
 
 import { ImageSize, chooseImageModel, imageModelOf, isEditCapability, usdFor, volumeFactor } from '../engine/imageModels';
+import { resolveForModel } from '../engine/resolutionPolicy';
 import { SEEDANCE_MODEL_IDS, SeedanceResolution, clampDuration, resolveResolution, seedanceCostUsd, specOf } from '../engine/providers/seedance';
 import { CreditService, getCreditCost } from './creditCosts';
 
@@ -68,15 +69,37 @@ const creditsOf = (service: CreditService, usd: number, settings: Pick<EngineSet
  * un promedio, porque después de confirmar no se le puede cobrar más.
  *
  * Texto (USD por millón de tokens, entrada / salida):
- *   standard → Gemini 2.5 Flash-Lite   0.10 / 0.40
+ *   standard → Gemini 3.1 Flash-Lite   0.25 / 1.50  (sustituye a Gemini 2.5 Flash-Lite,
+ *                                                    0.10 / 0.40, retirado para claves nuevas)
  *   high     → Gemini 3.8 Flash        0.75 / 3.75
- *   max      → Claude Sonnet 5         2.00 / 10.00
+ *   max      → Gemini 3.8 Flash        0.75 / 3.75
+ *
+ * El nivel máximo lo sirve Gemini 3.8 Flash con razonamiento bajo, así que su
+ * tarifa coincide con la del nivel alto y lo que separa a los dos niveles es el
+ * tamaño de la respuesta, no el precio por token. AVISO PARA LA FASE 4: cuando se
+ * integre Claude hay que revisar este techo, porque Claude Sonnet 5 cuesta
+ * 2.00 / 10.00 y encarecería el nivel máximo.
  */
 export const TEXT_RATES: Record<'standard' | 'high' | 'max', { input: number; output: number }> = {
-  standard: { input: 0.1, output: 0.4 },
+  standard: { input: 0.25, output: 1.5 },
   high: { input: 0.75, output: 3.75 },
-  max: { input: 2, output: 10 },
+  max: { input: 0.75, output: 3.75 },
 };
+
+/**
+ * Gemini 3.5 Flash-Lite: el modelo 3.x más barato que Google declara compatible
+ * con búsqueda con fuentes, PDF y audio a la vez. Sirve esas tres funciones, y
+ * cuesta más que el modelo económico de texto, así que el suelo tiene que usar
+ * SU tarifa y no la del nivel. El audio tiene precio propio, más caro que el texto.
+ * USD por millón de tokens (ai.google.dev/gemini-api/docs/pricing).
+ */
+export const MULTIMODAL_RATE = { input: 0.3, output: 2.5, audioInput: 0.3 };
+
+/** Tarifa que cubre a las dos: el suelo nunca puede quedar por debajo de ninguna. */
+const ceilingOf = (a: { input: number; output: number }, b: { input: number; output: number }) => ({
+  input: Math.max(a.input, b.input),
+  output: Math.max(a.output, b.output),
+});
 
 /** USD por 1 000 caracteres de voz: ElevenLabs v3 y Multilingual v2, los más caros de la cadena. */
 export const VOICE_USD_PER_KCHAR = 0.1;
@@ -122,6 +145,24 @@ const tierOf = (input: Record<string, unknown>): Tier => {
 };
 
 /**
+ * Tokens de razonamiento por cada token de respuesta. Google cobra la respuesta
+ * como la suma de los tokens de salida y los de razonamiento, así que la
+ * estimación tiene que contarlos o el suelo queda por debajo del coste real.
+ *  - standard: Gemini 3.1 Flash-Lite es de la generación 3 y razona por defecto → 1 a 1.
+ *    (con Gemini 2.5 Flash-Lite era 0, porque aquel traía el razonamiento apagado).
+ *  - high: Gemini 3.8 Flash con su nivel por defecto (medio) → se asume 1 a 1.
+ *  - max: Gemini 3.8 Flash con el nivel fijado en bajo → se asume la mitad.
+ * Es una proporción SUPUESTA, no medida. Se corrige con la primera generación real.
+ */
+export const THINKING_FACTOR: Record<Tier, number> = { standard: 1, high: 1, max: 0.5 };
+
+/** Razonamiento del modelo que sirve búsqueda, PDF y audio (Gemini 3.5 Flash-Lite). */
+export const MULTIMODAL_THINKING_FACTOR = 1;
+
+/** Salida facturable: la respuesta más los tokens de razonamiento que se cobran con ella. */
+export const billableOutput = (outputTokens: number, factor: number): number => Math.round(outputTokens * (1 + factor));
+
+/**
  * Coste oficial estimado de una operación que NO es de imagen ni de video.
  * Siempre por arriba: modelo más caro del nivel y salida al máximo permitido.
  */
@@ -133,12 +174,20 @@ export function estimateProviderUsd(capability: CapabilityId, input: Record<stri
   }
   if (capability === 'audio.transcribe') {
     const seconds = Number(input.audioSeconds ?? ASSUMED.audioSeconds);
-    const rate = TEXT_RATES[tier];
-    return (seconds * TOKENS.perAudioSecond * rate.input + DEFAULT_MAX_OUTPUT_TOKENS * rate.output) / 1_000_000;
+    // El audio se factura con su propia tarifa, no con la de texto del mismo modelo.
+    const rate = ceilingOf(TEXT_RATES[tier], MULTIMODAL_RATE);
+    const audioIn = Math.max(MULTIMODAL_RATE.audioInput, TEXT_RATES[tier].input);
+    const salida = billableOutput(DEFAULT_MAX_OUTPUT_TOKENS, Math.max(THINKING_FACTOR[tier], MULTIMODAL_THINKING_FACTOR));
+    return (seconds * TOKENS.perAudioSecond * audioIn + salida * rate.output) / 1_000_000;
   }
-  const rate = TEXT_RATES[tier];
+  // Búsqueda con fuentes y PDF los sirve Gemini 3.5 Flash-Lite, más caro que el
+  // modelo económico: el techo tiene que ser el suyo y no el del nivel pedido.
+  const multimodal = capability === 'text.search' || capability === 'doc.read';
+  const rate = multimodal ? ceilingOf(TEXT_RATES[tier], MULTIMODAL_RATE) : TEXT_RATES[tier];
+  const factor = multimodal ? Math.max(THINKING_FACTOR[tier], MULTIMODAL_THINKING_FACTOR) : THINKING_FACTOR[tier];
   const inputTokens = estimateInputTokens(input);
-  const outputTokens = Number(input.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS);
+  // La salida facturable incluye los tokens de razonamiento, que Google cobra con ella
+  const outputTokens = billableOutput(Number(input.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS), factor);
   const usd = (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000;
   return capability === 'text.search' ? usd + SEARCH_USD_PER_QUERY : usd;
 }
@@ -225,6 +274,19 @@ export interface ImagePriceInput {
   resolution?: string;
   kind?: string;
   references?: number;
+  /**
+   * Tamaño real de cada imagen de entrada, cuando se conoce. Los proveedores que
+   * cobran por megapíxel facturan también los píxeles de lo que se les manda a
+   * editar. Si falta, se usa la cota inferior de 1 MP por referencia.
+   */
+  referenceSizes?: { width: number; height: number }[];
+  /**
+   * Proporción pedida al CREAR desde cero ("16:9"). En una edición no se usa: la
+   * proporción sale de la foto, porque deformarla nunca es la respuesta.
+   */
+  aspectRatio?: string | number;
+  /** La resolución la fijó el motor (mínimo técnico del modelo), no la pidió nadie. */
+  resolutionFromEngine?: boolean;
   /** Proveedores con clave configurada, para no ofrecer lo que no se puede servir. */
   available?: (provider: string) => boolean;
 }
@@ -248,18 +310,56 @@ export function imageServiceFor(capability: CapabilityId, input: Record<string, 
  */
 export function priceImage(input: ImagePriceInput, settings: EngineSettings): OperationPrice {
   const count = Math.max(1, Math.min(8, Number(input.count ?? 1)));
-  const need = { capability: input.capability, kind: input.kind, quality: input.quality, resolution: input.resolution, references: input.references };
+  const need = { capability: input.capability, kind: input.kind, quality: input.quality, resolution: input.resolution, references: input.references, resolutionFromEngine: input.resolutionFromEngine };
   const chosen = input.modelId && imageModelOf(input.modelId)
     ? { model: imageModelOf(input.modelId)!, size: (input.resolution as ImageSize) || '1K', tier: imageModelOf(input.modelId)!.tier, reason: 'lo eligió la persona' }
     : chooseImageModel(need, input.available);
   const edit = isEditCapability(input.capability);
-  const usdPerImage = usdFor(chosen.model, chosen.size, edit);
+  /*
+   * LAS DIMENSIONES LAS DECIDE LA WEË RESOLUTION POLICY, y aquí solo se
+   * consumen. Es la única forma de que el precio y lo que se acabe enviando al
+   * proveedor no puedan discrepar: antes el precio razonaba con una etiqueta
+   * ("1K") y cada adaptador decidía por su cuenta los píxeles de esa etiqueta.
+   *
+   * En una edición la proporción sale de la foto; al crear desde cero, de lo que
+   * pida la operación. Si el modelo no tiene rejilla declarada todavía, se sigue
+   * sin dimensiones y `usdFor` usa su nominal de siempre: nadie se rompe.
+   */
+  const plan = resolveForModel(chosen.model.modelId, {
+    quality: chosen.tier,
+    input: edit ? input.referenceSizes?.[0] : undefined,
+    aspect: input.aspectRatio,
+  });
+
+  /*
+   * Cuando se conocen las dimensiones de las imágenes de entrada se pasan tal
+   * cual y el precio es exacto. Si no llegan, se usa la cota inferior de 1 MP por
+   * referencia, que es el mínimo que factura el proveedor. Una edición cuenta
+   * siempre al menos una entrada: la foto que se está editando.
+   */
+  const usdPerImage = usdFor(chosen.model, chosen.size, edit, {
+    output: plan ? { width: plan.width, height: plan.height } : undefined,
+    references: Math.max(input.references ?? 0, edit ? 1 : 0),
+    referenceSizes: input.referenceSizes,
+  });
   const discount = volumeFactor(count);
-  const usd = count * usdPerImage * discount;
+  /*
+   * COSTE PROTEGIDO → SUELO → PRECIO BASE → DESCUENTO COMERCIAL → PRECIO FINAL
+   *
+   * El coste protegido es lo que cobra el proveedor por las imágenes, SIN el
+   * descuento comercial de Weë: el proveedor no nos hace descuento por volumen,
+   * así que restarlo del coste hundía el suelo por debajo del gasto real. Este es
+   * además el coste que se guarda en el libro de generaciones.
+   */
+  const usd = count * usdPerImage;
+  const floor = Math.ceil(usd * settings.creditsPerUsd);
   const service = imageServiceFor(input.capability, { kind: input.kind, quality: input.quality }, chosen.tier);
+  // El descuento solo puede rebajar el precio mientras quede margen sobre el suelo
+  const base = creditsOf(service, usd, settings);
+  const credits = Math.max(floor, Math.round(base * discount));
   return {
     service,
-    credits: creditsOf(service, usd, settings),
+    credits,
     usd,
     provider: chosen.model.provider,
     model: chosen.model.modelId,
@@ -269,6 +369,11 @@ export function priceImage(input: ImagePriceInput, settings: EngineSettings): Op
       imageSize: chosen.size,
       count,
       usdPerImage,
+      // Las dimensiones que decidió la política, para poder auditar el precio y
+      // para que la FASE 2D-3 mande exactamente estas al proveedor.
+      ...(plan ? { outputWidth: plan.width, outputHeight: plan.height, outputPixels: plan.pixels, aspectExact: plan.aspectExact, aboveTarget: plan.aboveTarget } : {}),
+      costFloor: floor,
+      creditsBeforeDiscount: base,
       volumeDiscount: discount < 1 ? Math.round((1 - discount) * 100) : 0,
       reason: chosen.reason,
       edit,

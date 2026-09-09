@@ -1,6 +1,7 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { CreditError, toHttpsError as creditsToHttpsError } from '../credits/creditValidation';
 import { NotConfiguredError, ProviderError } from './http';
+import { sanitizeForLog } from './sanitize';
 
 /**
  * Errores controlados del WEË AI ENGINE y de Weë Creator (docs/AI-ENGINE.md §Errores).
@@ -20,10 +21,10 @@ export type EngineErrorCode =
 export const ENGINE_MESSAGES: Record<EngineErrorCode, string> = {
   INVALID_REQUEST: 'Falta algo en tu pedido. Revísalo e inténtalo de nuevo.',
   UNAUTHORIZED: 'Inicia sesión para crear con Weë.',
-  PROVIDER_ERROR: 'La IA no respondió esta vez. Inténtalo de nuevo en un momento.',
+  PROVIDER_ERROR: 'La IA no pudo completar tu creación esta vez. No te cobré: inténtalo de nuevo en un momento.',
   GENERATION_FAILED: 'No pude terminar tu creación. No te cobré: inténtalo de nuevo.',
   TIMEOUT: 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.',
-  RATE_LIMITED: 'Has hecho muchas creaciones seguidas. Espera un momento e inténtalo de nuevo.',
+  RATE_LIMITED: 'Has hecho muchas creaciones seguidas. No te cobré: espera un momento e inténtalo de nuevo.',
   DUPLICATE_REQUEST: 'Esa creación ya está en marcha.',
   NOT_AVAILABLE: 'Esta función todavía no está disponible.',
 };
@@ -70,8 +71,8 @@ export function toEngineHttpsError(error: unknown): HttpsError {
   if (error instanceof CreditError) return creditsToHttpsError(error);
   const classified = classifyError(error);
   if (!(error instanceof EngineError)) {
-    // Lo interno solo queda en el registro del servidor
-    console.error(`WEË AI ENGINE: ${classified.code}:`, error instanceof Error ? error.message : error);
+    // Lo interno solo queda en el registro del servidor, y siempre sanitizado
+    console.error(`WEË AI ENGINE: ${classified.code}:`, sanitizeForLog(error, 300));
   }
   return new HttpsError(HTTPS_CODE[classified.code], classified.message, { code: classified.code, ...classified.details });
 }

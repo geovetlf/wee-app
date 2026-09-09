@@ -19,7 +19,7 @@ import { useWallet } from '../hooks/useWallet';
 import { creatorInterestService } from '../services/creatorInterestService';
 import CreditsPill from '../components/CreditsPill';
 import CreatorShell from '../components/creator/CreatorShell';
-import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById } from '../constants/weeExperiences';
+import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById, experienceLabel } from '../constants/weeExperiences';
 import { creatorService, CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -272,7 +272,13 @@ const WeeCreatorScreen: React.FC = () => {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
                     <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
-                      {exp?.name ?? 'Weë'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
+                      {/*
+                        El nombre con el que esa experiencia se presenta hoy, no
+                        el que tenía cuando se creó el trabajo: aquí es donde
+                        seguía leyéndose "Weë Home" (fase 2E-61.2). El trabajo no
+                        se toca; solo cambia cómo se nombra.
+                      */}
+                      {exp ? experienceLabel(exp) : 'Weë'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -318,7 +324,12 @@ const WeeCreatorScreen: React.FC = () => {
 
         {/* Todas las categorías */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Los 10 especialistas de Weë</Text>
+          {/*
+            Sin número: eran diez cuando Photo y Beauty eran secciones, y desde la
+            fase 2E-50 son ocho. Un número escrito a mano vuelve a mentir en cuanto
+            la lista cambie, y esta lista ya cambió una vez.
+          */}
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Los especialistas de Weë</Text>
           <View style={styles.grid}>{WEE_EXPERIENCES.map(renderCategory)}</View>
         </View>
 

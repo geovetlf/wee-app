@@ -227,6 +227,12 @@ export interface RouteDecision {
   policy: RoutingPolicy;
   candidates: RouteCandidate[];
   skipped: { provider: string; model?: string; reason: string }[];
+  /**
+   * Hay al menos un proveedor real con clave y con modelo para esta capacidad.
+   * Cuando es true el modo demo NO puede ser candidato, ni siquiera si todos los
+   * proveedores reales acaban descartados por cuota, pausa, límite o fallo.
+   */
+  realProviderAvailable: boolean;
 }
 
 /** Estados de una generación (docs/CREDITS.md §generations): QUEUED al crearla, PROCESSING cuando el proveedor la acepta. */
@@ -254,8 +260,31 @@ export interface GenerationRecord {
   estimatedUsd: number;
   providerCost: number;
   providerCurrency: 'USD';
-  /** Credits que pagó la persona por este resultado (0 en demo o si falló). */
-  creditsCharged: number;
+  /**
+   * Credits DEFINITIVAMENTE CAPTURADOS a la persona por este paso.
+   *
+   * AUSENTE significa "todavía no se sabe": la operación se ejecutó pero su
+   * transacción sigue autorizada y aún no se ha liquidado. NO significa cero.
+   * Solo lo escribe la liquidación (ledger.settle), que es la única que conoce
+   * el desenlace. Que exista creditTransactionId NO implica que se cobrara: una
+   * reserva puede acabar reembolsada entera.
+   */
+  creditsCharged?: number;
+  /** Cuándo se liquidó. Su presencia es la marca de que ya está resuelto. */
+  settledAt?: unknown;
+  /**
+   * Versión de la semántica del libro.
+   *   1 (ausente) — creditsCharged era el precio del paso ligado a una reserva.
+   *   2           — creditsCharged son Credits definitivamente capturados.
+   * Los informes deben distinguirlas: no son comparables entre sí.
+   */
+  ledgerVersion?: number;
+  /**
+   * Lo que ESTA operación habría costado según el catálogo, cuando no se cobró.
+   * Solo aparece en generaciones sin transacción: sirve para saber cuánto vale
+   * el trabajo interno que Weë absorbe, sin confundirlo nunca con un ingreso.
+   */
+  creditsEstimated?: number;
   creditTransactionId?: string;
   pricingMode: PricingMode;
   inputType?: string;
@@ -266,6 +295,13 @@ export interface GenerationRecord {
   /** Video: id de tarea en el proveedor, resolución, duración y tokens estimados/reales (Pricing Engine). */
   providerTaskId?: string;
   resolution?: string;
+  /**
+   * Dimensiones reales de una salida de imagen, en píxeles y con los mismos
+   * nombres que ResolutionPlan. No sustituyen a `resolution`, que es la etiqueta
+   * de vídeo de Seedance ("1080p"): son dos cosas distintas y no se mezclan.
+   */
+  width?: number;
+  height?: number;
   videoDurationSec?: number;
   estimatedTokens?: number;
   providerTokens?: number;

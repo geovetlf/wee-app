@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.needsProImage = exports.PRO_IMAGE_KINDS = exports.DEFAULT_MAX_OUTPUT_TOKENS = exports.ASSUMED = exports.TOKENS = exports.SEARCH_USD_PER_QUERY = exports.VOICE_USD_PER_KCHAR = exports.TEXT_RATES = void 0;
+exports.needsProImage = exports.PRO_IMAGE_KINDS = exports.billableOutput = exports.MULTIMODAL_THINKING_FACTOR = exports.THINKING_FACTOR = exports.DEFAULT_MAX_OUTPUT_TOKENS = exports.ASSUMED = exports.TOKENS = exports.SEARCH_USD_PER_QUERY = exports.VOICE_USD_PER_KCHAR = exports.MULTIMODAL_RATE = exports.TEXT_RATES = void 0;
 exports.usdToCredits = usdToCredits;
 exports.estimateInputTokens = estimateInputTokens;
 exports.estimateProviderUsd = estimateProviderUsd;
@@ -10,6 +10,7 @@ exports.priceVideo = priceVideo;
 exports.imageServiceFor = imageServiceFor;
 exports.priceImage = priceImage;
 const imageModels_1 = require("../engine/imageModels");
+const resolutionPolicy_1 = require("../engine/resolutionPolicy");
 const seedance_1 = require("../engine/providers/seedance");
 const creditCosts_1 = require("./creditCosts");
 /** USD → Credits, con el margen del motor. Redondea siempre hacia arriba. */
@@ -43,15 +44,35 @@ const creditsOf = (service, usd, settings) => {
  * un promedio, porque después de confirmar no se le puede cobrar más.
  *
  * Texto (USD por millón de tokens, entrada / salida):
- *   standard → Gemini 2.5 Flash-Lite   0.10 / 0.40
+ *   standard → Gemini 3.1 Flash-Lite   0.25 / 1.50  (sustituye a Gemini 2.5 Flash-Lite,
+ *                                                    0.10 / 0.40, retirado para claves nuevas)
  *   high     → Gemini 3.8 Flash        0.75 / 3.75
- *   max      → Claude Sonnet 5         2.00 / 10.00
+ *   max      → Gemini 3.8 Flash        0.75 / 3.75
+ *
+ * El nivel máximo lo sirve Gemini 3.8 Flash con razonamiento bajo, así que su
+ * tarifa coincide con la del nivel alto y lo que separa a los dos niveles es el
+ * tamaño de la respuesta, no el precio por token. AVISO PARA LA FASE 4: cuando se
+ * integre Claude hay que revisar este techo, porque Claude Sonnet 5 cuesta
+ * 2.00 / 10.00 y encarecería el nivel máximo.
  */
 exports.TEXT_RATES = {
-    standard: { input: 0.1, output: 0.4 },
+    standard: { input: 0.25, output: 1.5 },
     high: { input: 0.75, output: 3.75 },
-    max: { input: 2, output: 10 },
+    max: { input: 0.75, output: 3.75 },
 };
+/**
+ * Gemini 3.5 Flash-Lite: el modelo 3.x más barato que Google declara compatible
+ * con búsqueda con fuentes, PDF y audio a la vez. Sirve esas tres funciones, y
+ * cuesta más que el modelo económico de texto, así que el suelo tiene que usar
+ * SU tarifa y no la del nivel. El audio tiene precio propio, más caro que el texto.
+ * USD por millón de tokens (ai.google.dev/gemini-api/docs/pricing).
+ */
+exports.MULTIMODAL_RATE = { input: 0.3, output: 2.5, audioInput: 0.3 };
+/** Tarifa que cubre a las dos: el suelo nunca puede quedar por debajo de ninguna. */
+const ceilingOf = (a, b) => ({
+    input: Math.max(a.input, b.input),
+    output: Math.max(a.output, b.output),
+});
 /** USD por 1 000 caracteres de voz: ElevenLabs v3 y Multilingual v2, los más caros de la cadena. */
 exports.VOICE_USD_PER_KCHAR = 0.1;
 /** USD por consulta de búsqueda con fuentes, pasado el cupo mensual gratuito de Google. */
@@ -95,6 +116,22 @@ const tierOf = (input) => {
     return q === 'max' ? 'max' : q === 'high' ? 'high' : 'standard';
 };
 /**
+ * Tokens de razonamiento por cada token de respuesta. Google cobra la respuesta
+ * como la suma de los tokens de salida y los de razonamiento, así que la
+ * estimación tiene que contarlos o el suelo queda por debajo del coste real.
+ *  - standard: Gemini 3.1 Flash-Lite es de la generación 3 y razona por defecto → 1 a 1.
+ *    (con Gemini 2.5 Flash-Lite era 0, porque aquel traía el razonamiento apagado).
+ *  - high: Gemini 3.8 Flash con su nivel por defecto (medio) → se asume 1 a 1.
+ *  - max: Gemini 3.8 Flash con el nivel fijado en bajo → se asume la mitad.
+ * Es una proporción SUPUESTA, no medida. Se corrige con la primera generación real.
+ */
+exports.THINKING_FACTOR = { standard: 1, high: 1, max: 0.5 };
+/** Razonamiento del modelo que sirve búsqueda, PDF y audio (Gemini 3.5 Flash-Lite). */
+exports.MULTIMODAL_THINKING_FACTOR = 1;
+/** Salida facturable: la respuesta más los tokens de razonamiento que se cobran con ella. */
+const billableOutput = (outputTokens, factor) => Math.round(outputTokens * (1 + factor));
+exports.billableOutput = billableOutput;
+/**
  * Coste oficial estimado de una operación que NO es de imagen ni de video.
  * Siempre por arriba: modelo más caro del nivel y salida al máximo permitido.
  */
@@ -107,12 +144,20 @@ function estimateProviderUsd(capability, input = {}) {
     }
     if (capability === 'audio.transcribe') {
         const seconds = Number((_a = input.audioSeconds) !== null && _a !== void 0 ? _a : exports.ASSUMED.audioSeconds);
-        const rate = exports.TEXT_RATES[tier];
-        return (seconds * exports.TOKENS.perAudioSecond * rate.input + exports.DEFAULT_MAX_OUTPUT_TOKENS * rate.output) / 1000000;
+        // El audio se factura con su propia tarifa, no con la de texto del mismo modelo.
+        const rate = ceilingOf(exports.TEXT_RATES[tier], exports.MULTIMODAL_RATE);
+        const audioIn = Math.max(exports.MULTIMODAL_RATE.audioInput, exports.TEXT_RATES[tier].input);
+        const salida = (0, exports.billableOutput)(exports.DEFAULT_MAX_OUTPUT_TOKENS, Math.max(exports.THINKING_FACTOR[tier], exports.MULTIMODAL_THINKING_FACTOR));
+        return (seconds * exports.TOKENS.perAudioSecond * audioIn + salida * rate.output) / 1000000;
     }
-    const rate = exports.TEXT_RATES[tier];
+    // Búsqueda con fuentes y PDF los sirve Gemini 3.5 Flash-Lite, más caro que el
+    // modelo económico: el techo tiene que ser el suyo y no el del nivel pedido.
+    const multimodal = capability === 'text.search' || capability === 'doc.read';
+    const rate = multimodal ? ceilingOf(exports.TEXT_RATES[tier], exports.MULTIMODAL_RATE) : exports.TEXT_RATES[tier];
+    const factor = multimodal ? Math.max(exports.THINKING_FACTOR[tier], exports.MULTIMODAL_THINKING_FACTOR) : exports.THINKING_FACTOR[tier];
     const inputTokens = estimateInputTokens(input);
-    const outputTokens = Number((_b = input.maxOutputTokens) !== null && _b !== void 0 ? _b : exports.DEFAULT_MAX_OUTPUT_TOKENS);
+    // La salida facturable incluye los tokens de razonamiento, que Google cobra con ella
+    const outputTokens = (0, exports.billableOutput)(Number((_b = input.maxOutputTokens) !== null && _b !== void 0 ? _b : exports.DEFAULT_MAX_OUTPUT_TOKENS), factor);
     const usd = (inputTokens * rate.input + outputTokens * rate.output) / 1000000;
     return capability === 'text.search' ? usd + exports.SEARCH_USD_PER_QUERY : usd;
 }
@@ -197,33 +242,62 @@ function imageServiceFor(capability, input = {}, tier) {
  * El precio depende siempre de tres cosas: modelo, resolución y cantidad.
  */
 function priceImage(input, settings) {
-    var _a;
+    var _a, _b, _c;
     const count = Math.max(1, Math.min(8, Number((_a = input.count) !== null && _a !== void 0 ? _a : 1)));
-    const need = { capability: input.capability, kind: input.kind, quality: input.quality, resolution: input.resolution, references: input.references };
+    const need = { capability: input.capability, kind: input.kind, quality: input.quality, resolution: input.resolution, references: input.references, resolutionFromEngine: input.resolutionFromEngine };
     const chosen = input.modelId && (0, imageModels_1.imageModelOf)(input.modelId)
         ? { model: (0, imageModels_1.imageModelOf)(input.modelId), size: input.resolution || '1K', tier: (0, imageModels_1.imageModelOf)(input.modelId).tier, reason: 'lo eligió la persona' }
         : (0, imageModels_1.chooseImageModel)(need, input.available);
     const edit = (0, imageModels_1.isEditCapability)(input.capability);
-    const usdPerImage = (0, imageModels_1.usdFor)(chosen.model, chosen.size, edit);
+    /*
+     * LAS DIMENSIONES LAS DECIDE LA WEË RESOLUTION POLICY, y aquí solo se
+     * consumen. Es la única forma de que el precio y lo que se acabe enviando al
+     * proveedor no puedan discrepar: antes el precio razonaba con una etiqueta
+     * ("1K") y cada adaptador decidía por su cuenta los píxeles de esa etiqueta.
+     *
+     * En una edición la proporción sale de la foto; al crear desde cero, de lo que
+     * pida la operación. Si el modelo no tiene rejilla declarada todavía, se sigue
+     * sin dimensiones y `usdFor` usa su nominal de siempre: nadie se rompe.
+     */
+    const plan = (0, resolutionPolicy_1.resolveForModel)(chosen.model.modelId, {
+        quality: chosen.tier,
+        input: edit ? (_b = input.referenceSizes) === null || _b === void 0 ? void 0 : _b[0] : undefined,
+        aspect: input.aspectRatio,
+    });
+    /*
+     * Cuando se conocen las dimensiones de las imágenes de entrada se pasan tal
+     * cual y el precio es exacto. Si no llegan, se usa la cota inferior de 1 MP por
+     * referencia, que es el mínimo que factura el proveedor. Una edición cuenta
+     * siempre al menos una entrada: la foto que se está editando.
+     */
+    const usdPerImage = (0, imageModels_1.usdFor)(chosen.model, chosen.size, edit, {
+        output: plan ? { width: plan.width, height: plan.height } : undefined,
+        references: Math.max((_c = input.references) !== null && _c !== void 0 ? _c : 0, edit ? 1 : 0),
+        referenceSizes: input.referenceSizes,
+    });
     const discount = (0, imageModels_1.volumeFactor)(count);
-    const usd = count * usdPerImage * discount;
+    /*
+     * COSTE PROTEGIDO → SUELO → PRECIO BASE → DESCUENTO COMERCIAL → PRECIO FINAL
+     *
+     * El coste protegido es lo que cobra el proveedor por las imágenes, SIN el
+     * descuento comercial de Weë: el proveedor no nos hace descuento por volumen,
+     * así que restarlo del coste hundía el suelo por debajo del gasto real. Este es
+     * además el coste que se guarda en el libro de generaciones.
+     */
+    const usd = count * usdPerImage;
+    const floor = Math.ceil(usd * settings.creditsPerUsd);
     const service = imageServiceFor(input.capability, { kind: input.kind, quality: input.quality }, chosen.tier);
+    // El descuento solo puede rebajar el precio mientras quede margen sobre el suelo
+    const base = creditsOf(service, usd, settings);
+    const credits = Math.max(floor, Math.round(base * discount));
     return {
         service,
-        credits: creditsOf(service, usd, settings),
+        credits,
         usd,
         provider: chosen.model.provider,
         model: chosen.model.modelId,
-        detail: {
-            tier: chosen.tier,
-            label: chosen.model.label,
-            imageSize: chosen.size,
-            count,
-            usdPerImage,
-            volumeDiscount: discount < 1 ? Math.round((1 - discount) * 100) : 0,
-            reason: chosen.reason,
-            edit,
-        },
+        detail: Object.assign(Object.assign({ tier: chosen.tier, label: chosen.model.label, imageSize: chosen.size, count,
+            usdPerImage }, (plan ? { outputWidth: plan.width, outputHeight: plan.height, outputPixels: plan.pixels, aspectExact: plan.aspectExact, aboveTarget: plan.aboveTarget } : {})), { costFloor: floor, creditsBeforeDiscount: base, volumeDiscount: discount < 1 ? Math.round((1 - discount) * 100) : 0, reason: chosen.reason, edit }),
     };
 }
 //# sourceMappingURL=aiPricing.js.map

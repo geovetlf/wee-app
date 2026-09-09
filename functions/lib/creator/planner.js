@@ -16,6 +16,35 @@ const toRecord = (answers) => {
     return record;
 };
 /**
+ * Lo que la plantilla deduce sola del texto de la persona, sin gastar nada.
+ * ESCRIBE en `record`, que es como se usaba antes dentro del planificador.
+ *
+ * Está aquí fuera para que los DOS planificadores puedan razonar sobre el mismo
+ * estado de respuestas: el que consulta al LLM necesita ese estado para evaluar
+ * las condiciones `when` igual que lo hará después el de plantilla.
+ */
+const localInference = (template, goal, record) => {
+    const inferred = [];
+    if (!template.infer || !goal || goal === template.defaultGoal)
+        return inferred;
+    const guessed = template.infer(goal);
+    for (const [questionId, optionId] of Object.entries(guessed)) {
+        const question = template.questions.find((q) => q.id === questionId);
+        if (!question || questionId in record)
+            continue;
+        if (!question.options.some((o) => o.id === optionId))
+            continue;
+        record[questionId] = optionId;
+        inferred.push({ questionId, optionId, inferred: true });
+    }
+    return inferred;
+};
+/**
+ * Preguntas que aplican a lo ya respondido (when). ÚNICO sitio de Weë donde se
+ * evalúa esa condición, para que los dos planificadores no puedan discrepar.
+ */
+const applicableQuestions = (template, record) => template.questions.filter((question) => !question.when || question.when(record));
+/**
  * Fase 0: planificador por plantillas, sin LLM. Pregunta lo que falta y arma el plan.
  */
 exports.templatePlanner = {
@@ -23,22 +52,9 @@ exports.templatePlanner = {
         const template = templates_1.TEMPLATES[experienceId];
         const record = toRecord(answers);
         // Lo que ya se entiende del texto de la persona no se vuelve a preguntar
-        const inferred = [];
-        if (template.infer && goal && goal !== template.defaultGoal) {
-            const guessed = template.infer(goal);
-            for (const [questionId, optionId] of Object.entries(guessed)) {
-                const question = template.questions.find((q) => q.id === questionId);
-                if (!question || questionId in record)
-                    continue;
-                if (!question.options.some((o) => o.id === optionId))
-                    continue;
-                record[questionId] = optionId;
-                inferred.push({ questionId, optionId, inferred: true });
-            }
-        }
+        const inferred = localInference(template, goal, record);
         // Solo se hacen las preguntas que aplican a lo ya respondido (when)
-        const applicable = template.questions.filter((question) => !question.when || question.when(record));
-        const pending = applicable.find((question) => !(question.id in record));
+        const pending = applicableQuestions(template, record).find((question) => !(question.id in record));
         if (pending)
             return { question: (0, templates_1.plainQuestion)(pending), inferred };
         return { plan: template.buildPlan(goal, record), inferred };
@@ -107,14 +123,54 @@ exports.llmPlanner = {
     async next(input) {
         const { experienceId, goal, answers, gateway } = input;
         const template = templates_1.TEMPLATES[experienceId];
-        const record = toRecord(answers);
-        const pending = template.questions.filter((q) => !(q.id in record));
+        /*
+         * Solo se consulta al LLM por preguntas que la persona va a ver de verdad.
+         *
+         * Antes se le pasaban TODAS las que faltaban, sin mirar su `when`, mientras
+         * que el planificador de plantilla sí lo aplica dos pasos después. En Chef
+         * eso significaba preguntar por "¿para cuántos días?" —que solo existe para
+         * un menú— en una receta, y llegaba a gastar una llamada entera dedicada
+         * únicamente a esa pregunta que nadie iba a usar.
+         *
+         * `when` se evalúa sobre el mismo estado que verá templatePlanner, con la
+         * inferencia local ya aplicada; sobre una copia, porque `record` sigue
+         * marcando qué se pregunta y aquí no se cambia esa decisión.
+         */
+        const pendientesCon = (respuestas) => {
+            const hechas = toRecord(respuestas);
+            const previstas = Object.assign({}, hechas);
+            localInference(template, goal, previstas);
+            return applicableQuestions(template, previstas).filter((q) => !(q.id in hechas));
+        };
+        const pending = pendientesCon(answers);
         const freeText = [
             goal !== template.defaultGoal ? goal : '',
             ...answers.filter((a) => !a.optionId && a.text).map((a) => a.text),
         ].filter(Boolean);
+        /*
+         * NO se vuelve a consultar por lo mismo.
+         *
+         * El LLM solo deduce a partir del texto libre, y ese texto no cambia cuando la
+         * persona se limita a elegir opciones: el objetivo es inmutable dentro de un
+         * trabajo y las respuestas con `optionId` no entran en `freeText`. Preguntarle
+         * otra vez por las mismas preguntas y el mismo texto solo puede dar lo mismo.
+         *
+         * Pero hay un caso en el que SÍ hay información nueva aunque el texto no haya
+         * cambiado: una pregunta condicional que aparece por primera vez. En Chef, si
+         * la persona elige "menú", surge "¿para cuántos días?", que nunca se consultó
+         * —y el objetivo escrito puede contener ya la respuesta—. Por eso se compara
+         * lo que está pendiente ahora con lo que lo estaba ANTES de este turno.
+         *
+         * Es seguro mirar un solo turno atrás: si algo sigue pendiente y ya lo estaba,
+         * o se consultó en el turno anterior, o ese turno se saltó justamente porque no
+         * traía nada nuevo; encadenando, se llega al primer turno, donde siempre se
+         * consulta. Nada que no se haya preguntado puede quedarse sin preguntar.
+         */
+        const yaPendientes = input.turn ? pendientesCon(input.turn.before).map((q) => q.id) : [];
+        const preguntaNueva = !input.turn || pending.some((q) => !yaPendientes.includes(q.id));
+        const aportaTexto = !input.turn || input.turn.newFreeText;
         let inferred = [];
-        if (pending.length > 0 && freeText.length > 0) {
+        if (pending.length > 0 && freeText.length > 0 && (aportaTexto || preguntaNueva)) {
             inferred = await inferAnswers(experienceId, freeText, pending, gateway);
         }
         const base = await exports.templatePlanner.next(Object.assign(Object.assign({}, input), { answers: [...answers, ...inferred] }));

@@ -2,6 +2,7 @@ import { CapabilityId } from '../creator/types';
 import { EngineSettings, ModelSpec, RoutingPrefs, modalityOf } from './types';
 import { serviceForCapability } from '../credits/creditCosts';
 import { priceImage, priceOperation, usdToCredits } from '../credits/aiPricing';
+import { providerReady } from './image';
 
 export { usdToCredits };
 
@@ -70,6 +71,18 @@ export function creditsFor(capability: CapabilityId, usd: number, settings: Engi
         quality: input.quality as string | undefined,
         resolution: input.resolution as string | undefined,
         kind: input.kind as string | undefined,
+        references: Array.isArray(input.referenceImages) ? input.referenceImages.length : input.imageUrl ? 1 : 0,
+        // Si la resolución la puso el Weë Image Engine, es un mínimo técnico del
+        // modelo y no un pedido de más calidad: no puede cambiar el nivel comercial.
+        resolutionFromEngine: input.resolutionFromEngine === true,
+        // La proporción, para que la política decida las mismas dimensiones que
+        // se calcularon al cotizar.
+        aspectRatio: typeof input.aspectRatio === 'string' ? input.aspectRatio : undefined,
+        // El precio y el suelo se calculan con el modelo que Weë PUEDE ejecutar ahora
+        // mismo. Cotizar un proveedor sin clave dejaría el suelo por debajo del coste
+        // real del que sí va a atender la operación. La escalera sigue siendo dinámica:
+        // el día que ese proveedor tenga clave, vuelve a ganar solo.
+        available: providerReady,
       },
       settings,
     ).credits;

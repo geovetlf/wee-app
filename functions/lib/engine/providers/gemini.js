@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.__setGeminiClient = exports.geminiAdapter = exports.MAX_INPUT_TOKENS = exports.geminiModels = exports.IMAGE_MODEL_LITE = exports.IMAGE_MODEL_PRO = exports.IMAGE_MODEL = void 0;
+exports.__setGeminiClient = exports.geminiAdapter = exports.MAX_INPUT_TOKENS = exports.geminiModels = exports.IMAGE_MODEL_LITE = exports.IMAGE_MODEL_PRO = exports.IMAGE_MODEL = exports.TEXT_MODEL_MULTI = void 0;
 exports.resolveImageSize = resolveImageSize;
 exports.imageUsd = imageUsd;
+exports.thinkingFor = thinkingFor;
 const http_1 = require("../http");
 const aiPricing_1 = require("../../credits/aiPricing");
+const resolutionPolicy_1 = require("../resolutionPolicy");
 /**
  * Google Gemini (clave GEMINI_API_KEY, SDK @google/genai, método generateContent).
  * - Texto y razonamiento: modelo principal configurable (GEMINI_TEXT_MODEL), con
@@ -21,33 +23,50 @@ const aiPricing_1 = require("../../credits/aiPricing");
  */
 const KEY = 'GEMINI_API_KEY';
 const TEXT_MODEL = (0, http_1.env)('GEMINI_TEXT_MODEL') || 'gemini-3.8-flash';
-const TEXT_MODEL_LITE = (0, http_1.env)('GEMINI_TEXT_MODEL_LITE') || 'gemini-2.5-flash-lite';
-const TEXT_MODEL_PRO = (0, http_1.env)('GEMINI_TEXT_MODEL_PRO') || 'gemini-3.1-pro-preview';
-const TEXT_MODEL_LEGACY = 'gemini-2.5-flash';
+/**
+ * Texto sencillo y mirar una foto: Gemini 3.1 Flash-Lite. Sustituye a
+ * gemini-2.5-flash-lite, que la API devuelve como 404 "no longer available to new
+ * users" aunque la página de bajas no le anuncie fecha de retirada. Es el modelo
+ * 3.x más barato (0.25 / 1.50 USD por millón), es estable, acepta imagen como
+ * entrada y es gratuito en el nivel gratuito.
+ */
+const TEXT_MODEL_LITE = (0, http_1.env)('GEMINI_TEXT_MODEL_LITE') || 'gemini-3.1-flash-lite';
+/**
+ * Máxima calidad: Gemini 3.8 Flash. Es el modelo Flash más inteligente de Google,
+ * de generación posterior a 2.5 Pro, y su salida cuesta 3.75 en vez de 10.00 USD
+ * por millón. Lo decisivo para el texto largo es que su nivel de razonamiento se
+ * puede configurar: los tokens de pensamiento se facturan como salida, y 2.5 Pro
+ * no permite bajarlos ni apagarlos.
+ */
+const TEXT_MODEL_PRO = (0, http_1.env)('GEMINI_TEXT_MODEL_PRO') || 'gemini-3.8-flash';
+/**
+ * Búsqueda con fuentes, PDF y audio: Gemini 3.5 Flash-Lite es el modelo 3.x más
+ * barato que Google declara compatible con las tres. Ser 3.x importa: el cupo de
+ * 5 000 búsquedas gratuitas al mes solo aplica a esa generación, y en la 2.5 la
+ * búsqueda cuesta 35 USD por mil en vez de 14.
+ */
+exports.TEXT_MODEL_MULTI = (0, http_1.env)('GEMINI_TEXT_MODEL_MULTI') || 'gemini-3.5-flash-lite';
 exports.IMAGE_MODEL = (0, http_1.env)('GEMINI_IMAGE_MODEL') || 'gemini-3.1-flash-image';
 /** Nano Banana Pro: el modelo de identidad (Beauty, retoque, restauración, logos). */
 exports.IMAGE_MODEL_PRO = (0, http_1.env)('GEMINI_IMAGE_MODEL_PRO') || 'gemini-3-pro-image';
 exports.IMAGE_MODEL_LITE = (0, http_1.env)('GEMINI_IMAGE_MODEL_LITE') || 'gemini-3.1-flash-lite-image';
-const IMAGE_MODEL_LEGACY = 'gemini-2.5-flash-image';
 /** USD por millón de tokens (entrada / salida) — página oficial de precios. */
 const TEXT_RATES = {
     'gemini-3.8-flash': { input: 0.75, output: 3.75 },
+    'gemini-3.5-flash-lite': { input: 0.3, output: 2.5 },
+    'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
     'gemini-3.1-pro-preview': { input: 2, output: 12 },
-    'gemini-2.5-flash': { input: 0.3, output: 2.5 },
-    'gemini-2.5-flash-lite': { input: 0.1, output: 0.4 },
 };
 const IMAGE_RATES = {
     'gemini-3.1-flash-image': { '512px': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
     'gemini-3.1-flash-lite-image': { '1K': 0.0336 },
     'gemini-3-pro-image': { '1K': 0.134, '2K': 0.134, '4K': 0.24 },
-    'gemini-2.5-flash-image': { '1K': 0.039 },
 };
 /** Tamaños que admite cada modelo, de menor a mayor. */
 const IMAGE_SIZES = {
     'gemini-3.1-flash-image': ['512px', '1K', '2K', '4K'],
     'gemini-3.1-flash-lite-image': ['1K'],
     'gemini-3-pro-image': ['1K', '2K', '4K'],
-    'gemini-2.5-flash-image': ['1K'],
 };
 /** Resolución pedida (o deducida de la calidad) recortada a lo que admite el modelo. */
 function resolveImageSize(modelId, quality, requested) {
@@ -70,7 +89,26 @@ function imageUsd(modelId, size) {
 }
 /** Google Search grounding: $14 por 1 000 consultas tras el cupo gratuito mensual. */
 const SEARCH_QUERY_USD = 0.014;
-const textRate = (id, fallback) => TEXT_RATES[id] || TEXT_RATES[fallback] || TEXT_RATES['gemini-2.5-flash'];
+/**
+ * Configuración de razonamiento. Google factura la respuesta como la suma de los
+ * tokens de salida y los de razonamiento, así que aquí se acota siempre:
+ *  - Gemini 3 en texto máximo → nivel BAJO (el texto largo ya es caro por su tamaño).
+ *  - Gemini 3 en el resto → nivel por defecto del modelo.
+ *  - Gemini 2.5 Flash y Flash-Lite → apagado del todo, que sí lo permiten.
+ *  - Gemini 2.5 Pro → nada: es el único que NO permite apagarlo, y mandarle un
+ *    presupuesto de cero haría fallar o ignorar la llamada.
+ */
+function thinkingFor(modelId, quality) {
+    if (modelId.startsWith('gemini-3')) {
+        return quality === 'max' ? { thinkingConfig: { thinkingLevel: 'LOW' } } : {};
+    }
+    if (modelId === 'gemini-2.5-pro')
+        return {};
+    if (modelId.startsWith('gemini-2.5'))
+        return { thinkingConfig: { thinkingBudget: 0 } };
+    return {};
+}
+const textRate = (id, fallback) => TEXT_RATES[id] || TEXT_RATES[fallback] || TEXT_RATES['gemini-3.1-flash-lite'];
 const imageRate = (id, fallback) => imageUsd(IMAGE_RATES[id] ? id : fallback, '1K');
 const TEXT_CAPS = ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split', 'subtitle.generate', 'vision.describe', 'doc.read', 'audio.transcribe'];
 const IMAGE_CAPS = ['image.generate', 'image.edit', 'image.background_remove', 'image.object_remove', 'image.identity_edit', 'image.space_restyle', 'image.reference', 'image.upscale'];
@@ -82,14 +120,19 @@ const image = (id, quality, speed, fallback, extra = {}) => (Object.assign({ id,
     speed, cost: { unit: 'image', usd: imageRate(id, fallback) }, verified: false }, extra));
 const unique = (models) => models.filter((m, i) => models.findIndex((o) => o.id === m.id) === i);
 exports.geminiModels = unique([
+    text(TEXT_MODEL_PRO, 5, 4, 'gemini-3.8-flash', TEXT_CAPS, {
+        tags: ['máxima calidad'],
+        note: 'Texto largo con razonamiento en nivel bajo: novela, guion, historia.',
+    }),
     text(TEXT_MODEL, 4, 4, 'gemini-3.8-flash', TEXT_CAPS, { note: 'Texto, visión y búsqueda con Google (Weë Brain).' }),
-    text(TEXT_MODEL_LEGACY, 3, 5, 'gemini-2.5-flash', TEXT_CAPS, { verified: true }),
-    text(TEXT_MODEL_LITE, 2, 5, 'gemini-2.5-flash-lite', ['text.generate', 'text.structure', 'subtitle.generate'], { tags: ['económico'] }),
-    text(TEXT_MODEL_PRO, 5, 3, 'gemini-3.1-pro-preview', ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split'], { tags: ['máxima calidad'] }),
+    text(TEXT_MODEL_LITE, 2, 5, 'gemini-3.1-flash-lite', ['text.generate', 'text.structure', 'subtitle.generate', 'vision.describe'], { tags: ['económico'] }),
+    text(exports.TEXT_MODEL_MULTI, 3, 5, 'gemini-3.5-flash-lite', ['text.generate', 'text.structure', 'text.search', 'subtitle.generate', 'vision.describe', 'doc.read', 'audio.transcribe'], {
+        tags: ['búsqueda', 'PDF', 'audio'],
+        note: 'Búsqueda con fuentes con cupo gratuito de Gemini 3.x, lectura de PDF y transcripción.',
+    }),
     image(exports.IMAGE_MODEL, 4, 4, 'gemini-3.1-flash-image', { note: 'Nano Banana 2: genera y edita con instrucciones en lenguaje natural; 512px a 4K.' }),
     image(exports.IMAGE_MODEL_PRO, 5, 3, 'gemini-3-pro-image', { tags: ['máxima calidad', 'identidad'], note: 'Nano Banana Pro: conserva mejor el rostro (retoque, restauración, looks).' }),
     image(exports.IMAGE_MODEL_LITE, 3, 5, 'gemini-3.1-flash-lite-image', { tags: ['económico'], note: 'Nano Banana 2 Lite: solo texto a imagen a 1K.' }),
-    image(IMAGE_MODEL_LEGACY, 3, 4, 'gemini-2.5-flash-image', { tags: ['legado'] }),
 ]);
 let client = null;
 const getClient = async () => {
@@ -206,7 +249,7 @@ const groundingSources = (response) => {
     return { sources, queries: Array.isArray(metadata === null || metadata === void 0 ? void 0 : metadata.webSearchQueries) ? metadata.webSearchQueries.length : 0 };
 };
 async function runText(ai, request, start) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     const { capability, input, model } = request;
     const wantJson = capability === 'text.structure' || capability === 'scene.split' || input.format === 'json';
     const search = capability === 'text.search';
@@ -227,26 +270,38 @@ async function runText(ai, request, start) {
     const response = await ai.models.generateContent({
         model: model.id,
         contents: toContents(input.history, parts),
-        config: Object.assign(Object.assign(Object.assign({ systemInstruction: system, temperature: wantJson ? 0.2 : Number((_d = input.temperature) !== null && _d !== void 0 ? _d : 0.8), maxOutputTokens: Number((_e = input.maxOutputTokens) !== null && _e !== void 0 ? _e : 1200) }, (model.id.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {})), (wantJson ? Object.assign({ responseMimeType: 'application/json' }, (input.schema ? { responseSchema: input.schema } : {})) : {})), (search ? { tools: [{ googleSearch: {} }] } : {})),
+        config: Object.assign(Object.assign(Object.assign({ systemInstruction: system, temperature: wantJson ? 0.2 : Number((_d = input.temperature) !== null && _d !== void 0 ? _d : 0.8), maxOutputTokens: Number((_e = input.maxOutputTokens) !== null && _e !== void 0 ? _e : 1200) }, thinkingFor(model.id, String((_f = input.quality) !== null && _f !== void 0 ? _f : ''))), (wantJson ? Object.assign({ responseMimeType: 'application/json' }, (input.schema ? { responseSchema: input.schema } : {})) : {})), (search ? { tools: [{ googleSearch: {} }] } : {})),
     });
-    const content = String((_f = response.text) !== null && _f !== void 0 ? _f : '').trim();
+    const content = String((_g = response.text) !== null && _g !== void 0 ? _g : '').trim();
     if (!content)
         throw new http_1.ProviderError('gemini: la respuesta llegó vacía', 'gemini');
     const usage = (response.usageMetadata || {});
-    const inputTokens = Number((_g = usage.promptTokenCount) !== null && _g !== void 0 ? _g : 0);
-    const outputTokens = Number((_h = usage.candidatesTokenCount) !== null && _h !== void 0 ? _h : 0) + Number((_j = usage.thoughtsTokenCount) !== null && _j !== void 0 ? _j : 0);
+    const inputTokens = Number((_h = usage.promptTokenCount) !== null && _h !== void 0 ? _h : 0);
+    const outputTokens = Number((_j = usage.candidatesTokenCount) !== null && _j !== void 0 ? _j : 0) + Number((_k = usage.thoughtsTokenCount) !== null && _k !== void 0 ? _k : 0);
     const { sources, queries } = search ? groundingSources(response) : { sources: [], queries: 0 };
     const costUSD = (inputTokens * rate.input + outputTokens * rate.output) / 1000000 + queries * SEARCH_QUERY_USD;
     return {
         output: Object.assign({ kind: 'text', content }, (sources.length ? { sources } : {})),
-        usage: Object.assign({ inputTokens, outputTokens, totalTokens: Number((_k = usage.totalTokenCount) !== null && _k !== void 0 ? _k : inputTokens + outputTokens) }, (search ? { searchQueries: queries } : {})),
+        usage: Object.assign({ inputTokens, outputTokens, totalTokens: Number((_l = usage.totalTokenCount) !== null && _l !== void 0 ? _l : inputTokens + outputTokens) }, (search ? { searchQueries: queries } : {})),
         costUSD,
         latencyMs: Date.now() - start,
         model: model.id,
     };
 }
+/**
+ * Etiqueta de proporción de las medidas que resolvió el motor, si es una de las
+ * que el proveedor entiende. Si la foto tiene una proporción rara, devuelve
+ * undefined y se usa el valor por defecto de siempre: nunca se deforma nada.
+ */
+const aspectFromOutput = (input) => {
+    const width = Number(input.outputWidth);
+    const height = Number(input.outputHeight);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0)
+        return undefined;
+    return (0, resolutionPolicy_1.nearestAspectLabel)((0, resolutionPolicy_1.aspectOf)(width, height));
+};
 async function runImage(ai, request, start) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
     const { capability, input, ctx, model, prefs } = request;
     const count = Math.max(1, Math.min(4, Number((_a = input.count) !== null && _a !== void 0 ? _a : 1)));
     const kind = String((_b = input.kind) !== null && _b !== void 0 ? _b : '');
@@ -255,22 +310,30 @@ async function runImage(ai, request, start) {
     const parts = [{ text: prompt }];
     for (const url of imageUrlsOf(input))
         parts.push(await imagePart(url));
-    const legacy = model.id === IMAGE_MODEL_LEGACY;
-    const aspectRatio = String((_f = input.aspectRatio) !== null && _f !== void 0 ? _f : (kind === 'cover' ? '2:3' : '1:1'));
+    /*
+     * La proporción sale de las medidas que ya resolvió la Resolution Policy.
+     *
+     * `outputWidth`/`outputHeight` llegan calculadas desde la foto real de la
+     * persona —son las mismas con las que se calculó el precio— y hasta la fase
+     * 2E-59 este adaptador las ignoraba y pedía 1:1. Una sala panorámica volvía
+     * cuadrada, que es justo lo contrario de "conservar las proporciones". No hay
+     * lógica nueva aquí: solo se lee lo que el motor ya había decidido.
+     */
+    const aspectRatio = String((_g = (_f = input.aspectRatio) !== null && _f !== void 0 ? _f : aspectFromOutput(input)) !== null && _g !== void 0 ? _g : (kind === 'cover' ? '2:3' : '1:1'));
     const size = resolveImageSize(model.id, prefs.quality, typeof input.resolution === 'string' ? input.resolution : undefined);
     const config = {
-        responseModalities: legacy ? ['IMAGE'] : ['IMAGE', 'TEXT'],
-        imageConfig: Object.assign({ aspectRatio }, (legacy ? {} : { imageSize: size })),
+        responseModalities: ['IMAGE', 'TEXT'],
+        imageConfig: { aspectRatio, imageSize: size },
     };
     // El coste depende de la resolución de salida, no solo del modelo
     const rate = imageUsd(model.id, size);
     const urls = [];
     for (let i = 0; i < count; i++) {
         const response = await ai.models.generateContent({ model: model.id, contents: [{ role: 'user', parts }], config });
-        const candidateParts = (_k = (_j = (_h = (_g = response.candidates) === null || _g === void 0 ? void 0 : _g[0]) === null || _h === void 0 ? void 0 : _h.content) === null || _j === void 0 ? void 0 : _j.parts) !== null && _k !== void 0 ? _k : [];
+        const candidateParts = (_l = (_k = (_j = (_h = response.candidates) === null || _h === void 0 ? void 0 : _h[0]) === null || _j === void 0 ? void 0 : _j.content) === null || _k === void 0 ? void 0 : _k.parts) !== null && _l !== void 0 ? _l : [];
         const found = candidateParts.find((p) => { var _a; return (_a = p.inlineData) === null || _a === void 0 ? void 0 : _a.data; });
         if (!found) {
-            const reason = ((_m = (_l = response.candidates) === null || _l === void 0 ? void 0 : _l[0]) === null || _m === void 0 ? void 0 : _m.finishReason) || ((_o = response.promptFeedback) === null || _o === void 0 ? void 0 : _o.blockReason) || 'sin imagen';
+            const reason = ((_o = (_m = response.candidates) === null || _m === void 0 ? void 0 : _m[0]) === null || _o === void 0 ? void 0 : _o.finishReason) || ((_p = response.promptFeedback) === null || _p === void 0 ? void 0 : _p.blockReason) || 'sin imagen';
             throw new http_1.ProviderError(`gemini: la respuesta no trajo imagen (${reason})`, 'gemini', undefined, /SAFETY|PROHIBITED|BLOCK/i.test(String(reason)) ? false : true);
         }
         urls.push(await (0, http_1.persistBase64)(ctx.userId, found.inlineData.data, found.inlineData.mimeType || 'image/png', `image-${i + 1}`));

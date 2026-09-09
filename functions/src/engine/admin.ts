@@ -1,4 +1,5 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { AI_SECRETS } from '../secrets';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { CapabilityId } from '../creator/types';
 import { engine } from './index';
@@ -32,7 +33,29 @@ const validateChain = (chain: unknown): ChainLink[] => {
   });
 };
 
-export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60 }, async (request) => {
+/**
+ * Lo que se guarda aquí decide cuánto paga la persona, así que un valor imposible
+ * se RECHAZA en vez de corregirse solo: nadie debe descubrir el error mirando una
+ * factura. Por eso no hay conversión silenciosa ni valores por defecto de rescate.
+ *
+ * `margin` negativo dejaría el precio del modo real por debajo del coste del
+ * proveedor en texto y vídeo, donde el suelo no está escrito de forma explícita
+ * sino que descansa en que (1 + margin) nunca baje de 1.
+ */
+export const validateSettings = (data: Record<string, unknown>): void => {
+  const esNumero = (v: unknown) => typeof v !== 'boolean' && v !== null && v !== '' && Number.isFinite(Number(v));
+  if (data.pricingMode !== undefined && data.pricingMode !== 'simulated' && data.pricingMode !== 'real') {
+    throw new HttpsError('invalid-argument', `pricingMode inválido: ${String(data.pricingMode)}. Solo "simulated" o "real"`);
+  }
+  if (data.margin !== undefined && (!esNumero(data.margin) || Number(data.margin) < 0)) {
+    throw new HttpsError('invalid-argument', 'margin no puede ser negativo: vendería por debajo del coste del proveedor');
+  }
+  if (data.creditsPerUsd !== undefined && (!esNumero(data.creditsPerUsd) || Number(data.creditsPerUsd) <= 0)) {
+    throw new HttpsError('invalid-argument', 'creditsPerUsd debe ser mayor que cero');
+  }
+};
+
+export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, secrets: AI_SECRETS }, async (request) => {
   assertAdmin(request.auth as any);
   const data = (request.data || {}) as Record<string, any>;
   const action = String(data.action || 'status');
@@ -96,6 +119,7 @@ export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60 },
     }
 
     case 'setSettings': {
+      validateSettings(data);
       const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker'];
       const patch: Record<string, unknown> = { updatedAt: Timestamp.now() };
       for (const key of allowed) if (data[key] !== undefined) patch[key] = data[key];

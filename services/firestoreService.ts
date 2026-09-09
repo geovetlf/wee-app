@@ -28,6 +28,8 @@ export interface PollOption {
   votedBy: string[]; // Array de userIds que votaron por esta opción
 }
 
+import type { PostPlace } from '../data/places';
+
 export interface PostPoll {
   options: PollOption[];
   endsAt: Timestamp;
@@ -55,6 +57,46 @@ export interface Post {
   communityId?: string; // ID de la comunidad (requerido para nuevos posts)
   communitySlug?: string; // Slug para navegación rápida
   tags?: string[]; // Tags/temas seleccionados por el usuario
+
+  /*
+   * === De dónde viene y de qué lugar habla (fase 2E-63C.1) ===
+   *
+   * Dos cosas distintas que es fácil confundir, así que van separadas:
+   *
+   * `sourceSection` es el CONTEXTO DE WEË: la sección desde la que se publicó
+   * —'travel', 'studio', 'design', 'chef'…—. Lo pone el flujo que trajo a la
+   * persona hasta aquí, nunca se adivina de lo que escribió. Las comunidades no
+   * lo usan: ya tienen `communityId`, y duplicar el dato solo daría ocasión de
+   * que las dos copias se contradigan.
+   *
+   * `placeLabel` es el LUGAR DEL CONTENIDO, escrito por quien publica. Alguien
+   * en Lima puede publicar una foto de París y decir "París": el sitio donde
+   * está su teléfono no tiene por qué ser el sitio del que habla la foto.
+   *
+   * Los dos son opcionales y los dos son públicos, como todo el post. Y ninguno
+   * de los dos es una coordenada: aquí no hay latitude, longitude, radio,
+   * precisión, GeoPoint ni geohash, y no los habrá sin una fase que lo revise.
+   */
+  sourceSection?: string; // 'travel' | 'studio' | 'design' | 'chef' | 'writer' | 'music' | 'business' | 'brain'
+
+  /*
+   * El lugar, en dos generaciones.
+   *
+   * `place` es el de ahora: `{ kind, id?, label }`. Del catálogo trae un código
+   * ISO estable —'PE' para Perú—, así que dos publicaciones que elijan el mismo
+   * sitio hablan del mismo sitio de verdad y no solo por escribirlo igual. Escrito
+   * a mano trae únicamente las palabras de quien publica.
+   *
+   * `placeLabel` es lo que traen las publicaciones anteriores a esta fase. No se
+   * migra ninguna: se siguen leyendo igual. Una publicación nueva escribe solo
+   * `place`, así que los dos campos nunca conviven en el mismo documento y no hay
+   * ninguna contradicción posible entre ellos.
+   *
+   * Ni uno ni otro llevan coordenadas, radio, precisión, GeoPoint ni geohash, y
+   * ninguno sale del GPS: el lugar lo elige la persona.
+   */
+  place?: PostPlace;
+  placeLabel?: string; // Histórico: el lugar en texto, antes de `place`.
 
   // === NUEVO: Sistema de votación (% de acuerdo) ===
   agreementCount: number; // Votos "de acuerdo"

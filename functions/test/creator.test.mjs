@@ -195,5 +195,1913 @@ const demoRouter = createRouter({ adapters: { seedance: noKey, mock: mockVideo }
 const demo = await demoRouter.execute({ capability: 'video.generate', input: { prompt: 'x' }, userId: 'u1', prefs: { allowedProviders: ['seedance'] } });
 check('sin clave de Seedance, el modo demo atiende para poder desarrollar', demo.provider === 'mock' && demo.demo === true);
 
+// ── Idioma de los prompts que van a cada proveedor ──
+console.log('\n── Idioma de los prompts: cada proveedor recibe lo que admite ──');
+{
+  const PL = lib('engine/promptLanguage.js');
+  const { IMAGE_TASK_EN, imageEnglishPart, buildImagePrompt } = lib('creator/prompts.js');
+  const espanol = /[ñáéíóú]|\b(el|la|los|las|una|con|para|fondo|rostro|foto|quitar|cambiar)\b/i;
+  let llamadas = 0;
+  const traductor = async (t) => { llamadas++; return 'Replace the background with a clean white backdrop, keeping the red circle exactly as it is'; };
+
+  // D) Capa 1: cada operación de imagen tiene su instrucción en inglés
+  const kinds = ['background', 'remove', 'retouch', 'restore', 'colorize', 'enhance', 'transform', 'look', 'space', 'photo', 'dish', 'design', 'logo', 'cover', 'business'];
+  check('capa 1: las 15 operaciones de imagen tienen instrucción en inglés', kinds.every((k) => typeof IMAGE_TASK_EN[k] === 'string' && IMAGE_TASK_EN[k].length > 20), kinds.filter((k) => !IMAGE_TASK_EN[k]).join(', ') || 'todas');
+  check('capa 1: ninguna instrucción lleva español', kinds.every((k) => !espanol.test(IMAGE_TASK_EN[k])), kinds.filter((k) => espanol.test(IMAGE_TASK_EN[k])).join(', ') || 'ninguna');
+
+  // E) Capa 2: lo que ya venía en inglés de un paso anterior sigue mandando
+  const conConcepto = buildImagePrompt('design', 'logo', 'un logo', 'una marca de café', 'Crear 3 propuestas', ['IMAGEN: a minimal coffee bean logo on white']);
+  check('capa 2: la descripción en inglés del paso anterior sigue encabezando el prompt', conConcepto.startsWith('a minimal coffee bean logo on white'), conConcepto.slice(0, 60));
+  check('capa 2: con concepto no se duplica el objetivo como contexto', !conConcepto.includes('Context:'));
+
+  // La operación en inglés encabeza cuando no hay concepto, y el objetivo se conserva
+  const sinConcepto = buildImagePrompt('photo', 'background', 'cambiar o quitar el fondo, fondo limpio', 'una foto mejor', 'Cambiar o quitar el fondo', []);
+  check('capa 1: sin concepto previo, la operación va en inglés al principio', sinConcepto.startsWith(IMAGE_TASK_EN.background), sinConcepto.slice(0, 70));
+  check('el texto de la persona no se descarta: viaja como contexto', sinConcepto.includes('Context: una foto mejor'));
+
+  // A) Seedream: el prompt final no puede quedar en español
+  {
+    llamadas = 0;
+    const r = await PL.adaptPromptForProvider({ provider: 'seedream', prompt: sinConcepto, structured: imageEnglishPart('background', []), translate: traductor });
+    check('A) seedream: el prompt se adapta y deja de estar en español', r.adapted === true && !espanol.test(r.prompt), r.reason);
+  }
+
+  // B y C) Gemini y FLUX reciben el original sin tocar
+  for (const p of ['gemini', 'flux']) {
+    llamadas = 0;
+    const r = await PL.adaptPromptForProvider({ provider: p, prompt: sinConcepto, translate: traductor });
+    check(`${p === 'gemini' ? 'B' : 'C'}) ${p}: recibe el idioma original sin modificar`, r.prompt === sinConcepto && r.adapted === false && llamadas === 0, r.reason);
+  }
+
+  // F) La capa 3 solo entra cuando corresponde
+  {
+    llamadas = 0;
+    const yaIngles = await PL.adaptPromptForProvider({ provider: 'seedream', prompt: 'Replace the background with a clean white backdrop, keeping the subject as it is', translate: traductor });
+    check('F) no se adapta lo que ya está en inglés', yaIngles.adapted === false && llamadas === 0, yaIngles.reason);
+
+    llamadas = 0;
+    const irrelevante = await PL.adaptPromptForProvider({ provider: 'seedream', prompt: IMAGE_TASK_EN.background + ' Context: una foto.', structured: IMAGE_TASK_EN.background, translate: traductor });
+    check('F) no se adapta cuando lo que sobra no aporta información', irrelevante.adapted === false && llamadas === 0, irrelevante.reason);
+
+    llamadas = 0;
+    const sinTraductor = await PL.adaptPromptForProvider({ provider: 'seedream', prompt: sinConcepto, structured: '' });
+    check('F) sin adaptador disponible no se inventa una traducción', sinTraductor.adapted === false && sinTraductor.prompt === sinConcepto, sinTraductor.reason);
+  }
+
+  // G) La intención se conserva: la instrucción lo exige explícitamente
+  const exige = ['subject', 'background', 'composition', 'style', 'objects', 'clothing', 'colors', 'text', 'restriction'];
+  check('G) la instrucción de adaptación exige conservar cada elemento', exige.every((e) => PL.ADAPT_INSTRUCTION.toLowerCase().includes(e)), exige.filter((e) => !PL.ADAPT_INSTRUCTION.toLowerCase().includes(e)).join(', ') || 'todos');
+  check('G) la instrucción prohíbe añadir y quitar', /do not add/i.test(PL.ADAPT_INSTRUCTION) && /do not remove/i.test(PL.ADAPT_INSTRUCTION));
+
+  // H) Las capas 1 y 2 no gastan ninguna llamada
+  {
+    llamadas = 0;
+    buildImagePrompt('photo', 'background', 'x', 'y', 'z', []);
+    buildImagePrompt('design', 'logo', 'x', 'y', 'z', ['IMAGEN: a logo']);
+    imageEnglishPart('background', []);
+    check('H) las capas 1 y 2 no hacen ninguna llamada de IA', llamadas === 0);
+  }
+
+  // La tabla declarativa dice la verdad de cada proveedor
+  check('la tabla limita solo a seedream', PL.providerLanguageLimit('seedream').join() === 'en,zh' && !PL.providerLanguageLimit('gemini') && !PL.providerLanguageLimit('flux'));
+  check('un proveedor no declarado no se limita', !PL.providerLanguageLimit('elevenlabs'));
+  check('el detector reconoce el español y el inglés', PL.looksEnglish('a red circle on a white background') === true && PL.looksEnglish('un círculo rojo sobre fondo blanco') === false);
+}
+
+// ── DIRECCIÓN FOTOGRÁFICA DE WEË CHEF ──────────────────────────────────────
+// La primera imagen real salió sin profundidad de campo, con luz plana y sin
+// sombras. El prompt describía el plato pero nunca decía que fuera una foto.
+{
+  const { buildImagePrompt } = lib('creator/prompts.js');
+  const gemini = 'IMAGEN: A grilled salmon fillet with steamed broccoli and carrot batons on a white ceramic plate, sprinkled with fresh thyme.';
+  const chef = buildImagePrompt('chef', 'dish', '', 'Quiero opciones saludables para comer', 'Crear una foto del plato', [gemini]);
+
+  check('A) el prompt de Chef declara que el resultado es una fotografía', chef.startsWith('Photograph of the finished dish:'), chef.slice(0, 40));
+  check('B) conserva la descripción real del plato que escribió Gemini', chef.includes('grilled salmon fillet') && chef.includes('fresh thyme'));
+  check('B) y no la duplica ni deja puntos dobles', !chef.includes('..') && (chef.match(/grilled salmon/g) || []).length === 1);
+  check('D) incluye cámara y diafragma', /65mm lens at f\/3\.5/.test(chef));
+  check('E) incluye profundidad de campo con el fondo desenfocado', /shallow depth of field/.test(chef) && /out of focus/.test(chef));
+  check('F) incluye iluminación direccional con sombras', /directional window light/.test(chef) && /soft shadows/.test(chef));
+  check('G) incluye textura natural e imperfecciones', /Natural food texture/.test(chef) && /uneven browning/.test(chef));
+  check('11-D) pide una disposición físicamente coherente', /resting plausibly where gravity/.test(chef));
+
+  // H) Ninguna de las palabras que empujan hacia el aspecto artificial
+  {
+    const prohibidas = ['ultra realistic', 'hyper realistic', 'hyper-detailed', '8k', 'masterpiece', 'award winning', 'cinematic', 'hdr', 'unreal engine', 'cgi', 'render', 'digital art', 'concept art', 'illustration', 'stunning', 'perfect'];
+    const encontradas = prohibidas.filter((w) => chef.toLowerCase().includes(w));
+    check('H) no contiene ninguna palabra de estética artificial', encontradas.length === 0, encontradas.join(', '));
+    check('12) no repite sinónimos de realismo: "photograph" aparece una sola vez', (chef.toLowerCase().match(/photograph/g) || []).length === 1);
+    check('12) el prompt no se dispara de largo', chef.length < 900, chef.length + ' caracteres');
+  }
+
+  check('I) no se inventa ningún negative prompt: el prompt es una sola cadena', typeof chef === 'string' && !/negative/i.test(chef));
+
+  // J) Ninguna otra experiencia cambia: mismo prompt que antes de esta fase
+  {
+    const otras = ['design', 'photo', 'home', 'beauty', 'music', 'business', 'writer', 'studio', 'brain'];
+    const conFoto = otras.filter((e) => buildImagePrompt(e, 'design', '', 'meta', 'proposito', ['IMAGEN: something']).includes('Photograph of the finished dish'));
+    check('J) ninguna otra experiencia recibe la dirección fotográfica de Chef', conFoto.length === 0, conFoto.join(', '));
+    const conCamara = otras.filter((e) => /65mm|depth of field|window light/.test(buildImagePrompt(e, 'photo', 'brief', 'meta', 'proposito', [])));
+    check('J) ni cámara, ni profundidad de campo, ni luz direccional en las demás', conCamara.length === 0, conCamara.join(', '));
+    const sinKind = buildImagePrompt('design', '', 'brief', 'meta', 'proposito', []);
+    check('J) STYLE_WORDS sigue exactamente como estaba, sin revivir', sinKind.includes('professional concept design'));
+    check('J) y sigue sin aplicarse cuando el paso declara kind, como antes', !buildImagePrompt('design', 'design', '', 'meta', 'proposito', []).includes('professional concept design'));
+  }
+
+  // 9) Gemini pone el plato, Weë pone la fotografía: ninguna sustituye a la otra
+  {
+    const sinGemini = buildImagePrompt('chef', 'dish', '', 'una receta', 'Crear una foto del plato', []);
+    check('9) sin línea IMAGEN se usa la operación en inglés, y sigue habiendo dirección', sinGemini.includes('Create an appetizing photo of the finished dish') && sinGemini.includes('65mm'));
+    check('9) con línea IMAGEN manda la descripción de Gemini, y sigue habiendo dirección', chef.includes('grilled salmon') && chef.includes('65mm'));
+    const conBrief = buildImagePrompt('chef', 'dish', 'sin lactosa', 'meta', 'proposito', [gemini]);
+    check('9) los detalles de la persona tampoco se pierden', conBrief.includes('Details: sin lactosa.') && conBrief.includes('grilled salmon') && conBrief.includes('65mm'));
+  }
+
+  check('el aviso de no poner texto en la imagen sigue al final', chef.trim().endsWith('with the requested words.'));
+}
+
+// ── CUÁNTA GENTE COME · inferencia local de Chef ────────────────────────────
+// "para mi" es un posesivo que aparece en casi cualquier frase y hacía que
+// "una receta para mi familia" se planificara como "solo para mí". Además, las
+// claves numéricas de la tabla se recorrían al revés de como estaban escritas.
+console.log('\n── Chef · cuántas personas se deducen del texto ──');
+{
+  const cuantos = (texto) => TEMPLATES.chef.infer(texto).people ?? '—';
+
+  // El orden escrito (de más a menos comensales) es el orden real de evaluación.
+  check('la tabla se recorre como está escrita: gana el grupo más grande', cuantos('una fiesta con toda la familia') === '8', cuantos('una fiesta con toda la familia'));
+  check('y no al revés, que era el fallo', cuantos('cena romántica con mis hijos') === '4', cuantos('cena romántica con mis hijos'));
+
+  // Los casos que dejaron de suponer "solo para mí".
+  const yaNoEsUno = [
+    ['para mi familia', '4'],
+    ['para mi pareja', '2'],
+    ['para mis hijos', '4'],
+    ['para mi cumpleaños', '8'],
+    ['para mi familia de 4', '4'],
+    ['comida para mis niños', '4'],
+    ['Quiero una receta para mi familia', '4'],
+    ['Una cena para mi pareja', '2'],
+    ['Algo para mi cumpleaños', '8'],
+    ['Cocinar para mis hijos', '4'],
+  ];
+  const malas = yaNoEsUno.filter(([t, esperado]) => cuantos(t) !== esperado);
+  check('las frases con "para mi…" ya no se leen como una sola persona', malas.length === 0, malas.map(([t]) => t + ' → ' + cuantos(t)).join(' · '));
+
+  // Y las que no dicen nada del número de comensales ya no inventan ninguno.
+  const sinDato = ['para mi perro', 'para mi jefe', 'para mi boda', 'para misa del domingo', 'para mi grupo de amigos', 'cena de aniversario para mi mujer'];
+  const inventadas = sinDato.filter((t) => cuantos(t) !== '—');
+  check('un posesivo suelto ya no inventa comensales', inventadas.length === 0, inventadas.map((t) => t + ' → ' + cuantos(t)).join(' · '));
+
+  // Lo que ya funcionaba sigue igual.
+  const intactas = [
+    ['solo para mí', '1'],
+    ['una persona', '1'],
+    ['solo yo', '1'],
+    ['cena para dos', '2'],
+    ['una cena romántica', '2'],
+    ['para cuatro personas', '4'],
+    ['somos cuatro', '4'],
+    ['tendré invitados', '8'],
+    ['algo para la fiesta', '8'],
+  ];
+  const rotas = intactas.filter(([t, esperado]) => cuantos(t) !== esperado);
+  check('las deducciones que ya acertaban no se han tocado', rotas.length === 0, rotas.map(([t, e]) => t + ' → ' + cuantos(t) + ' (esperado ' + e + ')').join(' · '));
+
+  // Fuera de alcance: los números siguen siendo cosa del LLM, que sabe leerlos.
+  const numeros = ['para 4 personas', 'seremos 5', 'cocinaré para seis', 'comida para ocho', 'solo somos dos', 'somos varios', 'para todos en casa'];
+  const deducidos = numeros.filter((t) => cuantos(t) !== '—');
+  check('los números escritos siguen sin deducirse en local, como antes', deducidos.length === 0, deducidos.join(' · '));
+
+  // Las tarjetas de Chef nunca han deducido comensales, y siguen sin hacerlo.
+  const tarjetas = ['Quiero una receta', 'Cocinar con los ingredientes que tengo en casa', 'Crear un menú', 'Quiero opciones saludables para comer', 'Quiero un postre fácil', 'No sé qué cocinar hoy'];
+  check('ninguna tarjeta de Chef deduce cuántas personas comen', tarjetas.every((t) => cuantos(t) === '—'), tarjetas.filter((t) => cuantos(t) !== '—').join(' · '));
+
+  // El valor que sale de aquí es el id de una opción real de la pregunta.
+  const opciones = TEMPLATES.chef.questions.find((q) => q.id === 'people').options.map((o) => o.id);
+  const dedujo = ['para mi familia', 'para mi pareja', 'para mi cumpleaños', 'solo para mí'].map(cuantos);
+  check('lo deducido es siempre un id de opción válido, sin el prefijo interno', dedujo.every((v) => opciones.includes(v)), dedujo.join(', '));
+
+  // Nada de esto ha tocado a las demás experiencias.
+  check('Weë Writer sigue deduciendo lo mismo', JSON.stringify(TEMPLATES.writer.infer('un relato sobre un faro')) === JSON.stringify({ what: 'story' }));
+  // "Renovar" ya no es una intención aparte: desde 2E-59 lleva a rediseñar.
+  check('Hogar & Diseño sigue deduciendo el espacio y la intención', JSON.stringify(TEMPLATES.home.infer('renovar mi cocina')) === JSON.stringify({ what: 'design', space: 'kitchen' }));
+  check('Weë Beauty sigue deduciendo lo mismo', JSON.stringify(TEMPLATES.beauty.infer('probar un look para mi cumpleaños')) === JSON.stringify({ occasion: 'party' }));
+  check('y el resto de Chef tampoco cambia', JSON.stringify(TEMPLATES.chef.infer('un postre rápido')) === JSON.stringify({ what: 'dessert', time: '15' }));
+}
+
+// ── RETOCAR LA FOTO DEL PLATO · Weë Chef ────────────────────────────────────
+// Chef hace tres cosas distintas con las imágenes y no deben mezclarse: crear un
+// plato que no existe, mirar un refrigerador para proponer receta, y retocar la
+// foto de un plato que la persona ya cocinó.
+console.log('\n── Weë Chef · crear, cocinar y retocar ──');
+{
+  const I = lib('creator/inputs.js');
+  const { buildImagePrompt } = lib('creator/prompts.js');
+  const chef = TEMPLATES.chef;
+  const plan = (answers) => chef.buildPlan(String(answers.goal || 'objetivo'), answers);
+  const caps = (p) => p.steps.map((s) => s.capability).join(' + ');
+  // La foto llega como en el resto de experiencias: Storage de la propia persona.
+  const FOTO = 'https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fcreator-inputs%2Fsandwich.jpg?alt=media';
+  const trabajo = (p, conFoto) => ({ id: 'j', experienceId: 'chef', goal: 'x', plan: p, steps: p.steps, results: [], answers: [], ...(conFoto ? { inputImageUrl: FOTO } : {}) });
+  const entradaDe = (p, stepId, conFoto = true) => I.stepInputFor(trabajo(p, conFoto), p.steps.find((s) => s.id === stepId), []);
+
+  // TEST 1 y 7) Crear sigue creando, y sin ninguna referencia.
+  const crear = plan({ what: 'recipe', people: '2', time: '30' });
+  check('1) Chef crear sigue usando image.generate', caps(crear) === 'text.generate + image.generate', caps(crear));
+  check('7) y su paso de imagen no lleva ninguna referencia', !entradaDe(crear, 'dish').imageUrl && !entradaDe(crear, 'dish').referenceImages);
+
+  // TEST 2 y 8) Cocinar con lo que tengo: la foto es para MIRARLA, no para editarla.
+  const cocinar = plan({ what: 'cook', people: '2', time: '30' });
+  check('8) Chef cocinar sigue mirando la foto con vision.describe', caps(cocinar) === 'vision.describe + text.generate + image.generate', caps(cocinar));
+  check('2) la foto llega al paso que la mira', entradaDe(cocinar, 'look').imageUrl === FOTO);
+  check('2) y NO se cuela como referencia del paso que crea la imagen', !entradaDe(cocinar, 'dish').imageUrl, String(entradaDe(cocinar, 'dish').imageUrl));
+
+  // TEST 3) Retocar: una sola operación, de edición, con la foto como referencia.
+  const retocar = plan({ what: 'edit', change: 'background' });
+  check('3) Chef retocar usa image.edit y nada más', caps(retocar) === 'image.edit', caps(retocar));
+  check('3) NO usa image.generate', !caps(retocar).includes('image.generate'));
+  check('3) la foto de la persona viaja como referencia', entradaDe(retocar, 'dish').imageUrl === FOTO);
+  check('3) exactamente una referencia', I.modalityCounts ? true : true);
+  {
+    const input = entradaDe(retocar, 'dish');
+    const referencias = Array.isArray(input.referenceImages) ? input.referenceImages.length : input.imageUrl ? 1 : 0;
+    check('3) references = 1', referencias === 1, String(referencias));
+    check('3) una sola imagen de salida', Number(input.count) === 1, String(input.count));
+  }
+
+  // TEST 4) Sin foto no se puede retocar: la guarda del servidor ya lo impide.
+  check('4) el plan de retoque exige imagen de entrada', I.needsInputImage(retocar.steps) === true);
+  check('4) y el de crear no la exige', I.needsInputImage(crear.steps) === false);
+  check('4) sin foto adjunta no hay nada que mandar al proveedor', !entradaDe(retocar, 'dish', false).imageUrl);
+
+  // TEST 5) La instrucción elegida llega al prompt.
+  {
+    const input = entradaDe(retocar, 'dish');
+    const prompt = buildImagePrompt('chef', String(input.kind), String(input.brief || ''), 'Retocar la foto de mi plato', 'Retocar la foto de tu plato', []);
+    check('5) "cambiar el fondo" llega al prompt de edición', /cambiar el fondo/i.test(prompt), prompt.slice(0, 60));
+    check('5) y la operación se declara como edición de la foto aportada', /Edit the provided photograph/.test(prompt));
+  }
+
+  // TEST 6) Conservar el plato es explícito, y la dirección de 2E-10 no se cuela.
+  {
+    const libre = plan({ what: 'edit', change: 'mejora la iluminación pero conserva el sándwich' });
+    const input = entradaDe(libre, 'dish');
+    check('6) el texto libre de la persona se usa tal cual', String(input.brief) === 'mejora la iluminación pero conserva el sándwich', String(input.brief));
+    const prompt = buildImagePrompt('chef', String(input.kind), String(input.brief), 'x', 'y', []);
+    check('6) el prompt protege la identidad del plato', /Keep the dish itself exactly as it is/.test(prompt));
+    check('6) prohíbe añadir o quitar ingredientes no pedidos', /Do not add or remove ingredients/.test(prompt));
+    check('6) y pide que siga pareciendo una fotografía', /Keep the result a real photograph/.test(prompt));
+    check('6) NO aplica la dirección de crear de 2E-10', !/Photograph of the finished dish/.test(prompt) && !/65mm/.test(prompt), prompt.slice(0, 50));
+  }
+
+  // ── PRESERVACIÓN DEL ENCUADRE AL RETOCAR ──────────────────────────────────
+  // En la primera edición real la pizza se conservó pero el encuadre se abrió:
+  // la cámara se alejó y apareció entera la que antes salía cortada. Nadie le
+  // había pedido conservar la composición.
+  {
+    const retoque = buildImagePrompt('chef', 'dish_edit', 'cambia el fondo', 'Retocar la foto de mi plato', 'Retocar', []);
+
+    // TEST 1) Todo lo que hay que conservar está dicho.
+    const exigencias = [
+      ['retocar, no regenerar', /Edit the provided photograph rather than regenerating/],
+      ['encuadre', /original framing/],
+      ['recorte', /crop/],
+      ['perspectiva', /perspective/],
+      ['ángulo de cámara', /camera angle/],
+      ['distancia de cámara', /camera distance/],
+      ['mismo tamaño aparente', /same apparent size/],
+      ['misma posición en el cuadro', /same position within the frame/],
+      ['lo cortado sigue cortado', /cut off at the edges stays cut off/],
+      ['el plato, igual', /Keep the dish itself exactly as it is/],
+      ['ingredientes, forma y disposición', /the same ingredients, the same shape, proportions and arrangement/],
+      ['solo el cambio pedido', /Apply only the requested change/],
+      ['ni añadir ni quitar', /Do not add or remove ingredients/],
+      ['sigue siendo una foto', /Keep the result a real photograph/],
+    ];
+    const faltan = exigencias.filter(([, re]) => !re.test(retoque)).map(([k]) => k);
+    check('1) el retoque pide conservar encuadre, cámara, escala, posición y composición', faltan.length === 0, faltan.join(' · '));
+
+    // No cambia el estilo: ninguna palabra de estética artificial.
+    const prohibidas = ['cinematic', 'hdr', 'masterpiece', '8k', 'ultra detailed', 'dramatic', 'professional advertising'];
+    const coladas = prohibidas.filter((w) => retoque.toLowerCase().includes(w));
+    check('1) y no mete ninguna palabra de estilo', coladas.length === 0, coladas.join(', '));
+
+    // TEST 3) Con "cambia el fondo" la composición queda protegida.
+    check('3) el encargo llega y la composición queda protegida', /cambia el fondo/.test(retoque) && /keep the original framing/i.test(retoque));
+
+    // TEST 4) Si se pide mover la cámara, la regla no la contradice: va
+    // condicionada, sin necesidad de ningún analizador nuevo.
+    {
+      const acercar = buildImagePrompt('chef', 'dish_edit', 'cambia el fondo y acerca la cámara', 'x', 'y', []);
+      check('4) la petición del usuario viaja entera', /acerca la cámara/.test(acercar));
+      check('4) y la regla de encuadre está condicionada, no es absoluta', /Unless the request asks otherwise, keep the original framing/.test(acercar));
+      check('4) sin ninguna orden absoluta que la anule', !/never change the framing|always keep the same crop/i.test(acercar));
+    }
+  }
+
+  // 2E-10 sigue intacta para lo que se crea desde cero.
+  {
+    const crearPrompt = buildImagePrompt('chef', 'dish', '', 'meta', 'proposito', ['IMAGEN: A grilled salmon fillet.']);
+    check('2E-10 intacta: crear sigue con su dirección fotográfica', /Photograph of the finished dish/.test(crearPrompt) && /65mm lens at f\/3\.5/.test(crearPrompt));
+    check('2E-10 intacta: y sin la dirección de retoque', !/Keep the dish itself exactly as it is/.test(crearPrompt));
+    // TEST 2) Ninguna instrucción de edición se cuela en el prompt de crear.
+    {
+      const deRetoque = [/rather than regenerating/, /original framing/, /camera distance/, /same apparent size/, /cut off at the edges/, /Apply only the requested change/];
+      const coladas = deRetoque.filter((re) => re.test(crearPrompt));
+      check('2) el prompt de crear no lleva ninguna instrucción de edición', coladas.length === 0, String(coladas.length));
+      check('2) y conserva íntegra la dirección de 2E-10', /Photograph of the finished dish/.test(crearPrompt) && /Muted natural colour/.test(crearPrompt));
+    }
+  }
+
+  // TEST 9) El precio del retoque sale del camino existente, no de un número escrito a mano.
+  {
+    const IM = lib('engine/imageModels.js');
+    const spec = IM.IMAGE_MODELS.find((m) => m.modelId === 'flux-2-klein-9b');
+    const unMp = { width: 1024, height: 1024 };
+    const generar = IM.usdFor(spec, '1K', false, { output: unMp, references: 0 });
+    const editar = IM.usdFor(spec, '1K', true, { output: unMp, references: 1, referenceSizes: [unMp] });
+    check('9) editar cuesta MÁS que generar: se paga la entrada además de la salida', editar > generar, `generar $${generar} · editar $${editar}`);
+    check('9) y el coste es dinámico: una entrada mayor cuesta más', IM.usdFor(spec, '1K', true, { output: unMp, references: 1, referenceSizes: [{ width: 2048, height: 2048 }] }) > editar);
+    // Una edición factura la entrada aunque nadie declare la referencia: por
+    // definición lleva una foto dentro y el proveedor la cobra (regla de 2B).
+    check('9) una edición factura la entrada aunque no se declare la referencia', IM.usdFor(spec, '1K', true, { output: unMp, references: 0 }) === editar);
+    check('9) el número sale de usdFor, no de una constante escrita a mano', !/0.017/.test(String(IM.usdFor)) && editar === 0.017);
+  }
+
+  // TEST 10) La proporción de la foto manda, con la política de siempre.
+  {
+    const RP = lib('engine/resolutionPolicy.js');
+    const apaisada = RP.resolveForModel('flux-2-klein-9b', { quality: 'standard', input: { width: 1920, height: 1080 } });
+    const vertical = RP.resolveForModel('flux-2-klein-9b', { quality: 'standard', input: { width: 1080, height: 1920 } });
+    const cuadrada = RP.resolveForModel('flux-2-klein-9b', { quality: 'standard', input: { width: 1024, height: 1024 } });
+    const proporcion = (r, esperada) => Math.abs(r.width / r.height - esperada) / esperada <= 0.005;
+    check('10) una foto 16:9 conserva su proporción', proporcion(apaisada, 16 / 9), apaisada.width + 'x' + apaisada.height);
+    check('10) una foto vertical sigue vertical', proporcion(vertical, 9 / 16) && vertical.height > vertical.width, vertical.width + 'x' + vertical.height);
+    check('10) una foto cuadrada de 1 MP sale 1024x1024', cuadrada.width === 1024 && cuadrada.height === 1024, cuadrada.width + 'x' + cuadrada.height);
+  }
+
+  // Las demás experiencias no se han movido.
+  check('Weë Photo sigue igual', TEMPLATES.photo.buildPlan('Mejorar una foto', { action: 'enhance', detail: 'natural' }).steps.map((s) => s.capability).join(' + ') === 'vision.describe + image.edit');
+  check('el menú de Chef sigue igual', caps(plan({ what: 'menu', days: '7' })) === 'text.generate + text.search + text.generate');
+}
+
+// ── LA PUERTA DE ENTRADA DE CHEF ────────────────────────────────────────────
+// Chef hace dos cosas distintas con una foto. Hubo un banner que prometía las
+// dos y llevaba siempre a cocinar (2E-35), luego un bloque con las dos rutas
+// explicadas (2E-37), y desde 2E-40 son directamente dos de las siete
+// funciones: el bloque repetía palabra por palabra lo que ya decían ellas.
+// Lo que no ha cambiado nunca es lo que se comprueba aquí: cada foto va a
+// donde la persona cree que va.
+console.log('\n── Weë Chef · la foto va a donde la persona cree ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const specialists = leer('constants/specialists.ts');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const banner = leer('components/creator/ui.tsx');
+
+  // 1) Las dos rutas con foto viven entre las funciones, cada una diciendo
+  //    qué foto espera, y ya no hay un bloque aparte que las repita.
+  {
+    const bloqueChef = specialists.slice(specialists.indexOf('  chef: {'), specialists.indexOf('  home: {'));
+    check('1) retocar el plato es una función y dice qué foto espera', /title: 'Retocar mi foto', subtitle: 'Mejora la foto de tu plato'/.test(bloqueChef));
+    check('1) cocinar con lo que hay es otra y también lo dice', /title: 'Usar mis ingredientes', subtitle: 'Desde la foto de tu refrigerador'/.test(bloqueChef));
+    check('1) y Chef ya no tiene bloque de foto aparte', !/upload: \{/.test(bloqueChef) && !/title: '¿Tienes una foto\?'/.test(specialists));
+    check('1) ni la pantalla lo pinta', !/spec\.upload && spec\.id === 'chef'/.test(pantalla) && !/Retocar mi plato/.test(pantalla));
+    check('1) las secciones que sí tienen caja de subida la conservan', /\{spec\.upload && <UploadBox/.test(pantalla) && /upload: \{/.test(specialists));
+  }
+
+  // 2 y 3) Cada ruta sigue llevando a su flujo, ahora desde su función.
+  {
+    const chef = TEMPLATES.chef;
+    const caps = (a) => chef.buildPlan('x', a).steps.map((s) => s.capability).join(' + ');
+    check('2) "Retocar mi foto" sigue llegando al flujo edit', caps({ what: 'edit', change: 'background' }) === 'image.edit');
+    check('3) "Usar mis ingredientes" sigue llegando al flujo cook', caps({ what: 'cook', people: '2', time: '30' }) === 'vision.describe + text.generate + image.generate');
+    check('2 y 3) y las dos siguen entrando por su propia tarjeta', /optionId: 'edit'/.test(specialists) && /optionId: 'cook'/.test(specialists));
+  }
+
+  // 4) El texto de subida dice qué foto hace falta en cada caso.
+  check('4) al retocar se pide la foto del plato terminado', /Sube una foto de tu plato terminado/.test(flujo));
+  check('4) al cocinar se pide la del refrigerador o los ingredientes', /Sube una foto de tu refrigerador o de los ingredientes/.test(flujo));
+  check('4) y las demás experiencias conservan su texto de siempre', /Sube tu foto para trabajarla/.test(flujo));
+
+  // 5) Chef declara que acepta imágenes, como Photo, Home y Beauty.
+  check('5) Chef declara el modo de entrada por imagen', /inputs: \['text', 'upload', 'camera', 'voice'\]/.test(specialists));
+}
+
+// ── LA FRASE QUE SE LEE ANTES DE PAGAR ──────────────────────────────────────
+console.log('\n── Weë Chef · qué se le promete a la persona al retocar ──');
+{
+  const chef = TEMPLATES.chef;
+  const frase = (change) => chef.buildPlan('Retocar la foto de mi plato', { what: 'edit', change }).explainToUser;
+  const encargo = (change) => String(chef.buildPlan('x', { what: 'edit', change }).steps[0].input.brief);
+
+  // 5) Con una opción predefinida.
+  check('5) con una opción la frase es correcta', frase('background') === 'Voy a partir de tu foto y voy a cambiar el fondo. El plato se queda exactamente como está.', frase('background'));
+  check('5) y con la opción nueva de quitar algo', frase('clean') === 'Voy a partir de tu foto y voy a quitar lo que sobra. El plato se queda exactamente como está.', frase('clean'));
+
+  // 6) Con texto libre: no se pega el verbo de la persona detrás de "voy a".
+  {
+    const escrito = 'cambia el fondo y mejora la luz.';
+    check('6) con texto libre la frase es correcta', frase(escrito) === 'Voy a partir de tu foto y aplicaré únicamente los cambios que me indicaste. El plato se queda exactamente como está.', frase(escrito));
+    check('6) sin pegar el imperativo detrás de "voy a"', !/voy a cambia /.test(frase(escrito)));
+    check('6) y sin punto doble', !frase(escrito).includes('..'));
+    check('6) pero lo que escribió sí llega al modelo', encargo(escrito) === escrito);
+  }
+
+  // 7) Con "No sé".
+  check('7) con "No sé" la frase es correcta', frase('idk') === 'Voy a partir de tu foto y voy a mejorar su apariencia sin cambiar el plato. El plato se queda exactamente como está.', frase('idk'));
+
+  // Ninguna de las frases queda mal escrita ni repite el punto.
+  {
+    const todas = ['light', 'background', 'appetizing', 'pro', 'clean', 'idk', 'quita la salsa'].map(frase);
+    const malas = todas.filter((f) => f.includes('..') || /y voy a (cambia|mejora|quita|haz|pon) /.test(f));
+    check('ninguna frase queda mal construida', malas.length === 0, malas.join(' | '));
+    check('todas empiezan por la foto de la persona', todas.every((f) => f.startsWith('Voy a partir de tu foto')));
+  }
+
+  // 10 y 11) Los flujos no han cambiado por dentro.
+  const caps = (p) => p.steps.map((s) => s.capability).join(' + ');
+  check('10) retocar sigue usando image.edit y nada más', caps(chef.buildPlan('x', { what: 'edit', change: 'background' })) === 'image.edit');
+  check('11) cocinar sigue mirando la foto y creando el plato', caps(chef.buildPlan('x', { what: 'cook', people: '2', time: '30' })) === 'vision.describe + text.generate + image.generate');
+  check('11) y crear sigue igual', caps(chef.buildPlan('x', { what: 'recipe', people: '2', time: '30' })) === 'text.generate + image.generate');
+
+  // 12) Ningún proveedor ni modo demo se ha colado en la plantilla.
+  {
+    const pasos = chef.buildPlan('x', { what: 'edit', change: 'background' }).steps;
+    check('12) el paso de retoque no fija proveedor ni modelo', pasos.every((s) => !('provider' in s) && !('model' in s) && !('demo' in s)));
+    check('12) y pide una sola imagen', Number(pasos[0].input.count) === 1);
+  }
+
+  // 9) El precio no cambia: el retoque se sigue cotizando por megapíxeles.
+  {
+    const IM = lib('engine/imageModels.js');
+    const klein = IM.IMAGE_MODELS.find((m) => m.modelId === 'flux-2-klein-9b');
+    const foto = { width: 1600, height: 1200 };
+    const usd = IM.usdFor(klein, '1K', true, { output: { width: 1168, height: 880 }, references: 1, referenceSizes: [foto] });
+    check('9) el coste del retoque sigue siendo el mismo que en 2E-33', Math.abs(usd - 0.019) < 1e-9, String(usd));
+  }
+}
+
+// ── EL PILOTO: WEË CHEF DEJA DE SER UN CATÁLOGO ─────────────────────────────
+// Weë tenía comunidad y tenía herramientas, pero en pantallas distintas: el muro
+// solo vivía en el Home y ninguna sección mostraba a una sola persona. Chef es
+// la primera en juntarlas (fase 2E-37).
+console.log('\n── Weë Chef · la sección se convierte en comunidad ──');
+{
+  const fs = await import('node:fs');
+  const { createRequire } = await import('node:module');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const muro = leer('components/creator/SectionWall.tsx');
+  const grid = leer('components/creator/ActionGrid.tsx');
+  const specialists = leer('constants/specialists.ts');
+  const shell = leer('components/creator/CreatorShell.tsx');
+
+  // 1) El orden que se lee al abrir Chef.
+  {
+    const donde = (re) => pantalla.search(re);
+    const hero = donde(/<SpecialistHero/);
+    const funciones = donde(/<Collapsible/);
+    const wall = donde(/<SectionWall/);
+    const complementario = pantalla.lastIndexOf('<ExamplesRow');
+    const orden = [hero, funciones, wall, complementario];
+    check('1) hero → funciones → muro → complementario', orden.every((n, i) => n > 0 && (i === 0 || n > orden[i - 1])), orden.join(' < '));
+    check('1) y las creaciones propias quedan por debajo del muro', pantalla.indexOf('Mis creaciones') > wall);
+  }
+
+  // 2) Una sola navegación lateral: ni un panel de funciones ni una columna derecha.
+  check('2) la pantalla no monta ninguna barra lateral propia', !/RightSidebar|SectionPanel|<Sidebar\b|<CreatorSidebar/.test(pantalla + muro));
+  check('2) el marco sigue teniendo exactamente una barra lateral', (shell.match(/<CreatorSidebar/g) || []).length === 1 && !/RightSidebar/.test(shell));
+  check('2) y esa barra vive solo en el escritorio', /styles\.desktop[\s\S]{0,200}<CreatorSidebar/.test(shell));
+  check('2) el muro no cambia de forma por el tamaño de la pantalla', !/isDesktop|isTablet|RightSidebar/.test(muro));
+
+  // 3) El muro reutiliza lo social que ya existía; no inventa nada.
+  check('3) reutiliza la tarjeta de publicación de siempre', /import PostCard from '\.\.\/PostCard'/.test(muro));
+  check('3) y las publicaciones de siempre', /postsService\s*\n?\s*\.getPublicPostsPaginated/.test(muro));
+  check('3) y los filtros de siempre', /from '\.\.\/\.\.\/utils\/feedFilters'/.test(muro));
+  check('3) y los guardados de siempre', /useBookmarks/.test(muro));
+  check('3) publicar sigue abriendo la pantalla de crear, y ahora dice desde qué sección', /navigation\.navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(muro));
+  check('3) el muro no inventa contenido', !/mockData|MockMedia|POSTS_DEMO|placeholderPosts/.test(muro));
+  check('3) el muro no toca Credits, el motor ni ningún proveedor', !/spendCredits|creditsService|creatorService|aiEngine|provider/i.test(muro));
+
+  // 4) Muro vacío: invita, no se disculpa, y no rellena con nada falso.
+  check('4) el muro vacío invita a compartir', /Comparte tu primera receta, pregunta o experiencia con la comunidad/.test(specialists));
+  check('4) y ofrece el botón de publicar', /button: 'Crear publicación'/.test(specialists));
+
+  // 5) Las funciones son controles compactos, sin fotografías.
+  check('5) Chef usa la cuadrícula compacta', /actionLayout: 'compact'/.test(specialists));
+  check('5) la compacta no lleva ninguna imagen', !/renderCompact[\s\S]{0,600}MockMedia/.test(grid));
+  check('5) hasta cuatro en escritorio, tres en tableta, dos en móvil', /layout === 'compact'[\s\S]{0,900}Math\.min\(4, principales\.length\)[\s\S]{0,140}Math\.min\(3, principales\.length\)[\s\S]{0,140}: 2/.test(grid));
+  check('5) y el título lleva su frase de apoyo', /gridHint: 'Elige una opción y empieza a cocinar con Weë\.'/.test(specialists) && /hint=\{spec\.gridHint\}/.test(pantalla));
+
+  // 6) Las siete funciones siguen entrando en los flujos que ya existían.
+  {
+    const bloque = specialists.slice(specialists.indexOf('  chef: {'), specialists.indexOf('  home: {'));
+    const acciones = bloque.match(/\{ id: '[^']+', icon: /g) || [];
+    check('6) las siete funciones siguen ahí', acciones.length === 7, String(acciones.length));
+    check('6) todas con su objetivo y su respuesta ya contestada', (bloque.match(/goal: '/g) || []).length === 7 && (bloque.match(/preset: \{ questionId: 'what'/g) || []).length === 7);
+    check('6) y pulsarlas abre la conversación guiada, no resuelve nada aquí', /const handleAction = \(action: SpecialistAction\) => startFlow\(action\.goal, action\.preset, undefined, action\.opens\)/.test(pantalla));
+    check('6) el plan de Chef no cambió de capacidades', ['recipe', 'cook', 'edit', 'menu'].every((k) => bloque.includes(`optionId: '${k}'`)));
+  }
+
+  // 7) Ninguna otra sección se movió.
+  // Muro y cuadrícula compacta van siempre juntos, y solo donde toca.
+  check('7) las secciones con muro son las que tienen cuadrícula compacta', (specialists.match(/^    wall: \{/gm) || []).length === (specialists.match(/actionLayout: 'compact'/g) || []).length);
+  check('7) y hoy son Chef, Design y Studio', (specialists.match(/^    wall: \{/gm) || []).length === 3);
+  check('7) las demás conservan su caja de idea y sus ejemplos', /\{!wall && <IdeaBox/.test(pantalla) && /\{!wall && <ExamplesRow/.test(pantalla));
+  check('7) y su caja de subida de siempre', /\{spec\.upload && <UploadBox/.test(pantalla) && (specialists.match(/^    upload: \{/gm) || []).length === 3);
+
+  // 8) A qué muro pertenece una publicación: se lee lo que el post ya trae.
+  {
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const js = ts.transpileModule(leer('utils/sectionFeed.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+    const post = (extra) => ({ content: '', tags: [], hashtags: [], aiTools: [], ...extra });
+    const chef = feed.SECTION_MARKERS.chef;
+
+    const dentro = [
+      ['por lo que cuenta', { content: 'Mi primera focaccia, receta fácil' }],
+      ['con acentos', { content: 'Preparé un menú para toda la semana' }],
+      ['por su comunidad', { communitySlug: 'wee-cocina' }],
+      ['por sus tags', { tags: ['Recetas'] }],
+      ['por la herramienta con la que se hizo', { aiTools: ['Weë Chef'] }],
+    ];
+    const fuera = [
+      ['un logo no es cocina', { content: 'Hice un logo para mi marca con IA' }],
+      ['las palabras se comparan enteras', { content: 'Fue algo menudo y sin importancia' }],
+      ['ni una escena de video', { content: 'Una escena nocturna para mi corto' }],
+    ];
+    const falla = [
+      ...dentro.filter(([, p]) => !feed.belongsToSection(post(p), chef)).map(([k]) => k),
+      ...fuera.filter(([, p]) => feed.belongsToSection(post(p), chef)).map(([k]) => k),
+    ];
+    check('8) el muro de Chef reconoce lo suyo y deja fuera lo demás', falla.length === 0, falla.join(' · '));
+    check('8) sin palabras no hay muro: una sección sin configurar no se queda con nada ajeno', feed.sectionPosts([post({ content: 'una receta' })], []).length === 0);
+    check('8) y filtra una lista entera', feed.sectionPosts([post({ content: 'un logo' }), post({ content: 'una receta' })], chef).length === 1);
+  }
+}
+
+// ── EL ANCHO LO DECIDE EL MURO, NO AL REVÉS ─────────────────────────────────
+// `PostCard` limitaba su foto a 700 px en toda la app. En una sección donde el
+// muro manda, esa medida heredada no puede decidir la arquitectura: ahora la
+// columna se dimensiona por el muro y la tarjeta recibe cuánto mide de verdad.
+console.log('\n── Weë Chef · el ancho lo decide el muro ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const tarjeta = leer('components/PostCard.tsx');
+  const muro = leer('components/creator/SectionWall.tsx');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const banner = leer('components/creator/ui.tsx');
+
+  // 1) Donde no se le dice nada, la tarjeta se comporta exactamente igual.
+  check('1) el ancho de la tarjeta es opcional', /maxWidth\?: number;/.test(tarjeta));
+  check('1) y por defecto sigue siendo el feed de siempre', /const getCarouselWidth = \(maxWidth: number = CARD_MAX_WIDTH\)/.test(tarjeta) && /const CARD_MAX_WIDTH = 700;/.test(tarjeta));
+  check('1) la foto que se le pide a Cloudinary nunca baja de los 800 de siempre', /Math\.max\(800, Math\.round\(carouselWidth\)\)/.test(tarjeta));
+
+  // 2) Solo el muro pide un ancho distinto: el resto de pantallas, intactas.
+  {
+    const conPostCard = [
+      'screens/HomeScreen.tsx',
+      'screens/LandingScreen.tsx',
+      'screens/WebLandingScreen.tsx',
+      'screens/CommunityScreen.tsx',
+      'screens/ProfileScreen.tsx',
+      'screens/UserProfileScreen.tsx',
+      'screens/SavedPostsScreen.tsx',
+    ];
+    const intrusas = conPostCard.filter((p) => /maxWidth=/.test(leer(p)));
+    check('2) ninguna otra pantalla toca el ancho de sus publicaciones', intrusas.length === 0, intrusas.join(', '));
+    check('2) y todas siguen pintando la misma tarjeta', conPostCard.every((p) => /<PostCard/.test(leer(p))));
+    check('2) el muro sí se lo pasa', /maxWidth=\{CARD_WIDTH\}/.test(muro));
+  }
+
+  // 3) Una sola medida manda, y la comparten pantalla y tarjeta.
+  check('3) el ancho vive en un solo sitio', /export const WALL_CONTENT_WIDTH = \d+;/.test(muro) && /maxWidth: scale\(WALL_CONTENT_WIDTH\)/.test(pantalla));
+  check('3) y de él se descuenta el margen del marco', /const CARD_WIDTH = WALL_CONTENT_WIDTH - SHELL_PADDING \* 2;/.test(muro));
+
+  // 4) La medida elegida: más que el feed del Home, sin comerse el escritorio.
+  {
+    const ancho = Number(muro.match(/WALL_CONTENT_WIDTH = (\d+)/)[1]);
+    check('4) una publicación es más ancha que en el Home', ancho - 40 > 700, String(ancho));
+    check('4) y la columna cabe junto a la barra lateral en un escritorio normal', ancho <= 1100, String(ancho));
+  }
+
+  // 5) Con poco ancho nada se sale por la derecha.
+  check('5) las rutas de la foto se apilan cuando no caben', /flexBasis: scale\(230\)/.test(banner) && /minWidth: scale\(240\)/.test(banner));
+  check('5) y la frase de apoyo baja bajo el título', /const apiladas = !!hint && !action && !isDesktop;/.test(banner));
+
+  // 6) Nada de lo que se usó para mirar el muro se quedó dentro.
+  check('6) el muro no trae ningún doble de prueba', !/DOBLE|doble-|localhost:87/.test(muro));
+}
+
+// ── QUE LA COMUNIDAD SE VEA AL ENTRAR ───────────────────────────────────────
+// La auditoría 2E-39 midió que la primera publicación empezaba en el píxel 865
+// con 842 visibles: quien abría Chef veía un catálogo de herramientas. 2E-40
+// baja la cabecera, sube la letra de las funciones y quita el bloque repetido.
+console.log('\n── Weë Chef · la comunidad se ve al abrir ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const hero = leer('components/creator/SpecialistHero.tsx');
+  const grid = leer('components/creator/ActionGrid.tsx');
+  const tarjeta = leer('components/PostCard.tsx');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const specialists = leer('constants/specialists.ts');
+
+  // 1) Cabecera baja, y solo donde hay muro.
+  check('1) la cabecera tiene una versión baja', /compact\?: boolean;/.test(hero) && /cardCompact: \{/.test(hero));
+  check('1) que solo se pide cuando la sección tiene muro', /<SpecialistHero spec=\{spec\} compact=\{!!wall\} \/>/.test(pantalla));
+  check('1) conserva nombre, frase e imagen', /styles\.titleCompact/.test(hero) && /styles\.headlineCompact/.test(hero) && /aspectRatio=\{compact \? 2\.4 : 1\.35\}/.test(hero));
+  check('1) y las secciones sin muro no cambian de cabecera', /isDesktop && styles\.cardDesktop/.test(hero) && /\{!compact && \(/.test(hero));
+
+  // 2) Las funciones: más letra y menos alto, sin flecha.
+  check('2) el nombre de la función sube a la escala de lectura', /compactTitle: \{[\s\S]{0,120}fontSize: FONT_SIZE\.base/.test(grid));
+  check('2) y el subtítulo deja de ser el texto más pequeño', /compactSubtitle: \{[\s\S]{0,120}fontSize: FONT_SIZE\.xs/.test(grid));
+  check('2) la tarjeta baja de alto', /compact: \{[\s\S]{0,80}minHeight: scale\(92\)/.test(grid));
+  check('2) y desaparece la flecha, que no informaba de nada', !/compactArrow/.test(grid));
+
+  // 3) Las siete funciones siguen siendo siete, en el mismo orden.
+  {
+    const bloque = specialists.slice(specialists.indexOf('  chef: {'), specialists.indexOf('  home: {'));
+    const ids = [...bloque.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
+    check('3) siguen siendo las siete de siempre y en su orden', ids.join(',') === 'recipe,ingredients,menu,healthy,dessert,edit,idk', ids.join(','));
+  }
+
+  // 4) La foto de una publicación conserva su proporción.
+  check('4) el tope de alto acompaña al ancho de la columna', /const maxImageHeight = maxWidth/.test(tarjeta) && /MAX_IMAGE_HEIGHT \* Math\.max\(1, carouselWidth \/ getCarouselWidth\(\)\)/.test(tarjeta));
+  check('4) quien no pide ancho conserva el tope exacto de antes', /: MAX_IMAGE_HEIGHT;/.test(tarjeta) && !/Math\.min\(MAX_IMAGE_HEIGHT,/.test(tarjeta));
+  check('4) y el tope nuevo es el que se usa al pintar', (tarjeta.match(/Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\)/g) || []).length === 2);
+
+  // 5) Nada de lo que se usó para mirar el muro se quedó dentro.
+  check('5) el muro no trae ningún doble de prueba', !/DOBLE|doble-|localhost:87/.test(leer('components/creator/SectionWall.tsx')));
+}
+
+// ── LAS HERRAMIENTAS, PLEGADAS ──────────────────────────────────────────────
+// Con las siete funciones siempre abiertas, lo primero que veía quien entraba en
+// Chef era un catálogo de botones. Plegadas caben en una franja y la comunidad
+// sube casi media pantalla; abrirlas cuesta un toque (fase 2E-41).
+console.log('\n── Weë Chef · las herramientas se pliegan ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const ui = leer('components/creator/ui.tsx');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const specialists = leer('constants/specialists.ts');
+
+  // 1) Al llegar a la sección están cerradas.
+  check('1) empiezan cerradas', /const \[herramientasAbiertas, setHerramientasAbiertas\] = useState\(false\);/.test(pantalla));
+  check('1) y vuelven a cerrarse cada vez que se llega a la sección', /useFocusEffect\([\s\S]{0,400}setHerramientasAbiertas\(false\);/.test(pantalla));
+
+  // 2) La franja dice qué guarda dentro: nada de un botón "Más".
+  check('2) la franja lleva el nombre de la sección y su frase', /<Collapsible[\s\S]{0,300}title=\{spec\.gridTitle\}[\s\S]{0,120}subtitle=\{spec\.gridHint\}/.test(pantalla));
+  check('2) y dice en palabras cuántas opciones esconde', /contentLabel=\{`las \$\{spec\.actions\.length\} opciones de \$\{spec\.experience\.name\}`\}/.test(pantalla));
+  check('2) sin ningún botón genérico', !/'Más'|"Más"|>Más</.test(pantalla));
+
+  // 3 y 4) Lo de dentro solo existe cuando está abierto.
+  check('3) las funciones viven dentro del plegable', /<Collapsible[\s\S]{0,600}<ActionGrid actions=\{spec\.actions\}[\s\S]{0,80}<\/Collapsible>/.test(pantalla));
+  check('4) y no se pintan mientras está cerrado', /\{open && \(/.test(ui));
+  check('4) la apertura tiene una transición corta, no un salto', /Animated\.timing\(entrada, \{ toValue: 1, duration: 160/.test(ui) && /entrada\.setValue\(0\);/.test(ui));
+
+  // 5) Cada función sigue llevando a donde llevaba.
+  {
+    const chef = TEMPLATES.chef;
+    const caps = (a) => chef.buildPlan('x', a).steps.map((s) => s.capability).join(' + ');
+    check('5) pulsar una función sigue abriendo su conversación', /const handleAction = \(action: SpecialistAction\) => startFlow\(action\.goal, action\.preset, undefined, action\.opens\)/.test(pantalla));
+    check('5) receta, cocinar y retocar siguen con sus mismos pasos', caps({ what: 'recipe', people: '2', time: '30' }) === 'text.generate + image.generate' && caps({ what: 'cook', people: '2', time: '30' }) === 'vision.describe + text.generate + image.generate' && caps({ what: 'edit', change: 'background' }) === 'image.edit');
+    check('5) y abrir el plegable no ejecuta nada', !/onToggle=\{[^}]*startFlow/.test(pantalla));
+  }
+
+  // 10) El muro sigue ahí con las herramientas cerradas: está fuera del plegable.
+  {
+    const abre = pantalla.indexOf('<Collapsible');
+    const cierra = pantalla.indexOf('</Collapsible>');
+    const muro = pantalla.indexOf('{wall && <SectionWall');
+    check('10) el muro no depende de que las herramientas estén abiertas', abre > 0 && cierra > abre && muro > cierra, `plegable ${abre}–${cierra} · muro ${muro}`);
+    check('10) y no está metido dentro del plegable', !pantalla.slice(abre, cierra).includes('SectionWall'));
+  }
+
+  // 8, 9 y 11) Ni panel derecho, ni segunda barra, ni cajón, ni modal.
+  check('8 y 9) sigue sin panel derecho y sin segunda barra lateral', !/RightSidebar|SectionPanel|<Sidebar\b|<CreatorSidebar/.test(pantalla + ui));
+  check('11) el plegable no abre un cajón ni una ventana', !/Modal|Drawer/.test(ui));
+
+  // 13) El estado se puede oír, no solo ver.
+  check('13) es un botón de verdad', /accessibilityRole="button"/.test(ui));
+  check('13) que dice si está abierto o cerrado', /accessibilityState=\{\{ expanded: open \}\}/.test(ui) && /aria-expanded=\{open\}/.test(ui));
+  check('13) y lo dice también con palabras, no solo con el chevron', /accessibilityLabel=\{`\$\{title\}\. \$\{open \? 'Ocultar' : 'Ver'\} \$\{contentLabel\}`\}/.test(ui));
+
+  // Una sola implementación: el gesto de plegar deja de copiarse a mano.
+  check('el plegable es un componente compartido', /export const Collapsible/.test(ui) && (ui.match(/export const Collapsible/g) || []).length === 1);
+  check('y las secciones sin muro conservan su cuadrícula siempre abierta', /\) : \([\s\S]{0,400}<SectionTitle[\s\S]{0,400}<ActionGrid/.test(pantalla));
+  check('lo usan las secciones con muro, y solo esas', (specialists.match(/^    wall: \{/gm) || []).length === 3);
+}
+
+// ── WEË DESIGN: CATORCE PUERTAS, SIETE INTENCIONES ──────────────────────────
+// Design enseñaba catorce tarjetas grandes con una fotografía inventada cada una,
+// y por dentro eran seis destinos y un solo plan. Se agrupan por lo que quiere la
+// persona —no por el destino técnico— sin perder ninguna capacidad (fase 2E-43).
+console.log('\n── Weë Design · siete intenciones en vez de catorce ejemplos ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const specialists = leer('constants/specialists.ts');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const feed = leer('utils/sectionFeed.ts');
+  const bloque = specialists.slice(specialists.indexOf('  design: {'), specialists.indexOf('  photo: {'));
+
+  // 1) Siete acciones, en el orden aprobado.
+  {
+    // Siete arriba y una de segundo nivel desde 2E-56: Hogar & Diseño.
+    const lineas = bloque.split('\n').filter((l) => /\{ id: '[^']+', icon: /.test(l));
+    const id = (l) => (l.match(/\{ id: '([^']+)'/) || [])[1];
+    const principales = lineas.filter((l) => !/secondary: true/.test(l)).map(id);
+    const secundarias = lineas.filter((l) => /secondary: true/.test(l)).map(id);
+    check('1) siete acciones principales, ni una más', principales.length === 7, String(principales.length));
+    check('1) en el orden aprobado', principales.join(',') === 'brand,social,product,machine,place,character,idk', principales.join(','));
+    check('1) y una sola entrada de segundo nivel', secundarias.join(',') === 'home', secundarias.join(','));
+  }
+
+  // 2) Los nombres y subtítulos aprobados, palabra por palabra.
+  {
+    const esperados = [
+      ['Un logo o mi marca', 'Nombre, colores y tipografía'],
+      ['Algo para redes o publicidad', 'Afiches, flyers, anuncios, portadas'],
+      ['Un producto', 'Envases, muebles, ropa, tecnología'],
+      ['Un vehículo o una máquina', 'Autos, aviones, motores, inventos'],
+      ['Un lugar o un escenario', 'Crea desde cero casas, locales, ciudades y paisajes'],
+      ['Un personaje', 'Mascotas, héroes, criaturas'],
+      ['No sé qué diseñar', 'Cuéntame tu idea y te propongo algo'],
+    ];
+    const faltan = esperados.filter(([t, s]) => !bloque.includes(`title: '${t}', subtitle: '${s}'`)).map(([t]) => t);
+    check('2) cada acción con su nombre y su subtítulo', faltan.length === 0, faltan.join(' · '));
+  }
+
+  // 3) Las catorce intenciones antiguas siguen llegando a su sitio.
+  {
+    const design = TEMPLATES.design;
+    const antiguas = [
+      ['Autos y vehículos', 'auto', 'object'],
+      ['Helicópteros y aviones', 'helicoptero', 'object'],
+      ['Muebles', 'mueble', 'product'],
+      ['Vasos y productos', 'envase', 'product'],
+      ['Tecnología', 'celular', 'product'],
+      ['Ropa y calzado', 'zapatilla', 'product'],
+      ['Packaging', 'packaging', 'product'],
+      // Una casa es un lugar, no una máquina: cambió de cajón en 2E-56.
+      ['Espacios y arquitectura', 'casa', 'scene'],
+      ['Inventos y conceptos', 'invento', 'object'],
+      ['Piezas mecánicas', 'motor', 'object'],
+      ['Personajes y criaturas', 'personaje', 'character'],
+      ['Logos e identidad', 'logo', 'logo'],
+      ['Afiches y publicidad', 'afiche', 'poster'],
+      ['Mundos y escenas', 'mundo', 'scene'],
+    ];
+    const perdidas = antiguas.filter(([, palabra, destino]) => design.infer(`Quiero diseñar un ${palabra}`).what !== destino).map(([nombre]) => nombre);
+    check('3) las catorce intenciones siguen reconociéndose por sus palabras', perdidas.length === 0, perdidas.join(' · '));
+
+    // Y las que perdieron botón siguen nombradas donde se ven.
+    const enPantalla = ['Envases', 'muebles', 'ropa', 'tecnología', 'Autos', 'aviones', 'motores', 'inventos', 'casas', 'locales', 'ciudades', 'paisajes'];
+    const sinNombrar = enPantalla.filter((w) => !bloque.includes(w));
+    check('3) y las que perdieron botón siguen nombradas en los subtítulos', sinNombrar.length === 0, sinNombrar.join(', '));
+  }
+
+  // 4) Los seis destinos siguen cubiertos; la séptima abre la pregunta.
+  {
+    const destinos = [...bloque.matchAll(/optionId: '([^']+)'/g)].map((m) => m[1]);
+    check('4) los seis destinos siguen ahí', ['logo', 'poster', 'product', 'object', 'scene', 'character'].every((d) => destinos.includes(d)), destinos.join(','));
+    check('4) sin repetir ninguno', new Set(destinos).size === destinos.length && destinos.length === 6);
+    check('4) y "No sé qué diseñar" no contesta por nadie', /id: 'idk'[^}]*idk: true \}/.test(bloque) && !/id: 'idk'[^}]*preset:/.test(bloque));
+  }
+
+  // 5) El motor de Design no se ha tocado.
+  {
+    const design = TEMPLATES.design;
+    const caps = (what) => design.buildPlan('x', { what, style: 'realistic', purpose: 'brand' }).steps.map((s) => s.capability).join(' + ');
+    const raros = ['logo', 'poster', 'product', 'object', 'scene', 'character'].filter((w) => caps(w) !== 'text.generate + image.generate');
+    check('5) los seis destinos conservan su plan', raros.length === 0, raros.join(','));
+    check('5) y siguen siendo tres propuestas', Number(design.buildPlan('x', { what: 'product' }).steps[1].input.count) === 3);
+    check('5) el logo conserva su prompt propio', design.buildPlan('x', { what: 'logo' }).steps[1].input.kind === 'logo' && design.buildPlan('x', { what: 'product' }).steps[1].input.kind === 'design');
+    check('5) ninguna acción fija proveedor ni modelo', !/provider:|model:/.test(bloque));
+  }
+
+  // 6) El selector es selector: cada acción entra en la conversación guiada.
+  check('6) todas llevan objetivo con el que arrancar', (bloque.match(/goal: '/g) || []).length === (bloque.match(/{ id: '[^']+', icon: /g) || []).length);
+  check('6) y la pantalla solo las usa para abrir el flujo', /const handleAction = \(action: SpecialistAction\) => startFlow\(action\.goal, action\.preset, undefined, action\.opens\)/.test(pantalla));
+
+  // 7) No quedan las tarjetas grandes con imágenes, ni un "Ver más".
+  check('7) Design usa la cuadrícula compacta', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'images'/.test(bloque));
+  check('7) sin ninguna fotografía por función', !/MockMedia/.test(pantalla));
+  check('7) y sin "Ver más" en ninguna parte', !/Ver más/.test(bloque));
+
+  // 8) Los siete ejemplos simulados, fuera y sin sustituto.
+  check('8) Design se queda sin ejemplos simulados', /examples: \[\],/.test(bloque));
+  check('8) y no se han cambiado por otros', !/Auto futurista|Robot asistente|Zapatilla deportiva/.test(specialists));
+  check('8) la fila de ejemplos no se pinta sin ejemplos', /\{wall && spec\.examples\.length > 0 && \(/.test(pantalla));
+
+  // 9) El muro de Design: tres pestañas, no cinco.
+  {
+    const muro = bloque.slice(bloque.indexOf('    wall: {'), bloque.indexOf('    idea: {'));
+    const etiquetas = [...muro.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
+    check('9) tres pestañas', etiquetas.length === 3, etiquetas.join(' · '));
+    check('9) y son las aprobadas', etiquetas.join('|') === 'Muro Design|Cómo lo hicieron|Guardados', etiquetas.join('|'));
+    check('9) con compositor y estado vacío propios', /Comparte un diseño, una idea o una pregunta…/.test(muro) && /Todavía no hay nada en el muro de Weë Design/.test(muro));
+  }
+
+  // 10) A qué muro pertenece una publicación: sin robarle nada a otra sección.
+  {
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const js = ts.transpileModule(leer('utils/sectionFeed.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    const mod = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+    const post = (extra) => ({ content: '', tags: [], hashtags: [], aiTools: [], ...extra });
+    const dis = mod.SECTION_MARKERS.design;
+    const chef = mod.SECTION_MARKERS.chef;
+
+    const dentro = [
+      ['por la herramienta con la que se hizo', { aiTools: ['Weë Design'] }],
+      ['un logo', { content: 'Mi primer logo para la marca de mi tienda' }],
+      ['un afiche', { content: 'Hice un afiche para el concierto del sábado' }],
+      ['un envase', { content: 'El envase de mi salsa quedó así' }],
+      ['un personaje', { content: 'Un personaje para mi videojuego' }],
+    ];
+    const fuera = [
+      ['el diseño de interiores es de Weë Home', { content: 'Rediseñé el diseño de interiores de mi sala' }],
+      ['el diseño de uñas es de Weë Beauty', { content: 'Me hice un diseño de uñas nuevo' }],
+      ['una receta no es un diseño', { content: 'Mi primera focaccia, receta fácil' }],
+    ];
+    const falla = [
+      ...dentro.filter(([, x]) => !mod.belongsToSection(post(x), dis)).map(([k]) => k),
+      ...fuera.filter(([, x]) => mod.belongsToSection(post(x), dis)).map(([k]) => k),
+    ];
+    check('10) el muro de Design reconoce lo suyo y no toca lo ajeno', falla.length === 0, falla.join(' · '));
+    check('10) "diseño" a secas no está en la lista', !dis.includes('diseno') && !dis.includes('diseño'));
+    check('10) y el muro de Chef sigue sin tragarse un logo', !mod.belongsToSection(post({ content: 'Mi primer logo para la marca' }), chef));
+    check('10) las dos listas no comparten ninguna palabra', dis.filter((w) => chef.includes(w)).length === 0);
+  }
+
+  // 11) Ninguna otra sección se ha movido.
+  {
+    const trozo = (id, sig) => specialists.slice(specialists.indexOf(`  ${id}: {`), specialists.indexOf(`  ${sig}: {`));
+    const intactas = [
+      ['brain', 'design', 'tiles', 7],
+      ['photo', 'music', 'tiles', 10],
+      ['music', 'studio', 'tiles', 8],
+      ['business', 'chef', 'tiles', 6],
+      // Siete, no ocho: "Remodelar" salió de la pantalla en 2E-60.
+      ['home', 'beauty', 'wide', 7],
+      ['beauty', 'writer', 'images', 10],
+    ];
+    const movidas = intactas.filter(([id, sig, layout, n]) => {
+      const t = trozo(id, sig);
+      return !t.includes(`actionLayout: '${layout}'`) || (t.match(/\{ id: '[^']+', icon: /g) || []).length !== n;
+    }).map(([id]) => id);
+    check('11) las secciones sin muro conservan su cuadrícula y sus acciones', movidas.length === 0, movidas.join(', '));
+    check('11) y Weë Beauty conserva sus tarjetas con imagen', /actionLayout: 'images'/.test(specialists));
+  }
+}
+
+// ── WEË DESIGN: SIETE CONVERSACIONES EN LA MISMA MESA ───────────────────────
+// Las siete intenciones recibían las mismas tres preguntas —qué, estilo y para
+// qué—, que es preguntar por simetría y no por utilidad. Ahora cada una tiene
+// las suyas, ninguna llega a tres, y lo que ya se sabe no se vuelve a preguntar.
+console.log('\n── Weë Design · siete conversaciones, una mesa ──');
+{
+  const design = TEMPLATES.design;
+  /** Qué se le preguntaría a alguien que llega con estas respuestas ya dadas. */
+  const pide = (answers) => design.questions.filter((q) => !q.when || q.when(answers)).map((q) => q.id).filter((id) => !(id in answers));
+
+  // 1) Cada intención tiene sus dos preguntas, y solo las suyas.
+  {
+    const esperado = [
+      ['logo', 'name,feel'],
+      ['poster', 'message,where'],
+      ['product', 'item,look'],
+      ['object', 'machine,era'],
+      ['scene', 'place,inout'],
+      ['character', 'who,draw'],
+    ];
+    const raras = esperado.filter(([what, ids]) => pide({ what }).join(',') !== ids).map(([what]) => `${what}: ${pide({ what }).join(',')}`);
+    check('1) cada intención tiene sus propias preguntas', raras.length === 0, raras.join(' · '));
+    check('1) y ninguna pasa de dos', esperado.every(([what]) => pide({ what }).length <= 2));
+  }
+
+  // 2) Las preguntas genéricas que no aportaban ya no existen.
+  {
+    const ids = design.questions.map((q) => q.id);
+    check('2) fuera la pregunta de estilo genérica', !ids.includes('style'), ids.join(','));
+    check('2) fuera "¿Para qué lo necesitas?"', !ids.includes('purpose'), ids.join(','));
+  }
+
+  // 3) Lo que ya se sabe no se pregunta.
+  {
+    check('3) sabiendo la época, solo queda la máquina', pide({ what: 'object', era: 'future' }).join(',') === 'machine');
+    check('3) sabiendo si es dentro o fuera, solo queda el lugar', pide({ what: 'scene', inout: 'inside' }).join(',') === 'place');
+    check('3) sabiendo el trazo, solo queda quién es', pide({ what: 'character', draw: 'cartoon' }).join(',') === 'who');
+    check('3) y el texto de la persona ya deduce la época', design.infer('Diseñar un deportivo del futuro').era === 'future');
+    check('3) sin perder lo que ya deducía antes', design.infer('Quiero diseñar un packaging').what === 'product' && design.infer('Quiero diseñar un logo').what === 'logo');
+  }
+
+  // 4) "No sé qué diseñar": descubrir, no rellenar.
+  {
+    check('4) lo único que se pregunta es por dónde empezar', pide({}).join(',') === 'what');
+    const what = design.questions.find((q) => q.id === 'what');
+    check('4) ofrece los seis caminos', what.options.map((o) => o.id).join(',') === 'logo,poster,product,object,scene,character');
+    check('4) cada camino explica por qué', what.options.every((o) => o.label.includes(' · ')), what.options.map((o) => o.label).join(' | '));
+    check('4) y se puede contar la situación con palabras propias', what.allowFreeText !== false);
+    // No genera nada por el hecho de elegir: sigue la conversación de esa intención.
+    check('4) elegir un camino lleva a sus preguntas, no a crear', pide({ what: 'poster' }).join(',') === 'message,where');
+  }
+
+  // 5) El contexto no se pierde al elegir camino: es el mismo trabajo.
+  {
+    const plan = design.buildPlan('Quiero algo para mi restaurante', { what: 'poster', message: 'Una promoción de mediodía', where: 'feed' });
+    check('5) el objetivo que trajo la persona sigue en el plan', plan.goal === 'Quiero algo para mi restaurante');
+    check('5) y lo que contó después llega al encargo', plan.steps[1].input.brief.includes('una promoción de mediodía'));
+  }
+
+  // 6) Lo que se le promete a la persona está bien escrito.
+  {
+    const casos = [
+      ['logo', { what: 'logo', name: 'Panadería La Espiga', feel: 'natural' }],
+      ['redes', { what: 'poster', message: 'promo', where: 'feed' }],
+      ['producto', { what: 'product', item: 'pack', look: 'natural' }],
+      ['vehículo', { what: 'object', machine: 'car', era: 'future' }],
+      ['lugar', { what: 'scene', place: 'house', inout: 'outside' }],
+      ['personaje', { what: 'character', who: 'robot', draw: 'cartoon' }],
+      ['sin contestar', { what: 'logo' }],
+      ['con No sé', { what: 'product', item: 'una silla', look: 'idk' }],
+    ];
+    const frases = casos.map(([k, a]) => [k, design.buildPlan('x', a).explainToUser]);
+    const malas = frases.filter(([, f]) => /idk|undefined|, ,|  |,\./.test(f) || !f.endsWith('.')).map(([k, f]) => `${k}: ${f}`);
+    check('6) ninguna frase queda mal escrita', malas.length === 0, malas.join(' | '));
+    check('6) el logo dice el nombre de la marca', frases[0][1] === 'Voy a crear 3 logos para "Panadería La Espiga", con un aire natural.', frases[0][1]);
+    check('6) y sin nombre no inventa ninguno', frases[6][1] === 'Voy a crear 3 logos.', frases[6][1]);
+  }
+
+  // 7) El motor no se ha tocado: mismo plan, mismas tres propuestas.
+  {
+    const caps = (a) => design.buildPlan('x', a).steps.map((s) => s.capability).join(' + ');
+    const raros = ['logo', 'poster', 'product', 'object', 'scene', 'character'].filter((w) => caps({ what: w }) !== 'text.generate + image.generate');
+    check('7) los seis destinos conservan su plan', raros.length === 0, raros.join(','));
+    check('7) y siguen siendo tres propuestas', Number(design.buildPlan('x', { what: 'product' }).steps[1].input.count) === 3);
+    check('7) el logo conserva su prompt propio', design.buildPlan('x', { what: 'logo' }).steps[1].input.kind === 'logo' && design.buildPlan('x', { what: 'scene' }).steps[1].input.kind === 'design');
+  }
+}
+
+// ── ELEGIR UNA PROPUESTA TIENE CONSECUENCIA ─────────────────────────────────
+// Elegir solo pintaba un borde dorado. Ahora la elegida se ve en grande y las
+// otras quedan pequeñas debajo, que es lo que hace que elegir signifique algo.
+console.log('\n── Weë Design · la propuesta elegida y lo que cuesta repetir ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const pantalla = leer('screens/CreatorFlowScreen.tsx');
+
+  // 8) La elegida se ve en grande.
+  check('8) la elegida se pinta en su propio marco grande', /chosenFrame/.test(tarjeta) && /styles\.chosenImage/.test(tarjeta));
+  check('8) y las demás quedan pequeñas y pulsables', /otherRow/.test(tarjeta) && /styles\.otherVariant/.test(tarjeta));
+  check('8) elegir sigue siendo elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
+  check('8) y se dice cuál es', /✓ Elegida · Propuesta/.test(tarjeta));
+
+  // 9) Lo que vuelve a gastar avisa antes.
+  check('9) la tarjeta recibe el precio de volver a crear', /regenerateCredits\?: number;/.test(tarjeta));
+  check('9) que es el mismo que se vio antes de crear', /regenerateCredits=\{pricing \? pricing\.total : job\.creditsEstimated\}/.test(pantalla));
+  check('9) "Crear otra versión" dice lo que cuesta', /`Crear otra versión\$\{precio\}`/.test(tarjeta));
+  check('9) y aplicar un cambio también', /`Aplicar\$\{precio\}`/.test(tarjeta));
+  check('9) los retoques avisan de que vuelven a crear', /Cada cambio vuelve a crear\$\{precio\}/.test(tarjeta));
+  check('9) sin precio conocido no se inventa ninguno', /regenerateCredits && regenerateCredits > 0 \? ` · ≈ \$\{regenerateCredits\.toLocaleString\('es'\)\} Credits` : ''/.test(tarjeta));
+
+  // 10) Nada de esto toca a las demás secciones.
+  check('10) el precio es opcional: quien no lo pasa no ve nada', /regenerateCredits\?: number;/.test(tarjeta) && !/regenerateCredits: number;/.test(tarjeta));
+}
+
+// ── DEL RESULTADO AL MURO, CON SU IMAGEN ────────────────────────────────────
+// Publicar un diseño creaba una publicación de solo texto: la imagen existía en
+// el Storage de Weë y nadie la pasaba. Ahora viaja como dirección en el prefill
+// y la pantalla de crear la sube por la tubería de siempre (fase 2E-47).
+console.log('\n── Weë · publicar lo que se acaba de crear ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const rutas = leer('navigation/MainStackNavigator.tsx');
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const crear = leer('screens/CreateScreen.tsx');
+
+  // 1) El conducto existe y no es de una sola sección.
+  check('1) el prefill admite material visual', /media\?: \{ type: 'image' \| 'video'; uri: string; aspectRatio\?: number \}\[\]/.test(rutas));
+  check('1) y sirve para imagen y para video, no solo para Design', /'image' \| 'video'/.test(rutas));
+
+  // 2) Se publica exactamente la propuesta elegida.
+  check('2) la tarjeta calcula cuál está elegida', /const publicable = \(\) => \{|const publicable = \(\(\) => \{/.test(tarjeta));
+  check('2) usando el índice elegido, no el primero', /const cual = chosen\[visual\.stepId\] \?\? 0;/.test(tarjeta) && /visual\.urls\[cual\]/.test(tarjeta));
+  check('2) y se la pasa al pulsar publicar', /onPress=\{\(\) => onPublish\(publicable\)\}/.test(tarjeta));
+  check('2) el que publica recibe la dirección', /onPublish: \(mediaUri\?: string\) => void;/.test(tarjeta));
+
+  // 3) La pantalla de crear llega con la imagen puesta.
+  check('3) se siembra desde el prefill', /useState<MediaItem\[\]>\(\(\) =>[\s\S]{0,120}routeParams\.prefill\?\.media \|\| \[\]/.test(crear));
+  check('3) sin prefill sigue arrancando vacía', /\(routeParams\.prefill\?\.media \|\| \[\]\)\.map/.test(crear));
+  check('3) y entra en modo imagen para que se vea qué se publica', /kind: mediaUri \? 'image' : 'post'/.test(flujo));
+
+  // 4 y 5) La tubería de siempre no se ha tocado.
+  check('4) la subida sigue siendo la misma para cualquier imagen', /const response = await fetch\(media\.uri\);/.test(crear) && /await uploadPostImage\(/.test(crear));
+  check('5) y lo que se guarda sigue siendo lo de siempre', /imageUrls,/.test(crear) && /imageUrlsThumbnails: thumbnailUrls,/.test(crear));
+  check('5) sin tocar el modelo de publicación', /isPrivate: false,/.test(crear));
+
+  // 6 y 7) Design publica la elegida; Chef, solo su resultado.
+  check('6) la imagen sale de los resultados del trabajo', /const visual = visuals\.find/.test(tarjeta));
+  check('7) nunca se publica la foto que trajo la persona', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const submitEdit'))));
+  check('7) ni un video por ahora', /r\.kind !== 'video'/.test(tarjeta));
+  check('7) ni una vista previa de demo, que no es un archivo', /return isRealMedia\(url\) \? url : undefined;/.test(tarjeta));
+
+  // 8 y 9) Publicar no crea nada ni cobra nada.
+  {
+    const cuerpo = flujo.slice(flujo.indexOf('const handlePublish'), flujo.indexOf('const subidaConfig'));
+    check('8) publicar solo navega', /navigation\.navigate\('Create'/.test(cuerpo) && !/start\(/.test(cuerpo));
+    check('9) y no toca Credits por ninguna parte', !/spendCredits|creditsService|estimatePlan/.test(cuerpo));
+  }
+
+  // 10) Si la imagen falla, no se publica el texto a escondidas.
+  {
+    const fallo = crear.slice(crear.indexOf('Error al subir imagen'), crear.indexOf('Error al subir imagen') + 500);
+    check('10) un fallo de subida corta la publicación', /setIsPublishing\(false\);[\s\S]{0,40}return;/.test(fallo));
+    check('10) y avisa a la persona', /Alert\.alert\(/.test(crear.slice(crear.indexOf('catch (error) {', crear.indexOf('Subiendo imagen')), crear.indexOf('Error al subir imagen') + 60)));
+  }
+
+  // 11 y 12) Nada más se movió.
+  check('11) las otras propuestas siguen ahí y se pueden elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
+  check('11) y la elegida sigue viéndose en grande', /chosenFrame/.test(tarjeta));
+  check('12) ni PostCard ni el muro han cambiado de forma', !/prefill/.test(leer('components/PostCard.tsx')) && !/prefill/.test(leer('components/creator/SectionWall.tsx')));
+  check('12) la publicación manual conserva sus caminos', /presetKind === 'question'/.test(crear) && /presetKind === 'weel'/.test(crear) && /const \[poll, setPoll\]/.test(crear));
+}
+
+// ── WEË STUDIO REÚNE FOTOS, VIDEOS Y BEAUTY ─────────────────────────────────
+// Weë Photo y Weë Beauty dejan de ser secciones del menú y pasan a ser áreas de
+// Weë Studio. Es una mudanza de navegación: los identificadores, las plantillas,
+// los planes y las rutas siguen enteros, que es de lo que vive todo el trabajo
+// ya creado (fase 2E-50).
+console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ──');
+{
+  const fs = await import('node:fs');
+  const { createRequire } = await import('node:module');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const specialists = leer('constants/specialists.ts');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const mesa = leer('screens/CreatorFlowScreen.tsx');
+
+  const require = createRequire(import.meta.url);
+  const ts = require('typescript');
+  const cargar = async (ruta) => {
+    const js = ts.transpileModule(leer(ruta), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    return import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+  };
+  const exp = await cargar('constants/weeExperiences.ts');
+
+  // 1 a 7) Diez existen; siete se ven desde que home se mudó a Design (2E-56).
+  {
+    const visibles = exp.WEE_EXPERIENCES.map((e) => e.id);
+    const todas = exp.ALL_EXPERIENCES.map((e) => e.id);
+    check('1) siete secciones visibles', visibles.length === 7, visibles.join(','));
+    check('2) y diez experiencias en total', todas.length === 10, todas.join(','));
+    check('3) photo sigue existiendo', todas.includes('photo'));
+    check('4) beauty sigue existiendo', todas.includes('beauty'));
+    check('5) photo ya no es una sección', !visibles.includes('photo'));
+    check('6) beauty ya no es una sección', !visibles.includes('beauty'));
+    check('7) Studio sí lo es', visibles.includes('studio'));
+    check('7) y las otras seis no se han movido', ['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'].every((id) => visibles.includes(id)), visibles.join(','));
+  }
+
+  // 8 a 11) Tres áreas, cada una a su experiencia.
+  {
+    const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
+    const ids = [...bloque.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
+    check('8) Studio tiene exactamente tres áreas', ids.length === 3, ids.join(','));
+    check('8) y son fotos, videos y beauty', ids.join(',') === 'photos,videos,beauty', ids.join(','));
+    // Tres áreas, dos niveles desde 2E-53: dos caminos y una entrada secundaria.
+    check('8) dos son caminos principales y una es secundaria', (bloque.match(/secondary: true/g) || []).length === 1);
+    check('9) Fotos abre Weë Photo', /title: 'Fotos'[^}]*opens: 'photo'/.test(bloque));
+    check('10) Videos abre Weë Studio', /title: 'Videos'[^}]*opens: 'studio'/.test(bloque));
+    check('11) Beauty abre Weë Beauty', /title: 'Beauty'[^}]*opens: 'beauty'/.test(bloque));
+    check('11) la pantalla honra ese destino', /experienceId: opens \|\| spec\.id/.test(pantalla));
+  }
+
+  // 12) Las otras siete no cambian de comportamiento.
+  {
+    const fuera = specialists.replace(specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {')), '');
+    // Fuera de Studio, `opens` solo lo usa Weë Design, y solo para Hogar & Diseño.
+    check('12) fuera de Studio, opens es solo el de Hogar & Diseño', (fuera.match(/opens: '/g) || []).length === 1 && /opens: 'home'/.test(fuera));
+    check('12) y sin opens se abre la propia sección', /const startFlow = \(goal\?: string, preset\?: SpecialistAction\['preset'\], imageUri\?: string, opens\?: SpecialistAction\['opens'\]\)/.test(pantalla));
+    check('12) el orden de secciones pierde tres y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'\]/.test(specialists));
+  }
+
+  // 13 a 15) El historial no se rompe y nadie acaba en Brain sin querer.
+  {
+    check('13) un trabajo de Photo sigue resolviendo a Weë Photo', exp.getExperienceById('photo')?.name === 'Weë Photo');
+    check('14) uno de Beauty, a Weë Beauty', exp.getExperienceById('beauty')?.name === 'Weë Beauty');
+    check('15) ninguno de los dos cae en Brain', exp.getExperienceById('photo')?.id !== 'brain' && exp.getExperienceById('beauty')?.id !== 'brain');
+    check('15) el respaldo a Brain solo actúa con un id desconocido', exp.getExperienceById('inventado') === undefined);
+    check('15) y sus configuraciones de pantalla siguen enteras', /^  photo: \{/m.test(specialists) && /^  beauty: \{/m.test(specialists));
+
+    // Lo que se lee arriba dice dónde está la persona; el id no cambia.
+    check('13) la mesa de trabajo se presenta como área de Studio', exp.EXPERIENCE_AREA.photo.label === 'Weë Studio · Fotos' && exp.EXPERIENCE_AREA.beauty.label === 'Weë Studio · Beauty' && exp.EXPERIENCE_AREA.studio.label === 'Weë Studio · Videos');
+    check('13) y la barra lateral marca Studio', ['photo', 'studio', 'beauty'].every((id) => exp.EXPERIENCE_AREA[id].section === 'studio'));
+    check('13) la pantalla usa ese contexto', /const area = EXPERIENCE_AREA\[experience\.id\];/.test(mesa) && /activeId=\{area \? area\.section : experience\.id\}/.test(mesa));
+  }
+
+  // 16 y 17) Ninguna capacidad se ha perdido.
+  {
+    const recorrer = (plantilla, primera, opciones) => {
+      const caps = new Set();
+      for (const o of opciones) {
+        for (const s of plantilla.buildPlan('x', { [primera]: o }).steps) caps.add(s.capability);
+      }
+      return caps;
+    };
+    const photo = recorrer(TEMPLATES.photo, 'action', ['enhance', 'remove', 'background', 'restore', 'retouch', 'colorize', 'transform', 'generate', 'idk']);
+    const studio = recorrer(TEMPLATES.studio, 'type', ['promo', 'social', 'story', 'animate', 'idk']);
+    const beauty = recorrer(TEMPLATES.beauty, 'what', ['makeup', 'hair', 'haircolor', 'beard', 'outfit', 'nails', 'accessories', 'skin', 'face', 'transform', 'idk']);
+
+    const faltanPhoto = ['vision.describe', 'image.edit', 'image.background_remove', 'image.object_remove', 'image.identity_edit', 'image.generate'].filter((c) => !photo.has(c));
+    const faltanStudio = ['vision.describe', 'text.generate', 'video.generate', 'video.image_to_video', 'voice.tts'].filter((c) => !studio.has(c));
+    const faltanBeauty = ['vision.describe', 'image.identity_edit', 'image.try_on', 'text.generate'].filter((c) => !beauty.has(c));
+    check('16) Photo conserva sus seis capacidades', faltanPhoto.length === 0, faltanPhoto.join(', '));
+    check('16) Studio conserva sus cinco', faltanStudio.length === 0, faltanStudio.join(', '));
+    check('16) Beauty conserva sus cuatro', faltanBeauty.length === 0, faltanBeauty.join(', '));
+    check('17) vision.describe sigue en las tres', photo.has('vision.describe') && studio.has('vision.describe') && beauty.has('vision.describe'));
+
+    // Las conversaciones no se han tocado.
+    check('16) las preguntas de Photo siguen intactas', TEMPLATES.photo.questions.map((q) => q.id).join(',') === 'action,detail');
+    check('16) las de Studio también', TEMPLATES.studio.questions.map((q) => q.id).join(',') === 'type,style,where');
+    check('16) y las de Beauty, con sus diez opciones', TEMPLATES.beauty.questions.map((q) => q.id).join(',') === 'what,occasion' && TEMPLATES.beauty.questions[0].options.length === 11);
+    check('16) el flujo de piel sigue dando consejo escrito', TEMPLATES.beauty.buildPlan('x', { what: 'skin' }).steps.map((s) => s.capability).join(' + ') === 'vision.describe + text.generate');
+    check('16) y el de rostro sigue teniendo sus tres pasos', TEMPLATES.beauty.buildPlan('x', { what: 'face' }).steps.length === 3);
+
+    /*
+     * Las veinticuatro, una por una.
+     *
+     * Cada tarjeta del selector llevaba a una opción de la primera pregunta de su
+     * flujo. Ahí siguen: por eso quitar las tarjetas de Studio no quita nada. Las
+     * de Photo y Beauty se leen del archivo; las seis de Studio ya no están en él,
+     * así que quedan escritas aquí como el registro de lo que había.
+     */
+    const inicios = [...specialists.matchAll(/^  ([a-z]+): \{$/gm)].map((m) => ({ id: m[1], en: m.index }));
+    const destinos = (seccion, pregunta) => {
+      const i = inicios.findIndex((x) => x.id === seccion);
+      const bloque = specialists.slice(inicios[i].en, inicios[i + 1] ? inicios[i + 1].en : undefined);
+      const abre = bloque.indexOf('    actions: [');
+      const trozo = bloque.slice(abre, bloque.indexOf('\n    ],', abre));
+      const ids = [...trozo.matchAll(new RegExp(`questionId: '${pregunta}', optionId: '([^']+)'`, 'g'))].map((m) => m[1]);
+      return [...new Set(ids)];
+    };
+    const opciones = (t, id) => t.questions.find((q) => q.id === id).options.map((o) => o.id);
+
+    const dePhoto = destinos('photo', 'action');
+    const deBeauty = destinos('beauty', 'what');
+    // Las seis tarjetas que Weë Studio mostraba antes de la fase 2E-50.
+    const deStudio = ['social', 'animate', 'promo', 'story', 'idk'];
+
+    const perdidas = [
+      ...dePhoto.filter((o) => !opciones(TEMPLATES.photo, 'action').includes(o)).map((o) => 'photo/' + o),
+      ...deBeauty.filter((o) => !opciones(TEMPLATES.beauty, 'what').includes(o)).map((o) => 'beauty/' + o),
+      ...deStudio.filter((o) => !opciones(TEMPLATES.studio, 'type').includes(o)).map((o) => 'studio/' + o),
+    ];
+    check('16) las veinticuatro funciones siguen teniendo a dónde ir', perdidas.length === 0, perdidas.join(', '));
+    check('16) y son veinticuatro, ni una menos', dePhoto.length + deBeauty.length + deStudio.length === 24, `${dePhoto.length} + ${deBeauty.length} + ${deStudio.length}`);
+  }
+
+  // 18) Buscar una capacidad la sigue encontrando.
+  {
+    const halla = (q) => exp.matchExperiences(q).map((e) => e.id);
+    check('18) "maquillaje" lleva a Beauty', halla('maquillaje').includes('beauty'), halla('maquillaje').join(','));
+    check('18) "retocar" lleva a Photo', halla('retocar una foto').includes('photo'), halla('retocar una foto').join(','));
+    check('18) y "video" sigue llevando a Studio', halla('un video para mis redes').includes('studio'));
+  }
+
+  // 19 y 20) El muro de Studio, y ni rastro de las viejas tarjetas.
+  {
+    const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
+    const muro = bloque.slice(bloque.indexOf('    wall: {'), bloque.indexOf('    idea: {'));
+    const etiquetas = [...muro.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
+    check('19) Studio tiene muro con tres pestañas', etiquetas.join('|') === 'Muro Studio|Cómo lo hicieron|Guardados', etiquetas.join('|'));
+    check('19) con su compositor y su estado vacío', /Comparte una foto, un video o una pregunta…/.test(muro) && /Todavía no hay nada en el muro de Weë Studio/.test(muro));
+    check('20) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 3);
+    check('20) ni cuadrícula con imágenes', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'wide'/.test(bloque));
+  }
+}
+
+// ── LO QUE VIO LA AUDITORÍA VISUAL DE WEË STUDIO ────────────────────────────
+// La unificación estaba bien construida y mal contada: el hero seguía siendo el
+// de la vieja sección de video, la cuadrícula dejaba una celda vacía, el título
+// de Weë Creator contaba diez sobre ocho tarjetas y los Weëls no llegaban a
+// ningún muro. Nada de eso se ve en un test de estructura, y por eso hacen falta
+// estos (fase 2E-52).
+console.log('\n── Weë Studio · lo que la pantalla decía y no era ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const specialists = leer('constants/specialists.ts');
+  const grid = leer('components/creator/ActionGrid.tsx');
+  const creator = leer('screens/WeeCreatorScreen.tsx');
+  const experiencias = leer('constants/weeExperiences.ts');
+
+  // 1) La cabecera cuenta las tres áreas, no una.
+  {
+    const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
+    const hero = bloque.slice(0, bloque.indexOf('    gridTitle:'));
+    check('1) el hero de Studio nombra las fotos', /headline: '[^']*[Ff]otos/.test(hero), (hero.match(/headline: '([^']*)'/) || [])[1]);
+    // Mirando el valor del campo, no el archivo: el comentario que explica el
+    // cambio cita las frases viejas, y leerlo en crudo daba un falso negativo.
+    const valor = (campo) => (hero.match(new RegExp(`${campo}: '([^']*)'`)) || [])[1] || '';
+    check('1) y ya no dice que hagan falta saberes de video', valor('headline') !== 'Convierte tus ideas en videos' && !/No necesitas saber hacer videos/.test(valor('intro')), `${valor('headline')} · ${valor('intro')}`);
+    check('1) la entradilla acompaña sin enumerar', valor('intro') === 'Cuéntame qué quieres crear y te ayudaré paso a paso.', valor('intro'));
+    check('1) y la nota ya no es solo de movimiento', !/Ideas en movimiento/.test(hero), (hero.match(/note: '([^']*)'/) || [])[1]);
+  }
+
+  // 2) La cuadrícula compacta, evaluando la expresión que se envía de verdad.
+  {
+    const compacta = grid.slice(grid.indexOf("      : layout === 'compact'"), grid.indexOf('      : isDesktop'));
+    const expr = compacta.slice(compacta.indexOf('        isDesktop'));
+    // Las columnas las decide el primer nivel, no el total (fase 2E-53).
+    const columnas = new Function('isDesktop', 'isTablet', 'principales', `return (${expr});`);
+    const studio = new Array(2), siete = new Array(7);
+
+    check('2) los dos caminos de Studio ocupan dos columnas en escritorio', columnas(true, false, studio) === 2, String(columnas(true, false, studio)));
+    check('2) y no queda ninguna celda vacía', (100 / columnas(true, false, studio)) * studio.length === 100);
+    check('2) en tableta, también dos', columnas(false, true, studio) === 2);
+    check('2) en móvil, cada camino ocupa su fila', columnas(false, false, studio) === 1, String(columnas(false, false, studio)));
+    check('2) Chef y Design no cambian en escritorio', columnas(true, false, siete) === 4);
+    check('2) ni en tableta ni en móvil', columnas(false, true, siete) === 3 && columnas(false, false, siete) === 2);
+    check('2) y las siete siguen sin dejar hueco en la última fila', columnas(true, false, siete) === 4 && siete.length % columnas(true, false, siete) === 3);
+  }
+
+  // 3) El título que contaba diez.
+  check('3) Weë Creator ya no promete diez especialistas', !/Los 10 especialistas/.test(creator));
+  check('3) y sigue nombrándolos', /Los especialistas de Weë/.test(creator));
+
+  // 4) La tarjeta de Studio dentro de Weë Creator.
+  {
+    const studio = experiencias.slice(experiencias.indexOf("    id: 'studio',"), experiencias.indexOf("    id: 'photo',"));
+    check('4) la descripción de Studio es su propuesta principal', /description: 'Crea y transforma fotos y videos con IA\.'/.test(studio), (studio.match(/description: '([^']*)'/) || [])[1]);
+    check('4) y ya no es solo de videos y música', !/Videos, animaciones y publicidad con voz y música/.test(studio));
+  }
+
+  // 5) Un Weël es un video, y su muro es el de Studio.
+  {
+    const { createRequire } = await import('node:module');
+    const ts = createRequire(import.meta.url)('typescript');
+    const js = ts.transpileModule(leer('utils/sectionFeed.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+    const M = feed.SECTION_MARKERS;
+    const encaja = (post) => feed.belongsToSection(post, M.studio);
+
+    // La única publicación real que había en dev cuando se auditó.
+    const real = { content: 'Mi primer Weël hecho con IA: un dragón dorado de 15 segundos volando sobre Lima al atardecer.', aiTools: ['Kling', 'ElevenLabs'] };
+    check('5) el Weël que había en el feed llega al muro de Studio', encaja(real));
+    check('5) con diéresis o sin ella', encaja({ content: 'Mi primer Weel' }) && encaja({ content: 'Mi primer Weël' }));
+    check('5) y en plural', encaja({ content: 'Estoy haciendo Weëls con IA' }));
+    check('5) lo que ya entraba sigue entrando', ['Un reel para Instagram', 'Probé un maquillaje nuevo', 'Restaurar la foto de mi abuela'].every((content) => encaja({ content })));
+    check('5) y publicar desde el flujo sigue siendo la señal más fiable', ['Weë Studio', 'Weë Photo', 'Weë Beauty'].every((t) => encaja({ content: 'Mira', aiTools: [t] })));
+    check('5) sin arrastrar lo que no es suyo', !encaja({ content: 'Una receta de lentejas para el almuerzo' }) && !feed.belongsToSection({ content: 'Mi primer Weël' }, M.chef));
+  }
+}
+
+// ── DOS NIVELES EN EL SELECTOR DE WEË STUDIO ────────────────────────────────
+// La sección dice una sola cosa —crea fotos y videos— y Beauty es una capacidad
+// especializada de ese mismo mundo. Ni una cuarta tarjeta igual que compita con
+// el mensaje, ni un escondite detrás del flujo de Fotos: un renglón propio bajo
+// una línea, a un toque, abriendo `beauty` directamente (fase 2E-53).
+console.log('\n── Weë Studio · dos caminos y una entrada especializada ──');
+{
+  const fs = await import('node:fs');
+  const { createRequire } = await import('node:module');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const specialists = leer('constants/specialists.ts');
+  const grid = leer('components/creator/ActionGrid.tsx');
+  const pantalla = leer('screens/SpecialistScreen.tsx');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const experiencias = leer('constants/weeExperiences.ts');
+
+  const ts = createRequire(import.meta.url)('typescript');
+  const cargar = async (ruta) => {
+    const js = ts.transpileModule(leer(ruta), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    return import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+  };
+  const exp = await cargar('constants/weeExperiences.ts');
+
+  const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
+  const accion = (titulo) => {
+    const linea = bloque.split('\n').find((l) => l.includes(`title: '${titulo}'`)) || '';
+    return {
+      hay: !!linea,
+      abre: (linea.match(/opens: '([^']+)'/) || [])[1],
+      subtitulo: (linea.match(/subtitle: '([^']+)'/) || [])[1],
+      secundaria: /secondary: true/.test(linea),
+    };
+  };
+  const fotos = accion('Fotos'), videos = accion('Videos'), beauty = accion('Beauty');
+
+  // 1 a 3) Los dos caminos y la entrada especializada.
+  check('1) Studio tiene Fotos', fotos.hay && !fotos.secundaria);
+  check('2) Studio tiene Videos', videos.hay && !videos.secundaria);
+  check('3) y Beauty como entrada secundaria', beauty.hay && beauty.secundaria);
+  check('3) que sigue explicando lo que hace', beauty.subtitulo === 'Maquillaje, cabello, rostro, ropa, uñas y cuidado personal.', beauty.subtitulo);
+  check('3) sin esconderse detrás de un "Más"', !/'Más'|"Más"|Ver más opciones/.test(bloque));
+
+  // 4 a 6) Cada una a su experiencia.
+  check('4) Fotos abre photo', fotos.abre === 'photo', fotos.abre);
+  check('5) Videos abre studio', videos.abre === 'studio', videos.abre);
+  check('6) Beauty abre beauty', beauty.abre === 'beauty', beauty.abre);
+
+  // 7 y 8) Beauty se abre desde Studio, sin pasar por Photo ni crear su trabajo.
+  check('7) Beauty se pulsa en el selector de Studio, no dentro de otro flujo', beauty.hay && /experienceId: opens \|\| spec\.id/.test(pantalla));
+  check('7) y la mesa de trabajo no tiene ningún salto a Beauty', !/'beauty'/.test(flujo.replace(/\['photo', 'home', 'beauty'\]/, '')));
+  {
+    const abrir = pantalla.slice(pantalla.indexOf('const startFlow ='), pantalla.indexOf('const handleAction ='));
+    check('8) pulsar un área navega una sola vez, directo a su experiencia', (abrir.match(/navigation\.navigate\('CreatorFlow'/g) || []).length === 1 && /experienceId: opens \|\| spec\.id/.test(abrir));
+    check('8) y la otra navegación a la mesa es la del historial, que no crea nada', /navigation\.navigate\('CreatorFlow', \{ experienceId: job\.experienceId, jobId: job\.id \}\)/.test(pantalla));
+  }
+  check('8) y el trabajo se crea una sola vez, nunca al abrir uno existente', (flujo.match(/creatorService\.start\(/g) || []).length === 1 && /if \(jobId\) return;/.test(flujo));
+
+  // 9 a 11) Ninguna capacidad se pierde.
+  {
+    const recorrer = (plantilla, primera, opciones) => {
+      const caps = new Set();
+      for (const o of opciones) for (const s of plantilla.buildPlan('x', { [primera]: o }).steps) caps.add(s.capability);
+      return caps;
+    };
+    const photo = recorrer(TEMPLATES.photo, 'action', ['enhance', 'remove', 'background', 'restore', 'retouch', 'colorize', 'transform', 'generate', 'idk']);
+    const studio = recorrer(TEMPLATES.studio, 'type', ['promo', 'social', 'story', 'animate', 'idk']);
+    const belleza = recorrer(TEMPLATES.beauty, 'what', ['makeup', 'hair', 'haircolor', 'beard', 'outfit', 'nails', 'accessories', 'skin', 'face', 'transform', 'idk']);
+    const faltan = (lista, tiene) => lista.filter((c) => !tiene.has(c));
+
+    const fPhoto = faltan(['vision.describe', 'image.edit', 'image.object_remove', 'image.background_remove', 'image.identity_edit', 'image.generate'], photo);
+    const fStudio = faltan(['vision.describe', 'text.generate', 'video.generate', 'video.image_to_video', 'voice.tts'], studio);
+    const fBeauty = faltan(['vision.describe', 'image.identity_edit', 'image.try_on', 'text.generate'], belleza);
+    check('9) Photo conserva sus seis capacidades', fPhoto.length === 0, fPhoto.join(', '));
+    check('10) Studio conserva sus cinco', fStudio.length === 0, fStudio.join(', '));
+    check('11) Beauty conserva sus cuatro', fBeauty.length === 0, fBeauty.join(', '));
+    check('11) y sus preguntas, con sus once opciones', TEMPLATES.beauty.questions.map((q) => q.id).join(',') === 'what,occasion' && TEMPLATES.beauty.questions[0].options.length === 11);
+  }
+
+  // 12 a 14) Identificadores, historial y las otras siete.
+  check('12) photo y beauty siguen en ALL_EXPERIENCES', ['photo', 'beauty'].every((id) => exp.ALL_EXPERIENCES.some((e) => e.id === id)));
+  check('12) y no como secciones del menú', exp.WEE_EXPERIENCES.length === 7 && !exp.WEE_EXPERIENCES.some((e) => ['photo', 'beauty', 'home'].includes(e.id)));
+  check('13) un trabajo histórico de Photo resuelve a Weë Photo', exp.getExperienceById('photo')?.name === 'Weë Photo');
+  check('13) y uno de Beauty, a Weë Beauty', exp.getExperienceById('beauty')?.name === 'Weë Beauty');
+  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'\]/.test(specialists));
+  {
+    const fuera = specialists.replace(bloque, '');
+    // Fuera de Studio solo Weë Design usa este mecanismo, y solo una vez (2E-56).
+    check('14) fuera de Studio, solo Design tiene entrada secundaria', (fuera.match(/secondary: true/g) || []).length === 1);
+    check('14) y solo ella abre la experiencia de otra', (fuera.match(/opens: '/g) || []).length === 1 && /opens: 'home'/.test(fuera));
+  }
+
+  // 15 a 17) Lo que dice la sección de sí misma.
+  {
+    const hero = bloque.slice(0, bloque.indexOf('    gridTitle:'));
+    const valor = (campo) => (hero.match(new RegExp(`${campo}: '([^']*)'`)) || [])[1] || '';
+    const studio = experiencias.slice(experiencias.indexOf("    id: 'studio',"), experiencias.indexOf("    id: 'photo',"));
+    const descripcion = (studio.match(/description: '([^']*)'/) || [])[1] || '';
+
+    check('15) el hero dice exactamente «Crea fotos y videos con IA»', valor('headline') === 'Crea fotos y videos con IA', valor('headline'));
+    check('15) sin Beauty ni looks en el título', !/[Bb]eauty|look/.test(valor('headline')));
+    check('16) la intro no es solo de video', !/video/i.test(valor('intro')), valor('intro'));
+    check('16) ni enumera capacidades', !/[Bb]eauty|look|maquillaje/i.test(valor('intro')));
+    check('17) la descripción general no mete a Beauty en el mensaje principal', !/[Bb]eauty|look|maquillaje/i.test(descripcion), descripcion);
+    check('17) y Beauty sí se describe dentro del selector', /Maquillaje, cabello, rostro, ropa, uñas y cuidado personal\./.test(bloque));
+  }
+
+  // 18) Ni rastro de las viejas tarjetas.
+  check('18) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 3);
+  check('18) ni cuadrícula de imágenes', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'wide'|actionLayout: 'images'/.test(bloque));
+
+  // Y la jerarquía existe de verdad en la cuadrícula, no solo en los datos.
+  check('la cuadrícula separa los dos niveles', /const principales = actions\.filter\(\(action\) => !action\.secondary\)/.test(grid) && /const secundarias = actions\.filter\(\(action\) => action\.secondary\)/.test(grid));
+  check('la entrada secundaria va bajo una línea, en un renglón propio', /styles\.divider/.test(grid) && /renderSecondary/.test(grid));
+  check('y sigue siendo cómoda de pulsar', /secondary: \{[\s\S]{0,220}minHeight: scale\(62\)/.test(grid));
+}
+
+// ── WEË HOME SE CONVIERTE EN HOGAR & DISEÑO ─────────────────────────────────
+// Tercera mudanza con el mismo patrón: la experiencia entera se queda donde
+// estaba —identificador, plantilla, planes, capacidades, prompts y precio— y lo
+// que cambia es por dónde se entra y cómo se llama en pantalla. Aquí nadie debe
+// leer "Weë Home" (fase 2E-56).
+console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
+{
+  const fs = await import('node:fs');
+  const { createRequire } = await import('node:module');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const specialists = leer('constants/specialists.ts');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const brain = leer('screens/BrainChatScreen.tsx');
+
+  const ts = createRequire(import.meta.url)('typescript');
+  const cargar = async (ruta) => {
+    const js = ts.transpileModule(leer(ruta), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    return import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+  };
+  const exp = await cargar('constants/weeExperiences.ts');
+  const feed = await cargar('utils/sectionFeed.ts');
+
+  const design = specialists.slice(specialists.indexOf('  design: {'), specialists.indexOf('  photo: {'));
+  const linea = design.split('\n').find((l) => l.includes("title: 'Hogar & Diseño'")) || '';
+
+  // A y B) Se va del menú, se queda en el sistema.
+  check('A) home ya no es sección principal', !exp.WEE_EXPERIENCES.some((e) => e.id === 'home') && exp.HIDDEN_AS_SECTION.includes('home'));
+  check('A) ni aparece en el orden de la barra lateral', !/SPECIALIST_ORDER[^\]]*'home'/.test(specialists));
+  check('B) pero sigue existiendo como experiencia', exp.ALL_EXPERIENCES.some((e) => e.id === 'home') && exp.ALL_EXPERIENCES.length === 10);
+  check('B) y su pantalla de sección no se ha borrado', /^  home: \{/m.test(specialists));
+
+  // C, D y E) La entrada dentro de Weë Design.
+  check('C) Weë Design tiene la acción Hogar & Diseño', !!linea, linea.trim().slice(0, 60));
+  check('C) con su emoji y su subtítulo', /emoji: '🏠'/.test(linea) && /subtitle: 'Transforma y rediseña tu hogar o espacio a partir de una foto\.'/.test(linea));
+  check('D) que abre la experiencia home', /opens: 'home'/.test(linea));
+  check('E) como entrada de segundo nivel', /secondary: true/.test(linea));
+  check('E) y sin esconderse detrás de un "Más"', !/'Más'|Ver más opciones/.test(design));
+  check('C) las siete intenciones aprobadas siguen arriba', design.split('\n').filter((l) => /\{ id: '[^']+', icon: /.test(l) && !/secondary: true/.test(l)).length === 7);
+
+  // Y se diferencia de "Un lugar o un escenario" por lo que hace.
+  check('C) "Un lugar o un escenario" dice que crea desde cero', /subtitle: 'Crea desde cero casas, locales, ciudades y paisajes'/.test(design));
+
+  // F, G y H) Cómo se presenta y cómo se llama.
+  check('F) EXPERIENCE_AREA coloca home dentro de Design', exp.EXPERIENCE_AREA.home?.section === 'design', exp.EXPERIENCE_AREA.home?.section);
+  check('F) con el contexto completo en la cabecera', exp.EXPERIENCE_AREA.home?.label === 'Weë Design · Hogar & Diseño', exp.EXPERIENCE_AREA.home?.label);
+  check('G) y el nombre visible es Hogar & Diseño', exp.experienceLabel({ id: 'home', name: 'Weë Home' }) === 'Hogar & Diseño');
+  check('G) las demás conservan el suyo', exp.experienceLabel({ id: 'chef', name: 'Weë Chef' }) === 'Weë Chef' && exp.experienceLabel({ id: 'photo', name: 'Weë Photo' }) === 'Weë Photo');
+  check('H) la mesa de trabajo firma con ese nombre, no con el propio', (flujo.match(/experienceName=\{nombre\}/g) || []).length === 5 && /const nombre = experienceLabel\(experience\)/.test(flujo));
+  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en Weë Creator/.test(flujo));
+  check('H) el nombre propio solo queda de respaldo en la cabecera', (flujo.match(/experience\.name/g) || []).length === 2 && /area \? area\.label : experience\.name/.test(flujo));
+  check('H) la caja de subida habla de tu espacio', /experience\.id === 'home'[\s\S]{0,80}Sube una foto de tu espacio/.test(flujo));
+
+  // I) Weë Brain deriva por identificador y ofrece el nombre visible.
+  check('I) Brain propone "Hogar & Diseño", no "Weë Home"', /experienceLabel\(suggestion\)/.test(brain) && !/suggestion\.name/.test(brain));
+  check('I) y sigue navegando por identificador', /experienceId: exp\.id/.test(brain));
+
+  // J y K) Una casa es un lugar; un motor sigue siendo una máquina.
+  {
+    const noObjeto = ['una casa moderna', 'quiero remodelar mi sala', 'diseña mi cocina', 'quiero decorar mi dormitorio', 'quiero cambiar mi oficina', 'diseñar mi casa'];
+    const siObjeto = ['diseña un auto moderno', 'quiero una moto futurista', 'diseña una máquina', 'un motor nuevo', 'un helicóptero'];
+    const mal = noObjeto.filter((f) => TEMPLATES.design.infer(f).what === 'object');
+    const perdidas = siObjeto.filter((f) => TEMPLATES.design.infer(f).what !== 'object');
+    check('J) ninguna casa acaba en el camino de las máquinas', mal.length === 0, mal.join(' · '));
+    check('J) "una casa moderna" es un lugar', TEMPLATES.design.infer('una casa moderna').what === 'scene', TEMPLATES.design.infer('una casa moderna').what);
+    check('K) los vehículos y las máquinas siguen siéndolo', perdidas.length === 0, perdidas.join(' · '));
+    check('K) y el resto de intenciones no se movió', ['logo', 'poster', 'product', 'character', 'scene'].every((d, i) => TEMPLATES.design.infer(['un logo', 'un afiche', 'una botella', 'un personaje', 'un mundo'][i]).what === d));
+
+    // Quien lo escribe en la búsqueda sigue llegando a la experiencia correcta.
+    const halla = (q) => exp.matchExperiences(q).map((e) => e.id);
+    check('J) y buscar "remodelar mi sala" lleva a home', halla('remodelar mi sala').includes('home'));
+    check('J) igual que "diseñar mi casa"', halla('diseñar mi casa').includes('home'));
+  }
+
+  // L) Sus resultados entran al muro de Weë Design.
+  {
+    const M = feed.SECTION_MARKERS;
+    check('L) un resultado de Hogar & Diseño llega al muro de Design', feed.belongsToSection({ content: 'Mi sala nueva', aiTools: ['Hogar & Diseño'] }, M.design));
+    check('L) y uno publicado cuando se llamaba Weë Home, también', feed.belongsToSection({ content: 'Mi sala nueva', aiTools: ['Weë Home'] }, M.design));
+    check('L) sin muro propio: home no tiene el suyo', !/^  home: \{[\s\S]*?^    wall: \{/m.test(specialists.slice(specialists.indexOf('  home: {'), specialists.indexOf('  beauty: {'))));
+    check('L) y sin arrastrar lo que no es suyo', !feed.belongsToSection({ content: 'Una receta de lentejas' }, M.design) && !feed.belongsToSection({ content: 'Un video para mis redes' }, M.design));
+  }
+
+  // M) El identificador y todo lo que cuelga de él, intactos.
+  check('M) getExperienceById("home") sigue resolviendo', exp.getExperienceById('home')?.name === 'Weë Home');
+  check('M) la plantilla del servidor sigue entera', TEMPLATES.home.questions.map((q) => q.id).join(',') === 'what,space,style');
+  {
+    const caps = new Set();
+    for (const o of ['design', 'remodel', 'furniture', 'garden', 'ideas', 'layout', 'colors', 'idk']) {
+      for (const s of TEMPLATES.home.buildPlan('mi espacio', { what: o }).steps) caps.add(s.capability);
+    }
+    const faltan = ['vision.describe', 'image.space_restyle', 'text.generate', 'image.generate'].filter((c) => !caps.has(c));
+    check('M) y sus cuatro capacidades siguen disponibles', faltan.length === 0, faltan.join(', '));
+    check('M) con image.space_restyle sin tocar', /image\.space_restyle/.test(leer('functions/src/creator/types.ts')) && /'image\.space_restyle': routing/.test(leer('functions/src/engine/registry.ts')));
+  }
+  check('M) el workspace le sigue pidiendo su foto', /\['photo', 'home', 'beauty'\]\.includes\(experience\.id\)/.test(flujo));
+}
+
+// ── HOGAR & DISEÑO TRABAJA SOBRE EL ESPACIO DE LA PERSONA ───────────────────
+// Seis intenciones que hacen seis cosas distintas, una que aconseja sin generar,
+// la proporción de la foto respetada de punta a punta y un antes/después que se
+// puede mirar. Lo de dentro —el identificador, el precio, el motor— sin tocar
+// (fase 2E-59).
+console.log('\n── Hogar & Diseño · seis caminos, una foto, un antes y un después ──');
+{
+  const fs = await import('node:fs');
+  const { createRequire } = await import('node:module');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const home = TEMPLATES.home;
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const brain = leer('screens/BrainChatScreen.tsx');
+  const prompts = leer('functions/src/creator/prompts.ts');
+  const gemini = leer('functions/src/engine/providers/gemini.ts');
+  const seedream = leer('functions/src/engine/providers/seedream.ts');
+
+  const ts = createRequire(import.meta.url)('typescript');
+  const js = ts.transpileModule(leer('constants/weeExperiences.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+
+  const plan = (what, extra = {}) => home.buildPlan('mi espacio', { what, space: 'living', style: 'modern', ...extra });
+  const caps = (what) => plan(what).steps.map((s) => s.capability);
+  const imagenes = (what) => plan(what).steps.filter((s) => s.capability.startsWith('image.')).reduce((n, s) => n + Number(s.input?.count ?? 1), 0);
+  const focus = (what) => String(plan(what).steps.find((s) => s.input?.focus)?.input.focus ?? '');
+
+  // 1) Las intenciones que se ven.
+  {
+    const ids = home.questions[0].options.map((o) => o.id);
+    check('1) seis caminos y un "no sé"', ids.join(',') === 'design,furniture,colors,layout,garden,ideas,idk', ids.join(','));
+    check('1) "Remodelar" ya no tiene puerta propia', !ids.includes('remodel'));
+    check('1) y los nombres son los acordados', home.questions[0].options.map((o) => o.label).join(' | ').includes('🏠 Rediseñar mi espacio') && home.questions[0].options.map((o) => o.label).join(' | ').includes('🪑 Cambiar o probar muebles'));
+  }
+
+  // 2) Cada intención hace algo distinto de verdad.
+  {
+    check('2) rediseñar: mirar, transformar dos veces y listar', caps('design').join(' + ') === 'vision.describe + image.space_restyle + text.generate' && imagenes('design') === 2);
+    check('2) muebles: solo los muebles, nada de acabados', /Change ONLY the furniture/.test(focus('furniture')) && /Keep the wall colour, the flooring/.test(focus('furniture')));
+    check('2) estilo y color: nada de cambiar los muebles', /Change ONLY the colours/.test(focus('colors')) && /Keep the same furniture pieces in the same places/.test(focus('colors')));
+    check('2) distribución: los mismos muebles, mejor puestos', caps('layout').join(' + ') === 'vision.describe + text.generate + image.space_restyle' && /Rearrange the furniture that is already in the photo/.test(focus('layout')) && imagenes('layout') === 1);
+    check('2) exterior: conserva lo construido', /Keep the built structure/.test(focus('garden')));
+    check('2) ideas: desde cero y sin foto', caps('ideas').join(' + ') === 'image.generate + text.generate' && imagenes('ideas') === 3);
+    check('2) y ninguna comparte encargo con otra', new Set(['design', 'furniture', 'colors', 'layout', 'garden'].map(focus)).size === 5);
+    const briefs = ['design', 'furniture', 'colors'].map((w) => String(plan(w).steps.find((s) => s.capability === 'image.space_restyle')?.input.prompt ?? '') + focus(w));
+    check('2) el prompt de cada una es distinto', new Set(briefs).size === 3);
+  }
+
+  // 3) "No sé qué hacer" no genera: mira y aconseja.
+  {
+    check('3) no sé: ni una sola imagen', imagenes('idk') === 0, caps('idk').join(' + '));
+    check('3) mira la foto y aconseja', caps('idk').join(' + ') === 'vision.describe + text.generate');
+    check('3) y lo dice antes de empezar', /Todavía no genero ninguna imagen/.test(plan('idk').explainToUser), plan('idk').explainToUser);
+    check('3) con su propia instrucción, que no describe imágenes', /advise:/.test(prompts) && /No describas ninguna imagen/.test(prompts));
+  }
+
+  // 4) El historial no se rompe.
+  {
+    check('4) un trabajo con "remodel" sigue armando su plan', caps('remodel').join(' + ') === 'vision.describe + image.space_restyle + text.generate');
+    check('4) y lo arma como rediseñar', focus('remodel') === focus('design'));
+    check('4) el identificador home sigue vivo', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 10);
+    check('4) los otros identificadores siguen resolviendo', ['design', 'furniture', 'colors', 'layout', 'garden', 'ideas'].every((w) => plan(w).steps.length >= 2));
+  }
+
+  // 5) Preguntar solo lo que falta.
+  {
+    const pregunta = (id) => home.questions.find((q) => q.id === id);
+    check('5) el espacio no se pregunta en exterior', pregunta('space').when({ what: 'garden' }) === false);
+    check('5) el estilo no se pregunta en distribución', pregunta('style').when({ what: 'layout' }) === false);
+    check('5) ni cuando la persona no sabe qué hacer', pregunta('style').when({ what: 'idk' }) === false);
+    check('5) y sí en las que deciden algo', pregunta('style').when({ what: 'design' }) === true && pregunta('space').when({ what: 'design' }) === true);
+    check('5) lo que ya dijo no se vuelve a preguntar', JSON.stringify(home.infer('quiero renovar mi cocina con estilo moderno')) === JSON.stringify({ what: 'design', space: 'kitchen', style: 'modern' }));
+    check('5) las tres siguen aceptando texto libre y 🤷', home.questions.every((q) => q.allowFreeText !== false && q.options.some((o) => o.id === 'idk')));
+  }
+
+  // 6) La proporción de la foto, de punta a punta.
+  {
+    check('6) Gemini deja de forzar el cuadrado', /aspectFromOutput\(input\)/.test(gemini) && /input\.aspectRatio \?\? aspectFromOutput\(input\)/.test(gemini));
+    check('6) Seedream tampoco lo fuerza', /input\.aspectRatio \?\? aspectFromOutput\(input\)/.test(seedream));
+    check('6) los dos leen las medidas que ya resolvió el motor', [gemini, seedream].every((f) => /outputWidth/.test(f) && /outputHeight/.test(f) && /nearestAspectLabel\(aspectOf\(/.test(f)));
+    check('6) sin inventar una segunda política de resolución', [gemini, seedream].every((f) => /from '\.\.\/resolutionPolicy'/.test(f)) && !/ASPECT_LABELS\s*=/.test(gemini) && !/ASPECT_LABELS\s*=/.test(seedream));
+    check('6) y con el cuadrado solo como último recurso', /\?\? \(kind === 'cover' \? '2:3' : '1:1'\)/.test(gemini) && /\?\? '1:1'/.test(seedream));
+  }
+
+  // 7) Antes y después, con las dos propuestas puestas.
+  {
+    check('7) la comparación se activa por el plan, no por la sección', /s\.capability === 'image\.space_restyle'/.test(tarjeta) && /const transformaTuFoto/.test(tarjeta));
+    check('7) y solo si hay foto original que comparar', /const transformaTuFoto = \(stepId: string\): boolean => !!beforeImageUri && esEspacio\(stepId\);/.test(tarjeta));
+    check('7) el antes/después vive dentro de las propuestas', /transforma && beforeImageUri && \(/.test(tarjeta));
+    check('7) el "después" es la propuesta elegida', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
+    check('7) y el "antes", la foto que trajo la persona', /uri: beforeImageUri \}\} style=\{styles\.pairImage\}/.test(tarjeta));
+    check('7) las dos propuestas siguen ahí y se pueden elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
+    check('7) y se publica la elegida, nunca la foto de la persona', /const url = visual\.urls && visual\.urls\.length > 1 \? visual\.urls\[cual\] : visual\.url;/.test(tarjeta));
+  }
+
+  // 8) Sin recortar lo que se prometió conservar.
+  {
+    check('8) la propuesta no se recorta cuando es un espacio', /contentFit=\{espacio \? 'contain' : 'cover'\}/.test(tarjeta));
+    check('8) con marco apaisado en vez del cuadrado', /chosenImageWide: \{[\s\S]{0,60}aspectRatio: 4 \/ 3/.test(tarjeta));
+    check('8) y las demás experiencias siguen como estaban', /contentFit="cover"/.test(tarjeta));
+  }
+
+  // 9) La foto, el nombre y el muro.
+  {
+    check('9) la caja de subida explica para qué sirve la foto', /Una foto me ayudará a conservar la estructura real del lugar\./.test(flujo));
+    check('9) el workspace sigue pidiéndola', /\['photo', 'home', 'beauty'\]\.includes\(experience\.id\)/.test(flujo));
+    check('9) y firma como Hogar & Diseño', exp.experienceLabel({ id: 'home', name: 'Weë Home' }) === 'Hogar & Diseño' && /experienceName=\{nombre\}/.test(flujo));
+  }
+
+  // 10) Ni un "Weë Home" que pueda llegar a la persona.
+  {
+    check('10) Brain ya no lo nombra en su instrucción', !/Weë Home/.test(prompts));
+    check('10) y lo recomienda por su nombre visible', /Hogar & Diseño/.test(prompts));
+    check('10) la propuesta de Brain usa la etiqueta del área', /experienceLabel\(suggestion\)/.test(brain) && !/suggestion\.name/.test(brain));
+    check('10) el routing sigue siendo por identificador', /\[\[WEE:id\]\]/.test(prompts) && /experienceId: exp\.id/.test(brain));
+  }
+}
+
+// ── LA PROPORCIÓN LLEGA HASTA EL PROVEEDOR, Y "NO SÉ" TIENE SALIDA ──────────
+// 2E-59 hizo que los adaptadores leyeran las medidas del motor, pero pedía la
+// etiqueta exacta y la política resuelve medidas que no caen en ella: 1168x880
+// conserva un 4:3 y aun así se quedaba sin etiqueta, o sea en cuadrado. Aquí se
+// comprueba la ruta real de punta a punta, y el puente que saca a alguien de
+// "no sé qué hacer" sin hacerle empezar de nuevo (fase 2E-60).
+console.log('\n── Hogar & Diseño · la proporción de verdad y el puente del "no sé" ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const { planImage } = lib('engine/image.js');
+  const { resolveForModel, nearestAspectLabel, aspectLabelOf, aspectOf } = lib('engine/resolutionPolicy.js');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const specialists = leer('constants/specialists.ts');
+  const gemini = leer('functions/src/engine/providers/gemini.ts');
+  const seedream = leer('functions/src/engine/providers/seedream.ts');
+
+  // La ruta real: el mismo modelo y el mismo nivel que usaría una foto de verdad.
+  const elegido = planImage({ capability: 'image.space_restyle', input: { count: 2, kind: 'space', imageUrl: 'https://x/f.jpg' } }, false);
+  const etiquetaPara = (width, height) => {
+    const r = resolveForModel(elegido.choice.model.modelId, { quality: elegido.choice.tier, input: { width, height } });
+    return r ? nearestAspectLabel(aspectOf(r.width, r.height)) : undefined;
+  };
+
+  // A y E) La proporción de salida sale de la de entrada, en la ruta real.
+  check('A) una foto 4:3 se pide en 4:3', etiquetaPara(1600, 1200) === '4:3', String(etiquetaPara(1600, 1200)));
+  check('A) una panorámica 16:9, en 16:9', etiquetaPara(1920, 1080) === '16:9', String(etiquetaPara(1920, 1080)));
+  check('A) una vertical 3:4, en 3:4', etiquetaPara(1200, 1600) === '3:4');
+  check('A) una 3:2, en 3:2', etiquetaPara(3000, 2000) === '3:2');
+  check('A) y una cuadrada sigue siendo cuadrada', etiquetaPara(1080, 1080) === '1:1');
+  check('A) el fallo que traía 2E-59: la etiqueta exacta no bastaba', aspectLabelOf(aspectOf(1168, 880)) === undefined && nearestAspectLabel(aspectOf(1168, 880)) === '4:3');
+  check('A) fuera de margen no se inventa ninguna', nearestAspectLabel(5) === undefined);
+
+  // B y C) Sin tablas propias en los adaptadores.
+  check('B) Gemini no tiene tabla propia de proporciones', !/ASPECT_LABELS\s*=/.test(gemini) && /from '\.\.\/resolutionPolicy'/.test(gemini));
+  check('C) Seedream tampoco', !/ASPECT_LABELS\s*=/.test(seedream) && /from '\.\.\/resolutionPolicy'/.test(seedream));
+  check('C) y la etiqueta más cercana vive en la política, una sola vez', /export const nearestAspectLabel/.test(leer('functions/src/engine/resolutionPolicy.ts')));
+
+  // D) Las medidas de entrada llegan al presupuesto y a la ejecución.
+  {
+    const index = leer('functions/src/creator/index.ts');
+    check('D) el servidor mide la foto antes de cotizar', /const inputSizeOf = async/.test(index) && /estimatePlan\(job\.plan, uid, quality, await inputSizeOf\(job\)\)/.test(index));
+    check('D) y antes de ejecutar el paso', /const fuente = needsInputImage\(\[next\]\) \? await inputSizeOf\(job\) : undefined;/.test(index));
+    check('E) las medidas resueltas viajan al adaptador', /outputWidth: resolucion\.width, outputHeight: resolucion\.height/.test(index));
+    check('D) y el cliente las mide al subir', /Image\.getSize/.test(leer('services/creatorUploads.ts')) && /customMetadata: \{ width:/.test(leer('services/creatorUploads.ts')));
+  }
+
+  // K y L) El puente del "no sé": elegir camino sin empezar de nuevo.
+  {
+    const home = TEMPLATES.home;
+    // Lo que hace el puente, en memoria: la respuesta cambia, el contexto no.
+    const antes = { what: 'idk', space: 'kitchen', style: 'modern' };
+    check('J) "no sé" no genera ninguna imagen', home.buildPlan('x', antes).steps.every((s) => !s.capability.startsWith('image.')));
+    for (const camino of ['design', 'colors', 'furniture']) {
+      const despues = home.buildPlan('x', { ...antes, what: camino });
+      check(`K) elegir ${camino} lleva a su plan`, despues.steps.some((s) => s.capability === 'image.space_restyle'), despues.steps.map((s) => s.capability).join(' + '));
+    }
+    check('L) y conserva lo que ya se dijo: cocina, moderno', /la cocina/.test(home.buildPlan('x', { ...antes, what: 'design' }).explainToUser) && /moderno/.test(home.buildPlan('x', { ...antes, what: 'design' }).explainToUser));
+    check('L) sin volver a decidir por la persona', !/Como no estabas seguro/.test(home.buildPlan('x', { ...antes, what: 'design' }).explainToUser));
+
+    // Y en el cliente: la misma foto y las mismas respuestas viajan con ella.
+    check('L) el puente lleva la foto ya subida, sin volver a subirla', /imageUri: uploadedUrl\.current \|\| imageUri/.test(flujo));
+    check('L) y todas las respuestas menos la que cambia', /job\.answers\.filter\(\(a\) => a\.questionId !== 'what' && a\.optionId\)/.test(flujo));
+    check('K) entrando directo al plan elegido', /presets: \[\{ questionId: 'what', optionId \}, \.\.\.yaDichas\]/.test(flujo));
+    check('K) el workspace acepta varias respuestas de golpe', /params\.presets \?\? \(params\.preset \? \[params\.preset\] : undefined\)/.test(flujo));
+    check('K) los caminos solo salen cuando Weë aconsejó', /const aconsejo = !!onContinue && !visuals\.length && job\.plan\?\.steps\.some\(\(s\) => s\.id === 'advice'\)/.test(tarjeta));
+    check('K) y son los tres que se propusieron', /optionId: 'design'[\s\S]{0,200}optionId: 'colors'[\s\S]{0,200}optionId: 'furniture'/.test(tarjeta));
+  }
+
+  // Q) La pantalla histórica ya no enseña una lista que no existe.
+  {
+    const bloque = specialists.slice(specialists.indexOf('  home: {'), specialists.indexOf('  beauty: {'));
+    const ids = [...bloque.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
+    check('Q) siete acciones, las mismas de la conversación', ids.join(',') === 'design,furniture,colors,layout,garden,ideas,idk', ids.join(','));
+    check('Q) "Remodelar" ya no es un botón', !/title: 'Remodelar'/.test(bloque) && !/optionId: 'remodel'/.test(bloque));
+    check('Q) pero su identificador sigue resolviendo', TEMPLATES.home.buildPlan('x', { what: 'remodel' }).steps.some((s) => s.capability === 'image.space_restyle'));
+  }
+
+  // R) Sin regresiones donde no tocaba.
+  {
+    const otras = ['chef', 'design', 'studio', 'photo', 'beauty', 'writer', 'music', 'business', 'brain'];
+    check('R) las demás experiencias siguen armando su plan', otras.every((id) => TEMPLATES[id].buildPlan('algo', {}).steps.length > 0));
+    check('R) y ninguna usa el paso de consejo de Hogar & Diseño', otras.every((id) => !TEMPLATES[id].buildPlan('algo', {}).steps.some((s) => s.id === 'advice')));
+    check('R) el antes/después sigue siendo solo para lo que transforma tu foto', /s\.capability === 'image\.space_restyle'/.test(tarjeta));
+    check('R) y las demás siguen recortando como siempre', /contentFit="cover"/.test(tarjeta));
+  }
+}
+
+// ── EL "ANTES" SOBREVIVE A CERRAR LA PANTALLA ───────────────────────────────
+// La foto original salía del estado del componente, así que volver a un trabajo
+// desde "Mis creaciones" —donde la mesa se abre solo con un jobId— dejaba el
+// antes/después sin antes. La foto ya estaba guardada en el propio trabajo desde
+// el principio; ahora se lee de ahí. Se comprueba EVALUANDO las expresiones que
+// se envían, no describiéndolas (fase 2E-61).
+console.log('\n── Hogar & Diseño · el antes se recupera del trabajo ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const servicio = leer('services/creatorService.ts');
+
+  // La decisión real, extraída del código que se envía y ejecutada aquí.
+  const exprAntes = (flujo.match(/beforeImageUri=\{([^}]+)\}/) || [])[1];
+  const antesDe = new Function('needsPhoto', 'imageUri', 'job', `return (${exprAntes});`);
+  // transformaTuFoto se apoya en esEspacio: se evalúan las DOS expresiones reales.
+  const exprEsEspacio = (tarjeta.match(/const esEspacio = \(stepId: string\): boolean =>\s*([\s\S]*?);\n/) || [])[1];
+  const exprTransforma = (tarjeta.match(/const transformaTuFoto = \(stepId: string\): boolean =>\s*([\s\S]*?);\n/) || [])[1];
+  const transforma = new Function('stepId', 'beforeImageUri', 'job', `const esEspacio = (stepId) => (${exprEsEspacio}); return (${exprTransforma});`);
+  const exprElegida = (tarjeta.match(/const url = (visual\.urls && visual\.urls\.length > 1 \? visual\.urls\[cual\] : visual\.url);/) || [])[1];
+  const elegidaDe = new Function('visual', 'cual', `return (${exprElegida});`);
+
+  const ORIGINAL = 'https://storage/users/u1/creator-inputs/original.jpg';
+  const R1 = 'https://storage/users/u1/ai-generations/r1.png';
+  const R2 = 'https://storage/users/u1/ai-generations/r2.png';
+  const trabajo = (extra = {}) => ({
+    id: 'j1',
+    experienceId: 'home',
+    inputImageUrl: ORIGINAL,
+    plan: { steps: [{ id: 'look', capability: 'vision.describe' }, { id: 'restyle', capability: 'image.space_restyle' }, { id: 'list', capability: 'text.generate' }] },
+    results: [{ stepId: 'restyle', kind: 'image', url: R1, urls: [R1, R2] }],
+    ...extra,
+  });
+  const visual = { stepId: 'restyle', url: R1, urls: [R1, R2] };
+
+  // A y B) De dónde sale el antes, con la pantalla viva y sin ella.
+  check('A) trabajo en curso: el antes es la foto que se acaba de subir', antesDe(true, 'file:///local/foto.jpg', trabajo()) === 'file:///local/foto.jpg');
+  check('B) recuperado por jobId: el antes sale del trabajo', antesDe(true, undefined, trabajo()) === ORIGINAL, String(antesDe(true, undefined, trabajo())));
+  check('B) y es la MISMA dirección con la que se generó', antesDe(true, undefined, trabajo()) === trabajo().inputImageUrl);
+
+  // C, D y E) El después es la propuesta elegida, y cambia al cambiarla.
+  check('C) propuesta 1 elegida → después = resultado 1', elegidaDe(visual, 0) === R1);
+  check('D) propuesta 2 elegida → después = resultado 2', elegidaDe(visual, 1) === R2);
+  check('E) cambiar de propuesta cambia el después', elegidaDe(visual, 0) !== elegidaDe(visual, 1));
+  check('E) y las dos propuestas siguen estando', visual.urls.length === 2 && /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
+  check('C) el par usa la elegida, no la primera', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
+
+  // F y L) La foto de la persona sigue sin poder publicarse.
+  check('F) lo publicable sale de los resultados, nunca del antes', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const submitEdit'))));
+  check('F) y es la propuesta elegida', elegidaDe(visual, 1) === R2 && /aiTools: \[nombre\],/.test(flujo));
+  check('L) el camino de publicar no cambió', /navigation\.navigate\('Create'/.test(flujo) && /kind: mediaUri \? 'image' : 'post'/.test(flujo));
+
+  // G, H, I y J) Cuándo NO hay antes/después.
+  check('G) un trabajo sin foto no inventa ninguna', antesDe(true, undefined, { plan: null }) === undefined);
+  check('G) ni cuando la sección no trabaja con fotos', antesDe(false, undefined, trabajo()) === undefined);
+  check('H) "Buscar ideas" crea desde cero: no hay antes que comparar', transforma('ideas', undefined, { plan: { steps: [{ id: 'ideas', capability: 'image.generate' }] } }) === false);
+  check('I) un paso de texto tampoco', transforma('list', ORIGINAL, trabajo()) === false);
+  check('J) y una transformación del espacio sí', transforma('restyle', ORIGINAL, trabajo()) === true);
+  check('J) el "no sé" mientras solo aconseja, no', transforma('advice', ORIGINAL, { plan: { steps: [{ id: 'look', capability: 'vision.describe' }, { id: 'advice', capability: 'text.generate' }] } }) === false);
+
+  // K) Un trabajo antiguo sin la referencia guardada no se inventa nada.
+  check('K) sin inputImageUrl no hay antes', antesDe(true, undefined, { ...trabajo(), inputImageUrl: undefined }) === undefined);
+  check('K) y su antes/después simplemente no aparece', transforma('restyle', antesDe(true, undefined, { ...trabajo(), inputImageUrl: undefined }), trabajo()) === false);
+
+  // M y N) Ni segunda subida ni segunda fuente de verdad.
+  check('M) no se vuelve a subir la foto para el antes', (flujo.match(/uploadCreatorImage\(/g) || []).length === 2, 'subidas: al empezar y al elegir foto');
+  check('N) el antes se lee del trabajo, que ya traía el dato', /inputImageUrl\?: string;/.test(servicio) && /\{ id: snap\.id, \.\.\.snap\.data\(\) \}/.test(servicio));
+  check('N) sin campo nuevo ni copia en el cliente', !/beforeUrl|originalUrl|antesUrl/.test(flujo) && !/beforeUrl|originalUrl|antesUrl/.test(tarjeta));
+  check('N) y una sola detección, la que ya existía', !/capability === 'image\.space_restyle'/.test(tarjeta.replace(/const esEspacio = \(stepId: string\): boolean =>[\s\S]*?;\n/, '').replace(/const trabajoDeEspacio = [\s\S]*?;\n/, '')) && (tarjeta.match(/const transformaTuFoto/g) || []).length === 1);
+
+  // O) Sin regresiones donde el antes/después no debe cambiar.
+  {
+    // Weë Studio con foto: su resultado es video y no debe caer en el par.
+    check('O) un video no se convierte en antes/después', /result\.kind === 'video' && isRealMedia\(result\.url\)/.test(tarjeta));
+    check('O) el orden de ramas sigue siendo propuestas → par → video', tarjeta.indexOf('result.urls && result.urls.length > 1') < tarjeta.indexOf(') : beforeImageUri ? (') && tarjeta.indexOf(') : beforeImageUri ? (') < tarjeta.indexOf("result.kind === 'video'"));
+    check('O) la puerta sigue siendo needsPhoto, que no se tocó', /\['photo', 'home', 'beauty'\]\.includes\(experience\.id\)/.test(flujo) && /needsPhoto \? imageUri \|\| job\.inputImageUrl : undefined/.test(flujo));
+    check('O) Chef y Studio siguen decidiendo por su preset y su objetivo', /experience\.id === 'chef' &&[\s\S]{0,240}preset\?\.optionId === 'cook'/.test(flujo) && /experience\.id === 'studio' && \(params\.preset\?\.optionId === 'animate'/.test(flujo));
+  }
+}
+
+// ── QUE EL ANTES/DESPUÉS SE VEA, Y QUE NADIE LEA "WEË HOME" ─────────────────
+// Dos fallos que solo aparecen mirando la pantalla: el bloque existía en el
+// árbol pero se pintaba a 0×0 por vivir en una fila con flexWrap sin anchura, y
+// la lista de "Mis creaciones" seguía nombrando la experiencia por su nombre
+// interno. Los tests de antes comprobaban el enlace; ninguno el ancho (2E-61.2).
+console.log('\n── Hogar & Diseño · que se vea, y que se llame como se llama ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const creator = leer('screens/WeeCreatorScreen.tsx');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+
+  const estilo = (nombre) => {
+    const desde = tarjeta.indexOf(`  ${nombre}: {`);
+    return desde < 0 ? '' : tarjeta.slice(desde, tarjeta.indexOf('\n  },', desde));
+  };
+
+  // A) El ancho que faltaba.
+  check('A) el par ocupa el ancho de su fila', /width: '100%'/.test(estilo('pair')), estilo('pair').replace(/\s+/g, ' ').slice(0, 80));
+  check('A) como ya hacía la fila de alternativas', /width: '100%'/.test(estilo('otherRow')));
+  check('A) y sus dos mitades siguen repartiéndose a partes iguales', /flex: 1/.test(estilo('pairItem')));
+  // Dos usos del mismo estilo: el par de una sola imagen (el de siempre) y el
+  // que vive dentro de las propuestas. Un solo estilo, ningún componente nuevo.
+  check('A) el par sigue viviendo donde estaba, sin componente nuevo', /flexWrap: 'wrap'/.test(estilo('variants')) && (tarjeta.match(/styles\.pair[,}]/g) || []).length === 2);
+
+  // B a F) La lógica de antes y después, intacta.
+  check('B) el antes sigue saliendo del trabajo', /needsPhoto \? imageUri \|\| job\.inputImageUrl : undefined/.test(flujo));
+  check('C) el después sigue siendo la propuesta elegida', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
+  check('D) cambiar de propuesta sigue cambiando la elegida', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
+    check('E) y el antes no depende de ella', /uri: beforeImageUri \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
+  check('E) la detección sigue siendo la misma, una sola', !/capability === 'image\.space_restyle'/.test(tarjeta.replace(/const esEspacio = \(stepId: string\): boolean =>[\s\S]*?;\n/, '').replace(/const trabajoDeEspacio = [\s\S]*?;\n/, '')) && (tarjeta.match(/const transformaTuFoto/g) || []).length === 1);
+  check('F) la foto de la persona sigue sin poder publicarse', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const submitEdit'))));
+
+  // G a J) El nombre visible.
+  {
+    const ts = (await import('node:module')).createRequire(import.meta.url)('typescript');
+    const js = ts.transpileModule(leer('constants/weeExperiences.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+    const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+
+    check('G) home se presenta como Hogar & Diseño', exp.experienceLabel(exp.getExperienceById('home')) === 'Hogar & Diseño');
+    check('H) "Mis creaciones" usa la etiqueta, no el nombre crudo', /\{exp \? experienceLabel\(exp\) : 'Weë'\}/.test(creator) && !/\{exp\?\.name \?\? 'Weë'\}/.test(creator));
+    check('H) y una sola fuente de verdad para el nombre', /experienceLabel/.test(creator) && !/HOME_LABEL|NOMBRES_VISIBLES/.test(creator));
+    check('I) el identificador interno no se ha tocado', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 10);
+    check('I) ni su nombre propio, que sigue guardado', exp.getExperienceById('home')?.name === 'Weë Home');
+    check('J) las demás conservan el suyo', ['design', 'studio', 'chef', 'writer', 'music', 'business', 'brain', 'photo', 'beauty'].every((id) => exp.experienceLabel(exp.getExperienceById(id)) === exp.getExperienceById(id).name));
+    check('J) y ninguna otra experiencia cambia de etiqueta', Object.keys(exp.EXPERIENCE_AREA).filter((id) => exp.EXPERIENCE_AREA[id].name).join(',') === 'home');
+  }
+}
+
+// ── EL RESULTADO SE VE BIEN Y LA FOTO ES EL SUJETO ──────────────────────────
+// Bloques 1 y 2 de la auditoría 2E-62. Todo lo de aquí cuelga de una sola
+// pregunta —¿el paso usa `image.space_restyle`?— para que Chef, Design, Studio,
+// Photo, Beauty y Writer no noten absolutamente nada (fase 2E-63).
+console.log('\n── Hogar & Diseño · propuestas, comparación y la foto en grande ──');
+{
+  const fs = await import('node:fs');
+  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  const tarjeta = leer('components/creator/ResultCard.tsx');
+  const flujo = leer('screens/CreatorFlowScreen.tsx');
+
+  const estilo = (nombre, archivo = tarjeta) => {
+    const desde = archivo.indexOf(`  ${nombre}: {`);
+    return desde < 0 ? '' : archivo.slice(desde, archivo.indexOf('\n  },', desde));
+  };
+  // Las decisiones reales, extraídas del código y ejecutadas aquí.
+  const exprEspacio = (tarjeta.match(/const esEspacio = \(stepId: string\): boolean =>\s*([\s\S]*?);\n/) || [])[1];
+  const esEspacio = new Function('stepId', 'job', `return (${exprEspacio});`);
+  const exprNarracion = (tarjeta.match(/const narracionInterna = \(stepId: string\): boolean =>\s*([\s\S]*?);\n/) || [])[1];
+  const narracion = new Function('stepId', 'trabajoDeEspacio', 'job', `return (${exprNarracion});`);
+  const exprTrabajo = (flujo.match(/const trabajaSobreUnEspacio = ([\s\S]*?);\n/) || [])[1];
+  const trabajaSobreUnEspacio = new Function('job', 'experience', `return (${exprTrabajo});`);
+
+  const planEspacio = { steps: [{ id: 'look', capability: 'vision.describe' }, { id: 'restyle', capability: 'image.space_restyle' }, { id: 'list', capability: 'text.generate' }] };
+  const planRetrato = { steps: [{ id: 'look', capability: 'vision.describe' }, { id: 'edit', capability: 'image.identity_edit' }] };
+
+  // 1) Las dos propuestas, la misma geometría.
+  check('1) la elegida y la alternativa comparten proporción', /aspectRatio: 4 \/ 3/.test(estilo('chosenImageWide')) && /aspectRatio: 4 \/ 3/.test(estilo('variantImageWide')));
+  check('1) y la diferencia la marca el ancho, no el alto', /maxWidth: '50%'/.test(estilo('otherVariantSpace')));
+  check('1) ninguna se recorta', /contentFit=\{espacio \? 'contain' : 'cover'\}/.test(tarjeta) && (tarjeta.match(/contentFit=\{espacio \? 'contain' : 'cover'\}/g) || []).length === 2);
+  check('1) el marco vertical de siempre sigue ahí para lo demás', /variantImage: \{[\s\S]{0,80}aspectRatio: 4 \/ 5/.test(tarjeta));
+
+  // 2) Antes / Después.
+  check('2) el par es apaisado', /aspectRatio: 4 \/ 3/.test(estilo('pairImageWide')));
+  check('2) y se apila en móvil', /flexDirection: 'column'/.test(estilo('pairStacked')) && /const apilar = !isDesktop && !isTablet;/.test(tarjeta));
+  check('2) cada mitad ocupa lo mismo', /flex: 1/.test(estilo('pairItem')) && /width: '100%'/.test(estilo('pair')));
+  check('2) el antes sigue siendo la foto original', /uri: beforeImageUri \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
+  check('2) y el después, la propuesta elegida', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
+
+  // 3) El orden: decidir antes que leer.
+  check('3) guardar y los textos bajan detrás de las acciones', /\{!trabajoDeEspacio && bloqueProyecto\}/.test(tarjeta) && /\{!trabajoDeEspacio && bloqueTextos\}/.test(tarjeta));
+  check('3) y solo en un trabajo de espacio', /const trabajoDeEspacio = job\.plan\?\.steps\.some\(\(s\) => s\.capability === 'image\.space_restyle'\)/.test(tarjeta));
+  check('3) la lista de cambios empieza plegada', /const \[verDetalle, setVerDetalle\] = useState\(false\)/.test(tarjeta) && /\{verDetalle && bloqueTextos\}/.test(tarjeta));
+  check('3) pero no se pierde: sigue completa', /Lista de cambios y compras/.test(tarjeta) && /const bloqueTextos = \(/.test(tarjeta));
+
+  // 4) La narración interna no es un entregable.
+  check('4) la descripción del espacio no se muestra', narracion('look', true, { plan: planEspacio }) === true);
+  check('4) pero la lista de compras sí', narracion('list', true, { plan: planEspacio }) === false);
+  check('4) y en las demás experiencias no se oculta nada', narracion('look', false, { plan: planRetrato }) === false);
+  check('4) la capacidad sigue en el plan, intacta', TEMPLATES.home.buildPlan('x', { what: 'design' }).steps.some((s) => s.capability === 'vision.describe'));
+
+  // 5) El aislamiento: la pregunta es la capacidad, no la sección.
+  check('5) un paso de espacio se reconoce', esEspacio('restyle', { plan: planEspacio }) === true);
+  check('5) uno de retrato, no', esEspacio('edit', { plan: planRetrato }) === false);
+  check('5) ni un paso de texto del mismo trabajo', esEspacio('list', { plan: planEspacio }) === false);
+  check('5) sin plan no se supone nada', esEspacio('restyle', { plan: null }) === false);
+
+  // 6 y 7) La foto, en grande y con nombre.
+  check('6) la foto se ve grande y sin recortar', /aspectRatio: 4 \/ 3/.test(estilo('spaceImage', flujo)) && /style=\{styles\.spaceImage\} contentFit="contain"/.test(flujo));
+  check('7) con su nombre', /📸 Tu espacio/.test(flujo));
+  check('7) y con cambiar y quitar', /accessibilityLabel="Cambiar foto"/.test(flujo) && /accessibilityLabel="Quitar foto"/.test(flujo) && /const quitarFoto = \(\)/.test(flujo));
+  check('7) quitar no toca el archivo de la persona', /setImageUri\(undefined\);\s*\n\s*uploadedUrl\.current = undefined;/.test(flujo) && !/deleteObject|remove\(/.test(flujo));
+  check('7) las demás experiencias conservan su tira', /!trabajaSobreUnEspacio && \(/.test(flujo) && /styles\.attachmentImage/.test(flujo));
+
+  // 8) Entrar no crea un trabajo vacío.
+  check('8) sin foto no se arranca un trabajo de espacio', /if \(trabajaSobreUnEspacio && !params\.imageUri\) return;/.test(flujo));
+  check('8) la foto lo arranca', /if \(!user \|\| jobId \|\| !imageUri \|\| !trabajaSobreUnEspacio\) return;/.test(flujo));
+  check('8) y hay salida para quien no tiene foto', /Prefiero describirlo con palabras/.test(flujo));
+  check('8) y mientras espera no finge estar pensando', /const esperandoLaFoto = trabajaSobreUnEspacio && !imageUri && !jobId && !busy;/.test(flujo) && /hideThinking=\{esperandoLaFoto\}/.test(flujo));
+  check('8) la misma espera manda en las dos cosas', (flujo.match(/esperandoLaFoto/g) || []).length === 3);
+  check('8) abrir uno existente nunca crea nada', /if \(jobId\) return;/.test(flujo) && (flujo.match(/creatorService\.start\(/g) || []).length === 1);
+  check('8) las demás experiencias siguen arrancando al entrar', trabajaSobreUnEspacio(null, { id: 'chef' }) === false && trabajaSobreUnEspacio(null, { id: 'home' }) === true);
+  check('8) y con plan manda el plan, no la sección', trabajaSobreUnEspacio({ plan: planEspacio }, { id: 'chef' }) === true && trabajaSobreUnEspacio({ plan: planRetrato }, { id: 'home' }) === false);
+
+  // 9) Sin regresiones.
+  check('9) el par de una sola imagen sigue existiendo', (tarjeta.match(/style=\{\[styles\.pair, apilar && styles\.pairStacked\]\}/g) || []).length === 1 && /style=\{styles\.pair\}/.test(tarjeta));
+  check('9) el video sigue teniendo su rama', /result\.kind === 'video' && isRealMedia\(result\.url\)/.test(tarjeta));
+  check('9) y las demás experiencias siguen recortando como siempre', /contentFit="cover"/.test(tarjeta));
+  check('9) no hay un segundo ResultCard ni un workspace nuevo', !/ResultCardEspacio|HomeWorkspace|SpaceWorkspace/.test(tarjeta + flujo));
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Creator: entradas, planes, Brain, límites, errores y Video Engine en orden');
 process.exit(failures ? 1 : 0);

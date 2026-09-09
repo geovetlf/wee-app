@@ -147,10 +147,32 @@ export interface GrantResult {
 
 const CREDIT_FIELDS = ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent'] as const;
 
-const strip = (value: Record<string, unknown>): Record<string, unknown> => {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value)) if (v !== undefined) out[k] = v;
-  return out;
+/** Objeto plano: se puede recorrer sin romper nada que Firestore trate especial. */
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+};
+
+/**
+ * Quita los `undefined` EN PROFUNDIDAD antes de escribir en Firestore, que los
+ * rechaza. Limpiar solo el primer nivel no bastaba: el presupuesto de un trabajo
+ * viaja anidado en `meta.steps[]`, así que una operación de una sola imagen metía
+ * `volumeDiscount: undefined` dentro del array y tumbaba la reserva entera antes
+ * de llamar a ningún proveedor.
+ *
+ * Solo se entra en objetos planos y arrays. Los Timestamp y los valores especiales
+ * de Firestore (increment, serverTimestamp) se devuelven intactos: recorrerlos los
+ * convertiría en objetos corrientes y perderían su significado.
+ */
+export const strip = <T>(value: T): T => {
+  if (Array.isArray(value)) return value.map((item) => strip(item)) as unknown as T;
+  if (isPlainObject(value)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) if (v !== undefined) out[k] = strip(v);
+    return out as T;
+  }
+  return value;
 };
 
 export function createCreditEngine(deps: CreditEngineDeps) {
@@ -338,7 +360,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         statusHistory: ['PENDING', 'AUTHORIZED'],
         requestId,
         authorizedAmount: amount,
-        meta: input.meta,
+        meta: strip(input.meta),
       });
       tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: current.lifetimeSpent + amount, updatedAt: now() });
       writeStats(tx, { totalSpent: amount, circulating: -amount, byService: { [service]: { spent: amount, count: 1 } }, transactions: { usage: 1 } });

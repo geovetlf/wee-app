@@ -1,4 +1,5 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { CALLBACK_SECRETS } from '../secrets';
 import { onRequest } from 'firebase-functions/v2/https';
 
 /**
@@ -10,7 +11,7 @@ import { onRequest } from 'firebase-functions/v2/https';
  * lo usa para terminar antes su sondeo. Sin webhook, el sondeo a la API basta.
  * El cuerpo llega tal cual lo manda el proveedor (id, status, content, usage, error).
  */
-export const seedanceCallback = onRequest({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request, response) => {
+export const seedanceCallback = onRequest({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: CALLBACK_SECRETS }, async (request, response) => {
   if (request.method !== 'POST') {
     response.status(405).send('POST only');
     return;

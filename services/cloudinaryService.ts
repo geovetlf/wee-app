@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { uriSinMetadatos, blobSinMetadatos } from '../utils/publicImage';
 
 const CLOUD_NAME = 'dnrj1guvs';
 const UPLOAD_PRESET = 'hidetok-simple';
@@ -59,12 +60,22 @@ const buildFormData = async (
   const ext = resourceType === 'video' ? 'mp4' : 'jpg';
   const mime = resourceType === 'video' ? 'video/mp4' : 'image/jpeg';
 
+  /*
+   * Aquí pasa TODO lo que se hace público en Weë: publicaciones, avatares,
+   * portadas, comunidades, comentarios y las imágenes de WeeTalk. Por eso la
+   * limpieza de metadatos vive en este punto y no repartida por cada pantalla:
+   * una imagen que llegue por un camino nuevo queda protegida sin que nadie
+   * tenga que acordarse de nada.
+   *
+   * El video no se toca: no se re-codifica aquí ni cabría hacerlo sin estropearlo.
+   */
   if (Platform.OS === 'web') {
     const response = await fetch(uri);
     const blob = await response.blob();
-    formData.append('file', blob, `upload.${ext}`);
+    formData.append('file', resourceType === 'image' ? await blobSinMetadatos(blob) : blob, `upload.${ext}`);
   } else {
-    formData.append('file', { uri, type: mime, name: `upload.${ext}` } as any);
+    const limpio = resourceType === 'image' ? await uriSinMetadatos(uri) : uri;
+    formData.append('file', { uri: limpio, type: mime, name: `upload.${ext}` } as any);
   }
 
   formData.append('upload_preset', UPLOAD_PRESET);
@@ -117,12 +128,16 @@ export const uploadBlobToCloudinary = async (
   try {
     onProgress?.(5);
 
+    // La segunda puerta a lo público: por aquí entra lo que ya está en memoria
+    // (las imágenes de una publicación, las de un comentario). Misma limpieza.
+    const limpio = await blobSinMetadatos(blob);
+
     // Convert blob to base64 data URI (works reliably on both web and native)
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = reject;
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(limpio);
     });
 
     const formData = new FormData();

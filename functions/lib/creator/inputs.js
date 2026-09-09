@@ -97,7 +97,7 @@ function stepInputFor(job, step, previous) {
         base.prompt = built.prompt;
     }
     else if (capability.startsWith('image.') && !base.prompt) {
-        base.prompt = (0, prompts_1.buildImagePrompt)(job.experienceId, kind, brief, job.goal, step.purpose, previous);
+        base.prompt = (0, prompts_1.buildImagePrompt)(job.experienceId, kind, brief, job.goal, step.purpose, previous, base.focus ? String(base.focus) : undefined);
     }
     else if ((capability === 'video.generate' || capability === 'video.image_to_video' || capability === 'video.reference') && !base.prompt) {
         base.prompt = (0, prompts_1.buildVideoPrompt)(job.goal, brief, previous);

@@ -7,8 +7,14 @@ export async function downloadVideoWithWatermark(
   onProgress?: (progress: number) => void
 ): Promise<boolean> {
   try {
-    // Request permissions
-    const { status } = await MediaLibrary.requestPermissionsAsync();
+    /*
+     * Solo escritura: este flujo guarda un archivo en la galería y no lee nada de
+     * ella. `requestPermissionsAsync(true)` pide exactamente lo que
+     * `saveToLibraryAsync` comprueba —WRITE_EXTERNAL_STORAGE en Android 12 y
+     * anteriores, y nada en Android 13+—, en vez de pedir además el permiso de
+     * lectura de fotos, videos y audio que aquí no se usa para nada.
+     */
+    const { status } = await MediaLibrary.requestPermissionsAsync(true);
     if (status !== 'granted') {
       Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para guardar el video.');
       return false;

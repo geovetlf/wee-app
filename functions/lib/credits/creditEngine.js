@@ -1,19 +1,43 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.creditEngine = void 0;
+exports.creditEngine = exports.strip = void 0;
 exports.createCreditEngine = createCreditEngine;
 const firestore_1 = require("firebase-admin/firestore");
 const creditCosts_1 = require("./creditCosts");
 const creditValidation_1 = require("./creditValidation");
 const creditTransactions_1 = require("./creditTransactions");
 const CREDIT_FIELDS = ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent'];
-const strip = (value) => {
-    const out = {};
-    for (const [k, v] of Object.entries(value))
-        if (v !== undefined)
-            out[k] = v;
-    return out;
+/** Objeto plano: se puede recorrer sin romper nada que Firestore trate especial. */
+const isPlainObject = (value) => {
+    if (typeof value !== 'object' || value === null)
+        return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
 };
+/**
+ * Quita los `undefined` EN PROFUNDIDAD antes de escribir en Firestore, que los
+ * rechaza. Limpiar solo el primer nivel no bastaba: el presupuesto de un trabajo
+ * viaja anidado en `meta.steps[]`, así que una operación de una sola imagen metía
+ * `volumeDiscount: undefined` dentro del array y tumbaba la reserva entera antes
+ * de llamar a ningún proveedor.
+ *
+ * Solo se entra en objetos planos y arrays. Los Timestamp y los valores especiales
+ * de Firestore (increment, serverTimestamp) se devuelven intactos: recorrerlos los
+ * convertiría en objetos corrientes y perderían su significado.
+ */
+const strip = (value) => {
+    if (Array.isArray(value))
+        return value.map((item) => (0, exports.strip)(item));
+    if (isPlainObject(value)) {
+        const out = {};
+        for (const [k, v] of Object.entries(value))
+            if (v !== undefined)
+                out[k] = (0, exports.strip)(v);
+        return out;
+    }
+    return value;
+};
+exports.strip = strip;
 function createCreditEngine(deps) {
     var _a, _b;
     const { increment, now } = deps;
@@ -48,7 +72,7 @@ function createCreditEngine(deps) {
     const record = (tx, id, data) => {
         const at = now();
         const history = (data.statusHistory || [data.status]).map((status) => ({ status, at }));
-        tx.set(transactions().doc(id), strip(Object.assign(Object.assign({}, data), { id, statusHistory: history, createdAt: at, updatedAt: at })));
+        tx.set(transactions().doc(id), (0, exports.strip)(Object.assign(Object.assign({}, data), { id, statusHistory: history, createdAt: at, updatedAt: at })));
     };
     // ── Cuenta ─────────────────────────────────────────────────────────────
     /**
@@ -188,7 +212,7 @@ function createCreditEngine(deps) {
                 statusHistory: ['PENDING', 'AUTHORIZED'],
                 requestId,
                 authorizedAmount: amount,
-                meta: input.meta,
+                meta: (0, exports.strip)(input.meta),
             });
             tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: current.lifetimeSpent + amount, updatedAt: now() });
             writeStats(tx, { totalSpent: amount, circulating: -amount, byService: { [service]: { spent: amount, count: 1 } }, transactions: { usage: 1 } });
@@ -218,8 +242,8 @@ function createCreditEngine(deps) {
             const account = await findAccount(tx, userId);
             const current = balanceOf(account);
             const history = [...(data.statusHistory || []), { status: 'COMPLETED', at: now() }];
-            const meta = input.meta ? Object.assign(Object.assign({}, (data.meta || {})), strip(input.meta)) : data.meta;
-            tx.update(usage.ref, strip({ status: 'COMPLETED', finalAmount: final, statusHistory: history, completedAt: now(), updatedAt: now(), meta }));
+            const meta = input.meta ? Object.assign(Object.assign({}, (data.meta || {})), (0, exports.strip)(input.meta)) : data.meta;
+            tx.update(usage.ref, (0, exports.strip)({ status: 'COMPLETED', finalAmount: final, statusHistory: history, completedAt: now(), updatedAt: now(), meta }));
             let balanceAfter = current.balance;
             if (diff > 0) {
                 balanceAfter = current.balance + diff;
@@ -328,7 +352,7 @@ function createCreditEngine(deps) {
                 purchaseId: input.purchaseId,
                 status: 'COMPLETED',
                 requestId,
-                meta: strip(Object.assign(Object.assign({}, (input.meta || {})), { priceUsd: input.priceUsd })),
+                meta: (0, exports.strip)(Object.assign(Object.assign({}, (input.meta || {})), { priceUsd: input.priceUsd })),
             });
             tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeEarned: current.lifetimeEarned + amount, updatedAt: now() });
             writeStats(tx, {

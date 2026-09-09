@@ -11,9 +11,11 @@ import { priceOperation } from '../credits/aiPricing';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
 import { usageTransactionId } from '../credits/creditTransactions';
+import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
 import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS } from './prompts';
+import { AI_SECRETS } from '../secrets';
 
 /**
  * Weë Brain — el asistente general de Weë (docs/CREATOR.md §4).
@@ -132,7 +134,7 @@ async function priceBrainMessage(input: Record<string, unknown>, webSearch: bool
  * Cuánto costaría el siguiente mensaje, antes de enviarlo. La app lo llama para
  * enseñar el precio junto al botón de enviar; no cobra ni escribe nada.
  */
-export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: AI_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -167,7 +169,7 @@ export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, me
   }
 });
 
-export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB' }, async (request) => {
+export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB', secrets: AI_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -250,11 +252,19 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         { merge: true }
       );
       await creditEngine.completeCredits({ userId: uid, requestId, meta: { chatId: chatRef.id, generationId: run.generationId } });
+      // El desenlace ya se conoce: se liquida el libro con lo capturado.
+      await firestoreLedger
+        .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: spend.amount })
+        .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
       return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: run.demo, duplicate: false };
     } catch (error) {
       await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · no pudo responder', source: 'weë-brain' }).catch((refundError) => {
         console.error('Weë Brain: no se pudo reembolsar', requestId, refundError);
       });
+      // Reembolsado: ninguna fila puede quedar diciendo que cobró.
+      await firestoreLedger
+        .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+        .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
       throw error;
     }
   } catch (error) {

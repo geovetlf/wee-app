@@ -54,22 +54,22 @@ const routing = (capability, links, policy) => ({ capability, chain: links, poli
 exports.DEFAULT_ROUTING = {
     'text.generate': routing('text.generate', chain('gemini', 'claude', 'openai'), 'balanced'),
     'text.structure': routing('text.structure', chain('gemini', 'claude', 'openai'), 'cost-first'),
-    'text.search': routing('text.search', chain('gemini'), 'balanced'),
+    'text.search': routing('text.search', [{ provider: 'gemini', model: gemini_1.TEXT_MODEL_MULTI }], 'cost-first'),
     'script.write': routing('script.write', chain('gemini', 'claude', 'openai'), 'quality-first'),
     'scene.split': routing('scene.split', chain('gemini', 'claude', 'openai'), 'balanced'),
     'subtitle.generate': routing('subtitle.generate', chain('gemini', 'openai', 'claude'), 'cost-first'),
     'vision.describe': routing('vision.describe', chain('gemini'), 'balanced'),
     // Leer un PDF y transcribir audio: Gemini los entiende de forma nativa, sin convertirlos antes
-    'doc.read': routing('doc.read', chain('gemini', 'claude'), 'balanced'),
-    'audio.transcribe': routing('audio.transcribe', chain('gemini'), 'cost-first'),
+    'doc.read': routing('doc.read', [{ provider: 'gemini', model: gemini_1.TEXT_MODEL_MULTI }, { provider: 'claude' }], 'cost-first'),
+    'audio.transcribe': routing('audio.transcribe', [{ provider: 'gemini', model: gemini_1.TEXT_MODEL_MULTI }], 'cost-first'),
     'image.generate': routing('image.generate', chain('gemini', 'flux', 'seedream'), 'balanced'),
     'image.reference': routing('image.reference', chain('gemini', 'flux', 'seedream'), 'quality-first'),
     'image.edit': routing('image.edit', chain('gemini', 'flux', 'seedream'), 'balanced'),
-    'image.background_remove': routing('image.background_remove', chain('gemini', 'flux'), 'balanced'),
-    'image.object_remove': routing('image.object_remove', chain('gemini', 'flux'), 'balanced'),
+    'image.background_remove': routing('image.background_remove', chain('gemini', 'flux', 'seedream'), 'balanced'),
+    'image.object_remove': routing('image.object_remove', chain('gemini', 'flux', 'seedream'), 'balanced'),
     // Conservar el rostro es lo que decide esta capacidad: Nano Banana Pro fijado.
     'image.identity_edit': routing('image.identity_edit', [{ provider: 'gemini', model: gemini_1.IMAGE_MODEL_PRO }, { provider: 'flux' }], 'quality-first'),
-    'image.space_restyle': routing('image.space_restyle', chain('gemini', 'flux'), 'balanced'),
+    'image.space_restyle': routing('image.space_restyle', chain('gemini', 'flux', 'seedream'), 'balanced'),
     // Probarse ropa: modelo dedicado de BFL, con Nano Banana Pro como respaldo
     'image.try_on': routing('image.try_on', [{ provider: 'flux', model: 'flux-tools/vto-v2' }, { provider: 'gemini', model: gemini_1.IMAGE_MODEL_PRO }], 'quality-first'),
     'image.upscale': routing('image.upscale', chain('gemini'), 'balanced'),

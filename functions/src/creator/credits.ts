@@ -7,6 +7,9 @@ import { engine } from '../engine';
 import { chooseSeedanceModel, videoRequestFromStep } from '../engine/video';
 import { priceImage, priceOperation, priceVideo } from '../credits/aiPricing';
 import { providerReady } from '../engine/image';
+import { firestoreLedger } from '../engine/ledger';
+import { usageTransactionId } from '../credits/creditTransactions';
+import { isEditCapability } from '../engine/imageModels';
 
 /**
  * Credits de Weë Creator: reservar al empezar, ajustar al terminar.
@@ -19,7 +22,19 @@ import { providerReady } from '../engine/image';
  * valores de prueba mientras no se conozca el coste real de cada API. Modo
  * "real" pide la estimación al AI Router (mejor candidato disponible).
  */
-export const pricingMode = (): 'simulated' | 'real' => (process.env.CREATOR_PRICING_MODE === 'real' ? 'real' : 'simulated');
+/**
+ * MODO DE PRECIO EFECTIVO — una sola fuente de verdad.
+ *
+ * Sale de la configuración del engine, que es la que ya usa la fórmula de precio
+ * (`creditsOf` en aiPricing). Antes esto leía la variable de entorno por su cuenta:
+ * un administrador podía poner `real` en aiSettings/global y quedaba el sistema a
+ * medias —precio calculado sobre el coste, pero cotización y cobro razonando como
+ * si siguiera en simulado—. Ahora las tres cosas leen lo mismo.
+ *
+ * La variable de entorno no desaparece: sigue siendo el valor por defecto en
+ * DEFAULT_SETTINGS cuando no hay nada guardado en Firestore.
+ */
+export const pricingMode = async (): Promise<'simulated' | 'real'> => (await engine.settings()).pricingMode;
 
 /** Nivel de calidad que la persona puede elegir antes de crear. */
 export type QualityChoice = 'standard' | 'high' | 'max';
@@ -52,7 +67,13 @@ export interface PlanEstimate {
  * Presupuesto del plan. Con `quality` se recalcula como si la persona hubiera
  * elegido ese nivel, para poder enseñarle las opciones antes de crear.
  */
-export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: QualityChoice): Promise<PlanEstimate> {
+/** Tamaño real de la foto que se va a editar, cuando Weë ya lo conoce. */
+export interface InputImageSize {
+  width: number;
+  height: number;
+}
+
+export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: QualityChoice, inputSize?: InputImageSize): Promise<PlanEstimate> {
   await loadCostOverrides();
   const steps: PlanEstimate['steps'] = [];
   for (const step of plan.steps) {
@@ -95,6 +116,11 @@ export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: Q
       // Mismo modelo que usará el Weë Image Engine: el más barato que sirve.
       // Tres propuestas cuestan tres veces una y la resolución cambia el precio.
       const settings = await engine.settings();
+      const referencias = Array.isArray(input.referenceImages)
+        ? input.referenceImages.length
+        : input.imageUrl || isEditCapability(step.capability)
+          ? 1
+          : 0;
       const price = priceImage(
         {
           capability: step.capability,
@@ -102,7 +128,21 @@ export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: Q
           quality: input.quality as string | undefined,
           resolution: input.resolution as string | undefined,
           kind: input.kind as string | undefined,
-          references: Array.isArray(input.referenceImages) ? input.referenceImages.length : input.imageUrl ? 1 : 0,
+          /*
+           * Al cotizar, el paso del plan todavía no lleva la foto: esa se le añade
+           * al ejecutar, desde el trabajo. Pero una edición SIEMPRE lleva al menos
+           * una imagen de entrada por definición, y quien cobra por megapíxel la
+           * factura. Contarla aquí es lo que evita cotizar por debajo del coste.
+           */
+          references: referencias,
+          // Solo cuando la operación lleva de verdad una imagen de entrada: una
+          // creación desde cero no tiene referencia y no debe pagar por ella.
+          // El tamaño real solo le importa a quien cobra por megapíxel; los demás
+          // modelos lo ignoran y siguen cobrando por imagen.
+          referenceSizes: inputSize && referencias > 0 ? [inputSize] : undefined,
+          // Al crear desde cero la proporción la pide la operación; al editar se
+          // ignora, porque manda la de la foto.
+          aspectRatio: input.aspectRatio as string | undefined,
           available: providerReady,
         },
         settings,
@@ -114,21 +154,23 @@ export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: Q
         credits: price.credits,
         label: String(price.detail.label ?? '') || undefined,
         resolution: String(price.detail.imageSize ?? '') || undefined,
-        count: Number(price.detail.count) || undefined,
-        volumeDiscount: Number(price.detail.volumeDiscount) || undefined,
+        // Un valor de cero es un dato, no una ausencia: "sin descuento" es 0 y
+        // "una imagen" es 1. Convertirlos en undefined rompía la reserva.
+        count: Number(price.detail.count) || 1,
+        volumeDiscount: Number(price.detail.volumeDiscount) || 0,
       });
       continue;
     }
 
     // Resto de capacidades con coste de proveedor: mismo suelo que imagen y video
-    if (pricingMode() !== 'real') {
-      const settings = await engine.settings();
+    const settings = await engine.settings();
+    if (settings.pricingMode !== 'real') {
       const price = priceOperation(step.capability, input, service, settings);
       steps.push({ stepId: step.id, capability: step.capability, service, credits: price.credits });
       continue;
     }
 
-    if (pricingMode() === 'real') {
+    if (settings.pricingMode === 'real') {
       const decision = await engine.route({
         capability: step.capability,
         input,
@@ -201,11 +243,22 @@ export async function holdCredits(userId: string, jobId: string, plan: Plan, amo
 export async function settleCredits(userId: string, jobId: string, held: number, used: number, description: string): Promise<void> {
   if (held <= 0) return;
   try {
+    /*
+     * Aquí se conoce el desenlace, así que aquí se liquida el libro. Es el único
+     * punto que puede afirmar cuánto se cobró de verdad: un trabajo que ejecutó
+     * pasos con éxito y falló al final se reembolsa entero, y ninguna de sus
+     * filas debe quedar diciendo que cobró algo.
+     */
+    let capturado = 0;
     if (used > 0) {
-      await creditEngine.completeCredits({ userId, requestId: jobId, finalAmount: Math.min(held, used) });
+      capturado = Math.min(held, used);
+      await creditEngine.completeCredits({ userId, requestId: jobId, finalAmount: capturado });
     } else {
       await creditEngine.refundCredits({ userId, requestId: jobId, reason: `${description} · no se pudo terminar`, source: 'weë-creator' });
     }
+    await firestoreLedger
+      .settle({ creditTransactionId: usageTransactionId(jobId), finalAmount: capturado })
+      .catch((error) => console.error(`Libro: no se pudo liquidar el trabajo ${jobId}:`, error));
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     console.error(`Credit Engine: no se pudo ajustar el trabajo ${jobId}:`, error);

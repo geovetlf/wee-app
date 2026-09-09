@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef , useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { postsService } from '../services/firestoreService';
 import { uploadPostImage } from '../services/storageService';
+import { PlaceOption, PostPlace, buscarLugares, cargarMundo, etiquetaDeLugar, lugarDelCatalogo, lugarPropio } from '../data/places';
 import { uploadVideoToCloudinary } from '../services/cloudinaryService';
 import { performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -61,6 +62,12 @@ const CreateScreen: React.FC = () => {
   const { triggerScrollToTop, triggerRefresh } = useScroll();
   const routeParams = (route.params as any) || {};
   const presetCommunitySlug = routeParams.communitySlug || null;
+  /*
+   * De dónde viene quien está publicando. Lo pone el flujo que le trajo hasta
+   * aquí —el muro de una sección, el resultado de Weë Creator—, no se adivina de
+   * lo que escriba. Publicar desde el Wall no trae ninguna: es lo normal.
+   */
+  const sourceSection: string | null = routeParams.sourceSection || null;
   // Tipo elegido en la hoja Crear (post | weel | image | video | text | question)
   const presetKind: string | null = routeParams.kind || null;
   const composerPlaceholder =
@@ -72,7 +79,20 @@ const CreateScreen: React.FC = () => {
     '¿Qué está pasando?';
 
   const [postText, setPostText] = useState<string>(routeParams.prefill?.content || '');
-  const [attachedMedia, setAttachedMedia] = useState<MediaItem[]>([]);
+  /*
+   * Quien llega desde un resultado de Weë Creator trae su imagen puesta: no tiene
+   * que volver a buscarla ni subirla. A partir de aquí es una imagen más —se
+   * descarga, se sube y se guarda igual que una de la galería—, así que publicar
+   * a mano no cambia en nada: sin `prefill.media`, esto arranca vacío como siempre.
+   */
+  const [attachedMedia, setAttachedMedia] = useState<MediaItem[]>(() =>
+    (routeParams.prefill?.media || []).map((item: { type?: string; uri: string; aspectRatio?: number }, index: number) => ({
+      type: item.type === 'video' ? ('video' as const) : ('image' as const),
+      uri: item.uri,
+      id: `wee-${index}-${item.uri.slice(-24)}`,
+      aspectRatio: item.aspectRatio,
+    }))
+  );
   const [isPublishing, setIsPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [poll, setPoll] = useState<Poll | null>(null);
@@ -82,6 +102,47 @@ const CreateScreen: React.FC = () => {
   const [aiToolsText, setAiToolsText] = useState<string>((routeParams.prefill?.aiTools || []).join(', '));
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiProcess, setAiProcess] = useState<string>(routeParams.prefill?.aiProcess || '');
+
+  /*
+   * El lugar del que habla la publicación. Empieza vacío SIEMPRE, y lo escribe
+   * quien publica: alguien en Lima puede estar publicando una foto de París, y
+   * dar por hecho que el sitio donde está su teléfono es el sitio del que habla
+   * la foto sería equivocarse en voz alta y en público.
+   *
+   * Por eso aquí no se consulta la ubicación del aparato ni al abrir la pantalla
+   * ni al escribir: publicar sin lugar es lo normal y no cuesta nada.
+   */
+  /*
+   * Dos cosas distintas: lo que se está escribiendo en el buscador y el lugar que
+   * ha quedado elegido. Separarlas es lo que permite que escribir "Perú" ofrezca
+   * el país del catálogo —con su código estable— y que escribir "la playa de mi
+   * pueblo" se quede tal cual, sin que Weë pretenda saber dónde está.
+   */
+  const [placeQuery, setPlaceQuery] = useState<string>('');
+  const [place, setPlace] = useState<PostPlace | undefined>(undefined);
+  const [showPlace, setShowPlace] = useState(false);
+  /*
+   * El catálogo mundial son casi ochenta mil lugares, y quien abre el compositor
+   * para escribir dos líneas no tiene por qué pagarlos. Se pide la primera vez
+   * que alguien despliega "Lugar", nunca al abrir la pantalla. Mientras llega, la
+   * búsqueda funciona con los lugares escritos a mano.
+   */
+  const [mundoCargado, setMundoCargado] = useState(false);
+  useEffect(() => {
+    if (!showPlace || mundoCargado) return;
+    let vivo = true;
+    cargarMundo().finally(() => {
+      if (vivo) setMundoCargado(true);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [showPlace, mundoCargado]);
+  // La búsqueda es local: recorre la lista de países que Weë ya tenía y no sale
+  // del dispositivo. Ni proveedores de lugares, ni autocompletado remoto.
+  // `mundoCargado` entra en las dependencias a propósito: cuando el catálogo
+  // termina de llegar, lo que ya estaba escrito se vuelve a buscar con él.
+  const placeOptions = useMemo(() => (place ? [] : buscarLugares(placeQuery)), [placeQuery, place, mundoCargado]);
 
   const [faceSwapLoading, setFaceSwapLoading] = useState(false);
 
@@ -511,6 +572,12 @@ ${message}`);
         ...(videoUrl ? { videoUrl } : {}),
         ...(videoUrl && isWeel ? { isWeel: true } : {}),
         ...(aiToolsList.length > 0 ? { aiTools: aiToolsList } : {}),
+        // El contexto y el lugar: cada uno por su lado, y solo si existen.
+        ...(sourceSection ? { sourceSection } : {}),
+        // Solo el lugar estructurado: las publicaciones nuevas no escriben
+        // `placeLabel`, que es el campo de las anteriores. Así los dos nunca
+        // conviven y no pueden contradecirse.
+        ...(place ? { place } : {}),
         ...(aiPrompt.trim() ? { aiPrompt: aiPrompt.trim() } : {}),
         ...(aiProcess.trim() ? { aiProcess: aiProcess.trim() } : {}),
         likes: 0,
@@ -643,6 +710,108 @@ ${message}`);
             maxLength={600}
             textAlignVertical="top"
           />
+        </View>
+      )}
+    </View>
+  );
+
+  /*
+   * El lugar: opcional, plegado y en blanco.
+   *
+   * No hay sugerencia del aparato a propósito. Weë sabe traducir una lectura del
+   * GPS a una zona de unos once kilómetros, pero no sabe ponerle nombre —eso
+   * necesitaría geocodificación, que Weë todavía no usa—, y una etiqueta que
+   * dijera "zona aproximada" no le sirve de nada a quien lee la publicación. Así
+   * que en esta fase el lugar lo escribe la persona, con sus palabras.
+   */
+  const renderPlace = () => (
+    <View style={[styles.howBox, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
+      <TouchableOpacity style={styles.howHeader} onPress={() => setShowPlace((v) => !v)} activeOpacity={0.7} accessibilityLabel="Añadir un lugar">
+        <Text style={styles.howEmoji}>📍</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.howTitle, { color: theme.colors.text }]}>Lugar</Text>
+          <Text style={[styles.howHint, { color: theme.colors.textSecondary }]}>
+            {place ? etiquetaDeLugar({ place }) : 'De qué lugar habla esta publicación (opcional)'}
+          </Text>
+        </View>
+        <Ionicons name={showPlace ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
+      </TouchableOpacity>
+      {showPlace && (
+        <View style={styles.howBody}>
+          {place ? (
+            /* Ya hay lugar: se enseña y se puede quitar. Nada más que decidir. */
+            <View style={styles.placeChosen}>
+              <Text style={[styles.placeChosenText, { color: theme.colors.text }]} numberOfLines={1}>
+                📍 {etiquetaDeLugar({ place })}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setPlace(undefined);
+                  setPlaceQuery('');
+                }}
+                activeOpacity={0.7}
+                accessibilityLabel="Quitar el lugar"
+              >
+                <Text style={[styles.howHint, { color: theme.colors.accentDark }]}>Quitar el lugar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <TextInput
+                style={[styles.howInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                placeholder="Busca una ciudad o un país, o escríbelo tú"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={placeQuery}
+                onChangeText={setPlaceQuery}
+                maxLength={60}
+                accessibilityLabel="Lugar de la publicación"
+              />
+
+              {/* Lo que el catálogo reconoce. Elegir uno le da identidad al lugar. */}
+              {placeOptions.map((opcion: PlaceOption) => (
+                <TouchableOpacity
+                  key={opcion.id}
+                  style={styles.placeOption}
+                  onPress={() => setPlace(lugarDelCatalogo(opcion))}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Elegir ${opcion.label}`}
+                >
+                  <Text style={styles.placeFlag}>{opcion.flag}</Text>
+                  <Text style={[styles.placeOptionText, { color: theme.colors.text }]} numberOfLines={1}>
+                    {opcion.label}
+                    {/*
+                      El país detrás del nombre. No es decoración: hay dos Valencias
+                      y dos Córdobas en el catálogo, y quien elige tiene derecho a
+                      saber cuál está eligiendo antes de pulsar.
+                    */}
+                    {opcion.sublabel ? (
+                      <Text style={[styles.placeOptionCountry, { color: theme.colors.textSecondary }]}>
+                        {'  '}
+                        {opcion.sublabel}
+                      </Text>
+                    ) : null}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {/* Y si el catálogo no lo tiene, valen las palabras de la persona. */}
+              {placeQuery.trim().length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setPlace(lugarPropio(placeQuery))}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Usar lo que he escrito como lugar"
+                >
+                  <Text style={[styles.howHint, { color: theme.colors.accentDark }]}>
+                    Usar «{placeQuery.trim()}» tal y como lo he escrito
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+
+          <Text style={[styles.howHint, { color: theme.colors.textSecondary }]}>
+            El lugar se verá en tu publicación. No pongas una dirección privada. Weë no añade tu ubicación.
+          </Text>
         </View>
       )}
     </View>
@@ -1031,6 +1200,7 @@ ${message}`);
               {renderMediaPreview()}
               {renderPoll()}
               {renderHowIMadeIt()}
+              {renderPlace()}
             </View>
           </View>
         </ScrollView>
@@ -1124,6 +1294,33 @@ const styles = StyleSheet.create({
   },
   howEmoji: {
     fontSize: scale(18),
+  },
+  placeChosen: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  placeChosenText: {
+    flex: 1,
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  placeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  placeFlag: {
+    fontSize: FONT_SIZE.lg,
+  },
+  placeOptionText: {
+    flex: 1,
+    fontSize: FONT_SIZE.md,
+  },
+  placeOptionCountry: {
+    fontSize: FONT_SIZE.sm,
   },
   howTitle: {
     fontSize: FONT_SIZE.base,

@@ -8,7 +8,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useBrainChat } from '../hooks/useBrainChat';
 import { getSpecialist, SpecialistAction } from '../constants/specialists';
-import { getExperienceById, WeeExperience } from '../constants/weeExperiences';
+import { experienceLabel, getExperienceById, WeeExperience } from '../constants/weeExperiences';
 import { BrainMessage } from '../services/brainService';
 import CreatorShell from '../components/creator/CreatorShell';
 import SpecialistHero from '../components/creator/SpecialistHero';
@@ -187,11 +187,16 @@ const BrainChatScreen: React.FC = () => {
               <Text style={styles.avatarText}>W</Text>
             </View>
             <View style={[styles.bubble, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent, borderWidth: 1 }]}>
+              {/*
+                Weë deriva por identificador —el servidor sigue mandando `home`—
+                pero ofrece el nombre con el que esa experiencia se presenta hoy:
+                "Hogar & Diseño", no "Weë Home" (fase 2E-56).
+              */}
               <Text style={[styles.bubbleText, { color: theme.colors.text }]}>
-                Para esto te puede ayudar mejor {suggestion.emoji} {suggestion.name}. Te llevo con lo que ya me contaste, o seguimos aquí.
+                Para esto te puede ayudar mejor {suggestion.emoji} {experienceLabel(suggestion)}. Te llevo con lo que ya me contaste, o seguimos aquí.
               </Text>
               <View style={styles.chipRow}>
-                <Chip label={`Ir a ${suggestion.name}`} icon="arrow-forward-outline" active onPress={() => goToSpecialist(suggestion)} />
+                <Chip label={`Ir a ${experienceLabel(suggestion)}`} icon="arrow-forward-outline" active onPress={() => goToSpecialist(suggestion)} />
                 <Chip label="Seguir aquí" onPress={() => setSuggestionDismissed(lastWee?.key || null)} />
               </View>
             </View>

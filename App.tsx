@@ -36,6 +36,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
 import { ScrollProvider } from './contexts/ScrollContext';
 import { PushNotificationProvider } from './contexts/PushNotificationContext';
+import { LocationProvider } from './contexts/LocationContext';
 import { TabBarProvider } from './contexts/TabBarContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -178,7 +179,15 @@ export default function App() {
                 <TabBarProvider>
                   <NavigationContainer linking={linking} theme={CustomDarkTheme}>
                     <PushNotificationProvider>
-                      <MainStackNavigator />
+                      {/*
+                        La ubicación va por dentro de la navegación, como las
+                        notificaciones: al arrancar no pide nada: lee la
+                        preferencia guardada —apagada mientras nadie la
+                        encienda— y se queda quieta.
+                      */}
+                      <LocationProvider>
+                        <MainStackNavigator />
+                      </LocationProvider>
                     </PushNotificationProvider>
                   </NavigationContainer>
                 </TabBarProvider>

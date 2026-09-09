@@ -20,6 +20,7 @@ import ResponsiveLayout from '../components/ResponsiveLayout';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import { confirmAction, notify } from '../utils/notify';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocation } from '../contexts/LocationContext';
 import { ENGINE_ADMIN_FLAG } from './EngineAdminScreen';
 
 type SettingsNavigationProp = StackNavigationProp<ProfileStackParamList, 'Settings'>;
@@ -32,6 +33,13 @@ const SettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
   const [allowPrivateReplies, setAllowPrivateReplies] = useState(true);
+  /*
+   * La ubicación se lee del contexto, no de un useState local como los demás
+   * interruptores de esta pantalla: aquí lo que se enciende no es una opción de
+   * la pantalla, es una capacidad del aparato que el resto de Weë va a consultar.
+   */
+  const ubicacion = useLocation();
+  const [pidiendoUbicacion, setPidiendoUbicacion] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   // Panel del WEË AI ENGINE: visible en desarrollo o para quien ya entró como administración
   const [engineAdmin, setEngineAdmin] = useState<boolean>(__DEV__);
@@ -48,7 +56,12 @@ const SettingsScreen: React.FC = () => {
   const handleAbout = () => {
     notify(
       'Acerca de Weë',
-      'Weë (World Encode Entity) es la red social de las personas que crean con Inteligencia Artificial.\n\nVersión 1.0.0 · © ' + new Date().getFullYear() + ' Weë. Todos los derechos reservados.'
+      'Weë (World Encode Entity) es la red social de las personas que crean con Inteligencia Artificial.\n\nVersión 1.0.0 · © ' +
+        new Date().getFullYear() +
+        ' Weë. Todos los derechos reservados.' +
+        // La licencia de los datos de lugares obliga a acreditar a GeoNames.
+        // Va aquí, una sola vez: no en cada publicación ni en cada búsqueda.
+        '\n\nDatos geográficos: GeoNames (geonames.org), CC BY 4.0.'
     );
   };
 
@@ -80,6 +93,40 @@ const SettingsScreen: React.FC = () => {
       await logout();
     } catch (error) {
       notify('No pudimos cerrar la sesión', 'Inténtalo de nuevo.');
+    }
+  };
+
+  /*
+   * Un solo interruptor, y debajo lo que de verdad está pasando. Encender la
+   * ubicación en Weë no es lo mismo que concedérsela al sistema: si el sistema
+   * dice que no, el interruptor sigue encendido —eso es lo que la persona quiso—
+   * y el texto explica dónde está el bloqueo, en vez de apagarse solo y dejarla
+   * pulsando sin entender nada.
+   */
+  const estadoUbicacion: Record<string, string> = {
+    unavailable: 'Este dispositivo no puede darnos tu ubicación.',
+    disabled: 'La ubicación está apagada en los ajustes de tu dispositivo.',
+    permissionDenied: 'Le dijiste que no al sistema. Puedes cambiarlo desde los ajustes de tu dispositivo.',
+    permissionNotDetermined: 'Weë te pedirá permiso cuando lo necesite.',
+    approximate: 'Weë sabe tu zona, no el punto exacto.',
+    precise: 'Weë puede usar tu ubicación con detalle cuando una función lo necesite.',
+  };
+
+  const textoUbicacion =
+    ubicacion.preferencia === 'off'
+      ? 'Desactivada. Permite que Weë use tu ubicación aproximada para mostrarte contenido y experiencias cerca de ti. Tu ubicación exacta nunca se muestra públicamente.'
+      : `${estadoUbicacion[ubicacion.estado] || ''} Tu ubicación exacta nunca se muestra públicamente.`;
+
+  const cambiarUbicacion = async (encender: boolean) => {
+    setPidiendoUbicacion(true);
+    try {
+      // Encender siempre empieza por la zona. El detalle no se activa desde una
+      // pantalla de ajustes: lo pedirá, si algún día hace falta, la función que
+      // de verdad lo necesite y en el momento en que lo necesite.
+      if (encender) await ubicacion.activar('aproximada');
+      else await ubicacion.desactivar();
+    } finally {
+      setPidiendoUbicacion(false);
     }
   };
 
@@ -188,6 +235,21 @@ const SettingsScreen: React.FC = () => {
               false
             )}
             
+            {renderSettingItem(
+              'location',
+              '📍 Ubicación',
+              textoUbicacion,
+              undefined,
+              <Switch
+                value={ubicacion.preferencia !== 'off'}
+                onValueChange={cambiarUbicacion}
+                disabled={ubicacion.cargando || pidiendoUbicacion}
+                trackColor={{ false: theme.colors.border, true: theme.colors.accent + '40' }}
+                thumbColor={ubicacion.preferencia !== 'off' ? theme.colors.accent : theme.colors.textSecondary}
+              />,
+              false
+            )}
+
             {renderSettingItem(
               'shield-checkmark',
               'Política de privacidad',

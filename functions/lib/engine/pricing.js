@@ -8,6 +8,7 @@ const types_1 = require("./types");
 const creditCosts_1 = require("../credits/creditCosts");
 const aiPricing_1 = require("../credits/aiPricing");
 Object.defineProperty(exports, "usdToCredits", { enumerable: true, get: function () { return aiPricing_1.usdToCredits; } });
+const image_1 = require("./image");
 /**
  * De coste a Credits.
  * - Modo "simulated" (mientras se construye Weë Creator): el catálogo del
@@ -70,6 +71,18 @@ function creditsFor(capability, usd, settings, demo, input = {}) {
             quality: input.quality,
             resolution: input.resolution,
             kind: input.kind,
+            references: Array.isArray(input.referenceImages) ? input.referenceImages.length : input.imageUrl ? 1 : 0,
+            // Si la resolución la puso el Weë Image Engine, es un mínimo técnico del
+            // modelo y no un pedido de más calidad: no puede cambiar el nivel comercial.
+            resolutionFromEngine: input.resolutionFromEngine === true,
+            // La proporción, para que la política decida las mismas dimensiones que
+            // se calcularon al cotizar.
+            aspectRatio: typeof input.aspectRatio === 'string' ? input.aspectRatio : undefined,
+            // El precio y el suelo se calculan con el modelo que Weë PUEDE ejecutar ahora
+            // mismo. Cotizar un proveedor sin clave dejaría el suelo por debajo del coste
+            // real del que sí va a atender la operación. La escalera sigue siendo dinámica:
+            // el día que ese proveedor tenga clave, vuelve a ganar solo.
+            available: image_1.providerReady,
         }, settings).credits;
     }
     const service = (0, creditCosts_1.serviceForCapability)(capability, input);

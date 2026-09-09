@@ -110,7 +110,7 @@
         {
           "photosPermission": "Weë necesita acceso a tu galería para guardar videos.",
           "savePhotosPermission": "Weë necesita permiso para guardar videos en tu galería.",
-          "isAccessMediaLocationEnabled": true
+          "isAccessMediaLocationEnabled": false
         }
       ],
       [
@@ -136,7 +136,18 @@
           "iosUrlScheme": "com.googleusercontent.apps.600935858829-f92ar5236mquqjdnpumddlpkp87qqfdm"
         }
       ],
-      "react-native-compressor"
+      "react-native-compressor",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Weë usa tu ubicación aproximada solo mientras la tienes abierta, para ayudarte a descubrir contenido y comunidades cercanas. Tu ubicación exacta no se muestra públicamente.",
+          "locationAlwaysPermission": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ]
     ],
     "owner": "giacomogonzales20",
     "updates": {

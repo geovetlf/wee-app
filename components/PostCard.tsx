@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,9 @@ import { Image } from 'expo-image';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import HowIMadeIt from './HowIMadeIt';
+import WeeTag from './WeeTag';
+import { seccionDe } from '../utils/sectionFeed';
+import { banderaDe, etiquetaDeLugar } from '../data/places';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import ShareablePostCard from './ShareablePostCard';
@@ -61,6 +64,14 @@ interface PostCardProps {
   onPress?: (post: Post) => void;
   onVideoPress?: (post: Post, positionMillis?: number) => void;
   isVisible?: boolean;
+  /**
+   * Ancho de la columna que aloja la tarjeta, sin escalar (700 = el feed de
+   * siempre). Solo lo necesita quien pinta el feed en una columna más ancha —hoy
+   * el muro de una sección—: de él salen el alto de una foto suelta y el ancho de
+   * cada diapositiva del carrusel. Sin este dato la tarjeta se comporta
+   * exactamente como hasta ahora en el Home, el perfil, la comunidad y Guardados.
+   */
+  maxWidth?: number;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -69,8 +80,8 @@ const CARD_MAX_WIDTH = 700; // Ancho máximo del feed en desktop
 const MIN_IMAGE_HEIGHT = scale(200);
 const MAX_IMAGE_HEIGHT = scale(500);
 
-const getCarouselWidth = () => {
-  const availableWidth = Math.min(screenWidth, scale(CARD_MAX_WIDTH));
+const getCarouselWidth = (maxWidth: number = CARD_MAX_WIDTH) => {
+  const availableWidth = Math.min(screenWidth, scale(maxWidth));
   return availableWidth - (CARD_HORIZONTAL_PADDING * 2);
 };
 
@@ -87,6 +98,7 @@ const PostCard: React.FC<PostCardProps> = ({
   onPress,
   onVideoPress,
   isVisible = true,
+  maxWidth,
 }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -127,6 +139,25 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Hook para obtener info de la comunidad
   const { community } = useCommunityById(post.communityId);
+
+  /*
+   * De qué sección de Weë viene la publicación, si lo dice.
+   *
+   * Weë no guarda la sección dentro del post: se lee de lo que la publicación ya
+   * trae —la herramienta que quedó apuntada al publicar desde una sección— y solo
+   * cuando es explícito. Una publicación de Weë Studio sigue estando en el muro
+   * general como todas; esto solo cuenta de dónde salió.
+   */
+  const seccion = useMemo(() => seccionDe(post), [post]);
+
+  /*
+   * El lugar del que habla la publicación. El estructurado manda y el texto de
+   * las publicaciones antiguas sigue valiendo: nadie migra nada y nadie pierde su
+   * etiqueta. La bandera solo aparece cuando el lugar viene del catálogo, porque
+   * es lo único de lo que Weë tiene certeza.
+   */
+  const lugar = useMemo(() => etiquetaDeLugar(post), [post]);
+  const bandera = useMemo(() => banderaDe(post.place), [post.place]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(() => {
@@ -186,7 +217,24 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [isVisible, isFocused]);
   const scrollViewRef = useRef<ScrollView>(null);
   const shareCardRef = useRef<ViewShot>(null);
-  const carouselWidth = getCarouselWidth();
+  const carouselWidth = getCarouselWidth(maxWidth);
+  /*
+   * Qué tamaño de foto se le pide a Cloudinary. Los 800 de siempre siguen siendo
+   * el suelo, así que en el feed del Home, el perfil, la comunidad y Guardados se
+   * pide exactamente lo mismo que antes; solo una columna más ancha que eso —el
+   * muro de una sección— pide una foto a su medida en vez de estirar una pequeña.
+   */
+  const feedImageWidth = Math.max(800, Math.round(carouselWidth));
+  /*
+   * Hasta dónde puede crecer una foto de alto. El tope de siempre está pensado
+   * para el ancho del feed de siempre: en una columna más ancha una foto apaisada
+   * se ve más grande pero se recorta más, porque el alto no acompañaba. Aquí el
+   * tope crece en la misma proporción que la columna, y solo cuando la columna es
+   * de verdad más ancha: quien no pasa `maxWidth` conserva el tope exacto de antes.
+   */
+  const maxImageHeight = maxWidth
+    ? MAX_IMAGE_HEIGHT * Math.max(1, carouselWidth / getCarouselWidth())
+    : MAX_IMAGE_HEIGHT;
 
   // Animaciones para el menú
   const menuOpacity = useRef(new Animated.Value(0)).current;
@@ -744,7 +792,7 @@ const PostCard: React.FC<PostCardProps> = ({
       // Calcular altura basada en aspect ratio, limitada entre MIN y MAX
       const calculatedHeight = Math.max(
         MIN_IMAGE_HEIGHT,
-        Math.min(MAX_IMAGE_HEIGHT, carouselWidth / aspectRatio)
+        Math.min(maxImageHeight, carouselWidth / aspectRatio)
       );
 
       return (
@@ -758,7 +806,7 @@ const PostCard: React.FC<PostCardProps> = ({
           activeOpacity={0.98}
         >
           <Image
-            source={{ uri: cloudinaryFeed(displayPost.imageUrls[0]) }}
+            source={{ uri: cloudinaryFeed(displayPost.imageUrls[0], feedImageWidth) }}
             placeholder={thumbnail ? { uri: thumbnail } : undefined}
             placeholderContentFit="cover"
             style={[
@@ -786,7 +834,7 @@ const PostCard: React.FC<PostCardProps> = ({
     const aspectRatio = imageDimensions?.aspectRatio || (4/3);
     const carouselHeight = Math.max(
       MIN_IMAGE_HEIGHT,
-      Math.min(MAX_IMAGE_HEIGHT, carouselWidth / aspectRatio)
+      Math.min(maxImageHeight, carouselWidth / aspectRatio)
     );
 
     return (
@@ -815,7 +863,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 activeOpacity={0.98}
               >
                 <Image
-                  source={{ uri: cloudinaryFeed(imageUrl) }}
+                  source={{ uri: cloudinaryFeed(imageUrl, feedImageWidth) }}
                   placeholder={thumbnail ? { uri: thumbnail } : undefined}
                 placeholderContentFit="cover"
                 style={[
@@ -1087,23 +1135,36 @@ const PostCard: React.FC<PostCardProps> = ({
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
                 {getRelativeTime(post.createdAt.toDate())}
               </Text>
+              {/*
+                El contexto: de dónde viene esta publicación. La comunidad lleva a
+                la comunidad; la sección es solo una etiqueta, porque el muro de la
+                sección no es el destino de nadie: el destino es este.
+              */}
               {community && (
                 <>
                   <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
-                  <TouchableOpacity
-                    style={[styles.communityBadge, { backgroundColor: `${theme.colors.accent}15` }]}
-                    onPress={handleCommunityPress}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={community.icon as any}
-                      size={scale(12)}
-                      color={theme.colors.accent}
-                    />
-                    <Text style={[styles.communityBadgeText, { color: theme.colors.accent }]}>
-                      {community.name}
-                    </Text>
-                  </TouchableOpacity>
+                  <WeeTag nombre={community.name} icono={community.icon} onPress={handleCommunityPress} />
+                </>
+              )}
+              {!community && seccion && (
+                <>
+                  <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
+                  <WeeTag nombre={seccion.nombre} icono="sparkles-outline" />
+                </>
+              )}
+              {/*
+                El lugar del que habla la publicación, con las palabras de quien la
+                escribió. Va aparte del WeeTag a propósito: una cosa es de dónde
+                salió la publicación —Weë Travel— y otra de qué sitio habla —París—,
+                y pueden no tener nada que ver.
+
+                Es texto, no una posición: no lleva a ningún mapa porque Weë no
+                sabe dónde está París, solo sabe que alguien lo escribió.
+              */}
+              {!!lugar && (
+                <>
+                  <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
+                  <WeeTag nombre={bandera ? `${bandera} ${lugar}` : lugar} icono={bandera ? undefined : 'location-outline'} />
                 </>
               )}
             </View>

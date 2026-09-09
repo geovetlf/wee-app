@@ -2,6 +2,7 @@ import { CapabilityId } from '../../creator/types';
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
 import { env, NotConfiguredError, persistBase64, ProviderError, readImage } from '../http';
 import { estimateInputTokens } from '../../credits/aiPricing';
+import { aspectOf, nearestAspectLabel } from '../resolutionPolicy';
 
 /**
  * Google Gemini (clave GEMINI_API_KEY, SDK @google/genai, método generateContent).
@@ -20,21 +21,40 @@ import { estimateInputTokens } from '../../credits/aiPricing';
 const KEY = 'GEMINI_API_KEY';
 
 const TEXT_MODEL = env('GEMINI_TEXT_MODEL') || 'gemini-3.8-flash';
-const TEXT_MODEL_LITE = env('GEMINI_TEXT_MODEL_LITE') || 'gemini-2.5-flash-lite';
-const TEXT_MODEL_PRO = env('GEMINI_TEXT_MODEL_PRO') || 'gemini-3.1-pro-preview';
-const TEXT_MODEL_LEGACY = 'gemini-2.5-flash';
+/**
+ * Texto sencillo y mirar una foto: Gemini 3.1 Flash-Lite. Sustituye a
+ * gemini-2.5-flash-lite, que la API devuelve como 404 "no longer available to new
+ * users" aunque la página de bajas no le anuncie fecha de retirada. Es el modelo
+ * 3.x más barato (0.25 / 1.50 USD por millón), es estable, acepta imagen como
+ * entrada y es gratuito en el nivel gratuito.
+ */
+const TEXT_MODEL_LITE = env('GEMINI_TEXT_MODEL_LITE') || 'gemini-3.1-flash-lite';
+/**
+ * Máxima calidad: Gemini 3.8 Flash. Es el modelo Flash más inteligente de Google,
+ * de generación posterior a 2.5 Pro, y su salida cuesta 3.75 en vez de 10.00 USD
+ * por millón. Lo decisivo para el texto largo es que su nivel de razonamiento se
+ * puede configurar: los tokens de pensamiento se facturan como salida, y 2.5 Pro
+ * no permite bajarlos ni apagarlos.
+ */
+const TEXT_MODEL_PRO = env('GEMINI_TEXT_MODEL_PRO') || 'gemini-3.8-flash';
+/**
+ * Búsqueda con fuentes, PDF y audio: Gemini 3.5 Flash-Lite es el modelo 3.x más
+ * barato que Google declara compatible con las tres. Ser 3.x importa: el cupo de
+ * 5 000 búsquedas gratuitas al mes solo aplica a esa generación, y en la 2.5 la
+ * búsqueda cuesta 35 USD por mil en vez de 14.
+ */
+export const TEXT_MODEL_MULTI = env('GEMINI_TEXT_MODEL_MULTI') || 'gemini-3.5-flash-lite';
 export const IMAGE_MODEL = env('GEMINI_IMAGE_MODEL') || 'gemini-3.1-flash-image';
 /** Nano Banana Pro: el modelo de identidad (Beauty, retoque, restauración, logos). */
 export const IMAGE_MODEL_PRO = env('GEMINI_IMAGE_MODEL_PRO') || 'gemini-3-pro-image';
 export const IMAGE_MODEL_LITE = env('GEMINI_IMAGE_MODEL_LITE') || 'gemini-3.1-flash-lite-image';
-const IMAGE_MODEL_LEGACY = 'gemini-2.5-flash-image';
 
 /** USD por millón de tokens (entrada / salida) — página oficial de precios. */
 const TEXT_RATES: Record<string, { input: number; output: number }> = {
   'gemini-3.8-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.5-flash-lite': { input: 0.3, output: 2.5 },
+  'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
   'gemini-3.1-pro-preview': { input: 2, output: 12 },
-  'gemini-2.5-flash': { input: 0.3, output: 2.5 },
-  'gemini-2.5-flash-lite': { input: 0.1, output: 0.4 },
 };
 /**
  * USD por imagen según la resolución de salida (ai.google.dev/gemini-api/docs/pricing,
@@ -47,7 +67,6 @@ const IMAGE_RATES: Record<string, Partial<Record<ImageSize, number>>> = {
   'gemini-3.1-flash-image': { '512px': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
   'gemini-3.1-flash-lite-image': { '1K': 0.0336 },
   'gemini-3-pro-image': { '1K': 0.134, '2K': 0.134, '4K': 0.24 },
-  'gemini-2.5-flash-image': { '1K': 0.039 },
 };
 
 /** Tamaños que admite cada modelo, de menor a mayor. */
@@ -55,7 +74,6 @@ const IMAGE_SIZES: Record<string, ImageSize[]> = {
   'gemini-3.1-flash-image': ['512px', '1K', '2K', '4K'],
   'gemini-3.1-flash-lite-image': ['1K'],
   'gemini-3-pro-image': ['1K', '2K', '4K'],
-  'gemini-2.5-flash-image': ['1K'],
 };
 
 /** Resolución pedida (o deducida de la calidad) recortada a lo que admite el modelo. */
@@ -77,7 +95,25 @@ export function imageUsd(modelId: string, size: ImageSize): number {
 /** Google Search grounding: $14 por 1 000 consultas tras el cupo gratuito mensual. */
 const SEARCH_QUERY_USD = 0.014;
 
-const textRate = (id: string, fallback: string) => TEXT_RATES[id] || TEXT_RATES[fallback] || TEXT_RATES['gemini-2.5-flash'];
+/**
+ * Configuración de razonamiento. Google factura la respuesta como la suma de los
+ * tokens de salida y los de razonamiento, así que aquí se acota siempre:
+ *  - Gemini 3 en texto máximo → nivel BAJO (el texto largo ya es caro por su tamaño).
+ *  - Gemini 3 en el resto → nivel por defecto del modelo.
+ *  - Gemini 2.5 Flash y Flash-Lite → apagado del todo, que sí lo permiten.
+ *  - Gemini 2.5 Pro → nada: es el único que NO permite apagarlo, y mandarle un
+ *    presupuesto de cero haría fallar o ignorar la llamada.
+ */
+export function thinkingFor(modelId: string, quality: string): Record<string, unknown> {
+  if (modelId.startsWith('gemini-3')) {
+    return quality === 'max' ? { thinkingConfig: { thinkingLevel: 'LOW' } } : {};
+  }
+  if (modelId === 'gemini-2.5-pro') return {};
+  if (modelId.startsWith('gemini-2.5')) return { thinkingConfig: { thinkingBudget: 0 } };
+  return {};
+}
+
+const textRate = (id: string, fallback: string) => TEXT_RATES[id] || TEXT_RATES[fallback] || TEXT_RATES['gemini-3.1-flash-lite'];
 const imageRate = (id: string, fallback: string) => imageUsd(IMAGE_RATES[id] ? id : fallback, '1K');
 
 const TEXT_CAPS: CapabilityId[] = ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split', 'subtitle.generate', 'vision.describe', 'doc.read', 'audio.transcribe'];
@@ -101,14 +137,19 @@ const image = (id: string, quality: ModelSpec['quality'], speed: ModelSpec['spee
 const unique = (models: ModelSpec[]): ModelSpec[] => models.filter((m, i) => models.findIndex((o) => o.id === m.id) === i);
 
 export const geminiModels: ModelSpec[] = unique([
+  text(TEXT_MODEL_PRO, 5, 4, 'gemini-3.8-flash', TEXT_CAPS, {
+    tags: ['máxima calidad'],
+    note: 'Texto largo con razonamiento en nivel bajo: novela, guion, historia.',
+  }),
   text(TEXT_MODEL, 4, 4, 'gemini-3.8-flash', TEXT_CAPS, { note: 'Texto, visión y búsqueda con Google (Weë Brain).' }),
-  text(TEXT_MODEL_LEGACY, 3, 5, 'gemini-2.5-flash', TEXT_CAPS, { verified: true }),
-  text(TEXT_MODEL_LITE, 2, 5, 'gemini-2.5-flash-lite', ['text.generate', 'text.structure', 'subtitle.generate'], { tags: ['económico'] }),
-  text(TEXT_MODEL_PRO, 5, 3, 'gemini-3.1-pro-preview', ['text.generate', 'text.structure', 'text.search', 'script.write', 'scene.split'], { tags: ['máxima calidad'] }),
+  text(TEXT_MODEL_LITE, 2, 5, 'gemini-3.1-flash-lite', ['text.generate', 'text.structure', 'subtitle.generate', 'vision.describe'], { tags: ['económico'] }),
+  text(TEXT_MODEL_MULTI, 3, 5, 'gemini-3.5-flash-lite', ['text.generate', 'text.structure', 'text.search', 'subtitle.generate', 'vision.describe', 'doc.read', 'audio.transcribe'], {
+    tags: ['búsqueda', 'PDF', 'audio'],
+    note: 'Búsqueda con fuentes con cupo gratuito de Gemini 3.x, lectura de PDF y transcripción.',
+  }),
   image(IMAGE_MODEL, 4, 4, 'gemini-3.1-flash-image', { note: 'Nano Banana 2: genera y edita con instrucciones en lenguaje natural; 512px a 4K.' }),
   image(IMAGE_MODEL_PRO, 5, 3, 'gemini-3-pro-image', { tags: ['máxima calidad', 'identidad'], note: 'Nano Banana Pro: conserva mejor el rostro (retoque, restauración, looks).' }),
   image(IMAGE_MODEL_LITE, 3, 5, 'gemini-3.1-flash-lite-image', { tags: ['económico'], note: 'Nano Banana 2 Lite: solo texto a imagen a 1K.' }),
-  image(IMAGE_MODEL_LEGACY, 3, 4, 'gemini-2.5-flash-image', { tags: ['legado'] }),
 ]);
 
 let client: any = null;
@@ -249,8 +290,8 @@ async function runText(ai: any, request: ProviderRunRequest, start: number): Pro
       systemInstruction: system,
       temperature: wantJson ? 0.2 : Number(input.temperature ?? 0.8),
       maxOutputTokens: Number(input.maxOutputTokens ?? 1200),
-      // Los modelos 2.5 permiten apagar el "pensamiento" extendido: texto directo y barato
-      ...(model.id.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      // Los tokens de razonamiento se facturan junto a los de salida: se acotan siempre
+      ...thinkingFor(model.id, String(input.quality ?? '')),
       ...(wantJson ? { responseMimeType: 'application/json', ...(input.schema ? { responseSchema: input.schema } : {}) } : {}),
       ...(search ? { tools: [{ googleSearch: {} }] } : {}),
     },
@@ -273,6 +314,18 @@ async function runText(ai: any, request: ProviderRunRequest, start: number): Pro
   };
 }
 
+/**
+ * Etiqueta de proporción de las medidas que resolvió el motor, si es una de las
+ * que el proveedor entiende. Si la foto tiene una proporción rara, devuelve
+ * undefined y se usa el valor por defecto de siempre: nunca se deforma nada.
+ */
+const aspectFromOutput = (input: Record<string, unknown>): string | undefined => {
+  const width = Number(input.outputWidth);
+  const height = Number(input.outputHeight);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return undefined;
+  return nearestAspectLabel(aspectOf(width, height));
+};
+
 async function runImage(ai: any, request: ProviderRunRequest, start: number): Promise<ProviderResult> {
   const { capability, input, ctx, model, prefs } = request;
   const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
@@ -282,12 +335,20 @@ async function runImage(ai: any, request: ProviderRunRequest, start: number): Pr
   const parts: any[] = [{ text: prompt }];
   for (const url of imageUrlsOf(input)) parts.push(await imagePart(url));
 
-  const legacy = model.id === IMAGE_MODEL_LEGACY;
-  const aspectRatio = String(input.aspectRatio ?? (kind === 'cover' ? '2:3' : '1:1'));
+  /*
+   * La proporción sale de las medidas que ya resolvió la Resolution Policy.
+   *
+   * `outputWidth`/`outputHeight` llegan calculadas desde la foto real de la
+   * persona —son las mismas con las que se calculó el precio— y hasta la fase
+   * 2E-59 este adaptador las ignoraba y pedía 1:1. Una sala panorámica volvía
+   * cuadrada, que es justo lo contrario de "conservar las proporciones". No hay
+   * lógica nueva aquí: solo se lee lo que el motor ya había decidido.
+   */
+  const aspectRatio = String(input.aspectRatio ?? aspectFromOutput(input) ?? (kind === 'cover' ? '2:3' : '1:1'));
   const size = resolveImageSize(model.id, prefs.quality, typeof input.resolution === 'string' ? input.resolution : undefined);
   const config: Record<string, unknown> = {
-    responseModalities: legacy ? ['IMAGE'] : ['IMAGE', 'TEXT'],
-    imageConfig: { aspectRatio, ...(legacy ? {} : { imageSize: size }) },
+    responseModalities: ['IMAGE', 'TEXT'],
+    imageConfig: { aspectRatio, imageSize: size },
   };
 
   // El coste depende de la resolución de salida, no solo del modelo

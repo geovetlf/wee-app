@@ -3,6 +3,7 @@ import { EngineConfig } from './config';
 import { Ledger } from './ledger';
 import { creditsFor, estimateUsd } from './pricing';
 import { recordRealSuccess } from './verification';
+import { sanitizeForLog } from './sanitize';
 import { NotConfiguredError, ProviderError } from './http';
 import { classifyError, EngineError } from './errors';
 import { providerCallsToday } from './limits';
@@ -163,6 +164,20 @@ export function createRouter(deps: RouterDeps) {
     const excluded = new Set(prefs.excludeProviders || []);
     const candidates: InternalCandidate[] = [];
     const skipped: RouteDecision['skipped'] = [];
+    /*
+     * ¿Existe algún proveedor REAL con clave y capaz de atender esta capacidad?
+     * Se pregunta a TODOS los adaptadores, no solo a los de la cadena. Una cadena
+     * incompleta es un fallo de configuración nuestro, y no puede ser la excusa para
+     * servir un resultado de muestra: si el proveedor existe y sabe hacerlo, o se
+     * sirve de verdad o se falla de verdad. Tampoco cuentan los descartes por
+     * preferencia de la petición ni los pasajeros (pausa, cuota, límite, calidad).
+     */
+    const realProviderAvailable = Object.entries(deps.adapters).some(([id, adapter]) => {
+      if (!adapter || id === 'mock') return false;
+      const cfg = config.providers[id];
+      if (cfg && cfg.enabled === false) return false;
+      return adapter.isConfigured() && adapter.supports(capability);
+    });
     const usage = deps.usageToday ? await deps.usageToday().catch(() => undefined) : undefined;
 
     links.forEach((link, index) => {
@@ -210,11 +225,14 @@ export function createRouter(deps: RouterDeps) {
     };
     candidates.sort(byPolicy);
 
-    // Último recurso: modo demo (siempre en modo prueba; en modo real solo si nadie más puede).
-    // Video: el demo solo entra cuando NO hay ningún candidato real; nunca sustituye a Seedance si este falla.
+    // Último recurso: modo demo. Solo entra cuando NO existe ningún proveedor real
+    // configurado capaz de atender esta capacidad. Si existe uno y falla, el motor
+    // lanza el error: el llamador reembolsa la reserva de Credits y la persona ve qué
+    // pasó, en vez de recibir contenido de muestra creyendo que es un resultado real.
+    // Sustituir en silencio una IA real que falla por una respuesta inventada sería
+    // engañar a quien paga. Esta regla vale para TODAS las modalidades por igual.
     const mock = deps.adapters.mock;
-    const modality = modalityOf(capability);
-    const mockAllowed = modality === 'video' ? candidates.length === 0 : settings.pricingMode === 'simulated' || candidates.length === 0;
+    const mockAllowed = !realProviderAvailable;
     if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && mockAllowed) {
       const model = pickModel(mock, capability, quality, policy, config.providers.mock);
       if (model) {
@@ -228,6 +246,7 @@ export function createRouter(deps: RouterDeps) {
       policy,
       candidates: candidates.map(({ durationOk: _d, meetsQuality: _m, ...c }) => c),
       skipped,
+      realProviderAvailable,
     };
   };
 
@@ -287,17 +306,41 @@ export function createRouter(deps: RouterDeps) {
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
         const credits = creditsFor(capability, result.costUSD, settings, demo, input);
+        /*
+         * CERRAR NO ES COBRAR.
+         *
+         * `credits` es lo que esta operación vale según el catálogo. Solo se
+         * convierte en cobro cuando la generación va atada a una transacción del
+         * Credit Engine. Los pasos internos de Weë no la llevan: por ejemplo la
+         * adaptación de idioma, que traduce el prompt antes de mandarlo a un
+         * proveedor que solo admite inglés y que no se le cobra a nadie.
+         *
+         * Escribir ahí el precio teórico inflaba el acumulado de
+         * aiUsage/{día}.credits y cualquier informe que lo leyera: una edición de
+         * imagen con Seedream dejaba 7 Credits en el libro habiendo cobrado 5.
+         * El precio teórico se guarda aparte y creditsCharged queda reservado
+         * para lo que de verdad se cobró.
+         *
+         * Lo que se devuelve al llamador (`credits`, más abajo) NO cambia: de él
+         * dependen el resumen del trabajo y el cobro final en modo real.
+         */
+        // Aquí la transacción sigue AUTORIZADA: todavía puede reembolsarse entera,
+        // así que este paso NO puede declarar ningún cobro. Solo deja lo que vale.
+        // Quien conoce el desenlace lo escribe después, en ledger.settle().
         // Una respuesta real es lo único que asciende un proveedor a REAL_API_VERIFIED
         if (!demo) void recordRealSuccess(candidate.provider, result.model || candidate.model.id, capability, generationId);
         await deps.ledger.close(generationId, {
           status: 'COMPLETED',
           providerCost: result.costUSD,
-          creditsCharged: credits,
+          creditsEstimated: credits,
           durationMs,
           usage: result.usage,
           outputType: outputTypeOf(result.output.kind),
           videoDurationSec: result.output.durationSec,
           resolution: typeof result.meta?.resolution === 'string' ? result.meta.resolution : undefined,
+          // Dimensiones: solo si el adaptador dice cuáles usó. El libro no las deduce.
+          width: typeof result.meta?.width === 'number' ? result.meta.width : undefined,
+          height: typeof result.meta?.height === 'number' ? result.meta.height : undefined,
           providerTokens: typeof result.meta?.actualTokens === 'number' ? result.meta.actualTokens : undefined,
           providerMeta: result.meta,
         });
@@ -310,7 +353,7 @@ export function createRouter(deps: RouterDeps) {
       } catch (error) {
         lastError = error;
         const message = error instanceof Error ? error.message : String(error);
-        await deps.ledger.close(generationId, { status: 'FAILED', providerCost: 0, creditsCharged: 0, durationMs: now() - start, error: message.slice(0, 500) });
+        await deps.ledger.close(generationId, { status: 'FAILED', providerCost: 0, creditsEstimated: 0, durationMs: now() - start, error: sanitizeForLog(message, 300) });
         const countsAsFailure = !(error instanceof NotConfiguredError) && (!(error instanceof ProviderError) || error.retryable);
         if (countsAsFailure) deps.health.failure(candidate.provider, settings);
         console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${message}`);

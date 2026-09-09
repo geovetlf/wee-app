@@ -32,8 +32,49 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
   const { theme } = useTheme();
   const { isDesktop, isTablet } = useResponsive();
 
+  /*
+   * Dos niveles (fase 2E-53). Las acciones marcadas como secundarias salen de la
+   * cuadrícula y bajan a su propia zona, bajo una línea: es como Weë Studio dice
+   * que Fotos y Videos son los caminos y Beauty una capacidad especializada, sin
+   * esconderla detrás de un "Más" ni obligar a entrar por otro flujo.
+   *
+   * Las secciones que no marcan ninguna —las otras siete— no notan el cambio: la
+   * lista secundaria queda vacía y todo sigue igual que antes.
+   */
+  const principales = actions.filter((action) => !action.secondary);
+  const secundarias = actions.filter((action) => action.secondary);
+
   const columns =
-    layout === 'wide' ? (isDesktop ? 3 : isTablet ? 2 : 1) : isDesktop ? 5 : isTablet ? 3 : 2;
+    layout === 'wide'
+      ? isDesktop
+        ? 3
+        : isTablet
+        ? 2
+        : 1
+      : layout === 'compact'
+      ? /*
+         * Cuatro y tres: siete funciones caben en dos filas cortas sin apretarse.
+         * Pero nunca más columnas que acciones (fase 2E-52): Weë Studio tiene tres
+         * áreas, y con la cuadrícula fija quedaba una celda vacía a la derecha de
+         * Beauty. Una sección recién ordenada parecía una sección a medio hacer.
+         *
+         * En móvil, tres o menos van a fila completa. A dos columnas, Beauty caía
+         * sola a la segunda fila y su subtítulo se cortaba a media palabra
+         * («…cuidado de l…»), que es justo lo que explica para qué sirve el área.
+         * De cuatro en adelante siguen de dos en dos, como Chef y Design.
+         */
+        isDesktop
+        ? Math.min(4, principales.length)
+        : isTablet
+        ? Math.min(3, principales.length)
+        : principales.length <= 3
+        ? 1
+        : 2
+      : isDesktop
+      ? 5
+      : isTablet
+      ? 3
+      : 2;
   const cellWidth = `${100 / columns}%` as const;
 
   const renderTile = (action: SpecialistAction) => (
@@ -46,6 +87,31 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
     </View>
   );
 
+  /**
+   * Control compacto: icono al lado del nombre, y una línea corta debajo.
+   *
+   * Sin fotografía y sin flecha: la tarjeta entera se pulsa y el cursor ya lo
+   * dice, así que la flecha solo añadía alto. Lo que se ahorra en aire se gasta
+   * en letra —el nombre de la acción principal de una sección no puede ser el
+   * texto más pequeño de la pantalla, que es lo que pasaba antes de 2E-40.
+   */
+  const renderCompact = (action: SpecialistAction) => (
+    <View style={[styles.compact, { backgroundColor: theme.colors.card, borderColor: action.idk ? theme.colors.accent : theme.colors.border, borderStyle: action.idk ? 'dashed' : 'solid' }]}>
+      <View style={styles.compactHead}>
+        <View style={[styles.compactIcon, { backgroundColor: theme.colors.accent + '26' }]}>
+          <Ionicons name={action.icon as any} size={scale(18)} color={theme.colors.accentDark} />
+        </View>
+        {/*
+          Tres líneas, no dos: en móvil, a dos columnas y con el icono al lado, un
+          nombre como "Algo para redes o publicidad" no cabe en dos y se cortaba.
+          Solo se usan cuando hacen falta, así que los nombres cortos no cambian.
+        */}
+        <Text style={[styles.compactTitle, { color: theme.colors.text }]} numberOfLines={3}>{action.title}</Text>
+      </View>
+      <Text style={[styles.compactSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
+    </View>
+  );
+
   const renderWide = (action: SpecialistAction) => (
     <View style={[styles.wide, { backgroundColor: theme.colors.card, borderColor: action.idk ? theme.colors.accent : theme.colors.border, borderStyle: action.idk ? 'dashed' : 'solid' }]}>
       <View style={[styles.iconCircle, { backgroundColor: theme.colors.accent + '26' }]}>
@@ -54,6 +120,26 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
       <View style={styles.wideBody}>
         <Text style={[styles.wideTitle, { color: theme.colors.text }]}>{action.title}</Text>
         <Text style={[styles.tileSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+    </View>
+  );
+
+  /**
+   * Entrada secundaria: un renglón, no una tarjeta.
+   *
+   * Más baja y con el nombre un punto más pequeño que los caminos principales,
+   * para que la jerarquía se lea de un vistazo; a lo ancho entera y con su flecha,
+   * para que se vea que lleva a algún sitio y se pueda pulsar sin apuntar.
+   */
+  const renderSecondary = (action: SpecialistAction) => (
+    <View style={[styles.secondary, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+      <View style={[styles.compactIcon, { backgroundColor: theme.colors.accent + '26' }]}>
+        <Ionicons name={action.icon as any} size={scale(18)} color={theme.colors.accentDark} />
+      </View>
+      <View style={styles.secondaryBody}>
+        <Text style={[styles.secondaryTitle, { color: theme.colors.text }]}>{action.title}</Text>
+        <Text style={[styles.compactSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
     </View>
@@ -73,14 +159,33 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
   );
 
   return (
-    <View style={[styles.grid, { marginHorizontal: -GAP / 2 }]}>
-      {actions.map((action, index) => (
-        <View key={action.id} style={{ width: cellWidth, padding: GAP / 2 }}>
-          <TouchableOpacity onPress={() => onPress(action)} activeOpacity={0.8} accessibilityLabel={action.title}>
-            {layout === 'wide' ? renderWide(action) : layout === 'images' ? renderImage(action, index) : renderTile(action)}
-          </TouchableOpacity>
+    <View>
+      <View style={[styles.grid, { marginHorizontal: -GAP / 2 }]}>
+        {principales.map((action, index) => (
+          <View key={action.id} style={{ width: cellWidth, padding: GAP / 2 }}>
+            <TouchableOpacity onPress={() => onPress(action)} activeOpacity={0.8} accessibilityLabel={action.title}>
+              {layout === 'wide'
+                ? renderWide(action)
+                : layout === 'images'
+                ? renderImage(action, index)
+                : layout === 'compact'
+                ? renderCompact(action)
+                : renderTile(action)}
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {secundarias.length > 0 && (
+        <View style={styles.secondaryZone}>
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+          {secundarias.map((action) => (
+            <TouchableOpacity key={action.id} onPress={() => onPress(action)} activeOpacity={0.8} accessibilityLabel={action.title}>
+              {renderSecondary(action)}
+            </TouchableOpacity>
+          ))}
         </View>
-      ))}
+      )}
     </View>
   );
 };
@@ -112,6 +217,61 @@ const styles = StyleSheet.create({
   tileSubtitle: {
     fontSize: FONT_SIZE.xs,
     lineHeight: scale(16),
+  },
+  compact: {
+    minHeight: scale(92),
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    gap: scale(6),
+  },
+  compactHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  compactIcon: {
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactTitle: {
+    flex: 1,
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.bold,
+    lineHeight: scale(19),
+  },
+  compactSubtitle: {
+    fontSize: FONT_SIZE.xs,
+    lineHeight: scale(16),
+  },
+  secondaryZone: {
+    gap: SPACING.md,
+  },
+  divider: {
+    height: 1,
+    marginTop: SPACING.md,
+  },
+  secondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    minHeight: scale(62),
+  },
+  secondaryBody: {
+    flex: 1,
+    gap: scale(2),
+  },
+  secondaryTitle: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
   },
   wide: {
     flexDirection: 'row',

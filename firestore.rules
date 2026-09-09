@@ -414,6 +414,15 @@ service cloud.firestore {
     match /aiRateLimits/{limitId} {
       allow read, write: if false;
     }
+    // Avisos del webhook de Seedance (BytePlus): los escribe la Cloud Function con
+    // el Admin SDK, que no pasa por estas reglas. El cliente no lee ni escribe.
+    match /aiProviderCallbacks/{taskId} {
+      allow read, write: if false;
+    }
+    // Verificación de proveedores contra su API real: solo servidor y panel de administración
+    match /aiProviderVerification/{providerId} {
+      allow read, write: if false;
+    }
 
     // === WEË BRAIN: conversaciones ===
     // La persona lee sus conversaciones y mensajes; escribe solo el servidor (brainChat)

@@ -41,8 +41,10 @@ function planImage(request, requireReady = true) {
         allowedProviders: [choice.model.provider],
         modelId: choice.model.modelId,
     };
-    // La resolución elegida viaja con el input para que el adaptador la aplique
-    return { choice, prefs, input: Object.assign(Object.assign({}, input), { resolution: choice.size }) };
+    // La resolución elegida viaja con el input para que el adaptador la aplique.
+    // Va marcada como decisión del motor: al recalcular el precio no debe leerse
+    // como si la persona hubiera pedido más resolución y subir el nivel comercial.
+    return { choice, prefs, input: Object.assign(Object.assign({}, input), { resolution: choice.size, resolutionFromEngine: true }) };
 }
 /** Opciones que se le pueden mostrar a la persona antes de generar. */
 function imageChoicesFor(capability, input, requireReady = true) {

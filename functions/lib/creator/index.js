@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.creatorRun = exports.creatorQuote = exports.creatorChat = void 0;
 const firestore_1 = require("firebase-admin/firestore");
+const secrets_1 = require("../secrets");
 const https_1 = require("firebase-functions/v2/https");
 const planner_1 = require("./planner");
 const templates_1 = require("./templates");
@@ -12,9 +13,14 @@ const humanize_1 = require("../engine/humanize");
 const errors_1 = require("../engine/errors");
 const video_1 = require("../engine/video");
 const image_1 = require("../engine/image");
+const imageMeta_1 = require("../engine/imageMeta");
+const resolutionPolicy_1 = require("../engine/resolutionPolicy");
+const promptLanguage_1 = require("../engine/promptLanguage");
+const prompts_1 = require("./prompts");
 const limits_1 = require("../engine/limits");
 const config_1 = require("../engine/config");
 const creditCosts_1 = require("../credits/creditCosts");
+const aiPricing_1 = require("../credits/aiPricing");
 const creditTransactions_1 = require("../credits/creditTransactions");
 /**
  * Weë Creator — funciones que llama la app.
@@ -101,15 +107,32 @@ const chatResponse = (job, question, pricing) => {
         pricing: pricing ? { total: pricing.total, steps: pricing.steps, options: (_b = pricing.options) !== null && _b !== void 0 ? _b : null } : null,
     });
 };
+/**
+ * Tamaño de la foto que se va a editar. La app lo guarda como metadato del
+ * archivo al subirlo; si falta se lee del propio archivo. Si no se puede
+ * averiguar se sigue sin él: el precio se queda en la cota inferior conocida,
+ * nunca se inventa un tamaño.
+ */
+const inputSizeOf = async (job) => {
+    if (!job.inputImageUrl)
+        return undefined;
+    try {
+        const medidas = await (0, imageMeta_1.imageDimensions)(job.inputImageUrl);
+        return medidas ? { width: medidas.width, height: medidas.height } : undefined;
+    }
+    catch (_a) {
+        return undefined;
+    }
+};
 /** Desglose + niveles disponibles para un plan ya armado. */
 const pricingFor = async (job, uid, quality) => {
     if (!job.plan)
         return null;
-    const estimate = await (0, credits_1.estimatePlan)(job.plan, uid, quality);
+    const estimate = await (0, credits_1.estimatePlan)(job.plan, uid, quality, await inputSizeOf(job));
     estimate.options = await (0, credits_1.planOptions)(job.plan, uid);
     return estimate;
 };
-exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 60, memory: '256MiB' }, async (request) => {
+exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 60, memory: '256MiB', secrets: secrets_1.AI_SECRETS }, async (request) => {
     var _a;
     try {
         if (!request.auth)
@@ -118,6 +141,8 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
         const data = (request.data || {});
         let ref;
         let job;
+        // Dato del turno para el planificador; no se persiste (ver planner.ts).
+        let turno;
         if (data.jobId) {
             ref = jobs().doc(String(data.jobId));
             const snap = await ref.get();
@@ -137,12 +162,19 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
             }
             if (job.status !== 'asking')
                 throw new errors_1.EngineError('INVALID_REQUEST', 'Este trabajo ya tiene un plan.');
+            // Cómo estaban las respuestas ANTES de este turno: le dice al planificador si
+            // hay algo nuevo que consultar o si sería repetirle la misma pregunta al LLM.
+            // Vive solo durante esta petición; no se guarda en el trabajo.
+            turno = { newFreeText: false, before: job.answers };
             if (answering) {
                 const answer = {
                     questionId: String(data.answer.questionId),
                     optionId: data.answer.optionId ? String(data.answer.optionId) : undefined,
                     text: data.answer.text ? String(data.answer.text).slice(0, 300) : undefined,
                 };
+                // Escribir aporta información nueva; elegir una opción, no. Una respuesta
+                // con las dos cosas es una opción: así la trata también `freeText`.
+                turno = { newFreeText: !!answer.text && !answer.optionId, before: job.answers };
                 job.answers = [...job.answers.filter((a) => a.questionId !== answer.questionId), answer];
             }
         }
@@ -154,7 +186,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
             await (0, credits_1.ensureAccount)(uid);
             ref = jobs().doc();
             job = Object.assign(Object.assign(Object.assign({ id: ref.id, userId: uid, experienceId,
-                goal, questions: [], answers: [], plan: null, steps: [], results: [], status: 'asking', progressText: '', creditsEstimated: 0, creditsCharged: 0, demo: true, pricingMode: (0, credits_1.pricingMode)() }, (data.projectId ? { projectId: String(data.projectId) } : {})), (data.imageUrl ? { inputImageUrl: (0, inputs_1.assertInputImageUrl)(data.imageUrl, uid) } : {})), { createdAt: now(), updatedAt: now() });
+                goal, questions: [], answers: [], plan: null, steps: [], results: [], status: 'asking', progressText: '', creditsEstimated: 0, creditsCharged: 0, demo: true, pricingMode: await (0, credits_1.pricingMode)() }, (data.projectId ? { projectId: String(data.projectId) } : {})), (data.imageUrl ? { inputImageUrl: (0, inputs_1.assertInputImageUrl)(data.imageUrl, uid) } : {})), { createdAt: now(), updatedAt: now() });
             // Solo se aceptan presets que existan en la plantilla; lo demás se pregunta
             const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
             for (const preset of presets) {
@@ -164,12 +196,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
                 }
             }
         }
-        const turn = await (0, planner_1.getPlanner)().next({
-            experienceId: job.experienceId,
-            goal: job.goal,
-            answers: job.answers,
-            gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) },
-        });
+        const turn = await (0, planner_1.getPlanner)().next(Object.assign({ experienceId: job.experienceId, goal: job.goal, answers: job.answers, gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) } }, (turno ? { turn: turno } : {})));
         if (turn.inferred.length > 0) {
             // Lo deducido se guarda como respuesta y también su pregunta, para que la
             // persona vea "Entendí que…" en la conversación
@@ -204,7 +231,7 @@ exports.creatorChat = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
  * Cambiar el nivel de calidad de un plan antes de crearlo. Devuelve el nuevo
  * presupuesto para que la persona vea al momento cuánto va a gastar.
  */
-exports.creatorQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' }, async (request) => {
+exports.creatorQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: secrets_1.AI_SECRETS }, async (request) => {
     var _a;
     try {
         if (!request.auth)
@@ -236,8 +263,8 @@ exports.creatorQuote = (0, https_1.onCall)({ region: 'us-central1', timeoutSecon
         throw (0, errors_1.toEngineHttpsError)(error);
     }
 });
-exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 900, memory: '1GiB' }, async (request) => {
-    var _a;
+exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 900, memory: '1GiB', secrets: secrets_1.AI_SECRETS }, async (request) => {
+    var _a, _b, _c;
     try {
         if (!request.auth)
             throw new errors_1.EngineError('UNAUTHORIZED');
@@ -303,7 +330,48 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
                 else if (next.capability.startsWith('image.')) {
                     // Imagen: el Weë Image Engine elige el modelo más barato que sirve
                     const planned = (0, image_1.planImage)({ capability: next.capability, input });
-                    run = await (0, gateway_1.runCapability)(next.capability, planned.input, Object.assign(Object.assign({}, stepCtx), { prefs: Object.assign(Object.assign({}, prefs), planned.prefs) }));
+                    /*
+                     * DIMENSIONES: las decide la Weë Resolution Policy, UNA sola vez, y el
+                     * plan viaja con el input hasta el adaptador. Antes el precio razonaba
+                     * con una etiqueta ("1K") y cada adaptador decidía por su cuenta qué
+                     * píxeles eran esa etiqueta: podían no coincidir.
+                     *
+                     * En una edición la proporción sale de la foto real, así que no puede
+                     * deformarse. Si no se conoce su tamaño, la política usa la proporción
+                     * pedida y, en su defecto, cuadrada.
+                     */
+                    const fuente = (0, inputs_1.needsInputImage)([next]) ? await inputSizeOf(job) : undefined;
+                    const resolucion = (0, resolutionPolicy_1.resolveForModel)(planned.choice.model.modelId, {
+                        quality: planned.choice.tier,
+                        input: fuente,
+                        aspect: typeof input.aspectRatio === 'string' ? input.aspectRatio : undefined,
+                    });
+                    /*
+                     * CAPA 3 — adaptación de idioma. Solo entra si el proveedor elegido limita
+                     * el idioma (hoy únicamente Seedream) y todavía queda texto de la persona
+                     * que aporta información. Gemini y FLUX reciben el original sin tocar.
+                     * La llamada NO lleva servicio ni transacción de Credits: es trabajo
+                     * interno de Weë y no se le cobra a nadie.
+                     */
+                    const idioma = await (0, promptLanguage_1.adaptPromptForProvider)({
+                        provider: planned.choice.model.provider,
+                        prompt: String((_a = planned.input.prompt) !== null && _a !== void 0 ? _a : ''),
+                        structured: (0, prompts_1.imageEnglishPart)(String((_b = input.kind) !== null && _b !== void 0 ? _b : ''), previous),
+                        translate: async (texto) => {
+                            const t = await (0, gateway_1.runCapability)('text.structure', { prompt: texto, maxOutputTokens: 400, quality: 'standard' }, Object.assign(Object.assign({}, ctx), { stepId: `${next.id}:idioma`, prefs: undefined, service: undefined, creditTransactionId: undefined }));
+                            return t.output.content || '';
+                        },
+                    });
+                    run = await (0, gateway_1.runCapability)(next.capability, Object.assign(Object.assign(Object.assign({}, planned.input), { prompt: idioma.prompt }), (resolucion ? { outputWidth: resolucion.width, outputHeight: resolucion.height } : {})), Object.assign(Object.assign({}, stepCtx), { prefs: Object.assign(Object.assign({}, prefs), planned.prefs), 
+                        /*
+                         * SERVICIO CANÓNICO. serviceForCapability() solo puede adivinar el
+                         * tramo antes de saber qué modelo servirá: sin `quality` en el paso
+                         * devolvía ai_image_enhance aunque el cobro fuera ai_image_enhance_lite,
+                         * y el libro archivaba el coste en un tramo y el ingreso en otro.
+                         * Aquí ya se conoce el nivel elegido, así que se usa el mismo servicio
+                         * con el que se calculó el precio (credits/aiPricing.ts).
+                         */
+                        service: (0, aiPricing_1.imageServiceFor)(next.capability, { kind: input.kind, quality: input.quality }, planned.choice.tier) }));
                 }
                 else {
                     run = await (0, gateway_1.runCapability)(next.capability, input, stepCtx);
@@ -329,7 +397,9 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
             // Modo prueba: se cobra lo estimado. Modo real: lo medido por el engine,
             // nunca más de lo que la persona vio antes de crear.
             const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
-            const used = (0, credits_1.pricingMode)() === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
+            // El mismo modo efectivo con el que se cotizó: cotización, fórmula y cobro
+            // no pueden razonar cada uno por su cuenta.
+            const used = (await (0, credits_1.pricingMode)()) === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
             await (0, credits_1.settleCredits)(uid, jobId, job.creditsEstimated, used, description);
             await ref.update({
                 status: 'done',
@@ -355,7 +425,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
                 status: 'failed',
                 steps: clean(steps),
                 results: clean(results),
-                progressText: ((_a = classified.details) === null || _a === void 0 ? void 0 : _a.reason) === 'input_rejected' ? classified.message : failing ? (0, humanize_1.friendlyFailure)(failing.capability) : 'No me salió bien. No te cobré.',
+                progressText: ((_c = classified.details) === null || _c === void 0 ? void 0 : _c.reason) === 'input_rejected' ? classified.message : failing ? (0, humanize_1.friendlyFailure)(failing.capability) : 'No me salió bien. No te cobré.',
                 creditsCharged: 0,
                 updatedAt: now(),
             });

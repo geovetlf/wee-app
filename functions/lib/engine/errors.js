@@ -6,13 +6,14 @@ exports.toEngineHttpsError = toEngineHttpsError;
 const https_1 = require("firebase-functions/v2/https");
 const creditValidation_1 = require("../credits/creditValidation");
 const http_1 = require("./http");
+const sanitize_1 = require("./sanitize");
 exports.ENGINE_MESSAGES = {
     INVALID_REQUEST: 'Falta algo en tu pedido. Revísalo e inténtalo de nuevo.',
     UNAUTHORIZED: 'Inicia sesión para crear con Weë.',
-    PROVIDER_ERROR: 'La IA no respondió esta vez. Inténtalo de nuevo en un momento.',
+    PROVIDER_ERROR: 'La IA no pudo completar tu creación esta vez. No te cobré: inténtalo de nuevo en un momento.',
     GENERATION_FAILED: 'No pude terminar tu creación. No te cobré: inténtalo de nuevo.',
     TIMEOUT: 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.',
-    RATE_LIMITED: 'Has hecho muchas creaciones seguidas. Espera un momento e inténtalo de nuevo.',
+    RATE_LIMITED: 'Has hecho muchas creaciones seguidas. No te cobré: espera un momento e inténtalo de nuevo.',
     DUPLICATE_REQUEST: 'Esa creación ya está en marcha.',
     NOT_AVAILABLE: 'Esta función todavía no está disponible.',
 };
@@ -62,8 +63,8 @@ function toEngineHttpsError(error) {
         return (0, creditValidation_1.toHttpsError)(error);
     const classified = classifyError(error);
     if (!(error instanceof EngineError)) {
-        // Lo interno solo queda en el registro del servidor
-        console.error(`WEË AI ENGINE: ${classified.code}:`, error instanceof Error ? error.message : error);
+        // Lo interno solo queda en el registro del servidor, y siempre sanitizado
+        console.error(`WEË AI ENGINE: ${classified.code}:`, (0, sanitize_1.sanitizeForLog)(error, 300));
     }
     return new https_1.HttpsError(HTTPS_CODE[classified.code], classified.message, Object.assign({ code: classified.code }, classified.details));
 }

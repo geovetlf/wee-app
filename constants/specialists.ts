@@ -13,8 +13,13 @@ export type SpecialistId = WeeExperience['id'];
 /** Modo de entrada que ofrece la pantalla del especialista. */
 export type InputMode = 'text' | 'upload' | 'camera' | 'voice' | 'attach' | 'web';
 
-/** Cómo se muestra la cuadrícula "¿Qué quieres hacer hoy?". */
-export type ActionLayout = 'tiles' | 'wide' | 'images';
+/**
+ * Cómo se muestra la cuadrícula "¿Qué quieres hacer hoy?".
+ * 'compact' es la forma que estrena Weë Chef (fase 2E-37): controles pequeños,
+ * fáciles de recorrer de un vistazo y sin ninguna fotografía, para que la pantalla
+ * no se convierta en un catálogo de tarjetas grandes.
+ */
+export type ActionLayout = 'tiles' | 'wide' | 'images' | 'compact';
 
 export interface SpecialistAction {
   id: string;
@@ -30,6 +35,58 @@ export interface SpecialistAction {
   preset?: { questionId: string; optionId: string };
   /** true en "No sé qué hacer": Weë propone. */
   idk?: boolean;
+  /**
+   * Abre la conversación de OTRA experiencia (fase 2E-50).
+   *
+   * Weë Studio reúne tres áreas —fotos, videos y look— que por dentro siguen
+   * siendo Weë Photo, Weë Studio y Weë Beauty, con sus plantillas y sus planes
+   * intactos. Esta línea es lo único que hacía falta para que el selector lleve
+   * a la mesa de trabajo correcta sin duplicar ni una.
+   *
+   * Sin este campo, una acción abre la conversación de su propia sección, que es
+   * lo que hacen las otras siete.
+   */
+  opens?: SpecialistId;
+  /**
+   * Entrada secundaria del selector (fase 2E-53).
+   *
+   * Weë Studio dice primero una cosa —crea fotos y videos— y Beauty es una
+   * capacidad especializada dentro de ese mundo. Con las tres tarjetas iguales,
+   * Beauty competía con el mensaje principal; escondida dentro del flujo de
+   * Fotos, quedaba a tres pasos y detrás de una subida de foto. Esta marca le da
+   * el sitio que le toca: un renglón propio bajo una línea, más pequeño que los
+   * dos caminos principales y a un solo toque.
+   *
+   * No cambia a dónde lleva: sigue abriendo `beauty` directamente, con su
+   * plantilla, sus planes y su identificador intactos.
+   */
+  secondary?: boolean;
+}
+
+/**
+ * Pestañas del muro social de una sección. Cada una se resuelve con algo que Weë
+ * ya sabe hacer —todas las publicaciones, las que traen imagen, las que explican
+ * cómo se hizo algo, las tuyas y las que guardaste— sin ninguna función nueva.
+ */
+export type WallTabKind = 'all' | 'images' | 'tutorials' | 'mine' | 'saved';
+
+export interface WallTab {
+  id: WallTabKind;
+  label: string;
+}
+
+/** Lo que la sección aporta a su muro: sus pestañas y sus palabras. */
+export interface SectionWallConfig {
+  tabs: WallTab[];
+  /** Texto del compositor ("Comparte tu plato, una receta o una pregunta…"). */
+  placeholder: string;
+  /** Qué se ve cuando todavía no hay publicaciones de esta sección. */
+  empty: {
+    emoji: string;
+    title: string;
+    text: string;
+    button: string;
+  };
 }
 
 export type ExampleKind = 'beforeAfter' | 'image' | 'video' | 'audio' | 'document' | 'recipe';
@@ -58,9 +115,17 @@ export interface SpecialistConfig {
   /** Emoji grande de la ilustración del hero. */
   heroEmoji: string;
   gridTitle: string;
+  /** Frase corta a la derecha del título ("Elige una opción y empieza…"). */
+  gridHint?: string;
   actionLayout: ActionLayout;
   actions: SpecialistAction[];
   inputs: InputMode[];
+  /**
+   * Muro social de la sección. Cuando está, la sección deja de ser un catálogo de
+   * herramientas y pasa a ser una comunidad con herramientas dentro. Weë Chef es
+   * el piloto (fase 2E-37); las demás lo adoptan cuando les toque.
+   */
+  wall?: SectionWallConfig;
   /** Caja "¿Tienes una idea en mente?" */
   idea: {
     title: string;
@@ -141,24 +206,65 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     note: 'Tu imaginación también diseña el futuro',
     heroEmoji: '🏎️',
     gridTitle: '¿Qué quieres diseñar hoy?',
-    actionLayout: 'images',
+    gridHint: 'Logos, productos, personajes, lugares y más.',
+    /*
+     * Siete intenciones, no catorce ejemplos (fase 2E-43).
+     *
+     * Aquí hubo catorce tarjetas —autos, helicópteros, muebles, vasos, tecnología,
+     * ropa, packaging, arquitectura, inventos, piezas, personajes, logos, afiches y
+     * mundos— que por dentro eran seis destinos y un único plan. Diez de ellas solo
+     * cambiaban la frase que se le manda al modelo: eran ejemplos disfrazados de
+     * funciones.
+     *
+     * Se agrupan por lo que quiere la persona, no por el destino técnico: por eso
+     * "arquitectura" (que era `object`, como un auto) está con "mundos y escenas",
+     * porque quien diseña una casa piensa en un lugar y no en una máquina.
+     *
+     * Los diez nombres que pierden botón siguen vivos en los subtítulos y en el
+     * `infer` del planificador, que reconoce "packaging", "zapatilla", "lámpara",
+     * "casa" o "invento" y salta solo a la opción correcta.
+     *
+     * Estas siete no resuelven nada aquí: cada una es la puerta a la conversación
+     * guiada, que es donde se trabaja.
+     */
+    actionLayout: 'compact',
     actions: [
-      { id: 'vehicles', icon: 'car-sport-outline', emoji: '🏎️', title: 'Autos y vehículos', subtitle: 'Deportivos, eléctricos, del futuro', goal: 'Diseñar un auto o vehículo', preset: { questionId: 'what', optionId: 'object' } },
-      { id: 'aircraft', icon: 'airplane-outline', emoji: '🚁', title: 'Helicópteros y aviones', subtitle: 'Transporte y rescate', goal: 'Diseñar un helicóptero o avión', preset: { questionId: 'what', optionId: 'object' } },
-      { id: 'furniture', icon: 'bed-outline', emoji: '🛋️', title: 'Muebles', subtitle: 'Sillas, mesas, lámparas', goal: 'Diseñar un mueble', preset: { questionId: 'what', optionId: 'product' } },
-      { id: 'products', icon: 'water-outline', emoji: '🧴', title: 'Vasos y productos', subtitle: 'Botellas, envases, objetos', goal: 'Diseñar un producto', preset: { questionId: 'what', optionId: 'product' } },
-      { id: 'tech', icon: 'phone-portrait-outline', emoji: '📱', title: 'Tecnología', subtitle: 'Gadgets y dispositivos', goal: 'Diseñar un dispositivo tecnológico', preset: { questionId: 'what', optionId: 'product' } },
-      { id: 'fashion', icon: 'shirt-outline', emoji: '👟', title: 'Ropa y calzado', subtitle: 'Prendas, zapatillas, colecciones', goal: 'Diseñar ropa o calzado', preset: { questionId: 'what', optionId: 'product' } },
-      { id: 'packaging', icon: 'cube-outline', emoji: '📦', title: 'Packaging', subtitle: 'Cajas, etiquetas, empaques', goal: 'Diseñar un empaque', preset: { questionId: 'what', optionId: 'product' } },
-      { id: 'architecture', icon: 'business-outline', emoji: '🏠', title: 'Espacios y arquitectura', subtitle: 'Casas, locales, fachadas', goal: 'Diseñar un espacio o edificio', preset: { questionId: 'what', optionId: 'object' } },
-      { id: 'inventions', icon: 'bulb-outline', emoji: '💡', title: 'Inventos y conceptos', subtitle: 'Ideas que todavía no existen', goal: 'Diseñar un invento o concepto', preset: { questionId: 'what', optionId: 'object' } },
-      { id: 'mechanical', icon: 'cog-outline', emoji: '⚙️', title: 'Piezas mecánicas', subtitle: 'Motores, engranajes, partes', goal: 'Diseñar una pieza mecánica', preset: { questionId: 'what', optionId: 'object' } },
-      { id: 'characters', icon: 'happy-outline', emoji: '🧑‍🚀', title: 'Personajes y criaturas', subtitle: 'Mascotas, héroes, seres', goal: 'Diseñar un personaje o criatura', preset: { questionId: 'what', optionId: 'character' } },
-      { id: 'logos', icon: 'text-outline', emoji: '🔤', title: 'Logos e identidad', subtitle: 'Marca, colores, tipografía', goal: 'Diseñar un logo e identidad', preset: { questionId: 'what', optionId: 'logo' } },
-      { id: 'posters', icon: 'megaphone-outline', emoji: '🪧', title: 'Afiches y publicidad', subtitle: 'Flyers, anuncios, redes', goal: 'Diseñar un afiche o pieza publicitaria', preset: { questionId: 'what', optionId: 'poster' } },
-      { id: 'worlds', icon: 'planet-outline', emoji: '🌄', title: 'Mundos y escenas', subtitle: 'Paisajes, ciudades, ambientes', goal: 'Diseñar un mundo o una escena', preset: { questionId: 'what', optionId: 'scene' } },
+      { id: 'brand', icon: 'text-outline', emoji: '🔤', title: 'Un logo o mi marca', subtitle: 'Nombre, colores y tipografía', goal: 'Diseñar un logo y la identidad de mi marca', preset: { questionId: 'what', optionId: 'logo' } },
+      { id: 'social', icon: 'megaphone-outline', emoji: '🪧', title: 'Algo para redes o publicidad', subtitle: 'Afiches, flyers, anuncios, portadas', goal: 'Diseñar una pieza para redes o publicidad', preset: { questionId: 'what', optionId: 'poster' } },
+      { id: 'product', icon: 'cube-outline', emoji: '📦', title: 'Un producto', subtitle: 'Envases, muebles, ropa, tecnología', goal: 'Diseñar un producto', preset: { questionId: 'what', optionId: 'product' } },
+      { id: 'machine', icon: 'car-sport-outline', emoji: '🏎️', title: 'Un vehículo o una máquina', subtitle: 'Autos, aviones, motores, inventos', goal: 'Diseñar un vehículo o una máquina', preset: { questionId: 'what', optionId: 'object' } },
+      { id: 'place', icon: 'business-outline', emoji: '🏙️', title: 'Un lugar o un escenario', subtitle: 'Crea desde cero casas, locales, ciudades y paisajes', goal: 'Diseñar un lugar o un escenario', preset: { questionId: 'what', optionId: 'scene' } },
+      /*
+       * Hogar & Diseño va aquí, al lado de su vecino conceptual, aunque se dibuje
+       * abajo: `secondary` decide dónde se pinta, no el orden de esta lista.
+       *
+       * Y va separada de "Un lugar o un escenario" por lo que hace, no por el
+       * sustantivo que comparten: una imagina un lugar desde cero, la otra trabaja
+       * sobre la foto del espacio que ya tienes conservando paredes y ventanas.
+       * Por dentro sigue siendo la experiencia `home`, entera.
+       */
+      { id: 'home', icon: 'home-outline', emoji: '🏠', title: 'Hogar & Diseño', subtitle: 'Transforma y rediseña tu hogar o espacio a partir de una foto.', goal: 'Diseñar un espacio de mi casa', opens: 'home', secondary: true },
+      { id: 'character', icon: 'happy-outline', emoji: '🧑‍🚀', title: 'Un personaje', subtitle: 'Mascotas, héroes, criaturas', goal: 'Diseñar un personaje', preset: { questionId: 'what', optionId: 'character' } },
+      // Sin respuesta previa a propósito: la primera pregunta del flujo es justo
+      // "¿Qué quieres diseñar?", que es la ayuda que necesita quien no lo tiene claro.
+      { id: 'idk', icon: 'bulb-outline', emoji: '💡', title: 'No sé qué diseñar', subtitle: 'Cuéntame tu idea y te propongo algo', goal: 'Quiero diseñar algo pero no sé qué', idk: true },
     ],
-    inputs: ['text', 'attach'],
+    inputs: ['text'],
+    // Weë Design estrena el muro social después de Weë Chef (fase 2E-43).
+    wall: {
+      tabs: [
+        { id: 'all', label: 'Muro Design' },
+        { id: 'tutorials', label: 'Cómo lo hicieron' },
+        { id: 'saved', label: 'Guardados' },
+      ],
+      placeholder: 'Comparte un diseño, una idea o una pregunta…',
+      empty: {
+        emoji: '🎨',
+        title: 'Todavía no hay nada en el muro de Weë Design',
+        text: 'Comparte tu primer diseño, una idea o una pregunta con la comunidad.',
+        button: 'Crear publicación',
+      },
+    },
     idea: {
       title: '¿Qué quieres diseñar?',
       subtitle: 'Describe tu idea con el mayor detalle posible.',
@@ -166,15 +272,14 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       chips: ['Un auto del futuro', 'Un helicóptero de rescate', 'Un vaso innovador', 'Un logo para mi marca', 'Una casa de playa', 'Un personaje de videojuego'],
     },
     examplesTitle: 'Ejemplos de diseños creados con Weë',
-    examples: [
-      { title: 'Auto futurista', subtitle: 'Concepto', kind: 'image', emoji: '🏎️', tone: T.slate },
-      { title: 'Helicóptero de rescate', subtitle: 'Transporte', kind: 'image', emoji: '🚁', tone: T.coral },
-      { title: 'Botella de agua', subtitle: 'Producto', kind: 'image', emoji: '🧴', tone: T.sky },
-      { title: 'Casa moderna', subtitle: 'Arquitectura', kind: 'image', emoji: '🏡', tone: T.sand },
-      { title: 'Taza de café', subtitle: 'Producto', kind: 'image', emoji: '☕', tone: T.yellow },
-      { title: 'Zapatilla deportiva', subtitle: 'Calzado', kind: 'image', emoji: '👟', tone: T.mint },
-      { title: 'Robot asistente', subtitle: 'Personaje', kind: 'image', emoji: '🤖', tone: T.plum },
-    ],
+    /*
+     * Vacío a propósito. Aquí había siete tarjetas que parecían diseños y eran
+     * degradados de color con un emoji encima. Debajo de un muro con trabajos
+     * reales de otras personas dejarían de ilustrar posibilidades para parecer
+     * diseños falsos, justo en la sección donde la credibilidad visual lo es todo.
+     * No se sustituyen por nada: el muro enseña lo que hay.
+     */
+    examples: [],
   },
 
   photo: {
@@ -265,21 +370,62 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
 
   studio: {
     id: 'studio',
-    headline: 'Convierte tus ideas en videos',
-    intro: 'No necesitas saber hacer videos. Cuéntame qué quieres crear y te ayudaré paso a paso.',
+    /*
+     * La cabecera nombra las tres cosas (fase 2E-52).
+     *
+     * Weë Studio reunió fotos, videos y look en 2E-50, pero el hero se quedó
+     * diciendo «Convierte tus ideas en videos» y «No necesitas saber hacer videos»
+     * justo encima de un selector cuya primera puerta es Fotos y cuya tercera es
+     * Beauty. Era el primer texto de la sección desmintiendo lo que la sección
+     * hace: quien venía a retocar una foto podía irse antes de abrir el selector.
+     */
+    headline: 'Crea fotos y videos con IA',
+    intro: 'Cuéntame qué quieres crear y te ayudaré paso a paso.',
     chips: ['Fácil de usar', 'Resultados increíbles', 'Para todos'],
-    note: 'Ideas en movimiento',
+    // Vale para una foto, para un video y para un cambio de look.
+    note: 'Ideas que se ven',
     heroEmoji: '🎬',
     gridTitle: '¿Qué quieres hacer hoy?',
-    actionLayout: 'wide',
+    gridHint: 'Fotos, videos y cambios de look.',
+    /*
+     * Tres áreas, no veintiséis funciones (fase 2E-50) — y en dos niveles (2E-53).
+     *
+     * Weë Studio reúne lo que antes eran tres secciones. Aquí no se elige una
+     * función: se elige de qué se va a hablar. Cada área abre la conversación de su
+     * experiencia —que sigue existiendo entera, con sus plantillas, sus planes y sus
+     * capacidades— y es allí donde se pregunta qué se quiere hacer: "¿Qué hacemos
+     * con tu foto?" son las ocho de Photo, "¿Qué quieres probar?" las diez de Beauty
+     * y "¿Qué tipo de video?" las cuatro de Studio.
+     *
+     * Por eso las tarjetas de función desaparecen del selector sin perder nada: ya
+     * vivían como primera pregunta de cada flujo.
+     *
+     * Los dos niveles vienen de que la sección dice una sola cosa: crea fotos y
+     * videos. Esos son los caminos principales; Beauty es una capacidad
+     * especializada de ese mismo mundo, así que va debajo, en un renglón propio,
+     * más pequeña pero a un toque. Ni compitiendo con el mensaje, ni escondida.
+     */
+    actionLayout: 'compact',
     actions: [
-      { id: 'video', icon: 'videocam-outline', emoji: '🎬', title: 'Crear un video', subtitle: 'Cuéntame una idea y la convertiremos en video.', goal: 'Crear un video desde una idea', preset: { questionId: 'type', optionId: 'social' } },
-      { id: 'animate', icon: 'image-outline', emoji: '🖼️', title: 'Animar una foto', subtitle: 'Haz que una fotografía cobre vida.', goal: 'Animar una foto', preset: { questionId: 'type', optionId: 'animate' } },
-      { id: 'social', icon: 'phone-portrait-outline', emoji: '📱', title: 'Video para redes', subtitle: 'Crea contenido para Instagram, TikTok o YouTube.', goal: 'Un video para mis redes', preset: { questionId: 'type', optionId: 'social' } },
-      { id: 'ad', icon: 'megaphone-outline', emoji: '📣', title: 'Crear un anuncio', subtitle: 'Promociona tu producto o negocio.', goal: 'Crear un anuncio para mi negocio', preset: { questionId: 'type', optionId: 'promo' } },
-      { id: 'story', icon: 'book-outline', emoji: '📖', title: 'Contar una historia', subtitle: 'Crea una historia visual escena por escena.', goal: 'Contar una historia en video', preset: { questionId: 'type', optionId: 'story' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé cómo hacerlo', subtitle: 'Cuéntame qué quieres conseguir y Weë te orientará.', goal: 'Un video corto para mis redes', preset: { questionId: 'type', optionId: 'idk' }, idk: true },
+      { id: 'photos', icon: 'camera-outline', emoji: '📸', title: 'Fotos', subtitle: 'Crear, editar, mejorar y transformar fotos.', goal: 'Trabajar con una foto', opens: 'photo' },
+      { id: 'videos', icon: 'videocam-outline', emoji: '🎬', title: 'Videos', subtitle: 'Crear videos, animar fotos y contenido para redes.', goal: 'Crear un video', opens: 'studio' },
+      { id: 'beauty', icon: 'sparkles-outline', emoji: '💄', title: 'Beauty', subtitle: 'Maquillaje, cabello, rostro, ropa, uñas y cuidado personal.', goal: 'Probar un cambio de look', opens: 'beauty', secondary: true },
     ],
+    // Weë Studio estrena muro después de Weë Chef y Weë Design (fase 2E-50).
+    wall: {
+      tabs: [
+        { id: 'all', label: 'Muro Studio' },
+        { id: 'tutorials', label: 'Cómo lo hicieron' },
+        { id: 'saved', label: 'Guardados' },
+      ],
+      placeholder: 'Comparte una foto, un video o una pregunta…',
+      empty: {
+        emoji: '🎬',
+        title: 'Todavía no hay nada en el muro de Weë Studio',
+        text: 'Comparte tu primera foto, video o cambio de look con la comunidad.',
+        button: 'Crear publicación',
+      },
+    },
     inputs: ['text', 'upload'],
     idea: {
       title: '¿Tienes una idea en mente?',
@@ -341,27 +487,53 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     note: 'Buenas ideas también se cocinan',
     heroEmoji: '🍝',
     gridTitle: '¿Qué quieres hacer hoy?',
-    actionLayout: 'tiles',
+    gridHint: 'Elige una opción y empieza a cocinar con Weë.',
+    // Controles pequeños, sin fotografías: las siete funciones se recorren de un
+    // vistazo y dejan la pantalla para lo que de verdad manda, que es el muro.
+    actionLayout: 'compact',
     actions: [
       { id: 'recipe', icon: 'restaurant-outline', emoji: '🍲', title: 'Quiero una receta', subtitle: 'Dime qué se te antoja', goal: 'Quiero una receta', preset: { questionId: 'what', optionId: 'recipe' } },
-      { id: 'ingredients', icon: 'nutrition-outline', emoji: '🧊', title: 'Usar mis ingredientes', subtitle: 'Cocina con lo que tienes', goal: 'Cocinar con los ingredientes que tengo en casa', preset: { questionId: 'what', optionId: 'cook' } },
+      // El subtítulo dice qué foto hace falta: es lo único que aportaba el bloque
+      // "¿Tienes una foto?", que repetía esta acción y la de retocar (fase 2E-40).
+      { id: 'ingredients', icon: 'nutrition-outline', emoji: '🧊', title: 'Usar mis ingredientes', subtitle: 'Desde la foto de tu refrigerador', goal: 'Cocinar con los ingredientes que tengo en casa', preset: { questionId: 'what', optionId: 'cook' } },
       { id: 'menu', icon: 'list-outline', emoji: '📋', title: 'Crear un menú', subtitle: 'Para la semana o un evento', goal: 'Crear un menú', preset: { questionId: 'what', optionId: 'menu' } },
       { id: 'healthy', icon: 'leaf-outline', emoji: '🥗', title: 'Opciones saludables', subtitle: 'Rico y ligero', goal: 'Quiero opciones saludables para comer', preset: { questionId: 'what', optionId: 'healthy' } },
       { id: 'dessert', icon: 'ice-cream-outline', emoji: '🍰', title: 'Postres', subtitle: 'Fáciles y deliciosos', goal: 'Quiero un postre fácil', preset: { questionId: 'what', optionId: 'dessert' } },
+      { id: 'edit', icon: 'camera-outline', emoji: '📸', title: 'Retocar mi foto', subtitle: 'Mejora la foto de tu plato', goal: 'Retocar la foto de mi plato', preset: { questionId: 'what', optionId: 'edit' } },
       { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué cocinar', subtitle: 'Te propongo algo rico', goal: 'No sé qué cocinar hoy', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
-    inputs: ['text', 'camera', 'voice'],
+    // Chef acepta imágenes en dos de sus flujos (cocinar con lo que tengo y
+    // retocar el plato), igual que Photo, Home y Beauty.
+    inputs: ['text', 'upload', 'camera', 'voice'],
     idea: {
       title: '¡Hola! Soy Weë Chef 👨‍🍳',
       subtitle: 'Cuéntame, ¿qué te gustaría cocinar hoy?',
       placeholder: 'Escribe tu idea aquí…',
       chips: ['Quiero una cena rápida', 'Recetas con pollo', 'Algo saludable', 'Un postre fácil', 'Qué puedo hacer con esto'],
     },
-    upload: {
-      title: '¿Tienes ingredientes en casa?',
-      subtitle: 'Toma una foto de tu refrigerador y Weë te dirá qué puedes cocinar.',
-      hint: 'JPG, PNG o WEBP (máx. 10 MB)',
-      button: 'Subir foto',
+    /*
+     * Chef no tiene caja de subida propia. Sus dos rutas con foto —retocar el
+     * plato y cocinar con lo que hay— son dos de las siete funciones, y cada una
+     * dice en su subtítulo qué foto espera. El bloque "¿Tienes una foto?" que
+     * hubo aquí las repetía palabra por palabra y se quitó en 2E-40: una acción,
+     * un sitio. La foto se sigue pidiendo dentro de la conversación, como antes.
+     */
+    // Weë Chef es el piloto del muro social dentro de una sección (fase 2E-37).
+    wall: {
+      tabs: [
+        { id: 'all', label: 'Muro Chef' },
+        { id: 'images', label: 'Recetas' },
+        { id: 'tutorials', label: 'Consejos' },
+        { id: 'mine', label: 'Mis recetas' },
+        { id: 'saved', label: 'Favoritos' },
+      ],
+      placeholder: 'Comparte tu plato, una receta o una pregunta…',
+      empty: {
+        emoji: '🍳',
+        title: 'Todavía no hay nada en el muro de Weë Chef',
+        text: 'Comparte tu primera receta, pregunta o experiencia con la comunidad.',
+        button: 'Crear publicación',
+      },
     },
     examplesTitle: 'Recetas populares',
     examples: [
@@ -382,15 +554,23 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     heroEmoji: '🛋️',
     gridTitle: '¿Qué quieres hacer hoy?',
     actionLayout: 'wide',
+    /*
+     * Las mismas siete intenciones que la conversación (fase 2E-60).
+     *
+     * Esta pantalla ya no se abre desde la navegación —a Hogar & Diseño se entra
+     * por el selector de Weë Design—, pero mientras exista no puede enseñar una
+     * lista distinta de la que existe: "Remodelar" era una octava puerta que
+     * hacía lo mismo que rediseñar y se retiró en 2E-59. Su identificador sigue
+     * resolviendo en la plantilla; lo que desaparece es el botón.
+     */
     actions: [
-      { id: 'design', icon: 'bed-outline', emoji: '🛋️', title: 'Diseñar tus espacios', subtitle: 'Visualiza cómo se verían tus ambientes.', goal: 'Diseñar un espacio de mi casa', preset: { questionId: 'what', optionId: 'design' } },
-      { id: 'remodel', icon: 'brush-outline', emoji: '🧱', title: 'Remodelar', subtitle: 'Cambia pisos, paredes y estilos.', goal: 'Remodelar un espacio de mi casa', preset: { questionId: 'what', optionId: 'remodel' } },
-      { id: 'furniture', icon: 'cube-outline', emoji: '🪑', title: 'Probar muebles', subtitle: 'Ve cómo quedan en tu espacio.', goal: 'Probar muebles nuevos en mi espacio', preset: { questionId: 'what', optionId: 'furniture' } },
-      { id: 'garden', icon: 'leaf-outline', emoji: '🌿', title: 'Exterior y jardín', subtitle: 'Diseña fachadas, terrazas y jardines.', goal: 'Diseñar mi jardín o exterior', preset: { questionId: 'what', optionId: 'garden' } },
+      { id: 'design', icon: 'bed-outline', emoji: '🏠', title: 'Rediseñar mi espacio', subtitle: 'Muebles, colores y decoración nuevos, con tus mismas paredes.', goal: 'Diseñar un espacio de mi casa', preset: { questionId: 'what', optionId: 'design' } },
+      { id: 'furniture', icon: 'cube-outline', emoji: '🪑', title: 'Cambiar o probar muebles', subtitle: 'Ve cómo quedan otros muebles sin tocar los acabados.', goal: 'Probar muebles nuevos en mi espacio', preset: { questionId: 'what', optionId: 'furniture' } },
+      { id: 'colors', icon: 'color-palette-outline', emoji: '🎨', title: 'Cambiar estilo y colores', subtitle: 'Otra paleta y otros materiales, con tus mismos muebles.', goal: 'Cambiar los colores de mi espacio', preset: { questionId: 'what', optionId: 'colors' } },
+      { id: 'layout', icon: 'grid-outline', emoji: '📐', title: 'Mejorar la distribución', subtitle: 'Los muebles que ya tienes, mejor puestos.', goal: 'Mejorar la distribución de mi espacio', preset: { questionId: 'what', optionId: 'layout' } },
+      { id: 'garden', icon: 'leaf-outline', emoji: '🌿', title: 'Exterior y jardín', subtitle: 'Fachadas, terrazas, patios y jardines.', goal: 'Diseñar mi jardín o exterior', preset: { questionId: 'what', optionId: 'garden' } },
       { id: 'ideas', icon: 'bulb-outline', emoji: '💡', title: 'Buscar ideas', subtitle: 'Inspírate con estilos y tendencias.', goal: 'Buscar ideas para mi casa', preset: { questionId: 'what', optionId: 'ideas' } },
-      { id: 'layout', icon: 'grid-outline', emoji: '📐', title: 'Planos y distribución', subtitle: 'Optimiza el espacio de tu hogar.', goal: 'Mejorar la distribución de mi espacio', preset: { questionId: 'what', optionId: 'layout' } },
-      { id: 'colors', icon: 'color-palette-outline', emoji: '🎨', title: 'Cambiar colores', subtitle: 'Explora diferentes paletas y estilos.', goal: 'Cambiar los colores de mi espacio', preset: { questionId: 'what', optionId: 'colors' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué hacer', subtitle: 'Cuéntame tu idea y te ayudo.', goal: 'Renovar un espacio de mi casa', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
+      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué hacer', subtitle: 'Miro tu espacio y te propongo por dónde empezar.', goal: 'Renovar un espacio de mi casa', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
     inputs: ['upload', 'text'],
     upload: {
@@ -512,7 +692,14 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
 };
 
 /** Orden de la barra lateral y de la pantalla de Weë Creator (referencias visuales). */
-export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'photo', 'music', 'studio', 'business', 'chef', 'home', 'beauty', 'writer'];
+/**
+ * El orden de las secciones en la barra lateral. Photo y Beauty ya no están:
+ * se entra a ellas desde el selector de Weë Studio. Home tampoco, desde la fase
+ * 2E-56: se entra por el de Weë Design, como Hogar & Diseño. Las tres
+ * configuraciones siguen enteras más arriba, porque sus mesas de trabajo se
+ * siguen usando.
+ */
+export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'];
 
 export const getSpecialist = (id: string): (SpecialistConfig & { experience: WeeExperience }) | null => {
   const config = SPECIALISTS[id as SpecialistId];

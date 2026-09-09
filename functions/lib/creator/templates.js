@@ -39,35 +39,165 @@ const q = (id, text, options, allowFreeText = true, when) => (Object.assign({ id
     options,
     allowFreeText }, (when ? { when } : {})));
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Cómo se dice en el encargo cada respuesta de Weë Design. Se escriben aquí, y no
+ * pegando la etiqueta del botón, para que el texto que llega al modelo sea una
+ * frase y no una lista: "con un aire natural", no "Natural".
+ */
+const FRASES_DESIGN = {
+    feel: {
+        serious: 'con un aire serio y confiable',
+        modern: 'con un aire moderno',
+        close: 'con un aire cercano y divertido',
+        luxury: 'con un aire de lujo',
+        natural: 'con un aire natural',
+    },
+    where: {
+        feed: 'en formato cuadrado, para Instagram o Facebook',
+        story: 'en vertical, para una historia',
+        whatsapp: 'en un formato fácil de compartir por WhatsApp',
+        print: 'en formato A4, listo para imprimir',
+    },
+    look: {
+        clean: 'de aspecto moderno y limpio',
+        natural: 'de aspecto natural',
+        luxury: 'de aspecto lujoso',
+        fun: 'de aspecto divertido y colorido',
+        industrial: 'de aspecto industrial',
+    },
+    era: {
+        future: 'del futuro',
+        now: 'de hoy',
+        classic: 'de estilo clásico',
+        scifi: 'de ciencia ficción',
+    },
+    inout: {
+        // Neutras a propósito: "una casa, visto por fuera" no concuerda.
+        outside: 'por fuera',
+        inside: 'por dentro',
+        wide: 'en una vista amplia',
+    },
+    draw: {
+        cartoon: 'en estilo de dibujo animado',
+        real: 'en estilo realista',
+        game: 'con estética de videojuego',
+        pencil: 'dibujado a lápiz',
+        cute: 'con un aire tierno',
+    },
+};
 const design = {
     name: 'Weë Design',
     emoji: '🎨',
     defaultGoal: 'Diseñar algo que imagino',
+    /*
+     * Siete conversaciones en la misma mesa (fase 2E-45).
+     *
+     * Antes las siete intenciones recibían las mismas tres preguntas: qué, estilo y
+     * para qué. Preguntarle el estilo "minimalista" a quien viene a crear un
+     * personaje, o "para qué lo necesitas" a quien ya dijo que quiere un logo para
+     * su marca, es hacer preguntas por simetría y no por utilidad.
+     *
+     * Ahora cada intención tiene las suyas: una que solo la persona sabe —el nombre
+     * de su marca, qué producto imagina, quién es su personaje— y otra que decide
+     * algo que el texto no suele decir. Ninguna llega a tres.
+     *
+     * `when` es el mecanismo que ya existía (Weë Chef lo usa desde 2E-29): una
+     * pregunta solo aparece si toca. Y varias llevan `&& !a.<id>`, que significa
+     * "no la preguntes si ya lo sabemos": si la persona escribió "un deportivo del
+     * futuro", la época ya está dicha y volver a preguntarla es no haber escuchado.
+     */
     questions: [
-        q('what', '¿Qué quieres diseñar?', [
-            opt('object', '🚗 Un objeto o vehículo'),
-            opt('product', '🧴 Un producto o envase'),
-            opt('character', '🧑‍🚀 Un personaje o criatura'),
-            opt('logo', '🏷️ Un logo o identidad'),
-            opt('poster', '🪧 Un afiche o pieza para redes'),
-            opt('scene', '🌄 Un mundo o escena'),
+        // Solo se pregunta en "No sé qué diseñar": las otras seis llegan contestadas.
+        q('what', 'Cuéntame qué necesitas y te propongo por dónde empezar', [
+            opt('logo', '🔤 Un logo o mi marca · si todavía no tienes una'),
+            opt('poster', '🪧 Algo para redes o publicidad · para anunciar algo'),
+            opt('product', '📦 Un producto · envases, muebles, ropa, tecnología'),
+            opt('object', '🏎️ Un vehículo o una máquina · autos, aviones, inventos'),
+            opt('scene', '🏙️ Un lugar o un escenario · casas, locales, paisajes'),
+            opt('character', '🧑‍🚀 Un personaje · mascotas, héroes, criaturas'),
+        ]),
+        // 🔤 Un logo o mi marca
+        q('name', '¿Qué nombre o texto quieres que aparezca?', [], true, (a) => a.what === 'logo'),
+        q('feel', '¿Qué quieres que transmita tu marca?', [
+            opt('serious', '🏛️ Seria y confiable'),
+            opt('modern', '✨ Moderna'),
+            opt('close', '🎈 Cercana y divertida'),
+            opt('luxury', '💎 De lujo'),
+            opt('natural', '🌿 Natural'),
             IDK,
-        ]),
-        q('style', '¿Qué estilo buscas?', [
-            opt('realistic', '📷 Realista'),
-            opt('futuristic', '🚀 Futurista'),
-            opt('elegant', '🎩 Elegante'),
-            opt('fun', '😄 Divertido'),
-            opt('minimal', '✨ Minimalista'),
-            SURPRISE,
-        ]),
-        q('purpose', '¿Para qué lo necesitas?', [
-            opt('pitch', '💼 Para vender una idea'),
-            opt('brand', '🏷️ Para una marca'),
-            opt('project', '📁 Para un proyecto'),
-            opt('imagine', '🎨 Solo quiero imaginarlo'),
+        ], true, (a) => a.what === 'logo'),
+        // 🪧 Algo para redes o publicidad
+        q('message', '¿Qué quieres anunciar o comunicar?', [
+            opt('promo', '🏷️ Una promoción'),
+            opt('event', '📅 Un evento'),
+            opt('launch', '🆕 Un producto nuevo'),
+            opt('news', '🕒 Un horario o una novedad'),
+        ], true, (a) => a.what === 'poster'),
+        q('where', '¿Dónde vas a publicarlo?', [
+            opt('feed', '📱 Instagram o Facebook'),
+            opt('story', '📖 Una historia'),
+            opt('whatsapp', '💬 WhatsApp'),
+            opt('print', '🖨️ Para imprimir'),
             IDK,
-        ]),
+        ], true, (a) => a.what === 'poster'),
+        // 📦 Un producto
+        q('item', '¿Qué producto quieres diseñar?', [
+            opt('pack', '📦 Un envase'),
+            opt('furniture', '🛋️ Un mueble'),
+            opt('clothes', '👟 Ropa o calzado'),
+            opt('gadget', '📱 Algo de tecnología'),
+        ], true, (a) => a.what === 'product'),
+        q('look', '¿Cómo lo imaginas?', [
+            opt('clean', '✨ Moderno y limpio'),
+            opt('natural', '🌿 Natural'),
+            opt('luxury', '💎 De lujo'),
+            opt('fun', '🎈 Divertido'),
+            opt('industrial', '🏭 Industrial'),
+            IDK,
+        ], true, (a) => a.what === 'product' && !a.look),
+        // 🏎️ Un vehículo o una máquina
+        q('machine', '¿Qué vehículo o máquina imaginas?', [
+            opt('car', '🏎️ Un auto'),
+            opt('air', '🚁 Algo que vuela'),
+            opt('bike', '🏍️ Una moto'),
+            opt('engine', '⚙️ Un motor o una pieza'),
+        ], true, (a) => a.what === 'object'),
+        // Solo si no se sabe ya: quien escribe "del futuro" no debe repetirlo.
+        q('era', '¿De qué época?', [
+            opt('future', '🚀 Del futuro'),
+            opt('now', '🏁 De ahora'),
+            opt('classic', '🕰️ Clásico'),
+            opt('scifi', '🤖 Ciencia ficción'),
+            IDK,
+        ], true, (a) => a.what === 'object' && !a.era),
+        // 🏙️ Un lugar o un escenario
+        q('place', '¿Qué lugar o escenario quieres crear?', [
+            opt('house', '🏠 Una casa'),
+            opt('shop', '🏪 Un local o negocio'),
+            opt('city', '🌆 Una ciudad'),
+            opt('nature', '🌄 Un paisaje'),
+        ], true, (a) => a.what === 'scene'),
+        q('inout', '¿Es un espacio interior o exterior?', [
+            opt('outside', '🏠 Por fuera'),
+            opt('inside', '🛋️ Por dentro'),
+            opt('wide', '🌄 Una vista amplia'),
+            IDK,
+        ], true, (a) => a.what === 'scene' && !a.inout),
+        // 🧑‍🚀 Un personaje
+        q('who', '¿Quién o qué personaje quieres crear?', [
+            opt('mascot', '🐶 Una mascota para mi marca'),
+            opt('hero', '🦸 Un héroe o protagonista'),
+            opt('robot', '🤖 Un robot'),
+            opt('creature', '🐉 Una criatura'),
+        ], true, (a) => a.what === 'character'),
+        q('draw', '¿Qué estilo visual quieres?', [
+            opt('cartoon', '🎨 Dibujo animado'),
+            opt('real', '📷 Realista'),
+            opt('game', '🕹️ De videojuego'),
+            opt('pencil', '✏️ A lápiz'),
+            opt('cute', '🧸 Tierno'),
+            IDK,
+        ], true, (a) => a.what === 'character' && !a.draw),
     ],
     infer: (goal) => {
         const answers = {};
@@ -75,39 +205,138 @@ const design = {
             logo: ['logo', 'logotipo', 'identidad', 'marca'],
             poster: ['afiche', 'flyer', 'poster', 'póster', 'post ', 'publicidad', 'anuncio', 'redes', 'instagram', 'portada'],
             character: ['personaje', 'criatura', 'mascota', 'héroe', 'heroe', 'robot', 'monstruo', 'avatar'],
-            scene: ['mundo', 'escena', 'paisaje', 'ciudad', 'ambiente', 'planeta'],
+            /*
+             * Una casa es un lugar, no una máquina (fase 2E-56).
+             *
+             * "casa" y "edificio" vivían en `object`, el cajón de los autos y los
+             * motores, así que "una casa moderna" acababa en el camino de vehículos.
+             * Ahora están donde corresponde: quien imagina una casa desde cero está
+             * pensando en un lugar. Y quien quiere transformar la suya tiene otra
+             * puerta —🏠 Hogar & Diseño—, que trabaja sobre su foto.
+             *
+             * Aquí solo entran palabras que nombran un lugar sin ambigüedad. Los
+             * nombres de habitación (sala, cocina, dormitorio, baño, oficina) se
+             * quedan fuera a propósito: chocarían con `product`, que reconoce muebles,
+             * y ya se leen más abajo en `inout`.
+             */
+            scene: ['mundo', 'escena', 'paisaje', 'ciudad', 'ambiente', 'planeta', 'casa', 'hogar', 'departamento', 'edificio', 'fachada', 'terraza', 'jardín', 'jardin', 'patio', 'interiores'],
             product: ['botella', 'vaso', 'envase', 'empaque', 'packaging', 'zapatilla', 'ropa', 'mueble', 'silla', 'mesa', 'lámpara', 'lampara', 'producto', 'celular', 'reloj', 'juguete'],
-            object: ['auto', 'carro', 'coche', 'vehículo', 'vehiculo', 'moto', 'helicóptero', 'helicoptero', 'avión', 'avion', 'dron', 'nave', 'casa', 'edificio', 'máquina', 'maquina', 'motor', 'invento'],
+            object: ['auto', 'carro', 'coche', 'vehículo', 'vehiculo', 'moto', 'helicóptero', 'helicoptero', 'avión', 'avion', 'dron', 'nave', 'máquina', 'maquina', 'motor', 'invento'],
         });
         if (what)
             answers.what = what;
-        const style = inferByKeywords(goal, {
-            futuristic: ['futurista', 'del futuro', 'futuro', 'espacial', 'cyber'],
-            realistic: ['realista', 'foto', 'real '],
-            elegant: ['elegante', 'lujo', 'premium', 'sofisticad'],
-            fun: ['divertid', 'infantil', 'caricatura', 'cartoon', 'para niños'],
-            minimal: ['minimalista', 'simple', 'limpio', 'sencillo'],
+        /*
+         * Lo que se deduce aquí deja de preguntarse: cada una de estas respuestas
+         * apaga su pregunta con el `!a.<id>` de su `when`. No se deduce el sujeto
+         * —el nombre de la marca, qué producto— porque eso solo lo sabe la persona.
+         */
+        const era = inferByKeywords(goal, {
+            future: ['futurista', 'del futuro', 'futuro', 'espacial', 'cyber'],
+            classic: ['clásico', 'clasico', 'vintage', 'antiguo', 'retro'],
+            scifi: ['ciencia ficción', 'ciencia ficcion', 'sci-fi', 'galáctic', 'galactic'],
         });
-        if (style)
-            answers.style = style;
+        if (era)
+            answers.era = era;
+        const inout = inferByKeywords(goal, {
+            inside: ['interior', 'por dentro', 'sala', 'salón', 'salon', 'habitación', 'habitacion', 'cocina', 'oficina'],
+            outside: ['fachada', 'exterior', 'por fuera'],
+            wide: ['paisaje', 'ciudad', 'bosque', 'vista'],
+        });
+        if (inout)
+            answers.inout = inout;
+        const draw = inferByKeywords(goal, {
+            cartoon: ['dibujo animado', 'caricatura', 'cartoon', 'animado'],
+            real: ['realista', 'fotorrealista'],
+            game: ['videojuego', 'gamer'],
+            pencil: ['a lápiz', 'a lapiz', 'boceto'],
+            cute: ['tierno', 'kawaii', 'adorable'],
+        });
+        if (draw)
+            answers.draw = draw;
+        const look = inferByKeywords(goal, {
+            luxury: ['lujo', 'premium', 'sofisticad'],
+            natural: ['natural', 'ecológic', 'ecologic', 'artesanal'],
+            fun: ['divertid', 'infantil', 'colorid'],
+            industrial: ['industrial', 'metálic', 'metalic'],
+            clean: ['minimalista', 'simple', 'limpio', 'sencillo', 'moderno'],
+        });
+        if (look)
+            answers.look = look;
         return answers;
     },
     buildPlan: (goal, answers) => {
-        const what = chosen(design.questions[0], answers);
-        const style = chosen(design.questions[1], answers);
-        const purpose = chosen(design.questions[2], answers);
-        const piece = what.idk ? 'lo que describiste' : what.label.toLowerCase();
-        const look = style.idk ? 'realista y cuidado' : style.label.toLowerCase();
-        const use = purpose.idk ? 'para que lo veas y decidas' : purpose.label.toLowerCase();
-        const count = what.id === 'logo' ? 3 : 3;
+        /*
+         * Cada intención arma su propio encargo con sus propias respuestas. Lo que se
+         * le manda al modelo se escribe en frases, no pegando etiquetas: "un logo para
+         * \"La Espiga\", con un aire natural" en vez de "logo, estilo natural, marca".
+         */
+        const pregunta = (id) => design.questions.find((x) => x.id === id);
+        const resp = (id) => chosen(pregunta(id), answers);
+        /**
+         * Lo que escribió o eligió, tal cual. Vacío si no contestó o dijo "No sé".
+         * Sin contestar hay que comprobarlo antes: en una pregunta sin opciones —el
+         * nombre de la marca— el valor por defecto es la palabra "idk", y llegó a
+         * salir un encargo que pedía "un logo para \"idk\"".
+         */
+        const suyo = (id) => { if (!answers[id])
+            return ''; const c = resp(id); return c.idk ? '' : c.label.trim(); };
+        /** La frase con la que ese matiz entra en el encargo. */
+        const frase = (id) => { var _a; if (!answers[id])
+            return ''; const c = resp(id); if (c.idk)
+            return ''; return ((_a = FRASES_DESIGN[id]) === null || _a === void 0 ? void 0 : _a[c.id]) || c.label.toLowerCase(); };
+        const what = resp('what');
+        const count = 3;
+        const RAMAS = {
+            logo: () => {
+                const nombre = suyo('name');
+                const alma = frase('feel');
+                return {
+                    brief: [nombre ? `un logo para "${nombre}"` : 'un logo', alma].filter(Boolean).join(', '),
+                    explica: `Voy a crear ${count} logos${nombre ? ` para "${nombre}"` : ''}${alma ? `, ${alma}` : ''}.`,
+                    nombre: 'logos',
+                };
+            },
+            poster: () => {
+                const que = suyo('message').toLowerCase();
+                const donde = frase('where');
+                return {
+                    brief: [que ? `una pieza para anunciar ${que}` : 'una pieza para redes', donde].filter(Boolean).join(', '),
+                    explica: `Voy a crear ${count} propuestas${que ? ` para anunciar ${que}` : ''}${donde ? `, ${donde}` : ''}.`,
+                    nombre: 'propuestas',
+                };
+            },
+            product: () => {
+                const cosa = suyo('item').toLowerCase() || 'un producto';
+                const aspecto = frase('look');
+                return { brief: [cosa, aspecto].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${cosa}${aspecto ? `, ${aspecto}` : ''}.`, nombre: 'propuestas' };
+            },
+            object: () => {
+                const cosa = suyo('machine').toLowerCase() || 'un vehículo';
+                const epoca = frase('era');
+                return { brief: [cosa, epoca].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${cosa}${epoca ? `, ${epoca}` : ''}.`, nombre: 'propuestas' };
+            },
+            scene: () => {
+                const sitio = suyo('place').toLowerCase() || 'un lugar';
+                const vista = frase('inout');
+                return { brief: [sitio, vista].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${sitio}${vista ? `, ${vista}` : ''}.`, nombre: 'propuestas' };
+            },
+            character: () => {
+                const quien = suyo('who').toLowerCase() || 'un personaje';
+                const trazo = frase('draw');
+                return { brief: [quien, trazo].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${quien}${trazo ? `, ${trazo}` : ''}.`, nombre: 'propuestas' };
+            },
+        };
+        // Si escribió su idea con sus palabras en vez de elegir, esa idea es el encargo.
+        const suelto = what.idk ? 'lo que me describiste' : what.label.toLowerCase();
+        const rama = (RAMAS[what.id] || (() => ({ brief: suelto, explica: `Voy a crear ${count} propuestas de ${suelto}.`, nombre: 'propuestas' })))();
         return {
             experience: 'design',
             goal,
             steps: [
-                step('concept', 'text.generate', 'Definir el concepto', { input: { kind: 'concept', brief: `${piece}, estilo ${look}, ${use}` } }),
-                step('images', 'image.generate', `Crear ${count} propuestas de diseño`, { dependsOn: ['concept'], input: { count, kind: what.id === 'logo' ? 'logo' : 'design', brief: `${piece}, estilo ${look}` } }),
+                step('concept', 'text.generate', 'Definir el concepto', { input: { kind: 'concept', brief: rama.brief } }),
+                step('images', 'image.generate', `Crear ${count} ${rama.nombre}`, { dependsOn: ['concept'], input: { count, kind: what.id === 'logo' ? 'logo' : 'design', brief: rama.brief } }),
             ],
-            explainToUser: `Voy a definir el concepto y crear ${count} propuestas de ${piece}, con un estilo ${look}, ${use}.${decided(what.idk, 'me guío por lo que escribiste')}${decided(style.idk, 'elegí un estilo realista y cuidado')}${decided(purpose.idk, 'lo preparo para que lo veas y decidas')}`,
+            explainToUser: rama.explica,
         };
     },
 };
@@ -696,21 +925,37 @@ const chef = {
             opt('menu', '📋 Crear un menú'),
             opt('healthy', '🥗 Algo saludable'),
             opt('dessert', '🍰 Un postre'),
+            opt('edit', '📸 Retocar la foto de mi plato'),
             opt('idk', '💡 No sé qué cocinar'),
         ]),
+        /*
+         * Qué cambiar en la foto. Solo aparece al retocar, y admite texto libre: la
+         * persona puede elegir una de las cuatro cosas que más se piden o escribir la
+         * suya ("quita la salsa del borde"). Es el mismo patrón que Weë Photo, con la
+         * lista corta que pide esta primera versión.
+         */
+        q('change', '¿Qué quieres cambiar de la foto?', [
+            opt('light', '💡 Mejorar la luz'),
+            opt('background', '🪵 Cambiar el fondo'),
+            opt('appetizing', '🤤 Que se vea más apetitoso'),
+            opt('pro', '📷 Que parezca de restaurante'),
+            opt('clean', '🧹 Quitar algo que sobra'),
+            IDK,
+        ], true, (a) => a.what === 'edit'),
+        // Cuántos comen y cuánto tiempo hay solo importan si se va a cocinar.
         q('people', '¿Para cuántas personas?', [
             opt('1', '👤 Solo para mí'),
             opt('2', '👥 Para dos'),
             opt('4', '👨‍👩‍👧 Para la familia'),
             opt('8', '🎉 Para muchos'),
             IDK,
-        ]),
+        ], true, (a) => a.what !== 'edit'),
         q('time', '¿Cuánto tiempo tienes?', [
             opt('15', '⚡ 15 minutos'),
             opt('30', '⏱️ Media hora'),
             opt('60', '🕐 Una hora o más'),
             opt('idk', '🤷 Da igual'),
-        ], true, (a) => a.what !== 'menu'),
+        ], true, (a) => a.what !== 'menu' && a.what !== 'edit'),
         q('days', '¿Para cuántos días?', [
             opt('3', '📆 Tres días'),
             opt('7', '🗓️ Toda la semana'),
@@ -728,14 +973,28 @@ const chef = {
         });
         if (what)
             answers.what = what;
+        /*
+         * Las claves llevan prefijo A PROPÓSITO: JavaScript enumera las propiedades que
+         * parecen enteros de menor a mayor, así que esta tabla —escrita de más a menos
+         * comensales— se recorría al revés (1, 2, 4, 8) y la opción más genérica ganaba
+         * siempre. "Una receta para mi familia" acababa saliendo como "solo para mí".
+         *
+         * Y ya no está "para mi": es un posesivo que aparece en casi cualquier frase
+         * ("para mi pareja", "para mis hijos", "para mi cumpleaños", "para mi jefe") y no
+         * dice cuánta gente come. "para mí", con tilde, sí lo dice y se queda.
+         *
+         * Los números escritos con cifra ("para 4 personas") siguen sin deducirse aquí:
+         * de eso se encarga el LLM, que sí sabe leerlos.
+         */
         const people = inferByKeywords(goal, {
-            '8': ['fiesta', 'reunión', 'reunion', 'muchos', 'invitados', 'cumpleaños', 'cumpleanos'],
-            '4': ['familia', 'niños', 'ninos', 'hijos', 'cuatro'],
-            '2': ['para dos', 'pareja', 'romántic', 'romantic'],
-            '1': ['para mí', 'para mi', 'solo yo', 'una persona'],
+            p8: ['fiesta', 'reunión', 'reunion', 'muchos', 'invitados', 'cumpleaños', 'cumpleanos'],
+            p4: ['familia', 'niños', 'ninos', 'hijos', 'cuatro'],
+            p2: ['para dos', 'pareja', 'romántic', 'romantic'],
+            p1: ['para mí', 'solo yo', 'una persona'],
         });
+        // La clave lleva el prefijo para conservar el orden; el id de la opción es el número.
         if (people)
-            answers.people = people;
+            answers.people = people.slice(1);
         const time = inferByKeywords(goal, {
             '15': ['rápid', 'rapid', '15 min', 'quince', 'express', 'algo rápido'],
             '30': ['media hora', '30 min', 'treinta'],
@@ -747,10 +1006,57 @@ const chef = {
     },
     buildPlan: (goal, answers) => {
         const what = chosen(chef.questions[0], answers);
-        const people = chosen(chef.questions[1], answers);
-        const time = chosen(chef.questions[2], answers);
-        const days = chosen(chef.questions[3], answers);
+        const people = chosen(chef.questions[2], answers);
+        const time = chosen(chef.questions[3], answers);
+        const days = chosen(chef.questions[4], answers);
         const kind = what.idk ? 'recipe' : what.id;
+        /*
+         * RETOCAR LA FOTO DEL PLATO.
+         *
+         * Aquí la foto es de la persona y el plato ya existe: no hay nada que inventar.
+         * Va directa como referencia a image.edit, sin pasar por vision.describe — el
+         * proveedor recibe la imagen entera, así que describírsela antes sería pagar una
+         * llamada para contarle lo que ya está viendo.
+         *
+         * El resto de Chef sigue creando imágenes nuevas con image.generate: esta rama
+         * es la única que edita.
+         */
+        if (kind === 'edit') {
+            const change = chosen(chef.questions[1], answers);
+            /*
+             * Lo que se le pide al modelo y lo que se le cuenta a la persona son dos
+             * textos distintos, y por eso van por separado.
+             *
+             * Antes se pegaba la respuesta detrás de "voy a", y con una opción colaba
+             * ("voy a cambiar el fondo") pero con texto libre salía "voy a cambia el
+             * fondo" y con "No sé", "voy a que se vea mejor". La frase que se lee justo
+             * antes de gastar Credits no puede estar mal escrita.
+             *
+             * Con texto libre no se intenta encajar lo que escribió la persona en la
+             * frase: se le dice que se hará eso y nada más.
+             */
+            const RETOQUES = {
+                light: { encargo: 'mejorar la luz', frase: 'voy a mejorar la luz' },
+                background: { encargo: 'cambiar el fondo', frase: 'voy a cambiar el fondo' },
+                appetizing: { encargo: 'que se vea más apetitoso', frase: 'voy a hacer que se vea más apetitoso' },
+                pro: { encargo: 'que parezca una foto de restaurante', frase: 'voy a darle aspecto de foto de restaurante' },
+                clean: { encargo: 'quitar el objeto que sobra y rehacer lo que había detrás', frase: 'voy a quitar lo que sobra' },
+                idk: { encargo: 'que se vea mejor sin cambiar el plato', frase: 'voy a mejorar su apariencia sin cambiar el plato' },
+            };
+            const retoque = RETOQUES[change.idk ? 'idk' : change.id];
+            // Lo que viaja al proveedor: la opción elegida o, si escribió, sus palabras.
+            const encargo = retoque ? retoque.encargo : change.label;
+            // Lo que lee la persona: siempre una frase bien construida.
+            const frase = retoque ? retoque.frase : 'aplicaré únicamente los cambios que me indicaste';
+            return {
+                experience: 'chef',
+                goal,
+                steps: [
+                    step('dish', 'image.edit', 'Retocar la foto de tu plato', { input: { kind: 'dish_edit', brief: encargo, count: 1 } }),
+                ],
+                explainToUser: `Voy a partir de tu foto y ${frase}. El plato se queda exactamente como está.`,
+            };
+        }
         const forWhom = people.idk ? 'para dos' : people.label.toLowerCase();
         const minutes = time.idk ? 'sin apuro' : `en ${time.label.toLowerCase()}`;
         if (kind === 'menu') {
@@ -780,19 +1086,47 @@ const chef = {
         };
     },
 };
+/**
+ * Identificadores que ya no tienen puerta propia pero siguen resolviendo.
+ *
+ * `remodel` era una intención aparte que armaba exactamente el mismo plan que
+ * rediseñar. Se retira de la pantalla y se conserva aquí: un trabajo histórico
+ * que la lleve en sus respuestas tiene que seguir abriendo (fase 2E-59).
+ */
+const HOME_ALIAS = { remodel: 'design' };
+/**
+ * Lo que cada intención cambia DE VERDAD, y lo que no debe tocar.
+ *
+ * Antes las seis intenciones de transformación mandaban el mismo texto al
+ * modelo: elegir "Probar muebles" en vez de "Cambiar colores" no cambiaba una
+ * palabra del prompt, así que tampoco cambiaba el resultado. Estas líneas son la
+ * diferencia real —qué se altera y qué se deja quieto—, y van en inglés porque
+ * es el idioma del resto del prompt de imagen (fase 2E-59).
+ */
+const HOME_FOCUS = {
+    design: 'Redesign the whole room: change the furniture, the colours, the materials and the decoration to reach the requested style. Keep the walls, the windows, the doors and the proportions of the room exactly where they are.',
+    furniture: 'Change ONLY the furniture: replace, add or remove furniture pieces and arrange them well. Keep the wall colour, the flooring, the ceiling, the windows and every finish exactly as they are in the photo.',
+    colors: 'Change ONLY the colours, the materials, the textiles and the decorative lighting. Keep the same furniture pieces in the same places: this is a change of style and palette, not a change of furniture.',
+    layout: 'Rearrange the furniture that is already in the photo to improve circulation and use of the space. Do not replace the furniture and do not redecorate: the same pieces, in better positions.',
+    garden: 'Redesign this outdoor space: planting, paving, outdoor furniture and lighting. Keep the built structure — walls, façade, railings and boundaries — exactly as it is.',
+    ideas: 'Create a reference interior image to inspire, in the requested style.',
+};
 const home = {
     name: 'Weë Home',
     emoji: '🏠',
     defaultGoal: 'Renovar un espacio de mi casa',
     questions: [
+        /*
+         * Seis intenciones que hacen seis cosas distintas, y una que no genera nada
+         * (fase 2E-59). "Remodelar" se fue: era rediseñar con otro nombre.
+         */
         q('what', '¿Qué quieres hacer?', [
-            opt('design', '🛋️ Diseñar el espacio'),
-            opt('remodel', '🧱 Remodelar'),
-            opt('furniture', '🪑 Probar muebles'),
-            opt('colors', '🎨 Cambiar colores'),
+            opt('design', '🏠 Rediseñar mi espacio'),
+            opt('furniture', '🪑 Cambiar o probar muebles'),
+            opt('colors', '🎨 Cambiar estilo y colores'),
             opt('layout', '📐 Mejorar la distribución'),
-            opt('ideas', '💡 Buscar ideas'),
             opt('garden', '🌿 Exterior y jardín'),
+            opt('ideas', '💡 Buscar ideas'),
             IDK,
         ]),
         q('space', '¿Qué espacio?', [
@@ -803,13 +1137,18 @@ const home = {
             opt('office', '💻 Mi oficina'),
             IDK,
         ], true, (a) => a.what !== 'garden'),
+        /*
+         * El estilo solo se pregunta donde decide algo. En "Mejorar la distribución"
+         * lo que importa es dónde va cada mueble, y en "No sé qué hacer" todavía no
+         * hay nada que estilizar: preguntarlo ahí es preguntar por simetría.
+         */
         q('style', '¿Qué estilo?', [
             opt('modern', '🏙️ Moderno'),
             opt('cozy', '🕯️ Acogedor'),
             opt('minimal', '◻️ Minimalista'),
             opt('boho', '🌵 Boho'),
             SURPRISE,
-        ]),
+        ], true, (a) => a.what !== 'layout' && a.what !== 'idk'),
     ],
     infer: (goal) => {
         const answers = {};
@@ -818,9 +1157,10 @@ const home = {
             colors: ['color', 'pintar', 'pintura', 'paleta'],
             furniture: ['mueble', 'sofá', 'sofa', 'mesa', 'silla', 'cama'],
             layout: ['distribución', 'distribucion', 'plano', 'espacio pequeño', 'espacio pequeno', 'aprovechar', 'organizar'],
-            remodel: ['remodel', 'piso', 'pared', 'reforma', 'renovar'],
             ideas: ['ideas', 'inspiración', 'inspiracion', 'tendencia'],
-            design: ['diseñar', 'disenar', 'cómo se vería', 'como se veria', 'moderna', 'acogedor'],
+            // "Remodelar" ya no es una puerta: quien lo escribe quiere rediseñar, y se
+            // le lleva ahí sin obligarle a elegir una opción que ya no existe (2E-59).
+            design: ['remodel', 'reforma', 'renovar', 'piso', 'pared', 'diseñar', 'disenar', 'cómo se vería', 'como se veria', 'moderna', 'acogedor'],
         });
         if (what)
             answers.what = what;
@@ -844,18 +1184,44 @@ const home = {
         return answers;
     },
     buildPlan: (goal, answers) => {
+        var _a, _b, _c;
         const what = chosen(home.questions[0], answers);
         const space = chosen(home.questions[1], answers);
         const style = chosen(home.questions[2], answers);
-        const kind = what.idk ? 'design' : what.id;
+        /*
+         * `remodel` ya no es una puerta propia (fase 2E-59): hacía exactamente lo
+         * mismo que rediseñar. Su identificador sigue resolviendo aquí, porque un
+         * trabajo antiguo que lo lleve en sus respuestas tiene que seguir armando su
+         * plan. Se retiró de la pantalla, no del sistema.
+         */
+        const kind = (_b = HOME_ALIAS[(_a = answers.what) !== null && _a !== void 0 ? _a : '']) !== null && _b !== void 0 ? _b : (what.idk ? 'advise' : what.id);
         const room = kind === 'garden' ? 'tu exterior' : space.idk ? 'la sala' : space.label.toLowerCase();
         const look = style.idk ? 'acogedor' : style.label.toLowerCase();
+        /*
+         * "No sé qué hacer" no genera: mira y aconseja (fase 2E-59).
+         *
+         * Antes esta opción arrancaba un rediseño completo, que es decidir por quien
+         * ha dicho justamente que no ha decidido —y cobrárselo—. Ahora Weë mira la
+         * foto, cuenta qué ve y propone el camino; generar viene después, cuando la
+         * persona ya sabe qué quiere.
+         */
+        if (kind === 'advise') {
+            return {
+                experience: 'home',
+                goal,
+                steps: [
+                    step('look', 'vision.describe', 'Mirar la foto de tu espacio', { input: { kind: 'describe' } }),
+                    step('advice', 'text.generate', 'Contarte qué veo y qué haría', { dependsOn: ['look'], input: { kind: 'advise', brief: room } }),
+                ],
+                explainToUser: `Voy a mirar ${room} y contarte qué cambiaría —muebles, colores, distribución— para que elijas por dónde empezar. Todavía no genero ninguna imagen.`,
+            };
+        }
         if (kind === 'ideas') {
             return {
                 experience: 'home',
                 goal,
                 steps: [
-                    step('ideas', 'image.generate', `Buscar ideas para ${room}`, { input: { count: 3, kind: 'space', brief: `${room}, estilo ${look}` } }),
+                    step('ideas', 'image.generate', `Buscar ideas para ${room}`, { input: { count: 3, kind: 'space', focus: HOME_FOCUS.ideas, brief: `${room}, estilo ${look}` } }),
                     step('tips', 'text.generate', 'Explicarte cómo lograrlo', { dependsOn: ['ideas'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
                 ],
                 explainToUser: `Voy a buscar tres ideas para ${room} en estilo ${look} y te explico cómo lograrlas.${decided(style.idk, 'elegí un estilo acogedor')}`,
@@ -868,21 +1234,24 @@ const home = {
                 steps: [
                     step('look', 'vision.describe', 'Mirar la foto del espacio', { input: { kind: 'describe' } }),
                     step('plan', 'text.generate', 'Proponer una distribución mejor', { dependsOn: ['look'], input: { kind: 'layout', brief: room } }),
-                    step('view', 'image.space_restyle', 'Mostrarte cómo quedaría', { dependsOn: ['plan'], input: { count: 1, kind: 'space', brief: `${room}, distribución nueva` } }),
+                    step('view', 'image.space_restyle', 'Mostrarte cómo quedaría', { dependsOn: ['plan'], input: { count: 1, kind: 'space', focus: HOME_FOCUS.layout, brief: `${room}, la misma distribución nueva que acabas de proponer` } }),
                 ],
-                explainToUser: `Voy a mirar ${room}, proponerte una distribución que aproveche mejor el espacio y mostrarte cómo quedaría.`,
+                explainToUser: `Voy a mirar ${room}, proponerte una distribución que aproveche mejor el espacio y mostrarte cómo quedaría con tus mismos muebles.`,
             };
         }
-        const action = kind === 'remodel' ? 'remodelar' : kind === 'furniture' ? 'probar muebles nuevos en' : kind === 'colors' ? 'cambiar los colores de' : kind === 'garden' ? 'diseñar' : 'rediseñar';
+        const action = kind === 'furniture' ? 'cambiar los muebles de' : kind === 'colors' ? 'cambiar el estilo y los colores de' : kind === 'garden' ? 'diseñar' : 'rediseñar';
         return {
             experience: 'home',
             goal,
             steps: [
                 step('look', 'vision.describe', 'Mirar la foto del espacio', { input: { kind: 'describe' } }),
-                step('restyle', 'image.space_restyle', `${action.replace(/^./, (c) => c.toUpperCase())} ${room} en estilo ${look}`, { dependsOn: ['look'], input: { count: 2, kind: 'space', brief: `${room}, estilo ${look}` } }),
+                step('restyle', 'image.space_restyle', `${action.replace(/^./, (c) => c.toUpperCase())} ${room} en estilo ${look}`, {
+                    dependsOn: ['look'],
+                    input: { count: 2, kind: 'space', focus: (_c = HOME_FOCUS[kind]) !== null && _c !== void 0 ? _c : HOME_FOCUS.design, brief: `${room}, estilo ${look}` },
+                }),
                 step('list', 'text.generate', 'Armar la lista de cambios y compras', { dependsOn: ['restyle'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
             ],
-            explainToUser: `Voy a ${action} ${room} en un estilo ${look}, en dos propuestas, y te dejo la lista de cambios y compras.${decided(what.idk, 'empiezo por rediseñarlo')}${decided(space.idk && kind !== 'garden', 'empiezo por la sala')}${decided(style.idk, 'elegí un estilo acogedor')}`,
+            explainToUser: `Voy a ${action} ${room} en un estilo ${look}, en dos propuestas, y te dejo la lista de cambios y compras.${decided(space.idk && kind !== 'garden', 'empiezo por la sala')}${decided(style.idk, 'elegí un estilo acogedor')}`,
         };
     },
 };

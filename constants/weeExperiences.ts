@@ -1,6 +1,11 @@
 /**
  * Las 10 experiencias de Weë Creator (docs/CREATOR.md §1 y §8).
  *
+ * Diez existen; ocho se ven. Weë Photo y Weë Beauty dejaron de ser secciones
+ * del menú y pasaron a ser áreas dentro de Weë Studio (fase 2E-50), pero sus
+ * identificadores, sus plantillas y sus rutas siguen enteros: de eso vive todo
+ * el trabajo ya creado. Por eso hay dos listas y no una.
+ *
  * "El usuario elige el resultado. Weë elige la IA."
  * Cada experiencia es un especialista visible; por detrás puede usar una o
  * varias APIs, modelos y servicios. La persona nunca ve proveedores ni prompts.
@@ -24,7 +29,11 @@ export interface WeeExperience {
   keywords: string[];
 }
 
-export const WEE_EXPERIENCES: WeeExperience[] = [
+/**
+ * Las diez, sin excepción. Es la lista con la que se resuelve un identificador:
+ * un trabajo de hace meses tiene que seguir abriéndose con su nombre y su emoji.
+ */
+export const ALL_EXPERIENCES: WeeExperience[] = [
   {
     id: 'design',
     name: 'Weë Design',
@@ -37,7 +46,11 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
     id: 'studio',
     name: 'Weë Studio',
     emoji: '🎬',
-    description: 'Videos, animaciones y publicidad con voz y música',
+    // La propuesta principal de la sección, tal cual (fases 2E-52 y 2E-53): esta
+    // línea se lee en la tarjeta de Weë Studio dentro de Weë Creator, y dice lo
+    // mismo que el hero. Beauty no entra aquí a propósito —tiene su propia
+    // descripción dentro del selector— para no repartir el mensaje principal.
+    description: 'Crea y transforma fotos y videos con IA.',
     examples: ['Un video para promocionar mi restaurante', 'Convertir mi foto en un video', 'Un Weël con mi producto'],
     keywords: ['video', 'weel', 'weël', 'reel', 'clip', 'anuncio', 'comercial', 'publicidad', 'animación', 'animacion', 'corto', 'película', 'pelicula', 'trailer', 'subtítulos', 'subtitulos', 'promocionar', 'tiktok', 'youtube', 'historia visual'],
   },
@@ -107,15 +120,61 @@ export const WEE_EXPERIENCES: WeeExperience[] = [
   },
 ];
 
-export const getExperienceById = (id: string): WeeExperience | undefined =>
-  WEE_EXPERIENCES.find((e) => e.id === id);
+/**
+ * Las que aparecen como sección en el menú ☰, en la barra lateral y en la
+ * pantalla de Weë Creator. Photo y Beauty no están: se entra a ellas desde el
+ * selector de Weë Studio. Home tampoco: entra por el de Weë Design, donde se
+ * llama Hogar & Diseño (fase 2E-56).
+ */
+export const HIDDEN_AS_SECTION: string[] = ['photo', 'beauty', 'home'];
 
-/** Experiencias cuyo nombre o palabras clave coinciden con lo que la persona quiere lograr. */
+export const WEE_EXPERIENCES: WeeExperience[] = ALL_EXPERIENCES.filter((e) => !HIDDEN_AS_SECTION.includes(e.id));
+
+/**
+ * Cómo se presenta una experiencia que vive dentro de otra sección. El
+ * identificador no cambia —sigue siendo `photo`, y con él viajan el historial y
+ * el servidor—, pero lo que se lee arriba dice dónde está de verdad la persona.
+ *
+ * `label` es el contexto completo, para la cabecera y la miga de pan.
+ * `name` es cómo se llama la experiencia cuando habla: firma las burbujas de la
+ * conversación, el progreso y el resultado. Sin `name` se usa el nombre propio
+ * de la experiencia, que es lo que siguen haciendo las tres áreas de Studio.
+ */
+export const EXPERIENCE_AREA: Record<string, { section: string; label: string; name?: string }> = {
+  photo: { section: 'studio', label: 'Weë Studio · Fotos' },
+  studio: { section: 'studio', label: 'Weë Studio · Videos' },
+  beauty: { section: 'studio', label: 'Weë Studio · Beauty' },
+  /*
+   * Weë Home pasa a ser Hogar & Diseño dentro de Weë Design. El nombre propio
+   * desaparece de la pantalla —nadie debe leer "Weë Home"—, pero el
+   * identificador `home` sigue intacto por debajo: con él viajan los trabajos
+   * históricos, la plantilla del servidor, los planes y los prompts.
+   */
+  home: { section: 'design', label: 'Weë Design · Hogar & Diseño', name: 'Hogar & Diseño' },
+};
+
+/**
+ * Cómo se llama una experiencia para quien la está usando: el nombre del área
+ * cuando vive dentro de otra sección, y su nombre propio cuando no.
+ */
+export const experienceLabel = (experience: { id: string; name: string }): string =>
+  EXPERIENCE_AREA[experience.id]?.name ?? experience.name;
+
+/** Resuelve por identificador entre LAS DIEZ: el historial depende de esto. */
+export const getExperienceById = (id: string): WeeExperience | undefined =>
+  ALL_EXPERIENCES.find((e) => e.id === id);
+
+/**
+ * Experiencias cuyo nombre o palabras clave coinciden con lo que la persona
+ * quiere lograr. Busca entre las diez a propósito: quien escribe "maquillaje" o
+ * "retocar" tiene que llegar a esa capacidad aunque su sección ya no esté en el
+ * menú. Esconder una sección no es esconder lo que sabe hacer.
+ */
 export const matchExperiences = (query: string): WeeExperience[] => {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const words = q.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3);
-  return WEE_EXPERIENCES.filter(
+  return ALL_EXPERIENCES.filter(
     (e) =>
       e.name.toLowerCase().includes(q) ||
       e.keywords.some((k) => q.includes(k) || words.some((w) => k.startsWith(w) || w.startsWith(k)))

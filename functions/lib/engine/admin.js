@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.engineAdmin = void 0;
+exports.engineAdmin = exports.validateSettings = void 0;
 const firestore_1 = require("firebase-admin/firestore");
+const secrets_1 = require("../secrets");
 const https_1 = require("firebase-functions/v2/https");
 const index_1 = require("./index");
 const registry_1 = require("./registry");
@@ -35,7 +36,29 @@ const validateChain = (chain) => {
         return out;
     });
 };
-exports.engineAdmin = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 60 }, async (request) => {
+/**
+ * Lo que se guarda aquí decide cuánto paga la persona, así que un valor imposible
+ * se RECHAZA en vez de corregirse solo: nadie debe descubrir el error mirando una
+ * factura. Por eso no hay conversión silenciosa ni valores por defecto de rescate.
+ *
+ * `margin` negativo dejaría el precio del modo real por debajo del coste del
+ * proveedor en texto y vídeo, donde el suelo no está escrito de forma explícita
+ * sino que descansa en que (1 + margin) nunca baje de 1.
+ */
+const validateSettings = (data) => {
+    const esNumero = (v) => typeof v !== 'boolean' && v !== null && v !== '' && Number.isFinite(Number(v));
+    if (data.pricingMode !== undefined && data.pricingMode !== 'simulated' && data.pricingMode !== 'real') {
+        throw new https_1.HttpsError('invalid-argument', `pricingMode inválido: ${String(data.pricingMode)}. Solo "simulated" o "real"`);
+    }
+    if (data.margin !== undefined && (!esNumero(data.margin) || Number(data.margin) < 0)) {
+        throw new https_1.HttpsError('invalid-argument', 'margin no puede ser negativo: vendería por debajo del coste del proveedor');
+    }
+    if (data.creditsPerUsd !== undefined && (!esNumero(data.creditsPerUsd) || Number(data.creditsPerUsd) <= 0)) {
+        throw new https_1.HttpsError('invalid-argument', 'creditsPerUsd debe ser mayor que cero');
+    }
+};
+exports.validateSettings = validateSettings;
+exports.engineAdmin = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds: 60, secrets: secrets_1.AI_SECRETS }, async (request) => {
     (0, admin_1.assertAdmin)(request.auth);
     const data = (request.data || {});
     const action = String(data.action || 'status');
@@ -105,6 +128,7 @@ exports.engineAdmin = (0, https_1.onCall)({ region: 'us-central1', timeoutSecond
             return { ok: true };
         }
         case 'setSettings': {
+            (0, exports.validateSettings)(data);
             const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker'];
             const patch = { updatedAt: firestore_1.Timestamp.now() };
             for (const key of allowed)
