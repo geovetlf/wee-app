@@ -8,7 +8,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import AvatarDisplay from '../avatars/AvatarDisplay';
-import CreditsPill from '../CreditsPill';
 import CreatorSidebar from './CreatorSidebar';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -19,6 +18,12 @@ interface CreatorShellProps {
   /** Texto pequeño sobre el título en móvil ("🤖 Weë Creator"). */
   overline?: string;
   title: string;
+  /**
+   * Identidad de la sección al lado del título: un distintivo dibujado en vez de
+   * un emoji suelto. En escritorio es además lo único que dice dónde estás,
+   * porque las secciones cuyo muro manda ya no traen cabecera dentro (fase 2E-69).
+   */
+  mark?: React.ReactNode;
   /** Miga de pan del escritorio ("Weë Creator"). */
   breadcrumb?: string;
   onBack?: () => void;
@@ -31,7 +36,7 @@ interface CreatorShellProps {
  * Escritorio: barra lateral con los especialistas + barra superior (buscar,
  * notificaciones, perfil) + contenido ancho. Móvil: cabecera compacta + contenido.
  */
-const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, breadcrumb = 'Weë Creator', onBack, children, contentStyle }) => {
+const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë Creator', onBack, children, contentStyle }) => {
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -50,11 +55,16 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel="Volver">
             <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
           </TouchableOpacity>
+          {mark}
           <View style={styles.headerTitles}>
             {!!overline && <Text style={[styles.overline, { color: theme.colors.accentDark }]}>{overline}</Text>}
             <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
           </View>
-          <CreditsPill compact />
+          {/*
+            Aquí vivía la píldora de Credits. Los Credits tienen un único sitio en
+            Weë —el menú, bajo los dos perfiles— y repetirlos en la cabecera de
+            cada experiencia solo restaba aire al muro (fase 2E-69).
+          */}
         </View>
         <ScrollView contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled">
           {children}
@@ -72,6 +82,18 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
           </TouchableOpacity>
+          {/*
+            En escritorio la miga de pan es el camino de vuelta, no el sitio donde
+            estás. Quien trae distintivo lo dice aquí, porque su contenido empieza
+            ya en el muro y dentro no queda nada que lo nombre.
+          */}
+          {!!mark && (
+            <View style={styles.identity}>
+              <View style={[styles.identityBar, { backgroundColor: theme.colors.border }]} />
+              {mark}
+              <Text style={[styles.identityText, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
+            </View>
+          )}
           <View style={styles.topActions}>
             <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityLabel="Buscar en Weë">
               <Ionicons name="search-outline" size={scale(16)} color={theme.colors.textSecondary} />
@@ -119,14 +141,20 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  /*
+   * 44 de verdad, sin `scale()`: el factor de web lo dejaba en 39,6 y volver
+   * atrás es de lo poco que hay en esta cabecera. Un objetivo táctil no encoge
+   * porque la pantalla sea otra.
+   */
   backButton: {
-    width: scale(44),
-    height: scale(44),
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitles: {
     flex: 1,
+    marginLeft: SPACING.xs,
   },
   overline: {
     fontSize: scale(10),
@@ -167,6 +195,30 @@ const styles = StyleSheet.create({
   breadcrumbText: {
     fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.semibold,
+  },
+  /*
+   * `flex: 1` para que ocupe el hueco entre la miga de pan y las acciones: con
+   * `space-between` y solo tres hijos, sin esto la identidad quedaría centrada
+   * en la barra en vez de pegada a la vuelta, que es donde se lee como un sitio.
+   */
+  identity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginLeft: SPACING.lg,
+    minWidth: 0,
+  },
+  identityBar: {
+    width: 1,
+    height: scale(22),
+    marginRight: SPACING.xs,
+  },
+  identityText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: -0.2,
+    flexShrink: 1,
   },
   topActions: {
     flexDirection: 'row',

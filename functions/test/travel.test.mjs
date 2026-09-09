@@ -36,6 +36,8 @@ const specialists = leer('constants/specialists.ts');
 const pantalla = leer('screens/SpecialistScreen.tsx');
 const tarjeta = leer('components/creator/ResultCard.tsx');
 const caja = leer('components/creator/IdeaBox.tsx');
+const shell = leer('components/creator/CreatorShell.tsx');
+const lanzador = leer('components/creator/TravelLauncher.tsx');
 const seccionFeed = leer('utils/sectionFeed.ts');
 const crear = leer('screens/CreateScreen.tsx');
 const flujo = leer('screens/CreatorFlowScreen.tsx');
@@ -92,13 +94,24 @@ console.log('\n── B · El Home de Weë Travel ──');
   check('5) pregunta por el viaje con esas palabras', /title: '✈️ ¿Qué viaje tienes en mente\?'/.test(bloqueTravel));
   check('5) y la caja de escribir va ANTES de las funciones', /ideaFirst: true/.test(bloqueTravel));
 
+  /*
+   * Desde 2E-69 la frase y las cuatro funciones son UNA tarjeta, no tres bloques
+   * apilados. Lo que se comprueba ya no es el orden entre ellos —no hay orden,
+   * hay una pieza— sino que esa pieza va antes del muro y que nada más se cuela
+   * en medio.
+   */
   const codigo = soloCodigo(pantalla);
-  const cajaArriba = codigo.indexOf('spec.ideaFirst && <IdeaBox');
-  const plegable = codigo.indexOf('<Collapsible');
+  const tarjeta = codigo.indexOf('<TravelLauncher');
   const muro = codigo.indexOf('<SectionWall');
-  check('6) en la pantalla, ese es el orden real', cajaArriba > 0 && cajaArriba < plegable && plegable < muro, `${cajaArriba} < ${plegable} < ${muro}`);
+  check('6) la tarjeta de entrada va antes del muro', tarjeta > 0 && tarjeta < muro, `${tarjeta} < ${muro}`);
+  // Ni cabecera propia, ni caja suelta, ni franja aparte: las tres puertas viejas
+  // quedan detrás de una condición que Travel no cumple.
+  check(
+    '6) y es lo único que hay entre la cabecera y el muro',
+    /\{!lanzador && <SpecialistHero/.test(codigo) && !/spec\.ideaFirst && <IdeaBox/.test(codigo) && /\) : wall \? \(\s*<Collapsible/.test(codigo)
+  );
   // Una sola sección lo pide: la declaración del campo y su explicación no cuentan.
-  check('6) y sin esa marca ninguna otra sección se mueve', /wall && spec\.ideaFirst && <IdeaBox/.test(codigo) && (specialists.match(/^ {4}ideaFirst: true,$/gm) || []).length === 1);
+  check('6) y sin esa marca ninguna otra sección se mueve', /const lanzador = !!wall && !!spec\.ideaFirst;/.test(codigo) && (specialists.match(/^ {4}ideaFirst: true,$/gm) || []).length === 1);
 
   check('7) tiene tres ejemplos que se tocan', (bloqueTravel.match(/chips: \[([^\]]*)\]/)?.[1].match(/'/g) || []).length === 6);
   check('7) y son los tres del diseño', /'🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'/.test(bloqueTravel));
@@ -118,7 +131,7 @@ console.log('\n── B · El Home de Weë Travel ──');
   }
 
   check('9) el muro de la sección está', /wall: \{/.test(bloqueTravel) && /Muro Travel/.test(bloqueTravel));
-  check('9) y el muro sigue siendo el genérico de siempre', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} \/>/.test(soloCodigo(pantalla)));
+  check('9) y el muro sigue siendo el genérico de siempre', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} \/>/.test(soloCodigo(pantalla)));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -683,6 +696,92 @@ console.log('\n── Q · El contexto sobrevive a "Ajustar" ──');
   check('93) las demás siguen abriendo el trabajo con el objetivo y nada más', /if \(!CONSERVA_EL_CONTEXTO \|\| !job\) return start\(goal\);/.test(soloCodigo(flujo)));
   check('93) y ninguna otra experiencia tiene preguntas con freeInfer', ['design', 'studio', 'photo', 'writer', 'music', 'beauty', 'chef', 'home', 'business', 'brain'].every((id) => !TEMPLATES[id].questions.some((q) => q.freeInfer)));
   check('93) "Cambiar algo" no se ha tocado', /onChange=\{\(\) => start\(job\.goal\)\}/.test(soloCodigo(flujo)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// T · El muro manda: la Home de Travel no compite con él (fase 2E-69)
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──');
+{
+  const codigo = soloCodigo(pantalla);
+  const marco = soloCodigo(shell);
+  const tarjeta = soloCodigo(lanzador);
+
+  /*
+   * Los Credits tienen UN sitio en Weë: el menú, bajo los dos perfiles. Repetirlos
+   * en la cabecera de cada experiencia no informaba de nada nuevo y le quitaba
+   * ancho al título. Se comprueba en el marco, que es de donde se quitaron.
+   */
+  check('94) no hay Credits en la cabecera de Weë Creator', !/CreditsPill/.test(marco), 'CreditsPill sigue en CreatorShell');
+  check('94) ni Travel los pinta por su cuenta', !/CreditsPill|creditsBalance|useWallet/.test(tarjeta) && !/CreditsPill/.test(codigo));
+
+  // La cabecera dice dónde estás con un distintivo dibujado, no con un emoji suelto.
+  check('95) Travel entra con distintivo propio', /<TravelMark size=\{30\} plain \/>/.test(codigo));
+  check('95) y el título es exactamente "Weë Travel"', /title=\{lanzador \? spec\.experience\.name/.test(codigo) && travel.name === 'Weë Travel');
+  check('95) sin la etiqueta "Weë Creator" encima', /overline=\{lanzador \? undefined/.test(codigo));
+  check('95) el distintivo no es un emoji', !/heroEmoji|✈️/.test(soloCodigo(leer('components/creator/TravelMark.tsx'))));
+
+  // El selector: cerrado al llegar, y cerrado otra vez cada vez que se vuelve.
+  check('96) el selector nace cerrado', /useState\(false\)/.test(codigo) && /setHerramientasAbiertas\(false\)/.test(codigo));
+  check('96) y la tarjeta obedece a ese estado', /open=\{herramientasAbiertas\}/.test(codigo));
+  // Desde 2E-70 el chevron no se cambia por otro: gira. Lo detalla el bloque 103.
+  check('96) con chevron, y su giro lo manda el estado', /name="chevron-down"/.test(tarjeta) && /toValue: open \? 1 : 0/.test(tarjeta));
+  check('96) y lo dice también quien no ve el chevron', /aria-expanded=\{open\}/.test(tarjeta) && /accessibilityState=\{\{ expanded: open \}\}/.test(tarjeta));
+
+  // Cuatro funciones, y salen de la configuración: no hay una quinta escrita a mano.
+  const acciones = [...bloqueTravel.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
+  check('97) siguen siendo cuatro', acciones.length === 4, acciones.join(','));
+  check('97) y la tarjeta las pinta todas desde la configuración', /actions\.map\(\(action\) =>/.test(tarjeta) && !/'plan'|'where'|'doing'|'moving'/.test(tarjeta));
+  check('97) filas, no una cuadrícula de tarjetas grandes', !/ActionGrid/.test(tarjeta) && !/MockMedia|aspectRatio/.test(tarjeta));
+  check('97) cada una con su icono, su nombre y su frase corta', /action\.icon/.test(tarjeta) && /action\.title/.test(tarjeta) && /action\.subtitle/.test(tarjeta));
+
+  // "Viajes que preparó Weë": fuera, y sin nada que la sustituya.
+  // Sobre el código, no sobre los comentarios: la explicación de por qué se quitó
+  // nombra la sección, y nombrarla no es enseñarla.
+  check('98) no queda rastro de "Viajes que preparó Weë"', !/Viajes que prepar/.test(soloCodigo(specialists)), 'sigue en constants/specialists.ts');
+  check('98) Travel no declara ejemplos', !/examplesTitle:|examples: \[/.test(bloqueTravel), 'bloqueTravel todavía trae ejemplos');
+  check('98) y no se ha puesto otra sección en su hueco', !/viajes guardados|Mis itinerarios|Destinos sugeridos|Viajes populares/i.test(specialists + codigo));
+  // El campo pasa a ser opcional, no desaparece: las otras secciones siguen enseñando la suya.
+  check('98) las demás secciones conservan la suya', /examplesTitle\?: string;/.test(specialists) && (specialists.match(/^ {4}examplesTitle: /gm) || []).length >= 6);
+  check('98) y la fila solo se pinta si hay algo que enseñar', (codigo.match(/!!spec\.examples\?\.length/g) || []).length === 2);
+
+  // El muro es el general de Weë: ni feed aparte, ni pestañas nuevas, ni sidebar.
+  check('99) el muro es el genérico, con el id de la sección', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} \/>/.test(codigo));
+  check('99) no hay feed de Travel', !/TravelFeed|travelFeed|travelPosts/.test(codigo + specialists));
+  check('99) ni "Cerca de ti" ni "Siguiendo"', !/Cerca de ti|Siguiendo/i.test(bloqueTravel));
+  check('99) ni una colección nueva', !/collection\(['"]travel/i.test(codigo + tarjeta));
+  check('99) y las pestañas del muro son las de siempre', ['Muro Travel', 'Fotos del viaje', 'Consejos', 'Mis viajes', 'Guardados'].every((t) => bloqueTravel.includes(t)));
+
+  // Nada de esto puede haber cambiado lo que ocurre al elegir.
+  check('100) escribir sigue abriendo el mismo flujo', /onSubmit=\{\(text\) => startFlow\(text\)\}/.test(codigo));
+  check('100) y cada función sigue abriendo el suyo con su preset', /onAction=\{handleAction\}/.test(codigo) && /startFlow\(action\.goal, action\.preset/.test(codigo));
+  check('100) la tarjeta no decide nada: solo avisa', !/navigation|CreatorFlow|creatorService/.test(tarjeta));
+  check('100) y el emoji del ejemplo se sigue quitando antes de enviarlo', /objetivoDe\(chip\)/.test(tarjeta));
+
+  /*
+   * 2E-70. Lo que se protege aquí es el espacio: cada píxel que estos tres
+   * bloques dejan de ocupar es un píxel de foto de alguien. Medido en el
+   * navegador, la primera publicación subió de y=586 a y=427 en 375x812.
+   */
+  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
+
+  // Los ejemplos, en una fila que se desliza: envueltos ocupaban tres líneas.
+  check('101) los ejemplos no se envuelven', /<ScrollView\s+horizontal/.test(tarjeta) && !/flexWrap: 'wrap'/.test(tarjeta));
+  check('101) y siguen siendo los tres, tocables', /idea\.chips\.map/.test(tarjeta) && /hitSlop=\{\{ top: 6, bottom: 6/.test(tarjeta));
+
+  // El compositor plegado es OPCIONAL: sin la prop, las otras secciones no cambian.
+  check('102) el compositor compacto es opcional', /compact\?: boolean;/.test(muro) && /\{ sectionId, config, compact \}/.test(muro));
+  check('102) y la fila desplegada sigue ahí para quien no lo pida', /\{!compact && \(/.test(muro));
+  check('102) solo Weë Travel lo pide', /compact=\{lanzador\}/.test(codigo));
+  check('102) y ninguna otra sección se lo pasa', (codigo.match(/<SectionWall /g) || []).length === 1);
+
+  // Microinteracción: el chevron gira, no se cambia por otro icono.
+  check('103) el chevron gira en los dos sentidos', /rotate: giro\.interpolate/.test(tarjeta) && /toValue: open \? 1 : 0/.test(tarjeta));
+  check('103) y ya no hay dos iconos distintos', !/'chevron-up'/.test(tarjeta));
+
+  // Lo que se toca no encoge con la pantalla: `scale()` quita un 10% en web.
+  check('104) las medidas táctiles no pasan por scale()', /const TOQUE = 44;/.test(tarjeta) && !/height: scale\(TOQUE\)/.test(tarjeta));
+  check('104) también en el atajo de foto del compositor', /composerFotoCompacta: \{\s*width: 44,\s*height: 44,/.test(muro));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Travel Fase A: cuatro funciones, sin inventar sitios y sin tocar nada más');

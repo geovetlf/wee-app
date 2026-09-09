@@ -24,7 +24,7 @@ interface IdeaBoxProps {
  * "Quiero" o "Recetas", no se toca.
  */
 const EMOJI_AL_PRINCIPIO = /^[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]+[\u{FE0F}\u{200D}\u{1F000}-\u{1FAFF}]*\s+/u;
-const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCIPIO, '').trim() || chip;
+export const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCIPIO, '').trim() || chip;
 
 /** "¿Tienes una idea en mente?": la persona lo cuenta con sus palabras y Weë empieza. */
 const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {

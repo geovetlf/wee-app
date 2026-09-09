@@ -151,8 +151,14 @@ export interface SpecialistConfig {
     hint: string;
     button?: string;
   };
-  examplesTitle: string;
-  examples: SpecialistExample[];
+  /*
+   * La fila de ejemplos bajo el muro. Es opcional desde 2E-69: una sección puede
+   * no tener nada que enseñar ahí, y entonces no enseña nada. Weë Travel tenía
+   * "Viajes que preparó Weë" con cuatro tarjetas que no llevaban a ningún viaje
+   * de nadie —eran decorado— y competían con lo que sí publica la gente.
+   */
+  examplesTitle?: string;
+  examples?: SpecialistExample[];
   /** Franja final con una invitación ("¿No sabes por dónde empezar?"). */
   closing?: {
     title: string;
@@ -718,8 +724,13 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     chips: ['Sin reservas', 'Con fuentes', 'A tu ritmo'],
     note: 'Los mejores viajes empiezan con una frase',
     heroEmoji: '✈️',
-    gridTitle: '¿Qué necesitas?',
-    gridHint: 'Cuatro formas de empezar.',
+    /*
+     * El rótulo de la fila que despliega las funciones (fase 2E-69). Es la otra
+     * puerta, debajo de la frase: quien ya sabe lo que quiere la abre y elige.
+     * Sin `gridHint`, porque "cuatro formas de empezar" repetía en palabras lo
+     * que se ve de un vistazo en cuanto la fila se abre.
+     */
+    gridTitle: '¿Qué quieres hacer?',
     actionLayout: 'compact',
     actions: [
       { id: 'plan', icon: 'map-outline', emoji: '🗺️', title: 'Planificar un viaje', subtitle: 'Un itinerario día a día', goal: 'Planificar un viaje', preset: { questionId: 'what', optionId: 'plan' } },
@@ -757,13 +768,12 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
         button: 'Crear publicación',
       },
     },
-    examplesTitle: 'Viajes que preparó Weë',
-    examples: [
-      { title: 'Japón en 10 días', subtitle: 'Tokio, Kioto y Osaka', kind: 'document', emoji: '🗾', tone: T.rose },
-      { title: 'Un fin de semana en Cusco', subtitle: 'Sin prisas', kind: 'document', emoji: '🏔️', tone: T.mint },
-      { title: 'Dónde comer en Lisboa', subtitle: 'Por barrios', kind: 'document', emoji: '🍽️', tone: T.sand },
-      { title: 'Del aeropuerto al centro', subtitle: 'Tiempos y precios', kind: 'document', emoji: '🚊', tone: T.sky },
-    ],
+    /*
+     * Sin fila de ejemplos (fase 2E-69). "Viajes que preparó Weë" eran cuatro
+     * tarjetas decorativas que no abrían ningún viaje real de nadie y se ponían
+     * justo debajo del muro, compitiendo con lo único que ahí importa: lo que
+     * publica la gente. En Travel el muro es el protagonista.
+     */
   },
 
 };

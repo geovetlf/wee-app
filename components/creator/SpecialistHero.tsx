@@ -25,7 +25,7 @@ const SpecialistHero: React.FC<SpecialistHeroProps> = ({ spec, compact }) => {
   const { theme } = useTheme();
   const { isDesktop } = useResponsive();
   const word = spec.experience.name.replace(/^Weë\s+/i, '');
-  const tone = spec.examples[0]?.tone ?? ['#F5B731', '#FFE08A'];
+  const tone = spec.examples?.[0]?.tone ?? ['#F5B731', '#FFE08A'];
 
   return (
     <View

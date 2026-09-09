@@ -711,7 +711,8 @@ console.log('\n── Weë Chef · la sección se convierte en comunidad ──'
   // Muro y cuadrícula compacta van siempre juntos, y solo donde toca.
   check('7) las secciones con muro son las que tienen cuadrícula compacta', (specialists.match(/^    wall: \{/gm) || []).length === (specialists.match(/actionLayout: 'compact'/g) || []).length);
   check('7) y hoy son Chef, Design, Studio y Travel', (specialists.match(/^    wall: \{/gm) || []).length === 4);
-  check('7) las demás conservan su caja de idea y sus ejemplos', /\{!wall && <IdeaBox/.test(pantalla) && /\{!wall && <ExamplesRow/.test(pantalla));
+  // La fila de ejemplos pasó a ser opcional en 2E-69: se pinta si hay ejemplos.
+  check('7) las demás conservan su caja de idea y sus ejemplos', /\{!wall && <IdeaBox/.test(pantalla) && /\{!wall && !!spec\.examples\?\.length && \(/.test(pantalla));
   check('7) y su caja de subida de siempre', /\{spec\.upload && <UploadBox/.test(pantalla) && (specialists.match(/^    upload: \{/gm) || []).length === 3);
 
   // 8) A qué muro pertenece una publicación: se lee lo que el post ya trae.
@@ -1000,7 +1001,7 @@ console.log('\n── Weë Design · siete intenciones en vez de catorce ejemplo
   // 8) Los siete ejemplos simulados, fuera y sin sustituto.
   check('8) Design se queda sin ejemplos simulados', /examples: \[\],/.test(bloque));
   check('8) y no se han cambiado por otros', !/Auto futurista|Robot asistente|Zapatilla deportiva/.test(specialists));
-  check('8) la fila de ejemplos no se pinta sin ejemplos', /\{wall && spec\.examples\.length > 0 && \(/.test(pantalla));
+  check('8) la fila de ejemplos no se pinta sin ejemplos', /\{wall && !!spec\.examples\?\.length && \(/.test(pantalla));
 
   // 9) El muro de Design: tres pestañas, no cinco.
   {
@@ -2140,8 +2141,17 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   check('C6) Credits sigue abriendo CreditStore', codigoMenu.includes("const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());"));
   check('C6) y el resto de filas del menú siguen ahí', ["fila('notifications'", "fila('saved'", "fila('settings'", "fila('help'"].every((t) => codigoMenu.includes(t)));
 
-  // 7) Nadie más cambió de sitio: las otras superficies conservan su píldora.
-  check('C7) Weë Creator conserva la suya', /<CreditsPill compact \/>/.test(leer('components/creator/CreatorShell.tsx')));
+  /*
+   * 7) Los Credits acabaron teniendo UN solo sitio.
+   *
+   * Cuando salieron del Home (fase UI) se dejaron en la cabecera de Weë Creator,
+   * porque allí parecían informar de algo. En 2E-69 se quitaron también: no
+   * informaban —el saldo no cambia por entrar en una sección— y le robaban ancho
+   * al título justo donde el muro tenía que mandar. Ahora el saldo vive en el
+   * menú, bajo los dos perfiles, y en ningún otro sitio.
+   */
+  check('C7) Weë Creator ya no repite el saldo', !/CreditsPill/.test(leer('components/creator/CreatorShell.tsx')));
+  check('C7) ni ninguna pantalla de especialista', !/CreditsPill/.test(leer('screens/SpecialistScreen.tsx')));
   check('C7) y la barra lateral lo enseña como fila, junto a los perfiles', /<Opcion\s+id="credits"/.test(leer('components/Sidebar.tsx')) && !/<CreditsPill/.test(sinComentarios(leer('components/Sidebar.tsx'))));
   check('C7) el componente no se ha duplicado', fs2.existsSync(new URL('../../components/CreditsPill.tsx', import.meta.url)));
 }

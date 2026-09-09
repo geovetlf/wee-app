@@ -12,6 +12,8 @@ import BusinessScreen from './BusinessScreen';
 import SpecialistHero from '../components/creator/SpecialistHero';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
+import TravelLauncher from '../components/creator/TravelLauncher';
+import TravelMark from '../components/creator/TravelMark';
 import UploadBox from '../components/creator/UploadBox';
 import ExamplesRow from '../components/creator/ExamplesRow';
 import SectionWall, { WALL_CONTENT_WIDTH } from '../components/creator/SectionWall';
@@ -97,30 +99,44 @@ const SpecialistScreen: React.FC = () => {
    */
   const wall = spec.wall;
 
+  /*
+   * Secciones que entran por una sola tarjeta (hoy Weë Travel, fase 2E-69). El
+   * nombre, la frase y las funciones caben juntos en una pieza compacta, así que
+   * no hay cabecera dentro ni franja aparte: debajo empieza el muro y punto. Se
+   * apoya en `ideaFirst`, que es justo lo que distingue a esas secciones —se
+   * entra hablando—, y no en el identificador, para que no haya un `if` con un
+   * nombre propio dentro de una pantalla que sirve a todas.
+   */
+  const lanzador = !!wall && !!spec.ideaFirst;
+
   return (
     <CreatorShell
       activeId={spec.id}
-      overline="🤖 Weë Creator"
-      title={`${spec.experience.emoji} ${spec.experience.name}`}
+      overline={lanzador ? undefined : '🤖 Weë Creator'}
+      title={lanzador ? spec.experience.name : `${spec.experience.emoji} ${spec.experience.name}`}
+      mark={lanzador ? <TravelMark size={30} plain /> : undefined}
       breadcrumb="Weë Creator"
       contentStyle={wall ? styles.wallContent : undefined}
     >
-      <SpecialistHero spec={spec} compact={!!wall} />
+      {!lanzador && <SpecialistHero spec={spec} compact={!!wall} />}
 
       {/*
-        Weë Travel entra por la caja de escribir, no por la cuadrícula (fase
-        2E-64C): un viaje se cuenta con una frase y esa frase ya trae casi todo
-        lo que hace falta. Sin `ideaFirst` nada cambia de sitio, así que las
-        otras secciones conservan su orden exacto.
+        Weë Travel entra por la frase, no por la cuadrícula (fase 2E-64C): un
+        viaje se cuenta hablando y esa frase ya trae casi todo lo que hace falta.
+        Desde 2E-69 la frase y las cuatro funciones viven en la misma tarjeta, así
+        que entre la cabecera y el muro solo hay una pieza.
       */}
-      {wall && spec.ideaFirst && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />}
-
-      {/*
-        Con muro, las herramientas van plegadas: la franja dice qué hay dentro y
-        el muro sube casi media pantalla. Sin muro, la sección conserva su
-        cuadrícula siempre abierta, que es su única puerta de entrada.
-      */}
-      {wall ? (
+      {lanzador ? (
+        <TravelLauncher
+          idea={spec.idea}
+          actions={spec.actions}
+          title={spec.gridTitle}
+          open={herramientasAbiertas}
+          onToggle={() => setHerramientasAbiertas((abierto) => !abierto)}
+          onSubmit={(text) => startFlow(text)}
+          onAction={handleAction}
+        />
+      ) : wall ? (
         <Collapsible
           emoji={spec.experience.emoji}
           title={spec.gridTitle}
@@ -152,8 +168,13 @@ const SpecialistScreen: React.FC = () => {
 
       {spec.id === 'writer' && <WriterDocuments />}
 
-      {/* La comunidad, en grande, antes que cualquier otra cosa de la sección. */}
-      {wall && <SectionWall sectionId={spec.id} config={wall} />}
+      {/*
+        La comunidad, en grande, antes que cualquier otra cosa de la sección. En
+        las secciones que entran por una tarjeta el compositor va plegado: ahí
+        arriba ya hay una caja de escribir, y dos cajas seguidas antes del primer
+        post eran 86 px que le tocaban a las fotos de la gente (fase 2E-70).
+      */}
+      {wall && <SectionWall sectionId={spec.id} config={wall} compact={lanzador} />}
 
       {/*
         La caja de idea y los ejemplos son la entrada de las secciones que todavía
@@ -163,7 +184,9 @@ const SpecialistScreen: React.FC = () => {
       */}
       {!wall && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} greeting={spec.id === 'chef'} />}
 
-      {!wall && <ExamplesRow title={spec.examplesTitle} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />}
+      {!wall && !!spec.examples?.length && (
+        <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />
+      )}
 
       {spec.closing && (
         <ClosingBanner
@@ -205,8 +228,8 @@ const SpecialistScreen: React.FC = () => {
         en 2E-43 —eran degradados que parecían diseños— y sin esta condición se
         quedaría el título colgando sobre una fila vacía.
       */}
-      {wall && spec.examples.length > 0 && (
-        <ExamplesRow title={spec.examplesTitle} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />
+      {wall && !!spec.examples?.length && (
+        <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />
       )}
 
       <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>Cuéntale a Weë lo que quieres. Weë se encarga de la IA.</Text>

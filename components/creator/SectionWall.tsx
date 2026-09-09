@@ -53,9 +53,16 @@ interface SectionWallProps {
   /** Qué sección es: de aquí salen las palabras que definen su muro. */
   sectionId: string;
   config: SectionWallConfig;
+  /**
+   * Compositor de una sola fila (fase 2E-70). Desplegado ocupa 150 px entre el
+   * selector y la primera publicación; plegado, 64. Lo pide Weë Travel, donde el
+   * muro es el producto y esos 86 px son media foto. Sin la prop, el compositor
+   * se queda exactamente como estaba: las demás secciones no se enteran.
+   */
+  compact?: boolean;
 }
 
-const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config }) => {
+const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -162,7 +169,25 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config }) => {
               {config.placeholder}
             </Text>
           </TouchableOpacity>
+          {/*
+            Compacto: el atajo de foto se queda en la misma fila y los otros dos
+            bajan un toque, dentro de la pantalla de crear. En un muro de viajes
+            lo que la gente sube son fotos, así que ese atajo se gana el sitio y
+            los demás no lo necesitan para estar disponibles.
+          */}
+          {compact && (
+            <TouchableOpacity
+              onPress={() => compose('image')}
+              activeOpacity={0.7}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={styles.composerFotoCompacta}
+              accessibilityLabel="Compartir una foto"
+            >
+              <Ionicons name="image-outline" size={scale(21)} color={theme.colors.accentDark} />
+            </TouchableOpacity>
+          )}
         </View>
+        {!compact && (
         <View style={styles.composerActions}>
           <View style={styles.composerShortcuts}>
             {shortcuts.map((shortcut) => (
@@ -187,6 +212,7 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config }) => {
             <Text style={styles.publishText}>Publicar</Text>
           </TouchableOpacity>
         </View>
+        )}
       </View>
 
       {/* Pestañas del muro. */}
@@ -265,6 +291,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
+  },
+  /* 44 de lado, el mínimo táctil, sin escalar: lo que se toca no encoge. */
+  composerFotoCompacta: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarFallback: {
     width: scale(40),
