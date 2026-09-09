@@ -1,9 +1,40 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.memoryLedger = exports.firestoreLedger = exports.LEDGER_VERSION = void 0;
+exports.memoryLedger = exports.firestoreLedger = exports.LEDGER_VERSION = exports.diaDelLibro = void 0;
 exports.distribute = distribute;
 const firestore_1 = require("firebase-admin/firestore");
 const creditEngine_1 = require("../credits/creditEngine");
+/**
+ * Libro de generaciones: aiGenerations/{generationId} (docs/CREDITS.md §generations).
+ * Cada intento (incluidos los fallbacks) deja un documento con requestId, usuario,
+ * servicio, proveedor, modelo, estado (PENDING → PROCESSING → COMPLETED | FAILED),
+ * coste del proveedor (providerCost, USD) separado de los Credits cobrados
+ * (creditsCharged), transacción de Credits, tipos de entrada/salida y tiempos.
+ * La persona puede leer los suyos; solo el servidor escribe.
+ * Además acumula por día en aiUsage/{día} para el panel de administración.
+ */
+/**
+ * EL DÍA DE UNA OPERACIÓN ES EL DÍA UTC EN QUE SE CREÓ.
+ *
+ * Una sola definición para todo el libro. La había en dos sitios y no decían lo
+ * mismo: `close()` preguntaba la hora al sistema (`new Date()`) y `settle()`
+ * miraba el `createdAt` de la fila. Mientras nada cruzara medianoche daba igual;
+ * en cuanto una generación empezaba a las 23:59 UTC y terminaba a las 00:01, el
+ * dinero del proveedor quedaba apuntado en un día y los Credits en el siguiente,
+ * y el resumen diario no cuadraba nunca (fase 2E-66).
+ *
+ * Se elige `createdAt` porque un trabajo pertenece al día en que se pidió, no al
+ * azar de cuánto tardó el proveedor en contestar.
+ *
+ * `respaldo` es el reloj que ya trae quien llama —nunca `new Date()`—, para que
+ * el tiempo se pueda controlar desde fuera y las pruebas signifiquen algo.
+ */
+const diaDelLibro = (createdAt, respaldo) => {
+    var _a;
+    const fecha = (_a = createdAt === null || createdAt === void 0 ? void 0 : createdAt.toDate) === null || _a === void 0 ? void 0 : _a.call(createdAt);
+    return (fecha instanceof Date && !isNaN(fecha.getTime()) ? fecha : respaldo.toDate()).toISOString().slice(0, 10);
+};
+exports.diaDelLibro = diaDelLibro;
 /** Semántica actual del libro. Ver GenerationRecord.ledgerVersion. */
 exports.LEDGER_VERSION = 2;
 /**
@@ -59,7 +90,9 @@ exports.firestoreLedger = {
         const record = (snap.data() || {});
         const now = firestore_1.Timestamp.now();
         const clean = stripUndefined(Object.assign(Object.assign({}, patch), { updatedAt: now, completedAt: patch.status === 'COMPLETED' ? now : undefined }));
-        const day = new Date().toISOString().slice(0, 10);
+        // El día de la fila, no el de ahora: si la generación cruzó medianoche, el
+        // gasto se apunta donde ya está el resto de la operación.
+        const day = (0, exports.diaDelLibro)(record.createdAt, now);
         const provider = record.provider || 'unknown';
         const capability = record.capability || 'unknown';
         await Promise.all([
@@ -94,7 +127,7 @@ exports.firestoreLedger = {
  * si alguna fila ya tiene settledAt, no vuelve a repartir ni a acumular ingreso.
  */
 async function settleFirestore(patch) {
-    var _a, _b, _c, _d, _e;
+    var _a;
     const { creditTransactionId, finalAmount } = patch;
     if (!creditTransactionId)
         return { rows: 0, credited: 0, already: false };
@@ -134,7 +167,7 @@ async function settleFirestore(patch) {
             const parte = porFila.get(d.id) || 0;
             if (parte <= 0)
                 continue;
-            const dia = String(((_e = (_c = (_b = d.get('createdAt')) === null || _b === void 0 ? void 0 : _b.toDate) === null || _c === void 0 ? void 0 : (_d = _c.call(_b)).toISOString) === null || _e === void 0 ? void 0 : _e.call(_d)) || now.toDate().toISOString()).slice(0, 10);
+            const dia = (0, exports.diaDelLibro)(d.get('createdAt'), now);
             const capacidades = (porDia[dia] = porDia[dia] || {});
             const proveedores = (capacidades[String(d.get('capability') || 'unknown')] = capacidades[String(d.get('capability') || 'unknown')] || {});
             // Dos pasos del mismo proveedor y capacidad se SUMAN antes de escribir: si se

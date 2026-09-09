@@ -7,7 +7,7 @@ La persona solo ve **✨ Crear con IA** y mensajes como **"Generando tu Weël…
 Por dentro:
 
 ```
-Weë (app)                      9 secciones conectadas: Brain · Design · Photo · Studio · Business · Home · Beauty · Writer · Chef (Music intacta)
+Weë (app)                     10 secciones conectadas: Brain · Design · Photo · Studio · Business · Home · Beauty · Writer · Chef · Travel (Music intacta)
   → Firebase Auth
     → creatorChat / creatorRun (Weë Brain: entiende, pregunta, arma el plan) · brainChat (Weë Brain como asistente general)
       → Credit Engine (functions/src/credits): autoriza → ejecuta → completa o reembolsa

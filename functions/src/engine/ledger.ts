@@ -11,6 +11,27 @@ import { GenerationRecord, GenerationStatus } from './types';
  * La persona puede leer los suyos; solo el servidor escribe.
  * Además acumula por día en aiUsage/{día} para el panel de administración.
  */
+/**
+ * EL DÍA DE UNA OPERACIÓN ES EL DÍA UTC EN QUE SE CREÓ.
+ *
+ * Una sola definición para todo el libro. La había en dos sitios y no decían lo
+ * mismo: `close()` preguntaba la hora al sistema (`new Date()`) y `settle()`
+ * miraba el `createdAt` de la fila. Mientras nada cruzara medianoche daba igual;
+ * en cuanto una generación empezaba a las 23:59 UTC y terminaba a las 00:01, el
+ * dinero del proveedor quedaba apuntado en un día y los Credits en el siguiente,
+ * y el resumen diario no cuadraba nunca (fase 2E-66).
+ *
+ * Se elige `createdAt` porque un trabajo pertenece al día en que se pidió, no al
+ * azar de cuánto tardó el proveedor en contestar.
+ *
+ * `respaldo` es el reloj que ya trae quien llama —nunca `new Date()`—, para que
+ * el tiempo se pueda controlar desde fuera y las pruebas signifiquen algo.
+ */
+export const diaDelLibro = (createdAt: unknown, respaldo: Timestamp): string => {
+  const fecha = (createdAt as { toDate?: () => Date } | undefined)?.toDate?.();
+  return (fecha instanceof Date && !isNaN(fecha.getTime()) ? fecha : respaldo.toDate()).toISOString().slice(0, 10);
+};
+
 export type OpenRecord = Omit<GenerationRecord, 'id' | 'createdAt' | 'updatedAt' | 'completedAt' | 'status' | 'durationMs' | 'providerCost' | 'providerCurrency' | 'creditsCharged'>;
 
 /** Semántica actual del libro. Ver GenerationRecord.ledgerVersion. */
@@ -141,7 +162,9 @@ export const firestoreLedger: Ledger = {
     const record = (snap.data() || {}) as Partial<GenerationRecord>;
     const now = Timestamp.now();
     const clean = stripUndefined({ ...patch, updatedAt: now, completedAt: patch.status === 'COMPLETED' ? now : undefined });
-    const day = new Date().toISOString().slice(0, 10);
+    // El día de la fila, no el de ahora: si la generación cruzó medianoche, el
+    // gasto se apunta donde ya está el resto de la operación.
+    const day = diaDelLibro(record.createdAt, now);
     const provider = record.provider || 'unknown';
     const capability = record.capability || 'unknown';
     await Promise.all([
@@ -219,7 +242,7 @@ async function settleFirestore(patch: SettleRecord): Promise<SettleResult> {
     for (const d of cobrables) {
       const parte = porFila.get(d.id) || 0;
       if (parte <= 0) continue;
-      const dia = String(d.get('createdAt')?.toDate?.().toISOString?.() || now.toDate().toISOString()).slice(0, 10);
+      const dia = diaDelLibro(d.get('createdAt'), now);
       const capacidades = (porDia[dia] = porDia[dia] || {});
       const proveedores = (capacidades[String(d.get('capability') || 'unknown')] = capacidades[String(d.get('capability') || 'unknown')] || {});
       // Dos pasos del mismo proveedor y capacidad se SUMAN antes de escribir: si se

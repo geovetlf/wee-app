@@ -117,11 +117,31 @@ class Coll {
 
 const db = new FakeDb();
 let reloj = 0;
+/*
+ * Cuando está puesto, el reloj se queda clavado en ese instante. Sirve para
+ * colocar la apertura y el cierre a los dos lados de medianoche sin tocar la
+ * hora del sistema. Con null (lo normal) el reloj avanza como siempre, así que
+ * ninguna prueba anterior nota nada.
+ */
+let instanteFijo = null;
+const enElInstante = async (iso, fn) => {
+  instanteFijo = new Date(iso);
+  try {
+    return await fn();
+  } finally {
+    instanteFijo = null;
+  }
+};
 const marca = () => {
   const n = ++reloj;
-  const fecha = new Date(Date.UTC(2026, 8, 8, 12, 0, n));
+  const fecha = instanteFijo || new Date(Date.UTC(2026, 8, 8, 12, 0, n));
   return { __esUnTimestamp: true, _n: n, toDate: () => fecha };
 };
+/** Los documentos de aiUsage que existen ahora mismo, por su día. */
+const diasDeUso = () => [...db.docs.keys()].filter((k) => k.startsWith('aiUsage/')).map((k) => k.slice('aiUsage/'.length)).sort();
+const usoDelDia = (dia) => db.read('aiUsage/' + dia) || {};
+/** El documento sin clonar: conserva los Timestamp con sus metodos. */
+const filaCruda = (id) => db.docs.get('aiGenerations/' + id) || {};
 
 // El libro pide su Firestore al SDK; se lo damos falso antes de cargarlo.
 const idSdk = require.resolve('firebase-admin/firestore');
@@ -498,6 +518,109 @@ console.log('\n── reparto de lo capturado entre pasos ──');
 {
   check('reparte enteros sin perder ni inventar Credits', distribute(5, [3, 2]).join(',') === '3,2' && distribute(5, [1, 1]).reduce((a, b) => a + b, 0) === 5);
   check('sin captura no reparte nada', distribute(0, [3, 2]).join(',') === '0,0');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// R · Una operación que cruza medianoche pertenece a UN solo día (fase 2E-66.1)
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── R · El día canónico es el de createdAt ──');
+{
+  /*
+   * El fallo que esto vigila: `close()` preguntaba la hora al sistema y `settle()`
+   * miraba el createdAt de la fila. Una generación abierta a las 23:59 UTC y
+   * cerrada a las 00:01 dejaba el gasto del proveedor en un día y los Credits en
+   * el siguiente, y el resumen diario no cuadraba jamás.
+   *
+   * Aquí se abre el 8 de septiembre a las 23:59 y se cierra el 9 a las 00:01.
+   * Todo —usd y credits— tiene que caer en el 8, que es cuando se pidió.
+   */
+  const DIA = '2026-09-08';
+  const OTRO = '2026-09-09';
+  const antesDeTodo = new Set(diasDeUso());
+  const cuboSeedance = () => (usoDelDia(DIA)['video.generate'] || {}).seedance || {};
+  const alEmpezar = { usd: cuboSeedance().usd || 0, calls: cuboSeedance().calls || 0, credits: cuboSeedance().credits || 0 };
+
+  const id = await enElInstante('2026-09-08T23:59:00Z', () =>
+    libro.open({
+      userId: 'u_medianoche',
+      requestId: 'medianoche:1',
+      capability: 'video.generate',
+      modality: 'video',
+      provider: 'seedance',
+      model: 'seedance-2.5',
+      attempt: 1,
+      estimatedUsd: 0.4,
+      creditTransactionId: 'tx_medianoche',
+    })
+  );
+  check('R1) la fila se creó el 8 a las 23:59', filaCruda(id).createdAt.toDate().toISOString().startsWith('2026-09-08T23:59'));
+
+  await enElInstante('2026-09-09T00:01:00Z', () =>
+    libro.close(id, { status: 'COMPLETED', providerCost: 0.4, creditsEstimated: 60, durationMs: 120000 })
+  );
+  check('R2) y se cerró ya el 9', filaCruda(id).completedAt.toDate().toISOString().startsWith('2026-09-09T00:01'));
+
+  const trasCerrar = diasDeUso().filter((d) => !antesDeTodo.has(d));
+  check('R3) el gasto del proveedor va al día en que se pidió', Math.abs((cuboSeedance().usd || 0) - alEmpezar.usd - 0.4) < 1e-9, JSON.stringify(cuboSeedance()));
+  check('R3) y NO al día en que terminó', !trasCerrar.includes(OTRO), 'días nuevos: ' + trasCerrar.join(','));
+
+  await enElInstante('2026-09-09T00:02:00Z', () => libro.settle({ creditTransactionId: 'tx_medianoche', finalAmount: 60 }));
+
+  const cubo = cuboSeedance();
+  check('R4) los Credits caen en ESE MISMO día', (cubo.credits || 0) - alEmpezar.credits === 60, JSON.stringify(cubo));
+  check('R4) junto a su gasto y su llamada, en el mismo cubo', Math.abs((cubo.usd || 0) - alEmpezar.usd - 0.4) < 1e-9 && (cubo.calls || 0) - alEmpezar.calls === 1);
+  check('R5) no se abrió un segundo cubo para el día siguiente', !diasDeUso().includes(OTRO), 'días: ' + diasDeUso().join(','));
+  check('R6) la fila cobró lo que se capturó', fila(id).creditsCharged === 60);
+  check('R6) ni un Credit de más', (cubo.credits || 0) - alEmpezar.credits === fila(id).creditsCharged);
+  check('R6) ni uno perdido', (usoDelDia(OTRO)['video.generate'] || {}).seedance === undefined);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// S · Un trabajo escribe en UN documento diario, y se comprueba por su nombre
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── S · Un solo cubo por día, consultado explícitamente ──');
+{
+  /*
+   * Las comprobaciones de más arriba leían `uso()`, que coge el PRIMER documento
+   * de aiUsage que encuentre. Mientras solo hubiera uno funcionaba; cuando el
+   * fallo del día partió el registro en dos, siguieron leyendo el equivocado y
+   * tardaron en delatar el problema. Aquí el día se nombra y se consulta.
+   */
+  const DIA = '2026-09-08';
+  const antes = new Set(diasDeUso());
+  const pasos = [
+    { stepId: 'a', capability: 'text.generate', provider: 'gemini', usd: 0.01, credits: 2 },
+    { stepId: 'b', capability: 'image.generate', provider: 'flux', usd: 0.03, credits: 3 },
+  ];
+  const previos = pasos.map((x) => ((usoDelDia(DIA)[x.capability] || {})[x.provider] || {}).credits || 0);
+
+  const ids = [];
+  for (const x of pasos) {
+    const id = await libro.open({
+      userId: 'u_uncubo', requestId: 'uncubo:' + x.stepId, capability: x.capability,
+      modality: x.capability.startsWith('image') ? 'image' : 'text', provider: x.provider,
+      model: 'm', attempt: 1, estimatedUsd: x.usd, creditTransactionId: 'tx_uncubo',
+    });
+    await libro.close(id, { status: 'COMPLETED', providerCost: x.usd, creditsEstimated: x.credits, durationMs: 50 });
+    ids.push(id);
+  }
+  await libro.settle({ creditTransactionId: 'tx_uncubo', finalAmount: 5 });
+
+  const nuevos = diasDeUso().filter((d) => !antes.has(d));
+  check('S1) no aparece ningún día nuevo: todo cae en el del createdAt', nuevos.length === 0, 'nuevos: ' + nuevos.join(','));
+  check('S2) el documento del día correcto existe', !!db.read('aiUsage/' + DIA));
+
+  const ahora = pasos.map((x) => ((usoDelDia(DIA)[x.capability] || {})[x.provider] || {}).credits || 0);
+  check('S3) cada cubo recibió lo suyo', ahora[0] - previos[0] === 2 && ahora[1] - previos[1] === 3, JSON.stringify({ previos, ahora }));
+  check('S4) y la suma cuadra con lo capturado', (ahora[0] - previos[0]) + (ahora[1] - previos[1]) === 5);
+  check('S5) las filas dicen lo mismo que los cubos', ids.map((id) => fila(id).creditsCharged).reduce((a, b) => a + b, 0) === 5);
+
+  // Idempotencia, comprobada sobre el día nombrado y no sobre "el primero".
+  const repetida = await libro.settle({ creditTransactionId: 'tx_uncubo', finalAmount: 5 });
+  const trasRepetir = pasos.map((x) => ((usoDelDia(DIA)[x.capability] || {})[x.provider] || {}).credits || 0);
+  check('S6) liquidar dos veces no cobra dos veces', repetida.already === true);
+  check('S6) y los cubos no se movieron', JSON.stringify(trasRepetir) === JSON.stringify(ahora), JSON.stringify({ ahora, trasRepetir }));
+  check('S6) ni las filas', ids.map((id) => fila(id).creditsCharged).reduce((a, b) => a + b, 0) === 5);
 }
 
 console.log(failures ? `\n${failures} prueba(s) fallaron` : '\nLibro de generaciones: metadata parcial, semántica v2 y el caso de 2E-8 en orden');
