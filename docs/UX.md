@@ -51,7 +51,7 @@ Espacio especializado de herramientas de IA. **Sí conserva el nombre "WEE Creat
 
 🎬 AI Video · 🖼️ AI Imagen · 🎨 AI Diseño · ✍️ AI Escritura · 📚 AI Libros · 🎵 AI Música & Audio · 💻 AI Código · 📣 AI Marketing · 🧠 AI Productividad · ▦ Otras herramientas
 
-> **Actualización (2026-09-05):** estas categorías se reemplazan por las **10 experiencias de WEE** — 🎨 WEE Design · 🎬 WEE Studio · 📸 WEE Photo · ✍️ WEE Writer · 🎵 WEE Music · 💄 WEE Beauty · 👨‍🍳 WEE Chef · 🏠 WEE Home · 💼 WEE Business · 🧠 WEE Brain — bajo la regla "El usuario elige el resultado. WEE elige la IA." Ver [`CREATOR.md`](CREATOR.md).
+> **Actualización (2026-09-05):** estas categorías se reemplazan por las **experiencias de WEE** — 🎨 WEE Design · 🎬 WEE Studio · 📸 WEE Photo · ✍️ WEE Writer · 🎵 WEE Music · 💄 WEE Beauty · 👨‍🍳 WEE Chef · 🏠 WEE Home · 💼 WEE Business · ✈️ WEE Travel *(añadida el 2026-09-09)* · 🧠 WEE Brain — bajo la regla "El usuario elige el resultado. WEE elige la IA." Ver [`CREATOR.md`](CREATOR.md).
 
 Las herramientas pueden ser propias de WEE o integraciones de otros servicios.
 

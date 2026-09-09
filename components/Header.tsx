@@ -9,7 +9,6 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { notificationService } from '../services/notificationService';
-import CreditsPill from './CreditsPill';
 import { SPACING, ICON_SIZE, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -146,9 +145,14 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
 
           {/* Actions */}
           <View style={styles.actions}>
-            {/* Credits siempre visibles (solo con sesión) */}
-            <CreditsPill light={transparent} />
-
+            {/*
+              Los Credits ya no viven aquí: se mudaron al menú ☰, debajo de los
+              dos perfiles, que es donde está el resto de lo que es "tu cuenta".
+              El saldo sale del mismo sitio de siempre (useWallet) y se toca en
+              el mismo sitio de siempre (CreditStore); lo único que cambió es
+              dónde se ve. El encabezado queda con ☰, la marca, el perfil y la
+              campana.
+            */}
             {/* Switch Identity Button - visible si tiene perfil HIDI o está en modo BIZ */}
             {user && (hasHidiProfile || activeProfileType === 'biz') && (
               <TouchableOpacity

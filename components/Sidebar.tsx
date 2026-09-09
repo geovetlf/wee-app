@@ -7,9 +7,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
-import CreditsPill from './CreditsPill';
 import CreateSheet, { CreateKind } from './CreateSheet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
+import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
+import { useWallet } from '../hooks/useWallet';
 import { confirmAction } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
@@ -23,6 +24,23 @@ interface SidebarItemProps {
   onPress: () => void;
   right?: React.ReactNode;
 }
+
+/**
+ * Una opción del menú, con su nombre y su icono tomados de la fuente única.
+ *
+ * Se escribe `<Opcion id="credits" …/>` en lugar de repetir aquí el emoji y la
+ * etiqueta: es lo que impide que la barra de escritorio y el cajón del ☰ vuelvan
+ * a llamar distinto a lo mismo. `label` solo se pasa cuando el texto cambia por
+ * el estado de la persona ("Crear mi perfil Weë").
+ */
+const Opcion: React.FC<{
+  id: MenuItemId;
+  onPress: () => void;
+  active?: boolean;
+  nested?: boolean;
+  right?: React.ReactNode;
+  label?: string;
+}> = ({ id, label, ...resto }) => <SidebarItem emoji={MENU_ITEM[id].emoji} label={label ?? MENU_ITEM[id].label} {...resto} />;
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested, onPress, right }) => {
   const { theme } = useTheme();
@@ -57,7 +75,9 @@ const Sidebar: React.FC = () => {
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
-  const { userProfile } = useUserProfile();
+  const { userProfile, activeProfileType, hasHidiProfile } = useUserProfile();
+  // El mismo saldo que lee el cajón: una sola fuente, dos sitios donde se ve.
+  const { balance } = useWallet(userProfile?.uid || user?.uid);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
 
@@ -105,23 +125,74 @@ const Sidebar: React.FC = () => {
           <Image source={require('../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
         </TouchableOpacity>
 
-        {/* Credits siempre visibles (solo con sesión) */}
-        {user && (
-          <View style={styles.credits}>
-            <CreditsPill />
+        {/*
+          Quién soy, arriba del todo: la misma cabecera de cuenta que el cajón.
+          Antes esto estaba al final de la barra y con otro texto ("Ver mi
+          perfil"), así que escritorio y móvil no se parecían en lo primero que
+          se mira.
+        */}
+        <TouchableOpacity
+          style={[styles.cuenta, { borderBottomColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
+          onPress={() => (user ? goTab('Profile') : requireLogin())}
+          activeOpacity={0.7}
+          accessibilityLabel={user ? 'Ir a mi perfil' : 'Iniciar sesión'}
+        >
+          {user && userProfile ? (
+            <AvatarDisplay
+              size={44}
+              avatarType={userProfile.avatarType || 'predefined'}
+              avatarId={userProfile.avatarId || 'male'}
+              photoURL={typeof userProfile.photoURL === 'string' ? userProfile.photoURL : undefined}
+              photoURLThumbnail={typeof userProfile.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
+              backgroundColor="#F5B731"
+            />
+          ) : (
+            <View style={[styles.avatarVacio, { backgroundColor: theme.colors.surface }]}>
+              <Ionicons name="person-circle-outline" size={32} color={theme.colors.textSecondary} />
+            </View>
+          )}
+          <View style={styles.cuentaTextos}>
+            <Text style={[styles.cuentaNombre, { color: theme.colors.text }]} numberOfLines={1}>
+              {userProfile?.displayName || user?.displayName || 'Invitado'}
+            </Text>
+            <Text style={[styles.cuentaEstado, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {!user ? 'Toca para iniciar sesión' : activeProfileType === 'hidi' ? 'Perfil Weë activo' : activeProfileType === 'biz' ? 'Perfil Biz activo' : 'Perfil Real activo'}
+            </Text>
           </View>
-        )}
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
 
-        {/* Menú */}
+        {/* Menú: mismo orden y mismos grupos que el cajón */}
         <View style={styles.nav}>
+          {/*
+            Inicio y Buscar solo existen aquí, y no es una discrepancia: en el
+            móvil los da la barra inferior. Son la única diferencia real entre
+            las dos plataformas, y viene de que el escritorio no tiene esa barra.
+          */}
           <SidebarItem emoji="🏠" label="Inicio" active={isActive('Home')} onPress={() => goHome('Landing')} />
           <SidebarItem emoji="🔍" label="Buscar" active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
-          <SidebarItem emoji="👥" label="Comunidades" onPress={() => goHome('ExploreCommunities')} />
-          <SidebarItem emoji="🎬" label="Weëls" onPress={() => goHome('Landing', { openWeels: true })} />
-          <SidebarItem emoji="💬" label="WeeTalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
+
+          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>PERFIL</Text>
+          <Opcion id="realProfile" active={!!user && activeProfileType === 'real'} onPress={() => (user ? goTab('Profile') : requireLogin())} />
+          <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasHidiProfile ? goTab('Profile') : navigation.navigate('HidiCreation')) : requireLogin())} label={hasHidiProfile || !user ? undefined : 'Crear mi perfil Weë'} />
+          <Opcion
+            id="credits"
+            active={isActive('CreditStore')}
+            onPress={() => (user ? navigation.navigate('CreditStore') : requireLogin())}
+            right={user ? (
+              <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
+                <Text style={styles.saldoTexto}>{balance === null ? '…' : `${balance.toLocaleString('es')} Credits`}</Text>
+              </View>
+            ) : undefined}
+          />
+
+          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>EXPLORA</Text>
+          <Opcion id="communities" onPress={() => goHome('ExploreCommunities')} />
+          <Opcion id="weels" onPress={() => goHome('Landing', { openWeels: true })} />
+          <Opcion id="weetalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
           <SidebarItem
-            emoji="🤖"
-            label="Weë Creator"
+            emoji={MENU_ITEM.creator.emoji}
+            label={MENU_ITEM.creator.label}
             active={isActive('WeeCreator') || isActive('Specialist') || isActive('CreatorFlow') || isActive('Projects') || isActive('Project')}
             onPress={() => {
               setCreatorOpen(true);
@@ -138,14 +209,14 @@ const Sidebar: React.FC = () => {
               {WEE_EXPERIENCES.map((exp) => (
                 <SidebarItem key={exp.id} emoji={exp.emoji} label={exp.name} nested onPress={() => navigation.navigate('Specialist', { id: exp.id })} />
               ))}
-              <SidebarItem emoji="📁" label="Mis proyectos" nested active={isActive('Projects')} onPress={() => (user ? navigation.navigate('Projects') : requireLogin())} />
+              <Opcion id="projects" nested active={isActive('Projects')} onPress={() => (user ? navigation.navigate('Projects') : requireLogin())} />
             </View>
           )}
-          <SidebarItem emoji="👤" label="Perfil" active={isActive('Profile')} onPress={() => (user ? goTab('Profile') : requireLogin())} />
-          <SidebarItem emoji="🔔" label="Notificaciones" onPress={() => (user ? goHome('Notifications') : requireLogin())} />
-          <SidebarItem emoji="🔖" label="Guardados" active={isActive('SavedPosts')} onPress={() => (user ? navigation.navigate('SavedPosts') : requireLogin())} />
-          <SidebarItem emoji="⚙️" label="Configuración" active={isActive('Settings')} onPress={() => navigation.navigate('Settings')} />
-          <SidebarItem emoji="❓" label="Ayuda" active={isActive('Help')} onPress={() => navigation.navigate('Help')} />
+          {/* "Perfil" a secas se fue: arriba ya están Perfil Real y Perfil Weë. */}
+          <Opcion id="notifications" onPress={() => (user ? goHome('Notifications') : requireLogin())} />
+          <Opcion id="saved" active={isActive('SavedPosts')} onPress={() => (user ? navigation.navigate('SavedPosts') : requireLogin())} />
+          <Opcion id="settings" active={isActive('Settings')} onPress={() => navigation.navigate('Settings')} />
+          <Opcion id="help" active={isActive('Help')} onPress={() => navigation.navigate('Help')} />
         </View>
 
         {/* Crear: la misma hoja que el botón + */}
@@ -160,47 +231,18 @@ const Sidebar: React.FC = () => {
           <Text style={styles.createButtonText}>Crear</Text>
         </TouchableOpacity>
 
-        {/* Persona */}
-        {user ? (
-          <View style={styles.userBlock}>
-            <TouchableOpacity
-              style={[styles.userInfo, { backgroundColor: theme.colors.surface }]}
-              onPress={() => goTab('Profile')}
-              activeOpacity={0.7}
-              accessibilityLabel="Ir a mi perfil"
-            >
-              {userProfile ? (
-                <AvatarDisplay
-                  size={40}
-                  avatarType={userProfile.avatarType || 'predefined'}
-                  avatarId={userProfile.avatarId || 'male'}
-                  photoURL={typeof userProfile.photoURL === 'string' ? userProfile.photoURL : undefined}
-                  photoURLThumbnail={typeof userProfile.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
-                  backgroundColor={theme.colors.accent}
-                  showBorder={false}
-                />
-              ) : (
-                <View style={[styles.avatar, { backgroundColor: theme.colors.accent }]}>
-                  <Ionicons name="person" size={20} color="#1F2937" />
-                </View>
-              )}
-              <View style={styles.userDetails}>
-                <Text style={[styles.userName, { color: theme.colors.text }]} numberOfLines={1}>
-                  {userProfile?.displayName || 'Mi perfil'}
-                </Text>
-                <Text style={[styles.userAction, { color: theme.colors.textSecondary }]}>Ver mi perfil</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
+        {/* Pie: lo mismo que cierra el cajón del ☰ */}
+        <View style={[styles.pie, { borderTopColor: theme.colors.border }]}>
+          {user ? (
+            <TouchableOpacity onPress={handleLogout} activeOpacity={0.7} accessibilityLabel="Cerrar sesión">
+              <Text style={[styles.pieEnlace, { color: theme.colors.textSecondary }]}>Cerrar sesión</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleLogout} style={styles.logout} activeOpacity={0.7} accessibilityLabel="Cerrar sesión">
-              <Text style={[styles.logoutText, { color: theme.colors.textSecondary }]}>Cerrar sesión</Text>
+          ) : (
+            <TouchableOpacity style={[styles.loginButton, { borderColor: theme.colors.accent }]} onPress={requireLogin} activeOpacity={0.8} accessibilityLabel="Iniciar sesión">
+              <Text style={[styles.loginText, { color: theme.colors.accentDark }]}>Iniciar sesión</Text>
             </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity style={[styles.loginButton, { borderColor: theme.colors.accent }]} onPress={requireLogin} activeOpacity={0.8} accessibilityLabel="Iniciar sesión">
-            <Text style={[styles.loginText, { color: theme.colors.accentDark }]}>Iniciar sesión</Text>
-          </TouchableOpacity>
-        )}
+          )}
+        </View>
       </ScrollView>
 
       <CreateSheet
@@ -234,9 +276,66 @@ const styles = StyleSheet.create({
     height: 36,
     width: 101,
   },
-  credits: {
+  /*
+   * Cabecera de cuenta: el mismo bloque que abre el cajón del ☰ —avatar, nombre,
+   * qué perfil está activo y el chevron—, con la misma línea de separación
+   * debajo. En escritorio hay sitio de sobra, así que respira un poco más.
+   */
+  cuenta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
     paddingHorizontal: SPACING.md,
-    alignItems: 'flex-start',
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 0.5,
+    marginBottom: SPACING.xs,
+  },
+  avatarVacio: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cuentaTextos: {
+    flex: 1,
+    gap: 2,
+  },
+  cuentaNombre: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  cuentaEstado: {
+    fontSize: FONT_SIZE.xs,
+  },
+  /** El rótulo de cada grupo: PERFIL, EXPLORA. Igual que en el cajón. */
+  pie: {
+    marginTop: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderTopWidth: 0.5,
+  },
+  pieEnlace: {
+    fontSize: FONT_SIZE.xs,
+  },
+  grupo: {
+    fontSize: 11,
+    fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: 0.6,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
+  /** El saldo, como en el cajón: una pastilla dorada al final de la fila. */
+  saldo: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  saldoTexto: {
+    fontSize: 11,
+    fontWeight: FONT_WEIGHT.bold,
+    color: '#1F2937',
   },
   nav: {
     gap: 2,

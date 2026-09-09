@@ -26,6 +26,7 @@ import { scale } from '../utils/scale';
 import { weeBizService, Business } from '../services/weeBizService';
 import { useWallet } from '../hooks/useWallet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
+import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -38,11 +39,13 @@ interface DrawerMenuProps {
 /**
  * El único menú ☰ de Weë.
  *
- *   PERFIL        Perfil Real · Perfil Weë
+ *   PERFIL        Perfil Real · Perfil Weë · 💳 Credits
  *   EXPLORA       Comunidades · Weëls
  *   WeeTalk
  *   Weë Creator   🎨 Weë Design · 🎬 Weë Studio · … · 🧠 Weë Brain · 📁 Mis proyectos
- *   💳 Credits · 🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
+ *   🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
+ *
+ * Credits va con los perfiles porque es información de tu cuenta, no un destino.
  *
  * Lo social no lleva nombre propio: el Home ya es la experiencia social.
  */
@@ -237,6 +240,19 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     </TouchableOpacity>
   );
 
+  /**
+   * Una fila del menu, con su nombre y su icono tomados de la fuente unica.
+   *
+   * Se escribe `fila('credits', ...)` en vez de repetir el emoji y la etiqueta:
+   * asi el cajon y la barra de escritorio no pueden decir cosas distintas de la
+   * misma opcion.
+   */
+  const fila = (
+    id: MenuItemId,
+    onPress: () => void,
+    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean } = {}
+  ) => renderRow(MENU_ITEM[id].emoji, MENU_ITEM[id].label, onPress, opts);
+
   const renderSectionLabel = (label: string) => (
     <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
   );
@@ -294,8 +310,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
           {/* PERFIL */}
           {renderSectionLabel('PERFIL')}
-          {renderRow('👤', 'Perfil Real', goRealProfile, { active: !!user && activeProfileType === 'real' })}
-          {renderRow('🎭', hasHidiProfile || !user ? 'Perfil Weë' : 'Crear mi perfil Weë', goWeeProfile, {
+          {fila('realProfile', goRealProfile, { active: !!user && activeProfileType === 'real' })}
+          {renderRow(MENU_ITEM.weeProfile.emoji, hasHidiProfile || !user ? MENU_ITEM.weeProfile.label : 'Crear mi perfil Weë', goWeeProfile, {
             active: isWee,
             right: !hasHidiProfile && user ? (
               <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
@@ -304,34 +320,14 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             ) : undefined,
           })}
           {myBusiness && renderRow('🏪', myBusiness.name, goBizProfile, { active: activeProfileType === 'biz' })}
-
-          {/* EXPLORA */}
-          {renderSectionLabel('EXPLORA')}
-          {renderRow('👥', 'Comunidades', goCommunities)}
-          {renderRow('📹', 'Weëls', goWeels)}
-
-          {renderRow('💬', 'WeeTalk', goWeeTalk)}
-
-          {/* Weë Creator */}
-          <View style={[styles.creatorBlock, { backgroundColor: accentTint }]}>
-            <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
-              <Text style={styles.rowEmoji}>🤖</Text>
-              <View style={styles.creatorTitles}>
-                <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>Weë Creator</Text>
-                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Tú eliges el resultado. Weë elige la IA.</Text>
-              </View>
-              <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-            {creatorExpanded && (
-              <View style={styles.creatorList}>
-                {WEE_EXPERIENCES.map((exp) => renderRow(exp.emoji, exp.name, () => goCreator(exp.id), { small: true }))}
-                {renderRow('📁', 'Mis proyectos', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
-              </View>
-            )}
-          </View>
-
-          {/* Credits y resto */}
-          {renderRow('💳', 'Credits', goCredits, {
+          {/*
+            Credits, pegado a los perfiles y no a "Explora" (fase de UI).
+            Es información de TU CUENTA —lo que tienes—, no un sitio al que ir,
+            así que su sitio está aquí arriba y no en la lista de destinos.
+            Misma fila, mismo saldo y mismo destino que antes: solo cambia el
+            orden en el que se pinta.
+          */}
+          {fila('credits', goCredits, {
             right: user ? (
               <View style={[styles.creditsBadge, { backgroundColor: theme.colors.accent }]}>
                 <Text style={styles.creditsBadgeText}>
@@ -340,10 +336,35 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               </View>
             ) : undefined,
           })}
-          {renderRow('🔔', 'Notificaciones', goNotifications)}
-          {renderRow('🔖', 'Guardados', goSaved)}
-          {renderRow('⚙️', 'Configuración', goSettings)}
-          {renderRow('❓', 'Ayuda', goHelp)}
+
+          {/* EXPLORA */}
+          {renderSectionLabel('EXPLORA')}
+          {fila('communities', goCommunities)}
+          {fila('weels', goWeels)}
+          {fila('weetalk', goWeeTalk)}
+
+          {/* Weë Creator */}
+          <View style={[styles.creatorBlock, { backgroundColor: accentTint }]}>
+            <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
+              <Text style={styles.rowEmoji}>{MENU_ITEM.creator.emoji}</Text>
+              <View style={styles.creatorTitles}>
+                <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>{MENU_ITEM.creator.label}</Text>
+                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Tú eliges el resultado. Weë elige la IA.</Text>
+              </View>
+              <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+            {creatorExpanded && (
+              <View style={styles.creatorList}>
+                {WEE_EXPERIENCES.map((exp) => renderRow(exp.emoji, exp.name, () => goCreator(exp.id), { small: true }))}
+                {fila('projects', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
+              </View>
+            )}
+          </View>
+
+          {fila('notifications', goNotifications)}
+          {fila('saved', goSaved)}
+          {fila('settings', goSettings)}
+          {fila('help', goHelp)}
 
           {/* Pie */}
           <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
