@@ -60,9 +60,23 @@ interface SectionWallProps {
    * se queda exactamente como estaba: las demás secciones no se enteran.
    */
   compact?: boolean;
+  /**
+   * EL MURO GENERAL DE WEË, sin filtrar y sin pestañas (fase 2E-73).
+   *
+   * Weë tiene un solo muro. Una sección no es una red social aparte: es un
+   * contexto que una publicación puede llevar encima —el WeeTag— sin dejar de
+   * pertenecer al muro de todos. Filtrar por sección y ofrecer pestañas propias
+   * ("Muro Travel", "Fotos del viaje"…) construía justo lo contrario: un feed
+   * paralelo por experiencia.
+   *
+   * Con esta prop la sección enseña lo que publica todo el mundo, venga del
+   * contexto que venga. Sin ella, el muro filtrado y sus pestañas siguen
+   * exactamente igual para las demás secciones.
+   */
+  general?: boolean;
 }
 
-const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact }) => {
+const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, general }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -71,7 +85,7 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact })
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<WallTabKind>(config.tabs[0]?.id ?? 'all');
+  const [tab, setTab] = useState<WallTabKind>(config.tabs?.[0]?.id ?? 'all');
 
   // Se recarga al volver a la pantalla: quien acaba de publicar ve su publicación.
   useFocusEffect(
@@ -96,6 +110,8 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact })
   const mine = useMemo(() => sectionPosts(posts, SECTION_MARKERS[sectionId] || []), [posts, sectionId]);
 
   const visible = useMemo(() => {
+    // El muro general no filtra ni por sección ni por pestaña: es el de todos.
+    if (general) return posts;
     switch (tab) {
       case 'images':
         return filterPosts(mine, 'images');
@@ -108,7 +124,7 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact })
       default:
         return mine;
     }
-  }, [mine, tab, user, isSaved]);
+  }, [general, posts, mine, tab, user, isSaved]);
 
   const compose = (kind: 'post' | 'image' | 'video' | 'question') => {
     if (!user) {
@@ -215,10 +231,15 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact })
         )}
       </View>
 
-      {/* Pestañas del muro. */}
+      {/*
+        Pestañas del muro. El muro general no las tiene: "Muro Travel", "Fotos
+        del viaje", "Consejos" y "Mis viajes" convertían una sección en una red
+        social paralela, que es justo lo que Weë no es (fase 2E-73).
+      */}
+      {!general && (
       <View style={[styles.tabBar, { borderBottomColor: theme.colors.border }]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-        {config.tabs.map((item) => {
+        {(config.tabs ?? []).map((item) => {
           const active = tab === item.id;
           return (
             <TouchableOpacity
@@ -241,6 +262,7 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact })
         })}
       </ScrollView>
       </View>
+      )}
 
       {loading ? (
         <View style={styles.loading}>

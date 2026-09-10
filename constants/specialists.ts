@@ -77,7 +77,12 @@ export interface WallTab {
 
 /** Lo que la sección aporta a su muro: sus pestañas y sus palabras. */
 export interface SectionWallConfig {
-  tabs: WallTab[];
+  /*
+   * Opcional desde 2E-73. Una sección que enseña el muro general de Weë no tiene
+   * pestañas propias: filtrar por sección y ofrecer "Fotos del viaje" o "Mis
+   * viajes" convertía la sección en un feed paralelo, y Weë tiene un solo muro.
+   */
+  tabs?: WallTab[];
   /** Texto del compositor ("Comparte tu plato, una receta o una pregunta…"). */
   placeholder: string;
   /** Qué se ve cuando todavía no hay publicaciones de esta sección. */
@@ -731,6 +736,8 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * que se ve de un vistazo en cuanto la fila se abre.
      */
     gridTitle: '¿Qué quieres hacer?',
+    /* La frase bajo el título cuando Travel está plegado: qué hay ahí dentro. */
+    gridHint: 'Planifica, descubre, explora…',
     actionLayout: 'compact',
     actions: [
       { id: 'plan', icon: 'map-outline', emoji: '🗺️', title: 'Planificar un viaje', subtitle: 'Un itinerario día a día', goal: 'Planificar un viaje', preset: { questionId: 'what', optionId: 'plan' } },
@@ -753,13 +760,12 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       chips: ['🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'],
     },
     wall: {
-      tabs: [
-        { id: 'all', label: 'Muro Travel' },
-        { id: 'images', label: 'Fotos del viaje' },
-        { id: 'tutorials', label: 'Consejos' },
-        { id: 'mine', label: 'Mis viajes' },
-        { id: 'saved', label: 'Guardados' },
-      ],
+      /*
+       * Sin pestañas (fase 2E-73). Weë Travel no tiene muro propio: enseña el
+       * muro general de Weë, donde una publicación de viajes convive con una de
+       * Studio o de Design. Travel es el contexto de una publicación —el
+       * WeeTag—, no el sitio donde vive.
+       */
       placeholder: 'Comparte un viaje, una recomendación o una pregunta…',
       empty: {
         emoji: '🧳',

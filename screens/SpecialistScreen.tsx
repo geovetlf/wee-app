@@ -130,7 +130,7 @@ const SpecialistScreen: React.FC = () => {
         <TravelLauncher
           idea={spec.idea}
           actions={spec.actions}
-          title={spec.gridTitle}
+          hint={spec.gridHint}
           open={herramientasAbiertas}
           onToggle={() => setHerramientasAbiertas((abierto) => !abierto)}
           onSubmit={(text) => startFlow(text)}
@@ -174,7 +174,7 @@ const SpecialistScreen: React.FC = () => {
         arriba ya hay una caja de escribir, y dos cajas seguidas antes del primer
         post eran 86 px que le tocaban a las fotos de la gente (fase 2E-70).
       */}
-      {wall && <SectionWall sectionId={spec.id} config={wall} compact={lanzador} />}
+      {wall && <SectionWall sectionId={spec.id} config={wall} compact={lanzador} general={lanzador} />}
 
       {/*
         La caja de idea y los ejemplos son la entrada de las secciones que todavía
