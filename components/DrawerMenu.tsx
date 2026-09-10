@@ -27,6 +27,7 @@ import { weeBizService, Business } from '../services/weeBizService';
 import { useWallet } from '../hooks/useWallet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
+import { useIdentidadActiva } from '../hooks/useEContact';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -53,6 +54,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const { theme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
   const { userProfile, activeProfileType, hasWeeProfile, hasBizProfile, switchIdentity, switchToBiz, setBizProfile } = useUserProfile();
+  /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
+  const { nombreLista } = useIdentidadActiva();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -251,8 +254,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const fila = (
     id: MenuItemId,
     onPress: () => void,
-    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean } = {}
-  ) => renderRow(MENU_ITEM[id].emoji, MENU_ITEM[id].label, onPress, opts);
+    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; label?: string } = {}
+  ) => renderRow(MENU_ITEM[id].emoji, opts.label ?? MENU_ITEM[id].label, onPress, opts);
 
   const renderSectionLabel = (label: string) => (
     <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
@@ -346,13 +349,18 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           })}
 
           {/*
-            ËContact, entre líneas y solo.
+            Tu agenda, entre líneas y sola.
             No es información de tu cuenta —eso son los Credits, justo encima— ni
             un destino donde explorar. Es tu gente, y por eso va en su propio
             hueco entre las dos cosas.
+
+            Y se llama como la identidad activa: ËContact con el Perfil Real,
+            ẄContact con el Perfil Weë. El nombre sale de `useIdentidadActiva`,
+            la misma fuente que usa la pantalla; escribirlo aquí a mano haría que
+            el menú y la agenda dijeran cosas distintas.
           */}
           {renderDivisor()}
-          {fila('econtact', goEContact)}
+          {fila('econtact', goEContact, { label: nombreLista })}
 
           {/* EXPLORA */}
           {renderDivisor()}

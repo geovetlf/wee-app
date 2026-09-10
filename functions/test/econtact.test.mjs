@@ -300,7 +300,11 @@ const jsMenu = ts.transpileModule(fuenteMenu, {
 }).outputText;
 const menu = await import('data:text/javascript;base64,' + Buffer.from(jsMenu).toString('base64'));
 
-check('75) ËContact está en la fuente única del menú', menu.MENU_ITEM.econtact?.label === 'ËContact', menu.MENU_ITEM.econtact?.label);
+/*
+ * En la fuente única está el nombre POR DEFECTO —el del Perfil Real, y el que se
+ * ve sin sesión—. El que se pinta lo decide la identidad activa: ver más abajo.
+ */
+check('75) la agenda está en la fuente única del menú, con su nombre por defecto', menu.MENU_ITEM.econtact?.label === 'ËContact', menu.MENU_ITEM.econtact?.label);
 /*
  * El sitio exacto: después de Credits —lo último de tu cuenta— y antes de
  * Comunidades —lo primero de los destinos—.
@@ -314,12 +318,44 @@ check('80) los grupos con nombre siguen siendo PERFIL y EXPLORA', menu.WEE_MENU.
 
 const cajon = read('components/DrawerMenu.tsx');
 const barra = read('components/Sidebar.tsx');
-check('81) el cajón pinta ËContact', /fila\('econtact', goEContact\)/.test(cajon));
+check('81) el cajón pinta la agenda con el nombre de la identidad activa', /fila\('econtact', goEContact, \{ label: nombreLista \}\)/.test(cajon));
 check('82) y su línea', /renderDivisor\(\)/.test(cajon) && /divisor: \{/.test(cajon));
-check('83) la barra de escritorio también', /<Opcion id="econtact"/.test(barra) && /styles\.divisor/.test(barra));
+check('83) la barra de escritorio también', /<Opcion id="econtact" label=\{nombreLista\}/.test(barra) && /styles\.divisor/.test(barra));
 check('84) ninguno escribe la etiqueta a mano', !/'ËContact'|"ËContact"/.test(sinComentarios(cajon) + sinComentarios(barra)));
 check('85) los dos llevan a la misma pantalla', /navigateRoot\('EContact'\)/.test(cajon) && /navigate\('EContact'\)/.test(barra));
 check('86) y sin sesión piden entrar', /goEContact = \(\) => \(user \?/.test(cajon) && /id="econtact"[\s\S]{0,160}user \?/.test(barra));
+
+/*
+ * EL NOMBRE DEL MENÚ SIGUE A LA IDENTIDAD ACTIVA.
+ *
+ * Con el Perfil Weë puesto, el menú decía "ËContact" mientras la pantalla decía
+ * "ẄContact": el menú tenía el nombre escrito a mano y la pantalla lo sacaba de
+ * la identidad. Ahora los dos beben de lo mismo.
+ *
+ * Lo que se ejecuta aquí es la función que da el nombre; que el menú use ESA y
+ * no otra se comprueba leyendo la línea que lo pinta, justo arriba.
+ */
+{
+  const menuDe = (identidad) => nombreDeLista(identidad);
+  check('86b) Perfil Real activo → el menú dice ËContact', menuDe(ANA) === 'ËContact', menuDe(ANA));
+  check('86c) Perfil Weë activo → el menú dice ẄContact', menuDe(`hidi_${ANA}`) === 'ẄContact', menuDe(`hidi_${ANA}`));
+  /* Es un solo valor: no puede haber dos etiquetas a la vez en un mismo estado. */
+  check('86d) en cada estado hay UNA etiqueta, nunca las dos',
+    [ANA, `hidi_${ANA}`].every((i) => {
+      const n = menuDe(i);
+      return (n === 'ËContact') !== (n === 'ẄContact');
+    }));
+  check('86e) y las dos son distintas', menuDe(ANA) !== menuDe(`hidi_${ANA}`));
+  /* Los dos menús lo piden a la misma fuente que la pantalla. */
+  check('86f) el cajón lo toma de useIdentidadActiva', /const \{ nombreLista \} = useIdentidadActiva\(\);/.test(cajon) && /from '\.\.\/hooks\/useEContact'/.test(cajon));
+  check('86g) y la barra de escritorio también', /const \{ nombreLista \} = useIdentidadActiva\(\);/.test(barra) && /from '\.\.\/hooks\/useEContact'/.test(barra));
+  /*
+   * Control: si alguien vuelve a escribir el nombre a mano en la parte dinámica,
+   * la 84 lo caza. Aquí se comprueba que la 84 sabría cazarlo.
+   */
+  check('86h) CONTROL: la comprobación detectaría un nombre escrito a mano',
+    /'ËContact'|"ËContact"/.test(sinComentarios(`const x = 'ËContact';`)));
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── I) La pantalla ──');

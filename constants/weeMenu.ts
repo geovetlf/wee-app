@@ -50,6 +50,12 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
   realProfile: { id: 'realProfile', emoji: '👤', label: 'Perfil Real' },
   weeProfile: { id: 'weeProfile', emoji: '🎭', label: 'Perfil Weë' },
   credits: { id: 'credits', emoji: '💳', label: 'Credits' },
+  /*
+   * El nombre de tu agenda depende del perfil activo —ËContact con el Real,
+   * ẄContact con el Weë—, así que los dos menús lo sobrescriben con lo que diga
+   * `useIdentidadActiva`. Este es el de por defecto: el del Perfil Real, y el
+   * que se ve sin sesión.
+   */
   econtact: { id: 'econtact', emoji: '🤝', label: 'ËContact' },
   communities: { id: 'communities', emoji: '👥', label: 'Comunidades' },
   weels: { id: 'weels', emoji: '📹', label: 'Weëls' },

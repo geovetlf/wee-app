@@ -10,6 +10,7 @@ import AvatarDisplay from './avatars/AvatarDisplay';
 import CreateSheet, { CreateKind } from './CreateSheet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
+import { useIdentidadActiva } from '../hooks/useEContact';
 import { useWallet } from '../hooks/useWallet';
 import { confirmAction } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -76,6 +77,8 @@ const Sidebar: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
   const { userProfile, activeProfileType, hasWeeProfile } = useUserProfile();
+  /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
+  const { nombreLista } = useIdentidadActiva();
   // El mismo saldo que lee el cajón: una sola fuente, dos sitios donde se ve.
   const { balance } = useWallet(userProfile?.uid || user?.uid);
   const [creatorOpen, setCreatorOpen] = useState(false);
@@ -187,11 +190,15 @@ const Sidebar: React.FC = () => {
           />
 
           {/*
-            ËContact, entre líneas y solo. Ni información de tu cuenta —eso son
+            Tu agenda, entre líneas y sola. Ni información de tu cuenta —eso son
             los Credits, justo encima— ni un destino donde explorar: es tu gente.
+
+            Se llama como la identidad activa: ËContact con el Perfil Real,
+            ẄContact con el Perfil Weë. El nombre sale de `useIdentidadActiva`,
+            la misma fuente que usa la pantalla.
           */}
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
-          <Opcion id="econtact" active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
+          <Opcion id="econtact" label={nombreLista} active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
 
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>EXPLORA</Text>
