@@ -9,7 +9,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node test/router.test.mjs && node test/ledger.test.mjs && node test/planner.test.mjs && node test/providers.test.mjs && node test/credits.test.mjs && node test/pricing-mode.test.mjs && node test/estimate-plan.test.mjs && node test/creator.test.mjs && node test/travel.test.mjs && node test/location.test.mjs && node test/security.test.mjs"
+    "test": "node test/router.test.mjs && node test/ledger.test.mjs && node test/planner.test.mjs && node test/providers.test.mjs && node test/credits.test.mjs && node test/pricing-mode.test.mjs && node test/estimate-plan.test.mjs && node test/creator.test.mjs && node test/travel.test.mjs && node test/composer.test.mjs && node test/location.test.mjs && node test/security.test.mjs"
   },
   "engines": {
     "node": "24"
