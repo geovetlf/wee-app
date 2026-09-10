@@ -19,21 +19,52 @@ import {
   QueryDocumentSnapshot,
   DocumentSnapshot
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../config/firebase';
 
 // Tipos para las colecciones principales
+/*
+ * Una opción de encuesta.
+ *
+ * `id` es el modelo nuevo: lo que se vota es el id, nunca la posición. Un índice
+ * fuera de rango dejó de ser una forma de votar.
+ *
+ * `votes` y `votedBy` son de las encuestas HISTÓRICAS y quedan solo para poder
+ * leerlas. No se migran, no se modifican y ya no se escriben: los recuentos del
+ * modelo nuevo viven en `PostPoll.counts` y solo los mueve el servidor.
+ */
 export interface PollOption {
+  id?: string;
   text: string;
-  votes: number;
-  votedBy: string[]; // Array de userIds que votaron por esta opción
+  votes?: number;
+  votedBy?: string[]; // Histórico: userIds que votaron por esta opción
 }
 
 import type { PostPlace } from '../data/places';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
 
+/*
+ * Una encuesta dentro de una publicación.
+ *
+ * `counts` y `totalVotes` los escribe ÚNICAMENTE la callable `votePoll`: las
+ * reglas de Firestore prohíben tocar `poll` desde el cliente, incluso al autor.
+ * Quién votó qué no está aquí —vive en `posts/{id}/pollVotes/{uid}`, que solo
+ * puede leer esa misma persona—, así que el documento no crece con los votos.
+ */
 export interface PostPoll {
+  question?: string; // La pregunta, en la encuesta y no suelta en el texto del post
   options: PollOption[];
+  counts?: Record<string, number>; // optionId → votos. Solo servidor
   endsAt: Timestamp;
+  totalVotes: number;
+  allowChange?: boolean; // Se puede cambiar el voto mientras la encuesta siga abierta
+}
+
+/** Lo que devuelve la callable `votePoll`: el recuento ya consolidado por el servidor. */
+export interface PollVoteResult {
+  optionId: string;
+  cambio: boolean; // true si se cambió un voto anterior en vez de emitir uno nuevo
+  counts: Record<string, number>;
   totalVotes: number;
 }
 
@@ -496,43 +527,76 @@ export const postsService = {
       undefined, // Sin filtros por ahora
       'createdAt', 'desc', limitCount
     ),
-  voteInPoll: async (postId: string, optionIndex: number, userId: string): Promise<void> => {
-    const postRef = doc(db, 'posts', postId);
-    const postSnap = await getDoc(postRef);
-
-    if (!postSnap.exists()) {
-      throw new Error('Post no encontrado');
+  /*
+   * Votar en una encuesta.
+   *
+   * El cliente ya NO escribe contadores: pide el voto a la callable `votePoll`,
+   * que es el único sitio con permiso para tocar `poll`. Ahí, y no aquí, se
+   * comprueba que la opción exista, que la encuesta siga abierta según el reloj
+   * del servidor y que la persona no vote dos veces. Quién vota lo decide
+   * Firebase Auth: la cuenta manda, no el perfil, así que Real, Weë y Biz
+   * comparten un único voto.
+   */
+  /*
+   * ¿Qué votó esta persona en esta encuesta?
+   *
+   * Un único documento, el suyo: `posts/{postId}/pollVotes/{uid}`. Las reglas de
+   * Firestore no dejan leer el de nadie más, así que no hay forma de saber qué
+   * votó otro —ni siquiera siendo el autor del post—, y tampoco hace falta leer
+   * la lista de votantes para pintar la tarjeta.
+   *
+   * El uid es el de la CUENTA (`auth.currentUser`), nunca el del perfil activo:
+   * Real, Weë y Biz son la misma persona y comparten un solo voto. Es el mismo
+   * uid con el que la callable `votePoll` escribió el documento.
+   */
+  getMyPollVote: async (postId: string): Promise<string | null> => {
+    const uid = auth?.currentUser?.uid;
+    if (!uid || !postId) return null;
+    try {
+      const snap = await getDoc(doc(db, 'posts', postId, 'pollVotes', uid));
+      if (!snap.exists()) return null;
+      const optionId = (snap.data() as { optionId?: unknown }).optionId;
+      return typeof optionId === 'string' && optionId ? optionId : null;
+    } catch {
+      // Sin voto o sin permiso para saberlo: la encuesta se dibuja sin marcar nada.
+      return null;
     }
+  },
 
-    const post = postSnap.data() as Post;
-
-    if (!post.poll) {
-      throw new Error('Este post no tiene encuesta');
-    }
-
-    // Verificar que el usuario no haya votado ya
-    const hasVoted = post.poll.options.some(opt => opt.votedBy.includes(userId));
-    if (hasVoted) {
-      throw new Error('Ya has votado en esta encuesta');
-    }
-
-    // Actualizar la opción votada
-    const updatedOptions = post.poll.options.map((opt, idx) => {
-      if (idx === optionIndex) {
-        return {
-          ...opt,
-          votes: opt.votes + 1,
-          votedBy: [...opt.votedBy, userId],
-        };
-      }
-      return opt;
+  voteInPollById: async (postId: string, optionId: string): Promise<PollVoteResult> => {
+    if (!functions) throw new Error('No se pudo conectar con Weë para registrar tu voto.');
+    const fn = httpsCallable<{ postId: string; optionId: string }, PollVoteResult>(functions, 'votePoll', {
+      timeout: 30_000,
     });
+    const result = await fn({ postId, optionId });
+    return result.data;
+  },
 
-    // Actualizar el post con los nuevos datos
-    await updateDoc(postRef, {
-      'poll.options': updatedOptions,
-      'poll.totalVotes': post.poll.totalVotes + 1,
-    });
+  /*
+   * La misma puerta, con la firma de siempre: `PostCard` y `PostDetailScreen`
+   * conocen la posición de la opción que se tocó, no su id. La posición se
+   * traduce aquí y lo que viaja al servidor es siempre un id.
+   *
+   * `userId` se conserva por compatibilidad y se ignora a propósito: el servidor
+   * nunca acepta una identidad que venga del cliente.
+   */
+  voteInPoll: async (postId: string, optionIndex: number, _userId?: string): Promise<PollVoteResult> => {
+    const postSnap = await getDoc(doc(db, 'posts', postId));
+    if (!postSnap.exists()) throw new Error('Esta publicación ya no existe.');
+
+    const poll = (postSnap.data() as Post).poll;
+    if (!poll || !Array.isArray(poll.options) || poll.options.length === 0) {
+      throw new Error('Esta publicación no tiene encuesta.');
+    }
+
+    const opcion = poll.options[optionIndex];
+    if (!opcion) throw new Error('Esa opción no existe en esta encuesta.');
+    if (!opcion.id) {
+      // Encuesta histórica: se lee, no se vota. No se migra ni se modifica.
+      throw new Error('Esta encuesta es de una versión anterior de Weë y ya no admite votos.');
+    }
+
+    return postsService.voteInPollById(postId, opcion.id);
   },
   incrementViews: async (postId: string): Promise<void> => {
     const postRef = doc(db, 'posts', postId);

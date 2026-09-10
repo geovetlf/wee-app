@@ -20,6 +20,34 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(creditFields());
     }
 
+    // Encuestas (Bloque A): el campo `poll` de un post NO lo escribe el cliente.
+    // Ni un tercero, ni el propio autor. Los contadores solo los mueve la callable
+    // `votePoll`, que corre con el Admin SDK y no pasa por estas reglas. Publicar
+    // la encuesta sigue siendo parte del `create` del post, que esto no toca.
+    function touchesPoll() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['poll']);
+    }
+
+    // Un post publicado desde un perfil Biz pertenece a la PERSONA dueña del
+    // negocio, no a "cualquiera que tenga cuenta". El id del negocio viaja dentro
+    // del propio userId (`biz_<businessId>`) y el dueño está en `businesses`.
+    // `exists()` antes de `get()` para que un negocio borrado deniegue en vez de
+    // reventar la regla.
+    function businessIdOf(userId) {
+      return userId.split('biz_')[1];
+    }
+    function ownsBizProfile(userId) {
+      return userId.matches('biz_.*') &&
+        exists(/databases/$(database)/documents/businesses/$(businessIdOf(userId))) &&
+        get(/databases/$(database)/documents/businesses/$(businessIdOf(userId))).data.ownerId == request.auth.uid;
+    }
+    // Autoría real de un post, para las tres identidades de una misma cuenta.
+    function ownsPost() {
+      return resource.data.userId == request.auth.uid ||
+        resource.data.userId == ("hidi_" + request.auth.uid) ||
+        ownsBizProfile(resource.data.userId);
+    }
+
     // === USUARIOS ===
     match /users/{userId} {
       // Cualquiera puede leer perfiles públicos
@@ -93,28 +121,34 @@ service cloud.firestore {
       // Cualquiera puede leer posts públicos
       allow read: if true;
 
-      // Solo usuarios autenticados pueden crear posts
-      // Permite crear con uid real, HIDI o BIZ
+      // Solo usuarios autenticados pueden crear posts.
+      // Se publica con la identidad real, con la Weë (hidi) o con la de un negocio,
+      // pero SIEMPRE tienen que ser identidades de esta misma cuenta: publicar como
+      // `biz_<negocio>` exige ser la persona dueña de ese negocio.
       allow create: if isAuthenticated() &&
         (request.resource.data.userId == request.auth.uid ||
          request.resource.data.userId == ("hidi_" + request.auth.uid) ||
-         (request.resource.data.userId.matches('biz_.*')));
+         ownsBizProfile(request.resource.data.userId));
 
-      // El autor puede actualizar su post, o cualquier usuario autenticado puede actualizar contadores
-      allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.userId == ("hidi_" + request.auth.uid) ||
-        resource.data.userId.matches('biz_.*') ||
+      // El autor puede actualizar su post, o cualquier usuario autenticado puede actualizar contadores.
+      // `poll` queda fuera de los dos caminos: los votos solo los escribe el servidor.
+      allow update: if isAuthenticated() && !touchesPoll() && (
+        ownsPost() ||
         // Permitir actualizar solo contadores (views, agreementCount, etc.)
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['views', 'agreementCount', 'disagreementCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'])
       );
 
       // Solo el autor puede eliminar su post
-      allow delete: if isAuthenticated() &&
-        (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+      allow delete: if isAuthenticated() && ownsPost();
+
+      // === ENCUESTAS: el voto de cada persona, en su propio documento ===
+      // Lo escribe únicamente la callable `votePoll` (Admin SDK). Cada quien lee
+      // el suyo y solo el suyo: nadie puede saber qué votó otra persona.
+      match /pollVotes/{voterUid} {
+        allow read: if isAuthenticated() && request.auth.uid == voterUid;
+        allow write: if false;
+      }
     }
 
     // === VOTOS ===

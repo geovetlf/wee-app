@@ -4,10 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useBookmarks } from '../../hooks/useBookmarks';
-import AvatarDisplay from '../avatars/AvatarDisplay';
 import PostCard from '../PostCard';
+import ComposerEntry, { ComposerKind } from './ComposerEntry';
 import { Post, postsService } from '../../services/firestoreService';
 import { filterPosts } from '../../utils/feedFilters';
 import { postsDeLaSeccion, paginaDelMuroGeneral, paginaDeLaSeccion, sobreconsulta } from '../../utils/sectionFeed';
@@ -86,7 +85,6 @@ interface SectionWallProps {
 const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, general }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
   const { isSaved } = useBookmarks();
   const navigation = useNavigation<any>();
 
@@ -206,7 +204,7 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
     }
   }, [general, posts, mine, tab, user, isSaved]);
 
-  const compose = (kind: 'post' | 'image' | 'video' | 'question') => {
+  const compose = (kind: ComposerKind) => {
     if (!user) {
       navigation.navigate('Login');
       return;
@@ -229,87 +227,11 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
     navigation.navigate('Inbox', { screen: 'Conversation', params: { otherUserId: userId, otherUserData: userData } });
   };
 
-  const shortcuts: { kind: 'image' | 'video' | 'question'; icon: string; label: string }[] = [
-    { kind: 'image', icon: 'image-outline', label: 'Foto' },
-    { kind: 'video', icon: 'videocam-outline', label: 'Video' },
-    { kind: 'question', icon: 'help-circle-outline', label: 'Pregunta' },
-  ];
 
   return (
     <View style={styles.container}>
-      {/* Compositor: no publica aquí, abre la pantalla de crear de siempre. */}
-      <View style={[styles.composer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-        <View style={styles.composerTop}>
-          {userProfile ? (
-            <AvatarDisplay
-              size={scale(40)}
-              avatarType={userProfile.avatarType || 'predefined'}
-              avatarId={userProfile.avatarId || 'male'}
-              photoURL={userProfile.photoURL}
-              photoURLThumbnail={userProfile.photoURLThumbnail}
-              backgroundColor={theme.colors.accent}
-              showBorder={false}
-            />
-          ) : (
-            <View style={[styles.avatarFallback, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-              <Ionicons name="person-outline" size={scale(18)} color={theme.colors.textSecondary} />
-            </View>
-          )}
-          <TouchableOpacity
-            onPress={() => compose('post')}
-            activeOpacity={0.7}
-            style={[styles.composerField, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-            accessibilityLabel={config.placeholder}
-          >
-            <Text style={[styles.composerPlaceholder, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {config.placeholder}
-            </Text>
-          </TouchableOpacity>
-          {/*
-            Compacto: el atajo de foto se queda en la misma fila y los otros dos
-            bajan un toque, dentro de la pantalla de crear. En un muro de viajes
-            lo que la gente sube son fotos, así que ese atajo se gana el sitio y
-            los demás no lo necesitan para estar disponibles.
-          */}
-          {compact && (
-            <TouchableOpacity
-              onPress={() => compose('image')}
-              activeOpacity={0.7}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={styles.composerFotoCompacta}
-              accessibilityLabel="Compartir una foto"
-            >
-              <Ionicons name="image-outline" size={scale(21)} color={theme.colors.accentDark} />
-            </TouchableOpacity>
-          )}
-        </View>
-        {!compact && (
-        <View style={styles.composerActions}>
-          <View style={styles.composerShortcuts}>
-            {shortcuts.map((shortcut) => (
-              <TouchableOpacity
-                key={shortcut.kind}
-                onPress={() => compose(shortcut.kind)}
-                activeOpacity={0.7}
-                style={[styles.composerChip, { borderColor: theme.colors.border }]}
-                accessibilityLabel={shortcut.label}
-              >
-                <Ionicons name={shortcut.icon as any} size={scale(15)} color={theme.colors.accentDark} />
-                <Text style={[styles.composerChipText, { color: theme.colors.text }]}>{shortcut.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity
-            onPress={() => compose('post')}
-            activeOpacity={0.85}
-            style={[styles.publishButton, { backgroundColor: theme.colors.accent }]}
-            accessibilityLabel="Publicar"
-          >
-            <Text style={styles.publishText}>Publicar</Text>
-          </TouchableOpacity>
-        </View>
-        )}
-      </View>
+      {/* La puerta de publicar, la misma de todo Weë. Abre el compositor global. */}
+      <ComposerEntry placeholder={config.placeholder} onCompose={compose} compact={compact} seccion={sectionId} />
 
       {/*
         Pestañas del muro. El muro general no las tiene: "Muro Travel", "Fotos
@@ -410,80 +332,6 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
 const styles = StyleSheet.create({
   container: {
     gap: SPACING.md,
-  },
-  composer: {
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    gap: SPACING.md,
-  },
-  composerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  /* 44 de lado, el mínimo táctil, sin escalar: lo que se toca no encoge. */
-  composerFotoCompacta: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarFallback: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  composerField: {
-    flex: 1,
-    minHeight: scale(44),
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.lg,
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-  },
-  composerPlaceholder: {
-    fontSize: FONT_SIZE.sm,
-  },
-  composerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-    flexWrap: 'wrap',
-  },
-  composerShortcuts: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    flexWrap: 'wrap',
-  },
-  composerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(6),
-    minHeight: scale(36),
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-  },
-  composerChipText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-  publishButton: {
-    minHeight: scale(38),
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.xl,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  publishText: {
-    color: '#1F2937',
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
   },
   tabBar: {
     borderBottomWidth: StyleSheet.hairlineWidth,

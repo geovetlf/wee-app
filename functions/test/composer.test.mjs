@@ -238,8 +238,15 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
    */
   check('122) caben diez fotos en una publicación', /const maxImages = 10;/.test(crearCrudo));
   check('122) y se pueden elegir varias de una vez', /allowsMultipleSelection: !hasVideo/.test(crearCrudo));
-  check('122) sin pasarse del tope al elegir', /selectionLimit: hasVideo \? 0 : maxImages - attachedMedia\.length/.test(crearCrudo));
-  check('122) la píldora dice cuántas llevas', /\$\{fotosPuestas\}\/\$\{maxImages\}/.test(crearCrudo));
+  /*
+   * El tope de fotos ya no es un número suelto: con encuesta caben menos que sin
+   * ella. Lo que se vigila es que TODO —lo que deja elegir el selector y lo que
+   * dice la píldora— salga del mismo tope calculado, y que sin encuesta ese tope
+   * siga siendo las diez de siempre.
+   */
+  check('122) el tope son diez fotos, o una si hay encuesta', /const topeImagenes = poll \? MAX_IMAGENES_CON_ENCUESTA : maxImages;/.test(crearCrudo));
+  check('122) sin pasarse del tope al elegir', /selectionLimit: hasVideo \? 0 : topeImagenes - attachedMedia\.length/.test(crearCrudo));
+  check('122) la píldora dice cuántas llevas de las que caben', /\$\{fotosPuestas\}\/\$\{topeImagenes\}/.test(crearCrudo));
   check('122) y un vídeo no cuenta como foto', /attachedMedia\.filter\(\(m\) => m\.type === 'image'\)\.length/.test(crearCrudo));
 
   // Un vídeo, quince segundos, comprobados ANTES de subir y sin tocar el archivo.
@@ -263,8 +270,12 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
   check('125) y la rejilla no recorta las aspas de quitar', !/mediaGrid: \{[\s\S]{0,160}overflow: 'hidden'/.test(crearCrudo));
   check('125) el hueco de seguir añadiendo va al final de la tira', crearCrudo.indexOf('styles.mediaAgregar,') > crearCrudo.indexOf('removeMediaButton,'));
   check('125) y desaparece cuando ya no cabe nada', /\{!sinSitioParaMedios && \(/.test(crearCrudo));
-  // Al tope, la puerta se cierra: no hay foto once ni por la galería ni por la cámara.
-  check('125) al llegar al tope no se puede añadir más', /const sinSitioParaMedios = attachedMedia\.length >= maxImages/.test(crearCrudo) && /apagada=\{sinSitioParaMedios\}/.test(crearCrudo));
+  // Al tope, la puerta se cierra: no hay foto de más ni por la galería ni por la
+  // cámara. El tope es el mismo que usa todo lo demás —diez, o una con encuesta—,
+  // así que basta con que sea `topeImagenes` y no un número escrito otra vez.
+  check('125) al llegar al tope no se puede añadir más', /const sinSitioParaMedios = attachedMedia\.length >= topeImagenes/.test(crearCrudo) && /apagada=\{sinSitioParaMedios\}/.test(crearCrudo));
+  // Y tener encuesta ya no apaga la cámara por sí solo: lo que cambia es el tope.
+  check('125) tener encuesta ya no apaga la cámara, solo baja el tope', !/const sinSitioParaMedios = [^;]*poll !== null/.test(crearCrudo));
   // Y se puede quitar cualquiera de las que ya están.
   check('125) cada medio puesto se puede quitar', /onPress=\{\(\) => removeMedia\(media\.id\)\}/.test(crearCrudo));
 

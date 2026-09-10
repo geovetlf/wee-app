@@ -24,6 +24,7 @@ import HowIMadeIt from './HowIMadeIt';
 import WeeTag from './WeeTag';
 import { seccionDe } from '../utils/sectionFeed';
 import { banderaDe, etiquetaDeLugar } from '../data/places';
+import { esPublicacionDePreview } from '../utils/previewWall';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import ShareablePostCard from './ShareablePostCard';
@@ -38,12 +39,13 @@ import { useVote } from '../hooks/useVote';
 import { useReposts } from '../hooks/useReposts';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { useCommunityById } from '../hooks/useCommunityById';
-import { Post, postsService, PollOption } from '../services/firestoreService';
+import { Post, postsService } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { formatNumber, getRelativeTime } from '../data/mockData';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import ImageViewer from './ImageViewer';
+import Poll from './Poll';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
@@ -185,8 +187,6 @@ const PostCard: React.FC<PostCardProps> = ({
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [userVote, setUserVote] = useState<number | null>(null);
-  const [localPoll, setLocalPoll] = useState(post.poll);
   const [localViews, setLocalViews] = useState(post.views || 0);
   const [isSharing, setIsSharing] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
@@ -266,33 +266,10 @@ const PostCard: React.FC<PostCardProps> = ({
   // Verificar si el post pertenece al usuario actual (comparar con perfil activo)
   const isOwnPost = activeProfile?.uid === post.userId || user?.uid === post.userId;
 
-  // Sincronizar poll local con el post (usar original si es repost)
-  useEffect(() => {
-    const pollToUse = isRepost && originalPost ? originalPost.poll : post.poll;
-    setLocalPoll(pollToUse);
-  }, [post.poll, originalPost, isRepost]);
-
   // Sincronizar vistas locales con el post
   useEffect(() => {
     setLocalViews(post.views || 0);
   }, [post.views]);
-
-  // Verificar si el usuario ya votó en la encuesta
-  useEffect(() => {
-    const currentUid = activeProfile?.uid || user?.uid;
-    if (post.poll && currentUid) {
-      const voteIndex = post.poll.options.findIndex(opt =>
-        opt.votedBy.includes(currentUid)
-      );
-      // IMPORTANTE: siempre actualizar, incluso cuando no se encontró voto,
-      // para resetear userVote al cambiar de perfil (real ↔ hidi ↔ biz).
-      // Sin esto, el voto del perfil anterior "persistiría" visualmente en el nuevo.
-      setUserVote(voteIndex !== -1 ? voteIndex : null);
-    } else {
-      // Sin usuario o sin encuesta: resetear el estado
-      setUserVote(null);
-    }
-  }, [post.poll, activeProfile?.uid, user?.uid]);
 
   // Animar menú cuando se abre/cierra (solo en mobile)
   const isWeb = Platform.OS === 'web';
@@ -336,7 +313,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Incrementar vistas cuando el post se monta (solo si hay usuario autenticado)
   useEffect(() => {
-    if (post.id && user) {
+    /*
+     * Una publicación de previsualización no existe en Firestore, así que sumarle
+     * una vista devuelve `permission-denied` y llena la pantalla de avisos. No se
+     * cuenta lo que no está: el muro de mentira sirve para mirar el diseño y no
+     * puede tocar la base de datos ni para esto (fase 2E-73).
+     */
+    if (post.id && user && !esPublicacionDePreview(post.id)) {
       // Incrementar vista después de un pequeño delay para asegurar que se vea
       const timer = setTimeout(() => {
         // Actualizar localmente primero (optimistic update)
@@ -575,52 +558,6 @@ const PostCard: React.FC<PostCardProps> = ({
         },
       ]
     );
-  };
-
-  const handleVote = async (optionIndex: number) => {
-    const currentUid = activeProfile?.uid || user?.uid;
-    if (!currentUid || !localPoll || userVote !== null || !post.id) return;
-
-    try {
-      // Actualizar localmente de inmediato (optimistic update)
-      setUserVote(optionIndex);
-
-      // Actualizar la encuesta local
-      const updatedPoll = {
-        ...localPoll,
-        totalVotes: localPoll.totalVotes + 1,
-        options: localPoll.options.map((opt, idx) => {
-          if (idx === optionIndex) {
-            return {
-              ...opt,
-              votes: opt.votes + 1,
-              votedBy: [...opt.votedBy, currentUid],
-            };
-          }
-          return opt;
-        }),
-      };
-      setLocalPoll(updatedPoll);
-
-      console.log('🗳️ Votando en encuesta:', {
-        postId: post.id,
-        optionIndex,
-        userId: currentUid,
-      });
-
-      // Guardar el voto en Firestore
-      await postsService.voteInPoll(post.id, optionIndex, currentUid);
-      console.log('✅ Voto guardado exitosamente en Firestore');
-
-    } catch (error) {
-      console.error('❌ Error al votar:', error);
-      // Revertir el voto si hay error
-      setUserVote(null);
-      setLocalPoll(post.poll);
-
-      const errorMessage = error instanceof Error ? error.message : 'No se pudo registrar tu voto';
-      Alert.alert('Error', errorMessage);
-    }
   };
 
   const handleTextPress = (text: string) => {
@@ -915,114 +852,6 @@ const PostCard: React.FC<PostCardProps> = ({
     );
   };
 
-  const renderPoll = () => {
-    if (!localPoll) return null;
-
-    const poll = localPoll;
-    const now = new Date();
-    const endsAt = poll.endsAt.toDate();
-    const hasEnded = now > endsAt;
-    const hasVoted = userVote !== null;
-    const totalVotes = poll.totalVotes || 0;
-
-    // Calcular tiempo restante
-    const getTimeRemaining = () => {
-      if (hasEnded) return 'Encuesta finalizada';
-
-      const diff = endsAt.getTime() - now.getTime();
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-      if (days > 0) return `${days} día${days > 1 ? 's' : ''} restante${days > 1 ? 's' : ''}`;
-      if (hours > 0) return `${hours} hora${hours > 1 ? 's' : ''} restante${hours > 1 ? 's' : ''}`;
-      return 'Menos de 1 hora';
-    };
-
-    return (
-      <View style={[styles.pollContainer, {
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
-      }]}>
-        {poll.options.map((option, index) => {
-          const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-          const isSelected = userVote === index;
-
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.pollOption,
-                {
-                  backgroundColor: theme.colors.background,
-                  borderColor: isSelected ? theme.colors.accent : theme.colors.border,
-                  borderWidth: isSelected ? 2 : 1,
-                },
-                hasEnded && styles.pollOptionDisabled,
-              ]}
-              onPress={() => !hasVoted && !hasEnded && handleVote(index)}
-              disabled={hasVoted || hasEnded}
-              activeOpacity={0.7}
-            >
-              {/* Barra de progreso de fondo */}
-              {(hasVoted || hasEnded) && (
-                <View
-                  style={[
-                    styles.pollProgress,
-                    {
-                      backgroundColor: isSelected
-                        ? theme.colors.accent + '30'
-                        : theme.colors.surface,
-                      width: `${percentage}%`,
-                    },
-                  ]}
-                />
-              )}
-
-              {/* Contenido de la opción */}
-              <View style={styles.pollOptionContent}>
-                <Text
-                  style={[
-                    styles.pollOptionText,
-                    {
-                      color: isSelected ? theme.colors.accent : theme.colors.text,
-                      fontWeight: isSelected ? '600' : '400',
-                    },
-                  ]}
-                >
-                  {option.text}
-                </Text>
-
-                {(hasVoted || hasEnded) && (
-                  <Text
-                    style={[
-                      styles.pollPercentage,
-                      {
-                        color: isSelected ? theme.colors.accent : theme.colors.textSecondary,
-                        fontWeight: isSelected ? '600' : '400',
-                      },
-                    ]}
-                  >
-                    {percentage.toFixed(0)}%
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Footer de la encuesta */}
-        <View style={styles.pollFooter}>
-          <Text style={[styles.pollVotes, { color: theme.colors.textSecondary }]}>
-            {totalVotes} voto{totalVotes !== 1 ? 's' : ''}
-          </Text>
-          <Text style={[styles.pollTimeRemaining, { color: theme.colors.textSecondary }]}>
-            • {getTimeRemaining()}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   // Datos del post a mostrar (original si es repost)
   const displayPost = isRepost && originalPost ? originalPost : post;
   const displayAuthor = isRepost && originalPost ? postAuthor : postAuthor;
@@ -1190,7 +1019,13 @@ const PostCard: React.FC<PostCardProps> = ({
           {displayPost.content ? renderTextWithLinks(displayPost.content) : null}
           {/* Render media inline only when there's no onVideoPress for videos */}
           {!(displayPost.videoUrl && onVideoPress) && renderMedia()}
-          {renderPoll()}
+          {/*
+            La encuesta, la misma de todo Weë. En un repost apunta al ORIGINAL:
+            ahí es donde vive `poll` y donde el servidor guarda los votos.
+          */}
+          {displayPost.poll && (
+            <Poll postId={displayPost.id} poll={displayPost.poll} onRequireAuth={navigateToRegister} />
+          )}
 
           {/* Tags del post */}
           {displayPost.tags && displayPost.tags.length > 0 && (
@@ -1688,59 +1523,6 @@ const styles = StyleSheet.create({
   menuOptionText: {
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.regular,
-  },
-  pollContainer: {
-    marginTop: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    borderWidth: 1,
-  },
-  pollOption: {
-    position: 'relative',
-    marginBottom: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
-    overflow: 'hidden',
-    minHeight: scale(48),
-    justifyContent: 'center',
-  },
-  pollOptionDisabled: {
-    opacity: 0.8,
-  },
-  pollProgress: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: BORDER_RADIUS.md,
-  },
-  pollOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    zIndex: 1,
-  },
-  pollOptionText: {
-    fontSize: FONT_SIZE.base,
-    flex: 1,
-  },
-  pollPercentage: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
-    marginLeft: SPACING.sm,
-  },
-  pollFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: SPACING.xs,
-    gap: SPACING.xs,
-  },
-  pollVotes: {
-    fontSize: FONT_SIZE.sm,
-  },
-  pollTimeRemaining: {
-    fontSize: FONT_SIZE.sm,
   },
   centered: {
     justifyContent: 'center',

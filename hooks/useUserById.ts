@@ -10,6 +10,18 @@ export const invalidateUserCache = (userId: string) => {
   console.log('🗑️ Cache invalidado para usuario:', userId.substring(0, 8));
 };
 
+/**
+ * Deja un perfil en la caché sin haberlo pedido a Firestore.
+ *
+ * Lo usa la previsualización del muro (`utils/previewWall.ts`): sus autores no
+ * existen en la base de datos, y sembrándolos aquí el hook los encuentra en el
+ * primer `if` y ni siquiera llega a la red. No sobrescribe nada que ya esté
+ * cargado, así que un perfil real nunca puede ser tapado por uno de mentira.
+ */
+export const seedUserCache = (userId: string, profile: UserProfile) => {
+  if (!userCache.has(userId)) userCache.set(userId, profile);
+};
+
 // Listeners para notificar cambios en el cache
 const cacheUpdateListeners = new Map<string, ((user: UserProfile) => void)[]>();
 

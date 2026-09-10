@@ -783,7 +783,29 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
 
   // El compositor plegado es OPCIONAL: sin la prop, las otras secciones no cambian.
   check('102) el compositor compacto es opcional', /compact\?: boolean;/.test(muro) && /\{ sectionId, config, compact, general \}/.test(muro));
-  check('102) y la fila desplegada sigue ahí para quien no lo pida', /\{!compact && \(/.test(muro));
+  /*
+   * La puerta de publicar salió de `SectionWall` a su propio componente para
+   * poder ponerla también en el Home sin copiarla. El muro se la pasa entera —la
+   * frase, qué hacer al tocarla y si va compacta—, así que lo que se comprueba es
+   * lo mismo, solo que ahora en el archivo donde vive.
+   */
+  const puerta = soloCodigo(leer('components/creator/ComposerEntry.tsx'));
+  /*
+   * Quien no pide `compact` sigue teniendo el bloque entero —atajos, destinos y
+   * Publicar—; desde 2E-80 se pliega y arranca cerrado. La variante de una sola
+   * fila no se despliega: ya es el mínimo, y un chevron que no abre nada mentiría.
+   */
+  check('102) y la fila desplegada sigue ahí para quien no lo pida', /const desplegable = !compact;/.test(puerta) && /\{desplegable && abierta && \(/.test(puerta));
+  /*
+   * Lo que importa es que el muro USE la puerta compartida y no escriba la suya.
+   * Se comprueban las props que de verdad la hacen funcionar, no la lista exacta
+   * ni su orden: clavarla obligaba a tocar esta prueba cada vez que la puerta
+   * gana una prop, y eso no protege nada.
+   */
+  const usoDeLaPuerta = (soloCodigo(leer('components/creator/SectionWall.tsx')).match(/<ComposerEntry[^/]*\/>/) || [''])[0];
+  check('102) el muro no tiene compositor propio: usa el compartido',
+    ['placeholder={config.placeholder}', 'onCompose={compose}', 'compact={compact}'].every((p) => usoDeLaPuerta.includes(p)) && !/composerField/.test(muro),
+    usoDeLaPuerta ? '' : 'no encuentro <ComposerEntry>');
   check('102) solo Weë Travel lo pide', /compact=\{lanzador\}/.test(codigo));
   check('102) y ninguna otra sección se lo pasa', (codigo.match(/<SectionWall /g) || []).length === 1);
 
@@ -793,7 +815,9 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
 
   // Lo que se toca no encoge con la pantalla: `scale()` quita un 10% en web.
   check('104) las medidas táctiles no pasan por scale()', /const TOQUE = 44;/.test(tarjeta) && !/height: scale\(TOQUE\)/.test(tarjeta));
-  check('104) también en el atajo de foto del compositor', /composerFotoCompacta: \{\s*width: 44,\s*height: 44,/.test(muro));
+  check('104) también en el atajo de foto del compositor', /composerFotoCompacta: \{\s*width: 44,\s*height: 44,/.test(puerta));
+
+  // La puerta compartida y el Home tienen su propio archivo: `composer-entry.test.mjs`.
 
   /*
    * 2E-73. Weë tiene UN muro. Lo que se protege aquí es que Travel no se
@@ -1049,8 +1073,15 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
    */
   check('122) caben diez fotos en una publicación', /const maxImages = 10;/.test(crearCrudo));
   check('122) y se pueden elegir varias de una vez', /allowsMultipleSelection: !hasVideo/.test(crearCrudo));
-  check('122) sin pasarse del tope al elegir', /selectionLimit: hasVideo \? 0 : maxImages - attachedMedia\.length/.test(crearCrudo));
-  check('122) la píldora dice cuántas llevas', /\$\{fotosPuestas\}\/\$\{maxImages\}/.test(crearCrudo));
+  /*
+   * El tope de fotos ya no es un número suelto: con encuesta caben menos que sin
+   * ella. Lo que se vigila es que TODO —lo que deja elegir el selector y lo que
+   * dice la píldora— salga del mismo tope calculado, y que sin encuesta ese tope
+   * siga siendo las diez de siempre.
+   */
+  check('122) el tope son diez fotos, o una si hay encuesta', /const topeImagenes = poll \? MAX_IMAGENES_CON_ENCUESTA : maxImages;/.test(crearCrudo));
+  check('122) sin pasarse del tope al elegir', /selectionLimit: hasVideo \? 0 : topeImagenes - attachedMedia\.length/.test(crearCrudo));
+  check('122) la píldora dice cuántas llevas de las que caben', /\$\{fotosPuestas\}\/\$\{topeImagenes\}/.test(crearCrudo));
   check('122) y un vídeo no cuenta como foto', /attachedMedia\.filter\(\(m\) => m\.type === 'image'\)\.length/.test(crearCrudo));
 
   // Un vídeo, quince segundos, comprobados ANTES de subir y sin tocar el archivo.

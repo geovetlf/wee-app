@@ -51,7 +51,7 @@ import { downloadVideoWithWatermark } from '../services/videoDownload';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import WeelsRow from '../components/WeelsRow';
 import HeroCarousel from '../components/HeroCarousel';
-import CommunitiesEntry from '../components/CommunitiesEntry';
+import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
 import { FEED_FILTER_OPTIONS, filterPosts } from '../utils/feedFilters';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -1141,13 +1141,34 @@ const LandingScreen: React.FC = () => {
   // Hero: carrusel de 4 banners de diseño (docs/UX.md §16)
   const renderHero = () => <HeroCarousel />;
 
-  // Comunidades: buscar o crear (sin catálogo en el Home)
-  const handleSearchCommunities = (query: string) => (navigation as any).navigate('ExploreCommunities', query ? { query } : undefined);
-  const handleCreateCommunity = () => {
-    if (!user) return handleLogin();
-    (navigation as any).navigate('ExploreCommunities', { create: true });
+  /*
+   * La puerta de publicar, la misma que los muros de sección.
+   *
+   * Es `ComposerEntry`, el componente que ya usaban Weë Chef, Design, Studio y
+   * Travel: mismo avatar, mismo campo, mismos atajos y mismo botón. No publica
+   * aquí —ninguno de sus controles lo hace—: abre el compositor global, que es
+   * donde están Cámara, Foto o vídeo, ËContact, Ubicación y Encuesta.
+   *
+   * Sin `sourceSection`: quien publica desde el Home no viene de ninguna sección,
+   * así que el compositor preselecciona el muro general y nada más.
+   */
+  const handleCompose = (kind: ComposerKind) => {
+    if (!user) return handleRegister();
+    const tabNavigation = navigation.getParent();
+    const mainNavigation = tabNavigation?.getParent();
+    if (mainNavigation) (mainNavigation as any).navigate('Create', { kind });
+    else (navigation as any).navigate('Create', { kind });
   };
-  const renderCommunitiesEntry = () => <CommunitiesEntry onSearch={handleSearchCommunities} onCreate={handleCreateCommunity} />;
+  /*
+   * El margen lo pone el Home, no el componente: en los muros de sección la
+   * tarjeta ya viene dentro de un contenedor con su padding, y aquí lo traía el
+   * bloque de comunidades que ocupaba este sitio. Mismo aire que tenía antes.
+   */
+  const renderComposer = () => (
+    <View style={styles.composerSlot}>
+      <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} />
+    </View>
+  );
 
   // Dividir categorías en 2 filas independientes
   const categoryRows = useMemo(() => {
@@ -1689,11 +1710,12 @@ const LandingScreen: React.FC = () => {
     </View>
   );
 
-  // Home = solo lo esencial (docs/UX.md §16): hero → comunidades → Weëls → creado por la comunidad
+  // Home = solo lo esencial: hero → publicar → Weëls → creado por la comunidad.
+  // Comunidades se alcanza por Buscar, en la barra inferior.
   const listHeader = useMemo(() => (
     <>
       {renderHero()}
-      {renderCommunitiesEntry()}
+      {renderComposer()}
       {renderWeelsRow()}
       {feedPosts.length > 0 && (
         <>
@@ -1931,6 +1953,12 @@ const LandingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  /* El sitio del compositor en el Home: el mismo aire que tenía el bloque anterior. */
+  composerSlot: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.sm,
+  },
   weelsSection: {
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,

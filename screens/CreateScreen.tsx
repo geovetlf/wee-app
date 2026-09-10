@@ -35,6 +35,21 @@ import { useScroll } from '../contexts/ScrollContext';
 import { Timestamp } from 'firebase/firestore';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import {
+  DURACIONES,
+  EncuestaBorrador,
+  MAX_IMAGENES_CON_ENCUESTA,
+  MAX_OPCION,
+  MAX_OPCIONES,
+  MAX_PREGUNTA,
+  MIN_OPCIONES,
+  construirPoll,
+  encuestaVacia,
+  nuevaOpcion,
+  opcionesDuplicadas,
+  puedeLlevarEncuesta,
+  validarEncuesta,
+} from '../utils/pollDraft';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 
 interface MediaItem {
@@ -44,15 +59,10 @@ interface MediaItem {
   aspectRatio?: number; // width / height
 }
 
-interface PollOption {
-  id: string;
-  text: string;
-}
-
-interface Poll {
-  options: PollOption[];
-  duration: number; // duración en horas
-}
+/*
+ * La encuesta mientras se escribe vive en `utils/pollDraft.ts`: los límites, qué
+ * cuenta como duplicado y cómo se construye el dato final. Aquí solo se dibuja.
+ */
 
 const CreateScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -70,9 +80,19 @@ const CreateScreen: React.FC = () => {
    * lo que escriba. Publicar desde el Wall no trae ninguna: es lo normal.
    */
   const sourceSection: string | null = routeParams.sourceSection || null;
-  // Tipo elegido en la hoja Crear (post | weel | image | video | text | question)
+  // Tipo elegido en la hoja Crear (post | weel | image | video | text | question | poll)
   const presetKind: string | null = routeParams.kind || null;
+  /*
+   * `poll` no es una sección nueva de Weë ni una publicación aparte: es una
+   * forma de ENTRAR al compositor con la encuesta ya abierta. Quien toca 📊 no
+   * tiene que volver a tocar "Encuesta" al llegar.
+   *
+   * Es distinto de `question`, que sigue siendo lo que era: una pregunta escrita
+   * en texto, sin opciones ni votos (la hoja Crear y la Ayuda la usan así).
+   */
+  const abreEncuesta = presetKind === 'poll';
   const composerPlaceholder =
+    abreEncuesta ? 'Añade algo más si quieres (opcional)…' :
     presetKind === 'question' ? '¿Qué quieres preguntarle a la comunidad?' :
     presetKind === 'weel' ? 'Cuenta qué creaste para tu Weël y con qué IA…' :
     presetKind === 'video' ? 'Cuenta qué creaste y con qué IA…' :
@@ -97,7 +117,11 @@ const CreateScreen: React.FC = () => {
   );
   const [isPublishing, setIsPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
-  const [poll, setPoll] = useState<Poll | null>(null);
+  /*
+   * La encuesta. Llega abierta si se entró por 📊 —un solo toque desde cualquier
+   * muro de Weë— y vacía en cualquier otro caso, exactamente como antes.
+   */
+  const [poll, setPoll] = useState<EncuestaBorrador | null>(() => (abreEncuesta ? encuestaVacia() : null));
 
   /*
    * A NADIE SE LE PREGUNTA CÓMO LO HIZO.
@@ -283,17 +307,32 @@ const CreateScreen: React.FC = () => {
 ${message}`);
     else Alert.alert(title, message);
   };
-  const maxPollOptions = 4;
-  const minPollOptions = 2;
+  const maxPollOptions = MAX_OPCIONES;
+  const minPollOptions = MIN_OPCIONES;
   const textProgress = postText.length / maxTextLength;
   const isTextOverLimit = postText.length > maxTextLength;
 
-  // Validar que las opciones de encuesta tengan texto
-  const isPollValid = poll
-    ? poll.options.length >= minPollOptions &&
-      poll.options.every(opt => opt.text.trim().length > 0)
-    : true;
+  /*
+   * ¿Está la encuesta lista? Lo decide `validarEncuesta`, que vive fuera de esta
+   * pantalla y se ejecuta en las pruebas: pregunta obligatoria, entre 2 y 6
+   * opciones, ninguna vacía ni repetida y ninguna más larga de la cuenta.
+   */
+  const validacionPoll = poll ? validarEncuesta(poll) : ({ ok: true } as const);
+  const isPollValid = validacionPoll.ok;
+  /* Las que dicen lo mismo que otra anterior, para marcarlas mientras se escribe. */
+  const duplicadas = poll ? opcionesDuplicadas(poll.options) : [];
 
+  /*
+   * Con encuesta cabe UNA imagen; sin ella, las diez de siempre. Un vídeo y una
+   * encuesta no conviven.
+   */
+  const topeImagenes = poll ? MAX_IMAGENES_CON_ENCUESTA : maxImages;
+
+  /*
+   * Una encuesta ES contenido: su pregunta es lo que se publica. Una publicación
+   * con encuesta y sin texto libre se puede publicar, y por eso `hasContent` no
+   * mira `postText` cuando hay encuesta.
+   */
   const hasContent = postText.trim().length > 0 || attachedMedia.length > 0 || poll !== null;
   const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;
 
@@ -314,7 +353,7 @@ ${message}`);
 
           input.onchange = async (e: any) => {
             const files = Array.from(e.target.files) as File[];
-            const remainingSlots = maxImages - attachedMedia.length;
+            const remainingSlots = topeImagenes - attachedMedia.length;
             const filesToProcess = files.slice(0, remainingSlots);
 
             const newMedia: MediaItem[] = [];
@@ -325,6 +364,10 @@ ${message}`);
 
               // Si es video, solo permitir 1 y sin imágenes previas
               if (isVideo) {
+                if (poll) {
+                  Alert.alert('No disponible', 'Una encuesta puede llevar una foto, pero no un vídeo');
+                  continue;
+                }
                 if (attachedMedia.length > 0) {
                   Alert.alert('No disponible', 'No puedes agregar un video si ya tienes media adjunto');
                   continue;
@@ -401,7 +444,7 @@ ${message}`);
          */
         mediaTypes: ['images', 'videos'],
         allowsMultipleSelection: !hasVideo,
-        selectionLimit: hasVideo ? 0 : maxImages - attachedMedia.length,
+        selectionLimit: hasVideo ? 0 : topeImagenes - attachedMedia.length,
         quality: 0.8,
         videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
       });
@@ -413,6 +456,10 @@ ${message}`);
           const isVideo = asset.type === 'video';
 
           if (isVideo) {
+            if (poll) {
+              Alert.alert('No disponible', 'Una encuesta puede llevar una foto, pero no un vídeo');
+              continue;
+            }
             if (attachedMedia.length > 0) {
               Alert.alert('No disponible', 'No puedes agregar un video si ya tienes media adjunto');
               continue;
@@ -659,17 +706,20 @@ ${message}`);
         }
       }
 
-      // Solo agregar poll si existe (evitar undefined en Firestore)
+      /*
+       * La encuesta, si la hay. Un solo documento: `poll` es un campo del post,
+       * igual que `imageUrls` o `place`, y viaja con sus `destinations`.
+       *
+       * `construirPoll` la valida otra vez antes de escribirla —la pantalla ya
+       * no deja publicar sin ella, pero un dato que va a Firestore no se fía de
+       * un botón— y genera SOLO el formato nuevo: pregunta propia, ids estables,
+       * `counts` a cero y `allowChange`. Ni `votedBy` ni `options[].votes`.
+       */
       if (poll) {
-        postData.poll = {
-          options: poll.options.map(opt => ({
-            text: opt.text.trim(),
-            votes: 0,
-            votedBy: [],
-          })),
-          endsAt: Timestamp.fromMillis(Date.now() + poll.duration * 60 * 60 * 1000),
-          totalVotes: 0,
-        };
+        postData.poll = construirPoll(poll, {
+          ahoraMs: Date.now(),
+          sello: (ms) => Timestamp.fromMillis(ms),
+        });
       }
 
       console.log('💾 Guardando post en Firestore...', postData);
@@ -764,7 +814,12 @@ ${message}`);
    * así que la fila también sirve para ver de un vistazo qué lleva la publicación
    * (fase 2E-74).
    */
-  const sinSitioParaMedios = attachedMedia.length >= maxImages || poll !== null || attachedMedia.some((m) => m.type === 'video');
+  /*
+   * Tener encuesta ya no apaga la cámara. Cabe una foto —"¿cuál de estos dos
+   * logos?" es el uso más natural que hay—, así que lo que cambia con encuesta
+   * es el TOPE, no el permiso. El vídeo sigue yendo solo.
+   */
+  const sinSitioParaMedios = attachedMedia.length >= topeImagenes || attachedMedia.some((m) => m.type === 'video');
   /* Cuántas fotos llevas puestas. Un vídeo no se cuenta: va solo, sin fotos. */
   const fotosPuestas = attachedMedia.filter((m) => m.type === 'image').length;
 
@@ -831,7 +886,7 @@ ${message}`);
         <Accion
           icono="images-outline"
           texto="Foto o vídeo"
-          insignia={fotosPuestas > 0 ? `${fotosPuestas}/${maxImages}` : undefined}
+          insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
           onPress={pickImageFromGallery}
           apagada={sinSitioParaMedios}
           activa={attachedMedia.length > 0}
@@ -1105,7 +1160,7 @@ ${message}`);
               onPress={pickImageFromGallery}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel={`Agregar más fotos o vídeos, llevas ${fotosPuestas} de ${maxImages}`}
+              accessibilityLabel={`Agregar más fotos o vídeos, llevas ${fotosPuestas} de ${topeImagenes}`}
             >
               <View style={[styles.mediaAgregarMas, { backgroundColor: theme.colors.accent + '24' }]}>
                 <Ionicons name="add" size={scale(20)} color={theme.colors.accentDark} />
@@ -1123,11 +1178,7 @@ ${message}`);
   const renderPoll = () => {
     if (!poll) return null;
 
-    const pollDurations = [
-      { label: '1 día', value: 24 },
-      { label: '3 días', value: 72 },
-      { label: '7 días', value: 168 },
-    ];
+    const pollDurations = DURACIONES.map((d) => ({ label: d.label, value: d.horas }));
 
     return (
       <View style={[styles.pollSection, {
@@ -1145,20 +1196,42 @@ ${message}`);
           </TouchableOpacity>
         </View>
 
+        {/*
+          LA PREGUNTA, con su sitio propio.
+          Antes vivía suelta en el texto de la publicación y no había forma de
+          distinguirla de un comentario cualquiera. Ahora es un campo de la
+          encuesta: se guarda en `poll.question` y el texto libre vuelve a ser
+          texto libre.
+        */}
+        <TextInput
+          style={[styles.pollQuestionInput, {
+            backgroundColor: theme.colors.background,
+            borderColor: theme.colors.border,
+            color: theme.colors.text,
+          }]}
+          placeholder="¿Qué quieres preguntar?"
+          placeholderTextColor={theme.colors.textSecondary}
+          value={poll.question}
+          onChangeText={handlePollQuestionChange}
+          maxLength={MAX_PREGUNTA}
+          multiline
+        />
+
         {/* Opciones de encuesta */}
         {poll.options.map((option, index) => (
           <View key={option.id} style={styles.pollOptionContainer}>
             <TextInput
               style={[styles.pollOptionInput, {
                 backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
+                /* La repetida se marca mientras se escribe, no al intentar publicar. */
+                borderColor: duplicadas.includes(option.id) ? theme.colors.error : theme.colors.border,
                 color: theme.colors.text,
               }]}
               placeholder={`Opción ${index + 1}`}
               placeholderTextColor={theme.colors.textSecondary}
               value={option.text}
               onChangeText={(text) => handlePollOptionChange(option.id, text)}
-              maxLength={25}
+              maxLength={MAX_OPCION}
             />
             {poll.options.length > minPollOptions && (
               <TouchableOpacity
@@ -1182,6 +1255,14 @@ ${message}`);
               Agregar opción
             </Text>
           </TouchableOpacity>
+        )}
+
+        {/*
+          Por qué todavía no se puede publicar. Sin esto, "Publicar" se queda
+          apagado y no dice por qué, que es la peor forma de pedir algo.
+        */}
+        {!validacionPoll.ok && (
+          <Text style={[styles.pollAviso, { color: theme.colors.error }]}>{validacionPoll.mensaje}</Text>
         )}
 
         {/* Selector de duración */}
@@ -1222,33 +1303,33 @@ ${message}`);
     if (poll) {
       // Si ya hay una encuesta, removerla
       setPoll(null);
-    } else {
-      // Si hay media, no permitir crear encuesta
-      if (attachedMedia.length > 0) {
-        Alert.alert('No disponible', 'No puedes agregar una encuesta si ya tienes media adjunto');
-        return;
-      }
-      // Crear nueva encuesta con 2 opciones vacías
-      setPoll({
-        options: [
-          { id: '1', text: '' },
-          { id: '2', text: '' },
-        ],
-        duration: 24, // 1 día por defecto
-      });
+      return;
     }
+    /*
+     * Con una foto sí; con un vídeo o con un álbum, no. Es la misma regla que
+     * aplica el compositor por el otro lado, y vive en un solo sitio.
+     */
+    if (!puedeLlevarEncuesta(attachedMedia)) {
+      Alert.alert(
+        'No disponible',
+        attachedMedia.some((m) => m.type === 'video')
+          ? 'Una encuesta puede llevar una foto, pero no un vídeo'
+          : `Una encuesta puede llevar como máximo ${MAX_IMAGENES_CON_ENCUESTA} foto`
+      );
+      return;
+    }
+    setPoll(encuestaVacia());
+  };
+
+  const handlePollQuestionChange = (question: string) => {
+    if (!poll) return;
+    setPoll({ ...poll, question });
   };
 
   const handleAddPollOption = () => {
     if (!poll || poll.options.length >= maxPollOptions) return;
-
-    setPoll({
-      ...poll,
-      options: [
-        ...poll.options,
-        { id: Date.now().toString(), text: '' }
-      ]
-    });
+    // La opción nace con su id y se lo queda: reordenar no mueve ningún voto.
+    setPoll({ ...poll, options: [...poll.options, nuevaOpcion()] });
   };
 
   const handleRemovePollOption = (optionId: string) => {
@@ -1935,6 +2016,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.sm,
     gap: SPACING.sm,
+  },
+  /* La pregunta pesa más que sus opciones: mismo recuadro, más cuerpo. */
+  pollQuestionInput: {
+    borderWidth: scale(1),
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.semibold,
+    minHeight: 44,
+    marginBottom: SPACING.sm,
+  },
+  pollAviso: {
+    fontSize: FONT_SIZE.sm,
+    marginTop: SPACING.xs,
   },
   pollOptionInput: {
     flex: 1,

@@ -20,6 +20,9 @@ export { generateVideo } from './creator/video';
 export { seedanceCallback } from './engine/webhooks';
 export { engineAdmin } from './engine/admin';
 
+// Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
+export { votePoll } from './social/polls';
+
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
   getCreditsBalance,

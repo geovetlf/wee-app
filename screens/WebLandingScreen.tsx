@@ -1,10 +1,13 @@
 /**
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
- * Estructura (docs/UX.md §16): Header → carrusel de 4 banners de diseño
- * → Comunidades ("Encuentra las tuyas": buscar o crear) → Weëls → Creado por
- * la comunidad (feed con filtros simples). Solo lo esencial: nada de catálogos,
- * categorías ni herramientas en el Home.
+ * Estructura: Header → carrusel de 4 banners de diseño → publicar → Weëls →
+ * Creado por la comunidad (feed con filtros simples). Solo lo esencial: nada de
+ * catálogos, categorías ni herramientas en el Home.
+ *
+ * Donde estaba el bloque de Comunidades va ahora la puerta de publicar, la misma
+ * que usan los muros de sección. A Comunidades se llega por Buscar, en la barra
+ * inferior, así que no se pierde ningún acceso.
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
@@ -17,7 +20,7 @@ import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
 import HeroCarousel from '../components/HeroCarousel';
-import CommunitiesEntry from '../components/CommunitiesEntry';
+import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
 import { FEED_FILTER_OPTIONS, FeedFilterId, filterPosts } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -102,17 +105,34 @@ const WebLandingScreen: React.FC = () => {
 
   const filteredPosts = useMemo(() => filterPosts(posts, feedFilter), [posts, feedFilter]);
 
-  // ── Comunidades: buscar o crear ──
-  const handleSearchCommunities = (query: string) => navigation.navigate('ExploreCommunities', query ? { query } : undefined);
-  const handleCreateCommunity = () => {
+  /*
+   * ABRIR EL COMPOSITOR, SUBIENDO DOS NIVELES.
+   *
+   * Hay DOS rutas llamadas `Create`: la del MainStack, que es el compositor de
+   * verdad, y la de la barra de pestañas, que no tiene pantalla —solo dibuja el
+   * `+`— y devuelve null. Un `navigate('Create')` lanzado desde aquí busca en su
+   * propio navegador, sube a la barra de pestañas, encuentra allí un `Create` y
+   * se para: la persona acaba en una pantalla vacía.
+   *
+   * Así que hay que pedirlo al navegador de arriba del todo. Es el mismo patrón
+   * que ya usa `LandingScreen` en nativo, que por eso funciona.
+   */
+  const irAlCompositor = (params?: object) => {
+    const tabNavigation = navigation.getParent();
+    const mainNavigation = tabNavigation?.getParent();
+    if (mainNavigation) (mainNavigation as any).navigate('Create', params);
+    else (navigation as any).navigate('Create', params);
+  };
+
+  const handleCompose = (kind: ComposerKind) => {
     if (!user) return navigation.navigate('Register');
-    navigation.navigate('ExploreCommunities', { create: true });
+    irAlCompositor({ kind });
   };
 
   // ── Weëls ──
   const handleCreateWeel = () => {
     if (!user) return navigation.navigate('Login');
-    navigation.navigate('Create', { kind: 'weel' });
+    irAlCompositor({ kind: 'weel' });
   };
   const handleOpenWeels = () => {
     if (weels.length === 0) return handleCreateWeel();
@@ -152,8 +172,15 @@ const WebLandingScreen: React.FC = () => {
         {/* Carrusel de 4 banners de diseño */}
         <HeroCarousel />
 
-        {/* Comunidades: buscar o crear */}
-        <CommunitiesEntry onSearch={handleSearchCommunities} onCreate={handleCreateCommunity} />
+        {/*
+          La puerta de publicar, la misma de los muros de sección. No publica aquí:
+          abre el compositor global, donde están Cámara, Foto o vídeo, ËContact,
+          Ubicación y Encuesta. Sin sección de origen, así que el compositor
+          preselecciona el muro general.
+        */}
+        <div style={{ padding: '16px 16px 8px' }}>
+          <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} />
+        </div>
 
         {/* Weëls */}
         <WeelsRow posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
@@ -192,7 +219,7 @@ const WebLandingScreen: React.FC = () => {
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
                 {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otro filtro o comparte algo tú.'}
               </Text>
-              <TouchableOpacity onPress={() => (user ? navigation.navigate('Create') : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear una publicación">
+              <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear una publicación">
                 <Text style={styles.emptyButtonText}>Crear</Text>
               </TouchableOpacity>
             </View>

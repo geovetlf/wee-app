@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.votePoll = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -27,6 +27,9 @@ var webhooks_1 = require("./engine/webhooks");
 Object.defineProperty(exports, "seedanceCallback", { enumerable: true, get: function () { return webhooks_1.seedanceCallback; } });
 var admin_1 = require("./engine/admin");
 Object.defineProperty(exports, "engineAdmin", { enumerable: true, get: function () { return admin_1.engineAdmin; } });
+// Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
+var polls_1 = require("./social/polls");
+Object.defineProperty(exports, "votePoll", { enumerable: true, get: function () { return polls_1.votePoll; } });
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 var credits_1 = require("./credits");
 Object.defineProperty(exports, "getCreditsBalance", { enumerable: true, get: function () { return credits_1.getCreditsBalance; } });

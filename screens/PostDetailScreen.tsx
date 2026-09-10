@@ -29,7 +29,8 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
 import { useVote } from '../hooks/useVote';
 import { useReposts } from '../hooks/useReposts';
-import { Post, Comment, commentsService, postsService, PollOption } from '../services/firestoreService';
+import { Post, Comment, commentsService, postsService } from '../services/firestoreService';
+import Poll from '../components/Poll';
 import { notificationService } from '../services/notificationService';
 import { uploadCommentImage } from '../services/storageService';
 import { formatNumber, getRelativeTime } from '../data/mockData';
@@ -150,8 +151,6 @@ const PostDetailContent: React.FC = () => {
   const [loadingComments, setLoadingComments] = useState(true);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentImage, setCommentImage] = useState<string | null>(null);
-  const [userVote, setUserVote] = useState<number | null>(null);
-  const [localPoll, setLocalPoll] = useState(post.poll);
   const scrollViewRef = useRef<ScrollView>(null);
   const carouselWidth = getCarouselWidth();
 
@@ -188,26 +187,6 @@ const PostDetailContent: React.FC = () => {
       unsubscribe();
     };
   }, [post.id]);
-
-  // Sincronizar poll local con el post
-  useEffect(() => {
-    setLocalPoll(post.poll);
-  }, [post.poll]);
-
-  // Verificar si el usuario ya votó en la encuesta
-  useEffect(() => {
-    const currentUid = userProfile?.uid || user?.uid;
-    if (post.poll && currentUid) {
-      const voteIndex = post.poll.options.findIndex(opt =>
-        opt.votedBy.includes(currentUid)
-      );
-      // IMPORTANTE: siempre setear (incluso a null) para resetear al cambiar
-      // de perfil (real ↔ hidi ↔ biz). Sin esto el voto "persiste" visualmente.
-      setUserVote(voteIndex !== -1 ? voteIndex : null);
-    } else {
-      setUserVote(null);
-    }
-  }, [post.poll, userProfile?.uid, user?.uid]);
 
   const getImageHeight = () => {
     if (!imageDimensions) {
@@ -393,61 +372,6 @@ const PostDetailContent: React.FC = () => {
     }
   };
 
-  const handleVote = async (optionIndex: number) => {
-    // Usar el perfil activo (real, hidi o biz) como identidad del voto
-    const currentUid = userProfile?.uid || user?.uid;
-    if (!currentUid || !localPoll || userVote !== null || !post.id) return;
-
-    try {
-      // Actualizar localmente de inmediato (optimistic update)
-      setUserVote(optionIndex);
-
-      // Actualizar la encuesta local
-      const updatedPoll = {
-        ...localPoll,
-        totalVotes: localPoll.totalVotes + 1,
-        options: localPoll.options.map((opt, idx) => {
-          if (idx === optionIndex) {
-            return {
-              ...opt,
-              votes: opt.votes + 1,
-              votedBy: [...opt.votedBy, currentUid],
-            };
-          }
-          return opt;
-        }),
-      };
-      setLocalPoll(updatedPoll);
-
-      // Guardar el voto en Firestore con el uid del perfil activo
-      await postsService.voteInPoll(post.id, optionIndex, currentUid);
-      console.log('✅ Voto guardado exitosamente en Firestore');
-
-    } catch (error) {
-      console.error('❌ Error al votar:', error);
-      // Revertir el voto si hay error
-      setUserVote(null);
-      setLocalPoll(post.poll);
-
-      const errorMessage = error instanceof Error ? error.message : 'No se pudo registrar tu voto';
-      Alert.alert('Error', errorMessage);
-    }
-  };
-
-  const getPostDate = () => {
-    if (!post.createdAt) return new Date();
-    if (typeof post.createdAt.toDate === 'function') {
-      return post.createdAt.toDate();
-    }
-    if (post.createdAt instanceof Date) {
-      return post.createdAt;
-    }
-    if (typeof post.createdAt === 'object' && 'seconds' in post.createdAt) {
-      return new Date((post.createdAt as any).seconds * 1000);
-    }
-    return new Date();
-  };
-
   const renderVideo = () => {
     if (!post.videoUrl) return null;
     return (
@@ -576,112 +500,18 @@ const PostDetailContent: React.FC = () => {
     );
   };
 
-  const renderPoll = () => {
-    if (!localPoll) return null;
-
-    const poll = localPoll;
-    const now = new Date();
-    const endsAt = poll.endsAt.toDate();
-    const hasEnded = now > endsAt;
-    const hasVoted = userVote !== null;
-    const totalVotes = poll.totalVotes || 0;
-
-    // Calcular tiempo restante
-    const getTimeRemaining = () => {
-      if (hasEnded) return 'Encuesta finalizada';
-
-      const diff = endsAt.getTime() - now.getTime();
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-      if (days > 0) return `${days} día${days > 1 ? 's' : ''} restante${days > 1 ? 's' : ''}`;
-      if (hours > 0) return `${hours} hora${hours > 1 ? 's' : ''} restante${hours > 1 ? 's' : ''}`;
-      return 'Menos de 1 hora';
-    };
-
-    return (
-      <View style={[styles.pollContainer, {
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
-      }]}>
-        {poll.options.map((option, index) => {
-          const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-          const isSelected = userVote === index;
-
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.pollOption,
-                {
-                  backgroundColor: theme.colors.background,
-                  borderColor: isSelected ? theme.colors.accent : theme.colors.border,
-                  borderWidth: isSelected ? 2 : 1,
-                },
-                hasEnded && styles.pollOptionDisabled,
-              ]}
-              onPress={() => !hasVoted && !hasEnded && handleVote(index)}
-              disabled={hasVoted || hasEnded}
-              activeOpacity={0.7}
-            >
-              {/* Barra de progreso de fondo */}
-              {(hasVoted || hasEnded) && (
-                <View
-                  style={[
-                    styles.pollProgress,
-                    {
-                      backgroundColor: isSelected
-                        ? theme.colors.accent + '30'
-                        : theme.colors.surface,
-                      width: `${percentage}%`,
-                    },
-                  ]}
-                />
-              )}
-
-              {/* Contenido de la opción */}
-              <View style={styles.pollOptionContent}>
-                <Text
-                  style={[
-                    styles.pollOptionText,
-                    {
-                      color: isSelected ? theme.colors.accent : theme.colors.text,
-                      fontWeight: isSelected ? '600' : '400',
-                    },
-                  ]}
-                >
-                  {option.text}
-                </Text>
-
-                {(hasVoted || hasEnded) && (
-                  <Text
-                    style={[
-                      styles.pollPercentage,
-                      {
-                        color: isSelected ? theme.colors.accent : theme.colors.textSecondary,
-                        fontWeight: isSelected ? '600' : '400',
-                      },
-                    ]}
-                  >
-                    {percentage.toFixed(0)}%
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Footer de la encuesta */}
-        <View style={styles.pollFooter}>
-          <Text style={[styles.pollVotes, { color: theme.colors.textSecondary }]}>
-            {totalVotes} voto{totalVotes !== 1 ? 's' : ''}
-          </Text>
-          <Text style={[styles.pollTimeRemaining, { color: theme.colors.textSecondary }]}>
-            • {getTimeRemaining()}
-          </Text>
-        </View>
-      </View>
-    );
+  const getPostDate = () => {
+    if (!post.createdAt) return new Date();
+    if (typeof post.createdAt.toDate === 'function') {
+      return post.createdAt.toDate();
+    }
+    if (post.createdAt instanceof Date) {
+      return post.createdAt;
+    }
+    if (typeof post.createdAt === 'object' && 'seconds' in post.createdAt) {
+      return new Date((post.createdAt as any).seconds * 1000);
+    }
+    return new Date();
   };
 
   return (
@@ -769,8 +599,8 @@ const PostDetailContent: React.FC = () => {
         {/* Images */}
         {!post.videoUrl && renderImages()}
 
-        {/* Poll */}
-        {renderPoll()}
+        {/* La encuesta, el mismo componente que usa el muro. */}
+        {post.poll && <Poll postId={post.id} poll={post.poll} onRequireAuth={() => navigation.navigate('Register')} />}
 
         {/* Stats */}
         <View style={[styles.stats, {
@@ -1330,59 +1160,6 @@ const styles = StyleSheet.create({
     borderRadius: scale(12),
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  pollContainer: {
-    marginHorizontal: SPACING.lg,
-    marginVertical: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    gap: SPACING.sm,
-  },
-  pollOption: {
-    position: 'relative',
-    minHeight: scale(48),
-    borderRadius: BORDER_RADIUS.md,
-    overflow: 'hidden',
-    justifyContent: 'center',
-  },
-  pollOptionDisabled: {
-    opacity: 0.8,
-  },
-  pollProgress: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: BORDER_RADIUS.md,
-  },
-  pollOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    zIndex: 1,
-  },
-  pollOptionText: {
-    fontSize: FONT_SIZE.base,
-    flex: 1,
-  },
-  pollPercentage: {
-    fontSize: FONT_SIZE.base,
-    marginLeft: SPACING.md,
-  },
-  pollFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    marginTop: SPACING.xs,
-  },
-  pollVotes: {
-    fontSize: FONT_SIZE.sm,
-  },
-  pollTimeRemaining: {
-    fontSize: FONT_SIZE.sm,
   },
 });
 

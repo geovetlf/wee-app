@@ -50,7 +50,16 @@ const clientDirs = ['services', 'screens', 'components', 'hooks', 'constants', '
 const clientFiles = clientDirs.flatMap((d) => readDir(d));
 const leaked = clientFiles.filter((f) => PROVIDER_KEYS.some((k) => f.text.includes(k)));
 check('ninguna clave de proveedor aparece en el código del cliente', leaked.length === 0, leaked.map((f) => f.file).join(', '));
-check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID/.test(v))));
+/*
+ * La lista blanca de lo que el cliente puede leer del entorno. Todo lo que entra
+ * aquí viaja dentro del paquete de la app y lo puede leer cualquiera, así que
+ * solo caben identificadores públicos e interruptores de desarrollo.
+ *
+ * WALL_PREVIEW es un interruptor: enciende el muro de mentira que sirve para
+ * juzgar el diseño (utils/previewWall.ts). No es una credencial, no abre nada y
+ * apagado no hace absolutamente nada (fase 2E-73).
+ */
+check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v))));
 
 // 2) Nada de claves con valor en el código fuente
 const serverFiles = readDir('functions/src');
