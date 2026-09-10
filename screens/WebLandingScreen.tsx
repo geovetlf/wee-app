@@ -6,7 +6,7 @@
  * la comunidad (feed con filtros simples). Solo lo esencial: nada de catálogos,
  * categorías ni herramientas en el Home.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -33,13 +33,26 @@ const WebLandingScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [feedFilter, setFeedFilter] = useState<FeedFilterId>('all');
+  /*
+   * La portada web no paginaba: enseñaba la primera tanda y ahí se acababa. Con
+   * el filtro de destinos eso puede dejar fuera publicaciones perfectamente
+   * válidas que solo estaban un poco más abajo en la colección, así que ahora
+   * lleva cursor y un "Cargar más" (fase 2E-75).
+   */
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hayMas, setHayMas] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const VISIBLES_POR_TANDA = 20;
 
   // Publicaciones
   useEffect(() => {
     const loadPosts = async () => {
       try {
-        const result = await postsService.getPublicPostsPaginated(20);
-        setPosts(result?.documents || []);
+        const pagina = await postsService.getMuroGeneralPaginado(VISIBLES_POR_TANDA);
+        setPosts(pagina.visibles);
+        setLastDoc(pagina.lastDoc || null);
+        setHayMas(pagina.hayMas);
       } catch (error) {
         console.error('Error loading posts:', error);
       } finally {
@@ -48,6 +61,36 @@ const WebLandingScreen: React.FC = () => {
     };
     loadPosts();
   }, []);
+
+  /*
+   * Una tanda más. El cursor se guarda pase lo que pase —aunque no deje ni una
+   * publicación visible—, porque si no, volver a pulsar repetiría la misma
+   * página para siempre. Y quien decide si el botón sigue ahí es `hayMas`, que
+   * mira los documentos leídos y no los que pasaron el filtro.
+   */
+  const cargarMas = useCallback(async () => {
+    if (loadingMore || !hayMas || !lastDoc) return;
+    setLoadingMore(true);
+    try {
+      const pagina = await postsService.getMuroGeneralPaginado(VISIBLES_POR_TANDA, lastDoc);
+      if (pagina.visibles.length > 0) setPosts((previas) => [...previas, ...pagina.visibles]);
+      setLastDoc(pagina.lastDoc || null);
+      setHayMas(pagina.hayMas);
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hayMas, lastDoc]);
+
+  /*
+   * Si la primera tanda no dejó nada pero queda colección detrás, se sigue solo:
+   * un muro vacío con un botón de "cargar más" haría trabajar a la persona para
+   * ver lo que ya debería estar ahí.
+   */
+  useEffect(() => {
+    if (!loading && !loadingMore && hayMas && lastDoc && posts.length === 0) cargarMas();
+  }, [loading, loadingMore, hayMas, lastDoc, posts.length, cargarMas]);
 
   // Weëls (videos cortos) para la fila del Home
   useEffect(() => {
@@ -136,7 +179,13 @@ const WebLandingScreen: React.FC = () => {
             })}
           </ScrollView>
 
-          {filteredPosts.length === 0 ? (
+          {/*
+            Mientras el paginador diga que queda muro detrás no se enseña el
+            cartel de vacío: con destinos, una tanda puede no dejar nada y aun así
+            haber publicaciones un poco más abajo. Decir "todavía no hay
+            publicaciones" ahí sería mentir.
+          */}
+          {filteredPosts.length === 0 && posts.length === 0 && hayMas ? null : filteredPosts.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={styles.emptyEmoji}>✨</Text>
               <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? 'Todavía no hay publicaciones' : 'Nada por aquí con este filtro'}</Text>
@@ -154,6 +203,28 @@ const WebLandingScreen: React.FC = () => {
               </div>
             ))
           )}
+
+          {/*
+            Cargar más. Aparece solo mientras queda muro por leer y desaparece
+            cuando se acaba de verdad: no hay scroll infinito en la web, así que
+            sin este botón la portada se quedaba en la primera tanda.
+          */}
+          {hayMas && posts.length > 0 && (
+            <TouchableOpacity
+              onPress={cargarMas}
+              disabled={loadingMore}
+              style={[styles.cargarMas, { borderColor: theme.colors.border, backgroundColor: theme.colors.card, opacity: loadingMore ? 0.6 : 1 }]}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Cargar más publicaciones"
+            >
+              {loadingMore ? (
+                <ActivityIndicator size="small" color={theme.colors.accent} />
+              ) : (
+                <Text style={[styles.cargarMasTexto, { color: theme.colors.text }]}>Cargar más</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </div>
       </div>
 
@@ -167,6 +238,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  /* El botón de seguir leyendo: ancho entero, discreto, y con sitio para tocar. */
+  cargarMas: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xl,
+  },
+  cargarMasTexto: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   sectionTitle: {
     fontSize: scale(18),

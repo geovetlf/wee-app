@@ -373,7 +373,7 @@ const HomeScreen: React.FC = () => {
   ]).current;
 
   // Cache de posts por comunidad para carga instantánea
-  const postsCache = useRef<Map<string, { posts: Post[]; lastDoc: DocumentSnapshot | null; timestamp: number }>>(new Map());
+  const postsCache = useRef<Map<string, { posts: Post[]; lastDoc: DocumentSnapshot | null; timestamp: number; hayMas?: boolean }>>(new Map());
   const CACHE_DURATION = 60000; // 1 minuto de validez del cache
 
   // Función de navegación para el header
@@ -471,7 +471,9 @@ const HomeScreen: React.FC = () => {
     if (cached && !forceRefresh && (now - cached.timestamp < CACHE_DURATION)) {
       setPosts(cached.posts);
       setLastDoc(cached.lastDoc);
-      setHasMore(cached.posts.length === 15);
+      // Del caché sale también si quedaba muro: contar lo cacheado era la vieja
+      // heurística, y con destinos una tanda corta no significa que se acabó.
+      setHasMore(cached.hayMas ?? cached.posts.length === 15);
       setLoading(false);
       setFiltering(false);
       return;
@@ -496,7 +498,14 @@ const HomeScreen: React.FC = () => {
       if (selectedCommunitySlug) {
         result = await postsService.getByCommunitySlugPaginated(selectedCommunitySlug, 15);
       } else {
-        result = await postsService.getPublicPostsPaginated(15);
+        /*
+         * El muro general solo enseña lo que quiere estar en él. Cómo se pide de
+         * más y se rellena el lote ya no se decide aquí: vive en un solo sitio
+         * (`getMuroGeneralPaginado`), porque tenerlo en tres pantallas dio tres
+         * defectos distintos (fase 2E-75).
+         */
+        const pagina = await postsService.getMuroGeneralPaginado(15);
+        result = { documents: pagina.visibles, lastDoc: pagina.lastDoc as any, hayMas: pagina.hayMas };
       }
 
       const documents = result?.documents || [];
@@ -507,11 +516,14 @@ const HomeScreen: React.FC = () => {
         posts: documents,
         lastDoc: result?.lastDoc || null,
         timestamp: now,
+        hayMas: (result as any)?.hayMas,
       });
 
       setPosts(documents);
       setLastDoc(result?.lastDoc || null);
-      setHasMore(documents.length === 15);
+      // Con destinos, una página corta NO significa que se acabó el muro: puede
+      // ser que en esa tanda no hubiera nada para el muro general.
+      setHasMore((result as any)?.hayMas ?? documents.length === 15);
     } catch (err) {
       console.error('❌ Error loading posts:', err);
       // Solo mostrar error si no hay cache
@@ -534,23 +546,42 @@ const HomeScreen: React.FC = () => {
       if (selectedCommunitySlug) {
         result = await postsService.getByCommunitySlugPaginated(selectedCommunitySlug, 15, lastDoc);
       } else {
-        result = await postsService.getPublicPostsPaginated(15, lastDoc);
+        const pagina = await postsService.getMuroGeneralPaginado(15, lastDoc);
+        result = { documents: pagina.visibles, lastDoc: pagina.lastDoc as any, hayMas: pagina.hayMas };
       }
 
+      /*
+       * EL CURSOR SE GUARDA SIEMPRE, HAYA VISIBLES O NO.
+       *
+       * Aquí había un `else { setHasMore(false) }`: una tanda sin nada para el
+       * muro general apagaba el scroll y encima no movía el cursor, así que la
+       * siguiente petición habría repetido la misma página. Ahora quien manda es
+       * `hayMas`, que mira los documentos leídos y no los que pasaron el filtro.
+       */
       const documents = result?.documents || [];
-      if (documents.length > 0) {
-        setPosts([...posts, ...documents]);
-        setLastDoc(result?.lastDoc || null);
-        setHasMore(documents.length === 15);
-      } else {
-        setHasMore(false);
-      }
+      const siguiente = (result as any)?.hayMas ?? documents.length === 15;
+      if (documents.length > 0) setPosts([...posts, ...documents]);
+      setLastDoc(result?.lastDoc || null);
+      setHasMore(siguiente);
     } catch (err) {
       console.error('Error loading more posts:', err);
     } finally {
       setLoadingMore(false);
     }
   };
+
+  /*
+   * Si la primera tanda no dejó NADA para el muro general pero detrás queda
+   * colección, se sigue pidiendo solo. Sin esto la pantalla se quedaba en blanco
+   * esperando un `onEndReached` que una lista vacía nunca dispara. Se para en
+   * cuanto aparece la primera publicación o cuando `hasMore` dice que se acabó,
+   * así que no puede girar sin fin (fase 2E-75).
+   */
+  useEffect(() => {
+    if (!loading && !loadingMore && hasMore && lastDoc && posts.length === 0) {
+      loadMorePosts();
+    }
+  }, [loading, loadingMore, hasMore, lastDoc, posts.length]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -565,7 +596,10 @@ const HomeScreen: React.FC = () => {
       if (selectedCommunitySlug) {
         result = await postsService.getByCommunitySlugPaginated(selectedCommunitySlug, 15);
       } else {
-        result = await postsService.getPublicPostsPaginated(15);
+        // Refrescar también respeta los destinos: este camino se quedó sin
+        // filtrar y enseñaba publicaciones que habían pedido no estar aquí.
+        const pagina = await postsService.getMuroGeneralPaginado(15);
+        result = { documents: pagina.visibles, lastDoc: pagina.lastDoc as any, hayMas: pagina.hayMas };
       }
       const documents = result?.documents || [];
 
@@ -574,11 +608,12 @@ const HomeScreen: React.FC = () => {
         posts: documents,
         lastDoc: result?.lastDoc || null,
         timestamp: now,
+        hayMas: (result as any)?.hayMas,
       });
 
       setPosts(documents);
       setLastDoc(result?.lastDoc || null);
-      setHasMore(documents.length === 15);
+      setHasMore((result as any)?.hayMas ?? documents.length === 15);
       setError(null);
     } catch (err) {
       console.error('Error refreshing posts:', err);
@@ -1083,8 +1118,16 @@ const HomeScreen: React.FC = () => {
             </View>
           ) : null
         }
+        /*
+         * "Sé el primero en publicar" solo cuando de verdad no queda nada.
+         *
+         * Con destinos, una tanda puede no dejar ni una publicación para el muro
+         * general y aun así quedar muro por detrás: `hasMore` lo dice. Enseñar ahí
+         * el cartel de vacío sería mentir, y encima desanima a quien sí tiene
+         * publicaciones que leer un poco más abajo (fase 2E-75).
+         */
         ListEmptyComponent={() =>
-          filtering ? null : (
+          filtering || hasMore ? null : (
           <View style={styles.emptyState}>
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
               {selectedCommunitySlug ? 'Sin publicaciones' : '¡Sé el primero en publicar!'}

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -10,7 +10,7 @@ import AvatarDisplay from '../avatars/AvatarDisplay';
 import PostCard from '../PostCard';
 import { Post, postsService } from '../../services/firestoreService';
 import { filterPosts } from '../../utils/feedFilters';
-import { SECTION_MARKERS, sectionPosts } from '../../utils/sectionFeed';
+import { postsDeLaSeccion, paginaDelMuroGeneral, paginaDeLaSeccion, sobreconsulta } from '../../utils/sectionFeed';
 import { SectionWallConfig, WallTabKind } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -31,9 +31,16 @@ import { scale } from '../../utils/scale';
  * texto. Weë Chef es el primero (fase 2E-37) y el resto puede adoptarlo igual.
  */
 
-/** Cuántas publicaciones se piden y cuántas se pintan. */
-const FETCH = 40;
-const SHOW = 20;
+/**
+ * Cuántas publicaciones VISIBLES se juntan por tanda.
+ *
+ * Antes esto era `FETCH = 40`: cuarenta documentos, filtrar, y lo que saliera.
+ * Con destinos eso deja secciones vacías teniendo publicaciones, porque de una
+ * racha de cuarenta puede que ninguna sea de Weë Chef. Ahora el número es de
+ * publicaciones que se quieren ENSEÑAR, y el paginador pide de más y vuelve a
+ * pedir hasta juntarlas o agotar la colección (fase 2E-75).
+ */
+const VISIBLES = 15;
 
 /**
  * Ancho de la columna del muro en escritorio, sin escalar.
@@ -86,15 +93,48 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<WallTabKind>(config.tabs?.[0]?.id ?? 'all');
+  /*
+   * Cursor y "queda más". El muro de una sección NO puede quedarse en la primera
+   * tanda: de cuarenta documentos seguidos puede que solo tres sean de Weë Chef,
+   * y la sección se vería vacía teniendo publicaciones un poco más abajo. Con el
+   * cursor se sigue leyendo hasta juntar suficientes o agotar la colección.
+   */
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hayMas, setHayMas] = useState(true);
+  const [cargando, setCargando] = useState(false);
+
+  /*
+   * De dónde salen las publicaciones de este muro.
+   *
+   * Las dos leen la MISMA colección `posts` con `getPublicPostsPaginated`: no hay
+   * `chefPosts` ni consulta por `sectionId`, y una sección nunca es una colección
+   * aparte. Lo único que cambia es qué publicaciones pasan.
+   *
+   * Y son dos preguntas distintas de verdad, no una más estricta que la otra: una
+   * publicación con destino solo `chef` va al muro de Chef y NO al muro general,
+   * así que el muro de una sección tiene que leer la colección entera y no el
+   * muro general ya filtrado (fase 2E-75).
+   */
+  const pedirTanda = useCallback(
+    (desde?: any) => {
+      const pagina = (hasta: unknown) => postsService.getPublicPostsPaginated(sobreconsulta(VISIBLES), hasta as any);
+      return general
+        ? paginaDelMuroGeneral(pagina, VISIBLES, desde)
+        : paginaDeLaSeccion(pagina, sectionId, VISIBLES, desde);
+    },
+    [general, sectionId]
+  );
 
   // Se recarga al volver a la pantalla: quien acaba de publicar ve su publicación.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      postsService
-        .getPublicPostsPaginated(FETCH)
-        .then((result) => {
-          if (!cancelled) setPosts(result?.documents || []);
+      pedirTanda()
+        .then((pagina) => {
+          if (cancelled) return;
+          setPosts(pagina.visibles);
+          setLastDoc(pagina.lastDoc || null);
+          setHayMas(pagina.hayMas);
         })
         .catch((error) => console.warn('No se pudo cargar el muro:', error))
         .finally(() => {
@@ -103,11 +143,51 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
       return () => {
         cancelled = true;
       };
-    }, [])
+    }, [pedirTanda])
   );
 
-  /** Lo que pertenece a esta sección, antes de aplicar ninguna pestaña. */
-  const mine = useMemo(() => sectionPosts(posts, SECTION_MARKERS[sectionId] || []), [posts, sectionId]);
+  /*
+   * Una tanda más. El cursor se guarda haya visibles o no: si solo se guardara
+   * cuando algo pasa el filtro, volver a pedir repetiría la misma página. Y quien
+   * dice si queda muro es `hayMas`, que mira los documentos leídos.
+   */
+  const cargarMas = useCallback(async () => {
+    if (cargando || !hayMas || !lastDoc) return;
+    setCargando(true);
+    try {
+      const pagina = await pedirTanda(lastDoc);
+      if (pagina.visibles.length > 0) setPosts((previas) => [...previas, ...pagina.visibles]);
+      setLastDoc(pagina.lastDoc || null);
+      setHayMas(pagina.hayMas);
+    } catch (error) {
+      console.warn('No se pudo cargar más muro:', error);
+    } finally {
+      setCargando(false);
+    }
+  }, [cargando, hayMas, lastDoc, pedirTanda]);
+
+  /*
+   * Si la tanda no dejó ninguna publicación de esta sección pero queda colección
+   * detrás, se sigue pidiendo solo. Sin esto la sección enseñaría "todavía no hay
+   * nada" con publicaciones suyas un poco más abajo, y el botón de cargar más ni
+   * siquiera está a la vista porque vive dentro de la lista.
+   */
+  useEffect(() => {
+    if (!loading && !cargando && hayMas && lastDoc && posts.length === 0) cargarMas();
+  }, [loading, cargando, hayMas, lastDoc, posts.length, cargarMas]);
+
+  /*
+   * Lo que pertenece a esta sección, antes de aplicar ninguna pestaña.
+   *
+   * `postsDeLaSeccion` respeta lo que cada publicación diga de sí misma: si eligió
+   * destinos, mandan sus destinos y las palabras no pintan nada; si no los eligió
+   * —las de antes de esta fase—, las palabras clave de siempre (fase 2E-75).
+   *
+   * Se vuelve a filtrar aquí a propósito, aunque la tanda ya venga filtrada: este
+   * componente es el dueño de lo que enseña, y la regla no puede depender de por
+   * qué puerta llegaron las publicaciones. Es idempotente y cuesta un recorrido.
+   */
+  const mine = useMemo(() => postsDeLaSeccion(posts, sectionId), [posts, sectionId]);
 
   const visible = useMemo(() => {
     // El muro general no filtra ni por sección ni por pestaña: es el de todos.
@@ -264,7 +344,12 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
       </View>
       )}
 
-      {loading ? (
+      {/*
+        Mientras el paginador diga que queda colección detrás, la sección sigue
+        cargando en vez de dar por vacía: con destinos, una tanda puede no dejar
+        ni una publicación de esta sección y haberlas más abajo.
+      */}
+      {loading || (visible.length === 0 && hayMas && cargando) ? (
         <View style={styles.loading}>
           <ActivityIndicator size="small" color={theme.colors.accent} />
         </View>
@@ -288,11 +373,34 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
         </View>
       ) : (
         <View>
-          {visible.slice(0, SHOW).map((post) => (
+          {/*
+            Sin `slice`: antes se pintaban 20 de las 40 pedidas y las demás se
+            tiraban. Ahora lo que llega es lo que se enseña, y para ver más se
+            pide más.
+          */}
+          {visible.map((post) => (
             <View key={post.id} style={styles.postSlot}>
               <PostCard post={post} onPress={() => openPost(post)} onComment={openComments} onPrivateMessage={openMessage} isVisible maxWidth={CARD_WIDTH} />
             </View>
           ))}
+
+          {/* Seguir leyendo. Desaparece cuando la colección se acaba de verdad. */}
+          {hayMas && (
+            <TouchableOpacity
+              onPress={cargarMas}
+              disabled={cargando}
+              activeOpacity={0.8}
+              style={[styles.cargarMas, { borderColor: theme.colors.border, backgroundColor: theme.colors.card, opacity: cargando ? 0.6 : 1 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Cargar más publicaciones"
+            >
+              {cargando ? (
+                <ActivityIndicator size="small" color={theme.colors.accent} />
+              ) : (
+                <Text style={[styles.cargarMasTexto, { color: theme.colors.text }]}>Cargar más</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -392,6 +500,21 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: FONT_SIZE.sm,
+  },
+  /* Seguir leyendo el muro. 44 sin escalar: se toca sin apuntar. */
+  cargarMas: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xl,
+  },
+  cargarMasTexto: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   loading: {
     paddingVertical: SPACING.xxxl,

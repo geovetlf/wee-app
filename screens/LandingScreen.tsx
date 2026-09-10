@@ -919,13 +919,19 @@ const LandingScreen: React.FC = () => {
 
       // Cargar posts trending y destacado
       console.log('📝 Loading posts...');
-      const postsResult = await postsService.getPublicPostsPaginated(20);
-      const posts = postsResult?.documents || [];
+      /*
+       * El muro general, pedido por el único sitio que sabe pedirlo. Antes esta
+       * pantalla montaba su propia sobreconsulta y decidía `hasMore` contando las
+       * publicaciones YA FILTRADAS: con destinos, una tanda corta apagaba el
+       * scroll aunque quedara medio muro por leer (fase 2E-75).
+       */
+      const pagina = await postsService.getMuroGeneralPaginado(20);
+      const posts = pagina.visibles;
       console.log('📝 Posts loaded:', posts.length, 'posts');
 
-      // Guardar cursor para paginación
-      setLastDoc(postsResult?.lastDoc || null);
-      setHasMore((postsResult?.documents || []).length >= 20);
+      // El cursor se guarda siempre, y quien dice si queda muro es `hayMas`.
+      setLastDoc((pagina.lastDoc as any) || null);
+      setHasMore(pagina.hayMas);
 
       if (posts.length > 0) {
         // Ordenar por engagement (votos + comentarios)
@@ -962,21 +968,35 @@ const LandingScreen: React.FC = () => {
 
     setLoadingMore(true);
     try {
-      const postsResult = await postsService.getPublicPostsPaginated(20, lastDoc);
-      const newPosts = postsResult?.documents || [];
+      const pagina = await postsService.getMuroGeneralPaginado(20, lastDoc);
+      const newPosts = pagina.visibles;
 
-      if (newPosts.length > 0) {
-        setFeedPosts(prev => [...prev, ...newPosts]);
-        setLastDoc(postsResult?.lastDoc || null);
-      }
-
-      setHasMore(newPosts.length >= 20);
+      /*
+       * EL CURSOR FUERA DEL `if`. Estaba dentro: una tanda sin visibles no movía
+       * el cursor y encima ponía `hasMore` en falso, así que el muro se acababa
+       * antes de tiempo y un reintento habría repetido la misma página.
+       */
+      if (newPosts.length > 0) setFeedPosts(prev => [...prev, ...newPosts]);
+      setLastDoc((pagina.lastDoc as any) || null);
+      setHasMore(pagina.hayMas);
     } catch (error) {
       console.error('Error loading more posts:', error);
     } finally {
       setLoadingMore(false);
     }
   }, [loadingMore, hasMore, lastDoc]);
+
+  /*
+   * Si la tanda no dejó ninguna publicación para el muro general pero detrás
+   * queda colección, se sigue pidiendo solo: el feed se alimenta de
+   * `onEndReached`, y una lista vacía no lo dispara nunca. Para en cuanto
+   * aparece la primera publicación o cuando `hasMore` dice que se acabó.
+   */
+  useEffect(() => {
+    if (!loadingMore && hasMore && lastDoc && feedPosts.length === 0) {
+      loadMorePosts();
+    }
+  }, [loadingMore, hasMore, lastDoc, feedPosts.length, loadMorePosts]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

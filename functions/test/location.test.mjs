@@ -647,7 +647,9 @@ console.log('\n── Q · una publicación es del muro, venga de donde venga �
   check('Q) y siempre en la misma colección', !/collection\(db, '(travelPosts|studioPosts|sectionPosts)'/.test(almacen + crear));
 
   // 3) Las secciones y las comunidades FILTRAN el muro, no tienen el suyo.
-  check('Q) el muro de una sección filtra el general', /getPublicPostsPaginated/.test(muroSeccion) && /sectionPosts\(posts/.test(muroSeccion));
+  // Sigue filtrando el muro general, pero desde 2E-75 respeta los destinos que
+  // la publicación eligió; las que no eligieron, por palabras clave como siempre.
+  check('Q) el muro de una sección filtra el general', /getPublicPostsPaginated/.test(muroSeccion) && /postsDeLaSeccion\(posts/.test(muroSeccion));
   check('Q) y el de una comunidad también parte de las mismas publicaciones', /postsService|getPosts/.test(comunidad));
   check('Q) ninguna sección tiene colección propia', !/collection\(db, '[a-z]+Posts'\)/.test(almacen));
 

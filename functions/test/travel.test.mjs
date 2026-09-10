@@ -130,8 +130,10 @@ console.log('\n── B · El Home de Weë Travel ──');
     check('8) el ejemplo se limpia antes de enviarse', /onSubmit\(objetivoDe\(chip\)\)/.test(caja) && /EMOJI_AL_PRINCIPIO/.test(caja));
   }
 
-  check('9) el muro de la sección está', /wall: \{/.test(bloqueTravel) && /Muro Travel/.test(bloqueTravel));
-  check('9) y el muro sigue siendo el genérico de siempre', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} \/>/.test(soloCodigo(pantalla)));
+  check('9) el muro de la sección está', /wall: \{/.test(bloqueTravel) && /placeholder: 'Comparte un viaje/.test(bloqueTravel));
+  // Y no tiene pestañas propias: Weë tiene un solo muro (fase 2E-73).
+  check('9) y sin pestañas propias', !/tabs: \[/.test(bloqueTravel), 'travel todavía declara pestañas');
+  check('9) y el muro sigue siendo el genérico de siempre', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} general=\{lanzador\} \/>/.test(soloCodigo(pantalla)));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -706,6 +708,7 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   const codigo = soloCodigo(pantalla);
   const marco = soloCodigo(shell);
   const tarjeta = soloCodigo(lanzador);
+  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
 
   /*
    * Los Credits tienen UN sitio en Weë: el menú, bajo los dos perfiles. Repetirlos
@@ -746,11 +749,21 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   check('98) y la fila solo se pinta si hay algo que enseñar', (codigo.match(/!!spec\.examples\?\.length/g) || []).length === 2);
 
   // El muro es el general de Weë: ni feed aparte, ni pestañas nuevas, ni sidebar.
-  check('99) el muro es el genérico, con el id de la sección', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} \/>/.test(codigo));
+  check('99) el muro es el genérico, con el id de la sección', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} general=\{lanzador\} \/>/.test(codigo));
   check('99) no hay feed de Travel', !/TravelFeed|travelFeed|travelPosts/.test(codigo + specialists));
   check('99) ni "Cerca de ti" ni "Siguiendo"', !/Cerca de ti|Siguiendo/i.test(bloqueTravel));
   check('99) ni una colección nueva', !/collection\(['"]travel/i.test(codigo + tarjeta));
-  check('99) y las pestañas del muro son las de siempre', ['Muro Travel', 'Fotos del viaje', 'Consejos', 'Mis viajes', 'Guardados'].every((t) => bloqueTravel.includes(t)));
+  /*
+   * Y ninguna pestaña sobrevive. "Muro Travel", "Fotos del viaje", "Consejos" y
+   * "Mis viajes" construían una red social paralela dentro de una sección, que
+   * es exactamente lo que Weë no es: hay un muro, y Travel es un contexto que
+   * una publicación lleva encima sin dejar de pertenecer a él (fase 2E-73).
+   */
+  // Sobre el bloque de Travel: las otras secciones conservan sus pestañas y eso
+  // está bien, porque ellas siguen enseñando su muro filtrado.
+  check('99) y no queda ni una pestaña en Travel', ['Muro Travel', 'Fotos del viaje', 'Consejos', 'Mis viajes'].every((t) => !soloCodigo(bloqueTravel).includes(t)), 'alguna pestaña sigue viva en travel');
+  check('99) "Muro Travel" no existe en ningún sitio', !/Muro Travel/.test(soloCodigo(specialists) + codigo + muro));
+  check('99) el muro no filtra por sección cuando es el general', /if \(general\) return posts;/.test(muro));
 
   // Nada de esto puede haber cambiado lo que ocurre al elegir.
   check('100) escribir sigue abriendo el mismo flujo', /onSubmit=\{\(text\) => startFlow\(text\)\}/.test(codigo));
@@ -763,14 +776,13 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
    * bloques dejan de ocupar es un píxel de foto de alguien. Medido en el
    * navegador, la primera publicación subió de y=586 a y=427 en 375x812.
    */
-  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
 
   // Los ejemplos, en una fila que se desliza: envueltos ocupaban tres líneas.
   check('101) los ejemplos no se envuelven', /<ScrollView\s+horizontal/.test(tarjeta) && !/flexWrap: 'wrap'/.test(tarjeta));
   check('101) y siguen siendo los tres, tocables', /idea\.chips\.map/.test(tarjeta) && /hitSlop=\{\{ top: 6, bottom: 6/.test(tarjeta));
 
   // El compositor plegado es OPCIONAL: sin la prop, las otras secciones no cambian.
-  check('102) el compositor compacto es opcional', /compact\?: boolean;/.test(muro) && /\{ sectionId, config, compact \}/.test(muro));
+  check('102) el compositor compacto es opcional', /compact\?: boolean;/.test(muro) && /\{ sectionId, config, compact, general \}/.test(muro));
   check('102) y la fila desplegada sigue ahí para quien no lo pida', /\{!compact && \(/.test(muro));
   check('102) solo Weë Travel lo pide', /compact=\{lanzador\}/.test(codigo));
   check('102) y ninguna otra sección se lo pasa', (codigo.match(/<SectionWall /g) || []).length === 1);
@@ -782,6 +794,322 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   // Lo que se toca no encoge con la pantalla: `scale()` quita un 10% en web.
   check('104) las medidas táctiles no pasan por scale()', /const TOQUE = 44;/.test(tarjeta) && !/height: scale\(TOQUE\)/.test(tarjeta));
   check('104) también en el atajo de foto del compositor', /composerFotoCompacta: \{\s*width: 44,\s*height: 44,/.test(muro));
+
+  /*
+   * 2E-73. Weë tiene UN muro. Lo que se protege aquí es que Travel no se
+   * convierta otra vez en una red social aparte, y que el muro de mentira que
+   * sirve para juzgar el diseño no pueda tocar producción ni por accidente.
+   */
+
+  // Todo Travel detrás de una sola fila plegable.
+  check('105) el bloque entero se pliega, no solo una parte', /accessibilityState=\{\{ expanded: open \}\}/.test(tarjeta) && (tarjeta.match(/aria-expanded=\{open\}/g) || []).length === 1);
+  check('105) y cerrado no queda ni el campo ni los ejemplos ni las funciones', /\{open && \(/.test(tarjeta) && !/\{!open/.test(tarjeta));
+  check('105) la transición dura lo que debe', (tarjeta.match(/duration: 200/g) || []).length === 2);
+
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// U · Publicar es contar algo, no rellenar un formulario (fase 2E-74)
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── U · El compositor social, el mismo para todo Weë ──');
+{
+  const crear = soloCodigo(leer('screens/CreateScreen.tsx'));
+  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
+
+  /*
+   * UN solo compositor. Todo Weë publica por la misma pantalla —el muro de una
+   * sección, el botón +, la comunidad, la ayuda, el resultado de una generación—
+   * así que arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
+   * aparezca un segundo compositor por sección.
+   */
+  const pantallasQueCrean = ['components/creator/SectionWall.tsx', 'components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx'];
+  check('108) todas las superficies publican por la misma pantalla', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f)))));
+  check('108) y ninguna trae compositor propio', !/TextInput/.test(muro), 'SectionWall escribe por su cuenta');
+
+  /*
+   * El fallo que esto vigila: `showHowIMadeIt` arrancaba abierto con kind image,
+   * video o weel. Tocar 📷 en el muro para subir una foto de tus vacaciones te
+   * plantaba delante los campos de herramientas de IA, prompt y proceso.
+   */
+  /*
+   * A nadie se le pregunta cómo lo hizo. El bloque de herramientas, prompt y
+   * proceso desapareció del compositor: publicar es contar algo, no rellenar una
+   * ficha técnica. Los campos siguen existiendo, pero solo los escribe Weë cuando
+   * la publicación nace de una generación suya.
+   */
+  check('109) no se pregunta "Cómo lo hice" al publicar', !/renderHowIMadeIt|showHowIMadeIt/.test(crear), 'el bloque sigue en el compositor');
+  check('109) ni hay campos que rellenar de IA', !/setAiToolsText|setAiPrompt|setAiProcess/.test(crear));
+  check('109) pero lo que generó Weë se sigue apuntando solo', /routeParams\.prefill\?\.aiTools/.test(crear) && /routeParams\.prefill\?\.aiProcess/.test(crear));
+  check('109) el lugar sí empieza cerrado', /const \[showPlace, setShowPlace\] = useState\(false\)/.test(crear));
+
+  /*
+   * Lo que se puede añadir vive en una fila CON NOMBRE pegada al texto. Antes
+   * eran iconos sueltos en una barra anclada al fondo de la pantalla —a media
+   * pantalla del texto en un móvil alto— y dos cajas grandes flotando en medio.
+   */
+  check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
+  check('110) y cada una dice lo que hace, no solo un icono', ['Foto o vídeo', 'Cámara', 'Ubicación', 'ËContact', 'Encuesta'].every((t) => crear.includes(`texto="${t}"`) || crear.includes(`'${t}'`)));
+  // Amigos tiene su sitio pero no engaña: apagado y avisando de que llega después.
+  /*
+   * ËContact será el nombre de la red de conexiones de Weë en todos los idiomas.
+   * Su sitio está reservado y apagado: sin backend detrás, un botón que
+   * prometiera etiquetar gente estaría mintiendo.
+   */
+  check('110) ËContact reserva su sitio sin prometer nada', /texto="ËContact" onPress=\{\(\) => \{\}\} apagada/.test(crear));
+  check('110) y ya no se llama Amigos', !/texto="Amigos"/.test(crear));
+  // La encuesta no está en la maqueta pero existe en Weë: quitarla la dejaría sin puerta.
+  check('110) y la encuesta conserva su única puerta', /onPress=\{handlePollPress\}/.test(crear));
+  // Sobre el fuente CRUDO: `soloCodigo` se atraganta con este archivo —ya pasó—
+  // y se come trozos enteros. Para una construcción inequívoca no hace falta.
+  /*
+   * `MediaTypeOptions.All` está obsoleto y en el teléfono llegaba al selector de
+   * Google SIN tipos MIME: solo enseñaba fotos, con el botón diciendo "Foto o
+   * vídeo". La lista moderna sí pide las dos cosas. Comprobado en el aparato.
+   */
+  check('110) foto y vídeo son la misma puerta, y se dice', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /Foto o vídeo/.test(crear));
+  // Sobre el USO, no sobre la palabra: el comentario que explica el cambio la nombra.
+  check('110) y no queda ningún enum obsoleto pidiendo medios', !/ImagePicker\.MediaTypeOptions/.test(leer('screens/CreateScreen.tsx')));
+  /*
+   * Arriba se elige con qué se cuenta; debajo se cuenta. Es el orden en que la
+   * gente publica: casi siempre hay algo que enseñar y el texto viene detrás.
+   */
+  /*
+   * El orden de la maqueta aprobada: quién publica, qué cuenta, con qué, y dónde.
+   * Las acciones bajan DEBAJO del texto —arriba parecían una barra técnica— y la
+   * identidad abre la pantalla.
+   */
+  check('110) primero quién publica', crear.indexOf('styles.identidad') < crear.indexOf('{renderTextInput()}'));
+  check('110) luego lo que cuenta, y después con qué', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderAcciones()}'));
+  check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
+  check('110) la cabecera dice qué estás haciendo', /Crear publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
+  check('110) el panel de lugar no trae cabecera propia: la trae su botón', /const renderPlace = \(\) =>\s*\n?\s*showPlace \|\| place \? \(/.test(crear));
+  /*
+   * MOSAICOS (fase 2E-76, modelo visual del usuario). Eran píldoras en una fila
+   * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
+   * nunca supo que había encuesta. Ahora las cinco están a la vista en dos filas.
+   */
+  check('110) las herramientas son mosaicos y se ven las cinco sin arrastrar', /minHeight: 72,/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto o vídeo"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) y el campo de texto crece en vez de reservar el hueco', /minHeight: scale\(72\)/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
+
+  /*
+   * El hueco de doce por ciento que se vio en el teléfono venía de que la
+   * pregunta era el placeholder DEL campo y la ayuda iba detrás: la altura del
+   * campo se metía entre las dos. Ahora van seguidas y el campo va después.
+   */
+  // Sobre el fuente crudo: `soloCodigo` se atraganta con este archivo (ya van tres).
+  const fuenteCrear = leer('screens/CreateScreen.tsx');
+  check('111b) la pregunta y la ayuda van pegadas, antes del campo', fuenteCrear.indexOf('styles.textoPregunta') < fuenteCrear.indexOf('styles.textoAyuda') && fuenteCrear.indexOf('styles.textoAyuda') < fuenteCrear.indexOf('style={[styles.textInput'));
+  check('111b) y el campo ya no lleva la pregunta dentro', /placeholder=""/.test(crear));
+
+  /*
+   * Y el defecto que encontró la validación: al elegir, el chip se ensanchaba
+   * —ganaba icono y negrita— y la rejilla entera se recolocaba bajo el dedo.
+   */
+  check('111b) el hueco del check está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(20\),\s*height: scale\(20\)/.test(crear));
+  check('111b) y el peso de la letra no cambia al elegir', !/fontWeight: elegido \?/.test(crear));
+  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{!!place \|\| showPlace\}/.test(crear) && /activa=\{attachedMedia\.length > 0\}/.test(crear));
+
+  // Publicar exige contenido: ni texto vacío ni una publicación en blanco.
+  check('111) no se publica sin contenido', /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crear));
+  check('111) y el botón lo refleja', /disabled=\{!canPublish\}/.test(crear));
+
+  // El contexto viaja con la publicación, pero no crea un muro aparte.
+  check('112) publicar desde una sección conserva su contexto', /navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(muro));
+  check('112) y la publicación sigue siendo del muro general', /if \(general\) return posts;/.test(muro));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// V · Destinos: quien publica decide dónde aparece (fase 2E-75)
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── V · Un post, varios sitios donde se lee ──');
+{
+  const ts = require('typescript');
+  const fuente = leer('utils/sectionFeed.ts');
+  const js = ts.transpileModule(fuente, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+
+  const post = (extra = {}) => ({ id: 'p', userId: 'u', content: 'hola', likes: 0, comments: 0, ...extra });
+
+  // 1-6) Cada combinación que pediste, comprobada de verdad.
+  const soloGeneral = post({ destinations: ['general'] });
+  const soloTravel = post({ destinations: ['travel'] });
+  const generalYTravel = post({ destinations: ['general', 'travel'] });
+  const travelYDesign = post({ destinations: ['travel', 'design'] });
+  const muchos = post({ destinations: ['general', 'travel', 'design', 'chef'] });
+  const todos = post({ destinations: feed.destinosDisponibles().map((d) => d.id) });
+
+  check('113) solo general: en el muro, en ninguna sección', feed.vaAlMuroGeneral(soloGeneral) && !feed.vaALaSeccion(soloGeneral, 'travel'));
+  check('113) solo Travel: en Travel y NO en el muro general', feed.vaALaSeccion(soloTravel, 'travel') && !feed.vaAlMuroGeneral(soloTravel));
+  check('113) general + Travel: en los dos', feed.vaAlMuroGeneral(generalYTravel) && feed.vaALaSeccion(generalYTravel, 'travel'));
+  check('113) Travel + Design: en esas dos y en el muro no', feed.vaALaSeccion(travelYDesign, 'travel') && feed.vaALaSeccion(travelYDesign, 'design') && !feed.vaAlMuroGeneral(travelYDesign));
+  check('113) muro + varias secciones', feed.vaAlMuroGeneral(muchos) && ['travel', 'design', 'chef'].every((s) => feed.vaALaSeccion(muchos, s)));
+  check('113) y en todos los destinos a la vez', feed.destinosDisponibles().every((d) => (d.id === 'general' ? feed.vaAlMuroGeneral(todos) : feed.vaALaSeccion(todos, d.id))));
+
+  // 7) Sin tope artificial: el que quepa en la lista.
+  check('114) no hay límite de destinos', todos.destinations.length === feed.destinosDisponibles().length && todos.destinations.length >= 8);
+
+  /*
+   * 13-14) LO MÁS IMPORTANTE. Quien eligió dónde publicar ya lo dijo: adivinar por
+   * las palabras del texto sería pisar una decisión explícita.
+   */
+  const viajeEnGeneral = post({ content: 'Me voy de viaje mañana a un hotel', destinations: ['general'] });
+  const recetaEnGeneral = post({ content: 'Hice una receta de cocina buenísima', destinations: ['general'] });
+  check('115) "viaje" no fuerza Travel si eligió solo el muro', !feed.vaALaSeccion(viajeEnGeneral, 'travel'));
+  check('115) "receta" no fuerza Chef si eligió solo el muro', !feed.vaALaSeccion(recetaEnGeneral, 'chef'));
+  check('115) y esas mismas palabras SÍ arrastran cuando no hay destinos', feed.vaALaSeccion(post({ content: 'Me voy de viaje a un hotel' }), 'travel'));
+
+  // 11-12) Las de antes siguen exactamente como estaban. Nadie las migra.
+  const historica = post({ content: 'Una receta de cocina de mi abuela' });
+  check('116) una publicación sin destinos sigue en el muro general', feed.vaAlMuroGeneral(historica));
+  check('116) y sigue encontrándose por palabras clave', feed.vaALaSeccion(historica, 'chef'));
+  check('116) no se le inventa el campo', historica.destinations === undefined);
+  check('116) una lista vacía cuenta como "sin destinos", no como "en ninguno"', feed.vaAlMuroGeneral(post({ destinations: [] })));
+
+  // 15) Brain ayuda, no es un sitio donde publicar.
+  check('117) Brain no es un destino', !feed.destinosDisponibles().some((d) => d.id === 'brain'));
+  // 16) Los nombres salen de la fuente única, y cada uno es el suyo.
+  const nombres = Object.fromEntries(feed.destinosDisponibles().map((d) => [d.id, d.nombre]));
+  check('117) el muro general se llama por su nombre', nombres.general === 'Muro general');
+  check('117) Travel dice "Weë Travel"', nombres.travel === 'Weë Travel');
+  check('117) Studio dice "Weë Studio"', nombres.studio === 'Weë Studio');
+  check('117) Design dice "Weë Design"', nombres.design === 'Weë Design');
+  check('117) Chef dice "Weë Chef"', nombres.chef === 'Weë Chef');
+  check('117) y están los ocho que se aprobaron', ['general', 'travel', 'design', 'studio', 'chef', 'business', 'music', 'writer'].every((id) => !!nombres[id]) && feed.destinosDisponibles().length === 8);
+  check('117) sin inventar secciones que no existen', !['kids', 'health', 'education', 'community', 'photography'].some((id) => nombres[id]));
+
+  // 8) UN documento. Los muros son lecturas, no copias.
+  /*
+   * Sobre el fuente CRUDO: `soloCodigo` se atraganta con CreateScreen.tsx —un
+   * falso `/*` le hace tragarse bloques enteros— y ya me ha mordido dos veces con
+   * este mismo archivo. Para construcciones inequívocas no hace falta limpiarlo.
+   */
+  const crearCrudo = leer('screens/CreateScreen.tsx');
+  const crear = soloCodigo(crearCrudo);
+  check('118) se guarda un solo post con su lista de destinos', /destinations: destinos/.test(crearCrudo) && (crearCrudo.match(/postsService\.create/g) || []).length === 1);
+  check('118) y la lista es la que eligió la persona, sin recortar', !/destinos\.slice\(|maxTags|MAX_DESTINOS/.test(crear));
+
+  // 17-19) El sitio desde el que se abre viene marcado, pero se puede cambiar.
+  check('119) se preselecciona el sitio desde el que se abrió', /useState<string\[\]>\(\(\) => \[sourceSection \|\| MURO_GENERAL\]\)/.test(crear));
+  check('119) y se puede añadir y quitar cualquiera', /actuales\.includes\(id\) \? actuales\.filter/.test(crear));
+  check('119) la lista de destinos sale de la fuente única', /destinosDisponibles\(\)/.test(crear) && !/'Weë Studio'|'Weë Design'/.test(crear));
+
+  // 9-10) Home y las secciones respetan lo que la publicación dice.
+  const home = soloCodigo(leer('screens/HomeScreen.tsx'));
+  const muroSeccion = soloCodigo(leer('components/creator/SectionWall.tsx'));
+  /*
+   * UN SOLO SITIO DONDE SE COMPONE EL MURO (fase 2E-75).
+   *
+   * Antes cada pantalla montaba su sobreconsulta y decidía a su manera si quedaba
+   * más, y de ahí salieron tres defectos distintos. Ahora Home, la portada y la
+   * portada web piden por `getMuroGeneralPaginado` y ninguna vuelve a escribir
+   * `sobreconsulta` por su cuenta.
+   */
+  const portada = soloCodigo(leer('screens/LandingScreen.tsx'));
+  const portadaWeb = soloCodigo(leer('screens/WebLandingScreen.tsx'));
+  check('120) Home filtra por destinos', /getMuroGeneralPaginado/.test(home));
+  check('120) y la portada y la portada web piden por el mismo sitio', /getMuroGeneralPaginado/.test(portada) && /getMuroGeneralPaginado/.test(portadaWeb));
+  check('120) ninguna pantalla vuelve a montar la sobreconsulta', ![home, portada, portadaWeb].some((p) => /sobreconsulta\(/.test(p)));
+  check('120) y sin confundir "página corta" con "se acabó"', /hayMas/.test(home) && /hayMas/.test(portada) && /hayMas/.test(portadaWeb));
+  check('120) el muro de sección respeta los destinos', /postsDeLaSeccion\(posts, sectionId\)/.test(muroSeccion));
+  check('120) el bucle de relleno tiene tope', /MAXIMO_DE_VUELTAS/.test(soloCodigo(fuente)));
+
+  /*
+   * ─── El cableado de las pantallas (fase 2E-75) ────────────────────────────
+   *
+   * Los defectos de esta fase no estaban en el filtro, que era correcto: estaban
+   * en cómo lo usaban las pantallas. Dos reglas, y las dos se comprueban aquí:
+   * `hasMore` sale de `hayMas` —nunca de contar lo que sobrevivió al filtro— y el
+   * cursor se guarda SIEMPRE, aunque la tanda no deje ni una publicación.
+   */
+  check('120b) Home decide si queda muro por hayMas', /setHasMore\(siguiente\)/.test(home) && !/setHasMore\(documents\.length/.test(home));
+  check('120b) y Home ya no apaga el scroll porque una tanda venga vacía', !/\}\s*else\s*\{\s*setHasMore\(false\);\s*\}/.test(home));
+  check('120b) la portada guarda el cursor fuera del if', /if \(newPosts\.length > 0\) setFeedPosts/.test(portada) && /setLastDoc\(\(pagina\.lastDoc as any\) \|\| null\);\s*setHasMore\(pagina\.hayMas\)/.test(portada));
+  check('120b) la portada web pagina de verdad', /const cargarMas = useCallback/.test(portadaWeb) && /Cargar más/.test(leer('screens/WebLandingScreen.tsx')));
+  check('120b) y su botón desaparece cuando se acaba el muro', /\{hayMas && posts\.length > 0 && \(/.test(portadaWeb));
+
+  /*
+   * El muro de una sección tampoco puede quedarse en la primera tanda: de una
+   * racha de documentos puede que ninguno sea de esa sección. Sigue leyendo la
+   * colección general —`getPublicPostsPaginated`—, nunca una suya.
+   */
+  check('120c) la sección pagina hasta juntar suficientes', /paginaDeLaSeccion\(pagina, sectionId, VISIBLES, desde\)/.test(muroSeccion));
+  check('120c) y sigue leyendo el muro general, no una colección propia', /getPublicPostsPaginated/.test(muroSeccion) && !/collection\(db, '[a-z]+Posts'\)/.test(muroSeccion));
+  check('120c) ya no se piden 40 y se tiran la mitad', !/const FETCH = 40;/.test(muroSeccion) && !/slice\(0, SHOW\)/.test(muroSeccion));
+  check('120c) Travel sigue siendo el muro general, sin filtro de sección', /if \(general\) return posts;/.test(muroSeccion) && /paginaDelMuroGeneral\(pagina, VISIBLES, desde\)/.test(muroSeccion));
+
+  // 20-21) Publicar es gratis y no pasa por ninguna IA.
+  check('121) publicar no toca Credits ni IA', !/spendCredits|creditsService|gemini|creatorService/i.test(crear));
+
+  /*
+   * ─── Multimedia: hasta diez fotos, un vídeo de quince segundos, UN post ────
+   *
+   * La estructura ya existía —`attachedMedia` es una lista y el post guarda
+   * `imageUrls`—, así que subir el tope no crea documentos ni arquitectura nueva.
+   */
+  check('122) caben diez fotos en una publicación', /const maxImages = 10;/.test(crearCrudo));
+  check('122) y se pueden elegir varias de una vez', /allowsMultipleSelection: !hasVideo/.test(crearCrudo));
+  check('122) sin pasarse del tope al elegir', /selectionLimit: hasVideo \? 0 : maxImages - attachedMedia\.length/.test(crearCrudo));
+  check('122) la píldora dice cuántas llevas', /\$\{fotosPuestas\}\/\$\{maxImages\}/.test(crearCrudo));
+  check('122) y un vídeo no cuenta como foto', /attachedMedia\.filter\(\(m\) => m\.type === 'image'\)\.length/.test(crearCrudo));
+
+  // Un vídeo, quince segundos, comprobados ANTES de subir y sin tocar el archivo.
+  check('123) quince segundos, todos los vídeos', /const maxVideoDurationSeconds = 15;/.test(crearCrudo));
+  check('123) se rechaza diciendo cuánto dura', /no puede durar más de 15 segundos\. Tu video dura/.test(crearCrudo));
+  // Ojo con la vara: 'trim' a secas cazaba las llamadas a .trim() del propio código.
+  check('123) y no se recorta ni se convierte con IA', !/ffmpeg|transcode|videoTrim|recortarVideo|trimVideo/i.test(crear));
+
+  // UN documento con su lista de medios. Diez fotos no son diez publicaciones.
+  check('124) los medios van dentro del mismo post', /let imageUrls: string\[\] = \[\];/.test(crearCrudo) && /imageUrls\.push/.test(crearCrudo));
+  check('124) y se sigue creando una sola publicación', (crearCrudo.match(/postsService\.create/g) || []).length === 1);
+
+  /*
+   * ─── El modelo visual que pidió el usuario (fase 2E-76) ───────────────────
+   *
+   * Con diez fotos, la miniatura deja de ser un detalle y pasa a ser la única
+   * forma de que quepan: a ancho completo y 280 de alto eran casi tres mil
+   * píxeles de scroll hasta el botón de publicar.
+   */
+  check('125) las fotos van en miniatura, no a ancho completo', /width: scale\(100\),\s*height: scale\(100\)/.test(crearCrudo) && !/height: scale\(280\)/.test(crearCrudo));
+  check('125) y la rejilla no recorta las aspas de quitar', !/mediaGrid: \{[\s\S]{0,160}overflow: 'hidden'/.test(crearCrudo));
+  check('125) el hueco de seguir añadiendo va al final de la tira', crearCrudo.indexOf('styles.mediaAgregar,') > crearCrudo.indexOf('removeMediaButton,'));
+  check('125) y desaparece cuando ya no cabe nada', /\{!sinSitioParaMedios && \(/.test(crearCrudo));
+
+  // Lo que se escribe vive en una tarjeta con su contador dentro, no en un renglón suelto.
+  check('125) la caja de escribir es una tarjeta cerrada', /tarjetaTexto: \{\s*borderWidth: 1,/.test(crearCrudo));
+  check('125) que dice cuánto llevas de cuánto cabe', /\{postText\.length\}\/\{maxTextLength\}/.test(crearCrudo));
+
+  // Dónde publicar es una pregunta con su bloque, no el último campo del formulario.
+  check('125) dónde publicar se pregunta en voz alta', /¿Dónde quieres publicar\?/.test(crearCrudo) && /Puedes elegir una o más opciones\./.test(crearCrudo));
+  check('125) y no hay que arrastrar para ver los destinos', /flexWrap: 'wrap'/.test(crearCrudo));
+
+  /*
+   * ─── Lo que el usuario prohibió expresamente (fase 2E-76) ─────────────────
+   *
+   * Estas cuatro no son estilo: son promesas. La referencia visual que mandó
+   * traía secciones que en Weë NO existen y una tercera entidad combinada; si
+   * alguien las copia literalmente en una vuelta futura, esto lo para.
+   */
+  const SECCIONES_INVENTADAS = ['Weë Kids', 'Weë Health', 'Weë Education', 'Weë Community'];
+  check('126) no se inventan secciones que Weë no tiene', SECCIONES_INVENTADAS.every((s) => !crearCrudo.includes(s)));
+  check('126) ni una tarjeta combinada "Travel y Muro"', !/Travel y Muro/.test(crearCrudo));
+  check('126) ni un bloque WeeTags aparte de los destinos', !/WeeTags/.test(crearCrudo));
+  check('126) Brain no es destino social', /DESTINO_BRAIN_EXCLUIDO/.test(leer('utils/sectionFeed.ts')));
+  check('126) el límite de texto sigue siendo el de Weë', /const maxTextLength = 500;/.test(crearCrudo) && !/maxTextLength = 2000/.test(crearCrudo));
+
+  /*
+   * La jerarquía de los destinos: cara, nombre y estado. Un radio pelado no
+   * distingue "Weë Chef" de "Weë Music" hasta que lo lees; el emoji sí, y sale
+   * del catálogo de Weë para que no haya dos verdades.
+   */
+  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
+  check('126) y el muro general lleva la suya, que no es una experiencia', /name="people"/.test(crearCrudo));
+  check('126) el aro cae siempre en el mismo sitio', /destinoFila: \{\s*flexDirection: 'row',\s*alignItems: 'center',\s*justifyContent: 'space-between',/.test(crearCrudo));
+  // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.
+  check('126) y el nombre del destino cabe entero', crearCrudo.indexOf('styles.destinoFila') < crearCrudo.indexOf('styles.destinoTexto'));
+
+  // Y el final de la pantalla respira: nada pegado al borde de abajo.
+  check('126) el contenido no queda pegado al fondo', /paddingBottom: SPACING\.xxl/.test(crearCrudo));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Travel Fase A: cuatro funciones, sin inventar sitios y sin tocar nada más');

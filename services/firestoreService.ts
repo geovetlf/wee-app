@@ -29,6 +29,7 @@ export interface PollOption {
 }
 
 import type { PostPlace } from '../data/places';
+import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
 
 export interface PostPoll {
   options: PollOption[];
@@ -445,6 +446,38 @@ export const postsService = {
     undefined, // Sin filtros por ahora
     'createdAt', 'desc', limitCount
   ),
+  /*
+   * ─── EL MURO, PEDIDO UNA SOLA VEZ EN TODO WEË ────────────────────────────
+   *
+   * Home, la portada, la portada web y el muro de cada sección leen lo mismo:
+   * la colección `posts`, en orden y por cursor. Lo único que cambia es qué
+   * publicaciones pasan el filtro. Antes cada pantalla montaba su propia
+   * sobreconsulta y decidía a su manera si quedaba más, y de ahí salieron tres
+   * defectos distintos: una tiraba el `hayMas`, otra apagaba el scroll porque una
+   * tanda venía vacía y otra no guardaba el cursor y repetía la misma página.
+   *
+   * Ahora hay UN sitio donde se compone. Las pantallas piden cuántas quieren ver
+   * y por dónde iban; lo demás —pedir de más, rellenar, avanzar el cursor y decir
+   * si queda algo detrás— pasa aquí dentro (fase 2E-75).
+   *
+   * `hayMas` NO significa "esta tanda trajo suficientes": significa que detrás
+   * del cursor todavía quedan documentos. Es la diferencia entre una página corta
+   * y el final del muro, y confundirlas esconde publicaciones.
+   */
+  getMuroGeneralPaginado: async (visiblesQueQueremos = 15, lastDoc?: DocumentSnapshot) =>
+    paginaDelMuroGeneral(
+      (desde) => postsService.getPublicPostsPaginated(sobreconsulta(visiblesQueQueremos), desde as DocumentSnapshot | undefined),
+      visiblesQueQueremos,
+      lastDoc
+    ),
+
+  /*
+   * El muro de una SECCIÓN no tiene método aquí a propósito: lo compone
+   * `SectionWall` con `paginaDeLaSeccion` y esta misma consulta. Así queda a la
+   * vista, en el propio muro, que una sección lee la colección general y no una
+   * suya —que es justo lo que hay que poder demostrar de un vistazo—. El bucle
+   * de relleno es el mismo de arriba: no hay dos.
+   */
   getPublicPostsPaginated: async (limitCount = 20, lastDoc?: DocumentSnapshot) => {
     const result = await firestoreService.getManyPaginated<Post>(
       'posts',

@@ -342,6 +342,47 @@ export const paginaDelMuroGeneral = async (
   pedir: (desde: unknown) => Promise<{ documents?: Post[]; lastDoc?: unknown } | undefined>,
   visiblesQueQueremos: number,
   desde: unknown = undefined
+): Promise<PaginaDeMuro> => paginaFiltrada(pedir, vaAlMuroGeneral, visiblesQueQueremos, desde);
+
+/**
+ * La misma página, pero de una sección.
+ *
+ * El muro de una sección NO es otra colección: es el mismo muro leído con otro
+ * filtro. Por eso comparte el bucle entero con el de arriba y solo cambia la
+ * pregunta que se le hace a cada publicación (fase 2E-73/2E-75).
+ *
+ * Y por eso hace más falta aquí que en el muro general: de cuarenta documentos
+ * seguidos puede que solo tres sean de Weë Chef, y sin volver a pedir la sección
+ * se vería vacía teniendo publicaciones.
+ */
+export const paginaDeLaSeccion = async (
+  pedir: (desde: unknown) => Promise<{ documents?: Post[]; lastDoc?: unknown } | undefined>,
+  sectionId: string,
+  visiblesQueQueremos: number,
+  desde: unknown = undefined
+): Promise<PaginaDeMuro> => paginaFiltrada(pedir, (post) => vaALaSeccion(post, sectionId), visiblesQueQueremos, desde);
+
+/*
+ * ─── El bucle, una sola vez ───────────────────────────────────────────────────
+ *
+ * Lo único que distingue al muro general del de una sección es qué publicaciones
+ * pasan. Todo lo demás —pedir de más, rellenar hasta juntar suficientes, no girar
+ * más de cuatro veces, avanzar el cursor SIEMPRE y saber si queda algo detrás— es
+ * idéntico, y escribirlo dos veces sería tener dos sitios donde equivocarse.
+ *
+ * Dos reglas que parecen detalles y no lo son:
+ *
+ *  1. El cursor avanza aunque la tanda no deje ni un visible. Si se guardara solo
+ *     cuando hay visibles, volver a pedir repetiría la misma página para siempre.
+ *  2. `hayMas` mira los DOCUMENTOS leídos, no los visibles. "De esta tanda no
+ *     había nada para ti" no es "se acabó el muro", y confundirlos apaga el
+ *     scroll con publicaciones todavía por leer.
+ */
+const paginaFiltrada = async (
+  pedir: (desde: unknown) => Promise<{ documents?: Post[]; lastDoc?: unknown } | undefined>,
+  pasa: (post: Post) => boolean,
+  visiblesQueQueremos: number,
+  desde: unknown = undefined
 ): Promise<PaginaDeMuro> => {
   const visibles: Post[] = [];
   let cursor: unknown = desde;
@@ -350,7 +391,7 @@ export const paginaDelMuroGeneral = async (
   for (let vuelta = 0; vuelta < MAXIMO_DE_VUELTAS && visibles.length < visiblesQueQueremos && hayMas; vuelta++) {
     const pagina = await pedir(cursor);
     const documentos = pagina?.documents || [];
-    visibles.push(...documentos.filter(vaAlMuroGeneral));
+    visibles.push(...documentos.filter(pasa));
     cursor = pagina?.lastDoc ?? null;
     // Sin cursor o sin documentos, se acabó la colección de verdad.
     hayMas = documentos.length > 0 && !!cursor;
