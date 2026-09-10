@@ -238,6 +238,127 @@ export const belongsToSection = (post: Post, markers: string[]): boolean => {
 export const sectionPosts = (posts: Post[], markers: string[]): Post[] =>
   posts.filter((post) => belongsToSection(post, markers));
 
+// ─── Destinos: dónde quiere aparecer una publicación ────────────────────────
+
+/**
+ * EL MURO GENERAL, COMO DESTINO.
+ *
+ * No es una sección: es el sitio donde está todo el mundo. Se nombra igual que
+ * las secciones para que elegir dónde publicar sea una sola lista y no dos.
+ */
+export const MURO_GENERAL = 'general';
+
+/**
+ * Los destinos donde se puede publicar, en el orden en que se enseñan.
+ *
+ * Sale de `NOMBRE_SECCION`, que es la única lista de nombres de Weë: añadir una
+ * sección allí la trae aquí sola. Weë Brain queda fuera a propósito —es un chat
+ * que ayuda, no un sitio donde publicar— y ese es el único caso especial.
+ */
+export const DESTINO_BRAIN_EXCLUIDO = 'brain';
+
+export const destinosDisponibles = (): ContextoPublicacion[] => [
+  { id: MURO_GENERAL, nombre: 'Muro general' },
+  ...Object.entries(NOMBRE_SECCION)
+    .filter(([id]) => id !== DESTINO_BRAIN_EXCLUIDO)
+    .map(([id, nombre]) => ({ id, nombre })),
+];
+
+/** Los destinos que trae la publicación, o undefined si es de las de antes. */
+const destinosDe = (post: Post): string[] | undefined => {
+  const lista = (post as { destinations?: unknown }).destinations;
+  return Array.isArray(lista) && lista.length > 0 ? (lista as string[]) : undefined;
+};
+
+/**
+ * ¿Va esta publicación al muro general?
+ *
+ * Con destinos, manda lo que eligió quien publicó: si no puso "general", no sale
+ * en el muro general aunque hable de lo que hable.
+ *
+ * Sin destinos —todo lo publicado antes de esta fase— sale, como ha salido
+ * siempre. No se migra nada, y por eso ninguna publicación antigua desaparece.
+ */
+export const vaAlMuroGeneral = (post: Post): boolean => {
+  const destinos = destinosDe(post);
+  return destinos ? destinos.includes(MURO_GENERAL) : true;
+};
+
+/**
+ * ¿Va esta publicación al muro de esta sección?
+ *
+ * Con destinos, SOLO si la sección está elegida. Quien escribe "me voy de viaje"
+ * y publica únicamente en el muro general no acaba en Weë Travel: lo decidió.
+ * Adivinar por palabras cuando la persona ya ha dicho lo que quiere es pisarla.
+ *
+ * Sin destinos, las palabras clave de siempre. Es lo que llena hoy los muros de
+ * Chef, Design, Studio y Travel, y quitarlo de golpe los dejaría vacíos.
+ */
+export const vaALaSeccion = (post: Post, sectionId: string): boolean => {
+  const destinos = destinosDe(post);
+  if (destinos) return destinos.includes(sectionId);
+  return belongsToSection(post, SECTION_MARKERS[sectionId] || []);
+};
+
+/** Las de una sección, respetando lo que cada publicación diga de sí misma. */
+export const postsDeLaSeccion = (posts: Post[], sectionId: string): Post[] =>
+  posts.filter((post) => vaALaSeccion(post, sectionId));
+
+/**
+ * Cuántas veces como mucho se vuelve a pedir para completar una página.
+ *
+ * Filtrar en el cliente una consulta paginada tiene una trampa conocida: pides 15
+ * documentos y te quedas con 9 visibles, así que la pantalla se ve corta y parece
+ * que el muro se acabó cuando no se ha acabado. La salida es volver a pedir hasta
+ * completar el lote... y eso, sin tope, es un bucle que puede recorrer la
+ * colección entera si nadie publica en el muro general.
+ *
+ * Cuatro vueltas es el tope. Con la sobreconsulta de abajo son hasta 120
+ * documentos por página, y si aun así no salen 15 visibles se enseña lo que haya:
+ * más vale una página corta que una pantalla congelada pidiendo sin parar.
+ */
+const MAXIMO_DE_VUELTAS = 4;
+
+/** Se piden el doble de los que se quieren enseñar: la mayoría serán visibles. */
+export const sobreconsulta = (visiblesQueQueremos: number): number => visiblesQueQueremos * 2;
+
+interface PaginaDeMuro {
+  visibles: Post[];
+  lastDoc: unknown;
+  hayMas: boolean;
+}
+
+/**
+ * Una página del muro general, ya filtrada, con suficientes publicaciones.
+ *
+ * `pedir` es quien va a Firestore. Se pasa por fuera a propósito: así este archivo
+ * no depende de los servicios y se puede probar sin red ni base de datos.
+ *
+ * `hayMas` mira los DOCUMENTOS leídos, no los visibles. Es la diferencia entre
+ * "no queda nada" y "de esta tanda no había nada para ti": lo segundo no es el
+ * final del muro y no debe apagar el scroll.
+ */
+export const paginaDelMuroGeneral = async (
+  pedir: (desde: unknown) => Promise<{ documents?: Post[]; lastDoc?: unknown } | undefined>,
+  visiblesQueQueremos: number,
+  desde: unknown = undefined
+): Promise<PaginaDeMuro> => {
+  const visibles: Post[] = [];
+  let cursor: unknown = desde;
+  let hayMas = true;
+
+  for (let vuelta = 0; vuelta < MAXIMO_DE_VUELTAS && visibles.length < visiblesQueQueremos && hayMas; vuelta++) {
+    const pagina = await pedir(cursor);
+    const documentos = pagina?.documents || [];
+    visibles.push(...documentos.filter(vaAlMuroGeneral));
+    cursor = pagina?.lastDoc ?? null;
+    // Sin cursor o sin documentos, se acabó la colección de verdad.
+    hayMas = documentos.length > 0 && !!cursor;
+  }
+
+  return { visibles, lastDoc: cursor, hayMas };
+};
+
 // ─── El WeeTag: de qué contexto viene una publicación ───────────────────────
 
 /**

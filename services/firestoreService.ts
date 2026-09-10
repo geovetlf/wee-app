@@ -80,6 +80,23 @@ export interface Post {
   sourceSection?: string; // 'travel' | 'studio' | 'design' | 'chef' | 'writer' | 'music' | 'business' | 'brain'
 
   /*
+   * DÓNDE QUIERE APARECER ESTA PUBLICACIÓN. Lo decide quien publica.
+   *
+   * `['general']` solo el muro general. `['travel']` solo Weë Travel, y entonces
+   * NO sale en el muro general. `['general', 'travel', 'design']` en los tres.
+   * Sin límite de cuántos.
+   *
+   * Sigue habiendo UN documento. Los muros no son colecciones distintas: son
+   * lecturas distintas de la misma lista, y este campo dice cuáles.
+   *
+   * AUSENTE en las publicaciones anteriores a esta fase, y eso significa algo
+   * concreto: "compórtate como siempre" —visible en el muro general y en cualquier
+   * sección cuyas palabras encajen—. No se migra ninguna: quien no eligió destinos
+   * no puede quedarse fuera de un sitio donde ya estaba.
+   */
+  destinations?: string[];
+
+  /*
    * El lugar, en dos generaciones.
    *
    * `place` es el de ahora: `{ kind, id?, label }`. Del catálogo trae un código
