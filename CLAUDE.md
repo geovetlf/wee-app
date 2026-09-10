@@ -32,7 +32,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Weëls (videos ≤15 s con watermark) | `ReelsScreen`, `videoDownload.ts`; el compositor (`CreateScreen`, `kind: 'weel'`) limita a 15 s y marca `Post.isWeel` |
 | WeeTalk (chat) | `InboxScreen`, `ConversationScreen`, `messagesService` |
 | Comunidades | `CommunityScreen`, `communityService` |
-| Perfil Weë (identidad alterna) | `HidiCreationScreen`, `AiAvatarScreen`, `getHidiProfile` — "Hidi" es el nombre heredado |
+| Perfil Weë (identidad alterna) | `WeeProfileCreationScreen`, `AiAvatarScreen`, `usersService.getWeeProfile` / `createWeeProfile`, contexto `weeProfile` / `hasWeeProfile` / `setWeeProfile`. El **identificador guardado** sigue siendo el heredado de HideTok y no se toca: uid `hidi_<uid>`, `profileType: 'hidi'`, reglas y publicaciones históricas. El puente con la cuenta es `users.linkedAccountId`, y quien lo necesite lo resuelve con `cuentaDeIdentidad` (`utils/econtactModel.ts`): se LEE, nunca se deduce quitando el prefijo |
 | Credits | **Credit Engine** en `functions/src/credits` ([`docs/CREDITS.md`](docs/CREDITS.md)): saldo en `users.creditsBalance`, historial en `creditTransactions`, callables `getCreditsBalance` / `spendCredits` / `refundCredits` / `validatePurchase`…; cliente `CreditStoreScreen`, `WalletScreen`, `creditsService`, `hooks/useWallet.ts`. Precios **de prueba** configurables (`creditCosts.ts`, `creditCosts/{servicio}`; `CREATOR_PRICING_MODE=simulated` por defecto, 240 de bienvenida) hasta medir las APIs reales |
 | Menú ☰ único | `components/DrawerMenu.tsx` |
 | Hoja Crear del + | `components/CreateSheet.tsx`, botón en `navigation/TabNavigator.tsx`, `CreateScreen` recibe `kind` |
@@ -47,7 +47,7 @@ Toda funcionalidad nueva se evalúa con una pregunta:
 | Barra lateral de escritorio (mismo menú que el ☰) | `components/Sidebar.tsx`; columna derecha `components/RightSidebar.tsx` |
 | Diseño de referencia | `design/canvas/` |
 
-Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a medias.
+Al renombrar cosas heredadas (HideTok, Hidi), hacerlo de forma coordinada y no a medias. El vocabulario de producto ya está hecho: el perfil alterno se llama **Perfil Weë** y los videos cortos **Weëls**, en pantalla y en el código. Lo que queda en `hidi_`/`hidetok` son identificadores con datos o servicios detrás —uid de perfiles, `profileType`, esquema `hidetok://`, `com.hidetok.app`, el preset de Cloudinary— y esos no se renombran sin una migración.
 
 ## Firebase: dos entornos — nunca tocar producción sin pedirlo
 

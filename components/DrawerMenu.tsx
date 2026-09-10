@@ -52,7 +52,7 @@ interface DrawerMenuProps {
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const { theme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
-  const { userProfile, activeProfileType, hasHidiProfile, hasBizProfile, switchIdentity, switchToBiz, setBizProfile } = useUserProfile();
+  const { userProfile, activeProfileType, hasWeeProfile, hasBizProfile, switchIdentity, switchToBiz, setBizProfile } = useUserProfile();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -65,7 +65,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  // Check if user has a business (always use real uid, not hidi/biz uid)
+  // Check if user has a business (always use real uid, not the Weë/Biz profile uid)
   const realUid = user?.uid;
   useEffect(() => {
     if (!realUid) return;
@@ -161,7 +161,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
   const goWeeProfile = () => {
     if (!user) return requireLogin();
-    if (!hasHidiProfile) return after(() => navigateRoot('HidiCreation'));
+    if (!hasWeeProfile) return after(() => navigateRoot('WeeProfileCreation'));
     if (activeProfileType === 'hidi') return after(() => navigateTab('Profile'));
     if (activeProfileType === 'biz') {
       switchToBiz();
@@ -200,6 +200,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
       else navigation.navigate('Notifications');
     });
   };
+  const goEContact = () => (user ? after(() => navigateRoot('EContact')) : requireLogin());
   const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
   const goSettings = () => after(() => navigateRoot('Settings'));
   const goHelp = () => after(() => navigateRoot('Help'));
@@ -257,6 +258,13 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
   );
 
+  /*
+   * La línea que separa un grupo del anterior. Los grupos con nombre se separan
+   * con su rótulo; ËContact no tiene nombre de grupo y necesita la línea, o
+   * quedaría pegado a los Credits como si fuera parte de tu cuenta.
+   */
+  const renderDivisor = () => <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />;
+
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 50 }]} pointerEvents="box-none">
       <TouchableWithoutFeedback onPress={closeDrawer}>
@@ -311,9 +319,9 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {/* PERFIL */}
           {renderSectionLabel('PERFIL')}
           {fila('realProfile', goRealProfile, { active: !!user && activeProfileType === 'real' })}
-          {renderRow(MENU_ITEM.weeProfile.emoji, hasHidiProfile || !user ? MENU_ITEM.weeProfile.label : 'Crear mi perfil Weë', goWeeProfile, {
+          {renderRow(MENU_ITEM.weeProfile.emoji, hasWeeProfile || !user ? MENU_ITEM.weeProfile.label : 'Crear mi perfil Weë', goWeeProfile, {
             active: isWee,
-            right: !hasHidiProfile && user ? (
+            right: !hasWeeProfile && user ? (
               <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
                 <Text style={styles.tagText}>Nuevo</Text>
               </View>
@@ -337,7 +345,17 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             ) : undefined,
           })}
 
+          {/*
+            ËContact, entre líneas y solo.
+            No es información de tu cuenta —eso son los Credits, justo encima— ni
+            un destino donde explorar. Es tu gente, y por eso va en su propio
+            hueco entre las dos cosas.
+          */}
+          {renderDivisor()}
+          {fila('econtact', goEContact)}
+
           {/* EXPLORA */}
+          {renderDivisor()}
           {renderSectionLabel('EXPLORA')}
           {fila('communities', goCommunities)}
           {fila('weels', goWeels)}
@@ -435,6 +453,11 @@ const styles = StyleSheet.create({
   },
   userMeta: {
     fontSize: FONT_SIZE.xs,
+  },
+  divisor: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: SPACING.sm,
+    marginTop: SPACING.md,
   },
   sectionLabel: {
     fontSize: scale(11),

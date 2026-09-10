@@ -23,6 +23,13 @@ export { engineAdmin } from './engine/admin';
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
 export { votePoll } from './social/polls';
 
+/*
+ * ËContact / ẄContact: las dos puertas de una conexión entre identidades de
+ * perfil. Pedir también es del servidor, porque de quién es cada identidad se
+ * lee de `users` y las reglas no pueden consultar.
+ */
+export { requestEContact, acceptEContact } from './social/econtact';
+
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
   getCreditsBalance,
@@ -46,9 +53,20 @@ const notificationMessages: Record<string, (senderName: string) => { title: stri
     title: 'Nuevo comentario',
     body: `${senderName} comentó en tu post`,
   }),
+  // Histórico: el sistema de seguidores. Se conserva para las notificaciones ya enviadas.
   follow: (senderName) => ({
     title: 'Nuevo seguidor',
     body: `${senderName} comenzó a seguirte`,
+  }),
+  // ËContact: las relaciones entre personas. Tipos propios para no confundirlas
+  // con las de seguidores que ya están enviadas.
+  econtact_request: (senderName) => ({
+    title: 'Nueva solicitud de ËContact',
+    body: `${senderName} quiere agregarte a ËContact`,
+  }),
+  econtact_accepted: (senderName) => ({
+    title: 'Nuevo ËContact',
+    body: `${senderName} aceptó tu solicitud de ËContact`,
   }),
   mention: (senderName) => ({
     title: 'Te mencionaron',

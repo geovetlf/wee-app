@@ -17,13 +17,14 @@ import CommunityScreen from '../screens/CommunityScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import HidiCreationScreen from '../screens/HidiCreationScreen';
+import WeeProfileCreationScreen from '../screens/WeeProfileCreationScreen';
 import AiAvatarScreen from '../screens/AiAvatarScreen';
 import ReelsScreen from '../screens/ReelsScreen';
 import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
+import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
@@ -55,6 +56,8 @@ export type MainStackParamList = {
   Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number }[] } } | undefined;
   WeeCreator: { category?: string } | undefined;
   SavedPosts: undefined;
+  /** ËContact: las conexiones de Weë entre personas. */
+  EContact: undefined;
   /**
    * `presets` lleva VARIAS respuestas ya dadas, no una. Lo usa el puente de
    * "No sé qué hacer": cuando Weë ya miró la foto y la persona elige un camino,
@@ -75,7 +78,7 @@ export type MainStackParamList = {
   Community: {
     communityId: string;
   };
-  HidiCreation: undefined;
+  WeeProfileCreation: undefined;
   AiAvatar: undefined;
   CreditStore: undefined;
   Wallet: undefined;
@@ -219,12 +222,13 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="Community" component={CommunityScreen} />
-      <Stack.Screen name="HidiCreation" component={HidiCreationScreen} />
+      <Stack.Screen name="WeeProfileCreation" component={WeeProfileCreationScreen} />
       <Stack.Screen name="AiAvatar" component={AiAvatarScreen} />
       <Stack.Screen name="CreditStore" component={CreditStoreScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
+      <Stack.Screen name="EContact" component={EContactScreen} />
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />

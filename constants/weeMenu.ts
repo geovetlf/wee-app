@@ -25,6 +25,7 @@ export type MenuItemId =
   | 'realProfile'
   | 'weeProfile'
   | 'credits'
+  | 'econtact'
   | 'communities'
   | 'weels'
   | 'weetalk'
@@ -49,6 +50,7 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
   realProfile: { id: 'realProfile', emoji: '👤', label: 'Perfil Real' },
   weeProfile: { id: 'weeProfile', emoji: '🎭', label: 'Perfil Weë' },
   credits: { id: 'credits', emoji: '💳', label: 'Credits' },
+  econtact: { id: 'econtact', emoji: '🤝', label: 'ËContact' },
   communities: { id: 'communities', emoji: '👥', label: 'Comunidades' },
   weels: { id: 'weels', emoji: '📹', label: 'Weëls' },
   weetalk: { id: 'weetalk', emoji: '💬', label: 'WeeTalk' },
@@ -66,6 +68,15 @@ export interface MenuSection {
   items: MenuItemId[];
   /** true en el grupo que se despliega con las experiencias de Weë Creator. */
   creator?: boolean;
+  /**
+   * true si el grupo empieza con una línea, en vez de con un rótulo.
+   *
+   * Hasta ahora los grupos se separaban solo con su rótulo en versales, que es
+   * suficiente cuando el grupo tiene nombre. ËContact no lo tiene: es una sola
+   * opción entre lo tuyo y los destinos, y sin una línea quedaría pegada a los
+   * Credits como si fuera parte de tu cuenta.
+   */
+  divisor?: boolean;
 }
 
 /**
@@ -73,10 +84,14 @@ export interface MenuSection {
  *
  * Credits va con los perfiles, no con Explora: es lo que TIENES, no un sitio al
  * que ir. Y quien busca su saldo lo busca donde está su cuenta.
+ *
+ * ËContact va solo, entre líneas, justo después de tu cuenta y antes de los
+ * destinos. Ni es información tuya ni es un sitio donde explorar: es tu gente.
  */
 export const WEE_MENU: MenuSection[] = [
   { label: 'PERFIL', items: ['realProfile', 'weeProfile', 'credits'] },
-  { label: 'EXPLORA', items: ['communities', 'weels', 'weetalk'] },
+  { items: ['econtact'], divisor: true },
+  { label: 'EXPLORA', items: ['communities', 'weels', 'weetalk'], divisor: true },
   { items: ['creator'], creator: true },
   { items: ['notifications', 'saved', 'settings', 'help'] },
 ];

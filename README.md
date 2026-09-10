@@ -29,7 +29,7 @@ El código actual nace de una versión anterior del producto (red social anónim
 | **Guardados** (🔖) | `bookmarksService` (`users/{uid}/bookmarks`), `hooks/useBookmarks.ts`, botón en `PostCard`, `SavedPostsScreen` desde el menú ☰ | ✅ Implementado |
 | **WeeTalk** (chat) | `InboxScreen` / `ConversationScreen` — mensajes, audio, temas de chat | ✅ Base existente |
 | **Comunidades** (Weë Filmmakers, Weë Influencers, Weë Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
-| **Perfil doble (Real + Weë)** | `HidiCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (`Hidi` es el nombre interno heredado del perfil Weë) |
+| **Perfil doble (Real + Weë)** | `WeeProfileCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (el uid guardado sigue llevando el prefijo heredado `hidi_`) |
 | Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
 | WeeBiz (perfiles y productos de negocios) | `WeeBiz*Screen`, `weeBizService` | ⚠️ Heredado; no está en la visión actual, a evaluar |
 | Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de Weë Creator; "Weë Influencers" es una comunidad) | ❌ No existe aún |
@@ -166,7 +166,7 @@ wee-app/
 ├── hooks/                   # useCommunities, useFollow, useLikes, useReposts, useVote, useResponsive…
 ├── navigation/              # Auth / Main / Home / Inbox / Profile stacks + TabNavigator
 ├── screens/                 # Landing/Home, WeeCreator, Reels (Weëls), Inbox/Conversation (WeeTalk), Community,
-│                            # HidiCreation + AiAvatar (perfil Weë), CreditStore/Wallet, WeeBiz*, Search…
+│                            # WeeProfileCreation + AiAvatar (Perfil Weë), CreditStore/Wallet, WeeBiz*, Search…
 ├── services/                # firestoreService, messagesService, communityService, creditsService,
 │                            # avatarGenerationService, storageService, cloudinaryService, videoDownload…
 ├── functions/src/           # Cloud Functions: generateAvatar.ts, vertexAI.ts (Gemini)

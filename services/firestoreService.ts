@@ -199,9 +199,22 @@ export interface UserProfile {
   country?: string; // Código ISO del país (ej: 'AR', 'MX')
   countryName?: string; // Nombre del país (ej: 'Argentina')
 
-  // === HIDI / BIZ: Sistema de identidades ===
-  profileType?: 'real' | 'hidi' | 'biz'; // Tipo de perfil
-  linkedAccountId?: string; // uid del perfil vinculado (real↔hidi↔biz)
+  /*
+   * === PERFIL WEË / PERFIL BIZ: las caras de una misma cuenta ===
+   *
+   * `'hidi'` es el valor guardado del Perfil Weë. El nombre viene de HideTok,
+   * como se llamaba el proyecto antes; el concepto de producto hoy se llama
+   * Perfil Weë y así se dice en pantalla. El valor no se cambia porque está
+   * escrito en los perfiles que ya existen y comprobado en `firestore.rules`:
+   * cambiarlo sería una migración, no un cambio de nombre.
+   */
+  profileType?: 'real' | 'hidi' | 'biz';
+  /**
+   * El puente entre una cara y su cuenta. En un Perfil Weë o Biz guarda el uid
+   * de Firebase Auth de la persona; en el perfil real, el uid de su otra cara.
+   * Es lo que ËContact lee para saber con qué CUENTA conectar.
+   */
+  linkedAccountId?: string;
   businessId?: string; // ID del negocio vinculado (solo profileType 'biz')
 
   // === Avatar IA ===
@@ -745,28 +758,58 @@ export const usersService = {
     );
     return users.length > 0 ? users[0] : null;
   },
+
+  /*
+   * VARIOS PERFILES DE UNA VEZ, por su uid de identidad.
+   *
+   * Una pantalla como la agenda de ËContact necesita el nombre y el avatar de
+   * todas las personas que salen en ella. Pedirlos de uno en uno son N consultas;
+   * `in` los trae por tandas de 30, que es el máximo que admite Firestore.
+   *
+   * No hace falta ningún índice: `uid` es un campo suelto y Firestore indexa
+   * todos por su cuenta.
+   */
+  getManyByUids: async (uids: string[]): Promise<UserProfile[]> => {
+    const unicos = [...new Set((uids || []).filter(Boolean))];
+    if (unicos.length === 0) return [];
+    const tandas: string[][] = [];
+    for (let i = 0; i < unicos.length; i += 30) tandas.push(unicos.slice(i, i + 30));
+    const resultados = await Promise.all(
+      tandas.map((tanda) =>
+        firestoreService
+          .getMany<UserProfile>('users', [{ field: 'uid', operator: 'in', value: tanda }])
+          .catch((error) => {
+            // Una tanda que falla se queda sin sus personas. Que se vea, en vez
+            // de que la lista salga corta sin que nadie sepa por qué.
+            console.warn('No se pudo leer una tanda de perfiles', error);
+            return [] as UserProfile[];
+          })
+      )
+    );
+    return resultados.flat();
+  },
   update: (id: string, data: Partial<UserProfile>) => firestoreService.update<UserProfile>('users', id, data),
   delete: (id: string) => firestoreService.delete('users', id),
 
-  // === HIDI: Métodos para perfil HIDI ===
-  getHidiProfile: async (realUid: string): Promise<UserProfile | null> => {
-    const hidiUid = `hidi_${realUid}`;
+  // === PERFIL WEË: sus métodos. El uid lleva el prefijo histórico `hidi_`. ===
+  getWeeProfile: async (realUid: string): Promise<UserProfile | null> => {
+    const weeProfileUid = `hidi_${realUid}`;
     const users = await firestoreService.getMany<UserProfile>('users',
-      [{ field: 'uid', operator: '==', value: hidiUid }]
+      [{ field: 'uid', operator: '==', value: weeProfileUid }]
     );
     return users.length > 0 ? users[0] : null;
   },
 
-  createHidiProfile: async (realUid: string, data: {
+  createWeeProfile: async (realUid: string, data: {
     displayName: string;
     bio: string;
     avatarType?: 'predefined' | 'custom';
     avatarId?: string;
     photoURL?: string;
   }): Promise<string> => {
-    const hidiUid = `hidi_${realUid}`;
-    const hidiProfileData: Record<string, any> = {
-      uid: hidiUid,
+    const weeProfileUid = `hidi_${realUid}`;
+    const weeProfileData: Record<string, any> = {
+      uid: weeProfileUid,
       displayName: data.displayName,
       email: '',
       bio: data.bio,
@@ -783,10 +826,10 @@ export const usersService = {
 
     // Only include photoURL if it has a value (Firestore rejects undefined)
     if (data.photoURL) {
-      hidiProfileData.photoURL = data.photoURL;
+      weeProfileData.photoURL = data.photoURL;
     }
 
-    const docId = await firestoreService.create<UserProfile>('users', hidiProfileData as any);
+    const docId = await firestoreService.create<UserProfile>('users', weeProfileData as any);
     return docId;
   },
 
@@ -991,12 +1034,21 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
       user.bio?.toLowerCase().includes(searchLower)
     );
 
-    // Ordenar por relevancia (match exacto primero, luego por seguidores)
+    /*
+     * Ordenar por relevancia: quien empieza por lo que escribiste va primero y,
+     * a igualdad, por nombre.
+     *
+     * El desempate era `followers`, el contador del sistema de seguidores. Las
+     * relaciones entre personas son ahora ËContact, así que ese número ya no
+     * ordena a nadie —y de hecho está a cero en todos los perfiles, con lo que
+     * tampoco ordenaba—. Alfabético es estable y no depende de un contador
+     * retirado.
+     */
     filtered.sort((a, b) => {
       const aExact = a.displayName?.toLowerCase().startsWith(searchLower) ? 1 : 0;
       const bExact = b.displayName?.toLowerCase().startsWith(searchLower) ? 1 : 0;
       if (aExact !== bExact) return bExact - aExact;
-      return (b.followers || 0) - (a.followers || 0);
+      return (a.displayName || '').localeCompare(b.displayName || '', 'es');
     });
 
     return filtered.slice(0, limitCount);

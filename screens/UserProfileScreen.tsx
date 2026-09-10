@@ -21,7 +21,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById, updateUserCache } from '../hooks/useUserById';
-import { useFollow } from '../hooks/useFollow';
+import { useEContact } from '../hooks/useEContact';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { likesService } from '../services/likesService';
 import { formatNumber } from '../data/mockData';
@@ -31,6 +31,7 @@ import PostCard from '../components/PostCard';
 import ImageViewer from '../components/ImageViewer';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { confirmAction, notify } from '../utils/notify';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = 160;
@@ -52,8 +53,14 @@ const UserProfileScreen: React.FC = () => {
   // Obtener datos del usuario
   const { userProfile, loading: profileLoading, error: profileError } = useUserById(userId);
 
-  // Hook de follow
-  const { isFollowing, toggleFollow, isToggling, canFollow } = useFollow(userId);
+  /*
+   * La relación con esta persona.
+   *
+   * ËContact es MUTUO: pedir no conecta, hay que aceptar. Por eso ya no hay un
+   * interruptor de dos posiciones como el de seguir, sino cuatro estados con
+   * acciones distintas —y una de ellas, aceptar, la resuelve el servidor—.
+   */
+  const econtact = useEContact(userId);
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [userReposts, setUserReposts] = useState<Post[]>([]);
@@ -245,32 +252,150 @@ const UserProfileScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  const handleToggleFollow = async () => {
-    if (!userProfile || !currentUserProfile) return;
-
-    // Optimistic update del cache
-    const wasFollowing = isFollowing;
-    const currentFollowers = userProfile.followers || 0;
-    const newFollowers = Math.max(0, currentFollowers + (wasFollowing ? -1 : 1));
-
-    // Actualizar el contador de "following" del usuario actual (yo)
-    const currentFollowing = currentUserProfile.following || 0;
-    const newFollowing = Math.max(0, currentFollowing + (wasFollowing ? -1 : 1));
-
-    // Actualizar cache del perfil que estamos viendo
-    updateUserCache(userId, { followers: newFollowers });
-
-    // Actualizar el perfil del usuario actual (mi contador de "siguiendo")
-    updateLocalProfile({ following: newFollowing });
-
-    try {
-      await toggleFollow();
-      // Si tiene éxito, ambos caches ya tienen los valores correctos
-    } catch (error) {
-      // Revertir ambos si falla
-      updateUserCache(userId, { followers: currentFollowers });
-      updateLocalProfile({ following: currentFollowing });
+  /*
+   * EL BOTÓN DE ËCONTACT / ẄCONTACT.
+   *
+   * Cuatro estados, porque la relación es mutua y pedirla no la crea:
+   *
+   *   sin relación      → "+ ËContact"
+   *   la pediste tú     → "Solicitud enviada"  (tocar = retirarla)
+   *   te la pidieron    → "Aceptar ËContact"   + rechazar al lado
+   *   ya estáis         → "ËContact ✓"         (tocar = eliminar, preguntando)
+   *
+   * ENTRE QUÉ DOS IDENTIDADES. Con la que TÚ tengas activa —Perfil Real o Perfil
+   * Weë— y la del perfil concreto que estás mirando. Las cuatro combinaciones
+   * valen y ninguna está restringida por tipo; de emparejarlas se encarga
+   * `useEContact`, que ya sabe cuál es la tuya.
+   *
+   * Por eso el nombre del botón es el de TU agenda: con el Perfil Weë activo
+   * pone ẄContact, nunca ËContact.
+   *
+   * Ninguna de estas acciones escribe contadores: no hay contadores que escribir.
+   */
+  const preguntarYHacer = async (titulo: string, mensaje: string, hacer: () => Promise<void>) => {
+    if (await confirmAction(titulo, mensaje, 'Sí', true)) {
+      try {
+        await hacer();
+      } catch (error) {
+        notify('No se pudo completar', error instanceof Error ? error.message : undefined);
+      }
     }
+  };
+
+  const intentar = async (hacer: () => Promise<void>) => {
+    try {
+      await hacer();
+    } catch (error) {
+      notify('No se pudo completar', error instanceof Error ? error.message : undefined);
+    }
+  };
+
+  const renderEContact = () => {
+    const { estado, trabajando, cargando, disponible, nombreLista } = econtact;
+    const nombrePlural = `${nombreLista}s`;
+
+    /*
+     * ËContact es entre personas y contra su cuenta. Si esta identidad no lleva
+     * a ninguna —un Perfil Biz, o un perfil sin vínculo guardado— no se ofrece.
+     * Mensaje y opciones siguen ahí: lo que no hay es a quién conectar.
+     */
+    if (!disponible && !cargando) return null;
+
+    if (cargando) {
+      return (
+        <View style={[styles.followButton, { borderColor: theme.colors.border }]}>
+          <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+        </View>
+      );
+    }
+
+    // Te lo han pedido: aceptar es la acción principal, rechazar va al lado.
+    if (estado === 'pendiente-recibida') {
+      return (
+        <>
+          <TouchableOpacity
+            style={[styles.followButton, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}
+            onPress={() => intentar(econtact.aceptar)}
+            activeOpacity={0.8}
+            disabled={trabajando}
+            accessibilityRole="button"
+            accessibilityLabel={`Aceptar ${nombreLista}`}
+          >
+            {trabajando ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Text style={[styles.followButtonText, { color: '#fff' }]}>Aceptar {nombreLista}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.messageButton, { borderColor: theme.colors.border }]}
+            onPress={() =>
+              preguntarYHacer('Rechazar solicitud', `¿Rechazar la solicitud de ${userProfile?.displayName || "esta persona"}?`, econtact.rechazar)
+            }
+            activeOpacity={0.8}
+            disabled={trabajando}
+            accessibilityRole="button"
+            accessibilityLabel={`Rechazar solicitud de ${nombreLista}`}
+          >
+            <Ionicons name="close" size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    const porEstado = {
+      ninguno: {
+        etiqueta: `+ ${nombreLista}`,
+        icono: 'person-add-outline' as const,
+        relleno: true,
+        onPress: () => intentar(econtact.solicitar),
+      },
+      'pendiente-enviada': {
+        etiqueta: 'Solicitud enviada',
+        icono: 'time-outline' as const,
+        relleno: false,
+        onPress: () =>
+          preguntarYHacer('Retirar solicitud', `¿Retirar tu solicitud a ${userProfile?.displayName || "esta persona"}?`, econtact.cancelar),
+      },
+      conectados: {
+        etiqueta: `${nombreLista} ✓`,
+        icono: 'people' as const,
+        relleno: false,
+        onPress: () =>
+          preguntarYHacer(`Eliminar ${nombreLista}`, `¿Eliminar a ${userProfile?.displayName || "esta persona"} de tus ${nombrePlural}?`, econtact.eliminar),
+      },
+    }[estado];
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.followButton,
+          {
+            backgroundColor: porEstado.relleno ? theme.colors.accent : 'transparent',
+            borderColor: porEstado.relleno ? theme.colors.accent : theme.colors.border,
+          },
+        ]}
+        onPress={porEstado.onPress}
+        activeOpacity={0.8}
+        disabled={trabajando}
+        accessibilityRole="button"
+        accessibilityLabel={porEstado.etiqueta}
+      >
+        {trabajando ? (
+          <ActivityIndicator size="small" color={porEstado.relleno ? '#fff' : theme.colors.text} />
+        ) : (
+          <>
+            <Ionicons name={porEstado.icono} size={18} color={porEstado.relleno ? '#fff' : theme.colors.text} />
+            <Text style={[styles.followButtonText, { color: porEstado.relleno ? '#fff' : theme.colors.text }]}>
+              {porEstado.etiqueta}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
   };
 
   const renderPost = ({ item }: { item: Post }) => (
@@ -457,57 +582,12 @@ const UserProfileScreen: React.FC = () => {
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Publicaciones</Text>
             </View>
-            <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.followers)}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Seguidores</Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.following)}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Siguiendo</Text>
-            </View>
           </View>
 
           {/* Botones de acción */}
-          {!isOwnProfile && canFollow && (
+          {!isOwnProfile && (
             <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.followButton,
-                  {
-                    backgroundColor: isFollowing ? 'transparent' : theme.colors.accent,
-                    borderColor: isFollowing ? theme.colors.border : theme.colors.accent,
-                  },
-                ]}
-                onPress={handleToggleFollow}
-                activeOpacity={0.8}
-                disabled={isToggling}
-              >
-                {isToggling ? (
-                  <ActivityIndicator size="small" color={isFollowing ? theme.colors.text : '#fff'} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={isFollowing ? 'checkmark' : 'person-add-outline'}
-                      size={18}
-                      color={isFollowing ? theme.colors.text : '#fff'}
-                    />
-                    <Text
-                      style={[
-                        styles.followButtonText,
-                        { color: isFollowing ? theme.colors.text : '#fff' },
-                      ]}
-                    >
-                      {isFollowing ? 'Siguiendo' : 'Seguir'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {renderEContact()}
 
               <TouchableOpacity
                 style={[styles.messageButton, { borderColor: theme.colors.border }]}

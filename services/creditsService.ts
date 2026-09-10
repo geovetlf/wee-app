@@ -86,7 +86,16 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
 
 // ─── Helpers ───
 
-/** Los Credits son por cuenta: el Perfil Weë (hidi_<uid>) comparte el saldo del perfil real. */
+/*
+ * Los Credits son por cuenta: el Perfil Weë comparte el saldo del perfil real.
+ *
+ * Aquí la cuenta se saca quitando el prefijo del uid, no leyendo el vínculo
+ * guardado. Es distinto de lo que hace ËContact —`cuentaDeIdentidad` en
+ * `utils/econtactModel.ts`, que LEE `users.linkedAccountId` y devuelve null si
+ * no lo hay— y a propósito no se ha cambiado en esta fase: esta función es
+ * síncrona y leerlo obligaría a ir a Firestore. Queda anotado para revisarlo
+ * junto con el resto del Credit Engine.
+ */
 export const accountUidOf = (uid?: string | null): string | null => (uid ? uid.replace(/^hidi_/, '') : null);
 
 export interface CreditsShortfall {

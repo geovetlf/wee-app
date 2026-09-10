@@ -47,8 +47,12 @@ const getNotificationIcon = (type: NotificationType): { name: string; color: str
       return { name: 'heart', color: '#EF4444' };
     case 'comment':
       return { name: 'chatbubble', color: '#3B82F6' };
-    case 'follow':
+    case 'follow': // histórico: el sistema de seguidores
       return { name: 'person-add', color: '#F5B731' };
+    case 'econtact_request':
+      return { name: 'person-add', color: '#F5B731' };
+    case 'econtact_accepted':
+      return { name: 'people', color: '#F5B731' };
     case 'repost':
       return { name: 'repeat', color: '#10B981' };
     case 'mention':
@@ -69,8 +73,13 @@ const getNotificationMessage = (notification: Notification): string => {
       return 'le gustó tu publicación';
     case 'comment':
       return 'comentó en tu publicación';
+    // Histórico: notificaciones del sistema de seguidores ya enviadas.
     case 'follow':
       return 'comenzó a seguirte';
+    case 'econtact_request':
+      return 'quiere agregarte a ËContact';
+    case 'econtact_accepted':
+      return 'aceptó tu solicitud de ËContact';
     case 'repost':
       return 'compartió tu publicación';
     case 'mention':
@@ -90,7 +99,7 @@ const NotificationsScreen: React.FC = () => {
   const { userProfile } = useUserProfile();
   const { isDesktop } = useResponsive();
 
-  // Usar el UID del perfil activo (real o HIDI)
+  // Usar el UID del perfil activo (Real, Weë o Biz)
   const activeUid = userProfile?.uid || user?.uid;
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();

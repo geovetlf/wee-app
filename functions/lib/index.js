@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.votePoll = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.acceptEContact = exports.requestEContact = exports.votePoll = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -30,6 +30,14 @@ Object.defineProperty(exports, "engineAdmin", { enumerable: true, get: function 
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
 var polls_1 = require("./social/polls");
 Object.defineProperty(exports, "votePoll", { enumerable: true, get: function () { return polls_1.votePoll; } });
+/*
+ * ËContact / ẄContact: las dos puertas de una conexión entre identidades de
+ * perfil. Pedir también es del servidor, porque de quién es cada identidad se
+ * lee de `users` y las reglas no pueden consultar.
+ */
+var econtact_1 = require("./social/econtact");
+Object.defineProperty(exports, "requestEContact", { enumerable: true, get: function () { return econtact_1.requestEContact; } });
+Object.defineProperty(exports, "acceptEContact", { enumerable: true, get: function () { return econtact_1.acceptEContact; } });
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 var credits_1 = require("./credits");
 Object.defineProperty(exports, "getCreditsBalance", { enumerable: true, get: function () { return credits_1.getCreditsBalance; } });
@@ -51,9 +59,20 @@ const notificationMessages = {
         title: 'Nuevo comentario',
         body: `${senderName} comentó en tu post`,
     }),
+    // Histórico: el sistema de seguidores. Se conserva para las notificaciones ya enviadas.
     follow: (senderName) => ({
         title: 'Nuevo seguidor',
         body: `${senderName} comenzó a seguirte`,
+    }),
+    // ËContact: las relaciones entre personas. Tipos propios para no confundirlas
+    // con las de seguidores que ya están enviadas.
+    econtact_request: (senderName) => ({
+        title: 'Nueva solicitud de ËContact',
+        body: `${senderName} quiere agregarte a ËContact`,
+    }),
+    econtact_accepted: (senderName) => ({
+        title: 'Nuevo ËContact',
+        body: `${senderName} aceptó tu solicitud de ËContact`,
     }),
     mention: (senderName) => ({
         title: 'Te mencionaron',

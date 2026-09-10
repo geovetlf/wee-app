@@ -75,7 +75,7 @@ const Sidebar: React.FC = () => {
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
-  const { userProfile, activeProfileType, hasHidiProfile } = useUserProfile();
+  const { userProfile, activeProfileType, hasWeeProfile } = useUserProfile();
   // El mismo saldo que lee el cajón: una sola fuente, dos sitios donde se ve.
   const { balance } = useWallet(userProfile?.uid || user?.uid);
   const [creatorOpen, setCreatorOpen] = useState(false);
@@ -174,7 +174,7 @@ const Sidebar: React.FC = () => {
 
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>PERFIL</Text>
           <Opcion id="realProfile" active={!!user && activeProfileType === 'real'} onPress={() => (user ? goTab('Profile') : requireLogin())} />
-          <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasHidiProfile ? goTab('Profile') : navigation.navigate('HidiCreation')) : requireLogin())} label={hasHidiProfile || !user ? undefined : 'Crear mi perfil Weë'} />
+          <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasWeeProfile ? goTab('Profile') : navigation.navigate('WeeProfileCreation')) : requireLogin())} label={hasWeeProfile || !user ? undefined : 'Crear mi perfil Weë'} />
           <Opcion
             id="credits"
             active={isActive('CreditStore')}
@@ -186,6 +186,14 @@ const Sidebar: React.FC = () => {
             ) : undefined}
           />
 
+          {/*
+            ËContact, entre líneas y solo. Ni información de tu cuenta —eso son
+            los Credits, justo encima— ni un destino donde explorar: es tu gente.
+          */}
+          <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
+          <Opcion id="econtact" active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
+
+          <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>EXPLORA</Text>
           <Opcion id="communities" onPress={() => goHome('ExploreCommunities')} />
           <Opcion id="weels" onPress={() => goHome('Landing', { openWeels: true })} />
@@ -317,6 +325,12 @@ const styles = StyleSheet.create({
   },
   pieEnlace: {
     fontSize: FONT_SIZE.xs,
+  },
+  /** La línea que separa un grupo sin nombre del anterior. */
+  divisor: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
   },
   grupo: {
     fontSize: 11,

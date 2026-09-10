@@ -619,12 +619,19 @@ const SearchScreen: React.FC = () => {
                             {user.bio}
                           </Text>
                         )}
+                        {/*
+                          Solo publicaciones.
+                          "N seguidores" salía de `followers`, el contador del
+                          sistema antiguo, que ya no alimenta la experiencia
+                          social de personas. Y no se sustituye por un número de
+                          ËContacts: eso exigiría una consulta por cada persona
+                          de la lista, y el contador histórico no se convierte en
+                          ËContacts —son cosas distintas—. Quien quiera saberlo,
+                          entra al perfil.
+                        */}
                         <View style={styles.userStats}>
                           <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
                             {formatNumber(user.posts || 0)} publicaciones
-                          </Text>
-                          <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(user.followers || 0)} seguidores
                           </Text>
                         </View>
                       </View>

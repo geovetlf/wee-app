@@ -20,6 +20,19 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(creditFields());
     }
 
+    // ËContact: el número de conexiones de una persona lo cuenta el servidor, no
+    // ella. Se protege igual que el saldo de Credits, y por lo mismo: un contador
+    // que su dueño puede escribir no es un contador, es un campo de texto.
+    function econtactFields() {
+      return ['econtactsCount'];
+    }
+    function createsEcontactFields() {
+      return request.resource.data.keys().hasAny(econtactFields());
+    }
+    function touchesEcontactFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(econtactFields());
+    }
+
     // Encuestas (Bloque A): el campo `poll` de un post NO lo escribe el cliente.
     // Ni un tercero, ni el propio autor. Los contadores solo los mueve la callable
     // `votePoll`, que corre con el Admin SDK y no pasa por estas reglas. Publicar
@@ -55,7 +68,7 @@ service cloud.firestore {
 
       // Solo el dueño puede crear/actualizar su perfil
       // Permite crear perfil real (uid == auth.uid), HIDI (uid == "hidi_" + auth.uid), o BIZ (uid starts with "biz_")
-      allow create: if isAuthenticated() && !createsCreditFields() &&
+      allow create: if isAuthenticated() && !createsCreditFields() && !createsEcontactFields() &&
         (request.auth.uid == request.resource.data.uid ||
          (request.resource.data.uid == ("hidi_" + request.auth.uid) &&
           request.resource.data.profileType == 'hidi' &&
@@ -63,7 +76,7 @@ service cloud.firestore {
          (request.resource.data.profileType == 'biz' &&
           request.resource.data.linkedAccountId == request.auth.uid));
 
-      allow update: if isAuthenticated() && !touchesCreditFields() &&
+      allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() &&
         (request.auth.uid == resource.data.uid ||
          (resource.data.uid == ("hidi_" + request.auth.uid) &&
           resource.data.profileType == 'hidi') ||
@@ -221,6 +234,77 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid) ||
          resource.data.userId.matches('biz_.*'));
+    }
+
+    // === ËCONTACT ===
+    //
+    // Una conexión MUTUA entre dos personas, en UN SOLO documento cuyo id es la
+    // pareja ordenada: `{uidMenor}_{uidMayor}`. Al ser el mismo id se pida desde
+    // el lado que se pida, no puede haber dos filas para la misma relación.
+    //
+    // Nace como `pending` y solo quien la recibió puede convertirla en
+    // `accepted`. Nadie puede fabricar una conexión aceptada de un tirón.
+    //
+    // La identidad es SIEMPRE `request.auth.uid`, nunca el perfil activo: Real,
+    // Weë y Biz son la misma persona y comparten una sola lista.
+    // === ËCONTACT / ẄCONTACT ===
+    //
+    // Conexiones entre IDENTIDADES DE PERFIL, no entre cuentas. Una cuenta tiene
+    // hasta dos caras de persona y cada una lleva su propia agenda:
+    //
+    //     Perfil Real  (uid == auth.uid)           →  ËContact
+    //     Perfil Weë   (uid == "hidi_" + auth.uid) →  ẄContact
+    //
+    // Las cuatro combinaciones son válidas —real↔real, real↔Weë, Weë↔real y
+    // Weë↔Weë— y cada una es UN SOLO documento.
+    match /econtacts/{contactId} {
+      // Las identidades que puede usar esta sesión. Se derivan del uid de la
+      // cuenta, que es exactamente como se construyen los perfiles: el Perfil Weë
+      // de la cuenta ABC es "hidi_ABC" y no puede ser otro.
+      function misIdentidades() {
+        return [request.auth.uid, 'hidi_' + request.auth.uid];
+      }
+      // ¿Participa alguno de MIS perfiles en esta relación?
+      function participo() {
+        return resource.data.users.hasAny(misIdentidades());
+      }
+
+      // Una relación es asunto de sus dos partes y de nadie más. Se lee con
+      // cualquiera de tus dos perfiles: es la misma persona quien pregunta.
+      allow read: if isAuthenticated() && participo();
+
+      // PEDIR Y ACEPTAR SON DEL SERVIDOR. LAS DOS.
+      //
+      // Aceptar, porque es la transición que CREA la conexión y no se deja en
+      // manos de quien puede modificar su propia app.
+      //
+      // Pedir, porque hay que comprobar DE QUIÉN ES CADA IDENTIDAD, y eso se lee
+      // de `users`. Desde aquí no se puede: los documentos de `users` tienen id
+      // automático y se buscan por el campo `uid`; una regla puede hacer `get()`
+      // de una ruta, pero no una consulta. Lo único comprobable aquí sería el
+      // prefijo del uid, o sea lo que AFIRMA el cliente. Y hay una segunda cosa
+      // que solo el servidor puede ver: que el perfil de destino exista de verdad.
+      //
+      // Las dos las hacen `requestEContact` y `acceptEContact`, con el Admin SDK
+      // —que no pasa por estas reglas— y dentro de una transacción.
+      //
+      // Es el mismo reparto que en las encuestas: el cliente propone, el servidor
+      // decide y escribe.
+      allow create: if false;
+      allow update: if false;
+
+      // Las tres salidas son borrados, y todas las hace quien participa:
+      //   · cancelar  → quien la envió retira su solicitud pendiente
+      //   · rechazar  → quien la recibió dice que no
+      //   · eliminar  → cualquiera de las dos deshace una conexión aceptada
+      // No hay estado `rejected`: sin documento, la relación no existe y se
+      // puede volver a intentar.
+      //
+      // Esto sí se puede comprobar aquí, porque no hace falta saber de quién es
+      // una identidad: basta con que una de las TUYAS esté en el documento que ya
+      // está guardado.
+      allow delete: if isAuthenticated() && participo() &&
+        (resource.data.status == 'pending' || resource.data.status == 'accepted');
     }
 
     // === FOLLOWS ===

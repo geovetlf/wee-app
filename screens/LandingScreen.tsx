@@ -79,9 +79,9 @@ const LANDING_CATEGORIES: LandingCategory[] = COMMUNITY_CATEGORIES.map((c) => ({
 
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
-// ===================== HidReelItem (inline reel for Hids tab) =====================
+// ===================== WeelItem (inline reel for Weels tab) =====================
 
-interface HidReelItemProps {
+interface WeelItemProps {
   post: Post;
   isActive: boolean;
   height: number;
@@ -89,7 +89,7 @@ interface HidReelItemProps {
   onScrubbing?: (scrubbing: boolean) => void;
 }
 
-const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, height, onComment, onScrubbing }) => {
+const WeelItem: React.FC<WeelItemProps> = React.memo(({ post, isActive, height, onComment, onScrubbing }) => {
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
   const { userProfile: postAuthor } = useUserById(post.userId);
@@ -293,7 +293,7 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
 
       {/* Double tap like heart animation */}
       {showLikeHeart && (
-        <View style={[hidReelStyles.likeHeartOverlay, { zIndex: 50 }]} pointerEvents="none">
+        <View style={[weelStyles.likeHeartOverlay, { zIndex: 50 }]} pointerEvents="none">
           <Animated.View
             style={{
               transform: [{ scale: heartScale }],
@@ -307,7 +307,7 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
 
       {/* Buffering spinner */}
       {isBuffering && isActive && hasStartedPlaying && (
-        <View style={hidReelStyles.overlay} pointerEvents="none">
+        <View style={weelStyles.overlay} pointerEvents="none">
           <ActivityIndicator size="large" color="white" />
         </View>
       )}
@@ -315,7 +315,7 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
       {/* Progress bar — tap/drag to scrub */}
       {hasStartedPlaying && duration > 0 && (
         <View
-          style={hidReelStyles.progressBar}
+          style={weelStyles.progressBar}
           onStartShouldSetResponderCapture={() => {
             if (duration > 500) {
               onScrubbing?.(true);
@@ -358,9 +358,9 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
             onScrubbing?.(false);
           }}
         >
-          <View style={[hidReelStyles.progressTrack, isScrubbing && { height: 4, overflow: 'visible' }]}>
-            <View style={[hidReelStyles.progressFill, { width: `${progress * 100}%` }]} />
-            {isScrubbing && <View style={[hidReelStyles.progressThumb, { left: `${progress * 100}%` }]} pointerEvents="none" />}
+          <View style={[weelStyles.progressTrack, isScrubbing && { height: 4, overflow: 'visible' }]}>
+            <View style={[weelStyles.progressFill, { width: `${progress * 100}%` }]} />
+            {isScrubbing && <View style={[weelStyles.progressThumb, { left: `${progress * 100}%` }]} pointerEvents="none" />}
           </View>
         </View>
       )}
@@ -368,18 +368,18 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
       {/* Top gradient for header/tabs readability */}
       <LinearGradient
         colors={['rgba(0,0,0,0.5)', 'transparent']}
-        style={[hidReelStyles.topGradient, { pointerEvents: 'none' }]}
+        style={[weelStyles.topGradient, { pointerEvents: 'none' }]}
       />
 
       {/* Bottom gradient + info - zIndex mayor que el touch overlay */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={[hidReelStyles.bottomGradient, { zIndex: 10, pointerEvents: 'box-none' }]}
+        style={[weelStyles.bottomGradient, { zIndex: 10, pointerEvents: 'box-none' }]}
       >
-        <View style={hidReelStyles.bottomContent} pointerEvents="box-none">
+        <View style={weelStyles.bottomContent} pointerEvents="box-none">
           {/* Left: user info + description */}
-          <View style={hidReelStyles.bottomLeft} pointerEvents="box-none">
-            <View style={hidReelStyles.userRow} pointerEvents="none">
+          <View style={weelStyles.bottomLeft} pointerEvents="box-none">
+            <View style={weelStyles.userRow} pointerEvents="none">
               {postAuthor && (
                 <AvatarDisplay
                   size={scale(32)}
@@ -391,29 +391,29 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
                   showBorder={false}
                 />
               )}
-              <Text style={hidReelStyles.username} numberOfLines={1}>
+              <Text style={weelStyles.username} numberOfLines={1}>
                 {postAuthor?.displayName || 'Usuario'}
               </Text>
-              <Text style={hidReelStyles.timeAgo}>
+              <Text style={weelStyles.timeAgo}>
                 {getRelativeTime(post.createdAt.toDate())}
               </Text>
             </View>
             {post.content ? (
               <TouchableOpacity activeOpacity={0.8} onPress={() => setTextExpanded(prev => !prev)}>
-                <Text style={hidReelStyles.description} numberOfLines={textExpanded ? undefined : 2}>
+                <Text style={weelStyles.description} numberOfLines={textExpanded ? undefined : 2}>
                   {post.content}
                 </Text>
                 {!textExpanded && post.content.length > 80 && (
-                  <Text style={hidReelStyles.moreText}>más</Text>
+                  <Text style={weelStyles.moreText}>más</Text>
                 )}
               </TouchableOpacity>
             ) : null}
           </View>
 
           {/* Right sidebar: actions */}
-          <View style={hidReelStyles.rightSidebar}>
+          <View style={weelStyles.rightSidebar}>
             {/* Toggle button */}
-            <TouchableOpacity style={hidReelStyles.sidebarToggle} onPress={toggleSidebar}>
+            <TouchableOpacity style={weelStyles.sidebarToggle} onPress={toggleSidebar}>
               <Ionicons
                 name={sidebarExpanded ? 'chevron-down' : 'chevron-up'}
                 size={scale(20)}
@@ -424,7 +424,7 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
             {/* Animated buttons container */}
             <Animated.View
               style={[
-                hidReelStyles.sidebarButtons,
+                weelStyles.sidebarButtons,
                 {
                   opacity: sidebarAnim,
                   transform: [{
@@ -437,41 +437,41 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
                 { pointerEvents: sidebarExpanded ? 'auto' : 'none' },
               ]}
             >
-              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={voteAgree}>
+              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={voteAgree}>
                 <Ionicons
                   name={voteStats.userVote === 'agree' ? 'thumbs-up' : 'thumbs-up-outline'}
                   size={scale(24)}
                   color="white"
                 />
-                <Text style={hidReelStyles.sidebarCount}>
+                <Text style={weelStyles.sidebarCount}>
                   {formatNumber(voteStats.agreementCount)}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={voteDisagree}>
+              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={voteDisagree}>
                 <Ionicons
                   name={voteStats.userVote === 'disagree' ? 'thumbs-down' : 'thumbs-down-outline'}
                   size={scale(24)}
                   color="white"
                 />
-                <Text style={hidReelStyles.sidebarCount}>
+                <Text style={weelStyles.sidebarCount}>
                   {formatNumber(voteStats.disagreementCount)}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={() => onComment(post.id!)}>
+              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={() => onComment(post.id!)}>
                 <Ionicons name="chatbubble-outline" size={scale(24)} color="white" />
-                <Text style={hidReelStyles.sidebarCount}>
+                <Text style={weelStyles.sidebarCount}>
                   {formatNumber(post.comments)}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={() => toggleRepost()}>
+              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={() => toggleRepost()}>
                 <Ionicons name="repeat" size={scale(24)} color={hasReposted ? '#F5B731' : 'white'} />
-                <Text style={hidReelStyles.sidebarCount}>
+                <Text style={weelStyles.sidebarCount}>
                   {formatNumber(repostsCount)}
                 </Text>
               </TouchableOpacity>
               {/* Mensaje privado - ocultar en propios videos */}
               {!isOwnPost && (
-                <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={() => {
+                <TouchableOpacity style={weelStyles.sidebarBtn} onPress={() => {
                   if (!user || !postAuthor) return;
                   const tabNav = navigation.getParent();
                   if (tabNav) {
@@ -492,11 +492,11 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
                   <Ionicons name="paper-plane-outline" size={scale(24)} color="white" />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={hidReelStyles.sidebarBtn} onPress={handleShare}>
+              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={handleShare}>
                 <Ionicons name="share-social-outline" size={scale(24)} color="white" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={hidReelStyles.sidebarBtn}
+                style={weelStyles.sidebarBtn}
                 onPress={handleDownload}
                 disabled={isDownloading}
               >
@@ -529,7 +529,7 @@ const HidReelItem: React.FC<HidReelItemProps> = React.memo(({ post, isActive, he
   );
 });
 
-const hidReelStyles = StyleSheet.create({
+const weelStyles = StyleSheet.create({
   tapIconOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
@@ -668,7 +668,7 @@ const hidReelStyles = StyleSheet.create({
 const LandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile, hasHidiProfile } = useUserProfile();
+  const { userProfile, hasWeeProfile } = useUserProfile();
   const { scrollToTopTrigger, refreshTrigger } = useScroll();
   const { setIsTransparent: setTabBarTransparent, scrollProgress: tabBarProgress } = useTabBar();
   const navigation = useNavigation<LandingScreenNavigationProp>();
@@ -699,11 +699,11 @@ const LandingScreen: React.FC = () => {
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<'flow' | 'hids'>('flow');
+  const [activeTab, setActiveTab] = useState<'flow' | 'weels'>('flow');
   const [containerHeight, setContainerHeight] = useState(0);
-  const hidsListRef = useRef<FlatList>(null);
-  const [hidsScrollTarget, setHidsScrollTarget] = useState<number | null>(null);
-  const [hidsReady, setHidsReady] = useState(true);
+  const weelsListRef = useRef<FlatList>(null);
+  const [weelsScrollTarget, setWeelsScrollTarget] = useState<number | null>(null);
+  const [weelsReady, setWeelsReady] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -771,18 +771,18 @@ const LandingScreen: React.FC = () => {
       return;
     }
     const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-    const newTab = page === 0 ? 'flow' : 'hids';
+    const newTab = page === 0 ? 'flow' : 'weels';
     if (newTab !== activeTab) {
       setActiveTab(newTab);
     }
   }, [activeTab]);
 
   // When tab buttons are pressed, scroll to the right page
-  const scrollToTab = useCallback((tab: 'flow' | 'hids') => {
+  const scrollToTab = useCallback((tab: 'flow' | 'weels') => {
     isTabPressing.current = true;
     setActiveTab(tab);
     tabScrollRef.current?.scrollTo({
-      x: tab === 'hids' ? SCREEN_WIDTH : 0,
+      x: tab === 'weels' ? SCREEN_WIDTH : 0,
       animated: true,
     });
   }, []);
@@ -822,25 +822,25 @@ const LandingScreen: React.FC = () => {
       }
     }
     prevTabRef.current = activeTab;
-    setTabBarTransparent(activeTab === 'hids');
+    setTabBarTransparent(activeTab === 'weels');
   }, [activeTab]);
 
-  // Scroll Hids FlatList to target video when opening from Flow
+  // Scroll Weels FlatList to target video when opening from Flow
   useEffect(() => {
-    if (activeTab === 'hids' && hidsScrollTarget != null && containerHeight > 0) {
-      const idx = hidsScrollTarget;
-      setHidsScrollTarget(null);
+    if (activeTab === 'weels' && weelsScrollTarget != null && containerHeight > 0) {
+      const idx = weelsScrollTarget;
+      setWeelsScrollTarget(null);
       // Wait for layout to complete, then scroll, then reveal
       requestAnimationFrame(() => {
-        hidsListRef.current?.scrollToIndex({ index: idx, animated: false });
+        weelsListRef.current?.scrollToIndex({ index: idx, animated: false });
         requestAnimationFrame(() => {
-          setHidsReady(true);
+          setWeelsReady(true);
         });
       });
     }
-  }, [activeTab, hidsScrollTarget, containerHeight]);
+  }, [activeTab, weelsScrollTarget, containerHeight]);
 
-  // Video posts for Hids tab (loaded independently)
+  // Video posts for Weels tab (loaded independently)
   const [videoPosts, setVideoPosts] = useState<Post[]>([]);
   const [videoLastDoc, setVideoLastDoc] = useState<DocumentSnapshot | null>(null);
   const [videosLoading, setVideosLoading] = useState(false);
@@ -873,7 +873,7 @@ const LandingScreen: React.FC = () => {
   useEffect(() => {
     if (openWeelsParam) {
       if (weelsCommunitySlug) setWeelsFilter(weelsCommunitySlug);
-      setActiveTab('hids');
+      setActiveTab('weels');
       tabScrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
       // Clear params to avoid re-triggering
       navigation.setParams({ openWeels: undefined, weelsCommunitySlug: undefined } as any);
@@ -897,7 +897,7 @@ const LandingScreen: React.FC = () => {
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
       // Switch to Wall if on Weëls
-      if (activeTab === 'hids') {
+      if (activeTab === 'weels') {
         setActiveTab('flow');
         tabScrollRef.current?.scrollTo({ x: 0, animated: true });
       }
@@ -1085,10 +1085,10 @@ const LandingScreen: React.FC = () => {
   const handleVideoPress = useCallback((post: Post) => {
     const index = videoPosts.findIndex(p => p.id === post.id);
     if (index >= 0) {
-      setHidsActiveIndex(index);
-      setHidsScrollTarget(index);
-      setHidsReady(false);
-      scrollToTab('hids');
+      setWeelsActiveIndex(index);
+      setWeelsScrollTarget(index);
+      setWeelsReady(false);
+      scrollToTab('weels');
     }
   }, [videoPosts, scrollToTab]);
 
@@ -1613,7 +1613,7 @@ const LandingScreen: React.FC = () => {
 
   const renderTabBar = useCallback((transparent = false) => {
     // For cross-fade: normal tab bar always highlights "Wall", transparent always highlights "Weëls"
-    const highlightedTab = transparent ? 'hids' : 'flow';
+    const highlightedTab = transparent ? 'weels' : 'flow';
     return (
       <View style={[
         styles.tabBar,
@@ -1644,17 +1644,17 @@ const LandingScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.tabItem,
-            highlightedTab === 'hids' && { borderBottomColor: transparent ? 'white' : theme.colors.accent },
+            highlightedTab === 'weels' && { borderBottomColor: transparent ? 'white' : theme.colors.accent },
           ]}
-          onPress={() => scrollToTab('hids')}
+          onPress={() => scrollToTab('weels')}
           activeOpacity={0.7}
         >
           <Text style={[
             styles.tabItemText,
             { color: transparent
-              ? (highlightedTab === 'hids' ? 'white' : 'rgba(255,255,255,0.6)')
-              : (highlightedTab === 'hids' ? theme.colors.text : theme.colors.textSecondary) },
-            highlightedTab === 'hids' && styles.tabItemTextActive,
+              ? (highlightedTab === 'weels' ? 'white' : 'rgba(255,255,255,0.6)')
+              : (highlightedTab === 'weels' ? theme.colors.text : theme.colors.textSecondary) },
+            highlightedTab === 'weels' && styles.tabItemTextActive,
           ]}>
             Weëls
           </Text>
@@ -1701,7 +1701,7 @@ const LandingScreen: React.FC = () => {
     <View style={{ backgroundColor: theme.colors.surface }}>
       <WeelsRow
         posts={videoPosts}
-        onOpenWeels={() => scrollToTab('hids')}
+        onOpenWeels={() => scrollToTab('weels')}
         onCreateWeel={() => {
           const mainNavigation = navigation.getParent()?.getParent();
           (mainNavigation as any)?.navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
@@ -1727,7 +1727,7 @@ const LandingScreen: React.FC = () => {
         </>
       )}
     </>
-  ), [theme, feedPosts.length > 0, videoPosts, feedFilter, user, hasHidiProfile, renderTabBar]);
+  ), [theme, feedPosts.length > 0, videoPosts, feedFilter, user, hasWeeProfile, renderTabBar]);
 
   const renderPostItem = useCallback(({ item }: { item: Post; index?: number }) => (
     <PostCard
@@ -1740,34 +1740,34 @@ const LandingScreen: React.FC = () => {
     />
   ), [visiblePostIds, handleVideoPress, activeTab]);
 
-  // ---- Hids reel viewability ----
-  const [hidsActiveIndex, setHidsActiveIndex] = useState(0);
+  // ---- Weels reel viewability ----
+  const [weelsActiveIndex, setWeelsActiveIndex] = useState(0);
 
-  const hidsViewabilityConfig = useRef<ViewabilityConfig>({
+  const weelsViewabilityConfig = useRef<ViewabilityConfig>({
     itemVisiblePercentThreshold: 50,
   }).current;
 
-  const onHidsViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+  const onWeelsViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
-      setHidsActiveIndex(viewableItems[0].index);
+      setWeelsActiveIndex(viewableItems[0].index);
     }
   }).current;
 
-  const hidsViewabilityPairs = useRef([
-    { viewabilityConfig: hidsViewabilityConfig, onViewableItemsChanged: onHidsViewableItemsChanged },
+  const weelsViewabilityPairs = useRef([
+    { viewabilityConfig: weelsViewabilityConfig, onViewableItemsChanged: onWeelsViewableItemsChanged },
   ]).current;
 
-  const renderHidItem = useCallback(({ item, index }: { item: Post; index: number }) => (
-    <HidReelItem
+  const renderWeelItem = useCallback(({ item, index }: { item: Post; index: number }) => (
+    <WeelItem
       post={item}
-      isActive={index === hidsActiveIndex && activeTab === 'hids'}
+      isActive={index === weelsActiveIndex && activeTab === 'weels'}
       height={containerHeight}
       onComment={handleComment}
       onScrubbing={setVideoScrubbingBoth}
     />
-  ), [hidsActiveIndex, activeTab, containerHeight, handleComment]);
+  ), [weelsActiveIndex, activeTab, containerHeight, handleComment]);
 
-  const hidsGetItemLayout = useCallback((_: any, index: number) => ({
+  const weelsGetItemLayout = useCallback((_: any, index: number) => ({
     length: containerHeight,
     offset: containerHeight * index,
     index,
@@ -1781,7 +1781,7 @@ const LandingScreen: React.FC = () => {
     );
   }
 
-  const isHidsMode = activeTab === 'hids';
+  const isWeelsMode = activeTab === 'weels';
 
   return (
     <Animated.View
@@ -1794,17 +1794,17 @@ const LandingScreen: React.FC = () => {
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
         {/* Normal header (dark icons, solid bg) — visible on Wall */}
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: headerNormalOpacity }]} pointerEvents={isHidsMode ? 'none' : 'auto'}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: headerNormalOpacity }]} pointerEvents={isWeelsMode ? 'none' : 'auto'}>
           <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} />
         </Animated.View>
         {/* Transparent header (white icons) — visible on Weëls */}
-        <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isHidsMode ? 'auto' : 'none'}>
+        <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isWeelsMode ? 'auto' : 'none'}>
           <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} transparent />
         </Animated.View>
       </View>
       {/* StatusBar — after Headers so it takes precedence */}
       <StatusBar
-        barStyle={isHidsMode ? 'light-content' : (theme.dark ? 'light-content' : 'dark-content')}
+        barStyle={isWeelsMode ? 'light-content' : (theme.dark ? 'light-content' : 'dark-content')}
         backgroundColor="transparent"
         translucent
       />
@@ -1891,24 +1891,24 @@ const LandingScreen: React.FC = () => {
           <View style={{ width: SCREEN_WIDTH, height: '100%', backgroundColor: '#000' }}>
             {containerHeight > 0 && videoPosts.length > 0 ? (
               <FlatList
-                ref={hidsListRef}
+                ref={weelsListRef}
                 data={videoPosts}
-                renderItem={renderHidItem}
-                keyExtractor={(item: Post) => `hid-${item.id}`}
+                renderItem={renderWeelItem}
+                keyExtractor={(item: Post) => `weel-${item.id}`}
                 pagingEnabled
                 scrollEnabled={!videoScrubbing}
                 showsVerticalScrollIndicator={false}
-                getItemLayout={hidsGetItemLayout}
+                getItemLayout={weelsGetItemLayout}
                 windowSize={3}
                 maxToRenderPerBatch={2}
                 removeClippedSubviews
-                viewabilityConfigCallbackPairs={hidsViewabilityPairs}
+                viewabilityConfigCallbackPairs={weelsViewabilityPairs}
               />
             ) : (
-              <View style={styles.hidsEmptyState}>
+              <View style={styles.weelsEmptyState}>
                 <Ionicons name="videocam-outline" size={scale(48)} color="rgba(255,255,255,0.5)" />
-                <Text style={[styles.hidsEmptyTitle, { color: 'white' }]}>No hay hids</Text>
-                <Text style={[styles.hidsEmptySubtitle, { color: 'rgba(255,255,255,0.6)' }]}>
+                <Text style={[styles.weelsEmptyTitle, { color: 'white' }]}>No hay weels</Text>
+                <Text style={[styles.weelsEmptySubtitle, { color: 'rgba(255,255,255,0.6)' }]}>
                   Aún no hay videos disponibles
                 </Text>
               </View>
@@ -1920,7 +1920,7 @@ const LandingScreen: React.FC = () => {
         {/* Sticky tab bar — cross-fade between normal and transparent */}
         <Animated.View
           style={[
-            { pointerEvents: (isHidsMode || isTabsSticky) ? 'auto' : 'none' },
+            { pointerEvents: (isWeelsMode || isTabsSticky) ? 'auto' : 'none' },
             styles.tabBarStickyWrapper,
             {
               top: headerHeight,
@@ -1936,11 +1936,11 @@ const LandingScreen: React.FC = () => {
                 outputRange: [-scale(44), 0],
               }),
             }],
-          }, { pointerEvents: isHidsMode ? 'none' : 'auto' }]}>
+          }, { pointerEvents: isWeelsMode ? 'none' : 'auto' }]}>
             {renderTabBar()}
           </Animated.View>
           {/* Transparent tab bar (white text) — visible on Weëls */}
-          <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isHidsMode ? 'auto' : 'none'}>
+          <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isWeelsMode ? 'auto' : 'none'}>
             {renderTabBar(true)}
           </Animated.View>
         </Animated.View>
@@ -2366,7 +2366,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
   },
 
-  // Tab bar (Flow / Hids) — shared between inline and sticky
+  // Tab bar (Flow / Weels) — shared between inline and sticky
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 0.5,
@@ -2402,28 +2402,28 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 20,
   },
-  // Hids tabs below header
-  hidsTabsOnly: {
+  // Weels tabs below header
+  weelsTabsOnly: {
     position: 'absolute',
     left: 0,
     right: 0,
     zIndex: 20,
   },
 
-  // Hids empty state
-  hidsEmptyState: {
+  // Weels empty state
+  weelsEmptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.xl,
   },
-  hidsEmptyTitle: {
+  weelsEmptyTitle: {
     fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.semibold,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
-  hidsEmptySubtitle: {
+  weelsEmptySubtitle: {
     fontSize: FONT_SIZE.base,
     textAlign: 'center',
   },

@@ -2171,7 +2171,13 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   const menu = await import('data:text/javascript;base64,' + Buffer.from(js3).toString('base64'));
 
   // 1) Hay una fuente única y las dos la leen.
-  check('M1) existe una sola fuente del menú', menu.MENU_ORDER.length === 11 && !!menu.MENU_ITEM.credits, menu.MENU_ORDER.join(','));
+  /*
+   * Todas las opciones declaradas salen en el menú, menos "Mis proyectos", que
+   * vive dentro de Weë Creator. Se comprueba la regla y no un número, para que
+   * añadir una opción no obligue a tocar la prueba.
+   */
+  const declaradas = Object.keys(menu.MENU_ITEM).length;
+  check('M1) existe una sola fuente del menú', menu.MENU_ORDER.length === declaradas - 1 && !!menu.MENU_ITEM.credits, `${menu.MENU_ORDER.length} de ${declaradas}: ${menu.MENU_ORDER.join(',')}`);
   check('M1) y "Mis proyectos" está en ella, dentro de Weë Creator', !!menu.MENU_ITEM.projects && !menu.MENU_ORDER.includes('projects'));
   check('M1) el cajón la lee', /from '\.\.\/constants\/weeMenu'/.test(cajon));
   check('M1) y la barra de escritorio también', /from '\.\.\/constants\/weeMenu'/.test(barra));

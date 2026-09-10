@@ -35,6 +35,7 @@ import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import PostCard from '../components/PostCard';
 import ImageViewer from '../components/ImageViewer';
 import { useResponsive } from '../hooks/useResponsive';
+import { useMisEContacts } from '../hooks/useEContact';
 import * as ImagePicker from 'expo-image-picker';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -45,8 +46,14 @@ type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'P
 const ProfileScreen: React.FC = () => {
   const { theme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
-  const { userProfile, loading: profileLoading, error: profileError, updateProfile, hasHidiProfile, activeProfileType, switchIdentity } = useUserProfile();
+  const { userProfile, loading: profileLoading, error: profileError, updateProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
+  /*
+   * Mi agenda: la del PERFIL ACTIVO. El nombre —ËContacts o ẄContacts— y la
+   * cifra salen de ahí, y el número son las conexiones aceptadas de esa
+   * identidad, no un contador guardado ni la suma de las dos caras.
+   */
+  const misEcontacts = useMisEContacts();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
   const [showEditModal, setShowEditModal] = useState(false);
@@ -164,6 +171,19 @@ const ProfileScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
+  /*
+   * ËContact vive en el MainStack, y esta pantalla está dentro del stack de
+   * Perfil, dentro de las pestañas. Se sube hasta arriba en vez de confiar en
+   * que el nombre se resuelva solo: ya nos pasó con `Create`, que existe en dos
+   * navegadores y acababa en la pestaña equivocada.
+   */
+  const irAEContact = () => {
+    const tabNavigation = navigation.getParent();
+    const mainNavigation = tabNavigation?.getParent();
+    if (mainNavigation) (mainNavigation as any).navigate('EContact');
+    else (navigation as any).navigate('EContact');
+  };
+
   // Función de navegación para el header
   const handleNotificationsPress = () => {
     // Navegar desde ProfileStack → TabNavigator → Home → Notifications
@@ -206,6 +226,26 @@ const ProfileScreen: React.FC = () => {
       setLoadingPosts(false);
     }
   };
+
+  /*
+   * ESTE HOOK VA AQUÍ, NO MÁS ABAJO.
+   *
+   * Debajo hay dos `return` tempranos —cargando y error—, y React exige que la
+   * lista de hooks sea la misma en todos los renders. Definido después de ellos,
+   * el paso de "cargando" a "cargado" ejecutaba un hook de más y la pantalla
+   * moría con "Rendered more hooks than during the previous render".
+   *
+   * Solo se ha movido de sitio: hace exactamente lo mismo que hacía.
+   */
+  const handleVideoPress = useCallback((post: Post, positionMillis?: number) => {
+    const videoPosts = userPosts.filter(p => !!p.videoUrl);
+    (navigation as any).navigate('Reels', {
+      initialPost: post,
+      initialVideoPosts: videoPosts,
+      communitySlug: null,
+      initialPositionMillis: positionMillis,
+    });
+  }, [userPosts, navigation]);
 
   if (profileLoading) {
     return (
@@ -376,16 +416,6 @@ const ProfileScreen: React.FC = () => {
     // Navegar al detalle del post
     (navigation as any).navigate('PostDetail', { post });
   };
-
-  const handleVideoPress = useCallback((post: Post, positionMillis?: number) => {
-    const videoPosts = userPosts.filter(p => !!p.videoUrl);
-    (navigation as any).navigate('Reels', {
-      initialPost: post,
-      initialVideoPosts: videoPosts,
-      communitySlug: null,
-      initialPositionMillis: positionMillis,
-    });
-  }, [userPosts, navigation]);
 
   // Abrir visor de foto de perfil
   const handleAvatarLongPress = () => {
@@ -684,7 +714,7 @@ const ProfileScreen: React.FC = () => {
                 currentAvatarId={userProfile.avatarId}
                 onAvatarSelect={handleAvatarSelect}
                 size={90}
-                isHidiProfile={activeProfileType === 'hidi'}
+                isWeeProfile={activeProfileType === 'hidi'}
                 onNavigateAiAvatar={() => (navigation as any).navigate('AiAvatar')}
               />
             )}
@@ -705,13 +735,13 @@ const ProfileScreen: React.FC = () => {
                 backgroundColor: activeProfileType === 'hidi' ? theme.colors.accent + '20' : theme.colors.surface,
               }]}
               onPress={() => {
-                if (hasHidiProfile) {
+                if (hasWeeProfile) {
                   switchIdentity();
                   const nextType = activeProfileType === 'real' ? 'hidi' : 'real';
                   setThemeMode(nextType === 'hidi' ? 'dark' : 'light');
                 }
               }}
-              activeOpacity={hasHidiProfile ? 0.7 : 1}
+              activeOpacity={hasWeeProfile ? 0.7 : 1}
             >
               <Ionicons
                 name={activeProfileType === 'hidi' ? 'eye-off' : 'eye'}
@@ -745,19 +775,33 @@ const ProfileScreen: React.FC = () => {
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Publicaciones</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-            <View style={styles.statItem}>
+            {/*
+              ËCONTACTS / ẄCONTACTS, EN LUGAR DE SEGUIDORES Y SIGUIENDO.
+              Una sola cifra porque la relación es una sola: si estáis conectados,
+              lo estáis los dos. Y es pulsable, porque un número de personas sin
+              forma de ver quiénes son no sirve de nada.
+
+              El nombre y la cifra son los del PERFIL ACTIVO: con el Perfil Real
+              dice ËContacts y cuenta las suyas; con el Perfil Weë, ẄContacts y
+              las suyas. Nunca la suma de los dos.
+
+              El número sale de las conexiones ACEPTADAS, no de ningún contador
+              guardado: mientras nadie lo escriba, contarlo es lo único fiable.
+            */}
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={irAEContact}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver mis ${misEcontacts.nombrePlural}, ${misEcontacts.total}`}
+            >
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.followers)}
+                {misEcontacts.cargando ? '…' : formatNumber(misEcontacts.total)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Seguidores</Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.following)}
+              <Text style={[styles.statLabel, { color: theme.colors.accentDark }]}>
+                {misEcontacts.nombrePlural}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Siguiendo</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Botones de acción */}
@@ -788,14 +832,14 @@ const ProfileScreen: React.FC = () => {
           </View>
 
           {/* Botón Crear perfil Weë - solo si no existe */}
-          {!hasHidiProfile && activeProfileType === 'real' && (
+          {!hasWeeProfile && activeProfileType === 'real' && (
             <TouchableOpacity
-              style={[styles.hidiButton, { borderColor: theme.colors.accent }]}
-              onPress={() => (navigation as any).navigate('HidiCreation')}
+              style={[styles.weeProfileButton, { borderColor: theme.colors.accent }]}
+              onPress={() => (navigation as any).navigate('WeeProfileCreation')}
               activeOpacity={0.8}
             >
               <Ionicons name="eye-off-outline" size={18} color={theme.colors.accent} />
-              <Text style={[styles.hidiButtonText, { color: theme.colors.accent }]}>
+              <Text style={[styles.weeProfileButtonText, { color: theme.colors.accent }]}>
                 Crear perfil Weë
               </Text>
             </TouchableOpacity>
@@ -1131,7 +1175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hidiButton: {
+  weeProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1144,7 +1188,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderStyle: 'dashed',
   },
-  hidiButtonText: {
+  weeProfileButtonText: {
     fontSize: 14,
     fontWeight: '600',
   },

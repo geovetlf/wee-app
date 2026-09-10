@@ -4,15 +4,24 @@ import { usersService, UserProfile } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 import { updateUserCache } from '../hooks/useUserById';
 
+/*
+ * LAS TRES CARAS DE UNA CUENTA: Perfil Real, Perfil Weë y Perfil Biz.
+ *
+ * `'hidi'` es el valor guardado del Perfil Weë. El nombre viene de HideTok, como
+ * se llamaba el proyecto antes; el concepto de producto hoy se llama Perfil Weë
+ * y así se dice en pantalla. El valor se queda porque está escrito en los
+ * perfiles que ya existen y comprobado en `firestore.rules`: cambiarlo sería una
+ * migración, no un cambio de nombre.
+ */
 type ProfileType = 'real' | 'hidi' | 'biz';
 
 interface UserProfileContextType {
-  userProfile: UserProfile | null; // Perfil activo (real, hidi o biz)
+  userProfile: UserProfile | null; // La cara activa: Real, Weë o Biz
   realProfile: UserProfile | null;
-  hidiProfile: UserProfile | null;
+  weeProfile: UserProfile | null;
   bizProfile: UserProfile | null;
   activeProfileType: ProfileType;
-  hasHidiProfile: boolean;
+  hasWeeProfile: boolean;
   hasBizProfile: boolean;
   loading: boolean;
   error: string | null;
@@ -21,7 +30,7 @@ interface UserProfileContextType {
   refreshProfile: () => void;
   switchIdentity: () => void;
   switchToBiz: () => void;
-  setHidiProfile: (profile: UserProfile) => void;
+  setWeeProfile: (profile: UserProfile) => void;
   setBizProfile: (profile: UserProfile) => void;
 }
 
@@ -42,7 +51,7 @@ interface UserProfileProviderProps {
 export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const [realProfile, setRealProfile] = useState<UserProfile | null>(null);
-  const [hidiProfile, setHidiProfileState] = useState<UserProfile | null>(null);
+  const [weeProfile, setWeeProfileState] = useState<UserProfile | null>(null);
   const [bizProfile, setBizProfileState] = useState<UserProfile | null>(null);
   const [activeProfileType, setActiveProfileType] = useState<ProfileType>('real');
   const [loading, setLoading] = useState(true);
@@ -52,15 +61,15 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
   // Perfil activo basado en el tipo seleccionado
   const userProfile = activeProfileType === 'biz' && bizProfile
     ? bizProfile
-    : activeProfileType === 'hidi' && hidiProfile
-      ? hidiProfile
+    : activeProfileType === 'hidi' && weeProfile
+      ? weeProfile
       : realProfile;
 
   useEffect(() => {
     const loadUserProfiles = async () => {
       if (!user) {
         setRealProfile(null);
-        setHidiProfileState(null);
+        setWeeProfileState(null);
         setBizProfileState(null);
         setActiveProfileType('real');
         setLoading(false);
@@ -132,20 +141,20 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
           updateUserCache(user.uid, profile);
         }
 
-        // Intentar cargar perfil HIDI
+        // Intentar cargar el Perfil Weë
         try {
-          const hidi = await usersService.getHidiProfile(user.uid);
-          if (hidi) {
-            console.log('🎭 [UserProfileContext] Perfil HIDI cargado:', hidi.displayName);
-            setHidiProfileState(hidi);
-            updateUserCache(`hidi_${user.uid}`, hidi);
+          const wee = await usersService.getWeeProfile(user.uid);
+          if (wee) {
+            console.log('🎭 [UserProfileContext] Perfil Weë cargado:', wee.displayName);
+            setWeeProfileState(wee);
+            updateUserCache(`hidi_${user.uid}`, wee);
           } else {
-            console.log('🎭 [UserProfileContext] No hay perfil HIDI');
-            setHidiProfileState(null);
+            console.log('🎭 [UserProfileContext] No hay Perfil Weë');
+            setWeeProfileState(null);
           }
-        } catch (hidiErr) {
-          console.log('🎭 [UserProfileContext] Error cargando perfil HIDI (ignorado):', hidiErr);
-          setHidiProfileState(null);
+        } catch (weeProfileErr) {
+          console.log('🎭 [UserProfileContext] Error cargando el Perfil Weë (ignorado):', weeProfileErr);
+          setWeeProfileState(null);
         }
 
         // Intentar cargar perfil BIZ
@@ -174,7 +183,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
         console.error('❌ [UserProfileContext] Error loading user profile:', err);
         setError('Error al cargar el perfil de usuario');
         setRealProfile(null);
-        setHidiProfileState(null);
+        setWeeProfileState(null);
         setBizProfileState(null);
       } finally {
         setLoading(false);
@@ -210,7 +219,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
         setBizProfileState(newProfile);
         updateUserCache(currentProfile.uid, newProfile);
       } else if (activeProfileType === 'hidi') {
-        setHidiProfileState(newProfile);
+        setWeeProfileState(newProfile);
         updateUserCache(`hidi_${user.uid}`, newProfile);
       } else {
         setRealProfile(newProfile);
@@ -242,7 +251,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       setBizProfileState(newProfile);
       updateUserCache(userProfile.uid, updates);
     } else if (activeProfileType === 'hidi') {
-      setHidiProfileState(newProfile);
+      setWeeProfileState(newProfile);
       updateUserCache(`hidi_${user.uid}`, updates);
     } else {
       setRealProfile(newProfile);
@@ -256,8 +265,8 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
   };
 
   const switchIdentity = useCallback(() => {
-    if (!hidiProfile) {
-      console.warn('⚠️ [UserProfileContext] No hay perfil HIDI para cambiar');
+    if (!weeProfile) {
+      console.warn('⚠️ [UserProfileContext] No hay Perfil Weë al que cambiar');
       return;
     }
     setActiveProfileType(prev => {
@@ -265,7 +274,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       console.log(`🎭 [UserProfileContext] Cambiando identidad: ${prev} → ${next}`);
       return next;
     });
-  }, [hidiProfile]);
+  }, [weeProfile]);
 
   const switchToBiz = useCallback(() => {
     if (!bizProfile) {
@@ -279,9 +288,9 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     });
   }, [bizProfile]);
 
-  // Setter público para que HidiCreationScreen pueda establecer el perfil recién creado
-  const setHidiProfile = useCallback((profile: UserProfile) => {
-    setHidiProfileState(profile);
+  // Setter público para que WeeProfileCreationScreen pueda establecer el Perfil Weë recién creado
+  const setWeeProfile = useCallback((profile: UserProfile) => {
+    setWeeProfileState(profile);
     if (user) {
       updateUserCache(`hidi_${user.uid}`, profile);
     }
@@ -295,10 +304,10 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
   const value: UserProfileContextType = {
     userProfile,
     realProfile,
-    hidiProfile,
+    weeProfile,
     bizProfile,
     activeProfileType,
-    hasHidiProfile: !!hidiProfile,
+    hasWeeProfile: !!weeProfile,
     hasBizProfile: !!bizProfile,
     loading,
     error,
@@ -307,7 +316,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     refreshProfile,
     switchIdentity,
     switchToBiz,
-    setHidiProfile,
+    setWeeProfile,
     setBizProfile,
   };
 

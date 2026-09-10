@@ -35,7 +35,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBackPress, transparent }) => {
   const { theme, setThemeMode } = useTheme();
   const { user } = useAuth();
-  const { hasHidiProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz } = useUserProfile();
+  const { hasWeeProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz } = useUserProfile();
 
   const handleSwitchIdentity = () => {
     if (activeProfileType === 'biz') {
@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
       switchToBiz();
       setThemeMode('light');
     } else {
-      // Real <-> Hidi
+      // Real <-> Perfil Weë
       switchIdentity();
       const nextType = activeProfileType === 'real' ? 'hidi' : 'real';
       setThemeMode(nextType === 'hidi' ? 'dark' : 'light');
@@ -153,8 +153,8 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
               dónde se ve. El encabezado queda con ☰, la marca, el perfil y la
               campana.
             */}
-            {/* Switch Identity Button - visible si tiene perfil HIDI o está en modo BIZ */}
-            {user && (hasHidiProfile || activeProfileType === 'biz') && (
+            {/* Cambiar de identidad: visible si tiene Perfil Weë o está en modo Biz */}
+            {user && (hasWeeProfile || activeProfileType === 'biz') && (
               <TouchableOpacity
                 style={[styles.switchButton, {
                   backgroundColor: transparent

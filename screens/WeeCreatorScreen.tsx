@@ -38,7 +38,7 @@ const isWeb = Platform.OS === 'web';
 const WeeCreatorScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile, hasHidiProfile } = useUserProfile();
+  const { userProfile, hasWeeProfile } = useUserProfile();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const initialCategory: string | undefined = route.params?.category;
@@ -144,7 +144,7 @@ const WeeCreatorScreen: React.FC = () => {
       navigation.navigate('Login');
       return;
     }
-    navigation.navigate(hasHidiProfile ? 'AiAvatar' : 'HidiCreation');
+    navigation.navigate(hasWeeProfile ? 'AiAvatar' : 'WeeProfileCreation');
   };
 
   const renderCategory = (cat: WeeExperience) => {
@@ -315,7 +315,7 @@ const WeeCreatorScreen: React.FC = () => {
             <View style={styles.availableBody}>
               <Text style={styles.availableTitle}>Avatar IA para tu perfil Weë</Text>
               <Text style={styles.availableText}>
-                {hasHidiProfile ? 'Genera o cambia el avatar de tu alter ego con IA.' : 'Crea tu alter ego digital y genera su avatar con IA.'}
+                {hasWeeProfile ? 'Genera o cambia el avatar de tu alter ego con IA.' : 'Crea tu alter ego digital y genera su avatar con IA.'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.8)" />

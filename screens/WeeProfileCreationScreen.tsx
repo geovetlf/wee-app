@@ -23,10 +23,10 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 
-const HidiCreationScreen: React.FC = () => {
+const WeeProfileCreationScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { realProfile, setHidiProfile } = useUserProfile();
+  const { realProfile, setWeeProfile } = useUserProfile();
   const navigation = useNavigation();
 
   const [displayName, setDisplayName] = useState('');
@@ -59,9 +59,9 @@ const HidiCreationScreen: React.FC = () => {
 
     setIsCreating(true);
     try {
-      console.log('🎭 Creando perfil HIDI para:', user.uid);
+      console.log('🎭 Creando Perfil Weë para:', user.uid);
 
-      const hidiUid = `hidi_${user.uid}`;
+      const weeProfileUid = `hidi_${user.uid}`;
       let photoURL: string | undefined;
       let photoURLThumbnail: string | undefined;
 
@@ -70,14 +70,14 @@ const HidiCreationScreen: React.FC = () => {
         if (isDiceBearUrl(customAvatarUri)) {
           photoURL = customAvatarUri;
         } else {
-          const result = await uploadProfileImageFromUri(customAvatarUri, hidiUid);
+          const result = await uploadProfileImageFromUri(customAvatarUri, weeProfileUid);
           photoURL = result.fullSize;
           photoURLThumbnail = result.thumbnail;
         }
       }
 
-      // Crear perfil HIDI
-      const hidiDocId = await usersService.createHidiProfile(user.uid, {
+      // Crear el Perfil Weë
+      const weeProfileDocId = await usersService.createWeeProfile(user.uid, {
         displayName: displayName.trim(),
         bio: bio.trim(),
         avatarType: selectedAvatarType,
@@ -87,21 +87,21 @@ const HidiCreationScreen: React.FC = () => {
 
       // Si hay thumbnail, actualizar el doc
       if (photoURLThumbnail) {
-        await usersService.update(hidiDocId, { photoURLThumbnail });
+        await usersService.update(weeProfileDocId, { photoURLThumbnail });
       }
 
-      console.log('✅ Perfil Weë creado con docId:', hidiDocId);
+      console.log('✅ Perfil Weë creado con docId:', weeProfileDocId);
 
       // Actualizar perfil real con linkedAccountId
       await usersService.update(realProfile.id, {
-        linkedAccountId: hidiUid,
+        linkedAccountId: weeProfileUid,
         profileType: 'real',
       });
 
-      // Obtener el perfil HIDI completo y establecerlo en el context
-      const hidiProfile = await usersService.getHidiProfile(user.uid);
-      if (hidiProfile) {
-        setHidiProfile(hidiProfile);
+      // Obtener el Perfil Weë completo y establecerlo en el context
+      const weeProfile = await usersService.getWeeProfile(user.uid);
+      if (weeProfile) {
+        setWeeProfile(weeProfile);
       }
 
       Alert.alert(
@@ -110,7 +110,7 @@ const HidiCreationScreen: React.FC = () => {
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
-      console.error('❌ Error creando perfil HIDI:', error);
+      console.error('❌ Error creando el Perfil Weë:', error);
       Alert.alert('Error', error?.message || 'No se pudo crear el perfil Weë');
     } finally {
       setIsCreating(false);
@@ -320,4 +320,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HidiCreationScreen;
+export default WeeProfileCreationScreen;

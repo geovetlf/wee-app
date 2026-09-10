@@ -51,7 +51,7 @@ const CommunityScreen: React.FC = () => {
   const [showRules, setShowRules] = useState(false);
   const isUserMember = community?.id ? isMember(community.id) : false;
 
-  // Video posts for Hids button
+  // Los Weëls de la comunidad: las publicaciones con video.
   const videoPosts = useMemo(() => posts.filter(p => !!p.videoUrl), [posts]);
 
   // Cargar posts de la comunidad
@@ -348,7 +348,7 @@ const CommunityScreen: React.FC = () => {
               styles.tabText,
               { color: theme.colors.textSecondary },
             ]}>
-              Hids
+              Weëls
             </Text>
           </TouchableOpacity>
         </View>

@@ -315,7 +315,7 @@ type HomeScreenRouteProp = RouteProp<HomeStackParamList, 'Feed'>;
 const HomeScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile, hasHidiProfile, activeProfileType, switchIdentity } = useUserProfile();
+  const { userProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
   const { scrollToTopTrigger, refreshTrigger } = useScroll();
   const { contentMaxWidth, isDesktop } = useResponsive();
   const navigation = useNavigation<HomeScreenNavigationProp>();

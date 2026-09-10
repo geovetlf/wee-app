@@ -53,7 +53,7 @@ interface AvatarPickerProps {
     avatarId?: string;
   }) => void;
   size?: number;
-  isHidiProfile?: boolean;
+  isWeeProfile?: boolean;
   onNavigateAiAvatar?: () => void;
 }
 
@@ -63,7 +63,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
   currentAvatarId = 'male',
   onAvatarSelect,
   size = 80,
-  isHidiProfile = false,
+  isWeeProfile = false,
   onNavigateAiAvatar,
 }) => {
   const { theme } = useTheme();
@@ -309,8 +309,8 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
               style={[styles.modalBody, isDesktop && styles.desktopModalBody]}
               showsVerticalScrollIndicator={false}
             >
-              {/* AI Human Avatar - only for HIDI profiles */}
-              {isHidiProfile && onNavigateAiAvatar && (
+              {/* Avatar humano con IA: solo para el Perfil Weë */}
+              {isWeeProfile && onNavigateAiAvatar && (
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                     Avatar Humano IA
