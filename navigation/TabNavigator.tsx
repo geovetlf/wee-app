@@ -29,7 +29,6 @@ import { MainStackParamList } from './MainStackNavigator';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import { messagesService } from '../services/messagesService';
-import CustomTabBar from '../components/CustomTabBar';
 import CreateSheet, { CreateKind } from '../components/CreateSheet';
 
 // La pestaña "Create" no tiene pantalla propia: si alguien llega aquí por URL
@@ -130,7 +129,16 @@ const TabNavigator: React.FC = () => {
     <Tab.Navigator
       initialRouteName="Home"
       backBehavior="initialRoute"
-      tabBar={(props) => <CustomTabBar {...props} />}
+      /*
+       * Las pestañas ya no dibujan su propia barra: la de Weë se monta una sola
+       * vez en la pila principal (`NavegacionGlobal`), que es el nivel desde el
+       * que se ve toda la aplicación. Dejar esta aquí significaría dos barras
+       * apiladas dentro de las pestañas y ninguna fuera.
+       *
+       * Las cinco rutas, sus guardas de sesión y el subir-al-principio de Inicio
+       * siguen intactas: lo único que se va es el dibujo.
+       */
+      tabBar={() => null}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {

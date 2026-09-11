@@ -51,6 +51,7 @@ import { PushNotificationProvider } from './contexts/PushNotificationContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { TabBarProvider } from './contexts/TabBarContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
+import { refNavegacion } from './navigation/refNavegacion';
 import ErrorBoundary from './components/ErrorBoundary';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
@@ -233,7 +234,12 @@ export default function App() {
             <UserProfileProvider>
               <ScrollProvider>
                 <TabBarProvider>
-                  <NavigationContainer linking={linking} theme={CustomDarkTheme}>
+                  {/*
+                    La referencia deja que la barra de navegación —que se monta
+                    al lado de la pila, no dentro— sepa dónde estás y pueda
+                    navegar. Es la puerta oficial de React Navigation para eso.
+                  */}
+                  <NavigationContainer ref={refNavegacion} linking={linking} theme={CustomDarkTheme}>
                     <PushNotificationProvider>
                       {/*
                         La ubicación va por dentro de la navegación, como las

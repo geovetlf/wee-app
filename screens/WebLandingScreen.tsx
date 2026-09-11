@@ -24,11 +24,13 @@ import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry
 import { FEED_FILTER_OPTIONS, FeedFilterId, filterPosts } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 
 const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const { onScroll: reportarScroll } = useScrollDeBarra();
   const route = useRoute<any>();
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -168,7 +170,7 @@ const WebLandingScreen: React.FC = () => {
         <Header onNotificationsPress={() => navigation.navigate('Notifications')} onMenuPress={() => setDrawerVisible(true)} />
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+      <div onScroll={reportarScroll} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
         {/* Carrusel de 4 banners de diseño */}
         <HeroCarousel />
 

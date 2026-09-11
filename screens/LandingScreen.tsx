@@ -52,6 +52,7 @@ import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import WeelsRow from '../components/WeelsRow';
 import HeroCarousel from '../components/HeroCarousel';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
+import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 import { FEED_FILTER_OPTIONS, filterPosts } from '../utils/feedFilters';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -669,6 +670,7 @@ const LandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
+  const { onScroll: reportarScroll } = useScrollDeBarra();
   const { scrollToTopTrigger, refreshTrigger } = useScroll();
   const { setIsTransparent: setTabBarTransparent, scrollProgress: tabBarProgress } = useTabBar();
   const navigation = useNavigation<LandingScreenNavigationProp>();
@@ -795,6 +797,8 @@ const LandingScreen: React.FC = () => {
   const prevTabRef = useRef(activeTab);
 
   const handleFlowScroll = useCallback((event: any) => {
+    /* La barra de navegación se aparta al bajar y vuelve al subir. */
+    reportarScroll(event);
     const y = event.nativeEvent.contentOffset.y;
     const shouldStick = y >= tabsOffsetY.current && tabsOffsetY.current > 0;
     if (shouldStick !== isTabsStickyRef.current) {
@@ -806,7 +810,7 @@ const LandingScreen: React.FC = () => {
         useNativeDriver: true,
       }).start();
     }
-  }, [stickyAnim]);
+  }, [stickyAnim, reportarScroll]);
 
   // Handle tab switches
   useEffect(() => {

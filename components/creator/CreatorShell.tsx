@@ -11,6 +11,7 @@ import AvatarDisplay from '../avatars/AvatarDisplay';
 import CreatorSidebar from './CreatorSidebar';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useScrollDeBarra } from '../../hooks/useScrollDeBarra';
 
 interface CreatorShellProps {
   /** Qué elemento de la barra lateral se marca como activo ('creator', 'brain', 'photo'…). */
@@ -38,6 +39,12 @@ interface CreatorShellProps {
  */
 const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë Creator', onBack, children, contentStyle }) => {
   const { theme } = useTheme();
+  /*
+   * Este contenedor es el que se desplaza en TODAS las experiencias de Weë
+   * —Travel, Studio, Design, Music, Chef…—, así que engancharlo aquí las cubre
+   * todas de una vez en lugar de pantalla por pantalla.
+   */
+  const scrollDeBarra = useScrollDeBarra();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -66,7 +73,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             cada experiencia solo restaba aire al muro (fase 2E-69).
           */}
         </View>
-        <ScrollView contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
           {children}
         </ScrollView>
       </SafeAreaView>

@@ -2,9 +2,12 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
-import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
+import { ActivityIndicator, Animated, View, StyleSheet, Platform } from 'react-native';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import NavegacionGlobal, { useBarraInferior, apartada } from './NavegacionGlobal';
+import { ALTO_BARRA } from '../components/BarraInferior';
 import MainTabsScreen from '../screens/MainTabsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
@@ -162,6 +165,8 @@ const CreateWrapper = () => {
 const MainStackNavigator: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { userProfile, loading: profileLoading } = useUserProfile();
+  const barra = useBarraInferior();
+  const insets = useSafeAreaInsets();
   const [isInitialLoad, setIsInitialLoad] = React.useState(true);
 
   React.useEffect(() => {
@@ -188,8 +193,50 @@ const MainStackNavigator: React.FC = () => {
     return <OnboardingScreen />;
   }
 
+  /*
+   * ─── La navegación de Weë, montada UNA sola vez ───────────────────────────
+   *
+   * Aquí, al nivel de la pila principal, porque es el único sitio desde el que
+   * se ven todas las pantallas. Dentro del navegador de pestañas solo se veían
+   * las cinco pestañas, y por eso la barra desaparecía al entrar en Weë Travel,
+   * en una publicación o en una comunidad —que son hermanas de `Main`, no hijas
+   * suyas—.
+   *
+   * Va DESPUÉS de la pila y por encima: así queda quieta mientras el contenido
+   * de cada pantalla se desplaza por detrás, sin que ninguna pantalla tenga que
+   * enterarse de que existe.
+   */
   return (
-    <Stack.Navigator
+    <View style={styles.raiz}>
+      {/*
+        SITIO PARA LA BARRA, SOLO DONDE HACE FALTA.
+
+        Las pantallas de las pestañas —Home, Buscar, WeeTalk, Perfil— ya dejaban
+        hueco abajo desde siempre, porque la barra vivía dentro de ellas. Las
+        demás —Weë Travel, una publicación, una comunidad, Mis proyectos— nunca
+        tuvieron ninguna: si no se les reserva, la barra les tapa la última fila.
+
+        Se reserva aquí, en un solo sitio, en vez de ir pantalla por pantalla
+        añadiendo paddings que luego nadie sabe de dónde salen.
+      */}
+      <Animated.View
+        style={{
+          flex: 1,
+          /*
+            El hueco se suelta a la vez que la barra se va, con el mismo número
+            que la mueve: mientras está escondida el contenido llega hasta abajo
+            y no queda una franja vacía esperándola.
+          */
+          paddingBottom:
+            barra.visible && !barra.enPestanas
+              ? apartada.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [ALTO_BARRA + insets.bottom, 0],
+                })
+              : 0,
+        }}
+      >
+      <Stack.Navigator
       screenOptions={{
         headerShown: false,
         cardStyle: { flex: 1 },
@@ -259,11 +306,17 @@ const MainStackNavigator: React.FC = () => {
         component={RegisterScreen}
         options={{ presentation: 'modal' }}
       />
-    </Stack.Navigator>
+      </Stack.Navigator>
+      </Animated.View>
+      <NavegacionGlobal />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  raiz: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
