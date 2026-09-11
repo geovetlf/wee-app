@@ -2017,7 +2017,7 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.medium,
   },
   feedFilterTextActive: {
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   container: {
     flex: 1,
@@ -2391,7 +2391,7 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.medium,
   },
   tabItemTextActive: {
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
 
   // Header always as overlay

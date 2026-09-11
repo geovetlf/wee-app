@@ -1,8 +1,20 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { aplicarInter } from './utils/aplicarInter';
+import { INTER } from './constants/typography';
+
+/*
+ * Inter queda puesta en `Text` y `TextInput` ANTES del primer render.
+ *
+ * Se hace aquí arriba, al evaluar el módulo, y no dentro del componente: si se
+ * instalara en un efecto, el primer fotograma saldría con la fuente del sistema
+ * y cambiaría después —justo el parpadeo que hay que evitar—.
+ */
+aplicarInter();
 
 // Fix for web scrolling - enable touch scrolling on mobile browsers
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -42,6 +54,26 @@ import MainStackNavigator from './navigation/MainStackNavigator';
 import ErrorBoundary from './components/ErrorBoundary';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
+/*
+ * React Navigation escribe con SU propia fuente.
+ *
+ * Las etiquetas de la barra inferior y los títulos que pinta la navegación
+ * llevan un `fontFamily` explícito puesto por la librería —la pila del sistema—,
+ * y el envoltorio de `Text` respeta a quien ya trae familia propia. Resultado: el
+ * Home en Inter y "Inicio · Buscar · Crear · WeeTalk · Perfil" en Segoe UI. Se
+ * comprobó en el DOM antes de corregirlo.
+ *
+ * Se arregla donde toca: diciéndole a la navegación cuáles son las fuentes de
+ * Weë. Los cuatro nombres son los suyos; el reparto es la escala de Weë —lo que
+ * la librería llama "bold" son encabezados, y en Weë los encabezados son 600—.
+ */
+const FUENTES_WEE = {
+  regular: { fontFamily: INTER.regular, fontWeight: '400' as const },
+  medium: { fontFamily: INTER.medium, fontWeight: '500' as const },
+  bold: { fontFamily: INTER.semibold, fontWeight: '600' as const },
+  heavy: { fontFamily: INTER.bold, fontWeight: '700' as const },
+};
+
 // Tema oscuro personalizado para React Navigation
 const CustomDarkTheme = {
   ...DarkTheme,
@@ -51,6 +83,7 @@ const CustomDarkTheme = {
     card: '#0A0A0A',
     primary: '#F5B731',
   },
+  fonts: FUENTES_WEE,
 };
 
 // Prefijo para deep links nativos
@@ -168,6 +201,29 @@ if (typeof window !== 'undefined') {
 }
 
 export default function App() {
+  /*
+   * Las cuatro caras de Inter. Hasta que estén, no se pinta nada.
+   *
+   * El hueco que se enseña mientras tanto es un fondo liso del color de la
+   * aplicación, sin texto ni indicador: en un móvil son unas décimas y un
+   * cartel que aparece y desaparece se nota más que la espera. Lo importante es
+   * que ningún texto llegue a verse con la fuente equivocada.
+   *
+   * Si la carga falla —`error`— se sigue adelante igual. Quedarse en el hueco
+   * para siempre por una fuente sería cambiar un problema tipográfico por una
+   * aplicación que no arranca; se verá con la fuente del sistema y punto.
+   */
+  const [fuentesListas, errorDeFuentes] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  if (!fuentesListas && !errorDeFuentes) {
+    return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
+  }
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>

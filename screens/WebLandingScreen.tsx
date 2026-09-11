@@ -200,7 +200,7 @@ const WebLandingScreen: React.FC = () => {
                   accessibilityRole="button"
                   accessibilityLabel={`Filtrar: ${f.label}`}
                 >
-                  <Text style={[styles.chipText, { color: '#1F2937', fontWeight: active ? FONT_WEIGHT.bold : FONT_WEIGHT.semibold }]}>{f.label}</Text>
+                  <Text style={[styles.chipText, { color: '#1F2937', fontWeight: active ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]}>{f.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   cargarMasTexto: {
     fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontWeight: FONT_WEIGHT.medium,
   },
   sectionTitle: {
     fontSize: scale(18),
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: '#1F2937',
     fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.medium,
   },
 });
 

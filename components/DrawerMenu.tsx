@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   userMeta: {
     fontSize: FONT_SIZE.xs,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: scale(11),
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 0.6,
     paddingHorizontal: SPACING.sm,
     paddingTop: SPACING.md,
@@ -491,10 +491,10 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.medium,
+    fontWeight: FONT_WEIGHT.regular,
   },
   rowTextActive: {
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   subRow: {
     flexDirection: 'row',
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   subRowText: {
     flex: 1,
     fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.medium,
+    fontWeight: FONT_WEIGHT.regular,
   },
   creatorBlock: {
     marginTop: SPACING.sm,
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   tagText: {
     color: '#1F2937',
     fontSize: scale(11),
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.medium,
   },
   creditsBadge: {
     paddingHorizontal: SPACING.sm,
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   creditsBadgeText: {
     color: '#1F2937',
     fontSize: scale(12),
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   footer: {
     flexDirection: 'row',

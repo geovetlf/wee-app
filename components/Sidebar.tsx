@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   },
   cuentaNombre: {
     fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   cuentaEstado: {
     fontSize: FONT_SIZE.xs,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   },
   grupo: {
     fontSize: 11,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 0.6,
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.md,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   },
   saldoTexto: {
     fontSize: 11,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
     color: '#1F2937',
   },
   nav: {
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   itemLabel: {
     flex: 1,
     fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.medium,
+    fontWeight: FONT_WEIGHT.regular,
   },
   itemLabelNested: {
     fontSize: FONT_SIZE.sm,
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: '#1F2937',
     fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.medium,
   },
   userBlock: {
     marginTop: SPACING.md,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.medium,
   },
 });
 

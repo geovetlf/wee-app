@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   publishText: {
     color: '#1F2937',
     fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.medium,
   },
 });
 

@@ -135,11 +135,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: scale(18),
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   viewAll: {
     fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontWeight: FONT_WEIGHT.medium,
   },
   row: {
     paddingHorizontal: SPACING.lg,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   createText: {
     color: '#1F2937',
     fontSize: scale(11),
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
     textAlign: 'center',
   },
   createSub: {
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     bottom: scale(8),
     color: '#FFFFFF',
     fontSize: scale(11),
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   watermark: {
     position: 'absolute',

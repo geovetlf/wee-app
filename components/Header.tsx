@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#1F2937',
     fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontWeight: FONT_WEIGHT.medium,
   },
 });
 

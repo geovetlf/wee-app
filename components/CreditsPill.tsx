@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   label: {
     fontSize: FONT_SIZE.xs,

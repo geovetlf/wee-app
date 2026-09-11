@@ -1478,7 +1478,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: FONT_SIZE.sm,
     marginLeft: scale(4),
-    fontWeight: FONT_WEIGHT.regular,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: scale(-0.1),
   },
   agreementBadge: {
