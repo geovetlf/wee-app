@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { projectsService, WeeProject, PROJECT_EMOJIS, suggestProjectName } from '../../services/projectsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import EspacioDeEscritura from '../EspacioDeEscritura';
 
 interface ProjectPickerProps {
   visible: boolean;
@@ -51,7 +52,12 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      {/*
+        Una hoja dentro de un Modal se dibuja en su propia capa: no hereda el
+        acomodo de la pantalla que hay debajo. El campo "Nombre del proyecto"
+        vive al fondo de la hoja, justo donde sale el teclado.
+      */}
+      <EspacioDeEscritura style={styles.backdrop}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Cerrar" />
         <View style={[styles.sheet, { backgroundColor: theme.colors.card }]}>
           <View style={styles.header}>
@@ -61,7 +67,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.list} contentContainerStyle={{ gap: SPACING.sm }}>
+          <ScrollView style={styles.list} contentContainerStyle={{ gap: SPACING.sm }} keyboardShouldPersistTaps="handled">
             {loading ? (
               <ActivityIndicator color={theme.colors.accent} />
             ) : (
@@ -111,7 +117,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
             </View>
           </View>
         </View>
-      </View>
+      </EspacioDeEscritura>
     </Modal>
   );
 };

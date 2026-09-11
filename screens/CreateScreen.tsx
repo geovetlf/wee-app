@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Keyboard,
   Animated,
@@ -51,6 +50,7 @@ import {
   validarEncuesta,
 } from '../utils/pollDraft';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 interface MediaItem {
   type: 'image' | 'video';
@@ -1402,10 +1402,8 @@ ${message}`);
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
+      <EspacioDeEscritura
         style={styles.container}
-        behavior="padding"
-        keyboardVerticalOffset={0}
       >
         <ScrollView
           style={styles.content}
@@ -1462,7 +1460,7 @@ ${message}`);
             </Text>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </EspacioDeEscritura>
 
       {/* Publishing overlay con animación de pulso */}
       {isPublishing && (

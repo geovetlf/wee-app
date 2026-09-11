@@ -13,7 +13,6 @@ import {
   Image,
   TextInput,
   Modal,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -43,6 +42,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const WeeBizProfileScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -326,7 +326,7 @@ const WeeBizProfileScreen: React.FC = () => {
         <View style={{ width: scale(32) }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Cover / Logo section */}
         <View style={styles.profileHeader}>
           {/* Logo */}
@@ -582,9 +582,8 @@ const WeeBizProfileScreen: React.FC = () => {
 
         {/* Review modal */}
         <Modal visible={reviewModalVisible} animationType="slide" transparent onRequestClose={() => setReviewModalVisible(false)}>
-          <KeyboardAvoidingView
+          <EspacioDeEscritura
             style={[styles.reviewModalOverlay, { backgroundColor: theme.colors.backdrop }]}
-            behavior="padding"
           >
             <View style={[styles.reviewModal, { backgroundColor: theme.colors.background }]}>
               <View style={styles.reviewModalHeader}>
@@ -622,7 +621,7 @@ const WeeBizProfileScreen: React.FC = () => {
                 )}
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+          </EspacioDeEscritura>
         </Modal>
 
         <View style={{ height: scale(40) }} />

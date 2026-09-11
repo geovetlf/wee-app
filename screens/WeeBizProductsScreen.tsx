@@ -13,7 +13,6 @@ import {
   Platform,
   BackHandler,
   Image,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -28,6 +27,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { weeBizService, Product } from '../services/weeBizService';
 import { uploadImageToCloudinary, cloudinaryThumb } from '../services/cloudinaryService';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProducts'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
@@ -300,9 +300,8 @@ const WeeBizProductsScreen: React.FC = () => {
   // Add/Edit modal
   const renderFormModal = () => (
     <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-      <KeyboardAvoidingView
+      <EspacioDeEscritura
         style={[styles.modalOverlay, { backgroundColor: theme.colors.backdrop }]}
-        behavior="padding"
       >
         <View style={[styles.formModal, { backgroundColor: theme.colors.background }]}>
           <View style={styles.formHeader}>
@@ -397,7 +396,7 @@ const WeeBizProductsScreen: React.FC = () => {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </EspacioDeEscritura>
     </Modal>
   );
 

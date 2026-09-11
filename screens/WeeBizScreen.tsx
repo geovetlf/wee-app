@@ -187,6 +187,7 @@ const WeeBizScreen: React.FC = () => {
           </View>
         ) : (
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={searchResults}
             keyExtractor={item => item.id!}
             renderItem={({ item }) => renderBusinessCard(item)}
@@ -230,7 +231,7 @@ const WeeBizScreen: React.FC = () => {
       {loading ? (
         <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: scale(40) }} />
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {/* Categorias */}
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Categorías</Text>
           <View style={styles.categoriesGrid}>

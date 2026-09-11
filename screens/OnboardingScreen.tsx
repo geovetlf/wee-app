@@ -10,7 +10,6 @@ import {
   Platform,
   ActivityIndicator,
   Dimensions,
-  KeyboardAvoidingView,
   Keyboard,
   Modal,
   FlatList,
@@ -27,6 +26,7 @@ import { uploadProfileImageFromUri } from '../services/storageService';
 import { scale } from '../utils/scale';
 import { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import { COUNTRIES, Country } from '../data/countries';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -585,10 +585,8 @@ const OnboardingScreen: React.FC = () => {
   };
 
   return (
-    <KeyboardAvoidingView
+    <EspacioDeEscritura
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior="padding"
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       {isDesktop ? (
         // Desktop Layout - Floating Content
@@ -769,9 +767,8 @@ const OnboardingScreen: React.FC = () => {
         animationType="slide"
         onRequestClose={() => setShowCountryModal(false)}
       >
-        <KeyboardAvoidingView
+        <EspacioDeEscritura
           style={styles.countryModalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <TouchableOpacity
             style={styles.countryModalDismiss}
@@ -829,9 +826,9 @@ const OnboardingScreen: React.FC = () => {
               keyboardShouldPersistTaps="handled"
             />
           </View>
-        </KeyboardAvoidingView>
+        </EspacioDeEscritura>
       </Modal>
-    </KeyboardAvoidingView>
+    </EspacioDeEscritura>
   );
 };
 

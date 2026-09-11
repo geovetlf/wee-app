@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   ActivityIndicator,
   Image,
@@ -17,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const RegisterScreen: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -169,9 +168,8 @@ const RegisterScreen: React.FC = () => {
       >
         <View style={styles.handle} />
       </TouchableOpacity>
-      <KeyboardAvoidingView
+      <EspacioDeEscritura
         style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -305,7 +303,7 @@ const RegisterScreen: React.FC = () => {
             </Text>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </EspacioDeEscritura>
     </SafeAreaView>
   );
 };

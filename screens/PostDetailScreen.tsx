@@ -544,6 +544,7 @@ const PostDetailContent: React.FC = () => {
       >
         {/* Content */}
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}

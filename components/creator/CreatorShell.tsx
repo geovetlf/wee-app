@@ -9,6 +9,7 @@ import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import AvatarDisplay from '../avatars/AvatarDisplay';
 import CreatorSidebar from './CreatorSidebar';
+import EspacioDeEscritura from '../EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { useScrollDeBarra } from '../../hooks/useScrollDeBarra';
@@ -73,9 +74,17 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             cada experiencia solo restaba aire al muro (fase 2E-69).
           */}
         </View>
-        <ScrollView contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
-          {children}
-        </ScrollView>
+        {/*
+          Todo lo que se escribe en Weë Creator pasa por aquí: la caja de idea de
+          cada especialista, las preguntas guiadas, el editor de Writer, el chat
+          de Brain. El acomodo al teclado se resuelve una sola vez, en el sitio
+          que comparten todas, y no experiencia por experiencia.
+        */}
+        <EspacioDeEscritura style={styles.fill}>
+          <ScrollView contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
+            {children}
+          </ScrollView>
+        </EspacioDeEscritura>
       </SafeAreaView>
     );
   }
@@ -138,6 +147,9 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  fill: {
     flex: 1,
   },
   mobileHeader: {

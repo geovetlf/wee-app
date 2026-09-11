@@ -8,8 +8,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +20,7 @@ import { uploadProfileImageFromUri } from '../services/storageService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const WeeProfileCreationScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -128,9 +127,8 @@ const WeeProfileCreationScreen: React.FC = () => {
         <View style={{ width: scale(24) }} />
       </View>
 
-      <KeyboardAvoidingView
+      <EspacioDeEscritura
         style={{ flex: 1 }}
-        behavior="padding"
       >
         <ScrollView
           ref={scrollViewRef}
@@ -229,7 +227,7 @@ const WeeProfileCreationScreen: React.FC = () => {
         {/* Espacio extra para que el teclado no tape el contenido */}
         <View style={{ height: scale(120) }} />
       </ScrollView>
-      </KeyboardAvoidingView>
+      </EspacioDeEscritura>
     </SafeAreaView>
   );
 };

@@ -222,6 +222,7 @@ const InboxScreen = () => {
       </View>
 
       <FlatList
+        keyboardShouldPersistTaps="handled"
         key={activeUid}
         data={filtered}
         renderItem={renderItem}

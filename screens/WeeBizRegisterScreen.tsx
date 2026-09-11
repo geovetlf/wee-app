@@ -11,7 +11,6 @@ import {
   Platform,
   BackHandler,
   Image,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -33,6 +32,7 @@ import {
 import { weeBizService, Business } from '../services/weeBizService';
 import { usersService } from '../services/firestoreService';
 import { uploadImageToCloudinary } from '../services/cloudinaryService';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizRegister'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
@@ -198,9 +198,8 @@ const WeeBizRegisterScreen: React.FC = () => {
   };
 
   return (
-    <KeyboardAvoidingView
+    <EspacioDeEscritura
       style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}
-      behavior="padding"
     >
       {/* Header */}
       <View style={styles.header}>
@@ -336,7 +335,7 @@ const WeeBizRegisterScreen: React.FC = () => {
 
         <View style={{ height: scale(40) }} />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </EspacioDeEscritura>
   );
 };
 

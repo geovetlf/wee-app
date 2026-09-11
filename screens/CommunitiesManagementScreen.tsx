@@ -10,8 +10,6 @@ import {
   Alert,
   TextInput,
   Modal,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -24,6 +22,7 @@ import { communityService, Community } from '../services/communityService';
 import { POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const CommunitiesManagementScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -340,6 +339,7 @@ const CommunitiesManagementScreen: React.FC = () => {
       </View>
 
       <FlatList
+        keyboardShouldPersistTaps="handled"
         data={[
           ...(myCommunities.length > 0 ? [{ type: 'header-mine', count: myCommunities.length }] : []),
           ...myCommunities.map(c => ({ type: 'community', data: c })),
@@ -390,9 +390,8 @@ const CommunitiesManagementScreen: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setShowCreateModal(false)}
       >
-        <KeyboardAvoidingView
+        <EspacioDeEscritura
           style={{ flex: 1, backgroundColor: theme.colors.background }}
-          behavior="padding"
         >
           {/* Header */}
           <View style={[styles.modalHeader, { paddingTop: insets.top + SPACING.sm, borderBottomColor: theme.colors.border }]}>
@@ -466,7 +465,7 @@ const CommunitiesManagementScreen: React.FC = () => {
               />
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </EspacioDeEscritura>
       </Modal>
     </View>
   );

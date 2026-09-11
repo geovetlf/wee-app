@@ -47,7 +47,7 @@ const RightSidebar: React.FC = () => {
   ];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       {/* Buscador */}
       <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface }]}>
         {isWeb ? <Text style={{ fontSize: 16 }}>🔍</Text> : <Ionicons name="search" size={18} color={theme.colors.textSecondary} />}

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   ActivityIndicator,
@@ -16,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, googleSignInDisponible } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -194,9 +194,8 @@ const LoginScreen: React.FC = () => {
       >
         <View style={styles.handle} />
       </TouchableOpacity>
-      <KeyboardAvoidingView
+      <EspacioDeEscritura
         style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -302,7 +301,7 @@ const LoginScreen: React.FC = () => {
               </View>
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
+        </EspacioDeEscritura>
       </SafeAreaView>
   );
 };
