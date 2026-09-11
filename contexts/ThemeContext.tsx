@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { Appearance, ColorSchemeName, Animated, StyleSheet, View, Platform, StatusBar } from 'react-native';
+import { Appearance, ColorSchemeName, Animated, Easing, StyleSheet, Platform, StatusBar } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 
 export type ThemeMode = 'system' | 'light' | 'dark' | 'biz';
@@ -104,16 +104,42 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-const isWeb = Platform.OS === 'web';
+/*
+ * ─── El cambio de tema, sin apagar la pantalla ────────────────────────────────
+ *
+ * Antes esto se hacía tapando la aplicación entera con una lámina OPACA —blanca
+ * al ir a oscuro, `#0A0A0A` al volver a claro— puesta de golpe a opacidad 1 y
+ * desvanecida durante 800 ms. De ahí venía el apagón: cambiar del Perfil Weë al
+ * Real ponía literalmente una pantalla negra encima de todo durante casi un
+ * segundo, y el nuevo estado "aparecía" al levantarse la lámina. No era una
+ * transición; era un telón.
+ *
+ * Ahora no se tapa nada. La interfaz baja un punto su presencia —del 100 % al
+ * 90 %—, se pinta con los colores nuevos y vuelve al 100 % en un cuarto de
+ * segundo. La aplicación está visible en todo momento y en ningún fotograma hay
+ * una superficie negra ni blanca por encima.
+ *
+ * El 90 % es a propósito poco: bajar más disimularía mejor el salto de color,
+ * pero justo eso —esconder el contenido— es lo que se está corrigiendo.
+ */
+const DURACION_CAMBIO_DE_TEMA = 240;
+const PRESENCIA_MINIMA = 0.9;
+
+/*
+ * El hilo nativo solo en iOS y Android, que es donde existe.
+ *
+ * En el navegador no hay módulo nativo de animación: React Native Web lo avisa
+ * por consola en cada cambio de tema y cae a JavaScript de todos modos. Pedir el
+ * hilo de JavaScript desde el principio hace exactamente lo mismo sin el aviso.
+ */
+const HILO_NATIVO = Platform.OS !== 'web';
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('light');
   const [systemColorScheme, setSystemColorScheme] = useState<ColorSchemeName>(Appearance.getColorScheme());
 
-  // Overlays for smooth theme transitions (mobile only)
-  const lightOverlay = useRef(new Animated.Value(0)).current;
-  const darkOverlay = useRef(new Animated.Value(0)).current;
-  const needsFadeRef = useRef<'light' | 'dark' | null>(null);
+  /** Cuánto se ve la aplicación. Nunca baja de `PRESENCIA_MINIMA`, nunca llega a 0. */
+  const presencia = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
@@ -142,67 +168,43 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [theme]);
 
-  // Fade-out after theme render (mobile only)
+  /*
+   * Ya está pintado el tema nuevo: se vuelve a la presencia completa.
+   *
+   * Va en un efecto, y no dentro de `setThemeMode`, porque el orden importa: el
+   * hundimiento tiene que estar aplicado ANTES de que React pinte los colores
+   * nuevos, y la recuperación DESPUÉS. Así el primer fotograma del tema nuevo ya
+   * se ve —al 90 %— y sube desde ahí, que es lo que se lee como "aparece
+   * progresivamente" en vez de "salta".
+   */
   useEffect(() => {
-    if (isWeb || !needsFadeRef.current) return;
-
-    const overlay = needsFadeRef.current === 'light' ? lightOverlay : darkOverlay;
-    needsFadeRef.current = null;
-
-    Animated.timing(overlay, {
-      toValue: 0,
-      duration: 800,
-      useNativeDriver: true,
+    Animated.timing(presencia, {
+      toValue: 1,
+      duration: DURACION_CAMBIO_DE_TEMA,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: HILO_NATIVO,
     }).start();
-  }, [themeMode]);
+  }, [themeMode, presencia]);
 
   const setThemeMode = (mode: ThemeMode) => {
-    // Web: instant theme change, no animation
-    if (isWeb) {
-      setThemeModeState(mode);
-      return;
-    }
-
-    // Mobile: animated transition
-    const currentDark = theme.dark;
-    const targetDark = mode === 'dark';
-
-    if (currentDark !== targetDark) {
-      if (currentDark) {
-        darkOverlay.setValue(1);
-        needsFadeRef.current = 'dark';
-      } else {
-        lightOverlay.setValue(1);
-        needsFadeRef.current = 'light';
-      }
-    }
-
+    /*
+     * Solo se hunde si de verdad hay cambio. Pedir el tema que ya tienes no
+     * debe parpadear, y un toque repetido tampoco: `timing` sobre el mismo
+     * valor interrumpe al anterior, así que dos cambios seguidos encadenan sin
+     * acumularse.
+     */
+    if (mode !== themeMode) presencia.setValue(PRESENCIA_MINIMA);
     setThemeModeState(mode);
   };
 
-  // Web: simple wrapper without overlays
-  if (isWeb) {
-    return (
-      <ThemeContext.Provider value={{ theme, themeMode, setThemeMode }}>
-        <View style={styles.wrapper}>{children}</View>
-      </ThemeContext.Provider>
-    );
-  }
-
-  // Mobile: wrapper with animated overlays
+  /*
+   * Un solo envoltorio para móvil y web. La bifurcación anterior existía porque
+   * el telón opaco quedaba fatal en el navegador; sin telón no hace falta, y el
+   * cambio de identidad se siente igual en los tres sitios.
+   */
   return (
     <ThemeContext.Provider value={{ theme, themeMode, setThemeMode }}>
-      <View style={styles.wrapper}>
-        {children}
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.overlay, styles.overlayWhite, { opacity: lightOverlay }]}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.overlay, styles.overlayBlack, { opacity: darkOverlay }]}
-        />
-      </View>
+      <Animated.View style={[styles.wrapper, { opacity: presencia }]}>{children}</Animated.View>
     </ThemeContext.Provider>
   );
 };
@@ -210,16 +212,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-  },
-  overlayWhite: {
-    backgroundColor: '#FFFFFF',
-  },
-  overlayBlack: {
-    backgroundColor: '#0A0A0A',
   },
 });
 
