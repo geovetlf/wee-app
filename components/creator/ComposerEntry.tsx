@@ -58,6 +58,21 @@ interface ComposerEntryProps {
    * elige la persona en el compositor.
    */
   seccion?: string;
+  /**
+   * Dónde está puesta la tarjeta. Solo cambia QUÉ SE VE a la izquierda del
+   * campo, nada más:
+   *
+   * · `'muro'` (lo de siempre, y lo que sale si no se dice nada) — tu cara, que
+   *   recuerda con qué perfil vas a publicar. Es lo correcto dentro de un muro
+   *   de sección, donde tu avatar no está en ninguna otra parte de la pantalla.
+   *
+   * · `'home'` — un "+" amarillo. En el Home tu cara ya está dos dedos más
+   *   arriba, en el saludo, así que repetirla no informaba de nada y sí quitaba
+   *   sitio; el "+" dice lo único que faltaba por decir: aquí se crea.
+   *
+   * No cambia ninguna acción, ningún destino y nada de lo que se publica.
+   */
+  variante?: 'muro' | 'home';
 }
 
 /*
@@ -79,10 +94,19 @@ const ATAJOS: { id: string; icon: string; etiqueta: string; kind: ComposerKind }
   { id: 'encuesta', icon: 'bar-chart-outline', etiqueta: 'Encuesta', kind: 'poll' },
 ];
 
-const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, compact, seccion }) => {
+const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, compact, seccion, variante = 'muro' }) => {
   const { theme } = useTheme();
   const { userProfile } = useUserProfile();
   const destinoActual = seccion || MURO_GENERAL;
+
+  /*
+   * El "+" se hunde un poco al tocarlo. Es la respuesta más barata que existe
+   * —una escala, en el hilo nativo, sin librerías— y es la que convierte un
+   * icono en un botón: sin ella el dedo no sabe si la pulsación entró.
+   */
+  const pulsacion = useRef(new Animated.Value(1)).current;
+  const hundir = (hasta: number) =>
+    Animated.spring(pulsacion, { toValue: hasta, useNativeDriver: true, speed: 40, bounciness: 4 }).start();
 
   /*
    * ─── Cerrada por defecto ──────────────────────────────────────────────────
@@ -113,9 +137,23 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
   const tocarCampo = () => (desplegable && !abierta ? setAbierta(true) : onCompose('post'));
 
   return (
-    <View style={[styles.composer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+    <View style={[styles.composer, variante === 'home' && styles.composerHome, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
       <View style={styles.composerTop}>
-        {userProfile ? (
+        {variante === 'home' ? (
+          <Animated.View style={{ transform: [{ scale: pulsacion }] }}>
+            <TouchableOpacity
+              onPress={() => onCompose('post')}
+              onPressIn={() => hundir(0.92)}
+              onPressOut={() => hundir(1)}
+              activeOpacity={0.85}
+              style={[styles.crear, { backgroundColor: theme.colors.accent }]}
+              accessibilityRole="button"
+              accessibilityLabel="Crear una publicación"
+            >
+              <Ionicons name="add" size={scale(26)} color="#1F2937" />
+            </TouchableOpacity>
+          </Animated.View>
+        ) : userProfile ? (
           <AvatarDisplay
             size={scale(40)}
             avatarType={userProfile.avatarType || 'predefined'}
@@ -141,8 +179,13 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
           <Text style={[styles.composerPlaceholder, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {placeholder}
           </Text>
-          {/* Va dentro del mismo botón: decora el campo, no promete otra acción. */}
-          {!compact && <Ionicons name="happy-outline" size={scale(19)} color={theme.colors.textSecondary} />}
+          {/*
+            La carita decoraba el campo, y en un teléfono de 375 puntos le quitaba
+            sitio a la única frase que tiene que leerse entera: "¿Qué quieres
+            compartir?" se cortaba a media palabra. En el Home manda el texto.
+            En los muros de sección la frase es más corta y la carita se queda.
+          */}
+          {!compact && variante !== 'home' && <Ionicons name="happy-outline" size={scale(19)} color={theme.colors.textSecondary} />}
         </TouchableOpacity>
         {/* Abrir y cerrar. Girar el chevron cuenta el gesto en los dos sentidos. */}
         {desplegable && (
@@ -278,6 +321,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  /*
+   * En el Home la tarjeta ciñe: el "+" ya mide 44 y es lo más alto que hay
+   * dentro, así que el aire de arriba y abajo puede ser el justo. Diez puntos
+   * menos de tarjeta son diez puntos más de muro, y aquí arriba eso se nota.
+   */
+  composerHome: {
+    paddingVertical: SPACING.sm,
+  },
   composerTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,6 +353,18 @@ const styles = StyleSheet.create({
     height: scale(40),
     borderRadius: scale(20),
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /*
+   * El "+" del Home. 44 de lado sin escalar —lo que se toca no encoge en web— y
+   * el único amarillo de la tarjeta cerrada: hay una sola acción principal aquí
+   * y se ve de un vistazo cuál es.
+   */
+  crear: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

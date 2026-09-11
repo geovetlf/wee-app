@@ -82,6 +82,15 @@ const CARD_MAX_WIDTH = 700; // Ancho máximo del feed en desktop
 const MIN_IMAGE_HEIGHT = scale(200);
 const MAX_IMAGE_HEIGHT = scale(500);
 
+/*
+ * El área que se puede tocar en los botones de una publicación.
+ *
+ * Los iconos miden 20 puntos y el dedo necesita 44. Se añade POR FUERA, con
+ * `hitSlop`: nada se mueve de sitio, nada cambia de tamaño y la fila de
+ * acciones se ve exactamente igual que antes — solo deja de fallar el toque.
+ */
+const AREA_TACTIL = { top: 10, bottom: 10, left: 6, right: 6 };
+
 const getCarouselWidth = (maxWidth: number = CARD_MAX_WIDTH) => {
   const availableWidth = Math.min(screenWidth, scale(maxWidth));
   return availableWidth - (CARD_HORIZONTAL_PADDING * 2);
@@ -1052,7 +1061,7 @@ const PostCard: React.FC<PostCardProps> = ({
       <View style={styles.actions}>
         {/* De acuerdo (manito arriba) */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={handleVoteAgree}
           disabled={isVoting}
           activeOpacity={0.7}
@@ -1071,7 +1080,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* En desacuerdo (manito abajo) */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={handleVoteDisagree}
           disabled={isVoting}
           activeOpacity={0.7}
@@ -1090,7 +1099,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Comentarios */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={() => { if (!user) { navigateToRegister(); return; } onComment(post.id!); }}
           accessibilityLabel="Comentar"
           activeOpacity={0.7}
@@ -1107,7 +1116,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Repost */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={() => { if (!user) { navigateToRegister(); return; } toggleRepost(); }}
           disabled={isReposting}
           activeOpacity={0.7}
@@ -1127,7 +1136,7 @@ const PostCard: React.FC<PostCardProps> = ({
         {/* Mensaje privado - ocultar si es post propio o del autor del displayPost */}
         {!isOwnPost && postAuthor && displayPost.userId !== activeProfile?.uid && displayPost.userId !== user?.uid && (
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.actionButton} hitSlop={AREA_TACTIL}
             onPress={() => { if (!user) { navigateToRegister(); return; } onPrivateMessage(displayPost.userId, {
               displayName: postAuthor.displayName || 'Usuario',
               avatarType: postAuthor.avatarType,
@@ -1146,7 +1155,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Guardar */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={() => { if (!user) { navigateToRegister(); return; } toggleBookmark(targetPostId); }}
           activeOpacity={0.7}
           accessibilityLabel={isBookmarked ? 'Quitar de Guardados' : 'Guardar'}
@@ -1160,7 +1169,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Compartir */}
         <TouchableOpacity
-          style={styles.actionButton}
+          style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={handleShare}
           disabled={isSharing}
           activeOpacity={0.7}

@@ -50,10 +50,10 @@ import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communit
 import { downloadVideoWithWatermark } from '../services/videoDownload';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import WeelsRow from '../components/WeelsRow';
-import HeroCarousel from '../components/HeroCarousel';
+import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
+import { HOME_SECTION_FILTERS, HomeSectionId, filterBySection } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
-import { FEED_FILTER_OPTIONS, filterPosts } from '../utils/feedFilters';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -690,8 +690,9 @@ const LandingScreen: React.FC = () => {
   const [trendingIndex, setTrendingIndex] = useState(0);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
-  // Filtro de "Creado por la comunidad": Publicaciones · Imágenes · Videos · Preguntas · Tutoriales
-  type FeedFilter = 'all' | 'images' | 'videos' | 'questions' | 'tutorials';
+  // Filtro del muro: Todo · WeeStudio · WeeTravel · WeeMusic · WeeChef
+  /* Las pastillas del Home son SECCIONES de Weë, no tipos de archivo. */
+  type FeedFilter = HomeSectionId;
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1061,6 +1062,18 @@ const LandingScreen: React.FC = () => {
     }
   };
 
+  /*
+   * La lupa del saludo. Abre la pantalla de Buscar que ya existe —la misma de la
+   * barra de abajo, con sus personas, hashtags y publicaciones—: aquí no hay un
+   * buscador nuevo, solo otra puerta al de siempre.
+   * Buscar es una pestaña, así que se sube un nivel: HomeStack → TabNavigator.
+   */
+  const irABuscar = () => {
+    const tabNavigation = navigation.getParent();
+    if (tabNavigation) (tabNavigation as any).navigate('Search');
+    else (navigation as any).navigate('Search');
+  };
+
   const handlePostPress = (post: Post) => {
     // HomeStack -> TabNavigator -> MainStack
     const tabNavigation = navigation.getParent();
@@ -1142,8 +1155,8 @@ const LandingScreen: React.FC = () => {
     navigation.navigate('Notifications' as any);
   };
 
-  // Hero: carrusel de 4 banners de diseño (docs/UX.md §16)
-  const renderHero = () => <HeroCarousel />;
+  // Lo primero del Home: tu cara, tu nombre y la lupa. Nada encima del muro.
+  const renderHero = () => <HomeGreeting onSearch={irABuscar} />;
 
   /*
    * La puerta de publicar, la misma que los muros de sección.
@@ -1170,7 +1183,7 @@ const LandingScreen: React.FC = () => {
    */
   const renderComposer = () => (
     <View style={styles.composerSlot}>
-      <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} />
+      <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" />
     </View>
   );
 
@@ -1615,9 +1628,49 @@ const LandingScreen: React.FC = () => {
     );
   };
 
+  /*
+   * ẄALL Y ẄELLS.
+   *
+   * Las dos caras del Home: el muro y los videos cortos. No son botones ni
+   * tarjetas —eso pesaría más que el contenido que presentan—: son dos palabras
+   * y una raya amarilla debajo de la que está puesta.
+   *
+   * La raya va PEGADA A LA PALABRA, no de lado a lado de su mitad de pantalla.
+   * Un subrayado de media pantalla se lee como una pestaña de navegador; uno del
+   * ancho de la palabra se lee como "estás aquí", que es lo que hace falta.
+   *
+   * Lo que hacen no cambia: siguen llamando al `scrollToTab` de siempre, y la
+   * barra transparente sigue siendo la misma barra pintada para el modo oscuro
+   * de los Weëls. Aquí solo cambia cómo se ve.
+   */
   const renderTabBar = useCallback((transparent = false) => {
     // For cross-fade: normal tab bar always highlights "Wall", transparent always highlights "Weëls"
     const highlightedTab = transparent ? 'weels' : 'flow';
+    const pestana = (tab: 'flow' | 'weels', etiqueta: string, descripcion: string) => {
+      const puesta = highlightedTab === tab;
+      const color = transparent
+        ? (puesta ? 'white' : 'rgba(255,255,255,0.6)')
+        : (puesta ? theme.colors.text : theme.colors.textSecondary);
+      return (
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => scrollToTab(tab)}
+          activeOpacity={0.7}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: puesta }}
+          accessibilityLabel={descripcion}
+        >
+          <View style={[
+            styles.tabIndicator,
+            puesta && { borderBottomColor: transparent ? 'white' : theme.colors.accent },
+          ]}>
+            <Text style={[styles.tabItemText, { color }, puesta && styles.tabItemTextActive]}>
+              {etiqueta}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    };
     return (
       <View style={[
         styles.tabBar,
@@ -1626,58 +1679,36 @@ const LandingScreen: React.FC = () => {
           backgroundColor: transparent ? 'transparent' : theme.colors.background,
         },
       ]}>
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            highlightedTab === 'flow' && { borderBottomColor: transparent ? 'white' : theme.colors.accent },
-          ]}
-          onPress={() => scrollToTab('flow')}
-          activeOpacity={0.7}
-        >
-          <Text style={[
-            styles.tabItemText,
-            { color: transparent
-              ? (highlightedTab === 'flow' ? 'white' : 'rgba(255,255,255,0.6)')
-              : (highlightedTab === 'flow' ? theme.colors.text : theme.colors.textSecondary) },
-            highlightedTab === 'flow' && styles.tabItemTextActive,
-          ]}>
-            Comunidad
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            highlightedTab === 'weels' && { borderBottomColor: transparent ? 'white' : theme.colors.accent },
-          ]}
-          onPress={() => scrollToTab('weels')}
-          activeOpacity={0.7}
-        >
-          <Text style={[
-            styles.tabItemText,
-            { color: transparent
-              ? (highlightedTab === 'weels' ? 'white' : 'rgba(255,255,255,0.6)')
-              : (highlightedTab === 'weels' ? theme.colors.text : theme.colors.textSecondary) },
-            highlightedTab === 'weels' && styles.tabItemTextActive,
-          ]}>
-            Weëls
-          </Text>
-        </TouchableOpacity>
+        {pestana('flow', 'Ẅall', 'Ẅall, el muro de la comunidad')}
+        {pestana('weels', 'Ẅells', 'Ẅells, los videos cortos')}
       </View>
     );
   }, [theme, scrollToTab]);
 
   // Feed filtrado según el chip elegido
-  const filteredFeedPosts = useMemo(() => filterPosts(feedPosts, feedFilter), [feedPosts, feedFilter]);
+  const filteredFeedPosts = useMemo(() => filterBySection(feedPosts, feedFilter), [feedPosts, feedFilter]);
 
-  const FEED_FILTERS: { id: FeedFilter; label: string }[] = FEED_FILTER_OPTIONS;
+  const FEED_FILTERS: { id: FeedFilter; label: string }[] = HOME_SECTION_FILTERS;
 
+  /*
+   * Las pastillas de sección.
+   *
+   * Bajas de altura porque son un filtro, no una acción principal; cómodas de
+   * tocar porque el `hitSlop` les añade por fuera lo que no se les da por
+   * dentro. Así se puede tener las dos cosas: una fila ligera y un objetivo
+   * táctil de sobra.
+   *
+   * La inactiva lleva borde: sobre el blanco del Home, un gris tan claro sin
+   * borde no se lee como algo que se pueda tocar.
+   */
   const renderFeedFilters = () => (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.feedFiltersRow}
       style={{ backgroundColor: theme.colors.background }}
+      directionalLockEnabled
+      nestedScrollEnabled
     >
       {FEED_FILTERS.map((f) => {
         const active = feedFilter === f.id;
@@ -1686,10 +1717,17 @@ const LandingScreen: React.FC = () => {
             key={f.id}
             style={[
               styles.feedFilterChip,
-              { backgroundColor: active ? theme.colors.accent : theme.colors.surface },
+              {
+                backgroundColor: active ? theme.colors.accent : theme.colors.surface,
+                borderColor: active ? theme.colors.accent : theme.colors.border,
+              },
             ]}
             onPress={() => setFeedFilter(f.id)}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`Filtrar: ${f.label}`}
           >
             <Text style={[styles.feedFilterText, { color: active ? '#1F2937' : theme.colors.text }, active && styles.feedFilterTextActive]}>
               {f.label}
@@ -1700,11 +1738,20 @@ const LandingScreen: React.FC = () => {
     </ScrollView>
   );
 
-  // Fila de Weëls: videos cortos de la comunidad; lleva a la pestaña Weëls o a crear el primero
+  /*
+   * Fila de Weëls: videos cortos de la comunidad; lleva a la pestaña Weëls o a
+   * crear el primero.
+   *
+   * Va sobre el fondo de la pantalla, sin franja gris propia. Saludo, compositor
+   * y Weëls son tres pasos de una misma bienvenida, y pintar uno de otro color
+   * los partía en bloques pegados. Lo único que se despega del fondo en todo el
+   * Home es la tarjeta de publicar, que es donde se actúa.
+   */
   const renderWeelsRow = () => (
-    <View style={{ backgroundColor: theme.colors.surface }}>
+    <View style={{ backgroundColor: theme.colors.background }}>
       <WeelsRow
         posts={videoPosts}
+        compacta
         onOpenWeels={() => scrollToTab('weels')}
         onCreateWeel={() => {
           const mainNavigation = navigation.getParent()?.getParent();
@@ -1799,11 +1846,11 @@ const LandingScreen: React.FC = () => {
       >
         {/* Normal header (dark icons, solid bg) — visible on Wall */}
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: headerNormalOpacity }]} pointerEvents={isWeelsMode ? 'none' : 'auto'}>
-          <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} />
+          <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} conMarca />
         </Animated.View>
         {/* Transparent header (white icons) — visible on Weëls */}
         <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isWeelsMode ? 'auto' : 'none'}>
-          <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} transparent />
+          <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} transparent conMarca />
         </Animated.View>
       </View>
       {/* StatusBar — after Headers so it takes precedence */}
@@ -1960,8 +2007,8 @@ const styles = StyleSheet.create({
   /* El sitio del compositor en el Home: el mismo aire que tenía el bloque anterior. */
   composerSlot: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.sm,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xs,
   },
   weelsSection: {
     paddingTop: SPACING.lg,
@@ -2007,13 +2054,15 @@ const styles = StyleSheet.create({
   },
   feedFiltersRow: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
     gap: SPACING.sm,
   },
   feedFilterChip: {
-    height: scale(32),
-    paddingHorizontal: SPACING.md,
+    height: scale(34),
+    paddingHorizontal: SPACING.lg,
     borderRadius: BORDER_RADIUS.full,
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
   },
   feedFilterText: {
@@ -2365,9 +2414,14 @@ const styles = StyleSheet.create({
   },
 
   // Feed
+  /*
+   * La juntura entre los Weëls y el muro. Antes eran 20 puntos de margen más 8
+   * de franja: 28 puntos de nada justo donde la persona está bajando a buscar
+   * contenido. Ahora separa sin costar media pantalla.
+   */
   feedSeparator: {
-    height: scale(8),
-    marginTop: SPACING.xl,
+    height: scale(6),
+    marginTop: SPACING.sm,
   },
 
   // Tab bar (Flow / Weels) — shared between inline and sticky
@@ -2386,7 +2440,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  /* La raya del ancho de la palabra, con un respiro entre la letra y la línea. */
+  tabIndicator: {
+    paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING.sm,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },

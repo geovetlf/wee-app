@@ -1,9 +1,9 @@
 /**
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
- * Estructura: Header → carrusel de 4 banners de diseño → publicar → Weëls →
- * Creado por la comunidad (feed con filtros simples). Solo lo esencial: nada de
- * catálogos, categorías ni herramientas en el Home.
+ * Estructura: Header → saludo y buscar → publicar → Weëls → Ẅall · Ẅells con
+ * las pastillas de sección. Solo lo esencial: nada de catálogos, categorías ni
+ * herramientas en el Home.
  *
  * Donde estaba el bloque de Comunidades va ahora la puerta de publicar, la misma
  * que usan los muros de sección. A Comunidades se llega por Buscar, en la barra
@@ -19,9 +19,9 @@ import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
-import HeroCarousel from '../components/HeroCarousel';
+import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
-import { FEED_FILTER_OPTIONS, FeedFilterId, filterPosts } from '../utils/feedFilters';
+import { HOME_SECTION_FILTERS, HomeSectionId, filterBySection } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
@@ -37,7 +37,7 @@ const WebLandingScreen: React.FC = () => {
   const [weels, setWeels] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [feedFilter, setFeedFilter] = useState<FeedFilterId>('all');
+  const [feedFilter, setFeedFilter] = useState<HomeSectionId>('all');
   /*
    * La portada web no paginaba: enseñaba la primera tanda y ahí se acababa. Con
    * el filtro de destinos eso puede dejar fuera publicaciones perfectamente
@@ -105,7 +105,7 @@ const WebLandingScreen: React.FC = () => {
       .catch((error) => console.error('Error loading Weëls:', error));
   }, []);
 
-  const filteredPosts = useMemo(() => filterPosts(posts, feedFilter), [posts, feedFilter]);
+  const filteredPosts = useMemo(() => filterBySection(posts, feedFilter), [posts, feedFilter]);
 
   /*
    * ABRIR EL COMPOSITOR, SUBIENDO DOS NIVELES.
@@ -165,14 +165,15 @@ const WebLandingScreen: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: theme.colors.background, overflow: 'hidden' }}>
-      {/* Header fijo: ☰ · Weë · Credits · campana / Iniciar sesión */}
+      {/* Header fijo: ☰ · Weë · Real/WEE · campana. Los Credits viven en el ☰. */}
       <div style={{ flexShrink: 0, zIndex: 100 }}>
-        <Header onNotificationsPress={() => navigation.navigate('Notifications')} onMenuPress={() => setDrawerVisible(true)} />
+        <Header onNotificationsPress={() => navigation.navigate('Notifications')} onMenuPress={() => setDrawerVisible(true)} conMarca />
       </div>
 
+      {/* Al bajar, la barra de navegación se aparta; al subir, vuelve. */}
       <div onScroll={reportarScroll} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-        {/* Carrusel de 4 banners de diseño */}
-        <HeroCarousel />
+        {/* Quién eres y dónde buscar. Poco alto: el muro empieza enseguida. */}
+        <HomeGreeting onSearch={() => navigation.navigate('Search')} />
 
         {/*
           La puerta de publicar, la misma de los muros de sección. No publica aquí:
@@ -180,29 +181,77 @@ const WebLandingScreen: React.FC = () => {
           Ubicación y Encuesta. Sin sección de origen, así que el compositor
           preselecciona el muro general.
         */}
-        <div style={{ padding: '16px 16px 8px' }}>
-          <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} />
+        <div style={{ padding: '4px 16px' }}>
+          <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" />
         </div>
 
         {/* Weëls */}
-        <WeelsRow posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
+        <WeelsRow compacta posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
 
         {/* Creado por la comunidad */}
         <div style={{ padding: '8px 16px 100px' }}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Creado por la comunidad</Text>
+          {/*
+            Las dos experiencias del Home: el muro y los videos cortos.
+            Ẅall es lo que se está viendo; Ẅells abre el visor de Weëls que ya
+            existía —el mismo `handleOpenWeels` de la fila de arriba—, así que
+            aquí no hay un segundo feed, solo otra puerta al de siempre.
+          */}
+          <View style={[styles.experiencias, { borderBottomColor: theme.colors.border }]}>
+            {/*
+              `aria-selected` y `aria-pressed` van escritos a mano a propósito.
+              React Native Web no traduce `accessibilityState` a ningún atributo
+              del navegador —se comprobó en el DOM: el botón sale sin estado—,
+              así que con un lector de pantalla no había forma de saber qué
+              pestaña ni qué filtro estaban puestos. En el móvil manda
+              `accessibilityState`, que ahí sí funciona; aquí, el atributo.
+            */}
+            <View style={styles.experiencia} accessibilityRole="tab" accessibilityState={{ selected: true }} aria-selected>
+              <View style={[styles.experienciaIndicador, { borderBottomColor: theme.colors.accent }]}>
+                <Text style={[styles.experienciaTexto, { color: theme.colors.text, fontWeight: FONT_WEIGHT.semibold }]}>Ẅall</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.experiencia}
+              onPress={handleOpenWeels}
+              activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: false }}
+              aria-selected={false}
+              accessibilityLabel="Ẅells, los videos cortos"
+            >
+              <View style={styles.experienciaIndicador}>
+                <Text style={[styles.experienciaTexto, { color: theme.colors.textSecondary, fontWeight: FONT_WEIGHT.medium }]}>Ẅells</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filtersScroll}>
-            {FEED_FILTER_OPTIONS.map((f) => {
+            {HOME_SECTION_FILTERS.map((f) => {
               const active = feedFilter === f.id;
               return (
                 <TouchableOpacity
                   key={f.id}
                   onPress={() => setFeedFilter(f.id)}
-                  style={[styles.chip, { backgroundColor: active ? theme.colors.accent : theme.colors.surface }]}
+                  style={[styles.chip, {
+                    backgroundColor: active ? theme.colors.accent : theme.colors.surface,
+                    borderColor: active ? theme.colors.accent : theme.colors.border,
+                  }]}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
                   accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  aria-pressed={active}
                   accessibilityLabel={`Filtrar: ${f.label}`}
                 >
-                  <Text style={[styles.chipText, { color: '#1F2937', fontWeight: active ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]}>{f.label}</Text>
+                  {/*
+                    El texto de la pastilla apagada toma el color del tema, no un
+                    gris fijo. Con el Perfil Weë el fondo de la pastilla es casi
+                    negro, y el gris oscuro de antes desaparecía encima: cuatro de
+                    las cinco secciones quedaban ilegibles en modo oscuro.
+                  */}
+                  <Text style={[styles.chipText, {
+                    color: active ? '#1F2937' : theme.colors.text,
+                    fontWeight: active ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium,
+                  }]}>{f.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -288,6 +337,30 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
     marginBottom: SPACING.sm,
   },
+  /*
+   * Ẅall y Ẅells. La misma idea que en el móvil: dos palabras y una raya del
+   * ancho de la palabra debajo de la que está puesta. Ni tarjetas ni botones:
+   * presentan el contenido, no compiten con él.
+   */
+  experiencias: {
+    flexDirection: 'row',
+    marginBottom: SPACING.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  experiencia: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: SPACING.sm,
+  },
+  experienciaIndicador: {
+    paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  experienciaTexto: {
+    fontSize: FONT_SIZE.base,
+  },
   filtersScroll: {
     marginBottom: SPACING.md,
   },
@@ -296,9 +369,10 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.lg,
   },
   chip: {
-    height: scale(32),
-    paddingHorizontal: SPACING.md,
+    height: scale(34),
+    paddingHorizontal: SPACING.lg,
     borderRadius: BORDER_RADIUS.full,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -15,6 +15,13 @@ interface WeelsRowProps {
   posts: Post[];
   onOpenWeels: () => void;
   onCreateWeel: () => void;
+  /**
+   * Modo compacto para el Home: las tarjetas se encogen y la fila pesa menos.
+   * Ahí son accesos rápidos —como historias—, no las protagonistas de la
+   * pantalla; el muro empieza justo debajo y es lo que hay que ver.
+   * Solo cambia el tamaño: el contenido y lo que hace cada tarjeta son iguales.
+   */
+  compacta?: boolean;
 }
 
 /** Ejemplos de la referencia (design/canvas/Wave.dc.html): degradados oscuro, rosa, ámbar y azul. */
@@ -44,31 +51,78 @@ const PlayCircle: React.FC = () => (
  * Fila "Weëls" del Home (docs/UX.md): videos cortos de la comunidad, compartibles
  * fuera de Weë con su marca. Siempre visible: con Weëls reales o con ejemplos.
  */
-const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel }) => {
+const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, compacta }) => {
   const { theme } = useTheme();
   const hasPosts = posts.length > 0;
 
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, compacta && styles.sectionCompacta]}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Weëls</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Descubre videos creados por la comunidad.</Text>
+          {/*
+            Se llama Ẅells, como en la navegación de abajo. Un mismo sitio con
+            dos nombres en la misma pantalla obliga a la persona a averiguar si
+            son lo mismo; escribirlo igual evita la pregunta. Solo cambia lo que
+            se lee: los identificadores, las rutas y los datos siguen diciendo
+            "weel"/"weels" y no se tocan.
+          */}
+          <Text style={[styles.title, { color: theme.colors.text }]}>Ẅells</Text>
+          {/*
+            Compacta no lleva subtítulo. Una fila de miniaturas con un botón de
+            "+" delante ya se explica sola, y la frase solo empujaba el muro
+            hacia abajo. En los muros de sección, donde la fila es la sección,
+            se queda.
+          */}
+          {!compacta && (
+            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Descubre videos creados por la comunidad.</Text>
+          )}
         </View>
-        <TouchableOpacity activeOpacity={0.7} onPress={onOpenWeels} accessibilityLabel="Ver todos los Weëls">
-          <Text style={[styles.viewAll, { color: theme.colors.accentDark }]}>Ver todos →</Text>
+        {/*
+          Compacta lo escribe en el color del texto, no en dorado.
+          Dos motivos, y los dos tiran para el mismo lado: el dorado sobre blanco
+          da 2,3 a 1 de contraste —por debajo del mínimo legible para letra
+          pequeña— y en Weë el amarillo significa crear o elegir, no navegar.
+          "Ver todos" se sigue leyendo como enlace por la flecha y el peso.
+        */}
+        <TouchableOpacity activeOpacity={0.7} onPress={onOpenWeels} accessibilityRole="button" accessibilityLabel="Ver todos los Weëls" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={[styles.viewAll, { color: compacta ? theme.colors.text : theme.colors.accentDark }]}>Ver todos →</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {/* Crear un Weël: siempre primero */}
-        <TouchableOpacity style={styles.card} onPress={onCreateWeel} activeOpacity={0.85} accessibilityLabel="Crear un Weël">
-          <LinearGradient colors={['#F5B731', '#E5A020']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-          <View style={styles.plus}>
-            <Ionicons name="add" size={scale(22)} color="#1F2937" />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+        /* Que el gesto horizontal no le robe el scroll vertical al muro. */
+        directionalLockEnabled
+        nestedScrollEnabled
+      >
+        {/*
+          Crear un Weël: siempre primero.
+
+          Compacta lo pinta en claro, no en dorado macizo. Una tarjeta amarilla
+          entera al principio de la fila pesaba más que los Weëls de la gente,
+          que es lo que la fila viene a enseñar; y el amarillo, si está en todo,
+          deja de señalar nada. El "+" sigue siendo dorado: la acción se ve, pero
+          no se come la fila.
+        */}
+        <TouchableOpacity
+          style={[styles.card, compacta && styles.cardCompacta, compacta && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: StyleSheet.hairlineWidth }]}
+          onPress={onCreateWeel}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Crear un Weël"
+        >
+          {!compacta && <LinearGradient colors={['#F5B731', '#E5A020']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />}
+          <View style={[styles.plus, compacta && styles.plusCompacto, compacta && { backgroundColor: theme.colors.accent }]}>
+            <Ionicons name="add" size={scale(20)} color="#1F2937" />
           </View>
-          <Text style={styles.createText}>{hasPosts ? 'Crear Weël' : 'Tu primer Weël'}</Text>
-          <Text style={styles.createSub}>hasta 15 s</Text>
+          {/* Dos líneas: "Tu primer Weël" no cabe en una a 68 puntos y se cortaría. */}
+          <Text style={[styles.createText, compacta && { color: theme.colors.text }]} numberOfLines={2}>
+            {hasPosts ? 'Crear Weël' : 'Tu primer Weël'}
+          </Text>
+          {/* En 68 puntos de ancho, "hasta 15 s" es una tercera línea que aprieta. */}
+          {!compacta && <Text style={styles.createSub}>hasta 15 s</Text>}
         </TouchableOpacity>
 
         {hasPosts
@@ -77,7 +131,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel })
               return (
                 <TouchableOpacity
                   key={post.id}
-                  style={[styles.card, { backgroundColor: '#1F2937' }]}
+                  style={[styles.card, compacta && styles.cardCompacta, { backgroundColor: '#1F2937' }]}
                   onPress={onOpenWeels}
                   activeOpacity={0.85}
                   accessibilityLabel="Ver Weël"
@@ -88,7 +142,12 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel })
                     <LinearGradient colors={SAMPLES[0].colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                   )}
                   <PlayCircle />
-                  {typeof post.views === 'number' && post.views > 0 && (
+                  {/*
+                    Compacta no lleva cuentas. Son accesos rápidos, y un número
+                    de visitas encima de una miniatura de 74 puntos no ayuda a
+                    decidir: solo ensucia la imagen, que es lo que sí decide.
+                  */}
+                  {!compacta && typeof post.views === 'number' && post.views > 0 && (
                     <Text style={styles.views}>▶ {formatNumber(post.views)}</Text>
                   )}
                   <Watermark />
@@ -96,12 +155,17 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel })
               );
             })
           : SAMPLES.map((sample) => (
-              <TouchableOpacity key={sample.label} style={styles.card} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={`Ejemplo de Weël: ${sample.label}`}>
+              <TouchableOpacity key={sample.label} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={`Ejemplo de Weël: ${sample.label}`}>
                 <LinearGradient colors={sample.colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
-                <Text style={styles.sampleEmoji}>{sample.emoji}</Text>
+                {/*
+                  Compacta se queda con lo imprescindible: imagen, play, título
+                  corto y la marca. Emoji y duración encima de una tarjeta de 74
+                  puntos eran cinco cosas superpuestas y ninguna se leía bien.
+                */}
+                {!compacta && <Text style={styles.sampleEmoji}>{sample.emoji}</Text>}
                 <PlayCircle />
-                <Text style={styles.sampleLabel}>{sample.label}</Text>
-                <Text style={styles.duration}>0:15</Text>
+                <Text style={styles.sampleLabel} numberOfLines={1}>{sample.label}</Text>
+                {!compacta && <Text style={styles.duration}>0:15</Text>}
                 <Watermark />
               </TouchableOpacity>
             ))}
@@ -122,6 +186,12 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
     gap: SPACING.sm,
   },
+  /* Menos aire arriba y abajo: en el Home esta fila es un paso, no una parada. */
+  sectionCompacta: {
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
+    gap: SPACING.xs,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -134,16 +204,25 @@ const styles = StyleSheet.create({
     marginTop: scale(2),
   },
   title: {
-    fontSize: scale(18),
+    fontSize: scale(16),
     fontWeight: FONT_WEIGHT.semibold,
   },
   viewAll: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.medium,
   },
   row: {
     paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
+  },
+  /*
+   * Accesos rápidos, no contenido principal. Se bajan de 74×100 a 68×92: sigue
+   * siendo un rectángulo vertical —la proporción de un vídeo de móvil, así que
+   * las miniaturas no se deforman— y la fila entera pesa ocho puntos menos.
+   */
+  cardCompacta: {
+    width: scale(68),
+    height: scale(92),
   },
   card: {
     width: scale(92),
@@ -161,6 +240,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: scale(6),
+  },
+  plusCompacto: {
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    marginBottom: scale(4),
   },
   createText: {
     color: '#1F2937',
@@ -187,10 +272,17 @@ const styles = StyleSheet.create({
     left: scale(8),
     fontSize: scale(16),
   },
+  /*
+   * El título va ENCIMA de la marca, no a su lado. A 92 puntos de ancho —y peor
+   * a 74— un título y la marca de Weë en la misma línea se pisaban: la marca
+   * quedaba escrita sobre la última palabra. Apilados caben los dos y se leen
+   * los dos, en las dos medidas.
+   */
   sampleLabel: {
     position: 'absolute',
     left: scale(8),
-    bottom: scale(8),
+    right: scale(8),
+    bottom: scale(24),
     color: '#FFFFFF',
     fontSize: scale(10),
     fontWeight: FONT_WEIGHT.semibold,
@@ -204,10 +296,11 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
     opacity: 0.9,
   },
+  /* Mismo motivo que el título: encima de la marca, no compitiendo con ella. */
   views: {
     position: 'absolute',
     left: scale(8),
-    bottom: scale(8),
+    bottom: scale(24),
     color: '#FFFFFF',
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.semibold,

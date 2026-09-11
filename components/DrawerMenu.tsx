@@ -16,7 +16,7 @@ import {
 const isWeb = Platform.OS === 'web';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -57,6 +57,28 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
   const { nombreLista } = useIdentidadActiva();
   const navigation = useNavigation<any>();
+  /*
+   * ¿Estamos ya en el Home? La misma lectura que hace la barra de escritorio:
+   * la pestaña puesta dentro de `Main`, o la ruta suelta si estamos fuera de
+   * las pestañas. Sirve para dos cosas: encender la opción y no volver a
+   * navegar a donde ya estás.
+   */
+  const rutaActual = useNavigationState((estado) => {
+    if (!estado) return undefined;
+    const ruta = estado.routes[estado.index];
+    if (ruta.state) {
+      const pestanas = ruta.state as any;
+      return pestanas.routes[pestanas.index]?.name;
+    }
+    return ruta.name;
+  });
+  /*
+   * Dos nombres para el mismo sitio: `Home` es la pestaña y `Landing` la
+   * pantalla que hay dentro. Cuál de los dos llega depende de desde dónde se
+   * abra el cajón —desde el propio Home el navegador más cercano es su pila y
+   * responde `Landing`—, así que valen los dos.
+   */
+  const enHome = rutaActual === 'Home' || rutaActual === 'Landing';
   const insets = useSafeAreaInsets();
 
   const [myBusiness, setMyBusiness] = useState<Business | null>(null);
@@ -184,6 +206,18 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     closeDrawer();
   };
 
+  /*
+   * ─── Home ────────────────────────────────────────────────────────────────
+   *
+   * `Landing` es la pantalla de siempre, la misma que abre la barra inferior y
+   * la misma que ya usaba "Weëls" desde este cajón: no hay ningún Home nuevo.
+   *
+   * Si ya estás en ella no se navega. Volver a `navigate` a la pantalla en la
+   * que estás la remonta —pierdes la posición del muro— y no aporta nada; basta
+   * con cerrar el cajón, que es lo que la persona espera al tocar donde ya está.
+   */
+  const goHome = () => (enHome ? closeDrawer() : after(() => navigateTab('Home', { screen: 'Landing' })));
+
   // ── Explora ──
   const goCommunities = () => after(() => navigation.navigate('ExploreCommunities'));
   // Weëls vive en el Home (pestaña "Weëls" del Landing): abrimos el Home y saltamos a esa pestaña.
@@ -268,8 +302,17 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    */
   const renderDivisor = () => <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />;
 
+  /*
+   * El cajón, por encima de todo.
+   *
+   * Estaba en 50 y el encabezado de la web en 100, así que el encabezado lo
+   * pintaba encima y se comía los primeros cien píxeles del menú. Ahí vivían la
+   * cabecera de cuenta —tu nombre y qué perfil tienes activo— y, desde esta
+   * fase, "Home": la primera opción no llegaba a verse. Un menú que se abre por
+   * encima del contenido tiene que estar por encima también del encabezado.
+   */
   return (
-    <View style={[StyleSheet.absoluteFill, { zIndex: 50 }]} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, { zIndex: 150 }]} pointerEvents="box-none">
       <TouchableWithoutFeedback onPress={closeDrawer}>
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} />
       </TouchableWithoutFeedback>
@@ -318,6 +361,19 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             </View>
             <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
+
+          {/*
+            HOME, LA PRIMERA OPCIÓN.
+
+            Va antes de "PERFIL" y sin rótulo de grupo: no pertenece a ninguno,
+            es el sitio al que se vuelve. Se pinta aquí directamente, igual que
+            la barra de escritorio hace con su "Inicio", porque es un destino de
+            navegación y no una de las opciones del catálogo compartido.
+
+            Estando ya en el Home, tocarla solo cierra el cajón: navegar a donde
+            ya estás recarga la pantalla y pierde el sitio del muro.
+          */}
+          {renderRow('🏠', 'Home', goHome, { active: enHome })}
 
           {/* PERFIL */}
           {renderSectionLabel('PERFIL')}
