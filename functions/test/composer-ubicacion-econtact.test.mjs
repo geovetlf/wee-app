@@ -328,7 +328,7 @@ check(
 console.log('\n─── F. La pantalla "Agregar ubicación" ───');
 
 /* ── Estructura ── */
-check('cabecera: Cancelar a la izquierda y el título centrado', /accessibilityLabel="Cancelar"/.test(ubic) && /Agregar ubicación<\/Text>/.test(ubic));
+check('cabecera: Back a la izquierda y el título centrado', /accessibilityLabel="Back"[\s\S]{0,200}>Back<\/Text>/.test(ubic) && /Agregar ubicación<\/Text>/.test(ubic) && !/Cancelar/.test(ubic));
 check('el título va centrado de verdad, con un hueco igual a cada lado', /<View style={styles.cancelar} \/>/.test(ubic));
 check('marca de Weë, y nada más debajo', /weelogo/.test(ubic) && !/styles\.lema/.test(ubic));
 check('buscador redondeado con su texto de ayuda', /Buscar un lugar, ciudad o país/.test(ubic) && /borderRadius: BORDER_RADIUS\.full/.test(ubic));
@@ -419,7 +419,7 @@ check(
     /setUbicacion\(/.test(efectoVuelta)
 );
 check('el compositor enseña el lugar elegido como un chip con su aspa', /etiquetaDeLugar\(\{ place \}\)/.test(crear) && /accessibilityLabel="Quitar el lugar"/.test(crear) && !/>Cambiar</.test(crear));
-check('Cancelar vuelve sin tocar nada', /navigation\.goBack\(\)/.test(ubic));
+check('Back vuelve sin tocar nada', /onPress=\{\(\) => navigation\.goBack\(\)\}[\s\S]{0,200}accessibilityLabel="Back"/.test(ubic));
 
 /* ── Las dos capacidades siguen separadas ── */
 check(

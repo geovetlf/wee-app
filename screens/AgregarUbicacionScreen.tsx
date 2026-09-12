@@ -293,12 +293,13 @@ const AgregarUbicacionScreen: React.FC = () => {
           activeOpacity={0.7}
           style={styles.cancelar}
           accessibilityRole="button"
-          accessibilityLabel="Cancelar"
+          accessibilityLabel="Back"
         >
-          <Text style={[styles.cancelarTexto, { color: theme.colors.textSecondary }]}>Cancelar</Text>
+          {/* "Back" es la etiqueta de volver en todo Weë: sale sin tocar nada. */}
+          <Text style={[styles.cancelarTexto, { color: theme.colors.textSecondary }]}>Back</Text>
         </TouchableOpacity>
         <Text style={[styles.tituloCabecera, { color: theme.colors.text }]}>Agregar ubicación</Text>
-        {/* El mismo ancho que "Cancelar", para que el título quede centrado de
+        {/* El mismo ancho que "Back", para que el título quede centrado de
             verdad respecto a la pantalla y no respecto al hueco que le dejan. */}
         <View style={styles.cancelar} />
       </View>
@@ -409,7 +410,7 @@ const AgregarUbicacionScreen: React.FC = () => {
             Aquí NO hay botón de confirmar. Tocar un lugar ES elegirlo, y se
             vuelve al compositor en el mismo gesto: pedir un "Listo" después
             sería un paso de más para decir lo que ya se dijo al tocar.
-            Para salir sin elegir está "Cancelar", arriba.
+            Para salir sin elegir está "Back", arriba.
           */}
         </ScrollView>
       </EspacioDeEscritura>

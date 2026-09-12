@@ -413,7 +413,7 @@ check('y la vuelta usa merge, así que lo escrito sigue escrito', /merge: true/.
 check('no hay ninguna tarjeta del lugar ya elegido', !/Lugar de la publicación/.test(codigoPantalla) && !/pricetag-outline/.test(codigoPantalla));
 check('ni estado de lugar que pintar: aquí se busca y se elige', !/const \[place, setPlace\]/.test(codigoPantalla));
 check('quitar vive en el compositor —el aspa del chip— y "Ubicación" vuelve a abrir el selector', /accessibilityLabel="Quitar el lugar"/.test(compositor) && /onPress=\{abrirUbicacion\}/.test(compositor) && !/Cambiar la ubicación/.test(compositor));
-check('Cancelar sale sin tocar nada', /accessibilityLabel="Cancelar"/.test(pantalla) && /navigation\.goBack\(\)/.test(pantalla));
+check('Back sale sin tocar nada', /accessibilityLabel="Back"/.test(pantalla) && /navigation\.goBack\(\)/.test(pantalla) && !/Cancelar/.test(pantalla));
 
 console.log('\n' + (failures === 0 ? 'Todo en orden.' : `${failures} comprobacion(es) fallaron.`));
 process.exit(failures === 0 ? 0 : 1);

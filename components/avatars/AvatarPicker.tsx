@@ -294,9 +294,10 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
           ]}>
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-              <TouchableOpacity onPress={() => setShowPicker(false)}>
+              {/* Salir del selector sin elegir: "Back", la etiqueta de volver en todo Weë. */}
+              <TouchableOpacity onPress={() => setShowPicker(false)} accessibilityRole="button" accessibilityLabel="Back">
                 <Text style={[styles.cancelText, { color: theme.colors.textSecondary }]}>
-                  Cancelar
+                  Back
                 </Text>
               </TouchableOpacity>
               <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
