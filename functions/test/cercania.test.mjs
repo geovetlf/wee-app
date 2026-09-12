@@ -415,5 +415,31 @@ check('ni estado de lugar que pintar: aquí se busca y se elige', !/const \[plac
 check('quitar vive en el compositor —el aspa del chip— y "Ubicación" vuelve a abrir el selector', /accessibilityLabel="Quitar el lugar"/.test(compositor) && /onPress=\{abrirUbicacion\}/.test(compositor) && !/Cambiar la ubicación/.test(compositor));
 check('Back sale sin tocar nada', /accessibilityLabel="Back"/.test(pantalla) && /navigation\.goBack\(\)/.test(pantalla) && !/Cancelar/.test(pantalla));
 
+/*
+ * ─── La lista de resultados es una LISTA, no una colección de botones ───────
+ *
+ * Cada lugar es una línea: icono pequeño en un círculo crema, el nombre en
+ * oscuro y su región en gris, y un separador de un pelo hasta la siguiente.
+ * Sin tarjeta, sin marco, sin flecha. Lo que se toca es la fila entera —56 de
+ * alto como mínimo— y tocarla hace exactamente lo de siempre.
+ */
+console.log('\n── La lista, plana ──');
+const estilos = pantalla.slice(pantalla.indexOf('const styles = StyleSheet.create'));
+const filaEstilo = estilos.slice(estilos.indexOf('fila: {'), estilos.indexOf('filaPropia: {'));
+check('las filas no son tarjetas: sin marco, sin fondo, sin esquinas', !/borderWidth|borderRadius|backgroundColor/.test(filaEstilo) && !/styles\.fila, \{ backgroundColor: theme\.colors\.card, borderColor/.test(codigoPantalla));
+check('ni flechas al final', !/chevron-forward/.test(codigoPantalla));
+check('entre fila y fila, un separador de un pelo; la última, sin él', /!ultima && \{ borderBottomWidth: StyleSheet\.hairlineWidth, borderBottomColor: theme\.colors\.border \}/.test(codigoPantalla) && /ultima=\{i === resultados\.length - 1\}/.test(codigoPantalla) && /ultima=\{i === cercanos\.length - 1\}/.test(codigoPantalla) && /ultima=\{i === delPais\.length - 1\}/.test(codigoPantalla));
+check('la fila entera se toca, y mide al menos 56', /minHeight: 56,/.test(filaEstilo) && /onPress=\{\(\) => elegir\(opcion\)\}/.test(codigoPantalla));
+check('el icono es pequeño, outline y en un círculo crema de 32', /iconoCirculo: \{\s*width: scale\(32\),\s*height: scale\(32\),/.test(estilos) && /name=\{esPais \? 'earth-outline' : 'location-outline'\}\s*size=\{scale\(16\)\}/.test(codigoPantalla) && /theme\.colors\.accent \+ '1A'/.test(codigoPantalla));
+check('el nombre manda y la región acompaña en gris', /filaNombre: \{\s*fontSize: FONT_SIZE\.base,\s*fontWeight: FONT_WEIGHT\.semibold,/.test(estilos) && /filaSub: \{\s*fontSize: FONT_SIZE\.sm,/.test(estilos) && /styles\.filaSub, \{ color: theme\.colors\.textSecondary \}/.test(codigoPantalla));
+check('la distancia medida va al final de la línea, en dorado', codigoPantalla.indexOf('styles.filaDistancia') > codigoPantalla.indexOf('styles.filaSub') && /styles\.filaDistancia, \{ color: theme\.colors\.accentDark \}/.test(codigoPantalla) && /distanciaAproximada\(km\)/.test(codigoPantalla));
+check('"Usar lo que escribiste" sigue, apenas distinta: su icono, fondo casi nulo y aire encima', /styles\.fila, styles\.filaPropia, \{ backgroundColor: theme\.colors\.accent \+ '0F' \}/.test(codigoPantalla) && /name="create-outline"/.test(codigoPantalla) && /filaPropia: \{\s*marginTop: SPACING\.md,\s*borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /onPress=\{elegirEscrito\}/.test(codigoPantalla));
+check('los rótulos son pequeños y en mayúsculas, como "PUBLICAR EN"', /seccionTitulo: \{\s*fontSize: FONT_SIZE\.xs,[\s\S]{0,80}textTransform: 'uppercase',/.test(estilos) && /<Seccion titulo="Resultados" \/>/.test(codigoPantalla));
+check('cada fila se anuncia entera y dice qué pasa al tocarla', /accessibilityRole="button"\s*accessibilityLabel=\{opcion\.sublabel \? `\$\{opcion\.label\}, \$\{opcion\.sublabel\}` : opcion\.label\}\s*accessibilityHint=/.test(codigoPantalla) && /accessibilityHint="Etiqueta la publicación con lo que escribiste/.test(codigoPantalla));
+/* CONTROL: la lógica no se movió. La búsqueda, la vuelta y el buscador son los mismos. */
+check('CONTROL: la búsqueda es la misma llamada, con el mismo contexto y tope', /buscarLugares\(texto, 12, contextoBusqueda\)/.test(codigoPantalla) && /lugaresCercanos\(lectura\.latitude, lectura\.longitude, verTodos \? 24 : 6\)/.test(codigoPantalla) && /lugaresDelPais\(userProfile\?\.country, verTodos \? 24 : 6\)/.test(codigoPantalla));
+check('CONTROL: el buscador escribe, limpia y no cambió', /onChangeText=\{setTexto\}/.test(codigoPantalla) && /onPress=\{\(\) => setTexto\(''\)\}/.test(codigoPantalla) && /accessibilityLabel="Borrar la búsqueda"/.test(codigoPantalla) && /const buscando = texto\.trim\(\)\.length >= 2;/.test(codigoPantalla));
+check('CONTROL: sin imágenes de lugares, sin mapas, sin proveedores', (pantalla.match(/<Image/g) || []).length === 1 && !/MapView|maps\.googleapis|mapbox|foursquare|fetch\(/.test(codigoPantalla));
+
 console.log('\n' + (failures === 0 ? 'Todo en orden.' : `${failures} comprobacion(es) fallaron.`));
 process.exit(failures === 0 ? 0 : 1);

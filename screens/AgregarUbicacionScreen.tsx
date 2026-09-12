@@ -16,6 +16,7 @@ import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useLocation } from '../contexts/LocationContext';
+import { useResponsive } from '../hooks/useResponsive';
 import { aPublica, type UbicacionPublica } from '../utils/locationPrivacy';
 import {
   PlaceOption,
@@ -84,6 +85,8 @@ const AgregarUbicacionScreen: React.FC = () => {
   const ruta = useRoute<RutaProp>();
   const { userProfile } = useUserProfile();
   const ubicacionDeWee = useLocation();
+  /* En escritorio la lista no se estira de lado a lado: el mismo ancho que el compositor. */
+  const { contentMaxWidth } = useResponsive();
 
   /* La zona que ya traía el compositor, para devolverla tal cual al elegir.
      El LUGAR no se guarda aquí: esta pantalla es para buscar y elegir, y lo
@@ -228,21 +231,33 @@ const AgregarUbicacionScreen: React.FC = () => {
 
   // ─── Piezas ───────────────────────────────────────────────────────────────
 
-  /** Una fila de lugar. Icono en círculo, nombre y su país. Nunca una foto. */
-  const Fila: React.FC<{ opcion: PlaceOption; km?: number }> = ({ opcion, km }) => {
+  /**
+   * Una fila de lugar: una LÍNEA de una lista, no una tarjeta.
+   *
+   * Un icono pequeño en un círculo crema, el nombre en oscuro y su región y
+   * país en gris debajo; entre una fila y la siguiente, un separador de un
+   * pelo. Sin marco, sin fondo, sin flecha: la fila entera es lo que se toca
+   * —56 de alto como mínimo— y tocarla hace exactamente lo de siempre, elegir
+   * ese lugar y volver a la publicación. Nunca una foto.
+   *
+   * La distancia, cuando se ha medido de verdad, va al final de la línea, en
+   * dorado y pequeña: es un dato, no un adorno.
+   */
+  const Fila: React.FC<{ opcion: PlaceOption; km?: number; ultima?: boolean }> = ({ opcion, km, ultima }) => {
     const esPais = !opcion.countryCode;
     return (
       <TouchableOpacity
         onPress={() => elegir(opcion)}
-        activeOpacity={0.7}
-        style={[styles.fila, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+        activeOpacity={0.6}
+        style={[styles.fila, !ultima && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
         accessibilityRole="button"
         accessibilityLabel={opcion.sublabel ? `${opcion.label}, ${opcion.sublabel}` : opcion.label}
+        accessibilityHint="Elige este lugar y vuelve a la publicación"
       >
-        <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '24' }]}>
+        <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '1A' }]}>
           <Ionicons
             name={esPais ? 'earth-outline' : 'location-outline'}
-            size={scale(19)}
+            size={scale(16)}
             color={theme.colors.accentDark}
           />
         </View>
@@ -257,25 +272,25 @@ const AgregarUbicacionScreen: React.FC = () => {
           <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {opcion.sublabel || 'País'}
           </Text>
-          {/* La distancia solo cuando se ha podido calcular de verdad. */}
-          {km !== undefined && (
-            <Text style={[styles.filaDistancia, { color: theme.colors.accentDark }]} numberOfLines={1}>
-              {distanciaAproximada(km)}
-            </Text>
-          )}
         </View>
-        <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+        {/* La distancia solo cuando se ha podido calcular de verdad. */}
+        {km !== undefined && (
+          <Text style={[styles.filaDistancia, { color: theme.colors.accentDark }]} numberOfLines={1}>
+            {distanciaAproximada(km)}
+          </Text>
+        )}
       </TouchableOpacity>
     );
   };
 
+  /* El rótulo de cada bloque: pequeño, en mayúsculas y gris, como "PUBLICAR EN". */
   const Seccion: React.FC<{ titulo: string; accion?: string; onAccion?: () => void }> = ({
     titulo,
     accion,
     onAccion,
   }) => (
     <View style={styles.seccion}>
-      <Text style={[styles.seccionTitulo, { color: theme.colors.text }]}>{titulo}</Text>
+      <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</Text>
       {!!accion && (
         <TouchableOpacity onPress={onAccion} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={accion}>
           <Text style={[styles.seccionAccion, { color: theme.colors.accentDark }]}>{accion}</Text>
@@ -286,8 +301,8 @@ const AgregarUbicacionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* 1 · Cabecera */}
-      <View style={[styles.cabecera, { borderBottomColor: theme.colors.border }]}>
+      {/* 1 · Cabecera. Sin línea debajo: la pantalla es un solo flujo, como el compositor. */}
+      <View style={styles.cabecera}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
@@ -306,7 +321,7 @@ const AgregarUbicacionScreen: React.FC = () => {
 
       <EspacioDeEscritura style={styles.fill}>
         <ScrollView
-          contentContainerStyle={styles.contenido}
+          contentContainerStyle={[styles.contenido, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -341,23 +356,29 @@ const AgregarUbicacionScreen: React.FC = () => {
           </View>
 
 
-          {/* 5 · Resultados o lugares de tu país */}
+          {/* 5 · Resultados o lugares de tu país: una lista plana, sin tarjetas. */}
           {buscando ? (
             <>
               <Seccion titulo="Resultados" />
-              {resultados.map((o) => (
-                <Fila key={o.id} opcion={o} />
+              {resultados.map((o, i) => (
+                <Fila key={o.id} opcion={o} ultima={i === resultados.length - 1} />
               ))}
-              {/* Y si el catálogo no lo tiene, valen las palabras de la persona. */}
+              {/*
+                Y si el catálogo no lo tiene, valen las palabras de la persona.
+                Es la opción especial de la lista y se nota apenas: el icono de
+                escribir, un fondo crema casi imperceptible y un poco de aire
+                por encima. Ni tarjeta ni amarillo pesado.
+              */}
               <TouchableOpacity
                 onPress={elegirEscrito}
-                activeOpacity={0.7}
-                style={[styles.fila, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                activeOpacity={0.6}
+                style={[styles.fila, styles.filaPropia, { backgroundColor: theme.colors.accent + '0F' }]}
                 accessibilityRole="button"
                 accessibilityLabel={`Usar "${texto.trim()}" tal cual`}
+                accessibilityHint="Etiqueta la publicación con lo que escribiste y vuelve a ella"
               >
-                <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '24' }]}>
-                  <Ionicons name="create-outline" size={scale(19)} color={theme.colors.accentDark} />
+                <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '1A' }]}>
+                  <Ionicons name="create-outline" size={scale(16)} color={theme.colors.accentDark} />
                 </View>
                 <View style={styles.filaDatos}>
                   <Text style={[styles.filaNombre, { color: theme.colors.text }]} numberOfLines={1}>
@@ -365,7 +386,6 @@ const AgregarUbicacionScreen: React.FC = () => {
                   </Text>
                   <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]}>Tal y como lo escribiste</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </>
           ) : hayCercanos ? (
@@ -380,8 +400,8 @@ const AgregarUbicacionScreen: React.FC = () => {
                 accion={verTodos ? 'Ver menos' : 'Ver más'}
                 onAccion={() => setVerTodos((v) => !v)}
               />
-              {cercanos.map((c) => (
-                <Fila key={c.opcion.id} opcion={c.opcion} km={c.km} />
+              {cercanos.map((c, i) => (
+                <Fila key={c.opcion.id} opcion={c.opcion} km={c.km} ultima={i === cercanos.length - 1} />
               ))}
             </>
           ) : delPais.length > 0 ? (
@@ -396,8 +416,8 @@ const AgregarUbicacionScreen: React.FC = () => {
                 accion={verTodos ? 'Ver menos' : 'Ver más'}
                 onAccion={() => setVerTodos((v) => !v)}
               />
-              {delPais.map((o) => (
-                <Fila key={o.id} opcion={o} />
+              {delPais.map((o, i) => (
+                <Fila key={o.id} opcion={o} ultima={i === delPais.length - 1} />
               ))}
             </>
           ) : (
@@ -422,13 +442,14 @@ const styles = StyleSheet.create({
   pantalla: { flex: 1 },
   fill: { flex: 1 },
 
+  /* La cabecera, como la del compositor: sin línea, el título en el centro. */
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 56,
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: SPACING.xs,
   },
   cancelar: {
     width: scale(72),
@@ -440,25 +461,29 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.medium,
   },
   tituloCabecera: {
-    fontSize: FONT_SIZE.md,
+    fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: -0.3,
   },
 
+  /* Sin `gap`: las filas se separan con su pelo, y los bloques con su margen. */
   contenido: {
     padding: SPACING.lg,
+    paddingTop: SPACING.sm,
     paddingBottom: SPACING.xxxl * 2,
-    gap: SPACING.sm,
   },
 
+  /* La marca, discreta y con aire: presente, no protagonista. */
   marca: {
     alignItems: 'center',
-    gap: SPACING.xs,
-    marginBottom: SPACING.md,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.lg,
   },
   logo: {
     width: scale(86),
     height: scale(30),
   },
+  /* El buscador: blanco, borde de un punto, redondo, 48 de alto, sin sombra. */
   buscador: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,59 +500,74 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
 
-
+  /* El círculo del icono: pequeño y crema, 32 de lado. */
   iconoCirculo: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: scale(19),
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     alignItems: 'center',
     justifyContent: 'center',
   },
 
+  /*
+   * Una línea de la lista: sin marco, sin fondo, sin esquinas. 56 de alto como
+   * mínimo para que se toque sin apuntar; el separador se lo pone cada fila
+   * salvo la última.
+   */
   fila: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    minHeight: 64,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    minHeight: 56,
   },
-  filaDatos: { flex: 1 },
+  /* "Usar lo que escribiste": un poco de aire encima y esquinas para su fondo. */
+  filaPropia: {
+    marginTop: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  filaDatos: { flex: 1, minWidth: 0 },
+  /* El nombre manda; la región y el país acompañan en gris, más pequeños. */
   filaNombre: {
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },
   filaSub: {
-    fontSize: FONT_SIZE.xs,
-    marginTop: scale(2),
+    fontSize: FONT_SIZE.sm,
+    marginTop: 1,
   },
   filaDistancia: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    marginTop: scale(2),
+    fontVariant: ['tabular-nums'],
   },
 
+  /* El rótulo de cada bloque, pequeño y en mayúsculas, con su acción a la derecha. */
   seccion: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: SPACING.lg,
     marginBottom: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
   },
   seccionTitulo: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.semibold,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   seccionAccion: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
   },
 
   aviso: {
     fontSize: FONT_SIZE.sm,
     lineHeight: scale(20),
-    paddingHorizontal: SPACING.xs,
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.sm,
   },
 
 });
