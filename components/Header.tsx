@@ -26,7 +26,7 @@ const WEB_ICONS: Record<string, string> = {
 };
 
 /** La firma de marca del Home. Va debajo del logo y no se traduce. */
-const LEMA_DE_MARCA = 'Imagina · Crea · Comparte';
+const LEMA_DE_MARCA = 'Imagina · Crea · Conecta';
 
 interface HeaderProps {
   onNotificationsPress?: () => void;

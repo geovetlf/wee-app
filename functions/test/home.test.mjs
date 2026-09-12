@@ -152,7 +152,7 @@ console.log('\n── D · El Home abre diciendo quién eres ──');
    */
   check('17) ya no lleva una segunda frase debajo del nombre', !/Crea\. Conecta\. Sé tú\./.test(saludo));
   /* Control: el lema de la marca sí sigue existiendo, pero en el encabezado. */
-  check('18) control: la firma de marca sigue viva, arriba', /Imagina · Crea · Comparte/.test(leer('components/Header.tsx')));
+  check('18) control: la firma de marca sigue viva, arriba', /Imagina · Crea · Conecta/.test(leer('components/Header.tsx')));
   check('19) y con tu cara', /AvatarDisplay/.test(saludo));
   /*
    * El nombre y el avatar salen del PERFIL ACTIVO. Si vinieran de `useAuth`,
@@ -555,7 +555,7 @@ console.log('\n── M · La marca en el centro del Home ──');
   /* El lema, letra por letra: sin emojis, sin comillas y sin punto final. */
   const lema = /const LEMA_DE_MARCA = '([^']*)';/.exec(cabecera);
   check('102) el lema dice exactamente lo que tiene que decir',
-    !!lema && lema[1] === 'Imagina · Crea · Comparte',
+    !!lema && lema[1] === 'Imagina · Crea · Conecta',
     lema ? lema[1] : 'no encontrado');
 
   /*
