@@ -72,7 +72,7 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * texto en un móvil alto— y dos cajas grandes flotando en medio.
    */
   check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
-  check('110) y cada una dice lo que hace, no solo un icono', ['Foto o vídeo', 'Cámara', 'Ubicación', 'ËContact', 'Encuesta'].every((t) => crear.includes(`texto="${t}"`) || crear.includes(`'${t}'`)));
+  check('110) y cada una dice lo que hace, no solo un icono', ['Cámara', 'Multimedia', 'ËContact', 'Ubicación', 'Encuesta', 'Mis proyectos'].every((t) => crear.includes(`texto="${t}"`)));
 
   /*
    * ËContact es el nombre de la red de conexiones de Weë en todos los idiomas.
@@ -94,14 +94,14 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    */
   const bloqueAcciones = crear.slice(crear.indexOf('const renderAcciones'), crear.indexOf('const renderDestinos'));
   const ordenAcciones = [...bloqueAcciones.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
-  check('110) las cinco acciones van en el orden aprobado', ordenAcciones.join(' · ') === 'Cámara · Foto o vídeo · ËContact · Ubicación · Encuesta', ordenAcciones.join(' · '));
+  check('110) las seis acciones van en el orden aprobado', ordenAcciones.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos', ordenAcciones.join(' · '));
 
   /*
    * `MediaTypeOptions.All` está obsoleto y en el teléfono llegaba al selector de
    * Google SIN tipos MIME: solo enseñaba fotos, con el botón diciendo "Foto o
    * vídeo". La lista moderna sí pide las dos cosas. Comprobado en el aparato.
    */
-  check('110) foto y vídeo son la misma puerta, y se dice', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /Foto o vídeo/.test(crear));
+  check('110) foto y vídeo son la misma puerta, y se dice: Multimedia', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /texto="Multimedia"/.test(crear) && !/Foto o vídeo/.test(crear));
   // Sobre el USO, no sobre la palabra: el comentario que explica el cambio la nombra.
   check('110) y no queda ningún enum obsoleto pidiendo medios', !/ImagePicker\.MediaTypeOptions/.test(leer('screens/CreateScreen.tsx')));
 
@@ -114,11 +114,11 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
   check('110) luego lo que cuenta, y después con qué', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderAcciones()}'));
   check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
   check('110) los medios se ven antes que las acciones', crear.indexOf('{renderMediaPreview()}') < crear.indexOf('{renderAcciones()}'));
-  check('110) la cabecera dice qué estás haciendo', /Crear publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
+  check('110) la cabecera dice qué estás haciendo', /Nueva publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
   /* El control superior izquierdo dice "Back" y sigue haciendo lo mismo que
      hacía "Cancelar": cerrar la pantalla con `handleClose`. Los "Cancelar" de
      las alertas de permisos no cambian. */
-  check('110) arriba a la izquierda dice Back, con el mismo cierre de siempre', /onPress=\{handleClose\}[\s\S]{0,200}>Back<\/Text>/.test(crear) && !/>Cancelar<\/Text>/.test(crear));
+  check('110) arriba a la izquierda está el aspa de Back, con el mismo cierre de siempre', /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"[\s\S]{0,120}name="close"/.test(crear) && !/>Cancelar<\/Text>|>Back<\/Text>/.test(crear));
   /* Sobre el fuente crudo: `soloCodigo` se traga esos bloques (ver cabecera). */
   check('110) y las alertas de permisos conservan su Cancelar', (leer('screens/CreateScreen.tsx').match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
@@ -131,9 +131,10 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
    * nunca supo que había encuesta. Ahora las cinco están a la vista en dos filas.
    */
-  check('110) las herramientas son mosaicos y se ven las cinco sin arrastrar', /minHeight: 72,/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear));
-  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto o vídeo"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
-  check('110) y el campo de texto crece en vez de reservar el hueco', /minHeight: scale\(72\)/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
+  check('110) las herramientas van en una sola fila, las seis a la vista y sin arrastrar',
+    /acciones: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',\s*justifyContent: 'space-between'/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Multimedia"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) y el campo de texto es una hoja grande que crece, no un hueco fijo', /textInput: \{\s*minHeight: scale\(150\),/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
 
   /*
    * El hueco de doce por ciento que se vio en el teléfono venía de que la
@@ -141,8 +142,12 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * campo se metía entre las dos. Ahora van seguidas y el campo va después.
    */
   const fuenteCrear = leer('screens/CreateScreen.tsx');
-  check('111b) la pregunta y la ayuda van pegadas, antes del campo', fuenteCrear.indexOf('styles.textoPregunta') < fuenteCrear.indexOf('styles.textoAyuda') && fuenteCrear.indexOf('styles.textoAyuda') < fuenteCrear.indexOf('style={[styles.textInput'));
-  check('111b) y el campo ya no lleva la pregunta dentro', /placeholder=""/.test(crear));
+  /*
+   * Desde el rediseño del workspace la pregunta vuelve a ser el placeholder
+   * del campo —"Escribe algo…"— y no hay línea de ayuda: quien entra, escribe.
+   */
+  check('111b) la pregunta es el placeholder del campo y no hay línea de ayuda', /placeholder=\{composerPlaceholder\}/.test(fuenteCrear) && !/textoAyuda|Cuéntanos tu experiencia|textoPregunta/.test(fuenteCrear));
+  check('111b) y dentro del papel no hay emoji, # ni @', !/placeholder=""/.test(crear) && !/happy-outline|📹|'#'|'@'/.test(crear.slice(crear.indexOf('const renderTextInput'), crear.indexOf('const sinSitioParaMedios'))));
 
   /*
    * Y el defecto que encontró la validación: al elegir, el chip se ensanchaba
@@ -298,7 +303,7 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
   check('125) que dice cuánto llevas de cuánto cabe', /\{postText\.length\}\/\{maxTextLength\}/.test(crearCrudo));
 
   // Dónde publicar es una pregunta con su bloque, no el último campo del formulario.
-  check('125) dónde publicar se pregunta en voz alta', /¿Dónde quieres publicar\?/.test(crearCrudo) && /Puedes elegir una o más opciones\./.test(crearCrudo));
+  check('125) dónde publicar es un rótulo —PUBLICAR EN— sin pregunta ni explicación', /PUBLICAR EN/.test(crearCrudo) && !/¿Dónde quieres publicar\?|Puedes elegir una o más opciones|Elige una o más comunidades|Sugerir con IA|Tu publicación aparecerá/.test(crearCrudo));
   check('125) y no hay que arrastrar para ver los destinos', /flexWrap: 'wrap'/.test(crearCrudo));
 
   /*
@@ -321,13 +326,118 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
    * del catálogo de Weë para que no haya dos verdades.
    */
   check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
-  check('126) y el muro general lleva la suya, que no es una experiencia', /name="people"/.test(crearCrudo));
-  check('126) el aro cae siempre en el mismo sitio', /destinoFila: \{\s*flexDirection: 'row',\s*alignItems: 'center',\s*justifyContent: 'space-between',/.test(crearCrudo));
+  check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /name="globe-outline"/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
+  check('126) el aro cae siempre en el mismo sitio: pegado al borde derecho del chip', /destino: \{\s*flexGrow: 1,\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginLeft: 'auto',/.test(crearCrudo));
   // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.
-  check('126) y el nombre del destino cabe entero', crearCrudo.indexOf('styles.destinoFila') < crearCrudo.indexOf('styles.destinoTexto'));
+  check('126) y el nombre del destino cabe entero: encoge antes que cortarse', /destinoTexto: \{\s*flexShrink: 1,/.test(crearCrudo) && crearCrudo.indexOf('styles.destinoIcono') < crearCrudo.indexOf('styles.destinoTexto'));
 
   // Y el final de la pantalla respira: nada pegado al borde de abajo.
-  check('126) el contenido no queda pegado al fondo', /paddingBottom: SPACING\.xxl/.test(crearCrudo));
+  check('126) el contenido no queda pegado al botón de publicar', /scrollContent: \{[\s\S]{0,160}paddingBottom: SPACING\.xl,/.test(crearCrudo));
+}
+
+console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ──');
+{
+  const crudo = leer('screens/CreateScreen.tsx');
+  const pila = leer('navigation/MainStackNavigator.tsx');
+  const pestanas = leer('navigation/TabNavigator.tsx');
+  const bloque = (desde, hasta) => crudo.slice(crudo.indexOf(desde), crudo.indexOf(hasta));
+  const cabecera = bloque('const renderPublicar', 'const styles = StyleSheet.create').slice(0); // la cabecera va en el return, después de renderPublicar
+  const acciones = bloque('const renderAcciones', 'const renderDestinos');
+  const destinosJsx = bloque('const renderDestinos', 'const renderPublicar');
+  const publicar = bloque('const renderPublicar', 'const renderEContacts');
+  const papel = bloque('const renderTextInput', 'const sinSitioParaMedios');
+  const estilos = crudo.slice(crudo.indexOf('const styles = StyleSheet.create'));
+
+  /*
+   * UN SOLO WORKSPACE. Se rediseñó la pantalla que había, no se hizo otra: la
+   * ruta `Create` sigue montando `CreateWrapper` → `CreateScreen`, una vez, y
+   * el Home sigue llegando aquí con `directo` sin desplegar nada.
+   */
+  check('127a) Create sigue registrada una sola vez y monta el mismo CreateScreen',
+    (pila.match(/name="Create"\s*component=\{CreateWrapper\}/g) || []).length === 1 && (pila.match(/<CreateScreen \/>/g) || []).length === 2 && !/CreateScreen/.test(pestanas));
+  check('127a) y no hay un segundo compositor en el cliente', !fs.readdirSync(path.resolve(here, '../../screens')).some((f) => /Create.*Screen\.tsx$/.test(f) && f !== 'CreateScreen.tsx'));
+  check('127a) el Home sigue llegando directo, sin chevron ni pliegue', /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')) && /variante="home" directo/.test(leer('screens/LandingScreen.tsx')));
+  check('127a) y los muros de sección siguen plegándose', !/directo/.test(soloCodigo(leer('components/creator/SectionWall.tsx'))));
+
+  /* La cabecera: aspa de Back, "Nueva publicación" y un Publicar rápido que se apaga. */
+  check('127b) Back es el aspa, con el cierre de siempre: goBack', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crudo) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"[\s\S]{0,120}name="close"/.test(crudo));
+  check('127b) y no volvió Cancelar a la cabecera', !/>Cancelar<\/Text>/.test(crudo) && (crudo.match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
+  check('127b) el título es Nueva publicación', /headerTitulo[\s\S]{0,80}>Nueva publicación<\/Text>/.test(crudo) && !/Crear publicación<\/Text>/.test(crudo));
+  check('127b) el Publicar de arriba se apaga sin contenido y lo anuncia',
+    /styles\.postButton, \{ backgroundColor: canPublish \? theme\.colors\.accent : theme\.colors\.accent \+ '24' \}/.test(crudo) && /disabled=\{!canPublish\}[\s\S]{0,200}accessibilityState=\{\{ disabled: !canPublish, busy: isPublishing \}\}/.test(crudo));
+  check('127b) sin línea bajo la cabecera: un solo flujo', !/borderBottomWidth/.test(estilos.slice(estilos.indexOf('header: {'), estilos.indexOf('cerrar: {'))));
+  check('127b) el aspa mide 44', /cerrar: \{\s*width: 44,\s*height: 44,/.test(estilos));
+
+  /* Quién publica y quién puede verlo. */
+  check('127c) avatar, nombre y "Comparte con la comunidad de Weë"', /styles\.identidadNombre[\s\S]{0,200}userProfile\?\.displayName/.test(crudo) && /Comparte con la comunidad de Weë/.test(crudo));
+  check('127c) la píldora de visibilidad dice Público, con su globo y su flecha',
+    /accessibilityLabel="Visibilidad: Público"[\s\S]{0,300}name="globe-outline"[\s\S]{0,200}>Público<\/Text>[\s\S]{0,120}name="chevron-down"/.test(crudo));
+  /*
+   * Y dice la verdad: hoy TODA publicación es pública (`isPrivate: false`) y
+   * ningún muro filtra por audiencia. Tocarla lo explica; no inventa un
+   * selector con una sola opción ni un campo nuevo en la publicación.
+   */
+  check('127c) y conserva la lógica que hay: todo es público', /isPrivate: false,/.test(crudo) && /onPress=\{explicarVisibilidad\}/.test(crudo) && /explicarVisibilidad = \(\) => notify\('Público'/.test(crudo) && !/visibility:|audience:|setVisibilidad/.test(crudo));
+
+  /* El papel. */
+  check('127d) la hoja: placeholder "Escribe algo…", sin título ni ayuda', /'Escribe algo…'/.test(crudo) && /placeholder=\{composerPlaceholder\}/.test(papel) && !/textoPregunta|textoAyuda/.test(crudo));
+  check('127d) con su contador 0/500 dentro y el mismo límite de siempre', /const maxTextLength = 500;/.test(crudo) && /\{postText\.length\}\/\{maxTextLength\}/.test(papel) && /textoContador: \{\s*alignSelf: 'flex-end'/.test(estilos));
+  check('127d) esquinas generosas, marco de un punto y sin sombra', /tarjetaTexto: \{\s*borderWidth: 1,\s*borderRadius: BORDER_RADIUS\.xl,/.test(estilos) && !/tarjetaTexto: \{[\s\S]{0,200}shadow/.test(estilos));
+  check('127d) sin emoji, # ni @ dentro del papel', !/happy-outline|📹|'#'|'@'/.test(papel));
+  check('127d) y el contador flotante de antes se fue', !/contadorFijo|textProgress/.test(crudo));
+
+  /* Las herramientas: seis, en una fila, sin Más. */
+  const orden = [...acciones.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
+  check('127e) seis herramientas en su orden', orden.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos', orden.join(' · '));
+  check('127e) sin "Más", sin "…", sin chevron', !/texto="Más"|ellipsis-horizontal|chevron-down|>Más<\/Text>/.test(acciones));
+  check('127e) cada una es un botón con icono de trazo, cuadrado suave y nombre debajo',
+    /const Accion: React\.FC/.test(crudo) && /accessibilityRole="button"/.test(bloque('const Accion', 'const renderAcciones')) && /styles\.accionIcono/.test(crudo) && /accionIcono: \{\s*width: scale\(48\),\s*height: scale\(48\),/.test(estilos) && /-outline"/.test(acciones));
+  check('127e) y anuncia si está puesta o apagada', /accessibilityState=\{\{ disabled: !!apagada, selected: !!activa \}\}/.test(crudo));
+  check('127e) Multimedia sigue siendo la puerta de fotos y vídeo, con su recuento', /texto="Multimedia"[\s\S]{0,200}onPress=\{pickImageFromGallery\}/.test(acciones) && /insignia=\{fotosPuestas > 0 \? `\$\{fotosPuestas\}\/\$\{topeImagenes\}` : undefined\}/.test(acciones));
+  check('127e) ËContact abre la agenda, Ubicación su pantalla y Encuesta la suya', /texto="ËContact"[\s\S]{0,120}setShowEContacts/.test(acciones) && /texto="Ubicación" onPress=\{abrirUbicacion\}/.test(acciones) && /texto="Encuesta" onPress=\{handlePollPress\}/.test(acciones));
+
+  /*
+   * MIS PROYECTOS abre la lista de proyectos que ya existe —la misma ruta que
+   * usa el menú ☰—, encima del compositor. Sin sistema nuevo ni campo nuevo.
+   */
+  check('127f) Mis proyectos abre la ruta Projects que ya existe', /texto="Mis proyectos" onPress=\{abrirProyectos\}/.test(acciones) && /abrirProyectos = \(\) => \(navigation as any\)\.navigate\('Projects'\)/.test(crudo));
+  check('127f) y esa ruta está registrada, y es la del menú', /name="Projects" component=\{ProjectsScreen\}/.test(pila) && /navigateRoot\('Projects'\)/.test(leer('components/DrawerMenu.tsx')));
+  check('127f) sin inventar otro sistema de proyectos', !/projectsService|projectId/.test(crudo));
+
+  /* PUBLICAR EN: rótulo pequeño, chips, selección múltiple con estado sutil. */
+  check('127g) el rótulo es PUBLICAR EN, pequeño y en mayúsculas', />\s*PUBLICAR EN\s*<\/Text>/.test(destinosJsx) && /destinosRotulo: \{\s*fontSize: FONT_SIZE\.xs,[\s\S]{0,80}letterSpacing: 1,/.test(estilos));
+  check('127g) los destinos salen de la fuente única y el muro general va primero', /destinosDisponibles\(\)\.map/.test(destinosJsx) && /const \[destinos, setDestinos\] = useState<string\[\]>\(\(\) => \[sourceSection \|\| MURO_GENERAL\]\);/.test(crudo));
+  /* La selección múltiple se EJECUTA: es el mismo reductor que usa la pantalla. */
+  const reductor = crudo.match(/setDestinos\(\(actuales\) => (\(actuales\.includes\(id\) \? [^\n]*\]\))\);/);
+  const alternar = reductor ? new Function('actuales', 'id', 'return ' + reductor[1]) : null;
+  check('127g) marcar añade, volver a marcar quita, y caben varios a la vez',
+    !!alternar && alternar(['general'], 'chef').join(',') === 'general,chef' && alternar(['general', 'chef'], 'chef').join(',') === 'general' && alternar(['general', 'chef'], 'travel').length === 3,
+    reductor ? '' : 'no encuentro el reductor');
+  check('127g) cada chip es una casilla que anuncia si está marcada', /accessibilityRole="checkbox"[\s\S]{0,60}accessibilityState=\{\{ checked: elegido \}\}/.test(destinosJsx));
+  check('127g) el elegido se ve sin depender solo del color: fondo crema, borde fino y check',
+    /backgroundColor: elegido \? theme\.colors\.accent \+ '14' : theme\.colors\.card/.test(destinosJsx) && /borderColor: elegido \? theme\.colors\.accent \+ '99' : theme\.colors\.border/.test(destinosJsx) && /\{elegido && <Ionicons name="checkmark"/.test(destinosJsx));
+  check('127g) y el amarillo pesado se fue: ni fondo amarillo del bloque ni tarjetas dentro de tarjetas', !/styles\.destinos, \{ backgroundColor/.test(crudo) && !/destinosCabecera|destinosIcono/.test(crudo));
+  check('127g) dos por fila en un teléfono: chips de ancho natural que se reparten el hueco', /destino: \{\s*flexGrow: 1,/.test(estilos) && !/flexBasis/.test(estilos.slice(estilos.indexOf('destino: {'), estilos.indexOf('destinoIcono: {'))) && /destinosRejilla: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',/.test(estilos));
+
+  /* El botón de publicar, con sus estados. */
+  check('127h) el botón principal va al pie, dentro del espacio del teclado', crudo.indexOf('{renderPublicar()}') > crudo.indexOf('</ScrollView>') && crudo.indexOf('{renderPublicar()}') < crudo.indexOf('</EspacioDeEscritura>'));
+  check('127h) grande, redondo y con el avión de papel', /publicar: \{[\s\S]{0,160}minHeight: 56,\s*borderRadius: BORDER_RADIUS\.full,/.test(estilos) && /name="paper-plane-outline"/.test(publicar));
+  check('127h) apagado es pálido y gris; listo es dorado con sombra corta', /theme\.colors\.accent \+ '33'/.test(publicar) && /styles\.publicarListo, \{ backgroundColor: theme\.colors\.accent, shadowColor: theme\.colors\.accent \}/.test(publicar) && /publicarListo: \{\s*shadowOffset/.test(estilos));
+  check('127h) se hunde al tocarlo', /onPressIn=\{\(\) => canPublish && presionar\(0\.97\)\}/.test(publicar) && /onPressOut=\{\(\) => presionar\(1\)\}/.test(publicar));
+  check('127h) publicando enseña la rueda y no admite un segundo toque', /isPublishing \? \(\s*<ActivityIndicator/.test(publicar) && /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crudo) && /disabled=\{!canPublish\}/.test(publicar));
+  check('127h) y lo anuncia: disabled y busy', /accessibilityState=\{\{ disabled: !canPublish, busy: isPublishing \}\}/.test(publicar));
+  check('127h) publica lo mismo de siempre y vuelve al muro', (crudo.match(/postsService\.create\(postData\)/g) || []).length === 1 && /navigation\.goBack\(\);\s*triggerRefresh\(\);\s*triggerScrollToTop\(\);/.test(crudo));
+
+  /* Lo que se fue, se fue. */
+  check('127i) sin textos redundantes ni bloques explicativos', !/¿Dónde quieres publicar\?|Elige una o más comunidades|Sugerir con IA|Tu publicación aparecerá|Puedes elegir una o más opciones/.test(crudo));
+  check('127i) ni IA ni Credits en el compositor', !/spendCredits|creditsService|gemini|creatorService|brainService/i.test(crudo));
+
+  /* Teclado, scroll y ancho. */
+  check('127j) el teclado se acomoda con la pieza común y un solo scroll', /<EspacioDeEscritura/.test(crudo) && (crudo.match(/<ScrollView/g) || []).length === 1 && !/ScrollView\s+horizontal/.test(acciones));
+  check('127j) el scroll deja pasar los toques con el teclado abierto', /keyboardShouldPersistTaps="handled"/.test(crudo));
+  check('127j) contenido y botón comparten el mismo ancho máximo', /maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' \}/.test(crudo.slice(crudo.indexOf('<ScrollView'))) && /maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' \}\]/.test(publicar));
+  check('127j) el orden de la pantalla: quién · qué · con qué · dónde · Publicar',
+    ['styles.identidad', '{renderTextInput()}', '{renderLugar()}', '{renderMediaPreview()}', '{renderPoll()}', '{renderAcciones()}', '{renderEContacts()}', '{renderDestinos()}', '{renderPublicar()}'].every((m, i, l) => i === 0 || crudo.indexOf(l[i - 1]) < crudo.indexOf(m)));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nCompositor global: un compositor, diez fotos, quince segundos y los destinos que elija quien publica');

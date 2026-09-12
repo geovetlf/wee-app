@@ -120,7 +120,9 @@ console.log('\n── B · Es una puerta, no un compositor ──');
    */
   const compositor = leer('screens/CreateScreen.tsx');
   const CONTROLES = ['Cámara', 'Foto o vídeo', 'ËContact', 'Ubicación', 'Encuesta'];
-  check('12) los cinco controles están en CreateScreen', CONTROLES.every((c) => compositor.includes(`texto="${c}"`)));
+  /* En el compositor la puerta de foto y vídeo se llama Multimedia; en los atajos sigue diciendo Foto o vídeo. */
+  const EN_EL_COMPOSITOR = { 'Foto o vídeo': 'Multimedia' };
+  check('12) los cinco controles están en CreateScreen', CONTROLES.every((c) => compositor.includes(`texto="${EN_EL_COMPOSITOR[c] || c}"`)));
   /*
    * La puerta los NOMBRA —son sus cinco atajos y cada uno lleva su nombre para
    * el lector de pantalla— pero no los IMPLEMENTA: ni abre la galería, ni la

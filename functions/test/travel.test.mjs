@@ -876,7 +876,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * pantalla del texto en un móvil alto— y dos cajas grandes flotando en medio.
    */
   check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
-  check('110) y cada una dice lo que hace, no solo un icono', ['Foto o vídeo', 'Cámara', 'Ubicación', 'ËContact', 'Encuesta'].every((t) => crear.includes(`texto="${t}"`) || crear.includes(`'${t}'`)));
+  check('110) y cada una dice lo que hace, no solo un icono', ['Cámara', 'Multimedia', 'ËContact', 'Ubicación', 'Encuesta', 'Mis proyectos'].every((t) => crear.includes(`texto="${t}"`)));
   // Amigos tiene su sitio pero no engaña: apagado y avisando de que llega después.
   /*
    * ËContact será el nombre de la red de conexiones de Weë en todos los idiomas.
@@ -898,7 +898,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * Google SIN tipos MIME: solo enseñaba fotos, con el botón diciendo "Foto o
    * vídeo". La lista moderna sí pide las dos cosas. Comprobado en el aparato.
    */
-  check('110) foto y vídeo son la misma puerta, y se dice', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /Foto o vídeo/.test(crear));
+  check('110) foto y vídeo son la misma puerta, y se dice: Multimedia', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /texto="Multimedia"/.test(crear) && !/Foto o vídeo/.test(crear));
   // Sobre el USO, no sobre la palabra: el comentario que explica el cambio la nombra.
   check('110) y no queda ningún enum obsoleto pidiendo medios', !/ImagePicker\.MediaTypeOptions/.test(leer('screens/CreateScreen.tsx')));
   /*
@@ -913,7 +913,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
   check('110) primero quién publica', crear.indexOf('styles.identidad') < crear.indexOf('{renderTextInput()}'));
   check('110) luego lo que cuenta, y después con qué', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderAcciones()}'));
   check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
-  check('110) la cabecera dice qué estás haciendo', /Crear publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
+  check('110) la cabecera dice qué estás haciendo', /Nueva publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
      no hay nada, no se pinta nada. Misma aserción que en composer.test.mjs. */
   check('110) el lugar elegido es un chip, y solo sale si hay algo', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && /styles\.chipLugar/.test(crear));
@@ -923,9 +923,10 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
    * nunca supo que había encuesta. Ahora las cinco están a la vista en dos filas.
    */
-  check('110) las herramientas son mosaicos y se ven las cinco sin arrastrar', /minHeight: 72,/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear));
-  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto o vídeo"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
-  check('110) y el campo de texto crece en vez de reservar el hueco', /minHeight: scale\(72\)/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
+  check('110) las herramientas van en una sola fila, las seis a la vista y sin arrastrar',
+    /acciones: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',\s*justifyContent: 'space-between'/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Multimedia"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) y el campo de texto es una hoja grande que crece, no un hueco fijo', /textInput: \{\s*minHeight: scale\(150\),/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
 
   /*
    * El hueco de doce por ciento que se vio en el teléfono venía de que la
@@ -934,8 +935,12 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    */
   // Sobre el fuente crudo: `soloCodigo` se atraganta con este archivo (ya van tres).
   const fuenteCrear = leer('screens/CreateScreen.tsx');
-  check('111b) la pregunta y la ayuda van pegadas, antes del campo', fuenteCrear.indexOf('styles.textoPregunta') < fuenteCrear.indexOf('styles.textoAyuda') && fuenteCrear.indexOf('styles.textoAyuda') < fuenteCrear.indexOf('style={[styles.textInput'));
-  check('111b) y el campo ya no lleva la pregunta dentro', /placeholder=""/.test(crear));
+  /*
+   * Desde el rediseño del workspace la pregunta vuelve a ser el placeholder
+   * del campo —"Escribe algo…"— y no hay línea de ayuda: quien entra, escribe.
+   */
+  check('111b) la pregunta es el placeholder del campo y no hay línea de ayuda', /placeholder=\{composerPlaceholder\}/.test(fuenteCrear) && !/textoAyuda|Cuéntanos tu experiencia|textoPregunta/.test(fuenteCrear));
+  check('111b) y dentro del papel no hay emoji, # ni @', !/placeholder=""/.test(crear) && !/happy-outline|📹|'#'|'@'/.test(crear.slice(crear.indexOf('const renderTextInput'), crear.indexOf('const sinSitioParaMedios'))));
 
   /*
    * Y el defecto que encontró la validación: al elegir, el chip se ensanchaba
@@ -1122,7 +1127,7 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
   check('125) que dice cuánto llevas de cuánto cabe', /\{postText\.length\}\/\{maxTextLength\}/.test(crearCrudo));
 
   // Dónde publicar es una pregunta con su bloque, no el último campo del formulario.
-  check('125) dónde publicar se pregunta en voz alta', /¿Dónde quieres publicar\?/.test(crearCrudo) && /Puedes elegir una o más opciones\./.test(crearCrudo));
+  check('125) dónde publicar es un rótulo —PUBLICAR EN— sin pregunta ni explicación', /PUBLICAR EN/.test(crearCrudo) && !/¿Dónde quieres publicar\?|Puedes elegir una o más opciones|Elige una o más comunidades|Sugerir con IA|Tu publicación aparecerá/.test(crearCrudo));
   check('125) y no hay que arrastrar para ver los destinos', /flexWrap: 'wrap'/.test(crearCrudo));
 
   /*
@@ -1145,13 +1150,13 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
    * del catálogo de Weë para que no haya dos verdades.
    */
   check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
-  check('126) y el muro general lleva la suya, que no es una experiencia', /name="people"/.test(crearCrudo));
-  check('126) el aro cae siempre en el mismo sitio', /destinoFila: \{\s*flexDirection: 'row',\s*alignItems: 'center',\s*justifyContent: 'space-between',/.test(crearCrudo));
+  check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /name="globe-outline"/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
+  check('126) el aro cae siempre en el mismo sitio: pegado al borde derecho del chip', /destino: \{\s*flexGrow: 1,\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginLeft: 'auto',/.test(crearCrudo));
   // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.
-  check('126) y el nombre del destino cabe entero', crearCrudo.indexOf('styles.destinoFila') < crearCrudo.indexOf('styles.destinoTexto'));
+  check('126) y el nombre del destino cabe entero: encoge antes que cortarse', /destinoTexto: \{\s*flexShrink: 1,/.test(crearCrudo) && crearCrudo.indexOf('styles.destinoIcono') < crearCrudo.indexOf('styles.destinoTexto'));
 
   // Y el final de la pantalla respira: nada pegado al borde de abajo.
-  check('126) el contenido no queda pegado al fondo', /paddingBottom: SPACING\.xxl/.test(crearCrudo));
+  check('126) el contenido no queda pegado al botón de publicar', /scrollContent: \{[\s\S]{0,160}paddingBottom: SPACING\.xl,/.test(crearCrudo));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Travel Fase A: cuatro funciones, sin inventar sitios y sin tocar nada más');

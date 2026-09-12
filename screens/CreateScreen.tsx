@@ -52,6 +52,7 @@ import {
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import SelectorDeEContacts from '../components/SelectorDeEContacts';
+import { notify } from '../utils/notify';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 
 interface MediaItem {
@@ -100,7 +101,7 @@ const CreateScreen: React.FC = () => {
     presetKind === 'video' ? 'Cuenta qué creaste y con qué IA…' :
     presetKind === 'image' ? 'Muestra tu imagen y cómo la hiciste…' :
     presetKind === 'text' ? 'Comparte un texto, un prompt o una idea…' :
-    '¿Qué está pasando?';
+    'Escribe algo…';
 
   const [postText, setPostText] = useState<string>(routeParams.prefill?.content || '');
   /*
@@ -213,6 +214,22 @@ const CreateScreen: React.FC = () => {
     (navigation as any).navigate('AgregarUbicacion', { place, ubicacion });
 
   /*
+   * MIS PROYECTOS. Es la lista de proyectos de Weë Creator que ya existe —la
+   * misma del menú ☰—, abierta encima de esta pantalla: el compositor sigue
+   * montado debajo con todo lo escrito, y Back vuelve aquí. No hay un segundo
+   * sistema de proyectos ni un campo nuevo en la publicación.
+   */
+  const abrirProyectos = () => (navigation as any).navigate('Projects');
+
+  /*
+   * VISIBILIDAD. Hoy toda publicación de Weë es pública —`isPrivate: false` al
+   * guardar, y ningún muro filtra por audiencia—, así que la píldora dice la
+   * verdad y, al tocarla, la explica. Un selector con una sola opción sería un
+   * menú que no elige nada.
+   */
+  const explicarVisibilidad = () => notify('Público', 'Por ahora, todas las publicaciones de Weë son públicas.');
+
+  /*
    * A QUIÉN SE MENCIONA. Solo identidades, y solo las que salieron de la agenda:
    * el selector únicamente ofrece contactos aceptados del perfil activo, así que
    * de aquí no puede salir alguien con quien no estés conectado.
@@ -244,6 +261,15 @@ const CreateScreen: React.FC = () => {
 
   // Animación de pulso para el overlay de publicación
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  /*
+   * El botón de publicar se hunde un poco al tocarlo: una escala en el hilo
+   * nativo, la misma respuesta que da el "+" del Home. Es lo que convierte una
+   * píldora dorada en un botón: el dedo sabe que la pulsación entró.
+   */
+  const presion = useRef(new Animated.Value(1)).current;
+  const presionar = (hasta: number) =>
+    Animated.spring(presion, { toValue: hasta, useNativeDriver: true, speed: 40, bounciness: 4 }).start();
 
   useEffect(() => {
     if (isPublishing) {
@@ -353,7 +379,6 @@ ${message}`);
   };
   const maxPollOptions = MAX_OPCIONES;
   const minPollOptions = MIN_OPCIONES;
-  const textProgress = postText.length / maxTextLength;
   const isTextOverLimit = postText.length > maxTextLength;
 
   /*
@@ -804,34 +829,20 @@ ${message}`);
   };
 
   /*
-   * La caja de escribir es una TARJETA, no un renglón suelto sobre el fondo.
+   * ─── El papel: una hoja grande y limpia ───────────────────────────────────
    *
-   * Tener bordes cambia lo que se entiende: un renglón sin marco parece una
-   * etiqueta de un formulario; una caja con su sitio parece un papel en blanco
-   * donde escribir. Dentro va todo lo suyo —la pregunta, la ayuda y cuánto
-   * llevas— y nada más.
+   * Es lo principal de la pantalla y se nota: un marco muy fino, esquinas
+   * generosas, mucho blanco y una sola frase gris esperando —"Escribe algo…"—.
+   * Sin título encima, sin línea de ayuda, sin emoji ni # ni @: quien entra,
+   * escribe. Lo único que acompaña al texto es cuánto lleva de cuánto cabe, en
+   * la esquina de abajo, desde el principio —"0/500"— para que nadie se lleve
+   * una sorpresa al final.
    */
   const renderTextInput = () => (
     <View style={[styles.tarjetaTexto, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
-      {/*
-        LA PREGUNTA Y LA AYUDA, PEGADAS. Y EL CAMPO DEBAJO.
-
-        Antes la pregunta era el placeholder DEL campo y la ayuda iba después, así
-        que la altura del campo se metía entre las dos y abría un hueco de doce por
-        ciento de pantalla. Ahora son dos líneas seguidas —un bloque— y el sitio
-        para escribir empieza donde acaban.
-
-        Y las tres cosas —pregunta, sitio para escribir y cuánto llevas— viven
-        DENTRO de un marco. Un renglón suelto sobre el fondo parecía la casilla de
-        un formulario; un marco con su papel dentro parece una hoja en blanco.
-      */}
-      <Text style={[styles.textoPregunta, { color: theme.colors.text }]}>{composerPlaceholder}</Text>
-      <Text style={[styles.textoAyuda, { color: theme.colors.textSecondary }]}>
-        Cuéntanos tu experiencia, una recomendación, una pregunta…
-      </Text>
       <TextInput
         style={[styles.textInput, { color: theme.colors.text }]}
-        placeholder=""
+        placeholder={composerPlaceholder}
         placeholderTextColor={theme.colors.textSecondary}
         value={postText}
         onChangeText={setPostText}
@@ -839,18 +850,14 @@ ${message}`);
         maxLength={maxTextLength + 50} // Permitir exceso para mostrar error
         textAlignVertical="top"
         autoFocus={false}
+        accessibilityLabel="Texto de la publicación"
       />
-      {/*
-        Cuánto llevas de cuánto cabe, en la esquina del papel. Antes solo salía
-        pasada la mitad y aparecía de golpe; dicho desde el principio —"0/2000"—
-        no asusta a nadie y ya se sabe con qué se cuenta.
-      */}
-      <Text style={[styles.textoContador, { color: isTextOverLimit ? '#EF4444' : theme.colors.textSecondary }]}>
+      <Text style={[styles.textoContador, { color: isTextOverLimit ? theme.colors.error : theme.colors.textSecondary }]}>
         {postText.length}/{maxTextLength}
       </Text>
       {isWeel && (
         <Text style={[styles.kindHint, { color: theme.colors.textSecondary }]}>
-          📹 Weël: video de hasta 15 segundos. Se comparte fuera de Weë con un pequeño watermark.
+          Weël: video de hasta 15 segundos. Se comparte fuera de Weë con un pequeño watermark.
         </Text>
       )}
     </View>
@@ -881,127 +888,128 @@ ${message}`);
   /*
    * ─── Las herramientas del compositor ──────────────────────────────────────
    *
-   * MOSAICOS, no píldoras deslizantes. La fila que se deslizaba escondía la
-   * mitad de lo que se puede añadir: quien no arrastraba nunca supo que había
-   * encuesta. Ahora los cinco están A LA VISTA, en dos filas, con el icono
-   * grande encima y el nombre debajo —el modelo que pidió el usuario—: se ve de
-   * un golpe todo lo que cabe en una publicación y se toca sin apuntar.
+   * UNA FILA, las seis a la vista, sin "Más" ni "…" ni nada que desplegar. Cada
+   * una es un icono de trazo fino dentro de un cuadrado muy suave y su nombre
+   * debajo: se ve de un golpe todo lo que cabe en una publicación y se toca sin
+   * apuntar. La que ya está puesta se enciende —fondo dorado pálido, icono
+   * dorado—, así que la fila también dice qué lleva la publicación.
    *
-   * El fondo amarillo pálido los agrupa como una sola cosa. Ninguno lleva marco
-   * salvo el que está puesto, que se enciende: el color hace de estado.
+   * `acento` es para Mis proyectos: no es un adjunto, es una puerta al
+   * ecosistema de Weë Creator, y el icono dorado lo dice sin cambiar la fila.
    */
-  const Accion: React.FC<{ icono: string; texto: string; onPress: () => void; apagada?: boolean; activa?: boolean; insignia?: string }> = ({ icono, texto, onPress, apagada, activa, insignia }) => (
+  const Accion: React.FC<{ icono: string; texto: string; onPress: () => void; apagada?: boolean; activa?: boolean; insignia?: string; acento?: boolean }> = ({ icono, texto, onPress, apagada, activa, insignia, acento }) => (
     <TouchableOpacity
       onPress={onPress}
       disabled={apagada}
-      activeOpacity={0.75}
-      style={[
-        styles.accion,
-        {
-          borderColor: activa ? theme.colors.accent : 'transparent',
-          backgroundColor: activa ? theme.colors.accent + '2E' : theme.colors.accent + '14',
-          opacity: apagada ? 0.45 : 1,
-        },
-      ]}
+      activeOpacity={0.7}
+      style={[styles.accion, apagada && styles.accionApagada]}
       accessibilityRole="button"
       accessibilityLabel={insignia ? `${texto}, ${insignia}` : texto}
       accessibilityState={{ disabled: !!apagada, selected: !!activa }}
     >
-      <Ionicons name={icono as any} size={scale(24)} color={apagada ? theme.colors.textSecondary : theme.colors.accentDark} />
-      <Text style={[styles.accionTexto, { color: apagada ? theme.colors.textSecondary : theme.colors.text }]} numberOfLines={1}>
+      <View
+        style={[
+          styles.accionIcono,
+          {
+            backgroundColor: activa ? theme.colors.accent + '2E' : theme.colors.surface,
+            borderColor: activa ? theme.colors.accent + '80' : 'transparent',
+          },
+        ]}
+      >
+        <Ionicons
+          name={icono as any}
+          size={scale(22)}
+          color={apagada ? theme.colors.textSecondary : activa || acento ? theme.colors.accentDark : theme.colors.text}
+        />
+        {/*
+          El recuento va en la esquina del icono, no dentro del nombre: metido en
+          el texto ("Multimedia 3/10") el nombre no cabía y se cortaba.
+        */}
+        {!!insignia && (
+          <View style={[styles.accionInsignia, { backgroundColor: theme.colors.accent }]}>
+            <Text style={styles.accionInsigniaTexto}>{insignia}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.accionTexto, { color: activa ? theme.colors.text : theme.colors.textSecondary }]} numberOfLines={1}>
         {texto}
       </Text>
-      {/*
-        El recuento va ENCIMA del mosaico, no dentro del nombre. Metido en el
-        texto ("Foto o vídeo 3/10") el nombre no cabía y se cortaba; en su
-        esquina se lee de un vistazo y el botón sigue diciendo lo que hace.
-      */}
-      {!!insignia && (
-        <View style={[styles.accionInsignia, { backgroundColor: theme.colors.accent }]}>
-          <Text style={styles.accionInsigniaTexto}>{insignia}</Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
 
   /*
-   * Tres arriba y dos abajo. El orden es el que mandó el usuario —Cámara, Foto o
-   * vídeo, ËContact, Ubicación, Encuesta— y no lo decide el hueco que quede.
+   * El orden es el aprobado: Cámara, Multimedia, ËContact, Ubicación, Encuesta y
+   * Mis proyectos. Ninguna se esconde detrás de otra.
    */
   const renderAcciones = () => (
     <View style={styles.acciones}>
-      <View style={styles.accionesFila}>
-        <Accion icono="camera-outline" texto="Cámara" onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
-        {/*
-          Una sola puerta para foto y vídeo: el selector ya acepta las dos cosas y
-          deja elegir VARIAS de golpe. Cuando ya llevas alguna, el mosaico dice
-          cuántas y cuántas caben —"3/10"—, que es lo que uno quiere saber antes de
-          volver a abrir la galería.
-        */}
-        <Accion
-          icono="images-outline"
-          texto="Foto o vídeo"
-          insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
-          onPress={pickImageFromGallery}
-          apagada={sinSitioParaMedios}
-          activa={attachedMedia.length > 0}
-        />
-        {/*
-          ËContact es el nombre de la red de conexiones de Weë en todos los
-          idiomas, y este botón ya hace lo que promete: abre la agenda del perfil
-          activo para mencionar a quien quieras. Lo que se enseña dentro se llama
-          ËContact o ẄContact según con qué cara estés publicando, pero el botón
-          dice siempre ËContact: es el nombre universal de la función.
-        */}
-        <Accion
-          icono="people-outline"
-          texto="ËContact"
-          onPress={() => setShowEContacts((v) => !v)}
-          activa={econtacts.length > 0 || showEContacts}
-          insignia={econtacts.length > 0 ? String(econtacts.length) : undefined}
-        />
-      </View>
-      <View style={styles.accionesFila}>
-        {/*
-          El nombre del mosaico NO cambia al elegir sitio: si pusiera el lugar se
-          cortaría a la mitad y además movería la rejilla. El lugar elegido se ve
-          entero en su chip, bajo el texto, mientras haya uno.
-        */}
-        <Accion
-          icono="location-outline"
-          texto="Ubicación"
-          onPress={abrirUbicacion}
-          activa={!!place || !!ubicacion}
-        />
-        {/*
-          La encuesta existe en Weë y hay encuestas publicadas. Esta es su única
-          puerta: quitarla dejaría la función viva y sin forma de usarla.
-        */}
-        <Accion icono="bar-chart-outline" texto="Encuesta" onPress={handlePollPress} activa={!!poll} />
-      </View>
+      <Accion icono="camera-outline" texto="Cámara" onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
+      {/*
+        Una sola puerta para foto y vídeo: el selector ya acepta las dos cosas y
+        deja elegir VARIAS de golpe. Cuando ya llevas alguna, dice cuántas y
+        cuántas caben —"3/10"—, que es lo que uno quiere saber antes de volver a
+        abrir la galería.
+      */}
+      <Accion
+        icono="image-outline"
+        texto="Multimedia"
+        insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
+        onPress={pickImageFromGallery}
+        apagada={sinSitioParaMedios}
+        activa={attachedMedia.length > 0}
+      />
+      {/*
+        ËContact es el nombre de la red de conexiones de Weë en todos los
+        idiomas, y este botón ya hace lo que promete: abre la agenda del perfil
+        activo para mencionar a quien quieras. Lo que se enseña dentro se llama
+        ËContact o ẄContact según con qué cara estés publicando, pero el botón
+        dice siempre ËContact: es el nombre universal de la función.
+      */}
+      <Accion
+        icono="people-outline"
+        texto="ËContact"
+        onPress={() => setShowEContacts((v) => !v)}
+        activa={econtacts.length > 0 || showEContacts}
+        insignia={econtacts.length > 0 ? String(econtacts.length) : undefined}
+      />
+      {/*
+        El nombre NO cambia al elegir sitio: si pusiera el lugar se cortaría a la
+        mitad. El lugar elegido se ve entero en su chip, bajo el texto.
+      */}
+      <Accion icono="location-outline" texto="Ubicación" onPress={abrirUbicacion} activa={!!place || !!ubicacion} />
+      {/*
+        La encuesta existe en Weë y hay encuestas publicadas. Esta es su única
+        puerta: quitarla dejaría la función viva y sin forma de usarla.
+      */}
+      <Accion icono="bar-chart-outline" texto="Encuesta" onPress={handlePollPress} activa={!!poll} />
+      <Accion icono="folder-outline" texto="Mis proyectos" onPress={abrirProyectos} acento />
     </View>
   );
 
+  /*
+   * ─── PUBLICAR EN ──────────────────────────────────────────────────────────
+   *
+   * Un rótulo pequeño y, debajo, los destinos: se entiende sin explicarlo. Cada
+   * uno es un chip con su cara, su nombre y un aro a la derecha; el elegido se
+   * tiñe de crema, afina su borde en dorado y rellena el aro con el check. El
+   * amarillo es un acento, no un fondo. Se pueden marcar uno, varios o todos:
+   * es una selección, y se ve como tal —no como una lista de sitios a los que
+   * ir—.
+   *
+   * Los chips tienen su ancho natural y se reparten el que sobra: en un
+   * teléfono caben dos por fila; en pantallas anchas, tres o cuatro. Y el aro
+   * está SIEMPRE puesto, elegido o no, para que la rejilla no salte bajo el
+   * dedo al marcar el segundo.
+   */
   const renderDestinos = () => (
-    <View style={[styles.destinos, { backgroundColor: theme.colors.accent + '12' }]}>
-      {/*
-        Una PREGUNTA con su bloque, no un rótulo suelto. Dónde se lee lo que
-        publicas es una decisión, no un ajuste: se pregunta en voz alta, se dice
-        que caben varias respuestas y todo lo que hace falta para contestarla
-        vive dentro del mismo recuadro.
-      */}
-      <View style={styles.destinosCabecera}>
-        <View style={[styles.destinosIcono, { backgroundColor: theme.colors.accent + '24' }]}>
-          <Ionicons name="globe-outline" size={scale(20)} color={theme.colors.accentDark} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[styles.destinosTitulo, { color: theme.colors.text }]}>¿Dónde quieres publicar?</Text>
-          <Text style={[styles.destinosAyuda, { color: theme.colors.textSecondary }]}>Puedes elegir una o más opciones.</Text>
-        </View>
-      </View>
+    <View style={styles.destinos}>
+      <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">
+        PUBLICAR EN
+      </Text>
       <View style={styles.destinosRejilla}>
         {destinosDisponibles().map((destino) => {
           const elegido = destinos.includes(destino.id);
+          const experiencia = getExperienceById(destino.id);
           return (
             <TouchableOpacity
               key={destino.id}
@@ -1010,64 +1018,89 @@ ${message}`);
               style={[
                 styles.destino,
                 {
-                  borderColor: elegido ? theme.colors.accent : theme.colors.border,
-                  backgroundColor: elegido ? theme.colors.accent + '26' : theme.colors.card,
+                  borderColor: elegido ? theme.colors.accent + '99' : theme.colors.border,
+                  backgroundColor: elegido ? theme.colors.accent + '14' : theme.colors.card,
                 },
               ]}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: elegido }}
+              /* En la web `accessibilityState` no llega al DOM; `aria-checked` sí, y en nativo es lo mismo. */
+              aria-checked={elegido}
               accessibilityLabel={destino.nombre}
             >
               {/*
-                LA CARA ARRIBA, EL NOMBRE EN SU PROPIA LÍNEA.
-
-                En una sola fila —icono, nombre y aro— el nombre se quedaba con
-                sesenta y seis puntos y se cortaba: "Muro ge…", "Weë Desi…". Lo
-                vimos en el teléfono. Puestos el icono y el aro en la línea de
-                arriba, el nombre se lleva el ancho entero de la tarjeta y cabe
-                entero, que es además la composición de la referencia.
-
                 La cara sale del catálogo de Weë y no se inventa aquí: si mañana
                 Weë Chef cambia de emoji, cambia en un sitio. El muro general no
-                es una experiencia, así que lleva su icono de gente: es la
-                comunidad entera.
+                es una experiencia: lleva el globo, es la comunidad entera.
               */}
-              <View style={styles.destinoFila}>
-                <View style={styles.destinoIcono}>
-                  {getExperienceById(destino.id) ? (
-                    <Text style={styles.destinoEmoji}>{getExperienceById(destino.id)?.emoji}</Text>
-                  ) : (
-                    <Ionicons name="people" size={scale(17)} color={theme.colors.accentDark} />
-                  )}
-                </View>
-                {/*
-                  EL HUECO DEL CHECK SIEMPRE ESTÁ, ESTÉ O NO EL CHECK.
-
-                  Antes el icono aparecía al elegir y el texto se ponía en negrita:
-                  la tarjeta se ensanchaba y TODA la rejilla se recolocaba. Quien
-                  iba a marcar el segundo destino se lo encontraba movido bajo el
-                  dedo —lo comprobamos en el teléfono—. Ahora el aro está siempre
-                  puesto y el peso de la letra no cambia: elegir solo lo rellena.
-                */}
-                <View
-                  style={[
-                    styles.destinoCheck,
-                    {
-                      borderColor: elegido ? theme.colors.accent : theme.colors.border,
-                      backgroundColor: elegido ? theme.colors.accent : 'transparent',
-                    },
-                  ]}
-                >
-                  {elegido && <Ionicons name="checkmark" size={scale(13)} color="#1F2937" />}
-                </View>
+              <View style={styles.destinoIcono}>
+                {experiencia ? (
+                  <Text style={styles.destinoEmoji}>{experiencia.emoji}</Text>
+                ) : (
+                  <Ionicons name="globe-outline" size={scale(20)} color={theme.colors.accentDark} />
+                )}
               </View>
               <Text style={[styles.destinoTexto, { color: theme.colors.text }]} numberOfLines={1}>
                 {destino.nombre}
               </Text>
+              <View
+                style={[
+                  styles.destinoCheck,
+                  {
+                    borderColor: elegido ? theme.colors.accent : theme.colors.border,
+                    backgroundColor: elegido ? theme.colors.accent : 'transparent',
+                  },
+                ]}
+              >
+                {elegido && <Ionicons name="checkmark" size={scale(13)} color="#FFFFFF" />}
+              </View>
             </TouchableOpacity>
           );
         })}
       </View>
+    </View>
+  );
+
+  /*
+   * ─── Publicar: el botón principal de Weë ──────────────────────────────────
+   *
+   * Grande, dorado, con las esquinas redondas del todo y el avión de papel. Va
+   * fijo al pie, dentro del espacio que respeta el teclado, así que se alcanza
+   * con el pulgar y no se queda debajo de nada. Sus estados se ven sin leer:
+   * apagado es amarillo pálido con el texto gris; listo es dorado con sombra
+   * corta; al tocarlo se hunde; publicando enseña la rueda y no admite un
+   * segundo toque —`canPublish` ya es falso mientras se publica—. Lo que pasa
+   * al terminar es lo de siempre: vuelve al muro y lo refresca.
+   */
+  const renderPublicar = () => (
+    <View style={[styles.publicarZona, { backgroundColor: theme.colors.background, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+      <Animated.View style={{ transform: [{ scale: presion }] }}>
+        <TouchableOpacity
+          onPress={handlePublish}
+          onPressIn={() => canPublish && presionar(0.97)}
+          onPressOut={() => presionar(1)}
+          disabled={!canPublish}
+          activeOpacity={0.9}
+          style={[
+            styles.publicar,
+            canPublish
+              ? [styles.publicarListo, { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent }]
+              : { backgroundColor: theme.colors.accent + '33' },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={isPublishing ? 'Publicando' : 'Publicar'}
+          accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
+        >
+          {isPublishing ? (
+            <ActivityIndicator size="small" color="#1F2937" />
+          ) : (
+            <Ionicons name="paper-plane-outline" size={scale(20)} color={canPublish ? '#1F2937' : theme.colors.textSecondary} />
+          )}
+          <Text style={[styles.publicarTexto, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>
+            {isPublishing ? 'Publicando…' : 'Publicar'}
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 
@@ -1079,7 +1112,7 @@ ${message}`);
    */
   const renderEContacts = () =>
     showEContacts || econtacts.length > 0 ? (
-      <View style={[styles.panel, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
+      <View style={[styles.panel, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
         <View style={styles.howBody}>
           <SelectorDeEContacts elegidos={econtacts} onCambiar={setEContacts} />
           {econtacts.length > 0 && (
@@ -1430,38 +1463,40 @@ ${message}`);
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       edges={['top', 'bottom']}
     >
-      {/* Header estilo X.com - pantalla completa */}
-      <View style={[styles.header, {
-        backgroundColor: theme.colors.background,
-        borderBottomColor: theme.colors.border,
-      }]}>
+      {/*
+        ─── La cabecera ─────────────────────────────────────────────────────
+        Back a la izquierda —el aspa, con el mismo cierre de siempre—, el nombre
+        de lo que estás haciendo en medio y un Publicar rápido a la derecha, que
+        se queda pálido mientras no haya nada que publicar. Sin línea debajo: la
+        pantalla es un solo flujo, no una cabecera y un formulario.
+      */}
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity
           onPress={handleClose}
           activeOpacity={0.7}
-          style={styles.cancelButton}
+          style={styles.cerrar}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
         >
-          <Text style={[styles.cancelText, { color: theme.colors.text }]}>Back</Text>
+          <Ionicons name="close" size={scale(26)} color={theme.colors.text} />
         </TouchableOpacity>
 
-        {/* El nombre de lo que estás haciendo, en medio. Ancla la pantalla. */}
-        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>Crear publicación</Text>
+        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>Nueva publicación</Text>
 
         <TouchableOpacity
-          style={[styles.postButton, {
-            backgroundColor: isPublishing ? theme.colors.accent : canPublish ? theme.colors.accent : theme.colors.surface,
-            opacity: isPublishing ? 0.7 : canPublish ? 1 : 0.5,
-          }]}
+          style={[styles.postButton, { backgroundColor: canPublish ? theme.colors.accent : theme.colors.accent + '24' }]}
           onPress={handlePublish}
           disabled={!canPublish}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Publicar"
+          accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
           {isPublishing ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <ActivityIndicator size="small" color="white" />
-              <Text style={styles.postButtonText}>Publicando...</Text>
-            </View>
+            <ActivityIndicator size="small" color="#1F2937" />
           ) : (
-            <Text style={[styles.postButtonText, { color: canPublish ? "#1F2937" : theme.colors.textSecondary }]}>Publicar</Text>
+            <Text style={[styles.postButtonText, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>Publicar</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -1482,8 +1517,8 @@ ${message}`);
             QUIÉN PUBLICA · QUÉ CUENTA · CON QUÉ · Y DÓNDE.
 
             Ese es el orden de una publicación contada como la contaría una
-            persona, y por eso es el orden de la pantalla. Nada de filas técnicas
-            arriba ni huecos muertos en medio: cada bloque toca al siguiente.
+            persona, y por eso es el orden de la pantalla. Un solo flujo, sin
+            cajas dentro de cajas: blanco y separadores finos hacen la jerarquía.
           */}
           <View style={styles.identidad}>
             <AvatarDisplay
@@ -1501,6 +1536,18 @@ ${message}`);
                 Comparte con la comunidad de Weë
               </Text>
             </View>
+            {/* Quién puede verla. Píldora fina, blanca y discreta: no compite con nada. */}
+            <TouchableOpacity
+              onPress={explicarVisibilidad}
+              activeOpacity={0.7}
+              style={[styles.visibilidad, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+              accessibilityRole="button"
+              accessibilityLabel="Visibilidad: Público"
+            >
+              <Ionicons name="globe-outline" size={scale(16)} color={theme.colors.text} />
+              <Text style={[styles.visibilidadTexto, { color: theme.colors.text }]}>Público</Text>
+              <Ionicons name="chevron-down" size={scale(14)} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {renderTextInput()}
@@ -1509,22 +1556,11 @@ ${message}`);
           {renderPoll()}
           {renderAcciones()}
           {renderEContacts()}
+          <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
           {renderDestinos()}
         </ScrollView>
 
-        {/*
-          Aquí vivía la barra flotante de iconos. Se fue: sus botones son ahora la
-          fila con nombre que va pegada al texto. Lo único que se queda abajo es el
-          contador, y solo cuando de verdad importa —a partir del 75% del límite—,
-          porque avisar antes es ruido (fase 2E-74).
-        */}
-        {textProgress >= 0.75 && (
-          <View style={[styles.contadorFijo, { backgroundColor: theme.colors.background, maxWidth: contentMaxWidth, alignSelf: 'center' }]}>
-            <Text style={{ color: isTextOverLimit ? '#EF4444' : theme.colors.textSecondary, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold }}>
-              {maxTextLength - postText.length}
-            </Text>
-          </View>
-        )}
+        {renderPublicar()}
       </EspacioDeEscritura>
 
       {/* Publishing overlay con animación de pulso */}
@@ -1607,70 +1643,78 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   identidadNombre: {
     fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   identidadPie: {
     fontSize: FONT_SIZE.xs,
     marginTop: 1,
   },
-  textoPregunta: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: FONT_WEIGHT.bold,
-    letterSpacing: -0.2,
+  /* Quién puede verla: píldora fina, sin color fuerte, 36 de alto. */
+  visibilidad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    minHeight: 36,
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
   },
-  /* Pegada a la pregunta: las dos líneas son un solo bloque, sin nada en medio. */
-  textoAyuda: {
+  visibilidadTexto: {
     fontSize: FONT_SIZE.sm,
-    lineHeight: scale(19),
-    marginTop: scale(2),
+    fontWeight: FONT_WEIGHT.medium,
   },
-  /* En la esquina del papel, dentro del marco: "128/2000". */
+  /* En la esquina del papel, dentro del marco: "128/500". */
   textoContador: {
     alignSelf: 'flex-end',
     fontSize: FONT_SIZE.xs,
     fontVariant: ['tabular-nums'],
-    marginTop: SPACING.sm,
-  },
-  /* Las herramientas: dos filas de mosaicos, todo a la vista. */
-  acciones: {
-    marginTop: SPACING.md,
-    gap: scale(8),
-  },
-  accionesFila: {
-    flexDirection: 'row',
-    gap: scale(8),
+    marginTop: SPACING.xs,
   },
   /*
-   * Un mosaico con el icono grande encima y el nombre debajo. Es el modelo que
-   * pidió el usuario y además arregla lo de antes: las píldoras deslizantes
-   * escondían la mitad de las herramientas detrás de un arrastre que nadie hacía.
-   * 72 de alto sin escalar: se toca de sobra sin apuntar.
+   * Las herramientas: UNA fila, las seis a la vista. Cada una mide lo que mide
+   * su nombre y se reparten el ancho; si en un teléfono muy estrecho no caben,
+   * la última baja de línea en vez de cortarse.
    */
+  acciones: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    rowGap: SPACING.md,
+    marginTop: SPACING.lg,
+  },
   accion: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     gap: scale(6),
-    minHeight: 72,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xs,
+    minWidth: scale(48),
+  },
+  accionApagada: {
+    opacity: 0.4,
+  },
+  /* El cuadrado suave del icono: 48 de lado, se toca sin apuntar. */
+  accionIcono: {
+    width: scale(48),
+    height: scale(48),
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   accionTexto: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: FONT_WEIGHT.semibold,
+    fontSize: scale(11),
+    fontWeight: FONT_WEIGHT.medium,
   },
-  /* El recuento de fotos, en su esquina y sin tocar el nombre del botón. */
+  /* El recuento de fotos, en la esquina del icono y sin tocar el nombre. */
   accionInsignia: {
     position: 'absolute',
-    top: scale(6),
-    right: scale(6),
-    paddingHorizontal: scale(6),
+    top: -scale(4),
+    right: -scale(4),
+    paddingHorizontal: scale(5),
     paddingVertical: scale(1),
     borderRadius: BORDER_RADIUS.full,
   },
@@ -1680,37 +1724,20 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     fontVariant: ['tabular-nums'],
   },
-  /*
-   * Dónde se publica es una PREGUNTA, y las preguntas van en su bloque: fondo
-   * propio, icono, enunciado y respuestas dentro. Suelto sobre el fondo blanco
-   * parecía el último campo de un formulario.
-   */
+  /* Un separador de un pelo entre las herramientas y dónde se publica. */
+  separador: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: SPACING.xl,
+  },
+  /* PUBLICAR EN: un rótulo pequeño en mayúsculas y, debajo, los destinos. */
   destinos: {
     marginTop: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
   },
-  destinosCabecera: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
+  destinosRotulo: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.semibold,
+    letterSpacing: 1,
     marginBottom: SPACING.md,
-  },
-  destinosIcono: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  destinosTitulo: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
-    letterSpacing: -0.2,
-  },
-  destinosAyuda: {
-    fontSize: FONT_SIZE.sm,
-    marginTop: scale(1),
   },
   /*
    * Se envuelven en filas en vez de deslizarse: aquí hay que poder VER todo lo
@@ -1720,66 +1747,78 @@ const styles = StyleSheet.create({
   destinosRejilla: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: scale(8),
+    gap: scale(10),
   },
   /*
-   * Dos por fila, con el nombre a la izquierda y su aro a la derecha. Sin elegir
-   * es una tarjeta en blanco; elegida se enciende. El `flexGrow` hace que la
-   * última, si se queda sola, ocupe la fila entera en vez de dejar un hueco.
-   */
-  /*
-   * Dos líneas: arriba la cara y el aro, abajo el nombre con todo el ancho. En
-   * una sola fila el nombre se comía el hueco del aro y se cortaba.
+   * Un chip por destino: la cara, el nombre y el aro a la derecha, en una fila
+   * de 52 de alto. Mide lo que mide su nombre y crece para repartirse el ancho
+   * con los de su fila: dos por fila en un teléfono, más en pantallas anchas.
    */
   destino: {
-    flexBasis: '46%',
     flexGrow: 1,
-    minWidth: 0,
-    minHeight: 72,
-    justifyContent: 'center',
-    gap: scale(6),
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-  },
-  /* La cara a un lado y el aro al otro: el aro cae siempre en el mismo sitio. */
-  destinoFila: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: SPACING.sm,
+    minHeight: 52,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
   },
   destinoIcono: {
-    width: scale(22),
+    width: scale(24),
     alignItems: 'center',
     justifyContent: 'center',
   },
   destinoEmoji: {
-    fontSize: scale(17),
+    fontSize: scale(18),
+  },
+  /* Peso constante: la negrita al elegir ensancharía el chip y movería la rejilla. */
+  destinoTexto: {
+    flexShrink: 1,
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.medium,
   },
   /*
-   * El aro del check, puesto SIEMPRE. Es lo único que impide que la rejilla
-   * salte: si apareciera solo al elegir, la tarjeta se ensancharía y empujaría a
-   * todas las de detrás.
+   * El aro del check, puesto SIEMPRE y pegado al borde derecho. Es lo único que
+   * impide que la rejilla salte: si apareciera solo al elegir, el chip se
+   * ensancharía y empujaría a todos los de detrás.
    */
   destinoCheck: {
     width: scale(20),
     height: scale(20),
+    marginLeft: 'auto',
     borderRadius: BORDER_RADIUS.full,
     borderWidth: scale(1.5),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  /* Peso constante: la negrita al elegir también ensanchaba la tarjeta. */
-  destinoTexto: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-  contadorFijo: {
-    width: '100%',
-    alignItems: 'flex-end',
+  /*
+   * El botón de publicar, al pie. Ancho entero, 56 de alto, esquinas del todo
+   * redondas y una sombra corta del mismo dorado cuando está listo.
+   */
+  publicarZona: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
+  },
+  publicar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    minHeight: 56,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  publicarListo: {
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  publicarTexto: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: -0.2,
   },
   /* Lo que se despliega al encender una acción. Sin cabecera: la trae el botón. */
   /* El lugar y la zona, como chips bajo el texto: parte de la publicación. */
@@ -1848,46 +1887,49 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  /* Aire al final: el último destino no debe quedar pegado al borde de abajo. */
+  /* Aire al final: el último destino no debe quedar pegado al botón de publicar. */
   scrollContent: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xl,
   },
-  // Header estilo X.com - pantalla completa
+  /* La cabecera: sin línea debajo, la pantalla es un solo flujo. */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: scale(0.5),
-  },
-  cancelButton: {
+    minHeight: 56,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },
-  cancelText: {
-    fontSize: FONT_SIZE.base,
-  },
-  postButton: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: scale(8),
+  /* El aspa de Back: 44 de lado sin escalar, el mínimo que se toca sin fallar. */
+  cerrar: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: BORDER_RADIUS.full,
-    minWidth: scale(70),
+  },
+  /* El Publicar rápido de arriba: una píldora que se queda pálida sin contenido. */
+  postButton: {
+    minHeight: 40,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.full,
+    minWidth: scale(92),
     alignItems: 'center',
     justifyContent: 'center',
   },
   postButtonText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   /* El título va centrado de verdad: los dos lados de la cabecera lo empujan. */
   headerTitulo: {
     flex: 1,
     textAlign: 'center',
-    fontSize: FONT_SIZE.md,
+    fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.bold,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
     marginHorizontal: SPACING.sm,
   },
   // Área de composición
@@ -1901,24 +1943,21 @@ const styles = StyleSheet.create({
   inputArea: {
     flex: 1,
   },
-  /* El papel donde se escribe: marco, esquinas y todo lo suyo dentro. */
+  /* El papel donde se escribe: un marco de un punto, esquinas generosas, aire. */
   tarjetaTexto: {
     borderWidth: 1,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
   },
   /*
-   * Empieza en 72 —unas tres líneas— y crece con lo que se escriba.
-   *
-   * Tenía 220 FIJOS, y ese era el rectángulo vacío que convertía el compositor
-   * en un formulario esperando a ser rellenado. Bajó a 96 y aún sobraba hueco en
-   * el teléfono; en 72 la tarjeta se siente cómoda para escribir sin abrir un
-   * agujero blanco debajo. Una altura mínima deja que el contenido mande; una
-   * altura fija manda ella.
+   * Una hoja grande: empieza en 150 —unas seis líneas— y crece con lo que se
+   * escriba. Es el elemento principal de la pantalla y se le da sitio; una
+   * altura mínima deja que el contenido mande, una fija mandaría ella.
    */
   textInput: {
-    minHeight: scale(72),
-    marginTop: SPACING.sm,
+    minHeight: scale(150),
     fontSize: FONT_SIZE.lg,
     lineHeight: scale(26),
     paddingVertical: 0,

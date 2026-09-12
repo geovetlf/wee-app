@@ -982,7 +982,7 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
   /* 6 y 7: el workspace no cambia, y Back vuelve a donde estabas: el Home. */
   check('173) el compositor no sabe nada de la barra ni de `directo`', !/ComposerEntry|directo/.test(crear));
   check('174) sigue leyendo el kind con el que llega', /const presetKind: string \| null = routeParams\.kind \|\| null;/.test(crear));
-  check('175) y Back deshace la navegación: vuelve al Home', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,200}>Back<\/Text>/.test(crear));
+  check('175) y Back deshace la navegación: vuelve al Home', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"/.test(crear));
 
   /* 8: nada más cambia. `directo` solo lo piden las dos pantallas del Home. */
   const etiquetas = [];

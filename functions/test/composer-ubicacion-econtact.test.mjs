@@ -445,8 +445,8 @@ console.log('\n─── G. El orden del compositor no se movió ───');
 
 const orden = [...crear.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
 check(
-  'Cámara · Foto o vídeo · ËContact · Ubicación · Encuesta',
-  orden.join(' · ') === 'Cámara · Foto o vídeo · ËContact · Ubicación · Encuesta',
+  'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
+  orden.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
   orden.join(' · ')
 );
 /* El lugar ya no es un panel entre los de abajo: es un chip bajo el texto. El
