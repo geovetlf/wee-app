@@ -21,7 +21,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { postsService } from '../services/firestoreService';
 import { uploadPostImage } from '../services/storageService';
-import { PlaceOption, PostPlace, buscarLugares, cargarMundo, etiquetaDeLugar, lugarDelCatalogo, lugarPropio } from '../data/places';
+import { PostPlace, etiquetaDeLugar } from '../data/places';
 import { MURO_GENERAL, destinosDisponibles } from '../utils/sectionFeed';
 import { getExperienceById } from '../constants/weeExperiences';
 import { uploadVideoToCloudinary } from '../services/cloudinaryService';
@@ -51,6 +51,8 @@ import {
 } from '../utils/pollDraft';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import SelectorDeEContacts from '../components/SelectorDeEContacts';
+import type { UbicacionPublica } from '../utils/locationPrivacy';
 
 interface MediaItem {
   type: 'image' | 'video';
@@ -150,14 +152,73 @@ const CreateScreen: React.FC = () => {
    * ni al escribir: publicar sin lugar es lo normal y no cuesta nada.
    */
   /*
-   * Dos cosas distintas: lo que se está escribiendo en el buscador y el lugar que
-   * ha quedado elegido. Separarlas es lo que permite que escribir "Perú" ofrezca
-   * el país del catálogo —con su código estable— y que escribir "la playa de mi
-   * pueblo" se quede tal cual, sin que Weë pretenda saber dónde está.
+   * El lugar del que habla la publicación. Se elige en "Agregar ubicación", que
+   * es una pantalla aparte: allí está el buscador, el catálogo y los lugares de
+   * tu país. Aquí solo se guarda lo que quedó elegido y se puede quitar.
    */
-  const [placeQuery, setPlaceQuery] = useState<string>('');
   const [place, setPlace] = useState<PostPlace | undefined>(undefined);
-  const [showPlace, setShowPlace] = useState(false);
+
+  /*
+   * DESDE DÓNDE SE PUBLICA, que no es lo mismo que el lugar de arriba.
+   *
+   * `place` lo escribe la persona y habla del CONTENIDO —una foto de París—;
+   * esto sale del aparato y dice desde qué trozo de mundo se publicó. Por eso son
+   * dos cosas y se pueden poner las dos, o ninguna, o solo una.
+   *
+   * El permiso, la lectura y la conversión a zona ocurren en "Agregar
+   * ubicación". Aquí solo llega el resultado ya convertido: zona, radio y
+   * precisión. Esta pantalla no ve ninguna coordenada en ningún momento.
+   */
+  const [ubicacion, setUbicacion] = useState<UbicacionPublica | undefined>(undefined);
+
+  /*
+   * LA VUELTA DE "AGREGAR UBICACIÓN".
+   *
+   * Esa pantalla vuelve con `merge`, así que este compositor NUNCA se desmonta y
+   * lo que hubiera escrito sigue escrito. Los parámetros llegan aquí:
+   *
+   *   · un valor  → se pone
+   *   · `null`    → se quita
+   *   · ausente   → no se toca
+   *
+   * El sello cambia en cada vuelta. Sin él, elegir Lima, quitarlo y volver a
+   * elegir Lima no dispararía nada la segunda vez, porque el parámetro sería
+   * idéntico al anterior.
+   */
+  const selloUbicacion: string | undefined = routeParams.selloUbicacion;
+  useEffect(() => {
+    if (!selloUbicacion) return;
+    /*
+     * En web estos parámetros también viajan por la barra de direcciones, y ahí
+     * un objeto se convierte en la cadena "[object Object]". Al recargar la
+     * página volvería eso, no un lugar. Así que se comprueba la forma antes de
+     * aceptarlo: lo que no la tenga se descarta en vez de pintarse roto.
+     */
+    const esLugar = (v: unknown): v is PostPlace =>
+      !!v && typeof v === 'object' && typeof (v as PostPlace).label === 'string';
+    const esZona = (v: unknown): v is UbicacionPublica =>
+      !!v && typeof v === 'object' && typeof (v as UbicacionPublica).zona === 'string';
+
+    const lugar = routeParams.lugarElegido;
+    const zona = routeParams.ubicacionElegida;
+    if (lugar !== undefined) setPlace(esLugar(lugar) ? lugar : undefined);
+    if (zona !== undefined) setUbicacion(esZona(zona) ? zona : undefined);
+    // Solo el sello: los otros dos se leen dentro, y volver a correr por ellos
+    // repetiría la misma asignación sin motivo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selloUbicacion]);
+
+  /** Abre la pantalla de ubicación, llevándole lo que ya hay puesto. */
+  const abrirUbicacion = () =>
+    (navigation as any).navigate('AgregarUbicacion', { place, ubicacion });
+
+  /*
+   * A QUIÉN SE MENCIONA. Solo identidades, y solo las que salieron de la agenda:
+   * el selector únicamente ofrece contactos aceptados del perfil activo, así que
+   * de aquí no puede salir alguien con quien no estés conectado.
+   */
+  const [econtacts, setEContacts] = useState<string[]>([]);
+  const [showEContacts, setShowEContacts] = useState(false);
 
   /*
    * DÓNDE QUIERE APARECER ESTA PUBLICACIÓN.
@@ -174,27 +235,10 @@ const CreateScreen: React.FC = () => {
   const alternarDestino = (id: string) =>
     setDestinos((actuales) => (actuales.includes(id) ? actuales.filter((d) => d !== id) : [...actuales, id]));
   /*
-   * El catálogo mundial son casi ochenta mil lugares, y quien abre el compositor
-   * para escribir dos líneas no tiene por qué pagarlos. Se pide la primera vez
-   * que alguien despliega "Lugar", nunca al abrir la pantalla. Mientras llega, la
-   * búsqueda funciona con los lugares escritos a mano.
+   * El catálogo mundial —casi ochenta mil lugares— ya no se pide desde aquí:
+   * quien abre el compositor para escribir dos líneas no tiene por qué pagarlo.
+   * Lo carga "Agregar ubicación" al abrirse, que es cuando alguien va a buscar.
    */
-  const [mundoCargado, setMundoCargado] = useState(false);
-  useEffect(() => {
-    if (!showPlace || mundoCargado) return;
-    let vivo = true;
-    cargarMundo().finally(() => {
-      if (vivo) setMundoCargado(true);
-    });
-    return () => {
-      vivo = false;
-    };
-  }, [showPlace, mundoCargado]);
-  // La búsqueda es local: recorre la lista de países que Weë ya tenía y no sale
-  // del dispositivo. Ni proveedores de lugares, ni autocompletado remoto.
-  // `mundoCargado` entra en las dependencias a propósito: cuando el catálogo
-  // termina de llegar, lo que ya estaba escrito se vuelve a buscar con él.
-  const placeOptions = useMemo(() => (place ? [] : buscarLugares(placeQuery)), [placeQuery, place, mundoCargado]);
 
   const [faceSwapLoading, setFaceSwapLoading] = useState(false);
 
@@ -675,6 +719,17 @@ ${message}`);
         // `placeLabel`, que es el campo de las anteriores. Así los dos nunca
         // conviven y no pueden contradecirse.
         ...(place ? { place } : {}),
+        /*
+         * Desde dónde se publicó, si se quiso decir. Ya viene convertida: zona,
+         * radio y precisión. Lo que sale del GPS no llega hasta aquí.
+         */
+        ...(ubicacion ? { ubicacion } : {}),
+        /*
+         * A quién se menciona. Identidades salidas de la agenda del perfil
+         * activo, y nada más: este campo ETIQUETA. Ninguna relación de ËContact
+         * se crea, se acepta ni se modifica al publicar.
+         */
+        ...(econtacts.length > 0 ? { econtacts } : {}),
         // Dónde quiere aparecer. UN documento, varios sitios donde se lee.
         ...(destinos.length > 0 ? { destinations: destinos } : {}),
         ...(aiPrompt.trim() ? { aiPrompt: aiPrompt.trim() } : {}),
@@ -892,19 +947,32 @@ ${message}`);
           activa={attachedMedia.length > 0}
         />
         {/*
-          ËContact será el nombre de la red de conexiones de Weë en todos los
-          idiomas. Su sitio queda reservado y apagado: sin backend, un botón que
-          prometiera etiquetar gente estaría mintiendo.
+          ËContact es el nombre de la red de conexiones de Weë en todos los
+          idiomas, y este botón ya hace lo que promete: abre la agenda del perfil
+          activo para mencionar a quien quieras. Lo que se enseña dentro se llama
+          ËContact o ẄContact según con qué cara estés publicando, pero el botón
+          dice siempre ËContact: es el nombre universal de la función.
         */}
-        <Accion icono="people-outline" texto="ËContact" onPress={() => {}} apagada />
+        <Accion
+          icono="people-outline"
+          texto="ËContact"
+          onPress={() => setShowEContacts((v) => !v)}
+          activa={econtacts.length > 0 || showEContacts}
+          insignia={econtacts.length > 0 ? String(econtacts.length) : undefined}
+        />
       </View>
       <View style={styles.accionesFila}>
         {/*
           El nombre del mosaico NO cambia al elegir sitio: si pusiera el lugar se
           cortaría a la mitad y además movería la rejilla. El lugar elegido se ve
-          entero en su panel, que se queda abierto mientras haya uno.
+          entero en su chip, bajo el texto, mientras haya uno.
         */}
-        <Accion icono="location-outline" texto="Ubicación" onPress={() => setShowPlace((v) => !v)} activa={!!place || showPlace} />
+        <Accion
+          icono="location-outline"
+          texto="Ubicación"
+          onPress={abrirUbicacion}
+          activa={!!place || !!ubicacion}
+        />
         {/*
           La encuesta existe en Weë y hay encuestas publicadas. Esta es su única
           puerta: quitarla dejaría la función viva y sin forma de usarla.
@@ -1004,89 +1072,85 @@ ${message}`);
   );
 
   /*
-   * Mientras haya un lugar puesto, su panel se queda: el mosaico ya no lleva el
-   * nombre del sitio —se cortaba— y sin panel el lugar elegido se volvía
-   * invisible. Se quita por su aspa, no cerrando el panel.
+   * La agenda solo se monta cuando alguien la abre —o cuando ya hay a quien
+   * quitar—. Así abrir el compositor para escribir dos líneas no dispara ninguna
+   * consulta, igual que el catálogo de lugares no se descarga hasta que hace
+   * falta. La lista y su estado vacío viven en el componente.
    */
-  const renderPlace = () =>
-    showPlace || place ? (
+  const renderEContacts = () =>
+    showEContacts || econtacts.length > 0 ? (
       <View style={[styles.panel, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
         <View style={styles.howBody}>
-          {place ? (
-            /* Ya hay lugar: se enseña y se puede quitar. Nada más que decidir. */
-            <View style={styles.placeChosen}>
-              <Text style={[styles.placeChosenText, { color: theme.colors.text }]} numberOfLines={1}>
-                📍 {etiquetaDeLugar({ place })}
+          <SelectorDeEContacts elegidos={econtacts} onCambiar={setEContacts} />
+          {econtacts.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setEContacts([])}
+              activeOpacity={0.7}
+              accessibilityLabel="Quitar las menciones"
+            >
+              <Text style={[styles.howHint, { color: theme.colors.accentDark }]}>
+                Quitar {econtacts.length === 1 ? 'la mención' : 'las menciones'}
               </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setPlace(undefined);
-                  setPlaceQuery('');
-                }}
-                activeOpacity={0.7}
-                accessibilityLabel="Quitar el lugar"
-              >
-                <Text style={[styles.howHint, { color: theme.colors.accentDark }]}>Quitar el lugar</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.howInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-                placeholder="Busca una ciudad o un país, o escríbelo tú"
-                placeholderTextColor={theme.colors.textSecondary}
-                value={placeQuery}
-                onChangeText={setPlaceQuery}
-                maxLength={60}
-                accessibilityLabel="Lugar de la publicación"
-              />
-
-              {/* Lo que el catálogo reconoce. Elegir uno le da identidad al lugar. */}
-              {placeOptions.map((opcion: PlaceOption) => (
-                <TouchableOpacity
-                  key={opcion.id}
-                  style={styles.placeOption}
-                  onPress={() => setPlace(lugarDelCatalogo(opcion))}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`Elegir ${opcion.label}`}
-                >
-                  <Text style={styles.placeFlag}>{opcion.flag}</Text>
-                  <Text style={[styles.placeOptionText, { color: theme.colors.text }]} numberOfLines={1}>
-                    {opcion.label}
-                    {/*
-                      El país detrás del nombre. No es decoración: hay dos Valencias
-                      y dos Córdobas en el catálogo, y quien elige tiene derecho a
-                      saber cuál está eligiendo antes de pulsar.
-                    */}
-                    {opcion.sublabel ? (
-                      <Text style={[styles.placeOptionCountry, { color: theme.colors.textSecondary }]}>
-                        {'  '}
-                        {opcion.sublabel}
-                      </Text>
-                    ) : null}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-
-              {/* Y si el catálogo no lo tiene, valen las palabras de la persona. */}
-              {placeQuery.trim().length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setPlace(lugarPropio(placeQuery))}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Usar lo que he escrito como lugar"
-                >
-                  <Text style={[styles.howHint, { color: theme.colors.accentDark }]}>
-                    Usar «{placeQuery.trim()}» tal y como lo he escrito
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </>
+            </TouchableOpacity>
           )}
-
-          <Text style={[styles.howHint, { color: theme.colors.textSecondary }]}>
-            El lugar se verá en tu publicación. No pongas una dirección privada. Weë no añade tu ubicación.
-          </Text>
         </View>
+      </View>
+    ) : null;
+
+  /*
+   * ─── El lugar elegido: un chip, no una tarjeta ────────────────────────────
+   *
+   * Va justo debajo de lo que escribes y antes de las acciones, como parte de
+   * la publicación y no como un ajuste. Un chip por cosa: el LUGAR del que
+   * habla la publicación y, si la hay, la ZONA desde la que publicas. Son dos
+   * cosas distintas y se quitan por separado, cada una con su aspa.
+   *
+   * No hay "Cambiar": tocar "Ubicación" abre el selector otra vez. Y si no hay
+   * nada puesto, no se pinta nada: el hueco no existe.
+   */
+  const renderLugar = () =>
+    place || ubicacion ? (
+      <View style={styles.lugarFila}>
+        {!!place && (
+          <View
+            style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
+            accessibilityLabel={'Lugar: ' + etiquetaDeLugar({ place })}
+          >
+            <Ionicons name="location" size={scale(15)} color={theme.colors.accentDark} />
+            <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
+              {etiquetaDeLugar({ place })}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setPlace(undefined)}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 8 }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Quitar el lugar"
+            >
+              <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+        {!!ubicacion && (
+          <View
+            style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
+            accessibilityLabel="Publicando desde tu zona aproximada"
+          >
+            <Ionicons name="navigate" size={scale(14)} color={theme.colors.accentDark} />
+            <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
+              Zona aproximada
+            </Text>
+            <TouchableOpacity
+              onPress={() => setUbicacion(undefined)}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 8 }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Quitar mi ubicación"
+            >
+              <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     ) : null;
 
@@ -1440,10 +1504,11 @@ ${message}`);
           </View>
 
           {renderTextInput()}
+          {renderLugar()}
           {renderMediaPreview()}
           {renderPoll()}
           {renderAcciones()}
-          {renderPlace()}
+          {renderEContacts()}
           {renderDestinos()}
         </ScrollView>
 
@@ -1717,6 +1782,29 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   /* Lo que se despliega al encender una acción. Sin cabecera: la trae el botón. */
+  /* El lugar y la zona, como chips bajo el texto: parte de la publicación. */
+  lugarFila: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  chipLugar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    maxWidth: '100%',
+    minHeight: 34,
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  chipLugarTexto: {
+    flexShrink: 1,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
   panel: {
     marginTop: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
@@ -1731,33 +1819,6 @@ const styles = StyleSheet.create({
   },
   howEmoji: {
     fontSize: scale(18),
-  },
-  placeChosen: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  placeChosenText: {
-    flex: 1,
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-  placeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.xs,
-  },
-  placeFlag: {
-    fontSize: FONT_SIZE.lg,
-  },
-  placeOptionText: {
-    flex: 1,
-    fontSize: FONT_SIZE.md,
-  },
-  placeOptionCountry: {
-    fontSize: FONT_SIZE.sm,
   },
   howTitle: {
     fontSize: FONT_SIZE.base,

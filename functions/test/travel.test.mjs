@@ -864,7 +864,9 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
   check('109) no se pregunta "Cómo lo hice" al publicar', !/renderHowIMadeIt|showHowIMadeIt/.test(crear), 'el bloque sigue en el compositor');
   check('109) ni hay campos que rellenar de IA', !/setAiToolsText|setAiPrompt|setAiProcess/.test(crear));
   check('109) pero lo que generó Weë se sigue apuntando solo', /routeParams\.prefill\?\.aiTools/.test(crear) && /routeParams\.prefill\?\.aiProcess/.test(crear));
-  check('109) el lugar sí empieza cerrado', /const \[showPlace, setShowPlace\] = useState\(false\)/.test(crear));
+  /* El buscador de lugar ya no vive en el compositor: vive en su pantalla, y el
+     botón lleva allí. Lo que se vigila es que el compositor no lo recupere. */
+  check('109) el lugar se elige en su pantalla, no dentro del compositor', /navigate\('AgregarUbicacion'/.test(crear) && !/buscarLugares|placeQuery/.test(crear));
 
   /*
    * Lo que se puede añadir vive en una fila CON NOMBRE pegada al texto. Antes
@@ -876,10 +878,14 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
   // Amigos tiene su sitio pero no engaña: apagado y avisando de que llega después.
   /*
    * ËContact será el nombre de la red de conexiones de Weë en todos los idiomas.
-   * Su sitio está reservado y apagado: sin backend detrás, un botón que
-   * prometiera etiquetar gente estaría mintiendo.
+   * Su sitio estuvo reservado y apagado mientras no hubo nada detrás; ahora abre
+   * la agenda del perfil activo, así que se vigila lo contrario: que NO vuelva a
+   * quedarse apagado. Misma aserción que en `composer.test.mjs`, y las dos
+   * tienen que decir lo mismo.
    */
-  check('110) ËContact reserva su sitio sin prometer nada', /texto="ËContact" onPress=\{\(\) => \{\}\} apagada/.test(crear));
+  const bloqueEContactTravel = crear.slice(crear.indexOf('texto="ËContact"'), crear.indexOf('texto="ËContact"') + 280);
+  check('110) ËContact ya no está apagado', !/apagada/.test(bloqueEContactTravel));
+  check('110) y abre la agenda del perfil activo', /setShowEContacts/.test(bloqueEContactTravel));
   check('110) y ya no se llama Amigos', !/texto="Amigos"/.test(crear));
   // La encuesta no está en la maqueta pero existe en Weë: quitarla la dejaría sin puerta.
   check('110) y la encuesta conserva su única puerta', /onPress=\{handlePollPress\}/.test(crear));
@@ -906,7 +912,10 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
   check('110) luego lo que cuenta, y después con qué', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderAcciones()}'));
   check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
   check('110) la cabecera dice qué estás haciendo', /Crear publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
-  check('110) el panel de lugar no trae cabecera propia: la trae su botón', /const renderPlace = \(\) =>\s*\n?\s*showPlace \|\| place \? \(/.test(crear));
+  /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
+     no hay nada, no se pinta nada. Misma aserción que en composer.test.mjs. */
+  check('110) el lugar elegido es un chip, y solo sale si hay algo', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && /styles\.chipLugar/.test(crear));
+  check('110) y va justo bajo el campo de texto, antes de las acciones', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderLugar()}') && crear.indexOf('{renderLugar()}') < crear.indexOf('{renderAcciones()}'));
   /*
    * MOSAICOS (fase 2E-76, modelo visual del usuario). Eran píldoras en una fila
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
@@ -932,7 +941,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    */
   check('111b) el hueco del check está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(20\),\s*height: scale\(20\)/.test(crear));
   check('111b) y el peso de la letra no cambia al elegir', !/fontWeight: elegido \?/.test(crear));
-  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{!!place \|\| showPlace\}/.test(crear) && /activa=\{attachedMedia\.length > 0\}/.test(crear));
+  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{!!place \|\| !!ubicacion\}/.test(crear) && /activa=\{attachedMedia\.length > 0\}/.test(crear));
 
   // Publicar exige contenido: ni texto vacío ni una publicación en blanco.
   check('111) no se publica sin contenido', /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crear));

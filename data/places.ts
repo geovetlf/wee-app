@@ -39,6 +39,46 @@ export interface PostPlace {
   countryCode?: string;
 }
 
+/**
+ * Un resultado a medio hacer: su opción, lo bien que encaja con lo escrito y,
+ * cuando se sabe, dónde está. Las coordenadas no se enseñan: sirven para que a
+ * igualdad de encaje gane el que tienes al lado.
+ */
+interface Candidato {
+  opcion: PlaceOption;
+  peso: number;
+  lat?: number;
+  lon?: number;
+  /**
+   * Cuánto pesa un lugar por sí mismo, cuando ni el texto ni la cercanía
+   * deciden. Sale de la POBLACIÓN que publica GeoNames —una sección de ciudad
+   * hereda la de su metrópoli—, y menor es mejor: 0 un país, 3 millones de
+   * habitantes, 5 decenas de miles. Estar en la lista escrita a mano no da
+   * prioridad por sí solo: Barranca no puede ganarle a Barranco por el mero
+   * hecho de que alguien la apuntó.
+   */
+  importancia: number;
+}
+
+/**
+ * Del dígito de relevancia del catálogo a la importancia con la que se ordena.
+ * Sin dígito —los escritos a mano sin gemelo en GeoNames— se asume un lugar
+ * notable de tamaño desconocido, ni el primero ni el último.
+ */
+const importanciaDe = (rel?: number): number =>
+  typeof rel === 'number' && rel === rel ? 9 - Math.min(9, Math.max(0, rel)) : 4;
+
+/**
+ * Desde dónde se busca, si se sabe. Sirve para ORDENAR, nunca para filtrar: un
+ * resultado de la otra punta del mundo no se esconde, se pone después.
+ */
+export interface ContextoDeBusqueda {
+  lat?: number;
+  lon?: number;
+  /** El país de quien busca, que Weë sabe desde el registro. */
+  pais?: string | null;
+}
+
 /** Un resultado de búsqueda: un país o una ciudad, listo para enseñar. */
 export interface PlaceOption {
   id: string;
@@ -122,7 +162,21 @@ const comoOpcion = (pais: Country): PlaceOption => ({ id: pais.code, label: pais
  */
 let mundo: string | null = null;
 let mundoNormalizado: string | null = null;
+/** Las coordenadas de los lugares escritos a mano. Llegan con el mundo. */
+let mundoCoords: string | null = null;
+/** De 'PE.15' a 'Lima'. Lo que distingue las cinco Miraflores del Perú. */
+let regiones: Map<string, string> | null = null;
 let cargando: Promise<void> | null = null;
+
+/**
+ * Cómo se lee el sitio de un lugar: "Lima, Perú" cuando se sabe la región, y
+ * solo "Perú" cuando no. Sin región, cinco Miraflores se leen igual y elegir es
+ * adivinar.
+ */
+const sitioDe = (pais: Country, cc?: string, adm1?: string): string => {
+  const region = cc && adm1 && regiones ? regiones.get(`${cc}.${adm1}`) : undefined;
+  return region ? `${region}, ${pais.name}` : pais.name;
+};
 
 /** ¿Está ya el catálogo mundial en memoria? */
 export const mundoListo = (): boolean => mundo !== null;
@@ -149,8 +203,18 @@ export const cargarMundo = async (): Promise<void> => {
        * lugar, sin pedirle nada a la red y sin nada que pueda caerse.
        */
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const modulo = require('./citiesWorld') as { WORLD_PLACES: string };
+      const modulo = require('./citiesWorld') as { WORLD_PLACES: string; HAND_COORDS: string; REGIONS: string };
       mundo = modulo.WORLD_PLACES;
+      mundoCoords = modulo.HAND_COORDS || '';
+      regiones = new Map(
+        (modulo.REGIONS || '')
+          .split('\n')
+          .filter(Boolean)
+          .map((linea) => {
+            const corte = linea.indexOf('|');
+            return [linea.slice(0, corte), linea.slice(corte + 1)] as [string, string];
+          })
+      );
       // Alineada carácter a carácter con la original: de eso depende poder cortar
       // la línea correcta después de encontrar una coincidencia.
       mundoNormalizado = normalizarAlineado(mundo);
@@ -181,9 +245,9 @@ const MAXIMO_CANDIDATOS = 400;
  * código nativo, y solo construye un objeto para las líneas que de verdad
  * coinciden. Nunca se materializa el catálogo entero.
  */
-const buscarEnElMundo = (q: string): { opcion: PlaceOption; peso: number }[] => {
+const buscarEnElMundo = (q: string): Candidato[] => {
   if (!mundo || !mundoNormalizado) return [];
-  const encontrados: { opcion: PlaceOption; peso: number }[] = [];
+  const encontrados: Candidato[] = [];
   let desde = 0;
 
   while (encontrados.length < MAXIMO_CANDIDATOS) {
@@ -198,7 +262,7 @@ const buscarEnElMundo = (q: string): { opcion: PlaceOption; peso: number }[] => 
 
     const campos = mundo.slice(inicio, fin).split('|');
     if (campos.length < 4) continue;
-    const [cc, sufijo, nombre, nivel, alias] = campos;
+    const [cc, sufijo, nombre, , alias, lat, lon, adm1, rel] = campos;
     const pais = paisDe(cc);
     if (!pais) continue;
 
@@ -212,13 +276,15 @@ const buscarEnElMundo = (q: string): { opcion: PlaceOption; peso: number }[] => 
 
     const exacto = n === q || a === q;
     const empieza = n.startsWith(q) || (a ? a.startsWith(q) : false);
-    const secundaria = nivel === 's';
-    const peso = exacto ? 0 : empieza ? (secundaria ? 3 : 1) : 4;
+    const peso = exacto ? 0 : empieza ? 1 : 2;
 
     encontrados.push({
       // Se enseña el nombre en español cuando existe: "Múnich", no "Munich".
-      opcion: { id: cc + '-' + sufijo, label: alias || nombre, flag: pais.flag, countryCode: cc, sublabel: pais.name },
+      opcion: { id: cc + '-' + sufijo, label: alias || nombre, flag: pais.flag, countryCode: cc, sublabel: sitioDe(pais, cc, adm1) },
       peso,
+      lat: Number(lat),
+      lon: Number(lon),
+      importancia: importanciaDe(Number(rel)),
     });
   }
   return encontrados;
@@ -241,7 +307,7 @@ const ciudadComoOpcion = (ciudad: City): PlaceOption | undefined => {
  * Ordena por dónde encaja —los que empiezan por lo escrito antes que los que solo
  * lo contienen—, porque quien escribe "per" está buscando Perú y no Chipre.
  */
-export const buscarLugares = (texto: string, limite = 6): PlaceOption[] => {
+export const buscarLugares = (texto: string, limite = 6, contexto?: ContextoDeBusqueda): PlaceOption[] => {
   const q = normalize(texto);
   if (q.length < 2) return [];
 
@@ -261,36 +327,296 @@ export const buscarLugares = (texto: string, limite = 6): PlaceOption[] => {
    * Y dentro de "empieza por", las principales van antes, porque quien escribe
    * tres letras suele buscar la grande.
    */
-  const resultados: { opcion: PlaceOption; peso: number }[] = [];
+  const resultados: Candidato[] = [];
 
+  /*
+   * El peso es SOLO el texto: exacto, empieza por, contiene. Nada más entra en
+   * esta capa. Antes las ciudades "principales" se colaban aquí por delante de
+   * las "secundarias", y eso decidía antes de tiempo lo que le corresponde
+   * decidir a la cercanía y a la importancia.
+   */
   for (const ciudad of CITIES) {
     const nombre = normalize(ciudad.name);
     if (!nombre.includes(q) && normalize(ciudad.id) !== q) continue;
     const opcion = ciudadComoOpcion(ciudad);
     if (!opcion) continue;
-    const secundaria = ciudad.tier === 'secondary';
-    const peso = nombre === q ? 0 : nombre.startsWith(q) ? (secundaria ? 3 : 1) : 4;
-    resultados.push({ opcion, peso });
+    const peso = nombre === q ? 0 : nombre.startsWith(q) ? 1 : 2;
+    const propias = coordenadasAMano().get(ciudad.id);
+    resultados.push({ opcion, peso, lat: propias?.[0], lon: propias?.[1], importancia: importanciaDe(propias?.[2]) });
   }
 
+  /*
+   * Un país pesa como una ciudad grande —ni más ni menos—. No tenemos su
+   * población y no se inventa: es la regla de siempre expresada en esta capa.
+   * Escribiendo "par", París va antes que Paraguay y Paraguay antes que un
+   * pueblo; escribiendo "peru" entero, Perú es exacto y va el primero.
+   */
+  const IMPORTANCIA_DE_UN_PAIS = 4;
   for (const pais of COUNTRIES) {
     const nombre = normalize(pais.name);
     const exacto = nombre === q || normalize(pais.code) === q;
     if (!exacto && !nombre.includes(q)) continue;
-    resultados.push({ opcion: comoOpcion(pais), peso: exacto ? 0 : nombre.startsWith(q) ? 2 : 4 });
+    resultados.push({
+      opcion: comoOpcion(pais),
+      peso: exacto ? 0 : nombre.startsWith(q) ? 1 : 2,
+      importancia: IMPORTANCIA_DE_UN_PAIS,
+    });
   }
 
   // Y el mundo entero, si ya está cargado. Va después de lo escrito a mano a
   // igualdad de peso: Lima la de siempre antes que cualquier Lima importada.
   resultados.push(...buscarEnElMundo(q));
 
-  // Un orden estable: a igual peso, el del catálogo. Así la lista no baila entre
-  // pulsaciones y quien ya vio un resultado lo vuelve a encontrar donde estaba.
+  /*
+   * EL ORDEN, por capas:
+   *
+   *   1. lo bien que encaja con lo escrito (exacto, empieza por, contiene);
+   *   2. a igualdad, lo que tienes en tu zona —si Weë sabe dónde estás—;
+   *   3. a igualdad, tu país;
+   *   4. a igualdad, la importancia del lugar, que sale de su población;
+   *   5. a igualdad, el orden del catálogo, que es estable.
+   *
+   * Las capas 2 a 4 solo DESEMPATAN: nunca adelantan a un encaje mejor ni
+   * esconden un resultado de otro país. Escribiendo "Barranc" hay dos sitios en
+   * el Perú que empiezan igual —Barranco, un distrito de Lima, y Barranca, un
+   * pueblo a 180 km—: con ubicación gana el que tienes al lado; sin ella, los
+   * dos son de tu país y decide la importancia, que también es Barranco.
+   */
+  const hayPunto = typeof contexto?.lat === 'number' && typeof contexto?.lon === 'number';
+  const distancia = (c: Candidato): number => {
+    if (!hayPunto || typeof c.lat !== 'number' || typeof c.lon !== 'number') return Infinity;
+    if (c.lat !== c.lat || c.lon !== c.lon) return Infinity; // NaN
+    return kmEntre(contexto!.lat!, contexto!.lon!, c.lat, c.lon);
+  };
+  /* Un país como resultado no lleva `countryCode`: su identificador ES el código.
+     Sin esto, "Perú" nunca contaba como tu país para alguien del Perú. */
+  const paisDeLaOpcion = (c: Candidato): string | undefined => c.opcion.countryCode || c.opcion.id;
+  const deTuPais = (c: Candidato): number => (contexto?.pais && paisDeLaOpcion(c) === contexto.pais ? 0 : 1);
+
+  /*
+   * La cercanía desempata SOLO cuando algo está de verdad en tu zona.
+   *
+   * Con la distancia cruda pasaba esto: alguien en Lima escribe "Madrid" y le
+   * sale primero un Madrid de Colombia, porque está a 1.900 km y el de España a
+   * 10.000. Los dos están lejísimos; entre dos sitios lejanos la distancia no
+   * dice cuál buscabas, y lo que sí lo dice es cuál es más importante.
+   *
+   * Por debajo de este radio la cercanía manda —"Barranc" desde Lima da Barranco,
+   * a 500 m, y no Barranca, a 180 km—. Por encima, deja paso a la importancia.
+   */
+  const RADIO_TU_ZONA_KM = 100;
+  const enTuZona = (km: number): number => (km <= RADIO_TU_ZONA_KM ? 0 : 1);
+
   return resultados
-    .map((r, i) => ({ ...r, i }))
-    .sort((a, b) => a.peso - b.peso || a.i - b.i)
+    .map((r, i) => ({ ...r, i, km: distancia(r) }))
+    .sort(
+      (a, b) =>
+        a.peso - b.peso ||
+        enTuZona(a.km) - enTuZona(b.km) ||
+        (enTuZona(a.km) === 0 ? a.km - b.km : 0) ||
+        deTuPais(a) - deTuPais(b) ||
+        a.importancia - b.importancia ||
+        a.i - b.i
+    )
     .slice(0, limite)
     .map((r) => r.opcion);
+};
+
+// ─── Cerca de ti ────────────────────────────────────────────────────────────
+
+/**
+ * LA CERCANÍA SE CALCULA AQUÍ, Y AQUÍ SE QUEDA.
+ *
+ * Conviene decir por qué esto no contradice a `utils/locationPrivacy.ts`, que
+ * guarda con celo las distancias y solo deja salir bandas.
+ *
+ * Aquel archivo protege la distancia entre DOS PERSONAS: con tres de esas
+ * distancias se triangula una casa, y por eso de allí solo sale "a 1–5 km".
+ * Esto es otra cosa: la distancia de quien mira a un SITIO PÚBLICO cuya posición
+ * está en cualquier atlas. Se calcula en el teléfono, se enseña en el teléfono y
+ * no se guarda, no se manda y no entra en ninguna publicación. Nadie al otro
+ * lado ve un número.
+ *
+ * Por eso el cálculo vive aquí —esto va de lugares— y `locationPrivacy` se queda
+ * exactamente como estaba.
+ */
+
+const RADIO_TIERRA_KM = 6371;
+const aRadianes = (grados: number): number => (grados * Math.PI) / 180;
+
+/** Distancia en kilómetros sobre la esfera. Pura: no toca red, disco ni estado. */
+const kmEntre = (aLat: number, aLon: number, bLat: number, bLon: number): number => {
+  const dLat = aRadianes(bLat - aLat);
+  const dLon = aRadianes(bLon - aLon);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(aRadianes(aLat)) * Math.cos(aRadianes(bLat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * RADIO_TIERRA_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+
+/** Hasta dónde se considera "cerca". Más allá, el sitio ya no es tu barrio. */
+const RADIO_CERCANIA_KM = 60;
+
+export interface LugarCercano {
+  opcion: PlaceOption;
+  /** Kilómetros de verdad, calculados. Para ordenar; no se enseña crudo. */
+  km: number;
+}
+
+/**
+ * Cómo se dice una distancia sin fingir una precisión que no se tiene.
+ *
+ * El catálogo guarda tres decimales —unos 110 m— y la ubicación de quien mira es
+ * aproximada por definición. Con eso se puede decir "a 4 km" con la cabeza alta;
+ * decir "a 4,17 km" sería inventarse dos cifras.
+ */
+export const distanciaAproximada = (km: number): string => {
+  if (km < 1) return 'A menos de 1 km';
+  if (km < 10) return `≈ ${Math.round(km)} km`;
+  if (km <= RADIO_CERCANIA_KM) return `≈ ${Math.round(km / 5) * 5} km`;
+  return `A más de ${RADIO_CERCANIA_KM} km`;
+};
+
+/**
+ * Las coordenadas —y la relevancia— de los escritos a mano, leídas una sola vez.
+ * Cada entrada es [latitud, longitud, relevancia]; la relevancia falta en los
+ * que no tienen gemelo en GeoNames.
+ */
+let coordsAMano: Map<string, [number, number, number?]> | null = null;
+const coordenadasAMano = (): Map<string, [number, number, number?]> => {
+  if (!coordsAMano) coordsAMano = leerCoordsAMano(mundoCoords || '');
+  return coordsAMano;
+};
+const leerCoordsAMano = (crudo: string): Map<string, [number, number, number?]> => {
+  const mapa = new Map<string, [number, number, number?]>();
+  for (const linea of crudo.split('\n')) {
+    if (!linea) continue;
+    const [id, lat, lon, rel] = linea.split('|');
+    const la = Number(lat);
+    const lo = Number(lon);
+    const re = rel === undefined || rel === '' ? undefined : Number(rel);
+    if (id && Number.isFinite(la) && Number.isFinite(lo)) mapa.set(id, [la, lo, re]);
+  }
+  return mapa;
+};
+
+/**
+ * Los lugares más cercanos a un punto, ordenados por distancia.
+ *
+ * Recorre el catálogo UNA vez y solo mira la cola de cada línea, que es donde
+ * están las coordenadas: la última barra separa la región, y las dos anteriores
+ * la longitud y la latitud. Antes de la trigonometría hay un descarte por caja:
+ * si un sitio está a más de medio grado de latitud, no hace falta la raíz
+ * cuadrada para saber que no es tu barrio. Con eso, de ochenta mil líneas se
+ * calculan de verdad unas pocas docenas.
+ *
+ * El punto que entra es de quien mira, y no sale de aquí: se usa para comparar y
+ * se olvida. Lo que vuelve son lugares y kilómetros, nunca la posición.
+ */
+export const lugaresCercanos = (lat: number, lon: number, limite = 8): LugarCercano[] => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+
+  const cerca: { cc: string; sufijo: string; nombre: string; alias: string; adm1: string; km: number }[] = [];
+
+  /* La caja: medio grado de latitud son unos 55 km; la longitud se estrecha
+     según te acercas a los polos, y el coseno lo tiene en cuenta. */
+  const margenLat = RADIO_CERCANIA_KM / 111;
+  const cosLat = Math.max(0.01, Math.cos(aRadianes(lat)));
+  const margenLon = RADIO_CERCANIA_KM / (111 * cosLat);
+
+  if (mundo) {
+    let inicio = 0;
+    while (inicio < mundo.length) {
+      let fin = mundo.indexOf('\n', inicio);
+      if (fin < 0) fin = mundo.length;
+
+      /* Solo la cola: partir la línea entera ochenta mil veces costaría mucho
+         más que buscar cuatro barras desde el final. De atrás hacia delante:
+         relevancia, región, longitud, latitud. */
+      const corteRel = mundo.lastIndexOf('|', fin - 1);
+      const corteAdm1 = corteRel > inicio ? mundo.lastIndexOf('|', corteRel - 1) : -1;
+      const corteLon = corteAdm1 > inicio ? mundo.lastIndexOf('|', corteAdm1 - 1) : -1;
+      const corteLat = corteLon > inicio ? mundo.lastIndexOf('|', corteLon - 1) : -1;
+      if (corteLat > inicio) {
+        const laLat = +mundo.slice(corteLat + 1, corteLon);
+        const laLon = +mundo.slice(corteLon + 1, corteAdm1);
+        if (
+          laLat === laLat && // descarta NaN sin llamar a isNaN
+          laLon === laLon &&
+          Math.abs(laLat - lat) <= margenLat &&
+          Math.abs(laLon - lon) <= margenLon
+        ) {
+          const km = kmEntre(lat, lon, laLat, laLon);
+          if (km <= RADIO_CERCANIA_KM) {
+            const campos = mundo.slice(inicio, corteLat).split('|');
+            cerca.push({
+              cc: campos[0],
+              sufijo: campos[1],
+              nombre: campos[2],
+              alias: campos[4] || '',
+              adm1: mundo.slice(corteAdm1 + 1, corteRel),
+              km,
+            });
+          }
+        }
+      }
+      inicio = fin + 1;
+    }
+  }
+
+  /* Y los escritos a mano, que no están en la cadena de arriba. Son 123, así que
+     se recorren enteros sin más ceremonia. */
+  if (mundoCoords) {
+    for (const [id, [laLat, laLon]] of coordenadasAMano()) {
+      if (Math.abs(laLat - lat) > margenLat || Math.abs(laLon - lon) > margenLon) continue;
+      const km = kmEntre(lat, lon, laLat, laLon);
+      if (km > RADIO_CERCANIA_KM) continue;
+      const ciudad = CITIES.find((c) => c.id === id);
+      if (!ciudad) continue;
+      cerca.push({ cc: ciudad.countryCode, sufijo: '', nombre: ciudad.name, alias: '', adm1: '', km });
+    }
+  }
+
+  const resultado: LugarCercano[] = [];
+  for (const c of cerca.sort((a, b) => a.km - b.km)) {
+    if (resultado.length >= limite) break;
+    const pais = paisDe(c.cc);
+    if (!pais) continue; // Un lugar sin país no se enseña: sería un lugar a medias.
+    const id = c.sufijo
+      ? `${c.cc}-${c.sufijo}`
+      : CITIES.find((x) => x.name === c.nombre && x.countryCode === c.cc)?.id;
+    if (!id) continue;
+    resultado.push({
+      opcion: { id, label: c.alias || c.nombre, flag: pais.flag, countryCode: c.cc, sublabel: sitioDe(pais, c.cc, c.adm1) },
+      km: c.km,
+    });
+  }
+  return resultado;
+};
+
+/**
+ * Los lugares de un país, para ofrecer algo antes de que nadie escriba.
+ *
+ * ─── Por qué NO es "lo que tienes cerca" de verdad ──────────────────────────
+ *
+ * Aquí no hay coordenadas —ni las va a haber: un lugar es una identidad, no una
+ * posición—, así que no existe forma de medir qué ciudad te pilla más cerca. Lo
+ * que sí se sabe de verdad es en qué país estás, porque lo dijiste tú al
+ * registrarte, y con eso se puede ofrecer algo REAL en vez de algo inventado.
+ *
+ * Por eso esta función no promete proximidad: devuelve los lugares de un país,
+ * las principales primero, y quien la use decide cómo lo cuenta. Poner un "a 1,2
+ * km" al lado sería un número que nadie ha medido.
+ */
+export const lugaresDelPais = (countryCode?: string | null, limite = 8): PlaceOption[] => {
+  if (!countryCode) return [];
+  const ciudades = CITIES.filter((c) => c.countryCode === countryCode);
+  return ciudades
+    .map((ciudad, i) => ({ ciudad, i }))
+    /* Las principales delante; a igualdad, el orden del catálogo, que es estable. */
+    .sort((a, b) => Number(a.ciudad.tier === 'secondary') - Number(b.ciudad.tier === 'secondary') || a.i - b.i)
+    .map((c) => ciudadComoOpcion(c.ciudad))
+    .filter((o): o is PlaceOption => !!o)
+    .slice(0, limite);
 };
 
 /**

@@ -17,7 +17,27 @@ const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf
 const catalogoMundial = () => {
   const archivo = leer('data/citiesWorld.ts');
   const i = archivo.indexOf('WORLD_PLACES = `') + 16;
-  return archivo.slice(i, archivo.length - 3);
+  /* Hasta el cierre de ESTA cadena: detrás viene `HAND_COORDS`, que es otra cosa
+     y con otro formato. Cortar por el final del archivo se las tragaba las dos. */
+  return archivo.slice(i, archivo.indexOf('`;', i));
+};
+
+/** Las coordenadas de los lugares escritos a mano, que viajan aparte. */
+const coordsAMano = () => {
+  const archivo = leer('data/citiesWorld.ts');
+  const i = archivo.indexOf('HAND_COORDS = `');
+  if (i < 0) return '';
+  const a = archivo.indexOf('`', i) + 1;
+  return archivo.slice(a, archivo.indexOf('`;', a));
+};
+
+/** Los nombres de las regiones —'PE.15|Lima'—, la tercera cadena del artefacto. */
+const regionesTabla = () => {
+  const archivo = leer('data/citiesWorld.ts');
+  const i = archivo.indexOf('REGIONS = `');
+  if (i < 0) return '';
+  const a = archivo.indexOf('`', i) + 1;
+  return archivo.slice(a, archivo.indexOf('`;', a));
 };
 
 /**
@@ -44,7 +64,10 @@ const cargarLugares = async () => {
     .replace("import { CITIES, City } from './cities';", leer('data/cities.ts').replace(/export /g, ''))
     // El catálogo mundial se carga con un import dinámico, que una URL de datos no
     // sabe resolver. Se le da ya cargado, que es lo mismo que hace la aplicación.
-    .replace("require('./citiesWorld') as { WORLD_PLACES: string }", '{ WORLD_PLACES: globalThis.__WORLD }');
+    .replace(
+      "require('./citiesWorld') as { WORLD_PLACES: string; HAND_COORDS: string; REGIONS: string }",
+      '{ WORLD_PLACES: globalThis.__WORLD, HAND_COORDS: globalThis.__HAND, REGIONS: globalThis.__REG }'
+    );
   const js = ts.transpileModule(fuente, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
@@ -617,7 +640,13 @@ console.log('\n── P · la capa está sola: nadie la consume todavía ──'
   const archivos = ['screens/', 'components/', 'services/', 'hooks/', 'contexts/', 'utils/'].flatMap((d) => buscar(d));
 
   const usanUbicacion = archivos.filter((f) => /useLocation\(\)|locationService|locationPrivacy/.test(leer(f)));
-  check('P) solo Settings consume la capa, y solo para encenderla', usanUbicacion.filter((f) => !/location(Service|Privacy|Context)/i.test(f)).join(',') === 'screens/SettingsScreen.tsx', usanUbicacion.join(', '));
+  /*
+   * Quién consume la capa está tasado. Settings la enciende, el compositor la
+   * usa para decir desde qué zona se publica, y el modelo del post declara el
+   * tipo de lo que se guarda. Nadie más: la lista es corta a propósito, y crece
+   * solo cuando alguien decide que crezca.
+   */
+  check('P) la capa la consumen los sitios tasados, y nadie más', usanUbicacion.filter((f) => !/location(Service|Privacy|Context)/i.test(f)).join(',') === 'screens/AgregarUbicacionScreen.tsx,screens/CreateScreen.tsx,screens/SettingsScreen.tsx,services/firestoreService.ts', usanUbicacion.join(', '));
   check('P) expo-location sigue viviendo en un único archivo', archivos.filter((f) => /from 'expo-location'/.test(leer(f))).join(',') === 'services/locationService.ts');
 
   // Ni Comunidad, ni Travel, ni WeeBiz han estrenado su propio sistema.
@@ -709,7 +738,12 @@ console.log('\n── S · el muro no pide ubicación ni inventa cercanía ─�
   check('S) ninguna pantalla del muro importa expo-location', !/from 'expo-location'/.test(todo));
   check('S) ni el compositor', !/expo-location|getCurrentPositionAsync/.test(textos['screens/CreateScreen.tsx']));
   check('S) ni la tarjeta', !/expo-location|getCurrentPositionAsync/.test(textos['components/PostCard.tsx']));
-  check('S) el muro no pide permiso al abrirse', !/requestForegroundPermissionsAsync|activar\(/.test(todo));
+  /*
+   * Nadie pide el permiso POR ABRIRSE. Solo Configuración lo pide, y a petición
+   * de la persona: lo que no puede haber en ningún sitio es un efecto de montaje
+   * que lo pida por su cuenta.
+   */
+  check('S) nadie pide permiso al abrirse', !/requestForegroundPermissionsAsync/.test(todo) && !/useEffect\([\s\S]{0,400}?activar\(/.test(todo));
   check('S) no se guarda ninguna coordenada en una publicación', !/latitude|longitude|radiusMeters|radioMetros|GeoPoint|geohash/i.test(todo));
   check('S) el modelo Post sigue sin campos geográficos', !/latitude|longitude|geohash|GeoPoint|coordinates/i.test(soloCodigo(leer('services/firestoreService.ts').slice(leer('services/firestoreService.ts').indexOf('export interface Post {'), leer('services/firestoreService.ts').indexOf('export interface UserProfile')))));
   check('S) y no se inventa contenido cercano', !/publicaciones cerca|personas cerca|amigos cerca|a \d+ metros|Cerca de ti/i.test(todo));
@@ -781,15 +815,21 @@ console.log('\n── U · el lugar del contenido no es dónde está el teléfon
   const modelo = modeloConComentarios.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
   // 1–3) Opcional de verdad.
-  check('U) el lugar empieza sin elegir, siempre', /const \[place, setPlace\] = useState<PostPlace \| undefined>\(undefined\)/.test(crear) && /const \[placeQuery, setPlaceQuery\] = useState<string>\(''\)/.test(crear));
+  check('U) el lugar empieza sin elegir, siempre', /const \[place, setPlace\] = useState<PostPlace \| undefined>\(undefined\)/.test(crear) && /const \[texto, setTexto\] = useState\(''\)/.test(leer('screens/AgregarUbicacionScreen.tsx')));
   check('U) solo se guarda si se ha elegido uno', /\.\.\.\(place \? \{ place \} : \{\}\)/.test(crear));
   check('U) el campo es opcional en el modelo', /placeLabel\?: string;/.test(modelo));
   check('U) publicar sin lugar no avisa de nada', !/necesitas un lugar|añade un lugar para|sin lugar tu publicación/i.test(crear));
 
   // 4–7) El aparato no decide.
-  check('U) el compositor no consulta la ubicación', !/useLocation|locationService|expo-location|refrescar\(/.test(crear));
+  /*
+   * Quien consulta la ubicación es la PANTALLA, y solo por el contexto. El
+   * compositor ya ni eso: recibe la zona ya convertida y no toca la capa.
+   */
+  check('U) la ubicación se consulta solo por el contexto, y desde su pantalla', /useLocation\(\)/.test(leer('screens/AgregarUbicacionScreen.tsx')) && !/locationService|expo-location|requestForegroundPermissionsAsync/.test(leer('screens/AgregarUbicacionScreen.tsx')) && !/useLocation\(\)/.test(crear));
   check('U) no hay sugerencia automática que rellene el campo', !/setPlaceLabel\((?!''\))[^)]*(zona|lectura|publica)/i.test(crear));
-  check('U) el texto lo deja claro', /El lugar se verá en tu publicación\. No pongas una dirección privada\. Weë no añade tu ubicación\./.test(crear));
+  /* Ya no hay un texto explicando que el lugar se verá: se VE, como un chip
+     dentro de la publicación antes de publicarla, y se quita con su aspa. */
+  check('U) el lugar se enseña en la publicación antes de publicar, con su aspa', /etiquetaDeLugar\(\{ place \}\)/.test(crear) && /accessibilityLabel="Quitar el lugar"/.test(crear) && !/El lugar se verá en tu publicación/.test(crear));
   check('U) y se puede quitar antes de publicar', /Quitar el lugar/.test(crear) && /setPlace\(undefined\)/.test(crear));
 
   // 9–15) Lo que NUNCA entra en una publicación.
@@ -833,11 +873,17 @@ console.log('\n── V · ninguna coordenada, ningún permiso de más ──');
   check('V) ninguna en una URL', !/\?lat=|&lng=|latitude=\$\{/.test(todo));
   check('V) ninguna en analítica', !/logEvent\([^)]*\b(lat|lng|coords|zona)\b/i.test(todo));
   check('V) ninguna como parámetro de navegación', !/navigate\([^)]*\b(latitude|longitude|lectura)\b/.test(todo));
-  check('V) la frontera sigue siendo locationPrivacy', /export const aPublica/.test(leer('utils/locationPrivacy.ts')) && !/aPublica|zonaDe/.test(todo));
+  /*
+   * `aPublica` es la puerta y se puede usar —el compositor la usa—; lo que no
+   * sale de la capa es el CÁLCULO. Que nadie fuera arme celdas por su cuenta es
+   * lo que impide que aparezca una segunda zona con otro redondeo.
+   */
+  check('V) la frontera sigue siendo locationPrivacy', /export const aPublica/.test(leer('utils/locationPrivacy.ts')) && !/zonaDe|mismaZona|distanciaEntre|bandaDe/.test(todo));
 
   // Permisos: nadie pide nada por abrirse.
   check('V) el Wall no pide permiso', !/requestForegroundPermissionsAsync|ubicacion\.activar/.test(leer('screens/LandingScreen.tsx') + leer('screens/HomeScreen.tsx')));
-  check('V) el compositor tampoco al montar', !/requestForegroundPermissionsAsync|activar\(/.test(leer('screens/CreateScreen.tsx')));
+  const compositorV = leer('screens/CreateScreen.tsx');
+  check('V) el compositor tampoco al montar', !/requestForegroundPermissionsAsync/.test(compositorV) && !/useEffect\([\s\S]{0,400}?activar\(/.test(compositorV));
   check('V) abrir una publicación tampoco', !/requestForegroundPermissionsAsync/.test(leer('screens/PostDetailScreen.tsx')));
   check('V) expo-location sigue en un solo archivo', !/from 'expo-location'/.test(todo));
 
@@ -966,18 +1012,29 @@ console.log('\n── Z · sin automatismos ──');
 {
   const crear = leer('screens/CreateScreen.tsx');
 
-  check('Z) el compositor no conoce la ubicación del aparato', !/useLocation|locationService|locationPrivacy|expo-location/.test(crear));
+  check('Z) el compositor solo conoce la zona, no el aparato', !/useLocation\(\)|locationService|expo-location/.test(crear) && /UbicacionPublica/.test(crear));
   check('Z) el lugar empieza sin elegir', /const \[place, setPlace\] = useState<PostPlace \| undefined>\(undefined\)/.test(crear));
-  check('Z) solo se elige pulsando', /onPress=\{\(\) => setPlace\(lugarDelCatalogo\(opcion\)\)\}/.test(crear) && /onPress=\{\(\) => setPlace\(lugarPropio\(placeQuery\)\)\}/.test(crear));
+  /* Elegir se hace ahora en "Agregar ubicación", y sigue siendo un acto: se pulsa. */
+  check('Z) solo se elige pulsando', /onPress=\{\(\) => elegir\(opcion\)\}/.test(leer('screens/AgregarUbicacionScreen.tsx')) && /lugarDelCatalogo\(opcion\)/.test(leer('screens/AgregarUbicacionScreen.tsx')) && /lugarPropio\(texto\)/.test(leer('screens/AgregarUbicacionScreen.tsx')));
   check('Z) y se puede quitar antes de publicar', /setPlace\(undefined\)/.test(crear) && /Quitar el lugar/.test(crear));
   check('Z) publicar sin lugar no avisa de nada', !/necesitas un lugar|elige un lugar para publicar/i.test(crear));
-  check('Z) se avisa de que el lugar es público', /El lugar se verá en tu publicación\. No pongas una dirección privada\./.test(crear));
-  check('Z) y de que Weë no lo rellena sola', /Weë no añade tu ubicación\./.test(crear));
+  check('Z) el lugar es visible en la publicación antes de publicar', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && crear.indexOf('{renderLugar()}') < crear.indexOf('{renderAcciones()}'));
+  /* Weë no rellena el lugar ni la zona por su cuenta: el compositor solo los
+     recibe de la pantalla de ubicación, y nunca convierte una lectura. */
+  check('Z) y Weë no lo rellena sola', !/aPublica\(/.test(crear) && !/setPlace\((lugarDelCatalogo|lugarPropio)/.test(crear) && !/useLocation\(\)/.test(crear));
 
   // Sigue sin haber nada de lo que esta fase no construye.
   const superficies = [crear, leer('components/PostCard.tsx'), leer('data/places.ts'), leer('components/WeeTag.tsx')].join('\n');
   check('Z) sin geocodificación ni proveedores de mapas', !/geocode|googleapis|mapbox|nominatim|openstreetmap|places api/i.test(superficies));
-  check('Z) sin "cerca de ti" ni distancias', !/cerca de ti|nearby|distancia|km de/i.test(soloCodigo(superficies)));
+  /*
+   * "Cerca de ti" ya existe, pero vive donde tiene que vivir: en el catálogo
+   * —que sabe dónde están los lugares— y en su pantalla. Ni el compositor, ni la
+   * tarjeta de una publicación, ni la etiqueta de sección calculan cercanía ni
+   * enseñan distancias: ahí una distancia sería un dato de alguien.
+   */
+  const sinCercania = [crear, leer('components/PostCard.tsx'), leer('components/WeeTag.tsx')].join('\n');
+  check('Z) el compositor y las tarjetas no hablan de cercanía', !/cerca de ti|nearby|distancia|km de/i.test(soloCodigo(sinCercania)));
+  check('Z) ni calculan proximidad', !/lugaresCercanos|distanciaAproximada/.test(soloCodigo(sinCercania)));
   check('Z) sin consultas geográficas', !/where\(['"`]place|orderBy\(['"`]place/.test(leer('services/firestoreService.ts')));
   check('Z) y sin volver a mirar el EXIF de las fotos', !/exif|getAssetInfoAsync/i.test(superficies));
 
@@ -1127,7 +1184,7 @@ console.log('\n── AC · las tres formas de decir dónde ──');
   const crear = leer('screens/CreateScreen.tsx');
   check('AC) el Wall no compone la etiqueta por su cuenta', /etiquetaDeLugar\(post\)/.test(tarjeta) && !/place\.countryCode/.test(tarjeta));
   check('AC) ni el compositor', /etiquetaDeLugar\(\{ place \}\)/.test(crear) && !/, \$\{pais/.test(crear));
-  check('AC) el compositor enseña el país al elegir, para no confundirse', /opcion\.sublabel/.test(crear));
+  check('AC) la pantalla enseña el país al elegir, para no confundirse', /opcion\.sublabel/.test(leer('screens/AgregarUbicacionScreen.tsx')));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1170,9 +1227,14 @@ console.log('\n── AE · el lugar lo elige la persona ──');
   const lugares = leer('data/places.ts');
   const ciudades = leer('data/cities.ts');
 
-  check('AE) el compositor no conoce la ubicación del aparato', !/useLocation|locationService|locationPrivacy|expo-location/.test(crear));
+  check('AE) el compositor solo conoce la zona, no el aparato', !/useLocation\(\)|locationService|expo-location/.test(crear) && /UbicacionPublica/.test(crear));
   check('AE) el catálogo tampoco', !/useLocation|locationService|expo-location|getCurrentPosition/.test(lugares + ciudades));
-  check('AE) elegir un lugar no pide permiso', !/requestForegroundPermissionsAsync|activar\(/.test(crear));
+  /*
+   * Escribir un lugar a mano y pedir la ubicación del aparato son dos gestos
+   * distintos, y solo el segundo pide permiso. Elegir "París" en el buscador no
+   * puede encender el GPS de rebote.
+   */
+  check('AE) elegir un lugar a mano no pide permiso', !/requestForegroundPermissionsAsync/.test(crear) && !/setPlace\([\s\S]{0,150}?activar\(/.test(crear));
   check('AE) el lugar empieza sin elegir', /const \[place, setPlace\] = useState<PostPlace \| undefined>\(undefined\)/.test(crear));
   check('AE) y se puede quitar', /setPlace\(undefined\)/.test(crear) && /Quitar el lugar/.test(crear));
 
@@ -1284,7 +1346,15 @@ console.log('\n── AH · setenta y ocho mil lugares, y ninguno al arrancar �
   // 1) Es una cadena, no ochenta mil objetos.
   check('AH) el catálogo es una sola cadena', /export const WORLD_PLACES = `/.test(archivo) && !/\{ id: '/.test(archivo));
   check('AH) con una línea por lugar', lineas.length > 70000, lineas.length.toLocaleString('es') + ' líneas');
-  check('AH) y cinco campos por línea', lineas.every((l) => l.split('|').length === 5));
+  /* Nueve: coordenadas, región y relevancia:
+     país|identificador|nombre|nivel|alias|latitud|longitud|región|relevancia */
+  check('AH) y nueve campos por línea', lineas.every((l) => l.split('|').length === 9));
+  check('AH) la relevancia es un solo dígito', lineas.every((l) => /^\d$/.test(l.split('|')[8])));
+  /* La región es un código corto; el nombre va una sola vez en su tabla. */
+  const tablaRegiones = regionesTabla().split('\n').filter(Boolean);
+  check('AH) la región de cada lugar es un código, no un nombre repetido', lineas.slice(0, 2000).every((l) => (l.split('|')[7] || '').length <= 4));
+  check('AH) y hay una tabla de regiones con sus nombres', tablaRegiones.length > 1000 && tablaRegiones.every((l) => /^[A-Z]{2}\.[^|]+\|.+$/.test(l)), tablaRegiones.length + ' regiones');
+  check('AH) Lima es Lima, no "Lima region" ni "Departamento de Lima"', tablaRegiones.includes('PE.15|Lima'));
 
   // 2) Integridad, sobre el archivo entero.
   const ids = new Set();
@@ -1312,10 +1382,31 @@ console.log('\n── AH · setenta y ocho mil lugares, y ninguno al arrancar �
   check('AH) los de siempre siguen en su archivo', ['PE-LIM', 'PE-CAS', 'FR-PAR', 'IT-ROM', 'JP-TYO'].every((id) => aMano.includes(id)));
   check('AH) los importados llevan otro formato, para no chocar', [...ids].every((id) => /-g\d+$/.test(id)));
 
-  // 4) Ninguna coordenada, aunque GeoNames las trae.
-  check('AH) sin coordenadas', !/-?\d+\.\d{4,}/.test(cuerpo));
+  /*
+   * 4) Las coordenadas que SÍ hay, y las que siguen sin haber.
+   *
+   * Desde "lugares cerca de ti" el catálogo guarda dónde está cada sitio. Son
+   * coordenadas DEL LUGAR, públicas como las de un atlas, y no tienen nada que
+   * ver con la posición de ninguna persona —que sigue saliendo como zona—.
+   *
+   * Lo que se vigila es que no haya MÁS precisión de la necesaria: tres
+   * decimales son unos 110 m, suficiente para ordenar por cercanía. Cinco
+   * decimales serían un metro, que aquí no sirve para nada y sí pesa medio mega.
+   */
+  check('AH) las coordenadas del lugar no pasan de tres decimales', !/\|-?\d+\.\d{4,}/.test(cuerpo));
+  check('AH) y están todas dentro del planeta', lineas.every((l) => {
+    const c = l.split('|');
+    const la = Number(c[5]);
+    const lo = Number(c[6]);
+    return Number.isFinite(la) && Number.isFinite(lo) && la >= -90 && la <= 90 && lo >= -180 && lo <= 180;
+  }));
   check('AH) sin geohash ni GeoPoint', !/geohash|GeoPoint/i.test(archivo));
   check('AH) sin población ni huso horario', !/population|timezone/i.test(archivo));
+  /* Las coordenadas de los escritos a mano van aparte y con su identificador. */
+  const hand = coordsAMano().split('\n').filter(Boolean);
+  check('AH) los escritos a mano tienen sus coordenadas aparte', hand.length > 100, hand.length + ' de ' + aMano.length);
+  check('AH) con cuatro campos por línea: coordenadas y relevancia', hand.every((l) => l.split('|').length === 4));
+  check('AH) y todos sus identificadores son de los escritos a mano', hand.every((l) => aMano.includes(l.split('|')[0])));
 
   // 5) La licencia, documentada y atribuida.
   const licencia = leer('data/GEONAMES-LICENSE.md');
@@ -1342,12 +1433,16 @@ console.log('\n── AI · no se paga por lo que no se usa ──');
 
   // 2) Lo pide el compositor al abrir el bloque, no antes.
   const crear = leer('screens/CreateScreen.tsx');
-  check('AI) lo pide el selector de lugar al desplegarse', /if \(!showPlace \|\| mundoCargado\) return;/.test(crear) && /cargarMundo\(\)/.test(crear));
+  check('AI) lo pide la pantalla de ubicación al abrirse, no el compositor', /cargarMundo\(\)/.test(leer('screens/AgregarUbicacionScreen.tsx')) && !/cargarMundo\(\)/.test(crear));
   check('AI) y no al abrir la pantalla', !/useEffect\(\(\) => \{\s*cargarMundo/.test(crear));
-  check('AI) al llegar, se vuelve a buscar lo ya escrito', /\[placeQuery, place, mundoCargado\]/.test(crear));
+  /* La búsqueda depende del catálogo Y del contexto: cuando llega el mundo, o
+     cambia desde dónde se busca, lo ya escrito se vuelve a buscar. */
+  check('AI) al llegar, se vuelve a buscar lo ya escrito', /\[texto, mundoCargado, contextoBusqueda\]/.test(leer('screens/AgregarUbicacionScreen.tsx')));
 
   // 3) La búsqueda funciona con el mundo cargado.
   globalThis.__WORLD = catalogoMundial();
+  globalThis.__HAND = coordsAMano();
+  globalThis.__REG = regionesTabla();
   const lugares = await cargarLugares();
 
   check('AI) antes de cargar, el mundo no está', lugares.mundoListo() === false);

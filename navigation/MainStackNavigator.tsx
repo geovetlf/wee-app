@@ -43,6 +43,9 @@ import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
 import { Post } from '../services/firestoreService';
 import { scale } from '../utils/scale';
+import AgregarUbicacionScreen from '../screens/AgregarUbicacionScreen';
+import type { PostPlace } from '../data/places';
+import type { UbicacionPublica } from '../utils/locationPrivacy';
 
 export type MainStackParamList = {
   Main: undefined;
@@ -56,7 +59,15 @@ export type MainStackParamList = {
    * un campo suelto para que valga igual para una foto, un antes y un después o
    * un video, sin volver a tocar este tipo.
    */
-  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number }[] } } | undefined;
+  /*
+   * `lugarElegido`, `ubicacionElegida` y `selloUbicacion` son la VUELTA de
+   * "Agregar ubicación": llegan con `merge`, así que el compositor no se vuelve a
+   * montar y lo que hubiera escrito sigue escrito. `null` significa "quítalo", y
+   * el sello distingue dos elecciones seguidas del mismo sitio.
+   */
+  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number }[] }; lugarElegido?: PostPlace | null; ubicacionElegida?: UbicacionPublica | null; selloUbicacion?: string } | undefined;
+  /** El lugar y la zona que ya trae el compositor, para poder enseñarlos y quitarlos. */
+  AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
   WeeCreator: { category?: string } | undefined;
   SavedPosts: undefined;
   /** ËContact: las conexiones de Weë entre personas. */
@@ -274,6 +285,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreditStore" component={CreditStoreScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
+      <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
       <Stack.Screen name="EContact" component={EContactScreen} />
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />

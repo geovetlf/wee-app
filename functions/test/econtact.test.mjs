@@ -393,7 +393,13 @@ check('97) useFollow también', read('hooks/useFollow.ts').includes('followsServ
 check('98) el perfil ajeno ya usa ËContact, no el sistema antiguo', /useEContact/.test(read('screens/UserProfileScreen.tsx')) && !/useFollow/.test(sinComentarios(read('screens/UserProfileScreen.tsx'))));
 check('99) businessFollows intacto', /match \/businessFollows\/\{followId\}/.test(reglas));
 check('100) las reglas de follows no se han tocado', /match \/follows\/\{followId\}[\s\S]{0,400}followerId\.matches\('biz_\.\*'\)/.test(reglas));
-check('101) la píldora ËContact del compositor sigue apagada', /texto="ËContact" onPress=\{\(\) => \{\}\} apagada/.test(read('screens/CreateScreen.tsx')));
+/*
+ * La píldora estuvo apagada mientras no hubo nada detrás. Ahora abre la agenda,
+ * así que lo que se vigila es lo de siempre por el otro lado: que mencionar a
+ * alguien al publicar NO escriba ninguna relación.
+ */
+check('101) la píldora ËContact del compositor ya está viva', /setShowEContacts/.test(read('screens/CreateScreen.tsx')));
+check('101) y publicar no crea ninguna relación', !/econtactService|enviarSolicitud|aceptarSolicitud/.test(sinComentarios(read('screens/CreateScreen.tsx'))));
 check('102) y ËContact no gasta Credits ni llama a ninguna IA', !/spendCredits|credits|gemini|provider/i.test(codigoServicio) && !/spendCredits|gemini/i.test(sinComentarios(fuenteModelo)));
 check('103) sin índices nuevos', !/econtact/i.test(read('firestore.indexes.json')));
 
@@ -796,7 +802,7 @@ check('201) useFollow también', read('hooks/useFollow.ts').includes('followsSer
 check('203) las reglas de follows no se han tocado', /match \/follows\/\{followId\}[\s\S]{0,400}followerId\.matches\('biz_\.\*'\)/.test(reglas));
 check('204) businessFollows intacto', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
 check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));
-check('206) la píldora ËContact del compositor sigue apagada', /texto="ËContact" onPress=\{\(\) => \{\}\} apagada/.test(read('screens/CreateScreen.tsx')));
+check('206) la píldora ËContact del compositor ya está viva, y sigue sin tocar relaciones', /setShowEContacts/.test(read('screens/CreateScreen.tsx')) && !/econtactService/.test(sinComentarios(read('screens/CreateScreen.tsx'))));
 check('207) ËContact no gasta Credits ni llama a IA', !/spendCredits|gemini|provider/i.test(codigoPantalla + sinComentarios(read('hooks/useEContact.ts'))));
 check('208) sin índices nuevos', !/econtact/i.test(read('firestore.indexes.json')));
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1374,7 +1380,7 @@ check('383) objetivos táctiles sin scale()', /minHeight: 64,/.test(codigoPantal
 check('384) sin barra lateral dentro de la pantalla', !/Sidebar|RightSidebar/.test(codigoPantalla));
 check('385) sin chat, grupos, recomendaciones ni contactos del teléfono', !/Conversation|messagesService|grupo|recomend|marketplace|expo-contacts|Contacts\.get/i.test(codigoPantalla));
 check('386) sin etiquetado de contactos en publicaciones', !/tag|etiquetar|mention/i.test(codigoPantalla));
-check('387) el compositor sigue con la píldora apagada', /texto="ËContact" onPress=\{\(\) => \{\}\} apagada/.test(read('screens/CreateScreen.tsx')));
+check('387) el compositor menciona ËContacts sin convertirlos en seguidores', /setShowEContacts/.test(read('screens/CreateScreen.tsx')) && !/followsService|useFollow/.test(read('screens/CreateScreen.tsx')));
 
 
 // ═════════════════════════════════════════════════════════════════════════════

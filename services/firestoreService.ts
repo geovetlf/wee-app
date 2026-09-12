@@ -41,6 +41,7 @@ export interface PollOption {
 }
 
 import type { PostPlace } from '../data/places';
+import type { UbicacionPublica } from '../utils/locationPrivacy';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
 
 /*
@@ -141,11 +142,43 @@ export interface Post {
    * `place`, así que los dos campos nunca conviven en el mismo documento y no hay
    * ninguna contradicción posible entre ellos.
    *
-   * Ni uno ni otro llevan coordenadas, radio, precisión, GeoPoint ni geohash, y
-   * ninguno sale del GPS: el lugar lo elige la persona.
+   * Ni uno ni otro lleva coordenadas, GeoPoint ni geohash, y ninguno sale del
+   * GPS: el lugar lo elige la persona. Lo que sí sale del aparato vive aparte,
+   * en `ubicacion`, y tampoco lleva coordenadas.
    */
   place?: PostPlace;
   placeLabel?: string; // Histórico: el lugar en texto, antes de `place`.
+
+  /*
+   * DESDE DÓNDE SE PUBLICÓ, en la única forma que Weë puede contar.
+   *
+   * `place` es el lugar DEL CONTENIDO y lo escribe la persona; esto es el sitio
+   * del APARATO y sale del GPS. Son cosas distintas y por eso son dos campos:
+   * alguien en Lima puede publicar una foto de París. Pueden convivir, cada uno
+   * respondiendo a su pregunta, y los dos son opcionales.
+   *
+   * Lo que se guarda es lo que devuelve `aPublica()` en `utils/locationPrivacy.ts`,
+   * que es la única salida de una lectura hacia el resto de Weë: una celda de unos
+   * 11 km, su radio y la precisión con que se leyó. NO hay latitude, longitude,
+   * dirección, radio en metros, GeoPoint ni geohash, y la conversión es de un solo
+   * sentido: de la zona no se vuelve a la lectura.
+   *
+   * Por defecto se pide aproximada. Ninguna función de Weë pide precisa hoy.
+   */
+  ubicacion?: UbicacionPublica;
+
+  /*
+   * A QUIÉNES SE MENCIONA de la agenda de quien publica.
+   *
+   * Identidades —`uid` o `hidi_<uid>`— elegidas de entre sus ËContact aceptados,
+   * y nada más: esto ETIQUETA, no crea ninguna relación. Las relaciones viven en
+   * la colección `econtacts` y solo las escriben sus callables; aquí no se toca
+   * ninguna, ni se acepta, ni se solicita, ni se convierte a nadie en seguidor.
+   *
+   * Se guarda la identidad exacta que se eligió, sin traducirla a su cuenta: el
+   * Perfil Real y el Perfil Weë de una persona son destinos distintos.
+   */
+  econtacts?: string[];
 
   // === NUEVO: Sistema de votación (% de acuerdo) ===
   agreementCount: number; // Votos "de acuerdo"
