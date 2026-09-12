@@ -795,7 +795,9 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
    * Publicar—; desde 2E-80 se pliega y arranca cerrado. La variante de una sola
    * fila no se despliega: ya es el mínimo, y un chevron que no abre nada mentiría.
    */
-  check('102) y la fila desplegada sigue ahí para quien no lo pida', /const desplegable = !compact;/.test(puerta) && /\{desplegable && abierta && \(/.test(puerta));
+  check('102) y la fila desplegada sigue ahí para quien no lo pida', /const desplegable = !compact && !directo;/.test(puerta) && /\{desplegable && abierta && \(/.test(puerta));
+  /* Control: `directo` es cosa del Home; el muro de sección no lo pide y sigue plegándose. */
+  check('102) y el muro de sección no pide la barra directa del Home', !/directo/.test(soloCodigo(leer('components/creator/SectionWall.tsx'))));
   /*
    * Lo que importa es que el muro USE la puerta compartida y no escriba la suya.
    * Se comprueban las props que de verdad la hacen funcionar, no la lista exacta

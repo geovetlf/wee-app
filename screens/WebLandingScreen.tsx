@@ -182,7 +182,7 @@ const WebLandingScreen: React.FC = () => {
           preselecciona el muro general.
         */}
         <div style={{ padding: '4px 16px' }}>
-          <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" />
+          <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" directo />
         </div>
 
         {/* Weëls */}

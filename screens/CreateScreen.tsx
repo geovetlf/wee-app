@@ -1440,7 +1440,7 @@ ${message}`);
           activeOpacity={0.7}
           style={styles.cancelButton}
         >
-          <Text style={[styles.cancelText, { color: theme.colors.text }]}>Cancelar</Text>
+          <Text style={[styles.cancelText, { color: theme.colors.text }]}>Back</Text>
         </TouchableOpacity>
 
         {/* El nombre de lo que estás haciendo, en medio. Ancla la pantalla. */}

@@ -933,6 +933,83 @@ console.log('\n── P · La barra se aparta al bajar y vuelve al subir ──'
     /nativeEvent\?\.contentOffset\?\.y/.test(hook) && /currentTarget\?\.scrollTop/.test(hook));
 }
 
+console.log('\n── Q · El Home va directo a "Crear publicación" ──');
+{
+  const nativo = leer('screens/LandingScreen.tsx');
+  const web = leer('screens/WebLandingScreen.tsx');
+  const puerta = leer('components/creator/ComposerEntry.tsx');
+  const crear = leer('screens/CreateScreen.tsx');
+  const pila = leer('navigation/MainStackNavigator.tsx');
+  const pestanas = leer('navigation/TabNavigator.tsx');
+
+  /*
+   * LA BARRA DEL HOME YA NO SE DESPLIEGA. Antes, tocar "¿Qué quieres
+   * compartir?" abría dentro del Home una fila de atajos, los destinos y un
+   * botón Publicar: un compositor a medias creciendo en el muro, y luego había
+   * que tocar otra vez para llegar al de verdad. Ahora la pregunta, el "+" y el
+   * chevron llevan directamente a "Crear publicación", que es donde de verdad
+   * están Cámara, Foto o vídeo, ËContact, Ubicación y Encuesta.
+   *
+   * El comportamiento de la puerta se ejecuta en composer-entry.test.mjs (I);
+   * aquí se vigila el cableado del Home: que las dos pantallas lo pidan, a
+   * dónde llevan y que el compositor sea uno.
+   */
+  check('164) el Home nativo pide la barra directa', /<ComposerEntry [^>]*variante="home" directo \/>/.test(nativo));
+  check('165) y la portada web también', /<ComposerEntry [^>]*variante="home" directo \/>/.test(web));
+
+  /* 3 y 4: la pregunta y el "+" acaban en el MISMO handler, y ese handler navega. */
+  const handlerNativo = nativo.slice(nativo.indexOf('const handleCompose ='), nativo.indexOf('const handleCompose =') + 400);
+  const handlerWeb = web.slice(web.indexOf('const handleCompose ='), web.indexOf('const handleCompose =') + 200);
+  check('166) en nativo el handler navega a Create con el kind', /navigate\('Create', \{ kind \}\)/.test(handlerNativo) && /mainNavigation/.test(handlerNativo));
+  check('167) en web el handler navega a Create con el kind', /irAlCompositor\(\{ kind \}\)/.test(handlerWeb) && /navigate\('Create', params\)/.test(web));
+  /*
+   * Sube DOS niveles a propósito: hay un `Create` en la barra de pestañas que
+   * no tiene pantalla —solo dibuja el "+"—. Un navigate lanzado desde el Home
+   * sin subir acabaría en esa ruta vacía.
+   */
+  check('168) y suben hasta el navegador de arriba, saltando la pestaña vacía',
+    /navigation\.getParent\(\);\s*const mainNavigation = tabNavigation\?\.getParent\(\);/.test(nativo) && /navigation\.getParent\(\);\s*const mainNavigation = tabNavigation\?\.getParent\(\);/.test(web) &&
+    /name="Create"\s*component=\{CreateTabPlaceholder\}/.test(pestanas));
+  check('169) sin sesión, el Home lleva a registrarse en vez de al compositor', /if \(!user\) return handleRegister\(\);/.test(handlerNativo) && /if \(!user\) return navigation\.navigate\('Register'\);/.test(handlerWeb));
+
+  /* 5: una puerta por pantalla, y un solo compositor de verdad. */
+  check('170) una sola barra en cada pantalla del Home', (nativo.match(/<ComposerEntry/g) || []).length === 1 && (web.match(/<ComposerEntry/g) || []).length === 1);
+  check('171) el Home no monta el compositor dentro: solo navega a él', !/import CreateScreen|<CreateScreen/.test(nativo) && !/import CreateScreen|<CreateScreen/.test(web));
+  const rutaCrear = pila.slice(pila.indexOf('const CreateWrapper'), pila.indexOf('const CreateWrapper') + 300);
+  check('172) "Crear publicación" está registrada una sola vez',
+    (pila.match(/name="Create"\s*component=\{CreateWrapper\}/g) || []).length === 1 && /isDesktop \? \([\s\S]{0,80}<CreateScreen \/>[\s\S]{0,80}\) : \([\s\S]{0,40}<CreateScreen \/>/.test(rutaCrear) && !/CreateScreen/.test(pestanas));
+
+  /* 6 y 7: el workspace no cambia, y Back vuelve a donde estabas: el Home. */
+  check('173) el compositor no sabe nada de la barra ni de `directo`', !/ComposerEntry|directo/.test(crear));
+  check('174) sigue leyendo el kind con el que llega', /const presetKind: string \| null = routeParams\.kind \|\| null;/.test(crear));
+  check('175) y Back deshace la navegación: vuelve al Home', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,200}>Back<\/Text>/.test(crear));
+
+  /* 8: nada más cambia. `directo` solo lo piden las dos pantallas del Home. */
+  const etiquetas = [];
+  for (const carpeta of ['screens', 'components']) {
+    for (const nombre of fs.readdirSync(path.resolve(here, '../../' + carpeta), { recursive: true })) {
+      const archivo = carpeta + '/' + String(nombre).replace(/\\/g, '/');
+      if (!/\.tsx$/.test(archivo)) continue;
+      for (const etiqueta of leer(archivo).match(/<ComposerEntry\b[^>]*>/g) || []) etiquetas.push({ archivo, directo: / directo(\s|\/|=)/.test(etiqueta) });
+    }
+  }
+  const directas = etiquetas.filter((e) => e.directo).map((e) => e.archivo).sort();
+  check('176) control: solo las dos pantallas del Home piden la barra directa; los muros de sección, no',
+    directas.join(' · ') === 'screens/LandingScreen.tsx · screens/WebLandingScreen.tsx' && etiquetas.some((e) => e.archivo === 'components/creator/SectionWall.tsx' && !e.directo),
+    etiquetas.map((e) => e.archivo + (e.directo ? ' (directo)' : '')).join(' · '));
+  check('177) control: la barra nace sin `directo`, así que quien no lo pide no cambia', /directo = false \}\) =>/.test(puerta) && /const desplegable = !compact && !directo;/.test(puerta));
+  /*
+   * La barra del Home es el "+" y la pregunta, sin chevron: una flecha de
+   * desplegar donde no hay nada que desplegar sería un acordeón mintiendo. El
+   * mismo `desplegable` que decide si se abre decide si se dibuja la flecha, y
+   * el campo ya ocupa el ancho (`flex: 1`), así que el hueco no queda vacío.
+   */
+  check('178) la barra cerrada del Home es el "+" y la pregunta, sin chevron',
+    /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel="Crear una publicación"/.test(puerta) &&
+    /\{desplegable && \(\s*<TouchableOpacity\s*onPress=\{\(\) => setAbierta[\s\S]{0,700}name="chevron-down"/.test(puerta) && !/conChevron/.test(puerta) &&
+    /composerField: \{\s*flex: 1,/.test(puerta));
+}
+
 console.log('\nHome: quién eres arriba, secciones en el muro');
 if (failures > 0) {
   console.error(`\n${failures} comprobación(es) fallida(s)`);

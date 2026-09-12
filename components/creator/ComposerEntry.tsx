@@ -73,6 +73,18 @@ interface ComposerEntryProps {
    * No cambia ninguna acción, ningún destino y nada de lo que se publica.
    */
   variante?: 'muro' | 'home';
+  /**
+   * Tocar la barra abre el compositor DIRECTAMENTE, sin desplegarse.
+   *
+   * Es lo que pide el Home: la barra es el "+" y la pregunta, nada más —sin
+   * chevron, porque no hay nada que desplegar—, y tocar cualquiera de los dos
+   * lleva a "Crear publicación". Ahí es donde de verdad están Cámara, Foto o
+   * vídeo, ËContact, Ubicación y Encuesta; enseñarlas aquí antes era un segundo
+   * compositor a medias creciendo dentro del Home.
+   *
+   * Los muros de sección no lo pasan y siguen desplegándose como siempre.
+   */
+  directo?: boolean;
 }
 
 /*
@@ -94,7 +106,7 @@ const ATAJOS: { id: string; icon: string; etiqueta: string; kind: ComposerKind }
   { id: 'encuesta', icon: 'bar-chart-outline', etiqueta: 'Encuesta', kind: 'poll' },
 ];
 
-const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, compact, seccion, variante = 'muro' }) => {
+const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, compact, seccion, variante = 'muro', directo = false }) => {
   const { theme } = useTheme();
   const { userProfile } = useUserProfile();
   const destinoActual = seccion || MURO_GENERAL;
@@ -126,7 +138,11 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
     Animated.timing(giro, { toValue: abierta ? 1 : 0, duration: 200, useNativeDriver: true }).start();
   }, [abierta, giro]);
 
-  const desplegable = !compact;
+  /*
+   * Se despliega si no es compacta y no es directa. En el Home es directa, y
+   * con ella se va también el chevron: una flecha que no abre nada mentiría.
+   */
+  const desplegable = !compact && !directo;
   const chevron = giro.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
 
   /*

@@ -1162,9 +1162,13 @@ const LandingScreen: React.FC = () => {
    * La puerta de publicar, la misma que los muros de sección.
    *
    * Es `ComposerEntry`, el componente que ya usaban Weë Chef, Design, Studio y
-   * Travel: mismo avatar, mismo campo, mismos atajos y mismo botón. No publica
-   * aquí —ninguno de sus controles lo hace—: abre el compositor global, que es
-   * donde están Cámara, Foto o vídeo, ËContact, Ubicación y Encuesta.
+   * Travel. No publica aquí —ninguno de sus controles lo hace—: abre el
+   * compositor global, que es donde están Cámara, Foto o vídeo, ËContact,
+   * Ubicación y Encuesta.
+   *
+   * Y en el Home es DIRECTA: la barra no se despliega ni lleva chevron. Tocar
+   * la pregunta o el "+" lleva a "Crear publicación" sin pasos intermedios; el
+   * Home se queda como muro y el compositor vive entero en su pantalla.
    *
    * Sin `sourceSection`: quien publica desde el Home no viene de ninguna sección,
    * así que el compositor preselecciona el muro general y nada más.
@@ -1183,7 +1187,7 @@ const LandingScreen: React.FC = () => {
    */
   const renderComposer = () => (
     <View style={styles.composerSlot}>
-      <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" />
+      <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" directo />
     </View>
   );
 

@@ -115,6 +115,12 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
   check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
   check('110) los medios se ven antes que las acciones', crear.indexOf('{renderMediaPreview()}') < crear.indexOf('{renderAcciones()}'));
   check('110) la cabecera dice qué estás haciendo', /Crear publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
+  /* El control superior izquierdo dice "Back" y sigue haciendo lo mismo que
+     hacía "Cancelar": cerrar la pantalla con `handleClose`. Los "Cancelar" de
+     las alertas de permisos no cambian. */
+  check('110) arriba a la izquierda dice Back, con el mismo cierre de siempre', /onPress=\{handleClose\}[\s\S]{0,200}>Back<\/Text>/.test(crear) && !/>Cancelar<\/Text>/.test(crear));
+  /* Sobre el fuente crudo: `soloCodigo` se traga esos bloques (ver cabecera). */
+  check('110) y las alertas de permisos conservan su Cancelar', (leer('screens/CreateScreen.tsx').match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
      no hay nada, no se pinta nada. */
   check('110) el lugar elegido es un chip, y solo sale si hay algo', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && /styles\.chipLugar/.test(crear));

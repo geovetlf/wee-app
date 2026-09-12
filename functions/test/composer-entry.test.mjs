@@ -333,7 +333,161 @@ console.log('\n── H · La tarjeta se pliega ──');
    * La variante de una sola fila (Weë Travel) no se pliega: ya es el mínimo, y
    * darle un chevron que no abre nada sería mentir.
    */
-  check('pliegue) la fila compacta no gana chevron', /const desplegable = !compact;/.test(puerta) && /\{desplegable && \(/.test(puerta));
+  check('pliegue) la fila compacta no gana chevron', /const desplegable = !compact && !directo;/.test(puerta) && /\{desplegable && \(/.test(puerta));
+  /*
+   * Y el Home tampoco se pliega, pero por otra razón: va DIRECTO a "Crear
+   * publicación" (grupo I). Sin pliegue no hay chevron: el mismo `desplegable`
+   * que decide si se abre decide si se dibuja la flecha.
+   */
+  check('pliegue) el Home no se pliega ni lleva chevron: va directo',
+    /const desplegable = !compact && !directo;/.test(puerta) && /\{desplegable && \(\s*<TouchableOpacity\s*onPress=\{\(\) => setAbierta/.test(puerta) && !/conChevron/.test(puerta));
+}
+
+console.log('\n── I · El Home va directo al compositor ──');
+{
+  /*
+   * Aquí se EJECUTA la puerta, no se lee. Se transpila `ComposerEntry.tsx` tal
+   * cual está, se le dan por debajo unas piezas mínimas en lugar de React
+   * Native —una caja, un texto, un botón que recuerda qué hace al tocarlo— y se
+   * dibuja con el renderizador de servidor de React. El estado de apertura se
+   * guarda entre dibujados, así que se puede tocar un control y volver a
+   * dibujar para ver qué pasó: exactamente lo que haría una persona.
+   *
+   * Lo que se afirma: en el Home (`directo`) la barra cerrada es lo único que
+   * hay, tocar la pregunta, el "+" o el chevron avisa a quien la puso —que es
+   * quien navega a "Crear publicación"— y NADA se despliega. Y el control: un
+   * muro de sección, sin `directo`, sigue desplegándose como siempre.
+   */
+  const { createRequire } = await import('node:module');
+  const requerir = createRequire(ruta('package.json'));
+  const React = requerir('react');
+  const { renderToStaticMarkup } = requerir('react-dom/server');
+  const ts = requerir('typescript');
+  const h = React.createElement;
+
+  /* Lo que cada dibujado deja: los botones con lo que hacen, en orden. */
+  let botones = [];
+  /* El estado entre dibujados: `useState` de verdad no sobrevive al servidor. */
+  let estados = [];
+  let indice = 0;
+  const useState = (inicial) => {
+    const i = indice++;
+    if (!(i in estados)) estados[i] = typeof inicial === 'function' ? inicial() : inicial;
+    const poner = (valor) => { estados[i] = typeof valor === 'function' ? valor(estados[i]) : valor; };
+    return [estados[i], poner];
+  };
+
+  const Caja = ({ children, accessibilityLabel }) => h('div', accessibilityLabel ? { 'aria-label': accessibilityLabel } : null, children);
+  const Texto = ({ children }) => h('span', null, children);
+  const Boton = ({ children, onPress, accessibilityLabel, accessibilityState }) => {
+    botones.push({ etiqueta: accessibilityLabel, tocar: onPress, expandido: accessibilityState ? accessibilityState.expanded : undefined });
+    return h('button', { 'aria-label': accessibilityLabel }, children);
+  };
+  class Valor { constructor(v) { this.v = v; } interpolate() { return '0deg'; } setValue() {} }
+  const animacion = () => ({ start() {} });
+  const reactNative = {
+    View: Caja, Text: Texto, ScrollView: Caja, TouchableOpacity: Boton,
+    StyleSheet: { create: (s) => s },
+    Animated: { Value: Valor, spring: animacion, timing: animacion, View: Caja },
+  };
+  const colores = new Proxy({}, { get: () => '#000000' });
+
+  const aCommonJS = (archivo) =>
+    ts.transpileModule(leer(archivo), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+    }).outputText;
+  /* Módulos de verdad (puros) o piezas mínimas, según lo que pide cada import. */
+  const cargar = (archivo) => {
+    const modulo = { exports: {} };
+    new Function('require', 'module', 'exports', aCommonJS(archivo))(pedir, modulo, modulo.exports);
+    return modulo.exports;
+  };
+  const cache = {};
+  const pedir = (peticion) => {
+    if (peticion === 'react') return { ...React, useState };
+    if (peticion === 'react-native') return reactNative;
+    if (peticion === '@expo/vector-icons') return { Ionicons: ({ name }) => h('i', { 'data-icono': name }) };
+    if (/ThemeContext$/.test(peticion)) return { useTheme: () => ({ theme: { colors: colores } }) };
+    if (/UserProfileContext$/.test(peticion)) return { useUserProfile: () => ({ userProfile: null }) };
+    if (/AvatarDisplay$/.test(peticion)) return { __esModule: true, default: () => h('span', null, 'avatar') };
+    if (/utils\/scale$/.test(peticion)) return { scale: (n) => n };
+    if (/firestoreService$/.test(peticion)) return {};
+    const real = { 'utils/sectionFeed': 'utils/sectionFeed.ts', 'constants/weeExperiences': 'constants/weeExperiences.ts', 'constants/design': 'constants/design.ts' };
+    const clave = Object.keys(real).find((k) => peticion.endsWith(k));
+    if (!clave) throw new Error('import sin pieza en la prueba: ' + peticion);
+    return (cache[clave] ||= cargar(real[clave]));
+  };
+
+  const ComposerEntry = cargar(PUERTA).default;
+
+  /* Una barra recién montada, con quien la puso apuntando cada aviso. */
+  const montar = (props) => {
+    const avisos = [];
+    estados = [];
+    const dibujar = () => {
+      botones = [];
+      indice = 0;
+      const html = renderToStaticMarkup(h(ComposerEntry, { ...props, onCompose: (kind) => avisos.push(kind) }));
+      return { html, botones: botones.slice() };
+    };
+    const boton = (dibujo, etiqueta) => dibujo.botones.find((b) => b.etiqueta === etiqueta);
+    return { avisos, dibujar, boton };
+  };
+  const DESPLEGADO = ['Cámara', 'Foto o vídeo', 'Ubicación', 'ËContact', 'Encuesta', 'Publicar'];
+  const desplegado = (dibujo) => DESPLEGADO.filter((e) => dibujo.botones.some((b) => b.etiqueta === e));
+
+  /* ── 1 · El Home muestra únicamente el Composer cerrado: el "+" y la pregunta ── */
+  const home = montar({ placeholder: '¿Qué quieres compartir?', variante: 'home', directo: true });
+  const cerrado = home.dibujar();
+  check('1) el Home dibuja la barra cerrada: el "+" y la pregunta, nada más',
+    cerrado.botones.map((b) => b.etiqueta).join(' · ') === 'Crear una publicación · ¿Qué quieres compartir?',
+    cerrado.botones.map((b) => b.etiqueta).join(' · '));
+  check('1) sin chevron ni flecha alguna', !/chevron/.test(cerrado.html) && !cerrado.botones.some((b) => /opciones de publicar/.test(b.etiqueta)));
+  check('1) y nada más: ni atajos, ni destinos, ni Publicar', desplegado(cerrado).length === 0 && !/Publicar/.test(cerrado.html), desplegado(cerrado).join(' · '));
+  check('1) la pregunta se lee entera', /¿Qué quieres compartir\?/.test(cerrado.html));
+  check('1) y ningún control se anuncia como desplegable', cerrado.botones.every((b) => b.expandido === undefined));
+
+  /* ── 2 y 3 · Tocar la barra NO la despliega: navega ── */
+  home.boton(cerrado, '¿Qué quieres compartir?').tocar();
+  check('2) tocar la pregunta avisa a quien puso la barra, con kind "post"', home.avisos.join(',') === 'post', home.avisos.join(','));
+  const trasTocar = home.dibujar();
+  check('2) y la barra sigue cerrada después de tocarla', trasTocar.html === cerrado.html && desplegado(trasTocar).length === 0);
+  check('2) el estado de apertura ni se ha tocado', estados.every((e) => e === false), JSON.stringify(estados));
+
+  /* ── 4 · El "+" hace exactamente lo mismo ── */
+  home.boton(trasTocar, 'Crear una publicación').tocar();
+  check('4) el "+" avisa igual, con el mismo kind', home.avisos.join(',') === 'post,post', home.avisos.join(','));
+  check('4) y tras los dos toques la barra sigue igual de cerrada', home.dibujar().html === cerrado.html);
+
+  /* ── 8 · Control: un muro de sección, sin `directo`, se despliega como siempre ── */
+  const muro = montar({ placeholder: 'Comparte tu plato…', seccion: 'chef' });
+  const muroCerrado = muro.dibujar();
+  check('8) control: el muro arranca cerrado', desplegado(muroCerrado).length === 0 && muro.boton(muroCerrado, 'Comparte tu plato… Abre las opciones de publicar.')?.expandido === false);
+  check('8) control: y conserva su chevron', /chevron-down/.test(muroCerrado.html) && muro.boton(muroCerrado, 'Mostrar las opciones de publicar')?.expandido === false);
+  muro.boton(muroCerrado, 'Comparte tu plato… Abre las opciones de publicar.').tocar();
+  const muroAbierto = muro.dibujar();
+  check('8) control: tocarlo lo despliega en vez de navegar', muro.avisos.length === 0 && desplegado(muroAbierto).length === DESPLEGADO.length, desplegado(muroAbierto).join(' · '));
+  check('8) control: y ahora lo anuncia abierto', muro.boton(muroAbierto, 'Comparte tu plato…')?.expandido === true && muro.boton(muroAbierto, 'Ocultar las opciones de publicar') !== undefined);
+  muro.boton(muroAbierto, 'Publicar').tocar();
+  check('8) control: abierto, Publicar sí avisa', muro.avisos.join(',') === 'post');
+  /* Y la fila compacta (Weë Travel) sigue sin chevron y sin pliegue. */
+  const compacta = montar({ placeholder: 'Comparte tu viaje…', compact: true, seccion: 'travel' });
+  const compactaDibujo = compacta.dibujar();
+  check('8) control: la fila compacta sigue sin chevron', compactaDibujo.botones.map((b) => b.etiqueta).join(' · ') === 'Comparte tu viaje… · Compartir una foto', compactaDibujo.botones.map((b) => b.etiqueta).join(' · '));
+  compacta.boton(compactaDibujo, 'Comparte tu viaje…').tocar();
+  check('8) control: y va al compositor sin desplegarse', compacta.avisos.join(',') === 'post' && desplegado(compacta.dibujar()).length === 0);
+
+  /* ── 5 · Una sola puerta, y `directo` es una decisión de quien la pone ── */
+  const puerta = soloCodigo(leer(PUERTA));
+  check('5) `directo` nace apagado: nadie lo hereda sin pedirlo', /directo = false \}\) =>/.test(puerta));
+  check('5) y solo quita el pliegue y su chevron: el "+" y la pregunta no cambian',
+    /const desplegable = !compact && !directo;/.test(puerta) && /variante === 'home' \? \(/.test(puerta) && /onPress=\{tocarCampo\}/.test(puerta) && !/conChevron/.test(puerta));
+  check('5) el Home lo pide en sus dos pantallas',
+    /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/.test(leer('screens/LandingScreen.tsx')) &&
+    /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/.test(leer('screens/WebLandingScreen.tsx')));
+  check('5) una sola instancia por pantalla del Home',
+    (leer('screens/LandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1 && (leer('screens/WebLandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1);
+  check('5) control: el muro de sección no lo pide', !/directo/.test(soloCodigo(leer('components/creator/SectionWall.tsx'))));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nUna sola puerta para publicar en todo Weë, y sigue siendo una puerta');
