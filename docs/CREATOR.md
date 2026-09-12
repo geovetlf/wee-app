@@ -1,10 +1,10 @@
-# WEE Creator — Arquitectura general de IA
+# WEË AI — Arquitectura general de IA
 
 > Instrucciones del dueño del producto (2026-09-05, documento completo). Actualizan el §6 y §7 de [`UX.md`](UX.md):
 > las categorías de herramientas se reemplazan por las **experiencias de WEE** (§1).
-> Diseñar toda la arquitectura, UX y lógica de WEE Creator respetando estos principios.
+> Diseñar toda la arquitectura, UX y lógica de WEË AI respetando estos principios.
 
-WEE Creator está pensado principalmente para personas que **no** dominan la inteligencia artificial. El usuario no debe saber qué modelo utilizar, qué API existe, cómo escribir prompts ni ningún concepto técnico.
+WEË AI está pensado principalmente para personas que **no** dominan la inteligencia artificial. El usuario no debe saber qué modelo utilizar, qué API existe, cómo escribir prompts ni ningún concepto técnico.
 
 La filosofía central es:
 
@@ -14,7 +14,7 @@ WEE se encarga de toda la complejidad tecnológica internamente.
 
 ## 1. Las 11 experiencias de WEE
 
-WEE Creator tiene solamente 11 grandes especialistas visibles:
+WEË AI tiene solamente 11 grandes especialistas visibles:
 
 | | Experiencia |
 |---|---|
@@ -229,13 +229,13 @@ Después WEE genera internamente texto, imagen, diseño y formato para redes uti
 
 ## 13. Objetivo de producto
 
-WEE Creator **no** debe sentirse como "una colección de herramientas de IA". Debe sentirse como **"una colección de especialistas que trabajan para mí"**.
+WEË AI **no** debe sentirse como "una colección de herramientas de IA". Debe sentirse como **"una colección de especialistas que trabajan para mí"**.
 
 El usuario entra y piensa: *"Necesito hacer esto."* WEE responde: *"Perfecto. Yo te ayudo."* No importa qué modelo, API o proveedor esté detrás.
 
 ## 14. Filosofía final
 
-Regla principal de todo WEE Creator:
+Regla principal de todo WEË AI:
 
 > **"EL USUARIO ELIGE EL RESULTADO. WEE ELIGE LA IA."**
 
@@ -243,7 +243,7 @@ Segunda regla:
 
 > **"NO HAGAS QUE EL USUARIO APRENDA A USAR LA IA. HAZ QUE LA IA APRENDA A AYUDAR AL USUARIO."**
 
-Diseñar toda la arquitectura, UX y lógica de WEE Creator respetando estos principios.
+Diseñar toda la arquitectura, UX y lógica de WEË AI respetando estos principios.
 
 ---
 

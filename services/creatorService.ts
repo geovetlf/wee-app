@@ -188,10 +188,10 @@ export const humanizeCreatorError = (error: unknown): string => {
   if (controlled === 'RATE_LIMITED') return 'Has hecho muchas creaciones seguidas. Espera un momento e inténtalo de nuevo.';
   if (controlled === 'TIMEOUT') return 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.';
   if (controlled === 'DUPLICATE_REQUEST') return 'Esa creación ya está en marcha.';
-  if (controlled === 'ACCOUNT_NOT_FOUND') return 'Termina de crear tu perfil para usar Weë Creator.';
+  if (controlled === 'ACCOUNT_NOT_FOUND') return 'Termina de crear tu perfil para usar WEË AI.';
   if (code.includes('unauthenticated')) return 'Inicia sesión para crear con Weë.';
   if (code.includes('unavailable') || code.includes('internal') || message.includes('Failed to fetch')) {
-    return 'No pude conectar con Weë Creator. Revisa tu conexión y vuelve a intentarlo.';
+    return 'No pude conectar con WEË AI. Revisa tu conexión y vuelve a intentarlo.';
   }
   return 'No me salió bien. ¿Probamos otra vez? No te cobré.';
 };

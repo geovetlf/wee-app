@@ -1,6 +1,6 @@
 # Credit Engine de Weë
 
-Motor de Credits real, seguro y escalable. Los Credits son la moneda interna con la que la gente usa la IA de Weë (Weë Creator, avatar del Perfil Weë y, más adelante, todo lo que consuma un proveedor).
+Motor de Credits real, seguro y escalable. Los Credits son la moneda interna con la que la gente usa la IA de Weë (WEË AI, avatar del Perfil Weë y, más adelante, todo lo que consuma un proveedor).
 
 **Regla de oro: la app NUNCA suma, resta ni modifica Credits.** Toda modificación pasa por Cloud Functions con el Admin SDK. El cliente solo lee su saldo y su historial.
 
@@ -25,7 +25,7 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 | `functions/src/payments/providers/{apple,google,stripe}.ts` | Proveedores preparados (lanzan `NOT_IMPLEMENTED` con la nota de cómo se conectan) |
 | `functions/src/payments/providers/test.ts` | "Recarga de prueba" sin pago; solo con `CREDITS_TEST_PURCHASES=true`, en el emulador o fuera de `get-wee` |
 | `functions/src/shared/admin.ts` | `isAdmin` / `assertAdmin` (claim `admin: true` o uid en `WEE_ADMIN_UIDS`), compartido con el WEË AI ENGINE |
-| `functions/src/creator/credits.ts` | Weë Creator sobre el motor: estimación del plan, reserva al empezar, completar o reembolsar al terminar |
+| `functions/src/creator/credits.ts` | WEË AI sobre el motor: estimación del plan, reserva al empezar, completar o reembolsar al terminar |
 | `functions/src/engine/pricing.ts` | En modo `simulated` los Credits de cada capacidad salen del catálogo del motor (antes había una tabla aparte) |
 | `functions/src/generateAvatar.ts` | Avatar del Perfil Weë (`wee_avatar`) y foto con avatar (`ai_image_enhance`) cobrados por el motor |
 | `functions/test/credits.test.mjs` | Pruebas del motor con Firestore en memoria (`npm run test:engine`) |
@@ -69,7 +69,7 @@ completedAt?, refundedAt?
 ## 3. Seguridad
 
 - **Reglas** (`firestore.rules`): `users` no se puede crear con campos de Credits (`createsCreditFields()`) ni actualizar tocándolos (`touchesCreditFields()`), en ninguna de las ramas (perfil real, Perfil Weë, Biz, contadores). `creditTransactions` solo lectura del dueño, `creditStats` solo servidor, `creditCosts` lectura autenticada, `wallets` y `transactions` solo lectura del dueño. Una escritura del cliente a `creditsBalance` recibe `PERMISSION_DENIED`.
-- **Nunca se confía en un monto del cliente.** `spendCredits` (callable) solo acepta `service` + `requestId`; el monto sale del catálogo. El parámetro `amount` del motor existe únicamente para código de servidor de confianza (el plan de Weë Creator, calculado en el servidor) y se valida igual (entero positivo ≤ 1 000 000).
+- **Nunca se confía en un monto del cliente.** `spendCredits` (callable) solo acepta `service` + `requestId`; el monto sale del catálogo. El parámetro `amount` del motor existe únicamente para código de servidor de confianza (el plan de WEË AI, calculado en el servidor) y se valida igual (entero positivo ≤ 1 000 000).
 - **Solo el dueño** opera sobre sus transacciones (`FORBIDDEN` si el `requestId` pertenece a otra cuenta). Otorgar y reembolsar por callable exige administración (`assertAdmin`).
 - **Pagos separados del motor**: el motor solo acredita lo que un proveedor de pago ya verificó.
 - Las claves de pago y de proveedores viven en `functions/.env.local`; nunca en el cliente.
@@ -105,7 +105,7 @@ REQUEST ─► PENDING ─► AUTHORIZED ─► (ejecutar IA) ─► COMPLETED
 
 Quién lo usa hoy:
 
-- **Weë Creator** (`functions/src/creator/credits.ts`): `creatorChat` estima el plan (Σ catálogo por paso) y llama a `ensureAccount`; `creatorRun` autoriza con `requestId = jobId`, y al terminar completa (modo real: cobra lo medido, nunca más de lo estimado) o reembolsa todo si falló. Sin saldo, la app muestra "No tienes suficientes Credits · Credits disponibles: X · Costo: Y · Obtener Credits".
+- **WEË AI** (`functions/src/creator/credits.ts`): `creatorChat` estima el plan (Σ catálogo por paso) y llama a `ensureAccount`; `creatorRun` autoriza con `requestId = jobId`, y al terminar completa (modo real: cobra lo medido, nunca más de lo estimado) o reembolsa todo si falló. Sin saldo, la app muestra "No tienes suficientes Credits · Credits disponibles: X · Costo: Y · Obtener Credits".
 - **Avatar del Perfil Weë** (`generateAvatar.ts`): `wee_avatar` para generar y `ai_image_enhance` para la foto con avatar. La app manda un `requestId` por intento; si la generación falla se reembolsa; si se repite un `requestId` ya completado se devuelve la misma imagen sin cobrar.
 
 ---

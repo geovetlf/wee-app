@@ -60,7 +60,12 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
   communities: { id: 'communities', emoji: '👥', label: 'Comunidades' },
   weels: { id: 'weels', emoji: '📹', label: 'Weëls' },
   weetalk: { id: 'weetalk', emoji: '💬', label: 'WeeTalk' },
-  creator: { id: 'creator', emoji: '🤖', label: 'Weë Creator' },
+  /*
+   * El nombre visible es WEË AI. El id sigue siendo `creator`: lo usan la ruta,
+   * el estado del menú y los datos ya guardados, y cambiarlo no se vería pero sí
+   * rompería cosas.
+   */
+  creator: { id: 'creator', emoji: '🤖', label: 'WEË AI' },
   projects: { id: 'projects', emoji: '📁', label: 'Mis proyectos' },
   notifications: { id: 'notifications', emoji: '🔔', label: 'Notificaciones' },
   saved: { id: 'saved', emoji: '🔖', label: 'Guardados' },

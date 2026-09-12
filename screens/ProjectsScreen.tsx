@@ -69,7 +69,7 @@ const ProjectsScreen: React.FC = () => {
   };
 
   return (
-    <CreatorShell activeId="projects" overline="🤖 Weë Creator" title="📁 Mis proyectos" breadcrumb="Weë Creator">
+    <CreatorShell activeId="projects" overline="🤖 WEË AI" title="📁 Mis proyectos" breadcrumb="WEË AI">
       <View style={[styles.intro, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
         <Text style={[styles.introTitle, { color: theme.colors.text }]}>Tus creaciones, ordenadas por proyecto</Text>
         <Text style={[styles.introText, { color: theme.colors.textSecondary }]}>

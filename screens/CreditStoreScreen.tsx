@@ -106,7 +106,7 @@ const CreditStoreScreen = () => {
         <View style={styles.costsRow}>
           <View style={[styles.costChip, { backgroundColor: theme.colors.surface }]}>
             <Ionicons name="flask-outline" size={16} color={theme.colors.text} />
-            <Text style={[styles.costText, { color: theme.colors.text }]}>Precios de prueba mientras construimos Weë Creator</Text>
+            <Text style={[styles.costText, { color: theme.colors.text }]}>Precios de prueba mientras construimos WEË AI</Text>
           </View>
           <TouchableOpacity
             style={[styles.costChip, { backgroundColor: theme.colors.surface }]}
@@ -168,7 +168,7 @@ const CreditStoreScreen = () => {
 
         {/* Terms */}
         <Text style={[styles.terms, { color: theme.colors.textSecondary }]}>
-          Recarga de prueba: no se cobra nada todavía. Los precios definitivos llegarán cuando Weë Creator use sus IAs reales; mientras tanto, cada creación muestra su coste de prueba antes de empezar.
+          Recarga de prueba: no se cobra nada todavía. Los precios definitivos llegarán cuando WEË AI use sus IAs reales; mientras tanto, cada creación muestra su coste de prueba antes de empezar.
         </Text>
       </ScrollView>
 

@@ -77,7 +77,7 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
               <Text style={styles.creatorText}>Video, imagen, texto, música y más</Text>
             </View>
             <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
-              <Text style={styles.creatorButtonText}>Weë Creator ›</Text>
+              <Text style={styles.creatorButtonText}>WEË AI ›</Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -71,7 +71,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
 
         <View style={styles.nav}>
           {renderItem('home', 'home-outline', 'Home', goHome)}
-          {renderItem('creator', 'grid-outline', 'Weë Creator', goCreator)}
+          {renderItem('creator', 'grid-outline', 'WEË AI', goCreator)}
           {SPECIALIST_ORDER.map((id) => {
             const exp = WEE_EXPERIENCES.find((e) => e.id === id);
             if (!exp) return null;

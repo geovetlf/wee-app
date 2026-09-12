@@ -1,4 +1,4 @@
-# WEE Creator — Propuesta de arquitectura, UX y lógica
+# WEË AI — Propuesta de arquitectura, UX y lógica
 
 > Propuesta de Claude (2026-09-05) para cumplir [`CREATOR.md`](CREATOR.md). Es la base de trabajo para construir WEE Brain y las 10 experiencias; nada de esto está implementado todavía salvo lo indicado en "Estado actual".
 >
@@ -182,7 +182,7 @@ Claves de proveedores: **Secret Manager** de Google Cloud, leídas por las Funct
 | `PlanCard` | "Voy a … (≈ X Credits)" · [Crear] · [Cambiar algo] |
 | `JobProgress` | Pasos en lenguaje humano con ✔ y tiempo estimado; se puede cerrar la pantalla (notificación push al terminar) |
 | `ResultCard` | Resultado (imagen/video/texto/audio) · [Crear otra versión] · [Editar] · [Publicar en mi comunidad] · [Guardar] · [Descargar] |
-| `Mis creaciones` | Historial de jobs del usuario (dentro de WEE Creator) |
+| `Mis creaciones` | Historial de jobs del usuario (dentro de WEË AI) |
 
 Reglas de copy: preguntas de una línea, opciones como las diría un amigo, sin palabras técnicas; errores en humano ("No me salió bien, ¿probamos otra vez? No te cobré"). El botón **Publicar** rellena automáticamente "Cómo lo hice" (herramientas = "WEE Studio", proceso en lenguaje simple) para que lo creado alimente el Home.
 

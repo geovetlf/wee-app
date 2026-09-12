@@ -343,7 +343,7 @@ export const creatorRun = onCall(
       const { settings } = await loadConfig();
       await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
 
-      const description = `Weë Creator · ${TEMPLATES[job.experienceId].name}`;
+      const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
       await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
       await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
 

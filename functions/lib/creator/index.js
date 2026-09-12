@@ -310,7 +310,7 @@ exports.creatorRun = (0, https_1.onCall)({ region: 'us-central1', timeoutSeconds
         // Límites de uso por persona (antes de cobrar y de llamar a la IA)
         const { settings } = await (0, config_1.loadConfig)();
         await limits_1.limiter.reserve(uid, (0, inputs_1.modalityCounts)(job.steps), settings.limits);
-        const description = `Weë Creator · ${templates_1.TEMPLATES[job.experienceId].name}`;
+        const description = `WEË AI · ${templates_1.TEMPLATES[job.experienceId].name}`;
         await (0, credits_1.holdCredits)(uid, jobId, job.plan, job.creditsEstimated, description);
         await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
         const steps = job.steps.map((s) => (Object.assign({}, s)));

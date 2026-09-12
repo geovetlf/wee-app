@@ -1636,7 +1636,7 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
   check('G) y el nombre visible es Hogar & Diseño', exp.experienceLabel({ id: 'home', name: 'Weë Home' }) === 'Hogar & Diseño');
   check('G) las demás conservan el suyo', exp.experienceLabel({ id: 'chef', name: 'Weë Chef' }) === 'Weë Chef' && exp.experienceLabel({ id: 'photo', name: 'Weë Photo' }) === 'Weë Photo');
   check('H) la mesa de trabajo firma con ese nombre, no con el propio', (flujo.match(/experienceName=\{nombre\}/g) || []).length === 5 && /const nombre = experienceLabel\(experience\)/.test(flujo));
-  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en Weë Creator/.test(flujo));
+  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en WEË AI/.test(flujo));
   check('H) el nombre propio solo queda de respaldo en la cabecera', (flujo.match(/experience\.name/g) || []).length === 2 && /area \? area\.label : experience\.name/.test(flujo));
   check('H) la caja de subida habla de tu espacio', /experience\.id === 'home'[\s\S]{0,80}Sube una foto de tu espacio/.test(flujo));
 

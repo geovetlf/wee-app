@@ -112,10 +112,10 @@ const SpecialistScreen: React.FC = () => {
   return (
     <CreatorShell
       activeId={spec.id}
-      overline={lanzador ? undefined : '🤖 Weë Creator'}
+      overline={lanzador ? undefined : '🤖 WEË AI'}
       title={lanzador ? spec.experience.name : `${spec.experience.emoji} ${spec.experience.name}`}
       mark={lanzador ? <TravelMark size={30} plain /> : undefined}
-      breadcrumb="Weë Creator"
+      breadcrumb="WEË AI"
       contentStyle={wall ? styles.wallContent : undefined}
     >
       {!lanzador && <SpecialistHero spec={spec} compact={!!wall} />}

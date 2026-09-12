@@ -47,7 +47,7 @@ modelo llega a la interfaz.
 | `functions/src/engine/pipelines/drama.ts` | Blueprint de **AI Drama** (13 etapas) sobre el mismo motor de pasos |
 | `functions/src/engine/admin.ts` | Callable `engineAdmin`: estado, sembrar defaults, activar/desactivar, prioridades, cadenas, ajustes, reiniciar salud |
 | `functions/src/engine/index.ts` | `engine.generate()`, `engine.route()`, `engine.status()` |
-| `functions/src/gateway/index.ts` | Compatibilidad: `runCapability()` de Weë Creator delega en el engine |
+| `functions/src/gateway/index.ts` | Compatibilidad: `runCapability()` de WEË AI delega en el engine |
 | `functions/src/creator/inputs.ts` | Entradas de un trabajo: valida que la foto sea de la persona (`users/{uid}/…` en Storage), arma el input de cada paso (prompt interno, foto, narración) y cuenta modalidades para los límites |
 | `functions/src/creator/brain.ts` | Callable `brainChat`: Weë Brain como asistente general (chat con contexto, búsqueda con fuentes, foto adjunta, derivación a especialistas) |
 | `functions/src/creator/prompts.ts` | Prompts internos por tipo de pieza (texto, imagen, video, narración) y el sistema de Weë Brain |
@@ -126,7 +126,7 @@ Sin clave, el adaptador responde `isConfigured() = false` y el router lo ignora:
 
 Nunca llamar a una API de IA fuera de un adaptador; nunca poner claves en el cliente.
 
-**Cambiar de proveedor sin tocar la app:** editar `aiRouting/{capacidad}.chain` en Firestore (o `DEFAULT_ROUTING`), p. ej. poner `flux` antes de `gemini` en `image.generate`, o desactivar un proveedor en `aiProviders/{id}.enabled`. Las secciones de Weë Creator llaman capacidades (`image.generate`, `video.generate`…), nunca proveedores. **Video es la excepción por decisión de producto (2026-09-07)**: solo la familia Seedance; lo configurable es la versión (`aiSettings/global.video.defaultModel`: `auto`, `SEEDANCE_2_5`, `SEEDANCE_2_0`, `SEEDANCE_2_0_FAST`, `SEEDANCE_2_0_MINI`).
+**Cambiar de proveedor sin tocar la app:** editar `aiRouting/{capacidad}.chain` en Firestore (o `DEFAULT_ROUTING`), p. ej. poner `flux` antes de `gemini` en `image.generate`, o desactivar un proveedor en `aiProviders/{id}.enabled`. Las secciones de WEË AI llaman capacidades (`image.generate`, `video.generate`…), nunca proveedores. **Video es la excepción por decisión de producto (2026-09-07)**: solo la familia Seedance; lo configurable es la versión (`aiSettings/global.video.defaultModel`: `auto`, `SEEDANCE_2_5`, `SEEDANCE_2_0`, `SEEDANCE_2_0_FAST`, `SEEDANCE_2_0_MINI`).
 
 ## Precio de cada operación (del coste oficial a los Credits)
 

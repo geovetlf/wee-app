@@ -16,7 +16,7 @@ DESCUBRIR → APRENDER → CREAR → COMPARTIR → CONECTAR → VOLVER A CREAR
 
 ## 2. Arquitectura simple
 
-La experiencia se divide conceptualmente en **A) Home / experiencia social** y **B) WEE Creator**.
+La experiencia se divide conceptualmente en **A) Home / experiencia social** y **B) WEË AI**.
 
 **No usar "WEE Social" como nombre de sección.** Lo social ya está representado por Home, Explora comunidades, Weëls, contenido, publicaciones, usuarios y WeeTalk. Repetir "WEE" sería redundante.
 
@@ -39,15 +39,15 @@ Reemplaza a "Explora por categoría". Pertenece al Home. **No muestra herramient
 | 📚 Educación & Aprendizaje | — |
 | 🚀 Futuro & Sociedad | — |
 
-Estas categorías **no** son categorías de herramientas; las herramientas pertenecen exclusivamente a WEE Creator.
+Estas categorías **no** son categorías de herramientas; las herramientas pertenecen exclusivamente a WEË AI.
 
 ## 5. Comunidades
 
 Viven dentro de la experiencia social del Home: WEE Filmmakers, WEE Influencers, WEE Designers, WEE Writers, WEE Musicians, WEE Developers, WEE Entrepreneurs, WEE Gamers, etc. **Ninguna es una sección principal de navegación.** Dentro de ellas los usuarios publican trabajos, imágenes, videos y Weëls; hacen preguntas; comparten prompts y procesos; recomiendan herramientas; piden ayuda; comentan, reaccionan, aprenden y colaboran.
 
-## 6. WEE Creator
+## 6. WEË AI
 
-Espacio especializado de herramientas de IA. **Sí conserva el nombre "WEE Creator"** porque es una parte diferenciada del producto. Responde a *"¿Qué quieres crear?"*.
+Espacio especializado de herramientas de IA. **Sí conserva el nombre "WEË AI"** porque es una parte diferenciada del producto. Responde a *"¿Qué quieres crear?"*.
 
 🎬 AI Video · 🖼️ AI Imagen · 🎨 AI Diseño · ✍️ AI Escritura · 📚 AI Libros · 🎵 AI Música & Audio · 💻 AI Código · 📣 AI Marketing · 🧠 AI Productividad · ▦ Otras herramientas
 
@@ -55,20 +55,20 @@ Espacio especializado de herramientas de IA. **Sí conserva el nombre "WEE Creat
 
 Las herramientas pueden ser propias de WEE o integraciones de otros servicios.
 
-## 7. WEE Creator dentro del menú
+## 7. WEË AI dentro del menú
 
-En el menú hamburguesa aparece **WEE Creator** y, debajo, las categorías de herramientas con iconos pequeños y discretos (sin tarjetas enormes). Limpio y elegante.
+En el menú hamburguesa aparece **WEË AI** y, debajo, las categorías de herramientas con iconos pequeños y discretos (sin tarjetas enormes). Limpio y elegante.
 
 ## 8. WEE Influencer / WEE Filmmaker / WEE Designer…
 
-**No crear secciones independientes** para WEE Influencer, WEE Filmmaker, WEE Designer, WEE Writer, WEE Musician, etc. Son comunidades dentro de la experiencia social. La herramienta que usa un filmmaker, un influencer o un diseñador está en WEE Creator. Esta separación se mantiene siempre.
+**No crear secciones independientes** para WEE Influencer, WEE Filmmaker, WEE Designer, WEE Writer, WEE Musician, etc. Son comunidades dentro de la experiencia social. La herramienta que usa un filmmaker, un influencer o un diseñador está en WEË AI. Esta separación se mantiene siempre.
 
 ## 9. Conexión entre Creator y comunidades
 
-Conectados, no mezclados. Un usuario entra a WEE Filmmakers, ve un video con *"Creado con…"*, descubre las herramientas, va a WEE Creator, crea su propio video, vuelve al Home y publica; la comunidad lo ve.
+Conectados, no mezclados. Un usuario entra a WEE Filmmakers, ve un video con *"Creado con…"*, descubre las herramientas, va a WEË AI, crea su propio video, vuelve al Home y publica; la comunidad lo ve.
 
 ```
-COMUNIDAD → INSPIRACIÓN → WEE CREATOR → CREACIÓN → PUBLICACIÓN → COMUNIDAD
+COMUNIDAD → INSPIRACIÓN → WEË AI → CREACIÓN → PUBLICACIÓN → COMUNIDAD
 ```
 
 ## 10. Weëls
@@ -77,7 +77,7 @@ Videos cortos de WEE, **máximo 15 segundos**, especialmente para contenido crea
 
 ## 11. Credits
 
-Parte muy importante del producto. Las herramientas de WEE Creator pueden usar Credits. El saldo debe ser fácil de encontrar, visible pero elegante (ej. **💳 250 Credits**): en la parte superior del Home, dentro de WEE Creator y en el menú hamburguesa. No ocultarlos.
+Parte muy importante del producto. Las herramientas de WEË AI pueden usar Credits. El saldo debe ser fácil de encontrar, visible pero elegante (ej. **💳 250 Credits**): en la parte superior del Home, dentro de WEË AI y en el menú hamburguesa. No ocultarlos.
 
 ## 12. Un solo menú hamburguesa
 
@@ -86,7 +86,7 @@ Parte muy importante del producto. Las herramientas de WEE Creator pueden usar C
 PERFIL         Perfil Real · Perfil WEE
 EXPLORA        Comunidades · Weëls
 WeeTalk
-WEE CREATOR    🎬 AI Video · 🖼️ AI Imagen · 🎨 AI Diseño · ✍️ AI Escritura · 📚 AI Libros
+WEË AI    🎬 AI Video · 🖼️ AI Imagen · 🎨 AI Diseño · ✍️ AI Escritura · 📚 AI Libros
                🎵 AI Música & Audio · 💻 AI Código · 📣 AI Marketing · 🧠 AI Productividad · ▦ Otras herramientas
 💳 Credits     250 Credits
 🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
@@ -108,7 +108,7 @@ Se mantienen los dos perfiles. **WEE = World Encode Entity** (definición que se
 
 ## 15. Botón "+"
 
-Importante. Abre **Crear** y ofrece: Publicación, Weël, Imagen, Video, Texto, Pregunta. Si el usuario necesita una herramienta de IA, conecta con WEE Creator. Crear rápido, sin navegar demasiado.
+Importante. Abre **Crear** y ofrece: Publicación, Weël, Imagen, Video, Texto, Pregunta. Si el usuario necesita una herramienta de IA, conecta con WEË AI. Crear rápido, sin navegar demasiado.
 
 ## 16. Home — estructura
 
@@ -121,7 +121,7 @@ Importante. Abre **Crear** y ofrece: Publicación, Weël, Imagen, Video, Texto, 
 5. **Creado por la comunidad**: filtros Todo · Imágenes · Videos · Preguntas · Tutoriales · publicaciones reales.
 6. **Barra inferior**: Inicio · Buscar · + (amarillo, destacado) · WeeTalk · Perfil.
 
-Weë Creator no aparece en el Home: es una sección propia (menú ☰) donde la persona dice "quiero hacer un video / una imagen / escribir algo / música / un libro" y Weë la guía.
+WEË AI no aparece en el Home: es una sección propia (menú ☰) donde la persona dice "quiero hacer un video / una imagen / escribir algo / música / un libro" y Weë la guía.
 
 Mantiene el estilo visual actual: fondo blanco, amarillo/dorado como color principal, gris oscuro para textos, tarjetas blancas, bordes suaves, sombras ligeras, diseño limpio, amigable, moderno y con mucho espacio. **No cambiar a una estética oscura/neón** (única excepción: el tema oscuro mientras el Perfil Weë está activo, §14).
 
@@ -135,11 +135,11 @@ CREADO POR LA COMUNIDAD  Publicaciones · Imágenes · Videos · Preguntas · Tu
 
 ## 17. El Home no debe estar sobrecargado
 
-Prioridad: 1) descubrir, 2) ver contenido, 3) encontrar comunidades, 4) ver Weëls, 5) interactuar, 6) crear. Las herramientas avanzadas quedan dentro de WEE Creator.
+Prioridad: 1) descubrir, 2) ver contenido, 3) encontrar comunidades, 4) ver Weëls, 5) interactuar, 6) crear. Las herramientas avanzadas quedan dentro de WEË AI.
 
 ## 18. Descubrimiento
 
-Personas + contenido + comunidades → Home / Explora. Herramientas → WEE Creator.
+Personas + contenido + comunidades → Home / Explora. Herramientas → WEË AI.
 
 ## 19. Contenido "Cómo lo hice"
 
@@ -163,11 +163,11 @@ Retos creativos ("Create a 15-second horror movie"). No es necesario en el MVP.
 
 ## 24. Principio de UX
 
-Al entrar, el usuario sabe de inmediato dónde está, qué puede hacer, dónde descubrir contenido, dónde encontrar comunidades y dónde crear: **Home → descubrir y conectar. WEE Creator → crear con IA.**
+Al entrar, el usuario sabe de inmediato dónde está, qué puede hacer, dónde descubrir contenido, dónde encontrar comunidades y dónde crear: **Home → descubrir y conectar. WEË AI → crear con IA.**
 
 ## 25. Principio de diseño
 
-No agregar menús innecesarios ni múltiples niveles de navegación. No repetir "WEE" en cada nombre. No crear "WEE Social", "WEE Communities", "WEE Influencer Section", "WEE Filmmaker Section", "WEE Designer Section". Usar nombres solo cuando aporten claridad; "WEE Creator" se mantiene.
+No agregar menús innecesarios ni múltiples niveles de navegación. No repetir "WEE" en cada nombre. No crear "WEE Social", "WEE Communities", "WEE Influencer Section", "WEE Filmmaker Section", "WEE Designer Section". Usar nombres solo cuando aporten claridad; "WEË AI" se mantiene.
 
 ## 26. Principio de producto
 

@@ -75,7 +75,7 @@ const RightSidebar: React.FC = () => {
         style={[styles.creatorCard, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}
         onPress={() => navigation.navigate('WeeCreator')}
         activeOpacity={0.85}
-        accessibilityLabel="Abrir Weë Creator"
+        accessibilityLabel="Abrir WEË AI"
       >
         <Text style={styles.creatorEmoji}>🤖</Text>
         <Text style={[styles.creatorTitle, { color: theme.colors.text }]}>¿Qué quieres crear hoy?</Text>
@@ -83,7 +83,7 @@ const RightSidebar: React.FC = () => {
           Cuéntale a Weë lo que quieres. Weë se encarga de la IA.
         </Text>
         <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
-          <Text style={styles.creatorButtonText}>Ir a Weë Creator</Text>
+          <Text style={styles.creatorButtonText}>Ir a WEË AI</Text>
         </View>
       </TouchableOpacity>
 

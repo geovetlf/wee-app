@@ -173,7 +173,7 @@ const BrainChatScreen: React.FC = () => {
   if (!spec) return null;
 
   return (
-    <CreatorShell activeId="brain" overline="🤖 Weë Creator" title="🧠 Weë Brain" breadcrumb="Weë Creator" contentStyle={styles.content}>
+    <CreatorShell activeId="brain" overline="🤖 WEË AI" title="🧠 Weë Brain" breadcrumb="WEË AI" contentStyle={styles.content}>
       <SpecialistHero spec={spec} />
 
       {/* Chat */}
