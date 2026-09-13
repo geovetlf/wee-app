@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, StatusBar, Text, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StatusBar, Text, Platform, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +28,51 @@ const WEB_ICONS: Record<string, string> = {
 /** La firma de marca del Home. Va debajo del logo y no se traduce. */
 const LEMA_DE_MARCA = 'Imagina · Crea · Conecta';
 
+/*
+ * Cuánto sitio hay que dejarle a los controles a cada lado de la marca.
+ *
+ * Como el logo va centrado respecto al VIEWPORT, el hueco que puede ocupar la
+ * marca es el ancho menos DOS veces el lado más ancho: lo que sobra a la
+ * izquierda no se puede usar sin descentrar el logo. De ahí salen estas dos
+ * medidas, que son las del lado derecho:
+ *
+ *  · con el selector de identidad puesto —píldora Real/Weë (76) + separación (8)
+ *    + campana (28) + el margen de la fila (12)—, redondeado hacia arriba para
+ *    que quede aire entre el lema y la píldora;
+ *  · sin él, solo la campana y su margen.
+ *
+ * No es un punto de ruptura: es una resta con el ancho real, así que en un
+ * teléfono estrecho la marca se ciñe sola —el logo mantiene su proporción y el
+ * lema se ajusta— en vez de meterse debajo del selector.
+ */
+const ANCHO_CON_SELECTOR = scale(126);
+const ANCHO_SIN_SELECTOR = scale(52);
+
+/*
+ * El alto del logo y el aire que lo rodea, en un solo sitio porque de ellos sale
+ * DÓNDE se colocan los controles.
+ *
+ * La capa de controles no cubre la banda entera —si lo hiciera se centraría
+ * entre el logo y el lema, un pelo por debajo del logo—: cubre exactamente la
+ * línea del logo, así que el ☰, el selector y la campana quedan centrados sobre
+ * ÉL. El lema sigue colgando debajo, dentro de la banda, sin tirar de nadie.
+ */
+/*
+ * LA LÍNEA DEL LOGO ES LA MEDIDA FIJA, y el aire es lo que sobre.
+ *
+ * De estos 55 puntos cuelga toda la alineación del encabezado: es el alto de la
+ * capa de controles, así que su mitad —27,5— es donde caen el centro del logo,
+ * el del ☰, el del selector y el de la campana. Mientras la línea no cambie,
+ * nada de eso se mueve.
+ *
+ * Por eso el logo ha podido ir creciendo —31, 33, 35 y ahora 36— sin tocar a
+ * nadie: no se le suma alto al encabezado, se le quita al aire que lo rodea, y
+ * ese reparto se calcula aquí en vez de escribirse a mano.
+ */
+const LINEA_DEL_LOGO = scale(55);
+const ALTO_DEL_LOGO = scale(36);
+const AIRE_DE_LA_MARCA = (LINEA_DEL_LOGO - ALTO_DEL_LOGO) / 2;
+
 interface HeaderProps {
   onNotificationsPress?: () => void;
   onMenuPress?: () => void;
@@ -51,6 +96,13 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
   const { theme, setThemeMode } = useTheme();
   const { user } = useAuth();
   const { hasWeeProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz } = useUserProfile();
+  /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
+  const { width: anchoDePantalla } = useWindowDimensions();
+  const conSelectorDeIdentidad = !!user && (hasWeeProfile || activeProfileType === 'biz');
+  const anchoDeLaMarca = Math.max(
+    scale(64),
+    anchoDePantalla - (conSelectorDeIdentidad ? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR) * 2
+  );
 
   const handleSwitchIdentity = () => {
     if (activeProfileType === 'biz') {
@@ -165,6 +217,22 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
         borderBottomColor: transparent ? 'transparent' : theme.colors.border,
         borderBottomWidth: transparent ? 0 : scale(0.5),
       }]}>
+      {/*
+        LA BANDA, YA DENTRO DEL ÁREA SEGURA.
+
+        Este envoltorio existe por una razón concreta: el hueco de la barra de
+        estado es `paddingTop` DEL CONTENEDOR, y a una capa absoluta con
+        `top: 0` no se le puede confiar que lo respete —Yoga y CSS no colocan
+        igual a los hijos absolutos frente al relleno del padre, y en el
+        teléfono los controles acababan pegados a la hora y a la batería
+        mientras el logo sí bajaba—.
+
+        Con la banda, `top: 0` es el borde de la banda, y la banda empieza donde
+        acaba el hueco del sistema. Deja de haber nada que interpretar: ni
+        desplazamientos negativos, ni offsets a mano, ni un número que funcione
+        en un teléfono y no en otro.
+      */}
+      <View style={conMarca ? styles.banda : undefined}>
         <View style={[styles.content, conMarca && styles.contentConMarca]} pointerEvents="box-none">
           <View style={styles.leftSection}>
             {/* Back or hamburger menu */}
@@ -279,16 +347,18 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
                 style={styles.actionButton}
                 onPress={onNotificationsPress}
                 activeOpacity={0.7}
+                /* La campana encoge de 24 a 20; el área que se toca no: se repone por fuera. */
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <View>
                   {isWeb ? (
-                    <Text style={{ fontSize: 22, color: transparent ? 'white' : (unreadCount > 0 ? theme.colors.accent : theme.colors.text) }}>
+                    <Text style={{ fontSize: 20, color: transparent ? 'white' : (unreadCount > 0 ? theme.colors.accent : theme.colors.text) }}>
                       🔔
                     </Text>
                   ) : (
                     <Ionicons
                       name={unreadCount > 0 ? "notifications" : "notifications-outline"}
-                      size={ICON_SIZE.lg}
+                      size={ICON_SIZE.md}
                       color={transparent ? 'white' : (unreadCount > 0 ? theme.colors.accent : theme.colors.text)}
                     />
                   )}
@@ -338,7 +408,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
           es el mismo `handleLogoPress`, no una copia.
         */}
         {conMarca && (
-          <View style={styles.marca} pointerEvents="box-none">
+          <View style={[styles.marca, { maxWidth: anchoDeLaMarca }]} pointerEvents="box-none">
             <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Weë, ir al principio">
               <Image
                 source={(transparent || activeProfileType === 'hidi') ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
@@ -358,6 +428,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
           </View>
         )}
       </View>
+      </View>
     </>
   );
 };
@@ -366,22 +437,34 @@ const styles = StyleSheet.create({
   container: {
     borderBottomWidth: scale(0.5),
   },
+  /*
+   * La banda: todo el encabezado del Home vive aquí dentro, ya por debajo del
+   * hueco de la barra de estado. Es quien da el marco de referencia a la capa
+   * de controles, y su alto es el del bloque de la marca —el único hijo en
+   * flujo—, así que la altura del encabezado sale de lo que hay, no de un
+   * número escrito a mano.
+   */
+  banda: {
+    position: 'relative',
+  },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
   },
   /*
    * En el Home esta fila solo lleva controles, y se pone SOBRE la marca en vez
-   * de en una fila aparte por encima: se estira sobre la banda que mide el
-   * bloque de la marca —`top/left/right/bottom: 0`, dentro del hueco de la
-   * barra de estado,
-   * que es padding del contenedor— y centra lo suyo en esa misma banda. Así el
-   * ☰ queda a la izquierda, el selector a la derecha y los dos a la altura de
-   * la marca, sin que ninguno de los tres empuje a los otros: el logo sigue
+   * de en una fila aparte por encima: se pega al alto del contenedor —dentro del
+   * hueco de la barra de estado, que es padding suyo— y centra lo suyo ahí. Así
+   * el ☰ queda a la izquierda, el selector a la derecha y los dos a la altura
+   * del logo, sin que ninguno de los tres empuje a los otros: el logo sigue
    * centrado respecto a la pantalla y no respecto al hueco que le dejen.
+   *
+   * El alto es el de la LÍNEA DEL LOGO, no el de la banda entera: cubriendo la
+   * banda, los controles se centrarían entre el logo y el lema y quedarían un
+   * pelo por debajo del logo. Al ceñirse a su línea, los centros coinciden.
    *
    * `zIndex` porque la marca se dibuja después: sin él quedaría por encima de
    * los controles.
@@ -391,7 +474,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
+    height: LINEA_DEL_LOGO,
     paddingVertical: 0,
     zIndex: 1,
   },
@@ -403,15 +486,16 @@ const styles = StyleSheet.create({
    * son el mismo: es lo que deja la banda centrada respecto a los controles.
    */
   marca: {
+    alignSelf: 'center',
     alignItems: 'center',
     gap: scale(3),
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: AIRE_DE_LA_MARCA,
   },
   lema: {
-    fontSize: scale(11),
+    fontSize: scale(10),
     fontWeight: FONT_WEIGHT.regular,
-    letterSpacing: scale(0.3),
+    letterSpacing: scale(0.2),
   },
   leftSection: {
     flexDirection: 'row',
@@ -431,9 +515,22 @@ const styles = StyleSheet.create({
     height: scale(32),
     width: scale(32),
   },
+  /*
+   * El logo. Un punto más pequeño que antes —101×36 pasó a 88×31— para que la
+   * marca y el selector de identidad quepan en la misma banda en un teléfono de
+   * 375 sin rozarse. `maxWidth` deja que se ciña todavía más en pantallas muy
+   * estrechas: `contentFit="contain"` conserva la proporción.
+   */
+  /*
+   * El ancho acompaña al alto para que la caja no apriete al dibujo: manda el
+   * alto —la proporción del logo es más estrecha que la caja— y `contain` hace
+   * el resto. La marca sigue midiendo lo que mide el lema, que es más ancho,
+   * así que por los lados no cambia nada.
+   */
   weeLogo: {
-    height: scale(36),
-    width: scale(101),
+    height: ALTO_DEL_LOGO,
+    width: scale(102),
+    maxWidth: '100%',
   },
   logoText: {
     fontSize: FONT_SIZE.xl,
@@ -494,9 +591,10 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  /* Cada mitad de la píldora. 36 en vez de 44: sigue leyéndose "Real" y "Weë" entero. */
   selectorSegmento: {
-    minWidth: scale(44),
-    paddingHorizontal: SPACING.sm,
+    minWidth: scale(36),
+    paddingHorizontal: SPACING.xs,
     paddingVertical: scale(5),
     borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',

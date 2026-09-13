@@ -574,8 +574,8 @@ console.log('\n── M · La marca en el centro del Home ──');
    * selector, y ese hueco cambia de ancho—. Medido en el navegador: 187 frente a
    * un centro de 187,5 en 375 puntos, con y sin el selector a la vista.
    */
-  check('103) la marca va en su propia fila, centrada', /marca: \{\s*alignItems: 'center',/.test(cabecera));
-  check('104) fuera de la fila de los controles', /<\/View>\s*\{\/\*[\s\S]*?\*\/\}\s*\{conMarca && \(\s*<View style=\{styles\.marca\}/.test(cabecera));
+  check('103) la marca va en su propia fila, centrada', /marca: \{[\s\S]{0,40}alignItems: 'center',/.test(cabecera));
+  check('104) fuera de la fila de los controles', /<\/View>\s*\{\/\*[\s\S]*?\*\/\}\s*\{conMarca && \(\s*<View style=\{\[styles\.marca/.test(cabecera));
 
   /*
    * ─── Y LOS TRES, EN LA MISMA BANDA ──────────────────────────────────────
@@ -589,10 +589,45 @@ console.log('\n── M · La marca en el centro del Home ──');
    * Medido en el navegador a 375: ☰ y campana en y=34, el bloque de la marca
    * de 11 a 58 —centro 34,5— y el logo en x=187 frente a un centro de 187,5.
    */
-  check('104b) los controles se estiran sobre la banda de la marca',
-    /contentConMarca: \{\s*position: 'absolute',\s*top: 0,\s*left: 0,\s*right: 0,\s*bottom: 0,/.test(cabecera));
+  check('104b) los controles se estiran sobre la marca',
+    /contentConMarca: \{\s*position: 'absolute',\s*top: 0,\s*left: 0,\s*right: 0,\s*height: LINEA_DEL_LOGO,/.test(cabecera));
   check('104b) y se dibujan por encima, no por debajo', /contentConMarca: \{[\s\S]{0,220}zIndex: 1,/.test(cabecera));
-  check('104b) la marca deja el mismo aire arriba y abajo: eso centra la banda', /marca: \{[\s\S]{0,140}paddingVertical: SPACING\.md,/.test(cabecera));
+  check('104b) la marca deja el mismo aire arriba y abajo', /marca: \{[\s\S]{0,140}paddingVertical: AIRE_DE_LA_MARCA,/.test(cabecera));
+  /*
+   * Y se ciñen a la LÍNEA DEL LOGO, no a la banda entera: sobre la banda
+   * quedarían centrados entre el logo y el lema, un pelo por debajo del logo.
+   * Con el alto de su línea, el centro de la píldora y el del logo coinciden.
+   * Medido en el navegador a 375: logo, ☰, campana y píldora, todos en y=27.
+   */
+  /*
+   * Y TODO ELLO DENTRO DEL ÁREA SEGURA.
+   *
+   * El hueco de la barra de estado es `paddingTop` del CONTENEDOR. A una capa
+   * absoluta con `top: 0` no se le puede confiar que lo respete —Yoga y CSS no
+   * tratan igual el relleno del padre—, y en el teléfono los controles salían
+   * pegados a la hora y a la batería mientras el logo sí bajaba. La banda
+   * arregla el origen: `top: 0` pasa a ser su borde, y la banda empieza donde
+   * acaba el hueco del sistema.
+   *
+   * Comprobado en el navegador metiéndole 44 px de hueco al contenedor: el
+   * logo, el ☰ y la campana bajaron los 44 y siguieron los tres en la misma
+   * línea (25 → 69).
+   */
+  /* Y sin trucos: ni desplazamientos negativos ni translate en las tres capas del encabezado. */
+  const capasDelEncabezado = ['container: {', 'banda: {', 'contentConMarca: {', 'marca: {']
+    .map((k) => cabecera.slice(cabecera.indexOf(k), cabecera.indexOf('},', cabecera.indexOf(k))))
+    .join('\n');
+  check('104b) el hueco del sistema lo pone el contenedor, no la capa',
+    /paddingTop: insets\.top,/.test(cabecera) && /const insets = useSafeAreaInsets\(\);/.test(cabecera)
+      && !/top: -|translateY|marginTop: -/.test(capasDelEncabezado), capasDelEncabezado.match(/top: -[^,]*|translateY[^,]*/g)?.join(' · ') || '');
+  check('104b) y la capa se mide desde dentro del área segura, no desde la pantalla',
+    /<View style=\{conMarca \? styles\.banda : undefined\}>\s*<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}/.test(cabecera)
+      && /banda: \{\s*position: 'relative',\s*\}/.test(cabecera));
+
+  check('104b) a la altura del logo, no del bloque entero',
+    /const LINEA_DEL_LOGO = scale\(55\);/.test(cabecera) && /const ALTO_DEL_LOGO = scale\(36\);/.test(cabecera)
+      && /const AIRE_DE_LA_MARCA = \(LINEA_DEL_LOGO - ALTO_DEL_LOGO\) \/ 2;/.test(cabecera)
+      && /weeLogo: \{\s*height: ALTO_DEL_LOGO,/.test(cabecera));
   /*
    * `box-none` en las dos capas: la de arriba no tapa el logo y la de la marca
    * no se come los toques del ☰ ni del selector. Sin esto, la capa que quede
@@ -609,8 +644,71 @@ console.log('\n── M · La marca en el centro del Home ──');
   check('105) el logo no se duplica', /\{!conMarca && \(/.test(cabecera) && /\{conMarca && \(/.test(cabecera));
   check('106) y hace lo de siempre al tocarlo', (cabecera.match(/onPress=\{handleLogoPress\}/g) || []).length === 2);
 
+  /*
+   * ─── Y TODO CABE EN EL TELÉFONO ─────────────────────────────────────────
+   *
+   * Con el selector de identidad puesto, el logo y la píldora Real/Weë se
+   * rozaban en 375. La banda entera encogió un punto —logo, lema, píldora,
+   * campana y márgenes— y, sobre todo, la marca ya no puede crecer más allá del
+   * hueco que le dejan los controles: se le pone un ancho máximo que sale de
+   * restar al ancho de la pantalla DOS veces el lado ancho (el logo va centrado
+   * respecto a la pantalla, así que el sobrante de la izquierda no cuenta).
+   *
+   * Calculado en puntos nativos, con el selector a la vista: en 320 la píldora
+   * empieza en 196 y la marca acaba en 194; en 375, 251 contra 248; en 430, 306
+   * contra 275. Nunca se tocan, y en ningún ancho hay un punto de ruptura: es
+   * una resta con el ancho real.
+   */
+  check('106b) la marca no puede meterse debajo de los controles',
+    /const ANCHO_CON_SELECTOR = scale\(126\);/.test(cabecera) && /const ANCHO_SIN_SELECTOR = scale\(52\);/.test(cabecera)
+      && /anchoDePantalla - \(conSelectorDeIdentidad \? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR\) \* 2/.test(cabecera)
+      && /<View style=\{\[styles\.marca, \{ maxWidth: anchoDeLaMarca \}\]\}/.test(cabecera));
+  check('106b) y el hueco se recalcula con el ancho de verdad, no con un breakpoint',
+    /useWindowDimensions\(\)/.test(cabecera) && !/Dimensions\.get/.test(cabecera));
+  check('106b) reserva menos sitio cuando no hay selector que esquivar',
+    /const conSelectorDeIdentidad = !!user && \(hasWeeProfile \|\| activeProfileType === 'biz'\);/.test(cabecera));
+  /* Ceñirse no puede descentrar el logo: la marca se centra ella sola. */
+  check('106b) y ceñirse no la descentra', /marca: \{\s*alignSelf: 'center',\s*alignItems: 'center',/.test(cabecera));
+  /* Todo un punto más pequeño, en proporción: logo, píldora, campana y márgenes. */
+  check('106c) el logo encoge y puede ceñirse sin deformarse',
+    /weeLogo: \{\s*height: ALTO_DEL_LOGO,\s*width: scale\(102\),\s*maxWidth: '100%',/.test(cabecera) && /const ALTO_DEL_LOGO = scale\(36\);/.test(cabecera) && /contentFit="contain"/.test(cabecera));
+  /*
+   * La caja va SIEMPRE más holgada de ancho que de alto: la proporción del logo
+   * es 101/36 ≈ 2,81, así que con una caja más ancha que eso manda el alto y el
+   * dibujo crece de verdad. Si la caja se quedara corta de ancho, subir el alto
+   * no se notaría —el dibujo se frenaría por el otro lado—.
+   */
+  check('106c) y la caja deja crecer al dibujo: manda el alto, no el ancho',
+    (() => { const alto = Number(cabecera.match(/const ALTO_DEL_LOGO = scale\((\d+)\);/)?.[1]); const ancho = Number(cabecera.match(/weeLogo: \{\s*height: ALTO_DEL_LOGO,\s*width: scale\((\d+)\)/)?.[1]); return !!alto && !!ancho && ancho / alto > 101 / 36; })());
+  /*
+   * Y el logo puede crecer sin mover a nadie: lo que se le suma de alto se le
+   * resta al aire, así que la línea del logo mide lo mismo y los controles no
+   * se enteran. Medido a 375 y a 430: logo, ☰ y campana siguen en y=25.
+   */
+  /*
+   * Crecer no mueve la banda, y ahora por construcción: la línea del logo es la
+   * medida FIJA —de ella cuelga la alineación de todo el encabezado— y el aire
+   * es lo que sobra alrededor del logo. Subir el logo le quita aire; no le suma
+   * alto a la banda ni baja su centro.
+   */
+  check('106c) crecer no mueve la banda: la línea es fija y el aire se reparte',
+    /const LINEA_DEL_LOGO = scale\(55\);/.test(cabecera)
+      && /const AIRE_DE_LA_MARCA = \(LINEA_DEL_LOGO - ALTO_DEL_LOGO\) \/ 2;/.test(cabecera)
+      && /height: LINEA_DEL_LOGO,/.test(cabecera) && /paddingVertical: AIRE_DE_LA_MARCA,/.test(cabecera));
+  /* Y el logo nunca puede ser más alto que su línea: se comprueba con los números. */
+  check('106c) el logo cabe en su línea, con aire a los dos lados',
+    (() => { const linea = Number(cabecera.match(/const LINEA_DEL_LOGO = scale\((\d+)\);/)?.[1]); const alto = Number(cabecera.match(/const ALTO_DEL_LOGO = scale\((\d+)\);/)?.[1]); return !!linea && !!alto && alto < linea && (linea - alto) / 2 >= 8; })());
+  check('106c) la píldora encoge sin perder sus dos mitades',
+    /selectorSegmento: \{\s*minWidth: scale\(36\),\s*paddingHorizontal: SPACING\.xs,/.test(cabecera) && /etiqueta: 'Real'[\s\S]{0,120}etiqueta: 'Weë'/.test(cabecera));
+  check('106c) la campana encoge pero se sigue tocando igual',
+    /size=\{ICON_SIZE\.md\}[\s\S]{0,200}notifications/.test(cabecera.replace(/[\s\S]*?notifications-outline/, 'notifications-outline')) || /name=\{unreadCount > 0 \? "notifications" : "notifications-outline"\}\s*size=\{ICON_SIZE\.md\}/.test(cabecera));
+  check('106c) y repone por fuera el área que pierde', /hitSlop=\{\{ top: 8, bottom: 8, left: 8, right: 8 \}\}[\s\S]{0,400}notifications-outline/.test(cabecera));
+  check('106c) los márgenes de la fila también', /content: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera) && /marca: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera));
+  /* Control: el lema sigue entero. No se corta ni se esconde en ningún ancho. */
+  check('106c) control: el lema sigue completo', /\{LEMA_DE_MARCA\}/.test(cabecera) && !/conMarca && ancho|ocultarLema|width < /.test(cabecera));
+
   /* El lema acompaña: pequeño, peso normal y gris del tema. Nunca el color del texto. */
-  check('107) el lema es discreto', /lema: \{\s*fontSize: scale\(11\),\s*fontWeight: FONT_WEIGHT\.regular,/.test(cabecera));
+  check('107) el lema es discreto', /lema: \{\s*fontSize: scale\(10\),\s*fontWeight: FONT_WEIGHT\.regular,/.test(cabecera));
   check('108) y gris, no oscuro', /transparent \? 'rgba\(255,255,255,0\.65\)' : theme\.colors\.textSecondary/.test(cabecera));
 
   /* Solo lo pide el Home. */
