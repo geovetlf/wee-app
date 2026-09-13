@@ -448,7 +448,8 @@ console.log('\n── El vídeo del muro conserva su forma ──');
     && /const alturaVisibleDelMuro = Math\.max\(0, altoDelArea - headerHeight - barraDeAbajo\);/.test(muro)
     && /alturaVisible=\{alturaVisibleDelMuro \|\| undefined\}/.test(muro)
     && /alturaVisible\?: number;/.test(tarjeta)
-    && /const alturaDelMuro = alturaVisible \?\? alturaVisibleDelMuro\(altoDeLaVentana\);/.test(tarjeta));
+    && /const alturaDelMuro =\s*alturaVisible \?\? alturaVisibleDelMuro\(altoDeLaVentana, Dimensions\.get\('screen'\)\.height, huecosDelSistema\);/.test(tarjeta)
+    && /const huecosDelSistema = insets\.top \+ insets\.bottom;/.test(tarjeta));
   /* El alto de esa barra vive en UN sitio: quien la pinta y quien la descuenta leen lo mismo. */
   check('18) el alto de la barra inferior no está escrito dos veces',
     /export const ALTO_DE_LA_BARRA_INFERIOR = 56;/.test(reglaDelMedio)
@@ -508,8 +509,27 @@ console.log('\n── El vídeo del muro conserva su forma ──');
     const redondo = (c) => Math.round(c.width) + 'x' + Math.round(c.height);
     const parte = (c) => Math.round(100 * (c.height + MUEBLES) / FRANJA);
 
-    check('18b) sin medir, la franja se estima bien', Math.round(alturaVisibleDelMuro(800)) === 672,
-      String(Math.round(alturaVisibleDelMuro(800))));
+    /*
+     * EL RESPALDO NO PUEDE ESTAR ATADO A UNA PLATAFORMA.
+     *
+     * El alto de la VENTANA no significa lo mismo en las dos. En Android, con
+     * el dibujado de borde a borde, ya viene sin las barras del sistema: 800 de
+     * una pantalla de 880. En iOS la ventana es la pantalla entera y los huecos
+     * siguen dentro. Restar siempre los huecos encogería Android; no restarlos
+     * nunca estiraría iPhone. Por eso se mira lo que la ventana YA descontó y
+     * solo se resta lo que falte, sin preguntar la plataforma.
+     */
+    check('18b) sin medir, la franja se estima bien en Android',
+      Math.round(alturaVisibleDelMuro(800, 880, 80)) === 672,
+      String(Math.round(alturaVisibleDelMuro(800, 880, 80))));
+    check('18b) y también en un iPhone, donde la ventana trae los huecos dentro',
+      Math.round(alturaVisibleDelMuro(852, 852, 93)) === 631,
+      String(Math.round(alturaVisibleDelMuro(852, 852, 93))));
+    check('18b) sin huecos —el navegador— se comporta como siempre',
+      Math.round(alturaVisibleDelMuro(800, 800, 0)) === 672);
+    /* Control: si se restaran los huecos también en Android, saldría 80 menos. */
+    check('18b) control: en Android no se resta dos veces lo mismo',
+      Math.round(alturaVisibleDelMuro(800, 880, 80)) !== Math.round(800 - 80 - 128));
     /* Las dos reglas se encuentran en el mismo sitio: 450 de forma, 452 de sitio. */
     check('18b) la forma y el sitio dan casi el mismo tope, y manda el más bajo',
       Math.round(TOPE_FOTO) === 450 && Math.round(TOPE_MURO) === 452 && TOPE_FOTO < TOPE_MURO,
@@ -609,7 +629,7 @@ console.log('\n── El vídeo del muro conserva su forma ──');
      * ── OTRAS PANTALLAS ───────────────────────────────────────────────────
      * Las dos reglas son formas, así que se recalculan solas.
      */
-    const franjaPequena = alturaVisibleDelMuro(640), topePequeno = topeDelMedio(franjaPequena);
+    const franjaPequena = alturaVisibleDelMuro(640, 704, 64), topePequeno = topeDelMedio(franjaPequena);
     check('18b) en un teléfono pequeño manda el sitio, no la forma, y el ancho sigue entero',
       topePequeno < COL / (4 / 5)
       && Math.round(ventanaDelPreview(COL, 9 / 16, topePequeno).width) === COL
@@ -617,9 +637,9 @@ console.log('\n── El vídeo del muro conserva su forma ──');
       'tope ' + Math.round(topePequeno));
     /* Girado, la franja es mínima y la resta se iría en negativo sin el suelo. */
     check('18b) girado, el suelo evita que el medio desaparezca',
-      topeDelMedio(alturaVisibleDelMuro(360)) > 0);
+      topeDelMedio(alturaVisibleDelMuro(360, 400, 40)) > 0);
     /* En una columna ancha de escritorio la forma sigue frenando la altura. */
-    const anchoWeb = 608, topeWeb = topeDelMedio(alturaVisibleDelMuro(900));
+    const anchoWeb = 608, topeWeb = topeDelMedio(alturaVisibleDelMuro(900, 900, 0));
     const adelantoWeb = ventanaDelPreview(anchoWeb, 9 / 16, topeWeb);
     check('18b) en una columna ancha el adelanto llena el ancho y no se dispara',
       Math.round(adelantoWeb.width) === anchoWeb && adelantoWeb.height < anchoWeb,

@@ -35,16 +35,17 @@
  */
 
 /**
- * Lo que la app pinta por encima y por debajo del muro, cuando nadie lo mide.
+ * Lo que LA PROPIA APP pinta por encima y por debajo del muro: la cabecera y la
+ * barra inferior, sin contar los huecos del sistema.
  *
- * El muro de verdad lo mide su propia pantalla y lo pasa a la publicación; esto
- * es solo el respaldo para las publicaciones que viven fuera de él (un perfil,
- * una comunidad, Guardados). Sale de la medida física del teléfono de las
- * capturas: cabecera de la app 104 puntos y barra inferior 24 de los que la
- * ventana declara.
+ * Esto es solo el respaldo para las publicaciones que viven fuera del muro —un
+ * perfil, una comunidad, Guardados—: el muro de verdad mide su hueco con
+ * `onLayout` y manda el número exacto.
  *
- * Es una estimación, y por eso el muro NO la usa: `LandingScreen` mide su hueco
- * con `onLayout` y manda el número exacto.
+ * Los 128 son 72 de cabecera y 56 de barra, medidos sobre las capturas del
+ * teléfono. Lo importante es lo que NO llevan dentro: ni la barra de estado ni
+ * el hueco de abajo. Esos son huecos del SISTEMA y se descuentan aparte, porque
+ * cada plataforma los mete o no los mete en el alto de la ventana.
  */
 export const CHROME_DEL_MURO = 128;
 
@@ -94,9 +95,32 @@ export const ASOMO_DE_LA_SIGUIENTE = 56;
  */
 export const PARTE_MINIMA_DEL_MURO = 0.66;
 
-/** La franja que el muro enseña de una vez, cuando nadie la ha medido. */
-export const alturaVisibleDelMuro = (altoDeLaVentana: number): number =>
-  Math.max(0, altoDeLaVentana - CHROME_DEL_MURO);
+/**
+ * La franja que el muro enseña de una vez, cuando nadie la ha medido.
+ *
+ * El alto de la VENTANA no significa lo mismo en las dos plataformas, y esa es
+ * la trampa. En Android, con el dibujado de borde a borde, la ventana ya viene
+ * SIN la barra de estado ni la de navegación: en el teléfono de las capturas
+ * declara 800 puntos de una pantalla de 880. En iOS la ventana es la pantalla
+ * entera y los huecos siguen dentro. Restar los huecos siempre encogería el
+ * muro de Android; no restarlos nunca lo estiraría en iPhone.
+ *
+ * Así que no se pregunta la plataforma: se MIRA lo que la ventana ya descontó,
+ * comparándola con la pantalla, y solo se resta lo que falte. En Android sale
+ * cero por restar y en iOS salen los dos huecos, sin una sola rama de
+ * plataforma y sin que ninguna de las dos dependa de la otra.
+ *
+ * Con huecos a cero —el navegador— se comporta exactamente como antes.
+ */
+export const alturaVisibleDelMuro = (
+  altoDeLaVentana: number,
+  altoDeLaPantalla: number,
+  huecosDelSistema: number,
+): number => {
+  const yaDescontado = Math.max(0, altoDeLaPantalla - altoDeLaVentana);
+  const porDescontar = Math.max(0, huecosDelSistema - yaDescontado);
+  return Math.max(0, altoDeLaVentana - porDescontar - CHROME_DEL_MURO);
+};
 
 /**
  * El tope de alto de un medio: lo que sobra de la franja del muro.

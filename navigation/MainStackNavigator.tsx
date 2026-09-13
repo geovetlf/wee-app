@@ -175,6 +175,7 @@ const CreateWrapper = () => {
 
 const MainStackNavigator: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const { theme } = useTheme();
   const { userProfile, loading: profileLoading } = useUserProfile();
   const barra = useBarraInferior();
   const insets = useSafeAreaInsets();
@@ -250,14 +251,42 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { flex: 1 },
-        cardStyleInterpolator: ({ current }) => ({
-          cardStyle: { opacity: current.progress },
-        }),
-        transitionSpec: {
-          open: { animation: 'timing', config: { duration: 350 } },
-          close: { animation: 'timing', config: { duration: 250 } },
-        },
+        /*
+         * La tarjeta lleva SU PROPIO FONDO, el del tema.
+         *
+         * Antes solo llevaba `flex: 1` y heredaba el del contenedor de
+         * navegación, que es oscuro fijo. Mientras el Perfil Real es una app
+         * blanca, cualquier momento en que la tarjeta no cubra del todo —una
+         * transición, el gesto de volver de iOS a medio camino— dejaba ver una
+         * banda negra por debajo. Con fondo propio no hay nada que asome.
+         */
+        cardStyle: { flex: 1, backgroundColor: theme.colors.background },
+        /*
+         * ─── LA TRANSICIÓN, CADA UNA EN SU CASA ─────────────────────────────
+         *
+         * Weë usaba un fundido en todas partes, con su propio `transitionSpec`.
+         * En Android y en el navegador se queda tal cual: es lo que está
+         * probado y lo que se ve hoy.
+         *
+         * En iPhone no. Ahí el fundido sustituía el deslizamiento lateral de
+         * siempre, y el gesto de volver —que está encendido— dejaba de seguir
+         * al dedo: se arrastraba de canto y lo único que pasaba era que la
+         * pantalla se desvanecía. Quitando el interpolador y su tiempo, React
+         * Navigation pone el suyo, que en iOS es el nativo y el que la gente
+         * espera. Las pantallas que piden `presentation: 'modal'` conservan su
+         * comportamiento, que allí es la hoja de iOS.
+         */
+        ...(Platform.OS === 'ios'
+          ? null
+          : {
+              cardStyleInterpolator: ({ current }: { current: { progress: any } }) => ({
+                cardStyle: { opacity: current.progress },
+              }),
+              transitionSpec: {
+                open: { animation: 'timing' as const, config: { duration: 350 } },
+                close: { animation: 'timing' as const, config: { duration: 250 } },
+              },
+            }),
         detachPreviousScreen: false,
       }}
     >

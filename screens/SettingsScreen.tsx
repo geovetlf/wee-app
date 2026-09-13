@@ -21,6 +21,7 @@ import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import { confirmAction, notify } from '../utils/notify';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocation } from '../contexts/LocationContext';
+import { abrirAjustesDelSistema, hayAjustesDelSistema } from '../utils/ajustesDelSistema';
 import { ENGINE_ADMIN_FLAG } from './EngineAdminScreen';
 
 type SettingsNavigationProp = StackNavigationProp<ProfileStackParamList, 'Settings'>;
@@ -106,7 +107,7 @@ const SettingsScreen: React.FC = () => {
   const estadoUbicacion: Record<string, string> = {
     unavailable: 'Este dispositivo no puede darnos tu ubicación.',
     disabled: 'La ubicación está apagada en los ajustes de tu dispositivo.',
-    permissionDenied: 'Le dijiste que no al sistema. Puedes cambiarlo desde los ajustes de tu dispositivo.',
+    permissionDenied: 'Le dijiste que no al sistema. Toca aquí para cambiarlo en los ajustes de tu dispositivo.',
     permissionNotDetermined: 'Weë te pedirá permiso cuando lo necesite.',
     approximate: 'Weë sabe tu zona, no el punto exacto.',
     precise: 'Weë puede usar tu ubicación con detalle cuando una función lo necesite.',
@@ -116,6 +117,21 @@ const SettingsScreen: React.FC = () => {
     ubicacion.preferencia === 'off'
       ? 'Desactivada. Permite que Weë use tu ubicación aproximada para mostrarte contenido y experiencias cerca de ti. Tu ubicación exacta nunca se muestra públicamente.'
       : `${estadoUbicacion[ubicacion.estado] || ''} Tu ubicación exacta nunca se muestra públicamente.`;
+
+  /*
+   * CUÁNDO OFRECER EL PASO A LOS AJUSTES.
+   *
+   * Solo cuando el sistema ya dijo que no y no va a volver a preguntar. Si
+   * todavía se puede pedir el permiso con normalidad, manda el interruptor de
+   * siempre y aquí no aparece nada: no se cambia el flujo, se añade la salida
+   * que faltaba cuando ese flujo ya no tiene nada que hacer.
+   *
+   * El interruptor sigue funcionando aparte, porque se come sus propios toques.
+   * Y al volver de los ajustes no hay que refrescar nada: `LocationContext` ya
+   * vuelve a mirar el permiso cuando la aplicación pasa a primer plano.
+   */
+  const ubicacionNecesitaAjustes =
+    hayAjustesDelSistema && ubicacion.preferencia !== 'off' && ubicacion.estado === 'permissionDenied';
 
   const cambiarUbicacion = async (encender: boolean) => {
     setPidiendoUbicacion(true);
@@ -239,7 +255,7 @@ const SettingsScreen: React.FC = () => {
               'location',
               '📍 Ubicación',
               textoUbicacion,
-              undefined,
+              ubicacionNecesitaAjustes ? () => { void abrirAjustesDelSistema(); } : undefined,
               <Switch
                 value={ubicacion.preferencia !== 'off'}
                 onValueChange={cambiarUbicacion}

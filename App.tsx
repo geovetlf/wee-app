@@ -222,8 +222,19 @@ export default function App() {
     Inter_700Bold,
   });
 
+  /*
+   * LA ESPERA DE LAS FUENTES SE PINTA DEL COLOR DEL SPLASH.
+   *
+   * Estaba en blanco, y el splash es `#0A0A0A`: al arrancar salía oscuro, luego
+   * un fogonazo blanco y después la app. Con el color del tema de navegación
+   * —el mismo del splash, de una sola fuente— el relevo no se ve.
+   *
+   * Es solo la superficie de espera: en cuanto las fuentes están, o si fallan,
+   * se sigue exactamente igual que antes y manda el tema de cada pantalla. No
+   * hay ninguna forma de quedarse aquí, porque `errorDeFuentes` también sale.
+   */
   if (!fuentesListas && !errorDeFuentes) {
-    return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
+    return <View style={{ flex: 1, backgroundColor: CustomDarkTheme.colors.background }} />;
   }
 
   return (

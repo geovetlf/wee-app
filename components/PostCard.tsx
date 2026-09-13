@@ -49,6 +49,7 @@ import ImageViewer from './ImageViewer';
 import Poll from './Poll';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { alturaVisibleDelMuro, medidaDelMedio, topeDeLaFoto, topeDelMedio, ventanaDelPreview } from '../utils/medidaDelMedio';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
 import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
@@ -295,6 +296,8 @@ const PostCard: React.FC<PostCardProps> = ({
    * teléfono o estrechar el navegador, las medidas de abajo se rehacen solas.
    */
   const { width: anchoDeLaVentana, height: altoDeLaVentana } = useWindowDimensions();
+  /* Los huecos del sistema, para el respaldo de abajo. El muro no los necesita. */
+  const insets = useSafeAreaInsets();
   const carouselWidth = enMuro ? anchoEnElMuro(maxWidth, anchoDeLaVentana) : getCarouselWidth(maxWidth, anchoDeLaVentana);
   /*
    * El tope de alto de cualquier medio de esta publicación.
@@ -304,7 +307,17 @@ const PostCard: React.FC<PostCardProps> = ({
    * dejaba el vídeo ocupando el 71 % de lo que se ve. `topeDelMedio` aparta de
    * esa franja los muebles de la publicación y el asomo de la siguiente.
    */
-  const alturaDelMuro = alturaVisible ?? alturaVisibleDelMuro(altoDeLaVentana);
+  /*
+   * El respaldo necesita saber dos cosas más para no depender de una
+   * plataforma: cuánto mide la pantalla entera y cuánto se lleva el sistema.
+   * Comparando la ventana con la pantalla se ve lo que la ventana ya descontó,
+   * y así en Android no se resta dos veces lo mismo y en iPhone no se olvida la
+   * barra de estado ni el hueco del indicador. Cuando el muro manda su medida
+   * —`alturaVisible`—, nada de esto se usa.
+   */
+  const huecosDelSistema = insets.top + insets.bottom;
+  const alturaDelMuro =
+    alturaVisible ?? alturaVisibleDelMuro(altoDeLaVentana, Dimensions.get('screen').height, huecosDelSistema);
   const altoMaximoDelMedio = topeDelMedio(alturaDelMuro);
   /*
    * Qué tamaño de foto se le pide a Cloudinary. Los 800 de siempre siguen siendo
