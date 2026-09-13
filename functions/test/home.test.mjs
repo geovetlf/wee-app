@@ -575,7 +575,32 @@ console.log('\n── M · La marca en el centro del Home ──');
    * un centro de 187,5 en 375 puntos, con y sin el selector a la vista.
    */
   check('103) la marca va en su propia fila, centrada', /marca: \{\s*alignItems: 'center',/.test(cabecera));
-  check('104) fuera de la fila de los controles', /<\/View>\s*\{\/\*[\s\S]{0,600}\*\/\}\s*\{conMarca && \(\s*<View style=\{styles\.marca\}>/.test(cabecera));
+  check('104) fuera de la fila de los controles', /<\/View>\s*\{\/\*[\s\S]*?\*\/\}\s*\{conMarca && \(\s*<View style=\{styles\.marca\}/.test(cabecera));
+
+  /*
+   * ─── Y LOS TRES, EN LA MISMA BANDA ──────────────────────────────────────
+   *
+   * El bloque de la marca mide el encabezado; los controles se ponen ENCIMA,
+   * estirados de borde a borde y centrados en esa misma banda. Así el ☰ y el
+   * selector quedan a la altura de la marca —una sola línea visual— sin dejar
+   * de estar el logo centrado respecto a la PANTALLA: nadie le roba sitio,
+   * porque los controles ya no ocupan fila propia.
+   *
+   * Medido en el navegador a 375: ☰ y campana en y=34, el bloque de la marca
+   * de 11 a 58 —centro 34,5— y el logo en x=187 frente a un centro de 187,5.
+   */
+  check('104b) los controles se estiran sobre la banda de la marca',
+    /contentConMarca: \{\s*position: 'absolute',\s*top: 0,\s*left: 0,\s*right: 0,\s*bottom: 0,/.test(cabecera));
+  check('104b) y se dibujan por encima, no por debajo', /contentConMarca: \{[\s\S]{0,220}zIndex: 1,/.test(cabecera));
+  check('104b) la marca deja el mismo aire arriba y abajo: eso centra la banda', /marca: \{[\s\S]{0,140}paddingVertical: SPACING\.md,/.test(cabecera));
+  /*
+   * `box-none` en las dos capas: la de arriba no tapa el logo y la de la marca
+   * no se come los toques del ☰ ni del selector. Sin esto, la capa que quede
+   * encima dejaría muerta a la otra.
+   */
+  check('104b) el dedo llega a las dos capas', (cabecera.match(/pointerEvents="box-none"/g) || []).length === 2);
+  /* Control: fuera del Home la fila sigue siendo una fila normal, con su alto. */
+  check('104b) control: sin marca, el encabezado no se estira sobre nada', /content: \{\s*flexDirection: 'row',[\s\S]{0,200}paddingVertical: SPACING\.md,/.test(cabecera) && !/content: \{[\s\S]{0,200}position: 'absolute'/.test(cabecera));
 
   /*
    * Un solo logo. El de la fila y el del centro son excluyentes: `!conMarca` y
@@ -604,8 +629,8 @@ console.log('\n── M · La marca en el centro del Home ──');
    * la que no pueden correr el logo.
    */
   check('111) control: los controles siguen en su fila, encima de la marca',
-    /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}>[\s\S]*?accessibilityLabel="Abrir menú"/.test(cabecera)
-      && /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}>[\s\S]*?styles\.selector,/.test(cabecera));
+    /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}[^>]*>[\s\S]*?accessibilityLabel="Abrir menú"/.test(cabecera)
+      && /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}[^>]*>[\s\S]*?styles\.selector,/.test(cabecera));
 }
 
 console.log('\n── N · Inter, la tipografía de Weë ──');

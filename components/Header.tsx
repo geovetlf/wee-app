@@ -165,7 +165,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
         borderBottomColor: transparent ? 'transparent' : theme.colors.border,
         borderBottomWidth: transparent ? 0 : scale(0.5),
       }]}>
-        <View style={[styles.content, conMarca && styles.contentConMarca]}>
+        <View style={[styles.content, conMarca && styles.contentConMarca]} pointerEvents="box-none">
           <View style={styles.leftSection}>
             {/* Back or hamburger menu */}
             {onBackPress ? (
@@ -317,17 +317,28 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
         {/*
           LA MARCA, EN EL CENTRO DE LA PANTALLA.
 
-          En su propia fila, a todo lo ancho y centrada. Es la única forma de que
-          el centro del logo coincida de verdad con el centro de la pantalla: si
-          compartiera línea con el ☰ y el selector, quedaría centrado en el hueco
-          que le dejan, y ese hueco se mueve cada vez que el selector cambia de
-          ancho o aparece la campana con aviso.
+          A todo lo ancho y centrada. Es la única forma de que el centro del logo
+          coincida de verdad con el centro de la pantalla: si compartiera línea
+          con el ☰ y el selector, quedaría centrado en el hueco que le dejan, y
+          ese hueco se mueve cada vez que el selector cambia de ancho o aparece
+          la campana con aviso.
+
+          Y es lo que MIDE la banda del encabezado: los controles se colocan
+          encima —`contentConMarca`, pegados a los bordes y centrados en esa
+          misma banda—, así que el ☰ y el selector quedan a la altura del bloque
+          de la marca en vez de en una fila aparte por encima. Nada de esto
+          depende del ancho de la pantalla: no hay medidas fijas ni huecos
+          reservados, solo dos capas del mismo alto.
+
+          `box-none` es lo que deja pasar el dedo: la fila ocupa todo el ancho
+          pero solo el logo y su firma reciben el toque; a los lados, el ☰ y el
+          selector siguen respondiendo como si nada estuviera encima.
 
           El logo hace lo de siempre al tocarlo —subir al principio del Home—:
           es el mismo `handleLogoPress`, no una copia.
         */}
         {conMarca && (
-          <View style={styles.marca}>
+          <View style={styles.marca} pointerEvents="box-none">
             <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Weë, ir al principio">
               <Image
                 source={(transparent || activeProfileType === 'hidi') ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
@@ -363,23 +374,39 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   /*
-   * Con la marca debajo, esta fila solo lleva controles y puede ceñirse: lo que
-   * se ahorra aquí es lo que el encabezado deja de crecer. El alto mínimo
-   * mantiene el ☰ cómodo de tocar aunque la fila apriete.
+   * En el Home esta fila solo lleva controles, y se pone SOBRE la marca en vez
+   * de en una fila aparte por encima: se estira sobre la banda que mide el
+   * bloque de la marca —`top/left/right/bottom: 0`, dentro del hueco de la
+   * barra de estado,
+   * que es padding del contenedor— y centra lo suyo en esa misma banda. Así el
+   * ☰ queda a la izquierda, el selector a la derecha y los dos a la altura de
+   * la marca, sin que ninguno de los tres empuje a los otros: el logo sigue
+   * centrado respecto a la pantalla y no respecto al hueco que le dejen.
+   *
+   * `zIndex` porque la marca se dibuja después: sin él quedaría por encima de
+   * los controles.
    */
   contentConMarca: {
-    paddingVertical: SPACING.xs,
-    minHeight: 44,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingVertical: 0,
+    zIndex: 1,
   },
   /*
    * El logo y su firma. `gap` pequeño a propósito: el lema tiene que leerse como
    * parte del logo, no como una frase que va debajo.
+   *
+   * Su alto es el del encabezado entero, así que el aire de arriba y el de abajo
+   * son el mismo: es lo que deja la banda centrada respecto a los controles.
    */
   marca: {
     alignItems: 'center',
     gap: scale(3),
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.sm,
+    paddingVertical: SPACING.md,
   },
   lema: {
     fontSize: scale(11),
@@ -413,10 +440,16 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: -1,
   },
+  /*
+   * La separación entre el selector de identidad y la campana. Ocho, no
+   * dieciséis: en 375 puntos esos ocho son los que le faltaban a la píldora
+   * Real/Weë para no acercarse al lema. Siguen siendo dos controles distintos y
+   * cada uno conserva su tamaño y su área de toque.
+   */
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.lg,
+    gap: SPACING.sm,
   },
   actionButton: {
     padding: SPACING.xs,
