@@ -16,6 +16,7 @@ import {
   Platform,
   LayoutAnimation,
   UIManager,
+  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
@@ -48,6 +49,7 @@ import ImageViewer from './ImageViewer';
 import Poll from './Poll';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
+import { alturaVisibleDelMuro, medidaDelMedio, topeDeLaFoto, topeDelMedio, ventanaDelPreview } from '../utils/medidaDelMedio';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
 import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 
@@ -76,6 +78,21 @@ interface PostCardProps {
    */
   maxWidth?: number;
   /**
+   * Cuánto muro se ve de una vez, en puntos: la franja entre la cabecera de la
+   * app y la barra inferior.
+   *
+   * De aquí sale el tope de alto de las fotos y los vídeos, y por eso lo mide
+   * quien lo sabe —la pantalla del muro, con `onLayout`— en vez de deducirlo
+   * aquí. `useWindowDimensions()` NO sirve: da la ventana entera, y en el
+   * teléfono de las capturas declara 800 puntos cuando la franja que el muro
+   * enseña son 672. Medir contra la ventana fue justamente lo que dejó el vídeo
+   * ocupando el 71 % de lo que se ve creyendo que era el 60 %.
+   *
+   * Sin este dato se estima restando el alto de la cabecera y de la barra, que
+   * es lo bastante bueno fuera del muro.
+   */
+  alturaVisible?: number;
+  /**
    * Cómo se apoya la publicación en la pantalla que la pinta.
    *
    *  · `tarjeta` (por defecto) es lo de siempre: fondo propio, esquinas y una
@@ -97,16 +114,17 @@ interface PostCardProps {
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_HORIZONTAL_PADDING = SPACING.lg; // 16px cada lado
 const CARD_MAX_WIDTH = 700; // Ancho máximo del feed en desktop
-const MIN_IMAGE_HEIGHT = scale(200);
-const MAX_IMAGE_HEIGHT = scale(500);
-
 /*
- * La forma más vertical que un vídeo puede tener sin que se le recorte nada:
- * 9:16, el vertical de un teléfono. De aquí sale el tope de alto de un vídeo
- * del muro, siempre en relación con el ancho de la publicación. Las fotos NO
- * pasan por aquí: siguen con `MAX_IMAGE_HEIGHT`, su tope de siempre.
+ * El aire lateral de una publicación del muro.
+ *
+ * En el muro la publicación no es una tarjeta, pero tampoco puede pegarse al
+ * canto de la pantalla: hasta ahora el texto y la fila de acciones empezaban en
+ * el punto 0 —medido en la captura: 2 píxeles de 1080— y se veían apretados.
+ * Con este relleno el autor, el texto, el medio y las acciones comparten UN
+ * borde, y el pelo de separación entre publicaciones lo sigue cruzando entero
+ * porque el borde va por fuera del relleno.
  */
-const PROPORCION_MAS_VERTICAL = 9 / 16;
+const MURO_HORIZONTAL_PADDING = SPACING.md;
 
 /*
  * El área que se puede tocar en los botones de una publicación.
@@ -117,25 +135,26 @@ const PROPORCION_MAS_VERTICAL = 9 / 16;
  */
 const AREA_TACTIL = { top: 10, bottom: 10, left: 6, right: 6 };
 
-const getCarouselWidth = (maxWidth: number = CARD_MAX_WIDTH) => {
-  const availableWidth = Math.min(screenWidth, scale(maxWidth));
+const getCarouselWidth = (maxWidth: number = CARD_MAX_WIDTH, ancho: number = screenWidth) => {
+  const availableWidth = Math.min(ancho, scale(maxWidth));
   return availableWidth - (CARD_HORIZONTAL_PADDING * 2);
 };
 
 /*
- * Lo mismo, en un muro: allí la publicación no tiene relleno propio, así que su
- * contenido ocupa la columna ENTERA.
+ * EN EL MURO EL MEDIO VA A SANGRE: la columna ENTERA, sin descontar el aire
+ * lateral. Ese aire es para el texto, no para las fotos.
  *
- *  · si el muro dice cuánto mide esa columna —`maxWidth`, que es lo que hace el
- *    muro de una sección—, esa es la medida;
- *  · si no lo dice —el Home—, la columna es la pantalla menos el margen del
- *    muro, que es justo lo que ya devolvía `getCarouselWidth`.
+ * Sale de medir dos feeds de verdad en el mismo teléfono. Facebook e Instagram
+ * ponen el medio en los 360 puntos de ancho de la pantalla, el 100 %, con cero
+ * margen; solo el nombre y el texto llevan sangría. Weë lo tenía en 336, el
+ * 93 %, y esos 24 puntos son los que hacían que cada publicación se leyera como
+ * una tarjeta apoyada encima del muro en vez de como el muro mismo.
  *
- * De aquí salen el alto de una foto y el ancho de cada diapositiva, así que
- * equivocarse aquí deja la foto recortada o el carrusel desalineado.
+ * El medio se sale del relleno con un margen negativo (`sangriaDelMedio`), así
+ * que la cabecera, el texto y las acciones conservan su aire y el medio no.
  */
-const anchoEnElMuro = (maxWidth?: number) =>
-  maxWidth === undefined ? getCarouselWidth() : Math.min(screenWidth, scale(maxWidth));
+const anchoEnElMuro = (maxWidth?: number, ancho: number = screenWidth) =>
+  Math.min(ancho, scale(maxWidth ?? CARD_MAX_WIDTH));
 
 interface ImageDimensions {
   width: number;
@@ -151,6 +170,7 @@ const PostCard: React.FC<PostCardProps> = ({
   onVideoPress,
   isVisible = true,
   maxWidth,
+  alturaVisible,
   variante = 'tarjeta',
 }) => {
   const { theme } = useTheme();
@@ -270,7 +290,22 @@ const PostCard: React.FC<PostCardProps> = ({
   const shareCardRef = useRef<ViewShot>(null);
   /* En un muro la publicación se integra en el fondo; fuera, es una tarjeta. */
   const enMuro = variante === 'muro';
-  const carouselWidth = enMuro ? anchoEnElMuro(maxWidth) : getCarouselWidth(maxWidth);
+  /*
+   * La ventana DE VERDAD, y no la que había al cargar el módulo: al girar el
+   * teléfono o estrechar el navegador, las medidas de abajo se rehacen solas.
+   */
+  const { width: anchoDeLaVentana, height: altoDeLaVentana } = useWindowDimensions();
+  const carouselWidth = enMuro ? anchoEnElMuro(maxWidth, anchoDeLaVentana) : getCarouselWidth(maxWidth, anchoDeLaVentana);
+  /*
+   * El tope de alto de cualquier medio de esta publicación.
+   *
+   * Sale de la franja que el muro enseña de una vez —medida por quien la sabe,
+   * o estimada—, no de la ventana: son cosas distintas y confundirlas es lo que
+   * dejaba el vídeo ocupando el 71 % de lo que se ve. `topeDelMedio` aparta de
+   * esa franja los muebles de la publicación y el asomo de la siguiente.
+   */
+  const alturaDelMuro = alturaVisible ?? alturaVisibleDelMuro(altoDeLaVentana);
+  const altoMaximoDelMedio = topeDelMedio(alturaDelMuro);
   /*
    * Qué tamaño de foto se le pide a Cloudinary. Los 800 de siempre siguen siendo
    * el suelo, así que en el feed del Home, el perfil, la comunidad y Guardados se
@@ -279,15 +314,27 @@ const PostCard: React.FC<PostCardProps> = ({
    */
   const feedImageWidth = Math.max(800, Math.round(carouselWidth));
   /*
-   * Hasta dónde puede crecer una foto de alto. El tope de siempre está pensado
-   * para el ancho del feed de siempre: en una columna más ancha una foto apaisada
-   * se ve más grande pero se recorta más, porque el alto no acompañaba. Aquí el
-   * tope crece en la misma proporción que la columna, y solo cuando la columna es
-   * de verdad más ancha: quien no pasa `maxWidth` conserva el tope exacto de antes.
+   * Lo que saca al medio del relleno del muro. Sin esto, darle el ancho entero
+   * lo desbordaría por la derecha; con esto queda centrado sobre la pantalla
+   * completa y, cuando su forma lo obliga a ser más estrecho, la banda que
+   * quede sale igual a los dos lados.
+   *
+   * Y sin esquinas redondeadas: una foto a sangre con las esquinas comidas
+   * contra el canto de la pantalla es justo el marco que no se quiere. Fuera
+   * del muro la tarjeta conserva las suyas.
    */
-  const maxImageHeight = maxWidth
-    ? MAX_IMAGE_HEIGHT * Math.max(1, carouselWidth / getCarouselWidth())
-    : MAX_IMAGE_HEIGHT;
+  const sangriaDelMedio = enMuro
+    ? { marginHorizontal: -MURO_HORIZONTAL_PADDING, borderRadius: 0 }
+    : null;
+  /*
+   * LA FOTO Y EL VÍDEO YA NO COMPARTEN TOPE, porque no son la misma experiencia.
+   *
+   * Una foto se consume aquí mismo: se ve entera y sin recortar, así que puede
+   * llegar hasta su forma más alta, 4:5. Un vídeo no: el vídeo entero está en
+   * Weëls y aquí solo hay un adelanto, más bajo. Tenerlos igualados era lo que
+   * dejaba una foto vertical ocupando casi toda la pantalla.
+   */
+  const maxImageHeight = topeDeLaFoto(carouselWidth, altoMaximoDelMedio);
 
   /*
    * LA FORMA DEL VÍDEO. Aparte de la de las fotos, a propósito.
@@ -327,19 +374,24 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [urlDelVideo]);
   const proporcionDelVideo = proporcionMedida ?? 1;
   /*
-   * HASTA DÓNDE PUEDE CRECER UN VÍDEO.
+   * EL MURO NO ENSEÑA EL VÍDEO: ENSEÑA UN ADELANTO.
    *
-   * El tope ya no es un número de puntos heredado de las fotos, sino una FORMA:
-   * el vertical de siempre, 9:16, que es el de los Weëls y el de casi todo lo
-   * que se graba con un teléfono. Un vídeo así entra entero y a lo ancho de la
-   * columna, sin bandas y sin hueco que sobre debajo; antes se le recortaba el
-   * alto a 500 puntos y lo que sobraba se iba en franjas.
+   * El vídeo entero se ve en Weëls, que es la pantalla que existe para eso. Aquí
+   * lo que hace falta es que se entienda de qué va y que se pueda tocar, así que
+   * el vídeo se asoma por una ventana del ancho de la columna y con el alto
+   * acotado. Lo que no cabe se queda fuera por abajo.
    *
-   * Sale del ancho de la publicación, así que en una columna estrecha el tope
-   * es más bajo y en una ancha más alto: la misma regla en el teléfono y en el
-   * navegador, sin un número atado a ninguna pantalla.
+   * Se intentaron dos veces las dos alternativas y las dos fallaban por el mismo
+   * sitio: enseñar el vídeo entero conservando su forma daba 480 puntos de alto
+   * y una publicación que llenaba la pantalla; encogerlo para que cupiera daba
+   * 234 de ancho, con 51 puntos de blanco a cada lado y un vídeo diminuto. En un
+   * medio vertical no hay tercera vía, porque la banda lateral es
+   * (columna − alto × forma) / 2: si se baja el alto se abre la banda.
+   *
+   * La ventana rompe ese empate. El adelanto llena el ancho SIEMPRE, no hay
+   * banda ninguna, y el alto lo pone el muro y no el archivo.
    */
-  const maxVideoHeight = carouselWidth / PROPORCION_MAS_VERTICAL;
+  const ventanaDelVideo = ventanaDelPreview(carouselWidth, proporcionDelVideo, altoMaximoDelMedio);
 
   // Animaciones para el menú
   const menuOpacity = useRef(new Animated.Value(0)).current;
@@ -775,69 +827,88 @@ const PostCard: React.FC<PostCardProps> = ({
    *    recorta: mientras la proporción todavía no se sabe, sobra fondo negro
    *    a los lados en vez de faltar imagen.
    *
-   * ─── Y POR QUÉ SON DOS CAJAS ────────────────────────────────────────────────
+   * ─── Y CUÁNTO PUEDE OCUPAR ──────────────────────────────────────────────────
    *
-   * La de dentro tiene la FORMA del vídeo y es la que manda el alto; la de
-   * fuera solo pone el TOPE y recorta lo que pase de él. Así el hueco muerto
-   * desaparece —la caja se ciñe al vídeo en vez de dejar franjas— y, si algún
-   * vídeo aún más vertical que 9:16 se pasa del tope, lo que se pierde es
-   * siempre el FINAL: la caja de dentro empieza arriba del todo, así que el
-   * borde superior del contenido no se puede perder nunca. Era el problema de
-   * antes y no vuelve.
+   * La caja ya no lleva tope aparte: `medidaDelMedio` le da de una vez el ancho
+   * y el alto que le tocan. Mientras cabe, la columna entera; en cuanto su alto
+   * natural se pasa de lo que el muro permite, la caja se ENCOGE conservando la
+   * forma y se centra. Así un vídeo vertical se ve entero y más estrecho, en vez
+   * de recortado o de comerse la pantalla.
    *
-   * Las fotos no pasan por aquí: su camino, su recorte y su tamaño siguen
-   * exactamente igual.
+   * Las fotos siguen exactamente la misma regla: una sola para todo el muro.
    */
   const renderVideo = () => {
     if (!displayPost.videoUrl) return null;
 
     return (
-      <View style={[styles.videoContainer, { maxHeight: maxVideoHeight }]}>
+      <View style={[styles.videoContainer, sangriaDelMedio, { width: ventanaDelVideo.width, height: ventanaDelVideo.height }]}>
+        {/*
+          La caja de dentro lleva la forma DE VERDAD del vídeo y empieza pegada
+          arriba, así que lo que la ventana deja fuera es siempre el final. El
+          principio no se puede perder, que es donde estos vídeos ponen el
+          título.
+        */}
         <View style={[styles.videoAspectBox, { aspectRatio: proporcionDelVideo }]}>
-          <TouchableOpacity
-            activeOpacity={0.95}
-            onPress={onVideoPress ? () => onVideoPress(displayPost, playbackPositionRef.current) : handleVideoTap}
-            style={styles.videoTouchable}
-          >
-            <Video
-              ref={videoRef}
-              source={{ uri: displayPost.videoUrl }}
-              style={styles.videoPlayer}
-              videoStyle={styles.videoElement}
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={isVisible && isFocused && !isWebPlatform}
-              isMuted={isMuted}
-              isLooping={true}
-              onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-              onReadyForDisplay={alSaberLaFormaDelVideo}
-              posterSource={displayPost.imageUrls?.[0] ? { uri: displayPost.imageUrls[0] } : undefined}
-              posterStyle={styles.videoPoster}
-              usePoster={!!displayPost.imageUrls?.[0]}
-            />
-
-            {/* Play/Pause icon overlay */}
-            {showPauseIcon && (
-              <View style={styles.videoPlayOverlay}>
-                <View style={styles.videoPlayButton}>
-                  <Ionicons name={userPaused ? 'pause' : 'play'} size={scale(40)} color="white" />
-                </View>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Mute/Unmute button */}
-          <TouchableOpacity
-            style={styles.videoMuteButton}
-            onPress={toggleMute}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name={isMuted ? 'volume-mute' : 'volume-high'}
-              size={scale(18)}
-              color="white"
-            />
-          </TouchableOpacity>
+          <Video
+            ref={videoRef}
+            source={{ uri: displayPost.videoUrl }}
+            style={styles.videoPlayer}
+            videoStyle={styles.videoElement}
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay={isVisible && isFocused && !isWebPlatform}
+            isMuted={isMuted}
+            isLooping={true}
+            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+            onReadyForDisplay={alSaberLaFormaDelVideo}
+            posterSource={displayPost.imageUrls?.[0] ? { uri: displayPost.imageUrls[0] } : undefined}
+            posterStyle={styles.videoPoster}
+            usePoster={!!displayPost.imageUrls?.[0]}
+          />
         </View>
+
+        {/*
+          Y los controles se anclan a la VENTANA, no al vídeo: colgados de la
+          caja de dentro, el recorte se los llevaba fuera de la pantalla.
+        */}
+        <TouchableOpacity
+          activeOpacity={0.95}
+          onPress={onVideoPress ? () => onVideoPress(displayPost, playbackPositionRef.current) : handleVideoTap}
+          style={styles.videoTouchable}
+          accessibilityRole="button"
+          accessibilityLabel="Ver el vídeo completo en Weëls"
+        >
+          {showPauseIcon && (
+            <View style={styles.videoPlayOverlay}>
+              <View style={styles.videoPlayButton}>
+                <Ionicons name={userPaused ? 'pause' : 'play'} size={scale(40)} color="white" />
+              </View>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/*
+          Cuando el adelanto deja algo fuera hay que decirlo, o parece un vídeo
+          mal cortado en vez de una entrada a Weëls.
+        */}
+        {ventanaDelVideo.recorta && (
+          <View style={styles.videoChip} pointerEvents="none">
+            <Ionicons name="play" size={scale(11)} color="white" />
+            <Text style={styles.videoChipTexto}>Ver en Weëls</Text>
+          </View>
+        )}
+
+        {/* Mute/Unmute button */}
+        <TouchableOpacity
+          style={styles.videoMuteButton}
+          onPress={toggleMute}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name={isMuted ? 'volume-mute' : 'volume-high'}
+            size={scale(18)}
+            color="white"
+          />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -861,20 +932,18 @@ const PostCard: React.FC<PostCardProps> = ({
     if (displayPost.imageUrls.length === 1) {
       const thumbnail = getThumb(0, displayPost.imageUrls[0]);
 
-      // Usar aspect ratio real si está disponible, sino usar 4:3 por defecto
-      const aspectRatio = imageDimensions?.aspectRatio || (4/3);
-      // Calcular altura basada en aspect ratio, limitada entre MIN y MAX
-      const calculatedHeight = Math.max(
-        MIN_IMAGE_HEIGHT,
-        Math.min(maxImageHeight, carouselWidth / aspectRatio)
-      );
+      /*
+       * La misma regla que el vídeo. Antes había además un suelo de 200 puntos
+       * que estiraba las fotos panorámicas para llenarlo y, con `cover`, les
+       * recortaba los lados. Ya no: la caja tiene la forma de la foto, así que
+       * `cover` no tiene nada que recortar.
+       */
+      const aspectRatio = imageDimensions?.aspectRatio || (4 / 3);
+      const caja = medidaDelMedio(carouselWidth, aspectRatio, maxImageHeight);
 
       return (
         <TouchableOpacity
-          style={[
-            styles.singleMediaContainer,
-            { height: calculatedHeight }
-          ]}
+          style={[styles.singleMediaContainer, sangriaDelMedio, caja]}
           onPress={() => handleImagePress()}
           onLongPress={() => handleImageLongPress(0)}
           activeOpacity={0.98}
@@ -903,16 +972,18 @@ const PostCard: React.FC<PostCardProps> = ({
       );
     }
 
-    // Carrusel para múltiples imágenes
-    // Usar aspect ratio real si está disponible, sino usar 4:3 por defecto
-    const aspectRatio = imageDimensions?.aspectRatio || (4/3);
-    const carouselHeight = Math.max(
-      MIN_IMAGE_HEIGHT,
-      Math.min(maxImageHeight, carouselWidth / aspectRatio)
-    );
+    /*
+     * El carrusel comparte una sola altura para todas sus diapositivas —si no,
+     * la fila daría saltos al pasar—, así que aquí la caja sí ocupa la columna
+     * entera y es `cover` quien ajusta cada foto. La altura sale de la primera,
+     * con el tope del muro; el suelo de 200 puntos se va por lo mismo que en la
+     * foto sola.
+     */
+    const aspectRatio = imageDimensions?.aspectRatio || (4 / 3);
+    const carouselHeight = Math.min(maxImageHeight, carouselWidth / aspectRatio);
 
     return (
-      <View style={[styles.carouselContainer, { height: carouselHeight }]}>
+      <View style={[styles.carouselContainer, sangriaDelMedio, { height: carouselHeight }]}>
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -1066,7 +1137,24 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
 
       {/* Post original (o contenedor del repost) */}
-      <View style={isRepost ? [styles.originalPostContainer, { borderColor: theme.colors.border }] : undefined}>
+      {/*
+        LA CAJA DEL REPOST NO EXISTE EN UN MURO.
+        Fuera del muro la publicación ya es una tarjeta, así que enmarcar dentro
+        de ella lo reposteado ayuda a distinguirlo. En el muro no hay tarjeta, y
+        ese marco se convertía en una caja dentro de otra: el borde encerraba el
+        medio y le robaba su relleno, así que un vídeo reposteado ni siquiera
+        llegaba al canto de la pantalla. Aquí basta el aire y la línea de
+        "X reposteó" que va justo encima.
+      */}
+      <View
+        style={
+          !isRepost
+            ? undefined
+            : enMuro
+              ? styles.repostEnElMuro
+              : [styles.originalPostContainer, { borderColor: theme.colors.border }]
+        }
+      >
         {/* Header del post */}
         <View style={styles.header}>
         <TouchableOpacity
@@ -1436,18 +1524,23 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   /*
-   * La publicación dentro de un muro. Se le quita todo lo que la encajonaba
-   * —fondo, esquinas, sombra y el relleno lateral que estrechaba la foto— y se
-   * queda el contenido sobre el fondo del muro, a lo ancho de la columna.
+   * La publicación dentro de un muro. Se le quita lo que la encajonaba —fondo,
+   * esquinas y sombra— y se queda el contenido sobre el fondo del muro.
+   *
+   * El relleno lateral llegó a ser 0 para que la foto ganara ancho; no lo ganó
+   * —la cuenta del ancho seguía restando el de la tarjeta— y a cambio el texto
+   * y las acciones acabaron pegados al canto de la pantalla. Ahora es un aire
+   * pequeño y ÚNICO: el mismo canto para el autor, el texto, el medio y las
+   * acciones.
    *
    * Lo que separa una publicación de la siguiente es el aire de arriba y abajo;
-   * el pelo de línea solo marca dónde acaba una, y es tan fino que en pantalla
-   * mide menos de un punto.
+   * el pelo de línea solo marca dónde acaba una, va por fuera del relleno y
+   * cruza el muro entero.
    */
   enMuro: {
     marginBottom: 0,
     borderRadius: 0,
-    paddingHorizontal: 0,
+    paddingHorizontal: MURO_HORIZONTAL_PADDING,
     paddingVertical: SPACING.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
     shadowOpacity: 0,
@@ -1478,6 +1571,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  /* Lo mismo en un muro: solo el aire. Ni borde, ni relleno, ni caja. */
+  repostEnElMuro: {
     marginTop: SPACING.xs,
     marginBottom: SPACING.sm,
   },
@@ -1570,6 +1668,8 @@ const styles = StyleSheet.create({
   },
   singleMediaContainer: {
     position: 'relative',
+    /* El ancho y el alto los trae `medidaDelMedio`; si sobra sitio, al centro. */
+    alignSelf: 'center',
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
     marginTop: SPACING.sm,
@@ -1714,15 +1814,14 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.semibold,
   },
   /*
-   * La caja del vídeo: a todo el ancho de la publicación y con el alto que le
-   * pide su propia proporción (`aspectRatio` y `maxHeight` van en línea, porque
-   * dependen del vídeo). Sin alto fijo y sin marco de teléfono en la web: los
-   * dos obligaban al vídeo a una forma que no era la suya.
+   * La caja del vídeo: el ancho y el alto se los da `medidaDelMedio` en línea,
+   * porque dependen del vídeo. Sin alto fijo y sin marco de teléfono en la web:
+   * los dos obligaban al vídeo a una forma que no era la suya.
    */
   videoContainer: {
     position: 'relative',
-    width: '100%',
-    /* El alto lo trae el vídeo de dentro; aquí solo el tope, que va en línea. */
+    /* El ancho y el alto son los de la VENTANA del adelanto, y van en línea. */
+    alignSelf: 'center',
     justifyContent: 'flex-start',
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
@@ -1733,13 +1832,37 @@ const styles = StyleSheet.create({
    * La caja con la forma del vídeo. Va pegada ARRIBA de la de fuera: si el tope
    * la deja más corta, lo que se recorta es el final, nunca el principio.
    */
+  /*
+   * La caja con la forma del vídeo. NO lleva alto: se lo da su `aspectRatio`, que
+   * puede pasarse del alto de la ventana. Va pegada arriba —`justifyContent:
+   * flex-start` en la ventana— y el `overflow: hidden` se queda con el sobrante,
+   * que por eso cae siempre al final y nunca al principio.
+   */
   videoAspectBox: {
     width: '100%',
     position: 'relative',
   },
+  /* El toque cubre la ventana entera, no el vídeo: lo que se ve es lo que se toca. */
   videoTouchable: {
-    width: '100%',
-    height: '100%',
+    ...StyleSheet.absoluteFillObject,
+  },
+  /* "Ver en Weëls": el aviso de que el adelanto deja algo fuera. */
+  videoChip: {
+    position: 'absolute',
+    bottom: SPACING.md,
+    left: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(5),
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  videoChipTexto: {
+    color: 'white',
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.medium,
   },
   /*
    * El reproductor se ancla a las cuatro esquinas de su caja, no con un 100%.

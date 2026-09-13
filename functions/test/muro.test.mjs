@@ -245,10 +245,51 @@ console.log('\n── El muro no es una pila de tarjetas ──');
     /backgroundColor: theme\.colors\.card,\s*shadowColor: theme\.dark \? theme\.colors\.glow/.test(tarjeta) && /borderRadius: BORDER_RADIUS\.lg,\s*padding: SPACING\.lg,/.test(estilos));
 
   /* 3) Segundo marco: el relleno que encajonaba la foto. */
-  check('13) en el muro el contenido llega a los bordes de la columna', /paddingHorizontal: 0,/.test(enMuroEstilo));
-  check('13) y la foto se mide con la columna entera, no con el hueco de antes',
-    /const anchoEnElMuro = \(maxWidth\?: number\) =>/.test(tarjeta) && /const carouselWidth = enMuro \? anchoEnElMuro\(maxWidth\) : getCarouselWidth\(maxWidth\);/.test(tarjeta));
-  check('13) la foto conserva sus esquinas: eso no era un marco', /singleMediaContainer: \{[\s\S]{0,120}borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /carouselContainer: \{[\s\S]{0,120}borderRadius: BORDER_RADIUS\.lg,/.test(estilos));
+  /*
+   * EL AIRE LATERAL DEL MURO ES UNO SOLO, Y EL MEDIO LLEGA HASTA ÉL.
+   *
+   * Aquí estaba la banda blanca de la captura. Cuando el muro dejó de ser
+   * tarjeta se le puso `paddingHorizontal: 0`, pero la cuenta del ancho siguió
+   * restando el relleno de la TARJETA —16 por lado—: el medio salía 32 puntos
+   * más estrecho que su hueco y, sin nada que lo centrara, esos 32 caían
+   * ENTEROS a la derecha. Medido en la captura del teléfono: la foto iba del
+   * píxel 0 al 984 de 1080, 96 píxeles de blanco todos a un lado.
+   *
+   * Ahora hay UN relleno, el del muro, y la misma constante manda en el estilo
+   * y en la cuenta del ancho: no se pueden separar.
+   */
+  check('13) el muro tiene un aire lateral para el texto, y no es cero',
+    /const MURO_HORIZONTAL_PADDING = SPACING\.md;/.test(tarjeta)
+    && /paddingHorizontal: MURO_HORIZONTAL_PADDING,/.test(enMuroEstilo)
+    && !/paddingHorizontal: 0,/.test(enMuroEstilo));
+  /*
+   * Y EL MEDIO SE SALE DE ESE AIRE: va a sangre, la columna entera.
+   *
+   * Medido sobre las capturas de los dos feeds de referencia en el mismo
+   * teléfono: Facebook e Instagram ponen el medio en los 1080 píxeles de ancho,
+   * de canto a canto, y solo el nombre y el texto llevan sangría. Weë lo tenía
+   * en 1008, y esos 72 píxeles eran lo que hacía que cada publicación se leyera
+   * como una tarjeta apoyada encima del muro.
+   */
+  check('13) en el muro el medio va a sangre, sin descontar el aire',
+    /const anchoEnElMuro = \(maxWidth\?: number, ancho: number = screenWidth\) =>\s*Math\.min\(ancho, scale\(maxWidth \?\? CARD_MAX_WIDTH\)\);/.test(tarjeta)
+    && /const carouselWidth = enMuro \? anchoEnElMuro\(maxWidth, anchoDeLaVentana\) : getCarouselWidth\(maxWidth, anchoDeLaVentana\);/.test(tarjeta));
+  /* El margen negativo que lo saca del relleno, y sin esquinas contra el canto. */
+  check('13) y se sale del relleno con un margen negativo, sin esquinas',
+    /const sangriaDelMedio = enMuro\s*\?\s*\{ marginHorizontal: -MURO_HORIZONTAL_PADDING, borderRadius: 0 \}\s*: null;/.test(tarjeta));
+  check('13) los tres medios llevan esa sangría, ninguno se queda dentro',
+    /styles\.videoContainer, sangriaDelMedio,/.test(tarjeta)
+    && /styles\.singleMediaContainer, sangriaDelMedio,/.test(tarjeta)
+    && /styles\.carouselContainer, sangriaDelMedio,/.test(tarjeta));
+  /* Control: la tarjeta sigue restando el suyo, que ella sí aplica de verdad. */
+  check('13) control: fuera del muro sigue mandando el relleno de la tarjeta',
+    /const CARD_HORIZONTAL_PADDING = SPACING\.lg;/.test(tarjeta)
+    && /const availableWidth = Math\.min\(ancho, scale\(maxWidth\)\);\s*return availableWidth - \(CARD_HORIZONTAL_PADDING \* 2\);/.test(tarjeta));
+  /* Y lo que no llene la columna se centra, en vez de irse a un lado. */
+  check('13) un medio más estrecho que la columna queda centrado, no a la izquierda',
+    /singleMediaContainer: \{[\s\S]{0,220}alignSelf: 'center',/.test(estilos)
+    && /videoContainer: \{[\s\S]{0,220}alignSelf: 'center',/.test(estilos));
+  check('13) la foto conserva sus esquinas: eso no era un marco', /singleMediaContainer: \{[\s\S]{0,260}borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /carouselContainer: \{[\s\S]{0,120}borderRadius: BORDER_RADIUS\.lg,/.test(estilos));
 
   /*
    * 4) La variante cambia CÓMO se apoya, nunca QUÉ lleva. `enMuro` solo puede
@@ -257,7 +298,7 @@ console.log('\n── El muro no es una pila de tarjetas ──');
    */
   /* La BANDERA, no el estilo que se llama igual: se declara, decide la medida y elige el envoltorio (dos veces, con el repost que carga). */
   const usos = (tarjeta.match(/(?<!styles\.)\benMuro\b(?!:)/g) || []).length;
-  check('14) la variante solo toca el envoltorio y la medida', usos === 4, `${usos} usos de la bandera`);
+  check('14) la variante solo toca el envoltorio y la medida', usos === 6, `${usos} usos de la bandera`);
   check('14) nada se deja de pintar en un muro', !/enMuro && </.test(tarjeta) && !/!enMuro &&/.test(tarjeta) && !/enMuro \?\s*null/.test(tarjeta));
   /* Las acciones siguen siendo las mismas, y siguen fuera de cualquier caja. */
   check('14) las acciones siguen ahí, sin caja propia', /styles\.actions/.test(tarjeta) && /actions: \{\s*flexDirection: 'row',/.test(estilos) && !/actions: \{[\s\S]{0,160}(borderWidth|backgroundColor)/.test(estilos));
@@ -313,30 +354,48 @@ console.log('\n── El vídeo del muro conserva su forma ──');
   const estilos = tarjeta.slice(tarjeta.indexOf('const styles = StyleSheet.create'));
   const cajaDelVideo = estilos.slice(estilos.indexOf('videoContainer: {'), estilos.indexOf('videoTouchable: {'));
   const cacheDeFotos = leer('utils/imageDimensionCache.ts');
+  const reglaDelMedio = leer('utils/medidaDelMedio.ts');
   const cacheDeVideos = leer('utils/videoDimensionCache.ts');
 
   /* 1) Se acabó la caja de medida fija: ni alto de 350, ni 16/9, ni marco de teléfono. */
   check('17) el vídeo ya no entra en una caja de medida fija',
     !/height: scale\(350\)/.test(cajaDelVideo) && !/videoContainerWeb/.test(tarjeta) && !/videoPhoneFrame/.test(tarjeta));
   /*
-   * 2) Dos cajas: la de dentro tiene la FORMA del vídeo y manda el alto; la de
-   * fuera solo pone el tope y recorta lo que se pase. Así la caja se ciñe al
-   * vídeo —ni franjas ni hueco muerto debajo— y el recorte, si llega, cae
-   * siempre al final.
+   * 2) EL MURO NO ENSEÑA EL VÍDEO, ENSEÑA UN ADELANTO. El vídeo entero vive en
+   * Weëls. Aquí la ventana pone el ancho de la columna y un alto acotado, y la
+   * caja de dentro lleva la forma DE VERDAD del vídeo, que puede pasarse.
    */
-  check('17) el ancho es el de la publicación y el alto lo pone la proporción',
-    /width: '100%',/.test(cajaDelVideo)
-    && /style=\{\[styles\.videoContainer, \{ maxHeight: maxVideoHeight \}\]\}/.test(tarjeta)
+  check('17) el vídeo se asoma por una ventana, no por una caja a su medida',
+    /const ventanaDelVideo = ventanaDelPreview\(carouselWidth, proporcionDelVideo, altoMaximoDelMedio\);/.test(tarjeta)
+    && /style=\{\[styles\.videoContainer, sangriaDelMedio, \{ width: ventanaDelVideo\.width, height: ventanaDelVideo\.height \}\]\}/.test(tarjeta)
     && /style=\{\[styles\.videoAspectBox, \{ aspectRatio: proporcionDelVideo \}\]\}/.test(tarjeta)
-    && /videoAspectBox: \{\s*width: '100%',/.test(estilos));
+    && !/const cajaDelVideo/.test(tarjeta));
   /*
-   * Y el borde de ARRIBA no se puede perder: la caja de dentro empieza pegada
-   * al principio de la de fuera, así que lo que el tope deja fuera es el final.
-   * Es el problema que hubo —perder la cabecera del vídeo— y aquí se cierra.
+   * La caja de dentro NO puede llevar alto propio: se lo da su forma, y por eso
+   * puede sobrar. Si volviera a tener 'height: 100%' se ceñiría a la ventana y
+   * el vídeo saldría aplastado, que es deformar.
    */
-  check('17) si el tope recorta, recorta por abajo: arriba nunca',
+  check('17) la caja de dentro no lleva alto: se lo da su forma',
+    /videoAspectBox: \{\s*width: '100%',\s*position: 'relative',\s*\}/.test(estilos));
+  /*
+   * Y lo que la ventana deja fuera es SIEMPRE el final: la caja empieza pegada
+   * arriba, que es donde estos vídeos ponen el título y el contexto.
+   */
+  check('17) el adelanto recorta por abajo: arriba nunca',
     /justifyContent: 'flex-start',/.test(cajaDelVideo) && /overflow: 'hidden',/.test(cajaDelVideo)
     && !/justifyContent: 'center'|justifyContent: 'flex-end'|alignItems: 'flex-end'/.test(cajaDelVideo));
+  /*
+   * Los controles se anclan a la VENTANA. Colgados de la caja de dentro, el
+   * recorte se llevaba el botón de silencio fuera de la pantalla.
+   */
+  check('17) el toque y los controles cubren la ventana, no el vídeo',
+    /videoTouchable: \{\s*\.\.\.StyleSheet\.absoluteFillObject,\s*\}/.test(estilos)
+    && /accessibilityLabel="Ver el vídeo completo en Weëls"/.test(tarjeta));
+  /* Y si algo se queda fuera, se dice: si no, parece un vídeo mal cortado. */
+  check('17) cuando el adelanto recorta, lo avisa y nombra a Weëls',
+    /\{ventanaDelVideo\.recorta && \(/.test(tarjeta) && /Ver en Weëls/.test(tarjeta));
+  check('17) control: si el vídeo cabe entero, no hay aviso',
+    /recorta: alto < altoNatural - 1e-9/.test(reglaDelMedio));
   /* 3) Y nada se recorta: `CONTAIN`, también en el cartel de espera. */
   check('17) y nada se recorta: contain, no cover',
     /resizeMode=\{ResizeMode\.CONTAIN\}/.test(tarjeta) && !/resizeMode=\{ResizeMode\.COVER\}/.test(tarjeta)
@@ -354,20 +413,222 @@ console.log('\n── El vídeo del muro conserva su forma ──');
     && /videoElement: \{\s*width: '100%',\s*height: '100%',\s*\}/.test(estilos)
     && /videoPlayer: \{\s*\.\.\.StyleSheet\.absoluteFillObject,\s*\}/.test(estilos));
   /*
-   * 4) El tope no es un número de puntos, es una FORMA: 9:16, el vertical de un
-   * teléfono. Un vídeo así entra entero y a lo ancho, sin franjas ni hueco
-   * debajo; solo algo aún más vertical toca el tope. Y sale del ancho de la
-   * publicación, así que vale igual en una columna estrecha y en una ancha.
+   * 4) EL TOPE SE MIDE CONTRA LA FRANJA QUE SE VE, no contra la ventana.
+   *
+   * Van dos intentos y los dos midieron contra la magnitud equivocada. Primero
+   * una FORMA —9:16— sacada del ANCHO de la columna: cuánto cabe no depende de
+   * lo ancha que sea la columna. Después una parte del alto de la VENTANA, que
+   * ya es un alto pero tampoco es el bueno: una publicación no vive en la
+   * ventana, vive en la franja que queda entre la cabecera de la app y la barra
+   * inferior. En el teléfono de las capturas la ventana declara 800 puntos y la
+   * franja son 672, así que seis décimas de ventana —480— no eran el 60 % de
+   * nada de lo que se ve: eran el 71 % de la franja. Con la cabecera del autor,
+   * el texto y las acciones, la publicación medía 645 de 672 y de la siguiente
+   * asomaban 27 puntos, que es no asomar.
+   *
+   * Ahora el tope es lo que SOBRA de la franja después de apartar los muebles
+   * de la publicación y el asomo de la siguiente: dice algo comprobable en vez
+   * de ser un porcentaje elegido a ojo.
    */
-  check('18) el tope es una forma, no un número, y sale del ancho de la publicación',
-    /const PROPORCION_MAS_VERTICAL = 9 \/ 16;/.test(tarjeta)
-    && /const maxVideoHeight = carouselWidth \/ PROPORCION_MAS_VERTICAL;/.test(tarjeta)
-    && !/const maxVideoHeight = maxImageHeight;/.test(tarjeta));
-  /* Control: el tope de las fotos sigue siendo el suyo, en puntos, y se sigue usando. */
-  check('18) control: la foto conserva su propio tope, en puntos',
-    /const MAX_IMAGE_HEIGHT = scale\(500\);/.test(tarjeta) && /const maxImageHeight = maxWidth/.test(tarjeta)
-    && /Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\)/.test(tarjeta)
-    && !/MAX_IMAGE_HEIGHT[\s\S]{0,80}PROPORCION_MAS_VERTICAL/.test(tarjeta.slice(tarjeta.indexOf('const maxImageHeight = maxWidth'))));
+  check('18) el tope sale de la franja del muro, no de la ventana',
+    /const sobra = alturaVisible - MUEBLES_DE_LA_PUBLICACION - ASOMO_DE_LA_SIGUIENTE;/.test(reglaDelMedio)
+    && /const \{ width: anchoDeLaVentana, height: altoDeLaVentana \} = useWindowDimensions\(\);/.test(tarjeta)
+    && /const altoMaximoDelMedio = topeDelMedio\(alturaDelMuro\);/.test(tarjeta)
+    && !/PARTE_DE_LA_VENTANA|PROPORCION_MAS_VERTICAL|MAX_IMAGE_HEIGHT|MIN_IMAGE_HEIGHT/.test(tarjeta));
+  /*
+   * Y esa franja se MIDE donde se sabe. `useWindowDimensions()` no vale: da la
+   * ventana entera. Quien pinta el muro ya medía su cabecera con `onLayout`; le
+   * faltaba medir su área y descontar la barra de abajo, que va flotando y por
+   * eso no le quita sitio a la lista aunque le tape el final.
+   */
+  const muro = leer('screens/LandingScreen.tsx');
+  check('18) el muro mide su hueco de verdad y se lo pasa a la publicación',
+    /onLayout=\{\(e\) => setAltoDelArea\(e\.nativeEvent\.layout\.height\)\}/.test(muro)
+    && /const barraDeAbajo = isDesktop \? 0 : ALTO_DE_LA_BARRA_INFERIOR \+ insets\.bottom;/.test(muro)
+    && /const alturaVisibleDelMuro = Math\.max\(0, altoDelArea - headerHeight - barraDeAbajo\);/.test(muro)
+    && /alturaVisible=\{alturaVisibleDelMuro \|\| undefined\}/.test(muro)
+    && /alturaVisible\?: number;/.test(tarjeta)
+    && /const alturaDelMuro = alturaVisible \?\? alturaVisibleDelMuro\(altoDeLaVentana\);/.test(tarjeta));
+  /* El alto de esa barra vive en UN sitio: quien la pinta y quien la descuenta leen lo mismo. */
+  check('18) el alto de la barra inferior no está escrito dos veces',
+    /export const ALTO_DE_LA_BARRA_INFERIOR = 56;/.test(reglaDelMedio)
+    && /height: ALTO_DE_LA_BARRA_INFERIOR \+ insets\.bottom,/.test(leer('navigation/TabNavigator.tsx'))
+    && /ALTO_DE_LA_BARRA_INFERIOR \} from '\.\.\/utils\/medidaDelMedio'/.test(muro));
+  /*
+   * NINGUNA PUBLICACIÓN DEL MURO ES MÁS ALTA QUE 4:5. Lo que cambia es cómo lo
+   * consigue cada una: la foto se encoge, porque hay que verla entera; el vídeo
+   * se asoma por su ventana, porque el vídeo entero está en Weëls.
+   *
+   * El adelanto estuvo en cuadrado y era demasiado: un cuadrado obligatorio le
+   * quita al vídeo lo que lo identifica y convierte el muro en una galería de
+   * recuadros iguales.
+   */
+  check('18) foto y adelanto comparten forma máxima, 4:5, y ninguna es cuadrada',
+    /const maxImageHeight = topeDeLaFoto\(carouselWidth, altoMaximoDelMedio\);/.test(tarjeta)
+    && /export const FORMA_MAS_ALTA_DE_FOTO = 4 \/ 5;/.test(reglaDelMedio)
+    && /export const FORMA_MAS_ALTA_DEL_PREVIEW = 4 \/ 5;/.test(reglaDelMedio)
+    && !/FORMA_MAS_ALTA_DEL_PREVIEW = 1;/.test(reglaDelMedio)
+    && !/const maxImageHeight = altoMaximoDelMedio;/.test(tarjeta));
+
+  /*
+   * 4b) LA MÉTRICA DEL MURO, EJECUTADA, CONTRA DOS FEEDS DE VERDAD.
+   *
+   * Los números no son de laboratorio: salen de contar píxeles en tres capturas
+   * del mismo teléfono (1080 x 2640, densidad 3 → 360 x 800 puntos).
+   *
+   *  · Facebook   medio de canto a canto, 1080 px = el 100 % del ancho; un
+   *               vertical se queda en 540 pt de alto, o sea la forma 2:3.
+   *  · Instagram  igual, 1080 px de ancho; su vertical va a 598, forma 0,60.
+   *  · Weë antes  medio en 1008 px, el 93 %, con 36 px de blanco a cada lado.
+   *
+   * Los dos de fuera hacen lo mismo y es el principio que se adopta: SANGRE
+   * COMPLETA a lo ancho y un tope de FORMA, no de puntos. Weë no puede copiar
+   * el 2:3 porque su cabecera mide 104 pt contra los 65 de Facebook, así que le
+   * quedan 676 de franja frente a 711; con 2:3 la publicación mediría 705 y no
+   * cabría. De ahí 4:5.
+   *
+   * Y aquí se comprueba la MÉTRICA DE LA PUBLICACIÓN ENTERA, no solo la caja
+   * del medio: es lo único que dice si el muro se puede recorrer.
+   */
+  {
+    const ts = require('typescript');
+    const js = ts.transpileModule(reglaDelMedio, {
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+    }).outputText;
+    const { medidaDelMedio, topeDelMedio, topeDeLaFoto, ventanaDelPreview, alturaVisibleDelMuro } =
+      await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+
+    const FRANJA = 676;   /* medido: del píxel 311 al 2339, entre 3 */
+    const COL = 360;      /* a sangre: la ventana entera, como Facebook e Instagram */
+    const MUEBLES = 165;  /* medido: autor, texto y fila de acciones */
+    const TOPE_MURO = topeDelMedio(FRANJA);
+    const TOPE_FOTO = topeDeLaFoto(COL, TOPE_MURO);
+    const foto = (p) => medidaDelMedio(COL, p, TOPE_FOTO);
+    const video = (p) => ventanaDelPreview(COL, p, TOPE_MURO);
+    const redondo = (c) => Math.round(c.width) + 'x' + Math.round(c.height);
+    const parte = (c) => Math.round(100 * (c.height + MUEBLES) / FRANJA);
+
+    check('18b) sin medir, la franja se estima bien', Math.round(alturaVisibleDelMuro(800)) === 672,
+      String(Math.round(alturaVisibleDelMuro(800))));
+    /* Las dos reglas se encuentran en el mismo sitio: 450 de forma, 452 de sitio. */
+    check('18b) la forma y el sitio dan casi el mismo tope, y manda el más bajo',
+      Math.round(TOPE_FOTO) === 450 && Math.round(TOPE_MURO) === 452 && TOPE_FOTO < TOPE_MURO,
+      'forma ' + Math.round(TOPE_FOTO) + ', sitio ' + Math.round(TOPE_MURO));
+
+    /*
+     * ── ANCHO: LA MITAD DEL ASUNTO ────────────────────────────────────────
+     * Todo lo que su forma permite llega de canto a canto. Es lo que separa un
+     * feed de una tarjeta apoyada encima.
+     */
+    for (const forma of [21 / 9, 16 / 9, 4 / 3, 1, 4 / 5]) {
+      check('18b) forma ' + forma.toFixed(3) + ': la foto llega a los dos cantos',
+        Math.round(foto(forma).width) === COL);
+    }
+    for (const forma of [21 / 9, 16 / 9, 4 / 3, 1, 4 / 5, 3 / 4, 9 / 16, 9 / 21]) {
+      check('18b) forma ' + forma.toFixed(3) + ': el adelanto llega SIEMPRE a los dos cantos',
+        Math.round(video(forma).width) === COL);
+    }
+    /* Y se gana ancho respecto a la métrica anterior, que descontaba el aire. */
+    check('18b) el medio gana los 24 puntos que antes se comía el relleno',
+      COL - 336 === 24 && Math.round(video(9 / 16).width) === 360);
+
+    /*
+     * ── FOTOS: enteras, sin recortar, centradas ───────────────────────────
+     */
+    check('18b) foto: las medidas exactas',
+      redondo(foto(21 / 9)) === '360x154' && redondo(foto(16 / 9)) === '360x203'
+      && redondo(foto(4 / 3)) === '360x270' && redondo(foto(1)) === '360x360'
+      && redondo(foto(4 / 5)) === '360x450' && redondo(foto(3 / 4)) === '338x450'
+      && redondo(foto(2 / 3)) === '300x450' && redondo(foto(9 / 16)) === '253x450');
+    for (const [nombre, forma] of Object.entries({ '21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1, '4:5': 4 / 5, '3:4': 3 / 4, '2:3': 2 / 3, '9:16': 9 / 16 })) {
+      const c = foto(forma);
+      check('18b) foto ' + nombre + ': proporción exacta, sin deformar',
+        Math.abs(c.width / c.height - forma) < 1e-9);
+      check('18b) foto ' + nombre + ': cabe en su hueco, nada que recortar',
+        c.width <= COL + 1e-9 && c.height <= TOPE_FOTO + 1e-9);
+      check('18b) foto ' + nombre + ': la banda es igual a los dos lados',
+        Math.abs((COL - c.width) / 2 * 2 + c.width - COL) < 1e-9);
+    }
+
+    /*
+     * ── VÍDEOS: orientación conservada, altura acotada ────────────────────
+     * Un apaisado sigue siendo apaisado y un vertical sigue siendo vertical.
+     * Nada se convierte en cuadrado por obligación, que era el problema.
+     */
+    check('18b) vídeo: las medidas exactas',
+      redondo(video(21 / 9)) === '360x154' && redondo(video(16 / 9)) === '360x203'
+      && redondo(video(4 / 3)) === '360x270' && redondo(video(1)) === '360x360'
+      && redondo(video(4 / 5)) === '360x450' && redondo(video(3 / 4)) === '360x450'
+      && redondo(video(9 / 16)) === '360x450' && redondo(video(9 / 21)) === '360x450');
+    check('18b) un vídeo apaisado sigue siendo apaisado',
+      video(16 / 9).width > video(16 / 9).height * 1.5 && video(21 / 9).width > video(21 / 9).height * 2);
+    check('18b) y un vídeo vertical sigue pareciendo vertical, no un cuadrado',
+      video(9 / 16).height > video(9 / 16).width * 1.2,
+      redondo(video(9 / 16)));
+    check('18b) el cuadrado ya no es obligatorio para nadie',
+      Math.round(video(9 / 16).height) !== Math.round(video(9 / 16).width));
+    /* Un apaisado, un cuadrado o un 4:5 entran enteros: la ventana solo actúa arriba de 4:5. */
+    for (const forma of [21 / 9, 16 / 9, 4 / 3, 1, 4 / 5]) {
+      check('18b) vídeo de forma ' + forma.toFixed(3) + ': entra entero, sin recorte',
+        video(forma).recorta === false);
+    }
+    for (const forma of [3 / 4, 9 / 16, 9 / 21]) {
+      check('18b) vídeo de forma ' + forma.toFixed(3) + ': se queda algo fuera y lo dice',
+        video(forma).recorta === true);
+    }
+    check('18b) el adelanto de un 9:16 enseña siete décimas del vídeo',
+      Math.round(100 * video(9 / 16).height / (COL / (9 / 16))) === 70);
+
+    /*
+     * ── LA MÉTRICA DE LA PUBLICACIÓN ENTERA ───────────────────────────────
+     * Esto es lo que de verdad decide si el muro se recorre. Ninguna
+     * publicación puede acercarse a llenar la franja: es el fallo al que no se
+     * puede volver, y por eso se vigila para TODOS los formatos.
+     */
+    for (const forma of [21 / 9, 16 / 9, 4 / 3, 1, 4 / 5, 3 / 4, 2 / 3, 9 / 16, 9 / 21]) {
+      check('18b) forma ' + forma.toFixed(3) + ': la publicación no llena la franja',
+        parte(video(forma)) <= 92 && parte(foto(forma)) <= 92,
+        'vídeo ' + parte(video(forma)) + '%, foto ' + parte(foto(forma)) + '%');
+      check('18b) forma ' + forma.toFixed(3) + ': de la siguiente asoma algo de verdad',
+        FRANJA - (video(forma).height + MUEBLES) >= 56
+        && FRANJA - (foto(forma).height + MUEBLES) >= 56);
+    }
+    check('18b) con un vertical, nueve décimas de franja y el autor de la siguiente',
+      parte(video(9 / 16)) === 91 && Math.round(FRANJA - (video(9 / 16).height + MUEBLES)) === 61);
+    check('18b) con un apaisado caben casi dos publicaciones',
+      parte(video(16 / 9)) === 54 && parte(foto(16 / 9)) === 54);
+    /* El punto de partida, para que no se pierda de vista de dónde se viene. */
+    const original = medidaDelMedio(328, 9 / 16, 0.6 * 800);
+    check('18b) el vídeo que se comía la franja queda documentado',
+      Math.round(original.height) === 480 && Math.round(100 * (original.height + MUEBLES) / 672) === 96);
+    /* Y el cuadrado del que se viene: mismo alto de publicación, pero sin identidad. */
+    check('18b) el adelanto cuadrado anterior era más bajo pero perdía la orientación',
+      Math.round(ventanaDelPreview(336, 9 / 16, 336).height) === 336);
+
+    /*
+     * ── OTRAS PANTALLAS ───────────────────────────────────────────────────
+     * Las dos reglas son formas, así que se recalculan solas.
+     */
+    const franjaPequena = alturaVisibleDelMuro(640), topePequeno = topeDelMedio(franjaPequena);
+    check('18b) en un teléfono pequeño manda el sitio, no la forma, y el ancho sigue entero',
+      topePequeno < COL / (4 / 5)
+      && Math.round(ventanaDelPreview(COL, 9 / 16, topePequeno).width) === COL
+      && Math.round(ventanaDelPreview(COL, 9 / 16, topePequeno).height) === Math.round(topePequeno),
+      'tope ' + Math.round(topePequeno));
+    /* Girado, la franja es mínima y la resta se iría en negativo sin el suelo. */
+    check('18b) girado, el suelo evita que el medio desaparezca',
+      topeDelMedio(alturaVisibleDelMuro(360)) > 0);
+    /* En una columna ancha de escritorio la forma sigue frenando la altura. */
+    const anchoWeb = 608, topeWeb = topeDelMedio(alturaVisibleDelMuro(900));
+    const adelantoWeb = ventanaDelPreview(anchoWeb, 9 / 16, topeWeb);
+    check('18b) en una columna ancha el adelanto llena el ancho y no se dispara',
+      Math.round(adelantoWeb.width) === anchoWeb && adelantoWeb.height < anchoWeb,
+      redondo(adelantoWeb));
+
+    /* Sin proporción todavía —el primer fotograma no ha llegado— se espera en 4:3. */
+    check('18b) sin proporción todavía, espera en 4:3',
+      redondo(foto(undefined)) === '360x270' && redondo(video(undefined)) === '360x270');
+  }
 
   /*
    * 5) La proporción sale del reproductor, que es la única fuente fiable para
@@ -398,14 +659,14 @@ console.log('\n── El vídeo del muro conserva su forma ──');
     && !/getCachedVideoAspectRatio|proporcionDeLaMedida/.test(cacheDeFotos)
     /* La del vídeo no pregunta a nadie: no puede, y por eso existe aparte. */
     && !/^import .*react-native/m.test(cacheDeVideos) && !/RNImage\.getSize/.test(cacheDeVideos));
-  /* Control: la foto se sigue midiendo exactamente como antes. */
-  check('19) control: la foto conserva su medida y su tope de siempre',
-    /const aspectRatio = imageDimensions\?\.aspectRatio \|\| \(4\/3\);/.test(tarjeta)
-    && /Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\)/.test(tarjeta)
-    && /const carouselWidth = enMuro \? anchoEnElMuro\(maxWidth\) : getCarouselWidth\(maxWidth\);/.test(tarjeta));
+  /* La foto se mide con la MISMA regla que el vídeo, y el carrusel con su tope. */
+  check('19) la foto pasa por la misma regla que el vídeo',
+    /const caja = medidaDelMedio\(carouselWidth, aspectRatio, maxImageHeight\);/.test(tarjeta)
+    && /style=\{\[styles\.singleMediaContainer, sangriaDelMedio, caja\]\}/.test(tarjeta)
+    && /const carouselHeight = Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\);/.test(tarjeta));
   /* Y el bloque que mide la foto no toca nada del vídeo, ni al revés. */
   const bloqueDeLaFoto = tarjeta.slice(tarjeta.indexOf('const postToUse = isRepost && originalPost ? originalPost : post;'), tarjeta.indexOf('}, [isRepost, originalPost, post.imageUrls]);'));
-  const bloqueDelVideo = tarjeta.slice(tarjeta.indexOf('const urlDelVideo ='), tarjeta.indexOf('const maxVideoHeight ='));
+  const bloqueDelVideo = tarjeta.slice(tarjeta.indexOf('const urlDelVideo ='), tarjeta.indexOf('const ventanaDelVideo ='));
   check('19) control: y la foto no pasa por nada del vídeo',
     bloqueDeLaFoto.length > 100 && bloqueDelVideo.length > 100
     && !/Video|proporcion|videoUrl/.test(bloqueDeLaFoto)

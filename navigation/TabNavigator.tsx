@@ -7,6 +7,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ALTO_DE_LA_BARRA_INFERIOR } from '../utils/medidaDelMedio';
 import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -227,7 +228,7 @@ const TabNavigator: React.FC = () => {
           right: 0,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
-          height: 56 + insets.bottom,
+          height: ALTO_DE_LA_BARRA_INFERIOR + insets.bottom,
           paddingBottom: insets.bottom,
           elevation: 0,
           shadowOpacity: 0,

@@ -22,6 +22,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ALTO_DE_LA_BARRA_INFERIOR } from '../utils/medidaDelMedio';
+import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -113,6 +115,21 @@ const LandingScreen: React.FC = () => {
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
+  /*
+   * CUÁNTO MURO SE VE DE UNA VEZ. De aquí sale el tope de alto de las fotos y
+   * los vídeos de cada publicación.
+   *
+   * Se mide y no se deduce: `useWindowDimensions()` da la VENTANA, que en el
+   * teléfono de las capturas declara 800 puntos mientras que la franja libre
+   * entre la cabecera y la barra inferior son 672. La cabecera se mide ya con
+   * su propio `onLayout`; falta el área y el alto de la barra, que está donde
+   * lo usa el navegador de pestañas.
+   */
+  const [altoDelArea, setAltoDelArea] = useState(0);
+  /* En escritorio la barra inferior no se pinta, así que allí no hay nada que restar. */
+  const { isDesktop } = useResponsive();
+  const barraDeAbajo = isDesktop ? 0 : ALTO_DE_LA_BARRA_INFERIOR + insets.bottom;
+  const alturaVisibleDelMuro = Math.max(0, altoDelArea - headerHeight - barraDeAbajo);
 
   /*
    * EL HOME ES UNA SOLA LISTA.
@@ -1012,8 +1029,10 @@ const LandingScreen: React.FC = () => {
       isVisible={visiblePostIds.has(item.id || '')}
       /* El Wall es un muro: las publicaciones se apoyan en el fondo, sin tarjeta. */
       variante="muro"
+      /* Lo que se ve del muro de una vez; sin esto la publicación tendría que estimarlo. */
+      alturaVisible={alturaVisibleDelMuro || undefined}
     />
-  ), [visiblePostIds, handleVideoPress]);
+  ), [visiblePostIds, handleVideoPress, alturaVisibleDelMuro]);
 
   if (loading) {
     return (
@@ -1047,7 +1066,10 @@ const LandingScreen: React.FC = () => {
       />
 
       {/* Content area wrapper */}
-      <View style={styles.contentWrapper}>
+      <View
+        style={styles.contentWrapper}
+        onLayout={(e) => setAltoDelArea(e.nativeEvent.layout.height)}
+      >
       {isWeb ? (
         // Web: Use native div scrolling for mobile browser compatibility
         <div
