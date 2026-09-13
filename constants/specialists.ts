@@ -61,6 +61,20 @@ export interface SpecialistAction {
    * plantilla, sus planes y su identificador intactos.
    */
   secondary?: boolean;
+  /**
+   * La acción abre la PANTALLA de esa experiencia, no su conversación.
+   *
+   * Weë Writer entra en el selector de Weë Studio y deja de tener puerta propia
+   * en el menú. Con `opens` a secas se abriría su conversación y se perdería lo
+   * que solo vive en su pantalla: "Mis documentos", que es su historial de
+   * textos. Con esta marca la tarjeta lleva a la pantalla de siempre —la misma
+   * ruta a la que llevaba el menú—, así que la experiencia de Weë Writer llega
+   * entera y sin una segunda implementación.
+   *
+   * Las tres áreas de Studio no la usan: fotos, videos y look sí entran por la
+   * conversación, que es donde se les pregunta qué hacer.
+   */
+  opensSection?: boolean;
 }
 
 /**
@@ -406,7 +420,8 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     note: 'Ideas que se ven',
     heroEmoji: '🎬',
     gridTitle: '¿Qué quieres hacer hoy?',
-    gridHint: 'Fotos, videos y cambios de look.',
+    /* Cuatro cosas desde que Weë Writer entró aquí: la línea las nombra todas. */
+    gridHint: 'Fotos, videos, cambios de look y textos.',
     /*
      * Tres áreas, no veintiséis funciones (fase 2E-50) — y en dos niveles (2E-53).
      *
@@ -430,6 +445,17 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       { id: 'photos', icon: 'camera-outline', emoji: '📸', title: 'Fotos', subtitle: 'Crear, editar, mejorar y transformar fotos.', goal: 'Trabajar con una foto', opens: 'photo' },
       { id: 'videos', icon: 'videocam-outline', emoji: '🎬', title: 'Videos', subtitle: 'Crear videos, animar fotos y contenido para redes.', goal: 'Crear un video', opens: 'studio' },
       { id: 'beauty', icon: 'sparkles-outline', emoji: '💄', title: 'Beauty', subtitle: 'Maquillaje, cabello, rostro, ropa, uñas y cuidado personal.', goal: 'Probar un cambio de look', opens: 'beauty', secondary: true },
+      /*
+       * Weë Writer, la cuarta. Va en el renglón secundario con Beauty: Studio
+       * dice primero "crea fotos y videos", y escribir es una capacidad
+       * especializada de ese mismo mundo —el guion del video, el pie de la
+       * foto—, no uno de los dos caminos principales.
+       *
+       * `opensSection` la lleva a la PANTALLA de Weë Writer, la de siempre, con
+       * su cuadrícula y su "Mis documentos". Ni se duplica ni se reimplementa
+       * nada: es la misma ruta a la que llevaba el menú.
+       */
+      { id: 'writer', icon: 'create-outline', emoji: '✍️', title: 'Writer', subtitle: 'Publicaciones, historias, guiones, emails y libros.', goal: 'Escribir un texto', opens: 'writer', opensSection: true, secondary: true },
     ],
     // Weë Studio estrena muro después de Weë Chef y Weë Design (fase 2E-50).
     wall: {
@@ -792,7 +818,8 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
  * configuraciones siguen enteras más arriba, porque sus mesas de trabajo se
  * siguen usando.
  */
-export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'];
+/* El orden de las secciones con puerta propia. Writer salió al entrar en Studio. */
+export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'];
 
 export const getSpecialist = (id: string): (SpecialistConfig & { experience: WeeExperience }) | null => {
   const config = SPECIALISTS[id as SpecialistId];

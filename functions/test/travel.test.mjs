@@ -82,7 +82,7 @@ console.log('\n── A · La undécima experiencia ──');
   check('3) y quien escribe "vacaciones" también', exp.matchExperiences('vacaciones').some((e) => e.id === 'travel'));
   check('3) sin robarle nada a Weë Chef', exp.matchExperiences('receta')[0]?.id === 'chef');
 
-  check('4) entra en la barra lateral', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'\]/.test(specialists));
+  check('4) entra en la barra lateral', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
   check('4) y no hace falta ninguna ruta nueva', !/Travel(Screen|Flow|Home)/.test(leer('navigation/MainStackNavigator.tsx')));
 }
 
@@ -409,7 +409,8 @@ console.log('\n── J · El menú Burger ──');
   const orden = exp.WEE_EXPERIENCES.map((e) => e.id);
   check('52) va después de Business', orden.indexOf('travel') === orden.indexOf('business') + 1, orden.join(','));
   check('52) y antes de Brain, que sigue cerrando', orden[orden.length - 1] === 'brain');
-  check('52) las otras siete no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'design,studio,writer,music,chef,business,brain');
+  /* Weë Writer salió del menú al entrar en el selector de Weë Studio; las demás, en su sitio. */
+  check('52) las otras seis no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'design,studio,music,chef,business,brain');
 
   // La ruta: la de siempre, con su identificador.
   check('53) el menú abre la pantalla de especialista', /navigateRoot\('Specialist', \{ id: category \}\)/.test(menu));

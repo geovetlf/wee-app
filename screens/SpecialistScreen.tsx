@@ -88,7 +88,19 @@ const SpecialistScreen: React.FC = () => {
     navigation.navigate('CreatorFlow', { experienceId: opens || spec.id, goal, preset, imageUri });
   };
 
-  const handleAction = (action: SpecialistAction) => startFlow(action.goal, action.preset, undefined, action.opens);
+  /*
+   * Casi todas las tarjetas abren una conversación. La de Weë Writer abre su
+   * PANTALLA —la misma a la que llevaba el menú— porque allí está lo que solo
+   * existe allí: "Mis documentos". Es la ruta de siempre, sin nada nuevo
+   * detrás.
+   */
+  const handleAction = (action: SpecialistAction) => {
+    if (action.opensSection && action.opens) {
+      navigation.navigate('Specialist', { id: action.opens });
+      return;
+    }
+    startFlow(action.goal, action.preset, undefined, action.opens);
+  };
   const handleExample = (example: SpecialistExample) => startFlow(example.subtitle ? `${example.title} · ${example.subtitle}` : example.title);
 
   /*

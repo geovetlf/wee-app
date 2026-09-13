@@ -703,7 +703,7 @@ console.log('\n── Weë Chef · la sección se convierte en comunidad ──'
     const acciones = bloque.match(/\{ id: '[^']+', icon: /g) || [];
     check('6) las siete funciones siguen ahí', acciones.length === 7, String(acciones.length));
     check('6) todas con su objetivo y su respuesta ya contestada', (bloque.match(/goal: '/g) || []).length === 7 && (bloque.match(/preset: \{ questionId: 'what'/g) || []).length === 7);
-    check('6) y pulsarlas abre la conversación guiada, no resuelve nada aquí', /const handleAction = \(action: SpecialistAction\) => startFlow\(action\.goal, action\.preset, undefined, action\.opens\)/.test(pantalla));
+    check('6) y pulsarlas abre la conversación guiada, no resuelve nada aquí', /const handleAction = \(action: SpecialistAction\) => \{[\s\S]{0,400}startFlow\(action\.goal, action\.preset, undefined, action\.opens\);\s*\};/.test(pantalla));
     check('6) el plan de Chef no cambió de capacidades', ['recipe', 'cook', 'edit', 'menu'].every((k) => bloque.includes(`optionId: '${k}'`)));
   }
 
@@ -872,7 +872,7 @@ console.log('\n── Weë Chef · las herramientas se pliegan ──');
   {
     const chef = TEMPLATES.chef;
     const caps = (a) => chef.buildPlan('x', a).steps.map((s) => s.capability).join(' + ');
-    check('5) pulsar una función sigue abriendo su conversación', /const handleAction = \(action: SpecialistAction\) => startFlow\(action\.goal, action\.preset, undefined, action\.opens\)/.test(pantalla));
+    check('5) pulsar una función sigue abriendo su conversación', /const handleAction = \(action: SpecialistAction\) => \{[\s\S]{0,400}startFlow\(action\.goal, action\.preset, undefined, action\.opens\);\s*\};/.test(pantalla));
     check('5) receta, cocinar y retocar siguen con sus mismos pasos', caps({ what: 'recipe', people: '2', time: '30' }) === 'text.generate + image.generate' && caps({ what: 'cook', people: '2', time: '30' }) === 'vision.describe + text.generate + image.generate' && caps({ what: 'edit', change: 'background' }) === 'image.edit');
     check('5) y abrir el plegable no ejecuta nada', !/onToggle=\{[^}]*startFlow/.test(pantalla));
   }
@@ -991,7 +991,7 @@ console.log('\n── Weë Design · siete intenciones en vez de catorce ejemplo
 
   // 6) El selector es selector: cada acción entra en la conversación guiada.
   check('6) todas llevan objetivo con el que arrancar', (bloque.match(/goal: '/g) || []).length === (bloque.match(/{ id: '[^']+', icon: /g) || []).length);
-  check('6) y la pantalla solo las usa para abrir el flujo', /const handleAction = \(action: SpecialistAction\) => startFlow\(action\.goal, action\.preset, undefined, action\.opens\)/.test(pantalla));
+  check('6) y la pantalla solo las usa para abrir el flujo', /const handleAction = \(action: SpecialistAction\) => \{[\s\S]{0,400}startFlow\(action\.goal, action\.preset, undefined, action\.opens\);\s*\};/.test(pantalla));
 
   // 7) No quedan las tarjetas grandes con imágenes, ni un "Ver más".
   check('7) Design usa la cuadrícula compacta', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'images'/.test(bloque));
@@ -1263,42 +1263,42 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
   };
   const exp = await cargar('constants/weeExperiences.ts');
 
-  // 1 a 7) Once existen; ocho se ven: home se mudó a Design (2E-56) y llegó
-  // Weë Travel (2E-64C).
+  // 1 a 7) Once existen; siete se ven: home se mudó a Design (2E-56), llegó
+  // Weë Travel (2E-64C) y Weë Writer se mudó a Studio.
   {
     const visibles = exp.WEE_EXPERIENCES.map((e) => e.id);
     const todas = exp.ALL_EXPERIENCES.map((e) => e.id);
-    check('1) ocho secciones visibles', visibles.length === 8, visibles.join(','));
+    check('1) siete secciones visibles', visibles.length === 7, visibles.join(','));
     check('2) y once experiencias en total', todas.length === 11, todas.join(','));
     check('3) photo sigue existiendo', todas.includes('photo'));
     check('4) beauty sigue existiendo', todas.includes('beauty'));
     check('5) photo ya no es una sección', !visibles.includes('photo'));
     check('6) beauty ya no es una sección', !visibles.includes('beauty'));
     check('7) Studio sí lo es', visibles.includes('studio'));
-    check('7) y las otras seis no se han movido', ['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer'].every((id) => visibles.includes(id)), visibles.join(','));
+    check('7) y las otras cinco no se han movido', ['brain', 'design', 'music', 'studio', 'business', 'chef'].every((id) => visibles.includes(id)), visibles.join(','));
   }
 
-  // 8 a 11) Tres áreas, cada una a su experiencia.
+  // 8 a 11) Cuatro áreas, cada una a su experiencia.
   {
     const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
     const ids = [...bloque.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
-    check('8) Studio tiene exactamente tres áreas', ids.length === 3, ids.join(','));
-    check('8) y son fotos, videos y beauty', ids.join(',') === 'photos,videos,beauty', ids.join(','));
-    // Tres áreas, dos niveles desde 2E-53: dos caminos y una entrada secundaria.
-    check('8) dos son caminos principales y una es secundaria', (bloque.match(/secondary: true/g) || []).length === 1);
+    check('8) Studio tiene exactamente cuatro áreas', ids.length === 4, ids.join(','));
+    check('8) y son fotos, videos, beauty y writer', ids.join(',') === 'photos,videos,beauty,writer', ids.join(','));
+    // Cuatro áreas, dos niveles desde 2E-53: dos caminos y dos entradas secundarias.
+    check('8) dos son caminos principales y dos son secundarias', (bloque.match(/secondary: true/g) || []).length === 2);
     check('9) Fotos abre Weë Photo', /title: 'Fotos'[^}]*opens: 'photo'/.test(bloque));
     check('10) Videos abre Weë Studio', /title: 'Videos'[^}]*opens: 'studio'/.test(bloque));
     check('11) Beauty abre Weë Beauty', /title: 'Beauty'[^}]*opens: 'beauty'/.test(bloque));
     check('11) la pantalla honra ese destino', /experienceId: opens \|\| spec\.id/.test(pantalla));
   }
 
-  // 12) Las otras siete no cambian de comportamiento.
+  // 12) Las otras seis no cambian de comportamiento.
   {
     const fuera = specialists.replace(specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {')), '');
     // Fuera de Studio, `opens` solo lo usa Weë Design, y solo para Hogar & Diseño.
     check('12) fuera de Studio, opens es solo el de Hogar & Diseño', (fuera.match(/opens: '/g) || []).length === 1 && /opens: 'home'/.test(fuera));
     check('12) y sin opens se abre la propia sección', /const startFlow = \(goal\?: string, preset\?: SpecialistAction\['preset'\], imageUri\?: string, opens\?: SpecialistAction\['opens'\]\)/.test(pantalla));
-    check('12) el orden de secciones pierde tres y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'\]/.test(specialists));
+    check('12) el orden de secciones pierde cuatro y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
   }
 
   // 13 a 15) El historial no se rompe y nadie acaba en Brain sin querer.
@@ -1391,7 +1391,7 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     const etiquetas = [...muro.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
     check('19) Studio tiene muro con tres pestañas', etiquetas.join('|') === 'Muro Studio|Cómo lo hicieron|Guardados', etiquetas.join('|'));
     check('19) con su compositor y su estado vacío', /Comparte una foto, un video o una pregunta…/.test(muro) && /Todavía no hay nada en el muro de Weë Studio/.test(muro));
-    check('20) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 3);
+    check('20) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 4);
     check('20) ni cuadrícula con imágenes', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'wide'/.test(bloque));
   }
 }
@@ -1552,10 +1552,10 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
 
   // 12 a 14) Identificadores, historial y las otras siete.
   check('12) photo y beauty siguen en ALL_EXPERIENCES', ['photo', 'beauty'].every((id) => exp.ALL_EXPERIENCES.some((e) => e.id === id)));
-  check('12) y no como secciones del menú', exp.WEE_EXPERIENCES.length === 8 && !exp.WEE_EXPERIENCES.some((e) => ['photo', 'beauty', 'home'].includes(e.id)));
+  check('12) y no como secciones del menú', exp.WEE_EXPERIENCES.length === 7 && !exp.WEE_EXPERIENCES.some((e) => ['photo', 'beauty', 'home', 'writer'].includes(e.id)));
   check('13) un trabajo histórico de Photo resuelve a Weë Photo', exp.getExperienceById('photo')?.name === 'Weë Photo');
   check('13) y uno de Beauty, a Weë Beauty', exp.getExperienceById('beauty')?.name === 'Weë Beauty');
-  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'writer', 'travel'\]/.test(specialists));
+  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
   {
     const fuera = specialists.replace(bloque, '');
     // Fuera de Studio solo Weë Design usa este mecanismo, y solo una vez (2E-56).
@@ -1579,7 +1579,7 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
   }
 
   // 18) Ni rastro de las viejas tarjetas.
-  check('18) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 3);
+  check('18) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 4);
   check('18) ni cuadrícula de imágenes', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'wide'|actionLayout: 'images'/.test(bloque));
 
   // Y la jerarquía existe de verdad en la cuadrícula, no solo en los datos.
@@ -2212,7 +2212,7 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   const experiencias = ts3.transpileModule(leer3('constants/weeExperiences.ts'), { compilerOptions: { module: ts3.ModuleKind.ESNext, target: ts3.ScriptTarget.ES2020 } }).outputText;
   const exp3 = await import('data:text/javascript;base64,' + Buffer.from(experiencias).toString('base64'));
   check('M6) Weë Travel está en el menú una sola vez', exp3.WEE_EXPERIENCES.filter((e) => e.id === 'travel').length === 1);
-  check('M6) y las ocho visibles son las mismas para los dos', exp3.WEE_EXPERIENCES.length === 8, String(exp3.WEE_EXPERIENCES.length));
+  check('M6) y las siete visibles son las mismas para los dos', exp3.WEE_EXPERIENCES.length === 7, String(exp3.WEE_EXPERIENCES.length));
 
   // 7) La navegación no cambió: cada uno sigue yendo a donde iba.
   check('M7) el cajón sigue cerrándose antes de navegar', /const after = \(fn: \(\) => void\)/.test(cajon) && /after\(\(\) => navigateRoot\('CreditStore'\)\)/.test(cajon));
@@ -2222,6 +2222,94 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   // 8) Inicio y Buscar son la única diferencia, y está explicada.
   check('M8) solo la barra tiene Inicio y Buscar', /label="Inicio"/.test(barra) && !/'Inicio'/.test(limpio(cajon)));
   check('M8) porque en el móvil los da la barra inferior', /barra inferior/.test(barra));
+}
+
+console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
+{
+  /*
+   * WEË WRITER DEJA DE SER UNA SECCIÓN Y PASA A SER UNA FUNCIÓN DE WEË STUDIO.
+   *
+   * Es la misma mudanza que ya hicieron Photo y Beauty: la experiencia se queda
+   * entera —identificador, plantilla, planes, historial, pantalla y editor— y lo
+   * único que cambia es por dónde se entra. Aquí se vigila que la mudanza sea
+   * completa y no quede a medias: ni dos puertas, ni una puerta que lleve a otro
+   * sitio, ni una función perdida por el camino.
+   */
+  const ts4 = require('typescript');
+  const leer4 = (p) => require('node:fs').readFileSync(path.resolve(here, '../../' + p), 'utf8');
+  const cajon = leer4('components/DrawerMenu.tsx');
+  const barra = leer4('components/Sidebar.tsx');
+  const barraCreator = leer4('components/creator/CreatorSidebar.tsx');
+  const especialistas = leer4('constants/specialists.ts');
+  const pantalla = leer4('screens/SpecialistScreen.tsx');
+  const jsExp = ts4.transpileModule(leer4('constants/weeExperiences.ts'), { compilerOptions: { module: ts4.ModuleKind.ESNext, target: ts4.ScriptTarget.ES2020 } }).outputText;
+  const expW = await import('data:text/javascript;base64,' + Buffer.from(jsExp).toString('base64'));
+
+  /* 1) Fuera del menú ☰ —y de las dos barras, que leen la misma fuente—. */
+  check('W1) Weë Writer ya no es una sección del menú', !expW.WEE_EXPERIENCES.some((e) => e.id === 'writer') && expW.HIDDEN_AS_SECTION.includes('writer'));
+  /*
+   * Ni el ☰ ni la barra lateral la nombran: las dos recorren `WEE_EXPERIENCES`,
+   * que ya no la trae. En la barra de escritorio queda su icono, pero eso es una
+   * tabla de consulta por identificador —ahí siguen también photo, beauty y
+   * home, escondidas desde antes—, no una entrada de menú: lo que se pinta sale
+   * de `SPECIALIST_ORDER`, y de ahí salió.
+   */
+  check('W1) y ninguna barra la escribe a mano',
+    !/writer/i.test(cajon) && !/writer/i.test(barra)
+    && (barraCreator.match(/writer/gi) || []).length === 1 && /^ {2}writer: '[^']+',$/m.test(barraCreator)
+    && ['photo', 'beauty', 'home'].every((id) => new RegExp(`^ {2}${id}: '[^']+',$`, 'm').test(barraCreator)));
+  check('W1) tampoco está en el orden de secciones con puerta propia',
+    /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(especialistas));
+
+  /* 2) Dentro del selector de Weë Studio, con el patrón que Studio ya usaba. */
+  const studio = especialistas.slice(especialistas.indexOf('  studio: {'), especialistas.indexOf('  business: {'));
+  check('W2) Weë Writer es una función del selector de Weë Studio',
+    /\{ id: 'writer', icon: '[^']+', emoji: '✍️', title: 'Writer',[^}]*opens: 'writer'/.test(studio));
+  check('W2) y la línea del selector la nombra', /gridHint: 'Fotos, videos, cambios de look y textos\.'/.test(studio));
+  /* Control: entra por el mismo camino que Beauty, no por una arquitectura nueva. */
+  check('W2) control: usa el mismo mecanismo que Beauty', /title: 'Beauty'[^}]*opens: 'beauty'/.test(studio) && /opens\?: SpecialistId;/.test(especialistas));
+
+  /*
+   * 3) Y abre la EXPERIENCIA QUE YA EXISTÍA. No su conversación: su pantalla, que
+   * es donde vive "Mis documentos", el historial de textos. Es la misma ruta a la
+   * que llevaba el menú.
+   */
+  check('W3) la tarjeta abre la pantalla de Weë Writer, no su conversación',
+    /opens: 'writer', opensSection: true/.test(studio)
+    && /if \(action\.opensSection && action\.opens\) \{\s*navigation\.navigate\('Specialist', \{ id: action\.opens \}\);/.test(pantalla));
+  check('W3) que es la misma ruta a la que llevaba el menú', /navigateRoot\('Specialist', \{ id: category \}\)/.test(cajon));
+  check('W3) y allí sigue estando "Mis documentos"',
+    /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla) && /navigation\.navigate\('WriterEditor'/.test(leer4('components/creator/WriterDocuments.tsx')));
+  /* Control: solo Writer usa esa marca; las tres áreas de Studio siguen entrando por la conversación. */
+  check('W3) control: las otras funciones no cambiaron de destino',
+    (especialistas.match(/opensSection: true/g) || []).length === 1
+    && /title: 'Fotos'[^}]*opens: 'photo'/.test(studio) && !/title: 'Fotos'[^}]*opensSection/.test(studio));
+
+  /*
+   * 4) UNA SOLA PUERTA. La experiencia no se ha duplicado: sigue habiendo un
+   * `writer` en el catálogo, una pantalla, un editor y una plantilla.
+   */
+  check('W4) no hay dos accesos independientes a Weë Writer',
+    expW.ALL_EXPERIENCES.filter((e) => e.id === 'writer').length === 1
+    && (especialistas.match(/^ {2}writer: \{/gm) || []).length === 1
+    && (leer4('navigation/MainStackNavigator.tsx').match(/name="WriterEditor"/g) || []).length === 1);
+  check('W4) y no se ha reimplementado en Weë Studio',
+    !/WriterEditor|WriterDocuments/.test(studio)
+    && require('node:fs').readdirSync(path.resolve(here, '../../screens')).filter((f) => /^Writer.*Screen\.tsx$/.test(f)).length === 1);
+
+  /*
+   * 5) Nada de lo que Weë Writer sabe hacer se ha escondido. El identificador
+   * resuelve, las palabras clave la encuentran y su nombre no cambia.
+   */
+  check('W5) el identificador sigue resolviendo a Weë Writer', expW.getExperienceById('writer')?.name === 'Weë Writer');
+  check('W5) sus palabras clave la siguen encontrando', expW.matchExperiences('escribir un guion').some((e) => e.id === 'writer'));
+  check('W5) y sigue firmando con su nombre propio', expW.experienceLabel(expW.getExperienceById('writer')) === 'Weë Writer');
+  /* Y el destino de publicación Weë Writer, intacto: sale de otra lista y no se tocó. */
+  const jsSec = ts4.transpileModule(leer4('utils/sectionFeed.ts'), { compilerOptions: { module: ts4.ModuleKind.ESNext, target: ts4.ScriptTarget.ES2020 } }).outputText;
+  const sec = await import('data:text/javascript;base64,' + Buffer.from(jsSec).toString('base64'));
+  const destinos = sec.destinosDisponibles();
+  check('W5) publicar en Weë Writer sigue siendo posible',
+    destinos.some((d) => d.id === 'writer' && d.nombre === 'Weë Writer'), destinos.map((d) => d.id).join(','));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Creator: entradas, planes, Brain, límites, errores y Video Engine en orden');

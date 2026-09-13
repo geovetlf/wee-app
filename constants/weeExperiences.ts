@@ -130,11 +130,18 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
 
 /**
  * Las que aparecen como sección en el menú ☰, en la barra lateral y en la
- * pantalla de Weë Creator. Photo y Beauty no están: se entra a ellas desde el
+ * pantalla que las reúne. Photo y Beauty no están: se entra a ellas desde el
  * selector de Weë Studio. Home tampoco: entra por el de Weë Design, donde se
- * llama Hogar & Diseño (fase 2E-56).
+ * llama Hogar & Diseño (fase 2E-56). Y Weë Writer tampoco: pasa a ser una
+ * función más del selector de Weë Studio.
+ *
+ * Esconder una sección no esconde NADA de lo que sabe hacer: sigue en
+ * `ALL_EXPERIENCES`, `getExperienceById` la resuelve, `matchExperiences` la
+ * encuentra por sus palabras, su plantilla y sus planes están intactos y sus
+ * trabajos históricos siguen abriendo donde abrían. Solo deja de tener puerta
+ * propia en el menú.
  */
-export const HIDDEN_AS_SECTION: string[] = ['photo', 'beauty', 'home'];
+export const HIDDEN_AS_SECTION: string[] = ['photo', 'beauty', 'home', 'writer'];
 
 export const WEE_EXPERIENCES: WeeExperience[] = ALL_EXPERIENCES.filter((e) => !HIDDEN_AS_SECTION.includes(e.id));
 
