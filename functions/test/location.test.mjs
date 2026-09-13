@@ -662,7 +662,6 @@ console.log('\n── Q · una publicación es del muro, venga de donde venga �
 {
   const almacen = leer('services/firestoreService.ts');
   const tarjeta = leer('components/PostCard.tsx');
-  const muroSeccion = leer('components/creator/SectionWall.tsx');
   const comunidad = leer('screens/CommunityScreen.tsx');
   const crear = leer('screens/CreateScreen.tsx');
 
@@ -678,7 +677,8 @@ console.log('\n── Q · una publicación es del muro, venga de donde venga �
   // 3) Las secciones y las comunidades FILTRAN el muro, no tienen el suyo.
   // Sigue filtrando el muro general, pero desde 2E-75 respeta los destinos que
   // la publicación eligió; las que no eligieron, por palabras clave como siempre.
-  check('Q) el muro de una sección filtra el general', /getPublicPostsPaginated/.test(muroSeccion) && /postsDeLaSeccion\(posts/.test(muroSeccion));
+  /* Ya no hay muro de sección; el reparto por destinos vive en `sectionFeed` y sigue en pie. */
+  check('Q) el reparto por destinos sigue vivo', /postsDeLaSeccion/.test(leer('utils/sectionFeed.ts')));
   check('Q) y el de una comunidad también parte de las mismas publicaciones', /postsService|getPosts/.test(comunidad));
   check('Q) ninguna sección tiene colección propia', !/collection\(db, '[a-z]+Posts'\)/.test(almacen));
 
@@ -731,7 +731,7 @@ console.log('\n── R · el contexto se lee, no se supone ──');
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── S · el muro no pide ubicación ni inventa cercanía ──');
 {
-  const muro = ['screens/LandingScreen.tsx', 'screens/HomeScreen.tsx', 'screens/WebLandingScreen.tsx', 'components/PostCard.tsx', 'components/WeeTag.tsx', 'screens/CreateScreen.tsx', 'components/creator/SectionWall.tsx', 'screens/CommunityScreen.tsx'];
+  const muro = ['screens/LandingScreen.tsx', 'screens/HomeScreen.tsx', 'screens/WebLandingScreen.tsx', 'components/PostCard.tsx', 'components/WeeTag.tsx', 'screens/CreateScreen.tsx', 'screens/CommunityScreen.tsx'];
   const textos = Object.fromEntries(muro.map((f) => [f, leer(f)]));
   const todo = Object.values(textos).join('\n');
 
@@ -791,8 +791,11 @@ console.log('\n── T · de dónde viene: declarado, no adivinado ──');
   check('T) y no crea una segunda publicación', (crear.match(/const postData/g) || []).length === 1);
   check('T) la comunidad no se duplica en el nuevo campo', !/sourceSection: 'comunidad'|sourceSection: communityId/.test(crear));
 
-  // El origen viaja desde donde nace la publicación.
-  check('T) el muro de una sección lo envía', /navigation\.navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(leer('components/creator/SectionWall.tsx')));
+  /*
+   * El origen viaja desde donde nace la publicación. El muro de sección lo
+   * enviaba con `sourceSection`; aquel muro se retiró y el campo sigue vivo,
+   * que es lo que importa: lo manda Weë Creator y lo guarda el compositor.
+   */
   check('T) y Weë Creator también, por su área', /sourceSection: EXPERIENCE_AREA\[experience\.id\]\?\.section \?\? experience\.id/.test(leer('screens/CreatorFlowScreen.tsx')));
   check('T) la ruta lo declara', /sourceSection\?: string;/.test(leer('navigation/MainStackNavigator.tsx')));
 }

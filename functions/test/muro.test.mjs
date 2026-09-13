@@ -263,13 +263,14 @@ console.log('\n── El muro no es una pila de tarjetas ──');
   check('14) las acciones siguen ahí, sin caja propia', /styles\.actions/.test(tarjeta) && /actions: \{\s*flexDirection: 'row',/.test(estilos) && !/actions: \{[\s\S]{0,160}(borderWidth|backgroundColor)/.test(estilos));
 
   /*
-   * 5) Quién es un muro. El Wall del Home —nativo y web— y el muro de cada
-   * sección de Weë, que es el mismo componente para las ocho.
+   * 5) Quién es un muro. Los dos del Wäll —nativo y web— y ninguno más: las
+   * secciones de Weë AI llegaron a tener el suyo y se retiró, porque el Wäll ya
+   * dice de qué experiencia viene cada publicación con su WeeTag.
    */
-  const MUROS = ['screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx', 'components/creator/SectionWall.tsx'];
+  const MUROS = ['screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx'];
   const sinVariante = MUROS.filter((f) => !/variante="muro"/.test(leer(f)));
-  check('15) los tres muros la piden', sinVariante.length === 0, sinVariante.join(' · '));
-  check('15) y el muro de sección vale para todas las secciones', /<SectionWall /.test(leer('screens/SpecialistScreen.tsx')) && /import PostCard from '\.\.\/PostCard'/.test(leer('components/creator/SectionWall.tsx')));
+  check('15) los dos muros la piden', sinVariante.length === 0, sinVariante.join(' · '));
+  check('15) y no hay más muros que esos dos', !/SectionWall/.test(leer('screens/SpecialistScreen.tsx')));
 
   /*
    * Y EL PERFIL WEË, que también es un muro: con esa identidad activa, la

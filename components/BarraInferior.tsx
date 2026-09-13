@@ -4,16 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTabBar } from '../contexts/TabBarContext';
-import { useUserProfile } from '../contexts/UserProfileContext';
-import AvatarDisplay from './avatars/AvatarDisplay';
 import { FONT_WEIGHT } from '../constants/design';
 import { scale } from '../utils/scale';
 
 /**
  * LA NAVEGACIÓN DE WEË. UNA SOLA, PARA TODA LA APLICACIÓN.
  *
- * Cinco destinos y ni uno más: Inicio, Buscar, Crear, WeeTalk y Perfil. Los
- * mismos de siempre, con las mismas rutas; lo que cambia es que ahora existe
+ * Cinco destinos y ni uno más: Inicio, Buscar, Crear, WeeTalk y Notificaciones.
+ * Los mismos de siempre, con las mismas rutas; lo que cambia es que ahora existe
  * UNA instancia para toda la experiencia —el Home, las experiencias de Weë, los
  * perfiles, las búsquedas— en vez de una barra que solo vivía dentro de las
  * pestañas y desaparecía en cuanto entrabas en Weë Travel o en una publicación.
@@ -41,7 +39,7 @@ import { scale } from '../utils/scale';
  * mismo que antes aunque el dibujo mida dos puntos menos.
  */
 
-export type DestinoId = 'Home' | 'Search' | 'Create' | 'Inbox' | 'Profile';
+export type DestinoId = 'Home' | 'Search' | 'Create' | 'Inbox' | 'Notifications';
 
 interface Destino {
   id: DestinoId;
@@ -50,13 +48,21 @@ interface Destino {
   iconoPuesto: keyof typeof Ionicons.glyphMap;
 }
 
-/** El orden es el de la barra y no cambia. */
+/**
+ * El orden es el de la barra y no cambia.
+ *
+ * El quinto dejó de ser Perfil y pasó a ser Notificaciones (fase 2E-77): la
+ * campana estaba arriba, en el encabezado, y bajó aquí. El Perfil no se ha ido
+ * a ninguna parte —su pantalla, su pila y sus rutas están intactas— y se sigue
+ * abriendo desde donde vive tu cuenta: el menú ☰ y la barra lateral, que ya
+ * ofrecían los dos perfiles.
+ */
 export const DESTINOS: Destino[] = [
   { id: 'Home', etiqueta: 'Inicio', icono: 'home-outline', iconoPuesto: 'home' },
   { id: 'Search', etiqueta: 'Buscar', icono: 'search-outline', iconoPuesto: 'search' },
   { id: 'Create', etiqueta: 'Crear', icono: 'add-circle-outline', iconoPuesto: 'add-circle' },
   { id: 'Inbox', etiqueta: 'WeeTalk', icono: 'chatbubble-outline', iconoPuesto: 'chatbubble' },
-  { id: 'Profile', etiqueta: 'Perfil', icono: 'person-outline', iconoPuesto: 'person' },
+  { id: 'Notifications', etiqueta: 'Notificaciones', icono: 'notifications-outline', iconoPuesto: 'notifications' },
 ];
 
 /** Lo que ocupa la barra por encima de la zona segura. Lo necesita quien reserve sitio. */
@@ -72,7 +78,6 @@ interface BarraInferiorProps {
 
 const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer = 0 }) => {
   const { theme } = useTheme();
-  const { userProfile } = useUserProfile();
   const { scrollProgress, isTransparent } = useTabBar();
   const insets = useSafeAreaInsets();
 
@@ -130,24 +135,12 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
           >
             <View style={styles.icono}>
               {/*
-                El perfil enseña tu cara cuando la hay: es tu sitio, y reconocerte
-                es más rápido que leer. Sin sesión, el icono de la familia.
+                Los cinco, con el mismo dibujo: contorno en reposo y relleno
+                cuando es el puesto. Aquí vivía el avatar del Perfil, que
+                enseñaba tu cara en vez de un icono; se fue con él cuando el
+                quinto destino pasó a ser Notificaciones.
               */}
-              {destino.id === 'Profile' && userProfile ? (
-                <View style={[styles.avatar, activo && { borderColor: theme.colors.accent, borderWidth: 2 }]}>
-                  <AvatarDisplay
-                    size={scale(22)}
-                    avatarType={userProfile.avatarType || 'predefined'}
-                    avatarId={userProfile.avatarId || 'male'}
-                    photoURL={userProfile.photoURL}
-                    photoURLThumbnail={userProfile.photoURLThumbnail}
-                    backgroundColor={theme.colors.accent}
-                    showBorder={false}
-                  />
-                </View>
-              ) : (
-                <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(26)} color={color} />
-              )}
+              <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(26)} color={color} />
 
               {destino.id === 'Inbox' && sinLeer > 0 && (
                 <View style={[styles.aviso, { backgroundColor: theme.colors.accent }]}>
@@ -189,10 +182,6 @@ const styles = StyleSheet.create({
   icono: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatar: {
-    borderRadius: scale(14),
-    padding: scale(1),
   },
   etiqueta: {
     fontSize: scale(10),

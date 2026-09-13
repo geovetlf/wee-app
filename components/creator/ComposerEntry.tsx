@@ -12,9 +12,10 @@ import { scale } from '../../utils/scale';
 /**
  * La puerta de publicar de Weë.
  *
- * Es la tarjeta que abre el compositor desde cualquier sitio: el Home, la
- * portada web y el muro de cada sección. Vivía escrita dentro de `SectionWall`
- * y se sacó aquí para poder ponerla en más sitios sin copiarla.
+ * Es la tarjeta que abre el compositor desde cualquier sitio: el Home y la
+ * portada web. Nació dentro del muro que cada sección de Weë AI tenía, y se sacó
+ * aquí para poder ponerla en más sitios sin copiarla; aquellos muros ya no
+ * existen —Weë tiene uno solo— y la tarjeta se quedó, que era lo que valía.
  *
  * NO PUBLICA NADA. Ninguno de sus controles escribe: todos llaman a `onCompose`
  * y quien la puso decide a dónde lleva. Cámara, Foto o vídeo, ËContact,

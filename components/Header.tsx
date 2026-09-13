@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, StatusBar, Text, Platform, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Pressable, StatusBar, Text, Platform, useWindowDimensions } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -8,9 +9,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { notificationService } from '../services/notificationService';
 import { SPACING, ICON_SIZE, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { DireccionDelGesto, maquinaDeLaPildora } from '../utils/gestoHorizontal';
 
 const isWeb = Platform.OS === 'web';
 
@@ -18,8 +19,6 @@ const isWeb = Platform.OS === 'web';
 const WEB_ICONS: Record<string, string> = {
   'arrow-back': '←',
   'menu-outline': '☰',
-  'notifications': '🔔',
-  'notifications-outline': '🔔',
   'eye': '👁️',
   'eye-off': '🙈',
   'storefront': '🏪',
@@ -36,16 +35,19 @@ const LEMA_DE_MARCA = 'Imagina · Crea · Conecta';
  * izquierda no se puede usar sin descentrar el logo. De ahí salen estas dos
  * medidas, que son las del lado derecho:
  *
- *  · con el selector de identidad puesto —píldora Real/Weë (76) + separación (8)
- *    + campana (28) + el margen de la fila (12)—, redondeado hacia arriba para
- *    que quede aire entre el lema y la píldora;
- *  · sin él, solo la campana y su margen.
+ *  · con el selector de identidad puesto —píldora Real/Weë (76) + el margen de
+ *    la fila (12)—, redondeado hacia arriba para que quede aire entre el lema y
+ *    la píldora. Antes sumaba también la campana y su separación: al irse la
+ *    campana al pie de la aplicación, ese sitio se le devuelve a la marca en
+ *    vez de quedarse como hueco;
+ *  · sin él, el sitio del botón de iniciar sesión, que es lo único que puede
+ *    haber a la derecha cuando no hay sesión.
  *
  * No es un punto de ruptura: es una resta con el ancho real, así que en un
  * teléfono estrecho la marca se ciñe sola —el logo mantiene su proporción y el
  * lema se ajusta— en vez de meterse debajo del selector.
  */
-const ANCHO_CON_SELECTOR = scale(126);
+const ANCHO_CON_SELECTOR = scale(90);
 const ANCHO_SIN_SELECTOR = scale(52);
 
 /*
@@ -74,7 +76,6 @@ const ALTO_DEL_LOGO = scale(36);
 const AIRE_DE_LA_MARCA = (LINEA_DEL_LOGO - ALTO_DEL_LOGO) / 2;
 
 interface HeaderProps {
-  onNotificationsPress?: () => void;
   onMenuPress?: () => void;
   onBackPress?: () => void;
   transparent?: boolean;
@@ -92,7 +93,7 @@ interface HeaderProps {
   conMarca?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBackPress, transparent, conMarca }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, conMarca }) => {
   const { theme, setThemeMode } = useTheme();
   const { user } = useAuth();
   const { hasWeeProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz } = useUserProfile();
@@ -104,17 +105,30 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
     anchoDePantalla - (conSelectorDeIdentidad ? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR) * 2
   );
 
+  /*
+   * Ir a una identidad CONCRETA, no "a la otra".
+   *
+   * `switchIdentity` alterna, y como solo hay dos estados alternar desde el que
+   * no eres siempre cae en el que pides. Lo que no puede salir de ahí es el
+   * TEMA: antes se calculaba con `activeProfileType`, y en dos cambios seguidos
+   * ese valor todavía era el viejo, así que la aplicación acababa en Perfil Weë
+   * con el tema claro. El tema sale del destino, que es lo único que se sabe
+   * seguro en ese momento.
+   */
+  const irAIdentidad = useCallback((destino: 'real' | 'hidi') => {
+    switchIdentity();
+    setThemeMode(destino === 'hidi' ? 'dark' : 'light');
+  }, [switchIdentity, setThemeMode]);
+
   const handleSwitchIdentity = () => {
     if (activeProfileType === 'biz') {
       // Biz -> Real
       switchToBiz();
       setThemeMode('light');
-    } else {
-      // Real <-> Perfil Weë
-      switchIdentity();
-      const nextType = activeProfileType === 'real' ? 'hidi' : 'real';
-      setThemeMode(nextType === 'hidi' ? 'dark' : 'light');
+      return;
     }
+    // Real <-> Perfil Weë
+    irAIdentidad(activeProfileType === 'real' ? 'hidi' : 'real');
   };
 
   /*
@@ -150,33 +164,143 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
     if (identidadPedida.current === activeProfileType) identidadPedida.current = null;
   }, [activeProfileType]);
 
-  const elegirIdentidad = (destino: 'real' | 'hidi') => {
-    if (activeProfileType === destino) return;
-    if (identidadPedida.current === destino) return;
+  /*
+   * Dónde estás A EFECTOS DE ELEGIR: lo último pedido si todavía está en
+   * camino, y si no, la identidad de verdad.
+   *
+   * Sin esto, tocar "Weë" y arrepentirse al instante no funcionaba: en el
+   * segundo toque `activeProfileType` seguía siendo `real` —el cambio aún no
+   * había llegado—, así que pedir `real` parecía pedir donde ya estabas y se
+   * descartaba. Se quedaba en Perfil Weë habiendo tocado Real el último.
+   */
+  const elegirIdentidad = useCallback((destino: 'real' | 'hidi') => {
+    const efectiva = identidadPedida.current ?? activeProfileType;
+    if (efectiva === destino) return;
     identidadPedida.current = destino;
-    handleSwitchIdentity();
+    irAIdentidad(destino);
+  }, [activeProfileType, irAIdentidad]);
+
+  /*
+   * ─── Y TAMBIÉN SE CAMBIA DESLIZANDO ───────────────────────────────────────
+   *
+   * La píldora se lee como un interruptor de dos posiciones, `[ Real ][ Weë ]`,
+   * y a un interruptor se le empuja HACIA el lado que se quiere. Deslizar hacia
+   * la derecha pide Weë, que es la mitad derecha; hacia la izquierda pide Real,
+   * que es la izquierda. El dedo va donde va la selección.
+   *
+   * Esto NO es el convenio de un carrusel —donde deslizar a la izquierda trae
+   * lo que está a la derecha—, y la distinción costó averiguarla: con el
+   * convenio de carrusel, todo gesto pedía la identidad que ya estaba puesta y
+   * parecía que el deslizamiento no funcionaba.
+   *
+   * ─── Cómo se llegó hasta aquí ───────────────────────────────────────────────
+   *
+   * Seis intentos no funcionaron en el teléfono, y conviene dejarlos escritos
+   * para que nadie los repita:
+   *
+   *  1. `PanResponder` en el contenedor.
+   *  2. Toques crudos (`onTouchStart`/`onTouchMove`) en el contenedor.
+   *  3. El contenedor como único responder, con la mitad tocada deducida de
+   *     `locationX`. Además rompió el TOQUE: `locationX` es relativo a la vista
+   *     TOCADA, no al contenedor.
+   *  4. Toques crudos en la propia mitad (`Pressable` con `onTouchMove`).
+   *  5. Negociación del responder en captura desde el contenedor, y
+   *     `onPressMove` + `touchHistory`.
+   *
+   * Los cinco compartían causa: el reconocimiento vivía en JavaScript y
+   * dependía de que los eventos de MOVIMIENTO llegaran hasta un manejador de
+   * JS, y en este aparato no llegan. El toque sí, y por eso funcionaba.
+   *
+   *  6. Gesture Handler, que reconoce el arrastre en código nativo desde los
+   *     `MotionEvent` de Android: esa parte sí funciona. Pero se preguntaba por
+   *     el recorrido en `onStart`, y ahí vale CERO, porque
+   *     `PanGestureHandler.activate()` llama a `resetProgress()` y reinicia su
+   *     `translationX` desde el punto de activación.
+   *
+   * ─── Lo que se hace ───────────────────────────────────────────────────────
+   *
+   * El reconocimiento lo hace Gesture Handler en nativo, y el origen del gesto
+   * se apunta AQUÍ, en coordenadas absolutas de pantalla, midiendo el recorrido
+   * siempre contra él. Así el umbral es el recorrido real del dedo y no depende
+   * de dónde ponga el reconocedor su cero.
+   *
+   *  · al posar el dedo se guarda el origen;
+   *  · en cada aviso con movimiento —`onStart`, `onUpdate` y los avisos crudos
+   *    `onTouchesMove`— se mide contra ese origen y se aplica la regla. Son tres
+   *    puertas a la MISMA máquina, que decide como mucho una vez por gesto: si
+   *    una no llega, sirve la siguiente, y no hay forma de decidir dos veces;
+   *  · un arrastre vertical no activa el gesto —`activeOffsetX` es la única vía
+   *    de activación, porque al fijarlo Gesture Handler pone `minDist` a
+   *    infinito— y, aunque lo activara, la regla pide más ancho que alto;
+   *  · y el toque de cada mitad sigue siendo el de siempre: si hubo
+   *    deslizamiento se consume, y si no, manda la mitad tocada.
+   */
+  const RECORRIDO_DEL_GESTO = 18;
+  /*
+   * Hacia la derecha, Weë; hacia la izquierda, Real. El identificador guardado
+   * del Perfil Weë es el heredado —lleva uid, reglas y publicaciones detrás— y
+   * no se renombra: lo que se lee en pantalla es "Weë".
+   */
+  const identidadDelGesto = (direccion: DireccionDelGesto) => (direccion === 'izquierda' ? 'real' : 'hidi');
+
+  /*
+   * Una máquina para las dos mitades, creada una sola vez: un gesto que
+   * empieza en Real y acaba sobre Weë es el mismo gesto. Avisa por una
+   * referencia porque `elegirIdentidad` cambia con la identidad puesta.
+   */
+  const alDeslizar = useRef<(direccion: DireccionDelGesto) => void>(() => {});
+  alDeslizar.current = (direccion) => elegirIdentidad(identidadDelGesto(direccion));
+  const maquinaRef = useRef<ReturnType<typeof maquinaDeLaPildora> | null>(null);
+  if (!maquinaRef.current) {
+    maquinaRef.current = maquinaDeLaPildora(RECORRIDO_DEL_GESTO, (direccion) => alDeslizar.current(direccion));
+  }
+  const maquina = maquinaRef.current;
+  const dedoDelGesto = (evento: any) => evento?.allTouches?.[0] ?? evento?.changedTouches?.[0];
+
+  /*
+   * El gesto, montado una sola vez.
+   *
+   *  · `activeOffsetX`: no se activa hasta que el dedo ha recorrido 18 puntos
+   *    a lo ancho. Un toque no recorre nada, así que nunca lo despierta.
+   *  · sin `activeOffsetY` ni `minDist` propios: al fijar `activeOffsetX`,
+   *    Gesture Handler pone `minDist` a infinito, y con eso lo ancho es la
+   *    ÚNICA vía de activación. Un arrastre vertical no lo activa.
+   *  · `shouldCancelWhenOutside(false)`: la píldora mide unos 90 puntos, así
+   *    que el dedo se sale de ella a media pasada; el gesto no se cancela.
+   *  · `runOnJS(true)`: aquí no hay Reanimated, y los avisos tienen que llegar
+   *    al hilo de JavaScript para poder cambiar de identidad.
+   */
+  const gestoDeLaPildora = useMemo(() => Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-RECORRIDO_DEL_GESTO, RECORRIDO_DEL_GESTO])
+    .shouldCancelWhenOutside(false)
+    .onTouchesDown((evento) => { const d = dedoDelGesto(evento); if (d) maquina.alEmpezarElGesto(d.absoluteX, d.absoluteY); })
+    .onTouchesMove((evento) => { const d = dedoDelGesto(evento); if (d) maquina.alSeguirElDedo(d.absoluteX, d.absoluteY); })
+    .onBegin((evento) => maquina.alEmpezarElGesto(evento.absoluteX, evento.absoluteY))
+    .onStart((evento) => maquina.alSeguirElDedo(evento.absoluteX, evento.absoluteY))
+    .onUpdate((evento) => maquina.alSeguirElDedo(evento.absoluteX, evento.absoluteY)),
+  [maquina, RECORRIDO_DEL_GESTO]);
+
+  /*
+   * El toque de cada mitad, el de siempre. La única pregunta delante: si este
+   * mismo gesto ya fue un deslizamiento, el toque se consume. En el teléfono
+   * ni siquiera llega —al activarse, Gesture Handler cancela los toques de
+   * React Native—, pero la máquina lo cubre igual, que es lo que hace que la
+   * regla no dependa de la plataforma.
+   */
+  const tocarMitad = (destino: 'real' | 'hidi') => {
+    if (maquina.alTocar()) elegirIdentidad(destino);
   };
   const { triggerScrollToTop } = useScroll();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Suscripción en tiempo real al conteo de notificaciones no leídas
-  useEffect(() => {
-    if (!user) {
-      setUnreadCount(0);
-      return;
-    }
-
-    const unsubscribe = notificationService.subscribeToUnreadCount(
-      user.uid,
-      (count) => {
-        setUnreadCount(count);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
+  /*
+   * Aquí vivía el contador de notificaciones sin leer, que solo servía para
+   * pintar el aviso de la campana. La campana se fue a la barra inferior y el
+   * contador con ella: el servicio que lo publica no se ha tocado, sigue en su
+   * sitio y con los mismos suscriptores.
+   */
 
   const handleLogoPress = () => {
     triggerScrollToTop();
@@ -300,6 +424,8 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
                   <Text style={[styles.switchButtonText, { color: transparent ? 'white' : '#7C3AED' }]}>Biz</Text>
                 </TouchableOpacity>
               ) : (
+                /* El deslizamiento se reconoce aquí, en código nativo; el toque sigue siendo de cada mitad. */
+                <GestureDetector gesture={gestoDeLaPildora}>
                 <View
                   style={[styles.selector, {
                     backgroundColor: transparent ? 'rgba(255,255,255,0.15)' : theme.colors.surface,
@@ -312,17 +438,26 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
                   ]).map((opcion) => {
                     const puesta = activeProfileType === opcion.id;
                     return (
-                      <TouchableOpacity
+                      /*
+                        Cada mitad es el mismo botón de siempre. No escucha
+                        movimientos ni negocia nada: si el gesto se activa, sus
+                        toques los cancela Gesture Handler por debajo.
+                      */
+                      <Pressable
                         key={opcion.id}
-                        style={[styles.selectorSegmento, puesta && { backgroundColor: theme.colors.accent }]}
-                        onPress={() => elegirIdentidad(opcion.id)}
-                        activeOpacity={puesta ? 1 : 0.7}
+                        onPress={() => tocarMitad(opcion.id)}
                         /* La pastilla es baja a propósito; el dedo la alcanza por fuera. */
                         hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
                         accessibilityRole="button"
                         accessibilityState={{ selected: puesta }}
                         aria-selected={puesta}
                         accessibilityLabel={puesta ? `${opcion.nombre}, activo` : `Cambiar al ${opcion.nombre}`}
+                        /* El atenuado del dedo encima, como lo daba la pastilla; la puesta no se atenúa. */
+                        style={({ pressed }) => [
+                          styles.selectorSegmento,
+                          puesta && { backgroundColor: theme.colors.accent },
+                          pressed && !puesta && styles.selectorSegmentoPulsado,
+                        ]}
                       >
                         <Text
                           style={[styles.selectorTexto, {
@@ -334,45 +469,23 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsPress, onMenuPress, onBa
                         >
                           {opcion.etiqueta}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     );
                   })}
                 </View>
+                </GestureDetector>
               )
             )}
 
-            {user ? (
-              // Usuario autenticado: mostrar notificaciones
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={onNotificationsPress}
-                activeOpacity={0.7}
-                /* La campana encoge de 24 a 20; el área que se toca no: se repone por fuera. */
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <View>
-                  {isWeb ? (
-                    <Text style={{ fontSize: 20, color: transparent ? 'white' : (unreadCount > 0 ? theme.colors.accent : theme.colors.text) }}>
-                      🔔
-                    </Text>
-                  ) : (
-                    <Ionicons
-                      name={unreadCount > 0 ? "notifications" : "notifications-outline"}
-                      size={ICON_SIZE.md}
-                      color={transparent ? 'white' : (unreadCount > 0 ? theme.colors.accent : theme.colors.text)}
-                    />
-                  )}
-                  {unreadCount > 0 && (
-                    <View style={[styles.badge, { backgroundColor: theme.colors.accent }]}>
-                      <Text style={styles.badgeText}>
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ) : (
-              // Usuario no autenticado: mostrar botón de iniciar sesión
+            {/*
+              La campana se fue al pie de la aplicación (fase 2E-77).
+              Notificaciones es ahora el quinto destino de la barra inferior,
+              junto a Inicio, Buscar, Crear y WeeTalk, y se llega a la MISMA
+              pantalla de siempre. Aquí no queda ni el icono ni su hueco: con
+              sesión, a la derecha solo está el selector de identidad.
+            */}
+            {!user && (
+              // Sin sesión: el botón de entrar, como siempre
               <TouchableOpacity
                 style={[styles.loginButton, { backgroundColor: theme.colors.accent }]}
                 onPress={handleLoginPress}
@@ -538,34 +651,15 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   /*
-   * La separación entre el selector de identidad y la campana. Ocho, no
-   * dieciséis: en 375 puntos esos ocho son los que le faltaban a la píldora
-   * Real/Weë para no acercarse al lema. Siguen siendo dos controles distintos y
-   * cada uno conserva su tamaño y su área de toque.
+   * El lado derecho del encabezado. Desde que la campana se fue a la barra
+   * inferior aquí hay UN control —el selector de identidad, o el botón de
+   * entrar cuando no hay sesión—, así que la separación ya no separa nada; se
+   * queda por si algún día vuelve a haber dos.
    */
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-  },
-  actionButton: {
-    padding: SPACING.xs,
-  },
-  badge: {
-    position: 'absolute',
-    top: -scale(4),
-    right: -scale(6),
-    minWidth: scale(18),
-    height: scale(18),
-    borderRadius: scale(9),
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: scale(4),
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: scale(10),
-    fontWeight: FONT_WEIGHT.bold,
   },
   switchButton: {
     flexDirection: 'row',
@@ -599,6 +693,10 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  /* El atenuado del dedo encima: lo mismo que daba `activeOpacity` en la pastilla. */
+  selectorSegmentoPulsado: {
+    opacity: 0.7,
   },
   selectorTexto: {
     fontSize: FONT_SIZE.xs,

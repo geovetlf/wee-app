@@ -26,6 +26,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
+import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
 import { communityService, Community } from '../services/communityService';
 import { useCommunities } from '../hooks/useCommunities';
 import { postsService, Post } from '../services/firestoreService';
@@ -74,6 +75,7 @@ const LandingScreen: React.FC = () => {
   const { userProfile, hasWeeProfile } = useUserProfile();
   const { onScroll: reportarScroll } = useScrollDeBarra();
   const { scrollToTopTrigger, refreshTrigger } = useScroll();
+  const { abrirComentarios } = useComentariosDeLaPublicacion();
   const navigation = useNavigation<LandingScreenNavigationProp>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
@@ -394,11 +396,15 @@ const LandingScreen: React.FC = () => {
     abrirElVisor();
   }, [openWeelsParam, videosLoading, abrirElVisor, navigation]);
 
+  /*
+   * Comentar abre la conversación AQUÍ, en una hoja que sube desde abajo, en
+   * vez de llevarte a la pantalla de la publicación. Tocar la publicación sigue
+   * abriéndola entera: son dos intenciones distintas y ahora hacen dos cosas
+   * distintas.
+   */
   const handleComment = (postId: string) => {
     const post = feedPosts.find(p => p.id === postId);
-    if (post) {
-      handlePostPress(post);
-    }
+    if (post) abrirComentarios(post);
   };
 
   const handlePrivateMessage = (userId: string, userData?: any) => {
@@ -431,14 +437,6 @@ const LandingScreen: React.FC = () => {
     }
   };
 
-
-  const handleNotificationsPress = () => {
-    if (!user) {
-      handleRegister();
-      return;
-    }
-    navigation.navigate('Notifications' as any);
-  };
 
   // Lo primero del Home: tu cara, tu nombre y la lupa. Nada encima del muro.
   const renderHero = () => <HomeGreeting onSearch={irABuscar} />;
@@ -1039,7 +1037,7 @@ const LandingScreen: React.FC = () => {
         style={[styles.headerOverlay, { pointerEvents: 'box-none' }]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
-        <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} conMarca />
+        <Header onMenuPress={() => setDrawerVisible(true)} conMarca />
       </View>
       {/* StatusBar — after Headers so it takes precedence */}
       <StatusBar

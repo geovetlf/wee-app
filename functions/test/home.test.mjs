@@ -11,7 +11,7 @@
  *     destinos, el muro seguiría enseñando publicaciones y nadie lo notaría
  *     hasta que alguien buscara las suyas de Weë Travel y no estuvieran;
  *  2. los filtros por tipo de contenido, que NO cambiaron. Las paredes de cada
- *     experiencia (`components/creator/SectionWall.tsx`) siguen pidiendo
+ *     experiencia —ya retiradas— pedían
  *     "imágenes" y "tutoriales", y ya se rompieron una vez al tocar este mismo
  *     archivo. Aquí se vigila que las dos familias convivan.
  *
@@ -198,9 +198,15 @@ console.log('\n── C · Los filtros por tipo de contenido no se movieron ─�
    * apuntando al reparto por secciones, "imágenes" no distinguiría nada.
    */
   check('13) control: no son el mismo filtro', filterPosts !== filtros.filterBySection);
-  const muroSeccion = leer('components/creator/SectionWall.tsx');
-  check('14) la pared de cada experiencia sigue pidiendo tipos de contenido', /filterPosts\(mine, 'images'\)/.test(muroSeccion));
-  check('15) y no usa las pastillas del Home', !/HOME_SECTION_FILTERS|filterBySection/.test(muroSeccion));
+  /*
+   * El filtro por tipo de contenido lo usaban las paredes de cada experiencia.
+   * Esas paredes se retiraron —Weë tiene un solo muro— y la función se queda:
+   * sigue siendo una forma válida de acotar y no la usa nadie por error.
+   */
+  check('14) el filtro por tipo sigue existiendo y separado del de secciones',
+    typeof filterPosts === 'function' && filterPosts !== filtros.filterBySection);
+  check('15) y las pastillas del Home son las únicas que reparten por sección',
+    /HOME_SECTION_FILTERS/.test(leer('screens/LandingScreen.tsx')) && !/SectionWall/.test(leer('screens/SpecialistScreen.tsx')));
 }
 
 console.log('\n── D · El Home abre diciendo quién eres ──');
@@ -482,7 +488,6 @@ console.log('\n── I · El refinamiento visual ──');
   const fila = leer('components/WeelsRow.tsx');
   const nativo = leer('screens/LandingScreen.tsx');
   const web = leer('screens/WebLandingScreen.tsx');
-  const muroSeccion = leer('components/creator/SectionWall.tsx');
   const publicacion = leer('components/PostCard.tsx');
 
   /*
@@ -525,13 +530,12 @@ console.log('\n── I · El refinamiento visual ──');
    * estaban. Si esto fallara, el rediseño se habría salido del Home.
    */
   /*
-   * Se mira la ETIQUETA del compositor, no el archivo entero: el muro también
-   * pinta publicaciones, y desde el rediseño del Wall esas sí llevan variante.
-   * Lo que se vigila aquí es que la barra de publicar del muro no pida la del
-   * Home, que es lo que le quitaría el avatar.
+   * La variante del Home es la que cambia el avatar por el "+". Es OPCIONAL, y
+   * ese es el control: quien no la pide —hoy nadie más, antes los muros de
+   * sección— conserva el avatar sin tener que decir nada.
    */
-  const composerDelMuro = (muroSeccion.match(/<ComposerEntry[^/]*\/>/) || [''])[0];
-  check('53) control: los muros de sección siguen con su avatar', !/variante/.test(composerDelMuro), composerDelMuro.slice(0, 90));
+  check('53) control: la variante es opcional, y sin ella se conserva el avatar',
+    /variante\?: /.test(leer('components/creator/ComposerEntry.tsx')));
 
   /*
    * WEËLS COMPACTOS: menos cosas encima de cada miniatura.
@@ -540,20 +544,27 @@ console.log('\n── I · El refinamiento visual ──');
   check('55) ni cuentas de visitas', /!compacta && typeof post\.views/.test(fila));
   check('56) ni emoji ni duración', /\{!compacta && <Text style=\{styles\.sampleEmoji/.test(fila) && /\{!compacta && <Text style=\{styles\.duration/.test(fila));
   /*
-   * El título iba a la misma altura que la marca de Weë y a 74 puntos de ancho
-   * se escribían uno encima del otro. Apilados caben los dos.
+   * NI MARCA DE WEË ENCIMA DE LA MINIATURA (fase 2E-78).
+   *
+   * Abajo a la derecha de cada tarjeta iba una pastilla con la W y la palabra
+   * "Weë". A 74 u 92 puntos ese sello tapaba parte del fotograma, que es lo
+   * único que ayuda a decidir si un vídeo interesa, así que se fue de la fila.
+   * No es la marca de agua del producto —la que viaja dentro del vídeo al
+   * compartirlo fuera de Weë—, que no se ha tocado.
    */
+  check('57) la miniatura no lleva la marca de Weë encima',
+    !/watermark/i.test(fila) && !/<Watermark/.test(fila));
+  /* Y lo que sí lleva sigue donde estaba: play, título y visitas, sin moverse. */
   const alturaDe = (nombre) => {
     const m = new RegExp(nombre + ': \\{[^}]*bottom: scale\\((\\d+)\\)').exec(fila);
     return m ? Number(m[1]) : null;
   };
-  const marca = alturaDe('watermark');
-  const titulo = alturaDe('sampleLabel');
-  const visitas = alturaDe('views');
-  check('57) el título no se escribe encima de la marca', marca !== null && titulo !== null && titulo > marca,
-    `título a ${titulo}, marca a ${marca}`);
-  check('58) y las visitas tampoco', marca !== null && visitas !== null && visitas > marca,
-    `visitas a ${visitas}`);
+  check('58) el play, el título y las visitas siguen igual',
+    /<PlayCircle \/>/.test(fila) && alturaDe('sampleLabel') === 24 && alturaDe('views') === 24,
+    `título a ${alturaDe('sampleLabel')}, visitas a ${alturaDe('views')}`);
+  /* Control: la marca de agua del vídeo compartido sigue existiendo, aparte de esto. */
+  check('58) control: la marca de agua del vídeo compartido no se tocó',
+    /watermark/i.test(leer('services/videoDownload.ts')));
 
   /*
    * PASTILLAS: bajas de altura, cómodas de tocar.
@@ -634,24 +645,25 @@ console.log('\n── J · El selector de identidad ──');
    * LO QUE HACE NO CAMBIÓ. Tocar el lado apagado llama al mismo
    * `handleSwitchIdentity` de siempre; tocar el encendido no hace nada.
    */
-  check('74) tocar donde ya estás no hace nada', /if \(activeProfileType === destino\) return;/.test(cabecera));
+  check('74) tocar donde ya estás no hace nada', /const efectiva = identidadPedida\.current \?\? activeProfileType;\s*if \(efectiva === destino\) return;/.test(cabecera));
   /*
-   * El cuerpo de `elegirIdentidad`: comprueba, y si procede llama al cambio de
-   * siempre. Se mira el cuerpo entero, no una ventana de caracteres: al añadirle
-   * la guarda de toques repetidos, una ventana fija se quedó corta y falló sin
-   * que nada estuviera mal.
+   * El cuerpo de `elegirIdentidad`: comprueba, y si procede pide el destino. Se
+   * mira el cuerpo entero, no una ventana de caracteres: al añadirle la guarda
+   * de toques repetidos, una ventana fija se quedó corta y falló sin que nada
+   * estuviera mal.
    */
-  const elegir = /const elegirIdentidad = \(destino: 'real' \| 'hidi'\) => \{[\s\S]*?\n  \};/.exec(cabecera);
-  check('75) y el cambio sigue siendo el de siempre', !!elegir && /handleSwitchIdentity\(\);/.test(elegir[0]));
+  const elegir = /const elegirIdentidad = useCallback\(\(destino: 'real' \| 'hidi'\) => \{[\s\S]*?\n  \}, \[activeProfileType, irAIdentidad\]\);/.exec(cabecera);
+  check('75) y el cambio sigue siendo el de siempre', !!elegir && /irAIdentidad\(destino\);/.test(elegir[0]));
   /*
-   * Control: la función que cambia de identidad está intacta, letra por letra.
-   * Si alguien la tocara al rediseñar el selector, esto se caería —que es justo
-   * lo que esta fase no podía permitirse.
+   * Control: la función que cambia de identidad está intacta. Sigue llamando a
+   * `switchIdentity` y a `switchToBiz`, y el tema sale del DESTINO —no de
+   * `activeProfileType`, que en dos cambios seguidos todavía es el viejo y
+   * dejaba el Perfil Weë con el tema claro—.
    */
   const cambio = /const handleSwitchIdentity = \(\) => \{[\s\S]*?\n  \};/.exec(cabecera);
   check('76) control: la lógica de cambio no se tocó',
-    !!cambio && /switchToBiz\(\);/.test(cambio[0]) && /switchIdentity\(\);/.test(cambio[0])
-      && /setThemeMode\(nextType === 'hidi' \? 'dark' : 'light'\)/.test(cambio[0]));
+    !!cambio && /switchToBiz\(\);/.test(cambio[0]) && /irAIdentidad\(activeProfileType === 'real' \? 'hidi' : 'real'\);/.test(cambio[0])
+      && /const irAIdentidad = useCallback\(\(destino: 'real' \| 'hidi'\) => \{\s*switchIdentity\(\);\s*setThemeMode\(destino === 'hidi' \? 'dark' : 'light'\);/.test(cabecera));
   check('77) el modo Biz conserva su pastilla', /activeProfileType === 'biz' \? \([\s\S]{0,400}styles\.switchButton/.test(cabecera));
 
   /* Cada mitad se anuncia y se toca cómoda: 24 puntos de alto más 10 por lado. */
@@ -675,7 +687,7 @@ console.log('\n── K · La última pasada del Home ──');
   check('81) en el Home no hay carita robando sitio', /!compact && variante !== 'home' && <Ionicons name="happy-outline"/.test(puerta));
   check('82) y la tarjeta es más baja', /composerHome: \{\s*paddingVertical: SPACING\.sm,/.test(puerta));
   /* Control: en los muros de sección la frase es corta y la carita sigue ahí. */
-  check('83) control: los muros de sección no cambian', !/variante/.test((leer('components/creator/SectionWall.tsx').match(/<ComposerEntry[^/]*\/>/) || [''])[0]));
+  check('83) control: la variante es opcional, así que quien no la pide no cambia', /variante\?: /.test(leer('components/creator/ComposerEntry.tsx')));
 
   /*
    * Un mismo sitio, un mismo nombre. La fila se llama Ẅells y es la única que
@@ -753,16 +765,314 @@ console.log('\n── L · La transición Real ↔ Weë ──');
    * Un toque, un cambio. Dos toques seguidos en el mismo lado pedirían el mismo
    * destino dos veces y el segundo desharía el primero.
    */
-  check('99) un toque repetido no cambia dos veces', /if \(identidadPedida\.current === destino\) return;/.test(cabecera));
-  check('100) y arrepentirse al instante sigue funcionando', /identidadPedida = useRef<'real' \| 'hidi' \| null>/.test(cabecera));
   /*
-   * Control: la identidad no se tocó. Esta fase era de presentación; si
-   * `handleSwitchIdentity` hubiera cambiado, esto se cae.
+   * Un toque, un cambio. Dos toques seguidos en el mismo lado pedirían el mismo
+   * destino dos veces y el segundo desharía el primero. La comparación es
+   * contra lo ÚLTIMO PEDIDO, no contra la identidad de verdad: durante la
+   * transición esa todavía es la vieja, y comparar con ella se comía el
+   * arrepentimiento —tocar Weë y volver a Real al instante se quedaba en Weë—.
    */
-  const cambio = /const handleSwitchIdentity = \(\) => \{[\s\S]*?\n  \};/.exec(cabecera);
-  check('101) control: la lógica de identidad sigue intacta',
-    !!cambio && /switchIdentity\(\);/.test(cambio[0]) && /switchToBiz\(\);/.test(cambio[0])
-      && /setThemeMode\(nextType === 'hidi' \? 'dark' : 'light'\)/.test(cambio[0]));
+  check('99) un toque repetido no cambia dos veces', /const efectiva = identidadPedida\.current \?\? activeProfileType;/.test(cabecera));
+  check('100) y arrepentirse al instante sigue funcionando',
+    /identidadPedida = useRef<'real' \| 'hidi' \| null>/.test(cabecera)
+    && !/if \(activeProfileType === destino\) return;/.test(cabecera));
+
+  /*
+   * ─── Y TAMBIÉN SE CAMBIA DESLIZANDO (fase 2E-79) ───────────────────────────
+   *
+   * A la píldora se le da al lado o se le empuja. El gesto se reclama por
+   * movimiento, nunca al empezar el toque, y de ahí salen las tres garantías:
+   * un toque no mueve el dedo y sigue siendo un toque; un gesto vertical no se
+   * reclama y se queda para el scroll de debajo; y solo cuenta si el dedo
+   * empezó sobre la píldora, porque un PanResponder solo ve lo que nace en su
+   * vista.
+   */
+  /*
+   * Con los toques CRUDOS, que es el mecanismo con el que ya funcionan en el
+   * teléfono el gesto de volver del visor y el carrusel del Home. No con
+   * `PanResponder`: su `onResponderGrant` pone `dx` a cero justo antes de
+   * avisar, así que el sentido del gesto se leía siempre como "derecha" y,
+   * estando en Real, pedir Real no hacía nada. Eso es lo que no funcionaba en
+   * el aparato.
+   */
+  /*
+   * EL DESLIZAMIENTO SE RECONOCE FUERA DE JAVASCRIPT, Y VA HACIA DONDE VA EL DEDO.
+   *
+   * Cinco intentos no funcionaron en el teléfono —`PanResponder`, toques crudos
+   * en el contenedor, el contenedor como responder (que además rompió el toque
+   * leyendo `locationX`), toques crudos en la mitad, y la negociación en
+   * captura con `onPressMove`/`touchHistory`—, y todos compartían la misma
+   * causa: el reconocimiento vivía en JS y dependía de que los eventos de
+   * MOVIMIENTO llegaran a un manejador de JavaScript. En ese aparato no llegan.
+   *
+   * El sexto trajo a Gesture Handler, que reconoce en nativo, y ahí sí llegaba;
+   * lo que fallaba entonces era medir el recorrido en `onStart`, donde vale
+   * cero porque `activate()` reinicia la traslación. Y una vez arreglado eso,
+   * quedó lo último: el MAPEO iba al revés que el control. La píldora es un
+   * interruptor `[ Real ][ Weë ]` y el dedo tiene que ir HACIA la mitad que se
+   * quiere, no al contrario.
+   */
+  const utilGesto = leer('utils/gestoHorizontal.ts');
+  /* Sin notas: la cabecera cuenta su propia historia y nombra lo que ya no usa. */
+  const sinNotas = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  const codigo = sinNotas(cabecera) + sinNotas(utilGesto);
+  const mitad = /<Pressable\s*\n\s*key=\{opcion\.id\}[\s\S]{0,2200}?<\/Pressable>/.exec(cabecera)?.[0] ?? '';
+  check('102) cada mitad sigue siendo el mismo botón, con su toque de siempre',
+    mitad.length > 0 && /onPress=\{\(\) => tocarMitad\(opcion\.id\)\}/.test(mitad)
+    && /hitSlop=\{\{ top: 10, bottom: 10, left: 4, right: 4 \}\}/.test(mitad));
+  check('102) y el deslizamiento lo reconoce Gesture Handler, envolviendo la píldora entera',
+    /import \{ Gesture, GestureDetector \} from 'react-native-gesture-handler';/.test(cabecera)
+    && /<GestureDetector gesture=\{gestoDeLaPildora\}>\s*\n\s*<View\s*\n\s*style=\{\[styles\.selector,/.test(cabecera)
+    && /const gestoDeLaPildora = useMemo\(\(\) => Gesture\.Pan\(\)/.test(cabecera)
+    /* En el hilo de JS: aquí no hay Reanimated, y el cambio de identidad es de React. */
+    && /\.runOnJS\(true\)/.test(cabecera));
+  check('102) control: ninguna de las cinco vías anteriores queda en pie',
+    !/PanResponder|panHandlers|location[XY]|touchHistory|onPressMove|onTouch(Start|Move|End|Cancel)|ShouldSetResponder|onResponderMove/.test(codigo));
+  check('102) control: Gesture Handler ya estaba en el proyecto; no se añade ninguna dependencia',
+    /"react-native-gesture-handler":/.test(leer('package.json')) && /import 'react-native-gesture-handler';/.test(leer('index.ts')));
+  check('102) control: las mitades siguen siendo Pressable, no TouchableOpacity',
+    !/<TouchableOpacity[\s\S]{0,200}styles\.selectorSegmento/.test(cabecera) && /import \{[^}]*Pressable[^}]*\} from 'react-native'/.test(cabecera));
+  check('103) el umbral son 18 puntos, y es el mismo para activar y para decidir',
+    /const RECORRIDO_DEL_GESTO = 18;/.test(cabecera)
+    && /\.activeOffsetX\(\[-RECORRIDO_DEL_GESTO, RECORRIDO_DEL_GESTO\]\)/.test(cabecera)
+    && /maquinaDeLaPildora\(RECORRIDO_DEL_GESTO,/.test(cabecera));
+  check('103) y se pide más recorrido a lo ancho que a lo alto',
+    /if \(Math\.abs\(dx\) < recorridoMinimo\) return null;\s*if \(Math\.abs\(dx\) <= Math\.abs\(dy\)\) return null;/.test(utilGesto));
+  /* Solo distancia: sin velocidad mínima, un deslizamiento lento vale igual que uno rápido. */
+  check('103) el gesto no mira la velocidad: lento y rápido valen igual',
+    !/minVelocity/.test(codigo) && /\.shouldCancelWhenOutside\(false\)/.test(cabecera));
+  /*
+   * EL DEDO VA HACIA LA MITAD QUE SE QUIERE. La píldora se pinta `[ Real ][ Weë ]`,
+   * así que deslizar a la derecha pide Weë y a la izquierda pide Real. No es el
+   * convenio de un carrusel —donde deslizar a la izquierda trae lo de la
+   * derecha—, y confundirlos hacía que todo gesto pidiera la identidad que ya
+   * estaba puesta y pareciera que el deslizamiento no funcionaba.
+   */
+  check('103) el dedo va hacia la mitad que se quiere: derecha → Weë, izquierda → Real',
+    /const identidadDelGesto = \(direccion: DireccionDelGesto\) => \(direccion === 'izquierda' \? 'real' : 'hidi'\);/.test(cabecera)
+    && /return dx < 0 \? 'izquierda' : 'derecha';/.test(utilGesto));
+  /* Y el orden en pantalla es el que sostiene ese mapeo: Real a la izquierda, Weë a la derecha. */
+  check('103) control: el orden pintado es Real y luego Weë',
+    /\{ id: 'real' as const, etiqueta: 'Real', nombre: 'Perfil Real' \},\s*\n\s*\{ id: 'hidi' as const, etiqueta: 'Weë', nombre: 'Perfil Weë' \},/.test(cabecera));
+  /*
+   * EL RECORRIDO SE MIDE CONTRA UN ORIGEN PROPIO, no contra el `translationX`
+   * de Gesture Handler. Al activarse, el reconocedor de Android llama a
+   * `resetProgress()` y pone su traslación a cero desde el punto de activación,
+   * así que en `onStart` vale ~0 y un umbral de 18 no se cumple jamás.
+   */
+  check('103) el recorrido se mide contra el origen apuntado al posar el dedo',
+    /alEmpezarElGesto\(x: number, y: number\): void \{\s*origen = \{ x, y \};\s*deslizado = false;/.test(utilGesto)
+    && /const recorrido = \{ dx: x - origen\.x, dy: y - origen\.y \};/.test(utilGesto)
+    && /if \(!origen\) return null;/.test(utilGesto));
+  /* Las notas de los dos archivos SÍ lo nombran, para explicar por qué no se usa. */
+  check('103) control: ya no se decide con el translationX del reconocedor',
+    !/translationX/.test(codigo) && /translationX/.test(cabecera + utilGesto));
+  /* Una sola vez por gesto: el segundo aviso del mismo gesto sale por la primera línea. */
+  check('103) decide una vez por gesto',
+    /if \(deslizado\) return recorrido;/.test(utilGesto)
+    && /deslizado = true;\s*alDeslizar\(direccion\);/.test(utilGesto));
+  /*
+   * Y el toque no deshace el gesto. En Android ni llega —al activarse, Gesture
+   * Handler cancela los toques de React Native—, pero la máquina lo consume
+   * igual: así la regla no depende de la plataforma.
+   */
+  check('103) tras un deslizamiento, el toque se consume y no deshace nada',
+    /alTocar\(\): boolean \{\s*if \(deslizado\) \{\s*deslizado = false;\s*return false;\s*\}\s*return true;/.test(utilGesto)
+    && /if \(maquina\.alTocar\(\)\) elegirIdentidad\(destino\);/.test(cabecera));
+  /* Cada mitad sigue anunciándose como botón, con su estado. */
+  check('103) las mitades siguen anunciándose y siendo pulsables',
+    /accessibilityRole="button"/.test(mitad) && /accessibilityState=\{\{ selected: puesta \}\}/.test(mitad) && /aria-selected=\{puesta\}/.test(mitad));
+  /*
+   * SIN DESFASE: el gesto y el toque entran por la MISMA puerta, y esa puerta
+   * cambia la única fuente de verdad. La píldora no guarda ningún estado suyo:
+   * cada mitad se pinta leyendo `activeProfileType`, así que no puede ir por
+   * detrás del contenido.
+   */
+  check('104) el gesto y el toque piden lo mismo por la misma puerta',
+    /* Dos llamadas y solo dos: la del deslizamiento y la del toque. */
+    (cabecera.match(/elegirIdentidad\(/g) || []).length === 2
+    && /alDeslizar\.current = \(direccion\) => elegirIdentidad\(identidadDelGesto\(direccion\)\);/.test(cabecera)
+    && /if \(maquina\.alTocar\(\)\) elegirIdentidad\(destino\);/.test(cabecera));
+  check('104) y la píldora no tiene estado propio: lee la identidad de verdad',
+    /const puesta = activeProfileType === opcion\.id;/.test(cabecera)
+    && !/useState<'real' \| 'hidi'>/.test(cabecera));
+  /*
+   * El cambio se pide mientras el dedo se mueve, no al levantarlo. Y se escucha
+   * en las TRES puertas que pueden traer movimiento —los avisos crudos, la
+   * activación y las actualizaciones—, todas contra el mismo origen y con la
+   * misma máquina detrás, que decide como mucho una vez.
+   */
+  check('104) el cambio ocurre mientras el dedo se mueve, por las tres puertas',
+    /\.onTouchesMove\(\(evento\) => \{ const d = dedoDelGesto\(evento\); if \(d\) maquina\.alSeguirElDedo\(d\.absoluteX, d\.absoluteY\); \}\)/.test(cabecera)
+    && /\.onStart\(\(evento\) => maquina\.alSeguirElDedo\(evento\.absoluteX, evento\.absoluteY\)\)/.test(cabecera)
+    && /\.onUpdate\(\(evento\) => maquina\.alSeguirElDedo\(evento\.absoluteX, evento\.absoluteY\)\)/.test(cabecera));
+  check('104) y el origen se apunta al posar el dedo, en las dos puertas de inicio',
+    /\.onTouchesDown\(\(evento\) => \{ const d = dedoDelGesto\(evento\); if \(d\) maquina\.alEmpezarElGesto\(d\.absoluteX, d\.absoluteY\); \}\)/.test(cabecera)
+    && /\.onBegin\(\(evento\) => maquina\.alEmpezarElGesto\(evento\.absoluteX, evento\.absoluteY\)\)/.test(cabecera));
+  /* Y al terminar NO se decide nada: ahí es donde el toque tiene que poder mandar. */
+  check('104) control: al terminar el gesto no se decide nada',
+    !/\.onEnd\(/.test(cabecera) && !/\.onFinalize\(/.test(cabecera));
+  /*
+   * Y NO QUEDA NADA DEL DIAGNÓSTICO. Hizo falta para encontrar todo esto —el
+   * rastro en pantalla, los registros de cada etapa, las coordenadas en
+   * crudo—, y se fue entero con él: ni franja, ni registros, ni estado propio.
+   */
+  check('105) control: no queda ni rastro de la instrumentación temporal',
+    !/WEE_GESTURE_DEBUG|console\.log|__DEV__|diagnostico|Diagnostico|rastro|lineaDe|registrarCoordenadas|fisicaDe|conSigno/.test(cabecera)
+    && !/TOUCHES_DOWN|TOUCHES_MOVE|STATE_BEFORE|STATE_AFTER|CHANGE_REQUEST|THRESHOLD|COORDS/.test(cabecera)
+    && !/useState/.test(cabecera) && !/console\./.test(utilGesto));
+  /*
+   * Control: esto es SOLO el selector del encabezado. Ni el Home ni sus
+   * pantallas recuperan un pager, y el gesto no vive en ninguna de las dos.
+   */
+  check('105) control: no vuelve ningún pager al Home',
+    !/PanResponder|panHandlers|onTouchStart/.test(leer('screens/LandingScreen.tsx'))
+    && !/PanResponder|panHandlers|onTouchStart/.test(leer('screens/WebLandingScreen.tsx')));
+}
+
+console.log('\n── M2 · El gesto de la píldora, recorrido de verdad ──');
+{
+  /*
+   * ESTO NO SE LEE: SE EJECUTA.
+   *
+   * La versión anterior del gesto pasaba todas las pruebas de código y no
+   * funcionaba en el teléfono, porque el fallo no estaba en lo que decidía sino
+   * en el número con el que decidía: `PanResponder` pone `dx` a cero justo
+   * antes de avisar. Aquí se recorre el gesto con coordenadas de verdad y se
+   * mira el resultado, que es lo único que habría cazado aquello.
+   */
+  const gesto = await import(aModulo(transpilar('utils/gestoHorizontal.ts')));
+  const { direccionDelGesto, maquinaDeLaPildora } = gesto;
+  const MINIMO = 18;
+
+  /*
+   * D1–D4) LA REGLA, con el recorrido tal y como lo entrega Gesture Handler:
+   * `translationX` y `translationY`, lo que el dedo lleva andado desde que se
+   * posó. No hay puntos de pantalla ni estado: dos números y una decisión.
+   */
+  /* La regla solo dice el SENTIDO; qué identidad pide cada sentido se decide en el Header. */
+  check('D1) un recorrido negativo es izquierda —la mitad de Real—', direccionDelGesto(-30, 2, MINIMO) === 'izquierda');
+  check('D1) y uno positivo es derecha —la mitad de Weë—', direccionDelGesto(30, -2, MINIMO) === 'derecha');
+  /* Justo en el mínimo cuenta; un punto menos, no. Sin sorpresas en el borde. */
+  check('D2) el mínimo es el mínimo, y por debajo no cuenta',
+    direccionDelGesto(-18, 0, MINIMO) === 'izquierda' && direccionDelGesto(-17, 0, MINIMO) === null);
+  check('D2) un toque quieto no es un gesto', direccionDelGesto(0, 0, MINIMO) === null);
+  check('D2) ni un temblor de dos puntos', direccionDelGesto(-2, 1, MINIMO) === null);
+  /* Vertical: se descarta aunque recorra mucho. */
+  check('D3) un arrastre vertical no cambia de identidad', direccionDelGesto(5, 100, MINIMO) === null);
+  check('D3) ni uno en diagonal con más alto que ancho', direccionDelGesto(-40, 100, MINIMO) === null);
+  check('D3) pero uno en diagonal más ancho que alto sí', direccionDelGesto(-60, 30, MINIMO) === 'izquierda');
+  /* Y el empate no cuenta: se pide MÁS ancho que alto, no igual. */
+  check('D4) un empate exacto no es un gesto de lado', direccionDelGesto(-40, 40, MINIMO) === null);
+  check('D4) el sentido lo da el recorrido, no por dónde pasó el dedo',
+    direccionDelGesto(-40, 0, MINIMO) === 'izquierda' && direccionDelGesto(40, 0, MINIMO) === 'derecha');
+
+  /*
+   * D5–D7) LA PÍLDORA ENTERA, EJECUTADA, con Gesture Handler alrededor.
+   *
+   * Se reproduce cómo llega cada gesto a la máquina:
+   *
+   *  · un TOQUE: el dedo se posa (`onBegin`) y se levanta; el gesto nunca se
+   *    activa porque no recorre los 18 puntos, así que el `Pressable` dispara
+   *    su `onPress`;
+   *  · un DESLIZAMIENTO: `onBegin`, y al cruzar el umbral Gesture Handler
+   *    activa el gesto (`onStart`) con lo recorrido. En Android, al activarse,
+   *    cancela los toques de React Native y el `onPress` NO llega; se recorren
+   *    los dos casos —cancelado y llegando igual— porque la máquina tiene que
+   *    dar el mismo resultado en los dos, y el segundo es el exigente;
+   *  · un ARRASTRE VERTICAL: `onBegin` y nada más, porque solo se mira lo
+   *    ancho; si el dedo se va lejos, el botón pierde su toque, y si apenas se
+   *    mueve, es un toque de verdad.
+   */
+  const pildora = () => {
+    let activa = 'real'; const cambios = [];
+    const elegirIdentidad = (destino) => { if (destino === activa) return; activa = destino; cambios.push(destino); };
+    /* El dedo va HACIA la mitad que se quiere: `[ Real ][ Weë ]`. */
+    const identidadDelGesto = (d) => (d === 'izquierda' ? 'real' : 'hidi');
+    const maquina = maquinaDeLaPildora(MINIMO, (d) => elegirIdentidad(identidadDelGesto(d)));
+    /* Lo que hace `Header.tsx` en el `onPress` de cada mitad, tal cual. */
+    const tocarMitad = (destino) => { if (maquina.alTocar()) elegirIdentidad(destino); };
+    /* El dedo se posa aquí; los avisos traen su posición absoluta, como en el aparato. */
+    const O = { x: 200, y: 40 };
+    return {
+      cambios,
+      activa: () => activa,
+      tap: (mitadTocada) => { maquina.alEmpezarElGesto(O.x, O.y); tocarMitad(mitadTocada); },
+      /*
+       * Un deslizamiento como llega de verdad: el dedo se posa y luego avisa
+       * VARIAS veces con el recorrido creciendo. El primer aviso reproduce el
+       * `onStart` real, que llega con recorrido casi nulo porque el reconocedor
+       * reinicia su traslación al activarse: si eso volviera a decidir el
+       * gesto, aquí no se decidiría nada.
+       */
+      swipe: (mitadTocada, dx, dy, { toqueDeCortesia = false, pasos = 4 } = {}) => {
+        maquina.alEmpezarElGesto(O.x, O.y);
+        maquina.alSeguirElDedo(O.x, O.y);
+        for (let i = 1; i <= pasos; i += 1) {
+          maquina.alSeguirElDedo(O.x + (dx * i) / pasos, O.y + (dy * i) / pasos);
+        }
+        if (toqueDeCortesia) tocarMitad(mitadTocada);
+      },
+      arrastreSinActivar: (mitadTocada, { conToque }) => {
+        maquina.alEmpezarElGesto(O.x, O.y);
+        if (conToque) tocarMitad(mitadTocada);
+      },
+    };
+  };
+  /* El toque de cortesía es el caso exigente: si se colara, se vería como un cambio de más. */
+  for (const toqueDeCortesia of [false, true]) {
+    const modo = toqueDeCortesia ? 'y aunque el toque llegue igual' : 'con el toque cancelado, como en Android';
+    const p = pildora();
+    const desde = (n) => p.cambios.slice(n).join(',') || 'nada';
+    let n = 0;
+    p.tap('hidi');
+    check(`D5) tocar Weë → Weë (${modo})`, p.activa() === 'hidi' && p.cambios.length === n + 1, desde(n));
+    n = p.cambios.length; p.tap('real');
+    check(`D5) tocar Real → Real (${modo})`, p.activa() === 'real' && p.cambios.length === n + 1, desde(n));
+    /* PRUEBA A: desde Real, el dedo va a la DERECHA, hacia Weë. Acaba sobre Weë. */
+    n = p.cambios.length; p.swipe('hidi', 30, 2, { toqueDeCortesia });
+    check(`D6) desde Real, deslizar hacia Weë (derecha) → Weë (${modo})`, p.activa() === 'hidi' && p.cambios.length === n + 1, desde(n));
+    /* PRUEBA B: desde Weë, el dedo va a la IZQUIERDA, hacia Real. Acaba sobre Real. */
+    n = p.cambios.length; p.swipe('real', -30, -1, { toqueDeCortesia });
+    check(`D6) desde Weë, deslizar hacia Real (izquierda) → Real (${modo})`, p.activa() === 'real' && p.cambios.length === n + 1, desde(n));
+    /* Manda el SENTIDO del dedo, no la mitad donde se suelta: aquí se suelta sobre la contraria. */
+    n = p.cambios.length; p.swipe('real', 40, 0, { toqueDeCortesia });
+    check(`D6) deslizar hacia Weë soltando sobre Real → Weë (${modo})`, p.activa() === 'hidi' && p.cambios.length === n + 1, desde(n));
+    n = p.cambios.length; p.swipe('hidi', -40, 0, { toqueDeCortesia });
+    check(`D6) deslizar hacia Real soltando sobre Weë → Real (${modo})`, p.activa() === 'real' && p.cambios.length === n + 1, desde(n));
+    /* Un deslizamiento largo o corto da lo mismo: solo cuenta el sentido, y una sola vez. */
+    n = p.cambios.length; p.swipe('hidi', 300, 12, { toqueDeCortesia });
+    check(`D6) un deslizamiento largo cambia una sola vez (${modo})`, p.activa() === 'hidi' && p.cambios.length === n + 1, desde(n));
+    /* Repetidos, uno detrás de otro: alternan sin quedarse pegados. */
+    n = p.cambios.length;
+    p.swipe('real', -25, 0, { toqueDeCortesia }); p.swipe('hidi', 25, 0, { toqueDeCortesia });
+    p.swipe('real', -25, 0, { toqueDeCortesia }); p.swipe('hidi', 25, 0, { toqueDeCortesia });
+    check(`D6) deslizamientos repetidos alternan (${modo})`, desde(n) === 'real,hidi,real,hidi', desde(n));
+    /* Y después de todo eso, un toque sigue siendo un toque. */
+    n = p.cambios.length; p.tap('real');
+    check(`D7) después de deslizar, un toque sigue siendo un toque (${modo})`, p.activa() === 'real' && p.cambios.length === n + 1, desde(n));
+    /*
+     * Vertical: el gesto no se activa. Si el dedo se fue lejos, el botón perdió
+     * su toque y no pasa nada; si apenas se movió, es un toque de verdad y hace
+     * lo que hace un toque.
+     */
+    n = p.cambios.length; p.arrastreSinActivar('hidi', { conToque: false });
+    check(`D7) un arrastre vertical no cambia el perfil (${modo})`, p.activa() === 'real' && p.cambios.length === n, desde(n));
+    n = p.cambios.length; p.arrastreSinActivar('hidi', { conToque: true });
+    check(`D7) y un temblor vertical mínimo sigue siendo el toque de esa mitad (${modo})`, p.activa() === 'hidi' && p.cambios.length === n + 1, desde(n));
+    /*
+     * Diagonal con más alto que ancho: el gesto se activa pero la regla lo
+     * descarta, así que NO hay deslizamiento. Con el toque cancelado —Android—
+     * no pasa nada; si el toque llegara, es un toque de la mitad y nada más.
+     */
+    p.tap('real');
+    n = p.cambios.length; p.swipe('hidi', -40, 100, { toqueDeCortesia });
+    check(`D7) una diagonal más alta que ancha no se toma como deslizamiento (${modo})`,
+      toqueDeCortesia
+        ? (p.activa() === 'hidi' && p.cambios.length === n + 1)
+        : (p.activa() === 'real' && p.cambios.length === n), desde(n));
+  }
+
 }
 
 console.log('\n── M · La marca en el centro del Home ──');
@@ -871,8 +1181,9 @@ console.log('\n── M · La marca en el centro del Home ──');
    * contra 275. Nunca se tocan, y en ningún ancho hay un punto de ruptura: es
    * una resta con el ancho real.
    */
+  /* 126 → 90 al irse la campana: ese sitio se le devuelve a la marca. */
   check('106b) la marca no puede meterse debajo de los controles',
-    /const ANCHO_CON_SELECTOR = scale\(126\);/.test(cabecera) && /const ANCHO_SIN_SELECTOR = scale\(52\);/.test(cabecera)
+    /const ANCHO_CON_SELECTOR = scale\(90\);/.test(cabecera) && /const ANCHO_SIN_SELECTOR = scale\(52\);/.test(cabecera)
       && /anchoDePantalla - \(conSelectorDeIdentidad \? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR\) \* 2/.test(cabecera)
       && /<View style=\{\[styles\.marca, \{ maxWidth: anchoDeLaMarca \}\]\}/.test(cabecera));
   check('106b) y el hueco se recalcula con el ancho de verdad, no con un breakpoint',
@@ -912,9 +1223,15 @@ console.log('\n── M · La marca en el centro del Home ──');
     (() => { const linea = Number(cabecera.match(/const LINEA_DEL_LOGO = scale\((\d+)\);/)?.[1]); const alto = Number(cabecera.match(/const ALTO_DEL_LOGO = scale\((\d+)\);/)?.[1]); return !!linea && !!alto && alto < linea && (linea - alto) / 2 >= 8; })());
   check('106c) la píldora encoge sin perder sus dos mitades',
     /selectorSegmento: \{\s*minWidth: scale\(36\),\s*paddingHorizontal: SPACING\.xs,/.test(cabecera) && /etiqueta: 'Real'[\s\S]{0,120}etiqueta: 'Weë'/.test(cabecera));
-  check('106c) la campana encoge pero se sigue tocando igual',
-    /size=\{ICON_SIZE\.md\}[\s\S]{0,200}notifications/.test(cabecera.replace(/[\s\S]*?notifications-outline/, 'notifications-outline')) || /name=\{unreadCount > 0 \? "notifications" : "notifications-outline"\}\s*size=\{ICON_SIZE\.md\}/.test(cabecera));
-  check('106c) y repone por fuera el área que pierde', /hitSlop=\{\{ top: 8, bottom: 8, left: 8, right: 8 \}\}[\s\S]{0,400}notifications-outline/.test(cabecera));
+  /*
+   * La campana ya no está aquí: bajó a la barra inferior (fase 2E-77). Lo que
+   * queda a la derecha con sesión es SOLO el selector de identidad, y sin
+   * sesión el botón de entrar. Ni icono, ni contador, ni el hueco de ninguno.
+   */
+  check('106c) la campana ya no está en el encabezado',
+    !/notifications/i.test(cabecera) && !/unreadCount/.test(cabecera) && !/onNotificationsPress/.test(cabecera));
+  check('106c) y con ella se fue su contador, sin tocar el servicio',
+    !/notificationService/.test(cabecera) && /subscribeToUnreadCount/.test(leer('services/notificationService.ts')));
   check('106c) los márgenes de la fila también', /content: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera) && /marca: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera));
   /* Control: el lema sigue entero. No se corta ni se esconde en ningún ancho. */
   check('106c) control: el lema sigue completo', /\{LEMA_DE_MARCA\}/.test(cabecera) && !/conMarca && ancho|ocultarLema|width < /.test(cabecera));
@@ -1076,11 +1393,19 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
   /* Cinco destinos, los de siempre, en el mismo orden. */
   const ids = [...barra.matchAll(/\{ id: '(\w+)', etiqueta: '([^']+)'/g)].map((m) => [m[1], m[2]]);
   check('132) son exactamente cinco destinos', ids.length === 5, ids.map(([, e]) => e).join(' · '));
+  /*
+   * El quinto dejó de ser Perfil y pasó a ser Notificaciones (fase 2E-77): la
+   * campana estaba en el encabezado y bajó aquí.
+   */
   check('133) con las rutas de siempre',
-    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'Search', 'Create', 'Inbox', 'Profile']));
+    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'Search', 'Create', 'Inbox', 'Notifications']));
   check('134) y los nombres de siempre',
-    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['Inicio', 'Buscar', 'Crear', 'WeeTalk', 'Perfil']));
-  /* Control: esas cinco rutas siguen declaradas en el navegador de pestañas. */
+    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['Inicio', 'Buscar', 'Crear', 'WeeTalk', 'Notificaciones']));
+  /*
+   * Control: las cuatro que son pestañas siguen declaradas como pestañas, y la
+   * de Perfil TAMBIÉN, aunque ya no esté en la barra: su pantalla y su pila no
+   * se han tocado y por ahí siguen entrando el menú ☰ y la barra lateral.
+   */
   const declaradas = ['Home', 'Search', 'Create', 'Inbox', 'Profile'].filter((r) =>
     new RegExp('<Tab\\.Screen\\s+name="' + r + '"').test(pestanas)
   );
@@ -1115,6 +1440,37 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
    */
   check('139) el activo sale de dónde estás', /pestanaPuesta\(estado\) \|\| DESTINO_DE_RUTA\[rutaRaiz\] \|\| 'Home'/.test(global));
   check('140) y se anuncia como tal', /accessibilityState=\{\{ selected: activo \}\}/.test(barra) && /aria-selected=\{activo\}/.test(barra));
+
+  /*
+   * ─── LA CAMPANA BAJÓ A LA BARRA (fase 2E-77) ────────────────────────────────
+   *
+   * Notificaciones es el quinto destino y Perfil salió de la barra. No es una
+   * pestaña: es una pantalla DENTRO de la pila del Home, así que se abre por el
+   * mismo camino que ya usaban el menú ☰ y la barra lateral, y por eso lo que
+   * enciende el destino es la ruta más honda y no la pestaña —estando en
+   * Notificaciones, la pestaña sigue siendo Inicio—.
+   */
+  check('141) Notificaciones es el quinto, con el icono de la familia',
+    /\{ id: 'Notifications', etiqueta: 'Notificaciones', icono: 'notifications-outline', iconoPuesto: 'notifications' \}/.test(barra)
+    && ids[4][0] === 'Notifications');
+  check('141) y abre la pantalla que ya existía, sin ruta nueva',
+    /if \(destino === 'Notifications'\) \{\s*return irARaiz\('Main', \{ screen: 'Home', params: \{ screen: 'Notifications' \} \}\);/.test(global)
+    && /name="Notifications"/.test(leer('navigation/HomeStackNavigator.tsx'))
+    && (leer('navigation/HomeStackNavigator.tsx').match(/name="Notifications"/g) || []).length === 1);
+  check('141) se enciende estando en ella, aunque la pestaña sea Inicio',
+    /const enNotificaciones = rutaHonda\(estado\) === 'Notifications';/.test(global)
+    && /enNotificaciones\s*\n?\s*\? 'Notifications'/.test(global));
+  /* Perfil sale de la BARRA, no de la aplicación: su pantalla y sus puertas siguen. */
+  check('142) Perfil ya no está en la barra', !/'Profile'/.test(barra) && !/etiqueta: 'Perfil'/.test(barra));
+  check('142) pero su pantalla y su pila siguen enteras',
+    /<Tab\.Screen\s+name="Profile"/.test(pestanas) && /ProfileStackNavigator/.test(pestanas));
+  check('142) y se sigue abriendo desde el menú ☰ y la barra lateral',
+    /navigateTab\('Profile'\)/.test(leer('components/DrawerMenu.tsx')) && /goTab\('Profile'\)/.test(leer('components/Sidebar.tsx')));
+  /* Control: una sola puerta a Notificaciones desde la barra, y ninguna campana arriba. */
+  check('142) control: ni campana arriba ni Perfil duplicado abajo',
+    !/notifications/i.test(leer('components/Header.tsx'))
+    && (barra.match(/\{ id: 'Notifications'/g) || []).length === 1
+    && !/person-outline|AvatarDisplay|person'/.test(barra));
 
   /* Las pantallas que de verdad piden pantalla completa se quedan sin barra. */
   ['Login', 'Register', 'Create', 'Reels', 'Settings'].forEach((r) => {
@@ -1349,8 +1705,8 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
     }
   }
   const directas = etiquetas.filter((e) => e.directo).map((e) => e.archivo).sort();
-  check('176) control: solo las dos pantallas del Home piden la barra directa; los muros de sección, no',
-    directas.join(' · ') === 'screens/LandingScreen.tsx · screens/WebLandingScreen.tsx' && etiquetas.some((e) => e.archivo === 'components/creator/SectionWall.tsx' && !e.directo),
+  check('176) control: solo las dos pantallas del Home piden la barra directa',
+    directas.join(' · ') === 'screens/LandingScreen.tsx · screens/WebLandingScreen.tsx',
     etiquetas.map((e) => e.archivo + (e.directo ? ' (directo)' : '')).join(' · '));
   check('177) control: la barra nace sin `directo`, así que quien no lo pide no cambia', /directo = false \}\) =>/.test(puerta) && /const desplegable = !compact && !directo;/.test(puerta));
   /*
@@ -1390,6 +1746,110 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
     /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel="Crear una publicación"/.test(puerta) &&
     /\{desplegable && \(\s*<TouchableOpacity\s*onPress=\{\(\) => setAbierta[\s\S]{0,700}name="chevron-down"/.test(puerta) && !/conChevron/.test(puerta) &&
     /composerField: \{\s*flex: 1,/.test(puerta));
+}
+
+console.log('\n── R · La conversación se abre desde abajo, no en otra pantalla ──');
+{
+  /*
+   * TOCAR "COMENTAR" ABRE LA CONVERSACIÓN, NO OTRO SITIO.
+   *
+   * Antes el contador de comentarios llevaba a la pantalla de la publicación:
+   * salías del muro, perdías el sitio y la conversación quedaba detrás del
+   * contenido, a un scroll de distancia. Ahora sube una hoja por encima del
+   * muro y al cerrarla sigues donde estabas.
+   *
+   * Lo que NO cambia: tocar la publicación en sí sigue abriéndola entera. Son
+   * dos intenciones distintas y ahora hacen dos cosas distintas.
+   */
+  const hoja = leer('components/HojaDeComentarios.tsx');
+  const enganche = leer('contexts/ComentariosContext.tsx');
+  const gancho = leer('hooks/useComentarios.ts');
+  const muros = [
+    ['el muro del Home', leer('screens/LandingScreen.tsx')],
+    ['la portada web', leer('screens/WebLandingScreen.tsx')],
+  ];
+
+  for (const [nombre, texto] of muros) {
+    check(`181) ${nombre} abre la conversación, no navega`,
+      /abrirComentarios\(post\)/.test(texto) && /useComentariosDeLaPublicacion\(\)/.test(texto));
+  }
+  /* Y ninguno de los tres manda a un perfil al comentar: ese era el problema. */
+  check('181) control: comentar no lleva a ningún perfil',
+    muros.every(([, texto]) => !/(handleComment|openComments)[\s\S]{0,200}navigate\('UserProfile'/.test(texto)));
+  /* La publicación entera sigue abriéndose al tocarla: no se ha perdido nada. */
+  check('181) control: tocar la publicación sigue abriéndola entera',
+    muros.every(([, texto]) => /navigate\('PostDetail'/.test(texto)));
+
+  /*
+   * UNA SOLA HOJA. Las publicaciones se pintan en varios muros; si cada uno
+   * montara la suya habría cuatro copias del mismo panel.
+   */
+  check('182) la hoja se monta una vez, arriba del todo',
+    /<HojaDeComentarios/.test(enganche) && (leer('App.tsx').match(/<ComentariosProvider>/g) || []).length === 1
+    && muros.every(([, texto]) => !/<HojaDeComentarios/.test(texto)));
+
+  /* Sube desde abajo, con el fondo atenuado y las esquinas de arriba redondeadas. */
+  check('183) es una hoja que sube desde abajo, como la de Crear',
+    /animationType=\{isWeb \? 'none' : 'slide'\}/.test(hoja)
+    && /justifyContent: 'flex-end'/.test(hoja)
+    && /borderTopLeftRadius: BORDER_RADIUS\.xl/.test(hoja)
+    && /backgroundColor: 'rgba\(31,41,55,0\.45\)'/.test(hoja));
+  check('183) se cierra por el botón, por fuera y con el botón atrás de Android',
+    /accessibilityLabel="Cerrar comentarios"/.test(hoja) && /onRequestClose=\{onClose\}/.test(hoja));
+
+  /*
+   * La lista es una lista de verdad: `FlatList`, no un `map`. Una conversación
+   * larga no puede montar todas las tarjetas de golpe.
+   */
+  check('184) la lista se desplaza y no monta todo de golpe',
+    /<FlatList/.test(hoja) && !/comentarios\.map\(/.test(hoja) && /keyboardShouldPersistTaps="handled"/.test(hoja));
+  /* Y el orden es el de siempre: del más antiguo al más nuevo. No se toca. */
+  check('184) el orden de los comentarios es el que ya tenía Weë',
+    /'createdAt', 'asc'/.test(leer('services/firestoreService.ts')) && !/orderBy|'desc'/.test(gancho));
+
+  /* El compositor, abajo y siempre visible, con lo que ya sabía hacer Weë. */
+  check('185) el compositor va abajo, fijo, con adjunto y envío',
+    /accessibilityLabel="Adjuntar una imagen"/.test(hoja)
+    && /accessibilityLabel="Enviar comentario"/.test(hoja)
+    && /placeholder="Escribe un comentario\.\.\."/.test(hoja));
+  check('185) el adjunto se ve antes de enviarlo y se puede quitar',
+    /\{!!adjunto && \(/.test(hoja) && /accessibilityLabel="Quitar la imagen"/.test(hoja) && /onPress=\{quitarAdjunto\}/.test(hoja));
+  /* El teclado no lo tapa: la hoja sube justo lo que mide, como en el resto de Weë. */
+  check('185) el teclado no tapa el compositor',
+    /keyboardDidShow/.test(hoja) && /marginBottom: altoDelTeclado/.test(hoja));
+
+  /*
+   * NADA DE ESTO ES INFRAESTRUCTURA NUEVA. Misma colección, mismo servicio,
+   * misma subida, misma tarjeta de comentario. Y una sola copia de la lógica:
+   * la hoja y la pantalla de la publicación usan el MISMO hook.
+   */
+  check('186) reutiliza lo que ya había: colección, servicio, subida y tarjeta',
+    /commentsService/.test(gancho) && /uploadCommentImage/.test(gancho)
+    && /notificationService/.test(gancho) && /CommentCard/.test(hoja));
+  check('186) y no hay dos copias de la lógica de comentar',
+    /useComentarios\(/.test(hoja) && /useComentarios\(post\)/.test(leer('screens/PostDetailScreen.tsx'))
+    && !/commentsService\.create/.test(leer('screens/PostDetailScreen.tsx')));
+  check('186) control: ninguna colección nueva',
+    !/collection\(db, 'comentarios'|'commentThreads'|'postComments'/.test(gancho + hoja + enganche));
+
+  /*
+   * Los comentarios que ya existen siguen siendo los mismos: el modelo no se
+   * toca —ni el `postId` al que pertenecen, ni las respuestas—, así que no hay
+   * nada que migrar.
+   */
+  const modelo = leer('services/firestoreService.ts');
+  check('187) el modelo de comentario no cambia: mismos campos, mismas respuestas',
+    /parentCommentId\?: string;/.test(modelo) && /imageUrl\?: string;/.test(modelo) && /postId: string;/.test(modelo));
+  check('187) y se publica en el mismo sitio, con el mismo contador',
+    /postId,\s*\n\s*userId: uidActivo,/.test(gancho) && /postsService\.update\(postId, \{ comments:/.test(gancho));
+
+  /*
+   * El perfil no desaparece: desde un comentario se sigue llegando al de quien
+   * lo escribió. Lo que ya no pasa es lo contrario.
+   */
+  check('188) desde un comentario se sigue pudiendo abrir su perfil',
+    /onAbrirPerfil=\{abrirPerfil\}/.test(enganche) && /navigate\('UserProfile', \{ userId \}\)/.test(enganche)
+    && /onProfilePress=\{onAbrirPerfil\}/.test(hoja));
 }
 
 console.log('\nHome: quién eres arriba, secciones en el muro');

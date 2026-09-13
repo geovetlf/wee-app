@@ -32,14 +32,16 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; label: string 
   { colors: ['#BAE6FD', '#0284C7', '#0C4A6E'], emoji: '🌊', label: 'Viaje' },
 ];
 
-const Watermark: React.FC = () => (
-  <View style={styles.watermark}>
-    <View style={styles.watermarkBadge}>
-      <Text style={styles.watermarkW}>W</Text>
-    </View>
-    <Text style={styles.watermarkText}>Weë</Text>
-  </View>
-);
+/*
+ * Aquí estaba la marca de Weë de las miniaturas: una pastilla con la W y la
+ * palabra, abajo a la derecha de cada tarjeta. Se fue de la FILA del Home
+ * (fase 2E-78): en una miniatura de 74 u 92 puntos ese sello tapaba parte del
+ * fotograma, que es lo único que ayuda a decidir si un vídeo te interesa.
+ *
+ * No es la marca de agua del producto: la que viaja DENTRO del vídeo cuando se
+ * comparte fuera de Weë es otra cosa y no se ha tocado. Esta era solo una capa
+ * pintada encima de la miniatura.
+ */
 
 const PlayCircle: React.FC = () => (
   <View style={styles.play}>
@@ -150,7 +152,6 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                   {!compacta && typeof post.views === 'number' && post.views > 0 && (
                     <Text style={styles.views}>▶ {formatNumber(post.views)}</Text>
                   )}
-                  <Watermark />
                 </TouchableOpacity>
               );
             })
@@ -158,15 +159,14 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
               <TouchableOpacity key={sample.label} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={`Ejemplo de Weël: ${sample.label}`}>
                 <LinearGradient colors={sample.colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                 {/*
-                  Compacta se queda con lo imprescindible: imagen, play, título
-                  corto y la marca. Emoji y duración encima de una tarjeta de 74
-                  puntos eran cinco cosas superpuestas y ninguna se leía bien.
+                  Compacta se queda con lo imprescindible: imagen, play y título
+                  corto. Emoji y duración encima de una tarjeta de 74 puntos
+                  eran varias cosas superpuestas y ninguna se leía bien.
                 */}
                 {!compacta && <Text style={styles.sampleEmoji}>{sample.emoji}</Text>}
                 <PlayCircle />
                 <Text style={styles.sampleLabel} numberOfLines={1}>{sample.label}</Text>
                 {!compacta && <Text style={styles.duration}>0:15</Text>}
-                <Watermark />
               </TouchableOpacity>
             ))}
       </ScrollView>
@@ -273,10 +273,10 @@ const styles = StyleSheet.create({
     fontSize: scale(16),
   },
   /*
-   * El título va ENCIMA de la marca, no a su lado. A 92 puntos de ancho —y peor
-   * a 74— un título y la marca de Weë en la misma línea se pisaban: la marca
-   * quedaba escrita sobre la última palabra. Apilados caben los dos y se leen
-   * los dos, en las dos medidas.
+   * El título, abajo. Conserva su sitio de siempre —24 puntos desde el borde—
+   * aunque la marca que iba debajo ya no esté: subirlo movería el único texto
+   * de la tarjeta sin que nadie lo haya pedido, y a 74 puntos ese renglón está
+   * donde tiene que estar.
    */
   sampleLabel: {
     position: 'absolute',
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
     opacity: 0.9,
   },
-  /* Mismo motivo que el título: encima de la marca, no compitiendo con ella. */
+  /* Las visitas, en su mismo sitio de siempre y por el mismo motivo que el título. */
   views: {
     position: 'absolute',
     left: scale(8),
@@ -304,33 +304,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.semibold,
-  },
-  watermark: {
-    position: 'absolute',
-    right: scale(6),
-    bottom: scale(6),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(3),
-    opacity: 0.9,
-  },
-  watermarkBadge: {
-    width: scale(14),
-    height: scale(14),
-    borderRadius: scale(7),
-    backgroundColor: '#F5B731',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  watermarkW: {
-    color: '#FFFFFF',
-    fontSize: scale(8),
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  watermarkText: {
-    color: '#FFFFFF',
-    fontSize: scale(10),
-    fontWeight: FONT_WEIGHT.bold,
   },
   hint: {
     paddingHorizontal: SPACING.lg,

@@ -41,17 +41,16 @@ const soloCodigo = (texto) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/
 console.log('\n── A · El compositor social, el mismo para todo Weë ──');
 {
   const crear = soloCodigo(leer('screens/CreateScreen.tsx'));
-  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
 
   /*
-   * UN solo compositor. Todo Weë publica por la misma pantalla —el muro de una
-   * sección, el botón +, la comunidad, la ayuda, el resultado de una generación—
-   * así que arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
-   * aparezca un segundo compositor por sección.
+   * UN solo compositor. Todo Weë publica por la misma pantalla —el Wäll, el
+   * botón +, la comunidad, la ayuda, el resultado de una generación— así que
+   * arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
+   * aparezca un segundo compositor por su cuenta.
    */
-  const pantallasQueCrean = ['components/creator/SectionWall.tsx', 'components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx'];
+  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx', 'screens/LandingScreen.tsx'];
   check('108) todas las superficies publican por la misma pantalla', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f)))));
-  check('108) y ninguna trae compositor propio', !/TextInput/.test(muro), 'SectionWall escribe por su cuenta');
+  check('108) y ninguna trae compositor propio', pantallasQueCrean.every((f) => !/<TextInput/.test(soloCodigo(leer(f)))));
 
   /*
    * A nadie se le pregunta cómo lo hizo. El bloque de herramientas, prompt y
@@ -162,7 +161,9 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
   check('111) y el botón lo refleja', /disabled=\{!canPublish\}/.test(crear));
 
   // El contexto viaja con la publicación desde el muro de una sección.
-  check('112) publicar desde una sección conserva su contexto', /navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(muro));
+  /* El contexto de origen lo manda quien nace en una experiencia: Weë Creator. */
+  check('112) publicar desde una experiencia conserva su contexto',
+    /sourceSection: EXPERIENCE_AREA\[experience\.id\]\?\.section \?\? experience\.id/.test(soloCodigo(leer('screens/CreatorFlowScreen.tsx'))));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -357,7 +358,8 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
     (pila.match(/name="Create"\s*component=\{CreateWrapper\}/g) || []).length === 1 && (pila.match(/<CreateScreen \/>/g) || []).length === 2 && !/CreateScreen/.test(pestanas));
   check('127a) y no hay un segundo compositor en el cliente', !fs.readdirSync(path.resolve(here, '../../screens')).some((f) => /Create.*Screen\.tsx$/.test(f) && f !== 'CreateScreen.tsx'));
   check('127a) el Home sigue llegando directo, sin chevron ni pliegue', /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')) && /variante="home" directo/.test(leer('screens/LandingScreen.tsx')));
-  check('127a) y los muros de sección siguen plegándose', !/directo/.test(soloCodigo(leer('components/creator/SectionWall.tsx'))));
+  /* La puerta sigue sabiendo plegarse, aunque hoy el Home la pida directa. */
+  check('127a) y la puerta conserva su forma plegable', /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')));
 
   /* La cabecera: aspa de Back, "Nueva publicación" y un Publicar rápido que se apaga. */
   check('127b) Back es el aspa, con el cierre de siempre: goBack', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crudo) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"[\s\S]{0,120}name="close"/.test(crudo));

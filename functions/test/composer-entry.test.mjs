@@ -2,7 +2,7 @@
  * La puerta de publicar de Weë: `components/creator/ComposerEntry.tsx`.
  *
  * Weë tiene UN compositor —`CreateScreen`— y debe tener UNA sola puerta para
- * llegar a él. Antes esa puerta estaba escrita dentro de `SectionWall` y no era
+ * llegar a él. Antes esa puerta estaba escrita dentro del muro de sección y no era
  * un componente, así que llevarla al Home habría significado tener dos copias
  * del mismo bloque envejeciendo por separado. Aquí se vigila justo eso: que la
  * puerta sea una, que esté en los cuatro sitios, y que siga siendo una PUERTA
@@ -44,7 +44,6 @@ const cuerpoDe = (fuente, arranque) => {
 
 const PUERTA = 'components/creator/ComposerEntry.tsx';
 const SUPERFICIES = [
-  { nombre: 'SectionWall', archivo: 'components/creator/SectionWall.tsx', handler: 'const compose =', invitado: /navigation\.navigate\('Login'\)/ },
   { nombre: 'Home', archivo: 'screens/LandingScreen.tsx', handler: 'const handleCompose =', invitado: /handleRegister\(\)/ },
   { nombre: 'portada web', archivo: 'screens/WebLandingScreen.tsx', handler: 'const handleCompose =', invitado: /navigate\('Register'\)/ },
 ];
@@ -185,9 +184,14 @@ console.log('\n── C · A dónde lleva, y con quién ──');
    * el Home no viene de ninguna, así que no manda `sourceSection` y el
    * compositor preselecciona el muro general él solo.
    */
-  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
-  check('8) publicar desde una sección conserva su contexto', /navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(muro));
-  for (const s of SUPERFICIES.filter((x) => x.nombre !== 'SectionWall')) {
+  /*
+   * El contexto de origen lo sigue mandando quien nace en una experiencia —Weë
+   * Creator— y guardándolo el compositor. El muro de sección también lo hacía;
+   * ese muro se retiró y el campo sigue intacto.
+   */
+  check('8) publicar desde una experiencia conserva su contexto',
+    /sourceSection: EXPERIENCE_AREA\[experience\.id\]\?\.section \?\? experience\.id/.test(soloCodigo(leer('screens/CreatorFlowScreen.tsx'))));
+  for (const s of SUPERFICIES) {
     const handler = cuerpoDe(soloCodigo(leer(s.archivo)), s.handler);
     check(`8) ${s.nombre} no inventa una sección de origen`, !/sourceSection/.test(handler));
   }
@@ -228,20 +232,22 @@ console.log('\n── E · Lo que NO se ha roto ──');
   check('16) y se crean desde ☰ → Explora → Comunidades', /navigate\('ExploreCommunities'\)/.test(soloCodigo(leer('components/DrawerMenu.tsx'))));
   check('16) el bloque de comunidades sigue usándose en la barra lateral', /<CommunitiesEntry\b/.test(soloCodigo(leer('components/RightSidebar.tsx'))));
 
-  // 17) El muro de una sección sigue respetando los destinos (Bloque 2, intacto).
-  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
-  check('17) la sección sigue filtrando por destinos', /postsDeLaSeccion\(posts, sectionId\)/.test(muro));
-  check('17) y sigue paginando con cursor', /paginaDeLaSeccion\(pagina, sectionId, VISIBLES, desde\)/.test(muro) && /hayMas/.test(muro));
-
-  // 18) Travel sigue siendo el muro general, sin feed propio ni pestañas.
-  check('18) Travel no filtra por sección', /if \(general\) return posts;/.test(muro));
-  check('18) y no ha recuperado pestañas propias', !/Muro Travel/.test(muro) && !/tabs: \[/.test(soloCodigo(leer('constants/specialists.ts')).slice(soloCodigo(leer('constants/specialists.ts')).indexOf('  travel: {'))));
+  /*
+   * 17-18) Los destinos siguen decidiendo dónde aparece una publicación, y su
+   * lógica sigue en `sectionFeed`. Lo que ya no existe es un muro por sección
+   * que la consumiera: Weë tiene un solo muro y las secciones no han recuperado
+   * ni feed propio ni pestañas.
+   */
+  const seccionFeed = soloCodigo(leer('utils/sectionFeed.ts'));
+  check('17) los destinos siguen filtrando y paginando', /postsDeLaSeccion/.test(seccionFeed) && /paginaDeLaSeccion/.test(seccionFeed));
+  check('18) ninguna sección ha recuperado su muro',
+    !/SectionWall/.test(soloCodigo(leer('screens/SpecialistScreen.tsx'))) && !/tabs: \[/.test(soloCodigo(leer('constants/specialists.ts'))));
 
   /*
    * 19) Y nada del muro de previsualización se ha colado por el camino: es del
    * Bloque 3 y todavía no ha entrado.
    */
-  const TOCADOS = [PUERTA, 'components/creator/SectionWall.tsx', 'screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx'];
+  const TOCADOS = [PUERTA, 'screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx'];
   const PREVIEW = ['previewWall', 'publicacionesDePreview', 'WALL_PREVIEW'];
   check('19) no se ha reintroducido el muro de previsualización', !TOCADOS.some((f) => PREVIEW.some((p) => leer(f).includes(p))));
 }
@@ -489,7 +495,8 @@ console.log('\n── I · El Home va directo al compositor ──');
     /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/.test(leer('screens/WebLandingScreen.tsx')));
   check('5) una sola instancia por pantalla del Home',
     (leer('screens/LandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1 && (leer('screens/WebLandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1);
-  check('5) control: el muro de sección no lo pide', !/directo/.test(soloCodigo(leer('components/creator/SectionWall.tsx'))));
+  /* Y la puerta sigue sabiendo plegarse aunque hoy nadie se lo pida. */
+  check('5) control: `directo` sigue siendo opcional', /const desplegable = !compact && !directo;/.test(leer(PUERTA)));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nUna sola puerta para publicar en todo Weë, y sigue siendo una puerta');

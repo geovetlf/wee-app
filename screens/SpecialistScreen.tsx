@@ -16,9 +16,8 @@ import TravelLauncher from '../components/creator/TravelLauncher';
 import TravelMark from '../components/creator/TravelMark';
 import UploadBox from '../components/creator/UploadBox';
 import ExamplesRow from '../components/creator/ExamplesRow';
-import SectionWall, { WALL_CONTENT_WIDTH } from '../components/creator/SectionWall';
 import WriterDocuments from '../components/creator/WriterDocuments';
-import { SectionTitle, ClosingBanner, Collapsible } from '../components/creator/ui';
+import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -109,7 +108,6 @@ const SpecialistScreen: React.FC = () => {
    * el muro. Todo lo demás —tus creaciones, los ejemplos— es complementario y va
    * después, para no competir con lo que publica la gente.
    */
-  const wall = spec.wall;
 
   /*
    * Secciones que entran por una sola tarjeta (hoy Weë Travel, fase 2E-69). El
@@ -119,7 +117,7 @@ const SpecialistScreen: React.FC = () => {
    * entra hablando—, y no en el identificador, para que no haya un `if` con un
    * nombre propio dentro de una pantalla que sirve a todas.
    */
-  const lanzador = !!wall && !!spec.ideaFirst;
+  const lanzador = !!spec.ideaFirst;
 
   return (
     <CreatorShell
@@ -128,9 +126,8 @@ const SpecialistScreen: React.FC = () => {
       title={lanzador ? spec.experience.name : `${spec.experience.emoji} ${spec.experience.name}`}
       mark={lanzador ? <TravelMark size={30} plain /> : undefined}
       breadcrumb="WEË AI"
-      contentStyle={wall ? styles.wallContent : undefined}
     >
-      {!lanzador && <SpecialistHero spec={spec} compact={!!wall} />}
+      {!lanzador && <SpecialistHero spec={spec} />}
 
       {/*
         Weë Travel entra por la frase, no por la cuadrícula (fase 2E-64C): un
@@ -148,17 +145,6 @@ const SpecialistScreen: React.FC = () => {
           onSubmit={(text) => startFlow(text)}
           onAction={handleAction}
         />
-      ) : wall ? (
-        <Collapsible
-          emoji={spec.experience.emoji}
-          title={spec.gridTitle}
-          subtitle={spec.gridHint}
-          contentLabel={`las ${spec.actions.length} opciones de ${spec.experience.name}`}
-          open={herramientasAbiertas}
-          onToggle={() => setHerramientasAbiertas((abierto) => !abierto)}
-        >
-          <ActionGrid actions={spec.actions} layout={spec.actionLayout} onPress={handleAction} />
-        </Collapsible>
       ) : (
         <View style={styles.section}>
           <SectionTitle
@@ -181,22 +167,13 @@ const SpecialistScreen: React.FC = () => {
       {spec.id === 'writer' && <WriterDocuments />}
 
       {/*
-        La comunidad, en grande, antes que cualquier otra cosa de la sección. En
-        las secciones que entran por una tarjeta el compositor va plegado: ahí
-        arriba ya hay una caja de escribir, y dos cajas seguidas antes del primer
-        post eran 86 px que le tocaban a las fotos de la gente (fase 2E-70).
+        La caja de idea y los ejemplos son la entrada de la sección. Las que
+        entran por la frase —Weë Travel— ya la llevan dentro de su tarjeta, así
+        que ahí sobraría: sería la segunda caja de escribir seguida.
       */}
-      {wall && <SectionWall sectionId={spec.id} config={wall} compact={lanzador} general={lanzador} />}
+      {!lanzador && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} greeting={spec.id === 'chef'} />}
 
-      {/*
-        La caja de idea y los ejemplos son la entrada de las secciones que todavía
-        no tienen muro. Donde hay muro, el compositor ocupa ese sitio y los ejemplos
-        bajan al final: el texto libre sigue disponible en la primera pregunta de
-        cada flujo ("O escríbelo con tus palabras…").
-      */}
-      {!wall && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} greeting={spec.id === 'chef'} />}
-
-      {!wall && !!spec.examples?.length && (
+      {!lanzador && !!spec.examples?.length && (
         <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />
       )}
 
@@ -234,16 +211,6 @@ const SpecialistScreen: React.FC = () => {
         </View>
       )}
 
-      {/*
-        Contenido complementario: por debajo del muro, nunca compitiendo con él, y
-        solo si la sección tiene ejemplos que enseñar. Weë Design se quedó sin ellos
-        en 2E-43 —eran degradados que parecían diseños— y sin esta condición se
-        quedaría el título colgando sobre una fila vacía.
-      */}
-      {wall && !!spec.examples?.length && (
-        <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />
-      )}
-
       <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>Cuéntale a Weë lo que quieres. Weë se encarga de la IA.</Text>
     </CreatorShell>
   );
@@ -252,15 +219,6 @@ const SpecialistScreen: React.FC = () => {
 const styles = StyleSheet.create({
   section: {
     gap: SPACING.md,
-  },
-  /*
-   * Con muro, el ancho lo decide el muro: es lo que manda en la sección. La
-   * medida vive en `SectionWall`, que es quien también se la pasa a cada
-   * publicación para que su foto ocupe la tarjeta entera en vez de quedarse
-   * en el ancho del feed del Home.
-   */
-  wallContent: {
-    maxWidth: scale(WALL_CONTENT_WIDTH),
   },
   jobRow: {
     flexDirection: 'row',

@@ -489,11 +489,10 @@ console.log('\n── I) Lo que NO se ha tocado ──');
 // ═════════════════════════════════════════════════════════════════════════════
 
 const seccion = read('utils/sectionFeed.ts');
-const muro = read('components/creator/SectionWall.tsx');
 const indices = read('firestore.indexes.json');
 
 check('93) sectionFeed no sabe que existen las encuestas, y así debe seguir', !/poll|encuesta/i.test(seccion));
-check('94) SectionWall tampoco', !/poll|encuesta/i.test(muro));
+check('94) ni el paginador por sección, que es lo que queda de los muros de sección', !/poll|encuesta/i.test(seccion));
 check('95) destinations[] sigue siendo lo que decide dónde aparece una publicación', /destinosDe|vaAlMuroGeneral|vaALaSeccion/.test(seccion));
 check('96) el punto único de paginación sigue en pie', /getMuroGeneralPaginado/.test(servicio) && /paginaDelMuroGeneral/.test(seccion));
 check('97) no hay índices nuevos para encuestas', !/poll/i.test(indices));
@@ -697,7 +696,6 @@ console.log('\n── N) Transversalidad: el mismo camino desde todo Weë ──
 // ═════════════════════════════════════════════════════════════════════════════
 
 const entrada = read('components/creator/ComposerEntry.tsx');
-const muroSeccion = read('components/creator/SectionWall.tsx');
 const home = read('screens/LandingScreen.tsx');
 const homeWeb = read('screens/WebLandingScreen.tsx');
 
@@ -727,19 +725,19 @@ check('171e) y conserva "question", que es otra cosa', /export type ComposerKind
  * mano es exactamente por lo que `poll` podía quedarse fuera sin que el
  * compilador dijera nada.
  */
-check('171f) nadie repite la lista de kinds a mano', ![muroSeccion, home, homeWeb].some((f) => /'post' \| 'image' \| 'video' \| 'question'/.test(f)));
-check('171g) los tres la importan de su única fuente', [muroSeccion, home, homeWeb].every((f) => /import ComposerEntry, \{ ComposerKind \} from/.test(f)));
-check('171h) y tipan su handler con ella', [muroSeccion, home, homeWeb].every((f) => /\(kind: ComposerKind\) =>/.test(f)));
+check('171f) nadie repite la lista de kinds a mano', ![home, homeWeb].some((f) => /'post' \| 'image' \| 'video' \| 'question'/.test(f)));
+check('171g) los dos la importan de su única fuente', [home, homeWeb].every((f) => /import ComposerEntry, \{ ComposerKind \} from/.test(f)));
+check('171h) y tipan su handler con ella', [home, homeWeb].every((f) => /\(kind: ComposerKind\) =>/.test(f)));
 check('171i) así el kind de la píldora llega entero al compositor', /kind: 'poll'/.test(entrada) && /const abreEncuesta = presetKind === 'poll';/.test(crear));
 
-check('172) los muros de sección usan esa misma entrada', /<ComposerEntry/.test(muroSeccion) && /onCompose=\{compose\}/.test(muroSeccion));
-check('173) y lo único que hacen es llevar el kind al compositor', /navigate\('Create', \{ kind/.test(muroSeccion));
+check('172) el Wäll usa esa misma entrada', /<ComposerEntry/.test(home) && /onCompose=\{handleCompose\}/.test(home));
+check('173) y lo único que hace es llevar el kind al compositor', /navigate\('Create', \{ kind|irAlCompositor\(\{ kind \}\)/.test(home));
 check('174) el Home nativo, igual', /<ComposerEntry/.test(home) && /navigate\('Create', \{ kind \}\)/.test(home));
 // En la web el compositor se pide al navegador de arriba —hay otra ruta `Create`
 // en la barra de pestañas que no tiene pantalla—, pero el kind viaja igual.
 check('175) y el Home web, igual', /<ComposerEntry/.test(homeWeb) && /irAlCompositor\(\{ kind \}\)/.test(homeWeb));
 // Nombrar la encuesta en un comentario está bien; implementarla, no.
-check('176) ninguno tiene lógica propia de encuestas', ![muroSeccion, home, homeWeb].some((f) => /PostPoll|construirPoll|validarEncuesta|encuestaVacia|setPoll|poll\./.test(f)));
+check('176) ninguno tiene lógica propia de encuestas', ![home, homeWeb].some((f) => /PostPoll|construirPoll|validarEncuesta|encuestaVacia|setPoll|poll\./.test(f)));
 
 /*
  * Travel, Design, Studio y Chef no son cuatro caminos: son cuatro secciones del
@@ -749,7 +747,7 @@ const secciones = read('utils/sectionFeed.ts');
 check('177) Travel, Design, Studio y Chef son secciones del mismo muro', ['travel', 'design', 'studio', 'chef'].every((s) => secciones.includes(`${s}:`)));
 // La sección viaja como contexto de la publicación; quien abre la encuesta es el
 // kind, y solo el kind. Ninguna sección tiene un camino propio.
-check('178) la sección no decide nada de la encuesta', /sourceSection/.test(muroSeccion) && /const abreEncuesta = presetKind === 'poll';/.test(crear) && !/abreEncuesta[^;]*sourceSection/.test(crear));
+check('178) la sección no decide nada de la encuesta', /const abreEncuesta = presetKind === 'poll';/.test(crear) && !/abreEncuesta[^;]*sourceSection/.test(crear));
 
 // destinations[] intacto: la encuesta viaja con ellos sin tocarlos.
 check('179) los destinos se guardan igual que siempre', /\.\.\.\(destinos\.length > 0 \? \{ destinations: destinos \} : \{\}\)/.test(crear));
@@ -991,7 +989,16 @@ console.log('\n── U) Lo que este bloque no ha movido ──');
 
 check('256) la publicación normal sigue igual: texto, fotos, vídeo, lugar', ['renderMedia', 'etiquetaDeLugar', 'HowIMadeIt'].every((x) => tarjeta.includes(x)));
 check('257) los acuerdos y desacuerdos, intactos', /useVote\(\{/.test(tarjeta) && /agreementCount/.test(tarjeta) && /useVote\(\{/.test(detalle));
-check('258) los comentarios del detalle, intactos', /commentsService\.subscribeToPost/.test(detalle));
+/*
+ * Los comentarios del detalle siguen siendo los mismos, solo que la escucha ya
+ * no está escrita aquí: la pantalla y la hoja que se abre desde el muro usan el
+ * MISMO `useComentarios`, y es ese hook el que llama a `subscribeToPost`. Se
+ * comprueba la cadena entera para que "intactos" siga significando algo.
+ */
+check('258) los comentarios del detalle, intactos',
+  /useComentarios\(post\)/.test(detalle)
+  && /comentarios: comments/.test(detalle)
+  && /commentsService\.subscribeToPost/.test(read('hooks/useComentarios.ts')));
 check('259) sectionFeed sigue sin saber que existen las encuestas', !/poll|encuesta/i.test(secciones));
 check('260) destinations[] no se ha tocado', /\.\.\.\(destinos\.length > 0 \? \{ destinations: destinos \} : \{\}\)/.test(crear));
 check('261) el compositor sigue entrando en modo encuesta', /const abreEncuesta = presetKind === 'poll';/.test(crear));

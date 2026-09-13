@@ -140,10 +140,6 @@ const NotificationsScreen: React.FC = () => {
     };
   }, [activeUid, registerCleanup]);
 
-  const handleNotificationsPress = () => {
-    navigation.goBack();
-  };
-
   // Marcar notificación como leída y navegar
   const handleNotificationPress = async (notification: Notification) => {
     // Marcar como leída
@@ -265,7 +261,7 @@ const NotificationsScreen: React.FC = () => {
   const renderHeader = () => (
     <View>
       {/* Header - solo en móvil */}
-      {!isDesktop && <Header onBackPress={() => navigation.goBack()} onNotificationsPress={handleNotificationsPress} />}
+      {!isDesktop && <Header onBackPress={() => navigation.goBack()} />}
 
       {/* Título y acciones */}
       <View style={[styles.titleContainer, { borderBottomColor: theme.colors.border }]}>

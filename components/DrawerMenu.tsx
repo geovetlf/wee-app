@@ -44,7 +44,9 @@ interface DrawerMenuProps {
  *   EXPLORA       Comunidades · Weëls
  *   WeeTalk
  *   Weë Creator   🎨 Weë Design · 🎬 Weë Studio · … · 🧠 Weë Brain · 📁 Mis proyectos
- *   🔔 Notificaciones · 🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
+ *   🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
+ *
+ * Notificaciones no está: vive en la barra inferior, que se ve siempre.
  *
  * Credits va con los perfiles porque es información de tu cuenta, no un destino.
  *
@@ -229,14 +231,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
   // ── Resto ──
   const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());
-  const goNotifications = () => {
-    if (!user) return requireLogin();
-    after(() => {
-      const tabNav = navigation.getParent();
-      if (tabNav) tabNav.navigate('Home', { screen: 'Notifications' });
-      else navigation.navigate('Notifications');
-    });
-  };
   const goEContact = () => (user ? after(() => navigateRoot('EContact')) : requireLogin());
   const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
   const goSettings = () => after(() => navigateRoot('Settings'));
@@ -244,7 +238,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
   if (!visible) return null;
 
-  const accentTint = theme.colors.accent + '22';
   const displayName = userProfile?.displayName || user?.displayName || 'Invitado';
   const isWee = activeProfileType === 'hidi';
 
@@ -256,10 +249,14 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   ) => (
     <TouchableOpacity
       key={label}
-      style={[
-        opts.small ? styles.subRow : styles.row,
-        opts.active && { backgroundColor: accentTint },
-      ]}
+      /*
+       * Dónde estás se dice con el peso del texto y nada más. Antes la fila
+       * activa se pintaba con un fondo del amarillo de Weë al 13%, y en una
+       * lista de opciones eso no se leía como "estás aquí": se leía como un
+       * resaltado suelto. El amarillo sigue donde sí informa —la etiqueta del
+       * Perfil Weë, el saldo de Credits—, no de fondo de una fila.
+       */
+      style={opts.small ? styles.subRow : styles.row}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -426,7 +423,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {fila('weetalk', goWeeTalk)}
 
           {/* Weë Creator */}
-          <View style={[styles.creatorBlock, { backgroundColor: accentTint }]}>
+          <View style={styles.creatorBlock}>
             <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
               <Text style={styles.rowEmoji}>{MENU_ITEM.creator.emoji}</Text>
               <View style={styles.creatorTitles}>
@@ -443,7 +440,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             )}
           </View>
 
-          {fila('notifications', goNotifications)}
           {fila('saved', goSaved)}
           {fila('settings', goSettings)}
           {fila('help', goHelp)}

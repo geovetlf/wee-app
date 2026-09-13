@@ -645,260 +645,57 @@ console.log('\n── Weë Chef · qué se le promete a la persona al retocar �
   }
 }
 
-// ── EL PILOTO: WEË CHEF DEJA DE SER UN CATÁLOGO ─────────────────────────────
-// Weë tenía comunidad y tenía herramientas, pero en pantallas distintas: el muro
-// solo vivía en el Home y ninguna sección mostraba a una sola persona. Chef es
-// la primera en juntarlas (fase 2E-37).
-console.log('\n── Weë Chef · la sección se convierte en comunidad ──');
-{
-  const fs = await import('node:fs');
-  const { createRequire } = await import('node:module');
-  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-  const pantalla = leer('screens/SpecialistScreen.tsx');
-  const muro = leer('components/creator/SectionWall.tsx');
-  const grid = leer('components/creator/ActionGrid.tsx');
-  const specialists = leer('constants/specialists.ts');
-  const shell = leer('components/creator/CreatorShell.tsx');
-
-  // 1) El orden que se lee al abrir Chef.
-  {
-    const donde = (re) => pantalla.search(re);
-    const hero = donde(/<SpecialistHero/);
-    const funciones = donde(/<Collapsible/);
-    const wall = donde(/<SectionWall/);
-    const complementario = pantalla.lastIndexOf('<ExamplesRow');
-    const orden = [hero, funciones, wall, complementario];
-    check('1) hero → funciones → muro → complementario', orden.every((n, i) => n > 0 && (i === 0 || n > orden[i - 1])), orden.join(' < '));
-    check('1) y las creaciones propias quedan por debajo del muro', pantalla.indexOf('Mis creaciones') > wall);
-  }
-
-  // 2) Una sola navegación lateral: ni un panel de funciones ni una columna derecha.
-  check('2) la pantalla no monta ninguna barra lateral propia', !/RightSidebar|SectionPanel|<Sidebar\b|<CreatorSidebar/.test(pantalla + muro));
-  check('2) el marco sigue teniendo exactamente una barra lateral', (shell.match(/<CreatorSidebar/g) || []).length === 1 && !/RightSidebar/.test(shell));
-  check('2) y esa barra vive solo en el escritorio', /styles\.desktop[\s\S]{0,200}<CreatorSidebar/.test(shell));
-  check('2) el muro no cambia de forma por el tamaño de la pantalla', !/isDesktop|isTablet|RightSidebar/.test(muro));
-
-  // 3) El muro reutiliza lo social que ya existía; no inventa nada.
-  check('3) reutiliza la tarjeta de publicación de siempre', /import PostCard from '\.\.\/PostCard'/.test(muro));
-  check('3) y las publicaciones de siempre', /postsService\s*\n?\s*\.getPublicPostsPaginated/.test(muro));
-  check('3) y los filtros de siempre', /from '\.\.\/\.\.\/utils\/feedFilters'/.test(muro));
-  check('3) y los guardados de siempre', /useBookmarks/.test(muro));
-  check('3) publicar sigue abriendo la pantalla de crear, y ahora dice desde qué sección', /navigation\.navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(muro));
-  check('3) el muro no inventa contenido', !/mockData|MockMedia|POSTS_DEMO|placeholderPosts/.test(muro));
-  check('3) el muro no toca Credits, el motor ni ningún proveedor', !/spendCredits|creditsService|creatorService|aiEngine|provider/i.test(muro));
-
-  // 4) Muro vacío: invita, no se disculpa, y no rellena con nada falso.
-  check('4) el muro vacío invita a compartir', /Comparte tu primera receta, pregunta o experiencia con la comunidad/.test(specialists));
-  check('4) y ofrece el botón de publicar', /button: 'Crear publicación'/.test(specialists));
-
-  // 5) Las funciones son controles compactos, sin fotografías.
-  check('5) Chef usa la cuadrícula compacta', /actionLayout: 'compact'/.test(specialists));
-  check('5) la compacta no lleva ninguna imagen', !/renderCompact[\s\S]{0,600}MockMedia/.test(grid));
-  check('5) hasta cuatro en escritorio, tres en tableta, dos en móvil', /layout === 'compact'[\s\S]{0,900}Math\.min\(4, principales\.length\)[\s\S]{0,140}Math\.min\(3, principales\.length\)[\s\S]{0,140}: 2/.test(grid));
-  check('5) y el título lleva su frase de apoyo', /gridHint: 'Elige una opción y empieza a cocinar con Weë\.'/.test(specialists) && /hint=\{spec\.gridHint\}/.test(pantalla));
-
-  // 6) Las siete funciones siguen entrando en los flujos que ya existían.
-  {
-    const bloque = specialists.slice(specialists.indexOf('  chef: {'), specialists.indexOf('  home: {'));
-    const acciones = bloque.match(/\{ id: '[^']+', icon: /g) || [];
-    check('6) las siete funciones siguen ahí', acciones.length === 7, String(acciones.length));
-    check('6) todas con su objetivo y su respuesta ya contestada', (bloque.match(/goal: '/g) || []).length === 7 && (bloque.match(/preset: \{ questionId: 'what'/g) || []).length === 7);
-    check('6) y pulsarlas abre la conversación guiada, no resuelve nada aquí', /const handleAction = \(action: SpecialistAction\) => \{[\s\S]{0,400}startFlow\(action\.goal, action\.preset, undefined, action\.opens\);\s*\};/.test(pantalla));
-    check('6) el plan de Chef no cambió de capacidades', ['recipe', 'cook', 'edit', 'menu'].every((k) => bloque.includes(`optionId: '${k}'`)));
-  }
-
-  // 7) Ninguna otra sección se movió.
-  // Muro y cuadrícula compacta van siempre juntos, y solo donde toca.
-  check('7) las secciones con muro son las que tienen cuadrícula compacta', (specialists.match(/^    wall: \{/gm) || []).length === (specialists.match(/actionLayout: 'compact'/g) || []).length);
-  check('7) y hoy son Chef, Design, Studio y Travel', (specialists.match(/^    wall: \{/gm) || []).length === 4);
-  // La fila de ejemplos pasó a ser opcional en 2E-69: se pinta si hay ejemplos.
-  check('7) las demás conservan su caja de idea y sus ejemplos', /\{!wall && <IdeaBox/.test(pantalla) && /\{!wall && !!spec\.examples\?\.length && \(/.test(pantalla));
-  check('7) y su caja de subida de siempre', /\{spec\.upload && <UploadBox/.test(pantalla) && (specialists.match(/^    upload: \{/gm) || []).length === 3);
-
-  // 8) A qué muro pertenece una publicación: se lee lo que el post ya trae.
-  {
-    const require = createRequire(import.meta.url);
-    const ts = require('typescript');
-    const js = ts.transpileModule(leer('utils/sectionFeed.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
-    const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
-    const post = (extra) => ({ content: '', tags: [], hashtags: [], aiTools: [], ...extra });
-    const chef = feed.SECTION_MARKERS.chef;
-
-    const dentro = [
-      ['por lo que cuenta', { content: 'Mi primera focaccia, receta fácil' }],
-      ['con acentos', { content: 'Preparé un menú para toda la semana' }],
-      ['por su comunidad', { communitySlug: 'wee-cocina' }],
-      ['por sus tags', { tags: ['Recetas'] }],
-      ['por la herramienta con la que se hizo', { aiTools: ['Weë Chef'] }],
-    ];
-    const fuera = [
-      ['un logo no es cocina', { content: 'Hice un logo para mi marca con IA' }],
-      ['las palabras se comparan enteras', { content: 'Fue algo menudo y sin importancia' }],
-      ['ni una escena de video', { content: 'Una escena nocturna para mi corto' }],
-    ];
-    const falla = [
-      ...dentro.filter(([, p]) => !feed.belongsToSection(post(p), chef)).map(([k]) => k),
-      ...fuera.filter(([, p]) => feed.belongsToSection(post(p), chef)).map(([k]) => k),
-    ];
-    check('8) el muro de Chef reconoce lo suyo y deja fuera lo demás', falla.length === 0, falla.join(' · '));
-    check('8) sin palabras no hay muro: una sección sin configurar no se queda con nada ajeno', feed.sectionPosts([post({ content: 'una receta' })], []).length === 0);
-    check('8) y filtra una lista entera', feed.sectionPosts([post({ content: 'un logo' }), post({ content: 'una receta' })], chef).length === 1);
-  }
-}
-
-// ── EL ANCHO LO DECIDE EL MURO, NO AL REVÉS ─────────────────────────────────
-// `PostCard` limitaba su foto a 700 px en toda la app. En una sección donde el
-// muro manda, esa medida heredada no puede decidir la arquitectura: ahora la
-// columna se dimensiona por el muro y la tarjeta recibe cuánto mide de verdad.
-console.log('\n── Weë Chef · el ancho lo decide el muro ──');
+// ── EL MURO DE SECCIÓN SE FUE: WEË TIENE UN SOLO MURO ───────────────────────
+// Cuatro secciones llegaron a tener muro propio —Chef fue el piloto (2E-37), y
+// después Design, Studio y Travel—. La idea era que una sección no fuera un
+// catálogo de herramientas, y funcionó; pero el Wäll acabó aprendiendo a decir
+// de qué experiencia viene cada publicación con su WeeTag, y a filtrar por
+// sección desde su propio carrusel. A partir de ahí el muro de la sección era
+// el mismo muro contado dos veces: en Travel, literalmente el general sin
+// filtrar. Se retira. Las secciones conservan lo suyo —herramientas, subidas,
+// documentos, ejemplos—; lo social vive en un solo sitio.
+console.log('\n── Las secciones de Weë AI ya no duplican el muro ──');
 {
   const fs = await import('node:fs');
   const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-  const tarjeta = leer('components/PostCard.tsx');
-  const muro = leer('components/creator/SectionWall.tsx');
-  const pantalla = leer('screens/SpecialistScreen.tsx');
-  const banner = leer('components/creator/ui.tsx');
-
-  // 1) Donde no se le dice nada, la tarjeta se comporta exactamente igual.
-  check('1) el ancho de la tarjeta es opcional', /maxWidth\?: number;/.test(tarjeta));
-  check('1) y por defecto sigue siendo el feed de siempre', /const getCarouselWidth = \(maxWidth: number = CARD_MAX_WIDTH\)/.test(tarjeta) && /const CARD_MAX_WIDTH = 700;/.test(tarjeta));
-  check('1) la foto que se le pide a Cloudinary nunca baja de los 800 de siempre', /Math\.max\(800, Math\.round\(carouselWidth\)\)/.test(tarjeta));
-
-  // 2) Solo el muro pide un ancho distinto: el resto de pantallas, intactas.
-  {
-    const conPostCard = [
-      'screens/HomeScreen.tsx',
-      'screens/LandingScreen.tsx',
-      'screens/WebLandingScreen.tsx',
-      'screens/CommunityScreen.tsx',
-      'screens/ProfileScreen.tsx',
-      'screens/UserProfileScreen.tsx',
-      'screens/SavedPostsScreen.tsx',
-    ];
-    const intrusas = conPostCard.filter((p) => /maxWidth=/.test(leer(p)));
-    check('2) ninguna otra pantalla toca el ancho de sus publicaciones', intrusas.length === 0, intrusas.join(', '));
-    check('2) y todas siguen pintando la misma tarjeta', conPostCard.every((p) => /<PostCard/.test(leer(p))));
-    check('2) el muro sí se lo pasa', /maxWidth=\{CARD_WIDTH\}/.test(muro));
-  }
-
-  // 3) Una sola medida manda, y la comparten pantalla y tarjeta.
-  check('3) el ancho vive en un solo sitio', /export const WALL_CONTENT_WIDTH = \d+;/.test(muro) && /maxWidth: scale\(WALL_CONTENT_WIDTH\)/.test(pantalla));
-  check('3) y de él se descuenta el margen del marco', /const CARD_WIDTH = WALL_CONTENT_WIDTH - SHELL_PADDING \* 2;/.test(muro));
-
-  // 4) La medida elegida: más que el feed del Home, sin comerse el escritorio.
-  {
-    const ancho = Number(muro.match(/WALL_CONTENT_WIDTH = (\d+)/)[1]);
-    check('4) una publicación es más ancha que en el Home', ancho - 40 > 700, String(ancho));
-    check('4) y la columna cabe junto a la barra lateral en un escritorio normal', ancho <= 1100, String(ancho));
-  }
-
-  // 5) Con poco ancho nada se sale por la derecha.
-  check('5) las rutas de la foto se apilan cuando no caben', /flexBasis: scale\(230\)/.test(banner) && /minWidth: scale\(240\)/.test(banner));
-  check('5) y la frase de apoyo baja bajo el título', /const apiladas = !!hint && !action && !isDesktop;/.test(banner));
-
-  // 6) Nada de lo que se usó para mirar el muro se quedó dentro.
-  check('6) el muro no trae ningún doble de prueba', !/DOBLE|doble-|localhost:87/.test(muro));
-}
-
-// ── QUE LA COMUNIDAD SE VEA AL ENTRAR ───────────────────────────────────────
-// La auditoría 2E-39 midió que la primera publicación empezaba en el píxel 865
-// con 842 visibles: quien abría Chef veía un catálogo de herramientas. 2E-40
-// baja la cabecera, sube la letra de las funciones y quita el bloque repetido.
-console.log('\n── Weë Chef · la comunidad se ve al abrir ──');
-{
-  const fs = await import('node:fs');
-  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-  const hero = leer('components/creator/SpecialistHero.tsx');
-  const grid = leer('components/creator/ActionGrid.tsx');
-  const tarjeta = leer('components/PostCard.tsx');
+  const existe = (p) => fs.existsSync(new URL('../../' + p, import.meta.url));
   const pantalla = leer('screens/SpecialistScreen.tsx');
   const specialists = leer('constants/specialists.ts');
 
-  // 1) Cabecera baja, y solo donde hay muro.
-  check('1) la cabecera tiene una versión baja', /compact\?: boolean;/.test(hero) && /cardCompact: \{/.test(hero));
-  check('1) que solo se pide cuando la sección tiene muro', /<SpecialistHero spec=\{spec\} compact=\{!!wall\} \/>/.test(pantalla));
-  check('1) conserva nombre, frase e imagen', /styles\.titleCompact/.test(hero) && /styles\.headlineCompact/.test(hero) && /aspectRatio=\{compact \? 2\.4 : 1\.35\}/.test(hero));
-  check('1) y las secciones sin muro no cambian de cabecera', /isDesktop && styles\.cardDesktop/.test(hero) && /\{!compact && \(/.test(hero));
+  /* Ni el componente, ni su configuración, ni nadie que lo pinte. */
+  check('1) el muro de sección ya no existe', !existe('components/creator/SectionWall.tsx'));
+  check('1) ni queda quien lo pinte ni cómo configurarlo',
+    !/SectionWall/.test(pantalla) && !/wall\?:|SectionWallConfig|WallTabKind/.test(specialists)
+    && !/^    wall: \{/m.test(specialists));
 
-  // 2) Las funciones: más letra y menos alto, sin flecha.
-  check('2) el nombre de la función sube a la escala de lectura', /compactTitle: \{[\s\S]{0,120}fontSize: FONT_SIZE\.base/.test(grid));
-  check('2) y el subtítulo deja de ser el texto más pequeño', /compactSubtitle: \{[\s\S]{0,120}fontSize: FONT_SIZE\.xs/.test(grid));
-  check('2) la tarjeta baja de alto', /compact: \{[\s\S]{0,80}minHeight: scale\(92\)/.test(grid));
-  check('2) y desaparece la flecha, que no informaba de nada', !/compactArrow/.test(grid));
+  /*
+   * Y lo que NO se fue con él. Una sección sigue siendo una sección: su cabecera,
+   * sus herramientas, su caja de subir, sus documentos y sus ejemplos.
+   */
+  check('2) las secciones conservan sus herramientas y su cabecera',
+    /<ActionGrid actions=\{spec\.actions\}/.test(pantalla) && /<SpecialistHero spec=\{spec\} \/>/.test(pantalla)
+    && /\{spec\.upload && <UploadBox/.test(pantalla) && /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla));
+  check('2) y su caja de idea y sus ejemplos vuelven a todas',
+    /\{!lanzador && <IdeaBox/.test(pantalla) && /\{!lanzador && !!spec\.examples\?\.length/.test(pantalla));
+  /*
+   * Weë Travel entra por la frase y no por la cuadrícula, y eso no dependía del
+   * muro aunque antes se preguntara por él: ahora `lanzador` es lo que siempre
+   * quiso decir —la sección se entra hablando— y su tarjeta sigue en pie.
+   */
+  check('3) Weë Travel conserva su entrada por la frase',
+    /const lanzador = !!spec\.ideaFirst;/.test(pantalla) && /<TravelLauncher/.test(pantalla));
 
-  // 3) Las siete funciones siguen siendo siete, en el mismo orden.
-  {
-    const bloque = specialists.slice(specialists.indexOf('  chef: {'), specialists.indexOf('  home: {'));
-    const ids = [...bloque.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
-    check('3) siguen siendo las siete de siempre y en su orden', ids.join(',') === 'recipe,ingredients,menu,healthy,dessert,edit,idk', ids.join(','));
-  }
-
-  // 4) La foto de una publicación conserva su proporción.
-  check('4) el tope de alto acompaña al ancho de la columna', /const maxImageHeight = maxWidth/.test(tarjeta) && /MAX_IMAGE_HEIGHT \* Math\.max\(1, carouselWidth \/ getCarouselWidth\(\)\)/.test(tarjeta));
-  check('4) quien no pide ancho conserva el tope exacto de antes', /: MAX_IMAGE_HEIGHT;/.test(tarjeta) && !/Math\.min\(MAX_IMAGE_HEIGHT,/.test(tarjeta));
-  check('4) y el tope nuevo es el que se usa al pintar', (tarjeta.match(/Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\)/g) || []).length === 2);
-
-  // 5) Nada de lo que se usó para mirar el muro se quedó dentro.
-  check('5) el muro no trae ningún doble de prueba', !/DOBLE|doble-|localhost:87/.test(leer('components/creator/SectionWall.tsx')));
-}
-
-// ── LAS HERRAMIENTAS, PLEGADAS ──────────────────────────────────────────────
-// Con las siete funciones siempre abiertas, lo primero que veía quien entraba en
-// Chef era un catálogo de botones. Plegadas caben en una franja y la comunidad
-// sube casi media pantalla; abrirlas cuesta un toque (fase 2E-41).
-console.log('\n── Weë Chef · las herramientas se pliegan ──');
-{
-  const fs = await import('node:fs');
-  const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-  const ui = leer('components/creator/ui.tsx');
-  const pantalla = leer('screens/SpecialistScreen.tsx');
-  const specialists = leer('constants/specialists.ts');
-
-  // 1) Al llegar a la sección están cerradas.
-  check('1) empiezan cerradas', /const \[herramientasAbiertas, setHerramientasAbiertas\] = useState\(false\);/.test(pantalla));
-  check('1) y vuelven a cerrarse cada vez que se llega a la sección', /useFocusEffect\([\s\S]{0,400}setHerramientasAbiertas\(false\);/.test(pantalla));
-
-  // 2) La franja dice qué guarda dentro: nada de un botón "Más".
-  check('2) la franja lleva el nombre de la sección y su frase', /<Collapsible[\s\S]{0,300}title=\{spec\.gridTitle\}[\s\S]{0,120}subtitle=\{spec\.gridHint\}/.test(pantalla));
-  check('2) y dice en palabras cuántas opciones esconde', /contentLabel=\{`las \$\{spec\.actions\.length\} opciones de \$\{spec\.experience\.name\}`\}/.test(pantalla));
-  check('2) sin ningún botón genérico', !/'Más'|"Más"|>Más</.test(pantalla));
-
-  // 3 y 4) Lo de dentro solo existe cuando está abierto.
-  check('3) las funciones viven dentro del plegable', /<Collapsible[\s\S]{0,600}<ActionGrid actions=\{spec\.actions\}[\s\S]{0,80}<\/Collapsible>/.test(pantalla));
-  check('4) y no se pintan mientras está cerrado', /\{open && \(/.test(ui));
-  check('4) la apertura tiene una transición corta, no un salto', /Animated\.timing\(entrada, \{ toValue: 1, duration: 160/.test(ui) && /entrada\.setValue\(0\);/.test(ui));
-
-  // 5) Cada función sigue llevando a donde llevaba.
-  {
-    const chef = TEMPLATES.chef;
-    const caps = (a) => chef.buildPlan('x', a).steps.map((s) => s.capability).join(' + ');
-    check('5) pulsar una función sigue abriendo su conversación', /const handleAction = \(action: SpecialistAction\) => \{[\s\S]{0,400}startFlow\(action\.goal, action\.preset, undefined, action\.opens\);\s*\};/.test(pantalla));
-    check('5) receta, cocinar y retocar siguen con sus mismos pasos', caps({ what: 'recipe', people: '2', time: '30' }) === 'text.generate + image.generate' && caps({ what: 'cook', people: '2', time: '30' }) === 'vision.describe + text.generate + image.generate' && caps({ what: 'edit', change: 'background' }) === 'image.edit');
-    check('5) y abrir el plegable no ejecuta nada', !/onToggle=\{[^}]*startFlow/.test(pantalla));
-  }
-
-  // 10) El muro sigue ahí con las herramientas cerradas: está fuera del plegable.
-  {
-    const abre = pantalla.indexOf('<Collapsible');
-    const cierra = pantalla.indexOf('</Collapsible>');
-    const muro = pantalla.indexOf('{wall && <SectionWall');
-    check('10) el muro no depende de que las herramientas estén abiertas', abre > 0 && cierra > abre && muro > cierra, `plegable ${abre}–${cierra} · muro ${muro}`);
-    check('10) y no está metido dentro del plegable', !pantalla.slice(abre, cierra).includes('SectionWall'));
-  }
-
-  // 8, 9 y 11) Ni panel derecho, ni segunda barra, ni cajón, ni modal.
-  check('8 y 9) sigue sin panel derecho y sin segunda barra lateral', !/RightSidebar|SectionPanel|<Sidebar\b|<CreatorSidebar/.test(pantalla + ui));
-  check('11) el plegable no abre un cajón ni una ventana', !/Modal|Drawer/.test(ui));
-
-  // 13) El estado se puede oír, no solo ver.
-  check('13) es un botón de verdad', /accessibilityRole="button"/.test(ui));
-  check('13) que dice si está abierto o cerrado', /accessibilityState=\{\{ expanded: open \}\}/.test(ui) && /aria-expanded=\{open\}/.test(ui));
-  check('13) y lo dice también con palabras, no solo con el chevron', /accessibilityLabel=\{`\$\{title\}\. \$\{open \? 'Ocultar' : 'Ver'\} \$\{contentLabel\}`\}/.test(ui));
-
-  // Una sola implementación: el gesto de plegar deja de copiarse a mano.
-  check('el plegable es un componente compartido', /export const Collapsible/.test(ui) && (ui.match(/export const Collapsible/g) || []).length === 1);
-  check('y las secciones sin muro conservan su cuadrícula siempre abierta', /\) : \([\s\S]{0,400}<SectionTitle[\s\S]{0,400}<ActionGrid/.test(pantalla));
-  check('lo usan las secciones con muro, y solo esas', (specialists.match(/^    wall: \{/gm) || []).length === 4);
+  /*
+   * Lo social sigue entero, y en un solo sitio: el Wäll, con su filtro por
+   * secciones y con los WeeTags diciendo de dónde viene cada publicación.
+   */
+  check('4) el Wäll sigue siendo el único muro, con su filtro por secciones',
+    /HOME_SECTION_FILTERS/.test(leer('screens/LandingScreen.tsx'))
+    && /HOME_SECTION_FILTERS/.test(leer('screens/WebLandingScreen.tsx'))
+    && existe('components/WeeTag.tsx'));
+  /* Y publicar desde una experiencia sigue existiendo: la puerta es la de siempre. */
+  check('4) publicar desde una experiencia sigue en pie',
+    existe('components/creator/ComposerEntry.tsx') && /sourceSection/.test(leer('screens/CreateScreen.tsx')));
 }
 
 // ── WEË DESIGN: CATORCE PUERTAS, SIETE INTENCIONES ──────────────────────────
@@ -1001,16 +798,16 @@ console.log('\n── Weë Design · siete intenciones en vez de catorce ejemplo
   // 8) Los siete ejemplos simulados, fuera y sin sustituto.
   check('8) Design se queda sin ejemplos simulados', /examples: \[\],/.test(bloque));
   check('8) y no se han cambiado por otros', !/Auto futurista|Robot asistente|Zapatilla deportiva/.test(specialists));
-  check('8) la fila de ejemplos no se pinta sin ejemplos', /\{wall && !!spec\.examples\?\.length && \(/.test(pantalla));
+  check('8) la fila de ejemplos no se pinta sin ejemplos', /\{!lanzador && !!spec\.examples\?\.length && \(/.test(pantalla));
 
-  // 9) El muro de Design: tres pestañas, no cinco.
-  {
-    const muro = bloque.slice(bloque.indexOf('    wall: {'), bloque.indexOf('    idea: {'));
-    const etiquetas = [...muro.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
-    check('9) tres pestañas', etiquetas.length === 3, etiquetas.join(' · '));
-    check('9) y son las aprobadas', etiquetas.join('|') === 'Muro Design|Cómo lo hicieron|Guardados', etiquetas.join('|'));
-    check('9) con compositor y estado vacío propios', /Comparte un diseño, una idea o una pregunta…/.test(muro) && /Todavía no hay nada en el muro de Weë Design/.test(muro));
-  }
+  /*
+   * 9) Design tuvo muro propio —"Muro Design", "Cómo lo hicieron", "Guardados"—
+   * y ya no: el Wäll dice de qué experiencia viene cada publicación con su
+   * WeeTag, así que un muro por sección era el mismo muro contado dos veces. Lo
+   * que se protege es que no vuelva por la puerta de atrás.
+   */
+  check('9) Design ya no tiene muro propio', !/wall: \{/.test(bloque) && !/Muro Design/.test(bloque));
+  check('9) ni una lista de publicaciones suya', !/Todavía no hay nada en el muro/.test(bloque));
 
   // 10) A qué muro pertenece una publicación: sin robarle nada a otra sección.
   {
@@ -1237,7 +1034,7 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
   // 11 y 12) Nada más se movió.
   check('11) las otras propuestas siguen ahí y se pueden elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
   check('11) y la elegida sigue viéndose en grande', /chosenFrame/.test(tarjeta));
-  check('12) ni PostCard ni el muro han cambiado de forma', !/prefill/.test(leer('components/PostCard.tsx')) && !/prefill/.test(leer('components/creator/SectionWall.tsx')));
+  check('12) PostCard no ha cambiado de forma', !/prefill/.test(leer('components/PostCard.tsx')));
   check('12) la publicación manual conserva sus caminos', /presetKind === 'question'/.test(crear) && /presetKind === 'weel'/.test(crear) && /const \[poll, setPoll\]/.test(crear));
 }
 
@@ -1384,13 +1181,11 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     check('18) y "video" sigue llevando a Studio', halla('un video para mis redes').includes('studio'));
   }
 
-  // 19 y 20) El muro de Studio, y ni rastro de las viejas tarjetas.
+  // 19 y 20) Studio sin muro propio, y ni rastro de las viejas tarjetas.
   {
     const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
-    const muro = bloque.slice(bloque.indexOf('    wall: {'), bloque.indexOf('    idea: {'));
-    const etiquetas = [...muro.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
-    check('19) Studio tiene muro con tres pestañas', etiquetas.join('|') === 'Muro Studio|Cómo lo hicieron|Guardados', etiquetas.join('|'));
-    check('19) con su compositor y su estado vacío', /Comparte una foto, un video o una pregunta…/.test(muro) && /Todavía no hay nada en el muro de Weë Studio/.test(muro));
+    check('19) Studio ya no tiene muro propio', !/wall: \{/.test(bloque) && !/Muro Studio/.test(bloque));
+    check('19) ni compositor ni estado vacío suyos', !/Comparte una foto, un video o una pregunta…/.test(bloque) && !/Todavía no hay nada en el muro/.test(bloque));
     check('20) el selector no trae las veintiséis tarjetas', (bloque.match(/\{ id: '[^']+', icon: /g) || []).length === 4);
     check('20) ni cuadrícula con imágenes', /actionLayout: 'compact'/.test(bloque) && !/actionLayout: 'wide'/.test(bloque));
   }
@@ -2139,7 +1934,7 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
 
   // 6) Tocar Credits sigue llevando al mismo sitio.
   check('C6) Credits sigue abriendo CreditStore', codigoMenu.includes("const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());"));
-  check('C6) y el resto de filas del menú siguen ahí', ["fila('notifications'", "fila('saved'", "fila('settings'", "fila('help'"].every((t) => codigoMenu.includes(t)));
+  check('C6) y el resto de filas del menú siguen ahí', ["fila('saved'", "fila('settings'", "fila('help'"].every((t) => codigoMenu.includes(t)));
 
   /*
    * 7) Los Credits acabaron teniendo UN solo sitio.
@@ -2194,6 +1989,41 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   check('M3) y antes de Comunidades', menu.MENU_ORDER.indexOf('credits') < menu.MENU_ORDER.indexOf('communities'));
   const grupos = menu.WEE_MENU.map((g) => g.label).filter(Boolean).join(',');
   check('M3) los grupos son PERFIL y EXPLORA', grupos === 'PERFIL,EXPLORA', grupos);
+
+  /*
+   * 3b) NOTIFICACIONES NO ESTÁ EN EL MENÚ, y no por descuido: es el quinto
+   * destino de la barra inferior, que se ve siempre. Tenerlo en los dos sitios
+   * era ofrecer dos puertas a la misma pantalla. Lo que se fue es el ACCESO
+   * desde el menú; la pantalla, la ruta y el servicio siguen enteros, y eso se
+   * comprueba abajo para que nadie confunda una cosa con la otra.
+   */
+  check('M3b) Notificaciones no es una opción del menú',
+    !menu.MENU_ORDER.includes('notifications') && !menu.MENU_ITEM.notifications, menu.MENU_ORDER.join(','));
+  check('M3b) ni el cajón ni la barra la pintan',
+    !/'notifications'|"notifications"/.test(limpio(cajon)) && !/'notifications'|"notifications"/.test(limpio(barra)));
+  check('M3b) control: la pantalla, la ruta y el servicio de notificaciones siguen enteros',
+    fs3.existsSync(new URL('../../screens/NotificationsScreen.tsx', import.meta.url))
+    && /name="Notifications"/.test(leer3('navigation/HomeStackNavigator.tsx'))
+    && /\{ id: 'Notifications', etiqueta: 'Notificaciones'/.test(leer3('components/BarraInferior.tsx')));
+
+  /*
+   * 3c) SIN RESALTADO AMARILLO EN LAS OPCIONES.
+   *
+   * La fila activa se pintaba con el amarillo de Weë al 13% de fondo, y en una
+   * lista de opciones eso no se leía como "estás aquí" sino como un resaltado
+   * suelto. Se quitó de los dos menús a la vez —son el mismo menú— y no se
+   * sustituyó por otra sombra: dónde estás lo dice el texto.
+   */
+  for (const [nombre, texto] of [['el cajón', cajon], ['la barra', barra]]) {
+    check(`M3c) ${nombre} no tinta de amarillo la opción activa`,
+      !/accent \+ '[0-9A-Fa-f]{2}'|accentTint/.test(limpio(texto))
+      && !/shadowColor[^\n]*accent|shadowColor[^\n]*F5B731/i.test(limpio(texto)));
+  }
+  /* Y el amarillo sigue donde sí informa: la etiqueta del Perfil Weë y el saldo. */
+  check('M3c) control: el amarillo de Weë sigue donde informa',
+    /styles\.tag, \{ backgroundColor: theme\.colors\.accent \}/.test(cajon)
+    && /styles\.creditsBadge, \{ backgroundColor: theme\.colors\.accent \}/.test(cajon)
+    && /styles\.saldo, \{ backgroundColor: theme\.colors\.accent \}/.test(barra));
 
   // 4) Los dos pintan los mismos grupos y la misma cabecera de cuenta.
   for (const [nombre, texto] of [['el cajón', cajon], ['la barra', barra]]) {

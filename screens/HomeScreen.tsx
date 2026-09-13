@@ -376,11 +376,6 @@ const HomeScreen: React.FC = () => {
   const postsCache = useRef<Map<string, { posts: Post[]; lastDoc: DocumentSnapshot | null; timestamp: number; hayMas?: boolean }>>(new Map());
   const CACHE_DURATION = 60000; // 1 minuto de validez del cache
 
-  // Función de navegación para el header
-  const handleNotificationsPress = () => {
-    navigation.navigate('Notifications' as any);
-  };
-
   // Scroll to top cuando se dispara el trigger
   useEffect(() => {
     if (scrollToTopTrigger > 0 && flatListRef.current) {
@@ -1072,10 +1067,7 @@ const HomeScreen: React.FC = () => {
       {/* Header — stays at top, content scrolls underneath */}
       {!isDesktop && (
         <View style={{ backgroundColor: theme.colors.background }}>
-          <Header
-            onNotificationsPress={handleNotificationsPress}
-            onBackPress={isFromLanding ? handleBackToLanding : undefined}
-          />
+          <Header onBackPress={isFromLanding ? handleBackToLanding : undefined} />
         </View>
       )}
 

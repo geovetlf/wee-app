@@ -47,10 +47,14 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested,
   const { theme } = useTheme();
   return (
     <TouchableOpacity
+      /*
+       * Sin fondo amarillo en la opción activa, igual que en el cajón: dónde
+       * estás lo dice el color del texto. Los dos menús son el mismo menú y no
+       * pueden discrepar en esto.
+       */
       style={[
         styles.item,
         nested && styles.itemNested,
-        active && { backgroundColor: theme.colors.accent + '1F' },
         isWeb && ({ cursor: 'pointer' } as any),
       ]}
       onPress={onPress}
@@ -70,7 +74,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested,
 /**
  * Barra lateral de escritorio: el mismo menú único de docs/UX.md que el ☰ en móvil.
  * Inicio · Buscar · Comunidades · Weëls · WeeTalk · Weë Creator (10 especialistas + Mis proyectos)
- * · Credits · Notificaciones · Guardados · Configuración · Ayuda.
+ * · Credits · Guardados · Configuración · Ayuda.
+ *
+ * Notificaciones no está: vive en la barra inferior, que se ve siempre.
  */
 const Sidebar: React.FC = () => {
   const { theme } = useTheme();
@@ -228,7 +234,7 @@ const Sidebar: React.FC = () => {
             </View>
           )}
           {/* "Perfil" a secas se fue: arriba ya están Perfil Real y Perfil Weë. */}
-          <Opcion id="notifications" onPress={() => (user ? goHome('Notifications') : requireLogin())} />
+          {/* Notificaciones tampoco está: es el quinto destino de la barra inferior. */}
           <Opcion id="saved" active={isActive('SavedPosts')} onPress={() => (user ? navigation.navigate('SavedPosts') : requireLogin())} />
           <Opcion id="settings" active={isActive('Settings')} onPress={() => navigation.navigate('Settings')} />
           <Opcion id="help" active={isActive('Help')} onPress={() => navigation.navigate('Help')} />

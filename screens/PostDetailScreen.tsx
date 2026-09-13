@@ -13,7 +13,6 @@ import {
   Platform,
   ActivityIndicator,
   Keyboard,
-  Alert,
   LayoutAnimation,
   UIManager,
   Share,
@@ -21,18 +20,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { cloudinaryFeed, cloudinaryThumb } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
 import { useVote } from '../hooks/useVote';
+import { useComentarios } from '../hooks/useComentarios';
 import { useReposts } from '../hooks/useReposts';
-import { Post, Comment, commentsService, postsService } from '../services/firestoreService';
+import { Post } from '../services/firestoreService';
 import Poll from '../components/Poll';
-import { notificationService } from '../services/notificationService';
-import { uploadCommentImage } from '../services/storageService';
 import { formatNumber, getRelativeTime } from '../data/mockData';
 import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -124,7 +121,6 @@ const PostDetailContent: React.FC = () => {
   const videoRef = useRef<Video>(null);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [commentText, setCommentText] = useState('');
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(() => {
@@ -147,10 +143,23 @@ const PostDetailContent: React.FC = () => {
 
     return null;
   });
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(true);
-  const [submittingComment, setSubmittingComment] = useState(false);
-  const [commentImage, setCommentImage] = useState<string | null>(null);
+  /*
+   * La conversación entera —escucharla, escribir, adjuntar y enviar— sale de
+   * `useComentarios`, el mismo camino que usa la hoja que se abre desde el
+   * muro. Antes esto era código propio de esta pantalla; cuando la conversación
+   * pasó a abrirse también desde el muro, se sacó de aquí en vez de copiarse.
+   */
+  const {
+    comentarios: comments,
+    cargando: loadingComments,
+    texto: commentText,
+    setTexto: setCommentText,
+    adjunto: commentImage,
+    elegirAdjunto: handlePickCommentImage,
+    quitarAdjunto: removeCommentImage,
+    enviando: submittingComment,
+    enviar: handleCommentSubmit,
+  } = useComentarios(post);
   const scrollViewRef = useRef<ScrollView>(null);
   const carouselWidth = getCarouselWidth();
 
@@ -165,28 +174,6 @@ const PostDetailContent: React.FC = () => {
       setImageDimensions({ width: aspectRatio, height: 1, aspectRatio });
     });
   }, [post.imageUrls]);
-
-  // Cargar comentarios en tiempo real
-  useEffect(() => {
-    if (!post.id) {
-      setLoadingComments(false);
-      return;
-    }
-
-    setLoadingComments(true);
-    console.log('📝 Suscribiéndose a comentarios del post:', post.id);
-
-    const unsubscribe = commentsService.subscribeToPost(post.id, (updatedComments) => {
-      console.log('✅ Comentarios recibidos:', updatedComments.length);
-      setComments(updatedComments);
-      setLoadingComments(false);
-    });
-
-    return () => {
-      console.log('🔌 Desuscribiéndose de comentarios');
-      unsubscribe();
-    };
-  }, [post.id]);
 
   const getImageHeight = () => {
     if (!imageDimensions) {
@@ -246,130 +233,6 @@ const PostDetailContent: React.FC = () => {
   const handleCommentLike = async (commentId: string) => {
     // TODO: Implementar likes de comentarios
     console.log('Like comment:', commentId);
-  };
-
-  const handlePickCommentImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permissionResult.granted) {
-        Alert.alert(
-          'Permisos necesarios',
-          'Necesitamos acceso a tu galería para seleccionar imágenes'
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setCommentImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen');
-    }
-  };
-
-  const removeCommentImage = () => {
-    setCommentImage(null);
-  };
-
-  const handleCommentSubmit = async () => {
-    const trimmedContent = commentText.trim();
-    const currentImage = commentImage;
-
-    if ((!trimmedContent && !currentImage) || !user || !post.id || submittingComment) return;
-
-    // Limpiar input inmediatamente para mejor UX
-    setCommentText('');
-    setCommentImage(null);
-    setSubmittingComment(true);
-
-    try {
-      console.log('💬 Enviando comentario...');
-
-      // Subir imagen si hay una
-      let imageUrl: string | undefined;
-      if (currentImage) {
-        console.log('📤 Subiendo imagen del comentario...');
-        try {
-          const response = await fetch(currentImage);
-          const blob = await response.blob();
-          imageUrl = await uploadCommentImage(blob, user.uid);
-          console.log('✅ Imagen subida:', imageUrl);
-        } catch (uploadError) {
-          console.error('Error uploading comment image:', uploadError);
-          Alert.alert('Error', 'No se pudo subir la imagen');
-          // Restaurar el comentario
-          setCommentText(trimmedContent);
-          setCommentImage(currentImage);
-          setSubmittingComment(false);
-          return;
-        }
-      }
-
-      const activeUid = userProfile?.uid || user.uid;
-      const commentData: Omit<Comment, 'id'> = {
-        postId: post.id,
-        userId: activeUid,
-        content: trimmedContent,
-        likes: 0,
-        createdAt: new Date() as any,
-        updatedAt: new Date() as any,
-        // Solo incluir imageUrl si existe (Firebase no acepta undefined)
-        ...(imageUrl && { imageUrl }),
-      };
-
-      // Crear comentario en Firestore
-      const commentId = await commentsService.create(commentData);
-
-      // Incrementar contador de comentarios en el post
-      await postsService.update(post.id, {
-        comments: (post.comments || 0) + 1,
-      });
-
-      // Crear notificación de comentario
-      if (userProfile && post.userId !== activeUid) {
-        try {
-          await notificationService.createCommentNotification(
-            post.userId,
-            activeUid,
-            userProfile.displayName || 'Usuario',
-            {
-              type: userProfile.avatarType,
-              id: userProfile.avatarId,
-              url: userProfile.photoURL,
-            },
-            post.id,
-            post.content,
-            commentId,
-            trimmedContent
-          );
-          console.log('🔔 Notificación de comentario creada');
-        } catch (notifError) {
-          console.error('⚠️ Error creando notificación de comentario:', notifError);
-        }
-      }
-
-      console.log('✅ Comentario enviado');
-
-      // Cerrar el teclado
-      Keyboard.dismiss();
-    } catch (error) {
-      console.error('❌ Error enviando comentario:', error);
-      // Restaurar el comentario si hay error
-      setCommentText(trimmedContent);
-      if (currentImage) setCommentImage(currentImage);
-      Alert.alert('Error', 'No se pudo enviar el comentario. Inténtalo de nuevo.');
-    } finally {
-      setSubmittingComment(false);
-    }
   };
 
   const renderVideo = () => {

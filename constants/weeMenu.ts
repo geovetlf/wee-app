@@ -31,7 +31,6 @@ export type MenuItemId =
   | 'weetalk'
   | 'creator'
   | 'projects'
-  | 'notifications'
   | 'saved'
   | 'settings'
   | 'help';
@@ -67,7 +66,12 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    */
   creator: { id: 'creator', emoji: '🤖', label: 'WEË AI' },
   projects: { id: 'projects', emoji: '📁', label: 'Mis proyectos' },
-  notifications: { id: 'notifications', emoji: '🔔', label: 'Notificaciones' },
+  /*
+   * Notificaciones NO está aquí, y no es un olvido: es el quinto destino de la
+   * barra inferior (`components/BarraInferior.tsx`), que se ve siempre. Tenerlo
+   * también en el menú era ofrecer dos puertas a la misma pantalla. La pantalla,
+   * su ruta y su servicio siguen exactamente donde estaban.
+   */
   saved: { id: 'saved', emoji: '🔖', label: 'Guardados' },
   settings: { id: 'settings', emoji: '⚙️', label: 'Configuración' },
   help: { id: 'help', emoji: '❓', label: 'Ayuda' },
@@ -104,7 +108,7 @@ export const WEE_MENU: MenuSection[] = [
   { items: ['econtact'], divisor: true },
   { label: 'EXPLORA', items: ['communities', 'weels', 'weetalk'], divisor: true },
   { items: ['creator'], creator: true },
-  { items: ['notifications', 'saved', 'settings', 'help'] },
+  { items: ['saved', 'settings', 'help'] },
 ];
 
 /** Todas las opciones, en el orden en que se ven. Sirve para comprobarlo. */

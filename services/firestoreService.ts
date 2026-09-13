@@ -549,11 +549,11 @@ export const postsService = {
     ),
 
   /*
-   * El muro de una SECCIÓN no tiene método aquí a propósito: lo compone
-   * `SectionWall` con `paginaDeLaSeccion` y esta misma consulta. Así queda a la
-   * vista, en el propio muro, que una sección lee la colección general y no una
-   * suya —que es justo lo que hay que poder demostrar de un vistazo—. El bucle
-   * de relleno es el mismo de arriba: no hay dos.
+   * No hay método para el muro de una SECCIÓN porque ya no hay muros de
+   * sección: Weë tiene uno solo, el Wäll, y de qué experiencia viene cada
+   * publicación lo dice su WeeTag. Lo que sí queda es `paginaDeLaSeccion` en
+   * `utils/sectionFeed`, que sigue sirviendo para acotar por sección sobre esta
+   * misma colección general.
    */
   getPublicPostsPaginated: async (limitCount = 20, lastDoc?: DocumentSnapshot) => {
     const result = await firestoreService.getManyPaginated<Post>(

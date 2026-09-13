@@ -4,9 +4,10 @@ import { postsDeLaSeccion } from './sectionFeed';
 /*
  * DOS FORMAS DE FILTRAR, Y NO SON LA MISMA.
  *
- * · POR TIPO DE CONTENIDO —imágenes, tutoriales—. Lo usan las paredes de cada
- *   experiencia (`components/creator/SectionWall.tsx`), donde ya sabes en qué
- *   sección estás y lo que quieres es acotar QUÉ mirar. Se queda como estaba.
+ * · POR TIPO DE CONTENIDO —imágenes, tutoriales—. Lo usaban los muros que cada
+ *   experiencia tuvo, donde ya sabías en qué sección estabas y lo que querías
+ *   era acotar QUÉ mirar. Aquellos muros se fueron; el filtro se queda porque
+ *   sigue siendo una forma válida de acotar y no cuesta nada tenerlo.
  *
  * · POR SECCIÓN DE WEË —Weë Studio, Weë Travel…—. Lo usa el muro del Home, donde
  *   está todo junto y lo que quieres es acotar DE DÓNDE viene.

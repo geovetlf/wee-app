@@ -194,13 +194,7 @@ const InboxScreen = () => {
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {!isDesktop && (
-        <Header
-          onNotificationsPress={() => {
-            const tab = nav.getParent();
-            if (tab) (tab as any).navigate('Home', { screen: 'Notifications' });
-          }}
-          onMenuPress={() => setDrawerVisible(true)}
-        />
+        <Header onMenuPress={() => setDrawerVisible(true)} />
       )}
 
       <View style={styles.searchWrap}>

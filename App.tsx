@@ -50,6 +50,7 @@ import { ScrollProvider } from './contexts/ScrollContext';
 import { PushNotificationProvider } from './contexts/PushNotificationContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { TabBarProvider } from './contexts/TabBarContext';
+import { ComentariosProvider } from './contexts/ComentariosContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
 import { refNavegacion } from './navigation/refNavegacion';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -248,7 +249,14 @@ export default function App() {
                         encienda— y se queda quieta.
                       */}
                       <LocationProvider>
-                        <MainStackNavigator />
+                        {/*
+                          La conversación de una publicación se abre encima de
+                          cualquier muro, así que la hoja se monta una sola vez
+                          aquí y no dentro de cada pantalla.
+                        */}
+                        <ComentariosProvider>
+                          <MainStackNavigator />
+                        </ComentariosProvider>
                       </LocationProvider>
                     </PushNotificationProvider>
                   </NavigationContainer>

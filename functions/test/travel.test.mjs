@@ -102,16 +102,15 @@ console.log('\n── B · El Home de Weë Travel ──');
    */
   const codigo = soloCodigo(pantalla);
   const tarjeta = codigo.indexOf('<TravelLauncher');
-  const muro = codigo.indexOf('<SectionWall');
-  check('6) la tarjeta de entrada va antes del muro', tarjeta > 0 && tarjeta < muro, `${tarjeta} < ${muro}`);
+  check('6) la tarjeta de entrada es lo primero de la sección', tarjeta > 0, String(tarjeta));
   // Ni cabecera propia, ni caja suelta, ni franja aparte: las tres puertas viejas
   // quedan detrás de una condición que Travel no cumple.
   check(
-    '6) y es lo único que hay entre la cabecera y el muro',
-    /\{!lanzador && <SpecialistHero/.test(codigo) && !/spec\.ideaFirst && <IdeaBox/.test(codigo) && /\) : wall \? \(\s*<Collapsible/.test(codigo)
+    '6) y es lo único que hay debajo de la cabecera',
+    /\{!lanzador && <SpecialistHero/.test(codigo) && /\{!lanzador && <IdeaBox/.test(codigo)
   );
   // Una sola sección lo pide: la declaración del campo y su explicación no cuentan.
-  check('6) y sin esa marca ninguna otra sección se mueve', /const lanzador = !!wall && !!spec\.ideaFirst;/.test(codigo) && (specialists.match(/^ {4}ideaFirst: true,$/gm) || []).length === 1);
+  check('6) y sin esa marca ninguna otra sección se mueve', /const lanzador = !!spec\.ideaFirst;/.test(codigo) && (specialists.match(/^ {4}ideaFirst: true,$/gm) || []).length === 1);
 
   check('7) tiene tres ejemplos que se tocan', (bloqueTravel.match(/chips: \[([^\]]*)\]/)?.[1].match(/'/g) || []).length === 6);
   check('7) y son los tres del diseño', /'🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'/.test(bloqueTravel));
@@ -130,10 +129,13 @@ console.log('\n── B · El Home de Weë Travel ──');
     check('8) el ejemplo se limpia antes de enviarse', /onSubmit\(objetivoDe\(chip\)\)/.test(caja) && /EMOJI_AL_PRINCIPIO/.test(caja));
   }
 
-  check('9) el muro de la sección está', /wall: \{/.test(bloqueTravel) && /placeholder: 'Comparte un viaje/.test(bloqueTravel));
-  // Y no tiene pestañas propias: Weë tiene un solo muro (fase 2E-73).
-  check('9) y sin pestañas propias', !/tabs: \[/.test(bloqueTravel), 'travel todavía declara pestañas');
-  check('9) y el muro sigue siendo el genérico de siempre', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} general=\{lanzador\} \/>/.test(soloCodigo(pantalla)));
+  /*
+   * Y ya no tiene muro. Lo tuvo —el general de Weë, sin filtrar— hasta que el
+   * Wäll aprendió a decir de qué experiencia viene cada publicación con su
+   * WeeTag: a partir de ahí era el mismo muro contado dos veces.
+   */
+  check('9) la sección ya no declara muro', !/wall: \{/.test(bloqueTravel) && !/tabs: \[/.test(bloqueTravel));
+  check('9) y nadie lo pinta', !/SectionWall/.test(soloCodigo(pantalla)));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -432,7 +434,7 @@ console.log('\n── K · La documentación ──');
   check('55) CREATOR.md cuenta once experiencias', /## 1\. Las 11 experiencias de WEE/.test(creador) && /## 8\. Las 11 secciones/.test(creador));
   check('55) y ninguna de las dos listas se olvida de Travel', /\| ✈️ \| WEE Travel \|/.test(creador) && /\| ✈️ \*\*WEE Travel\*\* \|/.test(creador));
   check('56) dice que es una sección, no una aplicación aparte', /WEE Travel es una sección, no una aplicación aparte/.test(creador));
-  check('56) y que reutiliza el Wall en vez de tener feed propio', /el Wall general \+ `SectionWall` filtrado \| un feed propio/.test(creador));
+  check('56) y que reutiliza el Wäll en vez de tener feed propio', /el Wäll general \| un feed propio/.test(creador));
   check('56) que 📍 Lugar es transversal a todo WEE', /📍 Lugar, que es transversal a todo WEE/.test(creador));
   check('56) y que no hay trips, GPS, mapa ni reservas', /colección `trips`/.test(creador) && /GPS, mapa/.test(creador) && /APIs de reservas/.test(creador));
 
@@ -709,7 +711,6 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   const codigo = soloCodigo(pantalla);
   const marco = soloCodigo(shell);
   const tarjeta = soloCodigo(lanzador);
-  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
 
   /*
    * Los Credits tienen UN sitio en Weë: el menú, bajo los dos perfiles. Repetirlos
@@ -747,10 +748,11 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   check('98) y no se ha puesto otra sección en su hueco', !/viajes guardados|Mis itinerarios|Destinos sugeridos|Viajes populares/i.test(specialists + codigo));
   // El campo pasa a ser opcional, no desaparece: las otras secciones siguen enseñando la suya.
   check('98) las demás secciones conservan la suya', /examplesTitle\?: string;/.test(specialists) && (specialists.match(/^ {4}examplesTitle: /gm) || []).length >= 6);
-  check('98) y la fila solo se pinta si hay algo que enseñar', (codigo.match(/!!spec\.examples\?\.length/g) || []).length === 2);
+  /* Una sola fila de ejemplos: la segunda existía solo para colgar bajo el muro, y el muro se fue. */
+  check('98) y la fila solo se pinta si hay algo que enseñar', (codigo.match(/!!spec\.examples\?\.length/g) || []).length === 1);
 
-  // El muro es el general de Weë: ni feed aparte, ni pestañas nuevas, ni sidebar.
-  check('99) el muro es el genérico, con el id de la sección', /<SectionWall sectionId=\{spec\.id\} config=\{wall\} compact=\{lanzador\} general=\{lanzador\} \/>/.test(codigo));
+  // Sin muro propio, y sobre todo sin nada que lo sustituya por la puerta de atrás.
+  check('99) la sección no tiene muro', !/SectionWall/.test(codigo));
   check('99) no hay feed de Travel', !/TravelFeed|travelFeed|travelPosts/.test(codigo + specialists));
   check('99) ni "Cerca de ti" ni "Siguiendo"', !/Cerca de ti|Siguiendo/i.test(bloqueTravel));
   check('99) ni una colección nueva', !/collection\(['"]travel/i.test(codigo + tarjeta));
@@ -760,11 +762,10 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
    * es exactamente lo que Weë no es: hay un muro, y Travel es un contexto que
    * una publicación lleva encima sin dejar de pertenecer a él (fase 2E-73).
    */
-  // Sobre el bloque de Travel: las otras secciones conservan sus pestañas y eso
-  // está bien, porque ellas siguen enseñando su muro filtrado.
+  // Y ya no queda ninguna, ni en Travel ni en ninguna otra: el muro de sección se retiró entero.
   check('99) y no queda ni una pestaña en Travel', ['Muro Travel', 'Fotos del viaje', 'Consejos', 'Mis viajes'].every((t) => !soloCodigo(bloqueTravel).includes(t)), 'alguna pestaña sigue viva en travel');
-  check('99) "Muro Travel" no existe en ningún sitio', !/Muro Travel/.test(soloCodigo(specialists) + codigo + muro));
-  check('99) el muro no filtra por sección cuando es el general', /if \(general\) return posts;/.test(muro));
+  check('99) "Muro Travel" no existe en ningún sitio', !/Muro Travel/.test(soloCodigo(specialists) + codigo));
+  check('99) ni pestañas de muro en ninguna sección', !/tabs: \[/.test(soloCodigo(specialists)));
 
   // Nada de esto puede haber cambiado lo que ocurre al elegir.
   check('100) escribir sigue abriendo el mismo flujo', /onSubmit=\{\(text\) => startFlow\(text\)\}/.test(codigo));
@@ -782,35 +783,22 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   check('101) los ejemplos no se envuelven', /<ScrollView\s+horizontal/.test(tarjeta) && !/flexWrap: 'wrap'/.test(tarjeta));
   check('101) y siguen siendo los tres, tocables', /idea\.chips\.map/.test(tarjeta) && /hitSlop=\{\{ top: 6, bottom: 6/.test(tarjeta));
 
-  // El compositor plegado es OPCIONAL: sin la prop, las otras secciones no cambian.
-  check('102) el compositor compacto es opcional', /compact\?: boolean;/.test(muro) && /\{ sectionId, config, compact, general \}/.test(muro));
   /*
-   * La puerta de publicar salió de `SectionWall` a su propio componente para
-   * poder ponerla también en el Home sin copiarla. El muro se la pasa entera —la
-   * frase, qué hacer al tocarla y si va compacta—, así que lo que se comprueba es
-   * lo mismo, solo que ahora en el archivo donde vive.
+   * La puerta de publicar salió del muro de sección a su propio componente para
+   * poder ponerla también en el Home sin copiarla. Aquel muro ya no está y la
+   * puerta se quedó, que era lo que valía.
    */
   const puerta = soloCodigo(leer('components/creator/ComposerEntry.tsx'));
+  // El compositor plegado es OPCIONAL: sin la prop, quien la use no cambia.
+  check('102) el compositor compacto es opcional', /compact\?: boolean;/.test(puerta));
   /*
    * Quien no pide `compact` sigue teniendo el bloque entero —atajos, destinos y
    * Publicar—; desde 2E-80 se pliega y arranca cerrado. La variante de una sola
    * fila no se despliega: ya es el mínimo, y un chevron que no abre nada mentiría.
    */
   check('102) y la fila desplegada sigue ahí para quien no lo pida', /const desplegable = !compact && !directo;/.test(puerta) && /\{desplegable && abierta && \(/.test(puerta));
-  /* Control: `directo` es cosa del Home; el muro de sección no lo pide y sigue plegándose. */
-  check('102) y el muro de sección no pide la barra directa del Home', !/directo/.test(soloCodigo(leer('components/creator/SectionWall.tsx'))));
-  /*
-   * Lo que importa es que el muro USE la puerta compartida y no escriba la suya.
-   * Se comprueban las props que de verdad la hacen funcionar, no la lista exacta
-   * ni su orden: clavarla obligaba a tocar esta prueba cada vez que la puerta
-   * gana una prop, y eso no protege nada.
-   */
-  const usoDeLaPuerta = (soloCodigo(leer('components/creator/SectionWall.tsx')).match(/<ComposerEntry[^/]*\/>/) || [''])[0];
-  check('102) el muro no tiene compositor propio: usa el compartido',
-    ['placeholder={config.placeholder}', 'onCompose={compose}', 'compact={compact}'].every((p) => usoDeLaPuerta.includes(p)) && !/composerField/.test(muro),
-    usoDeLaPuerta ? '' : 'no encuentro <ComposerEntry>');
-  check('102) solo Weë Travel lo pide', /compact=\{lanzador\}/.test(codigo));
-  check('102) y ninguna otra sección se lo pasa', (codigo.match(/<SectionWall /g) || []).length === 1);
+  /* Y la sección ya no monta ninguna puerta: el muro que la llevaba se retiró. */
+  check('102) la sección ya no monta la puerta de publicar', !/<ComposerEntry/.test(codigo) && !/SectionWall/.test(codigo));
 
   // Microinteracción: el chevron gira, no se cambia por otro icono.
   check('103) el chevron gira en los dos sentidos', /rotate: giro\.interpolate/.test(tarjeta) && /toValue: open \? 1 : 0/.test(tarjeta));
@@ -841,17 +829,16 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
 console.log('\n── U · El compositor social, el mismo para todo Weë ──');
 {
   const crear = soloCodigo(leer('screens/CreateScreen.tsx'));
-  const muro = soloCodigo(leer('components/creator/SectionWall.tsx'));
 
   /*
-   * UN solo compositor. Todo Weë publica por la misma pantalla —el muro de una
-   * sección, el botón +, la comunidad, la ayuda, el resultado de una generación—
-   * así que arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
-   * aparezca un segundo compositor por sección.
+   * UN solo compositor. Todo Weë publica por la misma pantalla —el Wäll, el
+   * botón +, la comunidad, la ayuda, el resultado de una generación— así que
+   * arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
+   * aparezca un segundo compositor por su cuenta.
    */
-  const pantallasQueCrean = ['components/creator/SectionWall.tsx', 'components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx'];
+  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx', 'screens/LandingScreen.tsx'];
   check('108) todas las superficies publican por la misma pantalla', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f)))));
-  check('108) y ninguna trae compositor propio', !/TextInput/.test(muro), 'SectionWall escribe por su cuenta');
+  check('108) y ninguna trae compositor propio', pantallasQueCrean.every((f) => !/<TextInput/.test(soloCodigo(leer(f)))));
 
   /*
    * El fallo que esto vigila: `showHowIMadeIt` arrancaba abierto con kind image,
@@ -956,8 +943,11 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
   check('111) y el botón lo refleja', /disabled=\{!canPublish\}/.test(crear));
 
   // El contexto viaja con la publicación, pero no crea un muro aparte.
-  check('112) publicar desde una sección conserva su contexto', /navigate\('Create', \{ kind, sourceSection: sectionId \}\)/.test(muro));
-  check('112) y la publicación sigue siendo del muro general', /if \(general\) return posts;/.test(muro));
+  /* El contexto de origen lo manda ahora quien nace en una experiencia: Weë Creator. */
+  check('112) publicar desde una experiencia conserva su contexto',
+    /sourceSection: EXPERIENCE_AREA\[experience\.id\]\?\.section \?\? experience\.id/.test(soloCodigo(leer('screens/CreatorFlowScreen.tsx'))));
+  /* Y la publicación sigue siendo del muro general: hay uno, y es el Wäll. */
+  check('112) y la publicación sigue siendo del muro general', /getMuroGeneralPaginado/.test(soloCodigo(leer('screens/LandingScreen.tsx'))));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1037,7 +1027,6 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
 
   // 9-10) Home y las secciones respetan lo que la publicación dice.
   const home = soloCodigo(leer('screens/HomeScreen.tsx'));
-  const muroSeccion = soloCodigo(leer('components/creator/SectionWall.tsx'));
   /*
    * UN SOLO SITIO DONDE SE COMPONE EL MURO (fase 2E-75).
    *
@@ -1052,7 +1041,7 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
   check('120) y la portada y la portada web piden por el mismo sitio', /getMuroGeneralPaginado/.test(portada) && /getMuroGeneralPaginado/.test(portadaWeb));
   check('120) ninguna pantalla vuelve a montar la sobreconsulta', ![home, portada, portadaWeb].some((p) => /sobreconsulta\(/.test(p)));
   check('120) y sin confundir "página corta" con "se acabó"', /hayMas/.test(home) && /hayMas/.test(portada) && /hayMas/.test(portadaWeb));
-  check('120) el muro de sección respeta los destinos', /postsDeLaSeccion\(posts, sectionId\)/.test(muroSeccion));
+  check('120) el reparto por destinos sigue existiendo', /postsDeLaSeccion/.test(seccionFeed));
   check('120) el bucle de relleno tiene tope', /MAXIMO_DE_VUELTAS/.test(soloCodigo(fuente)));
 
   /*
@@ -1074,10 +1063,12 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
    * racha de documentos puede que ninguno sea de esa sección. Sigue leyendo la
    * colección general —`getPublicPostsPaginated`—, nunca una suya.
    */
-  check('120c) la sección pagina hasta juntar suficientes', /paginaDeLaSeccion\(pagina, sectionId, VISIBLES, desde\)/.test(muroSeccion));
-  check('120c) y sigue leyendo el muro general, no una colección propia', /getPublicPostsPaginated/.test(muroSeccion) && !/collection\(db, '[a-z]+Posts'\)/.test(muroSeccion));
-  check('120c) ya no se piden 40 y se tiran la mitad', !/const FETCH = 40;/.test(muroSeccion) && !/slice\(0, SHOW\)/.test(muroSeccion));
-  check('120c) Travel sigue siendo el muro general, sin filtro de sección', /if \(general\) return posts;/.test(muroSeccion) && /paginaDelMuroGeneral\(pagina, VISIBLES, desde\)/.test(muroSeccion));
+  /*
+   * El paginador por sección sigue en `sectionFeed`, aunque hoy no lo consuma
+   * ningún muro propio: es el reparto por destinos, y de él vive el Wäll.
+   */
+  check('120c) el paginador por sección sigue en pie', /paginaDeLaSeccion/.test(seccionFeed) && /paginaDelMuroGeneral/.test(seccionFeed));
+  check('120c) y el Wäll lee la colección general, no una propia', /getMuroGeneralPaginado/.test(portada) && !/collection\(db, '[a-z]+Posts'\)/.test(portada));
 
   // 20-21) Publicar es gratis y no pasa por ninguna IA.
   check('121) publicar no toca Credits ni IA', !/spendCredits|creditsService|gemini|creatorService/i.test(crear));

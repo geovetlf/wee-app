@@ -15,6 +15,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
 import { postsService, Post } from '../services/firestoreService';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
@@ -30,6 +31,7 @@ import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 const WebLandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { abrirComentarios } = useComentariosDeLaPublicacion();
   const navigation = useNavigation<any>();
   const { onScroll: reportarScroll } = useScrollDeBarra();
   const route = useRoute<any>();
@@ -165,7 +167,11 @@ const WebLandingScreen: React.FC = () => {
 
   // ── Feed ──
   const handlePostPress = (post: Post) => navigation.navigate('PostDetail', { post });
-  const handleComment = (postId: string) => navigation.navigate('PostDetail', { postId });
+  /* Comentar abre la conversación en una hoja, no la pantalla de la publicación. */
+  const handleComment = (postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    if (post) abrirComentarios(post);
+  };
   const handlePrivateMessage = (userId: string, userData?: any) => {
     if (!user) return navigation.navigate('Register');
     navigation.navigate('Inbox', { screen: 'Conversation', params: { otherUserId: userId, otherUserData: userData } });
@@ -181,9 +187,9 @@ const WebLandingScreen: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: theme.colors.background, overflow: 'hidden' }}>
-      {/* Header fijo: ☰ · Weë · Real/WEE · campana. Los Credits viven en el ☰. */}
+      {/* Header fijo: ☰ · Weë · Real/Weë. Los Credits viven en el ☰ y las notificaciones, en la barra inferior. */}
       <div style={{ flexShrink: 0, zIndex: 100 }}>
-        <Header onNotificationsPress={() => navigation.navigate('Notifications')} onMenuPress={() => setDrawerVisible(true)} conMarca />
+        <Header onMenuPress={() => setDrawerVisible(true)} conMarca />
       </div>
 
       {/* Al bajar, la barra de navegación se aparta; al subir, vuelve. */}

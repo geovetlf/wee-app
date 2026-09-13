@@ -77,37 +77,6 @@ export interface SpecialistAction {
   opensSection?: boolean;
 }
 
-/**
- * Pestañas del muro social de una sección. Cada una se resuelve con algo que Weë
- * ya sabe hacer —todas las publicaciones, las que traen imagen, las que explican
- * cómo se hizo algo, las tuyas y las que guardaste— sin ninguna función nueva.
- */
-export type WallTabKind = 'all' | 'images' | 'tutorials' | 'mine' | 'saved';
-
-export interface WallTab {
-  id: WallTabKind;
-  label: string;
-}
-
-/** Lo que la sección aporta a su muro: sus pestañas y sus palabras. */
-export interface SectionWallConfig {
-  /*
-   * Opcional desde 2E-73. Una sección que enseña el muro general de Weë no tiene
-   * pestañas propias: filtrar por sección y ofrecer "Fotos del viaje" o "Mis
-   * viajes" convertía la sección en un feed paralelo, y Weë tiene un solo muro.
-   */
-  tabs?: WallTab[];
-  /** Texto del compositor ("Comparte tu plato, una receta o una pregunta…"). */
-  placeholder: string;
-  /** Qué se ve cuando todavía no hay publicaciones de esta sección. */
-  empty: {
-    emoji: string;
-    title: string;
-    text: string;
-    button: string;
-  };
-}
-
 export type ExampleKind = 'beforeAfter' | 'image' | 'video' | 'audio' | 'document' | 'recipe';
 
 export interface SpecialistExample {
@@ -139,12 +108,6 @@ export interface SpecialistConfig {
   actionLayout: ActionLayout;
   actions: SpecialistAction[];
   inputs: InputMode[];
-  /**
-   * Muro social de la sección. Cuando está, la sección deja de ser un catálogo de
-   * herramientas y pasa a ser una comunidad con herramientas dentro. Weë Chef es
-   * el piloto (fase 2E-37); las demás lo adoptan cuando les toque.
-   */
-  wall?: SectionWallConfig;
   /**
    * La caja de escribir va antes que la cuadrícula de funciones (fase 2E-64C).
    *
@@ -285,20 +248,6 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     ],
     inputs: ['text'],
     // Weë Design estrena el muro social después de Weë Chef (fase 2E-43).
-    wall: {
-      tabs: [
-        { id: 'all', label: 'Muro Design' },
-        { id: 'tutorials', label: 'Cómo lo hicieron' },
-        { id: 'saved', label: 'Guardados' },
-      ],
-      placeholder: 'Comparte un diseño, una idea o una pregunta…',
-      empty: {
-        emoji: '🎨',
-        title: 'Todavía no hay nada en el muro de Weë Design',
-        text: 'Comparte tu primer diseño, una idea o una pregunta con la comunidad.',
-        button: 'Crear publicación',
-      },
-    },
     idea: {
       title: '¿Qué quieres diseñar?',
       subtitle: 'Describe tu idea con el mayor detalle posible.',
@@ -458,20 +407,6 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       { id: 'writer', icon: 'create-outline', emoji: '✍️', title: 'Writer', subtitle: 'Publicaciones, historias, guiones, emails y libros.', goal: 'Escribir un texto', opens: 'writer', opensSection: true, secondary: true },
     ],
     // Weë Studio estrena muro después de Weë Chef y Weë Design (fase 2E-50).
-    wall: {
-      tabs: [
-        { id: 'all', label: 'Muro Studio' },
-        { id: 'tutorials', label: 'Cómo lo hicieron' },
-        { id: 'saved', label: 'Guardados' },
-      ],
-      placeholder: 'Comparte una foto, un video o una pregunta…',
-      empty: {
-        emoji: '🎬',
-        title: 'Todavía no hay nada en el muro de Weë Studio',
-        text: 'Comparte tu primera foto, video o cambio de look con la comunidad.',
-        button: 'Crear publicación',
-      },
-    },
     inputs: ['text', 'upload'],
     idea: {
       title: '¿Tienes una idea en mente?',
@@ -565,22 +500,6 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * un sitio. La foto se sigue pidiendo dentro de la conversación, como antes.
      */
     // Weë Chef es el piloto del muro social dentro de una sección (fase 2E-37).
-    wall: {
-      tabs: [
-        { id: 'all', label: 'Muro Chef' },
-        { id: 'images', label: 'Recetas' },
-        { id: 'tutorials', label: 'Consejos' },
-        { id: 'mine', label: 'Mis recetas' },
-        { id: 'saved', label: 'Favoritos' },
-      ],
-      placeholder: 'Comparte tu plato, una receta o una pregunta…',
-      empty: {
-        emoji: '🍳',
-        title: 'Todavía no hay nada en el muro de Weë Chef',
-        text: 'Comparte tu primera receta, pregunta o experiencia con la comunidad.',
-        button: 'Crear publicación',
-      },
-    },
     examplesTitle: 'Recetas populares',
     examples: [
       { title: 'Pasta a la carbonara', subtitle: 'Fácil y deliciosa', kind: 'recipe', emoji: '🍝', tone: T.yellow, meta: '20 min' },
@@ -784,21 +703,6 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       subtitle: 'Escríbelo con tus palabras: cuanto más me cuentes, menos te pregunto.',
       placeholder: 'Ejemplo: Japón del 12 al 22 de octubre, me gusta comer…',
       chips: ['🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'],
-    },
-    wall: {
-      /*
-       * Sin pestañas (fase 2E-73). Weë Travel no tiene muro propio: enseña el
-       * muro general de Weë, donde una publicación de viajes convive con una de
-       * Studio o de Design. Travel es el contexto de una publicación —el
-       * WeeTag—, no el sitio donde vive.
-       */
-      placeholder: 'Comparte un viaje, una recomendación o una pregunta…',
-      empty: {
-        emoji: '🧳',
-        title: 'Todavía no hay nada en el muro de Weë Travel',
-        text: 'Comparte tu último viaje, una recomendación o una duda con la comunidad.',
-        button: 'Crear publicación',
-      },
     },
     /*
      * Sin fila de ejemplos (fase 2E-69). "Viajes que preparó Weë" eran cuatro

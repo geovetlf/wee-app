@@ -142,7 +142,7 @@ ni una pieza propia. Entra por el menú ☰ igual que las demás, por la ruta
 
 | Reutiliza | En vez de |
 |---|---|
-| el Wall general + `SectionWall` filtrado | un feed propio |
+| el Wäll general | un feed propio |
 | `WeeTag` y `sourceSection` | una marca de origen distinta |
 | 📍 Lugar, que es transversal a todo WEE | una ubicación propia de viajes |
 | `CreatorFlow` y `ResultCard` | pantallas nuevas |

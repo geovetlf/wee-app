@@ -206,7 +206,16 @@ const NavegacionGlobal: React.FC = () => {
    * conocemos y si no Inicio, porque todo lo demás —una publicación, una
    * comunidad, una experiencia de Weë— se alcanza desde ahí.
    */
-  const puesto: DestinoId | null = pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
+  /*
+   * Notificaciones no es una pestaña: es una pantalla DENTRO de la pila del
+   * Home, así que la pestaña puesta ahí sigue siendo Inicio. Por eso se mira
+   * primero la ruta más honda: si estás en Notificaciones, es Notificaciones lo
+   * que va encendido, no Inicio.
+   */
+  const enNotificaciones = rutaHonda(estado) === 'Notifications';
+  const puesto: DestinoId | null = enNotificaciones
+    ? 'Notifications'
+    : pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
 
   const irARaiz = (pantalla: string, params?: object) => {
     if (refNavegacion.isReady()) (refNavegacion as any).navigate(pantalla, params);
@@ -219,13 +228,22 @@ const NavegacionGlobal: React.FC = () => {
       return setHoja(true);
     }
 
-    /* Buscar, WeeTalk y Perfil piden sesión, como hasta ahora. */
+    /* Buscar, WeeTalk y Notificaciones piden sesión, como hasta ahora. */
     if (destino !== 'Home' && !user) return irARaiz('Register');
 
     /* Tocar Inicio estando ya en Inicio sube al principio, como siempre. */
     if (destino === 'Home' && puesto === 'Home' && rutaRaiz === 'Main') {
       triggerScrollToTop();
       return;
+    }
+
+    /*
+     * Notificaciones vive dentro de la pila del Home, no es una pestaña: se
+     * abre la pantalla QUE YA EXISTÍA, por el mismo camino que usan el menú ☰ y
+     * la barra lateral. Ni ruta nueva, ni pantalla nueva.
+     */
+    if (destino === 'Notifications') {
+      return irARaiz('Main', { screen: 'Home', params: { screen: 'Notifications' } });
     }
 
     irARaiz('Main', { screen: destino });
