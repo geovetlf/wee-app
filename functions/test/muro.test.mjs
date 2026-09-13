@@ -299,5 +299,166 @@ console.log('\n── El muro no es una pila de tarjetas ──');
   check('16) el detalle de una publicación no usa la tarjeta del muro', !/<PostCard/.test(leer('screens/PostDetailScreen.tsx')));
 }
 
+console.log('\n── El vídeo del muro conserva su forma ──');
+{
+  /*
+   * Un vídeo del Wäll entraba en una caja de alto fijo con `COVER`: lo que no
+   * cabía se recortaba, y a un vídeo vertical le desaparecía media escena por
+   * arriba y por abajo. Ahora la caja se adapta al vídeo. Las FOTOS no pasan
+   * por aquí: su camino sigue siendo el suyo, y eso también se vigila, porque
+   * la manera fácil de romperlo sería tocar una regla común a los dos.
+   */
+  const tarjeta = leer('components/PostCard.tsx');
+  const estilos = tarjeta.slice(tarjeta.indexOf('const styles = StyleSheet.create'));
+  const cajaDelVideo = estilos.slice(estilos.indexOf('videoContainer: {'), estilos.indexOf('videoTouchable: {'));
+  const cacheDeFotos = leer('utils/imageDimensionCache.ts');
+  const cacheDeVideos = leer('utils/videoDimensionCache.ts');
+
+  /* 1) Se acabó la caja de medida fija: ni alto de 350, ni 16/9, ni marco de teléfono. */
+  check('17) el vídeo ya no entra en una caja de medida fija',
+    !/height: scale\(350\)/.test(cajaDelVideo) && !/videoContainerWeb/.test(tarjeta) && !/videoPhoneFrame/.test(tarjeta));
+  /*
+   * 2) Dos cajas: la de dentro tiene la FORMA del vídeo y manda el alto; la de
+   * fuera solo pone el tope y recorta lo que se pase. Así la caja se ciñe al
+   * vídeo —ni franjas ni hueco muerto debajo— y el recorte, si llega, cae
+   * siempre al final.
+   */
+  check('17) el ancho es el de la publicación y el alto lo pone la proporción',
+    /width: '100%',/.test(cajaDelVideo)
+    && /style=\{\[styles\.videoContainer, \{ maxHeight: maxVideoHeight \}\]\}/.test(tarjeta)
+    && /style=\{\[styles\.videoAspectBox, \{ aspectRatio: proporcionDelVideo \}\]\}/.test(tarjeta)
+    && /videoAspectBox: \{\s*width: '100%',/.test(estilos));
+  /*
+   * Y el borde de ARRIBA no se puede perder: la caja de dentro empieza pegada
+   * al principio de la de fuera, así que lo que el tope deja fuera es el final.
+   * Es el problema que hubo —perder la cabecera del vídeo— y aquí se cierra.
+   */
+  check('17) si el tope recorta, recorta por abajo: arriba nunca',
+    /justifyContent: 'flex-start',/.test(cajaDelVideo) && /overflow: 'hidden',/.test(cajaDelVideo)
+    && !/justifyContent: 'center'|justifyContent: 'flex-end'|alignItems: 'flex-end'/.test(cajaDelVideo));
+  /* 3) Y nada se recorta: `CONTAIN`, también en el cartel de espera. */
+  check('17) y nada se recorta: contain, no cover',
+    /resizeMode=\{ResizeMode\.CONTAIN\}/.test(tarjeta) && !/resizeMode=\{ResizeMode\.COVER\}/.test(tarjeta)
+    && /videoPoster: \{[^}]*resizeMode: 'contain'/.test(estilos));
+  /*
+   * El elemento de vídeo tiene que ocupar su caja, y hay que decírselo aparte:
+   * `expo-av` parte el estilo en dos y en la web le pone al vídeo
+   * `position: undefined`, que anula el anclaje a las esquinas que trae por
+   * dentro. Sin esto el elemento caía a su tamaño natural —720×1280 en una caja
+   * de 343×450— y el `overflow` lo recortaba: el recorte seguía ahí aunque la
+   * caja ya fuera de la forma correcta.
+   */
+  check('17) y el elemento de vídeo ocupa su caja, no su tamaño natural',
+    /videoStyle=\{styles\.videoElement\}/.test(tarjeta)
+    && /videoElement: \{\s*width: '100%',\s*height: '100%',\s*\}/.test(estilos)
+    && /videoPlayer: \{\s*\.\.\.StyleSheet\.absoluteFillObject,\s*\}/.test(estilos));
+  /*
+   * 4) El tope no es un número de puntos, es una FORMA: 9:16, el vertical de un
+   * teléfono. Un vídeo así entra entero y a lo ancho, sin franjas ni hueco
+   * debajo; solo algo aún más vertical toca el tope. Y sale del ancho de la
+   * publicación, así que vale igual en una columna estrecha y en una ancha.
+   */
+  check('18) el tope es una forma, no un número, y sale del ancho de la publicación',
+    /const PROPORCION_MAS_VERTICAL = 9 \/ 16;/.test(tarjeta)
+    && /const maxVideoHeight = carouselWidth \/ PROPORCION_MAS_VERTICAL;/.test(tarjeta)
+    && !/const maxVideoHeight = maxImageHeight;/.test(tarjeta));
+  /* Control: el tope de las fotos sigue siendo el suyo, en puntos, y se sigue usando. */
+  check('18) control: la foto conserva su propio tope, en puntos',
+    /const MAX_IMAGE_HEIGHT = scale\(500\);/.test(tarjeta) && /const maxImageHeight = maxWidth/.test(tarjeta)
+    && /Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\)/.test(tarjeta)
+    && !/MAX_IMAGE_HEIGHT[\s\S]{0,80}PROPORCION_MAS_VERTICAL/.test(tarjeta.slice(tarjeta.indexOf('const maxImageHeight = maxWidth'))));
+
+  /*
+   * 5) La proporción sale del reproductor, que es la única fuente fiable para
+   * un vídeo, y se recuerda por URL. Mientras no se sabe, cuadrado: con
+   * `CONTAIN` esa espera no recorta nada, solo sobra fondo.
+   */
+  check('18) la proporción la cuenta el reproductor y se recuerda',
+    /onReadyForDisplay=\{alSaberLaFormaDelVideo\}/.test(tarjeta)
+    && /setCachedVideoAspectRatio\(urlDelVideo, proporcion\);/.test(tarjeta)
+    && /const proporcionDelVideo = proporcionMedida \?\? 1;/.test(tarjeta));
+  /*
+   * Y en la web, donde ese aviso no llega, se le pregunta a la cabecera del
+   * vídeo, igual que una foto le pregunta su tamaño a `Image.getSize`. Sin
+   * esto, en el navegador todos los vídeos se quedaban en el cuadrado de
+   * espera —sin recortar, pero sin su forma—.
+   */
+  check('18) y en la web se le pregunta a la cabecera del vídeo',
+    /fetchAndCacheVideoAspectRatio\(urlDelVideo, \(proporcion\) => \{/.test(tarjeta)
+    && /sonda\.preload = 'metadata';/.test(cacheDeVideos)
+    && /const doc = typeof document === 'undefined' \? null : document;/.test(cacheDeVideos));
+
+  /*
+   * 6) FOTOS Y VÍDEOS, DOS CAMINOS SEPARADOS. Cada uno con su caché y su
+   * medida; ninguna regla común que al tocarla mueva los dos.
+   */
+  check('19) cada uno tiene su propia caché',
+    /export function getCachedVideoAspectRatio/.test(cacheDeVideos)
+    && !/getCachedVideoAspectRatio|proporcionDeLaMedida/.test(cacheDeFotos)
+    /* La del vídeo no pregunta a nadie: no puede, y por eso existe aparte. */
+    && !/^import .*react-native/m.test(cacheDeVideos) && !/RNImage\.getSize/.test(cacheDeVideos));
+  /* Control: la foto se sigue midiendo exactamente como antes. */
+  check('19) control: la foto conserva su medida y su tope de siempre',
+    /const aspectRatio = imageDimensions\?\.aspectRatio \|\| \(4\/3\);/.test(tarjeta)
+    && /Math\.min\(maxImageHeight, carouselWidth \/ aspectRatio\)/.test(tarjeta)
+    && /const carouselWidth = enMuro \? anchoEnElMuro\(maxWidth\) : getCarouselWidth\(maxWidth\);/.test(tarjeta));
+  /* Y el bloque que mide la foto no toca nada del vídeo, ni al revés. */
+  const bloqueDeLaFoto = tarjeta.slice(tarjeta.indexOf('const postToUse = isRepost && originalPost ? originalPost : post;'), tarjeta.indexOf('}, [isRepost, originalPost, post.imageUrls]);'));
+  const bloqueDelVideo = tarjeta.slice(tarjeta.indexOf('const urlDelVideo ='), tarjeta.indexOf('const maxVideoHeight ='));
+  check('19) control: y la foto no pasa por nada del vídeo',
+    bloqueDeLaFoto.length > 100 && bloqueDelVideo.length > 100
+    && !/Video|proporcion|videoUrl/.test(bloqueDeLaFoto)
+    && !/imageUrls|imageDimensions|fetchAndCacheAspectRatio/.test(bloqueDelVideo));
+
+  /*
+   * 7) WEËLSSCREEN NO SE TOCA. Allí el vídeo SÍ llena la pantalla con `COVER`,
+   * que es su diseño, y su tamaño sale del viewport medido. Si esta fase se
+   * hubiera colado ahí, esto lo caza.
+   */
+  const visor = leer('screens/ReelsScreen.tsx');
+  check('20) WeëlsScreen sigue con su vídeo a pantalla completa',
+    /resizeMode=\{ResizeMode\.COVER\}/.test(visor)
+    && /<View style=\{\[styles\.reelContainer, \{ width: viewport\.width, height: viewport\.height \}\]\}>/.test(visor)
+    && !/videoDimensionCache|proporcionDelVideo|maxVideoHeight/.test(visor));
+}
+
+console.log('\n── La proporción de un vídeo, ejecutada de verdad ──');
+{
+  /*
+   * `proporcionDeLaMedida` se ejecuta, no se lee. Es la pieza que decide si un
+   * vídeo se pinta vertical o apaisado, y el caso que importa es el de Android:
+   * el reproductor puede dar la medida ANTES de rotar, así que un vídeo
+   * vertical llega como 1920×1080 y solo `orientation` delata su forma. Sin
+   * esto, un vertical se pintaría apaisado, que es justo el recorte que esta
+   * fase quita.
+   */
+  const fuenteVideo = leer('utils/videoDimensionCache.ts');
+  const jsVideo = ts.transpileModule(fuenteVideo, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const cache = await import('data:text/javascript;base64,' + Buffer.from(jsVideo).toString('base64'));
+  const { proporcionDeLaMedida, getCachedVideoAspectRatio, setCachedVideoAspectRatio } = cache;
+  const casi = (a, b) => a !== undefined && Math.abs(a - b) < 0.0001;
+
+  check('21) un vídeo apaisado sale apaisado', casi(proporcionDeLaMedida({ width: 1920, height: 1080 }), 16 / 9));
+  check('21) uno cuadrado sale cuadrado', casi(proporcionDeLaMedida({ width: 720, height: 720 }), 1));
+  check('21) y uno vertical sale vertical', casi(proporcionDeLaMedida({ width: 1080, height: 1920 }), 9 / 16));
+  check('22) un vertical que llega sin rotar se endereza',
+    casi(proporcionDeLaMedida({ width: 1920, height: 1080, orientation: 'portrait' }), 9 / 16));
+  /* Control: `orientation` no da la vuelta a lo que ya venía bien. */
+  check('22) control: un vertical que ya venía vertical no se toca',
+    casi(proporcionDeLaMedida({ width: 1080, height: 1920, orientation: 'portrait' }), 9 / 16)
+    && casi(proporcionDeLaMedida({ width: 1920, height: 1080, orientation: 'landscape' }), 16 / 9));
+  /* Sin medida no se inventa una: quien pregunta usa su valor de espera. */
+  check('23) sin medida no devuelve nada, y no se inventa una forma',
+    [undefined, {}, { width: 0, height: 100 }, { width: 100, height: 0 }, { width: NaN, height: 10 }]
+      .every((m) => proporcionDeLaMedida(m) === undefined));
+  /* La caché guarda lo bueno y rechaza lo imposible. */
+  setCachedVideoAspectRatio('u1', 0.5625);
+  setCachedVideoAspectRatio('u2', 0);
+  setCachedVideoAspectRatio('u3', NaN);
+  check('24) la caché recuerda una proporción buena y rechaza las imposibles',
+    getCachedVideoAspectRatio('u1') === 0.5625 && getCachedVideoAspectRatio('u2') === undefined
+    && getCachedVideoAspectRatio('u3') === undefined && getCachedVideoAspectRatio('nunca-visto') === undefined);
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nEl muro: se rellena, avanza el cursor, sabe cuándo se acaba y no repite ni pierde publicaciones');
 process.exit(failures ? 1 : 0);

@@ -49,6 +49,7 @@ import Poll from './Poll';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
+import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 
 // Enable LayoutAnimation on Android (not on web)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -98,6 +99,14 @@ const CARD_HORIZONTAL_PADDING = SPACING.lg; // 16px cada lado
 const CARD_MAX_WIDTH = 700; // Ancho máximo del feed en desktop
 const MIN_IMAGE_HEIGHT = scale(200);
 const MAX_IMAGE_HEIGHT = scale(500);
+
+/*
+ * La forma más vertical que un vídeo puede tener sin que se le recorte nada:
+ * 9:16, el vertical de un teléfono. De aquí sale el tope de alto de un vídeo
+ * del muro, siempre en relación con el ancho de la publicación. Las fotos NO
+ * pasan por aquí: siguen con `MAX_IMAGE_HEIGHT`, su tope de siempre.
+ */
+const PROPORCION_MAS_VERTICAL = 9 / 16;
 
 /*
  * El área que se puede tocar en los botones de una publicación.
@@ -279,6 +288,58 @@ const PostCard: React.FC<PostCardProps> = ({
   const maxImageHeight = maxWidth
     ? MAX_IMAGE_HEIGHT * Math.max(1, carouselWidth / getCarouselWidth())
     : MAX_IMAGE_HEIGHT;
+
+  /*
+   * LA FORMA DEL VÍDEO. Aparte de la de las fotos, a propósito.
+   *
+   * La proporción de una foto se pregunta antes de pintarla; la de un vídeo la
+   * cuenta el reproductor cuando ya tiene el primer fotograma. Hasta entonces
+   * se usa el cuadrado —el punto medio entre vertical y apaisado, así que el
+   * ajuste cuando llega la medida de verdad es el más corto posible— y, como se
+   * pinta con `CONTAIN`, esa espera no recorta nada: solo sobra fondo.
+   *
+   * Lo que el reproductor cuenta se apunta por URL, de modo que la segunda vez
+   * que ese vídeo pasa por el muro ya nace con su forma.
+   */
+  /* Como en el bloque de las fotos: si es un repost, manda el original. */
+  const urlDelVideo = (isRepost && originalPost ? originalPost : post).videoUrl;
+  const [proporcionMedida, setProporcionMedida] = useState<number | undefined>(
+    () => (urlDelVideo ? getCachedVideoAspectRatio(urlDelVideo) : undefined),
+  );
+  useEffect(() => {
+    if (!urlDelVideo) return setProporcionMedida(undefined);
+    const apuntada = getCachedVideoAspectRatio(urlDelVideo);
+    setProporcionMedida(apuntada);
+    /* En la web el reproductor no avisa, así que se le pregunta a la cabecera del vídeo. */
+    if (apuntada === undefined) {
+      let vigente = true;
+      fetchAndCacheVideoAspectRatio(urlDelVideo, (proporcion) => {
+        if (vigente) setProporcionMedida(proporcion);
+      });
+      return () => { vigente = false; };
+    }
+  }, [urlDelVideo]);
+  const alSaberLaFormaDelVideo = useCallback((evento: { naturalSize?: { width?: number; height?: number; orientation?: string } }) => {
+    const proporcion = proporcionDeLaMedida(evento?.naturalSize);
+    if (!proporcion || !urlDelVideo) return;
+    setCachedVideoAspectRatio(urlDelVideo, proporcion);
+    setProporcionMedida((actual) => (actual === proporcion ? actual : proporcion));
+  }, [urlDelVideo]);
+  const proporcionDelVideo = proporcionMedida ?? 1;
+  /*
+   * HASTA DÓNDE PUEDE CRECER UN VÍDEO.
+   *
+   * El tope ya no es un número de puntos heredado de las fotos, sino una FORMA:
+   * el vertical de siempre, 9:16, que es el de los Weëls y el de casi todo lo
+   * que se graba con un teléfono. Un vídeo así entra entero y a lo ancho de la
+   * columna, sin bandas y sin hueco que sobre debajo; antes se le recortaba el
+   * alto a 500 puntos y lo que sobraba se iba en franjas.
+   *
+   * Sale del ancho de la publicación, así que en una columna estrecha el tope
+   * es más bajo y en una ancha más alto: la misma regla en el teléfono y en el
+   * navegador, sin un número atado a ninguna pantalla.
+   */
+  const maxVideoHeight = carouselWidth / PROPORCION_MAS_VERTICAL;
 
   // Animaciones para el menú
   const menuOpacity = useRef(new Animated.Value(0)).current;
@@ -697,12 +758,42 @@ const PostCard: React.FC<PostCardProps> = ({
     setIsMuted(newMuted);
   }, [isMuted]);
 
+  /*
+   * ─── EL VÍDEO DEL MURO CONSERVA SU FORMA ─────────────────────────────────────
+   *
+   * Antes el vídeo entraba en una caja de alto fijo con `COVER`: lo que no
+   * cabía se recortaba, y a un vídeo vertical le desaparecía media escena por
+   * arriba y por abajo. Ahora la caja se adapta al vídeo, no al revés.
+   *
+   *  · el ANCHO es el de la publicación, sin más: `aspectRatio` sobre una caja
+   *    a lo ancho deja que el alto salga solo del ancho REAL que le toque en esa
+   *    columna, en el teléfono y en el navegador, sin medir ni consultar la
+   *    pantalla;
+   *  · el ALTO sale de la proporción de verdad del vídeo, la que cuenta el
+   *    reproductor al tener el primer fotograma;
+   *  · y `CONTAIN` en vez de `COVER`, que es lo que garantiza que NADA se
+   *    recorta: mientras la proporción todavía no se sabe, sobra fondo negro
+   *    a los lados en vez de faltar imagen.
+   *
+   * ─── Y POR QUÉ SON DOS CAJAS ────────────────────────────────────────────────
+   *
+   * La de dentro tiene la FORMA del vídeo y es la que manda el alto; la de
+   * fuera solo pone el TOPE y recorta lo que pase de él. Así el hueco muerto
+   * desaparece —la caja se ciñe al vídeo en vez de dejar franjas— y, si algún
+   * vídeo aún más vertical que 9:16 se pasa del tope, lo que se pierde es
+   * siempre el FINAL: la caja de dentro empieza arriba del todo, así que el
+   * borde superior del contenido no se puede perder nunca. Era el problema de
+   * antes y no vuelve.
+   *
+   * Las fotos no pasan por aquí: su camino, su recorte y su tamaño siguen
+   * exactamente igual.
+   */
   const renderVideo = () => {
     if (!displayPost.videoUrl) return null;
 
     return (
-      <View style={[styles.videoContainer, isWebPlatform && styles.videoContainerWeb]}>
-        <View style={isWebPlatform ? styles.videoPhoneFrame : styles.videoTouchable}>
+      <View style={[styles.videoContainer, { maxHeight: maxVideoHeight }]}>
+        <View style={[styles.videoAspectBox, { aspectRatio: proporcionDelVideo }]}>
           <TouchableOpacity
             activeOpacity={0.95}
             onPress={onVideoPress ? () => onVideoPress(displayPost, playbackPositionRef.current) : handleVideoTap}
@@ -712,11 +803,13 @@ const PostCard: React.FC<PostCardProps> = ({
               ref={videoRef}
               source={{ uri: displayPost.videoUrl }}
               style={styles.videoPlayer}
-              resizeMode={ResizeMode.COVER}
+              videoStyle={styles.videoElement}
+              resizeMode={ResizeMode.CONTAIN}
               shouldPlay={isVisible && isFocused && !isWebPlatform}
               isMuted={isMuted}
               isLooping={true}
               onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+              onReadyForDisplay={alSaberLaFormaDelVideo}
               posterSource={displayPost.imageUrls?.[0] ? { uri: displayPost.imageUrls[0] } : undefined}
               posterStyle={styles.videoPoster}
               usePoster={!!displayPost.imageUrls?.[0]}
@@ -1620,41 +1713,67 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
   },
+  /*
+   * La caja del vídeo: a todo el ancho de la publicación y con el alto que le
+   * pide su propia proporción (`aspectRatio` y `maxHeight` van en línea, porque
+   * dependen del vídeo). Sin alto fijo y sin marco de teléfono en la web: los
+   * dos obligaban al vídeo a una forma que no era la suya.
+   */
   videoContainer: {
     position: 'relative',
+    width: '100%',
+    /* El alto lo trae el vídeo de dentro; aquí solo el tope, que va en línea. */
+    justifyContent: 'flex-start',
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
     marginTop: SPACING.sm,
-    height: scale(350),
     backgroundColor: '#000',
   },
-  videoContainerWeb: {
-    height: 'auto',
-    aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a1a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoPhoneFrame: {
-    width: '45%',
-    aspectRatio: 9 / 16,
-    borderRadius: scale(16),
-    overflow: 'hidden',
-    backgroundColor: '#000',
+  /*
+   * La caja con la forma del vídeo. Va pegada ARRIBA de la de fuera: si el tope
+   * la deja más corta, lo que se recorta es el final, nunca el principio.
+   */
+  videoAspectBox: {
+    width: '100%',
     position: 'relative',
   },
   videoTouchable: {
     width: '100%',
     height: '100%',
   },
+  /*
+   * El reproductor se ancla a las cuatro esquinas de su caja, no con un 100%.
+   *
+   * En la web `expo-av` le pone al elemento su tamaño NATURAL —un vídeo de
+   * 720×1280 salía de 720×1280 dentro de una caja de 343×450—, y el
+   * `overflow: hidden` de la caja se comía el resto: recorte, justo lo que se
+   * quería quitar. Anclado a las esquinas ocupa exactamente su caja en las tres
+   * plataformas, y ahí sí manda `CONTAIN`. Es el mismo anclaje que usa
+   * WeëlsScreen para su vídeo a pantalla completa.
+   */
   videoPlayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  /*
+   * Y el elemento de vídeo de dentro, a lo ancho y alto de esa caja.
+   *
+   * Hace falta decirlo aparte: `expo-av` parte el estilo en dos —el de fuera y
+   * el del vídeo (`videoStyle`)— y, en la web, al vídeo le pone
+   * `position: undefined`, que anula el anclaje a las esquinas que trae por
+   * dentro. Sin posición, el elemento cae a su tamaño NATURAL: un vídeo de
+   * 720×1280 dentro de una caja de 343×450, recortado por el `overflow`. Con
+   * el alto y el ancho en porcentaje ocupa su caja tenga posición o no, y ahí
+   * ya manda `CONTAIN`.
+   */
+  videoElement: {
     width: '100%',
     height: '100%',
   },
+  /* El cartel de espera, con el mismo criterio que el vídeo: entero, sin recortar. */
   videoPoster: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
   videoPlayOverlay: {
     ...StyleSheet.absoluteFillObject,

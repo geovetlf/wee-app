@@ -31,21 +31,44 @@ import { formatNumber, getRelativeTime } from '../data/mockData';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+/* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type ReelsRouteProp = RouteProp<MainStackParamList, 'Reels'>;
+
+/*
+ * ─── CADA WEËL MIDE EXACTAMENTE EL VISOR ─────────────────────────────────────
+ *
+ * La lista pagina por SU alto real (`pagingEnabled` avanza una pantalla de la
+ * lista cada vez). Si cada Weël mide otra cosa, las páginas y los Weëls dejan
+ * de coincidir y a cada paso se cuela un trozo del siguiente. Eso pasaba con
+ * `Dimensions.get('window').height`: en Android es la ventana sin la barra de
+ * estado —o sin la de navegación, según versión—, y el visor, que es modal y
+ * va de borde a borde con la barra de estado translúcida, es más alto que eso.
+ *
+ * Así que el alto y el ancho de cada Weël se MIDEN del contenedor del visor
+ * (`onLayout`) y la lista no se monta hasta tener la medida: `getItemLayout`,
+ * `initialScrollIndex` y cada Weël usan el mismo número, que es el del
+ * viewport de verdad, en cualquier pantalla y orientación.
+ */
+interface Viewport {
+  width: number;
+  height: number;
+}
 
 // ===================== ReelItem =====================
 
 interface ReelItemProps {
   post: Post;
   isActive: boolean;
+  /** El tamaño del visor, medido: cada Weël ocupa exactamente eso. */
+  viewport: Viewport;
   onBack: () => void;
   onComment: (postId: string) => void;
   initialPositionMillis?: number;
 }
 
-const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, onBack, onComment, initialPositionMillis }) => {
+const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
   const { userProfile: postAuthor } = useUserById(post.userId);
@@ -166,7 +189,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, onBack, 
   }, [initialPositionMillis, hasStartedPlaying]);
 
   return (
-    <View style={[styles.reelContainer, { height: SCREEN_HEIGHT }]}>
+    <View style={[styles.reelContainer, { width: viewport.width, height: viewport.height }]}>
       {/* Video layer */}
       <Video
         ref={videoRef}
@@ -362,6 +385,14 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
   const communitySlug = props.communitySlug || params.communitySlug;
   const initialPositionMillis = props.initialPositionMillis || params.initialPositionMillis;
 
+  /* El viewport del visor, medido. Hasta tenerlo, la lista no se monta. */
+  const [viewport, setViewport] = useState<Viewport | null>(null);
+  const medirViewport = useCallback((e: { nativeEvent: { layout: { width: number; height: number } } }) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width <= 0 || height <= 0) return;
+    setViewport((actual) => (actual && actual.width === width && actual.height === height ? actual : { width, height }));
+  }, []);
+
   const [videoPosts, setVideoPosts] = useState<Post[]>(initialVideoPosts);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -473,21 +504,24 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     }
   }, [loadingMore, hasMore, lastDoc, communitySlug]);
 
+  /* La misma medida para el alto de cada Weël y para la posición de cada uno: así las páginas coinciden. */
+  const altoDelWeel = viewport?.height ?? 0;
   const getItemLayout = useCallback((_: any, index: number) => ({
-    length: SCREEN_HEIGHT,
-    offset: SCREEN_HEIGHT * index,
+    length: altoDelWeel,
+    offset: altoDelWeel * index,
     index,
-  }), []);
+  }), [altoDelWeel]);
 
   const renderItem = useCallback(({ item, index }: { item: Post; index: number }) => (
     <ReelItem
       post={item}
       isActive={index === activeIndex}
+      viewport={viewport as Viewport}
       onBack={handleBack}
       onComment={handleComment}
       initialPositionMillis={index === initialIndex ? initialPositionMillis : undefined}
     />
-  ), [activeIndex, handleBack, handleComment, initialIndex, initialPositionMillis]);
+  ), [activeIndex, viewport, handleBack, handleComment, initialIndex, initialPositionMillis]);
 
   const keyExtractor = useCallback((item: Post) => item.id!, []);
 
@@ -501,31 +535,34 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
   const containerStyle = isWeb ? styles.container : [styles.container, { transform: [{ translateX }] }];
 
   return (
-    <ContainerComponent style={containerStyle} {...containerProps}>
+    <ContainerComponent style={containerStyle} onLayout={medirViewport} {...containerProps}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <FlatList
-        data={videoPosts}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        pagingEnabled={!isWeb}
-        showsVerticalScrollIndicator={false}
-        getItemLayout={getItemLayout}
-        initialScrollIndex={initialIndex}
-        windowSize={3}
-        maxToRenderPerBatch={2}
-        removeClippedSubviews={Platform.OS !== 'web'}
-        viewabilityConfig={viewabilityConfig}
-        onViewableItemsChanged={onViewableItemsChanged}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={1}
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={[styles.loadingFooter, { height: SCREEN_HEIGHT * 0.3 }]}>
-              <ActivityIndicator size="large" color="#F5B731" />
-            </View>
-          ) : null
-        }
-      />
+      {/* Sin medida no hay lista: el primer Weël ya nace del alto exacto del visor. */}
+      {viewport && (
+        <FlatList
+          data={videoPosts}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          pagingEnabled={!isWeb}
+          showsVerticalScrollIndicator={false}
+          getItemLayout={getItemLayout}
+          initialScrollIndex={initialIndex}
+          windowSize={3}
+          maxToRenderPerBatch={2}
+          removeClippedSubviews={Platform.OS !== 'web'}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={1}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={[styles.loadingFooter, { height: altoDelWeel * 0.3 }]}>
+                <ActivityIndicator size="large" color="#F5B731" />
+              </View>
+            ) : null
+          }
+        />
+      )}
     </ContainerComponent>
   );
 };
@@ -535,8 +572,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  /* Ancho y alto los pone el viewport medido, por props; aquí solo el fondo. */
   reelContainer: {
-    width: SCREEN_WIDTH,
     backgroundColor: '#000',
   },
   pauseOverlay: {

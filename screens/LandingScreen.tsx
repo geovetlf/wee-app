@@ -17,42 +17,30 @@ import {
   LayoutAnimation,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
-import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
-import { Share } from 'react-native';
-import ViewShot from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
-import ShareablePostCard from '../components/ShareablePostCard';
-import { useReposts } from '../hooks/useReposts';
+import { Video, ResizeMode } from 'expo-av';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
-import { useTabBar } from '../contexts/TabBarContext';
 import { communityService, Community } from '../services/communityService';
 import { useCommunities } from '../hooks/useCommunities';
 import { postsService, Post } from '../services/firestoreService';
 import { DocumentSnapshot } from 'firebase/firestore';
-import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
-import { useUserById } from '../hooks/useUserById';
-import { useVote } from '../hooks/useVote';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber } from '../data/mockData';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communityCategories';
-import { downloadVideoWithWatermark } from '../services/videoDownload';
-import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import WeelsRow from '../components/WeelsRow';
 import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
-import { HOME_SECTION_FILTERS, HomeSectionId, filterBySection } from '../utils/feedFilters';
+import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -80,607 +68,19 @@ const LANDING_CATEGORIES: LandingCategory[] = COMMUNITY_CATEGORIES.map((c) => ({
 
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
-// ===================== WeelItem (inline reel for Weels tab) =====================
-
-interface WeelItemProps {
-  post: Post;
-  isActive: boolean;
-  height: number;
-  onComment: (postId: string) => void;
-  onScrubbing?: (scrubbing: boolean) => void;
-}
-
-const WeelItem: React.FC<WeelItemProps> = React.memo(({ post, isActive, height, onComment, onScrubbing }) => {
-  const { user } = useAuth();
-  const { userProfile: activeProfile } = useUserProfile();
-  const { userProfile: postAuthor } = useUserById(post.userId);
-  const navigation = useNavigation();
-  const isFocused = useIsFocused();
-  const { hasReposted, repostsCount, toggleRepost } = useReposts(post.id!, post.reposts || 0);
-
-  // Verificar si es mi propio video
-  const isOwnPost = activeProfile?.uid === post.userId || user?.uid === post.userId;
-  const shareCardRef = useRef<ViewShot>(null);
-  const [showShareCard, setShowShareCard] = useState(false);
-
-  const handleShare = async () => {
-    if (Platform.OS === 'web') {
-      await Share.share({ message: `${post.content}\n\n- Publicado en Weë` });
-      return;
-    }
-    setShowShareCard(true);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    try {
-      if (shareCardRef.current?.capture) {
-        const uri = await shareCardRef.current.capture();
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir post' });
-        }
-      }
-    } catch (e) {
-      await Share.share({ message: `${post.content}\n\n- Publicado en Weë` });
-    }
-    setShowShareCard(false);
-  };
-  const videoRef = useRef<Video>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isBuffering, setIsBuffering] = useState(true);
-  const [textExpanded, setTextExpanded] = useState(false);
-  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
-  const [showTapIcon, setShowTapIcon] = useState(false);
-  const tapIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isScrubbing, setIsScrubbing] = useState(false);
-
-  // Double tap para like
-  const lastTapTime = useRef(0);
-  const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showLikeHeart, setShowLikeHeart] = useState(false);
-  const heartScale = useRef(new Animated.Value(0)).current;
-  const heartOpacity = useRef(new Animated.Value(0)).current;
-
-  // Sidebar expand/collapse
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
-  const sidebarAnim = useRef(new Animated.Value(1)).current;
-
-  // Download state
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const toggleSidebar = useCallback(() => {
-    const toValue = sidebarExpanded ? 0 : 1;
-    setSidebarExpanded(!sidebarExpanded);
-    Animated.spring(sidebarAnim, {
-      toValue,
-      friction: 8,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
-  }, [sidebarExpanded, sidebarAnim]);
-
-  const handleDownload = useCallback(async () => {
-    if (isDownloading || !post.videoUrl) return;
-    setIsDownloading(true);
-    try {
-      await downloadVideoWithWatermark(post.videoUrl);
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [isDownloading, post.videoUrl]);
-
-  const { stats: voteStats, voteAgree, voteDisagree } = useVote({
-    postId: post.id!,
-    userId: activeProfile?.uid || user?.uid,
-    initialStats: {
-      agreementCount: post.agreementCount || 0,
-      disagreementCount: post.disagreementCount || 0,
-    },
-  });
-
-  useEffect(() => {
-    Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-  }, []);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-    if (isActive && !isPaused && isFocused) {
-      videoRef.current.playAsync();
-    } else {
-      videoRef.current.pauseAsync();
-    }
-  }, [isActive, isPaused, isFocused]);
-
-  // Animación del corazón
-  const animateLikeHeart = useCallback(() => {
-    setShowLikeHeart(true);
-    heartScale.setValue(0);
-    heartOpacity.setValue(1);
-
-    Animated.sequence([
-      Animated.spring(heartScale, {
-        toValue: 1,
-        friction: 3,
-        tension: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(heartOpacity, {
-        toValue: 0,
-        duration: 400,
-        delay: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setShowLikeHeart(false));
-  }, [heartScale, heartOpacity]);
-
-  const handleTapVideo = useCallback(() => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300;
-
-    // Detectar doble tap para like
-    if (now - lastTapTime.current < DOUBLE_TAP_DELAY) {
-      // Doble tap detectado - cancelar el timer del single tap
-      if (singleTapTimer.current) {
-        clearTimeout(singleTapTimer.current);
-        singleTapTimer.current = null;
-      }
-      // Dar like
-      if (voteStats.userVote !== 'agree') {
-        voteAgree();
-      }
-      animateLikeHeart();
-      lastTapTime.current = 0;
-      return;
-    }
-
-    lastTapTime.current = now;
-
-    // Single tap - esperar para ver si viene otro tap
-    singleTapTimer.current = setTimeout(() => {
-      if (!videoRef.current) return;
-      if (isPaused) {
-        videoRef.current.playAsync();
-        setIsPaused(false);
-      } else {
-        videoRef.current.pauseAsync();
-        setIsPaused(true);
-      }
-    }, DOUBLE_TAP_DELAY);
-  }, [isPaused, voteStats.userVote, voteAgree, animateLikeHeart]);
-
-  const handlePlaybackStatus = useCallback((status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setIsBuffering(status.isBuffering);
-      if (status.isPlaying && !hasStartedPlaying) {
-        setHasStartedPlaying(true);
-      }
-      if (status.durationMillis && !isScrubbing) {
-        setDuration(status.durationMillis);
-        setProgress(status.positionMillis / status.durationMillis);
-      }
-    }
-  }, [hasStartedPlaying, isScrubbing]);
-
-  return (
-    <View style={{ width: SCREEN_WIDTH, height, backgroundColor: '#000' }}>
-      {/* Video layer */}
-      <Video
-        ref={videoRef}
-        source={{ uri: post.videoUrl! }}
-        style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={isActive}
-        isMuted={false}
-        isLooping
-        progressUpdateIntervalMillis={100}
-        onPlaybackStatusUpdate={handlePlaybackStatus}
-      />
-
-      {/* Poster image - visible hasta que el video empiece */}
-      {post.imageUrls?.[0] && !hasStartedPlaying && (
-        <Image
-          source={{ uri: post.imageUrls[0] }}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-        />
-      )}
-
-      {/* Touch overlay for play/pause and double tap to like - covers entire screen */}
-      <TouchableOpacity
-        activeOpacity={1}
-        style={[StyleSheet.absoluteFill, { zIndex: 5 }]}
-        onPress={handleTapVideo}
-      />
-
-      {/* Double tap like heart animation */}
-      {showLikeHeart && (
-        <View style={[weelStyles.likeHeartOverlay, { zIndex: 50 }]} pointerEvents="none">
-          <Animated.View
-            style={{
-              transform: [{ scale: heartScale }],
-              opacity: heartOpacity,
-            }}
-          >
-            <Ionicons name="thumbs-up" size={scale(100)} color="white" />
-          </Animated.View>
-        </View>
-      )}
-
-      {/* Buffering spinner */}
-      {isBuffering && isActive && hasStartedPlaying && (
-        <View style={weelStyles.overlay} pointerEvents="none">
-          <ActivityIndicator size="large" color="white" />
-        </View>
-      )}
-
-      {/* Progress bar — tap/drag to scrub */}
-      {hasStartedPlaying && duration > 0 && (
-        <View
-          style={weelStyles.progressBar}
-          onStartShouldSetResponderCapture={() => {
-            if (duration > 500) {
-              onScrubbing?.(true);
-              return true;
-            }
-            return false;
-          }}
-          onStartShouldSetResponder={() => duration > 500}
-          onMoveShouldSetResponder={() => true}
-          onResponderTerminationRequest={() => false}
-          onResponderGrant={(e) => {
-            if (duration < 500) return;
-            setIsScrubbing(true);
-            onScrubbing?.(true);
-            videoRef.current?.pauseAsync();
-            // Extra snap-back after a frame to catch any residual scroll
-            requestAnimationFrame(() => onScrubbing?.(true));
-            const barWidth = SCREEN_WIDTH - scale(32);
-            const x = e.nativeEvent.locationX;
-            setProgress(Math.max(0, Math.min(1, x / barWidth)));
-          }}
-          onResponderMove={(e) => {
-            const barWidth = SCREEN_WIDTH - scale(32);
-            const x = e.nativeEvent.locationX;
-            setProgress(Math.max(0, Math.min(1, x / barWidth)));
-          }}
-          onResponderRelease={() => {
-            if (isScrubbing && duration > 0) {
-              videoRef.current?.setPositionAsync(Math.floor(progress * duration));
-              videoRef.current?.playAsync();
-            }
-            setIsScrubbing(false);
-            onScrubbing?.(false);
-          }}
-          onResponderTerminate={() => {
-            if (isScrubbing) {
-              videoRef.current?.playAsync();
-            }
-            setIsScrubbing(false);
-            onScrubbing?.(false);
-          }}
-        >
-          <View style={[weelStyles.progressTrack, isScrubbing && { height: 4, overflow: 'visible' }]}>
-            <View style={[weelStyles.progressFill, { width: `${progress * 100}%` }]} />
-            {isScrubbing && <View style={[weelStyles.progressThumb, { left: `${progress * 100}%` }]} pointerEvents="none" />}
-          </View>
-        </View>
-      )}
-
-      {/* Top gradient for header/tabs readability */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.5)', 'transparent']}
-        style={[weelStyles.topGradient, { pointerEvents: 'none' }]}
-      />
-
-      {/* Bottom gradient + info - zIndex mayor que el touch overlay */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={[weelStyles.bottomGradient, { zIndex: 10, pointerEvents: 'box-none' }]}
-      >
-        <View style={weelStyles.bottomContent} pointerEvents="box-none">
-          {/* Left: user info + description */}
-          <View style={weelStyles.bottomLeft} pointerEvents="box-none">
-            <View style={weelStyles.userRow} pointerEvents="none">
-              {postAuthor && (
-                <AvatarDisplay
-                  size={scale(32)}
-                  avatarType={postAuthor.avatarType || 'predefined'}
-                  avatarId={postAuthor.avatarId || 'male'}
-                  photoURL={typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined}
-                  photoURLThumbnail={typeof postAuthor.photoURLThumbnail === 'string' ? postAuthor.photoURLThumbnail : undefined}
-                  backgroundColor="#F5B731"
-                  showBorder={false}
-                />
-              )}
-              <Text style={weelStyles.username} numberOfLines={1}>
-                {postAuthor?.displayName || 'Usuario'}
-              </Text>
-              <Text style={weelStyles.timeAgo}>
-                {getRelativeTime(post.createdAt.toDate())}
-              </Text>
-            </View>
-            {post.content ? (
-              <TouchableOpacity activeOpacity={0.8} onPress={() => setTextExpanded(prev => !prev)}>
-                <Text style={weelStyles.description} numberOfLines={textExpanded ? undefined : 2}>
-                  {post.content}
-                </Text>
-                {!textExpanded && post.content.length > 80 && (
-                  <Text style={weelStyles.moreText}>más</Text>
-                )}
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* Right sidebar: actions */}
-          <View style={weelStyles.rightSidebar}>
-            {/* Toggle button */}
-            <TouchableOpacity style={weelStyles.sidebarToggle} onPress={toggleSidebar}>
-              <Ionicons
-                name={sidebarExpanded ? 'chevron-down' : 'chevron-up'}
-                size={scale(20)}
-                color="rgba(255,255,255,0.7)"
-              />
-            </TouchableOpacity>
-
-            {/* Animated buttons container */}
-            <Animated.View
-              style={[
-                weelStyles.sidebarButtons,
-                {
-                  opacity: sidebarAnim,
-                  transform: [{
-                    translateY: sidebarAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-                  }],
-                },
-                { pointerEvents: sidebarExpanded ? 'auto' : 'none' },
-              ]}
-            >
-              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={voteAgree}>
-                <Ionicons
-                  name={voteStats.userVote === 'agree' ? 'thumbs-up' : 'thumbs-up-outline'}
-                  size={scale(24)}
-                  color="white"
-                />
-                <Text style={weelStyles.sidebarCount}>
-                  {formatNumber(voteStats.agreementCount)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={voteDisagree}>
-                <Ionicons
-                  name={voteStats.userVote === 'disagree' ? 'thumbs-down' : 'thumbs-down-outline'}
-                  size={scale(24)}
-                  color="white"
-                />
-                <Text style={weelStyles.sidebarCount}>
-                  {formatNumber(voteStats.disagreementCount)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={() => onComment(post.id!)}>
-                <Ionicons name="chatbubble-outline" size={scale(24)} color="white" />
-                <Text style={weelStyles.sidebarCount}>
-                  {formatNumber(post.comments)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={() => toggleRepost()}>
-                <Ionicons name="repeat" size={scale(24)} color={hasReposted ? '#F5B731' : 'white'} />
-                <Text style={weelStyles.sidebarCount}>
-                  {formatNumber(repostsCount)}
-                </Text>
-              </TouchableOpacity>
-              {/* Mensaje privado - ocultar en propios videos */}
-              {!isOwnPost && (
-                <TouchableOpacity style={weelStyles.sidebarBtn} onPress={() => {
-                  if (!user || !postAuthor) return;
-                  const tabNav = navigation.getParent();
-                  if (tabNav) {
-                    (tabNav as any).navigate('Inbox', {
-                      screen: 'Conversation',
-                      params: {
-                        otherUserId: post.userId,
-                        otherUserData: {
-                          displayName: postAuthor.displayName || 'Usuario',
-                          avatarType: postAuthor.avatarType,
-                          avatarId: postAuthor.avatarId,
-                          photoURL: typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined,
-                        },
-                      },
-                    });
-                  }
-                }}>
-                  <Ionicons name="paper-plane-outline" size={scale(24)} color="white" />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={weelStyles.sidebarBtn} onPress={handleShare}>
-                <Ionicons name="share-social-outline" size={scale(24)} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={weelStyles.sidebarBtn}
-                onPress={handleDownload}
-                disabled={isDownloading}
-              >
-                {isDownloading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Ionicons name="download-outline" size={scale(24)} color="white" />
-                )}
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </View>
-      </LinearGradient>
-
-      {/* Hidden shareable card for screenshot */}
-      {showShareCard && (
-        <View style={{ position: 'absolute', left: -9999 }}>
-          <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1 }}>
-            <ShareablePostCard
-              post={post}
-              authorName={postAuthor?.displayName || 'Usuario'}
-              authorAvatarType={postAuthor?.avatarType}
-              authorAvatarId={postAuthor?.avatarId}
-              authorPhotoURL={typeof postAuthor?.photoURL === 'string' ? postAuthor.photoURL : undefined}
-            />
-          </ViewShot>
-        </View>
-      )}
-    </View>
-  );
-});
-
-const weelStyles = StyleSheet.create({
-  tapIconOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  tapIconCircle: {
-    width: scale(64),
-    height: scale(64),
-    borderRadius: scale(32),
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: scale(4),
-  },
-  likeHeartOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 3,
-  },
-  progressBar: {
-    position: 'absolute',
-    bottom: scale(92),
-    left: scale(16),
-    right: scale(16),
-    height: 30,
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  progressTrack: {
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 1,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    borderRadius: 1,
-  },
-  progressThumb: {
-    position: 'absolute',
-    top: -5,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    marginLeft: -6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  topGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: scale(120),
-    zIndex: 3,
-  },
-  bottomGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingTop: scale(60),
-    paddingHorizontal: scale(16),
-    paddingBottom: scale(115),
-    zIndex: 3,
-  },
-  bottomContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  bottomLeft: {
-    flex: 1,
-    marginRight: scale(12),
-  },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(8),
-    marginBottom: scale(8),
-  },
-  username: {
-    color: 'white',
-    fontSize: scale(15),
-    fontWeight: '600',
-    flexShrink: 1,
-  },
-  timeAgo: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: scale(12),
-  },
-  description: {
-    color: 'white',
-    fontSize: scale(14),
-    lineHeight: scale(20),
-  },
-  moreText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: scale(13),
-    fontWeight: '500',
-    marginTop: scale(2),
-  },
-  rightSidebar: {
-    alignItems: 'center',
-    marginBottom: scale(80),
-  },
-  sidebarToggle: {
-    padding: scale(8),
-    marginBottom: scale(4),
-  },
-  sidebarButtons: {
-    alignItems: 'center',
-    gap: scale(14),
-  },
-  sidebarBtn: {
-    alignItems: 'center',
-    gap: scale(4),
-  },
-  sidebarCount: {
-    color: 'white',
-    fontSize: scale(12),
-    fontWeight: '500',
-  },
-});
-
 const LandingScreen: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
   const { onScroll: reportarScroll } = useScrollDeBarra();
   const { scrollToTopTrigger, refreshTrigger } = useScroll();
-  const { setIsTransparent: setTabBarTransparent, scrollProgress: tabBarProgress } = useTabBar();
   const navigation = useNavigation<LandingScreenNavigationProp>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
-  // Params for opening Weëls filtered by category
+  // "Explora → Weëls" del menú llega aquí con `openWeels`: abre WeëlsScreen.
   const openWeelsParam = route.params?.openWeels;
-  const weelsCommunitySlug = route.params?.weelsCommunitySlug;
 
   const { joinCommunity, leaveCommunity, isMember } = useCommunities(userProfile?.uid);
   const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -690,10 +90,15 @@ const LandingScreen: React.FC = () => {
   const [trendingIndex, setTrendingIndex] = useState(0);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
-  // Filtro del muro: Todo · WeeStudio · WeeTravel · WeeMusic · WeeChef
-  /* Las pastillas del Home son SECCIONES de Weë, no tipos de archivo. */
-  type FeedFilter = HomeSectionId;
-  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  /*
+   * El filtro del Wäll: Todo · WeeStudio · WeeTravel · WeeMusic · WeeChef ·
+   * WeeDesign · WEEBusiness. Son SECCIONES de Weë —de dónde viene cada
+   * publicación—, no tipos de archivo, y solo acotan el muro: no cambian de
+   * página ni abren Weëls. Se pueden poner una o varias a la vez; la lista
+   * vacía es "Todo", que es como se entra. La lógica vive en `feedFilters`,
+   * compartida con la web.
+   */
+  const [feedFilter, setFeedFilter] = useState<SeccionesElegidas>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -702,155 +107,26 @@ const LandingScreen: React.FC = () => {
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<'flow' | 'weels'>('flow');
-  const [containerHeight, setContainerHeight] = useState(0);
-  const weelsListRef = useRef<FlatList>(null);
-  const [weelsScrollTarget, setWeelsScrollTarget] = useState<number | null>(null);
-  const [weelsReady, setWeelsReady] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
-  const [videoScrubbing, setVideoScrubbing] = useState(false);
-  const videoScrubbingRef = useRef(false);
-  const setVideoScrubbingBoth = useCallback((val: boolean) => {
-    videoScrubbingRef.current = val;
-    setVideoScrubbing(val);
-    if (val && tabScrollRef.current) {
-      // Snap back immediately + after next frame + after 50ms
-      tabScrollRef.current.scrollTo({ x: SCREEN_WIDTH, animated: false });
-      requestAnimationFrame(() => {
-        tabScrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
-      });
-      setTimeout(() => {
-        tabScrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
-      }, 50);
-    }
-  }, []);
-
-  // Horizontal swipe between tabs using native ScrollView
-  const tabScrollRef = useRef<ScrollView>(null);
-  const tabScrollX = useRef(new Animated.Value(0)).current;
   const [headerHeight, setHeaderHeight] = useState(0);
 
-  // Interpolate colors based on scroll position
-  const containerBg = tabScrollX.interpolate({
-    inputRange: [0, SCREEN_WIDTH],
-    outputRange: [theme.colors.background, '#000000'],
-    extrapolate: 'clamp',
-  });
+  /*
+   * EL HOME ES UNA SOLA LISTA.
+   *
+   * Arriba, el saludo, el compositor y la fila de Weëls; después el carrusel
+   * de secciones, y debajo el Wäll con sus publicaciones. No hay páginas, ni
+   * gesto de lado, ni selector de página: lo que hubo aquí —un pager
+   * Wäll ↔ Weëls con su píldora y un bloque flotante que subía con la lista
+   * activa— se fue con esa decisión y no vuelve. A los Weëls se entra desde su
+   * fila, y esa fila abre WeëlsScreen, la experiencia de siempre.
+   */
 
-  const headerBg = tabScrollX.interpolate({
-    inputRange: [0, SCREEN_WIDTH],
-    outputRange: [theme.colors.background, 'transparent'],
-    extrapolate: 'clamp',
-  });
-
-  // Cross-fade between normal and transparent header
-  const headerNormalOpacity = tabScrollX.interpolate({
-    inputRange: [0, SCREEN_WIDTH * 0.5],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  const headerTransparentOpacity = tabScrollX.interpolate({
-    inputRange: [SCREEN_WIDTH * 0.5, SCREEN_WIDTH],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
-  // Track scroll position and sync tab
-  const isTabPressing = useRef(false);
-
-  const handleTabScrollEvent = useCallback((e: any) => {
-    const x = e.nativeEvent.contentOffset.x;
-    tabScrollX.setValue(x);
-    tabBarProgress.setValue(x / SCREEN_WIDTH);
-  }, [tabScrollX, tabBarProgress]);
-
-  const handleTabScrollEnd = useCallback((e: any) => {
-    // Ignore if scroll was triggered by tab button press
-    if (isTabPressing.current) {
-      isTabPressing.current = false;
-      return;
-    }
-    const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-    const newTab = page === 0 ? 'flow' : 'weels';
-    if (newTab !== activeTab) {
-      setActiveTab(newTab);
-    }
-  }, [activeTab]);
-
-  // When tab buttons are pressed, scroll to the right page
-  const scrollToTab = useCallback((tab: 'flow' | 'weels') => {
-    isTabPressing.current = true;
-    setActiveTab(tab);
-    tabScrollRef.current?.scrollTo({
-      x: tab === 'weels' ? SCREEN_WIDTH : 0,
-      animated: true,
-    });
-  }, []);
-
-  // Sticky tabs tracking with smooth animation
-  const tabsOffsetY = useRef(0);
-  const isTabsStickyRef = useRef(false);
-  const [isTabsSticky, setIsTabsSticky] = useState(false);
-  const stickyAnim = useRef(new Animated.Value(0)).current;
-  const prevTabRef = useRef(activeTab);
-
-  const handleFlowScroll = useCallback((event: any) => {
-    /* La barra de navegación se aparta al bajar y vuelve al subir. */
-    reportarScroll(event);
-    const y = event.nativeEvent.contentOffset.y;
-    const shouldStick = y >= tabsOffsetY.current && tabsOffsetY.current > 0;
-    if (shouldStick !== isTabsStickyRef.current) {
-      isTabsStickyRef.current = shouldStick;
-      setIsTabsSticky(shouldStick);
-      Animated.timing(stickyAnim, {
-        toValue: shouldStick ? 1 : 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [stickyAnim, reportarScroll]);
-
-  // Handle tab switches
-  useEffect(() => {
-    if (activeTab === 'flow') {
-      // Reset sticky immediately (no animation) to avoid flash
-      if (!isTabsStickyRef.current) {
-        stickyAnim.setValue(0);
-        Animated.timing(stickyAnim, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }).start();
-      }
-    }
-    prevTabRef.current = activeTab;
-    setTabBarTransparent(activeTab === 'weels');
-  }, [activeTab]);
-
-  // Scroll Weels FlatList to target video when opening from Flow
-  useEffect(() => {
-    if (activeTab === 'weels' && weelsScrollTarget != null && containerHeight > 0) {
-      const idx = weelsScrollTarget;
-      setWeelsScrollTarget(null);
-      // Wait for layout to complete, then scroll, then reveal
-      requestAnimationFrame(() => {
-        weelsListRef.current?.scrollToIndex({ index: idx, animated: false });
-        requestAnimationFrame(() => {
-          setWeelsReady(true);
-        });
-      });
-    }
-  }, [activeTab, weelsScrollTarget, containerHeight]);
-
-  // Video posts for Weels tab (loaded independently)
+  // Los Weëls de la fila (se cargan aparte del muro)
   const [videoPosts, setVideoPosts] = useState<Post[]>([]);
   const [videoLastDoc, setVideoLastDoc] = useState<DocumentSnapshot | null>(null);
   const [videosLoading, setVideosLoading] = useState(false);
-
-  const [weelsFilter, setWeelsFilter] = useState<string | null>(weelsCommunitySlug || null);
 
   const loadVideoPosts = useCallback(async (communitySlug?: string | null) => {
     setVideosLoading(true);
@@ -871,19 +147,8 @@ const LandingScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadVideoPosts(weelsFilter);
-  }, [weelsFilter]);
-
-  // Auto-switch to Weëls when opened with params
-  useEffect(() => {
-    if (openWeelsParam) {
-      if (weelsCommunitySlug) setWeelsFilter(weelsCommunitySlug);
-      setActiveTab('weels');
-      tabScrollRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
-      // Clear params to avoid re-triggering
-      navigation.setParams({ openWeels: undefined, weelsCommunitySlug: undefined } as any);
-    }
-  }, [openWeelsParam, weelsCommunitySlug]);
+    loadVideoPosts();
+  }, [loadVideoPosts]);
 
   useEffect(() => {
     loadData();
@@ -894,18 +159,13 @@ const LandingScreen: React.FC = () => {
     if (refreshTrigger > 0) {
       console.log('🔄 Refreshing after new post created');
       loadData(true);
-      loadVideoPosts(weelsFilter);
+      loadVideoPosts();
     }
   }, [refreshTrigger]);
 
-  // Scroll to top + switch to Wall cuando se dispara el trigger
+  // Scroll to top cuando se dispara el trigger
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
-      // Switch to Wall if on Weëls
-      if (activeTab === 'weels') {
-        setActiveTab('flow');
-        tabScrollRef.current?.scrollTo({ x: 0, animated: true });
-      }
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     }
   }, [scrollToTopTrigger]);
@@ -1099,15 +359,40 @@ const LandingScreen: React.FC = () => {
     }
   };
 
-  const handleVideoPress = useCallback((post: Post) => {
-    const index = videoPosts.findIndex(p => p.id === post.id);
-    if (index >= 0) {
-      setWeelsActiveIndex(index);
-      setWeelsScrollTarget(index);
-      setWeelsReady(false);
-      scrollToTab('weels');
-    }
-  }, [videoPosts, scrollToTab]);
+  /*
+   * ─── EL VISOR, QUE ES OTRA COSA ───────────────────────────────────────────
+   *
+   * A pantalla completa, uno detrás de otro y con el dedo: eso es WeëlsScreen,
+   * y se entra a ella a propósito: tocando una tarjeta de la fila de Weëls,
+   * "Ver todos →", un vídeo del muro o "Explora → Weëls" en el menú.
+   *
+   * Es la pantalla de siempre, intacta; se le pasa por dónde empezar y la lista
+   * que ya está cargada, igual que hacen el perfil y la comunidad. Sin Weëls
+   * cargados no hay nada que ver: se va a crear el primero, como en la web.
+   */
+  const crearWeel = useCallback(() => {
+    const mainNavigation = navigation.getParent()?.getParent();
+    (mainNavigation as any)?.navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
+  }, [navigation, user]);
+
+  const abrirElVisor = useCallback((desde?: Post) => {
+    if (videoPosts.length === 0) return crearWeel();
+    const raiz = navigation.getParent()?.getParent();
+    (raiz as any)?.navigate('Reels', { initialPost: desde || videoPosts[0], initialVideoPosts: videoPosts });
+  }, [videoPosts, navigation, crearWeel]);
+
+  const handleVideoPress = useCallback((post: Post) => abrirElVisor(post), [abrirElVisor]);
+
+  /*
+   * "Explora → Weëls" del menú. Ya no hay página de Weëls dentro del Home: se
+   * abre WeëlsScreen directamente con los Weëls cargados. Si todavía se están
+   * cargando, espera a que lleguen; el parámetro se limpia al atenderlo.
+   */
+  useEffect(() => {
+    if (!openWeelsParam || videosLoading) return;
+    navigation.setParams({ openWeels: undefined, weelsCommunitySlug: undefined } as any);
+    abrirElVisor();
+  }, [openWeelsParam, videosLoading, abrirElVisor, navigation]);
 
   const handleComment = (postId: string) => {
     const post = feedPosts.find(p => p.id === postId);
@@ -1633,77 +918,40 @@ const LandingScreen: React.FC = () => {
   };
 
   /*
-   * ẄALL Y ẄELLS.
+   * Fila de Weëls: videos cortos de la comunidad. Cualquier tarjeta y
+   * "Ver todos →" abren WeëlsScreen, la experiencia de vídeos de siempre; el
+   * botón de la izquierda lleva a crear el primero.
    *
-   * Las dos caras del Home: el muro y los videos cortos. No son botones ni
-   * tarjetas —eso pesaría más que el contenido que presentan—: son dos palabras
-   * y una raya amarilla debajo de la que está puesta.
-   *
-   * La raya va PEGADA A LA PALABRA, no de lado a lado de su mitad de pantalla.
-   * Un subrayado de media pantalla se lee como una pestaña de navegador; uno del
-   * ancho de la palabra se lee como "estás aquí", que es lo que hace falta.
-   *
-   * Lo que hacen no cambia: siguen llamando al `scrollToTab` de siempre, y la
-   * barra transparente sigue siendo la misma barra pintada para el modo oscuro
-   * de los Weëls. Aquí solo cambia cómo se ve.
+   * Va sobre el fondo de la pantalla, sin franja gris propia. Saludo, compositor
+   * y Weëls son tres pasos de una misma bienvenida, y pintar uno de otro color
+   * los partía en bloques pegados. Lo único que se despega del fondo en todo el
+   * Home es la tarjeta de publicar, que es donde se actúa.
    */
-  const renderTabBar = useCallback((transparent = false) => {
-    // For cross-fade: normal tab bar always highlights "Wall", transparent always highlights "Weëls"
-    const highlightedTab = transparent ? 'weels' : 'flow';
-    const pestana = (tab: 'flow' | 'weels', etiqueta: string, descripcion: string) => {
-      const puesta = highlightedTab === tab;
-      const color = transparent
-        ? (puesta ? 'white' : 'rgba(255,255,255,0.6)')
-        : (puesta ? theme.colors.text : theme.colors.textSecondary);
-      return (
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => scrollToTab(tab)}
-          activeOpacity={0.7}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: puesta }}
-          accessibilityLabel={descripcion}
-        >
-          <View style={[
-            styles.tabIndicator,
-            puesta && { borderBottomColor: transparent ? 'white' : theme.colors.accent },
-          ]}>
-            <Text style={[styles.tabItemText, { color }, puesta && styles.tabItemTextActive]}>
-              {etiqueta}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      );
-    };
-    return (
-      <View style={[
-        styles.tabBar,
-        {
-          borderBottomColor: transparent ? 'rgba(255,255,255,0.2)' : theme.colors.border,
-          backgroundColor: transparent ? 'transparent' : theme.colors.background,
-        },
-      ]}>
-        {pestana('flow', 'Ẅall', 'Ẅall, el muro de la comunidad')}
-        {pestana('weels', 'Ẅells', 'Ẅells, los videos cortos')}
-      </View>
-    );
-  }, [theme, scrollToTab]);
-
-  // Feed filtrado según el chip elegido
-  const filteredFeedPosts = useMemo(() => filterBySection(feedPosts, feedFilter), [feedPosts, feedFilter]);
-
-  const FEED_FILTERS: { id: FeedFilter; label: string }[] = HOME_SECTION_FILTERS;
+  const renderWeelsRow = () => (
+    <View style={{ backgroundColor: theme.colors.background }}>
+      <WeelsRow
+        posts={videoPosts}
+        compacta
+        onOpenWeels={() => abrirElVisor()}
+        onCreateWeel={crearWeel}
+      />
+    </View>
+  );
 
   /*
-   * Las pastillas de sección.
+   * EL CARRUSEL DE SECCIONES: UN FILTRO DEL WÄLL, Y NADA MÁS.
    *
-   * Bajas de altura porque son un filtro, no una acción principal; cómodas de
+   * Una fila de pastillas que se desliza de lado por dentro —solo ella: el Home
+   * sigue siendo vertical— con las siete secciones. Tocar una la pone o la
+   * quita, y el muro se acota en el acto a la unión de las puestas; no navega,
+   * no abre Weëls, no cambia de página. No es la antigua píldora
+   * Wäll ↔ Weëls: aquella elegía qué página ver; esta elige de dónde vienen
+   * las publicaciones que se ven.
+   *
+   * Pastillas bajas porque son un filtro, no una acción principal; cómodas de
    * tocar porque el `hitSlop` les añade por fuera lo que no se les da por
-   * dentro. Así se puede tener las dos cosas: una fila ligera y un objetivo
-   * táctil de sobra.
-   *
-   * La inactiva lleva borde: sobre el blanco del Home, un gris tan claro sin
-   * borde no se lee como algo que se pueda tocar.
+   * dentro. La apagada lleva borde: sobre el blanco del Home, un gris tan
+   * claro sin borde no se lee como algo que se pueda tocar.
    */
   const renderFeedFilters = () => (
     <ScrollView
@@ -1714,8 +962,8 @@ const LandingScreen: React.FC = () => {
       directionalLockEnabled
       nestedScrollEnabled
     >
-      {FEED_FILTERS.map((f) => {
-        const active = feedFilter === f.id;
+      {HOME_SECTION_FILTERS.map((f) => {
+        const active = estaActiva(feedFilter, f.id);
         return (
           <TouchableOpacity
             key={f.id}
@@ -1726,7 +974,7 @@ const LandingScreen: React.FC = () => {
                 borderColor: active ? theme.colors.accent : theme.colors.border,
               },
             ]}
-            onPress={() => setFeedFilter(f.id)}
+            onPress={() => setFeedFilter((elegidas) => alternarSeccion(elegidas, f.id))}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
             accessibilityRole="button"
@@ -1742,47 +990,19 @@ const LandingScreen: React.FC = () => {
     </ScrollView>
   );
 
-  /*
-   * Fila de Weëls: videos cortos de la comunidad; lleva a la pestaña Weëls o a
-   * crear el primero.
-   *
-   * Va sobre el fondo de la pantalla, sin franja gris propia. Saludo, compositor
-   * y Weëls son tres pasos de una misma bienvenida, y pintar uno de otro color
-   * los partía en bloques pegados. Lo único que se despega del fondo en todo el
-   * Home es la tarjeta de publicar, que es donde se actúa.
-   */
-  const renderWeelsRow = () => (
-    <View style={{ backgroundColor: theme.colors.background }}>
-      <WeelsRow
-        posts={videoPosts}
-        compacta
-        onOpenWeels={() => scrollToTab('weels')}
-        onCreateWeel={() => {
-          const mainNavigation = navigation.getParent()?.getParent();
-          (mainNavigation as any)?.navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
-        }}
-      />
-    </View>
-  );
+  /* El muro, acotado por las secciones puestas: la unión de todas ellas. Con "Todo", entero. */
+  const filteredFeedPosts = useMemo(() => filterBySections(feedPosts, feedFilter), [feedPosts, feedFilter]);
 
-  // Home = solo lo esencial: hero → publicar → Weëls → creado por la comunidad.
+  // Home = solo lo esencial: hero → publicar → Weëls → secciones → creado por la comunidad.
   // Comunidades se alcanza por Buscar, en la barra inferior.
   const listHeader = useMemo(() => (
     <>
       {renderHero()}
       {renderComposer()}
       {renderWeelsRow()}
-      {feedPosts.length > 0 && (
-        <>
-          <View style={[styles.feedSeparator, { backgroundColor: theme.colors.surface }]} />
-          <View onLayout={(e) => { tabsOffsetY.current = e.nativeEvent.layout.y; }}>
-            {renderTabBar()}
-          </View>
-          {renderFeedFilters()}
-        </>
-      )}
+      {feedPosts.length > 0 && renderFeedFilters()}
     </>
-  ), [theme, feedPosts.length > 0, videoPosts, feedFilter, user, hasWeeProfile, renderTabBar]);
+  ), [theme, videoPosts, user, hasWeeProfile, abrirElVisor, feedPosts.length > 0, feedFilter]);
 
   const renderPostItem = useCallback(({ item }: { item: Post; index?: number }) => (
     <PostCard
@@ -1791,44 +1011,11 @@ const LandingScreen: React.FC = () => {
       onPrivateMessage={handlePrivateMessage}
       onPress={handlePostPress}
       onVideoPress={handleVideoPress}
-      isVisible={visiblePostIds.has(item.id || '') && activeTab === 'flow'}
+      isVisible={visiblePostIds.has(item.id || '')}
       /* El Wall es un muro: las publicaciones se apoyan en el fondo, sin tarjeta. */
       variante="muro"
     />
-  ), [visiblePostIds, handleVideoPress, activeTab]);
-
-  // ---- Weels reel viewability ----
-  const [weelsActiveIndex, setWeelsActiveIndex] = useState(0);
-
-  const weelsViewabilityConfig = useRef<ViewabilityConfig>({
-    itemVisiblePercentThreshold: 50,
-  }).current;
-
-  const onWeelsViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    if (viewableItems.length > 0 && viewableItems[0].index != null) {
-      setWeelsActiveIndex(viewableItems[0].index);
-    }
-  }).current;
-
-  const weelsViewabilityPairs = useRef([
-    { viewabilityConfig: weelsViewabilityConfig, onViewableItemsChanged: onWeelsViewableItemsChanged },
-  ]).current;
-
-  const renderWeelItem = useCallback(({ item, index }: { item: Post; index: number }) => (
-    <WeelItem
-      post={item}
-      isActive={index === weelsActiveIndex && activeTab === 'weels'}
-      height={containerHeight}
-      onComment={handleComment}
-      onScrubbing={setVideoScrubbingBoth}
-    />
-  ), [weelsActiveIndex, activeTab, containerHeight, handleComment]);
-
-  const weelsGetItemLayout = useCallback((_: any, index: number) => ({
-    length: containerHeight,
-    offset: containerHeight * index,
-    index,
-  }), [containerHeight]);
+  ), [visiblePostIds, handleVideoPress]);
 
   if (loading) {
     return (
@@ -1838,35 +1025,30 @@ const LandingScreen: React.FC = () => {
     );
   }
 
-  const isWeelsMode = activeTab === 'weels';
-
   return (
     <Animated.View
-      style={[styles.container, { backgroundColor: containerBg }]}
-      onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* Header — two layers cross-fading between normal and transparent */}
+      {/*
+        El encabezado, uno solo. Antes había dos capas cruzándose —el normal y
+        uno transparente para los Weëls a pantalla completa—; desde que Ẅells es
+        una página más del Home, con su fondo y su selector, esa segunda capa ya
+        no tiene a quién servir.
+      */}
       <View
         style={[styles.headerOverlay, { pointerEvents: 'box-none' }]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
-        {/* Normal header (dark icons, solid bg) — visible on Wall */}
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: headerNormalOpacity }]} pointerEvents={isWeelsMode ? 'none' : 'auto'}>
-          <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} conMarca />
-        </Animated.View>
-        {/* Transparent header (white icons) — visible on Weëls */}
-        <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isWeelsMode ? 'auto' : 'none'}>
-          <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} transparent conMarca />
-        </Animated.View>
+        <Header onNotificationsPress={handleNotificationsPress} onMenuPress={() => setDrawerVisible(true)} conMarca />
       </View>
       {/* StatusBar — after Headers so it takes precedence */}
       <StatusBar
-        barStyle={isWeelsMode ? 'light-content' : (theme.dark ? 'light-content' : 'dark-content')}
+        barStyle={theme.dark ? 'light-content' : 'dark-content'}
         backgroundColor="transparent"
         translucent
       />
 
-      {/* Content area wrapper — sticky tabs position relative to this */}
+      {/* Content area wrapper */}
       <View style={styles.contentWrapper}>
       {isWeb ? (
         // Web: Use native div scrolling for mobile browser compatibility
@@ -1878,7 +1060,7 @@ const LandingScreen: React.FC = () => {
             overflowY: 'scroll',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-y pan-x',
+            touchAction: 'pan-y',
             paddingTop: headerHeight,
             paddingBottom: 100,
           }}
@@ -1896,111 +1078,45 @@ const LandingScreen: React.FC = () => {
           )}
         </div>
       ) : (
-        // Mobile: Horizontal paging between Wall and Weëls
-        <ScrollView
-          ref={tabScrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={handleTabScrollEvent}
-          onMomentumScrollEnd={handleTabScrollEnd}
-          bounces={false}
-          nestedScrollEnabled
-          scrollEnabled={!videoScrubbing}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ height: '100%' }}
-        >
-          {/* Page 1: Wall */}
-          <View style={{ width: SCREEN_WIDTH, height: '100%' }}>
-            <FlatList
-              ref={flatListRef}
-              data={filteredFeedPosts}
-              renderItem={renderPostItem}
-              keyExtractor={(item: Post) => item.id || Math.random().toString()}
-              ListHeaderComponent={listHeader}
-              ListFooterComponent={loadingMore ? (
-                <View style={styles.loadingMore}>
-                  <ActivityIndicator size="small" color={theme.colors.accent} />
-                </View>
-              ) : null}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 80 }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={theme.colors.accent}
-                  colors={[theme.colors.accent]}
-                  progressViewOffset={headerHeight}
-                />
-              }
-              onEndReached={loadMorePosts}
-              onEndReachedThreshold={0.5}
-              onScroll={handleFlowScroll}
-              scrollEventThrottle={16}
-              viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
-              removeClippedSubviews
+        /*
+          UNA SOLA LISTA, EL WÄLL, CON LA BIENVENIDA COMO CABECERA.
+
+          Saludo, compositor, fila de Weëls y carrusel de secciones van como
+          cabecera de la lista y suben con ella; debajo, las publicaciones de
+          la sección puesta, con sus WeeTags. El Home no se mueve de lado: lo
+          único horizontal es el carrusel, por dentro. Al bajar, la lista le
+          cuenta a la barra de abajo hacia dónde va el dedo.
+        */
+        <FlatList
+          ref={flatListRef}
+          data={filteredFeedPosts}
+          renderItem={renderPostItem}
+          keyExtractor={(item: Post) => item.id || Math.random().toString()}
+          ListHeaderComponent={listHeader}
+          ListFooterComponent={loadingMore ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator size="small" color={theme.colors.accent} />
+            </View>
+          ) : null}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 80 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.accent}
+              colors={[theme.colors.accent]}
+              progressViewOffset={headerHeight}
             />
-          </View>
-
-          {/* Page 2: Weëls */}
-          <View style={{ width: SCREEN_WIDTH, height: '100%', backgroundColor: '#000' }}>
-            {containerHeight > 0 && videoPosts.length > 0 ? (
-              <FlatList
-                ref={weelsListRef}
-                data={videoPosts}
-                renderItem={renderWeelItem}
-                keyExtractor={(item: Post) => `weel-${item.id}`}
-                pagingEnabled
-                scrollEnabled={!videoScrubbing}
-                showsVerticalScrollIndicator={false}
-                getItemLayout={weelsGetItemLayout}
-                windowSize={3}
-                maxToRenderPerBatch={2}
-                removeClippedSubviews
-                viewabilityConfigCallbackPairs={weelsViewabilityPairs}
-              />
-            ) : (
-              <View style={styles.weelsEmptyState}>
-                <Ionicons name="videocam-outline" size={scale(48)} color="rgba(255,255,255,0.5)" />
-                <Text style={[styles.weelsEmptyTitle, { color: 'white' }]}>No hay weels</Text>
-                <Text style={[styles.weelsEmptySubtitle, { color: 'rgba(255,255,255,0.6)' }]}>
-                  Aún no hay videos disponibles
-                </Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
+          }
+          onEndReached={loadMorePosts}
+          onEndReachedThreshold={0.5}
+          onScroll={reportarScroll}
+          scrollEventThrottle={16}
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
+          removeClippedSubviews
+        />
       )}
-
-        {/* Sticky tab bar — cross-fade between normal and transparent */}
-        <Animated.View
-          style={[
-            { pointerEvents: (isWeelsMode || isTabsSticky) ? 'auto' : 'none' },
-            styles.tabBarStickyWrapper,
-            {
-              top: headerHeight,
-            },
-          ]}
-        >
-          {/* Normal tab bar (solid bg) — visible on Wall only when sticky */}
-          <Animated.View style={[StyleSheet.absoluteFill, {
-            opacity: Animated.multiply(stickyAnim, headerNormalOpacity),
-            transform: [{
-              translateY: stickyAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-scale(44), 0],
-              }),
-            }],
-          }, { pointerEvents: isWeelsMode ? 'none' : 'auto' }]}>
-            {renderTabBar()}
-          </Animated.View>
-          {/* Transparent tab bar (white text) — visible on Weëls */}
-          <Animated.View style={{ opacity: headerTransparentOpacity }} pointerEvents={isWeelsMode ? 'auto' : 'none'}>
-            {renderTabBar(true)}
-          </Animated.View>
-        </Animated.View>
       </View>
 
       {/* Drawer menu */}
@@ -2058,6 +1174,7 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
   },
+  /* El carrusel de secciones: compacto, con el mismo aire lateral que el resto del Home. */
   feedFiltersRow: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
@@ -2420,49 +1537,6 @@ const styles = StyleSheet.create({
   },
 
   // Feed
-  /*
-   * La juntura entre los Weëls y el muro. Antes eran 20 puntos de margen más 8
-   * de franja: 28 puntos de nada justo donde la persona está bajando a buscar
-   * contenido. Ahora separa sin costar media pantalla.
-   */
-  feedSeparator: {
-    height: scale(6),
-    marginTop: SPACING.sm,
-  },
-
-  // Tab bar (Flow / Weels) — shared between inline and sticky
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-  },
-  tabBarStickyWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.sm,
-  },
-  /* La raya del ancho de la palabra, con un respiro entre la letra y la línea. */
-  tabIndicator: {
-    paddingHorizontal: SPACING.xs,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabItemText: {
-    fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-  tabItemTextActive: {
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-
   // Header always as overlay
   headerOverlay: {
     position: 'absolute',
@@ -2470,31 +1544,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
-  },
-  // Weels tabs below header
-  weelsTabsOnly: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 20,
-  },
-
-  // Weels empty state
-  weelsEmptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.xl,
-  },
-  weelsEmptyTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: FONT_WEIGHT.semibold,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-  },
-  weelsEmptySubtitle: {
-    fontSize: FONT_SIZE.base,
-    textAlign: 'center',
   },
 
   loadingMore: {

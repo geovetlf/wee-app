@@ -60,12 +60,14 @@ const ids = (lista) => lista.map((p) => p.id);
 console.log('\n── A · Las pastillas del Home son secciones ──');
 {
   const { HOME_SECTION_FILTERS } = filtros;
-  check('1) son cinco, en el orden pedido',
-    JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.id)) === JSON.stringify(['all', 'studio', 'travel', 'music', 'chef'])
+  /* Siete desde el carrusel de secciones (2026-09-12): entraron Weë Design y Weë Business. */
+  check('1) son siete, en el orden pedido',
+    JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.id)) === JSON.stringify(['all', 'studio', 'travel', 'music', 'chef', 'design', 'business'])
   );
+  /* "WEEBusiness" con esa grafía exacta, por decisión de producto. */
   check('2) con los nombres de las experiencias',
     JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.label)) ===
-      JSON.stringify(['Todo', 'WeeStudio', 'WeeTravel', 'WeeMusic', 'WeeChef'])
+      JSON.stringify(['Todo', 'WeeStudio', 'WeeTravel', 'WeeMusic', 'WeeChef', 'WeeDesign', 'WEEBusiness'])
   );
   /*
    * Control: los identificadores no son inventados aquí. Si alguien renombrara
@@ -76,16 +78,16 @@ console.log('\n── A · Las pastillas del Home son secciones ──');
   const huerfanas = HOME_SECTION_FILTERS.filter((f) => f.id !== 'all' && !destinos.includes(f.id)).map((f) => f.id);
   check('3) control: toda pastilla es un destino donde se puede publicar', huerfanas.length === 0, huerfanas.join(', ') || 'ninguna huérfana');
   /*
-   * Y una advertencia escrita, no un fallo: Weë Music todavía no tiene palabras
-   * clave (`SECTION_MARKERS`), porque la experiencia está sin conectar. Su
-   * pastilla enseña lo que eligió publicarse en Weë Music y nada más; lo
-   * publicado antes de que existieran los destinos no aparece ahí. Cuando Weë
-   * Music se conecte y tenga marcas, esta comprobación lo dirá.
+   * Y una advertencia escrita, no un fallo: Weë Music y Weë Business todavía
+   * no tienen palabras clave (`SECTION_MARKERS`). Sus pastillas enseñan lo que
+   * eligió publicarse en ellas y nada más; lo publicado antes de que existieran
+   * los destinos no aparece ahí. Cuando tengan marcas, esta comprobación lo
+   * dirá.
    */
   const conMarcas = Object.keys(secciones.SECTION_MARKERS);
   const sinMarcas = HOME_SECTION_FILTERS.filter((f) => f.id !== 'all' && !conMarcas.includes(f.id)).map((f) => f.id);
   check('4) las pastillas sin palabras clave solo leen destinos elegidos',
-    JSON.stringify(sinMarcas) === JSON.stringify(['music']),
+    JSON.stringify(sinMarcas) === JSON.stringify(['music', 'business']),
     sinMarcas.length ? `sin marcas: ${sinMarcas.join(', ')}` : 'todas tienen marcas'
   );
 }
@@ -109,16 +111,77 @@ console.log('\n── B · filterBySection, ejecutado de verdad ──');
    * las dos comprobaciones de arriba podrían pasar igual. Esta no.
    */
   check('8) control: quien publicó solo en el muro general no aparece en ninguna sección',
-    ['studio', 'travel', 'music', 'chef'].every((s) => !ids(filterBySection(todos, s)).includes('solo-general'))
+    ['studio', 'travel', 'music', 'chef', 'design', 'business'].every((s) => !ids(filterBySection(todos, s)).includes('solo-general'))
   );
   check('9) es exactamente el reparto de los muros de sección, sin criterio nuevo',
-    ['studio', 'travel', 'music', 'chef'].every(
+    ['studio', 'travel', 'music', 'chef', 'design', 'business'].every(
       (s) => JSON.stringify(ids(filterBySection(todos, s))) === JSON.stringify(ids(secciones.postsDeLaSeccion(todos, s)))
     )
+  );
+  /* Las dos nuevas filtran de verdad: lo publicado en Weë Design solo sale en Weë Design. */
+  const cartel = post('cartel', { destinations: ['design'] });
+  const tienda = post('tienda', { destinations: ['business'] });
+  check('9b) Weë Design y Weë Business reparten como las demás',
+    JSON.stringify(ids(filterBySection([...todos, cartel, tienda], 'design'))) === JSON.stringify(['cartel'])
+    && JSON.stringify(ids(filterBySection([...todos, cartel, tienda], 'business'))) === JSON.stringify(['tienda'])
+    && !ids(filterBySection([...todos, cartel, tienda], 'travel')).includes('cartel')
   );
   const antes = ids(todos).join();
   filterBySection(todos, 'travel');
   check('10) no toca la lista que recibe', ids(todos).join() === antes);
+}
+
+console.log('\n── B2 · Selección múltiple, ejecutada de verdad ──');
+{
+  const { alternarSeccion, estaActiva, filterBySections, HOME_SECTION_FILTERS } = filtros;
+  const viaje = post('viaje', { destinations: ['travel'] });
+  const cocina = post('cocina', { destinations: ['chef'] });
+  const cancion = post('cancion', { destinations: ['music'] });
+  const doble = post('doble', { destinations: ['travel', 'chef'] });
+  const soloGeneral = post('solo-general', { destinations: ['general'] });
+  const todos = [viaje, cocina, cancion, doble, soloGeneral];
+  const activas = (elegidas) => HOME_SECTION_FILTERS.filter((f) => estaActiva(elegidas, f.id)).map((f) => f.id).join('+');
+
+  /*
+   * La selección es la lista de secciones puestas; "Todo" es la lista vacía.
+   * Cada caso de abajo es uno de los pedidos: A) entrada, B) una, C) segunda,
+   * D) tercera, E) quitar una, F) quitar la última, G) "Todo" se apaga solo,
+   * H) varias a la vez. Y un control: nada de esto toca la lista que recibe.
+   */
+  const entrada = [];
+  check('A) al entrar, "Todo" está puesta y el muro sale entero',
+    activas(entrada) === 'all' && JSON.stringify(ids(filterBySections(todos, entrada))) === JSON.stringify(ids(todos)));
+  const unaSola = alternarSeccion(entrada, 'travel');
+  check('B) Todo → WeeTravel: solo WeeTravel, y "Todo" se apaga',
+    activas(unaSola) === 'travel' && JSON.stringify(ids(filterBySections(todos, unaSola))) === JSON.stringify(['viaje', 'doble']));
+  const dos = alternarSeccion(unaSola, 'chef');
+  check('C) + WeeChef: las dos puestas, y el muro es la unión',
+    activas(dos) === 'travel+chef' && JSON.stringify(ids(filterBySections(todos, dos))) === JSON.stringify(['viaje', 'cocina', 'doble']));
+  const tres = alternarSeccion(dos, 'music');
+  check('D) + WeeMusic: las tres, y el muro suma la tercera',
+    activas(tres) === 'travel+music+chef' && JSON.stringify(ids(filterBySections(todos, tres))) === JSON.stringify(['viaje', 'cocina', 'cancion', 'doble']));
+  const sinChef = alternarSeccion(dos, 'chef');
+  check('E) WeeTravel + WeeChef → tocar WeeChef: queda solo WeeTravel',
+    activas(sinChef) === 'travel' && JSON.stringify(ids(filterBySections(todos, sinChef))) === JSON.stringify(['viaje', 'doble']));
+  const ninguna = alternarSeccion(unaSola, 'travel');
+  check('F) quitar la última vuelve a "Todo" sola',
+    ninguna.length === 0 && activas(ninguna) === 'all' && JSON.stringify(ids(filterBySections(todos, ninguna))) === JSON.stringify(ids(todos)));
+  check('G) tocar "Todo" con secciones puestas las quita todas',
+    alternarSeccion(tres, 'all').length === 0 && activas(alternarSeccion(tres, 'all')) === 'all');
+  const siete = HOME_SECTION_FILTERS.filter((f) => f.id !== 'all').reduce((elegidas, f) => alternarSeccion(elegidas, f.id), []);
+  check('H) pueden quedar dos, tres o las siete puestas a la vez, sin convertirse a "Todo"',
+    dos.length === 2 && tres.length === 3 && siete.length === 6 && !estaActiva(siete, 'all')
+    && JSON.stringify(ids(filterBySections(todos, siete))) === JSON.stringify(['viaje', 'cocina', 'cancion', 'doble']));
+  /* Excluyentes por construcción: con alguna sección puesta, "Todo" nunca lo está, y al revés. */
+  check('control: "Todo" y las secciones nunca están puestas a la vez',
+    [entrada, unaSola, dos, tres, sinChef, ninguna, siete].every((e) => estaActiva(e, 'all') === (e.length === 0)));
+  /* Control: una publicación que pertenece a dos secciones puestas sale una sola vez, en su sitio. */
+  check('control: sin repetidos y en el orden del muro',
+    ids(filterBySections(todos, dos)).filter((id) => id === 'doble').length === 1
+    && JSON.stringify(ids(filterBySections(todos, ['chef', 'travel']))) === JSON.stringify(['viaje', 'cocina', 'doble']));
+  const antesDeTocar = JSON.stringify(dos);
+  alternarSeccion(dos, 'music'); filterBySections(todos, dos);
+  check('control: no tocan la selección ni la lista que reciben', JSON.stringify(dos) === antesDeTocar && ids(todos).length === 5);
 }
 
 console.log('\n── C · Los filtros por tipo de contenido no se movieron ──');
@@ -197,18 +260,167 @@ console.log('\n── F · Ẅall y Ẅells ──');
   const nativo = leer('screens/LandingScreen.tsx');
   const web = leer('screens/WebLandingScreen.tsx');
   /*
-   * Las dos etiquetas ya no van escritas dentro del JSX: las pone `pestana()`,
-   * que construye las dos igual. Se comprueban donde viven ahora.
+   * El Home ya no rotula Ẅall ni Ẅells en ningún selector, porque no hay
+   * selector: hubo dos pestañas subrayadas, luego una píldora con dos mitades,
+   * y la decisión final las quitó. La única palabra "Ẅells" del Home es el
+   * título de la fila de Weëls, que sigue abriendo WeëlsScreen.
    */
-  check('29) el Home nativo rotula Ẅall', /pestana\('flow', 'Ẅall'/.test(nativo));
-  check('30) y Ẅells', /pestana\('weels', 'Ẅells'/.test(nativo));
+  check('29) el Home nativo no tiene selector Ẅall/Ẅells', !/mitad\('flow'|mitad\('weels'|accessibilityRole="tab"/.test(nativo));
+  check('30) y el web tampoco', !/etiqueta: 'Ẅall'|etiqueta: 'Ẅells'|accessibilityRole="tab"/.test(web));
   check('31) ya no dice "Comunidad" ni "Creado por la comunidad"', !/>\s*Comunidad\s*</.test(nativo) && !/Creado por la comunidad</.test(nativo));
-  check('32) el Home web tiene la misma fila', /Ẅall<\/Text>/.test(web) && /Ẅells<\/Text>/.test(web));
+  check('32) la fila de Weëls se sigue llamando Ẅells', /<Text style=\{\[styles\.title[^>]*>Ẅells<\/Text>/.test(leer('components/WeelsRow.tsx')));
+  /* Ẅells es una puerta a WeëlsScreen, no una página del Home: la fila abre el visor de siempre. */
+  check('33) y sigue abriendo WeëlsScreen, en la web', /<WeelsRow[^>]*onOpenWeels=\{handleOpenWeels\}/.test(web));
+  check('33) y en el móvil', /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo));
+}
+
+console.log('\n── F2 · El Home es un solo muro ──');
+{
+  const nativo = leer('screens/LandingScreen.tsx');
+  const web = leer('screens/WebLandingScreen.tsx');
+  const fila = leer('components/WeelsRow.tsx');
+  const pila = leer('navigation/MainStackNavigator.tsx');
+  const publicacion = leer('components/PostCard.tsx');
+
   /*
-   * Control: Ẅells no es un feed nuevo. Abre el visor de Weëls que ya existía,
-   * el mismo de la fila de arriba.
+   * DECISIÓN FINAL: NI PAGER, NI PÍLDORA, NI FILA DE FILTROS.
+   *
+   * El Home enseña siempre el Wäll: saludo, compositor y fila de Weëls arriba,
+   * y debajo las publicaciones con sus WeeTags. Lo que hubo —un pager
+   * Wäll ↔ Weëls con su píldora, un bloque flotante que subía con la lista
+   * activa y una fila de pastillas de sección— se fue entero. A los Weëls se
+   * entra desde su fila, que abre WeëlsScreen, la experiencia de siempre.
+   *
+   * Aquí se vigila que no vuelva a medias: ni estado, ni gesto, ni cálculo de
+   * página, ni transform, ni estilo huérfano.
    */
-  check('33) control: Ẅells reutiliza el visor de siempre', /accessibilityLabel="Ẅells, los videos cortos"/.test(web) && /onPress=\{handleOpenWeels\}/.test(web));
+  const arbolNativo = nativo.slice(nativo.indexOf('{/* Content area wrapper */}'), nativo.indexOf('<DrawerMenu'));
+  const cabecera = nativo.slice(nativo.indexOf('const listHeader = useMemo'), nativo.indexOf('const renderPostItem'));
+  check('33a) el Home nativo es una sola lista vertical',
+    /<FlatList\s*\n\s*ref=\{flatListRef\}/.test(arbolNativo) && /data=\{filteredFeedPosts\}/.test(arbolNativo)
+    && /ListHeaderComponent=\{listHeader\}/.test(arbolNativo) && (arbolNativo.match(/<FlatList/g) || []).length === 1);
+  /* Ningún `horizontal` como prop en el árbol del Home: el único ScrollView horizontal es el carrusel, en la cabecera. */
+  check('33a) y nada se mueve de lado', !/pagingEnabled|\n\s+horizontal\s*\n|Animated\.FlatList|translateX|onMomentumScrollEnd/.test(arbolNativo));
+  check('33a) sin estado de página, sin gesto y sin cálculo de página',
+    !/activeTab|useState<'flow' \| 'weels'>|scrollToTab|paginaObjetivo|handleTabScroll|tabScrollRef|weelsListRef|paginaEn\(/.test(nativo));
+  check('33a) y sin bloque flotante ni copia del selector',
+    !/bloqueDeArriba|altoDelBloque|subidaDelBloque|desplazamiento|tabBarStickyWrapper|stickyAnim|renderTabBar/.test(nativo));
+  check('33b) la web es un solo muro: sin páginas, sin gesto y sin selector',
+    !/useState<'muro' \| 'weels'>|estiloDePagina|irALaPagina|onTouchStart|onTouchEnd|translateX|paginasRef|selectorRef|RECORRIDO_MINIMO/.test(web));
+  check('33b) y sin paginación aparte para una página de Ẅells',
+    !/cargarMasWeels|hayMasWeels|weelsLastDoc|WEELS_POR_TANDA/.test(web) && /getVideoPostsPaginated\(10\)/.test(web));
+  /* La píldora Ẅall/Ẅells desapareció del todo, en las dos plataformas. */
+  check('33c) no queda píldora Ẅall/Ẅells',
+    !/accessibilityRole="tab"|mitad\(|tabItem|selectorMitad|etiqueta: 'Ẅall'/.test(nativo)
+    && !/accessibilityRole="tab"|selectorMitad|etiqueta: 'Ẅall'|aria-selected/.test(web));
+  /*
+   * EL CARRUSEL DE SECCIONES NO ES LA PÍLDORA. Volvió el filtro del Wäll —Todo ·
+   * WeeStudio · WeeTravel · WeeMusic · WeeChef · WeeDesign · WeeBusiness—, pero
+   * como lo que es: un ScrollView horizontal POR DENTRO, entre la fila de Weëls
+   * y las publicaciones, que solo acota el muro. Tocar una sección cambia
+   * `feedFilter` y nada más: ni navega, ni abre Weëls, ni cambia de página.
+   */
+  const carruselNativo = nativo.slice(nativo.indexOf('const renderFeedFilters = () => ('), nativo.indexOf('const filteredFeedPosts'));
+  check('33c) el carrusel de secciones vuelve como filtro del Wäll, por dentro',
+    /<ScrollView\s*\n\s*horizontal\s*\n\s*showsHorizontalScrollIndicator=\{false\}/.test(carruselNativo)
+    && /directionalLockEnabled/.test(carruselNativo) && /HOME_SECTION_FILTERS\.map\(\(f\) => \{/.test(carruselNativo)
+    && /onPress=\{\(\) => setFeedFilter\(\(elegidas\) => alternarSeccion\(elegidas, f\.id\)\)\}/.test(carruselNativo)
+    && !/navigate\(|abrirElVisor|scrollTo\(/.test(carruselNativo));
+  /*
+   * Selección múltiple con la MISMA lógica en las dos plataformas: el estado es
+   * la lista de secciones puestas (vacía = "Todo"), cada pastilla pregunta a
+   * `estaActiva`, cada toque pasa por `alternarSeccion` y el muro por
+   * `filterBySections`. Nada de eso se reimplementa en las pantallas.
+   */
+  check('33c) y el muro se acota con él, en el acto, con una o varias secciones',
+    /const \[feedFilter, setFeedFilter\] = useState<SeccionesElegidas>\(\[\]\);/.test(nativo)
+    && /const active = estaActiva\(feedFilter, f\.id\);/.test(carruselNativo)
+    && /const filteredFeedPosts = useMemo\(\(\) => filterBySections\(feedPosts, feedFilter\), \[feedPosts, feedFilter\]\);/.test(nativo)
+    && /data=\{filteredFeedPosts\}/.test(arbolNativo));
+  check('33c) en la web, lo mismo',
+    /const \[feedFilter, setFeedFilter\] = useState<SeccionesElegidas>\(\[\]\);/.test(web)
+    && /const active = estaActiva\(feedFilter, f\.id\);/.test(web)
+    && /onPress=\{\(\) => setFeedFilter\(\(elegidas\) => alternarSeccion\(elegidas, f\.id\)\)\}/.test(web)
+    && /const filteredPosts = useMemo\(\(\) => filterBySections\(posts, feedFilter\), \[posts, feedFilter\]\);/.test(web)
+    && /<ScrollView horizontal showsHorizontalScrollIndicator=\{false\} contentContainerStyle=\{styles\.filters\} style=\{styles\.filtersScroll\}>/.test(web)
+    && /filteredPosts\.map\(\(post\) =>/.test(web));
+  /* Control: la lógica de selección está en un solo sitio; las pantallas no la duplican. */
+  check('33c) control: las pantallas no reimplementan la selección',
+    !/feedFilter\.includes|feedFilter === f\.id|feedFilter\.filter\(/.test(nativo) && !/feedFilter\.includes|feedFilter === f\.id|feedFilter\.filter\(/.test(web)
+    && /export const alternarSeccion/.test(leer('utils/feedFilters.ts')) && /export const filterBySections/.test(leer('utils/feedFilters.ts')));
+  /* Control: el carrusel va DESPUÉS de la fila de Weëls y ANTES del muro, y la fila no sabe nada de él. */
+  check('33c) control: va entre la fila de Weëls y el muro',
+    cabecera.indexOf('renderWeelsRow()') < cabecera.indexOf('renderFeedFilters()')
+    && web.indexOf('<WeelsRow ') < web.indexOf('HOME_SECTION_FILTERS.map') && web.indexOf('HOME_SECTION_FILTERS.map') < web.indexOf('filteredPosts.map((post) =>')
+    && !/feedFilter|HOME_SECTION_FILTERS/.test(fila));
+  check('33c) las secciones siguen en el WeeTag de cada publicación',
+    /import WeeTag from '\.\/WeeTag';/.test(publicacion)
+    && /const seccion = useMemo\(\(\) => seccionDe\(post\), \[post\]\);/.test(publicacion)
+    && /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(publicacion));
+  /* El orden del Home: saludo · compositor · fila de Weëls · carrusel de secciones, y debajo el Wäll. */
+  check('33d) el Home nativo: saludo · compositor · fila de Weëls · secciones, y debajo el Wäll',
+    cabecera.indexOf('renderHero()') > 0 && cabecera.indexOf('renderHero()') < cabecera.indexOf('renderComposer()')
+    && cabecera.indexOf('renderComposer()') < cabecera.indexOf('renderWeelsRow()')
+    && cabecera.indexOf('renderWeelsRow()') < cabecera.indexOf('renderFeedFilters()')
+    && !/renderTabBar/.test(cabecera) && /renderItem=\{renderPostItem\}/.test(nativo));
+  const entreFilaYMuro = web.slice(web.indexOf('<WeelsRow '), web.indexOf('filteredPosts.map((post) =>'));
+  check('33d) y en la web lo mismo, con solo el carrusel entre la fila y el muro',
+    web.indexOf('<HomeGreeting ') > 0 && web.indexOf('<HomeGreeting ') < web.indexOf('<ComposerEntry ')
+    && web.indexOf('<ComposerEntry ') < web.indexOf('<WeelsRow ') && web.indexOf('<WeelsRow ') < web.indexOf('filteredPosts.map((post) =>')
+    && /HOME_SECTION_FILTERS\.map/.test(entreFilaYMuro) && !/selectorZona|role="tab"|estiloDePagina/.test(entreFilaYMuro));
+  /* Las dos puertas de la fila: cualquier tarjeta y "Ver todos →" abren WeëlsScreen. */
+  check('33e) en la fila, las tarjetas y "Ver todos →" llaman a la misma puerta',
+    (fila.match(/onPress=\{onOpenWeels\}/g) || []).length >= 3 && /accessibilityLabel="Ver todos los Weëls"/.test(fila));
+  check('33e) y esa puerta abre WeëlsScreen en el móvil',
+    /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo)
+    && /const abrirElVisor = useCallback\(\(desde\?: Post\) => \{\s*if \(videoPosts\.length === 0\) return crearWeel\(\);[\s\S]{0,200}navigate\('Reels', \{ initialPost: desde \|\| videoPosts\[0\], initialVideoPosts: videoPosts \}\)/.test(nativo));
+  check('33e) y en la web',
+    /<WeelsRow[^>]*onOpenWeels=\{handleOpenWeels\}/.test(web)
+    && /const handleOpenWeels = \(\) => \{\s*if \(weels\.length === 0\) return handleCreateWeel\(\);\s*navigation\.navigate\('Reels', \{ initialPost: weels\[0\], initialVideoPosts: weels \}\);/.test(web));
+  check('33e) "Explora → Weëls" del menú también abre WeëlsScreen, sin página intermedia',
+    /if \(!openWeelsParam \|\| videosLoading\) return;[\s\S]{0,160}abrirElVisor\(\);/.test(nativo)
+    && /if \(!route\.params\?\.openWeels\) return;[\s\S]{0,120}handleOpenWeels\(\);/.test(web));
+  /* WeëlsScreen intacta: registrada igual, y el Home no la importa ni la reemplaza. */
+  check('33f) WeëlsScreen sigue registrada tal cual',
+    /name="Reels"\s*\n\s*component=\{ReelsScreen\}\s*\n\s*options=\{\{\s*presentation: 'modal',/.test(pila)
+    && !/ReelsScreen/.test(nativo) && !/ReelsScreen/.test(web));
+  check('33f) control: la fila de Weëls no cambió',
+    !/pagina|activeTab|scrollToTab|irALaPagina|navigate\(/.test(fila) && /onOpenWeels: \(\) => void;/.test(fila));
+  /* Control: la web sigue recortando de lado y el muro nativo sigue avisando a la barra de abajo. */
+  check('33g) control: la web recorta de lado y el muro nativo avisa a la barra',
+    /overflowY: 'auto', overflowX: 'hidden'/.test(web) && /onScroll=\{reportarScroll\}/.test(arbolNativo));
+}
+
+console.log('\n── F3 · WeëlsScreen encaja en el viewport ──');
+{
+  const visor = leer('screens/ReelsScreen.tsx');
+  /*
+   * CADA WEËL MIDE EXACTAMENTE EL VISOR.
+   *
+   * La lista pagina por su alto real; si cada Weël midiera otra cosa, a cada
+   * paso se colaría un trozo del siguiente. Eso pasaba con
+   * `Dimensions.get('window').height`, que en Android no es el alto del visor
+   * modal de borde a borde. Ahora el alto y el ancho se MIDEN del contenedor y
+   * la lista no se monta hasta tenerlos: `getItemLayout`, `initialScrollIndex`
+   * y cada Weël usan la misma medida.
+   */
+  check('33j) el tamaño de cada Weël no sale de Dimensions',
+    !/height: SCREEN_HEIGHT|SCREEN_HEIGHT \*|height: SCREEN_HEIGHT \*/.test(visor) && !/height: SCREEN_HEIGHT\b/.test(visor)
+    && /const \{ width: SCREEN_WIDTH \} = Dimensions\.get\('window'\);/.test(visor));
+  check('33j) se mide del contenedor del visor',
+    /onLayout=\{medirViewport\}/.test(visor)
+    && /const \{ width, height \} = e\.nativeEvent\.layout;/.test(visor)
+    && /setViewport\(\(actual\) => \(actual && actual\.width === width && actual\.height === height \? actual : \{ width, height \}\)\);/.test(visor));
+  check('33j) y cada Weël ocupa exactamente esa medida',
+    /<View style=\{\[styles\.reelContainer, \{ width: viewport\.width, height: viewport\.height \}\]\}>/.test(visor)
+    && !/reelContainer: \{[^}]*width: SCREEN_WIDTH/.test(visor));
+  check('33j) la paginación usa la misma medida, y la lista no nace sin ella',
+    /const altoDelWeel = viewport\?\.height \?\? 0;/.test(visor)
+    && /length: altoDelWeel,\s*offset: altoDelWeel \* index,/.test(visor)
+    && /\{viewport && \(\s*<FlatList/.test(visor) && /initialScrollIndex=\{initialIndex\}/.test(visor));
+  /* Control: sigue paginando de uno en uno en el móvil y la navegación no cambió. */
+  check('33j) control: pagina de uno en uno y el gesto de volver sigue igual',
+    /pagingEnabled=\{!isWeb\}/.test(visor) && /if \(dx > SCREEN_WIDTH \* 0\.3\)/.test(visor) && /presentation: 'modal'/.test(leer('navigation/MainStackNavigator.tsx')));
 }
 
 console.log('\n── G · Los Weëls pesan menos ──');
@@ -346,9 +558,10 @@ console.log('\n── I · El refinamiento visual ──');
   /*
    * PASTILLAS: bajas de altura, cómodas de tocar.
    *
-   * Lo segundo NO sale de lo primero: el `hitSlop` añade por fuera lo que la
-   * pastilla no tiene por dentro. Sin él, 34 puntos de alto son 10 menos que un
-   * dedo.
+   * El carrusel de secciones volvió al Wäll (la píldora Ẅall/Ẅells no). Lo
+   * segundo NO sale de lo primero: el `hitSlop` añade por fuera lo que la
+   * pastilla no tiene por dentro. Sin él, 34 puntos de alto son 10 menos que
+   * un dedo.
    */
   const alturaPastilla = (fuente, nombre) => {
     const m = new RegExp(nombre + ': \\{[^}]*height: scale\\((\\d+)\\)').exec(fuente);
@@ -360,19 +573,18 @@ console.log('\n── I · El refinamiento visual ──');
   check('59) la pastilla es baja', pastillaNativa !== null && pastillaWeb !== null && pastillaNativa <= 36 && pastillaWeb <= 36,
     `${pastillaNativa} en móvil, ${pastillaWeb} en web`);
   check('60) y aun así se toca cómoda', /hitSlop=\{\{ top: 8, bottom: 8/.test(nativo) && /hitSlop=\{\{ top: 8, bottom: 8/.test(web));
-  check('61) la apagada lleva borde para que se lea como tocable', /borderWidth: StyleSheet\.hairlineWidth/.test(nativo) && /borderColor: active \? theme\.colors\.accent : theme\.colors\.border/.test(web));
+  check('61) la apagada lleva borde para que se lea como tocable',
+    /feedFilterChip: \{[^}]*borderWidth: StyleSheet\.hairlineWidth/.test(nativo) && /borderColor: active \? theme\.colors\.accent : theme\.colors\.border/.test(web));
   /*
    * Y el texto de la apagada toma el color del tema. Con un gris fijo, sobre el
-   * fondo casi negro del Perfil Weë, cuatro de las cinco secciones eran
-   * invisibles. Este era un fallo de verdad, no una preferencia.
+   * fondo casi negro del Perfil Weë, las secciones eran invisibles.
    */
-  check('62) el texto de la pastilla apagada sigue al tema', /color: active \? '#1F2937' : theme\.colors\.text/.test(web));
-
-  /*
-   * ẄALL / ẄELLS: la raya va pegada a la palabra, no de lado a lado.
-   */
-  check('63) la raya es del ancho de la palabra', /tabIndicator: \{[^}]*borderBottomWidth: 2/.test(nativo) && /experienciaIndicador: \{[^}]*borderBottomWidth: 2/.test(web));
-  check('64) y la pestaña ya no la lleva entera', !/tabItem: \{[^}]*borderBottomWidth/.test(nativo));
+  check('62) el texto de la pastilla apagada sigue al tema', /color: active \? '#1F2937' : theme\.colors\.text/.test(web) && /color: active \? '#1F2937' : theme\.colors\.text/.test(nativo));
+  /* Y ninguna píldora Ẅall/Ẅells volvió con ellas. */
+  check('63) control: la píldora Ẅall/Ẅells no volvió con el carrusel', !/tabItem|tabBarZona|mitad\('flow'|accessibilityRole="tab"/.test(nativo) && !/selectorMitad|selectorZona|irALaPagina|accessibilityRole="tab"/.test(web));
+  /* Lo que sí queda: la sección de cada publicación, en su WeeTag, sin tocar. */
+  check('64) la sección se sigue leyendo en el WeeTag de cada publicación',
+    /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(publicacion) && /const seccion = useMemo\(\(\) => seccionDe\(post\), \[post\]\);/.test(publicacion));
 
   /*
    * ESTADOS QUE SE PUEDEN OÍR.
@@ -381,8 +593,8 @@ console.log('\n── I · El refinamiento visual ──');
    * React Native Web no lo traduce a ningún atributo, así que el estado va
    * escrito a mano o no existe para un lector de pantalla.
    */
-  check('65) el móvil dice qué filtro y qué pestaña están puestos', /accessibilityState=\{\{ selected: active \}\}/.test(nativo) && /accessibilityState=\{\{ selected: puesta \}\}/.test(nativo));
-  check('66) y la web también, con su propio atributo', /aria-pressed=\{active\}/.test(web) && /aria-selected/.test(web));
+  check('65) el móvil dice qué sección está puesta', /accessibilityState=\{\{ selected: active \}\}/.test(nativo) && /accessibilityLabel=\{`Filtrar: \$\{f\.label\}`\}/.test(nativo));
+  check('66) y la web también, con su propio atributo', /aria-pressed=\{active\}/.test(web) && !/aria-selected/.test(web));
 
   /*
    * LOS BOTONES DE UNA PUBLICACIÓN.
@@ -466,11 +678,11 @@ console.log('\n── K · La última pasada del Home ──');
   check('83) control: los muros de sección no cambian', !/variante/.test((leer('components/creator/SectionWall.tsx').match(/<ComposerEntry[^/]*\/>/) || [''])[0]));
 
   /*
-   * Un mismo sitio, un mismo nombre. La fila se llama igual que la pestaña de
-   * abajo; solo cambia lo que se lee.
+   * Un mismo sitio, un mismo nombre. La fila se llama Ẅells y es la única que
+   * lo dice: el Home ya no lo repite en ningún selector.
    */
   check('84) la fila se llama Ẅells', /<Text style=\{\[styles\.title[^>]*>Ẅells<\/Text>/.test(fila));
-  check('85) igual que la pestaña', /pestana\('weels', 'Ẅells'/.test(nativo));
+  check('85) y el Home no lo repite en ningún selector', !/mitad\('weels'|etiqueta: 'Ẅells'|accessibilityRole="tab"/.test(nativo));
   /* Control: por dentro sigue diciendo weel/weels; no se migró ningún dato. */
   check('86) control: por dentro no cambió nada', /onOpenWeels/.test(fila) && /onCreateWeel/.test(fila) && /Crear Weël/.test(fila));
 
@@ -711,8 +923,16 @@ console.log('\n── M · La marca en el centro del Home ──');
   check('107) el lema es discreto', /lema: \{\s*fontSize: scale\(10\),\s*fontWeight: FONT_WEIGHT\.regular,/.test(cabecera));
   check('108) y gris, no oscuro', /transparent \? 'rgba\(255,255,255,0\.65\)' : theme\.colors\.textSecondary/.test(cabecera));
 
-  /* Solo lo pide el Home. */
-  check('109) las dos pantallas del Home la piden', /conMarca \/>/.test(nativo) && /transparent conMarca \/>/.test(nativo) && /conMarca \/>/.test(web));
+  /*
+   * Solo lo pide el Home, y una vez por pantalla. Hubo un tiempo en que el
+   * Home nativo montaba DOS encabezados —el normal y uno transparente para
+   * los Weëls a pantalla completa—; desde que Ẅells es una página más de la
+   * portada, con su fondo, esa segunda capa se fue. Un solo encabezado.
+   */
+  check('109) las dos pantallas del Home la piden, una vez cada una',
+    (nativo.match(/conMarca \/>/g) || []).length === 1
+    && (web.match(/conMarca \/>/g) || []).length === 1
+    && !/transparent conMarca/.test(nativo));
   /*
    * Control: las otras pantallas que usan este mismo encabezado —Notificaciones,
    * WeeTalk y HomeScreen— NO la piden, así que siguen con el logo a la izquierda
@@ -800,8 +1020,13 @@ console.log('\n── Ñ · La escala de pesos de Weë ──');
   check('123) el saludo es el énfasis fuerte del Home', peso('components/HomeGreeting.tsx', 'saludo') === 'bold');
   /* 600: nombres, navegación activa y datos importantes. */
   check('124) los nombres van en 600', peso('components/PostCard.tsx', 'username') === 'semibold');
+  /*
+   * La única navegación con estado "puesto" que queda en el Home es el selector
+   * Real/Weë del encabezado (la píldora Ẅall/Ẅells y los filtros se fueron).
+   * Su peso va en línea, no en un estilo con nombre, así que se lee directo.
+   */
   check('125) la navegación activa, en 600',
-    peso('screens/LandingScreen.tsx', 'tabItemTextActive') === 'semibold' && peso('screens/LandingScreen.tsx', 'feedFilterTextActive') === 'semibold');
+    /fontWeight: puesta \? FONT_WEIGHT\.semibold : FONT_WEIGHT\.medium/.test(leer('components/Header.tsx')));
   check('126) los contadores y el saldo, en 600',
     peso('components/PostCard.tsx', 'actionText') === 'semibold' && peso('components/DrawerMenu.tsx', 'creditsBadgeText') === 'semibold' && peso('components/CreditsPill.tsx', 'value') === 'semibold');
   /* 500: acciones y controles. */
@@ -1050,7 +1275,7 @@ console.log('\n── P · La barra se aparta al bajar y vuelve al subir ──'
    * Enganchada donde de verdad se desplaza Weë: el muro del Home —nativo y web—
    * y el contenedor de TODAS las experiencias.
    */
-  check('160) el Home nativo lo reporta', /reportarScroll\(event\);/.test(leer('screens/LandingScreen.tsx')));
+  check('160) el Home nativo lo reporta', /onScroll=\{reportarScroll\}/.test(leer('screens/LandingScreen.tsx')));
   check('161) el Home web también', /onScroll=\{reportarScroll\}/.test(leer('screens/WebLandingScreen.tsx')));
   check('162) y todas las experiencias de Weë, de una vez',
     /\{\.\.\.scrollDeBarra\}/.test(leer('components/creator/CreatorShell.tsx')));
@@ -1152,10 +1377,12 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
    * saludo, la barra de publicar, los Ẅells, las pestañas Ẅall/Ẅells, los
    * filtros y el muro. Llevar el compositor a su pantalla no reordena nada.
    */
+  /* La cabecera de la lista es el orden del Home; ya no hay pestañas, y los filtros van al final. */
   const cabeceraDelHome = nativo.slice(nativo.indexOf('const listHeader'), nativo.indexOf('const renderPostItem'));
-  const bloques = ['renderHero()', 'renderComposer()', 'renderWeelsRow()', 'renderTabBar()', 'renderFeedFilters()'];
-  check('180) el Home mantiene su orden: saludo · compositor · Ẅells · pestañas · filtros',
-    bloques.every((b, i) => i === 0 || cabeceraDelHome.indexOf(bloques[i - 1]) < cabeceraDelHome.indexOf(b)),
+  const bloques = ['renderHero()', 'renderComposer()', 'renderWeelsRow()', 'renderFeedFilters()'];
+  check('180) el Home mantiene su orden: saludo · compositor · Ẅells · secciones, y debajo el muro',
+    bloques.every((b, i) => cabeceraDelHome.indexOf(b) >= 0 && (i === 0 || cabeceraDelHome.indexOf(bloques[i - 1]) < cabeceraDelHome.indexOf(b)))
+    && !/renderTabBar/.test(cabeceraDelHome),
     bloques.filter((b) => cabeceraDelHome.includes(b)).join(' · '));
   check('180) y el muro va después, como contenido de la lista', /ListHeaderComponent=\{listHeader\}/.test(nativo) && /renderItem=\{renderPostItem\}/.test(nativo));
 

@@ -1,9 +1,10 @@
 /**
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
- * Estructura: Header → saludo y buscar → publicar → Weëls → Ẅall · Ẅells con
- * las pastillas de sección. Solo lo esencial: nada de catálogos, categorías ni
- * herramientas en el Home.
+ * Estructura: Header → saludo y buscar → publicar → fila de Weëls → Wäll con
+ * sus publicaciones y sus WeeTags. Solo lo esencial: nada de catálogos,
+ * categorías, selectores ni herramientas en el Home. A los Weëls se entra
+ * desde su fila, que abre WeëlsScreen.
  *
  * Donde estaba el bloque de Comunidades va ahora la puerta de publicar, la misma
  * que usan los muros de sección. A Comunidades se llega por Buscar, en la barra
@@ -21,7 +22,7 @@ import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
 import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
-import { HOME_SECTION_FILTERS, HomeSectionId, filterBySection } from '../utils/feedFilters';
+import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
@@ -37,10 +38,15 @@ const WebLandingScreen: React.FC = () => {
   const [weels, setWeels] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [feedFilter, setFeedFilter] = useState<HomeSectionId>('all');
+  /*
+   * El filtro del Wäll: las siete secciones de Weë, una o varias a la vez; la
+   * lista vacía es "Todo", que es como se entra. Solo acota el muro: no navega
+   * ni abre Weëls. La lógica vive en `feedFilters`, compartida con el móvil.
+   */
+  const [feedFilter, setFeedFilter] = useState<SeccionesElegidas>([]);
   /*
    * La portada web no paginaba: enseñaba la primera tanda y ahí se acababa. Con
-   * el filtro de destinos eso puede dejar fuera publicaciones perfectamente
+   * el filtro de secciones eso puede dejar fuera publicaciones perfectamente
    * válidas que solo estaban un poco más abajo en la colección, así que ahora
    * lleva cursor y un "Cargar más" (fase 2E-75).
    */
@@ -48,6 +54,15 @@ const WebLandingScreen: React.FC = () => {
   const [hayMas, setHayMas] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  /*
+   * EL HOME ES UN SOLO MURO.
+   *
+   * Arriba, el saludo, el compositor y la fila de Weëls; después el carrusel
+   * de secciones, y debajo el Wäll con sus publicaciones y sus WeeTags. No hay
+   * páginas, ni gesto de lado, ni selector de página: lo que hubo aquí —un
+   * pager Wäll ↔ Weëls con su píldora— se fue y no vuelve. A los Weëls se entra
+   * desde su fila, y esa fila abre WeëlsScreen.
+   */
   const VISIBLES_POR_TANDA = 20;
 
   // Publicaciones
@@ -97,7 +112,7 @@ const WebLandingScreen: React.FC = () => {
     if (!loading && !loadingMore && hayMas && lastDoc && posts.length === 0) cargarMas();
   }, [loading, loadingMore, hayMas, lastDoc, posts.length, cargarMas]);
 
-  // Weëls (videos cortos) para la fila del Home
+  /* Los Weëls de la fila: la primera tanda, con la consulta de siempre. */
   useEffect(() => {
     postsService
       .getVideoPostsPaginated(10)
@@ -105,7 +120,8 @@ const WebLandingScreen: React.FC = () => {
       .catch((error) => console.error('Error loading Weëls:', error));
   }, []);
 
-  const filteredPosts = useMemo(() => filterBySection(posts, feedFilter), [posts, feedFilter]);
+  /* El muro, acotado por las secciones puestas: la unión de todas ellas. Con "Todo", entero. */
+  const filteredPosts = useMemo(() => filterBySections(posts, feedFilter), [posts, feedFilter]);
 
   /*
    * ABRIR EL COMPOSITOR, SUBIENDO DOS NIVELES.
@@ -188,49 +204,29 @@ const WebLandingScreen: React.FC = () => {
         {/* Weëls */}
         <WeelsRow compacta posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
 
-        {/* Creado por la comunidad */}
+        {/* Creado por la comunidad: el Wäll, protagonista bajo la fila de Weëls. */}
         <div style={{ padding: '8px 16px 100px' }}>
           {/*
-            Las dos experiencias del Home: el muro y los videos cortos.
-            Ẅall es lo que se está viendo; Ẅells abre el visor de Weëls que ya
-            existía —el mismo `handleOpenWeels` de la fila de arriba—, así que
-            aquí no hay un segundo feed, solo otra puerta al de siempre.
+            EL CARRUSEL DE SECCIONES: UN FILTRO DEL WÄLL, Y NADA MÁS.
+
+            Una fila de pastillas que se desliza de lado por dentro —solo ella;
+            la portada recorta de lado y no se mueve— con las siete secciones.
+            Tocar una la pone o la quita, y el muro se acota en el acto a la
+            unión de las puestas; no navega, no abre Weëls. No es la antigua
+            píldora Wäll ↔ Weëls: aquella elegía qué página ver; esta elige de
+            dónde vienen las publicaciones que se ven.
+
+            `aria-pressed` va escrito a mano a propósito: React Native Web no
+            traduce `accessibilityState` a ningún atributo del navegador, y sin
+            él un lector de pantalla no sabría qué sección está puesta.
           */}
-          <View style={[styles.experiencias, { borderBottomColor: theme.colors.border }]}>
-            {/*
-              `aria-selected` y `aria-pressed` van escritos a mano a propósito.
-              React Native Web no traduce `accessibilityState` a ningún atributo
-              del navegador —se comprobó en el DOM: el botón sale sin estado—,
-              así que con un lector de pantalla no había forma de saber qué
-              pestaña ni qué filtro estaban puestos. En el móvil manda
-              `accessibilityState`, que ahí sí funciona; aquí, el atributo.
-            */}
-            <View style={styles.experiencia} accessibilityRole="tab" accessibilityState={{ selected: true }} aria-selected>
-              <View style={[styles.experienciaIndicador, { borderBottomColor: theme.colors.accent }]}>
-                <Text style={[styles.experienciaTexto, { color: theme.colors.text, fontWeight: FONT_WEIGHT.semibold }]}>Ẅall</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.experiencia}
-              onPress={handleOpenWeels}
-              activeOpacity={0.7}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: false }}
-              aria-selected={false}
-              accessibilityLabel="Ẅells, los videos cortos"
-            >
-              <View style={styles.experienciaIndicador}>
-                <Text style={[styles.experienciaTexto, { color: theme.colors.textSecondary, fontWeight: FONT_WEIGHT.medium }]}>Ẅells</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filtersScroll}>
             {HOME_SECTION_FILTERS.map((f) => {
-              const active = feedFilter === f.id;
+              const active = estaActiva(feedFilter, f.id);
               return (
                 <TouchableOpacity
                   key={f.id}
-                  onPress={() => setFeedFilter(f.id)}
+                  onPress={() => setFeedFilter((elegidas) => alternarSeccion(elegidas, f.id))}
                   style={[styles.chip, {
                     backgroundColor: active ? theme.colors.accent : theme.colors.surface,
                     borderColor: active ? theme.colors.accent : theme.colors.border,
@@ -245,8 +241,7 @@ const WebLandingScreen: React.FC = () => {
                   {/*
                     El texto de la pastilla apagada toma el color del tema, no un
                     gris fijo. Con el Perfil Weë el fondo de la pastilla es casi
-                    negro, y el gris oscuro de antes desaparecía encima: cuatro de
-                    las cinco secciones quedaban ilegibles en modo oscuro.
+                    negro, y un gris oscuro fijo desaparecía encima.
                   */}
                   <Text style={[styles.chipText, {
                     color: active ? '#1F2937' : theme.colors.text,
@@ -259,16 +254,16 @@ const WebLandingScreen: React.FC = () => {
 
           {/*
             Mientras el paginador diga que queda muro detrás no se enseña el
-            cartel de vacío: con destinos, una tanda puede no dejar nada y aun así
-            haber publicaciones un poco más abajo. Decir "todavía no hay
+            cartel de vacío: con secciones, una tanda puede no dejar nada y aun
+            así haber publicaciones un poco más abajo. Decir "todavía no hay
             publicaciones" ahí sería mentir.
           */}
           {filteredPosts.length === 0 && posts.length === 0 && hayMas ? null : filteredPosts.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={styles.emptyEmoji}>✨</Text>
-              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? 'Todavía no hay publicaciones' : 'Nada por aquí con este filtro'}</Text>
+              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? 'Todavía no hay publicaciones' : 'Nada por aquí con esta selección'}</Text>
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-                {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otro filtro o comparte algo tú.'}
+                {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otras secciones o comparte algo tú.'}
               </Text>
               <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear una publicación">
                 <Text style={styles.emptyButtonText}>Crear</Text>
@@ -277,7 +272,7 @@ const WebLandingScreen: React.FC = () => {
           ) : (
             filteredPosts.map((post) => (
               <div key={post.id} style={{ marginBottom: 16 }}>
-                {/* El Wall es un muro: sin tarjeta alrededor de cada publicación. */}
+                {/* El Wäll es un muro: sin tarjeta alrededor de cada publicación, y cada una con su WeeTag. */}
                 <PostCard post={post} onPress={() => handlePostPress(post)} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} variante="muro" />
               </div>
             ))
@@ -338,30 +333,7 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.bold,
     marginBottom: SPACING.sm,
   },
-  /*
-   * Ẅall y Ẅells. La misma idea que en el móvil: dos palabras y una raya del
-   * ancho de la palabra debajo de la que está puesta. Ni tarjetas ni botones:
-   * presentan el contenido, no compiten con él.
-   */
-  experiencias: {
-    flexDirection: 'row',
-    marginBottom: SPACING.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  experiencia: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: SPACING.sm,
-  },
-  experienciaIndicador: {
-    paddingHorizontal: SPACING.xs,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  experienciaTexto: {
-    fontSize: FONT_SIZE.base,
-  },
+  /* El carrusel de secciones: pastillas bajas, cómodas de tocar por el hitSlop, con borde en reposo. */
   filtersScroll: {
     marginBottom: SPACING.md,
   },
