@@ -219,5 +219,85 @@ console.log('\n── G · Las reglas de destino, ejecutadas ──');
   check('10) elegir destinos apaga la adivinanza por palabras', !feed.vaALaSeccion(viajeEnGeneral, 'travel'));
 }
 
+console.log('\n── El muro no es una pila de tarjetas ──');
+{
+  /*
+   * En un muro TODO lo que hay son publicaciones, así que enmarcar cada una es
+   * enmarcar la pantalla entera. Antes se veían dos marcos: la tarjeta con su
+   * fondo y su sombra, y dentro la foto metida en el hueco que dejaba el
+   * relleno —más estrecha de lo que daba el sitio—. Los dos se van cuando la
+   * publicación se pinta en un muro; fuera de un muro, la tarjeta sigue igual.
+   */
+  const tarjeta = leer('components/PostCard.tsx');
+  const estilos = tarjeta.slice(tarjeta.indexOf('const styles = StyleSheet.create'));
+  const enMuroEstilo = estilos.slice(estilos.indexOf('enMuro: {'), estilos.indexOf('repostHeader: {'));
+
+  /* 1) La variante existe, es opcional y por defecto NO cambia nada. */
+  check('11) la publicación sabe si está en un muro', /variante\?: 'tarjeta' \| 'muro';/.test(tarjeta) && /variante = 'tarjeta',/.test(tarjeta));
+  check('11) y por defecto sigue siendo la tarjeta de siempre', /const enMuro = variante === 'muro';/.test(tarjeta));
+
+  /* 2) Primer marco: la tarjeta. En el muro no hay fondo, ni sombra, ni esquinas. */
+  check('12) en el muro no hay tarjeta: ni fondo, ni esquinas, ni sombra',
+    /marginBottom: 0,\s*borderRadius: 0,/.test(enMuroEstilo) && /shadowOpacity: 0,/.test(enMuroEstilo) && /elevation: 0,/.test(enMuroEstilo) && !/backgroundColor/.test(enMuroEstilo));
+  check('12) y se separan por el aire y un pelo de línea', /paddingVertical: SPACING\.lg,/.test(enMuroEstilo) && /borderBottomWidth: StyleSheet\.hairlineWidth,/.test(enMuroEstilo));
+  /* Control: fuera del muro la tarjeta conserva su fondo y su sombra. */
+  check('12) control: fuera del muro sigue habiendo tarjeta',
+    /backgroundColor: theme\.colors\.card,\s*shadowColor: theme\.dark \? theme\.colors\.glow/.test(tarjeta) && /borderRadius: BORDER_RADIUS\.lg,\s*padding: SPACING\.lg,/.test(estilos));
+
+  /* 3) Segundo marco: el relleno que encajonaba la foto. */
+  check('13) en el muro el contenido llega a los bordes de la columna', /paddingHorizontal: 0,/.test(enMuroEstilo));
+  check('13) y la foto se mide con la columna entera, no con el hueco de antes',
+    /const anchoEnElMuro = \(maxWidth\?: number\) =>/.test(tarjeta) && /const carouselWidth = enMuro \? anchoEnElMuro\(maxWidth\) : getCarouselWidth\(maxWidth\);/.test(tarjeta));
+  check('13) la foto conserva sus esquinas: eso no era un marco', /singleMediaContainer: \{[\s\S]{0,120}borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /carouselContainer: \{[\s\S]{0,120}borderRadius: BORDER_RADIUS\.lg,/.test(estilos));
+
+  /*
+   * 4) La variante cambia CÓMO se apoya, nunca QUÉ lleva. `enMuro` solo puede
+   * aparecer donde se decide el envoltorio y el ancho: si empezara a esconder
+   * botones o datos, esto lo caza.
+   */
+  /* La BANDERA, no el estilo que se llama igual: se declara, decide la medida y elige el envoltorio (dos veces, con el repost que carga). */
+  const usos = (tarjeta.match(/(?<!styles\.)\benMuro\b(?!:)/g) || []).length;
+  check('14) la variante solo toca el envoltorio y la medida', usos === 4, `${usos} usos de la bandera`);
+  check('14) nada se deja de pintar en un muro', !/enMuro && </.test(tarjeta) && !/!enMuro &&/.test(tarjeta) && !/enMuro \?\s*null/.test(tarjeta));
+  /* Las acciones siguen siendo las mismas, y siguen fuera de cualquier caja. */
+  check('14) las acciones siguen ahí, sin caja propia', /styles\.actions/.test(tarjeta) && /actions: \{\s*flexDirection: 'row',/.test(estilos) && !/actions: \{[\s\S]{0,160}(borderWidth|backgroundColor)/.test(estilos));
+
+  /*
+   * 5) Quién es un muro. El Wall del Home —nativo y web— y el muro de cada
+   * sección de Weë, que es el mismo componente para las ocho.
+   */
+  const MUROS = ['screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx', 'components/creator/SectionWall.tsx'];
+  const sinVariante = MUROS.filter((f) => !/variante="muro"/.test(leer(f)));
+  check('15) los tres muros la piden', sinVariante.length === 0, sinVariante.join(' · '));
+  check('15) y el muro de sección vale para todas las secciones', /<SectionWall /.test(leer('screens/SpecialistScreen.tsx')) && /import PostCard from '\.\.\/PostCard'/.test(leer('components/creator/SectionWall.tsx')));
+
+  /*
+   * Y EL PERFIL WEË, que también es un muro: con esa identidad activa, la
+   * pestaña de publicaciones es una detrás de otra y nada más. Con el Perfil
+   * Real la tarjeta se queda: ese perfil no cambia.
+   *
+   * `hidi` es el identificador heredado del Perfil Weë y no se renombra.
+   */
+  const perfil = leer('screens/ProfileScreen.tsx');
+  check('15b) el Perfil Weë pinta su muro sin tarjeta', /const enPerfilWee = activeProfileType === 'hidi';/.test(perfil) && /variante=\{enPerfilWee \? 'muro' : 'tarjeta'\}/.test(perfil));
+  check('15b) y el Perfil Real conserva la suya', !/variante="muro"/.test(perfil) && /'tarjeta'/.test(perfil));
+  /* Control: la publicación del perfil sigue siendo la misma, con todo dentro. */
+  check('15b) control: es la misma publicación, con su avatar, su fecha y sus acciones',
+    /<PostCard/.test(perfil) && /onComment=\{handleComment\}/.test(perfil) && /onPress=\{handlePostPress\}/.test(perfil) && /onVideoPress=\{handleVideoPress\}/.test(perfil));
+
+  /*
+   * 6) Y NADIE MÁS. El perfil de otra persona, la comunidad, Guardados y el
+   * feed heredado siguen con su tarjeta: allí la publicación es una pieza entre
+   * otras cosas y tiene que verse aparte. (El perfil propio va arriba: depende
+   * de con qué identidad estés.)
+   */
+  const OTRAS = ['screens/UserProfileScreen.tsx', 'screens/CommunityScreen.tsx', 'screens/SavedPostsScreen.tsx', 'screens/HomeScreen.tsx'];
+  const contagiadas = OTRAS.filter((f) => /variante="muro"/.test(leer(f)));
+  check('16) ninguna otra pantalla cambia de aspecto', contagiadas.length === 0, contagiadas.join(' · '));
+  check('16) pero todas siguen pintando la misma publicación', OTRAS.every((f) => /<PostCard/.test(leer(f))));
+  /* Y el detalle de una publicación no pinta PostCard: no le afecta nada de esto. */
+  check('16) el detalle de una publicación no usa la tarjeta del muro', !/<PostCard/.test(leer('screens/PostDetailScreen.tsx')));
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nEl muro: se rellena, avanza el cursor, sabe cuándo se acaba y no repite ni pierde publicaciones');
 process.exit(failures ? 1 : 0);

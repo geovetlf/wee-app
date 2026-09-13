@@ -510,6 +510,20 @@ const ProfileScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  /*
+   * EL MURO DEL PERFIL WEË SE VE COMO UN MURO.
+   *
+   * Con el Perfil Weë activo, la pestaña de publicaciones ES un muro: todo lo
+   * que hay debajo son publicaciones tuyas, una detrás de otra. Ahí la tarjeta
+   * sobra —enmarcar cada una es enmarcar la pantalla entera— y además metía la
+   * foto en un segundo hueco, más estrecha de lo que da el sitio.
+   *
+   * Con el Perfil Real la tarjeta se queda como estaba: ese perfil no cambia en
+   * esta fase. `activeProfileType === 'hidi'` es el identificador heredado del
+   * Perfil Weë y no se toca (ver CLAUDE.md).
+   */
+  const enPerfilWee = activeProfileType === 'hidi';
+
   const renderPost = ({ item }: { item: Post }) => (
     <View style={styles.postContainer}>
       <PostCard
@@ -519,6 +533,7 @@ const ProfileScreen: React.FC = () => {
         onPress={handlePostPress}
         onVideoPress={handleVideoPress}
         isVisible={false}
+        variante={enPerfilWee ? 'muro' : 'tarjeta'}
       />
     </View>
   );

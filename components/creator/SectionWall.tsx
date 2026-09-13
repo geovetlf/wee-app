@@ -302,7 +302,8 @@ const SectionWall: React.FC<SectionWallProps> = ({ sectionId, config, compact, g
           */}
           {visible.map((post) => (
             <View key={post.id} style={styles.postSlot}>
-              <PostCard post={post} onPress={() => openPost(post)} onComment={openComments} onPrivateMessage={openMessage} isVisible maxWidth={CARD_WIDTH} />
+              {/* El muro de una sección es un muro: mismo trato que el Wall del Home. */}
+              <PostCard post={post} onPress={() => openPost(post)} onComment={openComments} onPrivateMessage={openMessage} isVisible maxWidth={CARD_WIDTH} variante="muro" />
             </View>
           ))}
 

@@ -74,6 +74,23 @@ interface PostCardProps {
    * exactamente como hasta ahora en el Home, el perfil, la comunidad y Guardados.
    */
   maxWidth?: number;
+  /**
+   * Cómo se apoya la publicación en la pantalla que la pinta.
+   *
+   *  · `tarjeta` (por defecto) es lo de siempre: fondo propio, esquinas y una
+   *    sombra que la despega. Es lo que necesitan el perfil, la comunidad,
+   *    Guardados y el detalle, donde la publicación es UN objeto entre otras
+   *    cosas y tiene que verse como una pieza aparte.
+   *  · `muro` la integra en el fondo: sin tarjeta, sin sombra y sin relleno
+   *    lateral, con un pelo de separación hasta la siguiente. En un muro todo
+   *    lo que hay son publicaciones, así que enmarcar cada una es enmarcar la
+   *    pantalla entera —y encima metía la foto en un segundo marco, más
+   *    estrecha de lo que da el sitio—.
+   *
+   * Cambia CÓMO se apoya, nunca QUÉ lleva dentro: mismo encabezado, mismo
+   * texto, mismos medios y las mismas acciones.
+   */
+  variante?: 'tarjeta' | 'muro';
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -96,6 +113,21 @@ const getCarouselWidth = (maxWidth: number = CARD_MAX_WIDTH) => {
   return availableWidth - (CARD_HORIZONTAL_PADDING * 2);
 };
 
+/*
+ * Lo mismo, en un muro: allí la publicación no tiene relleno propio, así que su
+ * contenido ocupa la columna ENTERA.
+ *
+ *  · si el muro dice cuánto mide esa columna —`maxWidth`, que es lo que hace el
+ *    muro de una sección—, esa es la medida;
+ *  · si no lo dice —el Home—, la columna es la pantalla menos el margen del
+ *    muro, que es justo lo que ya devolvía `getCarouselWidth`.
+ *
+ * De aquí salen el alto de una foto y el ancho de cada diapositiva, así que
+ * equivocarse aquí deja la foto recortada o el carrusel desalineado.
+ */
+const anchoEnElMuro = (maxWidth?: number) =>
+  maxWidth === undefined ? getCarouselWidth() : Math.min(screenWidth, scale(maxWidth));
+
 interface ImageDimensions {
   width: number;
   height: number;
@@ -110,6 +142,7 @@ const PostCard: React.FC<PostCardProps> = ({
   onVideoPress,
   isVisible = true,
   maxWidth,
+  variante = 'tarjeta',
 }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -226,7 +259,9 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [isVisible, isFocused]);
   const scrollViewRef = useRef<ScrollView>(null);
   const shareCardRef = useRef<ViewShot>(null);
-  const carouselWidth = getCarouselWidth(maxWidth);
+  /* En un muro la publicación se integra en el fondo; fuera, es una tarjeta. */
+  const enMuro = variante === 'muro';
+  const carouselWidth = enMuro ? anchoEnElMuro(maxWidth) : getCarouselWidth(maxWidth);
   /*
    * Qué tamaño de foto se le pide a Cloudinary. Los 800 de siempre siguen siendo
    * el suelo, así que en el feed del Home, el perfil, la comunidad y Guardados se
@@ -868,7 +903,7 @@ const PostCard: React.FC<PostCardProps> = ({
   // Si es un repost y todavía está cargando el original, mostrar loading
   if (isRepost && (loadingOriginal || !originalPost)) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.card, padding: SPACING.lg }]}>
+      <View style={[styles.container, enMuro ? [styles.enMuro, { borderBottomColor: theme.colors.border }] : { backgroundColor: theme.colors.card, padding: SPACING.lg }]}>
         <TouchableOpacity
           style={[styles.repostHeader, { borderBottomColor: theme.colors.border }]}
           onPress={handleRepostAuthorPress}
@@ -896,13 +931,23 @@ const PostCard: React.FC<PostCardProps> = ({
 
   return (
     <View
-      style={[styles.container, {
-        backgroundColor: theme.colors.card,
-        shadowColor: theme.dark ? theme.colors.glow : '#000',
-        shadowOffset: { width: 0, height: scale(2) },
-        shadowOpacity: theme.dark ? 0.2 : 0.08,
-        shadowRadius: theme.dark ? scale(12) : scale(8),
-      }]}
+      style={[
+        styles.container,
+        /*
+          En un muro no hay tarjeta: la publicación se apoya en el fondo y de la
+          siguiente la separa el aire y un pelo de línea. Fuera del muro, la
+          tarjeta de siempre, con su fondo y su sombra.
+        */
+        enMuro
+          ? [styles.enMuro, { borderBottomColor: theme.colors.border }]
+          : {
+              backgroundColor: theme.colors.card,
+              shadowColor: theme.dark ? theme.colors.glow : '#000',
+              shadowOffset: { width: 0, height: scale(2) },
+              shadowOpacity: theme.dark ? 0.2 : 0.08,
+              shadowRadius: theme.dark ? scale(12) : scale(8),
+            },
+      ]}
     >
       {/* Header de repost (si es repost) */}
       {isRepost && repostAuthor && (
@@ -1296,6 +1341,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: scale(8),
     elevation: 2,
+  },
+  /*
+   * La publicación dentro de un muro. Se le quita todo lo que la encajonaba
+   * —fondo, esquinas, sombra y el relleno lateral que estrechaba la foto— y se
+   * queda el contenido sobre el fondo del muro, a lo ancho de la columna.
+   *
+   * Lo que separa una publicación de la siguiente es el aire de arriba y abajo;
+   * el pelo de línea solo marca dónde acaba una, y es tan fino que en pantalla
+   * mide menos de un punto.
+   */
+  enMuro: {
+    marginBottom: 0,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: SPACING.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   repostHeader: {
     flexDirection: 'row',

@@ -1792,6 +1792,8 @@ const LandingScreen: React.FC = () => {
       onPress={handlePostPress}
       onVideoPress={handleVideoPress}
       isVisible={visiblePostIds.has(item.id || '') && activeTab === 'flow'}
+      /* El Wall es un muro: las publicaciones se apoyan en el fondo, sin tarjeta. */
+      variante="muro"
     />
   ), [visiblePostIds, handleVideoPress, activeTab]);
 

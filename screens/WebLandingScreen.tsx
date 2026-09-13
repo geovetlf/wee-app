@@ -277,7 +277,8 @@ const WebLandingScreen: React.FC = () => {
           ) : (
             filteredPosts.map((post) => (
               <div key={post.id} style={{ marginBottom: 16 }}>
-                <PostCard post={post} onPress={() => handlePostPress(post)} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} />
+                {/* El Wall es un muro: sin tarjeta alrededor de cada publicación. */}
+                <PostCard post={post} onPress={() => handlePostPress(post)} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} variante="muro" />
               </div>
             ))
           )}

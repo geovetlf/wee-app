@@ -312,7 +312,14 @@ console.log('\n── I · El refinamiento visual ──');
    * Control: los muros de sección NO lo piden, así que siguen exactamente como
    * estaban. Si esto fallara, el rediseño se habría salido del Home.
    */
-  check('53) control: los muros de sección siguen con su avatar', !/variante/.test(muroSeccion));
+  /*
+   * Se mira la ETIQUETA del compositor, no el archivo entero: el muro también
+   * pinta publicaciones, y desde el rediseño del Wall esas sí llevan variante.
+   * Lo que se vigila aquí es que la barra de publicar del muro no pida la del
+   * Home, que es lo que le quitaría el avatar.
+   */
+  const composerDelMuro = (muroSeccion.match(/<ComposerEntry[^/]*\/>/) || [''])[0];
+  check('53) control: los muros de sección siguen con su avatar', !/variante/.test(composerDelMuro), composerDelMuro.slice(0, 90));
 
   /*
    * WEËLS COMPACTOS: menos cosas encima de cada miniatura.
@@ -456,7 +463,7 @@ console.log('\n── K · La última pasada del Home ──');
   check('81) en el Home no hay carita robando sitio', /!compact && variante !== 'home' && <Ionicons name="happy-outline"/.test(puerta));
   check('82) y la tarjeta es más baja', /composerHome: \{\s*paddingVertical: SPACING\.sm,/.test(puerta));
   /* Control: en los muros de sección la frase es corta y la carita sigue ahí. */
-  check('83) control: los muros de sección no cambian', !/variante/.test(leer('components/creator/SectionWall.tsx')));
+  check('83) control: los muros de sección no cambian', !/variante/.test((leer('components/creator/SectionWall.tsx').match(/<ComposerEntry[^/]*\/>/) || [''])[0]));
 
   /*
    * Un mismo sitio, un mismo nombre. La fila se llama igual que la pestaña de
@@ -1004,6 +1011,31 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
    * mismo `desplegable` que decide si se abre decide si se dibuja la flecha, y
    * el campo ya ocupa el ancho (`flex: 1`), así que el hueco no queda vacío.
    */
+  /*
+   * LA BARRA DE ABAJO ES UNA, Y NO SE DUPLICA AL IR AL COMPOSITOR.
+   *
+   * Vive en un solo sitio —`NavegacionGlobal`, montada una vez en la pila
+   * principal— y la barra de pestañas no dibuja la suya (`tabBar={() => null}`).
+   * "Crear publicación" no monta ninguna: si lo hiciera, se verían dos.
+   */
+  check('179) la barra inferior se dibuja en un solo sitio',
+    (leer('navigation/NavegacionGlobal.tsx').match(/<BarraInferior /g) || []).length === 1 &&
+    (pila.match(/<NavegacionGlobal \/>/g) || []).length === 1 &&
+    /tabBar=\{\(\) => null\}/.test(pestanas));
+  check('179) y el compositor no trae una segunda', !/BarraInferior|NavegacionGlobal/.test(crear));
+
+  /*
+   * Y EL HOME NO SE MUEVE DE SITIO. El orden de la portada es el aprobado:
+   * saludo, la barra de publicar, los Ẅells, las pestañas Ẅall/Ẅells, los
+   * filtros y el muro. Llevar el compositor a su pantalla no reordena nada.
+   */
+  const cabeceraDelHome = nativo.slice(nativo.indexOf('const listHeader'), nativo.indexOf('const renderPostItem'));
+  const bloques = ['renderHero()', 'renderComposer()', 'renderWeelsRow()', 'renderTabBar()', 'renderFeedFilters()'];
+  check('180) el Home mantiene su orden: saludo · compositor · Ẅells · pestañas · filtros',
+    bloques.every((b, i) => i === 0 || cabeceraDelHome.indexOf(bloques[i - 1]) < cabeceraDelHome.indexOf(b)),
+    bloques.filter((b) => cabeceraDelHome.includes(b)).join(' · '));
+  check('180) y el muro va después, como contenido de la lista', /ListHeaderComponent=\{listHeader\}/.test(nativo) && /renderItem=\{renderPostItem\}/.test(nativo));
+
   check('178) la barra cerrada del Home es el "+" y la pregunta, sin chevron',
     /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel="Crear una publicación"/.test(puerta) &&
     /\{desplegable && \(\s*<TouchableOpacity\s*onPress=\{\(\) => setAbierta[\s\S]{0,700}name="chevron-down"/.test(puerta) && !/conChevron/.test(puerta) &&
