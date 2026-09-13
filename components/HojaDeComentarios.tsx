@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,6 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  Keyboard,
-  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +19,7 @@ import { Comment, Post } from '../services/firestoreService';
 import { useComentarios } from '../hooks/useComentarios';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import CommentCard from './CommentCard';
+import EspacioDeEscritura from './EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -38,27 +37,40 @@ interface HojaDeComentariosProps {
 /**
  * LA CONVERSACIÓN DE UNA PUBLICACIÓN, EN UNA HOJA QUE SUBE DESDE ABAJO.
  *
- * Tocar el contador de comentarios llevaba a otra PANTALLA —la de la
- * publicación— y desde ahí la conversación quedaba a un scroll de distancia,
- * detrás del contenido. Salías del muro para leer cuatro respuestas y volvías
- * perdiendo el sitio. Ahora la conversación se abre encima del muro y se cierra
- * dejándote donde estabas: la publicación sigue detrás, atenuada, para que se
- * vea de quién se está hablando.
+ * Un sitio para leer y escribir, no una lista de fichas: los comentarios se
+ * apoyan directamente sobre el fondo —sin tarjeta, sin borde, sin la raya que
+ * los separaba— y lo que los ordena es el aire. Abajo, siempre a la vista, el
+ * sitio donde se escribe.
  *
- * Es la misma hoja que ya usa Weë para "Crear": un `Modal` transparente que
- * entra deslizándose desde abajo, con el fondo atenuado y las esquinas de
- * arriba redondeadas. No hay un sistema nuevo de hojas.
+ * ─── EL TECLADO ─────────────────────────────────────────────────────────────
  *
- * Y publica por donde se publicaba: `useComentarios` es el mismo camino que usa
- * la pantalla de la publicación —mismo servicio, mismo contador, misma
- * notificación—, así que ningún comentario existente cambia de sitio ni de
- * dueño.
+ * Esta hoja tenía su propia cuenta del teclado —medirlo y subirse tantos puntos
+ * como midiera— y se equivocaba. Weë ya había resuelto esto una vez y lo dejó
+ * en `EspacioDeEscritura`, que es lo que se usa aquí.
+ *
+ * Merece recordar por qué no vale ninguna de las dos salidas evidentes. React
+ * Native le pone `SOFT_INPUT_ADJUST_RESIZE` a la ventana del `Modal`, así que
+ * en una aplicación normal se encogería sola; pero Weë se dibuja de borde a
+ * borde (`edgeToEdgeEnabled`), y con eso ese modo queda inerte: la ventana no
+ * se encoge y el teclado se dibuja encima. Y `KeyboardAvoidingView` tampoco
+ * sirve en Android por lo mismo —calcula el solapamiento contra una ventana que
+ * no se movió, le da cero y no aparta nada—, aunque en iOS sí acierte.
+ *
+ * `EspacioDeEscritura` aplica la regla de cada plataforma: en iOS el componente
+ * de siempre, en Android el relleno puesto a mano con la altura que el sistema
+ * sí reporta bien, y en web nada, porque el navegador ya se encarga. Y se apaga
+ * solo cuando la hoja está cerrada.
+ *
+ * El resto lo hace la maquetación: la hoja se ancla abajo, su alto va en
+ * PORCENTAJE —nunca en píxeles—, así que se recalcula contra el sitio que
+ * queda; y la lista es lo único que crece y encoge. Por eso el compositor no se
+ * mueve de su sitio y la conversación se desplaza por detrás de él, con teclado
+ * o sin él.
  */
 const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, onClose, onAbrirPerfil }) => {
   const { theme } = useTheme();
   const { userProfile } = useUserProfile();
   const insets = useSafeAreaInsets();
-  const { height: altoDePantalla } = useWindowDimensions();
   const {
     comentarios,
     cargando,
@@ -72,79 +84,42 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
     enviar,
   } = useComentarios(visible ? post : null);
 
-  /*
-   * El teclado se aparta a mano, como en el resto de Weë: en Android un `Modal`
-   * es su propia ventana y `adjustResize` no la encoge, así que el compositor
-   * quedaría debajo del teclado. Se mide su alto y la hoja sube justo eso.
-   */
-  const [altoDelTeclado, setAltoDelTeclado] = useState(0);
-  useEffect(() => {
-    const alAbrirse = Keyboard.addListener('keyboardDidShow', (e) => setAltoDelTeclado(e.endCoordinates.height));
-    const alCerrarse = Keyboard.addListener('keyboardDidHide', () => setAltoDelTeclado(0));
-    return () => {
-      alAbrirse.remove();
-      alCerrarse.remove();
-    };
-  }, []);
-
-  /* Al cerrarse, el teclado se va con ella. */
-  useEffect(() => {
-    if (!visible) Keyboard.dismiss();
-  }, [visible]);
-
-  /*
-   * Alta para leer, pero nunca más de lo que queda libre: con el teclado fuera
-   * ocupa el 85% de la pantalla, y con el teclado abierto se encoge para que la
-   * cabecera no se salga por arriba.
-   */
-  const altoLibre = altoDePantalla - altoDelTeclado - insets.top - scale(16);
-  const altoDeLaHoja = Math.max(scale(280), Math.min(altoDePantalla * 0.85, altoLibre));
-
-  const hueco = altoDelTeclado > 0 ? SPACING.sm : Math.max(insets.bottom, SPACING.sm);
-
   const pintarComentario = ({ item }: { item: Comment }) => (
     <CommentCard comment={item} onProfilePress={onAbrirPerfil} />
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType={isWeb ? 'none' : 'slide'}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.fondo}>
+    <Modal visible={visible} transparent animationType={isWeb ? 'none' : 'slide'} onRequestClose={onClose}>
+      {/*
+        El marco entero se aparta, no solo el compositor: así el alto máximo de
+        la hoja se recalcula contra el sitio que queda y la lista encoge sola.
+        Se apaga con la hoja cerrada para no escuchar el teclado de balde.
+      */}
+      <EspacioDeEscritura style={styles.marco} activo={visible}>
         {/* Tocar fuera cierra, y de paso deja ver la publicación de la que se habla. */}
         <TouchableOpacity style={styles.atenuado} activeOpacity={1} onPress={onClose} accessibilityLabel="Cerrar comentarios" />
 
-        <View
-          style={[
-            styles.hoja,
-            {
-              backgroundColor: theme.colors.background,
-              height: altoDeLaHoja,
-              marginBottom: altoDelTeclado,
-            },
-          ]}
-        >
+        <View style={[styles.hoja, { backgroundColor: theme.colors.background }]}>
           <View style={[styles.asa, { backgroundColor: theme.colors.border }]} />
 
-          {/* Cabecera: de qué conversación se trata, y por dónde se sale. */}
-          <View style={[styles.cabecera, { borderBottomColor: theme.colors.border }]}>
-            <View style={styles.cabeceraTitulos}>
-              <Text style={[styles.titulo, { color: theme.colors.text }]}>
-                Comentarios{comentarios.length > 0 ? ` · ${comentarios.length}` : ''}
-              </Text>
+          {/* Cabecera: qué es esto, cuántos hay y por dónde se sale. */}
+          <View style={styles.cabecera}>
+            <View style={styles.titulos}>
+              <View style={styles.tituloFila}>
+                <Text style={[styles.titulo, { color: theme.colors.text }]}>Comentarios</Text>
+                <View style={[styles.contador, { backgroundColor: theme.colors.surface }]}>
+                  <Text style={[styles.contadorTexto, { color: theme.colors.textSecondary }]}>{comentarios.length}</Text>
+                </View>
+              </View>
               {!!post?.content?.trim() && (
-                <Text style={[styles.subtitulo, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                <Text style={[styles.contexto, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                   {post.content.trim()}
                 </Text>
               )}
             </View>
             <TouchableOpacity
               onPress={onClose}
-              style={styles.cerrar}
+              style={[styles.cerrar, { backgroundColor: theme.colors.surface }]}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Cerrar comentarios"
@@ -155,10 +130,9 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
           </View>
 
           {/*
-            La lista, con el orden de siempre: del comentario más antiguo al más
-            nuevo. `FlatList` y no un `map`, que es lo que hace el resto de Weë
-            con listas que pueden crecer: así una conversación larga no monta de
-            golpe todas las tarjetas.
+            La conversación. Es lo único que crece y encoge —`flex: 1`—, así que
+            con teclado o sin él el compositor se queda donde está y el último
+            comentario se puede leer entero por encima de él.
           */}
           {cargando ? (
             <View style={styles.centrado}>
@@ -170,21 +144,26 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               keyExtractor={(item) => item.id!}
               renderItem={pintarComentario}
               style={styles.lista}
-              contentContainerStyle={comentarios.length === 0 ? styles.listaVacia : styles.listaContenido}
+              contentContainerStyle={comentarios.length === 0 ? styles.listaVacia : styles.listaLlena}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
-                <View style={styles.centrado}>
-                  <Ionicons name="chatbubbles-outline" size={scale(40)} color={theme.colors.textSecondary} />
-                  <Text style={[styles.vacio, { color: theme.colors.textSecondary }]}>Sé el primero en comentar</Text>
+                <View style={styles.vacio}>
+                  <Ionicons name="chatbubble-outline" size={scale(52)} color={theme.colors.textSecondary} />
+                  <Text style={[styles.vacioTitulo, { color: theme.colors.text }]}>Sé el primero en comentar</Text>
+                  <Text style={[styles.vacioTexto, { color: theme.colors.textSecondary }]}>
+                    Toda gran conversación empieza con una idea.
+                  </Text>
+                  <View style={[styles.vacioAcento, { backgroundColor: theme.colors.accent }]} />
                 </View>
               }
             />
           )}
 
-          {/* Lo que se va a enviar, antes de enviarlo, y con su aspa para quitarlo. */}
+          {/* Lo que se va a enviar, antes de enviarlo, con su aspa para quitarlo. */}
           {!!adjunto && (
-            <View style={[styles.avance, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
+            <View style={styles.avance}>
               <Image source={{ uri: adjunto }} style={styles.avanceImagen} contentFit="cover" />
               <TouchableOpacity
                 style={styles.avanceQuitar}
@@ -192,22 +171,26 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Quitar la imagen"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="close" size={scale(14)} color="white" />
+                <Ionicons name="close" size={scale(13)} color="white" />
               </TouchableOpacity>
             </View>
           )}
 
-          {/* El compositor, siempre abajo y siempre a la vista. */}
+          {/*
+            El sitio donde se escribe: el avatar, un solo campo redondo con lo
+            que se puede adjuntar dentro, y el envío. Nada cuadrado.
+          */}
           <View
             style={[
               styles.compositor,
-              { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border, paddingBottom: hueco },
+              { borderTopColor: theme.colors.border, paddingBottom: Math.max(insets.bottom, SPACING.md) },
             ]}
           >
             {!!userProfile && (
               <AvatarDisplay
-                size={scale(36)}
+                size={scale(38)}
                 avatarType={userProfile.avatarType || 'predefined'}
                 avatarId={userProfile.avatarId || 'male'}
                 photoURL={typeof userProfile.photoURL === 'string' ? userProfile.photoURL : undefined}
@@ -219,30 +202,36 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
             <View style={[styles.campo, { backgroundColor: theme.colors.surface }]}>
               <TextInput
                 style={[styles.entrada, { color: theme.colors.text }]}
-                placeholder="Escribe un comentario..."
+                placeholder="Escribe un comentario…"
                 placeholderTextColor={theme.colors.textSecondary}
                 value={texto}
                 onChangeText={setTexto}
                 multiline
                 maxLength={500}
               />
+              {/*
+                Una sola puerta para adjuntar, y es la de imagen: es lo que Weë
+                sabe subir hoy (`uploadCommentImage`, a Cloudinary). Un clip de
+                archivo genérico al lado prometería algo que no existe.
+              */}
               <TouchableOpacity
                 onPress={elegirAdjunto}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Adjuntar una imagen"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="image-outline" size={ICON_SIZE.md} color={adjunto ? theme.colors.accent : theme.colors.text} />
+                <Ionicons name="image-outline" size={ICON_SIZE.md} color={adjunto ? theme.colors.accentDark : theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={[styles.enviar, { backgroundColor: puedeEnviar || enviando ? theme.colors.accent : theme.colors.surface }]}
               onPress={enviar}
               disabled={!puedeEnviar}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Enviar comentario"
+              accessibilityState={{ disabled: !puedeEnviar }}
             >
               {enviando ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -252,13 +241,13 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </EspacioDeEscritura>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  fondo: {
+  marco: {
     flex: 1,
     justifyContent: 'flex-end',
   },
@@ -266,51 +255,77 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(31,41,55,0.45)',
   },
+  /*
+   * En porcentaje, nunca en píxeles: cuando el teclado aparta la hoja, el
+   * máximo se recalcula contra el sitio que queda y no contra la pantalla.
+   */
   hoja: {
+    minHeight: '55%',
+    maxHeight: '92%',
     borderTopLeftRadius: BORDER_RADIUS.xl,
     borderTopRightRadius: BORDER_RADIUS.xl,
     paddingTop: SPACING.sm,
-    maxWidth: 520,
+    maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
     overflow: 'hidden',
   },
   asa: {
-    width: scale(40),
+    width: scale(38),
     height: scale(4),
     borderRadius: scale(2),
     alignSelf: 'center',
   },
   cabecera: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
+  },
+  titulos: {
+    flex: 1,
+    gap: scale(3),
+  },
+  tituloFila: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  cabeceraTitulos: {
-    flex: 1,
-    gap: scale(1),
   },
   titulo: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.xl,
     fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: scale(-0.4),
   },
-  subtitulo: {
+  contador: {
+    minWidth: scale(26),
+    height: scale(26),
+    borderRadius: scale(13),
+    paddingHorizontal: scale(7),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contadorTexto: {
     fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  contexto: {
+    fontSize: FONT_SIZE.sm,
   },
   cerrar: {
-    padding: scale(2),
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   lista: {
     flex: 1,
   },
-  listaContenido: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
+  listaLlena: {
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: SPACING.lg,
   },
   listaVacia: {
     flexGrow: 1,
@@ -320,61 +335,80 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.xl,
   },
   vacio: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xxl,
+    paddingVertical: SPACING.xxxl,
+  },
+  vacioTitulo: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+    marginTop: SPACING.sm,
+  },
+  vacioTexto: {
     fontSize: FONT_SIZE.sm,
+    textAlign: 'center',
+    lineHeight: scale(20),
+  },
+  /* El punto de color de Weë, del tamaño justo para acentuar y no decorar. */
+  vacioAcento: {
+    width: scale(34),
+    height: scale(4),
+    borderRadius: scale(2),
+    marginTop: SPACING.md,
   },
   avance: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: SPACING.sm,
+    alignSelf: 'flex-start',
   },
   avanceImagen: {
-    width: scale(56),
-    height: scale(56),
-    borderRadius: BORDER_RADIUS.md,
+    width: scale(64),
+    height: scale(64),
+    borderRadius: BORDER_RADIUS.lg,
   },
   avanceQuitar: {
     position: 'absolute',
-    top: SPACING.sm - scale(4),
-    left: SPACING.lg + scale(40),
-    width: scale(20),
-    height: scale(20),
-    borderRadius: scale(10),
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    top: -scale(5),
+    right: SPACING.xl - scale(7),
+    width: scale(22),
+    height: scale(22),
+    borderRadius: scale(11),
+    backgroundColor: 'rgba(31,41,55,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   compositor: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.md,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   campo: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: scale(6),
+    gap: SPACING.md,
+    paddingLeft: SPACING.lg,
+    paddingRight: SPACING.md,
+    paddingVertical: scale(9),
     borderRadius: BORDER_RADIUS.full,
+    minHeight: scale(46),
   },
   entrada: {
     flex: 1,
-    fontSize: FONT_SIZE.sm,
-    maxHeight: scale(96),
+    fontSize: FONT_SIZE.base,
+    maxHeight: scale(110),
     padding: 0,
   },
   enviar: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: scale(19),
+    width: scale(46),
+    height: scale(46),
+    borderRadius: scale(23),
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1811,12 +1811,41 @@ console.log('\n── R · La conversación se abre desde abajo, no en otra pant
   check('185) el compositor va abajo, fijo, con adjunto y envío',
     /accessibilityLabel="Adjuntar una imagen"/.test(hoja)
     && /accessibilityLabel="Enviar comentario"/.test(hoja)
-    && /placeholder="Escribe un comentario\.\.\."/.test(hoja));
+    && /placeholder="Escribe un comentario…"/.test(hoja));
   check('185) el adjunto se ve antes de enviarlo y se puede quitar',
     /\{!!adjunto && \(/.test(hoja) && /accessibilityLabel="Quitar la imagen"/.test(hoja) && /onPress=\{quitarAdjunto\}/.test(hoja));
-  /* El teclado no lo tapa: la hoja sube justo lo que mide, como en el resto de Weë. */
-  check('185) el teclado no tapa el compositor',
-    /keyboardDidShow/.test(hoja) && /marginBottom: altoDelTeclado/.test(hoja));
+  /*
+   * EL TECLADO NO TAPA EL COMPOSITOR, y no con una cuenta propia.
+   *
+   * Weë se dibuja de borde a borde, y con eso el `ADJUST_RESIZE` que React
+   * Native le pone al `Modal` queda inerte: la ventana no se encoge y el
+   * teclado se dibuja encima. Tampoco vale `KeyboardAvoidingView` en Android,
+   * que mide el solapamiento contra una ventana que no se movió y da cero. Weë
+   * ya resolvió esto en `EspacioDeEscritura`, con la regla de cada plataforma,
+   * y es lo que la hoja usa: nada de medir el teclado por su cuenta.
+   */
+  /* Las notas de la hoja SÍ nombran lo que no vale, para explicar por qué; se miran sin ellas. */
+  const hojaSinNotas = hoja.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  check('185) el teclado no tapa el compositor, con la pieza que ya tenía Weë',
+    /<EspacioDeEscritura style=\{styles\.marco\} activo=\{visible\}>/.test(hoja)
+    && !/keyboardDidShow|altoDelTeclado|Keyboard\.addListener|KeyboardAvoidingView/.test(hojaSinNotas));
+  /* Y la altura de la hoja va en porcentaje, para que se recalcule con el sitio que quede. */
+  check('185) la hoja se mide en porcentaje, no en píxeles',
+    /minHeight: '55%'/.test(hoja) && /maxHeight: '92%'/.test(hoja) && !/height: altoDeLaHoja/.test(hoja));
+  /*
+   * LOS COMENTARIOS RESPIRAN, sin caja y sin raya. Y se valoran con el pulgar,
+   * con el voto que Weë ya tenía: ni servicio nuevo, ni colección nueva.
+   */
+  const tarjetaDeComentario = leer('components/CommentCard.tsx');
+  check('185) un comentario no es una tarjeta ni lleva raya debajo',
+    !/borderBottomWidth|borderWidth|shadowColor|elevation/.test(tarjetaDeComentario));
+  check('185) se valora con pulgares, no con corazones',
+    /thumbs-up/.test(tarjetaDeComentario) && /thumbs-down/.test(tarjetaDeComentario)
+    && !/heart/.test(tarjetaDeComentario));
+  check('185) y el voto es el que ya existía',
+    /voteService\.voteOnComment\(comment\.id, user\.uid, tipo\)/.test(tarjetaDeComentario)
+    && /voteService\.getUserCommentVote/.test(tarjetaDeComentario)
+    && /commentVotes/.test(leer('services/voteService.ts')));
 
   /*
    * NADA DE ESTO ES INFRAESTRUCTURA NUEVA. Misma colección, mismo servicio,

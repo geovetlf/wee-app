@@ -277,6 +277,23 @@ export const voteService = {
     });
   },
 
+  /**
+   * Qué votó esta persona en un comentario, si es que votó.
+   *
+   * El identificador del voto es determinista —`comment_<uid>_<comentario>`—, así
+   * que se lee de un tirón sin consultar nada. Es la lectura que le faltaba a
+   * `voteOnComment`: sin ella los pulgares se pintan igual hayas votado o no.
+   */
+  getUserCommentVote: async (commentId: string, userId: string): Promise<VoteType | null> => {
+    try {
+      const voteSnap = await getDoc(doc(db, 'commentVotes', `comment_${userId}_${commentId}`));
+      return voteSnap.exists() ? (voteSnap.data().type as VoteType) : null;
+    } catch (error) {
+      console.error('Error getting user comment vote:', error);
+      return null;
+    }
+  },
+
   // Votar en un comentario (misma lógica pero para comentarios)
   voteOnComment: async (commentId: string, userId: string, type: VoteType): Promise<void> => {
     try {

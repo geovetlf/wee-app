@@ -230,10 +230,12 @@ const PostDetailContent: React.FC = () => {
     navigation.navigate('UserProfile', { userId });
   };
 
-  const handleCommentLike = async (commentId: string) => {
-    // TODO: Implementar likes de comentarios
-    console.log('Like comment:', commentId);
-  };
+  /*
+   * Aquí había un `handleCommentLike` que solo escribía en la consola: el
+   * corazón del comentario nunca llegó a guardar nada. Valorar un comentario
+   * es ahora cosa de la propia tarjeta, con los pulgares y el voto que Weë ya
+   * tenía por detrás, así que la pantalla no necesita pasarle nada.
+   */
 
   const renderVideo = () => {
     if (!post.videoUrl) return null;
@@ -636,7 +638,6 @@ const PostDetailContent: React.FC = () => {
                   key={comment.id}
                   comment={comment}
                   onProfilePress={handleCommentProfilePress}
-                  onLike={handleCommentLike}
                 />
               ))}
             </View>
