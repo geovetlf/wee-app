@@ -33,10 +33,12 @@ import { business } from './business';
 import { projects } from './projects';
 import { auth } from './auth';
 import { engine } from './engine';
+import { communities } from './communities';
 export const es = {
   common,
   auth,
   engine,
+  communities,
   nav,
   menu,
   creator,

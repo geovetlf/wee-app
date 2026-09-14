@@ -16,6 +16,7 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { communityService, Community } from '../services/communityService';
@@ -25,6 +26,7 @@ import { scale } from '../utils/scale';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const CommunitiesManagementScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
@@ -117,12 +119,12 @@ const CommunitiesManagementScreen: React.FC = () => {
       if (isJoined) {
         // Confirmar antes de salir
         Alert.alert(
-          'Salir de comunidad',
-          `¿Estás seguro de que quieres salir de "${community.name}"?`,
+          t('communities.leaveTitle'),
+          t('communities.leaveConfirm', { nombre: community.name }),
           [
-            { text: 'Cancelar', style: 'cancel', onPress: () => setJoiningCommunity(null) },
+            { text: t('common.cancel'), style: 'cancel', onPress: () => setJoiningCommunity(null) },
             {
-              text: 'Salir',
+              text: t('communities.leave'),
               style: 'destructive',
               onPress: async () => {
                 try {
@@ -138,7 +140,7 @@ const CommunitiesManagementScreen: React.FC = () => {
                   ));
                 } catch (error) {
                   console.error('Error leaving community:', error);
-                  Alert.alert('Error', 'No se pudo salir de la comunidad');
+                  Alert.alert(t('common.error'), t('communities.leaveFailed'));
                 } finally {
                   setJoiningCommunity(null);
                 }
@@ -162,7 +164,7 @@ const CommunitiesManagementScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error toggling community:', error);
-      Alert.alert('Error', 'No se pudo completar la acción');
+      Alert.alert(t('common.error'), t('communities.actionFailed'));
       setJoiningCommunity(null);
     }
   };
@@ -200,7 +202,7 @@ const CommunitiesManagementScreen: React.FC = () => {
             {item.isOfficial && (
               <View style={[styles.officialBadge, { backgroundColor: theme.colors.accent + '20' }]}>
                 <Ionicons name="checkmark-circle" size={12} color={theme.colors.accent} />
-                <Text style={[styles.officialText, { color: theme.colors.accent }]}>Oficial</Text>
+                <Text style={[styles.officialText, { color: theme.colors.accent }]}>{t('communities.official')}</Text>
               </View>
             )}
           </View>
@@ -213,7 +215,7 @@ const CommunitiesManagementScreen: React.FC = () => {
           <View style={styles.communityStats}>
             <Ionicons name="people-outline" size={14} color={theme.colors.textSecondary} />
             <Text style={[styles.memberCount, { color: theme.colors.textSecondary }]}>
-              {item.memberCount} {item.memberCount === 1 ? 'miembro' : 'miembros'}
+              {t('communities.members', { contador: item.memberCount })}
             </Text>
           </View>
         </View>
@@ -242,7 +244,7 @@ const CommunitiesManagementScreen: React.FC = () => {
                 styles.joinButtonText,
                 { color: isJoined ? theme.colors.text : 'white' }
               ]}>
-                {isJoined ? 'Unido' : 'Unirse'}
+                {t(isJoined ? 'communities.memberOf' : 'communities.join')}
               </Text>
             </>
           )}
@@ -284,7 +286,7 @@ const CommunitiesManagementScreen: React.FC = () => {
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          Cargando comunidades...
+          {t('communities.loading')}
         </Text>
       </View>
     );
@@ -306,13 +308,13 @@ const CommunitiesManagementScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Comunidades
+          {t('menu.communities')}
         </Text>
         <TouchableOpacity
           style={[styles.createCommunityBtn, { backgroundColor: theme.colors.accent }]}
           onPress={() => setShowCreateModal(true)}
           activeOpacity={0.7}
-          accessibilityLabel="Crear comunidad"
+          accessibilityLabel={t('communities.create')}
         >
           <Ionicons name="add" size={20} color="#1F2937" />
         </TouchableOpacity>
@@ -324,7 +326,7 @@ const CommunitiesManagementScreen: React.FC = () => {
           <Ionicons name="search" size={scale(18)} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Buscar comunidades..."
+            placeholder={t('communities.searchPlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -350,13 +352,13 @@ const CommunitiesManagementScreen: React.FC = () => {
         ]}
         renderItem={({ item }) => {
           if (item.type === 'header-mine') {
-            return renderSectionHeader('Mis comunidades', (item as any).count as number);
+            return renderSectionHeader(t('settings.myCommunities'), (item as any).count as number);
           }
           if (item.type === 'header-joined') {
-            return renderSectionHeader('Comunidades unidas', (item as any).count as number);
+            return renderSectionHeader(t('communities.joinedSection'), (item as any).count as number);
           }
           if (item.type === 'header-available') {
-            return renderSectionHeader('Descubrir comunidades', (item as any).count as number);
+            return renderSectionHeader(t('communities.discoverSection'), (item as any).count as number);
           }
           return renderCommunityItem({ item: (item as any).data });
         }}
@@ -378,7 +380,7 @@ const CommunitiesManagementScreen: React.FC = () => {
           <View style={styles.emptyState}>
             <Ionicons name="people-outline" size={48} color={theme.colors.textSecondary} />
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-              No hay comunidades disponibles
+              {t('communities.empty')}
             </Text>
           </View>
         }
@@ -398,7 +400,7 @@ const CommunitiesManagementScreen: React.FC = () => {
             <TouchableOpacity onPress={() => setShowCreateModal(false)}>
               <Ionicons name="close" size={26} color={theme.colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.modalHeaderTitle, { color: theme.colors.text }]}>Nueva comunidad</Text>
+            <Text style={[styles.modalHeaderTitle, { color: theme.colors.text }]}>{t('communities.newCommunity')}</Text>
             <TouchableOpacity
               style={[styles.modalHeaderBtn, { backgroundColor: '#F5B731', opacity: newName.trim() ? 1 : 0.4 }]}
               onPress={async () => {
@@ -407,7 +409,7 @@ const CommunitiesManagementScreen: React.FC = () => {
                 try {
                   const communityId = await communityService.createCommunity({
                     name: newName.trim(),
-                    description: newDesc.trim() || `Comunidad de ${newName.trim()}`,
+                    description: newDesc.trim() || t('communities.defaultDescription', { nombre: newName.trim() }),
                     icon: 'people',
                     rules: [],
                     createdBy: userProfile?.uid || user.uid,
@@ -423,7 +425,7 @@ const CommunitiesManagementScreen: React.FC = () => {
                   setShowCreateModal(false);
                   handleRefresh();
                 } catch (e: any) {
-                  Alert.alert('Error', e.message || 'No se pudo crear la comunidad');
+                  Alert.alert(t('common.error'), e.message || t('communities.createFailed'));
                 }
                 setCreating(false);
               }}
@@ -432,7 +434,7 @@ const CommunitiesManagementScreen: React.FC = () => {
               {creating ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.modalHeaderBtnText}>Crear</Text>
+                <Text style={styles.modalHeaderBtnText}>{t('nav.create')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -440,10 +442,10 @@ const CommunitiesManagementScreen: React.FC = () => {
           {/* Form */}
           <View style={styles.modalForm}>
             <View style={[styles.modalField, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.modalLabel, { color: theme.colors.textSecondary }]}>Nombre</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.textSecondary }]}>{t('communities.name')}</Text>
               <TextInput
                 style={[styles.modalFieldInput, { color: theme.colors.text }]}
-                placeholder="Ej: Amantes del café"
+                placeholder={t('communities.namePlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={newName}
                 onChangeText={setNewName}
@@ -453,10 +455,10 @@ const CommunitiesManagementScreen: React.FC = () => {
             </View>
 
             <View style={[styles.modalField, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.modalLabel, { color: theme.colors.textSecondary }]}>Descripción</Text>
+              <Text style={[styles.modalLabel, { color: theme.colors.textSecondary }]}>{t('communities.description')}</Text>
               <TextInput
                 style={[styles.modalFieldInput, styles.modalFieldMulti, { color: theme.colors.text }]}
-                placeholder="¿De qué trata esta comunidad?"
+                placeholder={t('communities.descriptionPlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={newDesc}
                 onChangeText={setNewDesc}
