@@ -23,37 +23,55 @@
       "enabled": false
     }
   },
-  "hosting": {
-    "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/",
-        "destination": "/landing.html"
-      },
-      {
-        "source": "/privacy",
-        "destination": "/privacy-policy.html"
-      },
-      {
-        "source": "/terms",
-        "destination": "/terms.html"
-      },
-      {
-        "source": "/support",
-        "destination": "/support.html"
-      },
-      {
-        "source": "/post/**",
-        "function": {
-          "functionId": "publicPostPage",
-          "region": "us-central1"
+  "hosting": [
+    {
+      "site": "get-wee",
+      "public": "public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/",
+          "destination": "/landing.html"
+        },
+        {
+          "source": "/privacy",
+          "destination": "/privacy-policy.html"
+        },
+        {
+          "source": "/terms",
+          "destination": "/terms.html"
+        },
+        {
+          "source": "/support",
+          "destination": "/support.html"
+        },
+        {
+          "source": "/post/**",
+          "function": {
+            "functionId": "publicPostPage",
+            "region": "us-central1"
+          }
         }
-      }
-    ]
-  }
+      ]
+    },
+    {
+      "site": "wee-app",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
 }
