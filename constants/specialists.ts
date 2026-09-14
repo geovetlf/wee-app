@@ -4,7 +4,26 @@
  * (hero, "¿Qué quieres hacer hoy?", caja de idea, subida de fotos, ejemplos)
  * y cada pantalla añade lo suyo (chat grande, editor, "Mis redes"…).
  *
- * Todo lo que la persona lee está aquí en lenguaje humano: nada técnico.
+ * AQUÍ NO HAY NI UNA FRASE, Y ES A PROPÓSITO.
+ *
+ * Este archivo guarda la ESTRUCTURA del catálogo —qué funciones hay, en qué
+ * orden, con qué icono, qué respuesta deja contestada cada una, a dónde lleva—
+ * y, donde antes había texto, guarda la CLAVE del texto: `chefAcMenuTitle` en
+ * vez de "Crear un menú". Las palabras viven en `i18n/textos/<idioma>/catalogo.ts`
+ * y las resuelve quien pinta, con el idioma de la persona.
+ *
+ * Se hace así porque este archivo se lee fuera de React —se importa, se recorre,
+ * se compara— y ahí no hay traductor: llamar a `t()` al construir el objeto
+ * congelaría el idioma del arranque y dejaría media pantalla en español al
+ * cambiarlo. Con claves no hay nada que congelar.
+ *
+ * La puerta de salida es `traducirEspecialista(spec, t)` (o el hook
+ * `useEspecialista`, que es lo que usan las pantallas): devuelve la misma
+ * configuración con cada clave ya resuelta, así que los componentes siguen
+ * leyendo `spec.headline` y `action.title` exactamente como antes.
+ *
+ * Lo que NUNCA es una clave: los identificadores (`photo`, `enhance`,
+ * `optionId`, `opens`), los iconos, los emojis, `kind`, `tone` y las banderas.
  */
 import { WeeExperience, getExperienceById } from './weeExperiences';
 
@@ -21,16 +40,33 @@ export type InputMode = 'text' | 'upload' | 'camera' | 'voice' | 'attach' | 'web
  */
 export type ActionLayout = 'tiles' | 'wide' | 'images' | 'compact';
 
+/**
+ * Una clave de `i18n/textos/<idioma>/catalogo.ts`, no el texto.
+ *
+ * Es un `string` como cualquier otro —TypeScript no distingue una clave de una
+ * frase—, pero el nombre dice de qué se trata en cada propiedad y evita que
+ * alguien escriba aquí una frase sin darse cuenta.
+ */
+export type ClaveDeTexto = string;
+
 export interface SpecialistAction {
   id: string;
   /** Nombre de icono Ionicons (outline) que se dibuja en la tarjeta. */
   icon: string;
   /** Emoji para las tarjetas con imagen simulada y para móvil. */
   emoji: string;
-  title: string;
-  subtitle: string;
-  /** Objetivo con el que arranca la conversación guiada al tocar la acción. */
-  goal: string;
+  title: ClaveDeTexto;
+  subtitle: ClaveDeTexto;
+  /**
+   * Objetivo con el que arranca la conversación guiada al tocar la acción.
+   *
+   * Va traducido porque es lo que la persona habría escrito con sus palabras:
+   * acaba siendo el título del trabajo en "Tus creaciones", el del documento
+   * guardado y lo que firma el resultado. Quién necesita foto NO se decide por
+   * este texto sino por `preset.optionId` y por la experiencia, así que
+   * traducirlo no cambia ningún camino.
+   */
+  goal: ClaveDeTexto;
   /** Respuesta que ya queda contestada al elegir la acción (evita repetir la pregunta). */
   preset?: { questionId: string; optionId: string };
   /** true en "No sé qué hacer": Weë propone. */
@@ -80,31 +116,31 @@ export interface SpecialistAction {
 export type ExampleKind = 'beforeAfter' | 'image' | 'video' | 'audio' | 'document' | 'recipe';
 
 export interface SpecialistExample {
-  title: string;
-  subtitle?: string;
+  title: ClaveDeTexto;
+  subtitle?: ClaveDeTexto;
   kind: ExampleKind;
   emoji: string;
   /** Dos colores para el degradado de la imagen simulada. */
   tone: [string, string];
   /** Duración (video/audio) o tiempo (receta) como lo diría la tarjeta. */
-  meta?: string;
+  meta?: ClaveDeTexto;
 }
 
 export interface SpecialistConfig {
   id: SpecialistId;
   /** Frase grande del hero. */
-  headline: string;
+  headline: ClaveDeTexto;
   /** Texto corto debajo del headline. */
-  intro: string;
+  intro: ClaveDeTexto;
   /** Tres o cuatro sellos: "Fácil de usar", "Para todos"… */
-  chips: string[];
+  chips: ClaveDeTexto[];
   /** Frase manuscrita de la referencia. */
-  note: string;
+  note: ClaveDeTexto;
   /** Emoji grande de la ilustración del hero. */
   heroEmoji: string;
-  gridTitle: string;
+  gridTitle: ClaveDeTexto;
   /** Frase corta a la derecha del título ("Elige una opción y empieza…"). */
-  gridHint?: string;
+  gridHint?: ClaveDeTexto;
   actionLayout: ActionLayout;
   actions: SpecialistAction[];
   inputs: InputMode[];
@@ -119,19 +155,19 @@ export interface SpecialistConfig {
   ideaFirst?: boolean;
   /** Caja "¿Tienes una idea en mente?" */
   idea: {
-    title: string;
-    subtitle: string;
-    placeholder: string;
-    chips: string[];
+    title: ClaveDeTexto;
+    subtitle: ClaveDeTexto;
+    placeholder: ClaveDeTexto;
+    chips: ClaveDeTexto[];
     /** Texto del botón cuando hay uno (Studio: "Empezar"). */
-    button?: string;
+    button?: ClaveDeTexto;
   };
   /** Caja de subida de foto (Photo, Home, Beauty, Chef). */
   upload?: {
-    title: string;
-    subtitle: string;
-    hint: string;
-    button?: string;
+    title: ClaveDeTexto;
+    subtitle: ClaveDeTexto;
+    hint: ClaveDeTexto;
+    button?: ClaveDeTexto;
   };
   /*
    * La fila de ejemplos bajo el muro. Es opcional desde 2E-69: una sección puede
@@ -139,13 +175,13 @@ export interface SpecialistConfig {
    * "Viajes que preparó Weë" con cuatro tarjetas que no llevaban a ningún viaje
    * de nadie —eran decorado— y competían con lo que sí publica la gente.
    */
-  examplesTitle?: string;
+  examplesTitle?: ClaveDeTexto;
   examples?: SpecialistExample[];
   /** Franja final con una invitación ("¿No sabes por dónde empezar?"). */
   closing?: {
-    title: string;
-    subtitle: string;
-    button: string;
+    title: ClaveDeTexto;
+    subtitle: ClaveDeTexto;
+    button: ClaveDeTexto;
   };
 }
 
@@ -164,46 +200,46 @@ const T = {
 export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
   brain: {
     id: 'brain',
-    headline: 'Pregúntame, cuéntame o pídeme lo que necesites.',
-    intro: 'Tu asistente inteligente para todo. Si necesitas algo de los otros Weë, yo te llevo.',
-    chips: ['Resuelve', 'Investiga', 'Aprende', 'Planifica', 'Te da ideas', 'Integra todos los Weë'],
-    note: 'Aquí estoy para todo',
+    headline: 'brainHeadline',
+    intro: 'brainIntro',
+    chips: ['brainChip1', 'brainChip2', 'brainChip3', 'brainChip4', 'brainChip5', 'brainChip6'],
+    note: 'brainNote',
     heroEmoji: '🤖',
-    gridTitle: '¿Por dónde empezamos?',
+    gridTitle: 'brainGridTitle',
     actionLayout: 'tiles',
     actions: [
-      { id: 'idea', icon: 'bulb-outline', emoji: '💡', title: 'Tengo una idea', subtitle: 'Cuéntamela y la aterrizamos', goal: 'Tengo una idea y quiero aterrizarla', preset: { questionId: 'what', optionId: 'plan' } },
-      { id: 'know', icon: 'help-circle-outline', emoji: '❓', title: 'Quiero saber algo', subtitle: 'Pregunta lo que sea', goal: 'Quiero saber algo', preset: { questionId: 'what', optionId: 'learn' } },
-      { id: 'document', icon: 'document-text-outline', emoji: '📄', title: 'Quiero entender un documento', subtitle: 'Te lo explico en simple', goal: 'Quiero entender un documento', preset: { questionId: 'what', optionId: 'translate' } },
-      { id: 'learn', icon: 'school-outline', emoji: '🎓', title: 'Quiero aprender', subtitle: 'Paso a paso, sin jerga', goal: 'Quiero aprender algo nuevo', preset: { questionId: 'what', optionId: 'learn' } },
-      { id: 'research', icon: 'search-outline', emoji: '🔎', title: 'Quiero investigar', subtitle: 'Reúno y ordeno la información', goal: 'Quiero investigar un tema', preset: { questionId: 'what', optionId: 'learn' } },
-      { id: 'problem', icon: 'extension-puzzle-outline', emoji: '🧩', title: 'Tengo un problema', subtitle: 'Lo resolvemos juntos', goal: 'Tengo un problema y necesito resolverlo', preset: { questionId: 'what', optionId: 'solve' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé cómo hacerlo', subtitle: 'Cuéntame qué quieres lograr', goal: 'Necesito ayuda y no sé por dónde empezar', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
+      { id: 'idea', icon: 'bulb-outline', emoji: '💡', title: 'brainAcIdeaTitle', subtitle: 'brainAcIdeaSubtitle', goal: 'brainAcIdeaGoal', preset: { questionId: 'what', optionId: 'plan' } },
+      { id: 'know', icon: 'help-circle-outline', emoji: '❓', title: 'brainAcKnowTitle', subtitle: 'brainAcKnowSubtitle', goal: 'brainAcKnowGoal', preset: { questionId: 'what', optionId: 'learn' } },
+      { id: 'document', icon: 'document-text-outline', emoji: '📄', title: 'brainAcDocumentTitle', subtitle: 'brainAcDocumentSubtitle', goal: 'brainAcDocumentGoal', preset: { questionId: 'what', optionId: 'translate' } },
+      { id: 'learn', icon: 'school-outline', emoji: '🎓', title: 'brainAcLearnTitle', subtitle: 'brainAcLearnSubtitle', goal: 'brainAcLearnGoal', preset: { questionId: 'what', optionId: 'learn' } },
+      { id: 'research', icon: 'search-outline', emoji: '🔎', title: 'brainAcResearchTitle', subtitle: 'brainAcResearchSubtitle', goal: 'brainAcResearchGoal', preset: { questionId: 'what', optionId: 'learn' } },
+      { id: 'problem', icon: 'extension-puzzle-outline', emoji: '🧩', title: 'brainAcProblemTitle', subtitle: 'brainAcProblemSubtitle', goal: 'brainAcProblemGoal', preset: { questionId: 'what', optionId: 'solve' } },
+      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'brainAcIdkTitle', subtitle: 'brainAcIdkSubtitle', goal: 'brainAcIdkGoal', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
     inputs: ['text', 'attach', 'voice', 'web'],
     idea: {
-      title: '¿Qué necesitas?',
-      subtitle: 'Cuéntamelo con tus propias palabras.',
-      placeholder: '¿Qué necesitas? Cuéntamelo con tus propias palabras…',
-      chips: ['Quiero hacer algo para mi restaurante pero no sé qué', 'Explícame cómo funciona la IA', 'Ayúdame a organizar mi semana'],
+      title: 'brainIdeaTitle',
+      subtitle: 'brainIdeaSubtitle',
+      placeholder: 'brainIdeaPlaceholder',
+      chips: ['brainIdeaChip1', 'brainIdeaChip2', 'brainIdeaChip3'],
     },
-    examplesTitle: 'Lo que Weë Brain hace por ti',
+    examplesTitle: 'brainExamplesTitle',
     examples: [
-      { title: 'Entiende lo que quieres', subtitle: 'Aunque no sepas cómo se llama', kind: 'document', emoji: '💬', tone: T.yellow },
-      { title: 'Te lleva al especialista', subtitle: 'Design, Studio, Chef… tú solo ves Weë', kind: 'document', emoji: '🧭', tone: T.sky },
-      { title: 'Se encarga de todo el proceso', subtitle: 'De la idea a los diseños, videos y música', kind: 'document', emoji: '✨', tone: T.mint },
+      { title: 'brainEj1Title', subtitle: 'brainEj1Subtitle', kind: 'document', emoji: '💬', tone: T.yellow },
+      { title: 'brainEj2Title', subtitle: 'brainEj2Subtitle', kind: 'document', emoji: '🧭', tone: T.sky },
+      { title: 'brainEj3Title', subtitle: 'brainEj3Subtitle', kind: 'document', emoji: '✨', tone: T.mint },
     ],
   },
 
   design: {
     id: 'design',
-    headline: 'Diseña lo que imagines.',
-    intro: 'Convierte tus ideas en diseños increíbles con inteligencia artificial. Desde un logo hasta un auto, un producto o un mundo completo.',
-    chips: ['Rápido y fácil', 'Resultados profesionales', 'Sin límites'],
-    note: 'Tu imaginación también diseña el futuro',
+    headline: 'designHeadline',
+    intro: 'designIntro',
+    chips: ['designChip1', 'designChip2', 'designChip3'],
+    note: 'designNote',
     heroEmoji: '🏎️',
-    gridTitle: '¿Qué quieres diseñar hoy?',
-    gridHint: 'Logos, productos, personajes, lugares y más.',
+    gridTitle: 'designGridTitle',
+    gridHint: 'designGridHint',
     /*
      * Siete intenciones, no catorce ejemplos (fase 2E-43).
      *
@@ -226,11 +262,11 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      */
     actionLayout: 'compact',
     actions: [
-      { id: 'brand', icon: 'text-outline', emoji: '🔤', title: 'Un logo o mi marca', subtitle: 'Nombre, colores y tipografía', goal: 'Diseñar un logo y la identidad de mi marca', preset: { questionId: 'what', optionId: 'logo' } },
-      { id: 'social', icon: 'megaphone-outline', emoji: '🪧', title: 'Algo para redes o publicidad', subtitle: 'Afiches, flyers, anuncios, portadas', goal: 'Diseñar una pieza para redes o publicidad', preset: { questionId: 'what', optionId: 'poster' } },
-      { id: 'product', icon: 'cube-outline', emoji: '📦', title: 'Un producto', subtitle: 'Envases, muebles, ropa, tecnología', goal: 'Diseñar un producto', preset: { questionId: 'what', optionId: 'product' } },
-      { id: 'machine', icon: 'car-sport-outline', emoji: '🏎️', title: 'Un vehículo o una máquina', subtitle: 'Autos, aviones, motores, inventos', goal: 'Diseñar un vehículo o una máquina', preset: { questionId: 'what', optionId: 'object' } },
-      { id: 'place', icon: 'business-outline', emoji: '🏙️', title: 'Un lugar o un escenario', subtitle: 'Crea desde cero casas, locales, ciudades y paisajes', goal: 'Diseñar un lugar o un escenario', preset: { questionId: 'what', optionId: 'scene' } },
+      { id: 'brand', icon: 'text-outline', emoji: '🔤', title: 'designAcBrandTitle', subtitle: 'designAcBrandSubtitle', goal: 'designAcBrandGoal', preset: { questionId: 'what', optionId: 'logo' } },
+      { id: 'social', icon: 'megaphone-outline', emoji: '🪧', title: 'designAcSocialTitle', subtitle: 'designAcSocialSubtitle', goal: 'designAcSocialGoal', preset: { questionId: 'what', optionId: 'poster' } },
+      { id: 'product', icon: 'cube-outline', emoji: '📦', title: 'designAcProductTitle', subtitle: 'designAcProductSubtitle', goal: 'designAcProductGoal', preset: { questionId: 'what', optionId: 'product' } },
+      { id: 'machine', icon: 'car-sport-outline', emoji: '🏎️', title: 'designAcMachineTitle', subtitle: 'designAcMachineSubtitle', goal: 'designAcMachineGoal', preset: { questionId: 'what', optionId: 'object' } },
+      { id: 'place', icon: 'business-outline', emoji: '🏙️', title: 'designAcPlaceTitle', subtitle: 'designAcPlaceSubtitle', goal: 'designAcPlaceGoal', preset: { questionId: 'what', optionId: 'scene' } },
       /*
        * Hogar & Diseño va aquí, al lado de su vecino conceptual, aunque se dibuje
        * abajo: `secondary` decide dónde se pinta, no el orden de esta lista.
@@ -240,21 +276,21 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
        * sobre la foto del espacio que ya tienes conservando paredes y ventanas.
        * Por dentro sigue siendo la experiencia `home`, entera.
        */
-      { id: 'home', icon: 'home-outline', emoji: '🏠', title: 'Hogar & Diseño', subtitle: 'Transforma y rediseña tu hogar o espacio a partir de una foto.', goal: 'Diseñar un espacio de mi casa', opens: 'home', secondary: true },
-      { id: 'character', icon: 'happy-outline', emoji: '🧑‍🚀', title: 'Un personaje', subtitle: 'Mascotas, héroes, criaturas', goal: 'Diseñar un personaje', preset: { questionId: 'what', optionId: 'character' } },
+      { id: 'home', icon: 'home-outline', emoji: '🏠', title: 'designAcHomeTitle', subtitle: 'designAcHomeSubtitle', goal: 'designAcHomeGoal', opens: 'home', secondary: true },
+      { id: 'character', icon: 'happy-outline', emoji: '🧑‍🚀', title: 'designAcCharacterTitle', subtitle: 'designAcCharacterSubtitle', goal: 'designAcCharacterGoal', preset: { questionId: 'what', optionId: 'character' } },
       // Sin respuesta previa a propósito: la primera pregunta del flujo es justo
       // "¿Qué quieres diseñar?", que es la ayuda que necesita quien no lo tiene claro.
-      { id: 'idk', icon: 'bulb-outline', emoji: '💡', title: 'No sé qué diseñar', subtitle: 'Cuéntame tu idea y te propongo algo', goal: 'Quiero diseñar algo pero no sé qué', idk: true },
+      { id: 'idk', icon: 'bulb-outline', emoji: '💡', title: 'designAcIdkTitle', subtitle: 'designAcIdkSubtitle', goal: 'designAcIdkGoal', idk: true },
     ],
     inputs: ['text'],
     // Weë Design estrena el muro social después de Weë Chef (fase 2E-43).
     idea: {
-      title: '¿Qué quieres diseñar?',
-      subtitle: 'Describe tu idea con el mayor detalle posible.',
-      placeholder: 'Ejemplo: Diseña un auto eléctrico del futuro, deportivo y elegante…',
-      chips: ['Un auto del futuro', 'Un helicóptero de rescate', 'Un vaso innovador', 'Un logo para mi marca', 'Una casa de playa', 'Un personaje de videojuego'],
+      title: 'designIdeaTitle',
+      subtitle: 'designIdeaSubtitle',
+      placeholder: 'designIdeaPlaceholder',
+      chips: ['designIdeaChip1', 'designIdeaChip2', 'designIdeaChip3', 'designIdeaChip4', 'designIdeaChip5', 'designIdeaChip6'],
     },
-    examplesTitle: 'Ejemplos de diseños creados con Weë',
+    examplesTitle: 'designExamplesTitle',
     /*
      * Vacío a propósito. Aquí había siete tarjetas que parecían diseños y eran
      * degradados de color con un emoji encima. Debajo de un muro con trabajos
@@ -267,87 +303,87 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
 
   photo: {
     id: 'photo',
-    headline: 'Tus fotos, aún más increíbles',
-    intro: 'Mejora, restaura, transforma y da nueva vida a tus fotos con inteligencia artificial. Es fácil y rápido.',
-    chips: ['Resultados en segundos', 'Calidad profesional', 'Para todos'],
-    note: 'La mejor versión de tus fotos',
+    headline: 'photoHeadline',
+    intro: 'photoIntro',
+    chips: ['photoChip1', 'photoChip2', 'photoChip3'],
+    note: 'photoNote',
     heroEmoji: '📸',
-    gridTitle: '¿Qué quieres hacer hoy?',
+    gridTitle: 'photoGridTitle',
     actionLayout: 'tiles',
     actions: [
-      { id: 'enhance', icon: 'image-outline', emoji: '✨', title: 'Mejorar una foto', subtitle: 'Más calidad y nitidez', goal: 'Mejorar la calidad de una foto', preset: { questionId: 'action', optionId: 'enhance' } },
-      { id: 'remove', icon: 'cut-outline', emoji: '🧽', title: 'Eliminar objetos', subtitle: 'Quita personas o cosas', goal: 'Quitar algo que sobra en una foto', preset: { questionId: 'action', optionId: 'remove' } },
-      { id: 'background', icon: 'images-outline', emoji: '🪄', title: 'Cambiar el fondo', subtitle: 'Un nuevo escenario', goal: 'Cambiar el fondo de una foto', preset: { questionId: 'action', optionId: 'background' } },
-      { id: 'restore', icon: 'time-outline', emoji: '🕰️', title: 'Restaurar fotos antiguas', subtitle: 'Devuelve la vida a tus recuerdos', goal: 'Restaurar una foto antigua', preset: { questionId: 'action', optionId: 'restore' } },
-      { id: 'transform', icon: 'sparkles-outline', emoji: '🎇', title: 'Transformar con IA', subtitle: 'Nuevos estilos y posibilidades', goal: 'Transformar una foto con un estilo nuevo', preset: { questionId: 'action', optionId: 'transform' } },
-      { id: 'retouch', icon: 'happy-outline', emoji: '🙂', title: 'Retoque facial', subtitle: 'Luce tu mejor versión', goal: 'Retocar un retrato de forma natural', preset: { questionId: 'action', optionId: 'retouch' } },
-      { id: 'style', icon: 'color-palette-outline', emoji: '🎞️', title: 'Cambiar de estilo', subtitle: 'Vintage, artístico, etc.', goal: 'Darle otro estilo a una foto', preset: { questionId: 'action', optionId: 'transform' } },
-      { id: 'colorize', icon: 'color-filter-outline', emoji: '🌈', title: 'Colorizar fotos en blanco y negro', subtitle: 'Añade color a tu historia', goal: 'Colorizar una foto en blanco y negro', preset: { questionId: 'action', optionId: 'colorize' } },
-      { id: 'generate', icon: 'add-circle-outline', emoji: '🖼️', title: 'Crear imágenes', subtitle: 'Genera imágenes con IA', goal: 'Crear una imagen desde cero', preset: { questionId: 'action', optionId: 'generate' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué hacer', subtitle: 'Muéstrame ideas', goal: 'Mejorar una foto', preset: { questionId: 'action', optionId: 'idk' }, idk: true },
+      { id: 'enhance', icon: 'image-outline', emoji: '✨', title: 'photoAcEnhanceTitle', subtitle: 'photoAcEnhanceSubtitle', goal: 'photoAcEnhanceGoal', preset: { questionId: 'action', optionId: 'enhance' } },
+      { id: 'remove', icon: 'cut-outline', emoji: '🧽', title: 'photoAcRemoveTitle', subtitle: 'photoAcRemoveSubtitle', goal: 'photoAcRemoveGoal', preset: { questionId: 'action', optionId: 'remove' } },
+      { id: 'background', icon: 'images-outline', emoji: '🪄', title: 'photoAcBackgroundTitle', subtitle: 'photoAcBackgroundSubtitle', goal: 'photoAcBackgroundGoal', preset: { questionId: 'action', optionId: 'background' } },
+      { id: 'restore', icon: 'time-outline', emoji: '🕰️', title: 'photoAcRestoreTitle', subtitle: 'photoAcRestoreSubtitle', goal: 'photoAcRestoreGoal', preset: { questionId: 'action', optionId: 'restore' } },
+      { id: 'transform', icon: 'sparkles-outline', emoji: '🎇', title: 'photoAcTransformTitle', subtitle: 'photoAcTransformSubtitle', goal: 'photoAcTransformGoal', preset: { questionId: 'action', optionId: 'transform' } },
+      { id: 'retouch', icon: 'happy-outline', emoji: '🙂', title: 'photoAcRetouchTitle', subtitle: 'photoAcRetouchSubtitle', goal: 'photoAcRetouchGoal', preset: { questionId: 'action', optionId: 'retouch' } },
+      { id: 'style', icon: 'color-palette-outline', emoji: '🎞️', title: 'photoAcStyleTitle', subtitle: 'photoAcStyleSubtitle', goal: 'photoAcStyleGoal', preset: { questionId: 'action', optionId: 'transform' } },
+      { id: 'colorize', icon: 'color-filter-outline', emoji: '🌈', title: 'photoAcColorizeTitle', subtitle: 'photoAcColorizeSubtitle', goal: 'photoAcColorizeGoal', preset: { questionId: 'action', optionId: 'colorize' } },
+      { id: 'generate', icon: 'add-circle-outline', emoji: '🖼️', title: 'photoAcGenerateTitle', subtitle: 'photoAcGenerateSubtitle', goal: 'photoAcGenerateGoal', preset: { questionId: 'action', optionId: 'generate' } },
+      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'photoAcIdkTitle', subtitle: 'photoAcIdkSubtitle', goal: 'photoAcIdkGoal', preset: { questionId: 'action', optionId: 'idk' }, idk: true },
     ],
     inputs: ['upload', 'camera', 'text'],
     upload: {
-      title: 'Sube tu foto aquí',
-      subtitle: 'Arrastra una imagen o haz clic para seleccionar',
-      hint: 'JPG, PNG o WEBP (máx. 10 MB)',
+      title: 'photoUploadTitle',
+      subtitle: 'photoUploadSubtitle',
+      hint: 'photoUploadHint',
     },
     idea: {
-      title: '¿Tienes una idea en mente?',
-      subtitle: 'Cuéntale a Weë lo que quieres hacer con tu foto.',
-      placeholder: 'Ejemplo: Quiero que esta foto se vea más nítida y con colores más vivos…',
-      chips: ['Más nítida y con colores vivos', 'Quita a la persona del fondo', 'Hazla estilo vintage'],
+      title: 'photoIdeaTitle',
+      subtitle: 'photoIdeaSubtitle',
+      placeholder: 'photoIdeaPlaceholder',
+      chips: ['photoIdeaChip1', 'photoIdeaChip2', 'photoIdeaChip3'],
     },
-    examplesTitle: 'Ejemplos de lo que puedes hacer',
+    examplesTitle: 'photoExamplesTitle',
     examples: [
-      { title: 'Mejorar calidad', kind: 'beforeAfter', emoji: '🏔️', tone: T.sky },
-      { title: 'Eliminar objetos', kind: 'beforeAfter', emoji: '🏖️', tone: T.yellow },
-      { title: 'Cambiar fondo', kind: 'beforeAfter', emoji: '🛋️', tone: T.sand },
-      { title: 'Restaurar foto', kind: 'beforeAfter', emoji: '🕰️', tone: T.slate },
-      { title: 'Retoque facial', kind: 'beforeAfter', emoji: '🙂', tone: T.rose },
-      { title: 'Transformar con IA', kind: 'beforeAfter', emoji: '🎨', tone: T.plum },
+      { title: 'photoEj1Title', kind: 'beforeAfter', emoji: '🏔️', tone: T.sky },
+      { title: 'photoEj2Title', kind: 'beforeAfter', emoji: '🏖️', tone: T.yellow },
+      { title: 'photoEj3Title', kind: 'beforeAfter', emoji: '🛋️', tone: T.sand },
+      { title: 'photoEj4Title', kind: 'beforeAfter', emoji: '🕰️', tone: T.slate },
+      { title: 'photoEj5Title', kind: 'beforeAfter', emoji: '🙂', tone: T.rose },
+      { title: 'photoEj6Title', kind: 'beforeAfter', emoji: '🎨', tone: T.plum },
     ],
   },
 
   music: {
     id: 'music',
-    headline: 'Crea, escucha y vive tu música con IA',
-    intro: 'Convierte tus ideas en canciones, videos y experiencias únicas. Sin límites para tu creatividad.',
-    chips: ['Rápido y sencillo', 'Calidad profesional', 'Para todos'],
-    note: 'Tu imaginación también suena',
+    headline: 'musicHeadline',
+    intro: 'musicIntro',
+    chips: ['musicChip1', 'musicChip2', 'musicChip3'],
+    note: 'musicNote',
     heroEmoji: '🎧',
-    gridTitle: '¿Qué quieres crear hoy?',
+    gridTitle: 'musicGridTitle',
     actionLayout: 'tiles',
     actions: [
-      { id: 'song', icon: 'musical-notes-outline', emoji: '🎤', title: 'Crear una canción', subtitle: 'Desde una idea, letra o estilo', goal: 'Crear una canción', preset: { questionId: 'what', optionId: 'song' } },
-      { id: 'musicvideo', icon: 'videocam-outline', emoji: '🎬', title: 'Crear tu video con IA', subtitle: 'Genera un videoclip completo', goal: 'Crear un videoclip para mi canción', preset: { questionId: 'what', optionId: 'video' } },
-      { id: 'voice', icon: 'mic-outline', emoji: '🗣️', title: 'Crear una voz con IA', subtitle: 'Voces realistas en varios estilos', goal: 'Crear una voz o narración', preset: { questionId: 'what', optionId: 'voice' } },
-      { id: 'beat', icon: 'pulse-outline', emoji: '🥁', title: 'Crear un beat', subtitle: 'Trap, pop, rock, reggaetón y más', goal: 'Crear un beat', preset: { questionId: 'what', optionId: 'instrumental' } },
-      { id: 'lyrics', icon: 'document-text-outline', emoji: '📝', title: 'Crear o mejorar una letra', subtitle: 'Te ayudamos a escribir la canción perfecta', goal: 'Escribir o mejorar la letra de una canción', preset: { questionId: 'what', optionId: 'lyrics' } },
-      { id: 'mix', icon: 'options-outline', emoji: '🎚️', title: 'Mezclar y masterizar', subtitle: 'Dale un sonido profesional', goal: 'Mezclar y masterizar mi canción', preset: { questionId: 'what', optionId: 'mix' } },
-      { id: 'clip', icon: 'film-outline', emoji: '🎞️', title: 'Crear videoclip para mi canción', subtitle: 'Música + video + edición en un solo lugar', goal: 'Crear un videoclip para mi canción', preset: { questionId: 'what', optionId: 'video' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué hacer', subtitle: 'Cuéntame tu idea y te ayudo', goal: 'Música para mi contenido', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
+      { id: 'song', icon: 'musical-notes-outline', emoji: '🎤', title: 'musicAcSongTitle', subtitle: 'musicAcSongSubtitle', goal: 'musicAcSongGoal', preset: { questionId: 'what', optionId: 'song' } },
+      { id: 'musicvideo', icon: 'videocam-outline', emoji: '🎬', title: 'musicAcMusicvideoTitle', subtitle: 'musicAcMusicvideoSubtitle', goal: 'musicAcMusicvideoGoal', preset: { questionId: 'what', optionId: 'video' } },
+      { id: 'voice', icon: 'mic-outline', emoji: '🗣️', title: 'musicAcVoiceTitle', subtitle: 'musicAcVoiceSubtitle', goal: 'musicAcVoiceGoal', preset: { questionId: 'what', optionId: 'voice' } },
+      { id: 'beat', icon: 'pulse-outline', emoji: '🥁', title: 'musicAcBeatTitle', subtitle: 'musicAcBeatSubtitle', goal: 'musicAcBeatGoal', preset: { questionId: 'what', optionId: 'instrumental' } },
+      { id: 'lyrics', icon: 'document-text-outline', emoji: '📝', title: 'musicAcLyricsTitle', subtitle: 'musicAcLyricsSubtitle', goal: 'musicAcLyricsGoal', preset: { questionId: 'what', optionId: 'lyrics' } },
+      { id: 'mix', icon: 'options-outline', emoji: '🎚️', title: 'musicAcMixTitle', subtitle: 'musicAcMixSubtitle', goal: 'musicAcMixGoal', preset: { questionId: 'what', optionId: 'mix' } },
+      { id: 'clip', icon: 'film-outline', emoji: '🎞️', title: 'musicAcClipTitle', subtitle: 'musicAcClipSubtitle', goal: 'musicAcClipGoal', preset: { questionId: 'what', optionId: 'video' } },
+      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'musicAcIdkTitle', subtitle: 'musicAcIdkSubtitle', goal: 'musicAcIdkGoal', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
     inputs: ['text', 'voice'],
     idea: {
-      title: '¿Tienes una idea en mente?',
-      subtitle: 'Cuéntamela y la convertimos en música.',
-      placeholder: 'Ejemplo: Quiero una canción de reggaetón sobre mi restaurante…',
-      chips: ['Una canción para mi negocio', 'Un beat para mis videos', 'Un jingle pegajoso', 'Sorpréndeme'],
+      title: 'musicIdeaTitle',
+      subtitle: 'musicIdeaSubtitle',
+      placeholder: 'musicIdeaPlaceholder',
+      chips: ['musicIdeaChip1', 'musicIdeaChip2', 'musicIdeaChip3', 'musicIdeaChip4'],
     },
-    examplesTitle: 'Ejemplos de lo que puedes crear',
+    examplesTitle: 'musicExamplesTitle',
     examples: [
-      { title: 'Sueños', subtitle: 'Pop', kind: 'video', emoji: '🎤', tone: T.plum, meta: '3:12' },
-      { title: 'Barrio mío', subtitle: 'Reggaetón', kind: 'video', emoji: '🕶️', tone: T.night, meta: '2:45' },
-      { title: 'Vuela alto', subtitle: 'Rock', kind: 'video', emoji: '🪽', tone: T.slate, meta: '4:08' },
-      { title: 'Sabor peruano', subtitle: 'Comercial', kind: 'video', emoji: '🍽️', tone: T.coral, meta: '1:20' },
-      { title: 'Luz en ti', subtitle: 'Balada', kind: 'video', emoji: '🌅', tone: T.yellow, meta: '3:55' },
-      { title: 'Ciudad virtual', subtitle: 'Electrónica', kind: 'video', emoji: '🌆', tone: T.sky, meta: '3:10' },
+      { title: 'musicEj1Title', subtitle: 'musicEj1Subtitle', kind: 'video', emoji: '🎤', tone: T.plum, meta: 'musicEj1Meta' },
+      { title: 'musicEj2Title', subtitle: 'musicEj2Subtitle', kind: 'video', emoji: '🕶️', tone: T.night, meta: 'musicEj2Meta' },
+      { title: 'musicEj3Title', subtitle: 'musicEj3Subtitle', kind: 'video', emoji: '🪽', tone: T.slate, meta: 'musicEj3Meta' },
+      { title: 'musicEj4Title', subtitle: 'musicEj4Subtitle', kind: 'video', emoji: '🍽️', tone: T.coral, meta: 'musicEj4Meta' },
+      { title: 'musicEj5Title', subtitle: 'musicEj5Subtitle', kind: 'video', emoji: '🌅', tone: T.yellow, meta: 'musicEj5Meta' },
+      { title: 'musicEj6Title', subtitle: 'musicEj6Subtitle', kind: 'video', emoji: '🌆', tone: T.sky, meta: 'musicEj6Meta' },
     ],
     closing: {
-      title: 'Crear tu video con IA',
-      subtitle: 'Convierte tu música en un video increíble: varios estilos, sincronización automática, formatos para redes, escenas y personajes.',
-      button: 'Crear video ahora',
+      title: 'musicClosingTitle',
+      subtitle: 'musicClosingSubtitle',
+      button: 'musicClosingButton',
     },
   },
 
@@ -362,15 +398,15 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * Beauty. Era el primer texto de la sección desmintiendo lo que la sección
      * hace: quien venía a retocar una foto podía irse antes de abrir el selector.
      */
-    headline: 'Crea fotos y videos con IA',
-    intro: 'Cuéntame qué quieres crear y te ayudaré paso a paso.',
-    chips: ['Fácil de usar', 'Resultados increíbles', 'Para todos'],
+    headline: 'studioHeadline',
+    intro: 'studioIntro',
+    chips: ['studioChip1', 'studioChip2', 'studioChip3'],
     // Vale para una foto, para un video y para un cambio de look.
-    note: 'Ideas que se ven',
+    note: 'studioNote',
     heroEmoji: '🎬',
-    gridTitle: '¿Qué quieres hacer hoy?',
+    gridTitle: 'studioGridTitle',
     /* Cuatro cosas desde que Weë Writer entró aquí: la línea las nombra todas. */
-    gridHint: 'Fotos, videos, cambios de look y textos.',
+    gridHint: 'studioGridHint',
     /*
      * Tres áreas, no veintiséis funciones (fase 2E-50) — y en dos niveles (2E-53).
      *
@@ -391,9 +427,9 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      */
     actionLayout: 'compact',
     actions: [
-      { id: 'photos', icon: 'camera-outline', emoji: '📸', title: 'Fotos', subtitle: 'Crear, editar, mejorar y transformar fotos.', goal: 'Trabajar con una foto', opens: 'photo' },
-      { id: 'videos', icon: 'videocam-outline', emoji: '🎬', title: 'Videos', subtitle: 'Crear videos, animar fotos y contenido para redes.', goal: 'Crear un video', opens: 'studio' },
-      { id: 'beauty', icon: 'sparkles-outline', emoji: '💄', title: 'Beauty', subtitle: 'Maquillaje, cabello, rostro, ropa, uñas y cuidado personal.', goal: 'Probar un cambio de look', opens: 'beauty', secondary: true },
+      { id: 'photos', icon: 'camera-outline', emoji: '📸', title: 'studioAcPhotosTitle', subtitle: 'studioAcPhotosSubtitle', goal: 'studioAcPhotosGoal', opens: 'photo' },
+      { id: 'videos', icon: 'videocam-outline', emoji: '🎬', title: 'studioAcVideosTitle', subtitle: 'studioAcVideosSubtitle', goal: 'studioAcVideosGoal', opens: 'studio' },
+      { id: 'beauty', icon: 'sparkles-outline', emoji: '💄', title: 'studioAcBeautyTitle', subtitle: 'studioAcBeautySubtitle', goal: 'studioAcBeautyGoal', opens: 'beauty', secondary: true },
       /*
        * Weë Writer, la cuarta. Va en el renglón secundario con Beauty: Studio
        * dice primero "crea fotos y videos", y escribir es una capacidad
@@ -404,93 +440,93 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
        * su cuadrícula y su "Mis documentos". Ni se duplica ni se reimplementa
        * nada: es la misma ruta a la que llevaba el menú.
        */
-      { id: 'writer', icon: 'create-outline', emoji: '✍️', title: 'Writer', subtitle: 'Publicaciones, historias, guiones, emails y libros.', goal: 'Escribir un texto', opens: 'writer', opensSection: true, secondary: true },
+      { id: 'writer', icon: 'create-outline', emoji: '✍️', title: 'studioAcWriterTitle', subtitle: 'studioAcWriterSubtitle', goal: 'studioAcWriterGoal', opens: 'writer', opensSection: true, secondary: true },
     ],
     // Weë Studio estrena muro después de Weë Chef y Weë Design (fase 2E-50).
     inputs: ['text', 'upload'],
     idea: {
-      title: '¿Tienes una idea en mente?',
-      subtitle: 'Escríbela con tus propias palabras y Weë te ayudará.',
-      placeholder: 'Ejemplo: Quiero un video para mi restaurante…',
-      chips: ['Un video de mi negocio', 'Una presentación', 'Un saludo especial', 'Un video de mi mascota', 'Sorpréndeme'],
-      button: 'Empezar',
+      title: 'studioIdeaTitle',
+      subtitle: 'studioIdeaSubtitle',
+      placeholder: 'studioIdeaPlaceholder',
+      chips: ['studioIdeaChip1', 'studioIdeaChip2', 'studioIdeaChip3', 'studioIdeaChip4', 'studioIdeaChip5'],
+      button: 'studioIdeaButton',
     },
-    examplesTitle: 'Ejemplos de videos que puedes crear',
+    examplesTitle: 'studioExamplesTitle',
     examples: [
-      { title: 'Anuncio gastronómico', kind: 'video', emoji: '🍔', tone: T.coral, meta: '0:15' },
-      { title: 'Video de viajes', kind: 'video', emoji: '🏞️', tone: T.sky, meta: '0:20' },
-      { title: 'Video de producto', kind: 'video', emoji: '🧴', tone: T.sand, meta: '0:12' },
-      { title: 'Contenido para redes', kind: 'video', emoji: '💪', tone: T.slate, meta: '0:18' },
-      { title: 'Video animado', kind: 'video', emoji: '🧒', tone: T.yellow, meta: '0:20' },
-      { title: 'Video de mascotas', kind: 'video', emoji: '🐶', tone: T.mint, meta: '0:14' },
+      { title: 'studioEj1Title', kind: 'video', emoji: '🍔', tone: T.coral, meta: 'studioEj1Meta' },
+      { title: 'studioEj2Title', kind: 'video', emoji: '🏞️', tone: T.sky, meta: 'studioEj2Meta' },
+      { title: 'studioEj3Title', kind: 'video', emoji: '🧴', tone: T.sand, meta: 'studioEj3Meta' },
+      { title: 'studioEj4Title', kind: 'video', emoji: '💪', tone: T.slate, meta: 'studioEj4Meta' },
+      { title: 'studioEj5Title', kind: 'video', emoji: '🧒', tone: T.yellow, meta: 'studioEj5Meta' },
+      { title: 'studioEj6Title', kind: 'video', emoji: '🐶', tone: T.mint, meta: 'studioEj6Meta' },
     ],
   },
 
   business: {
     id: 'business',
-    headline: 'Tu equipo de marketing, ventas y estrategia en un solo lugar.',
-    intro: 'Conecta tus redes, crea contenido, publica automáticamente y haz crecer tu negocio con inteligencia artificial.',
-    chips: ['Ahorra tiempo', 'Más ventas', 'Tu negocio, más grande'],
-    note: 'Tu negocio también puede llegar más lejos',
+    headline: 'businessHeadline',
+    intro: 'businessIntro',
+    chips: ['businessChip1', 'businessChip2', 'businessChip3'],
+    note: 'businessNote',
     heroEmoji: '💼',
-    gridTitle: '¿Qué quieres hacer hoy?',
+    gridTitle: 'businessGridTitle',
     actionLayout: 'tiles',
     actions: [
-      { id: 'content', icon: 'color-wand-outline', emoji: '✨', title: 'Crear contenido', subtitle: 'Imágenes, videos y textos con IA', goal: 'Crear contenido para las redes de mi negocio', preset: { questionId: 'what', optionId: 'content' } },
-      { id: 'schedule', icon: 'calendar-outline', emoji: '📅', title: 'Programar publicaciones', subtitle: 'Elige fechas y horarios', goal: 'Programar las publicaciones de mi negocio', preset: { questionId: 'what', optionId: 'schedule' } },
-      { id: 'publish', icon: 'paper-plane-outline', emoji: '🚀', title: 'Publicar automáticamente', subtitle: 'En todas tus redes', goal: 'Publicar automáticamente en mis redes', preset: { questionId: 'what', optionId: 'publish' } },
-      { id: 'reply', icon: 'chatbubble-ellipses-outline', emoji: '💬', title: 'Responder clientes', subtitle: 'Mensajes, comentarios y consultas', goal: 'Responder a mis clientes', preset: { questionId: 'what', optionId: 'reply' } },
-      { id: 'analyze', icon: 'bar-chart-outline', emoji: '📊', title: 'Analizar resultados', subtitle: 'Descubre qué funciona mejor', goal: 'Analizar los resultados de mi negocio', preset: { questionId: 'what', optionId: 'analyze' } },
-      { id: 'strategy', icon: 'bulb-outline', emoji: '💡', title: 'Ideas y estrategia', subtitle: 'Nuevas oportunidades para crecer', goal: 'Ideas y estrategia para hacer crecer mi negocio', preset: { questionId: 'what', optionId: 'idea' } },
+      { id: 'content', icon: 'color-wand-outline', emoji: '✨', title: 'businessAcContentTitle', subtitle: 'businessAcContentSubtitle', goal: 'businessAcContentGoal', preset: { questionId: 'what', optionId: 'content' } },
+      { id: 'schedule', icon: 'calendar-outline', emoji: '📅', title: 'businessAcScheduleTitle', subtitle: 'businessAcScheduleSubtitle', goal: 'businessAcScheduleGoal', preset: { questionId: 'what', optionId: 'schedule' } },
+      { id: 'publish', icon: 'paper-plane-outline', emoji: '🚀', title: 'businessAcPublishTitle', subtitle: 'businessAcPublishSubtitle', goal: 'businessAcPublishGoal', preset: { questionId: 'what', optionId: 'publish' } },
+      { id: 'reply', icon: 'chatbubble-ellipses-outline', emoji: '💬', title: 'businessAcReplyTitle', subtitle: 'businessAcReplySubtitle', goal: 'businessAcReplyGoal', preset: { questionId: 'what', optionId: 'reply' } },
+      { id: 'analyze', icon: 'bar-chart-outline', emoji: '📊', title: 'businessAcAnalyzeTitle', subtitle: 'businessAcAnalyzeSubtitle', goal: 'businessAcAnalyzeGoal', preset: { questionId: 'what', optionId: 'analyze' } },
+      { id: 'strategy', icon: 'bulb-outline', emoji: '💡', title: 'businessAcStrategyTitle', subtitle: 'businessAcStrategySubtitle', goal: 'businessAcStrategyGoal', preset: { questionId: 'what', optionId: 'idea' } },
     ],
     inputs: ['text', 'attach'],
     idea: {
-      title: 'Weë está listo para ayudarte',
-      subtitle: 'Dime qué necesitas y crearé la estrategia, el contenido y me encargaré de publicarlo.',
-      placeholder: 'Ejemplo: Quiero vender más este mes en mi cafetería…',
-      chips: ['Crear mi primera campaña', 'Un plan para mi emprendimiento', 'Mi CV actualizado', 'Una presentación para inversores'],
-      button: 'Crear mi primera campaña',
+      title: 'businessIdeaTitle',
+      subtitle: 'businessIdeaSubtitle',
+      placeholder: 'businessIdeaPlaceholder',
+      chips: ['businessIdeaChip1', 'businessIdeaChip2', 'businessIdeaChip3', 'businessIdeaChip4'],
+      button: 'businessIdeaButton',
     },
-    examplesTitle: 'Resultados esta semana',
+    examplesTitle: 'businessExamplesTitle',
     examples: [
-      { title: '24', subtitle: 'Publicaciones', kind: 'document', emoji: '📝', tone: T.yellow, meta: '↑ 40%' },
-      { title: '125.4K', subtitle: 'Personas alcanzadas', kind: 'document', emoji: '👀', tone: T.sky, meta: '↑ 60%' },
-      { title: '2.8K', subtitle: 'Interacciones', kind: 'document', emoji: '💬', tone: T.mint, meta: '↑ 35%' },
-      { title: '186', subtitle: 'Mensajes recibidos', kind: 'document', emoji: '📩', tone: T.coral, meta: '↑ 70%' },
+      { title: 'businessEj1Title', subtitle: 'businessEj1Subtitle', kind: 'document', emoji: '📝', tone: T.yellow, meta: 'businessEj1Meta' },
+      { title: 'businessEj2Title', subtitle: 'businessEj2Subtitle', kind: 'document', emoji: '👀', tone: T.sky, meta: 'businessEj2Meta' },
+      { title: 'businessEj3Title', subtitle: 'businessEj3Subtitle', kind: 'document', emoji: '💬', tone: T.mint, meta: 'businessEj3Meta' },
+      { title: 'businessEj4Title', subtitle: 'businessEj4Subtitle', kind: 'document', emoji: '📩', tone: T.coral, meta: 'businessEj4Meta' },
     ],
   },
 
   chef: {
     id: 'chef',
-    headline: 'Tu chef personal siempre contigo',
-    intro: 'Descubre recetas, crea menús, aprovecha lo que tienes y come mejor, más fácil y más rico.',
-    chips: ['Recetas fáciles', 'Opciones saludables', 'Para todos'],
-    note: 'Buenas ideas también se cocinan',
+    headline: 'chefHeadline',
+    intro: 'chefIntro',
+    chips: ['chefChip1', 'chefChip2', 'chefChip3'],
+    note: 'chefNote',
     heroEmoji: '🍝',
-    gridTitle: '¿Qué quieres hacer hoy?',
-    gridHint: 'Elige una opción y empieza a cocinar con Weë.',
+    gridTitle: 'chefGridTitle',
+    gridHint: 'chefGridHint',
     // Controles pequeños, sin fotografías: las siete funciones se recorren de un
     // vistazo y dejan la pantalla para lo que de verdad manda, que es el muro.
     actionLayout: 'compact',
     actions: [
-      { id: 'recipe', icon: 'restaurant-outline', emoji: '🍲', title: 'Quiero una receta', subtitle: 'Dime qué se te antoja', goal: 'Quiero una receta', preset: { questionId: 'what', optionId: 'recipe' } },
+      { id: 'recipe', icon: 'restaurant-outline', emoji: '🍲', title: 'chefAcRecipeTitle', subtitle: 'chefAcRecipeSubtitle', goal: 'chefAcRecipeGoal', preset: { questionId: 'what', optionId: 'recipe' } },
       // El subtítulo dice qué foto hace falta: es lo único que aportaba el bloque
       // "¿Tienes una foto?", que repetía esta acción y la de retocar (fase 2E-40).
-      { id: 'ingredients', icon: 'nutrition-outline', emoji: '🧊', title: 'Usar mis ingredientes', subtitle: 'Desde la foto de tu refrigerador', goal: 'Cocinar con los ingredientes que tengo en casa', preset: { questionId: 'what', optionId: 'cook' } },
-      { id: 'menu', icon: 'list-outline', emoji: '📋', title: 'Crear un menú', subtitle: 'Para la semana o un evento', goal: 'Crear un menú', preset: { questionId: 'what', optionId: 'menu' } },
-      { id: 'healthy', icon: 'leaf-outline', emoji: '🥗', title: 'Opciones saludables', subtitle: 'Rico y ligero', goal: 'Quiero opciones saludables para comer', preset: { questionId: 'what', optionId: 'healthy' } },
-      { id: 'dessert', icon: 'ice-cream-outline', emoji: '🍰', title: 'Postres', subtitle: 'Fáciles y deliciosos', goal: 'Quiero un postre fácil', preset: { questionId: 'what', optionId: 'dessert' } },
-      { id: 'edit', icon: 'camera-outline', emoji: '📸', title: 'Retocar mi foto', subtitle: 'Mejora la foto de tu plato', goal: 'Retocar la foto de mi plato', preset: { questionId: 'what', optionId: 'edit' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué cocinar', subtitle: 'Te propongo algo rico', goal: 'No sé qué cocinar hoy', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
+      { id: 'ingredients', icon: 'nutrition-outline', emoji: '🧊', title: 'chefAcIngredientsTitle', subtitle: 'chefAcIngredientsSubtitle', goal: 'chefAcIngredientsGoal', preset: { questionId: 'what', optionId: 'cook' } },
+      { id: 'menu', icon: 'list-outline', emoji: '📋', title: 'chefAcMenuTitle', subtitle: 'chefAcMenuSubtitle', goal: 'chefAcMenuGoal', preset: { questionId: 'what', optionId: 'menu' } },
+      { id: 'healthy', icon: 'leaf-outline', emoji: '🥗', title: 'chefAcHealthyTitle', subtitle: 'chefAcHealthySubtitle', goal: 'chefAcHealthyGoal', preset: { questionId: 'what', optionId: 'healthy' } },
+      { id: 'dessert', icon: 'ice-cream-outline', emoji: '🍰', title: 'chefAcDessertTitle', subtitle: 'chefAcDessertSubtitle', goal: 'chefAcDessertGoal', preset: { questionId: 'what', optionId: 'dessert' } },
+      { id: 'edit', icon: 'camera-outline', emoji: '📸', title: 'chefAcEditTitle', subtitle: 'chefAcEditSubtitle', goal: 'chefAcEditGoal', preset: { questionId: 'what', optionId: 'edit' } },
+      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'chefAcIdkTitle', subtitle: 'chefAcIdkSubtitle', goal: 'chefAcIdkGoal', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
     // Chef acepta imágenes en dos de sus flujos (cocinar con lo que tengo y
     // retocar el plato), igual que Photo, Home y Beauty.
     inputs: ['text', 'upload', 'camera', 'voice'],
     idea: {
-      title: '¡Hola! Soy Weë Chef 👨‍🍳',
-      subtitle: 'Cuéntame, ¿qué te gustaría cocinar hoy?',
-      placeholder: 'Escribe tu idea aquí…',
-      chips: ['Quiero una cena rápida', 'Recetas con pollo', 'Algo saludable', 'Un postre fácil', 'Qué puedo hacer con esto'],
+      title: 'chefIdeaTitle',
+      subtitle: 'chefIdeaSubtitle',
+      placeholder: 'chefIdeaPlaceholder',
+      chips: ['chefIdeaChip1', 'chefIdeaChip2', 'chefIdeaChip3', 'chefIdeaChip4', 'chefIdeaChip5'],
     },
     /*
      * Chef no tiene caja de subida propia. Sus dos rutas con foto —retocar el
@@ -500,24 +536,24 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * un sitio. La foto se sigue pidiendo dentro de la conversación, como antes.
      */
     // Weë Chef es el piloto del muro social dentro de una sección (fase 2E-37).
-    examplesTitle: 'Recetas populares',
+    examplesTitle: 'chefExamplesTitle',
     examples: [
-      { title: 'Pasta a la carbonara', subtitle: 'Fácil y deliciosa', kind: 'recipe', emoji: '🍝', tone: T.yellow, meta: '20 min' },
-      { title: 'Ensalada de pollo', subtitle: 'Saludable', kind: 'recipe', emoji: '🥗', tone: T.mint, meta: '25 min' },
-      { title: 'Hamburguesa casera', subtitle: 'Como en casa', kind: 'recipe', emoji: '🍔', tone: T.coral, meta: '30 min' },
-      { title: 'Lomo saltado', subtitle: 'Clásico peruano', kind: 'recipe', emoji: '🥘', tone: T.sand, meta: '25 min' },
-      { title: 'Volcán de chocolate', subtitle: 'Postre irresistible', kind: 'recipe', emoji: '🍫', tone: T.slate, meta: '15 min' },
+      { title: 'chefEj1Title', subtitle: 'chefEj1Subtitle', kind: 'recipe', emoji: '🍝', tone: T.yellow, meta: 'chefEj1Meta' },
+      { title: 'chefEj2Title', subtitle: 'chefEj2Subtitle', kind: 'recipe', emoji: '🥗', tone: T.mint, meta: 'chefEj2Meta' },
+      { title: 'chefEj3Title', subtitle: 'chefEj3Subtitle', kind: 'recipe', emoji: '🍔', tone: T.coral, meta: 'chefEj3Meta' },
+      { title: 'chefEj4Title', subtitle: 'chefEj4Subtitle', kind: 'recipe', emoji: '🥘', tone: T.sand, meta: 'chefEj4Meta' },
+      { title: 'chefEj5Title', subtitle: 'chefEj5Subtitle', kind: 'recipe', emoji: '🍫', tone: T.slate, meta: 'chefEj5Meta' },
     ],
   },
 
   home: {
     id: 'home',
-    headline: 'Tu espacio, mejor versión',
-    intro: 'Diseña, visualiza y transforma tus espacios con inteligencia artificial. Ideas reales para un hogar más bonito, funcional y a tu estilo.',
-    chips: ['Fácil de usar', 'Resultados realistas', 'Para todos'],
-    note: 'Un hogar con más posibilidades',
+    headline: 'homeHeadline',
+    intro: 'homeIntro',
+    chips: ['homeChip1', 'homeChip2', 'homeChip3'],
+    note: 'homeNote',
     heroEmoji: '🛋️',
-    gridTitle: '¿Qué quieres hacer hoy?',
+    gridTitle: 'homeGridTitle',
     actionLayout: 'wide',
     /*
      * Las mismas siete intenciones que la conversación (fase 2E-60).
@@ -529,129 +565,129 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * resolviendo en la plantilla; lo que desaparece es el botón.
      */
     actions: [
-      { id: 'design', icon: 'bed-outline', emoji: '🏠', title: 'Rediseñar mi espacio', subtitle: 'Muebles, colores y decoración nuevos, con tus mismas paredes.', goal: 'Diseñar un espacio de mi casa', preset: { questionId: 'what', optionId: 'design' } },
-      { id: 'furniture', icon: 'cube-outline', emoji: '🪑', title: 'Cambiar o probar muebles', subtitle: 'Ve cómo quedan otros muebles sin tocar los acabados.', goal: 'Probar muebles nuevos en mi espacio', preset: { questionId: 'what', optionId: 'furniture' } },
-      { id: 'colors', icon: 'color-palette-outline', emoji: '🎨', title: 'Cambiar estilo y colores', subtitle: 'Otra paleta y otros materiales, con tus mismos muebles.', goal: 'Cambiar los colores de mi espacio', preset: { questionId: 'what', optionId: 'colors' } },
-      { id: 'layout', icon: 'grid-outline', emoji: '📐', title: 'Mejorar la distribución', subtitle: 'Los muebles que ya tienes, mejor puestos.', goal: 'Mejorar la distribución de mi espacio', preset: { questionId: 'what', optionId: 'layout' } },
-      { id: 'garden', icon: 'leaf-outline', emoji: '🌿', title: 'Exterior y jardín', subtitle: 'Fachadas, terrazas, patios y jardines.', goal: 'Diseñar mi jardín o exterior', preset: { questionId: 'what', optionId: 'garden' } },
-      { id: 'ideas', icon: 'bulb-outline', emoji: '💡', title: 'Buscar ideas', subtitle: 'Inspírate con estilos y tendencias.', goal: 'Buscar ideas para mi casa', preset: { questionId: 'what', optionId: 'ideas' } },
-      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'No sé qué hacer', subtitle: 'Miro tu espacio y te propongo por dónde empezar.', goal: 'Renovar un espacio de mi casa', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
+      { id: 'design', icon: 'bed-outline', emoji: '🏠', title: 'homeAcDesignTitle', subtitle: 'homeAcDesignSubtitle', goal: 'homeAcDesignGoal', preset: { questionId: 'what', optionId: 'design' } },
+      { id: 'furniture', icon: 'cube-outline', emoji: '🪑', title: 'homeAcFurnitureTitle', subtitle: 'homeAcFurnitureSubtitle', goal: 'homeAcFurnitureGoal', preset: { questionId: 'what', optionId: 'furniture' } },
+      { id: 'colors', icon: 'color-palette-outline', emoji: '🎨', title: 'homeAcColorsTitle', subtitle: 'homeAcColorsSubtitle', goal: 'homeAcColorsGoal', preset: { questionId: 'what', optionId: 'colors' } },
+      { id: 'layout', icon: 'grid-outline', emoji: '📐', title: 'homeAcLayoutTitle', subtitle: 'homeAcLayoutSubtitle', goal: 'homeAcLayoutGoal', preset: { questionId: 'what', optionId: 'layout' } },
+      { id: 'garden', icon: 'leaf-outline', emoji: '🌿', title: 'homeAcGardenTitle', subtitle: 'homeAcGardenSubtitle', goal: 'homeAcGardenGoal', preset: { questionId: 'what', optionId: 'garden' } },
+      { id: 'ideas', icon: 'bulb-outline', emoji: '💡', title: 'homeAcIdeasTitle', subtitle: 'homeAcIdeasSubtitle', goal: 'homeAcIdeasGoal', preset: { questionId: 'what', optionId: 'ideas' } },
+      { id: 'idk', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'homeAcIdkTitle', subtitle: 'homeAcIdkSubtitle', goal: 'homeAcIdkGoal', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
     inputs: ['upload', 'text'],
     upload: {
-      title: 'Sube una foto de tu espacio',
-      subtitle: 'Sala, cocina, dormitorio, terraza, etc.',
-      hint: 'JPG, PNG o WEBP (máx. 10 MB)',
-      button: 'Subir foto',
+      title: 'homeUploadTitle',
+      subtitle: 'homeUploadSubtitle',
+      hint: 'homeUploadHint',
+      button: 'homeUploadButton',
     },
     idea: {
-      title: 'O también puedes partir de una idea',
-      subtitle: 'Cuéntale a Weë cómo es tu espacio y qué te gustaría mejorar.',
-      placeholder: 'Ejemplo: Quiero una sala más moderna y acogedora…',
-      chips: ['Una sala más moderna', 'Mi cuarto más acogedor', 'Una cocina pequeña bien aprovechada'],
+      title: 'homeIdeaTitle',
+      subtitle: 'homeIdeaSubtitle',
+      placeholder: 'homeIdeaPlaceholder',
+      chips: ['homeIdeaChip1', 'homeIdeaChip2', 'homeIdeaChip3'],
     },
-    examplesTitle: 'Inspiración para tu hogar',
+    examplesTitle: 'homeExamplesTitle',
     examples: [
-      { title: 'Salas modernas', kind: 'image', emoji: '🛋️', tone: T.sand },
-      { title: 'Cocinas funcionales', kind: 'image', emoji: '🍳', tone: T.yellow },
-      { title: 'Dormitorios acogedores', kind: 'image', emoji: '🛏️', tone: T.rose },
-      { title: 'Baños elegantes', kind: 'image', emoji: '🛁', tone: T.sky },
-      { title: 'Terrazas y jardines', kind: 'image', emoji: '🌿', tone: T.mint },
-      { title: 'Estilos minimalistas', kind: 'image', emoji: '◻️', tone: T.slate },
+      { title: 'homeEj1Title', kind: 'image', emoji: '🛋️', tone: T.sand },
+      { title: 'homeEj2Title', kind: 'image', emoji: '🍳', tone: T.yellow },
+      { title: 'homeEj3Title', kind: 'image', emoji: '🛏️', tone: T.rose },
+      { title: 'homeEj4Title', kind: 'image', emoji: '🛁', tone: T.sky },
+      { title: 'homeEj5Title', kind: 'image', emoji: '🌿', tone: T.mint },
+      { title: 'homeEj6Title', kind: 'image', emoji: '◻️', tone: T.slate },
     ],
     closing: {
-      title: '¿No sabes por dónde empezar?',
-      subtitle: 'Cuéntale a Weë cómo es tu espacio y qué te gustaría mejorar.',
-      button: 'Hablar con Weë',
+      title: 'homeClosingTitle',
+      subtitle: 'homeClosingSubtitle',
+      button: 'homeClosingButton',
     },
   },
 
   beauty: {
     id: 'beauty',
-    headline: 'Explora, crea y descubre tu mejor versión.',
-    intro: 'Tu estilista, maquillador y asesor de imagen con IA.',
-    chips: ['Looks increíbles', 'Resultados realistas', 'Para todos los estilos', 'Tú decides'],
-    note: 'Tu estilo también cuenta',
+    headline: 'beautyHeadline',
+    intro: 'beautyIntro',
+    chips: ['beautyChip1', 'beautyChip2', 'beautyChip3', 'beautyChip4'],
+    note: 'beautyNote',
     heroEmoji: '💄',
-    gridTitle: '¿Qué quieres probar hoy?',
+    gridTitle: 'beautyGridTitle',
     actionLayout: 'images',
     actions: [
-      { id: 'makeup', icon: 'color-palette-outline', emoji: '💄', title: 'Maquillaje', subtitle: 'Looks para cada ocasión', goal: 'Probar un maquillaje', preset: { questionId: 'what', optionId: 'makeup' } },
-      { id: 'hair', icon: 'cut-outline', emoji: '💇', title: 'Cabello', subtitle: 'Cortes, peinados y estilos', goal: 'Probar otro corte o peinado', preset: { questionId: 'what', optionId: 'hair' } },
-      { id: 'haircolor', icon: 'color-fill-outline', emoji: '🎨', title: 'Color de cabello', subtitle: 'Explora nuevos colores', goal: 'Probar otro color de cabello', preset: { questionId: 'what', optionId: 'haircolor' } },
-      { id: 'beard', icon: 'man-outline', emoji: '🧔', title: 'Barba', subtitle: 'Estilos y cuidado', goal: 'Probar un estilo de barba', preset: { questionId: 'what', optionId: 'beard' } },
-      { id: 'outfit', icon: 'shirt-outline', emoji: '👗', title: 'Ropa y outfits', subtitle: 'Combina tu estilo', goal: 'Probar un outfit', preset: { questionId: 'what', optionId: 'outfit' } },
-      { id: 'nails', icon: 'hand-left-outline', emoji: '💅', title: 'Uñas', subtitle: 'Diseños y colores', goal: 'Probar un diseño de uñas', preset: { questionId: 'what', optionId: 'nails' } },
-      { id: 'transform', icon: 'swap-horizontal-outline', emoji: '✨', title: 'Transformaciones', subtitle: 'Antes y después', goal: 'Probar un cambio de look completo', preset: { questionId: 'what', optionId: 'transform' } },
-      { id: 'skin', icon: 'water-outline', emoji: '🧴', title: 'Cuidado de la piel', subtitle: 'Rutinas y consejos', goal: 'Consejos para el cuidado de mi piel', preset: { questionId: 'what', optionId: 'skin' } },
-      { id: 'face', icon: 'scan-outline', emoji: '🪞', title: 'Estilo por rostro', subtitle: 'Encuentra tu estilo ideal', goal: 'Encontrar el estilo que mejor va con mi rostro', preset: { questionId: 'what', optionId: 'face' } },
-      { id: 'accessories', icon: 'glasses-outline', emoji: '🕶️', title: 'Accesorios', subtitle: 'Completa tu look', goal: 'Probar accesorios para mi look', preset: { questionId: 'what', optionId: 'accessories' } },
+      { id: 'makeup', icon: 'color-palette-outline', emoji: '💄', title: 'beautyAcMakeupTitle', subtitle: 'beautyAcMakeupSubtitle', goal: 'beautyAcMakeupGoal', preset: { questionId: 'what', optionId: 'makeup' } },
+      { id: 'hair', icon: 'cut-outline', emoji: '💇', title: 'beautyAcHairTitle', subtitle: 'beautyAcHairSubtitle', goal: 'beautyAcHairGoal', preset: { questionId: 'what', optionId: 'hair' } },
+      { id: 'haircolor', icon: 'color-fill-outline', emoji: '🎨', title: 'beautyAcHaircolorTitle', subtitle: 'beautyAcHaircolorSubtitle', goal: 'beautyAcHaircolorGoal', preset: { questionId: 'what', optionId: 'haircolor' } },
+      { id: 'beard', icon: 'man-outline', emoji: '🧔', title: 'beautyAcBeardTitle', subtitle: 'beautyAcBeardSubtitle', goal: 'beautyAcBeardGoal', preset: { questionId: 'what', optionId: 'beard' } },
+      { id: 'outfit', icon: 'shirt-outline', emoji: '👗', title: 'beautyAcOutfitTitle', subtitle: 'beautyAcOutfitSubtitle', goal: 'beautyAcOutfitGoal', preset: { questionId: 'what', optionId: 'outfit' } },
+      { id: 'nails', icon: 'hand-left-outline', emoji: '💅', title: 'beautyAcNailsTitle', subtitle: 'beautyAcNailsSubtitle', goal: 'beautyAcNailsGoal', preset: { questionId: 'what', optionId: 'nails' } },
+      { id: 'transform', icon: 'swap-horizontal-outline', emoji: '✨', title: 'beautyAcTransformTitle', subtitle: 'beautyAcTransformSubtitle', goal: 'beautyAcTransformGoal', preset: { questionId: 'what', optionId: 'transform' } },
+      { id: 'skin', icon: 'water-outline', emoji: '🧴', title: 'beautyAcSkinTitle', subtitle: 'beautyAcSkinSubtitle', goal: 'beautyAcSkinGoal', preset: { questionId: 'what', optionId: 'skin' } },
+      { id: 'face', icon: 'scan-outline', emoji: '🪞', title: 'beautyAcFaceTitle', subtitle: 'beautyAcFaceSubtitle', goal: 'beautyAcFaceGoal', preset: { questionId: 'what', optionId: 'face' } },
+      { id: 'accessories', icon: 'glasses-outline', emoji: '🕶️', title: 'beautyAcAccessoriesTitle', subtitle: 'beautyAcAccessoriesSubtitle', goal: 'beautyAcAccessoriesGoal', preset: { questionId: 'what', optionId: 'accessories' } },
     ],
     inputs: ['upload', 'camera', 'voice', 'text'],
     upload: {
-      title: 'Prueba un look en tu foto',
-      subtitle: 'Sube una foto y descubre diferentes estilos al instante.',
-      hint: 'JPG, PNG o WEBP (máx. 10 MB)',
-      button: 'Subir mi foto',
+      title: 'beautyUploadTitle',
+      subtitle: 'beautyUploadSubtitle',
+      hint: 'beautyUploadHint',
+      button: 'beautyUploadButton',
     },
     idea: {
-      title: 'Cuéntale a Weë qué quieres hacer…',
-      subtitle: 'Con tus palabras: Weë se encarga del resto.',
-      placeholder: 'Ejemplo: "Quiero un cambio de look, cabello largo y rubio, maquillaje natural"',
-      chips: ['Cabello largo y rubio', 'Maquillaje natural para el día', 'Un look para una fiesta'],
+      title: 'beautyIdeaTitle',
+      subtitle: 'beautyIdeaSubtitle',
+      placeholder: 'beautyIdeaPlaceholder',
+      chips: ['beautyIdeaChip1', 'beautyIdeaChip2', 'beautyIdeaChip3'],
     },
-    examplesTitle: 'Ideas para ti',
+    examplesTitle: 'beautyExamplesTitle',
     examples: [
-      { title: 'Look natural', subtitle: 'Para el día a día', kind: 'image', emoji: '🌤️', tone: T.sand },
-      { title: 'Look de noche', subtitle: 'Glam y sofisticado', kind: 'image', emoji: '🌙', tone: T.night },
-      { title: 'Cabello largo y rubio', subtitle: 'Transforma tu estilo', kind: 'image', emoji: '👱', tone: T.yellow },
-      { title: 'Maquillaje coreano', subtitle: 'Fresco y moderno', kind: 'image', emoji: '🌸', tone: T.rose },
-      { title: 'Outfit casual', subtitle: 'Cómodo y con estilo', kind: 'image', emoji: '👕', tone: T.sky },
-      { title: 'Look profesional', subtitle: 'Para el trabajo', kind: 'image', emoji: '💼', tone: T.slate },
+      { title: 'beautyEj1Title', subtitle: 'beautyEj1Subtitle', kind: 'image', emoji: '🌤️', tone: T.sand },
+      { title: 'beautyEj2Title', subtitle: 'beautyEj2Subtitle', kind: 'image', emoji: '🌙', tone: T.night },
+      { title: 'beautyEj3Title', subtitle: 'beautyEj3Subtitle', kind: 'image', emoji: '👱', tone: T.yellow },
+      { title: 'beautyEj4Title', subtitle: 'beautyEj4Subtitle', kind: 'image', emoji: '🌸', tone: T.rose },
+      { title: 'beautyEj5Title', subtitle: 'beautyEj5Subtitle', kind: 'image', emoji: '👕', tone: T.sky },
+      { title: 'beautyEj6Title', subtitle: 'beautyEj6Subtitle', kind: 'image', emoji: '💼', tone: T.slate },
     ],
   },
 
   writer: {
     id: 'writer',
-    headline: 'Escribe, crea, mejora y da vida a tus ideas.',
-    intro: 'Tu especialista en textos, historias, guiones, documentos y mucho más.',
-    chips: ['Ideas sin límites', 'Textos de calidad', 'Tu historia, nuestro apoyo'],
-    note: 'Tus ideas también cuentan',
+    headline: 'writerHeadline',
+    intro: 'writerIntro',
+    chips: ['writerChip1', 'writerChip2', 'writerChip3'],
+    note: 'writerNote',
     heroEmoji: '✏️',
-    gridTitle: '¿Qué escribimos hoy?',
+    gridTitle: 'writerGridTitle',
     actionLayout: 'tiles',
     actions: [
-      { id: 'cover', icon: 'book-outline', emoji: '📕', title: 'Crear portada', subtitle: 'Portadas de libros, ebooks, documentos y más', goal: 'Crear la portada de mi libro', preset: { questionId: 'what', optionId: 'cover' } },
-      { id: 'story', icon: 'library-outline', emoji: '📖', title: 'Historia / Novela', subtitle: 'Crea mundos, personajes y tramas', goal: 'Escribir una historia o novela', preset: { questionId: 'what', optionId: 'story' } },
-      { id: 'script', icon: 'film-outline', emoji: '🎬', title: 'Guion', subtitle: 'Cine, series, YouTube o comerciales', goal: 'Escribir un guion', preset: { questionId: 'what', optionId: 'script' } },
-      { id: 'article', icon: 'newspaper-outline', emoji: '📰', title: 'Artículo / Blog', subtitle: 'Escribe artículos que inspiran', goal: 'Escribir un artículo para mi blog', preset: { questionId: 'what', optionId: 'article' } },
-      { id: 'social', icon: 'logo-instagram', emoji: '📱', title: 'Redes sociales', subtitle: 'Publicaciones que conectan', goal: 'Escribir una publicación para redes', preset: { questionId: 'what', optionId: 'post' } },
-      { id: 'email', icon: 'mail-outline', emoji: '✉️', title: 'Email / Carta', subtitle: 'Redacta mensajes profesionales o personales', goal: 'Escribir un email o una carta', preset: { questionId: 'what', optionId: 'email' } },
-      { id: 'document', icon: 'document-text-outline', emoji: '📄', title: 'Documento', subtitle: 'Informes, planes y más', goal: 'Redactar un documento', preset: { questionId: 'what', optionId: 'document' } },
-      { id: 'cv', icon: 'person-outline', emoji: '🧑‍💼', title: 'CV / Hoja de vida', subtitle: 'Destaca tu talento', goal: 'Redactar mi CV', preset: { questionId: 'what', optionId: 'cv' } },
-      { id: 'translate', icon: 'language-outline', emoji: '🌐', title: 'Traducción', subtitle: 'A cualquier idioma', goal: 'Traducir un texto', preset: { questionId: 'what', optionId: 'translate' } },
-      { id: 'summary', icon: 'list-outline', emoji: '🗒️', title: 'Resumen', subtitle: 'Convierte textos largos en ideas clave', goal: 'Resumir un texto', preset: { questionId: 'what', optionId: 'summary' } },
-      { id: 'ideas', icon: 'bulb-outline', emoji: '💡', title: 'Ideas', subtitle: 'Supera el bloqueo creativo', goal: 'Necesito ideas para escribir', preset: { questionId: 'what', optionId: 'ideas' } },
-      { id: 'fix', icon: 'checkmark-circle-outline', emoji: '✔️', title: 'Corrección', subtitle: 'Mejora ortografía, estilo y claridad', goal: 'Corregir un texto', preset: { questionId: 'what', optionId: 'fix' } },
-      { id: 'rewrite', icon: 'refresh-outline', emoji: '🔁', title: 'Reescritura', subtitle: 'Dale un nuevo enfoque a tus textos', goal: 'Reescribir un texto con otro enfoque', preset: { questionId: 'what', optionId: 'rewrite' } },
-      { id: 'citations', icon: 'chatbox-ellipses-outline', emoji: '❝', title: 'Citas y referencias', subtitle: 'Formatea en APA, MLA y más', goal: 'Formatear citas y referencias', preset: { questionId: 'what', optionId: 'document' } },
-      { id: 'more', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'Más herramientas', subtitle: 'Explora todo lo que puedes crear', goal: 'Un texto para publicar', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
+      { id: 'cover', icon: 'book-outline', emoji: '📕', title: 'writerAcCoverTitle', subtitle: 'writerAcCoverSubtitle', goal: 'writerAcCoverGoal', preset: { questionId: 'what', optionId: 'cover' } },
+      { id: 'story', icon: 'library-outline', emoji: '📖', title: 'writerAcStoryTitle', subtitle: 'writerAcStorySubtitle', goal: 'writerAcStoryGoal', preset: { questionId: 'what', optionId: 'story' } },
+      { id: 'script', icon: 'film-outline', emoji: '🎬', title: 'writerAcScriptTitle', subtitle: 'writerAcScriptSubtitle', goal: 'writerAcScriptGoal', preset: { questionId: 'what', optionId: 'script' } },
+      { id: 'article', icon: 'newspaper-outline', emoji: '📰', title: 'writerAcArticleTitle', subtitle: 'writerAcArticleSubtitle', goal: 'writerAcArticleGoal', preset: { questionId: 'what', optionId: 'article' } },
+      { id: 'social', icon: 'logo-instagram', emoji: '📱', title: 'writerAcSocialTitle', subtitle: 'writerAcSocialSubtitle', goal: 'writerAcSocialGoal', preset: { questionId: 'what', optionId: 'post' } },
+      { id: 'email', icon: 'mail-outline', emoji: '✉️', title: 'writerAcEmailTitle', subtitle: 'writerAcEmailSubtitle', goal: 'writerAcEmailGoal', preset: { questionId: 'what', optionId: 'email' } },
+      { id: 'document', icon: 'document-text-outline', emoji: '📄', title: 'writerAcDocumentTitle', subtitle: 'writerAcDocumentSubtitle', goal: 'writerAcDocumentGoal', preset: { questionId: 'what', optionId: 'document' } },
+      { id: 'cv', icon: 'person-outline', emoji: '🧑‍💼', title: 'writerAcCvTitle', subtitle: 'writerAcCvSubtitle', goal: 'writerAcCvGoal', preset: { questionId: 'what', optionId: 'cv' } },
+      { id: 'translate', icon: 'language-outline', emoji: '🌐', title: 'writerAcTranslateTitle', subtitle: 'writerAcTranslateSubtitle', goal: 'writerAcTranslateGoal', preset: { questionId: 'what', optionId: 'translate' } },
+      { id: 'summary', icon: 'list-outline', emoji: '🗒️', title: 'writerAcSummaryTitle', subtitle: 'writerAcSummarySubtitle', goal: 'writerAcSummaryGoal', preset: { questionId: 'what', optionId: 'summary' } },
+      { id: 'ideas', icon: 'bulb-outline', emoji: '💡', title: 'writerAcIdeasTitle', subtitle: 'writerAcIdeasSubtitle', goal: 'writerAcIdeasGoal', preset: { questionId: 'what', optionId: 'ideas' } },
+      { id: 'fix', icon: 'checkmark-circle-outline', emoji: '✔️', title: 'writerAcFixTitle', subtitle: 'writerAcFixSubtitle', goal: 'writerAcFixGoal', preset: { questionId: 'what', optionId: 'fix' } },
+      { id: 'rewrite', icon: 'refresh-outline', emoji: '🔁', title: 'writerAcRewriteTitle', subtitle: 'writerAcRewriteSubtitle', goal: 'writerAcRewriteGoal', preset: { questionId: 'what', optionId: 'rewrite' } },
+      { id: 'citations', icon: 'chatbox-ellipses-outline', emoji: '❝', title: 'writerAcCitationsTitle', subtitle: 'writerAcCitationsSubtitle', goal: 'writerAcCitationsGoal', preset: { questionId: 'what', optionId: 'document' } },
+      { id: 'more', icon: 'ellipsis-horizontal-circle-outline', emoji: '🤷', title: 'writerAcMoreTitle', subtitle: 'writerAcMoreSubtitle', goal: 'writerAcMoreGoal', preset: { questionId: 'what', optionId: 'idk' }, idk: true },
     ],
     inputs: ['text', 'attach', 'voice', 'web'],
     idea: {
-      title: 'Cuéntale a Weë qué quieres escribir…',
-      subtitle: 'Un tema, una idea suelta o un texto para mejorar.',
-      placeholder: 'Cuéntale a Weë qué quieres escribir…',
-      chips: ['Un cuento para mis hijos', 'Un email para un cliente', 'La descripción de mi producto', 'Corrige este texto'],
+      title: 'writerIdeaTitle',
+      subtitle: 'writerIdeaSubtitle',
+      placeholder: 'writerIdeaPlaceholder',
+      chips: ['writerIdeaChip1', 'writerIdeaChip2', 'writerIdeaChip3', 'writerIdeaChip4'],
     },
-    examplesTitle: 'Ejemplos e inspiración',
+    examplesTitle: 'writerExamplesTitle',
     examples: [
-      { title: 'Portada de novela', subtitle: 'Ciencia ficción', kind: 'document', emoji: '🚀', tone: T.night },
-      { title: 'Portada de libro', subtitle: 'Gastronomía', kind: 'document', emoji: '🍲', tone: T.coral },
-      { title: 'Guion de cortometraje', subtitle: 'Drama', kind: 'document', emoji: '🎭', tone: T.slate },
-      { title: 'Artículo de blog', subtitle: 'Tecnología', kind: 'document', emoji: '💻', tone: T.sky },
-      { title: 'Post para redes', subtitle: 'Motivación', kind: 'document', emoji: '🌅', tone: T.yellow },
-      { title: 'CV profesional', subtitle: 'Moderno y limpio', kind: 'document', emoji: '🧑‍💼', tone: T.mint },
+      { title: 'writerEj1Title', subtitle: 'writerEj1Subtitle', kind: 'document', emoji: '🚀', tone: T.night },
+      { title: 'writerEj2Title', subtitle: 'writerEj2Subtitle', kind: 'document', emoji: '🍲', tone: T.coral },
+      { title: 'writerEj3Title', subtitle: 'writerEj3Subtitle', kind: 'document', emoji: '🎭', tone: T.slate },
+      { title: 'writerEj4Title', subtitle: 'writerEj4Subtitle', kind: 'document', emoji: '💻', tone: T.sky },
+      { title: 'writerEj5Title', subtitle: 'writerEj5Subtitle', kind: 'document', emoji: '🌅', tone: T.yellow },
+      { title: 'writerEj6Title', subtitle: 'writerEj6Subtitle', kind: 'document', emoji: '🧑‍💼', tone: T.mint },
     ],
   },
   /*
@@ -669,10 +705,10 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
    */
   travel: {
     id: 'travel',
-    headline: 'Prepara tu viaje con alguien que ya ha viajado.',
-    intro: 'Cuéntame a dónde vas —o que no lo sabes todavía— y te preparo el viaje: qué ver, dónde comer y cómo moverte.',
-    chips: ['Sin reservas', 'Con fuentes', 'A tu ritmo'],
-    note: 'Los mejores viajes empiezan con una frase',
+    headline: 'travelHeadline',
+    intro: 'travelIntro',
+    chips: ['travelChip1', 'travelChip2', 'travelChip3'],
+    note: 'travelNote',
     heroEmoji: '✈️',
     /*
      * El rótulo de la fila que despliega las funciones (fase 2E-69). Es la otra
@@ -680,15 +716,15 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * Sin `gridHint`, porque "cuatro formas de empezar" repetía en palabras lo
      * que se ve de un vistazo en cuanto la fila se abre.
      */
-    gridTitle: '¿Qué quieres hacer?',
+    gridTitle: 'travelGridTitle',
     /* La frase bajo el título cuando Travel está plegado: qué hay ahí dentro. */
-    gridHint: 'Planifica, descubre, explora…',
+    gridHint: 'travelGridHint',
     actionLayout: 'compact',
     actions: [
-      { id: 'plan', icon: 'map-outline', emoji: '🗺️', title: 'Planificar un viaje', subtitle: 'Un itinerario día a día', goal: 'Planificar un viaje', preset: { questionId: 'what', optionId: 'plan' } },
-      { id: 'where', icon: 'earth-outline', emoji: '🌎', title: 'No sé a dónde ir', subtitle: 'Te propongo tres destinos', goal: 'No sé a dónde viajar', preset: { questionId: 'what', optionId: 'where' }, idk: true },
-      { id: 'doing', icon: 'restaurant-outline', emoji: '🍽️', title: 'Qué hacer y dónde comer', subtitle: 'Lo que merece la pena, con su fuente', goal: 'Qué hacer y dónde comer en mi destino', preset: { questionId: 'what', optionId: 'doing' } },
-      { id: 'moving', icon: 'compass-outline', emoji: '🧭', title: 'Cómo moverme', subtitle: 'Tiempos y precios aproximados', goal: 'Cómo moverme en mi destino', preset: { questionId: 'what', optionId: 'moving' } },
+      { id: 'plan', icon: 'map-outline', emoji: '🗺️', title: 'travelAcPlanTitle', subtitle: 'travelAcPlanSubtitle', goal: 'travelAcPlanGoal', preset: { questionId: 'what', optionId: 'plan' } },
+      { id: 'where', icon: 'earth-outline', emoji: '🌎', title: 'travelAcWhereTitle', subtitle: 'travelAcWhereSubtitle', goal: 'travelAcWhereGoal', preset: { questionId: 'what', optionId: 'where' }, idk: true },
+      { id: 'doing', icon: 'restaurant-outline', emoji: '🍽️', title: 'travelAcDoingTitle', subtitle: 'travelAcDoingSubtitle', goal: 'travelAcDoingGoal', preset: { questionId: 'what', optionId: 'doing' } },
+      { id: 'moving', icon: 'compass-outline', emoji: '🧭', title: 'travelAcMovingTitle', subtitle: 'travelAcMovingSubtitle', goal: 'travelAcMovingGoal', preset: { questionId: 'what', optionId: 'moving' } },
     ],
     inputs: ['text'],
     /*
@@ -699,10 +735,10 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      */
     ideaFirst: true,
     idea: {
-      title: '✈️ ¿Qué viaje tienes en mente?',
-      subtitle: 'Escríbelo con tus palabras: cuanto más me cuentes, menos te pregunto.',
-      placeholder: 'Ejemplo: Japón del 12 al 22 de octubre, me gusta comer…',
-      chips: ['🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'],
+      title: 'travelIdeaTitle',
+      subtitle: 'travelIdeaSubtitle',
+      placeholder: 'travelIdeaPlaceholder',
+      chips: ['travelIdeaChip1', 'travelIdeaChip2', 'travelIdeaChip3'],
     },
     /*
      * Sin fila de ejemplos (fase 2E-69). "Viajes que preparó Weë" eran cuatro
@@ -731,3 +767,67 @@ export const getSpecialist = (id: string): (SpecialistConfig & { experience: Wee
   if (!config || !experience) return null;
   return { ...config, experience };
 };
+
+/** Lo mínimo que se le pide al traductor: una clave entra, un texto sale. */
+type Traducir = (clave: string) => string;
+
+/** El módulo del diccionario donde vive el catálogo. */
+const CAT = 'catalogo.';
+
+/**
+ * La misma configuración, con las claves ya convertidas en palabras.
+ *
+ * Es LA ÚNICA puerta entre el catálogo y la pantalla. Devuelve un objeto con la
+ * misma forma —mismas propiedades, mismo orden, mismos identificadores— para
+ * que ni las pantallas ni los componentes compartidos tengan que cambiar: quien
+ * recibía `spec.headline` sigue recibiendo una frase, y quien recibía
+ * `action.title` también.
+ *
+ * Lo que NO pasa por el traductor, y se copia tal cual: `id`, `icon`, `emoji`,
+ * `heroEmoji`, `kind`, `tone`, `inputs`, `actionLayout`, `preset`, `opens`,
+ * `opensSection`, `secondary`, `idk` e `ideaFirst`. Es decir: todo lo que
+ * decide a dónde lleva algo, cómo se dibuja o qué se le manda al servidor.
+ */
+export const traducirEspecialista = <C extends SpecialistConfig>(spec: C, t: Traducir): C => ({
+  ...spec,
+  headline: t(CAT + spec.headline),
+  intro: t(CAT + spec.intro),
+  chips: spec.chips.map((c) => t(CAT + c)),
+  note: t(CAT + spec.note),
+  gridTitle: t(CAT + spec.gridTitle),
+  gridHint: spec.gridHint ? t(CAT + spec.gridHint) : undefined,
+  actions: spec.actions.map((a) => ({
+    ...a,
+    title: t(CAT + a.title),
+    subtitle: t(CAT + a.subtitle),
+    goal: t(CAT + a.goal),
+  })),
+  idea: {
+    ...spec.idea,
+    title: t(CAT + spec.idea.title),
+    subtitle: t(CAT + spec.idea.subtitle),
+    placeholder: t(CAT + spec.idea.placeholder),
+    chips: spec.idea.chips.map((c) => t(CAT + c)),
+    button: spec.idea.button ? t(CAT + spec.idea.button) : undefined,
+  },
+  upload: spec.upload && {
+    ...spec.upload,
+    title: t(CAT + spec.upload.title),
+    subtitle: t(CAT + spec.upload.subtitle),
+    hint: t(CAT + spec.upload.hint),
+    button: spec.upload.button ? t(CAT + spec.upload.button) : undefined,
+  },
+  examplesTitle: spec.examplesTitle ? t(CAT + spec.examplesTitle) : undefined,
+  examples: spec.examples?.map((e) => ({
+    ...e,
+    title: t(CAT + e.title),
+    subtitle: e.subtitle ? t(CAT + e.subtitle) : undefined,
+    meta: e.meta ? t(CAT + e.meta) : undefined,
+  })),
+  closing: spec.closing && {
+    ...spec.closing,
+    title: t(CAT + spec.closing.title),
+    subtitle: t(CAT + spec.closing.subtitle),
+    button: t(CAT + spec.closing.button),
+  },
+});

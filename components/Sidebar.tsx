@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
@@ -79,6 +80,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested,
  * Notificaciones no está: vive en la barra inferior, que se ve siempre.
  */
 const Sidebar: React.FC = () => {
+  const { formato } = useIdioma();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
@@ -190,7 +192,7 @@ const Sidebar: React.FC = () => {
             onPress={() => (user ? navigation.navigate('CreditStore') : requireLogin())}
             right={user ? (
               <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
-                <Text style={styles.saldoTexto}>{balance === null ? '…' : `${balance.toLocaleString('es')} Credits`}</Text>
+                <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
               </View>
             ) : undefined}
           />

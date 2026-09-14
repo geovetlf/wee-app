@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useT } from '../../contexts/IdiomaContext';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -109,6 +110,7 @@ const ATAJOS: { id: string; icon: string; etiqueta: string; kind: ComposerKind }
 
 const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, compact, seccion, variante = 'muro', directo = false }) => {
   const { theme } = useTheme();
+  const t = useT();
   const { userProfile } = useUserProfile();
   const destinoActual = seccion || MURO_GENERAL;
 
@@ -165,7 +167,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
               activeOpacity={0.85}
               style={[styles.crear, { backgroundColor: theme.colors.accent }]}
               accessibilityRole="button"
-              accessibilityLabel="Crear una publicación"
+              accessibilityLabel={t('composer.createPost')}
             >
               <Ionicons name="add" size={scale(26)} color="#1F2937" />
             </TouchableOpacity>
@@ -228,7 +230,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             style={styles.composerFotoCompacta}
             accessibilityRole="button"
-            accessibilityLabel="Compartir una foto"
+            accessibilityLabel={t('composer.sharePhoto')}
           >
             <Ionicons name="image-outline" size={scale(21)} color={theme.colors.accentDark} />
           </TouchableOpacity>
@@ -314,10 +316,10 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
             activeOpacity={0.85}
             style={[styles.publishButton, { backgroundColor: theme.colors.accent }]}
             accessibilityRole="button"
-            accessibilityLabel="Publicar"
+            accessibilityLabel={t('composer.publish')}
           >
             <Ionicons name="paper-plane-outline" size={scale(18)} color="#1F2937" />
-            <Text style={styles.publishText}>Publicar</Text>
+            <Text style={styles.publishText}>{t('composer.publish')}</Text>
           </TouchableOpacity>
         </>
       )}

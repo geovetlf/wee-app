@@ -147,13 +147,24 @@ export interface QuoteResponse {
   pricing: PlanPricing | null;
 }
 
-export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
-  asking: 'Faltan respuestas',
-  planned: 'Lista para crear',
-  running: 'Creando…',
-  done: 'Lista',
-  failed: 'No salió',
-  cancelled: 'Cancelada',
+/**
+ * En qué punto está un trabajo, en CLAVES de i18n.
+ *
+ * Se lee en tres sitios —la sección del especialista, WEË AI y un proyecto— y
+ * en ninguno se puede llamar al traductor desde aquí: este archivo es un
+ * servicio, se importa fuera de React. Guarda la clave; la resuelve quien
+ * pinta, con `t(claveDelEstado[job.status])`.
+ *
+ * Los identificadores del estado (`asking`, `done`…) vienen del servidor y no
+ * se tocan.
+ */
+export const claveDelEstado: Record<JobStatus, string> = {
+  asking: 'weeai.jobAsking',
+  planned: 'weeai.jobPlanned',
+  running: 'weeai.jobRunning',
+  done: 'weeai.jobDone',
+  failed: 'weeai.jobFailed',
+  cancelled: 'weeai.jobCancelled',
 };
 
 /** creatorRun puede tardar (video): la app espera hasta 15 minutos; el progreso llega por Firestore igual. */
@@ -177,23 +188,34 @@ export const isClientTimeout = (error: unknown): boolean => {
   return code.includes('deadline-exceeded') && !creatorErrorCode(error);
 };
 
-/** Convierte errores de las funciones en frases para la persona. */
-export const humanizeCreatorError = (error: unknown): string => {
+/**
+ * Convierte errores de las funciones en frases para la persona.
+ *
+ * El traductor entra por parámetro porque este archivo es un servicio: se
+ * importa fuera de React y aquí no hay contexto. Quien llama ya lo tiene.
+ *
+ * OJO CON UN CAMINO: cuando el servidor manda un error controlado con su
+ * propia frase, esa frase se enseña tal cual y hoy viene en español
+ * (`functions/src/engine/errors.ts`). Traducirla es cosa del servidor, no de
+ * aquí: cambiarlo desde el cliente sería inventarse un mensaje distinto del
+ * que el motor quiso dar.
+ */
+export const humanizeCreatorError = (error: unknown, t: (clave: string) => string): string => {
   const code = String((error as any)?.code || '');
   const message = String((error as any)?.message || '');
-  if (creditsShortfall(error)) return 'No tienes suficientes Credits para este trabajo. Obtén Credits y vuelve a intentarlo.';
+  if (creditsShortfall(error)) return t('weeai.errNotEnoughCredits');
   const controlled = creatorErrorCode(error);
-  // Los errores controlados del servidor ya vienen con una frase amable en español
+  // Los errores controlados del servidor ya vienen con una frase amable
   if (controlled && message && !/^[A-Z_]+$/.test(message)) return message;
-  if (controlled === 'RATE_LIMITED') return 'Has hecho muchas creaciones seguidas. Espera un momento e inténtalo de nuevo.';
-  if (controlled === 'TIMEOUT') return 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.';
-  if (controlled === 'DUPLICATE_REQUEST') return 'Esa creación ya está en marcha.';
-  if (controlled === 'ACCOUNT_NOT_FOUND') return 'Termina de crear tu perfil para usar WEË AI.';
-  if (code.includes('unauthenticated')) return 'Inicia sesión para crear con Weë.';
+  if (controlled === 'RATE_LIMITED') return t('weeai.errRateLimited');
+  if (controlled === 'TIMEOUT') return t('weeai.errTimeout');
+  if (controlled === 'DUPLICATE_REQUEST') return t('weeai.errDuplicate');
+  if (controlled === 'ACCOUNT_NOT_FOUND') return t('weeai.errNoAccount');
+  if (code.includes('unauthenticated')) return t('weeai.errSignIn');
   if (code.includes('unavailable') || code.includes('internal') || message.includes('Failed to fetch')) {
-    return 'No pude conectar con WEË AI. Revisa tu conexión y vuelve a intentarlo.';
+    return t('weeai.errOffline');
   }
-  return 'No me salió bien. ¿Probamos otra vez? No te cobré.';
+  return t('weeai.errGeneric');
 };
 
 export const creatorService = {

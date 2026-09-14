@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -40,6 +41,7 @@ interface CreatorShellProps {
  */
 const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'WEË AI', onBack, children, contentStyle }) => {
   const { theme } = useTheme();
+  const t = useT();
   /*
    * Este contenedor es el que se desplaza en TODAS las experiencias de Weë
    * —Travel, Studio, Design, Music, Chef…—, así que engancharlo aquí las cubre
@@ -60,7 +62,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
         <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel="Volver">
+          <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('weeai.back')}>
             <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
           </TouchableOpacity>
           {mark}
@@ -94,7 +96,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
       <CreatorSidebar activeId={activeId} />
       <View style={styles.main}>
         <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel="Volver">
+          <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('weeai.back')}>
             <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
           </TouchableOpacity>
@@ -111,14 +113,14 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             </View>
           )}
           <View style={styles.topActions}>
-            <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityLabel="Buscar en Weë">
+            <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityLabel={t('weeai.searchLabel')}>
               <Ionicons name="search-outline" size={scale(16)} color={theme.colors.textSecondary} />
-              <Text style={[styles.searchText, { color: theme.colors.textSecondary }]}>Buscar en Weë…</Text>
+              <Text style={[styles.searchText, { color: theme.colors.textSecondary }]}>{t('weeai.searchInWee')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={goNotifications} activeOpacity={0.7} style={[styles.iconButton, { borderColor: theme.colors.border }]} accessibilityLabel="Notificaciones">
+            <TouchableOpacity onPress={goNotifications} activeOpacity={0.7} style={[styles.iconButton, { borderColor: theme.colors.border }]} accessibilityLabel={t('weeai.notifications')}>
               <Ionicons name="notifications-outline" size={scale(20)} color={theme.colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={goProfile} activeOpacity={0.7} accessibilityLabel="Mi perfil">
+            <TouchableOpacity onPress={goProfile} activeOpacity={0.7} accessibilityLabel={t('weeai.myProfile')}>
               {userProfile ? (
                 <AvatarDisplay
                   size={scale(36)}

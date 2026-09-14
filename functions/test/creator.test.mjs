@@ -1,6 +1,18 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import fsCat from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
+/* El catálogo de las once experiencias: la clave vive en constants/specialists.ts
+ * y la palabra en el diccionario. `catEs` resuelve una; `catEsDe` junta todas
+ * las de una experiencia, para buscar una palabra sin saber en qué clave está. */
+const catalogoEs = fsCat.readFileSync(new URL('../../i18n/textos/es/catalogo.ts', import.meta.url), 'utf8');
+const catEs = (clave) => (catalogoEs.match(new RegExp('^  ' + clave + ": '(.*)',$", 'm')) || [])[1] || '';
+const catEsDe = (exp) => [...catalogoEs.matchAll(new RegExp('^  ' + exp + "[A-Z][A-Za-z0-9]*: '(.*)',$", 'gm'))].map((m) => m[1]).join(' · ');
+/* Y el módulo que describe a las experiencias, para las claves de `creator.*`. */
+const creatorEs = fsCat.readFileSync(new URL('../../i18n/textos/es/creator.ts', import.meta.url), 'utf8');
+const crEs = (clave) => (creatorEs.match(new RegExp('^  ' + clave.replace('creator.', '') + ": '(.*)',$", 'm')) || [])[1] || '';
+
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
@@ -566,8 +578,12 @@ console.log('\n── Weë Chef · la foto va a donde la persona cree ──');
   //    qué foto espera, y ya no hay un bloque aparte que las repita.
   {
     const bloqueChef = specialists.slice(specialists.indexOf('  chef: {'), specialists.indexOf('  home: {'));
-    check('1) retocar el plato es una función y dice qué foto espera', /title: 'Retocar mi foto', subtitle: 'Mejora la foto de tu plato'/.test(bloqueChef));
-    check('1) cocinar con lo que hay es otra y también lo dice', /title: 'Usar mis ingredientes', subtitle: 'Desde la foto de tu refrigerador'/.test(bloqueChef));
+    check('1) retocar el plato es una función y dice qué foto espera',
+      /title: 'chefAcEditTitle', subtitle: 'chefAcEditSubtitle'/.test(bloqueChef)
+      && catEs('chefAcEditTitle') === 'Retocar mi foto' && catEs('chefAcEditSubtitle') === 'Mejora la foto de tu plato');
+    check('1) cocinar con lo que hay es otra y también lo dice',
+      /title: 'chefAcIngredientsTitle', subtitle: 'chefAcIngredientsSubtitle'/.test(bloqueChef)
+      && catEs('chefAcIngredientsTitle') === 'Usar mis ingredientes' && catEs('chefAcIngredientsSubtitle') === 'Desde la foto de tu refrigerador');
     check('1) y Chef ya no tiene bloque de foto aparte', !/upload: \{/.test(bloqueChef) && !/title: '¿Tienes una foto\?'/.test(specialists));
     check('1) ni la pantalla lo pinta', !/spec\.upload && spec\.id === 'chef'/.test(pantalla) && !/Retocar mi plato/.test(pantalla));
     check('1) las secciones que sí tienen caja de subida la conservan', /\{spec\.upload && <UploadBox/.test(pantalla) && /upload: \{/.test(specialists));
@@ -585,7 +601,9 @@ console.log('\n── Weë Chef · la foto va a donde la persona cree ──');
   // 4) El texto de subida dice qué foto hace falta en cada caso.
   check('4) al retocar se pide la foto del plato terminado', /Sube una foto de tu plato terminado/.test(flujo));
   check('4) al cocinar se pide la del refrigerador o los ingredientes', /Sube una foto de tu refrigerador o de los ingredientes/.test(flujo));
-  check('4) y las demás experiencias conservan su texto de siempre', /Sube tu foto para trabajarla/.test(flujo));
+  check('4) y las demás experiencias conservan su texto de siempre',
+    /t\('weeai\.uploadYourPhoto'\)/.test(flujo)
+    && /uploadYourPhoto: 'Sube tu foto para trabajarla'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
 
   // 5) Chef declara que acepta imágenes, como Photo, Home y Beauty.
   check('5) Chef declara el modo de entrada por imagen', /inputs: \['text', 'upload', 'camera', 'voice'\]/.test(specialists));
@@ -726,15 +744,18 @@ console.log('\n── Weë Design · siete intenciones en vez de catorce ejemplo
   // 2) Los nombres y subtítulos aprobados, palabra por palabra.
   {
     const esperados = [
-      ['Un logo o mi marca', 'Nombre, colores y tipografía'],
-      ['Algo para redes o publicidad', 'Afiches, flyers, anuncios, portadas'],
-      ['Un producto', 'Envases, muebles, ropa, tecnología'],
-      ['Un vehículo o una máquina', 'Autos, aviones, motores, inventos'],
-      ['Un lugar o un escenario', 'Crea desde cero casas, locales, ciudades y paisajes'],
-      ['Un personaje', 'Mascotas, héroes, criaturas'],
-      ['No sé qué diseñar', 'Cuéntame tu idea y te propongo algo'],
+      ['Brand', 'Un logo o mi marca', 'Nombre, colores y tipografía'],
+      ['Social', 'Algo para redes o publicidad', 'Afiches, flyers, anuncios, portadas'],
+      ['Product', 'Un producto', 'Envases, muebles, ropa, tecnología'],
+      ['Machine', 'Un vehículo o una máquina', 'Autos, aviones, motores, inventos'],
+      ['Place', 'Un lugar o un escenario', 'Crea desde cero casas, locales, ciudades y paisajes'],
+      ['Character', 'Un personaje', 'Mascotas, héroes, criaturas'],
+      ['Idk', 'No sé qué diseñar', 'Cuéntame tu idea y te propongo algo'],
     ];
-    const faltan = esperados.filter(([t, s]) => !bloque.includes(`title: '${t}', subtitle: '${s}'`)).map(([t]) => t);
+    /* La tarjeta lleva su clave y la clave lleva su frase: se comprueban las dos. */
+    const faltan = esperados.filter(([id, t, s]) =>
+      !bloque.includes(`title: 'designAc${id}Title', subtitle: 'designAc${id}Subtitle'`)
+      || catEs(`designAc${id}Title`) !== t || catEs(`designAc${id}Subtitle`) !== s).map(([, t]) => t);
     check('2) cada acción con su nombre y su subtítulo', faltan.length === 0, faltan.join(' · '));
   }
 
@@ -763,7 +784,7 @@ console.log('\n── Weë Design · siete intenciones en vez de catorce ejemplo
 
     // Y las que perdieron botón siguen nombradas donde se ven.
     const enPantalla = ['Envases', 'muebles', 'ropa', 'tecnología', 'Autos', 'aviones', 'motores', 'inventos', 'casas', 'locales', 'ciudades', 'paisajes'];
-    const sinNombrar = enPantalla.filter((w) => !bloque.includes(w));
+    const sinNombrar = enPantalla.filter((w) => !catEsDe('design').includes(w));
     check('3) y las que perdieron botón siguen nombradas en los subtítulos', sinNombrar.length === 0, sinNombrar.join(', '));
   }
 
@@ -1083,9 +1104,9 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     check('8) y son fotos, videos, beauty y writer', ids.join(',') === 'photos,videos,beauty,writer', ids.join(','));
     // Cuatro áreas, dos niveles desde 2E-53: dos caminos y dos entradas secundarias.
     check('8) dos son caminos principales y dos son secundarias', (bloque.match(/secondary: true/g) || []).length === 2);
-    check('9) Fotos abre Weë Photo', /title: 'Fotos'[^}]*opens: 'photo'/.test(bloque));
-    check('10) Videos abre Weë Studio', /title: 'Videos'[^}]*opens: 'studio'/.test(bloque));
-    check('11) Beauty abre Weë Beauty', /title: 'Beauty'[^}]*opens: 'beauty'/.test(bloque));
+    check('9) Fotos abre Weë Photo', /title: 'studioAcPhotosTitle'[^}]*opens: 'photo'/.test(bloque) && catEs('studioAcPhotosTitle') === 'Fotos');
+    check('10) Videos abre Weë Studio', /title: 'studioAcVideosTitle'[^}]*opens: 'studio'/.test(bloque) && catEs('studioAcVideosTitle') === 'Videos');
+    check('11) Beauty abre Weë Beauty', /title: 'studioAcBeautyTitle'[^}]*opens: 'beauty'/.test(bloque) && catEs('studioAcBeautyTitle') === 'Beauty');
     check('11) la pantalla honra ese destino', /experienceId: opens \|\| spec\.id/.test(pantalla));
   }
 
@@ -1107,7 +1128,11 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     check('15) y sus configuraciones de pantalla siguen enteras', /^  photo: \{/m.test(specialists) && /^  beauty: \{/m.test(specialists));
 
     // Lo que se lee arriba dice dónde está la persona; el id no cambia.
-    check('13) la mesa de trabajo se presenta como área de Studio', exp.EXPERIENCE_AREA.photo.label === 'Weë Studio · Fotos' && exp.EXPERIENCE_AREA.beauty.label === 'Weë Studio · Beauty' && exp.EXPERIENCE_AREA.studio.label === 'Weë Studio · Videos');
+    check('13) la mesa de trabajo se presenta como área de Studio',
+      crEs(exp.EXPERIENCE_AREA.photo.claveEtiqueta) === 'Weë Studio · Fotos'
+      && crEs(exp.EXPERIENCE_AREA.beauty.claveEtiqueta) === 'Weë Studio · Beauty'
+      && crEs(exp.EXPERIENCE_AREA.studio.claveEtiqueta) === 'Weë Studio · Videos',
+      exp.EXPERIENCE_AREA.photo.claveEtiqueta);
     check('13) y la barra lateral marca Studio', ['photo', 'studio', 'beauty'].every((id) => exp.EXPERIENCE_AREA[id].section === 'studio'));
     check('13) la pantalla usa ese contexto', /const area = EXPERIENCE_AREA\[experience\.id\];/.test(mesa) && /activeId=\{area \? area\.section : experience\.id\}/.test(mesa));
   }
@@ -1210,10 +1235,11 @@ console.log('\n── Weë Studio · lo que la pantalla decía y no era ──')
   {
     const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
     const hero = bloque.slice(0, bloque.indexOf('    gridTitle:'));
-    check('1) el hero de Studio nombra las fotos', /headline: '[^']*[Ff]otos/.test(hero), (hero.match(/headline: '([^']*)'/) || [])[1]);
+    check('1) el hero de Studio nombra las fotos', /[Ff]otos/.test(catEs((hero.match(/headline: '([^']*)'/) || [])[1] || '')), (hero.match(/headline: '([^']*)'/) || [])[1]);
     // Mirando el valor del campo, no el archivo: el comentario que explica el
     // cambio cita las frases viejas, y leerlo en crudo daba un falso negativo.
-    const valor = (campo) => (hero.match(new RegExp(`${campo}: '([^']*)'`)) || [])[1] || '';
+    /* La cabecera guarda la clave; la palabra la pone el diccionario español. */
+    const valor = (campo) => catEs((hero.match(new RegExp(`${campo}: '([^']*)'`)) || [])[1] || '');
     check('1) y ya no dice que hagan falta saberes de video', valor('headline') !== 'Convierte tus ideas en videos' && !/No necesitas saber hacer videos/.test(valor('intro')), `${valor('headline')} · ${valor('intro')}`);
     check('1) la entradilla acompaña sin enumerar', valor('intro') === 'Cuéntame qué quieres crear y te ayudaré paso a paso.', valor('intro'));
     check('1) y la nota ya no es solo de movimiento', !/Ideas en movimiento/.test(hero), (hero.match(/note: '([^']*)'/) || [])[1]);
@@ -1238,7 +1264,10 @@ console.log('\n── Weë Studio · lo que la pantalla decía y no era ──')
 
   // 3) El título que contaba diez.
   check('3) Weë Creator ya no promete diez especialistas', !/Los 10 especialistas/.test(creator));
-  check('3) y sigue nombrándolos', /Los especialistas de Weë/.test(creator));
+  /* El rótulo ya no está escrito en la pantalla: está su clave, y la frase en el diccionario. */
+  check('3) y sigue nombrándolos',
+    /t\('weeai\.theSpecialists'\)/.test(creator)
+    && /theSpecialists: 'Los especialistas de Weë'/.test(fsCat.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
 
   // 4) La tarjeta de Studio dentro de Weë Creator.
   {
@@ -1291,21 +1320,23 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
   const exp = await cargar('constants/weeExperiences.ts');
 
   const bloque = specialists.slice(specialists.indexOf('  studio: {'), specialists.indexOf('  business: {'));
-  const accion = (titulo) => {
-    const linea = bloque.split('\n').find((l) => l.includes(`title: '${titulo}'`)) || '';
+  /* Se busca por identificador —que es lo estable— y el nombre se resuelve. */
+  const accion = (aid) => {
+    const linea = bloque.split('\n').find((l) => l.includes(`{ id: '${aid}'`)) || '';
     return {
       hay: !!linea,
+      titulo: catEs((linea.match(/title: '([^']+)'/) || [])[1] || ''),
       abre: (linea.match(/opens: '([^']+)'/) || [])[1],
-      subtitulo: (linea.match(/subtitle: '([^']+)'/) || [])[1],
+      subtitulo: catEs((linea.match(/subtitle: '([^']+)'/) || [])[1] || ''),
       secundaria: /secondary: true/.test(linea),
     };
   };
-  const fotos = accion('Fotos'), videos = accion('Videos'), beauty = accion('Beauty');
+  const fotos = accion('photos'), videos = accion('videos'), beauty = accion('beauty');
 
   // 1 a 3) Los dos caminos y la entrada especializada.
-  check('1) Studio tiene Fotos', fotos.hay && !fotos.secundaria);
-  check('2) Studio tiene Videos', videos.hay && !videos.secundaria);
-  check('3) y Beauty como entrada secundaria', beauty.hay && beauty.secundaria);
+  check('1) Studio tiene Fotos', fotos.hay && !fotos.secundaria && fotos.titulo === 'Fotos', fotos.titulo);
+  check('2) Studio tiene Videos', videos.hay && !videos.secundaria && videos.titulo === 'Videos', videos.titulo);
+  check('3) y Beauty como entrada secundaria', beauty.hay && beauty.secundaria && beauty.titulo === 'Beauty', beauty.titulo);
   check('3) que sigue explicando lo que hace', beauty.subtitulo === 'Maquillaje, cabello, rostro, ropa, uñas y cuidado personal.', beauty.subtitulo);
   check('3) sin esconderse detrás de un "Más"', !/'Más'|"Más"|Ver más opciones/.test(bloque));
 
@@ -1361,7 +1392,8 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
   // 15 a 17) Lo que dice la sección de sí misma.
   {
     const hero = bloque.slice(0, bloque.indexOf('    gridTitle:'));
-    const valor = (campo) => (hero.match(new RegExp(`${campo}: '([^']*)'`)) || [])[1] || '';
+    /* La cabecera guarda la clave; la palabra la pone el diccionario español. */
+    const valor = (campo) => catEs((hero.match(new RegExp(`${campo}: '([^']*)'`)) || [])[1] || '');
     const studio = experiencias.slice(experiencias.indexOf("    id: 'studio',"), experiencias.indexOf("    id: 'photo',"));
     const descripcion = (studio.match(/description: '([^']*)'/) || [])[1] || '';
 
@@ -1370,7 +1402,9 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
     check('16) la intro no es solo de video', !/video/i.test(valor('intro')), valor('intro'));
     check('16) ni enumera capacidades', !/[Bb]eauty|look|maquillaje/i.test(valor('intro')));
     check('17) la descripción general no mete a Beauty en el mensaje principal', !/[Bb]eauty|look|maquillaje/i.test(descripcion), descripcion);
-    check('17) y Beauty sí se describe dentro del selector', /Maquillaje, cabello, rostro, ropa, uñas y cuidado personal\./.test(bloque));
+    check('17) y Beauty sí se describe dentro del selector',
+      /subtitle: 'studioAcBeautySubtitle'/.test(bloque)
+      && catEs('studioAcBeautySubtitle') === 'Maquillaje, cabello, rostro, ropa, uñas y cuidado personal.');
   }
 
   // 18) Ni rastro de las viejas tarjetas.
@@ -1406,7 +1440,7 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
   const feed = await cargar('utils/sectionFeed.ts');
 
   const design = specialists.slice(specialists.indexOf('  design: {'), specialists.indexOf('  photo: {'));
-  const linea = design.split('\n').find((l) => l.includes("title: 'Hogar & Diseño'")) || '';
+  const linea = design.split('\n').find((l) => l.includes("{ id: 'home'")) || '';
 
   // A y B) Se va del menú, se queda en el sistema.
   check('A) home ya no es sección principal', !exp.WEE_EXPERIENCES.some((e) => e.id === 'home') && exp.HIDDEN_AS_SECTION.includes('home'));
@@ -1415,28 +1449,39 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
   check('B) y su pantalla de sección no se ha borrado', /^  home: \{/m.test(specialists));
 
   // C, D y E) La entrada dentro de Weë Design.
-  check('C) Weë Design tiene la acción Hogar & Diseño', !!linea, linea.trim().slice(0, 60));
-  check('C) con su emoji y su subtítulo', /emoji: '🏠'/.test(linea) && /subtitle: 'Transforma y rediseña tu hogar o espacio a partir de una foto\.'/.test(linea));
+  check('C) Weë Design tiene la acción Hogar & Diseño', !!linea && catEs('designAcHomeTitle') === 'Hogar & Diseño', linea.trim().slice(0, 60));
+  check('C) con su emoji y su subtítulo', /emoji: '🏠'/.test(linea) && /subtitle: 'designAcHomeSubtitle'/.test(linea)
+    && catEs('designAcHomeSubtitle') === 'Transforma y rediseña tu hogar o espacio a partir de una foto.');
   check('D) que abre la experiencia home', /opens: 'home'/.test(linea));
   check('E) como entrada de segundo nivel', /secondary: true/.test(linea));
   check('E) y sin esconderse detrás de un "Más"', !/'Más'|Ver más opciones/.test(design));
   check('C) las siete intenciones aprobadas siguen arriba', design.split('\n').filter((l) => /\{ id: '[^']+', icon: /.test(l) && !/secondary: true/.test(l)).length === 7);
 
   // Y se diferencia de "Un lugar o un escenario" por lo que hace.
-  check('C) "Un lugar o un escenario" dice que crea desde cero', /subtitle: 'Crea desde cero casas, locales, ciudades y paisajes'/.test(design));
+  check('C) "Un lugar o un escenario" dice que crea desde cero',
+    /subtitle: 'designAcPlaceSubtitle'/.test(design)
+    && catEs('designAcPlaceSubtitle') === 'Crea desde cero casas, locales, ciudades y paisajes');
 
   // F, G y H) Cómo se presenta y cómo se llama.
   check('F) EXPERIENCE_AREA coloca home dentro de Design', exp.EXPERIENCE_AREA.home?.section === 'design', exp.EXPERIENCE_AREA.home?.section);
-  check('F) con el contexto completo en la cabecera', exp.EXPERIENCE_AREA.home?.label === 'Weë Design · Hogar & Diseño', exp.EXPERIENCE_AREA.home?.label);
-  check('G) y el nombre visible es Hogar & Diseño', exp.experienceLabel({ id: 'home', name: 'Weë Home' }) === 'Hogar & Diseño');
-  check('G) las demás conservan el suyo', exp.experienceLabel({ id: 'chef', name: 'Weë Chef' }) === 'Weë Chef' && exp.experienceLabel({ id: 'photo', name: 'Weë Photo' }) === 'Weë Photo');
-  check('H) la mesa de trabajo firma con ese nombre, no con el propio', (flujo.match(/experienceName=\{nombre\}/g) || []).length === 5 && /const nombre = experienceLabel\(experience\)/.test(flujo));
+  check('F) con el contexto completo en la cabecera',
+    crEs(exp.EXPERIENCE_AREA.home?.claveEtiqueta || '') === 'Weë Design · Hogar & Diseño',
+    exp.EXPERIENCE_AREA.home?.claveEtiqueta);
+  /* El traductor entra por parámetro; aquí se le pasa el diccionario español. */
+  check('G) y el nombre visible es Hogar & Diseño',
+    exp.experienceLabel({ id: 'home', name: 'Weë Home' }, crEs) === 'Hogar & Diseño',
+    exp.experienceLabel({ id: 'home', name: 'Weë Home' }, crEs));
+  check('G) las demás conservan el suyo', exp.experienceLabel({ id: 'chef', name: 'Weë Chef' }, crEs) === 'Weë Chef' && exp.experienceLabel({ id: 'photo', name: 'Weë Photo' }, crEs) === 'Weë Photo');
+  check('H) la mesa de trabajo firma con ese nombre, no con el propio', (flujo.match(/experienceName=\{nombre\}/g) || []).length === 5 && /const nombre = experienceLabel\(experience, t\)/.test(flujo));
   check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en WEË AI/.test(flujo));
-  check('H) el nombre propio solo queda de respaldo en la cabecera', (flujo.match(/experience\.name/g) || []).length === 2 && /area \? area\.label : experience\.name/.test(flujo));
+  check('H) el nombre propio solo queda de respaldo en la cabecera',
+    (flujo.match(/experience\.name/g) || []).length === 2
+    && (flujo.match(/area \? t\(area\.claveEtiqueta\) : experience\.name/g) || []).length === 2);
   check('H) la caja de subida habla de tu espacio', /experience\.id === 'home'[\s\S]{0,80}Sube una foto de tu espacio/.test(flujo));
 
   // I) Weë Brain deriva por identificador y ofrece el nombre visible.
-  check('I) Brain propone "Hogar & Diseño", no "Weë Home"', /experienceLabel\(suggestion\)/.test(brain) && !/suggestion\.name/.test(brain));
+  check('I) Brain propone "Hogar & Diseño", no "Weë Home"',
+    /experienceLabel\(suggestion, t\)/.test(brain) && !/suggestion\.name/.test(brain));
   check('I) y sigue navegando por identificador', /experienceId: exp\.id/.test(brain));
 
   // J y K) Una casa es un lugar; un motor sigue siendo una máquina.
@@ -1584,16 +1629,18 @@ console.log('\n── Hogar & Diseño · seis caminos, una foto, un antes y un d
 
   // 9) La foto, el nombre y el muro.
   {
-    check('9) la caja de subida explica para qué sirve la foto', /Una foto me ayudará a conservar la estructura real del lugar\./.test(flujo));
+    check('9) la caja de subida explica para qué sirve la foto',
+      /t\('weeai\.photoHelps'\)/.test(flujo)
+      && /photoHelps: 'Una foto me ayudará a conservar la estructura real del lugar\.'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
     check('9) el workspace sigue pidiéndola', /\['photo', 'home', 'beauty'\]\.includes\(experience\.id\)/.test(flujo));
-    check('9) y firma como Hogar & Diseño', exp.experienceLabel({ id: 'home', name: 'Weë Home' }) === 'Hogar & Diseño' && /experienceName=\{nombre\}/.test(flujo));
+    check('9) y firma como Hogar & Diseño', exp.experienceLabel({ id: 'home', name: 'Weë Home' }, crEs) === 'Hogar & Diseño' && /experienceName=\{nombre\}/.test(flujo));
   }
 
   // 10) Ni un "Weë Home" que pueda llegar a la persona.
   {
     check('10) Brain ya no lo nombra en su instrucción', !/Weë Home/.test(prompts));
     check('10) y lo recomienda por su nombre visible', /Hogar & Diseño/.test(prompts));
-    check('10) la propuesta de Brain usa la etiqueta del área', /experienceLabel\(suggestion\)/.test(brain) && !/suggestion\.name/.test(brain));
+    check('10) la propuesta de Brain usa la etiqueta del área', /experienceLabel\(suggestion, t\)/.test(brain) && !/suggestion\.name/.test(brain));
     check('10) el routing sigue siendo por identificador', /\[\[WEE:id\]\]/.test(prompts) && /experienceId: exp\.id/.test(brain));
   }
 }
@@ -1809,13 +1856,13 @@ console.log('\n── Hogar & Diseño · que se vea, y que se llame como se llam
     const js = ts.transpileModule(leer('constants/weeExperiences.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
     const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
-    check('G) home se presenta como Hogar & Diseño', exp.experienceLabel(exp.getExperienceById('home')) === 'Hogar & Diseño');
-    check('H) "Mis creaciones" usa la etiqueta, no el nombre crudo', /\{exp \? experienceLabel\(exp\) : 'Weë'\}/.test(creator) && !/\{exp\?\.name \?\? 'Weë'\}/.test(creator));
+    check('G) home se presenta como Hogar & Diseño', exp.experienceLabel(exp.getExperienceById('home'), crEs) === 'Hogar & Diseño');
+    check('H) "Mis creaciones" usa la etiqueta, no el nombre crudo', /\{exp \? experienceLabel\(exp, t\) : 'Weë'\}/.test(creator) && !/\{exp\?\.name \?\? 'Weë'\}/.test(creator));
     check('H) y una sola fuente de verdad para el nombre', /experienceLabel/.test(creator) && !/HOME_LABEL|NOMBRES_VISIBLES/.test(creator));
     check('I) el identificador interno no se ha tocado', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 11);
     check('I) ni su nombre propio, que sigue guardado', exp.getExperienceById('home')?.name === 'Weë Home');
-    check('J) las demás conservan el suyo', ['design', 'studio', 'chef', 'writer', 'music', 'business', 'brain', 'photo', 'beauty'].every((id) => exp.experienceLabel(exp.getExperienceById(id)) === exp.getExperienceById(id).name));
-    check('J) y ninguna otra experiencia cambia de etiqueta', Object.keys(exp.EXPERIENCE_AREA).filter((id) => exp.EXPERIENCE_AREA[id].name).join(',') === 'home');
+    check('J) las demás conservan el suyo', ['design', 'studio', 'chef', 'writer', 'music', 'business', 'brain', 'photo', 'beauty'].every((id) => exp.experienceLabel(exp.getExperienceById(id), crEs) === exp.getExperienceById(id).name));
+    check('J) y ninguna otra experiencia cambia de etiqueta', Object.keys(exp.EXPERIENCE_AREA).filter((id) => exp.EXPERIENCE_AREA[id].claveNombre).join(',') === 'home');
   }
 }
 
@@ -1879,14 +1926,19 @@ console.log('\n── Hogar & Diseño · propuestas, comparación y la foto en g
   // 6 y 7) La foto, en grande y con nombre.
   check('6) la foto se ve grande y sin recortar', /aspectRatio: 4 \/ 3/.test(estilo('spaceImage', flujo)) && /style=\{styles\.spaceImage\} contentFit="contain"/.test(flujo));
   check('7) con su nombre', /📸 Tu espacio/.test(flujo));
-  check('7) y con cambiar y quitar', /accessibilityLabel="Cambiar foto"/.test(flujo) && /accessibilityLabel="Quitar foto"/.test(flujo) && /const quitarFoto = \(\)/.test(flujo));
+  check('7) y con cambiar y quitar',
+  /accessibilityLabel=\{t\('weeai\.changePhoto'\)\}/.test(flujo)
+  && /accessibilityLabel=\{t\('weeai\.removePhoto'\)\}/.test(flujo)
+  && /const quitarFoto = \(\)/.test(flujo));
   check('7) quitar no toca el archivo de la persona', /setImageUri\(undefined\);\s*\n\s*uploadedUrl\.current = undefined;/.test(flujo) && !/deleteObject|remove\(/.test(flujo));
   check('7) las demás experiencias conservan su tira', /!trabajaSobreUnEspacio && \(/.test(flujo) && /styles\.attachmentImage/.test(flujo));
 
   // 8) Entrar no crea un trabajo vacío.
   check('8) sin foto no se arranca un trabajo de espacio', /if \(trabajaSobreUnEspacio && !params\.imageUri\) return;/.test(flujo));
   check('8) la foto lo arranca', /if \(!user \|\| jobId \|\| !imageUri \|\| !trabajaSobreUnEspacio\) return;/.test(flujo));
-  check('8) y hay salida para quien no tiene foto', /Prefiero describirlo con palabras/.test(flujo));
+  check('8) y hay salida para quien no tiene foto',
+  /t\('weeai\.preferWords'\)/.test(flujo)
+  && /preferWords: 'Prefiero describirlo con palabras'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
   check('8) y mientras espera no finge estar pensando', /const esperandoLaFoto = trabajaSobreUnEspacio && !imageUri && !jobId && !busy;/.test(flujo) && /hideThinking=\{esperandoLaFoto\}/.test(flujo));
   check('8) la misma espera manda en las dos cosas', (flujo.match(/esperandoLaFoto/g) || []).length === 3);
   check('8) abrir uno existente nunca crea nada', /if \(jobId\) return;/.test(flujo) && (flujo.match(/creatorService\.start\(/g) || []).length === 1);
@@ -1923,7 +1975,7 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   const real = codigoMenu.indexOf("fila('realProfile'");
   const wee = codigoMenu.indexOf('goWeeProfile');
   const credits = codigoMenu.indexOf("fila('credits'");
-  const explora = codigoMenu.indexOf("renderSectionLabel('EXPLORA')");
+  const explora = codigoMenu.indexOf("renderSectionLabel(t('menu.sectionExplore'))");
   const comunidades = codigoMenu.indexOf("fila('communities'");
   check('C3) va después de Perfil Real y Perfil Weë', credits > real && credits > wee, `real ${real} · weë ${wee} · credits ${credits}`);
   check('C4) y antes de EXPLORA', credits < explora && explora < comunidades, `credits ${credits} · explora ${explora}`);
@@ -2027,8 +2079,10 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
 
   // 4) Los dos pintan los mismos grupos y la misma cabecera de cuenta.
   for (const [nombre, texto] of [['el cajón', cajon], ['la barra', barra]]) {
-    check(`M4) ${nombre} rotula PERFIL y EXPLORA`, /PERFIL/.test(texto) && /EXPLORA/.test(texto));
-    check(`M4) ${nombre} tiene cabecera de cuenta con el perfil activo`, /Perfil Real activo/.test(texto) && /AvatarDisplay/.test(texto));
+    check(`M4) ${nombre} rotula PERFIL y EXPLORA`,
+      /menu\.sectionProfile|PERFIL/.test(texto) && /menu\.sectionExplore|EXPLORA/.test(texto));
+    check(`M4) ${nombre} tiene cabecera de cuenta con el perfil activo`,
+      /menu\.activeReal|Perfil Real activo/.test(texto) && /AvatarDisplay/.test(texto));
     check(`M4) ${nombre} ofrece los dos perfiles`, /realProfile/.test(texto) && /weeProfile/.test(texto));
   }
 
@@ -2094,10 +2148,12 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
   /* 2) Dentro del selector de Weë Studio, con el patrón que Studio ya usaba. */
   const studio = especialistas.slice(especialistas.indexOf('  studio: {'), especialistas.indexOf('  business: {'));
   check('W2) Weë Writer es una función del selector de Weë Studio',
-    /\{ id: 'writer', icon: '[^']+', emoji: '✍️', title: 'Writer',[^}]*opens: 'writer'/.test(studio));
-  check('W2) y la línea del selector la nombra', /gridHint: 'Fotos, videos, cambios de look y textos\.'/.test(studio));
+    /\{ id: 'writer', icon: '[^']+', emoji: '✍️', title: 'studioAcWriterTitle',[^}]*opens: 'writer'/.test(studio)
+    && catEs('studioAcWriterTitle') === 'Writer');
+  check('W2) y la línea del selector la nombra',
+    /gridHint: 'studioGridHint'/.test(studio) && catEs('studioGridHint') === 'Fotos, videos, cambios de look y textos.');
   /* Control: entra por el mismo camino que Beauty, no por una arquitectura nueva. */
-  check('W2) control: usa el mismo mecanismo que Beauty', /title: 'Beauty'[^}]*opens: 'beauty'/.test(studio) && /opens\?: SpecialistId;/.test(especialistas));
+  check('W2) control: usa el mismo mecanismo que Beauty', /title: 'studioAcBeautyTitle'[^}]*opens: 'beauty'/.test(studio) && /opens\?: SpecialistId;/.test(especialistas));
 
   /*
    * 3) Y abre la EXPERIENCIA QUE YA EXISTÍA. No su conversación: su pantalla, que
@@ -2113,7 +2169,7 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
   /* Control: solo Writer usa esa marca; las tres áreas de Studio siguen entrando por la conversación. */
   check('W3) control: las otras funciones no cambiaron de destino',
     (especialistas.match(/opensSection: true/g) || []).length === 1
-    && /title: 'Fotos'[^}]*opens: 'photo'/.test(studio) && !/title: 'Fotos'[^}]*opensSection/.test(studio));
+    && /title: 'studioAcPhotosTitle'[^}]*opens: 'photo'/.test(studio) && !/title: 'studioAcPhotosTitle'[^}]*opensSection/.test(studio));
 
   /*
    * 4) UNA SOLA PUERTA. La experiencia no se ha duplicado: sigue habiendo un
@@ -2133,7 +2189,7 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
    */
   check('W5) el identificador sigue resolviendo a Weë Writer', expW.getExperienceById('writer')?.name === 'Weë Writer');
   check('W5) sus palabras clave la siguen encontrando', expW.matchExperiences('escribir un guion').some((e) => e.id === 'writer'));
-  check('W5) y sigue firmando con su nombre propio', expW.experienceLabel(expW.getExperienceById('writer')) === 'Weë Writer');
+  check('W5) y sigue firmando con su nombre propio', expW.experienceLabel(expW.getExperienceById('writer'), crEs) === 'Weë Writer');
   /* Y el destino de publicación Weë Writer, intacto: sale de otra lista y no se tocó. */
   const jsSec = ts4.transpileModule(leer4('utils/sectionFeed.ts'), { compilerOptions: { module: ts4.ModuleKind.ESNext, target: ts4.ScriptTarget.ES2020 } }).outputText;
   const sec = await import('data:text/javascript;base64,' + Buffer.from(jsSec).toString('base64'));

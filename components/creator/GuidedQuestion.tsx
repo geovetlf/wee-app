@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { Question } from '../../services/creatorService';
 import DateRangePicker from './DateRangePicker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -29,6 +30,7 @@ interface GuidedQuestionProps {
  */
 const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
+  const t = useT();
   const [freeText, setFreeText] = useState('');
 
   const sendFreeText = () => {
@@ -110,7 +112,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
             <View style={[styles.freeRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <TextInput
                 style={[styles.freeInput, { color: theme.colors.text }]}
-                placeholder="O escríbelo con tus palabras…"
+                placeholder={t('weeai.orInYourWords')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={freeText}
                 onChangeText={setFreeText}
@@ -123,7 +125,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
                 disabled={busy || !freeText.trim()}
                 style={[styles.sendButton, { backgroundColor: freeText.trim() ? theme.colors.accent : theme.colors.border }]}
                 activeOpacity={0.8}
-                accessibilityLabel="Enviar"
+                accessibilityLabel={t('weeai.send')}
               >
                 <Ionicons name="arrow-up" size={scale(18)} color="#1F2937" />
               </TouchableOpacity>
@@ -140,7 +142,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       {busy && question && (
         <View style={styles.thinking}>
           <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>Un momento…</Text>
+          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.oneMoment')}</Text>
         </View>
       )}
     </View>

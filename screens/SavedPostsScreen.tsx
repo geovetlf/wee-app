@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { bookmarksService } from '../services/bookmarksService';
@@ -26,6 +27,7 @@ import { scale } from '../utils/scale';
  */
 const SavedPostsScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { savedIds } = useBookmarks();
@@ -89,7 +91,7 @@ const SavedPostsScreen: React.FC = () => {
   const renderEmpty = () => (
     <View style={styles.empty}>
       <Text style={styles.emptyEmoji}>🔖</Text>
-      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>Aún no guardaste nada</Text>
+      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('saved.empty')}</Text>
       <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
         Toca el marcador de una publicación para guardar prompts, tutoriales y trabajos que quieras volver a ver.
       </Text>
@@ -98,7 +100,7 @@ const SavedPostsScreen: React.FC = () => {
         onPress={() => navigation.goBack()}
         activeOpacity={0.8}
       >
-        <Text style={styles.emptyButtonText}>Explorar el Home</Text>
+        <Text style={styles.emptyButtonText}>{t('saved.exploreHome')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -111,7 +113,7 @@ const SavedPostsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
-          accessibilityLabel="Volver"
+          accessibilityLabel={t('saved.back')}
         >
           <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>

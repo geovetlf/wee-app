@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { projectsService, WeeProject, PROJECT_EMOJIS } from '../services/projectsService';
@@ -17,6 +18,7 @@ import { scale } from '../utils/scale';
  */
 const ProjectsScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
@@ -69,16 +71,21 @@ const ProjectsScreen: React.FC = () => {
   };
 
   return (
-    <CreatorShell activeId="projects" overline="🤖 WEË AI" title="📁 Mis proyectos" breadcrumb="WEË AI">
+    <CreatorShell activeId="projects" overline="🤖 WEË AI" title={`📁 ${t('weeai.myProjects')}`} breadcrumb="WEË AI">
       <View style={[styles.intro, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
-        <Text style={[styles.introTitle, { color: theme.colors.text }]}>Tus creaciones, ordenadas por proyecto</Text>
+        <Text style={[styles.introTitle, { color: theme.colors.text }]}>{t('projects.introTitle')}</Text>
+        {/*
+          La entradilla cita el botón que hay que buscar en el resultado. Va por
+          interpolación y no escrito otra vez: así los dos no pueden separarse
+          nunca —si mañana ese botón cambia de nombre, esta frase cambia con él—.
+        */}
         <Text style={[styles.introText, { color: theme.colors.textSecondary }]}>
-          Un proyecto puede tener logo, fotos, anuncios, videos, música y documentos. Guarda cada resultado en el suyo desde "Guardar en proyecto".
+          {t('projects.introText', { accion: t('weeai.saveToProject') })}
         </Text>
       </View>
 
       <View style={styles.section}>
-        <SectionTitle title="Proyectos" action={creating ? 'Cancelar' : 'Nuevo proyecto'} onAction={() => setCreating((v) => !v)} />
+        <SectionTitle title={t('projects.sectionTitle')} action={t(creating ? 'common.cancel' : 'weeai.newProject')} onAction={() => setCreating((v) => !v)} />
 
         {creating && (
           <View style={[styles.newBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}>
@@ -88,7 +95,7 @@ const ProjectsScreen: React.FC = () => {
                   key={item}
                   onPress={() => setEmoji(item)}
                   style={[styles.emojiButton, { borderColor: emoji === item ? theme.colors.accent : theme.colors.border }]}
-                  accessibilityLabel={`Emoji ${item}`}
+                  accessibilityLabel={t('projects.emojiLabel', { emoji: item })}
                 >
                   <Text style={styles.emojiText}>{item}</Text>
                 </TouchableOpacity>
@@ -99,14 +106,14 @@ const ProjectsScreen: React.FC = () => {
                 style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
                 value={name}
                 onChangeText={setName}
-                placeholder="Ejemplo: Mi restaurante"
+                placeholder={t('projects.namePlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 onSubmitEditing={create}
                 autoFocus
-                accessibilityLabel="Nombre del proyecto"
+                accessibilityLabel={t('weeai.projectName')}
               />
-              <TouchableOpacity onPress={create} disabled={!name.trim() || saving} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear proyecto">
-                <Text style={styles.createText}>{saving ? '…' : 'Crear'}</Text>
+              <TouchableOpacity onPress={create} disabled={!name.trim() || saving} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('weeai.createProject')}>
+                <Text style={styles.createText}>{saving ? '…' : t('weeai.create')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -117,10 +124,10 @@ const ProjectsScreen: React.FC = () => {
         ) : projects.length === 0 ? (
           <View style={[styles.empty, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={styles.emptyEmoji}>📁</Text>
-            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>Todavía no tienes proyectos</Text>
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Crea el primero o guarda una creación en un proyecto desde su resultado.</Text>
+            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('projects.emptyTitle')}</Text>
+            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('projects.emptyText')}</Text>
             <TouchableOpacity onPress={() => setCreating(true)} style={[styles.createButton, { backgroundColor: theme.colors.accent, marginTop: SPACING.sm }]} activeOpacity={0.85}>
-              <Text style={styles.createText}>Crear mi primer proyecto</Text>
+              <Text style={styles.createText}>{t('projects.emptyAction')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -138,7 +145,7 @@ const ProjectsScreen: React.FC = () => {
                   </View>
                   <Text style={[styles.cardName, { color: theme.colors.text }]} numberOfLines={2}>{project.name}</Text>
                   <View style={styles.cardFooter}>
-                    <Text style={[styles.cardMeta, { color: theme.colors.textSecondary }]}>Abrir</Text>
+                    <Text style={[styles.cardMeta, { color: theme.colors.textSecondary }]}>{t('projects.open')}</Text>
                     <Ionicons name="arrow-forward" size={scale(14)} color={theme.colors.textSecondary} />
                   </View>
                 </TouchableOpacity>

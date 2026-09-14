@@ -1,4 +1,5 @@
 import React from 'react';
+import { useT } from '../contexts/IdiomaContext';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,6 +58,7 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; label: string 
  */
 const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, compacta }) => {
   const { theme } = useTheme();
+  const t = useT();
   const hasPosts = posts.length > 0;
 
   return (
@@ -78,7 +80,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
             se queda.
           */}
           {!compacta && (
-            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Descubre videos creados por la comunidad.</Text>
+            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{t('weels.rowSubtitle')}</Text>
           )}
         </View>
         {/*
@@ -88,8 +90,8 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
           pequeña— y en Weë el amarillo significa crear o elegir, no navegar.
           "Ver todos" se sigue leyendo como enlace por la flecha y el peso.
         */}
-        <TouchableOpacity activeOpacity={0.7} onPress={onOpenWeels} accessibilityRole="button" accessibilityLabel="Ver todos los Weëls" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={[styles.viewAll, { color: compacta ? theme.colors.text : theme.colors.accentDark }]}>Ver todos →</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={onOpenWeels} accessibilityRole="button" accessibilityLabel={t('weels.seeAll')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={[styles.viewAll, { color: compacta ? theme.colors.text : theme.colors.accentDark }]}>{t('common.seeAll')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -115,7 +117,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
           onPress={onCreateWeel}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Crear un Weël"
+          accessibilityLabel={t('weels.create')}
         >
           {!compacta && <LinearGradient colors={['#F5B731', '#E5A020']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />}
           <View style={[styles.plus, compacta && styles.plusCompacto, compacta && { backgroundColor: theme.colors.accent }]}>
@@ -123,7 +125,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
           </View>
           {/* Dos líneas: "Tu primer Weël" no cabe en una a 68 puntos y se cortaría. */}
           <Text style={[styles.createText, compacta && { color: theme.colors.text }]} numberOfLines={2}>
-            {hasPosts ? 'Crear Weël' : 'Tu primer Weël'}
+            {hasPosts ? t('weels.create') : t('weels.createFirst')}
           </Text>
           {/* En 68 puntos de ancho, "hasta 15 s" es una tercera línea que aprieta. */}
           {!compacta && <Text style={styles.createSub}>hasta 15 s</Text>}
@@ -138,7 +140,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                   style={[styles.card, compacta && styles.cardCompacta, { backgroundColor: '#1F2937' }]}
                   onPress={onOpenWeels}
                   activeOpacity={0.85}
-                  accessibilityLabel="Ver Weël"
+                  accessibilityLabel={t('weels.open')}
                 >
                   {thumb ? (
                     <Image source={{ uri: thumb }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />

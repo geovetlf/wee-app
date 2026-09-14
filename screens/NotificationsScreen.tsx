@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -22,8 +23,19 @@ import Header from '../components/Header';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
-// Función para formatear tiempo relativo
-const formatRelativeTime = (timestamp: any): string => {
+/*
+ * Cuánto hace. Vive fuera del componente, así que el idioma le llega como
+ * argumento en vez de por un gancho: sigue siendo una función pura y aun así
+ * dice "hace 3 días" o "3 days ago" según toque.
+ *
+ * Lo escribe `Intl.RelativeTimeFormat` a través de i18n/formato.ts. Antes se
+ * armaba a mano —`hace ${dias}d`— y eso solo sabía español.
+ */
+const formatRelativeTime = (
+  timestamp: any,
+  t: (clave: string) => string,
+  formato: { tiempoRelativo: (f: Date | number) => string; fecha: (f: Date | number, o?: Intl.DateTimeFormatOptions) => string },
+): string => {
   if (!timestamp) return '';
 
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -33,11 +45,9 @@ const formatRelativeTime = (timestamp: any): string => {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'ahora';
-  if (diffMins < 60) return `hace ${diffMins}m`;
-  if (diffHours < 24) return `hace ${diffHours}h`;
-  if (diffDays < 7) return `hace ${diffDays}d`;
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (diffMins < 1) return t('notifications.now');
+  if (diffDays < 7) return formato.tiempoRelativo(date);
+  return formato.fecha(date, { day: 'numeric', month: 'short' });
 };
 
 // Obtener icono y color según tipo de notificación
@@ -66,35 +76,34 @@ const getNotificationIcon = (type: NotificationType): { name: string; color: str
   }
 };
 
-// Obtener mensaje según tipo de notificación
-const getNotificationMessage = (notification: Notification): string => {
+/*
+ * La CLAVE de la frase de cada notificación, no la frase.
+ *
+ * Antes esto devolvía "le gustó tu publicación" y la pantalla le pegaba el
+ * nombre delante. En español y en inglés el orden coincide, pero no en todos
+ * los idiomas, y una frase partida en dos trozos no se puede reordenar. Ahora
+ * la frase entera vive en el diccionario con {{nombre}} dentro y quien traduce
+ * decide dónde va cada cosa.
+ */
+const claveDeLaNotificacion = (notification: Notification): string => {
   switch (notification.type) {
-    case 'like':
-      return 'le gustó tu publicación';
-    case 'comment':
-      return 'comentó en tu publicación';
+    case 'like': return 'notifications.like';
+    case 'comment': return 'notifications.comment';
     // Histórico: notificaciones del sistema de seguidores ya enviadas.
-    case 'follow':
-      return 'comenzó a seguirte';
-    case 'econtact_request':
-      return 'quiere agregarte a ËContact';
-    case 'econtact_accepted':
-      return 'aceptó tu solicitud de ËContact';
-    case 'repost':
-      return 'compartió tu publicación';
-    case 'mention':
-      return 'te mencionó';
-    case 'reply':
-      return 'respondió a tu comentario';
-    case 'community_post':
-      return `publicó en ${notification.communityName || 'una comunidad'}`;
-    default:
-      return 'interactuó contigo';
+    case 'follow': return 'notifications.follow';
+    case 'econtact_request': return 'notifications.econtactRequest';
+    case 'econtact_accepted': return 'notifications.econtactAccepted';
+    case 'repost': return 'notifications.repost';
+    case 'mention': return 'notifications.mention';
+    case 'reply': return 'notifications.reply';
+    case 'community_post': return 'notifications.communityPost';
+    default: return 'notifications.generic';
   }
 };
 
 const NotificationsScreen: React.FC = () => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const { user, registerCleanup } = useAuth();
   const { userProfile } = useUserProfile();
   const { isDesktop } = useResponsive();
@@ -193,7 +202,18 @@ const NotificationsScreen: React.FC = () => {
   // Renderizar notificación
   const renderNotification = ({ item }: { item: Notification }) => {
     const icon = getNotificationIcon(item.type);
-    const message = getNotificationMessage(item);
+    /*
+     * El nombre va en negrita DENTRO de la frase, y la frase puede ponerlo en
+     * cualquier sitio según el idioma. Se traduce con una marca en el hueco del
+     * nombre y se parte por ahí: lo de antes, lo de después, y el nombre en
+     * medio con su peso. Así se conserva el diseño y se gana el orden libre.
+     */
+    const MARCA = '\u0000';
+    const nombre = item.senderName || t('common.user');
+    const [antesDelNombre, despuesDelNombre] = t(claveDeLaNotificacion(item), {
+      nombre: MARCA,
+      comunidad: item.communityName || t('notifications.aCommunity'),
+    }).split(MARCA);
 
     return (
       <TouchableOpacity
@@ -230,8 +250,9 @@ const NotificationsScreen: React.FC = () => {
           {/* Contenido */}
           <View style={styles.notificationContent}>
             <Text style={[styles.notificationText, { color: theme.colors.text }]} numberOfLines={2}>
-              <Text style={styles.username}>{item.senderName}</Text>{' '}
-              {message}
+              {antesDelNombre}
+              <Text style={styles.username}>{nombre}</Text>
+              {despuesDelNombre}
             </Text>
 
             {/* Preview del contenido */}
@@ -245,7 +266,7 @@ const NotificationsScreen: React.FC = () => {
             )}
 
             <Text style={[styles.time, { color: theme.colors.textSecondary }]}>
-              {formatRelativeTime(item.createdAt)}
+              {formatRelativeTime(item.createdAt, t, formato)}
             </Text>
           </View>
         </View>
@@ -371,12 +392,12 @@ const NotificationsScreen: React.FC = () => {
               color={theme.colors.textSecondary}
             />
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              {filter === 'unread' ? 'Sin notificaciones nuevas' : 'Sin notificaciones'}
+              {filter === 'unread' ? t('notifications.noneNew') : t('notifications.empty')}
             </Text>
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
               {filter === 'unread'
-                ? 'Has leído todas tus notificaciones'
-                : 'Cuando alguien interactúe contigo, aparecerá aquí'}
+                ? t('notifications.allRead')
+                : t('notifications.emptyHint')}
             </Text>
           </View>
         )}

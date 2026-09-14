@@ -3,14 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { documentsService, WeeDocument, describeUpdated } from '../../services/documentsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { SectionTitle } from './ui';
 
-/** "Mis documentos" de Weë Writer + botón para abrir el editor. */
+/** "Mis documentos" de Weë Writer + botón para abrir el editor. El título de
+ *  cada documento lo escribió una persona: no pasa por el traductor. */
 const WriterDocuments: React.FC = () => {
   const { theme } = useTheme();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
   const [docs, setDocs] = useState<WeeDocument[]>([]);
 
@@ -28,10 +31,10 @@ const WriterDocuments: React.FC = () => {
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-      <SectionTitle title="Mis documentos" action="Nuevo documento" onAction={() => navigation.navigate('WriterEditor', {})} />
+      <SectionTitle title={t('writer.myDocuments')} action={t('writer.newDocument')} onAction={() => navigation.navigate('WriterEditor', {})} />
       {docs.length === 0 ? (
         <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
-          Todavía no tienes documentos. Escribe uno nuevo o pídele a Weë que empiece por ti.
+          {t('writer.noDocumentsYet')}
         </Text>
       ) : (
         docs.map((doc) => (
@@ -47,7 +50,7 @@ const WriterDocuments: React.FC = () => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{doc.title}</Text>
-              <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{describeUpdated(doc.updatedAt)}</Text>
+              <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{t('writer.editedWhen', { cuando: describeUpdated(doc.updatedAt, locale) })}</Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>

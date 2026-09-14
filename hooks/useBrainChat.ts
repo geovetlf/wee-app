@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../contexts/IdiomaContext';
 import { brainService, BrainMessage, newMessageId } from '../services/brainService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
@@ -15,6 +16,7 @@ const RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
  */
 export const useBrainChat = () => {
   const { user } = useAuth();
+  const t = useT();
   const [chatId, setChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<BrainMessage[]>([]);
   const [pending, setPending] = useState<BrainMessage | null>(null);
@@ -79,7 +81,7 @@ export const useBrainChat = () => {
       } catch (e) {
         if (run !== quoteRun.current) return;
         setQuote(null);
-        setQuoteError('No pudimos calcular el costo. Inténtalo de nuevo.');
+        setQuoteError(t('weeai.couldNotCalculateRetry'));
       } finally {
         if (run === quoteRun.current) setQuoting(false);
       }
@@ -109,7 +111,7 @@ export const useBrainChat = () => {
       } catch (e) {
         const short = creditsShortfall(e);
         setShortfall(short);
-        if (!short) setError(humanizeCreatorError(e));
+        if (!short) setError(humanizeCreatorError(e, t));
         return false;
       } finally {
         setUploading(false);

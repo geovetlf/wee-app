@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
-import { getSpecialist, SpecialistAction, SpecialistExample } from '../constants/specialists';
-import { creatorService, CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
+import { SpecialistAction, SpecialistExample } from '../constants/specialists';
+import { useEspecialista } from '../hooks/useEspecialista';
+import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorService';
 import CreatorShell from '../components/creator/CreatorShell';
 import BrainChatScreen from './BrainChatScreen';
 import BusinessScreen from './BusinessScreen';
@@ -28,11 +30,12 @@ import { scale } from '../utils/scale';
  */
 const SpecialistScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const id: string = route.params?.id || 'brain';
-  const spec = getSpecialist(id);
+  const spec = useEspecialista(id);
   const isBrain = id === 'brain';
 
   const [myJobs, setMyJobs] = useState<CreatorJob[]>([]);
@@ -150,7 +153,7 @@ const SpecialistScreen: React.FC = () => {
           <SectionTitle
             title={spec.gridTitle}
             hint={spec.gridHint}
-            action={spec.id === 'design' ? 'Describe tu idea' : undefined}
+            action={spec.id === 'design' ? t('weeai.describeYourIdea') : undefined}
             onAction={spec.id === 'design' ? () => startFlow() : undefined}
           />
           <ActionGrid actions={spec.actions} layout={spec.actionLayout} onPress={handleAction} />
@@ -174,7 +177,7 @@ const SpecialistScreen: React.FC = () => {
       {!lanzador && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} greeting={spec.id === 'chef'} />}
 
       {!lanzador && !!spec.examples?.length && (
-        <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action="Ver más" onAction={() => startFlow()} />
+        <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action={t('weeai.seeMore')} onAction={() => startFlow()} />
       )}
 
       {spec.closing && (
@@ -190,7 +193,7 @@ const SpecialistScreen: React.FC = () => {
 
       {myJobs.length > 0 && (
         <View style={styles.section}>
-          <SectionTitle title="Mis creaciones" action="Ver todas" onAction={() => navigation.navigate('WeeCreator')} />
+          <SectionTitle title={t('weeai.myCreations')} action={t('weeai.seeAllCreations')} onAction={() => navigation.navigate('WeeCreator')} />
           {myJobs.map((job) => (
             <TouchableOpacity
               key={job.id}
@@ -202,7 +205,7 @@ const SpecialistScreen: React.FC = () => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
                 <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
-                  {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
+                  {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -211,7 +214,7 @@ const SpecialistScreen: React.FC = () => {
         </View>
       )}
 
-      <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>Cuéntale a Weë lo que quieres. Weë se encarga de la IA.</Text>
+      <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>{t('weeai.tellWee')}</Text>
     </CreatorShell>
   );
 };

@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { SpecialistAction, SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -41,6 +42,7 @@ interface TravelLauncherProps {
 
 const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, open, onToggle, onSubmit, onAction }) => {
   const { theme } = useTheme();
+  const t = useT();
   const [text, setText] = useState('');
   const entrada = useRef(new Animated.Value(0)).current;
   const giro = useRef(new Animated.Value(0)).current;
@@ -82,7 +84,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         aria-expanded={open}
-        accessibilityLabel={`${titulo}. ${open ? 'Ocultar' : 'Abrir'} Weë Travel: escribir tu viaje y las ${actions.length} formas de empezar`}
+        accessibilityLabel={t(open ? 'weeai.closeTravel' : 'weeai.openTravel', { titulo, contador: actions.length })}
       >
         <TravelMark size={38} />
         <View style={styles.filaTextos}>
@@ -120,7 +122,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
               activeOpacity={0.85}
               style={[styles.enviar, { backgroundColor: listo ? theme.colors.accent : theme.colors.border }]}
               accessibilityRole="button"
-              accessibilityLabel="Contarle el viaje a Weë"
+              accessibilityLabel={t('weeai.tellWeeTheTrip')}
               accessibilityState={{ disabled: !listo }}
             >
               <Ionicons name="arrow-forward" size={scale(18)} color="#1F2937" />

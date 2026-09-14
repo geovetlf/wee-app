@@ -11,6 +11,7 @@ import { ALTO_BARRA } from '../components/BarraInferior';
 import MainTabsScreen from '../screens/MainTabsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
+import IdiomaScreen from '../screens/IdiomaScreen';
 import EngineAdminScreen from '../screens/EngineAdminScreen';
 import SearchScreen from '../screens/SearchScreen';
 import CreateScreen from '../screens/CreateScreen';
@@ -50,6 +51,7 @@ import type { UbicacionPublica } from '../utils/locationPrivacy';
 export type MainStackParamList = {
   Main: undefined;
   Settings: undefined;
+  Idioma: undefined;
   Help: { section?: 'faq' | 'legal' } | undefined;
   EngineAdmin: undefined;
   Search: { query?: string } | undefined;
@@ -322,6 +324,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />

@@ -1,0 +1,13 @@
+/*
+ * Guardados.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Y además es el último escalón del respaldo, así que no puede tener huecos.
+ */
+export const saved: typeof import('../es/saved').saved = {
+  title: 'Saved',
+  back: 'Back',
+  empty: 'Nothing saved yet',
+  exploreHome: 'Explore Home',
+  loadFailed: 'Your saved posts could not be loaded',
+};

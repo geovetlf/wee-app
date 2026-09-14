@@ -372,8 +372,11 @@ check('88) la ruta está registrada', /<Stack\.Screen name="EContact" component=
  * Perfil Weë viera el nombre de la otra agenda.
  */
 check('89) se titula con el nombre de la agenda activa', /🤝 \{nombreLista\}/.test(pantalla) && !/🤝 ËContact/.test(pantalla));
-check('90) tiene vuelta atrás como el resto de Weë', /navigation\.goBack\(\)/.test(pantalla) && /accessibilityLabel="Volver"/.test(pantalla));
-check('91) enseña un estado vacío que explica qué irá aquí', /Todavía no tienes \$\{nombrePlural\}/.test(pantalla) && /una persona la propone y la otra acepta/.test(pantalla));
+check('90) tiene vuelta atrás como el resto de Weë', /navigation\.goBack\(\)/.test(pantalla) && /accessibilityLabel=\{t\('econtact\.back'\)\}/.test(pantalla));
+check('91) enseña un estado vacío que explica qué irá aquí',
+  /t\('econtact\.noneYet', \{ lista: nombrePlural \}\)/.test(pantalla)
+  && /noneYet: 'Todavía no tienes \{\{lista\}\}'/.test(read('i18n/textos/es/econtact.ts'))
+  && /una persona la propone y la otra acepta/.test(pantalla));
 check('92) la lista lee del servicio, no de Firestore a mano', /useMisEContacts\(\)/.test(pantalla) && !/collection\(db/.test(pantalla));
 check('93) separa conexiones de solicitudes, sin mezclarlas', /'recibidas'/.test(pantalla) && /'contactos'/.test(pantalla) && /'enviadas'/.test(pantalla));
 /*
@@ -735,7 +738,9 @@ const codigoPantalla = sinComentarios(pantallaEC);
  * Tres secciones. Las de solicitudes se llaman igual siempre; la de conexiones
  * lleva el nombre de la agenda activa —"Tus ËContacts" o "Tus ẄContacts"—.
  */
-check('178) tiene las tres secciones', ['Solicitudes recibidas', 'Tus ${nombrePlural}', 'Solicitudes enviadas'].every((t) => pantallaEC.includes(t)));
+check('178) tiene las tres secciones',
+  ["t('econtact.requestsReceived')", "t('econtact.yours', { lista: nombrePlural })", "t('econtact.requestsSent')"].every((x) => pantallaEC.includes(x))
+  && /requestsReceived: 'Solicitudes recibidas'/.test(read('i18n/textos/es/econtact.ts')));
 /*
  * Lo que pide algo de ti va primero. Las solicitudes recibidas esperan tu
  * respuesta; el resto solo informa.
@@ -779,8 +784,11 @@ check('192) sin mezclarse con el tipo histórico', /'follow'/.test(notis) && !/t
 check('193) el servicio de ËContact los usa', /createEContactRequestNotification/.test(codigoServicio) && /createEContactAcceptedNotification/.test(codigoServicio));
 check('194) y no crea un sistema paralelo', /from '\.\/notificationService'/.test(codigoServicio) && !/collection\(db, 'econtactNotifications'\)/.test(codigoServicio));
 check('195) un aviso que falle no deshace la conexión', /catch \(error\) \{[\s\S]{0,120}no se pudo avisar/i.test(servicio));
-check('196) la pantalla los sabe decir', /quiere agregarte a ËContact/.test(pantallaNotis) && /aceptó tu solicitud de ËContact/.test(pantallaNotis));
-check('197) y las históricas se siguen mostrando', /comenzó a seguirte/.test(pantallaNotis));
+check('196) la pantalla los sabe decir',
+  /notifications\.econtactRequest/.test(pantallaNotis) && /notifications\.econtactAccepted/.test(pantallaNotis)
+  && /quiere agregarte a ËContact/.test(read('i18n/textos/es/notifications.ts')) && /aceptó tu solicitud de ËContact/.test(read('i18n/textos/es/notifications.ts')));
+check('197) y las históricas se siguen mostrando',
+  /notifications\.follow/.test(pantallaNotis) && /comenzó a seguirte/.test(read('i18n/textos/es/notifications.ts')));
 check('198) el push del servidor también los conoce', /econtact_request:/.test(indiceFn) && /econtact_accepted:/.test(indiceFn));
 check('199) sin borrar el mensaje histórico', /follow: \(senderName\)/.test(indiceFn));
 
@@ -1119,7 +1127,14 @@ check('285) las reglas dejan borrar solo a quien participa con UNA DE SUS identi
     conVocabularioViejo.map(([f, malas]) => `${f}: ${malas.join('|')}`).join(' · ')
   );
   check('289) el Perfil Weë se llama así en la barra lateral', /Perfil Weë activo/.test(read('components/Sidebar.tsx')));
-  check('290) y crearlo también', /Crear mi perfil Weë/.test(read('components/DrawerMenu.tsx')));
+  /*
+   * El texto pasó por i18n, así que ya no está escrito en el cajón: está en el
+   * diccionario. Se comprueban las dos mitades —que el cajón pide esa clave y
+   * que en español dice lo que tiene que decir—, que es más fuerte que antes.
+   */
+  check('290) y crearlo también',
+    /t\('menu\.createWeeProfile'\)/.test(read('components/DrawerMenu.tsx'))
+    && /createWeeProfile: 'Crear mi perfil Weë'/.test(read('i18n/textos/es/menu.ts')));
   check('291) la pantalla de crearlo ya no se llama Hidi', read('screens/HidiCreationScreen.tsx') === '' && read('screens/WeeProfileCreationScreen.tsx').length > 0);
   check('292) ni su ruta', /WeeProfileCreation: undefined;/.test(navegacion) && !/HidiCreation/.test(navegacion));
   check('293) los videos de una comunidad se llaman Weëls', /Weëls/.test(read('screens/CommunityScreen.tsx')) && !/>\s*Hids\s*</.test(read('screens/CommunityScreen.tsx')));
@@ -1194,9 +1209,9 @@ check('315) el Perfil Real ve ËContact', nombreDeLista(ANA) === 'ËContact');
 check('316) el Perfil Weë ve ẄContact', nombreDeLista(WEE_ANA) === 'ẄContact');
 check('317) y el plural va con él', `${nombreDeLista(ANA)}s` === 'ËContacts' && `${nombreDeLista(WEE_ANA)}s` === 'ẄContacts');
 check('318) la pantalla pinta ese nombre, no uno escrito a mano', /🤝 \{nombreLista\}/.test(pantallaEC));
-check('319) el subtítulo también', /\$\{total\} \$\{nombrePlural\}/.test(pantallaEC));
-check('320) la sección de conexiones también', /titulo: `Tus \$\{nombrePlural\}`/.test(pantallaEC));
-check('321) y el confirmar de eliminar', /`Eliminar \$\{nombreLista\}`/.test(pantallaEC));
+check('319) el subtítulo también', /contador: total, lista: total === 1 \? nombreLista : nombrePlural/.test(pantallaEC));
+check('320) la sección de conexiones también', /titulo: t\('econtact\.yours', \{ lista: nombrePlural \}\)/.test(pantallaEC));
+check('321) y el confirmar de eliminar', /t\('econtact\.removeTitle', \{ lista: nombreLista \}\)/.test(pantallaEC));
 /*
  * Y NUNCA se escribe "ËContact" a pelo donde debería depender del perfil. Si
  * quedara uno, el Perfil Weë vería el nombre de la otra agenda.
@@ -1303,13 +1318,15 @@ check('342) las dos pantallas la piden al mismo hook', /useMisEContacts\(\)/.tes
   check('349) y B pasa de dos a una', listaDe(db, BETO).total === 1 && listaDe(db, BETO).contactos.join() === ANA);
 }
 check('350) el servicio borra la pareja de esas dos identidades', /deleteDoc\(refDe\(yo, otra\)\)/.test(codigoServicio));
-check('351) y pregunta antes de eliminar', /preguntar\(\s*`Eliminar \$\{nombreLista\}`/.test(codigoPantalla));
+check('351) y pregunta antes de eliminar', /preguntar\(\s*t\('econtact\.removeTitle', \{ lista: nombreLista \}\)/.test(codigoPantalla));
 
 // ─── K y L · Las solicitudes dicen qué identidad las hizo ────────────────────
 
 check('352) una fila enseña con qué cara está esa persona', /etiqueta: nombreDeIdentidad\(id\)/.test(codigoGancho));
 check('353) y la pantalla la pinta', /\{detalle\}/.test(codigoPantalla) && /const detalle = seccion === 'recibidas'/.test(codigoPantalla));
-check('354) en las recibidas, además, qué está pidiendo', /quiere conectar contigo/.test(pantallaEC));
+check('354) en las recibidas, además, qué está pidiendo',
+  /t\('econtact\.wantsToConnect', \{ lista: etiqueta \}\)/.test(pantallaEC)
+  && /quiere conectar contigo/.test(read('i18n/textos/es/econtact.ts')));
 check('355) la etiqueta es "Perfil real" o "Perfil Weë", nunca otra cosa', nombreDeIdentidad(ANA) === 'Perfil real' && nombreDeIdentidad(WEE_ANA) === 'Perfil Weë');
 check('356) la identidad emisora de una recibida es quien la pidió', (() => {
   const doc = { users: [WEE_ANA, BETO].sort(), status: 'pending', requestedBy: WEE_ANA, requestedTo: BETO };
@@ -1345,7 +1362,8 @@ check('357) y la de una enviada, a quién se la pidió', (() => {
 
 check('362) un Perfil Biz no es una identidad de agenda', !esIdentidadDePersona(`${PREFIJO_PERFIL_BIZ}n1`));
 check('363) el hook lo detecta y lo dice', /perfil-sin-agenda/.test(codigoGancho) && /esIdentidadDePersona\(activo\)/.test(codigoGancho));
-check('364) la pantalla enseña un estado propio para eso', /Este perfil no tiene agenda/.test(pantallaEC));
+check('364) la pantalla enseña un estado propio para eso',
+  /t\('econtact\.noAgenda'\)/.test(pantallaEC) && /noAgenda: 'Este perfil no tiene agenda'/.test(read('i18n/textos/es/econtact.ts')));
 check('365) y no cae en la lista de la cuenta', /if \(!user\) return vacia\('sin-sesion'\);/.test(codigoGancho) && !/return user\.uid;/.test(codigoGancho.slice(codigoGancho.indexOf('perfil-sin-agenda'))));
 check('366) businessFollows no se toca desde aquí', !/businessFollows/.test(codigoPantalla + codigoGancho + codigoServicio));
 check('367) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));

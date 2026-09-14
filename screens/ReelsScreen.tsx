@@ -30,6 +30,7 @@ import { formatNumber, getRelativeTime } from '../data/mockData';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
+import { useT } from '../contexts/IdiomaContext';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -69,6 +70,7 @@ interface ReelItemProps {
 }
 
 const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
+  const t = useT();
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
   const { userProfile: postAuthor } = useUserById(post.userId);
@@ -257,7 +259,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={scale(26)} color="white" />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Weëls</Text>
+        <Text style={styles.topTitle}>{t('weels.title')}</Text>
         <View style={{ width: scale(26) }} />
       </LinearGradient>
 
@@ -290,7 +292,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
                 />
               )}
               <Text style={styles.username} numberOfLines={1}>
-                {postAuthor?.displayName || 'Usuario'}
+                {postAuthor?.displayName || t('common.user')}
               </Text>
               <Text style={styles.timeAgo}>
                 {getRelativeTime(post.createdAt.toDate())}
@@ -359,7 +361,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             */}
             <TouchableOpacity
               style={styles.sidebarBtn}
-              accessibilityLabel="Compartir Weël"
+              accessibilityLabel={t('weels.shareWeel')}
               onPress={() => { void compartirFueraDeWee(post.id); }}
             >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />

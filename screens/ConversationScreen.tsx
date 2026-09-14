@@ -24,6 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { uploadAudioToCloudinary } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { messagesService, Message, Conversation, ParticipantData } from '../services/messagesService';
@@ -40,6 +41,7 @@ type ConvRoute = RouteProp<InboxStackParamList, 'Conversation'>;
 
 const ConversationScreen = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const nav = useNavigation();
@@ -121,7 +123,7 @@ const ConversationScreen = () => {
   const pickCustomWallpaper = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permisos', 'Se necesitan permisos para acceder a fotos');
+      Alert.alert(t('weetalk.permissions'), t('weetalk.photoPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -217,7 +219,7 @@ const ConversationScreen = () => {
       const url = await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo enviar la imagen');
+      Alert.alert(t('common.error'), t('weetalk.imageFailed'));
     }
     setSending(false);
   }, [previewUri, previewViewOnce, convId, myUid]);
@@ -227,7 +229,7 @@ const ConversationScreen = () => {
     if (!convId || !myUid || sending) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permisos', 'Se necesitan permisos para acceder a fotos');
+      Alert.alert(t('weetalk.permissions'), t('weetalk.photoPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -269,7 +271,7 @@ const ConversationScreen = () => {
         recordingRef.current = null;
       }
       const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) { Alert.alert('Permisos', 'Se necesitan permisos para grabar audio'); return; }
+      if (!granted) { Alert.alert(t('weetalk.permissions'), t('weetalk.audioPermission')); return; }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording: rec } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = rec;
@@ -324,7 +326,7 @@ const ConversationScreen = () => {
       const url = await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo enviar la imagen');
+      Alert.alert(t('common.error'), t('weetalk.imageFailed'));
     }
     setSending(false);
   }, [convId, myUid]);
@@ -420,7 +422,7 @@ const ConversationScreen = () => {
                 item.viewOnceOpened && !mine ? (
                   <View style={styles.viewOnceOpened}>
                     <Ionicons name="eye-off-outline" size={20} color={metaColor} />
-                    <Text style={[styles.viewOnceText, { color: metaColor }]}>Foto vista</Text>
+                    <Text style={[styles.viewOnceText, { color: metaColor }]}>{t('weetalk.photoSeen')}</Text>
                   </View>
                 ) : mine ? (
                   <View style={styles.viewOnceSender}>
@@ -432,7 +434,7 @@ const ConversationScreen = () => {
                 ) : (
                   <TouchableOpacity style={styles.viewOnceTap} onPress={() => openViewOnce(item)}>
                     <Ionicons name="eye" size={24} color={bubbleText} />
-                    <Text style={[styles.viewOnceText, { color: bubbleText }]}>Toca para ver</Text>
+                    <Text style={[styles.viewOnceText, { color: bubbleText }]}>{t('weetalk.tapToView')}</Text>
                   </TouchableOpacity>
                 )
               ) : item.type === 'audio' && item.audioUrl ? (
@@ -541,7 +543,7 @@ const ConversationScreen = () => {
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
-                <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>Envía el primer mensaje</Text>
+                <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>{t('weetalk.firstMessage')}</Text>
               </View>
             )
           }
@@ -568,7 +570,7 @@ const ConversationScreen = () => {
               <TextInput
                 ref={inputRef}
                 style={[styles.input, { color: chatTheme.inputText }]}
-                placeholder="Mensaje..."
+                placeholder={t('weetalk.messagePlaceholderShort')}
                 placeholderTextColor={chatTheme.inputPlaceholder}
                 value={text}
                 onChangeText={setText}
@@ -618,7 +620,7 @@ const ConversationScreen = () => {
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
-                <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>Envía el primer mensaje</Text>
+                <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>{t('weetalk.firstMessage')}</Text>
               </View>
             )
           }
@@ -645,7 +647,7 @@ const ConversationScreen = () => {
               <TextInput
                 ref={inputRef}
                 style={[styles.input, { color: chatTheme.inputText }]}
-                placeholder="Mensaje..."
+                placeholder={t('weetalk.messagePlaceholderShort')}
                 placeholderTextColor={chatTheme.inputPlaceholder}
                 value={text}
                 onChangeText={setText}
@@ -710,7 +712,7 @@ const ConversationScreen = () => {
             <View style={styles.sheetHandle} />
 
             {/* Themes section */}
-            <Text style={[styles.colorPickerTitle, { color: chatTheme.headerText }]}>Tema</Text>
+            <Text style={[styles.colorPickerTitle, { color: chatTheme.headerText }]}>{t('weetalk.theme')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.themeScrollView}>
               <View style={styles.themeGrid}>
                 {CHAT_THEMES.map(t => (
@@ -732,7 +734,7 @@ const ConversationScreen = () => {
             </ScrollView>
 
             {/* Wallpapers section */}
-            <Text style={[styles.colorPickerTitle, { color: chatTheme.headerText, marginTop: 20 }]}>Fondo</Text>
+            <Text style={[styles.colorPickerTitle, { color: chatTheme.headerText, marginTop: 20 }]}>{t('weetalk.background')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.wallpaperScrollView}>
               <View style={styles.wallpaperGrid}>
                 {CHAT_WALLPAPERS.map(w => (
@@ -766,7 +768,7 @@ const ConversationScreen = () => {
               style={[styles.doneButton, { backgroundColor: chatTheme.accent }]}
               onPress={() => setShowThemePicker(false)}
             >
-              <Text style={[styles.doneButtonText, { color: chatTheme.accentText }]}>Listo</Text>
+              <Text style={[styles.doneButtonText, { color: chatTheme.accentText }]}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -782,7 +784,7 @@ const ConversationScreen = () => {
           <View style={styles.viewOnceImageWrap}>
             <Image source={{ uri: viewOnceImage || '' }} style={styles.viewOnceFullImage} contentFit="cover" />
           </View>
-          <Text style={styles.viewOnceHint}>Toca para cerrar</Text>
+          <Text style={styles.viewOnceHint}>{t('weetalk.tapToClose')}</Text>
         </TouchableOpacity>
       </Modal>
     </View>

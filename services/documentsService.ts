@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatearTiempoRelativo } from '../i18n/formato';
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
@@ -98,12 +99,20 @@ export const documentsService = {
   },
 };
 
-/** "Editado hoy", "Hace 2 días"… */
-export const describeUpdated = (timestamp: number): string => {
-  const days = Math.floor((Date.now() - timestamp) / 86400000);
-  if (days <= 0) return 'Editado hoy';
-  if (days === 1) return 'Hace 1 día';
-  if (days < 7) return `Hace ${days} días`;
-  const weeks = Math.floor(days / 7);
-  return weeks === 1 ? 'Hace 1 semana' : `Hace ${weeks} semanas`;
-};
+/**
+ * Cuándo se editó, dicho como lo diría el idioma de la persona: "hoy", "ayer",
+ * "hace 3 días", "3 weeks ago".
+ *
+ * Antes lo decidían cuatro `if` y cuatro frases en español —que es justo lo que
+ * no funciona fuera del español: el inglés parte los tramos donde quiere y el
+ * ruso necesita tres plurales—. `Intl.RelativeTimeFormat` sabe las reglas de
+ * todos los idiomas y ya viene en el motor.
+ *
+ * Devuelve SOLO el "cuándo". La frase completa —"Editado {{cuando}}"— la arma
+ * quien pinta, porque es interfaz y vive en el diccionario.
+ */
+export const describeUpdated = (
+  timestamp: number,
+  locale: string,
+  ahora: number = Date.now(),
+): string => formatearTiempoRelativo(timestamp, locale, ahora);

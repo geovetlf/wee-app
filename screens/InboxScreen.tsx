@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -27,6 +28,7 @@ type Nav = StackNavigationProp<InboxStackParamList, 'InboxList'>;
 
 const InboxScreen = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user, registerCleanup } = useAuth();
   const { userProfile } = useUserProfile();
   const nav = useNavigation<Nav>();
@@ -98,7 +100,7 @@ const InboxScreen = () => {
   };
 
   const deleteChat = (id: string) => {
-    Alert.alert('Eliminar conversación', '¿Estás seguro?', [
+    Alert.alert(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Eliminar', style: 'destructive', onPress: () => messagesService.deleteConversation(id).catch(console.error) },
     ]);
@@ -176,7 +178,7 @@ const InboxScreen = () => {
       <View style={[styles.emptyIcon, { backgroundColor: theme.colors.surface }]}>
         <Ionicons name="chatbubbles-outline" size={44} color={theme.colors.textSecondary} />
       </View>
-      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>Sin conversaciones</Text>
+      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('weetalk.noConversations')}</Text>
       <Text style={[styles.emptyDesc, { color: theme.colors.textSecondary }]}>
         Toca "Privado" en cualquier publicación{'\n'}para iniciar una conversación anónima
       </Text>
@@ -202,7 +204,7 @@ const InboxScreen = () => {
           <Ionicons name="search" size={17} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Buscar..."
+            placeholder={t('weetalk.search')}
             placeholderTextColor={theme.colors.textSecondary}
             value={search}
             onChangeText={setSearch}

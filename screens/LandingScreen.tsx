@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ALTO_DE_LA_BARRA_INFERIOR } from '../utils/medidaDelMedio';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -72,6 +73,7 @@ const LANDING_CATEGORIES: LandingCategory[] = COMMUNITY_CATEGORIES.map((c) => ({
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
 const LandingScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
@@ -487,7 +489,7 @@ const LandingScreen: React.FC = () => {
    */
   const renderComposer = () => (
     <View style={styles.composerSlot}>
-      <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" directo />
+      <ComposerEntry placeholder={t('home.composerPlaceholder')} onCompose={handleCompose} variante="home" directo />
     </View>
   );
 

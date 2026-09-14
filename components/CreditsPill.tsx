@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
@@ -22,6 +23,7 @@ interface CreditsPillProps {
  */
 const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = false, onPress }) => {
   const { theme } = useTheme();
+  const { formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -35,7 +37,7 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
     navigation.navigate('CreditStore' as never);
   };
 
-  const value = balance === null ? '…' : balance.toLocaleString('es');
+  const value = balance === null ? '…' : formato.numero(balance);
 
   return (
     <TouchableOpacity

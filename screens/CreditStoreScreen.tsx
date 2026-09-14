@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { creditsService, CREDIT_PACKAGES, CreditsBalance, CreditPackage } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -23,6 +24,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
  */
 const CreditStoreScreen = () => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
@@ -65,12 +67,12 @@ const CreditStoreScreen = () => {
     try {
       // Sin pagos conectados todavía: recarga de prueba validada por el servidor (solo dev)
       const result = await creditsService.purchase(pkg.id, 'test');
-      notify('Recarga de prueba lista', `${result.credits} Credits agregados a tu cuenta. Es una recarga de prueba: no se cobró nada.`);
+      notify(t('credits.testTopUpReady'), t('credits.testTopUpDone', { cantidad: formato.numero(result.credits) }));
     } catch (e) {
       const code = String((e as any)?.details?.code || (e as any)?.code || '');
       const message = code.includes('PURCHASE_INVALID') || code.includes('unimplemented') || code.includes('NOT_IMPLEMENTED')
         ? 'Las compras de Credits llegarán pronto. Por ahora no se pueden hacer recargas aquí.'
-        : 'No se pudo completar la recarga. Inténtalo de nuevo.';
+        : t('credits.topUpFailed');
       notify('Ups', message);
     }
     setPurchasing(false);
@@ -85,42 +87,42 @@ const CreditStoreScreen = () => {
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8}>
           <Ionicons name="close" size={26} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Credits</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('credits.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Balance card */}
         <View style={[styles.balanceCard, { backgroundColor: theme.dark ? '#1C1C1E' : '#F8F9FA' }]}>
-          <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>Tu saldo</Text>
+          <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>{t('credits.yourBalance')}</Text>
           <View style={styles.balanceRow}>
             <Ionicons name="diamond" size={28} color="#F5B731" />
             <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>
-              {(account?.balance ?? 0).toLocaleString('es')}
+              {formato.numero(account?.balance ?? 0)}
             </Text>
           </View>
-          <Text style={[styles.balanceSub, { color: theme.colors.textSecondary }]}>Credits disponibles</Text>
+          <Text style={[styles.balanceSub, { color: theme.colors.textSecondary }]}>{t('credits.available')}</Text>
         </View>
 
         {/* Precios de prueba + historial */}
         <View style={styles.costsRow}>
           <View style={[styles.costChip, { backgroundColor: theme.colors.surface }]}>
             <Ionicons name="flask-outline" size={16} color={theme.colors.text} />
-            <Text style={[styles.costText, { color: theme.colors.text }]}>Precios de prueba mientras construimos WEË AI</Text>
+            <Text style={[styles.costText, { color: theme.colors.text }]}>{t('credits.testPrices')}</Text>
           </View>
           <TouchableOpacity
             style={[styles.costChip, { backgroundColor: theme.colors.surface }]}
             onPress={() => (nav as any).navigate('Wallet')}
             activeOpacity={0.8}
-            accessibilityLabel="Ver historial"
+            accessibilityLabel={t('credits.seeHistoryLabel')}
           >
             <Ionicons name="time-outline" size={16} color={theme.colors.text} />
-            <Text style={[styles.costText, { color: theme.colors.text }]}>Ver historial →</Text>
+            <Text style={[styles.costText, { color: theme.colors.text }]}>{t('credits.seeHistory')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Packages */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Recarga de prueba</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('credits.testTopUp')}</Text>
 
         {packages.map((pkg) => {
           const isSelected = selected?.id === pkg.id;
@@ -151,7 +153,7 @@ const CreditStoreScreen = () => {
               </View>
 
               <View style={styles.packageRight}>
-                <Text style={[styles.packagePrice, { color: theme.colors.text }]}>Gratis</Text>
+                <Text style={[styles.packagePrice, { color: theme.colors.text }]}>{t('credits.free')}</Text>
                 <Text style={[styles.packagePer, { color: theme.colors.textSecondary }]}>
                   recarga de prueba
                 </Text>
@@ -168,7 +170,7 @@ const CreditStoreScreen = () => {
 
         {/* Terms */}
         <Text style={[styles.terms, { color: theme.colors.textSecondary }]}>
-          Recarga de prueba: no se cobra nada todavía. Los precios definitivos llegarán cuando WEË AI use sus IAs reales; mientras tanto, cada creación muestra su coste de prueba antes de empezar.
+          {t('credits.terms')}
         </Text>
       </ScrollView>
 

@@ -3,9 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator,
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { projectsService, WeeProject } from '../services/projectsService';
-import { CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
+import { CreatorJob, claveDelEstado } from '../services/creatorService';
 import { getExperienceById } from '../constants/weeExperiences';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
@@ -30,6 +31,7 @@ const KIND_ICON: Record<string, string> = {
 /** Un proyecto: sus creaciones, de todos los especialistas, en un solo lugar. */
 const ProjectScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -74,11 +76,16 @@ const ProjectScreen: React.FC = () => {
 
   const remove = async () => {
     if (!project) return;
-    const ok = isWeb ? window.confirm(`¿Eliminar el proyecto "${project.name}"? Tus creaciones no se borran.`) : true;
+    /*
+     * El nombre del proyecto lo escribió la persona: entra por interpolación y
+     * NO pasa por el traductor. La web y el móvil dicen cosas distintas porque
+     * `window.confirm` no tiene título y el aviso del móvil sí.
+     */
+    const ok = isWeb ? window.confirm(t('projects.deleteConfirmWeb', { nombre: project.name })) : true;
     if (!isWeb) {
-      Alert.alert('Eliminar proyecto', `¿Eliminar "${project.name}"? Tus creaciones no se borran.`, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: async () => { await projectsService.remove(project.id); navigation.goBack(); } },
+      Alert.alert(t('projects.deleteProject'), t('projects.deleteConfirm', { nombre: project.name }), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: async () => { await projectsService.remove(project.id); navigation.goBack(); } },
       ]);
       return;
     }
@@ -87,14 +94,15 @@ const ProjectScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  const title = project ? `${project.emoji} ${project.name}` : '📁 Proyecto';
+  /* El título es el proyecto de la persona; solo el respaldo es de la interfaz. */
+  const title = project ? `${project.emoji} ${project.name}` : `📁 ${t('projects.fallbackTitle')}`;
 
   return (
-    <CreatorShell activeId="projects" overline="Mis proyectos" title={title} breadcrumb="Mis proyectos">
+    <CreatorShell activeId="projects" overline={t('weeai.myProjects')} title={title} breadcrumb={t('weeai.myProjects')}>
       {loading ? (
         <ActivityIndicator color={theme.colors.accent} />
       ) : !project ? (
-        <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>No encontramos este proyecto.</Text>
+        <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>{t('projects.notFound')}</Text>
       ) : (
         <>
           <View style={[styles.head, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -110,32 +118,33 @@ const ProjectScreen: React.FC = () => {
                     onChangeText={setName}
                     onSubmitEditing={saveName}
                     autoFocus
-                    accessibilityLabel="Nombre del proyecto"
+                    accessibilityLabel={t('weeai.projectName')}
                   />
-                  <TouchableOpacity onPress={saveName} style={[styles.smallButton, { backgroundColor: theme.colors.accent }]} accessibilityLabel="Guardar nombre">
-                    <Text style={styles.smallButtonText}>Guardar</Text>
+                  <TouchableOpacity onPress={saveName} style={[styles.smallButton, { backgroundColor: theme.colors.accent }]} accessibilityLabel={t('projects.saveName')}>
+                    <Text style={styles.smallButtonText}>{t('common.save')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <Text style={[styles.headName, { color: theme.colors.text }]}>{project.name}</Text>
               )}
+              {/* Cuántas hay: la forma la elige `Intl.PluralRules`, no un `if`. */}
               <Text style={[styles.headMeta, { color: theme.colors.textSecondary }]}>
-                {jobs.length === 1 ? '1 creación' : `${jobs.length} creaciones`}
+                {t('projects.creations', { contador: jobs.length })}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => setRenaming((v) => !v)} style={styles.iconButton} accessibilityLabel="Cambiar nombre">
+            <TouchableOpacity onPress={() => setRenaming((v) => !v)} style={styles.iconButton} accessibilityLabel={t('projects.rename')}>
               <Ionicons name="pencil-outline" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={remove} style={styles.iconButton} accessibilityLabel="Eliminar proyecto">
+            <TouchableOpacity onPress={remove} style={styles.iconButton} accessibilityLabel={t('projects.deleteProject')}>
               <Ionicons name="trash-outline" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.section}>
-            <SectionTitle title="Creaciones" action="Añadir" onAction={() => navigation.navigate('WeeCreator')} />
+            <SectionTitle title={t('projects.creationsTitle')} action={t('projects.add')} onAction={() => navigation.navigate('WeeCreator')} />
             {jobs.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
-                Todavía no hay creaciones aquí. Crea algo con cualquier especialista y guárdalo en este proyecto.
+                {t('projects.noCreations')}
               </Text>
             ) : (
               jobs.map((job) => {
@@ -153,7 +162,7 @@ const ProjectScreen: React.FC = () => {
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
                       <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
-                        {exp?.name ?? 'Weë'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
+                        {exp?.name ?? 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -165,9 +174,9 @@ const ProjectScreen: React.FC = () => {
 
           <ClosingBanner
             emoji="✨"
-            title="¿Qué le falta a este proyecto?"
-            subtitle="Un logo, fotos, un anuncio, un video, música o un documento: cualquier especialista de Weë puede sumar aquí."
-            button="Crear algo nuevo"
+            title={t('projects.whatIsMissing')}
+            subtitle={t('projects.whatIsMissingNote')}
+            button={t('projects.createSomethingNew')}
             onPress={() => navigation.navigate('WeeCreator')}
           />
         </>

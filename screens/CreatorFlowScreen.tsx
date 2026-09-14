@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorShell from '../components/creator/CreatorShell';
 import UploadBox from '../components/creator/UploadBox';
@@ -26,6 +27,7 @@ import { scale } from '../utils/scale';
  */
 const CreatorFlowScreen: React.FC = () => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -50,7 +52,7 @@ const CreatorFlowScreen: React.FC = () => {
    * resultado, ni en lo que se publica. El identificador interno sigue siendo
    * `home`; lo que cambia es el nombre con el que la experiencia habla.
    */
-  const nombre = experienceLabel(experience);
+  const nombre = experienceLabel(experience, t);
   // Photo, Home y Beauty trabajan sobre una foto de la persona
   const needsPhoto =
     ['photo', 'home', 'beauty'].includes(experience.id) ||
@@ -103,7 +105,7 @@ const CreatorFlowScreen: React.FC = () => {
       await projectsService.assignJob(job.id, projectId);
       setProjectName(name);
     } catch (e) {
-      setError('No pude guardar en el proyecto. Inténtalo de nuevo.');
+      setError(t('weeai.couldNotSaveToProject'));
     }
   };
 
@@ -144,7 +146,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setQuality(null);
       } catch (e) {
-        setError(humanizeCreatorError(e));
+        setError(humanizeCreatorError(e, t));
       } finally {
         setBusy(false);
       }
@@ -164,7 +166,7 @@ const CreatorFlowScreen: React.FC = () => {
         uploadedUrl.current = url;
         await creatorService.attachImage(jobId, url);
       } catch (e) {
-        setError(humanizeCreatorError(e));
+        setError(humanizeCreatorError(e, t));
       }
     },
     [jobId, user]
@@ -246,7 +248,7 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(response.question);
       setPricing(response.pricing ?? null);
     } catch (e) {
-      setError(humanizeCreatorError(e));
+      setError(humanizeCreatorError(e, t));
     } finally {
       setBusy(false);
     }
@@ -264,7 +266,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
       } catch (e) {
-        setError(humanizeCreatorError(e));
+        setError(humanizeCreatorError(e, t));
       } finally {
         setQuoting(false);
       }
@@ -275,7 +277,7 @@ const CreatorFlowScreen: React.FC = () => {
   const handleCreate = async () => {
     if (!jobId) return;
     if (needsPhoto && !imageUri) {
-      setError('Sube una foto para que Weë pueda trabajar con ella.');
+      setError(t('weeai.uploadToWork'));
       return;
     }
     setBusy(true);
@@ -293,7 +295,7 @@ const CreatorFlowScreen: React.FC = () => {
       if (isClientTimeout(e)) return;
       const short = creditsShortfall(e);
       setShortfall(short);
-      if (!short) setError(humanizeCreatorError(e));
+      if (!short) setError(humanizeCreatorError(e, t));
     } finally {
       setBusy(false);
     }
@@ -396,8 +398,8 @@ const CreatorFlowScreen: React.FC = () => {
    * texto genérico dejaba a la persona adivinando cuál de las dos le tocaba.
    */
   const subidaConfig = React.useMemo(() => {
-    const hint = 'JPG, PNG o WEBP (máx. 10 MB)';
-    const subtitle = 'Desde tu galería o con la cámara';
+    const hint = t('weeai.uploadFormats');
+    const subtitle = t('weeai.uploadHint');
     if (experience.id === 'chef' && params.preset?.optionId === 'edit') {
       return { title: '📸 Sube una foto de tu plato terminado', subtitle, hint };
     }
@@ -407,9 +409,9 @@ const CreatorFlowScreen: React.FC = () => {
     // Hogar & Diseño trabaja sobre el espacio que ya tienes: conviene decirlo aquí,
     // y decir además para qué sirve la foto (fase 2E-59).
     if (experience.id === 'home') {
-      return { title: '🏠 Sube una foto de tu espacio', subtitle: 'Una foto me ayudará a conservar la estructura real del lugar.', hint };
+      return { title: '🏠 Sube una foto de tu espacio', subtitle: t('weeai.photoHelps'), hint };
     }
-    return { title: 'Sube tu foto para trabajarla', subtitle, hint };
+    return { title: t('weeai.uploadYourPhoto'), subtitle, hint };
   }, [experience.id, params.preset?.optionId]);
 
   const status = job?.status;
@@ -446,7 +448,7 @@ const CreatorFlowScreen: React.FC = () => {
   const area = EXPERIENCE_AREA[experience.id];
 
   return (
-      <CreatorShell activeId={area ? area.section : experience.id} overline="🤖 WEË AI" title={`${experience.emoji} ${area ? area.label : experience.name}`} breadcrumb={area ? area.label : experience.name} contentStyle={styles.content}>
+      <CreatorShell activeId={area ? area.section : experience.id} overline="🤖 WEË AI" title={`${experience.emoji} ${area ? t(area.claveEtiqueta) : experience.name}`} breadcrumb={area ? t(area.claveEtiqueta) : experience.name} contentStyle={styles.content}>
         {needsPhoto && !imageUri && status !== 'done' && status !== 'running' && (
           <UploadBox
             config={subidaConfig}
@@ -459,8 +461,8 @@ const CreatorFlowScreen: React.FC = () => {
           ni foto ni trabajo, que es el único momento en que hace falta.
         */}
         {esperandoLaFoto && (
-          <TouchableOpacity onPress={() => start(params.goal)} activeOpacity={0.8} accessibilityLabel="Prefiero describirlo con palabras" style={styles.sinFoto}>
-            <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>Prefiero describirlo con palabras</Text>
+          <TouchableOpacity onPress={() => start(params.goal)} activeOpacity={0.8} accessibilityLabel={t('weeai.preferWords')} style={styles.sinFoto}>
+            <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>{t('weeai.preferWords')}</Text>
           </TouchableOpacity>
         )}
         {/*
@@ -484,11 +486,11 @@ const CreatorFlowScreen: React.FC = () => {
               </Text>
               {status !== 'done' && status !== 'running' && (
                 <View style={styles.spaceActions}>
-                  <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel="Cambiar foto" style={styles.attachmentAction}>
-                    <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>Cambiar</Text>
+                  <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel={t('weeai.changePhoto')} style={styles.attachmentAction}>
+                    <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>{t('weeai.change')}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={quitarFoto} accessibilityLabel="Quitar foto" style={styles.attachmentAction}>
-                    <Text style={[styles.attachmentText, { color: theme.colors.textSecondary, fontWeight: '700' }]}>Quitar</Text>
+                  <TouchableOpacity onPress={quitarFoto} accessibilityLabel={t('weeai.removePhoto')} style={styles.attachmentAction}>
+                    <Text style={[styles.attachmentText, { color: theme.colors.textSecondary, fontWeight: '700' }]}>{t('weeai.remove')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -498,26 +500,26 @@ const CreatorFlowScreen: React.FC = () => {
         {!!imageUri && !trabajaSobreUnEspacio && (
           <View style={[styles.attachment, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Image source={{ uri: imageUri }} style={styles.attachmentImage} contentFit="cover" />
-            <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>{uploadingPhoto ? 'Subiendo tu foto…' : 'Tu foto está lista. Cuéntame qué hacemos con ella.'}</Text>
+            <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>{uploadingPhoto ? t('weeai.uploadingPhoto') : t('weeai.photoReady')}</Text>
             {status !== 'done' && status !== 'running' && (
-              <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel="Cambiar foto" style={styles.attachmentAction}>
-                <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>Cambiar</Text>
+              <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel={t('weeai.changePhoto')} style={styles.attachmentAction}>
+                <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>{t('weeai.change')}</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
         {shortfall && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>No tienes suficientes Credits</Text>
+            <Text style={[styles.errorText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>{t('weeai.notEnoughCredits')}</Text>
             <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>Credits disponibles: {shortfall.available.toLocaleString('es')}</Text>
             <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>Costo: {shortfall.required.toLocaleString('es')}</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('CreditStore')}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
-              accessibilityLabel="Obtener Credits"
+              accessibilityLabel={t('weeai.getCredits')}
             >
-              <Text style={styles.retryText}>Obtener Credits</Text>
+              <Text style={styles.retryText}>{t('weeai.getCredits')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -529,7 +531,7 @@ const CreatorFlowScreen: React.FC = () => {
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >
-              <Text style={styles.retryText}>Probar otra vez</Text>
+              <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -567,13 +569,13 @@ const CreatorFlowScreen: React.FC = () => {
 
         {status === 'failed' && job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText || 'No me salió bien. No te cobré.'}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText || t('weeai.itDidNotWork')}</Text>
             <TouchableOpacity
               onPress={() => start(job.goal)}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >
-              <Text style={styles.retryText}>Probar otra vez</Text>
+              <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
             </TouchableOpacity>
           </View>
         )}

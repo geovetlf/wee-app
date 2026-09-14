@@ -17,9 +17,11 @@ const isWeb = Platform.OS === 'web';
 import { Ionicons } from '@expo/vector-icons';
 import { IconoWee } from './icons/IconoWee';
 import { NombreDeIcono } from './icons/trazosDeWee';
+import { useT } from '../contexts/IdiomaContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
@@ -55,7 +57,9 @@ interface DrawerMenuProps {
  * Lo social no lleva nombre propio: el Home ya es la experiencia social.
  */
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
+  const t = useT();
   const { theme, setThemeMode } = useTheme();
+  const { formato } = useIdioma();
   const { user, logout } = useAuth();
   const { userProfile, activeProfileType, hasWeeProfile, hasBizProfile, switchIdentity, switchToBiz, setBizProfile } = useUserProfile();
   /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
@@ -240,7 +244,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
   if (!visible) return null;
 
-  const displayName = userProfile?.displayName || user?.displayName || 'Invitado';
+  /* El nombre de la persona NO se traduce. Lo que se traduce es el respaldo. */
+  const displayName = userProfile?.displayName || user?.displayName || t('common.guest');
   const isWee = activeProfileType === 'hidi';
 
   /*
@@ -307,7 +312,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     id: MenuItemId,
     onPress: () => void,
     opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; label?: string } = {}
-  ) => renderRow(MENU_ITEM[id].icono, opts.label ?? MENU_ITEM[id].label, onPress, opts);
+  ) => renderRow(MENU_ITEM[id].icono, opts.label ?? t(MENU_ITEM[id].clave), onPress, opts);
 
   const renderSectionLabel = (label: string) => (
     <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
@@ -374,7 +379,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 {displayName}
               </Text>
               <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {!user ? 'Toca para iniciar sesión' : isWee ? 'Perfil Weë activo' : activeProfileType === 'biz' ? 'Perfil Biz activo' : 'Perfil Real activo'}
+                {!user ? t('menu.tapToSignIn') : isWee ? t('menu.activeWee') : activeProfileType === 'biz' ? t('menu.activeBiz') : t('menu.activeReal')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -394,13 +399,13 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {renderRow('casa', 'Home', goHome, { active: enHome })}
 
           {/* PERFIL */}
-          {renderSectionLabel('PERFIL')}
+          {renderSectionLabel(t('menu.sectionProfile'))}
           {fila('realProfile', goRealProfile, { active: !!user && activeProfileType === 'real' })}
-          {renderRow(MENU_ITEM.weeProfile.icono, hasWeeProfile || !user ? MENU_ITEM.weeProfile.label : 'Crear mi perfil Weë', goWeeProfile, {
+          {renderRow(MENU_ITEM.weeProfile.icono, hasWeeProfile || !user ? t('menu.weeProfile') : t('menu.createWeeProfile'), goWeeProfile, {
             active: isWee,
             right: !hasWeeProfile && user ? (
               <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
-                <Text style={styles.tagText}>Nuevo</Text>
+                <Text style={styles.tagText}>{t('common.new')}</Text>
               </View>
             ) : undefined,
           })}
@@ -416,7 +421,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             right: user ? (
               <View style={[styles.creditsBadge, { backgroundColor: theme.colors.accent }]}>
                 <Text style={styles.creditsBadgeText}>
-                  {balance === null ? '…' : `${balance.toLocaleString('es')} Credits`}
+                  {balance === null ? '…' : `${formato.numero(balance)} Credits`}
                 </Text>
               </View>
             ) : undefined,
@@ -438,7 +443,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
           {/* EXPLORA */}
           {renderDivisor()}
-          {renderSectionLabel('EXPLORA')}
+          {renderSectionLabel(t('menu.sectionExplore'))}
           {fila('communities', goCommunities)}
           {fila('weels', goWeels)}
           {fila('weetalk', goWeeTalk)}
@@ -452,6 +457,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             </TouchableOpacity>
             {creatorExpanded && (
               <View style={styles.creatorList}>
+                {/* El nombre es marca y va sin traducir; su descripción sí se traduce. */}
                 {WEE_EXPERIENCES.map((exp) => renderRow(exp.icono, exp.name, () => goCreator(exp.id), { small: true }))}
                 {fila('projects', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
               </View>
@@ -465,17 +471,17 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {/* Pie */}
           <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
             <TouchableOpacity onPress={() => after(() => navigateRoot('Help', { section: 'legal' }))} activeOpacity={0.7}>
-              <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Términos</Text>
+              <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.terms')}</Text>
             </TouchableOpacity>
             <Text style={[styles.footerDot, { color: theme.colors.textSecondary }]}>·</Text>
             <TouchableOpacity onPress={() => after(() => navigateRoot('Help', { section: 'legal' }))} activeOpacity={0.7}>
-              <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Privacidad</Text>
+              <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.privacy')}</Text>
             </TouchableOpacity>
             {user && (
               <>
                 <Text style={[styles.footerDot, { color: theme.colors.textSecondary }]}>·</Text>
                 <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
-                  <Text style={[styles.footerLink, { color: theme.colors.error }]}>Cerrar sesión</Text>
+                  <Text style={[styles.footerLink, { color: theme.colors.error }]}>{t('menu.signOut')}</Text>
                 </TouchableOpacity>
               </>
             )}

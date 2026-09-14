@@ -540,12 +540,22 @@ console.log('\n── E · El texto lo escribe cualquiera ──');
 console.log('\n── F · Enchufada donde tiene que estar ──');
 {
   const config = JSON.parse(leer('firebase.json'));
-  const rutas = config.hosting.rewrites.map((r) => r.source);
+  /*
+   * `hosting` pasó a ser una LISTA cuando la app web se publicó en su propio
+   * sitio: `get-wee` sirve la landing y /post/{postId}, `wee-app` sirve la
+   * aplicación. Lo que vigila este bloque es el primero, que es donde vive la
+   * página pública; el otro no tiene nada que ver con ella.
+   */
+  const sitios = Array.isArray(config.hosting) ? config.hosting : [config.hosting];
+  const principal = sitios.find((h) => h.site === 'get-wee' || h.public === 'public');
+  check('37b) el sitio de la página pública sigue sirviendo public/',
+    !!principal && principal.public === 'public');
+  const rutas = principal.rewrites.map((r) => r.source);
   /* Las cuatro de antes siguen ahí, en su orden, y la nueva va detrás. */
   check('37) las cuatro reescrituras del hosting siguen intactas',
     rutas[0] === '/' && rutas[1] === '/privacy' && rutas[2] === '/terms' && rutas[3] === '/support',
     rutas.join(' '));
-  const nueva = config.hosting.rewrites.find((r) => r.source === '/post/**');
+  const nueva = principal.rewrites.find((r) => r.source === '/post/**');
   check('38) y /post/** va a la función, en su región',
     !!nueva && nueva.function.functionId === 'publicPostPage' && nueva.function.region === 'us-central1');
   check('39) la función está exportada desde index.ts',

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -29,6 +30,7 @@ export const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCI
 /** "¿Tienes una idea en mente?": la persona lo cuenta con sus palabras y Weë empieza. */
 const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
   const { theme } = useTheme();
+  const t = useT();
   const [text, setText] = useState('');
 
   const submit = () => {
@@ -64,7 +66,7 @@ const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
             <Text style={styles.labelButtonText}>✨ {config.button} →</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={submit} disabled={!text.trim()} activeOpacity={0.85} style={[styles.roundButton, { backgroundColor: text.trim() ? theme.colors.accent : theme.colors.border }]} accessibilityLabel="Enviar idea">
+          <TouchableOpacity onPress={submit} disabled={!text.trim()} activeOpacity={0.85} style={[styles.roundButton, { backgroundColor: text.trim() ? theme.colors.accent : theme.colors.border }]} accessibilityLabel={t('weeai.sendIdea')}>
             <Ionicons name="arrow-forward" size={scale(18)} color="#1F2937" />
           </TouchableOpacity>
         )}

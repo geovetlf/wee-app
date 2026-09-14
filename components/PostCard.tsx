@@ -30,6 +30,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { notify } from '../utils/notify';
+import { useT } from '../contexts/IdiomaContext';
 import ShareablePostCard from './ShareablePostCard';
 import { cloudinaryThumb, cloudinaryFeed } from '../services/cloudinaryService';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -176,6 +177,7 @@ const PostCard: React.FC<PostCardProps> = ({
   alturaVisible,
   variante = 'tarjeta',
 }) => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
@@ -630,7 +632,7 @@ const PostCard: React.FC<PostCardProps> = ({
     if (postToShare.videoUrl) {
       const compartido = await compartirFueraDeWee(postToShare.id);
       if (!compartido) {
-        notify('No se pudo compartir la publicación. Inténtalo de nuevo.');
+        notify(t('wall.shareFailed'));
       }
       return;
     }
@@ -639,7 +641,7 @@ const PostCard: React.FC<PostCardProps> = ({
     if (Platform.OS === 'web') {
       try {
         await Share.share({
-          message: `${postToShare.content}\n\n- Publicado en Weë`,
+          message: `${postToShare.content}\n\n- ${t('wall.publishedOnWee')}`,
         });
       } catch (error) {
         console.error('Error sharing on web:', error);
@@ -667,12 +669,12 @@ const PostCard: React.FC<PostCardProps> = ({
           if (isAvailable) {
             await Sharing.shareAsync(uri, {
               mimeType: 'image/png',
-              dialogTitle: 'Compartir publicación',
+              dialogTitle: t('wall.sharePost'),
             });
           } else {
             // Fallback a Share nativo con texto
             await Share.share({
-              message: `${postToShare.content}\n\n- Publicado en Weë`,
+              message: `${postToShare.content}\n\n- ${t('wall.publishedOnWee')}`,
             });
           }
         } else {
@@ -686,10 +688,10 @@ const PostCard: React.FC<PostCardProps> = ({
       // Fallback a share de texto
       try {
         await Share.share({
-          message: `${postToShare.content}\n\n- Publicado en Weë`,
+          message: `${postToShare.content}\n\n- ${t('wall.publishedOnWee')}`,
         });
       } catch (e) {
-        Alert.alert('Error', 'No se pudo compartir la publicación');
+        Alert.alert(t('common.error'), t('wall.shareFailed'));
       }
     } finally {
       setIsSharing(false);
@@ -700,8 +702,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const handleDeletePost = () => {
     setMenuVisible(false);
     Alert.alert(
-      'Eliminar post',
-      '¿Estás seguro de que quieres eliminar este post?',
+      t('wall.deletePost'),
+      t('wall.deletePostConfirm'),
       [
         {
           text: 'Cancelar',
@@ -718,7 +720,7 @@ const PostCard: React.FC<PostCardProps> = ({
               }
             } catch (error) {
               console.error('❌ Error eliminando post:', error);
-              Alert.alert('Error', 'No se pudo eliminar el post. Intenta de nuevo.');
+              Alert.alert(t('common.error'), t('wall.deletePostFailed'));
             }
           },
         },
@@ -754,32 +756,32 @@ const PostCard: React.FC<PostCardProps> = ({
   const handleReportPost = () => {
     setMenuVisible(false);
     Alert.alert(
-      'Reportar publicación',
-      '¿Por qué quieres reportar esta publicación?',
+      t('wall.reportPost'),
+      t('wall.reportWhy'),
       [
         {
           text: 'Cancelar',
           style: 'cancel',
         },
         {
-          text: 'Contenido ofensivo',
+          text: t('wall.reportOffensive'),
           onPress: () => {
             console.log('📝 Post reportado: Contenido ofensivo');
-            Alert.alert('Reporte enviado', 'Gracias por tu reporte. Lo revisaremos pronto.');
+            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
           },
         },
         {
-          text: 'Spam',
+          text: t('wall.reportSpam'),
           onPress: () => {
             console.log('📝 Post reportado: Spam');
-            Alert.alert('Reporte enviado', 'Gracias por tu reporte. Lo revisaremos pronto.');
+            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
           },
         },
         {
-          text: 'Otro motivo',
+          text: t('wall.reportOther'),
           onPress: () => {
             console.log('📝 Post reportado: Otro motivo');
-            Alert.alert('Reporte enviado', 'Gracias por tu reporte. Lo revisaremos pronto.');
+            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
           },
         },
       ]
@@ -962,7 +964,7 @@ const PostCard: React.FC<PostCardProps> = ({
         {ventanaDelVideo.recorta && (
           <View style={styles.videoChip} pointerEvents="none">
             <Ionicons name="play" size={scale(11)} color="white" />
-            <Text style={styles.videoChipTexto}>Ver en Weëls</Text>
+            <Text style={styles.videoChipTexto}>{t('wall.viewInWeels')}</Text>
           </View>
         )}
 
@@ -1155,7 +1157,7 @@ const PostCard: React.FC<PostCardProps> = ({
         >
           <Ionicons name="repeat" size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.repostText, { color: theme.colors.textSecondary }]}>
-            {repostAuthor?.displayName || 'Usuario'} reposteó
+            {t('wall.repostedBy', { nombre: repostAuthor?.displayName || t('common.user') })}
           </Text>
         </TouchableOpacity>
         <View style={[styles.centered, { paddingVertical: SPACING.xl }]}>
@@ -1191,11 +1193,11 @@ const PostCard: React.FC<PostCardProps> = ({
         style={[styles.menuOption, separadorDelMenu]}
         onPress={republicarDesdeElMenu}
         disabled={isReposting}
-        accessibilityLabel={hasReposted ? 'Quitar la republicación' : 'Republicar'}
+        accessibilityLabel={hasReposted ? t('wall.undoRepostConfirm') : t('wall.repost')}
       >
         <Ionicons name="repeat" size={20} color={hasReposted ? theme.colors.accent : theme.colors.textSecondary} />
         <Text style={[styles.menuOptionText, { color: hasReposted ? theme.colors.accent : theme.colors.text }]}>
-          {hasReposted ? 'Quitar republicación' : 'Republicar'}
+          {hasReposted ? t('wall.undoRepost') : t('wall.repost')}
           {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount)}` : ''}
         </Text>
       </TouchableOpacity>
@@ -1205,23 +1207,23 @@ const PostCard: React.FC<PostCardProps> = ({
         <TouchableOpacity
           style={[styles.menuOption, separadorDelMenu]}
           onPress={enviarDesdeElMenu}
-          accessibilityLabel="Enviar por WeeTalk"
+          accessibilityLabel={t('wall.sendByWeeTalk')}
         >
           <Ionicons name="paper-plane-outline" size={20} color={theme.colors.textSecondary} />
-          <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>Enviar por WeeTalk</Text>
+          <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('wall.sendByWeeTalk')}</Text>
         </TouchableOpacity>
       )}
 
       {isOwnPost && (
         <TouchableOpacity style={[styles.menuOption, separadorDelMenu]} onPress={handleDeletePost}>
           <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-          <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>Eliminar post</Text>
+          <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>{t('wall.deletePost')}</Text>
         </TouchableOpacity>
       )}
 
       <TouchableOpacity style={styles.menuOption} onPress={handleReportPost}>
         <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
-        <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>Reportar publicación</Text>
+        <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('wall.reportPost')}</Text>
       </TouchableOpacity>
     </>
   );
@@ -1255,7 +1257,7 @@ const PostCard: React.FC<PostCardProps> = ({
         >
           <Ionicons name="repeat" size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.repostText, { color: theme.colors.textSecondary }]}>
-            {repostAuthor.displayName} reposteó
+            {t('wall.repostedBy', { nombre: repostAuthor.displayName })}
           </Text>
         </TouchableOpacity>
       )}
@@ -1325,7 +1327,7 @@ const PostCard: React.FC<PostCardProps> = ({
             <Text style={[styles.username, { color: theme.colors.text }]}>
               {loadingAuthor
                 ? 'Cargando...'
-                : postAuthor?.displayName || 'Usuario Anónimo'
+                : postAuthor?.displayName || t('common.anonymousUser')
               }
             </Text>
             <View style={styles.metaRow}>
@@ -1568,7 +1570,7 @@ const PostCard: React.FC<PostCardProps> = ({
           >
             <ShareablePostCard
               post={displayPost}
-              authorName={postAuthor?.displayName || 'Usuario Anónimo'}
+              authorName={postAuthor?.displayName || t('common.anonymousUser')}
               authorAvatarType={postAuthor?.avatarType}
               authorAvatarId={postAuthor?.avatarId}
               authorPhotoURL={typeof postAuthor?.photoURL === 'string' ? postAuthor.photoURL : undefined}

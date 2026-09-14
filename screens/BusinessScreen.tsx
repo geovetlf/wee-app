@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { getSpecialist, SpecialistAction } from '../constants/specialists';
+import { SpecialistAction } from '../constants/specialists';
+import { useEspecialista } from '../hooks/useEspecialista';
 import {
   BUSINESS_NETWORKS,
   BUSINESS_MESSAGES,
@@ -38,15 +40,17 @@ const NETWORK_ICON: Record<string, string> = {
  */
 const BusinessScreen: React.FC = () => {
   const { theme } = useTheme();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
-  const spec = getSpecialist('business');
+  const spec = useEspecialista('business');
 
   const [networks, setNetworks] = useState<BusinessNetwork[]>(BUSINESS_NETWORKS.map((n) => ({ ...n })));
   const [adding, setAdding] = useState(false);
   const [messages, setMessages] = useState<CustomerMessage[]>(BUSINESS_MESSAGES);
-  const calendar = useMemo(() => getBusinessCalendar(), []);
+  /* El calendario se rehace al cambiar de idioma: los días llevan su nombre. */
+  const calendar = useMemo(() => getBusinessCalendar(locale), [locale]);
 
   if (!spec) return null;
 
@@ -68,7 +72,7 @@ const BusinessScreen: React.FC = () => {
 
   const replyTo = (message: CustomerMessage) => {
     setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, replied: true } : m)));
-    startFlow(`Responder a ${message.name} en ${message.network}: "${message.text}"`, { questionId: 'what', optionId: 'reply' });
+    startFlow(t('business.replyGoal', { nombre: message.name, red: message.network, mensaje: message.text }), { questionId: 'what', optionId: 'reply' });
   };
 
   const connected = networks.filter((n) => n.connected);
@@ -81,14 +85,14 @@ const BusinessScreen: React.FC = () => {
       {/* Atajos de la barra de la referencia */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shortcuts}>
         {BUSINESS_SHORTCUTS.map((item) => (
-          <Chip key={item.label} label={item.label} icon={item.icon} onPress={() => startFlow(item.goal, { questionId: 'what', optionId: item.optionId })} />
+          <Chip key={item.id} label={t(item.clave)} icon={item.icon} onPress={() => startFlow(t(item.claveObjetivo), { questionId: 'what', optionId: item.optionId })} />
         ))}
       </ScrollView>
 
       <View style={[styles.columns, isDesktop && styles.columnsDesktop]}>
         {/* Mis redes sociales */}
         <View style={[styles.card, styles.grow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <SectionTitle title="Mis redes sociales" action="Gestionar cuentas" onAction={() => setAdding((v) => !v)} />
+          <SectionTitle title={t('business.mySocialAccounts')} action={t('business.manageAccounts')} onAction={() => setAdding((v) => !v)} />
           <View style={styles.networks}>
             {connected.map((n) => (
               <TouchableOpacity
@@ -96,13 +100,13 @@ const BusinessScreen: React.FC = () => {
                 onPress={() => toggleNetwork(n.id)}
                 activeOpacity={0.8}
                 style={[styles.network, { borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}
-                accessibilityLabel={`${n.name} conectado`}
+                accessibilityLabel={t('business.networkConnected', { red: n.name })}
               >
                 <Ionicons name={n.icon as any} size={scale(22)} color={n.color} />
                 <Text style={[styles.networkName, { color: theme.colors.text }]}>{n.name}</Text>
                 <View style={styles.networkStatus}>
                   <View style={styles.dot} />
-                  <Text style={styles.networkConnected}>Conectado</Text>
+                  <Text style={styles.networkConnected}>{t('business.connected')}</Text>
                 </View>
                 <Text style={[styles.networkHandle, { color: theme.colors.textSecondary }]} numberOfLines={1}>{n.handle}</Text>
               </TouchableOpacity>
@@ -111,23 +115,23 @@ const BusinessScreen: React.FC = () => {
               onPress={() => setAdding((v) => !v)}
               activeOpacity={0.8}
               style={[styles.network, styles.networkAdd, { borderColor: theme.colors.accent }]}
-              accessibilityLabel="Conectar otra red"
+              accessibilityLabel={t('business.connectAnother')}
             >
               <Ionicons name="add-circle-outline" size={scale(24)} color={theme.colors.accentDark} />
-              <Text style={[styles.networkName, { color: theme.colors.text }]}>Conectar otra red</Text>
+              <Text style={[styles.networkName, { color: theme.colors.text }]}>{t('business.connectAnother')}</Text>
             </TouchableOpacity>
           </View>
           {adding && (
             <View style={styles.addRow}>
               {available.length === 0 ? (
-                <Text style={[styles.note, { color: theme.colors.textSecondary }]}>Ya tienes todas tus redes conectadas.</Text>
+                <Text style={[styles.note, { color: theme.colors.textSecondary }]}>{t('business.allConnected')}</Text>
               ) : (
                 available.map((n) => <Chip key={n.id} label={n.name} icon={n.icon} onPress={() => connectNetwork(n.id)} />)
               )}
             </View>
           )}
           <Text style={[styles.note, { color: theme.colors.textSecondary }]}>
-            Conexión simulada: Weë publicará y responderá de verdad cuando las redes habiliten sus permisos oficiales.
+            {t('business.simulatedConnection')}
           </Text>
         </View>
 
@@ -145,15 +149,15 @@ const BusinessScreen: React.FC = () => {
       <View style={[styles.columns, isDesktop && styles.columnsDesktop]}>
         {/* Calendario */}
         <View style={[styles.card, styles.grow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <SectionTitle title="Calendario de publicaciones" action="Ver calendario completo" onAction={() => startFlow('Ver y organizar mi calendario de publicaciones de la semana', { questionId: 'what', optionId: 'schedule' })} />
+          <SectionTitle title={t('business.postCalendar')} action={t('business.seeFullCalendar')} onAction={() => startFlow(t('business.calendarGoal'), { questionId: 'what', optionId: 'schedule' })} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.calendar}>
             {calendar.map((day) => (
               <TouchableOpacity
                 key={day.key}
-                onPress={() => startFlow(`Programar una publicación para el ${day.weekday} ${day.label}: ${day.post.title}`, { questionId: 'what', optionId: 'schedule' })}
+                onPress={() => startFlow(t('business.scheduleGoal', { dia: day.weekday, fecha: day.label, publicacion: day.post.title }), { questionId: 'what', optionId: 'schedule' })}
                 activeOpacity={0.8}
                 style={styles.day}
-                accessibilityLabel={`${day.weekday} ${day.label}`}
+                accessibilityLabel={t('business.dayLabel', { dia: day.weekday, fecha: day.label })}
               >
                 <Text style={[styles.dayName, { color: theme.colors.text }]}>{day.weekday}</Text>
                 <Text style={[styles.dayDate, { color: theme.colors.textSecondary }]}>{day.label}</Text>
@@ -172,7 +176,7 @@ const BusinessScreen: React.FC = () => {
 
         {/* Mensajes */}
         <View style={[styles.card, styles.side, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <SectionTitle title="Mensajes de clientes" action="Ver todos" onAction={() => startFlow('Responder a los mensajes de mis clientes', { questionId: 'what', optionId: 'reply' })} />
+          <SectionTitle title={t('business.customerMessages')} action={t('business.seeAllMessages')} onAction={() => startFlow(t('business.messagesGoal'), { questionId: 'what', optionId: 'reply' })} />
           {messages.map((m) => (
             <View key={m.id} style={[styles.message, { borderTopColor: theme.colors.border }]}>
               <Ionicons name={NETWORK_ICON[m.network] as any} size={scale(16)} color={theme.colors.textSecondary} />
@@ -182,7 +186,7 @@ const BusinessScreen: React.FC = () => {
               <View style={{ flex: 1 }}>
                 <View style={styles.messageHead}>
                   <Text style={[styles.messageName, { color: theme.colors.text }]} numberOfLines={1}>{m.name}</Text>
-                  <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{m.time}</Text>
+                  <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{m.claveHora ? t(m.claveHora) : m.time}</Text>
                 </View>
                 <Text style={[styles.messageText, { color: theme.colors.textSecondary }]} numberOfLines={2}>{m.text}</Text>
               </View>
@@ -190,9 +194,9 @@ const BusinessScreen: React.FC = () => {
                 onPress={() => replyTo(m)}
                 activeOpacity={0.8}
                 style={[styles.replyPill, m.replied ? { backgroundColor: '#E8F5EE' } : { backgroundColor: theme.colors.accent }]}
-                accessibilityLabel={m.replied ? `Respondido a ${m.name}` : `Responder a ${m.name}`}
+                accessibilityLabel={t(m.replied ? 'business.repliedTo' : 'business.replyTo', { nombre: m.name })}
               >
-                <Text style={[styles.replyText, { color: m.replied ? '#2F7D4F' : '#1F2937' }]}>{m.replied ? 'Respondido' : 'Responder'}</Text>
+                <Text style={[styles.replyText, { color: m.replied ? '#2F7D4F' : '#1F2937' }]}>{t(m.replied ? 'business.replied' : 'business.reply')}</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -201,26 +205,26 @@ const BusinessScreen: React.FC = () => {
 
       {/* Resultados */}
       <View style={styles.section}>
-        <SectionTitle title="Resultados esta semana" />
+        <SectionTitle title={t('business.resultsThisWeek')} />
         <View style={styles.stats}>
           {BUSINESS_STATS.map((stat) => (
-            <View key={stat.label} style={[styles.stat, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <View key={stat.id} style={[styles.stat, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={[styles.statValue, { color: theme.colors.text }]}>{stat.value}</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{stat.label}</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t(stat.clave)}</Text>
               <Text style={styles.statDelta}>{stat.delta}</Text>
             </View>
           ))}
         </View>
         <ClosingBanner
           emoji="🚀"
-          title="Tu negocio va por buen camino"
-          subtitle="Las interacciones aumentaron un 60% esta semana. ¡Sigue así!"
-          button="Ver análisis detallado"
-          onPress={() => startFlow('Analizar los resultados de mi negocio esta semana', { questionId: 'what', optionId: 'analyze' })}
+          title={t('business.onTrack')}
+          subtitle={t('business.onTrackNote')}
+          button={t('business.seeDetailedAnalysis')}
+          onPress={() => startFlow(t('business.analysisGoal'), { questionId: 'what', optionId: 'analyze' })}
         />
       </View>
 
-      <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>Cuéntale a Weë lo que quieres. Weë se encarga de la IA.</Text>
+      <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>{t('weeai.tellWee')}</Text>
     </CreatorShell>
   );
 };

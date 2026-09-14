@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { useT } from '../../contexts/IdiomaContext';
 import { Ionicons } from '@expo/vector-icons';
 import { ExampleKind } from '../../constants/specialists';
 import { FONT_WEIGHT, BORDER_RADIUS, SPACING } from '../../constants/design';
@@ -39,6 +40,7 @@ const BANDS = 8;
  * Cuando lleguen los proveedores reales, aquí irá la imagen de verdad.
  */
 const MockMedia: React.FC<MockMediaProps> = ({ emoji, tone, kind = 'image', meta, aspectRatio = 1, style, emojiSize }) => {
+  const t = useT();
   const bands = Array.from({ length: BANDS }, (_, i) => mix(tone[0], tone[1], i / (BANDS - 1)));
   const isBeforeAfter = kind === 'beforeAfter';
   const isVideo = kind === 'video';
@@ -57,10 +59,10 @@ const MockMedia: React.FC<MockMediaProps> = ({ emoji, tone, kind = 'image', meta
       {isBeforeAfter && (
         <>
           <View style={[styles.tag, styles.tagLeft]}>
-            <Text style={styles.tagText}>Antes</Text>
+            <Text style={styles.tagText}>{t('weeai.before')}</Text>
           </View>
           <View style={[styles.tag, styles.tagRight]}>
-            <Text style={styles.tagText}>Después</Text>
+            <Text style={styles.tagText}>{t('weeai.after')}</Text>
           </View>
           <View style={styles.divider} />
         </>

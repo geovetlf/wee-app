@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -27,6 +28,12 @@ import { ENGINE_ADMIN_FLAG } from './EngineAdminScreen';
 type SettingsNavigationProp = StackNavigationProp<ProfileStackParamList, 'Settings'>;
 
 const SettingsScreen: React.FC = () => {
+  /*
+   * El idioma puesto se enseña en la propia fila, escrito en su lengua:
+   * "Español", no "es". Es lo que la persona va buscando al mirar esa fila,
+   * y le ahorra entrar solo para comprobarlo.
+   */
+  const { t, idioma, disponibles } = useIdioma();
   const { theme } = useTheme();
   const { logout } = useAuth();
   const { userProfile } = useUserProfile();
@@ -208,7 +215,7 @@ const SettingsScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Configuración
+          {t('settings.title')}
         </Text>
         <View style={styles.headerRight} />
       </View>
@@ -217,7 +224,7 @@ const SettingsScreen: React.FC = () => {
         {/* Contenido */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Contenido
+            {t('settings.sectionContent')}
           </Text>
 
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
@@ -230,10 +237,30 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
+        {/*
+          Preferencias. El idioma no es contenido ni privacidad: es cómo se te
+          presenta Weë. Grupo propio en vez de colarlo en uno que ya
+          significaba otra cosa.
+        */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            {t('settings.sectionPreferences')}
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            {renderSettingItem(
+              'language',
+              t('settings.language'),
+              disponibles.find((i) => i.codigo === idioma)?.nombreNativo ?? t('settings.languageSubtitle'),
+              () => (navigation as any).navigate('Idioma')
+            )}
+          </View>
+        </View>
+
         {/* Privacidad */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Privacidad
+            {t('settings.sectionPrivacy')}
           </Text>
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>

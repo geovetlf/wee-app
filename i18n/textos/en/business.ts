@@ -1,0 +1,53 @@
+/*
+ * Weë Business: the screen and the labels of its sample data.
+ *
+ * Typed against the Spanish file: a key missing here does not compile. What
+ * represents the person's own business —account names, handles, scheduled post
+ * titles, customer messages— never goes through the translator.
+ */
+export const business: typeof import('../es/business').business = {
+  mySocialAccounts: 'My social accounts',
+  manageAccounts: 'Manage accounts',
+  connected: 'Connected',
+  networkConnected: '{{red}} connected',
+  connectAnother: 'Connect another account',
+  allConnected: 'All your accounts are already connected.',
+  simulatedConnection: 'Simulated connection: Weë will post and reply for real once the platforms grant their official permissions.',
+  postCalendar: 'Post calendar',
+  seeFullCalendar: 'See full calendar',
+  calendarGoal: 'See and organise my post calendar for the week',
+  scheduleGoal: 'Schedule a post for {{dia}} {{fecha}}: {{publicacion}}',
+  dayLabel: '{{dia}} {{fecha}}',
+  customerMessages: 'Customer messages',
+  seeAllMessages: 'See all',
+  messagesGoal: 'Reply to my customers’ messages',
+  reply: 'Reply',
+  replied: 'Replied',
+  replyTo: 'Reply to {{nombre}}',
+  repliedTo: 'Replied to {{nombre}}',
+  replyGoal: 'Reply to {{nombre}} on {{red}}: "{{mensaje}}"',
+  resultsThisWeek: 'Results this week',
+  statPosts: 'Posts',
+  statReach: 'People reached',
+  statInteractions: 'Interactions',
+  statMessages: 'Messages received',
+  onTrack: 'Your business is on the right track',
+  onTrackNote: 'Interactions are up 60% this week. Keep it up!',
+  seeDetailedAnalysis: 'See detailed analysis',
+  analysisGoal: 'Analyse my business results this week',
+  shortcutIdeas: 'Ideas',
+  shortcutIdeasGoal: 'Ideas and strategy to grow my business',
+  shortcutMarketing: 'Marketing',
+  shortcutMarketingGoal: 'A marketing campaign for my business',
+  shortcutSocial: 'Social media',
+  shortcutSocialGoal: 'Create content for my business social accounts',
+  shortcutAnalyze: 'Analyse',
+  shortcutAnalyzeGoal: 'Analyse my business results',
+  shortcutDocuments: 'Documents',
+  shortcutDocumentsGoal: 'Write a document for my business',
+  shortcutSell: 'Sell more',
+  shortcutSellGoal: 'Sell more this month in my business',
+  shortcutCareer: 'Work and career',
+  shortcutCareerGoal: 'Improve my CV and my professional profile',
+  yesterday: 'Yesterday',
+};

@@ -14,6 +14,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
 import { postsService, Post } from '../services/firestoreService';
@@ -29,6 +30,7 @@ import { scale } from '../utils/scale';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 
 const WebLandingScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { abrirComentarios } = useComentariosDeLaPublicacion();
@@ -204,7 +206,7 @@ const WebLandingScreen: React.FC = () => {
           preselecciona el muro general.
         */}
         <div style={{ padding: '4px 16px' }}>
-          <ComposerEntry placeholder="¿Qué quieres compartir?" onCompose={handleCompose} variante="home" directo />
+          <ComposerEntry placeholder={t('home.composerPlaceholder')} onCompose={handleCompose} variante="home" directo />
         </div>
 
         {/* Weëls */}

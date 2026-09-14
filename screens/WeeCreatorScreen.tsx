@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
@@ -20,7 +21,7 @@ import { creatorInterestService } from '../services/creatorInterestService';
 import CreditsPill from '../components/CreditsPill';
 import CreatorShell from '../components/creator/CreatorShell';
 import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById, experienceLabel } from '../constants/weeExperiences';
-import { creatorService, CreatorJob, JOB_STATUS_LABEL } from '../services/creatorService';
+import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -37,6 +38,7 @@ const isWeb = Platform.OS === 'web';
  */
 const WeeCreatorScreen: React.FC = () => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -103,7 +105,7 @@ const WeeCreatorScreen: React.FC = () => {
     } catch (error) {
       console.warn('No se pudo guardar el interés en AI Apps:', error);
       setInterestedIds((ids) => (alreadyInterested ? [...ids, cat.id] : ids.filter((id) => id !== cat.id)));
-      notify('No se pudo guardar', 'Inténtalo de nuevo en un momento.');
+      notify(t('weeai.couldNotSave'), t('weeai.tryAgainInAMoment'));
     } finally {
       setSavingInterestId(null);
     }
@@ -166,46 +168,48 @@ const WeeCreatorScreen: React.FC = () => {
         <Text style={[styles.categoryName, { color: theme.colors.text }]} numberOfLines={2}>
           {cat.name}
         </Text>
+        {/* Lo que describe a una experiencia sale de su clave, no del español
+            de la tabla: `description` es documentación (constants/weeExperiences.ts). */}
         <Text style={[styles.categoryDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-          {cat.description}
+          {t(cat.claveDescripcion)}
         </Text>
       </TouchableOpacity>
     );
   };
 
   return (
-    <CreatorShell activeId="creator" overline="🤖 WEË AI" title="¿Qué quieres crear?" breadcrumb="WEË AI" contentStyle={styles.content}>
+    <CreatorShell activeId="creator" overline="🤖 WEË AI" title={t('weeai.whatToCreate')} breadcrumb="WEË AI" contentStyle={styles.content}>
         {/* Buscador por intención */}
         <View style={[styles.searchBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={styles.searchEmoji}>✨</Text>
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Quiero un video bonito para promocionar mi restaurante…"
+            placeholder={t('weeai.whatDoYouWant')}
             placeholderTextColor={theme.colors.textSecondary}
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} activeOpacity={0.7} accessibilityLabel="Borrar">
+            <TouchableOpacity onPress={() => setQuery('')} activeOpacity={0.7} accessibilityLabel={t('weeai.clear')}>
               <Ionicons name="close-circle" size={scale(20)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
         <Text style={[styles.motto, { color: theme.colors.textSecondary }]}>
-          Tú eliges el resultado. Weë elige la IA.
+          {t('weeai.theMotto')}
         </Text>
 
         {query.trim().length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              {matches.length > 0 ? 'Para eso está' : 'Aún no sabemos quién se encarga de eso'}
+              {t(matches.length > 0 ? 'weeai.thatIsFor' : 'weeai.notYetOurs')}
             </Text>
             {matches.length > 0 ? (
               <View style={styles.grid}>{matches.map(renderCategory)}</View>
             ) : (
               <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
-                Prueba con palabras como logo, video, foto, texto, canción, look, receta, casa o negocio. O pregúntale a Weë Brain.
+                {t('weeai.trySearchWords')}
               </Text>
             )}
           </View>
@@ -218,12 +222,12 @@ const WeeCreatorScreen: React.FC = () => {
             <View style={styles.detailBody}>
               <Text style={[styles.detailTitle, { color: theme.colors.text }]}>{selected.name}</Text>
               <Text style={[styles.detailText, { color: theme.colors.text }]}>
-                Cuéntale a {selected.name} qué quieres lograr: te hace dos o tres preguntas sencillas y se encarga del resto. Después publicas directo en tu comunidad.
+                {t('creator.tellTheSpecialist', { especialista: selected.name })}
               </Text>
               <View style={styles.exampleRow}>
                 {selected.examples.map((example) => (
                   <View key={example} style={[styles.exampleChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>“{example}”</Text>
+                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>“{t(example)}”</Text>
                   </View>
                 ))}
               </View>
@@ -234,17 +238,17 @@ const WeeCreatorScreen: React.FC = () => {
                   activeOpacity={0.8}
                   accessibilityLabel={`Empezar con ${selected.name}`}
                 >
-                  <Text style={styles.detailButtonText}>Empezar</Text>
+                  <Text style={styles.detailButtonText}>{t('weeai.start')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleNotifyMe(selected)}
                   disabled={savingInterestId === selected.id}
                   activeOpacity={0.7}
                   style={styles.detailLink}
-                  accessibilityLabel={selectedInterested ? 'Ya no avisarme' : 'Avísame cuando esté'}
+                  accessibilityLabel={selectedInterested ? t('weeai.stopNotifying') : t('weeai.notifyMe')}
                 >
                   <Text style={[styles.detailLinkText, { color: theme.colors.accentDark }]}>
-                    {selectedInterested ? '✓ Te avisaremos cuando esté de verdad' : 'Avísame cuando esté de verdad'}
+                    {selectedInterested ? t('weeai.willNotifyYou') : t('weeai.notifyMeReal')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -258,7 +262,7 @@ const WeeCreatorScreen: React.FC = () => {
         {/* Mis creaciones */}
         {myJobs.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Mis creaciones</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weeai.myCreations')}</Text>
             {myJobs.map((job) => {
               const exp = getExperienceById(job.experienceId);
               return (
@@ -278,7 +282,7 @@ const WeeCreatorScreen: React.FC = () => {
                         seguía leyéndose "Weë Home" (fase 2E-61.2). El trabajo no
                         se toca; solo cambia cómo se nombra.
                       */}
-                      {exp ? experienceLabel(exp) : 'Weë'} · {JOB_STATUS_LABEL[job.status] ?? job.status}{job.demo ? ' · demo' : ''}
+                      {exp ? experienceLabel(exp, t) : 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -293,19 +297,19 @@ const WeeCreatorScreen: React.FC = () => {
           style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
           onPress={() => navigation.navigate(user ? 'Projects' : 'Login')}
           activeOpacity={0.8}
-          accessibilityLabel="Mis proyectos"
+          accessibilityLabel={t('weeai.myProjects')}
         >
           <Text style={styles.jobEmoji}>📁</Text>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.jobGoal, { color: theme.colors.text }]}>Mis proyectos</Text>
-            <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>Agrupa tus creaciones: logo, fotos, videos, música y documentos en un solo lugar.</Text>
+            <Text style={[styles.jobGoal, { color: theme.colors.text }]}>{t('weeai.myProjects')}</Text>
+            <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>{t('weeai.projectsNote')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Disponible hoy */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Disponible hoy</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weeai.availableToday')}</Text>
           <TouchableOpacity
             style={[styles.availableCard, { backgroundColor: theme.colors.text }]}
             onPress={handleAvatarTool}
@@ -313,9 +317,9 @@ const WeeCreatorScreen: React.FC = () => {
           >
             <Text style={styles.availableEmoji}>🎭</Text>
             <View style={styles.availableBody}>
-              <Text style={styles.availableTitle}>Avatar IA para tu perfil Weë</Text>
+              <Text style={styles.availableTitle}>{t('weeai.avatarForWeeProfile')}</Text>
               <Text style={styles.availableText}>
-                {hasWeeProfile ? 'Genera o cambia el avatar de tu alter ego con IA.' : 'Crea tu alter ego digital y genera su avatar con IA.'}
+                {hasWeeProfile ? t('weeai.changeAlterEgo') : t('weeai.createAlterEgo')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.8)" />
@@ -329,7 +333,7 @@ const WeeCreatorScreen: React.FC = () => {
             fase 2E-50 son ocho. Un número escrito a mano vuelve a mentir en cuanto
             la lista cambie, y esta lista ya cambió una vez.
           */}
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Los especialistas de Weë</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weeai.theSpecialists')}</Text>
           <View style={styles.grid}>{WEE_EXPERIENCES.map(renderCategory)}</View>
         </View>
 
@@ -338,10 +342,10 @@ const WeeCreatorScreen: React.FC = () => {
           <Text style={styles.creditsEmoji}>💳</Text>
           <View style={styles.creditsBody}>
             <Text style={[styles.creditsTitle, { color: theme.colors.text }]}>
-              {balance === null ? 'Tus Credits' : `Tienes ${balance.toLocaleString('es')} Credits`}
+              {balance === null ? t('weeai.yourCredits') : t('weeai.youHaveCredits', { saldo: formato.numero(balance) })}
             </Text>
             <Text style={[styles.creditsText, { color: theme.colors.textSecondary }]}>
-              Los especialistas de Weë usan Credits. Recarga cuando quieras.
+              {t('weeai.creditsBoxNote')}
             </Text>
           </View>
           <TouchableOpacity
@@ -349,7 +353,7 @@ const WeeCreatorScreen: React.FC = () => {
             onPress={() => navigation.navigate('CreditStore')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.creditsButtonText, { color: theme.colors.text }]}>Recargar</Text>
+            <Text style={[styles.creditsButtonText, { color: theme.colors.text }]}>{t('weeai.topUp')}</Text>
           </TouchableOpacity>
         </View>
     </CreatorShell>

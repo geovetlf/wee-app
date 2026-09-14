@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { creditsService, describeTransaction, CreditsBalance, CreditTransaction } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -20,6 +21,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
  */
 const WalletScreen = () => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
@@ -64,9 +66,9 @@ const WalletScreen = () => {
         </View>
         <View style={styles.txnRight}>
           <Text style={[styles.txnAmount, { color }]}>
-            {view.positive ? '+' : ''}{view.amount.toLocaleString('es')}
+            {view.positive ? '+' : ''}{formato.numero(view.amount)}
           </Text>
-          <Text style={[styles.txnBalance, { color: theme.colors.textSecondary }]}>Saldo: {view.balanceAfter.toLocaleString('es')}</Text>
+          <Text style={[styles.txnBalance, { color: theme.colors.textSecondary }]}>{t('credits.balanceAfter', { saldo: formato.numero(view.balanceAfter) })}</Text>
         </View>
       </View>
     );
@@ -79,7 +81,7 @@ const WalletScreen = () => {
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8}>
           <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Mi billetera</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('credits.myWallet')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -87,10 +89,10 @@ const WalletScreen = () => {
       <View style={[styles.balanceCard, { backgroundColor: theme.dark ? '#1C1C1E' : '#F8F9FA' }]}>
         <View style={styles.balanceTop}>
           <View>
-            <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>Saldo actual</Text>
+            <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>{t('credits.currentBalance')}</Text>
             <View style={styles.balanceRow}>
               <Ionicons name="diamond" size={24} color="#F5B731" />
-              <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{(account?.balance ?? 0).toLocaleString('es')}</Text>
+              <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{formato.numero(account?.balance ?? 0)}</Text>
             </View>
           </View>
           <TouchableOpacity
@@ -99,25 +101,25 @@ const WalletScreen = () => {
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addBtnText}>Recargar</Text>
+            <Text style={styles.addBtnText}>{t('credits.topUp')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: '#22C55E' }]}>{(account?.lifetimeEarned ?? 0).toLocaleString('es')}</Text>
-            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Obtenidos</Text>
+            <Text style={[styles.statValue, { color: '#22C55E' }]}>{formato.numero(account?.lifetimeEarned ?? 0)}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('credits.earned')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: '#EF4444' }]}>{(account?.lifetimeSpent ?? 0).toLocaleString('es')}</Text>
-            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Usados</Text>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>{formato.numero(account?.lifetimeSpent ?? 0)}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('credits.spent')}</Text>
           </View>
         </View>
       </View>
 
       {/* History */}
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Historial</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('credits.history')}</Text>
 
       <FlatList
         data={transactions}
@@ -127,7 +129,7 @@ const WalletScreen = () => {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={44} color={theme.colors.textSecondary} style={{ opacity: 0.4 }} />
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Sin movimientos todavía</Text>
+            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('credits.noMovements')}</Text>
           </View>
         }
         showsVerticalScrollIndicator={false}

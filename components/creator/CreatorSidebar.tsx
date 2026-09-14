@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useWallet } from '../../hooks/useWallet';
@@ -35,6 +36,7 @@ const ICONS: Record<string, string> = {
  * Home, Weë Creator, los 10 especialistas y la caja de Credits.
  */
 const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -65,7 +67,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, borderRightColor: theme.colors.border }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity onPress={goHome} activeOpacity={0.7} style={styles.logoRow} accessibilityLabel="Ir al inicio">
+        <TouchableOpacity onPress={goHome} activeOpacity={0.7} style={styles.logoRow} accessibilityLabel={t('weeai.goHome')}>
           <Image source={require('../../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
         </TouchableOpacity>
 
@@ -77,7 +79,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
             if (!exp) return null;
             return renderItem(id, ICONS[id] || 'sparkles-outline', exp.name, () => goSpecialist(id), true);
           })}
-          {renderItem('projects', 'folder-open-outline', 'Mis proyectos', () => navigation.navigate(user ? 'Projects' : 'Login'), true)}
+          {renderItem('projects', 'folder-open-outline', t('weeai.myProjects'), () => navigation.navigate(user ? 'Projects' : 'Login'), true)}
         </View>
 
         {/* Credits */}
@@ -85,18 +87,18 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
           <View style={styles.creditsRow}>
             <Text style={styles.creditsEmoji}>💳</Text>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.creditsNumber, { color: theme.colors.text }]}>{balance === null ? '…' : balance.toLocaleString('es')}</Text>
+              <Text style={[styles.creditsNumber, { color: theme.colors.text }]}>{balance === null ? '…' : formato.numero(balance)}</Text>
               <Text style={[styles.creditsLabel, { color: theme.colors.text }]}>Credits</Text>
             </View>
             <Ionicons name="arrow-forward" size={scale(16)} color={theme.colors.text} />
           </View>
           <View style={[styles.creditsButton, { backgroundColor: theme.colors.accent }]}>
-            <Text style={styles.creditsButtonText}>Comprar Credits →</Text>
+            <Text style={styles.creditsButtonText}>{t('weeai.buyCredits')}</Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.tagline}>
-          <Handwritten text={'Una mejor tú,\nen un mundo\nmás creativo'} align="left" />
+          <Handwritten text={t('weeai.sidebarTagline')} align="left" />
         </View>
       </ScrollView>
     </View>

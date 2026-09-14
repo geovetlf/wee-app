@@ -420,6 +420,29 @@ console.log('\n── I · El Home va directo al compositor ──');
     if (/AvatarDisplay$/.test(peticion)) return { __esModule: true, default: () => h('span', null, 'avatar') };
     if (/utils\/scale$/.test(peticion)) return { scale: (n) => n };
     if (/firestoreService$/.test(peticion)) return {};
+    /*
+     * El traductor, con el diccionario español DE VERDAD.
+     *
+     * Podría devolver la clave y sería más simple, pero entonces esta prueba
+     * dejaría de comprobar lo que comprueba: que el compositor enseña
+     * "¿Qué quieres compartir?". Cargando los textos reales sigue mirando la
+     * pantalla que ve una persona, y además se entera si una clave se queda sin
+     * traducción.
+     */
+    if (/IdiomaContext$/.test(peticion)) {
+      const dicc = {};
+      for (const m of ['common', 'nav', 'menu', 'home', 'wall', 'weels', 'composer', 'settings', 'language', 'creator']) {
+        dicc[m] = cargar(`i18n/textos/es/${m}.ts`)[m];
+      }
+      const traducir = (clave, valores) => {
+        const [seccion, k] = String(clave).split('.');
+        let texto = (dicc[seccion] || {})[k];
+        if (texto === undefined) return clave;
+        if (valores) texto = texto.replace(/\{\{\s*(\w+)\s*\}\}/g, (e, n) => valores[n] ?? e);
+        return texto;
+      };
+      return { useT: () => traducir, useIdioma: () => ({ t: traducir }) };
+    }
     const real = { 'utils/sectionFeed': 'utils/sectionFeed.ts', 'constants/weeExperiences': 'constants/weeExperiences.ts', 'constants/design': 'constants/design.ts' };
     const clave = Object.keys(real).find((k) => peticion.endsWith(k));
     if (!clave) throw new Error('import sin pieza en la prueba: ' + peticion);
@@ -490,9 +513,14 @@ console.log('\n── I · El Home va directo al compositor ──');
   check('5) `directo` nace apagado: nadie lo hereda sin pedirlo', /directo = false \}\) =>/.test(puerta));
   check('5) y solo quita el pliegue y su chevron: el "+" y la pregunta no cambian',
     /const desplegable = !compact && !directo;/.test(puerta) && /variante === 'home' \? \(/.test(puerta) && /onPress=\{tocarCampo\}/.test(puerta) && !/conChevron/.test(puerta));
+  /*
+   * La pregunta pasó por i18n: ya no viaja escrita en la prop, viaja su clave.
+   * Lo que esto defiende —que las DOS pantallas del Home montan el compositor
+   * igual, en su variante y en directo— no ha cambiado.
+   */
+  const enElHome = /<ComposerEntry placeholder=\{t\('home\.composerPlaceholder'\)\} onCompose=\{handleCompose\} variante="home" directo \/>/;
   check('5) el Home lo pide en sus dos pantallas',
-    /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/.test(leer('screens/LandingScreen.tsx')) &&
-    /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/.test(leer('screens/WebLandingScreen.tsx')));
+    enElHome.test(leer('screens/LandingScreen.tsx')) && enElHome.test(leer('screens/WebLandingScreen.tsx')));
   check('5) una sola instancia por pantalla del Home',
     (leer('screens/LandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1 && (leer('screens/WebLandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1);
   /* Y la puerta sigue sabiendo plegarse aunque hoy nadie se lo pida. */

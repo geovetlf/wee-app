@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 're
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useTabBar } from '../contexts/TabBarContext';
 import { FONT_WEIGHT } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -43,7 +44,10 @@ export type DestinoId = 'Home' | 'Search' | 'Create' | 'Inbox' | 'Notifications'
 
 interface Destino {
   id: DestinoId;
+  /** El texto en español, que es además la clave de respaldo si faltara la traducción. */
   etiqueta: string;
+  /** La clave de i18n. La etiqueta que se pinta sale de aquí, no de `etiqueta`. */
+  clave: string;
   icono: keyof typeof Ionicons.glyphMap;
   iconoPuesto: keyof typeof Ionicons.glyphMap;
 }
@@ -58,11 +62,12 @@ interface Destino {
  * ofrecían los dos perfiles.
  */
 export const DESTINOS: Destino[] = [
-  { id: 'Home', etiqueta: 'Inicio', icono: 'home-outline', iconoPuesto: 'home' },
-  { id: 'Search', etiqueta: 'Buscar', icono: 'search-outline', iconoPuesto: 'search' },
-  { id: 'Create', etiqueta: 'Crear', icono: 'add-circle-outline', iconoPuesto: 'add-circle' },
-  { id: 'Inbox', etiqueta: 'WeeTalk', icono: 'chatbubble-outline', iconoPuesto: 'chatbubble' },
-  { id: 'Notifications', etiqueta: 'Notificaciones', icono: 'notifications-outline', iconoPuesto: 'notifications' },
+  { id: 'Home', etiqueta: 'Inicio', clave: 'nav.home', icono: 'home-outline', iconoPuesto: 'home' },
+  { id: 'Search', etiqueta: 'Buscar', clave: 'nav.search', icono: 'search-outline', iconoPuesto: 'search' },
+  { id: 'Create', etiqueta: 'Crear', clave: 'nav.create', icono: 'add-circle-outline', iconoPuesto: 'add-circle' },
+  /* WeeTalk no se traduce: es el nombre del producto, como Instagram o WhatsApp. */
+  { id: 'Inbox', etiqueta: 'WeeTalk', clave: 'nav.talk', icono: 'chatbubble-outline', iconoPuesto: 'chatbubble' },
+  { id: 'Notifications', etiqueta: 'Notificaciones', clave: 'nav.notifications', icono: 'notifications-outline', iconoPuesto: 'notifications' },
 ];
 
 /** Lo que ocupa la barra por encima de la zona segura. Lo necesita quien reserve sitio. */
@@ -77,6 +82,7 @@ interface BarraInferiorProps {
 }
 
 const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer = 0 }) => {
+  const t = useT();
   const { theme } = useTheme();
   const { scrollProgress, isTransparent } = useTabBar();
   const insets = useSafeAreaInsets();
@@ -131,7 +137,7 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
             accessibilityRole="button"
             accessibilityState={{ selected: activo }}
             aria-selected={activo}
-            accessibilityLabel={activo ? `${destino.etiqueta}, sección actual` : destino.etiqueta}
+            accessibilityLabel={activo ? `${t(destino.clave)}, ${t('nav.current')}` : t(destino.clave)}
           >
             <View style={styles.icono}>
               {/*
@@ -151,7 +157,7 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
               )}
             </View>
             <Text style={[styles.etiqueta, { color }]} numberOfLines={1}>
-              {destino.etiqueta}
+              {t(destino.clave)}
             </Text>
           </TouchableOpacity>
         );

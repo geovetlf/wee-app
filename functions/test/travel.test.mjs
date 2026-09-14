@@ -17,6 +17,15 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
 const leer = (p) => fs.readFileSync(path.resolve(here, '../../' + p), 'utf8');
+const fsCat = fs;
+
+/* El catálogo de las once experiencias: la clave vive en constants/specialists.ts
+ * y la palabra en el diccionario. `catEs` resuelve una; `catEsDe` junta todas
+ * las de una experiencia, para buscar una palabra sin saber en qué clave está. */
+const catalogoEs = fsCat.readFileSync(new URL('../../i18n/textos/es/catalogo.ts', import.meta.url), 'utf8');
+const catEs = (clave) => (catalogoEs.match(new RegExp('^  ' + clave + ": '(.*)',$", 'm')) || [])[1] || '';
+const catEsDe = (exp) => [...catalogoEs.matchAll(new RegExp('^  ' + exp + "[A-Z][A-Za-z0-9]*: '(.*)',$", 'gm'))].map((m) => m[1]).join(' · ');
+
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -91,7 +100,8 @@ console.log('\n── A · La undécima experiencia ──');
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── B · El Home de Weë Travel ──');
 {
-  check('5) pregunta por el viaje con esas palabras', /title: '✈️ ¿Qué viaje tienes en mente\?'/.test(bloqueTravel));
+  check('5) pregunta por el viaje con esas palabras',
+    /title: 'travelIdeaTitle'/.test(bloqueTravel) && catEs('travelIdeaTitle') === '✈️ ¿Qué viaje tienes en mente?');
   check('5) y la caja de escribir va ANTES de las funciones', /ideaFirst: true/.test(bloqueTravel));
 
   /*
@@ -113,7 +123,10 @@ console.log('\n── B · El Home de Weë Travel ──');
   check('6) y sin esa marca ninguna otra sección se mueve', /const lanzador = !!spec\.ideaFirst;/.test(codigo) && (specialists.match(/^ {4}ideaFirst: true,$/gm) || []).length === 1);
 
   check('7) tiene tres ejemplos que se tocan', (bloqueTravel.match(/chips: \[([^\]]*)\]/)?.[1].match(/'/g) || []).length === 6);
-  check('7) y son los tres del diseño', /'🇯🇵 Japón en octubre', '🌴 Quiero una playa tranquila y barata', '🤷 No sé dónde viajar'/.test(bloqueTravel));
+  check('7) y son los tres del diseño',
+    /'travelIdeaChip1', 'travelIdeaChip2', 'travelIdeaChip3'/.test(bloqueTravel)
+    && [catEs('travelIdeaChip1'), catEs('travelIdeaChip2'), catEs('travelIdeaChip3')].join(' · ')
+       === '🇯🇵 Japón en octubre · 🌴 Quiero una playa tranquila y barata · 🤷 No sé dónde viajar');
 
   // Un emoji ayuda a reconocer el ejemplo, pero no debe viajar dentro del objetivo.
   const cajaJs = require('typescript').transpileModule(
@@ -146,7 +159,10 @@ console.log('\n── C · Las cuatro funciones ──');
   const acciones = [...bloqueTravel.matchAll(/\{ id: '([^']+)', icon: /g)].map((m) => m[1]);
   check('10) son exactamente cuatro', acciones.length === 4, acciones.join(','));
   check('10) y son las cuatro de la fase A', acciones.join(',') === 'plan,where,doing,moving', acciones.join(','));
-  check('11) se llaman como se dijo', /title: 'Planificar un viaje'/.test(bloqueTravel) && /title: 'No sé a dónde ir'/.test(bloqueTravel) && /title: 'Qué hacer y dónde comer'/.test(bloqueTravel) && /title: 'Cómo moverme'/.test(bloqueTravel));
+  check('11) se llaman como se dijo',
+    ['Plan', 'Where', 'Doing', 'Moving'].every((id) => bloqueTravel.includes(`title: 'travelAc${id}Title'`))
+    && ['Planificar un viaje', 'No sé a dónde ir', 'Qué hacer y dónde comer', 'Cómo moverme']
+       .every((n, i) => catEs('travelAc' + ['Plan', 'Where', 'Doing', 'Moving'][i] + 'Title') === n));
   check('11) cada una deja contestada la primera pregunta', (bloqueTravel.match(/preset: \{ questionId: 'what'/g) || []).length === 4);
 
   // Lo que la fase A NO trae. Se mira el código, no los comentarios.
@@ -154,7 +170,7 @@ console.log('\n── C · Las cuatro funciones ──');
   // No hay ni una función de reservar, ni un pago, ni un precio a cobrar: las
   // cuatro acciones son las cuatro, y ninguna lleva a comprar nada.
   check('12) no reserva vuelos ni hoteles', !/reservar|booking|checkout|pagar|comprar|book now/i.test(codigoTravel));
-  check('12) y lo dice de entrada', /'Sin reservas'/.test(bloqueTravel));
+  check('12) y lo dice de entrada', /'travelChip1'/.test(bloqueTravel) && catEs('travelChip1') === 'Sin reservas');
   check('12) no hay mapa ni GPS en la sección', !/MapView|react-native-maps|latitude|longitude|useLocation/.test(soloCodigo(specialists) + soloCodigo(pantalla)));
   check('12) ni un proveedor de viajes por detrás', !/skyscanner|kayak|expedia|amadeus|tripadvisor|booking\.com/i.test(soloCodigo(specialists) + soloCodigo(leer('functions/src/creator/templates.ts'))));
   check('13) ni un muro aparte: el de siempre, filtrado', /travel: \[/.test(seccionFeed) && !/travelFeed|getTravelPosts/.test(seccionFeed + soloCodigo(pantalla)));
@@ -337,8 +353,10 @@ console.log('\n── G · Los días se pliegan ──');
 console.log('\n── H · Del resultado a la publicación ──');
 {
   const codigo = soloCodigo(tarjeta);
-  check('40) se puede ajustar lo que salió', /setEditing\(true\)/.test(codigo) && /¿Qué cambiamos\?/.test(tarjeta));
-  check('40) guardarlo en un proyecto', /onSaveToProject/.test(codigo) && /Guardar en un proyecto/.test(tarjeta));
+  check('40) se puede ajustar lo que salió',
+    /setEditing\(true\)/.test(codigo) && /t\('weeai\.whatDoWeChange'\)/.test(tarjeta)
+    && /whatDoWeChange: '¿Qué cambiamos\?'/.test(leer('i18n/textos/es/weeai.ts')));
+  check('40) guardarlo en un proyecto', /onSaveToProject/.test(codigo) && /t\('weeai\.saveToProject'\)/.test(tarjeta));
   check('40) y compartirlo con la comunidad', /onPublish\(publicable\)/.test(codigo) && /Publicar en mi comunidad/.test(tarjeta));
   check('41) las fuentes se ven y se pueden abrir', /Linking\.openURL\(source\.url\)/.test(codigo) && /result\.sources\?\.length/.test(codigo));
 
@@ -367,7 +385,7 @@ console.log('\n── I · Sin efectos colaterales ──');
 {
   check('45) el lugar de una publicación sigue siendo opcional', /Quitar el lugar/.test(crear) && /\.\.\.\(place \? \{ place \} : \{\}\)/.test(crear));
   check('45) y Weë Travel no lo toca', !/PostPlace|buscarLugares|etiquetaDeLugar|lugarDelCatalogo/.test(soloCodigo(bloqueTravel)));
-  check('46) el precio se ve antes de confirmar', /Credits\)/.test(leer('components/creator/PlanCard.tsx')) && /Se descuentan al terminar/.test(leer('components/creator/PlanCard.tsx')));
+  check('46) el precio se ve antes de confirmar', /Credits\)/.test(leer('components/creator/PlanCard.tsx')) && /t\('weeai\.creditsNote'\)/.test(leer('components/creator/PlanCard.tsx')));
   check('46) y Weë Travel pasa por el mismo camino', !/spendCredits|creditsService/.test(soloCodigo(specialists)));
   check('47) el "← Atrás" de las preguntas sigue como estaba', !/Atrás|volver a la pregunta/i.test(soloCodigo(leer('components/creator/GuidedQuestion.tsx'))));
   check('48) no se ha tocado la capa de ubicación', !/travel/i.test(soloCodigo(leer('contexts/LocationContext.tsx')) + soloCodigo(leer('services/locationService.ts'))));
@@ -418,7 +436,7 @@ console.log('\n── J · El menú Burger ──');
   check('53) el menú abre la pantalla de especialista', /navigateRoot\('Specialist', \{ id: category \}\)/.test(menu));
   check('53) y esa ruta existe una sola vez', (rutas.match(/<Stack\.Screen name="Specialist"/g) || []).length === 1);
   check('53) sin ninguna ruta propia de Travel', !/name="Travel|TravelScreen|TravelHome/.test(rutas));
-  check('54) la pantalla resuelve el especialista por ese identificador', /getSpecialist\(/.test(leer('screens/SpecialistScreen.tsx')));
+  check('54) la pantalla resuelve el especialista por ese identificador', /useEspecialista\(id\)/.test(leer('screens/SpecialistScreen.tsx')));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -747,7 +765,7 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   check('98) Travel no declara ejemplos', !/examplesTitle:|examples: \[/.test(bloqueTravel), 'bloqueTravel todavía trae ejemplos');
   check('98) y no se ha puesto otra sección en su hueco', !/viajes guardados|Mis itinerarios|Destinos sugeridos|Viajes populares/i.test(specialists + codigo));
   // El campo pasa a ser opcional, no desaparece: las otras secciones siguen enseñando la suya.
-  check('98) las demás secciones conservan la suya', /examplesTitle\?: string;/.test(specialists) && (specialists.match(/^ {4}examplesTitle: /gm) || []).length >= 6);
+  check('98) las demás secciones conservan la suya', /examplesTitle\?: ClaveDeTexto;/.test(specialists) && (specialists.match(/^ {4}examplesTitle: /gm) || []).length >= 6);
   /* Una sola fila de ejemplos: la segunda existía solo para colgar bajo el muro, y el muro se fue. */
   check('98) y la fila solo se pinta si hay algo que enseñar', (codigo.match(/!!spec\.examples\?\.length/g) || []).length === 1);
 

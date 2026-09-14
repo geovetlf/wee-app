@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Audio, ResizeMode, Video } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -78,6 +79,7 @@ export const partirEnDias = (texto: string): { intro: string; dias: Dia[]; cierr
 /** El texto de un resultado: entero, o por días cuando es un itinerario. */
 const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const partes = React.useMemo(() => partirEnDias(texto), [texto]);
   // El primero abierto: quien llega ve enseguida de qué va el viaje.
   const [abiertos, setAbiertos] = useState<Record<number, boolean>>({ 0: true });
@@ -116,7 +118,7 @@ const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
               accessibilityRole="button"
               accessibilityState={{ expanded: abierto }}
               aria-expanded={abierto}
-              accessibilityLabel={`${dia.titulo}. ${abierto ? 'Tocar para plegar' : 'Tocar para ver el día'}`}
+              accessibilityLabel={t(abierto ? 'weeai.dayCollapse' : 'weeai.dayExpand', { titulo: dia.titulo })}
             >
               <Text style={[styles.diaTitulo, { color: theme.colors.text }]}>{dia.titulo}</Text>
               <Ionicons name={abierto ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
@@ -173,14 +175,15 @@ interface ResultCardProps {
  * Los tres caminos que Weë propone tras mirar el espacio. Los identificadores
  * son los de la plantilla: elegir uno lleva directo a ese plan (fase 2E-60).
  */
-const CAMINOS_HOGAR: { optionId: string; label: string }[] = [
-  { optionId: 'design', label: '🏠 Rediseñarlo por completo' },
-  { optionId: 'colors', label: '🎨 Cambiar estilo y colores' },
-  { optionId: 'furniture', label: '🪑 Trabajar los muebles' },
+const CAMINOS_HOGAR: { optionId: string; clave: string }[] = [
+  { optionId: 'design', clave: 'weeai.pathRedesign' },
+  { optionId: 'colors', clave: 'weeai.pathColors' },
+  { optionId: 'furniture', clave: 'weeai.pathFurniture' },
 ];
 
 const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, regenerateCredits }) => {
   const { theme } = useTheme();
+  const { t } = useIdioma();
   const { isDesktop, isTablet } = useResponsive();
   /*
    * En móvil, el antes y el después van uno encima de otro (fase 2E-63).
@@ -239,7 +242,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   };
 
   // Frases de edición en lenguaje humano (docs/CREATOR-BUILD.md §14)
-  const quickEdits = ['Hazlo más realista', 'Cámbiale el color', 'Más simple', 'Más llamativo'];
+  const quickEdits = [t('weeai.makeItRealistic'), t('weeai.changeItsColor'), t('weeai.simpler'), t('weeai.moreStriking')];
 
   /** "· ≈ 9 Credits" para pegar al botón que vuelve a gastar. Vacío si no se sabe. */
   const precio = regenerateCredits && regenerateCredits > 0 ? ` · ≈ ${regenerateCredits.toLocaleString('es')} Credits` : '';
@@ -326,13 +329,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       disabled={busy}
       activeOpacity={0.8}
       style={[styles.projectRow, { backgroundColor: theme.colors.card, borderColor: projectName ? theme.colors.accent : theme.colors.border }]}
-      accessibilityLabel={projectName ? `Guardado en ${projectName}` : 'Guardar en proyecto'}
+      accessibilityLabel={projectName ? t('weeai.savedIn', { proyecto: projectName }) : t('weeai.saveToProject')}
     >
       <Ionicons name={projectName ? 'folder-open' : 'folder-open-outline'} size={scale(18)} color={theme.colors.accentDark} />
       <Text style={[styles.projectText, { color: theme.colors.text }]}>
-        {projectName ? `Guardado en ${projectName}` : 'Guardar en un proyecto'}
+        {projectName ? t('weeai.savedIn', { proyecto: projectName }) : t('weeai.saveToProject')}
       </Text>
-      <Text style={[styles.projectAction, { color: theme.colors.accentDark }]}>{projectName ? 'Cambiar' : 'Elegir'}</Text>
+      <Text style={[styles.projectAction, { color: theme.colors.accentDark }]}>{projectName ? t('weeai.change') : t('weeai.choose')}</Text>
     </TouchableOpacity>
   );
 
@@ -368,7 +371,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         <Text style={[styles.title, { color: theme.colors.text }]}>✨ Listo</Text>
         {job.demo && (
           <View style={[styles.demoTag, { backgroundColor: theme.colors.accent + '33' }]}>
-            <Text style={[styles.demoTagText, { color: theme.colors.accentDark }]}>Vista previa · demo</Text>
+            <Text style={[styles.demoTagText, { color: theme.colors.accentDark }]}>{t('weeai.previewDemo')}</Text>
           </View>
         )}
       </View>
@@ -437,13 +440,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                         <View style={styles.pairItem}>
                           <Image source={{ uri: beforeImageUri }} style={[styles.pairImage, styles.pairImageWide]} contentFit="contain" />
                           <View style={[styles.pairTag, { backgroundColor: 'rgba(31,41,55,0.65)' }]}>
-                            <Text style={styles.pairTagText}>Antes</Text>
+                            <Text style={styles.pairTagText}>{t('weeai.before')}</Text>
                           </View>
                         </View>
                         <View style={styles.pairItem}>
                           <Image source={{ uri: result.urls![elegida] }} style={[styles.pairImage, styles.pairImageWide]} contentFit="contain" transition={200} />
                           <View style={[styles.pairTag, { backgroundColor: theme.colors.accent }]}>
-                            <Text style={[styles.pairTagText, { color: '#1F2937' }]}>Después</Text>
+                            <Text style={[styles.pairTagText, { color: '#1F2937' }]}>{t('weeai.after')}</Text>
                           </View>
                         </View>
                       </View>
@@ -457,13 +460,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               <View style={styles.pairItem}>
                 <Image source={{ uri: beforeImageUri }} style={styles.pairImage} contentFit="cover" />
                 <View style={[styles.pairTag, { backgroundColor: 'rgba(31,41,55,0.65)' }]}>
-                  <Text style={styles.pairTagText}>Antes</Text>
+                  <Text style={styles.pairTagText}>{t('weeai.before')}</Text>
                 </View>
               </View>
               <View style={styles.pairItem}>
                 <Image source={{ uri: result.url }} style={styles.pairImage} contentFit="cover" transition={200} />
                 <View style={[styles.pairTag, { backgroundColor: theme.colors.accent }]}>
-                  <Text style={[styles.pairTagText, { color: '#1F2937' }]}>Después</Text>
+                  <Text style={[styles.pairTagText, { color: '#1F2937' }]}>{t('weeai.after')}</Text>
                 </View>
               </View>
             </View>
@@ -507,7 +510,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               onPress={() => toggleAudio(result.stepId, result.url)}
               style={[styles.playButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
-              accessibilityLabel={playing ? 'Pausar' : 'Reproducir'}
+              accessibilityLabel={playing ? t('weeai.pause') : t('weeai.play')}
             >
               <Ionicons name={playing ? 'pause' : 'play'} size={scale(20)} color="#1F2937" style={playing ? undefined : { marginLeft: 2 }} />
             </TouchableOpacity>
@@ -523,8 +526,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               </View>
               <Text style={styles.audioMeta}>
                 {isRealMedia(result.url)
-                  ? playing ? 'Reproduciendo' : result.durationSec ? `${formatDuration(result.durationSec)} · voz de Weë` : 'Voz de Weë'
-                  : playing ? 'Reproduciendo · vista previa' : '0:32 · vista previa'}
+                  ? playing ? t('weeai.playing') : result.durationSec ? `${formatDuration(result.durationSec)} · voz de Weë` : 'Voz de Weë'
+                  : playing ? t('weeai.playingPreview') : '0:32 · vista previa'}
                 {result.demo ? ' (demo)' : ''}
               </Text>
             </View>
@@ -553,9 +556,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               disabled={busy}
               activeOpacity={0.8}
               style={[styles.quickEdit, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
-              accessibilityLabel={`Seguir por: ${camino.label}`}
+              accessibilityLabel={`Seguir por: ${t(camino.clave)}`}
             >
-              <Text style={[styles.quickEditText, { color: theme.colors.text }]}>{camino.label}</Text>
+              <Text style={[styles.quickEditText, { color: theme.colors.text }]}>{t(camino.clave)}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -579,10 +582,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
 
       {editing ? (
         <View style={[styles.editBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}>
-          <Text style={[styles.editLabel, { color: theme.colors.text }]}>¿Qué cambiamos?</Text>
+          <Text style={[styles.editLabel, { color: theme.colors.text }]}>{t('weeai.whatDoWeChange')}</Text>
           <TextInput
             style={[styles.editInput, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            placeholder="Hazlo más alegre, cambia el color, más corto…"
+            placeholder={t('weeai.changeHint')}
             placeholderTextColor={theme.colors.textSecondary}
             value={instruction}
             onChangeText={setInstruction}
@@ -660,7 +663,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               onPress={() => setVerDetalle((v) => !v)}
               activeOpacity={0.8}
               style={[styles.projectRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-              accessibilityLabel={verDetalle ? 'Ocultar la lista de cambios y compras' : 'Ver la lista de cambios y compras'}
+              accessibilityLabel={verDetalle ? t('weeai.hideChanges') : 'Ver la lista de cambios y compras'}
             >
               <Ionicons name="list-outline" size={scale(18)} color={theme.colors.accentDark} />
               <Text style={[styles.projectText, { color: theme.colors.text }]}>Lista de cambios y compras</Text>

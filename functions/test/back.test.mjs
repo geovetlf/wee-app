@@ -67,7 +67,12 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
    * (un falso `/*` le hace tragarse bloques enteros) y las comillas dejan fuera
    * la palabra suelta de un comentario.
    */
-  const FORMAS = /'Cancelar'|"Cancelar"|>\s*Cancelar\s*</g;
+  /*
+   * Y desde que la interfaz va por i18n, un "Cancelar" también se escribe
+   * `t('common.cancel')`. Cuenta igual: lo que se vigila es el botón, no cómo
+   * se deletrea. Las dos formas conviven mientras dura la migración.
+   */
+  const FORMAS = /'Cancelar'|"Cancelar"|>\s*Cancelar\s*<|'common\.cancel'/g;
   const sospechosos = [];
   for (const archivo of cliente) {
     const codigo = leer(archivo);
@@ -106,7 +111,8 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
   const cambiaron = Object.entries(CONSERVADOS).filter(([a, n]) => n > 0 && encontrados[a] !== n).map(([a, n]) => `${a} (${encontrados[a] || 0}≠${n})`);
   check('5) cada Cancelar que queda está en la lista de cancelaciones reales', fueraDeLista.length === 0, fueraDeLista.join(' · '));
   check('5) y ninguno se multiplicó ni desapareció sin avisar', cambiaron.length === 0, cambiaron.join(' · '));
-  check('5) los de las alertas siguen siendo botones de alerta', Object.keys(encontrados).filter((a) => /Screen\.tsx$|PostCard/.test(a) && !/Projects/.test(a)).every((a) => /text: 'Cancelar',?\s*(style: 'cancel')?/.test(leer(a))));
+  /* El botón sigue siendo el de una alerta, se escriba en español o por clave. */
+  check('5) los de las alertas siguen siendo botones de alerta', Object.keys(encontrados).filter((a) => /Screen\.tsx$|PostCard/.test(a) && !/ProjectsScreen/.test(a)).every((a) => /text: (?:'Cancelar'|t\('common\.cancel'\)),?\s*(style: 'cancel')?/.test(leer(a))));
   /* La confirmación común de Weë también cancela de verdad: devuelve `false`. */
   check('6) confirmAction conserva su Cancelar, que devuelve false', /\{ text: 'Cancelar', style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(leer('utils/notify.ts')));
 }

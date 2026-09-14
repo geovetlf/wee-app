@@ -140,13 +140,20 @@ console.log('\n── D · Enchufados en el Burger ──');
    * los nombres, ni las rutas: esto solo cambió los dibujos.
    */
   check('17) control: el menú conserva sus secciones y su orden',
-    /renderSectionLabel\('PERFIL'\)/.test(cajon)
-    && /renderSectionLabel\('EXPLORA'\)/.test(cajon)
-    && cajon.indexOf("renderSectionLabel('PERFIL')") < cajon.indexOf("renderSectionLabel('EXPLORA')"));
+    /renderSectionLabel\(t\('menu\.sectionProfile'\)\)/.test(cajon)
+    && /renderSectionLabel\(t\('menu\.sectionExplore'\)\)/.test(cajon)
+    && cajon.indexOf("menu.sectionProfile") < cajon.indexOf("menu.sectionExplore"));
+  /*
+   * Las opciones siguen llamándose igual, pero el texto vive ya en el
+   * diccionario. Se comprueba ahí, que es donde está, y además que la tabla
+   * sigue apuntando a las claves correctas.
+   */
+  const textosMenu = leer('i18n/textos/es/menu.ts');
   check('18) control: y sus opciones siguen llamándose igual',
-    /label: 'Perfil Real'/.test(menu) && /label: 'Perfil Weë'/.test(menu)
-    && /label: 'Guardados'/.test(menu) && /label: 'Configuración'/.test(menu)
-    && /label: 'Ayuda'/.test(menu));
+    /realProfile: 'Perfil Real'/.test(textosMenu) && /weeProfile: 'Perfil Weë'/.test(textosMenu)
+    && /saved: 'Guardados'/.test(textosMenu) && /settings: 'Configuración'/.test(textosMenu)
+    && /help: 'Ayuda'/.test(textosMenu)
+    && /clave: 'menu\.realProfile'/.test(menu) && /clave: 'menu\.settings'/.test(menu));
   /* Y la barra de escritorio, que no entraba en este trabajo, sigue con su emoji. */
   check('19) control: el emoji sigue disponible para quien aún lo use',
     /emoji: string;/.test(menu) && /MENU_ITEM\[id\]\.emoji/.test(leer('components/Sidebar.tsx')));

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../contexts/IdiomaContext';
 import { creatorService, CreatorJob, Question, Answer, humanizeCreatorError } from '../services/creatorService';
 
 export interface QaItem {
@@ -13,6 +14,7 @@ export interface QaItem {
  */
 export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
   const { user } = useAuth();
+  const t = useT();
   const [jobId, setJobId] = useState<string | null>(initialJobId || null);
   const [job, setJob] = useState<CreatorJob | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
@@ -47,7 +49,7 @@ export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
         setQuestion(response.question);
         return true;
       } catch (e) {
-        setError(humanizeCreatorError(e));
+        setError(humanizeCreatorError(e, t));
         return false;
       } finally {
         setBusy(false);
@@ -65,7 +67,7 @@ export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
         const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text });
         setQuestion(response.question);
       } catch (e) {
-        setError(humanizeCreatorError(e));
+        setError(humanizeCreatorError(e, t));
       } finally {
         setBusy(false);
       }
@@ -80,7 +82,7 @@ export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
     try {
       await creatorService.run(jobId);
     } catch (e) {
-      setError(humanizeCreatorError(e));
+      setError(humanizeCreatorError(e, t));
     } finally {
       setBusy(false);
     }

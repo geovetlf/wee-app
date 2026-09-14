@@ -85,8 +85,24 @@ console.log('\n── A · El nombre visible es WEË AI ──');
 
   /* Lo que se lee en Ayuda, en Credits, al fallar algo y en lo que se publica. */
   check('4) la Ayuda pregunta por WEË AI', new RegExp(`¿Cómo funciona ${NUEVO}\\?`).test(leer('screens/HelpScreen.tsx')));
-  check('4) los Credits hablan de WEË AI', (leer('screens/CreditStoreScreen.tsx').match(new RegExp(NUEVO, 'g')) || []).length === 2);
-  check('4) los errores del servicio, también', (leer('services/creatorService.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2);
+  /*
+   * Las dos menciones pasaron al diccionario al migrar Credits: la pantalla ya
+   * no lleva texto, lleva claves. Se cuentan donde están ahora, y en los dos
+   * idiomas: el nombre del área no se traduce, así que tiene que aparecer igual
+   * en español y en inglés.
+   */
+  check('4) los Credits hablan de WEË AI',
+    (leer('i18n/textos/es/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
+    && (leer('i18n/textos/en/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
+    && /t\('credits\.testPrices'\)/.test(leer('screens/CreditStoreScreen.tsx'))
+    && /t\('credits\.terms'\)/.test(leer('screens/CreditStoreScreen.tsx')));
+  /* Los errores del servicio ya no llevan la frase dentro: llevan su clave, y
+   * la frase —con la sección bien escrita— está en los dos diccionarios. */
+  check('4) los errores del servicio, también',
+    ['es', 'en'].every((idioma) =>
+      (leer('i18n/textos/' + idioma + '/weeai.ts').match(new RegExp("'[^'\n]*" + NUEVO + "[^'\n]*'", 'g')) || []).length === 2)
+    && /return t\('weeai\.errNoAccount'\)/.test(leer('services/creatorService.ts'))
+    && /return t\('weeai\.errOffline'\)/.test(leer('services/creatorService.ts')));
   check('4) y lo que queda escrito al publicar una creación', new RegExp(`Creado con \\$\\{nombre\\} en ${NUEVO}`).test(leer('screens/CreatorFlowScreen.tsx')));
 
   /* El servidor: el historial de Credits y cómo se presenta el asistente. */

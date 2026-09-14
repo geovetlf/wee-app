@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useMisEContacts, PersonaEnAgenda } from '../hooks/useEContact';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { confirmAction, notify } from '../utils/notify';
@@ -60,6 +61,7 @@ interface Fila {
 
 const EContactScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const navigation = useNavigation<any>();
   /* Toda la agenda del perfil activo, con las acciones ya atadas a él. */
   const {
@@ -106,7 +108,7 @@ const EContactScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify('No se pudo completar', error instanceof Error ? error.message : undefined);
+      notify(t('econtact.failed'), error instanceof Error ? error.message : undefined);
     } finally {
       await recargar();
       setOcupado(null);
@@ -124,9 +126,9 @@ const EContactScreen: React.FC = () => {
       personas.map((persona) => ({ persona, seccion }));
 
     return [
-      { key: 'recibidas' as const, titulo: 'Solicitudes recibidas', data: armar(recibidas, 'recibidas') },
-      { key: 'contactos' as const, titulo: `Tus ${nombrePlural}`, data: armar(contactos, 'contactos') },
-      { key: 'enviadas' as const, titulo: 'Solicitudes enviadas', data: armar(enviadas, 'enviadas') },
+      { key: 'recibidas' as const, titulo: t('econtact.requestsReceived'), data: armar(recibidas, 'recibidas') },
+      { key: 'contactos' as const, titulo: t('econtact.yours', { lista: nombrePlural }), data: armar(contactos, 'contactos') },
+      { key: 'enviadas' as const, titulo: t('econtact.requestsSent'), data: armar(enviadas, 'enviadas') },
     ].filter((s) => s.data.length > 0);
   }, [recibidas, contactos, enviadas, nombrePlural]);
 
@@ -172,7 +174,7 @@ const EContactScreen: React.FC = () => {
      * se completa con lo que está pidiendo, para que la solicitud se lea entera
      * sin abrir nada.
      */
-    const detalle = seccion === 'recibidas' ? `${etiqueta} · quiere conectar contigo` : etiqueta;
+    const detalle = seccion === 'recibidas' ? t('econtact.wantsToConnect', { lista: etiqueta }) : etiqueta;
 
     return (
       <View style={[styles.fila, { borderBottomColor: theme.colors.border }]}>
@@ -181,7 +183,7 @@ const EContactScreen: React.FC = () => {
           onPress={() => abrirPerfil(identidad)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={`Abrir el ${etiqueta.toLowerCase()} de ${nombre}`}
+          accessibilityLabel={t('econtact.openProfile', { etiqueta: etiqueta.toLowerCase(), nombre })}
         >
           <AvatarDisplay
             avatarType={perfil.avatarType}
@@ -209,18 +211,18 @@ const EContactScreen: React.FC = () => {
           {seccion === 'recibidas' && (
             <>
               <Accion
-                etiqueta={`Aceptar a ${nombre}`}
+                etiqueta={t('econtact.accept', { nombre })}
                 icono="checkmark"
                 relleno
                 ocupada={ocupada}
                 onPress={() => ejecutar(identidad, () => aceptar(identidad))}
               />
               <Accion
-                etiqueta={`Rechazar a ${nombre}`}
+                etiqueta={t('econtact.reject', { nombre })}
                 icono="close"
                 ocupada={ocupada}
                 onPress={() =>
-                  preguntar('Rechazar solicitud', `¿Rechazar la solicitud de ${nombre}?`, identidad, () =>
+                  preguntar(t('econtact.rejectTitle'), t('econtact.rejectConfirm', { nombre }), identidad, () =>
                     rechazar(identidad)
                   )
                 }
@@ -230,13 +232,13 @@ const EContactScreen: React.FC = () => {
 
           {seccion === 'contactos' && (
             <Accion
-              etiqueta={`Eliminar a ${nombre} de tus ${nombrePlural}`}
+              etiqueta={t('econtact.removeFrom', { nombre, lista: nombrePlural })}
               icono="person-remove-outline"
               ocupada={ocupada}
               onPress={() =>
                 preguntar(
-                  `Eliminar ${nombreLista}`,
-                  `¿Eliminar a ${nombre} de tus ${nombrePlural}?`,
+                  t('econtact.removeTitle', { lista: nombreLista }),
+                  t('econtact.removeConfirm', { nombre, lista: nombrePlural }),
                   identidad,
                   () => eliminar(identidad)
                 )
@@ -246,11 +248,11 @@ const EContactScreen: React.FC = () => {
 
           {seccion === 'enviadas' && (
             <Accion
-              etiqueta={`Retirar la solicitud a ${nombre}`}
+              etiqueta={t('econtact.withdraw', { nombre })}
               icono="time-outline"
               ocupada={ocupada}
               onPress={() =>
-                preguntar('Retirar solicitud', `¿Retirar tu solicitud a ${nombre}?`, identidad, () =>
+                preguntar(t('econtact.withdrawTitle'), t('econtact.withdrawConfirm', { nombre }), identidad, () =>
                   cancelar(identidad)
                 )
               }
@@ -271,17 +273,17 @@ const EContactScreen: React.FC = () => {
     const contenido =
       motivo === 'sin-sesion'
         ? {
-            titulo: `Tus ${nombrePlural}, cuando entres`,
+            titulo: t('econtact.yoursWhenYouSignIn', { lista: nombrePlural }),
             texto: `${nombreLista} guarda tus conexiones de Weë. Inicia sesión para verlas.`,
           }
         : motivo === 'perfil-sin-agenda'
           ? {
-              titulo: 'Este perfil no tiene agenda',
+              titulo: t('econtact.noAgenda'),
               texto:
                 'ËContact y ẄContact son las conexiones entre personas. Cambia a tu Perfil Real o a tu Perfil Weë para verlas.',
             }
           : {
-              titulo: `Todavía no tienes ${nombrePlural}`,
+              titulo: t('econtact.noneYet', { lista: nombrePlural }),
               texto:
                 'Aquí estará tu gente en Weë. Una conexión se hace entre dos: una persona la propone y la otra acepta.',
             };
@@ -302,7 +304,7 @@ const EContactScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.volver}
           activeOpacity={0.7}
-          accessibilityLabel="Volver"
+          accessibilityLabel={t('econtact.back')}
         >
           <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>
@@ -311,7 +313,7 @@ const EContactScreen: React.FC = () => {
           <Text style={[styles.headerTitulo, { color: theme.colors.text }]}>🤝 {nombreLista}</Text>
           {!cargando && hayAgenda && total > 0 && (
             <Text style={[styles.headerSubtitulo, { color: theme.colors.textSecondary }]}>
-              {total === 1 ? `1 ${nombreLista}` : `${total} ${nombrePlural}`}
+              {t('econtact.count', { contador: total, lista: total === 1 ? nombreLista : nombrePlural })}
             </Text>
           )}
         </View>

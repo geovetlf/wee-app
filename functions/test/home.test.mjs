@@ -212,7 +212,8 @@ console.log('\n── C · Los filtros por tipo de contenido no se movieron ─�
 console.log('\n── D · El Home abre diciendo quién eres ──');
 {
   const saludo = leer('components/HomeGreeting.tsx');
-  check('16) saluda por tu nombre', /Hola, \$\{nombre\}/.test(saludo));
+  check('16) saluda por tu nombre, y el nombre entra como valor',
+    /t\('home\.greeting', \{ nombre \}\)/.test(saludo));
   /*
    * Y NADA MÁS. El "Crea. Conecta. Sé tú." que iba debajo del nombre se quitó:
    * la firma de marca vive ahora arriba, junto al logo, y dos frases de
@@ -228,7 +229,7 @@ console.log('\n── D · El Home abre diciendo quién eres ──');
    * al cambiar al Perfil Weë el Home seguiría llamándote por tu nombre real.
    */
   check('20) del perfil activo, no de la cuenta', /useUserProfile\(\)/.test(saludo) && /userProfile\?\.displayName/.test(saludo));
-  check('21) la lupa se anuncia', /accessibilityLabel="Buscar en Weë"/.test(saludo));
+  check('21) la lupa se anuncia', /accessibilityLabel=\{t\('home\.search'\)\}/.test(saludo));
   /*
    * Control: en web `scale()` multiplica por 0,9, así que un 44 escalado son 39
    * puntos y deja de ser un objetivo táctil cómodo. Tiene que ser literal.
@@ -376,7 +377,7 @@ console.log('\n── F2 · El Home es un solo muro ──');
     && /HOME_SECTION_FILTERS\.map/.test(entreFilaYMuro) && !/selectorZona|role="tab"|estiloDePagina/.test(entreFilaYMuro));
   /* Las dos puertas de la fila: cualquier tarjeta y "Ver todos →" abren WeëlsScreen. */
   check('33e) en la fila, las tarjetas y "Ver todos →" llaman a la misma puerta',
-    (fila.match(/onPress=\{onOpenWeels\}/g) || []).length >= 3 && /accessibilityLabel="Ver todos los Weëls"/.test(fila));
+    (fila.match(/onPress=\{onOpenWeels\}/g) || []).length >= 3 && /accessibilityLabel=\{t\('weels\.seeAll'\)\}/.test(fila));
   check('33e) y esa puerta abre WeëlsScreen en el móvil',
     /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo)
     && /const abrirElVisor = useCallback\(\(desde\?: Post\) => \{\s*if \(videoPosts\.length === 0\) return crearWeel\(\);[\s\S]{0,200}navigate\('Reels', \{ initialPost: desde \|\| videoPosts\[0\], initialVideoPosts: videoPosts \}\)/.test(nativo));
@@ -521,7 +522,7 @@ console.log('\n── I · El refinamiento visual ──');
    * parte de la pantalla.
    */
   check('48) la tarjeta de publicar nace como siempre', /variante = 'muro'/.test(puerta));
-  check('49) el "+" solo sale en el Home', /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel="Crear una publicación"/.test(puerta));
+  check('49) el "+" solo sale en el Home', /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel=\{t\('composer\.createPost'\)\}/.test(puerta));
   check('50) mide 44 sin escalar', /crear: \{\s*width: 44,\s*height: 44,/.test(puerta));
   check('51) y responde al dedo', /onPressIn=\{\(\) => hundir\(0\.92\)\}/.test(puerta) && /useNativeDriver: true/.test(puerta));
   check('52) las dos pantallas del Home lo piden', /variante="home"/.test(nativo) && /variante="home"/.test(web));
@@ -691,7 +692,7 @@ console.log('\n── I · El refinamiento visual ──');
       /\}\s*\n\s*return;\s*\n\s*\}/.test(rama)
       && !/shareCardRef|setShowShareCard|image\/png|compartirVideo|\.mp4/.test(rama));
     check('69) y avisa si no se pudo',
-      /notify\('No se pudo compartir la publicación\. Inténtalo de nuevo\.'\)/.test(rama));
+      /notify\(t\('wall\.shareFailed'\)\)/.test(rama));
 
     /* Ni el componente entero vuelve a saber del bajador de vídeos. */
     check('69) PostCard ya no usa videoDownload para compartir fuera',
@@ -939,7 +940,8 @@ console.log('\n── K · La última pasada del Home ──');
   check('84) la fila se llama Ẅells', /<Text style=\{\[styles\.title[^>]*>Ẅells<\/Text>/.test(fila));
   check('85) y el Home no lo repite en ningún selector', !/mitad\('weels'|etiqueta: 'Ẅells'|accessibilityRole="tab"/.test(nativo));
   /* Control: por dentro sigue diciendo weel/weels; no se migró ningún dato. */
-  check('86) control: por dentro no cambió nada', /onOpenWeels/.test(fila) && /onCreateWeel/.test(fila) && /Crear Weël/.test(fila));
+  check('86) control: por dentro no cambió nada',
+    /onOpenWeels/.test(fila) && /onCreateWeel/.test(fila) && /t\('weels\.create'\)/.test(fila));
 
   /* Accesos rápidos, no contenido principal: la tarjeta baja a 68×92. */
   const medida = (nombre) => {
@@ -1694,7 +1696,12 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
    * Notificaciones, la pestaña sigue siendo Inicio—.
    */
   check('141) Notificaciones es el quinto, con el icono de la familia',
-    /\{ id: 'Notifications', etiqueta: 'Notificaciones', icono: 'notifications-outline', iconoPuesto: 'notifications' \}/.test(barra)
+    /*
+     * Entre la etiqueta y el icono puede haber más campos —hoy la clave de
+     * traducción—. Lo que se exige es que el quinto destino siga siendo
+     * Notifications y siga llevando el icono de la familia.
+     */
+    /\{ id: 'Notifications', etiqueta: 'Notificaciones',[^}]*icono: 'notifications-outline', iconoPuesto: 'notifications' \}/.test(barra)
     && ids[4][0] === 'Notifications');
   check('141) y abre la pantalla que ya existía, sin ruta nueva',
     /if \(destino === 'Notifications'\) \{\s*return irARaiz\('Main', \{ screen: 'Home', params: \{ screen: 'Notifications' \} \}\);/.test(global)
@@ -1986,7 +1993,7 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
   check('180) y el muro va después, como contenido de la lista', /ListHeaderComponent=\{listHeader\}/.test(nativo) && /renderItem=\{renderPostItem\}/.test(nativo));
 
   check('178) la barra cerrada del Home es el "+" y la pregunta, sin chevron',
-    /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel="Crear una publicación"/.test(puerta) &&
+    /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel=\{t\('composer\.createPost'\)\}/.test(puerta) &&
     /\{desplegable && \(\s*<TouchableOpacity\s*onPress=\{\(\) => setAbierta[\s\S]{0,700}name="chevron-down"/.test(puerta) && !/conChevron/.test(puerta) &&
     /composerField: \{\s*flex: 1,/.test(puerta));
 }

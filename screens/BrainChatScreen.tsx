@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useBrainChat } from '../hooks/useBrainChat';
-import { getSpecialist, SpecialistAction } from '../constants/specialists';
+import { SpecialistAction } from '../constants/specialists';
+import { useEspecialista } from '../hooks/useEspecialista';
 import { experienceLabel, getExperienceById, WeeExperience } from '../constants/weeExperiences';
 import { BrainMessage } from '../services/brainService';
 import CreatorShell from '../components/creator/CreatorShell';
@@ -19,7 +21,11 @@ import { scale } from '../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
-const GREETING = '¡Hola! Soy Weë Brain. Pregúntame, cuéntame o pídeme lo que necesites. Si algo lo hace mejor otro Weë, te llevo.';
+/*
+ * El saludo vive en el diccionario, no aquí: una constante de módulo se evalúa
+ * una sola vez, al cargar el archivo, y se quedaría con el idioma de ese
+ * instante. Se resuelve al pintar, con `t('weeai.brainGreeting')`.
+ */
 
 interface Bubble {
   key: string;
@@ -40,9 +46,10 @@ interface Bubble {
  */
 const BrainChatScreen: React.FC = () => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
-  const spec = getSpecialist('brain');
+  const spec = useEspecialista('brain');
   const chat = useBrainChat();
 
   const wallet = useWallet();
@@ -115,7 +122,9 @@ const BrainChatScreen: React.FC = () => {
   // No se puede enviar sin saber lo que cuesta: si el precio no está calculado,
   // el botón espera. Si la estimación falló, tampoco se ejecuta a ciegas.
   const canSend = !!draft.trim() && !chat.busy && !chat.quoting && !!chat.quote && !chat.quoteError;
-  const sendLabel = chat.quote ? `Enviar por ${chat.quote.credits} Credits` : chat.quoteError ? 'No se pudo calcular el costo' : 'Calculando el costo';
+  const sendLabel = chat.quote
+    ? t('weeai.sendForCredits', { credits: chat.quote.credits })
+    : chat.quoteError ? t('weeai.couldNotCalculate') : t('weeai.calculatingCost');
 
   const submitDraft = () => {
     const text = draft.trim();
@@ -165,7 +174,7 @@ const BrainChatScreen: React.FC = () => {
             ))}
           </View>
         )}
-        {bubble.role === 'wee' && bubble.demo && <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Vista previa · demo</Text>}
+        {bubble.role === 'wee' && bubble.demo && <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>{t('weeai.previewDemo')}</Text>}
       </View>
     </View>
   );
@@ -178,7 +187,7 @@ const BrainChatScreen: React.FC = () => {
 
       {/* Chat */}
       <View style={[styles.chat, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-        {renderBubble({ key: 'greeting', role: 'wee', text: GREETING })}
+        {renderBubble({ key: 'greeting', role: 'wee', text: t('weeai.brainGreeting') })}
         {bubbles.map(renderBubble)}
 
         {suggestion && !chat.busy && (
@@ -193,11 +202,11 @@ const BrainChatScreen: React.FC = () => {
                 "Hogar & Diseño", no "Weë Home" (fase 2E-56).
               */}
               <Text style={[styles.bubbleText, { color: theme.colors.text }]}>
-                Para esto te puede ayudar mejor {suggestion.emoji} {experienceLabel(suggestion)}. Te llevo con lo que ya me contaste, o seguimos aquí.
+                {t('weeai.brainBetterFit', { emoji: suggestion.emoji, especialista: experienceLabel(suggestion, t) })}
               </Text>
               <View style={styles.chipRow}>
-                <Chip label={`Ir a ${experienceLabel(suggestion)}`} icon="arrow-forward-outline" active onPress={() => goToSpecialist(suggestion)} />
-                <Chip label="Seguir aquí" onPress={() => setSuggestionDismissed(lastWee?.key || null)} />
+                <Chip label={t('weeai.goToSpecialist', { especialista: experienceLabel(suggestion, t) })} icon="arrow-forward-outline" active onPress={() => goToSpecialist(suggestion)} />
+                <Chip label={t('weeai.stayHere')} onPress={() => setSuggestionDismissed(lastWee?.key || null)} />
               </View>
             </View>
           </View>
@@ -209,12 +218,15 @@ const BrainChatScreen: React.FC = () => {
               <Text style={styles.avatarText}>W</Text>
             </View>
             <View style={[styles.bubble, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>No tienes suficientes Credits</Text>
+              <Text style={[styles.bubbleText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>{t('weeai.notEnoughCredits')}</Text>
               <Text style={[styles.bubbleText, { color: theme.colors.textSecondary }]}>
-                Credits disponibles: {chat.shortfall.available.toLocaleString('es')} · Costo: {chat.shortfall.required.toLocaleString('es')}
+                {t('weeai.creditsAndCost', {
+                  saldo: formato.numero(chat.shortfall.available),
+                  costo: formato.numero(chat.shortfall.required),
+                })}
               </Text>
               <View style={styles.chipRow}>
-                <Chip label="Obtener Credits" icon="diamond-outline" active onPress={() => navigation.navigate('CreditStore')} />
+                <Chip label={t('weeai.getCredits')} icon="diamond-outline" active onPress={() => navigation.navigate('CreditStore')} />
               </View>
             </View>
           </View>
@@ -228,7 +240,7 @@ const BrainChatScreen: React.FC = () => {
             <View style={[styles.bubble, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderWidth: 1 }]}>
               <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{chat.error}</Text>
               <View style={styles.chipRow}>
-                <Chip label="Probar otra vez" active onPress={retry} />
+                <Chip label={t('weeai.tryAgain')} active onPress={retry} />
               </View>
             </View>
           </View>
@@ -238,7 +250,7 @@ const BrainChatScreen: React.FC = () => {
           <View style={styles.thinking}>
             <ActivityIndicator color={theme.colors.accent} />
             <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>
-              {chat.uploading ? 'Subiendo tu foto…' : webSearch ? 'Weë Brain está buscando…' : 'Weë Brain está pensando…'}
+              {chat.uploading ? t('weeai.uploadingPhoto') : webSearch ? t('weeai.brainSearching') : t('weeai.brainThinking')}
             </Text>
           </View>
         )}
@@ -268,8 +280,8 @@ const BrainChatScreen: React.FC = () => {
         {attachment && (
           <View style={styles.attachmentRow}>
             <Image source={{ uri: attachment }} style={styles.attachmentImage} contentFit="cover" />
-            <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Foto adjunta</Text>
-            <TouchableOpacity onPress={() => setAttachment(null)} accessibilityLabel="Quitar foto">
+            <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>{t('weeai.photoAttached')}</Text>
+            <TouchableOpacity onPress={() => setAttachment(null)} accessibilityLabel={t('weeai.removePhoto')}>
               <Ionicons name="close-circle" size={scale(20)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -277,7 +289,7 @@ const BrainChatScreen: React.FC = () => {
         <View style={styles.composerRow}>
           <TextInput
             style={[styles.input, { color: theme.colors.text }]}
-            placeholder={bubbles.length > 0 ? 'Sigue contándome…' : spec.idea.placeholder}
+            placeholder={bubbles.length > 0 ? t('weeai.keepTelling') : spec.idea.placeholder}
             placeholderTextColor={theme.colors.textSecondary}
             value={draft}
             onChangeText={setDraft}
@@ -295,24 +307,24 @@ const BrainChatScreen: React.FC = () => {
           {chat.quoteError ? (
             <Text style={[styles.priceError, { color: theme.colors.error }]}>{chat.quoteError}</Text>
           ) : !draft.trim() ? (
-            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>Escribe tu mensaje y te digo cuánto cuesta antes de enviarlo.</Text>
+            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>{t('weeai.writeToKnowCost')}</Text>
           ) : chat.quoting || !chat.quote ? (
-            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>Calculando el costo…</Text>
+            <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>{t('weeai.calculatingCost')}</Text>
           ) : (
             <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{chat.quote.label}</Text>
               {' · '}
               <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{chat.quote.credits} Credits</Text>
-              {chat.quote.usd > 0 ? ` · unos ${chat.quote.usd < 0.01 ? '<0.01' : chat.quote.usd.toFixed(2)} USD` : ''}
-              {typeof wallet.balance === 'number' ? ` · te quedan ${wallet.balance.toLocaleString('es')}` : ''}
+              {chat.quote.usd > 0 ? ' · ' + t('weeai.approxUsd', { usd: chat.quote.usd < 0.01 ? '<0.01' : chat.quote.usd.toFixed(2) }) : ''}
+              {typeof wallet.balance === 'number' ? ' · ' + t('weeai.creditsLeft', { saldo: formato.numero(wallet.balance) }) : ''}
             </Text>
           )}
         </View>
         <View style={styles.tools}>
-          <Chip label="Adjuntar" icon="attach-outline" onPress={attach} />
-          <Chip label="Hablar" icon="mic-outline" onPress={() => notify('Muy pronto', 'Hablar con Weë llegará en una próxima versión. Por ahora, escríbelo.')} />
-          <Chip label={webSearch ? 'Buscar en internet: sí' : 'Buscar en internet'} icon="globe-outline" active={webSearch} onPress={() => setWebSearch((v) => !v)} />
-          {bubbles.length > 0 && <Chip label="Nueva conversación" icon="add-outline" onPress={chat.reset} />}
+          <Chip label={t('weeai.attach')} icon="attach-outline" onPress={attach} />
+          <Chip label={t('weeai.speak')} icon="mic-outline" onPress={() => notify(t('weeai.comingVerySoon'), t('weeai.speakComingSoon'))} />
+          <Chip label={t(webSearch ? 'weeai.searchInternetOn' : 'weeai.searchInternet')} icon="globe-outline" active={webSearch} onPress={() => setWebSearch((v) => !v)} />
+          {bubbles.length > 0 && <Chip label={t('weeai.newConversation')} icon="add-outline" onPress={chat.reset} />}
         </View>
       </View>
     </CreatorShell>

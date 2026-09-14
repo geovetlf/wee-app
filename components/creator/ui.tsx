@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -83,6 +84,7 @@ export const Collapsible: React.FC<{
   children: React.ReactNode;
 }> = ({ emoji, title, subtitle, open, onToggle, contentLabel, children }) => {
   const { theme } = useTheme();
+  const t = useT();
   const entrada = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -104,7 +106,7 @@ export const Collapsible: React.FC<{
         // `aria-expanded` la que React Native Web lleva de verdad al HTML.
         accessibilityState={{ expanded: open }}
         aria-expanded={open}
-        accessibilityLabel={`${title}. ${open ? 'Ocultar' : 'Ver'} ${contentLabel}`}
+        accessibilityLabel={t(open ? 'weeai.collapseSection' : 'weeai.expandSection', { titulo: title, contenido: contentLabel })}
       >
         <View style={[styles.collapsibleEmojiBox, { backgroundColor: theme.colors.accent + '26' }]}>
           <Text style={styles.collapsibleEmoji}>{emoji}</Text>

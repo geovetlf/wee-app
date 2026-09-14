@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { projectsService, WeeProject, PROJECT_EMOJIS, suggestProjectName } from '../../services/projectsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -19,6 +20,7 @@ interface ProjectPickerProps {
 /** "Guardar en proyecto": elige uno existente o crea uno nuevo con nombre sugerido. */
 const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, onPick }) => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const [projects, setProjects] = useState<WeeProject[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,11 +60,11 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
         vive al fondo de la hoja, justo donde sale el teclado.
       */}
       <EspacioDeEscritura style={styles.backdrop}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Cerrar" />
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('weeai.close')} />
         <View style={[styles.sheet, { backgroundColor: theme.colors.card }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>Guardar en un proyecto</Text>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Cerrar" style={styles.close}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{t('weeai.saveToProject')}</Text>
+            <TouchableOpacity onPress={onClose} accessibilityLabel={t('weeai.close')} style={styles.close}>
               <Ionicons name="close" size={scale(22)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -88,7 +90,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
           </ScrollView>
 
           <View style={[styles.newBox, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + '14' }]}>
-            <Text style={[styles.newTitle, { color: theme.colors.text }]}>Nuevo proyecto</Text>
+            <Text style={[styles.newTitle, { color: theme.colors.text }]}>{t('weeai.newProject')}</Text>
             <View style={styles.emojis}>
               {PROJECT_EMOJIS.map((item) => (
                 <TouchableOpacity
@@ -106,12 +108,12 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
                 style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
                 value={name}
                 onChangeText={setName}
-                placeholder="Nombre del proyecto"
+                placeholder={t('weeai.projectName')}
                 placeholderTextColor={theme.colors.textSecondary}
                 onSubmitEditing={create}
-                accessibilityLabel="Nombre del proyecto"
+                accessibilityLabel={t('weeai.projectName')}
               />
-              <TouchableOpacity onPress={create} disabled={!name.trim() || creating} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear proyecto">
+              <TouchableOpacity onPress={create} disabled={!name.trim() || creating} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('weeai.createProject')}>
                 <Text style={styles.createText}>{creating ? '…' : 'Crear'}</Text>
               </TouchableOpacity>
             </View>

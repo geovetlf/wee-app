@@ -1,4 +1,5 @@
 import React from 'react';
+import { useT } from '../contexts/IdiomaContext';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -42,6 +43,7 @@ interface HomeGreetingProps {
 
 const HomeGreeting: React.FC<HomeGreetingProps> = ({ onSearch }) => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
 
@@ -63,14 +65,14 @@ const HomeGreeting: React.FC<HomeGreetingProps> = ({ onSearch }) => {
         hijo y la fila se ciñe a él.
       */}
       <Text style={[styles.saludo, { color: theme.colors.text }]} numberOfLines={1}>
-        {user && nombre ? `Hola, ${nombre}` : 'Hola'}
+        {user && nombre ? t('home.greeting', { nombre }) : t('home.greetingGuest')}
       </Text>
       <TouchableOpacity
         style={[styles.lupa, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
         onPress={onSearch}
         activeOpacity={0.6}
         accessibilityRole="button"
-        accessibilityLabel="Buscar en Weë"
+        accessibilityLabel={t('home.search')}
         accessibilityHint="Abre la búsqueda de personas, hashtags y publicaciones"
       >
         <Ionicons name="search" size={scale(21)} color={theme.colors.text} />

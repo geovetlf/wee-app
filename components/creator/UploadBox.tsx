@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator }
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -17,6 +18,7 @@ const isWeb = Platform.OS === 'web';
 /** "Sube tu foto aquí": galería o cámara; devuelve la foto elegida. */
 const UploadBox: React.FC<UploadBoxProps> = ({ config, onPick }) => {
   const { theme } = useTheme();
+  const t = useT();
   const [busy, setBusy] = useState(false);
 
   const pick = async (source: 'library' | 'camera') => {
@@ -68,16 +70,16 @@ const UploadBox: React.FC<UploadBoxProps> = ({ config, onPick }) => {
       </TouchableOpacity>
 
       <View style={[styles.side, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-        <Text style={[styles.sideTitle, { color: theme.colors.textSecondary }]}>O también puedes</Text>
+        <Text style={[styles.sideTitle, { color: theme.colors.textSecondary }]}>{t('weeai.orAlso')}</Text>
         {!isWeb && (
           <TouchableOpacity onPress={() => pick('camera')} activeOpacity={0.8} style={[styles.sideButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Ionicons name="camera-outline" size={scale(18)} color={theme.colors.text} />
-            <Text style={[styles.sideButtonText, { color: theme.colors.text }]}>Tomar una foto</Text>
+            <Text style={[styles.sideButtonText, { color: theme.colors.text }]}>{t('weeai.takeAPhoto')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={() => pick('library')} activeOpacity={0.8} style={[styles.sideButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Ionicons name="images-outline" size={scale(18)} color={theme.colors.text} />
-          <Text style={[styles.sideButtonText, { color: theme.colors.text }]}>Elegir de mis fotos</Text>
+          <Text style={[styles.sideButtonText, { color: theme.colors.text }]}>{t('weeai.pickFromPhotos')}</Text>
         </TouchableOpacity>
       </View>
     </View>

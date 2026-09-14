@@ -44,6 +44,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 import { ThemeProvider } from './contexts/ThemeContext';
+import { IdiomaProvider } from './contexts/IdiomaContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
 import { ScrollProvider } from './contexts/ScrollContext';
@@ -240,6 +241,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
+        {/*
+          El idioma envuelve a todo lo demás: ni el tema ni la sesión dependen
+          de él, pero cualquiera de los dos puede necesitar un texto traducido.
+        */}
+        <IdiomaProvider>
         {/* StatusBar se controla dinámicamente desde ThemeContext */}
         <ThemeProvider>
           <AuthProvider>
@@ -276,6 +282,7 @@ export default function App() {
             </UserProfileProvider>
           </AuthProvider>
         </ThemeProvider>
+        </IdiomaProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );

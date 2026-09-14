@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { Plan, PlanPricing, QualityChoice } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -38,12 +39,13 @@ const stepDetail = (step: { label?: string; resolution?: string; count?: number;
 
 const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstimated, demo, pricingMode, pricing, quality, quoting, onQuality, busy, onCreate, onChange }) => {
   const { theme } = useTheme();
+  const { t, formato } = useIdioma();
   const costLabel =
     creditsEstimated === 0
-      ? 'Sin costo'
+      ? t('weeai.noCost')
       : `≈ ${creditsEstimated.toLocaleString('es')} Credits${pricingMode === 'simulated' ? ' · precio de prueba' : ''}`;
   const costHint =
-    creditsEstimated > 0 ? 'Se descuentan al terminar. Si algo falla, se devuelven.' : demo ? 'Modo demo: nada que pagar.' : '';
+    creditsEstimated > 0 ? t('weeai.creditsNote') : demo ? t('weeai.demoMode') : '';
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
@@ -77,7 +79,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
 
       {!!pricing?.options && pricing.options.length > 1 && (
         <View style={styles.quality}>
-          <Text style={[styles.qualityTitle, { color: theme.colors.textSecondary }]}>Calidad</Text>
+          <Text style={[styles.qualityTitle, { color: theme.colors.textSecondary }]}>{t('weeai.quality')}</Text>
           <View style={styles.qualityRow}>
             {pricing.options.map((option) => {
               const active = (quality || pricing.options?.[0]?.quality) === option.quality;
@@ -108,16 +110,16 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
         {!!costHint && <Text style={[styles.costHint, { color: theme.colors.textSecondary }]}>{costHint}</Text>}
         <View style={styles.actions}>
           <TouchableOpacity onPress={onChange} disabled={busy} activeOpacity={0.7} style={styles.linkButton}>
-            <Text style={[styles.linkText, { color: theme.colors.accentDark }]}>Cambiar algo</Text>
+            <Text style={[styles.linkText, { color: theme.colors.accentDark }]}>{t('weeai.changeSomething')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onCreate}
             disabled={busy}
             activeOpacity={0.85}
             style={[styles.createButton, { backgroundColor: theme.colors.accent }]}
-            accessibilityLabel="Crear"
+            accessibilityLabel={t('weeai.create')}
           >
-            {busy ? <ActivityIndicator color="#1F2937" /> : <Text style={styles.createText}>Crear</Text>}
+            {busy ? <ActivityIndicator color="#1F2937" /> : <Text style={styles.createText}>{t('weeai.create')}</Text>}
           </TouchableOpacity>
         </View>
       </View>
