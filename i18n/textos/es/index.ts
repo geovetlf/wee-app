@@ -31,8 +31,10 @@ import { language } from './language';
 import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
+import { auth } from './auth';
 export const es = {
   common,
+  auth,
   nav,
   menu,
   creator,

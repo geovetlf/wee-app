@@ -14,10 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, googleSignInDisponible } from '../contexts/AuthContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useNavigation } from '@react-navigation/native';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const LoginScreen: React.FC = () => {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,9 +52,9 @@ const LoginScreen: React.FC = () => {
   const handleEmailLogin = async () => {
     if (!email || !password) {
       if (Platform.OS === 'web') {
-        alert('Por favor completa todos los campos');
+        alert(t('auth.fillAllFields'));
       } else {
-        Alert.alert('Error', 'Por favor completa todos los campos');
+        Alert.alert(t('common.error'), t('auth.fillAllFields'));
       }
       return;
     }
@@ -68,20 +70,20 @@ const LoginScreen: React.FC = () => {
       // Solo en caso de error, volver a mostrar el formulario
       setLoading(false);
 
-      let errorMessage = 'Error al iniciar sesión';
+      let errorMessage = t('auth.signInFailed');
 
       switch (error.code) {
         case 'auth/user-not-found':
-          errorMessage = 'No existe una cuenta con este email';
+          errorMessage = t('auth.errUserNotFound');
           break;
         case 'auth/wrong-password':
-          errorMessage = 'Contraseña incorrecta';
+          errorMessage = t('auth.errWrongPassword');
           break;
         case 'auth/invalid-email':
-          errorMessage = 'Email inválido';
+          errorMessage = t('auth.errInvalidEmail');
           break;
         case 'auth/user-disabled':
-          errorMessage = 'Esta cuenta ha sido deshabilitada';
+          errorMessage = t('auth.errUserDisabled');
           break;
         default:
           errorMessage = error.message;
@@ -90,7 +92,7 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(errorMessage);
       } else {
-        Alert.alert('Error de Autenticación', errorMessage);
+        Alert.alert(t('auth.authErrorTitle'), errorMessage);
       }
     }
   };
@@ -104,11 +106,11 @@ const LoginScreen: React.FC = () => {
         navigation.goBack();
       }
     } catch (error: any) {
-      const message = 'Error al iniciar sesión con Google: ' + error.message;
+      const message = t('auth.googleFailed', { detalle: error.message });
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert('Error', message);
+        Alert.alert(t('common.error'), message);
       }
     } finally {
       // Siempre resetear el loading
@@ -127,40 +129,40 @@ const LoginScreen: React.FC = () => {
       // Solo en caso de error, volver a mostrar el formulario
       setLoading(false);
 
-      const message = 'Error al acceder de forma anónima: ' + error.message;
+      const message = t('auth.anonymousFailed', { detalle: error.message });
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert('Error', message);
+        Alert.alert(t('common.error'), message);
       }
     }
   };
 
   const handleForgotPassword = async () => {
     if (!email) {
-      const message = 'Por favor ingresa tu email para restablecer la contraseña';
+      const message = t('auth.emailRequired');
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert('Email requerido', message);
+        Alert.alert(t('auth.emailRequiredTitle'), message);
       }
       return;
     }
 
     try {
       await resetPassword(email);
-      const message = 'Revisa tu correo electrónico para restablecer tu contraseña';
+      const message = t('auth.resetEmailSent');
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert('Email enviado', message);
+        Alert.alert(t('auth.emailSentTitle'), message);
       }
     } catch (error: any) {
-      const message = 'Error al enviar email de restablecimiento: ' + error.message;
+      const message = t('auth.resetFailed', { detalle: error.message });
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert('Error', message);
+        Alert.alert(t('common.error'), message);
       }
     }
   };
@@ -173,7 +175,7 @@ const LoginScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#F5B731" />
-        <Text style={styles.loadingText}>Iniciando sesión...</Text>
+        <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
       </View>
     );
   }
@@ -209,18 +211,18 @@ const LoginScreen: React.FC = () => {
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={styles.title}>Bienvenido a Weë</Text>
-              <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
+              <Text style={styles.title}>{t('auth.welcome')}</Text>
+              <Text style={styles.subtitle}>{t('auth.signInToContinue')}</Text>
             </View>
 
             {/* Formulario */}
             <View style={styles.form}>
               {/* Email Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('auth.email')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="tu@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   value={email}
                   onChangeText={setEmail}
@@ -232,11 +234,11 @@ const LoginScreen: React.FC = () => {
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Contraseña</Text>
+                <Text style={styles.label}>{t('auth.password')}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={styles.passwordInput}
-                    placeholder="Tu contraseña"
+                    placeholder={t('auth.passwordPlaceholder')}
                     placeholderTextColor="#9CA3AF"
                     value={password}
                     onChangeText={setPassword}
@@ -259,18 +261,18 @@ const LoginScreen: React.FC = () => {
 
               {/* Forgot Password */}
               <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+                <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
               </TouchableOpacity>
 
               {/* Login Button */}
               <TouchableOpacity style={styles.primaryButton} onPress={handleEmailLogin}>
-                <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+                <Text style={styles.primaryButtonText}>{t('menu.signIn')}</Text>
               </TouchableOpacity>
 
               {/* Divider */}
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>O continúa con</Text>
+                <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -282,21 +284,21 @@ const LoginScreen: React.FC = () => {
                     style={styles.googleLogo}
                     resizeMode="contain"
                   />
-                  <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                  <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
                 </TouchableOpacity>
               )}
 
               {/* Anonymous Login Button */}
               <TouchableOpacity style={styles.anonymousButton} onPress={handleAnonymousLogin}>
                 <Ionicons name="person-outline" size={20} color="#1F2937" style={styles.anonymousIcon} />
-                <Text style={styles.anonymousButtonText}>Entrar como invitado</Text>
+                <Text style={styles.anonymousButtonText}>{t('auth.enterAsGuest')}</Text>
               </TouchableOpacity>
 
               {/* Register Link */}
               <View style={styles.registerContainer}>
-                <Text style={styles.registerText}>¿No tienes cuenta? </Text>
+                <Text style={styles.registerText}>{t('auth.noAccount')}</Text>
                 <TouchableOpacity onPress={navigateToRegister}>
-                  <Text style={styles.registerLink}>Regístrate aquí</Text>
+                  <Text style={styles.registerLink}>{t('auth.registerHere')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

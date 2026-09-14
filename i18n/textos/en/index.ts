@@ -31,10 +31,12 @@ import { language } from './language';
 import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
+import { auth } from './auth';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
   common,
+  auth,
   nav,
   menu,
   creator,

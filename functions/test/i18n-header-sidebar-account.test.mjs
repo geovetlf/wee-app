@@ -172,11 +172,21 @@ console.log('\n── D · Nada más se movió ──');
     && /from '\.\.\/contexts\/IdiomaContext'/.test(leer('components/Header.tsx'))
     && /from '\.\.\/contexts\/IdiomaContext'/.test(leer('components/Sidebar.tsx')));
 
-  /* Y lo que esta fase NO debía tocar sigue igual. */
+  /*
+   * Y lo que esta fase NO debía tocar sigue igual. `utils/notify.ts` es el que
+   * queda pendiente, y se vigila entero.
+   *
+   * La pantalla de entrada SÍ se migró después, en la fase 5G, y lo hizo
+   * reutilizando `menu.signIn`: su botón y el de la cabecera son la misma
+   * acción y dicen lo mismo. Eso es justo lo que se comprueba aquí —que las dos
+   * superficies siguen leyendo de la misma clave—, que es más de lo que decía
+   * la versión anterior de esta línea.
+   */
   const aviso = leer('utils/notify.ts');
-  check('24) control: utils/notify.ts y LoginScreen siguen intactos',
+  check('24) control: utils/notify.ts sigue intacto y el botón de entrar es el mismo en los dos sitios',
     /confirmLabel = 'Sí'/.test(aviso) && !/useT|IdiomaContext/.test(aviso)
-    && /<Text style=\{styles\.primaryButtonText\}>Iniciar sesión<\/Text>/.test(leer('screens/LoginScreen.tsx')));
+    && /<Text style=\{styles\.loginButtonText\}>\{t\('menu\.signIn'\)\}<\/Text>/.test(CABECERA)
+    && /<Text style=\{styles\.primaryButtonText\}>\{t\('menu\.signIn'\)\}<\/Text>/.test(leer('screens/LoginScreen.tsx')));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));
