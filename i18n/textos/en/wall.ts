@@ -28,4 +28,6 @@ export const wall: typeof import('../es/wall').wall = {
   publishedOnWee: 'Posted on Weë',
   viewInWeels: 'View in Weëls',
   moreImages: 'and {{contador}} more',
+  comment: 'Comment',
+  viewFullVideoInWeels: 'Watch the full video on Weëls',
 };

@@ -30,7 +30,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { notify } from '../utils/notify';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import ShareablePostCard from './ShareablePostCard';
 import { cloudinaryThumb, cloudinaryFeed } from '../services/cloudinaryService';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -177,7 +177,7 @@ const PostCard: React.FC<PostCardProps> = ({
   alturaVisible,
   variante = 'tarjeta',
 }) => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
@@ -946,7 +946,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={onVideoPress ? () => onVideoPress(displayPost, playbackPositionRef.current) : handleVideoTap}
           style={styles.videoTouchable}
           accessibilityRole="button"
-          accessibilityLabel="Ver el vídeo completo en Weëls"
+          accessibilityLabel={t('wall.viewFullVideoInWeels')}
         >
           {showPauseIcon && (
             <View style={styles.videoPlayOverlay}>
@@ -1332,7 +1332,7 @@ const PostCard: React.FC<PostCardProps> = ({
             </Text>
             <View style={styles.metaRow}>
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
-                {getRelativeTime(post.createdAt.toDate())}
+                {getRelativeTime(post.createdAt.toDate(), locale)}
               </Text>
               {/*
                 El contexto: de dónde viene esta publicación. La comunidad lleva a
@@ -1469,7 +1469,7 @@ const PostCard: React.FC<PostCardProps> = ({
         <TouchableOpacity
           style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={() => { if (!user) { navigateToRegister(); return; } onComment(post.id!); }}
-          accessibilityLabel="Comentar"
+          accessibilityLabel={t('wall.comment')}
           activeOpacity={0.7}
         >
           <Ionicons
@@ -1487,7 +1487,7 @@ const PostCard: React.FC<PostCardProps> = ({
           style={styles.actionButton} hitSlop={AREA_TACTIL}
           onPress={() => { if (!user) { navigateToRegister(); return; } toggleBookmark(targetPostId); }}
           activeOpacity={0.7}
-          accessibilityLabel={isBookmarked ? 'Quitar de Guardados' : 'Guardar'}
+          accessibilityLabel={t(isBookmarked ? 'wall.unsave' : 'wall.save')}
         >
           <Ionicons
             name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
@@ -1502,7 +1502,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={handleShare}
           disabled={isSharing}
           activeOpacity={0.7}
-          accessibilityLabel="Compartir"
+          accessibilityLabel={t('common.share')}
         >
           <Ionicons
             name="share-social-outline"

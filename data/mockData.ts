@@ -1,3 +1,4 @@
+import { formatearFecha, formatearTiempoRelativo } from '../i18n/formato';
 export interface User {
   id: string;
   username: string;
@@ -372,23 +373,26 @@ export const trendingHashtags = [
   '#arte',
 ];
 
-// Función para obtener tiempo relativo
-export const getRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffHours < 1) {
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    return diffMinutes < 1 ? 'ahora' : `hace ${diffMinutes}m`;
-  } else if (diffHours < 24) {
-    return `hace ${diffHours}h`;
-  } else if (diffDays < 7) {
-    return `hace ${diffDays}d`;
-  } else {
-    return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-  }
+/**
+ * CUÁNDO FUE, DICHO COMO LO DIRÍA EL IDIOMA DE QUIEN LO LEE.
+ *
+ * Antes eran cuatro `if` con sus frases en español y una fecha clavada a
+ * `es-ES`: en inglés se leía "hace 2h" bajo el nombre de quien publicó. Las
+ * reglas de cada idioma —cuándo se dice "ayer", cómo se abrevia una hora, dónde
+ * va el número— las sabe `Intl` y vienen en el motor.
+ *
+ * LOS DOS TRAMOS SE CONSERVAN, que son una decisión de producto y no de idioma:
+ * hasta una semana se dice cuánto hace; a partir de ahí, la fecha. Y el estilo
+ * sigue siendo el corto —"hace 2 h", "2h ago"—, porque la hora de una
+ * publicación vive en una línea estrecha al lado del nombre.
+ *
+ * El `locale` entra por parámetro: esto se importa fuera de React y no sabe
+ * quién está mirando. Y `ahora` también, para que una prueba no dependa del reloj.
+ */
+export const getRelativeTime = (date: Date, locale: string, ahora: number = Date.now()): string => {
+  const diffDias = Math.floor((ahora - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDias >= 7) return formatearFecha(date, locale, { month: 'short', day: 'numeric' });
+  return formatearTiempoRelativo(date, locale, ahora, { style: 'narrow' });
 };
 
 // Función para formatear números

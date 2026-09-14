@@ -12,4 +12,6 @@ export const home = {
   createWeel: 'Crear Weël',
   openMenu: 'Abrir menú',
   search: 'Buscar',
+  back: 'Volver',
+  logoHome: 'Weë, ir al principio',
 };

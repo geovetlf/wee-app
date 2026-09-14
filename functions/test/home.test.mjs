@@ -914,7 +914,9 @@ console.log('\n── J · El selector de identidad ──');
   check('78) cada mitad dice quién es y si está puesta', /accessibilityState=\{\{ selected: puesta \}\}/.test(cabecera) && /aria-selected=\{puesta\}/.test(cabecera));
   check('79) y se alcanza con el dedo', /hitSlop=\{\{ top: 10, bottom: 10/.test(cabecera));
   /* Control: el ☰ sigue exactamente donde estaba y haciendo lo de siempre. */
-  check('80) control: el Burger no se tocó', /accessibilityLabel="Abrir menú"/.test(cabecera) && /onPress=\{onMenuPress\}/.test(cabecera));
+  check('80) control: el Burger no se tocó',
+    /accessibilityLabel=\{t\('home\.openMenu'\)\}/.test(cabecera) && /openMenu: 'Abrir menú'/.test(leer('i18n/textos/es/home.ts'))
+    && /onPress=\{onMenuPress\}/.test(cabecera));
 }
 
 console.log('\n── K · La última pasada del Home ──');
@@ -1098,7 +1100,9 @@ console.log('\n── L · La transición Real ↔ Weë ──');
     && /return dx < 0 \? 'izquierda' : 'derecha';/.test(utilGesto));
   /* Y el orden en pantalla es el que sostiene ese mapeo: Real a la izquierda, Weë a la derecha. */
   check('103) control: el orden pintado es Real y luego Weë',
-    /\{ id: 'real' as const, etiqueta: 'Real', nombre: 'Perfil Real' \},\s*\n\s*\{ id: 'hidi' as const, etiqueta: 'Weë', nombre: 'Perfil Weë' \},/.test(cabecera));
+    /\{ id: 'real' as const, etiqueta: 'Real', clave: 'menu\.realProfile' \},\s*\n\s*\{ id: 'hidi' as const, etiqueta: 'Weë', clave: 'menu\.weeProfile' \},/.test(cabecera)
+    && /realProfile: 'Perfil Real'/.test(leer('i18n/textos/es/menu.ts'))
+    && /weeProfile: 'Perfil Weë'/.test(leer('i18n/textos/es/menu.ts')));
   /*
    * EL RECORRIDO SE MIDE CONTRA UN ORIGEN PROPIO, no contra el `translationX`
    * de Gesture Handler. Al activarse, el reconocedor de Android llama a
@@ -1509,7 +1513,7 @@ console.log('\n── M · La marca en el centro del Home ──');
    * la que no pueden correr el logo.
    */
   check('111) control: los controles siguen en su fila, encima de la marca',
-    /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}[^>]*>[\s\S]*?accessibilityLabel="Abrir menú"/.test(cabecera)
+    /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}[^>]*>[\s\S]*?accessibilityLabel=\{t\('home\.openMenu'\)\}/.test(cabecera)
       && /<View style=\{\[styles\.content, conMarca && styles\.contentConMarca\]\}[^>]*>[\s\S]*?styles\.selector,/.test(cabecera));
 }
 

@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -95,6 +96,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, conMarca }) => {
   const { theme, setThemeMode } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const { hasWeeProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz } = useUserProfile();
   /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
@@ -361,7 +363,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
           <View style={styles.leftSection}>
             {/* Back or hamburger menu */}
             {onBackPress ? (
-              <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel="Volver">
+              <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('home.back')}>
                 {isWeb ? (
                   <Text style={{ fontSize: 20, color: textColor }}>←</Text>
                 ) : (
@@ -369,7 +371,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                 )}
               </TouchableOpacity>
             ) : onMenuPress ? (
-              <TouchableOpacity onPress={onMenuPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel="Abrir menú">
+              <TouchableOpacity onPress={onMenuPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('home.openMenu')}>
                 {isWeb ? (
                   <Text style={{ fontSize: 20, color: textColor }}>☰</Text>
                 ) : (
@@ -414,7 +416,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                   onPress={handleSwitchIdentity}
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel="Perfil Biz activo. Tocar para volver al Perfil Real"
+                  accessibilityLabel={t('menu.bizActiveTap')}
                 >
                   {isWeb ? (
                     <Text style={{ fontSize: 14 }}>🏪</Text>
@@ -433,8 +435,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                   }]}
                 >
                   {([
-                    { id: 'real' as const, etiqueta: 'Real', nombre: 'Perfil Real' },
-                    { id: 'hidi' as const, etiqueta: 'Weë', nombre: 'Perfil Weë' },
+                    /* La etiqueta corta es marca; el nombre largo, que solo lo
+                       oye el lector de pantalla, viene del diccionario. */
+                    { id: 'real' as const, etiqueta: 'Real', clave: 'menu.realProfile' },
+                    { id: 'hidi' as const, etiqueta: 'Weë', clave: 'menu.weeProfile' },
                   ]).map((opcion) => {
                     const puesta = activeProfileType === opcion.id;
                     return (
@@ -451,7 +455,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                         accessibilityRole="button"
                         accessibilityState={{ selected: puesta }}
                         aria-selected={puesta}
-                        accessibilityLabel={puesta ? `${opcion.nombre}, activo` : `Cambiar al ${opcion.nombre}`}
+                        accessibilityLabel={t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(opcion.clave) })}
                         /* El atenuado del dedo encima, como lo daba la pastilla; la puesta no se atenúa. */
                         style={({ pressed }) => [
                           styles.selectorSegmento,
@@ -522,7 +526,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
         */}
         {conMarca && (
           <View style={[styles.marca, { maxWidth: anchoDeLaMarca }]} pointerEvents="box-none">
-            <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Weë, ir al principio">
+            <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('home.logoHome')}>
               <Image
                 source={(transparent || activeProfileType === 'hidi') ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
                 style={styles.weeLogo}

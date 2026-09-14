@@ -30,7 +30,7 @@ import { formatNumber, getRelativeTime } from '../data/mockData';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
-import { useT } from '../contexts/IdiomaContext';
+import { useT, useIdioma } from '../contexts/IdiomaContext';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -71,6 +71,7 @@ interface ReelItemProps {
 
 const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
   const t = useT();
+  const { locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
   const { userProfile: postAuthor } = useUserById(post.userId);
@@ -295,7 +296,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
                 {postAuthor?.displayName || t('common.user')}
               </Text>
               <Text style={styles.timeAgo}>
-                {getRelativeTime(post.createdAt.toDate())}
+                {getRelativeTime(post.createdAt.toDate(), locale)}
               </Text>
             </View>
 

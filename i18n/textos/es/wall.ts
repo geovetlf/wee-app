@@ -28,4 +28,6 @@ export const wall = {
   publishedOnWee: 'Publicado en Weë',
   viewInWeels: 'Ver en Weëls',
   moreImages: 'y {{contador}} más',
+  comment: 'Comentar',
+  viewFullVideoInWeels: 'Ver el vídeo completo en Weëls',
 };

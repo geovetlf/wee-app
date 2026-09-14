@@ -13,11 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { messagesService, Conversation } from '../services/messagesService';
+import { getRelativeTime } from '../data/mockData';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
@@ -28,7 +29,7 @@ type Nav = StackNavigationProp<InboxStackParamList, 'InboxList'>;
 
 const InboxScreen = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { user, registerCleanup } = useAuth();
   const { userProfile } = useUserProfile();
   const nav = useNavigation<Nav>();
@@ -73,21 +74,6 @@ const InboxScreen = () => {
   }, [activeUid, registerCleanup]);
 
   // ─── Helpers ───
-  const getRelativeTime = (ts: any) => {
-    if (!ts) return '';
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays < 7) return `${diffDays}d`;
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  };
-
   const openChat = (c: Conversation) => {
     if (!activeUid) return;
     const otherId = c.participants.find(id => id !== activeUid);
@@ -154,7 +140,7 @@ const InboxScreen = () => {
             </Text>
             {last && (
               <Text style={[styles.itemTime, { color: unread ? theme.colors.accent : theme.colors.textSecondary }]}>
-                {getRelativeTime(last.timestamp)}
+                {last.timestamp ? getRelativeTime(last.timestamp.toDate(), locale) : ''}
               </Text>
             )}
           </View>

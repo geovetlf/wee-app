@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { cloudinaryFeed, cloudinaryThumb } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
@@ -71,6 +72,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const PostDetailContent: React.FC = () => {
   const { theme } = useTheme();
+  const { locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const route = useRoute<PostDetailScreenRouteProp>();
@@ -446,7 +448,7 @@ const PostDetailContent: React.FC = () => {
                 {loadingAuthor ? 'Cargando...' : postAuthor?.displayName || 'Usuario Anónimo'}
               </Text>
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
-                {getRelativeTime(getPostDate())}
+                {getRelativeTime(getPostDate(), locale)}
               </Text>
             </View>
           </TouchableOpacity>

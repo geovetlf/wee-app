@@ -109,12 +109,18 @@ export const formatearTiempoRelativo = (
   fecha: Date | number,
   locale: string,
   ahora: Date | number = Date.now(),
+  /*
+   * El estilo, para quien lo necesite corto. El muro escribe la hora de cada
+   * publicación en una línea muy apretada —"hace 2 h", "2h ago"— y ahí la forma
+   * larga no cabe. Sin pedir nada se comporta como siempre.
+   */
+  opciones: Intl.RelativeTimeFormatOptions = {},
 ): string => {
   const cuando = typeof fecha === 'number' ? fecha : fecha.getTime();
   const referencia = typeof ahora === 'number' ? ahora : ahora.getTime();
   const diferencia = cuando - referencia;
-  const f = recordar(`r|${locale}`,
-    () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }));
+  const f = recordar(`r|${locale}|${JSON.stringify(opciones)}`,
+    () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto', ...opciones }));
   if (!f) return formatearFecha(cuando, locale);
 
   let elegido: [Intl.RelativeTimeFormatUnit, number] = TRAMOS[0];

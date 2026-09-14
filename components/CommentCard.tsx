@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ImageViewer from './ImageViewer';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserById } from '../hooks/useUserById';
 import { Comment } from '../services/firestoreService';
@@ -33,6 +34,7 @@ interface CommentCardProps {
  */
 const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) => {
   const { theme } = useTheme();
+  const { locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile: commentAuthor, loading: loadingAuthor } = useUserById(comment.userId);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -140,7 +142,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
             </Text>
           </TouchableOpacity>
           <Text style={[styles.cuando, { color: theme.colors.textSecondary }]}>
-            {getRelativeTime(fechaDelComentario())}
+            {getRelativeTime(fechaDelComentario(), locale)}
           </Text>
         </View>
 

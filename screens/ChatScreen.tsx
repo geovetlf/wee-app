@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { Message, User, getRelativeTime } from '../data/mockData';
 
 interface ChatScreenProps {
@@ -34,6 +35,7 @@ interface ChatScreenProps {
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { conversation } = route.params;
   const { theme } = useTheme();
+  const { locale } = useIdioma();
   const insets = useSafeAreaInsets();
   const [newMessage, setNewMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>(conversation.messages);
@@ -125,7 +127,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       <View style={styles.messageContainer}>
         {showTime && (
           <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>
-            {getRelativeTime(item.createdAt)}
+            {getRelativeTime(item.createdAt, locale)}
           </Text>
         )}
         

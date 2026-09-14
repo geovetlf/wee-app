@@ -30,4 +30,7 @@ export const menu = {
   terms: 'Términos',
   privacy: 'Privacidad',
   signOutFailed: 'No pudimos cerrar la sesión',
+  bizActiveTap: 'Perfil Biz activo. Tocar para volver al Perfil Real',
+  profileActive: '{{perfil}}, activo',
+  switchToProfile: 'Cambiar al {{perfil}}',
 };

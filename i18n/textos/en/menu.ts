@@ -30,4 +30,7 @@ export const menu: typeof import('../es/menu').menu = {
   terms: 'Terms',
   privacy: 'Privacy',
   signOutFailed: 'We could not sign you out',
+  bizActiveTap: 'Biz profile active. Tap to go back to the Real profile',
+  profileActive: '{{perfil}}, active',
+  switchToProfile: 'Switch to the {{perfil}}',
 };

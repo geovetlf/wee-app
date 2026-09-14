@@ -390,7 +390,8 @@ console.log('\n── El vídeo del muro conserva su forma ──');
    */
   check('17) el toque y los controles cubren la ventana, no el vídeo',
     /videoTouchable: \{\s*\.\.\.StyleSheet\.absoluteFillObject,\s*\}/.test(estilos)
-    && /accessibilityLabel="Ver el vídeo completo en Weëls"/.test(tarjeta));
+    && /accessibilityLabel=\{t\('wall\.viewFullVideoInWeels'\)\}/.test(tarjeta)
+    && /viewFullVideoInWeels: 'Ver el vídeo completo en Weëls'/.test(leer('i18n/textos/es/wall.ts')));
   /* Y si algo se queda fuera, se dice: si no, parece un vídeo mal cortado. */
   check('17) cuando el adelanto recorta, lo avisa y nombra a Weëls',
     /\{ventanaDelVideo\.recorta && \(/.test(tarjeta) && /Ver en Weëls/.test(tarjeta));
