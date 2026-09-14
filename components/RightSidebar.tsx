@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platfo
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import CommunitiesEntry from './CommunitiesEntry';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -15,6 +16,7 @@ const isWeb = Platform.OS === 'web';
  */
 const RightSidebar: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -53,13 +55,14 @@ const RightSidebar: React.FC = () => {
         {isWeb ? <Text style={{ fontSize: 16 }}>🔍</Text> : <Ionicons name="search" size={18} color={theme.colors.textSecondary} />}
         <TextInput
           style={[styles.searchInput, { color: theme.colors.text }]}
-          placeholder="Buscar en Weë"
+          /* La misma frase que ya usa el buscador de las pantallas de IA. */
+          placeholder={t('weeai.searchLabel')}
           placeholderTextColor={theme.colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
-          accessibilityLabel="Buscar en Weë"
+          accessibilityLabel={t('weeai.searchLabel')}
         />
       </View>
 
@@ -75,26 +78,29 @@ const RightSidebar: React.FC = () => {
         style={[styles.creatorCard, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}
         onPress={() => navigation.navigate('WeeCreator')}
         activeOpacity={0.85}
-        accessibilityLabel="Abrir WEË AI"
+        /* La tarjeta entera es un solo control: su etiqueta, su título, su
+           frase y su botón se leen juntos o no se leen. Y el nombre del sitio
+           se escribe "Weë AI", que es como se llama. */
+        accessibilityLabel={t('nav.openWeeAi')}
       >
         <Text style={styles.creatorEmoji}>🤖</Text>
-        <Text style={[styles.creatorTitle, { color: theme.colors.text }]}>¿Qué quieres crear hoy?</Text>
+        <Text style={[styles.creatorTitle, { color: theme.colors.text }]}>{t('nav.weeAiQuestion')}</Text>
         <Text style={[styles.creatorText, { color: theme.colors.textSecondary }]}>
-          Cuéntale a Weë lo que quieres. Weë se encarga de la IA.
+          {t('nav.weeAiPitch')}
         </Text>
         <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
-          <Text style={styles.creatorButtonText}>Ir a WEË AI</Text>
+          <Text style={styles.creatorButtonText}>{t('nav.goToWeeAi')}</Text>
         </View>
       </TouchableOpacity>
 
       {/* Pie */}
       <View style={styles.footer}>
         <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
-          <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Términos</Text>
+          <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.terms')}</Text>
         </TouchableOpacity>
         <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
-          <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>Privacidad</Text>
+          <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.privacy')}</Text>
         </TouchableOpacity>
         <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · © {year} Weë</Text>
       </View>

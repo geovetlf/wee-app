@@ -231,6 +231,8 @@ const WebLandingScreen: React.FC = () => {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filtersScroll}>
             {HOME_SECTION_FILTERS.map((f) => {
               const active = estaActiva(feedFilter, f.id);
+              /* "Todo" se traduce; los nombres de las secciones son marca y no. */
+              const etiqueta = f.clave ? t(f.clave) : f.label;
               return (
                 <TouchableOpacity
                   key={f.id}
@@ -244,7 +246,7 @@ const WebLandingScreen: React.FC = () => {
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   aria-pressed={active}
-                  accessibilityLabel={`Filtrar: ${f.label}`}
+                  accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
                 >
                   {/*
                     El texto de la pastilla apagada toma el color del tema, no un
@@ -254,7 +256,7 @@ const WebLandingScreen: React.FC = () => {
                   <Text style={[styles.chipText, {
                     color: active ? '#1F2937' : theme.colors.text,
                     fontWeight: active ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium,
-                  }]}>{f.label}</Text>
+                  }]}>{etiqueta}</Text>
                 </TouchableOpacity>
               );
             })}

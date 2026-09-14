@@ -59,7 +59,7 @@ const TODO = CODIGO[LISTA] + '\n' + CODIGO[DETALLE];
 console.log('\n── A · Las dos pantallas piden sus textos, no los llevan dentro ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const MARCAS = /Weë|WEË AI|Wäll|Weëls|WeeTalk|ËContact|Credits/;
+  const MARCAS = /Weë|Weë AI|Wäll|Weëls|WeeTalk|ËContact|Credits/;
   const sueltas = [];
   for (const [ruta, codigo] of Object.entries(CODIGO)) {
     codigo.split('\n').forEach((l, i) => {

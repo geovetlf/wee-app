@@ -84,10 +84,10 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
   weels: { id: 'weels', icono: 'weels', clave: 'menu.weels', emoji: '📹', label: 'Weëls' },
   weetalk: { id: 'weetalk', icono: 'weetalk', clave: 'menu.weetalk', emoji: '💬', label: 'WeeTalk' },
   /*
-   * En el menú la entrada se llama "Weë AI", con la marca escrita como se
-   * escribe en todas partes. El área conserva su nombre en versales —"WEË AI"—
-   * donde es un título: la miga de pan de sus pantallas, el atajo de la hoja
-   * Crear, la Ayuda. Aquí es una opción de una lista, no un rótulo.
+   * La entrada se llama "Weë AI", con la marca escrita como se escribe en
+   * todas partes. Y ahora también donde es un título —la miga de pan de sus
+   * pantallas, el rótulo de arriba, el atajo de la hoja Crear, la Ayuda—: las
+   * versales de "WEË AI" se fueron, porque el sitio tiene un nombre y es este.
    *
    * El id sigue siendo `creator`: lo usan la ruta, el estado del menú y los
    * datos ya guardados, y cambiarlo no se vería pero sí rompería cosas.

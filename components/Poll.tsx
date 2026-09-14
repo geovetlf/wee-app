@@ -22,6 +22,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { PostPoll, postsService } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -89,6 +90,7 @@ interface OpcionProps {
 
 const Opcion: React.FC<OpcionProps> = ({ fila, elegida, conResultados, pulsable, quieto, onPress }) => {
   const { theme } = useTheme();
+  const t = useT();
   const ancho = useRef(new Animated.Value(conResultados && quieto ? fila.porcentaje : 0)).current;
 
   useEffect(() => {
@@ -124,7 +126,7 @@ const Opcion: React.FC<OpcionProps> = ({ fila, elegida, conResultados, pulsable,
        * DOM real, no supuesto.
        */
       {...(Platform.OS === 'web' ? { 'aria-checked': elegida } : null)}
-      accessibilityLabel={conResultados ? `${fila.text}, ${fila.porcentaje}%, ${textoVotos(fila.votos)}` : fila.text}
+      accessibilityLabel={conResultados ? `${fila.text}, ${fila.porcentaje}%, ${textoVotos(fila.votos, t)}` : fila.text}
     >
       {/* La barra va DETRÁS del texto, así la fila mide lo mismo antes y después. */}
       <Animated.View
@@ -149,7 +151,7 @@ const Opcion: React.FC<OpcionProps> = ({ fila, elegida, conResultados, pulsable,
         {conResultados && (
           <View style={styles.cifras}>
             <Text style={[styles.votos, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {textoVotos(fila.votos)}
+              {textoVotos(fila.votos, t)}
             </Text>
             <Text
               style={[styles.porcentaje, { color: elegida ? theme.colors.accentDark : theme.colors.text }]}
@@ -176,6 +178,7 @@ interface PollProps {
 
 const Poll: React.FC<PollProps> = ({ postId, poll, onRequireAuth }) => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const quieto = usePrefiereQuietud();
 
@@ -258,16 +261,16 @@ const Poll: React.FC<PollProps> = ({ postId, poll, onRequireAuth }) => {
       setConteos(antes.conteos);
       setTotal(antes.total);
       setMiVoto(antes.miVoto);
-      notify('No se pudo registrar tu voto', error instanceof Error ? error.message : undefined);
+      notify(t('wall.pollVoteFailed'), error instanceof Error ? error.message : undefined);
     } finally {
       setEnviando(false);
     }
   };
 
   const pie = [
-    votada ? 'Votaste' : null,
-    textoVotos(total),
-    cerrada ? 'Encuesta finalizada' : tiempoRestante(poll, Date.now()),
+    votada ? t('wall.pollVoted') : null,
+    textoVotos(total, t),
+    cerrada ? t('wall.pollClosed') : tiempoRestante(poll, Date.now(), t),
   ].filter(Boolean) as string[];
 
   return (
@@ -310,7 +313,7 @@ const Poll: React.FC<PollProps> = ({ postId, poll, onRequireAuth }) => {
       */}
       {historica && !cerrada && (
         <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>
-          Esta encuesta es de una versión anterior de Weë y ya no admite votos.
+          {t('wall.pollLegacy')}
         </Text>
       )}
     </View>

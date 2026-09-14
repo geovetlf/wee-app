@@ -21,6 +21,7 @@
  * suites de i18n, que leen el fuente crudo—: se usa para lo de siempre.
  */
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 
 const RAIZ = new URL('../../', import.meta.url);
 
@@ -93,3 +94,31 @@ export const comoSeLee = (fuente, idioma = 'es') => {
 /** Atajo: lee un archivo del proyecto y lo devuelve ya legible. */
 export const leerComoSeLee = (ruta, idioma = 'es') =>
   comoSeLee(fs.readFileSync(new URL(ruta, RAIZ), 'utf8'), idioma);
+
+/*
+ * EL TRADUCTOR DE VERDAD, EL MISMO QUE CORRE EN LA APLICACIÓN.
+ *
+ * Una prueba que quiera comprobar un plural no puede escribirse su propia
+ * regla: comprobaría su copia, no la de Weë. Aquí se compilan y se ejecutan los
+ * tres archivos que hacen falta —`idiomas`, `resolver` y `traducir`— y sale el
+ * `crearTraductor` auténtico, con su cadena de respaldo y su `Intl.PluralRules`.
+ * Se pegan en un módulo porque una URL `data:` no sabe resolver `./resolver`.
+ */
+const MOTOR = ['i18n/idiomas.ts', 'i18n/resolver.ts', 'i18n/traducir.ts'];
+let motor;
+const cargarMotor = () => (motor ||= (async () => {
+  const ts = createRequire(import.meta.url)('typescript');
+  const junto = MOTOR
+    .map((p) => fs.readFileSync(new URL(p, RAIZ), 'utf8').replace(/^import .*$/gm, ''))
+    .join('\n');
+  const js = ts.transpileModule(junto, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+  }).outputText;
+  return import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+})());
+
+/** El `t` de un idioma, con los diccionarios leídos del proyecto. */
+export const traductorDe = async (idioma = 'es') => {
+  const { crearTraductor } = await cargarMotor();
+  return crearTraductor(idioma, { es: textosDe('es'), en: textosDe('en') });
+};

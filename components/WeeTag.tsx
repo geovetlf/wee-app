@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -33,6 +34,7 @@ export interface WeeTagProps {
 
 const WeeTag: React.FC<WeeTagProps> = ({ nombre, icono, onPress }) => {
   const { theme } = useTheme();
+  const t = useT();
 
   const contenido = (
     <>
@@ -58,7 +60,9 @@ const WeeTag: React.FC<WeeTagProps> = ({ nombre, icono, onPress }) => {
       style={[styles.tag, { backgroundColor: `${theme.colors.accent}15` }]}
       onPress={onPress}
       activeOpacity={0.7}
-      accessibilityLabel={`Ir a ${nombre}`}
+      /* El nombre entra por hueco y se queda como está: es una comunidad o una
+         sección de Weë, y ninguna de las dos se traduce. */
+      accessibilityLabel={t('nav.goTo', { nombre })}
     >
       {contenido}
     </TouchableOpacity>

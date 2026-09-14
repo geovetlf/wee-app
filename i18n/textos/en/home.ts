@@ -14,4 +14,6 @@ export const home: typeof import('../es/home').home = {
   search: 'Search',
   back: 'Back',
   logoHome: 'Weë, go to the top',
+  filterBy: 'Filter: {{nombre}}',
+  filterAll: 'All',
 };

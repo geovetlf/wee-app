@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useIdioma } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
@@ -42,7 +42,10 @@ const Opcion: React.FC<{
   nested?: boolean;
   right?: React.ReactNode;
   label?: string;
-}> = ({ id, label, ...resto }) => <SidebarItem emoji={MENU_ITEM[id].emoji} label={label ?? MENU_ITEM[id].label} {...resto} />;
+}> = ({ id, label, ...resto }) => {
+  const t = useT();
+  return <SidebarItem emoji={MENU_ITEM[id].emoji} label={label ?? t(MENU_ITEM[id].clave)} {...resto} />;
+};
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested, onPress, right }) => {
   const { theme } = useTheme();
@@ -81,6 +84,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested,
  */
 const Sidebar: React.FC = () => {
   const { formato } = useIdioma();
+  const t = useT();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
@@ -132,7 +136,7 @@ const Sidebar: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background, borderRightColor: theme.colors.border }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Logo */}
-        <TouchableOpacity style={styles.logoContainer} onPress={() => goHome('Landing')} activeOpacity={0.7} accessibilityLabel="Ir al inicio">
+        <TouchableOpacity style={styles.logoContainer} onPress={() => goHome('Landing')} activeOpacity={0.7} accessibilityLabel={t('nav.goHome')}>
           <Image source={require('../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
         </TouchableOpacity>
 
@@ -146,7 +150,7 @@ const Sidebar: React.FC = () => {
           style={[styles.cuenta, { borderBottomColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
           onPress={() => (user ? goTab('Profile') : requireLogin())}
           activeOpacity={0.7}
-          accessibilityLabel={user ? 'Ir a mi perfil' : 'Iniciar sesión'}
+          accessibilityLabel={t(user ? 'nav.myProfile' : 'menu.signIn')}
         >
           {user && userProfile ? (
             <AvatarDisplay
@@ -180,12 +184,12 @@ const Sidebar: React.FC = () => {
             móvil los da la barra inferior. Son la única diferencia real entre
             las dos plataformas, y viene de que el escritorio no tiene esa barra.
           */}
-          <SidebarItem emoji="🏠" label="Inicio" active={isActive('Home')} onPress={() => goHome('Landing')} />
-          <SidebarItem emoji="🔍" label="Buscar" active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
+          <SidebarItem emoji="🏠" label={t('nav.home')} active={isActive('Home')} onPress={() => goHome('Landing')} />
+          <SidebarItem emoji="🔍" label={t('nav.search')} active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
 
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>PERFIL</Text>
+          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('menu.sectionProfile')}</Text>
           <Opcion id="realProfile" active={!!user && activeProfileType === 'real'} onPress={() => (user ? goTab('Profile') : requireLogin())} />
-          <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasWeeProfile ? goTab('Profile') : navigation.navigate('WeeProfileCreation')) : requireLogin())} label={hasWeeProfile || !user ? undefined : 'Crear mi perfil Weë'} />
+          <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasWeeProfile ? goTab('Profile') : navigation.navigate('WeeProfileCreation')) : requireLogin())} label={hasWeeProfile || !user ? undefined : t('menu.createWeeProfile')} />
           <Opcion
             id="credits"
             active={isActive('CreditStore')}
@@ -209,7 +213,7 @@ const Sidebar: React.FC = () => {
           <Opcion id="econtact" label={nombreLista} active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
 
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>EXPLORA</Text>
+          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('menu.sectionExplore')}</Text>
           <Opcion id="communities" onPress={() => goHome('ExploreCommunities')} />
           <Opcion id="weels" onPress={() => goHome('Landing', { openWeels: true })} />
           <Opcion id="weetalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
@@ -222,7 +226,7 @@ const Sidebar: React.FC = () => {
               navigation.navigate('WeeCreator');
             }}
             right={
-              <TouchableOpacity onPress={() => setCreatorOpen((v) => !v)} hitSlop={8} accessibilityLabel={creatorOpen ? 'Ocultar especialistas' : 'Ver especialistas'}>
+              <TouchableOpacity onPress={() => setCreatorOpen((v) => !v)} hitSlop={8} accessibilityLabel={t(creatorOpen ? 'menu.hideSpecialists' : 'menu.showSpecialists')}>
                 <Ionicons name={creatorOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             }
@@ -248,21 +252,21 @@ const Sidebar: React.FC = () => {
           onPress={handleCreate}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Crear"
+          accessibilityLabel={t('nav.create')}
         >
           <Ionicons name="add" size={22} color="#1F2937" />
-          <Text style={styles.createButtonText}>Crear</Text>
+          <Text style={styles.createButtonText}>{t('nav.create')}</Text>
         </TouchableOpacity>
 
         {/* Pie: lo mismo que cierra el cajón del ☰ */}
         <View style={[styles.pie, { borderTopColor: theme.colors.border }]}>
           {user ? (
-            <TouchableOpacity onPress={handleLogout} activeOpacity={0.7} accessibilityLabel="Cerrar sesión">
-              <Text style={[styles.pieEnlace, { color: theme.colors.textSecondary }]}>Cerrar sesión</Text>
+            <TouchableOpacity onPress={handleLogout} activeOpacity={0.7} accessibilityLabel={t('menu.signOut')}>
+              <Text style={[styles.pieEnlace, { color: theme.colors.textSecondary }]}>{t('menu.signOut')}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={[styles.loginButton, { borderColor: theme.colors.accent }]} onPress={requireLogin} activeOpacity={0.8} accessibilityLabel="Iniciar sesión">
-              <Text style={[styles.loginText, { color: theme.colors.accentDark }]}>Iniciar sesión</Text>
+            <TouchableOpacity style={[styles.loginButton, { borderColor: theme.colors.accent }]} onPress={requireLogin} activeOpacity={0.8} accessibilityLabel={t('menu.signIn')}>
+              <Text style={[styles.loginText, { color: theme.colors.accentDark }]}>{t('menu.signIn')}</Text>
             </TouchableOpacity>
           )}
         </View>

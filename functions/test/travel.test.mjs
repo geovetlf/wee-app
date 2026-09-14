@@ -750,7 +750,7 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   // La cabecera dice dónde estás con un distintivo dibujado, no con un emoji suelto.
   check('95) Travel entra con distintivo propio', /<TravelMark size=\{30\} plain \/>/.test(codigo));
   check('95) y el título es exactamente "Weë Travel"', /title=\{lanzador \? spec\.experience\.name/.test(codigo) && travel.name === 'Weë Travel');
-  check('95) sin la etiqueta "WEË AI" encima', /overline=\{lanzador \? undefined/.test(codigo));
+  check('95) sin la etiqueta "Weë AI" encima', /overline=\{lanzador \? undefined/.test(codigo));
   check('95) el distintivo no es un emoji', !/heroEmoji|✈️/.test(soloCodigo(leer('components/creator/TravelMark.tsx'))));
 
   // El selector: cerrado al llegar, y cerrado otra vez cada vez que se vuelve.

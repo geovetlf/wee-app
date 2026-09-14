@@ -386,7 +386,7 @@ const CreatorFlowScreen: React.FC = () => {
       prefill: {
         content: content || job.goal,
         aiTools: [nombre],
-        aiProcess: `${job.plan?.explainToUser || `Creado con ${nombre} en WEË AI`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
+        aiProcess: `${job.plan?.explainToUser || `Creado con ${nombre} en Weë AI`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
         ...(mediaUri ? { media: [{ type: 'image' as const, uri: mediaUri }] } : {}),
       },
     });
@@ -448,7 +448,7 @@ const CreatorFlowScreen: React.FC = () => {
   const area = EXPERIENCE_AREA[experience.id];
 
   return (
-      <CreatorShell activeId={area ? area.section : experience.id} overline="🤖 WEË AI" title={`${experience.emoji} ${area ? t(area.claveEtiqueta) : experience.name}`} breadcrumb={area ? t(area.claveEtiqueta) : experience.name} contentStyle={styles.content}>
+      <CreatorShell activeId={area ? area.section : experience.id} overline="🤖 Weë AI" title={`${experience.emoji} ${area ? t(area.claveEtiqueta) : experience.name}`} breadcrumb={area ? t(area.claveEtiqueta) : experience.name} contentStyle={styles.content}>
         {needsPhoto && !imageUri && status !== 'done' && status !== 'running' && (
           <UploadBox
             config={subidaConfig}

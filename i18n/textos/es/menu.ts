@@ -33,4 +33,7 @@ export const menu = {
   bizActiveTap: 'Perfil Biz activo. Tocar para volver al Perfil Real',
   profileActive: '{{perfil}}, activo',
   switchToProfile: 'Cambiar al {{perfil}}',
+  signIn: 'Iniciar sesión',
+  hideSpecialists: 'Ocultar especialistas',
+  showSpecialists: 'Ver especialistas',
 };

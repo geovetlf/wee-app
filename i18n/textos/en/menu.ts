@@ -33,4 +33,7 @@ export const menu: typeof import('../es/menu').menu = {
   bizActiveTap: 'Biz profile active. Tap to go back to the Real profile',
   profileActive: '{{perfil}}, active',
   switchToProfile: 'Switch to the {{perfil}}',
+  signIn: 'Sign in',
+  hideSpecialists: 'Hide specialists',
+  showSpecialists: 'Show specialists',
 };

@@ -1473,7 +1473,7 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
     exp.experienceLabel({ id: 'home', name: 'Weë Home' }, crEs));
   check('G) las demás conservan el suyo', exp.experienceLabel({ id: 'chef', name: 'Weë Chef' }, crEs) === 'Weë Chef' && exp.experienceLabel({ id: 'photo', name: 'Weë Photo' }, crEs) === 'Weë Photo');
   check('H) la mesa de trabajo firma con ese nombre, no con el propio', (flujo.match(/experienceName=\{nombre\}/g) || []).length === 5 && /const nombre = experienceLabel\(experience, t\)/.test(flujo));
-  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en WEË AI/.test(flujo));
+  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en Weë AI/.test(flujo));
   check('H) el nombre propio solo queda de respaldo en la cabecera',
     (flujo.match(/experience\.name/g) || []).length === 2
     && (flujo.match(/area \? t\(area\.claveEtiqueta\) : experience\.name/g) || []).length === 2);
@@ -2104,7 +2104,9 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   check('M7) y las dos llevan a la misma pantalla de Credits', /CreditStore/.test(cajon) && /CreditStore/.test(barra));
 
   // 8) Inicio y Buscar son la única diferencia, y está explicada.
-  check('M8) solo la barra tiene Inicio y Buscar', /label="Inicio"/.test(barra) && !/'Inicio'/.test(limpio(cajon)));
+  check('M8) solo la barra tiene Inicio y Buscar',
+    /label=\{t\('nav\.home'\)\}/.test(barra) && /home: 'Inicio'/.test(leer3('i18n/textos/es/nav.ts'))
+    && !/'Inicio'/.test(limpio(cajon)) && !/nav\.home/.test(limpio(cajon)));
   check('M8) porque en el móvil los da la barra inferior', /barra inferior/.test(barra));
 }
 

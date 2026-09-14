@@ -110,7 +110,7 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
     <View
       style={[styles.barra, { paddingBottom: insets.bottom }]}
       accessibilityRole={Platform.OS === 'web' ? ('navigation' as never) : undefined}
-      accessibilityLabel="Navegación de Weë"
+      accessibilityLabel={t('nav.weeNavigation')}
     >
       {/* El fondo, aparte, para poder desvanecerlo sin tocar los iconos. */}
       <Animated.View

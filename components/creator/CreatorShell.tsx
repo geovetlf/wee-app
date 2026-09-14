@@ -18,7 +18,7 @@ import { useScrollDeBarra } from '../../hooks/useScrollDeBarra';
 interface CreatorShellProps {
   /** Qué elemento de la barra lateral se marca como activo ('creator', 'brain', 'photo'…). */
   activeId?: string;
-  /** Texto pequeño sobre el título en móvil ("🤖 WEË AI"). */
+  /** Texto pequeño sobre el título en móvil ("🤖 Weë AI"). */
   overline?: string;
   title: string;
   /**
@@ -27,7 +27,7 @@ interface CreatorShellProps {
    * porque las secciones cuyo muro manda ya no traen cabecera dentro (fase 2E-69).
    */
   mark?: React.ReactNode;
-  /** Miga de pan del escritorio ("WEË AI"). */
+  /** Miga de pan del escritorio ("Weë AI"). */
   breadcrumb?: string;
   onBack?: () => void;
   children: React.ReactNode;
@@ -39,7 +39,7 @@ interface CreatorShellProps {
  * Escritorio: barra lateral con los especialistas + barra superior (buscar,
  * notificaciones, perfil) + contenido ancho. Móvil: cabecera compacta + contenido.
  */
-const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'WEË AI', onBack, children, contentStyle }) => {
+const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle }) => {
   const { theme } = useTheme();
   const t = useT();
   /*

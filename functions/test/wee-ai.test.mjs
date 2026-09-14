@@ -1,13 +1,16 @@
 /*
- * WEË AI: un nombre visible, y los identificadores técnicos intactos.
+ * Weë AI: un nombre visible, y los identificadores técnicos intactos.
  *
- * Lo que la persona veía como "Weë Creator" pasa a llamarse WEË AI. NO es un
+ * Lo que la persona veía como "Weë Creator" pasa a llamarse Weë AI. NO es un
  * producto nuevo ni una experiencia más: es la misma área, la misma pantalla y
  * la misma ruta, con otro nombre delante.
  *
+ * La grafía es "Weë AI" en toda la interfaz: las versales de "WEË AI" se
+ * quedaron solo en el servidor, que es otra fase.
+ *
  * Por eso esta prueba vigila las dos mitades del cambio:
  *
- *  · que el nombre VISIBLE sea WEË AI en todas partes —menú, marco de las
+ *  · que el nombre VISIBLE sea Weë AI en todas partes —menú, marco de las
  *    pantallas, atajos, ayuda, Credits y mensajes de error—, y que ningún texto
  *    que lea una persona diga ya "Weë Creator";
  *  · que los IDENTIFICADORES sigan donde estaban —la ruta `WeeCreator`, el
@@ -32,7 +35,7 @@ const check = (name, cond, extra = '') => {
   if (!cond) failures++;
 };
 
-const NUEVO = 'WEË AI';
+const NUEVO = 'Weë AI';
 /*
  * El nombre viejo VISIBLE lleva espacio: "Weë Creator". Pegado —`WeeCreator`,
  * `WeeCreatorScreen`— es un identificador: la ruta, el import, el componente.
@@ -49,12 +52,12 @@ for (const carpeta of ['screens', 'components', 'constants', 'navigation', 'hook
   }
 }
 
-console.log('\n── A · El nombre visible es WEË AI ──');
+console.log('\n── A · El nombre visible es Weë AI ──');
 {
   /* El menú ☰ y la barra lateral leen su etiqueta de una sola fuente. */
   const menu = leer('constants/weeMenu.ts');
   /*
-   * En el MENÚ la entrada se llama "Weë AI", no "WEË AI".
+   * En el MENÚ la entrada se llama "Weë AI", como en todas partes.
    *
    * No es una excepción a la regla de la marca: es la misma regla. Las versales
    * son para cuando el área se anuncia como título —la miga de pan de sus
@@ -72,26 +75,35 @@ console.log('\n── A · El nombre visible es WEË AI ──');
   check('1) y el ☰ y la barra lateral la usan tal cual', /label=\{MENU_ITEM\.creator\.label\}/.test(leer('components/Sidebar.tsx')) && /MENU_ITEM/.test(leer('components/DrawerMenu.tsx')));
 
   /* El marco de las pantallas: la miga de pan por defecto y el rótulo de arriba. */
-  check('2) la miga de pan del marco dice WEË AI', new RegExp(`breadcrumb = '${NUEVO}'`).test(leer('components/creator/CreatorShell.tsx')));
+  check('2) la miga de pan del marco dice Weë AI', new RegExp(`breadcrumb = '${NUEVO}'`).test(leer('components/creator/CreatorShell.tsx')));
   const conRotulo = ['screens/BrainChatScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'screens/ProjectsScreen.tsx', 'screens/WeeCreatorScreen.tsx', 'screens/WriterEditorScreen.tsx', 'screens/SpecialistScreen.tsx'];
   const sinRenombrar = conRotulo.filter((f) => !new RegExp(`🤖 ${NUEVO}`).test(leer(f)));
   check('2) y las pantallas que lo llevan encima, también', sinRenombrar.length === 0, sinRenombrar.join(' · '));
 
   /* Los atajos que llevan hasta ahí. */
   check('3) el atajo de la hoja Crear', new RegExp(`>${NUEVO} ›<`).test(leer('components/CreateSheet.tsx')));
+  /*
+   * LA TARJETA DE LA COLUMNA DERECHA no lleva texto: lleva claves, desde la
+   * fase 5C. Se mira la clave Y la frase, en los dos idiomas, porque el nombre
+   * del sitio no se traduce.
+   */
   check('3) la tarjeta de la columna derecha, con su etiqueta para quien no ve',
-    new RegExp(`accessibilityLabel="Abrir ${NUEVO}"`).test(leer('components/RightSidebar.tsx')) && new RegExp(`>Ir a ${NUEVO}<`).test(leer('components/RightSidebar.tsx')));
+    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(leer('components/RightSidebar.tsx'))
+    && /\{t\('nav\.goToWeeAi'\)\}/.test(leer('components/RightSidebar.tsx'))
+    && /openWeeAi: 'Abrir Weë AI'/.test(leer('i18n/textos/es/nav.ts'))
+    && /goToWeeAi: 'Ir a Weë AI'/.test(leer('i18n/textos/es/nav.ts'))
+    && /goToWeeAi: 'Go to Weë AI'/.test(leer('i18n/textos/en/nav.ts')));
   check('3) y la barra lateral de las pantallas de IA', new RegExp(`'grid-outline', '${NUEVO}', goCreator`).test(leer('components/creator/CreatorSidebar.tsx')));
 
   /* Lo que se lee en Ayuda, en Credits, al fallar algo y en lo que se publica. */
-  check('4) la Ayuda pregunta por WEË AI', new RegExp(`¿Cómo funciona ${NUEVO}\\?`).test(leer('screens/HelpScreen.tsx')));
+  check('4) la Ayuda pregunta por Weë AI', new RegExp(`¿Cómo funciona ${NUEVO}\\?`).test(leer('screens/HelpScreen.tsx')));
   /*
    * Las dos menciones pasaron al diccionario al migrar Credits: la pantalla ya
    * no lleva texto, lleva claves. Se cuentan donde están ahora, y en los dos
    * idiomas: el nombre del área no se traduce, así que tiene que aparecer igual
    * en español y en inglés.
    */
-  check('4) los Credits hablan de WEË AI',
+  check('4) los Credits hablan de Weë AI',
     (leer('i18n/textos/es/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
     && (leer('i18n/textos/en/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
     && /t\('credits\.testPrices'\)/.test(leer('screens/CreditStoreScreen.tsx'))
@@ -105,9 +117,18 @@ console.log('\n── A · El nombre visible es WEË AI ──');
     && /return t\('weeai\.errOffline'\)/.test(leer('services/creatorService.ts')));
   check('4) y lo que queda escrito al publicar una creación', new RegExp(`Creado con \\$\\{nombre\\} en ${NUEVO}`).test(leer('screens/CreatorFlowScreen.tsx')));
 
-  /* El servidor: el historial de Credits y cómo se presenta el asistente. */
-  check('5) el apunte del historial de Credits dice WEË AI', new RegExp(`const description = \`${NUEVO} · `).test(leer('functions/src/creator/index.ts')));
-  check('5) y el asistente no se presenta con el nombre viejo', new RegExp(`el asistente de ${NUEVO}`).test(leer('functions/src/creator/prompts.ts')));
+  /*
+   * EL SERVIDOR TODAVÍA ESCRIBE "WEË AI", y aquí se escribe a mano.
+   *
+   * El apunte del historial de Credits —que sí se lee en la cartera— y el
+   * prompt interno del asistente viven en `functions/src`, y el backend queda
+   * fuera de la fase que unificó la marca en la interfaz. Se defiende lo que
+   * hay hoy, no lo que debería haber: el día que se cambien, esto falla y avisa.
+   */
+  check('5) el apunte del historial de Credits dice WEË AI (servidor, pendiente)',
+    /const description = `WEË AI · /.test(leer('functions/src/creator/index.ts')));
+  check('5) y el asistente no se presenta con el nombre viejo',
+    /el asistente de WEË AI/.test(leer('functions/src/creator/prompts.ts')));
 }
 
 console.log('\n── B · Ningún texto visible dice ya "Weë Creator" ──');
@@ -179,12 +200,13 @@ console.log('\n── D · Una sola experiencia, sin duplicados ──');
   check('13) una sola pantalla para esta área', fs.readdirSync(ruta('screens')).filter((f) => /^Wee.*Creator.*Screen\.tsx$|^WeeAi.*Screen\.tsx$|^WeeAI.*Screen\.tsx$/i.test(f)).length === 1);
   check('14) una sola ruta, y ninguna nueva con el nombre nuevo', (pila.match(/name="WeeCreator"/g) || []).length === 1 && !/name="WeeAi"|name="WeeAI"|name="WeeAiScreen"/i.test(pila));
   check('15) una sola entrada de menú para el área', (menu.match(/^\s*creator: \{ id: 'creator'/gm) || []).length === 1 && !/weeAi|wee_ai|weeai/i.test(menu));
-  /* Y las once experiencias siguen siendo once: WEË AI no es una más. */
+  /* Y las once experiencias siguen siendo once: Weë AI no es una más. */
   const experiencias = leer('constants/weeExperiences.ts');
   const cuantas = (experiencias.match(/^ {4}id: '/gm) || []).length;
   check('16) las experiencias siguen siendo once', cuantas === 11, String(cuantas));
-  check('16) y ninguna de ellas se llama WEË AI', !new RegExp(`name: '${NUEVO}'`).test(experiencias) && !/WEË AI/.test(experiencias));
+  check('16) y ninguna de ellas se llama Weë AI',
+    !new RegExp(`name: '${NUEVO}'`).test(experiencias) && !/WEË AI|Weë AI/.test(experiencias));
 }
 
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWEË AI por delante; `creator` por detrás, intacto');
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë AI por delante; `creator` por detrás, intacto');
 process.exit(failures ? 1 : 0);

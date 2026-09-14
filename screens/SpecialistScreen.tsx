@@ -125,10 +125,10 @@ const SpecialistScreen: React.FC = () => {
   return (
     <CreatorShell
       activeId={spec.id}
-      overline={lanzador ? undefined : '🤖 WEË AI'}
+      overline={lanzador ? undefined : '🤖 Weë AI'}
       title={lanzador ? spec.experience.name : `${spec.experience.emoji} ${spec.experience.name}`}
       mark={lanzador ? <TravelMark size={30} plain /> : undefined}
-      breadcrumb="WEË AI"
+      breadcrumb="Weë AI"
     >
       {!lanzador && <SpecialistHero spec={spec} />}
 

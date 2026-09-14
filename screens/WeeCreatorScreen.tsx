@@ -178,7 +178,7 @@ const WeeCreatorScreen: React.FC = () => {
   };
 
   return (
-    <CreatorShell activeId="creator" overline="🤖 WEË AI" title={t('weeai.whatToCreate')} breadcrumb="WEË AI" contentStyle={styles.content}>
+    <CreatorShell activeId="creator" overline="🤖 Weë AI" title={t('weeai.whatToCreate')} breadcrumb="Weë AI" contentStyle={styles.content}>
         {/* Buscador por intención */}
         <View style={[styles.searchBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={styles.searchEmoji}>✨</Text>

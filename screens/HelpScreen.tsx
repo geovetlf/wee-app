@@ -29,7 +29,7 @@ const FAQ: FaqItem[] = [
   },
   {
     emoji: '🤖',
-    question: '¿Cómo funciona WEË AI?',
+    question: '¿Cómo funciona Weë AI?',
     answer:
       'Cuéntale a Weë lo que quieres lograr con tus palabras. Weë te hace pocas preguntas sencillas (siempre puedes responder "No sé"), prepara un plan y crea el resultado. Tú eliges el resultado; Weë elige la IA. Hay diez especialistas: Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business y Brain.',
   },
@@ -37,7 +37,7 @@ const FAQ: FaqItem[] = [
     emoji: '💳',
     question: '¿Qué son los Credits?',
     answer:
-      'Cada creación con WEË AI usa Credits. Antes de crear ves cuánto costará y, si algo falla, se devuelven. Mientras construimos WEË AI, los precios son de prueba y las recargas no cuestan nada: los precios definitivos llegarán con las IAs reales.',
+      'Cada creación con Weë AI usa Credits. Antes de crear ves cuánto costará y, si algo falla, se devuelven. Mientras construimos Weë AI, los precios son de prueba y las recargas no cuestan nada: los precios definitivos llegarán con las IAs reales.',
   },
   {
     emoji: '📁',
@@ -87,7 +87,7 @@ const HelpScreen: React.FC = () => {
           Tus datos son tuyos. Weë usa tu correo y tu perfil solo para que la app funcione: iniciar sesión, mostrar tus publicaciones, tus Credits y tus creaciones. No vendemos tu información.
         </Text>
         <Text style={[styles.answer, { color: theme.colors.text }]}>
-          Lo que publicas es visible para la comunidad; lo que creas en WEË AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.
+          Lo que publicas es visible para la comunidad; lo que creas en Weë AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.
         </Text>
         <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>
           Los términos completos y la política de privacidad se publicarán en wee.zone antes del lanzamiento. Weë está en construcción: algunas funciones usan datos de prueba y lo decimos claramente donde pasa.

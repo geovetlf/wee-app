@@ -69,7 +69,7 @@ console.log('\n── A · Ni una frase suelta en el alcance ──');
    * Se busca por dos vías: una frase con tilde o con signo de apertura, que solo
    * puede ser español; y las palabras concretas que este bloque vino a quitar.
    */
-  const MARCAS = /Weë|Wäll|WeeTalk|ËContact|Credits|WEË AI|Weël/;
+  const MARCAS = /Weë|Wäll|WeeTalk|ËContact|Credits|Weë AI|Weël/;
   const sospechosas = [];
   for (const [ruta, codigo] of Object.entries(CODIGO)) {
     codigo.split('\n').forEach((l, i) => {

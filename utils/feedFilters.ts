@@ -71,8 +71,16 @@ export type HomeSectionId = 'all' | 'studio' | 'travel' | 'music' | 'chef' | 'de
  * Home (2026-09-12): son destinos de publicación desde antes, así que el
  * reparto ya sabía repartirlos y solo faltaba poder elegirlos.
  */
-export const HOME_SECTION_FILTERS: { id: HomeSectionId; label: string }[] = [
-  { id: 'all', label: 'Todo' },
+/*
+ * SEIS DE LAS SIETE ETIQUETAS SON MARCA y se escriben igual en todos los
+ * idiomas: WeeStudio, WeeTravel, WeeMusic, WeeChef, WeeDesign y WEEBusiness son
+ * nombres de Weë, no palabras. La séptima, "Todo", sí es interfaz, así que
+ * guarda una CLAVE y la resuelve quien pinta —esto se importa fuera de React y
+ * traducir aquí congelaría el idioma del arranque—. Es el mismo trato que
+ * `MENU_ITEM.clave`; el `label` se queda debajo como documentación.
+ */
+export const HOME_SECTION_FILTERS: { id: HomeSectionId; label: string; clave?: string }[] = [
+  { id: 'all', label: 'Todo', clave: 'home.filterAll' },
   { id: 'studio', label: 'WeeStudio' },
   { id: 'travel', label: 'WeeTravel' },
   { id: 'music', label: 'WeeMusic' },

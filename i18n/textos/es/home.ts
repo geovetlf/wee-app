@@ -14,4 +14,6 @@ export const home = {
   search: 'Buscar',
   back: 'Volver',
   logoHome: 'Weë, ir al principio',
+  filterBy: 'Filtrar: {{nombre}}',
+  filterAll: 'Todo',
 };

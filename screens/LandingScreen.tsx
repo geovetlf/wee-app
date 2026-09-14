@@ -981,6 +981,8 @@ const LandingScreen: React.FC = () => {
     >
       {HOME_SECTION_FILTERS.map((f) => {
         const active = estaActiva(feedFilter, f.id);
+        /* "Todo" se traduce; los nombres de las secciones son marca y no. */
+        const etiqueta = f.clave ? t(f.clave) : f.label;
         return (
           <TouchableOpacity
             key={f.id}
@@ -996,10 +998,10 @@ const LandingScreen: React.FC = () => {
             hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={`Filtrar: ${f.label}`}
+            accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
           >
             <Text style={[styles.feedFilterText, { color: active ? '#1F2937' : theme.colors.text }, active && styles.feedFilterTextActive]}>
-              {f.label}
+              {etiqueta}
             </Text>
           </TouchableOpacity>
         );

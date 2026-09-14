@@ -71,7 +71,7 @@ const ProjectsScreen: React.FC = () => {
   };
 
   return (
-    <CreatorShell activeId="projects" overline="🤖 WEË AI" title={`📁 ${t('weeai.myProjects')}`} breadcrumb="WEË AI">
+    <CreatorShell activeId="projects" overline="🤖 Weë AI" title={`📁 ${t('weeai.myProjects')}`} breadcrumb="Weë AI">
       <View style={[styles.intro, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
         <Text style={[styles.introTitle, { color: theme.colors.text }]}>{t('projects.introTitle')}</Text>
         {/*

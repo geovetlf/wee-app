@@ -21,11 +21,27 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
-import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
+import { comoSeLee, textosDe, traductorDe } from './i18n-ayuda.mjs';
 const ES = textosDe('es');
 const read = (p) => {
   try {
     return comoSeLee(fs.readFileSync(path.resolve(root, p), 'utf8'));
+  } catch {
+    return '';
+  }
+};
+
+/*
+ * LO QUE SE EJECUTA SE LEE CRUDO.
+ *
+ * `read` devuelve el fuente "como se lee en pantalla", con cada `t('clave')`
+ * ya convertido en su frase española: perfecto para mirar estructura, veneno
+ * para ejecutar. Un ayudante compilado desde ese texto nunca llamaría al
+ * traductor y diría español con la aplicación en inglés.
+ */
+const crudo = (p) => {
+  try {
+    return fs.readFileSync(path.resolve(root, p), 'utf8');
   } catch {
     return '';
   }
@@ -789,12 +805,21 @@ console.log('\n── O) Leer la encuesta: las cuentas ──');
  * Igual que el borrador, la parte que calcula se ejecuta: porcentajes, totales y
  * la detección del formato antiguo son aritmética y reglas, no pintura.
  */
-const fuenteVista = read('utils/pollView.ts');
+const fuenteVista = crudo('utils/pollView.ts');
 const jsVista = ts.transpileModule(fuenteVista, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
 }).outputText;
 const vista = await import('data:text/javascript;base64,' + Buffer.from(jsVista).toString('base64'));
 const { resultadosDe, repartirPorcentajes, esHistorica, estaCerrada, tiempoRestante, textoVotos } = vista;
+
+/*
+ * Las frases ya no están dentro del ayudante: las pone el traductor de verdad,
+ * el mismo que corre en la aplicación, con su Intl.PluralRules. Estas
+ * comprobaciones siguen mirando exactamente lo que miraban —y ahora también que
+ * el diccionario le pone a cada clave la frase aprobada, en los dos idiomas—.
+ */
+const T_ES = await traductorDe('es');
+const T_EN = await traductorDe('en');
 
 const nueva = (counts, totalVotes, extra = {}) => ({
   question: '¿Cuál prefieres?',
@@ -824,8 +849,11 @@ const nueva = (counts, totalVotes, extra = {}) => ({
   const r = resultadosDe(nueva({}, 0));
   check('189) con cero votos no se divide por cero', r.filas.every((f) => f.porcentaje === 0 && Number.isFinite(f.porcentaje)));
   check('190) y el total es cero', r.total === 0);
-  check('191) que se dice con palabras, no con un 0 suelto', textoVotos(0) === 'Sin votos todavía');
-  check('192) un voto es "1 voto", no "1 votos"', textoVotos(1) === '1 voto' && textoVotos(2) === '2 votos');
+  check('191) que se dice con palabras, no con un 0 suelto',
+    textoVotos(0, T_ES) === 'Sin votos todavía' && textoVotos(0, T_EN) === 'No votes yet');
+  check('192) un voto es "1 voto", no "1 votos"',
+    textoVotos(1, T_ES) === '1 voto' && textoVotos(2, T_ES) === '2 votos'
+    && textoVotos(1, T_EN) === '1 vote' && textoVotos(2, T_EN) === '2 votes');
 }
 
 /*
@@ -846,8 +874,12 @@ check('198) y un contador negativo no rompe el reparto', repartirPorcentajes([-5
   check('199) una encuesta con fecha futura está abierta', estaCerrada(abierta, Date.now()) === false);
   check('200) una con fecha pasada está cerrada', estaCerrada(cerrada, Date.now()) === true);
   check('201) y una sin fecha entendible, también', estaCerrada(nueva({}, 0, { endsAt: 'mañana' }), Date.now()) === true);
-  check('202) cerrada se dice "Encuesta finalizada"', tiempoRestante(cerrada, Date.now()) === 'Encuesta finalizada');
-  check('203) abierta se dice cuánto queda', /restante/.test(tiempoRestante(nueva({}, 0, { endsAt: Date.now() + 2 * 86400_000 }), Date.now())));
+  check('202) cerrada se dice "Encuesta finalizada"',
+    tiempoRestante(cerrada, Date.now(), T_ES) === 'Encuesta finalizada'
+    && tiempoRestante(cerrada, Date.now(), T_EN) === 'Poll ended');
+  check('203) abierta se dice cuánto queda',
+    /restante/.test(tiempoRestante(nueva({}, 0, { endsAt: Date.now() + 2 * 86400_000 }), Date.now(), T_ES))
+    && /left/.test(tiempoRestante(nueva({}, 0, { endsAt: Date.now() + 2 * 86400_000 }), Date.now(), T_EN)));
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -932,7 +964,7 @@ check('218) y el texto libre del post sigue por su cuenta', !/poll\.question[\s\
  */
 check('219) los resultados salen cuando hay motivo, no siempre', /const conResultados = votada \|\| cerrada \|\| historica;/.test(componente));
 check('220) el porcentaje solo se pinta con resultados', /\{conResultados && \([\s\S]{0,400}porcentaje\}%/.test(componente));
-check('221) los votos absolutos, igual', /\{conResultados && \([\s\S]{0,300}textoVotos\(fila\.votos\)/.test(componente));
+check('221) los votos absolutos, igual', /\{conResultados && \([\s\S]{0,300}textoVotos\(fila\.votos, t\)/.test(componente));
 check('222) y la barra se queda a cero mientras no los haya', /const destino = conResultados \? fila\.porcentaje : 0;/.test(componente));
 check('223) después de votar se dice "Votaste"', /votada \? 'Votaste' : null/.test(componente));
 check('224) y se ve cuál fue tu opción', /elegida=\{miVoto === fila\.id\}/.test(componente) && /borderWidth: elegida \? 2 : 1/.test(componente));

@@ -616,7 +616,10 @@ console.log('\n── I · El refinamiento visual ──');
    * React Native Web no lo traduce a ningún atributo, así que el estado va
    * escrito a mano o no existe para un lector de pantalla.
    */
-  check('65) el móvil dice qué sección está puesta', /accessibilityState=\{\{ selected: active \}\}/.test(nativo) && /accessibilityLabel=\{`Filtrar: \$\{f\.label\}`\}/.test(nativo));
+  check('65) el móvil dice qué sección está puesta',
+    /accessibilityState=\{\{ selected: active \}\}/.test(nativo)
+    && /accessibilityLabel=\{t\('home\.filterBy', \{ nombre: etiqueta \}\)\}/.test(nativo)
+    && /filterBy: 'Filtrar: \{\{nombre\}\}'/.test(leer('i18n/textos/es/home.ts')));
   check('66) y la web también, con su propio atributo', /aria-pressed=\{active\}/.test(web) && !/aria-selected/.test(web));
 
   /*

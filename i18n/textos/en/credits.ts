@@ -12,7 +12,7 @@ export const credits: typeof import('../es/credits').credits = {
   free: 'Free',
   testTopUp: 'Test top-up',
   testTopUpReady: 'Test top-up ready',
-  testPrices: 'Test prices while we build WEË AI',
+  testPrices: 'Test prices while we build Weë AI',
   topUp: 'Top up',
   seeHistory: 'See history →',
   seeHistoryLabel: 'See history',
@@ -24,5 +24,5 @@ export const credits: typeof import('../es/credits').credits = {
   testTopUpDone: '{{cantidad}} Credits added to your account. This is a test top-up: nothing was charged.',
   balanceAfter: 'Balance: {{saldo}}',
   topUpFailed: 'The top-up could not be completed. Please try again.',
-  terms: 'Test top-up: nothing is charged yet. Final prices will arrive once WEË AI runs on its real AIs; until then, every creation shows its test cost before you start.',
+  terms: 'Test top-up: nothing is charged yet. Final prices will arrive once Weë AI runs on its real AIs; until then, every creation shows its test cost before you start.',
 };

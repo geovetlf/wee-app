@@ -29,4 +29,8 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'Photo access permission is required',
   audioPermission: 'Microphone permission is required',
   imageFailed: 'The image could not be sent',
+  noConversationsHint: 'Tap "Private" on any post to start an anonymous conversation',
+  ephemeralMode: 'Ephemeral mode',
+  noMessagesYet: 'No messages yet',
+  youSaid: 'You: {{mensaje}}',
 };

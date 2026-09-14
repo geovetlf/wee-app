@@ -79,7 +79,7 @@ const BusinessScreen: React.FC = () => {
   const available = networks.filter((n) => !n.connected);
 
   return (
-    <CreatorShell activeId="business" overline="🤖 WEË AI" title="💼 Weë Business" breadcrumb="WEË AI">
+    <CreatorShell activeId="business" overline="🤖 Weë AI" title="💼 Weë Business" breadcrumb="Weë AI">
       <SpecialistHero spec={spec} />
 
       {/* Atajos de la barra de la referencia */}

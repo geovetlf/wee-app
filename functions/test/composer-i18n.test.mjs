@@ -64,7 +64,7 @@ const TODO = Object.values(C).join('\n');
 console.log('\n── A · Ni una frase suelta en el Composer ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const MARCA = /Weë|Weël|WEË AI|ËContact|Wäll|WeeTalk|Credits/;
+  const MARCA = /Weë|Weël|Weë AI|ËContact|Wäll|WeeTalk|Credits/;
   const sueltas = [];
   for (const [ruta, codigo] of Object.entries(C)) {
     codigo.split('\n').forEach((l, i) => {

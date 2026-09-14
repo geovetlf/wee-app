@@ -87,8 +87,8 @@ const InboxScreen = () => {
 
   const deleteChat = (id: string) => {
     Alert.alert(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => messagesService.deleteConversation(id).catch(console.error) },
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => messagesService.deleteConversation(id).catch(console.error) },
     ]);
   };
 
@@ -150,7 +150,18 @@ const InboxScreen = () => {
               style={[styles.itemMsg, { color: item.ephemeral ? '#22C55E' : unread ? theme.colors.text : theme.colors.textSecondary, fontWeight: unread ? FONT_WEIGHT.medium : FONT_WEIGHT.regular }]}
               numberOfLines={1}
             >
-              {item.ephemeral ? 'Modo efímero' : last ? `${last.senderId === activeUid ? 'Tú: ' : ''}${last.content}` : 'No hay mensajes aún'}
+              {/*
+                Lo que se lee bajo el nombre. Tres de las cuatro salidas son de
+                Weë y van por clave; la cuarta es EL MENSAJE DE UNA PERSONA y se
+                pinta crudo. Cuando lo escribiste tú, la frase entera viene del
+                diccionario con el mensaje dentro de su hueco: así el "Tú:" puede
+                ir donde cada idioma lo ponga sin pegar dos trozos a mano.
+              */}
+              {item.ephemeral
+                ? t('weetalk.ephemeralMode')
+                : last
+                  ? (last.senderId === activeUid ? t('weetalk.youSaid', { mensaje: last.content }) : last.content)
+                  : t('weetalk.noMessagesYet')}
             </Text>
             {unread && <View style={[styles.dot, { backgroundColor: theme.colors.accent }]} />}
           </View>
@@ -166,7 +177,7 @@ const InboxScreen = () => {
       </View>
       <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('weetalk.noConversations')}</Text>
       <Text style={[styles.emptyDesc, { color: theme.colors.textSecondary }]}>
-        Toca "Privado" en cualquier publicación{'\n'}para iniciar una conversación anónima
+        {t('weetalk.noConversationsHint')}
       </Text>
     </View>
   );

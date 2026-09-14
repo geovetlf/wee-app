@@ -12,6 +12,16 @@
  */
 import type { PostPoll } from '../services/firestoreService';
 
+/*
+ * QUIEN PONE LAS PALABRAS ENTRA POR LA PUERTA.
+ *
+ * Esto se importa fuera de React —por eso se puede ejecutar en las pruebas— y
+ * ahí no hay traductor. Llamar a `t()` al cargar el archivo congelaría el
+ * idioma del arranque, así que lo recibe quien lo llama, que sí sabe en qué
+ * idioma está mirando la persona. Es el mismo trato que `traducirEspecialista`.
+ */
+type Traducir = (clave: string, valores?: Record<string, string | number>) => string;
+
 // ─── Fechas ──────────────────────────────────────────────────────────────────
 
 /**
@@ -146,19 +156,34 @@ export const resultadosDe = (poll: PostPoll | null | undefined): ResultadosEncue
 
 // ─── Cuánto queda ────────────────────────────────────────────────────────────
 
-/** "2 días restantes", "5 horas restantes", "Menos de 1 hora" o "Encuesta finalizada". */
-export const tiempoRestante = (poll: PostPoll | null | undefined, ahoraMs: number): string => {
-  if (estaCerrada(poll, ahoraMs)) return 'Encuesta finalizada';
+/**
+ * "2 días restantes", "5 horas restantes", "Menos de 1 hora" o "Encuesta
+ * finalizada" — en el idioma de quien mira.
+ *
+ * LOS TRAMOS NO CAMBIAN: días mientras queden días, horas mientras queden
+ * horas, y por debajo de una hora se dice eso y no "0 horas". Lo que cambia es
+ * quién escribe la frase: antes se pegaba una "s" a mano cuando el número era
+ * mayor que uno, que es la regla del español y de nadie más.
+ */
+export const tiempoRestante = (poll: PostPoll | null | undefined, ahoraMs: number, t: Traducir): string => {
+  if (estaCerrada(poll, ahoraMs)) return t('wall.pollClosed');
   const resta = (milisDe(poll!.endsAt) as number) - ahoraMs;
   const dias = Math.floor(resta / (1000 * 60 * 60 * 24));
   const horas = Math.floor((resta % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  if (dias > 0) return `${dias} día${dias > 1 ? 's' : ''} restante${dias > 1 ? 's' : ''}`;
-  if (horas > 0) return `${horas} hora${horas > 1 ? 's' : ''} restante${horas > 1 ? 's' : ''}`;
-  return 'Menos de 1 hora';
+  if (dias > 0) return t('wall.pollDaysLeft', { contador: dias });
+  if (horas > 0) return t('wall.pollHoursLeft', { contador: horas });
+  return t('wall.pollLessThanAnHour');
 };
 
-/** "20 votos", "1 voto", "Sin votos todavía". */
-export const textoVotos = (total: number): string => {
-  if (total <= 0) return 'Sin votos todavía';
-  return `${total} voto${total === 1 ? '' : 's'}`;
+/**
+ * "20 votos", "1 voto", "Sin votos todavía" — en el idioma de quien mira.
+ *
+ * EL CERO SIGUE SIENDO UN ESTADO, NO UN NÚMERO: "Sin votos todavía" dice que la
+ * encuesta está esperando, y un "0 votos" no diría lo mismo. Esa decisión es de
+ * producto y se queda. Del uno en adelante manda `Intl.PluralRules`, que sabe
+ * las reglas de cada idioma; aquí no hay ningún `=== 1`.
+ */
+export const textoVotos = (total: number, t: Traducir): string => {
+  if (total <= 0) return t('wall.pollNoVotesYet');
+  return t('wall.pollVotes', { contador: total });
 };

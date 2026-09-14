@@ -552,7 +552,7 @@ console.log('\n── L · Bloque 2 · Credits, ËContact, WeeTalk, Notificacion
     huerfanas.length === 0, [...new Set(huerfanas)].join(' '));
 }
 
-console.log('\n── M · Bloque 3A · WEË AI, Studio, Writer, Design ──');
+console.log('\n── M · Bloque 3A · Weë AI, Studio, Writer, Design ──');
 {
   const limpio = (a) => leer(a).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
   const ARMAZON = ['screens/WeeCreatorScreen.tsx', 'screens/SpecialistScreen.tsx',
@@ -564,7 +564,7 @@ console.log('\n── M · Bloque 3A · WEË AI, Studio, Writer, Design ──')
     'components/creator/IdeaBox.tsx'];
   const armazon = ARMAZON.map(limpio).join('\n');
 
-  check('80) WEË AI · las trece piezas del armazón usan t()',
+  check('80) Weë AI · las trece piezas del armazón usan t()',
     ARMAZON.every((a) => /useT\(\)|useIdioma\(\)/.test(limpio(a))));
 
   /* Los textos que estaban escritos a mano ya no están en ninguna de ellas. */

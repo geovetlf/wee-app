@@ -11,4 +11,12 @@ export const nav = {
   talk: 'WeeTalk',
   notifications: 'Notificaciones',
   current: 'sección actual',
+  goTo: 'Ir a {{nombre}}',
+  weeNavigation: 'Navegación de Weë',
+  goHome: 'Ir al inicio',
+  myProfile: 'Ir a mi perfil',
+  openWeeAi: 'Abrir Weë AI',
+  goToWeeAi: 'Ir a Weë AI',
+  weeAiQuestion: '¿Qué quieres crear hoy?',
+  weeAiPitch: 'Cuéntale a Weë lo que quieres. Weë se encarga de la IA.',
 };

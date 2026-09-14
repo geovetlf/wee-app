@@ -12,7 +12,7 @@ export const credits = {
   free: 'Gratis',
   testTopUp: 'Recarga de prueba',
   testTopUpReady: 'Recarga de prueba lista',
-  testPrices: 'Precios de prueba mientras construimos WEË AI',
+  testPrices: 'Precios de prueba mientras construimos Weë AI',
   topUp: 'Recargar',
   seeHistory: 'Ver historial →',
   seeHistoryLabel: 'Ver historial',
@@ -24,5 +24,5 @@ export const credits = {
   testTopUpDone: '{{cantidad}} Credits agregados a tu cuenta. Es una recarga de prueba: no se cobró nada.',
   balanceAfter: 'Saldo: {{saldo}}',
   topUpFailed: 'No se pudo completar la recarga. Inténtalo de nuevo.',
-  terms: 'Recarga de prueba: no se cobra nada todavía. Los precios definitivos llegarán cuando WEË AI use sus IAs reales; mientras tanto, cada creación muestra su coste de prueba antes de empezar.',
+  terms: 'Recarga de prueba: no se cobra nada todavía. Los precios definitivos llegarán cuando Weë AI use sus IAs reales; mientras tanto, cada creación muestra su coste de prueba antes de empezar.',
 };

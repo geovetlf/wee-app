@@ -119,7 +119,7 @@ const WriterEditorScreen: React.FC = () => {
   };
 
   return (
-    <CreatorShell activeId="writer" overline="🤖 WEË AI" title="✍️ Editor" breadcrumb="Weë Writer">
+    <CreatorShell activeId="writer" overline="🤖 Weë AI" title="✍️ Editor" breadcrumb="Weë Writer">
       <View style={[styles.editor, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, isDesktop && styles.editorDesktop]}>
         <TextInput
           style={[styles.title, { color: theme.colors.text }]}
