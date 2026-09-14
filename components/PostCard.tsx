@@ -28,6 +28,8 @@ import { banderaDe, etiquetaDeLugar } from '../data/places';
 import { esPublicacionDePreview } from '../utils/previewWall';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { compartirFueraDeWee } from '../utils/compartirFuera';
+import { notify } from '../utils/notify';
 import ShareablePostCard from './ShareablePostCard';
 import { cloudinaryThumb, cloudinaryFeed } from '../services/cloudinaryService';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -260,6 +262,11 @@ const PostCard: React.FC<PostCardProps> = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const [localViews, setLocalViews] = useState(post.views || 0);
+  /*
+   * El "cargando" es SOLO de la foto, y solo la foto lo necesita: hay que
+   * montar la tarjeta y capturarla. El vídeo ya no espera a nada —se comparte
+   * su enlace— así que no enciende ningún velo ni pinta ningún cartel.
+   */
   const [isSharing, setIsSharing] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -604,6 +611,30 @@ const PostCard: React.FC<PostCardProps> = ({
     // Determinar el post a compartir (original si es repost)
     const postToShare = isRepost && originalPost ? originalPost : post;
 
+    /*
+     * UN VÍDEO SE COMPARTE COMO ENLACE.
+     *
+     * Va lo PRIMERO, delante incluso de la salida de web, porque es igual en
+     * todas partes: lo que se manda es `https://wee.zone/post/{postId}`, la misma
+     * dirección que la app abre en `PostDetail`. La tarjeta con la miniatura, el
+     * título y la marca la arma sola la app de destino leyendo las etiquetas
+     * Open Graph de la página pública; aquí no se genera, ni se sube, ni se
+     * espera nada.
+     *
+     * Y no hay salida hacia abajo. Antes esto bajaba el mp4; antes de eso
+     * mandaba una captura PNG y a WhatsApp llegaba "1 imagen" con un fotograma
+     * quieto. Ninguno de los dos vuelve: si el enlace no se puede compartir se
+     * avisa y se acaba, porque un error que se ve es mejor que mandar algo que
+     * no es lo que la persona quiso mandar.
+     */
+    if (postToShare.videoUrl) {
+      const compartido = await compartirFueraDeWee(postToShare.id);
+      if (!compartido) {
+        notify('No se pudo compartir la publicación. Inténtalo de nuevo.');
+      }
+      return;
+    }
+
     // En web, usar share nativo de texto directamente
     if (Platform.OS === 'web') {
       try {
@@ -693,6 +724,31 @@ const PostCard: React.FC<PostCardProps> = ({
         },
       ]
     );
+  };
+
+  /*
+   * REPUBLICAR Y ENVIAR, DESDE EL MENÚ.
+   *
+   * Es exactamente lo que hacían sus botones de la fila: ni la lógica ni los
+   * servicios cambian. Lo único que se añade es cerrar el menú antes, que es lo
+   * que hacen el resto de las opciones de ahí dentro.
+   */
+  const republicarDesdeElMenu = () => {
+    setMenuVisible(false);
+    if (!user) { navigateToRegister(); return; }
+    toggleRepost();
+  };
+
+  const enviarDesdeElMenu = () => {
+    setMenuVisible(false);
+    if (!user) { navigateToRegister(); return; }
+    if (!postAuthor) return;
+    onPrivateMessage(displayPost.userId, {
+      displayName: postAuthor.displayName || 'Usuario',
+      avatarType: postAuthor.avatarType,
+      avatarId: postAuthor.avatarId,
+      photoURL: typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined,
+    });
   };
 
   const handleReportPost = () => {
@@ -1075,6 +1131,17 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Datos del post a mostrar (original si es repost)
   const displayPost = isRepost && originalPost ? originalPost : post;
+
+  /*
+   * A quién se le puede enviar la publicación por WeeTalk: a cualquiera menos a
+   * uno mismo. La condición estaba escrita en la fila de acciones; ahora que
+   * "Enviar" vive en el menú, se saca aquí para que siga siendo la misma y no
+   * haya dos versiones que se separen con el tiempo.
+   */
+  const puedeEnviarPorWeeTalk =
+    !isOwnPost && !!postAuthor
+    && displayPost.userId !== activeProfile?.uid
+    && displayPost.userId !== user?.uid;
   const displayAuthor = isRepost && originalPost ? postAuthor : postAuthor;
 
   // Si es un repost y todavía está cargando el original, mostrar loading
@@ -1105,6 +1172,59 @@ const PostCard: React.FC<PostCardProps> = ({
   if (!displayPost) {
     return null;
   }
+
+  /*
+   * LO QUE HAY DENTRO DEL MENÚ DE LOS TRES PUNTOS.
+   *
+   * Se escribe una sola vez y lo usan las dos ramas de abajo: en la web el menú
+   * va en una vista normal y en el teléfono en una animada, pero el contenido
+   * es el mismo. Antes estaba copiado en los dos sitios.
+   *
+   * El orden va de lo más usado a lo más raro, y "Reportar" cierra siempre la
+   * lista, que es la única sin línea de separación debajo.
+   */
+  const separadorDelMenu = { borderBottomColor: theme.colors.border, borderBottomWidth: 0.5 };
+  const opcionesDelMenu = (
+    <>
+      {/* Republicar: lo mismo que hacía su botón, con la cuenta al lado. */}
+      <TouchableOpacity
+        style={[styles.menuOption, separadorDelMenu]}
+        onPress={republicarDesdeElMenu}
+        disabled={isReposting}
+        accessibilityLabel={hasReposted ? 'Quitar la republicación' : 'Republicar'}
+      >
+        <Ionicons name="repeat" size={20} color={hasReposted ? theme.colors.accent : theme.colors.textSecondary} />
+        <Text style={[styles.menuOptionText, { color: hasReposted ? theme.colors.accent : theme.colors.text }]}>
+          {hasReposted ? 'Quitar republicación' : 'Republicar'}
+          {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount)}` : ''}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Enviar por WeeTalk, solo a quien no seas tú. */}
+      {puedeEnviarPorWeeTalk && (
+        <TouchableOpacity
+          style={[styles.menuOption, separadorDelMenu]}
+          onPress={enviarDesdeElMenu}
+          accessibilityLabel="Enviar por WeeTalk"
+        >
+          <Ionicons name="paper-plane-outline" size={20} color={theme.colors.textSecondary} />
+          <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>Enviar por WeeTalk</Text>
+        </TouchableOpacity>
+      )}
+
+      {isOwnPost && (
+        <TouchableOpacity style={[styles.menuOption, separadorDelMenu]} onPress={handleDeletePost}>
+          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>Eliminar post</Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity style={styles.menuOption} onPress={handleReportPost}>
+        <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
+        <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>Reportar publicación</Text>
+      </TouchableOpacity>
+    </>
+  );
 
   return (
     <View
@@ -1296,7 +1416,14 @@ const PostCard: React.FC<PostCardProps> = ({
         {displayPost.videoUrl && onVideoPress && renderMedia()}
       </View>
 
-      {/* Acciones */}
+      {/*
+        LA FILA DE ACCIONES: CINCO, NO SIETE.
+        Opinar, opinar en contra, comentar, guardar y compartir. Republicar y
+        enviar siguen existiendo igual, pero viven en el menú de los tres
+        puntos: eran los dos que menos se usan y los que convertían la fila en
+        una hilera de iconos donde no se distinguía ninguno. Ninguna acción se
+        ha perdido y ninguna ha cambiado de comportamiento.
+      */}
       <View style={styles.actions}>
         {/* De acuerdo (manito arriba) */}
         <TouchableOpacity
@@ -1353,45 +1480,6 @@ const PostCard: React.FC<PostCardProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* Repost */}
-        <TouchableOpacity
-          style={styles.actionButton} hitSlop={AREA_TACTIL}
-          onPress={() => { if (!user) { navigateToRegister(); return; } toggleRepost(); }}
-          disabled={isReposting}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="repeat"
-            size={ICON_SIZE.md}
-            color={hasReposted ? theme.colors.accent : theme.colors.textSecondary}
-          />
-          <Text style={[styles.actionText, {
-            color: hasReposted ? theme.colors.accent : theme.colors.textSecondary
-          }]}>
-            {formatNumber(repostsCount)}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Mensaje privado - ocultar si es post propio o del autor del displayPost */}
-        {!isOwnPost && postAuthor && displayPost.userId !== activeProfile?.uid && displayPost.userId !== user?.uid && (
-          <TouchableOpacity
-            style={styles.actionButton} hitSlop={AREA_TACTIL}
-            onPress={() => { if (!user) { navigateToRegister(); return; } onPrivateMessage(displayPost.userId, {
-              displayName: postAuthor.displayName || 'Usuario',
-              avatarType: postAuthor.avatarType,
-              avatarId: postAuthor.avatarId,
-              photoURL: typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined,
-            }); }}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="paper-plane-outline"
-              size={ICON_SIZE.md}
-              color={theme.colors.textSecondary}
-            />
-          </TouchableOpacity>
-        )}
-
         {/* Guardar */}
         <TouchableOpacity
           style={styles.actionButton} hitSlop={AREA_TACTIL}
@@ -1444,19 +1532,7 @@ const PostCard: React.FC<PostCardProps> = ({
           </View>
           {Platform.OS === 'web' ? (
             <View style={[styles.menuDropdown, { backgroundColor: theme.colors.card }]}>
-              {isOwnPost && (
-                <TouchableOpacity
-                  style={[styles.menuOption, { borderBottomColor: theme.colors.border, borderBottomWidth: 0.5 }]}
-                  onPress={handleDeletePost}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                  <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>Eliminar post</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.menuOption} onPress={handleReportPost}>
-                <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
-                <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>Reportar publicación</Text>
-              </TouchableOpacity>
+              {opcionesDelMenu}
             </View>
           ) : (
             <Animated.View style={[
@@ -1473,19 +1549,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 ],
               }
             ]}>
-              {isOwnPost && (
-                <TouchableOpacity
-                  style={[styles.menuOption, { borderBottomColor: theme.colors.border, borderBottomWidth: 0.5 }]}
-                  onPress={handleDeletePost}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                  <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>Eliminar post</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.menuOption} onPress={handleReportPost}>
-                <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
-                <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>Reportar publicación</Text>
-              </TouchableOpacity>
+              {opcionesDelMenu}
             </Animated.View>
           )}
         </>
@@ -1514,13 +1578,14 @@ const PostCard: React.FC<PostCardProps> = ({
         </View>
       )}
 
-      {/* Loading overlay while sharing */}
+      {/* Compartir una FOTO: se monta la tarjeta y se captura. Tal cual estaba. */}
       {isSharing && (
         <View style={styles.sharingOverlay}>
           <ActivityIndicator size="large" color="#F5B731" />
           <Text style={styles.sharingText}>Preparando imagen...</Text>
         </View>
       )}
+
     </View>
   );
 };

@@ -444,7 +444,15 @@ const reglas = read('firestore.rules');
 const bloquePosts = reglas.slice(reglas.indexOf('match /posts/{postId}'), reglas.indexOf('// === VOTOS ==='));
 
 check('80) existe la comprobación de que se toca poll', /function touchesPoll\(\)[\s\S]{0,160}hasAny\(\['poll'\]\)/.test(reglas));
-check('81) ningún update de un post puede tocar poll', /allow update: if isAuthenticated\(\) && !touchesPoll\(\) && \(/.test(bloquePosts));
+/*
+ * Lo que esto exige es que `!touchesPoll()` esté FUERA del paréntesis: que sea
+ * una condición de todos los caminos y no una alternativa de uno. Entre medias
+ * puede haber otras condiciones sueltas —hoy `visibilidadDeclarada()`— y eso
+ * no debilita nada, porque se suman con &&. Antes la expresión pedía el
+ * paréntesis pegado, y una condición nueva al lado la rompía sin que nada
+ * hubiera empeorado.
+ */
+check('81) ningún update de un post puede tocar poll', /allow update: if isAuthenticated\(\) && !touchesPoll\(\)(?: && \w+\(\))* && \(/.test(bloquePosts));
 /*
  * La clave está en dónde va el `!touchesPoll()`: fuera del paréntesis, así que
  * cierra los dos caminos a la vez —el del autor y el de los contadores—. Si

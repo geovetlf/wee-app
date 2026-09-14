@@ -554,13 +554,24 @@ console.log('\n── I · El refinamiento visual ──');
    */
   check('57) la miniatura no lleva la marca de Weë encima',
     !/watermark/i.test(fila) && !/<Watermark/.test(fila));
-  /* Y lo que sí lleva sigue donde estaba: play, título y visitas, sin moverse. */
+  /*
+   * NI SELLO DE REPRODUCCIÓN.
+   *
+   * Por lo mismo que la marca, y encima peor colocado: el círculo blanco con el
+   * triángulo caía en el CENTRO del fotograma, justo donde está lo que ayuda a
+   * decidir. En una fila que solo tiene Weëls, avisar de que son vídeos no
+   * aporta nada: la fila ya se llama Ẅells y la tarjeta ya se abre al tocarla.
+   */
+  check('58) la miniatura tampoco lleva sello de reproducción',
+    !/<PlayCircle \/>/.test(fila) && !/const PlayCircle/.test(fila)
+    && !/name="play"/.test(fila) && !/play: \{/.test(fila));
+  /* Y lo que sí lleva sigue donde estaba: título y visitas, sin moverse. */
   const alturaDe = (nombre) => {
     const m = new RegExp(nombre + ': \\{[^}]*bottom: scale\\((\\d+)\\)').exec(fila);
     return m ? Number(m[1]) : null;
   };
-  check('58) el play, el título y las visitas siguen igual',
-    /<PlayCircle \/>/.test(fila) && alturaDe('sampleLabel') === 24 && alturaDe('views') === 24,
+  check('58) el título y las visitas siguen igual',
+    alturaDe('sampleLabel') === 24 && alturaDe('views') === 24,
     `título a ${alturaDe('sampleLabel')}, visitas a ${alturaDe('views')}`);
   /* Control: la marca de agua del vídeo compartido sigue existiendo, aparte de esto. */
   check('58) control: la marca de agua del vídeo compartido no se tocó',
@@ -615,7 +626,239 @@ console.log('\n── I · El refinamiento visual ──');
    */
   const conArea = (publicacion.match(/style=\{styles\.actionButton\} hitSlop=\{AREA_TACTIL\}/g) || []).length;
   const total = (publicacion.match(/style=\{styles\.actionButton\}/g) || []).length;
-  check('67) todos los botones de una publicación se pueden tocar', conArea === total && total === 7, `${conArea} de ${total}`);
+  check('67) todos los botones de una publicación se pueden tocar', conArea === total && total === 5, `${conArea} de ${total}`);
+  /*
+   * CINCO, NO SIETE. Opinar a favor, en contra, comentar, guardar y compartir.
+   *
+   * Republicar y enviar salieron de la fila al menú de los tres puntos: eran
+   * los dos que menos se usan y los que convertían la fila en una hilera de
+   * iconos donde no se distinguía ninguno. No se ha perdido ninguna acción, y
+   * eso es lo que de verdad hay que vigilar, así que se comprueba abajo.
+   */
+  check('67) y son exactamente esas cinco, en ese orden',
+    (() => {
+      const fila = publicacion.slice(publicacion.indexOf('LA FILA DE ACCIONES: CINCO'), publicacion.indexOf('Hidden shareable'));
+      const iconos = (fila.match(/thumbs-up|thumbs-down|chatbubble-outline|isBookmarked \? 'bookmark'|share-social-outline/g) || []);
+      return iconos[0].startsWith('thumbs-up') && iconos.includes('thumbs-down')
+        && iconos.includes('chatbubble-outline') && iconos.some((i) => i.includes('bookmark'))
+        && iconos[iconos.length - 1] === 'share-social-outline'
+        && !/name="repeat"/.test(fila) && !/paper-plane-outline/.test(fila);
+    })());
+  /* Y las dos que salieron siguen existiendo, en el menú y con su lógica de siempre. */
+  check('67) republicar y enviar no se perdieron: viven en el menú',
+    /const republicarDesdeElMenu = \(\) => \{[\s\S]{0,200}toggleRepost\(\);/.test(publicacion)
+    && /const enviarDesdeElMenu = \(\) => \{[\s\S]{0,400}onPrivateMessage\(displayPost\.userId/.test(publicacion)
+    && /onPress=\{republicarDesdeElMenu\}/.test(publicacion)
+    && /onPress=\{enviarDesdeElMenu\}/.test(publicacion));
+  /* Las opciones del menú se escriben una sola vez y las usan las dos ramas. */
+  check('67) el menú no está duplicado entre web y teléfono',
+    (publicacion.match(/\{opcionesDelMenu\}/g) || []).length === 2
+    && (publicacion.match(/const opcionesDelMenu =/g) || []).length === 1);
+  /* Guardar sigue usando el sistema que ya existía: ni servicio nuevo ni lógica repetida. */
+  check('67) guardar sigue siendo el Guardados de siempre',
+    /const \{ isSaved, toggle: toggleBookmark \} = useBookmarks\(\);/.test(publicacion)
+    && /toggleBookmark\(targetPostId\)/.test(publicacion)
+    && !/bookmarksService/.test(publicacion));
+  /*
+   * COMPARTIR UN VÍDEO FUERA DE WEË MANDA EL ENLACE, NO EL ARCHIVO.
+   *
+   * Esto ya cambió dos veces, y las dos por el mismo motivo: lo que llegaba al
+   * otro lado no era la publicación. Primero se mandaba una captura PNG y
+   * Android anunciaba "1 imagen" con un fotograma quieto. Luego se mandaba el
+   * mp4: eso sí era el vídeo, pero era un archivo suelto —sin autor, sin texto
+   * y sin vuelta a Weë—, había que esperar a que bajara y gastaba los datos dos
+   * veces.
+   *
+   * Ahora va el ENLACE, que es lo que hacen Facebook, Instagram y YouTube: la
+   * app de destino pide `https://wee.zone/post/{postId}`, lee las etiquetas Open
+   * Graph de la página pública y arma ella la tarjeta con miniatura, título y
+   * marca. Aquí no se genera nada, no se sube nada y no se espera nada.
+   */
+  {
+    const desde = publicacion.indexOf('if (postToShare.videoUrl) {');
+    const rama = publicacion.slice(desde, publicacion.indexOf('    }', publicacion.indexOf('return;', desde)) + 5);
+
+    check('69) el vídeo del Wäll se comparte como enlace, por el flujo común',
+      /const compartido = await compartirFueraDeWee\(postToShare\.id\);/.test(rama)
+      && /import \{ compartirFueraDeWee \} from '\.\.\/utils\/compartirFuera';/.test(publicacion));
+
+    /*
+     * Y NO HAY SALIDA HACIA ABAJO. Ni al mp4 ni al PNG: la rama termina siempre
+     * en `return`, así que ninguno de los dos caminos viejos se puede alcanzar
+     * desde aquí.
+     */
+    check('69) esa rama no baja ningún archivo ni cae al PNG',
+      /\}\s*\n\s*return;\s*\n\s*\}/.test(rama)
+      && !/shareCardRef|setShowShareCard|image\/png|compartirVideo|\.mp4/.test(rama));
+    check('69) y avisa si no se pudo',
+      /notify\('No se pudo compartir la publicación\. Inténtalo de nuevo\.'\)/.test(rama));
+
+    /* Ni el componente entero vuelve a saber del bajador de vídeos. */
+    check('69) PostCard ya no usa videoDownload para compartir fuera',
+      !/videoDownload|compartirVideo/.test(publicacion));
+
+    /*
+     * NO HAY NADA QUE PREPARAR, ASÍ QUE NO HAY CARTEL. El velo con "Preparando
+     * video..." existía porque había una descarga detrás; sin descarga, un
+     * cartel sería una espera inventada.
+     */
+    check('69) desaparece el "Preparando video..." y su estado',
+      !/Preparando video/.test(publicacion)
+      && !/preparandoVideo/.test(publicacion)
+      && /disabled=\{isSharing\}/.test(publicacion));
+
+    /*
+     * UN WEËL ES UNA PUBLICACIÓN, ASÍ QUE VA POR LA MISMA PUERTA. Antes esta
+     * pantalla mandaba la dirección cruda del mp4 en Cloudinary; ahora llama al
+     * MISMO flujo con el mismo `post.id`, sin ruta nueva ni lógica repetida.
+     */
+    const weels = leer('screens/ReelsScreen.tsx');
+    check('69) el Weël se comparte por el mismo flujo y con su postId',
+      /onPress=\{\(\) => \{ void compartirFueraDeWee\(post\.id\); \}\}/.test(weels)
+      && /import \{ compartirFueraDeWee \} from '\.\.\/utils\/compartirFuera';/.test(weels));
+    check('69) y ya no manda la dirección del mp4 ni arma su propio Share',
+      !/post\.videoUrl \|\| ''/.test(weels) && !/Share\.share/.test(weels));
+
+    /*
+     * LA DIRECCIÓN ES LA QUE YA HABÍA. `generatePostUrl` vive en config/linking.ts
+     * desde antes y da la misma ruta que la app abre en `PostDetail`. No se
+     * escribe "wee.zone" a mano en ningún sitio nuevo.
+     */
+    const comun = leer('utils/compartirFuera.ts');
+    check('69) el enlace sale de generatePostUrl, no de una constante nueva',
+      /import \{ generatePostUrl \} from '\.\.\/config\/linking';/.test(comun)
+      && !/https:\/\/wee\.zone/.test(comun.replace(/\/\*[\s\S]*?\*\//g, '')));
+    check('69) y config/linking sigue apuntando a /post/{postId}',
+      /export const generatePostUrl = \(postId: string\): string => \{[\s\S]{0,120}wee\.zone\/post\/\$\{postId\}/.test(leer('config/linking.ts'))
+      && /PostDetail: \{\s*\n\s*path: 'post\/:postId',/.test(leer('config/linking.ts')));
+
+    /*
+     * ── Y AHORA EJECUTÁNDOLO ────────────────────────────────────────────
+     *
+     * Lo de arriba lee el código; esto lo CORRE. Se transpila el flujo común y
+     * se le cambian sus dos importaciones por dobles, para poder mirar qué
+     * recibe de verdad `Share.share` en cada plataforma. Es la única forma de
+     * demostrar que lo que sale es una dirección y no un archivo.
+     */
+    const ts = require('typescript');
+    const aModulo = (js) => 'data:text/javascript;base64,' + Buffer.from(js).toString('base64');
+    const dobleDeLinking = aModulo("export const generatePostUrl = (id) => 'https://wee.zone/post/' + id;");
+    const correr = async (plataforma) => {
+      globalThis.__weeCompartido = null;
+      const dobleDeRN = aModulo(
+        'export const Platform = { OS: ' + JSON.stringify(plataforma) + ' };\n'
+        + 'export const Share = { share: async (c, o) => { globalThis.__weeCompartido = { c, o }; return { action: "sharedAction" }; } };'
+      );
+      const js = ts.transpileModule(leer('utils/compartirFuera.ts'), {
+        compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+      }).outputText
+        .replace(/from ['"]react-native['"]/, "from '" + dobleDeRN + "'")
+        .replace(/from ['"]\.\.\/config\/linking['"]/, "from '" + dobleDeLinking + "'");
+      const m = await import(aModulo(js));
+      return m;
+    };
+
+    {
+      const m = await correr('android');
+      const ok = await m.compartirFueraDeWee('abc123XYZ');
+      const enviado = globalThis.__weeCompartido;
+      /* En Android `Share` ignora `url`: si el enlace no va en `message`, no viaja. */
+      check('69) ejecutado · en Android sale la URL dentro de message',
+        ok === true && enviado.c.message === 'https://wee.zone/post/abc123XYZ' && !enviado.c.url,
+        JSON.stringify(enviado && enviado.c));
+      /* Lo que sale NO es un archivo: ni mp4, ni file://, ni un tipo MIME. */
+      check('69) ejecutado · lo compartido no es un archivo',
+        !/\.mp4|file:\/\/|image\/png|video\//.test(JSON.stringify(enviado.c)));
+      /* Y lleva el postId correcto, que es lo que abre ESA publicación. */
+      check('69) ejecutado · la URL lleva el postId, no el Home',
+        enviado.c.message.endsWith('/post/abc123XYZ')
+        && m.enlaceParaCompartir('otro') === 'https://wee.zone/post/otro');
+    }
+    {
+      const m = await correr('ios');
+      await m.compartirFueraDeWee('abc123XYZ');
+      const enviado = globalThis.__weeCompartido;
+      /* En iOS `url` entrega una dirección de verdad a la hoja del sistema. */
+      check('69) ejecutado · en iOS sale como url',
+        enviado.c.url === 'https://wee.zone/post/abc123XYZ' && !enviado.c.message,
+        JSON.stringify(enviado.c));
+    }
+    {
+      /* Sin identificador no hay enlace posible: se dice que no, y no se abre nada. */
+      const m = await correr('android');
+      const ok = await m.compartirFueraDeWee(undefined);
+      check('69) ejecutado · sin postId no se comparte nada',
+        ok === false && globalThis.__weeCompartido === null);
+    }
+  }
+  /* Control: la foto sigue por el camino de siempre, la captura de la tarjeta. */
+  check('69) control: una foto sigue compartiéndose como la tarjeta de siempre',
+    /mimeType: 'image\/png',/.test(publicacion)
+    && /shareCardRef\.current\.capture\(\)/.test(publicacion));
+  /*
+   * Control: COMPARTIR DENTRO DE WEË no es esto y no se ha tocado. Republicar y
+   * enviar por WeeTalk siguen donde estaban, con sus servicios de siempre.
+   */
+  check('69) control: compartir dentro de Weë sigue intacto',
+    /const republicarDesdeElMenu = \(\) => \{[\s\S]{0,200}toggleRepost\(\);/.test(publicacion)
+    && /const enviarDesdeElMenu = \(\) => \{[\s\S]{0,400}onPrivateMessage\(displayPost\.userId/.test(publicacion)
+    && /useReposts/.test(publicacion));
+
+  {
+    const compartir = leer('services/videoDownload.ts');
+    /*
+     * ESTE SERVICIO YA NO COMPARTE NADA.
+     *
+     * Compartir fuera de Weë manda el enlace, así que aquí no pasa. Lo que se
+     * vigila es lo único que sigue importando de él mientras exista: que su
+     * copia viva en el caché y se borre, y que no suba nada a Storage. Si
+     * algún día alguien lo vuelve a enchufar a compartir, la comprobación de
+     * arriba —"PostCard ya no usa videoDownload"— lo cazará.
+     */
+    check('69) el bajador que queda usa el caché y borra su copia',
+      /FileSystem\.cacheDirectory\}wee_downloads\//.test(compartir)
+      && /await Sharing\.shareAsync\(destino, \{/.test(compartir)
+      && /FileSystem\.deleteAsync\(destino, \{ idempotent: true \}\)/.test(compartir));
+    check('69) control: y no sube ninguna copia a Storage',
+      !/storageService|uploadBytes|getDownloadURL|firebase\/storage/.test(compartir));
+
+    /*
+     * LA REGLA DEL TIPO, EJECUTADA. Es lo único que decide si Android ve un
+     * vídeo o una imagen, así que se comprueba con direcciones de verdad y no
+     * mirando si una constante existe.
+     */
+    const ts = require('typescript');
+    const desde = compartir.indexOf('const TIPOS_DE_VIDEO');
+    const hasta = compartir.indexOf('export async function compartirVideo');
+    const trozo = compartir.slice(desde, hasta).replace('const TIPOS_DE_VIDEO', 'export const TIPOS_DE_VIDEO');
+    const js = ts.transpileModule(trozo, {
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+    }).outputText;
+    const { tipoDelVideo } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+
+    check('69b) un mp4 de Cloudinary sale como video/mp4',
+      tipoDelVideo('https://res.cloudinary.com/x/video/upload/v1/wee/abc.mp4').mime === 'video/mp4');
+    /* Cloudinary añade transformaciones y parámetros detrás; no deben confundir. */
+    check('69b) y también con parámetros detrás',
+      tipoDelVideo('https://res.cloudinary.com/x/video/upload/q_auto/v1/wee/abc.mp4?_a=BAA').mime === 'video/mp4'
+      && tipoDelVideo('https://ejemplo.com/a.mp4#t=3').mime === 'video/mp4');
+    check('69b) un .MOV en mayúsculas también se reconoce',
+      tipoDelVideo('https://ejemplo.com/clip.MOV').mime === 'video/quicktime');
+    check('69b) webm y 3gp conservan el suyo',
+      tipoDelVideo('https://ejemplo.com/c.webm').mime === 'video/webm'
+      && tipoDelVideo('https://ejemplo.com/c.3gp').mime === 'video/3gpp');
+    /* Sin extensión reconocible se usa MP4, que es lo que Weë sube. */
+    check('69b) sin extensión, mp4 y no una imagen',
+      tipoDelVideo('https://ejemplo.com/sin-extension').mime === 'video/mp4');
+    /*
+     * Y LO QUE DE VERDAD IMPORTA: pase lo que pase, nunca sale un tipo de
+     * imagen. Ese era el fallo.
+     */
+    check('69b) ninguna dirección devuelve jamás un tipo de imagen',
+      ['https://a.com/x.mp4', 'https://a.com/x.jpg', 'https://a.com/x', 'https://a.com/x.png?y=1', '']
+        .every((u) => tipoDelVideo(u).mime.startsWith('video/')));
+  }
+
   /*
    * Control: se añadió área, no altura. Si `actionButton` hubiera crecido, la
    * fila de acciones cambiaría de tamaño en las ocho pantallas que la usan.

@@ -12,7 +12,6 @@ import {
   Platform,
   Image,
   Animated,
-  Share,
 } from 'react-native';
 import { isWeb } from '../utils/platform';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
@@ -30,6 +29,7 @@ import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { formatNumber, getRelativeTime } from '../data/mockData';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
+import { compartirFueraDeWee } from '../utils/compartirFuera';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -346,11 +346,21 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
               </Text>
             </TouchableOpacity>
 
-            {/* Compartir fuera de Weë */}
+            {/*
+              Compartir fuera de Weë: el ENLACE del Weël, no el archivo.
+
+              Antes se mandaba la dirección cruda del mp4 en Cloudinary. Lo que
+              llegaba era un vídeo suelto: sin quién lo hizo, sin tarjeta y sin
+              vuelta a Weë. Ahora va `https://wee.zone/post/{postId}` —un Weël es
+              una publicación con `isWeel`, así que se abre en `PostDetail` como
+              cualquier otra— y la tarjeta la arma la app de destino con las
+              etiquetas Open Graph de la página pública. Mismo camino que el
+              vídeo del Wäll, y el mismo código: `compartirFueraDeWee`.
+            */}
             <TouchableOpacity
               style={styles.sidebarBtn}
               accessibilityLabel="Compartir Weël"
-              onPress={() => Share.share({ message: `${post.content || 'Mira este Weël en Weë'}\n${post.videoUrl || ''}\n\nCreado en Weë` }).catch((error) => console.warn('No se pudo compartir:', error))}
+              onPress={() => { void compartirFueraDeWee(post.id); }}
             >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>

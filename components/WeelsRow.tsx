@@ -43,11 +43,13 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; label: string 
  * pintada encima de la miniatura.
  */
 
-const PlayCircle: React.FC = () => (
-  <View style={styles.play}>
-    <Ionicons name="play" size={scale(16)} color="#1F2937" />
-  </View>
-);
+/*
+ * Y aquí estaba el sello de reproducción: un círculo blanco con un triángulo,
+ * centrado sobre cada miniatura. Se va por lo mismo que la marca: en una fila
+ * que solo tiene Weëls, decir que son vídeos no aporta nada, y el círculo caía
+ * justo en el centro del fotograma, que es la parte que ayuda a decidir. La
+ * fila ya se llama Ẅells y la tarjeta ya se abre al tocarla.
+ */
 
 /**
  * Fila "Weëls" del Home (docs/UX.md): videos cortos de la comunidad, compartibles
@@ -143,7 +145,6 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                   ) : (
                     <LinearGradient colors={SAMPLES[0].colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                   )}
-                  <PlayCircle />
                   {/*
                     Compacta no lleva cuentas. Son accesos rápidos, y un número
                     de visitas encima de una miniatura de 74 puntos no ayuda a
@@ -159,12 +160,11 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
               <TouchableOpacity key={sample.label} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={`Ejemplo de Weël: ${sample.label}`}>
                 <LinearGradient colors={sample.colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                 {/*
-                  Compacta se queda con lo imprescindible: imagen, play y título
+                  Compacta se queda con lo imprescindible: imagen y título
                   corto. Emoji y duración encima de una tarjeta de 74 puntos
                   eran varias cosas superpuestas y ninguna se leía bien.
                 */}
                 {!compacta && <Text style={styles.sampleEmoji}>{sample.emoji}</Text>}
-                <PlayCircle />
                 <Text style={styles.sampleLabel} numberOfLines={1}>{sample.label}</Text>
                 {!compacta && <Text style={styles.duration}>0:15</Text>}
               </TouchableOpacity>
@@ -257,14 +257,6 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     fontSize: scale(10),
     opacity: 0.8,
-  },
-  play: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(16),
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   sampleEmoji: {
     position: 'absolute',

@@ -46,6 +46,13 @@
       {
         "source": "/support",
         "destination": "/support.html"
+      },
+      {
+        "source": "/post/**",
+        "function": {
+          "functionId": "publicPostPage",
+          "region": "us-central1"
+        }
       }
     ]
   }

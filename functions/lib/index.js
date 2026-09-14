@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.acceptEContact = exports.requestEContact = exports.votePoll = exports.engineAdmin = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
+exports.sendMessagePushNotification = exports.sendPushNotification = exports.creditsAdmin = exports.restorePurchase = exports.validatePurchase = exports.refundCredits = exports.grantCredits = exports.spendCredits = exports.getCreditCost = exports.getCreditHistory = exports.getCreditsBalance = exports.acceptEContact = exports.requestEContact = exports.votePoll = exports.engineAdmin = exports.publicPostPage = exports.seedanceCallback = exports.generateVideo = exports.brainQuote = exports.brainChat = exports.creatorRun = exports.creatorQuote = exports.creatorChat = exports.avatarReplacement = exports.generateAvatarWithGemini = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 // Inicializar Firebase Admin solo si no está inicializado
@@ -25,6 +25,16 @@ var video_1 = require("./creator/video");
 Object.defineProperty(exports, "generateVideo", { enumerable: true, get: function () { return video_1.generateVideo; } });
 var webhooks_1 = require("./engine/webhooks");
 Object.defineProperty(exports, "seedanceCallback", { enumerable: true, get: function () { return webhooks_1.seedanceCallback; } });
+/*
+ * La página pública de una publicación: https://wee.zone/post/{postId}.
+ *
+ * Es la única parte de Weë que se sirve ya escrita desde el servidor, y no por
+ * gusto: el rastreador de WhatsApp no ejecuta JavaScript, así que la tarjeta
+ * del enlace tiene que venir en el HTML de la respuesta o no habrá tarjeta.
+ * Quien abra el enlace sin la app instalada lee la publicación sin cuenta.
+ */
+var postPage_1 = require("./public/postPage");
+Object.defineProperty(exports, "publicPostPage", { enumerable: true, get: function () { return postPage_1.publicPostPage; } });
 var admin_1 = require("./engine/admin");
 Object.defineProperty(exports, "engineAdmin", { enumerable: true, get: function () { return admin_1.engineAdmin; } });
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.

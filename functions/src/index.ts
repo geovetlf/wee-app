@@ -18,6 +18,16 @@ export { brainChat, brainQuote } from './creator/brain';
 // Weë Video Engine (Weë Studio → Seedance): petición abstracta de video y webhook preparado
 export { generateVideo } from './creator/video';
 export { seedanceCallback } from './engine/webhooks';
+
+/*
+ * La página pública de una publicación: https://wee.zone/post/{postId}.
+ *
+ * Es la única parte de Weë que se sirve ya escrita desde el servidor, y no por
+ * gusto: el rastreador de WhatsApp no ejecuta JavaScript, así que la tarjeta
+ * del enlace tiene que venir en el HTML de la respuesta o no habrá tarjeta.
+ * Quien abra el enlace sin la app instalada lee la publicación sin cuenta.
+ */
+export { publicPostPage } from './public/postPage';
 export { engineAdmin } from './engine/admin';
 
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.

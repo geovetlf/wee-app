@@ -41,6 +41,21 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(['poll']);
     }
 
+    // LA VISIBILIDAD DE UN POST TIENE QUE SER UN BOOLEANO DE VERDAD.
+    //
+    // Hasta ahora solo lo garantizaba TypeScript, y TypeScript no llega a la
+    // base de datos: un script, otro cliente o una llamada suelta al SDK podían
+    // guardar un post sin `isPrivate`, con `null` o con la cadena "false". La
+    // página pública de `/post/{postId}` solo enseña lo que se declara público,
+    // así que un campo ausente no filtraba nada... pero tampoco tiene por qué
+    // llegar a existir. Se corta en el origen.
+    //
+    // NO se exige que valga `false`: `true` es igual de válido, porque las
+    // publicaciones privadas llegarán. Lo que no se admite es no decirlo.
+    function visibilidadDeclarada() {
+      return request.resource.data.isPrivate is bool;
+    }
+
     // Un post publicado desde un perfil Biz pertenece a la PERSONA dueña del
     // negocio, no a "cualquiera que tenga cuenta". El id del negocio viaja dentro
     // del propio userId (`biz_<businessId>`) y el dueño está en `businesses`.
@@ -138,14 +153,19 @@ service cloud.firestore {
       // Se publica con la identidad real, con la Weë (hidi) o con la de un negocio,
       // pero SIEMPRE tienen que ser identidades de esta misma cuenta: publicar como
       // `biz_<negocio>` exige ser la persona dueña de ese negocio.
-      allow create: if isAuthenticated() &&
+      allow create: if isAuthenticated() && visibilidadDeclarada() &&
         (request.resource.data.userId == request.auth.uid ||
          request.resource.data.userId == ("hidi_" + request.auth.uid) ||
          ownsBizProfile(request.resource.data.userId));
 
       // El autor puede actualizar su post, o cualquier usuario autenticado puede actualizar contadores.
       // `poll` queda fuera de los dos caminos: los votos solo los escribe el servidor.
-      allow update: if isAuthenticated() && !touchesPoll() && (
+      //
+      // `visibilidadDeclarada()` mira el documento RESULTANTE, no el cambio: de
+      // nada serviría exigirlo al crear si después una actualización pudiera
+      // borrar el campo o cambiarle el tipo. Vale para los dos caminos, también
+      // para el de los contadores, que no tiene por qué tocarlo.
+      allow update: if isAuthenticated() && !touchesPoll() && visibilidadDeclarada() && (
         ownsPost() ||
         // Permitir actualizar solo contadores (views, agreementCount, etc.)
         request.resource.data.diff(resource.data).affectedKeys()
