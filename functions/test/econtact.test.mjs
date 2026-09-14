@@ -683,7 +683,10 @@ check('158) si la enviaste tú, "Solicitud enviada"',
   /etiqueta: t\('econtact\.requestSent'\),/.test(perfilAjeno)
   && /requestSent: 'Solicitud enviada'/.test(read('i18n/textos/es/econtact.ts'))
   && /requestSent: 'Request sent'/.test(read('i18n/textos/en/econtact.ts')));
-check('159) si te la enviaron, se puede aceptar', /Aceptar \{nombreLista\}/.test(perfilAjeno) && /econtact\.aceptar/.test(codigoAjeno));
+check('159) si te la enviaron, se puede aceptar',
+  /t\('econtact\.acceptLabel', \{ lista: nombreLista \}\)/.test(perfilAjeno)
+  && /acceptLabel: 'Aceptar \{\{lista\}\}'/.test(read('i18n/textos/es/econtact.ts'))
+  && /econtact\.aceptar/.test(codigoAjeno));
 check('160) y también rechazar', /econtact\.rechazar/.test(codigoAjeno));
 check('161) si ya estáis, el nombre con su ✓', /etiqueta: `\$\{nombreLista\} ✓`/.test(perfilAjeno));
 check('162) y se puede eliminar, preguntando antes',

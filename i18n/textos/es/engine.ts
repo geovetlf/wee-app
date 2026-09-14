@@ -63,4 +63,5 @@ export const engine = {
   modalityVoice: 'voz',
   modalityMusic: 'música',
   modalityDoc: 'documentos',
+  rowSubtitle: 'Proveedores, cadenas de fallback y ajustes (solo administración)',
 };

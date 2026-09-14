@@ -330,7 +330,7 @@ const UserProfileScreen: React.FC = () => {
             ) : (
               <>
                 <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={[styles.followButtonText, { color: '#fff' }]}>Aceptar {nombreLista}</Text>
+                <Text style={[styles.followButtonText, { color: '#fff' }]}>{t('econtact.acceptLabel', { lista: nombreLista })}</Text>
               </>
             )}
           </TouchableOpacity>

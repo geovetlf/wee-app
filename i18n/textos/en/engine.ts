@@ -57,4 +57,5 @@ export const engine: typeof import('../es/engine').engine = {
   modalityVoice: 'voice',
   modalityMusic: 'music',
   modalityDoc: 'documents',
+  rowSubtitle: 'Providers, fallback chains and settings (administrators only)',
 };

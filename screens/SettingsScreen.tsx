@@ -350,7 +350,7 @@ const SettingsScreen: React.FC = () => {
               renderSettingItem(
                 'hardware-chip-outline',
                 'Weë AI Engine',
-                'Proveedores, cadenas de fallback y ajustes (solo administración)',
+                t('engine.rowSubtitle'),
                 () => (navigation as any).navigate('EngineAdmin')
               )}
           </View>
