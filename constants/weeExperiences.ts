@@ -16,10 +16,21 @@
  * Fuente única para el menú ☰, la pantalla Weë Creator y el registro de interés.
  */
 
+import { NombreDeIcono } from '../components/icons/trazosDeWee';
+
 export interface WeeExperience {
   id: string;
   /** Nombre de identidad (Weë Design, Weë Studio…). No traducir ni cambiar. */
   name: string;
+  /**
+   * El icono dibujado, de `components/icons/trazosDeWee`. Lo pinta el cajón.
+   *
+   * El emoji de identidad de cada experiencia (🎨 Weë Design, 🎬 Weë Studio…) se
+   * queda: lo usan sus propias pantallas y es parte de su nombre. Esto es otra
+   * cosa: la versión dibujada, para que en el menú las once se vean de la misma
+   * familia y no once dibujos del sistema operativo puestos en columna.
+   */
+  icono: NombreDeIcono;
   emoji: string;
   /** Qué consigue la persona con esta experiencia (una línea, en resultados). */
   description: string;
@@ -36,6 +47,7 @@ export interface WeeExperience {
 export const ALL_EXPERIENCES: WeeExperience[] = [
   {
     id: 'design',
+    icono: 'pincel',
     name: 'Weë Design',
     emoji: '🎨',
     description: 'Logos, posters, ilustraciones y material para tus redes',
@@ -44,6 +56,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'studio',
+    icono: 'claqueta',
     name: 'Weë Studio',
     emoji: '🎬',
     // La propuesta principal de la sección, tal cual (fases 2E-52 y 2E-53): esta
@@ -56,6 +69,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'photo',
+    icono: 'camara',
     name: 'Weë Photo',
     emoji: '📸',
     description: 'Mejora, restaura y transforma tus fotos',
@@ -64,6 +78,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'writer',
+    icono: 'documento',
     name: 'Weë Writer',
     emoji: '✍️',
     description: 'Publicaciones, historias, guiones, emails y libros',
@@ -72,6 +87,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'music',
+    icono: 'notas',
     name: 'Weë Music',
     emoji: '🎵',
     description: 'Canciones, música instrumental, voces y narración',
@@ -80,6 +96,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'beauty',
+    icono: 'belleza',
     name: 'Weë Beauty',
     emoji: '💄',
     description: 'Maquillaje, cabello, barba, outfits y cambios de look',
@@ -88,6 +105,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'chef',
+    icono: 'gorro',
     name: 'Weë Chef',
     emoji: '👨‍🍳',
     description: 'Tu chef personal: qué cocinar, recetas y menús',
@@ -96,6 +114,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'home',
+    icono: 'casa',
     name: 'Weë Home',
     emoji: '🏠',
     description: 'Decoración, diseño interior, remodelación y jardines',
@@ -104,6 +123,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'business',
+    icono: 'maletin',
     name: 'Weë Business',
     emoji: '💼',
     description: 'Ideas de negocio, marketing, CV, documentos y presentaciones',
@@ -112,6 +132,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'travel',
+    icono: 'avion',
     name: 'Weë Travel',
     emoji: '✈️',
     description: 'Prepara tu viaje: a dónde ir, qué hacer y cómo moverte',
@@ -120,6 +141,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
   },
   {
     id: 'brain',
+    icono: 'cerebro',
     name: 'Weë Brain',
     emoji: '🧠',
     description: '¿No sabes dónde buscar? Pregúntale a Weë',

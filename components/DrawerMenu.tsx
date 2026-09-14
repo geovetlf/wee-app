@@ -15,6 +15,8 @@ import {
 
 const isWeb = Platform.OS === 'web';
 import { Ionicons } from '@expo/vector-icons';
+import { IconoWee } from './icons/IconoWee';
+import { NombreDeIcono } from './icons/trazosDeWee';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -241,8 +243,22 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const displayName = userProfile?.displayName || user?.displayName || 'Invitado';
   const isWee = activeProfileType === 'hidi';
 
+  /*
+   * EL ICONO SE DIBUJA, NO SE ESCRIBE.
+   *
+   * Antes aquí iba un emoji dentro de un `<Text>`, y eso trae tres problemas que
+   * no se arreglan con estilos: lo dibuja el sistema operativo, así que cambia
+   * de un teléfono a otro; no admite color, así que en el tema oscuro seguía
+   * siendo de colores; y cada uno viene de una familia distinta, así que en
+   * columna unos se ven grandes y otros pequeños. Los de ahora son de la misma
+   * familia y toman el color del texto de la fila.
+   *
+   * El tamaño y el sitio son los de siempre: el hueco del emoji ya reservaba 24
+   * puntos de ancho y el icono ocupa el mismo, así que la lista no se mueve ni
+   * un punto.
+   */
   const renderRow = (
-    emoji: string,
+    icono: NombreDeIcono,
     label: string,
     onPress: () => void,
     opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean } = {},
@@ -260,7 +276,12 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.rowEmoji, opts.small && styles.subRowEmoji]}>{emoji}</Text>
+      <IconoWee
+        name={icono}
+        size={opts.small ? scale(18) : scale(20)}
+        color={opts.danger ? theme.colors.error : theme.colors.text}
+        style={[styles.rowIcono, opts.small && styles.subRowIcono]}
+      />
       <Text
         style={[
           opts.small ? styles.subRowText : styles.rowText,
@@ -286,7 +307,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     id: MenuItemId,
     onPress: () => void,
     opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; label?: string } = {}
-  ) => renderRow(MENU_ITEM[id].emoji, opts.label ?? MENU_ITEM[id].label, onPress, opts);
+  ) => renderRow(MENU_ITEM[id].icono, opts.label ?? MENU_ITEM[id].label, onPress, opts);
 
   const renderSectionLabel = (label: string) => (
     <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
@@ -370,12 +391,12 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             Estando ya en el Home, tocarla solo cierra el cajón: navegar a donde
             ya estás recarga la pantalla y pierde el sitio del muro.
           */}
-          {renderRow('🏠', 'Home', goHome, { active: enHome })}
+          {renderRow('casa', 'Home', goHome, { active: enHome })}
 
           {/* PERFIL */}
           {renderSectionLabel('PERFIL')}
           {fila('realProfile', goRealProfile, { active: !!user && activeProfileType === 'real' })}
-          {renderRow(MENU_ITEM.weeProfile.emoji, hasWeeProfile || !user ? MENU_ITEM.weeProfile.label : 'Crear mi perfil Weë', goWeeProfile, {
+          {renderRow(MENU_ITEM.weeProfile.icono, hasWeeProfile || !user ? MENU_ITEM.weeProfile.label : 'Crear mi perfil Weë', goWeeProfile, {
             active: isWee,
             right: !hasWeeProfile && user ? (
               <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
@@ -383,7 +404,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               </View>
             ) : undefined,
           })}
-          {myBusiness && renderRow('🏪', myBusiness.name, goBizProfile, { active: activeProfileType === 'biz' })}
+          {myBusiness && renderRow('perfilBiz', myBusiness.name, goBizProfile, { active: activeProfileType === 'biz' })}
           {/*
             Credits, pegado a los perfiles y no a "Explora" (fase de UI).
             Es información de TU CUENTA —lo que tienes—, no un sitio al que ir,
@@ -425,16 +446,13 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {/* Weë Creator */}
           <View style={styles.creatorBlock}>
             <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
-              <Text style={styles.rowEmoji}>{MENU_ITEM.creator.emoji}</Text>
-              <View style={styles.creatorTitles}>
-                <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>{MENU_ITEM.creator.label}</Text>
-                <Text style={[styles.creatorHint, { color: theme.colors.textSecondary }]}>Tú eliges el resultado. Weë elige la IA.</Text>
-              </View>
+              <IconoWee name={MENU_ITEM.creator.icono} size={scale(20)} color={theme.colors.text} style={styles.rowIcono} />
+              <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>{MENU_ITEM.creator.label}</Text>
               <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             {creatorExpanded && (
               <View style={styles.creatorList}>
-                {WEE_EXPERIENCES.map((exp) => renderRow(exp.emoji, exp.name, () => goCreator(exp.id), { small: true }))}
+                {WEE_EXPERIENCES.map((exp) => renderRow(exp.icono, exp.name, () => goCreator(exp.id), { small: true }))}
                 {fila('projects', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
               </View>
             )}
@@ -535,10 +553,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
   },
-  rowEmoji: {
+  /*
+   * El hueco del icono es el que tenía el emoji: 24 puntos de ancho. El dibujo
+   * ocupa 20 y queda centrado, así que todas las etiquetas siguen empezando en
+   * la misma vertical aunque las formas no se parezcan en nada —una casa es
+   * ancha y un marcador estrecho, y sin este hueco fijo la columna bailaría—.
+   */
+  rowIcono: {
     width: scale(24),
-    fontSize: scale(16),
-    textAlign: 'center',
+    alignSelf: 'center',
   },
   rowText: {
     flex: 1,
@@ -556,9 +579,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingLeft: SPACING.lg,
   },
-  subRowEmoji: {
+  subRowIcono: {
     width: scale(22),
-    fontSize: scale(13),
   },
   subRowText: {
     flex: 1,
@@ -570,13 +592,6 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
     borderRadius: BORDER_RADIUS.lg,
     paddingBottom: SPACING.xs,
-  },
-  creatorTitles: {
-    flex: 1,
-    gap: scale(1),
-  },
-  creatorHint: {
-    fontSize: FONT_SIZE.xs,
   },
   creatorList: {
     paddingBottom: SPACING.xs,

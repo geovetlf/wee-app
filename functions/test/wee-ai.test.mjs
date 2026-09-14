@@ -53,7 +53,22 @@ console.log('\n── A · El nombre visible es WEË AI ──');
 {
   /* El menú ☰ y la barra lateral leen su etiqueta de una sola fuente. */
   const menu = leer('constants/weeMenu.ts');
-  check('1) la entrada del menú se llama WEË AI', new RegExp(`creator: \\{ id: 'creator', emoji: '🤖', label: '${NUEVO}' \\}`).test(menu));
+  /*
+   * En el MENÚ la entrada se llama "Weë AI", no "WEË AI".
+   *
+   * No es una excepción a la regla de la marca: es la misma regla. Las versales
+   * son para cuando el área se anuncia como título —la miga de pan de sus
+   * pantallas, el atajo de la hoja Crear—, y ahí siguen intactas, vigiladas por
+   * las comprobaciones 2 y 3. En una lista de opciones, al lado de "Comunidades"
+   * y "Guardados", es un destino más y se escribe como la marca.
+   *
+   * Entre el id y la etiqueta puede haber más campos —hoy el icono dibujado—.
+   */
+  check('1) la entrada del menú se llama Weë AI', /creator: \{ id: 'creator',[^}]*label: 'Weë AI' \}/.test(menu));
+  /* Y no se ha colado el nombre viejo ni ninguna leyenda debajo. */
+  check('1) sin la leyenda secundaria debajo del nombre',
+    !/Tú eliges el resultado/.test(leer('components/DrawerMenu.tsx'))
+    && !/creatorHint|creatorTitles/.test(leer('components/DrawerMenu.tsx')));
   check('1) y el ☰ y la barra lateral la usan tal cual', /label=\{MENU_ITEM\.creator\.label\}/.test(leer('components/Sidebar.tsx')) && /MENU_ITEM/.test(leer('components/DrawerMenu.tsx')));
 
   /* El marco de las pantallas: la miga de pan por defecto y el rótulo de arriba. */
