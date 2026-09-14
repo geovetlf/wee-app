@@ -1126,7 +1126,10 @@ check('285) las reglas dejan borrar solo a quien participa con UNA DE SUS identi
     conVocabularioViejo.length === 0,
     conVocabularioViejo.map(([f, malas]) => `${f}: ${malas.join('|')}`).join(' · ')
   );
-  check('289) el Perfil Weë se llama así en la barra lateral', /Perfil Weë activo/.test(read('components/Sidebar.tsx')));
+  check('289) el Perfil Weë se llama así en la barra lateral',
+    /t\('menu\.activeWee'\)/.test(read('components/Sidebar.tsx'))
+    && /activeWee: 'Perfil Weë activo'/.test(read('i18n/textos/es/menu.ts'))
+    && /activeWee: 'Weë profile active'/.test(read('i18n/textos/en/menu.ts')));
   /*
    * El texto pasó por i18n, así que ya no está escrito en el cajón: está en el
    * diccionario. Se comprueban las dos mitades —que el cajón pide esa clave y

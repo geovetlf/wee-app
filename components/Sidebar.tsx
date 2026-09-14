@@ -168,10 +168,10 @@ const Sidebar: React.FC = () => {
           )}
           <View style={styles.cuentaTextos}>
             <Text style={[styles.cuentaNombre, { color: theme.colors.text }]} numberOfLines={1}>
-              {userProfile?.displayName || user?.displayName || 'Invitado'}
+              {userProfile?.displayName || user?.displayName || t('common.guest')}
             </Text>
             <Text style={[styles.cuentaEstado, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {!user ? 'Toca para iniciar sesión' : activeProfileType === 'hidi' ? 'Perfil Weë activo' : activeProfileType === 'biz' ? 'Perfil Biz activo' : 'Perfil Real activo'}
+              {!user ? t('menu.tapToSignIn') : activeProfileType === 'hidi' ? t('menu.activeWee') : activeProfileType === 'biz' ? t('menu.activeBiz') : t('menu.activeReal')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />

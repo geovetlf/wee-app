@@ -495,7 +495,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                 onPress={handleLoginPress}
                 activeOpacity={0.7}
               >
-                <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+                <Text style={styles.loginButtonText}>{t('menu.signIn')}</Text>
               </TouchableOpacity>
             )}
           </View>
