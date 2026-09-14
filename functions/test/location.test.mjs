@@ -338,7 +338,16 @@ console.log('\n── F · LocationProvider, useLocation y el interruptor ──
   check('F) con la preferencia apagada no se lee la ubicación', /if \(preferencia === 'off'\) return null;/.test(contexto));
 
   check('F) el interruptor vive en Configuración → Privacidad', ajustes.indexOf('📍 Ubicación') > ajustes.indexOf("Privacidad") && ajustes.indexOf('📍 Ubicación') < ajustes.indexOf('Notificaciones push'));
-  check('F) con los tres estados que pide el producto', /Desactivada\./.test(ajustes) && /Weë sabe tu zona, no el punto exacto\./.test(ajustes) && /con detalle cuando una función lo necesite\./.test(ajustes));
+const diccionarioEs = fs.readFileSync(new URL('../../i18n/textos/es/settings.ts', import.meta.url), 'utf8');
+  const diccionarioEn = fs.readFileSync(new URL('../../i18n/textos/en/settings.ts', import.meta.url), 'utf8');
+  check('F) con los tres estados que pide el producto',
+    /disabled: 'settings\.locationDisabled'/.test(ajustes)
+    && /approximate: 'settings\.locationApproximate'/.test(ajustes)
+    && /precise: 'settings\.locationPrecise'/.test(ajustes)
+    && /locationOff: 'Desactivada\./.test(diccionarioEs)
+    && /locationApproximate: 'Weë sabe tu zona, no el punto exacto\.'/.test(diccionarioEs)
+    && /locationPrecise: '[^']*con detalle cuando una función lo necesite\.'/.test(diccionarioEs)
+    && /locationOff: 'Off\./.test(diccionarioEn));
   check('F) y el texto acordado', /Permite que Weë use tu ubicación aproximada para mostrarte contenido y experiencias cerca de ti\./.test(ajustes) && /Tu ubicación exacta nunca se muestra públicamente\./.test(ajustes));
   check('F) el interruptor no abre ninguna función: es solo el control', !/navigate\('(Map|Nearby|Places|Travel)/i.test(ajustes) && !/MapView|WeeTravel|distancia|km de ti|a \${.*} km/i.test(ajustes));
   check('F) encender desde Settings pide la zona, nunca el detalle', /ubicacion\.activar\('aproximada'\)/.test(ajustes) && !/activar\('precisa'\)/.test(ajustes));

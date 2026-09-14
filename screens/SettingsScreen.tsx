@@ -62,15 +62,12 @@ const SettingsScreen: React.FC = () => {
   const joinedCommunitiesCount = userProfile?.joinedCommunities?.length || 0;
 
   const handleAbout = () => {
-    notify(
-      'Acerca de Weë',
-      'Weë (World Encode Entity) es la red social de las personas que crean con Inteligencia Artificial.\n\nVersión 1.0.0 · © ' +
-        new Date().getFullYear() +
-        ' Weë. Todos los derechos reservados.' +
-        // La licencia de los datos de lugares obliga a acreditar a GeoNames.
-        // Va aquí, una sola vez: no en cada publicación ni en cada búsqueda.
-        '\n\nDatos geográficos: GeoNames (geonames.org), CC BY 4.0.'
-    );
+    /*
+     * El año entra por hueco. Y la licencia de los datos de lugares obliga a
+     * acreditar a GeoNames: va dentro de la frase, una sola vez, no en cada
+     * publicación ni en cada búsqueda.
+     */
+    notify(t('settings.about'), t('settings.aboutBody', { anio: new Date().getFullYear() }));
   };
 
   const handlePrivacy = () => {
@@ -100,7 +97,7 @@ const SettingsScreen: React.FC = () => {
       );
       await logout();
     } catch (error) {
-      notify('No pudimos cerrar la sesión', 'Inténtalo de nuevo.');
+      notify(t('settings.signOutFailed'), t('common.retry'));
     }
   };
 
@@ -111,19 +108,25 @@ const SettingsScreen: React.FC = () => {
    * y el texto explica dónde está el bloqueo, en vez de apagarse solo y dejarla
    * pulsando sin entender nada.
    */
-  const estadoUbicacion: Record<string, string> = {
-    unavailable: 'Este dispositivo no puede darnos tu ubicación.',
-    disabled: 'La ubicación está apagada en los ajustes de tu dispositivo.',
-    permissionDenied: 'Le dijiste que no al sistema. Toca aquí para cambiarlo en los ajustes de tu dispositivo.',
-    permissionNotDetermined: 'Weë te pedirá permiso cuando lo necesite.',
-    approximate: 'Weë sabe tu zona, no el punto exacto.',
-    precise: 'Weë puede usar tu ubicación con detalle cuando una función lo necesite.',
+  const CLAVE_DEL_ESTADO: Record<string, string> = {
+    unavailable: 'settings.locationUnavailable',
+    disabled: 'settings.locationDisabled',
+    permissionDenied: 'settings.locationPermissionDenied',
+    permissionNotDetermined: 'settings.locationPermissionNotDetermined',
+    approximate: 'settings.locationApproximate',
+    precise: 'settings.locationPrecise',
   };
 
+  /*
+   * La advertencia de privacidad va DENTRO de la frase, no pegada detrás: en
+   * otro idioma puede no ir en ese orden.
+   */
   const textoUbicacion =
     ubicacion.preferencia === 'off'
-      ? 'Desactivada. Permite que Weë use tu ubicación aproximada para mostrarte contenido y experiencias cerca de ti. Tu ubicación exacta nunca se muestra públicamente.'
-      : `${estadoUbicacion[ubicacion.estado] || ''} Tu ubicación exacta nunca se muestra públicamente.`;
+      ? t('settings.locationOff')
+      : t('settings.locationLine', {
+          estado: CLAVE_DEL_ESTADO[ubicacion.estado] ? t(CLAVE_DEL_ESTADO[ubicacion.estado]) : '',
+        });
 
   /*
    * CUÁNDO OFRECER EL PASO A LOS AJUSTES.
@@ -230,8 +233,9 @@ const SettingsScreen: React.FC = () => {
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
               'people',
-              'Mis comunidades',
-              `${joinedCommunitiesCount} ${joinedCommunitiesCount === 1 ? 'comunidad' : 'comunidades'} unidas`,
+              t('settings.myCommunities'),
+              /* Una o varias: lo decide Intl.PluralRules, no un ternario. */
+              t('settings.communitiesJoined', { contador: joinedCommunitiesCount }),
               handleCommunities
             )}
           </View>
@@ -266,8 +270,8 @@ const SettingsScreen: React.FC = () => {
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
               'lock-closed',
-              'Respuestas privadas',
-              'Permitir que otros te envíen mensajes privados',
+              t('settings.privateReplies'),
+              t('settings.privateRepliesHint'),
               undefined,
               <Switch
                 value={allowPrivateReplies}
@@ -280,7 +284,7 @@ const SettingsScreen: React.FC = () => {
             
             {renderSettingItem(
               'location',
-              '📍 Ubicación',
+              t('settings.location'),
               textoUbicacion,
               ubicacionNecesitaAjustes ? () => { void abrirAjustesDelSistema(); } : undefined,
               <Switch
@@ -295,8 +299,8 @@ const SettingsScreen: React.FC = () => {
 
             {renderSettingItem(
               'shield-checkmark',
-              'Política de privacidad',
-              'Qué hacemos con tus datos, en palabras simples',
+              t('settings.privacyPolicy'),
+              t('settings.privacyPolicyHint'),
               handlePrivacy
             )}
           </View>
@@ -305,14 +309,14 @@ const SettingsScreen: React.FC = () => {
         {/* Notificaciones */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Notificaciones
+            {t('settings.sectionNotifications')}
           </Text>
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
               'notifications',
-              'Notificaciones push',
-              'Recibe notificaciones de nuevos mensajes y actividad',
+              t('settings.pushNotifications'),
+              t('settings.pushNotificationsHint'),
               undefined,
               <Switch
                 value={notificationsEnabled}
@@ -328,21 +332,21 @@ const SettingsScreen: React.FC = () => {
         {/* Información */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Información
+            {t('settings.sectionInfo')}
           </Text>
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
               'information-circle',
-              'Acerca de Weë',
-              'Qué es Weë y en qué versión estás',
+              t('settings.about'),
+              t('settings.aboutHint'),
               handleAbout
             )}
             
             {renderSettingItem(
               'help-circle',
-              'Ayuda',
-              'Preguntas frecuentes y contacto',
+              t('settings.help'),
+              t('settings.helpHint'),
               handleSupport
             )}
 
@@ -359,7 +363,7 @@ const SettingsScreen: React.FC = () => {
         {/* Cuenta */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Cuenta
+            {t('settings.sectionAccount')}
           </Text>
 
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
@@ -377,10 +381,10 @@ const SettingsScreen: React.FC = () => {
                 </View>
                 <View style={styles.settingText}>
                   <Text style={[styles.settingTitle, { color: '#EF4444' }]}>
-                    Cerrar sesión
+                    {t('settings.signOut')}
                   </Text>
                   <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>
-                    Salir de tu cuenta
+                    {t('settings.signOutHint')}
                   </Text>
                 </View>
               </View>
