@@ -29,11 +29,17 @@ export const MAX_OPCION = 25;
  */
 export const MAX_IMAGENES_CON_ENCUESTA = 1;
 
-/** Cuánto dura una encuesta. Ni personalizada, ni prórrogas, ni cierre manual. */
-export const DURACIONES: { label: string; horas: number }[] = [
-  { label: '1 día', horas: 24 },
-  { label: '3 días', horas: 72 },
-  { label: '7 días', horas: 168 },
+/**
+ * Cuánto dura una encuesta. Ni personalizada, ni prórrogas, ni cierre manual.
+ *
+ * Lleva los DÍAS, no la frase: "1 día" y "7 días" son dos formas distintas del
+ * mismo texto y quién elige cuál es `Intl.PluralRules`, no esta tabla. Las
+ * horas son lo funcional y no se tocan: son lo que se guarda.
+ */
+export const DURACIONES: { dias: number; horas: number }[] = [
+  { dias: 1, horas: 24 },
+  { dias: 3, horas: 72 },
+  { dias: 7, horas: 168 },
 ];
 
 /**
@@ -113,21 +119,40 @@ export type MotivoEncuesta =
   | 'id-duplicado'
   | 'duracion-invalida';
 
-export const MENSAJES_ENCUESTA: Record<MotivoEncuesta, string> = {
-  'pregunta-vacia': 'Escribe la pregunta de tu encuesta.',
-  'pregunta-larga': `La pregunta no puede pasar de ${MAX_PREGUNTA} caracteres.`,
-  'pocas-opciones': `Una encuesta necesita al menos ${MIN_OPCIONES} opciones.`,
-  'muchas-opciones': `Una encuesta admite como máximo ${MAX_OPCIONES} opciones.`,
-  'opcion-vacia': 'Todas las opciones necesitan texto.',
-  'opcion-larga': `Una opción no puede pasar de ${MAX_OPCION} caracteres.`,
-  'opcion-duplicada': 'Hay dos opciones que dicen lo mismo.',
-  'id-duplicado': 'Esta encuesta no es válida.',
-  'duracion-invalida': 'Elige cuánto dura la encuesta.',
+/**
+ * Por qué no se puede publicar, en CLAVES de i18n.
+ *
+ * Este archivo se importa fuera de React —y se ejecuta en las pruebas—, así que
+ * aquí no hay traductor. Guarda la clave y los números que la frase necesita;
+ * quien pinta la resuelve con `t(clave, valores)`. Los límites siguen saliendo
+ * de las constantes de arriba: la frase no los repite, los recibe.
+ */
+export const CLAVES_ENCUESTA: Record<MotivoEncuesta, string> = {
+  'pregunta-vacia': 'composer.pollErrEmptyQuestion',
+  'pregunta-larga': 'composer.pollErrLongQuestion',
+  'pocas-opciones': 'composer.pollErrFewOptions',
+  'muchas-opciones': 'composer.pollErrManyOptions',
+  'opcion-vacia': 'composer.pollErrEmptyOption',
+  'opcion-larga': 'composer.pollErrLongOption',
+  'opcion-duplicada': 'composer.pollErrDuplicateOption',
+  'id-duplicado': 'composer.pollErrInvalid',
+  'duracion-invalida': 'composer.pollErrDuration',
 };
 
-export type ResultadoEncuesta = { ok: true } | { ok: false; motivo: MotivoEncuesta; mensaje: string };
+/** Los números que lleva dentro cada aviso, si lleva alguno. */
+const VALORES_ENCUESTA: Partial<Record<MotivoEncuesta, Record<string, number>>> = {
+  'pregunta-larga': { maximo: MAX_PREGUNTA },
+  'pocas-opciones': { minimo: MIN_OPCIONES },
+  'muchas-opciones': { maximo: MAX_OPCIONES },
+  'opcion-larga': { maximo: MAX_OPCION },
+};
 
-const mal = (motivo: MotivoEncuesta): ResultadoEncuesta => ({ ok: false, motivo, mensaje: MENSAJES_ENCUESTA[motivo] });
+export type ResultadoEncuesta =
+  | { ok: true }
+  | { ok: false; motivo: MotivoEncuesta; clave: string; valores?: Record<string, number> };
+
+const mal = (motivo: MotivoEncuesta): ResultadoEncuesta =>
+  ({ ok: false, motivo, clave: CLAVES_ENCUESTA[motivo], valores: VALORES_ENCUESTA[motivo] });
 
 /**
  * ¿Se puede publicar esta encuesta?
@@ -200,7 +225,12 @@ export const construirPoll = <T>(
   opciones: { ahoraMs: number; sello: (ms: number) => T }
 ): PollNueva<T> => {
   const validacion = validarEncuesta(borrador);
-  if (!validacion.ok) throw new Error(validacion.mensaje);
+  /*
+   * Este error no lo lee nadie: es la red de seguridad de programación —la
+   * pantalla ya impide llegar aquí con una encuesta inválida— y por eso lleva
+   * el motivo, que es lo que sirve para depurar, y no una frase traducida.
+   */
+  if (!validacion.ok) throw new Error(validacion.motivo);
 
   const options = borrador.options.map((o) => ({ id: o.id, text: o.text.trim() }));
   const counts: Record<string, number> = {};

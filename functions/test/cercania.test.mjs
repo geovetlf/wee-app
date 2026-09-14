@@ -21,11 +21,21 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
+const ES_C = textosDe('es');
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
-const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(path.resolve(RAIZ, p), 'utf8'));
+/* Para EJECUTAR se compila el fuente original: el traductor va dentro. */
+const leerCrudo = (p) => (fs.readFileSync(path.resolve(RAIZ, p), 'utf8'));
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -181,7 +191,8 @@ console.log('\n─── D. Lo que la pantalla enseña, según lo que sabe ─�
 
 check(
   'sin permiso: "Lugares en <tu país>"',
-  /Lugares en \$\{userProfile\?\.countryName \|\| 'tu país'\}/.test(pantalla)
+  /Lugares en \{\{pais\}\}/.test(pantalla)
+  && /pais: userProfile\?\.countryName \|\| t\('composer\.yourCountry'\)/.test(leerCrudo('screens/AgregarUbicacionScreen.tsx'))
 );
 check('con ubicación fiable: "Lugares cerca de ti"', /📍 Lugares cerca de ti/.test(pantalla));
 check(
@@ -435,7 +446,10 @@ check('el nombre manda y la región acompaña en gris', /filaNombre: \{\s*fontSi
 check('la distancia medida va al final de la línea, en dorado', codigoPantalla.indexOf('styles.filaDistancia') > codigoPantalla.indexOf('styles.filaSub') && /styles\.filaDistancia, \{ color: theme\.colors\.accentDark \}/.test(codigoPantalla) && /distanciaAproximada\(km\)/.test(codigoPantalla));
 check('"Usar lo que escribiste" sigue, apenas distinta: su icono, fondo casi nulo y aire encima', /styles\.fila, styles\.filaPropia, \{ backgroundColor: theme\.colors\.accent \+ '0F' \}/.test(codigoPantalla) && /name="create-outline"/.test(codigoPantalla) && /filaPropia: \{\s*marginTop: SPACING\.md,\s*borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /onPress=\{elegirEscrito\}/.test(codigoPantalla));
 check('los rótulos son pequeños y en mayúsculas, como "PUBLICAR EN"', /seccionTitulo: \{\s*fontSize: FONT_SIZE\.xs,[\s\S]{0,80}textTransform: 'uppercase',/.test(estilos) && /<Seccion titulo="Resultados" \/>/.test(codigoPantalla));
-check('cada fila se anuncia entera y dice qué pasa al tocarla', /accessibilityRole="button"\s*accessibilityLabel=\{opcion\.sublabel \? `\$\{opcion\.label\}, \$\{opcion\.sublabel\}` : opcion\.label\}\s*accessibilityHint=/.test(codigoPantalla) && /accessibilityHint="Etiqueta la publicación con lo que escribiste/.test(codigoPantalla));
+check('cada fila se anuncia entera y dice qué pasa al tocarla',
+  /accessibilityRole="button"\s*accessibilityLabel=\{opcion\.sublabel \? '\{\{lugar\}\}, \{\{detalle\}\}' : opcion\.label\}\s*accessibilityHint=/.test(codigoPantalla)
+  && ES_C.composer.placeOption === '{{lugar}}, {{detalle}}'
+  && /accessibilityHint="Etiqueta la publicación con lo que escribiste/.test(codigoPantalla));
 /* CONTROL: la lógica no se movió. La búsqueda, la vuelta y el buscador son los mismos. */
 check('CONTROL: la búsqueda es la misma llamada, con el mismo contexto y tope', /buscarLugares\(texto, 12, contextoBusqueda\)/.test(codigoPantalla) && /lugaresCercanos\(lectura\.latitude, lectura\.longitude, verTodos \? 24 : 6\)/.test(codigoPantalla) && /lugaresDelPais\(userProfile\?\.country, verTodos \? 24 : 6\)/.test(codigoPantalla));
 check('CONTROL: el buscador escribe, limpia y no cambió', /onChangeText=\{setTexto\}/.test(codigoPantalla) && /onPress=\{\(\) => setTexto\(''\)\}/.test(codigoPantalla) && /accessibilityLabel="Borrar la búsqueda"/.test(codigoPantalla) && /const buscando = texto\.trim\(\)\.length >= 2;/.test(codigoPantalla));

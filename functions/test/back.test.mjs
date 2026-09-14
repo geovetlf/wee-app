@@ -14,10 +14,17 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { comoSeLee } from './i18n-ayuda.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ruta = (p) => path.resolve(here, '../../' + p);
-const leer = (p) => fs.readFileSync(ruta(p), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(ruta(p), 'utf8'));
 
 let failures = 0;
 const check = (name, cond, extra = '') => {

@@ -4,6 +4,7 @@
 // puede ejecutar —React, la UI— se comprueba sobre el texto del archivo.
 import ts from 'typescript';
 import fs from 'node:fs';
+import { comoSeLee } from './i18n-ayuda.mjs';
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -11,7 +12,15 @@ const check = (name, cond, extra = '') => {
   if (!cond) failures++;
 };
 
-const leer = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8'));
+/* Para EJECUTAR se compila el fuente original: el traductor va dentro. */
+const leerCrudo = (p) => (fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8'));
 
 /** El cuerpo del catálogo mundial, tal cual lo recibe la aplicación. */
 const catalogoMundial = () => {
@@ -700,7 +709,7 @@ console.log('\n── Q · una publicación es del muro, venga de donde venga �
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── R · el contexto se lee, no se supone ──');
 {
-  const js = ts.transpileModule(leer('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
+  const js = ts.transpileModule(leerCrudo('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
@@ -759,7 +768,7 @@ console.log('\n── S · el muro no pide ubicación ni inventa cercanía ─�
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── T · de dónde viene: declarado, no adivinado ──');
 {
-  const js = ts.transpileModule(leer('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
+  const js = ts.transpileModule(leerCrudo('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
@@ -849,7 +858,7 @@ console.log('\n── U · el lugar del contenido no es dónde está el teléfon
   check('U) y no se mezclan en un solo campo', /sourceSection\?: string;/.test(modelo) && /placeLabel\?: string;/.test(modelo));
 
   // El caso obligatorio: en Lima, publicando París.
-  const js = ts.transpileModule(leer('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
+  const js = ts.transpileModule(leerCrudo('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
@@ -982,7 +991,7 @@ console.log('\n── Y · en Lima, publicando París ──');
 {
   const lugares = await cargarLugares();
 
-  const jsFeed = ts.transpileModule(leer('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
+  const jsFeed = ts.transpileModule(leerCrudo('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(jsFeed).toString('base64'));
@@ -1197,7 +1206,7 @@ console.log('\n── AD · en Lima, publicando París ──');
 {
   const lugares = await cargarLugares();
 
-  const jsFeed = ts.transpileModule(leer('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
+  const jsFeed = ts.transpileModule(leerCrudo('utils/sectionFeed.ts').replace("import { Post } from '../services/firestoreService';", ''), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(jsFeed).toString('base64'));

@@ -14,6 +14,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useLocation } from '../contexts/LocationContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -81,6 +82,7 @@ type RutaProp = RouteProp<MainStackParamList, 'AgregarUbicacion'>;
 
 const AgregarUbicacionScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const navigation = useNavigation<NavProp>();
   const ruta = useRoute<RutaProp>();
   const { userProfile } = useUserProfile();
@@ -251,8 +253,8 @@ const AgregarUbicacionScreen: React.FC = () => {
         activeOpacity={0.6}
         style={[styles.fila, !ultima && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
         accessibilityRole="button"
-        accessibilityLabel={opcion.sublabel ? `${opcion.label}, ${opcion.sublabel}` : opcion.label}
-        accessibilityHint="Elige este lugar y vuelve a la publicación"
+        accessibilityLabel={opcion.sublabel ? t('composer.placeOption', { lugar: opcion.label, detalle: opcion.sublabel }) : opcion.label}
+        accessibilityHint={t('composer.chooseThisPlace')}
       >
         <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '1A' }]}>
           <Ionicons
@@ -270,7 +272,7 @@ const AgregarUbicacionScreen: React.FC = () => {
             el nombre del sitio no dijera ya, y ensuciaba la línea.
           */}
           <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-            {opcion.sublabel || 'País'}
+            {opcion.sublabel || t('composer.country')}
           </Text>
         </View>
         {/* La distancia solo cuando se ha podido calcular de verdad. */}
@@ -313,7 +315,7 @@ const AgregarUbicacionScreen: React.FC = () => {
           {/* "Back" es la etiqueta de volver en todo Weë: sale sin tocar nada. */}
           <Text style={[styles.cancelarTexto, { color: theme.colors.textSecondary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.tituloCabecera, { color: theme.colors.text }]}>Agregar ubicación</Text>
+        <Text style={[styles.tituloCabecera, { color: theme.colors.text }]}>{t('composer.addLocation')}</Text>
         {/* El mismo ancho que "Back", para que el título quede centrado de
             verdad respecto a la pantalla y no respecto al hueco que le dejan. */}
         <View style={styles.cancelar} />
@@ -340,16 +342,16 @@ const AgregarUbicacionScreen: React.FC = () => {
             <Ionicons name="search" size={scale(18)} color={theme.colors.textSecondary} />
             <TextInput
               style={[styles.buscadorCampo, { color: theme.colors.text }]}
-              placeholder="Buscar un lugar, ciudad o país"
+              placeholder={t('composer.searchPlace')}
               placeholderTextColor={theme.colors.textSecondary}
               value={texto}
               onChangeText={setTexto}
               maxLength={60}
               returnKeyType="search"
-              accessibilityLabel="Buscar un lugar, ciudad o país"
+              accessibilityLabel={t('composer.searchPlace')}
             />
             {texto.length > 0 && (
-              <TouchableOpacity onPress={() => setTexto('')} activeOpacity={0.7} accessibilityLabel="Borrar la búsqueda">
+              <TouchableOpacity onPress={() => setTexto('')} activeOpacity={0.7} accessibilityLabel={t('composer.clearSearch')}>
                 <Ionicons name="close-circle" size={scale(18)} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             )}
@@ -359,7 +361,7 @@ const AgregarUbicacionScreen: React.FC = () => {
           {/* 5 · Resultados o lugares de tu país: una lista plana, sin tarjetas. */}
           {buscando ? (
             <>
-              <Seccion titulo="Resultados" />
+              <Seccion titulo={t('composer.results')} />
               {resultados.map((o, i) => (
                 <Fila key={o.id} opcion={o} ultima={i === resultados.length - 1} />
               ))}
@@ -374,17 +376,17 @@ const AgregarUbicacionScreen: React.FC = () => {
                 activeOpacity={0.6}
                 style={[styles.fila, styles.filaPropia, { backgroundColor: theme.colors.accent + '0F' }]}
                 accessibilityRole="button"
-                accessibilityLabel={`Usar "${texto.trim()}" tal cual`}
-                accessibilityHint="Etiqueta la publicación con lo que escribiste y vuelve a ella"
+                accessibilityLabel={t('composer.useAsTyped', { texto: texto.trim() })}
+                accessibilityHint={t('composer.tagPostWithIt')}
               >
                 <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '1A' }]}>
                   <Ionicons name="create-outline" size={scale(16)} color={theme.colors.accentDark} />
                 </View>
                 <View style={styles.filaDatos}>
                   <Text style={[styles.filaNombre, { color: theme.colors.text }]} numberOfLines={1}>
-                    Usar “{texto.trim()}”
+                    {t('composer.useAsTypedShort', { texto: texto.trim() })}
                   </Text>
-                  <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]}>Tal y como lo escribiste</Text>
+                  <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]}>{t('composer.asYouTypedIt')}</Text>
                 </View>
               </TouchableOpacity>
             </>
@@ -396,8 +398,8 @@ const AgregarUbicacionScreen: React.FC = () => {
                 cambia porque el dato que hay detrás ha cambiado.
               */}
               <Seccion
-                titulo="📍 Lugares cerca de ti"
-                accion={verTodos ? 'Ver menos' : 'Ver más'}
+                titulo={t('composer.placesNearYou')}
+                accion={t(verTodos ? 'composer.seeLess' : 'composer.seeMore')}
                 onAccion={() => setVerTodos((v) => !v)}
               />
               {cercanos.map((c, i) => (
@@ -412,8 +414,8 @@ const AgregarUbicacionScreen: React.FC = () => {
                 de verdad. El título cuenta lo que hay, no lo que quedaría bien.
               */}
               <Seccion
-                titulo={`📍 Lugares en ${userProfile?.countryName || 'tu país'}`}
-                accion={verTodos ? 'Ver menos' : 'Ver más'}
+                titulo={t('composer.placesIn', { pais: userProfile?.countryName || t('composer.yourCountry') })}
+                accion={t(verTodos ? 'composer.seeLess' : 'composer.seeMore')}
                 onAccion={() => setVerTodos((v) => !v)}
               />
               {delPais.map((o, i) => (

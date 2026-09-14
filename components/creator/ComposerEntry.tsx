@@ -100,17 +100,38 @@ interface ComposerEntryProps {
  * selector acepta las dos cosas— y separarlas hacía creer que eran dos sitios
  * distintos. Y no hay "Pregunta": se escribe en el compositor como todo lo demás.
  */
-const ATAJOS: { id: string; icon: string; etiqueta: string; kind: ComposerKind }[] = [
-  { id: 'camara', icon: 'camera-outline', etiqueta: 'Cámara', kind: 'image' },
-  { id: 'galeria', icon: 'image-outline', etiqueta: 'Foto o vídeo', kind: 'image' },
-  { id: 'lugar', icon: 'location-outline', etiqueta: 'Ubicación', kind: 'post' },
-  { id: 'contactos', icon: 'people-outline', etiqueta: 'ËContact', kind: 'post' },
-  { id: 'encuesta', icon: 'bar-chart-outline', etiqueta: 'Encuesta', kind: 'poll' },
+/*
+ * EL ORDEN OFICIAL DE WEË: Cámara, Foto o vídeo, ËContact, Ubicación, Encuesta.
+ *
+ * Es el mismo que la fila del espacio de crear. Aquí estaban Ubicación y
+ * ËContact al revés, así que la misma persona veía dos órdenes distintos según
+ * por dónde entrara a publicar; se iguala al del workspace, que es el aprobado.
+ *
+ * Los identificadores, los iconos y el `kind` no cambian: lo que hace cada una
+ * y a dónde lleva es exactamente lo de antes.
+ *
+ * El nombre viene por clave. "ËContact" es marca y se escribe igual en los dos
+ * idiomas, pero entra por el mismo camino que las otras cuatro para que no haya
+ * dos formas de poner un nombre en esta fila.
+ */
+const ATAJOS: { id: string; icon: string; clave: string; kind: ComposerKind }[] = [
+  { id: 'camara', icon: 'camera-outline', clave: 'composer.camera', kind: 'image' },
+  { id: 'galeria', icon: 'image-outline', clave: 'composer.photoOrVideo', kind: 'image' },
+  { id: 'contactos', icon: 'people-outline', clave: 'composer.econtact', kind: 'post' },
+  { id: 'lugar', icon: 'location-outline', clave: 'composer.location', kind: 'post' },
+  { id: 'encuesta', icon: 'bar-chart-outline', clave: 'composer.poll', kind: 'poll' },
 ];
 
 const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, compact, seccion, variante = 'muro', directo = false }) => {
   const { theme } = useTheme();
   const t = useT();
+  /*
+   * Los nombres de sección son marca —"Weë Chef" se escribe igual en todos los
+   * idiomas— y llegan tal cual. El muro general no: es una descripción y trae
+   * su clave.
+   */
+  const nombreDelDestino = (destino: { nombre: string; clave?: string }) =>
+    destino.clave ? t(destino.clave) : destino.nombre;
   const { userProfile } = useUserProfile();
   const destinoActual = seccion || MURO_GENERAL;
 
@@ -193,7 +214,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
           style={[styles.composerField, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           accessibilityRole="button"
           accessibilityState={desplegable ? { expanded: abierta } : undefined}
-          accessibilityLabel={desplegable && !abierta ? `${placeholder} Abre las opciones de publicar.` : placeholder}
+          accessibilityLabel={desplegable && !abierta ? t('composer.openOptions', { campo: placeholder }) : placeholder}
         >
           <Text style={[styles.composerPlaceholder, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {placeholder}
@@ -216,7 +237,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
             accessibilityRole="button"
             accessibilityState={{ expanded: abierta }}
             aria-expanded={abierta}
-            accessibilityLabel={abierta ? 'Ocultar las opciones de publicar' : 'Mostrar las opciones de publicar'}
+            accessibilityLabel={t(abierta ? 'composer.hideOptions' : 'composer.showOptions')}
           >
             <Animated.View style={{ transform: [{ rotate: chevron }] }}>
               <Ionicons name="chevron-down" size={scale(20)} color={theme.colors.accentDark} />
@@ -253,7 +274,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
                 activeOpacity={0.7}
                 style={[styles.composerChip, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                 accessibilityRole="button"
-                accessibilityLabel={atajo.etiqueta}
+                accessibilityLabel={t(atajo.clave)}
               >
                 <Ionicons name={atajo.icon as any} size={scale(21)} color={theme.colors.accentDark} />
               </TouchableOpacity>
@@ -295,7 +316,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
                       },
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel={puesto ? `${destino.nombre}, destino actual` : destino.nombre}
+                    accessibilityLabel={puesto ? t('composer.currentDestination', { destino: nombreDelDestino(destino) }) : nombreDelDestino(destino)}
                   >
                     {experiencia ? (
                       <Text style={styles.destinoEmoji}>{experiencia.emoji}</Text>
@@ -303,7 +324,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
                       <Ionicons name="globe-outline" size={scale(15)} color={theme.colors.accentDark} />
                     )}
                     <Text style={[styles.destinoTexto, { color: theme.colors.text }]} numberOfLines={1}>
-                      {destino.nombre}
+                      {nombreDelDestino(destino)}
                     </Text>
                   </TouchableOpacity>
                 );

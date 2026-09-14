@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -16,13 +17,19 @@ interface CreateSheetProps {
   onOpenCreator: () => void;
 }
 
-const OPTIONS: { kind: CreateKind; emoji: string; label: string }[] = [
-  { kind: 'post', emoji: '📝', label: 'Publicación' },
-  { kind: 'weel', emoji: '📹', label: 'Weël' },
-  { kind: 'image', emoji: '🖼️', label: 'Imagen' },
-  { kind: 'video', emoji: '🎥', label: 'Video' },
-  { kind: 'text', emoji: '✍️', label: 'Texto' },
-  { kind: 'question', emoji: '❓', label: 'Pregunta' },
+/*
+ * Las seis maneras de compartir. Guardan la CLAVE de su nombre, no el nombre:
+ * esta lista se construye al cargar el archivo, fuera de React, y una frase
+ * puesta aquí se quedaría con el idioma del arranque. El `kind` es el
+ * identificador y no cambia nunca: con él viaja lo que se va a crear.
+ */
+const OPTIONS: { kind: CreateKind; emoji: string; clave: string }[] = [
+  { kind: 'post', emoji: '📝', clave: 'composer.kindPost' },
+  { kind: 'weel', emoji: '📹', clave: 'composer.kindWeel' },
+  { kind: 'image', emoji: '🖼️', clave: 'composer.kindImage' },
+  { kind: 'video', emoji: '🎥', clave: 'composer.kindVideo' },
+  { kind: 'text', emoji: '✍️', clave: 'composer.kindText' },
+  { kind: 'question', emoji: '❓', clave: 'composer.kindQuestion' },
 ];
 
 /**
@@ -31,12 +38,13 @@ const OPTIONS: { kind: CreateKind; emoji: string; label: string }[] = [
  */
 const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, onOpenCreator }) => {
   const { theme } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
 
   return (
     <Modal visible={visible} transparent animationType={Platform.OS === 'web' ? 'none' : 'slide'} onRequestClose={onClose}>
       <View style={styles.backdropContainer}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} accessibilityLabel="Cerrar" />
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} accessibilityLabel={t('common.close')} />
         <View
           style={[
             styles.sheet,
@@ -48,8 +56,8 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
         >
           <View style={[styles.handle, { backgroundColor: theme.colors.border }]} />
           <View style={styles.titles}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>Crear</Text>
-            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>¿Qué quieres compartir hoy?</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{t('composer.sheetTitle')}</Text>
+            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{t('composer.sheetSubtitle')}</Text>
           </View>
 
           <View style={styles.grid}>
@@ -61,7 +69,7 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
                 activeOpacity={0.8}
               >
                 <Text style={styles.optionEmoji}>{opt.emoji}</Text>
-                <Text style={[styles.optionLabel, { color: theme.colors.text }]}>{opt.label}</Text>
+                <Text style={[styles.optionLabel, { color: theme.colors.text }]}>{t(opt.clave)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -73,8 +81,8 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
           >
             <Text style={styles.creatorEmoji}>🤖</Text>
             <View style={styles.creatorBody}>
-              <Text style={styles.creatorTitle}>¿Necesitas una herramienta de IA?</Text>
-              <Text style={styles.creatorText}>Video, imagen, texto, música y más</Text>
+              <Text style={styles.creatorTitle}>{t('composer.needAiTool')}</Text>
+              <Text style={styles.creatorText}>{t('composer.needAiToolNote')}</Text>
             </View>
             <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
               <Text style={styles.creatorButtonText}>WEË AI ›</Text>

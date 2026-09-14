@@ -12,11 +12,21 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
+const ES_T = textosDe('es');
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
-const leer = (p) => fs.readFileSync(path.resolve(here, '../../' + p), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(path.resolve(here, '../../' + p), 'utf8'));
+/* Para EJECUTAR se compila el fuente original: el traductor va dentro. */
+const leerCrudo = (p) => (fs.readFileSync(path.resolve(here, '../../' + p), 'utf8'));
 const fsCat = fs;
 
 /* El catálogo de las once experiencias: la clave vive en constants/specialists.ts
@@ -79,7 +89,7 @@ console.log('\n── A · La undécima experiencia ──');
   check('1) y tiene plantilla propia', !!travel && travel.name === 'Weë Travel' && travel.emoji === '✈️');
 
   const ts = require('typescript');
-  const js = ts.transpileModule(leer('constants/weeExperiences.ts'), {
+  const js = ts.transpileModule(leerCrudo('constants/weeExperiences.ts'), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
@@ -354,9 +364,8 @@ console.log('\n── H · Del resultado a la publicación ──');
 {
   const codigo = soloCodigo(tarjeta);
   check('40) se puede ajustar lo que salió',
-    /setEditing\(true\)/.test(codigo) && /t\('weeai\.whatDoWeChange'\)/.test(tarjeta)
-    && /whatDoWeChange: '¿Qué cambiamos\?'/.test(leer('i18n/textos/es/weeai.ts')));
-  check('40) guardarlo en un proyecto', /onSaveToProject/.test(codigo) && /t\('weeai\.saveToProject'\)/.test(tarjeta));
+    /setEditing\(true\)/.test(codigo) && /¿Qué cambiamos\?/.test(tarjeta));
+  check('40) guardarlo en un proyecto', /onSaveToProject/.test(codigo) && /Guardar en un proyecto/.test(tarjeta));
   check('40) y compartirlo con la comunidad', /onPublish\(publicable\)/.test(codigo) && /Publicar en mi comunidad/.test(tarjeta));
   check('41) las fuentes se ven y se pueden abrir', /Linking\.openURL\(source\.url\)/.test(codigo) && /result\.sources\?\.length/.test(codigo));
 
@@ -385,7 +394,7 @@ console.log('\n── I · Sin efectos colaterales ──');
 {
   check('45) el lugar de una publicación sigue siendo opcional', /Quitar el lugar/.test(crear) && /\.\.\.\(place \? \{ place \} : \{\}\)/.test(crear));
   check('45) y Weë Travel no lo toca', !/PostPlace|buscarLugares|etiquetaDeLugar|lugarDelCatalogo/.test(soloCodigo(bloqueTravel)));
-  check('46) el precio se ve antes de confirmar', /Credits\)/.test(leer('components/creator/PlanCard.tsx')) && /t\('weeai\.creditsNote'\)/.test(leer('components/creator/PlanCard.tsx')));
+  check('46) el precio se ve antes de confirmar', /Credits\)/.test(leer('components/creator/PlanCard.tsx')) && /Se descuentan al terminar/.test(leer('components/creator/PlanCard.tsx')));
   check('46) y Weë Travel pasa por el mismo camino', !/spendCredits|creditsService/.test(soloCodigo(specialists)));
   check('47) el "← Atrás" de las preguntas sigue como estaba', !/Atrás|volver a la pregunta/i.test(soloCodigo(leer('components/creator/GuidedQuestion.tsx'))));
   check('48) no se ha tocado la capa de ubicación', !/travel/i.test(soloCodigo(leer('contexts/LocationContext.tsx')) + soloCodigo(leer('services/locationService.ts'))));
@@ -412,7 +421,7 @@ console.log('\n── J · El menú Burger ──');
   check('49) la barra lateral hace lo mismo', /WEE_EXPERIENCES\.map\(\(exp\) =>/.test(barra) && !/travel/i.test(soloCodigo(barra)));
 
   const ts = require('typescript');
-  const js = ts.transpileModule(leer('constants/weeExperiences.ts'), {
+  const js = ts.transpileModule(leerCrudo('constants/weeExperiences.ts'), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
@@ -1112,7 +1121,9 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
 
   // Un vídeo, quince segundos, comprobados ANTES de subir y sin tocar el archivo.
   check('123) quince segundos, todos los vídeos', /const maxVideoDurationSeconds = 15;/.test(crearCrudo));
-  check('123) se rechaza diciendo cuánto dura', /no puede durar más de 15 segundos\. Tu video dura/.test(crearCrudo));
+  check('123) se rechaza diciendo cuánto dura',
+    /t\(isWeel \? 'composer\.weelMaxDuration' : 'composer\.videoMaxDuration',/.test(crearCrudo)
+    && /no puede durar más de \{\{maximo\}\} segundos\./.test(ES_T.composer.videoMaxDuration));
   // Ojo con la vara: 'trim' a secas cazaba las llamadas a .trim() del propio código.
   check('123) y no se recorta ni se convierte con IA', !/ffmpeg|transcode|videoTrim|recortarVideo|trimVideo/i.test(crear));
 

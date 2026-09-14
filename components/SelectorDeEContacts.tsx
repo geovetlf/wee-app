@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useMisEContacts } from '../hooks/useEContact';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -40,6 +41,7 @@ interface SelectorDeEContactsProps {
 
 const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onCambiar }) => {
   const { theme } = useTheme();
+  const t = useT();
   const { contactos, cargando, hayAgenda, motivo, nombreLista, nombrePlural } = useMisEContacts();
 
   const alternar = (identidad: string) => {
@@ -64,9 +66,7 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
   if (!hayAgenda) {
     return (
       <Aviso>
-        {motivo === 'sin-sesion'
-          ? 'Entra en Weë para mencionar a tus ËContact.'
-          : 'El Perfil Biz no tiene agenda de ËContact. Cambia al Perfil Real o al Perfil Weë para mencionar a alguien.'}
+        {t(motivo === 'sin-sesion' ? 'composer.signInToMention' : 'composer.bizNoAgenda')}
       </Aviso>
     );
   }
@@ -74,8 +74,7 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
   if (contactos.length === 0) {
     return (
       <Aviso>
-        Todavía no tienes {nombrePlural}. Cuando conectes con alguien desde su perfil, aparecerá aquí para
-        que puedas mencionarlo.
+        {t('composer.noContactsYet', { lista: nombrePlural })}
       </Aviso>
     );
   }
@@ -83,7 +82,7 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
   return (
     <>
       <Text style={[styles.titulo, { color: theme.colors.textSecondary }]}>
-        Menciona a quien quieras de tu {nombreLista}
+        {t('composer.mentionAnyone', { lista: nombreLista })}
       </Text>
 
       {/*
@@ -119,9 +118,15 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
                 <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>
                   {persona.perfil.displayName}
                 </Text>
-                {/* Con qué cara está en tu agenda. El uid no se enseña nunca. */}
+                {/*
+                  Con qué cara está en tu agenda. El uid no se enseña nunca.
+
+                  Sale de `persona.tipo`, que ya viene resuelto por el hook, y no
+                  de `persona.etiqueta`: esa la escribe `nombreDeIdentidad` en
+                  español y vive en el modelo de ËContact, que no se toca aquí.
+                */}
                 <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                  {persona.etiqueta}
+                  {t(persona.tipo === 'wee' ? 'composer.profileWee' : 'composer.profileReal')}
                 </Text>
               </View>
               <Ionicons

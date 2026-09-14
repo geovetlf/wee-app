@@ -384,7 +384,14 @@ console.log('\n── I · Enchufado en Weë ──');
    * fronteras de palabra, para que "wallet" no cuente como "Wall".
    */
   const aplanarValores = (o) => Object.values(o).flatMap((v) => typeof v === 'object' ? aplanarValores(v) : [v]);
-  const valores = [...aplanarValores(es), ...aplanarValores(en)].join(' | ');
+  /*
+   * "Muro general" no es una traducción de Wäll: es como se llama, desde
+   * siempre, el sitio donde se lee todo —`MURO_GENERAL` en `sectionFeed`—, y su
+   * nombre en inglés es "General wall". Se saca del rastreo por su nombre
+   * completo, no aflojando la vara: "Muro" y "Wall" a secas siguen prohibidos.
+   */
+  const valores = [...aplanarValores(es), ...aplanarValores(en)].join(' | ')
+    .split('Muro general').join('·').split('General wall').join('·');
   check('53) control: los nombres de Weë no están traducidos',
     !/\b(Muro|Wall|Carretes|Reels|Charla|Chat de Wee|Créditos|Creditos)\b/.test(valores));
 }

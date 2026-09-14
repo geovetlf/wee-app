@@ -21,10 +21,19 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { comoSeLee } from './i18n-ayuda.mjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
-const leer = (p) => fs.readFileSync(path.resolve(here, '../../' + p), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(path.resolve(here, '../../' + p), 'utf8'));
+/* Para EJECUTAR se compila el fuente original: el traductor va dentro. */
+const leerCrudo = (p) => (fs.readFileSync(path.resolve(here, '../../' + p), 'utf8'));
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -35,7 +44,7 @@ const check = (name, cond, extra = '') => {
 const ts = require('typescript');
 const aModulo = (js) => 'data:text/javascript;base64,' + Buffer.from(js).toString('base64');
 const transpilar = (ruta) =>
-  ts.transpileModule(leer(ruta), {
+  ts.transpileModule(leerCrudo(ruta), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
 
@@ -246,7 +255,7 @@ check(
 );
 check(
   'y el Perfil Biz tiene su propia explicación',
-  /hayAgenda/.test(selectorCodigo) && /Perfil Biz/.test(selectorCodigo)
+  /hayAgenda/.test(selectorCodigo) && /Perfil Biz no tiene agenda de ËContact/.test(selector)
 );
 /* El uid vale como clave de lista; lo que NO puede es acabar en pantalla. */
 check(
@@ -388,7 +397,9 @@ check(
   !/km de distancia|a \d+[.,]?\d* ?km/i.test(soloCodigo(ubic)),
   'no hay con qué calcularlas'
 );
-check('lo que sí dice es de qué país son', /Lugares en /.test(ubic) && /countryName/.test(ubic));
+/* El país entra por interpolación: el hueco se ve resuelto y el valor, en crudo. */
+check('lo que sí dice es de qué país son',
+  /Lugares en \{\{pais\}\}/.test(ubic) && /countryName/.test(leerCrudo('screens/AgregarUbicacionScreen.tsx')));
 
 /* ── Selección y vuelta al compositor ── */
 check('elegir un lugar del catálogo lo convierte con el helper de siempre', /lugarDelCatalogo\(opcion\)/.test(ubic));

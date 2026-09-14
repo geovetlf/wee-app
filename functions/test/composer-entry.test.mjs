@@ -16,10 +16,21 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
+/* Los cinco atajos guardan su CLAVE; la palabra la pone el diccionario. */
+const ES = textosDe('es');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ruta = (p) => path.resolve(here, '../../' + p);
-const leer = (p) => fs.readFileSync(ruta(p), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(ruta(p), 'utf8'));
+/* Para EJECUTAR se compila el fuente original: el traductor va dentro. */
+const leerCrudo = (p) => (fs.readFileSync(ruta(p), 'utf8'));
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -127,7 +138,8 @@ console.log('\n── B · Es una puerta, no un compositor ──');
    * el lector de pantalla— pero no los IMPLEMENTA: ni abre la galería, ni la
    * cámara, ni monta una encuesta. Eso es lo que separa un atajo de una copia.
    */
-  check('12) la puerta nombra los cinco atajos', CONTROLES.every((c) => puerta.includes(`etiqueta: '${c}'`)));
+  check('12) la puerta nombra los cinco atajos',
+    CONTROLES.every((c) => Object.entries(ES.composer).some(([k, v]) => v === c && puerta.includes(`clave: 'composer.${k}'`))));
   check('12) pero no implementa ninguno', !/ImagePicker|expo-image-picker|launchCamera|MediaTypeOptions|PostPoll|etiquetaDeLugar/.test(puerta));
 
   /*
@@ -138,8 +150,11 @@ console.log('\n── B · Es una puerta, no un compositor ──');
   const iChip = puerta.indexOf('styles.composerChip,');
   const pastilla = iChip < 0 ? '' : puerta.slice(iChip, puerta.indexOf('</TouchableOpacity>', iChip));
   check('12b) las cinco pastillas son solo icono', /<Ionicons/.test(pastilla) && !/<Text/.test(pastilla));
-  check('12b) foto y vídeo comparten una sola pastilla', (puerta.match(/etiqueta: 'Foto o vídeo'/g) || []).length === 1 && !/etiqueta: 'Foto'|etiqueta: 'Video'/.test(puerta));
-  check('12b) y ya no hay atajo de "Pregunta"', !/etiqueta: 'Pregunta'/.test(puerta));
+  check('12b) foto y vídeo comparten una sola pastilla',
+    (puerta.match(/clave: 'composer\.photoOrVideo'/g) || []).length === 1
+    && ES.composer.photoOrVideo === 'Foto o vídeo'
+    && !/clave: 'composer\.(photo|video)'/.test(puerta));
+  check('12b) y ya no hay atajo de "Pregunta"', !/clave: 'composer\.kindQuestion'/.test(puerta));
 }
 
 console.log('\n── C · A dónde lleva, y con quién ──');
@@ -278,7 +293,10 @@ console.log('\n── F · Lo que se toca, se toca ──');
    * Y lo que el rediseño promete a la vista: los destinos SÍ llevan su nombre
    * escrito —al revés que los atajos— y publicar es la acción principal.
    */
-  check('13) los destinos enseñan su nombre', /styles\.destinoTexto[\s\S]*?\{destino\.nombre\}/.test(puerta));
+  /* El nombre sale de `nombreDelDestino`: marca tal cual, y clave si la trae. */
+  check('13) los destinos enseñan su nombre',
+    /styles\.destinoTexto[\s\S]*?\{nombreDelDestino\(destino\)\}/.test(puerta)
+    && /destino\.clave \? t\(destino\.clave\) : destino\.nombre/.test(puerta));
   check('13) y publicar lleva su icono de enviar', /paper-plane-outline/.test(puerta) && /styles\.publishText/.test(puerta));
 }
 
@@ -401,7 +419,7 @@ console.log('\n── I · El Home va directo al compositor ──');
   const colores = new Proxy({}, { get: () => '#000000' });
 
   const aCommonJS = (archivo) =>
-    ts.transpileModule(leer(archivo), {
+    ts.transpileModule(leerCrudo(archivo), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
     }).outputText;
   /* Módulos de verdad (puros) o piezas mínimas, según lo que pide cada import. */
@@ -518,7 +536,8 @@ console.log('\n── I · El Home va directo al compositor ──');
    * Lo que esto defiende —que las DOS pantallas del Home montan el compositor
    * igual, en su variante y en directo— no ha cambiado.
    */
-  const enElHome = /<ComposerEntry placeholder=\{t\('home\.composerPlaceholder'\)\} onCompose=\{handleCompose\} variante="home" directo \/>/;
+  /* El fuente se lee resuelto, así que la clave sale ya como su frase. */
+  const enElHome = /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/;
   check('5) el Home lo pide en sus dos pantallas',
     enElHome.test(leer('screens/LandingScreen.tsx')) && enElHome.test(leer('screens/WebLandingScreen.tsx')));
   check('5) una sola instancia por pantalla del Home',

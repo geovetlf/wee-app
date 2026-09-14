@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -69,6 +70,7 @@ interface MediaItem {
 
 const CreateScreen: React.FC = () => {
   const { theme } = useTheme();
+  const t = useT();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { contentMaxWidth } = useResponsive();
@@ -94,14 +96,15 @@ const CreateScreen: React.FC = () => {
    * en texto, sin opciones ni votos (la hoja Crear y la Ayuda la usan así).
    */
   const abreEncuesta = presetKind === 'poll';
-  const composerPlaceholder =
-    abreEncuesta ? 'Añade algo más si quieres (opcional)…' :
-    presetKind === 'question' ? '¿Qué quieres preguntarle a la comunidad?' :
-    presetKind === 'weel' ? 'Cuenta qué creaste para tu Weël y con qué IA…' :
-    presetKind === 'video' ? 'Cuenta qué creaste y con qué IA…' :
-    presetKind === 'image' ? 'Muestra tu imagen y cómo la hiciste…' :
-    presetKind === 'text' ? 'Comparte un texto, un prompt o una idea…' :
-    'Escribe algo…';
+  const composerPlaceholder = t(
+    abreEncuesta ? 'composer.placeholderPollExtra' :
+    presetKind === 'question' ? 'composer.placeholderQuestion' :
+    presetKind === 'weel' ? 'composer.placeholderWeel' :
+    presetKind === 'video' ? 'composer.placeholderVideo' :
+    presetKind === 'image' ? 'composer.placeholderImage' :
+    presetKind === 'text' ? 'composer.placeholderText' :
+    'composer.placeholderDefault'
+  );
 
   const [postText, setPostText] = useState<string>(routeParams.prefill?.content || '');
   /*
@@ -227,7 +230,7 @@ const CreateScreen: React.FC = () => {
    * verdad y, al tocarla, la explica. Un selector con una sola opción sería un
    * menú que no elige nada.
    */
-  const explicarVisibilidad = () => notify('Público', 'Por ahora, todas las publicaciones de Weë son públicas.');
+  const explicarVisibilidad = () => notify(t('composer.publicVisibility'), t('composer.publicExplain'));
 
   /*
    * A QUIÉN SE MENCIONA. Solo identidades, y solo las que salieron de la agenda:
@@ -305,7 +308,7 @@ const CreateScreen: React.FC = () => {
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+        Alert.alert(t('composer.permissionRequired'), t('composer.cameraAccess'));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -317,7 +320,7 @@ const CreateScreen: React.FC = () => {
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería.');
+        Alert.alert(t('composer.permissionRequired'), t('composer.galleryAccess'));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -345,7 +348,7 @@ const CreateScreen: React.FC = () => {
       }]);
     } catch (error: any) {
       console.error('Error face swap:', error);
-      Alert.alert('Error', 'No se pudo aplicar el face swap. Intenta de nuevo.');
+      Alert.alert(t('common.error'), t('composer.faceSwapFailed'));
     } finally {
       setFaceSwapLoading(false);
     }
@@ -369,9 +372,13 @@ const CreateScreen: React.FC = () => {
   const isWeel = presetKind === 'weel';
   const maxVideoDurationSeconds = 15;
   const notifyVideoTooLong = (seconds: number) => {
-    const title = isWeel ? 'Weël muy largo' : 'Video muy largo';
-    const lasted = seconds < 60 ? `${Math.ceil(seconds)} segundos` : `${Math.ceil(seconds / 60)} minutos`;
-    const message = `${isWeel ? 'Un Weël' : 'El video'} no puede durar más de 15 segundos. Tu video dura ${lasted}.`;
+    const title = t(isWeel ? 'composer.weelTooLong' : 'composer.videoTooLong');
+    /* Segundos o minutos, y con la forma que le toque a cada número. */
+    const lasted = seconds < 60
+      ? t('composer.seconds', { contador: Math.ceil(seconds) })
+      : t('composer.minutes', { contador: Math.ceil(seconds / 60) });
+    const message = t(isWeel ? 'composer.weelMaxDuration' : 'composer.videoMaxDuration',
+      { maximo: maxVideoDurationSeconds, duracion: lasted });
     if (typeof document !== 'undefined') window.alert(`${title}
 
 ${message}`);
@@ -434,11 +441,11 @@ ${message}`);
               // Si es video, solo permitir 1 y sin imágenes previas
               if (isVideo) {
                 if (poll) {
-                  Alert.alert('No disponible', 'Una encuesta puede llevar una foto, pero no un vídeo');
+                  Alert.alert(t('composer.notAvailable'), t('composer.pollWithVideo'));
                   continue;
                 }
                 if (attachedMedia.length > 0) {
-                  Alert.alert('No disponible', 'No puedes agregar un video si ya tienes media adjunto');
+                  Alert.alert(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
                   continue;
                 }
                 // Validar duración del video en web
@@ -466,7 +473,7 @@ ${message}`);
               } else {
                 // No permitir imágenes si ya hay un video
                 if (attachedMedia.some(m => m.type === 'video')) {
-                  Alert.alert('No disponible', 'No puedes agregar imágenes si ya tienes un video adjunto');
+                  Alert.alert(t('composer.notAvailable'), t('composer.noImagesWithVideo'));
                   continue;
                 }
                 newMedia.push({
@@ -490,11 +497,11 @@ ${message}`);
 
       if (!permissionResult.granted) {
         Alert.alert(
-          'Permisos necesarios',
-          'Necesitamos acceso a tu galería para seleccionar imágenes',
+          t('composer.permissionsNeeded'),
+          t('composer.galleryForImages'),
           [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Ir a Configuración', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('composer.goToSettings'), onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
           ]
         );
         return;
@@ -526,11 +533,11 @@ ${message}`);
 
           if (isVideo) {
             if (poll) {
-              Alert.alert('No disponible', 'Una encuesta puede llevar una foto, pero no un vídeo');
+              Alert.alert(t('composer.notAvailable'), t('composer.pollWithVideo'));
               continue;
             }
             if (attachedMedia.length > 0) {
-              Alert.alert('No disponible', 'No puedes agregar un video si ya tienes media adjunto');
+              Alert.alert(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
               continue;
             }
             // Validar duración (asset.duration viene en milisegundos)
@@ -547,7 +554,7 @@ ${message}`);
             break; // Solo 1 video
           } else {
             if (attachedMedia.some(m => m.type === 'video')) {
-              Alert.alert('No disponible', 'No puedes agregar imágenes si ya tienes un video adjunto');
+              Alert.alert(t('composer.notAvailable'), t('composer.noImagesWithVideo'));
               continue;
             }
             const ar = asset.width && asset.height ? asset.width / asset.height : undefined;
@@ -563,7 +570,7 @@ ${message}`);
         setAttachedMedia(prev => [...prev, ...newMedia]);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron seleccionar las imágenes');
+      Alert.alert(t('common.error'), t('composer.pickImagesFailed'));
     }
   };
 
@@ -574,11 +581,11 @@ ${message}`);
       
       if (!permissionResult.granted) {
         Alert.alert(
-          'Permisos necesarios',
-          'Necesitamos acceso a tu cámara para tomar fotos',
+          t('composer.permissionsNeeded'),
+          t('composer.cameraForPhotos'),
           [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Ir a Configuración', onPress: () => ImagePicker.requestCameraPermissionsAsync() }
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('composer.goToSettings'), onPress: () => ImagePicker.requestCameraPermissionsAsync() }
           ]
         );
         return;
@@ -604,7 +611,7 @@ ${message}`);
         setAttachedMedia(prev => [...prev, newMedia]);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo tomar la foto');
+      Alert.alert(t('common.error'), t('composer.takePhotoFailed'));
     }
   };
 
@@ -624,7 +631,7 @@ ${message}`);
 
   const handlePublish = async () => {
     if (!canPublish || !user || !userProfile) {
-      Alert.alert('Error', 'Debes estar autenticado para publicar');
+      Alert.alert(t('common.error'), t('composer.mustSignIn'));
       return;
     }
 
@@ -665,8 +672,8 @@ ${message}`);
           } catch (error) {
             console.error('Error uploading video:', error);
             Alert.alert(
-              'Error al subir video',
-              `Error: ${error instanceof Error ? error.message : 'Error desconocido'}\n\nVerifica que:\n• Tengas conexión a internet\n• Firebase Storage esté configurado\n• Las reglas de Storage permitan escritura`
+              t('composer.videoUploadFailed'),
+              t('composer.uploadErrorBody', { detalle: error instanceof Error ? error.message : t('composer.unknownError') })
             );
             setIsPublishing(false);
             return;
@@ -682,7 +689,7 @@ ${message}`);
 
               const response = await fetch(media.uri);
               if (!response.ok) {
-                throw new Error(`Error al obtener la imagen: ${response.status} ${response.statusText}`);
+                throw new Error(t('composer.imageFetchFailed', { estado: response.status, texto: response.statusText }));
               }
               const blob = await response.blob();
               console.log('✅ Blob creado, tamaño:', blob.size, 'bytes');
@@ -706,8 +713,8 @@ ${message}`);
             } catch (error) {
               console.error('Error uploading image:', error);
               Alert.alert(
-                'Error al subir imagen',
-                `Error: ${error instanceof Error ? error.message : 'Error desconocido'}\n\nVerifica que:\n• Tengas conexión a internet\n• Firebase Storage esté configurado\n• Las reglas de Storage permitan escritura`
+                t('composer.imageUploadFailed'),
+                t('composer.uploadErrorBody', { detalle: error instanceof Error ? error.message : t('composer.unknownError') })
               );
               setIsPublishing(false);
               return;
@@ -820,8 +827,8 @@ ${message}`);
     } catch (error) {
       console.error('Error publishing post:', error);
       Alert.alert(
-        'Error al publicar', 
-        `No se pudo publicar el post.\n\nError: ${error instanceof Error ? error.message : 'Error desconocido'}\n\nInténtalo de nuevo.`
+        t('composer.publishFailed'),
+        t('composer.publishErrorBody', { detalle: error instanceof Error ? error.message : t('composer.unknownError') })
       );
     } finally {
       setIsPublishing(false);
@@ -850,14 +857,14 @@ ${message}`);
         maxLength={maxTextLength + 50} // Permitir exceso para mostrar error
         textAlignVertical="top"
         autoFocus={false}
-        accessibilityLabel="Texto de la publicación"
+        accessibilityLabel={t('composer.postTextLabel')}
       />
       <Text style={[styles.textoContador, { color: isTextOverLimit ? theme.colors.error : theme.colors.textSecondary }]}>
         {postText.length}/{maxTextLength}
       </Text>
       {isWeel && (
         <Text style={[styles.kindHint, { color: theme.colors.textSecondary }]}>
-          Weël: video de hasta 15 segundos. Se comparte fuera de Weë con un pequeño watermark.
+          {t('composer.weelHint', { segundos: maxVideoDurationSeconds })}
         </Text>
       )}
     </View>
@@ -904,7 +911,7 @@ ${message}`);
       activeOpacity={0.7}
       style={[styles.accion, apagada && styles.accionApagada]}
       accessibilityRole="button"
-      accessibilityLabel={insignia ? `${texto}, ${insignia}` : texto}
+      accessibilityLabel={insignia ? t('composer.actionWithBadge', { accion: texto, insignia }) : texto}
       accessibilityState={{ disabled: !!apagada, selected: !!activa }}
     >
       <View
@@ -943,7 +950,7 @@ ${message}`);
    */
   const renderAcciones = () => (
     <View style={styles.acciones}>
-      <Accion icono="camera-outline" texto="Cámara" onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
+      <Accion icono="camera-outline" texto={t('composer.camera')} onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
       {/*
         Una sola puerta para foto y vídeo: el selector ya acepta las dos cosas y
         deja elegir VARIAS de golpe. Cuando ya llevas alguna, dice cuántas y
@@ -952,7 +959,7 @@ ${message}`);
       */}
       <Accion
         icono="image-outline"
-        texto="Multimedia"
+        texto={t('composer.multimedia')}
         insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
         onPress={pickImageFromGallery}
         apagada={sinSitioParaMedios}
@@ -967,7 +974,7 @@ ${message}`);
       */}
       <Accion
         icono="people-outline"
-        texto="ËContact"
+        texto={t('composer.econtact')}
         onPress={() => setShowEContacts((v) => !v)}
         activa={econtacts.length > 0 || showEContacts}
         insignia={econtacts.length > 0 ? String(econtacts.length) : undefined}
@@ -976,13 +983,13 @@ ${message}`);
         El nombre NO cambia al elegir sitio: si pusiera el lugar se cortaría a la
         mitad. El lugar elegido se ve entero en su chip, bajo el texto.
       */}
-      <Accion icono="location-outline" texto="Ubicación" onPress={abrirUbicacion} activa={!!place || !!ubicacion} />
+      <Accion icono="location-outline" texto={t('composer.location')} onPress={abrirUbicacion} activa={!!place || !!ubicacion} />
       {/*
         La encuesta existe en Weë y hay encuestas publicadas. Esta es su única
         puerta: quitarla dejaría la función viva y sin forma de usarla.
       */}
-      <Accion icono="bar-chart-outline" texto="Encuesta" onPress={handlePollPress} activa={!!poll} />
-      <Accion icono="folder-outline" texto="Mis proyectos" onPress={abrirProyectos} acento />
+      <Accion icono="bar-chart-outline" texto={t('composer.poll')} onPress={handlePollPress} activa={!!poll} />
+      <Accion icono="folder-outline" texto={t('weeai.myProjects')} onPress={abrirProyectos} acento />
     </View>
   );
 
@@ -1001,10 +1008,17 @@ ${message}`);
    * está SIEMPRE puesto, elegido o no, para que la rejilla no salte bajo el
    * dedo al marcar el segundo.
    */
+  /*
+   * Los nombres de sección son marca —"Weë Chef" se escribe igual en todos los
+   * idiomas—; el muro general es una descripción y trae su clave.
+   */
+  const nombreDelDestino = (destino: { nombre: string; clave?: string }) =>
+    destino.clave ? t(destino.clave) : destino.nombre;
+
   const renderDestinos = () => (
     <View style={styles.destinos}>
       <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">
-        PUBLICAR EN
+        {t('composer.publishIn')}
       </Text>
       <View style={styles.destinosRejilla}>
         {destinosDisponibles().map((destino) => {
@@ -1026,7 +1040,7 @@ ${message}`);
               accessibilityState={{ checked: elegido }}
               /* En la web `accessibilityState` no llega al DOM; `aria-checked` sí, y en nativo es lo mismo. */
               aria-checked={elegido}
-              accessibilityLabel={destino.nombre}
+              accessibilityLabel={nombreDelDestino(destino)}
             >
               {/*
                 La cara sale del catálogo de Weë y no se inventa aquí: si mañana
@@ -1041,7 +1055,7 @@ ${message}`);
                 )}
               </View>
               <Text style={[styles.destinoTexto, { color: theme.colors.text }]} numberOfLines={1}>
-                {destino.nombre}
+                {nombreDelDestino(destino)}
               </Text>
               <View
                 style={[
@@ -1088,7 +1102,7 @@ ${message}`);
               : { backgroundColor: theme.colors.accent + '33' },
           ]}
           accessibilityRole="button"
-          accessibilityLabel={isPublishing ? 'Publicando' : 'Publicar'}
+          accessibilityLabel={t(isPublishing ? 'composer.publishing' : 'composer.publish')}
           accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
           {isPublishing ? (
@@ -1097,7 +1111,7 @@ ${message}`);
             <Ionicons name="paper-plane-outline" size={scale(20)} color={canPublish ? '#1F2937' : theme.colors.textSecondary} />
           )}
           <Text style={[styles.publicarTexto, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>
-            {isPublishing ? 'Publicando…' : 'Publicar'}
+            {t(isPublishing ? 'composer.publishing' : 'composer.publish')}
           </Text>
         </TouchableOpacity>
       </Animated.View>
@@ -1119,10 +1133,10 @@ ${message}`);
             <TouchableOpacity
               onPress={() => setEContacts([])}
               activeOpacity={0.7}
-              accessibilityLabel="Quitar las menciones"
+              accessibilityLabel={t('composer.removeMentions', { contador: econtacts.length })}
             >
               <Text style={[styles.howHint, { color: theme.colors.accentDark }]}>
-                Quitar {econtacts.length === 1 ? 'la mención' : 'las menciones'}
+                {t('composer.removeMentions', { contador: econtacts.length })}
               </Text>
             </TouchableOpacity>
           )}
@@ -1147,7 +1161,7 @@ ${message}`);
         {!!place && (
           <View
             style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
-            accessibilityLabel={'Lugar: ' + etiquetaDeLugar({ place })}
+            accessibilityLabel={t('composer.placeIs', { lugar: etiquetaDeLugar({ place }) || '' })}
           >
             <Ionicons name="location" size={scale(15)} color={theme.colors.accentDark} />
             <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
@@ -1158,7 +1172,7 @@ ${message}`);
               hitSlop={{ top: 8, bottom: 8, left: 6, right: 8 }}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Quitar el lugar"
+              accessibilityLabel={t('composer.removePlace')}
             >
               <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -1167,18 +1181,18 @@ ${message}`);
         {!!ubicacion && (
           <View
             style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
-            accessibilityLabel="Publicando desde tu zona aproximada"
+            accessibilityLabel={t('composer.postingFromZone')}
           >
             <Ionicons name="navigate" size={scale(14)} color={theme.colors.accentDark} />
             <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
-              Zona aproximada
+              {t('composer.approxZone')}
             </Text>
             <TouchableOpacity
               onPress={() => setUbicacion(undefined)}
               hitSlop={{ top: 8, bottom: 8, left: 6, right: 8 }}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Quitar mi ubicación"
+              accessibilityLabel={t('composer.removeMyLocation')}
             >
               <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -1240,7 +1254,7 @@ ${message}`);
                 activeOpacity={0.8}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 accessibilityRole="button"
-                accessibilityLabel={`Quitar ${media.type === 'video' ? 'el vídeo' : `la foto ${index + 1}`}`}
+                accessibilityLabel={media.type === 'video' ? t('composer.removeVideo') : t('composer.removePhotoNumber', { numero: index + 1 })}
               >
                 <Ionicons name="close" size={scale(14)} color="white" />
               </TouchableOpacity>
@@ -1257,13 +1271,13 @@ ${message}`);
               onPress={pickImageFromGallery}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel={`Agregar más fotos o vídeos, llevas ${fotosPuestas} de ${topeImagenes}`}
+              accessibilityLabel={t('composer.addMoreMediaLabel', { puestas: fotosPuestas, tope: topeImagenes })}
             >
               <View style={[styles.mediaAgregarMas, { backgroundColor: theme.colors.accent + '24' }]}>
                 <Ionicons name="add" size={scale(20)} color={theme.colors.accentDark} />
               </View>
               <Text style={[styles.mediaAgregarTexto, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-                Agregar más fotos o vídeos
+                {t('composer.addMoreMedia')}
               </Text>
             </TouchableOpacity>
           )}
@@ -1275,7 +1289,8 @@ ${message}`);
   const renderPoll = () => {
     if (!poll) return null;
 
-    const pollDurations = DURACIONES.map((d) => ({ label: d.label, value: d.horas }));
+    /* La frase de cada duración la arma el traductor: "1 día", "7 días". */
+    const pollDurations = DURACIONES.map((d) => ({ label: t('composer.pollDays', { contador: d.dias }), value: d.horas }));
 
     return (
       <View style={[styles.pollSection, {
@@ -1286,7 +1301,7 @@ ${message}`);
         <View style={styles.pollHeader}>
           <View style={styles.pollHeaderLeft}>
             <Ionicons name="bar-chart" size={scale(18)} color={theme.colors.accent} />
-            <Text style={[styles.pollTitle, { color: theme.colors.text }]}>Encuesta</Text>
+            <Text style={[styles.pollTitle, { color: theme.colors.text }]}>{t('composer.poll')}</Text>
           </View>
           <TouchableOpacity onPress={handlePollPress} style={styles.removePollButton}>
             <Ionicons name="close" size={scale(18)} color={theme.colors.textSecondary} />
@@ -1306,7 +1321,7 @@ ${message}`);
             borderColor: theme.colors.border,
             color: theme.colors.text,
           }]}
-          placeholder="¿Qué quieres preguntar?"
+          placeholder={t('composer.pollQuestionPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={poll.question}
           onChangeText={handlePollQuestionChange}
@@ -1324,7 +1339,7 @@ ${message}`);
                 borderColor: duplicadas.includes(option.id) ? theme.colors.error : theme.colors.border,
                 color: theme.colors.text,
               }]}
-              placeholder={`Opción ${index + 1}`}
+              placeholder={t('composer.pollOptionPlaceholder', { numero: index + 1 })}
               placeholderTextColor={theme.colors.textSecondary}
               value={option.text}
               onChangeText={(text) => handlePollOptionChange(option.id, text)}
@@ -1349,7 +1364,7 @@ ${message}`);
           >
             <Ionicons name="add" size={scale(18)} color={theme.colors.accent} />
             <Text style={[styles.addPollOptionText, { color: theme.colors.accent }]}>
-              Agregar opción
+              {t('composer.pollAddOption')}
             </Text>
           </TouchableOpacity>
         )}
@@ -1359,13 +1374,13 @@ ${message}`);
           apagado y no dice por qué, que es la peor forma de pedir algo.
         */}
         {!validacionPoll.ok && (
-          <Text style={[styles.pollAviso, { color: theme.colors.error }]}>{validacionPoll.mensaje}</Text>
+          <Text style={[styles.pollAviso, { color: theme.colors.error }]}>{t(validacionPoll.clave, validacionPoll.valores)}</Text>
         )}
 
         {/* Selector de duración */}
         <View style={styles.pollDurationContainer}>
           <Text style={[styles.pollDurationLabel, { color: theme.colors.textSecondary }]}>
-            Duración de la encuesta
+            {t('composer.pollDurationLabel')}
           </Text>
           <View style={styles.pollDurationButtons}>
             {pollDurations.map((duration) => (
@@ -1408,10 +1423,10 @@ ${message}`);
      */
     if (!puedeLlevarEncuesta(attachedMedia)) {
       Alert.alert(
-        'No disponible',
+        t('composer.notAvailable'),
         attachedMedia.some((m) => m.type === 'video')
-          ? 'Una encuesta puede llevar una foto, pero no un vídeo'
-          : `Una encuesta puede llevar como máximo ${MAX_IMAGENES_CON_ENCUESTA} foto`
+          ? t('composer.pollWithVideo')
+          : t('composer.pollMaxPhotos', { contador: MAX_IMAGENES_CON_ENCUESTA })
       );
       return;
     }
@@ -1482,7 +1497,7 @@ ${message}`);
           <Ionicons name="close" size={scale(26)} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>Nueva publicación</Text>
+        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>{t('composer.newPost')}</Text>
 
         <TouchableOpacity
           style={[styles.postButton, { backgroundColor: canPublish ? theme.colors.accent : theme.colors.accent + '24' }]}
@@ -1490,13 +1505,13 @@ ${message}`);
           disabled={!canPublish}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel="Publicar"
+          accessibilityLabel={t('composer.publish')}
           accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
           {isPublishing ? (
             <ActivityIndicator size="small" color="#1F2937" />
           ) : (
-            <Text style={[styles.postButtonText, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>Publicar</Text>
+            <Text style={[styles.postButtonText, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>{t('composer.publish')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -1530,10 +1545,10 @@ ${message}`);
             />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[styles.identidadNombre, { color: theme.colors.text }]} numberOfLines={1}>
-                {userProfile?.displayName || 'Tú'}
+                {userProfile?.displayName || t('composer.you')}
               </Text>
               <Text style={[styles.identidadPie, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                Comparte con la comunidad de Weë
+                {t('composer.shareWithCommunity')}
               </Text>
             </View>
             {/* Quién puede verla. Píldora fina, blanca y discreta: no compite con nada. */}
@@ -1542,10 +1557,10 @@ ${message}`);
               activeOpacity={0.7}
               style={[styles.visibilidad, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
               accessibilityRole="button"
-              accessibilityLabel="Visibilidad: Público"
+              accessibilityLabel={t('composer.visibilityIs', { estado: t('composer.publicVisibility') })}
             >
               <Ionicons name="globe-outline" size={scale(16)} color={theme.colors.text} />
-              <Text style={[styles.visibilidadTexto, { color: theme.colors.text }]}>Público</Text>
+              <Text style={[styles.visibilidadTexto, { color: theme.colors.text }]}>{t('composer.publicVisibility')}</Text>
               <Ionicons name="chevron-down" size={scale(14)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -1573,7 +1588,7 @@ ${message}`);
               </View>
             </Animated.View>
             <Text style={[styles.publishingTitle, { color: theme.colors.text }]}>
-              Publicando...
+              {t('composer.publishingOverlay')}
             </Text>
             {attachedMedia.some(m => m.type === 'video') && Object.values(uploadProgress).length > 0 && (
               <>
@@ -1589,13 +1604,13 @@ ${message}`);
                   />
                 </View>
                 <Text style={[styles.publishingSubtitle, { color: theme.colors.textSecondary }]}>
-                  Subiendo video: {Math.round(Object.values(uploadProgress)[0] || 0)}%
+                  {t('composer.uploadingVideo', { porcentaje: Math.round(Object.values(uploadProgress)[0] || 0) })}
                 </Text>
               </>
             )}
             {!attachedMedia.some(m => m.type === 'video') && (
               <Text style={[styles.publishingSubtitle, { color: theme.colors.textSecondary }]}>
-                Tu post estará listo en un momento
+                {t('composer.readyInAMoment')}
               </Text>
             )}
           </View>

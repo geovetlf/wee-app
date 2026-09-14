@@ -258,7 +258,7 @@ export const MURO_GENERAL = 'general';
 export const DESTINO_BRAIN_EXCLUIDO = 'brain';
 
 export const destinosDisponibles = (): ContextoPublicacion[] => [
-  { id: MURO_GENERAL, nombre: 'Muro general' },
+  { id: MURO_GENERAL, nombre: 'Muro general', clave: 'composer.generalWall' },
   ...Object.entries(NOMBRE_SECCION)
     .filter(([id]) => id !== DESTINO_BRAIN_EXCLUIDO)
     .map(([id, nombre]) => ({ id, nombre })),
@@ -422,6 +422,15 @@ export interface ContextoPublicacion {
   id: string;
   /** Cómo se llama para quien lo lee. Sale de la fuente única de nombres. */
   nombre: string;
+  /**
+   * La clave de i18n, solo cuando el nombre NO es marca.
+   *
+   * "Weë Chef" se escribe igual en todos los idiomas y por eso no la lleva. El
+   * muro general sí: es una descripción, no un nombre propio, y quien tenga la
+   * app en inglés tiene que leer "General wall". Quien pinta resuelve la clave
+   * si está y usa `nombre` si no.
+   */
+  clave?: string;
 }
 
 /**

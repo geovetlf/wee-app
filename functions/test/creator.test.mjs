@@ -1047,9 +1047,9 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
 
   // 10) Si la imagen falla, no se publica el texto a escondidas.
   {
-    const fallo = crear.slice(crear.indexOf('Error al subir imagen'), crear.indexOf('Error al subir imagen') + 500);
+    const fallo = crear.slice(crear.indexOf('composer.imageUploadFailed'), crear.indexOf('composer.imageUploadFailed') + 500);
     check('10) un fallo de subida corta la publicación', /setIsPublishing\(false\);[\s\S]{0,40}return;/.test(fallo));
-    check('10) y avisa a la persona', /Alert\.alert\(/.test(crear.slice(crear.indexOf('catch (error) {', crear.indexOf('Subiendo imagen')), crear.indexOf('Error al subir imagen') + 60)));
+    check('10) y avisa a la persona', /Alert\.alert\(/.test(crear.slice(crear.indexOf('catch (error) {', crear.indexOf('Subiendo imagen')), crear.indexOf("composer.imageUploadFailed") + 60)));
   }
 
   // 11 y 12) Nada más se movió.

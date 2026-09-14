@@ -21,10 +21,20 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
+const ES = textosDe('es');
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
-const leer = (p) => fs.readFileSync(path.resolve(here, '../../' + p), 'utf8');
+/*
+ * El fuente se lee ya RESUELTO: cada `t('modulo.clave')` sale como la frase que
+ * le pone el diccionario español. Lo que se comprueba aquí sigue siendo lo que
+ * se comprobaba —las palabras que ve la persona—, y de paso queda comprobado
+ * que la clave existe y que dice lo que tiene que decir.
+ */
+const leer = (p) => comoSeLee(fs.readFileSync(path.resolve(here, '../../' + p), 'utf8'));
+/* Para EJECUTAR se compila el fuente original: el traductor va dentro. */
+const leerCrudo = (p) => (fs.readFileSync(path.resolve(here, '../../' + p), 'utf8'));
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -271,7 +281,10 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
 
   // Un vídeo, quince segundos, comprobados ANTES de subir y sin tocar el archivo.
   check('123) quince segundos, todos los vídeos', /const maxVideoDurationSeconds = 15;/.test(crearCrudo));
-  check('123) se rechaza diciendo cuánto dura', /no puede durar más de 15 segundos\. Tu video dura/.test(crearCrudo));
+  check('123) se rechaza diciendo cuánto dura',
+    /t\(isWeel \? 'composer\.weelMaxDuration' : 'composer\.videoMaxDuration',/.test(crearCrudo)
+    && /no puede durar más de \{\{maximo\}\} segundos\. Tu video dura \{\{duracion\}\}\./.test(ES.composer.videoMaxDuration)
+    && /\{ maximo: maxVideoDurationSeconds, duracion: lasted \}/.test(crearCrudo));
   // Ojo con la vara: 'trim' a secas cazaba las llamadas a .trim() del propio código.
   check('123) y no se recorta ni se convierte con IA', !/ffmpeg|transcode|videoTrim|recortarVideo|trimVideo/i.test(crear));
 
@@ -373,7 +386,8 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
   /* Quién publica y quién puede verlo. */
   check('127c) avatar, nombre y "Comparte con la comunidad de Weë"', /styles\.identidadNombre[\s\S]{0,200}userProfile\?\.displayName/.test(crudo) && /Comparte con la comunidad de Weë/.test(crudo));
   check('127c) la píldora de visibilidad dice Público, con su globo y su flecha',
-    /accessibilityLabel="Visibilidad: Público"[\s\S]{0,300}name="globe-outline"[\s\S]{0,200}>Público<\/Text>[\s\S]{0,120}name="chevron-down"/.test(crudo));
+    /accessibilityLabel="Visibilidad: \{\{estado\}\}"[\s\S]{0,300}name="globe-outline"[\s\S]{0,200}>Público<\/Text>[\s\S]{0,120}name="chevron-down"/.test(crudo)
+    && ES.composer.publicVisibility === 'Público');
   /*
    * Y dice la verdad: hoy TODA publicación es pública (`isPrivate: false`) y
    * ningún muro filtra por audiencia. Tocarla lo explica; no inventa un
@@ -382,7 +396,9 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
   check('127c) y conserva la lógica que hay: todo es público', /isPrivate: false,/.test(crudo) && /onPress=\{explicarVisibilidad\}/.test(crudo) && /explicarVisibilidad = \(\) => notify\('Público'/.test(crudo) && !/visibility:|audience:|setVisibilidad/.test(crudo));
 
   /* El papel. */
-  check('127d) la hoja: placeholder "Escribe algo…", sin título ni ayuda', /'Escribe algo…'/.test(crudo) && /placeholder=\{composerPlaceholder\}/.test(papel) && !/textoPregunta|textoAyuda/.test(crudo));
+  check('127d) la hoja: placeholder "Escribe algo…", sin título ni ayuda',
+    /'composer\.placeholderDefault'/.test(crudo) && ES.composer.placeholderDefault === 'Escribe algo…'
+    && /placeholder=\{composerPlaceholder\}/.test(papel) && !/textoPregunta|textoAyuda/.test(crudo));
   check('127d) con su contador 0/500 dentro y el mismo límite de siempre', /const maxTextLength = 500;/.test(crudo) && /\{postText\.length\}\/\{maxTextLength\}/.test(papel) && /textoContador: \{\s*alignSelf: 'flex-end'/.test(estilos));
   check('127d) esquinas generosas, marco de un punto y sin sombra', /tarjetaTexto: \{\s*borderWidth: 1,\s*borderRadius: BORDER_RADIUS\.xl,/.test(estilos) && !/tarjetaTexto: \{[\s\S]{0,200}shadow/.test(estilos));
   check('127d) sin emoji, # ni @ dentro del papel', !/happy-outline|📹|'#'|'@'/.test(papel));

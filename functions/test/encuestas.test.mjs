@@ -21,9 +21,11 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
+import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
+const ES = textosDe('es');
 const read = (p) => {
   try {
-    return fs.readFileSync(path.resolve(root, p), 'utf8');
+    return comoSeLee(fs.readFileSync(path.resolve(root, p), 'utf8'));
   } catch {
     return '';
   }
@@ -682,7 +684,9 @@ check('156) las dos puertas a la encuesta montan la misma encuesta vacía', (cre
  * pregunta escrita, sin opciones ni votos. Confundirlas convertiría cada
  * pregunta de texto en una encuesta.
  */
-check('157) "question" sigue siendo una pregunta de texto, no una encuesta', /presetKind === 'question' \? '¿Qué quieres preguntarle a la comunidad\?'/.test(crear));
+check('157) "question" sigue siendo una pregunta de texto, no una encuesta',
+  /presetKind === 'question' \? 'composer\.placeholderQuestion'/.test(crear)
+  && ES.composer.placeholderQuestion === '¿Qué quieres preguntarle a la comunidad?');
 check('158) y no monta ninguna encuesta', !/presetKind === 'question'[\s\S]{0,80}encuestaVacia/.test(crear));
 
 // La encuesta es contenido por sí sola.
@@ -690,7 +694,9 @@ check('159) una encuesta sin texto libre se puede publicar', /const hasContent =
 check('160) y una encuesta a medias, no', /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crear));
 check('161) quien decide si está a medias es el validador ejecutable', /const validacionPoll = poll \? validarEncuesta\(poll\) : /.test(crear));
 check('162) la pantalla no reimplementa ninguna regla de encuesta', !/options\.length >= minPollOptions &&/.test(crear));
-check('163) y dice por qué no se puede publicar todavía', /validacionPoll\.mensaje/.test(crear));
+check('163) y dice por qué no se puede publicar todavía',
+  /t\(validacionPoll\.clave, validacionPoll\.valores\)/.test(crear)
+  && ES.composer.pollErrEmptyQuestion === 'Escribe la pregunta de tu encuesta.');
 
 // Al publicar: un solo documento, con la encuesta dentro.
 check('164) la encuesta se construye con el helper, no a mano', /postData\.poll = construirPoll\(poll, \{/.test(crear));
@@ -712,9 +718,13 @@ const homeWeb = read('screens/WebLandingScreen.tsx');
  * que se comprueba es justamente eso —que Home y las secciones pasan por el
  * mismo sitio—, no que cada una tenga su camino.
  */
-check('169) hay una sola píldora de encuesta en toda la entrada', (entrada.match(/etiqueta: 'Encuesta'/g) || []).length === 1);
+check('169) hay una sola píldora de encuesta en toda la entrada',
+  (entrada.match(/clave: 'composer\.poll'/g) || []).length === 1 && ES.composer.poll === 'Encuesta');
 check('170) y no publica ni monta nada: solo llama a onCompose', /onPress=\{\(\) => onCompose\(atajo\.kind\)\}/.test(entrada) && !/PostPoll|construirPoll|encuestaVacia/.test(entrada));
-check('171) el orden aprobado de la fila no se ha movido', (entrada.match(/etiqueta: '([^']+)'/g) || []).map((m) => m.slice(11, -1)).join(' · ') === 'Cámara · Foto o vídeo · Ubicación · ËContact · Encuesta');
+/* El orden se lee de las claves y se comprueba con las palabras. */
+check('171) el orden aprobado de la fila no se ha movido',
+  [...entrada.matchAll(/clave: 'composer\.([A-Za-z]+)'/g)].map((m) => ES.composer[m[1]]).join(' · ')
+    === 'Cámara · Foto o vídeo · ËContact · Ubicación · Encuesta');
 
 /*
  * F8. La píldora 📊 manda `poll`, no `question`.
