@@ -249,6 +249,25 @@ const ProfileScreen: React.FC = () => {
     });
   }, [userPosts, navigation]);
 
+  /*
+   * ESTA FUNCIÓN VA AQUÍ, NO MÁS ABAJO.
+   *
+   * La usa el botón "Volver al Login" del estado de error, y ese estado sale por
+   * un `return` temprano que está debajo. Declarada después, cuando se pulsaba
+   * el botón la constante todavía no existía y saltaba "Cannot access
+   * 'handleLogout' before initialization": el botón no hacía nada.
+   *
+   * Solo se ha movido de sitio: hace exactamente lo mismo que hacía.
+   */
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error logging out:', error);
+      Alert.alert(t('common.error'), t('profile.signOutFailed'));
+    }
+  };
+
   if (profileLoading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
@@ -268,7 +287,7 @@ const ProfileScreen: React.FC = () => {
           {t('profile.loadFailed')}
         </Text>
         <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>
-          {profileError || t('profile.loadFailedDetail')}
+          {t(profileError || 'profile.loadFailedDetail')}
         </Text>
         <TouchableOpacity 
           style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -311,15 +330,6 @@ const ProfileScreen: React.FC = () => {
 
   const handleSettingsPress = () => {
     navigation.navigate('Settings');
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Error logging out:', error);
-      Alert.alert(t('common.error'), t('profile.signOutFailed'));
-    }
   };
 
   // Función para manejar selección de avatar

@@ -43,7 +43,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
   const costLabel =
     creditsEstimated === 0
       ? t('weeai.noCost')
-      : `≈ ${creditsEstimated.toLocaleString('es')} Credits${pricingMode === 'simulated' ? ' · precio de prueba' : ''}`;
+      : `≈ ${formato.numero(creditsEstimated)} Credits${pricingMode === 'simulated' ? ' · precio de prueba' : ''}`;
   const costHint =
     creditsEstimated > 0 ? t('weeai.creditsNote') : demo ? t('weeai.demoMode') : '';
 

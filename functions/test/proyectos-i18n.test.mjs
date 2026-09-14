@@ -43,9 +43,14 @@ for (const modulo of ['projects', 'weeai', 'common']) {
 
 /* El traductor REAL. Solo se le sustituye la cadena de respaldo, que vive en
  * otro archivo y aquí no se puede importar por ruta relativa. */
-const { crearTraductor } = await cargar('i18n/traducir.ts', (s) =>
-  s.replace("import { cadenaDeRespaldo } from './resolver';",
-    "const cadenaDeRespaldo = (l) => (l.startsWith('es') ? ['es', 'en'] : ['en']);"));
+const { crearTraductor } = await cargar('i18n/traducir.ts', (s) => s
+  .replace("import { cadenaDeRespaldo } from './resolver';",
+    "const cadenaDeRespaldo = (l) => (l.startsWith('es') ? ['es', 'en'] : ['en']);")
+  /* Desde la fase 5O el traductor escribe los números con Intl. Se le pone el
+   * mismo formateador que usa de verdad, no uno de mentira: si no, esta prueba
+   * estaría probando un traductor que no formatea y el de la app sí. */
+  .replace("import { formatearNumero } from './formato';",
+    "const formatearNumero = (v, l) => new Intl.NumberFormat(l).format(v);"));
 const DICCIONARIOS = { es: ES, en: EN };
 const tEs = crearTraductor('es', DICCIONARIOS);
 const tEn = crearTraductor('en', DICCIONARIOS);

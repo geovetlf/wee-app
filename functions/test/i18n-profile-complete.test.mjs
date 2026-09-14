@@ -94,11 +94,14 @@ console.log('\n── B · Los dos estados con los que puede abrirse ──');
   check('4) cargando', /\{t\('profile\.loading'\)\}/.test(PERFIL));
   check('5) el error, con su título', /\{t\('profile\.loadFailed'\)\}/.test(PERFIL));
   /*
-   * 6 · El detalle es el que MANDE EL ERROR, si lo trae. La frase del
-   * diccionario es solo el respaldo: lo que diga el servidor se enseña crudo.
+   * 6 · El detalle es el que MANDE EL ERROR, si lo trae, y si no el del
+   * diccionario. Desde la fase 5O lo que manda el contexto es una CLAVE, no una
+   * frase, así que los dos caminos pasan por el traductor y los dos cambian de
+   * idioma en caliente. Se comprueba la pantalla Y quien le da el error.
    */
   check('6) y su detalle, con el respaldo traducido detrás',
-    /\{profileError \|\| t\('profile\.loadFailedDetail'\)\}/.test(PERFIL));
+    /\{t\(profileError \|\| 'profile\.loadFailedDetail'\)\}/.test(PERFIL)
+    && /setError\('profile\.loadFailedDetail'\)/.test(soloCodigo(leer('contexts/UserProfileContext.tsx'))));
   check('7) y el botón de volver', /\{t\('profile\.backToLogin'\)\}/.test(PERFIL));
 
   for (const [clave, es, en] of [

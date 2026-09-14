@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -103,6 +104,7 @@ const MAX_AI_AVATAR_GENERATIONS = 2;
 
 const AiAvatarScreen: React.FC = () => {
   const { theme } = useTheme();
+  const { formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
   const navigation = useNavigation();
@@ -834,7 +836,7 @@ const AiAvatarScreen: React.FC = () => {
                   ? 'No pudimos calcular el costo. Inténtalo de nuevo.'
                   : avatarCost === null
                     ? 'Calculando el costo…'
-                    : `Avatar Weë · ${avatarCost} Credits${walletBalance !== null ? ` · te quedan ${walletBalance.toLocaleString('es')}` : ''}`}
+                    : `Avatar Weë · ${avatarCost} Credits${walletBalance !== null ? ` · te quedan ${formato.numero(walletBalance)}` : ''}`}
               </Text>
 
               {/* Generate button */}

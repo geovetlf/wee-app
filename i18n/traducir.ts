@@ -1,4 +1,5 @@
 import { cadenaDeRespaldo } from './resolver';
+import { formatearNumero } from './formato';
 
 /*
  * EL TRADUCTOR. Entra una clave, sale un texto.
@@ -20,7 +21,13 @@ import { cadenaDeRespaldo } from './resolver';
  *     Escribir eso a mano es garantizar que el ruso salga mal. `Intl` ya sabe
  *     las reglas de todos los idiomas del mundo y viene en el motor.
  *
- * 3 · UNA CLAVE NUNCA SE LE ENSEÑA A NADIE.
+ * 3 · LOS NÚMEROS LOS ESCRIBE `Intl.NumberFormat`, NO `String()`.
+ *     Doce mil cuatrocientos es "12.400" en España, "12,400" en Perú y en
+ *     Estados Unidos, y "12 400" en Francia. El traductor ya sabe el locale, así
+ *     que rellena el hueco con el número bien escrito y ninguna pantalla tiene
+ *     que acordarse. Ojo: esto es OTRA COSA que el plural —ver el punto 2—.
+ *
+ * 4 · UNA CLAVE NUNCA SE LE ENSEÑA A NADIE.
  *     Si una clave no está en ningún diccionario es un fallo del programa, no
  *     del usuario. En desarrollo se ve la clave, para que salte a la vista. En
  *     producción se enseña el último tramo legible, nunca `settings.language`.
@@ -73,12 +80,32 @@ const categoriaDePlural = (locale: string, cantidad: number): string => {
   }
 };
 
-/** Mete los valores en el texto: 'Hola, {{nombre}}' + {nombre:'Ana'}. */
-const rellenar = (texto: string, valores?: Valores): string => {
+/*
+ * LOS HUECOS QUE LLEVAN UN NÚMERO PERO NO UNA CANTIDAD.
+ *
+ * Un año es un número y no se cuenta: 2026 se escribe 2026 en todas partes, y
+ * "2.026" sería un error. La lista es CERRADA y corta a propósito —todo lo
+ * demás: votos, miembros, Credits, segundos, porcentajes, caracteres, sí son
+ * cantidades— y quien añada un hueco nuevo con un año tiene que venir aquí.
+ */
+const NO_SON_CANTIDADES = ['anio', 'year'];
+
+/**
+ * Mete los valores en el texto: 'Hola, {{nombre}}' + {nombre:'Ana'}.
+ *
+ * Un número entra escrito para ese locale; lo que ya llega como texto se pone
+ * tal cual, que es como se cuelan sin tocar los nombres, las marcas y lo que
+ * diga el servidor.
+ */
+const rellenar = (texto: string, locale: string, valores?: Valores): string => {
   if (!valores) return texto;
   return texto.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (entero, nombre) => {
     const valor = valores[nombre];
-    return valor === undefined || valor === null ? entero : String(valor);
+    if (valor === undefined || valor === null) return entero;
+    if (typeof valor === 'number' && !NO_SON_CANTIDADES.includes(nombre)) {
+      return formatearNumero(valor, locale);
+    }
+    return String(valor);
   });
 };
 
@@ -126,7 +153,7 @@ export const crearTraductor = (
     for (const escalon of cadena) {
       for (const candidata of candidatas) {
         const texto = buscar(diccionarios[escalon], candidata);
-        if (texto !== undefined) return rellenar(texto, valores);
+        if (texto !== undefined) return rellenar(texto, locale, valores);
       }
     }
 

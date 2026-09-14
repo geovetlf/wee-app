@@ -183,7 +183,7 @@ const CAMINOS_HOGAR: { optionId: string; clave: string }[] = [
 
 const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, regenerateCredits }) => {
   const { theme } = useTheme();
-  const { t } = useIdioma();
+  const { t, formato } = useIdioma();
   const { isDesktop, isTablet } = useResponsive();
   /*
    * En móvil, el antes y el después van uno encima de otro (fase 2E-63).
@@ -245,7 +245,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   const quickEdits = [t('weeai.makeItRealistic'), t('weeai.changeItsColor'), t('weeai.simpler'), t('weeai.moreStriking')];
 
   /** "· ≈ 9 Credits" para pegar al botón que vuelve a gastar. Vacío si no se sabe. */
-  const precio = regenerateCredits && regenerateCredits > 0 ? ` · ≈ ${regenerateCredits.toLocaleString('es')} Credits` : '';
+  const precio = regenerateCredits && regenerateCredits > 0 ? ` · ≈ ${formato.numero(regenerateCredits)} Credits` : '';
 
   const visuals = job.results.filter((r) => r.url);
 
@@ -378,7 +378,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
         {experienceName} terminó "{job.goal}".
         {job.creditsCharged > 0
-          ? ` Usaste ${job.creditsCharged.toLocaleString('es')} Credits${job.pricingMode === 'simulated' ? ' (precio de prueba)' : ''}.`
+          ? ` Usaste ${formato.numero(job.creditsCharged)} Credits${job.pricingMode === 'simulated' ? ' (precio de prueba)' : ''}.`
           : ' No gastaste Credits.'}
       </Text>
       {!trabajoDeEspacio && bloqueProyecto}

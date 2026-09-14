@@ -181,7 +181,8 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
         }
       } catch (err) {
         console.error('❌ [UserProfileContext] Error loading user profile:', err);
-        setError('Error al cargar el perfil de usuario');
+        /* Una CLAVE, no una frase: la traduce quien la pinta, con el idioma de ese momento. */
+        setError('profile.loadFailedDetail');
         setRealProfile(null);
         setWeeProfileState(null);
         setBizProfileState(null);

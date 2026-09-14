@@ -993,7 +993,15 @@ console.log('\n── Weë Design · la propuesta elegida y lo que cuesta repeti
   check('9) "Crear otra versión" dice lo que cuesta', /`Crear otra versión\$\{precio\}`/.test(tarjeta));
   check('9) y aplicar un cambio también', /`Aplicar\$\{precio\}`/.test(tarjeta));
   check('9) los retoques avisan de que vuelven a crear', /Cada cambio vuelve a crear\$\{precio\}/.test(tarjeta));
-  check('9) sin precio conocido no se inventa ninguno', /regenerateCredits && regenerateCredits > 0 \? ` · ≈ \$\{regenerateCredits\.toLocaleString\('es'\)\} Credits` : ''/.test(tarjeta));
+  /*
+   * Desde la fase 5O la cifra la escribe el formato de Weë, con el locale
+   * activo, en vez de `toLocaleString('es')`, que la escribía siempre a la
+   * española. Lo que esta comprobación defiende sigue siendo lo mismo —sin
+   * precio conocido no se inventa ninguno— y de paso exige que ya no quede el
+   * idioma clavado.
+   */
+  check('9) sin precio conocido no se inventa ninguno', /regenerateCredits && regenerateCredits > 0 \? ` · ≈ \$\{formato\.numero\(regenerateCredits\)\} Credits` : ''/.test(tarjeta)
+    && !/toLocaleString\('es'\)/.test(tarjeta));
 
   // 10) Nada de esto toca a las demás secciones.
   check('10) el precio es opcional: quien no lo pasa no ve nada', /regenerateCredits\?: number;/.test(tarjeta) && !/regenerateCredits: number;/.test(tarjeta));

@@ -100,11 +100,16 @@ export const leerComoSeLee = (ruta, idioma = 'es') =>
  *
  * Una prueba que quiera comprobar un plural no puede escribirse su propia
  * regla: comprobaría su copia, no la de Weë. Aquí se compilan y se ejecutan los
- * tres archivos que hacen falta —`idiomas`, `resolver` y `traducir`— y sale el
- * `crearTraductor` auténtico, con su cadena de respaldo y su `Intl.PluralRules`.
+ * cuatro archivos que hacen falta —`idiomas`, `resolver`, `formato` y
+ * `traducir`— y sale el `crearTraductor` auténtico, con su cadena de respaldo,
+ * su `Intl.PluralRules` y su `Intl.NumberFormat`.
  * Se pegan en un módulo porque una URL `data:` no sabe resolver `./resolver`.
+ *
+ * `formato` entra desde la fase 5O: el traductor escribe los números con el
+ * locale activo, y una prueba que compilara sin él probaría otra cosa.
+ * El orden importa: `formato` usa `partesDelLocale`, que está en `resolver`.
  */
-const MOTOR = ['i18n/idiomas.ts', 'i18n/resolver.ts', 'i18n/traducir.ts'];
+const MOTOR = ['i18n/idiomas.ts', 'i18n/resolver.ts', 'i18n/formato.ts', 'i18n/traducir.ts'];
 let motor;
 const cargarMotor = () => (motor ||= (async () => {
   const ts = createRequire(import.meta.url)('typescript');
