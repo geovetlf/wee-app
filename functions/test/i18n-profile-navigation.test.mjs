@@ -171,10 +171,23 @@ console.log('\n── D · Lo que escribe una persona sigue crudo ──');
    * El nombre visible, el usuario, la biografía y el enlace son de quien mira.
    * Se pintan tal cual: ni traducidos, ni pasados por `t`.
    */
-  for (const campo of ['displayName', 'username', 'bio', 'website']) {
+  for (const campo of ['username', 'bio', 'website']) {
     check('20) ' + campo + ' se pinta crudo',
       !new RegExp("t\\([^)]*userProfile[?.]*\\." + campo).test(PERFIL));
   }
+  /*
+   * Desde la fase 5N el nombre visible SÍ entra en una llamada al traductor —el
+   * mensaje de compartir—, pero entra por HUECO: es un valor, no una clave. Se
+   * comprueba que ese es su único uso y que la frase lo recibe en `{{nombre}}`,
+   * en los dos idiomas.
+   */
+  const usosDelNombre = PERFIL.split('\n').map((l) => l.trim()).filter((l) => /\bt\('/.test(l) && /userProfile\??\.displayName/.test(l));
+  check('20) displayName solo entra en el traductor como valor, nunca como clave',
+    usosDelNombre.length === 1
+    && /t\('profile\.shareMessage', \{ nombre: userProfile\?\.displayName \?\? '' \}\)/.test(usosDelNombre[0])
+    && /\{\{nombre\}\}/.test(esT.profile.shareMessage)
+    && /\{\{nombre\}\}/.test(enT.profile.shareMessage),
+    usosDelNombre.join(' · '));
   check('21) ningún dato del perfil entra en el traductor',
     !/t\(\s*(?:userProfile|tempDisplayName|tempBio|tempWebsite)/.test(PERFIL));
   check('22) el nombre y el usuario siguen saliendo del perfil, sin envoltorio',
@@ -328,9 +341,18 @@ console.log('\n── G · El módulo, cuadrado en los dos idiomas ──');
    * 40 · ES → EN mueve TODAS, y EN → ES las devuelve. Una clave que salga igual
    * en los dos idiomas es una traducción que falta.
    */
+  /*
+   * TRES PALABRAS SE DICEN IGUAL EN LOS DOS IDIOMAS: Media, Reposts y Likes,
+   * los nombres de tres pestañas. La lista es cerrada a propósito: cualquier
+   * OTRA clave que salga igual en español y en inglés es una traducción que
+   * falta, y esto la caza.
+   */
+  const IGUALES = ['tabMedia', 'tabReposts', 'tabLikes'];
   const movidas = clavesEs.filter((k) => ES('profile.' + k) !== EN('profile.' + k));
-  check('40) ES → EN mueve todas las claves', movidas.length === clavesEs.length,
-    clavesEs.filter((k) => !movidas.includes(k)).join(' · '));
+  const quietas = clavesEs.filter((k) => !movidas.includes(k));
+  check('40) ES → EN mueve todas las claves salvo las tres que se dicen igual',
+    quietas.length === IGUALES.length && IGUALES.every((k) => quietas.includes(k)),
+    quietas.join(' · '));
   check('40) y EN → ES las devuelve',
     clavesEs.every((k) => ES('profile.' + k) === esT.profile[k]));
 

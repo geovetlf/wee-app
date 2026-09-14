@@ -140,7 +140,7 @@ const ProfileScreen: React.FC = () => {
         }
       } catch (error) {
         console.error('Error loading user posts:', error);
-        setPostsError('Error al cargar las publicaciones');
+        setPostsError('profile.postsFailed');
       } finally {
         setLoadingPosts(false);
       }
@@ -254,7 +254,7 @@ const ProfileScreen: React.FC = () => {
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          Cargando perfil...
+          {t('profile.loading')}
         </Text>
       </View>
     );
@@ -265,16 +265,16 @@ const ProfileScreen: React.FC = () => {
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
         <Ionicons name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
         <Text style={[styles.errorText, { color: theme.colors.text }]}>
-          Error al cargar el perfil
+          {t('profile.loadFailed')}
         </Text>
         <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>
-          {profileError || 'No se pudo cargar la información del usuario'}
+          {profileError || t('profile.loadFailedDetail')}
         </Text>
         <TouchableOpacity 
           style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
           onPress={() => handleLogout()}
         >
-          <Text style={styles.retryButtonText}>Volver al Login</Text>
+          <Text style={styles.retryButtonText}>{t('profile.backToLogin')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -289,7 +289,7 @@ const ProfileScreen: React.FC = () => {
 
   const handleSaveProfile = async () => {
     if (!tempDisplayName.trim()) {
-      Alert.alert('Error', 'El nombre no puede estar vacío');
+      Alert.alert(t('common.error'), t('profile.nameRequired'));
       return;
     }
 
@@ -303,7 +303,7 @@ const ProfileScreen: React.FC = () => {
       setShowEditModal(false);
       // No mostrar Alert para evitar interferencias con la navegación
     } catch (error) {
-      Alert.alert('Error', 'No se pudo actualizar el perfil');
+      Alert.alert(t('common.error'), t('profile.updateFailed'));
     } finally {
       setUpdating(false);
     }
@@ -318,7 +318,7 @@ const ProfileScreen: React.FC = () => {
       await logout();
     } catch (error) {
       console.error('Error logging out:', error);
-      Alert.alert('Error', 'No se pudo cerrar sesión');
+      Alert.alert(t('common.error'), t('profile.signOutFailed'));
     }
   };
 
@@ -336,7 +336,7 @@ const ProfileScreen: React.FC = () => {
 
     if (!user || !userProfile?.id) {
       console.error('❌ No hay usuario o perfil:', { user: !!user, profileId: userProfile?.id });
-      Alert.alert('Error', 'No hay sesión activa');
+      Alert.alert(t('common.error'), t('profile.noSession'));
       return;
     }
 
@@ -370,7 +370,7 @@ const ProfileScreen: React.FC = () => {
           console.log('📎 Thumbnail URL:', thumbnail?.substring(0, 50));
 
           if (!fullSize) {
-            throw new Error('No se recibió URL de imagen');
+            throw new Error(t('profile.imageUrlMissing'));
           }
 
           updateData.photoURL = fullSize;
@@ -387,7 +387,7 @@ const ProfileScreen: React.FC = () => {
       console.error('❌ Error updating avatar:', error);
       console.error('❌ Error message:', error?.message);
       console.error('❌ Error stack:', error?.stack);
-      Alert.alert('Error', `No se pudo actualizar el avatar: ${error?.message || 'Error desconocido'}`);
+      Alert.alert(t('common.error'), t('profile.avatarUpdateFailed', { motivo: error?.message || t('composer.unknownError') }));
     } finally {
       setUploadingAvatar(false);
     }
@@ -462,7 +462,7 @@ const ProfileScreen: React.FC = () => {
   const handleShareProfile = async () => {
     try {
       await Share.share({
-        message: `Mira el perfil de ${userProfile?.displayName} en Weë`,
+        message: t('profile.shareMessage', { nombre: userProfile?.displayName ?? '' }),
         // url: `https://wee.zone/u/${userProfile?.username || userProfile?.uid}`,
       });
     } catch (error) {
@@ -561,7 +561,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="close" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-            Editar Perfil
+            {t('profile.editTitle')}
           </Text>
           <TouchableOpacity
             onPress={handleSaveProfile}
@@ -572,7 +572,7 @@ const ProfileScreen: React.FC = () => {
               <ActivityIndicator size="small" color={theme.colors.accent} />
             ) : (
               <Text style={[styles.modalSave, { color: theme.colors.accent }]}>
-                Guardar
+                {t('common.save')}
               </Text>
             )}
           </TouchableOpacity>
@@ -587,7 +587,7 @@ const ProfileScreen: React.FC = () => {
         >
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-              Nombre de usuario
+              {t('profile.displayNameLabel')}
             </Text>
             <TextInput
               style={[styles.input, {
@@ -597,18 +597,18 @@ const ProfileScreen: React.FC = () => {
               }]}
               value={tempDisplayName}
               onChangeText={setTempDisplayName}
-              placeholder="Tu nombre de usuario"
+              placeholder={t('profile.displayNamePlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               maxLength={30}
             />
             <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-              {tempDisplayName.length}/30 caracteres
+              {t('profile.charCount', { usados: tempDisplayName.length, maximo: 30 })}
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-              Biografía
+              {t('profile.bioLabel')}
             </Text>
             <TextInput
               style={[styles.input, styles.bioInput, {
@@ -618,19 +618,19 @@ const ProfileScreen: React.FC = () => {
               }]}
               value={tempBio}
               onChangeText={setTempBio}
-              placeholder="Cuéntanos sobre ti..."
+              placeholder={t('profile.bioPlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               multiline
               maxLength={100}
             />
             <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-              {tempBio.length}/100 caracteres
+              {t('profile.charCount', { usados: tempBio.length, maximo: 100 })}
             </Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-              Sitio web
+              {t('profile.websiteLabel')}
             </Text>
             <TextInput
               style={[styles.input, {
@@ -640,7 +640,7 @@ const ProfileScreen: React.FC = () => {
               }]}
               value={tempWebsite}
               onChangeText={setTempWebsite}
-              placeholder="https://tusitio.com"
+              placeholder={t('profile.websitePlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               keyboardType="url"
               autoCapitalize="none"
@@ -648,7 +648,7 @@ const ProfileScreen: React.FC = () => {
               maxLength={100}
             />
             <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-              {tempWebsite.length}/100 caracteres
+              {t('profile.charCount', { usados: tempWebsite.length, maximo: 100 })}
             </Text>
           </View>
         </ScrollView>
@@ -789,7 +789,7 @@ const ProfileScreen: React.FC = () => {
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.posts)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Publicaciones</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
             {/*
@@ -828,7 +828,7 @@ const ProfileScreen: React.FC = () => {
               onPress={handleEditProfile}
               activeOpacity={0.8}
             >
-              <Text style={[styles.editButtonText, { color: theme.colors.text }]}>Editar perfil</Text>
+              <Text style={[styles.editButtonText, { color: theme.colors.text }]}>{t('profile.editProfile')}</Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
@@ -837,7 +837,7 @@ const ProfileScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <Ionicons name="arrow-redo-outline" size={18} color={theme.colors.text} />
-              <Text style={[styles.shareButtonText, { color: theme.colors.text }]}>Compartir</Text>
+              <Text style={[styles.shareButtonText, { color: theme.colors.text }]}>{t('common.share')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.settingsIconButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
@@ -857,7 +857,7 @@ const ProfileScreen: React.FC = () => {
             >
               <Ionicons name="eye-off-outline" size={18} color={theme.colors.accent} />
               <Text style={[styles.weeProfileButtonText, { color: theme.colors.accent }]}>
-                Crear perfil Weë
+                {t('profile.createWeeProfile')}
               </Text>
             </TouchableOpacity>
           )}
@@ -865,10 +865,10 @@ const ProfileScreen: React.FC = () => {
 
         {/* Tabs de filtros simplificados */}
         <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
-          {renderTabButton('posts', 'Publicaciones')}
-          {renderTabButton('media', 'Media')}
-          {renderTabButton('reposts', 'Reposts')}
-          {renderTabButton('likes', 'Likes')}
+          {renderTabButton('posts', t('profile.posts'))}
+          {renderTabButton('media', t('profile.tabMedia'))}
+          {renderTabButton('reposts', t('profile.tabReposts'))}
+          {renderTabButton('likes', t('profile.tabLikes'))}
         </View>
 
         {/* Posts filtrados */}
@@ -877,14 +877,14 @@ const ProfileScreen: React.FC = () => {
             <View style={styles.loadingPosts}>
               <ActivityIndicator size="small" color={theme.colors.accent} />
               <Text style={[styles.loadingPostsText, { color: theme.colors.textSecondary }]}>
-                Cargando publicaciones...
+                {t('profile.loadingPosts')}
               </Text>
             </View>
           ) : postsError ? (
             <View style={styles.errorPosts}>
               <Ionicons name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
               <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>
-                {postsError}
+                {t(postsError)}
               </Text>
               <TouchableOpacity 
                 style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -900,7 +900,7 @@ const ProfileScreen: React.FC = () => {
                       setUserPosts(posts);
                     } catch (error) {
                       console.error('Error loading user posts:', error);
-                      setPostsError('Error al cargar las publicaciones');
+                      setPostsError('profile.postsFailed');
                     } finally {
                       setLoadingPosts(false);
                     }
@@ -908,7 +908,7 @@ const ProfileScreen: React.FC = () => {
                   loadUserPosts();
                 }}
               >
-                <Text style={styles.retryButtonText}>Reintentar</Text>
+                <Text style={styles.retryButtonText}>{t('profile.retry')}</Text>
               </TouchableOpacity>
             </View>
           ) : getFilteredPosts().length > 0 ? (
@@ -933,20 +933,20 @@ const ProfileScreen: React.FC = () => {
                 color={theme.colors.textSecondary}
               />
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-                {
-                  activeTab === 'posts' ? 'Aún no tienes publicaciones' :
-                  activeTab === 'media' ? 'No tienes publicaciones con multimedia' :
-                  activeTab === 'reposts' ? 'No has reposteado nada' :
-                  'No tienes publicaciones que te gusten'
-                }
+                {t(
+                  activeTab === 'posts' ? 'profile.emptyPosts' :
+                  activeTab === 'media' ? 'profile.emptyMedia' :
+                  activeTab === 'reposts' ? 'profile.emptyReposts' :
+                  'profile.emptyLikes'
+                )}
               </Text>
               <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
-                {
-                  activeTab === 'posts' ? '¡Comparte tu primer post!' :
-                  activeTab === 'media' ? 'Crea un post con fotos o videos' :
-                  activeTab === 'reposts' ? 'Comparte contenido de otros usuarios' :
-                  'Dale me gusta a las publicaciones que te interesen'
-                }
+                {t(
+                  activeTab === 'posts' ? 'profile.emptyPostsHint' :
+                  activeTab === 'media' ? 'profile.emptyMediaHint' :
+                  activeTab === 'reposts' ? 'profile.emptyRepostsHint' :
+                  'profile.emptyLikesHint'
+                )}
               </Text>
             </View>
           )}
