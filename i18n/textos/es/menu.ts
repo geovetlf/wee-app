@@ -36,4 +36,5 @@ export const menu = {
   signIn: 'Iniciar sesión',
   hideSpecialists: 'Ocultar especialistas',
   showSpecialists: 'Ver especialistas',
+  signOutConfirm: '¿Quieres salir de Weë?',
 };

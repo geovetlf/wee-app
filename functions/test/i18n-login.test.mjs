@@ -283,10 +283,16 @@ console.log('\n── F · Ni el diseño, ni el teclado, ni la autenticación �
     && /keyboardType="email-address"/.test(LOGIN) && /autoCapitalize="none"/.test(LOGIN)
     && /secureTextEntry=\{!showPassword\}/.test(LOGIN));
 
-  /* CONTROL de fase: no se tocó nada de lo que ya estaba cerrado. */
-  check('23) control: ni utils/notify, ni la cabecera, ni el registro',
-    /confirmLabel = 'Sí'/.test(leer('utils/notify.ts'))
-    && /<Text style=\{styles\.loginButtonText\}>\{t\('menu\.signIn'\)\}<\/Text>/.test(leer('components/Header.tsx'))
+  /*
+   * CONTROL de fase: la cabecera y el registro siguen como estaban. Esta
+   * pantalla comparte `menu.signIn` con la cabecera a propósito, y la de
+   * registro sigue sin migrar, que es otro bloque.
+   *
+   * (`utils/notify.ts` estaba aquí también; se cerró en la fase 5H y lo vigila
+   * ahora `i18n-confirmaciones.test.mjs`.)
+   */
+  check('23) control: ni la cabecera ni el registro se movieron',
+    /<Text style=\{styles\.loginButtonText\}>\{t\('menu\.signIn'\)\}<\/Text>/.test(leer('components/Header.tsx'))
     && /'Crear cuenta'|Registr/.test(leer('screens/RegisterScreen.tsx')));
 }
 

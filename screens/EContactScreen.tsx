@@ -116,7 +116,7 @@ const EContactScreen: React.FC = () => {
   };
 
   const preguntar = async (titulo: string, mensaje: string, identidad: string, hacer: () => Promise<void>) => {
-    if (await confirmAction(titulo, mensaje, 'Sí', true)) await ejecutar(identidad, hacer);
+    if (await confirmAction(titulo, mensaje, t('common.yes'), true, t)) await ejecutar(identidad, hacer);
   };
 
   const abrirPerfil = (identidad: string) => navigation.navigate('UserProfile', { userId: identidad });

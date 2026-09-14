@@ -36,4 +36,5 @@ export const menu: typeof import('../es/menu').menu = {
   signIn: 'Sign in',
   hideSpecialists: 'Hide specialists',
   showSpecialists: 'Show specialists',
+  signOutConfirm: 'Do you want to leave Weë?',
 };

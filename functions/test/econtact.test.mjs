@@ -683,7 +683,10 @@ check('158) si la enviaste tú, "Solicitud enviada"', /etiqueta: 'Solicitud envi
 check('159) si te la enviaron, se puede aceptar', /Aceptar \{nombreLista\}/.test(perfilAjeno) && /econtact\.aceptar/.test(codigoAjeno));
 check('160) y también rechazar', /econtact\.rechazar/.test(codigoAjeno));
 check('161) si ya estáis, el nombre con su ✓', /etiqueta: `\$\{nombreLista\} ✓`/.test(perfilAjeno));
-check('162) y se puede eliminar, preguntando antes', /econtact\.eliminar/.test(codigoAjeno) && /preguntarYHacer\(`Eliminar \$\{nombreLista\}`/.test(perfilAjeno));
+check('162) y se puede eliminar, preguntando antes',
+  /econtact\.eliminar/.test(codigoAjeno)
+  && /preguntarYHacer\(t\('econtact\.removeTitle', \{ lista: nombreLista \}\)/.test(perfilAjeno)
+  && /removeTitle: 'Eliminar \{\{lista\}\}'/.test(read('i18n/textos/es/econtact.ts')));
 check('162b) el nombre sale del hook, no está escrito a mano', /nombreLista \} = econtact/.test(codigoAjeno) && !/'\+ ËContact'|'ËContact ✓'/.test(codigoAjeno));
 check('163) los cuatro estados están cubiertos', ['ninguno', 'pendiente-enviada', 'pendiente-recibida', 'conectados'].every((e) => codigoAjeno.includes(e)));
 check('164) ya no aparece "Seguir" ni "Siguiendo"', !/'Seguir'|"Seguir"|'Siguiendo'|"Siguiendo"/.test(codigoAjeno));

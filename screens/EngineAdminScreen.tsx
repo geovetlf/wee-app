@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { aiEngineService, EngineStatus, isPermissionDenied } from '../services/aiEngineService';
 import { notify, confirmAction } from '../utils/notify';
@@ -22,6 +23,7 @@ const POLICIES = ['quality-first', 'balanced', 'cost-first'] as const;
  * salud, modelos, cadenas de fallback y ajustes. Solo administración.
  */
 const EngineAdminScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -75,7 +77,7 @@ const EngineAdminScreen: React.FC = () => {
   };
 
   const seed = async () => {
-    const ok = await confirmAction('Sembrar valores por defecto', 'Escribe en Firestore los proveedores, cadenas y ajustes por defecto que aún no existan. No borra nada.', 'Sembrar');
+    const ok = await confirmAction(t('settings.seedDefaults'), t('settings.seedDefaultsConfirm'), t('settings.seed'), false, t);
     if (!ok) return;
     await run('seed', () => aiEngineService.seedDefaults(false), 'Valores por defecto guardados en Firestore.');
   };

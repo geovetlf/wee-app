@@ -27,4 +27,5 @@ export const econtact: typeof import('../es/econtact').econtact = {
   failed: 'That did not work',
   count_one: '1 {{lista}}',
   count_other: '{{contador}} {{lista}}',
+  somePerson: 'this person',
 };

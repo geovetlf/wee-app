@@ -148,14 +148,17 @@ console.log('\n── D · Nada más se movió ──');
     /getRelativeTime\(last\.timestamp\.toDate\(\), locale\)/.test(BANDEJA));
 
   /*
-   * 18 · `utils/notify.ts` NO SE TOCÓ. Sus dos botones por defecto —"Sí" y
-   * "Cancelar"— son de una infraestructura que usan varias pantallas y tienen
-   * su propio bloque. Aquí se comprueba que siguen exactamente como estaban.
+   * 18 · `utils/notify.ts` SE CERRÓ DESPUÉS, en la fase 5H, y con sus cinco
+   * llamantes a la vez: traducir solo sus botones habría dejado diálogos a
+   * medias. Lo que esta línea defendía —que la utilidad sigue siendo PURA, sin
+   * React ni contexto dentro— sigue en pie y se comprueba igual; se le añade
+   * que ya no escribe español y que el traductor entra por parámetro.
    */
   const aviso = leer('utils/notify.ts');
-  check('18) utils/notify.ts sigue intacto',
-    /confirmLabel = 'Sí'/.test(aviso) && /\{ text: 'Cancelar', style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(aviso)
-    && !/useT|IdiomaContext|t\('/.test(aviso));
+  check('18) utils/notify.ts sigue siendo una utilidad pura, y ya sin español',
+    !/'Sí'|'Cancelar'/.test(aviso)
+    && /t: Traducir,/.test(aviso) && /t\('common\.cancel'\)/.test(aviso)
+    && !/useT\(|IdiomaContext|from 'react'/.test(aviso));
 
   /* Y esta fase no se montó nada paralelo. */
   check('18) sin sistemas paralelos de traducción',

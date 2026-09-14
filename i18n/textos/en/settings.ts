@@ -24,4 +24,7 @@ export const settings: typeof import('../es/settings').settings = {
   signOut: 'Sign out',
   signOutFailed: 'We could not sign you out',
   engineAdmin: 'Weë AI Engine',
+  seedDefaults: 'Seed default values',
+  seedDefaultsConfirm: 'Writes into Firestore the default providers, chains and settings that do not exist yet. It deletes nothing.',
+  seed: 'Seed',
 };

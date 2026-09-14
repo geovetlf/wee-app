@@ -86,7 +86,7 @@ const SettingsScreen: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    const ok = await confirmAction('Cerrar sesión', '¿Quieres salir de Weë?', 'Cerrar sesión', true);
+    const ok = await confirmAction(t('settings.signOut'), t('menu.signOutConfirm'), t('settings.signOut'), true, t);
     if (!ok) return;
     try {
       // Navegar al root antes de hacer logout para evitar errores

@@ -27,4 +27,5 @@ export const common = {
   guest: 'Invitado',
   anonymousUser: 'Usuario Anónimo',
   user: 'Usuario',
+  yes: 'Sí',
 };

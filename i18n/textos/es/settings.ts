@@ -24,4 +24,7 @@ export const settings = {
   signOut: 'Cerrar sesión',
   signOutFailed: 'No pudimos cerrar la sesión',
   engineAdmin: 'Weë AI Engine',
+  seedDefaults: 'Sembrar valores por defecto',
+  seedDefaultsConfirm: 'Escribe en Firestore los proveedores, cadenas y ajustes por defecto que aún no existan. No borra nada.',
+  seed: 'Sembrar',
 };

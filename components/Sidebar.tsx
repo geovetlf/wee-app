@@ -123,7 +123,7 @@ const Sidebar: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    const ok = await confirmAction('Cerrar sesión', '¿Quieres salir de Weë?', 'Cerrar sesión', true);
+    const ok = await confirmAction(t('menu.signOut'), t('menu.signOutConfirm'), t('menu.signOut'), true, t);
     if (!ok) return;
     try {
       await logout();

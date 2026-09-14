@@ -18,6 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById, updateUserCache } from '../hooks/useUserById';
@@ -41,6 +42,7 @@ type UserProfileScreenRouteProp = RouteProp<MainStackParamList, 'UserProfile'>;
 type UserProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, 'UserProfile'>;
 
 const UserProfileScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: currentUserProfile, updateLocalProfile } = useUserProfile();
@@ -273,7 +275,7 @@ const UserProfileScreen: React.FC = () => {
    * Ninguna de estas acciones escribe contadores: no hay contadores que escribir.
    */
   const preguntarYHacer = async (titulo: string, mensaje: string, hacer: () => Promise<void>) => {
-    if (await confirmAction(titulo, mensaje, 'Sí', true)) {
+    if (await confirmAction(titulo, mensaje, t('common.yes'), true, t)) {
       try {
         await hacer();
       } catch (error) {
@@ -293,6 +295,8 @@ const UserProfileScreen: React.FC = () => {
   const renderEContact = () => {
     const { estado, trabajando, cargando, disponible, nombreLista } = econtact;
     const nombrePlural = `${nombreLista}s`;
+    /* Su nombre, tal y como lo escribió. Si todavía no cargó, se dice de otra forma. */
+    const quien = userProfile?.displayName || t('econtact.somePerson');
 
     /*
      * ËContact es entre personas y contra su cuenta. Si esta identidad no lleva
@@ -333,7 +337,7 @@ const UserProfileScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.messageButton, { borderColor: theme.colors.border }]}
             onPress={() =>
-              preguntarYHacer('Rechazar solicitud', `¿Rechazar la solicitud de ${userProfile?.displayName || "esta persona"}?`, econtact.rechazar)
+              preguntarYHacer(t('econtact.rejectTitle'), t('econtact.rejectConfirm', { nombre: quien }), econtact.rechazar)
             }
             activeOpacity={0.8}
             disabled={trabajando}
@@ -358,14 +362,14 @@ const UserProfileScreen: React.FC = () => {
         icono: 'time-outline' as const,
         relleno: false,
         onPress: () =>
-          preguntarYHacer('Retirar solicitud', `¿Retirar tu solicitud a ${userProfile?.displayName || "esta persona"}?`, econtact.cancelar),
+          preguntarYHacer(t('econtact.withdrawTitle'), t('econtact.withdrawConfirm', { nombre: quien }), econtact.cancelar),
       },
       conectados: {
         etiqueta: `${nombreLista} ✓`,
         icono: 'people' as const,
         relleno: false,
         onPress: () =>
-          preguntarYHacer(`Eliminar ${nombreLista}`, `¿Eliminar a ${userProfile?.displayName || "esta persona"} de tus ${nombrePlural}?`, econtact.eliminar),
+          preguntarYHacer(t('econtact.removeTitle', { lista: nombreLista }), t('econtact.removeConfirm', { nombre: quien, lista: nombrePlural }), econtact.eliminar),
       },
     }[estado];
 
