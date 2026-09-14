@@ -679,7 +679,10 @@ check('156) y no llama a followsService para personas', !/followsService|toggleF
  * veces.
  */
 check('157) sin relación se ofrece "+ " y el nombre de tu agenda', /etiqueta: `\+ \$\{nombreLista\}`/.test(perfilAjeno));
-check('158) si la enviaste tú, "Solicitud enviada"', /etiqueta: 'Solicitud enviada'/.test(perfilAjeno));
+check('158) si la enviaste tú, "Solicitud enviada"',
+  /etiqueta: t\('econtact\.requestSent'\),/.test(perfilAjeno)
+  && /requestSent: 'Solicitud enviada'/.test(read('i18n/textos/es/econtact.ts'))
+  && /requestSent: 'Request sent'/.test(read('i18n/textos/en/econtact.ts')));
 check('159) si te la enviaron, se puede aceptar', /Aceptar \{nombreLista\}/.test(perfilAjeno) && /econtact\.aceptar/.test(codigoAjeno));
 check('160) y también rechazar', /econtact\.rechazar/.test(codigoAjeno));
 check('161) si ya estáis, el nombre con su ✓', /etiqueta: `\$\{nombreLista\} ✓`/.test(perfilAjeno));

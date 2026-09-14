@@ -323,7 +323,7 @@ const UserProfileScreen: React.FC = () => {
             activeOpacity={0.8}
             disabled={trabajando}
             accessibilityRole="button"
-            accessibilityLabel={`Aceptar ${nombreLista}`}
+            accessibilityLabel={t('econtact.acceptLabel', { lista: nombreLista })}
           >
             {trabajando ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -342,7 +342,7 @@ const UserProfileScreen: React.FC = () => {
             activeOpacity={0.8}
             disabled={trabajando}
             accessibilityRole="button"
-            accessibilityLabel={`Rechazar solicitud de ${nombreLista}`}
+            accessibilityLabel={t('econtact.rejectRequestLabel', { lista: nombreLista })}
           >
             <Ionicons name="close" size={20} color={theme.colors.text} />
           </TouchableOpacity>
@@ -358,7 +358,7 @@ const UserProfileScreen: React.FC = () => {
         onPress: () => intentar(econtact.solicitar),
       },
       'pendiente-enviada': {
-        etiqueta: 'Solicitud enviada',
+        etiqueta: t('econtact.requestSent'),
         icono: 'time-outline' as const,
         relleno: false,
         onPress: () =>

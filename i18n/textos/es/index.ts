@@ -32,9 +32,11 @@ import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
 import { auth } from './auth';
+import { engine } from './engine';
 export const es = {
   common,
   auth,
+  engine,
   nav,
   menu,
   creator,

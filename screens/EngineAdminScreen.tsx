@@ -14,8 +14,14 @@ import { scale } from '../utils/scale';
 
 export const ENGINE_ADMIN_FLAG = 'wee.engine.admin';
 
-const MODALITY_LABEL: Record<string, string> = { text: 'texto', vision: 'visión', image: 'imagen', video: 'video', voice: 'voz', music: 'música', doc: 'documentos' };
-const POLICY_LABEL: Record<string, string> = { 'quality-first': 'Calidad primero', balanced: 'Equilibrado', 'cost-first': 'Coste primero' };
+const MODALITY_CLAVE: Record<string, string> = {
+  text: 'engine.modalityText', vision: 'engine.modalityVision', image: 'engine.modalityImage',
+  video: 'engine.modalityVideo', voice: 'engine.modalityVoice', music: 'engine.modalityMusic',
+  doc: 'engine.modalityDoc',
+};
+const POLICY_CLAVE: Record<string, string> = {
+  'quality-first': 'engine.policyQualityFirst', balanced: 'engine.policyBalanced', 'cost-first': 'engine.policyCostFirst',
+};
 const POLICIES = ['quality-first', 'balanced', 'cost-first'] as const;
 
 /**
@@ -46,7 +52,7 @@ const EngineAdminScreen: React.FC = () => {
       } catch {}
     } catch (e) {
       if (isPermissionDenied(e)) setDenied(true);
-      else setError('No pude leer el estado del engine. ¿Está encendido el servidor?');
+      else setError(t('engine.statusFailed'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +69,7 @@ const EngineAdminScreen: React.FC = () => {
       if (done) notify(done);
       await load();
     } catch (e) {
-      notify('No se pudo aplicar el cambio', e instanceof Error ? e.message : String(e));
+      notify(t('engine.changeFailed'), e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
     }
@@ -79,7 +85,7 @@ const EngineAdminScreen: React.FC = () => {
   const seed = async () => {
     const ok = await confirmAction(t('settings.seedDefaults'), t('settings.seedDefaultsConfirm'), t('settings.seed'), false, t);
     if (!ok) return;
-    await run('seed', () => aiEngineService.seedDefaults(false), 'Valores por defecto guardados en Firestore.');
+    await run('seed', () => aiEngineService.seedDefaults(false), t('engine.seedDone'));
   };
 
   const card = { backgroundColor: theme.colors.card, borderColor: theme.colors.border };
@@ -87,11 +93,12 @@ const EngineAdminScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingTop: isDesktop ? SPACING.md : insets.top + SPACING.sm }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel="Volver">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('home.back')}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
+        {/* "Weë AI Engine" es el nombre del motor: marca, no se traduce. */}
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Weë AI Engine</Text>
-        <TouchableOpacity onPress={load} style={styles.backButton} activeOpacity={0.7} accessibilityLabel="Actualizar">
+        <TouchableOpacity onPress={load} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('engine.refresh')}>
           <Ionicons name="refresh" size={scale(22)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
@@ -101,9 +108,9 @@ const EngineAdminScreen: React.FC = () => {
           <ActivityIndicator color={theme.colors.accent} style={{ marginTop: SPACING.xl }} />
         ) : denied ? (
           <View style={[styles.card, card]}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>Solo administración</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{t('engine.adminOnly')}</Text>
             <Text style={[styles.text, { color: theme.colors.textSecondary }]}>
-              Este panel es para el equipo de Weë. Si eres parte del equipo, pide que añadan tu cuenta como administradora.
+              {t('engine.adminOnlyNote')}
             </Text>
           </View>
         ) : error ? (
@@ -114,32 +121,47 @@ const EngineAdminScreen: React.FC = () => {
           <>
             {/* Ajustes */}
             <View style={[styles.card, card]}>
-              <Text style={[styles.title, { color: theme.colors.text }]}>Ajustes</Text>
+              <Text style={[styles.title, { color: theme.colors.text }]}>{t('engine.settingsTitle')}</Text>
+              {/*
+                La línea entera viene del diccionario con sus huecos: las cifras
+                y el nombre de la política entran dentro, y así cada idioma la
+                ordena como le toque en vez de pegar seis trozos a mano.
+              */}
               <Text style={[styles.text, { color: theme.colors.textSecondary }]}>
-                Precios: {status.settings.pricingMode === 'simulated' ? 'de prueba' : 'reales'} · {status.settings.creditsPerUsd} Credits por USD · margen {Math.round(status.settings.margin * 100)} % · política {POLICY_LABEL[status.settings.defaultPolicy] || status.settings.defaultPolicy} · modo demo como último recurso: {status.settings.allowMockFallback ? 'sí' : 'no'}
+                {t('engine.settingsLine', {
+                  precios: t(status.settings.pricingMode === 'simulated' ? 'engine.pricesTest' : 'engine.pricesReal'),
+                  credits: status.settings.creditsPerUsd,
+                  margen: Math.round(status.settings.margin * 100),
+                  politica: POLICY_CLAVE[status.settings.defaultPolicy] ? t(POLICY_CLAVE[status.settings.defaultPolicy]) : status.settings.defaultPolicy,
+                  demo: t(status.settings.allowMockFallback ? 'engine.yes' : 'engine.no'),
+                })}
               </Text>
+              {/* El nombre de las colecciones de Firestore se copia tal cual: es técnico. */}
               <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>
-                Configuración leída de {status.source === 'firestore' ? 'Firestore (aiProviders · aiRouting · aiSettings)' : 'los valores por defecto del código'}.
+                {t('engine.configFrom', {
+                  origen: status.source === 'firestore' ? 'Firestore (aiProviders · aiRouting · aiSettings)' : t('engine.sourceDefaults'),
+                })}
               </Text>
               <View style={styles.actions}>
-                <TouchableOpacity onPress={seed} disabled={busy !== null} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Sembrar valores por defecto">
-                  <Text style={styles.buttonText}>{busy === 'seed' ? '…' : 'Sembrar valores por defecto'}</Text>
+                <TouchableOpacity onPress={seed} disabled={busy !== null} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('settings.seedDefaults')}>
+                  <Text style={styles.buttonText}>{busy === 'seed' ? '…' : t('settings.seedDefaults')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => run('health', () => aiEngineService.resetHealth(), 'Salud reiniciada.')} disabled={busy !== null} style={[styles.buttonGhost, { borderColor: theme.colors.border }]} activeOpacity={0.85} accessibilityLabel="Reiniciar salud">
-                  <Text style={[styles.buttonGhostText, { color: theme.colors.text }]}>Reiniciar salud</Text>
+                <TouchableOpacity onPress={() => run('health', () => aiEngineService.resetHealth(), t('engine.healthReset'))} disabled={busy !== null} style={[styles.buttonGhost, { borderColor: theme.colors.border }]} activeOpacity={0.85} accessibilityLabel={t('engine.resetHealth')}>
+                  <Text style={[styles.buttonGhostText, { color: theme.colors.text }]}>{t('engine.resetHealth')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Proveedores */}
-            <Text style={[styles.section, { color: theme.colors.text }]}>Proveedores</Text>
+            <Text style={[styles.section, { color: theme.colors.text }]}>{t('engine.providers')}</Text>
             {status.providers.map((p) => (
               <View key={p.id} style={[styles.card, card]}>
                 <View style={styles.row}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.title, { color: theme.colors.text }]}>{p.name}</Text>
+                    {/* El nombre del proveedor es de quien lo hizo y se copia tal cual. */}
                     <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>
-                      {p.modalities.map((m) => MODALITY_LABEL[m] || m).join(' · ')} · prioridad {p.priority}
+                      {p.modalities.map((m) => (MODALITY_CLAVE[m] ? t(MODALITY_CLAVE[m]) : m)).join(' · ')} · {t('engine.priority', { numero: p.priority })}
                     </Text>
                   </View>
                   <Switch
@@ -148,43 +170,46 @@ const EngineAdminScreen: React.FC = () => {
                     disabled={busy !== null || p.id === 'mock'}
                     trackColor={{ false: theme.colors.border, true: theme.colors.accent + '66' }}
                     thumbColor={p.enabled ? theme.colors.accent : theme.colors.textSecondary}
-                    accessibilityLabel={`${p.enabled ? 'Desactivar' : 'Activar'} ${p.name}`}
+                    accessibilityLabel={t(p.enabled ? 'engine.disable' : 'engine.enable', { proveedor: p.name })}
                   />
                 </View>
                 <View style={styles.badges}>
-                  <Text style={[styles.badge, p.configured ? styles.badgeOk : styles.badgeOff]}>{p.configured ? 'con clave' : 'sin clave'}</Text>
-                  <Text style={[styles.badge, p.enabled ? styles.badgeOk : styles.badgeOff]}>{p.enabled ? 'activo' : 'inactivo'}</Text>
-                  {p.health?.openUntil && p.health.openUntil > Date.now() ? <Text style={[styles.badge, styles.badgeWarn]}>en pausa por fallos</Text> : null}
-                  {p.health?.failures ? <Text style={[styles.badge, styles.badgeWarn]}>{p.health.failures} fallo(s) recientes</Text> : null}
+                  <Text style={[styles.badge, p.configured ? styles.badgeOk : styles.badgeOff]}>{t(p.configured ? 'engine.withKey' : 'engine.withoutKey')}</Text>
+                  <Text style={[styles.badge, p.enabled ? styles.badgeOk : styles.badgeOff]}>{t(p.enabled ? 'engine.active' : 'engine.inactive')}</Text>
+                  {p.health?.openUntil && p.health.openUntil > Date.now() ? <Text style={[styles.badge, styles.badgeWarn]}>{t('engine.pausedByFailures')}</Text> : null}
+                  {/* Uno o varios: lo decide Intl.PluralRules, no un "(s)" pegado. */}
+                  {p.health?.failures ? <Text style={[styles.badge, styles.badgeWarn]}>{t('engine.recentFailures', { contador: p.health.failures })}</Text> : null}
                 </View>
                 {p.note ? <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{p.note}</Text> : null}
+                {/* El id del modelo y su coste vienen del motor: se copian. */}
                 {p.models.map((m) => (
                   <Text key={m.id} style={[styles.model, { color: theme.colors.textSecondary }]}>
-                    • {m.id} · calidad {m.quality}/5 · velocidad {m.speed}/5 · {m.cost}
-                    {m.maxDurationSec ? ` · hasta ${m.maxDurationSec} s` : ''}
-                    {m.verified ? '' : ' · pendiente de verificar'}
+                    {t('engine.modelLine', { id: m.id, calidad: m.quality, velocidad: m.speed, coste: m.cost })}
+                    {m.maxDurationSec ? t('engine.upToSeconds', { segundos: m.maxDurationSec }) : ''}
+                    {m.verified ? '' : t('engine.pendingVerification')}
                   </Text>
                 ))}
               </View>
             ))}
 
             {/* Cadenas */}
-            <Text style={[styles.section, { color: theme.colors.text }]}>Cadenas de fallback</Text>
+            <Text style={[styles.section, { color: theme.colors.text }]}>{t('engine.chains')}</Text>
             {status.routing.map((r) => (
               <View key={r.capability} style={[styles.card, card]}>
                 <View style={styles.row}>
                   <Text style={[styles.capability, { color: theme.colors.text }]}>{r.capability}</Text>
-                  <TouchableOpacity onPress={() => cyclePolicy(r.capability, r.policy)} disabled={busy !== null} style={[styles.chip, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + '1A' }]} activeOpacity={0.8} accessibilityLabel={`Política de ${r.capability}: ${POLICY_LABEL[r.policy]}`}>
-                    <Text style={[styles.chipText, { color: theme.colors.accentDark }]}>{POLICY_LABEL[r.policy] || r.policy}</Text>
+                  {/* `capability` es un identificador del motor: entra por hueco, sin traducir. */}
+                  <TouchableOpacity onPress={() => cyclePolicy(r.capability, r.policy)} disabled={busy !== null} style={[styles.chip, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + '1A' }]} activeOpacity={0.8} accessibilityLabel={t('engine.policyLabel', { capacidad: r.capability, politica: POLICY_CLAVE[r.policy] ? t(POLICY_CLAVE[r.policy]) : r.policy })}>
+                    <Text style={[styles.chipText, { color: theme.colors.accentDark }]}>{POLICY_CLAVE[r.policy] ? t(POLICY_CLAVE[r.policy]) : r.policy}</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.text, { color: theme.colors.textSecondary }]}>
-                  {r.chain.length ? r.chain.map((l) => l.provider + (l.model ? ` (${l.model})` : '')).join('  →  ') + '  →  demo' : 'solo modo demo (sin proveedor real todavía)'}
+                  {r.chain.length ? r.chain.map((l) => l.provider + (l.model ? ` (${l.model})` : '')).join('  →  ') + '  →  demo' : t('engine.onlyDemo')}
                 </Text>
               </View>
             ))}
             <Text style={[styles.meta, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
-              Para cambiar el orden de una cadena o fijar un modelo, edita aiRouting/{'{capacidad}'} en Firestore o usa engineAdmin · setRouting.
+              {t('engine.editNote', { capacidad: '{capacidad}' })}
             </Text>
           </>
         ) : null}

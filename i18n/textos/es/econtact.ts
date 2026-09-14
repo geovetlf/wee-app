@@ -28,4 +28,7 @@ export const econtact = {
   count_one: '1 {{lista}}',
   count_other: '{{contador}} {{lista}}',
   somePerson: 'esta persona',
+  acceptLabel: 'Aceptar {{lista}}',
+  rejectRequestLabel: 'Rechazar solicitud de {{lista}}',
+  requestSent: 'Solicitud enviada',
 };

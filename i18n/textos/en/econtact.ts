@@ -28,4 +28,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   count_one: '1 {{lista}}',
   count_other: '{{contador}} {{lista}}',
   somePerson: 'this person',
+  acceptLabel: 'Accept {{lista}}',
+  rejectRequestLabel: 'Decline {{lista}} request',
+  requestSent: 'Request sent',
 };
