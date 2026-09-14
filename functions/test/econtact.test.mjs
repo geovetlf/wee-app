@@ -714,7 +714,18 @@ check('168) ni Siguiendo', !/Siguiendo/.test(codigoPropio) && !/userProfile\.fol
  * identidad, nunca la suma de las dos caras.
  */
 check('169) muestra el nombre de la agenda activa, no un literal', /\{misEcontacts\.nombrePlural\}/.test(perfilPropio) && !/>ËContacts</.test(codigoPropio));
-check('169b) y su etiqueta de accesibilidad también', /Ver mis \$\{misEcontacts\.nombrePlural\}/.test(perfilPropio));
+/*
+ * Desde la fase 5M la etiqueta sale del diccionario, pero defiende lo mismo: el
+ * nombre de la agenda activa entra por HUECO, así que sigue siendo el de la
+ * identidad puesta y no una marca congelada en la frase. Se mira la llamada Y
+ * la frase de los dos idiomas, que es donde podría colarse el literal.
+ */
+check('169b) y su etiqueta de accesibilidad también',
+  /accessibilityLabel=\{t\('profile\.viewMyEcontacts', \{ nombre: misEcontacts\.nombrePlural, total: misEcontacts\.total \}\)\}/.test(perfilPropio)
+  && ['es', 'en'].every((idioma) => {
+    const frase = read(`i18n/textos/${idioma}/profile.ts`).match(/^ {2}viewMyEcontacts: '(.*)',$/m)?.[1];
+    return !!frase && frase.includes('{{nombre}}') && !/[ËẄ]Contacts/.test(frase);
+  }));
 check('170) con el número de conexiones aceptadas', /misEcontacts\.total/.test(codigoPropio) && /useMisEContacts\(\)/.test(codigoPropio));
 check('171) y es pulsable: abre ËContact', /onPress=\{irAEContact\}/.test(codigoPropio) && /navigate\('EContact'\)/.test(codigoPropio));
 check('172) subiendo hasta el navegador que la tiene', /getParent\(\)[\s\S]{0,120}getParent\(\)[\s\S]{0,160}navigate\('EContact'\)/.test(codigoPropio));

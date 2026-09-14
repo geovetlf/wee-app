@@ -34,11 +34,13 @@ import { projects } from './projects';
 import { auth } from './auth';
 import { engine } from './engine';
 import { communities } from './communities';
+import { profile } from './profile';
 export const es = {
   common,
   auth,
   engine,
   communities,
+  profile,
   nav,
   menu,
   creator,

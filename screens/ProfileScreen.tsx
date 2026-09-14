@@ -22,6 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { uploadProfileImageFromUri, uploadBannerImageFromUri } from '../services/storageService';
@@ -44,6 +45,7 @@ const BANNER_HEIGHT = 180;
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileMain'>;
 
 const ProfileScreen: React.FC = () => {
+  const t = useT();
   const { theme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
   const { userProfile, loading: profileLoading, error: profileError, updateProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
@@ -432,7 +434,7 @@ const ProfileScreen: React.FC = () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permisos', 'Se necesitan permisos para acceder a la galería');
+        Alert.alert(t('profile.permissionsTitle'), t('profile.galleryPermission'));
         return;
       }
 
@@ -450,7 +452,7 @@ const ProfileScreen: React.FC = () => {
       await updateProfile({ bannerURL: fullSize });
     } catch (error) {
       console.error('Error uploading banner:', error);
-      Alert.alert('Error', 'No se pudo subir la imagen de portada');
+      Alert.alert(t('common.error'), t('profile.coverUploadFailed'));
     } finally {
       setUploadingBanner(false);
     }
@@ -686,7 +688,7 @@ const ProfileScreen: React.FC = () => {
             <View style={[styles.bannerPlaceholder, { backgroundColor: theme.colors.surface }]}>
               <Ionicons name="camera-outline" size={32} color={theme.colors.textSecondary} />
               <Text style={[styles.bannerPlaceholderText, { color: theme.colors.textSecondary }]}>
-                Agregar portada
+                {t('profile.addCover')}
               </Text>
             </View>
           )}
@@ -808,7 +810,7 @@ const ProfileScreen: React.FC = () => {
               onPress={irAEContact}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel={`Ver mis ${misEcontacts.nombrePlural}, ${misEcontacts.total}`}
+              accessibilityLabel={t('profile.viewMyEcontacts', { nombre: misEcontacts.nombrePlural, total: misEcontacts.total })}
             >
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {misEcontacts.cargando ? '…' : formatNumber(misEcontacts.total)}

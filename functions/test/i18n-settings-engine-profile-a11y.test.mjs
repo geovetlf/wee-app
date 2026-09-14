@@ -101,8 +101,18 @@ console.log('\n── B · El botón de aceptar del perfil ajeno ──');
    */
   check('9) el texto y la etiqueta salen de econtact.acceptLabel',
     (PERFIL.match(/t\('econtact\.acceptLabel', \{ lista: nombreLista \}\)/g) || []).length === 2);
+  /*
+   * Desde la fase 5M existe un módulo `profile`, pero es el de la pantalla del
+   * perfil PROPIO —la portada— y no tiene nada que ver con este botón. Lo que
+   * esta comprobación defiende es lo de siempre, y ahora mirando más lejos: que
+   * nadie se inventó una clave para el botón de aceptar en NINGÚN módulo, y que
+   * este perfil ajeno no va a buscar textos al módulo del perfil propio.
+   */
+  const INVENTADAS = ['acceptText', 'acceptButton', 'acceptEcontact', 'acceptList', 'acceptAgenda'];
+  const coladas = Object.entries(esT).flatMap(([modulo, m]) =>
+    Object.keys(m).filter((k) => INVENTADAS.includes(k)).map((k) => modulo + '.' + k));
   check('9) y no se creó ninguna clave nueva para esto',
-    !esT.econtact?.acceptText && !esT.profile && !esT.econtact?.acceptButton);
+    coladas.length === 0 && !/t\('profile\./.test(PERFIL), coladas.join(' · '));
 
   /* 10 y 11 · Lo que se lee en cada idioma. */
   check('10) en español: ' + ES('econtact.acceptLabel', { lista: 'ËContact' }),

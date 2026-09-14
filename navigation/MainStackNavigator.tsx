@@ -18,6 +18,7 @@ import CreateScreen from '../screens/CreateScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import CommunityScreen from '../screens/CommunityScreen';
+import CommunitiesManagementScreen from '../screens/CommunitiesManagementScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -54,6 +55,7 @@ export type MainStackParamList = {
   Idioma: undefined;
   Help: { section?: 'faq' | 'legal' } | undefined;
   EngineAdmin: undefined;
+  CommunitiesManagement: undefined;
   Search: { query?: string } | undefined;
   /**
    * `prefill.media` es lo que trae quien llega desde un resultado de Weë: la
@@ -326,6 +328,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
+      <Stack.Screen name="CommunitiesManagement" component={CommunitiesManagementScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
       <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
       <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
