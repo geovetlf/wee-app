@@ -240,8 +240,9 @@ console.log('\n── F · Nada más se movió ──');
     /onPress=\{\(\) => goHome\('Landing'\)\}/.test(C.lateral)
     && /navigation\.navigate\('WeeCreator'\)/.test(C.lateral)
     && /onPress=\{handleLogout\}/.test(C.lateral) && /onPress=\{requireLogin\}/.test(C.lateral));
+  /* Del catálogo salen las DOS cosas de una opción: su dibujo y su clave de texto. */
   check('27) y sus opciones siguen saliendo de MENU_ITEM',
-    /MENU_ITEM\[id\]\.emoji/.test(C.lateral));
+    /MENU_ITEM\[id\]\.icono/.test(C.lateral) && /t\(MENU_ITEM\[id\]\.clave\)/.test(C.lateral));
 
   /* La columna derecha: mismo destino, mismo pie. */
   check('28) control: la columna derecha sigue llevando a Weë AI',

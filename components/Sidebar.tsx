@@ -11,6 +11,8 @@ import AvatarDisplay from './avatars/AvatarDisplay';
 import CreateSheet, { CreateKind } from './CreateSheet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
+import { IconoWee } from './icons/IconoWee';
+import { NombreDeIcono } from './icons/trazosDeWee';
 import { useIdentidadActiva } from '../hooks/useEContact';
 import { useWallet } from '../hooks/useWallet';
 import { confirmAction } from '../utils/notify';
@@ -19,7 +21,16 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 const isWeb = Platform.OS === 'web';
 
 interface SidebarItemProps {
-  emoji: string;
+  /** El icono dibujado de Weë, de `components/icons/trazosDeWee`. Lo normal. */
+  icono?: NombreDeIcono;
+  /**
+   * El emoji de antes, solo para lo que todavía no tiene dibujo propio.
+   *
+   * Hoy es una sola fila —Buscar, que además solo existe en escritorio porque
+   * en el móvil la da la barra inferior—: `trazosDeWee` no tiene lupa y aquí
+   * no se inventa ninguna. El día que la tenga, este campo se va.
+   */
+  emoji?: string;
   label: string;
   active?: boolean;
   nested?: boolean;
@@ -30,10 +41,13 @@ interface SidebarItemProps {
 /**
  * Una opción del menú, con su nombre y su icono tomados de la fuente única.
  *
- * Se escribe `<Opcion id="credits" …/>` en lugar de repetir aquí el emoji y la
+ * Se escribe `<Opcion id="credits" …/>` en lugar de repetir aquí el icono y la
  * etiqueta: es lo que impide que la barra de escritorio y el cajón del ☰ vuelvan
  * a llamar distinto a lo mismo. `label` solo se pasa cuando el texto cambia por
  * el estado de la persona ("Crear mi perfil Weë").
+ *
+ * El icono sale del mismo campo que lee el cajón, así que los dos menús no
+ * pueden volver a enseñar dibujos distintos para la misma opción.
  */
 const Opcion: React.FC<{
   id: MenuItemId;
@@ -44,11 +58,18 @@ const Opcion: React.FC<{
   label?: string;
 }> = ({ id, label, ...resto }) => {
   const t = useT();
-  return <SidebarItem emoji={MENU_ITEM[id].emoji} label={label ?? t(MENU_ITEM[id].clave)} {...resto} />;
+  return <SidebarItem icono={MENU_ITEM[id].icono} label={label ?? t(MENU_ITEM[id].clave)} {...resto} />;
 };
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested, onPress, right }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, nested, onPress, right }) => {
   const { theme } = useTheme();
+  /*
+   * El icono toma el color del texto de SU fila, igual que en el cajón: es lo
+   * que hace que el tema oscuro del Perfil Weë los vea claros sin tocar nada, y
+   * que la opción donde estás tenga el dibujo del mismo color que su nombre.
+   * El emoji no admitía color; el dibujo sí, y por eso ahora se le da.
+   */
+  const colorDeLaFila = active ? theme.colors.accentDark : theme.colors.text;
   return (
     <TouchableOpacity
       /*
@@ -66,8 +87,22 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ emoji, label, active, nested,
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Text style={[styles.itemEmoji, nested && styles.itemEmojiNested]}>{emoji}</Text>
-      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, { color: active ? theme.colors.accentDark : theme.colors.text }]} numberOfLines={1}>
+      {/*
+        El hueco es el que reservaba el emoji —24 puntos, 20 en las anidadas— y
+        el dibujo ocupa lo que ocupaba el glifo, así que la lista no se mueve ni
+        un punto al cambiar de unos a otros.
+      */}
+      {icono ? (
+        <IconoWee
+          name={icono}
+          size={nested ? 14 : 18}
+          color={colorDeLaFila}
+          style={[styles.itemIcono, nested && styles.itemIconoNested]}
+        />
+      ) : (
+        <Text style={[styles.itemEmoji, nested && styles.itemEmojiNested]}>{emoji}</Text>
+      )}
+      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, { color: colorDeLaFila }]} numberOfLines={1}>
         {label}
       </Text>
       {right}
@@ -184,7 +219,7 @@ const Sidebar: React.FC = () => {
             móvil los da la barra inferior. Son la única diferencia real entre
             las dos plataformas, y viene de que el escritorio no tiene esa barra.
           */}
-          <SidebarItem emoji="🏠" label={t('nav.home')} active={isActive('Home')} onPress={() => goHome('Landing')} />
+          <SidebarItem icono="casa" label={t('nav.home')} active={isActive('Home')} onPress={() => goHome('Landing')} />
           <SidebarItem emoji="🔍" label={t('nav.search')} active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
 
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('menu.sectionProfile')}</Text>
@@ -218,7 +253,7 @@ const Sidebar: React.FC = () => {
           <Opcion id="weels" onPress={() => goHome('Landing', { openWeels: true })} />
           <Opcion id="weetalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
           <SidebarItem
-            emoji={MENU_ITEM.creator.emoji}
+            icono={MENU_ITEM.creator.icono}
             label={MENU_ITEM.creator.label}
             active={isActive('WeeCreator') || isActive('Specialist') || isActive('CreatorFlow') || isActive('Projects') || isActive('Project')}
             onPress={() => {
@@ -234,7 +269,7 @@ const Sidebar: React.FC = () => {
           {creatorOpen && (
             <View style={styles.nested}>
               {WEE_EXPERIENCES.map((exp) => (
-                <SidebarItem key={exp.id} emoji={exp.emoji} label={exp.name} nested onPress={() => navigation.navigate('Specialist', { id: exp.id })} />
+                <SidebarItem key={exp.id} icono={exp.icono} label={exp.name} nested onPress={() => navigation.navigate('Specialist', { id: exp.id })} />
               ))}
               <Opcion id="projects" nested active={isActive('Projects')} onPress={() => (user ? navigation.navigate('Projects') : requireLogin())} />
             </View>
@@ -385,6 +420,13 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs + 2,
     paddingLeft: SPACING.lg + SPACING.md,
   },
+  itemIcono: {
+    width: 24,
+  },
+  itemIconoNested: {
+    width: 20,
+  },
+  /* Lo que todavía va con emoji: Buscar, y nada más. */
   itemEmoji: {
     fontSize: 18,
     width: 24,

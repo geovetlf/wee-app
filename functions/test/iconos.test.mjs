@@ -154,9 +154,36 @@ console.log('\n── D · Enchufados en el Burger ──');
     && /saved: 'Guardados'/.test(textosMenu) && /settings: 'Configuración'/.test(textosMenu)
     && /help: 'Ayuda'/.test(textosMenu)
     && /clave: 'menu\.realProfile'/.test(menu) && /clave: 'menu\.settings'/.test(menu));
-  /* Y la barra de escritorio, que no entraba en este trabajo, sigue con su emoji. */
-  check('19) control: el emoji sigue disponible para quien aún lo use',
-    /emoji: string;/.test(menu) && /MENU_ITEM\[id\]\.emoji/.test(leer('components/Sidebar.tsx')));
+  /*
+   * LA BARRA DE ESCRITORIO YA NO SE QUEDA ATRÁS.
+   *
+   * Cuando se dibujaron los iconos solo entró el cajón, y la barra siguió
+   * pintando el emoji del catálogo: por debajo de 1024 puntos se veían los
+   * dibujos y por encima los emojis. Es la misma discrepancia que el catálogo
+   * único vino a cerrar, solo que en otro campo. Ahora las dos leen "icono",
+   * así que no pueden volver a enseñar cosas distintas para la misma opción.
+   *
+   * El campo "emoji" se queda en el catálogo —puede quedar código que lo lea—,
+   * pero ya no lo lee ninguno de los dos menús, y eso es lo que se vigila.
+   */
+  const barra = leer('components/Sidebar.tsx');
+  check('19) el catálogo conserva el campo emoji para quien aún lo use', /emoji: string;/.test(menu));
+  check('19b) y los DOS menús sacan el dibujo del mismo campo',
+    /MENU_ITEM\[id\]\.icono/.test(cajon) && /MENU_ITEM\[id\]\.icono/.test(barra));
+  check('19c) ninguno de los dos pinta ya el emoji del catálogo',
+    ![cajon, barra].some((f) => /MENU_ITEM\[id\]\.emoji|MENU_ITEM\.\w+\.emoji|\bexp\.emoji\b/.test(f)));
+  check('19d) y la barra pinta con IconoWee, el mismo componente que el cajón',
+    /from '\.\/icons\/IconoWee'/.test(barra) && /<IconoWee/.test(barra)
+    && /MENU_ITEM\.creator\.icono/.test(barra) && /\bexp\.icono\b/.test(barra));
+  /*
+   * La única fila que sigue con emoji es Buscar, y no es un olvido: solo existe
+   * en escritorio —en el móvil la da la barra inferior— y trazosDeWee no tiene
+   * lupa. Se fija aquí para que, el día que se dibuje, esto salte y se cambie
+   * también.
+   */
+  check('19e) y la única excepción sigue siendo Buscar, que no tiene dibujo',
+    /emoji="🔍" label={t\('nav\.search'\)}/.test(barra)
+    && !/'lupa'|'buscar'/.test(leer('components/icons/trazosDeWee.ts')));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));
