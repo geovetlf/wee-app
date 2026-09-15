@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { Message, User, getRelativeTime } from '../data/mockData';
 
@@ -34,6 +35,7 @@ interface ChatScreenProps {
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { conversation } = route.params;
+  const t = useT();
   const { theme } = useTheme();
   const { locale } = useIdioma();
   const insets = useSafeAreaInsets();
@@ -170,10 +172,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         Chat con {conversation.participant.username}
       </Text>
       <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
-        Este es el inicio de tu conversación privada
+        {t('weetalk.conversationStart')}
       </Text>
       <Text style={[styles.emptyHint, { color: theme.colors.textSecondary }]}>
-        Recuerda mantener el respeto y la privacidad 🤝
+        {t('weetalk.beRespectful')}
       </Text>
     </View>
   );
@@ -204,7 +206,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
               {conversation.participant.username}
             </Text>
             <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
-              Usuario anónimo
+              {t('weetalk.anonymousUser')}
             </Text>
           </View>
         </View>
@@ -244,7 +246,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         }]}>
           <TextInput
             style={[styles.textInput, { color: theme.colors.text }]}
-            placeholder="Escribe un mensaje..."
+            placeholder={t('weetalk.messagePlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={newMessage}
             onChangeText={setNewMessage}

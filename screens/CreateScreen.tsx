@@ -1623,7 +1623,7 @@ ${message}`);
           <View style={[styles.faceSwapLoadingBox, { backgroundColor: theme.colors.surface }]}>
             <ActivityIndicator size="large" color={theme.colors.accent} />
             <Text style={[styles.faceSwapLoadingText, { color: theme.colors.text }]}>
-              Aplicando face swap...
+              {t('composer.applyingFaceSwap')}
             </Text>
           </View>
         </View>

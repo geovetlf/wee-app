@@ -36,10 +36,20 @@ import { engine } from './engine';
 import { communities } from './communities';
 import { profile } from './profile';
 import { avatar } from './avatar';
+import { help } from './help';
+import { search } from './search';
+import { onboarding } from './onboarding';
+import { aiAvatar } from './aiAvatar';
+import { weebiz } from './weebiz';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
   common,
+  help,
+  search,
+  weebiz,
+  onboarding,
+  aiAvatar,
   auth,
   engine,
   communities,

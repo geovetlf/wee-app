@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -313,6 +314,7 @@ type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList>;
 type HomeScreenRouteProp = RouteProp<HomeStackParamList, 'Feed'>;
 
 const HomeScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
@@ -780,7 +782,7 @@ const HomeScreen: React.FC = () => {
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          Cargando posts...
+          {t('wall.loadingPosts')}
         </Text>
       </View>
     );
@@ -806,7 +808,7 @@ const HomeScreen: React.FC = () => {
           ]}
           onPress={() => loadPosts()}
         >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
+          <Text style={styles.retryButtonText}>{t('wall.retry')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -967,7 +969,7 @@ const HomeScreen: React.FC = () => {
       {highlightedPosts.length > 0 && !isFromLanding && (
         <View style={styles.highlightsSection}>
           <Text style={[styles.highlightsSectionTitle, { color: theme.colors.text }]}>
-            Destacados
+            {t('home.featured')}
           </Text>
           <ScrollView
             horizontal
@@ -1105,7 +1107,7 @@ const HomeScreen: React.FC = () => {
             <View style={styles.loadingMore}>
               <ActivityIndicator size="small" color={theme.colors.accent} />
               <Text style={[styles.loadingMoreText, { color: theme.colors.textSecondary }]}>
-                Cargando más posts...
+                {t('wall.loadingMorePosts')}
               </Text>
             </View>
           ) : null

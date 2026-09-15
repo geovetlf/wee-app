@@ -540,9 +540,15 @@ console.log('\n── L · Bloque 2 · Credits, ËContact, WeeTalk, Notificacion
   /* CONTROL de todo el bloque: los cinco módulos y sus claves existen y casan. */
   const usadas = [tienda, cartera, agenda, bandeja, charla, avisos, guardados].join('\n')
     .match(/t\('([a-z]+)\.([a-zA-Z]+)'/g) || [];
+  /*
+   * TODOS los módulos, no una lista escrita a mano: con una lista, una clave de
+   * un módulo que no estuviera apuntado salía como huérfana sin serlo —pasó con
+   * `nav.notifications` en la fase 6—. Se lee la carpeta y se acabó.
+   */
   const dicc = {};
-  for (const m of ['common', 'credits', 'econtact', 'weetalk', 'notifications', 'saved', 'wall', 'menu', 'home']) {
-    dicc[m] = leer(`i18n/textos/es/${m}.ts`);
+  for (const archivo of fs.readdirSync(new URL('../../i18n/textos/es/', import.meta.url))) {
+    if (!archivo.endsWith('.ts') || archivo === 'index.ts') continue;
+    dicc[archivo.slice(0, -3)] = leer(`i18n/textos/es/${archivo}`);
   }
   const huerfanas = usadas.map((u) => u.slice(3, -1)).filter((clave) => {
     const [seccion, k] = clave.split('.');

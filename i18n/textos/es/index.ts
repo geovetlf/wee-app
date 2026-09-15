@@ -36,8 +36,18 @@ import { engine } from './engine';
 import { communities } from './communities';
 import { profile } from './profile';
 import { avatar } from './avatar';
+import { help } from './help';
+import { search } from './search';
+import { onboarding } from './onboarding';
+import { aiAvatar } from './aiAvatar';
+import { weebiz } from './weebiz';
 export const es = {
   common,
+  help,
+  search,
+  weebiz,
+  onboarding,
+  aiAvatar,
   auth,
   engine,
   communities,

@@ -27,9 +27,9 @@ import { useWallet } from '../hooks/useWallet';
 
 // --- Option data ---
 const GENDER_OPTIONS = [
-  { id: 'male', label: 'Masculino' },
-  { id: 'female', label: 'Femenino' },
-  { id: 'other', label: 'Otro' },
+  { id: 'male', clave: 'aiAvatar.genderMale' },
+  { id: 'female', clave: 'aiAvatar.genderFemale' },
+  { id: 'other', clave: 'aiAvatar.genderOther' },
 ];
 
 const SKIN_TONES = [
@@ -42,12 +42,12 @@ const SKIN_TONES = [
 ];
 
 const HAIR_STYLES = [
-  { id: 'short', label: 'Corto' },
-  { id: 'medium', label: 'Medio' },
-  { id: 'long', label: 'Largo' },
-  { id: 'curly', label: 'Rizado' },
-  { id: 'wavy', label: 'Ondulado' },
-  { id: 'bald', label: 'Calvo' },
+  { id: 'short', clave: 'aiAvatar.hairShort' },
+  { id: 'medium', clave: 'aiAvatar.hairMedium' },
+  { id: 'long', clave: 'aiAvatar.hairLong' },
+  { id: 'curly', clave: 'aiAvatar.hairCurly' },
+  { id: 'wavy', clave: 'aiAvatar.hairWavy' },
+  { id: 'bald', clave: 'aiAvatar.hairBald' },
 ];
 
 const AGE_RANGES = [
@@ -57,46 +57,46 @@ const AGE_RANGES = [
 ];
 
 const EYE_COLOR_OPTIONS = [
-  { id: 'brown', label: 'Marrón' },
-  { id: 'blue', label: 'Azul' },
-  { id: 'green', label: 'Verde' },
-  { id: 'hazel', label: 'Miel' },
-  { id: 'black', label: 'Negro' },
-  { id: 'gray', label: 'Gris' },
+  { id: 'brown', clave: 'aiAvatar.eyeBrown' },
+  { id: 'blue', clave: 'aiAvatar.eyeBlue' },
+  { id: 'green', clave: 'aiAvatar.eyeGreen' },
+  { id: 'hazel', clave: 'aiAvatar.eyeHazel' },
+  { id: 'black', clave: 'aiAvatar.eyeBlack' },
+  { id: 'gray', clave: 'aiAvatar.eyeGray' },
 ];
 
 const FACE_SHAPE_OPTIONS = [
-  { id: 'oval', label: 'Ovalada' },
-  { id: 'round', label: 'Redonda' },
-  { id: 'angular', label: 'Angular' },
-  { id: 'long', label: 'Alargada' },
-  { id: 'square', label: 'Cuadrada' },
+  { id: 'oval', clave: 'aiAvatar.faceOval' },
+  { id: 'round', clave: 'aiAvatar.faceRound' },
+  { id: 'angular', clave: 'aiAvatar.faceAngular' },
+  { id: 'long', clave: 'aiAvatar.faceLong' },
+  { id: 'square', clave: 'aiAvatar.faceSquare' },
 ];
 
 const FACIAL_HAIR_OPTIONS = [
-  { id: 'none', label: 'Sin barba' },
-  { id: 'stubble', label: 'Barba corta' },
-  { id: 'full_beard', label: 'Barba larga' },
-  { id: 'mustache', label: 'Bigote' },
-  { id: 'goatee', label: 'Candado' },
+  { id: 'none', clave: 'aiAvatar.hairNone' },
+  { id: 'stubble', clave: 'aiAvatar.hairStubble' },
+  { id: 'full_beard', clave: 'aiAvatar.hairFullBeard' },
+  { id: 'mustache', clave: 'aiAvatar.hairMustache' },
+  { id: 'goatee', clave: 'aiAvatar.hairGoatee' },
 ];
 
 const ACCESSORIES_OPTIONS = [
-  { id: 'none', label: 'Ninguno' },
-  { id: 'glasses', label: 'Lentes' },
-  { id: 'sunglasses', label: 'Gafas de sol' },
-  { id: 'earrings', label: 'Aretes' },
-  { id: 'cap', label: 'Gorra' },
-  { id: 'headscarf', label: 'Pañuelo' },
-  { id: 'piercing', label: 'Piercing' },
+  { id: 'none', clave: 'aiAvatar.accNone' },
+  { id: 'glasses', clave: 'aiAvatar.accGlasses' },
+  { id: 'sunglasses', clave: 'aiAvatar.accSunglasses' },
+  { id: 'earrings', clave: 'aiAvatar.accEarrings' },
+  { id: 'cap', clave: 'aiAvatar.accCap' },
+  { id: 'headscarf', clave: 'aiAvatar.accHeadscarf' },
+  { id: 'piercing', clave: 'aiAvatar.accPiercing' },
 ];
 
 const EXPRESSION_OPTIONS = [
-  { id: 'smile', label: 'Sonrisa' },
-  { id: 'serious', label: 'Serio' },
-  { id: 'relaxed', label: 'Relajado' },
-  { id: 'confident', label: 'Confiado' },
-  { id: 'mysterious', label: 'Misterioso' },
+  { id: 'smile', clave: 'aiAvatar.expSmile' },
+  { id: 'serious', clave: 'aiAvatar.expSerious' },
+  { id: 'relaxed', clave: 'aiAvatar.expRelaxed' },
+  { id: 'confident', clave: 'aiAvatar.expConfident' },
+  { id: 'mysterious', clave: 'aiAvatar.expMysterious' },
 ];
 
 // Límite temporal de generaciones de avatar IA
@@ -116,14 +116,14 @@ const AiAvatarScreen: React.FC = () => {
       Alert.alert('Error', fallback);
       return;
     }
-    const message = `Credits disponibles: ${short.available}\nCosto: ${short.required}`;
+    const message = t('aiAvatar.creditsDetail', { saldo: formato.numero(short.available), coste: formato.numero(short.required) });
     if (Platform.OS === 'web') {
-      if (window.confirm(`No tienes suficientes Credits\n${message}\n\n¿Obtener Credits?`)) (navigation as any).navigate('CreditStore');
+      if (window.confirm(t('aiAvatar.notEnoughWeb', { detalle: message }))) (navigation as any).navigate('CreditStore');
       return;
     }
-    Alert.alert('No tienes suficientes Credits', message, [
-      { text: 'Ahora no', style: 'cancel' },
-      { text: 'Obtener Credits', onPress: () => (navigation as any).navigate('CreditStore') },
+    Alert.alert(t('aiAvatar.notEnoughTitle'), message, [
+      { text: t('aiAvatar.notNow'), style: 'cancel' },
+      { text: t('aiAvatar.getCredits'), onPress: () => (navigation as any).navigate('CreditStore') },
     ]);
   };
 
@@ -198,16 +198,16 @@ const AiAvatarScreen: React.FC = () => {
   const handleGenerate = async () => {
     if (!step1Complete || !step2Complete) return;
     if (!user?.uid) {
-      Alert.alert('Error', 'Debes iniciar sesión para generar un avatar.');
+      Alert.alert('Error', t('aiAvatar.signInFirst'));
       return;
     }
 
     // Verificar límite de generaciones
     if (hasReachedLimit) {
       Alert.alert(
-        'Límite alcanzado',
-        `Has alcanzado el límite de ${MAX_AI_AVATAR_GENERATIONS} generaciones de avatar con IA. Puedes subir una foto como avatar en su lugar.`,
-        [{ text: 'Entendido' }]
+        t('aiAvatar.limitTitle'),
+        t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }),
+        [{ text: t('aiAvatar.understood') }]
       );
       return;
     }
@@ -215,7 +215,7 @@ const AiAvatarScreen: React.FC = () => {
     const selections = getSelections();
 
     setLoading(true);
-    setLoadingMessage('Weë está creando tu avatar…');
+    setLoadingMessage(t('aiAvatar.creatingAvatar'));
     try {
       const imageUrl = await generateAvatarWithGemini(selections);
       setGeneratedAvatarUrl(imageUrl);
@@ -240,9 +240,9 @@ const AiAvatarScreen: React.FC = () => {
     // Verificar límite antes de mostrar el wizard
     if (hasReachedLimit) {
       Alert.alert(
-        'Límite alcanzado',
-        `Has alcanzado el límite de ${MAX_AI_AVATAR_GENERATIONS} generaciones de avatar con IA. Puedes subir una foto como avatar en su lugar.`,
-        [{ text: 'Entendido' }]
+        t('aiAvatar.limitTitle'),
+        t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }),
+        [{ text: t('aiAvatar.understood') }]
       );
       return;
     }
@@ -258,7 +258,7 @@ const AiAvatarScreen: React.FC = () => {
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería.');
+      Alert.alert(t('aiAvatar.permissionTitle'), t('aiAvatar.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -272,7 +272,7 @@ const AiAvatarScreen: React.FC = () => {
     if (result.canceled || !asset?.uri) return;
 
     setLoading(true);
-    setLoadingMessage('Subiendo foto...');
+    setLoadingMessage(t('aiAvatar.uploadingPhoto'));
     try {
       const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
       await usersService.update(userProfile.id, {
@@ -291,7 +291,7 @@ const AiAvatarScreen: React.FC = () => {
       setShowWizard(false);
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      Alert.alert('Error', 'No se pudo subir la foto. Intenta de nuevo.');
+      Alert.alert('Error', t('aiAvatar.uploadFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -309,15 +309,15 @@ const AiAvatarScreen: React.FC = () => {
     // Verificar límite de generaciones
     if (hasReachedLimit) {
       Alert.alert(
-        'Límite alcanzado',
-        `Has alcanzado el límite de ${MAX_AI_AVATAR_GENERATIONS} generaciones de avatar con IA. Puedes subir una foto como avatar en su lugar.`,
-        [{ text: 'Entendido' }]
+        t('aiAvatar.limitTitle'),
+        t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }),
+        [{ text: t('aiAvatar.understood') }]
       );
       return;
     }
 
     setLoading(true);
-    setLoadingMessage('Weë está creando otra versión de tu avatar…');
+    setLoadingMessage(t('aiAvatar.creatingAnother'));
     try {
       const imageUrl = await generateAvatarWithGemini(getSelections());
       setGeneratedAvatarUrl(imageUrl);
@@ -342,7 +342,7 @@ const AiAvatarScreen: React.FC = () => {
     if (!generatedAvatarUrl || !user?.uid || !userProfile?.id) return;
 
     setLoading(true);
-    setLoadingMessage('Guardando avatar...');
+    setLoadingMessage(t('aiAvatar.savingAvatar'));
     try {
       const { avatarUrl } = await saveGeneratedAvatar(
         user.uid,
@@ -362,7 +362,7 @@ const AiAvatarScreen: React.FC = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error('Error saving avatar:', error);
-      Alert.alert('Error', 'No se pudo guardar el avatar.');
+      Alert.alert('Error', t('aiAvatar.saveAvatarFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -380,7 +380,7 @@ const AiAvatarScreen: React.FC = () => {
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+        Alert.alert(t('aiAvatar.permissionTitle'), t('aiAvatar.cameraPermission'));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -393,7 +393,7 @@ const AiAvatarScreen: React.FC = () => {
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería.');
+        Alert.alert(t('aiAvatar.permissionTitle'), t('aiAvatar.galleryPermission'));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -409,12 +409,12 @@ const AiAvatarScreen: React.FC = () => {
     if (result.canceled || !asset?.uri) return;
 
     setLoading(true);
-    setLoadingMessage('Subiendo foto...');
+    setLoadingMessage(t('aiAvatar.uploadingPhoto'));
     try {
       const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
       setLoadingMessage('Weë está poniendo tu avatar en la foto…\n(puede tardar entre 30 y 60 segundos)');
       const generatedImageUrl = await performAvatarReplacement(uploadedUrl, avatarUrl);
-      setLoadingMessage('Guardando resultado...');
+      setLoadingMessage(t('aiAvatar.savingResult'));
       const savedUrl = await saveFaceSwapResult(user.uid, generatedImageUrl);
       setSwapResultUrl(savedUrl);
     } catch (error: any) {
@@ -431,7 +431,7 @@ const AiAvatarScreen: React.FC = () => {
     if (!swapResultUrl || !user?.uid || !userProfile?.id || !generatedAvatarUrl) return;
 
     setLoading(true);
-    setLoadingMessage('Guardando foto de perfil...');
+    setLoadingMessage(t('aiAvatar.savingProfilePhoto'));
     try {
       // Save avatar to Firebase
       const { avatarUrl } = await saveGeneratedAvatar(
@@ -455,7 +455,7 @@ const AiAvatarScreen: React.FC = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'No se pudo guardar. Intenta de nuevo.');
+      Alert.alert('Error', t('aiAvatar.saveFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -554,7 +554,7 @@ const AiAvatarScreen: React.FC = () => {
           >
             <Ionicons name="person-outline" size={scale(80)} color={theme.colors.textSecondary} />
             <Text style={[styles.placeholderLabel, { color: theme.colors.textSecondary }]}>
-              Tu avatar IA actual
+              {t('aiAvatar.currentAvatar')}
             </Text>
           </View>
         )}
@@ -563,10 +563,10 @@ const AiAvatarScreen: React.FC = () => {
       {/* Face Swap */}
       <View style={[styles.sectionBlock, { marginTop: SPACING.xxl }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Reemplazo de Persona
+          {t('aiAvatar.swapTitle')}
         </Text>
         <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
-          Toma o sube una foto y se reemplazará la persona con tu avatar usando Gemini AI
+          {t('aiAvatar.swapSubtitle')}
         </Text>
 
         <View style={styles.swapButtonsRow}>
@@ -576,7 +576,7 @@ const AiAvatarScreen: React.FC = () => {
             onPress={() => userProfile?.aiAvatarPortraitUrl && pickImageForSwap(true, userProfile.aiAvatarPortraitUrl)}
           >
             <Ionicons name="camera" size={scale(22)} color="#FFFFFF" />
-            <Text style={styles.swapButtonText}>Tomar foto</Text>
+            <Text style={styles.swapButtonText}>{t('aiAvatar.takePhoto')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.swapButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}
@@ -584,7 +584,7 @@ const AiAvatarScreen: React.FC = () => {
             onPress={() => userProfile?.aiAvatarPortraitUrl && pickImageForSwap(false, userProfile.aiAvatarPortraitUrl)}
           >
             <Ionicons name="images" size={scale(22)} color={theme.colors.accent} />
-            <Text style={[styles.swapButtonText, { color: theme.colors.accent }]}>Galería</Text>
+            <Text style={[styles.swapButtonText, { color: theme.colors.accent }]}>{t('aiAvatar.gallery')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -596,14 +596,14 @@ const AiAvatarScreen: React.FC = () => {
               onPress={async () => {
                 if (!swapResultUrl || !userProfile?.id) return;
                 setLoading(true);
-                setLoadingMessage('Actualizando foto de perfil...');
+                setLoadingMessage(t('aiAvatar.updatingProfilePhoto'));
                 try {
                   await usersService.update(userProfile.id, { photoURL: swapResultUrl, photoURLThumbnail: swapResultUrl });
                   updateLocalProfile({ photoURL: swapResultUrl, photoURLThumbnail: swapResultUrl });
                   setSwapResultUrl(null);
-                  Alert.alert('Listo', 'Tu foto de perfil ha sido actualizada.');
+                  Alert.alert(t('aiAvatar.doneTitle'), t('aiAvatar.photoUpdated'));
                 } catch (e: any) {
-                  Alert.alert('Error', 'No se pudo actualizar la foto de perfil.');
+                  Alert.alert('Error', t('aiAvatar.photoUpdateFailed'));
                 } finally {
                   setLoading(false);
                   setLoadingMessage('');
@@ -612,7 +612,7 @@ const AiAvatarScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <Ionicons name="checkmark-circle" size={scale(18)} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Usar como foto de perfil</Text>
+              <Text style={styles.primaryButtonText}>{t('aiAvatar.useAsProfilePhoto')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -624,7 +624,7 @@ const AiAvatarScreen: React.FC = () => {
         onPress={handleUploadAvatar}
       >
         <Ionicons name="image-outline" size={scale(18)} color={theme.colors.text} />
-        <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Subir otra foto como avatar</Text>
+        <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.uploadAnotherPhoto')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -657,7 +657,7 @@ const AiAvatarScreen: React.FC = () => {
         <Ionicons name="information-circle-outline" size={scale(20)} color={theme.colors.accent} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.disclaimerText, { color: theme.colors.text }]}>
-            Crea un avatar generado por IA o sube una foto para usar como avatar en tu perfil Weë.
+            {t('aiAvatar.intro')}
           </Text>
           <Text style={[styles.disclaimerText, { color: hasReachedLimit ? theme.colors.error : theme.colors.textSecondary, marginTop: SPACING.xs }]}>
             {hasReachedLimit
@@ -676,7 +676,7 @@ const AiAvatarScreen: React.FC = () => {
           onPress={handleUploadAvatar}
         >
           <Ionicons name="image-outline" size={scale(18)} color={theme.colors.text} />
-          <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Subir foto como avatar</Text>
+          <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.uploadPhotoAsAvatar')}</Text>
         </TouchableOpacity>
       )}
 
@@ -689,10 +689,10 @@ const AiAvatarScreen: React.FC = () => {
             <>
               {/* Gender */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Género</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.gender')}</Text>
                 <View style={styles.chipRow}>
                   {GENDER_OPTIONS.map((opt) =>
-                    renderChip(opt.id, opt.label, selectedGender === opt.id, () =>
+                    renderChip(opt.id, t(opt.clave), selectedGender === opt.id, () =>
                       setSelectedGender(opt.id),
                     ),
                   )}
@@ -701,7 +701,7 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Skin tone */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Tono de piel</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.skinTone')}</Text>
                 <View style={styles.skinToneRow}>
                   {SKIN_TONES.map((tone) => (
                     <TouchableOpacity
@@ -723,10 +723,10 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Hair style */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Estilo de cabello</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.hairStyle')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                   {HAIR_STYLES.map((opt) =>
-                    renderChip(opt.id, opt.label, selectedHairStyle === opt.id, () =>
+                    renderChip(opt.id, t(opt.clave), selectedHairStyle === opt.id, () =>
                       setSelectedHairStyle(opt.id),
                     ),
                   )}
@@ -735,8 +735,9 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Age range */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Rango de edad</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.ageRange')}</Text>
                 <View style={styles.chipRow}>
+                  {/* Los rangos son cifras —18-30, 50+—: se leen igual en todos los idiomas. */}
                   {AGE_RANGES.map((opt) =>
                     renderChip(opt.id, opt.label, selectedAgeRange === opt.id, () =>
                       setSelectedAgeRange(opt.id),
@@ -753,7 +754,7 @@ const AiAvatarScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.primaryButtonText, { color: step1Complete ? '#FFFFFF' : theme.colors.textSecondary }]}>
-                  Siguiente
+                  {t('aiAvatar.nextStep')}
                 </Text>
                 <Ionicons name="arrow-forward" size={scale(18)} color={step1Complete ? '#FFFFFF' : theme.colors.textSecondary} />
               </TouchableOpacity>
@@ -764,10 +765,10 @@ const AiAvatarScreen: React.FC = () => {
             <>
               {/* Eye color */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Color de ojos</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.eyeColor')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                   {EYE_COLOR_OPTIONS.map((opt) =>
-                    renderChip(opt.id, opt.label, selectedEyeColor === opt.id, () =>
+                    renderChip(opt.id, t(opt.clave), selectedEyeColor === opt.id, () =>
                       setSelectedEyeColor(opt.id),
                     ),
                   )}
@@ -776,10 +777,10 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Face shape */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Forma de cara</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.faceShape')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                   {FACE_SHAPE_OPTIONS.map((opt) =>
-                    renderChip(opt.id, opt.label, selectedFaceShape === opt.id, () =>
+                    renderChip(opt.id, t(opt.clave), selectedFaceShape === opt.id, () =>
                       setSelectedFaceShape(opt.id),
                     ),
                   )}
@@ -789,10 +790,10 @@ const AiAvatarScreen: React.FC = () => {
               {/* Facial hair (show for male/other) */}
               {selectedGender !== 'female' && (
                 <View style={styles.sectionBlock}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Barba / Bigote</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.facialHair')}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                     {FACIAL_HAIR_OPTIONS.map((opt) =>
-                      renderChip(opt.id, opt.label, selectedFacialHair === opt.id, () =>
+                      renderChip(opt.id, t(opt.clave), selectedFacialHair === opt.id, () =>
                         setSelectedFacialHair(opt.id),
                       ),
                     )}
@@ -802,10 +803,10 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Accessories */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Accesorios</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.accessories')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                   {ACCESSORIES_OPTIONS.map((opt) =>
-                    renderChip(opt.id, opt.label, selectedAccessories === opt.id, () =>
+                    renderChip(opt.id, t(opt.clave), selectedAccessories === opt.id, () =>
                       setSelectedAccessories(opt.id),
                     ),
                   )}
@@ -814,10 +815,10 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Expression */}
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Expresión</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('aiAvatar.expression')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                   {EXPRESSION_OPTIONS.map((opt) =>
-                    renderChip(opt.id, opt.label, selectedExpression === opt.id, () =>
+                    renderChip(opt.id, t(opt.clave), selectedExpression === opt.id, () =>
                       setSelectedExpression(opt.id),
                     ),
                   )}
@@ -827,7 +828,7 @@ const AiAvatarScreen: React.FC = () => {
               {/* Back link */}
               <TouchableOpacity style={styles.backLink} onPress={() => setStep(1)} activeOpacity={0.7}>
                 <Ionicons name="arrow-back" size={scale(16)} color={theme.colors.accent} />
-                <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>Paso anterior</Text>
+                <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>{t('aiAvatar.previousStep')}</Text>
               </TouchableOpacity>
 
               {/* Costo antes de generar: Weë nunca cobra sin decir cuánto */}
@@ -874,10 +875,10 @@ const AiAvatarScreen: React.FC = () => {
               </View>
 
               <Text style={[styles.sectionTitle, { color: theme.colors.text, textAlign: 'center', marginBottom: SPACING.sm }]}>
-                Avatar generado con Gemini AI
+                {t('aiAvatar.generatedWithGemini')}
               </Text>
               <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
-                Ahora toma o sube una foto tuya para aplicar el reemplazo de persona con tu avatar
+                {t('aiAvatar.nowTakeAPhoto')}
               </Text>
 
               {/* Take photo / gallery buttons */}
@@ -888,7 +889,7 @@ const AiAvatarScreen: React.FC = () => {
                   onPress={() => generatedAvatarUrl && pickImageForSwap(true, generatedAvatarUrl)}
                 >
                   <Ionicons name="camera" size={scale(22)} color="#FFFFFF" />
-                  <Text style={styles.swapButtonText}>Tomar foto</Text>
+                  <Text style={styles.swapButtonText}>{t('aiAvatar.takePhoto')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.swapButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}
@@ -896,7 +897,7 @@ const AiAvatarScreen: React.FC = () => {
                   onPress={() => generatedAvatarUrl && pickImageForSwap(false, generatedAvatarUrl)}
                 >
                   <Ionicons name="images" size={scale(22)} color={theme.colors.accent} />
-                  <Text style={[styles.swapButtonText, { color: theme.colors.accent }]}>Galería</Text>
+                  <Text style={[styles.swapButtonText, { color: theme.colors.accent }]}>{t('aiAvatar.gallery')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -907,7 +908,7 @@ const AiAvatarScreen: React.FC = () => {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.skipLinkText, { color: theme.colors.textSecondary }]}>
-                  Omitir y usar avatar directamente
+                  {t('aiAvatar.skipAndUse')}
                 </Text>
               </TouchableOpacity>
 
@@ -918,7 +919,7 @@ const AiAvatarScreen: React.FC = () => {
                 activeOpacity={0.7}
               >
                 <Ionicons name="refresh" size={scale(16)} color={theme.colors.accent} />
-                <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>Regenerar avatar</Text>
+                <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>{t('aiAvatar.regenerate')}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -933,7 +934,7 @@ const AiAvatarScreen: React.FC = () => {
               </View>
 
               <Text style={[styles.sectionTitle, { color: theme.colors.text, textAlign: 'center', marginBottom: SPACING.lg }]}>
-                Resultado del reemplazo
+                {t('aiAvatar.swapResult')}
               </Text>
 
               {/* Action buttons */}
@@ -943,7 +944,7 @@ const AiAvatarScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <Ionicons name="checkmark-circle" size={scale(18)} color="#FFFFFF" />
-                <Text style={styles.primaryButtonText}>Usar como foto de perfil</Text>
+                <Text style={styles.primaryButtonText}>{t('aiAvatar.useAsProfilePhoto')}</Text>
               </TouchableOpacity>
 
               <View style={[styles.previewActions, { marginTop: SPACING.md }]}>
@@ -956,7 +957,7 @@ const AiAvatarScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="camera" size={scale(16)} color={theme.colors.text} />
-                  <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Otra foto</Text>
+                  <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.anotherPhoto')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.secondaryButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, flex: 1 }]}
@@ -967,7 +968,7 @@ const AiAvatarScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="refresh" size={scale(16)} color={theme.colors.text} />
-                  <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Nuevo avatar</Text>
+                  <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.newAvatar')}</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -984,7 +985,7 @@ const AiAvatarScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Avatar Humano IA</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('aiAvatar.humanAvatar')}</Text>
         <View style={styles.headerRight} />
       </View>
 

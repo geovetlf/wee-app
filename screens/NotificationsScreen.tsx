@@ -288,7 +288,7 @@ const NotificationsScreen: React.FC = () => {
       <View style={[styles.titleContainer, { borderBottomColor: theme.colors.border }]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: theme.colors.text }]}>
-            Notificaciones
+            {t('nav.notifications')}
           </Text>
           {unreadCount > 0 && (
             <View style={[styles.unreadBadge, { backgroundColor: theme.colors.accent }]}>
@@ -303,7 +303,7 @@ const NotificationsScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Text style={[styles.markAllText, { color: theme.colors.accent }]}>
-              Marcar todas como leídas
+              {t('notifications.markAllRead')}
             </Text>
           </TouchableOpacity>
         )}
@@ -327,7 +327,7 @@ const NotificationsScreen: React.FC = () => {
               },
             ]}
           >
-            Todas
+            {t('notifications.all')}
           </Text>
           {filter === 'all' && (
             <View style={[styles.filterIndicator, { backgroundColor: theme.colors.accent }]} />

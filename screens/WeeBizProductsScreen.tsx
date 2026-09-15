@@ -20,6 +20,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -33,6 +34,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProducts'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizProductsScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -105,7 +107,7 @@ const WeeBizProductsScreen: React.FC = () => {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería.');
+      Alert.alert(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -121,7 +123,7 @@ const WeeBizProductsScreen: React.FC = () => {
 
   const handleSaveProduct = async () => {
     if (!formName.trim()) {
-      Alert.alert('Campo requerido', 'Ingresa el nombre del producto.');
+      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.productNameRequired'));
       return;
     }
     try {
@@ -160,17 +162,17 @@ const WeeBizProductsScreen: React.FC = () => {
       loadProducts();
     } catch (e) {
       console.error('Error saving product:', e);
-      Alert.alert('Error', 'No se pudo guardar el producto.');
+      Alert.alert('Error', t('weebiz.productSaveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteProduct = (product: Product) => {
-    Alert.alert('Eliminar producto', `¿Eliminar "${product.name}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('weebiz.deleteProductTitle'), t('weebiz.deleteProductConfirm', { nombre: product.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Eliminar',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -223,7 +225,7 @@ const WeeBizProductsScreen: React.FC = () => {
             {formatPrice(item.price, item.currency)}
           </Text>
           {!item.available && (
-            <Text style={[styles.unavailableTag, { color: theme.colors.error }]}>No disponible</Text>
+            <Text style={[styles.unavailableTag, { color: theme.colors.error }]}>{t('weebiz.notAvailable')}</Text>
           )}
         </View>
         {isOwner && (
@@ -246,11 +248,11 @@ const WeeBizProductsScreen: React.FC = () => {
       <View style={styles.emptyState}>
         <Ionicons name="cube-outline" size={scale(48)} color={theme.colors.textSecondary} />
         <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-          Sin productos aún
+          {t('weebiz.noProductsYet')}
         </Text>
         {isOwner && (
           <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-            Agrega tu primer producto o servicio.
+            {t('weebiz.addFirstProduct')}
           </Text>
         )}
       </View>
@@ -287,7 +289,7 @@ const WeeBizProductsScreen: React.FC = () => {
               ) : null}
               {!detailProduct.available && (
                 <Text style={[styles.unavailableTag, { color: theme.colors.error, marginTop: SPACING.sm }]}>
-                  No disponible
+                  {t('weebiz.notAvailable')}
                 </Text>
               )}
             </View>
@@ -324,18 +326,18 @@ const WeeBizProductsScreen: React.FC = () => {
               ) : (
                 <View style={styles.formImagePlaceholder}>
                   <Ionicons name="camera-outline" size={scale(28)} color={theme.colors.textSecondary} />
-                  <Text style={[{ color: theme.colors.textSecondary, fontSize: FONT_SIZE.xs }]}>Agregar foto</Text>
+                  <Text style={[{ color: theme.colors.textSecondary, fontSize: FONT_SIZE.xs }]}>{t('weebiz.addPhoto')}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             {/* Name */}
-            <Text style={[styles.formLabel, { color: theme.colors.text }]}>Nombre *</Text>
+            <Text style={[styles.formLabel, { color: theme.colors.text }]}>{t('weebiz.nameRequired')}</Text>
             <TextInput
               style={[styles.formInput, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
               value={formName}
               onChangeText={setFormName}
-              placeholder="Ej: Hamburguesa clásica"
+              placeholder={t('weebiz.namePlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               maxLength={80}
             />
@@ -343,7 +345,7 @@ const WeeBizProductsScreen: React.FC = () => {
             {/* Price */}
             <View style={styles.priceRow}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.formLabel, { color: theme.colors.text }]}>Precio</Text>
+                <Text style={[styles.formLabel, { color: theme.colors.text }]}>{t('weebiz.price')}</Text>
                 <TextInput
                   style={[styles.formInput, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                   value={formPrice}
@@ -354,7 +356,7 @@ const WeeBizProductsScreen: React.FC = () => {
                 />
               </View>
               <View style={{ width: scale(80) }}>
-                <Text style={[styles.formLabel, { color: theme.colors.text }]}>Moneda</Text>
+                <Text style={[styles.formLabel, { color: theme.colors.text }]}>{t('weebiz.currency')}</Text>
                 <TextInput
                   style={[styles.formInput, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                   value={formCurrency}
@@ -367,12 +369,12 @@ const WeeBizProductsScreen: React.FC = () => {
             </View>
 
             {/* Description */}
-            <Text style={[styles.formLabel, { color: theme.colors.text }]}>Descripción</Text>
+            <Text style={[styles.formLabel, { color: theme.colors.text }]}>{t('weebiz.description')}</Text>
             <TextInput
               style={[styles.formTextArea, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
               value={formDesc}
               onChangeText={setFormDesc}
-              placeholder="Describe el producto o servicio..."
+              placeholder={t('weebiz.descriptionPlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               multiline
               numberOfLines={3}
@@ -390,7 +392,7 @@ const WeeBizProductsScreen: React.FC = () => {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <Text style={styles.formSaveBtnText}>
-                  {editingProduct ? 'Guardar cambios' : 'Agregar producto'}
+                  {editingProduct ? 'Guardar cambios' : t('weebiz.addProduct')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -407,7 +409,7 @@ const WeeBizProductsScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Productos</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('weebiz.products')}</Text>
         {isOwner ? (
           <TouchableOpacity onPress={openAddModal} style={styles.backBtn}>
             <Ionicons name="add-circle-outline" size={scale(24)} color={theme.colors.primary} />

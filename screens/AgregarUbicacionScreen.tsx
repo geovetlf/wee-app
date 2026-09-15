@@ -424,7 +424,7 @@ const AgregarUbicacionScreen: React.FC = () => {
             </>
           ) : (
             <Text style={[styles.aviso, { color: theme.colors.textSecondary }]}>
-              Busca una ciudad o un país para etiquetar tu publicación.
+              {t('composer.searchPlaceHint')}
             </Text>
           )}
 

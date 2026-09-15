@@ -17,4 +17,12 @@ export const home = {
   filterAll: 'Todo',
   bannerOf: 'Banner {{numero}} de {{total}}',
   weelSample: 'Ejemplo de Weël: {{titulo}}',
+  exploreCommunities: 'Explora comunidades',
+  moreCategories: 'Ver más categorías',
+  popularCommunities: 'Comunidades populares',
+  seeAllOf: 'Ver todas',
+  topicOfTheDay: 'Tema del dia',
+  heatedDebate: 'Debate intenso',
+  featuredOpinion: 'Opinion destacada',
+  featured: 'Destacados',
 };

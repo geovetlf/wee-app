@@ -96,7 +96,14 @@ console.log('\n── A · El nombre visible es Weë AI ──');
   check('3) y la barra lateral de las pantallas de IA', new RegExp(`'grid-outline', '${NUEVO}', goCreator`).test(leer('components/creator/CreatorSidebar.tsx')));
 
   /* Lo que se lee en Ayuda, en Credits, al fallar algo y en lo que se publica. */
-  check('4) la Ayuda pregunta por Weë AI', new RegExp(`¿Cómo funciona ${NUEVO}\\?`).test(leer('screens/HelpScreen.tsx')));
+  /*
+   * La Ayuda pasó al diccionario en la fase 6: la pantalla lleva claves y la
+   * pregunta vive donde se traduce. Se mira ahí, y en los dos idiomas.
+   */
+  check('4) la Ayuda pregunta por Weë AI',
+    leer('i18n/textos/es/help.ts').includes(`q3: '¿Cómo funciona ${NUEVO}?'`)
+    && leer('i18n/textos/en/help.ts').includes(`q3: 'How does ${NUEVO} work?'`)
+    && /question: 'help\.q3'/.test(leer('screens/HelpScreen.tsx')));
   /*
    * Las dos menciones pasaron al diccionario al migrar Credits: la pantalla ya
    * no lleva texto, lleva claves. Se cuentan donde están ahora, y en los dos

@@ -35,4 +35,9 @@ export const writer = {
   editedWhen: 'Editado {{cuando}}',
   titleLabel: 'Título del documento',
   bodyLabel: 'Texto del documento',
+  editorTitle: '✍️ Editor',
+  docTitlePlaceholder: 'Título del documento',
+  bodyPlaceholder: 'Escribe aquí. Cuando quieras, pídele a Weë que lo mejore, lo corrija o lo traduzca.',
+  resultHint: 'Weë trabaja sobre lo que escribiste y te devuelve el resultado aquí, listo para seguir editando.',
+  weeWorksWithYou: 'Weë lo trabaja contigo.',
 };

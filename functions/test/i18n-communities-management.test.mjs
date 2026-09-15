@@ -228,8 +228,14 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
     && Object.keys(enT.communities || {}).every((k) => esT.communities[k]), String(CLAVES.length));
   const vacias = CLAVES.filter((k) => !String(enT.communities[k] ?? '').trim());
   check('19) ninguna traducción inglesa está vacía', vacias.length === 0, vacias.join(' '));
+  /*
+   * "posts" se dice igual en los dos idiomas: es la palabra, no un olvido. La
+   * lista es cerrada, así que cualquier OTRA coincidencia sigue siendo un fallo.
+   */
+  const IGUALES = ['posts'];
   const iguales = CLAVES.filter((k) => esT.communities[k] === enT.communities[k]);
-  check('20) ES → EN mueve todas', iguales.length === 0, iguales.join(' '));
+  check('20) ES → EN mueve todas salvo la que se dice igual',
+    iguales.length === IGUALES.length && IGUALES.every((k) => iguales.includes(k)), iguales.join(' '));
   check('20) y EN → ES las devuelve',
     CLAVES.every((k) => ES(`communities.${k}`) === esT.communities[k] && EN(`communities.${k}`) === enT.communities[k]));
   const conAcento = CLAVES.filter((k) => /[áéíóúñ¿¡]/i.test(String(enT.communities[k]).replace(/Weë/g, '')));

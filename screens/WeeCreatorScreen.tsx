@@ -253,7 +253,7 @@ const WeeCreatorScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
               <Text style={[styles.detailNote, { color: theme.colors.textSecondary }]}>
-                Hoy en modo demo: ves cómo funciona sin gastar Credits.
+                {t('weeai.demoToday')}
               </Text>
             </View>
           </View>

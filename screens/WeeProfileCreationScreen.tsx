@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { usersService } from '../services/firestoreService';
@@ -23,6 +24,7 @@ import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker'
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const WeeProfileCreationScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { realProfile, setWeeProfile } = useUserProfile();
@@ -104,13 +106,13 @@ const WeeProfileCreationScreen: React.FC = () => {
       }
 
       Alert.alert(
-        'Perfil Weë creado',
-        'Tu identidad anónima está lista. Puedes cambiar entre perfiles desde el header.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        t('onboarding.weeCreatedTitle'),
+        t('onboarding.weeCreated'),
+        [{ text: t('common.accept'), onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
       console.error('❌ Error creando el Perfil Weë:', error);
-      Alert.alert('Error', error?.message || 'No se pudo crear el perfil Weë');
+      Alert.alert('Error', error?.message || t('onboarding.weeCreateFailed'));
     } finally {
       setIsCreating(false);
     }
@@ -123,7 +125,7 @@ const WeeProfileCreationScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Crear Perfil Weë</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('onboarding.weeTitle')}</Text>
         <View style={{ width: scale(24) }} />
       </View>
 
@@ -142,12 +144,12 @@ const WeeProfileCreationScreen: React.FC = () => {
         <View style={[styles.disclaimer, { backgroundColor: theme.colors.accent + '15' }]}>
           <Ionicons name="shield-checkmark" size={scale(24)} color={theme.colors.accent} />
           <Text style={[styles.disclaimerText, { color: theme.colors.text }]}>
-            Este perfil es independiente de tu identidad real. Las publicaciones y acciones que hagas con Weë no estarán vinculadas a tu perfil principal.
+            {t('onboarding.weeIntro')}
           </Text>
         </View>
 
         {/* Avatar Selection */}
-        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>Foto de perfil</Text>
+        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>{t('onboarding.weePhoto')}</Text>
         <View style={styles.avatarPickerContainer}>
           <AvatarPicker
             currentAvatar={customAvatarUri || undefined}
@@ -158,18 +160,18 @@ const WeeProfileCreationScreen: React.FC = () => {
           />
         </View>
         <Text style={[styles.avatarHint, { color: theme.colors.textSecondary }]}>
-          Toca para elegir una foto o avatar predefinido
+          {t('onboarding.weePhotoHint')}
         </Text>
 
         {/* Display Name */}
-        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>Nombre anónimo</Text>
+        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>{t('onboarding.weeName')}</Text>
         <TextInput
           style={[styles.input, {
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             color: theme.colors.text,
           }]}
-          placeholder="Ej: SombraOscura, Anon123..."
+          placeholder={t('onboarding.weeNamePlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={displayName}
           onChangeText={setDisplayName}
@@ -188,7 +190,7 @@ const WeeProfileCreationScreen: React.FC = () => {
             borderColor: theme.colors.border,
             color: theme.colors.text,
           }]}
-          placeholder="Describe tu alter ego..."
+          placeholder={t('onboarding.weeBioPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={bio}
           onChangeText={setBio}
@@ -219,7 +221,7 @@ const WeeProfileCreationScreen: React.FC = () => {
           ) : (
             <>
               <Ionicons name="eye-off" size={scale(20)} color="white" />
-              <Text style={styles.createButtonText}>Crear Perfil Weë</Text>
+              <Text style={styles.createButtonText}>{t('onboarding.weeTitle')}</Text>
             </>
           )}
         </TouchableOpacity>

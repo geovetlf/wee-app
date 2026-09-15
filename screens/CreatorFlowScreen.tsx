@@ -626,7 +626,7 @@ const CreatorFlowScreen: React.FC = () => {
         )}
 
         <Text style={[styles.footnote, { color: theme.colors.textSecondary }]}>
-          Tú eliges el resultado. Weë elige la IA.
+          {t('weeai.youChooseWeeChooses')}
         </Text>
         <ProjectPicker
           visible={pickerVisible}

@@ -128,7 +128,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
             {hasPosts ? t('weels.create') : t('weels.createFirst')}
           </Text>
           {/* En 68 puntos de ancho, "hasta 15 s" es una tercera línea que aprieta. */}
-          {!compacta && <Text style={styles.createSub}>hasta 15 s</Text>}
+          {!compacta && <Text style={styles.createSub}>{t('weels.upTo15s')}</Text>}
         </TouchableOpacity>
 
         {hasPosts
@@ -175,7 +175,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
 
       {!hasPosts && (
         <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
-          Todavía no hay Weëls de la comunidad. Los ejemplos muestran cómo se verán.
+          {t('weels.noneYetHint')}
         </Text>
       )}
     </View>

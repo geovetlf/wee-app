@@ -1163,7 +1163,7 @@ const PostCard: React.FC<PostCardProps> = ({
         <View style={[styles.centered, { paddingVertical: SPACING.xl }]}>
           <ActivityIndicator size="small" color={theme.colors.accent} />
           <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-            Cargando post...
+            {t('wall.loadingPost')}
           </Text>
         </View>
       </View>
@@ -1584,7 +1584,7 @@ const PostCard: React.FC<PostCardProps> = ({
       {isSharing && (
         <View style={styles.sharingOverlay}>
           <ActivityIndicator size="large" color="#F5B731" />
-          <Text style={styles.sharingText}>Preparando imagen...</Text>
+          <Text style={styles.sharingText}>{t('wall.preparingImage')}</Text>
         </View>
       )}
 

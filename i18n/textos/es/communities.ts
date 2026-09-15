@@ -41,4 +41,13 @@ export const communities = {
   /* La entrada del Home: el título sale de menu.communities. */
   findYours: 'Encuentra las tuyas.',
   searchLabel: 'Buscar comunidades',
+  members: 'miembros',
+  posts: 'posts',
+  rules: 'Reglas de la comunidad',
+  one: 'Comunidad',
+  loadFailed: 'No se pudo cargar la comunidad',
+  noPosts: 'No hay publicaciones',
+  beTheFirst: 'Sé el primero en publicar en esta comunidad',
+  createPost: 'Crear post',
+  understoodJoin: 'Entiendo, unirme',
 };

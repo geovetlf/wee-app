@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { notify } from '../utils/notify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -31,6 +32,7 @@ import EspacioDeEscritura from '../components/EspacioDeEscritura';
 const { width: screenWidth } = Dimensions.get('window');
 
 const OnboardingScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { updateProfile } = useUserProfile();
@@ -182,26 +184,26 @@ const OnboardingScreen: React.FC = () => {
     if (step === 1) {
       // Validar nombre real
       if (!realName.trim()) {
-        notify('Falta tu nombre', 'Escribe tu nombre para continuar.');
+        notify(t('onboarding.nameMissingTitle'), t('onboarding.nameMissing'));
         return;
       }
       if (realName.trim().length < 2) {
-        notify('Nombre muy corto', 'Tu nombre debe tener al menos 2 letras.');
+        notify(t('onboarding.nameShortTitle'), t('onboarding.nameShort'));
         return;
       }
       // Validar fecha de nacimiento
       if (!birthDay || !birthMonth || !birthYear) {
-        notify('Falta tu fecha de nacimiento', 'Elige día, mes y año.');
+        notify(t('onboarding.birthMissingTitle'), t('onboarding.birthMissing'));
         return;
       }
       // Validar género
       if (!gender) {
-        notify('Falta tu género', 'Elige una opción para continuar.');
+        notify(t('onboarding.genderMissingTitle'), t('onboarding.genderMissing'));
         return;
       }
       // Validar país
       if (!selectedCountry) {
-        notify('Falta tu país', 'Elige tu país para continuar.');
+        notify(t('onboarding.countryMissingTitle'), t('onboarding.countryMissing'));
         return;
       }
       setStep(2);
@@ -248,7 +250,7 @@ const OnboardingScreen: React.FC = () => {
         // El MainStackNavigator detectará el cambio y mostrará la app automáticamente
       } catch (error) {
         console.error('Error saving profile:', error);
-        notify('No pudimos guardar tu perfil', 'Inténtalo de nuevo.');
+        notify(t('onboarding.saveFailedTitle'), t('onboarding.saveFailed'));
         setUploading(false);
       }
     }
@@ -290,20 +292,20 @@ const OnboardingScreen: React.FC = () => {
           <Ionicons name="sparkles" size={40} color={theme.colors.accent} />
         </View>
         <Text style={[styles.title, { color: theme.colors.text }]}>
-          Bienvenido a Weë
+          {t('onboarding.welcome')}
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          Cuéntanos quién eres. Después podrás crear tu Perfil Weë: tu identidad para crear con IA.
+          {t('onboarding.welcomeSubtitle')}
         </Text>
       </View>
 
       {/* Nombre (se muestra públicamente) */}
       <View style={styles.inputSection}>
         <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-          Tu nombre
+          {t('onboarding.yourName')}
         </Text>
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          Este nombre se mostrará en tu perfil público.
+          {t('onboarding.yourNameHint')}
         </Text>
         <TextInput
           style={[styles.input, {
@@ -311,7 +313,7 @@ const OnboardingScreen: React.FC = () => {
             borderColor: theme.colors.border,
             color: theme.colors.text,
           }]}
-          placeholder="Tu nombre completo"
+          placeholder={t('onboarding.yourNamePlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={realName}
           onChangeText={setRealName}
@@ -326,10 +328,10 @@ const OnboardingScreen: React.FC = () => {
       {/* Fecha de Nacimiento */}
       <View style={styles.inputSection}>
         <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-          Fecha de nacimiento
+          {t('onboarding.birthDate')}
         </Text>
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          Debes tener al menos 13 años para usar Weë.
+          {t('onboarding.birthDateHint')}
         </Text>
         <View style={styles.dateSelectorsRow}>
           {/* Día */}
@@ -388,7 +390,7 @@ const OnboardingScreen: React.FC = () => {
       {/* Género */}
       <View style={styles.inputSection}>
         <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-          Género
+          {t('onboarding.gender')}
         </Text>
         <View style={styles.genderContainer}>
           <TouchableOpacity
@@ -410,7 +412,7 @@ const OnboardingScreen: React.FC = () => {
               styles.genderText,
               { color: gender === 'male' ? 'white' : theme.colors.text }
             ]}>
-              Hombre
+              {t('onboarding.genderMale')}
             </Text>
           </TouchableOpacity>
 
@@ -433,7 +435,7 @@ const OnboardingScreen: React.FC = () => {
               styles.genderText,
               { color: gender === 'female' ? 'white' : theme.colors.text }
             ]}>
-              Mujer
+              {t('onboarding.genderFemale')}
             </Text>
           </TouchableOpacity>
 
@@ -456,7 +458,7 @@ const OnboardingScreen: React.FC = () => {
               styles.genderText,
               { color: gender === 'other' ? 'white' : theme.colors.text }
             ]}>
-              Otro
+              {t('onboarding.genderOther')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -465,7 +467,7 @@ const OnboardingScreen: React.FC = () => {
       {/* País */}
       <View style={styles.inputSection}>
         <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-          País
+          {t('onboarding.country')}
         </Text>
         <TouchableOpacity
           style={[styles.countrySelector, {
@@ -483,7 +485,7 @@ const OnboardingScreen: React.FC = () => {
             </Text>
           ) : (
             <Text style={[styles.countrySelectorText, { color: theme.colors.textSecondary }]}>
-              Selecciona tu país
+              {t('onboarding.pickCountry')}
             </Text>
           )}
           <Ionicons name="chevron-down" size={18} color={theme.colors.textSecondary} />
@@ -500,7 +502,7 @@ const OnboardingScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.step2Header}>
         <Text style={[styles.title, { color: theme.colors.text }]}>
-          Personaliza tu perfil
+          {t('onboarding.customiseProfile')}
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
           Elige un avatar y agrega una descripción (opcional)
@@ -510,7 +512,7 @@ const OnboardingScreen: React.FC = () => {
       {/* Avatar Selection */}
       <View style={styles.avatarSection}>
         <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>
-          Tu avatar
+          {t('onboarding.yourAvatar')}
         </Text>
         <View style={styles.avatarPickerContainer}>
           <AvatarPicker
@@ -522,7 +524,7 @@ const OnboardingScreen: React.FC = () => {
           />
         </View>
         <Text style={[styles.avatarHint, { color: theme.colors.textSecondary }]}>
-          Toca para elegir un avatar predefinido o subir tu propia imagen
+          {t('onboarding.yourAvatarHint')}
         </Text>
       </View>
 
@@ -537,7 +539,7 @@ const OnboardingScreen: React.FC = () => {
             borderColor: theme.colors.border,
             color: theme.colors.text,
           }]}
-          placeholder="Cuéntanos algo sobre ti... (opcional)"
+          placeholder={t('onboarding.bioPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={bio}
           onChangeText={setBio}
@@ -575,8 +577,8 @@ const OnboardingScreen: React.FC = () => {
   };
 
   const getButtonText = () => {
-    if (step === 2) return 'Completar';
-    return 'Continuar';
+    if (step === 2) return t('onboarding.complete');
+    return t('onboarding.continueStep');
   };
 
   const getButtonIcon = () => {
@@ -611,7 +613,7 @@ const OnboardingScreen: React.FC = () => {
                 >
                   <Ionicons name="arrow-back" size={18} color={theme.colors.text} />
                   <Text style={[styles.backButtonText, { color: theme.colors.text }]}>
-                    Atrás
+                    {t('common.back')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -626,12 +628,12 @@ const OnboardingScreen: React.FC = () => {
                 {uploading ? (
                   <>
                     <ActivityIndicator size="small" color="white" />
-                    <Text style={styles.continueButtonText}>Guardando...</Text>
+                    <Text style={styles.continueButtonText}>{t('onboarding.saving')}</Text>
                   </>
                 ) : completed ? (
                   <>
                     <Ionicons name="checkmark-circle" size={18} color="white" />
-                    <Text style={styles.continueButtonText}>¡Completado!</Text>
+                    <Text style={styles.continueButtonText}>{t('onboarding.completed')}</Text>
                   </>
                 ) : (
                   <>
@@ -678,7 +680,7 @@ const OnboardingScreen: React.FC = () => {
               >
                 <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
                 <Text style={[styles.backButtonText, { color: theme.colors.text }]}>
-                  Atrás
+                  {t('common.back')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -693,12 +695,12 @@ const OnboardingScreen: React.FC = () => {
               {uploading ? (
                 <>
                   <ActivityIndicator size="small" color="white" />
-                  <Text style={styles.continueButtonText}>Guardando...</Text>
+                  <Text style={styles.continueButtonText}>{t('onboarding.saving')}</Text>
                 </>
               ) : completed ? (
                 <>
                   <Ionicons name="checkmark-circle" size={scale(20)} color="white" />
-                  <Text style={styles.continueButtonText}>¡Completado!</Text>
+                  <Text style={styles.continueButtonText}>{t('onboarding.completed')}</Text>
                 </>
               ) : (
                 <>
@@ -781,7 +783,7 @@ const OnboardingScreen: React.FC = () => {
           >
             <View style={[styles.dateModalHeader, { borderBottomColor: theme.colors.border }]}>
               <Text style={[styles.dateModalTitle, { color: theme.colors.text }]}>
-                Selecciona tu país
+                {t('onboarding.pickCountry')}
               </Text>
               <TouchableOpacity onPress={() => setShowCountryModal(false)}>
                 <Ionicons name="close" size={24} color={theme.colors.text} />
@@ -791,7 +793,7 @@ const OnboardingScreen: React.FC = () => {
               <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
               <TextInput
                 style={[styles.countrySearchInput, { color: theme.colors.text }]}
-                placeholder="Buscar país..."
+                placeholder={t('onboarding.searchCountry')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={countrySearch}
                 onChangeText={setCountrySearch}

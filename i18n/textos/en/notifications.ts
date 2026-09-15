@@ -22,4 +22,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   aCommunity: 'a community',
   generic: '{{nombre}} interacted with you',
   now: 'now',
+  markAllRead: 'Mark all as read',
+  all: 'All',
 };

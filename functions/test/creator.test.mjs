@@ -1917,7 +1917,8 @@ console.log('\n── Hogar & Diseño · propuestas, comparación y la foto en g
   check('3) guardar y los textos bajan detrás de las acciones', /\{!trabajoDeEspacio && bloqueProyecto\}/.test(tarjeta) && /\{!trabajoDeEspacio && bloqueTextos\}/.test(tarjeta));
   check('3) y solo en un trabajo de espacio', /const trabajoDeEspacio = job\.plan\?\.steps\.some\(\(s\) => s\.capability === 'image\.space_restyle'\)/.test(tarjeta));
   check('3) la lista de cambios empieza plegada', /const \[verDetalle, setVerDetalle\] = useState\(false\)/.test(tarjeta) && /\{verDetalle && bloqueTextos\}/.test(tarjeta));
-  check('3) pero no se pierde: sigue completa', /Lista de cambios y compras/.test(tarjeta) && /const bloqueTextos = \(/.test(tarjeta));
+  /* Desde la fase 6 el rótulo sale del diccionario: se pide por clave. */
+  check('3) pero no se pierde: sigue completa', /t\('wall\.changesAndPurchases'\)/.test(tarjeta) && /const bloqueTextos = \(/.test(tarjeta));
 
   // 4) La narración interna no es un entregable.
   check('4) la descripción del espacio no se muestra', narracion('look', true, { plan: planEspacio }) === true);

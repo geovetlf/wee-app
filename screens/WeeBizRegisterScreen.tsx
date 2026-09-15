@@ -18,6 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -38,6 +39,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizRegister'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizRegisterScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, setBizProfile } = useUserProfile();
@@ -73,7 +75,7 @@ const WeeBizRegisterScreen: React.FC = () => {
   const pickLogo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería.');
+      Alert.alert(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -89,15 +91,15 @@ const WeeBizRegisterScreen: React.FC = () => {
 
   const handleSave = async () => {
     if (!activeUid) {
-      Alert.alert('Error', 'Debes iniciar sesión.');
+      Alert.alert('Error', t('weebiz.signInFirst'));
       return;
     }
     if (!name.trim()) {
-      Alert.alert('Campo requerido', 'Ingresa el nombre de tu negocio.');
+      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.businessNameMissing'));
       return;
     }
     if (!selectedCategory) {
-      Alert.alert('Campo requerido', 'Selecciona una categoría.');
+      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.categoryMissing'));
       return;
     }
 
@@ -122,8 +124,8 @@ const WeeBizRegisterScreen: React.FC = () => {
           externalLink: externalLink.trim(),
           logo: logoUrl || undefined,
         });
-        Alert.alert('Listo', 'Tu negocio ha sido actualizado.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert('Listo', t('weebiz.updated'), [
+          { text: t('common.accept'), onPress: () => navigation.goBack() },
         ]);
       } else {
         const bizId = await weeBizService.createBusiness({
@@ -153,8 +155,8 @@ const WeeBizRegisterScreen: React.FC = () => {
           console.error('Error creando perfil BIZ:', bizProfileErr);
         }
 
-        Alert.alert('Negocio creado', 'Tu negocio ya está en Weë Biz. Ahora puedes cambiar a tu perfil de negocio desde el menú.', [
-          { text: 'Ver perfil', onPress: () => {
+        Alert.alert(t('weebiz.createdTitle'), t('weebiz.created'), [
+          { text: t('weebiz.viewProfile'), onPress: () => {
             navigation.goBack();
             navigation.navigate('WeeBizProfile', { businessId: bizId });
           }},
@@ -162,7 +164,7 @@ const WeeBizRegisterScreen: React.FC = () => {
       }
     } catch (e) {
       console.error('Error saving business:', e);
-      Alert.alert('Error', 'No se pudo guardar el negocio.');
+      Alert.alert('Error', t('weebiz.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -218,7 +220,7 @@ const WeeBizRegisterScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
       >
         {/* Logo */}
-        <Text style={[styles.label, { color: theme.colors.text }]}>Logo</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{t('weebiz.logo')}</Text>
         <TouchableOpacity
           style={[styles.logoPicker, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           onPress={pickLogo}
@@ -230,32 +232,32 @@ const WeeBizRegisterScreen: React.FC = () => {
             <View style={styles.logoPlaceholder}>
               <Ionicons name="camera-outline" size={scale(32)} color={theme.colors.textSecondary} />
               <Text style={[styles.logoPlaceholderText, { color: theme.colors.textSecondary }]}>
-                Agregar logo
+                {t('weebiz.addLogo')}
               </Text>
             </View>
           )}
         </TouchableOpacity>
 
         {/* Name */}
-        <Text style={[styles.label, { color: theme.colors.text }]}>Nombre del negocio *</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{t('weebiz.businessNameRequired')}</Text>
         <TextInput
           style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           value={name}
           onChangeText={setName}
-          placeholder="Ej: Café Central"
+          placeholder={t('weebiz.businessNamePlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           maxLength={60}
         />
 
         {/* Category */}
-        <Text style={[styles.label, { color: theme.colors.text }]}>Categoría *</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{t('weebiz.categoryRequired')}</Text>
         <View style={styles.categoriesWrap}>
           {categoriesToShow.map(renderCategoryChip)}
         </View>
         {!showAllCategories && (
           <TouchableOpacity onPress={() => setShowAllCategories(true)} style={styles.showMoreLink}>
             <Text style={[styles.showMoreText, { color: theme.colors.primary }]}>
-              Ver más categorías
+              {t('weebiz.moreCategories')}
             </Text>
             <Ionicons name="chevron-down" size={scale(14)} color={theme.colors.primary} />
           </TouchableOpacity>
@@ -263,7 +265,7 @@ const WeeBizRegisterScreen: React.FC = () => {
 
         {/* Subcategory (free text) */}
         <Text style={[styles.label, { color: theme.colors.text }]}>
-          Especialidad
+          {t('weebiz.speciality')}
         </Text>
         <TextInput
           style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
@@ -275,12 +277,12 @@ const WeeBizRegisterScreen: React.FC = () => {
         />
 
         {/* Description */}
-        <Text style={[styles.label, { color: theme.colors.text }]}>Descripción</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{t('weebiz.description')}</Text>
         <TextInput
           style={[styles.textArea, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           value={description}
           onChangeText={setDescription}
-          placeholder="Cuéntale a la gente sobre tu negocio..."
+          placeholder={t('weebiz.businessDescriptionPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           multiline
           numberOfLines={4}
@@ -289,23 +291,23 @@ const WeeBizRegisterScreen: React.FC = () => {
         />
 
         {/* Location */}
-        <Text style={[styles.label, { color: theme.colors.text }]}>Ubicación</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{t('weebiz.location')}</Text>
         <TextInput
           style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           value={location}
           onChangeText={setLocation}
-          placeholder="Ej: Lima, Perú"
+          placeholder={t('weebiz.locationPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           maxLength={80}
         />
 
         {/* External link */}
-        <Text style={[styles.label, { color: theme.colors.text }]}>Link externo</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{t('weebiz.externalLink')}</Text>
         <TextInput
           style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           value={externalLink}
           onChangeText={setExternalLink}
-          placeholder="Ej: www.minegocio.com"
+          placeholder={t('weebiz.externalLinkPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           autoCapitalize="none"
           keyboardType="url"

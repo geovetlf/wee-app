@@ -346,8 +346,14 @@ console.log('\n── J · El módulo, cuadrado ──');
   check('53) ninguna traducción inglesa está vacía', clavesEn.every((k) => enT.profile[k].trim().length > 0));
 
   /* 54 · Cada clave del módulo se USA. Una que sobre es una que se olvidó quitar. */
-  const sinUsar = clavesEs.filter((k) => !new RegExp("'profile\\." + k + "'").test(PERFIL));
-  check('54) todas las claves del módulo se usan en la pantalla', sinUsar.length === 0, sinUsar.join(' · '));
+  /*
+   * En la fase 6 el módulo pasó a servir también al PERFIL AJENO, que es la
+   * misma pantalla vista desde fuera. Se miran las dos: una clave que no use
+   * ninguna de ellas sigue siendo una clave que sobra.
+   */
+  const AJENO = leer('screens/UserProfileScreen.tsx');
+  const sinUsar = clavesEs.filter((k) => !new RegExp("'profile\\." + k + "'").test(PERFIL + AJENO));
+  check('54) todas las claves del módulo se usan en una de las dos pantallas', sinUsar.length === 0, sinUsar.join(' · '));
 
   /*
    * 55 · Y todas las que la pantalla pide existen. Se miran TODAS las llamadas,

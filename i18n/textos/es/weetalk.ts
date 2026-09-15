@@ -33,4 +33,10 @@ export const weetalk = {
   ephemeralMode: 'Modo efímero',
   noMessagesYet: 'No hay mensajes aún',
   youSaid: 'Tú: {{mensaje}}',
+  conversationStart: 'Este es el inicio de tu conversación privada',
+  beRespectful: 'Recuerda mantener el respeto y la privacidad 🤝',
+  anonymousUser: 'Usuario anónimo',
+  ephemeralOn: 'Modo efímero activado · Los mensajes se borran al salir',
+  cameraNeeded: 'Se necesita acceso a la cámara',
+  allow: 'Permitir',
 };

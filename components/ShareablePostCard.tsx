@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useT } from '../contexts/IdiomaContext';
 import { Post } from '../services/firestoreService';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import { formatNumber } from '../data/mockData';
@@ -66,6 +67,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
   authorPhotoURL,
   communityName,
 }) => {
+  const t = useT();
   const timeAgo = getTimeAgo(post.createdAt);
 
   return (
@@ -166,7 +168,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerCta}>Opina de forma anónima en Weë</Text>
+            <Text style={styles.footerCta}>{t('wall.shareAnonymously')}</Text>
           </View>
         </View>
       </View>

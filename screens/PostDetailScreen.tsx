@@ -396,7 +396,7 @@ const PostDetailContent: React.FC = () => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Publicación</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('wall.onePost')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -480,7 +480,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
                 {formatNumber(post.views || 0)}
-              </Text> vistas
+              </Text> {t('wall.statViews')}
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -488,7 +488,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
                 {formatNumber(voteStats.agreementCount)}
-              </Text> de acuerdo
+              </Text> {t('wall.statAgree')}
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -496,7 +496,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
                 {formatNumber(post.comments)}
-              </Text> comentarios
+              </Text> {t('wall.statComments')}
             </Text>
           </View>
         </View>
@@ -621,7 +621,7 @@ const PostDetailContent: React.FC = () => {
             <View style={styles.loadingComments}>
               <ActivityIndicator size="small" color={theme.colors.accent} />
               <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-                Cargando comentarios...
+                {t('wall.loadingComments')}
               </Text>
             </View>
           ) : comments.length === 0 ? (
@@ -630,7 +630,7 @@ const PostDetailContent: React.FC = () => {
                 <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.textSecondary} />
               </View>
               <Text style={[styles.noCommentsText, { color: theme.colors.textSecondary }]}>
-                Sé el primero en comentar
+                {t('wall.beFirstToComment')}
               </Text>
             </View>
           ) : (
@@ -688,7 +688,7 @@ const PostDetailContent: React.FC = () => {
             style={[styles.commentInput, {
               color: theme.colors.text,
             }]}
-            placeholder="Escribe un comentario..."
+            placeholder={t('wall.commentPlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={commentText}
             onChangeText={setCommentText}
@@ -1074,7 +1074,7 @@ const PostDetailScreen: React.FC = () => {
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background, padding: 24, gap: 12 }}>
       {failed ? (
         <>
-          <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>No encontramos esta publicación</Text>
+          <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>{t('wall.postNotFound')}</Text>
           <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel={t('common.back')}>
             <Text style={{ color: theme.colors.accentDark, fontWeight: '700' }}>{t('common.back')}</Text>
           </TouchableOpacity>

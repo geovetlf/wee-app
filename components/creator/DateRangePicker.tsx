@@ -186,7 +186,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
           style={[styles.confirmar, { backgroundColor: salida ? theme.colors.accent : theme.colors.border }]}
           accessibilityLabel={t('weeai.confirmDates')}
         >
-          <Text style={[styles.confirmarTexto, { color: salida ? '#1F2937' : theme.colors.textSecondary }]}>Listo</Text>
+          <Text style={[styles.confirmarTexto, { color: salida ? '#1F2937' : theme.colors.textSecondary }]}>{t('common.done')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { Post } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -17,6 +18,7 @@ interface HowIMadeItProps {
  * Convierte cada publicación hecha con IA en algo que también enseña.
  */
 const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
+  const t = useT();
   const { theme } = useTheme();
   const [promptOpen, setPromptOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -64,12 +66,12 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
     <View style={[styles.box, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
       <View style={styles.headerRow}>
         <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: theme.colors.accentDark }]}>CÓMO LO HICE</Text>
+        <Text style={[styles.title, { color: theme.colors.accentDark }]}>{t('wall.howIMadeIt')}</Text>
       </View>
 
       {tools.length > 0 && (
         <View style={styles.toolsRow}>
-          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Creado con</Text>
+          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('wall.madeWith')}</Text>
           {tools.map((tool) => (
             <View key={tool} style={[styles.toolChip, { backgroundColor: theme.colors.card }]}>
               <Text style={[styles.toolText, { color: theme.colors.text }]}>{tool}</Text>
@@ -99,7 +101,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
                   <Text style={styles.copyText}>{copied ? 'Copiado' : 'Copiar prompt'}</Text>
                 </TouchableOpacity>
               ) : (
-                <Text style={[styles.copyHint, { color: theme.colors.textSecondary }]}>Mantén presionado el texto para copiarlo</Text>
+                <Text style={[styles.copyHint, { color: theme.colors.textSecondary }]}>{t('wall.holdToCopy')}</Text>
               )}
             </View>
           )}
@@ -108,7 +110,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
 
       {!!process && (
         <Text style={[styles.processText, { color: theme.colors.text }]}>
-          <Text style={styles.processLabel}>Proceso: </Text>
+          <Text style={styles.processLabel}>{t('wall.process')} </Text>
           {process}
         </Text>
       )}

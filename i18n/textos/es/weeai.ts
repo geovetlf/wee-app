@@ -177,4 +177,6 @@ export const weeai = {
   generatedVideo: 'Video generado',
   playVideo: 'Reproducir video',
   continueVia: 'Seguir por: {{camino}}',
+  youChooseWeeChooses: 'Tú eliges el resultado. Weë elige la IA.',
+  demoToday: 'Hoy en modo demo: ves cómo funciona sin gastar Credits.',
 };

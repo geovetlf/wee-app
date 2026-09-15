@@ -172,4 +172,6 @@ export const weeai: typeof import('../es/weeai').weeai = {
   generatedVideo: 'Generated video',
   playVideo: 'Play video',
   continueVia: 'Continue with: {{camino}}',
+  youChooseWeeChooses: 'You choose the result. Weë chooses the AI.',
+  demoToday: 'In demo mode today: you see how it works without spending Credits.',
 };

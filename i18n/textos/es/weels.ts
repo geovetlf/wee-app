@@ -16,4 +16,6 @@ export const weels = {
   create: 'Crear Weël',
   createFirst: 'Tu primer Weël',
   open: 'Ver Weël',
+  upTo15s: 'hasta 15 s',
+  noneYetHint: 'Todavía no hay Weëls de la comunidad. Los ejemplos muestran cómo se verán.',
 };

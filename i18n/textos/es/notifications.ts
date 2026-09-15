@@ -22,4 +22,6 @@ export const notifications = {
   aCommunity: 'una comunidad',
   generic: '{{nombre}} interactuó contigo',
   now: 'ahora',
+  markAllRead: 'Marcar todas como leídas',
+  all: 'Todas',
 };

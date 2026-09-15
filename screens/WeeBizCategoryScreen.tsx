@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -26,6 +27,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizCategory'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizCategoryScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RoutePropType>();
@@ -136,7 +138,7 @@ const WeeBizCategoryScreen: React.FC = () => {
           color={category?.color || theme.colors.textSecondary}
         />
         <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-          Sin negocios aún
+          {t('weebiz.noneYet')}
         </Text>
         <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
           Sé el primero en registrar tu negocio en {categoryLabel}.

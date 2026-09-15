@@ -198,7 +198,7 @@ const CommunityScreen: React.FC = () => {
                 {community.memberCount}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-                miembros
+                {t('communities.members')}
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
@@ -207,7 +207,7 @@ const CommunityScreen: React.FC = () => {
                 {community.postCount}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-                posts
+                {t('communities.posts')}
               </Text>
             </View>
           </View>
@@ -256,7 +256,7 @@ const CommunityScreen: React.FC = () => {
               <View style={styles.rulesHeaderLeft}>
                 <Ionicons name="document-text-outline" size={scale(20)} color={theme.colors.accent} />
                 <Text style={[styles.rulesTitle, { color: theme.colors.text }]}>
-                  Reglas de la comunidad
+                  {t('communities.rules')}
                 </Text>
               </View>
               <Ionicons
@@ -366,7 +366,7 @@ const CommunityScreen: React.FC = () => {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Comunidad</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('communities.one')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centered}>
@@ -384,13 +384,13 @@ const CommunityScreen: React.FC = () => {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Comunidad</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('communities.one')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centered}>
           <Ionicons name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={[styles.errorText, { color: theme.colors.text }]}>
-            No se pudo cargar la comunidad
+            {t('communities.loadFailed')}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -455,16 +455,16 @@ const CommunityScreen: React.FC = () => {
               color={theme.colors.textSecondary}
             />
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              No hay publicaciones
+              {t('communities.noPosts')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
-              Sé el primero en publicar en esta comunidad
+              {t('communities.beTheFirst')}
             </Text>
             <TouchableOpacity
               style={[styles.createPostButton, { backgroundColor: theme.colors.accent }]}
               onPress={() => navigation.navigate('Create')}
             >
-              <Text style={styles.createPostButtonText}>Crear post</Text>
+              <Text style={styles.createPostButtonText}>{t('communities.createPost')}</Text>
             </TouchableOpacity>
           </View>
         )}

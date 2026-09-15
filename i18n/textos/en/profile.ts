@@ -58,4 +58,9 @@ export const profile: typeof import('../es/profile').profile = {
   emptyRepostsHint: 'Share what other people make',
   emptyLikes: 'You have not liked any posts',
   emptyLikesHint: 'Like the posts that interest you',
+  otherTitle: 'Profile',
+  otherLoadFailed: 'The profile could not be loaded',
+  seeFullProfile: 'See my full profile',
+  emptyCategory: 'No posts in this category',
+  actionFailed: 'It could not be completed',
 };

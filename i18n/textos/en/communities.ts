@@ -34,4 +34,13 @@ export const communities: typeof import('../es/communities').communities = {
   empty: 'There are no communities available',
   findYours: 'Find yours.',
   searchLabel: 'Search communities',
+  members: 'members',
+  posts: 'posts',
+  rules: 'Community rules',
+  one: 'Community',
+  loadFailed: 'The community could not be loaded',
+  noPosts: 'There are no posts',
+  beTheFirst: 'Be the first to post in this community',
+  createPost: 'Create a post',
+  understoodJoin: 'I understand, join',
 };

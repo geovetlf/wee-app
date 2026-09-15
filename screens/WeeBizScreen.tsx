@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -32,6 +33,7 @@ import { weeBizService, Business } from '../services/weeBizService';
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
@@ -182,7 +184,7 @@ const WeeBizScreen: React.FC = () => {
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={scale(48)} color={theme.colors.textSecondary} />
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-              No se encontraron negocios
+              {t('weebiz.noBusinesses')}
             </Text>
           </View>
         ) : (
@@ -208,7 +210,7 @@ const WeeBizScreen: React.FC = () => {
           <Ionicons name="search-outline" size={scale(18)} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Buscar negocios..."
+            placeholder={t('weebiz.searchPlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
@@ -233,7 +235,7 @@ const WeeBizScreen: React.FC = () => {
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {/* Categorias */}
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Categorías</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weebiz.categories')}</Text>
           <View style={styles.categoriesGrid}>
             {categoriesToShow.map(renderCategoryItem)}
           </View>
@@ -243,7 +245,7 @@ const WeeBizScreen: React.FC = () => {
               onPress={() => setShowAllCategories(true)}
             >
               <Text style={[styles.showMoreText, { color: theme.colors.primary }]}>
-                Ver más categorías
+                {t('weebiz.moreCategories')}
               </Text>
               <Ionicons name="chevron-down" size={scale(16)} color={theme.colors.primary} />
             </TouchableOpacity>
@@ -253,7 +255,7 @@ const WeeBizScreen: React.FC = () => {
           {featuredBiz.length > 0 && (
             <>
               <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: SPACING.xl }]}>
-                Destacados
+                {t('weebiz.featured')}
               </Text>
               {featuredBiz.map(renderBusinessCard)}
             </>
@@ -263,7 +265,7 @@ const WeeBizScreen: React.FC = () => {
           {recentBiz.length > 0 && (
             <>
               <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: SPACING.xl }]}>
-                Nuevos negocios
+                {t('weebiz.newBusinesses')}
               </Text>
               {recentBiz.map(renderBusinessCard)}
             </>
@@ -276,7 +278,7 @@ const WeeBizScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Ionicons name="add-circle-outline" size={scale(20)} color="#FFF" />
-            <Text style={styles.registerBtnText}>Registrar mi negocio</Text>
+            <Text style={styles.registerBtnText}>{t('weebiz.registerMine')}</Text>
           </TouchableOpacity>
 
           {/* Empty state si no hay negocios aun */}

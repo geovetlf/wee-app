@@ -555,7 +555,7 @@ const LandingScreen: React.FC = () => {
         activeOpacity={0.7}
       >
         <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>
-          Explora comunidades
+          {t('home.exploreCommunities')}
         </Text>
         <Ionicons
           name={categoriesExpanded ? 'chevron-up' : 'chevron-down'}
@@ -577,7 +577,7 @@ const LandingScreen: React.FC = () => {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.showMoreButtonText, { color: theme.colors.accent }]}>
-                  Ver más categorías
+                  {t('home.moreCategories')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -690,11 +690,11 @@ const LandingScreen: React.FC = () => {
         <View style={styles.communityHeader}>
           <View>
             <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>
-              Comunidades populares
+              {t('home.popularCommunities')}
             </Text>
           </View>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('ExploreCommunities' as any)}>
-            <Text style={[styles.communityViewAll, { color: theme.colors.accent }]}>Ver todas</Text>
+            <Text style={[styles.communityViewAll, { color: theme.colors.accent }]}>{t('home.seeAllOf')}</Text>
           </TouchableOpacity>
         </View>
         {isWeb ? (
@@ -751,7 +751,7 @@ const LandingScreen: React.FC = () => {
               <View style={styles.trendingHeader}>
                 <Text style={styles.trendingEmoji}>🔥</Text>
                 <Text style={[styles.trendingLabel, { color: theme.colors.textSecondary }]}>
-                  Tema del dia
+                  {t('home.topicOfTheDay')}
                 </Text>
               </View>
               <Text style={[styles.trendingTitle, { color: theme.colors.text }]} numberOfLines={2}>
@@ -763,7 +763,7 @@ const LandingScreen: React.FC = () => {
                 </Text>
                 <Text style={[styles.trendingDot, { color: theme.colors.textSecondary }]}>•</Text>
                 <Text style={[styles.trendingStatText, { color: theme.colors.accent }]}>
-                  Debate intenso
+                  {t('home.heatedDebate')}
                 </Text>
               </View>
             </View>
@@ -852,7 +852,7 @@ const LandingScreen: React.FC = () => {
             <View style={styles.featuredHeader}>
               <Text style={styles.featuredEmoji}>⭐</Text>
               <Text style={[styles.featuredLabel, { color: theme.colors.text }]}>
-                Opinion destacada
+                {t('home.featuredOpinion')}
               </Text>
             </View>
             <Text style={[styles.featuredContent, { color: theme.colors.text }]} numberOfLines={3}>

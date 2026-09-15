@@ -11,6 +11,7 @@ import { scale } from '../utils/scale';
 
 interface FaqItem {
   emoji: string;
+  /* Claves del diccionario: el catálogo se importa fuera de React. */
   question: string;
   answer: string;
 }
@@ -18,56 +19,48 @@ interface FaqItem {
 const FAQ: FaqItem[] = [
   {
     emoji: '✨',
-    question: '¿Qué es Weë?',
-    answer:
-      'Weë (World Encode Entity) es la red social de las personas que crean con Inteligencia Artificial: aquí descubres, aprendes, creas, compartes y conectas. La IA es el motor; la comunidad es el corazón.',
+    question: 'help.q1',
+    answer: 'help.a1',
   },
   {
     emoji: '👤',
-    question: '¿Qué diferencia hay entre Perfil Real y Perfil Weë?',
-    answer:
-      'Tu Perfil Real es tu identidad de siempre y la app se ve blanca. Tu Perfil Weë es tu identidad para crear con IA: un avatar y un nombre propios para publicar tus creaciones, y con él la app se viste de oscuro para que siempre sepas con quién estás participando. Cambias de uno a otro desde el menú ☰ o el botón del encabezado.',
+    question: 'help.q2',
+    answer: 'help.a2',
   },
   {
     emoji: '🤖',
-    question: '¿Cómo funciona Weë AI?',
-    answer:
-      'Cuéntale a Weë lo que quieres lograr con tus palabras. Weë te hace pocas preguntas sencillas (siempre puedes responder "No sé"), prepara un plan y crea el resultado. Tú eliges el resultado; Weë elige la IA. Hay diez especialistas: Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business y Brain.',
+    question: 'help.q3',
+    answer: 'help.a3',
   },
   {
     emoji: '💳',
-    question: '¿Qué son los Credits?',
-    answer:
-      'Cada creación con Weë AI usa Credits. Antes de crear ves cuánto costará y, si algo falla, se devuelven. Mientras construimos Weë AI, los precios son de prueba y las recargas no cuestan nada: los precios definitivos llegarán con las IAs reales.',
+    question: 'help.q4',
+    answer: 'help.a4',
   },
   {
     emoji: '📁',
-    question: '¿Para qué sirven los proyectos?',
-    answer:
-      'Un proyecto agrupa creaciones de distintos especialistas: el logo, las fotos, el anuncio, el video y la música de "Mi restaurante", por ejemplo. Guarda cada resultado en el suyo desde "Guardar en un proyecto".',
+    question: 'help.q5',
+    answer: 'help.a5',
   },
   {
     emoji: '🎬',
-    question: '¿Qué son los Weëls?',
-    answer:
-      'Videos de hasta 15 segundos para mostrar lo que creas. Se pueden compartir fuera de Weë y llevan una pequeña marca de Weë. Los creas desde el botón + eligiendo "Weël".',
+    question: 'help.q6',
+    answer: 'help.a6',
   },
   {
     emoji: '👥',
-    question: '¿Qué son las comunidades?',
-    answer:
-      'Grupos de personas con un mismo interés: Cine & Animación, Arte & Creatividad, Negocios & Emprendimiento, Tecnología & IA y más. Únete a las que te interesen y publica en ellas.',
+    question: 'help.q7',
+    answer: 'help.a7',
   },
   {
     emoji: '💬',
-    question: '¿Qué es WeeTalk?',
-    answer: 'Es el chat de Weë: conversaciones privadas con otras personas de la comunidad, con texto, fotos y notas de voz.',
+    question: 'help.q8',
+    answer: 'help.a8',
   },
   {
     emoji: '📝',
-    question: '¿Qué es "Cómo lo hice"?',
-    answer:
-      'Al publicar puedes contar qué herramientas usaste, el prompt y el proceso. Así otras personas aprenden de ti, y tú de ellas, con un solo toque en "Copiar prompt".',
+    question: 'help.q9',
+    answer: 'help.a9',
   },
 ];
 
@@ -83,16 +76,16 @@ const HelpScreen: React.FC = () => {
 
   const renderLegal = () => (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Términos y privacidad</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('help.legalTitle')}</Text>
       <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
         <Text style={[styles.answer, { color: theme.colors.text }]}>
-          Tus datos son tuyos. Weë usa tu correo y tu perfil solo para que la app funcione: iniciar sesión, mostrar tus publicaciones, tus Credits y tus creaciones. No vendemos tu información.
+          {t('help.legalBody')}
         </Text>
         <Text style={[styles.answer, { color: theme.colors.text }]}>
           Lo que publicas es visible para la comunidad; lo que creas en Weë AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.
         </Text>
         <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>
-          Los términos completos y la política de privacidad se publicarán en wee.zone antes del lanzamiento. Weë está en construcción: algunas funciones usan datos de prueba y lo decimos claramente donde pasa.
+          {t('help.legalPending')}
         </Text>
       </View>
     </View>
@@ -104,7 +97,7 @@ const HelpScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Ayuda</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('help.title')}</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -113,20 +106,20 @@ const HelpScreen: React.FC = () => {
           <Text style={styles.heroEmoji}>❓</Text>
           <Text style={[styles.heroTitle, { color: theme.colors.text }]}>¿En qué te ayudamos?</Text>
           <Text style={[styles.heroText, { color: theme.colors.textSecondary }]}>
-            Aquí tienes las respuestas a lo más común. Si algo no queda claro, cuéntanoslo: Weë mejora con la comunidad.
+            {t('help.intro')}
           </Text>
         </View>
 
         {legalFirst && renderLegal()}
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Preguntas frecuentes</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('help.faqTitle')}</Text>
           {FAQ.map((item) => (
-            <View key={item.question} style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <View key={t(item.question)} style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={[styles.question, { color: theme.colors.text }]}>
-                {item.emoji} {item.question}
+                {item.emoji} {t(item.question)}
               </Text>
-              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{item.answer}</Text>
+              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer)}</Text>
             </View>
           ))}
         </View>
@@ -134,10 +127,10 @@ const HelpScreen: React.FC = () => {
         {!legalFirst && renderLegal()}
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Contacto</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('help.contact')}</Text>
           <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.answer, { color: theme.colors.text }]}>
-              Muy pronto tendrás aquí un canal directo con el equipo de Weë. Mientras tanto, comparte tus ideas y problemas en una publicación: la comunidad y el equipo las leen.
+              {t('help.contactBody')}
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('Create', { kind: 'question', prefill: { content: 'Una pregunta para Weë: ' } })}
@@ -145,12 +138,12 @@ const HelpScreen: React.FC = () => {
               activeOpacity={0.85}
               accessibilityLabel={t('composer.askCommunity')}
             >
-              <Text style={styles.buttonText}>Hacer una pregunta</Text>
+              <Text style={styles.buttonText}>{t('help.askQuestion')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={[styles.version, { color: theme.colors.textSecondary }]}>Weë · World Encode Entity · versión 1.0.0</Text>
+        <Text style={[styles.version, { color: theme.colors.textSecondary }]}>{t('help.footer')}</Text>
       </ScrollView>
     </View>
   );

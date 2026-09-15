@@ -87,4 +87,9 @@ export const profile = {
   emptyRepostsHint: 'Comparte contenido de otros usuarios',
   emptyLikes: 'No tienes publicaciones que te gusten',
   emptyLikesHint: 'Dale me gusta a las publicaciones que te interesen',
+  otherTitle: 'Perfil',
+  otherLoadFailed: 'No se pudo cargar el perfil',
+  seeFullProfile: 'Ver mi perfil completo',
+  emptyCategory: 'Sin publicaciones en esta categoría',
+  actionFailed: 'No se pudo completar',
 };

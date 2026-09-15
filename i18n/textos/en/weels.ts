@@ -16,4 +16,6 @@ export const weels: typeof import('../es/weels').weels = {
   create: 'Create Weël',
   createFirst: 'Your first Weël',
   open: 'Open Weël',
+  upTo15s: 'up to 15s',
+  noneYetHint: 'There are no community Weëls yet. The examples show how they will look.',
 };

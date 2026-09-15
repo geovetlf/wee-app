@@ -33,4 +33,10 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   ephemeralMode: 'Ephemeral mode',
   noMessagesYet: 'No messages yet',
   youSaid: 'You: {{mensaje}}',
+  conversationStart: 'This is the start of your private conversation',
+  beRespectful: 'Remember to be respectful and keep things private 🤝',
+  anonymousUser: 'Anonymous user',
+  ephemeralOn: 'Ephemeral mode on · Messages are deleted when you leave',
+  cameraNeeded: 'Camera access is needed',
+  allow: 'Allow',
 };

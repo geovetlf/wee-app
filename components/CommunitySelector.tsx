@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { communityService, Community } from '../services/communityService';
 import { scale } from '../utils/scale';
 
@@ -27,6 +28,7 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
   maxSelection = 10,
   showWarnings = true,
 }) => {
+  const t = useT();
   const { theme } = useTheme();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +176,7 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
                 onPress={() => setWarningShown(null)}
               >
                 <Text style={[styles.warningButtonText, { color: theme.colors.text }]}>
-                  Cancelar
+                  {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -182,7 +184,7 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
                 onPress={() => confirmWarning(item)}
               >
                 <Text style={[styles.warningButtonText, { color: 'white' }]}>
-                  Entiendo, unirme
+                  {t('communities.understoodJoin')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -197,7 +199,7 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          Cargando comunidades...
+          {t('communities.loading')}
         </Text>
       </View>
     );
@@ -212,7 +214,7 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
           style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
           onPress={loadCommunities}
         >
-          <Text style={styles.retryButtonText}>Reintentar</Text>
+          <Text style={styles.retryButtonText}>{t('wall.retry')}</Text>
         </TouchableOpacity>
       </View>
     );

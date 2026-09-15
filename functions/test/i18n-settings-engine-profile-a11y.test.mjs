@@ -111,8 +111,17 @@ console.log('\n── B · El botón de aceptar del perfil ajeno ──');
   const INVENTADAS = ['acceptText', 'acceptButton', 'acceptEcontact', 'acceptList', 'acceptAgenda'];
   const coladas = Object.entries(esT).flatMap(([modulo, m]) =>
     Object.keys(m).filter((k) => INVENTADAS.includes(k)).map((k) => modulo + '.' + k));
+  /*
+   * En la fase 6 esta pantalla se migró entera y sus textos propios —el título,
+   * el error, los huecos vacíos— sí viven en `profile`, que es su dominio. Lo
+   * que sigue sin poder pasar es que alguien invente una clave para ESTE botón.
+   */
+  const DEL_PERFIL_AJENO = ['profile.otherTitle', 'profile.otherLoadFailed', 'profile.seeFullProfile',
+    'profile.emptyCategory', 'profile.actionFailed', 'profile.loading', 'profile.posts', 'profile.loadingPosts'];
+  const deMas = [...PERFIL.matchAll(/t\('(profile\.[A-Za-z0-9_]+)'/g)]
+    .map((m) => m[1]).filter((c) => !DEL_PERFIL_AJENO.includes(c));
   check('9) y no se creó ninguna clave nueva para esto',
-    coladas.length === 0 && !/t\('profile\./.test(PERFIL), coladas.join(' · '));
+    coladas.length === 0 && deMas.length === 0, coladas.concat(deMas).join(' · '));
 
   /* 10 y 11 · Lo que se lee en cada idioma. */
   check('10) en español: ' + ES('econtact.acceptLabel', { lista: 'ËContact' }),

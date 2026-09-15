@@ -11,6 +11,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { FONT_SIZE, FONT_WEIGHT, SPACING } from '../constants/design';
+import { useT } from '../contexts/IdiomaContext';
 
 interface ChatCameraProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface ChatCameraProps {
 }
 
 const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => {
+  const t = useT();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<'front' | 'back'>('back');
@@ -64,12 +66,12 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
       <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
         <View style={styles.permissionScreen}>
           <Ionicons name="camera-outline" size={64} color="rgba(255,255,255,0.5)" />
-          <Text style={styles.permissionText}>Se necesita acceso a la cámara</Text>
+          <Text style={styles.permissionText}>{t('weetalk.cameraNeeded')}</Text>
           <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
-            <Text style={styles.permissionBtnText}>Permitir</Text>
+            <Text style={styles.permissionBtnText}>{t('weetalk.allow')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleClose}>
-            <Text style={styles.permissionCancel}>Cancelar</Text>
+            <Text style={styles.permissionCancel}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </Modal>

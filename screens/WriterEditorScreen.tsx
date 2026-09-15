@@ -94,7 +94,7 @@ const WriterEditorScreen: React.FC = () => {
     const excerpt = text.trim().slice(0, 600);
     if (!excerpt) {
       if (isWeb) window.alert(t('writer.writeSomethingHint'));
-      else Alert.alert(t('writer.writeSomethingFirst'), 'Weë lo trabaja contigo.');
+      else Alert.alert(t('writer.writeSomethingFirst'), t('writer.weeWorksWithYou'));
       return;
     }
     // Se guarda antes de pedir ayuda para que el resultado vuelva a este mismo documento
@@ -119,11 +119,11 @@ const WriterEditorScreen: React.FC = () => {
   };
 
   return (
-    <CreatorShell activeId="writer" overline="🤖 Weë AI" title="✍️ Editor" breadcrumb="Weë Writer">
+    <CreatorShell activeId="writer" overline="🤖 Weë AI" title={t('writer.editorTitle')} breadcrumb="Weë Writer">
       <View style={[styles.editor, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, isDesktop && styles.editorDesktop]}>
         <TextInput
           style={[styles.title, { color: theme.colors.text }]}
-          placeholder="Título del documento"
+          placeholder={t('writer.docTitlePlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={title}
           onChangeText={setTitle}
@@ -131,7 +131,7 @@ const WriterEditorScreen: React.FC = () => {
         />
         <TextInput
           style={[styles.text, { color: theme.colors.text }]}
-          placeholder="Escribe aquí. Cuando quieras, pídele a Weë que lo mejore, lo corrija o lo traduzca."
+          placeholder={t('writer.bodyPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={text}
           onChangeText={setText}
@@ -170,7 +170,7 @@ const WriterEditorScreen: React.FC = () => {
           ))}
         </View>
         <Text style={[styles.helpersHint, { color: theme.colors.textSecondary }]}>
-          Weë trabaja sobre lo que escribiste y te devuelve el resultado aquí, listo para seguir editando.
+          {t('writer.resultHint')}
         </Text>
       </View>
     </CreatorShell>

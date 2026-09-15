@@ -598,7 +598,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           />
           <View style={styles.editActions}>
             <TouchableOpacity onPress={() => setEditing(false)} style={styles.linkButton} activeOpacity={0.7}>
-              <Text style={[styles.linkText, { color: theme.colors.textSecondary }]}>Cancelar</Text>
+              <Text style={[styles.linkText, { color: theme.colors.textSecondary }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={submitEdit}
@@ -620,7 +620,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               activeOpacity={0.85}
             >
               <Ionicons name="create-outline" size={scale(18)} color="#1F2937" />
-              <Text style={[styles.actionText, { color: '#1F2937' }]}>Usar en el editor</Text>
+              <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.useInEditor')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -639,7 +639,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             activeOpacity={0.8}
           >
             <Ionicons name="create-outline" size={scale(18)} color={theme.colors.text} />
-            <Text style={[styles.actionText, { color: theme.colors.text }]}>Editar</Text>
+            <Text style={[styles.actionText, { color: theme.colors.text }]}>{t('wall.edit')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onPublish(publicable)}
@@ -648,7 +648,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             activeOpacity={0.85}
           >
             <Ionicons name="paper-plane" size={scale(18)} color="#1F2937" />
-            <Text style={[styles.actionText, { color: '#1F2937' }]}>Publicar en mi comunidad</Text>
+            <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.publishToCommunity')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -669,7 +669,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               accessibilityLabel={verDetalle ? t('weeai.hideChanges') : 'Ver la lista de cambios y compras'}
             >
               <Ionicons name="list-outline" size={scale(18)} color={theme.colors.accentDark} />
-              <Text style={[styles.projectText, { color: theme.colors.text }]}>Lista de cambios y compras</Text>
+              <Text style={[styles.projectText, { color: theme.colors.text }]}>{t('wall.changesAndPurchases')}</Text>
               <Ionicons name={verDetalle ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}

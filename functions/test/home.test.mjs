@@ -2077,7 +2077,7 @@ console.log('\n── R · La conversación se abre desde abajo, no en otra pant
   check('185) el compositor va abajo, fijo, con adjunto y envío',
     /accessibilityLabel=\{t\('wall\.attachImage'\)\}/.test(hoja)
     && /accessibilityLabel=\{t\('wall\.sendComment'\)\}/.test(hoja)
-    && /placeholder="Escribe un comentario…"/.test(hoja));
+    && /placeholder=\{t\('wall\.commentPlaceholder'\)\}/.test(hoja));
   check('185) el adjunto se ve antes de enviarlo y se puede quitar',
     /\{!!adjunto && \(/.test(hoja) && /accessibilityLabel=\{t\('wall\.removeImage'\)\}/.test(hoja) && /onPress=\{quitarAdjunto\}/.test(hoja));
   /*

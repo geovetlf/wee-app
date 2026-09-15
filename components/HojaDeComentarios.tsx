@@ -108,7 +108,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
           <View style={styles.cabecera}>
             <View style={styles.titulos}>
               <View style={styles.tituloFila}>
-                <Text style={[styles.titulo, { color: theme.colors.text }]}>Comentarios</Text>
+                <Text style={[styles.titulo, { color: theme.colors.text }]}>{t('wall.comments')}</Text>
                 <View style={[styles.contador, { backgroundColor: theme.colors.surface }]}>
                   <Text style={[styles.contadorTexto, { color: theme.colors.textSecondary }]}>{comentarios.length}</Text>
                 </View>
@@ -153,9 +153,9 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               ListEmptyComponent={
                 <View style={styles.vacio}>
                   <Ionicons name="chatbubble-outline" size={scale(52)} color={theme.colors.textSecondary} />
-                  <Text style={[styles.vacioTitulo, { color: theme.colors.text }]}>Sé el primero en comentar</Text>
+                  <Text style={[styles.vacioTitulo, { color: theme.colors.text }]}>{t('wall.beFirstToComment')}</Text>
                   <Text style={[styles.vacioTexto, { color: theme.colors.textSecondary }]}>
-                    Toda gran conversación empieza con una idea.
+                    {t('wall.firstCommentHint')}
                   </Text>
                   <View style={[styles.vacioAcento, { backgroundColor: theme.colors.accent }]} />
                 </View>
@@ -204,7 +204,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
             <View style={[styles.campo, { backgroundColor: theme.colors.surface }]}>
               <TextInput
                 style={[styles.entrada, { color: theme.colors.text }]}
-                placeholder="Escribe un comentario…"
+                placeholder={t('wall.commentPlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={texto}
                 onChangeText={setTexto}

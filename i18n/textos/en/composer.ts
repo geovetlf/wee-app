@@ -131,4 +131,6 @@ export const composer: typeof import('../es/composer').composer = {
   useAsTypedShort: 'Use “{{texto}}”',
   imageFetchFailed: 'Error fetching the image: {{estado}} {{texto}}',
   askCommunity: 'Ask the community a question',
+  applyingFaceSwap: 'Applying the face swap...',
+  searchPlaceHint: 'Search for a city or a country to tag your post.',
 };

@@ -279,7 +279,7 @@ const UserProfileScreen: React.FC = () => {
       try {
         await hacer();
       } catch (error) {
-        notify('No se pudo completar', error instanceof Error ? error.message : undefined);
+        notify(t('profile.actionFailed'), error instanceof Error ? error.message : undefined);
       }
     }
   };
@@ -288,7 +288,7 @@ const UserProfileScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify('No se pudo completar', error instanceof Error ? error.message : undefined);
+      notify(t('profile.actionFailed'), error instanceof Error ? error.message : undefined);
     }
   };
 
@@ -418,7 +418,7 @@ const UserProfileScreen: React.FC = () => {
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          Cargando perfil...
+          {t('profile.loading')}
         </Text>
       </View>
     );
@@ -446,14 +446,14 @@ const UserProfileScreen: React.FC = () => {
           >
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Perfil</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('profile.otherTitle')}</Text>
           <View style={styles.headerRight} />
         </View>
 
         <View style={styles.centered}>
           <Ionicons name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={[styles.errorText, { color: theme.colors.text }]}>
-            No se pudo cargar el perfil
+            {t('profile.otherLoadFailed')}
           </Text>
           <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>
             {profileError || 'El usuario no existe'}
@@ -584,7 +584,7 @@ const UserProfileScreen: React.FC = () => {
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.posts)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Publicaciones</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</Text>
             </View>
           </View>
 
@@ -618,7 +618,7 @@ const UserProfileScreen: React.FC = () => {
                 onPress={() => navigation.navigate('Main', { screen: 'Profile' } as any)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.editProfileButtonText}>Ver mi perfil completo</Text>
+                <Text style={styles.editProfileButtonText}>{t('profile.seeFullProfile')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -626,7 +626,7 @@ const UserProfileScreen: React.FC = () => {
 
         {/* Tabs de filtros */}
         <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
-          {renderTabButton('posts', 'document-text-outline', 'Publicaciones')}
+          {renderTabButton('posts', 'document-text-outline', t('profile.posts'))}
           {renderTabButton('reposts', 'repeat-outline', 'Repost')}
           {renderTabButton('photos', 'image-outline', 'Multimedia')}
           {renderTabButton('polls', 'stats-chart-outline', 'Encuestas')}
@@ -639,7 +639,7 @@ const UserProfileScreen: React.FC = () => {
             <View style={styles.loadingPosts}>
               <ActivityIndicator size="small" color={theme.colors.accent} />
               <Text style={[styles.loadingPostsText, { color: theme.colors.textSecondary }]}>
-                Cargando publicaciones...
+                {t('profile.loadingPosts')}
               </Text>
             </View>
           ) : postsError ? (
@@ -659,7 +659,7 @@ const UserProfileScreen: React.FC = () => {
             <View style={styles.emptyState}>
               <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-                Sin publicaciones en esta categoría
+                {t('profile.emptyCategory')}
               </Text>
             </View>
           )}

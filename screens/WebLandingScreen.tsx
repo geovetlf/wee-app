@@ -276,7 +276,7 @@ const WebLandingScreen: React.FC = () => {
                 {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otras secciones o comparte algo tú.'}
               </Text>
               <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('composer.createPost')}>
-                <Text style={styles.emptyButtonText}>Crear</Text>
+                <Text style={styles.emptyButtonText}>{t('nav.create')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -305,7 +305,7 @@ const WebLandingScreen: React.FC = () => {
               {loadingMore ? (
                 <ActivityIndicator size="small" color={theme.colors.accent} />
               ) : (
-                <Text style={[styles.cargarMasTexto, { color: theme.colors.text }]}>Cargar más</Text>
+                <Text style={[styles.cargarMasTexto, { color: theme.colors.text }]}>{t('common.loadMore')}</Text>
               )}
             </TouchableOpacity>
           )}

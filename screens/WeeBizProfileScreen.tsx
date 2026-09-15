@@ -19,6 +19,7 @@ import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navig
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -45,6 +46,7 @@ import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const WeeBizProfileScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -188,7 +190,7 @@ const WeeBizProfileScreen: React.FC = () => {
       });
     } catch (e) {
       console.error('Error opening conversation:', e);
-      Alert.alert('Error', 'No se pudo abrir el chat.');
+      Alert.alert('Error', t('weebiz.chatFailed'));
     }
   };
 
@@ -197,14 +199,14 @@ const WeeBizProfileScreen: React.FC = () => {
     let url = business.externalLink;
     if (!url.startsWith('http')) url = 'https://' + url;
     Linking.openURL(url).catch(() => {
-      Alert.alert('Error', 'No se pudo abrir el enlace.');
+      Alert.alert('Error', t('weebiz.linkFailed'));
     });
   };
 
   const handleSubmitReview = async () => {
     if (!activeUid || !business) return;
     if (!reviewText.trim()) {
-      Alert.alert('Campo requerido', 'Escribe tu opinión.');
+      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.opinionRequired'));
       return;
     }
     try {
@@ -229,7 +231,7 @@ const WeeBizProfileScreen: React.FC = () => {
       setUserReview(revs.find(r => r.userId === activeUid) || null);
     } catch (e) {
       console.error('Error submitting review:', e);
-      Alert.alert('Error', 'No se pudo enviar la reseña.');
+      Alert.alert('Error', t('weebiz.reviewFailed'));
     } finally {
       setSavingReview(false);
     }
@@ -237,10 +239,10 @@ const WeeBizProfileScreen: React.FC = () => {
 
   const handleDeleteReview = () => {
     if (!userReview?.id) return;
-    Alert.alert('Eliminar reseña', '¿Seguro que quieres eliminar tu reseña?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('weebiz.deleteReviewTitle'), t('weebiz.deleteReviewConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Eliminar', style: 'destructive',
+        text: t('common.delete'), style: 'destructive',
         onPress: async () => {
           try {
             await weeBizService.deleteReview(businessId, userReview.id!);
@@ -303,7 +305,7 @@ const WeeBizProfileScreen: React.FC = () => {
         <View style={styles.emptyState}>
           <Ionicons name="storefront-outline" size={scale(56)} color={theme.colors.textSecondary} />
           <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-            Negocio no encontrado
+            {t('weebiz.notFound')}
           </Text>
         </View>
       </View>
@@ -388,7 +390,7 @@ const WeeBizProfileScreen: React.FC = () => {
                 {formatNumber(business.followersCount)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-                Seguidores
+                {t('weebiz.followers')}
               </Text>
             </View>
             {business.reviewCount > 0 && (
@@ -397,7 +399,7 @@ const WeeBizProfileScreen: React.FC = () => {
                   {formatNumber(business.reviewCount)}
                 </Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-                  Reseñas
+                  {t('weebiz.reviews')}
                 </Text>
               </View>
             )}
@@ -407,7 +409,7 @@ const WeeBizProfileScreen: React.FC = () => {
           {business.verified && (
             <View style={[styles.verifiedBadge, { backgroundColor: '#10B981' + '20' }]}>
               <Ionicons name="checkmark-circle" size={scale(16)} color="#10B981" />
-              <Text style={[styles.verifiedText, { color: '#10B981' }]}>Negocio verificado</Text>
+              <Text style={[styles.verifiedText, { color: '#10B981' }]}>{t('weebiz.verified')}</Text>
             </View>
           )}
 
@@ -469,7 +471,7 @@ const WeeBizProfileScreen: React.FC = () => {
         {/* Description */}
         {business.description ? (
           <View style={[styles.section, { borderTopColor: theme.colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Acerca de</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weebiz.about')}</Text>
             <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
               {business.description}
             </Text>
@@ -479,7 +481,7 @@ const WeeBizProfileScreen: React.FC = () => {
         {/* Products section */}
         <View style={[styles.section, { borderTopColor: theme.colors.border }]}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Productos</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weebiz.products')}</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('WeeBizProducts', { businessId, isOwner })}
               activeOpacity={0.7}
@@ -514,7 +516,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <View style={styles.placeholderSection}>
               <Ionicons name="cube-outline" size={scale(32)} color={theme.colors.textSecondary} />
               <Text style={[styles.placeholderText, { color: theme.colors.textSecondary }]}>
-                {isOwner ? 'Agrega tu primer producto' : 'Sin productos aún'}
+                {isOwner ? 'Agrega tu primer producto' : t('weebiz.noProductsYet')}
               </Text>
               {isOwner && (
                 <TouchableOpacity
@@ -522,7 +524,7 @@ const WeeBizProfileScreen: React.FC = () => {
                   onPress={() => navigation.navigate('WeeBizProducts', { businessId, isOwner: true })}
                 >
                   <Ionicons name="add" size={scale(16)} color={theme.colors.primary} />
-                  <Text style={[styles.addProductText, { color: theme.colors.primary }]}>Agregar producto</Text>
+                  <Text style={[styles.addProductText, { color: theme.colors.primary }]}>{t('weebiz.addProduct')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -537,7 +539,7 @@ const WeeBizProfileScreen: React.FC = () => {
             </Text>
             {!isOwner && !userReview && activeUid && (
               <TouchableOpacity onPress={() => setReviewModalVisible(true)}>
-                <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>Escribir reseña</Text>
+                <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{t('weebiz.writeReview')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -555,7 +557,7 @@ const WeeBizProfileScreen: React.FC = () => {
                   {rev.userId === activeUid && (
                     <TouchableOpacity onPress={handleDeleteReview} style={styles.deleteReviewBtn}>
                       <Ionicons name="trash-outline" size={scale(14)} color={theme.colors.error} />
-                      <Text style={[styles.deleteReviewText, { color: theme.colors.error }]}>Eliminar</Text>
+                      <Text style={[styles.deleteReviewText, { color: theme.colors.error }]}>{t('common.delete')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -565,7 +567,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <View style={styles.placeholderSection}>
               <Ionicons name="chatbubbles-outline" size={scale(32)} color={theme.colors.textSecondary} />
               <Text style={[styles.placeholderText, { color: theme.colors.textSecondary }]}>
-                Sin reseñas aún
+                {t('weebiz.noReviewsYet')}
               </Text>
               {!isOwner && activeUid && (
                 <TouchableOpacity
@@ -573,7 +575,7 @@ const WeeBizProfileScreen: React.FC = () => {
                   onPress={() => setReviewModalVisible(true)}
                 >
                   <Ionicons name="star-outline" size={scale(16)} color={theme.colors.primary} />
-                  <Text style={[styles.addProductText, { color: theme.colors.primary }]}>Dejar reseña</Text>
+                  <Text style={[styles.addProductText, { color: theme.colors.primary }]}>{t('weebiz.leaveReview')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -587,21 +589,21 @@ const WeeBizProfileScreen: React.FC = () => {
           >
             <View style={[styles.reviewModal, { backgroundColor: theme.colors.background }]}>
               <View style={styles.reviewModalHeader}>
-                <Text style={[styles.reviewModalTitle, { color: theme.colors.text }]}>Tu reseña</Text>
+                <Text style={[styles.reviewModalTitle, { color: theme.colors.text }]}>{t('weebiz.yourReview')}</Text>
                 <TouchableOpacity onPress={() => setReviewModalVisible(false)}>
                   <Ionicons name="close" size={scale(24)} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={[styles.reviewModalLabel, { color: theme.colors.text }]}>Calificación</Text>
+              <Text style={[styles.reviewModalLabel, { color: theme.colors.text }]}>{t('weebiz.rating')}</Text>
               {renderStars(reviewRating, true, setReviewRating)}
 
-              <Text style={[styles.reviewModalLabel, { color: theme.colors.text, marginTop: SPACING.lg }]}>Tu opinión</Text>
+              <Text style={[styles.reviewModalLabel, { color: theme.colors.text, marginTop: SPACING.lg }]}>{t('weebiz.yourOpinion')}</Text>
               <TextInput
                 style={[styles.reviewModalInput, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                 value={reviewText}
                 onChangeText={setReviewText}
-                placeholder="Cuéntanos tu experiencia..."
+                placeholder={t('weebiz.reviewPlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 multiline
                 numberOfLines={4}
@@ -617,7 +619,7 @@ const WeeBizProfileScreen: React.FC = () => {
                 {savingReview ? (
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text style={styles.reviewSubmitText}>Enviar reseña</Text>
+                  <Text style={styles.reviewSubmitText}>{t('weebiz.sendReview')}</Text>
                 )}
               </TouchableOpacity>
             </View>

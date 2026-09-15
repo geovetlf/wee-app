@@ -131,4 +131,6 @@ export const composer = {
   useAsTypedShort: 'Usar “{{texto}}”',
   imageFetchFailed: 'Error al obtener la imagen: {{estado}} {{texto}}',
   askCommunity: 'Hacer una pregunta a la comunidad',
+  applyingFaceSwap: 'Aplicando face swap...',
+  searchPlaceHint: 'Busca una ciudad o un país para etiquetar tu publicación.',
 };

@@ -499,7 +499,7 @@ const ConversationScreen = () => {
       {ephemeral && (
         <View style={[styles.ephemeralBanner, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
           <Ionicons name="eye-off" size={14} color="#22C55E" />
-          <Text style={styles.ephemeralBannerText}>Modo efímero activado · Los mensajes se borran al salir</Text>
+          <Text style={styles.ephemeralBannerText}>{t('weetalk.ephemeralOn')}</Text>
         </View>
       )}
 

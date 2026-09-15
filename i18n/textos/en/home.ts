@@ -17,4 +17,12 @@ export const home: typeof import('../es/home').home = {
   filterAll: 'All',
   bannerOf: 'Banner {{numero}} of {{total}}',
   weelSample: 'Weël example: {{titulo}}',
+  exploreCommunities: 'Explore communities',
+  moreCategories: 'See more categories',
+  popularCommunities: 'Popular communities',
+  seeAllOf: 'See all',
+  topicOfTheDay: 'Topic of the day',
+  heatedDebate: 'Heated debate',
+  featuredOpinion: 'Featured opinion',
+  featured: 'Featured',
 };

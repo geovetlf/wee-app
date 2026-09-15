@@ -94,7 +94,8 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
     ['2) el del editor', 'screens/WriterEditorScreen.tsx', /overline="🤖 Weë AI"/],
     ['3) el atajo de la hoja Crear', 'components/CreateSheet.tsx', />Weë AI ›</],
     ['3) la barra lateral de las pantallas de IA', 'components/creator/CreatorSidebar.tsx', /'grid-outline', 'Weë AI', goCreator/],
-    ['4) la Ayuda', 'screens/HelpScreen.tsx', /¿Cómo funciona Weë AI\?/],
+    /* La Ayuda pasó al diccionario en la fase 6: la marca se mira donde vive. */
+    ['4) la Ayuda', 'i18n/textos/es/help.ts', /¿Cómo funciona Weë AI\?/],
     ['4) y lo que se guarda al publicar', 'screens/CreatorFlowScreen.tsx', /Creado con \$\{nombre\} en Weë AI/],
   ];
   for (const [nombre, archivo, patron] of pares) {

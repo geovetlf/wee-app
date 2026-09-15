@@ -155,7 +155,7 @@ const CreditStoreScreen = () => {
               <View style={styles.packageRight}>
                 <Text style={[styles.packagePrice, { color: theme.colors.text }]}>{t('credits.free')}</Text>
                 <Text style={[styles.packagePer, { color: theme.colors.textSecondary }]}>
-                  recarga de prueba
+                  {t('credits.testTopUp')}
                 </Text>
               </View>
 
