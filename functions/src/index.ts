@@ -34,7 +34,7 @@ export { engineAdmin } from './engine/admin';
 export { votePoll } from './social/polls';
 
 /*
- * ËContact / ẄContact: las dos puertas de una conexión entre identidades de
+ * ËContact: las dos puertas de una conexión entre identidades de
  * perfil. Pedir también es del servidor, porque de quién es cada identidad se
  * lee de `users` y las reglas no pueden consultar.
  */

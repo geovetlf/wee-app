@@ -326,11 +326,12 @@ check('85) los dos llevan a la misma pantalla', /navigateRoot\('EContact'\)/.tes
 check('86) y sin sesión piden entrar', /goEContact = \(\) => \(user \?/.test(cajon) && /id="econtact"[\s\S]{0,160}user \?/.test(barra));
 
 /*
- * EL NOMBRE DEL MENÚ SIGUE A LA IDENTIDAD ACTIVA.
+ * EL NOMBRE DEL MENÚ SALE DE LA MISMA FUENTE QUE LA PANTALLA.
  *
- * Con el Perfil Weë puesto, el menú decía "ËContact" mientras la pantalla decía
- * "ẄContact": el menú tenía el nombre escrito a mano y la pantalla lo sacaba de
- * la identidad. Ahora los dos beben de lo mismo.
+ * Hubo un tiempo en que el menú lo llevaba escrito a mano y la pantalla lo
+ * sacaba de la identidad, así que con el Perfil Weë puesto cada uno decía una
+ * cosa. Ahora los dos beben de lo mismo, y lo que esa fuente dice es ËContact
+ * —el nombre del producto— sea cual sea la cara que esté puesta.
  *
  * Lo que se ejecuta aquí es la función que da el nombre; que el menú use ESA y
  * no otra se comprueba leyendo la línea que lo pinta, justo arriba.
@@ -338,14 +339,14 @@ check('86) y sin sesión piden entrar', /goEContact = \(\) => \(user \?/.test(ca
 {
   const menuDe = (identidad) => nombreDeLista(identidad);
   check('86b) Perfil Real activo → el menú dice ËContact', menuDe(ANA) === 'ËContact', menuDe(ANA));
-  check('86c) Perfil Weë activo → el menú dice ẄContact', menuDe(`hidi_${ANA}`) === 'ẄContact', menuDe(`hidi_${ANA}`));
-  /* Es un solo valor: no puede haber dos etiquetas a la vez en un mismo estado. */
-  check('86d) en cada estado hay UNA etiqueta, nunca las dos',
+  check('86c) Perfil Weë activo → el menú dice ËContact igual', menuDe(`hidi_${ANA}`) === 'ËContact', menuDe(`hidi_${ANA}`));
+  /* Y el nombre retirado no puede volver por ninguna de las dos caras. */
+  check('86d) en ningún estado reaparece el nombre antiguo',
     [ANA, `hidi_${ANA}`].every((i) => {
       const n = menuDe(i);
-      return (n === 'ËContact') !== (n === 'ẄContact');
+      return n === 'ËContact' && !n.includes('Ẅ');
     }));
-  check('86e) y las dos son distintas', menuDe(ANA) !== menuDe(`hidi_${ANA}`));
+  check('86e) y las dos dicen exactamente lo mismo', menuDe(ANA) === menuDe(`hidi_${ANA}`));
   /* Los dos menús lo piden a la misma fuente que la pantalla. */
   check('86f) el cajón lo toma de useIdentidadActiva', /const \{ nombreLista \} = useIdentidadActiva\(\);/.test(cajon) && /from '\.\.\/hooks\/useEContact'/.test(cajon));
   check('86g) y la barra de escritorio también', /const \{ nombreLista \} = useIdentidadActiva\(\);/.test(barra) && /from '\.\.\/hooks\/useEContact'/.test(barra));
@@ -367,9 +368,10 @@ const navegacion = read('navigation/MainStackNavigator.tsx');
 check('87) existe screens/EContactScreen.tsx', pantalla.length > 0);
 check('88) la ruta está registrada', /<Stack\.Screen name="EContact" component=\{EContactScreen\} \/>/.test(navegacion) && /EContact: undefined;/.test(navegacion));
 /*
- * EL TÍTULO ES EL DE LA IDENTIDAD ACTIVA, no un literal. Con el Perfil Real
- * pone ËContact; con el Perfil Weë, ẄContact. Escribirlo a mano haría que el
- * Perfil Weë viera el nombre de la otra agenda.
+ * EL TÍTULO SALE DEL HUECO, no de un literal. Hoy las dos caras dicen lo mismo
+ * —ËContact es el nombre del producto—, pero quien lo pinta sigue sin saberlo:
+ * lo pide. Escribirlo a mano ataría la pantalla a un nombre y habría que
+ * tocarla el día que el nombre cambie, que es justo lo que acaba de pasar.
  */
 check('89) se titula con el nombre de la agenda activa', /🤝 \{nombreLista\}/.test(pantalla) && !/🤝 ËContact/.test(pantalla));
 check('90) tiene vuelta atrás como el resto de Weë', /navigation\.goBack\(\)/.test(pantalla) && /accessibilityLabel=\{t\('common\.back'\)\}/.test(pantalla));
@@ -673,10 +675,10 @@ check('156) y no llama a followsService para personas', !/followsService|toggleF
  * y por eso cada estado ofrece una acción distinta.
  */
 /*
- * Y el nombre del botón es el de TU agenda, no un literal: desde el Perfil Weë
- * pone ẄContact. La relación es entre tu identidad activa y la del perfil que
- * estás mirando, así que llamarla siempre ËContact sería falso la mitad de las
- * veces.
+ * Y el nombre del botón es el de TU agenda, no un literal. La relación es entre
+ * tu identidad activa y la del perfil que estás mirando; el nombre lo pide al
+ * hook, así que cuando la agenda pasó a llamarse igual en las dos caras aquí no
+ * hubo nada que tocar.
  */
 check('157) sin relación se ofrece "+ " y el nombre de tu agenda', /etiqueta: `\+ \$\{nombreLista\}`/.test(perfilAjeno));
 check('158) si la enviaste tú, "Solicitud enviada"',
@@ -709,9 +711,9 @@ const codigoPropio = sinComentarios(perfilPropio);
 check('167) no muestra Seguidores', !/>Seguidores<|Seguidores<\/Text>/.test(codigoPropio) && !/userProfile\.followers/.test(codigoPropio));
 check('168) ni Siguiendo', !/Siguiendo/.test(codigoPropio) && !/userProfile\.following/.test(codigoPropio));
 /*
- * La cifra del perfil propio lleva el nombre de la agenda ACTIVA: ËContacts con
- * el Perfil Real, ẄContacts con el Perfil Weë. Y cuenta solo las de esa
- * identidad, nunca la suma de las dos caras.
+ * La cifra del perfil propio lleva el nombre de la agenda ACTIVA —ËContacts— y
+ * cuenta solo las de esa identidad, nunca la suma de las dos caras. Que el
+ * nombre sea el mismo en las dos no junta las listas: son cifras distintas.
  */
 check('169) muestra el nombre de la agenda activa, no un literal', /\{misEcontacts\.nombrePlural\}/.test(perfilPropio) && !/>ËContacts</.test(codigoPropio));
 /*
@@ -756,7 +758,7 @@ const codigoPantalla = sinComentarios(pantallaEC);
 
 /*
  * Tres secciones. Las de solicitudes se llaman igual siempre; la de conexiones
- * lleva el nombre de la agenda activa —"Tus ËContacts" o "Tus ẄContacts"—.
+ * lleva el nombre de la agenda activa, que entra por hueco —"Tus ËContacts"—.
  */
 check('178) tiene las tres secciones',
   ["t('econtact.requestsReceived')", "t('econtact.yours', { lista: nombrePlural })", "t('econtact.requestsSent')"].every((x) => pantallaEC.includes(x))
@@ -834,14 +836,16 @@ check('206) la píldora ËContact del compositor ya está viva, y sigue sin toca
 check('207) ËContact no gasta Credits ni llama a IA', !/spendCredits|gemini|provider/i.test(codigoPantalla + sinComentarios(read('hooks/useEContact.ts'))));
 check('208) sin índices nuevos', !/econtact/i.test(read('firestore.indexes.json')));
 // ═════════════════════════════════════════════════════════════════════════════
-console.log('\n── T) Identidades de perfil: ËContact y ẄContact ──');
+console.log('\n── T) Identidades de perfil: las dos agendas de una cuenta ──');
 // ═════════════════════════════════════════════════════════════════════════════
 /*
  * LA CORRECCIÓN DE ARQUITECTURA.
  *
  * Una cuenta tiene hasta dos caras de persona y CADA UNA lleva su propia agenda:
- * el Perfil Real ve su ËContact y el Perfil Weë ve su ẄContact. No son dos redes
- * —hay una sola infraestructura y un solo documento por relación—, son dos vistas.
+ * el Perfil Real ve la suya y el Perfil Weë la suya, las dos llamadas ËContact.
+ * Lo que las separa no es el nombre —es el producto, y es uno— sino el contenido:
+ * no son dos redes —hay una sola infraestructura y un solo documento por
+ * relación—, son dos vistas.
  *
  * `hidi_` se queda como identificador técnico de los perfiles que ya existen. Lo
  * que no se queda es el vocabulario: en pantalla se dice Perfil Weë.
@@ -863,8 +867,9 @@ check('214) una identidad con guion bajo propio se rechaza', !esIdentidadValida(
 check('215) y una vacía o con barra también', !esIdentidadValida('') && !esIdentidadValida('a/b') && !esIdentidadValida(null));
 
 check('216) el Perfil Real ve ËContact', nombreDeLista(ANA) === 'ËContact');
-check('217) y el Perfil Weë ve ẄContact', nombreDeLista(WEE_ANA) === 'ẄContact');
-check('218) son nombres distintos, con la diéresis correcta', nombreDeLista(ANA) !== nombreDeLista(WEE_ANA) && nombreDeLista(WEE_ANA).charCodeAt(0) === 0x1e84);
+check('217) y el Perfil Weë ve ËContact', nombreDeLista(WEE_ANA) === 'ËContact');
+/* La diéresis se fija por punto de código: así se caza tanto una "E" pelada como la vuelta de la Ẅ. */
+check('218) el mismo nombre en las dos, con la diéresis correcta', nombreDeLista(ANA) === nombreDeLista(WEE_ANA) && nombreDeLista(WEE_ANA).charCodeAt(0) === 0x00cb);
 
 // ─── De quién es una identidad ───────────────────────────────────────────────
 
@@ -988,7 +993,7 @@ for (const c of CRUCES) {
   check(`252·${c.n}) ${c.nombre}: las otras caras siguen sin ver nada`, listaDe(db, otraCaraDeA).total === 0 && listaDe(db, otraCaraDeB).total === 0);
 
   // Y la agenda de cada lado se llama como su identidad.
-  check(`253·${c.n}) ${c.nombre}: cada lado ve la agenda con su nombre`, nombreDeLista(c.de) === (c.de === ANA ? 'ËContact' : 'ẄContact') && nombreDeLista(c.para) === (c.para === BETO ? 'ËContact' : 'ẄContact'));
+  check(`253·${c.n}) ${c.nombre}: los dos lados ven la agenda con el mismo nombre`, nombreDeLista(c.de) === 'ËContact' && nombreDeLista(c.para) === 'ËContact');
 
   // No se puede duplicar pidiéndola otra vez, ni desde el otro lado.
   await rechaza(`254·${c.n}) ${c.nombre}: no se puede repetir la solicitud`, () => engine.request({ cuentaDeLaSesion: c.cuentaDe, desdeIdentidad: c.de, haciaIdentidad: c.para }), 'ya-existe');
@@ -1023,7 +1028,7 @@ for (const c of CRUCES) {
   const vistaWee = listaDe(db, WEE_ANA);
   check('261) cambiar de perfil no toca ningún documento', JSON.stringify(relacionesDe(db)) === antes);
   check('262) solo cambia la vista', JSON.stringify(vistaReal) !== JSON.stringify(vistaWee));
-  check('263) y el nombre de la lista', nombreDeLista(ANA) === 'ËContact' && nombreDeLista(WEE_ANA) === 'ẄContact');
+  check('263) y el nombre de la lista no se mueve con el perfil', nombreDeLista(ANA) === 'ËContact' && nombreDeLista(WEE_ANA) === 'ËContact');
 }
 
 // ─── Suplantación: qué NO se puede hacer ─────────────────────────────────────
@@ -1229,17 +1234,21 @@ const codigoGancho = sinComentarios(gancho);
 // ─── A y B · El título depende del perfil activo ─────────────────────────────
 
 check('315) el Perfil Real ve ËContact', nombreDeLista(ANA) === 'ËContact');
-check('316) el Perfil Weë ve ẄContact', nombreDeLista(WEE_ANA) === 'ẄContact');
-check('317) y el plural va con él', `${nombreDeLista(ANA)}s` === 'ËContacts' && `${nombreDeLista(WEE_ANA)}s` === 'ẄContacts');
+check('316) el Perfil Weë ve ËContact', nombreDeLista(WEE_ANA) === 'ËContact');
+check('317) y el plural se forma igual en las dos', `${nombreDeLista(ANA)}s` === 'ËContacts' && `${nombreDeLista(WEE_ANA)}s` === 'ËContacts');
 check('318) la pantalla pinta ese nombre, no uno escrito a mano', /🤝 \{nombreLista\}/.test(pantallaEC));
 check('319) el subtítulo también', /contador: total, lista: total === 1 \? nombreLista : nombrePlural/.test(pantallaEC));
 check('320) la sección de conexiones también', /titulo: t\('econtact\.yours', \{ lista: nombrePlural \}\)/.test(pantallaEC));
 check('321) y el confirmar de eliminar', /t\('econtact\.removeTitle', \{ lista: nombreLista \}\)/.test(pantallaEC));
 /*
- * Y NUNCA se escribe "ËContact" a pelo donde debería depender del perfil. Si
- * quedara uno, el Perfil Weë vería el nombre de la otra agenda.
+ * Y NUNCA se escribe "ËContact" a pelo donde tendría que salir del hueco. Hoy
+ * el nombre es el mismo en las dos caras, así que un literal no se vería raro
+ * —y por eso hay que seguir cazándolo—: el día que cambie, cambia en un sitio.
+ *
+ * La única excepción es la frase del perfil sin agenda, que NOMBRA el producto
+ * en vez de rotular la agenda de nadie: ahí ËContact es de lo que se habla.
  */
-check('322) no queda ningún ËContact literal en los textos de la pantalla', !/ËContacts?['"`>]/.test(sinComentarios(pantallaEC).replace(/ËContact y ẄContact/g, '')));
+check('322) no queda ningún ËContact literal en los textos de la pantalla', !/ËContacts?['"`>]/.test(sinComentarios(pantallaEC).replace(/ËContact es donde están/g, '')));
 check('323) el nombre sale del hook', /nombreLista,\s*\n\s*nombrePlural,/.test(codigoPantalla));
 
 // ─── C y D · El contador es el de la identidad activa ────────────────────────
@@ -1282,7 +1291,7 @@ for (const c of CRUCES) {
   const vistaPara = listaDe(db, c.para);
   check(`332·${c.n}) ${c.nombre}: cada lado ve al otro en su lista`, vistaDe.contactos.join() === c.para && vistaPara.contactos.join() === c.de);
   check(`333·${c.n}) ${c.nombre}: con la etiqueta correcta de esa identidad`, nombreDeIdentidad(c.para) === (tipoDeIdentidad(c.para) === 'wee' ? 'Perfil Weë' : 'Perfil real'));
-  check(`334·${c.n}) ${c.nombre}: y el título de cada agenda es el suyo`, nombreDeLista(c.de) === (c.de === ANA ? 'ËContact' : 'ẄContact') && nombreDeLista(c.para) === (c.para === BETO ? 'ËContact' : 'ẄContact'));
+  check(`334·${c.n}) ${c.nombre}: y el título de las dos agendas es ËContact`, nombreDeLista(c.de) === 'ËContact' && nombreDeLista(c.para) === 'ËContact');
 }
 
 // ─── I · Cambiar de perfil no mezcla ─────────────────────────────────────────
@@ -1301,7 +1310,8 @@ for (const c of CRUCES) {
   check('336) el Perfil Real ve una lista', conReal.contactos.join() === BETO && conReal.total === 1);
   check('337) el Perfil Weë ve otra', conWee.contactos.join() === WEE_BETO && conWee.total === 1);
   check('338) y no comparten ni un elemento', conReal.contactos.every((x) => !conWee.contactos.includes(x)));
-  check('339) los títulos cambian con el perfil', nombreDeLista(ANA) !== nombreDeLista(WEE_ANA));
+  /* El título ya no cambia; lo que cambia —y es lo que importaba— es la lista. */
+  check('339) el título no cambia con el perfil, la lista sí', nombreDeLista(ANA) === nombreDeLista(WEE_ANA) && conReal.contactos.join() !== conWee.contactos.join());
 }
 /*
  * Y no hay ningún estado global de "mis contactos de la cuenta": la agenda se
@@ -1618,5 +1628,5 @@ ${fuenteEliminar}
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-console.log(failures === 0 ? '\n✅ ËContact / ẄContact — identidades de perfil: todo en orden' : `\n❌ ${failures} fallos`);
+console.log(failures === 0 ? '\n✅ ËContact — identidades de perfil: todo en orden' : `\n❌ ${failures} fallos`);
 process.exit(failures === 0 ? 0 : 1);

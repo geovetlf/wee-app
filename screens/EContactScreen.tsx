@@ -280,7 +280,7 @@ const EContactScreen: React.FC = () => {
           ? {
               titulo: t('econtact.noAgenda'),
               texto:
-                'ËContact y ẄContact son las conexiones entre personas. Cambia a tu Perfil Real o a tu Perfil Weë para verlas.',
+                'ËContact es donde están tus conexiones con otras personas. Cambia a tu Perfil Real o a tu Perfil Weë para verlas.',
             }
           : {
               titulo: t('econtact.noneYet', { lista: nombrePlural }),

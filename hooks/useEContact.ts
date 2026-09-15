@@ -13,7 +13,7 @@ import {
 } from '../utils/econtactModel';
 
 /*
- * ËCONTACT / ẄCONTACT, PARA LAS PANTALLAS.
+ * ËCONTACT, PARA LAS PANTALLAS.
  *
  * Dos pantallas necesitan lo mismo desde ángulos distintos: el perfil de otra
  * persona pregunta "¿cómo estamos este perfil mío y ese perfil tuyo?", y la
@@ -24,9 +24,10 @@ import {
  * DESDE QUÉ IDENTIDAD
  * -------------------
  * De aquí sale la respuesta, y de un solo sitio: el perfil ACTIVO. Es lo que hace
- * que el Perfil Real vea su ËContact y el Perfil Weë vea su ẄContact sin que
- * ninguna pantalla tenga que enterarse. Cambiar de perfil no mueve ninguna
- * relación: cambia esta clave, y con ella la lista.
+ * que el Perfil Real vea su agenda y el Perfil Weë vea la suya sin que ninguna
+ * pantalla tenga que enterarse. Las dos se llaman ËContact —el nombre es del
+ * producto, no de la cara—, pero no son la misma: cambiar de perfil no mueve
+ * ninguna relación, cambia esta clave, y con ella la lista.
  *
  * Toda la lógica de dominio sigue en `utils/econtactModel.ts` y todo el acceso a
  * datos en `services/econtactService.ts`. Esto solo es el puente con React.
@@ -39,9 +40,9 @@ export interface IdentidadActiva {
   /** El uid de la identidad activa. null si esta no tiene agenda. */
   identidad: string | null;
   tipo: TipoDeIdentidad | null;
-  /** Cómo se llama su agenda: ËContact o ẄContact. */
-  nombreLista: 'ËContact' | 'ẄContact';
-  /** Cómo se llaman sus conexiones: "ËContacts" o "ẄContacts". */
+  /** Cómo se llama su agenda. Una sola cosa: ËContact es el nombre del producto. */
+  nombreLista: 'ËContact';
+  /** Cómo se llaman sus conexiones: "ËContacts". */
   nombrePlural: string;
   hayAgenda: boolean;
   motivo: SinAgenda | null;
@@ -51,8 +52,8 @@ export interface IdentidadActiva {
  * La identidad con la que estás actuando ahora mismo.
  *
  * El uid del perfil activo, y la cuenta como respaldo por si el contexto todavía
- * no ha cargado. Es el ÚNICO sitio donde se decide, y de aquí sale que el Perfil
- * Real vea ËContact y el Perfil Weë vea ẄContact.
+ * no ha cargado. Es el ÚNICO sitio donde se decide, y de aquí sale cuál de las
+ * dos agendas se está mirando.
  *
  * El Perfil Biz no tiene agenda en esta versión: no es una persona, y sus
  * seguidores son otro sistema —`businessFollows`— que no se mezcla con esto. Se
@@ -100,8 +101,8 @@ export interface RelacionEContact {
   disponible: boolean;
   /** Con qué perfil tuyo se está operando. */
   identidad: string | null;
-  /** Cómo se llama tu agenda ahora mismo: ËContact o ẄContact. */
-  nombreLista: 'ËContact' | 'ẄContact';
+  /** Cómo se llama tu agenda: ËContact, la lleve la cara que la lleve. */
+  nombreLista: 'ËContact';
   solicitar: () => Promise<void>;
   aceptar: () => Promise<void>;
   rechazar: () => Promise<void>;
@@ -222,9 +223,9 @@ export interface MisEContacts {
   cargando: boolean;
   /** Con qué perfil tuyo se está mirando la agenda. */
   identidad: string | null;
-  /** Cómo se llama esa agenda: ËContact o ẄContact. */
-  nombreLista: 'ËContact' | 'ẄContact';
-  /** Su plural, para los textos: "ËContacts" o "ẄContacts". */
+  /** Cómo se llama esa agenda: ËContact. */
+  nombreLista: 'ËContact';
+  /** Su plural, para los textos: "ËContacts". */
   nombrePlural: string;
   /** false si el perfil activo no tiene agenda —Biz— o no hay sesión. */
   hayAgenda: boolean;

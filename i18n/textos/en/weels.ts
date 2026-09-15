@@ -6,7 +6,7 @@
  */
 export const weels: typeof import('../es/weels').weels = {
   title: 'Weëls',
-  rowTitle: 'Ẅells',
+  rowTitle: 'Weëls',
   shareWeel: 'Share Weël',
   empty: 'No Weëls yet',
   emptyHint: 'Create the first one from the + button',

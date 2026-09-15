@@ -6,7 +6,7 @@
  */
 export const weels = {
   title: 'Weëls',
-  rowTitle: 'Ẅells',
+  rowTitle: 'Weëls',
   shareWeel: 'Compartir Weël',
   empty: 'Todavía no hay Weëls',
   emptyHint: 'Crea el primero desde el botón +',

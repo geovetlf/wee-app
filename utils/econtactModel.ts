@@ -136,11 +136,16 @@ export const esIdentidadDePersona = (id?: string | null): boolean =>
   esIdentidadValida(id) && tipoDeIdentidad(id) !== 'biz';
 
 /**
- * Cómo se llama la agenda de una identidad. Es lo ÚNICO que cambia entre las dos:
- * el nombre. Los datos y las reglas son los mismos.
+ * Cómo se llama la agenda de una identidad: ËContact, el nombre de producto.
+ *
+ * ANTES CAMBIABA CON EL PERFIL —ËContact con el Real, ẄContact con el Weë— y
+ * ese era lo único que cambiaba entre las dos: los datos y las reglas siempre
+ * fueron los mismos. La agenda pasa a llamarse igual en las dos, así que aquí
+ * ya no hay nada que decidir; la función se queda porque es LA puerta por la
+ * que todo el mundo pregunta el nombre, y si algún día vuelve a depender de la
+ * identidad, vuelve a depender aquí y en ningún otro sitio.
  */
-export const nombreDeLista = (id?: string | null): 'ËContact' | 'ẄContact' =>
-  tipoDeIdentidad(id) === 'wee' ? 'ẄContact' : 'ËContact';
+export const nombreDeLista = (_id?: string | null): 'ËContact' => 'ËContact';
 
 /**
  * Cómo se NOMBRA una identidad en pantalla.

@@ -13,8 +13,8 @@
  * La misma fuente, la misma lista, el mismo orden: lo único que cambia es cuál
  * de los dos campos se lee. Y lo que el catálogo NO tiene que traducir se queda
  * donde estaba: los emojis, los ids, `MENU_ITEM.creator.label` —que dice
- * "Weë AI" y es marca— y el nombre de la agenda, que sale de la identidad
- * activa y es ËContact o ẄContact según quién esté puesto.
+ * "Weë AI" y es marca— y el nombre de la agenda, ËContact, que sale de la
+ * identidad activa y también es marca.
  *
  * Se usa el traductor de verdad de Weë, como en `i18n-polls.test.mjs`.
  */

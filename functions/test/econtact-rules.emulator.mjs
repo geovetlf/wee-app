@@ -422,5 +422,5 @@ await esperar('y ajeno a nadie más', 'DENIEGA', 'POST', '/businessFollows?docum
 for (const p of ['/follows/f1', '/follows/f2', '/businessFollows/bf1', `/users/${ANA}`]) await pedir('DELETE', p);
 await limpiar();
 
-console.log(fallos === 0 ? '\n✅ Reglas de ËContact / ẄContact: comportamiento verificado en el emulador' : `\n❌ ${fallos} fallos`);
+console.log(fallos === 0 ? '\n✅ Reglas de ËContact: comportamiento verificado en el emulador' : `\n❌ ${fallos} fallos`);
 process.exit(fallos === 0 ? 0 : 1);

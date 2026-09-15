@@ -189,7 +189,7 @@ const BIZ = 'biz_tienda';
 const OTRA = 'xyz789';
 
 check('el Perfil Real tiene ËContact', modelo.nombreDeLista(REAL) === 'ËContact');
-check('el Perfil Weë tiene ẄContact', modelo.nombreDeLista(WEE) === 'ẄContact');
+check('y el Perfil Weë tiene ËContact también: la agenda se llama igual en las dos caras', modelo.nombreDeLista(WEE) === 'ËContact');
 check('el Perfil Biz no es una identidad de persona', !modelo.esIdentidadDePersona(BIZ));
 check('y las dos caras de una persona sí lo son', modelo.esIdentidadDePersona(REAL) && modelo.esIdentidadDePersona(WEE));
 

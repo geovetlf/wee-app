@@ -17,8 +17,8 @@
  *     `POLICY_CLAVE` se declaran fuera del componente, donde no hay traductor:
  *     traducirlos al construirlos congelaría el idioma del arranque;
  *
- *   · Y EL NOMBRE DE LA AGENDA —ËContact o ẄContact según la identidad puesta—
- *     entra por hueco en las etiquetas del perfil y sale sin tocar.
+ *   · Y EL NOMBRE DE LA AGENDA —ËContact— entra por hueco en las etiquetas del
+ *     perfil y sale sin tocar, sea cual sea el nombre que se le pase.
  *
  * Se usa el traductor de verdad de Weë, como en `i18n-polls.test.mjs`.
  */
@@ -161,9 +161,10 @@ console.log('\n── C · Las etiquetas del perfil ajeno ──');
     fila(EN) === 'Accept ËContact · Decline ËContact request · Request sent');
 
   /*
-   * 15 y 16 · EL NOMBRE DE LA AGENDA CAMBIA CON LA IDENTIDAD PUESTA: ËContact
-   * con el Perfil Real, ẄContact con el Perfil Weë. Entra por hueco y sale
-   * exactamente como entró, en los dos idiomas.
+   * 15 y 16 · EL NOMBRE DE LA AGENDA ENTRA POR HUECO Y SALE EXACTAMENTE COMO
+   * ENTRÓ, en los dos idiomas. Hoy ese nombre es siempre ËContact, pero lo que
+   * se prueba aquí es el hueco, así que la lista mete a propósito nombres que
+   * el producto no usa —el retirado incluido— para ver que ninguno se traduce.
    */
   const LISTAS = ['ËContact', 'ẄContact', 'Jazmín', 'SombraOscura', '100%', 'Yes', 'Cancelar'];
   const rotos = LISTAS.filter((l) =>

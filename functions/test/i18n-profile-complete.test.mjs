@@ -284,7 +284,7 @@ console.log('\n── G · Lo que NO se traduce ──');
   check('44) el identificador heredado sigue siendo técnico, no una palabra',
     /activeProfileType === 'hidi'/.test(PERFIL) && !/>.*hidi.*</.test(PERFIL));
 
-  /* 45 · ËContacts/ẄContacts: marca, y además cambia con la identidad puesta. */
+  /* 45 · ËContacts: marca, y además sale de la identidad puesta, no de la frase. */
   check('45) el nombre de la agenda se pinta crudo', /\{misEcontacts\.nombrePlural\}/.test(PERFIL));
   check('45) y en la etiqueta del lector entra por hueco',
     /accessibilityLabel=\{t\('profile\.viewMyEcontacts', \{ nombre: misEcontacts\.nombrePlural, total: misEcontacts\.total \}\)\}/.test(PERFIL));
