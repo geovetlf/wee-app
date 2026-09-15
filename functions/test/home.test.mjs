@@ -284,7 +284,15 @@ console.log('\n── F · Ẅall y Ẅells ──');
   check('29) el Home nativo no tiene selector Ẅall/Ẅells', !/mitad\('flow'|mitad\('weels'|accessibilityRole="tab"/.test(nativo));
   check('30) y el web tampoco', !/etiqueta: 'Ẅall'|etiqueta: 'Ẅells'|accessibilityRole="tab"/.test(web));
   check('31) ya no dice "Comunidad" ni "Creado por la comunidad"', !/>\s*Comunidad\s*</.test(nativo) && !/Creado por la comunidad</.test(nativo));
-  check('32) la fila de Weëls se sigue llamando Ẅells', /<Text style=\{\[styles\.title[^>]*>Ẅells<\/Text>/.test(leer('components/WeelsRow.tsx')));
+  /*
+   * La fila se llama Weëls, con la diéresis sobre la "e". Antes llevaba "Ẅ"
+   * —U+1E84—, un carácter que muchas fuentes del sistema no traen: donde
+   * faltaba, el navegador pintaba un recuadro en vez del rótulo. Se comprueba
+   * además que no vuelva.
+   */
+  check('32) la fila de Weëls se sigue llamando Weëls',
+    /<Text style=\{\[styles\.title[^>]*>Weëls<\/Text>/.test(leer('components/WeelsRow.tsx'))
+    && !/>Ẅells</.test(leer('components/WeelsRow.tsx')));
   /* Ẅells es una puerta a WeëlsScreen, no una página del Home: la fila abre el visor de siempre. */
   check('33) y sigue abriendo WeëlsScreen, en la web', /<WeelsRow[^>]*onOpenWeels=\{handleOpenWeels\}/.test(web));
   check('33) y en el móvil', /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo));
@@ -951,7 +959,7 @@ console.log('\n── K · La última pasada del Home ──');
    * Un mismo sitio, un mismo nombre. La fila se llama Ẅells y es la única que
    * lo dice: el Home ya no lo repite en ningún selector.
    */
-  check('84) la fila se llama Ẅells', /<Text style=\{\[styles\.title[^>]*>Ẅells<\/Text>/.test(fila));
+  check('84) la fila se llama Weëls', /<Text style=\{\[styles\.title[^>]*>Weëls<\/Text>/.test(fila));
   check('85) y el Home no lo repite en ningún selector', !/mitad\('weels'|etiqueta: 'Ẅells'|accessibilityRole="tab"/.test(nativo));
   /* Control: por dentro sigue diciendo weel/weels; no se migró ningún dato. */
   check('86) control: por dentro no cambió nada',

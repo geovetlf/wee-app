@@ -98,6 +98,25 @@ const shouldHandleUrl = (url: string) => {
   return true;
 };
 
+/*
+ * EL TÍTULO DE LA PESTAÑA, EN LA WEB.
+ *
+ * React Navigation escribe `document.title` en cada cambio de pantalla y su
+ * formateador de serie es `options.title ?? route.name`. En las rutas anidadas
+ * del Home no hay ni lo uno ni lo otro —llega sin ruta—, y el DOM convierte ese
+ * hueco en la palabra "undefined", que es lo que se leía en la pestaña.
+ *
+ * Aquí se le añade el último escalón que le faltaba: el nombre de Weë. Lo de
+ * arriba no se toca, así que una pantalla que sí traiga su propio título lo
+ * sigue enseñando igual que antes.
+ */
+const TITULO_DE_WEE = 'Weë - La comunidad del futuro';
+
+const documentTitle = {
+  formatter: (options?: { title?: string }, route?: { name?: string }): string =>
+    options?.title ?? route?.name ?? TITULO_DE_WEE,
+};
+
 // Configuración de linking para deep links y universal links
 const linking: any = {
   prefixes: [
@@ -257,7 +276,7 @@ export default function App() {
                     al lado de la pila, no dentro— sepa dónde estás y pueda
                     navegar. Es la puerta oficial de React Navigation para eso.
                   */}
-                  <NavigationContainer ref={refNavegacion} linking={linking} theme={CustomDarkTheme}>
+                  <NavigationContainer ref={refNavegacion} linking={linking} documentTitle={documentTitle} theme={CustomDarkTheme}>
                     <PushNotificationProvider>
                       {/*
                         La ubicación va por dentro de la navegación, como las

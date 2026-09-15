@@ -49,7 +49,7 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; label: string 
  * centrado sobre cada miniatura. Se va por lo mismo que la marca: en una fila
  * que solo tiene Weëls, decir que son vídeos no aporta nada, y el círculo caía
  * justo en el centro del fotograma, que es la parte que ayuda a decidir. La
- * fila ya se llama Ẅells y la tarjeta ya se abre al tocarla.
+ * fila ya se llama Weëls y la tarjeta ya se abre al tocarla.
  */
 
 /**
@@ -66,13 +66,19 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           {/*
-            Se llama Ẅells, como en la navegación de abajo. Un mismo sitio con
-            dos nombres en la misma pantalla obliga a la persona a averiguar si
-            son lo mismo; escribirlo igual evita la pregunta. Solo cambia lo que
-            se lee: los identificadores, las rutas y los datos siguen diciendo
-            "weel"/"weels" y no se tocan.
+            Se llama Weëls, el nombre de producto, igual que en la navegación de
+            abajo. Un mismo sitio con dos nombres en la misma pantalla obliga a
+            la persona a averiguar si son lo mismo; escribirlo igual evita la
+            pregunta. Solo cambia lo que se lee: los identificadores, las rutas
+            y los datos siguen diciendo "weel"/"weels" y no se tocan.
+
+            Y SE ESCRIBE CON "ë", NO CON "Ẅ". La W con diéresis es U+1E84, un
+            carácter raro que muchas fuentes del sistema no traen: donde faltaba,
+            Chrome pintaba un recuadro en lugar del rótulo. La diéresis sobre la
+            "e" es Latin-1, la tiene cualquier fuente, y es además como se
+            escribe el nombre en el resto de Weë.
           */}
-          <Text style={[styles.title, { color: theme.colors.text }]}>Ẅells</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Weëls</Text>
           {/*
             Compacta no lleva subtítulo. Una fila de miniaturas con un botón de
             "+" delante ya se explica sola, y la frase solo empujaba el muro
