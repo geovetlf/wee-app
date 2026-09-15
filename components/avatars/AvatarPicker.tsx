@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { predefinedAvatars } from './AvatarSVGs';
 
@@ -66,6 +67,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
   isWeeProfile = false,
   onNavigateAiAvatar,
 }) => {
+  const t = useT();
   const { theme } = useTheme();
   const { isDesktop } = useResponsive();
   const [showPicker, setShowPicker] = useState(false);
@@ -151,10 +153,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(
-          'Permisos necesarios',
-          'Necesitamos acceso a tu galería para seleccionar una foto'
-        );
+        Alert.alert(t('composer.permissionsNeeded'), t('avatar.galleryPermission'));
         return;
       }
 
@@ -182,7 +181,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
     } catch (error: any) {
       console.error('Error picking image:', error);
       setUploading(false);
-      Alert.alert('Error', `No se pudo seleccionar la imagen: ${error?.message || error}`);
+      Alert.alert(t('common.error'), t('avatar.pickFailed', { motivo: error?.message || String(error) }));
     }
   };
 
@@ -191,10 +190,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(
-          'Permisos necesarios',
-          'Necesitamos acceso a tu cámara para tomar una foto'
-        );
+        Alert.alert(t('composer.permissionsNeeded'), t('avatar.cameraPermission'));
         return;
       }
 
@@ -220,7 +216,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       }
     } catch (error) {
       setUploading(false);
-      Alert.alert('Error', 'No se pudo tomar la foto');
+      Alert.alert(t('common.error'), t('avatar.photoFailed'));
     }
   };
 
@@ -295,13 +291,13 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
               {/* Salir del selector sin elegir: "Back", la etiqueta de volver en todo Weë. */}
-              <TouchableOpacity onPress={() => setShowPicker(false)} accessibilityRole="button" accessibilityLabel="Back">
+              <TouchableOpacity onPress={() => setShowPicker(false)} accessibilityRole="button" accessibilityLabel={t('common.back')}>
                 <Text style={[styles.cancelText, { color: theme.colors.textSecondary }]}>
-                  Back
+                  {t('common.back')}
                 </Text>
               </TouchableOpacity>
               <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-                Seleccionar Avatar
+                {t('avatar.title')}
               </Text>
               <View style={{ width: 60 }} />
             </View>
@@ -314,7 +310,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
               {isWeeProfile && onNavigateAiAvatar && (
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                    Avatar Humano IA
+                    {t('avatar.aiSection')}
                   </Text>
                   <TouchableOpacity
                     style={[styles.aiAvatarCard, { backgroundColor: theme.colors.surface }]}
@@ -327,10 +323,10 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                     <Ionicons name="sparkles" size={24} color={theme.colors.accent} />
                     <View style={styles.aiAvatarCardContent}>
                       <Text style={[styles.aiAvatarCardTitle, { color: theme.colors.text }]}>
-                        Crear mi avatar humano
+                        {t('avatar.aiTitle')}
                       </Text>
                       <Text style={[styles.aiAvatarCardSubtitle, { color: theme.colors.textSecondary }]}>
-                        Genera un rostro ficticio con IA
+                        {t('avatar.aiSubtitle')}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
@@ -341,7 +337,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
               {/* Opciones de cámara / galería */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  Foto personalizada
+                  {t('avatar.photoSection')}
                 </Text>
 
                 <View style={styles.photoOptions}>
@@ -353,7 +349,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                     >
                       <Ionicons name="camera" size={24} color={theme.colors.accent} />
                       <Text style={[styles.photoOptionText, { color: theme.colors.text }]}>
-                        Tomar foto
+                        {t('avatar.takePhoto')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -368,7 +364,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                   >
                     <Ionicons name="images" size={24} color={theme.colors.accent} />
                     <Text style={[styles.photoOptionText, { color: theme.colors.text }]}>
-                      {Platform.OS === 'web' ? 'Seleccionar imagen' : 'Desde galería'}
+                      {t(Platform.OS === 'web' ? 'avatar.pickImage' : 'avatar.fromGallery')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -377,7 +373,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
               {/* DiceBear Avatars */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  Avatares
+                  {t('avatar.avatarsSection')}
                 </Text>
 
                 {DICEBEAR_STYLES.map((style) => (
@@ -427,7 +423,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                 <View style={styles.uploadingContainer}>
                   <ActivityIndicator size="large" color={theme.colors.accent} />
                   <Text style={[styles.uploadingText, { color: theme.colors.text }]}>
-                    Procesando imagen...
+                    {t('avatar.processing')}
                   </Text>
                 </View>
               )}

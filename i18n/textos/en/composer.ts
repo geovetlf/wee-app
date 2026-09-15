@@ -130,4 +130,5 @@ export const composer: typeof import('../es/composer').composer = {
   results: 'Results',
   useAsTypedShort: 'Use “{{texto}}”',
   imageFetchFailed: 'Error fetching the image: {{estado}} {{texto}}',
+  askCommunity: 'Ask the community a question',
 };

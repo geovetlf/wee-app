@@ -6,7 +6,6 @@
  */
 export const saved = {
   title: 'Guardados',
-  back: 'Volver',
   empty: 'Aún no guardaste nada',
   exploreHome: 'Explorar el Home',
   loadFailed: 'No se pudieron cargar tus Guardados',

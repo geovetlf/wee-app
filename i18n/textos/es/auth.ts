@@ -39,4 +39,47 @@ export const auth = {
   emailSentTitle: 'Email enviado',
   resetEmailSent: 'Revisa tu correo electrónico para restablecer tu contraseña',
   resetFailed: 'Error al enviar email de restablecimiento: {{detalle}}',
+
+  /* ── EL ALTA ────────────────────────────────────────────────────────────
+   * Comparte módulo con el acceso porque es la misma puerta, y reutiliza lo
+   * que ya estaba escrito: `email`, `emailPlaceholder`, `password`,
+   * `errInvalidEmail`, `continueWithGoogle` y `enterAsGuest`.
+   */
+  createAccount: 'Crea tu cuenta',
+  joinWee: 'Únete a la comunidad Weë',
+  passwordMinPlaceholder: 'Mínimo 6 caracteres',
+  confirmPassword: 'Confirmar contraseña',
+  confirmPasswordPlaceholder: 'Repite tu contraseña',
+  createAccountButton: 'Crear cuenta',
+  orRegisterWith: 'O regístrate con',
+  haveAccount: '¿Ya tienes cuenta? ',
+  signInHere: 'Inicia sesión aquí',
+  creatingAccount: 'Creando cuenta...',
+
+  /* El aviso legal va en cuatro trozos porque dos de ellos son enlaces. */
+  termsIntro: 'Al crear una cuenta, aceptas nuestros ',
+  termsOfService: 'Términos de servicio',
+  termsAnd: ' y ',
+
+  /* Lo que se comprueba antes de mandar nada: título y explicación. */
+  emailMissingTitle: 'Falta tu email',
+  emailMissing: 'Escribe tu email para continuar.',
+  emailCheckTitle: 'Revisa tu email',
+  emailCheck: 'Ese email no parece válido.',
+  passwordMissingTitle: 'Falta tu contraseña',
+  passwordMissing: 'Escribe una contraseña para continuar.',
+  passwordShortTitle: 'Contraseña muy corta',
+  passwordShort: 'Usa al menos 6 caracteres.',
+  passwordsMismatchTitle: 'Las contraseñas no coinciden',
+  passwordsMismatch: 'Escribe la misma contraseña en los dos campos.',
+
+  /* Y lo que contesta el alta cuando no puede. El código de Firebase se queda
+   * tal cual: es un identificador, y la pantalla lo traduce a una de estas. */
+  signUpFailedTitle: 'No pudimos crear tu cuenta',
+  signUpFailed: 'Error al crear la cuenta',
+  errEmailInUse: 'Ya existe una cuenta con este email',
+  errWeakPassword: 'La contraseña es muy débil',
+  errSignUpNotAllowed: 'Registro con email no permitido',
+  googleFailedTitle: 'No pudimos continuar con Google',
+  guestFailedTitle: 'No pudimos entrar como invitado',
 };

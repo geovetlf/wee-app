@@ -275,7 +275,7 @@ const WebLandingScreen: React.FC = () => {
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
                 {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otras secciones o comparte algo tú.'}
               </Text>
-              <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel="Crear una publicación">
+              <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('composer.createPost')}>
                 <Text style={styles.emptyButtonText}>Crear</Text>
               </TouchableOpacity>
             </View>
@@ -300,7 +300,7 @@ const WebLandingScreen: React.FC = () => {
               style={[styles.cargarMas, { borderColor: theme.colors.border, backgroundColor: theme.colors.card, opacity: loadingMore ? 0.6 : 1 }]}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel="Cargar más publicaciones"
+              accessibilityLabel={t('common.loadMore')}
             >
               {loadingMore ? (
                 <ActivityIndicator size="small" color={theme.colors.accent} />

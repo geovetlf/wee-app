@@ -363,7 +363,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
           <View style={styles.leftSection}>
             {/* Back or hamburger menu */}
             {onBackPress ? (
-              <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('home.back')}>
+              <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
                 {isWeb ? (
                   <Text style={{ fontSize: 20, color: textColor }}>←</Text>
                 ) : (

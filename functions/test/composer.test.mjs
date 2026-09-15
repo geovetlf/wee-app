@@ -127,7 +127,13 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
   /* El control superior izquierdo dice "Back" y sigue haciendo lo mismo que
      hacía "Cancelar": cerrar la pantalla con `handleClose`. Los "Cancelar" de
      las alertas de permisos no cambian. */
-  check('110) arriba a la izquierda está el aspa de Back, con el mismo cierre de siempre', /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"[\s\S]{0,120}name="close"/.test(crear) && !/>Cancelar<\/Text>|>Back<\/Text>/.test(crear));
+  check('110) arriba a la izquierda está el aspa de Back, con el mismo cierre de siempre', /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Volver"[\s\S]{0,120}name="close"/.test(crear) && !/>Cancelar<\/Text>|>Back<\/Text>/.test(crear));
+  /*
+   * Desde la fase 5P la etiqueta sale de `common.back`, la única de toda la
+   * aplicación, y `comoSeLee` la resuelve a la palabra aprobada. Así esto
+   * comprueba DOS cosas donde antes comprobaba una: que el aspa pide la clave
+   * correcta y que el diccionario le pone "Volver".
+   */
   /* Sobre el fuente crudo: `soloCodigo` se traga esos bloques (ver cabecera). */
   check('110) y las alertas de permisos conservan su Cancelar', (leer('screens/CreateScreen.tsx').match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
@@ -375,7 +381,7 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
   check('127a) y la puerta conserva su forma plegable', /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')));
 
   /* La cabecera: aspa de Back, "Nueva publicación" y un Publicar rápido que se apaga. */
-  check('127b) Back es el aspa, con el cierre de siempre: goBack', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crudo) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"[\s\S]{0,120}name="close"/.test(crudo));
+  check('127b) Back es el aspa, con el cierre de siempre: goBack', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crudo) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Volver"[\s\S]{0,120}name="close"/.test(crudo));
   check('127b) y no volvió Cancelar a la cabecera', !/>Cancelar<\/Text>/.test(crudo) && (crudo.match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
   check('127b) el título es Nueva publicación', /headerTitulo[\s\S]{0,80}>Nueva publicación<\/Text>/.test(crudo) && !/Crear publicación<\/Text>/.test(crudo));
   check('127b) el Publicar de arriba se apaga sin contenido y lo anuncia',

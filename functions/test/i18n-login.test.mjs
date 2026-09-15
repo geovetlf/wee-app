@@ -291,9 +291,15 @@ console.log('\n── F · Ni el diseño, ni el teclado, ni la autenticación �
    * (`utils/notify.ts` estaba aquí también; se cerró en la fase 5H y lo vigila
    * ahora `i18n-confirmaciones.test.mjs`.)
    */
-  check('23) control: ni la cabecera ni el registro se movieron',
+  /*
+   * La cabecera sigue igual. Y el alta, que en la 5G servía de control de "esto
+   * no se ha tocado", se migró entera en la 5P: ahora el control es que comparte
+   * módulo con el acceso y que ya no le queda ninguna frase escrita a mano.
+   */
+  check('23) control: la cabecera no se movió y el alta comparte módulo con el acceso',
     /<Text style=\{styles\.loginButtonText\}>\{t\('menu\.signIn'\)\}<\/Text>/.test(leer('components/Header.tsx'))
-    && /'Crear cuenta'|Registr/.test(leer('screens/RegisterScreen.tsx')));
+    && /t\('auth\.createAccountButton'\)/.test(leer('screens/RegisterScreen.tsx'))
+    && !/'Crear cuenta'/.test(leer('screens/RegisterScreen.tsx')));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));

@@ -462,7 +462,7 @@ const UserProfileScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.retryButtonText}>Volver</Text>
+            <Text style={styles.retryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -304,7 +304,7 @@ const EContactScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.volver}
           activeOpacity={0.7}
-          accessibilityLabel={t('econtact.back')}
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>

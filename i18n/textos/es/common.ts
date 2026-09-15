@@ -9,7 +9,7 @@ export const common = {
   save: 'Guardar',
   delete: 'Eliminar',
   close: 'Cerrar',
-  back: 'Atrás',
+  back: 'Volver',
   next: 'Siguiente',
   done: 'Listo',
   accept: 'Aceptar',
@@ -28,4 +28,5 @@ export const common = {
   anonymousUser: 'Usuario Anónimo',
   user: 'Usuario',
   yes: 'Sí',
+  loadMore: 'Cargar más publicaciones',
 };

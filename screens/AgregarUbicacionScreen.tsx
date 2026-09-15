@@ -310,10 +310,10 @@ const AgregarUbicacionScreen: React.FC = () => {
           activeOpacity={0.7}
           style={styles.cancelar}
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t('common.back')}
         >
           {/* "Back" es la etiqueta de volver en todo Weë: sale sin tocar nada. */}
-          <Text style={[styles.cancelarTexto, { color: theme.colors.textSecondary }]}>Back</Text>
+          <Text style={[styles.cancelarTexto, { color: theme.colors.textSecondary }]}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.tituloCabecera, { color: theme.colors.text }]}>{t('composer.addLocation')}</Text>
         {/* El mismo ancho que "Back", para que el título quede centrado de

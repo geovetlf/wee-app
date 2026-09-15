@@ -35,12 +35,14 @@ import { auth } from './auth';
 import { engine } from './engine';
 import { communities } from './communities';
 import { profile } from './profile';
+import { avatar } from './avatar';
 export const es = {
   common,
   auth,
   engine,
   communities,
   profile,
+  avatar,
   nav,
   menu,
   creator,

@@ -113,7 +113,7 @@ const SavedPostsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
-          accessibilityLabel={t('saved.back')}
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>

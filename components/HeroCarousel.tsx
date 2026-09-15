@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Platform, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { SPACING, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -26,6 +27,7 @@ const PAUSE_AFTER_INTERACTION_MS = 8000;
 const isWeb = Platform.OS === 'web';
 
 const HeroCarousel: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
@@ -133,7 +135,7 @@ const HeroCarousel: React.FC = () => {
               hitSlop={8}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel={`Banner ${i + 1} de ${SLIDES.length}`}
+              accessibilityLabel={t('home.bannerOf', { numero: i + 1, total: SLIDES.length })}
               accessibilityState={{ selected: active }}
             >
               <View style={[styles.dot, { backgroundColor: active ? theme.colors.accent : theme.colors.border }, active && styles.dotActive]} />

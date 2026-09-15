@@ -37,4 +37,8 @@ export const communities = {
   /* La descripción que se guarda si quien la crea no escribe ninguna. */
   defaultDescription: 'Comunidad de {{nombre}}',
   empty: 'No hay comunidades disponibles',
+
+  /* La entrada del Home: el título sale de menu.communities. */
+  findYours: 'Encuentra las tuyas.',
+  searchLabel: 'Buscar comunidades',
 };

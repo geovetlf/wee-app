@@ -12,8 +12,9 @@ export const home = {
   createWeel: 'Crear Weël',
   openMenu: 'Abrir menú',
   search: 'Buscar',
-  back: 'Volver',
   logoHome: 'Weë, ir al principio',
   filterBy: 'Filtrar: {{nombre}}',
   filterAll: 'Todo',
+  bannerOf: 'Banner {{numero}} de {{total}}',
+  weelSample: 'Ejemplo de Weël: {{titulo}}',
 };

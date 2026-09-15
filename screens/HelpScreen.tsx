@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -72,6 +73,7 @@ const FAQ: FaqItem[] = [
 
 /** Ayuda: preguntas frecuentes, términos y privacidad, contacto. */
 const HelpScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -99,7 +101,7 @@ const HelpScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingTop: isDesktop ? SPACING.md : insets.top + SPACING.sm }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel="Volver">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Ayuda</Text>
@@ -141,7 +143,7 @@ const HelpScreen: React.FC = () => {
               onPress={() => navigation.navigate('Create', { kind: 'question', prefill: { content: 'Una pregunta para Weë: ' } })}
               style={[styles.button, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
-              accessibilityLabel="Hacer una pregunta a la comunidad"
+              accessibilityLabel={t('composer.askCommunity')}
             >
               <Text style={styles.buttonText}>Hacer una pregunta</Text>
             </TouchableOpacity>

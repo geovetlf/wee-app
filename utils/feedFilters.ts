@@ -73,21 +73,25 @@ export type HomeSectionId = 'all' | 'studio' | 'travel' | 'music' | 'chef' | 'de
  */
 /*
  * SEIS DE LAS SIETE ETIQUETAS SON MARCA y se escriben igual en todos los
- * idiomas: WeeStudio, WeeTravel, WeeMusic, WeeChef, WeeDesign y WEEBusiness son
- * nombres de Weë, no palabras. La séptima, "Todo", sí es interfaz, así que
- * guarda una CLAVE y la resuelve quien pinta —esto se importa fuera de React y
- * traducir aquí congelaría el idioma del arranque—. Es el mismo trato que
- * `MENU_ITEM.clave`; el `label` se queda debajo como documentación.
+ * idiomas: Weë Studio, Weë Travel, Weë Music, Weë Chef, Weë Design y Weë
+ * Business son nombres de Weë, no palabras. La séptima, "Todo", sí es interfaz,
+ * así que guarda una CLAVE y la resuelve quien pinta —esto se importa fuera de
+ * React y traducir aquí congelaría el idioma del arranque—. Es el mismo trato
+ * que `MENU_ITEM.clave`.
+ *
+ * EL IDENTIFICADOR NO ES LA ETIQUETA. Los `id` —'studio', 'travel'…— mandan el
+ * reparto del muro (`postsDeLaSeccion`) y viajan en lo ya publicado: no se
+ * tocan nunca. Lo que se lee es el `label`, y desde la fase 5P lleva la grafía
+ * aprobada de producto, con diéresis y separado.
  */
 export const HOME_SECTION_FILTERS: { id: HomeSectionId; label: string; clave?: string }[] = [
   { id: 'all', label: 'Todo', clave: 'home.filterAll' },
-  { id: 'studio', label: 'WeeStudio' },
-  { id: 'travel', label: 'WeeTravel' },
-  { id: 'music', label: 'WeeMusic' },
-  { id: 'chef', label: 'WeeChef' },
-  { id: 'design', label: 'WeeDesign' },
-  /* Con esta grafía, en mayúsculas, por decisión de producto (2026-09-12). */
-  { id: 'business', label: 'WEEBusiness' },
+  { id: 'studio', label: 'Weë Studio' },
+  { id: 'travel', label: 'Weë Travel' },
+  { id: 'music', label: 'Weë Music' },
+  { id: 'chef', label: 'Weë Chef' },
+  { id: 'design', label: 'Weë Design' },
+  { id: 'business', label: 'Weë Business' },
 ];
 
 export const filterBySection = (posts: Post[], filter: HomeSectionId): Post[] =>

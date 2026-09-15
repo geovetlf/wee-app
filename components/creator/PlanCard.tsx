@@ -43,7 +43,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
   const costLabel =
     creditsEstimated === 0
       ? t('weeai.noCost')
-      : `≈ ${formato.numero(creditsEstimated)} Credits${pricingMode === 'simulated' ? ' · precio de prueba' : ''}`;
+      : `≈ ${formato.numero(creditsEstimated)} Credits${pricingMode === 'simulated' ? t('weeai.testPriceSuffix') : ''}`;
   const costHint =
     creditsEstimated > 0 ? t('weeai.creditsNote') : demo ? t('weeai.demoMode') : '';
 
@@ -89,7 +89,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
                   onPress={() => onQuality?.(option.quality)}
                   disabled={busy || quoting}
                   activeOpacity={0.8}
-                  accessibilityLabel={`${option.label}, ${option.credits} Credits`}
+                  accessibilityLabel={t('weeai.optionCredits', { nombre: option.label, credits: option.credits })}
                   style={[
                     styles.qualityChip,
                     { borderColor: active ? theme.colors.accentDark : theme.colors.border },

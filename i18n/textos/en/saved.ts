@@ -6,7 +6,6 @@
  */
 export const saved: typeof import('../es/saved').saved = {
   title: 'Saved',
-  back: 'Back',
   empty: 'Nothing saved yet',
   exploreHome: 'Explore Home',
   loadFailed: 'Your saved posts could not be loaded',

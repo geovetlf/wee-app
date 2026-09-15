@@ -23,7 +23,7 @@ interface CreditsPillProps {
  */
 const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = false, onPress }) => {
   const { theme } = useTheme();
-  const { formato } = useIdioma();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -44,7 +44,7 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
       onPress={handlePress}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`Tienes ${value} Credits`}
+      accessibilityLabel={t('credits.youHaveLabel', { saldo: value })}
       style={[
         styles.pill,
         {

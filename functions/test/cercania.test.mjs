@@ -424,7 +424,8 @@ check('y la vuelta usa merge, así que lo escrito sigue escrito', /merge: true/.
 check('no hay ninguna tarjeta del lugar ya elegido', !/Lugar de la publicación/.test(codigoPantalla) && !/pricetag-outline/.test(codigoPantalla));
 check('ni estado de lugar que pintar: aquí se busca y se elige', !/const \[place, setPlace\]/.test(codigoPantalla));
 check('quitar vive en el compositor —el aspa del chip— y "Ubicación" vuelve a abrir el selector', /accessibilityLabel="Quitar el lugar"/.test(compositor) && /onPress=\{abrirUbicacion\}/.test(compositor) && !/Cambiar la ubicación/.test(compositor));
-check('Back sale sin tocar nada', /accessibilityLabel="Back"/.test(pantalla) && /navigation\.goBack\(\)/.test(pantalla) && !/Cancelar/.test(pantalla));
+/* Desde la fase 5P la etiqueta sale de `common.back`, resuelta por `comoSeLee`. */
+check('el volver sale sin tocar nada', /accessibilityLabel="Volver"/.test(pantalla) && /navigation\.goBack\(\)/.test(pantalla) && !/Cancelar/.test(pantalla));
 
 /*
  * ─── La lista de resultados es una LISTA, no una colección de botones ───────

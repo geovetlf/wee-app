@@ -25,4 +25,5 @@ export const credits: typeof import('../es/credits').credits = {
   balanceAfter: 'Balance: {{saldo}}',
   topUpFailed: 'The top-up could not be completed. Please try again.',
   terms: 'Test top-up: nothing is charged yet. Final prices will arrive once Weë AI runs on its real AIs; until then, every creation shows its test cost before you start.',
+  youHaveLabel: 'You have {{saldo}} Credits',
 };

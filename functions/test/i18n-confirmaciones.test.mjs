@@ -263,10 +263,11 @@ console.log('\n── E · Ni la lógica, ni la navegación, ni un sistema paral
     !/updateDoc|setDoc|runTransaction/.test(Object.values(C).join('\n')));
 
   /* CONTROL de fase: no se tocó nada de lo ya cerrado. */
-  check('24) control: ni LoginScreen, ni la cabecera, ni el registro',
+  /* El alta se migró en la 5P: el control pasa a ser que pide su módulo. */
+  check('24) control: LoginScreen, la cabecera y el alta siguen en su sitio',
     /\{t\('auth\.welcome'\)\}/.test(leer('screens/LoginScreen.tsx'))
     && /\{t\('menu\.signIn'\)\}/.test(leer('components/Header.tsx'))
-    && /Registr/.test(leer('screens/RegisterScreen.tsx')));
+    && /t\('auth\.createAccount'\)/.test(leer('screens/RegisterScreen.tsx')));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useCommunity } from '../hooks/useCommunities';
@@ -30,6 +31,7 @@ type CommunityScreenRouteProp = RouteProp<MainStackParamList, 'Community'>;
 type CommunityScreenNavigationProp = StackNavigationProp<MainStackParamList>;
 
 const CommunityScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -394,7 +396,7 @@ const CommunityScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.retryButtonText}>Volver</Text>
+            <Text style={styles.retryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
       </View>

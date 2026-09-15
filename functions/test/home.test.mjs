@@ -64,10 +64,19 @@ console.log('\n── A · Las pastillas del Home son secciones ──');
   check('1) son siete, en el orden pedido',
     JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.id)) === JSON.stringify(['all', 'studio', 'travel', 'music', 'chef', 'design', 'business'])
   );
-  /* "WEEBusiness" con esa grafía exacta, por decisión de producto. */
+  /*
+   * LA GRAFÍA APROBADA DE PRODUCTO (fase 5P): con diéresis y separada. Los
+   * `id` —'studio', 'travel'…— mandan el reparto del muro y viajan en lo ya
+   * publicado, así que esos NO se tocan; lo que cambió es lo que se lee.
+   */
   check('2) con los nombres de las experiencias',
     JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.label)) ===
-      JSON.stringify(['Todo', 'WeeStudio', 'WeeTravel', 'WeeMusic', 'WeeChef', 'WeeDesign', 'WEEBusiness'])
+      JSON.stringify(['Todo', 'Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Business'])
+  );
+  /* Y los identificadores internos, intactos: son los que reparten el muro. */
+  check('2) y los identificadores internos no se movieron',
+    JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.id)) ===
+      JSON.stringify(['all', 'studio', 'travel', 'music', 'chef', 'design', 'business'])
   );
   /*
    * Control: los identificadores no son inventados aquí. Si alguien renombrara
@@ -1950,7 +1959,7 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
   /* 6 y 7: el workspace no cambia, y Back vuelve a donde estabas: el Home. */
   check('173) el compositor no sabe nada de la barra ni de `directo`', !/ComposerEntry|directo/.test(crear));
   check('174) sigue leyendo el kind con el que llega', /const presetKind: string \| null = routeParams\.kind \|\| null;/.test(crear));
-  check('175) y Back deshace la navegación: vuelve al Home', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Back"/.test(crear));
+  check('175) y Back deshace la navegación: vuelve al Home', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel=\{t\('common\.back'\)\}/.test(crear));
 
   /* 8: nada más cambia. `directo` solo lo piden las dos pantallas del Home. */
   const etiquetas = [];
@@ -2052,7 +2061,7 @@ console.log('\n── R · La conversación se abre desde abajo, no en otra pant
     && /borderTopLeftRadius: BORDER_RADIUS\.xl/.test(hoja)
     && /backgroundColor: 'rgba\(31,41,55,0\.45\)'/.test(hoja));
   check('183) se cierra por el botón, por fuera y con el botón atrás de Android',
-    /accessibilityLabel="Cerrar comentarios"/.test(hoja) && /onRequestClose=\{onClose\}/.test(hoja));
+    /accessibilityLabel=\{t\('wall\.closeComments'\)\}/.test(hoja) && /onRequestClose=\{onClose\}/.test(hoja));
 
   /*
    * La lista es una lista de verdad: `FlatList`, no un `map`. Una conversación
@@ -2066,11 +2075,11 @@ console.log('\n── R · La conversación se abre desde abajo, no en otra pant
 
   /* El compositor, abajo y siempre visible, con lo que ya sabía hacer Weë. */
   check('185) el compositor va abajo, fijo, con adjunto y envío',
-    /accessibilityLabel="Adjuntar una imagen"/.test(hoja)
-    && /accessibilityLabel="Enviar comentario"/.test(hoja)
+    /accessibilityLabel=\{t\('wall\.attachImage'\)\}/.test(hoja)
+    && /accessibilityLabel=\{t\('wall\.sendComment'\)\}/.test(hoja)
     && /placeholder="Escribe un comentario…"/.test(hoja));
   check('185) el adjunto se ve antes de enviarlo y se puede quitar',
-    /\{!!adjunto && \(/.test(hoja) && /accessibilityLabel="Quitar la imagen"/.test(hoja) && /onPress=\{quitarAdjunto\}/.test(hoja));
+    /\{!!adjunto && \(/.test(hoja) && /accessibilityLabel=\{t\('wall\.removeImage'\)\}/.test(hoja) && /onPress=\{quitarAdjunto\}/.test(hoja));
   /*
    * EL TECLADO NO TAPA EL COMPOSITOR, y no con una cuenta propia.
    *

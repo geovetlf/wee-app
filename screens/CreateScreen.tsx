@@ -1492,7 +1492,7 @@ ${message}`);
           style={styles.cerrar}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="close" size={scale(26)} color={theme.colors.text} />
         </TouchableOpacity>

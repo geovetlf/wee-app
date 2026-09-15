@@ -184,9 +184,20 @@ console.log('\n── E · Las pastillas: marca fuera, interfaz dentro ──');
   check('21) solo la pastilla "Todo" lleva clave',
     (C.filtros.match(/clave: '/g) || []).length === 1
     && /\{ id: 'all', label: 'Todo', clave: 'home\.filterAll' \}/.test(C.filtros));
-  check('21) y las seis marcas siguen escritas tal cual',
-    ['WeeStudio', 'WeeTravel', 'WeeMusic', 'WeeChef', 'WeeDesign', 'WEEBusiness']
+  /*
+   * Y las seis marcas se copian tal cual, CON LA GRAFÍA APROBADA DE PRODUCTO:
+   * con diéresis y separada (fase 5P). No se traducen —son nombres— pero sí se
+   * escriben como Weë las escribe en todas partes.
+   */
+  check('21) y las seis marcas siguen escritas tal cual, con la grafía aprobada',
+    ['Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Business']
       .every((n) => C.filtros.includes(`label: '${n}' }`)));
+  check('21) y no queda ninguna de las viejas',
+    !/WeeStudio|WeeTravel|WeeMusic|WeeChef|WeeDesign|WEEBusiness/.test(C.filtros));
+  /* Los identificadores internos no se movieron: reparten el muro. */
+  check('21) los identificadores internos siguen intactos',
+    ['all', 'studio', 'travel', 'music', 'chef', 'design', 'business']
+      .every((id) => C.filtros.includes(`{ id: '${id}'`)));
 
   /* Quien pinta resuelve; el catálogo no llama al traductor. */
   check('22) el catálogo no traduce: lo hace quien pinta',

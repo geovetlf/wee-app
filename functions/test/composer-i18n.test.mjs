@@ -123,7 +123,15 @@ console.log('\n── B · Español e inglés, completos ──');
   check('7) las ' + new Set(pedidas).size + ' claves que pide el Composer existen en los dos',
     rotas.length === 0, rotas.join(' '));
 
-  const usadas = new Set(pedidas.filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));
+  /*
+   * Ayuda no es una pieza del Composer, pero su botón lo ABRE —`kind:
+   * 'question'`— y por eso su etiqueta vive en este módulo. Cuenta como uso;
+   * no entra en la comprobación de arriba, que exige no tener frases sueltas.
+   */
+  const PUERTAS = ['screens/HelpScreen.tsx'];
+  const desdeFuera = PUERTAS.map((p) => leer(p)).join(String.fromCharCode(10));
+  const pedidasFuera = [...desdeFuera.matchAll(/'(composer\.[A-Za-z0-9_]+)'/g)].map((m) => m[1]);
+  const usadas = new Set([...pedidas, ...pedidasFuera].filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));
   const sobran = Object.keys(ES.composer).filter((k) => !usadas.has(k) && !usadas.has(k.replace(/_(one|other)$/, '')));
   check('8) y el módulo no arrastra ninguna que ya nadie use', sobran.length === 0, sobran.join(' '));
 

@@ -236,7 +236,7 @@ const WeeCreatorScreen: React.FC = () => {
                   style={[styles.detailButton, { backgroundColor: theme.colors.accent }]}
                   onPress={() => handleStart(selected)}
                   activeOpacity={0.8}
-                  accessibilityLabel={`Empezar con ${selected.name}`}
+                  accessibilityLabel={t('weeai.startWith', { nombre: selected.name })}
                 >
                   <Text style={styles.detailButtonText}>{t('weeai.start')}</Text>
                 </TouchableOpacity>

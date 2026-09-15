@@ -32,4 +32,6 @@ export const communities: typeof import('../es/communities').communities = {
   createFailed: 'The community could not be created',
   defaultDescription: '{{nombre}} community',
   empty: 'There are no communities available',
+  findYours: 'Find yours.',
+  searchLabel: 'Search communities',
 };

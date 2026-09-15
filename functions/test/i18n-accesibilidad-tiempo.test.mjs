@@ -108,7 +108,7 @@ console.log('\n── B · Las etiquetas de la cabecera ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const ETIQUETAS = [
-    ['home.back', 'Volver'],
+    ['common.back', 'Volver'],
     ['home.openMenu', 'Abrir menú'],
     ['home.logoHome', 'Weë, ir al principio'],
     ['menu.bizActiveTap', 'Perfil Biz activo. Tocar para volver al Perfil Real'],
@@ -140,7 +140,8 @@ console.log('\n── B · Las etiquetas de la cabecera ──');
 console.log('\n── C · Español e inglés, completos ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const NUEVAS = ['wall.comment', 'wall.viewFullVideoInWeels', 'home.back', 'home.logoHome',
+  /* `home.back` pasó a ser `common.back` en la fase 5P: una sola para toda la app. */
+  const NUEVAS = ['wall.comment', 'wall.viewFullVideoInWeels', 'common.back', 'home.logoHome',
     'menu.bizActiveTap', 'menu.profileActive', 'menu.switchToProfile'];
   const sinEs = NUEVAS.filter((c) => { const [m, k] = c.split('.'); return typeof ES[m][k] !== 'string'; });
   const sinEn = NUEVAS.filter((c) => { const [m, k] = c.split('.'); return typeof EN[m][k] !== 'string'; });
@@ -242,11 +243,11 @@ console.log('\n── E · Lo que NO se traduce ──');
   check('21) ni el nombre de quien publica', !/t\(.*displayName\)/.test(C[MURO] + C[CABECERA]));
 
   /* Y el inglés está en inglés. */
-  const NUEVAS_EN = [EN.wall.comment, EN.wall.viewFullVideoInWeels, EN.home.back, EN.home.logoHome,
+  const NUEVAS_EN = [EN.wall.comment, EN.wall.viewFullVideoInWeels, EN.common.back, EN.home.logoHome,
     EN.menu.bizActiveTap, EN.menu.profileActive, EN.menu.switchToProfile];
   const conAcento = NUEVAS_EN.filter((v) => /[áéíóúñ¿¡]/i.test(String(v).replace(/Weë|Weël|Weëls/g, '')));
   check('22) ninguna frase inglesa nueva lleva tildes ni signos de apertura', conAcento.length === 0, conAcento.join(' | '));
-  const copiadas = [['wall.comment', ES.wall.comment, EN.wall.comment], ['home.back', ES.home.back, EN.home.back]]
+  const copiadas = [['wall.comment', ES.wall.comment, EN.wall.comment], ['common.back', ES.common.back, EN.common.back]]
     .filter(([, a, b]) => a === b);
   check('22) y están traducidas de verdad', copiadas.length === 0, copiadas.map((c) => c[0]).join(' '));
 }

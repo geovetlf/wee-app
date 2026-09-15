@@ -5,7 +5,6 @@
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  */
 export const weeai = {
-  back: 'Volver',
   searchInWee: 'Buscar en Weë…',
   searchLabel: 'Buscar en Weë',
   myProfile: 'Mi perfil',
@@ -114,6 +113,24 @@ export const weeai = {
   approxUsd: 'unos {{usd}} USD',
   creditsLeft: 'te quedan {{saldo}}',
   attach: 'Adjuntar',
+
+  /* ── LO QUE CUESTA, EN PALABRAS ─────────────────────────────────────────
+   * Las cifras ya las escribe el formato de Weë con el locale activo (5O);
+   * aquí solo está el texto que las acompaña.
+   */
+  creditsAvailable: 'Credits disponibles: {{saldo}}',
+  costLine: 'Costo: {{coste}}',
+  youHaveLeft: 'te quedan {{saldo}}',
+  testPriceSuffix: ' · precio de prueba',
+  testPriceParenthesis: ' (precio de prueba)',
+  youSpent: ' Usaste {{credits}} Credits{{nota}}.',
+  spentNothing: ' No gastaste Credits.',
+  calculatingTheCost: 'Calculando el costo…',
+  costFailed: 'No pudimos calcular el costo. Inténtalo de nuevo.',
+  avatarCost: 'Avatar Weë · {{credits}} Credits{{saldo}}',
+  /* Lo que Weë Brain dice que va a hacer, que llega desde el servidor. */
+  quoteSearch: 'Búsqueda con fuentes',
+  quoteBrain: 'Respuesta de Weë Brain',
   speak: 'Hablar',
   speakComingSoon: 'Hablar con Weë llegará en una próxima versión. Por ahora, escríbelo.',
   searchInternetOn: 'Buscar en internet: sí',
@@ -149,4 +166,15 @@ export const weeai = {
   sidebarTagline: 'Una mejor tú,\nen un mundo\nmás creativo',
   youHaveCredits: 'Tienes {{saldo}} Credits',
   creditsBoxNote: 'Los especialistas de Weë usan Credits. Recarga cuando quieras.',
+  startWith: 'Empezar con {{nombre}}',
+  previousMonth: 'Mes anterior',
+  nextMonth: 'Mes siguiente',
+  dontKnowYet: 'Todavía no lo sé',
+  confirmDates: 'Confirmar las fechas',
+  optionCredits: '{{nombre}}, {{credits}} Credits',
+  emojiLabel: 'Emoji {{emoji}}',
+  chooseProposal: 'Elegir la propuesta {{numero}}',
+  generatedVideo: 'Video generado',
+  playVideo: 'Reproducir video',
+  continueVia: 'Seguir por: {{camino}}',
 };

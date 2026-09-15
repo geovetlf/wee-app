@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { Comment, Post } from '../services/firestoreService';
 import { useComentarios } from '../hooks/useComentarios';
@@ -68,6 +69,7 @@ interface HojaDeComentariosProps {
  * o sin él.
  */
 const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, onClose, onAbrirPerfil }) => {
+  const t = useT();
   const { theme } = useTheme();
   const { userProfile } = useUserProfile();
   const insets = useSafeAreaInsets();
@@ -97,7 +99,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
       */}
       <EspacioDeEscritura style={styles.marco} activo={visible}>
         {/* Tocar fuera cierra, y de paso deja ver la publicación de la que se habla. */}
-        <TouchableOpacity style={styles.atenuado} activeOpacity={1} onPress={onClose} accessibilityLabel="Cerrar comentarios" />
+        <TouchableOpacity style={styles.atenuado} activeOpacity={1} onPress={onClose} accessibilityLabel={t('wall.closeComments')} />
 
         <View style={[styles.hoja, { backgroundColor: theme.colors.background }]}>
           <View style={[styles.asa, { backgroundColor: theme.colors.border }]} />
@@ -122,7 +124,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               style={[styles.cerrar, { backgroundColor: theme.colors.surface }]}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Cerrar comentarios"
+              accessibilityLabel={t('wall.closeComments')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={ICON_SIZE.md} color={theme.colors.text} />
@@ -170,7 +172,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
                 onPress={quitarAdjunto}
                 activeOpacity={0.8}
                 accessibilityRole="button"
-                accessibilityLabel="Quitar la imagen"
+                accessibilityLabel={t('wall.removeImage')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={scale(13)} color="white" />
@@ -218,7 +220,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
                 onPress={elegirAdjunto}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Adjuntar una imagen"
+                accessibilityLabel={t('wall.attachImage')}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="image-outline" size={ICON_SIZE.md} color={adjunto ? theme.colors.accentDark : theme.colors.textSecondary} />
@@ -230,7 +232,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               disabled={!puedeEnviar}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Enviar comentario"
+              accessibilityLabel={t('wall.sendComment')}
               accessibilityState={{ disabled: !puedeEnviar }}
             >
               {enviando ? (

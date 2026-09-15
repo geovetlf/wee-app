@@ -44,21 +44,41 @@ for (const carpeta of ['screens', 'components', 'navigation']) {
   }
 }
 
-console.log('\n── A · Los controles de volver dicen Back ──');
+/*
+ * ── A · TODOS LOS CONTROLES DE VOLVER DICEN LO MISMO ─────────────────────────
+ *
+ * Hasta la fase 5P decían "Back" escrito a mano, en inglés, dentro de una
+ * interfaz en español. Ahora los tres piden la MISMA clave —`common.back`, la
+ * única de toda la aplicación— y `comoSeLee` la resuelve a la palabra aprobada.
+ * Así esto comprueba DOS cosas donde antes comprobaba una: que el control pide
+ * la clave correcta y que el diccionario le pone "Volver".
+ */
+console.log('\n── A · Los controles de volver dicen todos lo mismo ──');
 {
   const ubic = leer('screens/AgregarUbicacionScreen.tsx');
   check('1) Agregar ubicación: Back a la izquierda, con el mismo goBack de siempre',
-    /onPress=\{\(\) => navigation\.goBack\(\)\}[\s\S]{0,200}accessibilityLabel="Back"[\s\S]{0,200}>Back<\/Text>/.test(ubic) && /Agregar ubicación<\/Text>/.test(ubic));
+    /onPress=\{\(\) => navigation\.goBack\(\)\}[\s\S]{0,200}accessibilityLabel="Volver"[\s\S]{0,200}>Volver<\/Text>/.test(ubic) && /Agregar ubicación<\/Text>/.test(ubic));
   check('1) y allí ya no queda ningún Cancelar', !/Cancelar/.test(soloCodigo(ubic)));
 
   const avatar = leer('components/avatars/AvatarPicker.tsx');
-  check('2) el selector de avatar sale con Back, y lo dice también al lector de pantalla',
-    /onPress=\{\(\) => setShowPicker\(false\)\} accessibilityRole="button" accessibilityLabel="Back">[\s\S]{0,160}Back\s*<\/Text>/.test(avatar) && !/Cancelar/.test(soloCodigo(avatar)));
+  check('2) el selector de avatar sale por el volver, y lo dice también al lector de pantalla',
+    /onPress=\{\(\) => setShowPicker\(false\)\} accessibilityRole="button" accessibilityLabel="Volver">[\s\S]{0,160}Volver\s*<\/Text>/.test(avatar) && !/Cancelar/.test(soloCodigo(avatar)));
 
   /* Crear publicación: el diseño aprobado usa el aspa, etiquetada Back, con el mismo cierre. */
   const crear = leer('screens/CreateScreen.tsx');
-  check('3) Crear publicación: el control de salir se llama Back y cierra con handleClose',
-    /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,300}(accessibilityLabel="Back"|>Back<\/Text>)/.test(crear) && !/>Cancelar<\/Text>/.test(crear));
+  check('3) Crear publicación: el control de salir es el volver y cierra con handleClose',
+    /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crear) && /onPress=\{handleClose\}[\s\S]{0,300}(accessibilityLabel="Volver"|>Volver<\/Text>)/.test(crear) && !/>Cancelar<\/Text>/.test(crear));
+
+  /*
+   * Y LOS TRES PIDEN LA MISMA CLAVE. Antes había tres palabras escritas a mano
+   * en tres archivos; ahora hay una, y esto lo caza si alguien copia otra.
+   */
+  const crudos = ['screens/AgregarUbicacionScreen.tsx', 'components/avatars/AvatarPicker.tsx', 'screens/CreateScreen.tsx']
+    .map((f) => fs.readFileSync(ruta(f), 'utf8'));
+  check('4) los tres piden la misma clave, common.back',
+    crudos.every((f) => /accessibilityLabel=\{t\('common\.back'\)\}/.test(f)));
+  check('4) y ninguno se inventó una suya',
+    crudos.every((f) => !/t\('(profile|settings|auth|home|weeai)\.back'\)/.test(f)));
 }
 
 console.log('\n── B · Ningún "Cancelar" hace de Back ──');

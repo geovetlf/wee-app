@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { cloudinaryFeed, cloudinaryThumb } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
-import { useIdioma } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
@@ -72,7 +72,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const PostDetailContent: React.FC = () => {
   const { theme } = useTheme();
-  const { locale } = useIdioma();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const route = useRoute<PostDetailScreenRouteProp>();
@@ -540,7 +540,7 @@ const PostDetailContent: React.FC = () => {
           </TouchableOpacity>
 
           {/* Comentarios */}
-          <TouchableOpacity style={styles.actionButton} onPress={() => commentInputRef.current?.focus()} accessibilityLabel="Comentar">
+          <TouchableOpacity style={styles.actionButton} onPress={() => commentInputRef.current?.focus()} accessibilityLabel={t('wall.comment')}>
             <Ionicons
               name="chatbubble-outline"
               size={ICON_SIZE.md}
@@ -602,7 +602,7 @@ const PostDetailContent: React.FC = () => {
           )}
 
           {/* Compartir */}
-          <TouchableOpacity style={styles.actionButton} onPress={handleSharePost} accessibilityLabel="Compartir">
+          <TouchableOpacity style={styles.actionButton} onPress={handleSharePost} accessibilityLabel={t('common.share')}>
             <Ionicons
               name="share-social-outline"
               size={ICON_SIZE.md}
@@ -1035,6 +1035,7 @@ const styles = StyleSheet.create({
  * carga la publicación antes de mostrar el detalle.
  */
 const PostDetailScreen: React.FC = () => {
+  const t = useT();
   const { theme } = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
@@ -1074,8 +1075,8 @@ const PostDetailScreen: React.FC = () => {
       {failed ? (
         <>
           <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>No encontramos esta publicación</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Volver">
-            <Text style={{ color: theme.colors.accentDark, fontWeight: '700' }}>Volver</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel={t('common.back')}>
+            <Text style={{ color: theme.colors.accentDark, fontWeight: '700' }}>{t('common.back')}</Text>
           </TouchableOpacity>
         </>
       ) : (

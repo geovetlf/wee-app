@@ -218,8 +218,15 @@ console.log('\n── D · Las claves: completas, sin duplicar, sin paralelos �
     && EN('engine.recentFailures', { contador: 3 }) === '3 recent failures');
 
   /* 19 · Sin duplicar: se reutiliza lo que ya existía. */
-  check('19) se reutiliza home.back en vez de crear otra',
-    /accessibilityLabel=\{t\('home\.back'\)\}/.test(MOTOR) && !esT.engine.back);
+  check('19) se reutiliza common.back en vez de crear otra',
+    /accessibilityLabel=\{t\('common\.back'\)\}/.test(MOTOR) && !esT.engine.back);
+  /*
+   * Y desde la fase 5P la clave es UNA en toda la aplicación: `home.back`, que
+   * decía lo mismo, se retiró. Esto caza el día que vuelva a aparecer un par.
+   */
+  check('19) y solo hay una clave de volver en todo el diccionario',
+    !esT.home.back && !!esT.common.back
+    && Object.entries(esT).filter(([, m]) => typeof m.back === 'string').length === 1);
   check('19) y no hay dos "Solo administración" en el diccionario',
     Object.values(esT).filter((m) => Object.values(m).includes('Solo administración')).length === 1
     && Object.values(esT).filter((m) => Object.values(m).includes('Solicitud enviada')).length === 1);

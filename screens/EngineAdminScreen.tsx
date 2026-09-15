@@ -93,7 +93,7 @@ const EngineAdminScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingTop: isDesktop ? SPACING.md : insets.top + SPACING.sm }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('home.back')}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         {/* "Weë AI Engine" es el nombre del motor: marca, no se traduce. */}

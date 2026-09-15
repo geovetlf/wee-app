@@ -62,7 +62,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
         <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('weeai.back')}>
+          <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
           </TouchableOpacity>
           {mark}
@@ -96,7 +96,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
       <CreatorSidebar activeId={activeId} />
       <View style={styles.main}>
         <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('weeai.back')}>
+          <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
           </TouchableOpacity>

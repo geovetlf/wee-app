@@ -378,8 +378,11 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
         {experienceName} terminó "{job.goal}".
         {job.creditsCharged > 0
-          ? ` Usaste ${formato.numero(job.creditsCharged)} Credits${job.pricingMode === 'simulated' ? ' (precio de prueba)' : ''}.`
-          : ' No gastaste Credits.'}
+          ? t('weeai.youSpent', {
+              credits: formato.numero(job.creditsCharged),
+              nota: job.pricingMode === 'simulated' ? t('weeai.testPriceParenthesis') : '',
+            })
+          : t('weeai.spentNothing')}
       </Text>
       {!trabajoDeEspacio && bloqueProyecto}
 
@@ -419,7 +422,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                           onPress={() => setChosen((prev) => ({ ...prev, [result.stepId]: index }))}
                           activeOpacity={0.85}
                           style={[styles.variant, styles.otherVariant, espacio && styles.otherVariantSpace, { borderColor: theme.colors.border }]}
-                          accessibilityLabel={`Elegir la propuesta ${index + 1}`}
+                          accessibilityLabel={t('weeai.chooseProposal', { numero: index + 1 })}
                         >
                           <Image source={{ uri }} style={[styles.variantImage, espacio && styles.variantImageWide]} contentFit={espacio ? 'contain' : 'cover'} transition={200} />
                           <View style={[styles.variantTag, { backgroundColor: theme.colors.card }]}>
@@ -472,7 +475,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             </View>
           ) : result.kind === 'video' && isRealMedia(result.url) ? (
             <View>
-              <Video source={{ uri: result.url as string }} style={styles.visual} resizeMode={ResizeMode.CONTAIN} useNativeControls accessibilityLabel="Video generado" />
+              <Video source={{ uri: result.url as string }} style={styles.visual} resizeMode={ResizeMode.CONTAIN} useNativeControls accessibilityLabel={t('weeai.generatedVideo')} />
               {!!result.durationSec && (
                 <View style={styles.durationTag}>
                   <Text style={styles.durationText}>{formatDuration(result.durationSec)}</Text>
@@ -480,7 +483,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               )}
             </View>
           ) : result.kind === 'video' ? (
-            <TouchableOpacity onPress={() => setPlayingId(playingId === result.stepId ? null : result.stepId)} activeOpacity={0.9} accessibilityLabel="Reproducir video">
+            <TouchableOpacity onPress={() => setPlayingId(playingId === result.stepId ? null : result.stepId)} activeOpacity={0.9} accessibilityLabel={t('weeai.playVideo')}>
               <Image source={{ uri: result.url }} style={styles.visual} contentFit="cover" transition={200} />
               <View style={styles.playOverlay}>
                 <Ionicons name={playingId === result.stepId ? 'pause' : 'play'} size={scale(24)} color="#1F2937" style={playingId === result.stepId ? undefined : { marginLeft: 3 }} />
@@ -556,7 +559,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               disabled={busy}
               activeOpacity={0.8}
               style={[styles.quickEdit, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
-              accessibilityLabel={`Seguir por: ${t(camino.clave)}`}
+              accessibilityLabel={t('weeai.continueVia', { camino: t(camino.clave) })}
             >
               <Text style={[styles.quickEditText, { color: theme.colors.text }]}>{t(camino.clave)}</Text>
             </TouchableOpacity>

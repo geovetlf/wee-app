@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -63,6 +64,7 @@ interface DateRangePickerProps {
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, busy }) => {
+  const t = useT();
   const { theme } = useTheme();
   const hoy = useMemo(hoyUTC, []);
   const [mesVisible, setMesVisible] = useState(() => dia(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
@@ -119,12 +121,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
           onPress={() => setMesVisible(dia(anio, mes - 1, 1))}
           disabled={!puedeRetroceder}
           style={[styles.flecha, { opacity: puedeRetroceder ? 1 : 0.3 }]}
-          accessibilityLabel="Mes anterior"
+          accessibilityLabel={t('weeai.previousMonth')}
         >
           <Ionicons name="chevron-back" size={scale(20)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.mes, { color: theme.colors.text }]}>{`${MESES[mes]} ${anio}`}</Text>
-        <TouchableOpacity onPress={() => setMesVisible(dia(anio, mes + 1, 1))} style={styles.flecha} accessibilityLabel="Mes siguiente">
+        <TouchableOpacity onPress={() => setMesVisible(dia(anio, mes + 1, 1))} style={styles.flecha} accessibilityLabel={t('weeai.nextMonth')}>
           <Ionicons name="chevron-forward" size={scale(20)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
@@ -174,7 +176,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
       </Text>
 
       <View style={styles.acciones}>
-        <TouchableOpacity onPress={onSkip} disabled={busy} style={styles.saltar} activeOpacity={0.7} accessibilityLabel="Todavía no lo sé">
+        <TouchableOpacity onPress={onSkip} disabled={busy} style={styles.saltar} activeOpacity={0.7} accessibilityLabel={t('weeai.dontKnowYet')}>
           <Text style={[styles.saltarTexto, { color: theme.colors.textSecondary }]}>🤷 Todavía no lo sé</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -182,7 +184,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
           disabled={!salida || busy}
           activeOpacity={0.85}
           style={[styles.confirmar, { backgroundColor: salida ? theme.colors.accent : theme.colors.border }]}
-          accessibilityLabel="Confirmar las fechas"
+          accessibilityLabel={t('weeai.confirmDates')}
         >
           <Text style={[styles.confirmarTexto, { color: salida ? '#1F2937' : theme.colors.textSecondary }]}>Listo</Text>
         </TouchableOpacity>

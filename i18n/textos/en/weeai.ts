@@ -5,7 +5,6 @@
  * Y además es el último escalón del respaldo, así que no puede tener huecos.
  */
 export const weeai: typeof import('../es/weeai').weeai = {
-  back: 'Back',
   searchInWee: 'Search Weë…',
   searchLabel: 'Search Weë',
   myProfile: 'My profile',
@@ -114,6 +113,19 @@ export const weeai: typeof import('../es/weeai').weeai = {
   approxUsd: 'about {{usd}} USD',
   creditsLeft: 'you’ll have {{saldo}} left',
   attach: 'Attach',
+
+  creditsAvailable: 'Credits available: {{saldo}}',
+  costLine: 'Cost: {{coste}}',
+  youHaveLeft: '{{saldo}} left',
+  testPriceSuffix: ' · test price',
+  testPriceParenthesis: ' (test price)',
+  youSpent: ' You spent {{credits}} Credits{{nota}}.',
+  spentNothing: ' You spent no Credits.',
+  calculatingTheCost: 'Working out the cost…',
+  costFailed: 'We could not work out the cost. Try again.',
+  avatarCost: 'Weë avatar · {{credits}} Credits{{saldo}}',
+  quoteSearch: 'Search with sources',
+  quoteBrain: 'Weë Brain answer',
   speak: 'Speak',
   speakComingSoon: 'Talking to Weë is coming in a future version. For now, write it down.',
   searchInternetOn: 'Search the internet: on',
@@ -149,4 +161,15 @@ export const weeai: typeof import('../es/weeai').weeai = {
   sidebarTagline: 'A better you,\nin a more\ncreative world',
   youHaveCredits: 'You have {{saldo}} Credits',
   creditsBoxNote: 'Weë’s specialists use Credits. Top up whenever you like.',
+  startWith: 'Start with {{nombre}}',
+  previousMonth: 'Previous month',
+  nextMonth: 'Next month',
+  dontKnowYet: 'I do not know yet',
+  confirmDates: 'Confirm the dates',
+  optionCredits: '{{nombre}}, {{credits}} Credits',
+  emojiLabel: 'Emoji {{emoji}}',
+  chooseProposal: 'Choose proposal {{numero}}',
+  generatedVideo: 'Generated video',
+  playVideo: 'Play video',
+  continueVia: 'Continue with: {{camino}}',
 };

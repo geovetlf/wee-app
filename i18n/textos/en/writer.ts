@@ -33,4 +33,6 @@ export const writer: typeof import('../es/writer').writer = {
   newDocument: 'New document',
   noDocumentsYet: 'You don’t have any documents yet. Write a new one or ask Weë to start for you.',
   editedWhen: 'Edited {{cuando}}',
+  titleLabel: 'Document title',
+  bodyLabel: 'Document text',
 };

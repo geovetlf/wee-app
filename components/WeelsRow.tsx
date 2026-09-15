@@ -159,7 +159,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
               );
             })
           : SAMPLES.map((sample) => (
-              <TouchableOpacity key={sample.label} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={`Ejemplo de Weël: ${sample.label}`}>
+              <TouchableOpacity key={sample.label} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={t('home.weelSample', { titulo: sample.label })}>
                 <LinearGradient colors={sample.colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                 {/*
                   Compacta se queda con lo imprescindible: imagen y título

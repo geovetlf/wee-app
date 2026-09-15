@@ -5,7 +5,6 @@
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  */
 export const econtact = {
-  back: 'Volver',
   requestsReceived: 'Solicitudes recibidas',
   requestsSent: 'Solicitudes enviadas',
   yours: 'Tus {{lista}}',

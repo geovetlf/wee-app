@@ -5,7 +5,6 @@
  * Y además es el último escalón del respaldo, así que no puede tener huecos.
  */
 export const econtact: typeof import('../es/econtact').econtact = {
-  back: 'Back',
   requestsReceived: 'Requests received',
   requestsSent: 'Requests sent',
   yours: 'Your {{lista}}',

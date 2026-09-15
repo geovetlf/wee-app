@@ -35,6 +35,7 @@ import { auth } from './auth';
 import { engine } from './engine';
 import { communities } from './communities';
 import { profile } from './profile';
+import { avatar } from './avatar';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
@@ -43,6 +44,7 @@ export const en: FormaDelDiccionario = {
   engine,
   communities,
   profile,
+  avatar,
   nav,
   menu,
   creator,

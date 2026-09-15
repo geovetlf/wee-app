@@ -216,8 +216,16 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
 
   /* 19 y 20 · El viaje de ida y de vuelta, con el módulo entero. */
   const CLAVES = Object.keys(esT.communities || {});
+  /*
+   * "Cuadrado" es que las dos listas sean LA MISMA, no que tengan un número
+   * concreto: el módulo creció en la fase 5P con la entrada del Home. Se mira
+   * en las dos direcciones, que es lo que de verdad protege.
+   */
   check('19) el módulo está cuadrado en los dos idiomas',
-    CLAVES.length === 23 && CLAVES.every((k) => enT.communities[k]), String(CLAVES.length));
+    CLAVES.length >= 23
+    && CLAVES.length === Object.keys(enT.communities || {}).length
+    && CLAVES.every((k) => enT.communities[k])
+    && Object.keys(enT.communities || {}).every((k) => esT.communities[k]), String(CLAVES.length));
   const vacias = CLAVES.filter((k) => !String(enT.communities[k] ?? '').trim());
   check('19) ninguna traducción inglesa está vacía', vacias.length === 0, vacias.join(' '));
   const iguales = CLAVES.filter((k) => esT.communities[k] === enT.communities[k]);

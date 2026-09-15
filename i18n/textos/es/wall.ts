@@ -42,4 +42,8 @@ export const wall = {
   pollLessThanAnHour: 'Menos de 1 hora',
   pollLegacy: 'Esta encuesta es de una versión anterior de Weë y ya no admite votos.',
   pollVoteFailed: 'No se pudo registrar tu voto',
+  closeComments: 'Cerrar comentarios',
+  removeImage: 'Quitar la imagen',
+  attachImage: 'Adjuntar una imagen',
+  sendComment: 'Enviar comentario',
 };

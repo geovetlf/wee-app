@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { useT } from '../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -17,6 +18,7 @@ interface CommunitiesEntryProps {
  * "Encuentra las tuyas": buscar una comunidad o crear la tuya.
  */
 const CommunitiesEntry: React.FC<CommunitiesEntryProps> = ({ onSearch, onCreate, compact = false }) => {
+  const t = useT();
   const { theme } = useTheme();
   const [query, setQuery] = useState('');
 
@@ -27,30 +29,30 @@ const CommunitiesEntry: React.FC<CommunitiesEntryProps> = ({ onSearch, onCreate,
 
   return (
     <View style={[styles.section, compact && styles.sectionCompact]}>
-      <Text style={[styles.title, compact && styles.titleCompact, { color: theme.colors.text }]}>Comunidades</Text>
-      <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Encuentra las tuyas.</Text>
+      <Text style={[styles.title, compact && styles.titleCompact, { color: theme.colors.text }]}>{t('menu.communities')}</Text>
+      <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{t('communities.findYours')}</Text>
 
       <View style={[styles.search, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
         <Ionicons name="search" size={scale(18)} color={theme.colors.textSecondary} />
         <TextInput
           style={[styles.input, { color: theme.colors.text }]}
-          placeholder="Buscar comunidades..."
+          placeholder={t('communities.searchPlaceholder')}
           placeholderTextColor={theme.colors.textSecondary}
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={submit}
           returnKeyType="search"
           autoCorrect={false}
-          accessibilityLabel="Buscar comunidades"
+          accessibilityLabel={t('communities.searchLabel')}
         />
-        <TouchableOpacity onPress={submit} style={styles.go} activeOpacity={0.7} accessibilityLabel="Buscar">
+        <TouchableOpacity onPress={submit} style={styles.go} activeOpacity={0.7} accessibilityLabel={t('nav.search')}>
           <Ionicons name="arrow-forward" size={scale(18)} color={theme.colors.accentDark} />
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity onPress={onCreate} style={[styles.create, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Crear comunidad">
+      <TouchableOpacity onPress={onCreate} style={[styles.create, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('communities.create')}>
         <Ionicons name="add" size={scale(20)} color="#1F2937" />
-        <Text style={styles.createText}>Crear comunidad</Text>
+        <Text style={styles.createText}>{t('communities.create')}</Text>
       </TouchableOpacity>
     </View>
   );

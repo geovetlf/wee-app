@@ -127,7 +127,7 @@ const WriterEditorScreen: React.FC = () => {
           placeholderTextColor={theme.colors.textSecondary}
           value={title}
           onChangeText={setTitle}
-          accessibilityLabel="Título del documento"
+          accessibilityLabel={t('writer.titleLabel')}
         />
         <TextInput
           style={[styles.text, { color: theme.colors.text }]}
@@ -137,7 +137,7 @@ const WriterEditorScreen: React.FC = () => {
           onChangeText={setText}
           multiline
           textAlignVertical="top"
-          accessibilityLabel="Texto del documento"
+          accessibilityLabel={t('writer.bodyLabel')}
         />
         <View style={[styles.statusRow, { borderTopColor: theme.colors.border }]}>
           <Text style={[styles.status, { color: theme.colors.textSecondary }]}>

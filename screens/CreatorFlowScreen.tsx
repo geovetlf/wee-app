@@ -511,8 +511,8 @@ const CreatorFlowScreen: React.FC = () => {
         {shortfall && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>{t('weeai.notEnoughCredits')}</Text>
-            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>Credits disponibles: {formato.numero(shortfall.available)}</Text>
-            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>Costo: {formato.numero(shortfall.required)}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>{t('weeai.creditsAvailable', { saldo: formato.numero(shortfall.available) })}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>{t('weeai.costLine', { coste: formato.numero(shortfall.required) })}</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('CreditStore')}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}

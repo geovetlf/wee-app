@@ -312,7 +312,7 @@ const BrainChatScreen: React.FC = () => {
             <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>{t('weeai.calculatingCost')}</Text>
           ) : (
             <Text style={[styles.priceHint, { color: theme.colors.textSecondary }]}>
-              <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{chat.quote.label}</Text>
+              <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{t(webSearch ? 'weeai.quoteSearch' : 'weeai.quoteBrain')}</Text>
               {' · '}
               <Text style={{ fontWeight: FONT_WEIGHT.bold, color: theme.colors.text }}>{chat.quote.credits} Credits</Text>
               {chat.quote.usd > 0 ? ' · ' + t('weeai.approxUsd', { usd: chat.quote.usd < 0.01 ? '<0.01' : chat.quote.usd.toFixed(2) }) : ''}

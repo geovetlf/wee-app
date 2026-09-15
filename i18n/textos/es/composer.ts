@@ -130,4 +130,5 @@ export const composer = {
   results: 'Resultados',
   useAsTypedShort: 'Usar “{{texto}}”',
   imageFetchFailed: 'Error al obtener la imagen: {{estado}} {{texto}}',
+  askCommunity: 'Hacer una pregunta a la comunidad',
 };

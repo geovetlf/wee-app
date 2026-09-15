@@ -14,10 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../contexts/IdiomaContext';
 import { useNavigation } from '@react-navigation/native';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const RegisterScreen: React.FC = () => {
+  const t = useT();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -49,28 +51,28 @@ const RegisterScreen: React.FC = () => {
     const { email, password, confirmPassword } = formData;
 
     if (!email.trim()) {
-      notify('Falta tu email', 'Escribe tu email para continuar.');
+      notify(t('auth.emailMissingTitle'), t('auth.emailMissing'));
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      notify('Revisa tu email', 'Ese email no parece válido.');
+      notify(t('auth.emailCheckTitle'), t('auth.emailCheck'));
       return false;
     }
 
     if (!password) {
-      notify('Falta tu contraseña', 'Escribe una contraseña para continuar.');
+      notify(t('auth.passwordMissingTitle'), t('auth.passwordMissing'));
       return false;
     }
 
     if (password.length < 6) {
-      notify('Contraseña muy corta', 'Usa al menos 6 caracteres.');
+      notify(t('auth.passwordShortTitle'), t('auth.passwordShort'));
       return false;
     }
 
     if (password !== confirmPassword) {
-      notify('Las contraseñas no coinciden', 'Escribe la misma contraseña en los dos campos.');
+      notify(t('auth.passwordsMismatchTitle'), t('auth.passwordsMismatch'));
       return false;
     }
 
@@ -90,26 +92,31 @@ const RegisterScreen: React.FC = () => {
       // Solo en caso de error, volver a mostrar el formulario
       setLoading(false);
 
-      let errorMessage = 'Error al crear la cuenta';
+      /*
+       * El código de Firebase es un IDENTIFICADOR, no una palabra: se traduce a
+       * una frase de Weë y el código se queda tal cual. Si el proveedor manda
+       * un mensaje que no conocemos, se enseña lo que dijo él.
+       */
+      let errorMessage = t('auth.signUpFailed');
 
       switch (error.code) {
         case 'auth/email-already-in-use':
-          errorMessage = 'Ya existe una cuenta con este email';
+          errorMessage = t('auth.errEmailInUse');
           break;
         case 'auth/invalid-email':
-          errorMessage = 'Email inválido';
+          errorMessage = t('auth.errInvalidEmail');
           break;
         case 'auth/weak-password':
-          errorMessage = 'La contraseña es muy débil';
+          errorMessage = t('auth.errWeakPassword');
           break;
         case 'auth/operation-not-allowed':
-          errorMessage = 'Registro con email no permitido';
+          errorMessage = t('auth.errSignUpNotAllowed');
           break;
         default:
           errorMessage = error.message;
       }
 
-      notify('No pudimos crear tu cuenta', errorMessage);
+      notify(t('auth.signUpFailedTitle'), errorMessage);
     }
   };
 
@@ -119,7 +126,7 @@ const RegisterScreen: React.FC = () => {
       await signInWithGoogle();
       // Login exitoso
     } catch (error: any) {
-      notify('No pudimos continuar con Google', error.message);
+      notify(t('auth.googleFailedTitle'), error.message);
     } finally {
       // Siempre resetear el loading
       setLoading(false);
@@ -132,7 +139,7 @@ const RegisterScreen: React.FC = () => {
       await signInAnonymously();
       // Login exitoso
     } catch (error: any) {
-      notify('No pudimos entrar como invitado', error.message);
+      notify(t('auth.guestFailedTitle'), error.message);
     } finally {
       // Siempre resetear el loading
       setLoading(false);
@@ -147,7 +154,7 @@ const RegisterScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#F5B731" />
-        <Text style={styles.loadingText}>Creando cuenta...</Text>
+        <Text style={styles.loadingText}>{t('auth.creatingAccount')}</Text>
       </View>
     );
   }
@@ -183,18 +190,18 @@ const RegisterScreen: React.FC = () => {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.title}>Crea tu cuenta</Text>
-            <Text style={styles.subtitle}>Únete a la comunidad Weë</Text>
+            <Text style={styles.title}>{t('auth.createAccount')}</Text>
+            <Text style={styles.subtitle}>{t('auth.joinWee')}</Text>
           </View>
 
           {/* Formulario */}
           <View style={styles.form}>
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{t('auth.email')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="tu@email.com"
+                placeholder={t('auth.emailPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={formData.email}
                 onChangeText={(value) => updateFormData('email', value)}
@@ -206,11 +213,11 @@ const RegisterScreen: React.FC = () => {
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Contraseña</Text>
+              <Text style={styles.label}>{t('auth.password')}</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={t('auth.passwordMinPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   value={formData.password}
                   onChangeText={(value) => updateFormData('password', value)}
@@ -233,11 +240,11 @@ const RegisterScreen: React.FC = () => {
 
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirmar contraseña</Text>
+              <Text style={styles.label}>{t('auth.confirmPassword')}</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Repite tu contraseña"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   value={formData.confirmPassword}
                   onChangeText={(value) => updateFormData('confirmPassword', value)}
@@ -260,13 +267,13 @@ const RegisterScreen: React.FC = () => {
 
             {/* Register Button */}
             <TouchableOpacity style={styles.primaryButton} onPress={handleEmailRegister}>
-              <Text style={styles.primaryButtonText}>Crear cuenta</Text>
+              <Text style={styles.primaryButtonText}>{t('auth.createAccountButton')}</Text>
             </TouchableOpacity>
 
             {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>O regístrate con</Text>
+              <Text style={styles.dividerText}>{t('auth.orRegisterWith')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -277,29 +284,29 @@ const RegisterScreen: React.FC = () => {
                 style={styles.googleLogo}
                 resizeMode="contain"
               />
-              <Text style={styles.googleButtonText}>Continuar con Google</Text>
+              <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
             </TouchableOpacity>
 
             {/* Anonymous Access Button */}
             <TouchableOpacity style={styles.anonymousButton} onPress={handleAnonymousAccess}>
               <Ionicons name="person-outline" size={20} color="#1F2937" style={styles.anonymousIcon} />
-              <Text style={styles.anonymousButtonText}>Entrar como invitado</Text>
+              <Text style={styles.anonymousButtonText}>{t('auth.enterAsGuest')}</Text>
             </TouchableOpacity>
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
+              <Text style={styles.loginText}>{t('auth.haveAccount')}</Text>
               <TouchableOpacity onPress={navigateToLogin}>
-                <Text style={styles.loginLink}>Inicia sesión aquí</Text>
+                <Text style={styles.loginLink}>{t('auth.signInHere')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Terms Notice */}
             <Text style={styles.termsText}>
-              Al crear una cuenta, aceptas nuestros{' '}
-              <Text style={styles.termsLink} onPress={() => navigation.navigate('Help' as never, { section: 'legal' } as never)}>Términos de servicio</Text>
-              {' '}y{' '}
-              <Text style={styles.termsLink} onPress={() => navigation.navigate('Help' as never, { section: 'legal' } as never)}>Política de privacidad</Text>
+              {t('auth.termsIntro')}
+              <Text style={styles.termsLink} onPress={() => navigation.navigate('Help' as never, { section: 'legal' } as never)}>{t('auth.termsOfService')}</Text>
+              {t('auth.termsAnd')}
+              <Text style={styles.termsLink} onPress={() => navigation.navigate('Help' as never, { section: 'legal' } as never)}>{t('settings.privacyPolicy')}</Text>
             </Text>
           </View>
         </ScrollView>

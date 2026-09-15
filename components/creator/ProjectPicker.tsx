@@ -97,7 +97,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
                   key={item}
                   onPress={() => setEmoji(item)}
                   style={[styles.emojiButton, { borderColor: emoji === item ? theme.colors.accent : theme.colors.border, backgroundColor: theme.colors.card }]}
-                  accessibilityLabel={`Emoji ${item}`}
+                  accessibilityLabel={t('weeai.emojiLabel', { emoji: item })}
                 >
                   <Text style={styles.emojiText}>{item}</Text>
                 </TouchableOpacity>

@@ -33,4 +33,6 @@ export const writer = {
   newDocument: 'Nuevo documento',
   noDocumentsYet: 'Todavía no tienes documentos. Escribe uno nuevo o pídele a Weë que empiece por ti.',
   editedWhen: 'Editado {{cuando}}',
+  titleLabel: 'Título del documento',
+  bodyLabel: 'Texto del documento',
 };

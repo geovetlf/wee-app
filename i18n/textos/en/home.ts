@@ -12,8 +12,9 @@ export const home: typeof import('../es/home').home = {
   createWeel: 'Create Weël',
   openMenu: 'Open menu',
   search: 'Search',
-  back: 'Back',
   logoHome: 'Weë, go to the top',
   filterBy: 'Filter: {{nombre}}',
   filterAll: 'All',
+  bannerOf: 'Banner {{numero}} of {{total}}',
+  weelSample: 'Weël example: {{titulo}}',
 };

@@ -104,7 +104,7 @@ const MAX_AI_AVATAR_GENERATIONS = 2;
 
 const AiAvatarScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { formato } = useIdioma();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
   const navigation = useNavigation();
@@ -833,10 +833,13 @@ const AiAvatarScreen: React.FC = () => {
               {/* Costo antes de generar: Weë nunca cobra sin decir cuánto */}
               <Text style={[styles.costNotice, { color: avatarCostError ? theme.colors.error : theme.colors.textSecondary }]}>
                 {avatarCostError
-                  ? 'No pudimos calcular el costo. Inténtalo de nuevo.'
+                  ? t('weeai.costFailed')
                   : avatarCost === null
-                    ? 'Calculando el costo…'
-                    : `Avatar Weë · ${avatarCost} Credits${walletBalance !== null ? ` · te quedan ${formato.numero(walletBalance)}` : ''}`}
+                    ? t('weeai.calculatingTheCost')
+                    : t('weeai.avatarCost', {
+                        credits: formato.numero(avatarCost),
+                        saldo: walletBalance !== null ? ' · ' + t('weeai.youHaveLeft', { saldo: formato.numero(walletBalance) }) : '',
+                      })}
               </Text>
 
               {/* Generate button */}

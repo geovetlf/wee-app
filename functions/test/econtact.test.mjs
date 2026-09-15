@@ -372,7 +372,7 @@ check('88) la ruta está registrada', /<Stack\.Screen name="EContact" component=
  * Perfil Weë viera el nombre de la otra agenda.
  */
 check('89) se titula con el nombre de la agenda activa', /🤝 \{nombreLista\}/.test(pantalla) && !/🤝 ËContact/.test(pantalla));
-check('90) tiene vuelta atrás como el resto de Weë', /navigation\.goBack\(\)/.test(pantalla) && /accessibilityLabel=\{t\('econtact\.back'\)\}/.test(pantalla));
+check('90) tiene vuelta atrás como el resto de Weë', /navigation\.goBack\(\)/.test(pantalla) && /accessibilityLabel=\{t\('common\.back'\)\}/.test(pantalla));
 check('91) enseña un estado vacío que explica qué irá aquí',
   /t\('econtact\.noneYet', \{ lista: nombrePlural \}\)/.test(pantalla)
   && /noneYet: 'Todavía no tienes \{\{lista\}\}'/.test(read('i18n/textos/es/econtact.ts'))
