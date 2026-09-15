@@ -503,6 +503,68 @@ console.log('\n── L · Bloque 2 · Credits, ËContact, WeeTalk, Notificacion
   check('71) ËContact · ËContact y ẄContact entran como valor, no traducidos',
     /t\('econtact\.yours', \{ lista: nombrePlural \}\)/.test(agenda)
     && !/'ËContact'|'ẄContact'/.test(leer('i18n/textos/en/econtact.ts')));
+  /*
+   * LOS TRES CUERPOS DE LOS VACÍOS.
+   *
+   * ËContact tiene tres pantallas vacías distintas —no has entrado, tu perfil
+   * activo no tiene agenda, todavía no tienes a nadie— y cada una explica la
+   * suya. Los TÍTULOS entraron por clave en su día; los CUERPOS se quedaron
+   * escritos en español dentro de un objeto literal, como `texto: '...'`, que
+   * es la forma que el extractor no sabía mirar. Se leen tanto como el título.
+   */
+  const VACIOS = ['yoursWhenYouSignInSubtitle', 'noneYetSubtitle', 'noAgendaSubtitle'];
+  const faltan = VACIOS.filter((k) => typeof es.econtact[k] !== 'string' || typeof en.econtact[k] !== 'string');
+  check('72b) ËContact · los tres cuerpos existen en español y en inglés', faltan.length === 0, faltan.join(' | '));
+  /* Y el inglés es inglés, no el español copiado para que compile. */
+  check('72c) ËContact · y el inglés no es el español pegado',
+    VACIOS.every((k) => en.econtact[k] !== es.econtact[k] && !/[áéíóúÁÉÍÓÚñÑ¿¡]/.test(en.econtact[k])),
+    VACIOS.filter((k) => en.econtact[k] === es.econtact[k]).join(' | '));
+  /*
+   * En la pantalla no queda ni una de las tres frases. Se mira el fuente CRUDO
+   * a propósito: quitar comentarios antes podría tragarse justo el trozo que
+   * hay que vigilar y darnos un verde que no es.
+   */
+  const agendaCruda = leer('screens/EContactScreen.tsx');
+  check('72d) ËContact · las tres frases ya no están escritas en la pantalla',
+    !/guarda tus conexiones de Weë|es donde están tus conexiones|Aquí estará tu gente en Weë/.test(agendaCruda));
+  check('72e) ËContact · y las pide por clave, en el sitio donde se leen',
+    VACIOS.every((k) => new RegExp("texto: t\\('econtact\\." + k + "'").test(agenda)),
+    VACIOS.filter((k) => !new RegExp("texto: t\\('econtact\\." + k + "'").test(agenda)).join(' | '));
+  /*
+   * Y cambian de verdad: se le pregunta al traductor de Weë, con el diccionario
+   * de Weë, en los dos idiomas. Sin huecos a medio rellenar.
+   */
+  {
+    const tAgendaEs = traducir.crearTraductor('es', { es, en });
+    const tAgendaEn = traducir.crearTraductor('en', { es, en });
+    const con = { lista: 'ËContact' };
+    const quietas = VACIOS.filter((k) => tAgendaEs('econtact.' + k, con) === tAgendaEn('econtact.' + k, con));
+    check('72f) ËContact · los tres cambian al cambiar de idioma', quietas.length === 0, quietas.join(' | '));
+    check('72g) ËContact · y ninguno sale con un hueco sin rellenar',
+      VACIOS.every((k) => !tAgendaEs('econtact.' + k, con).includes('{{') && !tAgendaEn('econtact.' + k, con).includes('{{')));
+    /*
+     * El nombre de la agenda entra por HUECO en los dos que lo nombran: es
+     * marca, no se traduce, y el día que cambie cambia en un solo sitio.
+     */
+    const CON_LISTA = ['yoursWhenYouSignInSubtitle', 'noAgendaSubtitle'];
+    check('72h) ËContact · el nombre de la agenda entra por hueco, no escrito en la frase',
+      CON_LISTA.every((k) => es.econtact[k].includes('{{lista}}') && en.econtact[k].includes('{{lista}}'))
+      && !VACIOS.some((k) => (es.econtact[k] + en.econtact[k]).includes('ËContact')));
+    check('72i) ËContact · y sale relleno: ' + tAgendaEn('econtact.noAgendaSubtitle', con),
+      tAgendaEs('econtact.noAgendaSubtitle', con).startsWith('ËContact es donde')
+      && tAgendaEn('econtact.noAgendaSubtitle', con).startsWith('ËContact is where'));
+  }
+  /*
+   * Y se arman AL PINTAR. `t` sale de `useT()`, así que cambiar de idioma vuelve
+   * a pintar y el objeto se hace otra vez con las frases nuevas. Guardarlo en un
+   * `useMemo` o en un `useState` dejaría el texto en el idioma de la primera vez
+   * hasta recargar la página, que es justo lo que no puede pasar.
+   */
+  const trozoVacio = agenda.slice(agenda.indexOf('const renderVacio'), agenda.indexOf('const renderVacio') + 900);
+  check('72j) ËContact · el objeto se arma al pintar, no se guarda',
+    /const renderVacio = \(\) => \{\s*const contenido =/.test(agenda)
+    && !/useMemo|useState|useRef/.test(trozoVacio));
+
   /* El contador ya no elige entre dos formas con un ===1. */
   check('72) ËContact · el contador usa plurales de verdad',
     /t\('econtact\.count', \{ contador: total/.test(agenda)

@@ -274,18 +274,16 @@ const EContactScreen: React.FC = () => {
       motivo === 'sin-sesion'
         ? {
             titulo: t('econtact.yoursWhenYouSignIn', { lista: nombrePlural }),
-            texto: `${nombreLista} guarda tus conexiones de Weë. Inicia sesión para verlas.`,
+            texto: t('econtact.yoursWhenYouSignInSubtitle', { lista: nombreLista }),
           }
         : motivo === 'perfil-sin-agenda'
           ? {
               titulo: t('econtact.noAgenda'),
-              texto:
-                'ËContact es donde están tus conexiones con otras personas. Cambia a tu Perfil Real o a tu Perfil Weë para verlas.',
+              texto: t('econtact.noAgendaSubtitle', { lista: nombreLista }),
             }
           : {
               titulo: t('econtact.noneYet', { lista: nombrePlural }),
-              texto:
-                'Aquí estará tu gente en Weë. Una conexión se hace entre dos: una persona la propone y la otra acepta.',
+              texto: t('econtact.noneYetSubtitle'),
             };
 
     return (

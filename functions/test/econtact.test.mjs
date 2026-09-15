@@ -375,10 +375,13 @@ check('88) la ruta está registrada', /<Stack\.Screen name="EContact" component=
  */
 check('89) se titula con el nombre de la agenda activa', /🤝 \{nombreLista\}/.test(pantalla) && !/🤝 ËContact/.test(pantalla));
 check('90) tiene vuelta atrás como el resto de Weë', /navigation\.goBack\(\)/.test(pantalla) && /accessibilityLabel=\{t\('common\.back'\)\}/.test(pantalla));
+/* El cuerpo del vacío también salió al diccionario, así que se comprueba donde vive ahora: en los dos idiomas. */
 check('91) enseña un estado vacío que explica qué irá aquí',
   /t\('econtact\.noneYet', \{ lista: nombrePlural \}\)/.test(pantalla)
   && /noneYet: 'Todavía no tienes \{\{lista\}\}'/.test(read('i18n/textos/es/econtact.ts'))
-  && /una persona la propone y la otra acepta/.test(pantalla));
+  && /t\('econtact\.noneYetSubtitle'\)/.test(pantalla)
+  && /una persona la propone y la otra acepta/.test(read('i18n/textos/es/econtact.ts'))
+  && /one person proposes it and the other accepts/.test(read('i18n/textos/en/econtact.ts')));
 check('92) la lista lee del servicio, no de Firestore a mano', /useMisEContacts\(\)/.test(pantalla) && !/collection\(db/.test(pantalla));
 check('93) separa conexiones de solicitudes, sin mezclarlas', /'recibidas'/.test(pantalla) && /'contactos'/.test(pantalla) && /'enviadas'/.test(pantalla));
 /*
@@ -1245,10 +1248,10 @@ check('321) y el confirmar de eliminar', /t\('econtact\.removeTitle', \{ lista: 
  * el nombre es el mismo en las dos caras, así que un literal no se vería raro
  * —y por eso hay que seguir cazándolo—: el día que cambie, cambia en un sitio.
  *
- * La única excepción es la frase del perfil sin agenda, que NOMBRA el producto
- * en vez de rotular la agenda de nadie: ahí ËContact es de lo que se habla.
+ * Ya no hay excepción: la frase del perfil sin agenda era la última que lo
+ * nombraba a pelo y desde que está en el diccionario también lo recibe.
  */
-check('322) no queda ningún ËContact literal en los textos de la pantalla', !/ËContacts?['"`>]/.test(sinComentarios(pantallaEC).replace(/ËContact es donde están/g, '')));
+check('322) no queda ningún ËContact literal en los textos de la pantalla', !/ËContacts?['"`>]/.test(sinComentarios(pantallaEC)));
 check('323) el nombre sale del hook', /nombreLista,\s*\n\s*nombrePlural,/.test(codigoPantalla));
 
 // ─── C y D · El contador es el de la identidad activa ────────────────────────
