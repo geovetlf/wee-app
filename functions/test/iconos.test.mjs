@@ -131,9 +131,37 @@ console.log('\n── D · Enchufados en el Burger ──');
   const inventados = [...delMenu, ...deLasExperiencias].filter((n) => !nombres.includes(n));
   check('15) y ninguno apunta a un dibujo que no existe', inventados.length === 0, inventados.join(' '));
 
-  /* El color sale del tema, no está escrito: así el cajón oscuro los ve claros. */
-  check('16) el color del icono lo pone el tema',
-    /color=\{opts\.danger \? theme\.colors\.error : theme\.colors\.text\}/.test(cajon));
+  /*
+   * EL COLOR DE LOS DIBUJOS SE DECIDE UNA VEZ, Y LO LLEVAN TODOS.
+   *
+   * Con el Perfil Real sale del tema —así el cajón claro los ve oscuros y el
+   * oscuro claros—; con el Perfil Weë, todos se encienden en verde. No es el
+   * adorno de una opción: es el estado de la sesión, así que o lo llevan todas
+   * o no lo lleva ninguna, y eso es justo lo que se fija aquí.
+   */
+  check('16) el color de los iconos se decide en un solo sitio, y lo decide isWee',
+    /const colorDeLosIconos = isWee \? VERDE_DEL_PERFIL_WEE : theme\.colors\.text;/.test(cajon));
+  check('16b) la fila corriente lo usa, sin perder el rojo de las peligrosas',
+    /color=\{opts\.danger \? theme\.colors\.error : colorDeLosIconos\}/.test(cajon));
+  /*
+   * Y NINGÚN DIBUJO SE QUEDA FUERA. Se cuentan los \<IconoWee\> del archivo y los
+   * que reciben ese color: si alguien añade uno con un color propio, o se olvida
+   * de pasárselo, los números dejan de cuadrar y esto salta.
+   */
+  const dibujos = (cajon.match(/<IconoWee/g) || []).length;
+  const teñidos = (cajon.match(/color=\{[^}]*colorDeLosIconos[^}]*\}/g) || []).length;
+  check('16c) todos los IconoWee del cajón reciben ese color', dibujos > 0 && dibujos === teñidos, teñidos + ' de ' + dibujos);
+  /* Y ya no queda forma de que una fila suelta se pinte por su cuenta. */
+  check('16d) ninguna fila puede pedir un color propio', !/colorIcono/.test(cajon));
+  /* El verde vive con su nombre y se escribe una vez; a ningún dibujo se le pasa un color a pelo. */
+  check('16e) el verde es una constante con nombre, no un literal suelto en el JSX',
+    /const VERDE_DEL_PERFIL_WEE = '#39FF14';/.test(cajon)
+    && (cajon.match(/#39FF14/g) || []).length === 1
+    && !/<IconoWee[\s\S]{0,220}color=\{?'#/.test(cajon));
+  /* Los NOMBRES no se tiñen: el verde es de los dibujos y de nadie más. */
+  check('16f) los textos siguen tomando su color de siempre',
+    /\{ color: opts\.danger \? theme\.colors\.error : theme\.colors\.text \}/.test(cajon)
+    && !/styles\.rowText[\s\S]{0,120}colorDeLosIconos/.test(cajon));
 
   /*
    * CONTROL: el Burger sigue siendo el mismo. Ni el orden de las secciones, ni

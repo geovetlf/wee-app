@@ -14,6 +14,22 @@ import {
 } from 'react-native';
 
 const isWeb = Platform.OS === 'web';
+
+/**
+ * EL VERDE DEL PERFIL WEË.
+ *
+ * Con el Perfil Weë puesto, la app se viste de oscuro y el menú entero se
+ * enciende: TODOS sus dibujos pasan a este verde para que se vea de un vistazo
+ * con cuál de tus dos caras estás participando, que es justo lo que el Perfil
+ * Weë tiene que dejar claro en todo momento. No es el adorno de una opción, es
+ * el estado de la sesión, y por eso lo llevan todas y no una.
+ *
+ * No sale del tema porque no lo hay: la paleta de Weë es el amarillo, el gris y
+ * los grises del fondo, y `success` —#22C55E— es el verde de "ha ido bien", que
+ * significa otra cosa y no brilla sobre #0A0A0A. Este es el único sitio donde
+ * se usa, y por eso vive aquí con su nombre en vez de suelto entre el JSX.
+ */
+const VERDE_DEL_PERFIL_WEE = '#39FF14';
 import { Ionicons } from '@expo/vector-icons';
 import { IconoWee } from './icons/IconoWee';
 import { NombreDeIcono } from './icons/trazosDeWee';
@@ -249,6 +265,16 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const isWee = activeProfileType === 'hidi';
 
   /*
+   * EL COLOR DE LOS DIBUJOS DEL CAJÓN, DECIDIDO UNA VEZ.
+   *
+   * Lo leen los dos sitios que pintan un `IconoWee` —las filas corrientes y la
+   * de Weë AI, que tiene forma propia por el desplegable—, así que no pueden
+   * discrepar. Aquí NO entra nada más: los textos, el avatar, las etiquetas y
+   * los chevrones siguen sacando su color del tema, como siempre.
+   */
+  const colorDeLosIconos = isWee ? VERDE_DEL_PERFIL_WEE : theme.colors.text;
+
+  /*
    * EL ICONO SE DIBUJA, NO SE ESCRIBE.
    *
    * Antes aquí iba un emoji dentro de un `<Text>`, y eso trae tres problemas que
@@ -262,13 +288,28 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    * puntos de ancho y el icono ocupa el mismo, así que la lista no se mueve ni
    * un punto.
    */
+  /*
+   * EL MARGEN DE GRACIA DEL TOQUE.
+   *
+   * El área que responde es la del nombre, y un nombre es una caja estrecha:
+   * sin un poco de holgura alrededor, acertar con el pulgar en movimiento se
+   * vuelve puntería. Esto la da SIN ocupar sitio —`hitSlop` no entra en el
+   * cálculo del diseño—, así que la fila mide exactamente lo que medía.
+   *
+   * En la web `hitSlop` no lo aplica React Native Web, y por eso la holgura de
+   * arriba y abajo se da además con relleno dentro del propio botón: cabe de
+   * sobra en los 44 puntos de alto que la fila ya reservaba, así que tampoco
+   * mueve nada. A lo ancho no se rellena: eso correría el texto.
+   */
+  const MARGEN_DE_TOQUE = { top: scale(10), bottom: scale(10), left: scale(8), right: scale(8) };
+
   const renderRow = (
     icono: NombreDeIcono,
     label: string,
     onPress: () => void,
     opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean } = {},
   ) => (
-    <TouchableOpacity
+    <View
       key={label}
       /*
        * Dónde estás se dice con el peso del texto y nada más. Antes la fila
@@ -276,29 +317,50 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
        * lista de opciones eso no se leía como "estás aquí": se leía como un
        * resaltado suelto. El amarillo sigue donde sí informa —la etiqueta del
        * Perfil Weë, el saldo de Credits—, no de fondo de una fila.
+       *
+       * LA FILA NO RESPONDE AL TOQUE; RESPONDE EL NOMBRE.
+       *
+       * Era una sola pieza pulsable de borde a borde, así que rozar el vacío de
+       * la derecha —donde no hay nada escrito— abría una sección. El nombre es
+       * lo que la persona está leyendo y apuntando, y es lo único que abre.
+       *
+       * Son los mismos tres huecos de antes —icono, nombre, adorno— para que el
+       * espaciado no se mueva: lo que cambia es quién de los tres escucha. El
+       * `flex` que estiraba el texto hasta el borde pasa al hueco, que es lo
+       * que empuja el adorno a la derecha sin que nada de eso sea pulsable.
        */
       style={opts.small ? styles.subRow : styles.row}
-      onPress={onPress}
-      activeOpacity={0.7}
     >
       <IconoWee
         name={icono}
         size={opts.small ? scale(18) : scale(20)}
-        color={opts.danger ? theme.colors.error : theme.colors.text}
+        /* Solo el DIBUJO. El nombre de la fila sigue tomando el color de siempre. */
+        color={opts.danger ? theme.colors.error : colorDeLosIconos}
         style={[styles.rowIcono, opts.small && styles.subRowIcono]}
       />
-      <Text
-        style={[
-          opts.small ? styles.subRowText : styles.rowText,
-          { color: opts.danger ? theme.colors.error : theme.colors.text },
-          opts.active && styles.rowTextActive,
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      <View style={styles.rowHueco}>
+        <TouchableOpacity
+          style={opts.small ? styles.subRowToque : styles.rowToque}
+          onPress={onPress}
+          activeOpacity={0.7}
+          hitSlop={MARGEN_DE_TOQUE}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+        >
+          <Text
+            style={[
+              opts.small ? styles.subRowText : styles.rowText,
+              { color: opts.danger ? theme.colors.error : theme.colors.text },
+              opts.active && styles.rowTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        </TouchableOpacity>
+      </View>
       {opts.right}
-    </TouchableOpacity>
+    </View>
   );
 
   /**
@@ -450,11 +512,37 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
 
           {/* Weë Creator */}
           <View style={styles.creatorBlock}>
-            <TouchableOpacity style={styles.row} onPress={() => setCreatorExpanded((v) => !v)} activeOpacity={0.7}>
-              <IconoWee name={MENU_ITEM.creator.icono} size={scale(20)} color={theme.colors.text} style={styles.rowIcono} />
-              <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>{MENU_ITEM.creator.label}</Text>
-              <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
+            {/*
+              Weë AI hace lo mismo que hacía —desplegar y plegar la lista—, pero
+              desde los dos sitios donde la persona apunta: el nombre y el
+              chevrón. Antes lo hacía la fila entera, y el chevrón funcionaba de
+              rebote por estar dentro; ahora escucha él, que es lo que parece.
+              El vacío de en medio ya no despliega, ni pliega, ni navega.
+            */}
+            <View style={styles.row}>
+              <IconoWee name={MENU_ITEM.creator.icono} size={scale(20)} color={colorDeLosIconos} style={styles.rowIcono} />
+              <View style={styles.rowHueco}>
+                <TouchableOpacity
+                  style={styles.rowToque}
+                  onPress={() => setCreatorExpanded((v) => !v)}
+                  activeOpacity={0.7}
+                  hitSlop={MARGEN_DE_TOQUE}
+                  accessibilityRole="button"
+                  accessibilityLabel={MENU_ITEM.creator.label}
+                >
+                  <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>{MENU_ITEM.creator.label}</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                onPress={() => setCreatorExpanded((v) => !v)}
+                activeOpacity={0.7}
+                hitSlop={MARGEN_DE_TOQUE}
+                accessibilityRole="button"
+                accessibilityLabel={t(creatorExpanded ? 'menu.hideSpecialists' : 'menu.showSpecialists')}
+              >
+                <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
             {creatorExpanded && (
               <View style={styles.creatorList}>
                 {/* El nombre es marca y va sin traducir; su descripción sí se traduce. */}
@@ -569,8 +657,32 @@ const styles = StyleSheet.create({
     width: scale(24),
     alignSelf: 'center',
   },
-  rowText: {
+  /*
+   * El hueco entre el nombre y el adorno de la derecha. Se lleva el `flex` que
+   * antes tenía el texto: sigue empujando el adorno al borde, pero no escucha.
+   */
+  rowHueco: {
     flex: 1,
+  },
+  /*
+   * El botón se ciñe al nombre —`flex-start` en vez de estirarse— y se deja
+   * encoger, para que una etiqueta larga siga cortándose con puntos igual que
+   * antes en lugar de desbordar la fila. El relleno de arriba y abajo es la
+   * holgura del toque, y cabe dentro del alto que la fila ya tenía.
+   */
+  rowToque: {
+    alignSelf: 'flex-start',
+    flexShrink: 1,
+    maxWidth: '100%',
+    paddingVertical: scale(8),
+  },
+  subRowToque: {
+    alignSelf: 'flex-start',
+    flexShrink: 1,
+    maxWidth: '100%',
+    paddingVertical: scale(6),
+  },
+  rowText: {
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.regular,
   },
@@ -589,7 +701,6 @@ const styles = StyleSheet.create({
     width: scale(22),
   },
   subRowText: {
-    flex: 1,
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.regular,
   },
