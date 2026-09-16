@@ -565,15 +565,36 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             <TouchableOpacity onPress={() => after(() => navigateRoot('Help', { section: 'legal' }))} activeOpacity={0.7}>
               <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.privacy')}</Text>
             </TouchableOpacity>
-            {user && (
-              <>
-                <Text style={[styles.footerDot, { color: theme.colors.textSecondary }]}>·</Text>
-                <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}>
-                  <Text style={[styles.footerLink, { color: theme.colors.error }]}>{t('menu.signOut')}</Text>
-                </TouchableOpacity>
-              </>
-            )}
           </View>
+
+          {/*
+            SALIR VA SOLO, Y EL ÚLTIMO.
+
+            Estaba de tercer enlace en la línea legal, entre Términos y
+            Privacidad y con su mismo cuerpo de letra: técnicamente era lo
+            último del cajón, pero se leía como una nota al pie y había que
+            buscarlo. No es una nota al pie: es lo que haces cuando quieres
+            irte. Baja a su propia línea, debajo de lo legal, con sitio para el
+            dedo y sin nada después.
+
+            Sigue siendo el mismo `handleLogout` y solo escucha el texto, como
+            el resto del cajón: el vacío de al lado no cierra la sesión de
+            nadie.
+          */}
+          {user && (
+            <View style={styles.salir}>
+              <TouchableOpacity
+                onPress={handleLogout}
+                activeOpacity={0.7}
+                hitSlop={MARGEN_DE_TOQUE}
+                accessibilityRole="button"
+                accessibilityLabel={t('menu.signOut')}
+                style={styles.salirToque}
+              >
+                <Text style={[styles.salirTexto, { color: theme.colors.error }]}>{t('menu.signOut')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </Animated.View>
     </View>
@@ -749,6 +770,23 @@ const styles = StyleSheet.create({
   },
   footerDot: {
     fontSize: FONT_SIZE.xs,
+  },
+  /*
+   * La fila de salir. Un poco más de cuerpo que lo legal —es una acción, no una
+   * nota— pero sin llegar al de las opciones con dibujo: no lleva icono, así que
+   * igualarlo a ellas lo dejaría descolgado de la columna de nombres.
+   */
+  salir: {
+    paddingHorizontal: SPACING.sm,
+    paddingBottom: SPACING.sm,
+  },
+  salirToque: {
+    alignSelf: 'flex-start',
+    paddingVertical: SPACING.sm,
+  },
+  salirTexto: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.medium,
   },
 });
 

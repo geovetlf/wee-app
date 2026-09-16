@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -18,7 +18,7 @@ import {
   CustomerMessage,
 } from '../constants/businessMock';
 import CreatorShell from '../components/creator/CreatorShell';
-import SpecialistHero from '../components/creator/SpecialistHero';
+import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
 import { SectionTitle, Chip, ClosingBanner } from '../components/creator/ui';
@@ -79,8 +79,19 @@ const BusinessScreen: React.FC = () => {
   const available = networks.filter((n) => !n.connected);
 
   return (
-    <CreatorShell activeId="business" overline="🤖 Weë AI" title="💼 Weë Business" breadcrumb="Weë AI">
-      <SpecialistHero spec={spec} />
+    <CreatorShell
+      activeId="business"
+      overline="🤖 Weë AI"
+      title="💼 Weë Business"
+      breadcrumb="Weë AI"
+      /* En el teléfono, arriba solo va la cabecera de la sección (2026-09-15). */
+      sinFranjaSuperior
+    >
+      {/* La misma cabecera de Weë Studio: la W oficial, el nombre y su frase. */}
+      <CabeceraDeSeccion nombre="Business" lema={spec.headline} />
+
+      {/* Y justo debajo, la caja: en Weë AI se entra diciendo qué quieres. */}
+      <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />
 
       {/* Atajos de la barra de la referencia */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shortcuts}>
@@ -135,10 +146,6 @@ const BusinessScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* Weë está listo */}
-        <View style={styles.side}>
-          <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />
-        </View>
       </View>
 
       <View style={styles.section}>
@@ -420,4 +427,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BusinessScreen;
+/*
+ * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
+ * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
+ */
+export default enTemaClaro(BusinessScreen);

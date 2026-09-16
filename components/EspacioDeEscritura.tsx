@@ -80,6 +80,17 @@ interface EspacioDeEscrituraProps {
    * hoja está cerrada). Por defecto está encendido.
    */
   activo?: boolean;
+  /**
+   * Lo que la pantalla YA tiene reservado por debajo y el teclado tapa igual.
+   *
+   * Las pantallas que no son pestañas llevan guardado el sitio de la barra
+   * inferior (`ALTO_BARRA`): cuando sale el teclado, ese hueco queda debajo de
+   * él y ya no hay nada que proteger ahí. Sin descontarlo, el relleno sumaba dos
+   * veces y el contenido se quedaba flotando muy por encima del teclado.
+   *
+   * Solo cuenta en Android, que es donde el relleno lo ponemos nosotros.
+   */
+  descuento?: number;
 }
 
 const EspacioDeEscritura: React.FC<EspacioDeEscrituraProps> = ({
@@ -87,6 +98,7 @@ const EspacioDeEscritura: React.FC<EspacioDeEscrituraProps> = ({
   style,
   desplazamientoIos = 0,
   activo = true,
+  descuento = 0,
 }) => {
   const alturaTeclado = useAlturaDelTeclado();
 
@@ -106,8 +118,9 @@ const EspacioDeEscritura: React.FC<EspacioDeEscrituraProps> = ({
 
   /* Android: el relleno lo ponemos nosotros. Web: `alturaTeclado` siempre es 0,
      así que esto es un View normal y el navegador hace lo suyo. */
+  const relleno = Math.max(alturaTeclado - descuento, 0);
   return (
-    <View style={[style, activo && alturaTeclado > 0 ? { paddingBottom: alturaTeclado } : null]}>
+    <View style={[style, activo && relleno > 0 ? { paddingBottom: relleno } : null]}>
       {children}
     </View>
   );

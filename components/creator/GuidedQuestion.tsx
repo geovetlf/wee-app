@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { Question } from '../../services/creatorService';
@@ -26,20 +25,14 @@ interface GuidedQuestionProps {
 
 /**
  * Una pregunta por pantalla, con opciones grandes y siempre "🤷 No sé".
- * La persona también puede escribirlo con sus palabras.
+ * Se contesta eligiendo: nada de escribir aquí. La caja de texto libre se retiró
+ * (decisión del usuario, 2026-09-15) porque una pregunta con opciones grandes y
+ * "🤷 No sé" no necesita que nadie redacte; lo que se cuenta con palabras se
+ * cuenta en la caja de la sección, antes de empezar.
  */
 const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
   const t = useT();
-  const [freeText, setFreeText] = useState('');
-
-  const sendFreeText = () => {
-    const text = freeText.trim();
-    if (!text || busy) return;
-    setFreeText('');
-    onAnswer(undefined, text);
-  };
-
   return (
     <View style={styles.container}>
       {/* Lo que la persona pidió */}
@@ -107,29 +100,6 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
               );
             })}
           </View>
-          )}
-          {question.allowFreeText !== false && question.kind !== 'dates' && (
-            <View style={[styles.freeRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-              <TextInput
-                style={[styles.freeInput, { color: theme.colors.text }]}
-                placeholder={t('weeai.orInYourWords')}
-                placeholderTextColor={theme.colors.textSecondary}
-                value={freeText}
-                onChangeText={setFreeText}
-                onSubmitEditing={sendFreeText}
-                returnKeyType="send"
-                editable={!busy}
-              />
-              <TouchableOpacity
-                onPress={sendFreeText}
-                disabled={busy || !freeText.trim()}
-                style={[styles.sendButton, { backgroundColor: freeText.trim() ? theme.colors.accent : theme.colors.border }]}
-                activeOpacity={0.8}
-                accessibilityLabel={t('weeai.send')}
-              >
-                <Ionicons name="arrow-up" size={scale(18)} color="#1F2937" />
-              </TouchableOpacity>
-            </View>
           )}
         </View>
       ) : hideThinking ? null : (
@@ -212,29 +182,6 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.semibold,
-  },
-  freeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingLeft: SPACING.md,
-    paddingRight: scale(6),
-    paddingVertical: scale(6),
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-    marginTop: SPACING.xs,
-  },
-  freeInput: {
-    flex: 1,
-    fontSize: FONT_SIZE.sm,
-    minHeight: scale(36),
-  },
-  sendButton: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   thinking: {
     flexDirection: 'row',

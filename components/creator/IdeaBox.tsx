@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../contexts/ThemeContext';
+import { View, StyleSheet } from 'react-native';
 import { useT } from '../../contexts/IdiomaContext';
 import { SpecialistConfig } from '../../constants/specialists';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
-import { scale } from '../../utils/scale';
+import { SPACING } from '../../constants/design';
 import { Chip } from './ui';
+import CajaDePrompt, { InvitacionDeLaCaja } from './CajaDePrompt';
 
 interface IdeaBoxProps {
   config: SpecialistConfig['idea'];
   onSubmit: (text: string) => void;
-  /** Muestra el título como saludo de chat (Weë Chef). */
-  greeting?: boolean;
 }
 
 /*
@@ -27,13 +23,24 @@ interface IdeaBoxProps {
 const EMOJI_AL_PRINCIPIO = /^[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]+[\u{FE0F}\u{200D}\u{1F000}-\u{1FAFF}]*\s+/u;
 export const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCIPIO, '').trim() || chip;
 
-/** "¿Tienes una idea en mente?": la persona lo cuenta con sus palabras y Weë empieza. */
-const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
-  const { theme } = useTheme();
+/**
+ * DONDE EMPIEZA UNA CREACIÓN EN CADA ESPECIALISTA.
+ *
+ * La persona lo cuenta con sus palabras y Weë empieza. Debajo, unos ejemplos
+ * para quien prefiera empezar por uno ya escrito.
+ *
+ * La caja es `CajaDePrompt`, la misma de Weë Studio y Weë Design (decisión del
+ * usuario, 2026-09-15: una sola caja para todo Weë AI). Antes era una píldora
+ * estrecha de una línea con el botón al lado, dentro de una tarjeta con borde
+ * amarillo y un emoji. De aquel saludo se queda la invitación —"Cuéntame, ¿qué
+ * te gustaría cocinar hoy?"—, una línea encima de la caja: el nombre de la
+ * sección ya lo dice su cabecera.
+ */
+const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit }) => {
   const t = useT();
   const [text, setText] = useState('');
 
-  const submit = () => {
+  const enviar = () => {
     const value = text.trim();
     if (!value) return;
     setText('');
@@ -41,39 +48,22 @@ const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}>
-      <View style={styles.titleRow}>
-        <Text style={styles.titleEmoji}>{greeting ? '🤖' : '💡'}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>{config.title}</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{config.subtitle}</Text>
-        </View>
-      </View>
+    <View style={styles.bloque}>
+      <InvitacionDeLaCaja texto={config.subtitle} />
 
-      <View style={[styles.inputRow, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
-        <TextInput
-          style={[styles.input, { color: theme.colors.text }]}
-          placeholder={config.placeholder}
-          placeholderTextColor={theme.colors.textSecondary}
-          value={text}
-          onChangeText={setText}
-          onSubmitEditing={submit}
-          returnKeyType="send"
-          accessibilityLabel={config.placeholder}
-        />
-        {config.button ? (
-          <TouchableOpacity onPress={submit} disabled={!text.trim()} activeOpacity={0.85} style={[styles.labelButton, { backgroundColor: theme.colors.accent, opacity: text.trim() ? 1 : 0.6 }]} accessibilityLabel={config.button}>
-            <Text style={styles.labelButtonText}>✨ {config.button} →</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={submit} disabled={!text.trim()} activeOpacity={0.85} style={[styles.roundButton, { backgroundColor: text.trim() ? theme.colors.accent : theme.colors.border }]} accessibilityLabel={t('weeai.sendIdea')}>
-            <Ionicons name="arrow-forward" size={scale(18)} color="#1F2937" />
-          </TouchableOpacity>
-        )}
-      </View>
+      <CajaDePrompt
+        valor={text}
+        onCambiar={setText}
+        onEnviar={enviar}
+        /* Con etiqueta propia —"Crear mi primera campaña"— es la que se lee en voz alta. */
+        etiquetaEnviar={config.button ?? t('weeai.sendIdea')}
+        placeholder={config.placeholder}
+        /* Esta caja empieza algo: Intro lo empieza, como cuando era de una línea. */
+        enviarConIntro
+      />
 
       {config.chips.length > 0 && (
-        <View style={styles.chips}>
+        <View style={styles.ejemplos}>
           {config.chips.map((chip) => (
             <Chip key={chip} label={chip} onPress={() => onSubmit(objetivoDe(chip))} />
           ))}
@@ -84,63 +74,10 @@ const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit, greeting }) => {
 };
 
 const styles = StyleSheet.create({
-  card: {
-    padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
+  bloque: {
     gap: SPACING.md,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  titleEmoji: {
-    fontSize: scale(24),
-  },
-  title: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  subtitle: {
-    fontSize: FONT_SIZE.xs,
-    lineHeight: scale(17),
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingLeft: SPACING.md,
-    paddingRight: scale(6),
-    paddingVertical: scale(6),
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-  },
-  input: {
-    flex: 1,
-    fontSize: FONT_SIZE.sm,
-    minHeight: scale(40),
-  },
-  roundButton: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  labelButton: {
-    height: scale(40),
-    paddingHorizontal: SPACING.lg,
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  labelButtonText: {
-    color: '#1F2937',
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  chips: {
+  ejemplos: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.sm,

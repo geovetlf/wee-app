@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Audio, ResizeMode, Video } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
@@ -169,7 +169,10 @@ interface ResultCardProps {
 }
 
 /**
- * "✨ Listo" + resultado + [Crear otra versión] [Editar] [Publicar en mi comunidad]
+ * "✨ Listo" + resultado + [Crear otra versión] [Publicar en mi comunidad]
+ *
+ * Los cambios se piden con las frases de un toque —"hazlo más realista",
+ * "cambia el color"—, no escribiéndolos: la caja "¿Qué cambiamos?" se retiró.
  */
 /**
  * Los tres caminos que Weë propone tras mirar el espacio. Los identificadores
@@ -193,8 +196,6 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
    * ancho entero. En pantallas grandes siguen juntas, que es donde funciona.
    */
   const apilar = !isDesktop && !isTablet;
-  const [editing, setEditing] = useState(false);
-  const [instruction, setInstruction] = useState('');
   const [chosen, setChosen] = useState<Record<string, number>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
   /** La lista de cambios y compras empieza plegada: primero se decide, luego se lee. */
@@ -305,14 +306,6 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
     trabajoDeEspacio && job.plan?.steps.some((s) => s.id === stepId && s.capability === 'vision.describe') === true;
 
   const texts = job.results.filter((r) => r.content && r.kind !== 'audio' && !narracionInterna(r.stepId));
-
-  const submitEdit = () => {
-    const text = instruction.trim();
-    if (!text) return;
-    setEditing(false);
-    setInstruction('');
-    onEdit(text);
-  };
 
   /*
    * El orden de la pantalla lo decide de qué es el trabajo (fase 2E-63).
@@ -540,7 +533,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
 
       {!trabajoDeEspacio && bloqueTextos}
 
-      {!editing && visuals.length > 0 && !!precio && (
+      {visuals.length > 0 && !!precio && (
         <Text style={[styles.regenerateHint, { color: theme.colors.textSecondary }]}>
           {`Cada cambio vuelve a crear${precio}. Se descuentan al terminar.`}
         </Text>
@@ -567,7 +560,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         </View>
       )}
 
-      {!editing && visuals.length > 0 && (
+      {visuals.length > 0 && (
         <View style={styles.quickEdits}>
           {quickEdits.map((phrase) => (
             <TouchableOpacity
@@ -583,35 +576,14 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         </View>
       )}
 
-      {editing ? (
-        <View style={[styles.editBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}>
-          <Text style={[styles.editLabel, { color: theme.colors.text }]}>{t('weeai.whatDoWeChange')}</Text>
-          <TextInput
-            style={[styles.editInput, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            placeholder={t('weeai.changeHint')}
-            placeholderTextColor={theme.colors.textSecondary}
-            value={instruction}
-            onChangeText={setInstruction}
-            onSubmitEditing={submitEdit}
-            returnKeyType="send"
-            multiline
-          />
-          <View style={styles.editActions}>
-            <TouchableOpacity onPress={() => setEditing(false)} style={styles.linkButton} activeOpacity={0.7}>
-              <Text style={[styles.linkText, { color: theme.colors.textSecondary }]}>{t('common.cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={submitEdit}
-              disabled={!instruction.trim() || busy}
-              style={[styles.primaryButton, { backgroundColor: theme.colors.accent }]}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryText}>{`Aplicar${precio}`}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.actions}>
+      {/*
+        Aquí vivía "¿Qué cambiamos?", una caja para escribir el cambio a mano.
+        Se retiró (decisión del usuario, 2026-09-15): los cambios se piden con
+        las frases de arriba —"hazlo más realista", "cambia el color"— y quien
+        quiera otra cosa vuelve a crear con su idea. Una pantalla de resultado
+        es para mirar y decidir, no para volver a redactar.
+      */}
+      <View style={styles.actions}>
           {onOpenInEditor && (
             <TouchableOpacity
               onPress={onOpenInEditor}
@@ -633,15 +605,6 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Text style={[styles.actionText, { color: theme.colors.text }]}>{`Crear otra versión${precio}`}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setEditing(true)}
-            disabled={busy}
-            style={[styles.actionButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="create-outline" size={scale(18)} color={theme.colors.text} />
-            <Text style={[styles.actionText, { color: theme.colors.text }]}>{t('wall.edit')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={() => onPublish(publicable)}
             disabled={busy}
             style={[styles.actionButton, styles.publishButton, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}
@@ -650,8 +613,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Ionicons name="paper-plane" size={scale(18)} color="#1F2937" />
             <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.publishToCommunity')}</Text>
           </TouchableOpacity>
-        </View>
-      )}
+      </View>
 
       {/*
         Información secundaria: después de decidir, y plegada. La lista de
@@ -1030,51 +992,6 @@ const styles = StyleSheet.create({
   },
   publishButton: {},
   actionText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  editBox: {
-    padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    gap: SPACING.sm,
-  },
-  editLabel: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  editInput: {
-    minHeight: scale(72),
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    fontSize: FONT_SIZE.sm,
-    textAlignVertical: 'top',
-  },
-  editActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  linkButton: {
-    minHeight: scale(44),
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.sm,
-  },
-  linkText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  primaryButton: {
-    height: scale(44),
-    paddingHorizontal: SPACING.xl,
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: {
-    color: '#1F2937',
     fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.bold,
   },

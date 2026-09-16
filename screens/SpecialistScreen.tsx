@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { SpecialistAction, SpecialistExample } from '../constants/specialists';
@@ -10,8 +10,11 @@ import { useEspecialista } from '../hooks/useEspecialista';
 import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorService';
 import CreatorShell from '../components/creator/CreatorShell';
 import BrainChatScreen from './BrainChatScreen';
+import StudioScreen from './StudioScreen';
+import DesignScreen from './DesignScreen';
+import ChefScreen from './ChefScreen';
 import BusinessScreen from './BusinessScreen';
-import SpecialistHero from '../components/creator/SpecialistHero';
+import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
 import TravelLauncher from '../components/creator/TravelLauncher';
@@ -69,12 +72,44 @@ const SpecialistScreen: React.FC = () => {
     }, [user, id])
   );
 
+  /*
+   * ATRÁS PLIEGA LAS HERRAMIENTAS ANTES DE SALIR.
+   *
+   * En Weë Travel se entra escribiendo, dentro del desplegable: si el gesto de
+   * atrás se llevara la sección de un golpe, se iría con el viaje a medio
+   * contar. Plegado primero, y desde ahí sí sale. Lo escrito se queda.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'android' || !herramientasAbiertas) return;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        setHerramientasAbiertas(false);
+        return true;
+      });
+      return () => sub.remove();
+    }, [herramientasAbiertas])
+  );
+
   if (!spec) {
     navigation.navigate('WeeCreator');
     return null;
   }
   if (isBrain) return <BrainChatScreen />;
   if (id === 'business') return <BusinessScreen />;
+  /* "Weë Chef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
+  const nombreCorto = spec.experience.name.replace(/^Weë\s+/i, '');
+  /*
+   * Weë Studio dejó de ser una ficha de especialista y pasó a ser un sitio con
+   * pantalla propia. Se entrega aquí —y no cambiando los cinco sitios que
+   * navegan a 'Specialist'— para que todas las puertas que ya existían —el ☰,
+   * la barra de escritorio, la de Weë AI, la cuadrícula— lleven al Studio nuevo
+   * sin tocar ninguna. La dirección /studio va a la misma pantalla.
+   */
+  if (id === 'studio') return <StudioScreen />;
+  /* Y Weë Design, por la misma razón: todas las puertas que ya existían llegan al sitio nuevo. */
+  if (id === 'design') return <DesignScreen />;
+  /* Y Weë Chef, desde el 2026-09-15: su sitio de trabajo, con la misma estructura. */
+  if (id === 'chef') return <ChefScreen />;
 
   /*
    * `opens` deja que una acción abra la conversación de otra experiencia. Lo usa
@@ -129,8 +164,24 @@ const SpecialistScreen: React.FC = () => {
       title={lanzador ? spec.experience.name : `${spec.experience.emoji} ${spec.experience.name}`}
       mark={lanzador ? <TravelMark size={30} plain /> : undefined}
       breadcrumb="Weë AI"
+      /* En el teléfono, arriba solo va la cabecera de la sección (2026-09-15). */
+      sinFranjaSuperior
     >
-      {!lanzador && <SpecialistHero spec={spec} />}
+      {/*
+        La cabecera de la sección: la W oficial, el nombre y su frase. La misma
+        de Weë Studio y Weë Design, y lo único que hay arriba desde el
+        2026-09-15. Antes había una franja gris con el nombre y, debajo, una
+        tarjeta de presentación con sellos e ilustración; la frase se queda, el
+        resto sobraba para empezar a crear.
+      */}
+      <CabeceraDeSeccion nombre={nombreCorto} lema={spec.headline} />
+
+      {/*
+        Y justo debajo, la caja: en Weë AI se entra diciendo qué quieres, no
+        eligiendo herramienta. Las que entran por una tarjeta —Weë Travel— la
+        llevan dentro de ella.
+      */}
+      {!lanzador && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />}
 
       {/*
         Weë Travel entra por la frase, no por la cuadrícula (fase 2E-64C): un
@@ -168,13 +219,6 @@ const SpecialistScreen: React.FC = () => {
       {spec.upload && <UploadBox config={spec.upload} onPick={(uri) => startFlow(undefined, undefined, uri)} />}
 
       {spec.id === 'writer' && <WriterDocuments />}
-
-      {/*
-        La caja de idea y los ejemplos son la entrada de la sección. Las que
-        entran por la frase —Weë Travel— ya la llevan dentro de su tarjeta, así
-        que ahí sobraría: sería la segunda caja de escribir seguida.
-      */}
-      {!lanzador && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} greeting={spec.id === 'chef'} />}
 
       {!lanzador && !!spec.examples?.length && (
         <ExamplesRow title={spec.examplesTitle ?? ''} examples={spec.examples} onPressItem={handleExample} action={t('weeai.seeMore')} onAction={() => startFlow()} />
@@ -249,4 +293,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SpecialistScreen;
+/*
+ * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
+ * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
+ */
+export default enTemaClaro(SpecialistScreen);

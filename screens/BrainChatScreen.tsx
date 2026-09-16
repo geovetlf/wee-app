@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useBrainChat } from '../hooks/useBrainChat';
@@ -15,6 +15,7 @@ import { BrainMessage } from '../services/brainService';
 import CreatorShell from '../components/creator/CreatorShell';
 import SpecialistHero from '../components/creator/SpecialistHero';
 import { Chip } from '../components/creator/ui';
+import { useCajaQueCrece } from '../components/creator/CajaQueCrece';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { useWallet } from '../hooks/useWallet';
 import { scale } from '../utils/scale';
@@ -54,6 +55,12 @@ const BrainChatScreen: React.FC = () => {
 
   const wallet = useWallet();
   const [draft, setDraft] = useState('');
+  /*
+   * La caja de Weë Brain crece con lo que se cuenta y no pierde de vista ni el
+   * botón de enviar ni sus herramientas —adjuntar, hablar, buscar—
+   * (`CajaQueCrece`). Por eso la caja que se vigila es la lámina entera.
+   */
+  const caja = useCajaQueCrece({ altoMinimo: scale(44) });
   const [attachment, setAttachment] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
   const [suggestionDismissed, setSuggestionDismissed] = useState<string | null>(null);
@@ -276,7 +283,11 @@ const BrainChatScreen: React.FC = () => {
       )}
 
       {/* Entrada */}
-      <View style={[styles.composer, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}>
+      <View
+        ref={caja.refCaja}
+        onLayout={caja.alMedirCaja}
+        style={[styles.composer, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
+      >
         {attachment && (
           <View style={styles.attachmentRow}>
             <Image source={{ uri: attachment }} style={styles.attachmentImage} contentFit="cover" />
@@ -288,7 +299,8 @@ const BrainChatScreen: React.FC = () => {
         )}
         <View style={styles.composerRow}>
           <TextInput
-            style={[styles.input, { color: theme.colors.text }]}
+            {...caja.propsDelCampo}
+            style={[styles.input, { color: theme.colors.text, height: caja.altoDelTexto }]}
             placeholder={bubbles.length > 0 ? t('weeai.keepTelling') : spec.idea.placeholder}
             placeholderTextColor={theme.colors.textSecondary}
             value={draft}
@@ -296,7 +308,6 @@ const BrainChatScreen: React.FC = () => {
             onSubmitEditing={submitDraft}
             returnKeyType="send"
             editable={!chat.busy}
-            multiline
           />
           <TouchableOpacity onPress={submitDraft} disabled={!canSend} style={[styles.send, { backgroundColor: canSend ? theme.colors.accent : theme.colors.border }]} activeOpacity={0.85} accessibilityLabel={sendLabel}>
             <Ionicons name="arrow-up" size={scale(20)} color="#1F2937" />
@@ -458,10 +469,10 @@ const styles = StyleSheet.create({
     fontSize: scale(11.5),
     fontWeight: FONT_WEIGHT.semibold,
   },
+  /* Sin `maxHeight`: el tope lo pone lo que se ve de la página (`CajaQueCrece`), no un número fijo. */
   input: {
     flex: 1,
     minHeight: scale(44),
-    maxHeight: scale(120),
     fontSize: FONT_SIZE.sm,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
@@ -490,4 +501,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BrainChatScreen;
+/*
+ * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
+ * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
+ */
+export default enTemaClaro(BrainChatScreen);

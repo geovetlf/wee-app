@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -277,4 +277,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProjectsScreen;
+/*
+ * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
+ * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
+ */
+export default enTemaClaro(ProjectsScreen);

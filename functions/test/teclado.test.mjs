@@ -258,9 +258,14 @@ check(
 console.log('\n─── D. Weë Creator lo hereda de un solo sitio ───');
 
 const shell = leer('components/creator/CreatorShell.tsx');
+/*
+ * El scroll del shell es `PaginaDeCajas` (components/creator/CajaQueCrece.tsx):
+ * un ScrollView que además deja crecer las cajas de Weë AI sin perder sus
+ * botones. Lo que se vigila aquí no cambia: que vaya DENTRO del acomodo.
+ */
 check(
   'CreatorShell envuelve su contenido en EspacioDeEscritura',
-  /<EspacioDeEscritura[\s\S]{0,200}<ScrollView/.test(shell),
+  /<EspacioDeEscritura[\s\S]{0,200}<(ScrollView|PaginaDeCajas)\b/.test(shell),
   'las 11 experiencias dependen de esto'
 );
 

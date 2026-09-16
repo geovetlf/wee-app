@@ -123,11 +123,18 @@ console.log('\n── B · El Home de Weë Travel ──');
   const codigo = soloCodigo(pantalla);
   const tarjeta = codigo.indexOf('<TravelLauncher');
   check('6) la tarjeta de entrada es lo primero de la sección', tarjeta > 0, String(tarjeta));
-  // Ni cabecera propia, ni caja suelta, ni franja aparte: las tres puertas viejas
-  // quedan detrás de una condición que Travel no cumple.
+  /*
+   * Encima solo la cabecera de la sección —la W, el nombre y su frase— y debajo
+   * la tarjeta. La caja suelta sigue detrás de una condición que Travel no
+   * cumple, y la tarjeta de presentación con sellos ya no existe en ninguna
+   * sección (decisión del usuario, 2026-09-15).
+   */
   check(
     '6) y es lo único que hay debajo de la cabecera',
-    /\{!lanzador && <SpecialistHero/.test(codigo) && /\{!lanzador && <IdeaBox/.test(codigo)
+    !/<SpecialistHero/.test(codigo)
+      && /\{!lanzador && <IdeaBox/.test(codigo)
+      && codigo.indexOf('<CabeceraDeSeccion') > 0
+      && codigo.indexOf('<CabeceraDeSeccion') < tarjeta
   );
   // Una sola sección lo pide: la declaración del campo y su explicación no cuentan.
   check('6) y sin esa marca ninguna otra sección se mueve', /const lanzador = !!spec\.ideaFirst;/.test(codigo) && (specialists.match(/^ {4}ideaFirst: true,$/gm) || []).length === 1);
@@ -363,8 +370,13 @@ console.log('\n── G · Los días se pliegan ──');
 console.log('\n── H · Del resultado a la publicación ──');
 {
   const codigo = soloCodigo(tarjeta);
-  check('40) se puede ajustar lo que salió',
-    /setEditing\(true\)/.test(codigo) && /¿Qué cambiamos\?/.test(tarjeta));
+  /*
+   * Ajustar el resultado se pide con un toque, no escribiéndolo: la caja
+   * "¿Qué cambiamos?" se retiró (decisión del usuario, 2026-09-15) y quedan las
+   * frases de un toque, que llaman al mismo `onEdit`.
+   */
+  check('40) se puede ajustar lo que salió con un toque',
+    /onPress=\{\(\) => onEdit\(phrase\)\}/.test(codigo) && !/¿Qué cambiamos\?/.test(codigo) && !/setEditing/.test(codigo));
   check('40) guardarlo en un proyecto', /onSaveToProject/.test(codigo) && /Guardar en un proyecto/.test(tarjeta));
   check('40) y compartirlo con la comunidad', /onPublish\(publicable\)/.test(codigo) && /Publicar en mi comunidad/.test(tarjeta));
   check('41) las fuentes se ven y se pueden abrir', /Linking\.openURL\(source\.url\)/.test(codigo) && /result\.sources\?\.length/.test(codigo));
@@ -606,7 +618,13 @@ console.log('\n── O · El calendario ──');
   check('74) hay calendario, y no trae dependencia nueva', /const DateRangePicker/.test(calendario) && !/^import .*(react-native-calendars|datetimepicker|date-fns|moment|dayjs)/m.test(calendario));
   check('74) ni se añadió al package.json', !/calendar|datetimepicker|date-fns|moment/i.test(leer('package.json')));
   check('75) se dibuja solo cuando la pregunta pide fechas', /question\.kind === 'dates' \? \(/.test(codigo));
-  check('75) y entonces no se pintan además los botones ni el texto libre', /question\.allowFreeText !== false && question\.kind !== 'dates'/.test(codigo));
+  /*
+   * Con fechas se pinta el calendario y nada más; en las demás preguntas, las
+   * opciones. Escribir a mano ya no es una opción en el flujo: la caja de texto
+   * libre se retiró (decisión del usuario, 2026-09-15).
+   */
+  check('75) y entonces no se pintan además los botones', /question\.kind === 'dates' \? \([\s\S]{0,600}\) : \(/.test(codigo));
+  check('75) y en el flujo ya no se escribe a mano', !/<TextInput/.test(guiada) && !/allowFreeText/.test(codigo));
   check('75) ninguna otra experiencia pide fechas', Object.entries(TEMPLATES).filter(([, t]) => t.questions.some((q) => q.kind === 'dates')).map(([id]) => id).join(',') === 'travel');
   check('76) devuelve la frase que entiende el servidor', /onConfirm=\{\(frase\) => onAnswer\(undefined, frase\)\}/.test(codigo));
   check('76) y "todavía no lo sé" contesta la opción, no un texto', /onSkip=\{\(\) => onAnswer\('idk'\)\}/.test(codigo));

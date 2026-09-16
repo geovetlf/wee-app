@@ -690,8 +690,15 @@ console.log('\n── Las secciones de Weë AI ya no duplican el muro ──');
    * Y lo que NO se fue con él. Una sección sigue siendo una sección: su cabecera,
    * sus herramientas, su caja de subir, sus documentos y sus ejemplos.
    */
+  /*
+   * La cabecera de una sección es ahora la misma de Weë Studio —la W oficial, el
+   * nombre y su frase— y arriba no va nada más (decisión del usuario,
+   * 2026-09-15): se fueron la franja gris con el nombre y la tarjeta de
+   * presentación con sellos e ilustración.
+   */
   check('2) las secciones conservan sus herramientas y su cabecera',
-    /<ActionGrid actions=\{spec\.actions\}/.test(pantalla) && /<SpecialistHero spec=\{spec\} \/>/.test(pantalla)
+    /<ActionGrid actions=\{spec\.actions\}/.test(pantalla) && /<CabeceraDeSeccion nombre=\{nombreCorto\} lema=\{spec\.headline\} \/>/.test(pantalla)
+    && /sinFranjaSuperior/.test(pantalla) && !/<SpecialistHero/.test(pantalla)
     && /\{spec\.upload && <UploadBox/.test(pantalla) && /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla));
   check('2) y su caja de idea y sus ejemplos vuelven a todas',
     /\{!lanzador && <IdeaBox/.test(pantalla) && /\{!lanzador && !!spec\.examples\?\.length/.test(pantalla));
@@ -991,7 +998,12 @@ console.log('\n── Weë Design · la propuesta elegida y lo que cuesta repeti
   check('9) la tarjeta recibe el precio de volver a crear', /regenerateCredits\?: number;/.test(tarjeta));
   check('9) que es el mismo que se vio antes de crear', /regenerateCredits=\{pricing \? pricing\.total : job\.creditsEstimated\}/.test(pantalla));
   check('9) "Crear otra versión" dice lo que cuesta', /`Crear otra versión\$\{precio\}`/.test(tarjeta));
-  check('9) y aplicar un cambio también', /`Aplicar\$\{precio\}`/.test(tarjeta));
+  /*
+   * Un cambio se pide con un toque —"hazlo más realista"—, no escribiéndolo: la
+   * caja "¿Qué cambiamos?" y su botón "Aplicar" se retiraron (decisión del
+   * usuario, 2026-09-15). Lo que cuesta lo dice el aviso de la línea siguiente.
+   */
+  check('9) y un cambio se pide con un toque', /onPress=\{\(\) => onEdit\(phrase\)\}/.test(tarjeta) && !/`Aplicar\$\{precio\}`/.test(tarjeta));
   check('9) los retoques avisan de que vuelven a crear', /Cada cambio vuelve a crear\$\{precio\}/.test(tarjeta));
   /*
    * Desde la fase 5O la cifra la escribe el formato de Weë, con el locale
@@ -1042,7 +1054,7 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
 
   // 6 y 7) Design publica la elegida; Chef, solo su resultado.
   check('6) la imagen sale de los resultados del trabajo', /const visual = visuals\.find/.test(tarjeta));
-  check('7) nunca se publica la foto que trajo la persona', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const submitEdit'))));
+  check('7) nunca se publica la foto que trajo la persona', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const aconsejo'))));
   check('7) ni un video por ahora', /r\.kind !== 'video'/.test(tarjeta));
   check('7) ni una vista previa de demo, que no es un archivo', /return isRealMedia\(url\) \? url : undefined;/.test(tarjeta));
 
@@ -1792,7 +1804,7 @@ console.log('\n── Hogar & Diseño · el antes se recupera del trabajo ──
   check('C) el par usa la elegida, no la primera', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
 
   // F y L) La foto de la persona sigue sin poder publicarse.
-  check('F) lo publicable sale de los resultados, nunca del antes', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const submitEdit'))));
+  check('F) lo publicable sale de los resultados, nunca del antes', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const aconsejo'))));
   check('F) y es la propuesta elegida', elegidaDe(visual, 1) === R2 && /aiTools: \[nombre\],/.test(flujo));
   check('L) el camino de publicar no cambió', /navigation\.navigate\('Create'/.test(flujo) && /kind: mediaUri \? 'image' : 'post'/.test(flujo));
 
@@ -1856,7 +1868,7 @@ console.log('\n── Hogar & Diseño · que se vea, y que se llame como se llam
   check('D) cambiar de propuesta sigue cambiando la elegida', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
     check('E) y el antes no depende de ella', /uri: beforeImageUri \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
   check('E) la detección sigue siendo la misma, una sola', !/capability === 'image\.space_restyle'/.test(tarjeta.replace(/const esEspacio = \(stepId: string\): boolean =>[\s\S]*?;\n/, '').replace(/const trabajoDeEspacio = [\s\S]*?;\n/, '')) && (tarjeta.match(/const transformaTuFoto/g) || []).length === 1);
-  check('F) la foto de la persona sigue sin poder publicarse', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const submitEdit'))));
+  check('F) la foto de la persona sigue sin poder publicarse', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const aconsejo'))));
 
   // G a J) El nombre visible.
   {

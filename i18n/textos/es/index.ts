@@ -31,6 +31,9 @@ import { language } from './language';
 import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
+import { studio } from './studio';
+import { design } from './design';
+import { chef } from './chef';
 import { auth } from './auth';
 import { engine } from './engine';
 import { communities } from './communities';
@@ -72,6 +75,9 @@ export const es = {
   catalogo,
   business,
   projects,
+  studio,
+  design,
+  chef,
 };
 
 /**

@@ -222,3 +222,45 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+
+/**
+ * UN TROZO DE LA APLICACIÓN QUE SE VE CLARO SIEMPRE.
+ *
+ * El tema oscuro quiere decir una cosa concreta: "estás participando como tu
+ * Perfil Weë". Es verdad en el muro, en tu perfil y en el cajón, y por eso
+ * ahí se queda. Dentro del taller de Weë AI no lo es: lo que se crea ahí es de
+ * la CUENTA —los proyectos y las creaciones son los mismos lleves puesta la
+ * cara que lleves— y con qué identidad se publica se decide DESPUÉS, al
+ * publicar. Vestir el taller de oscuro contaba que el Perfil Weë era su dueño,
+ * y no lo es.
+ *
+ * Cambia EL COLOR y nada más. `themeMode` y `setThemeMode` siguen siendo los
+ * de arriba, así que cambiar de identidad desde dentro del taller sigue
+ * funcionando igual y todo lo que queda fuera —el cajón el primero— sigue
+ * exactamente como estaba.
+ */
+export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { themeMode, setThemeMode } = useTheme();
+  return (
+    <ThemeContext.Provider value={{ theme: lightTheme, themeMode, setThemeMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+/**
+ * La misma idea, para envolver una pantalla entera desde su exportación.
+ *
+ * Se envuelve ahí y no dentro del marco del taller porque cada pantalla lee el
+ * tema por su cuenta ANTES de montar el marco: si el proveedor viviera dentro,
+ * el marco saldría claro y el contenido que la pantalla ya ha pintado, oscuro.
+ */
+export const enTemaClaro = <P extends object>(Pantalla: React.ComponentType<P>): React.FC<P> => {
+  const Envuelta: React.FC<P> = (props) => (
+    <TemaClaro>
+      <Pantalla {...props} />
+    </TemaClaro>
+  );
+  Envuelta.displayName = `enTemaClaro(${Pantalla.displayName || Pantalla.name || 'Pantalla'})`;
+  return Envuelta;
+};

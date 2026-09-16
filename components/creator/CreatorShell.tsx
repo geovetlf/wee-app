@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle, StyleProp } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,8 @@ import { useResponsive } from '../../hooks/useResponsive';
 import AvatarDisplay from '../avatars/AvatarDisplay';
 import CreatorSidebar from './CreatorSidebar';
 import EspacioDeEscritura from '../EspacioDeEscritura';
+import { ALTO_BARRA } from '../BarraInferior';
+import { PaginaDeCajas } from './CajaQueCrece';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { useScrollDeBarra } from '../../hooks/useScrollDeBarra';
@@ -32,6 +34,15 @@ interface CreatorShellProps {
   onBack?: () => void;
   children: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * En el teléfono, sin la franja de arriba (flecha de volver y nombre): la
+   * sección se presenta sola con su cabecera —logo, nombre y lema—, que es lo
+   * único que debe haber arriba (decisión del usuario, 2026-09-15). Se vuelve
+   * con el gesto de atrás y con la barra de abajo, como en Weë Studio y Weë
+   * Design, que nunca tuvieron esta franja. En escritorio se queda: allí es la
+   * miga de pan de la barra lateral.
+   */
+  sinFranjaSuperior?: boolean;
 }
 
 /**
@@ -39,7 +50,7 @@ interface CreatorShellProps {
  * Escritorio: barra lateral con los especialistas + barra superior (buscar,
  * notificaciones, perfil) + contenido ancho. Móvil: cabecera compacta + contenido.
  */
-const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle }) => {
+const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, sinFranjaSuperior }) => {
   const { theme } = useTheme();
   const t = useT();
   /*
@@ -61,6 +72,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   if (!isDesktop) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+        {!sinFranjaSuperior && (
         <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
@@ -76,16 +88,26 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             cada experiencia solo restaba aire al muro (fase 2E-69).
           */}
         </View>
+        )}
         {/*
           Todo lo que se escribe en Weë Creator pasa por aquí: la caja de idea de
           cada especialista, las preguntas guiadas, el editor de Writer, el chat
           de Brain. El acomodo al teclado se resuelve una sola vez, en el sitio
           que comparten todas, y no experiencia por experiencia.
+
+          Y por lo mismo la página es `PaginaDeCajas`: es la que deja que cada
+          caja crezca con lo escrito sin perder sus botones de vista, en todas
+          las secciones de Weë AI y en las que vengan.
         */}
-        <EspacioDeEscritura style={styles.fill}>
-          <ScrollView contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
+        {/*
+          El teclado tapa primero el sitio que la pila guarda para la barra
+          inferior: descontarlo deja la página justo encima del teclado, sin la
+          franja muerta que quedaba antes entre las dos.
+        */}
+        <EspacioDeEscritura style={styles.fill} descuento={ALTO_BARRA}>
+          <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
             {children}
-          </ScrollView>
+          </PaginaDeCajas>
         </EspacioDeEscritura>
       </SafeAreaView>
     );
@@ -139,9 +161,9 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             </TouchableOpacity>
           </View>
         </View>
-        <ScrollView contentContainerStyle={[styles.desktopContent, contentStyle]} keyboardShouldPersistTaps="handled">
+        <PaginaDeCajas contentContainerStyle={[styles.desktopContent, contentStyle]} keyboardShouldPersistTaps="handled">
           {children}
-        </ScrollView>
+        </PaginaDeCajas>
       </View>
     </View>
   );

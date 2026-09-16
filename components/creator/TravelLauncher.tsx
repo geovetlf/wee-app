@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -8,6 +8,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/
 import { scale } from '../../utils/scale';
 import { objetivoDe } from './IdeaBox';
 import TravelMark from './TravelMark';
+import CajaDePrompt from './CajaDePrompt';
 
 /*
  * ─── Weë Travel, plegado en una fila ────────────────────────────────────────
@@ -70,7 +71,6 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
     onSubmit(valor);
   };
 
-  const listo = !!text.trim();
   /* El emoji vive en la configuración pero aquí lo dice el distintivo dibujado. */
   const titulo = idea.title.replace(/^[^\p{L}¿]+/u, '');
 
@@ -105,29 +105,20 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
             { opacity: entrada, transform: [{ translateY: entrada.interpolate({ inputRange: [0, 1], outputRange: [scale(-6), 0] }) }] },
           ]}
         >
-          <View style={[styles.filaEntrada, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
-            <TextInput
-              style={[styles.entrada, { color: theme.colors.text }]}
-              placeholder={idea.placeholder}
-              placeholderTextColor={theme.colors.textSecondary}
-              value={text}
-              onChangeText={setText}
-              onSubmitEditing={enviar}
-              returnKeyType="send"
-              accessibilityLabel={idea.placeholder}
-            />
-            <TouchableOpacity
-              onPress={enviar}
-              disabled={!listo}
-              activeOpacity={0.85}
-              style={[styles.enviar, { backgroundColor: listo ? theme.colors.accent : theme.colors.border }]}
-              accessibilityRole="button"
-              accessibilityLabel={t('weeai.tellWeeTheTrip')}
-              accessibilityState={{ disabled: !listo }}
-            >
-              <Ionicons name="arrow-forward" size={scale(18)} color="#1F2937" />
-            </TouchableOpacity>
-          </View>
+          {/*
+            La misma caja que Weë Studio y Weë Design (decisión del usuario,
+            2026-09-15). Antes era una píldora de una línea con el botón al lado;
+            un viaje se cuenta en varias líneas, y ahora la caja crece con ellas.
+          */}
+          <CajaDePrompt
+            valor={text}
+            onCambiar={setText}
+            onEnviar={enviar}
+            etiquetaEnviar={t('weeai.tellWeeTheTrip')}
+            placeholder={idea.placeholder}
+            /* Esta caja empieza el viaje: Intro lo empieza, como cuando era de una línea. */
+            enviarConIntro
+          />
 
           {/*
             Los ejemplos se deslizan en vez de envolverse: son frases, y envueltas
@@ -212,32 +203,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.md,
     gap: SPACING.sm,
-  },
-  filaEntrada: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingLeft: SPACING.md,
-    paddingRight: scale(5),
-    paddingVertical: scale(5),
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-  },
-  entrada: {
-    flex: 1,
-    fontSize: FONT_SIZE.sm,
-    minHeight: scale(38),
-  },
-  /*
-   * Los tamaños de lo que se toca van SIN `scale()`. `scale()` encoge un 10% en
-   * web, y un objetivo táctil no se encoge porque la pantalla sea otra.
-   */
-  enviar: {
-    width: TOQUE,
-    height: TOQUE,
-    borderRadius: TOQUE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   ejemplos: {
     flexDirection: 'row',

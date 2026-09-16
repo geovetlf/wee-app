@@ -119,7 +119,6 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
     'components/avatars/AvatarPicker.tsx': 0,
     'components/ChatCamera.tsx': 1, // declina el permiso de cámara y cierra: es el "no" de un permiso
     'components/CommunitySelector.tsx': 1, // confirma antes de unirse a una comunidad sin filtro
-    'components/creator/ResultCard.tsx': 1, // descarta la instrucción de edición de un resultado
     'components/PostCard.tsx': 2, // alertas: eliminar y reportar una publicación
     'screens/CommunitiesManagementScreen.tsx': 1, // alerta: salir de una comunidad
     'screens/CreateScreen.tsx': 2, // alertas de permisos de galería y cámara

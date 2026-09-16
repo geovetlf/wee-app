@@ -32,6 +32,8 @@ import SavedPostsScreen from '../screens/SavedPostsScreen';
 import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
+import StudioScreen from '../screens/StudioScreen';
+import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import ProjectScreen from '../screens/ProjectScreen';
@@ -84,6 +86,10 @@ export type MainStackParamList = {
    */
   CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; presets?: { questionId: string; optionId: string }[]; imageUri?: string };
   Specialist: { id: string };
+  /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
+  Studio: undefined;
+  /* Weë Design, igual que Studio: un sitio con pantalla propia. */
+  Design: undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
   Projects: undefined;
   Project: { id: string };
@@ -323,6 +329,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="EContact" component={EContactScreen} />
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
+      <Stack.Screen name="Studio" component={StudioScreen} />
+      <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />

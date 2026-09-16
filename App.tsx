@@ -178,6 +178,8 @@ const linking: any = {
       },
       Search: 'search',
       Settings: 'settings',
+      Studio: 'studio',
+      Design: 'design',
       PostDetail: {
         path: 'post/:postId',
         parse: {
