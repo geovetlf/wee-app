@@ -100,6 +100,63 @@ export interface IdiomaResuelto {
 }
 
 /**
+ * EL APARATO PIDE DOS VECES LO MISMO, Y LA SEGUNDA ES MÁS PRECISA.
+ *
+ * `navigator.languages` no es una respuesta, es una LISTA ordenada, y muy a
+ * menudo la encabeza el idioma a secas y lo concreta justo después:
+ *
+ *     ['pt', 'pt-PT']          alguien en Portugal
+ *     ['zh', 'zh-TW']          alguien en Taiwán
+ *     ['es', 'es-ES', 'es-PE'] lo que dicen Chrome y Edge a cada rato
+ *
+ * Leer solo la primera línea le servía BRASILEÑO a Portugal y SIMPLIFICADO a
+ * Taiwán. Eso no es un texto peor: es la norma equivocada entera. Y desde que
+ * el locale resuelto se guarda en la cuenta, la pérdida dejaba de recalcularse
+ * en cada arranque y se volvía permanente.
+ *
+ * Había además una asimetría que delata el fallo: `['pt-PT']` conservaba la
+ * región y `['pt', 'pt-PT']` la tiraba. La misma persona, la misma lista, y el
+ * resultado dependía de en qué posición la hubiera puesto su navegador.
+ *
+ * ── LO QUE ESTO HACE, Y SOBRE TODO LO QUE NO ───────────────────────────────
+ *
+ * Solo entra en juego cuando el aparato ganó con el idioma DESNUDO —sin región
+ * ni escritura—. Entonces busca en la MISMA lista la primera vez que ese mismo
+ * idioma aparece concretado, y usa esa. No inventa nada: la variante tiene que
+ * estar escrita por el aparato.
+ *
+ *     ['pt', 'pt-PT']     → pt-PT   la pidió él
+ *     ['pt', 'pt-BR']     → pt-BR   la pidió él
+ *     ['pt']              → pt      NO la pidió: se queda como estaba
+ *     ['pt-BR', 'pt-PT']  → pt-BR   ya era explícito; nadie le gana el sitio
+ *     ['en', 'pt-PT']     → en      otro idioma no concreta este
+ *
+ * Por eso NO cambia ningún respaldo: `pt` a secas sigue dando brasileño y `zh`
+ * a secas sigue dando simplificado, que es lo documentado y lo decidido.
+ *
+ * Y es genérico por construcción: no sabe qué idiomas tienen variantes
+ * declaradas ni le hace falta. Para un idioma de una sola norma lo único que
+ * afina es el locale de los FORMATOS —`['es','es-ES']` pasa a dar `es-ES`—,
+ * que es exactamente lo que ese aparato pidió y lo que ya hacía cuando la
+ * región venía en la primera línea.
+ */
+const concretarConLaLista = (locale: string, delAparato: readonly string[]): string => {
+  const { idioma, locale: normalizado } = partesDelLocale(locale);
+  /* Ya venía concretado —'pt-PT', 'zh-Hant'—: el aparato fue explícito a la
+   * primera y esto no tiene nada que añadir. */
+  if (!idioma || normalizado !== idioma) return locale;
+
+  for (const otro of delAparato) {
+    const candidato = normalizarLocale(otro);
+    if (!candidato || candidato === idioma) continue;
+    /* Del MISMO idioma. Un `pt-PT` no concreta un `en`. */
+    if (idiomaDe(candidato) !== idioma) continue;
+    return candidato;
+  }
+  return locale;
+};
+
+/**
  * QUÉ IDIOMA ENSEÑAR. La única función que decide.
  *
  * @param elegido    lo que la persona eligió a mano, si eligió algo. MANDA.
@@ -111,7 +168,9 @@ export interface IdiomaResuelto {
  *
  *   1. lo elegido a mano, si sigue siendo un idioma que existe;
  *   2. la primera preferencia del aparato que sepamos hablar, mirando primero
- *      el locale completo y después el idioma a secas;
+ *      el locale completo y después el idioma a secas; y si ganó el idioma a
+ *      secas, concretado con la variante que la propia lista pida después
+ *      (`concretarConLaLista`, aquí arriba);
  *   3. inglés.
  *
  * Fíjate en lo que NO hay en esta lista: país, IP, GPS, zona horaria. La
@@ -140,7 +199,11 @@ export const elegirIdioma = (
     for (const escalon of cadenaDeRespaldo(locale)) {
       if (escalon === IDIOMA_DE_RESERVA && idiomaDe(locale) !== IDIOMA_DE_RESERVA) break;
       if (puedo(escalon) && idiomaDelCatalogo(idiomaDe(escalon))) {
-        return { idioma: idiomaDe(escalon) as CodigoDeIdioma, locale, origen: 'aparato' };
+        return {
+          idioma: idiomaDe(escalon) as CodigoDeIdioma,
+          locale: concretarConLaLista(locale, delAparato),
+          origen: 'aparato',
+        };
       }
     }
   }

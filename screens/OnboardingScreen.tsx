@@ -18,7 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { notify } from '../utils/notify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { filasDeIdioma, varianteDelLocale } from '../i18n/idiomas';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -32,7 +33,14 @@ import EspacioDeEscritura from '../components/EspacioDeEscritura';
 const { width: screenWidth } = Dimensions.get('window');
 
 const OnboardingScreen: React.FC = () => {
-  const t = useT();
+  /*
+   * El idioma ya viene resuelto por el proveedor: al llegar aquí `locale` es
+   * el del aparato, así que el registro se ve desde el primer momento en la
+   * lengua de quien lo está rellenando. Esta pantalla no detecta nada por su
+   * cuenta —eso ya está hecho, y hacerlo dos veces es como se acaba teniendo
+   * dos respuestas distintas—; solo deja cambiarlo.
+   */
+  const { t, idioma, locale, cambiarIdioma } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { updateProfile } = useUserProfile();
@@ -54,6 +62,7 @@ const OnboardingScreen: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [completed, setCompleted] = useState(false);
 
@@ -165,6 +174,27 @@ const OnboardingScreen: React.FC = () => {
     return null;
   };
 
+  /*
+   * Cómo se llama el idioma que está puesto, en su propio idioma.
+   *
+   * Se pregunta por la VARIANTE y no por el idioma: con portugués europeo
+   * puesto hay que leer «Português (Portugal)», porque «Português» a secas es
+   * exactamente lo que dice también Brasil y no distinguiría nada. Quien tiene
+   * un idioma de una sola norma cae a la fila normal del catálogo.
+   */
+  const nombreDelIdiomaPuesto =
+    varianteDelLocale(locale)?.nombreNativo
+    ?? filasDeIdioma().find((f) => f.clave === idioma)?.nombreNativo
+    ?? idioma;
+
+  /* La fila marcada. Misma cuenta que en Configuración → Idioma: con el chino
+   * o el portugués puestos, las dos filas comparten idioma y hay que comparar
+   * la variante o se marcarían las dos. */
+  const filaPuesta = (clave: string, idiomaDeLaFila: string) => {
+    const variante = varianteDelLocale(locale);
+    return variante ? idiomaDeLaFila === idioma && clave === variante.locale : clave === idioma;
+  };
+
   const handleAvatarSelect = (avatarData: {
     type: 'predefined' | 'custom';
     uri?: string;
@@ -223,6 +253,17 @@ const OnboardingScreen: React.FC = () => {
           countryName: selectedCountry?.name || '',
           avatarType: selectedAvatarType,
           hasCompletedCommunityOnboarding: true,
+          /*
+           * El idioma con el que se termina el registro: el que detectó el
+           * aparato, o el que se haya elegido arriba. Se guarda el LOCALE
+           * entero —'pt-PT', no 'pt'— porque es lo único que distingue
+           * Portugal de Brasil y 繁體 de 简体.
+           *
+           * Y se guarda aunque nadie lo haya tocado, a propósito: a partir de
+           * aquí la cuenta tiene idioma propio y entrar desde otro aparato ya
+           * no depende de en qué lengua esté ESE aparato.
+           */
+          language: locale,
         };
 
         // Si es avatar personalizado, subir imagen o usar DiceBear URL directo
@@ -488,6 +529,33 @@ const OnboardingScreen: React.FC = () => {
               {t('onboarding.pickCountry')}
             </Text>
           )}
+          <Ionicons name="chevron-down" size={18} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/*
+        Idioma. Va debajo del país y NO se deduce de él: alguien en Suiza puede
+        querer Weë en italiano y alguien en Brasil en inglés. Son dos preguntas
+        distintas y se preguntan por separado.
+
+        Llega ya relleno con lo que pidió el aparato, así que quien no tenga
+        nada que corregir no tiene que tocarlo.
+      */}
+      <View style={styles.inputSection}>
+        <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+          {t('language.title')}
+        </Text>
+        <TouchableOpacity
+          style={[styles.countrySelector, {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+          }]}
+          onPress={() => setShowLanguageModal(true)}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.countrySelectorText, { color: theme.colors.text }]}>
+            {nombreDelIdiomaPuesto}
+          </Text>
           <Ionicons name="chevron-down" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -824,6 +892,78 @@ const OnboardingScreen: React.FC = () => {
                   )}
                 </TouchableOpacity>
               )}
+              style={styles.dateModalList}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        </EspacioDeEscritura>
+      </Modal>
+
+      {/*
+        LA LISTA DE IDIOMAS DEL REGISTRO.
+
+        Es la misma lista que Configuración → Idioma, salida de la misma
+        función: `filasDeIdioma()`. No hay aquí un segundo catálogo ni una
+        segunda idea de cuántos idiomas hay, y por eso el día que entre el
+        japonés aparece en los dos sitios sin tocar ninguno de los dos.
+
+        Lo que cambia es la forma, no el contenido: allí es una pantalla con su
+        cabecera y aquí una hoja, como el país y la fecha de esta misma
+        pantalla. Y sin buscador, porque son once filas y no doscientas.
+
+        Al tocar se cambia EN EL ACTO. El resto del registro sigue en el idioma
+        recién elegido, que es la única forma de que alguien pueda comprobar
+        que eligió bien. Al terminar, ese locale se guarda en su perfil.
+      */}
+      <Modal
+        visible={showLanguageModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <EspacioDeEscritura style={styles.countryModalOverlay}>
+          <TouchableOpacity
+            style={styles.countryModalDismiss}
+            activeOpacity={1}
+            onPress={() => setShowLanguageModal(false)}
+          />
+          <View
+            style={[styles.countryModalContent, { backgroundColor: theme.colors.surface }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={[styles.dateModalHeader, { borderBottomColor: theme.colors.border }]}>
+              <Text style={[styles.dateModalTitle, { color: theme.colors.text }]}>
+                {t('language.title')}
+              </Text>
+              <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={filasDeIdioma()}
+              keyExtractor={(item) => item.clave}
+              renderItem={({ item }) => {
+                const puesta = filaPuesta(item.clave, item.idioma);
+                return (
+                  <TouchableOpacity
+                    style={[styles.dateModalItem, { borderBottomColor: theme.colors.border }]}
+                    onPress={() => {
+                      cambiarIdioma(item.clave);
+                      setShowLanguageModal(false);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: puesta }}
+                    accessibilityLabel={item.nombreNativo}
+                  >
+                    <Text style={[styles.dateModalItemText, { color: theme.colors.text }]}>
+                      {item.nombreNativo}
+                    </Text>
+                    {puesta && (
+                      <Ionicons name="checkmark" size={20} color={theme.colors.accent} />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
               style={styles.dateModalList}
               keyboardShouldPersistTaps="handled"
             />

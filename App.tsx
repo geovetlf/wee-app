@@ -45,6 +45,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { IdiomaProvider } from './contexts/IdiomaContext';
+import SincronizarIdioma from './components/SincronizarIdioma';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
 import { ScrollProvider } from './contexts/ScrollContext';
@@ -271,6 +272,12 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <UserProfileProvider>
+              {/*
+                No pinta nada: cose el idioma de la cuenta con el del aparato.
+                Va aquí dentro porque necesita el perfil, y el perfil cuelga
+                por debajo del idioma a propósito.
+              */}
+              <SincronizarIdioma />
               <ScrollProvider>
                 <TabBarProvider>
                   {/*

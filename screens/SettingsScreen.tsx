@@ -14,6 +14,7 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { varianteDelLocale } from '../i18n/idiomas';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -33,7 +34,7 @@ const SettingsScreen: React.FC = () => {
    * "Español", no "es". Es lo que la persona va buscando al mirar esa fila,
    * y le ahorra entrar solo para comprobarlo.
    */
-  const { t, idioma, disponibles } = useIdioma();
+  const { t, idioma, locale, disponibles } = useIdioma();
   const { theme } = useTheme();
   const { logout } = useAuth();
   const { userProfile } = useUserProfile();
@@ -252,10 +253,19 @@ const SettingsScreen: React.FC = () => {
           </Text>
 
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            {/*
+              El subtítulo dice la VARIANTE, no el idioma: con portugués
+              europeo puesto tiene que leerse «Português (Portugal)» y no
+              «Português», que es lo mismo que dice Brasil. Igual con las dos
+              escrituras del chino. Quien tiene un idioma de una sola norma
+              —el alemán— cae al nombre de siempre.
+            */}
             {renderSettingItem(
               'language',
               t('settings.language'),
-              disponibles.find((i) => i.codigo === idioma)?.nombreNativo ?? t('settings.languageSubtitle'),
+              varianteDelLocale(locale)?.nombreNativo
+                ?? disponibles.find((i) => i.codigo === idioma)?.nombreNativo
+                ?? t('settings.languageSubtitle'),
               () => (navigation as any).navigate('Idioma')
             )}
           </View>

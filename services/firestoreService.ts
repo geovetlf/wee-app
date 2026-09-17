@@ -233,6 +233,27 @@ export interface UserProfile {
   countryName?: string; // Nombre del país (ej: 'Argentina')
 
   /*
+   * === EL IDIOMA ES DE LA PERSONA, NO DEL TELÉFONO ===
+   *
+   * Un LOCALE COMPLETO —'pt-PT', 'zh-TW', 'es-PE'—, nunca solo el idioma. Es
+   * la misma forma que guarda `i18n/preferencia.ts` en el aparato, y tiene que
+   * serlo: si aquí cupiera solo 'pt' se perdería la diferencia entre Brasil y
+   * Portugal, que son dos diccionarios distintos.
+   *
+   * Vive aquí para que la elección VIAJE CON LA CUENTA: quien elige portugués
+   * europeo en el móvil lo encuentra puesto al entrar desde el ordenador. La
+   * copia del aparato sigue existiendo y sirve para dos cosas que esta no
+   * puede: pintar en el idioma correcto ANTES de que cargue el perfil, y
+   * funcionar con la sesión cerrada.
+   *
+   * QUE FALTE SIGNIFICA ALGO. Quiere decir "esta persona nunca eligió", y
+   * entonces manda lo que diga su aparato, como hasta hoy. No se rellena a
+   * nadie por detrás: los perfiles que ya existen se quedan sin el campo hasta
+   * que su dueño elija. Lo cose `components/SincronizarIdioma.tsx`.
+   */
+  language?: string;
+
+  /*
    * === PERFIL WEË / PERFIL BIZ: las caras de una misma cuenta ===
    *
    * `'hidi'` es el valor guardado del Perfil Weë. El nombre viene de HideTok,

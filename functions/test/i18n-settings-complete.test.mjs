@@ -78,7 +78,14 @@ console.log('\n── B · Las nueve filas, título y subtítulo ──');
    */
   const FILAS = [
     ['2) Mis comunidades', /t\('settings\.myCommunities'\),\s*\n[\s\S]{0,140}t\('settings\.communitiesJoined', \{ contador: joinedCommunitiesCount \}\)/],
-    ['2) Idioma', /t\('settings\.language'\),\s*\n\s*disponibles\.find/],
+    /*
+     * El subtítulo del idioma dejó de ser el nombre del IDIOMA para pasar a ser
+     * el de la VARIANTE (2026-09-17): con portugués europeo puesto, «Português»
+     * a secas es lo mismo que dice Brasil y no distinguía nada. Lo que se
+     * comprueba sigue siendo lo mismo —que sale del catálogo y no de una frase
+     * escrita a mano—, solo que ahora de una función más fina.
+     */
+    ['2) Idioma', /t\('settings\.language'\),\s*\n\s*varianteDelLocale\(locale\)/],
     ['2) Respuestas privadas', /t\('settings\.privateReplies'\),\s*\n\s*t\('settings\.privateRepliesHint'\)/],
     ['2) Ubicación', /t\('settings\.location'\),\s*\n\s*textoUbicacion/],
     ['2) Política de privacidad', /t\('settings\.privacyPolicy'\),\s*\n\s*t\('settings\.privacyPolicyHint'\)/],
@@ -149,8 +156,15 @@ console.log('\n── D · Idioma, ubicación, push, motor y sesión ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   /* 9 · El idioma: su fila no duplica la lógica y enseña el nombre nativo. */
+  /*
+   * Tres escalones, y el orden importa: primero la VARIANTE —«Português
+   * (Portugal)»—, después el idioma para quien solo tiene una norma —«Deutsch»—
+   * y solo si no hubiera ninguno, la frase de relleno. Lo que no puede
+   * aparecer nunca es un `t()` alrededor del nombre: un idioma se llama igual
+   * mire quien lo mire, y traducirlo dejaría «Alemán» a quien busca «Deutsch».
+   */
   check('9) la fila del idioma enseña el nombre nativo, sin traducirlo',
-    /disponibles\.find\(\(i\) => i\.codigo === idioma\)\?\.nombreNativo \?\? t\('settings\.languageSubtitle'\)/.test(AJUSTES)
+    /varianteDelLocale\(locale\)\?\.nombreNativo\s*\n\s*\?\? disponibles\.find\(\(i\) => i\.codigo === idioma\)\?\.nombreNativo\s*\n\s*\?\? t\('settings\.languageSubtitle'\)/.test(AJUSTES)
     && !/t\(.*nombreNativo/.test(AJUSTES));
   check('9) y lo que se lee en cada idioma',
     ES('settings.language') === 'Idioma' && EN('settings.language') === 'Language');
@@ -261,7 +275,9 @@ console.log('\n── E · Lo dinámico, lo técnico y lo que no se movió ─�
   /* 22 y 23 · Un solo sistema, y vivo. */
   check('22) sin traductores propios ni ternarios de idioma',
     !/i18next|react-intl|idioma === 'en'|locale === 'en'/.test(AJUSTES)
-    && /const \{ t, idioma, disponibles \} = useIdioma\(\);/.test(AJUSTES));
+    /* `locale` entró con la variante: hace falta para saber si el portugués
+     * puesto es el de Brasil o el de Portugal. Sigue saliendo del mismo sitio. */
+    && /const \{ t, idioma, locale, disponibles \} = useIdioma\(\);/.test(AJUSTES));
   check('23) nada se congela en el estado: todo se resuelve al pintar',
     !/useState\([^)]*t\('/.test(AJUSTES) && !/useMemo\(\(\) => t\(/.test(AJUSTES));
 
