@@ -34,6 +34,7 @@ import { projects } from './projects';
 import { studio } from './studio';
 import { design } from './design';
 import { chef } from './chef';
+import { brain } from './brain';
 import { auth } from './auth';
 import { engine } from './engine';
 import { communities } from './communities';
@@ -80,4 +81,5 @@ export const en: FormaDelDiccionario = {
   studio,
   design,
   chef,
+  brain,
 };

@@ -254,12 +254,7 @@ const ChefScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
-            <CabeceraDeSeccion
-              nombre="Chef"
-              lema={spec?.headline ?? ''}
-              descripcion={t('chef.description')}
-              credits
-            />
+            <CabeceraDeSeccion nombre="Chef" lema={spec?.headline ?? ''} descripcion={t('chef.description')} />
 
             {/*
               LA CAJA, SIN NADA ALREDEDOR (decisión del usuario, 2026-09-15).
@@ -379,7 +374,18 @@ const styles = StyleSheet.create({
   dentro: { paddingBottom: SITIO_DE_LA_BARRA, gap: SPACING.xxl },
   /* En escritorio el contenido no se estira: se centra y se queda legible. */
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
-  compositor: { paddingHorizontal: SPACING.lg, gap: SPACING.sm },
+  /*
+   * LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario, 2026-09-16,
+   * solo en Weë Chef; el mismo ajuste que ya llevan Weë Studio y Weë Design).
+   *
+   * Entre el último renglón de la cabecera y la caja había 44 puntos: 20 del
+   * aire de abajo de la cabecera y 24 del `gap` de esta página. Se recortan aquí
+   * —y solo aquí— con un margen negativo, que deja el hueco en unos 18 sin tocar
+   * ni la cabecera ni la caja, que las comparten todas las demás secciones.
+   *
+   * Mueve dónde empieza la caja, no cuánto mide: crece igual que antes.
+   */
+  compositor: { paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: -scale(26) },
   fichas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingHorizontal: SPACING.xs },
   ficha: {
     flexDirection: 'row',

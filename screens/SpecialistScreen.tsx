@@ -174,7 +174,7 @@ const SpecialistScreen: React.FC = () => {
         tarjeta de presentación con sellos e ilustración; la frase se queda, el
         resto sobraba para empezar a crear.
       */}
-      <CabeceraDeSeccion nombre={nombreCorto} lema={spec.headline} />
+      <CabeceraDeSeccion nombre={nombreCorto} lema={spec.headline} descripcion={spec.intro} />
 
       {/*
         Y justo debajo, la caja: en Weë AI se entra diciendo qué quieres, no

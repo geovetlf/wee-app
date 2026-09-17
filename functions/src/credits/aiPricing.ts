@@ -4,7 +4,7 @@ import { EngineSettings } from '../engine/types';
 import { ImageSize, chooseImageModel, imageModelOf, isEditCapability, usdFor, volumeFactor } from '../engine/imageModels';
 import { resolveForModel } from '../engine/resolutionPolicy';
 import { SEEDANCE_MODEL_IDS, SeedanceResolution, clampDuration, resolveResolution, seedanceCostUsd, specOf } from '../engine/providers/seedance';
-import { CreditService, getCreditCost } from './creditCosts';
+import { CreditService, getCreditCost, getCreditMargin, getCreditPricingMode } from './creditCosts';
 
 /**
  * PRECIOS DE IA — punto único (docs/CREDITS.md).
@@ -55,8 +55,17 @@ export function usdToCredits(usd: number, settings: Pick<EngineSettings, 'credit
  * los Credits por dólar en aiSettings/global, no el suelo.
  */
 const creditsOf = (service: CreditService, usd: number, settings: Pick<EngineSettings, 'pricingMode' | 'creditsPerUsd' | 'margin'>): number => {
-  const withMargin = usdToCredits(usd, settings);
-  if (settings.pricingMode === 'real') return withMargin;
+  /*
+   * El margen y el modo se preguntan POR SERVICIO, y la respuesta por defecto es
+   * la general. Quien no declara nada —imagen, video, voz, búsqueda— recibe
+   * exactamente lo mismo que antes de que esto existiera.
+   *
+   * La fórmula sigue siendo una sola: `usdToCredits`. Lo único que cambia es qué
+   * margen se le pasa. No hay un segundo cálculo de precios en Weë.
+   */
+  const margin = getCreditMargin(service, settings.margin);
+  const withMargin = usdToCredits(usd, { creditsPerUsd: settings.creditsPerUsd, margin });
+  if (getCreditPricingMode(service, settings.pricingMode) === 'real') return withMargin;
   const atCost = usd > 0 ? Math.ceil(usd * settings.creditsPerUsd) : 0;
   return Math.max(getCreditCost(service), atCost);
 };
@@ -166,7 +175,16 @@ export const billableOutput = (outputTokens: number, factor: number): number => 
  * Coste oficial estimado de una operación que NO es de imagen ni de video.
  * Siempre por arriba: modelo más caro del nivel y salida al máximo permitido.
  */
-export function estimateProviderUsd(capability: CapabilityId, input: Record<string, unknown> = {}): number {
+export interface ModeloDeTexto {
+  provider: string;
+  modelId: string;
+  /** USD por millón de tokens de entrada. */
+  input: number;
+  /** USD por millón de tokens de salida. */
+  output: number;
+}
+
+export function estimateProviderUsd(capability: CapabilityId, input: Record<string, unknown> = {}, modelo?: ModeloDeTexto): number {
   const tier = tierOf(input);
   if (capability === 'voice.tts') {
     const text = Math.max(chars(input.text) || chars(input.prompt) || chars(input.content), 200);
@@ -183,7 +201,22 @@ export function estimateProviderUsd(capability: CapabilityId, input: Record<stri
   // Búsqueda con fuentes y PDF los sirve Gemini 3.5 Flash-Lite, más caro que el
   // modelo económico: el techo tiene que ser el suyo y no el del nivel pedido.
   const multimodal = capability === 'text.search' || capability === 'doc.read';
-  const rate = multimodal ? ceilingOf(TEXT_RATES[tier], MULTIMODAL_RATE) : TEXT_RATES[tier];
+  /*
+   * SI YA SE SABE QUÉ MODELO VA A RESPONDER, MANDA SU TARIFA.
+   *
+   * `TEXT_RATES` es un techo por NIVEL, no por modelo: el del modelo más caro
+   * que puede atender ese nivel. Sirve para cotizar cuando todavía no se sabe
+   * quién atenderá —y por eso se queda—, pero es incorrecto cuando el modelo ya
+   * está decidido: Weë Brain pide `deepseek-flash` por su nombre, y cotizarlo
+   * con tarifas de Google sería cobrar por un proveedor que no interviene.
+   *
+   * Es el mismo trato que ya tienen imagen y video, que preguntan al modelo
+   * elegido (`usdFor(model, …)`, `seedanceCostUsd(specOf(id))`). El texto era la
+   * única modalidad que seguía mirando una tabla en vez de al modelo.
+   */
+  const rate = modelo
+    ? { input: modelo.input, output: modelo.output }
+    : multimodal ? ceilingOf(TEXT_RATES[tier], MULTIMODAL_RATE) : TEXT_RATES[tier];
   const factor = multimodal ? Math.max(THINKING_FACTOR[tier], MULTIMODAL_THINKING_FACTOR) : THINKING_FACTOR[tier];
   const inputTokens = estimateInputTokens(input);
   // La salida facturable incluye los tokens de razonamiento, que Google cobra con ella
@@ -196,15 +229,21 @@ export function estimateProviderUsd(capability: CapabilityId, input: Record<stri
  * Precio de cualquier operación con coste de proveedor que no sea imagen ni video.
  * Aplica el mismo suelo: nunca por debajo del coste oficial estimado.
  */
-export function priceOperation(capability: CapabilityId, input: Record<string, unknown>, service: CreditService, settings: EngineSettings): OperationPrice {
-  const usd = estimateProviderUsd(capability, input);
+export function priceOperation(capability: CapabilityId, input: Record<string, unknown>, service: CreditService, settings: EngineSettings, modelo?: ModeloDeTexto): OperationPrice {
+  const usd = estimateProviderUsd(capability, input, modelo);
   return {
     service,
     credits: creditsOf(service, usd, settings),
     usd,
-    provider: 'router',
-    model: 'según la cadena',
-    detail: { tier: tierOf(input), estimatedInputTokens: estimateInputTokens(input), maxOutputTokens: Number(input.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS) },
+    /* Quien sepa qué modelo va a responder lo dice; quien no, sigue diciendo "la cadena". */
+    provider: modelo?.provider ?? 'router',
+    model: modelo?.modelId ?? 'según la cadena',
+    detail: {
+      tier: tierOf(input),
+      estimatedInputTokens: estimateInputTokens(input),
+      maxOutputTokens: Number(input.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS),
+      ...(modelo ? { rateInput: modelo.input, rateOutput: modelo.output } : null),
+    },
   };
 }
 

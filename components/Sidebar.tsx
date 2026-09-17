@@ -12,6 +12,8 @@ import CreateSheet, { CreateKind } from './CreateSheet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
 import { IconoWee } from './icons/IconoWee';
+import { MarcaDeCredits } from './CreditsPill';
+import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
 import { NombreDeIcono } from './icons/trazosDeWee';
 import { useIdentidadActiva } from '../hooks/useEContact';
 import { useWallet } from '../hooks/useWallet';
@@ -36,6 +38,13 @@ interface SidebarItemProps {
   nested?: boolean;
   onPress: () => void;
   right?: React.ReactNode;
+  /**
+   * La fila lleva la marca de Weë AI —"ẄAI"— en vez de un dibujo (decisión del
+   * usuario, 2026-09-16). Es lo mismo que hace Credits con su "ẄC", solo que
+   * aquí no se puede deducir del nombre del icono: Weë AI y Weë Brain comparten
+   * el cerebro, y solo la primera cambia.
+   */
+  marcaDeWeeAi?: boolean;
 }
 
 /**
@@ -61,7 +70,7 @@ const Opcion: React.FC<{
   return <SidebarItem icono={MENU_ITEM[id].icono} label={label ?? t(MENU_ITEM[id].clave)} {...resto} />;
 };
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, nested, onPress, right }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, nested, onPress, right, marcaDeWeeAi }) => {
   const { theme } = useTheme();
   /*
    * El icono toma el color del texto de SU fila, igual que en el cajón: es lo
@@ -92,7 +101,20 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
         el dibujo ocupa lo que ocupaba el glifo, así que la lista no se mueve ni
         un punto al cambiar de unos a otros.
       */}
-      {icono ? (
+      {/* Los Credits llevan su marca, "ẄC"; Weë AI la suya, "ẄAI". Las dos, sin dibujo. */}
+      {marcaDeWeeAi ? (
+        <MarcaDeWeeAi
+          size={nested ? 11 : 13}
+          color={colorDeLaFila}
+          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits]}
+        />
+      ) : icono === 'credits' ? (
+        <MarcaDeCredits
+          size={nested ? 11 : 13}
+          color={colorDeLaFila}
+          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits]}
+        />
+      ) : icono ? (
         <IconoWee
           name={icono}
           size={nested ? 14 : 18}
@@ -254,6 +276,7 @@ const Sidebar: React.FC = () => {
           <Opcion id="weetalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
           <SidebarItem
             icono={MENU_ITEM.creator.icono}
+            marcaDeWeeAi
             label={MENU_ITEM.creator.label}
             active={isActive('WeeCreator') || isActive('Specialist') || isActive('CreatorFlow') || isActive('Projects') || isActive('Project')}
             onPress={() => {
@@ -426,6 +449,8 @@ const styles = StyleSheet.create({
   itemIconoNested: {
     width: 20,
   },
+  /* La marca ocupa el hueco del icono y se centra en él: las filas no se mueven. */
+  marcaDeCredits: { textAlign: 'center' },
   /* Lo que todavía va con emoji: Buscar, y nada más. */
   itemEmoji: {
     fontSize: 18,

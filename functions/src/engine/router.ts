@@ -143,9 +143,35 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, provider: string): Prom
 export function createRouter(deps: RouterDeps) {
   const now = deps.now || (() => Date.now());
 
-  const linksFor = (capability: CapabilityId, config: EngineConfig): { links: ChainLink[]; policy: RoutingPolicy } => {
+  const linksFor = (capability: CapabilityId, config: EngineConfig, prefs: RoutingPrefs = {}): { links: ChainLink[]; policy: RoutingPolicy } => {
     const routing = config.routing[capability];
-    if (routing && routing.chain.length) return { links: routing.chain, policy: routing.policy || config.settings.defaultPolicy };
+    const policyBase = routing?.policy || config.settings.defaultPolicy;
+    /*
+     * PEDIR UN PROVEEDOR POR SU NOMBRE NO ES LO MISMO QUE ESPERAR UN RESPALDO.
+     *
+     * `allowedProviders` ya existía, pero solo servía para RECORTAR la cadena: si
+     * el proveedor pedido no estaba en ella, no había manera de llegar a él salvo
+     * metiéndolo en la cadena de todos —y entonces se convierte en el respaldo de
+     * todos, que es justo lo que no se quiere (Weë Brain pide DeepSeek; Weë Chef
+     * no debe acabar ahí porque Gemini se cayera).
+     *
+     * Así que cuando la petición nombra a sus proveedores, ESOS son la cadena, en
+     * el orden en que vienen. No se inventa ninguna elección: se obedece la que
+     * ya traía la petición. Quien no nombre a nadie —que es todo el resto de Weë—
+     * sigue con la cadena de siempre, sin enterarse.
+     */
+    if (routing && routing.chain.length) {
+      const nombrados = (prefs.allowedProviders || [])
+        .filter((provider) => !routing.chain.some((link) => link.provider === provider))
+        .map((provider) => ({ provider }));
+      /*
+       * Se AÑADEN al final, no se sustituye la cadena. Sustituirla dejaba a los
+       * demás proveedores fuera sin decir por qué, y el motivo del descarte es
+       * medio panel de administración: el filtro de más abajo los aparta uno a uno
+       * y cada uno deja dicho que quedó "fuera de la familia de modelos permitida".
+       */
+      return { links: [...routing.chain, ...nombrados], policy: policyBase };
+    }
     // Sin cadena configurada: todos los proveedores reales que atienden la capacidad, por prioridad
     const links = Object.values(deps.adapters)
       .filter((a) => a.id !== 'mock' && a.supports(capability))
@@ -160,7 +186,7 @@ export function createRouter(deps: RouterDeps) {
     const { capability, input } = request;
     const prefs: RoutingPrefs = request.prefs || {};
     const quality = resolveQuality(request);
-    const { links, policy } = linksFor(capability, config);
+    const { links, policy } = linksFor(capability, config, prefs);
     const excluded = new Set(prefs.excludeProviders || []);
     const candidates: InternalCandidate[] = [];
     const skipped: RouteDecision['skipped'] = [];
@@ -332,7 +358,14 @@ export function createRouter(deps: RouterDeps) {
         await deps.ledger.close(generationId, {
           status: 'COMPLETED',
           providerCost: result.costUSD,
-          creditsEstimated: credits,
+          /*
+           * Si quien pidió la generación sabe lo que le cuesta a la persona, manda
+           * él. Es el caso de Weë Brain, que cobra por bloques de doce y por tanto
+           * es el único que sabe si ESTA respuesta vale 0 o 1. Nadie más lo manda,
+           * así que para el resto esto es exactamente lo de siempre. Y `credits`
+           * —lo que se devuelve al llamador— no se toca: solo cambia lo anotado.
+           */
+          creditsEstimated: request.creditsEstimated ?? credits,
           durationMs,
           usage: result.usage,
           outputType: outputTypeOf(result.output.kind),

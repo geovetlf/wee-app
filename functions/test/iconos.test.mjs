@@ -148,7 +148,17 @@ console.log('\n── D · Enchufados en el Burger ──');
    * que reciben ese color: si alguien añade uno con un color propio, o se olvida
    * de pasárselo, los números dejan de cuadrar y esto salta.
    */
-  const dibujos = (cajon.match(/<IconoWee/g) || []).length;
+  /*
+   * La marca de los Credits —"ẄC", que sustituyó a su dibujo el 2026-09-15—
+   * cuenta como uno más: ocupa el hueco de un icono y tiene que tomar el mismo
+   * color, o en el Perfil Weë se quedaría negra sobre un menú oscuro.
+   */
+  /*
+   * Y desde el 2026-09-16, la de Weë AI —"ẄAI"— cuenta igual: sustituyó al
+   * cerebro, que era de Weë Brain y aparecía dos renglones seguidos diciendo
+   * dos cosas distintas.
+   */
+  const dibujos = (cajon.match(/<IconoWee|<MarcaDeCredits|<MarcaDeWeeAi/g) || []).length;
   const teñidos = (cajon.match(/color=\{[^}]*colorDeLosIconos[^}]*\}/g) || []).length;
   check('16c) todos los IconoWee del cajón reciben ese color', dibujos > 0 && dibujos === teñidos, teñidos + ' de ' + dibujos);
   /* Y ya no queda forma de que una fila suelta se pinte por su cuenta. */

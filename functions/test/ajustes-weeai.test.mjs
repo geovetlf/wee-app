@@ -143,7 +143,20 @@ check('23) y el panel dice cuántas referencias van', /referencias=\{referencias
 
 check('24) Weë Design sigue con su panel de siempre',
   /<PromptSettings/.test(leer('screens/DesignScreen.tsx')) && !/AjustesContextuales/.test(leer('screens/DesignScreen.tsx')));
-for (const rel of ['screens/SpecialistScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/BrainChatScreen.tsx']) {
+/*
+ * Y Weë Brain la usa desde el 2026-09-16, con UN solo grupo: si busca en
+ * internet o no. Es la misma hoja, no una pantalla nueva ni un sistema nuevo;
+ * lo que cambia es el catálogo, que es justo para lo que está el `grupos`.
+ */
+const brain = leer('screens/BrainChatScreen.tsx');
+check('24) Weë Brain abre la MISMA hoja, con su único grupo',
+  /<AjustesContextuales/.test(brain) && /grupos=\{AJUSTES_DE_BRAIN\}/.test(brain));
+check('24) y ese grupo guarda claves, no frases',
+  /clave: 'brain\.searchGroup'/.test(brain) && !/clave: '(Buscar|Search)/.test(brain));
+check('24) buscar en internet ya no tiene botón propio en la fila',
+  !/globe/.test(brain), 'se mudó a los ajustes');
+
+for (const rel of ['screens/SpecialistScreen.tsx', 'screens/BusinessScreen.tsx']) {
   check(`24) ${rel} sin tocar por esto`, !/AjustesContextuales|ajustesContextuales/.test(leer(rel)));
 }
 

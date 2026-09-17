@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useT } from '../contexts/IdiomaContext';
-import { brainService, BrainMessage, newMessageId } from '../services/brainService';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
+import { brainService, BrainBlock, BrainMessage, newMessageId } from '../services/brainService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { BrainQuote } from '../services/brainService';
@@ -17,6 +17,13 @@ const RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const useBrainChat = () => {
   const { user } = useAuth();
   const t = useT();
+  /*
+   * El idioma que WEË tiene puesto, del MISMO sitio del que sale cada palabra de
+   * la interfaz. No se detecta aquí ni se adivina por lo que la persona escriba:
+   * si la app está en japonés, Weë Brain contesta en japonés. Se lee en cada
+   * render, así que cambiarlo en Ajustes se nota en la respuesta siguiente.
+   */
+  const { locale } = useIdioma();
   const [chatId, setChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<BrainMessage[]>([]);
   const [pending, setPending] = useState<BrainMessage | null>(null);
@@ -29,6 +36,12 @@ export const useBrainChat = () => {
   const [quote, setQuote] = useState<BrainQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  /*
+   * Por dónde va el bloque de doce respuestas. Lo dice el servidor —aquí no se
+   * calcula ni se adivina— y llega por dos caminos: al cotizar y al recibir una
+   * respuesta. El segundo manda, porque es el que acaba de consumir una.
+   */
+  const [bloque, setBloque] = useState<BrainBlock | null>(null);
   const resumed = useRef(false);
   const quoteRun = useRef(0);
 
@@ -75,9 +88,11 @@ export const useBrainChat = () => {
           chatId: chatId || undefined,
           message,
           webSearch: options.webSearch === true,
+          locale,
         });
         if (run !== quoteRun.current) return;
         setQuote(next);
+        if (next.bloque) setBloque(next.bloque);
       } catch (e) {
         if (run !== quoteRun.current) return;
         setQuote(null);
@@ -86,7 +101,8 @@ export const useBrainChat = () => {
         if (run === quoteRun.current) setQuoting(false);
       }
     },
-    [user, chatId]
+    /* El idioma va en las dependencias: sin él, cambiarlo dejaría la petición con el anterior. */
+    [user, chatId, locale]
   );
 
   const send = useCallback(
@@ -105,8 +121,10 @@ export const useBrainChat = () => {
           imageUrl = await uploadCreatorImage(user.uid, options.imageUri, 'brain-attachments');
           setUploading(false);
         }
-        const reply = await brainService.send({ chatId: chatId || undefined, message, messageId, imageUrl, webSearch: options.webSearch === true });
+        const reply = await brainService.send({ chatId: chatId || undefined, message, messageId, imageUrl, webSearch: options.webSearch === true, locale });
         if (!chatId) setChatId(reply.chatId);
+        /* Acaba de consumir una respuesta del bloque: este es el dato bueno. */
+        if (reply.bloque) setBloque(reply.bloque);
         return true;
       } catch (e) {
         const short = creditsShortfall(e);
@@ -119,7 +137,7 @@ export const useBrainChat = () => {
         setBusy(false);
       }
     },
-    [user, chatId, busy]
+    [user, chatId, busy, locale]
   );
 
   const reset = useCallback(() => {
@@ -132,5 +150,5 @@ export const useBrainChat = () => {
 
   const visible = pending && !messages.some((m) => m.id === pending.id) ? [...messages, pending] : messages;
 
-  return { user, chatId, messages: visible, busy, uploading, error, shortfall, quote, quoting, quoteError, refreshQuote, send, reset };
+  return { user, chatId, messages: visible, busy, uploading, error, shortfall, quote, quoting, quoteError, bloque, refreshQuote, send, reset };
 };

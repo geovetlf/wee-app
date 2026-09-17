@@ -60,9 +60,20 @@ check('CONTROL: una caja con tope fijo sería detectada',
 console.log('\n─── B. Las páginas de Weë AI la usan ───');
 
 const shell = leer('components/creator/CreatorShell.tsx');
-check('9) CreatorShell usa PaginaDeCajas en móvil y en escritorio', (shell.match(/<PaginaDeCajas\b/g) || []).length === 2);
-check('9) y no le queda ningún ScrollView propio', !/<ScrollView\b/.test(shell));
-check('10) la de móvil sigue dentro de EspacioDeEscritura', /<EspacioDeEscritura[^>]*>\s*<PaginaDeCajas/.test(shell));
+/*
+ * TRES, no dos, desde que Weë Brain ancla su caja abajo (2026-09-16): la de
+ * escritorio, la de móvil sin pie y la de móvil con pie. Las tres son
+ * `PaginaDeCajas`; ninguna es un ScrollView pelado.
+ */
+check('9) CreatorShell usa PaginaDeCajas en todas sus ramas', (shell.match(/<PaginaDeCajas\b/g) || []).length === 3);
+/*
+ * Ningún ScrollView propio: todas son `PaginaDeCajas`. El tipo en un `useRef`
+ * —`useRef<ScrollView>(null)`, para poder bajar la página al final— no es una
+ * etiqueta, así que no cuenta: se quita antes de mirar.
+ */
+check('9) y no le queda ningún ScrollView propio',
+  !/<ScrollView\b/.test(shell.replace(/useRef<ScrollView>/g, 'useRef<>')));
+check('10) la de móvil sigue dentro de EspacioDeEscritura', /<EspacioDeEscritura[\s\S]{0,600}?<PaginaDeCajas/.test(shell));
 check('10) y sigue avisando a la barra al desplazarse', /<PaginaDeCajas[^>]*\{\.\.\.scrollDeBarra\}/.test(shell));
 for (const p of ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx']) {
   const src = leer(p);
@@ -125,18 +136,21 @@ check('13) toda caja de prompt de Weë AI crece y guarda sus botones', fuera.len
 /*
  * Un solo diseño para todas: la lámina de Weë Studio y Weë Design es también la
  * de Weë Chef, Weë Music, Weë Business (las tres comparten `IdeaBox`) y Weë
- * Travel (decisión del usuario, 2026-09-15). Weë Brain se pasará después; hasta
- * entonces, al menos crece y guarda sus botones con el hook.
+ * Travel (decisión del usuario, 2026-09-15). Y desde el 2026-09-16, también la
+ * de Weë Brain, que era la última que pintaba la suya: ya no queda ninguna
+ * fuera (CLAUDE.md §10).
  */
 check('14) la caja del diseño usa el hook entero', usaElHookEntero(leer('components/creator/CajaDePrompt.tsx')));
 for (const rel of [
   'components/creator/IdeaBox.tsx',
   'components/creator/TravelLauncher.tsx',
   'components/studio/StudioPromptComposer.tsx',
+  'screens/BrainChatScreen.tsx',
 ]) {
   check(`14) ${rel} usa la caja del diseño común`, usaElDisenoComun(leer(rel)));
 }
-check('14) screens/BrainChatScreen.tsx todavía pinta la suya, pero crece igual', usaElHookEntero(leer('screens/BrainChatScreen.tsx')));
+/* Y Weë Brain ya no tiene su propio campo: la caja es la de todas. */
+check('14) screens/BrainChatScreen.tsx ya no pinta su caja', !/<TextInput\b/.test(leer('screens/BrainChatScreen.tsx')));
 
 /*
  * Y los diseños antiguos no vuelven: ninguna de las dos vuelve a pintarse su
@@ -200,9 +214,28 @@ check('19) y la de Crear sigue siendo el patrón que copia',
 const espacio = leer('components/EspacioDeEscritura.tsx');
 check('20) el acomodo del teclado sabe descontar lo que la pantalla ya reserva',
   /descuento = 0/.test(espacio) && /Math\.max\(alturaTeclado - descuento, 0\)/.test(espacio));
+/*
+ * Y cada página descuenta lo que YA tiene reservado abajo: el sitio de la barra
+ * inferior. Al salir el teclado ese hueco queda debajo de él y ya no protege
+ * nada, así que se descuenta y el contenido acaba justo sobre el teclado.
+ *
+ * Vale igual con la caja dentro de la página y con la caja anclada —Weë Brain—:
+ * allí quien guarda el sitio de la barra es el pie, y por eso el pie lo suelta
+ * mientras hay teclado. Probado en teléfono el 2026-09-16: con el descuento a 0
+ * quedaban 60 puntos de franja muerta entre la caja y el teclado.
+ */
 check('20) y las páginas de Weë AI descuentan la barra inferior',
   /descuento=\{ALTO_BARRA\}/.test(leer('components/creator/CreatorShell.tsx'))
   && ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /descuento=\{isDesktop \? 0 : ALTO_BARRA\}/.test(leer(p))));
+/*
+ * Y el pie anclado no le guarda sitio a la barra de abajo: esa barra no flota
+ * encima, ocupa el suyo, y lo que le queda a la sección termina donde empieza
+ * ella. Reservárselo dejaba la caja flotando con una franja blanca debajo
+ * (visto en el teléfono, 2026-09-16).
+ */
+check('20b) el pie anclado no le guarda sitio a la barra de abajo',
+  /pie: \{\s*paddingHorizontal: SPACING\.lg,\s*paddingTop: SPACING\.sm,\s*paddingBottom: SPACING\.sm,/
+    .test(leer('components/creator/CreatorShell.tsx')));
 
 /* Atrás deshace un paso dentro de la sección; nunca se lleva lo escrito. */
 const atrasDevuelveTrue = (src) => /BackHandler\.addEventListener\('hardwareBackPress', \(\) => \{[\s\S]{0,200}return true;/.test(src);

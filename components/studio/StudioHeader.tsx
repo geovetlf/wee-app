@@ -9,9 +9,9 @@ interface Props {
    * con el tiempo se parecería cada vez menos.
    */
   nombre?: string;
-  /** La clave del lema. */
+  /** La clave del lema, la frase grande y centrada. */
   claveLema?: string;
-  /** La clave de la descripción. */
+  /** La clave de la descripción: qué cabe dentro, en dos renglones. */
   claveDescripcion?: string;
 }
 

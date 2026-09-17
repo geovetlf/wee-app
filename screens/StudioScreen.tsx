@@ -191,15 +191,31 @@ const StudioScreen: React.FC = () => {
           <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
             <StudioHeader />
 
-            <StudioPromptComposer
-              valor={prompt}
-              onCambiar={setPrompt}
-              onAjustes={() => setAjustesAbiertos(true)}
-              onReferencia={alAnadirReferencia}
-              onVoz={alAnadirReferencia}
-              onCrear={alCrear}
-              ocupado={estado === 'creando'}
-            />
+            {/*
+              LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
+              2026-09-16, solo en Weë Studio).
+
+              Entre el último renglón de la cabecera y la caja había 44 puntos:
+              20 del aire de abajo de la cabecera y 24 del `gap` de esta página.
+              Demasiado para lo primero que se hace al entrar. Se recortan aquí
+              —y solo aquí— con un margen negativo, que es lo que deja el hueco
+              en unos 18 sin tocar ni la cabecera ni la caja, que las comparten
+              todas las demás secciones.
+
+              La caja es la misma y crece igual: esto mueve dónde empieza, no
+              cuánto mide.
+            */}
+            <View style={styles.cajaArriba}>
+              <StudioPromptComposer
+                valor={prompt}
+                onCambiar={setPrompt}
+                onAjustes={() => setAjustesAbiertos(true)}
+                onReferencia={alAnadirReferencia}
+                onVoz={alAnadirReferencia}
+                onCrear={alCrear}
+                ocupado={estado === 'creando'}
+              />
+            </View>
 
             {/* Las referencias añadidas se ven bajo el compositor, no escondidas. */}
             {referencias.length > 0 && (
@@ -288,6 +304,8 @@ const styles = StyleSheet.create({
   dentro: { paddingBottom: SITIO_DE_LA_BARRA, gap: SPACING.xxl },
   /* En escritorio el contenido no se estira: se centra y se queda legible. */
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
+  /* Sube la caja 26 de los 44 que la separaban de la cabecera. Deja unos 18. */
+  cajaArriba: { marginTop: -scale(26) },
   rejilla: { marginTop: -SPACING.sm },
   referencias: {
     flexDirection: 'row',

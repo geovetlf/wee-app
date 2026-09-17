@@ -259,7 +259,7 @@ export const catalogo = {
 
   // ── Weë Business ───────────────────────────────────────────────────────
   businessHeadline: 'Your marketing, sales and strategy team in one place.',
-  businessIntro: 'Connect your social accounts, create content, publish automatically and grow your business with artificial intelligence.',
+  businessIntro: 'Create content, share everywhere and grow your business with artificial intelligence.',
   businessChip1: 'Saves time',
   businessChip2: 'More sales',
   businessChip3: 'Your business, bigger',
@@ -306,7 +306,7 @@ export const catalogo = {
   businessEj4Meta: '↑ 70%',
 
   // ── Weë Chef ───────────────────────────────────────────────────────────
-  chefHeadline: 'Your personal chef, always with you',
+  chefHeadline: 'Your chef, always with you',
   chefIntro: 'Discover recipes, build menus, make the most of what you have and eat better, more easily and more deliciously.',
   chefChip1: 'Easy recipes',
   chefChip2: 'Healthy options',

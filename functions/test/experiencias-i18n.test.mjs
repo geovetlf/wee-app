@@ -208,7 +208,13 @@ console.log('\n── C · Nada en español dentro del inglés ──');
    * cosas: las palabras que se escriben igual en los dos idiomas, y las frases
    * que no tienen idioma porque son solo huecos —'{{dia}} {{fecha}}'—.
    */
-  const IGUAL_OK = /^(Ideas|Marketing|Pop|Rock|Drama|demo|Instagram|Facebook|TikTok|YouTube)$/;
+  /*
+   * "Business Plan", "Business Coach", "Pricing Assistant" y "Brand Kit" son
+   * NOMBRES de las funciones de Weë Business y se escriben igual en los dos
+   * idiomas, como Weë Studio o Weë Writer (decisión del usuario, 2026-09-16).
+   * Lo que sí se traduce es lo que hace cada una, y eso está en sus pistas.
+   */
+  const IGUAL_OK = /^(Ideas|Marketing|Pop|Rock|Drama|demo|Instagram|Facebook|TikTok|YouTube|Business Plan|Business Coach|Business Profile|Pricing Assistant|Brand Kit|SWOT|Customer Insights|Business Ideas|Instagram Story|Facebook Story|Instagram Post|Logo|Video)$/;
   const soloHuecos = (v) => !/[A-Za-zÀ-ÿ]/.test(String(v).replace(/\{\{[^}]*\}\}/g, ''));
   const iguales = Object.keys(ES.business).filter((k) => ES.business[k] === EN.business[k]
     && !IGUAL_OK.test(ES.business[k]) && !soloHuecos(ES.business[k]));

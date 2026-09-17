@@ -445,13 +445,19 @@ console.log('\n── J · El menú Burger ──');
   check('51) con el avión delante', enElMenu[0].emoji === '✈️');
   check('51) y no está escondida como área de otra sección', !exp.EXPERIENCE_AREA.travel);
 
-  // Dónde cae dentro del menú: después de Business y antes de Brain, que es el
-  // comodín y cierra siempre la lista.
+  /*
+   * Dónde cae dentro del menú: después de Business, y cerrando la lista.
+   *
+   * Weë Brain pasó de cerrar a abrir el 2026-09-15 (decisión del usuario): es la
+   * puerta de quien no sabe a cuál entrar, así que va primero. El orden entero lo
+   * fija `ORDEN_EN_EL_MENU` y lo vigila `creator.test.mjs` (M6b); aquí solo se
+   * comprueba el sitio de Weë Travel, que es de lo que va esta suite.
+   */
   const orden = exp.WEE_EXPERIENCES.map((e) => e.id);
   check('52) va después de Business', orden.indexOf('travel') === orden.indexOf('business') + 1, orden.join(','));
-  check('52) y antes de Brain, que sigue cerrando', orden[orden.length - 1] === 'brain');
+  check('52) y cierra la lista de experiencias', orden[orden.length - 1] === 'travel');
   /* Weë Writer salió del menú al entrar en el selector de Weë Studio; las demás, en su sitio. */
-  check('52) las otras seis no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'design,studio,music,chef,business,brain');
+  check('52) las otras seis no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'brain,studio,design,music,chef,business');
 
   // La ruta: la de siempre, con su identificador.
   check('53) el menú abre la pantalla de especialista', /navigateRoot\('Specialist', \{ id: category \}\)/.test(menu));
@@ -758,11 +764,13 @@ console.log('\n── T · Header limpio, una tarjeta, y debajo la gente ──'
   const tarjeta = soloCodigo(lanzador);
 
   /*
-   * Los Credits tienen UN sitio en Weë: el menú, bajo los dos perfiles. Repetirlos
-   * en la cabecera de cada experiencia no informaba de nada nuevo y le quitaba
-   * ancho al título. Se comprueba en el marco, que es de donde se quitaron.
+   * Los Credits vuelven a la cabecera de Weë AI (decisión del usuario,
+   * 2026-09-15): ahí dentro todo cuesta Credits, así que cuántos quedan es parte
+   * de la cabecera y no un dato que haya que ir a buscar al menú. Lo que sigue
+   * valiendo es que Weë Travel no lo dibuje por su cuenta: lo pone el marco, una
+   * sola vez, y eso lo vigila entero `credits-weeai.test.mjs`.
    */
-  check('94) no hay Credits en la cabecera de Weë Creator', !/CreditsPill/.test(marco), 'CreditsPill sigue en CreatorShell');
+  check('94) el saldo lo pone el marco de Weë AI, no la sección', /<CreditsPill\s/.test(marco) && !/CreditsPill/.test(codigo), 'CreditsPill tiene que vivir solo en CreatorShell');
   check('94) ni Travel los pinta por su cuenta', !/CreditsPill|creditsBalance|useWallet/.test(tarjeta) && !/CreditsPill/.test(codigo));
 
   // La cabecera dice dónde estás con un distintivo dibujado, no con un emoji suelto.

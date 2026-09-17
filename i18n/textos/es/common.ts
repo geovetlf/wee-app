@@ -28,5 +28,7 @@ export const common = {
   anonymousUser: 'Usuario Anónimo',
   user: 'Usuario',
   yes: 'Sí',
+  /* La pareja de `yes`. Transversal como ella: aquí una vez, y nadie la repite. */
+  no: 'No',
   loadMore: 'Cargar más publicaciones',
 };

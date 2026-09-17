@@ -1,0 +1,244 @@
+/*
+ * WEË STUDIO — el sitio donde se crea, en ruso.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Trato de «вы» en minúscula, con imperativo directo donde el ruso lo pide.
+ * Los formatos —PDF, MP4— no cambian de idioma y "Weë Studio" y "Writer" son
+ * marca: se escriben en alfabeto latino dentro de la frase cirílica, nunca
+ * transliterados. Lo que sí es ruso son las unidades: los segundos van en «с».
+ *
+ * PLURALES: el ruso tiene cuatro categorías donde el español tiene dos, así que
+ * este archivo se declara con `ConPlurales` para poder añadir `_few` y `_many`
+ * a la única clave que lleva cantidad, `settingsReferences`.
+ */
+import { ConPlurales } from './plurales';
+
+export const studio: ConPlurales<typeof import('../es/studio').studio> = {
+  /* ── La cabecera ──────────────────────────────────────────────────────── */
+  slogan: 'Создавайте без границ.',
+  description: 'Изображения, видео, голос, текст и не только.\nВсё в одном месте.',
+
+  /* ── El compositor ────────────────────────────────────────────────────── */
+  placeholder: 'Что создадим сегодня?',
+  addLabel: 'Добавить',
+  referenceLabel: 'Добавить референс',
+  settingsLabel: 'Настройки создания',
+  voiceLabel: 'Диктовать',
+  sendLabel: 'Создать',
+
+  /* ── El editor a pantalla completa ────────────────────────────────────── */
+  editorTitle: 'Ваша идея',
+  editorPlaceholder: 'Опишите подробно, что хотите создать. Чем яснее, тем лучше результат.',
+  editorReferences: 'Референсы',
+  editorNoReferences: 'Вы пока ничего не добавили',
+  editorAddReference: 'Добавить референс',
+  editorCharacters: '{{contador}} символов',
+  create: 'Создать',
+
+  /* ── Los ajustes ──────────────────────────────────────────────────────── */
+  settingsTitle: 'Настройки',
+  settingsHint: 'Зависят от того, что вы создаёте',
+  settingsDone: 'Готово',
+  optFormat: 'Формат',
+  optQuality: 'Качество',
+  optResolution: 'Разрешение',
+  optStyle: 'Стиль',
+  optVariations: 'Варианты',
+  optReferences: 'Референсы',
+  optDuration: 'Длительность',
+  optMotion: 'Движение',
+  optLength: 'Длина',
+  optTone: 'Тон',
+  optLanguage: 'Язык',
+  optType: 'Тип',
+  optSize: 'Размер',
+  valAuto: 'Авто',
+  valSquare: 'Квадратный',
+  valPortrait: 'Вертикальный',
+  valLandscape: 'Горизонтальный',
+  valStandard: 'Стандартное',
+  valHigh: 'Высокое',
+  valRealistic: 'Реализм',
+  valIllustration: 'Иллюстрация',
+  valMinimal: 'Минимализм',
+  valSlow: 'Плавное',
+  valDynamic: 'Динамичное',
+  valShort: 'Короткий',
+  valMedium: 'Средний',
+  valLong: 'Длинный',
+  valNeutral: 'Нейтральный',
+  valClose: 'Дружеский',
+  valProfessional: 'Профессиональный',
+  /* Las duraciones que Weë sabe hacer: un Weël llega a quince segundos. */
+  valSec5: '5 с',
+  valSec10: '10 с',
+  valSec15: '15 с',
+  valOne: 'Один',
+  valFour: 'Четыре',
+  /*
+   * Cuántas referencias viajan con la creación. «референс» es masculino y se
+   * declina: 1 референс · 2 референса · 5 референсов. `_other` lleva la misma
+   * forma que `_many` porque solo la ven las fracciones.
+   */
+  settingsReferences_one: '{{contador}} референс',
+  settingsReferences_few: '{{contador}} референса',
+  settingsReferences_many: '{{contador}} референсов',
+  settingsReferences_other: '{{contador}} референсов',
+  /* Lo que lee un lector de pantalla en cada píldora: «Формат: Вертикальный». */
+  settingsOption: '{{grupo}}: {{opcion}}',
+
+  /* ── Las seis puertas ─────────────────────────────────────────────────── */
+  imagesTitle: 'Изображения',
+  imagesHint: 'Создание и редактирование',
+  videosTitle: 'Видео',
+  videosHint: 'До 15 секунд',
+  voiceTitle: 'Голос',
+  voiceHint: 'Озвучка и не только',
+  writerHint: 'Любые тексты',
+  docsTitle: 'Документы',
+  docsHint: 'PDF, документы и другое',
+  moreTitle: 'Ещё инструменты',
+  moreHint: 'Редактируйте, улучшайте, меняйте',
+
+  /* ── Imágenes ─────────────────────────────────────────────────────────── */
+  imgFromText: 'Текст в изображение',
+  imgFromImage: 'Изображение в изображение',
+  imgEdit: 'Редактировать изображение',
+  imgRemoveObject: 'Убрать объект',
+  imgAddObject: 'Добавить объект',
+  imgChangeBackground: 'Заменить фон',
+  imgRemoveBackground: 'Убрать фон',
+  imgChangeStyle: 'Сменить стиль',
+  imgRelight: 'Изменить свет',
+  imgExpand: 'Расширить изображение',
+  imgRestore: 'Реставрировать',
+  imgEnhance: 'Улучшить',
+  imgUpscale: 'Повысить разрешение',
+  imgVariations: 'Варианты',
+  imgCombine: 'Объединить референсы',
+  imgCharacter: 'Сохранить персонажа',
+  imgText: 'Текст на изображении',
+  imgFormats: 'Сменить формат',
+
+  /* ── Videos ───────────────────────────────────────────────────────────── */
+  vidFromText: 'Текст в видео',
+  vidFromImage: 'Изображение в видео',
+  vidFromImages: 'Несколько изображений в видео',
+  vidFromVideo: 'Видео в видео',
+  vidScene: 'Создать сцену',
+  vidContinue: 'Продолжить сцену',
+  vidVariations: 'Варианты',
+  vidMotion: 'Движение',
+  vidCamera: 'Камера',
+  vidStyle: 'Стиль',
+  vidLimit: 'До 15 секунд на одно видео',
+
+  /* ── Voz ──────────────────────────────────────────────────────────────── */
+  voxFromText: 'Текст в речь',
+  voxNarration: 'Озвучка',
+  voxPick: 'Выбрать голос',
+  voxLanguage: 'Язык',
+  voxAccent: 'Акцент',
+  voxEmotion: 'Эмоция',
+  voxTranscribe: 'Расшифровать',
+  voxSubtitles: 'Субтитры',
+  voxExtract: 'Извлечь аудио',
+  voxEnhance: 'Улучшить голос',
+  voxClean: 'Очистить аудио',
+
+  /* ── Writer ───────────────────────────────────────────────────────────── */
+  wrIdeas: 'Идеи',
+  wrPosts: 'Посты',
+  wrCaptions: 'Подписи к фото',
+  wrScripts: 'Сценарии',
+  wrStories: 'Рассказы',
+  wrBooks: 'Книги',
+  wrArticles: 'Статьи',
+  wrBlogs: 'Блоги',
+  wrEssays: 'Эссе',
+  /* «Correos» y «Cartas» se dicen igual en ruso: se separan aquí a propósito. */
+  wrEmails: 'Электронные письма',
+  wrLetters: 'Письма',
+  wrCv: 'Резюме',
+  wrDecks: 'Презентации',
+  wrProposals: 'Коммерческие предложения',
+  wrReports: 'Отчёты',
+  wrDescriptions: 'Описания',
+  wrAds: 'Реклама',
+  wrVideoScripts: 'Сценарии для видео',
+  wrPodcasts: 'Подкасты',
+  wrDialogue: 'Диалоги',
+  wrLyrics: 'Тексты песен',
+  /* «Resúmenes» no puede ser «Резюме»: esa palabra ya es el CV de arriba. */
+  wrSummaries: 'Краткое содержание',
+  wrTranslate: 'Переводы',
+  wrRewrite: 'Переписывание',
+  wrProofread: 'Корректура',
+  wrBrainstorm: 'Мозговой штурм',
+
+  /* ── Documentos ───────────────────────────────────────────────────────── */
+  docPdf: 'Создать PDF',
+  docDocument: 'Создать документ',
+  docEbook: 'Создать электронную книгу',
+  docGuide: 'Создать руководство',
+  docManual: 'Создать инструкцию',
+  docDeck: 'Создать презентацию',
+  docCatalog: 'Создать каталог',
+  docBrochure: 'Создать буклет',
+  docImageToPdf: 'Изображение в PDF',
+  docToPdf: 'Документ в PDF',
+  docPdfToText: 'PDF в текст',
+  docSummarize: 'Кратко изложить PDF',
+  docAsk: 'Задать вопрос по PDF',
+  docCompare: 'Сравнить документы',
+
+  /* ── Más herramientas ─────────────────────────────────────────────────── */
+  grpImage: 'Изображение',
+  grpVideo: 'Видео',
+  grpAudio: 'Аудио',
+  grpText: 'Текст',
+  grpFiles: 'Файлы',
+  tlCrop: 'Обрезать и изменить размер',
+  tlRecolor: 'Изменить цвет',
+  tlVidEdit: 'Редактировать',
+  tlVidCut: 'Обрезать',
+  tlVidJoin: 'Склеить',
+  tlVidSubtitles: 'Субтитры',
+  tlVidSilences: 'Убрать паузы',
+  tlVidEnhance: 'Улучшить',
+  tlVidFormat: 'Сменить формат',
+  tlVidClips: 'Извлечь клипы',
+  tlVidSpeed: 'Скорость',
+  tlVidBackground: 'Убрать фон',
+  tlAudClean: 'Очистить аудио',
+  tlAudNoise: 'Снизить шум',
+  tlTxtSummarize: 'Кратко изложить',
+  tlTxtRewrite: 'Переписать',
+  tlTxtProofread: 'Исправить ошибки',
+  tlTxtTranslate: 'Перевести',
+  tlTxtTone: 'Изменить тон',
+  tlTxtExpand: 'Расширить',
+  tlTxtSimplify: 'Упростить',
+  tlTxtExtract: 'Извлечь информацию',
+  tlFileConvert: 'Конвертировать документы',
+
+  /* ── Mis creaciones ───────────────────────────────────────────────────── */
+  creationsTitle: 'Мои работы',
+  seeAll: 'Показать все',
+  creationsEmpty: 'Здесь появится всё, что вы создадите',
+  kindImage: 'Изображение',
+  kindVideo: 'Видео',
+  kindAudio: 'Аудио',
+  kindDocument: 'Документ',
+  creationOptions: 'Действия с этой работой',
+
+  /* ── El estado de una creación ────────────────────────────────────────── */
+  creating: 'Создаём...',
+  ready: 'Работа готова',
+  readyHint: 'Это демонстрация: пока ничего не создаётся по-настоящему.',
+  dismiss: 'Понятно',
+
+  /* ── Lo que todavía no está conectado ─────────────────────────────────── */
+  soon: 'Скоро',
+  soonHint: 'У этого инструмента уже есть своё место. Осталось его подключить.',
+};

@@ -1,10 +1,34 @@
 import { CapabilityId } from '../creator/types';
 import { EngineSettings, ModelSpec, RoutingPrefs, modalityOf } from './types';
 import { serviceForCapability } from '../credits/creditCosts';
-import { priceImage, priceOperation, usdToCredits } from '../credits/aiPricing';
+import { ModeloDeTexto, priceImage, priceOperation, usdToCredits } from '../credits/aiPricing';
 import { providerReady } from './image';
+import { ADAPTERS } from './registry';
 
 export { usdToCredits };
+
+/**
+ * LA TARIFA DEL MODELO QUE DE VERDAD VA A RESPONDER.
+ *
+ * El módulo de precios no conoce el registro de proveedores a propósito —si lo
+ * importara se morderían la cola, porque los adaptadores le piden a él la cuenta
+ * de tokens—, así que el puente vive aquí, que es el lado del motor.
+ *
+ * Se busca por identificador en TODOS los adaptadores y solo entre los modelos
+ * que se cobran por tokens. Si nadie lo conoce, se devuelve `undefined` y quien
+ * pregunte se queda con el techo por nivel de `TEXT_RATES`, que es el
+ * comportamiento de siempre.
+ */
+export function tarifaDeModeloDeTexto(modelId?: string): ModeloDeTexto | undefined {
+  if (!modelId) return undefined;
+  for (const [proveedor, adaptador] of Object.entries(ADAPTERS)) {
+    const modelo = adaptador.models.find((m) => m.id === modelId && m.cost.unit === 'mtoken');
+    if (modelo) {
+      return { provider: proveedor, modelId: modelo.id, input: modelo.cost.usd, output: modelo.cost.usdOutput ?? modelo.cost.usd };
+    }
+  }
+  return undefined;
+}
 
 /**
  * De coste a Credits.

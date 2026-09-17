@@ -48,6 +48,9 @@ import { SPACING } from '../../constants/design';
  */
 const AIRE = SPACING.xl;
 
+/** El mismo aire, para quien ancle una caja fuera de la página y tenga que contarlo. */
+export const AIRE_DE_LA_CAJA = AIRE;
+
 interface ContextoDeCajas {
   /** Cuánto puede ocupar una caja entera, botones incluidos. Sin página, sin tope. */
   altoDisponible?: number;
@@ -150,6 +153,36 @@ export const PaginaDeCajas = forwardRef<ScrollView, ScrollViewProps>(
 
 PaginaDeCajas.displayName = 'PaginaDeCajas';
 
+/** Una caja anclada no mueve la página: ya está donde tiene que estar. */
+const noMoverNada = () => {};
+
+/**
+ * UNA CAJA QUE NO VIVE DENTRO DE LA PÁGINA, SINO ANCLADA DEBAJO DE ELLA.
+ *
+ * Weë Brain la usa (2026-09-16): su caja no va al final del contenido, va
+ * pegada abajo, y lo que crece y encoge es la página que queda por encima. Así
+ * el teclado no arrastra el cerebro ni los satélites: solo le quita sitio a lo
+ * que se desplaza, que es justo lo que hace la hoja de comentarios.
+ *
+ * Una caja así necesita las dos mismas cosas que cualquier otra de Weë AI, pero
+ * por otro camino:
+ *
+ *   · HASTA DÓNDE PUEDE CRECER. No se lo puede preguntar a la página —no está
+ *     dentro de ella—, así que se lo dice quien la ancla, que es quien sabe
+ *     cuánto sitio hay. Con eso la caja sigue parándose y desplazando el texto
+ *     por dentro, y sus botones no se van nunca de la vista (CLAUDE.md §9).
+ *   · QUE NADIE LA PERSIGA. Aquí no hay nada que desplazar: la caja ya está
+ *     sobre el teclado. Por eso `mantenerALaVista` no hace nada, y es la forma
+ *     de que abrir el teclado no provoque ni un `scrollTo` ni un salto.
+ */
+export const CajaAnclada: React.FC<{ alto: number; children: React.ReactNode }> = ({ alto, children }) => {
+  const valor = useMemo(
+    () => ({ altoDisponible: alto > 0 ? alto : undefined, mantenerALaVista: noMoverNada }),
+    [alto]
+  );
+  return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
+};
+
 /**
  * Lo que necesita una caja para crecer con lo escrito.
  *
@@ -159,7 +192,7 @@ PaginaDeCajas.displayName = 'PaginaDeCajas';
  *     <Botón enviar />
  *   </View>
  */
-export const useCajaQueCrece = ({ altoMinimo }: { altoMinimo: number }) => {
+export const useCajaQueCrece = ({ altoMinimo, vacia }: { altoMinimo: number; vacia?: boolean }) => {
   const { altoDisponible, mantenerALaVista } = useContext(Contexto);
   const refCaja = useRef<View>(null);
   const [altoContenido, setAltoContenido] = useState(altoMinimo);
@@ -179,6 +212,23 @@ export const useCajaQueCrece = ({ altoMinimo }: { altoMinimo: number }) => {
   useEffect(() => {
     if (enfocada.current) mantenerALaVista(refCaja.current);
   }, [altoDisponible, mantenerALaVista]);
+
+  /*
+   * CAJA VACÍA, CAJA DE UNA LÍNEA.
+   *
+   * El alto lo manda `onContentSizeChange`, y ese aviso mide el CONTENIDO del
+   * campo… mientras el campo puede crecer. En cuanto la caja llega a su tope y
+   * el texto se desplaza por dentro, lo que devuelve es el alto del campo, que
+   * ya no baja: se escribía un mensaje largo, se enviaba —y el texto se iba— y
+   * la caja se quedaba con el alto de lo que ya no estaba (visto en el teléfono,
+   * 2026-09-16).
+   *
+   * Así que cuando no hay nada escrito no se pregunta: una caja vacía mide una
+   * línea, y punto. Quien no diga si está vacía sigue como estaba.
+   */
+  useEffect(() => {
+    if (vacia) setAltoContenido(altoMinimo);
+  }, [vacia, altoMinimo]);
 
   const alMedirCaja = useCallback(
     (e: LayoutChangeEvent) => {

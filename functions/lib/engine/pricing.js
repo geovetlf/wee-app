@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isCheap = exports.usdToCredits = void 0;
+exports.tarifaDeModeloDeTexto = tarifaDeModeloDeTexto;
 exports.estimateUsd = estimateUsd;
 exports.creditsFor = creditsFor;
 exports.estimateStepCredits = estimateStepCredits;
@@ -9,6 +10,31 @@ const creditCosts_1 = require("../credits/creditCosts");
 const aiPricing_1 = require("../credits/aiPricing");
 Object.defineProperty(exports, "usdToCredits", { enumerable: true, get: function () { return aiPricing_1.usdToCredits; } });
 const image_1 = require("./image");
+const registry_1 = require("./registry");
+/**
+ * LA TARIFA DEL MODELO QUE DE VERDAD VA A RESPONDER.
+ *
+ * El módulo de precios no conoce el registro de proveedores a propósito —si lo
+ * importara se morderían la cola, porque los adaptadores le piden a él la cuenta
+ * de tokens—, así que el puente vive aquí, que es el lado del motor.
+ *
+ * Se busca por identificador en TODOS los adaptadores y solo entre los modelos
+ * que se cobran por tokens. Si nadie lo conoce, se devuelve `undefined` y quien
+ * pregunte se queda con el techo por nivel de `TEXT_RATES`, que es el
+ * comportamiento de siempre.
+ */
+function tarifaDeModeloDeTexto(modelId) {
+    var _a;
+    if (!modelId)
+        return undefined;
+    for (const [proveedor, adaptador] of Object.entries(registry_1.ADAPTERS)) {
+        const modelo = adaptador.models.find((m) => m.id === modelId && m.cost.unit === 'mtoken');
+        if (modelo) {
+            return { provider: proveedor, modelId: modelo.id, input: modelo.cost.usd, output: (_a = modelo.cost.usdOutput) !== null && _a !== void 0 ? _a : modelo.cost.usd };
+        }
+    }
+    return undefined;
+}
 /**
  * De coste a Credits.
  * - Modo "simulated" (mientras se construye Weë Creator): el catálogo del

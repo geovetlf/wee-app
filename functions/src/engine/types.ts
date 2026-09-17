@@ -47,6 +47,25 @@ export interface EngineContext {
   service?: string;
   /** Transacción de Credits que autorizó el cobro (usage_<requestId>). */
   creditTransactionId?: string;
+  /**
+   * LO QUE ESTA OPERACIÓN LE CUESTA A LA PERSONA, CUANDO EL MOTOR NO PUEDE SABERLO.
+   *
+   * El libro (`aiGenerations.creditsEstimated`) anota lo que vale cada generación,
+   * y normalmente lo deduce solo: capacidad → servicio → catálogo. Eso funciona
+   * mientras el precio dependa únicamente de la operación.
+   *
+   * Weë Brain rompe esa suposición: se cobra por BLOQUES de doce respuestas
+   * (decisión del usuario, 2026-09-16), así que once de cada doce valen 0 Credits
+   * y la duodécima vale uno. El motor no conoce el bloque —vive en Weë Brain— y
+   * deduciendo acababa anotando el precio de `ai_text`, que no es ni su servicio
+   * ni su importe: decía 2 donde se cobró 0 (visto en producción, 2026-09-16).
+   *
+   * Quien sí lo sabe lo dice aquí. No es un precio nuevo ni otro cálculo: es el
+   * MISMO número que `brainQuote` ya le enseña a la persona antes de enviar.
+   * Quien no lo diga —todas las demás secciones— sigue con la deducción de
+   * siempre, sin enterarse.
+   */
+  creditsEstimated?: number;
 }
 
 export interface EngineRequest extends EngineContext {

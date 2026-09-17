@@ -164,16 +164,32 @@ const DesignScreen: React.FC = () => {
           <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
             <StudioHeader nombre="Design" claveLema="design.slogan" claveDescripcion="design.description" />
 
-            <StudioPromptComposer
-              placeholder={t('design.placeholder')}
-              valor={prompt}
-              onCambiar={setPrompt}
-              onAjustes={() => setAjustesAbiertos(true)}
-              onReferencia={alAnadirReferencia}
-              onVoz={alAnadirReferencia}
-              onCrear={alCrear}
-              ocupado={estado === 'creando'}
-            />
+            {/*
+              LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
+              2026-09-16, solo en Weë Design; el mismo ajuste que ya lleva Weë
+              Studio).
+
+              Entre el último renglón de la cabecera y la caja había 48 puntos:
+              20 del aire de abajo de la cabecera y 28 del `gap` de esta página.
+              Se recortan aquí —y solo aquí— con un margen negativo, que deja el
+              hueco en unos 18 sin tocar ni la cabecera ni la caja, que las
+              comparten todas las demás secciones.
+
+              La caja es la misma y crece igual: esto mueve dónde empieza, no
+              cuánto mide.
+            */}
+            <View style={styles.cajaArriba}>
+              <StudioPromptComposer
+                placeholder={t('design.placeholder')}
+                valor={prompt}
+                onCambiar={setPrompt}
+                onAjustes={() => setAjustesAbiertos(true)}
+                onReferencia={alAnadirReferencia}
+                onVoz={alAnadirReferencia}
+                onCrear={alCrear}
+                ocupado={estado === 'creando'}
+              />
+            </View>
 
             {referencias.length > 0 && (
               <View style={styles.referencias}>
@@ -248,6 +264,8 @@ const styles = StyleSheet.create({
    * es lo que hace que se lea "esto es sencillo" en vez de "esto tiene de todo".
    */
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl + SPACING.xs, flex: 1 },
+  /* Sube la caja 30 de los 48 que la separaban de la cabecera. Deja unos 18. */
+  cajaArriba: { marginTop: -scale(30) },
   referencias: {
     flexDirection: 'row',
     flexWrap: 'wrap',

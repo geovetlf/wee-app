@@ -31,8 +31,17 @@ function usdToCredits(usd, settings) {
  * los Credits por dólar en aiSettings/global, no el suelo.
  */
 const creditsOf = (service, usd, settings) => {
-    const withMargin = usdToCredits(usd, settings);
-    if (settings.pricingMode === 'real')
+    /*
+     * El margen y el modo se preguntan POR SERVICIO, y la respuesta por defecto es
+     * la general. Quien no declara nada —imagen, video, voz, búsqueda— recibe
+     * exactamente lo mismo que antes de que esto existiera.
+     *
+     * La fórmula sigue siendo una sola: `usdToCredits`. Lo único que cambia es qué
+     * margen se le pasa. No hay un segundo cálculo de precios en Weë.
+     */
+    const margin = (0, creditCosts_1.getCreditMargin)(service, settings.margin);
+    const withMargin = usdToCredits(usd, { creditsPerUsd: settings.creditsPerUsd, margin });
+    if ((0, creditCosts_1.getCreditPricingMode)(service, settings.pricingMode) === 'real')
         return withMargin;
     const atCost = usd > 0 ? Math.ceil(usd * settings.creditsPerUsd) : 0;
     return Math.max((0, creditCosts_1.getCreditCost)(service), atCost);
@@ -131,11 +140,7 @@ exports.MULTIMODAL_THINKING_FACTOR = 1;
 /** Salida facturable: la respuesta más los tokens de razonamiento que se cobran con ella. */
 const billableOutput = (outputTokens, factor) => Math.round(outputTokens * (1 + factor));
 exports.billableOutput = billableOutput;
-/**
- * Coste oficial estimado de una operación que NO es de imagen ni de video.
- * Siempre por arriba: modelo más caro del nivel y salida al máximo permitido.
- */
-function estimateProviderUsd(capability, input = {}) {
+function estimateProviderUsd(capability, input = {}, modelo) {
     var _a, _b;
     const tier = tierOf(input);
     if (capability === 'voice.tts') {
@@ -153,7 +158,22 @@ function estimateProviderUsd(capability, input = {}) {
     // Búsqueda con fuentes y PDF los sirve Gemini 3.5 Flash-Lite, más caro que el
     // modelo económico: el techo tiene que ser el suyo y no el del nivel pedido.
     const multimodal = capability === 'text.search' || capability === 'doc.read';
-    const rate = multimodal ? ceilingOf(exports.TEXT_RATES[tier], exports.MULTIMODAL_RATE) : exports.TEXT_RATES[tier];
+    /*
+     * SI YA SE SABE QUÉ MODELO VA A RESPONDER, MANDA SU TARIFA.
+     *
+     * `TEXT_RATES` es un techo por NIVEL, no por modelo: el del modelo más caro
+     * que puede atender ese nivel. Sirve para cotizar cuando todavía no se sabe
+     * quién atenderá —y por eso se queda—, pero es incorrecto cuando el modelo ya
+     * está decidido: Weë Brain pide `deepseek-flash` por su nombre, y cotizarlo
+     * con tarifas de Google sería cobrar por un proveedor que no interviene.
+     *
+     * Es el mismo trato que ya tienen imagen y video, que preguntan al modelo
+     * elegido (`usdFor(model, …)`, `seedanceCostUsd(specOf(id))`). El texto era la
+     * única modalidad que seguía mirando una tabla en vez de al modelo.
+     */
+    const rate = modelo
+        ? { input: modelo.input, output: modelo.output }
+        : multimodal ? ceilingOf(exports.TEXT_RATES[tier], exports.MULTIMODAL_RATE) : exports.TEXT_RATES[tier];
     const factor = multimodal ? Math.max(exports.THINKING_FACTOR[tier], exports.MULTIMODAL_THINKING_FACTOR) : exports.THINKING_FACTOR[tier];
     const inputTokens = estimateInputTokens(input);
     // La salida facturable incluye los tokens de razonamiento, que Google cobra con ella
@@ -165,16 +185,17 @@ function estimateProviderUsd(capability, input = {}) {
  * Precio de cualquier operación con coste de proveedor que no sea imagen ni video.
  * Aplica el mismo suelo: nunca por debajo del coste oficial estimado.
  */
-function priceOperation(capability, input, service, settings) {
-    var _a;
-    const usd = estimateProviderUsd(capability, input);
+function priceOperation(capability, input, service, settings, modelo) {
+    var _a, _b, _c;
+    const usd = estimateProviderUsd(capability, input, modelo);
     return {
         service,
         credits: creditsOf(service, usd, settings),
         usd,
-        provider: 'router',
-        model: 'según la cadena',
-        detail: { tier: tierOf(input), estimatedInputTokens: estimateInputTokens(input), maxOutputTokens: Number((_a = input.maxOutputTokens) !== null && _a !== void 0 ? _a : exports.DEFAULT_MAX_OUTPUT_TOKENS) },
+        /* Quien sepa qué modelo va a responder lo dice; quien no, sigue diciendo "la cadena". */
+        provider: (_a = modelo === null || modelo === void 0 ? void 0 : modelo.provider) !== null && _a !== void 0 ? _a : 'router',
+        model: (_b = modelo === null || modelo === void 0 ? void 0 : modelo.modelId) !== null && _b !== void 0 ? _b : 'según la cadena',
+        detail: Object.assign({ tier: tierOf(input), estimatedInputTokens: estimateInputTokens(input), maxOutputTokens: Number((_c = input.maxOutputTokens) !== null && _c !== void 0 ? _c : exports.DEFAULT_MAX_OUTPUT_TOKENS) }, (modelo ? { rateInput: modelo.input, rateOutput: modelo.output } : null)),
     };
 }
 /**

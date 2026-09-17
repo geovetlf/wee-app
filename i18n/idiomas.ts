@@ -51,13 +51,37 @@ export interface Idioma {
 export const IDIOMAS: readonly Idioma[] = [
   { codigo: 'en', nombreNativo: 'English', direccion: 'ltr', listo: true },
   { codigo: 'es', nombreNativo: 'Español', direccion: 'ltr', listo: true },
-  { codigo: 'de', nombreNativo: 'Deutsch', direccion: 'ltr', listo: false },
-  { codigo: 'fr', nombreNativo: 'Français', direccion: 'ltr', listo: false },
-  { codigo: 'it', nombreNativo: 'Italiano', direccion: 'ltr', listo: false },
-  { codigo: 'pt', nombreNativo: 'Português', direccion: 'ltr', listo: false },
-  { codigo: 'ru', nombreNativo: 'Русский', direccion: 'ltr', listo: false },
+  /* Primer idioma completado tras el español y el inglés (2026-09-16): 2 232 claves. */
+  { codigo: 'de', nombreNativo: 'Deutsch', direccion: 'ltr', listo: true },
+  { codigo: 'fr', nombreNativo: 'Français', direccion: 'ltr', listo: true },
+  { codigo: 'it', nombreNativo: 'Italiano', direccion: 'ltr', listo: true },
+  /*
+   * PORTUGUÉS BRASILEÑO (pt-BR). Decisión de producto del usuario (2026-09-16)
+   * y no una elección provisional: Brasil es el mercado internacional más
+   * cercano de Weë, así que la experiencia en portugués se optimiza para allí.
+   * El diccionario `pt` ES el brasileño y no se convierte en europeo; `pt-PT`
+   * puede seguir en `LOCALES_CONTEMPLADOS` sin que eso cambie nada, porque un
+   * locale solo decide FORMATOS. Un portugués europeo, si alguna vez se ofrece,
+   * será un diccionario aparte. La regla entera está en `i18n/diccionarios.ts`
+   * y la vigila `functions/test/i18n-variantes.test.mjs`.
+   */
+  { codigo: 'pt', nombreNativo: 'Português', direccion: 'ltr', listo: true },
+  /*
+   * Primer idioma que necesita MÁS formas de plural que el español: cuatro en
+   * vez de dos. El motor ya lo preveía y el tipo lo permite desde
+   * `textos/ru/plurales.ts`; lo comprueba `functions/test/i18n-plurales-ru.test.mjs`
+   * ejecutando el traductor de verdad con los doce números que importan.
+   */
+  { codigo: 'ru', nombreNativo: 'Русский', direccion: 'ltr', listo: true },
   { codigo: 'ar', nombreNativo: 'العربية', direccion: 'rtl', listo: false },
-  { codigo: 'ko', nombreNativo: '한국어', direccion: 'ltr', listo: false },
+  /*
+   * El reverso del ruso: el coreano NO distingue número. `Intl.PluralRules`
+   * declara una sola categoría, así que la forma `_one` no se lee nunca y las
+   * dos formas de cada clave con cantidad llevan el mismo texto. Eso y las
+   * partículas —que no pueden ir pegadas a un hueco— los vigila
+   * `functions/test/i18n-coreano.test.mjs`.
+   */
+  { codigo: 'ko', nombreNativo: '한국어', direccion: 'ltr', listo: true },
   { codigo: 'zh', nombreNativo: '中文', direccion: 'ltr', listo: false },
   { codigo: 'ja', nombreNativo: '日本語', direccion: 'ltr', listo: false },
 ];

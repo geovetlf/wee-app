@@ -31,7 +31,13 @@ export const BRAIN_SPECIALISTS: Record<string, string> = {
  */
 export const BRAIN_CHAT_SYSTEM = [
   'Eres Weë Brain, el asistente general de Weë: una app para crear con inteligencia artificial.',
-  'Hablas en español neutro, claro, cálido y directo, de tú. Respondes completo pero sin relleno (normalmente menos de 250 palabras).',
+  /*
+   * El TONO vive aquí; el IDIOMA no. Esta línea decía "hablas en español
+   * neutro", y eso convertía el prompt en un prompt español: con la interfaz en
+   * japonés, Weë Brain recibía dos órdenes que se contradicen. El idioma lo pone
+   * `instruccionDeIdioma()` en cada petición, con el que WEË tenga activo.
+   */
+  'Hablas claro, cálido y directo, tuteando a la persona. Respondes completo pero sin relleno (normalmente menos de 250 palabras).',
   'Puedes conversar, resolver dudas, explicar en simple, investigar, enseñar paso a paso, planificar, dar ideas y analizar lo que la persona te cuenta o adjunta.',
   'Si te dan resultados de búsqueda, úsalos para responder con información actual y menciona de dónde sale sin inventar datos; si no sabes algo, dilo.',
   'Nunca mencionas modelos, proveedores, prompts ni términos técnicos de IA. No inventes cifras ni resultados.',
@@ -39,6 +45,60 @@ export const BRAIN_CHAT_SYSTEM = [
   `Weë tiene especialistas: ${Object.values(BRAIN_SPECIALISTS).join('; ')}.`,
   'Cuando lo que la persona quiere lograr lo hace mejor uno de esos especialistas (crear una imagen, un video, editar una foto, escribir un texto largo, una receta, un cambio de look, redecorar, hacer crecer un negocio), responde primero brevemente y termina tu mensaje con una línea final exactamente así: [[WEE:id]] usando el id del especialista (design, studio, photo, writer, beauty, chef, home o business). Si no corresponde derivar, no escribas esa línea.',
 ].join(' ');
+
+/**
+ * EN QUÉ IDIOMA CONTESTA WEË BRAIN.
+ *
+ * En el idioma que tenga puesto WEË, sea cual sea. No hay un prompt por idioma
+ * ni una lista de idiomas aquí: hay UNA frase que se arma con el locale que ya
+ * resuelve `i18n/` en el cliente (`useIdioma().locale`). El día que entre un
+ * idioma nuevo en el catálogo, esto ya lo habla —no hay nada que añadir—.
+ *
+ * El nombre del idioma se saca de `Intl.DisplayNames`, que viene en Node y
+ * conoce todos los locales del mundo, y se pide EN SU PROPIO IDIOMA: a un
+ * modelo se le entiende mejor "日本語" que "japonés". Si `Intl` no supiera
+ * resolverlo, se le pasa el código tal cual, que también entiende.
+ *
+ * ── Dos cosas que no son cosméticas ──────────────────────────────────────────
+ *
+ * 1. El locale VIENE DEL CLIENTE y acaba dentro del prompt del sistema. Eso lo
+ *    convierte en una puerta de entrada: sin filtrar, cualquiera podría mandar
+ *    un "locale" con instrucciones dentro y reescribir lo que Weë Brain cree que
+ *    es. Por eso solo pasa lo que tiene forma de etiqueta de idioma; lo demás se
+ *    descarta y manda el de reserva.
+ *
+ * 2. El de reserva es español y no inglés a propósito: es lo que Weë Brain
+ *    respondía hasta hoy, y un cliente viejo —que no manda locale— tiene que
+ *    seguir contestando igual que ayer.
+ */
+const LOCALE_CON_FORMA_DE_IDIOMA = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/;
+const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
+
+export const localeDeBrain = (locale?: unknown): string =>
+  typeof locale === 'string' && LOCALE_CON_FORMA_DE_IDIOMA.test(locale) ? locale : IDIOMA_DE_RESERVA_DE_BRAIN;
+
+export const nombreDelIdioma = (locale: string): string => {
+  try {
+    return new Intl.DisplayNames([locale], { type: 'language' }).of(locale) || locale;
+  } catch {
+    return locale;
+  }
+};
+
+/**
+ * La frase que se le añade al prompt del sistema en cada petición.
+ *
+ * Dice el idioma y dice que NO se cambie porque la persona escriba en otro: si
+ * alguien con la interfaz en coreano pregunta en inglés, la respuesta sigue en
+ * coreano, que es lo que tiene puesto. Lo único que lo cambia es pedirlo.
+ */
+export const instruccionDeIdioma = (locale?: unknown): string => {
+  const codigo = localeDeBrain(locale);
+  return [
+    `Responde SIEMPRE en ${nombreDelIdioma(codigo)} (código ${codigo}), aunque la persona te escriba en otro idioma.`,
+    'Cambia de idioma solo si te lo pide explícitamente.',
+  ].join(' ');
+};
 
 const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
   travel:

@@ -96,10 +96,16 @@ console.log('\n─── B. La pantalla: la estructura de Weë Studio ───'
 
 check('7) Weë Chef tiene pantalla propia y se entrega desde la de especialista',
   /if \(id === 'chef'\) return <ChefScreen \/>;/.test(leer('screens/SpecialistScreen.tsx')));
-check('8) lleva la cabecera unificada, con su saldo',
-  /<CabeceraDeSeccion[\s\S]{0,220}nombre="Chef"/.test(pantalla) && /\n\s+credits\n/.test(pantalla));
-check('9) la cabecera sabe enseñar el saldo, y sale del mismo sitio que en el resto de Weë',
-  /credits &&[\s\S]{0,200}<CreditsPill compact \/>/.test(leer('components/creator/CabeceraDeSeccion.tsx')));
+check('8) lleva la cabecera unificada de Weë AI',
+  /<CabeceraDeSeccion[\s\S]{0,220}nombre="Chef"/.test(pantalla));
+/*
+ * El saldo ya no es una opción de Chef: desde el 2026-09-15 lo llevan TODAS las
+ * secciones de Weë AI, y quién lo dibuja lo decide la cabecera común. Lo vigila
+ * entero `credits-weeai.test.mjs`; aquí solo se comprueba que Chef lo hereda.
+ */
+check('9) y con ella el saldo, que es de la cuenta y viene de la pieza común',
+  /<CreditsPill compact \/>/.test(leer('components/creator/CabeceraDeSeccion.tsx'))
+  && !/CreditsPill|useWallet/.test(pantalla));
 check('10) la caja es la única de Weë AI', /<CajaDePrompt/.test(pantalla));
 /*
  * Y va VACÍA: sin invitación encima, sin frase dentro y sin píldoras debajo

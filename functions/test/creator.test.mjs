@@ -697,7 +697,8 @@ console.log('\n── Las secciones de Weë AI ya no duplican el muro ──');
    * presentación con sellos e ilustración.
    */
   check('2) las secciones conservan sus herramientas y su cabecera',
-    /<ActionGrid actions=\{spec\.actions\}/.test(pantalla) && /<CabeceraDeSeccion nombre=\{nombreCorto\} lema=\{spec\.headline\} \/>/.test(pantalla)
+    /<ActionGrid actions=\{spec\.actions\}/.test(pantalla)
+    && /<CabeceraDeSeccion nombre=\{nombreCorto\} lema=\{spec\.headline\} descripcion=\{spec\.intro\} \/>/.test(pantalla)
     && /sinFranjaSuperior/.test(pantalla) && !/<SpecialistHero/.test(pantalla)
     && /\{spec\.upload && <UploadBox/.test(pantalla) && /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla));
   check('2) y su caja de idea y sus ejemplos vuelven a todas',
@@ -2010,16 +2011,20 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   check('C6) y el resto de filas del menú siguen ahí', ["fila('saved'", "fila('settings'", "fila('help'"].every((t) => codigoMenu.includes(t)));
 
   /*
-   * 7) Los Credits acabaron teniendo UN solo sitio.
+   * 7) Los Credits, DENTRO de Weë AI, se ven en la cabecera.
    *
-   * Cuando salieron del Home (fase UI) se dejaron en la cabecera de Weë Creator,
-   * porque allí parecían informar de algo. En 2E-69 se quitaron también: no
-   * informaban —el saldo no cambia por entrar en una sección— y le robaban ancho
-   * al título justo donde el muro tenía que mandar. Ahora el saldo vive en el
-   * menú, bajo los dos perfiles, y en ningún otro sitio.
+   * Historia de la decisión, que ha ido y ha vuelto: salieron del Home (fase UI)
+   * y se dejaron en la cabecera de Weë Creator; en 2E-69 se quitaron de allí
+   * porque entonces estas pantallas empezaban por el muro y el número le robaba
+   * ancho al título. Desde el 2026-09-15 vuelven, por decisión del usuario: las
+   * pantallas ya no empiezan por el muro sino por lo que se crea, y ahí dentro
+   * todo cuesta Credits, así que cuántos quedan es parte de la cabecera.
+   *
+   * Lo que no cambió: una sola pieza, un solo sitio POR PANTALLA, y el saldo de
+   * la CUENTA. Eso lo vigila entero `credits-weeai.test.mjs`.
    */
-  check('C7) Weë Creator ya no repite el saldo', !/CreditsPill/.test(leer('components/creator/CreatorShell.tsx')));
-  check('C7) ni ninguna pantalla de especialista', !/CreditsPill/.test(leer('screens/SpecialistScreen.tsx')));
+  check('C7) Weë AI enseña el saldo en su cabecera', /<CreditsPill\s/.test(leer('components/creator/CreatorShell.tsx')));
+  check('C7) y ninguna pantalla de especialista lo dibuja por su cuenta', !/CreditsPill/.test(leer('screens/SpecialistScreen.tsx')));
   check('C7) y la barra lateral lo enseña como fila, junto a los perfiles', /<Opcion\s+id="credits"/.test(leer('components/Sidebar.tsx')) && !/<CreditsPill/.test(sinComentarios(leer('components/Sidebar.tsx'))));
   check('C7) el componente no se ha duplicado', fs2.existsSync(new URL('../../components/CreditsPill.tsx', import.meta.url)));
 }
@@ -2108,7 +2113,12 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   }
 
   // 5) Sin duplicados, y Weë Creator entero en los dos.
-  check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/'credits'|"credits"/g) || []).length === 1 && (limpio(barra).match(/id="credits"/g) || []).length === 1);
+  /*
+   * Se cuentan FILAS del menú, no la palabra: desde que los Credits llevan su
+   * marca "ẄC" en vez de un dibujo, el identificador también aparece en el `if`
+   * que decide cuál de los dos se pinta, y eso no es una opción repetida.
+   */
+  check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/fila\('credits'/g) || []).length === 1 && (limpio(barra).match(/id="credits"/g) || []).length === 1);
   check('M5) la barra ya no tiene un "Perfil" suelto además de los dos', !/label="Perfil"/.test(limpio(barra)));
   check('M5) las experiencias salen de su fuente de siempre en los dos', /WEE_EXPERIENCES\.map/.test(cajon) && /WEE_EXPERIENCES\.map/.test(barra));
   check('M5) y ninguno escribe a mano una experiencia', !/Weë Travel|Weë Design|Weë Chef/.test(limpio(cajon) + limpio(barra)));
@@ -2118,6 +2128,37 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   const exp3 = await import('data:text/javascript;base64,' + Buffer.from(experiencias).toString('base64'));
   check('M6) Weë Travel está en el menú una sola vez', exp3.WEE_EXPERIENCES.filter((e) => e.id === 'travel').length === 1);
   check('M6) y las siete visibles son las mismas para los dos', exp3.WEE_EXPERIENCES.length === 7, String(exp3.WEE_EXPERIENCES.length));
+
+  /*
+   * EL ORDEN DE WEË AI, FIJADO (decisión del usuario, 2026-09-15).
+   *
+   * Brain primero —es la puerta de quien no sabe a cuál entrar— y después el
+   * resto. Lo decide `ORDEN_EN_EL_MENU`, una lista de identificadores, y no el
+   * orden en que estén escritas en el catálogo: así cambiar un sitio es mover
+   * una palabra y no un bloque de treinta líneas.
+   *
+   * Es el MISMO en los dos menús y con los dos perfiles, porque los dos recorren
+   * esta lista y nadie mira `isWee` para ordenarla. Y "Mis proyectos" va al
+   * final, fuera de la lista, porque no es una experiencia.
+   */
+  const ORDEN = 'brain · studio · design · music · chef · business · travel';
+  check('M6b) el orden de Weë AI es el acordado',
+    exp3.WEE_EXPERIENCES.map((e) => e.id).join(' · ') === ORDEN,
+    exp3.WEE_EXPERIENCES.map((e) => e.id).join(' · '));
+  check('M6b) y lo decide la lista de orden, no el catálogo',
+    Array.isArray(exp3.ORDEN_EN_EL_MENU) && exp3.ORDEN_EN_EL_MENU.join(' · ') === ORDEN);
+  check('M6b) ninguno de los dos menús reordena por su cuenta',
+    !/sort\(|reverse\(/.test(limpio(cajon)) && !/sort\(|reverse\(/.test(limpio(barra)));
+  check('M6b) ni cambia el orden según el perfil',
+    !/isWee[^\n]*WEE_EXPERIENCES|WEE_EXPERIENCES[^\n]*isWee/.test(limpio(cajon) + limpio(barra)));
+  check('M6b) y "Mis proyectos" va después de las experiencias, no dentro',
+    limpio(cajon).indexOf('WEE_EXPERIENCES.map') < limpio(cajon).indexOf("fila('projects'")
+    && !exp3.WEE_EXPERIENCES.some((e) => e.id === 'projects'));
+
+  /* CONTROL: si alguien reordenara la lista, la comprobación de arriba caería. */
+  check('CONTROL: otro orden sería detectado',
+    [...exp3.ORDEN_EN_EL_MENU].reverse().join(' · ') !== ORDEN,
+    'si esto pasara, M6b no protegería nada');
 
   // 7) La navegación no cambió: cada uno sigue yendo a donde iba.
   check('M7) el cajón sigue cerrándose antes de navegar', /const after = \(fn: \(\) => void\)/.test(cajon) && /after\(\(\) => navigateRoot\('CreditStore'\)\)/.test(cajon));

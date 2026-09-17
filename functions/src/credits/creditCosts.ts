@@ -1,5 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../creator/types';
+import { PricingMode } from '../engine/types';
 
 /**
  * Catálogo de costos en Credits (docs/CREDITS.md §6).
@@ -36,6 +37,25 @@ export const CREDIT_COSTS = {
   ai_transcribe: 2,        // Gemini 3.5 Transcribe: ≈ USD 0.005 por minuto
   ai_music: 30,            // Weë Music pausada: sin proveedor activo
   // Texto
+  /*
+   * WEË BRAIN TIENE SU PROPIO SERVICIO (decisión del usuario, 2026-09-16).
+   *
+   * No es un capricho de contabilidad: `ai_text` lo cobran la receta de Weë Chef,
+   * los pasos de texto de Weë Studio, Weë Travel, Weë Business y Weë Design. Darle
+   * a Brain otro precio a través de `ai_text` se los cambiaba a todos —bajó la
+   * receta de Chef de 2 Credits a 1 y lo cazaron las pruebas—.
+   *
+   * Con servicio propio, Brain se cobra por lo que de verdad cuesta su modelo más
+   * su margen (`CREDIT_POLICY`), y `ai_text` se queda exactamente como estaba.
+   * Además su consumo queda separado en el historial y en las estadísticas, que es
+   * lo que permitirá medir Brain por su cuenta.
+   *
+   * Este número es el precio de catálogo y el suelo del modo prueba; con
+   * `pricingMode: 'real'` NO se usa como precio. Está en 1 porque es lo que da el
+   * cálculo real: DeepSeek-V4.1-Flash ≈ USD 0.0036 por respuesta, más un 20 %, son
+   * 0.43 Credits, y la moneda de Weë es entera.
+   */
+  ai_brain: 1,
   ai_text: 2,              // Gemini 3.8 Flash: ≈ USD 0.005 por paso
   ai_text_pro: 7,          // Modelo de razonamiento (novela, guion, plan de negocio): ≈ USD 0.046
   // Las primeras 5 000 búsquedas de Google al mes son gratis en los modelos Gemini 3.x;
@@ -47,6 +67,53 @@ export const CREDIT_COSTS = {
 
 export type CreditService = keyof typeof CREDIT_COSTS;
 export const CREDIT_SERVICES = Object.keys(CREDIT_COSTS) as CreditService[];
+
+/**
+ * CÓMO SE LE PONE PRECIO A CADA SERVICIO (decisión del usuario, 2026-09-16).
+ *
+ * El catálogo de arriba dice CUÁNTO cuesta cada cosa. Esto dice CÓMO se calcula,
+ * y solo para quien necesita algo distinto de lo general:
+ *
+ *   · `pricingMode: 'real'` → el precio sale del coste del proveedor por el
+ *     margen, en vez del número del catálogo.
+ *   · `margin` → el margen de ESE servicio, en vez del global de `aiSettings`.
+ *
+ * Quien no aparezca aquí se comporta exactamente igual que siempre: catálogo y
+ * margen global. Imagen, video, voz y búsqueda no aparecen, y por eso no cambian.
+ *
+ * ── Por qué Weë Brain está aquí ──────────────────────────────────────────────
+ *
+ * Brain es la experiencia de uso diario: se entra a preguntar cualquier cosa,
+ * muchas veces al día. Su precio tiene que seguir a lo que de verdad cuesta, no
+ * a un número de catálogo pensado para otro modelo —`ai_text: 2` se calculó con
+ * Gemini 3.8 Flash, que ya no es el que responde—. Y su margen es el más bajo de
+ * Weë a propósito: se gana con el volumen, no con el mensaje.
+ *
+ * Los dos valores se sobreescriben desde Firestore (`creditCosts/{servicio}`,
+ * campos `margin` y `pricingMode`) sin desplegar nada.
+ *
+ * AVISO: el margen NO pasa por el `Math.floor` que recorta los Credits del
+ * catálogo. Son cosas distintas —uno es dinero entero, el otro una proporción—
+ * y redondear 0.20 lo dejaría en cero.
+ */
+export interface PoliticaDeServicio {
+  /** Margen sobre el coste (0.2 = 20 %). Sin esto, el margen global. */
+  margin?: number;
+  /** Cómo se calcula el precio. Sin esto, el modo global. */
+  pricingMode?: PricingMode;
+}
+
+/*
+ * SOLO ENTRA AQUÍ QUIEN NECESITE ALGO DISTINTO DE LO GENERAL.
+ *
+ * `ai_text` NO está y no puede estar: lo cobran Weë Chef, Weë Studio, Weë Travel,
+ * Weë Business y Weë Design, y ponerlo en modo real les cambiaba el precio a
+ * todas (la receta de Chef bajó de 2 a 1 Credit y lo cazó
+ * `test/estimate-plan.test.mjs`). Por eso Weë Brain tiene servicio propio.
+ */
+export const CREDIT_POLICY: Partial<Record<CreditService, PoliticaDeServicio>> = {
+  ai_brain: { margin: 0.2, pricingMode: 'real' },
+};
 
 /** Nombre que ve la persona por cada servicio (historial, avisos). */
 export const SERVICE_LABEL: Record<CreditService, string> = {
@@ -65,6 +132,7 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   ai_audio: 'Generación de voz',
   ai_transcribe: 'Transcripción y subtítulos',
   ai_music: 'Generación de música',
+  ai_brain: 'Respuesta de Weë Brain',
   ai_text: 'Generación de texto',
   ai_text_pro: 'Texto largo de máxima calidad',
   ai_search: 'Búsqueda con IA',
@@ -161,21 +229,36 @@ export function serviceForCapability(capability: CapabilityId, input: Record<str
 
 // ── Sobreescrituras desde Firestore (administración), con caché ──
 const CACHE_MS = 60_000;
-let overrides: { at: number; values: Partial<Record<CreditService, number>> } | null = null;
+let overrides: { at: number; values: Partial<Record<CreditService, number>>; policies: Partial<Record<CreditService, PoliticaDeServicio>> } | null = null;
 
 export async function loadCostOverrides(force = false): Promise<Partial<Record<CreditService, number>>> {
   if (!force && overrides && Date.now() - overrides.at < CACHE_MS) return overrides.values;
   const values: Partial<Record<CreditService, number>> = {};
+  const policies: Partial<Record<CreditService, PoliticaDeServicio>> = {};
   try {
     const snap = await getFirestore().collection('creditCosts').get();
     snap.forEach((doc) => {
-      const credits = Number(doc.data()?.credits);
-      if ((CREDIT_SERVICES as string[]).includes(doc.id) && Number.isFinite(credits) && credits >= 0) values[doc.id as CreditService] = Math.floor(credits);
+      if (!(CREDIT_SERVICES as string[]).includes(doc.id)) return;
+      const service = doc.id as CreditService;
+      const data = doc.data() || {};
+      const credits = Number(data.credits);
+      if (Number.isFinite(credits) && credits >= 0) values[service] = Math.floor(credits);
+      /*
+       * El margen se lee TAL CUAL: es una proporción, no Credits. Pasarlo por el
+       * `Math.floor` de arriba convertiría un 20 % en cero. Se acota a algo
+       * sensato para que un dedo torpe en el panel no ponga un margen de 5 000 %.
+       */
+      const margin = Number(data.margin);
+      const mode = data.pricingMode;
+      const politica: PoliticaDeServicio = {};
+      if (Number.isFinite(margin) && margin >= 0 && margin <= 10) politica.margin = margin;
+      if (mode === 'real' || mode === 'simulated') politica.pricingMode = mode;
+      if (politica.margin !== undefined || politica.pricingMode !== undefined) policies[service] = politica;
     });
   } catch (error) {
     console.warn('Credit Engine: no se pudieron leer los costos de Firestore, se usa el catálogo:', error);
   }
-  overrides = { at: Date.now(), values };
+  overrides = { at: Date.now(), values, policies };
   return values;
 }
 
@@ -187,6 +270,23 @@ export const invalidateCostOverrides = (): void => {
 export function getCreditCost(service: CreditService): number {
   const override = overrides?.values[service];
   return override !== undefined ? override : CREDIT_COSTS[service];
+}
+
+/**
+ * El margen de un servicio: el suyo si lo tiene, y si no el del motor.
+ *
+ * Se resuelve igual que el precio —Firestore primero, luego el catálogo del
+ * código, luego lo general—, así que no hay dos maneras de averiguar un precio
+ * en Weë: hay una, con una excepción declarada por servicio.
+ */
+export function getCreditMargin(service: CreditService, fallback: number): number {
+  const valor = overrides?.policies[service]?.margin ?? CREDIT_POLICY[service]?.margin;
+  return valor === undefined ? fallback : valor;
+}
+
+/** Cómo se le pone precio a un servicio: lo suyo si lo tiene, y si no lo del motor. */
+export function getCreditPricingMode(service: CreditService, fallback: PricingMode): PricingMode {
+  return overrides?.policies[service]?.pricingMode ?? CREDIT_POLICY[service]?.pricingMode ?? fallback;
 }
 
 export const isCreditService = (value: unknown): value is CreditService => typeof value === 'string' && (CREDIT_SERVICES as string[]).includes(value);

@@ -27,7 +27,7 @@ export const composer = {
   showOptions: 'Mostrar las opciones de publicar',
   hideOptions: 'Ocultar las opciones de publicar',
   currentDestination: '{{destino}}, destino actual',
-  generalWall: 'Muro general',
+  generalWall: 'Wäll general',
   placeholderPollExtra: 'Añade algo más si quieres (opcional)…',
   placeholderQuestion: '¿Qué quieres preguntarle a la comunidad?',
   placeholderWeel: 'Cuenta qué creaste para tu Weël y con qué IA…',

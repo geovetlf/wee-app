@@ -192,12 +192,18 @@ const ARRIBA_DEL_TECLADO = {
   'screens/ChatScreen.tsx': 'pantalla sin ruta: no está enlazada en la navegación',
 };
 
+/*
+ * Las piezas de `components/creator/` y `components/business/` no se pintan
+ * nunca solas: viven dentro de `CreatorShell`, que ya acomoda el teclado para
+ * toda la pantalla. Pedirles que lo hagan otra vez sería acomodarlo dos veces.
+ */
 const acomoda = (x) =>
   /EspacioDeEscritura/.test(x.src) ||
   /useAlturaDelTeclado/.test(x.src) ||
   /Keyboard\.addListener/.test(x.src) ||
   /CreatorShell/.test(x.src) ||
-  x.rel.startsWith('components/creator/');
+  x.rel.startsWith('components/creator/') ||
+  x.rel.startsWith('components/business/');
 
 const desatendidas = superficies.filter((x) => !acomoda(x) && !(x.rel in ARRIBA_DEL_TECLADO));
 

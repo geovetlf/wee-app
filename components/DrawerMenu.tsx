@@ -32,6 +32,8 @@ const isWeb = Platform.OS === 'web';
 const VERDE_DEL_PERFIL_WEE = '#39FF14';
 import { Ionicons } from '@expo/vector-icons';
 import { IconoWee } from './icons/IconoWee';
+import { MarcaDeCredits } from './CreditsPill';
+import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
 import { NombreDeIcono } from './icons/trazosDeWee';
 import { useT } from '../contexts/IdiomaContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -331,13 +333,28 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
        */
       style={opts.small ? styles.subRow : styles.row}
     >
-      <IconoWee
-        name={icono}
-        size={opts.small ? scale(18) : scale(20)}
-        /* Solo el DIBUJO. El nombre de la fila sigue tomando el color de siempre. */
-        color={opts.danger ? theme.colors.error : colorDeLosIconos}
-        style={[styles.rowIcono, opts.small && styles.subRowIcono]}
-      />
+      {/*
+        Los Credits no llevan dibujo: llevan su marca, "ẄC" (decisión del
+        usuario, 2026-09-15). Es la misma pieza que la píldora de Weë AI, y toma
+        el color de los iconos de su fila, así que se lee en el menú claro del
+        Perfil Real y en el oscuro del Perfil Weë. Ocupa el mismo hueco que un
+        icono para que los nombres de las filas sigan alineados.
+      */}
+      {icono === 'credits' ? (
+        <MarcaDeCredits
+          size={opts.small ? scale(13) : scale(14)}
+          color={opts.danger ? theme.colors.error : colorDeLosIconos}
+          style={[styles.rowIcono, opts.small && styles.subRowIcono, styles.marcaDeCredits]}
+        />
+      ) : (
+        <IconoWee
+          name={icono}
+          size={opts.small ? scale(18) : scale(20)}
+          /* Solo el DIBUJO. El nombre de la fila sigue tomando el color de siempre. */
+          color={opts.danger ? theme.colors.error : colorDeLosIconos}
+          style={[styles.rowIcono, opts.small && styles.subRowIcono]}
+        />
+      )}
       <View style={styles.rowHueco}>
         <TouchableOpacity
           style={opts.small ? styles.subRowToque : styles.rowToque}
@@ -520,7 +537,13 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               El vacío de en medio ya no despliega, ni pliega, ni navega.
             */}
             <View style={styles.row}>
-              <IconoWee name={MENU_ITEM.creator.icono} size={scale(20)} color={colorDeLosIconos} style={styles.rowIcono} />
+              {/*
+                Weë AI lleva su marca, "ẄAI", y no un dibujo (decisión del
+                usuario, 2026-09-16). El cerebro que llevaba antes es de Weë
+                Brain, que tiene su propia fila justo debajo: el mismo dibujo en
+                dos renglones seguidos decía dos cosas distintas.
+              */}
+              <MarcaDeWeeAi size={scale(13)} color={colorDeLosIconos} style={[styles.rowIcono, styles.marcaDeCredits, styles.marcaAncha]} />
               <View style={styles.rowHueco}>
                 <TouchableOpacity
                   style={styles.rowToque}
@@ -678,6 +701,14 @@ const styles = StyleSheet.create({
     width: scale(24),
     alignSelf: 'center',
   },
+  /* La marca ocupa el hueco del icono y se centra en él: las filas no se mueven. */
+  marcaDeCredits: { textAlign: 'center' },
+  /*
+   * Tres letras no caben en el hueco de dos. Se le dan ocho puntos más y se le
+   * quitan del margen que viene después, así que la marca cabe entera y el
+   * nombre de la fila sigue empezando donde empiezan todos los demás.
+   */
+  marcaAncha: { width: scale(32), marginRight: scale(-8) },
   /*
    * El hueco entre el nombre y el adorno de la derecha. Se lleva el `flex` que
    * antes tenía el texto: sigue empujando el adorno al borde, pero no escucha.

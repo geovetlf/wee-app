@@ -29,6 +29,17 @@ interface Props {
   /** Los botones grises de la izquierda. Sin ellos, la fila lleva solo el amarillo. */
   acciones?: AccionDeLaCaja[];
   /**
+   * Los que van pegados al de enviar, al otro lado del hueco.
+   *
+   * Casi ninguna sección los necesita: sus botones preparan la creación y viven
+   * todos juntos a la izquierda. Weë Brain sí (decisión del usuario,
+   * 2026-09-16): allí el micrófono es otra forma de DECIR lo mismo que se
+   * escribe, así que va junto al de enviar y no con los de adjuntar.
+   *
+   * Sin esta lista la fila es exactamente la de siempre.
+   */
+  accionesDerecha?: AccionDeLaCaja[];
+  /**
    * Cómo se llama el campo para quien no lo ve. Por defecto, lo que dice el
    * propio `placeholder`, que es lo normal. Se pasa aparte cuando la caja va
    * vacía a propósito —Weë Chef— y aun así tiene que poder anunciarse.
@@ -39,6 +50,18 @@ interface Props {
   /** Intro envía en vez de hacer salto de línea. Para las cajas que abren un flujo. */
   enviarConIntro?: boolean;
   editable?: boolean;
+  /**
+   * LA CAJA SIN CONTORNO: NI BORDE NI SOMBRA.
+   *
+   * Weë Brain la pide así (decisión del usuario, 2026-09-16): allí la
+   * conversación tampoco lleva tarjeta ni bordes, y una raya alrededor de la
+   * caja era lo único que quedaba dibujando un cuadro en la pantalla.
+   *
+   * Lo que la define entonces es su relleno, no su contorno: se apoya en el
+   * mismo gris claro que las burbujas. Sin esto, la caja es la de siempre, y
+   * ninguna otra sección se entera.
+   */
+  sinMarco?: boolean;
 }
 
 /**
@@ -67,11 +90,12 @@ interface Props {
  * largo que sea el prompt. Eso lo resuelve `useCajaQueCrece`.
  */
 const CajaDePrompt: React.FC<Props> = ({
-  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, ocupado, enviarConIntro, editable,
+  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco,
 }) => {
   const { theme } = useTheme();
-  const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO });
   const hayTexto = valor.trim().length > 0;
+  /* Sin nada escrito, la caja vuelve a medir una línea. No se fía de la medida vieja. */
+  const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO, vacia: !hayTexto });
   const puedeEnviar = hayTexto && !ocupado && editable !== false;
 
   /*
@@ -90,7 +114,13 @@ const CajaDePrompt: React.FC<Props> = ({
     <View
       ref={caja.refCaja}
       onLayout={caja.alMedirCaja}
-      style={[styles.caja, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+      style={[
+        styles.caja,
+        sinMarco
+          ? { backgroundColor: theme.colors.surface }
+          : { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+        sinMarco && styles.cajaSinMarco,
+      ]}
     >
       <TextInput
         {...caja.propsDelCampo}
@@ -116,10 +146,15 @@ const CajaDePrompt: React.FC<Props> = ({
         puntos. Lo que se encoge es el hueco ENTRE botones, nunca el botón: el
         dedo sigue teniendo sus 42 y sus 50, que es lo que no se puede tocar.
       */}
-      <View style={[styles.acciones, (acciones?.length ?? 0) >= 5 && styles.accionesJuntas]}>
+      <View style={[styles.acciones, (acciones?.length ?? 0) + (accionesDerecha?.length ?? 0) >= 5 && styles.accionesJuntas]}>
         {(acciones ?? []).map((accion) => (
           <TouchableOpacity
-            key={accion.etiqueta}
+            /*
+             * La clave lleva icono Y etiqueta. Con la etiqueta sola, dos botones
+             * que se llaman igual —pasó en Weë Brain con "Adjuntar"— comparten
+             * clave y React se queja en voz alta delante de la persona.
+             */
+            key={accion.icono + '·' + accion.etiqueta}
             style={[styles.accion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
             onPress={accion.alPulsar}
             activeOpacity={0.7}
@@ -130,6 +165,18 @@ const CajaDePrompt: React.FC<Props> = ({
           </TouchableOpacity>
         ))}
         <View style={styles.empuje} />
+        {(accionesDerecha ?? []).map((accion) => (
+          <TouchableOpacity
+            key={accion.icono + '·' + accion.etiqueta}
+            style={[styles.accion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+            onPress={accion.alPulsar}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={accion.etiqueta}
+          >
+            <Ionicons name={accion.icono as any} size={scale(20)} color={theme.colors.text} />
+          </TouchableOpacity>
+        ))}
         <TouchableOpacity
           style={[styles.enviar, { backgroundColor: puedeEnviar ? theme.colors.accent : theme.colors.surface }]}
           onPress={enviar}
@@ -163,6 +210,13 @@ const styles = StyleSheet.create({
     shadowRadius: scale(14),
     shadowOffset: { width: 0, height: scale(4) },
     elevation: 2,
+  },
+  /* Sin contorno: la define su relleno. Ni raya ni sombra que dibujen un cuadro. */
+  cajaSinMarco: {
+    borderWidth: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   campo: {
     fontSize: FONT_SIZE.md,

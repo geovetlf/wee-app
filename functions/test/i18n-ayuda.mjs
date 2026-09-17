@@ -122,8 +122,21 @@ const cargarMotor = () => (motor ||= (async () => {
   return import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 })());
 
-/** El `t` de un idioma, con los diccionarios leídos del proyecto. */
+/**
+ * El `t` de un idioma, con los diccionarios leídos del proyecto.
+ *
+ * Los idiomas se DESCUBREN mirando qué carpetas hay en `i18n/textos/`, no se
+ * escriben a mano. Antes estaban fijos —`{ es, en }`— y eso tenía un filo malo:
+ * pedir `traductorDe('de')` no fallaba, devolvía inglés por el respaldo. Una
+ * prueba del alemán habría pasado comprobando textos ingleses, que es peor que
+ * no tenerla. Ahora, el día que entre el francés, esto ya lo traduce.
+ */
 export const traductorDe = async (idioma = 'es') => {
   const { crearTraductor } = await cargarMotor();
-  return crearTraductor(idioma, { es: textosDe('es'), en: textosDe('en') });
+  const carpeta = new URL('i18n/textos/', RAIZ);
+  const diccionarios = {};
+  for (const idiomaDisponible of fs.readdirSync(carpeta).filter((n) => fs.statSync(new URL(n, carpeta)).isDirectory())) {
+    diccionarios[idiomaDisponible] = textosDe(idiomaDisponible);
+  }
+  return crearTraductor(idioma, diccionarios);
 };

@@ -28,5 +28,6 @@ export const common: typeof import('../es/common').common = {
   anonymousUser: 'Anonymous user',
   user: 'Someone',
   yes: 'Yes',
+  no: 'No',
   loadMore: 'Load more posts',
 };

@@ -575,6 +575,19 @@ service cloud.firestore {
       }
     }
 
+    // === WEË BRAIN: EL BLOQUE DE DOCE RESPUESTAS ===
+    // Cerrado de los dos lados. El contador decide cuándo se cobra un Credit, así
+    // que dejarlo leer o escribir desde el teléfono sería dejar que la persona se
+    // ponga el contador a cero. Lo mueve solo el servidor, dentro de una
+    // transacción, y lo que la pantalla necesita saber —"7/12"— se lo devuelven
+    // las callables brainQuote y brainChat, ya calculado.
+    match /brainUsage/{userId} {
+      allow read, write: if false;
+      match /respuestas/{messageId} {
+        allow read, write: if false;
+      }
+    }
+
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
     match /creatorProjects/{projectId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

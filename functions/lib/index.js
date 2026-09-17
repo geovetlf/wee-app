@@ -41,7 +41,7 @@ Object.defineProperty(exports, "engineAdmin", { enumerable: true, get: function 
 var polls_1 = require("./social/polls");
 Object.defineProperty(exports, "votePoll", { enumerable: true, get: function () { return polls_1.votePoll; } });
 /*
- * ËContact / ẄContact: las dos puertas de una conexión entre identidades de
+ * ËContact: las dos puertas de una conexión entre identidades de
  * perfil. Pedir también es del servidor, porque de quién es cada identidad se
  * lee de `users` y las reglas no pueden consultar.
  */

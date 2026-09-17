@@ -5,6 +5,7 @@ import { mockAdapter } from './providers/mock';
 import { IMAGE_MODEL_PRO, TEXT_MODEL_MULTI, geminiAdapter } from './providers/gemini';
 import { claudeAdapter } from './providers/claude';
 import { openaiAdapter } from './providers/openai';
+import { deepseekAdapter } from './providers/deepseek';
 import { seedanceAdapter } from './providers/seedance';
 import { seedreamAdapter } from './providers/seedream';
 import { minimaxAdapter } from './providers/minimax';
@@ -29,6 +30,7 @@ export const ADAPTERS: Record<string, ProviderAdapter> = {
   gemini: geminiAdapter,
   claude: claudeAdapter,
   openai: openaiAdapter,
+  deepseek: deepseekAdapter,
   seedance: seedanceAdapter,
   seedream: seedreamAdapter,
   minimax: minimaxAdapter,
@@ -41,6 +43,8 @@ export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
   gemini: { enabled: true, priority: 1 },
   claude: { enabled: true, priority: 2 },
   openai: { enabled: true, priority: 3 },
+  /* Entra por coste y solo donde se le pide por su nombre: hoy, Weë Brain. */
+  deepseek: { enabled: true, priority: 4, note: 'Conversación económica. Weë Brain lo pide por modelo.' },
   seedance: { enabled: true, priority: 1, limits: { maxCallsPerDay: 500 } },
   flux: { enabled: true, priority: 2 },
   seedream: { enabled: true, priority: 3 },
@@ -55,6 +59,19 @@ const routing = (capability: CapabilityId, links: ChainLink[], policy: RoutingPo
 
 /** Cadenas por defecto. El orden es la prioridad; el router salta lo que no esté disponible. */
 export const DEFAULT_ROUTING: Record<CapabilityId, CapabilityRouting> = {
+  /*
+   * DEEPSEEK NO ESTÁ AQUÍ, Y ES A PROPÓSITO (decisión del usuario, 2026-09-16).
+   *
+   * Estuvo un rato al final de esta cadena, como último recurso. Se quitó: una
+   * caída simultánea de Gemini, Claude y OpenAI habría mandado a Weë Chef, Weë
+   * Studio, Weë Travel, Weë Business y Weë Design a un proveedor que nadie eligió
+   * para ellas. Un respaldo que nadie pidió es un cambio de proveedor silencioso.
+   *
+   * Weë Brain llega a DeepSeek por otro camino: lo pide por su nombre
+   * (`prefs.allowedProviders` + `prefs.modelId`), que es una petición explícita y
+   * no un respaldo. Si DeepSeek no está, Brain falla y se ve; no se cambia de
+   * proveedor a escondidas.
+   */
   'text.generate': routing('text.generate', chain('gemini', 'claude', 'openai'), 'balanced'),
   'text.structure': routing('text.structure', chain('gemini', 'claude', 'openai'), 'cost-first'),
   'text.search': routing('text.search', [{ provider: 'gemini', model: TEXT_MODEL_MULTI }], 'cost-first'),

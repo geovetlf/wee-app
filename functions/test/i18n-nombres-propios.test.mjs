@@ -1,0 +1,193 @@
+/*
+ * LOS NOMBRES DE WEË NO SE TRADUCEN. EN NINGÚN IDIOMA. NUNCA.
+ *
+ * Regla del usuario (2026-09-16), y ya estaba escrita en CLAUDE.md §8: Weë,
+ * Wäll, Weëls, WeeTalk, ËContact, Credits y los nombres de las experiencias son
+ * MARCA. Se escriben igual en español que en japonés: no se traducen, no se
+ * adaptan, no se pluralizan, no se transliteran, no cambian de mayúsculas y no
+ * pierden ni un diacrítico. Lo que se traduce es el texto que los rodea.
+ *
+ * ── Por qué esto es una prueba y no un párrafo ───────────────────────────────
+ *
+ * Porque un párrafo hay que leerlo y una prueba se ejecuta sola. Quedan siete
+ * idiomas por traducir —it, pt, ru, ko, zh, ja, ar— y cada uno lo escribirá
+ * alguien distinto en un momento distinto. Esto los vigila a todos sin que
+ * nadie tenga que acordarse: el día que aparezca `i18n/textos/it/`, esta prueba
+ * ya lo está mirando.
+ *
+ * ── Qué comprueba, y por qué en dos direcciones ──────────────────────────────
+ *
+ * A · QUE NO SE PIERDA. Si el español dice "Credits" en una clave, la
+ *     traducción de esa clave tiene que decir "Credits". Coge los casos en los
+ *     que alguien tradujo el nombre.
+ *
+ * B · QUE NO APAREZCA DEFORMADO. Busca las deformaciones típicas —"Crédits",
+ *     "Kredite", "Wee" sin diéresis, "Wee Talk" separado— aunque el español no
+ *     tuviera el nombre en esa clave. Coge los casos en los que alguien escribió
+ *     la marca de memoria y le salió mal.
+ *
+ * La A sola no basta: una clave nueva que estrene "Crédits" pasaría limpia.
+ */
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const RAIZ = path.resolve(here, '../../');
+const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
+const TEXTOS = path.resolve(RAIZ, 'i18n/textos');
+
+let failures = 0;
+const check = (name, cond, extra = '') => {
+  console.log((cond ? '✔ ' : '✘ ') + name + (extra ? ' — ' + extra : ''));
+  if (!cond) failures++;
+};
+
+/*
+ * LA LISTA OFICIAL, SACADA DEL PROYECTO Y NO ESCRITA A MANO AQUÍ.
+ *
+ * Sale de CLAUDE.md §8 (la regla) y de `constants/weeExperiences.ts` (los
+ * nombres de las once experiencias). Así no hay dos listas que puedan
+ * discrepar: si mañana nace "Weë Garden", entra sola en cuanto se declare.
+ */
+const deClaudeMd = (leer('CLAUDE.md').match(/los nombres de Weë \(([^)]*)\)/) || [, ''])[1]
+  .split(',').map((s) => s.trim()).filter(Boolean);
+const deExperiencias = [...new Set([...leer('constants/weeExperiences.ts').matchAll(/'(Weë [A-Za-z]+)'/g)].map((m) => m[1]))];
+const OFICIALES = [...new Set([...deClaudeMd, ...deExperiencias])].sort((a, b) => b.length - a.length);
+
+console.log('\n── La lista oficial ──');
+check('1) se lee del proyecto, no de esta prueba', deClaudeMd.length >= 14 && deExperiencias.length >= 10,
+  `CLAUDE.md: ${deClaudeMd.length} · weeExperiences: ${deExperiencias.length}`);
+console.log('   ' + OFICIALES.join(' · '));
+
+/* ── Lectura de los diccionarios ──────────────────────────────────────────── */
+const RE = new RegExp("^  ([A-Za-z][A-Za-z0-9_]*):\\s*'((?:[^'\\\\]|\\\\.)*)',$", 'gm');
+const idiomas = fs.readdirSync(TEXTOS).filter((d) => fs.statSync(path.join(TEXTOS, d)).isDirectory()).sort();
+const modulos = fs.readdirSync(path.join(TEXTOS, 'es')).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
+const claves = (idioma, modulo) => {
+  const p = path.join(TEXTOS, idioma, modulo);
+  if (!fs.existsSync(p)) return null;
+  const o = {};
+  for (const m of fs.readFileSync(p, 'utf8').matchAll(RE)) o[m[1]] = m[2];
+  return o;
+};
+
+console.log('\n── A · Ningún nombre se pierde por el camino ──');
+for (const idioma of idiomas.filter((l) => l !== 'es')) {
+  const perdidos = [];
+  for (const modulo of modulos) {
+    const base = claves('es', modulo), otro = claves(idioma, modulo);
+    if (!otro) continue;
+    for (const [k, v] of Object.entries(base)) {
+      if (!(k in otro)) continue;
+      for (const nombre of OFICIALES) {
+        /* "Weë" suelto se puede reformular ("con Weë" → "with it"); un nombre compuesto no. */
+        if (nombre === 'Weë' || nombre === 'Credits') continue;
+        if (v.includes(nombre) && !otro[k].includes(nombre)) perdidos.push(`${modulo.replace('.ts', '')}.${k} → falta "${nombre}"`);
+      }
+      /* Credits sí es duro: es la moneda, y traducirla cambia el producto. */
+      if (v.includes('Credits') && !otro[k].includes('Credits')) perdidos.push(`${modulo.replace('.ts', '')}.${k} → falta "Credits"`);
+    }
+  }
+  check(`2) ${idioma} conserva los nombres compuestos y Credits`, perdidos.length === 0,
+    perdidos.length ? perdidos.slice(0, 6).join(' | ') : 'sin pérdidas');
+}
+
+console.log('\n── B · Ningún nombre aparece deformado ──');
+/*
+ * Las deformaciones que de verdad se escriben. No es una lista de ocurrencias:
+ * cada una salió de traducir un nombre a un idioma concreto.
+ */
+const DEFORMES = [
+  [/Cr[ée]dits?\b(?<!Credits)/u, 'Credits traducido (Crédit/Créditos/Credito…)'],
+  [/\bKredite?\b/iu, 'Credits en alemán'],
+  [/\bGuthaben-Credits\b/iu, 'Credits mezclado'],
+  [/\bWee\b(?! ?Talk)/u, 'Weë sin diéresis'],
+  [/\bWee Talk\b/u, 'WeeTalk separado'],
+  [/\bWeeTalks\b/u, 'WeeTalk pluralizado'],
+  [/\bWall\b/u, 'Wäll sin diéresis'],
+  [/\bWeels\b/u, 'Weëls sin diéresis'],
+  [/\b[EÉ]Contact\b/u, 'ËContact con la E equivocada'],
+  [/Weë (Cerveau|Gehirn|Cervello|Cérebro|Мозг|Brein)/u, 'Weë Brain traducido'],
+  [/(Studio|Atelier|Estudio) Weë/u, 'Weë Studio reordenado'],
+  [/Weë (Voyage|Reise|Viaggio|Viagem)/u, 'Weë Travel traducido'],
+  [/Weë (Musique|Musik|Musica|Música)/u, 'Weë Music traducido'],
+  [/Weë (Cuisinier|Koch|Cuoco|Cozinheiro)/u, 'Weë Chef traducido'],
+  [/Weë (Affaires|Geschäft|Negócios|Negocios)/u, 'Weë Business traducido'],
+  /*
+   * RUSO. Aquí la tentación no es traducir: es TRANSLITERAR al cirílico, o
+   * declinar la marca como si fuera una palabra rusa («нет Кредитов»). Las dos
+   * cosas la rompen igual.
+   *
+   * Ojo con `\b` y con `\w`: los dos son ASCII, y para ellos ni la «К» ni la
+   * «ю» son letras. `\bКредиты\b` no casaría NUNCA, y `Студи\w*` se quedaría
+   * sin llegar a la «ю» de «Студию». Las dos versiones dirían «limpio» sin
+   * haber mirado nada. Por eso aquí se usa `\p{L}`, que sí sabe de letras.
+   */
+  [/(?<![\p{L}\p{N}])Кредит(?:ы|ов|а|у|ам|ами|ах|е)?(?![\p{L}\p{N}])/u, 'Credits en ruso'],
+  [/Weë (?:Студи|Дизайн|Музык|Повар|Бизнес|Путешестви|Писател|Красот)\p{L}*/u, 'experiencia de Weë traducida al ruso'],
+  [/(?:Студи|Мозг|Дизайн)\p{L}* Weë/u, 'nombre de Weë reordenado en ruso'],
+  /*
+   * COREANO. Otra vez transliteración: «크레딧» es como se escribiría «credits»
+   * en hangul, y es justo lo que no puede pasar. No hacen falta fronteras: son
+   * cadenas largas y distintivas que no aparecen dentro de otra palabra.
+   */
+  [/크레딧|크레디트/u, 'Credits en coreano'],
+  [/Weë ?(?:브레인|스튜디오|디자인|뮤직|음악|셰프|요리사|비즈니스|여행|작가|뷰티)/u, 'experiencia de Weë traducida al coreano'],
+  [/(?:브레인|스튜디오|디자인) Weë/u, 'nombre de Weë reordenado en coreano'],
+];
+for (const idioma of idiomas) {
+  const hallados = [];
+  for (const modulo of modulos) {
+    const o = claves(idioma, modulo);
+    if (!o) continue;
+    for (const [k, v] of Object.entries(o)) {
+      for (const [re, motivo] of DEFORMES) if (re.test(v)) hallados.push(`${modulo.replace('.ts', '')}.${k}: ${motivo} → «${v.slice(0, 48)}»`);
+    }
+  }
+  check(`3) ${idioma} no deforma ningún nombre`, hallados.length === 0,
+    hallados.length ? hallados.slice(0, 5).join(' | ') : 'limpio');
+}
+
+console.log('\n── CONTROL · Que esta prueba sepa fallar ──');
+/*
+ * Un auditor que nunca ha encontrado nada no demuestra que esté limpio: puede
+ * que no sepa mirar. Se le enseñan las deformaciones de verdad, una por idioma
+ * futuro, y TIENE que reconocerlas todas.
+ */
+const TRAMPAS = [
+  ['Tu as 12 Crédits', 'francés'],
+  ['Du hast 12 Kredite', 'alemán'],
+  ['Apri Studio Weë', 'italiano'],
+  ['Abra o Weë Cérebro', 'portugués'],
+  ['Открой Weë Мозг', 'ruso'],
+  ['У вас 12 Кредитов', 'ruso · marca declinada'],
+  ['Откройте Студию Weë', 'ruso · marca reordenada'],
+  ['크레딧 12개가 남았어요', 'coreano · moneda transliterada'],
+  ['Weë 브레인 열기', 'coreano · experiencia transliterada'],
+  ['Wee Talk で話す', 'japonés'],
+  ['查看 Weels', 'chino'],
+  ['EContact 열기', 'coreano'],
+  ['Bienvenue sur Wee', 'sin diéresis'],
+];
+const pillada = (texto) => DEFORMES.some(([re]) => re.test(texto));
+const escapadas = TRAMPAS.filter(([t]) => !pillada(t));
+check(`6) control: reconoce las ${TRAMPAS.length} deformaciones típicas`, escapadas.length === 0,
+  escapadas.length ? escapadas.map(([t, l]) => `${l}: «${t}»`).join(' | ') : `las ${TRAMPAS.length}`);
+/* Y al revés: que no marque como deforme lo que está bien escrito. */
+const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls', 'Wäll', 'WeeTalk', 'Weë Brain',
+  'У вас 12 Credits', 'Откройте Weë Studio', 'Weë Brain отвечает', 'фотостудия и свет',
+  'Credits 12개가 남았어요', 'Weë Brain 열기', 'Weë Studio에서 만들기', '사진 스튜디오 조명'];
+const falsosPositivos = BUENAS.filter((t) => pillada(t));
+check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
+  falsosPositivos.join(' | ') || 'ninguno');
+
+console.log('\n── C · La regla queda escrita donde se lee ──');
+check('4) CLAUDE.md §8 sigue nombrando las marcas que no se traducen',
+  /los nombres de Weë \(Weë, Wäll, Weëls, WeeTalk, ËContact, Credits/.test(leer('CLAUDE.md')));
+check('5) y cada diccionario lo recuerda en su cabecera',
+  idiomas.every((l) => /no entra nunca en estos archivos/i.test(leer(`i18n/textos/${l}/index.ts`))),
+  idiomas.join(', '));
+
+console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
+process.exit(failures ? 1 : 0);

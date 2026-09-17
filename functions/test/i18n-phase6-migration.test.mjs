@@ -65,7 +65,7 @@ console.log('\n── A · Ni un texto de interfaz escrito a mano ──');
    * hooks —se pinta cuando el árbol ya se rompió—, y `HomeGreeting` tiene
    * cambios locales que no se tocan.
    */
-  const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|World Encode Entity)$/;
+  const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Weë Brain|Brain|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|World Encode Entity)$/;
   const TECNICO = /^(0\.00|S\/\.|https?:\/\/)/;
   const EXCEPCIONES = ['components/ErrorBoundary.tsx', 'components/HomeGreeting.tsx'];
   const RUIDO = /^(Promise|void|string|number|boolean|T|C|any|unknown|Post|View|Text|React|null|undefined|Props|Record|Partial)$/;

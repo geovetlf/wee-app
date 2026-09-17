@@ -18,7 +18,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
 import { creatorInterestService } from '../services/creatorInterestService';
-import CreditsPill from '../components/CreditsPill';
 import CreatorShell from '../components/creator/CreatorShell';
 import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById, experienceLabel } from '../constants/weeExperiences';
 import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorService';
@@ -45,8 +44,8 @@ const WeeCreatorScreen: React.FC = () => {
   const route = useRoute<any>();
   const initialCategory: string | undefined = route.params?.category;
 
-  const activeUid = userProfile?.uid || user?.uid;
-  const { balance } = useWallet(activeUid);
+  /* El saldo es de la CUENTA: sin uid, que es como se pide siempre en Weë. */
+  const { balance } = useWallet();
 
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(initialCategory || null);

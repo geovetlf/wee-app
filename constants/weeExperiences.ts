@@ -197,7 +197,44 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
  */
 export const HIDDEN_AS_SECTION: string[] = ['photo', 'beauty', 'home', 'writer'];
 
-export const WEE_EXPERIENCES: WeeExperience[] = ALL_EXPERIENCES.filter((e) => !HIDDEN_AS_SECTION.includes(e.id));
+/**
+ * EN QUÉ ORDEN SE VEN, Y AQUÍ SE DECIDE (decisión del usuario, 2026-09-15).
+ *
+ * El orden del menú no puede salir del orden en que estén escritas arriba: esa
+ * lista es el registro de identificadores —se ordena por cuándo nació cada una—
+ * y mover un bloque de treinta líneas para cambiar un sitio en el menú es una
+ * forma muy cara de decir "Brain primero".
+ *
+ * Así que se dice aquí, con los identificadores y en una línea. Lo que se lee es
+ * lo que se ve, y se ve igual en los dos menús —el ☰ del teléfono y la barra
+ * lateral—, en Android y en web, y con el Perfil Real y con el Perfil Weë: el
+ * orden no depende del perfil, porque no hay ningún `isWee` que lo mire.
+ *
+ * Weë Brain va primero porque es la puerta de quien no sabe a cuál entrar.
+ */
+export const ORDEN_EN_EL_MENU: string[] = [
+  'brain',
+  'studio',
+  'design',
+  'music',
+  'chef',
+  'business',
+  'travel',
+];
+
+/**
+ * Las que se ven, en su orden. Se arma con la lista de arriba y, detrás, lo que
+ * no esté nombrado allí: una experiencia nueva aparece al final en vez de
+ * desaparecer sin que nadie se entere.
+ */
+export const WEE_EXPERIENCES: WeeExperience[] = (() => {
+  const visibles = ALL_EXPERIENCES.filter((e) => !HIDDEN_AS_SECTION.includes(e.id));
+  const ordenadas = ORDEN_EN_EL_MENU
+    .map((id) => visibles.find((e) => e.id === id))
+    .filter((e): e is WeeExperience => !!e);
+  const resto = visibles.filter((e) => !ORDEN_EN_EL_MENU.includes(e.id));
+  return [...ordenadas, ...resto];
+})();
 
 /**
  * Cómo se presenta una experiencia que vive dentro de otra sección. El

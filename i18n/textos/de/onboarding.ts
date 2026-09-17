@@ -1,0 +1,54 @@
+/*
+ * ALEMÁN — el alta guiada y la creación del Perfil Weë: quién eres, y quién eres en Weë.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * Tratamiento informal (du). El nombre, la biografía y el país que elige la
+ * persona no entran aquí.
+ */
+export const onboarding: typeof import('../es/onboarding').onboarding = {
+  welcome: 'Willkommen bei Weë',
+  welcomeSubtitle: 'Erzähl uns, wer du bist. Danach kannst du dein Weë Profil erstellen: deine Identität zum Erstellen mit KI.',
+  yourName: 'Dein Name',
+  yourNameHint: 'Dieser Name wird in deinem öffentlichen Profil angezeigt.',
+  yourNamePlaceholder: 'Dein vollständiger Name',
+  birthDate: 'Geburtsdatum',
+  birthDateHint: 'Du musst mindestens 13 Jahre alt sein, um Weë zu nutzen.',
+  gender: 'Geschlecht',
+  genderMale: 'Mann',
+  genderFemale: 'Frau',
+  genderOther: 'Divers',
+  country: 'Land',
+  pickCountry: 'Wähle dein Land',
+  searchCountry: 'Land suchen...',
+  customiseProfile: 'Richte dein Profil ein',
+  yourAvatar: 'Dein Avatar',
+  yourAvatarHint: 'Tippe, um einen fertigen Avatar zu wählen oder ein eigenes Bild hochzuladen',
+  bioPlaceholder: 'Erzähl uns etwas über dich... (optional)',
+  saving: 'Wird gespeichert...',
+  completed: 'Fertig!',
+  complete: 'Abschließen',
+  continueStep: 'Weiter',
+  nameMissingTitle: 'Dein Name fehlt',
+  nameMissing: 'Gib deinen Namen ein, um fortzufahren.',
+  nameShortTitle: 'Name zu kurz',
+  nameShort: 'Dein Name braucht mindestens 2 Buchstaben.',
+  birthMissingTitle: 'Dein Geburtsdatum fehlt',
+  birthMissing: 'Wähle Tag, Monat und Jahr.',
+  genderMissingTitle: 'Dein Geschlecht fehlt',
+  genderMissing: 'Wähle eine Option, um fortzufahren.',
+  countryMissingTitle: 'Dein Land fehlt',
+  countryMissing: 'Wähle dein Land, um fortzufahren.',
+  saveFailedTitle: 'Wir konnten dein Profil nicht speichern',
+  saveFailed: 'Versuch es erneut.',
+  weeTitle: 'Weë Profil erstellen',
+  weeIntro: 'Dieses Profil ist von deiner echten Identität getrennt. Was du damit postest und tust, ist nicht mit deinem Hauptprofil verknüpft.',
+  weePhoto: 'Profilbild',
+  weePhotoHint: 'Tippe, um ein Foto oder einen fertigen Avatar zu wählen',
+  weeName: 'Anonymer Name',
+  weeNamePlaceholder: 'z. B. DunklerSchatten, Anon123...',
+  weeBioPlaceholder: 'Beschreibe dein Alter Ego...',
+  weeCreatedTitle: 'Weë Profil erstellt',
+  weeCreated: 'Deine anonyme Identität ist bereit. Du kannst im Header zwischen den Profilen wechseln.',
+  weeCreateFailed: 'Das Weë Profil konnte nicht erstellt werden',
+};

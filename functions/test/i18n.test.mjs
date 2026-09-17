@@ -66,9 +66,22 @@ const traducir = (await cargar('i18n/traducir.ts')).ns;
 const formato = (await cargar('i18n/formato.ts')).ns;
 const es = (await cargar('i18n/textos/es/index.ts')).ns.es;
 const en = (await cargar('i18n/textos/en/index.ts')).ns.en;
+const de = (await cargar('i18n/textos/de/index.ts')).ns.de;
+const fr = (await cargar('i18n/textos/fr/index.ts')).ns.fr;
+const it = (await cargar('i18n/textos/it/index.ts')).ns.it;
+const pt = (await cargar('i18n/textos/pt/index.ts')).ns.pt;
+const ru = (await cargar('i18n/textos/ru/index.ts')).ns.ru;
+const ko = (await cargar('i18n/textos/ko/index.ts')).ns.ko;
 const aparato = (await cargar('i18n/aparato.ts')).ns;
 
-/** Lo que hay hoy: español e inglés. */
+/**
+ * El banco de pruebas del resolutor, no el catálogo real.
+ *
+ * Se deja a propósito en dos idiomas aunque la app ya tenga ocho: lo que estos
+ * casos comprueban es qué pasa cuando el idioma del aparato NO está disponible
+ * —un idioma ausente cayendo a inglés, el caso 3—, y para eso hace falta una lista
+ * corta y fija. Ampliarla al catálogo real dejaría esos casos sin comprobar nada.
+ */
 const HAY = ['es', 'en'];
 
 console.log('\n── A · Normalizar lo que diga el aparato ──');
@@ -111,7 +124,7 @@ console.log('\n── C · Los siete casos acordados ──');
   /* 1 y 2: el aparato manda mientras no haya elección. */
   check('6) caso 1 · es-PE → Español', elegir(null, ['es-PE']).idioma === 'es');
   check('7) caso 2 · en-US → English', elegir(null, ['en-US']).idioma === 'en');
-  /* 3: italiano todavía no existe, así que inglés. */
+  /* 3: con esta lista el italiano no está disponible, así que inglés. */
   check('8) caso 3 · it-IT sin italiano → English', elegir(null, ['it-IT']).idioma === 'en');
   /*
    * 4: fr-CA con francés disponible → francés. Hoy no lo hay, así que se
@@ -225,9 +238,41 @@ console.log('\n── E · Traducir, y no romperse nunca ──');
   /* CONTROL: los dos diccionarios tienen exactamente las mismas claves. */
   const aplanar = (o, pre = '') => Object.entries(o).flatMap(([k, v]) =>
     typeof v === 'object' ? aplanar(v, pre + k + '.') : [pre + k]);
-  const cEs = aplanar(es).sort().join('|'), cEn = aplanar(en).sort().join('|');
-  check('24) control: español e inglés no se han desincronizado', cEs === cEn,
-    cEs === cEn ? aplanar(es).length + ' claves' : 'difieren');
+  /*
+   * El español es el molde y TODOS los demás tienen que calcar sus claves. Se
+   * recorre la lista en vez de comparar de dos en dos: el día que entre el
+   * francés, esta prueba ya lo vigila sin que nadie la toque.
+   */
+  /*
+   * UNA EXCEPCIÓN QUE NO ES UN AGUJERO.
+   *
+   * Hasta el portugués, «calcar las claves» era exacto: ni una menos ni una
+   * más. El ruso rompe esa simetría por una razón de gramática, no de descuido:
+   * tiene CUATRO formas de plural donde el español tiene dos, así que necesita
+   * claves `_few` y `_many` que el español no tiene por dónde declarar. El
+   * árabe, cuando llegue, traerá seis.
+   *
+   * Así que se comprueban las dos cosas por separado: que no FALTE ninguna del
+   * español —eso sigue siendo inviolable— y que lo que SOBRE sea solo una forma
+   * de plural de una clave que ya existe. Un `pollVotes_fwe` mal escrito no
+   * tiene `_one` ni `_other` que lo respalden y sigue cayendo aquí.
+   */
+  const cEs = new Set(aplanar(es));
+  const PLURAL_EXTRA = /_(few|many|zero|two)$/;
+  for (const [codigo, diccionario] of [['en', en], ['de', de], ['fr', fr], ['it', it], ['pt', pt], ['ru', ru], ['ko', ko]]) {
+    const suyas = new Set(aplanar(diccionario));
+    const faltan = [...cEs].filter((k) => !suyas.has(k));
+    const sobran = [...suyas].filter((k) => !cEs.has(k)).filter((k) => {
+      const raiz = k.replace(PLURAL_EXTRA, '');
+      return !(PLURAL_EXTRA.test(k) && cEs.has(`${raiz}_one`) && cEs.has(`${raiz}_other`));
+    });
+    const propias = suyas.size - cEs.size;
+    check(`24) control: ${codigo} tiene todas las claves del español`,
+      faltan.length === 0 && sobran.length === 0,
+      faltan.length || sobran.length
+        ? `faltan ${faltan.length} [${faltan.slice(0, 3).join(' ')}] · sobran ${sobran.length} [${sobran.slice(0, 3).join(' ')}]`
+        : `${cEs.size} claves${propias ? ` + ${propias} formas de plural propias del idioma` : ''}`);
+  }
 }
 
 console.log('\n── F · Los formatos son del locale, no del idioma ──');
@@ -309,17 +354,26 @@ console.log('\n── G · El aparato, la persistencia y el catálogo ──');
   check('37) y no se guarda nada que se pueda calcular',
     (pref.match(/setItem\(/g) || []).length === 1);
 
-  /* El catálogo: once idiomas, dos listos, cada uno en su lengua. */
-  check('38) once idiomas contemplados y dos con diccionario',
-    idiomas.IDIOMAS.length === 11 && idiomas.idiomasDisponibles().length === 2);
+  /* El catálogo: once idiomas, ocho listos, cada uno en su lengua. */
+  check('38) once idiomas contemplados y ocho con diccionario',
+    idiomas.IDIOMAS.length === 11 && idiomas.idiomasDisponibles().length === 8);
   check('39) cada idioma se llama como se llama en su idioma',
     idiomas.idiomaDelCatalogo('de').nombreNativo === 'Deutsch'
     && idiomas.idiomaDelCatalogo('ja').nombreNativo === '日本語'
     && idiomas.idiomaDelCatalogo('ru').nombreNativo === 'Русский');
   check('40) y el árabe ya está marcado como de derecha a izquierda',
     idiomas.direccionDe('ar') === 'rtl' && idiomas.direccionDe('es') === 'ltr');
+  /*
+   * Dos listas que TIENEN que decir lo mismo y viven en archivos distintos: el
+   * `listo: true` del catálogo y la línea en `DICCIONARIOS`. Marcar un idioma
+   * como listo sin registrar su diccionario deja la app en inglés sin avisar; y
+   * registrarlo sin marcarlo lo esconde del selector. Se comparan las dos.
+   */
+  const registrados = (leer('i18n/diccionarios.ts').match(/DICCIONARIOS: Diccionarios = \{([^}]*)\}/) || [, ''])[1]
+    .split(',').map((s) => s.trim()).filter(Boolean).sort().join(',');
   check('41) los idiomas con diccionario son justo los marcados como listos',
-    idiomas.idiomasDisponibles().map((i) => i.codigo).sort().join(',') === 'en,es');
+    idiomas.idiomasDisponibles().map((i) => i.codigo).sort().join(',') === 'de,en,es,fr,it,ko,pt,ru'
+    && registrados === 'de,en,es,fr,it,ko,pt,ru', registrados);
 }
 
 console.log('\n── H · Nada de esto cuesta dinero ──');
