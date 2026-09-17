@@ -5,6 +5,7 @@ import { econtactService } from '../services/econtactService';
 import { usersService, UserProfile } from '../services/firestoreService';
 import {
   EstadoEntre,
+  NombreDeLista,
   TipoDeIdentidad,
   esIdentidadDePersona,
   nombreDeIdentidad,
@@ -40,9 +41,12 @@ export interface IdentidadActiva {
   /** El uid de la identidad activa. null si esta no tiene agenda. */
   identidad: string | null;
   tipo: TipoDeIdentidad | null;
-  /** Cómo se llama su agenda. Una sola cosa: ËContact es el nombre del producto. */
-  nombreLista: 'ËContact';
-  /** Cómo se llaman sus conexiones: "ËContacts". */
+  /**
+   * Cómo se llama su agenda: ËContact con el Perfil Real, ẄContact con el Weë.
+   * Son dos nombres de producto distintos, no dos formas del mismo.
+   */
+  nombreLista: NombreDeLista;
+  /** Cómo se llaman sus conexiones: "ËContacts" o "ẄContacts". */
   nombrePlural: string;
   hayAgenda: boolean;
   motivo: SinAgenda | null;
@@ -102,7 +106,7 @@ export interface RelacionEContact {
   /** Con qué perfil tuyo se está operando. */
   identidad: string | null;
   /** Cómo se llama tu agenda: ËContact, la lleve la cara que la lleve. */
-  nombreLista: 'ËContact';
+  nombreLista: NombreDeLista;
   solicitar: () => Promise<void>;
   aceptar: () => Promise<void>;
   rechazar: () => Promise<void>;
@@ -223,8 +227,8 @@ export interface MisEContacts {
   cargando: boolean;
   /** Con qué perfil tuyo se está mirando la agenda. */
   identidad: string | null;
-  /** Cómo se llama esa agenda: ËContact. */
-  nombreLista: 'ËContact';
+  /** Cómo se llama esa agenda: ËContact o ẄContact, según la cara. */
+  nombreLista: NombreDeLista;
   /** Su plural, para los textos: "ËContacts". */
   nombrePlural: string;
   /** false si el perfil activo no tiene agenda —Biz— o no hay sesión. */

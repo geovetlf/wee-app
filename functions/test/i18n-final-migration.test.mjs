@@ -313,15 +313,21 @@ console.log('\n── H · Las etiquetas de lector de pantalla ──');
       if (v) aMano.push(ruta + ' → ' + v);
     }
   }
+  /*
+   * `ErrorBoundary` SALIÓ de esta lista al llegar el chino: su botón ya no dice
+   * «Intentar de nuevo» a pelo. No pasó por i18n —esa pantalla vive fuera del
+   * proveedor de idioma a propósito, para sobrevivir a que reviente—, sino por
+   * `i18n/emergencia.ts`, que es un módulo sin dependencias con las tres frases
+   * de la pantalla de error en los idiomas que Weë habla.
+   */
   const PERMITIDAS = [
     'screens/AgregarUbicacionScreen.tsx → Weë',
-    'components/ErrorBoundary.tsx → Intentar de nuevo',
     'components/HomeGreeting.tsx → Abre la búsqueda de personas, hashtags y publicaciones',
     "components/creator/TravelLauncher.tsx → ${action.title}. ${action.subtitle ?? ''}",
   ];
   const nuevas = aMano.filter((e) => !PERMITIDAS.includes(e));
   check('38) no queda ninguna etiqueta localizable escrita a mano', nuevas.length === 0, nuevas.join(' | '));
-  check('38) y las cuatro que quedan son las conocidas, ni una más', aMano.length === PERMITIDAS.length, String(aMano.length));
+  check('38) y las tres que quedan son las conocidas, ni una más', aMano.length === PERMITIDAS.length, String(aMano.length));
 
   /* 39 · Las que se migraron dicen lo mismo en los dos idiomas. */
   for (const [clave, es, en] of [

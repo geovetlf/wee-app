@@ -128,6 +128,16 @@ const DEFORMES = [
   [/Weë (?:Студи|Дизайн|Музык|Повар|Бизнес|Путешестви|Писател|Красот)\p{L}*/u, 'experiencia de Weë traducida al ruso'],
   [/(?:Студи|Мозг|Дизайн)\p{L}* Weë/u, 'nombre de Weë reordenado en ruso'],
   /*
+   * ËContact y ẄContact son DOS nombres, no dos grafías del mismo. La Ë (U+00CB)
+   * es la agenda; la Ẅ (U+1E84) es la del Perfil Weë. Confundirlas no rompe
+   * ninguna cadena ni ningún tipo, y por eso hace falta buscarlas: cualquier
+   * otra letra delante de «Contact» está mal, y eso incluye la W a secas, la E
+   * a secas, y las dos oficiales cambiadas de sitio o de caja.
+   */
+  [/(?<![\p{L}])(?![ËẄ])[A-Za-zÀ-ÿ]Contact\b/u, 'ËContact o ẄContact con la letra equivocada'],
+  [/(?<![\p{L}])[ëẅ]Contact\b/u, 'ËContact o ẄContact en minúscula'],
+  [/(?<![\p{L}])[ËẄ]contact\b/u, 'ËContact o ẄContact con la C en minúscula'],
+  /*
    * COREANO. Otra vez transliteración: «크레딧» es como se escribiría «credits»
    * en hangul, y es justo lo que no puede pasar. No hacen falta fronteras: son
    * cadenas largas y distintivas que no aparecen dentro de otra palabra.
@@ -165,6 +175,10 @@ const TRAMPAS = [
   ['Откройте Студию Weë', 'ruso · marca reordenada'],
   ['크레딧 12개가 남았어요', 'coreano · moneda transliterada'],
   ['Weë 브레인 열기', 'coreano · experiencia transliterada'],
+  ['Abre tu WContact', 'Ẅ perdida'],
+  ['Abre tu EContact', 'Ë perdida'],
+  ['Abre tu ëContact', 'Ë en minúscula'],
+  ['Abre tu Ẅcontact', 'C en minúscula'],
   ['Wee Talk で話す', 'japonés'],
   ['查看 Weels', 'chino'],
   ['EContact 열기', 'coreano'],
@@ -177,14 +191,16 @@ check(`6) control: reconoce las ${TRAMPAS.length} deformaciones típicas`, escap
 /* Y al revés: que no marque como deforme lo que está bien escrito. */
 const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls', 'Wäll', 'WeeTalk', 'Weë Brain',
   'У вас 12 Credits', 'Откройте Weë Studio', 'Weë Brain отвечает', 'фотостудия и свет',
-  'Credits 12개가 남았어요', 'Weë Brain 열기', 'Weë Studio에서 만들기', '사진 스튜디오 조명'];
+  'Credits 12개가 남았어요', 'Weë Brain 열기', 'Weë Studio에서 만들기', '사진 스튜디오 조명',
+  /* Los dos nombres bien escritos, y uno que solo ACABA en «contact» sin serlo. */
+  'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));
 check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
   falsosPositivos.join(' | ') || 'ninguno');
 
 console.log('\n── C · La regla queda escrita donde se lee ──');
 check('4) CLAUDE.md §8 sigue nombrando las marcas que no se traducen',
-  /los nombres de Weë \(Weë, Wäll, Weëls, WeeTalk, ËContact, Credits/.test(leer('CLAUDE.md')));
+  /los nombres de Weë \(Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact, Credits/.test(leer('CLAUDE.md')));
 check('5) y cada diccionario lo recuerda en su cabecera',
   idiomas.every((l) => /no entra nunca en estos archivos/i.test(leer(`i18n/textos/${l}/index.ts`))),
   idiomas.join(', '));

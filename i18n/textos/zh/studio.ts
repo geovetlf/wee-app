@@ -1,0 +1,255 @@
+/*
+ * WEË STUDIO — el sitio donde se crea, en chino simplificado.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * MARCA: "Weë Studio", "Writer" y el resto de los nombres de Weë van en
+ * alfabeto latino dentro del hanzi, nunca traducidos ni transliterados
+ * («工作室» no es Studio y «积分» no es Credits). Los formatos técnicos —PDF,
+ * MP4, 16:9— tampoco cambian de idioma.
+ *
+ * PLURALES: el chino no los tiene. `Intl.PluralRules('zh')` declara UNA sola
+ * categoría, `other`, así que la forma `_one` NO SE LEE NUNCA —ni con 1— y
+ * lleva exactamente el mismo texto que `_other`. La cantidad se dice con su
+ * CLASIFICADOR (张 para lo plano, 个 para lo genérico, 秒 para el tiempo), que
+ * no cambia con el número. Por eso aquí no hace falta `ConPlurales` ni existen
+ * `_few` ni `_many`.
+ *
+ * ESPACIADO: un espacio entre hanzi y lo que va en alfabeto latino o en cifras
+ * —«最长 15 秒», «{{contador}} 张参考图»—, y ninguno entre palabras chinas ni
+ * antes de la puntuación de ancho completo （。，、？！：；）.
+ *
+ * VOCABULARIO: se usa el que ya emplean las apps de IA chinas —文生图 se dice
+ * aquí 文字生成图片 porque Weë no obliga a nadie a aprender jerga—, con 生成
+ * para lo que genera la IA, 转 para lo que solo cambia de formato y 创作 para
+ * el acto de crear.
+ */
+export const studio: typeof import('../es/studio').studio = {
+  /* ── La cabecera ──────────────────────────────────────────────────────── */
+  slogan: '创作，不设限。',
+  description: '图片、视频、语音、文字，还有更多。\n全都在这里。',
+
+  /* ── El compositor ────────────────────────────────────────────────────── */
+  placeholder: '今天想创作点什么？',
+  addLabel: '添加',
+  referenceLabel: '添加一张参考图',
+  settingsLabel: '创作设置',
+  voiceLabel: '语音输入',
+  /* El botón que dispara la IA: en chino se dice 生成, no 创作. */
+  sendLabel: '生成',
+
+  /* ── El editor a pantalla completa ────────────────────────────────────── */
+  editorTitle: '你的想法',
+  editorPlaceholder: '详细说说你想创作什么。描述越清楚，结果越好。',
+  editorReferences: '参考图',
+  editorNoReferences: '还没有添加参考图',
+  editorAddReference: '添加参考图',
+  /* 字 es el clasificador de caracteres y va tras la cifra, con un espacio. */
+  editorCharacters: '{{contador}} 字',
+  create: '生成',
+
+  /* ── Los ajustes ──────────────────────────────────────────────────────── */
+  settingsTitle: '设置',
+  settingsHint: '会随着你创作的内容而变化',
+  settingsDone: '完成',
+  optFormat: '画幅',
+  optQuality: '画质',
+  optResolution: '分辨率',
+  optStyle: '风格',
+  optVariations: '生成数量',
+  optReferences: '参考图',
+  /* Solo sale en video: cuánto dura, no cuánto texto. */
+  optDuration: '时长',
+  optMotion: '动态',
+  optLength: '篇幅',
+  optTone: '语气',
+  optLanguage: '语言',
+  optType: '类型',
+  optSize: '尺寸',
+  valAuto: '自动',
+  valSquare: '方形',
+  valPortrait: '竖版',
+  valLandscape: '横版',
+  valStandard: '标准',
+  valHigh: '高清',
+  valRealistic: '写实',
+  valIllustration: '插画',
+  valMinimal: '极简',
+  valSlow: '柔和',
+  valDynamic: '有动感',
+  valShort: '简短',
+  valMedium: '适中',
+  valLong: '详尽',
+  valNeutral: '中性',
+  valClose: '亲切',
+  valProfessional: '专业',
+  /* Las duraciones que Weë sabe hacer: un Weël llega a quince segundos. */
+  valSec5: '5 秒',
+  valSec10: '10 秒',
+  valSec15: '15 秒',
+  /* 个 y no 张: estas variaciones también pueden ser videos. */
+  valOne: '1 个',
+  valFour: '4 个',
+  /*
+   * Cuántas referencias viajan con la creación. El chino no distingue una de
+   * varias: las dos formas dicen lo mismo porque `_one` no se lee nunca.
+   */
+  settingsReferences_one: '{{contador}} 张参考图',
+  settingsReferences_other: '{{contador}} 张参考图',
+  /* Lo que lee un lector de pantalla en cada píldora: "画幅: 竖版". */
+  settingsOption: '{{grupo}}：{{opcion}}',
+
+  /* ── Las seis puertas ─────────────────────────────────────────────────── */
+  imagesTitle: '图片',
+  imagesHint: '生成与编辑',
+  videosTitle: '视频',
+  videosHint: '最长 15 秒',
+  voiceTitle: '语音',
+  voiceHint: '旁白、配音，还有更多',
+  writerHint: '什么内容都能写',
+  docsTitle: '文档',
+  docsHint: 'PDF、文档等',
+  moreTitle: '更多工具',
+  moreHint: '编辑、优化、转换',
+
+  /* ── Imágenes ─────────────────────────────────────────────────────────── */
+  imgFromText: '文字生成图片',
+  imgFromImage: '图片生成图片',
+  imgEdit: '编辑图片',
+  imgRemoveObject: '消除物体',
+  imgAddObject: '添加物体',
+  imgChangeBackground: '更换背景',
+  imgRemoveBackground: '去除背景',
+  imgChangeStyle: '更换风格',
+  imgRelight: '调整光线',
+  imgExpand: '扩展图片',
+  imgRestore: '照片修复',
+  imgEnhance: '画质增强',
+  imgUpscale: '提升分辨率',
+  imgVariations: '生成变体',
+  imgCombine: '融合参考图',
+  imgCharacter: '保持人物一致',
+  imgText: '图片中的文字',
+  imgFormats: '转换画幅',
+
+  /* ── Videos ───────────────────────────────────────────────────────────── */
+  vidFromText: '文字生成视频',
+  vidFromImage: '图片生成视频',
+  vidFromImages: '多张图片生成视频',
+  vidFromVideo: '视频生成视频',
+  vidScene: '创建场景',
+  vidContinue: '延续场景',
+  vidVariations: '生成变体',
+  vidMotion: '画面动态',
+  vidCamera: '镜头',
+  vidStyle: '风格',
+  vidLimit: '每次最长 15 秒',
+
+  /* ── Voz ──────────────────────────────────────────────────────────────── */
+  voxFromText: '文字转语音',
+  voxNarration: '旁白',
+  voxPick: '选择音色',
+  voxLanguage: '语言',
+  voxAccent: '口音',
+  voxEmotion: '情绪',
+  voxTranscribe: '语音转文字',
+  voxSubtitles: '字幕',
+  voxExtract: '提取音频',
+  voxEnhance: '人声增强',
+  voxClean: '音频清理',
+
+  /* ── Writer ───────────────────────────────────────────────────────────── */
+  wrIdeas: '创意',
+  wrPosts: '动态',
+  wrCaptions: '配文',
+  wrScripts: '脚本',
+  wrStories: '故事',
+  wrBooks: '书籍',
+  wrArticles: '文章',
+  wrBlogs: '博客',
+  wrEssays: '随笔',
+  wrEmails: '邮件',
+  wrLetters: '信件',
+  wrCv: '简历',
+  wrDecks: '演示文稿',
+  wrProposals: '提案',
+  wrReports: '报告',
+  wrDescriptions: '描述文案',
+  wrAds: '广告文案',
+  wrVideoScripts: '视频脚本',
+  wrPodcasts: '播客',
+  wrDialogue: '对白',
+  wrLyrics: '歌词',
+  wrSummaries: '摘要',
+  wrTranslate: '翻译',
+  wrRewrite: '改写',
+  wrProofread: '校对',
+  wrBrainstorm: '头脑风暴',
+
+  /* ── Documentos ───────────────────────────────────────────────────────── */
+  docPdf: '创建 PDF',
+  docDocument: '创建文档',
+  docEbook: '创建电子书',
+  docGuide: '创建指南',
+  docManual: '创建手册',
+  docDeck: '创建演示文稿',
+  docCatalog: '创建产品目录',
+  docBrochure: '创建宣传册',
+  /* 转 y no 生成: aquí solo cambia el formato, no hay nada que generar. */
+  docImageToPdf: '图片转 PDF',
+  docToPdf: '文档转 PDF',
+  docPdfToText: 'PDF 转文字',
+  docSummarize: '总结 PDF',
+  docAsk: '向 PDF 提问',
+  docCompare: '对比文档',
+
+  /* ── Más herramientas ─────────────────────────────────────────────────── */
+  grpImage: '图片',
+  grpVideo: '视频',
+  grpAudio: '音频',
+  grpText: '文本',
+  grpFiles: '文件',
+  tlCrop: '裁剪与调整尺寸',
+  tlRecolor: '更换颜色',
+  tlVidEdit: '剪辑',
+  tlVidCut: '分割',
+  tlVidJoin: '合并',
+  tlVidSubtitles: '字幕',
+  tlVidSilences: '去除静音片段',
+  tlVidEnhance: '画质增强',
+  tlVidFormat: '转换画幅',
+  tlVidClips: '提取片段',
+  tlVidSpeed: '变速',
+  tlVidBackground: '去除背景',
+  tlAudClean: '音频清理',
+  tlAudNoise: '降噪',
+  tlTxtSummarize: '总结',
+  tlTxtRewrite: '改写',
+  tlTxtProofread: '校对',
+  tlTxtTranslate: '翻译',
+  tlTxtTone: '调整语气',
+  tlTxtExpand: '扩写',
+  tlTxtSimplify: '简化',
+  tlTxtExtract: '提取信息',
+  tlFileConvert: '转换文档格式',
+
+  /* ── Mis creaciones ───────────────────────────────────────────────────── */
+  creationsTitle: '我的创作',
+  seeAll: '查看全部',
+  creationsEmpty: '你创作的内容会出现在这里',
+  kindImage: '图片',
+  kindVideo: '视频',
+  kindAudio: '音频',
+  kindDocument: '文档',
+  creationOptions: '这个创作的选项',
+
+  /* ── El estado de una creación ────────────────────────────────────────── */
+  creating: '正在生成…',
+  ready: '创作完成',
+  readyHint: '这是演示：还没有真正生成任何内容。',
+  dismiss: '知道了',
+
+  /* ── Lo que todavía no está conectado ─────────────────────────────────── */
+  soon: '即将上线',
+  soonHint: '这个工具的位置已经留好了，还差接入。',
+};

@@ -7,6 +7,8 @@ import { it } from './textos/it';
 import { pt } from './textos/pt';
 import { ru } from './textos/ru';
 import { ko } from './textos/ko';
+import { zh } from './textos/zh';
+import { zhTW } from './textos/zh-TW';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -34,6 +36,33 @@ export const DICCIONARIOS: Diccionarios = {
   pt,
   ru,
   ko,
+  /*
+   * ── EL CHINO: UN IDIOMA, DOS ESCRITURAS, VARIAS PUERTAS ────────────────────
+   *
+   * `zh` es el simplificado y hace de base del idioma. `zh-TW` es el
+   * tradicional, COMPLETO: no es un parche que rellene huecos del simplificado,
+   * porque el respaldo es por clave y una sola clave sin traducir metería una
+   * frase en simplificado en medio de una pantalla en tradicional.
+   *
+   * Y luego están los alias, que es lo que de verdad arregla un fallo real: los
+   * aparatos NO dicen `zh-TW`. Un teléfono taiwanés de hoy dice `zh-Hant-TW`, y
+   * uno de Hong Kong `zh-Hant-HK`. Sin estas líneas, `cadenaDeRespaldo` los
+   * mandaría a [zh-Hant-TW, zh, en] y les serviría SIMPLIFICADO: no un texto
+   * peor, sino la escritura equivocada entera.
+   *
+   * Son DATOS —el mismo objeto apuntado desde varias claves—, no lógica nueva:
+   * el traductor ya buscaba el locale antes que el idioma desde el primer día.
+   * La lista sale de `idiomas.ts`, donde cada variante declara qué locales
+   * cubre, y una prueba comprueba que las dos digan lo mismo.
+   */
+  zh,
+  'zh-TW': zhTW,
+  'zh-HK': zhTW,
+  'zh-MO': zhTW,
+  'zh-Hant': zhTW,
+  'zh-Hant-TW': zhTW,
+  'zh-Hant-HK': zhTW,
+  'zh-Hant-MO': zhTW,
 };
 
 /*
@@ -84,5 +113,16 @@ export const DICCIONARIOS: Diccionarios = {
  * control para demostrar que sabe fallar.
  */
 
-/** Los idiomas que tienen diccionario de verdad. Lo que mira el resolutor. */
-export const idiomasConDiccionario = (): string[] => Object.keys(DICCIONARIOS);
+/**
+ * Los IDIOMAS que tienen diccionario. Lo que mira el resolutor.
+ *
+ * Se dejan fuera las claves con región —`zh-TW`, `zh-Hant-HK`…—, que no son
+ * idiomas sino variantes del mismo. El resolutor pregunta «¿tengo chino?», no
+ * «¿tengo chino de Taiwán?»: la variante la elige después la cadena de
+ * respaldo, que ya busca el locale antes que el idioma.
+ */
+export const idiomasConDiccionario = (): string[] =>
+  Object.keys(DICCIONARIOS).filter((c) => !c.includes('-'));
+
+/** Todas las claves registradas, variantes incluidas. Para las pruebas. */
+export const clavesConDiccionario = (): string[] => Object.keys(DICCIONARIOS);

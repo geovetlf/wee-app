@@ -22,6 +22,30 @@
 export type CodigoDeIdioma =
   | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar';
 
+/**
+ * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
+ *
+ * El chino es un idioma con dos escrituras que no se pueden mezclar: quien lee
+ * en simplificado no quiere ver tradicional ni al revés. Pero NO son dos
+ * idiomas: son el mismo, escrito de dos maneras. Por eso esto vive dentro de un
+ * `Idioma` y no como otra fila del catálogo.
+ *
+ * `locale` es lo que se guarda al elegirla, y es también la clave con la que
+ * `diccionarios.ts` la registra: el traductor ya busca `zh-TW` antes que `zh`
+ * sin que nadie le enseñe nada nuevo.
+ *
+ * `cubre` es la lista de locales del APARATO que caen en esta variante. Hace
+ * falta porque los aparatos no dicen `zh-TW`: dicen `zh-Hant-TW`, `zh-Hant-HK`,
+ * `zh-MO`… y sin esa lista un teléfono taiwanés recibiría simplificado, que es
+ * peor que no traducir. Son datos, no lógica; quien decide sigue siendo el
+ * resolutor de siempre.
+ */
+export interface VarianteDeIdioma {
+  locale: string;
+  nombreNativo: string;
+  cubre: readonly string[];
+}
+
 export interface Idioma {
   codigo: CodigoDeIdioma;
   /**
@@ -42,6 +66,14 @@ export interface Idioma {
    * cambiar este booleano. No se inventan traducciones para rellenar.
    */
   listo: boolean;
+  /**
+   * Las escrituras que este idioma ofrece por separado, si ofrece alguna.
+   *
+   * Casi ningún idioma tiene: `undefined` es lo normal y la pantalla pinta una
+   * sola fila. Cuando las hay, pinta una fila por variante y el idioma sigue
+   * siendo uno.
+   */
+  variantes?: readonly VarianteDeIdioma[];
 }
 
 /*
@@ -82,7 +114,34 @@ export const IDIOMAS: readonly Idioma[] = [
    * `functions/test/i18n-coreano.test.mjs`.
    */
   { codigo: 'ko', nombreNativo: '한국어', direccion: 'ltr', listo: true },
-  { codigo: 'zh', nombreNativo: '中文', direccion: 'ltr', listo: false },
+  /*
+   * UN SOLO IDIOMA, DOS ESCRITURAS. Simplificado y tradicional no se mezclan
+   * jamás, pero tampoco son dos idiomas: `zh` es uno y ofrece dos variantes.
+   *
+   * La lista `cubre` no es decorativa. Un teléfono taiwanés de hoy no dice
+   * `zh-TW`: dice `zh-Hant-TW`, y sin esa entrada la cadena de respaldo sería
+   * [zh-Hant-TW, zh, en] y le serviría SIMPLIFICADO. Cada locale de aquí está
+   * registrado en `diccionarios.ts`, y una prueba comprueba que las dos listas
+   * digan lo mismo.
+   */
+  {
+    codigo: 'zh',
+    nombreNativo: '中文',
+    direccion: 'ltr',
+    listo: true,
+    variantes: [
+      {
+        locale: 'zh-CN',
+        nombreNativo: '中文（简体）',
+        cubre: ['zh', 'zh-CN', 'zh-SG', 'zh-Hans', 'zh-Hans-CN', 'zh-Hans-SG'],
+      },
+      {
+        locale: 'zh-TW',
+        nombreNativo: '中文（繁體）',
+        cubre: ['zh-TW', 'zh-HK', 'zh-MO', 'zh-Hant', 'zh-Hant-TW', 'zh-Hant-HK', 'zh-Hant-MO'],
+      },
+    ],
+  },
   { codigo: 'ja', nombreNativo: '日本語', direccion: 'ltr', listo: false },
 ];
 
@@ -130,3 +189,30 @@ export const idiomaDelCatalogo = (codigo: string): Idioma | undefined =>
 /** Cómo se lee un idioma. Lo que necesita la capa de RTL. */
 export const direccionDe = (codigo: string): 'ltr' | 'rtl' =>
   idiomaDelCatalogo(codigo)?.direccion ?? 'ltr';
+
+/**
+ * Qué variante le corresponde a un locale. `undefined` si su idioma no tiene
+ * variantes o si ninguna lo cubre.
+ *
+ * Es una BÚSQUEDA en el catálogo, no una decisión: quien elige el idioma sigue
+ * siendo el resolutor, y quien sirve el texto sigue siendo el traductor. Esto
+ * solo sirve para que la pantalla de Idioma sepa qué fila marcar cuando el
+ * aparato llega diciendo `zh-Hant-TW` y la fila se llama `zh-TW`.
+ */
+export const varianteDelLocale = (locale: string): VarianteDeIdioma | undefined => {
+  const suyo = String(locale || '');
+  if (!suyo) return undefined;
+  const idioma = idiomaDelCatalogo(suyo.split('-')[0].toLowerCase());
+  return idioma?.variantes?.find((v) => v.locale === suyo || v.cubre.includes(suyo));
+};
+
+/**
+ * Todas las filas que la pantalla de Idioma tiene que pintar: un idioma sin
+ * variantes es una fila, y uno con variantes es una fila por variante.
+ */
+export const filasDeIdioma = (): { clave: string; nombreNativo: string; idioma: CodigoDeIdioma }[] =>
+  idiomasDisponibles().flatMap((i) =>
+    i.variantes
+      ? i.variantes.map((v) => ({ clave: v.locale, nombreNativo: v.nombreNativo, idioma: i.codigo }))
+      : [{ clave: i.codigo, nombreNativo: i.nombreNativo, idioma: i.codigo }],
+  );

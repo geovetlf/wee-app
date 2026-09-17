@@ -1,0 +1,208 @@
+/*
+ * WEË AI: el armazón, la conversación guiada y Weë Brain. Los nombres de las experiencias y de los modelos son marca y no entran aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * AQUÍ SE HABLA DE DINERO, ASÍ QUE LA PRECISIÓN MANDA SOBRE LA ELEGANCIA.
+ * Calcular o estimar un coste es «計算» / «預計消耗»; cobrar es «扣除» /
+ * «已扣除». Ningún mensaje informativo se escribe como si el cargo ya estuviera
+ * hecho, y ningún error deja dudas de que no se cobró nada («沒有扣除 Credits»).
+ *
+ * LAS MARCAS NO PASAN A HANZI. "Credits" es la moneda de Weë y NUNCA es «積分»,
+ * «點數», «點券» ni «信用點»; el SALDO sí es chino («餘額», «還剩»). "Weë Brain"
+ * tampoco es «大腦», ni "Weë Travel" «旅行».
+ *
+ * TAIWÁN, NO UNA CONVERSIÓN DEL SIMPLIFICADO. Lo que cambia no son los trazos
+ * sino las palabras: un vídeo es «影片» (no «視頻»), un proyecto «專案» (no
+ * «項目»), la calidad «品質», buscar «搜尋», la red «網路», guardar «儲存»,
+ * crear «建立», entrar «登入», los ajustes «設定», un mensaje «訊息», la galería
+ * «相簿» (no «相冊»), enviar «傳送», obtener «取得», un plan «計畫», una receta
+ * «食譜», el modo demo «示範模式» y lo digital «數位».
+ *
+ * EN CHINO NO HAY PLURALES: `Intl.PluralRules('zh')` solo declara `other`, así
+ * que `_one` no se lee nunca. Donde el español pide las dos formas, las dos
+ * dicen exactamente lo mismo y llevan el contador con su clasificador
+ * ({{contador}} 種). Por eso `openTravel`/`closeTravel` llevan el hueco también
+ * en la forma `_one`, que en español no lo tenía: si no, la cifra desaparecería.
+ *
+ * ESPACIADO: un espacio entre hanzi y latín o cifras («還剩 {{saldo}} Credits»,
+ * «開啟 Weë Travel»), ninguno entre palabras chinas, y puntuación de ancho
+ * completo （。，、：？！）.
+ */
+export const weeai: typeof import('../es/weeai').weeai = {
+  searchInWee: '在 Weë 中搜尋…',
+  searchLabel: '在 Weë 中搜尋',
+  myProfile: '我的個人檔案',
+  notifications: '通知',
+  goHome: '回到首頁',
+  myProjects: '我的專案',
+  myCreations: '我的作品',
+  buyCredits: '購買 Credits →',
+  yourCredits: '我的 Credits',
+  topUp: '儲值',
+  theSpecialists: 'Weë 的專家',
+  availableToday: '今天可用',
+  start: '開始',
+  whatDoYouWant: '我想要一支好看的影片，用來宣傳我的餐廳…',
+  describeYourIdea: '說說你的想法',
+  tellWee: '告訴 Weë 你想要什麼，AI 的事交給 Weë。',
+  avatarForWeeProfile: '為你的 Weë 個人檔案生成 AI 頭像',
+  createAlterEgo: '建立你的數位分身，再用 AI 生成它的頭像。',
+  changeAlterEgo: '用 AI 生成或更換數位分身的頭像。',
+  notYetOurs: '這件事暫時還沒有專家負責',
+  thatIsFor: '這些專家能幫你',
+  notifyMe: '準備好了通知我',
+  notifyMeReal: '真的上線了再通知我',
+  stopNotifying: '不用再通知我',
+  couldNotSave: '儲存失敗',
+  tryAgainInAMoment: '稍後再試一次。',
+  clear: '清除',
+  comingVerySoon: '很快就來',
+  oneMoment: '稍等…',
+  send: '傳送',
+  sendIdea: '傳送想法',
+  uploadYourPhoto: '上傳你想處理的照片',
+  uploadHint: '從相簿選擇，或用相機拍攝',
+  uploadFormats: 'JPG、PNG 或 WEBP（最大 10 MB）',
+  uploadingPhoto: '正在上傳照片…',
+  photoReady: '照片準備好了，告訴我想怎麼處理。',
+  photoHelps: '有照片的話，我就能保留這個空間真實的結構。',
+  uploadToWork: '上傳一張照片，Weë 就能拿它來創作。',
+  pickFromPhotos: '從我的相簿選擇',
+  orAlso: '你也可以',
+  takeAPhoto: '拍一張照片',
+  changePhoto: '更換照片',
+  removePhoto: '刪除照片',
+  photoAttached: '已新增照片',
+  couldNotPickPhoto: '無法選擇照片',
+  couldNotAttach: '新增失敗',
+  preferWords: '我想用文字來描述',
+  change: '更換',
+  remove: '移除',
+  tryAgain: '再試一次',
+  itDidNotWork: '這次沒做好，沒有扣除 Credits。',
+  notEnoughCredits: 'Credits 不夠了',
+  getCredits: '取得 Credits',
+  calculatingCost: '正在計算費用…',
+  couldNotCalculate: '無法計算費用',
+  quality: '品質',
+  create: '開始創作',
+  changeSomething: '修改一下',
+  noCost: '免費',
+  demoMode: '示範模式：不用付費。',
+  creditsNote: '完成後才扣除，萬一失敗會退回。',
+  brainThinking: 'Weë Brain 正在思考…',
+  brainSearching: 'Weë Brain 正在搜尋…',
+  keepTelling: '繼續說…',
+  searchInternet: '網路搜尋',
+  previewDemo: '預覽 · 示範',
+  savedIn: '已儲存到 {{proyecto}}',
+  saveToProject: '儲存到專案',
+  newProject: '新增專案',
+  projectName: '專案名稱',
+  createProject: '建立專案',
+  close: '關閉',
+  choose: '選擇',
+  play: '播放',
+  pause: '暫停',
+  playing: '正在播放',
+  playingPreview: '正在播放 · 預覽',
+  hideChanges: '隱藏變更與購買紀錄',
+  makeItRealistic: '更真實一些',
+  changeItsColor: '換個顏色',
+  moreStriking: '更搶眼',
+  simpler: '更簡潔',
+  before: '修改前',
+  after: '修改後',
+  couldNotLoadCreations: '無法載入你的作品',
+  couldNotLoadProjects: '無法載入專案',
+  couldNotCreateProject: '無法建立專案',
+  couldNotSaveToProject: '沒能儲存到專案，請再試一次。',
+  seeMore: '查看更多',
+  seeAllCreations: '查看全部',
+  demo: '示範',
+  jobAsking: '待回答',
+  jobPlanned: '待創作',
+  jobRunning: '創作中…',
+  jobDone: '已完成',
+  jobFailed: '未成功',
+  jobCancelled: '已取消',
+  brainGreeting: '你好！我是 Weë Brain。想問什麼、想說什麼、需要什麼，都可以告訴我。如果別的 Weë 更擅長，我帶你過去。',
+  brainBetterFit: '這件事 {{emoji}} {{especialista}} 更拿手。我可以帶上你剛才說的內容過去，也可以就在這裡繼續。',
+  goToSpecialist: '前往 {{especialista}}',
+  stayHere: '就在這裡繼續',
+  creditsAndCost: '可用 Credits：{{saldo}} · 預計消耗：{{costo}}',
+  sendForCredits: '傳送 · {{credits}} Credits',
+  writeToKnowCost: '寫下你的訊息，傳送前我會告訴你大概要消耗多少。',
+  approxUsd: '約 {{usd}} USD',
+  creditsLeft: '還剩 {{saldo}}',
+  attach: '新增',
+
+  /* ── LO QUE CUESTA, EN PALABRAS ─────────────────────────────────────────
+   * Las cifras ya las escribe el formato de Weë con el locale activo;
+   * aquí solo está el texto que las acompaña. «預計消耗» es lo que costará;
+   * «扣除» solo aparece cuando el cargo ya se hizo.
+   *
+   * `testPriceParenthesis` va SIN espacio delante, al revés que el español: el
+   * paréntesis de ancho completo （） ya trae el suyo dibujado dentro.
+   */
+  creditsAvailable: '可用 Credits：{{saldo}}',
+  costLine: '預計消耗：{{coste}}',
+  youHaveLeft: '還剩 {{saldo}}',
+  testPriceSuffix: ' · 測試價格',
+  testPriceParenthesis: '（測試價格）',
+  youSpent: ' 已扣除 {{credits}} Credits{{nota}}。',
+  spentNothing: ' 沒有扣除 Credits。',
+  calculatingTheCost: '正在計算費用…',
+  costFailed: '我們沒能算出費用，請再試一次。',
+  avatarCost: 'Weë 頭像 · {{credits}} Credits{{saldo}}',
+  /* Lo que Weë Brain dice que va a hacer, que llega desde el servidor. */
+  quoteSearch: '附上來源的搜尋',
+  quoteBrain: 'Weë Brain 的回答',
+  speak: '語音',
+  speakComingSoon: '和 Weë 語音對話會在之後的版本推出。現在先用文字告訴我吧。',
+  searchInternetOn: '網路搜尋：已開啟',
+  newConversation: '新的對話',
+  couldNotCalculateRetry: '我們沒能算出費用，請再試一次。',
+  expandSection: '{{titulo}}。查看{{contenido}}',
+  collapseSection: '{{titulo}}。隱藏{{contenido}}',
+  openTravel_one: '{{titulo}}。開啟 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  openTravel_other: '{{titulo}}。開啟 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  closeTravel_one: '{{titulo}}。隱藏 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  closeTravel_other: '{{titulo}}。隱藏 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  tellWeeTheTrip: '把旅行計畫告訴 Weë',
+  theMotto: '結果你來選，AI 由 Weë 來選。',
+  trySearchWords: '試試這些詞：logo、影片、照片、文案、歌曲、造型、食譜、居家、生意。也可以直接問 Weë Brain。',
+  whatToCreate: '你想創作什麼？',
+  willNotifyYou: '✓ 真的上線後我們會通知你',
+  projectsNote: '把作品集中在一起：logo、照片、影片、音樂和文件，全都在同一個地方。',
+  errNotEnoughCredits: '這次創作需要的 Credits 不夠了。取得 Credits 後再試一次。',
+  errRateLimited: '你連續創作了太多次，稍等一下再試。',
+  errTimeout: '花的時間太久，我把它停下來了。沒有扣除 Credits，再試一次吧。',
+  errDuplicate: '這個創作已經在進行中了。',
+  errNoAccount: '先把個人資料填完，才能使用 Weë AI。',
+  errSignIn: '登入之後就能用 Weë 創作。',
+  errOffline: '沒能連上 Weë AI。檢查一下網路再試一次。',
+  errGeneric: '這次沒做好，要不要再來一次？沒有扣除 Credits。',
+  dayExpand: '{{titulo}}。點按查看當天安排',
+  dayCollapse: '{{titulo}}。點按收合',
+  pathRedesign: '🏠 徹底重新設計',
+  pathColors: '🎨 換個風格和配色',
+  pathFurniture: '🪑 調整家具',
+  sidebarTagline: '更好的你，\n在一個更有\n創造力的世界',
+  youHaveCredits: '你有 {{saldo}} Credits',
+  creditsBoxNote: 'Weë 的專家都要用 Credits。隨時都可以儲值。',
+  startWith: '從 {{nombre}} 開始',
+  previousMonth: '上個月',
+  nextMonth: '下個月',
+  dontKnowYet: '還沒想好',
+  confirmDates: '確認日期',
+  optionCredits: '{{nombre}}，{{credits}} Credits',
+  emojiLabel: '表情符號 {{emoji}}',
+  chooseProposal: '選擇第 {{numero}} 個方案',
+  generatedVideo: '生成的影片',
+  playVideo: '播放影片',
+  continueVia: '繼續：{{camino}}',
+  youChooseWeeChooses: '結果你來選，AI 由 Weë 來選。',
+  demoToday: '今天是示範模式：可以先看看效果，不會消耗 Credits。',
+};

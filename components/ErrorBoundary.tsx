@@ -1,5 +1,37 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { localeDeEmergencia } from '../i18n/emergencia';
+
+/*
+ * LAS TRES FRASES DE LA PANTALLA DE ERROR, ESCRITAS AQUÍ A PROPÓSITO.
+ *
+ * Esta pantalla aparece justo cuando algo ha dejado de funcionar, y no puede
+ * depender del sistema de traducción: si el fallo viniera de ahí, se caería con
+ * él. `ErrorBoundary` además vive por fuera de `IdiomaProvider`, así que no hay
+ * contexto que consultar. Por eso están aquí y no en `i18n/textos/`.
+ *
+ * Antes estaban solo en español, y alguien con la aplicación en chino o en
+ * coreano se encontraba de golpe con un idioma que no eligió, en el peor
+ * momento posible.
+ */
+const TEXTOS: Record<string, { titulo: string; mensaje: string; boton: string }> = {
+  es: { titulo: 'Algo salió mal', mensaje: 'Weë encontró un error inesperado. Intenta de nuevo; si sigue pasando, cuéntanoslo desde Ayuda.', boton: 'Intentar de nuevo' },
+  en: { titulo: 'Something went wrong', mensaje: 'Weë ran into an unexpected error. Try again; if it keeps happening, tell us from Help.', boton: 'Try again' },
+  de: { titulo: 'Da ist etwas schiefgelaufen', mensaje: 'In Weë ist ein unerwarteter Fehler aufgetreten. Versuch es noch einmal; wenn es weiter passiert, sag uns über die Hilfe Bescheid.', boton: 'Noch einmal versuchen' },
+  fr: { titulo: 'Quelque chose s’est mal passé', mensaje: 'Weë a rencontré une erreur inattendue. Réessaie ; si cela continue, dis-le-nous depuis l’Aide.', boton: 'Réessayer' },
+  it: { titulo: 'Qualcosa è andato storto', mensaje: 'Weë ha incontrato un errore imprevisto. Riprova; se continua a succedere, scrivicelo dalla Guida.', boton: 'Riprova' },
+  pt: { titulo: 'Algo deu errado', mensaje: 'O Weë encontrou um erro inesperado. Tente de novo; se continuar acontecendo, conte para a gente pela Ajuda.', boton: 'Tentar de novo' },
+  ru: { titulo: 'Что-то пошло не так', mensaje: 'В Weë произошла непредвиденная ошибка. Попробуйте ещё раз, а если это повторится — напишите нам из раздела «Помощь».', boton: 'Повторить' },
+  ko: { titulo: '문제가 발생했어요', mensaje: 'Weë에서 예기치 못한 오류가 났어요. 다시 시도해 보세요. 계속 이러면 도움말에서 알려 주세요.', boton: '다시 시도' },
+  zh: { titulo: '出错了', mensaje: 'Weë 遇到了意外错误。请重试；如果一直这样，可以在帮助里告诉我们。', boton: '重试' },
+  'zh-TW': { titulo: '發生錯誤', mensaje: 'Weë 遇到非預期的錯誤。請重試；如果一直發生，可以從說明告訴我們。', boton: '重試' },
+};
+
+/* Locale completo primero (`zh-TW`), luego el idioma (`zh`), y si no, inglés. */
+const textosDeEmergencia = () => {
+  const locale = localeDeEmergencia();
+  return TEXTOS[locale] || TEXTOS[locale.split('-')[0]] || TEXTOS.en;
+};
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -27,14 +59,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
+      const textos = textosDeEmergencia();
       return (
         <View style={styles.container}>
           <Text style={styles.emoji}>😵‍💫</Text>
-          <Text style={styles.title}>Algo salió mal</Text>
-          <Text style={styles.message}>Weë encontró un error inesperado. Intenta de nuevo; si sigue pasando, cuéntanoslo desde Ayuda.</Text>
+          <Text style={styles.title}>{textos.titulo}</Text>
+          <Text style={styles.message}>{textos.mensaje}</Text>
           {__DEV__ && this.state.error && <Text style={styles.errorDetails}>{this.state.error.toString()}</Text>}
-          <TouchableOpacity style={styles.button} onPress={() => this.setState({ hasError: false, error: undefined })} accessibilityLabel="Intentar de nuevo">
-            <Text style={styles.buttonText}>Intentar de nuevo</Text>
+          <TouchableOpacity style={styles.button} onPress={() => this.setState({ hasError: false, error: undefined })} accessibilityLabel={textos.boton}>
+            <Text style={styles.buttonText}>{textos.boton}</Text>
           </TouchableOpacity>
         </View>
       );

@@ -1326,7 +1326,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <View style={styles.userInfo}>
             <Text style={[styles.username, { color: theme.colors.text }]}>
               {loadingAuthor
-                ? 'Cargando...'
+                ? t('common.loading')
                 : postAuthor?.displayName || t('common.anonymousUser')
               }
             </Text>

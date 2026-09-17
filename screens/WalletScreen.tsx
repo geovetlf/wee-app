@@ -39,10 +39,16 @@ const WalletScreen = () => {
     return () => { unsub1(); unsub2(); };
   }, [accountUid]);
 
+  /*
+   * La fecha sale del LOCALE ACTIVO, no de uno fijo. Antes decía 'es-ES' y el
+   * historial de dinero se veía en español aunque la app estuviera en coreano o
+   * en chino. `formato` ya viene atado al locale que haya puesto la persona, que
+   * es lo que pide el §8: nunca un `toLocaleDateString('es')` a mano.
+   */
   const fmtDate = (ts: any) => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return formato.fecha(d, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
   const renderTransaction = ({ item }: { item: CreditTransaction }) => {
@@ -59,9 +65,15 @@ const WalletScreen = () => {
           />
         </View>
         <View style={styles.txnBody}>
-          <Text style={[styles.txnDesc, { color: theme.colors.text }]}>{view.title}</Text>
+          {/*
+            El título es lo que mandó el servidor —contenido, se pinta crudo— o,
+            si no mandó nada, la clave que dice el servicio, resuelta aquí.
+          */}
+          <Text style={[styles.txnDesc, { color: theme.colors.text }]}>
+            {view.title || (view.tituloClave ? t(view.tituloClave) : '')}
+          </Text>
           <Text style={[styles.txnDate, { color: theme.colors.textSecondary }]}>
-            {fmtDate(item.createdAt)}{view.detail ? ` · ${view.detail}` : ''}
+            {fmtDate(item.createdAt)}{view.detalleClave ? ` · ${t(view.detalleClave)}` : ''}
           </Text>
         </View>
         <View style={styles.txnRight}>

@@ -5,6 +5,7 @@ import { crearTraductor, Traductor, Valores } from '../i18n/traducir';
 import { DICCIONARIOS, idiomasConDiccionario } from '../i18n/diccionarios';
 import { localesDelAparato } from '../i18n/aparato';
 import { guardarIdiomaElegido, leerIdiomaElegido } from '../i18n/preferencia';
+import { recordarLocale } from '../i18n/emergencia';
 import * as formato from '../i18n/formato';
 
 /*
@@ -98,6 +99,12 @@ export const IdiomaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const valor = useMemo<ValorDelContexto>(() => {
     const { idioma, locale, origen } = resuelto;
+    /*
+     * Se le deja dicho a la pantalla de error qué idioma hay puesto. Vive por
+     * fuera de este proveedor —tiene que sobrevivir a que reviente— y no puede
+     * preguntar por contexto, así que se le avisa desde aquí.
+     */
+    recordarLocale(locale);
     const t = crearTraductor(locale, DICCIONARIOS, {
       modoDesarrollo: typeof __DEV__ !== 'undefined' && __DEV__,
     });

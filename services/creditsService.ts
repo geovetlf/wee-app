@@ -63,12 +63,21 @@ export interface CreditTransaction {
 
 export interface CreditPackage {
   id: string;
-  name: string;
+  /**
+   * Cómo se llama el paquete.
+   *
+   * `nombreClave` cuando es una palabra —«Básico»— y hay que traducirla;
+   * `name` cuando es un nombre de producto —«Plus», «Black Pro»— que se escribe
+   * igual en todos los idiomas. Nunca los dos a la vez.
+   */
+  name?: string;
+  nombreClave?: string;
   credits: number;
   priceUsd: number;
   priceLabel: string;
   popular?: boolean;
-  badge?: string;
+  /** La etiqueta del paquete, como clave: «Popular», «Mejor valor». */
+  badgeClave?: string;
   productId: string; // IAP product ID for App Store / Play Store
 }
 
@@ -79,9 +88,9 @@ export type Transaction = CreditTransaction;
 // ─── Paquetes (para mostrar; el servidor es la autoridad al acreditar) ───
 
 export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'basic', name: 'Básico', credits: 40, priceUsd: 4.99, priceLabel: '$4.99', productId: 'zone.wee.credits.basic' },
-  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, priceLabel: '$9.99', popular: true, badge: 'Popular', productId: 'zone.wee.credits.plus' },
-  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, priceLabel: '$19.90', badge: 'Mejor valor', productId: 'zone.wee.credits.blackpro' },
+  { id: 'basic', nombreClave: 'credits.pkgBasic', credits: 40, priceUsd: 4.99, priceLabel: '$4.99', productId: 'zone.wee.credits.basic' },
+  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, priceLabel: '$9.99', popular: true, badgeClave: 'credits.badgePopular', productId: 'zone.wee.credits.plus' },
+  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, priceLabel: '$19.90', badgeClave: 'credits.badgeBestValue', productId: 'zone.wee.credits.blackpro' },
 ];
 
 // ─── Helpers ───
@@ -211,7 +220,19 @@ class CreditsService {
     const data = await call<{ costs: Record<CreditService, number>; packages: Omit<CreditPackage, 'priceLabel'>[] }>('getCreditCost');
     const packages = data.packages.map((pkg) => {
       const local = CREDIT_PACKAGES.find((p) => p.id === pkg.id);
-      return { ...pkg, priceLabel: `$${pkg.priceUsd.toFixed(2)}`, popular: local?.popular, badge: local?.badge };
+      /*
+       * Los precios y los Credits los manda el servidor; el nombre y la
+       * etiqueta son cosa de la interfaz y salen del catálogo local, como
+       * CLAVES. Así un paquete nuevo del servidor no llega sin traducir.
+       */
+      return {
+        ...pkg,
+        priceLabel: `$${pkg.priceUsd.toFixed(2)}`,
+        popular: local?.popular,
+        name: local?.name,
+        nombreClave: local?.nombreClave,
+        badgeClave: local?.badgeClave,
+      };
     });
     return { costs: data.costs, packages };
   }
@@ -251,8 +272,12 @@ export const creditsService = new CreditsService();
 // ─── Presentación del historial ───
 
 export interface TransactionView {
-  title: string;
-  detail?: string;
+  /** Lo que mandó el servidor, ya escrito. Contenido: se pinta tal cual. */
+  title: string | null;
+  /** Qué decir cuando el servidor no mandó nada. Clave de i18n, no frase. */
+  tituloClave: string | null;
+  /** El estado del movimiento —devuelto, en proceso—, también como clave. */
+  detalleClave?: string;
   /** Monto con signo tal como se muestra (−10, +40). */
   amount: number;
   positive: boolean;
@@ -260,19 +285,39 @@ export interface TransactionView {
   balanceAfter: number;
 }
 
+/*
+ * DEVUELVE CLAVES, NO FRASES.
+ *
+ * Este archivo se importa fuera de React, donde no hay traductor: llamar a `t()`
+ * aquí congelaría el idioma del arranque. Así que dice QUÉ hay que decir y deja
+ * que lo diga quien pinta, que es el patrón del §8 —el mismo de
+ * `constants/specialists.ts`—.
+ *
+ * `tituloClave` es null cuando el servidor mandó su propia razón en `tx.reason`:
+ * eso es contenido, viene ya escrito y no se traduce.
+ *
+ * No se toca ni un número: `amount`, `positive` y `balanceAfter` salen igual que
+ * antes. Lo único que cambia es que el texto deja de estar en español fijo.
+ */
 export const describeTransaction = (tx: CreditTransaction): TransactionView => {
   const amount = typeof tx.amount === 'number' ? tx.amount : 0;
   const positive = amount >= 0;
-  let detail: string | undefined;
+  let detalleClave: string | undefined;
   if (tx.type === 'usage') {
-    if (tx.status === 'REFUNDED' || tx.status === 'FAILED') detail = 'Reembolsado';
-    else if (tx.status === 'AUTHORIZED' || tx.status === 'PENDING') detail = 'En proceso';
+    if (tx.status === 'REFUNDED' || tx.status === 'FAILED') detalleClave = 'credits.txRefunded';
+    else if (tx.status === 'AUTHORIZED' || tx.status === 'PENDING') detalleClave = 'credits.txPending';
   } else if (tx.type === 'refund') {
-    detail = 'Reembolso';
+    detalleClave = 'credits.txRefund';
   }
+  const tituloClave = tx.type === 'purchase' ? 'credits.txPurchase'
+    : tx.type === 'grant' ? 'credits.txGrant'
+      : tx.type === 'refund' ? 'credits.txRefund'
+        : 'credits.txUsage';
   return {
-    title: tx.reason || (tx.type === 'purchase' ? 'Compra de Credits' : tx.type === 'grant' ? 'Credits recibidos' : tx.type === 'refund' ? 'Reembolso' : 'Uso de Credits'),
-    detail,
+    /** La razón que mandó el servidor, si la mandó. Es contenido: no se traduce. */
+    title: tx.reason || null,
+    tituloClave: tx.reason ? null : tituloClave,
+    detalleClave,
     amount,
     positive,
     balanceAfter: typeof tx.balanceAfter === 'number' ? tx.balanceAfter : 0,

@@ -136,16 +136,16 @@ const CreditStoreScreen = () => {
               onPress={() => setSelectedPkg(pkg.id)}
               activeOpacity={0.8}
             >
-              {pkg.badge && (
+              {pkg.badgeClave && (
                 <View style={[styles.badge, { backgroundColor: pkg.popular ? '#F5B731' : '#22C55E' }]}>
-                  <Text style={styles.badgeText}>{pkg.badge}</Text>
+                  <Text style={styles.badgeText}>{t(pkg.badgeClave)}</Text>
                 </View>
               )}
 
               <View style={styles.packageLeft}>
                 <Ionicons name="diamond" size={22} color="#F5B731" />
                 <View>
-                  <Text style={[styles.packageName, { color: theme.colors.text }]}>{pkg.name}</Text>
+                  <Text style={[styles.packageName, { color: theme.colors.text }]}>{pkg.name || (pkg.nombreClave ? t(pkg.nombreClave) : '')}</Text>
                   <Text style={[styles.packageCredits, { color: theme.colors.textSecondary }]}>
                     {pkg.credits} Credits
                   </Text>
@@ -186,7 +186,7 @@ const CreditStoreScreen = () => {
         >
           <Ionicons name="diamond" size={20} color="#fff" />
           <Text style={styles.buyBtnText}>
-            Recargar {selected?.credits} Credits · prueba
+            {t('credits.topUpButton', { cantidad: selected?.credits ?? 0 })}
           </Text>
         </TouchableOpacity>
       </View>

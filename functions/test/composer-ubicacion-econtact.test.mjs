@@ -188,8 +188,21 @@ const WEE = 'hidi_abc123';
 const BIZ = 'biz_tienda';
 const OTRA = 'xyz789';
 
+/*
+ * Cada cara tiene su agenda y su NOMBRE (decisión del usuario, 2026-09-17). Son
+ * dos nombres de producto distintos, no dos grafías del mismo, y esta prueba
+ * afirmaba justo lo contrario hasta hoy: decía que la agenda se llamaba igual
+ * en las dos. Se queda como está para que nadie vuelva a unificarlos sin verlo.
+ */
 check('el Perfil Real tiene ËContact', modelo.nombreDeLista(REAL) === 'ËContact');
-check('y el Perfil Weë tiene ËContact también: la agenda se llama igual en las dos caras', modelo.nombreDeLista(WEE) === 'ËContact');
+check('y el Perfil Weë tiene ẄContact: son DOS nombres, no uno',
+  modelo.nombreDeLista(WEE) === 'ẄContact');
+check('y no se confunden: la Ë es del Real y la Ẅ es del Weë',
+  modelo.nombreDeLista(REAL) !== modelo.nombreDeLista(WEE)
+  && modelo.nombreDeLista(REAL).startsWith('Ë') && modelo.nombreDeLista(WEE).startsWith('Ẅ'));
+/* El Biz no tiene agenda; si llega aquí, se le da el nombre neutro. */
+check('el Perfil Biz cae en el nombre del Real, que es el neutro',
+  modelo.nombreDeLista(BIZ) === 'ËContact');
 check('el Perfil Biz no es una identidad de persona', !modelo.esIdentidadDePersona(BIZ));
 check('y las dos caras de una persona sí lo son', modelo.esIdentidadDePersona(REAL) && modelo.esIdentidadDePersona(WEE));
 

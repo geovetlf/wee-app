@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useIdioma } from '../contexts/IdiomaContext';
-import { IDIOMAS } from '../i18n/idiomas';
+import { IDIOMAS, filasDeIdioma, varianteDelLocale } from '../i18n/idiomas';
 
 /*
  * CONFIGURACIÓN → IDIOMA.
@@ -35,7 +35,7 @@ const IdiomaScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
   const { theme } = useTheme();
-  const { t, idioma, cambiarIdioma } = useIdioma();
+  const { t, idioma, locale, cambiarIdioma } = useIdioma();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -62,17 +62,27 @@ const IdiomaScreen: React.FC = () => {
 
         <View style={styles.section}>
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-            {IDIOMAS.filter((i) => i.listo).map((i) => {
-              const puesto = i.codigo === idioma;
+            {/*
+              Una fila por idioma, salvo los que tienen escrituras distintas: el
+              chino pinta dos —简体 y 繁體— y sigue siendo UN idioma. La marca de
+              selección compara la VARIANTE, no el idioma, porque con el chino
+              puesto los dos comparten `idioma === 'zh'` y si no, se marcarían
+              las dos filas a la vez.
+            */}
+            {filasDeIdioma().map((fila) => {
+              const variante = varianteDelLocale(locale);
+              const puesto = variante
+                ? fila.idioma === idioma && fila.clave === variante.locale
+                : fila.clave === idioma;
               return (
                 <TouchableOpacity
-                  key={i.codigo}
+                  key={fila.clave}
                   style={[styles.fila, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}
-                  onPress={() => cambiarIdioma(i.codigo)}
+                  onPress={() => cambiarIdioma(fila.clave)}
                   activeOpacity={0.7}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: puesto }}
-                  accessibilityLabel={i.nombreNativo}
+                  accessibilityLabel={fila.nombreNativo}
                 >
                   <Text
                     style={[
@@ -84,7 +94,7 @@ const IdiomaScreen: React.FC = () => {
                        propia dirección: el árabe se alineará solo cuando llegue. */
                     // eslint-disable-next-line react-native/no-raw-text
                   >
-                    {i.nombreNativo}
+                    {fila.nombreNativo}
                   </Text>
                   {puesto && (
                     <Ionicons name="checkmark" size={22} color={theme.colors.accent} />

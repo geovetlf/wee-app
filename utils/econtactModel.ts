@@ -131,21 +131,34 @@ export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad => {
   return 'real';
 };
 
-/** ËContact es entre personas. Un negocio ya tiene su propio seguir. */
+/** La agenda es entre personas. Un negocio ya tiene su propio seguir. */
 export const esIdentidadDePersona = (id?: string | null): boolean =>
   esIdentidadValida(id) && tipoDeIdentidad(id) !== 'biz';
 
 /**
- * Cómo se llama la agenda de una identidad: ËContact, el nombre de producto.
+ * Cómo se llama la agenda de una identidad. Son DOS nombres, no uno.
  *
- * ANTES CAMBIABA CON EL PERFIL —ËContact con el Real, ẄContact con el Weë— y
- * ese era lo único que cambiaba entre las dos: los datos y las reglas siempre
- * fueron los mismos. La agenda pasa a llamarse igual en las dos, así que aquí
- * ya no hay nada que decidir; la función se queda porque es LA puerta por la
- * que todo el mundo pregunta el nombre, y si algún día vuelve a depender de la
- * identidad, vuelve a depender aquí y en ningún otro sitio.
+ *   Perfil Real  →  ËContact
+ *   Perfil Weë   →  ẄContact
+ *
+ * No son sinónimos ni dos grafías de lo mismo: son dos nombres oficiales de
+ * producto, uno por cara (decisión del usuario, 2026-09-17). La Ë es U+00CB y
+ * la Ẅ es U+1E84, las dos en mayúscula, y ninguno de los dos se traduce ni se
+ * translitera en ningún idioma.
+ *
+ * ESTA FUNCIÓN ES LA ÚNICA QUE LO DECIDE, y por eso importa que esté sola. Los
+ * diccionarios no escriben ninguno de los dos nombres: escriben `{{lista}}` y
+ * lo rellena quien pinta, con lo que diga esto. Así que traducir Weë a un
+ * idioma nuevo no puede romper la regla, y cambiarla no obliga a tocar los diez
+ * diccionarios: se cambia aquí y en ningún otro sitio.
+ *
+ * El Perfil Biz no tiene agenda —ya tiene seguidores—, así que nunca llega aquí
+ * con esa cara; si llegara, se le da el nombre del Real, que es el neutro.
  */
-export const nombreDeLista = (_id?: string | null): 'ËContact' => 'ËContact';
+export type NombreDeLista = 'ËContact' | 'ẄContact';
+
+export const nombreDeLista = (id?: string | null): NombreDeLista =>
+  (tipoDeIdentidad(id) === 'wee' ? 'ẄContact' : 'ËContact');
 
 /**
  * Cómo se NOMBRA una identidad en pantalla.

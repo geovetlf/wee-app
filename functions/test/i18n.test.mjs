@@ -72,6 +72,8 @@ const it = (await cargar('i18n/textos/it/index.ts')).ns.it;
 const pt = (await cargar('i18n/textos/pt/index.ts')).ns.pt;
 const ru = (await cargar('i18n/textos/ru/index.ts')).ns.ru;
 const ko = (await cargar('i18n/textos/ko/index.ts')).ns.ko;
+const zh = (await cargar('i18n/textos/zh/index.ts')).ns.zh;
+const zhTW = (await cargar('i18n/textos/zh-TW/index.ts')).ns.zhTW;
 const aparato = (await cargar('i18n/aparato.ts')).ns;
 
 /**
@@ -259,7 +261,7 @@ console.log('\n── E · Traducir, y no romperse nunca ──');
    */
   const cEs = new Set(aplanar(es));
   const PLURAL_EXTRA = /_(few|many|zero|two)$/;
-  for (const [codigo, diccionario] of [['en', en], ['de', de], ['fr', fr], ['it', it], ['pt', pt], ['ru', ru], ['ko', ko]]) {
+  for (const [codigo, diccionario] of [['en', en], ['de', de], ['fr', fr], ['it', it], ['pt', pt], ['ru', ru], ['ko', ko], ['zh', zh], ['zh-TW', zhTW]]) {
     const suyas = new Set(aplanar(diccionario));
     const faltan = [...cEs].filter((k) => !suyas.has(k));
     const sobran = [...suyas].filter((k) => !cEs.has(k)).filter((k) => {
@@ -355,8 +357,16 @@ console.log('\n── G · El aparato, la persistencia y el catálogo ──');
     (pref.match(/setItem\(/g) || []).length === 1);
 
   /* El catálogo: once idiomas, ocho listos, cada uno en su lengua. */
-  check('38) once idiomas contemplados y ocho con diccionario',
-    idiomas.IDIOMAS.length === 11 && idiomas.idiomasDisponibles().length === 8);
+  check('38) once idiomas contemplados y nueve con diccionario',
+    idiomas.IDIOMAS.length === 11 && idiomas.idiomasDisponibles().length === 9);
+  /*
+   * El chino es UN idioma con DOS escrituras, así que la pantalla pinta una
+   * fila más que idiomas hay. Esto vigila que la cuenta siga cuadrando el día
+   * que alguien añada otra variante —o la quite—.
+   */
+  check('38b) y el selector pinta diez filas, porque el chino ofrece dos escrituras',
+    idiomas.filasDeIdioma().length === 10,
+    idiomas.filasDeIdioma().map((f) => f.clave).join(' '));
   check('39) cada idioma se llama como se llama en su idioma',
     idiomas.idiomaDelCatalogo('de').nombreNativo === 'Deutsch'
     && idiomas.idiomaDelCatalogo('ja').nombreNativo === '日本語'
@@ -369,11 +379,21 @@ console.log('\n── G · El aparato, la persistencia y el catálogo ──');
    * como listo sin registrar su diccionario deja la app en inglés sin avisar; y
    * registrarlo sin marcarlo lo esconde del selector. Se comparan las dos.
    */
-  const registrados = (leer('i18n/diccionarios.ts').match(/DICCIONARIOS: Diccionarios = \{([^}]*)\}/) || [, ''])[1]
-    .split(',').map((s) => s.trim()).filter(Boolean).sort().join(',');
+  /*
+   * Se leen las LÍNEAS que declaran una entrada, no el bloque partido por
+   * comas: dentro del objeto hay comentarios que explican los alias del chino,
+   * y esos comentarios llevan comas. Partir por comas metía trozos de prosa en
+   * la lista de idiomas registrados.
+   *
+   * Una entrada es `  es,` o `  'zh-TW': zhTW,`. Cualquiera de las dos formas.
+   */
+  const bloque = (leer('i18n/diccionarios.ts').match(/DICCIONARIOS: Diccionarios = \{([\s\S]*?)\n\};/) || [, ''])[1];
+  const registrados = [...bloque.matchAll(/^ {2}'?([a-zA-Z-]+)'?(?::\s*\w+)?,$/gm)]
+    .map((m) => m[1]).sort().join(',');
   check('41) los idiomas con diccionario son justo los marcados como listos',
-    idiomas.idiomasDisponibles().map((i) => i.codigo).sort().join(',') === 'de,en,es,fr,it,ko,pt,ru'
-    && registrados === 'de,en,es,fr,it,ko,pt,ru', registrados);
+    idiomas.idiomasDisponibles().map((i) => i.codigo).sort().join(',') === 'de,en,es,fr,it,ko,pt,ru,zh'
+    && registrados.split(',').filter((c) => !c.includes('-')).sort().join(',') === 'de,en,es,fr,it,ko,pt,ru,zh',
+    registrados);
 }
 
 console.log('\n── H · Nada de esto cuesta dinero ──');
