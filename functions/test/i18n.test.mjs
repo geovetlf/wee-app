@@ -364,8 +364,12 @@ console.log('\n── G · El aparato, la persistencia y el catálogo ──');
    * fila más que idiomas hay. Esto vigila que la cuenta siga cuadrando el día
    * que alguien añada otra variante —o la quite—.
    */
-  check('38b) y el selector pinta diez filas, porque el chino ofrece dos escrituras',
-    idiomas.filasDeIdioma().length === 10,
+  /*
+   * Nueve idiomas, once filas: el chino ofrece dos escrituras y el portugués
+   * dos normas. Cada variante suma una fila sin sumar un idioma.
+   */
+  check('38b) y el selector pinta once filas: el chino y el portugués tienen dos cada uno',
+    idiomas.filasDeIdioma().length === 11,
     idiomas.filasDeIdioma().map((f) => f.clave).join(' '));
   check('39) cada idioma se llama como se llama en su idioma',
     idiomas.idiomaDelCatalogo('de').nombreNativo === 'Deutsch'

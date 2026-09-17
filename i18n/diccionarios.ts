@@ -5,6 +5,7 @@ import { de } from './textos/de';
 import { fr } from './textos/fr';
 import { it } from './textos/it';
 import { pt } from './textos/pt';
+import { ptPT } from './textos/pt-PT';
 import { ru } from './textos/ru';
 import { ko } from './textos/ko';
 import { zh } from './textos/zh';
@@ -33,7 +34,28 @@ export const DICCIONARIOS: Diccionarios = {
   de,
   fr,
   it,
+  /*
+   * ── EL PORTUGUÉS: DOS NORMAS, EL MISMO IDIOMA ──────────────────────────────
+   *
+   * `pt` es el BRASILEÑO y hace de base (decisión de producto, 2026-09-16, ver
+   * más abajo). `pt-PT` es el europeo, completo: no es un parche que rellene
+   * huecos del brasileño, porque el respaldo va clave por clave y una sola sin
+   * traducir metería una frase brasileña en medio de una pantalla portuguesa.
+   *
+   * Y los alias hacen aquí el mismo trabajo que en chino: Angola, Mozambique,
+   * Cabo Verde, Guinea-Bisáu, Santo Tomé, Timor y Macao siguen la norma
+   * europea. Sin estas líneas, `cadenaDeRespaldo('pt-AO')` daría [pt-AO, pt, en]
+   * y les serviría BRASILEÑO.
+   */
   pt,
+  'pt-PT': ptPT,
+  'pt-AO': ptPT,
+  'pt-MZ': ptPT,
+  'pt-CV': ptPT,
+  'pt-GW': ptPT,
+  'pt-ST': ptPT,
+  'pt-TL': ptPT,
+  'pt-MO': ptPT,
   ru,
   ko,
   /*

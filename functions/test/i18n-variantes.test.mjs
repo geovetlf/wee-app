@@ -179,11 +179,23 @@ for (const [donde, archivo] of SITIOS) {
     /brasile/i.test(leer(archivo)) && /pt-BR/.test(leer(archivo)), archivo);
 }
 /*
- * Y que siga siendo UN diccionario. El día que exista `i18n/textos/pt-PT/` será
- * una decisión tomada a propósito, no un descuido, y habrá que venir aquí.
+ * ESE DÍA LLEGÓ, Y FUE A PROPÓSITO (2026-09-17).
+ *
+ * Cuando se escribió esto, `pt-PT` no existía y la comprobación decía que no
+ * debía existir: cualquier aparición habría sido un descuido. Ahora el europeo
+ * es una VARIANTE declarada del mismo idioma, con su diccionario completo y sus
+ * alias, así que lo que hay que vigilar cambia de signo.
+ *
+ * Lo que ya no puede pasar es lo contrario: que el europeo aparezca a medias
+ * —unas claves sí y otras cayendo al brasileño— o que alguien lo confunda con
+ * un idioma aparte. Las dos cosas las comprueba `i18n-portugues.test.mjs`;
+ * aquí basta con asegurar que sigue siendo UN idioma con dos normas.
  */
-check('9) no hay un pt-PT suelto que compita con este',
-  !fs.existsSync(path.join(TEXTOS, 'pt-PT')) && !fs.existsSync(path.join(TEXTOS, 'ptPT')));
+check('9) el europeo existe como VARIANTE, no como idioma aparte',
+  fs.existsSync(path.join(TEXTOS, 'pt-PT'))
+  && !/codigo: 'pt-PT'/.test(leer('i18n/idiomas.ts'))
+  && /locale: 'pt-PT'/.test(leer('i18n/idiomas.ts')),
+  'pt-PT es variante de `pt`, no una fila más del catálogo');
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

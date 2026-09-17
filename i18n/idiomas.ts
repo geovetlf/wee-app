@@ -97,7 +97,39 @@ export const IDIOMAS: readonly Idioma[] = [
    * será un diccionario aparte. La regla entera está en `i18n/diccionarios.ts`
    * y la vigila `functions/test/i18n-variantes.test.mjs`.
    */
-  { codigo: 'pt', nombreNativo: 'Português', direccion: 'ltr', listo: true },
+  /*
+   * UN SOLO IDIOMA, DOS NORMAS. Igual que el chino, el portugués se ofrece en
+   * dos variantes y sigue siendo UN idioma: `pt`.
+   *
+   * La base —`textos/pt`— es la BRASILEÑA, por la decisión de producto de
+   * 2026-09-16 que hay explicada más abajo en `diccionarios.ts`. Portugal tiene
+   * su propio diccionario en `textos/pt-PT`, y no es una conversión: allí se
+   * dice «está a carregar» y se tutea con «tu», cosas que ninguna lista de
+   * palabras produce.
+   *
+   * La lista `cubre` importa por lo mismo que en chino: un teléfono portugués
+   * dice `pt-PT`, pero uno de Angola o Mozambique dice `pt-AO` o `pt-MZ`, y
+   * esas variedades siguen la norma europea. Sin declararlos, caerían en `pt` y
+   * recibirían brasileño.
+   */
+  {
+    codigo: 'pt',
+    nombreNativo: 'Português',
+    direccion: 'ltr',
+    listo: true,
+    variantes: [
+      {
+        locale: 'pt-BR',
+        nombreNativo: 'Português (Brasil)',
+        cubre: ['pt', 'pt-BR'],
+      },
+      {
+        locale: 'pt-PT',
+        nombreNativo: 'Português (Portugal)',
+        cubre: ['pt-PT', 'pt-AO', 'pt-MZ', 'pt-CV', 'pt-GW', 'pt-ST', 'pt-TL', 'pt-MO'],
+      },
+    ],
+  },
   /*
    * Primer idioma que necesita MÁS formas de plural que el español: cuatro en
    * vez de dos. El motor ya lo preveía y el tipo lo permite desde

@@ -331,8 +331,15 @@ console.log('\n── H · Las variantes del catálogo y los diccionarios dicen 
    * huérfano —nadie sabe por qué está ahí— y el día que se retoque la lista de
    * variantes se quedará apuntando a un diccionario que ya no le corresponde.
    */
-  const bloque = (cat.match(/variantes:\s*\[([\s\S]*?)\n {4}\],/) || [, ''])[1];
-  const cubiertos = new Set([...bloque.matchAll(/'(zh[\w-]*)'/g)].map((m) => m[1]));
+  /*
+   * Anclado al chino A PROPÓSITO. La primera versión buscaba «el bloque
+   * `variantes`» sin decir de quién, y funcionó mientras el chino fue el único
+   * idioma con variantes. En cuanto el portugués tuvo las suyas —y `pt` va
+   * antes que `zh` en el catálogo— esto empezó a leer la lista portuguesa y a
+   * comparar manzanas con naranjas.
+   */
+  const delChino = (cat.match(/codigo: 'zh'[\s\S]*?variantes:\s*\[([\s\S]*?)\n {4}\],/) || [, ''])[1];
+  const cubiertos = new Set([...delChino.matchAll(/'(zh[\w-]*)'/g)].map((m) => m[1]));
   const registrados = [...dic.matchAll(/^ {2}'(zh-[\w-]+)':/gm)].map((m) => m[1]);
   const huerfanos = registrados.filter((l) => !cubiertos.has(l));
   check('17) ningún alias registrado sin declarar en el catálogo', huerfanos.length === 0,
