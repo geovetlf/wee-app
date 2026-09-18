@@ -39,3 +39,4 @@ export * from './observability';
 export * from './registry';
 export * from './gateway';
 export * from './brain';
+export * from './planner';

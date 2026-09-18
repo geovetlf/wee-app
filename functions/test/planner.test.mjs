@@ -39,14 +39,9 @@ require.cache[idGateway] = {
   },
 };
 
-// Gemini debe parecer configurado para que getPlanner elija el planificador con LLM.
-const idGemini = require.resolve(path.resolve(here, '../lib/engine/providers/gemini.js'));
-const geminiReal = require(idGemini);
-const isConfiguredReal = geminiReal.geminiAdapter.isConfigured;
-geminiReal.geminiAdapter.isConfigured = () => true;
-
 const { llmPlanner, templatePlanner, getPlanner } = lib('creator/planner.js');
 const { TEMPLATES } = lib('creator/templates.js');
+const { disponibilidadDe } = lib('planner/index.js');
 
 const gateway = { userId: 'u1', jobId: 'j1', record: async () => {} };
 const turno = async (experienceId, goal, answers = []) => {
@@ -60,7 +55,18 @@ const turno = async (experienceId, goal, answers = []) => {
 
 console.log('\n── El doble no llama a ningún proveedor ──');
 {
-  check('getPlanner elige el planificador con LLM cuando Gemini está configurado', getPlanner() === llmPlanner);
+  /*
+   * QUÉ PLANIFICADOR SE USA LO DECIDE LA CAPACIDAD, NO UN PROVEEDOR.
+   *
+   * Esta comprobación decía «cuando Gemini está configurado», y para lograrlo
+   * parcheaba `geminiAdapter.isConfigured`. Era el reflejo exacto de la deuda
+   * que la Fase 4 vino a saldar: un adaptador concreto decidiendo si Weë Brain
+   * razona. Ahora se pregunta por `text.structure` y da igual quién la sirva.
+   */
+  check('getPlanner elige el planificador con LLM cuando se puede entender texto con estructura',
+    getPlanner(disponibilidadDe(['text.structure'])) === llmPlanner);
+  check('y el de plantilla cuando esa capacidad no la sirve nadie',
+    getPlanner(disponibilidadDe([])) === templatePlanner);
   const t = await turno('chef', 'Quiero opciones saludables para comer');
   check('el doble intercepta la consulta y registra la capacidad', t.llamadas === 1 && llamadas[0].capability === 'text.structure', llamadas[0]?.capability);
   check('y ningún proveedor real recibió nada', llamadas.every((l) => !l.ctx.creditTransactionId));
@@ -286,6 +292,5 @@ console.log('\n── 9 a 11 · el comportamiento funcional se mantiene ──')
   check('10-11) ninguna condicional inválida se cuela, tampoco con el turno', fugas.length === 0, fugas.join(', '));
 }
 
-geminiReal.geminiAdapter.isConfigured = isConfiguredReal;
 console.log(failures ? `\n${failures} prueba(s) fallaron` : '\nPlanificador: solo se consulta al LLM por preguntas que la persona verá');
 process.exit(failures ? 1 : 0);

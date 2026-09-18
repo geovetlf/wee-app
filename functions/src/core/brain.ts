@@ -289,6 +289,16 @@ export interface BrainUnderstanding {
   goal: string;
   /** La capacidad que haría falta, cuando se puede saber. Del catálogo del Core. */
   capability?: CoreCapabilityId;
+  /**
+   * TODAS las capacidades que hacen falta, cuando lo que se pide necesita
+   * varias: «un vídeo con imágenes, voz y música» son cuatro cosas, no una.
+   *
+   * `capability` sigue siendo la PRINCIPAL —lo que la persona pidió— y esta es
+   * la lista completa. Quien solo entienda una sigue funcionando igual: por eso
+   * se añade en vez de sustituirla. El ORDEN no se declara aquí; lo deriva el
+   * Planner del catálogo, que es quien sabe qué produce y qué acepta cada una.
+   */
+  capabilities?: readonly CoreCapabilityId[];
   /** Qué clase de resultado se espera. Se deduce de la capacidad, no se inventa. */
   modality?: Modality;
   inputs: { text: string; attachments: readonly BrainAttachment[] };
@@ -623,17 +633,22 @@ export const interpretarEntendimiento = (
   confidence?: BrainConfidence;
   goal?: string;
   capability?: CoreCapabilityId;
+  capabilities: readonly CoreCapabilityId[];
   constraints: Readonly<Record<string, string | number | boolean>>;
   missing: readonly string[];
   assumptions: readonly string[];
   suggestedExperience?: string;
   question?: string;
 } => {
-  const vacio = { constraints: {}, missing: [], assumptions: [] };
+  const vacio = { capabilities: [], constraints: {}, missing: [], assumptions: [] };
   if (!esObjetoPlano(crudo)) return vacio;
   const intent = esTexto(crudo.intent) && (esperado.intents as readonly string[]).includes(crudo.intent) ? (crudo.intent as BrainIntent) : undefined;
   const confidence = crudo.confidence === 'high' || crudo.confidence === 'medium' || crudo.confidence === 'low' ? crudo.confidence : undefined;
   const capability = esTexto(crudo.capability) && (esperado.capabilities as readonly string[]).includes(crudo.capability) ? (crudo.capability as CoreCapabilityId) : undefined;
+  /* Igual que la principal: lo que no esté en el catálogo se descarta, no se aproxima. */
+  const capabilities = Array.isArray(crudo.capabilities)
+    ? [...new Set(crudo.capabilities.filter((c): c is CoreCapabilityId => esTexto(c) && (esperado.capabilities as readonly string[]).includes(c)))].slice(0, 12)
+    : [];
   const sugerida = esTexto(crudo.suggestedExperience) && esperado.experiences.includes(crudo.suggestedExperience) ? crudo.suggestedExperience : undefined;
   const constraints: Record<string, string | number | boolean> = {};
   if (esObjetoPlano(crudo.constraints)) {
@@ -647,6 +662,7 @@ export const interpretarEntendimiento = (
     confidence,
     goal: esTexto(crudo.goal) ? recortar(crudo.goal.trim(), 300) : undefined,
     capability,
+    capabilities,
     constraints,
     missing: listaDeTextos(crudo.missing, 8),
     assumptions: listaDeTextos(crudo.assumptions, 8),
@@ -1005,7 +1021,7 @@ export const crearBrain = (ports: BrainPorts): Brain => {
     /* Lo que el modelo devolvió como estructura, ya validado contra el catálogo. */
     const leido = kind === 'understand'
       ? interpretarEntendimiento(leerJson(crudo), { intents: INTENCIONES, capabilities: CAPABILITY_CATALOG.map((c) => c.id), experiences: experiencias })
-      : { constraints: {}, missing: [] as readonly string[], assumptions: [] as readonly string[] } as ReturnType<typeof interpretarEntendimiento>;
+      : { capabilities: [] as readonly CoreCapabilityId[], constraints: {}, missing: [] as readonly string[], assumptions: [] as readonly string[] } as ReturnType<typeof interpretarEntendimiento>;
 
     const señales = clasificarIntencion(contexto, marca.suggestedExperience);
     const intent = leido.intent ?? señales.intent;
@@ -1020,6 +1036,8 @@ export const crearBrain = (ports: BrainPorts): Brain => {
       confidence: leido.confidence ?? señales.confidence,
       goal: leido.goal ?? contexto.inmediato.text,
       capability,
+      /* La principal entra en la lista aunque el modelo no la repita: la lista es el conjunto, no un extra. */
+      capabilities: [...new Set([...(capability ? [capability] : []), ...leido.capabilities])],
       modality: capability ? modalidadDeCapacidad(capability) : undefined,
       inputs: { text: contexto.inmediato.text, attachments: contexto.inmediato.attachments },
       references: contexto.inmediato.attachments.map((a) => a.assetId ?? a.url ?? '').filter(Boolean),

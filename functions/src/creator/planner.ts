@@ -3,7 +3,8 @@ import { ExperienceTemplate, TEMPLATES, TemplateQuestion, plainQuestion } from '
 import { BRAIN_SYSTEM } from './prompts';
 import { runCapability } from '../gateway';
 import { GatewayContext } from '../gateway/types';
-import { geminiAdapter } from '../engine/providers/gemini';
+import { CapabilityAvailability } from '../core';
+import { disponibilidadDeWee } from '../planner';
 
 /**
  * Weë Brain — planificador.
@@ -258,4 +259,19 @@ export const llmPlanner: Planner = {
   },
 };
 
-export const getPlanner = (): Planner => (geminiAdapter.isConfigured() ? llmPlanner : templatePlanner);
+/**
+ * CUÁL DE LOS DOS PLANIFICADORES SE USA.
+ *
+ * La pregunta es «¿se puede ENTENDER texto con estructura hoy?», no «¿está tal
+ * proveedor configurado?». Antes se le preguntaba a un adaptador concreto, y
+ * eso ataba una decisión del sistema —si Weë Brain razona o se limita a seguir
+ * la plantilla— a una empresa: el día que el razonamiento pase a otra matriz,
+ * esto habría seguido preguntando por la anterior.
+ *
+ * Ahora se le pregunta al registro por la CAPACIDAD. Quién la sirve lo decide
+ * el router al ejecutar, que es donde se decide; aquí solo hace falta saber si
+ * hay alguien. El modo demo no cuenta: atiende todo y haría creer que siempre
+ * se puede.
+ */
+export const getPlanner = (disponibilidad: CapabilityAvailability = disponibilidadDeWee): Planner =>
+  disponibilidad.disponible('text.structure') ? llmPlanner : templatePlanner;

@@ -633,8 +633,24 @@ console.log('\n── M · Lo que no se ha tocado ──');
 
 console.log('\n── N · Escala: sin estado, sin bucles, sin memoria por persona ──');
 {
-  check('108) Brain no guarda nada entre peticiones: ni mapas, ni cachés, ni contadores',
-    !/new Map\(|new Set\(|let cache|const cache|globalThis/.test(codigoCore + codigoComp));
+  /*
+   * ESTADO DE MÓDULO, no cualquier colección. La primera versión de esta
+   * comprobación prohibía `new Set(` a secas y saltó en cuanto una función
+   * dedujo duplicados con uno local —que vive y muere dentro de la llamada y
+   * no es memoria de nadie—. Lo que de verdad no puede haber es algo declarado
+   * FUERA de las funciones que cambie: ahí es donde se acumula por persona.
+   */
+  const estadoDeModulo = (src) => [
+    ...(src.match(/^(let|var)\s+\w+/gm) || []),
+    ...(src.match(/^const\s+\w+[^=\n]*=\s*(new (Map|Set|WeakMap|WeakSet)\(\s*\)|\{\s*\}|\[\s*\])/gm) || []),
+  ];
+  const conEstado = [...estadoDeModulo(codigoCore), ...estadoDeModulo(codigoComp)];
+  check('108) Brain no guarda nada entre peticiones: nada mutable fuera de las funciones',
+    conEstado.length === 0, conEstado.join(' | ') || 'sin estado de módulo');
+  check('108b) control: un contador o una caché de módulo se detectarían',
+    estadoDeModulo('let vistos = 0;\n').length === 1 && estadoDeModulo('const cache = new Map();\n').length === 1
+    && estadoDeModulo('  const locales = new Set();\n').length === 0
+    && estadoDeModulo('const TABLA: ReadonlySet<string> = new Set([\n').length === 0);
   check('109) sin bucles permanentes ni sondeo', !/while \(true\)|setInterval|setTimeout|requestAnimationFrame/.test(codigoCore + codigoComp));
   check('110) sin singleton mutable: no hay un Brain global que acumule nada',
     !/let instancia|export const brainDeWee/.test(codigoComp));

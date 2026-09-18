@@ -30,6 +30,7 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `registry/validate.ts` | Integridad referencial |
 | `gateway.ts` | El AI Gateway: `GatewayRequest`, `GatewayResult`, `crearGateway(ports)`, `puedeEjecutarse()` |
 | `brain.ts` | Weë Brain: `BrainRequest`, `BrainResponse`, `BrainUnderstanding`, `crearBrain(ports)` |
+| `planner.ts` | WEE Planner: `Plan`, `PlanStep`, `PlannerRequest/Response`, `crearPlanner(ports)` |
 
 Y fuera del Core, porque nombran proveedores o hablan con el motor: `functions/src/registry/` — la composición que enchufa los adaptadores reales y declara las matrices pendientes—, `functions/src/engine/gateway.ts` — el Gateway compuesto sobre el motor— y `functions/src/brain/` — la composición de Weë Brain.
 
@@ -258,6 +259,92 @@ En **`entender()`** —para el Planner, Fase 4— se pide una estructura al mode
 | Guardar material y resolver su propiedad | Project/Asset (Fase 11) |
 | Enrutar de verdad texto, imagen, audio y vídeo | Multimodal (Fase 12) |
 
+## WEE Planner
+
+Convierte lo que Brain entendió en un **plan de capacidades**: qué hace falta, en qué orden y qué necesita cada paso.
+
+```
+BRAIN entiende → PLANNER planifica → WORKFLOW organiza → ORCHESTRATOR coordina
+              → ROUTER elige → GATEWAY ejecuta → ADAPTADOR traduce → PROVEEDOR
+```
+
+**El Planner es capability-aware y provider-agnostic.** Sabe decir «hace falta generar una imagen»; no sabe —ni puede— decir con qué. Elegir la implementación es del Router, ejecutarla del Gateway, organizar la ejecución del Workflow.
+
+### El orden no se inventa: se deduce del catálogo
+
+Es la idea que sostiene toda la fase. Si un paso **produce** una modalidad y otro la **acepta**, el segundo depende del primero — y eso ya está declarado en el catálogo de capacidades desde la Fase 1. El Planner solo lo lee:
+
+```
+image.generate  produces image ──┐
+voice.tts       produces voice   │  video.image_to_video accepts [image, text]
+music.generate  produces music   └─────────────→ dependsOn: [image.generate]
+```
+
+No hay ninguna tabla de «primero esto, luego lo otro». Una tabla así se iría separando del catálogo hasta planificar algo imposible.
+
+**Y el paralelismo tampoco se declara.** Imagen, voz y música no dependen entre sí, así que pueden ir a la vez: `pasosListos()` (Fase 0) devuelve los tres. Un `parallel: true` sería una segunda verdad que algún día contradiría al grafo — es la regla que fijó la Fase 0 y aquí se respeta.
+
+**Lo que la persona ya trajo no se vuelve a crear:** un adjunto de imagen satisface la necesidad sin paso previo y sin dependencia.
+
+**Y cuando falta material, completarlo depende de si el paso se puede dirigir con palabras.** La regla sale del catálogo, no de una lista escrita a mano:
+
+| El paso acepta | Ejemplo | Falta el material |
+|---|---|---|
+| material **y texto** | `video.image_to_video` (image + text) | se completa: «una imagen de un gato, y anímala» es un encargo entero |
+| **solo** material | `audio.transcribe` (voice), `vision.describe` (image), `image.upscale` (image), `video.compose` (video) | se **pregunta**: `material:voice` |
+
+La diferencia importa porque la segunda fila es material **de la persona**. Fabricarlo daría un plan que transcribe una voz que Weë acaba de sintetizar, que no es lo que nadie pidió. Y aun donde sí se completa, el paso que se añade tiene que ser el que el catálogo señala **sin ambigüedad**: con música hay tres candidatas —canción, efecto, audio genérico— y elegir sería adivinar.
+
+### `PlanStep` no duplica `WorkflowStep`
+
+`PlanStep` dice **qué**: `id`, `capability`, `purpose`, `dependsOn`, `input`, más `produces` y `hints`. `WorkflowStep` (Fase 0) añade **cómo ejecutarlo**: reintentos, plazos, condiciones, aprobación, calidad, presupuesto. Los campos comunes se llaman y significan exactamente igual, para que convertir uno en otro sea copiar y no traducir.
+
+### Seis estados, porque no todo es «error»
+
+`ready` · `needs_clarification` · `unsupported` (nadie sirve esa capacidad hoy) · `invalid` · `impossible` (no había trabajo que planificar) · `failed`. El Workflow y el Orchestrator tienen que poder actuar sobre esto sin leer un mensaje.
+
+Los seis se producen de verdad. `failed` es el que cuesta: cualquier fallo interno —un puerto que revienta, un registro caído— se responde como `failed` con `INTERNAL_ERROR` y **sin contar por qué**, porque un mensaje de excepción lleva rutas y datos. Un estado declarado que nunca ocurre es la forma más silenciosa de mentir en un contrato.
+
+**Y el Planner no inventa.** Si Brain dijo que falta algo, no planifica: pregunta. No rellena duración, estilo, cantidad, idioma ni nada que nadie dijo.
+
+### Lo que entra se lee; no se copia
+
+Todo lo que llega al Planner viene, en última instancia, de algo que alguien escribió y un modelo interpretó. Tres puertas, y las tres se leen con piezas que ya existían en el Core:
+
+- **`hints` y `understanding.preferences`** pasan por `leerHints()` —el mismo lector del Gateway y de Brain, lista blanca de `quality` y `durationSec`—. Un `providerId` o un `modelId` escondido ahí **rechaza la petición entera**; no se quita para seguir. Los tipos no bastan: `ExecutionHints` solo existe al compilar, y en ejecución cualquier clave sobrevive a un spread hasta el plan, que es justo el documento que leerán el Workflow y el Router.
+- **`constraints`** admite lo que acota el resultado (`tono`, `duracion`) y rechaza tanto las claves de implementación como `__proto__`.
+- **`capabilities`**, que la rellena un modelo, se comprueba contra el catálogo antes de usarse.
+
+En los tres casos se **rechaza** en vez de sanear: quitar algo en silencio da un plan distinto del que se pidió sin que nadie se entere.
+
+### La deuda de `creator/planner.ts:261`, saldada
+
+Era:
+
+```ts
+getPlanner = () => (geminiAdapter.isConfigured() ? llmPlanner : templatePlanner)
+```
+
+Un **adaptador concreto decidía si Weë Brain razona**. El día que el razonamiento pasara a otra matriz, esto habría seguido preguntando por la anterior. Ahora la pregunta es por la **capacidad**:
+
+```ts
+getPlanner = (disponibilidad = disponibilidadDeWee) =>
+  disponibilidad.disponible('text.structure') ? llmPlanner : templatePlanner
+```
+
+La composición (`functions/src/planner/`) se lo pregunta al registro y cuenta **solo proveedores de tipo `matrix`** — el modo demo atiende todo y haría creer que siempre se puede. Se mira el **tipo**, que es un contrato de la Fase 1, no un nombre: ahí tampoco se nombra a nadie. El comportamiento observable no cambia (sin claves reales sigue usando la plantilla), pero ya no depende de ninguna empresa.
+
+`BrainUnderstanding` ganó `capabilities?` de forma **aditiva**: `capability` sigue siendo la principal y esta es la lista completa cuando lo que se pide necesita varias. Quien solo entienda una sigue funcionando igual.
+
+### Qué NO hace
+
+| | quién |
+|---|---|
+| Elegir proveedor, modelo o adaptador | Router (Fase 7) |
+| Organizar y ejecutar los pasos | Workflow (Fase 5) y Orchestrator (Fase 6) |
+| Ejecutar cualquier cosa | Gateway (Fase 2) |
+| Estimar o cobrar | Credits (Fase 9) |
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.
@@ -309,10 +396,10 @@ Ningún proveedor (ni Tencent, ni Baidu, ni Alibaba, ni Google, ni Amazon), ning
 
 ## Lo que el Core todavía no hace
 
-Fases 0, 1, 2 y 3 son cimientos, registro, frontera e inteligencia. No hay Router nuevo, ni Orchestrator, ni runtime de Workflow, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes.
+Fases 0, 1, 2, 3 y 4 son cimientos, registro, frontera, inteligencia y plan. No hay Router nuevo, ni Orchestrator, ni runtime de Workflow, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes.
 
 Cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es de estas fases:
 
-- `creator/planner.ts:261` decide si Weë Brain razona según un adaptador concreto que esté configurado — una implementación decidiendo una capacidad del sistema (Fase 4).
+- ~~`creator/planner.ts:261` decide si Weë Brain razona según un adaptador concreto~~ — **saldado en la Fase 4**: ahora se pregunta por la capacidad `text.structure`, no por un proveedor. Ver «WEE Planner».
 - **Weë Brain tenía tres implementaciones con el mismo nombre.** La Fase 3 unificó el CONTRATO en `core/brain.ts` y puso el conversacional a usarlo. Las otras dos siguen donde estaban y son de otras fases: el **planificador** (`creator/planner.ts`) es Fase 4, y la **plantilla** `templates.brain` es un plan de Workplace que `creatorChat` puede ejecutar por API con otro precio (`ai_text`), otra cadena de proveedores y sin idioma — deuda declarada de Fases 4/5.
 - `engine/promptLanguage.looksEnglish()` solo detecta español, así que con once idiomas en producción un prompt en japonés viaja sin adaptar a un proveedor que no lo admite (Fase 10). Lo mismo le pasa a `guessExperience` del conversacional, cuyas palabras clave son solo españolas: por eso es el **respaldo** de la marca `[[WEE:id]]` y no al revés (Fase 10).
