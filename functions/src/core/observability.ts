@@ -36,7 +36,20 @@ export interface TraceContext {
   sessionId?: string;
   runId?: string;
   stepId?: string;
-  /** Desde dónde se pidió: 'design', 'brain'… */
+  /**
+   * QUÉ PRODUCTO lo pidió: la app principal o una de las independientes.
+   *
+   * No es un proveedor, ni un modelo, ni una capacidad: es el anfitrión desde
+   * el que entró la persona. El Core no conoce ninguno —aquí no hay ni puede
+   * haber una lista de productos—, solo lo transporta, porque todas las apps
+   * comparten la MISMA infraestructura y la misma cuenta.
+   *
+   * Existe para que el día que haya que atribuir una operación —quién, desde
+   * qué producto, en qué Workplace, con qué capacidad— no falte justo la
+   * mitad de la respuesta. Sin él se perdía en el primer lector.
+   */
+  appId?: string;
+  /** Desde dónde se pidió: 'design', 'brain'… El Workplace activo. */
   workplace?: string;
   projectId?: string;
 }

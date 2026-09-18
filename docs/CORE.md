@@ -345,6 +345,158 @@ La composición (`functions/src/planner/`) se lo pregunta al registro y cuenta *
 | Ejecutar cualquier cosa | Gateway (Fase 2) |
 | Estimar o cobrar | Credits (Fase 9) |
 
+## WEE Workflow Engine
+
+Convierte el **plan** en una **ejecución gobernada**: qué pasos hay, en qué estado está cada uno, cuáles pueden empezar ahora, qué arrastra un fallo y cuándo se puede dar por cerrado. Vive en `core/workflow.ts`, junto al contrato que la Fase 0 dejó para él, y se compone en `functions/src/workflow/`.
+
+```
+BRAIN entiende → PLANNER planifica → WORKFLOW estructura y gobierna el estado
+              → ORCHESTRATOR coordina → ROUTER elige → GATEWAY ejecuta
+```
+
+**El motor no ejecuta nada.** No llama al Gateway, no elige proveedor ni modelo, no cobra, no persiste, no lee el reloj. Recibe una ejecución y devuelve otra. Quien ejecute será el Orchestrator (Fase 6), quien elija el Router (Fase 7), quien guarde y reanude el Job Engine (Fase 8).
+
+### Plan ≠ Workflow
+
+| | Plan (Fase 4) | Workflow (Fase 5) |
+|---|---|---|
+| Dice | **qué** capacidades hacen falta y en qué orden | **cómo** queda organizada la ejecución: estados, transiciones, propagación, cierre |
+| Identidad | `plan_<requestId>` | `wf_<requestId>`; la ejecución, `run_<requestId>` |
+| Estado | no tiene | `WorkflowRun`: un `StepRun` por paso, cursor, causa |
+
+`construir(plan)` copia lo que la ejecución necesita para no ir a buscar el plan —objetivo, intención, pasos con lo que producen y sus pistas, restricciones, suposiciones, idioma, workplace, proyecto— y referencia el plan por `planId`. No copia `capabilities` (se deriva de los pasos) ni los avisos de la operación de planificar. **No inventa nada:** lo que el plan no trae, el workflow no lo tiene.
+
+Los cuatro ids son distintos y se atan por el sufijo de la petición. El Core no tiene generador de ids y el motor no inventa uno: se derivan de la traza o los trae quien llama (`ids.workflowId`, `ids.runId`). Cuando el Job Engine necesite ejecutar dos veces el mismo workflow, traerá el segundo `runId`; ese es el seam.
+
+### Estados de un paso
+
+Los ocho de la Fase 0, sin añadir ninguno:
+
+| Estado | Significa | Final |
+|---|---|---|
+| `pending` | no ha empezado. **«Listo» no es un estado:** es un pendiente cuyas dependencias cumplieron y cuya condición, si la tiene, se cumplió | |
+| `awaiting_approval` | está listo y espera que una persona diga que sí | |
+| `running` | quien orquesta lo empezó | |
+| `done` | terminó bien | ✓ |
+| `failed` | terminó con error, el suyo | ✓ |
+| `blocked` | no puede correr: una dependencia falló o se canceló | ✓ |
+| `skipped` | no hacía falta (su condición dijo que no) o su dependencia falló y la política dice saltar | ✓ |
+| `cancelled` | a petición, por rechazo de aprobación, o porque el workflow entero cayó | ✓ |
+
+Cada paso bloqueado, saltado o cancelado lleva su **causa** (`StepCause`), congelada al nacer, y `cause.stepId` apunta siempre al paso **raíz**: c bloqueada porque b no pudo correr porque a falló dice `dependency_failed: a`, no b. Es lo que permite distinguir «falló» de «bloqueado por un fallo» sin perder de dónde vino.
+
+Un paso **sin terminar mantiene abierta la ejecución**, sea obligatorio u opcional: lo que distingue a un opcional es que su incumplimiento no cuenta al cerrar, no que se pueda dar por perdido mientras todavía se puede lanzar.
+
+### Transiciones
+
+Una tabla, no un `switch`:
+
+```
+pending ──▶ running ──▶ done | failed | cancelled
+   ├─▶ awaiting_approval ──▶ running | cancelled
+   ├─▶ blocked      ┐
+   ├─▶ skipped      ├─ las decide el motor por propagación; nadie las pide
+   └─▶ cancelled    ┘  (o a petición)
+```
+
+`puedeTransitar(from, to)` responde por la tabla; `transitar(run, { stepId, to, at, … })` la aplica o devuelve un `WeeError` estructurado con `from` y `to`. Nunca muta: devuelve otra ejecución, congelada. Empezar exige estar listo y que la ejecución admita arranques; informar de algo que ya corre se admite siempre, incluso con la ejecución fallida o cancelada, porque lo que pasó, pasó.
+
+`failed → running` **no existe**: reintentar un paso terminado es reanudar, y eso es del Job Engine. Cuando exista, será una línea en la tabla.
+
+### Dependencias y paralelismo
+
+`dependsOn` es la única fuente. `listos(run)` devuelve **todos** los pasos que pueden empezar ahora —tres imágenes independientes salen las tres—; el Orchestrator decide cuántos lanza a la vez. Cada transición devuelve además `nowReady`: los que quedaron listos **por** ese cambio, calculados mirando solo a sus dependientes, sin recorrer el grafo.
+
+La relación con `pasosListos()` de la Fase 0 es de **subconjunto**, no de igualdad, y conviene decirlo exacto: `listos(run) ⊆ pasosListos(workflow, run.steps)` siempre, y son iguales cuando el workflow no tiene condiciones. El motor es más estricto en tres cosas que aquella función no podía saber: un paso con `when` no está listo hasta que su condición se cumple, una ejecución pausada o terminada no deja empezar nada, y `blocked` es final. Una prueba comprueba la inclusión en cada paso de un recorrido de 120 transiciones sobre un grafo de 40 nodos, y la igualdad cuando no hay `when`.
+
+El grafo se valida antes de nada, con causa estructurada: paso repetido, dependencia inexistente o repetida, dependencia de sí mismo, ciclo (en tiempo lineal, contando las condiciones como dependencias), condición a un paso que no existe, workflow vacío, más de mil pasos. **Nada se arregla en silencio:** un ciclo se rechaza entero.
+
+### Propagación de un fallo
+
+La política es la del paso que falla, `onFailure`, del contrato de la Fase 0:
+
+| Política | El paso | Sus dependientes (transitivos) | La ejecución |
+|---|---|---|---|
+| `fail_workflow` (por defecto) | `failed` | `blocked` · `dependency_failed` | `failed` en el acto; todo lo pendiente pasa a `cancelled` · `workflow_failed` |
+| `skip_dependents` | `failed` | `skipped` · `dependency_failed` | sigue |
+| `continue` (era opcional) | `failed` | `blocked` · `dependency_failed` | sigue; este fallo no cuenta |
+
+Lo que ya corría **sigue corriendo**: el motor no corta a nadie, porque no ejecuta; quien lo corre informará y su resultado se anota aunque la ejecución ya esté cerrada. Una cancelación se propaga igual, con `dependency_cancelled`. La propagación sigue el orden del workflow, así que el resultado no depende de cómo se recorrió el grafo.
+
+### Condiciones cerradas
+
+`when: { stepId, check }` de la Fase 0, con sus cuatro comprobaciones —`succeeded`, `failed`, `produced_output`, `skipped`— y ningún lenguaje de expresiones. Una condición es una **dependencia implícita**: el paso no está listo hasta que el objetivo termina. Cuando termina, se evalúa una vez: si no se cumple, el paso pasa a `skipped` · `condition_not_met`. Un paso saltado por su condición **satisface** a sus dependientes (es «hecho con nada», como lo lee `pasosListos()`) y **cuenta como cumplido** al cerrar.
+
+### Cierre
+
+`cierre(run)` no es «todos hechos». Un paso es **obligatorio** salvo que declare `onFailure: 'continue'`, y está **cumplido** si terminó `done` o `skipped` por su condición. Con algo obligatorio sin terminar, la ejecución sigue `open`; cuando todo terminó:
+
+- todo lo obligatorio cumplido → `done`;
+- algo obligatorio fallido, bloqueado o saltado por un fallo → `failed`, con causa el paso **raíz**;
+- si la raíz fue una cancelación → `cancelled`.
+
+`finishedAt` se pone cuando la ejecución está cerrada **y** no queda nada corriendo: una ejecución fallida con un paralelo todavía en marcha tiene estado pero no fin.
+
+### Cancelación y pausa, estructurales
+
+`cancelar(run, at)` cancela lo pendiente con `workflow_cancelled` y cierra la ejecución; `cancelar(run, at, stepId)` cancela un paso y bloquea a sus dependientes. `pausar` impide arranques; `reanudar` vuelve a lo que los pasos digan. Nada de esto aborta un proceso: quien ejecuta lo hará cuando exista (Fase 8), y el motor le da los estados y las transiciones para reflejarlo.
+
+### Seguridad
+
+Lo que baja hacia la ejecución —`input`, `constraints`, `hints`, `metadata`— se **lee, no se copia**: sin claves de implementación en ningún nivel (`providerId`, `modelId`, `adapterId`, `implementationRef`…), sin `__proto__`/`constructor`/`prototype`, sin credenciales, sin funciones ni instancias, con profundidad y tamaño acotados. Se rechaza, no se sanea. `input` sí admite `prompt`, `message` y `content`: son el texto de la persona, y la lista de la Fase 0 los prohíbe en las **trazas**, no en lo que un paso lleva al proveedor.
+
+Lo que vuelve como registro se lee igual de estricto. `actual`, el coste real, admite con qué se hizo —que es lo que el contrato de coste reserva «para auditar, no para decidir»— pero no admite un importe negativo, un tiempo negativo ni Credits partidos. `error.details` se revisa **en profundidad** y en modo traza: sin secretos, sin `stack`, sin mensaje crudo, a cualquier nivel de anidamiento. Y lo que transporta hacia la Fase 9 llega con forma: `budget.prefer` y `budget.onExceed` son instrucciones que leerá el Router, así que solo admiten sus valores, no cualquier cadena.
+
+Una **ejecución que vuelve de donde se guardó** también se lee antes de usarla: que sea de este workflow, con un paso por paso en el mismo orden, y con un estado del vocabulario. Sin esa comprobación, un `state` llamado `constructor` indexaba la tabla de transiciones y devolvía una función heredada en vez de `undefined`.
+
+### Inmutabilidad, determinismo, escala
+
+Todo lo que devuelve el motor está congelado y copiado en profundidad; cambiar el plan después no cambia el workflow, cambiar una lista pasada a una transición no cambia la ejecución. La misma secuencia da exactamente la misma ejecución; los tiempos los trae quien llama en `at`. `prepararWorkflow` calcula el índice una vez —posición, dependientes, condicionados— y una transición cuesta lo que toca a ese paso y a sus dependientes; mil pasos con dos mil transiciones son milisegundos. La ejecución es un dato plano que se guarda y se vuelve a leer sin perder nada; el índice no forma parte de ella.
+
+### Una infraestructura, varias apps
+
+Weë tendrá la app principal y apps independientes, y **ninguna llevará motor propio**: todas entran por la misma cadena, con la misma cuenta y el mismo saldo de Credits. Para que eso funcione, el motor no puede saber qué productos existen, y no lo sabe: en su código no hay un solo nombre de producto ni una rama por app.
+
+Lo que sí hace falta es no perder de dónde vino cada cosa, y eso viaja en el **hilo de la petición**, no en el workflow:
+
+| Qué | Dónde | Para qué |
+|---|---|---|
+| cuenta | `TraceContext.userId` | de quién es el trabajo y el saldo |
+| producto anfitrión | `TraceContext.appId` | desde qué app se pidió |
+| Workplace activo | `TraceContext.workplace` | desde qué espacio |
+| capacidad | `OperationTrace.capability` | qué se hizo |
+| operación | `traceId` · `requestId` · `runId` · `stepId` | qué petición y qué paso |
+
+`appId` es una **etiqueta opaca**: el Core la transporta y no la interpreta. Está en el hilo y no en el `Workflow` a propósito, porque el workflow dice **qué** hay que hacer y el hilo dice **quién** lo pidió y **desde dónde**; duplicarlo daría dos verdades sobre lo mismo. Va donde va el hilo: de Brain al plan, del plan al workflow, de ahí a la traza de cada paso que bajará al Router y al Gateway, y a la traza que se anota. Con esas cinco piezas, la Fase 9 podrá atribuir cualquier operación sin que el motor calcule ni cobre nada.
+
+### Lo que una experiencia avanzada necesitará
+
+Weë tendrá algún día experiencias que persigan un objetivo por su cuenta. **No hay ninguna, ni tiene nombre todavía**, y el motor no implementa ninguna. Lo que sí está es todo lo que necesitarán, porque son las mismas piezas que ya usa un plan cualquiera:
+
+| Lo que harán | Con qué, hoy |
+|---|---|
+| recibir un objetivo en las palabras de la persona | `Workflow.goal` |
+| planificar varios pasos y varias capacidades | el plan de la Fase 4, `steps`, el catálogo |
+| mantener contexto y estado entre pasos | `WorkflowRun`, plano y serializable |
+| pedir autorización antes de actuar | `requiresApproval` · `awaiting_approval` |
+| seguir con lo que no la necesita | `listos(run)` |
+| producir resultados | `outputRefs` |
+| continuar o completar una tarea larga | `WorkflowRun` guardado y retomado (Fase 8) |
+| registrar uso y coste | `StepRun.actual` |
+
+Una «herramienta» de una experiencia futura será una **capacidad** del catálogo, no un concepto nuevo: por eso no hace falta ningún contrato de herramientas aquí.
+
+### Qué NO hace
+
+| | quién |
+|---|---|
+| Ejecutar los pasos listos | Orchestrator (Fase 6) |
+| Elegir proveedor, modelo o adaptador | Router (Fase 7) |
+| Persistir, reanudar, reintentar, abortar de verdad | Job Engine (Fase 8) |
+| Estimar, reservar o cobrar Credits | Financial Core (Fase 9) |
+| Rellenar `input` con el material de pasos anteriores | Orchestrator, resolviendo `outputRefs` en ejecución |
+| Evaluar `quality` | Quality Engine (Fase 14) |
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.
@@ -396,7 +548,7 @@ Ningún proveedor (ni Tencent, ni Baidu, ni Alibaba, ni Google, ni Amazon), ning
 
 ## Lo que el Core todavía no hace
 
-Fases 0, 1, 2, 3 y 4 son cimientos, registro, frontera, inteligencia y plan. No hay Router nuevo, ni Orchestrator, ni runtime de Workflow, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes.
+Fases 0, 1, 2, 3, 4 y 5 son cimientos, registro, frontera, inteligencia, plan y estructura de ejecución. No hay Router nuevo, ni Orchestrator, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
 
 Cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es de estas fases:
 

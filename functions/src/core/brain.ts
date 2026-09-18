@@ -897,7 +897,8 @@ const capacidadDePensar = (options: BrainOptions, kind: 'reply' | 'understand'):
   return options.webSearch === true ? 'text.search' : 'text.generate';
 };
 
-const INTENCIONES: readonly BrainIntent[] = [
+/** Todas las intenciones, como lista: la única, para que quien valide una no tenga que copiarla. */
+export const INTENCIONES: readonly BrainIntent[] = [
   'conversation', 'question', 'creation', 'edit', 'transform',
   'analysis', 'planning', 'information', 'action', 'ambiguous',
 ];

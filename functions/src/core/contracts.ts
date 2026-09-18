@@ -23,8 +23,15 @@
  * tiene que poder crecer durante años sin una migración cada trimestre.
  */
 
-/** Versión del conjunto de contratos del Core. */
-export const CORE_CONTRACT_VERSION = '1.0' as const;
+/**
+ * Versión del conjunto de contratos del Core.
+ *
+ * 1.1: `TraceContext` gana `appId` opcional —qué producto pidió la operación—
+ * para que todas las apps puedan compartir la misma infraestructura y la
+ * misma cuenta sin perder de dónde vino cada cosa. Aditivo: lo que valía en
+ * 1.0 sigue valiendo.
+ */
+export const CORE_CONTRACT_VERSION = '1.1' as const;
 
 /** Lo que un adaptador de proveedor promete cumplir. */
 export const PROVIDER_CONTRACT_VERSION = '1.0' as const;
@@ -35,8 +42,15 @@ export const CAPABILITY_CONTRACT_VERSION = '1.0' as const;
 /** Forma de un manifiesto de Workplace. */
 export const WORKPLACE_CONTRACT_VERSION = '1.0' as const;
 
-/** Forma de un workflow y sus pasos. */
-export const WORKFLOW_CONTRACT_VERSION = '1.0' as const;
+/**
+ * Forma de un workflow, sus pasos y su ejecución.
+ *
+ * 1.1 (Fase 5): se AÑADEN campos opcionales —`produces` y `hints` en el paso;
+ * `planId`, `intent`, `language`, `constraints`, `assumptions`… en el
+ * workflow; `trace` y `cause` en la ejecución— y `capability` se ensancha al
+ * catálogo. Todo lo que valía en 1.0 sigue valiendo: menor, no mayor.
+ */
+export const WORKFLOW_CONTRACT_VERSION = '1.1' as const;
 
 /** Forma de una petición y un resultado del AI Gateway. */
 export const GATEWAY_CONTRACT_VERSION = '1.0' as const;

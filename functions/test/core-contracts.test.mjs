@@ -444,10 +444,12 @@ console.log('\n── H · Workplace, procedencia y traza ──');
 
 console.log('\n── I · Versionado de contratos ──');
 {
+  /* Workflow y el Core subieron a 1.1 en la Fase 5: se añadieron campos opcionales. Menor, no mayor: lo de 1.0 sigue valiendo. */
   check('57) todos los contratos declaran versión',
-    core.CORE_CONTRACT_VERSION === '1.0' && core.PROVIDER_CONTRACT_VERSION === '1.0'
+    core.CORE_CONTRACT_VERSION === '1.1' && core.PROVIDER_CONTRACT_VERSION === '1.0'
     && core.CAPABILITY_CONTRACT_VERSION === '1.0' && core.WORKPLACE_CONTRACT_VERSION === '1.0'
-    && core.WORKFLOW_CONTRACT_VERSION === '1.0');
+    && core.WORKFLOW_CONTRACT_VERSION === '1.1'
+    && core.contratoCompatible(core.WORKFLOW_CONTRACT_VERSION, '1.0') && core.contratoCompatible(core.CORE_CONTRACT_VERSION, '1.0'));
 
   /*
    * Añadir algo opcional NO rompe a nadie; quitar o cambiar, sí. Esa es toda la

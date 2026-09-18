@@ -293,7 +293,7 @@ export interface ImplementationResolver {
 /** La misma forma que exige el Credit Engine a `requestId`. Un solo criterio para todos los ids. */
 export const FORMA_DE_ID = /^[A-Za-z0-9_.:-]{4,160}$/;
 /** Los ids opcionales de la traza (paso, sesión, workplace…) pueden ser cortos, pero nunca llevar caracteres de control. */
-const FORMA_DE_ETIQUETA_DE_TRAZA = /^[A-Za-z0-9_.:/-]{1,160}$/;
+export const FORMA_DE_ETIQUETA_DE_TRAZA = /^[A-Za-z0-9_.:/-]{1,160}$/;
 /** Ids de proveedor, modelo y adaptador: lo que hay hoy incluye puntos, barras y dos puntos. */
 const FORMA_DE_REFERENCIA = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,120}$/;
 const FORMA_DE_CAPACIDAD = /^[a-z0-9]+\.[a-z0-9_]+$/;
@@ -540,7 +540,7 @@ export const leerTraza = (req: unknown): TraceContext | null => {
   if (!esTexto(t.traceId) || !FORMA_DE_ID.test(t.traceId)) return null;
   if (!esTexto(t.requestId) || !FORMA_DE_ID.test(t.requestId)) return null;
   if (!esTexto(t.userId) || !FORMA_DE_ID.test(t.userId)) return null;
-  for (const opcional of ['sessionId', 'runId', 'stepId', 'workplace', 'projectId']) {
+  for (const opcional of ['sessionId', 'runId', 'stepId', 'appId', 'workplace', 'projectId']) {
     const v = t[opcional];
     if (v !== undefined && (!esTexto(v) || !FORMA_DE_ETIQUETA_DE_TRAZA.test(v))) return null;
   }
@@ -551,6 +551,8 @@ export const leerTraza = (req: unknown): TraceContext | null => {
     sessionId: t.sessionId as string | undefined,
     runId: t.runId as string | undefined,
     stepId: t.stepId as string | undefined,
+    /* El producto anfitrión. Se lee como una etiqueta más: aquí no se sabe cuáles existen. */
+    appId: t.appId as string | undefined,
     workplace: t.workplace as string | undefined,
     projectId: t.projectId as string | undefined,
   };
