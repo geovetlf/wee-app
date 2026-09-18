@@ -17,8 +17,11 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
-import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, instruccionDeIdioma } from './prompts';
+import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, instruccionDeIdioma, localeDeBrain } from './prompts';
 import { AI_SECRETS } from '../secrets';
+import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, contextoDeIdioma, interpretarMarca } from '../core';
+import { crearBrainDeWee, pensamientoDesde } from '../brain';
+import { EngineResult } from '../engine/types';
 
 /**
  * Weë Brain — el asistente general de Weë (docs/CREATOR.md §4).
@@ -32,7 +35,13 @@ import { AI_SECRETS } from '../secrets';
  * requestId = brain_<messageId>, así que reenviar el mismo mensaje no cobra dos veces.
  * Motor: WEË AI ENGINE (text.generate / text.search → Gemini; modo demo sin clave).
  */
-const MAX_HISTORY = 20;
+/**
+ * Cuántos turnos se llevan de la conversación. El número vive en el Core
+ * (`LIMITES_DE_CONTEXTO`) y se lee de ahí para que haya UNA fuente: lo que
+ * Weë Brain manda al modelo y lo que el Core acota no pueden decir cosas
+ * distintas.
+ */
+const MAX_HISTORY = LIMITES_DE_CONTEXTO.turnos;
 const now = () => Timestamp.now();
 
 export interface BrainAnswer {
@@ -40,12 +49,16 @@ export interface BrainAnswer {
   suggestedExperience?: string;
 }
 
-/** Saca la marca [[WEE:id]] con la que el modelo deriva a un especialista. */
+/**
+ * Saca la marca [[WEE:id]] con la que el modelo deriva a un especialista.
+ *
+ * La regla vive en el Core (`interpretarMarca`), que es quien sabe que una
+ * marca a un especialista inexistente se ignora. Aquí solo se le dice cuáles
+ * existen. Misma salida de siempre para quien ya la usaba.
+ */
 export const parseSuggestion = (raw: string): BrainAnswer => {
-  const match = raw.match(/\[\[\s*WEE\s*:\s*([a-z]+)\s*\]\]/i);
-  const id = match?.[1]?.toLowerCase();
-  const text = raw.replace(/\n?\s*\[\[\s*WEE\s*:\s*[a-z]+\s*\]\]\s*/gi, '').trim();
-  return { text, suggestedExperience: id && BRAIN_SPECIALISTS[id] ? id : undefined };
+  const { text, suggestedExperience } = interpretarMarca(raw, Object.keys(BRAIN_SPECIALISTS));
+  return { text, suggestedExperience };
 };
 
 /** Detección de intención por palabras clave (respaldo cuando el modelo no marca nada). */
@@ -188,7 +201,7 @@ export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, me
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
     const data = (request.data || {}) as BrainChatInput;
-    const message = assertText(data.message ?? ' ', 'tu mensaje', 4000);
+    const message = assertText(data.message ?? ' ', 'tu mensaje', LIMITES_DE_CONTEXTO.caracteresDelMensaje);
     const webSearch = data.webSearch === true;
     const files = {
       imageUrl: data.imageUrl ? assertInputImageUrl(data.imageUrl, uid) : undefined,
@@ -235,7 +248,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
     const data = (request.data || {}) as BrainChatInput;
-    const message = assertText(data.message, 'tu mensaje', 4000);
+    const message = assertText(data.message, 'tu mensaje', LIMITES_DE_CONTEXTO.caracteresDelMensaje);
     const messageId = assertRequestId(data.messageId);
     const webSearch = data.webSearch === true;
     const imageUrl = data.imageUrl ? assertInputImageUrl(data.imageUrl, uid) : undefined;
@@ -331,29 +344,99 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
 
     try {
-      const run = await engine.generate({
-        capability: webSearch ? 'text.search' : 'text.generate',
+      /*
+       * ── QUIÉN PIENSA, Y POR QUÉ VIVE AQUÍ ────────────────────────────────────
+       *
+       * Weë Brain (`core/brain.ts`) entiende y conversa, pero no sabe con qué
+       * modelo se paga esta respuesta: eso lo sabe quien la cotizó, que es este
+       * archivo. Por eso el pensador se construye aquí y entra por el puerto.
+       *
+       * Manda EXACTAMENTE el `engineInput` que se cotizó unas líneas más arriba:
+       * una sola fuente, para que lo que se enseña, lo que se envía y lo que se
+       * cobra sigan siendo el mismo número.
+       *
+       * Y NO le pasa `goal`: el libro lo copia tal cual a `aiGenerations`, y ahí
+       * acabaría el mensaje íntegro de la persona. La calidad y el modo demo ya
+       * leen `input.prompt`, así que no cambia nada.
+       */
+      let causaDelFallo: unknown;
+      let run: EngineResult | undefined;
+      const pensador: Thinker = {
+        async pensar() {
+          try {
+            run = await engine.generate({
+              capability: webSearch ? 'text.search' : 'text.generate',
+              /*
+               * El mismo modelo con el que se cotizó: lo que se cobra y lo que responde
+               * son uno. Y se nombra también al proveedor, porque DeepSeek no está en la
+               * cadena general —no puede ser el respaldo de nadie más— y esta es la
+               * forma de pedirlo: explícitamente. Si no está disponible, Brain falla y
+               * se ve; nunca se cambia de proveedor por detrás.
+               */
+              ...(webSearch ? null : { prefs: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] } }),
+              input: engineInput,
+              userId: uid,
+              jobId: chatRef.id,
+              stepId: messageId,
+              experienceId: 'brain',
+              requestId,
+              service,
+              /* Lo que el libro tiene que anotar: el motor no conoce el bloque de doce. */
+              creditsEstimated: creditsDelMensaje,
+              creditTransactionId: usageTransactionId(requestId),
+            });
+            return pensamientoDesde(run);
+          } catch (error) {
+            /* El error ORIGINAL se guarda: es el que conserva el código que la app entiende. */
+            causaDelFallo = error;
+            throw error;
+          }
+        },
+      };
+
+      /*
+       * El cerebro se construye por petición: no guarda nada de nadie, así que
+       * un servidor puede desaparecer y otro seguir con lo que hay en Firestore.
+       */
+      const cerebro = crearBrainDeWee({ pensador, experiences: Object.keys(BRAIN_SPECIALISTS) });
+      const adjuntos: BrainAttachment[] = [
+        ...(imageUrl ? [{ kind: 'image' as const, url: imageUrl }] : []),
+        ...(documentUrl ? [{ kind: 'document' as const, url: documentUrl }] : []),
+        ...(audioUrl ? [{ kind: 'audio' as const, url: audioUrl }] : []),
+      ];
+      const pensado = await cerebro.conversar({
+        contract: BRAIN_CONTRACT_VERSION,
         /*
-         * El mismo modelo con el que se cotizó: lo que se cobra y lo que responde
-         * son uno. Y se nombra también al proveedor, porque DeepSeek no está en la
-         * cadena general —no puede ser el respaldo de nadie más— y esta es la
-         * forma de pedirlo: explícitamente. Si no está disponible, Brain falla y
-         * se ve; nunca se cambia de proveedor por detrás.
+         * El hilo: `traceId` es de ESTA petición —y coincide con el `requestId`,
+         * que ya es idempotente—, la conversación es la SESIÓN, y `runId` va con
+         * el id del chat porque es lo que el libro conoce como `jobId`.
          */
-        ...(webSearch ? null : { prefs: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] } }),
-        input: engineInput,
-        userId: uid,
-        jobId: chatRef.id,
-        stepId: messageId,
-        experienceId: 'brain',
-        goal: message,
-        requestId,
-        service,
-        /* Lo que el libro tiene que anotar: el motor no conoce el bloque de doce. */
-        creditsEstimated: creditsDelMensaje,
-        creditTransactionId: usageTransactionId(requestId),
+        trace: { traceId: requestId, requestId, userId: uid, sessionId: chatRef.id, runId: chatRef.id, stepId: messageId, workplace: 'brain' },
+        /* El idioma de Weë, con la reserva de siempre: un cliente viejo sigue en español. */
+        language: contextoDeIdioma({ appLanguage: localeDeBrain(data.locale) }),
+        message: { text: message, attachments: adjuntos },
+        conversation: { id: chatRef.id, recent: history.map((h) => ({ role: h.role === 'user' ? ('user' as const) : ('wee' as const), text: h.text })) },
+        options: { webSearch },
+        /* Se TRANSPORTA lo que ya se calculó; Brain no cobra ni decide precios. */
+        accounting: {
+          creditsEstimated: creditsDelMensaje,
+          service,
+          ...(creditsDelMensaje === 0 ? { policyNote: `Weë Brain cobra 1 Credit cada ${RESPUESTAS_POR_CREDIT} respuestas` } : {}),
+        },
       });
-      const parsed = parseSuggestion(run.output.content || '');
+      /*
+       * Si no pudo pensar, sube el error ORIGINAL del motor y no el normalizado:
+       * de él dependen el código que ve la app y el reembolso de más abajo.
+       *
+       * Y si no llegó a llamarse al modelo —la petición no pasó la frontera de
+       * Weë Brain— se dice ESO, no «no pude terminar»: un fallo de forma no es
+       * un fallo de generación, y confundirlos hace imposible depurarlo.
+       */
+      if (pensado.status === 'failed' || !run || !pensado.reply) {
+        if (causaDelFallo) throw causaDelFallo;
+        throw new EngineError(pensado.error?.code === 'INVALID_REQUEST' ? 'INVALID_REQUEST' : 'GENERATION_FAILED');
+      }
+      const parsed = { text: pensado.reply.text, suggestedExperience: pensado.reply.suggestedExperience };
       const suggestedExperience = parsed.suggestedExperience || guessExperience(message);
       const sources: SourceRef[] = run.output.sources || [];
 

@@ -38,3 +38,4 @@ export * from './project';
 export * from './observability';
 export * from './registry';
 export * from './gateway';
+export * from './brain';

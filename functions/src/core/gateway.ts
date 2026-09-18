@@ -275,10 +275,23 @@ export interface Gateway {
   ejecutar(request: GatewayRequest, hooks?: ExecutionHooks): Promise<GatewayResult>;
 }
 
+/**
+ * QUIÉN DECIDE LA IMPLEMENTACIÓN. La costura del Router (Fase 7).
+ *
+ * El Gateway ejecuta una implementación ya resuelta; alguien tiene que
+ * resolverla. Este puerto es ese alguien: recibe la capacidad que se necesita
+ * y devuelve el trío proveedor/modelo/adaptador, o nada si hoy no hay con qué.
+ * Quien componga Weë Brain sobre el Gateway lo inyecta; hasta que exista el
+ * Router, solo lo implementan las pruebas.
+ */
+export interface ImplementationResolver {
+  resolver(capability: CoreCapabilityId, trace: TraceContext): Promise<ImplementationRef | undefined>;
+}
+
 /* ── Formas ──────────────────────────────────────────────────────────────── */
 
 /** La misma forma que exige el Credit Engine a `requestId`. Un solo criterio para todos los ids. */
-const FORMA_DE_ID = /^[A-Za-z0-9_.:-]{4,160}$/;
+export const FORMA_DE_ID = /^[A-Za-z0-9_.:-]{4,160}$/;
 /** Los ids opcionales de la traza (paso, sesión, workplace…) pueden ser cortos, pero nunca llevar caracteres de control. */
 const FORMA_DE_ETIQUETA_DE_TRAZA = /^[A-Za-z0-9_.:/-]{1,160}$/;
 /** Ids de proveedor, modelo y adaptador: lo que hay hoy incluye puntos, barras y dos puntos. */
@@ -288,7 +301,15 @@ const FORMA_DE_CAPACIDAD = /^[a-z0-9]+\.[a-z0-9_]+$/;
 /** El valor si tiene la forma exigida; si no, nada. Lo que no pasa la validación no se refleja ni se anota. */
 const siTieneForma = (v: unknown, forma: RegExp): string => (typeof v === 'string' && forma.test(v) ? v : '');
 /** Un nombre de clave desconocida viaja al resultado como diagnóstico: acotado, para que no sea un canal de texto libre. */
-const nombreDeCampo = (clave: string): string => (clave.length > 64 ? `${clave.slice(0, 64)}…` : clave);
+export const nombreDeCampo = (clave: string): string => (clave.length > 64 ? `${clave.slice(0, 64)}…` : clave);
+
+/**
+ * Lo que una lectura de la frontera devuelve cuando algo no tiene forma: el
+ * campo y el motivo, sin `WeeError` todavía. Cada frontera —el Gateway, Weë
+ * Brain— construye el suyo con su propio `source`; así comparten la
+ * validación sin compartir la firma del error.
+ */
+export type LecturaInvalida = { ok: false; field: string; reason: GatewayReason };
 
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
 const MAX_TIMEOUT_MS = 24 * 60 * 60 * 1000;
@@ -306,10 +327,10 @@ const CLAVES_DE_HINTS = ['quality', 'durationSec'];
 const CALIDADES = ['standard', 'high', 'max'];
 const CLASES_DE_RESPUESTA = ['text', 'image', 'video', 'audio', 'document'];
 
-const esObjetoPlano = (v: unknown): v is Record<string, unknown> =>
+export const esObjetoPlano = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
-const esTexto = (v: unknown): v is string => typeof v === 'string';
-const esNumero = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+export const esTexto = (v: unknown): v is string => typeof v === 'string';
+export const esNumero = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /* ── Saneado ─────────────────────────────────────────────────────────────── */
 
@@ -330,7 +351,15 @@ const CLAVES_PROHIBIDAS: ReadonlySet<string> = new Set([
   '__proto__', 'constructor', 'prototype',
 ]);
 
-export const claveProhibida = (clave: string): boolean => CLAVES_PROHIBIDAS.has(normalizarClave(clave));
+/**
+ * Se comprueba la clave TAL CUAL y también normalizada, y las dos cosas hacen
+ * falta: normalizar atrapa `x-api-key` y `API_KEY`, pero se come los guiones
+ * bajos, así que `__proto__` se convertía en `proto` y dejaba de reconocerse
+ * justo la clave con la que un objeto deja de ser un objeto plano. Meter
+ * `proto` en la lista no vale: prohibiría un metadato legítimo llamado así.
+ */
+export const claveProhibida = (clave: string): boolean =>
+  CLAVES_PROHIBIDAS.has(clave) || CLAVES_PROHIBIDAS.has(normalizarClave(clave));
 
 const LIMITE_PROFUNDIDAD = 4;
 const LIMITE_CLAVES = 64;
@@ -369,7 +398,10 @@ export const sanearMeta = (valor: unknown, profundidad = 0): { valor: unknown; a
       }
       const r = sanearMeta(valor[clave], profundidad + 1);
       alterado = alterado || r.alterado;
-      if (r.valor !== undefined) limpio[clave] = r.valor;
+      /* Se define, no se asigna: asignar `__proto__` dispararía el setter
+       * heredado y cambiaría el prototipo del objeto en vez de crear la clave.
+       * Así la garantía no depende de que la lista de arriba esté completa. */
+      if (r.valor !== undefined) Object.defineProperty(limpio, clave, { value: r.valor, enumerable: true, writable: true, configurable: true });
     }
     return { valor: limpio, alterado };
   }
@@ -502,7 +534,7 @@ const invalido = (field: string, reason: GatewayReason = 'invalid_request'): Fal
   ({ ok: false, error: fallo('INVALID_REQUEST', reason, { field }) });
 
 /** Los identificadores de traza, si tienen forma. Se leen ANTES de validar todo para poder anotar el fallo. */
-const leerTraza = (req: unknown): TraceContext | null => {
+export const leerTraza = (req: unknown): TraceContext | null => {
   if (!esObjetoPlano(req) || !esObjetoPlano(req.trace)) return null;
   const t = req.trace;
   if (!esTexto(t.traceId) || !FORMA_DE_ID.test(t.traceId)) return null;
@@ -524,6 +556,23 @@ const leerTraza = (req: unknown): TraceContext | null => {
   };
 };
 
+/**
+ * Las pistas de ejecución, si tienen forma. `prefijo` es el nombre del campo
+ * en el mensaje de error de quien las lea ('execution.hints', 'options.hints').
+ */
+export const leerHints = (crudo: unknown, prefijo: string): { ok: true; hints?: ExecutionHints } | LecturaInvalida => {
+  if (crudo === undefined) return { ok: true };
+  if (!esObjetoPlano(crudo)) return { ok: false, field: prefijo, reason: 'invalid_request' };
+  for (const clave of Object.keys(crudo)) {
+    if (!CLAVES_DE_HINTS.includes(clave)) return { ok: false, field: `${prefijo}.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+  }
+  if (crudo.quality !== undefined && !CALIDADES.includes(crudo.quality as string)) return { ok: false, field: `${prefijo}.quality`, reason: 'invalid_request' };
+  if (crudo.durationSec !== undefined && (!esNumero(crudo.durationSec) || crudo.durationSec <= 0 || crudo.durationSec > MAX_DURATION_SEC)) {
+    return { ok: false, field: `${prefijo}.durationSec`, reason: 'invalid_request' };
+  }
+  return { ok: true, hints: { quality: crudo.quality as ExecutionHints['quality'], durationSec: crudo.durationSec as number | undefined } };
+};
+
 const validarEjecucion = (crudo: unknown): { ok: true; execution: PeticionValidada['execution'] } | Fallo => {
   if (crudo === undefined) return { ok: true, execution: { mode: 'sync' } };
   if (!esObjetoPlano(crudo)) return invalido('execution');
@@ -536,24 +585,14 @@ const validarEjecucion = (crudo: unknown): { ok: true; execution: PeticionValida
   for (const clave of Object.keys(crudo)) {
     if (!CLAVES_DE_EJECUCION.includes(clave)) return invalido(`execution.${nombreDeCampo(clave)}`);
   }
-  const { mode, timeoutMs, deadlineAt, stream, hints } = crudo;
+  const { mode, timeoutMs, deadlineAt, stream } = crudo;
   if (mode !== undefined && mode !== 'sync' && mode !== 'async') return invalido('execution.mode');
   if (mode === 'async') return { ok: false, error: fallo('INVALID_REQUEST', 'execution_mode_unsupported', { field: 'execution.mode' }) };
   if (timeoutMs !== undefined && (!esNumero(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMEOUT_MS)) return invalido('execution.timeoutMs');
   if (deadlineAt !== undefined && (!esNumero(deadlineAt) || deadlineAt <= 0)) return invalido('execution.deadlineAt');
   if (stream !== undefined && typeof stream !== 'boolean') return invalido('execution.stream');
-  let hintsLimpios: ExecutionHints | undefined;
-  if (hints !== undefined) {
-    if (!esObjetoPlano(hints)) return invalido('execution.hints');
-    for (const clave of Object.keys(hints)) {
-      if (!CLAVES_DE_HINTS.includes(clave)) return invalido(`execution.hints.${nombreDeCampo(clave)}`);
-    }
-    if (hints.quality !== undefined && !CALIDADES.includes(hints.quality as string)) return invalido('execution.hints.quality');
-    if (hints.durationSec !== undefined && (!esNumero(hints.durationSec) || hints.durationSec <= 0 || hints.durationSec > MAX_DURATION_SEC)) {
-      return invalido('execution.hints.durationSec');
-    }
-    hintsLimpios = { quality: hints.quality as ExecutionHints['quality'], durationSec: hints.durationSec as number | undefined };
-  }
+  const hints = leerHints(crudo.hints, 'execution.hints');
+  if (!hints.ok) return invalido(hints.field, hints.reason);
   return {
     ok: true,
     execution: {
@@ -561,9 +600,48 @@ const validarEjecucion = (crudo: unknown): { ok: true; execution: PeticionValida
       timeoutMs: timeoutMs as number | undefined,
       deadlineAt: deadlineAt as number | undefined,
       stream: stream as boolean | undefined,
-      hints: hintsLimpios,
+      hints: hints.hints,
     },
   };
+};
+
+/**
+ * El idioma de una petición, si tiene forma. Las CINCO etiquetas pasan por
+ * `normalizarEtiqueta`, no solo la principal: `idiomaDeSalida()` prefiere
+ * `outputLanguage` sobre `appLanguage`, así que validar una y dejar pasar la
+ * otra sería validar la que no manda. Y se devuelven NORMALIZADAS:
+ * `LanguageTag` promete exactamente eso.
+ */
+export const leerIdioma = (crudo: unknown): { ok: true; language?: LanguageContext } | LecturaInvalida => {
+  if (crudo === undefined) return { ok: true };
+  if (!esObjetoPlano(crudo)) return { ok: false, field: 'language', reason: 'invalid_request' };
+  for (const clave of Object.keys(crudo)) {
+    if (!CLAVES_DE_IDIOMA.includes(clave)) return { ok: false, field: `language.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+  }
+  const etiquetas: Record<string, LanguageTag> = {};
+  for (const clave of CLAVES_DE_IDIOMA) {
+    const valor = crudo[clave];
+    if (valor === undefined) continue;
+    const etiqueta = normalizarEtiqueta(valor);
+    if (etiqueta === null) return { ok: false, field: `language.${clave}`, reason: 'invalid_request' };
+    etiquetas[clave] = etiqueta;
+  }
+  if (!etiquetas.appLanguage) return { ok: false, field: 'language.appLanguage', reason: 'invalid_request' };
+  return { ok: true, language: etiquetas as unknown as LanguageContext };
+};
+
+/** Las etiquetas escalares de una petición, si tienen forma: acotadas y sin claves de secreto. */
+export const leerMetadata = (crudo: unknown): { ok: true; metadata?: GatewayMetadata } | LecturaInvalida => {
+  if (crudo === undefined) return { ok: true };
+  if (!esObjetoPlano(crudo)) return { ok: false, field: 'metadata', reason: 'invalid_request' };
+  const entradas = Object.entries(crudo);
+  if (entradas.length > MAX_METADATA_KEYS) return { ok: false, field: 'metadata', reason: 'invalid_request' };
+  for (const [clave, valor] of entradas) {
+    if (claveProhibida(clave)) return { ok: false, field: `metadata.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+    const escalar = typeof valor === 'boolean' || esNumero(valor) || (esTexto(valor) && valor.length <= MAX_METADATA_TEXT);
+    if (!escalar) return { ok: false, field: `metadata.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+  }
+  return { ok: true, metadata: crudo as GatewayMetadata };
 };
 
 const validarPeticion = (req: unknown, trace: TraceContext | null, maxInputBytes: number): Validacion => {
@@ -600,42 +678,11 @@ const validarPeticion = (req: unknown, trace: TraceContext | null, maxInputBytes
 
   if (req.idempotencyKey !== undefined && (!esTexto(req.idempotencyKey) || !FORMA_DE_ID.test(req.idempotencyKey))) return invalido('idempotencyKey');
 
-  /*
-   * IDIOMA: las cinco etiquetas pasan por `normalizarEtiqueta`, no solo la
-   * principal. `idiomaDeSalida()` prefiere `outputLanguage` sobre `appLanguage`,
-   * así que validar una y dejar pasar la otra sería validar la que no manda.
-   * Y se guardan NORMALIZADAS: `LanguageTag` promete exactamente eso.
-   */
-  let language: LanguageContext | undefined;
-  if (req.language !== undefined) {
-    if (!esObjetoPlano(req.language)) return invalido('language');
-    for (const clave of Object.keys(req.language)) {
-      if (!CLAVES_DE_IDIOMA.includes(clave)) return invalido(`language.${nombreDeCampo(clave)}`);
-    }
-    const etiquetas: Record<string, LanguageTag> = {};
-    for (const clave of CLAVES_DE_IDIOMA) {
-      const valor = req.language[clave];
-      if (valor === undefined) continue;
-      const etiqueta = normalizarEtiqueta(valor);
-      if (etiqueta === null) return invalido(`language.${clave}`);
-      etiquetas[clave] = etiqueta;
-    }
-    if (!etiquetas.appLanguage) return invalido('language.appLanguage');
-    language = etiquetas as unknown as LanguageContext;
-  }
+  const idioma = leerIdioma(req.language);
+  if (!idioma.ok) return invalido(idioma.field, idioma.reason);
 
-  let metadata: GatewayMetadata | undefined;
-  if (req.metadata !== undefined) {
-    if (!esObjetoPlano(req.metadata)) return invalido('metadata');
-    const entradas = Object.entries(req.metadata);
-    if (entradas.length > MAX_METADATA_KEYS) return invalido('metadata');
-    for (const [clave, valor] of entradas) {
-      if (claveProhibida(clave)) return invalido(`metadata.${nombreDeCampo(clave)}`);
-      const escalar = typeof valor === 'boolean' || esNumero(valor) || (esTexto(valor) && valor.length <= MAX_METADATA_TEXT);
-      if (!escalar) return invalido(`metadata.${nombreDeCampo(clave)}`);
-    }
-    metadata = req.metadata as GatewayMetadata;
-  }
+  const metadata = leerMetadata(req.metadata);
+  if (!metadata.ok) return invalido(metadata.field, metadata.reason);
 
   const ejecucion = validarEjecucion(req.execution);
   if (!ejecucion.ok) return ejecucion;
@@ -647,9 +694,9 @@ const validarPeticion = (req: unknown, trace: TraceContext | null, maxInputBytes
       implementation: { providerId: ref.providerId, modelId: ref.modelId, adapterId: ref.adapterId as string | undefined },
       input: req.input,
       trace,
-      language,
+      language: idioma.language,
       idempotencyKey: (req.idempotencyKey as string | undefined) ?? trace.requestId,
-      metadata,
+      metadata: metadata.metadata,
       execution: ejecucion.execution,
     },
   };
@@ -729,7 +776,8 @@ const proyectarRespuesta = (r: CanonicalResponse, modeloPedido: string, meta: Re
   return response;
 };
 
-const respuestaValida = (r: unknown): r is CanonicalResponse => {
+/** ¿Tiene esto la forma de `CanonicalResponse`? La comparten el Gateway y Weë Brain: una respuesta sin forma no cruza ninguna frontera. */
+export const respuestaCanonicaValida = (r: unknown): r is CanonicalResponse => {
   if (!esObjetoPlano(r)) return false;
   if (!CLASES_DE_RESPUESTA.includes(r.kind as string)) return false;
   if (r.content !== undefined && !esTexto(r.content)) return false;
@@ -871,7 +919,7 @@ export const crearGateway = (ports: GatewayPorts): Gateway => {
       return fallar(error);
     }
 
-    if (!respuestaValida(salida.response)) {
+    if (!respuestaCanonicaValida(salida.response)) {
       return fallar(fallo('PROVIDER_ERROR', 'invalid_provider_response'));
     }
     if (salida.warnings) warnings.push(...salida.warnings);

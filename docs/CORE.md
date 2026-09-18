@@ -29,8 +29,9 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `registry/registry.ts` | `crearRegistro()` con índices; lookup O(1) |
 | `registry/validate.ts` | Integridad referencial |
 | `gateway.ts` | El AI Gateway: `GatewayRequest`, `GatewayResult`, `crearGateway(ports)`, `puedeEjecutarse()` |
+| `brain.ts` | Weë Brain: `BrainRequest`, `BrainResponse`, `BrainUnderstanding`, `crearBrain(ports)` |
 
-Y fuera del Core, porque nombra proveedores: `functions/src/registry/` — la composición que enchufa los adaptadores reales y declara las matrices pendientes— y `functions/src/engine/gateway.ts` — el Gateway compuesto sobre el motor.
+Y fuera del Core, porque nombran proveedores o hablan con el motor: `functions/src/registry/` — la composición que enchufa los adaptadores reales y declara las matrices pendientes—, `functions/src/engine/gateway.ts` — el Gateway compuesto sobre el motor— y `functions/src/brain/` — la composición de Weë Brain.
 
 ## Las cuatro reglas
 
@@ -193,6 +194,111 @@ Recibe una capacidad y una implementación que alguien con criterio ya eligió �
 
 Igual que en el registro, y esa es la prueba de que está bien hecho: un adaptador nuevo que declare `3d.generate` aparece en el registro solo y **el Gateway lo ejecuta sin que se toque una línea suya**. Hay una prueba que registra una matriz inventada para comprobarlo.
 
+## Weë Brain
+
+La capa de inteligencia conversacional. **Brain entiende y conversa; no decide cómo se ejecuta.**
+
+```
+PERSONA → COMPOSER → WEË BRAIN → PLANNER → WORKFLOW → ORCHESTRATOR → ROUTER → GATEWAY → ADAPTADOR
+```
+
+De un mensaje salen **dos cosas que nunca se mezclan**: una `reply` para la persona y un `understanding` estructurado para las capas siguientes. Un cliente puede pintar la respuesta entera sin saber que existen los proveedores.
+
+### Una sola inteligencia, muchas puertas
+
+Weë Brain, Weë Studio, Weë Chef, Weë Travel, Weë Business y Weë Design **no son cerebros distintos**: son el mismo, al que se le habla desde sitios distintos. Lo único que cambia es el **contexto** —`workplace`, `project`, `user`, `conversation`—, y por eso el contexto es un parámetro y no una copia del cerebro. Esa es la regla del §10 de CLAUDE.md, ahora con un contrato detrás.
+
+### El mismo Brain en Web, Android e iOS
+
+Aquí no hay React, ni React Native, ni una API del navegador, ni una del teléfono: funciones puras sobre datos. Los tres clientes llaman al mismo callable con el mismo contrato (`BrainReply`), y lo que cambia entre plataformas es cómo se pinta. Una prueba rechaza cualquier rama por plataforma dentro de Brain.
+
+### El contexto, por capas
+
+`BrainContext` separa lo **inmediato** (el mensaje y su material), la **conversación** (los últimos turnos y, el día que exista, su resumen), la **sesión**, el **usuario**, el **Workplace**, el **proyecto** y la **ejecución**. No es estética: lo inmediato cambia en cada mensaje y el usuario casi nunca, así que cuando llegue el resumen automático se toca una capa y no todas.
+
+`LIMITES_DE_CONTEXTO` —20 turnos, 6 000 caracteres por turno, 4 000 del mensaje— es **una sola fuente**: el callable lee de ahí su `MAX_HISTORY` y su `assertText`. Se conservan los turnos **más recientes**, y un turno enorme se recorta solo, para que no se lleve todo el presupuesto.
+
+> En la ruta viva de hoy, lo que viaja al modelo es **exactamente el `engineInput` que se cotizó**, no un input rearmado desde el contexto: así lo que se enseña, lo que se envía y lo que se cobra siguen siendo el mismo número. El contexto acotado del Core sirve para clasificar y trazar. `peticionAlMotor` (composición) es la costura del camino por Gateway, y hoy solo la ejercen las pruebas.
+
+### Intención y ambigüedad, sin inventar
+
+En **conversación** —el único camino vivo hoy— la intención sale de señales ciertas, con **una sola llamada al modelo**, la de siempre: se pidió búsqueda → `information`; el modelo derivó con `[[WEE:id]]` → `creation`; se entró por una puerta que crea algo concreto → `creation`; vino material → `analysis`; hay signo de interrogación → `question`; si no → `conversation`. La confianza es honesta (`low`/`medium`) y **nunca hay `clarify`**: en chat la aclaración la hace el propio texto, como hasta hoy.
+
+En **`entender()`** —para el Planner, Fase 4— se pide una estructura al modelo y el Core la **valida campo a campo** contra el catálogo: una intención, una capacidad o un especialista inventados se descartan, y un campo descartado queda **ausente**, nunca relleno con algo parecido. Ahí sí se aplica la política completa: falta algo esencial y no hay confianza → `clarify`; lo que se dio por supuesto no frena nada y queda **explícito** en `assumptions`; lo que hay que crear, editar, transformar o planificar → `ready_to_plan`.
+
+**Fallar cerrado:** `[[WEE:design]]` solo deriva si `design` está en la lista que dio quien compuso Brain. Sin lista, no se deriva a nadie; a un especialista que no existe, tampoco, y se avisa con `suggestion_rejected`. El modelo no abre puertas.
+
+### La salida para el Planner
+
+`BrainUnderstanding` lleva intención, objetivo, capacidad, modalidad, entradas, referencias, restricciones, preferencias, idioma, Workplace, proyecto, qué falta, qué se supuso y si hace falta planificar. **Lo que no lleva:** pasos, orden, dependencias, proveedor, modelo ni precio. Eso es del Planner, del Router y de Credits, y meterlo aquí sería convertir a Brain en lo que no debe ser.
+
+### Seguridad: Brain no elige
+
+`providerId`, `modelId`, `adapterId`, `allowedProviders`, `maxCredits`, `price`, `credits`, `admin`… **no caben** en `options`, `workplace.hints`, `user.preferences`, `project`, `accounting` ni `metadata`: la petición se rechaza con `selection_not_allowed`. La regla **no** se aplica a `conversation.recent`, donde `role` significa quién habló. La propiedad del material la comprueba quien recibe la petición (`assertInputImageUrl`), no Brain: el Core no conoce el almacenamiento.
+
+### Coste: se transporta, no se calcula
+
+`accounting` lleva `creditsEstimated`, `service` y `policyNote` —el mismo concepto de `CreditQuote.policyNote`, que existe porque **once de cada doce respuestas de Weë Brain valen 0 Credits y eso no es un error de cálculo**—. Brain no cobra, no reserva y no escribe libro. Y **la traza no escribe `credits`**: un 0 de la política, junto a un coste de proveedor mayor que cero, se leería como cobrado.
+
+### La costura del Router (Fase 7)
+
+`pensadorSobreGateway({ gateway, resolver })` es el camino que Weë tomará cuando exista el Router: Brain dice **qué capacidad** necesita, el `ImplementationResolver` dice **con qué** se atiende, y el Gateway lo ejecuta. Brain no elige y el Gateway no decide; entre los dos hay un puerto, que es exactamente donde encaja el Router sin tocar a ninguno. Ya se prueba contra el Gateway **real**; producción sigue por `engine.generate` hasta la Fase 7.
+
+**No hay un `brainDeWee()` global**: un Brain compuesto sobre la cadena general contestaría con un modelo distinto del que se cotizó. `crearBrain` es barato y sin estado, así que quien lo necesita lo construye **por petición** con su pensador, que es quien sabe con qué se paga.
+
+### Qué NO hace, y quién lo hará
+
+| | quién |
+|---|---|
+| Montar el plan: pasos, orden, dependencias | Planner (Fase 4) y Workflow (Fase 5) |
+| Elegir proveedor y modelo | Router (Fase 7), por el puerto `ImplementationResolver` |
+| Ejecución asíncrona y estados de trabajo | Job Engine (Fase 8) |
+| Cobrar, reservar, aplicar margen, escribir libro | Credits (Fase 9) |
+| Detección de idioma y adaptación avanzada | Language Intelligence (Fase 10) |
+| Guardar material y resolver su propiedad | Project/Asset (Fase 11) |
+| Enrutar de verdad texto, imagen, audio y vídeo | Multimodal (Fase 12) |
+
+## Weë Translation — el sitio reservado
+
+**Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.
+
+### Traducir no es adaptar, y la diferencia es quién paga
+
+Ya existía `LanguagePlan`: adaptar un prompt porque el proveedor no habla ese idioma. Eso es un problema de Weë y **lo paga Weë** (`billable: false`). Weë Translation es otra cosa: alguien **pide** una traducción, es un resultado que quiere, y se cobra como cualquier otro. Por eso es una **capacidad propia** y no una variante del texto.
+
+### Qué se declaró
+
+Dos capacidades en el catálogo, ambas `DECLARED` —un nombre reservado, no una promesa— con categoría propia `translation`:
+
+| | |
+|---|---|
+| `translation.text` | Traducir texto. Sin matriz integrada (Fase 20). |
+| `translation.detect` | En qué idioma está algo. Lo consumirá Language Intelligence (Fase 10). |
+
+Empieza por texto porque es lo único que Weë sabe traducir hoy. **Documento, subtítulos, voz y vídeo entran como capacidades hermanas** cuando lleguen sus fases: añadir un valor a la unión, sin tocar nada de esto.
+
+Y el contrato de la petición, en `core/language.ts` —junto al resto del idioma, para no crear un segundo hogar—: `TranslationRequest` (origen, destino, **detectado aparte del declarado**, locale, tipo de contenido, modo) y `TranslationTerminology` (glosario y, sobre todo, **`doNotTranslate`**: los nombres de Weë son marca y sin ese campo la primera traducción automática convertiría «Credits» en «Créditos»).
+
+La **calidad no se declara ahí**: ya viaja con la ejecución (`ExecutionHints`), como en cualquier otra capacidad. Dos sitios para pedir lo mismo es como acaban contradiciéndose.
+
+### Lo que ya estaba resuelto y no se tocó
+
+La mitad del trabajo ya la había hecho la Fase 1, y comprobarlo evitó duplicarlo:
+
+- **Elegir por idioma:** `LanguageMetadata` ya guarda `only`, `inputLanguages`, `outputLanguages` y `qualityByLanguage` por modelo y por proveedor. Lo único que faltaba era una función pura que respondiera **sí o no** a un par de idiomas: `admiteElPar()`. No ordena, no puntúa y no elige —eso es de otra capa—, y compara por **lengua y no por etiqueta**, porque quien declara `pt` sirve `pt-BR`.
+- **Pago por uso:** los traductores cobran por caracteres o por página, y `CostUnit`/`BillingUnit` ya tenían `kchar` y `page` desde la Fase 0. El camino sigue siendo el de siempre: **coste real del proveedor → margen → Credits**. Cero cambios en Credits y cero precios inventados.
+- **Calidad, latencia, disponibilidad y límites:** `ModelGrades`, `ProviderHealthInfo`, `ProviderLimits` y `ModelLimits` ya existen.
+
+### El sitio del futuro Translation Router
+
+**No hace falta un router de traducción aparte.** Un Translation Router es un `ImplementationResolver` —el puerto que ya usa el Gateway y por el que Brain llega a él— que responde a las capacidades `translation.*` comparando lo que el registro ya sabe. Ese es el seam, y está vacío a propósito.
+
+### Qué NO se hizo
+
+Ningún proveedor (ni Tencent, ni Baidu, ni Alibaba, ni Google, ni Amazon), ningún adaptador, ningún endpoint, ningún modelo, ningún precio, ninguna credencial, ningún SDK, ninguna dependencia, ningún router y ninguna lógica de traducción dentro de Gateway ni de Brain. Una prueba vigila que siga siendo así — y distingue la regla de verdad: **por capacidad, no por empresa**. Hunyuan 3D es de Tencent y Qwen y Wan son de Alibaba, y las tres llevan registradas desde la Fase 1 como matrices `PENDING` de 3D, imagen y vídeo, con cero capacidades.
+
+**Reservado:** la detección y la decisión de cuándo traducir son **Fase 10**; el uso dentro de las experiencias, **Fase 18**; los proveedores reales, **Fase 20**.
+
 ## Cómo se extiende
 
 **Una capacidad nueva:** una línea en `CapabilityId`, una entrada en `DEFAULT_ROUTING` y un adaptador que la declare en `supports()`.
@@ -203,10 +309,10 @@ Igual que en el registro, y esa es la prueba de que está bien hecho: un adaptad
 
 ## Lo que el Core todavía no hace
 
-Fases 0, 1 y 2 son cimientos, registro y frontera. No hay Router nuevo, ni Orchestrator, ni runtime de Workflow, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes.
+Fases 0, 1, 2 y 3 son cimientos, registro, frontera e inteligencia. No hay Router nuevo, ni Orchestrator, ni runtime de Workflow, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes.
 
-Tres cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es Fase 0:
+Cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es de estas fases:
 
-- `creator/planner.ts:261` decide si Weë Brain razona según `geminiAdapter.isConfigured()` — un adaptador concreto decidiendo una capacidad del sistema (Fase 4).
-- Weë Brain son hoy tres implementaciones distintas con el mismo nombre: el conversacional, el planificador y una plantilla más (Fase 3).
-- `engine/promptLanguage.looksEnglish()` solo detecta español, así que con nueve idiomas en producción un prompt en japonés viaja sin adaptar a un proveedor que no lo admite (Fase 10).
+- `creator/planner.ts:261` decide si Weë Brain razona según un adaptador concreto que esté configurado — una implementación decidiendo una capacidad del sistema (Fase 4).
+- **Weë Brain tenía tres implementaciones con el mismo nombre.** La Fase 3 unificó el CONTRATO en `core/brain.ts` y puso el conversacional a usarlo. Las otras dos siguen donde estaban y son de otras fases: el **planificador** (`creator/planner.ts`) es Fase 4, y la **plantilla** `templates.brain` es un plan de Workplace que `creatorChat` puede ejecutar por API con otro precio (`ai_text`), otra cadena de proveedores y sin idioma — deuda declarada de Fases 4/5.
+- `engine/promptLanguage.looksEnglish()` solo detecta español, así que con once idiomas en producción un prompt en japonés viaja sin adaptar a un proveedor que no lo admite (Fase 10). Lo mismo le pasa a `guessExperience` del conversacional, cuyas palabras clave son solo españolas: por eso es el **respaldo** de la marca `[[WEE:id]]` y no al revés (Fase 10).

@@ -41,6 +41,9 @@ export const WORKFLOW_CONTRACT_VERSION = '1.0' as const;
 /** Forma de una petición y un resultado del AI Gateway. */
 export const GATEWAY_CONTRACT_VERSION = '1.0' as const;
 
+/** Forma de una petición y una respuesta de Weë Brain. */
+export const BRAIN_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**

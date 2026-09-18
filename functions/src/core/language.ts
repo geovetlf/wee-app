@@ -204,6 +204,142 @@ export const planificarIdiomaDelProveedor = (
   };
 };
 
+/* ── WEË TRANSLATION — el contrato, todavía sin nadie que lo sirva ────────── */
+
+/**
+ * TRADUCIR NO ES ADAPTAR, Y LA DIFERENCIA ES QUIÉN PAGA.
+ *
+ * Arriba está `LanguagePlan`: adaptar un prompt porque el proveedor no habla
+ * ese idioma. Eso es un problema de Weë y lo paga Weë (`billable: false`).
+ *
+ * Esto es otra cosa: alguien PIDE una traducción. Es un resultado que la
+ * persona quiere, se cobra como cualquier otro, y por eso vive como capacidad
+ * propia (`translation.text`) y no como una variante del texto.
+ *
+ * ── Qué hay aquí y qué no ───────────────────────────────────────────────────
+ *
+ * Aquí está la FORMA de la petición: de qué idioma a cuál, qué clase de
+ * contenido, con cuánta libertad y con qué vocabulario. No hay proveedores, ni
+ * modelos, ni precios, ni detección: nada de eso se decide en un contrato.
+ *
+ * Quién la sirve lo dirá el registro cuando haya una matriz integrada
+ * (Fase 20); cuándo hace falta traducir lo decidirá el Language Intelligence
+ * Layer (Fase 10); y cuál de varios proveedores conviene lo decidirá un
+ * resolutor de implementación —el mismo puerto `ImplementationResolver` que ya
+ * usa el Gateway—, comparando lo que el registro YA sabe de cada uno: idiomas
+ * admitidos, calidad por idioma, latencia, salud, límites y tarifa publicada.
+ */
+
+/**
+ * QUÉ CLASE DE CONTENIDO SE TRADUCE.
+ *
+ * No es la modalidad —eso ya lo dicen `Modality` y `AssetKind`—: es cómo hay
+ * que tratarlo. Un subtítulo se traduce con el reloj por delante y un contrato
+ * con la literalidad por delante, aunque los dos sean texto.
+ *
+ * Cuatro, y cada una tiene hoy un referente real en Weë. Crecer es añadir un
+ * valor; quien no lo conozca tratará lo que no sepa como `plain`.
+ */
+export type TranslationContentType =
+  /* Un mensaje, una publicación, un párrafo. */
+  | 'plain'
+  /* Un documento con estructura que hay que conservar. */
+  | 'document'
+  /* Subtítulos: hay tiempos que respetar y un largo por línea. */
+  | 'subtitles'
+  /* Lo que alguien dijo, para volver a decirlo. */
+  | 'speech';
+
+/**
+ * CUÁNTA LIBERTAD TIENE LA TRADUCCIÓN.
+ *
+ * Es una decisión de quien pide, no del proveedor, y por eso viaja en la
+ * petición: la misma frase se traduce distinto en un contrato y en un anuncio.
+ */
+export type TranslationMode =
+  /* Fiel a la letra. Para lo que se firma o se cita. */
+  | 'literal'
+  /* Que suene natural en el idioma de destino. Lo normal. */
+  | 'natural'
+  /* Adaptado a quien lo va a leer: referencias, unidades, tono. */
+  | 'localized';
+
+/**
+ * CÓMO SE DICEN LAS COSAS.
+ *
+ * `doNotTranslate` no es un adorno: los nombres de Weë son MARCA y no se
+ * traducen nunca —Weë, Wäll, Weëls, WeeTalk, ËContact, Credits— y esa regla ya
+ * está escrita para la interfaz. Sin este campo, la primera traducción
+ * automática de una publicación convertiría «Credits» en «Créditos» y la marca
+ * dejaría de ser marca.
+ */
+export interface TranslationTerminology {
+  /** Términos que se traducen SIEMPRE así. */
+  glossary?: Readonly<Record<string, string>>;
+  /** Lo que se copia tal cual. Marcas, nombres propios, identificadores. */
+  doNotTranslate?: readonly string[];
+  /** De qué va esto, para desambiguar. Nunca el contenido entero. */
+  context?: string;
+}
+
+/**
+ * UNA PETICIÓN DE TRADUCCIÓN.
+ *
+ * `targetLanguage` es lo único obligatorio: sin destino no hay traducción. El
+ * origen puede faltar —entonces hay que detectarlo, que es `translation.detect`—
+ * y `detectedLanguage` se guarda aparte a propósito: lo que alguien DIJO que
+ * era y lo que RESULTÓ ser son dos hechos distintos, y confundirlos hace
+ * imposible saber después si la detección acertó.
+ *
+ * La CALIDAD no se declara aquí: ya viaja con la ejecución (`ExecutionHints`),
+ * como en cualquier otra capacidad. Repetirla sería tener dos sitios donde
+ * pedir lo mismo.
+ */
+export interface TranslationRequest {
+  /** De qué idioma. Ausente = hay que detectarlo. */
+  sourceLanguage?: LanguageTag;
+  /** A qué idioma. Sin esto no hay nada que hacer. */
+  targetLanguage: LanguageTag;
+  /** Lo que la detección concluyó, cuando la hubo. Nunca se asume igual al origen. */
+  detectedLanguage?: LanguageTag;
+  /** Locale del RESULTADO para fechas, números y monedas. Puede diferir del idioma. */
+  locale?: LanguageTag;
+  contentType: TranslationContentType;
+  mode: TranslationMode;
+  terminology?: TranslationTerminology;
+}
+
+/**
+ * ¿PUEDE ESTE PAR DE IDIOMAS?
+ *
+ * Función pura sobre lo que el registro ya guarda de cada modelo y cada
+ * proveedor (`LanguageMetadata`). No elige, no ordena y no puntúa: solo
+ * responde sí o no. Elegir entre los que pueden es de otra capa.
+ *
+ * Existe para que esa capa no tenga que reinventar la comparación —y para que
+ * no la reinvente mal—: `only` ausente significa «no declara restricción», que
+ * no es lo mismo que «admite todo», pero es lo único que se puede afirmar; y
+ * los pares se comparan por LENGUA, no por etiqueta completa, porque un
+ * proveedor que declara `pt` sirve `pt-BR`.
+ */
+export const admiteElPar = (
+  soporte: { only?: readonly string[]; inputLanguages?: readonly string[]; outputLanguages?: readonly string[] } | undefined,
+  source: LanguageTag | undefined,
+  target: LanguageTag,
+): boolean => {
+  if (!soporte) return true;
+  const admite = (declarados: readonly string[] | undefined, etiqueta: LanguageTag | undefined): boolean => {
+    if (!declarados || declarados.length === 0 || !etiqueta) return true;
+    const lengua = idiomaDe(etiqueta);
+    return declarados.some((d) => d.toLowerCase() === lengua);
+  };
+  /* Entrada y salida se miran por separado cuando el proveedor las distingue;
+   * si no lo hace, `only` vale para las dos. */
+  const entrada = soporte.inputLanguages ?? soporte.only;
+  const salida = soporte.outputLanguages ?? soporte.only;
+  return admite(entrada, source) && admite(salida, target);
+};
+
 /**
  * Construye el contexto desde lo que mande el cliente, saneando todo.
  *

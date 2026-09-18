@@ -85,7 +85,22 @@ export type CoreCapabilityId =
   /* DOCUMENTO */
   | 'document.generate'
   | 'document.analyze'
-  | 'document.transform';
+  | 'document.transform'
+  /*
+   * TRADUCCIÓN — una capacidad propia, no una variante de texto.
+   *
+   * Traducir no es generar: se mide distinto (los proveedores cobran por
+   * caracteres), se elige distinto (importa el PAR de idiomas, no solo la
+   * calidad) y se juzga distinto. Meterla en `text.transform` obligaría a
+   * adivinar por el contenido qué se pidió, que es justo lo que una capacidad
+   * existe para evitar.
+   *
+   * Empieza por texto porque es lo único que Weë sabe traducir hoy; documento,
+   * subtítulos, voz y vídeo entran como capacidades hermanas cuando lleguen sus
+   * fases, sin tocar nada de esto.
+   */
+  | 'translation.text'
+  | 'translation.detect';
 
 /**
  * Hasta dónde llega una capacidad HOY.
@@ -100,7 +115,7 @@ export type CatalogStatus = 'ROUTABLE' | 'PENDING' | 'DECLARED' | 'DEPRECATED';
 /** Qué disciplina cubre. Sirve para agrupar en paneles, nunca para enrutar. */
 export type CapabilityCategory =
   | 'text' | 'image' | 'video' | 'audio' | 'music'
-  | '3d' | 'design' | 'render' | 'document';
+  | '3d' | 'design' | 'render' | 'document' | 'translation';
 
 /** Una entrada del catálogo. Sin proveedores, sin modelos, sin precios. */
 export interface CatalogEntry {
@@ -220,6 +235,10 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   e('document.generate', 'document', ['text'], 'doc', 'DECLARED'),
   e('document.analyze', 'document', ['doc'], 'text', 'DECLARED'),
   e('document.transform', 'document', ['doc'], 'doc', 'DECLARED'),
+
+  /* ── TRADUCCIÓN — declarada, sin nadie que la sirva todavía ─────────────── */
+  e('translation.text', 'translation', ['text'], 'text', 'DECLARED', 'Weë Translation. Sin matriz integrada: la elección de proveedor llega en la Fase 20.'),
+  e('translation.detect', 'translation', ['text'], 'text', 'DECLARED', 'En qué idioma está esto. Lo consumirá el Language Intelligence Layer (Fase 10).'),
 ];
 
 /** 'image' de 'image.generate'; '3d' de '3d.texture'. */
