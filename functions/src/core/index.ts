@@ -36,3 +36,5 @@ export * from './workplace';
 export * from './provider';
 export * from './project';
 export * from './observability';
+export * from './registry';
+export * from './gateway';

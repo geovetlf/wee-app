@@ -76,12 +76,20 @@ export interface CanonicalRequest {
   timeoutMs?: number;
 }
 
+/** Fuente citada cuando la respuesta usó búsqueda web. */
+export interface SourceRef {
+  url: string;
+  title?: string;
+}
+
 /** Una respuesta ya canónica, con lo del proveedor traducido. */
 export interface CanonicalResponse {
   kind: 'text' | 'image' | 'video' | 'audio' | 'document';
   content?: string;
   urls?: readonly string[];
   durationSec?: number;
+  /** Fuentes de la búsqueda web, cuando las hubo. Ya existen en la salida de los adaptadores. */
+  sources?: readonly SourceRef[];
   actual: ActualCost;
   /** Modelo realmente usado, si el adaptador cambió el pedido. */
   model?: string;

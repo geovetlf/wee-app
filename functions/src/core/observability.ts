@@ -1,5 +1,5 @@
-import { CapabilityId } from './capability';
 import { WeeErrorCode } from './errors';
+import { CoreCapabilityId } from './registry/capabilities';
 
 /**
  * WEE CORE — TRAZA.
@@ -41,9 +41,16 @@ export interface TraceContext {
   projectId?: string;
 }
 
-/** Lo que se anota cuando una operación termina, sea bien o mal. */
+/**
+ * Lo que se anota cuando una operación termina, sea bien o mal.
+ *
+ * `capability` es del CATÁLOGO (`CoreCapabilityId`), no solo de lo enrutable:
+ * una operación sobre una capacidad declarada que aún no tiene matriz también
+ * termina —fallando— y también hay que poder anotarla. Es un ensanchamiento
+ * compatible: `CapabilityId` está contenida por construcción.
+ */
 export interface OperationTrace extends TraceContext {
-  capability: CapabilityId;
+  capability: CoreCapabilityId;
   provider?: string;
   model?: string;
   status: 'ok' | 'error';

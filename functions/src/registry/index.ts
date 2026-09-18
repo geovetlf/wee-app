@@ -92,6 +92,29 @@ const saludDeProveedor = (adapter: ProviderAdapter, estado: ProviderStatus) => {
 };
 
 /**
+ * Estado de un modelo a partir del de su proveedor.
+ *
+ * Un modelo HEREDA el estado del proveedor, porque es lo que de verdad
+ * determina si se puede pedir: READY, BETA, UNVERIFIED y DISABLED se copian tal
+ * cual. Antes UNVERIFIED se degradaba a PENDING, y eso mentía en la dirección
+ * peligrosa: PENDING significa «sin integrar», y los modelos de un proveedor
+ * UNVERIFIED están integrados y sirviendo —es el caso de DeepSeek en Weë Brain—.
+ * Lo que les falta es la ficha, y eso se llama UNVERIFIED, no PENDING.
+ *
+ * Y una excepción por encima de todo: si la administración apagó ESTE modelo
+ * (`aiProviders/{id}.models[modelId].enabled = false`), está DISABLED aunque el
+ * proveedor siga sano. Es el interruptor de incidente, y el registro tiene que
+ * reflejarlo para que nadie lo ejecute leyendo solo el catálogo.
+ */
+const estadoDeModelo = (estadoProveedor: ProviderStatus, apagado: boolean): ModelDescriptor['status'] => {
+  if (apagado) return 'DISABLED';
+  if (estadoProveedor === 'READY' || estadoProveedor === 'BETA' || estadoProveedor === 'UNVERIFIED' || estadoProveedor === 'DISABLED') {
+    return estadoProveedor;
+  }
+  return 'PENDING';
+};
+
+/**
  * Un modelo del adaptador, traducido al registro.
  *
  * `status` sale del proveedor, no del modelo: un modelo perfecto de un
@@ -101,6 +124,7 @@ const saludDeProveedor = (adapter: ProviderAdapter, estado: ProviderStatus) => {
 const describirModelo = (
   spec: ProviderAdapter['models'][number],
   estadoProveedor: ProviderStatus,
+  apagado = false,
 ): ModelDescriptor => ({
   id: spec.id,
   providerId: spec.provider,
@@ -117,9 +141,7 @@ const describirModelo = (
     source: DECLARED[spec.provider]?.docsUrl,
     verifiedAt: DECLARED[spec.provider]?.documentedAt,
   },
-  /* READY y BETA son del proveedor; un modelo de un proveedor que no lo está
-   * hereda su estado, porque es lo que de verdad determina si se puede pedir. */
-  status: estadoProveedor === 'READY' ? 'READY' : estadoProveedor === 'BETA' ? 'BETA' : 'PENDING',
+  status: estadoDeModelo(estadoProveedor, apagado),
   metadata: spec.tags?.length ? { tags: spec.tags } : undefined,
 });
 
@@ -137,7 +159,7 @@ export const datosDelRegistro = (
     const estado = estadoDeProveedor(adapter, habilitado);
     const verificacion = DECLARED[id];
 
-    const susModelos = adapter.models.map((m) => describirModelo(m, estado));
+    const susModelos = adapter.models.map((m) => describirModelo(m, estado, config[id]?.models?.[m.id]?.enabled === false));
     models.push(...susModelos);
 
     /* Las capacidades del proveedor son la UNIÓN de las de sus modelos, no una

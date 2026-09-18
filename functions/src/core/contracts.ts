@@ -38,6 +38,9 @@ export const WORKPLACE_CONTRACT_VERSION = '1.0' as const;
 /** Forma de un workflow y sus pasos. */
 export const WORKFLOW_CONTRACT_VERSION = '1.0' as const;
 
+/** Forma de una petición y un resultado del AI Gateway. */
+export const GATEWAY_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**
