@@ -79,10 +79,18 @@ const core = (await cargar('functions/src/core/index.ts')).ns;
  */
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
-const FUENTES_CORE = fs
-  .readdirSync(path.resolve(RAIZ, 'functions/src/core'))
-  .filter((f) => f.endsWith('.ts'))
-  .map((f) => ['functions/src/core/' + f, sinComentarios(leer('functions/src/core/' + f))]);
+/*
+ * RECURSIVO A PROPÓSITO. La primera versión leía solo el primer nivel, y en
+ * cuanto el Core creció con `core/registry/` esas reglas de pureza habrían
+ * dejado de mirar los archivos nuevos sin que nadie se enterara: una prueba que
+ * pasa porque no mira es peor que no tenerla.
+ */
+const archivosDelCore = (dir = 'functions/src/core') =>
+  fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? archivosDelCore(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : [],
+  );
+
+const FUENTES_CORE = archivosDelCore().map((f) => [f, sinComentarios(leer(f))]);
 
 console.log('\n── A · El Core no sabe de nadie ──');
 {
@@ -90,10 +98,18 @@ console.log('\n── A · El Core no sabe de nadie ──');
    * Solo puede importar de sí mismo. Un Core que importa del motor no es un
    * Core: es una carpeta más dentro del motor.
    */
+  /*
+   * La regla es «resuelve DENTRO del Core», no «empieza por ./». Con
+   * subcarpetas, `core/registry/types.ts` importa `../capability` y eso sigue
+   * estando dentro. Comprobar la forma del texto en vez de la ruta resuelta
+   * habría dado un falso positivo en cuanto el Core creció.
+   */
   const fuera = [];
   for (const [ruta, src] of FUENTES_CORE) {
+    const carpeta = path.posix.dirname(ruta);
     for (const [, dep] of src.matchAll(/from ['"]([^'"]+)['"]/g)) {
-      if (!dep.startsWith('./')) fuera.push(`${ruta} → ${dep}`);
+      const resuelto = dep.startsWith('.') ? path.posix.normalize(path.posix.join(carpeta, dep)) : dep;
+      if (!resuelto.startsWith('functions/src/core/')) fuera.push(`${ruta} → ${dep}`);
     }
   }
   check('1) ningún archivo del Core importa de fuera del Core', fuera.length === 0, fuera.join(' | ') || `${FUENTES_CORE.length} archivos`);

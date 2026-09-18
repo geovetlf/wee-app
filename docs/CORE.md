@@ -24,6 +24,12 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `provider.ts` | Descriptor y contrato ampliado de proveedor |
 | `project.ts` | `Project`, `Asset`, `AssetVersion`, procedencia |
 | `observability.ts` | `TraceContext` y campos prohibidos |
+| `registry/capabilities.ts` | `CoreCapabilityId` y el catálogo completo |
+| `registry/types.ts` | `ModelDescriptor`, `RegisteredProvider`, `RegisteredAdapter` |
+| `registry/registry.ts` | `crearRegistro()` con índices; lookup O(1) |
+| `registry/validate.ts` | Integridad referencial |
+
+Y fuera del Core, porque nombra proveedores: `functions/src/registry/` — la composición que enchufa los adaptadores reales y declara las matrices pendientes.
 
 ## Las cuatro reglas
 
@@ -75,6 +81,65 @@ Hoy la ejecución es un `while` dentro del callable: un paso cada vez, sin paral
 El contrato declara la forma que tendrá cuando exista el motor (Fase 5). **El paralelismo no se declara: se deduce de `dependsOn`.** Un campo `parallel: true` sería una segunda fuente de verdad que puede contradecir al grafo, y cuando se contradigan ganará el bug.
 
 `pasosListos()` devuelve una **lista**, no un paso: ahí está toda la diferencia. Quien quiera seguir yendo de uno en uno coge el primero y se comporta igual que ahora.
+
+## El Registry
+
+Tres dimensiones y una relación. La flecha apunta hacia arriba a propósito: un modelo declara qué capacidades cubre, y una capacidad nunca sabe quién la implementa.
+
+```
+CAPACIDAD ← MODELO ← PROVEEDOR ← ADAPTADOR
+```
+
+**La consulta que lo justifica todo** es `findImplementations(capability)`: convierte «quiero una imagen» en «esto puede dártela», y hace innecesario cualquier `if (workplace === 'design')`.
+
+### Estado de integración ≠ disponibilidad
+
+La distinción más importante del registro, y la más fácil de romper.
+
+| | describe | ¿cambia entre entornos? |
+|---|---|---|
+| `status` | el **código**: ¿hay adaptador?, ¿tiene modelos?, ¿está documentado? | **No** |
+| `health` | el **entorno**: ¿hay credencial aquí y ahora? | Sí |
+
+Mezclarlos fue el primer error de la Fase 1: sin claves en la máquina de pruebas, Gemini salía `PENDING` — lo mismo que decimos de una matriz que nadie ha integrado. Un registro que afirma cosas distintas según dónde se ejecute no es un catálogo, es una fotografía. Hay comprobaciones dedicadas para que no vuelva a pasar.
+
+### Dos uniones de capacidades, y por qué
+
+`CapabilityId` (28) es lo que el motor sabe **enrutar**; `DEFAULT_ROUTING` es un `Record` total sobre ella, así que ampliarla rompe la compilación. `CoreCapabilityId` (66) es el **catálogo**: todo lo que Weë sabe nombrar, con o sin implementación. La segunda contiene a la primera por construcción — una lista y su subconjunto, no dos listas paralelas.
+
+Eso es lo que permite declarar `3d.generate` hoy, sin proveedor, sin mentir y sin tocar el motor.
+
+### 3D no es render
+
+`3d.generate` y `render.architecture` son capacidades **distintas** y ninguna está atada a ninguna matriz. Es el atajo mental que más cuesta deshacer después: el día que haya un motor de render especializado entra sin tocar nada de 3D.
+
+## Provider Integration Policy
+
+**Weë integra MATRICES: quien entrena y sirve sus propios modelos, por su API oficial directa.**
+
+Nunca un intermediario, un agregador ni un revendedor de modelos ajenos. No es purismo: un intermediario añade un salto que Weë no controla —su disponibilidad, su latencia, su margen, sus límites y su criterio para decidir qué modelo te toca—, y cuando algo falle Weë quiere saber de quién es la culpa. Weë ya tiene un router; no necesita el de otro encima.
+
+Solo hay dos tipos de proveedor: `matrix` e `internal` (el modo demo, que no es de nadie). Si algún día hiciera falta un tercero, la conversación es si esa integración debe existir, no qué etiqueta ponerle. Una prueba rechaza que entre un intermediario al registro.
+
+### Estados, y qué promete cada uno
+
+| | significa |
+|---|---|
+| `READY` | adaptador con modelos y API documentada |
+| `BETA` | integrado, probado solo con mock |
+| `UNVERIFIED` | integrado y funcionando, pero sin ficha de verificación |
+| `PENDING` | declarada como candidata; **sin modelos y sin capacidades** |
+| `DISABLED` | apagada por decisión de producto |
+
+Un `PENDING` que declarara capacidades sería una promesa sin respaldo, y la validación lo rechaza. Es lo que mantiene honesto al catálogo.
+
+### Cómo entra una matriz nueva
+
+```
+API oficial → adaptador en engine/providers/ → una línea en ADAPTERS
+```
+
+Y ya está: aparece en el registro sola, con sus modelos y sus capacidades, porque **los modelos se derivan del `ModelSpec` que el adaptador ya declara** en vez de reescribirse. **No hay que tocar ningún Workplace, ni Brain, ni el planificador, ni el Composer.** Si alguna vez hiciera falta tocarlos, es que el registro se diseñó mal — y hay una prueba que registra una matriz inventada para comprobar justo eso.
 
 ## Cómo se extiende
 
