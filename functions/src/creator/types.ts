@@ -17,36 +17,24 @@ export type ExperienceId =
   | 'travel'
   | 'brain';
 
-export type CapabilityId =
-  | 'text.generate'
-  | 'text.structure'
-  | 'text.search'
-  | 'image.generate'
-  | 'image.edit'
-  | 'image.background_remove'
-  | 'image.upscale'
-  | 'image.object_remove'
-  | 'image.identity_edit'
-  | 'image.space_restyle'
-  | 'image.try_on'
-  | 'vision.describe'
-  | 'video.generate'
-  | 'video.image_to_video'
-  | 'video.reference'
-  | 'video.compose'
-  | 'voice.tts'
-  | 'music.generate'
-  | 'doc.render'
-  // AI Drama y pipelines futuros (docs/AI-ENGINE.md)
-  | 'script.write'
-  | 'scene.split'
-  | 'subtitle.generate'
-  | 'image.reference'
-  | 'video.montage'
-  | 'video.vertical'
-  | 'audio.sfx'
-  | 'audio.transcribe'
-  | 'doc.read';
+/*
+ * LAS CAPACIDADES YA NO VIVEN AQUÍ — viven en el Core (`core/capability.ts`).
+ *
+ * Estuvieron en este archivo desde el principio y eso puso una flecha del revés:
+ * el MOTOR —el router, el registro, los once adaptadores, el cálculo de precios,
+ * el gateway— importaba su vocabulario central de la capa de EXPERIENCIA. Más de
+ * veinte módulos que no tienen nada que ver con Weë Creator dependían de un
+ * archivo de Weë Creator.
+ *
+ * Se re-exporta a propósito y no es un apaño temporal: es lo que permitió mover
+ * la propiedad sin tocar esos veinte archivos. Quien importa `CapabilityId` de
+ * aquí sigue funcionando igual, y quien escriba código nuevo puede tomarlo ya
+ * del Core. La limpieza de imports, si alguna vez merece la pena, es otro día y
+ * otro diff.
+ */
+import type { CapabilityId } from '../core/capability';
+
+export type { CapabilityId };
 
 export interface QuestionOption {
   id: string;

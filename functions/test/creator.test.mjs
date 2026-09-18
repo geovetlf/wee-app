@@ -1541,7 +1541,13 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
     }
     const faltan = ['vision.describe', 'image.space_restyle', 'text.generate', 'image.generate'].filter((c) => !caps.has(c));
     check('M) y sus cuatro capacidades siguen disponibles', faltan.length === 0, faltan.join(', '));
-    check('M) con image.space_restyle sin tocar', /image\.space_restyle/.test(leer('functions/src/creator/types.ts')) && /'image\.space_restyle': routing/.test(leer('functions/src/engine/registry.ts')));
+    /*
+     * La capacidad se declara ahora en el Core (`core/capability.ts`), no en
+     * `creator/types.ts`, que solo la re-exporta. Se comprueba lo mismo de
+     * siempre —que siga declarada y siga enrutada—, en el archivo que hoy la
+     * posee. Lo que se vigila no ha cambiado: que nadie la retire por el camino.
+     */
+    check('M) con image.space_restyle sin tocar', /image\.space_restyle/.test(leer('functions/src/core/capability.ts')) && /'image\.space_restyle': routing/.test(leer('functions/src/engine/registry.ts')));
   }
   check('M) el workspace le sigue pidiendo su foto', /\['photo', 'home', 'beauty'\]\.includes\(experience\.id\)/.test(flujo));
 }
