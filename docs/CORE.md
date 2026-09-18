@@ -497,6 +497,115 @@ Una «herramienta» de una experiencia futura será una **capacidad** del catál
 | Rellenar `input` con el material de pasos anteriores | Orchestrator, resolviendo `outputRefs` en ejecución |
 | Evaluar `quality` | Quality Engine (Fase 14) |
 
+## WEE Orchestrator
+
+Mira una ejecución, ve qué puede empezar, lo **marca** como empezado y entrega un paquete por paso con todo lo necesario para ejecutarlo **menos una cosa: con qué**. Después recoge lo que pasó y hace avanzar la ejecución. Vive en `core/orchestrator.ts` y se monta en `functions/src/orchestrator/`.
+
+```
+BRAIN entiende → PLANNER planifica → WORKFLOW gobierna el estado
+              → ORCHESTRATOR coordina → ROUTER elige → GATEWAY ejecuta
+```
+
+### La costura, dicha con precisión
+
+**`StepDispatch` es un `GatewayRequest` sin `implementation`.** Ese hueco, y solo ese, es el del Router (Fase 7):
+
+| El despacho ya trae | Falta |
+|---|---|
+| `capability`, `purpose`, `input`, `upstream`, `trace`, `language`, `idempotencyKey`, `attempt`, `timeoutMs`, `hints`, `quality`, `budget` | `implementation`: proveedor, modelo y adaptador |
+
+Cuando el Router exista, rellenará el hueco y el Gateway ejecutará. Nada de eso se adelanta.
+
+### El Workflow sigue siendo la fuente de verdad
+
+El motor de la Fase 5 entra como **dependencia**, no como copia: `crearOrchestrator(prepared)`. Qué está listo se pregunta con `listos`, cualquier cambio de estado pasa por `transitar`, y si se puede cerrar lo dice `cierre`. Aquí no hay segunda máquina de estados, ni segundo grafo, ni otra idea de «listo», ni una segunda política de fallos. Si hubiera dos, algún día se contradirían y ganaría el error.
+
+### Seis operaciones
+
+| | Qué hace |
+|---|---|
+| `avanzar` | mira, decide y **marca**: lo listo pasa a `running` o a `awaiting_approval` y se entrega para ejecutar |
+| `informar` | un paso terminó, o alguien aprobó o rechazó: se anota y la ejecución avanza |
+| `estado` | solo mirar, sin cambiar nada |
+| `cancelar` · `pausar` · `reanudar` | lo decide el Workflow; lo que añade esta capa es comprobar que quien lo pide es el dueño |
+
+Marcar antes de entregar es deliberado: el paso pasa a `running` **antes** de salir del coordinador, así que quien haga la transición primero gana. Lo impide la máquina de estados de la Fase 5, no un candado de aquí.
+
+Toda decisión trae además `inFlight`: el paquete entero de lo que ya estaba en marcha. Existe para poder **retomar**, porque si el proceso que ejecutaba se cayó, la ejecución guardada tiene pasos en `running` y nadie sabía con qué se lanzaron. Se reconstruyen con la misma clave, y el Job Engine (Fase 8) decide si los reanuda o los da por perdidos.
+
+### Se lee todo una vez, y en este orden
+
+La ejecución llega como un dato: puede venir de donde se guardó, editada o de otra persona. Se lee entera **una sola vez** y se usa esa lectura, porque releer el objeto de entrada deja una ventana entre lo comprobado y lo usado. El orden importa:
+
+1. **La petición tiene forma.** Contrato, principal, instante, tope.
+2. **Los pasos son pasos.** Si `steps` no es una lista de objetos, se rechaza: antes un `TypeError` escapaba de una capa pura y síncrona.
+3. **El hilo se lee con el lector del Core.** Antes viajaba crudo hasta el paquete, y una traza con `apiKey`, `stack` o `__proto__` llegaba entera al Router.
+4. **Quién pide**, antes de contar nada de la ejecución: de una ajena no se dice ni que esté rota.
+5. **Es de este workflow**, y el Workflow lo confirma. Sus funciones degradan en silencio cuando no reconocen una ejecución, así que sin preguntarle una que repudia se contestaba como «tranquilo, sigue en marcha» y quien coordinara esperaría para siempre.
+6. **Las claves caben.** Si los identificadores darían una clave de operación que el Credit Engine rechazaría, se dice antes de marcar nada.
+
+### Resultados encadenados
+
+Un paso recibe el material de sus dependencias en `upstream`: de qué paso salió, qué capacidad lo hizo, qué modalidad es y sus `outputRefs`. Son **referencias, nunca contenido** — el material vive donde viva (Fase 11) — y viajan **aparte de `input`**: resolver cuál material le toca a cada paso es coordinar; decidir con qué nombre lo espera un adaptador concreto no lo es.
+
+### No lleva Tracer, a propósito
+
+El Gateway, Brain, el Planner y el Workflow lo llevan porque cada uno termina una operación que hay que anotar. El Orchestrator no ejecuta ninguna: solo dice cuál toca. Lo que se anota es la ejecución de cada paso, y para eso **cada despacho baja con su propia traza** —hilo, ejecución y paso— y la anota quien de verdad la realiza. Un registro de decisiones que no cuestan nada ensuciaría justo el libro donde se mira lo que sí cuesta.
+
+### Identidad frente a contexto declarado
+
+Esta es toda la seguridad de la capa. Una ejecución lleva dentro un `userId`, pero ese `userId` es **un dato que viajó con ella**, no una prueba de quién la está pidiendo ahora.
+
+| | Qué es | Quién lo afirma |
+|---|---|---|
+| `Principal.userId` | la cuenta Weë, una sola para todos los productos | la capa de identidad |
+| `Principal.appId` | desde qué producto se pide ahora | el cliente: es contexto, no autoridad |
+| `run.userId` | de quién es el trabajo | un dato guardado |
+
+El coordinador exige que coincidan la cuenta del principal y la de la ejecución. Si no, es el trabajo de otra persona y no se toca: ni se avanza, ni se informa, ni se mira. `appId` **no** entra en esa comprobación, y eso es exactamente lo que significa una sola cuenta para todas las apps: la misma persona puede continuar el mismo trabajo desde otro producto.
+
+Aquí no se implementa autenticación. Se implementa que el contrato no permita confundirlas.
+
+### Un motor, muchos productos
+
+Hay **un** coordinador. El mismo para la app principal y para cualquier app independiente; lo único que cambia entre ellas es el contexto que traen. `appId` no decide nada: el mismo trabajo coordinado desde siete productos distintos produce despachos **idénticos byte a byte**, y una prueba lo comprueba. Dentro del Core no hay ni un nombre de producto de Weë.
+
+El `appId` que baja en cada despacho es el del **origen del trabajo**, no el del producto desde el que alguien lo mira ahora: quien pidió es quien se atribuye.
+
+### Idempotencia, y `requestId` por operación
+
+La clave va con la **longitud** de cada parte por delante, no separada por dos puntos: los dos puntos son legales dentro de un identificador, así que `run:a` con el paso `b` y `run` con el paso `a:b` daban exactamente la misma clave, y dos operaciones distintas parecían la misma.
+
+Es determinista y derivada, así que no hace falta guardarla: dos coordinadores con la misma instantánea producen la misma clave para el mismo trabajo, y quien ejecute reconoce el duplicado. El intento va dentro para que un reintento del futuro Job Engine sea una operación **nueva** y no un duplicado que alguien descarte. Un paquete que espera aprobación lleva el intento que **tendrá**: esperar no consume ninguno, así que la clave no cambia cuando alguien dice que sí.
+
+Y esa clave es el **`requestId` del despacho**. El contrato de la Fase 0 dice que `traceId` es único por petición de la persona y `requestId` único por operación; un paso es una operación. Darles a todos el mismo hacía que el Credit Engine, que usa `requestId` para no cobrar dos veces, viera duplicados donde había trabajos distintos.
+
+### Lo que baja con cada paso
+
+| | De dónde sale |
+|---|---|
+| `budget` | lo **más restrictivo** entre el del paso y el del workflow: el del trabajo manda por encima, y lo que prefiere sobrevive aunque el paso ponga su número |
+| `hints` | los dos, **juntados clave a clave**; la del paso gana donde la haya |
+| `constraints` | del workflow: es lo que la persona acotó |
+| `upstream` | el material de sus dependencias, **en el orden del grafo** y copiado |
+
+El tope del workflow es del **trabajo entero**; cuánto queda después de lo ya gastado lo sabe quien lleva la cuenta (Fase 9). Aquí es una cota superior para este paso, no un saldo.
+
+`maxConcurrent` acota lo que hay **corriendo**, contando lo que ya estaba, no el tamaño del lote: si contara el lote, llamar cinco veces con un tope de dos pondría diez pasos en vuelo y el tope no serviría para nada.
+
+### Qué NO hace
+
+| | quién |
+|---|---|
+| Elegir proveedor, modelo o adaptador | Router (Fase 7) |
+| Ejecutar el despacho | Gateway, una vez el Router llene el hueco |
+| Persistir, reanudar, reintentar, abortar de verdad | Job Engine (Fase 8) |
+| Estimar, reservar o cobrar Credits | Financial Core (Fase 9) |
+| Guardar el material producido | Asset Engine (Fase 11) |
+| Evaluar `quality` | Quality Engine (Fase 14) |
+
+**La concurrencia real es del Job Engine.** El coordinador es una función pura: dos llamadas con la misma instantánea dan la misma respuesta, porque no hay candado ni estado compartido. Que solo una de las dos ejecuciones resultantes se guarde es responsabilidad de quien persiste, con una escritura condicionada. La clave de idempotencia es lo que hace que, aun despachando dos veces, no se ejecute dos veces.
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.
@@ -548,7 +657,7 @@ Ningún proveedor (ni Tencent, ni Baidu, ni Alibaba, ni Google, ni Amazon), ning
 
 ## Lo que el Core todavía no hace
 
-Fases 0, 1, 2, 3, 4 y 5 son cimientos, registro, frontera, inteligencia, plan y estructura de ejecución. No hay Router nuevo, ni Orchestrator, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
+Fases 0 a 6 son cimientos, registro, frontera, inteligencia, plan, estructura de ejecución y coordinación. No hay Router nuevo, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
 
 Cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es de estas fases:
 

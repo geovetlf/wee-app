@@ -61,6 +61,9 @@ export const BRAIN_CONTRACT_VERSION = '1.0' as const;
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 
+/** Forma de una decisión de coordinación y del paquete que entrega por paso. */
+export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**
