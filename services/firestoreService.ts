@@ -880,7 +880,17 @@ export interface DatosDelPerfilWee {
 
 export const usersService = {
   create: (data: Omit<UserProfile, 'id'>) => firestoreService.create<UserProfile>('users', data),
-  getById: (id: string) => firestoreService.getById<UserProfile>('users', id),
+  /*
+   * AQUÍ HABÍA UN `getById(id)` QUE DEVOLVÍA UN PERFIL POR EL ID DE SU
+   * DOCUMENTO, y se retiró en la Fase 11.x-5A sin que nadie lo llamara.
+   *
+   * El id de un documento de `users` NO es la identidad de nadie: la identidad
+   * es el campo `uid`, que es lo que miran las reglas, Credits, ËContact, el
+   * push y toda consulta. Los perfiles antiguos tienen id automático y los
+   * nuevos lo tienen determinista, así que un `getById` acierta a veces — y
+   * «a veces» es justo lo que no puede hacer un resolutor de identidad.
+   * Quien busque a alguien usa `getByUid`.
+   */
   getByUid: perfilRealPorUid,
 
   /*

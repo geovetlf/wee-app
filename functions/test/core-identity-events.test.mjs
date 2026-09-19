@@ -111,10 +111,16 @@ console.log('\n── A · Las tres entidades, y solo tres ──');
   /* 7 · El Core NO clasifica mirando el identificador. Nunca. */
   check('7) el módulo de identidad no clasifica leyendo el último carácter',
     !/slice\(-1\)|charAt\(.*length ?- ?1|endsWith\(/.test(FUENTE_IDENTITY));
-  check('8) y la décima entidad demuestra por qué',
-    core.identificadorDeEntidad('0018439', 10) === '001843910'
-    && core.identificadorDeEntidad('0018439', 10).slice(-1) === '0'
-    && core.tipoPorSecuencia(10) === 'PAGE');
+  /*
+   * Y desde la Fase 11.x-5A ya no PUEDE clasificar mirando el identificador,
+   * porque el identificador no lleva nada dentro: se sortea. `tipoPorSecuencia`
+   * recibe el NÚMERO de la secuencia, nunca un identificador.
+   */
+  check('8) el identificador de una entidad es opaco: de él no se deduce el tipo',
+    core.identificadorDeEntidad === undefined
+    && core.tipoPorSecuencia(10) === 'PAGE' && core.tipoPorSecuencia(1) === 'REAL_PROFILE'
+    && core.esIdDeEntidad('ent_0123456789abcdefghjkmnpqrs')
+    && !core.esIdDeEntidad('00184391'));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -141,33 +147,46 @@ console.log('\n── B · El identificador interno y el nombre público son DOS
     && !core.entidadValida(entidad(PAGE, { handle: 'NO VALE' })));
 
   /*
-   * 13 · Y EL FORMATO ACTUAL DE IDENTIDAD NO ESTORBA. Se temía que una Página
-   * necesitara una forma tipo `page_x` y chocara con `FORMA_DE_IDENTIDAD`
-   * (`utils/econtactModel.ts`), que prohíbe el guion bajo salvo el prefijo
-   * heredado. No hace falta: el identificador de una Página es numérico.
+   * 13 · Y LOS DOS ESPACIOS DE NOMBRES NO SE TOCAN. El identificador de una
+   * entidad (`ent_…`) NO es una identidad de perfil válida —`FORMA_DE_IDENTIDAD`
+   * en `utils/econtactModel.ts` prohíbe el guion bajo suelto—, así que uno no
+   * puede colarse donde se espera el otro. Eso no es un choque: es la separación
+   * que hace falta entre lo que actúa y el documento donde vive.
    */
-  check('13) el identificador de una Página no necesita prefijo ninguno',
-    /^[0-9]+$/.test(core.identificadorDeEntidad('0018439', 3))
+  check('13) un identificador de entidad no puede pasar por identidad de perfil',
+    !/^(?:hidi_)?[^_/\s]+$/.test('ent_0123456789abcdefghjkmnpqrs')
     && !/page_|PREFIJO_DE_PAGE/.test(FUENTE_IDENTITY));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-console.log('\n── C · El número de cuenta: se da forma, no se inventa ──');
+console.log('\n── C · El número de cuenta: se sortea, y ya no vive aquí ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  check('14) la posición de la serie se convierte en número, con sus ceros',
-    core.numeroDeCuentaDesde(18439) === '0018439' && core.numeroDeCuentaDesde(1) === '0000001');
-  check('15) y es puro: la misma posición da siempre el mismo número',
-    core.numeroDeCuentaDesde(42) === core.numeroDeCuentaDesde(42));
-  check('16) lo que no cabe en el ancho NO se recorta: sería el número de otra cuenta',
-    core.numeroDeCuentaDesde(12345678, 7) === undefined
-    && core.numeroDeCuentaDesde(0) === undefined && core.numeroDeCuentaDesde(-1) === undefined);
-  check('17) el resultado siempre es un número de cuenta válido',
-    [1, 7, 18439, 9999999].every((n) => core.esNumeroDeCuenta(core.numeroDeCuentaDesde(n))));
+  /*
+   * LA FASE 11.x-5A SE LLEVÓ DE AQUÍ EL NÚMERO DE CUENTA. Vivían en este módulo
+   * un `AccountNumber` de cuatro a veinte dígitos y un `numeroDeCuentaDesde`
+   * que formaba el número a partir de una POSICIÓN de una serie; detrás hacía
+   * falta un contador global, que es un cuello de botella y además cuenta
+   * cuántas cuentas hay y en qué orden llegaron. El contrato definitivo está en
+   * `core/account-identity.ts` y aquí se comprueba que no quedó rastro.
+   */
+  check('14) el número de cuenta ya no se forma desde una posición de una serie',
+    core.numeroDeCuentaDesde === undefined && core.FORMA_DE_NUMERO_DE_CUENTA === undefined
+    && !/AccountNumber|numeroDeCuentaDesde/.test(FUENTE_IDENTITY));
+  check('15) el número canónico son nueve dígitos, texto, y con sus ceros delante',
+    core.esNumeroDeCuentaCanonico('008432175') && core.ANCHO_DEL_NUMERO_DE_CUENTA === 9
+    && !core.esNumeroDeCuentaCanonico('8432175') && !core.esNumeroDeCuentaCanonico(8432175)
+    && !core.esNumeroDeCuentaCanonico('000000000'));
+  check('16) lo corto NO se rellena con ceros: sería el número de otra cuenta',
+    core.normalizarNumeroDeCuenta('8432175') === undefined
+    && core.normalizarNumeroDeCuenta('008 432 175') === '008432175');
+  check('17) se sortea sin sesgo a partir de bytes, no de una posición',
+    core.sortearNumeroDeCuenta([0, 0, 0, 0]) === '000100000'
+    && core.sortearNumeroDeCuenta([1, 2, 3]) === undefined);
 
-  /* 18 · El Core no reparte posiciones: eso tiene estado y el Core no lo tiene. */
+  /* 18 · El Core sigue sin repartir nada con estado: ni contador, ni serie. */
   check('18) el Core NO asigna la siguiente posición — eso tiene estado',
-    !/siguienteNumero|asignarNumero|nextAccountNumber|contador/i.test(FUENTE_IDENTITY));
+    !/siguienteNumero|asignarNumero|nextAccountNumber|contador|ultimaPosicion/i.test(FUENTE_IDENTITY));
   check('19) y el número sigue sin autorizar nada',
     !/accountNumber ?===|walletNumber ?===|numeroDeCuenta ?===/.test(FUENTE_IDENTITY));
 }

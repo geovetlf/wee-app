@@ -15,7 +15,12 @@ const db = admin.firestore();
  *
  * Los documentos de `users` tienen id automático: `users.doc(uid)` apuntaba a
  * un documento que no existe y las notificaciones push se perdían todas en
- * silencio. El id del documento queda como respaldo para lo heredado.
+ * silencio. El id del documento queda como ATAJO, nunca como identidad: desde
+ * la Fase 11.x los perfiles nuevos se crean en `users/<su identificador>`, así
+ * que mirar ahí ahorra una consulta. Lo que decide sigue siendo el campo `uid`,
+ * y por eso el documento encontrado por id tiene que declararlo (Fase 11.x-5A).
+ * Antes bastaba con que el documento existiera, y eso era tratar el id del
+ * documento como si fuera la identidad de una persona.
  */
 type PerfilEncontrado = admin.firestore.DocumentSnapshot | admin.firestore.QueryDocumentSnapshot;
 
@@ -24,7 +29,7 @@ async function perfilDeIdentidad(identidad: unknown): Promise<PerfilEncontrado |
   const porCampo = await db.collection('users').where('uid', '==', identidad).limit(1).get();
   if (!porCampo.empty) return porCampo.docs[0];
   const porId = await db.collection('users').doc(identidad).get();
-  return porId.exists ? porId : null;
+  return porId.exists && porId.data()?.uid === identidad ? porId : null;
 }
 
 /*
@@ -83,6 +88,15 @@ export { burnViewOnce } from './social/weetalk';
  * lee de `users` y las reglas no pueden consultar.
  */
 export { requestEContact, acceptEContact } from './social/econtact';
+
+/*
+ * IDENTITY: el nacimiento de las cuentas NUEVAS (Fase 11.x-5A).
+ *
+ * Se dispara al crear un documento de `users` y solo entonces: las cuentas que
+ * ya existen no pasan por aquí, y una cara Weë cuya cuenta no ha nacido no la
+ * hace nacer. Numerar lo que ya existe es la migración, y tiene su propia fase.
+ */
+export { nacimientoDeCuenta } from './identity/nacimiento';
 
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {

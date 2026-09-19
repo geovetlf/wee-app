@@ -7,6 +7,34 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ─── FRONTERA DE COMPATIBILIDAD CON LA IDENTIDAD HEREDADA ───────────────
+    //
+    // El `uid` guardado de una cara Weë lleva un prefijo de cuando Weë se
+    // llamaba HideTok. Es DATO HISTÓRICO, no vocabulario: el concepto se llama
+    // PERFIL WEË y el tipo de entidad es WEE_PROFILE, y así se dice en el Core,
+    // en las APIs nuevas y en pantalla.
+    //
+    // Las reglas no pueden consultar `users` por campo —solo leer una ruta—, así
+    // que para atar una identidad a la cuenta que está autenticada no les queda
+    // más remedio que componer esa forma heredada. Esto es lo que lo hace
+    // legítimo: va de la CUENTA YA AUTENTICADA a los nombres con los que aparece
+    // en los datos, nunca al revés. De quién es una cara se LEE del documento
+    // (`linkedAccountId`, con `cuentaDeIdentidad` en el servidor); aquí no se
+    // resuelve nada quitando un prefijo.
+    //
+    // El día que los perfiles se renumeren, esto se cambia aquí. Las reglas de
+    // los datos históricos —publicaciones, votos, conversaciones, avisos— siguen
+    // componiéndolo en línea porque nombran documentos que ya están escritos.
+    // El Account Identity de la Fase 11.x-5A no depende de nada de esto: una
+    // cuenta, su número, sus entidades y sus membresías no contienen ni una
+    // letra heredada.
+    function identidadWeeHeredadaDe(uid) {
+      return 'hidi_' + uid;
+    }
+    function misIdentidadesHeredadas() {
+      return [request.auth.uid, identidadWeeHeredadaDe(request.auth.uid)];
+    }
+
     // Credit Engine (docs/CREDITS.md): el saldo vive en el perfil y SOLO lo
     // escribe el servidor (Cloud Functions). Ninguna escritura del cliente
     // puede crear, cambiar ni borrar estos campos.
@@ -83,7 +111,7 @@ service cloud.firestore {
     }
     function linkedAccountIdValido() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['linkedAccountId']) ||
-        (resource.data.uid == request.auth.uid && request.resource.data.linkedAccountId == ("hidi_" + request.auth.uid));
+        (resource.data.uid == request.auth.uid && request.resource.data.linkedAccountId == identidadWeeHeredadaDe(request.auth.uid));
     }
 
     // UN CONTADOR SOLO PUEDE MOVERSE DE UNO EN UNO.
@@ -493,11 +521,11 @@ service cloud.firestore {
     // Las cuatro combinaciones son válidas —real↔real, real↔Weë, Weë↔real y
     // Weë↔Weë— y cada una es UN SOLO documento.
     match /econtacts/{contactId} {
-      // Las identidades que puede usar esta sesión. Se derivan del uid de la
-      // cuenta, que es exactamente como se construyen los perfiles: el Perfil Weë
-      // de la cuenta ABC es "hidi_ABC" y no puede ser otro.
+      // Las identidades con las que esta sesión aparece en los datos ya
+      // escritos. Salen de la frontera de compatibilidad de arriba, que es el
+      // sitio donde vive la forma heredada.
       function misIdentidades() {
-        return [request.auth.uid, 'hidi_' + request.auth.uid];
+        return misIdentidadesHeredadas();
       }
       // ¿Participa alguno de MIS perfiles en esta relación?
       function participo() {
@@ -570,7 +598,7 @@ service cloud.firestore {
     // igual: nada de esto mira con qué cara se habla, solo que sea tuya.
     match /conversations/{conversationId} {
       function misIdentidadesDeChat() {
-        return [request.auth.uid, 'hidi_' + request.auth.uid];
+        return misIdentidadesHeredadas();
       }
       function participo() {
         return resource.data.participants.hasAny(misIdentidadesDeChat());
@@ -910,19 +938,77 @@ service cloud.firestore {
       }
     }
 
-    // === IDENTITY CORE (Fase 11.x-2): la cuenta con nombre, sus entidades y el contador ===
+    // === ACCOUNT IDENTITY (Fase 11.x-5A): la cuenta, su número, sus entidades
+    // y quién puede actuar en ella ===
     //
-    // Lo escribe solo el servidor: nacer una cuenta reparte una posición de una
-    // serie, y eso no puede hacerlo un cliente. La cuenta la lee su dueño; una
-    // entidad, la cuenta que la posee; el contador, nadie desde fuera.
+    // TODO LO ESCRIBE EL SERVIDOR. Nacer una cuenta es sortear un número libre,
+    // reservarlo, escribir la membresía de su dueño y crear su entidad de Perfil
+    // Real en una sola transacción. Nada de eso puede hacerlo un cliente, y por
+    // eso aquí no hay una sola escritura permitida: el Account ID, el Account
+    // Number, el Entity ID, el Entity Type y la Entity Sequence los asigna el
+    // servidor. Un cliente que pudiera escribirlos podría escribir los de otro.
+    //
+    // ── Por qué autorizar aquí no cuesta una lectura ─────────────────────────
+    //
+    // Porque el identificador de la cuenta ES el del principal que la fundó, así
+    // que «esta cuenta es mía» se resuelve comparando dos valores que la regla
+    // ya tiene en la mano. La lectura de la membresía solo la paga un SEGUNDO
+    // principal —el administrador o el contable que algún día tendrá una
+    // empresa—, que hoy no existe. Eso es diseño de documentos, no un atajo: el
+    // día que haya varios principales, el camino caro es el raro.
+    //
+    // Y la membresía no se puede falsificar: el cliente no la escribe. Que
+    // alguien esté autenticado NO lo hace dueño de ninguna cuenta; lo que lo
+    // dice es este documento, y lo escribe el servidor al nacer la cuenta.
+    function esMiembroActivoDe(accountId) {
+      return exists(/databases/$(database)/documents/accounts/$(accountId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accounts/$(accountId)/members/$(request.auth.uid)).data.status == 'ACTIVE';
+    }
+
     match /accounts/{accountId} {
-      allow read: if isAuthenticated() && request.auth.uid == accountId;
+      // La cuenta la lee quien la fundó y quien tenga membresía activa en ella.
+      // Nadie más: aquí está el número de la cuenta, que no es público.
+      allow read: if isAuthenticated() && (request.auth.uid == accountId || esMiembroActivoDe(accountId));
       allow write: if false;
+
+      // PRINCIPAL → CUENTA. Quién puede actuar en esta cuenta y con qué papel.
+      // Cada cual ve la suya y el dueño ve las de su cuenta. Escribirla sería
+      // darse permisos, así que no se escribe desde fuera en ningún caso.
+      match /members/{principalId} {
+        allow read: if isAuthenticated() && (request.auth.uid == accountId || request.auth.uid == principalId);
+        allow write: if false;
+      }
+
+      // Lo ya hecho, para que repetir una petición no cree una segunda Página.
+      // No tiene por qué salir de aquí: es contabilidad interna del servidor.
+      match /operations/{clave} {
+        allow read, write: if false;
+      }
     }
+
+    // EL ÍNDICE DE LOS NÚMEROS. Su existencia es lo que impide repartir un
+    // número dos veces, así que un cliente que pudiera crear uno podría reservar
+    // el de otro; y uno que pudiera leerlo tendría la lista de las cuentas que
+    // hay. Resolver un número es del servidor, que además puede limitar el ritmo.
+    match /accountNumbers/{numero} {
+      allow read, write: if false;
+    }
+
+    // CADA CARA Y CADA PÁGINA. La lee la cuenta que la posee y sus miembros
+    // activos. El dueño, el tipo y la secuencia de una entidad son inmutables y
+    // no hay forma de tocarlos desde aquí: no se permite ninguna escritura, ni
+    // crear, ni actualizar, ni borrar. Cambiar el dueño de una entidad sería
+    // llevarse lo publicado a otra cuenta; cambiar su tipo o su secuencia, hacer
+    // pasar una Página por la cara de una persona.
     match /entities/{entityId} {
-      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.ownerAccountId == request.auth.uid || esMiembroActivoDe(resource.data.ownerAccountId));
       allow write: if false;
     }
+
+    // NO HAY CONTADOR GLOBAL DE CUENTAS, y esta regla existe para que siga sin
+    // haberlo. El número de cuenta se sortea y se reserva con su propio índice
+    // (Fase 11.x-5A); el contador de la Fase 11.x-2 se retiró sin llegar a
+    // escribir un solo documento.
     match /contadores/{contador} {
       allow read, write: if false;
     }

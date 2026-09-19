@@ -238,8 +238,15 @@ check('58) la relación solo la leen sus dos partes', /allow read: if isAuthenti
  * sesión se derivan del uid de la cuenta —que es exactamente como se construyen
  * los perfiles—. `hasAny` cubre las dos caras: la relación puede ser de tu
  * Perfil Real o de tu Perfil Weë, y las dos son tuyas.
+ *
+ * Desde la Fase 11.x-5A la forma heredada no se escribe aquí: sale de
+ * `misIdentidadesHeredadas()`, la frontera de compatibilidad declarada arriba
+ * del archivo de reglas. El día que los perfiles se renumeren se cambia ahí.
  */
-check('58b) mis identidades son mi cuenta y mi Perfil Weë', /return \[request\.auth\.uid, 'hidi_' \+ request\.auth\.uid\];/.test(bloque));
+check('58b) mis identidades salen de la frontera de compatibilidad, no de un prefijo escrito a mano',
+  /return misIdentidadesHeredadas\(\);/.test(bloque)
+  && /function misIdentidadesHeredadas\(\) \{\s*\n\s*return \[request\.auth\.uid, identidadWeeHeredadaDe\(request\.auth\.uid\)\];/.test(reglas)
+  && /function identidadWeeHeredadaDe\(uid\) \{\s*\n\s*return 'hidi_' \+ uid;/.test(reglas));
 check('58c) participo si alguna de las dos está en la relación', /resource\.data\.users\.hasAny\(misIdentidades\(\)\)/.test(bloque));
 
 /*

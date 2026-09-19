@@ -40,17 +40,25 @@ const identidad = lib('core/identity.js');
 console.log('\n── A · Cuatro identificadores que no se confunden ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const { esIdDeCuenta, esNumeroDeCuenta, identificadorDeEntidad, numeroDeCuentaDesde } = identidad;
+  const { esIdDeCuenta } = identidad;
+  const cuenta = lib('core/account-identity.js');
+  const { esIdDeEntidad, esNumeroDeCuentaCanonico, sortearNumeroDeCuenta, idDeEntidadDesdeBytes } = cuenta;
   const uidDeFirebase = 'OEv4FAhfbAN0sFoFiHG0ZG2GK3r2';
-  const numero = numeroDeCuentaDesde(1);
-  const entidad = identificadorDeEntidad(numero, 2);
+  const numero = sortearNumeroDeCuenta([0, 0, 0, 0]);
+  const entidad = idDeEntidadDesdeBytes(new Uint8Array(26).fill(11));
   check('1) un uid de Firebase Auth es un Account ID', esIdDeCuenta(uidDeFirebase) && esIdDeCuenta('ana') && esIdDeCuenta('u1'));
-  check('2) un número de cuenta NO es un Account ID', esNumeroDeCuenta(numero) && !esIdDeCuenta(numero), numero);
-  check('3) ni el identificador de una entidad', typeof entidad === 'string' && !esIdDeCuenta(entidad), entidad);
+  check('2) un número de cuenta NO es un Account ID', esNumeroDeCuentaCanonico(numero) && !esIdDeCuenta(numero), numero);
+  check('3) ni el identificador de una entidad', esIdDeEntidad(entidad) && !esIdDeCuenta(entidad), entidad);
   check('4) ni el identificador de una cara (Profile ID con prefijo heredado)', !esIdDeCuenta('hidi_' + uidDeFirebase));
   check('5) ni texto con separadores, barras o vacío', ['a_b', 'a/b', 'a b', 'a.b', '', ' ', 'x'.repeat(129)].every((v) => !esIdDeCuenta(v)));
   check('6) ni algo que no sea texto', [null, undefined, 42, {}, ['ana']].every((v) => !esIdDeCuenta(v)));
-  check('7) el Identity Core sigue sin nacer cuentas a partir de un número', identidad.nacerCuenta({ accountId: numero, posicion: 1, at: 1 }) === undefined);
+  /*
+   * En la Fase 11.x-5A se retiró `nacerCuenta`, que hacía nacer una cuenta a
+   * partir de una posición de una serie. Lo que queda no admite un número de
+   * cuenta donde va un principal, y no hay forma de formar uno sin sortearlo.
+   */
+  check('7) el Identity Core sigue sin nacer cuentas a partir de un número',
+    identidad.nacerCuenta === undefined && !cuenta.esIdDePrincipal(numero) && !esIdDeCuenta(numero));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
