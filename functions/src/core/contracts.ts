@@ -67,6 +67,9 @@ export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
 /** Forma de una petición de enrutado y de la decisión que la resuelve. */
 export const ROUTER_CONTRACT_VERSION = '1.0' as const;
 
+/** Forma de un trabajo durable, sus intentos y las transiciones de su ciclo de vida. */
+export const JOB_ENGINE_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**

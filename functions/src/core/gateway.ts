@@ -295,7 +295,14 @@ export const FORMA_DE_ID = /^[A-Za-z0-9_.:-]{4,160}$/;
 /** Los ids opcionales de la traza (paso, sesión, workplace…) pueden ser cortos, pero nunca llevar caracteres de control. */
 export const FORMA_DE_ETIQUETA_DE_TRAZA = /^[A-Za-z0-9_.:/-]{1,160}$/;
 /** Ids de proveedor, modelo y adaptador: lo que hay hoy incluye puntos, barras y dos puntos. */
-const FORMA_DE_REFERENCIA = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,120}$/;
+/*
+ * Se EXPORTA desde la Fase 8: el Job Engine guarda la implementación que eligió
+ * el Router y tenía su propia comprobación, más estrecha. El registro real de
+ * Weë tiene modelos con barra en el identificador, así que el Job Engine
+ * rechazaba implementaciones perfectamente válidas que el Router le entregaba.
+ * Dos criterios sobre lo mismo siempre acaban así; ahora hay uno.
+ */
+export const FORMA_DE_REFERENCIA = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,120}$/;
 const FORMA_DE_CAPACIDAD = /^[a-z0-9]+\.[a-z0-9_]+$/;
 
 /** El valor si tiene la forma exigida; si no, nada. Lo que no pasa la validación no se refleja ni se anota. */

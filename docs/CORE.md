@@ -200,7 +200,8 @@ Igual que en el registro, y esa es la prueba de que está bien hecho: un adaptad
 La capa de inteligencia conversacional. **Brain entiende y conversa; no decide cómo se ejecuta.**
 
 ```
-PERSONA → COMPOSER → WEË BRAIN → PLANNER → WORKFLOW → ORCHESTRATOR → ROUTER → GATEWAY → ADAPTADOR
+PERSONA → COMPOSER → WEË BRAIN → PLANNER → WORKFLOW → ORCHESTRATOR → ROUTER
+        → JOB ENGINE → GATEWAY → ADAPTADOR
 ```
 
 De un mensaje salen **dos cosas que nunca se mezclan**: una `reply` para la persona y un `understanding` estructurado para las capas siguientes. Un cliente puede pintar la respuesta entera sin saber que existen los proveedores.
@@ -726,6 +727,155 @@ Y la composición distingue los dos noes. `ImplementationResolver` devuelve `und
 | Evaluar la calidad del resultado | Quality Engine (Fase 14) |
 
 **El Router no reintenta.** Devuelve `alternatives` —los siguientes por puntuación— para que quien coordine pueda pedir otra resolución si el primero falla, pero aquí no hay bucles, ni esperas, ni reintentos.
+
+## WEE Job Engine
+
+Convierte una operación ejecutable en un **trabajo durable** y gobierna su ciclo de vida: encolar, reclamar, ejecutar, esperar, reintentar, vencer, cancelar y recuperar. Sin ejecutar nada. Vive en `core/job.ts` y se compone en `functions/src/job/`.
+
+```
+ORCHESTRATOR coordina → ROUTER elige → JOB ENGINE administra →
+GATEWAY ejecuta → ADAPTADOR traduce → PROVEEDOR produce
+```
+
+No se salta a nadie. El Orchestrator dice qué paso toca, el Router dice con qué se atiende, y ahí hay una operación completa lista para ejecutarse. Lo que faltaba es que esa ejecución **sobreviva**: que si el servidor se muere a mitad el trabajo no se evapore, que si se reintenta no se haga dos veces, que si tarda una hora se sepa dónde está.
+
+### Por qué es una función pura y no un bucle
+
+Un motor de trabajos parece que tiene que ser un proceso dando vueltas: mirar la cola, coger uno, ejecutarlo, dormir, repetir. Ese proceso existirá, pero no en el Core. Aquí está **lo que ese proceso necesita saber**, en forma de funciones puras sobre el estado guardado:
+
+| pregunta | operación |
+|---|---|
+| ¿qué trabajo debería existir para esta petición? | `crear` |
+| ¿puede este trabajador cogerlo? | `reclamar` |
+| **esto ya sale hacia el proveedor** | `marcarEnvio` |
+| **sigo vivo, no me lo quites** | `renovar` |
+| ¿qué se le entrega para ejecutar? | `despachar` |
+| ¿qué pasa ahora que el intento terminó así? | `informar` |
+| ¿qué pasa ahora que ha pasado el tiempo? | `evaluar` |
+| ¿qué pasa con lo que acaba de contar el proveedor? | `recibirEvento` |
+| ¿se puede cancelar, y qué significa eso? | `cancelar` |
+
+Cada una devuelve una **transición con la revisión que esperaba encontrar**. El almacén la aplica con compare-and-set. Esa separación es lo que hace que dos trabajadores no puedan ejecutar lo mismo, que una cancelación y una finalización no puedan ganar las dos, y que todo esto se pruebe con una tabla de casos en vez de con un servidor encendido.
+
+El reloj entra por la puerta: `at` viaja en cada petición, como en el Orchestrator. Sin eso no hay forma de probar que una concesión caducó ni que una carrera la ganó quien debía.
+
+### Trabajo, intento y operación del proveedor: tres cosas
+
+Un **Job** es una operación de Weë administrada como unidad durable. Un **intento** es una ejecución de ese trabajo: el reintento es otro intento del MISMO trabajo, con el mismo `jobId` y otro `attemptId`, porque si cada reintento fuera un trabajo nuevo no habría forma de auditar ni de evitar un doble cobro. Y la **operación del proveedor** es cosa suya: tiene su `taskId`, su `generationId`, su `operationId`. Nunca se asume que el identificador de Weë sea el suyo; se guarda la relación, y el externo no es la fuente de verdad de nada.
+
+Los identificadores se **derivan**, no se sortean: `claveDeIntento(jobId, número)` y `claveDeProveedor(jobId, número)` dan lo mismo en dos servidores. Todos llevan la longitud de cada parte delante, como la clave de paso de la Fase 6, porque los dos puntos son legales dentro de un identificador y sin eso `a:b`+`c` y `a`+`b:c` daban la misma clave.
+
+### Los ocho estados, y los cuatro que no existen
+
+| | |
+|---|---|
+| `queued` | existe y espera a que alguien lo coja |
+| `running` | un trabajador lo tiene, con concesión, y está ejecutando |
+| `waiting` | el proveedor lo aceptó y Weë no está haciendo nada: espera |
+| `cancel_requested` | alguien pidió pararlo mientras algo seguía en marcha |
+| `completed` · `failed` · `timed_out` · `cancelled` | terminal. De aquí no se sale |
+
+**No hay `retry_pending`.** Un reintento programado vuelve a `queued` con su `availableAt`. Tenerlo como estado obligaría a que algo lo promoviera —un planificador más que se cae— y no dice nada que la lista de intentos no diga mejor.
+
+**No hay `ready`.** Poder cogerse se deduce: estar en `queued` y haber llegado su hora. Un estado guardado que se puede deducir es un estado que algún día contradirá a lo que se deduce.
+
+**No hay `unknown`.** Lo que no se sabe no es un estado del trabajo: es una propiedad del intento, y vive ahí.
+
+**No hay `paused`.** Pausar algo que ya está en manos de un proveedor no existe físicamente. Pausar es del Workflow (Fase 5), donde lo que se puede hacer de verdad es dejar de empezar cosas nuevas.
+
+La tabla de transiciones es explícita y **cada flecha la produce alguna operación**: hay una prueba que las recorre todas y falla si alguna está declarada y nadie la produce. Dos que parecían obvias y no están: `waiting → running`, porque preguntarle al proveedor cómo va no es ejecutar —no consume un intento, no manda nada, no necesita concesión— y dejarla habría abierto un intento nuevo mientras el proveedor seguía con el anterior; y `cancel_requested → failed`, porque cuando alguien ya pidió parar, que el intento acabe mal no es un fallo: es la parada.
+
+Lo que sí se respeta es el final **bueno**: `cancel_requested → completed` existe, porque tirar un resultado que ya existe —y que ya costó dinero— por una cancelación que llegó después sería tirar el trabajo hecho.
+
+### Idempotencia: el ámbito es la cuenta
+
+Una clave deduplica dentro de **una cuenta Weë**, no dentro de un producto ni de un Workplace. Es una decisión, y viene de la Fase 6: hay una sola cuenta, y una persona que sigue el mismo trabajo desde otro producto está siguiendo el mismo trabajo. Si el producto entrara en el ámbito, abrir la app de escritorio duplicaría lo que ya corría en el móvil. Y al revés: la clave de una cuenta no alcanza jamás el trabajo de otra, porque el ámbito las separa por construcción.
+
+La misma clave con **otra operación dentro** es un conflicto y no se ejecuta ninguna de las dos: devolver el trabajo que ya había haría que alguien esperase un vídeo y recibiera una imagen. Se distingue con una huella canónica —claves ordenadas, formas explícitas— para que el orden en que se escribió el objeto no cambie nada.
+
+Y dos peticiones **a la vez** producen un solo trabajo. No con un `si no existe, crea`, que es exactamente la carrera: el contrato exige que `crearSiAusente` sea **una** operación atómica, y el camino natural es que la identidad de idempotencia sea el identificador del documento. Si mientras tanto lo creó otro, se vuelve a decidir con el que ganó: o es la misma operación, o es un conflicto. Así la carrera se convierte en una repetición inofensiva.
+
+### Reintentos: explícitos, limitados y sin dados
+
+Tres intentos por defecto, espera exponencial acotada, y **sin `jitter`**: repartiría mejor un pico de carga pero haría que la misma situación diera dos decisiones distintas. Repartir el pico es de quien despierta a los trabajadores, no de quien decide si toca reintentar.
+
+Se reintenta cuando las cuatro condiciones dicen que sí: **queda algún intento**, el **error admite otro**, **cabe dentro del plazo** y **repetirlo no puede duplicar lo que ya se hizo**. Un error de la petición, una política de contenido o un saldo agotado no se reintentan nunca —saldrán igual de mal, y reintentar sin saldo es gastar el dinero de alguien dos veces—. Y no se reintenta por el nombre de nadie: la clasificación es la del vocabulario de la Fase 0, y si hiciera falta un `if` por proveedor el sitio sería su adaptador.
+
+**El Job Engine no reenruta.** Comunica que el intento falló y que admitía otro; elegir otra implementación es del Router.
+
+### El plazo no se alarga nunca
+
+`deadlineAt` es lo más corto entre lo que pidió quien llama y lo que permite la política, y ningún reintento lo mueve: tres intentos de dos minutos no hacen un trabajo de seis. Lo que puede tardar un intento se recorta a lo que quede de plazo, y un reintento cuya espera caería fuera del plazo **no se programa**: el trabajo acaba ahí en vez de fingir que le quedaba tiempo.
+
+### Cancelar no es parar
+
+Un proveedor puede no admitir cancelación, ignorarla o contestar tarde. Sobre algo en marcha se registra `cancel_requested`, que es lo honesto, y la parada se **consuma cuando ya no puede volver nada**. Cancelar algo que aún no ha empezado sí es inmediato. Y cancelar lo ya terminado no lo descancela: llegó tarde, y eso se lee en el estado que vuelve.
+
+«Ya no puede volver nada» no es «no queda concesión», y confundirlos costó un defecto: un trabajo en espera **no tiene concesión por construcción** —el proveedor lo tiene, no un trabajador nuestro—, así que la parada se consumaba en el siguiente barrido con la operación todavía ejecutándose al otro lado, y el resultado bueno que llegaba después se tiraba por la única puerta que la tabla había dejado abierta a propósito. Lo que se mira es si hay algo **en vuelo**: un intento que salió y del que aún no se sabe nada. Mientras lo haya, se espera; si nunca vuelve, lo cierra el plazo.
+
+### Que un trabajo no se pierda, y que no se haga dos veces
+
+Aquí está el corazón de la fase. Un trabajador coge un trabajo con una **concesión** que caduca sola; si el proceso muere, la concesión vence y el trabajo vuelve a estar disponible. Lo que decide qué hacer entonces es una sola pregunta: **¿llegó aquel intento a salir hacia el proveedor?** Por eso `dispatched` se marca **antes** de la llamada; marcarlo después haría que justo el caso que importa —caerse durante la llamada— quedara registrado como si nunca hubiera salido.
+
+| lo que se sabe del intento | qué se hace |
+|---|---|
+| no salió | el intento se cierra y se abre otro, con otro número y otra clave |
+| salió y se sabe cómo acabó | otro intento, consciente, con otra clave |
+| salió, no se sabe | **no se repite**. Se espera: con referencia del proveedor se vuelve a mirar pronto; sin ella, al aviso o al plazo |
+
+**El número de un intento no se reutiliza jamás.** La primera versión no gastaba un intento cuando el trabajador moría sin haber pedido nada — sonaba generoso y era peligroso: el siguiente reclamo volvía a numerar desde el mismo sitio y producía el mismo `attemptId`, así que el trabajador zombi, el que se creía vivo, podía cerrar con su informe el intento de otro y tirar un resultado ya pagado. Un identificador que se reutiliza deja de identificar.
+
+**Y `marcarEnvio` es la pieza que lo sostiene todo.** Esa marca se escribe *antes* de la llamada, en su propia escritura, y sin ella el resto es decorativo: la primera versión declaraba el campo, documentaba que se guardaba antes, y **no tenía ninguna operación que lo guardara**. Una lente de la auditoría recorrió 46.167 estados alcanzables y no encontró ni uno con el intento abierto y marcado, así que la recuperación siempre creía que nada había salido y lo volvía a mandar: el doble cobro exacto que esta capa existe para impedir. Un aviso del proveedor también la marca — un webhook es prueba de que lo tiene.
+
+**Una concesión se renueva.** `renovar` la alarga sin empezar nada, y solo puede hacerlo quien la tiene. Sin eso, toda ejecución más larga que la concesión —un minuto por defecto, y un vídeo tarda varios— se recuperaba por debajo de un trabajador vivo y salía dos veces. Renovar no alarga el plazo del trabajo: si venció, vence.
+
+Ese último caso es el que casi todo el mundo resuelve reintentando «porque seguramente no llegó». Aquí no: repetirlo puede ser pagar dos veces por dos vídeos. El intento queda con desenlace `unknown` —que no es fallido, porque decir que falló algo que quizá salió bien es inventar— y la Fase 9 leerá eso para decidir si cobra.
+
+Y `unknown` **no cierra el intento**: un aviso del proveedor que llega tarde todavía lo resuelve. Si contara como concluido, el webhook que se perdió y reapareció a los dos minutos se descartaría por duplicado y se perdería la única forma que quedaba de saber la verdad.
+
+### Proveedores que contestan luego
+
+`accepted` del Gateway —que la Fase 2 dejó declarado— significa «lo tengo», no «lo he hecho». El trabajo pasa a `waiting` con la referencia de la operación anotada, y quien lo termine será un aviso del proveedor o el plazo. El sondeo no está aquí: un `while` esperando a un proveedor es un proceso, no un contrato. Lo que el Core define es qué significa esperar, qué lo reanuda y cuándo vence.
+
+Quien sondea informa, y **puede informar que sigue sin saber**. Eso escribe —reprograma cuándo volver a mirar— aunque el trabajo no cambie de estado. Si no pudiera, un sondeo honesto se rechazaría y el trabajo se quedaría sin ninguna hora a la que volver hasta vencer. Y la referencia del proveedor es **opcional**: lo que decide esperar es el plazo, no si tenemos con qué preguntar, porque repetirlo no es seguro en ninguno de los dos casos. Exigirla hacía que una operación larga sin identificador —el camino normal del vídeo— se declarara vencida a los milisegundos de empezar.
+
+**Al Gateway se le pide siempre `sync`.** Son dos cosas distintas con el mismo nombre: el `mode` del trabajo dice si quien lo pidió espera el resultado o lo recoge luego; el del Gateway dice si la llamada se hace y se espera, y siempre se hace y se espera. Lo que puede ser largo es la operación del proveedor, y para eso está `accepted`. La primera versión bajaba el modo del trabajo tal cual, el Gateway rechaza `async` de plano, y la costura entera estaba rota sin que ninguna prueba lo tocara.
+
+Los avisos llegan ya normalizados por su adaptador: el Core no sabe qué forma tiene el webhook de nadie y no la inventa. Repetirse no cuesta nada —un final sobre un intento ya concluido no vuelve a terminar—, y uno más viejo que el último visto no retrocede el estado. **La doble finalización es imposible por construcción**, no por un candado: si el trabajo ya terminó o el intento ya tiene desenlace, no hay nada que hacer.
+
+### Seguridad: dos listas, y son distintas a propósito
+
+El material de un trabajo **no se filtra con la lista de una traza**. Una traza no puede llevar el texto de la persona —los registros se copian, se exportan y se pegan en un chat de soporte—, pero el material de un trabajo **es** ese texto: quitar `prompt` de ahí sería mandar a generar una imagen sin decir de qué. Lo que no entra es lo que nunca es material: credenciales, y las claves con las que un objeto deja de ser un objeto plano. Y se **rechaza**, no se quita en silencio: quitar una credencial a escondidas deja a quien la mandó creyendo que viajó.
+
+De un error no se guarda el rastro de pila ni la respuesta cruda del proveedor. Un `stack` no es un secreto con nombre: es peor, lleva rutas del servidor y a veces el trozo de petición que reventó. Y el error tiene que hablar **el vocabulario de la Fase 0**: un código que el Core no declara no entra, porque ninguna capa sabría leerlo y la decisión de reintentar se tomaría a ciegas.
+
+Lo que entra se lee **una sola vez y se mide mientras se lee**. Medir en un recorrido y copiar en otro deja la puerta que la auditoría de la Fase 7 ya había encontrado del otro lado: con un getter que devuelve poco la primera vez y mucho la segunda, el tope medía cero y se guardaban tres megas y medio. Lo medido es lo guardado. Y un texto que no cabe se **rechaza**: recortar el texto de una entrada es mandar a generar otra cosa —sin decírselo a nadie, y cobrándola—.
+
+Con un resultado la regla se invierte: si una referencia de salida no tiene forma, se **descarta esa referencia** y se avisa, en vez de rechazar el aviso entero. Rechazarlo tiraba la noticia de que el proveedor había terminado, y el trabajo volvía a ejecutar algo ya hecho y pagado. Entre perder una referencia rara y pagar dos veces un vídeo, se pierde la referencia.
+
+### De quién es un trabajo
+
+El dueño es la **cuenta**, y solo la cuenta. `appId` y `workspaceId` no están ahí a propósito: son contexto declarado, viajan aparte, y meterlos en el dueño convertiría un dato en un permiso. De un trabajo ajeno no se dice ni que exista —contestar «existe pero no es tuyo» convierte el motor en un buscador de trabajos de otros—, y lo que autoriza es el `Principal`, nunca lo que la petición declara de sí misma.
+
+### Un motor, muchos productos
+
+La misma operación desde la app principal, desde Weë Studio o desde Weë Chef produce el **mismo trabajo** y el **mismo paquete de ejecución**. No hay un motor por producto, ni una rama por `appId`, ni un nombre de producto dentro del Core. Lo que cambia es el contexto, que viaja para poder atribuir después y no pondera nada. Una implementación propia de Weë se administra igual que una de fuera: aquí no se mira de quién es la matriz.
+
+### Qué NO hace
+
+| | quién |
+|---|---|
+| Ejecutar la implementación | Gateway |
+| Elegir o reelegir con qué | Router |
+| Traducir la operación al proveedor | Adaptador |
+| Cobrar, reservar, llevar el saldo, calcular márgenes | Financial Core (Fase 9) |
+| Guardar el material producido | Project + Asset (Fase 11) |
+| Sondear, encolar de verdad, despertar trabajadores | infraestructura |
+| Moderar contenido | Trust & Safety (Fase 21) |
+
+El almacén (`JobStore`) es un **puerto sin implementación**. No hay Firestore, ni Redis, ni una cola de nadie, y no los va a haber aquí: lo que el Core define es qué tiene que garantizar quien guarde —crear solo si no está, escribir solo si la revisión sigue siendo la esperada, y recuperar **paginado**, porque cargar todos los trabajos en marcha de un sistema con un millón de personas no es una recuperación, es una caída—.
+
+Y no hay `JobQueue`. La cola **es** el almacén con su `availableAt`: una segunda interfaz para lo mismo habría sido un contrato que nadie implementa.
 
 ## Weë Translation — el sitio reservado
 
