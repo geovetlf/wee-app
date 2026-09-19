@@ -41,3 +41,4 @@ export * from './gateway';
 export * from './brain';
 export * from './planner';
 export * from './orchestrator';
+export * from './router';

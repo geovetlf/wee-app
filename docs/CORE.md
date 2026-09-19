@@ -606,6 +606,127 @@ El tope del workflow es del **trabajo entero**; cuánto queda después de lo ya 
 
 **La concurrencia real es del Job Engine.** El coordinador es una función pura: dos llamadas con la misma instantánea dan la misma respuesta, porque no hay candado ni estado compartido. Que solo una de las dos ejecuciones resultantes se guarde es responsabilidad de quien persiste, con una escritura condicionada. La clave de idempotencia es lo que hace que, aun despachando dos veces, no se ejecute dos veces.
 
+## WEE Router
+
+Recibe una capacidad y el contexto de la operación, y devuelve **qué implementación concreta** debería atenderla: proveedor, modelo y adaptador. No ejecuta nada. Vive en `core/router.ts` y se compone en `functions/src/router/`.
+
+```
+ORCHESTRATOR coordina → ROUTER elige → GATEWAY ejecuta → ADAPTADOR traduce → PROVEEDOR produce
+```
+
+### El puerto que llevaba esperando desde la Fase 2
+
+`ImplementationResolver` se declaró en el Gateway y hasta ahora solo lo implementaban las pruebas. **El Router es su implementación de verdad.** Y lo que devuelve es exactamente el hueco que le faltaba al despacho del Orchestrator: un `StepDispatch` es un `GatewayRequest` sin `implementation`, y esto lo rellena.
+
+Enchufarlo en la composición, y no dentro de Brain ni del Orchestrator, es lo que permite que ninguna de esas capas sepa nunca de proveedores.
+
+### Las cuatro dimensiones, y por qué no se tocan
+
+```
+CAPACIDAD ≠ MODELO ≠ PROVEEDOR ≠ ADAPTADOR
+```
+
+Una capacidad **nunca** sabe quién la implementa. El Router tampoco lo sabe de antemano: se lo pregunta al registro de la Fase 1, que es la única fuente de verdad y entra como dependencia. En este archivo no hay ni una lista de proveedores, ni un `if` por nombre, ni un catálogo paralelo. **Añadir una matriz nueva es registrarla**, y el Router no se toca.
+
+### El camino de una decisión
+
+```
+PETICIÓN → normalizar → validar la capacidad → descubrir candidatos
+        → descartar los malformados → ORDEN CANÓNICO
+        → filtrar elegibilidad → filtrar restricciones duras
+        → aplicar el tope → puntuar → desempatar → DECISIÓN
+```
+
+Los candidatos se ordenan **canónicamente antes de puntuar** (proveedor, modelo, adaptador), así el resultado no depende de en qué orden estuvieran en el registro. Eso no sería una decisión: sería una casualidad.
+
+**El tope se aplica al final, no al principio.** `maxCandidates` limita cuántos se evalúan, y recortar antes de filtrar hacía que cinco entradas apagadas tiraran a la única que sí se podía ejecutar: la respuesta era «no hay con qué» con la implementación buena dentro del registro. Primero se descarta lo que no sirve, y el tope corta entre los que sí.
+
+**Un candidato roto es un candidato menos.** Un modelo sin `grades`, sin `id` o sin proveedor se descarta con `malformed_candidate` y los demás siguen decidiéndose. Antes uno solo tumbaba la petición entera, y bastaba con que una matriz entrara al registro a medias.
+
+### Qué se puede elegir
+
+La ejecutabilidad **no se vuelve a decidir aquí**: la contesta `puedeEjecutarse` de la Fase 2, que ya distingue lo apagado, lo pendiente, lo retirado, lo caído y lo que no tiene adaptador. Encima de eso manda la política:
+
+| Estado | Se elige |
+|---|---|
+| `PENDING` · `DISABLED` · `DEPRECATED` | nunca |
+| proveedor caído, sin adaptador, o con un adaptador que no cubre la capacidad | nunca |
+| `UNVERIFIED` | **sí**, por defecto, con aviso. Hay rutas en producción que lo usan hoy, y negarlo las dejaría fuera. Una política puede excluirlo, y eso **no** lo convierte en `DISABLED`: se dice con su propio motivo |
+| `BETA` | sí por defecto, excluible por política |
+| modo demo (`internal`) | no, salvo política explícita. Un resultado de muestra en producción es peor que un error |
+
+### La política, en un sitio
+
+Pesos de calidad, velocidad, coste, disponibilidad, preferencia y fiabilidad, más qué estados se admiten, el suelo de calidad y cuántos candidatos se evalúan. Todo en `POLITICA_POR_DEFECTO`, y la decisión **viaja con la política que la produjo**: una decisión sin su política no se puede reproducir.
+
+Cambiar los pesos cambia la elección sin tocar el descubrimiento de candidatos. No se dice «el mejor proveedor»: se dice **seleccionado según la política**.
+
+**Una política parcial es parcial de verdad.** Una clave ausente y una clave presente valiendo `undefined` no son lo mismo, pero un spread las trata igual: pedir «la de siempre, pero con este peso» apagaba en silencio `allowUnverified` y dejaba el tope en nada. Se quitan las claves sin valor antes de fusionar, y lo que no tiene forma —un peso negativo, un tope que no es un entero positivo, un suelo de calidad fuera de 0..1— vuelve a su valor por defecto en vez de gobernar. Con el suelo la trampa es del otro lado: un spread condicional sabe **añadir** el bueno pero no **quitar** el malo, así que se saca a mano.
+
+### La puntuación, explicable
+
+Siete componentes con nombre, todos entre 0 y 1, y el total es su media ponderada. `capabilityFit` se informa pero **no se pondera**: es una condición, no un criterio, y todo lo que llega a puntuarse ya la cumple, así que sumarla solo comprimía el rango y diluía los pesos.
+
+El **coste** sale del registro y de ningún otro sitio: aquí no hay precios escritos a mano. Y solo se comparan candidatos que **facturan en la misma unidad**, porque dólares por millón de tokens contra dólares por segundo de vídeo no significan nada; cuando hay unidades mezcladas, se avisa en vez de inventar una conversión.
+
+### Condiciones, señales y preferencias
+
+| | Qué es | Qué hace |
+|---|---|---|
+| modalidad, idioma, región, duración | **condición** | descarta, si está declarada |
+| `constraints.quality.minScore` y `policy.minQuality` | **condición**, y manda el más exigente de los dos | descarta |
+| `hints.quality` | **señal** | mueve la puntuación; pedir el máximo penaliza a los de menos calidad, pedir lo básico no empuja a nadie |
+| `preference.providerId` · `modelId` | **señal** | mueve la puntuación, y si lo preferido no sirve se elige otra cosa y se avisa |
+
+Una preferencia **nunca** vence a una condición. `hints.durationSec` sí descarta: un modelo cuyo límite documentado no llega no puede hacerlo, y elegirlo sería mandar a ejecutar algo que va a fallar.
+
+**Vacío es «no lo declara», no «no produce nada».** La salida pedida se comprueba contra las modalidades del modelo y, si el modelo no declara ninguna, contra las del proveedor. El registro real de Weë deja `modalities: []` en **todos** los modelos y las pone en el proveedor, así que leer solo el modelo y tratar la lista vacía como una negativa descartaba a todo el mundo: pedir una imagen a una matriz que genera imágenes contestaba «no hay con qué». Quien **sí** declara sus modalidades y no incluye la pedida se descarta con `output_modality`, que es lo que debía pasar desde el principio. La región va al revés y a propósito: se comprueban los dos niveles, porque un modelo con su propia lista no borra dónde puede operar su proveedor.
+
+### El tope, sin cobrar nada
+
+El registro guarda la tarifa **publicada** por unidad, no lo que costará esta operación. Sin saber cuántas unidades se van a consumir no se puede estimar, así que por defecto se dice `budget_not_checked` en vez de fingir que se comprobó. Con un `CostEstimatePort` puesto —un puerto, no una implementación—, el tope se comprueba de verdad y lo que no cabe se descarta con `over_budget`. Y si el estimador está puesto pero **no sabe** decir un número, vuelve a decirse `budget_not_checked`: un tope que no se pudo comprobar no es un tope que se cumplió.
+
+Al estimador se le entrega un `CostEstimateContext` —capacidad, modalidad, pistas, restricciones—: lo que **describe el trabajo**, y nada más. Antes recibía la petición entera, con el hilo, el `appId` y el Workplace dentro, así que lo que la Fase 9 enchufe ahí podía acabar estimando distinto según quién preguntara. El contrato del puerto dice además que tiene que ser **determinista**: si el mismo trabajo da dos números, la decisión deja de ser reproducible y no hay auditoría que valga.
+
+Un tope en **Credits** nunca se comprueba aquí: convertir a Credits es de la Fase 9. El Router no cobra, no reserva, no descuenta y no toca ningún saldo.
+
+### Lo que entra, con los lectores del Core
+
+La petición puede venir de donde se guardó, editada o de otra persona. Se toma **una foto** de ella al entrar y se decide sobre esa foto, porque releer el objeto de entrada deja una ventana entre lo comprobado y lo usado: con un getter, la capacidad se validaba una y se usaba otra.
+
+- **Las pistas y el idioma pasan por `leerHints()` y por el lector de idioma**, los mismos del Gateway y de Brain. No es cosmética: `hints.durationSec` **descarta** candidatos y el idioma también, así que un `'treinta'` donde va un número, una clave de más o una calidad que no es del vocabulario gobernaban un filtro duro. Ahora se **rechaza la petición**, no se ignora el campo. Un `providerId` escondido ahí sigue rechazándola entera: elegir es lo que hace esta capa, no lo que se le ordena.
+- **El tope tiene lista blanca.** `budget` solo admite las cuatro claves de la Fase 0 y los valores que `prefer` y `onExceed` declaran. Una clave inventada no entra «por si acaso».
+- **El orden de validación es fijo.** Las claves se recorren ordenadas, así que qué campo se nombra al rechazar no depende de cómo se escribió la petición. Dos peticiones equivalentes dan el mismo error.
+- **Lo que sale, sale congelado.** La decisión, sus candidatos, su política, su traza, y también el error y sus detalles.
+
+### Determinista, y es un requisito
+
+La misma petición sobre el mismo registro da **siempre** la misma decisión, byte a byte, sin que importe el orden de proveedores ni de modelos. A igualdad exacta de puntuación, el desempate se hace **por valor de carácter**, nunca con `localeCompare`: ese ordena según el idioma de la máquina, y el mismo registro daba un ganador distinto en un servidor turco que en uno español. Sin azar en ninguna parte. Sin eso no hay prueba que valga, ni auditoría, ni forma de reproducir un problema.
+
+Lo desconocido tampoco decide: un estado de proveedor que el contrato de la Fase 1 no declara **falla cerrado** —no se elige, y se dice con su propio motivo— y una salud que la tabla no conoce puntúa como lo peor, no como un hueco. Y la capacidad pedida se lee **una sola vez**: releerla dejaba una ventana por la que lo validado y lo usado podían ser cosas distintas.
+
+### Un router, muchos anfitriones
+
+La misma capacidad pedida desde los siete productos da despachos **idénticos**. `appId`, `workspaceId` y `operationId` son contexto para poder correlacionar después, y no ponderan nada: no hay una rama sobre su valor, ni un nombre de producto de Weë dentro del Core, ni un router por Workplace.
+
+Contexto que **viaja hasta la decisión**, eso sí. Llegaba en la petición y se perdía al contestar, así que una decisión guardada no se podía atribuir a nada: ni a qué producto la pidió, ni a qué Workplace, ni a qué operación. Sale en `decision.context`, junto a la traza —que se lee con el lector del Core y se devuelve **congelada**, sin `apiKey`, sin `stack` y sin rutas—. Correlacionar no es decidir, y por eso el despacho sigue siendo el mismo se pida desde donde se pida.
+
+Y la composición distingue los dos noes. `ImplementationResolver` devuelve `undefined` cuando no hay implementación, porque su firma es de la Fase 2 y no se cambia; `resolverConContexto` es la vía completa —pasa la petición entera, no solo capacidad y traza— y contesta **`invalid`** («arregla lo que pediste») o **`unavailable`** («hoy no hay con qué»). Fundir las dos dejaba a quien llamara sin saber si corregir o esperar.
+
+### Qué NO hace
+
+| | quién |
+|---|---|
+| Ejecutar la implementación elegida | Gateway |
+| Traducir la operación al proveedor | Adaptador |
+| Reintentar cuando algo falla | Job Engine (Fase 8), que pedirá otra resolución |
+| Cobrar, reservar, llevar el saldo | Financial Core (Fase 9) |
+| Decidir cuánto costará de verdad | el estimador que la Fase 9 enchufe por el puerto |
+| Adaptar el idioma antes de llamar | Language Intelligence (Fase 10) |
+| Evaluar la calidad del resultado | Quality Engine (Fase 14) |
+
+**El Router no reintenta.** Devuelve `alternatives` —los siguientes por puntuación— para que quien coordine pueda pedir otra resolución si el primero falla, pero aquí no hay bucles, ni esperas, ni reintentos.
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.
@@ -657,7 +778,7 @@ Ningún proveedor (ni Tencent, ni Baidu, ni Alibaba, ni Google, ni Amazon), ning
 
 ## Lo que el Core todavía no hace
 
-Fases 0 a 6 son cimientos, registro, frontera, inteligencia, plan, estructura de ejecución y coordinación. No hay Router nuevo, ni cola de Jobs, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
+Fases 0 a 7 son cimientos, registro, frontera, inteligencia, plan, estructura de ejecución, coordinación y elección. No hay cola de Jobs, ni Financial Core, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
 
 Cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es de estas fases:
 

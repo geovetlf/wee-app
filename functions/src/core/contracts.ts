@@ -64,6 +64,9 @@ export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
 
+/** Forma de una petición de enrutado y de la decisión que la resuelve. */
+export const ROUTER_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**
