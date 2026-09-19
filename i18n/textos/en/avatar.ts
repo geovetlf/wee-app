@@ -21,6 +21,6 @@ export const avatar: typeof import('../es/avatar').avatar = {
 
   galleryPermission: 'Weë needs access to your gallery to pick a photo',
   cameraPermission: 'Weë needs access to your camera to take a photo',
-  pickFailed: 'The image could not be selected: {{motivo}}',
+  pickFailed: 'The image could not be selected. Please try again.',
   photoFailed: 'The photo could not be taken',
 };

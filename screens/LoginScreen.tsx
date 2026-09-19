@@ -85,8 +85,15 @@ const LoginScreen: React.FC = () => {
         case 'auth/user-disabled':
           errorMessage = t('auth.errUserDisabled');
           break;
+        /* El SDK actual contesta esto tanto a una contraseña mal como a un email que no existe. */
+        case 'auth/invalid-credential':
+        case 'auth/invalid-login-credentials':
+          errorMessage = t('auth.errWrongPassword');
+          break;
         default:
-          errorMessage = error.message;
+          /* `error.message` es texto de máquina («Firebase: Error (auth/…)»): al registro, no a la persona. */
+          console.warn('Inicio de sesión fallido:', error?.code || error);
+          errorMessage = t('auth.signInFailed');
       }
 
       if (Platform.OS === 'web') {
@@ -106,7 +113,8 @@ const LoginScreen: React.FC = () => {
         navigation.goBack();
       }
     } catch (error: any) {
-      const message = t('auth.googleFailed', { detalle: error.message });
+      console.warn('Google Sign-In fallido:', error?.code || error);
+      const message = t('auth.googleFailed');
       if (Platform.OS === 'web') {
         alert(message);
       } else {
@@ -129,7 +137,8 @@ const LoginScreen: React.FC = () => {
       // Solo en caso de error, volver a mostrar el formulario
       setLoading(false);
 
-      const message = t('auth.anonymousFailed', { detalle: error.message });
+      console.warn('Acceso como invitado fallido:', error?.code || error);
+      const message = t('auth.anonymousFailed');
       if (Platform.OS === 'web') {
         alert(message);
       } else {
@@ -158,7 +167,8 @@ const LoginScreen: React.FC = () => {
         Alert.alert(t('auth.emailSentTitle'), message);
       }
     } catch (error: any) {
-      const message = t('auth.resetFailed', { detalle: error.message });
+      console.warn('Restablecer contraseña fallido:', error?.code || error);
+      const message = t('auth.resetFailed');
       if (Platform.OS === 'web') {
         alert(message);
       } else {

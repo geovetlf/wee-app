@@ -41,7 +41,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
-  const { balance } = useWallet(userProfile?.uid || user?.uid);
+  const { balance } = useWallet();
 
   const goHome = () => navigation.navigate('Main', { screen: 'Home' });
   const goCreator = () => navigation.navigate('WeeCreator');

@@ -30,6 +30,6 @@ export const avatar: typeof import('../es/avatar').avatar = {
 
   galleryPermission: '사진을 선택하려면 갤러리 접근 권한이 필요해요',
   cameraPermission: '사진을 찍으려면 카메라 접근 권한이 필요해요',
-  pickFailed: '이미지를 선택하지 못했어요: {{motivo}}',
+  pickFailed: '이미지를 선택하지 못했어요. 다시 시도해 주세요.',
   photoFailed: '사진을 찍지 못했어요',
 };

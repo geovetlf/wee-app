@@ -25,6 +25,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import AvatarPicker from '../components/avatars/AvatarPicker';
 import { uploadProfileImageFromUri } from '../services/storageService';
+import { usersService } from '../services/firestoreService';
 import { scale } from '../utils/scale';
 import { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import { COUNTRIES, Country } from '../data/countries';
@@ -43,7 +44,7 @@ const OnboardingScreen: React.FC = () => {
   const { t, idioma, locale, cambiarIdioma } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { updateProfile } = useUserProfile();
+  const { updateProfile, userProfile } = useUserProfile();
   const { isDesktop } = useResponsive();
   const insets = useSafeAreaInsets();
 
@@ -243,11 +244,15 @@ const OnboardingScreen: React.FC = () => {
 
       setUploading(true);
       try {
+        /*
+         * LO PÚBLICO Y LO DE LA CUENTA VAN A SITIOS DISTINTOS. `users/{id}` lo
+         * lee cualquiera: ahí van el alias, la bio y el avatar. El nombre real,
+         * la fecha de nacimiento y el género son de la cuenta y van a
+         * `users/{id}/private/account`, que solo lee su dueño. Las reglas ya no
+         * dejan escribirlos en el perfil público.
+         */
         let updateData: any = {
-          realName: realName.trim(),
           displayName: realName.trim(),
-          birthDate: getBirthDateISO(),
-          gender: gender,
           bio: bio.trim(),
           country: selectedCountry?.code || '',
           countryName: selectedCountry?.name || '',
@@ -281,7 +286,13 @@ const OnboardingScreen: React.FC = () => {
         }
 
         await updateProfile(updateData);
-
+        if (userProfile?.id) {
+          await usersService.guardarDatosPrivados(userProfile.id, {
+            realName: realName.trim(),
+            birthDate: getBirthDateISO(),
+            gender,
+          });
+        }
 
         // Marcar como completado
         setCompleted(true);

@@ -124,11 +124,11 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
     (PANTALLA.match(/Alert\.alert\(t\('common\.error'\)/g) || []).length === 3
     && /t\('communities\.leaveFailed'\)/.test(PANTALLA)
     && /t\('communities\.actionFailed'\)/.test(PANTALLA)
-    && /e\.message \|\| t\('communities\.createFailed'\)/.test(PANTALLA));
+    && /Alert\.alert\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA));
 
-  /* El mensaje del servidor sigue mandando cuando lo hay. */
-  check('15) el error del servidor sigue teniendo prioridad sobre el nuestro',
-    /Alert\.alert\(t\('common\.error'\), e\.message \|\| t\('communities\.createFailed'\)\)/.test(PANTALLA));
+  /* El error técnico va al registro; la persona ve la frase de Weë (cierre de F11: antes mandaba `e.message`). */
+  check('15) el error técnico queda en el registro y la persona ve la frase de Weë',
+    /console\.error\('Error creando la comunidad:', e\);/.test(PANTALLA) && !/e\.message \|\|/.test(PANTALLA));
 
   /* Lo que se lee, en los dos idiomas. */
   check('15) en español: ' + [ES('communities.leaveTitle'), ES('communities.leave'), ES('common.cancel')].join(' · '),

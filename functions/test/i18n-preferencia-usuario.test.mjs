@@ -501,7 +501,7 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * («Mis creaciones», incluidas las cuatro claves de la descarga) y las dos
    * claves de la foto única de WeeTalk (`weetalk.photoOnce`, `weetalk.photoOpened`).
    */
-  const CLAVES_PT = 2299;
+  const CLAVES_PT = 2301;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

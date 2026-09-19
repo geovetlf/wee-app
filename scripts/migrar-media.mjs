@@ -61,7 +61,7 @@ const ORIGENES = [
   ] },
 ];
 
-const plan = { proyecto, generado: new Date().toISOString(), ejecutado: EJECUTAR, fichas: [], enlaces: [], saltados: [], ambiguos: [], invalidas: [] };
+const plan = { proyecto, generado: new Date().toISOString(), ejecutado: EJECUTAR, fichas: [], enlaces: [], saltados: [], ambiguos: [], invalidas: [], noMigrables: [] };
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : typeof v === 'number' ? v : Date.now());
 
 /* La ficha, con el contrato del Core delante: si no lo cumple, no entra en el plan. */
@@ -74,6 +74,16 @@ const ficha = async ({ ruta, campo, indice, url, kind, autorId, creadoEn }) => {
     return { ambiguo: `autor ${autorId ?? '(sin autor)'} → ${duenyo.motivo}`, identidad: autorId ?? null, motivo: duenyo.motivo, documentos: duenyo.documentos };
   }
   const ownerAccountId = duenyo.cuenta;
+  /*
+   * LA GARANTÍA QUE FALTABA. Una URL escrita por un usuario no puede convertirse
+   * en autoridad para borrar: si apunta al Storage de Weë, su clave tiene que
+   * vivir bajo `users/<cuenta dueña>/`; si no, la ficha NO se crea —porque
+   * `deleteAsset` borraría después exactamente esa clave—. Hoy no hay ninguna
+   * (todo lo legacy es Cloudinary), y así seguirá siendo imposible que la haya.
+   */
+  if (proveedor === 'wee' && !ref.objectKey.startsWith(`users/${ownerAccountId}/`)) {
+    return { noMigrable: 'clave fuera del namespace de la cuenta dueña', objectKey: ref.objectKey, identidad: autorId ?? null };
+  }
   const assetId = idDeMaterial(`${ruta}#${campo}#${indice}`);
   const ahora = Date.now();
   const a = {
@@ -120,6 +130,7 @@ for (const origen of ORIGENES) {
           if (r.ambiguo) plan.ambiguos.push({ ruta: doc.ref.path, campo: c.campo, url: urls[i], motivo: r.ambiguo, identidad: r.identidad ?? null, causa: r.motivo ?? null, documentos: r.documentos ?? [] });
           if (r.invalida) plan.invalidas.push({ ruta: doc.ref.path, campo: c.campo, assetId: r.invalida });
           if (r.salto) plan.saltados.push({ ruta: doc.ref.path, campo: c.campo, motivo: r.salto });
+          if (r.noMigrable) plan.noMigrables.push({ ruta: doc.ref.path, campo: c.campo, url: urls[i], motivo: r.noMigrable, objectKey: r.objectKey, identidad: r.identidad });
         }
       }
       if (ids.some(Boolean)) enlaces[c.enlace] = c.lista ? ids : ids[0];
@@ -138,6 +149,8 @@ console.log(`  saltados (ya enlazados/otros)  ${plan.saltados.length}`);
 console.log(`  AMBIGUOS (no se migran)        ${plan.ambiguos.length}`);
 for (const a of plan.ambiguos.slice(0, 10)) console.log(`      ⚠ ${a.ruta} · ${a.campo} → ${a.motivo}`);
 console.log(`  que no cumplen el contrato     ${plan.invalidas.length}`);
+console.log(`  NO MIGRABLES (clave fuera de users/<cuenta>/) ${plan.noMigrables.length}`);
+for (const nm of plan.noMigrables.slice(0, 10)) console.log(`      ✘ ${nm.ruta} · ${nm.campo} → ${nm.objectKey}`);
 console.log(`  se borra                       NADA`);
 console.log(`  se toca Cloudinary             NO`);
 

@@ -33,6 +33,22 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(econtactFields());
     }
 
+    // LO DE LA CUENTA NO VA EN EL PERFIL PÚBLICO. `users/{id}` lo lee cualquiera,
+    // así que ningún cliente puede volver a escribir ahí un email, un nombre
+    // real, una fecha de nacimiento, un género ni un token de push: lo privado
+    // vive en `users/{id}/private/account` y el token en `pushTokens/{uid}`.
+    // Los documentos antiguos que aún llevan estos campos se limpian con
+    // `scripts/limpiar-cuenta-en-users.mjs`, con autorización aparte.
+    function accountFields() {
+      return ['email', 'realName', 'birthDate', 'gender', 'pushToken', 'pushTokenUpdatedAt'];
+    }
+    function createsAccountFields() {
+      return request.resource.data.keys().hasAny(accountFields());
+    }
+    function touchesAccountFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(accountFields());
+    }
+
     // UN CONTADOR SOLO PUEDE MOVERSE DE UNO EN UNO.
     //
     // Varias reglas dejan a cualquier sesión tocar los contadores de documentos
@@ -120,7 +136,7 @@ service cloud.firestore {
 
       // Solo el dueño puede crear/actualizar su perfil
       // Permite crear perfil real (uid == auth.uid) o Perfil Weë (uid == "hidi_" + auth.uid).
-      allow create: if isAuthenticated() && !createsCreditFields() && !createsEcontactFields() &&
+      allow create: if isAuthenticated() && !createsCreditFields() && !createsEcontactFields() && !createsAccountFields() &&
         (request.auth.uid == request.resource.data.uid ||
          (request.resource.data.uid == ("hidi_" + request.auth.uid) &&
           request.resource.data.profileType == 'hidi' &&
@@ -134,7 +150,7 @@ service cloud.firestore {
       // el sistema de follows es código muerto —570 líneas sin una sola
       // pantalla que las use, sustituido por ËContact— así que la rama no
       // servía a nada vivo y sí permitía escribirle a otro `followers: 9999999`.
-      allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() &&
+      allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() && !touchesAccountFields() &&
         (request.auth.uid == resource.data.uid ||
          (resource.data.uid == ("hidi_" + request.auth.uid) &&
           resource.data.profileType == 'hidi'));
@@ -148,9 +164,24 @@ service cloud.firestore {
       // el sitio correcto ya esté cerrado cuando esos campos se muden, y para
       // que a nadie se le ocurra inventarse otro. Solo su dueño, y el servidor
       // por encima de todo esto.
+      //
+      // EL DUEÑO SE RECONOCE POR EL CAMPO `uid` DEL PERFIL, NO POR EL ID DEL
+      // DOCUMENTO: los perfiles tienen id automático, así que comparar
+      // `request.auth.uid` con `userId` no acertaba nunca y nadie podía leer
+      // lo suyo. El dueño escribe SOLO los campos de cuenta que el registro
+      // recoge; el servidor, por encima de las reglas, escribe lo que haga falta.
+      function esDuenyoDelPerfil(idDePerfil) {
+        return isAuthenticated() &&
+          get(/databases/$(database)/documents/users/$(idDePerfil)).data.uid == request.auth.uid;
+      }
+      function camposPrivadosDeCuenta() {
+        return ['realName', 'birthDate', 'gender', 'updatedAt'];
+      }
       match /private/{documento} {
-        allow read: if isAuthenticated() && request.auth.uid == userId;
-        allow write: if false;
+        allow read: if esDuenyoDelPerfil(userId);
+        allow create, update: if esDuenyoDelPerfil(userId) && documento == 'account' &&
+          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta());
+        allow delete: if false;
       }
 
       // Guardados: solo el dueño lee y escribe sus marcadores
@@ -521,6 +552,21 @@ service cloud.firestore {
     match /creditTransactions/{transactionId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+
+    // === TOKENS DE PUSH: UN SECRETO DEL APARATO, NUNCA EN UN PERFIL PÚBLICO ===
+    //
+    // Con un token de Expo cualquiera puede mandar avisos a ese teléfono, así
+    // que no puede vivir en `users`, que lo lee todo el mundo. El documento se
+    // llama como la CUENTA (uid de Firebase Auth): lo escribe solo su dueño y
+    // no lo lee nadie desde el cliente; lo lee el servidor al enviar.
+    match /pushTokens/{uid} {
+      allow read: if false;
+      allow create, update: if isAuthenticated() && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt']) &&
+        request.resource.data.token is string &&
+        request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 300;
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
     // Acumulados para administración: solo servidor / consola
     match /creditStats/{statId} {

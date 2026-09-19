@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+/* `expo-image`, como el resto del muro: caché en disco, decodificación fuera del hilo de JS y reciclado por tarjeta. */
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -66,10 +68,20 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
         style={[styles.card, { backgroundColor: theme.colors.card, borderColor: fallo ? theme.colors.error : theme.colors.border }]}
         accessibilityRole="button"
         accessibilityLabel={t('creaciones.openCreation', { nombre: asset.name || t(claveDeTipo) })}
+        /* El estado también se dice, no solo se pinta: una creación fallida o en proceso no puede sonar igual que una lista. */
+        accessibilityHint={claveDeEstado ? t(claveDeEstado) : undefined}
       >
         <View style={[styles.media, { backgroundColor: theme.colors.surface }]}>
           {conImagen ? (
-            <Image source={{ uri: url as string }} style={styles.image} resizeMode="cover" accessibilityIgnoresInvertColors />
+            <Image
+              source={{ uri: url as string }}
+              style={styles.image}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={asset.assetId}
+              transition={150}
+              accessibilityIgnoresInvertColors
+            />
           ) : (
             <View style={styles.placeholder}>
               <Ionicons name={ICONO_POR_TIPO[asset.kind]} size={scale(34)} color={theme.colors.textSecondary} />

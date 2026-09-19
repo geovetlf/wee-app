@@ -651,10 +651,8 @@ ${message}`);
     // Cerrar teclado inmediatamente
     Keyboard.dismiss();
 
-    console.log('🚀 Iniciando publicación...');
-    console.log('👤 Usuario ID:', user.uid);
-    console.log('📝 Contenido:', postText.trim());
-    console.log('🖼️ Imágenes adjuntas:', attachedMedia.length);
+    /* Sin el texto de la publicación en el registro: es de la persona, no del diagnóstico. */
+    console.log('🚀 Iniciando publicación...', attachedMedia.length, 'adjuntos');
 
     setIsPublishing(true);
     setSubida(null);
@@ -696,10 +694,8 @@ ${message}`);
             console.log('✅ Video subido:', videoUrl);
           } catch (error) {
             console.error('Error uploading video:', error);
-            Alert.alert(
-              t('composer.videoUploadFailed'),
-              t('composer.uploadErrorBody', { detalle: error instanceof Error ? error.message : t('composer.unknownError') })
-            );
+            /* El detalle técnico va al registro, no a la persona: `notify` avisa también en web. */
+            notify(t('composer.videoUploadFailed'), t('composer.uploadErrorBody'));
             setIsPublishing(false);
             return;
           }
@@ -743,10 +739,7 @@ ${message}`);
               assetIds.push(null);
             } catch (error) {
               console.error('Error uploading image:', error);
-              Alert.alert(
-                t('composer.imageUploadFailed'),
-                t('composer.uploadErrorBody', { detalle: error instanceof Error ? error.message : t('composer.unknownError') })
-              );
+              notify(t('composer.imageUploadFailed'), t('composer.uploadErrorBody'));
               setIsPublishing(false);
               return;
             }
@@ -847,7 +840,7 @@ ${message}`);
         });
       }
 
-      console.log('💾 Guardando post en Firestore...', postData);
+      console.log('💾 Guardando post en Firestore...');
       const postId = await postsService.create(postData);
       console.log('✅ Post creado con ID:', postId);
 
@@ -864,10 +857,7 @@ ${message}`);
 
     } catch (error) {
       console.error('Error publishing post:', error);
-      Alert.alert(
-        t('composer.publishFailed'),
-        t('composer.publishErrorBody', { detalle: error instanceof Error ? error.message : t('composer.unknownError') })
-      );
+      notify(t('composer.publishFailed'), t('composer.publishErrorBody'));
     } finally {
       setIsPublishing(false);
     }

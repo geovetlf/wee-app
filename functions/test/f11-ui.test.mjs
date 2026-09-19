@@ -96,8 +96,8 @@ console.log('\n── D · Sin progreso inventado, sin ids a la vista ──');
   check('28) y su texto pasa por i18n (C12)', /useT\(\)/.test(progreso) && /t\('creaciones\.progressWorking'/.test(progreso) && /t\('creaciones\.progressFindLater'\)/.test(progreso));
   check('29) el compositor cuenta archivos, no porcentajes (C11)', /t\('composer\.uploadingFiles', \{ n: subida\.n, total: subida\.total \}\)/.test(crear) && !/uploadProgressFill|porcentaje/.test(sinComentarios(crear)));
   check('30) las subidas a Cloudinary avisan de empezar y terminar, y nada más', !/onProgress\?\.\(\d+\)/.test(leer('services/cloudinaryService.ts')) && /onEstado\?\.\('subiendo'\)/.test(leer('services/cloudinaryService.ts')) && /onEstado\?\.\('terminado'\)/.test(leer('services/cloudinaryService.ts')));
-  /* El id solo puede aparecer como `key` de React, que no se pinta. */
-  check('31) la rejilla no pinta ningún id', !/\{asset\.assetId\}|\{item\.assetId\}|\.jobId\}/.test(rejilla.replace(/key=\{[^}]*\}/g, '')) && /creaciones\.kind/.test(rejilla));
+  /* El id solo puede aparecer como `key` de React o como `recyclingKey` de expo-image (reciclado de celdas): ninguno se pinta. */
+  check('31) la rejilla no pinta ningún id', !/\{asset\.assetId\}|\{item\.assetId\}|\.jobId\}/.test(rejilla.replace(/(?:recyclingK|k)ey=\{[^}]*\}/g, '')) && /creaciones\.kind/.test(rejilla));
   /* `width: '100%'` es un estilo; lo que no puede haber es un porcentaje en un texto ni una barra de progreso. */
   check('32) ni un estado como porcentaje', !/progress|porcentaje|percent/i.test(sinComentarios(rejilla)) && !/>\s*[^<{]*\d+\s?%[^<]*</.test(rejilla));
 }

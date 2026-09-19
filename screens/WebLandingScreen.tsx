@@ -179,14 +179,12 @@ const WebLandingScreen: React.FC = () => {
     navigation.navigate('Inbox', { screen: 'Conversation', params: { otherUserId: userId, otherUserData: userData } });
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
-      </View>
-    );
-  }
-
+  /*
+   * LA PORTADA NO ESPERA AL MURO. Antes, mientras llegaba la primera tanda, la
+   * pantalla entera era una rueda: ni cabecera, ni saludo, ni fila de Weëls.
+   * Ahora la cáscara se pinta al instante y la rueda gira solo donde va a
+   * aparecer el muro, que es lo único que de verdad está viajando.
+   */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: theme.colors.background, overflow: 'hidden' }}>
       {/* Header fijo: ☰ · Weë · Real/Weë. Los Credits viven en el ☰ y las notificaciones, en la barra inferior. */}
@@ -268,7 +266,11 @@ const WebLandingScreen: React.FC = () => {
             así haber publicaciones un poco más abajo. Decir "todavía no hay
             publicaciones" ahí sería mentir.
           */}
-          {filteredPosts.length === 0 && posts.length === 0 && hayMas ? null : filteredPosts.length === 0 ? (
+          {loading ? (
+            <View style={styles.loadingContainer} accessibilityRole="progressbar" accessibilityLabel={t('common.loading')}>
+              <ActivityIndicator size="large" color={theme.colors.accent} />
+            </View>
+          ) : filteredPosts.length === 0 && posts.length === 0 && hayMas ? null : filteredPosts.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={styles.emptyEmoji}>✨</Text>
               <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? 'Todavía no hay publicaciones' : 'Nada por aquí con esta selección'}</Text>
@@ -318,8 +320,9 @@ const WebLandingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  /* La rueda del muro mientras llega la primera tanda: ocupa el sitio del muro, no la pantalla. */
   loadingContainer: {
-    flex: 1,
+    minHeight: scale(220),
     justifyContent: 'center',
     alignItems: 'center',
   },

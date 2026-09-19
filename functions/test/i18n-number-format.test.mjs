@@ -134,9 +134,8 @@ console.log('\n── C · Lo que NO se formatea ──');
     /const NO_SON_CANTIDADES = \['anio', 'year'\];/.test(leer('i18n/traducir.ts')));
 
   /* 11 · Lo que llega como TEXTO sale como texto, lleve dígitos o no. */
-  check('11) lo que dice el servidor no se toca',
-    ES('profile.avatarUpdateFailed', { motivo: 'storage/unauthorized 12400' })
-      === 'No se pudo actualizar el avatar: storage/unauthorized 12400');
+  check('11) lo que llega como texto no se toca',
+    ES('communities.leaveConfirm', { nombre: 'storage/unauthorized 12400' }).includes('storage/unauthorized 12400'));
   check('12) el nombre de una comunidad con cifras se pinta igual',
     ES('communities.leaveConfirm', { nombre: 'Weë Filmmakers 2000' }).includes('"Weë Filmmakers 2000"'));
   check('13) un identificador no se formatea',

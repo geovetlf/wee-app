@@ -43,4 +43,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   ephemeralOn: 'Mode éphémère activé · Les messages s’effacent en quittant',
   cameraNeeded: 'L’accès à l’appareil photo est nécessaire',
   allow: 'Autoriser',
+  recordAudio: 'Enregistrer un audio',
+  viewOnceOn: 'Voir une seule fois',
+  keepInChat: 'Garder dans la discussion',
 };

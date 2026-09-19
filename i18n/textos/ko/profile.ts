@@ -33,7 +33,7 @@ export const profile: typeof import('../es/profile').profile = {
   updateFailed: '프로필을 업데이트하지 못했어요',
   signOutFailed: '로그아웃하지 못했어요',
   noSession: '로그인된 세션이 없어요',
-  avatarUpdateFailed: '아바타를 업데이트하지 못했어요: {{motivo}}',
+  avatarUpdateFailed: '아바타를 업데이트하지 못했어요. 다시 시도해 주세요.',
   imageUrlMissing: '이미지 URL을 받지 못했어요',
 
   shareMessage: 'Weë에서 {{nombre}}님의 프로필을 확인해 보세요',

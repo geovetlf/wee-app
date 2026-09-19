@@ -96,16 +96,25 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
 // ─── Helpers ───
 
 /*
- * Los Credits son por cuenta: el Perfil Weë comparte el saldo del perfil real.
+ * LOS CREDITS SON POR CUENTA, Y LA CUENTA NO SE ADIVINA.
  *
- * Aquí la cuenta se saca quitando el prefijo del uid, no leyendo el vínculo
- * guardado. Es distinto de lo que hace ËContact —`cuentaDeIdentidad` en
- * `utils/econtactModel.ts`, que LEE `users.linkedAccountId` y devuelve null si
- * no lo hay— y a propósito no se ha cambiado en esta fase: esta función es
- * síncrona y leerlo obligaría a ir a Firestore. Queda anotado para revisarlo
- * junto con el resto del Credit Engine.
+ * El Perfil Weë comparte el saldo del perfil real porque los dos son la misma
+ * cuenta: la de Firebase Auth. Aquí había una función que «deducía» la cuenta
+ * quitándole el prefijo heredado al uid de un perfil —identidad legacy →
+ * recorte de texto → cuenta—. Se ha ido. La regla es la contraria:
+ *
+ *   IDENTIDAD AUTENTICADA → resolutor canónico → CUENTA
+ *
+ * En el cliente la identidad autenticada es `user.uid`, que ES la cuenta, así
+ * que no hay nada que resolver: quien llama pasa la cuenta y este servicio la
+ * usa tal cual. En el servidor el Credit Engine hace lo mismo con
+ * `request.auth.uid` y `users.where('uid', '==', …)`. Quien necesite la cuenta
+ * de OTRA identidad —una cara, una Página— la resuelve con `cuentaDeIdentidad`
+ * (`utils/econtactModel.ts`), que LEE `users.linkedAccountId`, y nunca con un
+ * `replace` sobre el uid.
  */
-export const accountUidOf = (uid?: string | null): string | null => (uid ? uid.replace(/^hidi_/, '') : null);
+const cuentaValida = (accountUid?: string | null): accountUid is string =>
+  typeof accountUid === 'string' && accountUid.length > 0 && !accountUid.includes('/');
 
 export interface CreditsShortfall {
   required: number;
@@ -157,11 +166,10 @@ class CreditsService {
     }
   }
 
-  /** Saldo en tiempo real (perfil real de la cuenta). */
-  subscribeToBalance(uid: string, callback: (account: CreditsBalance) => void): () => void {
-    const accountUid = accountUidOf(uid);
-    if (!accountUid || !db) {
-      callback(emptyBalance(uid));
+  /** Saldo en tiempo real. `accountUid` es la CUENTA (uid de Firebase Auth), no un perfil. */
+  subscribeToBalance(accountUid: string, callback: (account: CreditsBalance) => void): () => void {
+    if (!cuentaValida(accountUid) || !db) {
+      callback(emptyBalance(accountUid || ''));
       return () => {};
     }
     const q = query(collection(db, 'users'), where('uid', '==', accountUid), limit(1));
@@ -190,10 +198,9 @@ class CreditsService {
     );
   }
 
-  /** Historial en tiempo real (creditTransactions, más recientes primero). */
-  subscribeToTransactions(uid: string, callback: (transactions: CreditTransaction[]) => void, maxResults = 50): () => void {
-    const accountUid = accountUidOf(uid);
-    if (!accountUid || !db) {
+  /** Historial en tiempo real (creditTransactions, más recientes primero). `accountUid` es la CUENTA. */
+  subscribeToTransactions(accountUid: string, callback: (transactions: CreditTransaction[]) => void, maxResults = 50): () => void {
+    if (!cuentaValida(accountUid) || !db) {
       callback([]);
       return () => {};
     }

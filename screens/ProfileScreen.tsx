@@ -23,6 +23,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { uploadProfileImageFromUri, uploadBannerImageFromUri } from '../services/storageService';
@@ -394,10 +395,9 @@ const ProfileScreen: React.FC = () => {
       console.log('✅ Avatar actualizado exitosamente');
       // No mostrar Alert para evitar interferencias
     } catch (error: any) {
+      /* El detalle técnico va al registro (una sola vez); la persona ve una frase de Weë, también en web. */
       console.error('❌ Error updating avatar:', error);
-      console.error('❌ Error message:', error?.message);
-      console.error('❌ Error stack:', error?.stack);
-      Alert.alert(t('common.error'), t('profile.avatarUpdateFailed', { motivo: error?.message || t('composer.unknownError') }));
+      notify(t('common.error'), t('profile.avatarUpdateFailed'));
     } finally {
       setUploadingAvatar(false);
     }

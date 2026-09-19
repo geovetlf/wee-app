@@ -30,6 +30,6 @@ export const avatar = {
 
   galleryPermission: 'Necesitamos acceso a tu galería para seleccionar una foto',
   cameraPermission: 'Necesitamos acceso a tu cámara para tomar una foto',
-  pickFailed: 'No se pudo seleccionar la imagen: {{motivo}}',
+  pickFailed: 'No se pudo seleccionar la imagen. Inténtalo de nuevo.',
   photoFailed: 'No se pudo tomar la foto',
 };

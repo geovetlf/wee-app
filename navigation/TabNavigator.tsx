@@ -29,7 +29,6 @@ import SearchScreen from '../screens/SearchScreen';
 import { MainStackParamList } from './MainStackNavigator';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { useAuth } from '../contexts/AuthContext';
-import { messagesService } from '../services/messagesService';
 import CreateSheet, { CreateKind } from '../components/CreateSheet';
 
 // La pestaña "Create" no tiene pantalla propia: si alguien llega aquí por URL
@@ -109,22 +108,14 @@ const TabNavigator: React.FC = () => {
   const { triggerScrollToTop } = useScroll();
   const { isDesktop, isTablet } = useResponsive();
   const insets = useSafeAreaInsets();
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Suscribirse al conteo de mensajes no leídos (siempre con uid real, no biz)
-  const realUid = user?.uid;
-  useEffect(() => {
-    if (!realUid) {
-      setUnreadCount(0);
-      return;
-    }
-
-    const unsubscribe = messagesService.subscribeToUnreadCount(realUid, (count) => {
-      setUnreadCount(count);
-    });
-
-    return () => unsubscribe();
-  }, [realUid]);
+  /*
+   * Aquí había una segunda suscripción a los mensajes sin leer para pintar un
+   * globo en una barra que este navegador ya no dibuja (`tabBar={() => null}`).
+   * La barra de verdad, en `NavegacionGlobal`, tiene la suya: dos oyentes en
+   * tiempo real por sesión para un solo número, y uno de ellos sin nadie que lo
+   * mirara. Fuera el que no se veía.
+   */
 
   return (
     <Tab.Navigator
@@ -285,16 +276,6 @@ const TabNavigator: React.FC = () => {
           const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'InboxList';
           return {
             tabBarLabel: 'WeeTalk',
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-            tabBarBadgeStyle: {
-              backgroundColor: theme.colors.accent,
-              color: '#1F2937',
-              fontSize: 11,
-              fontWeight: '600',
-              minWidth: 18,
-              height: 18,
-              borderRadius: 9,
-            },
             ...(focusedRoute === 'Conversation' && {
               tabBarStyle: { display: 'none' as const },
             }),

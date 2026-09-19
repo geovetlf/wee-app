@@ -32,6 +32,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
 import { storageBucket } from '../engine/http';
+import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
@@ -48,8 +49,15 @@ export class FotoNoQuemable extends Error {
 
 export interface ResultadoDeQuemado {
   status: 'quemada' | 'ya_quemada';
-  /** El objeto sigue en su almacén: Cloudinary (sin secreto) o un borrado que falló. */
+  /** El objeto sigue en su almacén: Cloudinary (sin secreto), una referencia que no era de fiar, o un borrado que falló. */
   pendingPhysicalDeletion: boolean;
+  /**
+   * La dirección del mensaje NO apuntaba a la foto única de su remitente en el
+   * Storage de Weë —otra cuenta, otra carpeta, otra conversación, otro bucket,
+   * otro host, una URL que no se sabe leer—. No se ha borrado nada. La ficha se
+   * quema igual; el objeto, si existe, queda anotado como pendiente.
+   */
+  referenciaInsegura?: true;
 }
 
 /** Lo que el quemador necesita del mundo. Ninguna base de datos entra aquí. */
@@ -60,8 +68,69 @@ export interface PuertosDelQuemador {
   quemarFicha(conversationId: string, messageId: string, datos: { abiertoEn: number; pendiente: boolean }): Promise<void>;
   anotarPendiente(conversationId: string, messageId: string): Promise<void>;
   borrarObjeto(objectKey: string): Promise<void>;
+  /** El nombre del bucket del Storage de Weë: la dirección tiene que ser de ESE bucket y de ningún otro. */
+  bucketDeWee(): string;
+  /**
+   * La CUENTA de quien firmó el mensaje, resuelta con el resolutor canónico
+   * sobre `users` (nunca deducida del identificador). Null si no se puede
+   * afirmar: entonces no hay namespace legítimo y no se borra nada.
+   */
+  cuentaDelRemitente(senderId: string): Promise<string | null>;
   ahora(): number;
 }
+
+/*
+ * ── LA ÚNICA RUTA QUE ESTE CALLABLE TIENE DERECHO A BORRAR ──────────────────
+ *
+ * La dirección de la foto viene del MENSAJE, y el mensaje lo escribe quien lo
+ * manda. Antes de este arreglo, la clave del objeto a borrar se sacaba de esa
+ * dirección tal cual: un remitente podía escribir una URL que apuntase a un
+ * objeto de OTRA cuenta —`users/alice/ai-generations/…`— y, cuando el
+ * destinatario abría la foto, el servidor lo borraba con el Admin SDK, que no
+ * pasa por las reglas. Borrado cruzado entre cuentas, con la URL como arma.
+ *
+ * La regla ahora es una y estricta: `burnViewOnce` solo borra dentro de
+ *
+ *     users/<senderId>/weetalk/<conversationId>/<archivo>
+ *
+ * que es exactamente lo que `storage.rules` deja escribir a quien manda una
+ * foto única. `senderId` NO viene de la petición: es el del DOCUMENTO del
+ * mensaje —que las reglas de Firestore atan a la sesión de quien lo creó— y,
+ * además, tiene que figurar en `participants` de la conversación, que el
+ * servidor lee por su cuenta. Es un uid de Firebase Auth y nada más: las
+ * reglas del Storage solo dejan escribir bajo `request.auth.uid`, así que
+ * ningún otro nombre —incluidos los identificadores heredados del proyecto
+ * anterior— puede tener una foto única legítima debajo; para ellos aquí no
+ * se borra nada.
+ * El prefijo se construye entero y se compara entero: no vale «contiene el
+ * uid» ni «empieza por el uid», que dejarían pasar `users/uAnaX/…` o
+ * `…/weetalk/c10/…` cuando la conversación es `c1`. El archivo es UN segmento:
+ * sin `/`, sin empezar por `.`, sin `%` — así ni `..`, ni `%2E%2E`, ni una
+ * subcarpeta cuelan.
+ *
+ * Todo lo que no cuadre NO se borra: la ficha se quema igual —la dirección
+ * desaparece del mensaje— y queda anotado `pendingPhysicalDeletion`. Antes que
+ * borrar el objeto equivocado, no borrar ninguno.
+ */
+const FORMA_DE_REMITENTE = /^[A-Za-z0-9]{1,128}$/;
+const FORMA_DE_ARCHIVO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
+/** Solo los hosts del Storage de Weë (y el emulador en local). Un host ajeno con la forma correcta no es una dirección de Weë. */
+const FORMA_DE_DIRECCION_DE_WEE = /^(?:gs:\/\/|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/storage\.googleapis\.com\/|http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/)/;
+
+export const esDireccionDelStorageDeWee = (url: unknown): boolean =>
+  typeof url === 'string' && FORMA_DE_DIRECCION_DE_WEE.test(url);
+
+/**
+ * ¿Es esta clave la foto única que ESE remitente subió para ESTA conversación?
+ * Sí o no; sin interpretar, sin corregir, sin probar otras rutas.
+ */
+export const claveDeFotoUnica = (objectKey: unknown, senderId: unknown, conversationId: unknown): boolean => {
+  if (typeof objectKey !== 'string' || typeof senderId !== 'string' || typeof conversationId !== 'string') return false;
+  if (!FORMA_DE_REMITENTE.test(senderId) || !FORMA_DE_ID_DE_WEETALK.test(conversationId)) return false;
+  const prefijo = `users/${senderId}/weetalk/${conversationId}/`;
+  if (!objectKey.startsWith(prefijo)) return false;
+  return FORMA_DE_ARCHIVO.test(objectKey.slice(prefijo.length));
+};
 
 /**
  * Las dos caras de una cuenta participan como una sola persona: el Perfil
@@ -101,14 +170,44 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
       return { status: 'ya_quemada', pendingPhysicalDeletion: mensaje.pendingPhysicalDeletion === true };
     }
 
-    const ref = referenciaDesdeUrlDeWee(url);
-    let pendiente = !ref;
+    /*
+     * ¿Apunta la dirección a la foto única de SU remitente, en ESTA
+     * conversación, en el Storage de Weë? Cuatro condiciones, todas del lado
+     * del servidor: el host es de Weë; el lector del Content Core la entiende;
+     * el bucket es el nuestro; y la clave es `users/<remitente>/weetalk/<esta
+     * conversación>/<archivo>`, con un remitente que el documento del mensaje
+     * nombra Y que figura en los participantes que acabamos de leer. Si una
+     * sola falla, no se borra nada: se quema la ficha y se anota.
+     */
+    const remitente = typeof mensaje.senderId === 'string'
+      && Array.isArray(conversacion.participants) && conversacion.participants.includes(mensaje.senderId)
+      ? mensaje.senderId
+      : null;
+    /*
+     * La cara firma el mensaje; la CUENTA es la dueña de la ruta física (es lo
+     * único que `storage.rules` deja escribir). De la cara a la cuenta se va
+     * por `users`, con el resolutor canónico: nunca quitando ni poniendo un
+     * prefijo. Sin cuenta afirmable, no hay namespace legítimo.
+     */
+    const cuenta = remitente ? await p.cuentaDelRemitente(remitente) : null;
+    const ref = esDireccionDelStorageDeWee(url) ? referenciaDesdeUrlDeWee(url) : null;
+    const enSuSitio = !!ref
+      && ref.bucket === p.bucketDeWee()
+      && claveDeFotoUnica(ref.objectKey, cuenta, conversationId);
+    const insegura = !enSuSitio && referenciaDesdeUrlDeWee(url) !== null;
+    if (insegura) {
+      /* Se deja constancia, sin la URL entera: lo que importa es a dónde quería llegar. */
+      console.warn('WeeTalk: la dirección del mensaje no es la foto única de su remitente; no se borra ningún objeto', {
+        conversationId, messageId, objectKey: referenciaDesdeUrlDeWee(url)?.objectKey, bucket: referenciaDesdeUrlDeWee(url)?.bucket,
+      });
+    }
+    let pendiente = !enSuSitio;
 
     /* 1. Primero la ficha: la dirección deja de existir para todo el mundo. */
     await p.quemarFicha(conversationId, messageId, { abiertoEn: p.ahora(), pendiente });
 
-    /* 2. Después el objeto. Si falla, queda anotado; no se finge. */
-    if (ref) {
+    /* 2. Después el objeto, SOLO si es el que tiene que ser. Si falla, queda anotado; no se finge. */
+    if (enSuSitio) {
       try {
         await p.borrarObjeto(ref.objectKey);
       } catch (error) {
@@ -118,7 +217,7 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
       }
     }
 
-    return { status: 'quemada', pendingPhysicalDeletion: pendiente };
+    return { status: 'quemada', pendingPhysicalDeletion: pendiente, ...(insegura ? { referenciaInsegura: true as const } : {}) };
   },
 });
 
@@ -150,6 +249,23 @@ const puertos = (): PuertosDelQuemador => {
     },
     borrarObjeto: async (objectKey) => {
       await storageBucket().file(objectKey).delete({ ignoreNotFound: true });
+    },
+    /* El mismo bucket en el que se borra: si la dirección nombra otro, no es una foto única de Weë. */
+    bucketDeWee: () => storageBucket().name,
+    /*
+     * De la cara a la cuenta por `users`, buscando por el CAMPO `uid` (los
+     * documentos tienen id automático) y con el resolutor canónico. `users` no
+     * garantiza unicidad: se miran hasta cinco y, si no cuentan la misma
+     * historia, no hay cuenta.
+     */
+    cuentaDelRemitente: async (senderId) => {
+      const snap = await db.collection('users').where('uid', '==', senderId).limit(5).get();
+      const cuentas = new Set<string>();
+      for (const d of snap.docs) {
+        const c = cuentaDeIdentidad(senderId, d.data() as PerfilDeIdentidad);
+        if (c) cuentas.add(c);
+      }
+      return cuentas.size === 1 ? [...cuentas][0] : null;
     },
     ahora: () => Date.now(),
   };

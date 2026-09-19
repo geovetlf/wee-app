@@ -24,6 +24,6 @@ export const avatar: typeof import('../es/avatar').avatar = {
 
   galleryPermission: 'Weë ha bisogno di accedere alla tua galleria per scegliere una foto',
   cameraPermission: 'Weë ha bisogno di accedere alla tua fotocamera per scattare una foto',
-  pickFailed: 'Non è stato possibile scegliere l’immagine: {{motivo}}',
+  pickFailed: 'Non è stato possibile selezionare l’immagine. Riprova.',
   photoFailed: 'Non è stato possibile scattare la foto',
 };

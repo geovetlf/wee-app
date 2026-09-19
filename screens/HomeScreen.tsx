@@ -21,7 +21,7 @@ import ResponsiveLayout from '../components/ResponsiveLayout';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { HomeStackParamList } from '../navigation/HomeStackNavigator';
 import { Image } from 'expo-image';
-import { Video, ResizeMode } from 'expo-av';
+import { cloudinaryThumb, cloudinaryVideoThumb } from '../services/cloudinaryService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -1007,18 +1007,26 @@ const HomeScreen: React.FC = () => {
                     </Text>
                     {(post.imageUrls?.[0] || post.videoUrl) && (
                       <View style={[styles.highlightThumb, { backgroundColor: theme.colors.surface }]}>
+                        {/*
+                          Miniaturas, no reproductores. Aquí había hasta cinco
+                          `<Video shouldPlay isLooping>` de 56 px en la cabecera,
+                          descargando y decodificando cinco vídeos a la vez antes
+                          de que la persona viera un solo post. Un fotograma
+                          basta —y si el vídeo no es de Cloudinary y no hay
+                          fotograma, el hueco queda liso, sin descargar nada.
+                        */}
                         {post.videoUrl ? (
-                          <Video
-                            source={{ uri: post.videoUrl }}
-                            style={styles.highlightThumbMedia}
-                            resizeMode={ResizeMode.COVER}
-                            shouldPlay
-                            isMuted
-                            isLooping
-                          />
+                          cloudinaryVideoThumb(post.videoUrl, 120) !== post.videoUrl ? (
+                            <Image
+                              source={{ uri: cloudinaryVideoThumb(post.videoUrl, 120) }}
+                              style={styles.highlightThumbMedia}
+                              contentFit="cover"
+                              cachePolicy="memory-disk"
+                            />
+                          ) : null
                         ) : (
                           <Image
-                            source={{ uri: post.imageUrls![0] }}
+                            source={{ uri: cloudinaryThumb(post.imageUrls![0], 120) }}
                             style={styles.highlightThumbMedia}
                             contentFit="cover"
                             cachePolicy="memory-disk"
@@ -1101,7 +1109,12 @@ const HomeScreen: React.FC = () => {
         onEndReached={loadMorePosts}
         onEndReachedThreshold={0.5}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
-        ListHeaderComponent={renderListHeader}
+        /*
+         * Un ELEMENTO, no la función: pasar `renderListHeader` creaba un tipo de
+         * componente nuevo en cada render y React desmontaba y volvía a montar
+         * toda la cabecera —pestañas, portada, destacados— en cada tick de scroll.
+         */
+        ListHeaderComponent={renderListHeader()}
         ListFooterComponent={() =>
           loadingMore ? (
             <View style={styles.loadingMore}>

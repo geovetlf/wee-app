@@ -52,7 +52,8 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
     // Listener para notificaciones recibidas (app en primer plano)
     notificationListener.current = pushNotificationService.addNotificationReceivedListener(
       (notification) => {
-        console.log('📬 Notificación recibida:', notification);
+        /* Solo el tipo: el aviso lleva el texto de un mensaje ajeno y no se escribe en el registro. */
+        console.log('📬 Notificación recibida:', (notification.request.content.data as any)?.type ?? 'sin tipo');
         setNotification(notification);
       }
     );
@@ -60,8 +61,8 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
     // Listener para cuando el usuario toca una notificación
     responseListener.current = pushNotificationService.addNotificationResponseListener(
       (response) => {
-        console.log('👆 Notificación tocada:', response);
         const data = response.notification.request.content.data as unknown as PushNotificationData;
+        console.log('👆 Notificación tocada:', data?.type ?? 'sin tipo');
         handleNotificationNavigation(data);
       }
     );

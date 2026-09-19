@@ -76,15 +76,30 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
 
         console.log('🔄 [UserProfileContext] Cargando perfiles para usuario:', user.uid);
 
+        /*
+         * Las dos caras se piden A LA VEZ. Son dos consultas independientes
+         * —el perfil real por `uid`, el Perfil Weë por su identidad— y antes
+         * iban en fila: la segunda no salía hasta que volvía la primera, un
+         * viaje de red entero de más en el arranque, cuando la persona mira
+         * una pantalla vacía. Si el Perfil Weë falla se ignora, como siempre.
+         */
+        const [perfilReal, perfilWee] = await Promise.all([
+          usersService.getByUid(user.uid),
+          usersService.getWeeProfile(user.uid).catch((weeProfileErr) => {
+            console.log('🎭 [UserProfileContext] Error cargando el Perfil Weë (ignorado):', weeProfileErr);
+            return null;
+          }),
+        ]);
+
         // Buscar perfil real existente
-        let profile = await usersService.getByUid(user.uid);
+        let profile = perfilReal;
 
         // Si no existe, crear uno nuevo
         if (!profile) {
           const baseProfileData = {
             uid: user.uid,
             displayName: user.displayName || user.email?.split('@')[0] || 'Usuario Anónimo',
-            email: user.email || '',
+            /* Sin `email`: el perfil de `users` es público y el email vive en Firebase Auth. */
             bio: '',
             followers: 0,
             following: 0,
@@ -107,7 +122,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
                 avatarId: 'male',
               };
 
-          console.log('📝 [UserProfileContext] Creando nuevo perfil:', newProfileData);
+          console.log('📝 [UserProfileContext] Creando nuevo perfil');
 
           const profileId = await usersService.create(newProfileData);
           profile = {
@@ -135,19 +150,13 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
           updateUserCache(user.uid, profile);
         }
 
-        // Intentar cargar el Perfil Weë
-        try {
-          const wee = await usersService.getWeeProfile(user.uid);
-          if (wee) {
-            console.log('🎭 [UserProfileContext] Perfil Weë cargado:', wee.displayName);
-            setWeeProfileState(wee);
-            updateUserCache(`hidi_${user.uid}`, wee);
-          } else {
-            console.log('🎭 [UserProfileContext] No hay Perfil Weë');
-            setWeeProfileState(null);
-          }
-        } catch (weeProfileErr) {
-          console.log('🎭 [UserProfileContext] Error cargando el Perfil Weë (ignorado):', weeProfileErr);
+        // El Perfil Weë, que ya venía de camino junto al real
+        if (perfilWee) {
+          console.log('🎭 [UserProfileContext] Perfil Weë cargado:', perfilWee.displayName);
+          setWeeProfileState(perfilWee);
+          updateUserCache(`hidi_${user.uid}`, perfilWee);
+        } else {
+          console.log('🎭 [UserProfileContext] No hay Perfil Weë');
           setWeeProfileState(null);
         }
 
@@ -184,7 +193,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
         updates.photoURLThumbnail = updates.photoURL;
       }
 
-      console.log('🔄 [UserProfileContext] Actualizando perfil activo con:', updates);
+      console.log('🔄 [UserProfileContext] Actualizando perfil activo:', Object.keys(updates).join(', '));
 
       const updatesWithTimestamp = {
         ...updates,

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { usersService } from '../services/firestoreService';
@@ -112,7 +113,8 @@ const WeeProfileCreationScreen: React.FC = () => {
       );
     } catch (error: any) {
       console.error('❌ Error creando el Perfil Weë:', error);
-      Alert.alert('Error', error?.message || t('onboarding.weeCreateFailed'));
+      /* Título traducido y frase de Weë: el detalle técnico se queda en el registro. */
+      notify(t('common.error'), t('onboarding.weeCreateFailed'));
     } finally {
       setIsCreating(false);
     }

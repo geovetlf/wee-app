@@ -42,11 +42,19 @@ const URL_WEE = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encod
 const URL_CLOUD = 'https://res.cloudinary.com/dnrj1guvs/image/upload/v1699999999/messages/uAna/foto.jpg';
 
 /* Puertos de mentira: una conversación, sus mensajes, un almacén y un diario. */
-const mundo = ({ participants = ['uAna', 'uBea'], mensajes = {}, fallaBorrado = false } = {}) => {
+/*
+ * `cuentas` es el resolutor canónico de mentira: de una identidad a su cuenta.
+ * Por defecto una identidad con forma de uid es su propia cuenta; una cara Weë
+ * (`hidi_…`, identificador heredado) solo resuelve si se declara aquí, igual
+ * que en producción solo resuelve si `users` tiene el puente escrito.
+ */
+const mundo = ({ participants = ['uAna', 'uBea'], mensajes = {}, fallaBorrado = false, objetos: existentes = [CLAVE], cuentas = {} } = {}) => {
   const diario = [];
   const docs = { ...mensajes };
-  const objetos = new Set([CLAVE]);
+  const objetos = new Set(existentes);
   const puertos = {
+    bucketDeWee: () => BUCKET,
+    cuentaDelRemitente: async (id) => (id in cuentas ? cuentas[id] : (/^[A-Za-z0-9]{1,128}$/.test(id) ? id : null)),
     leerConversacion: async (c) => (c === 'c1' ? { participants } : null),
     leerMensaje: async (c, m) => (c === 'c1' && docs[m] ? { ...docs[m] } : null),
     quemarFicha: async (c, m, datos) => {
@@ -128,7 +136,8 @@ console.log('\n── C · Lo histórico, en Cloudinary ──');
   check('16) sin intentar borrar nada en Cloudinary', !m.diario.some(([q]) => q === 'objeto'));
   const fuente = leer('functions/src/social/weetalk.ts');
   check('17) el módulo no habla con Cloudinary ni lleva secretos', !/cloudinary\.com|api_secret|CLOUDINARY_/i.test(fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')));
-  check('18) las URLs se reconocen con el mismo lector que el Content Core, no con otro', /referenciaDesdeUrlDeWee/.test(fuente) && !/firebasestorage\.googleapis\.com/.test(fuente));
+  /* Aquí solo se acota el HOST; leer la URL (bucket, clave) sigue siendo cosa del lector del Content Core. */
+  check('18) las URLs se leen con el lector del Content Core, no con un segundo parser', /referenciaDesdeUrlDeWee\(url\)/.test(fuente) && !/parseStorageUrl|decodeURIComponent|\.split\('\/'\)/.test(fuente));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -144,8 +153,16 @@ console.log('\n── D · El cliente: a dónde va la foto y cuándo se quema �
     /export const uploadViewOncePhoto/.test(almacen) && /users\/\$\{userId\}\/weetalk\/\$\{conversationId\}\//.test(almacen) && /uploadBytes\(storageRef, blob, \{ contentType \}\)/.test(almacen));
   check('19) y no a Cloudinary', !/uploadImageToCloudinary|uploadBlobToCloudinary/.test(almacen.slice(almacen.indexOf('export const uploadViewOncePhoto'), almacen.indexOf('// ─── Comment image'))));
   check('20) sin metadatos, como todo lo que sale de la app', /uriSinMetadatos\(imageUri\)/.test(almacen) && /blobSinMetadatos\(original\)/.test(almacen));
+  /*
+   * La foto única sube al espacio de la CUENTA (`user.uid`), que es lo que la regla
+   * del Storage compara con `request.auth.uid` y lo que el servidor exige al quemar
+   * (`users/<cuenta>/weetalk/<conversación>/`). El mensaje lo firma la cara activa
+   * (`myUid`), que puede ser el Perfil Weë: con su id en la ruta la subida fallaría
+   * y el servidor no podría borrar el objeto.
+   */
   check('21) la pantalla elige el camino por `viewOnce`, en las dos entradas (galería y cámara)',
-    (pantalla.match(/const url = viewOnce \? await uploadViewOncePhoto\(uri, myUid, convId\) : await uploadMessageImageFromUri\(uri, myUid\);/g) || []).length === 2);
+    (pantalla.match(/const url = viewOnce \? await uploadViewOncePhoto\(uri, user\.uid, convId\) : await uploadMessageImageFromUri\(uri, myUid\);/g) || []).length === 2);
+  check('21) y la ruta de la foto única es la de la cuenta, nunca la de la cara', !/uploadViewOncePhoto\(uri, myUid/.test(pantalla));
   check('22) abrir NO quema: se quema cuando la foto ya cargó (onLoad)',
     /onLoad=\{quemarSiToca\}/.test(pantalla) && /setPendienteDeQuemar\(msg\.id\);\s*\n\s*setViewOnceImage\(msg\.imageUrl\);/.test(pantalla)
     && !/setViewOnceImage\(msg\.imageUrl\);\s*\n\s*await messagesService\.markViewOnceOpened/.test(pantalla));
@@ -161,5 +178,102 @@ console.log('\n── D · El cliente: a dónde va la foto y cuándo se quema �
   check('27) los textos nuevos de la burbuja pasan por i18n', /t\('weetalk\.photoOpened'\)/.test(pantalla) && /t\('weetalk\.photoOnce'\)/.test(pantalla) && !/'Abierta' : 'Foto única'/.test(pantalla));
 }
 
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeeTalk: la foto única desaparece de verdad, y solo cuando la ve quien debe');
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── F · S1: solo se borra la foto única de SU remitente, en ESTA conversación ──');
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * El agujero que encontró la revisión de despliegue: la clave del objeto a
+ * borrar salía de la URL del mensaje, y la URL la escribe quien lo manda. Bob
+ * podía apuntar a `users/alice/ai-generations/…` y, cuando Alice abría la
+ * foto, el servidor borraba el objeto de Alice. Aquí se reproduce ese ataque
+ * exacto y se comprueba que el objeto PERMANECE: no basta con que la función
+ * conteste algo; lo que importa es lo que hay en el almacén después.
+ */
+{
+  const ALICE = 'alice';
+  const BOB = 'bob';
+  const urlDe = (clave, bucket = BUCKET) => `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(clave)}?alt=media&token=t`;
+  const LEGITIMA = 'users/alice/weetalk/c1/photo.jpg';
+  const AI_DE_ALICE = 'users/alice/ai-generations/1700000000000-result.png';
+  const AI_DE_BOB = 'users/bob/ai-generations/file.png';
+  const OTRA_CONVERSACION = 'users/alice/weetalk/c2/photo.jpg';
+  const PREFIJO_PARECIDO = 'users/alice/weetalk/c10/photo.jpg';
+  const CUENTA_PARECIDA = 'users/aliceX/weetalk/c1/photo.jpg';
+  const SUBCARPETA = 'users/alice/weetalk/c1/sub/photo.jpg';
+  const TODOS = [LEGITIMA, AI_DE_ALICE, AI_DE_BOB, OTRA_CONVERSACION, PREFIJO_PARECIDO, CUENTA_PARECIDA, SUBCARPETA];
+
+  /* Alice y Bob en c1; TODOS los objetos existen antes; `abre` es quien abre la foto. */
+  const escenario = async ({ sender, url, abre, objetos = TODOS }) => {
+    const m = mundo({ participants: [ALICE, BOB], mensajes: { m1: { type: 'image', viewOnce: true, senderId: sender, imageUrl: url } }, objetos });
+    const r = await m.quemador.quemar(abre, 'c1', 'm1');
+    return { r, m, borrados: m.diario.filter(([q]) => q === 'objeto').map(([, k]) => k) };
+  };
+  const intactos = (m, salvo = null) => TODOS.filter((k) => k !== salvo).every((k) => m.objetos.has(k));
+
+  /* A · El caso legítimo sigue funcionando. */
+  {
+    const { r, m, borrados } = await escenario({ sender: ALICE, url: urlDe(LEGITIMA), abre: BOB });
+    check('28) A · Alice manda su foto única legítima, Bob la abre: SE BORRA', r.status === 'quemada' && r.pendingPhysicalDeletion === false && r.referenciaInsegura === undefined && borrados.length === 1 && borrados[0] === LEGITIMA && !m.objetos.has(LEGITIMA), JSON.stringify(borrados));
+    check('28) y ningún otro objeto se tocó', intactos(m, LEGITIMA));
+  }
+
+  /* B y L · EL ATAQUE AUDITADO, tal cual: Bob → objeto de Alice en ai-generations. */
+  {
+    const { r, m, borrados } = await escenario({ sender: BOB, url: urlDe(AI_DE_ALICE), abre: ALICE });
+    check('29) B/L · Bob apunta al ai-generations de Alice: NO SE BORRA NADA', borrados.length === 0, JSON.stringify(borrados));
+    check('29) el objeto de Alice PERMANECE (prueba de no-borrado)', m.objetos.has(AI_DE_ALICE) && intactos(m));
+    check('29) la ficha se quema igual: la URL desaparece, queda abierta, pendiente y marcada insegura',
+      m.docs.m1.imageUrl === undefined && m.docs.m1.viewOnceOpened === true && m.docs.m1.pendingPhysicalDeletion === true
+      && r.status === 'quemada' && r.pendingPhysicalDeletion === true && r.referenciaInsegura === true);
+  }
+
+  /* C · La foto única de OTRA persona. */
+  { const { m, borrados } = await escenario({ sender: BOB, url: urlDe(LEGITIMA), abre: ALICE }); check('30) C · Bob apunta a la foto única de Alice (users/alice/weetalk/c1): NO', borrados.length === 0 && m.objetos.has(LEGITIMA)); }
+  /* D · Otro namespace, aunque sea propio. */
+  { const { m, borrados } = await escenario({ sender: BOB, url: urlDe(AI_DE_BOB), abre: ALICE }); check('31) D · Bob apunta a su propio ai-generations: NO (otro namespace)', borrados.length === 0 && m.objetos.has(AI_DE_BOB)); }
+  /* E · Usuario correcto, conversación incorrecta. */
+  { const { m, borrados } = await escenario({ sender: ALICE, url: urlDe(OTRA_CONVERSACION), abre: BOB }); check('32) E · Alice, pero c2 en un mensaje de c1: NO', borrados.length === 0 && m.objetos.has(OTRA_CONVERSACION)); }
+  /* F · Path traversal, en claro y codificado. */
+  { const { m, borrados } = await escenario({ sender: ALICE, url: urlDe('users/alice/weetalk/c1/../ai-generations/1700000000000-result.png'), abre: BOB }); check('33) F · path traversal `..`: NO', borrados.length === 0 && m.objetos.has(AI_DE_ALICE)); }
+  { const { borrados } = await escenario({ sender: ALICE, url: `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/users%2Falice%2Fweetalk%2Fc1%2F%252E%252E%2Fai-generations%2Ffile.png?alt=media`, abre: BOB }); check('33) ni traversal doblemente codificado (%252E%252E)', borrados.length === 0); }
+  { const { borrados } = await escenario({ sender: ALICE, url: urlDe(SUBCARPETA), abre: BOB }); check('33) ni una subcarpeta dentro del namespace', borrados.length === 0); }
+  /* G · Prefijos parecidos. */
+  { const { m, borrados } = await escenario({ sender: ALICE, url: urlDe(PREFIJO_PARECIDO), abre: BOB }); check('34) G · prefijo parecido: c10 cuando la conversación es c1: NO', borrados.length === 0 && m.objetos.has(PREFIJO_PARECIDO)); }
+  { const { m, borrados } = await escenario({ sender: ALICE, url: urlDe(CUENTA_PARECIDA), abre: BOB }); check('34) ni users/aliceX cuando el remitente es alice', borrados.length === 0 && m.objetos.has(CUENTA_PARECIDA)); }
+  /* H · URL malformada: no borra, no lanza, queda pendiente. */
+  { const { r, borrados } = await escenario({ sender: ALICE, url: 'https://firebasestorage.googleapis.com/v0/b/', abre: BOB }); check('35) H · URL malformada: NO borra, NO lanza, queda pendiente', borrados.length === 0 && r.status === 'quemada' && r.pendingPhysicalDeletion === true); }
+  { const { r, borrados } = await escenario({ sender: ALICE, url: 'esto no es una url', abre: BOB }); check('35) ni una cadena que no es URL', borrados.length === 0 && r.status === 'quemada'); }
+  /* I · URL externa, otro proveedor, otro bucket. */
+  { const { r, m, borrados } = await escenario({ sender: ALICE, url: `https://evil.example.com/v0/b/${BUCKET}/o/${encodeURIComponent(LEGITIMA)}?alt=media`, abre: BOB }); check('36) I · host ajeno con la forma correcta: NO, y se marca insegura (parece de Weë y no lo es)', borrados.length === 0 && m.objetos.has(LEGITIMA) && r.referenciaInsegura === true && r.pendingPhysicalDeletion === true); }
+  { const { borrados } = await escenario({ sender: ALICE, url: 'https://res.cloudinary.com/dnrj1guvs/image/upload/v1/messages/alice/x.jpg', abre: BOB }); check('36) y Cloudinary (otro proveedor) no se borra desde aquí', borrados.length === 0); }
+  { const { m, borrados, r } = await escenario({ sender: ALICE, url: urlDe(LEGITIMA, 'otro-bucket.appspot.com'), abre: BOB }); check('37) otro bucket con la misma clave: NO', borrados.length === 0 && m.objetos.has(LEGITIMA) && r.referenciaInsegura === true); }
+  /* J · Objeto ya inexistente. */
+  { const { r, borrados } = await escenario({ sender: ALICE, url: urlDe(LEGITIMA), abre: BOB, objetos: [] }); check('38) J · el objeto ya no existe: se quema igual, sin error y sin pendiente', r.status === 'quemada' && r.pendingPhysicalDeletion === false && borrados.length === 1); }
+  /* K · Repetición. */
+  { const { m } = await escenario({ sender: ALICE, url: urlDe(LEGITIMA), abre: BOB }); const otra = await m.quemador.quemar(BOB, 'c1', 'm1'); check('39) K · segunda ejecución: ya_quemada y ningún segundo borrado', otra.status === 'ya_quemada' && m.diario.filter(([q]) => q === 'objeto').length === 1); }
+  /* El remitente tiene que estar en la conversación que el servidor leyó. */
+  { const { borrados } = await escenario({ sender: 'carol', url: urlDe('users/carol/weetalk/c1/photo.jpg'), abre: BOB }); check('40) un remitente que no figura en los participantes no autoriza ningún borrado', borrados.length === 0); }
+
+  /* La función pura, con su tabla. */
+  const clave = weetalk.claveDeFotoUnica;
+  const SI = [['users/alice/weetalk/c1/photo.jpg', 'alice', 'c1'], ['users/alice/weetalk/c1/1700000000000-abc123.jpg', 'alice', 'c1'], ['users/a1B2/weetalk/x-y_z/f.webp', 'a1B2', 'x-y_z']];
+  const NO = [
+    ['users/alice/ai-generations/f.png', 'alice', 'c1'], ['users/bob/weetalk/c1/f.jpg', 'alice', 'c1'], ['users/alice/weetalk/c2/f.jpg', 'alice', 'c1'],
+    ['users/alice/weetalk/c10/f.jpg', 'alice', 'c1'], ['users/aliceX/weetalk/c1/f.jpg', 'alice', 'c1'], ['users/alice/weetalk/c1/../f.jpg', 'alice', 'c1'],
+    ['users/alice/weetalk/c1/sub/f.jpg', 'alice', 'c1'], ['users/alice/weetalk/c1/', 'alice', 'c1'], ['users/alice/weetalk/c1/.f', 'alice', 'c1'],
+    ['users/alice/weetalk/c1/%2E%2E', 'alice', 'c1'], ['/users/alice/weetalk/c1/f.jpg', 'alice', 'c1'], ['assets/x', 'alice', 'c1'],
+    ['users/alice/weetalk/c1/f.jpg', 'alice/../bob', 'c1'], ['users/alice/weetalk/c1/f.jpg', 'alice', 'c1/x'], ['users/alice/weetalk/c1/f.jpg', '', 'c1'],
+    ['users/alice/weetalk/c1/f.jpg', 'alice', ''], [undefined, 'alice', 'c1'], ['users/alice/weetalk/c1/f.jpg', null, 'c1'],
+    ['users/legacy_prefixed_id/weetalk/c1/f.jpg', 'legacy_prefixed_id', 'c1'],
+  ];
+  check('41) claveDeFotoUnica acepta exactamente la ruta legítima', SI.every(([k, s, c]) => clave(k, s, c) === true));
+  check('41) y rechaza todo lo demás: otra carpeta, otra cuenta, otra conversación, prefijos parecidos, `..`, subcarpetas, codificados, barras iniciales, ids inválidos y remitentes con separadores', NO.every(([k, s, c]) => clave(k, s, c) === false), NO.filter(([k, s, c]) => clave(k, s, c) !== false).map((x) => x[0]).join(' | ') || 'todos rechazados');
+
+  /* El sink, en el código: una sola llamada, detrás de la comprobación. */
+  const fuente = leer('functions/src/social/weetalk.ts');
+  check('42) `borrarObjeto` se llama UNA vez y solo detrás de `enSuSitio`', (fuente.match(/p\.borrarObjeto\(/g) || []).length === 1 && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(fuente));
+  check('42) y el prefijo se construye entero antes de comparar', /const prefijo = `users\/\$\{senderId\}\/weetalk\/\$\{conversationId\}\/`;/.test(fuente) && /objectKey\.startsWith\(prefijo\)/.test(fuente) && !/includes\(senderId\)|startsWith\(senderId\)/.test(fuente));
+}
+
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeeTalk: la foto única desaparece de verdad, solo cuando la ve quien debe, y solo la foto que es');
 process.exit(failures ? 1 : 0);

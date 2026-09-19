@@ -47,4 +47,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   ephemeralOn: 'Исчезающий режим включён · Сообщения удаляются при выходе',
   cameraNeeded: 'Нужен доступ к камере',
   allow: 'Разрешить',
+  recordAudio: 'Записать аудио',
+  viewOnceOn: 'Посмотреть один раз',
+  keepInChat: 'Оставить в чате',
 };

@@ -41,4 +41,7 @@ export const weetalk = {
   ephemeralOn: 'Modo efímero activado · Los mensajes se borran al salir',
   cameraNeeded: 'Se necesita acceso a la cámara',
   allow: 'Permitir',
+  recordAudio: 'Grabar audio',
+  viewOnceOn: 'Ver una sola vez',
+  keepInChat: 'Conservar en el chat',
 };

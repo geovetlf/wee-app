@@ -2038,4 +2038,10 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PostCard;
+/*
+ * Memorizada: el muro es una lista larga y cada cambio de estado del Home —qué
+ * tarjetas se ven, una tanda nueva— volvía a pintar TODAS las tarjetas, no solo
+ * la que cambió. Con las mismas props, la tarjeta se queda como está. Para que
+ * surta efecto, quien la monta le pasa funciones estables (`useCallback`).
+ */
+export default React.memo(PostCard);

@@ -31,7 +31,7 @@ export const profile: typeof import('../es/profile').profile = {
   updateFailed: 'Не удалось обновить профиль',
   signOutFailed: 'Не удалось выйти',
   noSession: 'Нет активной сессии',
-  avatarUpdateFailed: 'Не удалось обновить аватар: {{motivo}}',
+  avatarUpdateFailed: 'Не удалось обновить аватар. Попробуйте ещё раз.',
   imageUrlMissing: 'Не пришёл адрес изображения',
 
   shareMessage: 'Посмотрите, что публикует {{nombre}} в Weë',

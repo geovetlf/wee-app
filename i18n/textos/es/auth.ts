@@ -32,13 +32,13 @@ export const auth = {
   errWrongPassword: 'Contraseña incorrecta',
   errInvalidEmail: 'Email inválido',
   errUserDisabled: 'Esta cuenta ha sido deshabilitada',
-  googleFailed: 'Error al iniciar sesión con Google: {{detalle}}',
-  anonymousFailed: 'Error al acceder de forma anónima: {{detalle}}',
+  googleFailed: 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.',
+  anonymousFailed: 'No se pudo entrar como invitado. Inténtalo de nuevo.',
   emailRequiredTitle: 'Email requerido',
   emailRequired: 'Por favor ingresa tu email para restablecer la contraseña',
   emailSentTitle: 'Email enviado',
   resetEmailSent: 'Revisa tu correo electrónico para restablecer tu contraseña',
-  resetFailed: 'Error al enviar email de restablecimiento: {{detalle}}',
+  resetFailed: 'No se pudo enviar el email para restablecer la contraseña. Inténtalo de nuevo.',
 
   /* ── EL ALTA ────────────────────────────────────────────────────────────
    * Comparte módulo con el acceso porque es la misma puerta, y reutiliza lo

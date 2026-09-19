@@ -113,7 +113,9 @@ const RegisterScreen: React.FC = () => {
           errorMessage = t('auth.errSignUpNotAllowed');
           break;
         default:
-          errorMessage = error.message;
+          /* `error.message` es texto de máquina: al registro, no a la persona. */
+          console.warn('Alta fallida:', error?.code || error);
+          errorMessage = t('auth.signUpFailed');
       }
 
       notify(t('auth.signUpFailedTitle'), errorMessage);
@@ -126,7 +128,8 @@ const RegisterScreen: React.FC = () => {
       await signInWithGoogle();
       // Login exitoso
     } catch (error: any) {
-      notify(t('auth.googleFailedTitle'), error.message);
+      console.warn('Google Sign-In fallido:', error?.code || error);
+      notify(t('auth.googleFailedTitle'), t('auth.googleFailed'));
     } finally {
       // Siempre resetear el loading
       setLoading(false);
@@ -139,7 +142,8 @@ const RegisterScreen: React.FC = () => {
       await signInAnonymously();
       // Login exitoso
     } catch (error: any) {
-      notify(t('auth.guestFailedTitle'), error.message);
+      console.warn('Acceso como invitado fallido:', error?.code || error);
+      notify(t('auth.guestFailedTitle'), t('auth.anonymousFailed'));
     } finally {
       // Siempre resetear el loading
       setLoading(false);

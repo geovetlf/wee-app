@@ -23,6 +23,6 @@ export const avatar: typeof import('../es/avatar').avatar = {
 
   galleryPermission: 'Precisamos de acesso à sua galeria para escolher uma foto',
   cameraPermission: 'Precisamos de acesso à sua câmera para tirar uma foto',
-  pickFailed: 'Não foi possível escolher a imagem: {{motivo}}',
+  pickFailed: 'Não foi possível selecionar a imagem. Tente de novo.',
   photoFailed: 'Não foi possível tirar a foto',
 };

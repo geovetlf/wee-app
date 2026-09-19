@@ -149,7 +149,7 @@ const Sidebar: React.FC = () => {
   /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
   const { nombreLista } = useIdentidadActiva();
   // El mismo saldo que lee el cajón: una sola fuente, dos sitios donde se ve.
-  const { balance } = useWallet(userProfile?.uid || user?.uid);
+  const { balance } = useWallet();
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
 

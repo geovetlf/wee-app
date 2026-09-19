@@ -19,6 +19,9 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 
+/** Cuántos mensajes recientes se escuchan de una conversación. Un tope, no un historial infinito. */
+export const MENSAJES_EN_PANTALLA = 200;
+
 // Tipos para mensajería
 export interface Message {
   id?: string;
@@ -465,14 +468,23 @@ class MessagesService {
   ): () => void {
     try {
       const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-      const q = query(messagesRef, orderBy('timestamp', 'asc'));
+      /*
+       * ACOTADO. Esto escuchaba la conversación ENTERA en orden ascendente: abrir
+       * un chat de veinte mil mensajes eran veinte mil lecturas, y cada mensaje
+       * nuevo volvía a entregar el historial completo. Se piden los últimos
+       * MENSAJES_EN_PANTALLA en orden descendente —que es lo único que la
+       * pantalla enseña— y se les da la vuelta para que quien escucha siga
+       * recibiendo el orden de siempre. Ver más atrás es una paginación hacia
+       * arriba que todavía no existe: hasta entonces, el tope es el tope.
+       */
+      const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(MENSAJES_EN_PANTALLA));
 
       return onSnapshot(q, (querySnapshot) => {
         const messages: Message[] = [];
         querySnapshot.forEach((doc) => {
           messages.push({ id: doc.id, ...doc.data() } as Message);
         });
-        callback(messages);
+        callback(messages.reverse());
       });
     } catch (error) {
       console.error('Error suscribiéndose a mensajes:', error);

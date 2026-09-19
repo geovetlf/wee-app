@@ -11,12 +11,13 @@
  *     los manda Firebase y son identificadores; lo que cambia es la frase a la
  *     que lleva cada uno. El `switch` sigue mirando los mismos cuatro códigos;
  *
- *   · EL DETALLE DEL PROVEEDOR TAMPOCO. Cuando Google o el acceso anónimo
- *     fallan, el mensaje del SDK entra por `{{detalle}}` y sale sin tocar: es lo
- *     que dijo el servidor, y traducirlo sería inventárselo;
+ *   · EL DETALLE TÉCNICO DEL PROVEEDOR NO SE ENSEÑA. Cuando Google o el acceso
+ *     anónimo fallan, `error.message` del SDK es texto de máquina: va al
+ *     registro y la persona ve una frase entera de Weë (cierre de F11; antes
+ *     viajaba por `{{detalle}}` y salía crudo);
  *
- *   · Y EL `default` DEL `switch` SIGUE ENSEÑANDO `error.message`, que es lo que
- *     enseñaba antes. Esta fase no decide qué error se ve, solo en qué idioma.
+ *   · Y EL `default` DEL `switch` LLEVA A LA FRASE GENÉRICA, con el código en
+ *     el registro. Los cuatro códigos conocidos siguen llevando a su frase.
  *
  * Además: la pantalla no se rediseñó. Los estilos, el teclado, el scroll, el
  * área segura y los caminos de autenticación son los de antes, y hay controles
@@ -177,22 +178,22 @@ console.log('\n── D · Los errores: la frase sí, el código no ──');
     !CODIGOS.some((c) => JSON.stringify(esT).includes(c) || JSON.stringify(enT).includes(c)));
 
   /*
-   * 16 · EL DETALLE DEL PROVEEDOR ENTRA POR HUECO Y SALE TAL CUAL. Se prueba con
-   * lo que de verdad manda un SDK, incluido un texto que ya lleva llaves.
+   * 16 · EL DETALLE TÉCNICO DEL PROVEEDOR NO LLEGA A LA PERSONA. `error.message`
+   * de Firebase Auth es texto de máquina —«Firebase: Error (auth/…)»—: va al
+   * registro y la pantalla dice una frase entera de Weë. Los códigos conocidos
+   * siguen llevando a su frase; el resto, a la genérica. (Antes el detalle
+   * viajaba por `{{detalle}}` y salía crudo; se cambió en el cierre de F11.)
    */
-  check('16) el mensaje del proveedor viaja por {{detalle}}, sin traducir',
-    /t\('auth\.googleFailed', \{ detalle: error\.message \}\)/.test(LOGIN)
-    && /t\('auth\.anonymousFailed', \{ detalle: error\.message \}\)/.test(LOGIN)
-    && /t\('auth\.resetFailed', \{ detalle: error\.message \}\)/.test(LOGIN)
-    && !/t\(error\.message\)/.test(LOGIN));
-  const DETALLES = ['Network request failed', 'auth/popup-closed-by-user', '{{detalle}}', 'ERROR: 400'];
-  const rotos = DETALLES.filter((d) =>
-    !ES('auth.googleFailed', { detalle: d }).endsWith(d) || !EN('auth.resetFailed', { detalle: d }).endsWith(d));
-  check('16) y sale exactamente como entró', rotos.length === 0, rotos.join(' | '));
-
-  /* Y el `default` sigue enseñando lo que dijo el proveedor. */
-  check('16) el default del switch no cambió',
-    /default:\s*\n\s*errorMessage = error\.message;/.test(LOGIN));
+  check('16) ningún error.message llega a la pantalla',
+    !/detalle: error\.message/.test(LOGIN) && !/errorMessage = error\.message/.test(LOGIN) && !/t\(error\.message\)/.test(LOGIN));
+  check('16) las tres frases de fallo son frases enteras, sin hueco',
+    ['googleFailed', 'anonymousFailed', 'resetFailed'].every((k) => !/\{\{/.test(esT.auth[k]) && !/\{\{/.test(enT.auth[k])));
+  check('16) el default del switch lleva a la frase genérica',
+    /default:\s*\n(?:\s*\/\*.*\*\/\s*\n)?\s*console\.warn\([^\n]*\);\s*\n\s*errorMessage = t\('auth\.signInFailed'\);/.test(LOGIN));
+  check('16) y el detalle técnico queda en el registro, no en la frase',
+    (LOGIN.match(/console\.warn\([^\n]*error\?\.code \|\| error\)/g) || []).length >= 4);
+  check('16) las credenciales inválidas del SDK actual llevan a «contraseña incorrecta»',
+    /case 'auth\/invalid-credential':\s*\n\s*case 'auth\/invalid-login-credentials':\s*\n\s*errorMessage = t\('auth\.errWrongPassword'\);/.test(LOGIN));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

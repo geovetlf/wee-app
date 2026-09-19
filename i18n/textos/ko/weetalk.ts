@@ -47,4 +47,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   ephemeralOn: '사라지는 모드 켜짐 · 나가면 메시지가 삭제돼요',
   cameraNeeded: '카메라 접근 권한이 필요해요',
   allow: '허용',
+  recordAudio: '음성 녹음',
+  viewOnceOn: '한 번만 보기',
+  keepInChat: '채팅에 보관',
 };

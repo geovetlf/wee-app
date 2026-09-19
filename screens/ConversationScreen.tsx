@@ -29,6 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { messagesService, Message, Conversation, ParticipantData } from '../services/messagesService';
 import { uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
+import { notify } from '../utils/notify';
 import { cloudinaryThumb } from '../services/cloudinaryService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import ChatCamera from '../components/ChatCamera';
@@ -190,17 +191,24 @@ const ConversationScreen = () => {
 
   // ─── Send text ───
   const send = useCallback(async () => {
-    const t = text.trim();
-    if (!t || !convId || !myUid || sending) return;
+    const texto = text.trim();
+    if (!texto || !convId || !myUid || sending) return;
     setText('');
     setSending(true);
     try {
-      await messagesService.sendMessage(convId, myUid, t);
+      await messagesService.sendMessage(convId, myUid, texto);
     } catch (e) {
       console.error('Error sending message:', e);
+      /*
+       * Lo escrito no se pierde: la caja se vació al enviar y, si el envío
+       * falla, vuelve lo que había —salvo que ya se esté escribiendo otra
+       * cosa—, y se dice que no salió. Antes se tragaba en silencio.
+       */
+      setText((pendiente) => (pendiente ? pendiente : texto));
+      notify(t('weetalk.sendFailed'));
     }
     setSending(false);
-  }, [text, convId, myUid, sending]);
+  }, [text, convId, myUid, sending, t]);
 
   // ─── Photo preview state ───
   const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -209,21 +217,27 @@ const ConversationScreen = () => {
 
   // ─── Send image ───
   const confirmSendImage = useCallback(async () => {
-    if (!previewUri || !convId || !myUid) return;
+    if (!previewUri || !convId || !myUid || !user) return;
     const uri = previewUri;
     const viewOnce = previewViewOnce;
     setPreviewUri(null);
     setPreviewViewOnce(false);
     setSending(true);
     try {
-      /* La foto única va al Storage de Weë, donde se puede borrar; la normal, por el camino de siempre. */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      /*
+       * La foto única va al Storage de Weë, donde se puede borrar; la normal, por
+       * el camino de siempre. La RUTA física es de la CUENTA (`user.uid`), que es
+       * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
+       * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
+       * la cara dejaba la foto denegada por las reglas.
+       */
+      const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
-      Alert.alert(t('common.error'), t('weetalk.imageFailed'));
+      notify(t('common.error'), t('weetalk.imageFailed'));
     }
     setSending(false);
-  }, [previewUri, previewViewOnce, convId, myUid]);
+  }, [previewUri, previewViewOnce, convId, myUid, user]);
 
   // ─── Pick from gallery → show preview ───
   const pickImage = useCallback(async () => {
@@ -321,17 +335,23 @@ const ConversationScreen = () => {
 
   const handleCameraSend = useCallback(async (uri: string, viewOnce: boolean) => {
     setCameraOpen(false);
-    if (!convId || !myUid) return;
+    if (!convId || !myUid || !user) return;
     setSending(true);
     try {
-      /* La foto única va al Storage de Weë, donde se puede borrar; la normal, por el camino de siempre. */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      /*
+       * La foto única va al Storage de Weë, donde se puede borrar; la normal, por
+       * el camino de siempre. La RUTA física es de la CUENTA (`user.uid`), que es
+       * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
+       * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
+       * la cara dejaba la foto denegada por las reglas.
+       */
+      const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
-      Alert.alert(t('common.error'), t('weetalk.imageFailed'));
+      notify(t('common.error'), t('weetalk.imageFailed'));
     }
     setSending(false);
-  }, [convId, myUid]);
+  }, [convId, myUid, user]);
 
   /*
    * ─── Foto única: abrirla es quemarla ───
@@ -494,7 +514,7 @@ const ConversationScreen = () => {
     <View style={[styles.screen, { backgroundColor: chatTheme.backgroundColor }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: chatTheme.headerBackground, borderColor: chatTheme.headerBackground, paddingTop: insets.top + SPACING.md }]}>
-        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8}>
+        <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Ionicons name="chevron-back" size={26} color={chatTheme.headerText} />
         </TouchableOpacity>
 
@@ -509,10 +529,18 @@ const ConversationScreen = () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity hitSlop={8} onPress={() => setShowThemePicker(true)} style={styles.ephemeralBtn}>
+        <TouchableOpacity hitSlop={8} onPress={() => setShowThemePicker(true)} style={styles.ephemeralBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.theme')}>
           <Ionicons name="color-palette-outline" size={20} color={chatTheme.headerIcon} />
         </TouchableOpacity>
-        <TouchableOpacity hitSlop={8} onPress={toggleEphemeral} style={[styles.ephemeralBtn, ephemeral && { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
+        {/* Un interruptor, y se dice como tal: un lector de pantalla tiene que saber si está puesto. */}
+        <TouchableOpacity
+          hitSlop={8}
+          onPress={toggleEphemeral}
+          style={[styles.ephemeralBtn, ephemeral && { backgroundColor: 'rgba(34,197,94,0.15)' }]}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: ephemeral }}
+          accessibilityLabel={t('weetalk.ephemeralMode')}
+        >
           <Ionicons name={ephemeral ? 'eye-off' : 'eye-off-outline'} size={20} color={ephemeral ? '#22C55E' : chatTheme.headerIcon} />
         </TouchableOpacity>
       </View>
@@ -579,13 +607,13 @@ const ConversationScreen = () => {
                 <View key={i} style={[styles.recordingWaveBar, { height: 8 + Math.random() * 16, backgroundColor: '#EF4444', opacity: 0.4 + Math.random() * 0.6 }]} />
               ))}
             </View>
-            <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn}>
+            <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
               <Ionicons name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.inputBar, { backgroundColor: chatTheme.inputBarBackground, borderColor: chatTheme.inputBackground, paddingBottom: Math.max(insets.bottom, 6) }]}>
-            <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending}>
+            <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.photo')}>
               <Ionicons name="camera" size={20} color={chatTheme.accentText} />
             </TouchableOpacity>
             <View style={[styles.inputWrap, { backgroundColor: chatTheme.inputBackground }]}>
@@ -601,15 +629,15 @@ const ConversationScreen = () => {
                 editable={!sending}
               />
               {text.trim() ? (
-                <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]}>
+                <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
                   {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
-                  <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending}>
+                  <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.recordAudio')}>
                     <Ionicons name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending}>
+                  <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.attach')}>
                     <Ionicons name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                 </View>
@@ -656,13 +684,13 @@ const ConversationScreen = () => {
                 <View key={i} style={[styles.recordingWaveBar, { height: 8 + Math.random() * 16, backgroundColor: '#EF4444', opacity: 0.4 + Math.random() * 0.6 }]} />
               ))}
             </View>
-            <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn}>
+            <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
               <Ionicons name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.inputBar, { backgroundColor: chatTheme.inputBarBackground, borderColor: chatTheme.inputBackground, paddingBottom: androidKbHeight > 0 ? 10 : Math.max(insets.bottom, 16) }]}>
-            <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending}>
+            <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.photo')}>
               <Ionicons name="camera" size={20} color={chatTheme.accentText} />
             </TouchableOpacity>
             <View style={[styles.inputWrap, { backgroundColor: chatTheme.inputBackground }]}>
@@ -678,15 +706,15 @@ const ConversationScreen = () => {
                 editable={!sending}
               />
               {text.trim() ? (
-                <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]}>
+                <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
                   {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
-                  <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending}>
+                  <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.recordAudio')}>
                     <Ionicons name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending}>
+                  <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.attach')}>
                     <Ionicons name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                 </View>
@@ -701,7 +729,7 @@ const ConversationScreen = () => {
       <Modal visible={!!previewUri} transparent animationType="slide" onRequestClose={() => setPreviewUri(null)}>
         <View style={styles.previewModal}>
           <View style={styles.previewHeader}>
-            <TouchableOpacity onPress={() => setPreviewUri(null)}>
+            <TouchableOpacity onPress={() => setPreviewUri(null)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={28} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -712,14 +740,17 @@ const ConversationScreen = () => {
             <TouchableOpacity
               style={[styles.previewToggle, previewViewOnce && styles.previewToggleActive]}
               onPress={() => setPreviewViewOnce(!previewViewOnce)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: previewViewOnce }}
+              accessibilityLabel={t('weetalk.photoOnce')}
             >
               <Ionicons name={previewViewOnce ? 'eye-off' : 'eye-outline'} size={20} color="#fff" />
               <Text style={styles.previewToggleText}>
-                {previewViewOnce ? 'Ver una sola vez' : 'Conservar en el chat'}
+                {previewViewOnce ? t('weetalk.viewOnceOn') : t('weetalk.keepInChat')}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.previewSendBtn, { backgroundColor: chatTheme.accent }]} onPress={confirmSendImage}>
+            <TouchableOpacity style={[styles.previewSendBtn, { backgroundColor: chatTheme.accent }]} onPress={confirmSendImage} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
               <Ionicons name="send" size={22} color={chatTheme.accentText} />
             </TouchableOpacity>
           </View>

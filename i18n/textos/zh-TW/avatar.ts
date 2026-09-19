@@ -35,6 +35,6 @@ export const avatar: typeof import('../es/avatar').avatar = {
 
   galleryPermission: '需要存取相簿才能選擇照片',
   cameraPermission: '需要存取相機才能拍照',
-  pickFailed: '無法選擇圖片：{{motivo}}',
+  pickFailed: '無法選擇圖片。請再試一次。',
   photoFailed: '拍照失敗',
 };

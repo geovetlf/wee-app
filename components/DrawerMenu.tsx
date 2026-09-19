@@ -111,7 +111,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const [creatorExpanded, setCreatorExpanded] = useState(true);
 
   const activeUid = userProfile?.uid || user?.uid;
-  const { balance } = useWallet(activeUid);
+  const { balance } = useWallet();
 
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;

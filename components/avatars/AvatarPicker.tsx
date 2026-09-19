@@ -181,7 +181,8 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
     } catch (error: any) {
       console.error('Error picking image:', error);
       setUploading(false);
-      Alert.alert(t('common.error'), t('avatar.pickFailed', { motivo: error?.message || String(error) }));
+      /* El motivo técnico ya está en el registro (arriba); la persona ve una frase de Weë. */
+      Alert.alert(t('common.error'), t('avatar.pickFailed'));
     }
   };
 

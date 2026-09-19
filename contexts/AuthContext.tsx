@@ -111,11 +111,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const hasPersistedSession = checkPersistedSession();
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('🔐 Auth state changed:', {
-        hasUser: !!user,
-        email: user?.email,
-        initializing
-      });
+      console.log('🔐 Auth state changed:', { hasUser: !!user, initializing });
 
       setUser(user);
 
@@ -194,7 +190,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Usar popup para mejor experiencia en web
         const result = await signInWithPopup(auth, provider);
-        console.log('✅ Google Sign-In exitoso:', result.user.email);
+        console.log('✅ Google Sign-In exitoso');
         return;
       }
 
@@ -210,7 +206,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Iniciar sesión con Google
       const signInResult = await GoogleSignin.signIn();
-      console.log('📋 Google Sign-In result:', signInResult);
+      /* El resultado lleva el idToken y el email: no se escribe en el registro. */
 
       // Obtener el idToken del resultado
       const idToken = signInResult?.data?.idToken;

@@ -107,7 +107,19 @@ const MisCreacionesScreen: React.FC = () => {
       return;
     }
     const url = assetsService.urlDeEntrega(asset);
-    if (url) Linking.openURL(url).catch(() => notify(t('creaciones.loadFailed')));
+    if (url) {
+      Linking.openURL(url).catch(() => notify(t('creaciones.loadFailed')));
+      return;
+    }
+    /*
+     * Sin dirección no hay nada que abrir, y un toque que no hace nada se lee
+     * como una avería. Se dice en qué estado está —procesando, subiendo, no
+     * salió bien—, que es la razón por la que todavía no se puede ver.
+     */
+    const claveDeEstado = asset.status === 'ready'
+      ? 'creaciones.loadFailed'
+      : (`creaciones.status${asset.status.charAt(0).toUpperCase()}${asset.status.slice(1)}` as const);
+    notify(asset.name || t('creaciones.title'), t(claveDeEstado));
   };
 
   const eliminar = async (asset: AssetDoc) => {

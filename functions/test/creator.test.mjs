@@ -1077,7 +1077,8 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
   {
     const fallo = crear.slice(crear.indexOf('composer.imageUploadFailed'), crear.indexOf('composer.imageUploadFailed') + 500);
     check('10) un fallo de subida corta la publicación', /setIsPublishing\(false\);[\s\S]{0,40}return;/.test(fallo));
-    check('10) y avisa a la persona', /Alert\.alert\(/.test(crear.slice(crear.indexOf('catch (error) {', crear.indexOf('Subiendo imagen')), crear.indexOf("composer.imageUploadFailed") + 60)));
+    /* `notify`, no `Alert.alert`: en React Native Web `Alert.alert` no enseña nada, y el aviso tiene que verse también ahí. */
+    check('10) y avisa a la persona', /notify\(/.test(crear.slice(crear.indexOf('catch (error) {', crear.indexOf('Subiendo imagen')), crear.indexOf("composer.imageUploadFailed") + 60)));
   }
 
   // 11 y 12) Nada más se movió.
@@ -2019,7 +2020,8 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   check('C4) y antes de EXPLORA', credits < explora && explora < comunidades, `credits ${credits} · explora ${explora}`);
 
   // 5) El saldo sale de donde salía; no hay una segunda fuente.
-  check('C5) el saldo sigue viniendo de useWallet', /const \{ balance \} = useWallet\(activeUid\)/.test(menu));
+  /* Sin uid: la cuenta es la sesión (Firebase Auth); el hook ya no admite un uid de perfil ni recorta prefijos. */
+  check('C5) el saldo sigue viniendo de useWallet', /const \{ balance \} = useWallet\(\)/.test(menu));
   check('C5) y no hay un saldo inventado en el menú', !/balance\s*=\s*\d/.test(codigoMenu) && (menu.match(/useWallet\(/g) || []).length === 1);
 
   // 6) Tocar Credits sigue llevando al mismo sitio.

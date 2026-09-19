@@ -46,7 +46,35 @@ console.log('\n─── A. La fuente: la cuenta, y una sola ───');
 check('1) el saldo se escucha en tiempo real desde el Credit Engine',
   /creditsService\.subscribeToBalance\(accountUid, setAccount\)/.test(hook));
 check('2) y el uid es el de Firebase Auth: la CUENTA manda sobre cualquier perfil',
-  /const accountUid = user\?\.uid \|\| accountUidOf\(uid\)/.test(hook));
+  /const accountUid = user\?\.uid \?\? null;/.test(hook) && !/accountUidOf|hidi_/.test(soloCodigo(hook)));
+
+/*
+ * LA CUENTA NO SE ADIVINA RECORTANDO UN PREFIJO. `accountUidOf` hacía
+ * `uid.replace(/^hidi_/, '')`: identidad legacy → manipulación de texto → cuenta.
+ * La regla es IDENTIDAD AUTENTICADA → resolutor canónico → CUENTA: en el cliente
+ * la identidad autenticada es el uid de Firebase Auth, que ES la cuenta; en el
+ * servidor, `request.auth.uid` y `users.where('uid', '==', …)`. Quien necesite la
+ * cuenta de otra identidad la resuelve con `cuentaDeIdentidad`, que LEE
+ * `users.linkedAccountId`. Funciona igual para el Perfil Real, el Perfil Weë y
+ * cualquier entidad futura: nadie mira prefijos.
+ */
+const SIN_RECORTE = ['services/creditsService.ts', 'hooks/useWallet.ts', 'screens/WalletScreen.tsx', 'screens/CreditStoreScreen.tsx',
+  'components/Sidebar.tsx', 'components/creator/CreatorSidebar.tsx', 'components/DrawerMenu.tsx', PILDORA];
+check('2a) ninguna pieza de Credits deriva la cuenta recortando hidi_',
+  SIN_RECORTE.every((p) => !/accountUidOf|replace\(\/\^hidi_|startsWith\('hidi_'\)|split\('hidi_'\)|slice\(5\)|substring\(5\)/.test(soloCodigo(leer(p)))));
+check('2b) el servicio recibe la CUENTA y la usa tal cual, sin transformarla',
+  /subscribeToBalance\(accountUid: string,/.test(leer('services/creditsService.ts'))
+  && /subscribeToTransactions\(accountUid: string,/.test(leer('services/creditsService.ts'))
+  && /where\('uid', '==', accountUid\)/.test(leer('services/creditsService.ts'))
+  && !/accountUidOf/.test(leer('services/creditsService.ts')));
+check('2c) el hook no acepta un uid de perfil: la cuenta es la sesión', /export const useWallet = \(\) =>/.test(hook));
+check('2d) el servidor resuelve la cuenta por la sesión y por el campo uid, nunca por prefijo',
+  /return request\.auth\.uid;/.test(leer('functions/src/credits/index.ts'))
+  && /where\('uid', '==', userId\)/.test(leer('functions/src/credits/creditEngine.ts'))
+  && ['functions/src/credits/index.ts', 'functions/src/credits/creditEngine.ts'].every((p) => !/hidi_|replace\(\/\^/.test(soloCodigo(leer(p)))));
+/* CONTROL: si el recorte volviera, 2a tendría que caer. */
+check('CONTROL: un replace(/^hidi_/) en el servicio sería detectado',
+  /accountUidOf|replace\(\/\^hidi_/.test("export const accountUidOf = (uid) => uid.replace(/^hidi_/, '');"));
 check('3) la píldora lo pide sin uid, para que no quepa pasarle el del perfil',
   /const \{ balance \} = useWallet\(\);/.test(soloCodigo(pildora)));
 check('4) y no lee el perfil activo',
@@ -187,9 +215,16 @@ check('20) la píldora no suma, resta ni cobra: solo mira',
 check('21) ni escribe un precio a mano', !/\b\d+\s*Credits\b/.test(soloCodigo(pildora)));
 check('22) el motor de Credits sigue siendo del servidor',
   fs.existsSync(path.resolve(RAIZ, 'functions/src/credits')));
+/*
+ * Antes esta comprobación exigía `uid.replace(/^hidi_/, '')`: que el servicio
+ * «resolviera» la cuenta recortando el prefijo. Era justo lo que no hay que
+ * hacer (identidad legacy → recorte → cuenta). Ahora exige lo contrario: el
+ * servicio recibe la CUENTA y pregunta por ella, sin tocar el prefijo de nadie.
+ */
 check('23) y el saldo se lee de la cuenta, no del documento del Perfil Weë',
-  /uid\.replace\(\/\^hidi_\//.test(leer('services/creditsService.ts')),
-  'el prefijo heredado se resuelve a la cuenta antes de preguntar');
+  !/replace\(\/\^hidi_/.test(leer('services/creditsService.ts'))
+  && /where\('uid', '==', accountUid\)/.test(leer('services/creditsService.ts')),
+  'la cuenta llega resuelta desde la sesión; el servicio no la deduce');
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

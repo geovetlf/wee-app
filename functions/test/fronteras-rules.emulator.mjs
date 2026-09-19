@@ -212,10 +212,16 @@ console.log('\n── D · Weë Business y comunidades, desde la cuenta ──')
 console.log('\n── E · Lo de la cuenta no lo lee nadie más ──');
 // ═══════════════════════════════════════════════════════════════════════════
 {
+  /*
+   * El dueño se reconoce por el campo `uid` del perfil padre, no por el id del
+   * documento: aquí el perfil se llama como el uid (forma heredada) y sigue
+   * valiendo porque la regla mira el campo. Con id automático, ver el bloque H.
+   */
+  await sembrar(`/users/${ANA}`, { uid: ANA, displayName: 'Ana', profileType: 'real' });
   await sembrar(`/users/${ANA}/private/datos`, { email: 'ana@ejemplo.com', linkedAccountId: WEE_ANA });
   await esperar('30) el subárbol privado lo lee su dueño', 'PERMITE', 'GET', `/users/${ANA}/private/datos`, { uid: ANA });
   await esperar('31) y nadie más', 'DENIEGA', 'GET', `/users/${ANA}/private/datos`, { uid: BETO });
-  await esperar('32) y no lo escribe ni su dueño: es del servidor', 'DENIEGA', 'PATCH', `/users/${ANA}/private/datos`, {
+  await esperar('32) y lo que escribe el servidor no lo toca ni su dueño: solo `account`, y solo sus campos', 'DENIEGA', 'PATCH', `/users/${ANA}/private/datos`, {
     uid: ANA, body: doc({ email: 'otro@ejemplo.com' }),
   });
 }
@@ -249,6 +255,36 @@ console.log('\n── F · El material es de su cuenta, y solo el servidor lo es
     'antes la regla solo miraba el documento que había, no el que llegaba');
   check('41) y Beto no toca lo que no es suyo',
     (await escribir('/creatorProjects/proy1', BETO, { name: 'mío ahora' })) >= 400);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── H · Lo de la cuenta, fuera del perfil público (cierre de F11) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  /* El perfil tiene id automático y guarda la cuenta en `uid`, como en producción. */
+  await sembrar('/users/perfilAna', { uid: ANA, displayName: 'Ana', profileType: 'real', bio: '' });
+  const token = (t) => ({ token: t, platform: 'android' });
+
+  /* 42–46 · El token de push: lo escribe su dueña y no lo lee nadie desde el cliente. */
+  await esperar('42) Ana guarda el token de su aparato en pushTokens/{su uid}', 'PERMITE', 'PATCH', `/pushTokens/${ANA}`, { uid: ANA, body: doc(token('ExponentPushToken[ana]')) });
+  await esperar('43) Beto no puede leerlo', 'DENIEGA', 'GET', `/pushTokens/${ANA}`, { uid: BETO });
+  await esperar('44) ni la propia Ana desde el cliente: lo lee el servidor al enviar', 'DENIEGA', 'GET', `/pushTokens/${ANA}`, { uid: ANA });
+  await esperar('45) Beto no puede escribir el de Ana', 'DENIEGA', 'PATCH', `/pushTokens/${ANA}`, { uid: BETO, body: doc(token('ExponentPushToken[beto]')) });
+  await esperar('46) y un campo de más no entra', 'DENIEGA', 'PATCH', `/pushTokens/${ANA}`, { uid: ANA, body: doc({ ...token('ExponentPushToken[ana]'), extra: 'x' }) });
+
+  /* 47–50 · Ningún campo de cuenta vuelve al perfil público, ni por su dueña. */
+  check('47) Ana no puede escribir su email en el perfil público', (await escribir('/users/perfilAna', ANA, { email: 'ana@wee.zone' })) >= 400);
+  check('48) ni un token de push', (await escribir('/users/perfilAna', ANA, { pushToken: 'ExponentPushToken[ana]' })) >= 400);
+  check('49) ni su fecha de nacimiento', (await escribir('/users/perfilAna', ANA, { birthDate: '1990-01-01' })) >= 400);
+  check('50) pero su bio sí, que es pública', (await escribir('/users/perfilAna', ANA, { bio: 'Hola' })) < 400);
+
+  /* 51–56 · Lo privado va a private/account: lo escribe y lo lee solo la dueña, y solo esos campos. */
+  await esperar('51) Ana guarda nombre real, fecha y género en su documento privado', 'PERMITE', 'PATCH', '/users/perfilAna/private/account', { uid: ANA, body: doc({ realName: 'Ana Pérez', birthDate: '1990-01-01', gender: 'female' }) });
+  await esperar('52) y los lee', 'PERMITE', 'GET', '/users/perfilAna/private/account', { uid: ANA });
+  await esperar('53) Beto no los lee', 'DENIEGA', 'GET', '/users/perfilAna/private/account', { uid: BETO });
+  await esperar('54) ni los escribe', 'DENIEGA', 'PATCH', '/users/perfilAna/private/account', { uid: BETO, body: doc({ realName: 'Beto' }) });
+  await esperar('55) un campo fuera de la lista no entra ni siendo la dueña', 'DENIEGA', 'PATCH', '/users/perfilAna/private/account', { uid: ANA, body: doc({ realName: 'Ana', email: 'ana@wee.zone' }) });
+  await esperar('56) y otro documento privado no se crea desde el cliente', 'DENIEGA', 'PATCH', '/users/perfilAna/private/otro', { uid: ANA, body: doc({ realName: 'Ana' }) });
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

@@ -54,6 +54,16 @@ import { parseStorageUrl, storageBucket } from '../engine/http';
 export const PROVEEDOR_WEE = 'wee';
 export const PROVEEDOR_CLOUDINARY = 'cloudinary';
 
+/**
+ * Una clave del Storage de Weë es de una cuenta si vive bajo `users/<cuenta>/`.
+ * Prefijo entero, nunca «contiene»: `users/uAnaX/` no es de `uAna`. Es la
+ * frontera que separa una referencia de fiar de una URL que llegó de fuera.
+ */
+export const esDeLaCuenta = (ref: StorageRef, accountId: unknown): boolean =>
+  ref.provider === PROVEEDOR_WEE
+  && typeof accountId === 'string' && accountId.length > 0 && !/[\/\s]/.test(accountId)
+  && ref.objectKey.startsWith(`users/${accountId}/`);
+
 const db = () => getFirestore();
 const assets = () => db().collection('assets');
 const ahora = () => Date.now();
@@ -181,6 +191,19 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
   const ref = referenciaDesdeUrl(datos.url);
   if (!ref) return null;
 
+  /*
+   * UNA FICHA `wee` SOLO PUEDE APUNTAR DENTRO DE SU PROPIA CUENTA. La clave del
+   * objeto se convierte más tarde en autoridad para borrar (`retirarMaterial`),
+   * así que nunca se acepta una referencia al Storage de Weë fuera de
+   * `users/<ownerAccountId>/`: no se crea la ficha. Hoy todas las URLs de este
+   * camino las produce el motor bajo ese prefijo; esto garantiza que siga así
+   * venga la URL de donde venga.
+   */
+  if (ref.provider === PROVEEDOR_WEE && !esDeLaCuenta(ref, datos.ownerAccountId)) {
+    console.warn('Content: referencia fuera del namespace de la cuenta; no se crea la ficha', ref.objectKey);
+    return null;
+  }
+
   let mimeType = datos.mimeType;
   let bytes: number | undefined;
   if (ref.provider === PROVEEDOR_WEE) {
@@ -262,7 +285,12 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
   const decision = retirar(doc, ahora());
   if (!decision) return { status: 'ya_retirado' };
 
-  const paraBorrar = decision.borrar.filter((r) => r.provider === PROVEEDOR_WEE);
+  /*
+   * Solo se borra físicamente lo que es de Weë Y vive bajo la propia cuenta. Una
+   * referencia que no cumpla las dos cosas se retira de la ficha pero queda
+   * anotada como pendiente: antes que borrar el objeto equivocado, no borrar.
+   */
+  const paraBorrar = decision.borrar.filter((r) => r.provider === PROVEEDOR_WEE && esDeLaCuenta(r, doc.ownerAccountId));
   const pendientes = decision.borrar.length - paraBorrar.length;
 
   const retirado: AssetDoc = limpiar({

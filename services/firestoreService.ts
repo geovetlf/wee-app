@@ -6,6 +6,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  increment,
   deleteDoc,
   query,
   where,
@@ -215,7 +216,13 @@ export interface UserProfile {
   uid: string;
   realName?: string; // Nombre real (privado, no se muestra)
   displayName: string; // Alias público
-  email: string;
+  /**
+   * Heredado. El perfil de `users` es público y el email vive en Firebase
+   * Auth: ya no se escribe aquí (las reglas lo impiden) y los perfiles antiguos
+   * lo pierden con `scripts/limpiar-cuenta-en-users.mjs`. Queda opcional solo
+   * para leer documentos que todavía lo lleven.
+   */
+  email?: string;
   birthDate?: string; // Fecha de nacimiento ISO string
   gender?: 'male' | 'female' | 'other';
   photoURL?: string;
@@ -673,14 +680,16 @@ export const postsService = {
 
     return postsService.voteInPollById(postId, opcion.id);
   },
+  /*
+   * Contar una vista es UNA escritura atómica, no leer-y-entonces-escribir.
+   * Antes cada tarjeta visible leía el post entero y escribía `views + 1` con
+   * lo leído: quince lecturas de más por pantalla de muro, y dos personas
+   * mirando a la vez se pisaban la cuenta. `increment(1)` es lo que la regla
+   * `contadorSano('views')` espera: exactamente +1, sin traerse el documento.
+   */
   incrementViews: async (postId: string): Promise<void> => {
-    const postRef = doc(db, 'posts', postId);
     try {
-      const postSnap = await getDoc(postRef);
-      const currentViews = postSnap.data()?.views || 0;
-      await updateDoc(postRef, {
-        views: currentViews + 1,
-      });
+      await updateDoc(doc(db, 'posts', postId), { views: increment(1) });
     } catch (error) {
       console.error('Error incrementando vistas:', error);
     }
@@ -762,14 +771,27 @@ export const postsService = {
   // Obtener posts con video, con paginación (over-fetch y filtra client-side)
   getVideoPostsPaginated: async (limitCount = 15, lastDoc?: DocumentSnapshot, communitySlug?: string | null) => {
     const fetchSize = limitCount * 3; // Over-fetch 3x because not all posts have video
+    /*
+     * TOPE DE RONDAS. Este bucle buscaba vídeos entre los posts «hasta encontrar
+     * quince», sin límite de vueltas: si los vídeos son el 1 % de las
+     * publicaciones —o si detrás del cursor no queda ninguno— recorría la
+     * colección ENTERA, 45 documentos por vuelta, desde la portada. Con tope,
+     * lo peor que puede costar una página de Weëls son 6 × 45 = 270 lecturas, y
+     * `hasMore` dice si quedan posts por recorrer aunque no se hayan encontrado
+     * quince vídeos. El arreglo de fondo —un campo `hasVideo` indexado y una
+     * sola consulta— exige rellenar el campo en las publicaciones existentes y
+     * queda para una migración autorizada.
+     */
+    const MAXIMO_DE_RONDAS = 6;
+    let rondas = 0;
+    let hayMasPosts = false;
     let allVideoPosts: Post[] = [];
     let cursor = lastDoc || undefined;
     let lastVisible: DocumentSnapshot | null = null;
 
-    console.log('🔍 getVideoPostsPaginated - limit:', limitCount, 'communitySlug:', communitySlug || 'TODOS');
-
-    // Keep fetching until we have enough video posts or run out of data
-    while (allVideoPosts.length < limitCount) {
+    // Keep fetching until we have enough video posts, run out of data, or hit the round cap
+    while (allVideoPosts.length < limitCount && rondas < MAXIMO_DE_RONDAS) {
+      rondas++;
       const filters = communitySlug
         ? [{ field: 'communitySlug', operator: '==' as const, value: communitySlug }]
         : undefined;
@@ -783,23 +805,23 @@ export const postsService = {
         'desc'
       );
 
-      console.log('🔍 Posts obtenidos:', result.documents.length);
-      if (result.documents.length === 0) break;
+      if (result.documents.length === 0) { hayMasPosts = false; break; }
 
       const videoPosts = result.documents.filter(p => !!p.videoUrl);
-      console.log('🔍 Posts con videoUrl:', videoPosts.length);
       allVideoPosts = [...allVideoPosts, ...videoPosts];
       lastVisible = result.lastDoc;
       cursor = result.lastDoc || undefined;
+      hayMasPosts = result.documents.length >= fetchSize;
 
       // If we got fewer docs than requested, there are no more
       if (result.documents.length < fetchSize) break;
     }
 
-    console.log('🔍 Total videos encontrados:', allVideoPosts.length);
     return {
       documents: allVideoPosts.slice(0, limitCount),
       lastDoc: lastVisible,
+      /* Quedan posts detrás del cursor, aunque esta vuelta no haya dado quince vídeos. */
+      hasMore: hayMasPosts || allVideoPosts.length > limitCount,
     };
   },
 
@@ -815,8 +837,9 @@ export const usersService = {
   create: (data: Omit<UserProfile, 'id'>) => firestoreService.create<UserProfile>('users', data),
   getById: (id: string) => firestoreService.getById<UserProfile>('users', id),
   getByUid: async (uid: string) => {
+    /* Solo se usa el primero: se pide solo uno. Es la consulta que hace cada tarjeta del muro por su autor. */
     const users = await firestoreService.getMany<UserProfile>('users',
-      [{ field: 'uid', operator: '==', value: uid }]
+      [{ field: 'uid', operator: '==', value: uid }], undefined, 'desc', 1
     );
     return users.length > 0 ? users[0] : null;
   },
@@ -853,11 +876,24 @@ export const usersService = {
   update: (id: string, data: Partial<UserProfile>) => firestoreService.update<UserProfile>('users', id, data),
   delete: (id: string) => firestoreService.delete('users', id),
 
+  /**
+   * LO DE LA CUENTA, QUE NO ES PÚBLICO: `users/{id}/private/account`.
+   *
+   * Nombre real, fecha de nacimiento y género no van en el perfil, que lo lee
+   * cualquiera. Los escribe solo su dueño (la regla mira el `uid` del perfil,
+   * no el id del documento) y solo estos campos; el resto lo rechaza la regla.
+   */
+  guardarDatosPrivados: (profileId: string, datos: { realName?: string; birthDate?: string | null; gender?: 'male' | 'female' | 'other' | null }) =>
+    setDoc(doc(db, 'users', profileId, 'private', 'account'), {
+      ...Object.fromEntries(Object.entries(datos).filter(([, v]) => v !== undefined && v !== null && v !== '')),
+      updatedAt: Timestamp.now(),
+    }, { merge: true }),
+
   // === PERFIL WEË: sus métodos. El uid lleva el prefijo histórico `hidi_`. ===
   getWeeProfile: async (realUid: string): Promise<UserProfile | null> => {
     const weeProfileUid = `hidi_${realUid}`;
     const users = await firestoreService.getMany<UserProfile>('users',
-      [{ field: 'uid', operator: '==', value: weeProfileUid }]
+      [{ field: 'uid', operator: '==', value: weeProfileUid }], undefined, 'desc', 1
     );
     return users.length > 0 ? users[0] : null;
   },
@@ -873,7 +909,6 @@ export const usersService = {
     const weeProfileData: Record<string, any> = {
       uid: weeProfileUid,
       displayName: data.displayName,
-      email: '',
       bio: data.bio,
       avatarType: data.avatarType || 'predefined',
       avatarId: data.avatarId || 'male',

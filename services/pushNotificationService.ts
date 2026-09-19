@@ -2,8 +2,20 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { doc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+
+/*
+ * EL TOKEN DE PUSH ES UN SECRETO DEL APARATO Y VIVE EN `pushTokens/{uid}`.
+ *
+ * Antes se escribía en el perfil de `users`, que lo lee cualquiera —y encima
+ * en `users/<uid>`, un documento que no existe porque los perfiles tienen id
+ * automático, así que nunca se guardó—. Con un token de Expo cualquiera puede
+ * mandar avisos a ese teléfono: no puede estar en un documento público. El
+ * documento se llama como la CUENTA (uid de Firebase Auth), lo escribe solo su
+ * dueño y no lo lee nadie desde el cliente; lo lee el servidor al enviar.
+ */
+const tokenDeLaCuenta = (accountUid: string) => doc(db, 'pushTokens', accountUid);
 
 // Configurar cómo se muestran las notificaciones cuando la app está en primer plano
 Notifications.setNotificationHandler({
@@ -84,7 +96,7 @@ export const pushNotificationService = {
       });
 
       const token = tokenData.data;
-      console.log('📱 Push token obtenido:', token);
+      /* El token no se escribe en el registro: es un secreto del aparato. */
 
       // Configuración específica de Android
       if (Platform.OS === 'android') {
@@ -103,14 +115,14 @@ export const pushNotificationService = {
     }
   },
 
-  // Guardar el token en el perfil del usuario
-  savePushToken: async (userId: string, token: string): Promise<void> => {
+  // Guardar el token de la CUENTA en su documento privado
+  savePushToken: async (accountUid: string, token: string): Promise<void> => {
     try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        pushToken: token,
-        pushTokenUpdatedAt: new Date(),
-      });
+      await setDoc(tokenDeLaCuenta(accountUid), {
+        token,
+        platform: Platform.OS,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
     } catch (error) {
       /*
        * QUE FIRESTORE NO DEJE GUARDAR EL TOKEN NO ES UNA AVERÍA DE LA APP.
@@ -136,13 +148,9 @@ export const pushNotificationService = {
   },
 
   // Eliminar el token (logout)
-  removePushToken: async (userId: string): Promise<void> => {
+  removePushToken: async (accountUid: string): Promise<void> => {
     try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        pushToken: null,
-        pushTokenUpdatedAt: new Date(),
-      });
+      await deleteDoc(tokenDeLaCuenta(accountUid));
       console.log('🗑️ Push token eliminado');
     } catch (error) {
       /* La misma escritura, en el mismo campo y bajo la misma regla: si la

@@ -166,8 +166,15 @@ console.log('\n── Fronteras de autorización ──');
     /const MAXIMO_DE_IMAGEN/.test(read('services/cloudinaryService.ts'))
     && /NO es una frontera de seguridad/.test(read('services/cloudinaryService.ts')));
 
-  check('el subárbol privado de una cuenta existe y solo lo lee su dueño',
-    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if isAuthenticated\(\) && request\.auth\.uid == userId;[\s\S]{0,80}?allow write: if false;/.test(reglas));
+  /*
+   * El dueño se reconoce por el campo `uid` del perfil, no por el id del
+   * documento (los perfiles tienen id automático): antes la regla comparaba con
+   * `userId` y no acertaba nunca. Escribe solo el dueño, solo `account` y solo
+   * los campos de cuenta que recoge el registro; borrar, nadie desde el cliente.
+   */
+  check('el subárbol privado de una cuenta existe y solo lo lee y escribe su dueño',
+    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if esDuenyoDelPerfil\(userId\);[\s\S]{0,300}?allow delete: if false;/.test(reglas)
+    && /allow create, update: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas));
 
   check('el callable que autoriza Credits sin liquidarlos está marcado como no habilitado',
     /NO HABILITADO COMO RUTA DE PRODUCTO/.test(read('functions/src/credits/index.ts')));
@@ -206,6 +213,86 @@ console.log('\n── Fronteras de autorización ──');
     && /quemar\(request\.auth\.uid, conversationId, messageId\)/.test(read('functions/src/social/weetalk.ts'))
     && /throw new FotoNoQuemable\('es_tuya'\)/.test(read('functions/src/social/weetalk.ts'))
     && /throw new FotoNoQuemable\('no_participas'\)/.test(read('functions/src/social/weetalk.ts')));
+  /*
+   * S1 (revisión de despliegue): la clave del objeto a borrar salía de la URL del
+   * mensaje, que escribe el remitente. Ahora solo se borra dentro de
+   * `users/<remitente>/weetalk/<conversación>/`, con el prefijo construido entero,
+   * y una sola llamada al sink detrás de esa comprobación.
+   */
+  {
+    const weetalk = read('functions/src/social/weetalk.ts');
+    /*
+     * El namespace es el de la CUENTA del remitente, no el de su cara: la foto sube
+     * a `users/<cuenta>/weetalk/<conversación>/` (la regla del Storage compara la
+     * ruta con `request.auth.uid`), y la cuenta se resuelve en el servidor con el
+     * resolutor canónico (`cuentaDelRemitente` → `users.uid` → `linkedAccountId`),
+     * nunca recortando el prefijo `hidi_` ni leyendo nada de la petición.
+     */
+    check('el borrado físico de la foto única solo ocurre dentro del namespace del remitente y la conversación',
+      /const prefijo = `users\/\$\{senderId\}\/weetalk\/\$\{conversationId\}\/`;/.test(weetalk)
+      && /objectKey\.startsWith\(prefijo\)/.test(weetalk)
+      && /const cuenta = remitente \? await p\.cuentaDelRemitente\(remitente\) : null;/.test(weetalk)
+      && /claveDeFotoUnica\(ref\.objectKey, cuenta, conversationId\)/.test(weetalk)
+      && /ref\.bucket === p\.bucketDeWee\(\)/.test(weetalk)
+      && (weetalk.match(/p\.borrarObjeto\(/g) || []).length === 1
+      && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(weetalk));
+    check('y la cuenta del remitente se resuelve con el resolutor canónico, sin recortar prefijos',
+      /cuentaDeIdentidad\(senderId, d\.data\(\) as PerfilDeIdentidad\)/.test(weetalk)
+      && !/replace\(\/\^hidi_|slice\(5\)|split\('hidi_'\)/.test(weetalk));
+    check('y nunca con una comparación débil ni con una identidad que llegue en la petición',
+      !/includes\(senderId\)|startsWith\(senderId\)|request\.data\.(senderId|uid|userId)/.test(weetalk)
+      && /conversacion\.participants\.includes\(mensaje\.senderId\)/.test(weetalk));
+  }
+}
+
+/*
+ * LO DE LA CUENTA NO VA EN EL PERFIL PÚBLICO (cierre de F11).
+ *
+ * `users/{id}` lo lee cualquiera. Un token de push ahí es un altavoz público
+ * hacia el teléfono de la persona; un email, un nombre real o una fecha de
+ * nacimiento ahí son datos personales a la vista de todo el mundo. Tres cosas
+ * se vigilan: que el token viva en `pushTokens/{uid}` y no lo lea el cliente,
+ * que las reglas no dejen volver a escribir campos de cuenta en `users`, y que
+ * el registro guarde lo privado en `users/{id}/private/account`.
+ */
+console.log('\n── Lo de la cuenta, fuera del perfil público ──');
+{
+  const reglas = read('firestore.rules');
+  const push = read('services/pushNotificationService.ts');
+  const indice = read('functions/src/index.ts');
+  const contexto = read('contexts/UserProfileContext.tsx');
+  const registro = read('screens/OnboardingScreen.tsx');
+  const perfiles = read('services/firestoreService.ts');
+  const limpieza = read('scripts/limpiar-cuenta-en-users.mjs');
+
+  check('el token de push tiene su colección, y desde el cliente no la lee nadie',
+    /match \/pushTokens\/\{uid\} \{\s*\n\s*allow read: if false;/.test(reglas)
+    && /request\.auth\.uid == uid &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(\['token', 'platform', 'updatedAt'\]\)/.test(reglas));
+  check('el cliente escribe el token en pushTokens/{cuenta} y nunca en el perfil',
+    /doc\(db, 'pushTokens', accountUid\)/.test(push) && !/'users'/.test(push) && !/pushToken:/.test(push)
+    /* El VALOR del token no se escribe en el registro (un aviso de estado sin el token sí puede). */
+    && !/console\.(log|warn|error)\([^\n]*,\s*token\s*\)/.test(push.replace(/\/\*[\s\S]*?\*\//g, '')));
+  check('el servidor lo lee de pushTokens/{cuenta} resuelta con el resolutor canónico',
+    /collection\('pushTokens'\)\.doc\(cuenta\)/.test(indice) && /cuentaDeIdentidad\(identidad as string, perfil\.data\(\) as PerfilDeIdentidad\)/.test(indice)
+    && !/\.pushToken\b/.test(indice) && !/replace\(\/\^hidi_/.test(indice));
+  check('las reglas no dejan escribir campos de cuenta en users, ni al crear ni al actualizar',
+    /function accountFields\(\) \{\s*\n\s*return \['email', 'realName', 'birthDate', 'gender', 'pushToken', 'pushTokenUpdatedAt'\];/.test(reglas)
+    && /allow create: if isAuthenticated\(\) && !createsCreditFields\(\) && !createsEcontactFields\(\) && !createsAccountFields\(\)/.test(reglas)
+    && /allow update: if isAuthenticated\(\) && !touchesCreditFields\(\) && !touchesEcontactFields\(\) && !touchesAccountFields\(\)/.test(reglas));
+  check('lo privado del dueño se reconoce por el campo uid del perfil, no por el id del documento',
+    /get\(\/databases\/\$\(database\)\/documents\/users\/\$\(idDePerfil\)\)\.data\.uid == request\.auth\.uid/.test(reglas)
+    && /allow create, update: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas));
+  check('el perfil se crea sin email y el registro guarda lo privado aparte',
+    !/email: user\.email/.test(contexto) && !/email: '',/.test(perfiles)
+    && /guardarDatosPrivados\(userProfile\.id, \{\s*\n\s*realName: realName\.trim\(\),\s*\n\s*birthDate: getBirthDateISO\(\),\s*\n\s*gender,/.test(registro)
+    && !/realName: realName\.trim\(\),\s*\n\s*displayName/.test(registro)
+    && /setDoc\(doc\(db, 'users', profileId, 'private', 'account'\)/.test(perfiles));
+  check('la limpieza de los perfiles antiguos está preparada, en dry-run, y solo toca lo suyo',
+    /bandera\('--ejecutar'\) && bandera\('--confirmo-autorizacion'\)/.test(limpieza)
+    && /const A_PRIVADO = \['realName', 'birthDate', 'gender'\];/.test(limpieza)
+    && /const SOLO_BORRAR = \['email', 'pushToken', 'pushTokenUpdatedAt'\];/.test(limpieza)
+    && !/collection\('(posts|conversations|assets|communities|businesses)'\)/.test(limpieza)
+    && !/\.delete\(\)/.test(limpieza.replace(/FieldValue\.delete\(\)/g, '')));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) de seguridad fallaron` : '\nSeguridad: ningún secreto sale de las Functions');

@@ -1,5 +1,6 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
+import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -7,6 +8,44 @@ if (admin.apps.length === 0) {
 }
 
 const db = admin.firestore();
+
+/*
+ * EL PERFIL DE UNA IDENTIDAD SE BUSCA POR EL CAMPO `uid`, NO POR EL ID.
+ *
+ * Los documentos de `users` tienen id automático: `users.doc(uid)` apuntaba a
+ * un documento que no existe y las notificaciones push se perdían todas en
+ * silencio. El id del documento queda como respaldo para lo heredado.
+ */
+type PerfilEncontrado = admin.firestore.DocumentSnapshot | admin.firestore.QueryDocumentSnapshot;
+
+async function perfilDeIdentidad(identidad: unknown): Promise<PerfilEncontrado | null> {
+  if (typeof identidad !== 'string' || !identidad || identidad.includes('/')) return null;
+  const porCampo = await db.collection('users').where('uid', '==', identidad).limit(1).get();
+  if (!porCampo.empty) return porCampo.docs[0];
+  const porId = await db.collection('users').doc(identidad).get();
+  return porId.exists ? porId : null;
+}
+
+/*
+ * DE QUÉ CUENTA ES UNA IDENTIDAD. Si es una cara (Perfil Weë), se resuelve con
+ * el resolutor canónico —se lee `linkedAccountId`, nunca se deduce quitando un
+ * prefijo—. Una cara sin vínculo no es de nadie: null, y no se avisa a nadie.
+ */
+async function cuentaDeLaIdentidad(identidad: unknown): Promise<string | null> {
+  const perfil = await perfilDeIdentidad(identidad);
+  if (!perfil) return null;
+  return cuentaDeIdentidad(identidad as string, perfil.data() as PerfilDeIdentidad);
+}
+
+/*
+ * EL TOKEN DE PUSH VIVE EN `pushTokens/{cuenta}`, no en el perfil público. Lo
+ * escribe solo su dueño y desde el cliente no lo lee nadie: lo lee esto.
+ */
+async function tokenDeLaCuenta(cuenta: string | null): Promise<string | null> {
+  if (!cuenta) return null;
+  const token = (await db.collection('pushTokens').doc(cuenta).get()).data()?.token;
+  return typeof token === 'string' && token ? token : null;
+}
 
 // Re-export avatar generation functions (Gemini only)
 export { generateAvatarWithGemini, avatarReplacement } from './generateAvatar';
@@ -154,15 +193,14 @@ export const sendPushNotification = onDocumentCreated(
     const { recipientId, senderId, senderName, type, postId, commentId, conversationId } = notification;
 
     try {
-      const recipientDoc = await db.collection('users').doc(recipientId).get();
+      const cuenta = await cuentaDeLaIdentidad(recipientId);
 
-      if (!recipientDoc.exists) {
+      if (!cuenta) {
         console.log('Usuario destinatario no encontrado');
         return null;
       }
 
-      const recipientData = recipientDoc.data();
-      const pushToken = recipientData?.pushToken;
+      const pushToken = await tokenDeLaCuenta(cuenta);
 
       if (!pushToken) {
         console.log('El usuario no tiene push token registrado');
@@ -192,10 +230,8 @@ export const sendPushNotification = onDocumentCreated(
         console.error('Error en push:', result.data.message);
 
         if (result.data.details?.error === 'DeviceNotRegistered') {
-          await db.collection('users').doc(recipientId).update({
-            pushToken: admin.firestore.FieldValue.delete(),
-          });
-          console.log('Token inválido eliminado del usuario');
+          await db.collection('pushTokens').doc(cuenta).delete();
+          console.log('Token inválido eliminado de la cuenta');
         }
       }
 
@@ -229,16 +265,15 @@ export const sendMessagePushNotification = onDocumentCreated(
       const conversationData = conversationDoc.data();
       const participants = conversationData?.participants || [];
 
-      const senderDoc = await db.collection('users').doc(senderId).get();
-      const senderData = senderDoc.data();
+      /* El nombre que se enseña es el de la cara que escribió; el token, el de la cuenta que recibe. */
+      const senderDoc = await perfilDeIdentidad(senderId);
+      const senderData = senderDoc?.data();
       const senderName = senderData?.displayName || 'Alguien';
 
       for (const participantId of participants) {
         if (participantId === senderId) continue;
 
-        const participantDoc = await db.collection('users').doc(participantId).get();
-        const participantData = participantDoc.data();
-        const pushToken = participantData?.pushToken;
+        const pushToken = await tokenDeLaCuenta(await cuentaDeLaIdentidad(participantId));
 
         if (pushToken) {
           await sendExpoPush(

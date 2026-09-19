@@ -14,7 +14,6 @@ import {
   Animated,
   Platform,
   StatusBar,
-  LayoutAnimation,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Video, ResizeMode } from 'expo-av';
@@ -30,8 +29,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
-import { communityService, Community } from '../services/communityService';
-import { useCommunities } from '../hooks/useCommunities';
 import { postsService, Post } from '../services/firestoreService';
 import { DocumentSnapshot } from 'firebase/firestore';
 import PostCard from '../components/PostCard';
@@ -40,7 +37,6 @@ import DrawerMenu from '../components/DrawerMenu';
 import { formatNumber } from '../data/mockData';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import WeelsRow from '../components/WeelsRow';
 import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
@@ -49,26 +45,6 @@ import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
-
-// Categorías sociales de la landing (temáticas de comunidad, no herramientas de IA).
-// Fuente única: constants/communityCategories.ts
-interface LandingCategory {
-  id: string;
-  name: string;
-  icon: string;
-  emoji?: string;
-  customIcon?: any;
-  color: string;
-  communitySlug: string;
-}
-const LANDING_CATEGORIES: LandingCategory[] = COMMUNITY_CATEGORIES.map((c) => ({
-  id: c.id,
-  name: c.name,
-  icon: c.icon + '-outline',
-  emoji: c.emoji,
-  color: c.color,
-  communitySlug: c.slug,
-}));
 
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
@@ -88,9 +64,6 @@ const LandingScreen: React.FC = () => {
   // "Explora → Weëls" del menú llega aquí con `openWeels`: abre WeëlsScreen.
   const openWeelsParam = route.params?.openWeels;
 
-  const { joinCommunity, leaveCommunity, isMember } = useCommunities(userProfile?.uid);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
-
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [featuredPosts, setFeaturedPosts] = useState<Post[]>([]);
   const [trendingIndex, setTrendingIndex] = useState(0);
@@ -105,7 +78,6 @@ const LandingScreen: React.FC = () => {
    * compartida con la web.
    */
   const [feedFilter, setFeedFilter] = useState<SeccionesElegidas>([]);
-  const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [visiblePostIds, setVisiblePostIds] = useState<Set<string>>(new Set());
@@ -114,8 +86,6 @@ const LandingScreen: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   /*
    * CUÁNTO MURO SE VE DE UNA VEZ. De aquí sale el tope de alto de las fotos y
@@ -151,13 +121,8 @@ const LandingScreen: React.FC = () => {
 
   const loadVideoPosts = useCallback(async (communitySlug?: string | null) => {
     setVideosLoading(true);
-    console.log('🎬 Cargando videos para Weels, filtro:', communitySlug || 'TODOS');
     try {
       const result = await postsService.getVideoPostsPaginated(15, undefined, communitySlug || undefined);
-      console.log('🎬 Videos encontrados:', result.documents.length);
-      result.documents.forEach((p, i) => {
-        console.log(`  ${i + 1}. ${p.id} - videoUrl: ${p.videoUrl ? 'SÍ' : 'NO'} - community: ${p.communitySlug || 'ninguna'}`);
-      });
       setVideoPosts(result.documents);
       setVideoLastDoc(result.lastDoc);
     } catch (error) {
@@ -178,7 +143,6 @@ const LandingScreen: React.FC = () => {
   // Refresh cuando se crea un nuevo post (triggerRefresh desde CreateScreen)
   useEffect(() => {
     if (refreshTrigger > 0) {
-      console.log('🔄 Refreshing after new post created');
       loadData(true);
       loadVideoPosts();
     }
@@ -192,19 +156,20 @@ const LandingScreen: React.FC = () => {
   }, [scrollToTopTrigger]);
 
   const loadData = async (isRefresh = false) => {
-    console.log('📝 loadData called, isRefresh:', isRefresh);
     try {
       if (!isRefresh) {
         setLoading(true);
       }
 
-      // Cargar comunidades
-      const allCommunities = await communityService.getCommunities();
-      console.log('📝 Communities loaded:', allCommunities.length);
-      setCommunities(allCommunities);
+      /*
+       * Aquí se esperaba `communityService.getCommunities()` —una consulta SIN
+       * límite sobre toda la colección— antes de pedir el muro, y su resultado
+       * no lo leía nadie: el estado `communities` no llegaba a ninguna vista.
+       * El muro empieza ahora un viaje de red antes y la portada deja de pagar
+       * una lectura que crecía con cada comunidad creada.
+       */
 
       // Cargar posts trending y destacado
-      console.log('📝 Loading posts...');
       /*
        * El muro general, pedido por el único sitio que sabe pedirlo. Antes esta
        * pantalla montaba su propia sobreconsulta y decidía `hasMore` contando las
@@ -213,7 +178,6 @@ const LandingScreen: React.FC = () => {
        */
       const pagina = await postsService.getMuroGeneralPaginado(20);
       const posts = pagina.visibles;
-      console.log('📝 Posts loaded:', posts.length, 'posts');
 
       // El cursor se guarda siempre, y quien dice si queda muro es `hayMas`.
       setLastDoc((pagina.lastDoc as any) || null);
@@ -318,11 +282,6 @@ const LandingScreen: React.FC = () => {
     { viewabilityConfig, onViewableItemsChanged },
   ]).current;
 
-  const handleCategoryPress = (category: typeof LANDING_CATEGORIES[0]) => {
-    // Pasar el communitySlug ya que los posts se guardan con este campo
-    navigation.navigate('Feed', { communitySlug: category.communitySlug });
-  };
-
   const handleLogin = () => {
     // Navegar a la pantalla de login como modal
     // HomeStack -> TabNavigator -> MainStack
@@ -333,7 +292,8 @@ const LandingScreen: React.FC = () => {
     }
   };
 
-  const handleRegister = () => {
+  /* Estable a propósito: lo usan las funciones que reciben las tarjetas memorizadas del muro. */
+  const handleRegister = useCallback(() => {
     // Navegar a la pantalla de registro como modal
     // HomeStack -> TabNavigator -> MainStack
     const tabNavigation = navigation.getParent();
@@ -341,7 +301,7 @@ const LandingScreen: React.FC = () => {
     if (mainNavigation) {
       (mainNavigation as any).navigate('Register');
     }
-  };
+  }, [navigation]);
 
   /*
    * La lupa del saludo. Abre la pantalla de Buscar que ya existe —la misma de la
@@ -355,30 +315,20 @@ const LandingScreen: React.FC = () => {
     else (navigation as any).navigate('Search');
   };
 
-  const handlePostPress = (post: Post) => {
+  /*
+   * LAS FUNCIONES QUE RECIBE CADA TARJETA SON ESTABLES. `PostCard` está
+   * memorizada: si estas cambiaran de identidad en cada pintado del Home, la
+   * memoria no serviría de nada y el muro entero volvería a pintarse cada vez
+   * que se baja por él.
+   */
+  const handlePostPress = useCallback((post: Post) => {
     // HomeStack -> TabNavigator -> MainStack
     const tabNavigation = navigation.getParent();
     const mainNavigation = tabNavigation?.getParent();
     if (mainNavigation) {
       (mainNavigation as any).navigate('PostDetail', { post });
     }
-  };
-
-  const handleProfilePress = () => {
-    navigation.navigate('Profile');
-  };
-
-  const handleCreateCategory = () => {
-    if (!user) {
-      handleRegister();
-      return;
-    }
-    const tabNavigation = navigation.getParent();
-    const mainNavigation = tabNavigation?.getParent();
-    if (mainNavigation) {
-      (mainNavigation as any).navigate('Create');
-    }
-  };
+  }, [navigation]);
 
   /*
    * ─── EL VISOR, QUE ES OTRA COSA ───────────────────────────────────────────
@@ -421,12 +371,12 @@ const LandingScreen: React.FC = () => {
    * abriéndola entera: son dos intenciones distintas y ahora hacen dos cosas
    * distintas.
    */
-  const handleComment = (postId: string) => {
+  const handleComment = useCallback((postId: string) => {
     const post = feedPosts.find(p => p.id === postId);
     if (post) abrirComentarios(post);
-  };
+  }, [feedPosts, abrirComentarios]);
 
-  const handlePrivateMessage = (userId: string, userData?: any) => {
+  const handlePrivateMessage = useCallback((userId: string, userData?: any) => {
     if (!user) {
       handleRegister();
       return;
@@ -438,24 +388,7 @@ const LandingScreen: React.FC = () => {
         otherUserData: userData,
       },
     });
-  };
-
-  const handleToggleJoin = async (communityId: string) => {
-    if (!user || !communityId || joiningId) return;
-    setJoiningId(communityId);
-    try {
-      if (isMember(communityId)) {
-        await leaveCommunity(communityId);
-      } else {
-        await joinCommunity(communityId);
-      }
-    } catch (error) {
-      console.error('Error toggling community membership:', error);
-    } finally {
-      setJoiningId(null);
-    }
-  };
-
+  }, [user, navigation, handleRegister]);
 
   // Lo primero del Home: tu cara, tu nombre y la lupa. Nada encima del muro.
   const renderHero = () => <HomeGreeting onSearch={irABuscar} />;
@@ -493,227 +426,13 @@ const LandingScreen: React.FC = () => {
     </View>
   );
 
-  // Dividir categorías en 2 filas independientes
-  const categoryRows = useMemo(() => {
-    const mid = Math.ceil(LANDING_CATEGORIES.length / 2);
-    return [
-      LANDING_CATEGORIES.slice(0, mid),
-      LANDING_CATEGORIES.slice(mid),
-    ];
-  }, []);
-
-  const renderCategoryItem = (category: typeof LANDING_CATEGORIES[0]) => (
-    <TouchableOpacity
-      key={category.id}
-      style={[
-        styles.categoryItem,
-        { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
-      ]}
-      onPress={() => handleCategoryPress(category)}
-      activeOpacity={0.7}
-    >
-      <View style={[
-        styles.categoryIcon,
-        category.customIcon ? {} : category.emoji ? {
-          backgroundColor: category.color + '22',
-        } : {
-          backgroundColor: category.color,
-          shadowColor: category.color,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.4,
-          shadowRadius: 8,
-          elevation: 6,
-        }
-      ]}>
-        {category.customIcon ? (
-          <Image source={category.customIcon} style={styles.customCategoryIcon} />
-        ) : category.emoji ? (
-          <Text style={styles.categoryEmoji}>{category.emoji}</Text>
-        ) : (
-          <Ionicons name={category.icon as any} size={scale(24)} color="white" />
-        )}
-      </View>
-      <Text
-        style={[styles.categoryName, { color: theme.colors.text }]}
-        numberOfLines={2}
-      >
-        {category.name}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderCategories = () => (
-    <View style={[styles.categoriesContainer, { backgroundColor: theme.colors.surface }]}>
-      <TouchableOpacity
-        style={styles.categoriesHeader}
-        onPress={() => {
-          if (!isWeb) {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          }
-          setCategoriesExpanded(prev => !prev);
-        }}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>
-          {t('home.exploreCommunities')}
-        </Text>
-        <Ionicons
-          name={categoriesExpanded ? 'chevron-up' : 'chevron-down'}
-          size={scale(20)}
-          color={theme.colors.textSecondary}
-        />
-      </TouchableOpacity>
-      <View style={{ height: categoriesExpanded ? undefined : 0, overflow: 'hidden' }}>
-        {isWeb ? (
-          // Web: Grid layout with wrap - show only 12 initially (2 rows of 6)
-          <>
-            <View style={styles.categoriesGrid}>
-              {(showAllCategories ? LANDING_CATEGORIES : LANDING_CATEGORIES.slice(0, 12)).map((cat) => renderCategoryItem(cat))}
-            </View>
-            {LANDING_CATEGORIES.length > 12 && !showAllCategories && (
-              <TouchableOpacity
-                style={styles.showMoreButton}
-                onPress={() => setShowAllCategories(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.showMoreButtonText, { color: theme.colors.accent }]}>
-                  {t('home.moreCategories')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          // Mobile: Horizontal scroll rows
-          categoryRows.map((row, rowIndex) => (
-            <ScrollView
-              key={rowIndex}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              nestedScrollEnabled
-              contentContainerStyle={styles.categoriesScrollContent}
-              style={rowIndex > 0 ? styles.categoryRowGap : undefined}
-            >
-              {row.map((cat) => renderCategoryItem(cat))}
-            </ScrollView>
-          ))
-        )}
-      </View>
-    </View>
-  );
-
-  const POPULAR_COMMUNITY_EXAMPLES = POPULAR_COMMUNITIES;
-
-  const [userCreatedCommunities, setUserCreatedCommunities] = useState<Community[]>([]);
-
-  // Las comunidades ya no se listan en el Home (docs/UX.md §16): se buscan o se crean
-
-  const renderCommunityCategories = () => {
-    const communityContent = (
-      <>
-        {/* Comunidades reales creadas por usuarios */}
-        {userCreatedCommunities.map((cat) => {
-          const color = '#F5B731';
-          return (
-            <TouchableOpacity
-              key={cat.id || cat.slug}
-              style={[styles.communityChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-              onPress={() => handleCategoryPress({ communitySlug: cat.slug } as any)}
-              activeOpacity={0.7}
-            >
-              {cat.imageUrl ? (
-                <Image
-                  source={{ uri: cat.imageThumbnailUrl || cat.imageUrl }}
-                  style={styles.communityChipImage}
-                />
-              ) : (
-                <View style={[styles.communityChipIcon, { backgroundColor: color }]}>
-                  <Ionicons name={(cat.icon + '-outline') as any} size={scale(16)} color="white" />
-                </View>
-              )}
-              <View style={styles.communityChipText}>
-                <Text style={[styles.communityChipName, { color: theme.colors.text }]} numberOfLines={1}>
-                  {cat.name}
-                </Text>
-                <Text style={[styles.communityChipMembers, { color: theme.colors.textSecondary }]}>
-                  {cat.memberCount >= 1000 ? (cat.memberCount / 1000).toFixed(1) + 'K' : cat.memberCount} miembros
-                </Text>
-              </View>
-              {user && cat.id && (
-                joiningId === cat.id ? (
-                  <ActivityIndicator size="small" color={theme.colors.accent} />
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.communityChipJoin, {
-                      backgroundColor: isMember(cat.id) ? theme.colors.surface : theme.colors.accent,
-                      borderColor: isMember(cat.id) ? theme.colors.border : theme.colors.accent,
-                    }]}
-                    onPress={(e) => { e.stopPropagation?.(); handleToggleJoin(cat.id!); }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={isMember(cat.id) ? 'checkmark' : 'add'}
-                      size={scale(14)}
-                      color={isMember(cat.id) ? theme.colors.textSecondary : 'white'}
-                    />
-                  </TouchableOpacity>
-                )
-              )}
-            </TouchableOpacity>
-          );
-        })}
-        {/* Comunidades populares de ejemplo */}
-        {POPULAR_COMMUNITY_EXAMPLES.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[styles.communityChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-            onPress={() => handleCategoryPress(cat as any)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.communityChipIcon, { backgroundColor: cat.color }]}>
-              <Ionicons name={cat.icon as any} size={scale(16)} color="white" />
-            </View>
-            <View style={styles.communityChipText}>
-              <Text style={[styles.communityChipName, { color: theme.colors.text }]} numberOfLines={1}>
-                {cat.name}
-              </Text>
-              <Text style={[styles.communityChipMembers, { color: theme.colors.textSecondary }]}>
-                {cat.members >= 1000 ? (cat.members / 1000).toFixed(1) + 'K' : cat.members} miembros
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </>
-    );
-
-    return (
-      <View style={[styles.communityContainer, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.communityHeader}>
-          <View>
-            <Text style={[styles.categoriesTitle, { color: theme.colors.text }]}>
-              {t('home.popularCommunities')}
-            </Text>
-          </View>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('ExploreCommunities' as any)}>
-            <Text style={[styles.communityViewAll, { color: theme.colors.accent }]}>{t('home.seeAllOf')}</Text>
-          </TouchableOpacity>
-        </View>
-        {isWeb ? (
-          <View style={styles.communityGrid}>
-            {communityContent}
-          </View>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            nestedScrollEnabled
-            contentContainerStyle={styles.communityScrollContent}
-          >
-            {communityContent}
-          </ScrollView>
-        )}
-      </View>
-    );
-  };
+  /*
+   * Aquí vivían `renderCategories` y `renderCommunityCategories` (con sus
+   * categorías, estados y estilos): dos bloques de comunidades que NINGUNA vista
+   * montaba desde que el Home dejó de listarlas (docs/UX.md §16), pero cuyo hook
+   * seguía disparando tres lecturas sin límite de la colección `communities` en
+   * cada arranque. Código muerto con factura viva. Fuera los dos y fuera el hook.
+   */
 
   const CAROUSEL_INNER_WIDTH = SCREEN_WIDTH - SPACING.lg * 2;
 
@@ -1036,15 +755,19 @@ const LandingScreen: React.FC = () => {
       /* Lo que se ve del muro de una vez; sin esto la publicación tendría que estimarlo. */
       alturaVisible={alturaVisibleDelMuro || undefined}
     />
-  ), [visiblePostIds, handleVideoPress, alturaVisibleDelMuro]);
+  ), [visiblePostIds, handleVideoPress, alturaVisibleDelMuro, handleComment, handlePrivateMessage, handlePostPress]);
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
-      </View>
-    );
-  }
+  /*
+   * LA PORTADA NO ESPERA AL MURO. Antes, mientras llegaba la primera tanda, la
+   * pantalla entera era una rueda: ni cabecera, ni saludo, ni fila de Weëls.
+   * Ahora la cáscara se pinta al instante y la rueda gira solo donde va a
+   * aparecer el muro, que es lo único que de verdad está viajando.
+   */
+  const ruedaDelMuro = loading ? (
+    <View style={styles.loadingContainer} accessibilityRole="progressbar" accessibilityLabel={t('common.loading')}>
+      <ActivityIndicator size="large" color={theme.colors.accent} />
+    </View>
+  ) : null;
 
   return (
     <Animated.View
@@ -1090,7 +813,9 @@ const LandingScreen: React.FC = () => {
           }}
         >
           {listHeader}
-          {feedPosts.map((item, index) => (
+          {/* Las mismas publicaciones que la lista nativa: las de las secciones puestas, no el muro entero. */}
+          {ruedaDelMuro}
+          {filteredFeedPosts.map((item, index) => (
             <View key={item.id || index}>
               {renderPostItem({ item, index })}
             </View>
@@ -1117,6 +842,16 @@ const LandingScreen: React.FC = () => {
           renderItem={renderPostItem}
           keyExtractor={(item: Post) => item.id || Math.random().toString()}
           ListHeaderComponent={listHeader}
+          ListEmptyComponent={ruedaDelMuro}
+          /*
+           * Cuánto se pinta de golpe y cuánto se guarda alrededor de lo visible.
+           * Una publicación del muro es alta —foto o vídeo a lo ancho—, así que
+           * bastan pocas por tanda; la ventana de siete pantallas evita huecos
+           * en blanco al desplazarse deprisa sin tener medio muro montado.
+           */
+          initialNumToRender={6}
+          maxToRenderPerBatch={4}
+          windowSize={7}
           ListFooterComponent={loadingMore ? (
             <View style={styles.loadingMore}>
               <ActivityIndicator size="small" color={theme.colors.accent} />
@@ -1222,8 +957,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  /* La rueda del muro mientras llega la primera tanda: ocupa el sitio del muro, no la pantalla. */
   loadingContainer: {
-    flex: 1,
+    minHeight: scale(220),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1282,151 +1018,6 @@ const styles = StyleSheet.create({
     fontSize: scale(12),
     color: 'rgba(255,255,255,0.85)',
     letterSpacing: scale(0.5),
-  },
-
-  // Categories
-  categoriesContainer: {
-    marginTop: SPACING.lg,
-    paddingVertical: SPACING.lg,
-    overflow: 'hidden',
-  },
-  categoriesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.sm,
-  },
-  categoriesTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  categoriesScrollContent: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-    justifyContent: 'center',
-  },
-  showMoreButton: {
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    marginTop: SPACING.sm,
-  },
-  showMoreButtonText: {
-    fontSize: FONT_SIZE.base,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-  categoryRowGap: {
-    marginTop: SPACING.sm,
-  },
-  categoryItem: {
-    width: scale(94),
-    height: scale(90),
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.sm,
-  },
-  categoryIcon: {
-    width: scale(43),
-    height: scale(43),
-    borderRadius: scale(13),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  categoryName: {
-    fontSize: scale(10),
-    fontWeight: FONT_WEIGHT.medium,
-    textAlign: 'center',
-    lineHeight: scale(13),
-  },
-  customCategoryIcon: {
-    width: scale(43),
-    height: scale(43),
-    borderRadius: scale(13),
-  },
-  categoryEmoji: {
-    fontSize: scale(24),
-    lineHeight: scale(30),
-  },
-
-  // Community Categories
-  communityContainer: {
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.md,
-  },
-  communityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.sm,
-  },
-  communitySubtitle: {
-    fontSize: scale(12),
-    marginTop: 2,
-  },
-  communityViewAll: {
-    fontSize: scale(13),
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-  communityScrollContent: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  communityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-    justifyContent: 'center',
-  },
-  communityChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
-    gap: SPACING.sm,
-  },
-  communityChipIcon: {
-    width: scale(30),
-    height: scale(30),
-    borderRadius: scale(15),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  communityChipImage: {
-    width: scale(30),
-    height: scale(30),
-    borderRadius: scale(15),
-  },
-  communityChipText: {
-    marginRight: SPACING.xs,
-  },
-  communityChipName: {
-    fontSize: scale(12),
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-  communityChipMembers: {
-    fontSize: scale(10),
-  },
-  communityChipJoin: {
-    width: scale(24),
-    height: scale(24),
-    borderRadius: scale(12),
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    marginLeft: SPACING.xs,
   },
 
   // Carousel shared

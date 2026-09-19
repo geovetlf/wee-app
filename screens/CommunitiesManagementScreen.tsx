@@ -434,7 +434,9 @@ const CommunitiesManagementScreen: React.FC = () => {
                   setShowCreateModal(false);
                   handleRefresh();
                 } catch (e: any) {
-                  Alert.alert(t('common.error'), e.message || t('communities.createFailed'));
+                  /* El error técnico va al registro; la persona ve una frase de Weë. */
+                  console.error('Error creando la comunidad:', e);
+                  Alert.alert(t('common.error'), t('communities.createFailed'));
                 }
                 setCreating(false);
               }}

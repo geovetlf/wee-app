@@ -41,7 +41,7 @@ export const profile = {
   signOutFailed: 'No se pudo cerrar sesión',
   noSession: 'No hay sesión activa',
   /* `{{motivo}}` lo escribe quien falló —el almacén, la red—: se enseña crudo. */
-  avatarUpdateFailed: 'No se pudo actualizar el avatar: {{motivo}}',
+  avatarUpdateFailed: 'No se pudo actualizar el avatar. Inténtalo de nuevo.',
   imageUrlMissing: 'No se recibió URL de imagen',
 
   /* ── Compartir el perfil. El nombre entra por hueco. ─────────────────── */

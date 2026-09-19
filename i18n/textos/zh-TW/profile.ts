@@ -34,7 +34,7 @@ export const profile: typeof import('../es/profile').profile = {
   updateFailed: '無法更新個人檔案',
   signOutFailed: '無法登出',
   noSession: '目前沒有登入的帳號',
-  avatarUpdateFailed: '無法更新頭像：{{motivo}}',
+  avatarUpdateFailed: '無法更新頭像。請再試一次。',
   imageUrlMissing: '沒有收到圖片 URL',
 
   shareMessage: '來 Weë 看看 {{nombre}} 的個人檔案',

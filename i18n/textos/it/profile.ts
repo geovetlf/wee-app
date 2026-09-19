@@ -25,7 +25,7 @@ export const profile: typeof import('../es/profile').profile = {
   updateFailed: 'Non è stato possibile aggiornare il profilo',
   signOutFailed: 'Non è stato possibile uscire',
   noSession: 'Nessuna sessione attiva',
-  avatarUpdateFailed: 'Non è stato possibile aggiornare l’avatar: {{motivo}}',
+  avatarUpdateFailed: 'Non è stato possibile aggiornare l’avatar. Riprova.',
   imageUrlMissing: 'Non è stato ricevuto nessun URL dell’immagine',
 
   shareMessage: 'Guarda il profilo di {{nombre}} su Weë',

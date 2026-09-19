@@ -29,7 +29,7 @@ export const profile: typeof import('../es/profile').profile = {
   updateFailed: '没能更新主页',
   signOutFailed: '没能退出登录',
   noSession: '当前没有登录的账号',
-  avatarUpdateFailed: '没能更新头像：{{motivo}}',
+  avatarUpdateFailed: '无法更新头像。请再试一次。',
   imageUrlMissing: '没有收到图片 URL',
 
   shareMessage: '来 Weë 看看 {{nombre}} 的主页',

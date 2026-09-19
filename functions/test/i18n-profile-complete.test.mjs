@@ -120,7 +120,8 @@ console.log('\n── C · Las siete alertas ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const alertas = PERFIL.match(/Alert\.alert\([^;]*\);/g) || [];
-  check('10) hay siete, ni una más', alertas.length === 7, String(alertas.length));
+  /* Seis con `Alert.alert` y una —la del avatar— con `notify`, que también se ve en web. */
+  check('10) hay siete, ni una más', alertas.length === 6 && (PERFIL.match(/notify\(t\('common\.error'\), t\('profile\.avatarUpdateFailed'\)\)/g) || []).length === 1, String(alertas.length));
   check('10) y ninguna lleva una frase escrita a mano',
     alertas.every((a) => !/'[^']*[a-záéíóúñ]{4,}[^']*'/.test(a.replace(/t\('[^']*'/g, 't('))),
     alertas.filter((a) => /'[^']*[a-záéíóúñ]{4,}[^']*'/.test(a.replace(/t\('[^']*'/g, 't('))).join(' · '));
@@ -133,18 +134,21 @@ console.log('\n── C · Las siete alertas ──');
   check('16) el permiso de la galería', /Alert\.alert\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL));
 
   /*
-   * 17 · EL AVATAR. El motivo lo escribe quien falló —el almacén, la red— y se
-   * enseña tal cual; solo el respaldo sale del diccionario. Y el único motivo
-   * que escribe Weë, la URL que no llega, también está traducido.
+   * 17 · EL AVATAR. El motivo técnico —el almacén, la red— va al registro; la
+   * persona ve una frase entera de Weë, también en web (`notify`, porque en
+   * React Native Web `Alert.alert` no enseña nada). Y el único motivo que
+   * escribe Weë, la URL que no llega, también está traducido. (Cierre de F11:
+   * antes el motivo crudo viajaba por `{{motivo}}` hasta la pantalla.)
    */
-  check('17) el avatar que no sube, con el motivo por hueco',
-    /Alert\.alert\(t\('common\.error'\), t\('profile\.avatarUpdateFailed', \{ motivo: error\?\.message \|\| t\('composer\.unknownError'\) \}\)\)/.test(PERFIL));
+  check('17) el avatar que no sube avisa con una frase de Weë, también en web',
+    /notify\(t\('common\.error'\), t\('profile\.avatarUpdateFailed'\)\)/.test(PERFIL)
+    && !/avatarUpdateFailed', \{ motivo/.test(PERFIL) && !/composer\.unknownError/.test(PERFIL));
   check('17) y el único motivo que escribe Weë está traducido',
     /throw new Error\(t\('profile\.imageUrlMissing'\)\)/.test(PERFIL) && !/No se recibió URL de imagen/.test(PERFIL));
-  check('17) el hueco existe en los dos idiomas',
-    /\{\{motivo\}\}/.test(esT.profile.avatarUpdateFailed) && /\{\{motivo\}\}/.test(enT.profile.avatarUpdateFailed));
-  check('18) y con un motivo real queda una frase entera — ' + EN('profile.avatarUpdateFailed', { motivo: 'storage/unauthorized' }),
-    EN('profile.avatarUpdateFailed', { motivo: 'storage/unauthorized' }) === 'The avatar could not be updated: storage/unauthorized');
+  check('17) sin hueco en ningún idioma',
+    !/\{\{/.test(esT.profile.avatarUpdateFailed) && !/\{\{/.test(enT.profile.avatarUpdateFailed));
+  check('18) y es una frase entera — ' + EN('profile.avatarUpdateFailed'),
+    EN('profile.avatarUpdateFailed') === 'The avatar could not be updated. Please try again.');
 }
 
 // ════════════════════════════════════════════════════════════════════════════

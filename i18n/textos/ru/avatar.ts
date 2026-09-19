@@ -20,6 +20,6 @@ export const avatar: typeof import('../es/avatar').avatar = {
   processing: 'Обработка изображения...',
   galleryPermission: 'Нужен доступ к галерее, чтобы выбрать фото',
   cameraPermission: 'Нужен доступ к камере, чтобы сделать фото',
-  pickFailed: 'Не удалось выбрать изображение: {{motivo}}',
+  pickFailed: 'Не удалось выбрать изображение. Попробуйте ещё раз.',
   photoFailed: 'Не удалось сделать фото',
 };

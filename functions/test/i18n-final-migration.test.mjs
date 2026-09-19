@@ -109,7 +109,12 @@ console.log('\n── A · El alta, entera ──');
     check('4) ' + codigo + ' → ' + clave,
       new RegExp(`case '${codigo.replace(/\//g, '\\/')}':\\s*\\n\\s*errorMessage = t\\('${clave.replace('.', '\\.')}'\\);`).test(ALTA));
   }
-  check('4) y el mensaje del proveedor se enseña tal cual', /default:\s*\n\s*errorMessage = error\.message;/.test(ALTA));
+  /* El detalle técnico del proveedor va al registro; la persona ve la frase genérica de Weë (cierre de F11). */
+  /* `soloCodigo` quita los `console.*`; el aviso al registro se busca en el fuente crudo. */
+  check('4) y el mensaje técnico del proveedor no se enseña: al registro y frase de Weë',
+    /default:\s*\n\s*errorMessage = t\('auth\.signUpFailed'\);/.test(ALTA)
+    && !/errorMessage = error\.message/.test(ALTA) && !/notify\([^\n]*error\.message\)/.test(ALTA)
+    && /console\.warn\('Alta fallida:', error\?\.code \|\| error\);/.test(leer('screens/RegisterScreen.tsx')));
   check('4) los códigos siguen siendo identificadores, no frases', /'auth\/email-already-in-use'/.test(ALTA));
 
   /* 5 · Lo que reutiliza en vez de copiar. */
@@ -161,11 +166,12 @@ console.log('\n── C · El selector de avatar, el mismo en cuatro pantallas �
   check('15) lo abren tres pantallas, y por eso el texto vive en su módulo',
     QUIENES.every((p) => /AvatarPicker/.test(leer(p))) && !!esT.avatar && !!enT.avatar);
 
-  check('16) las dos alertas piden clave', /Alert\.alert\(t\('common\.error'\), t\('avatar\.pickFailed'/.test(AVATAR)
+  check('16) las dos alertas piden clave', /Alert\.alert\(t\('common\.error'\), t\('avatar\.pickFailed'\)\)/.test(AVATAR)
     && /Alert\.alert\(t\('common\.error'\), t\('avatar\.photoFailed'\)\)/.test(AVATAR));
-  check('16) y el motivo del sistema entra por hueco y sale crudo',
-    /\{ motivo: error\?\.message \|\| String\(error\) \}/.test(AVATAR)
-    && /\{\{motivo\}\}/.test(esT.avatar.pickFailed) && /\{\{motivo\}\}/.test(enT.avatar.pickFailed));
+  /* El motivo técnico va al registro (`console.error`), no a la persona: cierre de F11. */
+  check('16) y el motivo del sistema queda en el registro, no en la frase',
+    !/motivo: error\?\.message/.test(AVATAR) && /console\.error\('Error picking image:', error\)/.test(leer('components/avatars/AvatarPicker.tsx'))
+    && !/\{\{/.test(esT.avatar.pickFailed) && !/\{\{/.test(enT.avatar.pickFailed));
   check('17) los dos permisos reutilizan composer.permissionsNeeded',
     (AVATAR.match(/Alert\.alert\(t\('composer\.permissionsNeeded'\)/g) || []).length === 2
     && !('permissionsNeeded' in esT.avatar));

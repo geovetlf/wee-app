@@ -56,4 +56,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   ephemeralOn: '閱後即焚模式已開啟 · 離開後訊息會刪除',
   cameraNeeded: '需要相機存取權限',
   allow: '允許',
+  recordAudio: '錄製語音',
+  viewOnceOn: '僅查看一次',
+  keepInChat: '保留在聊天中',
 };
