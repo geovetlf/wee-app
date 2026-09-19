@@ -49,6 +49,7 @@ export type NombreDeIcono =
   | 'weetalk'
   | 'cerebro'
   | 'carpeta'
+  | 'galeria'
   | 'marcador'
   | 'engranaje'
   | 'ayuda'
@@ -151,6 +152,12 @@ export const TRAZOS: Record<NombreDeIcono, string> = {
   /* Una carpeta con su pestaña. */
   carpeta:
     '<path d="M2.9 7.1a2 2 0 0 1 2-2h3.6l2.1 2.4h8.5a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2H4.9a2 2 0 0 1-2-2z"/>',
+
+  /* Un marco con un sol y una montaña: la galería de lo creado. */
+  galeria:
+    '<rect x="3.2" y="4.6" width="17.6" height="14.8" rx="2"/>'
+    + '<circle cx="8.4" cy="9.4" r="1.5"/>'
+    + '<path d="M3.6 17.4l4.9-4.6 3.3 3.1 3.4-3.6 5.4 5.1"/>',
 
   /* Un marcador de página. */
   marcador:

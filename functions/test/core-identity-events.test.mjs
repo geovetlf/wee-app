@@ -183,8 +183,9 @@ console.log('\n── D · PROPIEDAD ≠ ATRIBUCIÓN (el corazón de la fase) �
   check('20) un material ya NO pertenece a un "userId"',
     !/^\s*userId: string;/m.test(FUENTE_PROJECT),
     'userId era la cara activa: cambiar de perfil cambiaba de dueño');
+  /* El material se mudó a `core/content/asset.ts` en la Fase 11; el proyecto se quedó. */
   check('21) un material pertenece a la CUENTA, y el proyecto también',
-    /export interface Asset extends OwnedByAccount/.test(FUENTE_PROJECT)
+    /export interface Asset extends OwnedByAccount/.test(sinComentarios(leer('functions/src/core/content/asset.ts')))
     && /export interface Project extends OwnerRef, EntityAttribution/.test(FUENTE_PROJECT));
 
   const material = {

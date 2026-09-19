@@ -171,6 +171,41 @@ console.log('\n── Fronteras de autorización ──');
 
   check('el callable que autoriza Credits sin liquidarlos está marcado como no habilitado',
     /NO HABILITADO COMO RUTA DE PRODUCTO/.test(read('functions/src/credits/index.ts')));
+
+  /* ── Fase 11: lo generado es de su dueño ──────────────────────────────── */
+  const storage = read('storage.rules');
+  check('lo que Weë genera lo lee solo su dueño, como lo que sube',
+    /match \/users\/\{userId\}\/ai-generations\/\{fileName\} \{\s*\n\s*allow read: if request\.auth != null && request\.auth\.uid == userId;/.test(storage),
+    'antes era `allow read: if true`: público para quien adivinara la ruta');
+  check('la ficha de un material la lee su dueño y la escribe solo el servidor',
+    /match \/assets\/\{assetId\} \{\s*\n\s*allow read: if isAuthenticated\(\) && resource\.data\.ownerAccountId == request\.auth\.uid;\s*\n\s*allow create, update, delete: if false;/.test(reglas));
+  check('y existe la forma de borrarlo: el callable que comprueba que es tuyo antes de borrar el objeto',
+    /export \{ deleteAsset \} from '\.\/content';/.test(read('functions/src/index.ts'))
+    && /materialEsDeLaCuenta\(doc, accountId\)/.test(read('functions/src/content/index.ts')));
+  check('un proyecto no se puede regalar: el dueño no cambia en un update',
+    /request\.resource\.data\.userId == resource\.data\.userId;/.test(reglas));
+  check('el servidor deriva el dueño del material de la SESIÓN, nunca del cliente',
+    /ownerAccountId: uid,/.test(read('functions/src/creator/index.ts'))
+    && /ownerAccountId: uid,/.test(read('functions/src/creator/video.ts'))
+    && !/ownerAccountId: (data|request\.data)/.test(read('functions/src/creator/index.ts') + read('functions/src/creator/video.ts') + read('functions/src/content/index.ts')));
+  /* C10: la segunda puerta a Cloudinary pasa por el mismo límite que la primera. */
+  check('la subida de blobs en memoria pasa por el límite de tamaño y tipo',
+    /blobSinMetadatos\(comprobarBlob\(blob, 'image'\)\)/.test(read('services/cloudinaryService.ts')));
+  /* C11: ninguna barra de progreso inventada. */
+  check('nadie fabrica porcentajes de subida: fetch no los da',
+    !/onProgress\?\.\((5|90|100)\)/.test(read('services/cloudinaryService.ts'))
+    && !/bytesTransferred: pct/.test(read('services/storageService.ts'))
+    && !/uploadProgressFill/.test(read('screens/CreateScreen.tsx')));
+  /* C3: la foto única de WeeTalk se puede borrar y la borra el servidor. */
+  check('la foto única de WeeTalk vive en una ruta que solo leen los participantes',
+    /match \/users\/\{userId\}\/weetalk\/\{conversationId\}\/\{fileName\} \{\s*\n\s*allow read: if request\.auth != null\s*\n\s*&& \(request\.auth\.uid == userId \|\| participaEn\(conversationId\)\);/.test(storage)
+    && /let conversacion = \/databases\/\(default\)\/documents\/conversations\/\$\(conversationId\);/.test(storage)
+    && /firestore\.exists\(conversacion\)\s*\n\s*&& \(request\.auth\.uid in firestore\.get\(conversacion\)\.data\.participants/.test(storage));
+  check('y la quema el servidor comprobando la sesión: participante y no remitente',
+    /export \{ burnViewOnce \} from '\.\/social\/weetalk';/.test(read('functions/src/index.ts'))
+    && /quemar\(request\.auth\.uid, conversationId, messageId\)/.test(read('functions/src/social/weetalk.ts'))
+    && /throw new FotoNoQuemable\('es_tuya'\)/.test(read('functions/src/social/weetalk.ts'))
+    && /throw new FotoNoQuemable\('no_participas'\)/.test(read('functions/src/social/weetalk.ts')));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) de seguridad fallaron` : '\nSeguridad: ningún secreto sale de las Functions');

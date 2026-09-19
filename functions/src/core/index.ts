@@ -36,6 +36,7 @@ export * from './cost';
 export * from './workflow';
 export * from './workplace';
 export * from './provider';
+export * from './content';
 export * from './project';
 export * from './observability';
 export * from './registry';

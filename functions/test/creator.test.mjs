@@ -1034,19 +1034,21 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
   const crear = leer('screens/CreateScreen.tsx');
 
   // 1) El conducto existe y no es de una sola sección.
-  check('1) el prefill admite material visual', /media\?: \{ type: 'image' \| 'video'; uri: string; aspectRatio\?: number \}\[\]/.test(rutas));
+  // Desde la Fase 11 el material puede viajar ya convertido en Asset (assetId):
+  // el compositor lo referencia en vez de volver a subirlo.
+  check('1) el prefill admite material visual', /media\?: \{ type: 'image' \| 'video'; uri: string; aspectRatio\?: number; assetId\?: string \}\[\]/.test(rutas));
   check('1) y sirve para imagen y para video, no solo para Design', /'image' \| 'video'/.test(rutas));
 
   // 2) Se publica exactamente la propuesta elegida.
-  check('2) la tarjeta calcula cuál está elegida', /const publicable = \(\) => \{|const publicable = \(\(\) => \{/.test(tarjeta));
-  check('2) usando el índice elegido, no el primero', /const cual = chosen\[visual\.stepId\] \?\? 0;/.test(tarjeta) && /visual\.urls\[cual\]/.test(tarjeta));
+  check('2) la tarjeta calcula cuál está elegida', /const publicable: PublicableMedia \| undefined = \(\(\) => \{/.test(tarjeta));
+  check('2) usando el índice elegido, no el primero', /const cual = chosen\[visual\.stepId\] \?\? 0;/.test(tarjeta) && /visual\.urls!?\[cual\]/.test(tarjeta));
   check('2) y se la pasa al pulsar publicar', /onPress=\{\(\) => onPublish\(publicable\)\}/.test(tarjeta));
-  check('2) el que publica recibe la dirección', /onPublish: \(mediaUri\?: string\) => void;/.test(tarjeta));
+  check('2) el que publica recibe la dirección, su tipo y su id de material', /onPublish: \(media\?: PublicableMedia\) => void;/.test(tarjeta) && /export interface PublicableMedia \{\s*uri: string;\s*type: 'image' \| 'video';\s*assetId\?: string;\s*\}/.test(tarjeta));
 
   // 3) La pantalla de crear llega con la imagen puesta.
   check('3) se siembra desde el prefill', /useState<MediaItem\[\]>\(\(\) =>[\s\S]{0,120}routeParams\.prefill\?\.media \|\| \[\]/.test(crear));
   check('3) sin prefill sigue arrancando vacía', /\(routeParams\.prefill\?\.media \|\| \[\]\)\.map/.test(crear));
-  check('3) y entra en modo imagen para que se vea qué se publica', /kind: mediaUri \? 'image' : 'post'/.test(flujo));
+  check('3) y entra en modo imagen o video para que se vea qué se publica', /kind: media \? media\.type : 'post'/.test(flujo));
 
   // 4 y 5) La tubería de siempre no se ha tocado.
   check('4) la subida sigue siendo la misma para cualquier imagen', /const response = await fetch\(media\.uri\);/.test(crear) && /await uploadPostImage\(/.test(crear));
@@ -1056,8 +1058,13 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
   // 6 y 7) Design publica la elegida; Chef, solo su resultado.
   check('6) la imagen sale de los resultados del trabajo', /const visual = visuals\.find/.test(tarjeta));
   check('7) nunca se publica la foto que trajo la persona', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const aconsejo'))));
-  check('7) ni un video por ahora', /r\.kind !== 'video'/.test(tarjeta));
-  check('7) ni una vista previa de demo, que no es un archivo', /return isRealMedia\(url\) \? url : undefined;/.test(tarjeta));
+  // Fase 11 (C7): el video también se publica, con su tipo. El filtro que lo
+  // excluía ya no existe en el código (solo queda citado en un comentario).
+  {
+    const sinComentarios = tarjeta.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    check('7) y el video también se publica, con su tipo', !/r\.kind !== 'video'/.test(sinComentarios) && /type: visual\.kind === 'video' \? 'video' : 'image'/.test(tarjeta));
+  }
+  check('7) ni una vista previa de demo, que no es un archivo', /if \(!isRealMedia\(url\)\) return undefined;/.test(tarjeta));
 
   // 8 y 9) Publicar no crea nada ni cobra nada.
   {
@@ -1644,7 +1651,7 @@ console.log('\n── Hogar & Diseño · seis caminos, una foto, un antes y un d
     check('7) el "después" es la propuesta elegida', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
     check('7) y el "antes", la foto que trajo la persona', /uri: beforeImageUri \}\} style=\{styles\.pairImage\}/.test(tarjeta));
     check('7) las dos propuestas siguen ahí y se pueden elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
-    check('7) y se publica la elegida, nunca la foto de la persona', /const url = visual\.urls && visual\.urls\.length > 1 \? visual\.urls\[cual\] : visual\.url;/.test(tarjeta));
+    check('7) y se publica la elegida, nunca la foto de la persona', /const varias = !!visual\.urls && visual\.urls\.length > 1;/.test(tarjeta) && /const url = varias \? visual\.urls!\[cual\] : visual\.url;/.test(tarjeta));
   }
 
   // 8) Sin recortar lo que se prometió conservar.
@@ -1782,8 +1789,11 @@ console.log('\n── Hogar & Diseño · el antes se recupera del trabajo ──
   const exprEsEspacio = (tarjeta.match(/const esEspacio = \(stepId: string\): boolean =>\s*([\s\S]*?);\n/) || [])[1];
   const exprTransforma = (tarjeta.match(/const transformaTuFoto = \(stepId: string\): boolean =>\s*([\s\S]*?);\n/) || [])[1];
   const transforma = new Function('stepId', 'beforeImageUri', 'job', `const esEspacio = (stepId) => (${exprEsEspacio}); return (${exprTransforma});`);
-  const exprElegida = (tarjeta.match(/const url = (visual\.urls && visual\.urls\.length > 1 \? visual\.urls\[cual\] : visual\.url);/) || [])[1];
-  const elegidaDe = new Function('visual', 'cual', `return (${exprElegida});`);
+  // Desde la Fase 11 la elección va en dos pasos (`varias` decide, `url` elige)
+  // y el `!` de TypeScript se quita para poder ejecutar la expresión aquí.
+  const exprVarias = (tarjeta.match(/const varias = (!!visual\.urls && visual\.urls\.length > 1);/) || [])[1];
+  const exprElegida = ((tarjeta.match(/const url = (varias \? visual\.urls!\[cual\] : visual\.url);/) || [])[1] || '').replace('urls!', 'urls');
+  const elegidaDe = new Function('visual', 'cual', `const varias = (${exprVarias}); return (${exprElegida});`);
 
   const ORIGINAL = 'https://storage/users/u1/creator-inputs/original.jpg';
   const R1 = 'https://storage/users/u1/ai-generations/r1.png';
@@ -1813,7 +1823,7 @@ console.log('\n── Hogar & Diseño · el antes se recupera del trabajo ──
   // F y L) La foto de la persona sigue sin poder publicarse.
   check('F) lo publicable sale de los resultados, nunca del antes', !/beforeImageUri/.test(tarjeta.slice(tarjeta.indexOf('const publicable'), tarjeta.indexOf('const aconsejo'))));
   check('F) y es la propuesta elegida', elegidaDe(visual, 1) === R2 && /aiTools: \[nombre\],/.test(flujo));
-  check('L) el camino de publicar no cambió', /navigation\.navigate\('Create'/.test(flujo) && /kind: mediaUri \? 'image' : 'post'/.test(flujo));
+  check('L) el camino de publicar no cambió', /navigation\.navigate\('Create'/.test(flujo) && /kind: media \? media\.type : 'post'/.test(flujo));
 
   // G, H, I y J) Cuándo NO hay antes/después.
   check('G) un trabajo sin foto no inventa ninguna', antesDe(true, undefined, { plan: null }) === undefined);
@@ -2051,13 +2061,16 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
 
   // 1) Hay una fuente única y las dos la leen.
   /*
-   * Todas las opciones declaradas salen en el menú, menos "Mis proyectos", que
-   * vive dentro de Weë Creator. Se comprueba la regla y no un número, para que
-   * añadir una opción no obligue a tocar la prueba.
+   * Todas las opciones declaradas salen en el menú, menos las que viven dentro
+   * de Weë Creator: "Mis proyectos" y, desde la Fase 11, "Mis creaciones". Se
+   * comprueba la regla y no un número, para que añadir una opción no obligue a
+   * tocar la prueba.
    */
+  const anidadas = ['projects', 'creations'];
   const declaradas = Object.keys(menu.MENU_ITEM).length;
-  check('M1) existe una sola fuente del menú', menu.MENU_ORDER.length === declaradas - 1 && !!menu.MENU_ITEM.credits, `${menu.MENU_ORDER.length} de ${declaradas}: ${menu.MENU_ORDER.join(',')}`);
+  check('M1) existe una sola fuente del menú', menu.MENU_ORDER.length === declaradas - anidadas.length && !!menu.MENU_ITEM.credits, `${menu.MENU_ORDER.length} de ${declaradas}: ${menu.MENU_ORDER.join(',')}`);
   check('M1) y "Mis proyectos" está en ella, dentro de Weë Creator', !!menu.MENU_ITEM.projects && !menu.MENU_ORDER.includes('projects'));
+  check('M1) y "Mis creaciones" también, dentro de Weë Creator', !!menu.MENU_ITEM.creations && !menu.MENU_ORDER.includes('creations') && menu.MENU_ITEM.creations.clave === 'creaciones.title');
   check('M1) el cajón la lee', /from '\.\.\/constants\/weeMenu'/.test(cajon));
   check('M1) y la barra de escritorio también', /from '\.\.\/constants\/weeMenu'/.test(barra));
 

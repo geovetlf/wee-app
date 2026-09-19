@@ -13,6 +13,7 @@ import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
 import { operacionAbandonada } from '../core';
+import { crearMaterialDesdeUrl } from '../content';
 
 /**
  * Lo que puede durar esta función, de donde salen los demás plazos.
@@ -152,12 +153,41 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     try {
       const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: usageTransactionId(requestId), deadlineAt });
       await getFirestore().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
+      /*
+       * EL VÍDEO PASA A SER MATERIAL DE LA CUENTA. Antes, un vídeo de Weë Studio
+       * existía en Storage y en `aiGenerations.videoUrl` y en ningún otro
+       * sitio: sin trabajo, sin proyecto, sin pantalla que lo listara. Ahora
+       * tiene ficha, dueño y procedencia, y aparece en «Mis creaciones». Si la
+       * ficha no se puede crear, el vídeo se devuelve igual: catalogar no puede
+       * costarle a la persona lo que ya pagó.
+       */
+      let assetId: string | null = null;
+      if (!result.demo) {
+        try {
+          const material = await crearMaterialDesdeUrl({
+            ownerAccountId: uid,
+            url: result.output.url ?? '',
+            kind: 'video',
+            durationSec: result.output.durationSec,
+            provenance: {
+              createdAt: Date.now(),
+              generationId: result.generationId,
+              requestId,
+              provider: result.provider,
+              model: result.modelId,
+            },
+          });
+          assetId = material?.assetId ?? null;
+        } catch (error) {
+          console.error('Content: no se pudo crear el material del vídeo', requestId, error);
+        }
+      }
       await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
       // El desenlace ya se conoce: se liquida el libro con lo capturado.
       await firestoreLedger
         .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: spend.amount })
         .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
-      return { generationId: result.generationId, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
+      return { generationId: result.generationId, assetId, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
     } catch (error) {
       // FAILED → reembolso exacto e idempotente
       await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' }).catch((refundError) => {

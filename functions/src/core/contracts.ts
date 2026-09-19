@@ -104,6 +104,18 @@ export const IDENTITY_CONTRACT_VERSION = '1.0' as const;
  */
 export const EVENTS_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * Forma del material, el contenido y la publicación: tres cosas que hoy son un
+ * solo documento y que a partir de aquí se separan.
+ *
+ * 1.0 declara la forma y sus invariantes. El material referencia su almacén
+ * —nunca una URL como identidad—, tiene dueño (la cuenta) y ciclo de vida
+ * propio; el contenido referencia materiales por id; la publicación referencia
+ * un contenido y dice desde qué cara, dónde y para quién. Los bytes se guardan
+ * una vez.
+ */
+export const CONTENT_CORE_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**

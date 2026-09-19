@@ -28,7 +28,7 @@ import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { messagesService, Message, Conversation, ParticipantData } from '../services/messagesService';
-import { uploadMessageImageFromUri } from '../services/storageService';
+import { uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
 import { cloudinaryThumb } from '../services/cloudinaryService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import ChatCamera from '../components/ChatCamera';
@@ -216,7 +216,8 @@ const ConversationScreen = () => {
     setPreviewViewOnce(false);
     setSending(true);
     try {
-      const url = await uploadMessageImageFromUri(uri, myUid);
+      /* La foto única va al Storage de Weë, donde se puede borrar; la normal, por el camino de siempre. */
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       Alert.alert(t('common.error'), t('weetalk.imageFailed'));
@@ -323,7 +324,8 @@ const ConversationScreen = () => {
     if (!convId || !myUid) return;
     setSending(true);
     try {
-      const url = await uploadMessageImageFromUri(uri, myUid);
+      /* La foto única va al Storage de Weë, donde se puede borrar; la normal, por el camino de siempre. */
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       Alert.alert(t('common.error'), t('weetalk.imageFailed'));
@@ -331,12 +333,27 @@ const ConversationScreen = () => {
     setSending(false);
   }, [convId, myUid]);
 
-  // ─── View once: open and mark as seen ───
-  const openViewOnce = useCallback(async (msg: Message) => {
+  /*
+   * ─── Foto única: abrirla es quemarla ───
+   *
+   * Se enseña, y SOLO cuando ya está cargada en pantalla se pide al servidor
+   * que la queme (`burnViewOnce`: quita la dirección del mensaje y borra el
+   * archivo). Pedirlo antes dejaría la foto sin cargar y borrada; si la app
+   * se cierra antes de que cargue, la foto sigue sin abrir y se podrá ver
+   * después, que es lo correcto: nadie la ha visto todavía (Fase 11, C3).
+   */
+  const [pendienteDeQuemar, setPendienteDeQuemar] = useState<string | null>(null);
+  const openViewOnce = useCallback((msg: Message) => {
     if (!msg.imageUrl || !msg.id || !convId) return;
+    setPendienteDeQuemar(msg.id);
     setViewOnceImage(msg.imageUrl);
-    await messagesService.markViewOnceOpened(convId, msg.id);
   }, [convId]);
+  const quemarSiToca = useCallback(() => {
+    if (!pendienteDeQuemar || !convId) return;
+    const id = pendienteDeQuemar;
+    setPendienteDeQuemar(null);
+    messagesService.markViewOnceOpened(convId, id);
+  }, [pendienteDeQuemar, convId]);
 
   // ─── Time helpers ───
   const fmtTime = (ts: any) => {
@@ -418,18 +435,23 @@ const ConversationScreen = () => {
                   <Ionicons name="eye-off" size={10} color="#fff" />
                 </View>
               )}
-              {item.type === 'image' && item.imageUrl && item.viewOnce ? (
-                item.viewOnceOpened && !mine ? (
-                  <View style={styles.viewOnceOpened}>
-                    <Ionicons name="eye-off-outline" size={20} color={metaColor} />
-                    <Text style={[styles.viewOnceText, { color: metaColor }]}>{t('weetalk.photoSeen')}</Text>
-                  </View>
-                ) : mine ? (
+              {item.type === 'image' && item.viewOnce ? (
+                /*
+                 * Una foto única quemada ya no tiene dirección: el servidor se
+                 * la quitó al abrirse. Sin dirección = vista, aunque el
+                 * mensaje sea antiguo y no traiga la marca (Fase 11, C3).
+                 */
+                mine ? (
                   <View style={styles.viewOnceSender}>
                     <Ionicons name="eye-off" size={20} color={metaColor} />
                     <Text style={[styles.viewOnceText, { color: metaColor }]}>
-                      {item.viewOnceOpened ? 'Abierta' : 'Foto única'}
+                      {item.viewOnceOpened || !item.imageUrl ? t('weetalk.photoOpened') : t('weetalk.photoOnce')}
                     </Text>
+                  </View>
+                ) : item.viewOnceOpened || !item.imageUrl ? (
+                  <View style={styles.viewOnceOpened}>
+                    <Ionicons name="eye-off-outline" size={20} color={metaColor} />
+                    <Text style={[styles.viewOnceText, { color: metaColor }]}>{t('weetalk.photoSeen')}</Text>
                   </View>
                 ) : (
                   <TouchableOpacity style={styles.viewOnceTap} onPress={() => openViewOnce(item)}>
@@ -782,7 +804,7 @@ const ConversationScreen = () => {
         <StatusBar barStyle="light-content" backgroundColor="#000" />
         <TouchableOpacity style={styles.viewOnceModal} activeOpacity={1} onPress={() => setViewOnceImage(null)}>
           <View style={styles.viewOnceImageWrap}>
-            <Image source={{ uri: viewOnceImage || '' }} style={styles.viewOnceFullImage} contentFit="cover" />
+            <Image source={{ uri: viewOnceImage || '' }} style={styles.viewOnceFullImage} contentFit="cover" onLoad={quemarSiToca} />
           </View>
           <Text style={styles.viewOnceHint}>{t('weetalk.tapToClose')}</Text>
         </TouchableOpacity>

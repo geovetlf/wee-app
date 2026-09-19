@@ -204,7 +204,8 @@ check('y no se confunden: la Ë es del Real y la Ẅ es del Weë',
 /* Lo que no es ninguna de las dos caras cae en el nombre neutro, que es el del Real. */
 check('un id que no es ninguna identidad cae en el nombre neutro',
   modelo.nombreDeLista(DESCONOCIDA) === 'ËContact');
-check('el Perfil Biz no es una identidad de persona', !modelo.esIdentidadDePersona(BIZ));
+/* Se llamaba BIZ y se renombró arriba al quitar el Perfil Biz; la línea se quedó apuntando al nombre viejo y tumbaba la cadena entera de pruebas (ReferenceError), dejando sin correr las 50 siguientes. */
+check('un id biz_ que ya no designa a nadie no es una identidad de persona', !modelo.esIdentidadDePersona(DESCONOCIDA));
 check('y las dos caras de una persona sí lo son', modelo.esIdentidadDePersona(REAL) && modelo.esIdentidadDePersona(WEE));
 
 /* Una agenda de mentira, con lo aceptado y lo que solo está pedido. */

@@ -58,8 +58,9 @@ console.log('\n── A · La barra lee la clave, no el español ──');
   /* Y lo hace igual que el cajón: dos menús que son el mismo menú. */
   check('2) igual que el cajón del ☰', /t\(MENU_ITEM\[id\]\.clave\)/.test(CAJON));
 
-  check('3) las once opciones tienen clave en español',
-    IDS.length === 11 && IDS.every((id) => {
+  /* Eran once; la Fase 11 añadió «Mis creaciones» dentro de Weë Creator. La regla es la clave, no el número. */
+  check('3) todas las opciones tienen clave en español',
+    IDS.length >= 11 && IDS.every((id) => {
       const m = CATALOGO.match(new RegExp(`\\b${id}: \\{[^}]*clave: '([a-z]+)\\.([a-zA-Z]+)'`));
       return m && esT[m[1]]?.[m[2]];
     }), IDS.join(' '));
@@ -184,8 +185,9 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
     /onPress=\{handleLogout\}/.test(LATERAL) && /onPress=\{requireLogin\}/.test(LATERAL)
     && /user \? goTab\('Profile'\) : requireLogin\(\)/.test(LATERAL)
     && /setCreatorOpen\(\(v\) => !v\)/.test(LATERAL) && /\{creatorOpen && \(/.test(LATERAL));
+  /* Mismo orden de siempre; «Mis creaciones» (Fase 11) entra justo detrás de «Mis proyectos», dentro de Weë Creator. */
   check('19) y el orden de las opciones es el mismo',
-    IDS.join(' ') === 'realProfile weeProfile credits econtact communities weels weetalk projects saved settings help',
+    IDS.join(' ') === 'realProfile weeProfile credits econtact communities weels weetalk projects creations saved settings help',
     IDS.join(' '));
 
   /*

@@ -9,6 +9,8 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { descargarCreacion } from '../../services/assetDownload';
+import { notify } from '../../utils/notify';
 
 /** Forma de onda decorativa del reproductor. */
 const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
@@ -134,6 +136,16 @@ const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
   );
 };
 
+/**
+ * Lo que sale de la tarjeta hacia el compositor: qué archivo, de qué tipo y
+ * —cuando existe— qué material es. El id es lo que evita la copia.
+ */
+export interface PublicableMedia {
+  uri: string;
+  type: 'image' | 'video';
+  assetId?: string;
+}
+
 interface ResultCardProps {
   experienceName: string;
   job: CreatorJob;
@@ -141,11 +153,12 @@ interface ResultCardProps {
   onAnotherVersion: () => void;
   onEdit: (instruction: string) => void;
   /**
-   * Publicar lo que se está mirando. Recibe la dirección de la imagen elegida
-   * —la que está en grande— para que sea esa y no otra la que llegue al muro.
-   * Sin imagen real que publicar (modo demo) llega vacío.
+   * Publicar lo que se está mirando. Recibe el material elegido —el que está
+   * en grande—, con su tipo (imagen o vídeo) y, si el servidor ya lo convirtió
+   * en material de la cuenta, su id: así el compositor lo referencia en vez de
+   * volver a subirlo. Sin material real que publicar (modo demo) llega vacío.
    */
-  onPublish: (mediaUri?: string) => void;
+  onPublish: (media?: PublicableMedia) => void;
   /** Foto original de la persona: el resultado se muestra como antes / después. */
   beforeImageUri?: string;
   /** Weë Writer: llevar el texto al editor. */
@@ -159,6 +172,8 @@ interface ResultCardProps {
   onSaveToProject?: () => void;
   /** Nombre del proyecto donde ya está guardada. */
   projectName?: string;
+  /** Abrir «Mis creaciones», donde lo generado ya está guardado como material de la cuenta (Fase 11). */
+  onOpenCreations?: () => void;
   /**
    * Lo que costaría volver a crear, en Credits. Es el mismo número que se vio
    * antes de crear la primera vez, porque el plan que se repite es el mismo.
@@ -184,7 +199,7 @@ const CAMINOS_HOGAR: { optionId: string; clave: string }[] = [
   { optionId: 'furniture', clave: 'weeai.pathFurniture' },
 ];
 
-const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, regenerateCredits }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, onOpenCreations, regenerateCredits }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const { isDesktop, isTablet } = useResponsive();
@@ -278,12 +293,23 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
    * En modo demo el resultado es un dibujo en línea, no un archivo: no hay nada
    * que publicar y se devuelve vacío en vez de inventar una dirección.
    */
-  const publicable = (() => {
-    const visual = visuals.find((r) => r.kind !== 'video' && (isRealMedia(r.url) || (r.urls || []).some(isRealMedia)));
+  /*
+   * EL VÍDEO TAMBIÉN SE PUBLICA. Este filtro decía `r.kind !== 'video'`, así
+   * que un trabajo de Weë Studio cuyo único resultado era un vídeo mandaba al
+   * compositor un texto suelto y el vídeo se quedaba atrás — aunque estuviera
+   * reproduciéndose en esta misma tarjeta. Ahora viaja con su tipo y, si el
+   * servidor ya lo convirtió en material, con su id: el compositor no vuelve a
+   * descargarlo ni a subirlo, lo referencia (Fase 11).
+   */
+  const publicable: PublicableMedia | undefined = (() => {
+    const visual = visuals.find((r) => isRealMedia(r.url) || (r.urls || []).some(isRealMedia));
     if (!visual) return undefined;
     const cual = chosen[visual.stepId] ?? 0;
-    const url = visual.urls && visual.urls.length > 1 ? visual.urls[cual] : visual.url;
-    return isRealMedia(url) ? url : undefined;
+    const varias = !!visual.urls && visual.urls.length > 1;
+    const url = varias ? visual.urls![cual] : visual.url;
+    if (!isRealMedia(url)) return undefined;
+    const assetId = varias ? visual.assetIds?.[cual] : visual.assetIds?.[0];
+    return { uri: url as string, type: visual.kind === 'video' ? 'video' : 'image', ...(assetId ? { assetId } : {}) };
   })();
   /*
    * ¿Weë aconsejó en vez de generar? Entonces esto no es un final: es el momento
@@ -291,6 +317,26 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
    * sección, y solo se ofrece si nadie generó ninguna imagen (fase 2E-60).
    */
   const aconsejo = !!onContinue && !visuals.length && job.plan?.steps.some((s) => s.id === 'advice') === true;
+
+  /*
+   * DESCARGAR Y «YA ESTÁ GUARDADA» (Fase 11, §23).
+   *
+   * Lo que Weë genera ya es material de la cuenta desde que existe: el
+   * servidor lo guarda una vez, con su ficha y su id, y aparece en «Mis
+   * creaciones». Por eso aquí no hay un botón «Guardar» que cree otra copia:
+   * hay la constancia de que ya lo está —con el camino a la biblioteca— y
+   * la descarga del archivo tal cual. Sin porcentaje: la descarga no lo da.
+   */
+  const [descargando, setDescargando] = useState(false);
+  const descargar = async () => {
+    if (!publicable || descargando) return;
+    setDescargando(true);
+    const resultado = await descargarCreacion(publicable.uri, publicable.type);
+    setDescargando(false);
+    if (resultado === 'guardado') notify(t('creaciones.downloaded'));
+    else if (resultado === 'sin_permiso') notify(t('creaciones.downloadPermission'));
+    else if (resultado === 'error') notify(t('creaciones.downloadFailed'));
+  };
 
   const audios = job.results.filter((r) => r.kind === 'audio');
   /*
@@ -614,6 +660,35 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.publishToCommunity')}</Text>
           </TouchableOpacity>
       </View>
+
+      {publicable && (
+        <View style={styles.creacionRow}>
+          <TouchableOpacity
+            onPress={descargar}
+            disabled={busy || descargando}
+            style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('creaciones.download')}
+          >
+            <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />
+            <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.download')}</Text>
+          </TouchableOpacity>
+          {publicable.assetId && onOpenCreations && (
+            <TouchableOpacity
+              onPress={onOpenCreations}
+              disabled={busy}
+              style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('creaciones.savedInCreations')}
+            >
+              <Ionicons name="checkmark-circle" size={scale(16)} color={theme.colors.accentDark} />
+              <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.savedInCreations')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/*
         Información secundaria: después de decidir, y plegada. La lista de
@@ -991,6 +1066,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   publishButton: {},
+  creacionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  creacionBoton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: scale(40),
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  creacionTexto: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
   actionText: {
     fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.bold,

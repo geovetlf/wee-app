@@ -70,7 +70,7 @@ export const composer: typeof import('../es/composer').composer = {
   publishIn: 'PUBLICAR EM',
   publishing: 'A publicar…',
   publishingOverlay: 'A publicar...',
-  uploadingVideo: 'A carregar o vídeo: {{porcentaje}}%',
+  uploadingFiles: 'A carregar {{n}} de {{total}}…',
   readyInAMoment: 'A tua publicação fica pronta daqui a um instante',
   pollQuestionPlaceholder: 'O que queres perguntar?',
   pollOptionPlaceholder: 'Opção {{numero}}',

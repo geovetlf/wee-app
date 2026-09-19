@@ -108,6 +108,14 @@ export interface JobResult {
   url?: string;
   /** Varias propuestas (p. ej. tres diseños); url es la primera. */
   urls?: string[];
+  /**
+   * LOS MATERIALES DE ESTE RESULTADO, alineados con `urls` (o con `url` si es
+   * uno). Es lo que le faltaba: la URL era la única identidad del archivo.
+   * Con el id se puede listar, reutilizar, publicar sin copiar y borrar.
+   * Ausente en resultados de texto, en los de prueba y en los anteriores a la
+   * Fase 11. Ver `functions/src/content/`.
+   */
+  assetIds?: string[];
   /** true si lo produjo el proveedor de prueba (muestra). */
   demo?: boolean;
   /** Credits que costó este resultado. */

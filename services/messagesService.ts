@@ -16,7 +16,8 @@ import {
   or,
   and,
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../config/firebase';
 
 // Tipos para mensajería
 export interface Message {
@@ -296,10 +297,17 @@ class MessagesService {
   /**
    * Mark a view-once photo as opened
    */
+  /**
+   * Abrir una foto única = QUEMARLA. Antes esto escribía `viewOnceOpened: true`
+   * y nada más: la URL seguía en el mensaje y el archivo en Cloudinary, para
+   * siempre. Ahora lo hace el servidor (`burnViewOnce`): comprueba que quien
+   * abre participa y no es quien la mandó, retira la dirección del mensaje y
+   * borra el archivo del Storage de Weë. La pantalla lo pide cuando la foto
+   * ya está cargada, no antes (Fase 11, C3).
+   */
   async markViewOnceOpened(conversationId: string, messageId: string): Promise<void> {
     try {
-      const messageRef = doc(db, 'conversations', conversationId, 'messages', messageId);
-      await updateDoc(messageRef, { viewOnceOpened: true });
+      await httpsCallable(functions, 'burnViewOnce', { timeout: 30_000 })({ conversationId, messageId });
     } catch (error) {
       console.error('Error marking view-once as opened:', error);
     }

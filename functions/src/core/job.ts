@@ -365,6 +365,36 @@ export interface JobOwner {
 }
 
 /**
+ * ── UNA TAREA GENERAL: trabajo que no es de IA ──────────────────────────────
+ *
+ * Hasta la Fase 11 este motor solo sabía modelar UNA cosa: una operación de IA
+ * que un Router ya había adjudicado a un proveedor y un modelo. `capability` e
+ * `implementation` eran obligatorios, y `implementation` exigía `providerId` y
+ * `modelId`. Una miniatura la hace el propio servidor; no tiene proveedor ni
+ * modelo, así que no cabía — y el resto del motor (estados, concesiones,
+ * plazos, idempotencia, reintentos, recuperación) es justo lo que una
+ * transcodificación necesita.
+ *
+ * Esto es el cambio mínimo: un trabajo es O una operación de IA O una tarea
+ * con nombre. Nunca las dos; nunca ninguna. Todo lo demás del motor no sabe
+ * cuál de las dos es, y así tiene que seguir: no hay un segundo motor, hay un
+ * segundo tipo de paquete.
+ *
+ * El nombre tiene la forma de las capacidades —`media.thumbnail`,
+ * `media.transcode`— pero NO está en el catálogo de capacidades ni puede
+ * estarlo: el catálogo es de lo que un proveedor de IA sabe hacer.
+ */
+export interface JobTask {
+  name: string;
+}
+
+export const FORMA_DE_TAREA = /^[a-z0-9]+\.[a-z0-9_]+$/;
+
+/** ¿Es este trabajo una tarea general, y no una operación de IA? */
+export const esTareaGeneral = (job: Pick<Job, 'task' | 'capability'>): boolean =>
+  job.task !== undefined && job.capability === undefined;
+
+/**
  * DESDE DÓNDE SE PIDIÓ. Correlación, y solo correlación.
  *
  * Ninguno de estos campos decide nada: ni el proveedor, ni el modelo, ni el
@@ -395,9 +425,12 @@ export interface Job {
   state: JobState;
   owner: JobOwner;
   context: JobContext;
-  capability: CoreCapabilityId;
-  /** La que eligió el Router. Aquí no se vuelve a elegir. */
-  implementation: ImplementationRef;
+  /** Operación de IA: qué capacidad. Ausente en una tarea general. */
+  capability?: CoreCapabilityId;
+  /** La que eligió el Router. Aquí no se vuelve a elegir. Ausente en una tarea general. */
+  implementation?: ImplementationRef;
+  /** Tarea general: qué hay que hacer, sin proveedor ni modelo. Ausente en una operación de IA. */
+  task?: JobTask;
   input: Readonly<Record<string, unknown>>;
   trace: TraceContext;
   language?: LanguageContext;
@@ -432,9 +465,12 @@ export interface JobRequest {
   principal: Principal;
   /** Cuándo. Aquí no se lee el reloj. */
   at: number;
-  capability: CoreCapabilityId;
-  /** Ya elegida por el Router. Si falta, no hay trabajo que crear. */
-  implementation: ImplementationRef;
+  /** Operación de IA: qué capacidad. Con `task`, no se manda. */
+  capability?: CoreCapabilityId;
+  /** Ya elegida por el Router. Si es una operación de IA y falta, no hay trabajo que crear. */
+  implementation?: ImplementationRef;
+  /** Tarea general. Con `capability`/`implementation`, no se manda: es una u otra. */
+  task?: JobTask;
   input: Readonly<Record<string, unknown>>;
   trace: TraceContext;
   language?: LanguageContext;
@@ -526,8 +562,10 @@ export interface JobDispatch {
   jobId: string;
   attemptId: string;
   attempt: number;
-  capability: CoreCapabilityId;
-  implementation: ImplementationRef;
+  /** Operación de IA. Ausentes en una tarea general, que lleva `task`. */
+  capability?: CoreCapabilityId;
+  implementation?: ImplementationRef;
+  task?: JobTask;
   input: Readonly<Record<string, unknown>>;
   trace: TraceContext;
   language?: LanguageContext;
@@ -742,7 +780,7 @@ const MAX_ID = 400;
 const CLAVES_DE_PETICION = [
   'contract', 'principal', 'at', 'capability', 'implementation', 'input', 'trace', 'language',
   'hints', 'metadata', 'mode', 'idempotencyKey', 'jobId', 'deadlineAt', 'policy', 'context',
-  'capacity', 'limits',
+  'capacity', 'limits', 'task',
 ];
 const CLAVES_DE_PRINCIPAL = ['userId', 'appId'];
 const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
@@ -829,7 +867,7 @@ export const claveDeProveedor = (jobId: string, numero: number): string => compu
  */
 export const huellaDeOperacion = (
   capability: string,
-  implementation: ImplementationRef,
+  implementation: ImplementationRef | undefined,
   input: unknown,
 ): string => {
   const canonico = (v: unknown, profundidad = 0): string => {
@@ -850,9 +888,9 @@ export const huellaDeOperacion = (
   };
   const texto = compuesta(
     capability,
-    implementation.providerId ?? '',
-    implementation.modelId ?? '',
-    implementation.adapterId ?? '',
+    implementation?.providerId ?? '',
+    implementation?.modelId ?? '',
+    implementation?.adapterId ?? '',
     canonico(input),
   );
   /*
@@ -919,6 +957,18 @@ const leerRefs = (v: unknown): { refs: readonly string[]; trimmed: boolean } | n
     limpias.push(r);
   }
   return { refs: Object.freeze(limpias), trimmed };
+};
+
+/**
+ * Una tarea general, o nada, o basura. Tres respuestas distintas: `undefined`
+ * es «no se pidió», `null` es «se pidió mal», y las dos se tratan al revés.
+ */
+const leerTarea = (v: unknown): JobTask | null | undefined => {
+  if (v === undefined) return undefined;
+  if (!esObjetoPlano(v)) return null;
+  if (soloClaves(v, ['name'], '')) return null;
+  if (!acotado(v.name, FORMA_DE_TAREA)) return null;
+  return Object.freeze({ name: v.name as string });
 };
 
 const leerImplementacion = (v: unknown): ImplementationRef | null => {
@@ -1377,7 +1427,8 @@ const congelarTrabajo = (job: Job): Job => Object.freeze({
   ...job,
   owner: Object.freeze({ ...job.owner }),
   context: Object.freeze({ ...job.context }),
-  implementation: Object.freeze({ ...job.implementation }),
+  ...(job.implementation ? { implementation: Object.freeze({ ...job.implementation }) } : {}),
+  ...(job.task ? { task: Object.freeze({ ...job.task }) } : {}),
   trace: Object.freeze({ ...job.trace }),
   policy: Object.freeze({ ...job.policy, retry: Object.freeze({ ...job.policy.retry }) }),
   idempotency: Object.freeze({ ...job.idempotency }),
@@ -1603,9 +1654,19 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
     if (!traza) return invalido('invalid_request', 'trace');
     const trace = Object.freeze(traza);
 
-    if (!acotado(request.capability, /^[a-z0-9]+\.[a-z0-9_]+$/)) return invalido('invalid_request', 'capability');
-    const implementation = leerImplementacion(request.implementation);
-    if (!implementation) return invalido('invalid_request', 'implementation');
+    /*
+     * OPERACIÓN DE IA O TAREA GENERAL. Una de las dos; nunca las dos; nunca
+     * ninguna. Una tarea no lleva capacidad ni implementación, y una operación
+     * de IA las lleva las dos, como siempre. Lo que ya valía sigue valiendo.
+     */
+    const tarea = leerTarea(request.task);
+    if (tarea === null) return invalido('invalid_request', 'task');
+    if (tarea && (request.capability !== undefined || request.implementation !== undefined)) {
+      return invalido('invalid_request', 'task');
+    }
+    if (!tarea && !acotado(request.capability, /^[a-z0-9]+\.[a-z0-9_]+$/)) return invalido('invalid_request', 'capability');
+    const implementation = tarea ? undefined : leerImplementacion(request.implementation);
+    if (!tarea && !implementation) return invalido('invalid_request', 'implementation');
 
     const entrada = leerEntrada(request.input);
     if (!entrada.ok) return invalido('input_too_large', entrada.field);
@@ -1641,7 +1702,8 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
     const clave = esTexto(request.idempotencyKey) ? request.idempotencyKey : trace.requestId;
     if (!acotado(clave, FORMA_DE_ID)) return invalido('invalid_request', 'idempotencyKey');
 
-    const fingerprint = huellaDeOperacion(request.capability, implementation, entrada.input);
+    /* La huella de una tarea lleva su nombre donde la de IA lleva la capacidad: dos tareas distintas no pueden coincidir. */
+    const fingerprint = huellaDeOperacion(tarea ? `task:${tarea.name}` : (request.capability as string), implementation ?? undefined, entrada.input);
     /*
      * EL IDENTIFICADOR, CON FORMA. Solo se comprobaba su LONGITUD.
      *
@@ -1729,8 +1791,9 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
       state: 'queued',
       owner: { userId: quien.principal.userId },
       context: contexto.context,
-      capability: request.capability,
-      implementation,
+      ...(tarea
+        ? { task: tarea }
+        : { capability: request.capability as CoreCapabilityId, implementation: implementation as ImplementationRef }),
       input: entrada.input,
       trace,
       ...(idioma.language ? { language: idioma.language } : {}),
@@ -1898,8 +1961,9 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
       jobId: job.jobId,
       attemptId: intento.attemptId,
       attempt: intento.number,
-      capability: job.capability,
-      implementation: job.implementation,
+      ...(job.task
+        ? { task: job.task }
+        : { capability: job.capability as CoreCapabilityId, implementation: job.implementation as ImplementationRef }),
       input: job.input,
       trace: job.trace,
       ...(job.language ? { language: job.language } : {}),

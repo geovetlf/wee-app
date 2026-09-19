@@ -74,7 +74,7 @@ export const composer: typeof import('../es/composer').composer = {
   publishIn: '게시 위치',
   publishing: '게시하는 중…',
   publishingOverlay: '게시하는 중...',
-  uploadingVideo: '비디오 업로드 중: {{porcentaje}}%',
+  uploadingFiles: '{{total}}개 중 {{n}}번째 업로드 중…',
   readyInAMoment: '곧 게시물이 준비돼요',
   pollQuestionPlaceholder: '무엇을 물어볼까요?',
   pollOptionPlaceholder: '선택지 {{numero}}',

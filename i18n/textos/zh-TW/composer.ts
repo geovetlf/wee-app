@@ -95,7 +95,7 @@ export const composer: typeof import('../es/composer').composer = {
   publishIn: '發布到',
   publishing: '正在發布…',
   publishingOverlay: '正在發布…',
-  uploadingVideo: '正在上傳影片：{{porcentaje}}%',
+  uploadingFiles: '正在上傳 {{n}}/{{total}}…',
   readyInAMoment: '你的貼文馬上就好',
   pollQuestionPlaceholder: '想問什麼？',
   pollOptionPlaceholder: '選項 {{numero}}',

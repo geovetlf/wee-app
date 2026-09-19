@@ -76,10 +76,28 @@ export const crearMotorDeTrabajosDeWee = (politica: JobPolicy = POLITICA_DE_TRAB
  * clave —y un proveedor que deduplica no cobra dos veces—; un intento nuevo
  * lleva otra, porque sí queremos que vuelva a ocurrir.
  */
-export const peticionDeGateway = (dispatch: JobDispatch): GatewayRequest => Object.freeze({
+export const peticionDeGateway = (dispatch: JobDispatch): GatewayRequest => {
+  /*
+   * UNA TAREA GENERAL NO PASA POR AQUÍ. El Gateway ejecuta operaciones de IA
+   * contra un proveedor; una miniatura o una transcodificación las hace otro
+   * ejecutor, que se enchufa por su propio camino (Fase 11). Convertirla en una
+   * petición de Gateway sería mandar a un proveedor algo que no es suyo, y
+   * antes de que eso pudiera pasar en silencio, se dice aquí.
+   */
+  if (dispatch.task || !dispatch.capability || !dispatch.implementation) {
+    throw new Error(`peticionDeGateway: una tarea general (${dispatch.task?.name ?? 'sin capacidad'}) no es una operación de IA`);
+  }
+  return congelarPeticion(dispatch, dispatch.capability, dispatch.implementation);
+};
+
+const congelarPeticion = (
+  dispatch: JobDispatch,
+  capability: NonNullable<JobDispatch['capability']>,
+  implementation: NonNullable<JobDispatch['implementation']>,
+): GatewayRequest => Object.freeze({
   contract: GATEWAY_CONTRACT_VERSION,
-  capability: dispatch.capability,
-  implementation: dispatch.implementation,
+  capability,
+  implementation,
   input: dispatch.input,
   trace: dispatch.trace,
   ...(dispatch.language ? { language: dispatch.language } : {}),

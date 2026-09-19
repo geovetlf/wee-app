@@ -432,7 +432,8 @@ console.log('\n── H · una sola puerta, y está vigilada ──');
   const almacen = leer('services/storageService.ts');
 
   check('H) las dos subidas de imagen limpian antes de enviar', /resourceType === 'image' \? await blobSinMetadatos\(blob\) : blob/.test(cloudinary) && /const limpio = resourceType === 'image' \? await uriSinMetadatos\(uri\) : uri;/.test(cloudinary));
-  check('H) y la de blobs en memoria también', /const limpio = await blobSinMetadatos\(blob\);/.test(cloudinary) && /readAsDataURL\(limpio\)/.test(cloudinary));
+  // Desde la Fase 11 (C10) esa segunda puerta pasa también por el límite de tamaño y tipo.
+  check('H) y la de blobs en memoria también', /const limpio = await blobSinMetadatos\(comprobarBlob\(blob, 'image'\)\);/.test(cloudinary) && /readAsDataURL\(limpio\)/.test(cloudinary));
   check('H) el original ya no se envía nunca', !/formData\.append\('file', blob,/.test(cloudinary) && !/readAsDataURL\(blob\)/.test(cloudinary));
   check('H) el video no se toca', /resourceType === 'image' \?/.test(cloudinary) && /uploadVideoToCloudinary/.test(cloudinary));
   check('H) todo lo público pasa por ahí: perfil, portada, publicación, comunidad, mensaje y comentario', ['uploadProfileImageFromUri', 'uploadBannerImageFromUri', 'uploadPostImage', 'uploadPostImageFromUri', 'uploadCommunityImage', 'uploadMessageImageFromUri', 'uploadCommentImage'].every((f) => almacen.includes(f)) && !/fetch\(`\$\{BASE_URL\}/.test(almacen));

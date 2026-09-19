@@ -61,6 +61,12 @@ interface MediaItem {
   uri: string;
   id: string;
   aspectRatio?: number; // width / height
+  /**
+   * El material de la cuenta del que viene, cuando ya existe (Fase 11). Con
+   * id no se descarga ni se vuelve a subir: el archivo ya está en Weë y se
+   * referencia. Sin id —galería, cámara— sigue el camino de siempre.
+   */
+  assetId?: string;
 }
 
 /*
@@ -114,15 +120,22 @@ const CreateScreen: React.FC = () => {
    * a mano no cambia en nada: sin `prefill.media`, esto arranca vacío como siempre.
    */
   const [attachedMedia, setAttachedMedia] = useState<MediaItem[]>(() =>
-    (routeParams.prefill?.media || []).map((item: { type?: string; uri: string; aspectRatio?: number }, index: number) => ({
+    (routeParams.prefill?.media || []).map((item: { type?: string; uri: string; aspectRatio?: number; assetId?: string }, index: number) => ({
       type: item.type === 'video' ? ('video' as const) : ('image' as const),
       uri: item.uri,
       id: `wee-${index}-${item.uri.slice(-24)}`,
       aspectRatio: item.aspectRatio,
+      ...(item.assetId ? { assetId: item.assetId } : {}),
     }))
   );
   const [isPublishing, setIsPublishing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  /*
+   * Qué se está subiendo, dicho con lo que de verdad se sabe: el archivo
+   * {n} de {total}. Antes había una barra con 5 %, 90 % y 100 % inventados
+   * —`fetch` no cuenta los bytes que salen— y una barra que miente no es
+   * progreso (Fase 11, C11).
+   */
+  const [subida, setSubida] = useState<{ n: number; total: number } | null>(null);
   /*
    * La encuesta. Llega abierta si se entró por 📊 —un solo toque desde cualquier
    * muro de Weë— y vacía en cualquier otro caso, exactamente como antes.
@@ -644,12 +657,21 @@ ${message}`);
     console.log('🖼️ Imágenes adjuntas:', attachedMedia.length);
 
     setIsPublishing(true);
+    setSubida(null);
 
     try {
       // Subir media a Firebase Storage si hay
       let imageUrls: string[] = [];
       let thumbnailUrls: string[] = [];
       let videoUrl: string | undefined;
+      /*
+       * QUÉ MATERIAL ES CADA ARCHIVO, alineado con `imageUrls`. Es lo que une
+       * la publicación con el material y, por él, con el trabajo que lo hizo:
+       * antes al publicar sobrevivía solo el nombre de la herramienta. `null`
+       * donde el archivo vino de la galería y no es material de nadie todavía.
+       */
+      const assetIds: (string | null)[] = [];
+      let videoAssetId: string | undefined;
 
       if (attachedMedia.length > 0) {
         const isVideoPost = attachedMedia[0].type === 'video';
@@ -657,17 +679,20 @@ ${message}`);
         if (isVideoPost) {
           // Subir video a Cloudinary (comprime y sirve por CDN)
           const media = attachedMedia[0];
+          /*
+           * UN VÍDEO QUE YA ES MATERIAL NO SE VUELVE A SUBIR. Viene de Weë AI
+           * con su id: el archivo está en el Storage de Weë y se referencia.
+           * Antes un vídeo generado ni siquiera llegaba aquí; ahora llega y no
+           * se copia (Fase 11).
+           */
+          if (media.assetId) {
+            videoUrl = media.uri;
+            videoAssetId = media.assetId;
+          } else {
           try {
             console.log('📹 Subiendo video a Cloudinary...');
-            videoUrl = await uploadVideoToCloudinary(
-              media.uri,
-              (progress) => {
-                setUploadProgress(prev => ({
-                  ...prev,
-                  [media.id]: progress
-                }));
-              }
-            );
+            setSubida({ n: 1, total: 1 });
+            videoUrl = await uploadVideoToCloudinary(media.uri);
             console.log('✅ Video subido:', videoUrl);
           } catch (error) {
             console.error('Error uploading video:', error);
@@ -678,6 +703,7 @@ ${message}`);
             setIsPublishing(false);
             return;
           }
+          }
         } else {
           // Subir imágenes
           console.log('📤 Subiendo', attachedMedia.length, 'imágenes...');
@@ -687,6 +713,20 @@ ${message}`);
             try {
               console.log(`🖼️ Subiendo imagen ${i + 1}/${attachedMedia.length}:`, media.id);
 
+              /*
+               * UNA IMAGEN QUE YA ES MATERIAL NO SE DESCARGA NI SE VUELVE A
+               * SUBIR. Antes se hacía justo eso: `fetch` del archivo que ya
+               * estaba en Weë, y otra subida a Cloudinary. Tres copias del
+               * mismo píxel. Con id, se referencia (Fase 11).
+               */
+              if (media.assetId) {
+                imageUrls.push(media.uri);
+                thumbnailUrls.push(media.uri);
+                assetIds.push(media.assetId);
+                continue;
+              }
+
+              setSubida({ n: i + 1, total: attachedMedia.length });
               const response = await fetch(media.uri);
               if (!response.ok) {
                 throw new Error(t('composer.imageFetchFailed', { estado: response.status, texto: response.statusText }));
@@ -694,22 +734,13 @@ ${message}`);
               const blob = await response.blob();
               console.log('✅ Blob creado, tamaño:', blob.size, 'bytes');
 
-              const { fullSize, thumbnail } = await uploadPostImage(
-                blob,
-                user.uid,
-                (progress) => {
-                  console.log(`📊 Progreso imagen ${i + 1}:`, progress.progress.toFixed(1) + '%');
-                  setUploadProgress(prev => ({
-                    ...prev,
-                    [media.id]: progress.progress
-                  }));
-                }
-              );
+              const { fullSize, thumbnail } = await uploadPostImage(blob, user.uid);
 
               console.log('✅ Imagen full size subida:', fullSize);
               console.log('✅ Thumbnail subido:', thumbnail);
               imageUrls.push(fullSize);
               thumbnailUrls.push(thumbnail);
+              assetIds.push(null);
             } catch (error) {
               console.error('Error uploading image:', error);
               Alert.alert(
@@ -744,6 +775,13 @@ ${message}`);
         ...(imageUrls.length > 0 ? { imageAspectRatios } : {}),
         ...(videoUrl ? { videoUrl } : {}),
         ...(videoUrl && isWeel ? { isWeel: true } : {}),
+        /*
+         * De qué material salió cada archivo, cuando ya es material de la
+         * cuenta. Por él se llega al trabajo, al paso y a la generación: la
+         * publicación deja de perder su procedencia al publicar (Fase 11).
+         */
+        ...(assetIds.some(Boolean) ? { assetIds } : {}),
+        ...(videoAssetId ? { videoAssetId } : {}),
         ...(aiToolsList.length > 0 ? { aiTools: aiToolsList } : {}),
         // El contexto y el lugar: cada uno por su lado, y solo si existen.
         ...(sourceSection ? { sourceSection } : {}),
@@ -816,7 +854,7 @@ ${message}`);
       // Limpiar formulario
       setPostText('');
       setAttachedMedia([]);
-      setUploadProgress({});
+      setSubida(null);
       setPoll(null);
 
       // Volver al Home, refresh feed y scroll to top para ver el nuevo post
@@ -1590,25 +1628,19 @@ ${message}`);
             <Text style={[styles.publishingTitle, { color: theme.colors.text }]}>
               {t('composer.publishingOverlay')}
             </Text>
-            {attachedMedia.some(m => m.type === 'video') && Object.values(uploadProgress).length > 0 && (
+            {/*
+              Sin barra de porcentaje: no hay porcentaje que medir. Lo que sí
+              se sabe —qué archivo se está subiendo de cuántos— se dice, y el
+              indicador gira mientras tanto (Fase 11, C11).
+            */}
+            {subida ? (
               <>
-                <View style={styles.uploadProgressBar}>
-                  <View
-                    style={[
-                      styles.uploadProgressFill,
-                      {
-                        backgroundColor: theme.colors.accent,
-                        width: `${Math.max(Object.values(uploadProgress)[0] || 0, 5)}%`,
-                      },
-                    ]}
-                  />
-                </View>
+                <ActivityIndicator size="small" color={theme.colors.accent} style={styles.subidaIndicador} />
                 <Text style={[styles.publishingSubtitle, { color: theme.colors.textSecondary }]}>
-                  {t('composer.uploadingVideo', { porcentaje: Math.round(Object.values(uploadProgress)[0] || 0) })}
+                  {t('composer.uploadingFiles', { n: subida.n, total: subida.total })}
                 </Text>
               </>
-            )}
-            {!attachedMedia.some(m => m.type === 'video') && (
+            ) : (
               <Text style={[styles.publishingSubtitle, { color: theme.colors.textSecondary }]}>
                 {t('composer.readyInAMoment')}
               </Text>
@@ -2251,17 +2283,8 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.medium,
     textAlign: 'center',
   },
-  uploadProgressBar: {
-    width: '100%',
-    height: scale(6),
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    borderRadius: scale(3),
-    overflow: 'hidden',
+  subidaIndicador: {
     marginTop: SPACING.sm,
-  },
-  uploadProgressFill: {
-    height: '100%',
-    borderRadius: scale(3),
   },
 });
 

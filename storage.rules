@@ -42,8 +42,18 @@ service firebase.storage {
     }
 
     // === Resultados del WEË AI ENGINE (imágenes, videos, voces): lectura pública, escritura solo backend ===
+    // LO QUE WEË GENERA ES DE SU DUEÑO, COMO LO QUE SUBE.
+    //
+    // Decía `allow read: if true`: la foto que la persona SUBÍA (creator-inputs)
+    // estaba protegida y lo que Weë GENERABA con ella era de lectura libre para
+    // cualquiera que adivinara la ruta. Al revés de lo que debe ser.
+    //
+    // La escritura sigue siendo del servidor. Y el borrado también, pero ahora
+    // EXISTE: la persona lo pide con `deleteAsset` y el servidor comprueba que
+    // es suyo antes de borrar el objeto. Antes `write: false` significaba
+    // «nadie, nunca», y lo generado era permanente.
     match /users/{userId}/ai-generations/{fileName} {
-      allow read: if true;
+      allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }
 
@@ -59,6 +69,27 @@ service firebase.storage {
     // === Fotos adjuntas en Weë Brain ===
     match /users/{userId}/brain-attachments/{fileName} {
       allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // === WeeTalk: la foto que se ve una sola vez (Fase 11, C3) ===
+    // La sube a su propia ruta quien la manda. La LEEN los participantes de
+    // la conversación —se comprueba en Firestore desde aquí— y la BORRA el
+    // servidor (`burnViewOnce`) cuando quien la recibe la abre. Antes iba a
+    // Cloudinary, donde Weë no puede borrar nada, y se quedaba para siempre.
+    function participaEn(conversationId) {
+      let conversacion = /databases/(default)/documents/conversations/$(conversationId);
+      // `exists` primero: una conversación que no existe deniega sin error de evaluación.
+      return firestore.exists(conversacion)
+        && (request.auth.uid in firestore.get(conversacion).data.participants
+            || ("hidi_" + request.auth.uid) in firestore.get(conversacion).data.participants);
+    }
+    match /users/{userId}/weetalk/{conversationId}/{fileName} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == userId || participaEn(conversationId));
       allow write: if request.auth != null
                    && request.auth.uid == userId
                    && request.resource.size < 10 * 1024 * 1024

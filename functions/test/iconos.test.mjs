@@ -126,7 +126,9 @@ console.log('\n── D · Enchufados en el Burger ──');
   /* Cada opción del menú y cada experiencia tienen su icono, y existe. */
   const delMenu = [...menu.matchAll(/icono: '([a-zA-Z]+)'/g)].map((m) => m[1]);
   const deLasExperiencias = [...experiencias.matchAll(/icono: '([a-zA-Z]+)'/g)].map((m) => m[1]);
-  check('13) las doce opciones del menú tienen icono', delMenu.length === 12, String(delMenu.length));
+  /* Tantos iconos como opciones declaradas: la regla, no el número, para que añadir una opción (Fase 11: «Mis creaciones») no obligue a tocar esto. */
+  const opcionesDelMenu = [...menu.matchAll(/^\s+([a-zA-Z]+): \{ id: '([a-zA-Z]+)'/gm)].map((m) => m[2]);
+  check('13) todas las opciones del menú tienen icono', opcionesDelMenu.length >= 12 && delMenu.length === opcionesDelMenu.length, `${delMenu.length} iconos / ${opcionesDelMenu.length} opciones`);
   check('14) y las once experiencias también', deLasExperiencias.length === 11, String(deLasExperiencias.length));
   const inventados = [...delMenu, ...deLasExperiencias].filter((n) => !nombres.includes(n));
   check('15) y ninguno apunta a un dibujo que no existe', inventados.length === 0, inventados.join(' '));

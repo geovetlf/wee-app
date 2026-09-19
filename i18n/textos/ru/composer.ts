@@ -72,7 +72,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   publishIn: 'ОПУБЛИКОВАТЬ В',
   publishing: 'Публикуем…',
   publishingOverlay: 'Публикуем...',
-  uploadingVideo: 'Загружаем видео: {{porcentaje}}%',
+  uploadingFiles: 'Загружаем {{n}} из {{total}}…',
   readyInAMoment: 'Публикация будет готова через мгновение',
   pollQuestionPlaceholder: 'О чём хотите спросить?',
   pollOptionPlaceholder: 'Вариант {{numero}}',

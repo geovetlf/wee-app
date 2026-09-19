@@ -3,7 +3,7 @@ import { Modality } from './capability';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
-import { AssetKind } from './project';
+import { AssetKind } from './content';
 import { CanonicalResponse, SourceRef } from './provider';
 import { CAPABILITY_CATALOG, CoreCapabilityId } from './registry';
 import { WorkplaceManifest } from './workplace';

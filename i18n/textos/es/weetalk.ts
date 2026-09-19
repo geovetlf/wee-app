@@ -21,6 +21,8 @@ export const weetalk = {
   messagePlaceholderShort: 'Mensaje...',
   firstMessage: 'Envía el primer mensaje',
   photoSeen: 'Foto vista',
+  photoOnce: 'Foto única',
+  photoOpened: 'Abierta',
   tapToView: 'Toca para ver',
   tapToClose: 'Toca para cerrar',
   theme: 'Tema',

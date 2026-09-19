@@ -36,6 +36,7 @@ import StudioScreen from '../screens/StudioScreen';
 import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
+import MisCreacionesScreen from '../screens/MisCreacionesScreen';
 import ProjectScreen from '../screens/ProjectScreen';
 import WeeBizScreen from '../screens/WeeBizScreen';
 import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
@@ -71,7 +72,7 @@ export type MainStackParamList = {
    * montar y lo que hubiera escrito sigue escrito. `null` significa "quítalo", y
    * el sello distingue dos elecciones seguidas del mismo sitio.
    */
-  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number }[] }; lugarElegido?: PostPlace | null; ubicacionElegida?: UbicacionPublica | null; selloUbicacion?: string } | undefined;
+  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number; assetId?: string }[] }; lugarElegido?: PostPlace | null; ubicacionElegida?: UbicacionPublica | null; selloUbicacion?: string } | undefined;
   /** El lugar y la zona que ya trae el compositor, para poder enseñarlos y quitarlos. */
   AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
   WeeCreator: { category?: string } | undefined;
@@ -93,6 +94,8 @@ export type MainStackParamList = {
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
   Projects: undefined;
   Project: { id: string };
+  /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
+  MisCreaciones: undefined;
   PostDetail: {
     post: Post;
   };
@@ -333,6 +336,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
+      <Stack.Screen name="MisCreaciones" component={MisCreacionesScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />

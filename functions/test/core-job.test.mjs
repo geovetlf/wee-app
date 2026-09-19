@@ -1392,5 +1392,93 @@ console.log('\n── U · Las 25 preguntas del cierre ──');
   })());
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── W · Tareas generales: el seam de la Fase 11, sin segundo motor ──');
+// ════════════════════════════════════════════════════════════════════════════
+{
+  /*
+   * El motor solo sabía modelar operaciones de IA: `capability` e
+   * `implementation` obligatorios, y `implementation` con proveedor y modelo.
+   * Una miniatura la hace el propio servidor y no tiene ninguna de las dos
+   * cosas. Esto comprueba que ahora cabe, que lo de IA sigue exigiendo lo que
+   * exigía, y que todo lo demás del motor no se ha enterado del cambio.
+   */
+  const tarea = (extra = {}) => pet({ capability: undefined, implementation: undefined, task: { name: 'media.thumbnail' }, input: { assetId: 'asset_1', width: 400 }, ...extra });
+
+  check('236) una tarea general se crea sin proveedor ni modelo', (() => {
+    const d = motor.crear(tarea());
+    return d.status === 'transition' && d.transition.job.task.name === 'media.thumbnail'
+      && d.transition.job.capability === undefined && d.transition.job.implementation === undefined
+      && core.esTareaGeneral(d.transition.job);
+  })());
+  check('237) y una operación de IA sigue exigiendo las dos cosas, como siempre',
+    motor.crear(pet({ implementation: undefined })).status === 'invalid'
+    && motor.crear(pet({ capability: undefined })).status === 'invalid'
+    && motor.crear(pet()).status === 'transition');
+  check('238) las dos a la vez no valen, y ninguna tampoco',
+    motor.crear(pet({ task: { name: 'media.thumbnail' } })).status === 'invalid'
+    && motor.crear(pet({ capability: undefined, implementation: undefined })).status === 'invalid');
+  check('239) el nombre de la tarea tiene forma; lo demás se rechaza',
+    motor.crear(tarea({ task: { name: 'Media.Thumbnail' } })).status === 'invalid'
+    && motor.crear(tarea({ task: { name: 'thumbnail' } })).status === 'invalid'
+    && motor.crear(tarea({ task: { name: 'media.thumbnail', extra: 1 } })).status === 'invalid'
+    && motor.crear(tarea({ task: 'media.thumbnail' })).status === 'invalid');
+
+  /* 227 · Dos tareas distintas con la misma entrada NO son la misma operación. */
+  check('240) la huella distingue tareas distintas con la misma entrada', (() => {
+    const a = motor.crear(tarea({ task: { name: 'media.thumbnail' } })).transition.job;
+    const b = motor.crear(tarea({ task: { name: 'media.transcode' } })).transition.job;
+    return a.idempotency.fingerprint !== b.idempotency.fingerprint;
+  })());
+  check('241) y una tarea y una operación de IA con la misma entrada tampoco', (() => {
+    const a = motor.crear(tarea({ input: { prompt: 'x' } })).transition.job;
+    const b = motor.crear(pet({ input: { prompt: 'x' } })).transition.job;
+    return a.idempotency.fingerprint !== b.idempotency.fingerprint;
+  })());
+
+  /* 229–231 · Todo lo demás del motor funciona igual para una tarea. */
+  check('242) se reclama, se despacha con su nombre y sin implementación', (() => {
+    const j = aplicar(reclamar(motor.crear(tarea()).transition.job, T0 + 1));
+    const d = motor.despachar(j);
+    return j.state === 'running' && d.dispatch.task.name === 'media.thumbnail'
+      && d.dispatch.capability === undefined && d.dispatch.implementation === undefined
+      && d.dispatch.timeoutMs > 0;
+  })());
+  check('243) termina, falla y reintenta exactamente igual que una de IA', (() => {
+    const j = aplicar(reclamar(motor.crear(tarea()).transition.job, T0 + 1));
+    const ok = informar(j, T0 + 2, { attemptId: idDeIntento(j), outcome: 'succeeded', result: { outputRefs: ['k/t.png'] }, dispatched: true });
+    const k = aplicar(reclamar(motor.crear(tarea({ trace: traza({ requestId: 'req-t2' }) })).transition.job, T0 + 1));
+    const mal = informar(k, T0 + 2, { attemptId: idDeIntento(k), outcome: 'failed', error: fallar('PROVIDER_UNAVAILABLE'), dispatched: true });
+    return ok.transition.to === 'completed' && ok.transition.job.result.outputRefs[0] === 'k/t.png'
+      && mal.status === 'transition' && mal.transition.to === 'queued';
+  })(), 'reintento por fallo transitorio, como siempre');
+  check('244) el plazo, la concesión y la recuperación no saben si es tarea o IA', (() => {
+    const j = aplicar(reclamar(motor.crear(tarea()).transition.job, T0 + 1));
+    const vencido = motor.evaluar(j, j.deadlineAt + 1);
+    return vencido.status === 'transition' && vencido.transition.to === 'timed_out';
+  })());
+
+  /* 232 · Y la composición NO manda una tarea al Gateway: no es suya. */
+  check('245) la composición se niega a convertir una tarea en petición de Gateway', (() => {
+    const j = aplicar(reclamar(motor.crear(tarea()).transition.job, T0 + 1));
+    const d = motor.despachar(j);
+    try { comp.peticionDeGateway(d.dispatch); return false; } catch (e) { return /tarea general/.test(String(e.message)); }
+  })(), 'una miniatura no es una operación de IA');
+  check('246) pero una de IA sigue bajando entera, como antes', (() => {
+    const j = corriendo(T0);
+    const p = comp.peticionDeGateway(motor.despachar(j).dispatch);
+    return p.capability === 'image.generate' && p.implementation.providerId === 'matriz-a';
+  })());
+
+  /* 234 · Un trabajo guardado sin `task` ni cambios sigue leyéndose igual: aditivo. */
+  check('247) el cambio es aditivo: un trabajo de antes no ha cambiado de forma', (() => {
+    const j = nuevo();
+    return 'capability' in j && 'implementation' in j && !('task' in j);
+  })());
+  check('248) no hay un segundo motor: la tarea entra por `crear`, no por otra puerta',
+    !/crearMotorDeTareas|createTaskEngine|TaskEngine/.test(codigoCore + codigoComp)
+    && (codigoCore.match(/export const crearJobEngine/g) || []).length === 1);
+}
+
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

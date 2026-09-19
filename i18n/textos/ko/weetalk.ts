@@ -27,6 +27,8 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   messagePlaceholderShort: '메시지...',
   firstMessage: '첫 메시지를 보내 보세요',
   photoSeen: '사진 확인함',
+  photoOnce: '한 번 보기 사진',
+  photoOpened: '열어봄',
   tapToView: '탭하여 보기',
   tapToClose: '탭하여 닫기',
   theme: '테마',

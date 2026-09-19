@@ -1,158 +1,118 @@
-import { CapabilityId } from './capability';
-import { ActualCost } from './cost';
-import { EntityAttribution, OwnedByAccount, OwnerRef } from './identity';
+import { EntityAttribution, OwnerRef } from './identity';
 
 /**
- * WEE CORE — PROYECTOS Y MATERIAL.
+ * WEE CORE — PROYECTOS.
  *
  * ── El problema real, medido ────────────────────────────────────────────────
  *
- * Hoy NO EXISTE el concepto de material. Lo que Weë genera se guarda EMBEBIDO
- * dentro del documento del trabajo (`CreatorJob.results: JobResult[]`), y eso
- * tiene tres consecuencias que no son de diseño sino de funcionamiento:
+ * El proyecto que existe (`creatorProjects`) tiene seis campos —id, userId,
+ * name, emoji, createdAt, updatedAt—, cero documentos en producción, y una
+ * relación en un solo sentido y de un solo valor: el TRABAJO guarda un
+ * `projectId` escalar. Con eso, un trabajo con siete resultados entra o no
+ * entra entero en un proyecto, un resultado no puede estar en dos, y borrar un
+ * proyecto deja los trabajos apuntando a un documento que ya no está.
  *
- *   1. Un resultado no se puede consultar solo. No hay «todas mis imágenes»:
- *      para encontrar una hay que leer los trabajos y mirar dentro.
- *   2. No tiene identidad. Sin id propio no se puede versionar, ni reutilizar
- *      como referencia de otro trabajo, ni saber de dónde salió.
- *   3. Cabe lo que quepa. Un documento de Firestore son 1 MB contando TODO lo
- *      demás del trabajo. Un anuncio con doce pasos y sus intermedios no entra.
+ * ── Qué es un proyecto, y qué no ────────────────────────────────────────────
  *
- * Y el proyecto que existe (`creatorProjects`) tiene seis campos —id, userId,
- * name, emoji, createdAt, updatedAt— y una relación en un solo sentido: el
- * trabajo guarda un `projectId` denormalizado. Borrar un proyecto deja los
- * trabajos apuntando a un proyecto que ya no está.
+ * Un proyecto ORGANIZA. No posee: el material es de la cuenta, y el proyecto
+ * es de la cuenta. Mover un material de proyecto no cambia de quién es, y
+ * borrar un proyecto no puede borrar nada de nadie — solo deja de agruparlo.
  *
- * ── Qué declara esto ────────────────────────────────────────────────────────
+ * ── La relación va APARTE, y por qué ────────────────────────────────────────
  *
- * La forma que tendrá el material cuando salga del documento del trabajo. No
- * migra nada: `JobResult` sigue siendo lo que es hasta la Fase 11.
+ * El material NO lleva `projectId`. Lo llevaba, como escalar, y eso hacía
+ * imposible lo que más importa: el mismo diseño en el proyecto del anuncio y
+ * en el de la marca sin copiarlo. Tampoco lleva `projectIds[]`: una lista
+ * dentro del material es una relación rígida —para saber qué hay en un
+ * proyecto habría que recorrer todos los materiales— y crece sin control.
  *
- * ── PROCEDENCIA: lo que de verdad justifica este archivo ────────────────────
+ * La relación es una fila propia: `ProjectItem`. Un proyecto, una cosa (un
+ * material o un contenido), cuándo se añadió y desde qué cara. Con eso, un
+ * material está en tantos proyectos como filas tenga, listar un proyecto es
+ * consultar sus filas, y quitar algo de un proyecto es borrar una fila y no
+ * tocar ni el material ni el proyecto.
  *
- * Un resultado sin procedencia es un archivo huérfano. Saber de qué paso salió,
- * con qué modelo, a partir de qué material y cuánto costó es lo que permite
- * repetirlo, mejorarlo, auditarlo y explicárselo a quien lo pidió. Es también lo
- * único que hace posible el ciclo GENERAR → EVALUAR → MEJORAR: sin saber cómo se
- * hizo algo, «mejóralo» solo puede significar «hazlo otra vez a ver si suena».
+ * Lo que hoy es `creatorJobs.projectId` sigue funcionando: es la costura
+ * heredada que apunta a un trabajo entero, y se queda hasta que los trabajos
+ * produzcan materiales con id y puedan entrar por aquí uno a uno.
  */
-
-export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d';
-
-/**
- * DE DÓNDE SALIÓ ESTO.
- *
- * `sourceAssetIds` es el que cierra el círculo: un vídeo hecho a partir de una
- * imagen que salió de un boceto guarda esa cadena entera. Es lo que convierte
- * una carpeta de archivos en un proyecto con historia.
- */
-export interface Provenance {
-  runId?: string;
-  stepId?: string;
-  capability?: CapabilityId;
-  provider?: string;
-  model?: string;
-  /** Material del que partió este material. */
-  sourceAssetIds?: readonly string[];
-  cost?: ActualCost;
-  createdAt: number;
-}
-
-/**
- * UNA VERSIÓN DE UN MATERIAL.
- *
- * Existe porque «mejora esto» no debe destruir lo anterior. Sin versiones, el
- * ciclo de mejora es una apuesta: si la nueva sale peor, lo bueno ya se perdió.
- */
-export interface AssetVersion {
-  version: number;
-  /** Dónde vive el archivo. Storage de Weë, nunca una URL de proveedor que caduque. */
-  url?: string;
-  /** Para texto, el contenido puede ir aquí mismo. */
-  content?: string;
-  bytes?: number;
-  width?: number;
-  height?: number;
-  durationSec?: number;
-  provenance: Provenance;
-}
-
-/**
- * UN MATERIAL.
- *
- * Con id propio, que es justo lo que hoy le falta. `currentVersion` apunta a la
- * buena; las demás siguen ahí.
- *
- * ── DE QUIÉN ES: LA CUENTA. Y esto es lo más importante del archivo ────────
- *
- * Hasta hoy este contrato decía `userId`, y en Weë un «user id» es la CARA
- * activa —`uid` o `hidi_uid`—, no la cuenta. Con eso, cambiar de perfil
- * cambiaba de dueño, publicar desde una Página habría exigido copiar el
- * archivo, y borrar la Página se habría llevado por delante material que
- * nunca fue suyo.
- *
- * `ownerAccountId` es la cuenta Weë y no cambia nunca. Quién lo creó y quién
- * lo publicó son DOS ATRIBUCIONES distintas y las dos son contexto:
- *
- *     ownerAccountId       = 0018439      ← de quién es. No se mueve.
- *     createdByEntityId    = 00184391     ← lo hizo desde su Perfil Real
- *     publishedByEntityId  = 00184393     ← lo publicó desde su Página
- *
- * El archivo es UNO. La cuenta es UNA. Lo demás es desde dónde se hizo qué.
- */
-export interface Asset extends OwnedByAccount {
-  id: string;
-  projectId?: string;
-  kind: AssetKind;
-  name?: string;
-  versions: readonly AssetVersion[];
-  currentVersion: number;
-  tags?: readonly string[];
-  createdAt: number;
-  updatedAt: number;
-}
 
 /**
  * UN PROYECTO.
  *
- * Lo que ya existe más lo que hace falta para que sea un contenedor de verdad.
- * `assetCount` y `runCount` son denormalizados a propósito: listar proyectos no
- * puede costar una consulta por proyecto.
- *
- * Un proyecto ORGANIZA trabajo; no lo posee. Por eso es de la cuenta, igual
- * que el material: mover un material de proyecto no cambia de quién es, y
- * borrar un proyecto no puede borrar nada de nadie. `createdByEntityId` dice
- * desde qué cara se creó, y eso es todo lo que dice.
+ * `itemCount` es denormalizado a propósito: listar proyectos no puede costar
+ * una consulta por proyecto. Y como todo contador copiado, es una lectura
+ * cómoda y no una verdad: la verdad son las filas.
  */
 export interface Project extends OwnerRef, EntityAttribution {
-  id: string;
+  projectId: string;
   name: string;
   emoji?: string;
   description?: string;
-  assetCount?: number;
-  runCount?: number;
+  /** El material que hace de portada, si se eligió uno. Referencia, no copia. */
+  coverAssetId?: string;
+  itemCount?: number;
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;
 }
 
-/** La versión buena de un material. */
-export const versionActual = (asset: Asset): AssetVersion | undefined =>
-  asset.versions.find((v) => v.version === asset.currentVersion) ?? asset.versions[asset.versions.length - 1];
+/** Qué puede estar dentro de un proyecto. Abierto por diseño. */
+export type ProjectItemKind = 'asset' | 'content';
 
 /**
- * La cadena de material de la que desciende este.
+ * UNA COSA DENTRO DE UN PROYECTO. La fila que hace posible la reutilización.
  *
- * Recorre hacia atrás con un visto para no caerse si alguien cierra un ciclo
- * —que no debería poder pasar, pero la procedencia la escriben varios sitios—.
+ * `addedByEntityId` es atribución —desde qué cara se guardó ahí— y no
+ * propiedad: la fila es de la cuenta, como el proyecto y como el material.
  */
-export const cadenaDeOrigen = (
-  assetId: string,
-  buscar: (id: string) => Asset | undefined,
-  vistos: Set<string> = new Set(),
-): readonly string[] => {
-  if (vistos.has(assetId)) return [];
-  vistos.add(assetId);
-  const asset = buscar(assetId);
-  const origenes = versionActual(asset as Asset)?.provenance.sourceAssetIds ?? [];
-  return origenes.flatMap((id) => [id, ...cadenaDeOrigen(id, buscar, vistos)]);
+export interface ProjectItem {
+  projectId: string;
+  kind: ProjectItemKind;
+  /** El `assetId` o el `contentId`, según `kind`. */
+  itemId: string;
+  addedAt: number;
+  addedByEntityId?: string;
+  /** Posición dentro del proyecto, cuando se ordena a mano. */
+  order?: number;
+}
+
+export const FORMA_DE_ID_DE_PROYECTO = /^[A-Za-z0-9_-]{4,128}$/;
+export const MAXIMO_DE_NOMBRE_DE_PROYECTO = 60;
+
+export const proyectoValido = (p: Project | undefined): boolean => {
+  if (!p || typeof p !== 'object') return false;
+  if (typeof p.projectId !== 'string' || !FORMA_DE_ID_DE_PROYECTO.test(p.projectId)) return false;
+  if (typeof p.ownerAccountId !== 'string' || !p.ownerAccountId) return false;
+  if (typeof p.name !== 'string' || !p.name.trim() || p.name.length > MAXIMO_DE_NOMBRE_DE_PROYECTO) return false;
+  if (p.itemCount !== undefined && (!Number.isSafeInteger(p.itemCount) || p.itemCount < 0)) return false;
+  if (p.deletedAt !== undefined && !Number.isFinite(p.deletedAt)) return false;
+  return Number.isFinite(p.createdAt) && Number.isFinite(p.updatedAt);
 };
+
+export const proyectoEsDeLaCuenta = (p: Project | undefined, accountId: string | undefined): boolean =>
+  !!p && typeof accountId === 'string' && accountId.length > 0 && p.ownerAccountId === accountId;
+
+/**
+ * La clave de una fila: un proyecto no tiene la misma cosa dos veces.
+ *
+ * Derivada, no inventada: dos servidores calculan la misma, así que añadir
+ * el mismo material al mismo proyecto dos veces es un no-op y no un duplicado.
+ */
+export const claveDeElemento = (item: Pick<ProjectItem, 'projectId' | 'kind' | 'itemId'>): string =>
+  `${item.projectId}:${item.kind}:${item.itemId}`;
+
+/** ¿Está esta cosa en este proyecto? Sobre filas ya leídas. */
+export const estaEnElProyecto = (
+  filas: readonly ProjectItem[],
+  projectId: string,
+  kind: ProjectItemKind,
+  itemId: string,
+): boolean => filas.some((f) => f.projectId === projectId && f.kind === kind && f.itemId === itemId);
+
+/**
+ * Los proyectos en los que está una cosa. Es la pregunta que el escalar
+ * `projectId` no podía contestar más que con un valor.
+ */
+export const proyectosDe = (filas: readonly ProjectItem[], kind: ProjectItemKind, itemId: string): readonly string[] =>
+  [...new Set(filas.filter((f) => f.kind === kind && f.itemId === itemId).map((f) => f.projectId))];

@@ -220,5 +220,36 @@ console.log('\n── E · Lo de la cuenta no lo lee nadie más ──');
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── F · El material es de su cuenta, y solo el servidor lo escribe (Fase 11) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  await sembrar('/assets/asset_a1', { contract: '1.0', assetId: 'asset_a1', ownerAccountId: ANA, kind: 'image', status: 'ready', createdAt: 1, updatedAt: 1 });
+
+  await esperar('33) la dueña lee su material', 'PERMITE', 'GET', '/assets/asset_a1', { uid: ANA });
+  await esperar('34) y nadie más', 'DENIEGA', 'GET', '/assets/asset_a1', { uid: BETO });
+
+  /* 35–37 · Ni siquiera la dueña escribe: decir «esto es mío» lo hace el servidor. */
+  await esperar('35) la dueña NO puede crear una ficha desde el cliente', 'DENIEGA', 'PATCH', '/assets/asset_a2', {
+    uid: ANA, body: doc({ contract: '1.0', assetId: 'asset_a2', ownerAccountId: ANA, kind: 'image', status: 'ready', createdAt: 1, updatedAt: 1 }),
+  });
+  check('36) ni cambiarle el dueño a la suya',
+    (await escribir('/assets/asset_a1', ANA, { ownerAccountId: BETO })) >= 400);
+  await esperar('37) ni borrarla a mano: se pide con deleteAsset, que borra el objeto también', 'DENIEGA', 'DELETE', '/assets/asset_a1', { uid: ANA });
+  await esperar('38) y Beto no puede hacerse una ficha diciendo que es de Ana', 'DENIEGA', 'PATCH', '/assets/asset_a3', {
+    uid: BETO, body: doc({ contract: '1.0', assetId: 'asset_a3', ownerAccountId: ANA, kind: 'image', status: 'ready', createdAt: 1, updatedAt: 1 }),
+  });
+
+  /* 39–41 · Un proyecto no se regala por accidente. */
+  await sembrar('/creatorProjects/proy1', { userId: ANA, name: 'Mi anuncio', emoji: '📁' });
+  check('39) la dueña renombra su proyecto',
+    (await escribir('/creatorProjects/proy1', ANA, { name: 'Mi anuncio de verano' })) < 400);
+  check('40) pero NO puede cambiarle el dueño',
+    (await escribir('/creatorProjects/proy1', ANA, { userId: BETO })) >= 400,
+    'antes la regla solo miraba el documento que había, no el que llegaba');
+  check('41) y Beto no toca lo que no es suyo',
+    (await escribir('/creatorProjects/proy1', BETO, { name: 'mío ahora' })) >= 400);
+}
+
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

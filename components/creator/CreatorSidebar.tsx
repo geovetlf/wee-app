@@ -80,6 +80,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
             return renderItem(id, ICONS[id] || 'sparkles-outline', exp.name, () => goSpecialist(id), true);
           })}
           {renderItem('projects', 'folder-open-outline', t('weeai.myProjects'), () => navigation.navigate(user ? 'Projects' : 'Login'), true)}
+          {renderItem('creations', 'images-outline', t('creaciones.title'), () => navigation.navigate(user ? 'MisCreaciones' : 'Login'), true)}
         </View>
 
         {/* Credits */}

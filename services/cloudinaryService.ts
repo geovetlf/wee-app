@@ -36,6 +36,19 @@ const TIPOS_DE_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 
 
 class ArchivoRechazado extends Error {}
 
+/*
+ * ── LO QUE SE SABE DE UNA SUBIDA, Y LO QUE NO ──────────────────────────────
+ *
+ * `fetch` no cuenta los bytes que salen: no hay progreso real que enseñar.
+ * Estas funciones avisaban «5 %», «90 %» y «100 %» en momentos fijos, y la
+ * pantalla pintaba una barra con eso. Una barra que no mide nada no es
+ * progreso: es un dibujo. Lo honesto es avisar de lo único que de verdad se
+ * sabe —que la subida ha empezado y que ha terminado— y que la pantalla
+ * cuente archivos, que sí se cuentan (Fase 11, C11).
+ */
+export type EstadoDeSubida = 'subiendo' | 'terminado';
+export type AvisoDeSubida = (estado: EstadoDeSubida) => void;
+
 const comprobarBlob = (blob: Blob, resourceType: 'image' | 'video'): Blob => {
   const maximo = resourceType === 'video' ? MAXIMO_DE_VIDEO : MAXIMO_DE_IMAGEN;
   if (blob.size > maximo) {
@@ -137,10 +150,10 @@ const buildFormData = async (
 export const uploadImageToCloudinary = async (
   uri: string,
   folder: string = 'images',
-  onProgress?: (progress: number) => void,
+  onEstado?: AvisoDeSubida,
 ): Promise<string> => {
   try {
-    onProgress?.(5);
+    onEstado?.('subiendo');
     const formData = await buildFormData(uri, 'image', folder);
 
     const response = await fetch(`${BASE_URL}/image/upload`, {
@@ -148,15 +161,13 @@ export const uploadImageToCloudinary = async (
       body: formData,
     });
 
-    onProgress?.(90);
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Cloudinary image upload failed: ${response.status} ${errorText}`);
     }
 
     const result = await response.json();
-    onProgress?.(100);
+    onEstado?.('terminado');
 
     // Return the raw secure_url — consumers use cloudinaryThumb/Feed/Full for variants
     return result.secure_url;
@@ -171,14 +182,17 @@ export const uploadImageToCloudinary = async (
 export const uploadBlobToCloudinary = async (
   blob: Blob,
   folder: string = 'images',
-  onProgress?: (progress: number) => void,
+  onEstado?: AvisoDeSubida,
 ): Promise<string> => {
   try {
-    onProgress?.(5);
+    onEstado?.('subiendo');
 
     // La segunda puerta a lo público: por aquí entra lo que ya está en memoria
-    // (las imágenes de una publicación, las de un comentario). Misma limpieza.
-    const limpio = await blobSinMetadatos(blob);
+    // (las imágenes de una publicación, las de un comentario). Misma limpieza
+    // y MISMO límite que la primera puerta: hasta la Fase 11 este camino no
+    // pasaba por comprobarBlob, así que un archivo demasiado grande o de un
+    // tipo que no vale entraba por aquí sin que nadie lo mirase (C10).
+    const limpio = await blobSinMetadatos(comprobarBlob(blob, 'image'));
 
     // Convert blob to base64 data URI (works reliably on both web and native)
     const base64 = await new Promise<string>((resolve, reject) => {
@@ -198,15 +212,13 @@ export const uploadBlobToCloudinary = async (
       body: formData,
     });
 
-    onProgress?.(90);
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Cloudinary blob upload failed: ${response.status} ${errorText}`);
     }
 
     const result = await response.json();
-    onProgress?.(100);
+    onEstado?.('terminado');
     return result.secure_url;
   } catch (error) {
     console.error('Error uploading blob to Cloudinary:', error);
@@ -219,10 +231,10 @@ export const uploadBlobToCloudinary = async (
 export const uploadAudioToCloudinary = async (
   uri: string,
   folder: string = 'audio',
-  onProgress?: (progress: number) => void,
+  onEstado?: AvisoDeSubida,
 ): Promise<string> => {
   try {
-    onProgress?.(5);
+    onEstado?.('subiendo');
     const formData = new FormData();
     formData.append('file', { uri, type: 'audio/m4a', name: 'audio.m4a' } as any);
     formData.append('upload_preset', UPLOAD_PRESET);
@@ -234,14 +246,13 @@ export const uploadAudioToCloudinary = async (
       body: formData,
     });
 
-    onProgress?.(90);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Cloudinary audio upload failed: ${response.status} ${errorText}`);
     }
 
     const result = await response.json();
-    onProgress?.(100);
+    onEstado?.('terminado');
     return result.secure_url;
   } catch (error) {
     console.error('Error uploading audio to Cloudinary:', error);
@@ -253,10 +264,10 @@ export const uploadAudioToCloudinary = async (
 
 export const uploadVideoToCloudinary = async (
   uri: string,
-  onProgress?: (progress: number) => void,
+  onEstado?: AvisoDeSubida,
 ): Promise<string> => {
   try {
-    onProgress?.(5);
+    onEstado?.('subiendo');
     const formData = await buildFormData(uri, 'video', 'videos');
 
     const response = await fetch(`${BASE_URL}/video/upload`, {
@@ -264,15 +275,13 @@ export const uploadVideoToCloudinary = async (
       body: formData,
     });
 
-    onProgress?.(90);
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Cloudinary video upload failed: ${response.status} ${errorText}`);
     }
 
     const result = await response.json();
-    onProgress?.(100);
+    onEstado?.('terminado');
 
     // Return optimized video URL
     return result.secure_url.replace('/upload/', '/upload/c_limit,h_720,q_auto,f_mp4/');

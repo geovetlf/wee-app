@@ -33,6 +33,7 @@ export type MenuItemId =
   | 'weetalk'
   | 'creator'
   | 'projects'
+  | 'creations'
   | 'saved'
   | 'settings'
   | 'help';
@@ -94,6 +95,12 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    */
   creator: { id: 'creator', icono: 'cerebro', clave: 'menu.creator', emoji: '🤖', label: 'Weë AI' },
   projects: { id: 'projects', icono: 'carpeta', clave: 'menu.projects', emoji: '📁', label: 'Mis proyectos' },
+  /*
+   * La biblioteca de material de la CUENTA (Fase 11). Una sola, no una por
+   * perfil: lo que se genera es de la cuenta. La clave vive en su propio
+   * módulo de i18n porque el nombre es el título de la pantalla.
+   */
+  creations: { id: 'creations', icono: 'galeria', clave: 'creaciones.title', emoji: '🖼️', label: 'Mis creaciones' },
   /*
    * Notificaciones NO está aquí, y no es un olvido: es el quinto destino de la
    * barra inferior (`components/BarraInferior.tsx`), que se ve siempre. Tenerlo

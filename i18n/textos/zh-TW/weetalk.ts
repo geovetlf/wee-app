@@ -36,6 +36,8 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   messagePlaceholderShort: '訊息…',
   firstMessage: '傳出第一則訊息',
   photoSeen: '照片已查看',
+  photoOnce: '閱後即焚照片',
+  photoOpened: '已開啟',
   tapToView: '點擊查看',
   tapToClose: '點擊關閉',
   theme: '主題',

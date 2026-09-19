@@ -71,6 +71,12 @@ export interface JobResult {
   url?: string;
   /** Varias propuestas (p. ej. tres diseños); url es la primera. */
   urls?: string[];
+  /**
+   * Los materiales de este resultado, alineados con `urls` (o con `url`). Con
+   * el id se guarda, se reutiliza y se borra sin copiar el archivo. Ausente en
+   * texto, en demo y en trabajos anteriores a la Fase 11.
+   */
+  assetIds?: string[];
   /** Producido por el proveedor de prueba (muestra). */
   demo?: boolean;
   /** Credits que costó este resultado. */

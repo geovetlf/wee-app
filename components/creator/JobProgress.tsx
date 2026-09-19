@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useT } from '../../contexts/IdiomaContext';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -11,17 +12,31 @@ interface JobProgressProps {
   job: CreatorJob;
 }
 
-/** Progreso en lenguaje humano: "Escribiendo el guion… ✔ Creando imágenes…" */
+/**
+ * Progreso en lenguaje humano: "Escribiendo el guion… ✔ Creando imágenes…"
+ *
+ * ── Lo que enseña es lo que se sabe ────────────────────────────────────────
+ *
+ * Los pasos y su estado los escribe el servidor en el documento del trabajo,
+ * y esto los pinta tal cual: hechos, en marcha, pendientes. No hay barra ni
+ * porcentaje porque no hay ninguna fuente real que los diga, y un número
+ * inventado es peor que ninguno.
+ *
+ * Todo lo que se lee pasa por `t()`. Antes las cuatro frases estaban escritas
+ * en español a mano, y quien usaba Weë en inglés leía «está trabajando» en la
+ * pantalla donde aterriza todo lo que se crea.
+ */
 const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
   const { theme } = useTheme();
+  const t = useT();
   const doneCount = job.steps.filter((s) => s.status === 'done').length;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-      <Text style={[styles.who, { color: theme.colors.accentDark }]}>{experienceName} está trabajando</Text>
-      <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText || 'Empezando…'}</Text>
+      <Text style={[styles.who, { color: theme.colors.accentDark }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</Text>
+      <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText || t('creaciones.progressStarting')}</Text>
       <Text style={[styles.counter, { color: theme.colors.textSecondary }]}>
-        {doneCount} de {job.steps.length} pasos listos
+        {t('creaciones.progressSteps', { hechos: doneCount, total: job.steps.length })}
       </Text>
 
       <View style={styles.steps}>
@@ -33,7 +48,7 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
               ) : step.status === 'running' ? (
                 <ActivityIndicator size="small" color={theme.colors.accent} />
               ) : step.status === 'failed' ? (
-                <Ionicons name="close-circle" size={scale(20)} color="#B4443C" />
+                <Ionicons name="close-circle" size={scale(20)} color={theme.colors.error} />
               ) : (
                 <Ionicons name="ellipse-outline" size={scale(20)} color={theme.colors.border} />
               )}
@@ -50,9 +65,7 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
         ))}
       </View>
 
-      <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
-        Puedes salir de esta pantalla; lo encontrarás en "Mis creaciones" cuando esté listo.
-      </Text>
+      <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>{t('creaciones.progressFindLater')}</Text>
     </View>
   );
 };

@@ -668,11 +668,33 @@ service cloud.firestore {
       }
     }
 
+    // === MATERIAL (Content Core, Fase 11) ===
+    //
+    // La ficha de cada archivo que Weë guarda: de quién es, dónde están los
+    // bytes, cómo se hizo y en qué estado está. Cada cuenta lee lo suyo y solo
+    // lo suyo, con consulta paginada por `ownerAccountId`.
+    //
+    // NO se escribe desde el cliente. Crear una ficha es decir «estos bytes son
+    // de esta cuenta», y eso lo afirma el servidor a partir de la sesión, nunca
+    // un documento que llega de fuera con el `ownerAccountId` que quiera.
+    // Borrar tampoco: se pide con `deleteAsset`, que borra el objeto además de
+    // la ficha, y comprueba antes que sea tuyo.
+    match /assets/{assetId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
     match /creatorProjects/{projectId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // El dueño edita lo suyo y NO puede cambiar de dueño: la regla miraba
+      // solo el documento que había (`resource.data`) y dejaba escribir otro
+      // `userId` en el nuevo, así que un proyecto se podía regalar o perder
+      // por accidente. Un proyecto es de la cuenta y ahí se queda.
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

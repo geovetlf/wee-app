@@ -496,9 +496,12 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
   /*
    * El número baja cuando se RETIRA una clave del producto entero —los once
    * diccionarios a la vez—, y solo entonces: 2 242 → 2 240 al eliminarse el
-   * Perfil Biz (`menu.activeBiz`, `menu.bizActiveTap`).
+   * Perfil Biz (`menu.activeBiz`, `menu.bizActiveTap`). Y sube cuando se AÑADE
+   * a los once a la vez: 2 240 → 2 299 en la Fase 11, con el módulo `creaciones`
+   * («Mis creaciones», incluidas las cuatro claves de la descarga) y las dos
+   * claves de la foto única de WeeTalk (`weetalk.photoOnce`, `weetalk.photoOpened`).
    */
-  const CLAVES_PT = 2240;
+  const CLAVES_PT = 2299;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

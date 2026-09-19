@@ -28,6 +28,8 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   messagePlaceholderShort: 'Mensagem...',
   firstMessage: 'Envia a primeira mensagem',
   photoSeen: 'Foto vista',
+  photoOnce: 'Foto única',
+  photoOpened: 'Aberta',
   tapToView: 'Toca para ver',
   tapToClose: 'Toca para fechar',
   theme: 'Tema',

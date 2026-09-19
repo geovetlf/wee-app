@@ -64,7 +64,7 @@ export const composer: typeof import('../es/composer').composer = {
   publishIn: 'POSTEN IN',
   publishing: 'Wird gepostet…',
   publishingOverlay: 'Wird gepostet...',
-  uploadingVideo: 'Video wird hochgeladen: {{porcentaje}}%',
+  uploadingFiles: 'Datei {{n}} von {{total}} wird hochgeladen …',
   readyInAMoment: 'Dein Beitrag ist gleich fertig',
   pollQuestionPlaceholder: 'Was möchtest du fragen?',
   pollOptionPlaceholder: 'Option {{numero}}',

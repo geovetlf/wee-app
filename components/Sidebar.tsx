@@ -278,7 +278,7 @@ const Sidebar: React.FC = () => {
             icono={MENU_ITEM.creator.icono}
             marcaDeWeeAi
             label={MENU_ITEM.creator.label}
-            active={isActive('WeeCreator') || isActive('Specialist') || isActive('CreatorFlow') || isActive('Projects') || isActive('Project')}
+            active={isActive('WeeCreator') || isActive('Specialist') || isActive('CreatorFlow') || isActive('Projects') || isActive('Project') || isActive('MisCreaciones')}
             onPress={() => {
               setCreatorOpen(true);
               navigation.navigate('WeeCreator');
@@ -295,6 +295,7 @@ const Sidebar: React.FC = () => {
                 <SidebarItem key={exp.id} icono={exp.icono} label={exp.name} nested onPress={() => navigation.navigate('Specialist', { id: exp.id })} />
               ))}
               <Opcion id="projects" nested active={isActive('Projects')} onPress={() => (user ? navigation.navigate('Projects') : requireLogin())} />
+              <Opcion id="creations" nested active={isActive('MisCreaciones')} onPress={() => (user ? navigation.navigate('MisCreaciones') : requireLogin())} />
             </View>
           )}
           {/* "Perfil" a secas se fue: arriba ya están Perfil Real y Perfil Weë. */}

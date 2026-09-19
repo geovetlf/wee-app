@@ -24,7 +24,11 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `workflow.ts` | `Workflow`, `WorkflowStep`, `WorkflowRun`, grafo de dependencias |
 | `workplace.ts` | `WorkplaceManifest` |
 | `provider.ts` | Descriptor y contrato ampliado de proveedor |
-| `project.ts` | `Project`, `Asset`, `AssetVersion`, procedencia |
+| `project.ts` | `Project`, `ProjectItem` — el proyecto ORGANIZA, no posee |
+| `content/asset.ts` | `Asset`, `StorageRef`, `Provenance`, `AssetVariant`, estados y `retirar()` — el material y de quién es |
+| `content/content.ts` | `Content`, `AssetRef`, `ContentType` — lo que se compone con material |
+| `content/publication.ts` | `Publication`, `Visibility`, `PublicationTarget` — dónde, con qué cara y para quién |
+| `job.ts` | WEE Job Engine: `Job`, estados, `crearJobEngine()`; y la costura `JobTask` para trabajos que no son de IA |
 | `observability.ts` | `TraceContext` y campos prohibidos |
 | `registry/capabilities.ts` | `CoreCapabilityId` y el catálogo completo |
 | `registry/types.ts` | `ModelDescriptor`, `RegisteredProvider`, `RegisteredAdapter` |
@@ -901,6 +905,10 @@ Quien sondea informa, y **puede informar que sigue sin saber**. Eso escribe —r
 
 Los avisos llegan ya normalizados por su adaptador: el Core no sabe qué forma tiene el webhook de nadie y no la inventa. Repetirse no cuesta nada —un final sobre un intento ya concluido no vuelve a terminar—, y uno más viejo que el último visto no retrocede el estado. **La doble finalización es imposible por construcción**, no por un candado: si el trabajo ya terminó o el intento ya tiene desenlace, no hay nada que hacer.
 
+### Trabajos que no son de IA: la costura `task` (Fase 11)
+
+Un `Job` es **o** una operación de IA (`capability` + `implementation`) **o** una tarea general (`task: { name }`, con `FORMA_DE_TAREA = /^[a-z0-9]+\.[a-z0-9_]+$/`, por ejemplo `media.transcode`). Las dos formas se excluyen: `crear()` rechaza una petición que traiga `task` y `capability` a la vez. Todo lo demás —estados, reintentos, plazo, idempotencia por cuenta, cancelación— es el mismo motor: no hay un segundo Job Engine para lo que no es IA. Lo único que una tarea no puede hacer es pedirle algo al Gateway (`peticionDeGateway` lo rechaza), porque no tiene capacidad que pedir. `esTareaGeneral(job)` es la pregunta.
+
 ### Seguridad: dos listas, y son distintas a propósito
 
 El material de un trabajo **no se filtra con la lista de una traza**. Una traza no puede llevar el texto de la persona —los registros se copian, se exportan y se pegan en un chat de soporte—, pero el material de un trabajo **es** ese texto: quitar `prompt` de ahí sería mandar a generar una imagen sin decir de qué. Lo que no entra es lo que nunca es material: credenciales, y las claves con las que un objeto deja de ser un objeto plano. Y se **rechaza**, no se quita en silencio: quitar una credencial a escondidas deja a quien la mandó creyendo que viajó.
@@ -1063,6 +1071,38 @@ Esta fase no crea entidades, no genera identificadores y no resuelve pertenencia
 | Elegir modelo o proveedor de IA | Router (Fase 7) |
 | Cambiar de moneda | un puerto con su tasa declarada |
 
+## WEE Content Core
+
+**Fase 11.** `core/content/` — tres contratos y ni un almacén: `asset.ts`, `content.ts`, `publication.ts`. Dicen qué es un material, qué es un contenido y qué es publicar; no saben guardar nada. Lo guarda `functions/src/content/index.ts`, que es el único sitio donde aparecen los nombres `wee` y `cloudinary`.
+
+### Tres cosas, y en este orden
+
+```
+ACCOUNT ─posee─▶ ASSET ─se compone en─▶ CONTENT ─se publica como─▶ PUBLICATION
+                  ▲
+  AI GENERATION ─▶ JOB ─produce─┘
+```
+
+- **Asset** es el material: un archivo con identidad (`assetId`), dueño (`ownerAccountId`), referencia al almacén (`storageRef`), estado (`uploading → processing → ready → deleted`, `failed`) y procedencia (`provenance`: generación, trabajo, paso, petición, proveedor, coste, materiales de origen). Es plano: una versión nueva es otro material con `previousVersionId`, y así se consulta sin abrir listas.
+- **Content** es lo que se compone con material: `post`, `comment`, `reply`, `weel`, `page_content`, `community_content`, `media_post`; lleva `assetRefs[]` con papel (`primary`, `attachment`, `cover`, `source`) y orden, y una costura de moderación (`moderationStatus`, `moderationCaseId`) que hoy no decide nada.
+- **Publication** es publicar: un contenido, un destino (`wall`, `weels`, `section`, `community`, `page`, `profile`), una visibilidad (`public`, `followers`, `connections`, `community`, `page`, `private`, `unlisted`) y **con qué cara** (`publishedByEntityId` + `publishedByEntityType`, obligatorios). `publicacionValida` exige que una visibilidad de comunidad tenga destino de comunidad, y la de página, destino de página.
+
+### Las reglas que no se negocian
+
+- **El dueño es la cuenta; la entidad solo firma.** `Asset extends OwnedByAccount`; `createdByEntityId` es atribución, nunca credencial. Los dos lo comprueban con `materialEsDeLaCuenta` / `contenidoEsDeLaCuenta` / `publicacionEsDeLaCuenta`, y el servidor deriva `ownerAccountId` de la sesión: jamás del cliente.
+- **La URL no es la identidad.** `StorageRef { provider, bucket?, objectKey, version? }` es el archivo; la URL de entrega se guarda aparte, en `delivery`, etiquetada como caché (`bearer_token` | `public`). Si la entrega cambia de dominio o se firma, la ficha no se entera.
+- **Generar ≠ material; publicar ≠ hacer público.** Un `Job` produce material; una `Publication` decide quién lo ve. Un material puede estar `ready` y no publicado, y publicado en `private`.
+- **El proyecto organiza, no posee.** `Project` es del `OwnerRef` y `ProjectItem { kind: 'asset' | 'content', itemId }` es una fila: el mismo material cabe en varios proyectos sin copiarse. `Asset` ya no lleva `projectId`.
+- **Retirar es una decisión, no un `delete`.** `retirar(asset, at)` devuelve el material marcado `deleted` y la lista de `StorageRef` que hay que borrar; la composición marca primero la ficha y borra después el objeto, y si el almacén no sabe borrar (Cloudinary, sin secreto) lo anota (`pendingPhysicalDeletion`) en vez de fingir.
+
+### Lo que arregla de lo que había
+
+Lo generado tiene id, dueño y procedencia (antes: una URL en un array). Lo generado lo lee solo su dueño (antes: `allow read: if true` para quien adivinara la ruta). Lo generado se puede borrar (`deleteAsset`; antes `write: false` y nadie). El vídeo se publica con su material y no se re-sube (antes: `r.kind !== 'video'` lo dejaba fuera). La foto única de WeeTalk desaparece de verdad (`burnViewOnce`; antes solo cambiaba una marca).
+
+### Qué NO hace
+
+No sabe de Firestore ni de Storage (lo vigila `core-contracts.test.mjs`). No modera, no indexa, no recomienda, no cuenta vistas. No mueve archivos entre almacenes ni borra en Cloudinary. No decide quién ve una publicación con visibilidad de grafo (`followers`, `connections`): `visibleParaTerceros` devuelve `undefined` y lo resolverá quien tenga el grafo. La migración de lo que ya existe está preparada y **no ejecutada**: [`F11-MIGRACION.md`](F11-MIGRACION.md).
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.
@@ -1114,7 +1154,7 @@ Ningún proveedor (ni Tencent, ni Baidu, ni Alibaba, ni Google, ni Amazon), ning
 
 ## Lo que el Core todavía no hace
 
-Fases 0 a 7 son cimientos, registro, frontera, inteligencia, plan, estructura de ejecución, coordinación y elección. No hay cola de Jobs, ni Financial Core, ni Quality Engine, ni Asset Engine. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
+Fases 0 a 7 son cimientos, registro, frontera, inteligencia, plan, estructura de ejecución, coordinación y elección; la 8 el Job Engine, la 9 el Financial Core, la 10 la identidad y los eventos, y la 11 el material, el contenido y la publicación. No hay Quality Engine, ni Feed, ni Search, ni Moderation, ni Analytics: la costura de moderación de `Content` y la visibilidad de grafo de `Publication` están declaradas y sin decidir. Los contratos existen para que quepan; el código llega en las fases siguientes. El Workflow Engine deja tres seams declarados: el `runId` de una segunda ejecución lo traerá el Job Engine, `failed → running` (reanudar) es una línea de su tabla cuando toque, y `input` de cada paso lo resolverá el Orchestrator a partir de los `outputRefs` de sus dependencias.
 
 Cosas que la auditoría encontró y que **siguen como estaban**, porque arreglarlas no es de estas fases:
 

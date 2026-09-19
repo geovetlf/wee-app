@@ -30,8 +30,12 @@ export { seedanceCallback } from './engine/webhooks';
 export { publicPostPage } from './public/postPage';
 export { engineAdmin } from './engine/admin';
 
+// Content Core (Fase 11): retirar un material propio, objeto incluido.
+export { deleteAsset } from './content';
+
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
 export { votePoll } from './social/polls';
+export { burnViewOnce } from './social/weetalk';
 
 /*
  * ËContact: las dos puertas de una conexión entre identidades de

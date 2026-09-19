@@ -27,6 +27,8 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   messagePlaceholderShort: '消息…',
   firstMessage: '发出第一条消息',
   photoSeen: '照片已查看',
+  photoOnce: '阅后即焚照片',
+  photoOpened: '已打开',
   tapToView: '点击查看',
   tapToClose: '点击关闭',
   theme: '主题',

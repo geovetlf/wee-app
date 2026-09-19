@@ -65,7 +65,7 @@ export const composer = {
   publishIn: 'PUBLICAR EN',
   publishing: 'Publicando…',
   publishingOverlay: 'Publicando...',
-  uploadingVideo: 'Subiendo video: {{porcentaje}}%',
+  uploadingFiles: 'Subiendo {{n}} de {{total}}…',
   readyInAMoment: 'Tu post estará listo en un momento',
   pollQuestionPlaceholder: '¿Qué quieres preguntar?',
   pollOptionPlaceholder: 'Opción {{numero}}',

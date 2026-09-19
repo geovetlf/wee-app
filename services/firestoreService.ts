@@ -78,6 +78,14 @@ export interface Post {
   imageUrlsThumbnails?: string[]; // Thumbnails para carga rápida en el feed
   imageAspectRatios?: number[]; // Aspect ratios (width/height) alineados 1:1 con imageUrls
   videoUrl?: string;
+  /**
+   * De qué material de la cuenta salió cada imagen, alineado con `imageUrls`
+   * (`null` donde vino de la galería), y el del vídeo. Es la referencia que
+   * une la publicación con el material y, por él, con la generación que lo
+   * produjo (Fase 11). Ausente en publicaciones anteriores.
+   */
+  assetIds?: (string | null)[];
+  videoAssetId?: string;
   isWeel?: boolean; // Weël: video corto (máx. 15 s) creado desde el botón +
   poll?: PostPoll; // Encuesta opcional
 

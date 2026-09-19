@@ -23,6 +23,7 @@ import { serviceForCapability } from '../credits/creditCosts';
 import { imageServiceFor } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { operacionAbandonada } from '../core';
+import { crearMaterialDesdeUrl } from '../content';
 
 /**
  * ── EL PLAZO DE UN TRABAJO, Y POR QUÉ ESTÁ AQUÍ ────────────────────────────
@@ -340,6 +341,63 @@ export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, 
   }
 });
 
+/**
+ * ── EL RESULTADO SE CONVIERTE EN MATERIAL ───────────────────────────────────
+ *
+ * Hasta aquí un resultado era una URL dentro de `results[]`: sin id, sin
+ * dueño, sin forma de reutilizarlo ni de borrarlo, y público. Ahora cada
+ * archivo que un paso produce se REFERENCIA como material de la cuenta, con
+ * su procedencia entera —generación, trabajo, paso, petición, proveedor y
+ * modelo— y el resultado guarda sus ids junto a las URLs de siempre.
+ *
+ * No se sube ni se copia nada: el archivo ya está en el Storage de Weë. Lo que
+ * se crea es su identidad. Y si crear la ficha falla, el trabajo NO falla: el
+ * resultado sigue siendo lo que era (una URL), y se anota. Un paso que salió
+ * bien no se tira por un problema de catalogación.
+ *
+ * Los resultados de prueba (`demo`) no se convierten: sus URLs no son de
+ * ningún almacén de Weë y un material de mentira sería una ficha de mentira.
+ */
+const materialesDeResultado = async (
+  uid: string,
+  run: GatewayRun,
+  step: JobStep,
+  jobId: string,
+  requestId: string,
+  experienceId: ExperienceId,
+): Promise<string[]> => {
+  if (run.demo) return [];
+  const urls = run.output.urls && run.output.urls.length > 0 ? run.output.urls : run.output.url ? [run.output.url] : [];
+  const ids: string[] = [];
+  for (const url of urls) {
+    try {
+      const material = await crearMaterialDesdeUrl({
+        ownerAccountId: uid,
+        url,
+        kind: run.output.kind === 'text' ? 'document' : run.output.kind,
+        durationSec: run.output.durationSec,
+        name: step.purpose,
+        /* De qué experiencia salió: es lo que permite abrirlo desde «Mis creaciones» en su mesa de trabajo. */
+        metadata: { experienceId },
+        provenance: {
+          createdAt: Date.now(),
+          generationId: run.generationId,
+          jobId,
+          stepId: step.id,
+          requestId,
+          capability: step.capability,
+          provider: run.provider,
+          /* El modelo exacto vive en `aiGenerations/{generationId}`: se llega por el id, no se copia. */
+        },
+      });
+      if (material) ids.push(material.assetId);
+    } catch (error) {
+      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, error);
+    }
+  }
+  return ids;
+};
+
 export const creatorRun = onCall(
   { region: 'us-central1', timeoutSeconds: PLAZO_DE_EJECUCION_MS / 1000, memory: '1GiB', secrets: AI_SECRETS },
   async (request) => {
@@ -504,6 +562,9 @@ export const creatorRun = onCall(
             durationSec: run.output.durationSec,
             sources: run.output.sources,
           });
+          /* Cada archivo del resultado pasa a ser material de la cuenta, con su procedencia. */
+          const assetIds = await materialesDeResultado(uid, run, next, jobId, stepCtx.requestId, job.experienceId);
+          if (assetIds.length > 0) results[results.length - 1].assetIds = assetIds;
           next.status = 'done';
           next.generationId = run.generationId;
           next.credits = run.credits;

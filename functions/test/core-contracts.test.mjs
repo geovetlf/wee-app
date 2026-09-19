@@ -416,21 +416,26 @@ console.log('\n── H · Workplace, procedencia y traza ──');
   check('53) el contrato de Workplace no tiene dónde poner un proveedor',
     !/provider|model/i.test(leer('functions/src/core/workplace.ts').replace(/\/\*[\s\S]*?\*\//g, '')));
 
-  /* Procedencia: la cadena de la que desciende un material. */
+  /*
+   * Procedencia: la cadena de la que desciende un material. En la Fase 11 el
+   * material pasó a ser PLANO —la procedencia va arriba, y una versión nueva
+   * es otro material que apunta a su anterior—; la pregunta es la misma.
+   */
+  const m = (assetId, kind, sourceAssetIds) => ({
+    contract: '1.0', assetId, ownerAccountId: 'acc', kind, status: 'ready',
+    storageRef: { provider: 'wee', objectKey: `k/${assetId}` },
+    provenance: { createdAt: 0, ...(sourceAssetIds ? { sourceAssetIds } : {}) },
+    createdAt: 0, updatedAt: 0,
+  });
   const assets = {
-    boceto: { id: 'boceto', userId: 'u', kind: 'image', currentVersion: 1, createdAt: 0, updatedAt: 0,
-      versions: [{ version: 1, provenance: { createdAt: 0 } }] },
-    render: { id: 'render', userId: 'u', kind: 'image', currentVersion: 1, createdAt: 0, updatedAt: 0,
-      versions: [{ version: 1, provenance: { createdAt: 0, sourceAssetIds: ['boceto'] } }] },
-    video: { id: 'video', userId: 'u', kind: 'video', currentVersion: 1, createdAt: 0, updatedAt: 0,
-      versions: [{ version: 1, provenance: { createdAt: 0, sourceAssetIds: ['render'] } }] },
+    boceto: m('boceto', 'image'),
+    render: m('render', 'image', ['boceto']),
+    video: m('video', 'video', ['render']),
   };
   check('54) un material sabe de qué material descendió, en cadena',
     core.cadenaDeOrigen('video', (id) => assets[id]).join(',') === 'render,boceto');
   check('55) y un ciclo no lo cuelga',
-    Array.isArray(core.cadenaDeOrigen('a', () => ({
-      id: 'a', versions: [{ version: 1, provenance: { createdAt: 0, sourceAssetIds: ['a'] } }], currentVersion: 1,
-    }))));
+    Array.isArray(core.cadenaDeOrigen('a', () => m('a', 'image', ['a']))));
 
   /*
    * UN SECRETO EN UN REGISTRO ES UN SECRETO PUBLICADO. Los registros se

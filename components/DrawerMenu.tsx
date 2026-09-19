@@ -557,6 +557,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 {/* El nombre es marca y va sin traducir; su descripción sí se traduce. */}
                 {WEE_EXPERIENCES.map((exp) => renderRow(exp.icono, exp.name, () => goCreator(exp.id), { small: true }))}
                 {fila('projects', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
+                {fila('creations', () => (user ? after(() => navigateRoot('MisCreaciones')) : requireLogin()), { small: true })}
               </View>
             )}
           </View>

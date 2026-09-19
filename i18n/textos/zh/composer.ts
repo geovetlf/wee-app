@@ -82,7 +82,7 @@ export const composer: typeof import('../es/composer').composer = {
   publishIn: '发布到',
   publishing: '正在发布…',
   publishingOverlay: '正在发布…',
-  uploadingVideo: '正在上传视频：{{porcentaje}}%',
+  uploadingFiles: '正在上传 {{n}}/{{total}}…',
   readyInAMoment: '你的动态马上就好',
   pollQuestionPlaceholder: '想问什么？',
   pollOptionPlaceholder: '选项 {{numero}}',

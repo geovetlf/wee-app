@@ -367,7 +367,15 @@ const CreatorFlowScreen: React.FC = () => {
     });
   };
 
-  const handlePublish = (mediaUri?: string) => {
+  /*
+   * PUBLICAR UN RESULTADO. Viaja el material elegido con su tipo y su id.
+   *
+   * Antes viajaba solo una URL de imagen: un vídeo no se podía publicar y el
+   * compositor descargaba y volvía a subir lo que ya estaba en Weë. Con el
+   * `assetId` el compositor lo REFERENCIA (Fase 11): un archivo, una cuenta,
+   * y la publicación sabe de qué material —y por él, de qué trabajo— salió.
+   */
+  const handlePublish = (media?: { uri: string; type: 'image' | 'video'; assetId?: string }) => {
     if (!job) return;
     const content = job.results
       .filter((r) => r.content && r.kind !== 'video')
@@ -375,7 +383,7 @@ const CreatorFlowScreen: React.FC = () => {
       .join('\n\n')
       .slice(0, 480);
     navigation.navigate('Create', {
-      kind: mediaUri ? 'image' : 'post',
+      kind: media ? media.type : 'post',
       /*
        * La sección de la que sale el resultado. Se resuelve por el área a la que
        * pertenece la experiencia —Hogar & Diseño publica como Weë Design, Fotos
@@ -387,7 +395,7 @@ const CreatorFlowScreen: React.FC = () => {
         content: content || job.goal,
         aiTools: [nombre],
         aiProcess: `${job.plan?.explainToUser || `Creado con ${nombre} en Weë AI`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
-        ...(mediaUri ? { media: [{ type: 'image' as const, uri: mediaUri }] } : {}),
+        ...(media ? { media: [{ type: media.type, uri: media.uri, ...(media.assetId ? { assetId: media.assetId } : {}) }] } : {}),
       },
     });
   };
@@ -563,6 +571,7 @@ const CreatorFlowScreen: React.FC = () => {
             onContinue={handleContinue}
             onSaveToProject={() => setPickerVisible(true)}
             projectName={projectName}
+            onOpenCreations={() => navigation.navigate('MisCreaciones')}
             regenerateCredits={pricing ? pricing.total : job.creditsEstimated}
           />
         )}
