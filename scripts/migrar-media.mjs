@@ -32,7 +32,7 @@
  */
 import fs from 'node:fs';
 import {
-  admin, clasificar, core, cuentaDe, idDeMaterial, iniciar, tipoDeEntidad, tipoPorUrl, arg, bandera,
+  admin, clasificar, core, idDeMaterial, iniciar, resolverCuenta, tipoDeEntidad, tipoPorUrl, arg, bandera,
 } from './media-legacy.mjs';
 
 const SALIDA = arg('--json', null);
@@ -68,8 +68,12 @@ const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : ty
 const ficha = async ({ ruta, campo, indice, url, kind, autorId, creadoEn }) => {
   const { proveedor, ref } = clasificar(url);
   if (proveedor === 'otro') return { salto: 'url de otro sitio' };
-  const ownerAccountId = await cuentaDe(db, autorId);
-  if (!ownerAccountId) return { ambiguo: `autor ${autorId ?? '(sin autor)'} sin cuenta legible` };
+  /* Con el motivo delante: «ambiguo» sin explicación no sirve para decidir nada. */
+  const duenyo = await resolverCuenta(db, autorId);
+  if (!duenyo.cuenta) {
+    return { ambiguo: `autor ${autorId ?? '(sin autor)'} → ${duenyo.motivo}`, identidad: autorId ?? null, motivo: duenyo.motivo, documentos: duenyo.documentos };
+  }
+  const ownerAccountId = duenyo.cuenta;
   const assetId = idDeMaterial(`${ruta}#${campo}#${indice}`);
   const ahora = Date.now();
   const a = {
@@ -113,7 +117,7 @@ for (const origen of ORIGENES) {
         if (r.asset) { plan.fichas.push(r.asset); ids.push(r.asset.assetId); }
         else {
           ids.push(null);
-          if (r.ambiguo) plan.ambiguos.push({ ruta: doc.ref.path, campo: c.campo, motivo: r.ambiguo });
+          if (r.ambiguo) plan.ambiguos.push({ ruta: doc.ref.path, campo: c.campo, url: urls[i], motivo: r.ambiguo, identidad: r.identidad ?? null, causa: r.motivo ?? null, documentos: r.documentos ?? [] });
           if (r.invalida) plan.invalidas.push({ ruta: doc.ref.path, campo: c.campo, assetId: r.invalida });
           if (r.salto) plan.saltados.push({ ruta: doc.ref.path, campo: c.campo, motivo: r.salto });
         }

@@ -85,14 +85,98 @@ export const idDeMaterial = (huella) => 'asset_' + createHash('sha256').update(h
  * La CUENTA detrás de una identidad. El Perfil Weë (`hidi_<uid>`) apunta a su
  * cuenta por `users.linkedAccountId`: se LEE, nunca se deduce quitando el
  * prefijo (regla del proyecto). Sin puente = AMBIGUO, y lo ambiguo no se migra.
+ *
+ * ── DÓNDE SE BUSCA, Y POR QUÉ ESTABA MAL ───────────────────────────────────
+ *
+ * Esto leía `users/<identidad>`, es decir, daba por hecho que el id del
+ * documento ERA el uid. En producción no lo es en ningún caso: los documentos
+ * de `users` se crearon con `addDoc`, así que tienen id automático y el uid
+ * vive en un CAMPO. Por eso todas las identidades Weë salían «sin cuenta
+ * legible» y sus materiales quedaban marcados como ambiguos: el inventario no
+ * miraba donde están los datos.
+ *
+ * Se busca como busca el resto de Weë —`where('uid','==',…)`, igual que
+ * `econtactService`, `creditsService` o `followsService`— y además, por si
+ * algún documento sí estuviera nombrado por su uid, se prueba también el id.
+ *
+ * ── QUIÉN DECIDE ───────────────────────────────────────────────────────────
+ *
+ * La decisión NO se toma aquí: la toma `cuentaDeIdentidad`, el mismo resolutor
+ * que usan ËContact y las encuestas en el servidor. Exige que el documento
+ * exista, que su `uid` sea esa identidad, que el tipo sea el que toca y que el
+ * prefijo y `linkedAccountId` cuenten la misma historia. Un segundo criterio
+ * de identidad en un script sería justo lo que la Fase 10 prohíbe.
+ *
+ * `users` no tiene unicidad garantizada (se creó con leer-y-entonces-crear sin
+ * transacción), así que una identidad puede tener VARIOS documentos. Se miran
+ * todos: si dicen lo mismo, hay cuenta; si se contradicen, es ambiguo y se
+ * dice cuál es la contradicción. Nunca se elige uno al azar.
  */
-export const cuentaDe = async (db, id) => {
-  if (typeof id !== 'string' || !id) return null;
-  if (!id.startsWith('hidi_')) return id;
-  const u = await db.collection('users').doc(id).get();
-  const puente = u.exists ? u.get('linkedAccountId') : null;
-  return typeof puente === 'string' && puente ? puente : null;
+export const econtact = require('./lib/social/econtact.js');
+
+/** Por qué se pudo —o no— poner nombre a la cuenta dueña. Explícito, nunca un null a secas. */
+export const MOTIVO = Object.freeze({
+  DIRECTA: 'directa',
+  PUENTE: 'puente',
+  ID_INVALIDO: 'id_invalido',
+  SIN_USUARIO: 'sin_documento_de_usuario',
+  SIN_PUENTE: 'sin_vinculo_valido',
+  CONTRADICTORIO: 'vinculos_contradictorios',
+});
+
+const campos = (d) => ({
+  documentId: d.id,
+  uid: d.get('uid') ?? null,
+  profileType: d.get('profileType') ?? null,
+  linkedAccountId: d.get('linkedAccountId') ?? null,
+});
+
+/** Todos los documentos de `users` que dicen ser esa identidad. Solo lectura. */
+const documentosDeIdentidad = async (db, id) => {
+  const vistos = new Map();
+  const porCampo = await db.collection('users').where('uid', '==', id).get();
+  for (const d of porCampo.docs) vistos.set(d.ref.path, d);
+  const porId = await db.collection('users').doc(id).get();
+  if (porId.exists) vistos.set(porId.ref.path, porId);
+  return [...vistos.values()];
 };
+
+/* Una identidad se resuelve una vez por ejecución: menos lecturas, mismo resultado. */
+const memoria = new Map();
+
+/**
+ * De quién es esta identidad, con el motivo delante.
+ * → `{ cuenta, motivo, documentos }`. `cuenta` es null salvo que se pueda afirmar.
+ */
+export const resolverCuenta = async (db, id) => {
+  if (!econtact.esIdentidadValida(id)) return { cuenta: null, motivo: MOTIVO.ID_INVALIDO, documentos: [] };
+  /*
+   * Una identidad real ES su cuenta: el uid de la persona. No se consulta
+   * `users` para afirmarlo, igual que antes de este arreglo, para no cambiar
+   * de criterio con lo que ya se inventariaba.
+   */
+  if (econtact.tipoDeIdentidad(id) === 'real') return { cuenta: id, motivo: MOTIVO.DIRECTA, documentos: [] };
+  if (memoria.has(id)) return memoria.get(id);
+
+  const docs = await documentosDeIdentidad(db, id);
+  const documentos = docs.map((d) => {
+    const c = campos(d);
+    return { ...c, cuenta: econtact.cuentaDeIdentidad(id, c) };
+  });
+  const cuentas = [...new Set(documentos.map((d) => d.cuenta).filter(Boolean))];
+
+  let resultado;
+  if (docs.length === 0) resultado = { cuenta: null, motivo: MOTIVO.SIN_USUARIO, documentos };
+  else if (cuentas.length === 1) resultado = { cuenta: cuentas[0], motivo: MOTIVO.PUENTE, documentos };
+  else if (cuentas.length > 1) resultado = { cuenta: null, motivo: MOTIVO.CONTRADICTORIO, documentos };
+  else resultado = { cuenta: null, motivo: MOTIVO.SIN_PUENTE, documentos };
+
+  memoria.set(id, resultado);
+  return resultado;
+};
+
+/** La cuenta, o null. Envoltorio de `resolverCuenta` para quien no necesite el motivo. */
+export const cuentaDe = async (db, id) => (await resolverCuenta(db, id)).cuenta;
 
 /** La cara que firmó: el `EntityType` del Identity Core. */
 export const tipoDeEntidad = (id) => (typeof id === 'string' && id.startsWith('hidi_') ? 'WEE_PROFILE' : 'REAL_PROFILE');
