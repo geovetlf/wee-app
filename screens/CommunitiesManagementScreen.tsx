@@ -412,7 +412,16 @@ const CommunitiesManagementScreen: React.FC = () => {
                     description: newDesc.trim() || t('communities.defaultDescription', { nombre: newName.trim() }),
                     icon: 'people',
                     rules: [],
-                    createdBy: userProfile?.uid || user.uid,
+                    /*
+                     * ADMINISTRAR UNA COMUNIDAD ES DE LA CUENTA.
+                     *
+                     * La regla de `communities` solo mira `request.auth.uid`
+                     * contra `createdBy`/`moderators`, así que una comunidad
+                     * creada desde el Perfil Weë quedaba con `createdBy:
+                     * hidi_…` y NADIE podía volver a editarla nunca. Crear es
+                     * un acto de propiedad; participar es otra cosa.
+                     */
+                    createdBy: user.uid,
                   });
                   // Auto-join the community
                   if (communityId) {

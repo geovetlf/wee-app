@@ -42,14 +42,25 @@ const WeeBizRegisterScreen: React.FC = () => {
   const t = useT();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile, setBizProfile } = useUserProfile();
+  const { userProfile } = useUserProfile();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RoutePropType>();
   const insets = useSafeAreaInsets();
 
   const editBusiness = (route.params as any)?.business as Business | undefined;
   const isEditing = !!editBusiness;
-  const activeUid = userProfile?.uid || user?.uid;
+  /*
+   * UN NEGOCIO ES DE LA CUENTA, NO DE UNA CARA.
+   *
+   * Escribía `ownerId` con el perfil activo, y la regla de `businesses` exige
+   * `== request.auth.uid`: desde el Perfil Weë la escritura se DENEGABA y
+   * registrar un negocio era imposible. Y si hubiera pasado, el negocio habría
+   * quedado con `ownerId: hidi_…` y su dueño no habría vuelto a poder editarlo.
+   *
+   * Arreglarlo por el otro lado —ensanchar la regla— sería el error: un negocio
+   * es una Página del Account, y una Página no es una cara de la persona.
+   */
+  const activeUid = user?.uid;
 
   // Form state
   const [name, setName] = useState(editBusiness?.name || '');
@@ -139,22 +150,13 @@ const WeeBizRegisterScreen: React.FC = () => {
           logo: logoUrl || undefined,
         });
 
-        // Crear perfil de usuario para el negocio (identidad biz)
-        try {
-          await usersService.createBizProfile(activeUid, bizId, {
-            displayName: name.trim(),
-            photoURL: logoUrl || undefined,
-          });
-          // Cargar el perfil biz recién creado en el contexto
-          const bizUserProfile = await usersService.getBizProfile(bizId);
-          if (bizUserProfile) {
-            setBizProfile(bizUserProfile);
-          }
-          console.log('🏢 Perfil BIZ creado para negocio:', bizId);
-        } catch (bizProfileErr) {
-          console.error('Error creando perfil BIZ:', bizProfileErr);
-        }
-
+        /*
+         * Aquí se creaba además una IDENTIDAD para el negocio —un documento
+         * `users/biz_<negocio>`— y se activaba como una tercera cara de la
+         * cuenta. Ya no: el negocio queda guardado como negocio, que es lo que
+         * es. La entidad que lo representará será una Página de la cuenta, y
+         * las Páginas no son perfiles.
+         */
         Alert.alert(t('weebiz.createdTitle'), t('weebiz.created'), [
           { text: t('weebiz.viewProfile'), onPress: () => {
             navigation.goBack();

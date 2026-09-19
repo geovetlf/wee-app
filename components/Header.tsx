@@ -98,10 +98,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
   const { theme, setThemeMode } = useTheme();
   const t = useT();
   const { user } = useAuth();
-  const { hasWeeProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz } = useUserProfile();
+  const { hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
   /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
   const { width: anchoDePantalla } = useWindowDimensions();
-  const conSelectorDeIdentidad = !!user && (hasWeeProfile || activeProfileType === 'biz');
+  const conSelectorDeIdentidad = !!user && hasWeeProfile;
   const anchoDeLaMarca = Math.max(
     scale(64),
     anchoDePantalla - (conSelectorDeIdentidad ? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR) * 2
@@ -123,12 +123,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
   }, [switchIdentity, setThemeMode]);
 
   const handleSwitchIdentity = () => {
-    if (activeProfileType === 'biz') {
-      // Biz -> Real
-      switchToBiz();
-      setThemeMode('light');
-      return;
-    }
     // Real <-> Perfil Weë
     irAIdentidad(activeProfileType === 'real' ? 'hidi' : 'real');
   };
@@ -404,28 +398,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
               dónde se ve. El encabezado queda con ☰, la marca, el perfil y la
               campana.
             */}
-            {/* Cambiar de identidad: visible si tiene Perfil Weë o está en modo Biz */}
-            {user && (hasWeeProfile || activeProfileType === 'biz') && (
-              activeProfileType === 'biz' ? (
-                /* Modo Biz: la pastilla de siempre, sin tocar. */
-                <TouchableOpacity
-                  style={[styles.switchButton, {
-                    backgroundColor: transparent ? 'rgba(255,255,255,0.15)' : '#7C3AED' + '20',
-                    borderColor: transparent ? 'rgba(255,255,255,0.3)' : '#7C3AED',
-                  }]}
-                  onPress={handleSwitchIdentity}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('menu.bizActiveTap')}
-                >
-                  {isWeb ? (
-                    <Text style={{ fontSize: 14 }}>🏪</Text>
-                  ) : (
-                    <Ionicons name="storefront" size={ICON_SIZE.md} color={transparent ? 'white' : '#7C3AED'} />
-                  )}
-                  <Text style={[styles.switchButtonText, { color: transparent ? 'white' : '#7C3AED' }]}>Biz</Text>
-                </TouchableOpacity>
-              ) : (
+            {/* Cambiar de identidad: visible si tiene Perfil Weë. */}
+            {user && hasWeeProfile && (
+              (
                 /* El deslizamiento se reconoce aquí, en código nativo; el toque sigue siendo de cada mitad. */
                 <GestureDetector gesture={gestoDeLaPildora}>
                 <View

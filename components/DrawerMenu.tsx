@@ -79,7 +79,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const { theme, setThemeMode } = useTheme();
   const { formato } = useIdioma();
   const { user, logout } = useAuth();
-  const { userProfile, activeProfileType, hasWeeProfile, hasBizProfile, switchIdentity, switchToBiz, setBizProfile } = useUserProfile();
+  const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
   /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
   const { nombreLista } = useIdentidadActiva();
   const navigation = useNavigation<any>();
@@ -116,35 +116,27 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  // Check if user has a business (always use real uid, not the Weë/Biz profile uid)
+  /*
+   * ¿Tiene negocio esta persona? Solo para poder ofrecerle su atajo.
+   *
+   * Aquí se CREABA además un documento de identidad `users/biz_<negocio>` en
+   * cuanto alguien tenía un negocio, y se activaba como una tercera cara de la
+   * cuenta. Eso se ha eliminado: un negocio no es una cara de una persona. El
+   * negocio sigue existiendo —es de Weë Business, el producto— y el atajo lleva
+   * a su pantalla, no a un cambio de identidad.
+   */
   const realUid = user?.uid;
   useEffect(() => {
     if (!realUid) return;
     const loadBiz = async () => {
       try {
-        const biz = await weeBizService.getBusinessByOwner(realUid);
-        setMyBusiness(biz);
-        // Auto-create biz user profile if business exists but no biz profile yet
-        if (biz?.id && !hasBizProfile) {
-          const { usersService } = require('../services/firestoreService');
-          let bizUserProfile = await usersService.getBizProfile(biz.id);
-          if (!bizUserProfile) {
-            await usersService.createBizProfile(realUid, biz.id, {
-              displayName: biz.name,
-              photoURL: biz.logo,
-            });
-            bizUserProfile = await usersService.getBizProfile(biz.id);
-          }
-          if (bizUserProfile) {
-            setBizProfile(bizUserProfile);
-          }
-        }
+        setMyBusiness(await weeBizService.getBusinessByOwner(realUid));
       } catch (e) {
         console.error('Error loading business:', e);
       }
     };
     loadBiz();
-  }, [realUid, hasBizProfile]);
+  }, [realUid]);
 
   useEffect(() => {
     if (isWeb) {
@@ -204,8 +196,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goRealProfile = () => {
     if (!user) return requireLogin();
     if (activeProfileType === 'real') return after(() => navigateTab('Profile'));
-    if (activeProfileType === 'biz') switchToBiz();
-    else switchIdentity();
+    switchIdentity();
     setThemeMode('light');
     closeDrawer();
   };
@@ -214,21 +205,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     if (!user) return requireLogin();
     if (!hasWeeProfile) return after(() => navigateRoot('WeeProfileCreation'));
     if (activeProfileType === 'hidi') return after(() => navigateTab('Profile'));
-    if (activeProfileType === 'biz') {
-      switchToBiz();
-      setThemeMode('light');
-      closeDrawer();
-      return;
-    }
     switchIdentity();
     setThemeMode('dark');
-    closeDrawer();
-  };
-
-  const goBizProfile = () => {
-    if (activeProfileType === 'biz') return after(() => navigateTab('Profile'));
-    switchToBiz();
-    setThemeMode('biz');
     closeDrawer();
   };
 
@@ -458,7 +436,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 {displayName}
               </Text>
               <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {!user ? t('menu.tapToSignIn') : isWee ? t('menu.activeWee') : activeProfileType === 'biz' ? t('menu.activeBiz') : t('menu.activeReal')}
+                {!user ? t('menu.tapToSignIn') : isWee ? t('menu.activeWee') : t('menu.activeReal')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
@@ -488,7 +466,15 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               </View>
             ) : undefined,
           })}
-          {myBusiness && renderRow('perfilBiz', myBusiness.name, goBizProfile, { active: activeProfileType === 'biz' })}
+          {/*
+            El negocio, como ATAJO a su pantalla — no como una identidad que se
+            activa. Antes esta fila cambiaba la cara de la cuenta a «Perfil Biz»
+            y ponía el tema morado; ahora lleva al negocio, que es de Weë
+            Business. El día que existan las Páginas, esta fila será «Mis Pages».
+          */}
+          {myBusiness && renderRow('perfilBiz', myBusiness.name, () => {
+            after(() => navigation.navigate('WeeBizProfile', { businessId: myBusiness.id }));
+          })}
           {/*
             Credits, pegado a los perfiles y no a "Explora" (fase de UI).
             Es información de TU CUENTA —lo que tienes—, no un sitio al que ir,

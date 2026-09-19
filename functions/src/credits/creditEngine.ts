@@ -99,6 +99,16 @@ export interface SpendResult {
   balanceAfter: number;
   /** true si la misma operación ya se había cobrado (no se volvió a cobrar). */
   duplicate: boolean;
+  /**
+   * CUÁNDO SE AUTORIZÓ, en milisegundos. Solo cuando es duplicada.
+   *
+   * Sirve para una pregunta que no se podía responder: una operación que sigue
+   * en `AUTHORIZED` ¿está en marcha o se quedó colgada porque el proceso que la
+   * ejecutaba murió? Las dos se ven igual, y tratarlas igual —«es un
+   * duplicado»— deja los Credits retenidos para siempre. Con la antigüedad se
+   * pueden distinguir.
+   */
+  authorizedAt?: number;
 }
 
 export interface CompleteInput {
@@ -325,6 +335,9 @@ export function createCreditEngine(deps: CreditEngineDeps) {
           // Un requestId reembolsado no se reutiliza: evita generar gratis con una operación ya devuelta
           throw new CreditError('ALREADY_REFUNDED', 'Esta operación ya fue reembolsada; inicia una nueva', { requestId, status: data.status });
         }
+        const creado = data.createdAt;
+        const authorizedAt = typeof creado?.toMillis === 'function' ? creado.toMillis()
+          : typeof creado === 'number' ? creado : undefined;
         return {
           transactionId: id,
           status: data.status as TransactionStatus,
@@ -332,6 +345,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
           balanceBefore: num(data.balanceBefore),
           balanceAfter: num(data.balanceAfter),
           duplicate: true,
+          ...(authorizedAt !== undefined ? { authorizedAt } : {}),
         };
       }
 

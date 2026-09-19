@@ -12,6 +12,22 @@ import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
+import { operacionAbandonada } from '../core';
+
+/**
+ * Lo que puede durar esta función, de donde salen los demás plazos.
+ *
+ * Aquí la cadena SÍ era coherente —el plazo del proveedor (20 min) cabe dentro
+ * del de la función (25)—, pero la coherencia era una coincidencia entre dos
+ * números escritos en archivos distintos. Ahora el plazo se declara una vez, se
+ * usa en la función y baja al motor, que lo RESTA.
+ *
+ * Y sirve para lo otro: si un proceso muere igualmente —despliegue, memoria,
+ * infraestructura—, este número es lo que permite saber después que una
+ * autorización de Credits se quedó colgada en vez de estar en marcha.
+ */
+const PLAZO_DE_VIDEO_MS = 1_500_000;
+const RESERVA_PARA_LIQUIDAR_MS = 45_000;
 
 /**
  * generateVideo — entrada abstracta del Weë Video Engine para la app.
@@ -50,7 +66,8 @@ const ownUrls = (values: unknown, uid: string): string[] | undefined => {
   return values.slice(0, 30).map((value) => assertInputImageUrl(value, uid));
 };
 
-export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: 1500, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
+export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
+  const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -113,6 +130,19 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: 150
         if (doc?.providerMeta?.videoUrl || doc?.videoUrl) {
           return { generationId: previous.docs[0].id, url: doc.videoUrl || doc.providerMeta.videoUrl, durationSec: doc.videoDurationSec ?? null, credits: 0, demo: doc.provider === 'mock', status: 'COMPLETED', duplicate: true };
         }
+      } else if (operacionAbandonada(true, (spend.authorizedAt ?? Infinity) + PLAZO_DE_VIDEO_MS, Date.now())) {
+        /*
+         * SE QUEDÓ COLGADA. Pasó más tiempo del que esta función puede vivir y
+         * sigue en `AUTHORIZED`: el proceso que la ejecutaba murió sin liquidar.
+         * Nada va a recoger ese resultado —no hay quien lo termine fuera de la
+         * petición que lo pidió—, así que la persona no recibió nada y hay que
+         * devolverle lo retenido en vez de contestarle «duplicado» para siempre.
+         */
+        await creditEngine.refundCredits({
+          userId: uid, requestId,
+          reason: 'Weë Studio · el intento anterior se quedó sin tiempo', source: 'weë-studio',
+        });
+        throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
       } else {
         // Sigue en marcha (AUTHORIZED): no se lanza una segunda generación con el mismo cobro
         throw new EngineError('DUPLICATE_REQUEST');
@@ -120,7 +150,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: 150
     }
 
     try {
-      const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: usageTransactionId(requestId) });
+      const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: usageTransactionId(requestId), deadlineAt });
       await getFirestore().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
       await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
       // El desenlace ya se conoce: se liquida el libro con lo capturado.

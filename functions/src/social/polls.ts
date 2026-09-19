@@ -23,11 +23,10 @@
  * UNA PERSONA = UN VOTO
  * ---------------------
  * `voterUid` es SIEMPRE `request.auth.uid`: la cuenta de Firebase Auth. Los
- * perfiles Weë (`hidi_<uid>`) y Biz (`biz_<businessId>`) no son personas
- * distintas, son identidades de la misma cuenta —así los crea `usersService`,
- * que graba `linkedAccountId` apuntando a la cuenta raíz, y así lo comprueban
- * ya las reglas de `users`—. Las tres comparten un único voto porque comparten
- * una única cuenta. El cliente no envía identidad: no se le pregunta, y por eso
+ * perfiles Weë (`hidi_<uid>`) no son personas distintas: son la otra cara de la
+ * misma cuenta —así los crea `usersService`, que graba `linkedAccountId`
+ * apuntando a la cuenta raíz, y así lo comprueban ya las reglas de `users`—.
+ * Las dos comparten un único voto porque comparten una única cuenta. El cliente no envía identidad: no se le pregunta, y por eso
  * no puede mentir.
  *
  * La lógica vive en `createPollEngine` para poder ejecutarla de verdad en los

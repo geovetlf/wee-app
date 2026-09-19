@@ -111,7 +111,6 @@ console.log('\n── B · Las etiquetas de la cabecera ──');
     ['common.back', 'Volver'],
     ['home.openMenu', 'Abrir menú'],
     ['home.logoHome', 'Weë, ir al principio'],
-    ['menu.bizActiveTap', 'Perfil Biz activo. Tocar para volver al Perfil Real'],
     ['menu.profileActive', '{{perfil}}, activo'],
     ['menu.switchToProfile', 'Cambiar al {{perfil}}'],
   ];
@@ -124,9 +123,17 @@ console.log('\n── B · Las etiquetas de la cabecera ──');
   });
   check('4) y dicen lo que decían', malDicho.length === 0, malDicho.map((e) => e[0]).join(' '));
 
-  const CRUDAS = ['"Volver"', '"Abrir menú"', '"Weë, ir al principio"', '"Perfil Biz activo'];
+  const CRUDAS = ['"Volver"', '"Abrir menú"', '"Weë, ir al principio"'];
   const vivas = CRUDAS.filter((c) => C[CABECERA].includes(c));
   check('5) y ninguna sigue escrita a mano en la cabecera', vivas.length === 0, vivas.join(' '));
+
+  /*
+   * El Perfil Biz se eliminó del producto: su etiqueta de accesibilidad se fue
+   * con él, de los once diccionarios y de la cabecera.
+   */
+  check('5) y la etiqueta del Perfil Biz se fue con el Perfil Biz',
+    !/bizActiveTap/.test(C[CABECERA]) && ES.menu.bizActiveTap === undefined
+    && EN.menu.bizActiveTap === undefined);
 
   /* El nombre largo de cada identidad sale del menú, sin duplicar la traducción. */
   check('6) las dos identidades se nombran desde el menú, no otra vez',
@@ -142,7 +149,7 @@ console.log('\n── C · Español e inglés, completos ──');
 {
   /* `home.back` pasó a ser `common.back` en la fase 5P: una sola para toda la app. */
   const NUEVAS = ['wall.comment', 'wall.viewFullVideoInWeels', 'common.back', 'home.logoHome',
-    'menu.bizActiveTap', 'menu.profileActive', 'menu.switchToProfile'];
+    'menu.profileActive', 'menu.switchToProfile'];
   const sinEs = NUEVAS.filter((c) => { const [m, k] = c.split('.'); return typeof ES[m][k] !== 'string'; });
   const sinEn = NUEVAS.filter((c) => { const [m, k] = c.split('.'); return typeof EN[m][k] !== 'string'; });
   check('7) las ' + NUEVAS.length + ' claves nuevas existen en español', sinEs.length === 0, sinEs.join(' '));
@@ -235,7 +242,8 @@ console.log('\n── E · Lo que NO se traduce ──');
     /Weëls/.test(EN.wall.viewFullVideoInWeels) && /Weëls/.test(ES.wall.viewFullVideoInWeels),
     EN.wall.viewFullVideoInWeels);
   check('20) y "Weë" en la del logo', /Weë/.test(EN.home.logoHome) && /Weë/.test(ES.home.logoHome), EN.home.logoHome);
-  check('20) el Perfil Biz sigue llamándose Biz', /Biz/.test(EN.menu.bizActiveTap) && /Biz/.test(C[CABECERA]));
+  /* El Perfil Biz ya no es una identidad de Weë: no queda nada suyo que nombrar. */
+  check('20) y del Perfil Biz no queda ni el nombre', !/\bBiz\b/.test(C[CABECERA]));
 
   /* Lo que escribe la persona se sigue pintando crudo. */
   check('21) el texto de una publicación no pasa por el traductor',
@@ -244,7 +252,7 @@ console.log('\n── E · Lo que NO se traduce ──');
 
   /* Y el inglés está en inglés. */
   const NUEVAS_EN = [EN.wall.comment, EN.wall.viewFullVideoInWeels, EN.common.back, EN.home.logoHome,
-    EN.menu.bizActiveTap, EN.menu.profileActive, EN.menu.switchToProfile];
+    EN.menu.profileActive, EN.menu.switchToProfile];
   const conAcento = NUEVAS_EN.filter((v) => /[áéíóúñ¿¡]/i.test(String(v).replace(/Weë|Weël|Weëls/g, '')));
   check('22) ninguna frase inglesa nueva lleva tildes ni signos de apertura', conAcento.length === 0, conAcento.join(' | '));
   const copiadas = [['wall.comment', ES.wall.comment, EN.wall.comment], ['common.back', ES.common.back, EN.common.back]]

@@ -493,12 +493,18 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
     }
     return n;
   };
-  check('57) I · pt-BR intacto: 2 242 claves y sigue siendo brasileño',
-    claves('pt') === 2242
+  /*
+   * El número baja cuando se RETIRA una clave del producto entero —los once
+   * diccionarios a la vez—, y solo entonces: 2 242 → 2 240 al eliminarse el
+   * Perfil Biz (`menu.activeBiz`, `menu.bizActiveTap`).
+   */
+  const CLAVES_PT = 2240;
+  check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
+    claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
     && t('pt-BR')('settings.title') === 'Configurações', `${claves('pt')} claves`);
-  check('58) J · pt-PT intacto: 2 242 claves y sigue siendo europeo',
-    claves('pt-PT') === 2242
+  check(`58) J · pt-PT intacto: ${CLAVES_PT} claves y sigue siendo europeo`,
+    claves('pt-PT') === CLAVES_PT
     && t('pt-PT')('settings.title') === 'Definições', `${claves('pt-PT')} claves`);
 
   /* Y el arreglo está donde dijo que estaba, y en ningún otro sitio. */

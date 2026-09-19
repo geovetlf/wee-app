@@ -104,7 +104,9 @@ Se mantienen los dos perfiles. **WEE = World Encode Entity** (definición que se
 
 **Cómo se nota la diferencia (decisión del 2026-09-05):** con el **Perfil Real** la app es blanca; con el **Perfil Weë** activo la app se viste de **oscuro**. Es la única excepción a la regla de "nunca estética oscura" del §16, y es deliberada: el cambio de tema es la señal más clara de con qué identidad se está participando.
 
-**Perfil Biz (decisión del 2026-09-05):** se mantiene como tercera identidad opcional para negocios (tienda y productos, pantallas `WeeBiz*`), con su propio acento morado. Solo aparece cuando la persona registra un negocio; no complica a quien no lo usa.
+**Perfil Biz — ELIMINADO (decisión del 2026-09-19, sustituye a la del 2026-09-05):** hubo una tercera identidad para negocios, con su acento morado y su propio documento en `users` (`biz_<negocio>`, `profileType: 'biz'`), con la que se publicaba como si el negocio fuera una persona. **Ya no existe y no se recrea.** Weë tiene dos caras: Perfil Real y Perfil Weë. Un negocio es una **Página** —una entidad del Account, no una cara de la persona— y su wallet es la del Account, nunca una propia.
+
+**Weë Business no es eso y sigue entero:** es el producto (negocio, catálogo, productos, reseñas, seguidores; pantallas `WeeBiz*`, `weeBizService`, `businesses/{businessId}`). Un negocio se registra, se administra y se sigue igual que antes; lo que desapareció es la *identidad* con la que se publicaba, no el negocio.
 
 ## 15. Botón "+"
 

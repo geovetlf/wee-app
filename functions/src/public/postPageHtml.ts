@@ -28,7 +28,7 @@ export interface AutorPublico {
   displayName?: string;
   photoURL?: string;
   photoURLThumbnail?: string;
-  /** 'real' | 'hidi' (Perfil Weë) | 'biz'. Solo para la insignia. */
+  /** 'real' o 'hidi' (Perfil Weë). Solo para la insignia. */
   profileType?: string;
 }
 

@@ -7,7 +7,7 @@
  *   · el botón "Iniciar sesión" de la cabecera aparece cuando NO hay sesión, y
  *     las pruebas siempre se hicieron dentro;
  *   · la fila de la cuenta de la barra lateral dice quién eres y qué identidad
- *     tienes puesta: "Invitado" sin sesión, "Perfil Weë activo" o "Perfil Biz
+ *     tienes puesta: "Invitado" sin sesión, "Perfil Real activo" o "Perfil Weë
  *     activo" con esas identidades. Ninguna de las tres se llegó a ver.
  *
  * Las cinco claves YA EXISTÍAN y el cajón del ☰ ya las resolvía. Esta fase no
@@ -45,7 +45,7 @@ const LATERAL = soloCodigo(leer('components/Sidebar.tsx'));
 const CAJON = soloCodigo(leer('components/DrawerMenu.tsx'));
 
 const CLAVES = [['menu', 'signIn'], ['common', 'guest'], ['menu', 'tapToSignIn'],
-  ['menu', 'activeReal'], ['menu', 'activeWee'], ['menu', 'activeBiz']];
+  ['menu', 'activeReal'], ['menu', 'activeWee']];
 
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── A · El botón de entrar de la cabecera ──');
@@ -76,22 +76,29 @@ console.log('\n── B · La fila de la cuenta de la barra lateral ──');
     /t\('menu\.activeReal'\)/.test(LATERAL) && !/'Perfil Real activo'/.test(LATERAL));
   check('8) el Perfil Weë activo, de menu.activeWee',
     /t\('menu\.activeWee'\)/.test(LATERAL) && !/'Perfil Weë activo'/.test(LATERAL));
-  check('9) y el Perfil Biz activo, de menu.activeBiz',
-    /t\('menu\.activeBiz'\)/.test(LATERAL) && !/'Perfil Biz activo'/.test(LATERAL));
+  /*
+   * 9 · EL PERFIL BIZ YA NO ES UNA IDENTIDAD. Se eliminó del producto, así que
+   * su clave se fue de los once diccionarios y ninguna de las dos superficies
+   * puede seguir pidiéndola: una clave que ya no existe se pinta como su propio
+   * nombre en crudo.
+   */
+  check('9) ninguna superficie pide ya la clave del Perfil Biz',
+    !/activeBiz|bizActiveTap/.test(LATERAL) && !/activeBiz|bizActiveTap/.test(CAJON)
+    && !/activeBiz|bizActiveTap/.test(CABECERA));
 
   /* Y lo hace exactamente igual que el cajón: dos menús que son el mismo menú. */
   check('9) las mismas claves que ya resolvía el cajón del ☰',
     /t\('menu\.tapToSignIn'\)/.test(CAJON) && /t\('menu\.activeWee'\)/.test(CAJON)
-    && /t\('menu\.activeBiz'\)/.test(CAJON) && /t\('menu\.activeReal'\)/.test(CAJON)
+    && /t\('menu\.activeReal'\)/.test(CAJON)
     && /t\('common\.guest'\)/.test(CAJON));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-console.log('\n── C · Las seis claves, en los dos idiomas ──');
+console.log('\n── C · Las cinco claves, en los dos idiomas ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const faltanEs = CLAVES.filter(([m, k]) => !esT[m]?.[k]).map(([m, k]) => m + '.' + k);
-  check('10) las seis existen en español', faltanEs.length === 0, faltanEs.join(' '));
+  check('10) las cinco existen en español', faltanEs.length === 0, faltanEs.join(' '));
   const faltanEn = CLAVES.filter(([m, k]) => !enT[m]?.[k]).map(([m, k]) => m + '.' + k);
   check('11) y en inglés', faltanEn.length === 0, faltanEn.join(' '));
   const vacias = CLAVES.filter(([m, k]) => !String(enT[m][k] ?? '').trim() || !String(esT[m][k] ?? '').trim())
@@ -100,27 +107,26 @@ console.log('\n── C · Las seis claves, en los dos idiomas ──');
 
   const fila = (t) => CLAVES.map(([m, k]) => t(`${m}.${k}`)).join(' · ');
   check('13) en español: ' + fila(ES),
-    fila(ES) === 'Iniciar sesión · Invitado · Toca para iniciar sesión · Perfil Real activo · Perfil Weë activo · Perfil Biz activo');
+    fila(ES) === 'Iniciar sesión · Invitado · Toca para iniciar sesión · Perfil Real activo · Perfil Weë activo');
   check('14) en inglés: ' + fila(EN),
-    fila(EN) === 'Sign in · Guest · Tap to sign in · Real profile active · Weë profile active · Biz profile active');
+    fila(EN) === 'Sign in · Guest · Tap to sign in · Real profile active · Weë profile active');
 
-  /* 15 · Real, Weë y Biz son identidad y sobreviven al viaje. */
-  check('15) "Weë" y "Biz" siguen escritos igual en inglés',
-    /Weë/.test(EN('menu.activeWee')) && /Biz/.test(EN('menu.activeBiz'))
-    && /Real/.test(EN('menu.activeReal')));
+  /* 15 · Real y Weë son identidad y sobreviven al viaje. */
+  check('15) "Weë" sigue escrito igual en inglés',
+    /Weë/.test(EN('menu.activeWee')) && /Real/.test(EN('menu.activeReal')));
   check('15) y "Real profile active" no se convirtió en otra cosa',
     EN('menu.activeReal') === 'Real profile active');
 
-  /* 20 · Sin duplicar: no se crearon gemelas de ninguna de las seis. */
-  const gemelas = ['signIn', 'guest', 'tapToSignIn', 'activeReal', 'activeWee', 'activeBiz']
+  /* 20 · Sin duplicar: no se crearon gemelas de ninguna de las cinco. */
+  const gemelas = ['signIn', 'guest', 'tapToSignIn', 'activeReal', 'activeWee']
     .filter((k) => Object.entries(esT).filter(([, m]) => k in m).length > 1);
-  check('20) ninguna de las seis está repetida en otro módulo', gemelas.length === 0, gemelas.join(' '));
+  check('20) ninguna de las cinco está repetida en otro módulo', gemelas.length === 0, gemelas.join(' '));
   check('20) y esta fase no añadió ninguna clave nueva',
     !esT.menu?.headerSignIn && !esT.menu?.sidebarGuest && !esT.common?.signIn);
 
   /* 21 y 22 · El viaje de ida y de vuelta. */
   const iguales = CLAVES.filter(([m, k]) => ES(`${m}.${k}`) === EN(`${m}.${k}`)).map(([m, k]) => m + '.' + k);
-  check('21) ES → EN mueve las seis', iguales.length === 0, iguales.join(' '));
+  check('21) ES → EN mueve las cinco', iguales.length === 0, iguales.join(' '));
   check('22) y EN → ES las devuelve',
     CLAVES.every(([m, k]) => ES(`${m}.${k}`) === esT[m][k] && EN(`${m}.${k}`) === enT[m][k]));
 }
@@ -135,10 +141,10 @@ console.log('\n── D · Nada más se movió ──');
    * es el identificador guardado y renombrarlo rompería los datos de la gente.
    */
   check('16) la condición del perfil activo no cambió',
-    /\{!user \? t\('menu\.tapToSignIn'\) : activeProfileType === 'hidi' \? t\('menu\.activeWee'\) : activeProfileType === 'biz' \? t\('menu\.activeBiz'\) : t\('menu\.activeReal'\)\}/.test(LATERAL));
+    /\{!user \? t\('menu\.tapToSignIn'\) : activeProfileType === 'hidi' \? t\('menu\.activeWee'\) : t\('menu\.activeReal'\)\}/.test(LATERAL));
   check('16) y la identidad activa se sigue leyendo de su contexto',
     /const \{ userProfile, activeProfileType, hasWeeProfile \} = useUserProfile\(\);/.test(LATERAL)
-    && /const \{ hasWeeProfile, hasBizProfile, activeProfileType, switchIdentity, switchToBiz \} = useUserProfile\(\);/.test(CABECERA));
+    && /const \{ hasWeeProfile, activeProfileType, switchIdentity \} = useUserProfile\(\);/.test(CABECERA));
 
   /* 17 · La autenticación, intacta en las dos. */
   check('17) la autenticación no se tocó',

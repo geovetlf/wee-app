@@ -55,7 +55,15 @@ const WeeBizProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
 
   const { businessId } = route.params;
-  const activeUid = userProfile?.uid || user?.uid;
+  /*
+   * Seguir un negocio, reseñarlo y ser su dueño son cosas de la CUENTA: las
+   * tres reglas de Weë Business exigen `request.auth.uid`, así que con el
+   * perfil activo se denegaban desde el Perfil Weë. Un negocio es una Página
+   * del Account, no una cara. (Escribirle por WeeTalk sí es de la cara activa,
+   * y por eso esa llamada usa su propio identificador.)
+   */
+  const activeUid = user?.uid;
+  const identidadActiva = userProfile?.uid || user?.uid;
 
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,7 +161,7 @@ const WeeBizProfileScreen: React.FC = () => {
   };
 
   const handleContact = async () => {
-    if (!activeUid || !business) return;
+    if (!identidadActiva || !business) return;
 
     try {
       // Obtener datos del dueño del negocio para crear/abrir conversación
@@ -170,7 +178,7 @@ const WeeBizProfileScreen: React.FC = () => {
       };
 
       const conversationId = await messagesService.getOrCreateConversation(
-        activeUid,
+        identidadActiva,
         business.ownerId,
         currentUserData,
         bizOwnerData,

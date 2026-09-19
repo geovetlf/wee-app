@@ -60,7 +60,6 @@ const {
   solicitudesEnviadas,
   contarContactos,
   PREFIJO_PERFIL_WEE,
-  PREFIJO_PERFIL_BIZ,
   esIdentidadValida,
   esIdentidadDePersona,
   tipoDeIdentidad,
@@ -401,7 +400,9 @@ check('96) followsService sigue en su sitio', read('services/followsService.ts')
 check('97) useFollow también', read('hooks/useFollow.ts').includes('followsService'));
 check('98) el perfil ajeno ya usa ËContact, no el sistema antiguo', /useEContact/.test(read('screens/UserProfileScreen.tsx')) && !/useFollow/.test(sinComentarios(read('screens/UserProfileScreen.tsx'))));
 check('99) businessFollows intacto', /match \/businessFollows\/\{followId\}/.test(reglas));
-check('100) las reglas de follows no se han tocado', /match \/follows\/\{followId\}[\s\S]{0,400}followerId\.matches\('biz_\.\*'\)/.test(reglas));
+/* Siguen en pie: lo que se fue es la identidad Biz, no el seguir. */
+check('100) las reglas de follows siguen en pie, ya sin la identidad Biz',
+  /match \/follows\/\{followId\}/.test(reglas) && !/followerId\.matches\('biz_/.test(reglas));
 /*
  * La píldora estuvo apagada mientras no hubo nada detrás. Ahora abre la agenda,
  * así que lo que se vigila es lo de siempre por el otro lado: que mencionar a
@@ -833,7 +834,8 @@ check('201) useFollow también', read('hooks/useFollow.ts').includes('followsSer
   const culpables = sociales.filter((f) => /useFollow|followsService|toggleFollow/.test(sinComentarios(read(f))));
   check('202) ninguna pantalla social usa el sistema antiguo', culpables.length === 0, culpables.join(','));
 }
-check('203) las reglas de follows no se han tocado', /match \/follows\/\{followId\}[\s\S]{0,400}followerId\.matches\('biz_\.\*'\)/.test(reglas));
+check('203) las reglas de follows siguen en pie, ya sin la identidad Biz',
+  /match \/follows\/\{followId\}/.test(reglas) && !/followerId\.matches\('biz_/.test(reglas));
 check('204) businessFollows intacto', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
 check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));
 check('206) la píldora ËContact del compositor ya está viva, y sigue sin tocar relaciones', /setShowEContacts/.test(read('screens/CreateScreen.tsx')) && !/econtactService/.test(sinComentarios(read('screens/CreateScreen.tsx'))));
@@ -858,10 +860,10 @@ console.log('\n── T) Identidades de perfil: las dos agendas de una cuenta �
 // ─── Qué es una identidad ────────────────────────────────────────────────────
 
 check('209) un uid con prefijo hidi_ es un Perfil Weë', tipoDeIdentidad(WEE_ANA) === 'wee');
-check('210) uno con biz_ es un Perfil Biz', tipoDeIdentidad(`${PREFIJO_PERFIL_BIZ}n1`) === 'biz');
+check('210) el Perfil Biz ya no existe: su uid ni siquiera es una identidad válida', !esIdentidadValida('biz_n1'));
 check('211) y un uid pelado es un Perfil Real', tipoDeIdentidad(ANA) === 'real');
 check('212) el prefijo histórico sigue siendo exactamente hidi_', PREFIJO_PERFIL_WEE === 'hidi_');
-check('213) ËContact es entre personas: un Biz no vale', esIdentidadDePersona(ANA) && esIdentidadDePersona(WEE_ANA) && !esIdentidadDePersona(`${PREFIJO_PERFIL_BIZ}n1`));
+check('213) ËContact es entre personas, y las dos caras lo son', esIdentidadDePersona(ANA) && esIdentidadDePersona(WEE_ANA) && !esIdentidadDePersona('biz_n1'));
 /*
  * Una identidad no puede llevar `_` propio. Es lo que hace que unir dos con `_`
  * no sea ambiguo, y por tanto que `real A ↔ Weë B` no pueda chocar con
@@ -902,7 +904,9 @@ check('226) un Perfil Weë sin vínculo tampoco', cuentaDeIdentidad(WEE_ANA, { u
  * exigir que coincidan es lo que impide que las dos capas discrepen.
  */
 check('227) un vínculo que contradice al prefijo invalida la identidad', cuentaDeIdentidad(WEE_ANA, { uid: WEE_ANA, profileType: 'hidi', linkedAccountId: BETO }) === null);
-check('228) un Perfil Biz no lleva a ninguna persona', cuentaDeIdentidad(`${PREFIJO_PERFIL_BIZ}n1`, { uid: `${PREFIJO_PERFIL_BIZ}n1`, profileType: 'biz', linkedAccountId: ANA }) === null);
+check('228) un perfil antiguo de negocio no lleva a ninguna persona', cuentaDeIdentidad('biz_n1', { uid: 'biz_n1', profileType: 'biz', linkedAccountId: ANA }) === null);
+/* Y un documento real que se declare de un tipo que ya no existe tampoco. */
+check('228b) ni un documento que dice ser de un tipo desaparecido', cuentaDeIdentidad(ANA, { uid: ANA, profileType: 'biz' }) === null);
 check('229) un perfil real que se declara Weë se rechaza', cuentaDeIdentidad(ANA, { uid: ANA, profileType: 'hidi' }) === null);
 check('230) cliente y servidor deciden lo mismo sobre la propiedad', [
   [WEE_ANA, perfilWee(ANA)], [WEE_ANA, perfilWee(BETO)], [ANA, perfilReal(ANA)], [WEE_ANA, null],
@@ -933,7 +937,7 @@ check('231) el id es el mismo se pida como se pida', idDeContacto(WEE_ANA, BETO)
 }
 check('234) una identidad no se agrega a sí misma', (() => { try { idDeContacto(WEE_ANA, WEE_ANA); return false; } catch { return true; } })());
 check('235) ni un Perfil Real consigo mismo', (() => { try { idDeContacto(ANA, ANA); return false; } catch { return true; } })());
-check('236) ni un Biz por ningún lado', (() => { try { idDeContacto(ANA, `${PREFIJO_PERFIL_BIZ}n1`); return false; } catch { return true; } })());
+check('236) ni un uid de negocio antiguo, que ya no tiene forma de identidad', (() => { try { idDeContacto(ANA, 'biz_n1'); return false; } catch { return true; } })());
 /*
  * COMPATIBILIDAD. Una relación entre dos Perfiles Reales se guarda EXACTAMENTE
  * igual que con el modelo anterior, porque el uid de un Perfil Real es el uid de
@@ -1049,7 +1053,7 @@ for (const c of CRUCES) {
   await rechaza('266) ni desde una identidad que no existe', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: 'hidi_inventado', haciaIdentidad: BETO }), 'identidad-desconocida');
   await rechaza('267) ni hacia una que no existe', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: 'hidi_inventado' }), 'identidad-desconocida');
   await rechaza('268) ni hacia el Perfil Weë de quien no tiene', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: `hidi_${CARO}` }), 'identidad-desconocida');
-  await rechaza('269) ni con una identidad de negocio', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: `${PREFIJO_PERFIL_BIZ}n1` }), 'identidad-invalida');
+  await rechaza('269) ni con un uid de negocio antiguo', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: 'biz_n1' }), 'identidad-invalida');
   await rechaza('270) ni con una identidad malformada', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: 'uid_raro' }), 'identidad-invalida');
   /*
    * Las dos caras de una misma cuenta son la misma persona: agregarse a uno mismo
@@ -1182,7 +1186,14 @@ check('285) las reglas dejan borrar solo a quien participa con UNA DE SUS identi
 check('294) las reglas siguen reconociendo hidi_ como identidad de la cuenta', (reglas.match(/"hidi_" \+ request\.auth\.uid/g) || []).length > 10);
 check('295) un Perfil Weë se sigue guardando con profileType hidi', /profileType: 'hidi'/.test(read('services/firestoreService.ts')));
 check('296) y su uid se sigue formando con el prefijo histórico', /`hidi_\$\{realUid\}`/.test(read('services/firestoreService.ts')));
-check('297) el tipo de perfil guardado no se ha renombrado', /'real' \| 'hidi' \| 'biz'/.test(read('contexts/UserProfileContext.tsx')));
+/*
+ * El valor guardado del Perfil Weë sigue siendo 'hidi' —cambiarlo sería una
+ * migración—. El tercero, 'biz', se fue con su identidad.
+ */
+check('297) el tipo de perfil guardado no se ha renombrado', (() => {
+  const ctx = read('contexts/UserProfileContext.tsx');
+  return /type ProfileType = 'real' \| 'hidi';/.test(ctx) && !/'biz'/.test(ctx);
+})());
 check('298) el vínculo se escribe al crear el Perfil Weë', /linkedAccountId: realUid/.test(read('services/firestoreService.ts')));
 check('299) y en el perfil real, apuntando de vuelta', /linkedAccountId: weeProfileUid/.test(read('screens/WeeProfileCreationScreen.tsx')));
 check('300) no hay ninguna migración en el código', !/migrat|migrar|backfill/i.test(codigoServicio + codigoFuncion));
@@ -1403,9 +1414,16 @@ check('357) y la de una enviada, a quién se la pidió', (() => {
   check('361) lo que se pinta es el nombre y la etiqueta', /\{nombre\}/.test(codigoPantalla) && /\{detalle\}/.test(codigoPantalla));
 }
 
-// ─── O · Biz no entra ────────────────────────────────────────────────────────
+// ─── O · El Perfil Biz ya no existe ──────────────────────────────────────────
 
-check('362) un Perfil Biz no es una identidad de agenda', !esIdentidadDePersona(`${PREFIJO_PERFIL_BIZ}n1`));
+/*
+ * Un negocio no es una cara de una persona: es una PÁGINA de la cuenta. La
+ * identidad Biz se eliminó, y lo que queda es que su uid ya no pasa ni la forma.
+ * Weë Business, el producto, sigue existiendo y gestionará Páginas.
+ */
+check('362) un uid de negocio antiguo no es una identidad de agenda', !esIdentidadDePersona('biz_n1'));
+check('362b) ni una identidad válida siquiera', !esIdentidadValida('biz_n1'));
+check('362c) y el modelo solo reconoce dos caras', tipoDeIdentidad('x') === 'real' && tipoDeIdentidad('hidi_x') === 'wee');
 check('363) el hook lo detecta y lo dice', /perfil-sin-agenda/.test(codigoGancho) && /esIdentidadDePersona\(activo\)/.test(codigoGancho));
 check('364) la pantalla enseña un estado propio para eso',
   /t\('econtact\.noAgenda'\)/.test(pantallaEC) && /noAgenda: 'Este perfil no tiene agenda'/.test(read('i18n/textos/es/econtact.ts')));

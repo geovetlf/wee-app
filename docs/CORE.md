@@ -15,6 +15,8 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | Archivo | Responsabilidad |
 |---|---|
 | `contracts.ts` | Versiones de contrato y `contratoCompatible()` |
+| `identity.ts` | `EntityType`, `EntityRef`, `EntityIdentity`, `AccountNumber`, handle público, `OwnerRef` / `EntityAttribution` |
+| `events.ts` | `EventEnvelope`, `EventPublisher` / `EventHandler`, `OutboxRecord`, catálogo de eventos reservados |
 | `capability.ts` | `CapabilityId`, `Modality`, `CapabilityDefinition`, registro |
 | `language.ts` | `LanguageContext` — los seis conceptos de idioma |
 | `errors.ts` | `WeeErrorCode` y los mapas desde motor y Credits |
@@ -33,6 +35,62 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `planner.ts` | WEE Planner: `Plan`, `PlanStep`, `PlannerRequest/Response`, `crearPlanner(ports)` |
 
 Y fuera del Core, porque nombran proveedores o hablan con el motor: `functions/src/registry/` — la composición que enchufa los adaptadores reales y declara las matrices pendientes—, `functions/src/engine/gateway.ts` — el Gateway compuesto sobre el motor— y `functions/src/brain/` — la composición de Weë Brain.
+
+## Identidad: una cuenta posee, una entidad actúa
+
+La regla que manda sobre el resto del modelo social. **De quién es algo** se responde siempre con una **cuenta**; **quién lo hizo** y **quién lo publicó** se responden con **entidades**, y las dos son contexto.
+
+```
+ownerAccountId       = 0018439     ← de quién es. No se mueve nunca.
+createdByEntityId    = 00184391    ← lo creó desde su Perfil Real
+publishedByEntityId  = 00184393    ← lo publicó desde su Página
+```
+
+Tres tipos de entidad y solo tres: `REAL_PROFILE`, `WEE_PROFILE`, `PAGE`. Un negocio es una **Página** —no una cara, no una cuenta, no una billetera—; el Perfil Biz se eliminó y no vuelve. **El tipo se guarda, nunca se deduce del identificador**: `0018439` + `10` da `001843910`, que acaba en `0` y no se distingue de `0018439` + `1` + `0`. El **handle** público se elige y se puede cambiar; el `entityId` se asigna una vez y no cambia — por eso no hay ninguna función que derive uno del otro.
+
+`Asset` y `Project` cuelgan de `ownerAccountId`. Antes decían `userId`, y en Weë un «user id» es la cara activa: con eso, cambiar de perfil cambiaba de dueño y publicar desde una Página habría obligado a copiar el archivo.
+
+## Eventos de dominio: una forma y dos puertos
+
+`events.ts` declara la **forma** de un evento y los **puertos** para emitirlo y consumirlo. No declara infraestructura: ni cola, ni flujo, ni corredor. Eso es lo que permite que mañana lo transporte otra cosa sin tocar un contrato.
+
+Lo que un evento **no** es: no es una traza (`observability.ts` responde «¿qué le pasó a esta petición y cuánto costó?»); no es un trabajo (`job.ts` es lo que **hay que hacer**, un evento es lo que **ya pasó**); no es un asiento (`financial/ledger.ts` es fuente de verdad, un evento solo avisa de que la fuente de verdad ya cambió). El único hilo entre eventos y trazas es `correlationId`, que lleva el mismo valor que el `traceId`.
+
+**La promesa es honesta:** `at_most_once` o `at_least_once`. `exactly_once` no se puede declarar porque no existe — lo que los sistemas llaman así es siempre «al menos una vez» más un consumidor idempotente, y por eso `eventId` es obligatorio y `deduplicar()` está escrito una sola vez.
+
+Hay **treinta nombres reservados** (`POST_CREATED`, `ASSET_PUBLISHED`, `AI_GENERATION_REFUNDED`…) y **ninguno se emite todavía**. Una prueba recorre todo `functions/src` para comprobar que nadie lo esté fingiendo.
+
+## Canónico y en uso: dos, y ni uno más
+
+Cuatro piezas existen dos veces por historia. No se unen ahora —unirlas es una migración con su propio momento— pero sí queda escrito cuál es cuál, y **crear una tercera implementación queda prohibido** (lo comprueba `functions/test/plazos-y-liquidacion.test.mjs`).
+
+| Pieza | CONTRATO CANÓNICO | EN PRODUCCIÓN HOY |
+|---|---|---|
+| Motor de trabajos | `core/job.ts` — 8 estados, intentos, concesiones, plazos, recuperación | `creatorJobs` — 4 estados, un documento de Firestore |
+| Router | `core/router.ts` — decide y **no ejecuta** | `engine/router.ts` — decide, ejecuta, respalda y escribe el libro |
+| Registro | `core/registry/` — consulta pura + catálogo de capacidades | `engine/registry.ts` — los once adaptadores concretos |
+| Gateway | `core/gateway.ts` — ejecuta, no decide | `engine.generate` (la entrada real no es ninguno de los dos `crearGateway`) |
+
+**Componer el canónico está bien; implementarlo por tercera vez no.** `functions/src/router/`, `job/`, `workflow/`… son composiciones: enchufan dependencias reales al contrato. Eso es lo que hay que hacer.
+
+El seam de migración del motor de trabajos es `ESTADO_CANONICO` (`creator/types.ts`): dice qué significa cada estado del que está en uso en el vocabulario del canónico, para que los dos no se separen en silencio. Lo que al de uso le falta —`waiting`, `timed_out`, `cancel_requested`— es exactamente el hueco que la migración rellena.
+
+## El plazo se declara una vez y se resta
+
+Un plazo por modalidad («un vídeo puede tardar veinte minutos») es una afirmación sobre el **proveedor**. Lo que hace falta saber es otra cosa: cuánto tiempo **queda**. Confundirlas costó dinero de verdad — ver `plazos-y-liquidacion.test.mjs`.
+
+```
+PLAZO_DE_EJECUCION_MS        declarado UNA vez, en la función que espera
+  − RESERVA_PARA_LIQUIDAR_MS porque cerrar el libro también tarda
+  = deadlineAt               viaja en el contexto
+      ↓
+presupuestoDeIntento()       la regla del Job Engine: lo más corto entre lo que
+                             puede tardar un intento y lo que queda
+      ↓
+timeout del proveedor        nunca más de lo que le queda a quien lo espera
+```
+
+Cuando la plataforma mata una función por plazo, la mata **sin pasar por su `catch`** — y ahí vive la liquidación de Credits. Por eso la reserva no es opcional. Y para lo que el presupuesto no puede evitar (que un proceso muera igualmente), `operacionAbandonada()` distingue lo que sigue en marcha de lo que se quedó colgado, que desde fuera se ven igual.
 
 ## Las cuatro reglas
 

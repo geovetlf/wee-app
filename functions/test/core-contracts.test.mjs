@@ -444,11 +444,16 @@ console.log('\n── H · Workplace, procedencia y traza ──');
 
 console.log('\n── I · Versionado de contratos ──');
 {
-  /* Workflow y el Core subieron a 1.1 en la Fase 5: se añadieron campos opcionales. Menor, no mayor: lo de 1.0 sigue valiendo. */
+  /*
+   * Workflow subió a 1.1 en la Fase 5 y el Core a 1.2 en la Fase 10: en las dos
+   * ocasiones se AÑADIERON campos opcionales. Menor, no mayor — y por eso lo de
+   * 1.0 tiene que seguir valiendo, que es lo que comprueba la última línea.
+   */
   check('57) todos los contratos declaran versión',
-    core.CORE_CONTRACT_VERSION === '1.1' && core.PROVIDER_CONTRACT_VERSION === '1.0'
+    core.CORE_CONTRACT_VERSION === '1.2' && core.PROVIDER_CONTRACT_VERSION === '1.0'
     && core.CAPABILITY_CONTRACT_VERSION === '1.0' && core.WORKPLACE_CONTRACT_VERSION === '1.0'
     && core.WORKFLOW_CONTRACT_VERSION === '1.1'
+    && core.IDENTITY_CONTRACT_VERSION === '1.0' && core.EVENTS_CONTRACT_VERSION === '1.0'
     && core.contratoCompatible(core.WORKFLOW_CONTRACT_VERSION, '1.0') && core.contratoCompatible(core.CORE_CONTRACT_VERSION, '1.0'));
 
   /*

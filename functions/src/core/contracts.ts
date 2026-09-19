@@ -30,8 +30,17 @@
  * para que todas las apps puedan compartir la misma infraestructura y la
  * misma cuenta sin perder de dónde vino cada cosa. Aditivo: lo que valía en
  * 1.0 sigue valiendo.
+ *
+ * 1.2: la costura social. `TraceContext` gana `accountId`, `entityId`,
+ * `entityType`, `operationId` y `workspaceId` —todos opcionales— para que la
+ * cadena de atribución que el Financial Core ya sabía leer llegue entera desde
+ * la primera capa. `workspaceId` además arregla un desajuste real: el mismo
+ * concepto se llamaba `workplace` aquí y `workspaceId` en el Job Engine, el
+ * Router y el libro, así que la atribución de Workplace se perdía en la
+ * frontera. `workplace` se queda como sinónimo y nada de lo que valía en 1.1
+ * deja de valer.
  */
-export const CORE_CONTRACT_VERSION = '1.1' as const;
+export const CORE_CONTRACT_VERSION = '1.2' as const;
 
 /** Lo que un adaptador de proveedor promete cumplir. */
 export const PROVIDER_CONTRACT_VERSION = '1.0' as const;
@@ -72,6 +81,28 @@ export const JOB_ENGINE_CONTRACT_VERSION = '1.0' as const;
 
 /** Forma del dinero, los libros, la cuenta financiera y el ciclo de vida de un pago. */
 export const FINANCIAL_CORE_CONTRACT_VERSION = '1.0' as const;
+
+/**
+ * Forma de una entidad de la cuenta: su tipo, su secuencia, su nombre público
+ * y —lo único que de verdad importa— de qué cuenta es.
+ *
+ * El vocabulario ya existía dentro del Financial Core desde la Fase 9, porque
+ * el dinero fue lo primero que necesitó distinguir cuenta de entidad. Esta
+ * versión no lo inventa: lo MUEVE a su sitio y le añade lo que le faltaba para
+ * sostener Páginas —`ownerAccountId`, el handle público y la validación de
+ * coherencia entre tipo y secuencia—.
+ */
+export const IDENTITY_CONTRACT_VERSION = '1.0' as const;
+
+/**
+ * Forma de un evento de dominio y de su sobre.
+ *
+ * 1.0 declara la forma y los puertos. NO declara infraestructura: ni cola, ni
+ * flujo, ni corredor. Ese es justo el punto — el dominio tiene que poder
+ * emitir sin saber quién lo transporta, para que mañana lo transporte otra
+ * cosa sin tocar un solo contrato.
+ */
+export const EVENTS_CONTRACT_VERSION = '1.0' as const;
 
 export type ContractVersion = `${number}.${number}`;
 

@@ -62,6 +62,24 @@ export const getCreditCost = onCall(OPTS, async (request) =>
  * Gastar Credits por un servicio. El monto lo decide el servidor (catálogo);
  * requestId hace la operación idempotente. Devuelve la autorización; quien
  * ejecute la IA debe completarla o reembolsarla.
+ *
+ * ── RESERVADO: NO HABILITADO COMO RUTA DE PRODUCTO ─────────────────────────
+ *
+ * Esto AUTORIZA Credits y no los liquida: deja la transacción en `AUTHORIZED`
+ * confiando en que quien llame la complete o la reembolse después. Ninguna
+ * pantalla de Weë lo usa —`creditsService.spend()` existe en el cliente y no lo
+ * invoca nadie— y por eso hoy no hay ninguna operación que pueda quedarse
+ * retenida por aquí.
+ *
+ * Si algún día se habilita, necesita lo mismo que las demás operaciones, que ya
+ * está escrito y probado en otro sitio: un plazo del que derivar el presupuesto
+ * (`presupuestoDeIntento`), y una forma de distinguir «en marcha» de
+ * «abandonada» (`operacionAbandonada`) para poder devolver lo retenido. Sin
+ * eso, un cliente que autorice y no vuelva deja el saldo mermado sin
+ * contrapartida y sin forma de recuperarlo salvo administración.
+ *
+ * Mientras tanto: autorizar desde el cliente no sirve para nada que Weë haga,
+ * porque quien ejecuta la IA es el servidor y cobra él.
  */
 export const spendCredits = onCall(OPTS, async (request) =>
   run(async () => {

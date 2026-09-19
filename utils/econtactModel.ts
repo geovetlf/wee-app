@@ -88,7 +88,6 @@ export type EstadoEntre = 'ninguno' | 'pendiente-enviada' | 'pendiente-recibida'
  *
  *     Perfil Real  →  uid === el uid de Firebase Auth          →  'ABC'
  *     Perfil Weë   →  uid === 'hidi_' + el uid de Firebase Auth →  'hidi_ABC'
- *     Perfil Biz   →  uid === 'biz_' + el id del negocio        →  'biz_N1'
  *
  * `hidi_` es el prefijo heredado de HideTok, como se llamaba el proyecto antes.
  * El concepto de producto hoy se llama PERFIL WEË y así se dice en pantalla; el
@@ -98,16 +97,29 @@ export type EstadoEntre = 'ninguno' | 'pendiente-enviada' | 'pendiente-recibida'
  *
  * Que el Perfil Real no lleve prefijo es lo que hace que este cambio no rompa
  * nada: una relación real↔real se guarda hoy exactamente igual que antes.
+ *
+ * ── EL PERFIL BIZ YA NO EXISTE ──────────────────────────────────────────────
+ *
+ * Hubo una tercera cara —`biz_<negocio>`— que representaba a un negocio como si
+ * fuera una identidad más de la cuenta. Se ha eliminado: un negocio, una marca o
+ * un restaurante no son una cara de una persona, son una PÁGINA de la cuenta, y
+ * las Páginas son entidades, no perfiles.
+ *
+ * Ojo con la confusión fácil: **Weë Business sigue existiendo**. Lo que
+ * desaparece es la IDENTIDAD Biz, no el producto. Weë Business pasa a gestionar
+ * una Página; antes se hacía pasar por una identidad propia.
  */
 
 /** El prefijo del uid de un Perfil Weë. Identificador histórico: ver arriba. */
 export const PREFIJO_PERFIL_WEE = 'hidi_';
 
-/** El prefijo del uid de un Perfil Biz. */
-export const PREFIJO_PERFIL_BIZ = 'biz_';
-
-/** Qué clase de perfil es una identidad. */
-export type TipoDeIdentidad = 'real' | 'wee' | 'biz';
+/**
+ * Qué clase de perfil es una identidad. Dos, y solo dos.
+ *
+ * El tercer valor era `'biz'` y se ha ido con el Perfil Biz. Una Página no entra
+ * aquí: no es un perfil de persona y no tiene agenda de contactos.
+ */
+export type TipoDeIdentidad = 'real' | 'wee';
 
 /*
  * LA FORMA DE UNA IDENTIDAD, Y POR QUÉ IMPORTA.
@@ -120,20 +132,24 @@ export type TipoDeIdentidad = 'real' | 'wee' | 'biz';
  * Los uid de Firebase Auth son alfanuméricos, así que esto no deja fuera a
  * nadie; lo que hace es que la garantía sea una comprobación y no una suposición.
  */
-const FORMA_DE_IDENTIDAD = /^(?:hidi_|biz_)?[^_/\s]+$/;
+const FORMA_DE_IDENTIDAD = /^(?:hidi_)?[^_/\s]+$/;
 
 export const esIdentidadValida = (id?: string | null): boolean =>
   typeof id === 'string' && id.length > 0 && id.length <= 200 && FORMA_DE_IDENTIDAD.test(id);
 
-export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad => {
-  if (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_WEE)) return 'wee';
-  if (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_BIZ)) return 'biz';
-  return 'real';
-};
+export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad =>
+  (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_WEE) ? 'wee' : 'real');
 
-/** La agenda es entre personas. Un negocio ya tiene su propio seguir. */
-export const esIdentidadDePersona = (id?: string | null): boolean =>
-  esIdentidadValida(id) && tipoDeIdentidad(id) !== 'biz';
+/**
+ * La agenda es entre PERSONAS.
+ *
+ * Antes esto servía para dejar fuera al Perfil Biz, que no era una persona.
+ * Ahora que esa identidad no existe, toda identidad válida es de persona — pero
+ * la función se queda, porque el día que una Página pudiera aparecer por aquí
+ * seguirá siendo cierto que una Página no tiene agenda, y el sitio donde
+ * decirlo ya está escrito.
+ */
+export const esIdentidadDePersona = (id?: string | null): boolean => esIdentidadValida(id);
 
 /**
  * Cómo se llama la agenda de una identidad. Son DOS nombres, no uno.
@@ -152,8 +168,7 @@ export const esIdentidadDePersona = (id?: string | null): boolean =>
  * idioma nuevo no puede romper la regla, y cambiarla no obliga a tocar los diez
  * diccionarios: se cambia aquí y en ningún otro sitio.
  *
- * El Perfil Biz no tiene agenda —ya tiene seguidores—, así que nunca llega aquí
- * con esa cara; si llegara, se le da el nombre del Real, que es el neutro.
+ * Lo que no sea un Perfil Weë recibe el nombre del Real, que es el neutro.
  */
 export type NombreDeLista = 'ËContact' | 'ẄContact';
 
@@ -203,16 +218,18 @@ export interface PerfilDeIdentidad {
  * posee, o null si no se puede afirmar. Se exige que el documento exista y que
  * diga lo mismo que el uid:
  *
- *   · Perfil Real → el documento existe y su tipo no es Weë ni Biz. La cuenta es
- *     el propio uid, porque para el perfil real uid y cuenta son lo mismo.
+ *   · Perfil Real → el documento existe y su tipo no es Weë. La cuenta es el
+ *     propio uid, porque para el perfil real uid y cuenta son lo mismo.
  *   · Perfil Weë  → el documento existe, es de tipo Weë y su `linkedAccountId`
  *     coincide con lo que dice el prefijo. Las DOS cosas: el prefijo solo no
  *     basta —lo dice el cliente— y el vínculo solo tampoco —dejaría pasar un
  *     perfil cuyo uid y cuyo vínculo se contradicen—.
- *   · Perfil Biz  → null. No es una persona.
- *
  * Null antes que adivinar. La diferencia entre no poder conectar —que se ve y se
  * entiende— y conectar con quien no era.
+ *
+ * Un `profileType` que este modelo no reconoce —el `'biz'` de los perfiles
+ * antiguos, o cualquier otro— devuelve null: una identidad que dice ser algo que
+ * ya no existe no es de nadie.
  */
 export const cuentaDeIdentidad = (
   id?: string | null,
@@ -220,12 +237,11 @@ export const cuentaDeIdentidad = (
 ): string | null => {
   if (!esIdentidadValida(id)) return null;
   const tipo = tipoDeIdentidad(id);
-  if (tipo === 'biz') return null;
   if (!perfil || perfil.uid !== id) return null;
 
   if (tipo === 'real') {
     // Un perfil real no puede declararse de otro tipo ni apuntar a otra cuenta.
-    if (perfil.profileType === 'hidi' || perfil.profileType === 'biz') return null;
+    if (perfil.profileType && perfil.profileType !== 'real') return null;
     return id as string;
   }
 

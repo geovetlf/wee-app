@@ -5,7 +5,11 @@ import { Timestamp } from 'firebase/firestore';
 import { updateUserCache } from '../hooks/useUserById';
 
 /*
- * LAS TRES CARAS DE UNA CUENTA: Perfil Real, Perfil Weë y Perfil Biz.
+ * LAS DOS CARAS DE UNA CUENTA: Perfil Real y Perfil Weë.
+ *
+ * Hubo una tercera —el Perfil Biz— que hacía pasar a un negocio por una cara
+ * más de la persona. Se eliminó: un negocio es una PÁGINA de la cuenta, no una
+ * identidad. Weë Business, el producto, sigue existiendo y gestionará Páginas.
  *
  * `'hidi'` es el valor guardado del Perfil Weë. El nombre viene de HideTok, como
  * se llamaba el proyecto antes; el concepto de producto hoy se llama Perfil Weë
@@ -13,25 +17,21 @@ import { updateUserCache } from '../hooks/useUserById';
  * perfiles que ya existen y comprobado en `firestore.rules`: cambiarlo sería una
  * migración, no un cambio de nombre.
  */
-type ProfileType = 'real' | 'hidi' | 'biz';
+type ProfileType = 'real' | 'hidi';
 
 interface UserProfileContextType {
-  userProfile: UserProfile | null; // La cara activa: Real, Weë o Biz
+  userProfile: UserProfile | null; // La cara activa: Real o Weë
   realProfile: UserProfile | null;
   weeProfile: UserProfile | null;
-  bizProfile: UserProfile | null;
   activeProfileType: ProfileType;
   hasWeeProfile: boolean;
-  hasBizProfile: boolean;
   loading: boolean;
   error: string | null;
   updateProfile: (updates: Partial<Omit<UserProfile, 'id' | 'uid' | 'createdAt'>>) => Promise<void>;
   updateLocalProfile: (updates: Partial<UserProfile>) => void;
   refreshProfile: () => void;
   switchIdentity: () => void;
-  switchToBiz: () => void;
   setWeeProfile: (profile: UserProfile) => void;
-  setBizProfile: (profile: UserProfile) => void;
 }
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
@@ -52,25 +52,19 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
   const { user } = useAuth();
   const [realProfile, setRealProfile] = useState<UserProfile | null>(null);
   const [weeProfile, setWeeProfileState] = useState<UserProfile | null>(null);
-  const [bizProfile, setBizProfileState] = useState<UserProfile | null>(null);
   const [activeProfileType, setActiveProfileType] = useState<ProfileType>('real');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Perfil activo basado en el tipo seleccionado
-  const userProfile = activeProfileType === 'biz' && bizProfile
-    ? bizProfile
-    : activeProfileType === 'hidi' && weeProfile
-      ? weeProfile
-      : realProfile;
+  const userProfile = activeProfileType === 'hidi' && weeProfile ? weeProfile : realProfile;
 
   useEffect(() => {
     const loadUserProfiles = async () => {
       if (!user) {
         setRealProfile(null);
         setWeeProfileState(null);
-        setBizProfileState(null);
         setActiveProfileType('real');
         setLoading(false);
         return;
@@ -157,35 +151,18 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
           setWeeProfileState(null);
         }
 
-        // Intentar cargar perfil BIZ
-        try {
-          // Buscar negocios del usuario y su perfil biz
-          const { weeBizService } = require('../services/weeBizService');
-          const biz = await weeBizService.getBusinessByOwner(user.uid);
-          if (biz?.id) {
-            const bizUserProfile = await usersService.getBizProfile(biz.id);
-            if (bizUserProfile) {
-              console.log('🏢 [UserProfileContext] Perfil BIZ cargado:', bizUserProfile.displayName);
-              setBizProfileState(bizUserProfile);
-              updateUserCache(`biz_${biz.id}`, bizUserProfile);
-            } else {
-              console.log('🏢 [UserProfileContext] Negocio existe pero no tiene perfil BIZ aún');
-              setBizProfileState(null);
-            }
-          } else {
-            setBizProfileState(null);
-          }
-        } catch (bizErr) {
-          console.log('🏢 [UserProfileContext] Error cargando perfil BIZ (ignorado):', bizErr);
-          setBizProfileState(null);
-        }
+        /*
+         * Aquí se cargaba una tercera cara, el Perfil Biz, buscando el negocio
+         * de la persona. Ya no: el negocio de alguien no es otra cara suya. Las
+         * Páginas son entidades de la cuenta y se gestionan aparte, no se
+         * activan como si fueran un perfil.
+         */
       } catch (err) {
         console.error('❌ [UserProfileContext] Error loading user profile:', err);
         /* Una CLAVE, no una frase: la traduce quien la pinta, con el idioma de ese momento. */
         setError('profile.loadFailedDetail');
         setRealProfile(null);
         setWeeProfileState(null);
-        setBizProfileState(null);
       } finally {
         setLoading(false);
       }
@@ -216,10 +193,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
 
       // Actualizar estado local inmediatamente
       const newProfile = { ...currentProfile, ...updatesWithTimestamp };
-      if (activeProfileType === 'biz') {
-        setBizProfileState(newProfile);
-        updateUserCache(currentProfile.uid, newProfile);
-      } else if (activeProfileType === 'hidi') {
+      if (activeProfileType === 'hidi') {
         setWeeProfileState(newProfile);
         updateUserCache(`hidi_${user.uid}`, newProfile);
       } else {
@@ -248,10 +222,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     }
 
     const newProfile = { ...userProfile, ...updates };
-    if (activeProfileType === 'biz') {
-      setBizProfileState(newProfile);
-      updateUserCache(userProfile.uid, updates);
-    } else if (activeProfileType === 'hidi') {
+    if (activeProfileType === 'hidi') {
       setWeeProfileState(newProfile);
       updateUserCache(`hidi_${user.uid}`, updates);
     } else {
@@ -277,18 +248,6 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     });
   }, [weeProfile]);
 
-  const switchToBiz = useCallback(() => {
-    if (!bizProfile) {
-      console.warn('⚠️ [UserProfileContext] No hay perfil BIZ para cambiar');
-      return;
-    }
-    setActiveProfileType(prev => {
-      const next = prev === 'biz' ? 'real' : 'biz';
-      console.log(`🏢 [UserProfileContext] Cambiando identidad: ${prev} → ${next}`);
-      return next;
-    });
-  }, [bizProfile]);
-
   // Setter público para que WeeProfileCreationScreen pueda establecer el Perfil Weë recién creado
   const setWeeProfile = useCallback((profile: UserProfile) => {
     setWeeProfileState(profile);
@@ -297,28 +256,19 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     }
   }, [user]);
 
-  const setBizProfile = useCallback((profile: UserProfile) => {
-    setBizProfileState(profile);
-    updateUserCache(profile.uid, profile);
-  }, []);
-
   const value: UserProfileContextType = {
     userProfile,
     realProfile,
     weeProfile,
-    bizProfile,
     activeProfileType,
     hasWeeProfile: !!weeProfile,
-    hasBizProfile: !!bizProfile,
     loading,
     error,
     updateProfile,
     updateLocalProfile,
     refreshProfile,
     switchIdentity,
-    switchToBiz,
     setWeeProfile,
-    setBizProfile,
   };
 
   return (

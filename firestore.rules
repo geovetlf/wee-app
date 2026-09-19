@@ -33,6 +33,27 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(econtactFields());
     }
 
+    // UN CONTADOR SOLO PUEDE MOVERSE DE UNO EN UNO.
+    //
+    // Varias reglas dejan a cualquier sesión tocar los contadores de documentos
+    // ajenos, y tienen que dejarlo: dar un like o unirse a una comunidad mueve
+    // un número que vive en el documento de otra persona, y hoy eso lo escribe
+    // el cliente. Lo que no puede ser es que «mover un contador» signifique
+    // «escribir el número que me dé la gana»: con la regla anterior se podía
+    // poner `agreementCount: 0` en cualquier publicación o `followers: 9999999`
+    // en cualquier perfil, y eso no es un contador mal llevado, es corrupción.
+    //
+    // Esto no lo convierte en un contador de verdad —para eso hay que contarlo
+    // en el servidor, y ese es su momento, no este—. Lo que hace es acotar el
+    // daño a lo que la operación legítima hace: uno arriba o uno abajo, entero,
+    // y nunca por debajo de cero.
+    function contadorSano(campo) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([campo])
+        || (request.resource.data.get(campo, 0) is int
+            && request.resource.data.get(campo, 0) >= 0
+            && (request.resource.data.get(campo, 0) - resource.data.get(campo, 0)) in [1, -1]);
+    }
+
     // Encuestas (Bloque A): el campo `poll` de un post NO lo escribe el cliente.
     // Ni un tercero, ni el propio autor. Los contadores solo los mueve la callable
     // `votePoll`, que corre con el Admin SDK y no pasa por estas reglas. Publicar
@@ -56,52 +77,81 @@ service cloud.firestore {
       return request.resource.data.isPrivate is bool;
     }
 
-    // Un post publicado desde un perfil Biz pertenece a la PERSONA dueña del
-    // negocio, no a "cualquiera que tenga cuenta". El id del negocio viaja dentro
-    // del propio userId (`biz_<businessId>`) y el dueño está en `businesses`.
-    // `exists()` antes de `get()` para que un negocio borrado deniegue en vez de
-    // reventar la regla.
-    function businessIdOf(userId) {
-      return userId.split('biz_')[1];
-    }
-    function ownsBizProfile(userId) {
-      return userId.matches('biz_.*') &&
-        exists(/databases/$(database)/documents/businesses/$(businessIdOf(userId))) &&
-        get(/databases/$(database)/documents/businesses/$(businessIdOf(userId))).data.ownerId == request.auth.uid;
-    }
-    // Autoría real de un post, para las tres identidades de una misma cuenta.
+    // Autoría real de un post, para las DOS caras de una misma cuenta.
+    //
+    // Hubo una tercera —el Perfil Biz— con su propia comprobación de dueño
+    // contra `businesses`. Esa identidad se eliminó: un negocio es una Página
+    // de la cuenta, no una cara de la persona.
+    //
+    // Y conviene decirlo: varias reglas de abajo admitían CUALQUIER `biz_*` sin
+    // comprobar propiedad alguna, así que quitarlas no solo limpia — cierra un
+    // hueco por el que cualquiera con sesión podía escribir como el negocio de
+    // otra persona.
     function ownsPost() {
       return resource.data.userId == request.auth.uid ||
-        resource.data.userId == ("hidi_" + request.auth.uid) ||
-        ownsBizProfile(resource.data.userId);
+        resource.data.userId == ("hidi_" + request.auth.uid);
     }
 
     // === USUARIOS ===
+    //
+    // ⚠ DEUDA CONOCIDA: ESTE DOCUMENTO MEZCLA LA CUENTA Y EL PERFIL.
+    //
+    // `allow read: if true` es correcto para un perfil público —nombre, foto,
+    // bio— y es lo que el muro necesita para pintar a quien publicó, incluso
+    // sin sesión. El problema es lo que comparte documento con eso: `email`,
+    // `realName`, `birthDate`, `gender`, `creditsBalance` y `linkedAccountId`
+    // están en el MISMO documento, y Firestore no sabe ocultar campos: quien
+    // puede leer un documento lo lee entero.
+    //
+    // `linkedAccountId` es el peor: es el vínculo entre el Perfil Weë y la
+    // cuenta real, así que leerlo deshace la separación de identidades que es
+    // la razón de ser del Perfil Weë.
+    //
+    // NO SE ARREGLA CON UNA REGLA, y por eso aquí solo queda la costura. Se
+    // arregla separando lo que nunca debió estar junto: el perfil público en
+    // `users/{uid}` y lo de la cuenta en `users/{uid}/private/**`, que ya está
+    // declarado abajo y solo lee su dueño. Eso es una migración de datos y un
+    // cambio en quien lee y escribe esos campos — pertenece a la fase que
+    // cablea Identity a producción, que es justo donde el modelo canónico
+    // (Account ≠ Perfil) deja de ser contrato y pasa a ser esquema.
     match /users/{userId} {
       // Cualquiera puede leer perfiles públicos
       allow read: if true;
 
       // Solo el dueño puede crear/actualizar su perfil
-      // Permite crear perfil real (uid == auth.uid), HIDI (uid == "hidi_" + auth.uid), o BIZ (uid starts with "biz_")
+      // Permite crear perfil real (uid == auth.uid) o Perfil Weë (uid == "hidi_" + auth.uid).
       allow create: if isAuthenticated() && !createsCreditFields() && !createsEcontactFields() &&
         (request.auth.uid == request.resource.data.uid ||
          (request.resource.data.uid == ("hidi_" + request.auth.uid) &&
           request.resource.data.profileType == 'hidi' &&
-          request.resource.data.linkedAccountId == request.auth.uid) ||
-         (request.resource.data.profileType == 'biz' &&
           request.resource.data.linkedAccountId == request.auth.uid));
 
+      // Solo el dueño, y nadie más.
+      //
+      // Había una tercera rama que dejaba a CUALQUIER sesión escribir
+      // `followers`/`following` en el perfil de CUALQUIER persona. Existía para
+      // que seguir a alguien pudiera mover su contador desde el cliente, pero
+      // el sistema de follows es código muerto —570 líneas sin una sola
+      // pantalla que las use, sustituido por ËContact— así que la rama no
+      // servía a nada vivo y sí permitía escribirle a otro `followers: 9999999`.
       allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() &&
         (request.auth.uid == resource.data.uid ||
          (resource.data.uid == ("hidi_" + request.auth.uid) &&
-          resource.data.profileType == 'hidi') ||
-         (resource.data.profileType == 'biz' &&
-          resource.data.linkedAccountId == request.auth.uid) ||
-         // Permitir actualizar solo contadores de follows
-         request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['followers', 'following']));
+          resource.data.profileType == 'hidi'));
 
       allow delete: if false; // No permitir eliminar usuarios
+
+      // LO DE LA CUENTA, QUE NO ES PÚBLICO Y NUNCA DEBIÓ SERLO.
+      //
+      // El destino de `email`, `realName`, `birthDate`, `gender`,
+      // `linkedAccountId` y el saldo. Hoy está vacío: la regla existe para que
+      // el sitio correcto ya esté cerrado cuando esos campos se muden, y para
+      // que a nadie se le ocurra inventarse otro. Solo su dueño, y el servidor
+      // por encima de todo esto.
+      match /private/{documento} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if false;
+      }
 
       // Guardados: solo el dueño lee y escribe sus marcadores
       match /bookmarks/{postId} {
@@ -123,12 +173,13 @@ service cloud.firestore {
       allow create: if isAuthenticated();
 
       // Solo moderadores pueden actualizar la comunidad
-      // O cualquier usuario autenticado puede actualizar contadores
+      // O cualquier usuario autenticado puede actualizar contadores, de uno en uno
       allow update: if isAuthenticated() &&
         (request.auth.uid in resource.data.moderators ||
          resource.data.createdBy == request.auth.uid ||
-         request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['memberCount', 'postCount', 'updatedAt']));
+         (request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['memberCount', 'postCount', 'updatedAt'])
+          && contadorSano('memberCount') && contadorSano('postCount')));
 
       allow delete: if false; // No permitir eliminar comunidades
 
@@ -150,13 +201,11 @@ service cloud.firestore {
       allow read: if true;
 
       // Solo usuarios autenticados pueden crear posts.
-      // Se publica con la identidad real, con la Weë (hidi) o con la de un negocio,
-      // pero SIEMPRE tienen que ser identidades de esta misma cuenta: publicar como
-      // `biz_<negocio>` exige ser la persona dueña de ese negocio.
+      // Se publica con la identidad real o con la Weë (hidi), y SIEMPRE tienen
+      // que ser identidades de esta misma cuenta.
       allow create: if isAuthenticated() && visibilidadDeclarada() &&
         (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid) ||
-         ownsBizProfile(request.resource.data.userId));
+         request.resource.data.userId == ("hidi_" + request.auth.uid));
 
       // El autor puede actualizar su post, o cualquier usuario autenticado puede actualizar contadores.
       // `poll` queda fuera de los dos caminos: los votos solo los escribe el servidor.
@@ -167,9 +216,13 @@ service cloud.firestore {
       // para el de los contadores, que no tiene por qué tocarlo.
       allow update: if isAuthenticated() && !touchesPoll() && visibilidadDeclarada() && (
         ownsPost() ||
-        // Permitir actualizar solo contadores (views, agreementCount, etc.)
-        request.resource.data.diff(resource.data).affectedKeys()
+        // Permitir actualizar solo contadores (views, agreementCount, etc.),
+        // y solo de uno en uno: ver `contadorSano`.
+        (request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['views', 'agreementCount', 'disagreementCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'])
+         && contadorSano('views') && contadorSano('agreementCount')
+         && contadorSano('disagreementCount') && contadorSano('likes')
+         && contadorSano('comments') && contadorSano('shares') && contadorSano('reposts'))
       );
 
       // Solo el autor puede eliminar su post
@@ -185,38 +238,51 @@ service cloud.firestore {
     }
 
     // === VOTOS ===
+    // UNA CUENTA, UN VOTO.
+    //
+    // El identificador del documento es `{userId}_{postId}`, así que con las
+    // dos caras salían DOS documentos para la misma persona y el mismo post:
+    // `abc_p1` y `hidi_abc_p1`. Y salían de verdad — en producción hay ocho
+    // votos con identidad Weë—, con el agravante de que cada pantalla usaba una
+    // cosa distinta: el muro votaba con la cara activa y el detalle con la
+    // cuenta, así que el propio voto aparecía y desaparecía según por dónde se
+    // mirara.
+    //
+    // La unidad de participación correcta aquí es la CUENTA, y no es una
+    // decisión nueva: es la misma que ya tomaron las encuestas —`votePoll` usa
+    // siempre `request.auth.uid`, y está escrito allí que Real y Weë comparten
+    // un voto—. Un acuerdo no es contenido firmado por una identidad: es una
+    // señal sobre una publicación, y una persona tiene una.
+    //
+    // `update` y `delete` siguen admitiendo la forma antigua A PROPÓSITO: los
+    // ocho votos que ya existen tienen que poder deshacerse por su dueño. Lo
+    // que no se puede es crear más.
     match /votes/{voteId} {
       allow read: if true;
 
       allow create: if isAuthenticated() &&
-        (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid) ||
-         request.resource.data.userId.matches('biz_.*'));
+        request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+         resource.data.userId == ("hidi_" + request.auth.uid));
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+         resource.data.userId == ("hidi_" + request.auth.uid));
     }
 
     // === VOTOS DE COMENTARIOS ===
+    // Lo mismo que en `votes`, y por lo mismo. El cliente ya votaba comentarios
+    // con la cuenta (`CommentCard`), así que aquí la regla solo lo hace cumplir.
     match /commentVotes/{voteId} {
       allow read: if true;
       allow create: if isAuthenticated() &&
-        (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid) ||
-         request.resource.data.userId.matches('biz_.*'));
+        request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+         resource.data.userId == ("hidi_" + request.auth.uid));
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+         resource.data.userId == ("hidi_" + request.auth.uid));
     }
 
     // === COMENTARIOS ===
@@ -225,22 +291,21 @@ service cloud.firestore {
 
       allow create: if isAuthenticated() &&
         (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid) ||
-         request.resource.data.userId.matches('biz_.*'));
+         request.resource.data.userId == ("hidi_" + request.auth.uid));
 
       allow update: if isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         resource.data.userId == ("hidi_" + request.auth.uid) ||
-        resource.data.userId.matches('biz_.*') ||
-        // Permitir actualizar contadores
-        request.resource.data.diff(resource.data).affectedKeys()
+        // Permitir actualizar contadores, de uno en uno
+        (request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['likes', 'agreementCount', 'disagreementCount'])
+         && contadorSano('likes') && contadorSano('agreementCount')
+         && contadorSano('disagreementCount'))
       );
 
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+         resource.data.userId == ("hidi_" + request.auth.uid));
     }
 
     // === LIKES (legacy, mantener para retrocompatibilidad) ===
@@ -248,12 +313,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuthenticated() &&
         (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid) ||
-         request.resource.data.userId.matches('biz_.*'));
+         request.resource.data.userId == ("hidi_" + request.auth.uid));
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid) ||
-         resource.data.userId.matches('biz_.*'));
+         resource.data.userId == ("hidi_" + request.auth.uid));
     }
 
     // === ËCONTACT ===
@@ -332,12 +395,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuthenticated() &&
         (request.resource.data.followerId == request.auth.uid ||
-         request.resource.data.followerId == ("hidi_" + request.auth.uid) ||
-         request.resource.data.followerId.matches('biz_.*'));
+         request.resource.data.followerId == ("hidi_" + request.auth.uid));
       allow delete: if isAuthenticated() &&
         (resource.data.followerId == request.auth.uid ||
-         resource.data.followerId == ("hidi_" + request.auth.uid) ||
-         resource.data.followerId.matches('biz_.*'));
+         resource.data.followerId == ("hidi_" + request.auth.uid));
     }
 
     // === CONVERSACIONES ===
@@ -369,8 +430,7 @@ service cloud.firestore {
           (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants ||
            ("hidi_" + request.auth.uid) in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants) &&
           (request.resource.data.senderId == request.auth.uid ||
-           request.resource.data.senderId == ("hidi_" + request.auth.uid) ||
-           request.resource.data.senderId.matches('biz_.*'));
+           request.resource.data.senderId == ("hidi_" + request.auth.uid));
 
         // Permitir marcar como leído (actualizar status) por cualquier participante
         allow update: if isAuthenticated() &&
@@ -406,11 +466,23 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
         request.resource.data.ownerId == request.auth.uid;
 
-      // Solo el dueño puede actualizar su negocio, o cualquiera puede actualizar contadores
+      // Solo el dueño puede actualizar su negocio, o cualquiera puede actualizar contadores.
+      //
+      // `followersCount` se acota de uno en uno como los demás. `auraScore` y
+      // `reviewCount` NO se pueden acotar así: son un promedio y un recuento
+      // que el cliente RECALCULA leyendo hasta mil reseñas, así que saltan a
+      // cualquier valor por diseño. Aquí solo se les exige que sean números
+      // dentro de su rango; que nadie pueda ponerle un 5 al negocio que quiera
+      // exige contar en el servidor, y eso es de la fase de Weë Business.
       allow update: if isAuthenticated() && (
         resource.data.ownerId == request.auth.uid ||
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['followersCount', 'auraScore', 'reviewCount'])
+          && contadorSano('followersCount')
+          && request.resource.data.get('auraScore', 0) >= 0
+          && request.resource.data.get('auraScore', 0) <= 5
+          && request.resource.data.get('reviewCount', 0) is int
+          && request.resource.data.get('reviewCount', 0) >= 0
       );
 
       allow delete: if false;
@@ -477,23 +549,31 @@ service cloud.firestore {
       // Solo el destinatario puede leer sus notificaciones (real, HIDI o BIZ)
       allow read: if isAuthenticated() &&
         (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid) ||
-         resource.data.recipientId.matches('biz_.*'));
+         resource.data.recipientId == ("hidi_" + request.auth.uid));
 
-      // Usuarios autenticados pueden crear notificaciones
-      allow create: if isAuthenticated();
+      // El remitente tiene que ser QUIEN ESCRIBE, no quien diga el documento.
+      //
+      // Decía `if isAuthenticated()` a secas, sin mirar `senderId`. Y una
+      // notificación no se queda en la base de datos: dispara un push de verdad
+      // (`functions/src/index.ts`), cuyo título sale de `senderName` tal cual
+      // llega. Es decir: cualquiera con sesión podía hacerle llegar a cualquier
+      // otra persona un aviso firmado por quien quisiera.
+      //
+      // Las dos caras valen, como en posts y comentarios: se avisa desde la
+      // identidad con la que se actuó. Lo que no vale es firmar con una ajena.
+      allow create: if isAuthenticated() &&
+        (request.resource.data.senderId == request.auth.uid ||
+         request.resource.data.senderId == ("hidi_" + request.auth.uid));
 
       // Solo el destinatario puede actualizar (marcar como leída)
       allow update: if isAuthenticated() &&
         (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid) ||
-         resource.data.recipientId.matches('biz_.*'));
+         resource.data.recipientId == ("hidi_" + request.auth.uid));
 
       // Solo el destinatario puede eliminar sus notificaciones
       allow delete: if isAuthenticated() &&
         (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid) ||
-         resource.data.recipientId.matches('biz_.*'));
+         resource.data.recipientId == ("hidi_" + request.auth.uid));
     }
 
     // === INTERÉS EN AI APPS (WEE Creator: "Avísame cuando esté") ===

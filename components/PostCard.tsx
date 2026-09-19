@@ -198,10 +198,18 @@ const PostCard: React.FC<PostCardProps> = ({
     isRepost ? (originalPost?.userId || '') : post.userId
   );
 
-  // Hook de votación con estado optimista
+  /*
+   * Hook de votación con estado optimista.
+   *
+   * VOTA LA CUENTA, no la cara activa. Con `activeProfile?.uid` salían dos
+   * documentos de voto para la misma persona —`abc_p1` y `hidi_abc_p1`—, así
+   * que se podía estar de acuerdo dos veces con la misma publicación cambiando
+   * de perfil, y el voto propio desaparecía al mirarlo desde la otra pantalla,
+   * que ya usaba la cuenta. Es la misma unidad que las encuestas.
+   */
   const { stats: voteStats, voteAgree, voteDisagree, isLoading: isVoting } = useVote({
     postId: post.id!,
-    userId: activeProfile?.uid || user?.uid,
+    userId: user?.uid,
     initialStats: {
       agreementCount: post.agreementCount || 0,
       disagreementCount: post.disagreementCount || 0,

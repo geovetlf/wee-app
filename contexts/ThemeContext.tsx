@@ -2,7 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { Appearance, ColorSchemeName, Animated, Easing, StyleSheet, Platform, StatusBar } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 
-export type ThemeMode = 'system' | 'light' | 'dark' | 'biz';
+/*
+ * Dos temas y el del sistema. Hubo un tercero —morado— que se encendía con el
+ * Perfil Biz; esa identidad se eliminó y el tema se fue con ella.
+ */
+export type ThemeMode = 'system' | 'light' | 'dark';
 
 export interface Theme {
   dark: boolean;
@@ -70,28 +74,6 @@ const darkTheme: Theme = {
   },
 };
 
-const bizTheme: Theme = {
-  dark: false,
-  colors: {
-    primary: '#7C3AED',
-    background: '#FFFFFF',
-    surface: '#F5F3FF',
-    card: '#FFFFFF',
-    text: '#1F2937',
-    textSecondary: '#6B7280',
-    border: '#E5E7EB',
-    accent: '#7C3AED',
-    accentLight: '#A78BFA',
-    accentDark: '#5B21B6',
-    like: '#EF4444',
-    error: '#EF4444',
-    glow: 'rgba(124, 58, 237, 0.15)',
-    backdrop: 'rgba(0, 0, 0, 0.4)',
-    success: '#22C55E',
-    warning: '#F59E0B',
-  },
-};
-
 interface ThemeContextType {
   theme: Theme;
   themeMode: ThemeMode;
@@ -149,7 +131,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, []);
 
   const getEffectiveTheme = (): Theme => {
-    if (themeMode === 'biz') return bizTheme;
     if (themeMode === 'system') {
       return systemColorScheme === 'dark' ? darkTheme : lightTheme;
     }

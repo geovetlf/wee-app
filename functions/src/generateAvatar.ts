@@ -10,6 +10,7 @@ import { AI_SECRETS } from './secrets';
 import { randomUUID } from 'crypto';
 import { creditEngine } from './credits/creditEngine';
 import { CreditService } from './credits/creditCosts';
+import { assertInputImageUrl } from './creator/inputs';
 import { toHttpsError } from './credits/creditValidation';
 import {
   generateAvatarWithImagen,
@@ -157,15 +158,23 @@ export const avatarReplacement = onCall(
       throw new HttpsError('unauthenticated', 'Must be authenticated');
     }
 
-    const { selfieUrl, avatarUrl } = request.data;
     const requestId = requestIdFrom(request.data?.requestId, 'swap');
 
-    if (!selfieUrl || typeof selfieUrl !== 'string') {
-      throw new HttpsError('invalid-argument', 'selfieUrl is required');
-    }
-    if (!avatarUrl || typeof avatarUrl !== 'string') {
-      throw new HttpsError('invalid-argument', 'avatarUrl is required');
-    }
+    /*
+     * LAS DOS FOTOS TIENEN QUE SER SUYAS, Y DE WEË.
+     *
+     * Antes bastaba con que fueran cadenas: el servidor descargaba CUALQUIER
+     * URL que mandara el cliente —incluida una de la red interna— y el
+     * resultado acababa en `users/{uid}/avatar-replacement/`, que es de lectura
+     * pública. Eso es una petición del lado del servidor a donde diga otro, con
+     * la respuesta publicada.
+     *
+     * `assertInputImageUrl` es el mismo guardia que ya usa el resto de Weë AI
+     * (`creator/inputs.ts`): exige que la URL sea de Storage y que su ruta
+     * empiece por `users/{uid}/`. No hace falta nada nuevo; hacía falta usarlo.
+     */
+    const selfieUrl = assertInputImageUrl(request.data?.selfieUrl, request.auth.uid);
+    const avatarUrl = assertInputImageUrl(request.data?.avatarUrl, request.auth.uid);
 
     console.log('═══════════════════════════════════════════════════════════');
     console.log('     AVATAR REPLACEMENT (Gemini 2.5 Flash Image)          ');

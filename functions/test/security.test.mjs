@@ -116,5 +116,62 @@ const example = read('functions/.env.example');
 check('el ejemplo de entorno no trae ningún valor de clave', PROVIDER_KEYS.every((k) => !new RegExp(`^${k}=.+`, 'm').test(example)));
 check('el ejemplo explica que los secretos de producción van por Secret Manager', /Secret Manager/i.test(example));
 
+/*
+ * ── FRONTERAS DE AUTORIZACIÓN (fase 10) ────────────────────────────────────
+ *
+ * Cuatro agujeros que la revisión encontró y cerró. Lo de verdad —intentar la
+ * escritura y ver si pasa— se ejecuta contra el emulador en
+ * `fronteras-rules.emulator.mjs`, que no cabe en esta suite porque necesita
+ * Java. Aquí queda la guarda de texto, que es lo que impide que alguien
+ * deshaga la corrección sin enterarse.
+ */
+console.log('\n── Fronteras de autorización ──');
+{
+  const reglas = read('firestore.rules');
+
+  check('una notificación no se puede firmar con la identidad de otra persona',
+    /allow create: if isAuthenticated\(\) &&\s*\n\s*\(request\.resource\.data\.senderId == request\.auth\.uid/.test(reglas),
+    'dispara un push de verdad con `senderName` tal cual');
+
+  check('los contadores solo se mueven de uno en uno',
+    /function contadorSano\(campo\)/.test(reglas)
+    && /\) in \[1, -1\]/.test(reglas)
+    && (reglas.match(/contadorSano\('/g) || []).length >= 10);
+
+  check('el perfil de otra persona ya no admite que le muevan los seguidores',
+    !/hasOnly\(\['followers', 'following'\]\)/.test(reglas),
+    'la rama era para follows, que es código muerto');
+
+  check('un voto nuevo es de la CUENTA: una persona, un voto',
+    /match \/votes\/\{voteId\} \{[\s\S]{0,300}?allow create: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.userId == request\.auth\.uid;/.test(reglas)
+    && /match \/commentVotes\/\{voteId\} \{[\s\S]{0,300}?allow create: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.userId == request\.auth\.uid;/.test(reglas));
+  check('y los votos antiguos con la cara Weë todavía se pueden retirar',
+    /allow delete: if isAuthenticated\(\) &&\s*\n\s*\(resource\.data\.userId == request\.auth\.uid \|\|\s*\n\s*resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)\);/.test(reglas),
+    'en producción hay ocho: no se estranda a nadie');
+
+  check('un negocio y una comunidad se crean con la CUENTA, no con una cara',
+    /ownerId: user\?\.uid|const activeUid = user\?\.uid;/.test(read('screens/WeeBizRegisterScreen.tsx'))
+    && /createdBy: user\.uid,/.test(read('screens/CommunitiesManagementScreen.tsx')));
+  check('y el muro vota con la cuenta, como el detalle y las encuestas',
+    /userId: user\?\.uid,/.test(read('components/PostCard.tsx'))
+    && !/userId: activeProfile\?\.uid/.test(read('components/PostCard.tsx'))
+    && !/userId: activeProfile\?\.uid/.test(read('screens/ReelsScreen.tsx')));
+
+  check('avatarReplacement ya no descarga cualquier URL que le manden',
+    /assertInputImageUrl\(request\.data\?\.selfieUrl, request\.auth\.uid\)/.test(read('functions/src/generateAvatar.ts'))
+    && /assertInputImageUrl\(request\.data\?\.avatarUrl, request\.auth\.uid\)/.test(read('functions/src/generateAvatar.ts')),
+    'el resultado acaba en una ruta de lectura pública');
+
+  check('las subidas tienen un tope, y está dicho que no es una frontera',
+    /const MAXIMO_DE_IMAGEN/.test(read('services/cloudinaryService.ts'))
+    && /NO es una frontera de seguridad/.test(read('services/cloudinaryService.ts')));
+
+  check('el subárbol privado de una cuenta existe y solo lo lee su dueño',
+    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if isAuthenticated\(\) && request\.auth\.uid == userId;[\s\S]{0,80}?allow write: if false;/.test(reglas));
+
+  check('el callable que autoriza Credits sin liquidarlos está marcado como no habilitado',
+    /NO HABILITADO COMO RUTA DE PRODUCTO/.test(read('functions/src/credits/index.ts')));
+}
+
 console.log(failures ? `\n${failures} comprobación(es) de seguridad fallaron` : '\nSeguridad: ningún secreto sale de las Functions');
 process.exit(failures ? 1 : 0);

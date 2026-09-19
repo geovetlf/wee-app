@@ -91,9 +91,10 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
 
+  /* Vota la CUENTA, no la cara activa: una persona, un voto. Ver `PostCard`. */
   const { stats: voteStats, voteAgree, voteDisagree } = useVote({
     postId: post.id!,
-    userId: activeProfile?.uid || user?.uid,
+    userId: user?.uid,
     initialStats: {
       agreementCount: post.agreementCount || 0,
       disagreementCount: post.disagreementCount || 0,

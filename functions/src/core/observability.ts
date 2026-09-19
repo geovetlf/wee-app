@@ -32,7 +32,28 @@ export interface TraceContext {
   traceId: string;
   /** Único por operación. El mismo que ya usa el Credit Engine para idempotencia. */
   requestId: string;
+  /**
+   * LA CUENTA. Se llama `userId` por historia, no por precisión.
+   *
+   * En Weë una persona tiene una cuenta y varias entidades, y este campo
+   * siempre llevó la CUENTA. El nombre se queda —lo leen todas las capas— y
+   * `accountId` es su sinónimo explícito para quien escriba código nuevo.
+   */
   userId: string;
+  /** La cuenta, dicha con su nombre. Mismo valor que `userId`. */
+  accountId?: string;
+  /**
+   * QUÉ ENTIDAD ESTÁ ACTUANDO. Contexto, nunca propiedad.
+   *
+   * El Perfil Real, el Perfil Weë o una Página. Existe aquí porque la cadena
+   * de atribución que el libro ya sabía leer (`FinancialAttribution`) empezaba
+   * demasiado tarde: nacía en el asiento, cuando lo que hacía falta era que
+   * viajara desde la primera capa hasta la última.
+   */
+  entityId?: string;
+  entityType?: string;
+  /** La operación de negocio, cuando agrupa varias peticiones. */
+  operationId?: string;
   sessionId?: string;
   runId?: string;
   stepId?: string;
@@ -49,10 +70,35 @@ export interface TraceContext {
    * mitad de la respuesta. Sin él se perdía en el primer lector.
    */
   appId?: string;
-  /** Desde dónde se pidió: 'design', 'brain'… El Workplace activo. */
+  /**
+   * Desde dónde se pidió: 'design', 'brain'… El Workplace activo.
+   *
+   * SINÓNIMO HEREDADO. El Job Engine, el Router y el libro llaman a esto
+   * `workspaceId`, y ese desajuste no era cosmético: la traza salía de Weë
+   * Brain con `workplace: 'brain'` y llegaba a capas que solo leían
+   * `workspaceId`, así que la atribución de Workplace se perdía entera en la
+   * frontera. Los dos campos se quedan —quitar este rompería lo que ya
+   * escribe— y `workspaceDe()` lee el que haya.
+   */
   workplace?: string;
+  /** El mismo concepto, con el nombre que usan Job Engine, Router y libro. */
+  workspaceId?: string;
   projectId?: string;
 }
+
+/**
+ * El Workplace, se llame como se llame en quien lo escribió.
+ *
+ * Existe para que nadie vuelva a resolver este desajuste con un `||` suelto en
+ * el sitio donde le hizo falta, que es exactamente como los dos nombres
+ * llegaron a convivir.
+ */
+export const workspaceDe = (t: Pick<TraceContext, 'workplace' | 'workspaceId'> | undefined): string | undefined =>
+  t?.workspaceId ?? t?.workplace;
+
+/** La cuenta de una traza, se haya escrito con el nombre nuevo o con el viejo. */
+export const cuentaDeTraza = (t: Pick<TraceContext, 'userId' | 'accountId'> | undefined): string | undefined =>
+  t?.accountId ?? t?.userId;
 
 /**
  * Lo que se anota cuando una operación termina, sea bien o mal.

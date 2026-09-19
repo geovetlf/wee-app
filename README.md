@@ -31,7 +31,7 @@ El código actual nace de una versión anterior del producto (red social anónim
 | **Comunidades** (Weë Filmmakers, Weë Influencers, Weë Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
 | **Perfil doble (Real + Weë)** | `WeeProfileCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (el uid guardado sigue llevando el prefijo heredado `hidi_`) |
 | Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
-| WeeBiz (perfiles y productos de negocios) | `WeeBiz*Screen`, `weeBizService` | ⚠️ Heredado; no está en la visión actual, a evaluar |
+| Weë Business (negocios, catálogo y reseñas) | `WeeBiz*Screen`, `weeBizService`, `businesses/{businessId}` | ✅ Producto vivo. La *identidad* Perfil Biz (`users/biz_*`) se eliminó el 2026-09-19: un negocio será una Página, no una cara |
 | Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de WEË AI; "Weë Influencers" es una comunidad) | ❌ No existe aún |
 | Trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — | ❌ No existe aún |
 

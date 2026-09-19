@@ -5,6 +5,54 @@ const CLOUD_NAME = 'dnrj1guvs';
 const UPLOAD_PRESET = 'hidetok-simple';
 const BASE_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}`;
 
+/*
+ * ── LO QUE ESTE LÍMITE ES Y LO QUE NO ──────────────────────────────────────
+ *
+ * Weë sube a Cloudinary con un PRESET SIN FIRMAR, y el nombre del preset viaja
+ * en el paquete de la app. Eso significa una cosa que conviene decir sin
+ * adornos: cualquiera que lo lea puede subir a esa cuenta sin pasar por aquí.
+ * Un límite escrito en el cliente NO es una frontera de seguridad contra eso.
+ *
+ * Lo que sí hace, y por eso está: acota el uso normal. Impide que la propia app
+ * mande un archivo enorme por descuido —una captura de pantalla de escritorio,
+ * un vídeo sin recortar— y con ello acota el coste y el tiempo de subida de la
+ * gente. Es un límite de producto, no un candado.
+ *
+ * LA FRONTERA DE VERDAD son dos cosas que no viven en este repositorio:
+ *   1. las restricciones del propio preset en Cloudinary —tamaño máximo,
+ *      formatos permitidos, carpetas—, que hay que revisar allí;
+ *   2. subidas FIRMADAS, con la firma emitida por el servidor.
+ *
+ * La segunda es la buena y es trabajo del futuro Asset/Media Core: cuando un
+ * material tenga identidad propia y un dueño (`Asset.ownerAccountId`), subirlo
+ * dejará de ser «mandar bytes a un preset público» y pasará a ser una operación
+ * con nombre, dueño y permiso. Este archivo es el único sitio por el que pasa
+ * todo, así que ese cambio se hace aquí y en ningún otro lado.
+ */
+const MAXIMO_DE_IMAGEN = 15 * 1024 * 1024;
+const MAXIMO_DE_VIDEO = 200 * 1024 * 1024;
+
+const TIPOS_DE_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/gif'];
+
+class ArchivoRechazado extends Error {}
+
+const comprobarBlob = (blob: Blob, resourceType: 'image' | 'video'): Blob => {
+  const maximo = resourceType === 'video' ? MAXIMO_DE_VIDEO : MAXIMO_DE_IMAGEN;
+  if (blob.size > maximo) {
+    throw new ArchivoRechazado(
+      `El archivo pesa ${Math.round(blob.size / 1024 / 1024)} MB y el máximo son ${Math.round(maximo / 1024 / 1024)} MB.`,
+    );
+  }
+  /* Un tipo vacío es normal en algunos navegadores; solo se rechaza lo que se sabe que no vale. */
+  if (resourceType === 'image' && blob.type && !TIPOS_DE_IMAGEN.includes(blob.type)) {
+    throw new ArchivoRechazado(`Ese tipo de archivo no vale para una imagen (${blob.type}).`);
+  }
+  if (resourceType === 'video' && blob.type && !blob.type.startsWith('video/')) {
+    throw new ArchivoRechazado(`Ese tipo de archivo no vale para un video (${blob.type}).`);
+  }
+  return blob;
+};
+
 // ─── URL Helpers ────────────────────────────────────────────────────
 // Cloudinary serves optimized images via URL transformations.
 // - Cloudinary URLs: insert transforms into /upload/ path
@@ -71,7 +119,7 @@ const buildFormData = async (
    */
   if (Platform.OS === 'web') {
     const response = await fetch(uri);
-    const blob = await response.blob();
+    const blob = comprobarBlob(await response.blob(), resourceType);
     formData.append('file', resourceType === 'image' ? await blobSinMetadatos(blob) : blob, `upload.${ext}`);
   } else {
     const limpio = resourceType === 'image' ? await uriSinMetadatos(uri) : uri;

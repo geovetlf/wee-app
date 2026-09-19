@@ -49,24 +49,25 @@ const PERFILES = 'users';
  */
 
 export const PREFIJO_PERFIL_WEE = 'hidi_';
-export const PREFIJO_PERFIL_BIZ = 'biz_';
 
-export type TipoDeIdentidad = 'real' | 'wee' | 'biz';
+/**
+ * Dos caras, y solo dos. El Perfil Biz —una tercera identidad que representaba a
+ * un negocio— se ha eliminado: un negocio es una PÁGINA de la cuenta, no una
+ * cara de una persona. Weë Business, el producto, sigue existiendo y pasa a
+ * gestionar Páginas.
+ */
+export type TipoDeIdentidad = 'real' | 'wee';
 
 /** Una identidad no lleva `_` propio: solo el que trae su prefijo. Ver el modelo. */
-const FORMA_DE_IDENTIDAD = /^(?:hidi_|biz_)?[^_/\s]+$/;
+const FORMA_DE_IDENTIDAD = /^(?:hidi_)?[^_/\s]+$/;
 
 export const esIdentidadValida = (id?: unknown): boolean =>
   typeof id === 'string' && id.length > 0 && id.length <= 200 && FORMA_DE_IDENTIDAD.test(id);
 
-export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad => {
-  if (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_WEE)) return 'wee';
-  if (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_BIZ)) return 'biz';
-  return 'real';
-};
+export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad =>
+  (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_WEE) ? 'wee' : 'real');
 
-export const esIdentidadDePersona = (id?: string | null): boolean =>
-  esIdentidadValida(id) && tipoDeIdentidad(id) !== 'biz';
+export const esIdentidadDePersona = (id?: string | null): boolean => esIdentidadValida(id);
 
 export interface PerfilDeIdentidad {
   uid?: string;
@@ -85,11 +86,11 @@ export const cuentaDeIdentidad = (
 ): string | null => {
   if (!esIdentidadValida(id)) return null;
   const tipo = tipoDeIdentidad(id);
-  if (tipo === 'biz') return null;
   if (!perfil || perfil.uid !== id) return null;
 
   if (tipo === 'real') {
-    if (perfil.profileType === 'hidi' || perfil.profileType === 'biz') return null;
+    /* Un tipo que este modelo no reconoce —el `'biz'` antiguo, u otro— no es de nadie. */
+    if (perfil.profileType && perfil.profileType !== 'real') return null;
     return id as string;
   }
 

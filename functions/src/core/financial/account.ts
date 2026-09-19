@@ -1,6 +1,7 @@
 import { FINANCIAL_CORE_CONTRACT_VERSION } from '../contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from '../errors';
 import { FORMA_DE_ID, esNumero, esObjetoPlano, esTexto } from '../gateway';
+import { AccountNumber } from '../identity';
 import { Principal } from '../orchestrator';
 import {
   CreditLedgerEntry,
@@ -69,24 +70,17 @@ export interface AccountLifetime {
 }
 
 /**
- * EL NÚMERO DE UNA CUENTA. Legible, estable, y NO una credencial.
+ * EL NÚMERO DE UNA CUENTA Y LAS ENTIDADES QUE LA HABITAN — se importan.
  *
- * Es el número que una persona puede leer por teléfono o pegar en un correo de
- * soporte: `0018439`. Por eso mismo NO autoriza nada. Quien pueda operar sobre
- * una cuenta lo decide la identidad autenticada, nunca un número que cualquiera
- * puede escribir — confundir un identificador legible con una contraseña es
- * como se vacían cuentas ajenas.
+ * Este vocabulario NACIÓ aquí, en la Fase 9, porque el dinero fue lo primero
+ * que necesitó distinguir «de quién es» de «quién está actuando». Su propio
+ * comentario decía que eso era «la futura capa de Identity». Ya existe:
+ * `core/identity.ts`. El vocabulario se movió allí y aquí se USA.
  *
- * Se guarda como TEXTO, con sus ceros delante. Un número con ceros a la
- * izquierda no es un número: es una cadena, y meterlo en un `number` le quita
- * los ceros y convierte `0018439` en otra cosa.
+ * No se re-exporta a propósito. Dos puertas para el mismo tipo acaban siendo
+ * dos tipos, y `EntityType` tiene un solo dueño — la misma lección que dejó
+ * `CapabilityId` cuando vivía en la capa de experiencia.
  */
-export type AccountNumber = string;
-
-export const FORMA_DE_NUMERO_DE_CUENTA = /^[0-9]{4,20}$/;
-
-export const esNumeroDeCuenta = (v: unknown): v is AccountNumber =>
-  esTexto(v) && FORMA_DE_NUMERO_DE_CUENTA.test(v);
 
 /**
  * LA BILLETERA. Una por cuenta, y por eso comparte su número.
@@ -114,73 +108,6 @@ export interface CreditsWallet {
   revision: number;
   updatedAt: number;
 }
-
-/**
- * QUIÉN ESTÁ ACTUANDO DENTRO DE UNA CUENTA.
- *
- * Una misma cuenta Weë tiene varias entidades: el Perfil Real, el Perfil Weë y
- * las Pages. Cuál de ellas hace una operación es CONTEXTO —sirve para saber
- * desde dónde se gastó— y jamás propiedad del dinero: el saldo es de la cuenta.
- *
- * ── RESERVADO ──────────────────────────────────────────────────────────────
- *
- * Esta fase no crea entidades, no genera identificadores, no resuelve
- * pertenencias y no tiene pantallas. Eso es la futura capa de Identity. Lo
- * único que se hace aquí es que el Financial Core pueda CONSUMIR esos datos
- * cuando existan, sin rehacer la cuenta ni el libro.
- */
-export type EntityType = 'REAL_PROFILE' | 'WEE_PROFILE' | 'PAGE';
-
-/**
- * LA CONVENCIÓN DE SECUENCIA, Y POR QUÉ NO BASTA.
- *
- *   1  → Perfil Real (ËContact)
- *   2  → Perfil Weë (ẄContact)
- *   3+ → Pages
- *
- * El identificador que se enseña sigue esa convención —`0018439` + `2` da
- * `00184392`—, pero el TIPO se guarda aparte y es la única fuente de verdad.
- * Deducirlo del último carácter funciona hasta la décima entidad: `001843910`
- * acaba en `0`, y `0018439` + `10` no se distingue de `0018439` + `1` seguido
- * de un cero. Una convención de presentación no puede ser la que clasifique.
- */
-export interface EntityRef {
-  entityId: string;
-  /** Guardado, no deducido. Nunca se infiere del identificador. */
-  entityType: EntityType;
-  /** 1, 2, 3… Guardada también, por el mismo motivo. */
-  entitySequence: number;
-}
-
-export const SECUENCIA_DE_PERFIL_REAL = 1;
-export const SECUENCIA_DE_PERFIL_WEE = 2;
-export const PRIMERA_SECUENCIA_DE_PAGE = 3;
-
-/**
- * El identificador que se ENSEÑA de una entidad: el número de la cuenta y su
- * secuencia, pegados. Es presentación, no clasificación — quien necesite saber
- * de qué tipo es, lee `entityType`.
- */
-export const identificadorDeEntidad = (accountNumber: AccountNumber, entitySequence: number): string | undefined => {
-  if (!esNumeroDeCuenta(accountNumber)) return undefined;
-  if (!Number.isSafeInteger(entitySequence) || entitySequence < 1) return undefined;
-  return `${accountNumber}${entitySequence}`;
-};
-
-/**
- * Qué tipo CORRESPONDE a una secuencia, según la convención.
- *
- * Se usa para crear una entidad, no para clasificar una que ya existe: para eso
- * está `entityType`, guardado. La diferencia importa —con la décima entidad, el
- * identificador deja de ser legible como «base + secuencia»— y por eso esta
- * función recibe el NÚMERO, no el identificador.
- */
-export const tipoPorSecuencia = (entitySequence: number): EntityType | undefined => {
-  if (!Number.isSafeInteger(entitySequence) || entitySequence < 1) return undefined;
-  if (entitySequence === SECUENCIA_DE_PERFIL_REAL) return 'REAL_PROFILE';
-  if (entitySequence === SECUENCIA_DE_PERFIL_WEE) return 'WEE_PROFILE';
-  return 'PAGE';
-};
 
 export interface FinancialAccount {
   contract: typeof FINANCIAL_CORE_CONTRACT_VERSION;

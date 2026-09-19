@@ -492,23 +492,30 @@ check('87) y nadie escribe votos desde el cliente', /allow write: if false;/.tes
  * Biz. Ahora hay que ser la persona dueña del negocio.
  */
 check('88) ser biz_ ya no da permiso genérico sobre posts ajenos', !/^\s*(resource\.data\.userId\.matches\('biz_\.\*'\)\s*\|\||\(resource\.data\.userId\.matches\('biz_\.\*'\)\);)/m.test(bloquePosts));
-check('89) la autoría de un post Biz se comprueba contra el dueño del negocio', /function ownsBizProfile\(userId\)[\s\S]{0,400}businesses\/\$\(businessIdOf\(userId\)\)\)\.data\.ownerId == request\.auth\.uid/.test(reglas));
-check('90) con exists() antes del get(), para que un negocio borrado deniegue', /exists\(\/databases\/\$\(database\)\/documents\/businesses/.test(reglas));
-check('91) update y delete usan la misma autoría', /allow delete: if isAuthenticated\(\) && ownsPost\(\);/.test(bloquePosts) && /ownsPost\(\)/.test(lineaUpdate));
-check('92) y ownsPost cubre las tres identidades de una cuenta', /function ownsPost\(\)[\s\S]{0,300}hidi_[\s\S]{0,120}ownsBizProfile/.test(reglas));
-
 /*
- * El agujero hermano: `allow create` aceptaba cualquier `userId` que empezara
- * por `biz_`, así que cualquiera podía PUBLICAR haciéndose pasar por cualquier
- * negocio. Publicar con una identidad exige ahora que esa identidad sea de esta
- * misma cuenta, igual que editar y borrar.
+ * EL PERFIL BIZ YA NO EXISTE, Y ESO ES MÁS FUERTE QUE ARREGLARLO.
+ *
+ * Aquí se comprobaba que publicar o editar como un negocio exigiera ser su
+ * dueño —el arreglo de un agujero por el que cualquiera con sesión podía
+ * escribir como cualquier `biz_*`—. Esa identidad se eliminó: un negocio es una
+ * Página de la cuenta, no una cara de la persona. Así que ahora no se comprueba
+ * que la regla sea correcta: se comprueba que la regla NO ESTÉ.
+ *
+ * Weë Business, el producto, sigue en pie. Lo que desapareció es la identidad.
  */
+check('89) no queda ni una cláusula que trate un `biz_*` como identidad', !/matches\('biz_\.\*'\)/.test(reglas));
+check('90) ni la función que comprobaba el dueño del negocio', !/ownsBizProfile|businessIdOf/.test(reglas));
+check('91) update y delete usan la misma autoría', /allow delete: if isAuthenticated\(\) && ownsPost\(\);/.test(bloquePosts) && /ownsPost\(\)/.test(lineaUpdate));
+check('92) y ownsPost cubre las DOS caras de una cuenta, no tres', (() => {
+  const f = (reglas.match(/function ownsPost\(\)[\s\S]{0,300}?\n    \}/) || [''])[0];
+  return /request\.auth\.uid/.test(f) && /hidi_/.test(f) && !/biz/i.test(f);
+})());
+
 const lineaCreate = (bloquePosts.match(/allow create:[^;]*;/) || [''])[0];
-check('92b) publicar como un negocio exige ser su dueño', /ownsBizProfile\(request\.resource\.data\.userId\)/.test(lineaCreate));
-check('92c) ya no basta con que el userId empiece por biz_', !/request\.resource\.data\.userId\.matches\('biz_\.\*'\)/.test(lineaCreate));
+check('92b) publicar como un negocio ya no es posible: esa identidad no existe', !/biz/i.test(lineaCreate));
 check('92d) una cuenta personal publica igual que siempre', /request\.resource\.data\.userId == request\.auth\.uid/.test(lineaCreate));
 check('92e) y el perfil Weë también', /request\.resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)/.test(lineaCreate));
-check('92f) crear y modificar comprueban la misma propiedad del negocio', /ownsBizProfile/.test(lineaCreate) && /ownsBizProfile/.test(reglas.slice(reglas.indexOf('function ownsPost'))));
+check('92f) `users` ya no admite crear un perfil de tipo biz', !/profileType == 'biz'/.test(reglas));
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── I) Lo que NO se ha tocado ──');

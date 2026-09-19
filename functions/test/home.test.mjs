@@ -920,15 +920,17 @@ console.log('\n── J · El selector de identidad ──');
   check('75) y el cambio sigue siendo el de siempre', !!elegir && /irAIdentidad\(destino\);/.test(elegir[0]));
   /*
    * Control: la función que cambia de identidad está intacta. Sigue llamando a
-   * `switchIdentity` y a `switchToBiz`, y el tema sale del DESTINO —no de
-   * `activeProfileType`, que en dos cambios seguidos todavía es el viejo y
-   * dejaba el Perfil Weë con el tema claro—.
+   * `switchIdentity`, y el tema sale del DESTINO —no de `activeProfileType`,
+   * que en dos cambios seguidos todavía es el viejo y dejaba el Perfil Weë con
+   * el tema claro—.
    */
   const cambio = /const handleSwitchIdentity = \(\) => \{[\s\S]*?\n  \};/.exec(cabecera);
   check('76) control: la lógica de cambio no se tocó',
-    !!cambio && /switchToBiz\(\);/.test(cambio[0]) && /irAIdentidad\(activeProfileType === 'real' \? 'hidi' : 'real'\);/.test(cambio[0])
+    !!cambio && /irAIdentidad\(activeProfileType === 'real' \? 'hidi' : 'real'\);/.test(cambio[0])
       && /const irAIdentidad = useCallback\(\(destino: 'real' \| 'hidi'\) => \{\s*switchIdentity\(\);\s*setThemeMode\(destino === 'hidi' \? 'dark' : 'light'\);/.test(cabecera));
-  check('77) el modo Biz conserva su pastilla', /activeProfileType === 'biz' \? \([\s\S]{0,400}styles\.switchButton/.test(cabecera));
+  /* El Perfil Biz se eliminó: su pastilla morada se fue con él. */
+  check('77) ya no hay pastilla de Perfil Biz en el encabezado',
+    !/activeProfileType === 'biz'/.test(cabecera) && !/#7C3AED/.test(cabecera));
 
   /* Cada mitad se anuncia y se toca cómoda: 24 puntos de alto más 10 por lado. */
   check('78) cada mitad dice quién es y si está puesta', /accessibilityState=\{\{ selected: puesta \}\}/.test(cabecera) && /aria-selected=\{puesta\}/.test(cabecera));
@@ -1458,7 +1460,7 @@ console.log('\n── M · La marca en el centro del Home ──');
   check('106b) y el hueco se recalcula con el ancho de verdad, no con un breakpoint',
     /useWindowDimensions\(\)/.test(cabecera) && !/Dimensions\.get/.test(cabecera));
   check('106b) reserva menos sitio cuando no hay selector que esquivar',
-    /const conSelectorDeIdentidad = !!user && \(hasWeeProfile \|\| activeProfileType === 'biz'\);/.test(cabecera));
+    /const conSelectorDeIdentidad = !!user && hasWeeProfile;/.test(cabecera));
   /* Ceñirse no puede descentrar el logo: la marca se centra ella sola. */
   check('106b) y ceñirse no la descentra', /marca: \{\s*alignSelf: 'center',\s*alignItems: 'center',/.test(cabecera));
   /* Todo un punto más pequeño, en proporción: logo, píldora, campana y márgenes. */

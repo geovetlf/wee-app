@@ -27,6 +27,8 @@
  */
 
 export * from './contracts';
+export * from './identity';
+export * from './events';
 export * from './capability';
 export * from './language';
 export * from './errors';

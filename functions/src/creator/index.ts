@@ -22,6 +22,28 @@ import { loadConfig } from '../engine/config';
 import { serviceForCapability } from '../credits/creditCosts';
 import { imageServiceFor } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
+import { operacionAbandonada } from '../core';
+
+/**
+ * ── EL PLAZO DE UN TRABAJO, Y POR QUÉ ESTÁ AQUÍ ────────────────────────────
+ *
+ * `creatorRun` vive como mucho `timeoutSeconds` y después la plataforma lo mata
+ * SIN pasar por su `catch`. Eso importa porque la liquidación de Credits vive
+ * justo ahí: si el proceso muere, los Credits retenidos no se devuelven, el
+ * trabajo se queda en `running` y nada lo repara.
+ *
+ * Así que el plazo se declara UNA vez, aquí, y de él se derivan los demás: el
+ * presupuesto de cada paso lo calcula el Job Engine (`presupuestoDeIntento`)
+ * restando lo ya gastado, y el motor nunca le da a un proveedor más tiempo del
+ * que le queda a quien lo espera. Esa es toda la cadena y no hay otra tabla.
+ *
+ * La reserva es para liquidar. Cerrar el libro también tarda —una transacción
+ * de Credits, la liquidación del libro de generaciones y dos escrituras— y un
+ * plazo que se gasta hasta el último milisegundo no deja tiempo para lo único
+ * que no puede faltar.
+ */
+const PLAZO_DE_EJECUCION_MS = 900_000;
+const RESERVA_PARA_LIQUIDAR_MS = 45_000;
 
 /**
  * Weë Creator — funciones que llama la app.
@@ -319,8 +341,10 @@ export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, 
 });
 
 export const creatorRun = onCall(
-  { region: 'us-central1', timeoutSeconds: 900, memory: '1GiB', secrets: AI_SECRETS },
+  { region: 'us-central1', timeoutSeconds: PLAZO_DE_EJECUCION_MS / 1000, memory: '1GiB', secrets: AI_SECRETS },
   async (request) => {
+    const empezado = Date.now();
+    const deadlineAt = empezado + PLAZO_DE_EJECUCION_MS - RESERVA_PARA_LIQUIDAR_MS;
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
       const uid = request.auth.uid;
@@ -332,6 +356,29 @@ export const creatorRun = onCall(
       if (!snap.exists) throw new EngineError('INVALID_REQUEST', 'No encontramos este trabajo.');
       const job = snap.data() as CreatorJob;
       if (job.userId !== uid) throw new EngineError('UNAUTHORIZED', 'Este trabajo no es tuyo.');
+      /*
+       * «EN MARCHA» Y «ABANDONADO» SE VEN IGUAL Y SE TRATAN AL REVÉS.
+       *
+       * Un trabajo que sigue diciendo `running` pasado su plazo no está en
+       * marcha: el proceso que lo ejecutaba murió y nadie liquidó nada. Tratarlo
+       * como duplicado —que es lo que se hacía— dejaba los Credits retenidos
+       * para siempre, porque no hay barrendero que pase después.
+       *
+       * Aquí se cierra y se DEVUELVE lo retenido. El reembolso es el de siempre
+       * (`settleCredits` con 0 usado): idempotente, con su asiento, y auditable.
+       * No se inventa un estado ni se convierte un AUTHORIZED en COMPLETED.
+       */
+      if (operacionAbandonada(job.status === 'running', job.deadlineAt, empezado)) {
+        const descripcionPrevia = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
+        await settleCredits(uid, jobId, job.creditsEstimated, 0, descripcionPrevia);
+        await ref.update({
+          status: 'failed',
+          progressText: 'Se quedó sin tiempo. Te devolví los Credits.',
+          creditsCharged: 0,
+          updatedAt: now(),
+        });
+        throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
+      }
       if (job.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
       if (job.status === 'done') return { jobId, status: 'done' };
       if (job.status !== 'planned' || !job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
@@ -345,11 +392,12 @@ export const creatorRun = onCall(
 
       const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
       await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
-      await ref.update({ status: 'running', progressText: 'Empezando…', updatedAt: now() });
+      /* El plazo se GUARDA: es lo que permite saber después si esto se abandonó. */
+      await ref.update({ status: 'running', progressText: 'Empezando…', deadlineAt, updatedAt: now() });
 
       const steps: JobStep[] = job.steps.map((s) => ({ ...s }));
       const results: JobResult[] = [];
-      const ctx = { userId: uid, jobId, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref), creditTransactionId: usageTransactionId(jobId) };
+      const ctx = { userId: uid, jobId, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref), creditTransactionId: usageTransactionId(jobId), deadlineAt };
 
       try {
         const done = new Set<string>();

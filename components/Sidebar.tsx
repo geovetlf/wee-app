@@ -228,7 +228,7 @@ const Sidebar: React.FC = () => {
               {userProfile?.displayName || user?.displayName || t('common.guest')}
             </Text>
             <Text style={[styles.cuentaEstado, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {!user ? t('menu.tapToSignIn') : activeProfileType === 'hidi' ? t('menu.activeWee') : activeProfileType === 'biz' ? t('menu.activeBiz') : t('menu.activeReal')}
+              {!user ? t('menu.tapToSignIn') : activeProfileType === 'hidi' ? t('menu.activeWee') : t('menu.activeReal')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />

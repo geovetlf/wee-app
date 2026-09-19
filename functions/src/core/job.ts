@@ -1258,6 +1258,65 @@ export const seguroReintentar = (intento: JobAttempt | undefined): boolean => {
   return intento.outcome !== undefined && intento.outcome !== 'unknown';
 };
 
+/**
+ * ── EL PRESUPUESTO DE UN INTENTO ───────────────────────────────────────────
+ *
+ * CUÁNTO PUEDE TARDAR ESTO, DE VERDAD.
+ *
+ * Es la regla que `paqueteDe` ya aplicaba dentro del motor —«lo más corto entre
+ * lo que puede tardar un intento y lo que queda de plazo»— sacada a una función
+ * para que la pueda usar también quien todavía no ejecuta sobre este motor.
+ *
+ * ── Por qué es una función y no un número en una tabla ─────────────────────
+ *
+ * Porque un plazo por modalidad —«un vídeo puede tardar veinte minutos»— es una
+ * afirmación sobre el PROVEEDOR, y lo que hace falta saber es otra cosa: cuánto
+ * tiempo QUEDA. Las dos se parecen lo suficiente como para confundirlas, y
+ * confundirlas tiene una consecuencia concreta y cara: si el plazo del
+ * proveedor es más largo que lo que le queda de vida al proceso que lo espera,
+ * el proceso muere primero. Y cuando muere sin pasar por su propio manejo de
+ * errores, lo que quedó a medias no se liquida: el trabajo se queda en marcha
+ * para siempre y los Credits, retenidos.
+ *
+ * Por eso esto resta. Y por eso reserva: liquidar también tarda, y un plazo que
+ * consume hasta el último milisegundo no deja tiempo para cerrar el libro, que
+ * es justo lo que no puede faltar.
+ *
+ * Devuelve 0 cuando ya no queda nada. Cero significa «no empieces»: empezar un
+ * intento sin tiempo gasta una llamada de proveedor —que se paga— para fallar.
+ */
+export const presupuestoDeIntento = (
+  deadlineAt: number,
+  at: number,
+  maximoDelIntento: number,
+  reservaParaLiquidar = 0,
+): number => {
+  if (!esNumero(deadlineAt) || !esNumero(at) || !esNumero(maximoDelIntento)) return 0;
+  if (maximoDelIntento <= 0) return 0;
+  const reserva = esNumero(reservaParaLiquidar) && reservaParaLiquidar > 0 ? reservaParaLiquidar : 0;
+  const restante = deadlineAt - at - reserva;
+  if (restante <= 0) return 0;
+  return Math.min(maximoDelIntento, restante);
+};
+
+/**
+ * ¿SE QUEDÓ ESTO ABIERTO?
+ *
+ * Una operación que sigue diciendo que está en marcha después de su plazo no
+ * está en marcha: está abandonada. La diferencia importa porque las dos se ven
+ * igual desde fuera —un documento que dice `running`— y se tratan al revés. A
+ * una en marcha hay que dejarla trabajar; a una abandonada hay que cerrarla y
+ * devolver lo que retuvo.
+ *
+ * No decide QUÉ hacer —eso depende de quién la tenga— y no sabe de dinero.
+ * Solo contesta la pregunta, que es lo que hoy nadie se hace.
+ */
+export const operacionAbandonada = (
+  enMarcha: boolean,
+  deadlineAt: number | undefined,
+  at: number,
+): boolean => enMarcha && esNumero(deadlineAt) && esNumero(at) && at >= (deadlineAt as number);
+
 const ultimoIntento = (job: Job): JobAttempt | undefined => job.attempts[job.attempts.length - 1];
 
 /**
@@ -1834,7 +1893,7 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
   /* ── El paquete ──────────────────────────────────────────────────────────── */
   const paqueteDe = (job: Job, intento: JobAttempt, at: number): JobDispatch => {
     /* Lo más corto entre lo que puede tardar un intento y lo que queda de plazo. */
-    const restante = Math.max(0, job.deadlineAt - at);
+    const restante = presupuestoDeIntento(job.deadlineAt, at, job.deadlineAt - at);
     return Object.freeze({
       jobId: job.jobId,
       attemptId: intento.attemptId,

@@ -1167,14 +1167,25 @@ console.log('\n── R5 · Cuenta, billetera y entidad — SEAM DE IDENTITY ─
   check('204) la secuencia 10 no rompe el identificador que se enseña',
     core.identificadorDeEntidad('0018439', 10) === '001843910'
     && core.identificadorDeEntidad('0018439', 1) === '00184391');
+  /*
+   * El vocabulario de entidad SE MUDÓ a `core/identity.ts` en la Fase 10. Nació
+   * aquí porque el dinero fue lo primero que necesitó distinguir cuenta de
+   * entidad, y el propio archivo decía que su sitio era «la futura capa de
+   * Identity». La comprobación es la misma; lo que cambia es dónde mira.
+   */
   check('205) EL TIPO NO SE DEDUCE DEL ÚLTIMO CARÁCTER, y esa es la razón de guardarlo', (() => {
     /* `001843910` acaba en 0, y `0018439`+`10` no se distingue de `0018439`+`1`+`0`. */
     const diez = core.identificadorDeEntidad('0018439', 10);
     const ultimo = diez.slice(-1);
+    const identidad = leer('functions/src/core/identity.ts');
     return ultimo === '0' && core.tipoPorSecuencia(10) === 'PAGE'
-      && /entityType: EntityType;/.test(leer(`${DIR}/account.ts`))
-      && /entitySequence: number;/.test(leer(`${DIR}/account.ts`));
+      && /entityType: EntityType;/.test(identidad)
+      && /entitySequence: number;/.test(identidad);
   })());
+  check('205b) y tiene UN SOLO dueño: el Financial Core lo importa, no lo redeclara',
+    !/export type EntityType|export interface EntityRef/.test(leer(`${DIR}/account.ts`))
+    && /from '\.\.\/identity'/.test(leer(`${DIR}/account.ts`)),
+    'dos declaraciones del mismo tipo se separan en silencio');
   check('206) y el Core no clasifica entidades leyendo el identificador',
     !/slice\(-1\)|charAt\(.*length ?- ?1|endsWith\(/.test(sinComentarios(leer(`${DIR}/account.ts`))));
   check('207) una secuencia imposible no produce identificador',

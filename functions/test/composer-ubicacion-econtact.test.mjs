@@ -185,7 +185,8 @@ console.log('\n─── C. Identidades y contactos aceptados ───');
 
 const REAL = 'abc123';
 const WEE = 'hidi_abc123';
-const BIZ = 'biz_tienda';
+/* Un id que ya no designa ninguna identidad: el Perfil Biz se eliminó. */
+const DESCONOCIDA = 'biz_tienda';
 const OTRA = 'xyz789';
 
 /*
@@ -200,9 +201,9 @@ check('y el Perfil Weë tiene ẄContact: son DOS nombres, no uno',
 check('y no se confunden: la Ë es del Real y la Ẅ es del Weë',
   modelo.nombreDeLista(REAL) !== modelo.nombreDeLista(WEE)
   && modelo.nombreDeLista(REAL).startsWith('Ë') && modelo.nombreDeLista(WEE).startsWith('Ẅ'));
-/* El Biz no tiene agenda; si llega aquí, se le da el nombre neutro. */
-check('el Perfil Biz cae en el nombre del Real, que es el neutro',
-  modelo.nombreDeLista(BIZ) === 'ËContact');
+/* Lo que no es ninguna de las dos caras cae en el nombre neutro, que es el del Real. */
+check('un id que no es ninguna identidad cae en el nombre neutro',
+  modelo.nombreDeLista(DESCONOCIDA) === 'ËContact');
 check('el Perfil Biz no es una identidad de persona', !modelo.esIdentidadDePersona(BIZ));
 check('y las dos caras de una persona sí lo son', modelo.esIdentidadDePersona(REAL) && modelo.esIdentidadDePersona(WEE));
 

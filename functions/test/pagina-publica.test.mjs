@@ -586,9 +586,10 @@ console.log('\n── F · Enchufada donde tiene que estar ──');
   /* CONTROL: y no se tocó a quién se le permite escribir. */
   check('50) control: las condiciones de autoría siguen intactas',
     /request\.resource\.data\.userId == request\.auth\.uid/.test(bloqueDePosts)
-    && /ownsBizProfile\(request\.resource\.data\.userId\)/.test(bloqueDePosts)
+    && /request\.resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)/.test(bloqueDePosts)
     && /hasOnly\(\['views', 'agreementCount'/.test(bloqueDePosts)
-    && /allow read: if true;/.test(bloqueDePosts));
+    && /allow read: if true;/.test(bloqueDePosts),
+    'la tercera condición era la del Perfil Biz, que ya no existe');
 
   /*
    * Las reglas EJECUTADAS viven aparte, como las de ËContact: necesitan el

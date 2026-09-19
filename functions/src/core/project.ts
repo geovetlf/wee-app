@@ -1,5 +1,6 @@
 import { CapabilityId } from './capability';
 import { ActualCost } from './cost';
+import { EntityAttribution, OwnedByAccount, OwnerRef } from './identity';
 
 /**
  * WEE CORE — PROYECTOS Y MATERIAL.
@@ -81,10 +82,26 @@ export interface AssetVersion {
  *
  * Con id propio, que es justo lo que hoy le falta. `currentVersion` apunta a la
  * buena; las demás siguen ahí.
+ *
+ * ── DE QUIÉN ES: LA CUENTA. Y esto es lo más importante del archivo ────────
+ *
+ * Hasta hoy este contrato decía `userId`, y en Weë un «user id» es la CARA
+ * activa —`uid` o `hidi_uid`—, no la cuenta. Con eso, cambiar de perfil
+ * cambiaba de dueño, publicar desde una Página habría exigido copiar el
+ * archivo, y borrar la Página se habría llevado por delante material que
+ * nunca fue suyo.
+ *
+ * `ownerAccountId` es la cuenta Weë y no cambia nunca. Quién lo creó y quién
+ * lo publicó son DOS ATRIBUCIONES distintas y las dos son contexto:
+ *
+ *     ownerAccountId       = 0018439      ← de quién es. No se mueve.
+ *     createdByEntityId    = 00184391     ← lo hizo desde su Perfil Real
+ *     publishedByEntityId  = 00184393     ← lo publicó desde su Página
+ *
+ * El archivo es UNO. La cuenta es UNA. Lo demás es desde dónde se hizo qué.
  */
-export interface Asset {
+export interface Asset extends OwnedByAccount {
   id: string;
-  userId: string;
   projectId?: string;
   kind: AssetKind;
   name?: string;
@@ -101,10 +118,14 @@ export interface Asset {
  * Lo que ya existe más lo que hace falta para que sea un contenedor de verdad.
  * `assetCount` y `runCount` son denormalizados a propósito: listar proyectos no
  * puede costar una consulta por proyecto.
+ *
+ * Un proyecto ORGANIZA trabajo; no lo posee. Por eso es de la cuenta, igual
+ * que el material: mover un material de proyecto no cambia de quién es, y
+ * borrar un proyecto no puede borrar nada de nadie. `createdByEntityId` dice
+ * desde qué cara se creó, y eso es todo lo que dice.
  */
-export interface Project {
+export interface Project extends OwnerRef, EntityAttribution {
   id: string;
-  userId: string;
   name: string;
   emoji?: string;
   description?: string;

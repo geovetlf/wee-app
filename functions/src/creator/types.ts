@@ -120,6 +120,39 @@ export interface JobResult {
 
 export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';
 
+/**
+ * ── DOS MOTORES DE TRABAJOS, Y CUÁL MANDA ──────────────────────────────────
+ *
+ * En Weë conviven dos cosas que se llaman «trabajo» y no son la misma:
+ *
+ *   CANÓNICO   `core/job.ts` (Fase 8). Ocho estados, intentos, concesiones,
+ *              idempotencia, reintentos, plazos, cancelación y recuperación.
+ *              Es el contrato al que se migrará. **No está desplegado.**
+ *
+ *   EN USO     `creatorJobs` (este archivo). Cuatro estados y un documento de
+ *              Firestore. Es lo que ejecuta producción HOY y lo que atiende a
+ *              la gente. **No se sustituye en esta fase.**
+ *
+ * Y una regla: NO PUEDE HABER UN TERCERO. Lo que hace falta para que estos dos
+ * no se separen en silencio es saber, en todo momento, qué significa cada
+ * estado del que está en uso en el vocabulario del canónico. Eso es este mapa,
+ * y es el seam por el que pasará la migración el día que toque.
+ *
+ * Fíjate en lo que dice de `'cancelled'`: está declarado desde el principio y
+ * NO LO ESCRIBE NADIE —no existe una forma de cancelar un trabajo—. Se deja
+ * mapeado porque el canónico sí sabe cancelar, y ese es justo el hueco que la
+ * migración rellena.
+ */
+export const ESTADO_CANONICO: Record<JobStatus, string> = {
+  /* Todavía conversando: para el canónico esto ocurre ANTES de que haya trabajo. */
+  asking: 'sin_crear',
+  planned: 'queued',
+  running: 'running',
+  done: 'completed',
+  failed: 'failed',
+  cancelled: 'cancelled',
+};
+
 export interface CreatorJob {
   id: string;
   userId: string;
@@ -144,6 +177,19 @@ export interface CreatorJob {
   pricingMode?: 'simulated' | 'real';
   /** Foto que subió la persona (Storage de Weë) para trabajar sobre ella. */
   inputImageUrl?: string;
+  /**
+   * HASTA CUÁNDO PUEDE DURAR ESTA EJECUCIÓN. Milisegundos, absoluto.
+   *
+   * Se escribe al pasar a `running` y sirve para dos cosas distintas: dentro,
+   * para que ningún paso reciba más tiempo del que queda; y después, para poder
+   * distinguir un trabajo que sigue en marcha de uno que se quedó abandonado
+   * porque el proceso murió. Sin este número las dos cosas se ven igual, y la
+   * segunda dejaba Credits retenidos para siempre.
+   *
+   * Opcional: los trabajos escritos antes de que esto existiera no lo tienen, y
+   * para ellos el comportamiento es el de siempre.
+   */
+  deadlineAt?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   finishedAt?: Timestamp;

@@ -1,3 +1,4 @@
+import { presupuestoDeIntento } from '../core';
 import { CapabilityId } from '../creator/types';
 import { EngineConfig } from './config';
 import { Ledger } from './ledger';
@@ -293,7 +294,30 @@ export function createRouter(deps: RouterDeps) {
       creditTransactionId: request.creditTransactionId,
     };
     const prefs: RoutingPrefs = request.prefs || {};
-    const timeoutMs = settings.timeoutsMs[modality] ?? 120_000;
+    /*
+     * EL PLAZO SE RESTA, NO SE COPIA.
+     *
+     * `timeoutsMs[modality]` dice cuánto puede tardar el PROVEEDOR. Lo que hace
+     * falta saber es cuánto tiempo QUEDA, y son dos cosas distintas: este bucle
+     * prueba varios candidatos en cadena y cada paso del plan vuelve a entrar
+     * aquí, así que el plazo de la tabla se aplicaba entero una y otra vez sin
+     * que nadie descontara lo ya gastado. Con `deadlineAt` se descuenta.
+     *
+     * La regla es la del Job Engine (`presupuestoDeIntento`, Fase 8), que es la
+     * canónica: lo más corto entre lo que puede tardar un intento y lo que
+     * queda. Quien no traiga plazo se comporta como siempre.
+     */
+    const porModalidad = settings.timeoutsMs[modality] ?? 120_000;
+    const timeoutMs = request.deadlineAt === undefined
+      ? porModalidad
+      : presupuestoDeIntento(request.deadlineAt, now(), porModalidad);
+    if (timeoutMs <= 0) {
+      throw new EngineError(
+        'TIMEOUT',
+        'Esto se quedó sin tiempo antes de empezar. No te cobré.',
+        { capability, reason: 'sin_presupuesto' },
+      );
+    }
 
     if (!decision.candidates.length) {
       const why = decision.skipped.map((s) => `${s.provider}: ${s.reason}`).join('; ');

@@ -262,14 +262,14 @@ export interface UserProfile {
    * escrito en los perfiles que ya existen y comprobado en `firestore.rules`:
    * cambiarlo sería una migración, no un cambio de nombre.
    */
-  profileType?: 'real' | 'hidi' | 'biz';
+  /** 'hidi' es el valor guardado del Perfil Weë. El antiguo 'biz' ya no existe. */
+  profileType?: 'real' | 'hidi';
   /**
    * El puente entre una cara y su cuenta. En un Perfil Weë o Biz guarda el uid
    * de Firebase Auth de la persona; en el perfil real, el uid de su otra cara.
    * Es lo que ËContact lee para saber con qué CUENTA conectar.
    */
   linkedAccountId?: string;
-  businessId?: string; // ID del negocio vinculado (solo profileType 'biz')
 
   // === Avatar IA ===
   aiAvatarPortraitUrl?: string;
@@ -887,45 +887,18 @@ export const usersService = {
     return docId;
   },
 
-  // === BIZ: Métodos para perfil de negocio ===
-  getBizProfile: async (businessId: string): Promise<UserProfile | null> => {
-    const bizUid = `biz_${businessId}`;
-    const users = await firestoreService.getMany<UserProfile>('users',
-      [{ field: 'uid', operator: '==', value: bizUid }]
-    );
-    return users.length > 0 ? users[0] : null;
-  },
-
-  createBizProfile: async (realUid: string, businessId: string, data: {
-    displayName: string;
-    photoURL?: string;
-  }): Promise<string> => {
-    const bizUid = `biz_${businessId}`;
-    const bizProfileData: Record<string, any> = {
-      uid: bizUid,
-      displayName: data.displayName,
-      email: '',
-      bio: '',
-      avatarType: data.photoURL ? 'custom' : 'predefined',
-      avatarId: 'male',
-      followers: 0,
-      following: 0,
-      posts: 0,
-      joinedCommunities: [],
-      hasCompletedCommunityOnboarding: true,
-      profileType: 'biz',
-      linkedAccountId: realUid,
-      businessId: businessId,
-    };
-
-    if (data.photoURL) {
-      bizProfileData.photoURL = data.photoURL;
-      bizProfileData.photoURLThumbnail = data.photoURL;
-    }
-
-    const docId = await firestoreService.create<UserProfile>('users', bizProfileData as any);
-    return docId;
-  },
+  /*
+   * ── EL PERFIL DE NEGOCIO YA NO ES UNA IDENTIDAD ───────────────────────────
+   *
+   * Aquí vivían `getBizProfile` y `createBizProfile`, que escribían un
+   * documento en `users` con uid `biz_<negocio>` y `profileType: 'biz'` para
+   * que un negocio pudiera hacerse pasar por una tercera cara de la cuenta.
+   *
+   * Se han eliminado. Un negocio no es una cara de una persona: es una PÁGINA
+   * de la cuenta, y una Página es una entidad, no un perfil. Lo que sí sigue
+   * existiendo es el negocio en sí —`businesses/{id}`, su catálogo y sus
+   * pantallas— porque eso es Weë Business, el producto, que no se toca.
+   */
 };
 
 export const commentsService = {

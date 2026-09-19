@@ -66,6 +66,20 @@ export interface EngineContext {
    * siempre, sin enterarse.
    */
   creditsEstimated?: number;
+  /**
+   * HASTA CUÁNDO PUEDE DURAR TODO ESTO. En milisegundos, absoluto.
+   *
+   * Lo pone quien tiene el presupuesto de verdad —la función que espera— y el
+   * motor solo lo RESTA: ningún intento recibe más tiempo del que le queda a
+   * quien lo está esperando. Sin esto, el plazo por modalidad es una promesa
+   * sobre el proveedor que nadie compara con la vida del proceso, y un vídeo de
+   * veinte minutos dentro de una función de quince mata a la función antes de
+   * que pueda liquidar los Credits que retuvo.
+   *
+   * Opcional a propósito: quien no lo diga —`generateVideo`, que tiene plazo
+   * propio y más largo— sigue exactamente igual que antes.
+   */
+  deadlineAt?: number;
 }
 
 export interface EngineRequest extends EngineContext {
