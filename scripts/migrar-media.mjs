@@ -6,7 +6,8 @@
  *   · por cada URL de material que hoy vive suelta en `posts` (imágenes y
  *     vídeo), `comments` (imagen) y `conversations/*\/messages` (imagen, audio),
  *     crea su ficha en `assets/{assetId}` con dueño (la CUENTA del autor),
- *     atribución (la cara que firmó), referencia al almacén y URL de entrega;
+ *     la cara que firmó —verificada con los datos, en `metadata`, no como
+ *     Entity ID—, referencia al almacén y URL de entrega;
  *   · y deja en el documento de origen el enlace a esa ficha (`assetIds[]`,
  *     `videoAssetId`, `assetId`), SIN quitar la URL: la app de hoy sigue
  *     leyendo lo de siempre.
@@ -32,7 +33,7 @@
  */
 import fs from 'node:fs';
 import {
-  admin, clasificar, core, idDeMaterial, iniciar, resolverCuenta, tipoDeEntidad, tipoPorUrl, arg, bandera,
+  admin, caraQueFirmo, clasificar, core, idDeMaterial, iniciar, resolverCuenta, tipoPorUrl, arg, bandera,
 } from './media-legacy.mjs';
 
 const SALIDA = arg('--json', null);
@@ -84,6 +85,19 @@ const ficha = async ({ ruta, campo, indice, url, kind, autorId, creadoEn }) => {
   if (proveedor === 'wee' && !ref.objectKey.startsWith(`users/${ownerAccountId}/`)) {
     return { noMigrable: 'clave fuera del namespace de la cuenta dueña', objectKey: ref.objectKey, identidad: autorId ?? null };
   }
+  /*
+   * QUÉ CARA FIRMÓ, VERIFICADO CON LOS DATOS (Fase 11.x-4A). No por el prefijo:
+   * por el `profileType` del documento que el resolutor canónico confirma. Si
+   * no se puede afirmar, o si dice otra cuenta que la dueña, NO se migra: se
+   * reporta y se deja para cuando se pueda. Nunca se inventa una entidad.
+   */
+  const cara = await caraQueFirmo(db, autorId);
+  if (!cara.tipo) {
+    return { noMigrable: `la cara que firmó no se puede afirmar con los datos (${cara.motivo})`, identidad: autorId ?? null };
+  }
+  if (cara.cuenta !== ownerAccountId) {
+    return { noMigrable: 'la cara que firmó es de otra cuenta que la dueña', identidad: autorId ?? null };
+  }
   const assetId = idDeMaterial(`${ruta}#${campo}#${indice}`);
   const ahora = Date.now();
   const a = {
@@ -92,12 +106,17 @@ const ficha = async ({ ruta, campo, indice, url, kind, autorId, creadoEn }) => {
     kind: kind ?? tipoPorUrl(url, ref),
     status: 'ready',
     ownerAccountId,
-    createdByEntityId: autorId,
-    createdByEntityType: tipoDeEntidad(autorId),
+    /*
+     * `createdByEntityId`/`createdByEntityType` se quedan VACÍOS a propósito:
+     * son del Identity Core, y un identificador de perfil no es un Entity ID.
+     * Lo que se sabe se guarda con su nombre en `metadata` —el `uid` del
+     * perfil que firmó y su tipo verificado— para que, cuando existan las
+     * entidades, se enlacen por su puente `perfilUid` sin volver a adivinar.
+     */
     storageRef: ref,
     delivery: { url, kind: proveedor === 'wee' ? 'bearer_token' : 'public' },
     provenance: { createdAt: creadoEn },
-    metadata: { migradoDe: ruta, campo, fase: 'F11' },
+    metadata: { migradoDe: ruta, campo, fase: 'F11', autorPerfilUid: cara.perfilUid, autorTipo: cara.tipo },
     createdAt: ahora,
     updatedAt: ahora,
   };
@@ -149,8 +168,8 @@ console.log(`  saltados (ya enlazados/otros)  ${plan.saltados.length}`);
 console.log(`  AMBIGUOS (no se migran)        ${plan.ambiguos.length}`);
 for (const a of plan.ambiguos.slice(0, 10)) console.log(`      ⚠ ${a.ruta} · ${a.campo} → ${a.motivo}`);
 console.log(`  que no cumplen el contrato     ${plan.invalidas.length}`);
-console.log(`  NO MIGRABLES (clave fuera de users/<cuenta>/) ${plan.noMigrables.length}`);
-for (const nm of plan.noMigrables.slice(0, 10)) console.log(`      ✘ ${nm.ruta} · ${nm.campo} → ${nm.objectKey}`);
+console.log(`  NO MIGRABLES (clave ajena o cara sin verificar) ${plan.noMigrables.length}`);
+for (const nm of plan.noMigrables.slice(0, 10)) console.log(`      ✘ ${nm.ruta} · ${nm.campo} → ${nm.objectKey ?? nm.motivo}`);
 console.log(`  se borra                       NADA`);
 console.log(`  se toca Cloudinary             NO`);
 

@@ -142,9 +142,10 @@ console.log('\n── Fronteras de autorización ──');
     !/hasOnly\(\['followers', 'following'\]\)/.test(reglas),
     'la rama era para follows, que es código muerto');
 
+  /* Desde la Fase 11.x-4A, además, en SU documento: `{cuenta}_{post}` y `comment_{cuenta}_{comentario}`. */
   check('un voto nuevo es de la CUENTA: una persona, un voto',
-    /match \/votes\/\{voteId\} \{[\s\S]{0,300}?allow create: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.userId == request\.auth\.uid;/.test(reglas)
-    && /match \/commentVotes\/\{voteId\} \{[\s\S]{0,300}?allow create: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.userId == request\.auth\.uid;/.test(reglas));
+    /match \/votes\/\{voteId\} \{[\s\S]{0,300}?allow create: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.userId == request\.auth\.uid &&[\s\S]{0,200}?voteId == request\.auth\.uid \+ '_' \+ request\.resource\.data\.postId/.test(reglas)
+    && /match \/commentVotes\/\{voteId\} \{[\s\S]{0,300}?allow create: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.userId == request\.auth\.uid &&[\s\S]{0,200}?voteId == 'comment_' \+ request\.auth\.uid \+ '_' \+ request\.resource\.data\.commentId/.test(reglas));
   check('y los votos antiguos con la cara Weë todavía se pueden retirar',
     /allow delete: if isAuthenticated\(\) &&\s*\n\s*\(resource\.data\.userId == request\.auth\.uid \|\|\s*\n\s*resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)\);/.test(reglas),
     'en producción hay ocho: no se estranda a nadie');

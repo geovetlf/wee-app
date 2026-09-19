@@ -1059,6 +1059,12 @@ Dentro de una cuenta actúan varias entidades —Perfil Real, Perfil Weë, Pages
 
 Esta fase no crea entidades, no genera identificadores y no resuelve pertenencias: eso es la futura capa de Identity. Aquí solo se sabe consumirlo.
 
+### Nacer una cuenta — el seam de Identity, preparado (Fase 11.x-2)
+
+`core/identity.ts` sabe ya **nacer** una cuenta: con una posición de la serie forma el número (`numeroDeCuentaDesde`), la cuenta (`AccountIdentity`, cuyo id sigue siendo el uid de Firebase Auth: no hay segunda identidad) y su primera entidad, el Perfil Real (`entidadDeCuenta`, secuencia 1). `asegurarIdentidadDeCuenta` es `createWEEAccountIdentity` en el vocabulario de Weë: idempotente y atómico sobre un puerto `AlmacenDeIdentidad` cuya transacción vuelve a leer la cuenta antes de reservar la posición. La cara Weë entra como entidad 2 con `asegurarEntidadWee`, que exige que la cuenta haya nacido y guarda el `uid` heredado de su documento de `users` como **puente**, nunca como origen de la cuenta.
+
+La composición mínima está en `functions/src/identity/index.ts`: `accounts/{uid}`, `entities/{entityId}` con `perfilUid`, y el contador `contadores/cuentas`, todos de escritura solo del servidor. **No hay callable ni disparador que lo llame todavía**: cablearlo a las cuentas nuevas es el siguiente paso, y hacerlo antes de decidir qué pasa con las cuentas que ya existen sería un backfill por la puerta de atrás. Un contador único sostiene alrededor de un nacimiento por segundo; el puerto admite reservar bloques por instancia el día que las altas lo superen.
+
 ### Qué NO hace
 
 | | quién |

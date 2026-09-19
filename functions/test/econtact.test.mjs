@@ -816,8 +816,11 @@ check('196) la pantalla los sabe decir',
   && /quiere agregarte a ËContact/.test(read('i18n/textos/es/notifications.ts')) && /aceptó tu solicitud de ËContact/.test(read('i18n/textos/es/notifications.ts')));
 check('197) y las históricas se siguen mostrando',
   /notifications\.follow/.test(pantallaNotis) && /comenzó a seguirte/.test(read('i18n/textos/es/notifications.ts')));
-check('198) el push del servidor también los conoce', /econtact_request:/.test(indiceFn) && /econtact_accepted:/.test(indiceFn));
-check('199) sin borrar el mensaje histórico', /follow: \(senderName\)/.test(indiceFn));
+/* Desde la Fase 11.x-4A las plantillas del push viven en `social/avisos.ts`, y el nombre lo resuelve el servidor. */
+const avisosFn = read('functions/src/social/avisos.ts');
+check('198) el push del servidor también los conoce', /econtact_request:/.test(avisosFn) && /econtact_accepted:/.test(avisosFn)
+  && /from '\.\/social\/avisos'/.test(indiceFn));
+check('199) sin borrar el mensaje histórico', /follow: \(nombre\) =>/.test(avisosFn));
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── S) Lo antiguo sigue en pie, pero ya no alimenta nada ──');
@@ -1185,7 +1188,9 @@ check('285) las reglas dejan borrar solo a quien participa con UNA DE SUS identi
 
 check('294) las reglas siguen reconociendo hidi_ como identidad de la cuenta', (reglas.match(/"hidi_" \+ request\.auth\.uid/g) || []).length > 10);
 check('295) un Perfil Weë se sigue guardando con profileType hidi', /profileType: 'hidi'/.test(read('services/firestoreService.ts')));
-check('296) y su uid se sigue formando con el prefijo histórico', /`hidi_\$\{realUid\}`/.test(read('services/firestoreService.ts')));
+/* Desde la Fase 11.x-2 el identificador heredado se compone en UN sitio, `identidadWeeDe` (econtactModel), y el servicio lo pide. */
+check('296) y su uid se sigue formando con el prefijo histórico', /export const identidadWeeDe = \(accountUid: string\): string => PREFIJO_PERFIL_WEE \+ accountUid;/.test(read('utils/econtactModel.ts'))
+  && /identidadWeeDe\(cuenta\)/.test(read('services/firestoreService.ts')) && /identidadWeeDe\(realUid\)/.test(read('services/firestoreService.ts')));
 /*
  * El valor guardado del Perfil Weë sigue siendo 'hidi' —cambiarlo sería una
  * migración—. El tercero, 'biz', se fue con su identidad.
@@ -1194,8 +1199,10 @@ check('297) el tipo de perfil guardado no se ha renombrado', (() => {
   const ctx = read('contexts/UserProfileContext.tsx');
   return /type ProfileType = 'real' \| 'hidi';/.test(ctx) && !/'biz'/.test(ctx);
 })());
-check('298) el vínculo se escribe al crear el Perfil Weë', /linkedAccountId: realUid/.test(read('services/firestoreService.ts')));
-check('299) y en el perfil real, apuntando de vuelta', /linkedAccountId: weeProfileUid/.test(read('screens/WeeProfileCreationScreen.tsx')));
+check('298) el vínculo se escribe al crear el Perfil Weë', /profileType: 'hidi',\s*\n\s*linkedAccountId: cuenta,/.test(read('services/firestoreService.ts')));
+/* Desde la Fase 11.x-2 el enlace lo escribe la misma transacción que crea la cara (`asegurarPerfilWee`), no la pantalla. */
+check('299) y en el perfil real, apuntando de vuelta', /tx\.actualizar\(idReal, \{ linkedAccountId: identidadWee \}/.test(read('utils/perfilCanonico.ts'))
+  && /usersService\.ensureWeeProfile\(user\.uid, realProfile\.id/.test(read('screens/WeeProfileCreationScreen.tsx')));
 check('300) no hay ninguna migración en el código', !/migrat|migrar|backfill/i.test(codigoServicio + codigoFuncion));
 
 // ─── Follows y businessFollows, intactos ─────────────────────────────────────

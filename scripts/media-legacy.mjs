@@ -178,8 +178,66 @@ export const resolverCuenta = async (db, id) => {
 /** La cuenta, o null. Envoltorio de `resolverCuenta` para quien no necesite el motivo. */
 export const cuentaDe = async (db, id) => (await resolverCuenta(db, id)).cuenta;
 
-/** La cara que firmó: el `EntityType` del Identity Core. */
-export const tipoDeEntidad = (id) => (typeof id === 'string' && id.startsWith('hidi_') ? 'WEE_PROFILE' : 'REAL_PROFILE');
+/** Por qué se pudo —o no— afirmar qué cara firmó. */
+export const MOTIVO_DE_CARA = Object.freeze({
+  VERIFICADA: 'verificada',
+  ID_INVALIDO: 'id_invalido',
+  SIN_USUARIO: 'sin_documento_de_usuario',
+  SIN_TIPO_VERIFICABLE: 'sin_tipo_verificable',
+  CONTRADICTORIO: 'documentos_contradictorios',
+});
+
+/* Una cara se resuelve una vez por ejecución, igual que una cuenta. */
+const memoriaDeCaras = new Map();
+
+/**
+ * QUÉ CARA FIRMÓ, LEÍDO DE LOS DATOS (Fase 11.x-4A).
+ *
+ * Esto decidía el tipo por el prefijo del identificador —`hidi_` → Perfil Weë,
+ * cualquier otra cosa → Perfil Real—, y la migración lo guardaba en la ficha
+ * del material junto con el identificador heredado como si fuera un Entity ID.
+ * El prefijo no es la identidad: es un dato heredado. Y un identificador de
+ * perfil no es un identificador de entidad del Identity Core.
+ *
+ * Ahora el tipo sale de los CAMPOS del documento de `users` que dice ser esa
+ * identidad —`profileType`—, y solo cuenta si el resolutor canónico
+ * (`cuentaDeIdentidad`) confirma que ese documento es de verdad esa identidad
+ * y de qué cuenta es. Si no hay documento, si ninguno se puede verificar o si
+ * se contradicen, NO hay cara: se dice por qué y no se inventa ninguna.
+ *
+ * → `{ tipo, cuenta, perfilUid, motivo, documentos }`. `tipo` es
+ *   'REAL_PROFILE' | 'WEE_PROFILE' | null. Nunca 'PAGE': hoy ninguna Página
+ *   firma material, y una Página no se deduce de nada.
+ */
+export const caraQueFirmo = async (db, id) => {
+  const nula = (motivo, documentos = []) => ({ tipo: null, cuenta: null, perfilUid: null, motivo, documentos });
+  if (!econtact.esIdentidadValida(id)) return nula(MOTIVO_DE_CARA.ID_INVALIDO);
+  if (memoriaDeCaras.has(id)) return memoriaDeCaras.get(id);
+
+  const docs = await documentosDeIdentidad(db, id);
+  const documentos = docs.map((d) => {
+    const c = campos(d);
+    const cuenta = econtact.cuentaDeIdentidad(id, c);
+    /* El tipo lo dice el CAMPO, y solo vale si el resolutor confirma el documento. */
+    const tipo = !cuenta ? null
+      : c.profileType === 'hidi' ? 'WEE_PROFILE'
+        : (c.profileType === 'real' || c.profileType === null) ? 'REAL_PROFILE'
+          : null;
+    return { ...c, cuenta, tipo };
+  });
+  const verificados = documentos.filter((d) => d.tipo);
+  const tipos = [...new Set(verificados.map((d) => d.tipo))];
+  const cuentas = [...new Set(verificados.map((d) => d.cuenta))];
+
+  let resultado;
+  if (docs.length === 0) resultado = nula(MOTIVO_DE_CARA.SIN_USUARIO, documentos);
+  else if (verificados.length === 0) resultado = nula(MOTIVO_DE_CARA.SIN_TIPO_VERIFICABLE, documentos);
+  else if (tipos.length > 1 || cuentas.length > 1) resultado = nula(MOTIVO_DE_CARA.CONTRADICTORIO, documentos);
+  else resultado = { tipo: tipos[0], cuenta: cuentas[0], perfilUid: id, motivo: MOTIVO_DE_CARA.VERIFICADA, documentos };
+
+  memoriaDeCaras.set(id, resultado);
+  return resultado;
+};
 
 export const arg = (n, def) => {
   const i = process.argv.indexOf(n);

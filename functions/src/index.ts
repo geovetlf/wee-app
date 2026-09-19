@@ -1,6 +1,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
+import { avisoPush, datosDelAviso, nombreVisible, NOMBRE_POR_DEFECTO, resumenDeRespuestaDeExpo } from './social/avisos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -96,49 +97,6 @@ export {
   creditsAdmin,
 } from './credits';
 
-// Tipos de notificación y sus mensajes
-const notificationMessages: Record<string, (senderName: string) => { title: string; body: string }> = {
-  like: (senderName) => ({
-    title: 'Nuevo like',
-    body: `${senderName} le dio like a tu post`,
-  }),
-  comment: (senderName) => ({
-    title: 'Nuevo comentario',
-    body: `${senderName} comentó en tu post`,
-  }),
-  // Histórico: el sistema de seguidores. Se conserva para las notificaciones ya enviadas.
-  follow: (senderName) => ({
-    title: 'Nuevo seguidor',
-    body: `${senderName} comenzó a seguirte`,
-  }),
-  // ËContact: las relaciones entre personas. Tipos propios para no confundirlas
-  // con las de seguidores que ya están enviadas.
-  econtact_request: (senderName) => ({
-    title: 'Nueva solicitud de ËContact',
-    body: `${senderName} quiere agregarte a ËContact`,
-  }),
-  econtact_accepted: (senderName) => ({
-    title: 'Nuevo ËContact',
-    body: `${senderName} aceptó tu solicitud de ËContact`,
-  }),
-  mention: (senderName) => ({
-    title: 'Te mencionaron',
-    body: `${senderName} te mencionó en un post`,
-  }),
-  repost: (senderName) => ({
-    title: 'Nuevo repost',
-    body: `${senderName} reposteó tu publicación`,
-  }),
-  reply: (senderName) => ({
-    title: 'Nueva respuesta',
-    body: `${senderName} respondió a tu comentario`,
-  }),
-  message: (senderName) => ({
-    title: 'Nuevo mensaje',
-    body: `${senderName} te envió un mensaje`,
-  }),
-};
-
 // Verificar si es un token válido de Expo
 function isExpoPushToken(token: string): boolean {
   return typeof token === 'string' &&
@@ -148,7 +106,8 @@ function isExpoPushToken(token: string): boolean {
 // Función helper para enviar push via Expo API directamente
 async function sendExpoPush(pushToken: string, title: string, body: string, data: any): Promise<any> {
   if (!isExpoPushToken(pushToken)) {
-    console.error('Token de push inválido:', pushToken);
+    /* Sin el token: un token de push en un log es un token que otro puede usar. */
+    console.error('Token de push con forma inválida; no se envía');
     return null;
   }
 
@@ -174,7 +133,8 @@ async function sendExpoPush(pushToken: string, title: string, body: string, data
     });
 
     const result = await response.json();
-    console.log('Expo push response:', result);
+    /* Solo el estado: la respuesta entera de Expo puede traer el token del aparato. */
+    console.log('Expo push:', resumenDeRespuestaDeExpo(result));
     return result;
   } catch (error) {
     console.error('Error enviando push:', error);
@@ -190,9 +150,19 @@ export const sendPushNotification = onDocumentCreated(
     if (!snapshot) return null;
 
     const notification = snapshot.data();
-    const { recipientId, senderId, senderName, type, postId, commentId, conversationId } = notification;
+    /*
+     * `senderName` NO se lee (Fase 11.x-4A): lo escribe el cliente con lo que
+     * quiera. El nombre sale del perfil de `senderId`, que las reglas atan a
+     * quien escribe la notificación.
+     */
+    const { recipientId, senderId, type } = notification;
 
     try {
+      if (!avisoPush(type, null)) {
+        console.log('Tipo de notificación no soportado:', type);
+        return null;
+      }
+
       const cuenta = await cuentaDeLaIdentidad(recipientId);
 
       if (!cuenta) {
@@ -207,24 +177,13 @@ export const sendPushNotification = onDocumentCreated(
         return null;
       }
 
-      const messageGenerator = notificationMessages[type];
-      if (!messageGenerator) {
-        console.log('Tipo de notificación no soportado:', type);
-        return null;
-      }
+      const remitente = await perfilDeIdentidad(senderId);
+      const aviso = avisoPush(type, nombreVisible(remitente?.data()));
+      if (!aviso) return null;
 
-      const { title, body } = messageGenerator(senderName || 'Alguien');
+      const data = datosDelAviso(notification, type, event.params.notificationId);
 
-      const data = {
-        type,
-        postId: postId || null,
-        commentId: commentId || null,
-        senderId: senderId || null,
-        conversationId: conversationId || null,
-        notificationId: event.params.notificationId,
-      };
-
-      const result = await sendExpoPush(pushToken, title, body, data);
+      const result = await sendExpoPush(pushToken, aviso.title, aviso.body, data);
 
       if (result?.data?.status === 'error') {
         console.error('Error en push:', result.data.message);
@@ -267,8 +226,7 @@ export const sendMessagePushNotification = onDocumentCreated(
 
       /* El nombre que se enseña es el de la cara que escribió; el token, el de la cuenta que recibe. */
       const senderDoc = await perfilDeIdentidad(senderId);
-      const senderData = senderDoc?.data();
-      const senderName = senderData?.displayName || 'Alguien';
+      const senderName = nombreVisible(senderDoc?.data()) || NOMBRE_POR_DEFECTO;
 
       for (const participantId of participants) {
         if (participantId === senderId) continue;

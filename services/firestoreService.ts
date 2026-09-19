@@ -18,10 +18,13 @@ import {
   DocumentData,
   QuerySnapshot,
   QueryDocumentSnapshot,
-  DocumentSnapshot
+  DocumentSnapshot,
+  runTransaction
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
+import { asegurarPerfilReal, asegurarPerfilWee, conUnaSolaEnVuelo, idDelPerfilReal, idDelPerfilWee, PerfilAsegurado, PuertosDeCreacion } from '../utils/perfilCanonico';
+import { identidadWeeDe } from '../utils/econtactModel';
 
 // Tipos para las colecciones principales
 /*
@@ -833,16 +836,69 @@ export const postsService = {
     ),
 };
 
+/*
+ * EL PERFIL REAL DE UNA CUENTA, POR EL CAMPO `uid`. Es el resolutor de siempre
+ * —la consulta que hace cada tarjeta del muro por su autor— sacado a una
+ * función para que lo use también la creación idempotente sin que el servicio
+ * se mencione a sí mismo. Solo se usa el primero: se pide solo uno. Si la
+ * lectura falla, `getMany` relanza: un corte de red nunca parece «no hay».
+ */
+const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
+  const users = await firestoreService.getMany<UserProfile>('users',
+    [{ field: 'uid', operator: '==', value: uid }], undefined, 'desc', 1
+  );
+  return users.length > 0 ? users[0] : null;
+};
+
+/* Los puertos de la creación idempotente (Fase 11.x): la transacción de Firestore sobre `users/<id>`. Los mismos para las dos caras. */
+const puertosDePerfiles: PuertosDeCreacion<UserProfile> = {
+  buscarPorUid: perfilRealPorUid,
+  enTransaccion: (cuerpo) => runTransaction(db, (tx) => cuerpo({
+    leer: async (id) => {
+      const snap = await tx.get(doc(db, 'users', id));
+      return snap.exists() ? ({ id: snap.id, ...(snap.data() as object) } as UserProfile) : null;
+    },
+    crear: (id, datos) => {
+      const { id: _sinId, ...campos } = datos;
+      tx.set(doc(db, 'users', id), campos);
+    },
+    actualizar: (id, campos) => {
+      tx.update(doc(db, 'users', id), campos as Record<string, unknown>);
+    },
+  })),
+};
+
+/** Lo que la persona decide de su Perfil Weë. El resto lo pone el servicio. */
+export interface DatosDelPerfilWee {
+  displayName: string;
+  bio: string;
+  avatarType?: 'predefined' | 'custom';
+  avatarId?: string;
+  photoURL?: string;
+  photoURLThumbnail?: string;
+}
+
 export const usersService = {
   create: (data: Omit<UserProfile, 'id'>) => firestoreService.create<UserProfile>('users', data),
   getById: (id: string) => firestoreService.getById<UserProfile>('users', id),
-  getByUid: async (uid: string) => {
-    /* Solo se usa el primero: se pide solo uno. Es la consulta que hace cada tarjeta del muro por su autor. */
-    const users = await firestoreService.getMany<UserProfile>('users',
-      [{ field: 'uid', operator: '==', value: uid }], undefined, 'desc', 1
-    );
-    return users.length > 0 ? users[0] : null;
-  },
+  getByUid: perfilRealPorUid,
+
+  /*
+   * EL PERFIL REAL SE CREA UNA SOLA VEZ, AUNQUE SE PIDA MUCHAS (Fase 11.x).
+   *
+   * Antes: `getByUid` y, si no había, `create` con id automático. Dos
+   * arranques a la vez creaban dos perfiles para la misma cuenta, y en
+   * producción hay tres cuentas así. El protocolo vive en
+   * `utils/perfilCanonico.ts`: se busca por `uid` como siempre y, solo si no
+   * hay, se crea `users/<uid>` DENTRO de una transacción que vuelve a leer.
+   * Dos creaciones simultáneas chocan en el mismo documento y Firestore deja
+   * pasar una; la otra devuelve lo que ya hay. La identidad sigue siendo el
+   * campo `uid`: nadie resuelve un perfil por el id del documento.
+   */
+  ensureRealProfile: conUnaSolaEnVuelo(
+    (uid: string, nuevo: () => Omit<UserProfile, 'id'>): Promise<PerfilAsegurado<UserProfile>> =>
+      asegurarPerfilReal<UserProfile>(puertosDePerfiles, uid, () => ({ ...nuevo(), id: idDelPerfilReal(uid) } as UserProfile)),
+  ),
 
   /*
    * VARIOS PERFILES DE UNA VEZ, por su uid de identidad.
@@ -889,46 +945,51 @@ export const usersService = {
       updatedAt: Timestamp.now(),
     }, { merge: true }),
 
-  // === PERFIL WEË: sus métodos. El uid lleva el prefijo histórico `hidi_`. ===
-  getWeeProfile: async (realUid: string): Promise<UserProfile | null> => {
-    const weeProfileUid = `hidi_${realUid}`;
-    const users = await firestoreService.getMany<UserProfile>('users',
-      [{ field: 'uid', operator: '==', value: weeProfileUid }], undefined, 'desc', 1
-    );
-    return users.length > 0 ? users[0] : null;
-  },
+  // === PERFIL WEË: sus métodos. Su identificador guardado es el heredado (`identidadWeeDe`). ===
+  getWeeProfile: (realUid: string): Promise<UserProfile | null> => perfilRealPorUid(identidadWeeDe(realUid)),
 
-  createWeeProfile: async (realUid: string, data: {
-    displayName: string;
-    bio: string;
-    avatarType?: 'predefined' | 'custom';
-    avatarId?: string;
-    photoURL?: string;
-  }): Promise<string> => {
-    const weeProfileUid = `hidi_${realUid}`;
-    const weeProfileData: Record<string, any> = {
-      uid: weeProfileUid,
-      displayName: data.displayName,
-      bio: data.bio,
-      avatarType: data.avatarType || 'predefined',
-      avatarId: data.avatarId || 'male',
-      followers: 0,
-      following: 0,
-      posts: 0,
-      joinedCommunities: [],
-      hasCompletedCommunityOnboarding: true,
-      profileType: 'hidi',
-      linkedAccountId: realUid,
-    };
-
-    // Only include photoURL if it has a value (Firestore rejects undefined)
-    if (data.photoURL) {
-      weeProfileData.photoURL = data.photoURL;
-    }
-
-    const docId = await firestoreService.create<UserProfile>('users', weeProfileData as any);
-    return docId;
-  },
+  /*
+   * EL PERFIL WEË SE CREA UNA SOLA VEZ POR CUENTA, Y ENLAZADO (Fase 11.x-2).
+   *
+   * Antes: `create` con id automático y, en otra escritura aparte, el enlace
+   * desde el Perfil Real; lo único que evitaba dos caras era un estado de la
+   * pantalla, que no vale entre pestañas ni entre aparatos. Ahora el
+   * protocolo de `utils/perfilCanonico.ts` busca la cara por su `uid` y, solo
+   * si no hay, la crea en `users/<identidad de la cara>` dentro de una
+   * transacción que también escribe `linkedAccountId` en el Perfil Real: o
+   * pasan las dos cosas o ninguna. Dos toques a la vez chocan en el mismo
+   * documento y Firestore deja pasar uno.
+   *
+   * El Perfil Weë no es otra cuenta: nace declarando la suya
+   * (`linkedAccountId`), que es de donde `cuentaDeIdentidad` la lee después.
+   * `profileType: 'hidi'` y el identificador con prefijo son el dato heredado
+   * con el que las reglas, las publicaciones y los votos nombran a esta cara.
+   */
+  ensureWeeProfile: conUnaSolaEnVuelo(
+    (cuenta: string, idDelPerfilReal: string, datos: DatosDelPerfilWee): Promise<PerfilAsegurado<UserProfile>> => {
+      const identidadWee = identidadWeeDe(cuenta);
+      return asegurarPerfilWee<UserProfile>(puertosDePerfiles, { cuenta, identidadWee, idDelPerfilReal }, () => ({
+        id: idDelPerfilWee(identidadWee),
+        uid: identidadWee,
+        displayName: datos.displayName,
+        bio: datos.bio,
+        avatarType: datos.avatarType || 'predefined',
+        avatarId: datos.avatarId || 'male',
+        followers: 0,
+        following: 0,
+        posts: 0,
+        joinedCommunities: [],
+        hasCompletedCommunityOnboarding: true,
+        profileType: 'hidi',
+        linkedAccountId: cuenta,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        /* Solo si tienen valor: Firestore rechaza `undefined`. */
+        ...(datos.photoURL ? { photoURL: datos.photoURL } : {}),
+        ...(datos.photoURLThumbnail ? { photoURLThumbnail: datos.photoURLThumbnail } : {}),
+      }));
+    },
+  ),
 
   /*
    * ── EL PERFIL DE NEGOCIO YA NO ES UNA IDENTIDAD ───────────────────────────

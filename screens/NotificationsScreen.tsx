@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { notificationService, Notification, NotificationType } from '../services/notificationService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
+import { usersService, UserProfile } from '../services/firestoreService';
 import Header from '../components/Header';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -101,6 +102,109 @@ const claveDeLaNotificacion = (notification: Notification): string => {
   }
 };
 
+/*
+ * UNA NOTIFICACIÓN, CON SU REMITENTE LEÍDO DE SU PERFIL (Fase 11.x-4A).
+ *
+ * El documento de la notificación lo escribe quien avisa, y las reglas solo
+ * le exigen firmar con una identidad suya (`senderId`). El nombre y la foto
+ * que traía (`senderName`, `senderAvatar`) los ponía el cliente con lo que
+ * quisiera, así que se podía avisar a alguien como «Soporte Weë». Aquí se
+ * enseña el perfil de `senderId` —el de la cara con la que se actuó—, que es
+ * lo mismo que hace el servidor con el push. Mientras carga, el nombre
+ * genérico; nunca el que escribió el remitente.
+ *
+ * Los perfiles los pide la pantalla POR TANDAS (`getManyByUids`, 30 por
+ * consulta) y cada fila recibe el suyo: una página de 50 avisos cuesta una o
+ * dos lecturas, no una por fila.
+ */
+interface PropsDeFilaDeAviso {
+  item: Notification;
+  /** El perfil de quien avisa, si ya llegó. Sin él, el nombre genérico. */
+  remitente?: UserProfile;
+  onPress: (n: Notification) => void;
+}
+
+const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }: PropsDeFilaDeAviso) {
+  const { theme } = useTheme();
+  const { t, formato } = useIdioma();
+  const icon = getNotificationIcon(item.type);
+  /*
+   * El nombre va en negrita DENTRO de la frase, y la frase puede ponerlo en
+   * cualquier sitio según el idioma. Se traduce con una marca en el hueco del
+   * nombre y se parte por ahí: lo de antes, lo de después, y el nombre en
+   * medio con su peso. Así se conserva el diseño y se gana el orden libre.
+   */
+  const MARCA = '\u0000';
+  const nombre = remitente?.displayName || t('common.user');
+  const [antesDelNombre, despuesDelNombre] = t(claveDeLaNotificacion(item), {
+    nombre: MARCA,
+    comunidad: item.communityName || t('notifications.aCommunity'),
+  }).split(MARCA);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.notificationItem,
+        {
+          backgroundColor: item.read ? theme.colors.background : theme.colors.surface,
+          borderBottomColor: theme.colors.border,
+        },
+      ]}
+      onPress={() => onPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.notificationLeft}>
+        {/* Avatar con badge de tipo */}
+        <View style={styles.avatarContainer}>
+          <AvatarDisplay
+            size={scale(48)}
+            avatarType={remitente?.avatarType || 'predefined'}
+            avatarId={remitente?.avatarId || 'male'}
+            photoURL={remitente?.photoURLThumbnail || remitente?.photoURL}
+            backgroundColor={theme.colors.surface}
+          />
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: icon.color },
+            ]}
+          >
+            <Ionicons name={icon.name as any} size={scale(12)} color="white" />
+          </View>
+        </View>
+
+        {/* Contenido */}
+        <View style={styles.notificationContent}>
+          <Text style={[styles.notificationText, { color: theme.colors.text }]} numberOfLines={2}>
+            {antesDelNombre}
+            <Text style={styles.username}>{nombre}</Text>
+            {despuesDelNombre}
+          </Text>
+
+          {/* Preview del contenido */}
+          {(item.postContent || item.commentContent) && (
+            <Text
+              style={[styles.previewText, { color: theme.colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              "{item.commentContent || item.postContent}"
+            </Text>
+          )}
+
+          <Text style={[styles.time, { color: theme.colors.textSecondary }]}>
+            {formatRelativeTime(item.createdAt, t, formato)}
+          </Text>
+        </View>
+      </View>
+
+      {/* Indicador de no leído */}
+      {!item.read && (
+        <View style={[styles.unreadDot, { backgroundColor: theme.colors.accent }]} />
+      )}
+    </TouchableOpacity>
+  );
+});
+
 const NotificationsScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
@@ -114,6 +218,8 @@ const NotificationsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [remitentes, setRemitentes] = useState<Record<string, UserProfile>>({});
+  const pedidos = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -148,6 +254,28 @@ const NotificationsScreen: React.FC = () => {
       unsubscribe?.();
     };
   }, [activeUid, registerCleanup]);
+
+  /*
+   * Los perfiles de quienes avisan, por tandas y una sola vez cada uno. Con
+   * perfiles duplicados en `users` manda el de id de documento más bajo, el
+   * mismo que devuelve `getByUid`.
+   */
+  useEffect(() => {
+    const faltan = [...new Set(notifications.map((n) => n.senderId).filter(Boolean))]
+      .filter((id) => !pedidos.current.has(id));
+    if (faltan.length === 0) return;
+    faltan.forEach((id) => pedidos.current.add(id));
+    let vigente = true;
+    usersService.getManyByUids(faltan).then((perfiles) => {
+      if (!vigente) return;
+      const nuevos: Record<string, UserProfile> = {};
+      for (const perfil of [...perfiles].sort((a, b) => ((a.id || '') < (b.id || '') ? -1 : 1))) {
+        if (perfil.uid && !(perfil.uid in nuevos)) nuevos[perfil.uid] = perfil;
+      }
+      setRemitentes((previos) => ({ ...previos, ...nuevos }));
+    });
+    return () => { vigente = false; };
+  }, [notifications]);
 
   // Marcar notificación como leída y navegar
   const handleNotificationPress = async (notification: Notification) => {
@@ -200,84 +328,9 @@ const NotificationsScreen: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Renderizar notificación
-  const renderNotification = ({ item }: { item: Notification }) => {
-    const icon = getNotificationIcon(item.type);
-    /*
-     * El nombre va en negrita DENTRO de la frase, y la frase puede ponerlo en
-     * cualquier sitio según el idioma. Se traduce con una marca en el hueco del
-     * nombre y se parte por ahí: lo de antes, lo de después, y el nombre en
-     * medio con su peso. Así se conserva el diseño y se gana el orden libre.
-     */
-    const MARCA = '\u0000';
-    const nombre = item.senderName || t('common.user');
-    const [antesDelNombre, despuesDelNombre] = t(claveDeLaNotificacion(item), {
-      nombre: MARCA,
-      comunidad: item.communityName || t('notifications.aCommunity'),
-    }).split(MARCA);
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.notificationItem,
-          {
-            backgroundColor: item.read ? theme.colors.background : theme.colors.surface,
-            borderBottomColor: theme.colors.border,
-          },
-        ]}
-        onPress={() => handleNotificationPress(item)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.notificationLeft}>
-          {/* Avatar con badge de tipo */}
-          <View style={styles.avatarContainer}>
-            <AvatarDisplay
-              size={scale(48)}
-              avatarType={item.senderAvatarType || 'predefined'}
-              avatarId={item.senderAvatarId || 'male'}
-              photoURL={item.senderAvatar}
-              backgroundColor={theme.colors.surface}
-            />
-            <View
-              style={[
-                styles.typeBadge,
-                { backgroundColor: icon.color },
-              ]}
-            >
-              <Ionicons name={icon.name as any} size={scale(12)} color="white" />
-            </View>
-          </View>
-
-          {/* Contenido */}
-          <View style={styles.notificationContent}>
-            <Text style={[styles.notificationText, { color: theme.colors.text }]} numberOfLines={2}>
-              {antesDelNombre}
-              <Text style={styles.username}>{nombre}</Text>
-              {despuesDelNombre}
-            </Text>
-
-            {/* Preview del contenido */}
-            {(item.postContent || item.commentContent) && (
-              <Text
-                style={[styles.previewText, { color: theme.colors.textSecondary }]}
-                numberOfLines={1}
-              >
-                "{item.commentContent || item.postContent}"
-              </Text>
-            )}
-
-            <Text style={[styles.time, { color: theme.colors.textSecondary }]}>
-              {formatRelativeTime(item.createdAt, t, formato)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Indicador de no leído */}
-        {!item.read && (
-          <View style={[styles.unreadDot, { backgroundColor: theme.colors.accent }]} />
-        )}
-      </TouchableOpacity>
-    );
-  };
+  const renderNotification = ({ item }: { item: Notification }) => (
+    <FilaDeAviso item={item} remitente={remitentes[item.senderId]} onPress={handleNotificationPress} />
+  );
 
   const renderHeader = () => (
     <View>

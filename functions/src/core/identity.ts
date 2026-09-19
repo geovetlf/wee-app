@@ -276,3 +276,197 @@ export const entidadValida = (e: EntityIdentity | undefined): boolean => {
   if (e.handle !== undefined && !esHandle(e.handle)) return false;
   return tipoPorSecuencia(e.entitySequence) === e.entityType;
 };
+
+/* ── Nacer: la cuenta, su número y su primera entidad, de una vez (Fase 11.x-2) ── */
+
+/**
+ * LA CUENTA WEË COMO REGISTRO PROPIO. Hasta hoy la cuenta se DEDUCÍA: era el
+ * uid de Firebase Auth y nada más la representaba. Esto es la cuenta con
+ * nombre: su id —que sigue siendo ese uid, para no inventar una segunda
+ * identidad—, su número legible y cuándo nació.
+ */
+export interface AccountIdentity {
+  contract: typeof IDENTITY_CONTRACT_VERSION;
+  /** El uid de Firebase Auth. La misma cuenta para los siete productos. */
+  accountId: string;
+  accountNumber: AccountNumber;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * CUATRO IDENTIFICADORES QUE NO SE PUEDEN CONFUNDIR (Fase 11.x-4A).
+ *
+ *   Account ID      el uid de Firebase Auth: letras y números, con al menos
+ *                   una letra. Es lo que autoriza y lo que posee.
+ *   Account Number  solo dígitos (`FORMA_DE_NUMERO_DE_CUENTA`). Se lee por
+ *                   teléfono; no autoriza nada.
+ *   Entity ID       solo dígitos: el número de la cuenta y la secuencia.
+ *   Profile ID      el `uid` guardado en un documento de `users`. El del
+ *                   Perfil Real coincide con el Account ID; el del Perfil Weë
+ *                   lleva el prefijo heredado y un `_`.
+ *
+ * Por eso un Account ID exige una letra: un texto solo de dígitos es un número
+ * de cuenta o una entidad, y aceptarlo como cuenta sería confundir los tres.
+ * Y no admite `_`, así que el identificador de una cara nunca pasa por cuenta.
+ * Firebase genera uids de 28 caracteres alfanuméricos, así que ninguno real
+ * cae fuera de esta forma.
+ */
+export const FORMA_DE_ID_DE_CUENTA = /^(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{1,128}$/;
+
+export const esIdDeCuenta = (v: unknown): v is string =>
+  typeof v === 'string' && FORMA_DE_ID_DE_CUENTA.test(v);
+
+/**
+ * UNA ENTIDAD DE LA CUENTA, DADA SU SECUENCIA. Pura: la misma cuenta y la
+ * misma secuencia dan siempre la misma entidad. El tipo sale de la convención
+ * al CREAR —que es para lo que sirve `tipoPorSecuencia`— y queda guardado.
+ */
+export const entidadDeCuenta = (
+  cuenta: AccountIdentity,
+  entitySequence: number,
+  at: number,
+): EntityIdentity | undefined => {
+  if (!cuentaValida(cuenta)) return undefined;
+  const entityId = identificadorDeEntidad(cuenta.accountNumber, entitySequence);
+  const entityType = tipoPorSecuencia(entitySequence);
+  if (!entityId || !entityType || !Number.isSafeInteger(at)) return undefined;
+  const entidad: EntityIdentity = Object.freeze({
+    contract: IDENTITY_CONTRACT_VERSION,
+    entityId,
+    entityType,
+    entitySequence,
+    ownerAccountId: cuenta.accountId,
+    status: 'ACTIVE' as const,
+    createdAt: at,
+    updatedAt: at,
+  });
+  return entidadValida(entidad) ? entidad : undefined;
+};
+
+export const cuentaValida = (c: AccountIdentity | undefined): boolean =>
+  !!c && typeof c === 'object' && esIdDeCuenta(c.accountId) && esNumeroDeCuenta(c.accountNumber)
+  && Number.isSafeInteger(c.createdAt) && Number.isSafeInteger(c.updatedAt);
+
+/** Lo que nace junto: la cuenta y su Perfil Real, que es la entidad 1. */
+export interface NacimientoDeCuenta {
+  cuenta: AccountIdentity;
+  perfilReal: EntityIdentity;
+}
+
+/**
+ * NACER. Con una posición de la serie —que reparte un contador con estado, no
+ * el Core— se forma el número y con él la cuenta y su primera entidad. Todo
+ * puro: la misma posición da siempre el mismo nacimiento, y por eso se puede
+ * probar y repetir.
+ */
+export const nacerCuenta = (datos: { accountId: string; posicion: number; at: number; ancho?: number }): NacimientoDeCuenta | undefined => {
+  if (!esIdDeCuenta(datos.accountId) || !Number.isSafeInteger(datos.at)) return undefined;
+  const accountNumber = numeroDeCuentaDesde(datos.posicion, datos.ancho);
+  if (!accountNumber) return undefined;
+  const cuenta: AccountIdentity = Object.freeze({
+    contract: IDENTITY_CONTRACT_VERSION,
+    accountId: datos.accountId,
+    accountNumber,
+    createdAt: datos.at,
+    updatedAt: datos.at,
+  });
+  const perfilReal = entidadDeCuenta(cuenta, SECUENCIA_DE_PERFIL_REAL, datos.at);
+  return perfilReal ? Object.freeze({ cuenta, perfilReal }) : undefined;
+};
+
+/* ── El puerto de guardar y repartir, y el protocolo que lo usa ──────────── */
+
+/**
+ * LO ÚNICO CON ESTADO: dónde se guardan cuentas y entidades y quién reparte
+ * las posiciones de la serie. Todo pasa por UNA transacción, para que reservar
+ * la posición, nacer la cuenta y guardar su entidad sean una sola cosa: o
+ * pasan las tres o no pasa ninguna, y nunca se reparte un número que no se usa.
+ *
+ * La posición se reserva leyendo y escribiendo un contador dentro de la
+ * transacción: dos nacimientos a la vez chocan en el contador y Firestore
+ * repite uno de ellos con la posición siguiente. Un contador único sostiene
+ * alrededor de un nacimiento por segundo de forma continua; si algún día las
+ * altas superan ese ritmo, el mismo puerto puede reservar BLOQUES de
+ * posiciones por instancia sin que el Core se entere. Hoy sería optimizar antes
+ * de tiempo.
+ */
+export interface TransaccionDeIdentidad {
+  leerCuenta(accountId: string): Promise<AccountIdentity | null>;
+  leerEntidad(entityId: string): Promise<EntityIdentity | null>;
+  /** La última posición repartida de la serie de cuentas; 0 si nunca se repartió ninguna. */
+  ultimaPosicion(): Promise<number>;
+  reservarPosicion(posicion: number): void;
+  guardarCuenta(cuenta: AccountIdentity): void;
+  /** `perfilUid` es el `uid` del documento de `users` que encarna la entidad: la cuenta para el Perfil Real, el identificador heredado para el Perfil Weë. */
+  guardarEntidad(entidad: EntityIdentity, perfilUid: string): void;
+}
+
+export interface AlmacenDeIdentidad {
+  enTransaccion<R>(cuerpo: (tx: TransaccionDeIdentidad) => Promise<R>): Promise<R>;
+}
+
+export interface IdentidadAsegurada {
+  nacimiento: NacimientoDeCuenta;
+  /** true solo para la llamada que de verdad hizo nacer la cuenta. */
+  creada: boolean;
+}
+
+/**
+ * createWEEAccountIdentity, en el vocabulario de Weë: la cuenta de un uid de
+ * Auth, con su número y su Perfil Real como entidad. Si ya nació, se devuelve
+ * tal cual y no se reparte nada. Idempotente y atómica: dentro de la
+ * transacción se vuelve a leer la cuenta antes de reservar la posición.
+ *
+ * Sirve igual desde Weë General, Studio, Design, Travel, Music, Chef o
+ * Business: la cuenta es una y el Workplace no aparece por aquí.
+ */
+export const asegurarIdentidadDeCuenta = async (
+  almacen: AlmacenDeIdentidad,
+  datos: { accountId: string; at: number; ancho?: number },
+): Promise<IdentidadAsegurada> => {
+  if (!esIdDeCuenta(datos.accountId)) throw new Error('asegurarIdentidadDeCuenta: id de cuenta inválido');
+  return almacen.enTransaccion(async (tx) => {
+    const existente = await tx.leerCuenta(datos.accountId);
+    if (existente) {
+      const perfilReal = entidadDeCuenta(existente, SECUENCIA_DE_PERFIL_REAL, existente.createdAt);
+      if (!perfilReal) throw new Error('asegurarIdentidadDeCuenta: la cuenta guardada no es válida');
+      return { nacimiento: { cuenta: existente, perfilReal }, creada: false };
+    }
+    const posicion = (await tx.ultimaPosicion()) + 1;
+    const nacimiento = nacerCuenta({ accountId: datos.accountId, posicion, at: datos.at, ancho: datos.ancho });
+    if (!nacimiento) throw new Error('asegurarIdentidadDeCuenta: la serie de cuentas no admite más posiciones con este ancho');
+    tx.reservarPosicion(posicion);
+    tx.guardarCuenta(nacimiento.cuenta);
+    tx.guardarEntidad(nacimiento.perfilReal, nacimiento.cuenta.accountId);
+    return { nacimiento, creada: true };
+  });
+};
+
+/**
+ * LA CARA WEË COMO ENTIDAD 2 DE SU CUENTA. La cuenta tiene que haber nacido;
+ * el Perfil Weë no crea otra cuenta. `perfilWeeUid` es el identificador
+ * heredado con el que los datos nombran a esa cara: se guarda como puente,
+ * nunca se usa para deducir la cuenta, que es la que llega aquí ya resuelta.
+ */
+export const asegurarEntidadWee = async (
+  almacen: AlmacenDeIdentidad,
+  datos: { accountId: string; perfilWeeUid: string; at: number },
+): Promise<{ entidad: EntityIdentity; creada: boolean }> => {
+  if (!esIdDeCuenta(datos.accountId)) throw new Error('asegurarEntidadWee: id de cuenta inválido');
+  if (typeof datos.perfilWeeUid !== 'string' || !datos.perfilWeeUid || datos.perfilWeeUid === datos.accountId) throw new Error('asegurarEntidadWee: identificador del Perfil Weë inválido');
+  return almacen.enTransaccion(async (tx) => {
+    const cuenta = await tx.leerCuenta(datos.accountId);
+    if (!cuenta) throw new Error('asegurarEntidadWee: la cuenta no ha nacido');
+    const entityId = identificadorDeEntidad(cuenta.accountNumber, SECUENCIA_DE_PERFIL_WEE);
+    const existente = entityId ? await tx.leerEntidad(entityId) : null;
+    if (existente) {
+      if (existente.ownerAccountId !== datos.accountId) throw new Error('asegurarEntidadWee: esa entidad es de otra cuenta');
+      return { entidad: existente, creada: false };
+    }
+    const entidad = entidadDeCuenta(cuenta, SECUENCIA_DE_PERFIL_WEE, datos.at);
+    if (!entidad) throw new Error('asegurarEntidadWee: no se pudo formar la entidad');
+    tx.guardarEntidad(entidad, datos.perfilWeeUid);
+    return { entidad, creada: true };
+  });
+};

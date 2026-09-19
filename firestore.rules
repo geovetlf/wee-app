@@ -49,6 +49,43 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(accountFields());
     }
 
+    // LOS NÚMEROS Y LAS ENTIDADES DEL IDENTITY CORE LOS PONE EL SERVIDOR
+    // (Fase 11.x-4A). El número de cuenta, el de la billetera, la entidad y su
+    // dueño se asignan al nacer la cuenta, en una transacción del servidor. Si
+    // un cliente pudiera escribirlos antes en su perfil, el día que el servidor
+    // los lea encontraría uno inventado: por eso ningún cliente los escribe,
+    // ni al crear ni al actualizar, aunque hoy nadie los lea todavía.
+    function identityCoreFields() {
+      return ['accountId', 'accountNumber', 'walletNumber', 'entityId', 'entityType', 'entitySequence', 'ownerAccountId'];
+    }
+    function createsIdentityCoreFields() {
+      return request.resource.data.keys().hasAny(identityCoreFields());
+    }
+    function touchesIdentityCoreFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(identityCoreFields());
+    }
+
+    // LA IDENTIDAD DE UN PERFIL NO SE REESCRIBE (Fase 11.x). `uid` y
+    // `profileType` son inmutables: antes el dueño podía ponerle a su
+    // documento el uid de otra persona y colarse delante de su perfil en toda
+    // consulta por `uid`. La única excepción es añadir `profileType: 'real'` a
+    // un perfil antiguo que no lo tenía. Y `linkedAccountId` solo puede pasar
+    // a apuntar a la propia cara Weë de la cuenta, o quedarse como está.
+    function identityFields() {
+      return ['uid', 'profileType'];
+    }
+    function anadeProfileTypeReal() {
+      return !('profileType' in resource.data) && request.resource.data.profileType == 'real' &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid']);
+    }
+    function touchesIdentityFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(identityFields()) && !anadeProfileTypeReal();
+    }
+    function linkedAccountIdValido() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['linkedAccountId']) ||
+        (resource.data.uid == request.auth.uid && request.resource.data.linkedAccountId == ("hidi_" + request.auth.uid));
+    }
+
     // UN CONTADOR SOLO PUEDE MOVERSE DE UNO EN UNO.
     //
     // Varias reglas dejan a cualquier sesión tocar los contadores de documentos
@@ -136,9 +173,25 @@ service cloud.firestore {
 
       // Solo el dueño puede crear/actualizar su perfil
       // Permite crear perfil real (uid == auth.uid) o Perfil Weë (uid == "hidi_" + auth.uid).
+      //
+      // EL PERFIL REAL SE CREA EN `users/<uid>` Y EN NINGÚN OTRO SITIO (Fase 11.x).
+      // Con id automático, dos arranques a la vez creaban dos perfiles para la
+      // misma cuenta. Con el id atado a la cuenta, dos creaciones chocan en el
+      // mismo documento y solo pasa una. El id NO es la identidad: la identidad
+      // sigue siendo el campo `uid`, y los perfiles antiguos con id automático
+      // se siguen leyendo y actualizando igual. El Perfil Weë conserva su forma.
+      //
+      // Y el Perfil Real nace con el mismo `linkedAccountId` que podría ponerse
+      // después (Fase 11.x-4A): ninguno, o el de su propia cara Weë. Antes solo
+      // se vigilaba al actualizar y se podía nacer ya apuntando a una cara ajena.
       allow create: if isAuthenticated() && !createsCreditFields() && !createsEcontactFields() && !createsAccountFields() &&
-        (request.auth.uid == request.resource.data.uid ||
+        !createsIdentityCoreFields() &&
+        ((request.auth.uid == request.resource.data.uid && userId == request.auth.uid &&
+          (!('profileType' in request.resource.data) || request.resource.data.profileType == 'real') &&
+          (!('linkedAccountId' in request.resource.data) ||
+           request.resource.data.linkedAccountId == ("hidi_" + request.auth.uid))) ||
          (request.resource.data.uid == ("hidi_" + request.auth.uid) &&
+          userId == request.resource.data.uid &&
           request.resource.data.profileType == 'hidi' &&
           request.resource.data.linkedAccountId == request.auth.uid));
 
@@ -151,6 +204,7 @@ service cloud.firestore {
       // pantalla que las use, sustituido por ËContact— así que la rama no
       // servía a nada vivo y sí permitía escribirle a otro `followers: 9999999`.
       allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() && !touchesAccountFields() &&
+        !touchesIdentityFields() && linkedAccountIdValido() && !touchesIdentityCoreFields() &&
         (request.auth.uid == resource.data.uid ||
          (resource.data.uid == ("hidi_" + request.auth.uid) &&
           resource.data.profileType == 'hidi'));
@@ -200,27 +254,60 @@ service cloud.firestore {
       // Cualquiera puede leer comunidades
       allow read: if true;
 
-      // Solo usuarios autenticados pueden crear comunidades
-      allow create: if isAuthenticated();
+      // QUIÉN CREÓ UNA COMUNIDAD LO DICE LA SESIÓN, NO EL DOCUMENTO (Fase 11.x-4A).
+      //
+      // Decía `if isAuthenticated()` a secas: `createdBy` y `moderators` los
+      // ponía el cliente, y son justo lo que después decide quién la edita. Se
+      // podía crear una comunidad a nombre de otra persona, o darse por
+      // moderador de una que nunca fue suya.
+      //
+      // Una comunidad de usuario la crea la CUENTA —como un negocio: es de la
+      // cuenta, no de una cara—, que queda de creadora y de única moderadora,
+      // y nace con los contadores a cero (o con su creador ya dentro). Las
+      // oficiales no las crea nadie desde la app: solo una sesión con el claim
+      // `admin`, que es quien siembra el catálogo.
+      function comunidadDeUsuario() {
+        return request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.moderators == [request.auth.uid] &&
+          request.resource.data.get('isOfficial', false) == false &&
+          request.resource.data.get('memberCount', 0) in [0, 1] &&
+          request.resource.data.get('postCount', 0) == 0;
+      }
+      function comunidadOficialDeAdministracion() {
+        return request.auth.token.get('admin', false) == true &&
+          request.resource.data.get('isOfficial', false) == true;
+      }
+      allow create: if isAuthenticated() && (comunidadDeUsuario() || comunidadOficialDeAdministracion());
+
+      // La autoría no se reescribe: `createdBy` e `isOfficial` son de por vida,
+      // y la lista de moderadores solo la cambia quien la creó.
+      function tocaLaAutoriaDeLaComunidad() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'isOfficial']) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasAny(['moderators']) &&
+           resource.data.get('createdBy', '') != request.auth.uid);
+      }
 
       // Solo moderadores pueden actualizar la comunidad
       // O cualquier usuario autenticado puede actualizar contadores, de uno en uno
-      allow update: if isAuthenticated() &&
+      allow update: if isAuthenticated() && !tocaLaAutoriaDeLaComunidad() &&
         (request.auth.uid in resource.data.moderators ||
-         resource.data.createdBy == request.auth.uid ||
+         resource.data.get('createdBy', '') == request.auth.uid ||
          (request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['memberCount', 'postCount', 'updatedAt'])
           && contadorSano('memberCount') && contadorSano('postCount')));
 
       allow delete: if false; // No permitir eliminar comunidades
 
-      // Subcolección de miembros (real o HIDI)
+      // Subcolección de miembros (real o HIDI). El documento se llama como la
+      // identidad que se une, y dice ser esa misma identidad: no otra.
       match /members/{memberId} {
         allow read: if true;
         allow create: if isAuthenticated() &&
-          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId);
+          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId) &&
+          request.resource.data.get('userId', memberId) == memberId;
         allow update: if isAuthenticated() &&
-          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId);
+          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId) &&
+          request.resource.data.get('userId', memberId) == memberId;
         allow delete: if isAuthenticated() &&
           (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId);
       }
@@ -245,8 +332,17 @@ service cloud.firestore {
       // nada serviría exigirlo al crear si después una actualización pudiera
       // borrar el campo o cambiarle el tipo. Vale para los dos caminos, también
       // para el de los contadores, que no tiene por qué tocarlo.
+      //
+      // LA AUTORÍA NO SE EDITA (Fase 11.x-4A). `ownsPost()` mira el documento
+      // que HABÍA; sin esto, el autor podía escribir otro `userId` en el que
+      // quedaba y regalarle —o endosarle— su publicación a cualquiera, y la
+      // página pública lo habría enseñado como autor. Tampoco se convierte un
+      // repost en otra cosa ni se cambia su original, ni se mueve la fecha de
+      // creación para colarse arriba del muro. Real y Weë siguen publicando y
+      // editando igual: esto no mira con qué cara se firmó, solo que no cambie.
       allow update: if isAuthenticated() && !touchesPoll() && visibilidadDeclarada() && (
-        ownsPost() ||
+        (ownsPost() && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['userId', 'isRepost', 'originalPostId', 'createdAt'])) ||
         // Permitir actualizar solo contadores (views, agreementCount, etc.),
         // y solo de uno en uno: ver `contadorSano`.
         (request.resource.data.diff(resource.data).affectedKeys()
@@ -288,14 +384,29 @@ service cloud.firestore {
     // `update` y `delete` siguen admitiendo la forma antigua A PROPÓSITO: los
     // ocho votos que ya existen tienen que poder deshacerse por su dueño. Lo
     // que no se puede es crear más.
+    //
+    // Y UN VOTO ES DE QUIEN LO EMITE, EN SU DOCUMENTO (Fase 11.x-4A). Al crear,
+    // el id tiene que ser `{cuenta}_{publicación}`: con cualquier otro id la
+    // misma persona podía abrir tantos votos como quisiera sobre la misma
+    // publicación. Al cambiarlo solo se mueven `type` y `createdAt`: ni el
+    // votante ni la publicación cambian, así que nadie se apropia de un voto
+    // ajeno ni muda el suyo a otra publicación.
+    function tipoDeVotoValido() {
+      return request.resource.data.type in ['agree', 'disagree'];
+    }
     match /votes/{voteId} {
       allow read: if true;
 
       allow create: if isAuthenticated() &&
-        request.resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.postId is string &&
+        voteId == request.auth.uid + '_' + request.resource.data.postId &&
+        tipoDeVotoValido();
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid));
+         resource.data.userId == ("hidi_" + request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'createdAt']) &&
+        tipoDeVotoValido();
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid));
@@ -307,10 +418,15 @@ service cloud.firestore {
     match /commentVotes/{voteId} {
       allow read: if true;
       allow create: if isAuthenticated() &&
-        request.resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.commentId is string &&
+        voteId == 'comment_' + request.auth.uid + '_' + request.resource.data.commentId &&
+        tipoDeVotoValido();
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid));
+         resource.data.userId == ("hidi_" + request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'createdAt']) &&
+        tipoDeVotoValido();
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid));
@@ -324,9 +440,14 @@ service cloud.firestore {
         (request.resource.data.userId == request.auth.uid ||
          request.resource.data.userId == ("hidi_" + request.auth.uid));
 
+      // El autor edita su comentario, pero no su autoría (Fase 11.x-4A): ni de
+      // quién es, ni de qué publicación cuelga, ni a quién responde, ni cuándo
+      // se escribió. Por la misma razón que en `posts`.
       allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.userId == ("hidi_" + request.auth.uid) ||
+        ((resource.data.userId == request.auth.uid ||
+          resource.data.userId == ("hidi_" + request.auth.uid)) &&
+         !request.resource.data.diff(resource.data).affectedKeys()
+           .hasAny(['userId', 'postId', 'parentCommentId', 'createdAt'])) ||
         // Permitir actualizar contadores, de uno en uno
         (request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['likes', 'agreementCount', 'disagreementCount'])
@@ -433,40 +554,115 @@ service cloud.firestore {
     }
 
     // === CONVERSACIONES ===
+    //
+    // QUIÉN HABLA LO DICE LA SESIÓN (Fase 11.x-4A). Antes cualquier
+    // participante podía reescribir la conversación ENTERA: cambiar
+    // `participants` —meter a quien quisiera, o sacar a la otra persona y
+    // quedarse con el historial—, firmar `lastMessage` con otra identidad, y
+    // editar el texto de los mensajes AJENOS. Y `participants` no es un dato
+    // cualquiera: lo leen `burnViewOnce`, el push de mensajes y las reglas del
+    // Storage de la foto única para decidir quién entra.
+    //
+    // Ahora `participants` se fija al crear y no se toca más; se firma con una
+    // identidad propia que participa; y un mensaje, una vez escrito, solo
+    // cambia en lo que la app hace de verdad: marcarse como leído, o vaciarse
+    // en el modo efímero. Las cuatro combinaciones Real/Weë siguen valiendo
+    // igual: nada de esto mira con qué cara se habla, solo que sea tuya.
     match /conversations/{conversationId} {
+      function misIdentidadesDeChat() {
+        return [request.auth.uid, 'hidi_' + request.auth.uid];
+      }
+      function participo() {
+        return resource.data.participants.hasAny(misIdentidadesDeChat());
+      }
+
       // Solo participantes pueden leer
       allow read: if isAuthenticated() &&
         (request.auth.uid in resource.data.participants ||
          ("hidi_" + request.auth.uid) in resource.data.participants);
 
-      // Solo usuarios autenticados que se incluyan a sí mismos en participants
+      // Una conversación es entre DOS identidades, una de ellas mía, y su ficha
+      // de participantes habla exactamente de esas dos. Es lo que la app crea.
       allow create: if isAuthenticated() &&
-        (request.auth.uid in request.resource.data.participants ||
-         ("hidi_" + request.auth.uid) in request.resource.data.participants);
+        request.resource.data.keys().hasOnly(['participants', 'participantsData', 'createdAt', 'updatedAt']) &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.size() == 2 &&
+        request.resource.data.participants[0] != request.resource.data.participants[1] &&
+        request.resource.data.participants.hasAny(misIdentidadesDeChat()) &&
+        request.resource.data.participantsData is map &&
+        request.resource.data.participantsData.keys().toSet() == request.resource.data.participants.toSet();
 
-      // Solo participantes pueden actualizar
-      allow update: if isAuthenticated() &&
-        (request.auth.uid in resource.data.participants ||
-         ("hidi_" + request.auth.uid) in resource.data.participants);
+      // `lastMessage` cambia de tres maneras, y solo de esas tres: lo firma una
+      // identidad MÍA que participa (acabo de escribir); se marca como leído
+      // sin tocar nada más; o lo vacía el modo efímero, que no firma nadie.
+      function ultimoMensajeLegitimo() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastMessage']) ||
+          (request.resource.data.lastMessage is map && (
+            (request.resource.data.lastMessage.get('senderId', '') in misIdentidadesDeChat() &&
+             request.resource.data.lastMessage.get('senderId', '') in resource.data.participants) ||
+            (resource.data.get('lastMessage', null) is map &&
+             request.resource.data.lastMessage.diff(resource.data.lastMessage).affectedKeys().hasOnly(['read']) &&
+             request.resource.data.lastMessage.get('read', false) == true) ||
+            (resource.data.get('ephemeral', false) == true &&
+             request.resource.data.lastMessage.get('senderId', null) == '')));
+      }
+      // Quién está mirando el chat: cada uno entra y sale él mismo, no mueve al otro.
+      function presenciaPropia() {
+        let antes = resource.data.get('activeInChat', []).toSet();
+        let despues = request.resource.data.get('activeInChat', []).toSet();
+        return despues.difference(antes).union(antes.difference(despues)).hasOnly(misIdentidadesDeChat());
+      }
+      // El color de burbuja es de cada uno: solo el suyo.
+      function colorPropio() {
+        return request.resource.data.get('bubbleColors', {}).diff(resource.data.get('bubbleColors', {}))
+          .affectedKeys().hasOnly(misIdentidadesDeChat());
+      }
+
+      allow update: if isAuthenticated() && participo() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lastMessage', 'updatedAt', 'activeInChat', 'bubbleColors', 'chatTheme', 'chatWallpaper', 'ephemeral']) &&
+        ultimoMensajeLegitimo() && presenciaPropia() && colorPropio();
 
       allow delete: if false;
 
       // Mensajes dentro de conversaciones — solo participantes de la conversación padre
       match /messages/{messageId} {
-        allow read: if isAuthenticated() &&
-          (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants ||
-           ("hidi_" + request.auth.uid) in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
+        function participantesDelChat() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        }
+        function participoEnElChat() {
+          return participantesDelChat().hasAny(misIdentidadesDeChat());
+        }
+        // El remitente es una identidad MÍA y además una de las que participan:
+        // no se escribe con la cara que no está en la conversación.
+        function remitenteLegitimo() {
+          let remitente = request.resource.data.get('senderId', '');
+          return remitente in misIdentidadesDeChat() && remitente in participantesDelChat();
+        }
+        // El modo efímero vacía un mensaje efímero; no reescribe ninguno.
+        function vaciadoEfimero() {
+          return resource.data.get('ephemeral', false) == true &&
+            request.resource.data.get('ephemeral', false) == true &&
+            request.resource.data.get('deleted', false) == true &&
+            request.resource.data.get('content', '') == '' &&
+            request.resource.data.get('imageUrl', null) == null;
+        }
 
-        allow create: if isAuthenticated() &&
-          (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants ||
-           ("hidi_" + request.auth.uid) in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants) &&
-          (request.resource.data.senderId == request.auth.uid ||
-           request.resource.data.senderId == ("hidi_" + request.auth.uid));
+        allow read: if isAuthenticated() && participoEnElChat();
 
-        // Permitir marcar como leído (actualizar status) por cualquier participante
-        allow update: if isAuthenticated() &&
-          (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants ||
-           ("hidi_" + request.auth.uid) in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
+        allow create: if isAuthenticated() && remitenteLegitimo() &&
+          request.resource.data.get('conversationId', conversationId) == conversationId;
+
+        // Lo único que un participante cambia de un mensaje: marcarlo como
+        // leído, o vaciarlo en el modo efímero. El remitente, el texto de un
+        // mensaje normal, sus archivos y su fecha no los reescribe nadie.
+        allow update: if isAuthenticated() && participoEnElChat() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['read', 'content', 'deleted', 'imageUrl', 'ephemeral']) &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['read']) ||
+           request.resource.data.read == true) &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['content', 'deleted', 'imageUrl', 'ephemeral']) ||
+           vaciadoEfimero());
 
         allow delete: if false;
       }
@@ -712,6 +908,23 @@ service cloud.firestore {
       match /respuestas/{messageId} {
         allow read, write: if false;
       }
+    }
+
+    // === IDENTITY CORE (Fase 11.x-2): la cuenta con nombre, sus entidades y el contador ===
+    //
+    // Lo escribe solo el servidor: nacer una cuenta reparte una posición de una
+    // serie, y eso no puede hacerlo un cliente. La cuenta la lee su dueño; una
+    // entidad, la cuenta que la posee; el contador, nadie desde fuera.
+    match /accounts/{accountId} {
+      allow read: if isAuthenticated() && request.auth.uid == accountId;
+      allow write: if false;
+    }
+    match /entities/{entityId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow write: if false;
+    }
+    match /contadores/{contador} {
+      allow read, write: if false;
     }
 
     // === MATERIAL (Content Core, Fase 11) ===

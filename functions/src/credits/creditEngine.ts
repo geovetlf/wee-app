@@ -1,6 +1,7 @@
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { CreditService, getCreditCost, loadCostOverrides, SERVICE_LABEL, WELCOME_CREDITS } from './creditCosts';
 import { assertAmount, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';
+import { cuentaDeIdentidad, PerfilDeIdentidad } from '../social/econtact';
 import {
   adjustmentTransactionId,
   CreditTransaction,
@@ -197,10 +198,21 @@ export function createCreditEngine(deps: CreditEngineDeps) {
 
   const num = (value: unknown): number => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
+  /*
+   * EL DOCUMENTO QUE GUARDA EL SALDO TIENE QUE SER EL PERFIL REAL DE ESA CUENTA
+   * (Fase 11.x-4A). Lo decide el resolutor canónico, el mismo de ËContact y del
+   * push: el documento dice ser esa identidad y es de tipo real. Un documento
+   * que diga otra cosa —otro tipo, otro uid— no guarda Credits de nadie.
+   */
+  const esElPerfilDeLaCuenta = (userId: string, account: CreditDocSnap): boolean =>
+    cuentaDeIdentidad(userId, (account.data() || {}) as PerfilDeIdentidad) === userId;
+
   /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */
   const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {
     const snap = await tx.get(users().where('uid', '==', userId).limit(1));
-    if (snap.empty) throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {
+      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    }
     return snap.docs[0];
   };
 
@@ -305,7 +317,9 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   const getBalance = async (rawUserId: string): Promise<AccountBalance> => {
     const userId = assertUserId(rawUserId);
     const snap = await users().where('uid', '==', userId).limit(1).get();
-    if (snap.empty) throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {
+      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    }
     const data = snap.docs[0].data() || {};
     if (typeof data.creditsBalance !== 'number') {
       const created = await ensureAccount(userId);

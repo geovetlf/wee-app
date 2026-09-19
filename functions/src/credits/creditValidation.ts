@@ -1,5 +1,6 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { isCreditService, CreditService } from './creditCosts';
+import { esIdDeCuenta } from '../core/identity';
 
 /**
  * Validación y errores del Credit Engine. Nada de lo que llega del cliente se
@@ -51,10 +52,27 @@ export const toHttpsError = (error: unknown): HttpsError => {
 export const MAX_AMOUNT = 1_000_000;
 const REQUEST_ID = /^[A-Za-z0-9_.:-]{4,160}$/;
 
-export const assertUserId = (userId: unknown): string => {
-  if (typeof userId !== 'string' || !userId.trim() || userId.length > 128) throw new CreditError('INVALID_REQUEST', 'userId inválido');
-  return userId;
+/**
+ * LOS CREDITS SON DE UNA CUENTA, Y SOLO UNA CUENTA ENTRA AQUÍ (Fase 11.x-4A).
+ *
+ * Esto aceptaba cualquier texto de hasta 128 caracteres. Las rutas de la app
+ * pasan siempre `request.auth.uid`, pero las de administración pasan lo que
+ * llegue en la petición: con el identificador de un Perfil Weë, el motor
+ * encontraba ese documento de `users`, le abría un saldo propio y le daba la
+ * bienvenida — Credits en una cara que ningún gasto puede alcanzar.
+ *
+ * La forma la decide el Identity Core (`esIdDeCuenta`): ni el identificador de
+ * una cara, ni un número de cuenta, ni el de una entidad, ni texto suelto.
+ * Que además el documento encontrado sea un Perfil Real lo comprueba el motor
+ * con el resolutor canónico.
+ */
+export const assertAccountId = (accountId: unknown): string => {
+  if (!esIdDeCuenta(accountId)) throw new CreditError('INVALID_REQUEST', 'accountId inválido');
+  return accountId;
 };
+
+/** El nombre de siempre: en el Credit Engine, `userId` fue desde el principio la cuenta. */
+export const assertUserId = assertAccountId;
 
 /** Monto entero positivo dentro de límites. */
 export const assertAmount = (amount: unknown): number => {

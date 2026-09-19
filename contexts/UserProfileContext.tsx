@@ -83,20 +83,15 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
          * viaje de red entero de más en el arranque, cuando la persona mira
          * una pantalla vacía. Si el Perfil Weë falla se ignora, como siempre.
          */
-        const [perfilReal, perfilWee] = await Promise.all([
-          usersService.getByUid(user.uid),
-          usersService.getWeeProfile(user.uid).catch((weeProfileErr) => {
-            console.log('🎭 [UserProfileContext] Error cargando el Perfil Weë (ignorado):', weeProfileErr);
-            return null;
-          }),
-        ]);
-
-        // Buscar perfil real existente
-        let profile = perfilReal;
-
-        // Si no existe, crear uno nuevo
-        if (!profile) {
-          const baseProfileData = {
+        /*
+         * CÓMO SERÍA EL PERFIL NUEVO, no si hay que crearlo. Eso lo decide el
+         * servicio: busca por `uid` y, solo si no hay nada, crea `users/<uid>`
+         * dentro de una transacción (Fase 11.x, `utils/perfilCanonico.ts`).
+         * Antes este efecto leía y creaba por su cuenta, y dos ejecuciones a
+         * la vez —dos pestañas, un refresh en vuelo— dejaban dos perfiles.
+         */
+        const nuevoPerfilReal = (): Omit<UserProfile, 'id'> => {
+          const base = {
             uid: user.uid,
             displayName: user.displayName || user.email?.split('@')[0] || 'Usuario Anónimo',
             /* Sin `email`: el perfil de `users` es público y el email vive en Firebase Auth. */
@@ -109,30 +104,24 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
             updatedAt: Timestamp.now(),
             profileType: 'real' as const,
           };
+          return user.photoURL
+            ? { ...base, photoURL: user.photoURL, avatarType: 'custom' as const }
+            : { ...base, avatarType: 'predefined' as const, avatarId: 'male' };
+        };
 
-          const newProfileData: Omit<UserProfile, 'id'> = user.photoURL
-            ? {
-                ...baseProfileData,
-                photoURL: user.photoURL,
-                avatarType: 'custom' as const,
-              }
-            : {
-                ...baseProfileData,
-                avatarType: 'predefined' as const,
-                avatarId: 'male',
-              };
+        const [asegurado, perfilWee] = await Promise.all([
+          usersService.ensureRealProfile(user.uid, nuevoPerfilReal),
+          usersService.getWeeProfile(user.uid).catch((weeProfileErr) => {
+            console.log('🎭 [UserProfileContext] Error cargando el Perfil Weë (ignorado):', weeProfileErr);
+            return null;
+          }),
+        ]);
 
-          console.log('📝 [UserProfileContext] Creando nuevo perfil');
-
-          const profileId = await usersService.create(newProfileData);
-          profile = {
-            id: profileId,
-            ...newProfileData,
-          };
-
-          console.log('✅ [UserProfileContext] Perfil creado exitosamente:', profileId);
+        let profile: UserProfile | null = asegurado.perfil;
+        if (asegurado.creado) {
+          console.log('📝 [UserProfileContext] Perfil real creado:', asegurado.perfil.id);
         } else {
-          console.log('📥 [UserProfileContext] Perfil real cargado:', profile.displayName);
+          console.log('📥 [UserProfileContext] Perfil real cargado:', asegurado.perfil.displayName);
         }
 
         // Auto-fix: sync photoURLThumbnail with photoURL if out of sync

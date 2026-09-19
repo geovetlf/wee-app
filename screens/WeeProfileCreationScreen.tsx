@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { usersService } from '../services/firestoreService';
 import { uploadProfileImageFromUri } from '../services/storageService';
+import { identidadWeeDe } from '../utils/econtactModel';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
@@ -63,7 +64,8 @@ const WeeProfileCreationScreen: React.FC = () => {
     try {
       console.log('🎭 Creando Perfil Weë para:', user.uid);
 
-      const weeProfileUid = `hidi_${user.uid}`;
+      /* La carpeta del avatar en el Storage lleva el identificador guardado de la cara. */
+      const identidadWee = identidadWeeDe(user.uid);
       let photoURL: string | undefined;
       let photoURLThumbnail: string | undefined;
 
@@ -72,39 +74,29 @@ const WeeProfileCreationScreen: React.FC = () => {
         if (isDiceBearUrl(customAvatarUri)) {
           photoURL = customAvatarUri;
         } else {
-          const result = await uploadProfileImageFromUri(customAvatarUri, weeProfileUid);
+          const result = await uploadProfileImageFromUri(customAvatarUri, identidadWee);
           photoURL = result.fullSize;
           photoURLThumbnail = result.thumbnail;
         }
       }
 
-      // Crear el Perfil Weë
-      const weeProfileDocId = await usersService.createWeeProfile(user.uid, {
+      /*
+       * Una sola operación: el Perfil Weë y su enlace desde el Perfil Real,
+       * en la misma transacción, y una sola cara por cuenta aunque se toque
+       * dos veces o desde dos aparatos. Si la cuenta ya tenía cara, se
+       * devuelve esa y no se escribe nada.
+       */
+      const { perfil: weeProfile, creado } = await usersService.ensureWeeProfile(user.uid, realProfile.id, {
         displayName: displayName.trim(),
         bio: bio.trim(),
         avatarType: selectedAvatarType,
         avatarId: selectedAvatarType === 'predefined' ? selectedAvatarId : undefined,
         photoURL,
+        photoURLThumbnail,
       });
 
-      // Si hay thumbnail, actualizar el doc
-      if (photoURLThumbnail) {
-        await usersService.update(weeProfileDocId, { photoURLThumbnail });
-      }
-
-      console.log('✅ Perfil Weë creado con docId:', weeProfileDocId);
-
-      // Actualizar perfil real con linkedAccountId
-      await usersService.update(realProfile.id, {
-        linkedAccountId: weeProfileUid,
-        profileType: 'real',
-      });
-
-      // Obtener el Perfil Weë completo y establecerlo en el context
-      const weeProfile = await usersService.getWeeProfile(user.uid);
-      if (weeProfile) {
-        setWeeProfile(weeProfile);
-      }
+      console.log(creado ? '✅ Perfil Weë creado' : '📥 La cuenta ya tenía Perfil Weë');
+      setWeeProfile(weeProfile);
 
       Alert.alert(
         t('onboarding.weeCreatedTitle'),

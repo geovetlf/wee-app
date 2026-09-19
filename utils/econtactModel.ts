@@ -195,6 +195,17 @@ export const nombreDeIdentidad = (id?: string | null): 'Perfil real' | 'Perfil W
  *
  * Que el Perfil Weë exista o no es otra cosa: esto dice cuál SERÍA.
  */
+/**
+ * EL IDENTIFICADOR GUARDADO DEL PERFIL WEË DE UNA CUENTA. Compatibilidad heredada.
+ *
+ * Es la forma en que las publicaciones, los votos, las conversaciones y las
+ * reglas nombran hoy a esa cara, y por eso el documento nuevo tiene que
+ * llevarla. No es la identidad canónica: la cuenta dueña se LEE de
+ * `linkedAccountId` con `cuentaDeIdentidad`, nunca se recorta de aquí. Es el
+ * único sitio del cliente que compone este identificador.
+ */
+export const identidadWeeDe = (accountUid: string): string => PREFIJO_PERFIL_WEE + accountUid;
+
 export const identidadesDeCuenta = (accountUid?: string | null): string[] =>
   typeof accountUid === 'string' && accountUid && esIdentidadValida(accountUid)
     ? [accountUid, PREFIJO_PERFIL_WEE + accountUid]
