@@ -877,6 +877,134 @@ El almacén (`JobStore`) es un **puerto sin implementación**. No hay Firestore,
 
 Y no hay `JobQueue`. La cola **es** el almacén con su `availableAt`: una segunda interfaz para lo mismo habría sido un contrato que nadie implementa.
 
+## WEE Financial Core
+
+El dinero de Weë: Credits, pagos, devoluciones, contracargos, ingresos y lo que se paga a los proveedores. Vive en `core/financial/` (cinco módulos) y se compone en `functions/src/financial/`.
+
+```
+CHECKOUT → PAYMENT ROUTER → PASARELA → AVISO → LIBRO → CREDITS
+```
+
+### Una persona, una cuenta, un saldo
+
+Es el requisito que manda sobre todos los demás. Se compra desde Weë Business y se gasta desde Weë Studio; se entra desde Weë Design y se ve lo mismo. **No hay saldo por producto y no puede haberlo**: en cuanto exista una billetera por producto, comprar en el sitio equivocado deja de servir y la persona tiene que aprenderse la contabilidad interna de Weë para usarla.
+
+`appId` y `workspaceId` no están en la cuenta. Están en la **atribución** de cada movimiento, que es donde sirven: para saber desde dónde se gastó, no para partir el dinero.
+
+### El dinero es un entero, siempre
+
+`9.99` no es nueve con noventa y nueve: es `9.9900000000000002131628…`, y a la tercera suma ya falta un céntimo. Aquí el dinero es `Money { amountMinor, currency }` —un entero de unidades mínimas y su moneda, siempre juntos— y todas las operaciones se niegan a mezclar monedas. Mil veces diez céntimos dan exactamente diez mil.
+
+Las monedas sin decimales están contempladas: mil yenes son mil unidades mínimas, no cien mil. Equivocarse ahí no da un error, da una factura cien veces mayor. Repartir diez entre tres da 4, 3 y 3 —nunca 3,33— porque la suma de las partes tiene que ser el total. Y **cambiar de moneda exige una tasa declarada** con origen y momento: una conversión sin eso es una cifra inventada que nadie podrá justificar.
+
+### Cinco libros, cada uno verdad de una cosa
+
+| | |
+|---|---|
+| **Payment Ledger** | lo que la gente pagó |
+| **Credit Ledger** | los Credits que entraron y salieron |
+| **Refund Ledger** | lo que se devolvió |
+| **Provider Cost Ledger** | lo que Weë pagó a los proveedores |
+| **Revenue Ledger** | lo que Weë ingresó |
+
+Cinco y no uno porque responden preguntas distintas y se cierran en momentos distintos. Cinco y no seis porque **ninguna cifra vive en dos libros**: el ingreso está en el de ingresos y el pago que lo produjo en el de pagos, unidos por `paymentId`.
+
+Un asiento confirmado **no se toca**. Si estaba mal se escribe otro que lo compensa y los dos se quedan: editar el pasado deja un libro que cuadra y una historia que no ocurrió.
+
+**El Credit Ledger ya existía.** `credits/creditEngine.ts` lleva desde antes de esta fase escribiendo un documento por movimiento en `creditTransactions`, con identificador determinista, `balanceBefore`/`balanceAfter`, transacción atómica e idempotencia por `requestId`. Eso ES un Credit Ledger, está en producción y funciona. Esta fase **no crea otro**: lo que faltaba era el contrato —qué forma tiene un asiento, qué invariantes cumple, cómo se corrige— para que las capas de arriba no inventen un segundo sistema. Los identificadores que produce el Core son los mismos que producción ya escribe (`usage_<clave>`, `refund_<clave>`), justamente para que no haya dos convenciones y un reintento no caiga en otro documento.
+
+### Devolver el dinero RETIRA los Credits
+
+Parece obvio y fue el defecto más caro de la fase. El efecto de una devolución se traducía al movimiento `refund`, que **suma** —porque devolver Credits por un trabajo fallido es sumarlos—, así que devolverle el dinero a alguien le duplicaba el saldo: tres ciclos de comprar y devolver daban seiscientos Credits con cero pagado. Se llaman parecido y son opuestos, y por eso ahora tienen nombres distintos: `refund` suma, `purchase_reversal` resta.
+
+La prueba que cubría ese caso **parcheaba el tipo a mano**, así que la suite entera seguía en verde mientras el sistema regalaba saldo. Una prueba que corrige lo que debería estar comprobando no comprueba nada.
+
+### Pedir una devolución no es devolverla
+
+Una devolución real es asíncrona: se pide, la pasarela la procesa y la confirma después. `devolver()` la deja en `REQUESTED` y **el pago no se mueve**; el efecto sobre los Credits se declara cuando la pasarela confirma. La primera versión la daba por completada en el acto —el mismo engaño que dar un cobro por bueno al pulsar un botón— y dejaba cuatro de los cinco estados declarados sin producir jamás.
+
+Y el aviso de una devolución **tiene que decir cuál y cuánto**. Sin identificador se fabricaba uno constante por pago, así que dos parciales distintas compartían identidad y la segunda se perdía; sin importe se devolvía todo lo pendiente, con lo que el aviso de una parcial cerraba el pago entero. Ninguna de las dos cosas se adivina.
+
+### Un pago produce su efecto una vez, y al menos una
+
+Las dos mitades. La primera evita cobrar dos veces; la segunda —la que se olvida— evita que alguien pague y nadie se entere, que es peor, porque nadie reclama lo que no sabe que pagó.
+
+**Sin firma comprobada no se mueve dinero.** Un aviso de pasarela es una petición HTTP que puede mandar cualquiera; si bastara con decir «pagado», acreditar sería gratis. Quien tiene la clave es el adaptador, y el Core exige que lo haya hecho. Una pasarela que confirma **otro importe** no confirma ese pago.
+
+Los avisos se deduplican, y el número de orden se compara **dentro de su propia familia**: el cobro tiene su contador y cada devolución o disputa el suyo, que vuelve a empezar por uno. Comparándolos todos contra una sola marca, una devolución legítima con número 12 se descartaba por «vieja» detrás de un cobro con número 902.
+
+El efecto financiero se **declara, no se hace**: acreditar Credits es otra escritura, en otro libro, con su propia clave derivada del pago. Fundirlas dejaría que un aviso HTTP escribiera directamente en el saldo de alguien.
+
+### Contracargos: se registran, no se deciden
+
+Qué pasa con los Credits de quien reclama un cobro al banco es una decisión de negocio —hay razones para quitarlos, para no quitarlos y para esperar al fallo— y ninguna está tomada. Se guarda el hecho, se ata al pago y a la cuenta, y el hueco queda a la vista. Un contracargo se abre una vez, se resuelve una vez y **conserva** lo que se abrió; no se reabre indefinidamente.
+
+### El saldo no baja de cero, ni con dos gastos a la vez
+
+No por un candado: porque el motor decide y el almacén escribe **contra la revisión que se leyó**. Dos gastos simultáneos sobre un saldo que solo da para uno dejan pasar uno; el segundo falla al escribir, vuelve a leer el saldo ya bajado y vuelve a decidir. Tres peticiones idénticas a la vez producen **un** movimiento.
+
+### Por dónde se cobra
+
+El Payment Router elige pasarela por **coste efectivo por pago aprobado** —la comisión dividida por la tasa de aprobación—, que es la única cifra que compara dos pasarelas de verdad: una un 20% más barata que aprueba un 15% menos es más cara, porque los pagos que rechaza no se recuperan. Sin tasa declarada se asume la peor razonable: no saber no puede ser una ventaja.
+
+Es determinista, desempata por valor de carácter y **no es el Router de IA**: uno razona sobre calidad y latencia, el otro sobre aprobación y comisiones. Y el tope de candidatos se aplica **después** de filtrar — al revés, cinco pasarelas apagadas consumían el cupo y la única que podía cobrar se quedaba fuera. Es el mismo defecto que la auditoría de la Fase 7 encontró en el otro router, en otro archivo y con otro nombre.
+
+### Un checkout, no siete
+
+Comprar Credits desde Weë Business, impulsar una publicación desde el Home y pagar una suscripción desde Weë Studio son el **mismo** checkout con distinto propósito. El checkout prepara el cobro y dice con qué se puede pagar; **no acredita nada** y no confirma nada. Todo lo que mueve dinero pasa por el libro, y el libro se escribe cuando la pasarela confirma.
+
+### Publicidad no es una compra de Credits
+
+Comparten cuenta, checkout, router, pasarela y libro, y no se confunden: un pago de `BOOST` no produce Credits. Confundirlos haría que promocionar una publicación descontara saldo de generación, y esa decisión es de producto y no está tomada.
+
+### Ninguna pasarela real, y una de mentira
+
+No hay SDK, ni claves, ni endpoints de ninguna pasarela, y no se ha inventado ninguno. Lo que hay es el contrato que tendrá que cumplir su adaptador y una pasarela de pruebas que se llama **`sandbox`** —no como ninguna empresa— para que quien la vea en un libro sepa en el acto que eso no fue dinero. Sirve para probar lo que no se puede probar contra una pasarela real sin gastar el dinero de alguien: el aviso repetido, el que llega fuera de orden, el que dice otro importe y la discrepancia al conciliar.
+
+### Conciliar no mueve un céntimo
+
+Compara los dos libros y **nombra** diferencias: un cobro que la pasarela tiene y Weë no —el caso grave—, uno que Weë da por cobrado y la pasarela no conoce, importes, monedas, estados, devoluciones y duplicados. No corrige nada, y es deliberado: una discrepancia puede ser un cobro perdido, pero también un aviso que aún no llegó. Mover dinero automáticamente ante algo que no se entiende es como se pierde el dinero de verdad.
+
+### Credit Transfer — RESERVED / NOT ENABLED
+
+Está el **plano**, no la funcionalidad. No hay operación expuesta, ni pantalla, ni límites, ni comisiones, y no está decidido si será regalo, propina, recompensa o traspaso a secas.
+
+Lo que sí queda resuelto es lo difícil. **No puede existir un instante en el que los Credits hayan salido del emisor y no hayan llegado al receptor**: el plan calcula los dos asientos a la vez, con las dos revisiones esperadas, y el almacén los escribe en un solo commit. Y el motor de movimientos **rechaza** `transfer_out` y `transfer_in` sueltos — medio traspaso no se puede escribir ni queriendo.
+
+De seguridad: la petición **no tiene** `senderAccountId`. No es que se valide, es que no se puede mandar; quien emite es el principal autenticado, y un campo que no existe no se puede falsificar.
+
+### Payment Fraud / Card Fraud / Credit Risk — ARCHITECTURE READY / POLICY NOT ENABLED
+
+Una tarjeta robada aprueba igual que una buena. El dinero entra, los Credits se acreditan, la persona genera cien vídeos o se los traspasa, y sesenta días después el banco reclama. Weë ya pagó a los proveedores.
+
+Esta fase **no resuelve eso**: resolverlo son umbrales, listas, esperas y reglas de bloqueo, y todo eso son decisiones de riesgo que nadie ha tomado. Inventarlas bloquearía cobros legítimos o dejaría pasar los malos, con dinero real. Lo que esta fase impide es que resolverlo obligue a rehacer la cuenta, el libro o el modelo de transacciones.
+
+Se separan dos cosas que estaban pegadas: **el estado del pago y la disponibilidad de los Credits**. Sin política, todo lo cobrado está disponible y nada cambia. Los avisos de riesgo de la pasarela se registran, se deduplican y se atan al pago **sin decidir nada**, y la exposición de un pago —cuántos Credits acreditó, cuántos se gastaron, cuántos se traspasaron y a quién, qué campaña financió— se **deduce** del libro sin modificar un asiento. Sin eso, cualquier política futura nace ciega.
+
+Nunca cabe un número de tarjeta, un CVV ni una credencial de pasarela en ningún contrato de este Core.
+
+### Cuenta, billetera y entidad — seam de Identity
+
+Una cuenta tiene **una** billetera, y comparten número (`0018439`). Son dos dominios: la cuenta dice de quién es el dinero, la billetera dónde está el saldo. La billetera se **deduce** de la cuenta y no se guarda aparte — dos saldos que sincronizar acaban siempre siendo dos saldos distintos.
+
+El número es texto con sus ceros delante (meterlo en un `number` lo convierte en otra cosa) y **no autoriza nada**: confundir un identificador legible con una contraseña es como se vacían cuentas ajenas.
+
+Dentro de una cuenta actúan varias entidades —Perfil Real, Perfil Weë, Pages—, y son **contexto**: viajan en la atribución junto al producto y al Workplace, y **no crean billetera**. Las tres descuentan del mismo saldo. La convención de secuencia es 1 → Perfil Real, 2 → Perfil Weë, 3+ → Pages, pero el **tipo se guarda** y nunca se deduce del identificador: `001843910` acaba en cero, y con la décima entidad la convención deja de poder leerse. Una convención de presentación no puede ser la que clasifique.
+
+Esta fase no crea entidades, no genera identificadores y no resuelve pertenencias: eso es la futura capa de Identity. Aquí solo se sabe consumirlo.
+
+### Qué NO hace
+
+| | quién |
+|---|---|
+| Decidir cuántos Credits da un pago | política de precios, con su versión |
+| Decidir si un contracargo quita Credits | política de negocio, no tomada |
+| Bloquear, congelar o rechazar por riesgo | política de riesgo, no tomada |
+| Cobrar de verdad | el adaptador de cada pasarela |
+| Guardar | infraestructura: `FinancialStore` es un puerto |
+| Elegir modelo o proveedor de IA | Router (Fase 7) |
+| Cambiar de moneda | un puerto con su tasa declarada |
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.

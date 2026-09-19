@@ -70,6 +70,9 @@ export const ROUTER_CONTRACT_VERSION = '1.0' as const;
 /** Forma de un trabajo durable, sus intentos y las transiciones de su ciclo de vida. */
 export const JOB_ENGINE_CONTRACT_VERSION = '1.0' as const;
 
+/** Forma del dinero, los libros, la cuenta financiera y el ciclo de vida de un pago. */
+export const FINANCIAL_CORE_CONTRACT_VERSION = '1.0' as const;
+
 export type ContractVersion = `${number}.${number}`;
 
 /**
