@@ -27,6 +27,66 @@ Comprobado contra las APIs, no contra la documentación:
 Es decir: **Weë no tenía ninguna copia de seguridad de ninguna clase**. Un borrado
 accidental de la base de producción era definitivo.
 
+### Estado de la configuración de producción (2026-09-20, después de activarla)
+
+```
+DAILY BACKUP:          CONFIGURED / VERIFIED
+FIRST AUTOMATED RUN:   PENDING
+RETENTION:             30 DAYS
+DELETE PROTECTION:     ACTIVE
+```
+
+| | |
+|---|---|
+| Protección contra borrado | **ACTIVE** (`DELETE_PROTECTION_ENABLED`) sobre `get-wee/(default)` |
+| Programación de copia | **1**, diaria · `backupSchedules/11938bed-030e-480d-99d6-e82ec55d5c85` |
+| Retención | `2592000s` = **30 días** |
+| Copias automáticas ya ejecutadas | **0 — FIRST REAL RUN PENDING** |
+| PITR | sigue **DESACTIVADO** (no autorizado todavía) |
+
+**Un horario no es una copia.** Mientras el contador de copias reales sea 0, lo
+único que existe es la copia manual del 2026-09-20; no se puede afirmar que haya
+una copia diaria hasta que haya evidencia de una ejecución.
+
+### Los dos mecanismos, que no son el mismo
+
+Esto importa y no se puede disimular:
+
+| | Exportación gestionada | Copia programada |
+|---|---|---|
+| Se dispara con | `:exportDocuments`, a mano | el horario diario, sola |
+| Dónde vive | `gs://wee-backups-546769059837` | la guarda Firestore, no hay cubo |
+| Se recupera con | `:importDocuments` | `databases:restore` |
+| Destino de la recuperación | una base que ya existe | **crea una base NUEVA**; no puede sobrescribir |
+| ¿Verificada de extremo a extremo? | **SÍ** — § 6 | **NO TODAVÍA** |
+
+La API de Firestore **no tiene ninguna forma de programar una exportación**
+(comprobado en su propio documento de descubrimiento: bajo `databases` existe
+`backupSchedules`, y `exportDocuments` es un método suelto sin horario).
+Programar la exportación exigiría Cloud Scheduler más una Function, es decir
+infraestructura y código nuevos. La copia programada nativa no necesita ni una
+cosa ni la otra, y su recuperación **solo sabe crear una base nueva**, que es
+justo la regla que la prueba de § 6 obligó a escribir.
+
+Lo que no se puede decir: que la copia diaria esté verificada de punta a punta.
+Lo que está verificado es el camino de la exportación. El de `databases:restore`
+está **NOT YET VERIFIED**, y el ensayo de § 12.7 es donde se cierra.
+
+### Lo que cuesta
+
+| | |
+|---|---|
+| El horario en sí | **0 $** — no hay SKU para programar |
+| Volumen medido | 133,6 KB por copia (136 760 B en 4 objetos, medidos en el cubo) |
+| 30 copias retenidas | ≈ **4,0 MB** = 0,0038 GiB |
+| Precio del catálogo de Google | **0,030 – 0,036 USD por GiB-mes** en EE. UU. (leído de la API de facturación, SKUs de *Backup Storage*; la base está en `nam5` y su SKU exacto se conocerá en la primera factura) |
+| **Coste estimado** | **≈ 0,0001 USD/mes** |
+| Restaurar, si algún día hace falta | 0,218 – 0,40 USD por GiB, una sola vez → céntimos |
+
+Coincide con la estimación previa de este documento (0,0001 $/mes): **no hay
+diferencia significativa**. El coste real aparecerá en facturación después de la
+primera ejecución.
+
 ## 2. Arquitectura
 
 ```
@@ -191,7 +251,8 @@ Medidos, no prometidos.
 
 | | |
 |---|---|
-| **RPO actual** | **NO ACOTADO.** No hay copia programada: el punto de recuperación es la última copia manual. Hoy sólo existe la del 2026-09-20. Con la copia diaria propuesta en § 12 sería ≤ 24 h; con PITR activado, ≤ 7 días de recuperación continua |
+| **RPO objetivo** | **≤ 24 h**, derivado de la copia diaria configurada el 2026-09-20. Es un OBJETIVO, no una medida: no habrá RPO medido hasta que el horario ejecute su primera copia (§ 1, FIRST AUTOMATED RUN: PENDING) |
+| **RPO real de hoy** | **NO ACOTADO TODAVÍA.** El único punto de recuperación que existe es la copia manual del 2026-09-20. Con PITR —no activado— serían además 7 días de recuperación continua |
 | **RTO de los datos de Firestore** | **~1,5 min** medido a esta escala (13 s de importación + ~15 s de crear la base + margen). Con verificación completa, ~3,5 min |
 | **RTO del servicio completo** | **NO MEDIDO TODAVÍA**, y hoy no se puede: falta la recuperación de Auth (§ 5) y apuntar la aplicación a la base restaurada. Sin Auth, el servicio no vuelve aunque los datos estén |
 
@@ -267,22 +328,27 @@ empezar.
 
 Por orden de importancia:
 
-1. **Copia de Auth.** Es el hueco que impide recuperar el servicio. Exportar los
+1. **Copia de Auth.** **NOT IMPLEMENTED.** Es el hueco que impide recuperar el
+   servicio, y por eso *service recovery* sigue **NOT VERIFIED**. Exportar los
    usuarios con sus hashes al mismo cubo, cifrado, y documentar el parámetro de
    hash del proyecto. Requiere una decisión de seguridad explícita.
-2. **Copia programada.** Un horario diario con 30 días de retención lleva el RPO
-   de «no acotado» a «≤ 24 h». Coste medido: **0,0001 $/mes** con 30 copias de
-   este tamaño. Es una llamada a `backupSchedules.create`.
-3. **PITR.** Da 7 días de recuperación continua y protege del borrado accidental
-   entre copias. Es un cambio de configuración de la base.
-4. **Protección de borrado de la base.** Hoy está **desactivada**: la base de
-   producción se puede borrar. Activarla no cuesta nada.
-5. **Bytes de Cloudinary.** Decidir entre credencial de administración para poder
-   enumerarlos y copiarlos, o mover el material a un cubo propio.
+2. ~~**Copia programada.**~~ **HECHA** el 2026-09-20: diaria, retención 30 días
+   (§ 1). Queda su **primera ejecución real**, que es lo que convertirá el RPO
+   objetivo de ≤ 24 h en un RPO medido.
+3. **PITR.** **NOT IMPLEMENTED.** Daría 7 días de recuperación continua y
+   protegería del borrado accidental *entre* copias. Es un cambio de
+   configuración de la base.
+4. ~~**Protección de borrado de la base.**~~ **HECHA** el 2026-09-20: `ACTIVE`.
+5. **Bytes de Cloudinary.** **PARTIALLY RECOVERABLE** (§ 4). Decidir entre
+   credencial de administración para poder enumerarlos y copiarlos, o mover el
+   material a un cubo propio.
 6. **Verificación a escala.** Verificar contra los archivos de la exportación en
    vez de leyendo la base, o por muestreo.
-7. **Ensayo periódico.** Una copia que no se restaura vuelve a ser un archivo. La
-   prueba de § 6 debería repetirse cada cierto tiempo, no una vez.
+7. **Ensayo periódico, y el primero de `databases:restore`.** Una copia que no se
+   restaura vuelve a ser un archivo. Hay dos cosas distintas pendientes: repetir
+   la prueba de § 6 cada cierto tiempo, y hacer **por primera vez** la
+   restauración desde una copia programada, que usa otro camino (§ 1) y hoy está
+   **NOT YET VERIFIED**.
 
 ## 13. Guía de operación
 
@@ -308,6 +374,25 @@ node scripts/copias.mjs romper --proyecto wee-dev-geovet --db recovery-test --mo
 
 # Borrar la base de la prueba
 node scripts/copias.mjs limpiar --proyecto wee-dev-geovet --db recovery-test --confirmo-aislado
+```
+
+Y para mirar la configuración de producción sin tocarla. Son tres GET; se
+responden con el token de `gcloud auth application-default` y **no escriben
+nada**. (En esta máquina el `gcloud` instalado no arranca —le falta Python—, así
+que la vía que se usó y se comprobó es la API REST.)
+
+```bash
+# ¿Sigue protegida la base?  → deleteProtectionState
+curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  "https://firestore.googleapis.com/v1/projects/get-wee/databases/%28default%29"
+
+# ¿Sigue el horario diario?  → backupSchedules[].retention + dailyRecurrence
+curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  "https://firestore.googleapis.com/v1/projects/get-wee/databases/%28default%29/backupSchedules"
+
+# ¿Ha corrido ya alguna copia?  → mientras esto esté vacío, FIRST RUN PENDING
+curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  "https://firestore.googleapis.com/v1/projects/get-wee/locations/-/backups"
 ```
 
 **Reglas que no se saltan:**
