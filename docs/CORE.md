@@ -4,6 +4,8 @@ Los contratos sobre los que se entienden las piezas de Weë. **Solo tipos y func
 
 > Esto no sustituye a nada. El [WEË AI ENGINE](AI-ENGINE.md), el [Credit Engine](CREDITS.md), Weë Creator y Weë Brain siguen funcionando igual. El Core les da un vocabulario común y les quita de encima una dependencia que estaba del revés.
 
+> **Qué piezas del Core ejecutan producción hoy y cuáles no**, medido contra el compilado y contra los datos reales, está en [`docs/RUNTIME.md`](RUNTIME.md). Que una pieza exista aquí no significa que atienda a nadie.
+
 ## Por qué existe
 
 `CapabilityId` —el vocabulario central del sistema— vivía en `functions/src/creator/types.ts`, y lo importaban **más de veinte módulos**: el router, el registro, los once adaptadores, el cálculo de precios, el gateway. Es decir: **el motor dependía de la capa de experiencia**.
