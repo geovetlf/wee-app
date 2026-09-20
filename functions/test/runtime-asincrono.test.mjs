@@ -484,6 +484,15 @@ console.log('\n── H · La reconciliación: la segunda forma de enterarse ─
   });
   const r = await pasada();
   check('primero se pregunta y DESPUÉS se liquida: al revés, el dinero de un vídeo hecho tardaría una pasada de más', orden.join('→') === 'preguntar→liquidar');
+
+  /* Y lo que se LEE va en el mismo orden que lo que pasó, o los registros mienten. */
+  const registro = [];
+  await mantenimientoDeWee({
+    reconciliacion: async () => ({ mirados: 0, preguntados: 0, resueltos: 0, enMarcha: 0, sinRespuesta: 0, rendidos: 0, aplazados: 0, omitidos: 0, agotadas: false, vistos: [] }),
+    liquidacion: async () => { registro.push('anota-liquidacion'); return { sweepId: 's3', startedAt: 0, finishedAt: 1, durationMs: 1, examined: 0, settled: 0, refunded: 0, skipped: 0, unknown: 0, errors: 0, pending: false }; },
+    anotarPregunta: () => registro.push('anota-pregunta'),
+  })();
+  check('la reconciliación se anota ANTES de liquidar: si no, los registros dirían que se liquidó primero', registro.join('→') === 'anota-pregunta→anota-liquidacion');
   check('y la pasada devuelve las dos cosas', r.reconciliacion.resueltos === 1 && r.liquidacion.settled === 1 && r.falloAlPreguntar === false);
 
   /* Un proveedor caído no puede impedir que se cobre lo que ya estaba resuelto. */

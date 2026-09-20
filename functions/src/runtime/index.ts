@@ -372,6 +372,15 @@ export const mantenimientoDeWee = (deps: {
   ahora?: () => number;
   reconciliacion?: () => Promise<InformeDelReconciliador>;
   liquidacion?: () => Promise<InformeDeBarrido>;
+  /**
+   * Se llama EN CUANTO termina de preguntar, no al final.
+   *
+   * Si se dejara para el final, el registro de la liquidación —que se escribe
+   * mientras liquida— saldría ANTES que el de la reconciliación, y cualquiera
+   * que leyera los registros deduciría que se liquidó primero. El orden de lo
+   * que se lee tiene que ser el orden de lo que pasó.
+   */
+  anotarPregunta?: (informe: InformeDelReconciliador | undefined, fallo: boolean) => void;
   anotar?: (v: { reconciliacion?: InformeDelReconciliador; liquidacion: InformeDeBarrido; falloAlPreguntar: boolean }) => void;
 } = {}) => {
   /*
@@ -394,6 +403,8 @@ export const mantenimientoDeWee = (deps: {
       /* Preguntar salió mal. NO impide liquidar lo que ya estaba resuelto, y no cierra ni devuelve nada. */
       falloAlPreguntar = true;
     }
+    /* Aquí, antes de liquidar: lo que se lee tiene que ir en el orden en que pasó. */
+    deps.anotarPregunta?.(reconciliacion, falloAlPreguntar);
     const liquidacion = await liquidar();
     const salida = { ...(reconciliacion ? { reconciliacion } : {}), liquidacion, falloAlPreguntar };
     deps.anotar?.(salida);

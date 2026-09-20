@@ -110,7 +110,8 @@ export const barridoDeLiquidacion = onSchedule(
     const pasada = mantenimientoDeWee({
       db: getFirestore(),
       liquidacion: barridoDeLiquidacionDeWee({ db: getFirestore(), anotar: anotarBarrido }),
-      anotar: ({ reconciliacion, falloAlPreguntar }) => anotarReconciliacion(reconciliacion, falloAlPreguntar),
+      /* Se anota al terminar de preguntar, que es antes de liquidar: los registros se leen en el orden en que pasaron. */
+      anotarPregunta: anotarReconciliacion,
     });
     await pasada();
   },
