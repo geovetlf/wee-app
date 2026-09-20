@@ -21,6 +21,8 @@ import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
 import { crearMotorDeTrabajosDeWee } from '../job';
 import { datosDelRegistro } from '../registry';
 import { almacenDeEjecuciones, almacenDeTrabajos, contadorDeCapacidad } from './almacen';
+import { InformeDeBarrido, pasarElBarrendero } from './barrido';
+import { barrerLiquidaciones } from './barrendero';
 import { colaDeInvocacion } from './cola';
 import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
 import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
@@ -240,6 +242,38 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
   };
 };
 
+/**
+ * LA PASADA DEL BARRENDERO DE WEË, compuesta: el almacén de verdad, el Credit
+ * Engine de verdad, y el barrendero que ya existe. Una función sin argumentos
+ * que se puede llamar desde una prueba igual que desde un programador de tareas.
+ *
+ * NADIE LA LLAMA TODAVÍA: no se exporta como Function y no hay nada programado.
+ */
+export const barridoDeLiquidacionDeWee = (deps: {
+  db: Firestore;
+  ahora?: () => number;
+  liquidacion?: PuertoDeLiquidacion;
+  porPagina?: number;
+  maxPaginas?: number;
+  anotar?: (informe: InformeDeBarrido) => void;
+}) => {
+  const ahora = deps.ahora ?? (() => Date.now());
+  const trabajos = almacenDeTrabajos(deps.db);
+  const liquidacion = deps.liquidacion ?? liquidacionDeWee();
+  return async (): Promise<InformeDeBarrido> => pasarElBarrendero({
+    ahora,
+    identificador: () => `sweep-${randomUUID()}`,
+    barrer: () => barrerLiquidaciones({
+      trabajos,
+      liquidacion,
+      ahora,
+      ...(deps.porPagina !== undefined ? { porPagina: deps.porPagina } : {}),
+      ...(deps.maxPaginas !== undefined ? { maxPaginas: deps.maxPaginas } : {}),
+    }),
+    ...(deps.anotar ? { anotar: deps.anotar } : {}),
+  });
+};
+
 export interface ConductorDeWeeDeps {
   db: Firestore;
   ahora?: () => number;
@@ -319,6 +353,8 @@ export { huellaDeEntrada } from './contexto';
 export type { LibroDeIntentos } from './ejecutor';
 export { barrerLiquidaciones } from './barrendero';
 export type { BarrenderoDeps, InformeDelBarrendero, VistoPorElBarrendero } from './barrendero';
+export { pasarElBarrendero, CADA_CUANTO_POR_DEFECTO_MIN } from './barrido';
+export type { BarridoDeps, InformeDeBarrido } from './barrido';
 export { decidirLiquidacion, reservaDe } from './liquidacion';
 export type { AccionDeLiquidacion, PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
 export type { AlmacenDeTrabajosDeWee } from './almacen';

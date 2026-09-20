@@ -445,6 +445,69 @@ console.log('\n── K · Lo que se quedó sin cerrar, contra Firestore ──'
   await vaciar();
 }
 
+/* ── L ─────────────────────────────────────────────────────────────────────── */
+console.log('\n── L · Una tarea que el proveedor acepta, de punta a punta ──');
+{
+  await vaciar();
+  const { decidirLiquidacion } = lib('runtime/liquidacion.js');
+  const { barrerLiquidaciones } = lib('runtime/barrendero.js');
+  const { pasarElBarrendero } = lib('runtime/barrido.js');
+
+  const reserva = { creditTransactionId: 'usage_op_async', creditRequestId: 'op_async', creditsEstimated: 5, service: 'ai_video' };
+  const job = nuevo({ metadata: reserva });
+  await store.crearSiAusente(job);
+
+  /* El trabajador sale, y el proveedor contesta «la tengo». */
+  const rec = motor.reclamar(job, { principal: QUIEN, at: reloj, worker: 'w-async' });
+  let actual = (await store.aplicar(rec.transition)).job;
+  const env = motor.marcarEnvio(actual, { principal: QUIEN, at: reloj, worker: 'w-async', attemptId: rec.dispatch.attemptId });
+  actual = (await store.aplicar(env.transition)).job;
+  const aceptada = trabajosDeWee.informeDelGateway(
+    { ...rec.dispatch },
+    { contract: '1.0', status: 'accepted', requestId: 'req-async', traceId: 'trace-async', idempotencyKey: 'idem-async', capability: 'image.generate', implementation: impl, operation: { providerId: impl.providerId, operationId: 'tarea_del_proveedor_1' }, timing: { startedAt: reloj, finishedAt: reloj }, warnings: [] },
+    { providerId: impl.providerId, operationId: 'tarea_del_proveedor_1' },
+  );
+  const cierre = motor.informar(actual, { principal: QUIEN, at: reloj, worker: 'w-async', report: aceptada });
+  const esperando = (await store.aplicar(cierre.transition)).job;
+  check('el trabajo queda ESPERANDO, no terminado, y con la referencia del proveedor guardada',
+    esperando.state === 'waiting' && esperando.attempts[0].outcome === 'unknown' && esperando.attempts[0].dispatched === true && esperando.attempts[0].providerRef?.operationId === 'tarea_del_proveedor_1');
+
+  const guardado = await store.obtener(esperando.jobId);
+  check('y leído del almacén, la liquidación dice ESPERAR porque el proveedor la aceptó',
+    decidirLiquidacion(guardado, reloj).tipo === 'esperar' && decidirLiquidacion(guardado, reloj).motivo === 'aceptada_por_el_proveedor');
+
+  const movimientos = [];
+  const puerto = {
+    async liquidar({ reserva: r }) { movimientos.push(`liquidar:${r.requestId}`); return { desenlace: 'liquidada', estado: 'COMPLETED' }; },
+    async reembolsar({ reserva: r }) { movimientos.push(`reembolsar:${r.requestId}`); return { desenlace: 'reembolsada', estado: 'REFUNDED' }; },
+  };
+  let paso = 0;
+  const pasada = () => pasarElBarrendero({
+    barrer: () => barrerLiquidaciones({ trabajos: store, liquidacion: puerto, ahora: () => reloj }),
+    ahora: () => reloj, identificador: () => `sweep-emu-${++paso}`,
+  });
+  const p1 = await pasada();
+  check('el barrendero NO la toca mientras el proveedor la tiene: ni cobra ni devuelve', p1.skipped === 1 && p1.settled === 0 && p1.refunded === 0 && p1.unknown === 0 && movimientos.length === 0);
+  check('y no la marca: la siguiente pasada volverá a mirarla', (await store.porLiquidar({ limit: 10 })).jobs.length === 1);
+
+  /* Llega el aviso del proveedor: terminó. */
+  const aviso = motor.recibirEvento(
+    guardado,
+    { eventId: 'ev-async-1', jobId: guardado.jobId, attemptId: guardado.attempts[0].attemptId, kind: 'succeeded', at: reloj, outputRefs: [] },
+    reloj,
+  );
+  const terminado = aviso.transition ? (await store.aplicar(aviso.transition)).job : guardado;
+  check('cuando el proveedor avisa de que terminó, el trabajo llega a su estado final', terminado.state === 'completed', `${terminado.state} · ${aviso.status}`);
+
+  const p2 = await pasada();
+  check('AHORA sí: el barrendero lo cobra, y una sola vez', p2.settled === 1 && p2.refunded === 0 && movimientos.join(',') === 'liquidar:op_async');
+  const p3 = await pasada();
+  check('y una pasada más no vuelve a moverlo', p3.examined === 0 && movimientos.length === 1);
+  check('el informe de la pasada solo lleva metadatos', typeof p2.sweepId === 'string' && typeof p2.durationMs === 'number' && !/prompt|content|gato/i.test(JSON.stringify(p2)));
+
+  await vaciar();
+}
+
 await vaciar();
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

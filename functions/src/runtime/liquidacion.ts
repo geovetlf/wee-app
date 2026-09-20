@@ -57,6 +57,12 @@ export const CLAVE_DE_SERVICIO = 'service';
 export type MotivoDeEspera =
   /* Alguien lo está ejecutando ahora mismo: la concesión está viva. */
   | 'en_marcha'
+  /*
+   * EL PROVEEDOR LA ACEPTÓ y sigue con ella. Salió, no se sabe cómo acabará
+   * todavía, pero NO es incertidumbre: hay un acuse con el nombre que el
+   * proveedor le da, y por eso hay a quién preguntarle. Se espera.
+   */
+  | 'aceptada_por_el_proveedor'
   /* Nadie lo tiene, pero el motor de trabajos todavía puede moverlo. No es asunto del dinero. */
   | 'recuperable';
 
@@ -113,8 +119,27 @@ const concesionViva = (job: Job, at: number): boolean => {
   const lease = ultimoIntento(job)?.lease;
   return !!lease && lease.until > at;
 };
-/** ¿Hay algún intento que SALIÓ hacia el proveedor y del que no se sabe cómo acabó? */
-const saliaYNoSeSabe = (job: Job): boolean => job.attempts.some((a) => a.dispatched === true && a.outcome === 'unknown');
+/**
+ * ── ACEPTADA Y «NO SE SABE» SON DOS COSAS ───────────────────────────────────
+ *
+ * Las dos dejan el intento con el desenlace sin conocer, porque el vocabulario
+ * del Job Engine no tiene un desenlace «aceptado» —y no se le inventa uno—. Lo
+ * que las separa está escrito igual de durable: la REFERENCIA DEL PROVEEDOR.
+ *
+ *   con referencia   el proveedor acusó recibo y le puso nombre a la tarea.
+ *                    Hay a quién preguntarle. Es una operación EN CURSO.
+ *   sin referencia   salió y no volvió nadie. No hay a quién preguntar.
+ *                    Eso sí es incertidumbre, y eso es lo que se reconcilia.
+ *
+ * Confundirlas llenaría la cola de reconciliación de vídeos perfectamente sanos.
+ */
+const aceptadaYEnMarcha = (a: JobAttempt): boolean => a.dispatched === true && a.outcome === 'unknown' && !!a.providerRef;
+const sinSaberYSinPistas = (a: JobAttempt): boolean => a.dispatched === true && a.outcome === 'unknown' && !a.providerRef;
+
+/** ¿Hay algún intento que salió y del que no se sabe nada, ni siquiera cómo lo llama el proveedor? */
+const saliaYNoSeSabe = (job: Job): boolean => job.attempts.some(sinSaberYSinPistas);
+/** ¿Hay alguno que el proveedor aceptó y sigue en marcha? */
+const aceptadaPorElProveedor = (job: Job): boolean => job.attempts.some(aceptadaYEnMarcha);
 /** ¿Salió alguna vez hacia el proveedor? */
 const saliaAlguna = (job: Job): boolean => job.attempts.some((a) => a.dispatched === true);
 
@@ -132,10 +157,12 @@ export const decidirLiquidacion = (job: Job, at: number): AccionDeLiquidacion =>
   if (!esTrabajoTerminal(job.state)) {
     /* Alguien lo tiene ahora mismo. No se toca su dinero, cueste lo que cueste esperar. */
     if (concesionViva(job, at)) return { tipo: 'esperar', motivo: 'en_marcha' };
+    /* El proveedor la aceptó y sigue con ella. Esperar no es no saber: es saber que falta. */
+    if (aceptadaPorElProveedor(job)) return { tipo: 'esperar', motivo: 'aceptada_por_el_proveedor' };
     /*
-     * `waiting` con un intento que salió y no se sabe: esto es lo que un
-     * barrendero ingenuo reembolsaría. Puede haber un resultado hecho y
-     * cobrado del otro lado, esperando a que llegue el aviso del proveedor.
+     * `waiting` con un intento que salió y del que no volvió nadie: esto es lo
+     * que un barrendero ingenuo reembolsaría. Puede haber un resultado hecho y
+     * cobrado del otro lado, y aquí ni siquiera hay a quién preguntarle.
      */
     if (saliaYNoSeSabe(job)) return { tipo: 'reconciliar', motivo: 'desenlace_desconocido' };
     /* Sin dueño y sin incertidumbre: el motor de trabajos todavía puede moverlo. El dinero no opina. */
@@ -146,9 +173,11 @@ export const decidirLiquidacion = (job: Job, at: number): AccionDeLiquidacion =>
 
   /*
    * Terminal y no completado —`failed`, `timed_out`, `cancelled`—. Aquí sí se
-   * puede devolver, pero solo si consta que no quedó nada al otro lado.
+   * puede devolver, pero solo si consta que no quedó nada al otro lado. Una
+   * tarea que el proveedor aceptó y que murió por plazo TAMPOCO se devuelve
+   * sola: se le pregunta a él, que para eso quedó anotado cómo la llama.
    */
-  if (saliaYNoSeSabe(job)) return { tipo: 'reconciliar', motivo: 'desenlace_desconocido' };
+  if (saliaYNoSeSabe(job) || aceptadaPorElProveedor(job)) return { tipo: 'reconciliar', motivo: 'desenlace_desconocido' };
   return { tipo: 'reembolsar', motivo: saliaAlguna(job) ? 'fallo_definitivo' : 'no_salio' };
 };
 

@@ -183,6 +183,8 @@ export type GatewayReason =
   | 'model_pending'
   | 'adapter_missing'
   | 'adapter_inactive'
+  /* Dijo que el proveedor la aceptó, pero no dijo cómo la llama él: así no hay a quién preguntarle después. */
+  | 'accepted_without_operation'
   | 'adapter_unsupported'
   | 'deadline_passed'
   | 'registry_unavailable'
@@ -222,6 +224,12 @@ export interface GatewayResult {
     type?: ProviderType;
   };
   response?: CanonicalResponse;
+  /**
+   * Cómo llama el proveedor a esta operación. Solo con `accepted`: es lo único
+   * que queda de una tarea que sigue en marcha del otro lado, y lo que permitirá
+   * preguntar por ella. Sin esto, `accepted` sería un callejón sin salida.
+   */
+  operation?: GatewayOperationRef;
   usage?: GatewayUsage;
   error?: WeeError;
   timing: { startedAt: number; finishedAt: number };
@@ -243,8 +251,36 @@ export interface ExecutorRequest {
   hooks?: ExecutionHooks;
 }
 
+/**
+ * CÓMO LLAMA EL PROVEEDOR A UNA OPERACIÓN SUYA. Opaco: no se interpreta, no se
+ * compara por partes. Es lo único que hace falta para poder volver a
+ * preguntarle por ella. Misma forma que `ProviderOperationRef` del Job Engine,
+ * escrita aquí para no cruzar capas.
+ */
+export interface GatewayOperationRef {
+  providerId: string;
+  operationId: string;
+}
+
+/**
+ * LO QUE CONTESTA UN ADAPTADOR.
+ *
+ * Tres respuestas, no dos. Las dos primeras llevaban aquí desde la Fase 2: salió
+ * bien con una respuesta, o salió mal con un error. La tercera es la que faltaba
+ * y sin la cual `accepted` —que está declarado desde el primer día— no podía
+ * producirse nunca: **el proveedor cogió la tarea y sigue con ella por su
+ * cuenta**.
+ *
+ * No es un modo de ejecución nuevo. La llamada se hace y se espera, como
+ * siempre; lo que cambia es que lo que contesta el proveedor no es un resultado
+ * sino un acuse con su nombre para la operación. Un adaptador que nunca lo
+ * devuelva se comporta exactamente igual que antes.
+ */
 export type ExecutorOutcome =
-  | { ok: true; response: CanonicalResponse; usage?: GatewayUsage; warnings?: readonly GatewayWarning[] }
+  /* `accepted` se declara aquí —ausente— para que distinguir las dos sea el tipo quien lo haga, y no una comprobación a mano. */
+  | { ok: true; accepted?: undefined; response: CanonicalResponse; usage?: GatewayUsage; warnings?: readonly GatewayWarning[] }
+  /* EL PROVEEDOR LA COGIÓ. No hay resultado todavía, y puede que tarde horas. */
+  | { ok: true; accepted: true; operation: GatewayOperationRef; usage?: GatewayUsage; warnings?: readonly GatewayWarning[] }
   | { ok: false; error: WeeError };
 
 /** Quien sabe hablar con un adaptador. La composición del motor lo implementa. */
@@ -958,6 +994,35 @@ export const crearGateway = (ports: GatewayPorts): Gateway => {
     if (!salida.ok) {
       const error = salida.error && esTexto(salida.error.code) ? salida.error : fallo('INTERNAL_ERROR', 'executor_failure');
       return fallar(error);
+    }
+
+    /*
+     * ── ACEPTADA, QUE NO ES TERMINADA ────────────────────────────────────────
+     *
+     * El proveedor cogió la tarea y sigue con ella. No hay resultado que
+     * validar, ni que proyectar, ni que sanear: lo único que vuelve es cómo la
+     * llama él, y sin eso no habría forma de volver a preguntarle, así que sin
+     * eso esto no es una aceptación —es un error nuestro—.
+     *
+     * Quien lo recibe (`informeDelGateway`, Fase 8) lo convierte en un intento
+     * cuyo desenlace NO se conoce todavía, con la operación marcada como salida,
+     * y el trabajo queda ESPERANDO. Ni se cobra, ni se devuelve, ni se repite.
+     */
+    if (salida.accepted === true) {
+      const op = salida.operation;
+      if (!op || !esTexto(op.providerId) || !esTexto(op.operationId) || !FORMA_DE_ETIQUETA_DE_TRAZA.test(op.operationId)) {
+        return fallar(fallo('PROVIDER_ERROR', 'accepted_without_operation'));
+      }
+      if (salida.warnings) warnings.push(...salida.warnings);
+      const usoDeAcuse = salida.usage ? sanearUso(salida.usage) : undefined;
+      return anotar({
+        ...base,
+        status: 'accepted',
+        operation: Object.freeze({ providerId: op.providerId, operationId: op.operationId }),
+        ...(usoDeAcuse ? { usage: usoDeAcuse } : {}),
+        timing: { startedAt, finishedAt: ports.now() },
+        warnings: [...warnings],
+      });
     }
 
     if (!respuestaCanonicaValida(salida.response)) {

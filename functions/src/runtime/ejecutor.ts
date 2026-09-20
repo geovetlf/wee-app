@@ -83,7 +83,8 @@ export interface EjecutorDeps {
   /**
    * Cómo llama el PROVEEDOR a esta operación, cuando alguien lo sabe. Cada uno
    * guarda su identificador donde quiere; adivinarlo aquí metería un proveedor
-   * concreto en el camino común. Sin él, el trabajo funciona igual.
+   * concreto en el camino común. Sin él se usa el que trae el propio resultado,
+   * que es el que el Gateway devuelve al aceptar una tarea.
    */
   referenciaDeProveedor?: (resultado: GatewayResult) => ProviderOperationRef | undefined;
 }
@@ -187,7 +188,15 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
           console.warn(`WEË RUNTIME: no se pudo cerrar la fila del libro (${dispatch.trace.requestId})`);
         }
       }
-      return informeDelGateway(dispatch, resultado, deps.referenciaDeProveedor?.(resultado));
+      /*
+       * LA REFERENCIA DEL PROVEEDOR, que con `accepted` no es un adorno: es lo
+       * único que queda de una tarea que sigue viva del otro lado. El Gateway ya
+       * la devuelve en el resultado, así que no hace falta que la composición
+       * sepa de ningún proveedor para conservarla.
+       */
+      const ref = deps.referenciaDeProveedor?.(resultado)
+        ?? (resultado.operation ? { providerId: resultado.operation.providerId, operationId: resultado.operation.operationId } : undefined);
+      return informeDelGateway(dispatch, resultado, ref);
     },
   };
 };

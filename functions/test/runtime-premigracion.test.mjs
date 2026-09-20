@@ -212,8 +212,18 @@ console.log('\n── B · El Gateway: qué contesta de verdad, y `accepted` ─
    */
   const GW = sinComentarios(leer('functions/src/core/gateway.ts'));
   check('`accepted` está declarado en el contrato del Gateway', /GatewayStatus = 'completed' \| 'failed' \| 'accepted'/.test(GW));
-  check('y NINGUNA ruta del Gateway lo produce: solo escribe `completed` y `failed`', !/status:\s*'accepted'/.test(GW) && /status:\s*'completed'/.test(GW) && /status:\s*'failed'/.test(GW));
-  check('porque su puerto hacia los adaptadores no tiene cómo decirlo: o respuesta, o error', /\| \{ ok: true; response: CanonicalResponse;[^}]*\}\s*\| \{ ok: false; error: WeeError \}/.test(GW.replace(/\n\s*/g, ' ')));
+  /*
+   * ESTO CAMBIÓ, Y ES LO QUE ESTE ARCHIVO PEDÍA. El endurecimiento dejó escrito
+   * que `accepted` estaba declarado y no podía producirse nunca, porque el
+   * puerto hacia los adaptadores solo sabía decir «respuesta» o «error». El
+   * bloque de ejecución asíncrona (F12-D) añadió la tercera respuesta y su
+   * camino. Sigue sin migrarse ninguna capacidad: lo que hay es la puerta.
+   */
+  check('y ahora el Gateway SÍ puede producirlo, por el camino que faltaba', /status: 'accepted'/.test(GW) && /status: 'completed'/.test(GW) && /status: 'failed'/.test(GW));
+  check('porque su puerto hacia los adaptadores ya sabe decir «el proveedor la cogió»', /\| \{ ok: true; accepted: true; operation: GatewayOperationRef/.test(GW));
+  check('y sin referencia del proveedor no se da por aceptada: sería un callejón sin salida', /accepted_without_operation/.test(GW));
+  check('ningún adaptador de Weë lo produce todavía: la puerta está, el vídeo no se ha migrado',
+    !/accepted: true/.test(sinComentarios(leer('functions/src/engine/gateway.ts'))) && !fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).some((f) => /accepted: true/.test(leer(`functions/src/engine/providers/${f}`))));
   check('su ÚNICO consumidor es la composición del Job Engine, que lo traduce a «no se sabe todavía»', trabajosDeWee.informeDelGateway({ attemptId: 'a1' }, { status: 'accepted', implementation: {} }).outcome === 'unknown');
 
   /* Y si un día el Gateway lo contestara, el runtime YA es seguro: no lo da por hecho, no lo repite y no se queda esperando. */
@@ -558,7 +568,11 @@ console.log('\n── G · Qué se añadió, qué se tocó a propósito y qué s
   const conPuerta = vivos.filter((f) => /decidirRuntime/.test(sinComentarios(leer(f))));
   check('UNA SOLA ENTRADA AL RUNTIME: la puerta la consulta `brainChat`, y nadie más', conPuerta.join(',') === 'functions/src/creator/brain.ts', conPuerta.join(','));
   check('no se tocó el Financial Core ni el Credit Engine', !/runtime/.test(leer('functions/src/credits/creditEngine.ts')));
-  check('lo ÚNICO tocado de una fase cerrada es `leerTraza`, y lo vigila job-queue 63b', /63b\) y del Gateway cambió SOLO `leerTraza`/.test(leer('functions/test/job-queue.test.mjs')));
+  /* De una fase cerrada se tocaron DOS cosas, las dos del Gateway y las dos autorizadas: `leerTraza` y el camino de `accepted`. */
+  check('lo tocado de una fase cerrada está vigilado una por una en job-queue 63b–63e', (() => {
+    const jq = leer('functions/test/job-queue.test.mjs');
+    return /63b\) del Gateway cambió `leerTraza`/.test(jq) && /63c\) y se completó `accepted`/.test(jq) && /63e\) y lo único que se quitó del Gateway/.test(jq);
+  })());
   check('esta suite está en la cadena de `npm test`', /runtime-premigracion\.test\.mjs/.test(leer('functions/package.json')));
 }
 

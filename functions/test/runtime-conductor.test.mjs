@@ -537,7 +537,10 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
 {
   const dir = 'functions/src/runtime';
   const archivos = fs.readdirSync(path.resolve(RAIZ, dir)).sort();
-  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,barrendero.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
+  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,barrendero.ts,barrido.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
+  /* Y la infraestructura que lo programa vive FUERA: el runtime no sabe quién le pide que pase. */
+  check('el programador de tareas no está en runtime/, y el runtime no lo nombra', fs.existsSync(path.resolve(RAIZ, 'functions/src/settlement/programado.ts'))
+    && !archivos.some((f) => /onSchedule|firebase-functions/.test(leer(`${dir}/${f}`))));
   const puros = ['conductor.ts', 'cola.ts', 'ejecutor.ts', 'resolucion.ts', 'puerta.ts'].map((f) => sinComentarios(leer(`${dir}/${f}`)));
   check('conductor, cola, ejecutor, resolución y puerta NO saben de Firestore: todo les entra por puertos', puros.every((s) => !/firebase|firestore/i.test(s)));
   check('ni leen el reloj ni tiran dados: el tiempo entra por la puerta', puros.every((s) => !/Date\.now\(|Math\.random\(|new Date\(/.test(s)));

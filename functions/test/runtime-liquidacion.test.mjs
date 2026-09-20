@@ -437,5 +437,144 @@ console.log('\n── F · Qué se añadió, y qué NO se tocó ──');
   check('y el trabajo ya lleva lo que haría falta para cerrarlo desde fuera', /creditRequestId: requestId/.test(leer('functions/src/creator/brain.ts')));
 }
 
+/* ── G · El Gateway puede decir «lo tengo» ─────────────────────────────────── */
+console.log('\n── G · ACCEPTED: el proveedor la cogió, y eso no es ni terminada ni desconocida ──');
+{
+  const core = lib('core/index.js');
+  const registroDeWee = lib('registry/index.js');
+
+  const adaptador = (id, caps = ['video.generate']) => ({
+    id, name: id, modalities: ['video'], models: [{ id: `${id}-1`, provider: id, capabilities: caps, quality: 3, speed: 3, cost: { unit: 'call', usd: 0.5 } }],
+    isConfigured: () => true, supports: (c) => caps.includes(c),
+    async run() { throw new Error('no se usa: el ejecutor es de mentira'); },
+  });
+  const mundoGateway = (ejecutor) => {
+    const adapters = { v: adaptador('v') };
+    const registro = core.crearRegistro(registroDeWee.datosDelRegistro(adapters, {}));
+    const trazas = [];
+    return { trazas, gateway: core.crearGateway({ registry: registro, executor: ejecutor, tracer: { record: (t) => trazas.push(t) }, now: () => AHORA }) };
+  };
+  const peticion = (extra = {}) => ({
+    contract: '1.0', capability: 'video.generate',
+    implementation: { providerId: 'v', modelId: 'v-1' },
+    input: { prompt: 'un gato con sombrero' },
+    trace: { traceId: 'trace-acc', requestId: 'req-acc-0001', userId: USUARIO },
+    idempotencyKey: 'idem-acc-0001',
+    execution: { mode: 'sync' },
+    ...extra,
+  });
+  const OP = { providerId: 'v', operationId: 'task_abc123' };
+
+  /* A · síncrono. */
+  const RESPUESTA = { kind: 'video', urls: ['https://x/v.mp4'], durationSec: 5, actual: { provider: { lines: [], usd: 0.4, model: 'v-1' }, latencyMs: 30 }, model: 'v-1' };
+  const sincrono = mundoGateway({ async run() { return { ok: true, response: RESPUESTA, usage: { inputTokens: 9, outputTokens: 4 } }; } });
+  const rA = await sincrono.gateway.ejecutar(peticion());
+  check('A · proveedor síncrono → COMPLETED, con su respuesta', rA.status === 'completed' && rA.response?.kind === 'video' && rA.operation === undefined, `${rA.status} ${JSON.stringify(rA.error ?? '')}`);
+
+  /* B · asíncrono. */
+  const asincrono = mundoGateway({ async run() { return { ok: true, accepted: true, operation: OP, usage: { inputTokens: 9, outputTokens: 4 } }; } });
+  const rB = await asincrono.gateway.ejecutar(peticion());
+  check('B · proveedor asíncrono → ACCEPTED, con el nombre que él le da a la tarea', rB.status === 'accepted' && rB.operation?.operationId === 'task_abc123' && rB.operation?.providerId === 'v');
+  check('C · ACCEPTED no es COMPLETED: no trae respuesta', rB.status !== 'completed' && rB.response === undefined);
+  check('D · ni es FAILED: no trae error', rB.status !== 'failed' && rB.error === undefined);
+  check('G · conserva los identificadores de quien lo pidió', rB.requestId === 'req-acc-0001' && rB.traceId === 'trace-acc' && rB.idempotencyKey === 'idem-acc-0001' && rB.implementation.modelId === 'v-1');
+  check('y lo que el proveedor ya dijo haber consumido al aceptar viaja también', rB.usage?.inputTokens === 9, JSON.stringify(rB.usage ?? null));
+  check('sin inventarse el aviso de «falta el uso»: un acuse no tiene por qué traerlo', !(await mundoGateway({ async run() { return { ok: true, accepted: true, operation: OP }; } }).gateway.ejecutar(peticion())).warnings.includes('usage_missing'));
+  check('K · es idempotente: la misma petición dos veces da lo mismo', JSON.stringify({ ...(await asincrono.gateway.ejecutar(peticion())), timing: 0 }) === JSON.stringify({ ...rB, timing: 0 }));
+  check('deja UNA traza, y dice que fue aceptada', asincrono.trazas.length === 2 && asincrono.trazas[0].status === 'ok');
+
+  /* L · aceptar sin decir cómo se llama la tarea no es aceptar. */
+  const manco = mundoGateway({ async run() { return { ok: true, accepted: true, operation: undefined }; } });
+  const rL = await manco.gateway.ejecutar(peticion());
+  check('L · «aceptada» sin referencia del proveedor NO se da por buena: sería un callejón sin salida', rL.status === 'failed' && rL.error?.details?.reason === 'accepted_without_operation');
+  const raro = mundoGateway({ async run() { return { ok: true, accepted: true, operation: { providerId: 'v', operationId: 'con espacios y /' } }; } });
+  check('   ni una referencia con cualquier cosa dentro', (await raro.gateway.ejecutar(peticion())).status === 'failed');
+
+  /* M · los proveedores síncronos no cambian. */
+  check('M · un ejecutor que nunca dice «aceptada» se comporta EXACTAMENTE igual que antes', (() => {
+    const s = sinComentarios(leer('functions/src/core/gateway.ts'));
+    /* La rama nueva está DESPUÉS de los errores y ANTES de validar la respuesta, y no toca ninguna de las dos. */
+    return s.indexOf('if (!salida.ok)') < s.indexOf('salida.accepted === true') && s.indexOf('salida.accepted === true') < s.indexOf('respuestaCanonicaValida(salida.response)');
+  })());
+
+  /* H/I/J · qué hace el Job Engine con eso. */
+  const trabajosDeWee = lib('job/index.js');
+  const dispatch = {
+    jobId: 'j-acc', attemptId: 'a-acc', attempt: 1, capability: 'video.generate',
+    implementation: { providerId: 'v', modelId: 'v-1', adapterId: 'adapter:v' },
+    input: { prompt: 'x' }, trace: { traceId: 'trace-acc', requestId: 'req-acc-0001', userId: USUARIO }, idempotencyKey: 'idem-acc-0001',
+  };
+  const informe = trabajosDeWee.informeDelGateway(dispatch, rB, { providerId: 'v', operationId: 'task_abc123' });
+  check('H · el intento se cierra como SALIDO y con el desenlace todavía sin conocer', informe.dispatched === true && informe.outcome === 'unknown');
+  check('I · y se queda anotado cómo llama el proveedor a la tarea: por ahí se preguntará después', informe.providerRef?.operationId === 'task_abc123');
+  check('E/F · no trae resultado ni error: ni se cobra ni se devuelve por esto', informe.result === undefined && informe.error === undefined);
+  const informeDeFallo = trabajosDeWee.informeDelGateway(dispatch, { ...rB, status: 'failed', error: { code: 'PROVIDER_ERROR', source: 'gateway' } });
+  check('J · un fallo de verdad sigue siendo un fallo, no una aceptación', informeDeFallo.outcome === 'failed');
+
+  /* Y lo que la liquidación hace con la diferencia. */
+  const conRef = trabajo({ state: 'waiting', attempts: [{ ...intento({ dispatched: true, outcome: 'unknown' }), providerRef: { providerId: 'v', operationId: 'task_abc123' } }] });
+  const sinRef = trabajo({ state: 'waiting', attempts: [intento({ dispatched: true, outcome: 'unknown' })] });
+  check('ACEPTADA: el dinero ESPERA, y se dice por qué', (() => { const a = decidirLiquidacion(conRef, AHORA); return a.tipo === 'esperar' && a.motivo === 'aceptada_por_el_proveedor'; })());
+  check('SIN NOTICIAS: eso sí es incertidumbre, y se reconcilia', decidirLiquidacion(sinRef, AHORA).tipo === 'reconciliar');
+  check('y una aceptada que muere por plazo tampoco se devuelve sola: se le pregunta al proveedor',
+    decidirLiquidacion({ ...conRef, state: 'timed_out' }, AHORA).tipo === 'reconciliar');
+  check('UNKNOWN sigue reservado para la incertidumbre de verdad', decidirLiquidacion(sinRef, AHORA).motivo === 'desenlace_desconocido');
+}
+
+/* ── H · Quién le pide al barrendero que pase ──────────────────────────────── */
+console.log('\n── H · El programador: dispara una pasada, y nada más ──');
+{
+  const { pasarElBarrendero, CADA_CUANTO_POR_DEFECTO_MIN } = lib('runtime/barrido.js');
+  let reloj = 100;
+  const reloj_ = () => (reloj += 10);
+  let nombre = 0;
+  const base = (barrer) => ({ barrer, ahora: reloj_, identificador: () => `sweep-${++nombre}` });
+
+  /* 1 · dispara una pasada. */
+  let veces = 0;
+  const r1 = await pasarElBarrendero(base(async () => { veces++; return { mirados: 3, liquidados: 1, reembolsados: 1, esperando: 1, aReconciliar: 0, yaEstaban: 0, fallos: 0, vistos: [] }; }));
+  check('1 · dispara UNA pasada y devuelve sus metadatos', veces === 1 && r1.examined === 3 && r1.settled === 1 && r1.refunded === 1 && r1.skipped === 1 && r1.sweepId === 'sweep-1' && r1.durationMs >= 0);
+  check('   y solo metadatos: ni prompts, ni respuestas, ni identificadores de nadie', !/prompt|text|content|userId|apiKey/i.test(JSON.stringify(r1)));
+
+  /* 2/3 · dos a la vez, y una lenta. */
+  let dentro = 0; let maximoALaVez = 0;
+  const lenta = async () => { dentro++; maximoALaVez = Math.max(maximoALaVez, dentro); await new Promise((s) => setTimeout(s, 20)); dentro--; return { mirados: 1, liquidados: 1, reembolsados: 0, esperando: 0, aReconciliar: 0, yaEstaban: 0, fallos: 0, vistos: [] }; };
+  const [a, b] = await Promise.all([pasarElBarrendero(base(lenta)), pasarElBarrendero(base(lenta))]);
+  check('2/3 · dos pasadas a la vez: las dos corren, sin cerrojo y sin estorbarse', maximoALaVez === 2 && a.examined === 1 && b.examined === 1 && a.sweepId !== b.sweepId);
+  check('   y no hay ningún candado en memoria: sería un candado que solo vale con una instancia', !/let (corriendo|enMarcha|lock)|Mutex|global\./.test(sinComentarios(leer('functions/src/runtime/barrido.ts'))));
+
+  /* 4 · sin pendientes. */
+  const r4 = await pasarElBarrendero(base(async () => ({ mirados: 0, liquidados: 0, reembolsados: 0, esperando: 0, aReconciliar: 0, yaEstaban: 0, fallos: 0, vistos: [] })));
+  check('4 · sin nada pendiente: una pasada en blanco, sin errores', r4.examined === 0 && r4.errors === 0 && r4.pending === false);
+
+  /* 7 · con UNKNOWN. */
+  const r7 = await pasarElBarrendero(base(async () => ({ mirados: 1, liquidados: 0, reembolsados: 0, esperando: 0, aReconciliar: 1, yaEstaban: 0, fallos: 0, vistos: [] })));
+  check('7 · lo que hay que reconciliar se cuenta aparte, y NO como reembolso', r7.unknown === 1 && r7.refunded === 0 && r7.settled === 0);
+
+  /* 11/12 · falla la pasada. */
+  let intentos = 0;
+  const rota = base(async () => { intentos++; if (intentos === 1) throw new Error('firestore se cayó'); return { mirados: 2, liquidados: 2, reembolsados: 0, esperando: 0, aReconciliar: 0, yaEstaban: 0, fallos: 0, vistos: [] }; });
+  const r11 = await pasarElBarrendero(rota);
+  check('11 · si la pasada revienta NO lanza: se cuenta el error y queda pendiente', r11.errors === 1 && r11.pending === true && r11.examined === 0);
+  const r12 = await pasarElBarrendero(rota);
+  check('12 · y la siguiente pasada sigue como si nada: no se perdió ningún trabajo', r12.errors === 0 && r12.settled === 2);
+
+  /* Quedan páginas. */
+  const r13 = await pasarElBarrendero(base(async () => ({ mirados: 100, liquidados: 100, reembolsados: 0, esperando: 0, aReconciliar: 0, yaEstaban: 0, fallos: 0, cursor: 'j.x', vistos: [] })));
+  check('si quedan páginas sin mirar, lo dice: la siguiente sigue por ahí', r13.pending === true && r13.examined === 100);
+
+  /* La frecuencia. */
+  check('la frecuencia es configuración razonada, no una constante escondida', CADA_CUANTO_POR_DEFECTO_MIN === 5 && /timeoutsMs\.video/.test(leer('functions/src/runtime/barrido.ts')));
+  check('y se puede cambiar sin tocar código', /SETTLEMENT_SWEEP_MINUTES/.test(leer('functions/src/settlement/programado.ts')));
+
+  /* Lo que el programador NO decide. */
+  const PROG = sinComentarios(leer('functions/src/settlement/programado.ts'));
+  check('el programador no decide nada: ni cobros, ni reembolsos, ni recuperación, ni propiedad', !/completeCredits|refundCredits|decidirLiquidacion|reclamar|owner|recuperables/.test(PROG));
+  check('ni guarda estado entre pasadas', !/^(let|var) /m.test(PROG.replace(/^import[\s\S]*?;$/gm, '')) && !/new Map\(|new Set\(/.test(PROG));
+  check('y el runtime no sabe de Firebase Scheduler: la dependencia va al revés', !/onSchedule|firebase-functions/.test(sinComentarios(leer('functions/src/runtime/barrido.ts')) + sinComentarios(leer('functions/src/runtime/barrendero.ts'))));
+  check('NO ESTÁ DESPLEGADO: `index.ts` no exporta la tarea programada', !/settlement|barridoDeLiquidacion/.test(leer('functions/src/index.ts')));
+  check('no hay temporizadores por trabajo, ni sondeo ocupado, ni nada dentro de Brain', !/setInterval|setTimeout/.test(sinComentarios(leer('functions/src/runtime/barrendero.ts'))) && !/barrer|barrendero|sweep/i.test(sinComentarios(leer('functions/src/creator/brain.ts'))));
+}
+
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

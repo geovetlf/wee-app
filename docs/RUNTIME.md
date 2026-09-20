@@ -1322,9 +1322,113 @@ Son cifras de emulador en un portátil, no de producción. No se optimizó nada.
 
 ### 14.7 Qué sigue bloqueado
 
-La fundación existe; **habilitarla es otro bloque**. Sigue sin migrar el vídeo, las
-operaciones largas, `creatorRun` y el avatar, y para que puedan migrar faltan tres cosas
-que este bloque no hace: **quién llama al barrendero** (un programador de tareas, que es
-infraestructura nueva), **`accepted` en el Gateway** (§ 12.3, sin lo cual una operación
-asíncrona no puede decir «lo tengo» y volver luego) y **quién resuelve lo que queda a
-reconciliar**, que hoy es nadie.
+La fundación existe; **habilitarla es otro bloque**. Dos de los tres huecos que aquí se
+señalaban se cerraron después (§ 15): `accepted` y el programador. Queda el tercero
+—**quién resuelve lo que se queda a reconciliar**— y, sobre todo, **ningún adaptador de
+Weë produce todavía una aceptación**: eso es la migración del vídeo, que no se ha hecho.
+
+---
+
+## 15. F12-D · «Lo tengo»: aceptación y barrido programado
+
+> **NADA DESPLEGADO.** El programador existe y **`index.ts` no lo exporta**, así que no
+> hay ninguna tarea corriendo. Ningún adaptador produce una aceptación. Ninguna capacidad
+> asíncrona se ha migrado. Todo esto es local y de emulador.
+
+### 15.1 `accepted`: el contrato que estaba a medias
+
+`GatewayStatus` declaraba `accepted` desde el primer día y **no podía producirse nunca**,
+porque el puerto hacia los adaptadores solo sabía decir dos cosas: una respuesta o un
+error. Ahora sabe decir tres:
+
+```ts
+| { ok: true; response: CanonicalResponse; … }              // salió bien
+| { ok: true; accepted: true; operation: {…}; … }           // EL PROVEEDOR LA COGIÓ
+| { ok: false; error: WeeError }                            // salió mal
+```
+
+**No es un modo de ejecución nuevo.** El `mode` del Gateway sigue siendo **siempre**
+`sync`: la llamada se hace y se espera. Lo que cambia es qué contesta el proveedor —un
+acuse con el nombre que él le da a la tarea, en vez de un resultado—. Eso ya lo decía el
+propio contrato de la Fase 8, y por eso `mode: 'async'` se sigue rechazando: son dos
+cosas distintas con el mismo nombre.
+
+**Sin referencia no hay aceptación.** Si alguien dice «aceptada» y no dice cómo la llama
+el proveedor, el Gateway lo rechaza (`accepted_without_operation`): una tarea viva del
+otro lado a la que no se puede volver a preguntar es un callejón sin salida, y es mejor
+fallar ahí que descubrirlo tres horas después.
+
+**Qué pasa río abajo, sin tocar nada.** `informeDelGateway` (Fase 8) ya sabía qué hacer
+con `accepted` y no se cambió: cierra el intento con el desenlace **sin conocer**, marcado
+como **salido**, y con la referencia del proveedor. El trabajo queda **esperando**. Ni se
+cobra, ni se devuelve, ni se repite.
+
+### 15.2 Aceptada ≠ no se sabe
+
+El vocabulario de desenlaces del Job Engine no tiene «aceptado», y **no se le inventa uno**.
+Lo que separa las dos situaciones está escrito igual de durable: la **referencia del
+proveedor**.
+
+| | Qué significa | Qué hace la liquidación |
+|---|---|---|
+| Desenlace sin conocer **con** referencia | el proveedor acusó recibo y le puso nombre | **esperar** (`aceptada_por_el_proveedor`) |
+| Desenlace sin conocer **sin** referencia | salió y no volvió nadie; no hay a quién preguntar | **reconciliar** |
+
+Confundirlas llenaría la cola de reconciliación de vídeos perfectamente sanos. Y una
+aceptada que además muere por plazo **tampoco se devuelve sola**: se le pregunta al
+proveedor, que para eso quedó anotado cómo la llama.
+
+### 15.3 Quién le pide al barrendero que pase
+
+```
+programador (infraestructura)  →  pasarElBarrendero()  →  barrendero  →  liquidación  →  Credit Engine
+```
+
+`runtime/barrido.ts` es **una función y nada más**: determinista, sin estado entre
+llamadas, sin saber quién la invoca. `functions/src/settlement/programado.ts` la envuelve
+en una tarea programada. La dependencia va en ese sentido y no al revés: **el runtime no
+nombra a Firebase en ninguna parte**.
+
+**Cada cuánto, y por qué.** No sale de la intuición: sale del plazo más largo que admite
+Weë, que es el vídeo con veinte minutos (`timeoutsMs.video`). Con **cinco minutos** —el
+valor por defecto, configurable con `SETTLEMENT_SWEEP_MINUTES`— una operación que termina
+queda liquidada en cinco minutos como mucho, y una que se cuelga entera se cierra dentro
+de los veinticinco. Correr más a menudo no arregla nada que esté mal; correr mucho menos
+deja Credits retenidos a la vista de la persona.
+
+**Dos a la vez es seguro, y no hay cerrojo.** Ni distribuido ni en memoria —un candado en
+memoria solo vale si hay una instancia, que es justo lo que no se puede suponer—. Si una
+pasada tarda más que el periodo, la siguiente entra y las dos acaban llamando a las mismas
+operaciones idempotentes del Credit Engine.
+
+**Si la pasada revienta, no lanza.** Se cuenta el error, se marca que quedó pendiente y se
+devuelve el informe; nada se pierde, porque lo que no se cerró sigue guardado. La pasada
+siguiente continúa como si nada.
+
+**Lo que deja dicho** son metadatos y solo metadatos: `sweepId`, cuándo empezó y acabó,
+cuánto duró, cuántos miró, cuántos quedaron cobrados, cuántos devueltos, cuántos se
+saltó, cuántos hay que reconciliar, cuántos errores y si quedan páginas. Ni un prompt, ni
+una respuesta, ni una clave.
+
+### 15.4 El ciclo entero, contra Firestore
+
+Probado de punta a punta en el emulador, con el motor de trabajos de verdad:
+
+1. El trabajador sale y el proveedor contesta «la tengo» → el trabajo queda **esperando**,
+   con la referencia guardada.
+2. El barrendero pasa: **no la toca** —ni cobra ni devuelve— y **no la marca**, porque
+   volverá a mirarla.
+3. Llega el aviso del proveedor diciendo que terminó → el trabajo llega a su estado final.
+4. El barrendero pasa otra vez: **ahora sí la cobra**, una sola vez.
+5. Una pasada más no vuelve a moverla.
+
+### 15.5 Lo que todavía no existe
+
+- **Ningún adaptador de Weë produce una aceptación.** La puerta está abierta y nadie la
+  cruza: hacerlo es migrar el vídeo, que no se ha hecho y no se hace aquí.
+- **El programador no está desplegado.** Conectarlo es una línea en `index.ts`, y esa
+  línea es de otro bloque.
+- **Quién resuelve lo que queda a reconciliar sigue siendo nadie.** La costura está a la
+  vista y sin inventar nada: aviso del proveedor → `recibirEvento` → desenlace durable →
+  trabajo final → liquidación → Credit Engine. Ese primer eslabón es de quien migre un
+  proveedor asíncrono de verdad.

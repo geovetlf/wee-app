@@ -381,21 +381,40 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/job.ts functions/src/job/index.ts functions/src/core/workflow.ts functions/src/core/orchestrator.ts functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
   check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Workflow, Orchestrator, Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
   /*
-   * EL GATEWAY SALIÓ DE ESA LISTA A PROPÓSITO (F12-D, endurecimiento previo a la
-   * migración), y por UNA cosa: `leerTraza` —de la Fase 2— se comía en silencio
-   * los cinco campos que la Fase 10 añadió a la traza. Es un defecto demostrado de
-   * una fase cerrada, y se corrigió con autorización. Lo que se vigila ahora es que
-   * sea eso y NADA MÁS: un import, y cambios solo dentro de esa función.
+   * EL GATEWAY SALIÓ DE ESA LISTA A PROPÓSITO, y por DOS cosas, las dos
+   * autorizadas y las dos del bloque F12-D:
+   *
+   *   1. `leerTraza` —de la Fase 2— se comía en silencio los cinco campos que la
+   *      Fase 10 añadió a la traza. Defecto demostrado de una fase cerrada.
+   *   2. `accepted` estaba DECLARADO desde el primer día y no podía producirse
+   *      nunca, porque un adaptador no tenía cómo decir «el proveedor la cogió».
+   *      Se añadió esa tercera respuesta y el camino que lleva a `status:
+   *      'accepted'`. No es un contrato nuevo: es el que había, terminado.
+   *
+   * Lo que se vigila es que siga siendo ESO y nada más: que no se haya tocado la
+   * rama del resultado normal, ni la de los errores, ni la validación de entrada.
    */
+  const GATEWAY = leer('functions/src/core/gateway.ts');
   const delGateway = execSync('git diff -U0 c3515b3 -- functions/src/core/gateway.ts', { cwd: RAIZ, encoding: 'utf8' });
   const trozos = delGateway.split('\n').filter((l) => l.startsWith('@@'));
   const añadidas = delGateway.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
   const quitadas = delGateway.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1));
-  const fueraDeLeerTraza = trozos.filter((t) => !/leerTraza/.test(t));
-  check('63b) y del Gateway cambió SOLO `leerTraza`: un import, y el resto dentro de esa función',
-    trozos.length > 0 && fueraDeLeerTraza.length === 1 && añadidas.includes("import { esTipoDeEntidad } from './identity';")
-    && quitadas.length === 1 && /for \(const opcional of \[/.test(quitadas[0]),
-    `${trozos.length} trozos · fuera de leerTraza: ${fueraDeLeerTraza.length} · líneas quitadas: ${quitadas.length}`);
+  check('63b) del Gateway cambió `leerTraza`, y nada más de la traza',
+    trozos.length > 0 && añadidas.includes("import { esTipoDeEntidad } from './identity';")
+    && quitadas.filter((l) => /for \(const opcional of \[/.test(l)).length === 1,
+    `${trozos.length} trozos · quitadas: ${quitadas.length}`);
+  check('63c) y se completó `accepted`: una respuesta más del adaptador y su camino, sin tocar las otras dos',
+    /\| \{ ok: true; accepted: true; operation: GatewayOperationRef/.test(GATEWAY)
+    && /status: 'accepted'/.test(GATEWAY)
+    /* La rama nueva va DESPUÉS de los errores y ANTES de validar la respuesta: no se metió en medio de ninguna. */
+    && GATEWAY.indexOf('if (!salida.ok)') < GATEWAY.indexOf("salida.accepted === true")
+    && GATEWAY.indexOf("salida.accepted === true") < GATEWAY.indexOf('respuestaCanonicaValida(salida.response)'));
+  check('63d) sin inventar un modo de ejecución: el del Gateway sigue siendo SIEMPRE `sync`',
+    /mode: 'sync' as const/.test(leer('functions/src/job/index.ts'))
+    && /if \(mode === 'async'\) return \{ ok: false/.test(GATEWAY)
+    && /execution: ExecutionOptions & \{ mode: 'sync' \}/.test(GATEWAY));
+  check('63e) y lo único que se quitó del Gateway en todo F12-D es una línea de `leerTraza`',
+    quitadas.length === 2 && quitadas.every((l) => /for \(const opcional of \[/.test(l) || /\| \{ ok: true; response: CanonicalResponse/.test(l)), `${quitadas.length}: ${quitadas.map((l) => l.trim().slice(0, 40)).join(' | ')}`);
   check('64) sigue habiendo UN motor de trabajos y UN almacén por contrato: aquí no se escribió un segundo', !/crearJobEngine\s*=|createJobEngine|implements JobStore|crearSiAusente\s*[:(]/.test(PUERTOS + WORKER) && /crearJobEngine/.test(leer('functions/src/core/job.ts')));
   const fuentes = (dir) => fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fuentes(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
   /*
