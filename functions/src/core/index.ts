@@ -48,5 +48,6 @@ export * from './planner';
 export * from './orchestrator';
 export * from './router';
 export * from './job';
+export * from './job-queue';
 export * from './financial';
 export * from './moderation';

@@ -233,10 +233,10 @@ router instanciado, un solo bucle de ejecución. **En ejecución no hay dos moto
 de nada**, salvo el camino del avatar descrito arriba. La duplicación está en el
 árbol, no en el proceso.
 
-Functions desplegadas: **28** (comprobado con `firebase functions:list`). `index.ts` exporta **30**
-desde la Fase 12-A/B: las dos de moderación (`reportContent`, `moderationAdmin`) están en el
-árbol y **sin desplegar** hasta que se autorice (`docs/MODERATION.md`). Ninguna sale de una
-composición no conectada.
+Functions desplegadas: **30**, las mismas 30 que exporta `index.ts` (comprobado con la API de Cloud
+Functions). Las dos de moderación (`reportContent`, `moderationAdmin`) se desplegaron el 2026-09-20
+con el commit `c3515b3`, sin tocar ninguna de las otras 28 (`docs/MODERATION.md`). Ninguna sale de
+una composición no conectada.
 
 ## 6. Paridad: el ensayo en seco de la migración de código
 
@@ -302,6 +302,37 @@ runtime de IA **no es un bloque aparte: es el Bloque D**.
 Cada paso que conecta una pieza del Core pone fin a un «todavía» de una fase cerrada
 (§ 8). Eso se hace de frente: se cambia esa comprobación en su suite, con aprobación,
 en el mismo commit que el cambio de runtime.
+
+### La cola y los trabajadores: ya tienen puerto
+
+Antes de construir el almacén y el conductor se dejó nombrado por dónde LLEGA un trabajo a quien lo
+ejecuta, para que una cola de verdad —la que sea— se pueda enchufar sin tocar `Job`, `JobStore`,
+`Workflow` ni `Orchestrator`:
+
+```
+JobStore = la VERDAD del trabajo        Router   = elige con qué
+Queue    = transporte: avisa            Gateway  = ejecuta contra el adaptador
+Worker   = ejecución                    Provider = el de fuera
+```
+
+- `functions/src/core/job-queue.ts` — los puertos, puros: `QueueMessage` (un AVISO: el identificador del
+  trabajo y tres datos de transporte; **no puede** llevar proveedor, modelo, cuenta, entidad, coste ni
+  Credits, y un mensaje que los traiga se tira entero), `QueuePort` (`enqueue` · `claim` · `ack` · `nack` con
+  espera; promete «al menos una vez» y nada más), `JobExecutor`, `ContadorDeCapacidad`, `WorkerConfig` y
+  `ResultadoDeEntrega` con los campos para seguirle la pista a una entrega.
+- `functions/src/job/worker.ts` — `atenderEntrega`: el ORDEN, escrito una vez. mensaje → leer el trabajo
+  del almacén → recuperar si alguien murió → reclamar → **guardar** → marcar que sale → **guardar** →
+  ejecutar → informar → **guardar** → volver a avisar si queda otro intento → confirmar la entrega. Y
+  `barrerRecuperables`, la otra mitad de que la cola no sea la verdad: si la cola pierde un aviso, el
+  almacén lo sigue sabiendo. Sin estado, sin bucle, sin reloj propio.
+
+El Job Engine de la Fase 8 **no se tocó**: ya tenía concesiones con dueño, `marcarEnvio` antes de salir
+hacia el proveedor, `renovar`, recuperación que cierra el intento muerto y numera uno nuevo (un
+`attemptId` no se reutiliza jamás), el desenlace `unknown` que impide el reintento ciego, y los topes
+de capacidad por cuenta y por proveedor. Conectar una cola real será implementar `QueuePort` en un
+adaptador; conectar producción seguirá siendo el Bloque D. **Nada de producción pasa por aquí**, y no
+hay ninguna cola —ni en memoria— en el código: la de las pruebas vive en
+`functions/test/job-queue.test.mjs`.
 
 **Lo que NO se hace:** no se reescribe ninguna pieza del Core; no se borra
 `gateway/`, `engine/router.ts` ni el `while` mientras tengan consumidores; no se
