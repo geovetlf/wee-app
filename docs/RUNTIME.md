@@ -1661,3 +1661,89 @@ se añade ahí y solo ahí.
 
 Con todo eso, la tarea desplegada **pasa, no encuentra nada y se va**. Es exactamente lo
 que tiene que hacer hasta que exista el primer trabajo asíncrono.
+
+## 18. F12-D · M-1: el primer vídeo real por el camino nuevo
+
+Una sola creación real contra BytePlus ModelArk, con dinero de verdad, desde una cuenta
+controlada. Salió un vídeo y salió un fallo — y el fallo es lo que hacía falta encontrar.
+
+### 18.1 Lo que SÍ quedó demostrado
+
+La cadena de F12-D ejecutó una operación real de punta a punta, y se puede leer entera en
+lo guardado:
+
+    generateVideo → puerta → conductor → Router → Job Engine → trabajador
+                  → Gateway → adaptador Seedance → ModelArk REAL → resultado → Asset F11
+
+| | |
+|---|---|
+| Trabajo | `state: completed`, `capability: video.generate`, `adapter:seedance`, 1 intento, `outcome: succeeded` |
+| Proveedor | **una** tarea en ModelArk: `cgt-20260921024026-cz65v`, `succeeded` |
+| Resultado | mp4 de 908.165 bytes, 4 s, en el Storage de Weë |
+| Material | Asset F11 de la cuenta canary, `status: ready`, con procedencia (trabajo, paso, petición, capacidad, proveedor) |
+| Dinero | 240 → 165. **Un** asiento `usage` de −75, `COMPLETED` |
+| Liquidación | `liquidacion: "hecha"` — **la cerró el barrido programado del paso I**, no la llamada |
+
+Eso último es lo más valioso del ejercicio: la llamada devolvió un error y **aun así el
+dinero se cerró bien, una sola vez**, porque la reserva viajaba dentro del trabajo y el
+barrendero la encontró. Es exactamente para lo que se construyó.
+
+### 18.2 Lo que NO quedó demostrado, y por qué
+
+`ACCEPTED`, `providerRef` y la reconciliación **no se ejercitaron**. El adaptador sondeó
+por dentro ochenta y dos segundos en vez de aceptar y soltar, y el trabajo quedó con
+`providerRef: null` y `providerOps: null`.
+
+La causa es un fallo mío de una línea:
+
+    crearGatewayDelMotor({ …, ...(deps.aceptaAsincrono ? { aceptaAsincrono: true } : {}) })
+
+`GatewayDelMotorDeps` **no declaraba** `aceptaAsincrono`, y la opción se pasaba con un
+`...spread`. TypeScript comprueba propiedades de más en un objeto literal, pero **no a
+través de un spread**: el compilador calló, la opción se cayó por el camino, y el
+comportamiento fue el de siempre.
+
+### 18.3 La lección, que es sobre las pruebas
+
+Siete mil seiscientas comprobaciones no lo vieron porque todas preguntaban lo mismo: **si
+la línea estaba escrita**. Estaba. Lo que no había era una prueba de que la opción
+LLEGARA al adaptador.
+
+Ahora la hay, y es de comportamiento: compone el Gateway de verdad con un adaptador que
+anota lo que recibe, una vez encendido y otra apagado, y exige `true` y `undefined`. Una
+comprobación estructural no podía cazar esto; una de comportamiento lo caza siempre.
+
+La regla que queda: **de una opción que cruza tres capas no se fija que se escriba, se fija
+que llegue.**
+
+### 18.4 Coste real frente a estimado
+
+| | |
+|---|---|
+| Estimado antes del POST | 38.430 tokens → **USD 0,21521** |
+| Real reportado por ModelArk | 40.594 tokens → **USD 0,22733** |
+| Desvío | **+5,63 %** |
+| Cobrado por Weë | **75 Credits** (`ai_video_draft`, modo `simulated`) |
+
+El desvío es del proveedor, no del cálculo: la fórmula y la tarifa son las publicadas, y
+los segundos y píxeles los fijó la petición. ModelArk contó algo más. **No se cambia
+ningún precio por un solo canary**, queda anotado.
+
+Observación aparte: el trabajo guarda `estimatedUsd: 0.48`, que **no** es el coste de la
+fórmula sino la estimación gruesa del Router (`ModelSpec.cost.usd` por segundo, 0,12 × 4).
+Conviven dos nociones de «estimado» con el mismo nombre en sitios distintos. No costó
+dinero y no se toca aquí, pero hay que saberlo antes de leer ese campo como un coste.
+
+### 18.5 Lo que sigue pendiente
+
+- **El camino asíncrono sigue sin ejercitarse contra el proveedor.** El fallo está
+  corregido y probado, pero probarlo de verdad exige una segunda creación real, que no
+  está autorizada.
+- **El resultado se le devolvió al cliente como error.** El vídeo existe, es suyo y está
+  pagado, pero la respuesta fue un 503: la rama «terminó dentro de la invocación» del
+  canary no sabe entregar un resultado. En el camino asíncrono esa rama no debería
+  ocurrir; conviene decidir qué contesta si ocurre.
+- **En modo síncrono el trabajo guarda la URL de descarga como `outputRefs`.** Es una URL
+  con testigo al portador dentro de `jobs/`, que está cerrada a los clientes
+  (`allow read, write: if false`). El camino asíncrono no hace esto —guarda el `assetId`—,
+  y es comportamiento anterior a este bloque, no algo que M-1 introdujera.

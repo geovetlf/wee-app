@@ -69,6 +69,9 @@ const { leerAvisoDeSeedance } = lib('engine/providers/seedance.js');
 const { crearJobEngine, POLITICA_DE_TRABAJO } = lib('core/job.js');
 const { mismoTestigo } = lib('engine/webhooks.js');
 const { mantenimientoDeWee } = lib('runtime/index.js');
+const { crearEjecutorDelMotor } = lib('engine/gateway.js');
+const { DEFAULT_SETTINGS } = lib('engine/registry.js');
+const { CAPABILITY_CATALOG } = lib('core/index.js');
 
 const motor = crearJobEngine();
 const T0 = 1_700_000_000_000;
@@ -614,8 +617,53 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
   const VIDEO = sinComentarios(leer('functions/src/creator/video.ts'));
   const RT = sinComentarios(leer('functions/src/runtime/index.ts'));
   check('la aceptación asíncrona sigue siendo opt-in: el conductor solo la pide si se la piden', /\.\.\.\(deps\.aceptaAsincrono \? \{ aceptaAsincrono: true \} : \{\}\)/.test(RT));
-  check('y la enciende EXACTAMENTE un módulo vivo: la puerta del canary de vídeo',
-    fuentesVivas().filter((f) => /aceptaAsincrono: true/.test(sinComentarios(leer(f)))).join(',') === 'functions/src/creator/video.ts');
+  /*
+   * ── LO QUE EL CANARY REAL ENCONTRÓ Y ESTAS PRUEBAS NO ───────────────────
+   *
+   * La opción se pasaba con un `...spread` a un tipo que NO la declaraba.
+   * TypeScript no comprueba propiedades de más en un spread, así que compilaba
+   * y se perdía por el camino: el proveedor sondeó ochenta segundos en vez de
+   * aceptar y soltar, y costó un vídeo de verdad averiguarlo.
+   *
+   * Lo que faltaba era una prueba de COMPORTAMIENTO: no «está escrita la
+   * línea», sino «el adaptador la recibe». Se comprueba de punta a punta, con
+   * el Gateway de verdad y un adaptador que anota lo que le llega.
+   */
+  check('y llega DE VERDAD al adaptador: se compone el Gateway y se mira lo que recibe', await (async () => {
+    const pedidas = [];
+    const adaptador = {
+      id: 'espia', name: 'espia', modalities: ['video'],
+      models: [{ id: 'espia-1', provider: 'espia', capabilities: ['video.generate'], quality: 3, speed: 3, cost: { unit: 'call', usd: 0.01 } }],
+      isConfigured: () => true,
+      supports: (c) => c === 'video.generate',
+      async run(req) { pedidas.push(req.acceptAsync); return { output: { kind: 'video', url: 'https://x/y.mp4' }, costUSD: 0.01, latencyMs: 1 }; },
+    };
+    const config = { providers: {}, settings: DEFAULT_SETTINGS };
+    const peticion = {
+      capability: 'video.generate',
+      entry: CAPABILITY_CATALOG.find((c) => c.id === 'video.generate'),
+      implementation: { provider: { id: 'espia' }, model: { id: 'espia-1' } },
+      input: { prompt: 'x' },
+      trace: { traceId: 't', requestId: 'r', userId: 'u' },
+      execution: { mode: 'sync' },
+    };
+    /* Encendido y apagado, el mismo camino, para que la prueba distinga de verdad. */
+    await crearEjecutorDelMotor({ adapters: { espia: adaptador }, config: () => config, aceptaAsincrono: true }).run(peticion);
+    await crearEjecutorDelMotor({ adapters: { espia: adaptador }, config: () => config }).run(peticion);
+    return pedidas.length === 2 && pedidas[0] === true && pedidas[1] === undefined;
+  })(), 'el adaptador tiene que recibir acceptAsync solo cuando se enciende');
+  /*
+   * ENCENDER no es REENVIAR. Dos capas la pasan hacia abajo —`runtime/index.ts`
+   * al Gateway y `engine/gateway.ts` al ejecutor— y las dos solo si se la
+   * pidieron: eso es una tubería, no una decisión. Quien DECIDE es quien la
+   * pone a `true` sin que nadie se la haya pedido, y ese tiene que ser uno.
+   */
+  const laEnciende = (src) => sinComentarios(src)
+    .replace(/\.\.\.\(deps\.aceptaAsincrono \? \{ aceptaAsincrono: true \} : \{\}\)/g, ' ')
+    .includes('aceptaAsincrono: true');
+  check('y la ENCIENDE exactamente un módulo vivo: la puerta del canary de vídeo (los demás solo la reenvían)',
+    fuentesVivas().filter((f) => laEnciende(leer(f))).join(',') === 'functions/src/creator/video.ts',
+    fuentesVivas().filter((f) => laEnciende(leer(f))).join(','));
   check('detrás de la puerta, nunca antes: si la puerta dice legacy, no se enciende nada', VIDEO.indexOf('decidirRuntime') < VIDEO.indexOf('aceptaAsincrono: true'));
   check('el canary de texto de Brain no cambió: su candado sigue siendo `text.generate`', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(leer('functions/src/creator/brain.ts')));
   check('el camino de siempre sigue entero: el sondeo y `videoEngine` siguen ahí para quien no pase por la puerta',

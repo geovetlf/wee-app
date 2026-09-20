@@ -302,6 +302,16 @@ export interface GatewayDelMotorDeps {
   loadConfig: () => Promise<EngineConfig>;
   tracer: Tracer;
   now?: () => number;
+  /**
+   * SE LE PASA AL EJECUTOR, y por eso tiene que estar declarado AQUÍ.
+   *
+   * Faltaba, y el canary real lo encontró: quien componía el Gateway lo pasaba
+   * con un `...spread`, que es justo la forma que TypeScript NO comprueba por
+   * propiedades de más. El tipo lo aceptaba, el compilador callaba, y la opción
+   * se caía por el camino sin que nadie se enterara — hasta que el proveedor
+   * sondeó ochenta segundos en vez de aceptar y soltar.
+   */
+  aceptaAsincrono?: boolean;
 }
 
 /**
@@ -321,7 +331,12 @@ export const crearGatewayDelMotor = (deps: GatewayDelMotorDeps): Gateway => {
   };
   return crearGateway({
     registry: registro,
-    executor: crearEjecutorDelMotor({ adapters: deps.adapters, config: deps.loadConfig, now: deps.now }),
+    executor: crearEjecutorDelMotor({
+      adapters: deps.adapters,
+      config: deps.loadConfig,
+      now: deps.now,
+      ...(deps.aceptaAsincrono ? { aceptaAsincrono: true } : {}),
+    }),
     tracer: deps.tracer,
     now: deps.now ?? (() => Date.now()),
   });
