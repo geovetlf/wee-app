@@ -69,9 +69,9 @@ const { leerAvisoDeSeedance } = lib('engine/providers/seedance.js');
 const { crearJobEngine, POLITICA_DE_TRABAJO } = lib('core/job.js');
 const { mismoTestigo } = lib('engine/webhooks.js');
 const { mantenimientoDeWee } = lib('runtime/index.js');
-const { crearEjecutorDelMotor } = lib('engine/gateway.js');
+const { crearEjecutorDelMotor, crearGatewayDelMotor } = lib('engine/gateway.js');
 const { DEFAULT_SETTINGS } = lib('engine/registry.js');
-const { CAPABILITY_CATALOG } = lib('core/index.js');
+const { CAPABILITY_CATALOG, GATEWAY_CONTRACT_VERSION } = lib('core/index.js');
 
 const motor = crearJobEngine();
 const T0 = 1_700_000_000_000;
@@ -616,7 +616,18 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
    */
   const VIDEO = sinComentarios(leer('functions/src/creator/video.ts'));
   const RT = sinComentarios(leer('functions/src/runtime/index.ts'));
-  check('la aceptación asíncrona sigue siendo opt-in: el conductor solo la pide si se la piden', /\.\.\.\(deps\.aceptaAsincrono \? \{ aceptaAsincrono: true \} : \{\}\)/.test(RT));
+  /*
+   * La forma importa: un spread condicional es exactamente lo que TypeScript no
+   * comprueba por propiedades de más, y por ahí se perdió la opción la primera
+   * vez. Se exige asignación explícita y se prohíbe el spread por su nombre.
+   */
+  const SPREAD_DE_LA_OPCION = new RegExp('\\.\\.\\.\\(deps\\.aceptaAsincrono');
+  const gatewayVivo = sinComentarios(leer('functions/src/engine/gateway.ts'));
+  check('la propagación es EXPLÍCITA en las dos capas, y no queda ningún spread de esta opción',
+    /aceptaAsincrono: deps\.aceptaAsincrono === true/.test(RT)
+    && /aceptaAsincrono: deps\.aceptaAsincrono === true/.test(gatewayVivo)
+    && /acceptAsync: deps\.aceptaAsincrono === true/.test(gatewayVivo)
+    && !SPREAD_DE_LA_OPCION.test(RT) && !SPREAD_DE_LA_OPCION.test(gatewayVivo));
   /*
    * ── LO QUE EL CANARY REAL ENCONTRÓ Y ESTAS PRUEBAS NO ───────────────────
    *
@@ -629,29 +640,57 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
    * línea», sino «el adaptador la recibe». Se comprueba de punta a punta, con
    * el Gateway de verdad y un adaptador que anota lo que le llega.
    */
-  check('y llega DE VERDAD al adaptador: se compone el Gateway y se mira lo que recibe', await (async () => {
-    const pedidas = [];
+  /*
+   * EL RECORRIDO ENTERO, con el Gateway de VERDAD. Se compone
+   * `crearGatewayDelMotor` —que es lo que usa el conductor— y se ejecuta una
+   * petición real hasta el adaptador, que anota exactamente lo que le llega.
+   *
+   * Tres capas: composición → Gateway → ejecutor → adaptador. Si la propiedad
+   * se pierde en CUALQUIERA de ellas, esto falla. La comprobación anterior
+   * —«¿está escrita la línea?»— no habría notado nada.
+   */
+  const espiarGateway = async (aceptaAsincrono) => {
+    const recibido = [];
     const adaptador = {
       id: 'espia', name: 'espia', modalities: ['video'],
-      models: [{ id: 'espia-1', provider: 'espia', capabilities: ['video.generate'], quality: 3, speed: 3, cost: { unit: 'call', usd: 0.01 } }],
+      models: [{ id: 'espia-1', provider: 'espia', capabilities: ['video.generate'], quality: 3, speed: 3, cost: { unit: 'second', usd: 0.01 } }],
       isConfigured: () => true,
       supports: (c) => c === 'video.generate',
-      async run(req) { pedidas.push(req.acceptAsync); return { output: { kind: 'video', url: 'https://x/y.mp4' }, costUSD: 0.01, latencyMs: 1 }; },
+      async run(req) {
+        recibido.push(req.acceptAsync);
+        /* Contesta como contestaría Seedance si le pidieran aceptar: acuse con nombre. */
+        return req.acceptAsync
+          ? { accepted: { operationId: 'cgt-de-mentira' }, costUSD: 0.01, latencyMs: 1 }
+          : { output: { kind: 'video', url: 'https://x/y.mp4' }, costUSD: 0.01, latencyMs: 1 };
+      },
     };
     const config = { providers: {}, settings: DEFAULT_SETTINGS };
-    const peticion = {
+    const gateway = crearGatewayDelMotor({
+      adapters: { espia: adaptador },
+      loadConfig: async () => config,
+      tracer: { record: () => {} },
+      ...(aceptaAsincrono === undefined ? {} : { aceptaAsincrono }),
+    });
+    const r = await gateway.ejecutar({
+      contract: GATEWAY_CONTRACT_VERSION,
       capability: 'video.generate',
-      entry: CAPABILITY_CATALOG.find((c) => c.id === 'video.generate'),
-      implementation: { provider: { id: 'espia' }, model: { id: 'espia-1' } },
-      input: { prompt: 'x' },
-      trace: { traceId: 't', requestId: 'r', userId: 'u' },
+      implementation: { providerId: 'espia', modelId: 'espia-1' },
+      input: { prompt: 'una taza de cafe' },
+      trace: { traceId: 'trace-espia', requestId: `req-espia-${String(aceptaAsincrono)}`, userId: 'user-espia' },
       execution: { mode: 'sync' },
-    };
-    /* Encendido y apagado, el mismo camino, para que la prueba distinga de verdad. */
-    await crearEjecutorDelMotor({ adapters: { espia: adaptador }, config: () => config, aceptaAsincrono: true }).run(peticion);
-    await crearEjecutorDelMotor({ adapters: { espia: adaptador }, config: () => config }).run(peticion);
-    return pedidas.length === 2 && pedidas[0] === true && pedidas[1] === undefined;
-  })(), 'el adaptador tiene que recibir acceptAsync solo cuando se enciende');
+    });
+    return { recibido, estado: r.status, operacion: r.operation };
+  };
+
+  const encendido = await espiarGateway(true);
+  check('ENCENDIDO: la opción sobrevive composición → Gateway → ejecutor → adaptador', encendido.recibido.length === 1 && encendido.recibido[0] === true, `recibido=${JSON.stringify(encendido.recibido)}`);
+  check('y el Gateway convierte el acuse en `accepted` con la operación del proveedor',
+    encendido.estado === 'accepted' && encendido.operacion?.providerId === 'espia' && encendido.operacion?.operationId === 'cgt-de-mentira');
+  const apagado = await espiarGateway(false);
+  check('APAGADO explícito: el adaptador recibe `false`, no una ausencia ambigua', apagado.recibido[0] === false, `recibido=${JSON.stringify(apagado.recibido)}`);
+  check('y entonces NO se acepta: se ejecuta y se contesta como siempre', apagado.estado === 'completed');
+  const omitido = await espiarGateway(undefined);
+  check('SIN DECIR NADA: también `false`, porque cerrado por defecto es una decisión, no un descuido', omitido.recibido[0] === false && omitido.estado === 'completed');
   /*
    * ENCENDER no es REENVIAR. Dos capas la pasan hacia abajo —`runtime/index.ts`
    * al Gateway y `engine/gateway.ts` al ejecutor— y las dos solo si se la

@@ -457,7 +457,8 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
     loadConfig,
     tracer: deps.tracer ?? trazaDeConsola,
     now: ahora,
-    ...(deps.aceptaAsincrono ? { aceptaAsincrono: true } : {}),
+    /* EXPLÍCITO, no un spread: un spread es justo la forma que TypeScript no comprueba, y por ahí se perdió la primera vez. */
+    aceptaAsincrono: deps.aceptaAsincrono === true,
   });
   const { motor } = crearMotorDeTrabajosDeWee(deps.politica);
   const capacidad = deps.limites ? contadorDeCapacidad(deps.db, deps.limites) : undefined;

@@ -232,7 +232,14 @@ console.log('\n── B · El Gateway: qué contesta de verdad, y `accepted` ─
    */
   const EJEC = sinComentarios(leer('functions/src/engine/gateway.ts'));
   check('el ejecutor del motor sabe traducir «la cogió» al contrato del Gateway', /accepted: true/.test(EJEC));
-  check('y solo lo pide cuando quien compone lo enciende: por defecto, ausente', /deps\.aceptaAsincrono \? \{ acceptAsync: true \}/.test(EJEC) && /aceptaAsincrono\?: boolean/.test(EJEC));
+  /*
+   * Esto fijaba la forma ANTIGUA —un spread condicional— y la forma cambió por
+   * un motivo: por ese spread se perdió la opción en el primer canary real.
+   * Ahora se exige lo contrario: asignación explícita, un booleano siempre
+   * presente, y que el valor salga de quien compone y no de un descuido.
+   */
+  check('la opción viaja EXPLÍCITA al adaptador, siempre como booleano', /acceptAsync: deps\.aceptaAsincrono === true/.test(EJEC) && /aceptaAsincrono\?: boolean/.test(EJEC));
+  check('y quien compone el Gateway también la pasa explícita al ejecutor', /aceptaAsincrono: deps\.aceptaAsincrono === true/.test(EJEC));
   check('un solo adaptador lo produce —Seedance— y ninguno más',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).filter((f) => /accepted: \{ operationId/.test(leer(`functions/src/engine/providers/${f}`))).join(',') === 'seedance.ts');
   check('y sin que se lo pidan, Seedance sigue sondeando como siempre', /if \(request\.acceptAsync\)/.test(sinComentarios(leer('functions/src/engine/providers/seedance.ts'))));

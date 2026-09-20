@@ -260,9 +260,29 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         }
         throw new EngineError('PROVIDER_ERROR');
       }
-      /* Terminó dentro de la llamada (modo demo, o un proveedor que contestó del tirón). */
+      /*
+       * TERMINÓ DENTRO DE LA LLAMADA. No es lo que este camino busca —para eso
+       * está el de siempre— pero PASA: un proveedor que contesta del tirón, o el
+       * modo demo. La primera vez esto contestaba un error, y eso estaba mal:
+       * el vídeo existía, era de la persona y estaba pagado, y aun así se le
+       * decía que había fallado. Se entrega, con la misma forma de siempre.
+       *
+       * El dinero NO se cierra aquí: lo cierra la liquidación leyendo el
+       * trabajo, igual que en el camino asíncrono. Un solo sitio que cobra.
+       */
+      const url = desenlace.respuesta.urls?.[0] ?? desenlace.respuesta.content ?? null;
       console.log(`WEË STUDIO CANARY · terminado en la invocación · job=${desenlace.jobId ?? '?'}`);
-      throw new EngineError('PROVIDER_ERROR', 'Ese camino todavía no entrega el resultado aquí. Inténtalo de nuevo en un momento.');
+      return {
+        generationId: null,
+        assetId: null,
+        url,
+        durationSec: desenlace.respuesta.durationSec ?? null,
+        credits: spend.amount,
+        demo: desenlace.sintetico,
+        status: 'COMPLETED',
+        jobId: desenlace.jobId ?? null,
+        duplicate: false,
+      };
     }
 
     try {

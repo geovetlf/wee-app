@@ -253,7 +253,24 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       const inicio = now();
       try {
         const result = await conTiempoLimite(
-          adapter.run({ capability: capability as CapabilityId, model: modelo, input: input as Record<string, unknown>, ctx, prefs, timeoutMs, onStatus, ...(deps.aceptaAsincrono ? { acceptAsync: true } : {}) }),
+          adapter.run({
+            capability: capability as CapabilityId,
+            model: modelo,
+            input: input as Record<string, unknown>,
+            ctx,
+            prefs,
+            timeoutMs,
+            onStatus,
+            /*
+             * EXPLÍCITO Y SIEMPRE PRESENTE. Antes iba en un spread condicional:
+             * el adaptador recibía la propiedad o no la recibía, y «no
+             * recibirla» era indistinguible de «se perdió por el camino» —que
+             * es justo lo que pasó—. Ahora siempre llega un booleano, así que
+             * si un día vuelve a valer `false` cuando debería valer `true`, se
+             * ve en el sitio donde se decide y no tres capas más abajo.
+             */
+            acceptAsync: deps.aceptaAsincrono === true,
+          }),
           timeoutMs,
           adapter.id,
         );
@@ -335,7 +352,8 @@ export const crearGatewayDelMotor = (deps: GatewayDelMotorDeps): Gateway => {
       adapters: deps.adapters,
       config: deps.loadConfig,
       now: deps.now,
-      ...(deps.aceptaAsincrono ? { aceptaAsincrono: true } : {}),
+      /* EXPLÍCITO. Un spread aquí es exactamente por donde se perdió la primera vez. */
+      aceptaAsincrono: deps.aceptaAsincrono === true,
     }),
     tracer: deps.tracer,
     now: deps.now ?? (() => Date.now()),
