@@ -488,7 +488,7 @@ console.log('\n── I · Qué NO se ha construido ──');
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
   check('el Core de medios son ocho archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, doce', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
+  check('y la composición, trece', fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
 
   /* R2 vive en UN sitio. */
   const nombraR2 = ['functions/src'].flatMap(() => {
@@ -496,7 +496,16 @@ console.log('\n── I · Qué NO se ha construido ──');
       e.isDirectory() ? andar(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []);
     return andar('functions/src');
   }).filter((f) => /r2\.cloudflarestorage|R2_ACCESS_KEY|AWS4-HMAC/.test(sinComentarios(leer(f))));
-  check('el nombre de R2 y su protocolo viven SOLO en su adaptador y en su firma', nombraR2.sort().join(',') === 'functions/src/media/firma.ts,functions/src/media/r2.ts', nombraR2.join(','));
+  /*
+   * Tres sitios, y los tres son legítimos: el adaptador, su firma y la
+   * DECLARACIÓN de secretos. En el tercero solo vive el NOMBRE de la variable
+   * —nunca un valor— igual que el catálogo nombra a su proveedor. Lo que la
+   * regla prohíbe es que el protocolo o la credencial salgan del adaptador.
+   */
+  check('el nombre de R2 y su protocolo viven SOLO en su adaptador, su firma y la declaración de secretos',
+    nombraR2.sort().join(',') === 'functions/src/media/firma.ts,functions/src/media/r2.ts,functions/src/secrets.ts', nombraR2.join(','));
+  check('y en la declaración de secretos hay NOMBRES, nunca valores',
+    !/R2_(ACCESS_KEY_ID|SECRET_ACCESS_KEY)s*[:=]s*['\"]/.test(leer('functions/src/secrets.ts')));
 
   const CORE_MEDIA = ['puerto.ts', 'objeto.ts', 'registro.ts'].map((f) => sinComentarios(leer(`functions/src/core/media/${f}`))).join('\n');
   check('el Core NO conoce R2, ni ningún proveedor', !/r2|cloudflare|aws|s3|qiniu|alibaba|tencent/i.test(CORE_MEDIA));

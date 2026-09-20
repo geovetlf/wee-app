@@ -426,9 +426,16 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    * Y sigue siendo verdad lo que importa: nada de esto lo exporta `index.ts`.
    */
   const quienLoUsa = fuentes('functions/src').filter((f) => !f.endsWith('job/worker.ts') && /job\/worker|atenderEntrega|barrerRecuperables/.test(sinComentarios(leer(f))));
-  check('65) UN solo módulo atiende entregas: el conductor. Y NADA DE PRODUCCIÓN PASA POR AQUÍ: `index.ts` no exporta nada de esto',
-    quienLoUsa.join(',') === 'functions/src/runtime/conductor.ts'
-    && !/job-queue|job\/worker|atenderEntrega|from '\.\/runtime'/.test(sinComentarios(leer('functions/src/index.ts'))), quienLoUsa.join(', '));
+  /*
+   * DOS COMPOSICIONES DESDE MC-4.5, y siguen siendo composiciones: el conductor
+   * de F12-D para las operaciones de IA, y el puente del canary de Media Cloud.
+   * Lo que se vigila no es el número sino que ninguna REIMPLEMENTE al trabajador
+   * —cada una le pasa sus dependencias y le llama— y que NADA de esto lo exporte
+   * `index.ts`. Un tercero que copiara la lógica sí sería un segundo runtime.
+   */
+  check('65) solo COMPOSICIONES atienden entregas, ninguna reimplementa al trabajador. Y NADA DE PRODUCCIÓN PASA POR AQUÍ: `index.ts` no exporta nada de esto',
+    quienLoUsa.join(',') === 'functions/src/media/canary.ts,functions/src/runtime/conductor.ts'
+    && !/job-queue|job\/worker|atenderEntrega|from '\.\/runtime'|media\/canary|mediaCanary/.test(sinComentarios(leer('functions/src/index.ts'))), quienLoUsa.join(', '));
   const estadoDeModulo = (src) => [...(src.match(/^(let|var)\s+\w+/gm) || []), ...(src.match(/^const\s+\w+[^=\n]*=\s*(new (Map|Set|WeakMap|WeakSet)\(\s*\)|\[\s*\])/gm) || [])];
   const colas = fuentes('functions/src').filter((f) => /guarantee: 'at_least_once',/.test(sinComentarios(leer(f))));
   const COLA = leer('functions/src/runtime/cola.ts');

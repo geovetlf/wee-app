@@ -541,8 +541,8 @@ console.log('\n── J · Qué NO se ha construido ──');
   check('el Core de medios son ocho archivos y ninguno más',
     delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, doce',
-    fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
+  check('y la composición, trece',
+    fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
 
   check('AK · ninguna Function importa la capa de medios: sigue sin conectar',
     !/from '\.\/media|from '\.\.\/media/.test(leer('functions/src/index.ts')));

@@ -65,6 +65,51 @@ export const CALLBACK_SECRETS = [SECRETS.SEEDANCE_CALLBACK_TOKEN];
  */
 export const RECONCILIATION_SECRETS = [SECRETS.ARK_API_KEY];
 
+/* ── Media Cloud: su propio llavero, aparte del de la IA ───────────────────── */
+
+/**
+ * LOS SECRETOS DE MEDIA CLOUD, DECLARADOS APARTE Y A PROPÓSITO.
+ *
+ * ── Por qué NO van en `PROVIDER_SECRET_NAMES` ───────────────────────────────
+ *
+ * Porque esa lista alimenta `AI_SECRETS`, y `AI_SECRETS` está atado a funciones
+ * ya desplegadas —`brainChat`, `brainQuote`, `creatorChat`, `creatorQuote`,
+ * `creatorRun`, el vídeo—. Añadir ahí una clave que todavía no existe en Secret
+ * Manager haría **fallar el despliegue de todas ellas**, y una capa nueva no
+ * puede romper el despliegue de lo que ya funciona. Un llavero separado es
+ * justo lo que impide eso: si el secreto de Media Cloud falta, lo único que no
+ * se despliega es Media Cloud.
+ *
+ * ── Y por qué SOLO dos ──────────────────────────────────────────────────────
+ *
+ * Son los dos únicos valores de R2 que son credenciales. El identificador de
+ * cuenta y el nombre del contenedor también hacen falta, pero **no son
+ * secretos**: el primero va en la propia dirección de cada petición y el
+ * segundo es un nombre. Se configuran como variables normales, y meterlos aquí
+ * sería fingir una protección que no aportan nada.
+ *
+ * El nombre de la variable no cambia: el adaptador sigue leyendo
+ * `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY` por el mismo `env()` de siempre.
+ */
+export const MEDIA_SECRET_NAMES = [
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+] as const;
+export type MediaSecretName = (typeof MEDIA_SECRET_NAMES)[number];
+
+const declaradosDeMedios = MEDIA_SECRET_NAMES.map((name) => [name, defineSecret(name)] as const);
+
+/** Por su nombre, para quien necesite uno suelto. */
+export const MEDIA_SECRET_REFS: Record<MediaSecretName, ReturnType<typeof defineSecret>> =
+  Object.fromEntries(declaradosDeMedios) as Record<MediaSecretName, ReturnType<typeof defineSecret>>;
+
+/**
+ * Para la opción `secrets` de las funciones de Media Cloud. **Nunca se mezcla
+ * con `AI_SECRETS`**: una función de IA no necesita hablar con un almacén de
+ * objetos, y una de medios no necesita ninguna clave de modelo.
+ */
+export const MEDIA_SECRETS = declaradosDeMedios.map(([, secret]) => secret);
+
 /**
  * Valor de un secreto desde Secret Manager. Solo funciona dentro de una función
  * con ese secreto declarado; fuera (pruebas, scripts) devuelve undefined en vez
@@ -75,7 +120,9 @@ const inFunctionRuntime = (): boolean => !!(process.env.K_SERVICE || process.env
 
 export function secretValue(name: string): string | undefined {
   if (!inFunctionRuntime()) return undefined;
-  const secret = (SECRETS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name];
+  /* Los dos llaveros, buscados por nombre. Quien lee no tiene que saber en cuál está. */
+  const secret = (SECRETS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name]
+    ?? (MEDIA_SECRET_REFS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name];
   if (!secret) return undefined;
   try {
     const value = secret.value();
@@ -88,7 +135,8 @@ export function secretValue(name: string): string | undefined {
 /** Todos los valores de secretos que estén disponibles ahora, para poder censurarlos en los registros. */
 export function knownSecretValues(): string[] {
   const values: string[] = [];
-  for (const name of PROVIDER_SECRET_NAMES) {
+  /* LOS DOS LLAVEROS. Una credencial de almacén en un registro es tan grave como una de un modelo. */
+  for (const name of [...PROVIDER_SECRET_NAMES, ...MEDIA_SECRET_NAMES]) {
     const fromEnv = process.env[name];
     if (fromEnv && fromEnv.trim().length >= 8) values.push(fromEnv.trim());
     const fromManager = secretValue(name);
