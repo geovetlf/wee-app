@@ -58,7 +58,30 @@ class FirestoreDeMentira {
       get: async () => ({ exists: bd.docs.has(ruta), data: () => bd.docs.get(ruta) }),
     };
   }
-  collection(n) { return { doc: (id) => this.#ref(`${n}/${id}`) }; }
+  /*
+   * `where(...).get()` sobre una colección de primer nivel. Lo necesita
+   * `anotarLaEntidadEnElPerfil`, que busca el documento de `users` por el CAMPO
+   * `uid` —nunca por el id— y escribe en él la referencia pública de la cara.
+   */
+  collection(n) {
+    const bd = this;
+    return {
+      doc: (id) => bd.#ref(`${n}/${id}`),
+      where: (campo, op, valor) => ({
+        get: async () => {
+          const coincide = [...bd.docs.entries()]
+            .filter(([ruta, datos]) => ruta.startsWith(n + '/') && ruta.split('/').length === 2
+              && op === '==' && datos && datos[campo] === valor)
+            .map(([ruta, datos]) => ({
+              id: ruta.split('/').pop(),
+              data: () => datos,
+              ref: { path: ruta, update: async (campos) => { bd.docs.set(ruta, { ...bd.docs.get(ruta), ...campos }); bd.escrituras.push(['update', ruta]); } },
+            }));
+          return { empty: coincide.length === 0, size: coincide.length, docs: coincide };
+        },
+      }),
+    };
+  }
   doc(ruta) { return this.#ref(ruta); }
   async runTransaction(cuerpo) {
     this.transacciones++;

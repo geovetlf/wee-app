@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserById } from '../hooks/useUserById';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { Comment } from '../services/firestoreService';
 import { voteService, VoteType } from '../services/voteService';
 import { getRelativeTime } from '../data/mockData';
@@ -118,7 +119,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
 
   return (
     <View style={styles.fila}>
-      <TouchableOpacity onPress={() => onProfilePress?.(comment.userId)} activeOpacity={0.7} disabled={loadingAuthor}>
+      <TouchableOpacity onPress={() => onProfilePress?.(referenciaPublicaDe(commentAuthor) ?? comment.userId)} activeOpacity={0.7} disabled={loadingAuthor}>
         {loadingAuthor ? (
           <View style={[styles.avatarVacio, { backgroundColor: theme.colors.surface }]} />
         ) : (
@@ -136,7 +137,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
 
       <View style={styles.cuerpo}>
         <View style={styles.cabecera}>
-          <TouchableOpacity onPress={() => onProfilePress?.(comment.userId)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => onProfilePress?.(referenciaPublicaDe(commentAuthor) ?? comment.userId)} activeOpacity={0.7}>
             <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>
               {loadingAuthor ? '…' : commentAuthor?.displayName || 'Usuario'}
             </Text>

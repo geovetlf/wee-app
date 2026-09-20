@@ -39,6 +39,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { useVote } from '../hooks/useVote';
 import { useReposts } from '../hooks/useReposts';
 import { useBookmarks } from '../hooks/useBookmarks';
@@ -586,18 +587,29 @@ const PostCard: React.FC<PostCardProps> = ({
     return `${voteStats.agreementPercentage}%`;
   };
 
-  // Navegar al perfil del autor original del post
+  /*
+   * SE ABRE LA ENTIDAD, NO EL uid (Fase 11.x-6).
+   *
+   * El `userId` de una publicación es la cara con la que se publicó, y para
+   * una cara Weë ese valor lleva dentro el identificador de la cuenta: abrirlo
+   * tal cual ponía la cuenta real en la barra de direcciones. Como el perfil
+   * del autor ya está cargado aquí, se navega por su referencia pública —su
+   * entidad— y solo se cae al identificador de siempre mientras el perfil no
+   * haya llegado o si todavía no tiene entidad.
+   */
   const handleProfilePress = () => {
-    const authorId = isRepost && originalPost ? originalPost.userId : post.userId;
-    if (authorId) {
-      navigation.navigate('UserProfile', { userId: authorId });
+    /* `postAuthor` ya ES el autor original cuando esto es un repost: ver arriba. */
+    const autorId = isRepost && originalPost ? originalPost.userId : post.userId;
+    const referencia = referenciaPublicaDe(postAuthor) ?? autorId;
+    if (referencia) {
+      navigation.navigate('UserProfile', { userId: referencia });
     }
   };
 
   // Navegar al perfil del reposteador
   const handleRepostAuthorPress = () => {
     if (isRepost && post.userId) {
-      navigation.navigate('UserProfile', { userId: post.userId });
+      navigation.navigate('UserProfile', { userId: referenciaPublicaDe(repostAuthor) ?? post.userId });
     }
   };
 

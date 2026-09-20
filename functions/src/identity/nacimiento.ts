@@ -94,6 +94,7 @@ export const nacerLoQueTocaDeUnPerfilNuevo = async (
 
   if (decision.accion === 'NACER_LA_CUENTA') {
     const r = await asegurarCuentaEnWee(db, decision.accountId, at, decision.perfilUid);
+    await anotarLaEntidadEnElPerfil(db, decision.perfilUid, r.entidadReal.entityId);
     return { decision, hecho: r.creada ? 'CUENTA_CREADA' : 'CUENTA_YA_ESTABA' };
   }
 
@@ -111,7 +112,51 @@ export const nacerLoQueTocaDeUnPerfilNuevo = async (
     return { decision: { ...decision, motivo: 'la cuenta no ha nacido: eso es la migración, no este disparador' }, hecho: 'NADA' };
   }
   const r = await asegurarCaraWeeEnWee(db, decision.accountId, decision.perfilUid, at);
+  await anotarLaEntidadEnElPerfil(db, decision.perfilUid, r.entidad.entityId);
   return { decision, hecho: r.creada ? 'CARA_CREADA' : 'CARA_YA_ESTABA' };
+};
+
+/**
+ * LA REFERENCIA PÚBLICA DE LA CARA, ANOTADA EN SU PERFIL (Fase 11.x-6).
+ *
+ * El documento de `users` es lo único público que hay de una persona, y hasta
+ * hoy la única forma de nombrarlo era su `uid` — que para una cara Weë lleva
+ * dentro el identificador de la cuenta. Con `entityId` escrito aquí, la cara
+ * tiene un nombre público OPACO: una URL, un enlace compartido o un aviso
+ * pueden usarlo sin delatar de quién es.
+ *
+ * ── UN SOLO CAMPO, Y A PROPÓSITO ──────────────────────────────────────────
+ *
+ * Solo `entityId`. El tipo NO se copia aquí: ya está guardado en la entidad,
+ * que es su única fuente de verdad, y una copia en el perfil sería un segundo
+ * sitio donde pudiera quedarse desfasado. Nada de la aplicación lo lee desde
+ * el perfil, y el resolutor público solo necesita `entityId`.
+ *
+ * Lo escribe el SERVIDOR y solo el servidor: las reglas tienen `entityId` y
+ * `entityType` en la lista de campos que ningún cliente puede poner ni cambiar,
+ * ni al crear ni al actualizar. Se busca el documento por el CAMPO `uid`, no
+ * por el id del documento, y si hay varios manda el de id más bajo, que es el
+ * que devuelven todas las consultas de la app.
+ *
+ * Es idempotente: si el perfil ya lleva esa entidad, no se escribe nada. Y si
+ * lleva OTRA, no se pisa: eso es una contradicción y se avisa, porque cambiar
+ * la entidad de un perfil en silencio movería una identidad pública.
+ */
+const anotarLaEntidadEnElPerfil = async (
+  db: admin.firestore.Firestore,
+  perfilUid: string,
+  entityId: string,
+): Promise<void> => {
+  const encontrados = await db.collection('users').where('uid', '==', perfilUid).get();
+  if (encontrados.empty) return;
+  const activo = encontrados.docs.slice().sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const yaTiene = activo.data().entityId;
+  if (yaTiene === entityId) return;
+  if (yaTiene) {
+    console.error('Identity: el perfil ya apunta a otra entidad; no se pisa');
+    return;
+  }
+  await activo.ref.update({ entityId });
 };
 
 /**

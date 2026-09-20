@@ -15,6 +15,22 @@ interface LikeNotificationOptions {
 /**
  * Hook personalizado para manejar likes de posts
  * Optimizado para performance y UX
+ *
+ * ── DOS IDENTIDADES, Y CADA UNA EN SU SITIO (Fase 11.x-6) ──────────────────
+ *
+ * El «me gusta» se guarda con la CUENTA a propósito: una persona con dos caras
+ * sigue siendo una persona, y si contara por cara cualquiera duplicaría su
+ * propio aplauso creándose un Perfil Weë. Eso es deduplicación, y la cuenta es
+ * quien la responde.
+ *
+ * El AVISO, en cambio, se firma con la cara ACTIVA. Antes iba firmado con la
+ * cuenta y llevaba al lado el nombre del Perfil Weë, así que quien lo recibía
+ * veía un nombre anónimo y, al tocarlo, aterrizaba en el Perfil Real de esa
+ * misma persona. El aviso lo lee alguien; la deduplicación no la lee nadie.
+ *
+ * Este hook no lo usa ninguna pantalla —el «me gusta» vivo de Weë son los
+ * votos—, y se arregla igual: para que el día que se enchufe no traiga el
+ * fallo puesto. Lo vigila `functions/test/privacidad-identidad.test.mjs`.
  */
 export const useLikes = (
   postId: string,
@@ -23,6 +39,8 @@ export const useLikes = (
 ) => {
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
+  /* Con qué cara se avisa. La cuenta solo cuando todavía no hay perfil cargado. */
+  const identidadQueAvisa = userProfile?.uid || user?.uid || '';
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [loading, setLoading] = useState(true);
@@ -73,7 +91,7 @@ export const useLikes = (
             // Crear notificación de like
             await notificationService.createLikeNotification(
               notificationOptions.postOwnerId,
-              user.uid,
+              identidadQueAvisa,
               userProfile.displayName || 'Usuario',
               {
                 type: userProfile.avatarType,
@@ -87,7 +105,7 @@ export const useLikes = (
             // Eliminar notificación de like
             await notificationService.deleteLikeNotification(
               notificationOptions.postOwnerId,
-              user.uid,
+              identidadQueAvisa,
               postId
             );
           }

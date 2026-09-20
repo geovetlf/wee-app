@@ -25,6 +25,7 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { asegurarPerfilReal, asegurarPerfilWee, conUnaSolaEnVuelo, idDelPerfilReal, idDelPerfilWee, PerfilAsegurado, PuertosDeCreacion } from '../utils/perfilCanonico';
 import { identidadWeeDe } from '../utils/econtactModel';
+import { campoQueResuelve } from '../utils/identidadPublica';
 
 // Tipos para las colecciones principales
 /*
@@ -217,6 +218,18 @@ export interface Post {
 export interface UserProfile {
   id?: string;
   uid: string;
+  /**
+   * LA ENTIDAD DE ESTA CARA, y su referencia pública (Fase 11.x-6).
+   *
+   * Lo escribe SOLO el servidor al nacer la entidad; las reglas impiden que un
+   * cliente lo ponga o lo cambie. Es opaco a propósito: no lleva dentro la
+   * cuenta, ni su número, ni nada que se pueda tirar, y por eso puede viajar a
+   * una URL pública donde el `uid` no podía. Ver `utils/identidadPublica.ts`.
+   *
+   * Opcional porque los perfiles que todavía no tienen entidad se siguen
+   * nombrando por su `uid`, como siempre.
+   */
+  entityId?: string;
   realName?: string; // Nombre real (privado, no se muestra)
   displayName: string; // Alias público
   /**
@@ -850,6 +863,29 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
   return users.length > 0 ? users[0] : null;
 };
 
+/*
+ * UN PERFIL POR SU REFERENCIA PÚBLICA (Fase 11.x-6).
+ *
+ * La referencia pública de un perfil es su ENTIDAD —`ent_` y 26 caracteres
+ * opacos—, no su `uid`. El motivo está entero en `utils/identidadPublica.ts`:
+ * la dirección de una cara Weë llevaba dentro el identificador de la cuenta, y
+ * con quitarle el prefijo se llegaba al Perfil Real de la misma persona.
+ *
+ * Se resuelve por el campo que corresponda y nada más: una referencia de
+ * entidad busca por `entityId`, y cualquier otra cosa por `uid`, que es como
+ * siguen funcionando los enlaces que ya estaban compartidos. Ninguna de las
+ * dos deduce nada de la otra.
+ */
+const perfilPorReferenciaPublica = async (referencia: string): Promise<UserProfile | null> => {
+  if (typeof referencia !== 'string' || !referencia) return null;
+  const campo = campoQueResuelve(referencia);
+  if (campo === 'uid') return perfilRealPorUid(referencia);
+  const users = await firestoreService.getMany<UserProfile>('users',
+    [{ field: 'entityId', operator: '==', value: referencia }], undefined, 'desc', 1
+  );
+  return users.length > 0 ? users[0] : null;
+};
+
 /* Los puertos de la creación idempotente (Fase 11.x): la transacción de Firestore sobre `users/<id>`. Los mismos para las dos caras. */
 const puertosDePerfiles: PuertosDeCreacion<UserProfile> = {
   buscarPorUid: perfilRealPorUid,
@@ -892,6 +928,8 @@ export const usersService = {
    * Quien busque a alguien usa `getByUid`.
    */
   getByUid: perfilRealPorUid,
+  /** Por la referencia PÚBLICA: la entidad si la hay, el `uid` para lo heredado. */
+  getByPublicRef: perfilPorReferenciaPublica,
 
   /*
    * EL PERFIL REAL SE CREA UNA SOLA VEZ, AUNQUE SE PIDA MUCHAS (Fase 11.x).

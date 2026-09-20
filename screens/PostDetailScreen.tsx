@@ -26,6 +26,7 @@ import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { useVote } from '../hooks/useVote';
 import { useComentarios } from '../hooks/useComentarios';
 import { useReposts } from '../hooks/useReposts';
@@ -201,7 +202,7 @@ const PostDetailContent: React.FC = () => {
 
   const handleProfilePress = () => {
     if (post.userId) {
-      navigation.navigate('UserProfile', { userId: post.userId });
+      navigation.navigate('UserProfile', { userId: referenciaPublicaDe(postAuthor) ?? post.userId });
     }
   };
 

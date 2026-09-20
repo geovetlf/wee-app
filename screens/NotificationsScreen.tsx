@@ -23,6 +23,7 @@ import { usersService, UserProfile } from '../services/firestoreService';
 import Header from '../components/Header';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 
 /*
  * Cuánto hace. Vive fuera del componente, así que el idioma le llega como
@@ -284,10 +285,23 @@ const NotificationsScreen: React.FC = () => {
       await notificationService.markAsRead(notification.id);
     }
 
-    // Navegar según el tipo
+    /*
+     * SE ABRE LA CARA QUE AVISÓ, NO SU CUENTA (Fase 11.x-6).
+     *
+     * `senderId` es la identidad con la que se hizo la acción, y para una cara
+     * Weë lleva dentro el identificador de la cuenta. El perfil del remitente
+     * ya está cargado —la pantalla los pide por tandas—, así que se navega por
+     * su referencia pública y no por el identificador guardado. Si el perfil
+     * todavía no llegó, se cae al de siempre: un enlace que funciona vale más
+     * que uno que no abre.
+     */
     const nav = navigation as any;
+    const abrirRemitente = () => {
+      const referencia = referenciaPublicaDe(remitentes[notification.senderId]) ?? notification.senderId;
+      nav.navigate('UserProfile', { userId: referencia });
+    };
     if (notification.type === 'follow' && notification.senderId) {
-      nav.navigate('UserProfile', { userId: notification.senderId });
+      abrirRemitente();
       return;
     }
     const postId = (notification as any).postId;
@@ -301,7 +315,7 @@ const NotificationsScreen: React.FC = () => {
       return;
     }
     if (notification.senderId) {
-      nav.navigate('UserProfile', { userId: notification.senderId });
+      abrirRemitente();
     }
   };
 

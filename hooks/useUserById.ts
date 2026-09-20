@@ -102,9 +102,13 @@ export const useUserById = (userId: string | undefined) => {
         setLoading(true);
         setError(null);
 
-        console.log('🔍 Cargando usuario desde Firestore:', userId.substring(0, 8));
-        // Buscar usuario por UID
-        const user = await usersService.getByUid(userId);
+        /*
+         * Se resuelve por la REFERENCIA PÚBLICA, que desde la Fase 11.x-6 es la
+         * entidad (`ent_…`) cuando existe, y el `uid` de siempre para lo
+         * heredado. El hook no necesita saber cuál le ha tocado: el servicio
+         * mira la forma y busca por el campo que corresponda.
+         */
+        const user = await usersService.getByPublicRef(userId);
 
         if (user) {
           // Guardar en cache

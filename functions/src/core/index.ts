@@ -29,6 +29,7 @@
 export * from './contracts';
 export * from './identity';
 export * from './account-identity';
+export * from './social-identity';
 export * from './events';
 export * from './capability';
 export * from './language';

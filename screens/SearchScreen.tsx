@@ -24,6 +24,7 @@ import { useCommunities } from '../hooks/useCommunities';
 import { communityService, Community } from '../services/communityService';
 import { searchUsers, searchPosts, getTrendingPosts, getPopularHashtags, getPostsByHashtag, Post, UserProfile, PopularHashtag } from '../services/firestoreService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { formatNumber } from '../data/mockData';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -600,7 +601,7 @@ const SearchScreen: React.FC = () => {
                     <TouchableOpacity
                       key={user.uid}
                       style={[styles.userItem, { borderBottomColor: theme.colors.border }]}
-                      onPress={() => handleUserPress(user.uid)}
+                      onPress={() => handleUserPress(referenciaPublicaDe(user) ?? user.uid)}
                       activeOpacity={0.8}
                     >
                       <AvatarDisplay

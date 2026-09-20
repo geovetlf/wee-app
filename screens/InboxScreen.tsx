@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { messagesService, Conversation } from '../services/messagesService';
+import { useConversaciones } from '../hooks/useConversaciones';
 import { getRelativeTime } from '../data/mockData';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
 import Header from '../components/Header';
@@ -42,36 +43,20 @@ const InboxScreen = () => {
 
   const activeUid = userProfile?.uid || user?.uid;
 
-  // ─── Subscribe to conversations ───
+  /*
+   * LA BANDEJA COMPARTE SUSCRIPCIÓN CON EL CONTADOR (Fase 11.x-6).
+   *
+   * Antes esta pantalla abría su propio oyente sobre `conversations` y la
+   * navegación abría otro idéntico para el número de no leídos: dos
+   * suscripciones en tiempo real al mismo conjunto de documentos. Ahora las dos
+   * salen de `useConversaciones`, que mantiene UNA por aplicación y la reabre
+   * sola al cambiar de cara.
+   */
+  const { conversaciones, cargando } = useConversaciones();
   useEffect(() => {
-    // Clear old conversations immediately on profile switch
-    setConversations([]);
-
-    if (!activeUid) { setLoading(false); return; }
-
-    setLoading(true);
-    let unsub: (() => void) | undefined;
-
-    try {
-      unsub = messagesService.subscribeToConversations(activeUid, (convs) => {
-        setConversations(convs);
-        setLoading(false);
-      });
-
-      const deregister = registerCleanup(() => unsub?.());
-
-      const timeout = setTimeout(() => setLoading(false), 10000);
-
-      return () => {
-        clearTimeout(timeout);
-        deregister();
-        unsub?.();
-      };
-    } catch (error) {
-      console.error('Error subscribing to conversations:', error);
-      setLoading(false);
-    }
-  }, [activeUid, registerCleanup]);
+    setConversations(conversaciones);
+    setLoading(cargando);
+  }, [conversaciones, cargando]);
 
   // ─── Helpers ───
   const openChat = (c: Conversation) => {

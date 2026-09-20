@@ -7,7 +7,7 @@ import CreateSheet, { CreateKind } from '../components/CreateSheet';
 import { useAuth } from '../contexts/AuthContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { messagesService } from '../services/messagesService';
+import { useSinLeer } from '../hooks/useConversaciones';
 
 const isWeb = Platform.OS === 'web';
 
@@ -139,7 +139,6 @@ const NavegacionGlobal: React.FC = () => {
   const { triggerScrollToTop, isScrollingDown } = useScroll();
   const insets = useSafeAreaInsets();
   const [hoja, setHoja] = useState(false);
-  const [sinLeer, setSinLeer] = useState(0);
   const { estado, visible } = useBarraInferior();
 
   const rutaRaiz = estado?.routes?.[estado.index]?.name;
@@ -182,16 +181,15 @@ const NavegacionGlobal: React.FC = () => {
     apartada.setValue(0);
   }, [rutaRaiz]);
 
-  /* Los no leídos de WeeTalk, con el uid real —nunca el de Biz—. */
-  const uidReal = user?.uid;
-  useEffect(() => {
-    if (!uidReal) {
-      setSinLeer(0);
-      return;
-    }
-    const cancelar = messagesService.subscribeToUnreadCount(uidReal, setSinLeer);
-    return () => cancelar();
-  }, [uidReal]);
+  /*
+   * Los no leídos de WeeTalk salen de la MISMA suscripción que la bandeja
+   * (Fase 11.x-6). Antes había dos oyentes sobre la misma consulta, y además
+   * miraban identidades distintas: este contaba las de la cuenta y la bandeja
+   * enseñaba las de la cara activa, así que con el Perfil Weë puesto el número
+   * no correspondía con la lista. Una conversación es de la cara con la que se
+   * habla, y ahora las dos miran lo mismo.
+   */
+  const sinLeer = useSinLeer();
 
   /*
    * En escritorio manda la barra lateral: repetir los mismos cinco destinos
