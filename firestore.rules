@@ -696,11 +696,24 @@ service cloud.firestore {
       }
     }
 
-    // === REPORTES ===
+    // === MODERACIÓN (Fase 12-A/B · docs/MODERATION.md) ===
+    // Cerrado entero a los clientes. Antes cualquiera con sesión podía CREAR aquí
+    // cualquier documento, de cualquier tamaño y a nombre de cualquiera. Un reporte
+    // lo crea solo la callable `reportContent`, que pone la cuenta, la cara, el
+    // instante y el estado desde la sesión; y solo lo mueve `moderationAdmin`. Ni
+    // quien denuncia lee su reporte: lo que le toca saber se lo contesta la callable.
     match /reports/{reportId} {
-      // Solo el reporter puede crear, nadie puede leer (solo admin via console)
-      allow create: if isAuthenticated();
-      allow read, update, delete: if false;
+      allow read, write: if false;
+
+      // El historial solo se añade, y solo desde el servidor.
+      match /history/{entryId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Cuánto ha denunciado cada cuenta en la ventana y en el día. Solo servidor.
+    match /moderationLimits/{accountId} {
+      allow read, write: if false;
     }
 
     // === BUSINESS FOLLOWS (WeeBiz) ===

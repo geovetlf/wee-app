@@ -31,6 +31,7 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `content/asset.ts` | `Asset`, `StorageRef`, `Provenance`, `AssetVariant`, estados y `retirar()` — el material y de quién es |
 | `content/content.ts` | `Content`, `AssetRef`, `ContentType` — lo que se compone con material |
 | `content/publication.ts` | `Publication`, `Visibility`, `PublicationTarget` — dónde, con qué cara y para quién |
+| `moderation.ts` | `Report`, motivos, estados y sus transiciones, `ModerationDecision` (ALLOW / BLOCK / REVIEW), la costura del evaluador y la del evento — denunciar de verdad ([`docs/MODERATION.md`](MODERATION.md)) |
 | `job.ts` | WEE Job Engine: `Job`, estados, `crearJobEngine()`; y la costura `JobTask` para trabajos que no son de IA |
 | `observability.ts` | `TraceContext` y campos prohibidos |
 | `registry/capabilities.ts` | `CoreCapabilityId` y el catálogo completo |

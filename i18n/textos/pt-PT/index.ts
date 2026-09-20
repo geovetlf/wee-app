@@ -69,6 +69,7 @@ import { search } from './search';
 import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
+import { moderation } from './moderation';
 import { FormaDelDiccionario } from '../es';
 
 export const ptPT: FormaDelDiccionario = {
@@ -107,4 +108,5 @@ export const ptPT: FormaDelDiccionario = {
   design,
   chef,
   brain,
+  moderation,
 };

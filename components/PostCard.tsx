@@ -50,6 +50,7 @@ import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { formatNumber, getRelativeTime } from '../data/mockData';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import ImageViewer from './ImageViewer';
+import ReportSheet from './ReportSheet';
 import Poll from './Poll';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -181,7 +182,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile: activeProfile } = useUserProfile();
+  const { userProfile: activeProfile, realProfile, weeProfile } = useUserProfile();
   const navigation = useNavigation<PostCardNavigationProp>();
   const isFocused = useIsFocused();
 
@@ -272,6 +273,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [denunciando, setDenunciando] = useState(false);
   const [localViews, setLocalViews] = useState(post.views || 0);
   /*
    * El "cargando" es SOLO de la foto, y solo la foto lo necesita: hay que
@@ -773,39 +775,17 @@ const PostCard: React.FC<PostCardProps> = ({
     });
   };
 
+  /*
+   * DENUNCIAR. Hasta la Fase 12 esto era un `Alert.alert` que escribía en la
+   * consola y daba las gracias por un reporte que no existía —y que en la web ni
+   * se veía, porque allí `Alert.alert` no pinta nada—. Ahora abre la hoja común,
+   * que crea un reporte de verdad en el servidor (docs/MODERATION.md). Sin
+   * sesión, lo mismo que el resto del menú: a registrarse.
+   */
   const handleReportPost = () => {
     setMenuVisible(false);
-    Alert.alert(
-      t('wall.reportPost'),
-      t('wall.reportWhy'),
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: t('wall.reportOffensive'),
-          onPress: () => {
-            console.log('📝 Post reportado: Contenido ofensivo');
-            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
-          },
-        },
-        {
-          text: t('wall.reportSpam'),
-          onPress: () => {
-            console.log('📝 Post reportado: Spam');
-            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
-          },
-        },
-        {
-          text: t('wall.reportOther'),
-          onPress: () => {
-            console.log('📝 Post reportado: Otro motivo');
-            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
-          },
-        },
-      ]
-    );
+    if (!user) { navigateToRegister(); return; }
+    setDenunciando(true);
   };
 
   const handleTextPress = (text: string) => {
@@ -1164,6 +1144,13 @@ const PostCard: React.FC<PostCardProps> = ({
     !isOwnPost && !!postAuthor
     && displayPost.userId !== activeProfile?.uid
     && displayPost.userId !== user?.uid;
+  /*
+   * Lo propio no se denuncia, ni con esta cara ni con la otra. Las dos identidades
+   * se LEEN del contexto —nada se compone a partir de un prefijo—, y se mira la
+   * publicación que se VE: en un repost, la original. El servidor lo comprueba
+   * igual; aquí solo se evita ofrecer un botón que no va a servir.
+   */
+  const puedeDenunciar = ![user?.uid, realProfile?.uid, weeProfile?.uid].filter(Boolean).includes(displayPost.userId);
   const displayAuthor = isRepost && originalPost ? postAuthor : postAuthor;
 
   // Si es un repost y todavía está cargando el original, mostrar loading
@@ -1235,16 +1222,23 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
 
       {isOwnPost && (
-        <TouchableOpacity style={[styles.menuOption, separadorDelMenu]} onPress={handleDeletePost}>
+        <TouchableOpacity style={[styles.menuOption, puedeDenunciar && separadorDelMenu]} onPress={handleDeletePost}>
           <Ionicons name="trash-outline" size={20} color="#FF3B30" />
           <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>{t('wall.deletePost')}</Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity style={styles.menuOption} onPress={handleReportPost}>
-        <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
-        <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('wall.reportPost')}</Text>
-      </TouchableOpacity>
+      {puedeDenunciar && (
+        <TouchableOpacity
+          style={styles.menuOption}
+          onPress={handleReportPost}
+          accessibilityRole="button"
+          accessibilityLabel={t('moderation.report')}
+        >
+          <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
+          <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('moderation.report')}</Text>
+        </TouchableOpacity>
+      )}
     </>
   );
 
@@ -1539,6 +1533,16 @@ const PostCard: React.FC<PostCardProps> = ({
           imageUrls={displayPost.imageUrls}
           initialIndex={selectedImageIndex}
           onClose={() => setImageViewerVisible(false)}
+        />
+      )}
+
+      {/* Denunciar: se monta solo cuando se abre, para que un muro de cien tarjetas no lleve cien hojas. */}
+      {denunciando && !!displayPost.id && (
+        <ReportSheet
+          visible={denunciando}
+          onClose={() => setDenunciando(false)}
+          objetivo={{ type: 'POST', id: displayPost.id }}
+          surface="post_menu"
         />
       )}
 

@@ -119,7 +119,8 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
     'components/avatars/AvatarPicker.tsx': 0,
     'components/ChatCamera.tsx': 1, // declina el permiso de cámara y cierra: es el "no" de un permiso
     'components/CommunitySelector.tsx': 1, // confirma antes de unirse a una comunidad sin filtro
-    'components/PostCard.tsx': 2, // alertas: eliminar y reportar una publicación
+    'components/PostCard.tsx': 1, // alerta: eliminar una publicación. La de reportar se fue en la Fase 12-A/B: era un Alert.alert que no creaba ningún reporte
+    'components/ReportSheet.tsx': 2, // UN botón, con su texto y su etiqueta accesible: cierra la hoja de denunciar sin enviar nada. Es el "no" de una denuncia, y no hay pantalla a la que volver
     'screens/CommunitiesManagementScreen.tsx': 1, // alerta: salir de una comunidad
     'screens/CreateScreen.tsx': 2, // alertas de permisos de galería y cámara
     'screens/InboxScreen.tsx': 1, // alerta: eliminar una conversación

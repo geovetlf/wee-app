@@ -96,12 +96,18 @@ const MAPA = [
     motor: 'CONNECTED', simbolos: ['asegurarCuenta', 'asegurarEntidadDeCaraWee', 'crearPagina', 'cuentaWeeValida', 'entidadDeCuentaValida', 'esIdDeCuenta', 'esIdDePrincipal', 'normalizarNumeroDeCuenta', 'resolverCuentaDelPrincipal'] },
   { id: 'registry', canonico: ['core/registry/capabilities.js', 'core/registry/registry.js', 'core/registry/validate.js'], composicion: 'registry/index.js', fabrica: 'registroDeWee', enUso: ['planner/index.js'],
     motor: 'CONNECTED', simbolos: ['CAPABILITY_CATALOG', 'crearRegistro', 'validarRegistro'] },
+  /* Fase 12-A/B. Nació conectada: no hay una moderación «de antes» con la que convivir (docs/MODERATION.md). */
+  { id: 'moderation', canonico: ['core/moderation.js'], composicion: 'moderation/index.js', fabrica: 'crearModeracion', enUso: ['moderation/index.js'],
+    motor: 'CONNECTED', simbolos: ['EVALUADOR_DE_REGLAS', 'ESTADOS_DE_REPORTE', 'FORMA_DE_ID_DE_REPORTE', 'POLITICA_DE_REPORTES', 'decisionValida', 'entradaDeCreacion', 'esContenidoPropio',
+      'esEstadoDeReporte', 'evaluarLimite', 'idDeEntrada', 'idDeReporte', 'nuevoReporte', 'transicionarReporte', 'validarPeticionDeReporte', 'vistaParaQuienDenuncia'] },
 ];
 
 /* Módulos del Core que no son ningún singular y que el código vivo también nombra. */
 const OTROS_DEL_CORE = {
   'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION'],
   'core/language.js': ['contextoDeIdioma'],
+  /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
+  'core/social-identity.js': ['actorDeLaCuenta'],
 };
 
 /* Las Functions que producción expone, y de qué módulo sale cada una. */
@@ -118,6 +124,7 @@ const FUNCTIONS = {
   './social/weetalk': ['burnViewOnce'],
   './social/econtact': ['requestEContact', 'acceptEContact'],
   './identity/nacimiento': ['nacimientoDeCuenta'],
+  './moderation': ['reportContent', 'moderationAdmin'],
   './credits': ['getCreditsBalance', 'getCreditHistory', 'getCreditCost', 'spendCredits', 'grantCredits', 'refundCredits', 'validatePurchase', 'restorePurchase', 'creditsAdmin'],
   '(index)': ['sendPushNotification', 'sendMessagePushNotification'],
 };
@@ -177,7 +184,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son veintiocho', reales.length === 28, `${reales.length}`);
+  check('5) y son treinta: las veintiocho de antes y las dos de moderación', reales.length === 30, `${reales.length}`);
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
   check('7) ninguna Function sale de una composición del Core que no esté conectada',
@@ -217,7 +224,8 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
   let n = 8;
   for (const c of MAPA) {
     const simbolos = c.canonico.flatMap((m) => [...(nombrados.get(m) || [])]);
-    const llamadores = c.fabrica ? invocadaDesde(c.fabrica).filter((r) => r !== c.composicion) : [];
+    /* Casi siempre quien atiende es otro archivo que la composición. En moderación son el mismo: las callables viven en ella. */
+    const llamadores = c.fabrica ? invocadaDesde(c.fabrica).filter((r) => r !== c.composicion || c.enUso.includes(c.composicion)) : [];
     const alcanzable = c.composicion ? VIVOS.has(c.composicion) : false;
     const motor = c.fabrica && llamadores.length ? 'CONNECTED' : 'NOT CONNECTED';
     check(`${n++}) ${c.id}: el motor del Core está ${c.motor}`, motor === c.motor,

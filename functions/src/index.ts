@@ -98,6 +98,15 @@ export { requestEContact, acceptEContact } from './social/econtact';
  */
 export { nacimientoDeCuenta } from './identity/nacimiento';
 
+/*
+ * MODERATION (Fase 12-A/B): denunciar de verdad. `reports` está cerrada a los
+ * clientes; la única puerta para crear un reporte es `reportContent`, que pone
+ * la cuenta, la cara, el instante y el estado desde la sesión. `moderationAdmin`
+ * es la costura de la revisión humana, solo para administración
+ * (docs/MODERATION.md).
+ */
+export { reportContent, moderationAdmin } from './moderation';
+
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
   getCreditsBalance,

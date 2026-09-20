@@ -76,7 +76,8 @@ El código ya lo usaba (`functions/src/creator/types.ts`, «NO PUEDE HABER UN TE
 | **Publication** | `core/content/publication.ts` (contrato) | el cliente escribe `posts` (`services/firestoreService.ts`) | NOT CONNECTED | ninguna |
 
 Los otros singulares, para que la cuenta de «un solo motor por pieza» esté completa:
-**Identity** CONNECTED (`identity/cuentas.ts`, `identity/nacimiento.ts` sobre
+**Moderation** CONNECTED (`moderation/index.ts` sobre `core/moderation.ts`; nació conectada en la
+Fase 12-A/B, sin una versión anterior con la que convivir); **Identity** CONNECTED (`identity/cuentas.ts`, `identity/nacimiento.ts` sobre
 `core/account-identity.ts`); **Registry** CONNECTED (`registry/index.ts`);
 **Financial** NOT CONNECTED — lo que cobra es `credits/creditEngine.ts`, y
 `financial/index.ts` no lo carga nadie. No se toca en este bloque.
@@ -232,8 +233,10 @@ router instanciado, un solo bucle de ejecución. **En ejecución no hay dos moto
 de nada**, salvo el camino del avatar descrito arriba. La duplicación está en el
 árbol, no en el proceso.
 
-Functions desplegadas: **28**, las mismas 28 que exporta `index.ts` (comprobado con
-`firebase functions:list`). Ninguna sale de una composición no conectada.
+Functions desplegadas: **28** (comprobado con `firebase functions:list`). `index.ts` exporta **30**
+desde la Fase 12-A/B: las dos de moderación (`reportContent`, `moderationAdmin`) están en el
+árbol y **sin desplegar** hasta que se autorice (`docs/MODERATION.md`). Ninguna sale de una
+composición no conectada.
 
 ## 6. Paridad: el ensayo en seco de la migración de código
 

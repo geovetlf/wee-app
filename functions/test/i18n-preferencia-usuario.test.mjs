@@ -500,8 +500,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * a los once a la vez: 2 240 → 2 299 en la Fase 11, con el módulo `creaciones`
    * («Mis creaciones», incluidas las cuatro claves de la descarga) y las dos
    * claves de la foto única de WeeTalk (`weetalk.photoOnce`, `weetalk.photoOpened`).
+   * 2 301 → 2 318 en la Fase 12-A/B: entra el módulo `moderation` (24 claves) y
+   * salen las siete de `wall.report*`, que daban las gracias por un reporte que no
+   * existía y prometían una revisión que nadie hacía.
    */
-  const CLAVES_PT = 2301;
+  const CLAVES_PT = 2318;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
