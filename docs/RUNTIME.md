@@ -1432,3 +1432,156 @@ Probado de punta a punta en el emulador, con el motor de trabajos de verdad:
   vista y sin inventar nada: aviso del proveedor → `recibirEvento` → desenlace durable →
   trabajo final → liquidación → Credit Engine. Ese primer eslabón es de quien migre un
   proveedor asíncrono de verdad.
+
+## 16. F12-D · La tarea que vive en casa de otro
+
+Hasta aquí, toda operación de Weë cabía dentro de una llamada: se pedía, se esperaba y se
+contestaba. Un vídeo no cabe. El proveedor lo coge, dice cómo lo llama y sigue por su
+cuenta minutos u horas —mientras el proceso que lo pidió ya no existe—.
+
+El bloque anterior dejó la puerta abierta y a nadie cruzándola: el Gateway sabía decir «la
+tengo», pero ningún adaptador lo decía y nadie recogía la tarea después. Este cierra los
+cinco huecos que faltaban, y **sigue sin conectar nada**.
+
+### 16.1 Encontrar de quién es un aviso (B)
+
+Un aviso llega diciendo `cgt-123` y nada más: ni de quién es, ni a qué intento pertenece.
+Esa referencia vivía dentro del `json` del trabajo, que es texto y no se consulta.
+
+`runtime/proveedor.ts` construye la clave —`proveedor:operación`, opaca y validada— y el
+almacén la escribe como **proyección**: `providerOps`, una lista, porque un trabajo puede
+haber intentado dos veces y tener dos tareas distintas del otro lado. Un aviso tardío de la
+primera encuentra su sitio igual que uno de la segunda.
+
+No es un segundo Source of Truth: se **deriva** del trabajo y se escribe con él, y el
+`json` sigue siendo la verdad. Se busca con una consulta de un solo campo
+(`array-contains`), que Firestore sirve con su índice automático —verificado contra el
+emulador, sin índice compuesto—, y se piden **dos** resultados para poder ver lo que no
+puede pasar: si dos trabajos declararan la misma operación, **no se elige uno**. Elegir
+sería inventarse de quién es el dinero.
+
+### 16.2 Que el mismo aviso repetido sea el mismo aviso (C)
+
+ModelArk reintenta tres veces si no confirmas en cinco segundos. El motor ya sabía
+descartar un aviso repetido —por `eventId`, guardado en `job.seenEvents`, que es estado
+persistente bajo el CAS del almacén, no memoria del proceso—; lo que faltaba era que ese
+identificador fuera **el mismo** en los tres reintentos.
+
+Se deriva de lo que el aviso dice de sí mismo: `sha256(proveedor, operación, estado,
+cuándo cambió)`. Sin fecha se degrada a `(proveedor, operación, estado)` —dos transiciones
+al mismo estado serían indistinguibles—, que es el lado seguro, y **se anota que se
+degradó** para que se pueda saber.
+
+### 16.3 Cinco relojes que no son el mismo (G)
+
+`runtime/plazos.ts` los separa con nombre: vida en el proveedor, vida del trabajo,
+concesión del trabajador, horizonte de reconciliación y caducidad de la URL. La regla:
+
+    concesión ≪ vida de la tarea ≤ vida del trabajo ≤ tope del contrato
+
+Los dos últimos no los elegimos nosotros: la ventana de consulta de ModelArk es de **siete
+días** y el enlace del vídeo vale **24 horas**, los dos publicados. `revisarPlazos`
+devuelve *qué* está mal y no un booleano, porque un plazo incoherente no es «inválido»: es
+una forma concreta de perder dinero o resultados.
+
+La regla crítica del bloque —**un trabajo vivo o con estado de proveedor conocido nunca se
+reembolsa por un plazo local**— no cambió: ya la cumplía `liquidacion.ts`, y aquí se vuelve
+a fijar en pruebas.
+
+### 16.4 Que el proveedor la coja y suelte el proceso (J)
+
+El POST a ModelArk es todo lo que hace falta para que empiece: contesta en segundos con el
+id de la tarea. Lo que venía después —sondear cada diez segundos hasta media hora— no es
+hablar con el proveedor: es un proceso de Weë esperando sentado.
+
+El contrato del adaptador crece de forma **aditiva**: `ProviderResult` sigue siendo lo que
+era, con el discriminante `accepted?: undefined`, y `ProviderAccepted` es un tipo aparte
+—no un resultado vacío que rellenar—. Quien sabe esperar sin ocupar a nadie lo pide con
+`acceptAsync`; **el camino de siempre no lo pide nunca**, y Seedance sigue sondeando
+exactamente igual que antes para Weë Studio y para los pasos de Weë Creator.
+
+La modalidad de ejecución **sigue siendo `sync`**. No hay Gateway asíncrono, ni segunda
+cola, ni segundo Job Engine. Y `aceptaAsincrono` está **cerrado por defecto**: pedirle a un
+adaptador que acepte y suelte solo es honesto si después alguien va a preguntar por esa
+tarea.
+
+### 16.5 Recoger el desenlace: aviso y pregunta (D/E, F)
+
+Dos caminos, **un solo traductor**. `leerAvisoDeSeedance` convierte el vocabulario de
+ModelArk a palabras de Weë, y sirve igual para el cuerpo del webhook y para lo que contesta
+al preguntarle: son el mismo objeto. Por eso el callback y la reconciliación no pueden
+decidir cosas distintas sobre el mismo hecho.
+
+| ModelArk | Weë | Efecto |
+|---|---|---|
+| `queued`, `running` | en marcha | `progress`, el trabajo espera |
+| `succeeded` | terminado | `succeeded` terminal —**solo con el resultado ya guardado**— |
+| `failed`, `expired`, `cancelled` | fallado | `failed` terminal, con lo suyo en los metadatos |
+| cualquier otra cosa | **desconocido** | **nada** |
+
+`cancelled` se mapea a `failed` por decisión explícita: el Core no abre un estado nuevo
+para representar el vocabulario de un proveedor, y lo que él dijo se conserva palabra por
+palabra en `providerStatus`.
+
+**No saber nunca es haber fallado.** Un proveedor que no contesta, uno que ya no se acuerda
+de la tarea —su ventana son siete días—, un estado que no reconocemos o un cuerpo ilegible:
+ninguno cierra un trabajo y ninguno devuelve un Credit. El trabajo se queda exactamente
+como estaba, esperando.
+
+El receptor (`engine/webhooks.ts`) acota el cuerpo **antes** de mirarlo, compara el testigo
+en tiempo constante, y contesta **lo mismo** exista el trabajo o no: si distinguiera, sería
+un buscador de cuentas ajenas. ModelArk **no publica firma**; no se inventa una, se
+comprueba el testigo que sí hay y se deja el hueco marcado (`comprobarFirma`).
+
+El reconciliador reutiliza la consulta que ya existe —no terminales, sin mover desde hace
+un rato—, así que **no hace falta ningún índice nuevo**, y no toca un trabajo que alguien
+esté ejecutando ahora mismo.
+
+### 16.6 Traerse el resultado antes de que se evapore (H)
+
+Lo que devuelve el proveedor no es un vídeo: es un **enlace** firmado con fecha de
+caducidad. Cerrar el trabajo guardándolo sería entregarle a la persona algo que deja de
+existir sin que nadie lo toque —y cobrarle por ello—. El orden no es negociable:
+
+    el proveedor termina → se GUARDA en casa → recién entonces se cierra
+
+Si no se pudo guardar, **el trabajo no se cierra**: se aplaza, y alguien volverá a
+intentarlo mientras el enlace valga.
+
+La identidad del material se **calcula**: `sha256(jobId, attemptId)`. Ni la URL del
+proveedor (cambia entre consultas y caduca), ni un id al azar (una identidad por llegada,
+que es el problema), ni la hora, ni nada que diga el cliente. El intento y no solo el
+trabajo, porque un reintento es otra ejecución con otro coste y merece su propio material.
+
+Todo es determinista hasta abajo: la ficha se crea **solo si no existe** (`create`), y la
+ruta del objeto se deriva del mismo identificador y se escribe **solo si no existe**
+(`ifGenerationMatch: 0`). Sin lo segundo, dos llegadas simultáneas dejarían dos objetos
+pagados, uno huérfano para siempre.
+
+No hay sistema de materiales nuevo: es el de la Fase 11, con la procedencia puesta
+—trabajo, ejecución, paso, petición, traza, operación, proveedor y modelo— y **construida
+del trabajo guardado**. Del mensaje se toma una sola cosa: cómo llama él a la operación.
+El enlace no llega a la ficha, ni al trabajo, ni a un registro.
+
+### 16.7 Lo que no cambió
+
+El Financial Core, el Credit Engine, la política 1/12 de Weë Brain, los precios, la
+identidad, F11 y el camino de siempre (`CreatorFlow` → `creator` → Engine → adaptador). El
+único contrato de fase cerrada que se tocó fue el del Gateway en el bloque anterior; aquí
+las adiciones son **opcionales y compatibles**: `ProviderRunRequest.acceptAsync`,
+`ProviderAccepted` y `NuevoMaterialDesdeUrl.assetId`.
+
+La corrección de concurrencia de `2da2881` sigue intacta: el perdedor de un duplicado
+concurrente contesta `en_curso` en segundos, sin reserva, sin cobro, sin reembolso y sin
+llamada al proveedor.
+
+### 16.8 Lo que sigue sin conectar
+
+- **Ninguna capacidad asíncrona está migrada.** `CAPACIDAD_DEL_CANARY` sigue siendo
+  `text.generate`, y el vídeo no pasa por el conductor.
+- **`aceptaAsincrono` está cerrado.** Nadie lo enciende.
+- **El receptor de avisos no se exporta desde `index.ts`**, igual que el barrido
+  programado: no está desplegado y no hay ningún aviso legítimo que pueda llegarle.
+- **El reconciliador no está programado.** Ninguna tarea lo llama.
+
+Encender cualquiera de los cuatro es un paso aparte y requiere autorización explícita.

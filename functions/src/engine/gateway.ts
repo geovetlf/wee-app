@@ -68,6 +68,16 @@ export interface EjecutorDeps {
   /** Configuración viva (o la que sea, en pruebas). Ya viene cacheada. */
   config: () => ConfigDelMotor | Promise<ConfigDelMotor>;
   now?: () => number;
+  /**
+   * ¿HAY QUIEN RECOJA UNA TAREA A MEDIAS? Cerrado por defecto.
+   *
+   * Pedirle a un adaptador que acepte y suelte solo es honesto si después
+   * alguien va a preguntar por esa tarea: el receptor de avisos y la
+   * reconciliación. Mientras eso no esté en marcha, aceptar sería dejar el
+   * trabajo esperando un desenlace que no va a llegar —y el dinero reservado
+   * con él—, así que esto sigue apagado hasta que se autorice encenderlo.
+   */
+  aceptaAsincrono?: boolean;
 }
 
 /** Tiempo límite TOTAL de la ejecución, agotado. Distinto del de una llamada HTTP dentro del adaptador. */
@@ -243,10 +253,35 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       const inicio = now();
       try {
         const result = await conTiempoLimite(
-          adapter.run({ capability: capability as CapabilityId, model: modelo, input: input as Record<string, unknown>, ctx, prefs, timeoutMs, onStatus }),
+          adapter.run({ capability: capability as CapabilityId, model: modelo, input: input as Record<string, unknown>, ctx, prefs, timeoutMs, onStatus, ...(deps.aceptaAsincrono ? { acceptAsync: true } : {}) }),
           timeoutMs,
           adapter.id,
         );
+        /*
+         * EL PROVEEDOR LA COGIÓ. Aquí no hay respuesta que canonizar: hay un
+         * nombre con el que volver a preguntar. El uso viaja igual —lo que el
+         * proveedor ya dijo del coste no se pierde—, pero no se inventa un
+         * resultado vacío para que el tipo encaje.
+         */
+        if (result.accepted) {
+          /*
+           * SIN USO. `GatewayUsage` es lo que el proveedor DIJO que consumió, y
+           * al aceptar todavía no ha dicho nada: lo que hay es una estimación
+           * del adaptador. Mandarla aquí la convertiría en consumo real en el
+           * libro, y el consumo real llega con el desenlace. El coste estimado
+           * viaja por donde ya viajaba —`meta`, y `onStatus`—, no por aquí.
+           *
+           * Si el adaptador no dio nombre de operación, se manda vacío a
+           * propósito: el Gateway lo rechaza con `accepted_without_operation`,
+           * que es exactamente lo que es, en vez de inventarle uno.
+           */
+          return {
+            ok: true,
+            accepted: true,
+            operation: { providerId: adapter.id, operationId: String(result.accepted.operationId ?? '').trim() },
+            warnings: ganchoFallo ? ['progress_hook_failed'] : undefined,
+          };
+        }
         const response = aRespuestaCanonica(result, adapter.id, modelo.id, now() - inicio);
         return {
           ok: true,

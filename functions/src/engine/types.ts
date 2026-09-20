@@ -160,6 +160,12 @@ export interface ProviderOutput {
 }
 
 export interface ProviderResult {
+  /*
+   * El discriminante, AUSENTE. Está aquí para que distinguir «terminó» de
+   * «la cogió» lo haga el tipo, y no una comprobación a mano en cada consumidor.
+   * Mismo patrón que `ExecutorOutcome` en `core/gateway.ts`.
+   */
+  accepted?: undefined;
   output: ProviderOutput;
   usage?: Record<string, number>;
   /** Coste medido o estimado por el adaptador en USD (0 en demo). */
@@ -170,6 +176,31 @@ export interface ProviderResult {
   /** Datos del proveedor para el libro (id de tarea, resolución, tokens estimados y reales…). */
   meta?: Record<string, unknown>;
 }
+
+/**
+ * EL PROVEEDOR COGIÓ LA TAREA Y SIGUE CON ELLA.
+ *
+ * No hay salida todavía, y puede que tarde horas. Lo único que queda de la
+ * tarea es cómo la llama él: sin `operationId` esto sería un callejón sin
+ * salida, porque no habría a quién preguntarle después.
+ *
+ * NO es un modo de ejecución nuevo: la llamada a la API se hace y se espera,
+ * como siempre, y dura segundos. Lo que cambia es que lo que contesta el
+ * proveedor no es un resultado sino un acuse con su nombre para la operación.
+ * Un adaptador que nunca devuelva esto se comporta exactamente igual que antes.
+ */
+export interface ProviderAccepted {
+  accepted: { operationId: string };
+  usage?: Record<string, number>;
+  /** Lo que ya se sabe que va a costar. El real llega con el desenlace. */
+  costUSD: number;
+  latencyMs: number;
+  model?: string;
+  meta?: Record<string, unknown>;
+}
+
+/** Lo que contesta un adaptador: terminó, o el proveedor la cogió. */
+export type ProviderOutcome = ProviderResult | ProviderAccepted;
 
 /** Avance de una generación asíncrona (la tarea ya está en el proveedor). */
 export type ProviderStatusHook = (status: 'PROCESSING', meta: Record<string, unknown>) => Promise<void> | void;
@@ -182,6 +213,18 @@ export interface ProviderRunRequest {
   prefs: RoutingPrefs;
   timeoutMs: number;
   onStatus?: ProviderStatusHook;
+  /**
+   * QUIEN LLAMA SABE ESPERAR SIN OCUPAR EL PROCESO.
+   *
+   * Por defecto, ausente: el adaptador se comporta como siempre y devuelve el
+   * resultado terminado, sondeando por dentro si hace falta. Solo lo pone quien
+   * tiene dónde guardar la tarea a medias —el Job Engine— y quien después sabrá
+   * preguntar por ella: el callback o la reconciliación.
+   *
+   * Pedirlo no obliga a nadie. Un adaptador síncrono lo ignora y termina la
+   * tarea; el que sepa, contesta `ProviderAccepted` y suelta el proceso.
+   */
+  acceptAsync?: boolean;
 }
 
 /** Contrato que implementa cada adaptador (video, imagen, voz, música, LLM…). */
@@ -193,7 +236,12 @@ export interface ProviderAdapter {
   /** Hay clave/credenciales: sin esto el router ni lo considera. */
   isConfigured(): boolean;
   supports(capability: CapabilityId): boolean;
-  run(request: ProviderRunRequest): Promise<ProviderResult>;
+  /**
+   * Devolver `ProviderAccepted` solo está permitido cuando la petición trae
+   * `acceptAsync`. Sin eso, quien llama no tiene dónde guardar una tarea a
+   * medias y la aceptación sería una pérdida silenciosa.
+   */
+  run(request: ProviderRunRequest): Promise<ProviderOutcome>;
   /** Hasta dónde está comprobada esta integración (ver VerificationState). */
   verification?: ProviderVerification;
 }

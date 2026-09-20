@@ -96,7 +96,7 @@ const MAPA = [
   { id: 'content', canonico: ['core/content/content.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'asset', canonico: ['core/content/asset.js'], composicion: 'content/index.js', fabrica: 'crearMaterialDesdeUrl', enUso: ['content/index.js'], cargada: true,
-    motor: 'CONNECTED', simbolos: ['esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'retirar'] },
+    motor: 'CONNECTED', simbolos: ['FORMA_DE_ID_DE_MATERIAL', 'esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'retirar'] },
   { id: 'publication', canonico: ['core/content/publication.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   /* Los otros singulares. No son de este bloque, pero «un solo motor por pieza» los incluye. */

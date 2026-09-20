@@ -222,8 +222,20 @@ console.log('\n── B · El Gateway: qué contesta de verdad, y `accepted` ─
   check('y ahora el Gateway SÍ puede producirlo, por el camino que faltaba', /status: 'accepted'/.test(GW) && /status: 'completed'/.test(GW) && /status: 'failed'/.test(GW));
   check('porque su puerto hacia los adaptadores ya sabe decir «el proveedor la cogió»', /\| \{ ok: true; accepted: true; operation: GatewayOperationRef/.test(GW));
   check('y sin referencia del proveedor no se da por aceptada: sería un callejón sin salida', /accepted_without_operation/.test(GW));
-  check('ningún adaptador de Weë lo produce todavía: la puerta está, el vídeo no se ha migrado',
-    !/accepted: true/.test(sinComentarios(leer('functions/src/engine/gateway.ts'))) && !fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).some((f) => /accepted: true/.test(leer(`functions/src/engine/providers/${f}`))));
+  /*
+   * Y ESTO TAMBIÉN CAMBIÓ. Hasta el bloque de ejecución asíncrona, ningún
+   * adaptador podía producir `accepted`: la puerta estaba y nadie la cruzaba.
+   * Ahora Seedance sí sabe cruzarla —POST, acuse, y suelta el proceso—, pero
+   * SOLO si se lo piden: `acceptAsync` es lo que lo pide, y el camino de
+   * siempre no lo pide nunca. Lo que se fija aquí es exactamente eso: que la
+   * capacidad exista y que esté cerrada por defecto.
+   */
+  const EJEC = sinComentarios(leer('functions/src/engine/gateway.ts'));
+  check('el ejecutor del motor sabe traducir «la cogió» al contrato del Gateway', /accepted: true/.test(EJEC));
+  check('y solo lo pide cuando quien compone lo enciende: por defecto, ausente', /deps\.aceptaAsincrono \? \{ acceptAsync: true \}/.test(EJEC) && /aceptaAsincrono\?: boolean/.test(EJEC));
+  check('un solo adaptador lo produce —Seedance— y ninguno más',
+    fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).filter((f) => /accepted: \{ operationId/.test(leer(`functions/src/engine/providers/${f}`))).join(',') === 'seedance.ts');
+  check('y sin que se lo pidan, Seedance sigue sondeando como siempre', /if \(request\.acceptAsync\)/.test(sinComentarios(leer('functions/src/engine/providers/seedance.ts'))));
   check('su ÚNICO consumidor es la composición del Job Engine, que lo traduce a «no se sabe todavía»', trabajosDeWee.informeDelGateway({ attemptId: 'a1' }, { status: 'accepted', implementation: {} }).outcome === 'unknown');
 
   /* Y si un día el Gateway lo contestara, el runtime YA es seguro: no lo da por hecho, no lo repite y no se queda esperando. */

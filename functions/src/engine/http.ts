@@ -105,7 +105,7 @@ export async function pollUntil<T>(
   throw new ProviderError(`${options.provider}: la tarea tardó más de ${Math.round(options.timeoutMs / 1000)} s`, options.provider);
 }
 
-const extensionFor = (contentType: string): string => {
+export const extensionFor = (contentType: string): string => {
   if (contentType.includes('png')) return 'png';
   if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'jpg';
   if (contentType.includes('webp')) return 'webp';

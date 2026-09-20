@@ -352,7 +352,19 @@ export function createRouter(deps: RouterDeps) {
         });
       };
       try {
-        const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs, onStatus }), timeoutMs, candidate.provider);
+        const salida = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs, onStatus }), timeoutMs, candidate.provider);
+        /*
+         * ESTE CAMINO NO SABE ESPERAR.
+         *
+         * El camino de siempre no lleva Job Engine detrás: si un adaptador
+         * devolviera aquí una tarea a medias, no habría dónde guardarla ni quién
+         * preguntara por ella después, y el trabajo se perdería en silencio
+         * después de haberse pagado. No puede pasar —nunca se pide
+         * `acceptAsync` desde aquí—, así que si pasa es un fallo del adaptador,
+         * y se trata como tal en vez de fingir un resultado.
+         */
+        if (salida.accepted) throw new EngineError('PROVIDER_ERROR', undefined, { provider: candidate.provider, reason: 'accepted_sin_soporte' });
+        const result = salida;
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
         const credits = creditsFor(capability, result.costUSD, settings, demo, input);

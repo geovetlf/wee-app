@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { getFirestore } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
 import { crearMaterialDesdeUrl } from '../content';
+import { materializadorDeWee } from '../content/materializador';
+import { resolutorDeSeedance } from '../engine/providers/seedance';
 import {
   CapabilityId,
   JobDispatch,
@@ -21,8 +24,13 @@ import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
 import { crearMotorDeTrabajosDeWee } from '../job';
 import { datosDelRegistro } from '../registry';
 import { almacenDeEjecuciones, almacenDeTrabajos, contadorDeCapacidad } from './almacen';
+import { AtencionDeps, VistoAlAtender } from './atencion';
 import { InformeDeBarrido, pasarElBarrendero } from './barrido';
 import { barrerLiquidaciones } from './barrendero';
+import { PuertoDeMaterializacion } from './materializacion';
+import { PLAZOS_DE_VIDEO, PlazosDeCapacidad } from './plazos';
+import { InformeDelReconciliador, reconciliarTrabajos } from './reconciliador';
+import { ResolutorDeEstadoDeProveedor } from './reconciliacion';
 import { colaDeInvocacion } from './cola';
 import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
 import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
@@ -274,6 +282,61 @@ export const barridoDeLiquidacionDeWee = (deps: {
   });
 };
 
+/**
+ * ATENDER UN AVISO DE PROVEEDOR, COMPUESTO: el almacén de verdad, el motor de
+ * trabajos de verdad y el materializador de verdad —el de la Fase 11, no otro—.
+ *
+ * Es lo que usa el receptor de avisos y lo que usa el reconciliador: los dos el
+ * mismo, a propósito. Que un webhook y una pregunta al proveedor decidan
+ * distinto sobre el mismo hecho sería tener dos motores discutiendo por el
+ * mismo trabajo.
+ *
+ * NADIE LA LLAMA TODAVÍA: el receptor no se exporta como Function.
+ */
+export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; materializar?: PuertoDeMaterializacion; observar?: (v: VistoAlAtender) => void } = {}): AtencionDeps => {
+  const db = deps.db ?? getFirestore();
+  return {
+    trabajos: almacenDeTrabajos(db),
+    motor: crearMotorDeTrabajosDeWee().motor,
+    almacen: almacenDeTrabajos(db),
+    materializar: deps.materializar ?? materializadorDeWee,
+    ahora: deps.ahora ?? (() => Date.now()),
+    ...(deps.observar ? { observar: deps.observar } : {}),
+  };
+};
+
+/**
+ * LA PASADA DEL RECONCILIADOR DE WEË, compuesta.
+ *
+ * Los resolutores son los adaptadores que saben preguntarle a su proveedor. Hoy
+ * hay uno —Seedance—, y se declara aquí y no dentro del runtime: el runtime no
+ * conoce proveedores.
+ *
+ * NADIE LA LLAMA TODAVÍA: no se exporta como Function y no hay nada programado.
+ */
+export const reconciliacionDeWee = (deps: {
+  db?: Firestore;
+  ahora?: () => number;
+  resolutores?: Readonly<Record<string, ResolutorDeEstadoDeProveedor>>;
+  plazos?: Pick<PlazosDeCapacidad, 'horizonteDeReconciliacionMs'>;
+  materializar?: PuertoDeMaterializacion;
+  porPagina?: number;
+  maxPaginas?: number;
+  quietoDesdeMs?: number;
+} = {}) => {
+  const db = deps.db ?? getFirestore();
+  const base = atencionDeWee({ db, ...(deps.ahora ? { ahora: deps.ahora } : {}), ...(deps.materializar ? { materializar: deps.materializar } : {}) });
+  return async (): Promise<InformeDelReconciliador> => reconciliarTrabajos({
+    ...base,
+    trabajos: almacenDeTrabajos(db),
+    resolutores: deps.resolutores ?? { seedance: resolutorDeSeedance },
+    plazos: deps.plazos ?? PLAZOS_DE_VIDEO,
+    ...(deps.porPagina !== undefined ? { porPagina: deps.porPagina } : {}),
+    ...(deps.maxPaginas !== undefined ? { maxPaginas: deps.maxPaginas } : {}),
+    ...(deps.quietoDesdeMs !== undefined ? { quietoDesdeMs: deps.quietoDesdeMs } : {}),
+  });
+};
+
 export interface ConductorDeWeeDeps {
   db: Firestore;
   ahora?: () => number;
@@ -358,4 +421,18 @@ export type { BarridoDeps, InformeDeBarrido } from './barrido';
 export { decidirLiquidacion, reservaDe } from './liquidacion';
 export type { AccionDeLiquidacion, PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
 export type { AlmacenDeTrabajosDeWee } from './almacen';
+export { claveDeOperacion, clavesDeOperacionDe, identidadCompleta, identidadDeEvento, intentoDeLaOperacion } from './proveedor';
+export type { BusquedaPorOperacion } from './proveedor';
+export { PLAZOS_DE_VIDEO, TOPE_DEL_CONTRATO_MS, politicaDe, revisarPlazos, segundosParaElProveedor } from './plazos';
+export type { FalloDePlazos, PlazosDeCapacidad } from './plazos';
+export { leerAviso, MAX_MOTIVO } from './aviso';
+export type { AvisoNormalizado, DesenlaceDelProveedor, LecturaDeAviso } from './aviso';
+export { atenderAviso } from './atencion';
+export type { AtencionDeps, DesenlaceDeAtencion, VistoAlAtender } from './atencion';
+export { decidirReconciliacion } from './reconciliacion';
+export type { AccionDeReconciliacion, EstadoSegunElProveedor, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor } from './reconciliacion';
+export { reconciliarTrabajos, reconciliarUno } from './reconciliador';
+export type { InformeDelReconciliador, ReconciliadorDeps, VistoAlReconciliar } from './reconciliador';
+export { identidadDelMaterial, procedenciaDe, tipoDeMaterialDe } from './materializacion';
+export type { DesenlaceDeMaterializacion, PeticionDeMaterializacion, PuertoDeMaterializacion } from './materializacion';
 export { FalloDelPensador, pensadorSobreConductor } from './pensador';

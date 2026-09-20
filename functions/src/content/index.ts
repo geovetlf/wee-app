@@ -6,6 +6,7 @@ import {
   AssetKind,
   AssetVariant,
   CONTENT_CORE_CONTRACT_VERSION,
+  FORMA_DE_ID_DE_MATERIAL,
   Provenance,
   StorageRef,
   esStorageRef,
@@ -160,6 +161,19 @@ const tipoPorMime = (mime: string | undefined, porDefecto: AssetKind): AssetKind
 export interface NuevoMaterialDesdeUrl {
   /** La cuenta. Del Principal autenticado; nunca del cliente. */
   ownerAccountId: string;
+  /**
+   * LA IDENTIDAD, CUANDO QUIEN LLAMA LA CALCULA.
+   *
+   * Sin esto se sortea una, que es lo correcto cuando cada llamada es un
+   * material nuevo. No lo es cuando la misma creación puede llegar dos veces
+   * —un aviso de proveedor que se repite, una reconciliación que coincide con
+   * él—: ahí hace falta que las dos llegadas pidan el MISMO material, o quedan
+   * dos fichas del mismo archivo.
+   *
+   * Con `assetId` la ficha se crea SOLO SI NO EXISTE, y la segunda llegada
+   * recibe la que ya estaba en vez de pisarla.
+   */
+  assetId?: string;
   url: string;
   kind: AssetKind;
   provenance: Provenance;
@@ -219,7 +233,12 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
   }
 
   const at = ahora();
-  const assetId = `asset_${randomUUID().replace(/-/g, '')}`;
+  /* Calculada por quien llama, o sorteada. Si viene mal formada no se inventa otra: no se crea nada. */
+  if (datos.assetId !== undefined && !FORMA_DE_ID_DE_MATERIAL.test(datos.assetId)) {
+    console.warn('Content: identidad de material mal formada; no se crea la ficha');
+    return null;
+  }
+  const assetId = datos.assetId ?? `asset_${randomUUID().replace(/-/g, '')}`;
   const delivery: AssetDoc['delivery'] = { url: datos.url, kind: ref.provider === PROVEEDOR_CLOUDINARY ? 'public' : 'bearer_token' };
   const bruto: AssetDoc = {
     contract: CONTENT_CORE_CONTRACT_VERSION,
@@ -246,6 +265,24 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
   if (!materialValido(doc)) {
     console.error('Content: el material construido no cumple el contrato', assetId);
     return null;
+  }
+  /*
+   * CON IDENTIDAD CALCULADA, SE CREA SOLO SI NO ESTÁ.
+   *
+   * `create` falla cuando el documento ya existe, y eso es justo lo que se
+   * quiere: la segunda llegada del mismo desenlace no pisa la ficha que dejó la
+   * primera —ni su procedencia, ni su fecha—, se la encuentra. Sin identidad
+   * calculada el id es único por construcción y `set` es equivalente.
+   */
+  if (datos.assetId) {
+    try {
+      await assets().doc(assetId).create(doc);
+      return doc;
+    } catch {
+      const yaEstaba = await leerMaterial(assetId);
+      /* Existe pero es de otra cuenta: no se devuelve. Un identificador no da acceso a nada. */
+      return yaEstaba && yaEstaba.ownerAccountId === datos.ownerAccountId ? yaEstaba : null;
+    }
   }
   await assets().doc(assetId).set(doc);
   return doc;

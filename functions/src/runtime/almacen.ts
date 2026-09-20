@@ -16,6 +16,7 @@ import {
 import type { AlmacenDeEjecuciones, EjecucionGuardada } from './conductor';
 import type { FuenteDeTrabajosPorLiquidar } from './barrendero';
 import { reservaDe } from './liquidacion';
+import { BusquedaPorOperacion, claveDeOperacion, clavesDeOperacionDe, intentoDeLaOperacion } from './proveedor';
 
 /**
  * WEË RUNTIME — DÓNDE VIVEN LOS TRABAJOS Y LAS EJECUCIONES.
@@ -111,6 +112,19 @@ const proyeccionDe = (job: Job): Record<string, unknown> => ({
    * escribirlo no rompe nada: como mucho hace mirar dos veces.
    */
   ...(reservaDe(job) ? { liquidacion: 'pendiente' } : {}),
+  /*
+   * CÓMO LLAMA EL PROVEEDOR A LO QUE ESTE TRABAJO LE MANDÓ.
+   *
+   * Cuando una tarea sigue viva del otro lado, un aviso del proveedor llega
+   * diciendo `cgt-123` y nada más: ni de quién es, ni a qué intento pertenece.
+   * Sin este campo no hay forma de encontrar su trabajo, porque la referencia
+   * vive dentro del `json`, que es texto y no se consulta.
+   *
+   * Es una lista porque un trabajo puede haber intentado dos veces y tener dos
+   * tareas distintas: un aviso sobre la primera tiene que encontrar su sitio
+   * igual que uno sobre la segunda.
+   */
+  ...(clavesDeOperacionDe(job).length ? { providerOps: [...clavesDeOperacionDe(job)] } : {}),
   /* La verdad. Todo lo de arriba se deduce de esto y existe solo para poder buscar. */
   json: JSON.stringify(job),
 });
@@ -132,7 +146,10 @@ const trabajoDe = (snap: DocumentSnapshot): Job | undefined => {
  * barrendero necesita para encontrar lo que se quedó sin cerrar. Son dos
  * papeles del MISMO almacén, no dos almacenes.
  */
-export type AlmacenDeTrabajosDeWee = JobStore & FuenteDeTrabajosPorLiquidar;
+export type AlmacenDeTrabajosDeWee = JobStore & FuenteDeTrabajosPorLiquidar & {
+  /** Busca el trabajo y el intento a los que pertenece una operación del proveedor. */
+  porReferenciaDeProveedor(providerId: string, operationId: string): Promise<BusquedaPorOperacion>;
+};
 
 export const almacenDeTrabajos = (db: Firestore): AlmacenDeTrabajosDeWee => {
   const coleccion = db.collection(COLECCION_DE_TRABAJOS);
@@ -206,6 +223,31 @@ export const almacenDeTrabajos = (db: Firestore): AlmacenDeTrabajosDeWee => {
       const pagina = await consulta.get();
       const jobs = pagina.docs.map(trabajoDe).filter((j): j is Job => !!j);
       return { jobs, ...(pagina.size === tope ? { cursor: pagina.docs[pagina.size - 1].id } : {}) };
+    },
+
+    /**
+     * DE «LA TAREA `cgt-123`» A «ESTE TRABAJO Y ESTE INTENTO».
+     *
+     * Una sola consulta por un campo de lista, que Firestore sirve con su
+     * índice automático. Se piden DOS para poder detectar lo que no puede
+     * pasar: si dos trabajos declararan la misma operación, no se elige uno
+     * —elegir sería inventarse de quién es el dinero—, se dice que es ambigua.
+     *
+     * La cuenta NO sale de aquí: sale del trabajo que se devuelve
+     * (`job.owner.userId`). Quien pregunte por una operación ajena recibe
+     * exactamente lo mismo que quien pregunte por una que no existe.
+     */
+    async porReferenciaDeProveedor(providerId: string, operationId: string): Promise<BusquedaPorOperacion> {
+      const clave = claveDeOperacion(providerId, operationId);
+      if (!clave) return { ok: false, motivo: 'no_encontrada' };
+      const pagina = await coleccion.where('providerOps', 'array-contains', clave).limit(2).get();
+      if (pagina.empty) return { ok: false, motivo: 'no_encontrada' };
+      if (pagina.size > 1) return { ok: false, motivo: 'ambigua' };
+      const job = trabajoDe(pagina.docs[0]);
+      if (!job) return { ok: false, motivo: 'no_encontrada' };
+      const intento = intentoDeLaOperacion(job, { providerId, operationId });
+      if (!intento) return { ok: false, motivo: 'intento_no_encontrado' };
+      return { ok: true, job, intento };
     },
 
     /**

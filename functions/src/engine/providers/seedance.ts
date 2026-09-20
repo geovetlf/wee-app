@@ -1,8 +1,10 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../../creator/types';
-import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { ModelSpec, ProviderAdapter, ProviderOutcome, ProviderRunRequest } from '../types';
 import { env, fetchJson, persistRemoteFile, pollUntil, ProviderError, readImage, toDataUri } from '../http';
 import { arkBase, arkHeaders, isArkConfigured } from './ark';
+import type { AvisoNormalizado, DesenlaceDelProveedor } from '../../runtime/aviso';
+import type { ResolutorDeEstadoDeProveedor } from '../../runtime/reconciliacion';
 
 /**
  * ByteDance Seedance — familia de modelos de video de Weë Studio, por la API
@@ -258,7 +260,7 @@ export const seedanceAdapter: ProviderAdapter = {
   models: seedanceModels,
   isConfigured: isArkConfigured,
   supports: (capability) => VIDEO_CAPS.includes(capability),
-  async run(request: ProviderRunRequest): Promise<ProviderResult> {
+  async run(request: ProviderRunRequest): Promise<ProviderOutcome> {
     const { model, ctx } = request;
     const start = Date.now();
     const headers = arkHeaders('seedance');
@@ -275,6 +277,40 @@ export const seedanceAdapter: ProviderAdapter = {
     const taskId = String(task.id ?? '');
     if (!taskId) throw new ProviderError(`seedance: ${task.error?.message ?? 'no devolvió id de tarea'}`, 'seedance');
     if (request.onStatus) await request.onStatus('PROCESSING', { providerTaskId: taskId, estimatedTokens, estimatedUsd: seedanceUsd(estimatedTokens, rate), resolution: body.resolution });
+
+    /*
+     * AQUÍ SE SEPARAN LOS DOS CAMINOS, Y LA LLAMADA AL PROVEEDOR ES LA MISMA.
+     *
+     * El POST de arriba es todo lo que hay que hacer para que ModelArk empiece:
+     * contesta en segundos con el id de la tarea y sigue por su cuenta. Lo que
+     * viene después —sondear cada diez segundos hasta media hora— no es hablar
+     * con el proveedor: es un proceso de Weë esperando sentado.
+     *
+     * Quien sabe esperar sin ocupar a nadie lo dice con `acceptAsync`, y
+     * entonces esto termina aquí: la tarea queda viva del otro lado, con su
+     * nombre apuntado, y el desenlace llegará por el aviso del proveedor o
+     * porque alguien le pregunte. El camino de siempre —Weë Studio, los pasos
+     * de Weë Creator— no lo pide y sigue sondeando exactamente igual que antes.
+     */
+    if (request.acceptAsync) {
+      return {
+        accepted: { operationId: taskId },
+        costUSD: seedanceUsd(estimatedTokens, rate),
+        latencyMs: Date.now() - start,
+        model: model.id,
+        meta: {
+          providerTaskId: taskId,
+          resolution: body.resolution,
+          ratio: body.ratio,
+          estimatedTokens,
+          estimatedUsd: seedanceUsd(estimatedTokens, rate),
+          withVideoInput,
+          generateAudio: body.generate_audio,
+          /* Lo que se le pidió durar: sin esto, quien reconcilie no sabe qué esperaba. */
+          requestedDurationSec: body.duration,
+        },
+      };
+    }
 
     // QUEUED → PROCESSING → COMPLETED | FAILED: sondeo cada 10 s (o el webhook si está configurado)
     const finished = await pollUntil<Record<string, any>>(
@@ -321,3 +357,111 @@ export const seedanceAdapter: ProviderAdapter = {
 
 /** Para pruebas y para el Video Engine: convierte un error del proveedor en un motivo legible. */
 export const seedanceFailureReason = (message: string): 'input_rejected' | 'provider' => (isInputRejection(message) ? 'input_rejected' : 'provider');
+
+/* ── Lo que cuenta ModelArk cuando la tarea cambia ─────────────────────────── */
+
+/**
+ * EL VOCABULARIO DE MODELARK, TRADUCIDO A PALABRAS DE WEË.
+ *
+ * Los estados publicados son seis: `queued`, `running`, `cancelled`,
+ * `succeeded`, `failed` y `expired`. Traducirlos es trabajo del adaptador
+ * —él es quien conoce esta API—, y el motor razona igual venga de donde venga.
+ *
+ * `cancelled` y `expired` caen los dos en «falló» por decisión explícita: son
+ * finales definitivos del otro lado —no va a llegar resultado— y el Core no
+ * abre un estado nuevo para representar el vocabulario de un proveedor. Lo que
+ * él dijo se conserva palabra por palabra en `providerStatus`, así que no se
+ * pierde nada al traducir.
+ *
+ * Cualquier otra cosa es DESCONOCIDO, nunca un fallo: un estado que no
+ * reconocemos no es prueba de que algo saliera mal, y tratarlo como tal
+ * devolvería Credits de tareas que siguen vivas.
+ */
+const DESENLACE_DE_SEEDANCE: Record<string, DesenlaceDelProveedor> = {
+  queued: 'en_marcha',
+  running: 'en_marcha',
+  succeeded: 'terminado',
+  failed: 'fallado',
+  expired: 'fallado',
+  cancelled: 'fallado',
+};
+
+/**
+ * DE UN CUERPO QUE LLEGÓ POR LA RED A UN AVISO LEGIBLE. Pura y desconfiada.
+ *
+ * El cuerpo es de quien lo mandó: aquí no se cree nada de él salvo la forma. No
+ * trae —ni se le lee— cuenta, trabajo ni intento: eso se resuelve después,
+ * buscando por el nombre de la operación en lo que Weë guardó. Lo único que
+ * sale de aquí es «esta operación, este estado».
+ *
+ * Sirve igual para el aviso que manda ModelArk y para lo que contesta al
+ * preguntarle: son el mismo objeto, y por eso la reconciliación no necesita
+ * otro traductor.
+ */
+export const leerAvisoDeSeedance = (cuerpo: unknown): AvisoNormalizado | undefined => {
+  if (!cuerpo || typeof cuerpo !== 'object' || Array.isArray(cuerpo)) return undefined;
+  const b = cuerpo as Record<string, any>;
+  const operationId = String(b.id ?? b.task_id ?? '').trim();
+  const providerStatus = String(b.status ?? '').trim().toLowerCase();
+  if (!operationId || !providerStatus) return undefined;
+
+  const error = b.error && typeof b.error === 'object' ? (b.error as Record<string, any>) : undefined;
+  const mensaje = error ? String(error.message ?? error.code ?? '') : '';
+  const usage = b.usage && typeof b.usage === 'object' ? (b.usage as Record<string, any>) : undefined;
+  const tokens = Number(usage?.completion_tokens ?? usage?.total_tokens ?? NaN);
+
+  return {
+    providerId: 'seedance',
+    operationId,
+    providerStatus,
+    /* ModelArk numera en segundos epoch. Si no viene, la identidad del aviso se degrada, y se sabrá. */
+    ...(Number.isFinite(Number(b.updated_at)) ? { updatedAt: Number(b.updated_at) } : {}),
+    desenlace: DESENLACE_DE_SEEDANCE[providerStatus] ?? 'desconocido',
+    /* TEMPORAL: vale 24 h y va firmada. Viaja en memoria hasta quien la guarde, y no se escribe en ningún sitio. */
+    ...(typeof b.content?.video_url === 'string' && b.content.video_url ? { recurso: String(b.content.video_url) } : {}),
+    ...(mensaje ? { motivo: isInputRejection(mensaje) ? `rechazo de entrada: ${mensaje}` : mensaje } : {}),
+    ...(error?.code ? { codigo: String(error.code) } : {}),
+    ...(Number.isFinite(tokens) ? { usage: { tokens } } : {}),
+  };
+};
+
+/**
+ * PREGUNTARLE A MODELARK QUÉ FUE DE UNA TAREA.
+ *
+ *   GET {ARK_BASE_URL}/contents/generations/tasks/{id}
+ *
+ * La respuesta es el MISMO objeto que manda el webhook, así que la traduce el
+ * mismo lector: el aviso y la pregunta no pueden contestar cosas distintas
+ * porque no hay dos traductores.
+ *
+ * NO LANZA NUNCA. Un fallo aquí es no saber, y no saber se contesta. Si esto
+ * lanzara, quien reconcilia tendría que decidir qué hacer con una excepción —y
+ * la decisión fácil, tratarla como un fallo del trabajo, es justo la que
+ * devuelve Credits de vídeos que se están haciendo.
+ *
+ * La ventana de consulta del proveedor es de siete días; pasada, contesta que
+ * no la conoce, y eso tampoco es un fallo: es su memoria, no nuestro desenlace.
+ */
+export const resolutorDeSeedance: ResolutorDeEstadoDeProveedor = {
+  async consultar(ref) {
+    if (ref.providerId !== 'seedance') return { conocido: false, motivo: 'no_configurado' };
+    if (!isArkConfigured()) return { conocido: false, motivo: 'no_configurado' };
+    const operationId = String(ref.operationId ?? '').trim();
+    /* Se pega a una URL: nada que pueda salirse de su sitio entra aquí. */
+    if (!operationId || !/^[A-Za-z0-9_.:-]{1,256}$/.test(operationId)) return { conocido: false, motivo: 'no_configurado' };
+
+    try {
+      const estado = await fetchJson<any>(`${arkBase()}/contents/generations/tasks/${encodeURIComponent(operationId)}`, {
+        provider: 'seedance',
+        headers: arkHeaders('seedance'),
+        timeoutMs: 30_000,
+      });
+      const aviso = leerAvisoDeSeedance(estado);
+      return aviso ? { conocido: true, aviso } : { conocido: false, motivo: 'ilegible' };
+    } catch (error) {
+      /* Que ya no se acuerde de la tarea no es que la tarea fallara. Son cosas distintas y se contestan distinto. */
+      const status = error instanceof ProviderError ? error.status : undefined;
+      return { conocido: false, motivo: status === 404 ? 'no_la_conoce' : 'no_contesta' };
+    }
+  },
+};
