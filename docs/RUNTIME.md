@@ -1028,13 +1028,8 @@ concurrente deshace la reserva de la invocación que sí está ejecutando y entr
 respuesta gratis. Un error que no venga del conductor se comporta exactamente como
 siempre.
 
-**Lo que NO se pudo ejercitar en producción:** la respuesta que cierra el bloque de
-doce y **sí cobra**. Las cuentas de prueba nacen sin saldo, y darles Credits mueve
-`creditStats/global` de forma permanente —el mismo efecto que el usuario ya decidió no
-corregir en la F11.x-6—. El cobro único, el duplicado concurrente y el reembolso seguro
-están demostrados con el **Credit Engine de verdad** en `runtime-premigracion` § F.
-En producción quedó verificado lo demás: once de cada doce respuestas no cobran, el
-saldo no se movió y el libro quedó con los mismos 13 asientos que antes.
+La respuesta que cierra el bloque de doce y **sí cobra** se ejercitó después, en su
+propio canary: **§ 13.10**.
 
 ### 13.5 Latencia
 
@@ -1138,3 +1133,61 @@ repitiendo únicamente este caso:
 
 El doble toque secuencial sigue igual que el camino de siempre: `duplicate: true` en
 567 ms. Y al cerrar la puerta, `jobs` se quedó en 6 mientras Brain seguía contestando.
+
+### 13.10 El cierre financiero de verdad: la respuesta doce
+
+Quedaba una cosa por demostrar con dinero real: que cuando la respuesta cierra el bloque
+de doce, **el Core cobra una vez, y solo una**. Se hizo en un canary aparte: una cuenta
+controlada, doce mensajes de texto seguidos, sin duplicados, sin adjuntos y sin otra
+capacidad.
+
+**La cuenta nació por el camino normal.** No se le regalaron Credits a mano: se creó el
+documento de perfil que escribe la app al entrar por primera vez, eso disparó
+`nacimientoDeCuenta`, y el propio `ensureAccount` de `brainChat` abrió la billetera con
+los **240 Credits de bienvenida de siempre**, con su asiento. Ni una escritura a mano en
+el libro.
+
+| Mensaje | Credits | Bloque | Saldo | Generaciones | Asientos |
+|---|---|---|---|---|---|
+| 1 – 11 | 0 | 1/12 … 11/12 | 240 | 1 cada uno | **0** |
+| **12** | **1** | **0/12** (bloque nuevo) | **239** | 1 | **1** |
+
+**La cadena, eslabón a eslabón, para la respuesta doce:**
+
+1. **Trabajo** `completed`, **un** intento, `dispatched: true`, `outcome: succeeded`,
+   `deepseek/deepseek-flash`.
+2. **Ejecución** `done` (`run_brain_liq12…`, `wf_brain_liq12…`).
+3. **Generación** `COMPLETED`, intento 1, coste de proveedor 0,00018135 USD,
+   `creditsEstimated: 1` y **`creditsCharged: 1`**.
+4. **Asiento** `usage_brain_liq12…`: `usage`, **−1**, `COMPLETED`, **240 → 239**,
+   servicio `ai_brain`, motivo «Weë Brain · 12 respuestas».
+5. **Saldo** 239, ganados 240, gastados 1.
+
+Y **atan entre sí**: el `creditTransactionId` de la generación es exactamente el id del
+asiento, y los dos llevan el `requestId` del mensaje. No es «bajó el saldo»: es el
+resultado del proveedor, el trabajo terminado, el cierre del Credit Engine, el movimiento
+del libro y el saldo, unidos por el mismo identificador.
+
+**Lo que no pasó:** ningún segundo asiento (la cuenta terminó con exactamente dos: la
+bienvenida y el consumo), ningún reembolso, ninguna reserva doble, ninguna liquidación
+doble, ninguna reserva quedándose en `AUTHORIZED`. Doce trabajos, doce ejecuciones, doce
+generaciones, **un intento cada uno**.
+
+**Latencias:** 7 399 ms el primero (arranque en frío) y 2 390 – 3 636 ms el resto; el
+que cobra, 2 590 ms — no es más lento por cobrar.
+
+**Una observación, no una anomalía.** El trabajo guarda dos estimaciones: la de la cadena
+de producto (`estimatedCredits: 2`, el techo genérico del ruteo) y la de Brain
+(`creditsEstimated: 1`, que es la que manda por la política de doce). El libro anotó la
+de Brain, que es la que se cobró. Es lo correcto, pero conviene saber que ahí conviven dos
+números.
+
+**El precio de esta prueba, escrito a propósito.** Los 240 Credits de bienvenida y el
+Credit consumido quedan para siempre en `creditStats/global`, que es un agregado
+histórico: `totalGranted` 1 200 → 1 440, `circulating` 1 191 → 1 430, `totalSpent` 15 → 16,
+y un `ai_brain: { spent: 1, count: 1 }` nuevo. Borrar la cuenta no lo deshace —el agregado
+cuenta lo que pasó, no lo que queda— y **no se toca**, igual que el desajuste que ya venía
+de la Fase 11.x-6. Los saldos de las cuentas reales no se movieron: 240 / 240 / 237 / 234.
+
+Al terminar: puerta borrada, cuenta borrada, y producción con 0 trabajos, 0 ejecuciones,
+19 generaciones, 13 asientos, 16 perfiles, 12 entidades, 8 cuentas y 10 cuentas de Auth.
