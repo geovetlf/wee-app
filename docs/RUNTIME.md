@@ -1747,3 +1747,90 @@ dinero y no se toca aquí, pero hay que saberlo antes de leer ese campo como un 
   con testigo al portador dentro de `jobs/`, que está cerrada a los clientes
   (`allow read, write: if false`). El camino asíncrono no hace esto —guarda el `assetId`—,
   y es comportamiento anterior a este bloque, no algo que M-1 introdujera.
+
+## 19. F12-D · M-1 verificado: el camino asíncrono, con un proveedor de verdad
+
+Segunda y última creación real. Esta vez el proveedor **aceptó y soltó**, la llamada se fue
+en cuatro segundos, y noventa segundos después la reconciliación cerró el trabajo sola.
+
+### 19.1 La línea de tiempo
+
+| | |
+|---|---|
+| 19:00:47,336 | POST a `generateVideo` |
+| 19:00:52,023 | **HTTP 200 `ACCEPTED`** · 4.687 ms · la invocación termina y suelta el proceso |
+| 19:02:21,795 | la reconciliación pregunta, ModelArk dice `succeeded`, se trae el vídeo y lo archiva |
+| 19:02:25,370 | la liquidación cobra · `mirados=1 liquidados=1 errores=0` en 650 ms |
+
+Contra la primera vez: **4,7 s frente a 82 s**, y un `ACCEPTED` frente a un 503.
+
+### 19.2 La evidencia, estado por estado
+
+Al aceptar, el trabajo quedó exactamente como tenía que quedar:
+
+    state: waiting · terminal: false · liquidacion: pendiente
+    providerOps: ["seedance:cgt-20260921030051-ldfb2"]
+    intento: dispatched=true · outcome=unknown · providerRef puesta · lease SIN
+    result: null · assets: 0 · Credits: usage AUTHORIZED −75
+
+Ni resultado prematuro, ni material prematuro, ni cobro prematuro, y **sin concesión**: el
+trabajador se había ido. Después de la reconciliación:
+
+    state: completed · liquidacion: hecha · seenEvents: 1
+    intento: outcome=succeeded · providerRef conservada
+    result.outputRefs: ["mat_54454c7eaa25a68db2f2a9140f6c2dcb"]
+    usage.totalTokens: 40.594 (lo que dijo el proveedor)
+    Credits: usage COMPLETED −75 · saldo 240 → 165
+
+`outputRefs` es **el material, no una URL** — y en el trabajo no queda ni un `http`. En el
+camino síncrono de la primera prueba ahí había un enlace de descarga con testigo; aquí no.
+
+### 19.3 Lo que se comprobó, una por una
+
+Veinte comprobaciones sobre lo guardado, todas verdes: un trabajo, un intento, un material,
+un asiento, cero reembolsos. El material es del canary, vive bajo `users/<su cuenta>/`, y
+su identidad es la **calculada** —`sha256(jobId, attemptId)`— no la URL del proveedor: se
+comparó con el valor que devuelve `identidadDelMaterial` y coinciden.
+
+La procedencia ata la cadena entera: ejecución, paso, petición, traza, trabajo, operación
+del proveedor, capacidad, proveedor y modelo.
+
+En ModelArk quedaron **dos tareas y solo dos**, una por POST. Ninguna creación duplicada.
+
+### 19.4 La búsqueda por referencia, en producción
+
+    seedance + cgt-20260921030051-ldfb2  →  un trabajo, un intento
+    una operación que no existe          →  no_encontrada
+    el mismo nombre en otro proveedor    →  no_encontrada
+
+### 19.5 Coste
+
+| | |
+|---|---|
+| Estimado antes del POST | 38.430 tokens → USD 0,21521 |
+| Real (ModelArk) | **40.594 tokens → USD 0,22733** |
+| Desvío | +5,63 %, igual que la primera vez |
+| Cobrado | 75 Credits (`ai_video_draft`, modo `simulated`) |
+
+El desvío se repite en las dos pruebas con los mismos parámetros, así que no es ruido: es
+que ModelArk cuenta algo más que la fórmula publicada. **No se cambia ningún precio por
+dos canaries**; queda medido para cuando se decida el precio real.
+
+### 19.6 El fallo que hizo falta arreglar antes
+
+El primer intento perdió `aceptaAsincrono` en un `...spread` hacia un tipo que no lo
+declaraba. Ahora viaja por asignación explícita en los tres saltos —composición, Gateway,
+adaptador—, el adaptador recibe siempre un booleano, y una prueba prohíbe que vuelva el
+spread por su nombre.
+
+La prueba que lo habría cazado no existía porque todas preguntaban lo mismo: si la línea
+estaba escrita. La nueva compone el Gateway de verdad y mira lo que le llega al adaptador;
+se comprobó rompiendo la propagación a propósito en el compilado, y falla.
+
+### 19.7 Lo que sigue sin existir
+
+El **callback** no está desplegado y `avisoDeProveedor` sigue sin exportarse: todo lo de
+arriba pasó **solo con reconciliación**. Eso es lo que se quería probar —que el desenlace
+se recupera aunque nadie avise— y es también lo que falta para M-2, donde el aviso del
+proveedor debería llegar antes y las dos vías tendrían que converger en el mismo estado
+sin cobrar dos veces.
