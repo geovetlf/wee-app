@@ -112,6 +112,17 @@ export interface PuertoDeAlmacenamiento {
   readonly providerId: string;
   readonly capacidades: readonly CapacidadDeAlmacen[];
 
+  /**
+   * DÓNDE ESCRIBE, dicho por él mismo. `undefined` si su proveedor no usa
+   * contenedores, o si todavía no está configurado.
+   *
+   * Existe para que quien compone pueda saber dónde va a quedar el objeto **sin
+   * leer una sola variable de ningún proveedor**. La alternativa —que la capa
+   * genérica leyera `R2_BUCKET`— es justo lo que hacía que cambiar de proveedor
+   * no fuese cambiar una variable, y por eso esto vive en el puerto.
+   */
+  readonly contenedor?: string;
+
   guardar(peticion: PeticionDeGuardado): Promise<DesenlaceDeGuardado>;
   mirar(ref: StorageRef): Promise<DesenlaceDeLectura>;
   borrar(ref: StorageRef): Promise<DesenlaceDeBorrado>;

@@ -41,8 +41,10 @@ const {
   esStorageRef, objetoEsDeLaCuenta, objetoValido, proveedorParaGuardar, referenciaDeAlmacenDe,
   referenciaDelObjeto, PIEZA_ORIGINAL, MAX_CLAVE,
 } = core;
-const { crearAlmacenFalso, FAKE_PROVIDER_ID } = lib('media/falso.js');
+const { crearAlmacenFalso, DESCRIPTOR_FALSO, FAKE_PROVIDER_ID } = lib('media/falso.js');
 const { crearAdaptadorDeR2, DESCRIPTOR_DE_R2, R2_PROVIDER_ID, anfitrionDeR2, configuracionDeR2Valida } = lib('media/r2.js');
+const { rutaCanonicaDeObjeto } = lib('media/firma.js');
+const { guardarMaterial } = lib('media/index.js');
 const { firmar, codificarParaFirma } = lib('media/firma.js');
 const { huellaDeMedios } = lib('media/huella.js');
 
@@ -283,13 +285,146 @@ console.log('\n── F · R2: lo que se manda y lo que se entiende ──');
   check('ni una de otro proveedor', otroProveedor.ok === false && otroProveedor.motivo === 'fallo');
 
   /* La firma, comprobada por sus propiedades. */
-  const f1 = firmar({ metodo: 'PUT', host: 'h', ruta: '/b/k', cuerpo: Buffer.from('a') }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
-  const f2 = firmar({ metodo: 'PUT', host: 'h', ruta: '/b/k', cuerpo: Buffer.from('a') }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
-  const f3 = firmar({ metodo: 'PUT', host: 'h', ruta: '/b/k', cuerpo: Buffer.from('b') }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
+  const RUTA = rutaCanonicaDeObjeto('b', 'k');
+  const f1 = firmar({ metodo: 'PUT', host: 'h', ruta: RUTA, cuerpo: Buffer.from('a') }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
+  const f2 = firmar({ metodo: 'PUT', host: 'h', ruta: RUTA, cuerpo: Buffer.from('a') }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
+  const f3 = firmar({ metodo: 'PUT', host: 'h', ruta: RUTA, cuerpo: Buffer.from('b') }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
   check('la firma es determinista con los mismos datos', f1.Authorization === f2.Authorization);
   check('y cambia si cambia el cuerpo', f1.Authorization !== f3.Authorization);
   check('la codificación es la de AWS, no `encodeURIComponent`', codificarParaFirma("a!b'c(d)e*f", false) === 'a%21b%27c%28d%29e%2Af');
   check('y conserva las barras de la ruta cuando toca', codificarParaFirma('accounts/x/assets/y/original', true) === 'accounts/x/assets/y/original');
+}
+
+/* ═══ F-1 · LA RUTA QUE SE FIRMA ES, LETRA POR LETRA, LA QUE SE ENVÍA ═════ */
+console.log('\n── F-1 · Una sola ruta: la firmada y la transmitida ──');
+{
+  const CONFIG = { accountId: 'b'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: 'secretoDePrueba', bucket: 'wee-media' };
+  const CUERPO = Buffer.from('unos bytes');
+  const TIPO = 'application/octet-stream';
+  let vista;
+  const adaptador = crearAdaptadorDeR2({
+    config: () => CONFIG,
+    ahora: () => T0,
+    fetch: async (url, o) => { vista = { url, ...o }; return { ok: true, status: 200, headers: { get: () => null } }; },
+  });
+
+  /*
+   * Los doce casos del encargo. Antes de MC-1-H, la firma llevaba la ruta
+   * codificada y el cable la cruda: con `(`, `'`, `*`, `!`, `+` o `%` la firma
+   * no cuadraba, y con `?` o `#` el objeto se guardaba bajo OTRA clave.
+   */
+  const CASOS = [
+    ['1 · normales', 'accounts/uAna/assets/asset_1/original'],
+    ['2 · espacios', 'con espacio/y otro'],
+    ['3 · paréntesis', 'par(entesis)'],
+    ['4 · comilla', "comilla's"],
+    ['5 · asterisco', 'asterisco*'],
+    ['6 · admiración', 'admira!'],
+    ['7 · más', 'mas+mas'],
+    ['8 · porcentaje', 'porciento%41'],
+    ['9 · interrogante', 'interro?gante'],
+    ['10 · almohadilla', 'almo#hadilla'],
+    ['11 · unicode', 'acento-café/日本'],
+    ['12 · barra interna', 'a/b/c/d'],
+  ];
+
+  for (const [nombre, clave] of CASOS) {
+    vista = undefined;
+    const r = await adaptador.guardar({ destino: { provider: 'r2', bucket: CONFIG.bucket, objectKey: clave }, cuerpo: CUERPO, contentType: TIPO });
+    const firmada = rutaCanonicaDeObjeto(CONFIG.bucket, clave);
+    const u = new URL(vista.url);
+
+    /* Lo que de verdad importa: la MISMA cadena en los dos sitios. */
+    const mismaRuta = u.pathname === firmada;
+    /* Y que nada del objectKey se haya escapado a la query o al fragmento. */
+    const nadaSeFue = u.search === '' && u.hash === '';
+    /*
+     * La prueba de fuego: la firma que mandó el adaptador tiene que ser
+     * EXACTAMENTE la firma de la ruta que viajó. Si alguien vuelve a separar
+     * las dos codificaciones, esto deja de coincidir.
+     */
+    const suFirma = firmar({
+      metodo: 'PUT', host: anfitrionDeR2(CONFIG.accountId), ruta: u.pathname, cuerpo: CUERPO,
+      cabeceras: { 'content-type': TIPO, 'content-length': String(CUERPO.length) },
+    }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0).Authorization;
+
+    check(`${nombre}: se firma y se envía la misma URI`, r.ok && mismaRuta && nadaSeFue && vista.headers.Authorization === suFirma,
+      mismaRuta ? '' : `firmada ${firmada} · enviada ${u.pathname}${u.search}${u.hash}`);
+  }
+
+  /* Control negativo: si la ruta no participara en la firma, lo anterior no probaría nada. */
+  const a = firmar({ metodo: 'PUT', host: 'h', ruta: rutaCanonicaDeObjeto('b', 'uno'), cuerpo: CUERPO }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
+  const b = firmar({ metodo: 'PUT', host: 'h', ruta: rutaCanonicaDeObjeto('b', 'dos'), cuerpo: CUERPO }, { ...CONFIG, region: 'auto', servicio: 's3' }, T0);
+  check('y la ruta SÍ entra en la firma: dos rutas distintas, dos firmas distintas', a.Authorization !== b.Authorization);
+
+  /* Sin doble codificación, y las barras siguen separando segmentos. */
+  check('no hay doble codificación: un espacio es `%20`, no `%2520`',
+    rutaCanonicaDeObjeto('b', 'con espacio') === '/b/con%20espacio');
+  check('las barras de la clave SIGUEN siendo separadores, no `%2F`',
+    rutaCanonicaDeObjeto('b', 'a/b/c') === '/b/a/b/c');
+  check('y las del contenedor no: ahí no separan nada', rutaCanonicaDeObjeto('a/b', 'k') === '/a%2Fb/k');
+
+  /*
+   * Lo que NO se puede transmitir con fidelidad se rechaza en vez de escribirse
+   * en otro sitio: un segmento `.` o `..` lo resuelve el analizador de URL
+   * antes de salir, y escaparlo no salva —`%2E` cuenta como punto para esa
+   * misma norma—.
+   */
+  check('un segmento `.` o `..` no produce ruta: se dice que no', ['a/./b', 'a/../b', 'a/.', './a'].every((k) => rutaCanonicaDeObjeto('b', k) === undefined));
+  vista = undefined;
+  const conPunto = await adaptador.guardar({ destino: { provider: 'r2', bucket: CONFIG.bucket, objectKey: 'a/./b' }, cuerpo: CUERPO, contentType: TIPO });
+  check('y el adaptador NO llama a nadie con una clave así', !conPunto.ok && conPunto.error.details.field === 'destino.objectKey' && vista === undefined);
+}
+
+/* ═══ F-2 · EL CAMINO GENÉRICO NO CONOCE A NINGÚN PROVEEDOR ═══════════════ */
+console.log('\n── F-2 · Cambiar de proveedor es cambiar una variable ──');
+{
+  /* Firestore de mentira: esta sección mira la composición, no el almacén. */
+  const dbFalsa = () => ({ collection: () => ({ doc: () => ({ create: async () => {}, get: async () => ({ exists: false }) }) }) });
+  const CENTINELA = 'CUBO-DE-R2-QUE-NO-DEBE-APARECER';
+  process.env.R2_BUCKET = CENTINELA;
+
+  /* B · Con el proveedor falso, `guardarMaterial` NO lee la configuración de R2. */
+  const falso = crearAlmacenFalso({ ahora: () => T0 });
+  const conFalso = await guardarMaterial({
+    db: dbFalsa(), registro: crearRegistroDeMedios([DESCRIPTOR_FALSO]).registro,
+    adaptadores: { [FAKE_PROVIDER_ID]: falso }, proveedor: FAKE_PROVIDER_ID, ahora: () => T0,
+  }, { accountId: CUENTA, assetId: MATERIAL, cuerpo: Buffer.from('bytes'), contentType: 'video/mp4' });
+  check('B · con otro proveedor, el contenedor de R2 NO se cuela en la referencia',
+    conFalso.ok && conFalso.ref.bucket === undefined, conFalso.ok ? String(conFalso.ref.bucket) : 'falló');
+  check('B · ni en la ficha', conFalso.ok && conFalso.objeto.bucket === undefined);
+
+  /* D · Un proveedor futuro trae SU contenedor y no toca `guardarMaterial`. */
+  const otro = crearAlmacenFalso({ ahora: () => T0, contenedor: 'cubo-de-otro-proveedor' });
+  const conOtro = await guardarMaterial({
+    db: dbFalsa(), registro: crearRegistroDeMedios([DESCRIPTOR_FALSO]).registro,
+    adaptadores: { [FAKE_PROVIDER_ID]: otro }, proveedor: FAKE_PROVIDER_ID, ahora: () => T0,
+  }, { accountId: CUENTA, assetId: MATERIAL, cuerpo: Buffer.from('bytes'), contentType: 'video/mp4' });
+  check('D · un adaptador con contenedor propio lo impone, sin tocar el camino genérico',
+    conOtro.ok && conOtro.ref.bucket === 'cubo-de-otro-proveedor' && conOtro.objeto.bucket === 'cubo-de-otro-proveedor');
+  check('D · y como el contenedor entra en la identidad, son objetos distintos', conOtro.ok && conFalso.ok && conOtro.ref.objectKey === conFalso.ref.objectKey && conOtro.objeto.objectRef !== conFalso.objeto.objectRef);
+
+  /* A · Con R2 elegido, se usa el adaptador de R2 — y él sí conoce su contenedor. */
+  const suyo = crearAdaptadorDeR2({ config: () => ({ accountId: 'c'.repeat(32), accessKeyId: 'k', secretAccessKey: 's', bucket: 'wee-media' }) });
+  check('A · el adaptador de R2 dice cuál es SU contenedor', suyo.providerId === R2_PROVIDER_ID && suyo.contenedor === 'wee-media');
+
+  /* C · Sin configuración de R2, solo falla quien intente usar R2. */
+  const sinNada = crearAdaptadorDeR2({ config: () => ({}) });
+  check('C · sin configuración, R2 no tiene contenedor y no lo inventa', sinNada.contenedor === undefined);
+  const conR2SinConfig = await guardarMaterial({
+    db: dbFalsa(), registro: crearRegistroDeMedios([DESCRIPTOR_DE_R2]).registro,
+    adaptadores: { [R2_PROVIDER_ID]: sinNada }, proveedor: R2_PROVIDER_ID, ahora: () => T0,
+  }, { accountId: CUENTA, assetId: MATERIAL, cuerpo: Buffer.from('bytes'), contentType: 'video/mp4' });
+  check('C · y el fallo llega SOLO al usar R2, no antes', !conR2SinConfig.ok && conR2SinConfig.error.details.reason === 'no_configurado');
+  check('C · mientras tanto el proveedor falso siguió funcionando', conFalso.ok);
+
+  delete process.env.R2_BUCKET;
+
+  /* Y dicho también sobre el texto: la función genérica no nombra a nadie. */
+  const CUERPO_GENERICO = sinComentarios(leer('functions/src/media/index.ts')).match(/export const guardarMaterial[\s\S]*?\n};/)[0];
+  check('el texto de `guardarMaterial` no menciona R2, ni `env(`, ni ninguna variable de proveedor',
+    !/R2_|\br2\b|env\(|bucket:\s*env/i.test(CUERPO_GENERICO));
+  check('y el contenedor se lo pregunta al puerto', /puerto\.contenedor/.test(CUERPO_GENERICO));
 }
 
 /* ═══ G · IDEMPOTENCIA Y CONCURRENCIA ═════════════════════════════════════ */
@@ -337,7 +472,7 @@ console.log('\n── H · Lo ajeno, lo inventado y lo que llega de fuera ──
   check('un objeto de otra cuenta no se devuelve ni al registrarlo', /motivo: 'de_otra_cuenta'/.test(ALM));
 
   check('ningún secreto aparece escrito en el código', !/R2_SECRET_ACCESS_KEY\s*=\s*['"][^'"]{8,}/.test(R2) && !/accessKeyId:\s*['"][A-Za-z0-9]{16,}/.test(R2));
-  check('las credenciales se leen por NOMBRE de variable, por el camino que ya existe', /env\(R2_ENV\./.test(MED));
+  check('las credenciales se leen por NOMBRE de variable, por el camino que ya existe, y DENTRO del adaptador', /env\(R2_ENV\./.test(R2) && !/env\(R2_ENV\./.test(MED));
   check('el adaptador no registra nada: ni firma, ni cabecera, ni dirección', !/console\.(log|warn|error)/.test(R2));
   check('ni la firma', !/console\./.test(sinComentarios(leer('functions/src/media/firma.ts'))));
   check('y en el error no viaja la URL ni la autorización', !/error[^\n]*Authorization|error[^\n]*https:/.test(R2));

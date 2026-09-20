@@ -11,7 +11,8 @@ import {
   esStorageRef,
   falloDeAlmacen,
 } from '../core';
-import { firmar } from './firma';
+import { env } from '../engine/http';
+import { firmar, rutaCanonicaDeObjeto } from './firma';
 
 /**
  * CLOUDFLARE R2 — EL ÚNICO ARCHIVO DE WEË QUE SABE QUE R2 EXISTE.
@@ -102,8 +103,25 @@ export const configuracionDeR2Valida = (c: Partial<ConfiguracionDeR2> | undefine
 
 export const anfitrionDeR2 = (accountId: string): string => `${accountId}.r2.cloudflarestorage.com`;
 
+/**
+ * SU PROPIA CONFIGURACIÓN, LEÍDA AQUÍ.
+ *
+ * Vive en este archivo y no en la composición a propósito: la capa genérica de
+ * medios no tiene por qué saber que existe un `R2_BUCKET`. Antes lo sabía —lo
+ * leía dentro de `guardarMaterial`— y eso hacía que cambiar de proveedor no
+ * fuese de verdad cambiar una variable. Sale por el mismo camino que el resto
+ * de Weë (`env`), y los VALORES no salen nunca de aquí.
+ */
+export const configuracionDeR2 = (): Partial<ConfiguracionDeR2> => ({
+  accountId: env(R2_ENV.accountId),
+  accessKeyId: env(R2_ENV.accessKeyId),
+  secretAccessKey: env(R2_ENV.secretAccessKey),
+  bucket: env(R2_ENV.bucket),
+});
+
 export interface DepsDeR2 {
-  config: () => Partial<ConfiguracionDeR2> | undefined;
+  /** Solo para pruebas. Sin esto, el adaptador lee la suya. */
+  config?: () => Partial<ConfiguracionDeR2> | undefined;
   /** Entra por la puerta para poder probar el adaptador entero sin red. */
   fetch?: typeof fetch;
   ahora?: () => number;
@@ -122,13 +140,14 @@ const motivoDe = (status: number) =>
       : status === 400 || status === 411 || status === 416 ? 'peticion_invalida' as const
         : 'proveedor_no_disponible' as const;
 
-export const crearAdaptadorDeR2 = (deps: DepsDeR2): PuertoDeAlmacenamiento => {
+export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento => {
   const llamar = deps.fetch ?? fetch;
   const ahora = deps.ahora ?? (() => Date.now());
+  const config = deps.config ?? configuracionDeR2;
 
   /** Comprueba configuración y que la referencia sea de ESTE proveedor y ESTE contenedor. */
   const preparar = (ref: StorageRef) => {
-    const c = deps.config();
+    const c = config();
     if (!configuracionDeR2Valida(c)) return { ok: false as const, error: falloDeAlmacen(R2_PROVIDER_ID, 'no_configurado') };
     if (!esStorageRef(ref) || ref.provider !== R2_PROVIDER_ID) {
       return { ok: false as const, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'destino.provider' }) };
@@ -137,7 +156,14 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2): PuertoDeAlmacenamiento => {
     if (ref.bucket !== undefined && ref.bucket !== c.bucket) {
       return { ok: false as const, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'destino.bucket' }) };
     }
-    return { ok: true as const, config: c, host: anfitrionDeR2(c.accountId), ruta: `/${c.bucket}/${ref.objectKey}` };
+    /*
+     * LA RUTA, UNA SOLA VEZ. La misma cadena se firma y se envía, así que no
+     * hay forma de que difieran. Si la clave no se puede transmitir con
+     * fidelidad, no se llama a nadie: se dice que la petición es inválida.
+     */
+    const ruta = rutaCanonicaDeObjeto(c.bucket, ref.objectKey);
+    if (!ruta) return { ok: false as const, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'destino.objectKey' }) };
+    return { ok: true as const, config: c, host: anfitrionDeR2(c.accountId), ruta };
   };
 
   const etiqueta = (r: Response): string | undefined => r.headers.get('etag')?.replace(/^"|"$/g, '') || undefined;
@@ -145,6 +171,16 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2): PuertoDeAlmacenamiento => {
   return {
     providerId: R2_PROVIDER_ID,
     capacidades: CAPACIDADES_DE_MC1,
+
+    /**
+     * EL CONTENEDOR LO DICE ÉL, no quien llama. Es la costura por la que la
+     * capa genérica sabe dónde va a quedar el objeto sin conocer una sola
+     * variable de R2. `undefined` mientras no esté configurado.
+     */
+    get contenedor(): string | undefined {
+      const c = config();
+      return configuracionDeR2Valida(c) ? c.bucket : undefined;
+    },
 
     async guardar(peticion: PeticionDeGuardado): Promise<DesenlaceDeGuardado> {
       const p = preparar(peticion.destino);

@@ -15,35 +15,34 @@ import {
 import { env } from '../engine/http';
 import { AlmacenDeObjetosDeMedios, almacenDeObjetosDeMedios } from './almacen';
 import { huellaDeMedios } from './huella';
-import { ConfiguracionDeR2, DESCRIPTOR_DE_R2, R2_ENV, R2_PROVIDER_ID, crearAdaptadorDeR2 } from './r2';
+import { DESCRIPTOR_DE_R2, R2_PROVIDER_ID, crearAdaptadorDeR2 } from './r2';
 
 /**
  * WEE MEDIA — LA COMPOSICIÓN.
  *
  * Aquí se juntan las piezas puras del Core con lo que SON en Weë: el registro
- * vivo con R2 dentro, la configuración leída de donde ya viven los secretos, y
- * el almacén de fichas sobre Firestore.
+ * vivo con R2 dentro y el almacén de fichas sobre Firestore.
+ *
+ * Esto NOMBRA a los proveedores; no los configura. Cada adaptador resuelve su
+ * propia configuración dentro de sí mismo, y por eso `guardarMaterial` no
+ * menciona a ninguno: pregunta al puerto y compone.
  *
  * NADA DE PRODUCCIÓN PASA POR AQUÍ TODAVÍA. Ninguna Function importa este
  * archivo, no hay bucket creado y no se ha escrito un solo byte en R2. MC-1
  * construye la capa; encenderla es un paso aparte que pide autorización.
  */
 
-/** La configuración de R2, leída de donde ya viven los secretos. Los VALORES nunca salen de aquí. */
-export const configuracionDeR2 = (): Partial<ConfiguracionDeR2> => ({
-  accountId: env(R2_ENV.accountId),
-  accessKeyId: env(R2_ENV.accessKeyId),
-  secretAccessKey: env(R2_ENV.secretAccessKey),
-  bucket: env(R2_ENV.bucket),
-});
-
 /** El catálogo vivo. Hoy un proveedor; mañana, uno más en esta lista y nada más cambia. */
 export const registroDeMediosDeWee = (): RegistroDeProveedoresDeMedios =>
   crearRegistroDeMedios([DESCRIPTOR_DE_R2]).registro;
 
-/** Los adaptadores de verdad, por su identidad. El de mentira no está aquí: es de las pruebas. */
+/**
+ * Los adaptadores de verdad, por su identidad. El de mentira no está aquí: es
+ * de las pruebas. **Cada uno resuelve su propia configuración**: esto los
+ * nombra, no los configura.
+ */
 export const adaptadoresDeMedios = (): Readonly<Record<string, PuertoDeAlmacenamiento>> => ({
-  [R2_PROVIDER_ID]: crearAdaptadorDeR2({ config: configuracionDeR2 }),
+  [R2_PROVIDER_ID]: crearAdaptadorDeR2(),
 });
 
 /** Cuál se usa hoy. Se puede cambiar sin tocar código con `MEDIA_PROVIDER`. */
@@ -117,7 +116,13 @@ export const guardarMaterial = async (
   const objectKey = claveDelObjeto(peticion.accountId, peticion.assetId, pieza);
   if (!objectKey) return { ok: false, error: falloDeAlmacen(elegido.id, 'peticion_invalida', { field: 'objectKey' }) };
 
-  const bucket = env(R2_ENV.bucket);
+  /*
+   * El contenedor lo dice EL PUERTO, no una variable de un proveedor concreto.
+   * Aquí se leía `R2_BUCKET`, y eso ataba el camino genérico a R2: con otro
+   * proveedor elegido, la ficha se quedaba con el contenedor de R2 dentro. Un
+   * proveedor nuevo no tiene que tocar nada de esta función.
+   */
+  const bucket = puerto.contenedor;
   const ref: StorageRef = { provider: elegido.id, ...(bucket ? { bucket } : {}), objectKey };
   const objectRef = referenciaDelObjeto(huellaDeMedios, ref);
   if (!objectRef) return { ok: false, error: falloDeAlmacen(elegido.id, 'peticion_invalida', { field: 'destino' }) };
@@ -158,6 +163,6 @@ export const guardarMaterial = async (
 
 export { almacenDeObjetosDeMedios, COLECCION_DE_OBJETOS } from './almacen';
 export type { AlmacenDeObjetosDeMedios, AltaDeObjeto } from './almacen';
-export { crearAdaptadorDeR2, DESCRIPTOR_DE_R2, R2_ENV, R2_PROVIDER_ID, R2_REGION, anfitrionDeR2, configuracionDeR2Valida } from './r2';
-export { firmar, codificarParaFirma, marcasDeTiempo } from './firma';
+export { crearAdaptadorDeR2, DESCRIPTOR_DE_R2, R2_ENV, R2_PROVIDER_ID, R2_REGION, anfitrionDeR2, configuracionDeR2, configuracionDeR2Valida } from './r2';
+export { firmar, codificarParaFirma, marcasDeTiempo, rutaCanonicaDeObjeto } from './firma';
 export { huellaDeMedios } from './huella';

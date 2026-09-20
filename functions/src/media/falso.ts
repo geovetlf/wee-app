@@ -60,7 +60,7 @@ export interface AlmacenFalso extends PuertoDeAlmacenamiento {
 
 const claveDe = (ref: StorageRef): string => `${ref.provider}|${ref.bucket ?? ''}|${ref.objectKey}`;
 
-export const crearAlmacenFalso = (opciones: { ahora?: () => number } = {}): AlmacenFalso => {
+export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?: string } = {}): AlmacenFalso => {
   const contenido = new Map<string, Guardado>();
   const llamadas = { guardar: 0, mirar: 0, borrar: 0 };
   const ahora = opciones.ahora ?? (() => Date.now());
@@ -74,6 +74,8 @@ export const crearAlmacenFalso = (opciones: { ahora?: () => number } = {}): Alma
   return {
     providerId: FAKE_PROVIDER_ID,
     capacidades: CAPACIDADES_DE_MC1,
+    /* Suyo, como el de cualquier adaptador: nadie de fuera se lo dice al guardar. */
+    ...(opciones.contenedor ? { contenedor: opciones.contenedor } : {}),
     contenido,
     llamadas,
     fallarUnaVez(motivo) { falloPendiente = motivo; },
