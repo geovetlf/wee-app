@@ -39,6 +39,7 @@ export * from './workflow';
 export * from './workplace';
 export * from './provider';
 export * from './content';
+export * from './media';
 export * from './project';
 export * from './observability';
 export * from './registry';

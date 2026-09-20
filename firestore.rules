@@ -1055,6 +1055,19 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // === WEE MEDIA CLOUD (MC-1): dónde están físicamente los bytes de un material ===
+    // Las escribe el servidor con el Admin SDK, que no pasa por estas reglas.
+    // El cliente NO lee y NO escribe, y esto es más estricto que `assets` a
+    // propósito: una ficha de objeto dice en qué proveedor y bajo qué clave vive
+    // un archivo, y eso es infraestructura. La persona ve su material por
+    // `assets`, que es donde vive su identidad; de dónde están los bytes no
+    // tiene por qué enterarse, y nadie de fuera tampoco.
+    // Sin regla ya estarían cerradas (Firestore deniega por defecto); se escribe
+    // para que nadie las abra por descuido con una regla más ancha.
+    match /mediaObjects/{objectRef} {
+      allow read, write: if false;
+    }
+
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
     match /creatorProjects/{projectId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
