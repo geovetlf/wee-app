@@ -525,8 +525,15 @@ console.log('\n── F · Credits, con el Credit Engine DE VERDAD ──');
    * archivo pedía: el `catch` ya no reembolsa por el hecho de que algo lanzara.
    * Reembolsa lo que se cobró Y SOLO cuando devolverlo es seguro.
    */
-  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !\(error instanceof FalloDelPensador\) \|\| error\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
-  check('un error que no viene del conductor se comporta como siempre: se reembolsa', !(new Error('x') instanceof FalloDelPensador));
+  /*
+   * Y lo mira donde hay que mirarlo: en lo que GUARDÓ el pensador, no en el
+   * error que llega al `catch`. Weë Brain atrapa lo que lance el pensador y lo
+   * sustituye por uno suyo, así que preguntarle al error que llega sería
+   * preguntarle al mensajero — y la regla no se activaría nunca.
+   */
+  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
+  check('el fallo del conductor se guarda en el pensador, porque Weë Brain lo tapa', /if \(error instanceof FalloDelPensador\) falloDelConductor = error;/.test(BRAIN) && /catch \(error\) \{\s*return fallar\('PROVIDER_ERROR', 'thinker_failed'/.test(sinComentarios(leer('functions/src/core/brain.ts'))));
+  check('un camino que no pasa por el conductor lo deja sin tocar: se reembolsa como siempre', !/falloDelConductor =/.test(BRAIN.slice(BRAIN.indexOf('const pensadorDeSiempre'), BRAIN.indexOf('const pensadorDelConductor'))));
   check('Weë Brain YA ESTÁ CONECTADO al conductor, y solo para el canary de texto', /pensadorSobreConductor|conductorDeWee/.test(BRAIN) && /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(BRAIN));
   check('la política de precio no cambió: doce respuestas por un Credit', /RESPUESTAS_POR_CREDIT/.test(BRAIN) && /RESPUESTAS_POR_CREDIT = 12/.test(leer('functions/src/creator/brainUsage.ts')));
 }

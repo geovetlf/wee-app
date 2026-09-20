@@ -1007,18 +1007,9 @@ input: { contextRef: { chatId, kind: 'brain.message', messageId, quotedInputHash
 | Dos invocaciones **a la vez** | las dos llaman al proveedor (dos filas, dos costes), las dos contestan | **una sola llamada al proveedor, una sola fila**; la ganadora contesta en ~2,3 s | sí en dinero |
 | Credits en los dos casos | un cobro como mucho | **un cobro como mucho, saldo sin tocar** | sí |
 
-> **ABIERTO — la invocación que pierde la carrera espera ~59 s.** Medido dos veces:
-> 61 002 ms y 59 615 ms, y luego un error. La causa es la ventana de la concesión del
-> trabajador (`visibilityMs: 60 000`): la que llega segunda encuentra el trabajo en
-> marcha con la concesión viva y **espera a que caduque** en vez de rendirse en cuanto
-> sabe que lo tiene otro. El dinero está bien —un proveedor, una fila, cero cobros de
-> más— y de hecho el Core gasta la MITAD que el camino de siempre en ese caso. Pero
-> 59 segundos colgado no se le puede enseñar a nadie.
->
-> **Dirección del arreglo** (no hecho): el conductor ya sabe distinguir el caso —tiene
-> el aviso `leased_elsewhere`—; lo que falta es que con ese aviso devuelva `en_curso`
-> inmediatamente en vez de dormir hasta el final de la concesión. **Esto bloquea abrir
-> el canary a nadie más.**
+> **CORREGIDO (§ 13.9).** La primera medida del canary fue que la invocación perdedora
+> esperaba ~59 s (61 002 ms y 59 615 ms) antes de fallar. Ya no: contesta en ~1,5–2,0 s
+> y dice que la creación ya está en marcha.
 
 ### 13.4 Credits
 
@@ -1091,3 +1082,59 @@ Se desplegó **una** Function, `brainChat`. Las otras 29 quedaron con su revisi�
 Al terminar, producción volvió exactamente a donde estaba: 0 trabajos, 0 ejecuciones,
 2 conversaciones, 19 generaciones, 13 asientos, 16 perfiles, 10 cuentas de Auth y los
 saldos 240 / 240 / 234 / 237.
+
+### 13.9 Lo que tiene otro proceso no se espera
+
+El canary destapó **un minuto de espera para nada**, y el arreglo destapó un segundo
+defecto que lo acompañaba. Los dos se corrigieron.
+
+**Primer defecto — el conductor esperaba.** Cuando la segunda invocación encontraba el
+trabajo con la concesión viva de otro proceso, el trabajador lo aplazaba con un retraso
+igual a lo que le quedaba a esa concesión —un minuto, que es lo correcto **para una cola
+distribuida**, donde ese mensaje tiene que volver a estar visible por si el dueño muere—.
+Pero la cola del conductor es **de una sola invocación**: ahí no hay nadie a quien
+devolvérselo después. El conductor trataba ese aplazamiento como «un reintento que
+llegará» y se dormía hasta el final.
+
+Ahora, cuando después de vaciar su cola un trabajo sigue **en marcha**, el conductor sabe
+que no es suyo y contesta al instante:
+
+```ts
+if (enOtrasManos) { avisos.add('leased_elsewhere'); return resultado('en_curso'); }
+```
+
+La decisión se toma por el **estado del trabajo**, no por la cadena de diagnóstico de la
+entrega —el contrato dice que esa cadena es «diagnóstico, no bifurcación»—. Y solo se
+deja de esperar por esto: «todavía no toca» y «no cabe» siguen esperando, que son esperas
+de verdad.
+
+**No se acortó ningún reloj.** La concesión del trabajo la pone la política del Job Engine
+y sigue durando un minuto; la visibilidad de la cola sigue en 60 000 ms. El problema nunca
+fue cuánto duran: era esperarlos sin motivo.
+
+**Segundo defecto — la regla del reembolso seguro no llegaba a activarse.** Weë Brain
+(`core/brain.ts`) **atrapa** lo que lance el pensador y lo sustituye por un `failed`
+genérico, así que el `FalloDelPensador` nunca llegaba al `catch` que decide si se devuelve
+el dinero: el `error instanceof FalloDelPensador` de § 13.4 era, tal cual estaba, código
+muerto. El camino de siempre ya resolvía esto guardando su error en `causaDelFallo`; ahora
+el del conductor hace lo mismo, y la decisión se toma sobre **lo que guardó el pensador**,
+no sobre el error que llega.
+
+**Y lo que ve la persona.** `DUPLICATE_REQUEST` ya existía en el vocabulario del motor,
+con su frase —«Esa creación ya está en marcha»— y su código HTTP (`already-exists`). No
+hizo falta inventar ni un estado ni una pantalla. El error no lleva nada de dentro: ni
+trabajador, ni proveedor, ni modelo, ni intento, ni trabajo.
+
+**Medido en producción**, con la puerta abierta solo para una cuenta controlada y
+repitiendo únicamente este caso:
+
+| | Antes | Después |
+|---|---|---|
+| La que pierde | **61 002 / 59 615 ms** → `GENERATION_FAILED` | **2 045 / 1 641 / 1 487 ms** → `DUPLICATE_REQUEST`, «Esa creación ya está en marcha» |
+| La que gana | ~2,3 s, correcta | **2 712 / 2 325 / 2 132 ms**, correcta |
+| Llamadas al proveedor | 1 | **1** |
+| Trabajos · intentos | 1 · 1 | **1 · 1** (los seis trabajos del día, un intento cada uno) |
+| Credits · asientos | sin tocar · 13 | **sin tocar · 13** |
+
+El doble toque secuencial sigue igual que el camino de siempre: `duplicate: true` en
+567 ms. Y al cerrar la puerta, `jobs` se quedó en 6 mientras Brain seguía contestando.

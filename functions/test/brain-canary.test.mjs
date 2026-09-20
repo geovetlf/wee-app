@@ -239,7 +239,7 @@ console.log('\n── C · CORE o LEGACY, jamás los dos ──');
 /* ── D · Credits ───────────────────────────────────────────────────────────── */
 console.log('\n── D · Credits: la regla nueva, en el sitio exacto ──');
 {
-  check('el `catch` reembolsa lo cobrado SOLO si devolverlo es seguro', /const devolverEsSeguro = !\(error instanceof FalloDelPensador\) \|\| error\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{/.test(BRAIN));
+  check('el `catch` reembolsa lo cobrado SOLO si devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{/.test(BRAIN));
   check('y cuando no lo es, no liquida el libro a cero: la reserva se queda autorizada', /\} else if \(spend\) \{[\s\S]{0,260}console\.warn/.test(BRAIN) && !/else if \(spend\) \{[\s\S]{0,260}refundCredits/.test(BRAIN));
   check('un error que no viene del conductor se comporta como siempre', !(new TypeError('x') instanceof FalloDelPensador) && !(new Error('x') instanceof FalloDelPensador));
   check('el conductor dice que devolver es seguro cuando el trabajo terminó mal', new FalloDelPensador('failed', true, { code: 'PROVIDER_ERROR' }).reembolsoSeguro === true);
@@ -326,6 +326,87 @@ console.log('\n── F · Volver atrás: cerrar la puerta y que todo vuelva a c
   check('`creatorJobs`, `creatorRun` y `drama.ts` siguen donde estaban', fs.existsSync(path.resolve(RAIZ, 'functions/src/creator/index.ts')) && fs.existsSync(path.resolve(RAIZ, 'functions/src/engine/pipelines/drama.ts')) && /creatorJobs/.test(leer('functions/src/creator/index.ts')));
   check('y por dónde fue cada mensaje queda anotado, sin secretos y sin enseñárselo a nadie',
     /WEË BRAIN · ruta=\$\{porElCore \? 'CORE' : 'LEGACY'\}/.test(BRAIN) && !/ruta|runtimePath/.test(BRAIN.slice(BRAIN.indexOf('return { chatId: chatRef.id, messageId: `${messageId}_wee`'))));
+}
+
+/* ── G · El duplicado concurrente no espera ────────────────────────────────── */
+console.log('\n── G · Lo que tiene otro proceso no se espera ──');
+{
+  /*
+   * EL CASO. Dos invocaciones del mismo mensaje a la vez. A coge la concesión y
+   * se va al proveedor; B llega, encuentra el trabajo en marcha y NO PUEDE hacer
+   * nada con él mientras la concesión esté viva.
+   *
+   * Antes B se dormía hasta que la concesión caducaba —un minuto— para
+   * despertarse y encontrarse con que A ya había terminado. Ahora contesta al
+   * instante y dice la verdad: en curso, en otras manos.
+   *
+   * El reloj de estas pruebas NO avanza solo: si algo esperase, se vería porque
+   * `esperar` quedaría registrado.
+   */
+  /* La que pone la política del Job Engine al reclamar un trabajo. */
+  const CONCESION_DE_TRABAJO_MS = 60_000;
+  /* La de la cola de esta prueba (`mundo()`), que es otra cosa. */
+  const VISIBILIDAD_DE_COLA_MS = 30_000;
+  const esperas = [];
+  const dosMundos = () => {
+    const t = almacen(); const e = ejecuciones(); const f = conversacionDeAna();
+    let suelta;
+    const lento = { x: adaptador('x', () => new Promise((r) => { suelta = () => r({ output: { kind: 'text', content: 'la ganadora contesta' }, usage: { inputTokens: 9, outputTokens: 4 }, costUSD: 0.001, latencyMs: 3 }); })) };
+    const comun = { adapters: lento, trabajos: t, ejecuciones: e, fuente: f };
+    const A = mundo({ ...comun, worker: 'w-A' });
+    const B = mundo({ ...comun, worker: 'w-B', esperar: async (ms) => { esperas.push(ms); reloj += ms + 1; } });
+    return { A, B, t, e, lento, suelta: () => suelta(), fuente: f };
+  };
+
+  const { A, B, t, lento, suelta } = dosMundos();
+  const peticion = pedir();
+  /* A arranca y se queda dentro del proveedor, con la concesión viva. */
+  const relojAlEmpezar = reloj;
+  const laDeA = pensadorDeBrain(A).pensar(peticion);
+  await new Promise((r) => setImmediate(r));
+  const trabajoA = [...t.porId.values()][0];
+  const concesionDeA = trabajoA?.attempts[0]?.lease;
+  check('A cogió la concesión: el trabajo está en marcha y es suyo', trabajoA?.state === 'running' && trabajoA.attempts.length === 1 && concesionDeA?.owner === 'w-A');
+  check('y ya salió hacia el proveedor', lento.x.llamadas.length === 1);
+
+  /* B llega mientras A la tiene. */
+  const relojAntes = reloj;
+  const laDeB = await pensadorDeBrain(B).pensar(peticion).catch((x) => x);
+  check('B CONTESTA AL INSTANTE: no espera a que caduque la concesión', esperas.length === 0 && reloj === relojAntes, `esperas=${JSON.stringify(esperas)}`);
+  check('y lo que dice es EN CURSO, en otras manos', laDeB instanceof FalloDelPensador && laDeB.motivo === 'in_progress_elsewhere' && laDeB.avisos.includes('leased_elsewhere'));
+  check('NO es un fallo del proveedor, ni algo que reintentar', laDeB.weeError.code === 'DUPLICATE_REQUEST' && !laDeB.avisos.includes('retry_pending'));
+  check('NO lo confunde con un desenlace desconocido: eso es solo si SÍ se salió y no se sabe cómo acabó', !laDeB.avisos.includes('outcome_unknown') && laDeB.motivo !== 'outcome_unknown');
+  check('B no llamó al proveedor', lento.x.llamadas.length === 1);
+  check('B no creó otro intento: el intento es de quien está ejecutando', [...t.porId.values()].every((j) => j.attempts.length === 1) && [...t.porId.values()][0].attempts[0].lease?.owner === 'w-A');
+  check('B no creó otro trabajo: mismo jobId', t.porId.size === 1);
+  check('y B NO puede reembolsar: la reserva es de quien está trabajando', laDeB.reembolsoSeguro === false);
+
+  /* A sigue y termina. */
+  suelta();
+  const resultadoA = await laDeA;
+  const trabajoFinal = [...t.porId.values()][0];
+  check('A continúa y completa, sin enterarse de nada', resultadoA.response?.content === 'la ganadora contesta');
+  check('un solo trabajo, un solo intento, una sola llamada al proveedor', t.porId.size === 1 && trabajoFinal.attempts.length === 1 && lento.x.llamadas.length === 1);
+  check('y el intento sigue siendo de A', trabajoFinal.attempts[0].attemptId === trabajoA.attempts[0].attemptId);
+  check('no hubo bucle de reintentos', trabajoFinal.attempts.length === 1 && !esperas.length);
+
+  /*
+   * Lo que NO se tocó. Y de paso, la distinción que importa: son DOS relojes.
+   * La concesión del TRABAJO la pone la política del Job Engine (un minuto) y es
+   * la que el trabajador usa para calcular cuándo volver; `visibilityMs` es la
+   * visibilidad de la COLA, otra cosa. El arreglo no acortó ninguno de los dos.
+   */
+  check('CADUCIDAD INTACTA: la concesión de A tuvo dueño y fecha, y duró el minuto de la política', concesionDeA?.owner === 'w-A' && concesionDeA.until === relojAlEmpezar + CONCESION_DE_TRABAJO_MS);
+  check('y son dos relojes distintos: la visibilidad de la cola de esta prueba es otra', CONCESION_DE_TRABAJO_MS !== VISIBILIDAD_DE_COLA_MS);
+  check('el arreglo NO fue acortar ninguno: la composición sigue dando un minuto de visibilidad', /visibilityMs: 60_000/.test(leer('functions/src/runtime/index.ts')));
+  check('el trabajador sigue aplazando lo que no toca todavía y lo que no cabe', /reclamo\.refusal === 'not_available_yet' \|\| reclamo\.refusal === 'at_capacity' \|\| reclamo\.refusal === 'leased'/.test(leer('functions/src/job/worker.ts')));
+  check('y la espera sigue existiendo para lo que SÍ vuelve: un reintento programado', /const proximo = cola\.proximoVisible\(ahora\(\)\);/.test(leer('functions/src/runtime/conductor.ts')) && /await puertos\.esperar\(Math\.max\(0, proximo - ahora\(\)\)\)/.test(leer('functions/src/runtime/conductor.ts')));
+  check('la decisión se toma por el ESTADO del trabajo, no por una cadena de diagnóstico', /avisos\.add\('leased_elsewhere'\);\s*enOtrasManos = true;/.test(leer('functions/src/runtime/conductor.ts')) && !/e\.detail === 'leased'/.test(leer('functions/src/runtime/conductor.ts')));
+
+  /* Y lo que ve quien llamó. */
+  check('a la persona se le dice que ya está en marcha, con el vocabulario que ya existía', /if \(falloDelConductor && \(falloDelConductor\.motivo === 'in_progress_elsewhere' \|\| falloDelConductor\.motivo === 'completed_elsewhere'\)\) \{\s*throw new EngineError\('DUPLICATE_REQUEST'\);/.test(BRAIN));
+  check('y ese error no lleva nada de dentro: ni trabajador, ni modelo, ni intento, ni trabajo', /throw new EngineError\('DUPLICATE_REQUEST'\);/.test(BRAIN) && !/EngineError\('DUPLICATE_REQUEST', /.test(BRAIN));
+  check('el mensaje que verá es el del motor, que ya existía', /DUPLICATE_REQUEST: 'Esa creación ya está en marcha\.'/.test(leer('functions/src/engine/errors.ts')));
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

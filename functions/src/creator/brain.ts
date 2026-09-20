@@ -353,6 +353,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
      */
     let spend: { amount: number; duplicate: boolean } | null = null;
     /*
+     * Por qué no pudo el conductor, cuando el camino es el del Core. Vive AQUÍ
+     * fuera —y no dentro del `try`— porque quien tiene que leerlo es el `catch`
+     * que decide si se devuelve el dinero.
+     */
+    let falloDelConductor: FalloDelPensador | undefined;
+    /*
      * ¿Le va a costar algo ESTE mensaje? Es la misma cuenta que hace `brainQuote`
      * para enseñarle el precio a la persona antes de enviar: la búsqueda siempre
      * cobra, y la conversación solo cuando la respuesta cierra el bloque de doce.
@@ -509,10 +515,24 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         });
         return {
           async pensar(peticion) {
-            const pensado = await porElConductor.pensar(peticion);
-            /* `demo` es un booleano por los dos caminos: que falte no es lo mismo que que sea `false`, y quien lo lee no tiene por qué notar la diferencia. */
-            salida = { sources: [...(pensado.response.sources ?? [])], generationId: fila, demo: pensado.synthetic === true };
-            return pensado;
+            try {
+              const pensado = await porElConductor.pensar(peticion);
+              /* `demo` es un booleano por los dos caminos: que falte no es lo mismo que que sea `false`, y quien lo lee no tiene por qué notar la diferencia. */
+              salida = { sources: [...(pensado.response.sources ?? [])], generationId: fila, demo: pensado.synthetic === true };
+              return pensado;
+            } catch (error) {
+              /*
+               * SE GUARDA AQUÍ O SE PIERDE. Weë Brain (`core/brain.ts`) atrapa lo
+               * que lance el pensador y lo convierte en un `failed` genérico: el
+               * error original no sale de ahí. El camino de siempre ya hacía esto
+               * mismo con `causaDelFallo`, y por la misma razón — pero aquí no es
+               * solo el código que ve la app: es lo que decide si se puede
+               * reembolsar. Sin guardarlo, la regla del reembolso seguro no
+               * llegaría a preguntarse nunca.
+               */
+              if (error instanceof FalloDelPensador) falloDelConductor = error;
+              throw error;
+            }
           },
         };
       };
@@ -559,6 +579,20 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        */
       if (pensado.status === 'failed' || !salida || !pensado.reply) {
         if (causaDelFallo) throw causaDelFallo;
+        /*
+         * YA ESTÁ EN MARCHA, Y NO ES UN FALLO. Si otra invocación del mismo
+         * mensaje lo está ejecutando —o acaba de terminarlo—, decirle a la
+         * persona «no pude» sería mentirle: sí se pudo, lo está haciendo otra.
+         * `DUPLICATE_REQUEST` ya existe en el vocabulario del motor y ya trae su
+         * frase («Esa creación ya está en marcha») y su código HTTP, así que no
+         * hay que inventar ni un estado ni una pantalla.
+         *
+         * Y no lleva detalles: ni quién la ejecuta, ni con qué modelo, ni el
+         * intento, ni el trabajo. Eso es de dentro.
+         */
+        if (falloDelConductor && (falloDelConductor.motivo === 'in_progress_elsewhere' || falloDelConductor.motivo === 'completed_elsewhere')) {
+          throw new EngineError('DUPLICATE_REQUEST');
+        }
         throw new EngineError(pensado.error?.code === 'INVALID_REQUEST' ? 'INVALID_REQUEST' : 'GENERATION_FAILED');
       }
       const parsed = { text: pensado.reply.text, suggestedExperience: pensado.reply.suggestedExperience };
@@ -642,9 +676,13 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * está —igual que hoy cuando el proceso muere— y se ve en los registros.
        *
        * Cualquier otro error se comporta EXACTAMENTE como siempre: el camino de
-       * siempre nunca lanza un `FalloDelPensador`.
+       * siempre no pasa por el conductor y deja `falloDelConductor` sin tocar.
+       *
+       * Se mira lo que GUARDÓ el pensador, no el error que llega aquí: Weë Brain
+       * atrapa lo que lance el pensador y lo sustituye por otro, así que
+       * preguntarle al error que llega sería preguntarle al mensajero.
        */
-      const devolverEsSeguro = !(error instanceof FalloDelPensador) || error.reembolsoSeguro;
+      const devolverEsSeguro = !falloDelConductor || falloDelConductor.reembolsoSeguro;
       if (spend && devolverEsSeguro) {
         await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · no pudo responder', source: 'weë-brain' }).catch((refundError) => {
           console.error('Weë Brain: no se pudo reembolsar', requestId, refundError);
@@ -655,7 +693,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
           .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
       } else if (spend) {
         /* Ni se devuelve ni se liquida: la reserva sigue autorizada y quien termine de verdad la cerrará. */
-        console.warn(`WEË BRAIN · reserva intacta (reembolso no seguro): requestId=${requestId} motivo=${(error as FalloDelPensador).motivo}`);
+        console.warn(`WEË BRAIN · reserva intacta (reembolso no seguro): requestId=${requestId} motivo=${falloDelConductor?.motivo ?? 'desconocido'}`);
       }
       throw error;
     }

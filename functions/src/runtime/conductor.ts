@@ -470,9 +470,14 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
       return !roto;
     };
 
-    /** Mira cómo quedó cada trabajo y se lo cuenta al Orchestrator. Devuelve cuántos pasos cerró. */
-    const recoger = async (): Promise<number> => {
+    /**
+     * Mira cómo quedó cada trabajo y se lo cuenta al Orchestrator. Devuelve
+     * cuántos pasos cerró y si alguno se quedó EN OTRAS MANOS —en marcha, con la
+     * concesión de otro proceso—, que es lo único que no tiene sentido esperar.
+     */
+    const recoger = async (): Promise<{ cerrados: number; enOtrasManos: boolean }> => {
       let cerrados = 0;
+      let enOtrasManos = false;
       for (const mano of enMano.values()) {
         if (mano.anotado) continue;
         const { dispatch } = mano;
@@ -491,7 +496,16 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
           if (job.state === 'waiting') avisos.add('outcome_unknown');
           else if (job.state === 'queued') avisos.add('retry_pending');
           else if (job.state === 'cancel_requested') avisos.add('cancel_pending');
-          else avisos.add('leased_elsewhere');
+          else {
+            /*
+             * Sigue EN MARCHA después de que esta invocación vaciara su cola: no
+             * es nuestro. O lo tiene otro proceso con la concesión viva, o lo
+             * tuvo y todavía no ha escrito el desenlace. En cualquiera de los dos
+             * casos, aquí no hay nada que hacer ni nada que esperar.
+             */
+            avisos.add('leased_elsewhere');
+            enOtrasManos = true;
+          }
           continue;
         }
 
@@ -516,7 +530,7 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
         });
         if (mano.anotado) cerrados++;
       }
-      return cerrados;
+      return { cerrados, enOtrasManos };
     };
 
     const resultado = async (estado: ResultadoDelConductor['estado'], extra: Partial<ResultadoDelConductor> = {}): Promise<ResultadoDelConductor> => {
@@ -592,7 +606,7 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
       for (const dispatch of aLanzar) await lanzar(dispatch);
 
       const colaSana = await vaciarCola();
-      const cerrados = await recoger();
+      const { cerrados, enOtrasManos } = await recoger();
 
       const ahoraMismo = orchestrator.estado(pet(guardada.run));
       if (ahoraMismo.status === 'finished' && !ahoraMismo.waiting.running.length) return resultado('terminada');
@@ -600,7 +614,25 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
       if (sinTiempo()) { avisos.add('invocation_deadline'); return resultado('en_curso'); }
       if (aLanzar.length || cerrados) continue;
 
-      /* Nada se movió. Si lo único que falta es la hora de un reintento y se puede esperar, se espera; si no, se dice. */
+      /*
+       * ── LO QUE TIENE OTRO NO SE ESPERA ───────────────────────────────────────
+       *
+       * Nada se movió, y lo que falta lo está ejecutando otro proceso con la
+       * concesión viva. Esperar a que caduque es esperar un minuto para no hacer
+       * nada: esta invocación no puede tocar ese trabajo mientras la concesión
+       * esté viva, y cuando caduque lo que habrá es el resultado del otro, no una
+       * oportunidad. La espera existe para un reintento que llegará; esto no es
+       * un reintento.
+       *
+       * Así que se contesta ya, y se contesta la verdad: EN CURSO, en otras manos.
+       * No es un fallo del proveedor, ni del trabajo, ni algo que reintentar, ni
+       * un desenlace desconocido —eso es solo cuando SÍ se salió y no se sabe cómo
+       * acabó—. Quien llama no crea un intento, no llama a ningún proveedor y,
+       * sobre todo, no toca el dinero de la invocación que sí está trabajando.
+       */
+      if (enOtrasManos) { avisos.add('leased_elsewhere'); return resultado('en_curso'); }
+
+      /* Si lo único que falta es la hora de un reintento y se puede esperar, se espera; si no, se dice. */
       const proximo = cola.proximoVisible(ahora());
       const cabe = proximo !== undefined && (limite === undefined || proximo < limite);
       if (!puertos.esperar || !cabe || esperas >= MAX_ESPERAS) return resultado('en_curso');
