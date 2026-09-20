@@ -43,6 +43,11 @@ nul
 App-backup.tsx
 app-backup.json
 
+# Las huellas de copia de seguridad (scripts/copias.mjs, docs/BACKUP.md).
+# Son hashes, pero también llevan identificadores REALES de producción —números
+# de cuenta, ent_…, uid— para poder comparar una restauración. No se versionan.
+.backup-local/
+
 # Firebase
 .firebase/
 firebase-debug.log

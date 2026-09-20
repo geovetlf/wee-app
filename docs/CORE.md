@@ -34,6 +34,7 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `moderation.ts` | `Report`, motivos, estados y sus transiciones, `ModerationDecision` (ALLOW / BLOCK / REVIEW), la costura del evaluador y la del evento — denunciar de verdad ([`docs/MODERATION.md`](MODERATION.md)) |
 | `job.ts` | WEE Job Engine: `Job`, estados, `crearJobEngine()`; y la costura `JobTask` para trabajos que no son de IA |
 | `job-queue.ts` | Los puertos de la cola y del trabajador: `QueueMessage` (un aviso, nunca el trabajo), `QueuePort`, `JobExecutor`, `WorkerConfig`, `ResultadoDeEntrega` — por dónde se enchufará una cola sin tocar `job.ts` ([`docs/RUNTIME.md`](RUNTIME.md) § 7) |
+| `backup.ts` | Qué se puede perder y qué no: `CLASIFICACION_DE_DATOS` (CRITICAL / IMPORTANT / DERIVED), `huellaDeDocumento` para comparar una restauración documento a documento, `verificarRelaciones`, `seguridadDeRestauracion` y `CAMPOS_QUE_NO_SE_IMPRIMEN` — copiar no es recuperar ([`docs/BACKUP.md`](BACKUP.md)) |
 | `observability.ts` | `TraceContext` y campos prohibidos |
 | `registry/capabilities.ts` | `CoreCapabilityId` y el catálogo completo |
 | `registry/types.ts` | `ModelDescriptor`, `RegisteredProvider`, `RegisteredAdapter` |

@@ -51,3 +51,4 @@ export * from './job';
 export * from './job-queue';
 export * from './financial';
 export * from './moderation';
+export * from './backup';
