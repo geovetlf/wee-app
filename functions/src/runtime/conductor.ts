@@ -182,9 +182,9 @@ export interface EjecucionPreparada {
   /** La misma operación, el mismo `runId`: así una segunda llamada RETOMA en vez de repetir. */
   runId?: string;
   /**
-   * Correlación que la traza pierde por el camino: `leerTraza` (Fase 2) solo
-   * conserva nueve campos y descarta estos sin avisar. Aquí viajan en el
-   * contexto del trabajo, que sí los guarda.
+   * Correlación que acompaña al trabajo. Va aquí —y no solo en la traza—
+   * porque el contexto del trabajo se GUARDA: sobrevive a la invocación que lo
+   * creó, y es lo que permite saber de dónde salió una operación al recuperarla.
    */
   contexto?: { appId?: string; workspaceId?: string; operationId?: string };
   /** Por paso. Lo que el SERVIDOR ya tiene decidido sobre con qué atenderlo. */

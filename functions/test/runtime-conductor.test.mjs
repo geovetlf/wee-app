@@ -524,7 +524,7 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
 {
   const dir = 'functions/src/runtime';
   const archivos = fs.readdirSync(path.resolve(RAIZ, dir)).sort();
-  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,cola.ts,conductor.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
+  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
   const puros = ['conductor.ts', 'cola.ts', 'ejecutor.ts', 'resolucion.ts', 'puerta.ts'].map((f) => sinComentarios(leer(`${dir}/${f}`)));
   check('conductor, cola, ejecutor, resolución y puerta NO saben de Firestore: todo les entra por puertos', puros.every((s) => !/firebase|firestore/i.test(s)));
   check('ni leen el reloj ni tiran dados: el tiempo entra por la puerta', puros.every((s) => !/Date\.now\(|Math\.random\(|new Date\(/.test(s)));
@@ -540,8 +540,20 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
   check('Router y Gateway miran el MISMO registro, el de la configuración viva', /crearRegistro\(datosDelRegistro\(ADAPTERS, config\.providers\)\)/.test(leer(`${dir}/index.ts`)));
 
   const vivos = ['functions/src/index.ts', 'functions/src/creator/index.ts', 'functions/src/creator/brain.ts', 'functions/src/creator/video.ts', 'functions/src/creator/planner.ts', 'functions/src/gateway/index.ts', 'functions/src/engine/index.ts', 'functions/src/generateAvatar.ts'];
-  check('NADA DE PRODUCCIÓN PASA POR AQUÍ: ningún módulo vivo importa runtime/', vivos.every((f) => !/runtime\//.test(sinComentarios(leer(f)))));
-  check('e index.ts no exporta nada de este directorio', !/runtime/.test(leer('functions/src/index.ts')));
+  /*
+   * ESTO DECÍA «NADA DE PRODUCCIÓN PASA POR AQUÍ». Ya no es verdad, y se cambia
+   * a propósito: el canary de F12-D conectó UNA ruta —`brainChat` con
+   * `text.generate`— y ninguna más. La guarda no se quita; se estrecha, para que
+   * siga cazando al segundo módulo que entre sin que nadie lo autorice.
+   */
+  const entran = vivos.filter((f) => /from '\.\.?\/runtime'/.test(sinComentarios(leer(f))));
+  check('CONECTADO SOLO PARA EL CANARY DE TEXTO DE BRAIN: un único módulo vivo entra al runtime', entran.join(',') === 'functions/src/creator/brain.ts', entran.join(','));
+  const brainVivo = sinComentarios(leer('functions/src/creator/brain.ts'));
+  check('y entra por la PUERTA: una sola decisión, cerrada por defecto', /decidirRuntime\(await configuracionDeLaPuerta\(db\)/.test(brainVivo) && brainVivo.match(/decidirRuntime\(/g).length === 1);
+  check('con UNA capacidad autorizada en el código: la configuración puede cerrar, nunca ampliar', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(brainVivo) && /puerta\.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY/.test(brainVivo));
+  check('CORE o LEGACY, nunca los dos: un pensador, elegido una vez', /const pensador: Thinker = porElCore \? await pensadorDelConductor\(\) : pensadorDeSiempre\(\)/.test(brainVivo) && brainVivo.match(/engine\.generate\(/g).length === 1);
+  check('y la cuenta con la que se decide es la del principal autenticado, no la que mande el cliente', /userId: uid, experienceId: EXPERIENCIA_DE_BRAIN/.test(brainVivo) && /const uid = request\.auth\.uid/.test(brainVivo));
+  check('e index.ts sigue sin exportar el runtime: la única entrada es la puerta de brainChat', !/runtime/.test(leer('functions/src/index.ts')));
   check('las cabeceras lo dicen donde se lee', ['conductor.ts', 'almacen.ts', 'index.ts', 'puerta.ts'].every((f) => /NADA DE PRODUCCIÓN (PASA POR AQUÍ|LEE ESTA PUERTA) TODAVÍA/.test(leer(`${dir}/${f}`))));
   check('esta suite está en la cadena de `npm test`', /runtime-conductor\.test\.mjs/.test(leer('functions/package.json')));
 }

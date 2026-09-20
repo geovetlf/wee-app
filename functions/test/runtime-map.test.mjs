@@ -67,47 +67,63 @@ const diferencia = (esperado, real) => {
  *   simbolos     símbolos de `canonico` que el código vivo nombra (fuera del Core)
  * ═══════════════════════════════════════════════════════════════════════════ */
 const MAPA = [
-  { id: 'brain', canonico: ['core/brain.js'], composicion: 'brain/index.js', fabrica: 'crearBrainDeWee', enUso: ['creator/brain.js'],
+  { id: 'brain', canonico: ['core/brain.js'], composicion: 'brain/index.js', fabrica: 'crearBrainDeWee', enUso: ['creator/brain.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['LIMITES_DE_CONTEXTO', 'crearBrain', 'interpretarMarca'] },
-  { id: 'planner', canonico: ['core/planner.js'], composicion: 'planner/index.js', fabrica: 'crearPlannerDeWee', enUso: ['creator/planner.js'],
+  { id: 'planner', canonico: ['core/planner.js'], composicion: 'planner/index.js', fabrica: 'crearPlannerDeWee', enUso: ['creator/planner.js'], cargada: true,
     motor: 'NOT CONNECTED', simbolos: ['crearPlanner'] },
-  { id: 'workflow', canonico: ['core/workflow.js'], composicion: 'workflow/index.js', fabrica: 'crearWorkflowEngineDeWee', enUso: ['creator/index.js'],
-    motor: 'NOT CONNECTED', simbolos: [] },
-  { id: 'orchestrator', canonico: ['core/orchestrator.js'], composicion: 'orchestrator/index.js', fabrica: 'orquestadorDeWee', enUso: ['creator/index.js'],
-    motor: 'NOT CONNECTED', simbolos: [] },
-  { id: 'router', canonico: ['core/router.js'], composicion: 'router/index.js', fabrica: 'crearRouterDeWee', enUso: ['engine/router.js', 'engine/index.js'],
-    motor: 'NOT CONNECTED', simbolos: [] },
-  { id: 'gateway', canonico: ['core/gateway.js'], composicion: 'engine/gateway.js', fabrica: 'gatewayDeWee', enUso: ['gateway/index.js', 'engine/index.js'],
-    motor: 'NOT CONNECTED', simbolos: ['normalizarUso', 'puedeEjecutarse'] },
-  { id: 'job', canonico: ['core/job.js'], composicion: 'job/index.js', fabrica: 'crearMotorDeTrabajosDeWee', enUso: ['creator/index.js', 'creator/video.js'],
-    motor: 'NOT CONNECTED', simbolos: ['operacionAbandonada', 'presupuestoDeIntento'] },
+  /* El conductor usa DOS piezas sueltas del Workflow del Core (`prepararWorkflow`, `esEstadoFinal`), no su composición. */
+  { id: 'workflow', canonico: ['core/workflow.js'], composicion: 'workflow/index.js', fabrica: 'crearWorkflowEngineDeWee', enUso: ['creator/index.js'], cargada: false,
+    motor: 'NOT CONNECTED', simbolos: ['esEstadoFinal', 'prepararWorkflow'] },
+  /* F12-D · CANARY: el conductor construye el Orchestrator del Core. Sigue habiendo UNO. */
+  { id: 'orchestrator', canonico: ['core/orchestrator.js'], composicion: 'orchestrator/index.js', fabrica: 'orquestadorDeWee', enUso: ['creator/index.js', 'runtime/conductor.js'], cargada: true,
+    motor: 'CONNECTED', simbolos: ['claveDePaso', 'crearOrchestrator'] },
+  /*
+   * El Router del Core entra por el canary, pero NO por `router/index.ts`: el
+   * conductor construye `crearRouter` con el registro de la configuración viva,
+   * para que Router y Gateway miren la misma foto (`runtime/index.ts`). Por eso
+   * la fábrica de la composición sigue sin invocarse y su módulo sin cargarse.
+   */
+  { id: 'router', canonico: ['core/router.js'], composicion: 'router/index.js', fabrica: 'crearRouterDeWee', enUso: ['engine/router.js', 'engine/index.js'], cargada: false,
+    motor: 'NOT CONNECTED', simbolos: ['crearRouter'] },
+  /* Igual el Gateway: el canary usa `crearGatewayDelMotor` (que envuelve `crearGateway` del Core), no `gatewayDeWee`. */
+  { id: 'gateway', canonico: ['core/gateway.js'], composicion: 'engine/gateway.js', fabrica: 'gatewayDeWee', enUso: ['gateway/index.js', 'engine/index.js'], cargada: true,
+    motor: 'NOT CONNECTED', simbolos: ['FORMA_DE_ETIQUETA_DE_TRAZA', 'FORMA_DE_ID', 'crearGateway', 'esObjetoPlano', 'esTexto', 'normalizarUso', 'puedeEjecutarse', 'sanearMeta'] },
+  /* F12-D · CANARY: el conductor construye el Job Engine del Core. `creatorJobs` sigue intacto y sin tocar. */
+  { id: 'job', canonico: ['core/job.js'], composicion: 'job/index.js', fabrica: 'crearMotorDeTrabajosDeWee', enUso: ['creator/index.js', 'creator/video.js', 'runtime/index.js'], cargada: true,
+    motor: 'CONNECTED', simbolos: ['POLITICA_DE_TRABAJO', 'alcanceDeIdempotencia', 'claveDeIdempotencia', 'crearJobEngine', 'esTrabajoTerminal', 'operacionAbandonada', 'presupuestoDeIntento'] },
   { id: 'project', canonico: ['core/project.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'content', canonico: ['core/content/content.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
-  { id: 'asset', canonico: ['core/content/asset.js'], composicion: 'content/index.js', fabrica: 'crearMaterialDesdeUrl', enUso: ['content/index.js'],
+  { id: 'asset', canonico: ['core/content/asset.js'], composicion: 'content/index.js', fabrica: 'crearMaterialDesdeUrl', enUso: ['content/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'retirar'] },
   { id: 'publication', canonico: ['core/content/publication.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   /* Los otros singulares. No son de este bloque, pero «un solo motor por pieza» los incluye. */
   { id: 'financial', canonico: ['core/financial/account.js', 'core/financial/commerce.js', 'core/financial/ledger.js', 'core/financial/money.js', 'core/financial/payment.js'],
-    composicion: 'financial/index.js', fabrica: null, enUso: ['credits/creditEngine.js'], motor: 'NOT CONNECTED', simbolos: [] },
-  { id: 'identity', canonico: ['core/account-identity.js', 'core/identity.js'], composicion: 'identity/cuentas.js', fabrica: 'nacerLoQueTocaDeUnPerfilNuevo', enUso: ['identity/nacimiento.js'],
+    composicion: 'financial/index.js', fabrica: null, enUso: ['credits/creditEngine.js'], cargada: false, motor: 'NOT CONNECTED', simbolos: [] },
+  { id: 'identity', canonico: ['core/account-identity.js', 'core/identity.js'], composicion: 'identity/cuentas.js', fabrica: 'nacerLoQueTocaDeUnPerfilNuevo', enUso: ['identity/nacimiento.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['asegurarCuenta', 'asegurarEntidadDeCaraWee', 'crearPagina', 'cuentaWeeValida', 'entidadDeCuentaValida', 'esIdDeCuenta', 'esIdDePrincipal', 'normalizarNumeroDeCuenta', 'resolverCuentaDelPrincipal'] },
-  { id: 'registry', canonico: ['core/registry/capabilities.js', 'core/registry/registry.js', 'core/registry/validate.js'], composicion: 'registry/index.js', fabrica: 'registroDeWee', enUso: ['planner/index.js'],
+  { id: 'registry', canonico: ['core/registry/capabilities.js', 'core/registry/registry.js', 'core/registry/validate.js'], composicion: 'registry/index.js', fabrica: 'registroDeWee', enUso: ['planner/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['CAPABILITY_CATALOG', 'crearRegistro', 'validarRegistro'] },
   /* Fase 12-A/B. Nació conectada: no hay una moderación «de antes» con la que convivir (docs/MODERATION.md). */
-  { id: 'moderation', canonico: ['core/moderation.js'], composicion: 'moderation/index.js', fabrica: 'crearModeracion', enUso: ['moderation/index.js'],
+  { id: 'moderation', canonico: ['core/moderation.js'], composicion: 'moderation/index.js', fabrica: 'crearModeracion', enUso: ['moderation/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['EVALUADOR_DE_REGLAS', 'ESTADOS_DE_REPORTE', 'FORMA_DE_ID_DE_REPORTE', 'POLITICA_DE_REPORTES', 'decisionValida', 'entradaDeCreacion', 'esContenidoPropio',
       'esEstadoDeReporte', 'evaluarLimite', 'idDeEntrada', 'idDeReporte', 'nuevoReporte', 'transicionarReporte', 'validarPeticionDeReporte', 'vistaParaQuienDenuncia'] },
 ];
 
 /* Módulos del Core que no son ningún singular y que el código vivo también nombra. */
 const OTROS_DEL_CORE = {
-  'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION'],
+  /* Las cuatro versiones nuevas entran con el canary: el conductor habla con Workflow, Orchestrator, Router y Job Engine. */
+  'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'JOB_ENGINE_CONTRACT_VERSION',
+    'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION'],
   'core/language.js': ['contextoDeIdioma'],
   /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
   'core/social-identity.js': ['actorDeLaCuenta'],
+  /* Los tres que estrena el canary de F12-D. */
+  'core/capability.js': ['modalidadDe'],
+  'core/errors.js': ['DESDE_ENGINE', 'errorDelCore'],
+  'core/job-queue.js': ['leerMensajeDeCola', 'mensajeDeCola', 'workerValido'],
 };
 
 /* Las Functions que producción expone, y de qué módulo sale cada una. */
@@ -231,8 +247,15 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
     check(`${n++}) ${c.id}: el motor del Core está ${c.motor}`, motor === c.motor,
       `medido=${motor} · fábrica=${c.fabrica ?? '—'} · la invocan: ${llamadores.join(', ') || 'nadie'} · composición ${c.composicion ?? '—'} ${alcanzable ? 'alcanzable' : 'no alcanzable'}`);
     check(`${n++}) ${c.id}: el código vivo nombra exactamente estos símbolos suyos: [${c.simbolos.join(', ')}]`, igual(c.simbolos, simbolos), diferencia(c.simbolos, simbolos));
-    if (c.motor === 'NOT CONNECTED' && c.composicion && c.id !== 'planner') {
-      check(`${n++}) ${c.id}: y su composición (${c.composicion}) no la carga ninguna ruta de producción`, !alcanzable);
+    /*
+     * QUÉ COMPOSICIONES CARGA PRODUCCIÓN, declaradas una a una. Antes esto solo
+     * miraba las piezas NOT CONNECTED; ahora se declara para TODAS, porque el
+     * canary de F12-D hizo alcanzables varias a la vez y «no está conectado» ya
+     * no implica «no se carga». Una composición que empiece a cargarse sin que
+     * nadie lo declare aquí hace fallar esto.
+     */
+    if (c.composicion) {
+      check(`${n++}) ${c.id}: producción ${c.cargada ? 'SÍ' : 'no'} carga su composición (${c.composicion})`, alcanzable === (c.cargada === true));
     }
     for (const vivo of c.enUso) check(`${n++}) ${c.id}: lo que atiende hoy (${vivo}) sí se despliega`, VIVOS.has(vivo));
   }
@@ -274,33 +297,42 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
     /CANÓNICO {3}`core\/job\.ts`/.test(leer('functions/src/creator/types.ts')) && /NO PUEDE HABER UN TERCERO/.test(leer('functions/src/creator/types.ts')));
 }
 
-console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y NO está conectado ──');
+console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y entra por UNA puerta ──');
 {
   /*
-   * La Fase 12-D construyó la pieza que faltaba: quien une Orchestrator → Router →
-   * Job Engine → cola → trabajador → Gateway. Está en `functions/src/runtime/`, con
-   * sus pruebas, y NINGUNA ruta de producción pasa por él. Eso no es un descuido:
-   * conectarlo es poner fin a los «todavía» de la sección F, y se hace de frente,
-   * capacidad a capacidad y detrás de una puerta.
+   * La Fase 12-D construyó la pieza que faltaba —quien une Orchestrator → Router →
+   * Job Engine → cola → trabajador → Gateway— y el canary la conectó: `brainChat`
+   * puede pasar por ella, con `text.generate` y detrás de una puerta cerrada por
+   * defecto. Eso es lo que hace que varios motores de la sección C hayan cambiado
+   * a CONNECTED a la vez: no es que se hayan conectado por su cuenta, es que el
+   * conductor los construye y ahora el conductor está en la ruta.
    *
-   * Por eso los motores de la sección C siguen saliendo NOT CONNECTED aunque ya
-   * exista quien los llama: lo que se mide ahí es PRODUCCIÓN, y el conductor no lo
-   * es. El día que un módulo vivo lo importe, esas comprobaciones cambiarán todas a
-   * la vez — que es exactamente lo que tienen que hacer.
+   * ESTADO EXACTO: BRAIN TEXT = CANARY. Todo lo demás = LEGACY. La puerta,
+   * mientras esté cerrada —y lo está salvo que alguien la abra en `aiSettings/
+   * runtime`—, deja el comportamiento como estaba.
+   *
+   * Lo que estas comprobaciones vigilan ya no es «que nadie entre», sino que la
+   * entrada siga siendo UNA, por la puerta, y con una sola capacidad.
    */
-  const DEL_CONDUCTOR = ['runtime/almacen.js', 'runtime/cola.js', 'runtime/conductor.js', 'runtime/contexto.js', 'runtime/conversaciones.js', 'runtime/ejecutor.js', 'runtime/index.js',
-    'runtime/pensador.js', 'runtime/politica.js', 'runtime/puerta.js', 'runtime/resolucion.js'];
-  check('110) el conductor está compilado: sus once módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
-  check('111) y NINGUNO lo carga producción: no se llega a ellos desde `lib/index.js`', DEL_CONDUCTOR.every((m) => !VIVOS.has(m)), DEL_CONDUCTOR.filter((m) => VIVOS.has(m)).join(', '));
-  check('112) ningún módulo vivo invoca su fábrica', invocadaDesde('conductorDeWee').length === 0 && invocadaDesde('crearConductor').length === 0, [...invocadaDesde('conductorDeWee'), ...invocadaDesde('crearConductor')].join(', '));
+  const DEL_CONDUCTOR = ['runtime/almacen.js', 'runtime/cola.js', 'runtime/conductor.js', 'runtime/configuracion.js', 'runtime/contexto.js', 'runtime/conversaciones.js',
+    'runtime/ejecutor.js', 'runtime/index.js', 'runtime/pensador.js', 'runtime/politica.js', 'runtime/puerta.js', 'runtime/resolucion.js'];
+  check('110) el conductor está compilado: sus doce módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
+  check('111) y producción los carga TODOS: el canary los puso en la ruta, no a medias', DEL_CONDUCTOR.every((m) => VIVOS.has(m)), DEL_CONDUCTOR.filter((m) => !VIVOS.has(m)).join(', '));
+  const fabrica = [...invocadaDesde('conductorDeWee'), ...invocadaDesde('crearConductor')];
+  check('112) y su fábrica la invoca UN solo módulo vivo: Weë Brain', igual(fabrica, ['creator/brain.js', 'runtime/index.js']), fabrica.join(', '));
   const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   const fuentes = andar(SRC, '.ts').map((abs) => ({ r: path.relative(SRC, abs).split(path.sep).join('/'), src: sinComentarios(fs.readFileSync(abs, 'utf8')) }));
   const conductores = fuentes.filter((f) => /export const crearConductor\b/.test(f.src)).map((f) => f.r);
   check('113) hay UN conductor. Un segundo sería el segundo runtime que esta fase existe para impedir', igual(conductores, ['runtime/conductor.ts']), conductores.join(', '));
   const puertas = fuentes.filter((f) => /decidirRuntime\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
-  check('114) y la puerta CORE/LEGACY todavía no la consulta nadie: ningún callable decide por dónde va', puertas.length === 0, puertas.join(', '));
+  check('114) la puerta CORE/LEGACY la consulta EXACTAMENTE un callable: `brainChat`', igual(puertas, ['creator/brain.ts']), puertas.join(', '));
   const pensadores = fuentes.filter((f) => /pensadorSobreConductor\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
-  check('116) ni Weë Brain piensa por el conductor: el pensador nuevo existe y nadie lo enchufa', pensadores.length === 0 && /engine\.generate\(/.test(leer('functions/src/creator/brain.ts')), pensadores.join(', '));
+  check('116) Weë Brain puede pensar por el conductor, y el camino de siempre sigue entero al lado', igual(pensadores, ['creator/brain.ts']) && /engine\.generate\(/.test(leer('functions/src/creator/brain.ts')), pensadores.join(', '));
+  /* UNA capacidad, escrita en el código: la configuración de la puerta puede cerrar el canary, nunca ampliarlo. */
+  const brainVivo = sinComentarios(leer('functions/src/creator/brain.ts'));
+  check("117) y solo `text.generate` puede cruzarla: la capacidad del canary está en el código, no en la configuración",
+    /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(brainVivo) && /porElCore = puerta\.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY/.test(brainVivo));
+  check('118) y la puerta se guarda donde solo la lee el servidor: `aiSettings`, cerrada a los clientes', /COLECCION_DE_LA_PUERTA = 'aiSettings'/.test(leer('functions/src/runtime/configuracion.ts')) && /match \/aiSettings\/\{settingId\} \{\s*allow read, write: if false;/.test(leer('firestore.rules')));
 }
 
 console.log('\n── E · Quién llama desde la app ──');
@@ -367,9 +399,15 @@ console.log('\n── G · El mapa escrito dice lo mismo que el medido ──');
     const dice = /\bNOT CONNECTED\b/.test(fila) ? 'NOT CONNECTED' : /\bCONNECTED\b/.test(fila) ? 'CONNECTED' : '(sin fila)';
     check(`${n++}) ${nombre}: el documento dice ${c.motor}`, dice === c.motor, `dice ${dice}`);
   }
-  /* El conductor no es una pieza del Core sino quien las une; su fila va aparte, y dice lo mismo que se mide en D2. */
+  /*
+   * El conductor no es una pieza del Core sino quien las une; su fila va aparte, y
+   * dice lo mismo que se mide en D2: conectado SOLO para el canary de texto de
+   * Brain. Ni «no conectado» (ya lo está) ni «conectado» a secas (sería mentir
+   * sobre el alcance).
+   */
   const filaDelConductor = doc.split('\n').find((l) => l.startsWith('| **Conductor** |')) || '';
-  check(`${n++}) Conductor: el documento dice NOT CONNECTED, que es lo que se mide`, /\bNOT CONNECTED\b/.test(filaDelConductor), filaDelConductor ? 'la fila no lo dice' : '(sin fila)');
+  check(`${n++}) Conductor: el documento dice CANARY — CONNECTED FOR BRAIN TEXT ONLY, que es lo que se mide`,
+    /CANARY — CONNECTED FOR BRAIN TEXT ONLY/.test(filaDelConductor) && /text\.generate/.test(filaDelConductor), filaDelConductor ? 'la fila no lo dice' : '(sin fila)');
   check(`${n++}) esta suite está en la cadena de \`npm test\``, leer('functions/package.json').includes('node test/runtime-map.test.mjs'));
 }
 

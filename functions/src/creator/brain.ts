@@ -21,7 +21,15 @@ import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, instruccionDeIdioma, localeDeBrai
 import { AI_SECRETS } from '../secrets';
 import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, contextoDeIdioma, interpretarMarca } from '../core';
 import { crearBrainDeWee, pensamientoDesde } from '../brain';
-import { EngineResult } from '../engine/types';
+import {
+  conductorDeWee,
+  configuracionDeLaPuerta,
+  decidirRuntime,
+  FalloDelPensador,
+  huellaDeEntrada,
+  libroDelMotor,
+  pensadorSobreConductor,
+} from '../runtime';
 
 /**
  * Weë Brain — el asistente general de Weë (docs/CREATOR.md §4).
@@ -43,6 +51,42 @@ import { EngineResult } from '../engine/types';
  */
 const MAX_HISTORY = LIMITES_DE_CONTEXTO.turnos;
 const now = () => Timestamp.now();
+
+/**
+ * ── LA ÚNICA CAPACIDAD QUE EL CANARY AUTORIZA ───────────────────────────────
+ *
+ * La puerta (`runtime/puerta.ts`) es genérica: sirve para toda la migración y
+ * se abre por capacidad desde una configuración. Esto es el candado de al lado,
+ * escrito en el código: por muchas capacidades que llegue a listar esa
+ * configuración, desde aquí solo puede salir UNA hacia el Core. Una
+ * configuración puede CERRAR el canary; ampliarlo exige tocar esta línea, que
+ * es exactamente lo que autorizó el usuario y nada más.
+ *
+ * La búsqueda con fuentes (`text.search`) NO entra: es otra capacidad, con otro
+ * proveedor, otro servicio y un cobro por adelantado.
+ */
+const CAPACIDAD_DEL_CANARY: CapabilityId = 'text.generate';
+/** El producto desde el que se pide. Es contexto, no autoridad. */
+const EXPERIENCIA_DE_BRAIN = 'brain';
+/**
+ * Cuánto se le deja al conductor dentro de esta invocación. El callable muere a
+ * los 120 s; el conductor no debe esperar hasta el último segundo, porque
+ * después de él todavía hay que contar la respuesta, cobrarla, guardarla y
+ * contestar.
+ */
+const MARGEN_DEL_CONDUCTOR_MS = 90_000;
+
+/**
+ * Lo que hace falta de una generación DESPUÉS de tenerla, venga por donde venga:
+ * las fuentes que se enseñan, la fila del libro con la que se ata a su coste, y
+ * si fue una muestra del modo demo. Es lo único que los dos caminos tienen que
+ * saber decir igual.
+ */
+interface SalidaDeBrain {
+  sources: SourceRef[];
+  generationId?: string;
+  demo?: boolean;
+}
 
 export interface BrainAnswer {
   text: string;
@@ -343,6 +387,25 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     if (isNew) await chatRef.set({ userId: uid, title: message.slice(0, 60), messageCount: 0, createdAt: now(), updatedAt: now() });
     await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
 
+    /*
+     * ── ¿POR EL CORE, O POR DONDE SIEMPRE? ───────────────────────────────────
+     *
+     * Aquí y en ningún otro sitio. Es UNA decisión, antes de pensar, y de ella
+     * sale UN pensador: o el de siempre o el del conductor. Nunca los dos — dos
+     * caminos para el mismo mensaje serían dos llamadas al proveedor y dos
+     * veces su coste.
+     *
+     * La cuenta con la que se decide es la del PRINCIPAL autenticado
+     * (`request.auth.uid`). El cliente no la manda y no podría: lo que llegue en
+     * `data` no se mira para esto.
+     *
+     * Cerrada por defecto: sin configuración, con una que no se entiende, o si
+     * Firestore no contesta, esto contesta `legacy` y no cambia nada.
+     */
+    const capacidad: CapabilityId = webSearch ? 'text.search' : 'text.generate';
+    const puerta = decidirRuntime(await configuracionDeLaPuerta(db), { capability: capacidad, userId: uid, experienceId: EXPERIENCIA_DE_BRAIN });
+    const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY;
+
     try {
       /*
        * ── QUIÉN PIENSA, Y POR QUÉ VIVE AQUÍ ────────────────────────────────────
@@ -360,12 +423,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * leen `input.prompt`, así que no cambia nada.
        */
       let causaDelFallo: unknown;
-      let run: EngineResult | undefined;
-      const pensador: Thinker = {
+      let salida: SalidaDeBrain | undefined;
+      const pensadorDeSiempre = (): Thinker => ({
         async pensar() {
           try {
-            run = await engine.generate({
-              capability: webSearch ? 'text.search' : 'text.generate',
+            const run = await engine.generate({
+              capability: capacidad,
               /*
                * El mismo modelo con el que se cotizó: lo que se cobra y lo que responde
                * son uno. Y se nombra también al proveedor, porque DeepSeek no está en la
@@ -385,6 +448,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
               creditsEstimated: creditsDelMensaje,
               creditTransactionId: usageTransactionId(requestId),
             });
+            salida = { sources: run.output.sources || [], generationId: run.generationId, demo: run.demo };
             return pensamientoDesde(run);
           } catch (error) {
             /* El error ORIGINAL se guarda: es el que conserva el código que la app entiende. */
@@ -392,7 +456,68 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
             throw error;
           }
         },
+      });
+
+      /*
+       * ── EL MISMO MENSAJE, POR EL CONDUCTOR ───────────────────────────────────
+       *
+       * Mismo puerto, misma cotización, misma contabilidad: lo único que cambia
+       * es quién habla con el proveedor. Weë Brain no se entera, y este archivo
+       * tampoco cambia lo que cobra ni cuándo.
+       *
+       * Lo que viaja en el trabajo es una REFERENCIA —qué conversación y qué
+       * mensaje—, nunca el texto: `jobs/` no se convierte en una segunda copia
+       * de las conversaciones. Y viaja la HUELLA de la entrada que se acaba de
+       * cotizar: si al resolverla no sale exactamente eso, el paso falla sin
+       * haber salido hacia ningún proveedor.
+       */
+      const pensadorDelConductor = async (): Promise<Thinker> => {
+        /* La fila de `aiGenerations` la abre el ejecutor; aquí se recuerda cuál para poder atarla a la respuesta, igual que hace el camino de siempre. */
+        let fila: string | undefined;
+        /*
+         * La fila del libro se nombra como la nombraría el camino de siempre
+         * —`brain_<messageId>`, el chat y el mensaje—, no como la nombra el
+         * trabajo. Así una generación del canary y una de antes se comparan y se
+         * suman sin traducir nada, que es justo lo que un canary necesita. Quién
+         * la ejecutó de verdad sigue entero en `jobs/`.
+         */
+        const libro = libroDelMotor(firestoreLedger, () => ({ requestId, jobId: chatRef.id, stepId: messageId }));
+        const conductor = await conductorDeWee({
+          db,
+          /* Cotizar y ejecutar construyen la entrada con LA MISMA función. Si fueran dos, un día dejarían de coincidir. */
+          construirEntradaDeBrain: ({ mensaje, historial, locale }) =>
+            brainInput(mensaje.text, [...historial], { imageUrl: mensaje.imageUrl, documentUrl: mensaje.documentUrl, audioUrl: mensaje.audioUrl }, locale),
+          libro: {
+            async abrir(dispatch) {
+              fila = await libro.abrir(dispatch);
+              return fila;
+            },
+            cerrar: (f, cierre) => libro.cerrar(f, cierre),
+          },
+        });
+        const porElConductor = pensadorSobreConductor({
+          conductor,
+          /* QUIÉN, de la sesión autenticada. Nunca de `data`. */
+          principal: { userId: uid },
+          referencia: { kind: 'brain.message', chatId: chatRef.id, messageId, quotedInputHash: huellaDeEntrada(engineInput) },
+          ...(data.locale ? { locale: data.locale } : {}),
+          /* El mismo modelo y el mismo proveedor que se cotizaron, pedidos igual que arriba. */
+          ruteo: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] },
+          /* Lo que el libro tiene que anotar, con la misma transacción de Credits que liquida este archivo. */
+          contabilidad: { service, creditsEstimated: creditsDelMensaje, estimatedUsd: price.usd, creditTransactionId: usageTransactionId(requestId) },
+          deadlineAt: Date.now() + MARGEN_DEL_CONDUCTOR_MS,
+        });
+        return {
+          async pensar(peticion) {
+            const pensado = await porElConductor.pensar(peticion);
+            /* `demo` es un booleano por los dos caminos: que falte no es lo mismo que que sea `false`, y quien lo lee no tiene por qué notar la diferencia. */
+            salida = { sources: [...(pensado.response.sources ?? [])], generationId: fila, demo: pensado.synthetic === true };
+            return pensado;
+          },
+        };
       };
+
+      const pensador: Thinker = porElCore ? await pensadorDelConductor() : pensadorDeSiempre();
 
       /*
        * El cerebro se construye por petición: no guarda nada de nadie, así que
@@ -432,13 +557,13 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * Weë Brain— se dice ESO, no «no pude terminar»: un fallo de forma no es
        * un fallo de generación, y confundirlos hace imposible depurarlo.
        */
-      if (pensado.status === 'failed' || !run || !pensado.reply) {
+      if (pensado.status === 'failed' || !salida || !pensado.reply) {
         if (causaDelFallo) throw causaDelFallo;
         throw new EngineError(pensado.error?.code === 'INVALID_REQUEST' ? 'INVALID_REQUEST' : 'GENERATION_FAILED');
       }
       const parsed = { text: pensado.reply.text, suggestedExperience: pensado.reply.suggestedExperience };
       const suggestedExperience = parsed.suggestedExperience || guessExperience(message);
-      const sources: SourceRef[] = run.output.sources || [];
+      const sources: SourceRef[] = salida.sources;
 
       /*
        * La respuesta ya existe: ahora sí cuenta, y ahora sí se sabe si cobra.
@@ -474,7 +599,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       }
       const credits = !spend || spend.duplicate ? 0 : spend.amount;
       await messages.doc(`${messageId}_wee`).set(
-        stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: run.generationId, demo: run.demo, webSearch, createdAt: now() })
+        stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now() })
       );
       await chatRef.set(
         { updatedAt: now(), messageCount: FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120), ...(history.length === 0 ? { title: message.slice(0, 60) } : {}) },
@@ -482,21 +607,45 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       );
       /* Solo hay libro que liquidar si hubo cobro: once de cada doce respuestas no lo tienen. */
       if (spend) {
-        await creditEngine.completeCredits({ userId: uid, requestId, meta: { chatId: chatRef.id, generationId: run.generationId } });
+        await creditEngine.completeCredits({ userId: uid, requestId, meta: { chatId: chatRef.id, generationId: salida.generationId } });
         // El desenlace ya se conoce: se liquida el libro con lo capturado.
         await firestoreLedger
           .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: spend.amount })
           .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
       }
-      return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: run.demo, duplicate: false, bloque: await bloqueDe(uid) };
+      /* Por dónde pasó, para quien lea los registros. NO va en la respuesta: a la persona el camino no le cambia nada. */
+      console.log(`WEË BRAIN · ruta=${porElCore ? 'CORE' : 'LEGACY'} motivo=${puerta.motivo} capacidad=${capacidad} requestId=${requestId} chat=${chatRef.id} generacion=${salida.generationId ?? '-'} credits=${credits}`);
+      return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: await bloqueDe(uid) };
     } catch (error) {
       /*
        * Solo se reembolsa lo que se llegó a cobrar. En la conversación por bloques
        * el cobro va DESPUÉS de responder, así que una generación fallida no dejó
        * nada cobrado —ni gastó bloque, porque `contarRespuesta` tampoco llegó a
        * ejecutarse—. La búsqueda sí cobra por delante, y esa sí se devuelve.
+       *
+       * ── Y AHORA, ADEMÁS: ¿ES SEGURO DEVOLVERLO? ─────────────────────────────
+       *
+       * Con el motor de siempre, un error significa que esta invocación —la
+       * única que existe— no consiguió nada, así que devolver siempre es
+       * correcto. Con trabajos deja de serlo: dos invocaciones del mismo mensaje
+       * comparten UN trabajo, y la segunda puede llegar, encontrarlo en marcha y
+       * fallar sin que eso quiera decir que nadie va a responder. Si su `catch`
+       * reembolsara, desharía la reserva de la que SÍ está ejecutando —y el
+       * `completeCredits` de aquella no haría nada después sobre una transacción
+       * ya reembolsada—: respuesta entregada, nada cobrado y ningún error a la
+       * vista.
+       *
+       * Por eso el pensador del conductor no lanza un error cualquiera: lanza uno
+       * que dice si devolver es seguro. Solo lo es cuando el trabajo terminó mal
+       * o nunca llegó a existir. Si salió y no se sabe cómo acabó, si lo tiene
+       * otro proceso o si ya terminó en otra invocación, la reserva se queda como
+       * está —igual que hoy cuando el proceso muere— y se ve en los registros.
+       *
+       * Cualquier otro error se comporta EXACTAMENTE como siempre: el camino de
+       * siempre nunca lanza un `FalloDelPensador`.
        */
-      if (spend) {
+      const devolverEsSeguro = !(error instanceof FalloDelPensador) || error.reembolsoSeguro;
+      if (spend && devolverEsSeguro) {
         await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · no pudo responder', source: 'weë-brain' }).catch((refundError) => {
           console.error('Weë Brain: no se pudo reembolsar', requestId, refundError);
         });
@@ -504,6 +653,9 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         await firestoreLedger
           .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
           .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
+      } else if (spend) {
+        /* Ni se devuelve ni se liquida: la reserva sigue autorizada y quien termine de verdad la cerrará. */
+        console.warn(`WEË BRAIN · reserva intacta (reembolso no seguro): requestId=${requestId} motivo=${(error as FalloDelPensador).motivo}`);
       }
       throw error;
     }

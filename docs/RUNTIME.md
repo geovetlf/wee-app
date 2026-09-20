@@ -67,11 +67,11 @@ El código ya lo usaba (`functions/src/creator/types.ts`, «NO PUEDE HABER UN TE
 |---|---|---|---|---|
 | **Brain** | `core/brain.ts` + `brain/index.ts` | `creator/brain.ts` (`brainChat`, `brainQuote`) | CONNECTED | `crearBrain`, `interpretarMarca`, `LIMITES_DE_CONTEXTO` |
 | **Planner** | `core/planner.ts` + `planner/index.ts` | `creator/planner.ts` (`getPlanner` → `templatePlanner` / `llmPlanner`) | NOT CONNECTED | solo el puerto `disponibilidadDeWee` |
-| **Workflow** | `core/workflow.ts` + `workflow/index.ts` | el `while (done.size < steps.length)` de `creatorRun` | NOT CONNECTED | ninguna |
-| **Orchestrator** | `core/orchestrator.ts` + `orchestrator/index.ts` | el mismo `while` | NOT CONNECTED | ninguna |
-| **Router** | `core/router.ts` + `router/index.ts` | `engine/router.ts` (`createRouter`, una instancia en `engine/index.ts`) | NOT CONNECTED | ninguna suya (usa `presupuestoDeIntento`, que es del Job Engine) |
-| **Gateway** | `core/gateway.ts` + `engine/gateway.ts` | `gateway/index.ts` (`runCapability`) → `engine.generate` | NOT CONNECTED | `normalizarUso`, `puedeEjecutarse` |
-| **Job Engine** | `core/job.ts` + `job/index.ts` | documentos `creatorJobs` escritos a mano por `creator/index.ts` | NOT CONNECTED | `operacionAbandonada`, `presupuestoDeIntento` |
+| **Workflow** | `core/workflow.ts` + `workflow/index.ts` | el `while (done.size < steps.length)` de `creatorRun` | NOT CONNECTED | `prepararWorkflow`, `esEstadoFinal` (las usa el conductor; su composición sigue sin cargarse) |
+| **Orchestrator** | `core/orchestrator.ts` + `orchestrator/index.ts` | el mismo `while` — y, **solo en el canary de texto de Brain**, el conductor | CONNECTED | `crearOrchestrator`, `claveDePaso` |
+| **Router** | `core/router.ts` + `router/index.ts` | `engine/router.ts` (`createRouter`, una instancia en `engine/index.ts`) | NOT CONNECTED | `crearRouter` — el conductor lo construye **sin** pasar por `router/index.ts`, con el registro de la configuración viva |
+| **Gateway** | `core/gateway.ts` + `engine/gateway.ts` | `gateway/index.ts` (`runCapability`) → `engine.generate` | NOT CONNECTED | `crearGateway`, `normalizarUso`, `puedeEjecutarse`, `sanearMeta` y los lectores de traza — por `crearGatewayDelMotor`, no por `gatewayDeWee` |
+| **Job Engine** | `core/job.ts` + `job/index.ts` | documentos `creatorJobs` escritos a mano por `creator/index.ts` — y, **solo en el canary**, trabajos de verdad en `jobs/` | CONNECTED | `crearJobEngine`, `claveDeIdempotencia`, `alcanceDeIdempotencia`, `esTrabajoTerminal`, `operacionAbandonada`, `presupuestoDeIntento`, `POLITICA_DE_TRABAJO` |
 | **Project** | `core/project.ts` (contrato) | el cliente escribe `creatorProjects` (`services/projectsService.ts`) | NOT CONNECTED | ninguna |
 | **Content** | `core/content/content.ts` (contrato) | no existe el concepto en producción | NOT CONNECTED | ninguna |
 | **Asset** | `core/content/asset.ts` + `content/index.ts` | `content/index.ts` (`crearMaterialDesdeUrl`, `deleteAsset`) | CONNECTED | `materialValido`, `materialEsDeLaCuenta`, `esStorageRef`, `retirar` |
@@ -84,19 +84,23 @@ Fase 12-A/B, sin una versión anterior con la que convivir); **Identity** CONNEC
 **Financial** NOT CONNECTED — lo que cobra es `credits/creditEngine.ts`, y
 `financial/index.ts` no lo carga nadie. No se toca en este bloque.
 
-**Resumen:** de las once piezas, **dos** tienen el motor del Core en producción
-(Brain y Asset). Las otras nueve se ejecutan con lo que había antes del Core, y el
-Core correspondiente no ejecuta nada.
+**Resumen:** de las once piezas, **cuatro** tienen el motor del Core en una ruta de
+producción: Brain y Asset de siempre, y —desde el canary de la Fase 12-D (§ 13)—
+Orchestrator y Job Engine, **solo** cuando un mensaje de Weë Brain pasa por el
+conductor. Las otras siete se ejecutan con lo que había antes del Core.
 
-Y la pieza que no es del Core sino quien las une, construida en la Fase 12-D (§ 11):
+Y la pieza que no es del Core sino quien las une, construida en la Fase 12-D (§ 11)
+y conectada en el canary (§ 13):
 
 | Pieza | Dónde | En uso (producción) | Estado | Qué une |
 |---|---|---|---|---|
-| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | nada: producción sigue por `creatorRun` y `engine.generate` | NOT CONNECTED | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
+| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | `brainChat` con `text.generate`, **detrás de una puerta cerrada por defecto**. Todo lo demás sigue por `creatorRun` y `engine.generate` | CANARY — CONNECTED FOR BRAIN TEXT ONLY | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
 
-Que exista el conductor **no conecta nada**. Los nueve motores de arriba siguen
-NOT CONNECTED porque lo que se mide es producción, y ninguna ruta de producción
-importa `runtime/`.
+**Qué significa exactamente ese CONNECTED.** Que el código está en la ruta, no que el
+tráfico pase por él: la puerta vive en `aiSettings/runtime` y, cerrada, `brainChat` se
+comporta exactamente como antes. Los motores que cambiaron a CONNECTED arriba lo
+hicieron porque el conductor los construye y el conductor ya se carga; ninguno se
+conectó por su cuenta. Fuera de `text.generate` en Weë Brain, **todo es LEGACY**.
 
 ## 4. El mapa, pieza por pieza
 
@@ -924,3 +928,166 @@ en el Gateway—. El avatar tampoco: sigue fuera del motor y necesita antes su a
 
 Lo único que este tramo deja listo es el canary de `brainChat → text.generate`, que es
 síncrono y cuya liquidación se queda exactamente donde está.
+
+---
+
+## 13. F12-D · El canary de Weë Brain
+
+> **ESTADO EXACTO AL CERRAR: BRAIN TEXT = CANARY MIGRATED · todo lo demás = LEGACY ·
+> CORE GLOBAL = DISABLED.** La puerta está **cerrada** —el documento no existe— y
+> producción se comporta como siempre. Lo que sigue se ejecutó de verdad, contra
+> `get-wee`, con dos cuentas de prueba que se borraron al terminar.
+> Lo vigila `functions/test/brain-canary.test.mjs` (58 comprobaciones).
+
+### 13.1 Qué se conectó, exactamente
+
+```
+brainChat → [ PUERTA ] → text.generate → conductor → Job Engine → Gateway → DeepSeek
+                  └────→ (cerrada) ────→ engine.generate → DeepSeek        (lo de siempre)
+```
+
+Una capacidad, un callable, una decisión. Ni la búsqueda con fuentes (`text.search`,
+que es otra capacidad, otro proveedor y otro cobro), ni el vídeo, ni el avatar, ni
+`creatorRun`, ni las imágenes, ni la voz.
+
+**La puerta.** Vive en `aiSettings/runtime` —una colección que las reglas ya cerraban
+a los clientes— y la lee `runtime/configuracion.ts` con un minuto de caché. Decide
+`runtime/puerta.ts`, que es una función pura. Cerrada por defecto: sin documento, con
+un documento que no se entiende o con Firestore sin contestar, la respuesta es
+`legacy`. Una incidencia de lectura nunca abre un camino.
+
+**El candado que la configuración no puede abrir.** La puerta es genérica —sirve para
+toda la migración— así que al lado hay una constante en el código:
+
+```ts
+const CAPACIDAD_DEL_CANARY: CapabilityId = 'text.generate';
+const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY;
+```
+
+Una configuración puede **cerrar** el canary; ampliarlo exige cambiar esa línea.
+
+**La cuenta sale del principal autenticado** (`request.auth.uid`). El cliente no la
+manda y su entrada no tiene por dónde nombrarla.
+
+**CORE o LEGACY, nunca los dos.** Hay UN pensador, elegido UNA vez, y `engine.generate`
+aparece una sola vez en todo el archivo, dentro del pensador de siempre. Con la puerta
+cerrada el conductor ni se instancia.
+
+### 13.2 Baseline y canary, medidos en producción
+
+Siete mensajes por el camino de siempre (tres antes de desplegar y tres después, con la
+puerta cerrada) y siete por el Core, con la misma cuenta y la misma conversación.
+
+| | LEGACY (antes del deploy) | LEGACY (después, puerta cerrada) | **CORE (canary)** |
+|---|---|---|---|
+| Respuesta | correcta, en español | igual | **igual** |
+| Proveedor · modelo | deepseek · deepseek-flash | igual | **igual** |
+| `aiGenerations` | 1 fila, `COMPLETED`, `attempt: 1` | igual | **igual** |
+| `requestId` · `jobId` · `stepId` de la fila | `brain_<messageId>` · chat · mensaje | igual | **igual** |
+| `service` · `creditTransactionId` | `ai_brain` · `usage_brain_<messageId>` | igual | **igual** |
+| Credits cobrados · saldo | 0 · sin cambio | igual | **igual** |
+| Bloque de doce | avanza 1 | avanza 1 | **avanza 1** |
+| `demo` | `false` | `false` | **`false`** |
+| `generationId` en el mensaje | sí | sí | **sí** |
+| `jobs/` · `workflowRuns/` | 0 · 0 | 0 · 0 | **1 · 1 por mensaje** |
+
+**Lo único que cambia es que existe un trabajo.** Y ese trabajo guarda **la referencia,
+no la conversación**: se leyeron los once documentos creados y en ninguno aparece una
+palabra de lo que se escribió.
+
+```
+input: { contextRef: { chatId, kind: 'brain.message', messageId, quotedInputHash }, locale }
+```
+
+### 13.3 Duplicados, y el hallazgo que queda abierto
+
+| Caso | LEGACY | CORE | ¿Seguro? |
+|---|---|---|---|
+| Doble toque en la misma conversación (secuencial) | devuelve la respuesta anterior, `duplicate: true`, 433 ms | **idéntico** | sí |
+| Dos invocaciones **a la vez** | las dos llaman al proveedor (dos filas, dos costes), las dos contestan | **una sola llamada al proveedor, una sola fila**; la ganadora contesta en ~2,3 s | sí en dinero |
+| Credits en los dos casos | un cobro como mucho | **un cobro como mucho, saldo sin tocar** | sí |
+
+> **ABIERTO — la invocación que pierde la carrera espera ~59 s.** Medido dos veces:
+> 61 002 ms y 59 615 ms, y luego un error. La causa es la ventana de la concesión del
+> trabajador (`visibilityMs: 60 000`): la que llega segunda encuentra el trabajo en
+> marcha con la concesión viva y **espera a que caduque** en vez de rendirse en cuanto
+> sabe que lo tiene otro. El dinero está bien —un proveedor, una fila, cero cobros de
+> más— y de hecho el Core gasta la MITAD que el camino de siempre en ese caso. Pero
+> 59 segundos colgado no se le puede enseñar a nadie.
+>
+> **Dirección del arreglo** (no hecho): el conductor ya sabe distinguir el caso —tiene
+> el aviso `leased_elsewhere`—; lo que falta es que con ese aviso devuelva `en_curso`
+> inmediatamente en vez de dormir hasta el final de la concesión. **Esto bloquea abrir
+> el canary a nadie más.**
+
+### 13.4 Credits
+
+No se tocó el Financial Core, ni el Credit Engine, ni los precios, ni la política de
+1 Credit cada 12 respuestas. Lo que sí cambió es **una línea** del `catch` de
+`creator/brain.ts`:
+
+```ts
+const devolverEsSeguro = !(error instanceof FalloDelPensador) || error.reembolsoSeguro;
+if (spend && devolverEsSeguro) { …reembolsar… }
+else if (spend) { /* la reserva se queda autorizada, y se ve en los registros */ }
+```
+
+Es la regla que el endurecimiento (§ 12.6) demostró necesaria: sin ella, un duplicado
+concurrente deshace la reserva de la invocación que sí está ejecutando y entrega la
+respuesta gratis. Un error que no venga del conductor se comporta exactamente como
+siempre.
+
+**Lo que NO se pudo ejercitar en producción:** la respuesta que cierra el bloque de
+doce y **sí cobra**. Las cuentas de prueba nacen sin saldo, y darles Credits mueve
+`creditStats/global` de forma permanente —el mismo efecto que el usuario ya decidió no
+corregir en la F11.x-6—. El cobro único, el duplicado concurrente y el reembolso seguro
+están demostrados con el **Credit Engine de verdad** en `runtime-premigracion` § F.
+En producción quedó verificado lo demás: once de cada doce respuestas no cobran, el
+saldo no se movió y el libro quedó con los mismos 13 asientos que antes.
+
+### 13.5 Latencia
+
+Restando lo que tardó el proveedor (que es el mismo por los dos caminos):
+
+| | Legacy | Core |
+|---|---|---|
+| Sobrecoste del callable, en caliente | ~1 050 – 1 300 ms | ~1 850 – 2 250 ms |
+
+**El Core añade entre 0,6 y 0,9 s por mensaje.** Es lo que cuesta construir el conductor,
+crear el trabajo y la ejecución (varias escrituras), resolver el contexto (tres lecturas)
+y guardar el desenlace. **El desglose por fase NO está medido**: haría falta instrumentar,
+y no se hizo. El arranque en frío no empeoró de forma apreciable pese a que el grafo de
+módulos pasó de 120 a 130.
+
+### 13.6 Volver atrás
+
+Se hizo, y se comprobó: **borrar el documento `aiSettings/runtime`** y, pasado el minuto
+de caché, `brainChat` vuelve al camino de siempre. `jobs` y `workflowRuns` se quedaron
+congelados en 11 mientras seguía contestando con normalidad. **Sin desplegar nada y sin
+tocar una línea de código.** Y en el sentido contrario igual.
+
+Nada se borró para volver atrás: ni `creatorJobs`, ni `creatorRun`, ni `drama.ts`, ni el
+pensador de siempre, que sigue entero al lado.
+
+### 13.7 Observabilidad
+
+Cada mensaje deja una línea, solo en los registros del servidor y **nunca en la respuesta**:
+
+```
+WEË BRAIN · ruta=CORE|LEGACY motivo=… capacidad=… requestId=… chat=… generacion=… credits=…
+```
+
+Identificadores y números. Ni el mensaje, ni la respuesta, ni claves.
+
+### 13.8 Qué quedó igual
+
+Las reglas de Firestore **no se tocaron**: se evaluó el ruleset VIVO de producción con el
+motor de Google y un cliente con sesión ya tenía denegado leer, listar, crear, escribir y
+borrar en `jobs/` y `workflowRuns/`, y también leer o escribir la puerta —13 casos, 13
+como se esperaba, con un control que sí debía permitir—. El cambio mínimo era **ninguno**.
+
+Se desplegó **una** Function, `brainChat`. Las otras 29 quedaron con su revisión intacta.
+
+Al terminar, producción volvió exactamente a donde estaba: 0 trabajos, 0 ejecuciones,
+2 conversaciones, 19 generaciones, 13 asientos, 16 perfiles, 10 cuentas de Auth y los
+saldos 240 / 240 / 234 / 237.

@@ -3,6 +3,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { crearMaterialDesdeUrl } from '../content';
 import {
   CapabilityId,
+  JobDispatch,
   JobLimits,
   JobPolicy,
   LIMITES_DE_CONTEXTO,
@@ -94,18 +95,32 @@ const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.le
  * libro. `settle` no se llama aquí: lo llama quien conoce el desenlace de los
  * Credits, que es quien los reservó.
  */
-export const libroDelMotor = (ledger: Ledger = firestoreLedger): LibroDeIntentos => ({
+/**
+ * Quién es esta operación PARA EL LIBRO, cuando quien la pide ya tiene su
+ * propia forma de nombrarla.
+ *
+ * Por defecto la fila se identifica con lo que sabe el trabajo: la ejecución,
+ * el paso y la clave del intento. Es lo más preciso que hay. Pero durante una
+ * migración hay algo que importa más que la precisión: que la fila se parezca a
+ * la que habría escrito el camino de siempre, para que lo de antes y lo de
+ * ahora se puedan comparar y sumar sin traducir nada. Quien migra pasa su
+ * identidad; nadie más la necesita.
+ */
+export type IdentidadDelLibro = (dispatch: JobDispatch) => { requestId?: string; jobId?: string; stepId?: string };
+
+export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: IdentidadDelLibro): LibroDeIntentos => ({
   async abrir(dispatch) {
     if (!dispatch.capability || !dispatch.implementation) return undefined;
     const meta = dispatch.metadata ?? {};
     const { settings } = await loadConfig();
+    const suya = identidad?.(dispatch) ?? {};
     return ledger.open({
       userId: dispatch.trace.userId,
-      jobId: dispatch.trace.runId ?? dispatch.jobId,
-      stepId: dispatch.trace.stepId,
+      jobId: suya.jobId ?? dispatch.trace.runId ?? dispatch.jobId,
+      stepId: suya.stepId ?? dispatch.trace.stepId,
       experienceId: dispatch.trace.workplace,
       /* Es lo que une esta fila con el trabajo (`jobs.trace.requestId`) y con la transacción de Credits. */
-      requestId: dispatch.trace.requestId,
+      requestId: suya.requestId ?? dispatch.trace.requestId,
       capability: dispatch.capability as CapabilityId,
       modality: modalidadDe(dispatch.capability as CapabilityId),
       provider: dispatch.implementation.providerId,
@@ -243,5 +258,8 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
 export { crearConductor } from './conductor';
 export type { Conductor, EjecucionPreparada, ResultadoDelConductor } from './conductor';
 export { decidirRuntime, leerPuerta, PUERTA_CERRADA } from './puerta';
+export type { ConfiguracionDePuerta, DecisionDePuerta } from './puerta';
+export { configuracionDeLaPuerta, olvidarLaPuerta } from './configuracion';
 export { huellaDeEntrada } from './contexto';
+export type { LibroDeIntentos } from './ejecutor';
 export { FalloDelPensador, pensadorSobreConductor } from './pensador';

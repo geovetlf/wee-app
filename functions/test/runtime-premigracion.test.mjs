@@ -519,8 +519,15 @@ console.log('\n── F · Credits, con el Credit Engine DE VERDAD ──');
   const BRAIN = sinComentarios(leer('functions/src/creator/brain.ts'));
   check('`creator/brain.ts` sigue reservando la búsqueda ANTES de llamar al modelo', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /if \(webSearch\) \{\s*spend = await creditEngine\.spendCredits\(/.test(BRAIN));
   check('sigue cobrando la conversación DESPUÉS de responder, por bloques', /const consumo = await contarRespuesta\(uid, messageId\);\s*if \(consumo\.cobrada\)/.test(BRAIN) && BRAIN.indexOf('contarRespuesta(uid, messageId)') > BRAIN.indexOf('engine.generate('));
-  check('sigue completando solo si hubo cobro, y reembolsando en su `catch` solo lo que se cobró', /if \(spend\) \{\s*await creditEngine\.completeCredits\(/.test(BRAIN) && /catch \(error\) \{\s*if \(spend\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
-  check('y SIGUE SIN TOCARSE: Weë Brain no está conectado al conductor', !/runtime|conductor|pensadorSobreConductor/.test(BRAIN));
+  check('sigue completando solo si hubo cobro', /if \(spend\) \{\s*await creditEngine\.completeCredits\(/.test(BRAIN));
+  /*
+   * ESTA COMPROBACIÓN CAMBIÓ CON EL CANARY (F12-D), y es el cambio que este
+   * archivo pedía: el `catch` ya no reembolsa por el hecho de que algo lanzara.
+   * Reembolsa lo que se cobró Y SOLO cuando devolverlo es seguro.
+   */
+  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !\(error instanceof FalloDelPensador\) \|\| error\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
+  check('un error que no viene del conductor se comporta como siempre: se reembolsa', !(new Error('x') instanceof FalloDelPensador));
+  check('Weë Brain YA ESTÁ CONECTADO al conductor, y solo para el canary de texto', /pensadorSobreConductor|conductorDeWee/.test(BRAIN) && /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(BRAIN));
   check('la política de precio no cambió: doce respuestas por un Credit', /RESPUESTAS_POR_CREDIT/.test(BRAIN) && /RESPUESTAS_POR_CREDIT = 12/.test(leer('functions/src/creator/brainUsage.ts')));
 }
 
@@ -536,7 +543,13 @@ console.log('\n── G · Qué se añadió, qué se tocó a propósito y qué s
   check('el pensador no cobra, no reserva y no reembolsa: solo dice si reembolsar es seguro', !/spendCredits|completeCredits|refundCredits|creditEngine/.test(sinComentarios(leer(`${dir}/pensador.ts`))) && /reembolsoSeguro/.test(leer(`${dir}/pensador.ts`)));
   check('la regla de entidades es la MISMA que usa la moderación, no otra', /actorDeLaCuenta/.test(leer(`${dir}/conversaciones.ts`)) && /actorDeLaCuenta/.test(leer('functions/src/moderation/index.ts')));
   const vivos = ['functions/src/index.ts', 'functions/src/creator/index.ts', 'functions/src/creator/brain.ts', 'functions/src/creator/video.ts', 'functions/src/gateway/index.ts', 'functions/src/engine/index.ts', 'functions/src/generateAvatar.ts'];
-  check('NADA DE PRODUCCIÓN PASA POR AQUÍ: ningún módulo vivo importa runtime/, y la puerta sigue sin consultarla nadie', vivos.every((f) => !/runtime\//.test(sinComentarios(leer(f)))) && !/decidirRuntime/.test(vivos.map((f) => sinComentarios(leer(f))).join('\n')));
+  /*
+   * DE «NADIE ENTRA» A «ENTRA UNO Y SE SABE CUÁL». El canary de F12-D conectó
+   * `brainChat` con `text.generate`. La guarda se estrecha en vez de quitarse:
+   * un segundo módulo vivo que importe el runtime hace fallar esto.
+   */
+  const conPuerta = vivos.filter((f) => /decidirRuntime/.test(sinComentarios(leer(f))));
+  check('UNA SOLA ENTRADA AL RUNTIME: la puerta la consulta `brainChat`, y nadie más', conPuerta.join(',') === 'functions/src/creator/brain.ts', conPuerta.join(','));
   check('no se tocó el Financial Core ni el Credit Engine', !/runtime/.test(leer('functions/src/credits/creditEngine.ts')));
   check('lo ÚNICO tocado de una fase cerrada es `leerTraza`, y lo vigila job-queue 63b', /63b\) y del Gateway cambió SOLO `leerTraza`/.test(leer('functions/test/job-queue.test.mjs')));
   check('esta suite está en la cadena de `npm test`', /runtime-premigracion\.test\.mjs/.test(leer('functions/package.json')));
