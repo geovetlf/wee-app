@@ -2,6 +2,7 @@ import {
   CapacidadDeAlmacen,
   CAPACIDADES_DE_MC1,
   DesenlaceDeBorrado,
+  DesenlaceDeFirma,
   DesenlaceDeGuardado,
   DesenlaceDeLectura,
   DescriptorDeProveedorDeMedios,
@@ -12,7 +13,7 @@ import {
   falloDeAlmacen,
 } from '../core';
 import { env } from '../engine/http';
-import { firmar, rutaCanonicaDeObjeto } from './firma';
+import { firmar, firmarConsultaDeEntrega, rutaCanonicaDeObjeto } from './firma';
 
 /**
  * CLOUDFLARE R2 — EL ÚNICO ARCHIVO DE WEË QUE SABE QUE R2 EXISTE.
@@ -65,6 +66,21 @@ export const R2_ENV = Object.freeze({
 /** La región de R2 en la API de S3. La documentación dice `auto`, y no se inventa otra. */
 export const R2_REGION = 'auto';
 
+/**
+ * EL TOPE DE VIGENCIA DEL PROVEEDOR: 7 días, tal cual lo publica Cloudflare
+ * (`/r2/api/s3/presigned-urls/`: de 1 segundo a 604.800). Es el límite FÍSICO,
+ * no la política de Weë — la de Weë es mucho más corta y vive en el Core, que
+ * es donde se decide cuánto se concede.
+ */
+export const MAX_VIGENCIA_DE_R2 = 604_800;
+
+/**
+ * LO QUE ESTE ADAPTADOR SABE HACER DE VERDAD. Las tres de MC-1 más la entrega
+ * firmada de MC-2. Lo que no esté aquí, no se le pide — y el registro contesta
+ * que no puede, que es como se evita prometer una capacidad que no existe.
+ */
+export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl'] as const);
+
 /** El descriptor para el registro. Sin una sola credencial dentro. */
 export const DESCRIPTOR_DE_R2: DescriptorDeProveedorDeMedios = Object.freeze({
   id: R2_PROVIDER_ID,
@@ -75,7 +91,7 @@ export const DESCRIPTOR_DE_R2: DescriptorDeProveedorDeMedios = Object.freeze({
    * Pasa a READY el día que un canary autorizado lo confirme, no antes.
    */
   estado: 'UNVERIFIED',
-  capacidades: CAPACIDADES_DE_MC1,
+  capacidades: CAPACIDADES_DE_R2,
   regiones: Object.freeze([R2_REGION]),
   credencialesEnv: Object.freeze([R2_ENV.accountId, R2_ENV.accessKeyId, R2_ENV.secretAccessKey, R2_ENV.bucket]),
   docsUrl: 'https://developers.cloudflare.com/r2/api/s3/api/',
@@ -170,7 +186,7 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
 
   return {
     providerId: R2_PROVIDER_ID,
-    capacidades: CAPACIDADES_DE_MC1,
+    capacidades: CAPACIDADES_DE_R2,
 
     /**
      * EL CONTENEDOR LO DICE ÉL, no quien llama. Es la costura por la que la
@@ -261,6 +277,31 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
       }
     },
 
+    /**
+     * MC-2 · LA LLAVE TEMPORAL PARA LEER ESTE OBJETO.
+     *
+     * No llama a nadie: firmar es una operación local y determinista, así que
+     * aquí no hay red, no hay latencia y no hay nada que pueda fallar por parte
+     * del proveedor. La llave vale para un GET y caduca sola.
+     *
+     * Reutiliza la MISMA ruta canónica que usan guardar, mirar y borrar —una
+     * sola fuente para la ruta— y la misma firma SigV4, en su modo de consulta.
+     * Lo que devuelve NO se guarda en ninguna parte: es un resultado, no un dato.
+     */
+    async urlFirmada(ref: StorageRef, vigenciaSegundos: number): Promise<DesenlaceDeFirma> {
+      const p = preparar(ref);
+      if (!p.ok) return { ok: false, error: p.error };
+      if (!Number.isInteger(vigenciaSegundos) || vigenciaSegundos < 1 || vigenciaSegundos > MAX_VIGENCIA_DE_R2) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
+      }
+      const { url, expiraEn } = firmarConsultaDeEntrega(
+        { host: p.host, ruta: p.ruta, vigenciaSegundos },
+        { ...p.config, region: R2_REGION, servicio: 's3' },
+        ahora(),
+      );
+      return { ok: true, url, expiraEn };
+    },
+
     async borrar(ref: StorageRef): Promise<DesenlaceDeBorrado> {
       const p = preparar(ref);
       if (!p.ok) return { ok: false, error: p.error };
@@ -279,4 +320,3 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
 };
 
 /** Las capacidades que este adaptador declara de verdad. Lo demás no existe aquí. */
-export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = CAPACIDADES_DE_MC1;

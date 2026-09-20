@@ -109,6 +109,39 @@ export interface CredencialesDeFirma {
  * un cuerpo alterado por el camino invalida la firma — que es justo lo que se
  * quiere de una operación que escribe bytes.
  */
+/* ── Lo que comparten los dos modos de firma ───────────────────────────────── */
+
+/**
+ * SigV4 SE FIRMA DE DOS MANERAS, PERO ES UNA SOLA FIRMA.
+ *
+ * Con cabecera —`Authorization`— para una petición que hace el servidor, y con
+ * parámetros de consulta para una URL que se le da a otro. Cambia DÓNDE viajan
+ * el algoritmo, la credencial y la fecha; no cambia nada de lo que sigue: el
+ * ámbito, la clave derivada, la cadena a firmar ni el resumen.
+ *
+ * Por eso esto vive aquí una vez. Dos implementaciones de SigV4 en el mismo
+ * repositorio terminan divergiendo, y la que se use menos es la que se rompe
+ * sin que nadie lo note.
+ */
+const ambitoDe = (dia: string, c: CredencialesDeFirma): string =>
+  `${dia}/${c.region}/${c.servicio}/aws4_request`;
+
+/** La clave de firma: el secreto amasado con la fecha, la región y el servicio. */
+const claveDeFirma = (c: CredencialesDeFirma, dia: string): Buffer => {
+  const kDia = hmac(`AWS4${c.secretAccessKey}`, dia);
+  const kRegion = hmac(kDia, c.region);
+  const kServicio = hmac(kRegion, c.servicio);
+  return hmac(kServicio, 'aws4_request');
+};
+
+/** `AWS4-HMAC-SHA256 | fecha | ámbito | resumen de la petición canónica` → la firma. */
+const firmaDe = (c: CredencialesDeFirma, dia: string, completa: string, peticionCanonica: string): string => {
+  const aFirmar = [ALGORITMO, completa, ambitoDe(dia, c), sha256Hex(peticionCanonica)].join('\n');
+  return createHmac('sha256', claveDeFirma(c, dia)).update(aFirmar, 'utf8').digest('hex');
+};
+
+export const ALGORITMO = 'AWS4-HMAC-SHA256';
+
 export const firmar = (
   peticion: PeticionAFirmar,
   credenciales: CredencialesDeFirma,
@@ -140,17 +173,77 @@ export const firmar = (
     resumenDelCuerpo,
   ].join('\n');
 
-  const ambito = `${dia}/${credenciales.region}/${credenciales.servicio}/aws4_request`;
-  const aFirmar = ['AWS4-HMAC-SHA256', completa, ambito, sha256Hex(peticionCanonica)].join('\n');
-
-  const kDia = hmac(`AWS4${credenciales.secretAccessKey}`, dia);
-  const kRegion = hmac(kDia, credenciales.region);
-  const kServicio = hmac(kRegion, credenciales.servicio);
-  const kFirma = hmac(kServicio, 'aws4_request');
-  const firma = createHmac('sha256', kFirma).update(aFirmar, 'utf8').digest('hex');
+  const ambito = ambitoDe(dia, credenciales);
+  const firma = firmaDe(credenciales, dia, completa, peticionCanonica);
 
   return {
     ...cabeceras,
-    Authorization: `AWS4-HMAC-SHA256 Credential=${credenciales.accessKeyId}/${ambito}, SignedHeaders=${firmadas}, Signature=${firma}`,
+    Authorization: `${ALGORITMO} Credential=${credenciales.accessKeyId}/${ambito}, SignedHeaders=${firmadas}, Signature=${firma}`,
+  };
+};
+
+/* ── Firma en la consulta: la llave que se le da a otro ────────────────────── */
+
+/**
+ * UNA URL FIRMADA PARA UN GET. Lo verificado en la documentación oficial de
+ * Cloudflare R2 (`/r2/api/s3/presigned-urls/`, 2026-09-20):
+ *
+ *   · algoritmo   `AWS4-HMAC-SHA256`
+ *   · vigencia    de 1 segundo a 7 días (604.800 s) en `X-Amz-Expires`
+ *   · resumen     `UNSIGNED-PAYLOAD`: no hay cuerpo que firmar en un GET
+ *   · cabeceras   `X-Amz-SignedHeaders=host` — solo el destino va firmado
+ *   · región      `auto`
+ *   · parámetros  `X-Amz-Algorithm`, `X-Amz-Credential`, `X-Amz-Date`,
+ *                 `X-Amz-Expires`, `X-Amz-SignedHeaders` y, al final y FUERA
+ *                 de lo firmado, `X-Amz-Signature`
+ *
+ * ── La misma lección que la ruta ────────────────────────────────────────────
+ *
+ * La consulta canónica se construye UNA vez y esa misma cadena es la que se
+ * pega a la URL. Firmar una y enviar otra es exactamente el fallo que costó el
+ * endurecimiento de MC-1, y en una consulta es más fácil todavía de cometer:
+ * los parámetros van ORDENADOS por nombre, y basta reordenarlos al escribir la
+ * URL para que la firma deje de valer.
+ */
+export const firmarConsultaDeEntrega = (
+  peticion: { host: string; ruta: RutaCanonica; vigenciaSegundos: number },
+  credenciales: CredencialesDeFirma,
+  ahora: number,
+): { url: string; expiraEn: number } => {
+  const { completa, dia } = marcasDeTiempo(ahora);
+  const ambito = ambitoDe(dia, credenciales);
+
+  /*
+   * Ordenados por nombre, que es parte del protocolo y no una preferencia.
+   * `X-Amz-Signature` no está: es el resultado, no una entrada.
+   */
+  const parametros: readonly (readonly [string, string])[] = [
+    ['X-Amz-Algorithm', ALGORITMO],
+    ['X-Amz-Credential', `${credenciales.accessKeyId}/${ambito}`],
+    ['X-Amz-Date', completa],
+    ['X-Amz-Expires', String(peticion.vigenciaSegundos)],
+    ['X-Amz-SignedHeaders', 'host'],
+  ];
+  const consultaCanonica = parametros
+    .map(([k, v]) => `${codificarParaFirma(k, false)}=${codificarParaFirma(v, false)}`)
+    .sort()
+    .join('&');
+
+  const peticionCanonica = [
+    'GET',
+    peticion.ruta,
+    consultaCanonica,
+    `host:${peticion.host}\n`,
+    'host',
+    /* Un GET firmado por consulta no lleva cuerpo, y así lo dice el protocolo. */
+    'UNSIGNED-PAYLOAD',
+  ].join('\n');
+
+  const firma = firmaDe(credenciales, dia, completa, peticionCanonica);
+
+  return {
+    /* La MISMA consulta canónica que se firmó, más la firma al final. */
+    url: `https://${peticion.host}${peticion.ruta}?${consultaCanonica}&X-Amz-Signature=${firma}`,
+    expiraEn: ahora + peticion.vigenciaSegundos * 1000,
   };
 };

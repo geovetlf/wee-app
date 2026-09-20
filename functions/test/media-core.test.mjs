@@ -64,7 +64,8 @@ console.log('\n── A · Quién hay, qué sabe hacer, y qué no se acepta ─�
   check('R2 está declarado, con su identidad canónica', registro.buscar('r2')?.id === 'r2');
   check('y esa identidad es la MISMA que cabe en un `StorageRef`', esStorageRef({ provider: R2_PROVIDER_ID, objectKey: 'x' }));
   check('sabe guardar, mirar y borrar', ['object.put', 'object.head', 'object.delete'].every((c) => registro.puede('r2', c)));
-  check('y NO dice saber lo que no implementa', !registro.puede('r2', 'object.signedUrl') && !registro.puede('r2', 'object.copy') && !registro.puede('r2', 'object.get'));
+  check('sabe FIRMAR una entrega desde MC-2', registro.puede('r2', 'object.signedUrl'));
+  check('y NO dice saber lo que no implementa', !registro.puede('r2', 'object.copy') && !registro.puede('r2', 'object.get'));
   check('no lleva ni una credencial dentro, solo los NOMBRES de sus variables',
     !JSON.stringify(DESCRIPTOR_DE_R2).match(/[A-Za-z0-9/+]{40,}/) && DESCRIPTOR_DE_R2.credencialesEnv.includes('R2_SECRET_ACCESS_KEY'));
   check('declara los límites PUBLICADOS: clave 1.024, subida simple 5 GiB, objeto 5 TiB',
@@ -484,9 +485,9 @@ console.log('\n── H · Lo ajeno, lo inventado y lo que llega de fuera ──
 console.log('\n── I · Qué NO se ha construido ──');
 {
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son cuatro archivos y ninguno más', delCore.join(',') === 'index.ts,objeto.ts,puerto.ts,registro.ts', delCore.join(','));
+  check('el Core de medios son cinco archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,puerto.ts,registro.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, seis', fuera.join(',') === 'almacen.ts,falso.ts,firma.ts,huella.ts,index.ts,r2.ts', fuera.join(','));
+  check('y la composición, ocho', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,r2.ts', fuera.join(','));
 
   /* R2 vive en UN sitio. */
   const nombraR2 = ['functions/src'].flatMap(() => {
@@ -510,8 +511,10 @@ console.log('\n── I · Qué NO se ha construido ──');
   /* Lo que pertenece a fases posteriores: declarado como costura, nunca fingido. */
   const PUERTO = sinComentarios(leer('functions/src/core/media/puerto.ts'));
   check('traer, copiar y firmar URL están declaradas OPCIONALES, no implementadas', /traer\?\(/.test(PUERTO) && /copiar\?\(/.test(PUERTO) && /urlFirmada\?\(/.test(PUERTO));
-  check('y el adaptador de R2 no las trae: no se finge lo que no hay',
-    !/async traer|async copiar|async urlFirmada/.test(sinComentarios(leer('functions/src/media/r2.ts'))));
+  /* MC-2 implementó la firma de entrega. Las otras dos siguen siendo costura y nada más. */
+  const R2SRC = sinComentarios(leer('functions/src/media/r2.ts'));
+  check('el adaptador de R2 trae la que MC-2 implementó', /async urlFirmada\(/.test(R2SRC));
+  check('y NO trae las que no: no se finge lo que no hay', !/async traer|async copiar/.test(R2SRC));
   check('las capacidades de MC-1 son tres', CAPACIDADES_DE_MC1.length === 3);
 
   /* Nada conectado. */

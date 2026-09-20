@@ -93,6 +93,18 @@ export type DesenlaceDeLectura =
   | { ok: false; motivo: 'no_existe' }
   | { ok: false; motivo: 'fallo'; error: WeeError };
 
+/**
+ * LO QUE DEVUELVE FIRMAR UNA ENTREGA.
+ *
+ * `expiraEn` en milisegundos, para que quien llama no tenga que recalcularlo: el
+ * adaptador es quien sabe con qué instante firmó, y una diferencia de unos
+ * segundos entre lo que se firmó y lo que se promete es una llave que muere
+ * antes de lo dicho.
+ */
+export type DesenlaceDeFirma =
+  | { ok: true; url: string; expiraEn: number }
+  | { ok: false; error: WeeError };
+
 export type DesenlaceDeBorrado =
   /* `yaNoEstaba` distingue «lo borré» de «no había nada», sin que ninguna de las dos sea un fallo. */
   | { ok: true; yaNoEstaba: boolean }
@@ -127,14 +139,23 @@ export interface PuertoDeAlmacenamiento {
   mirar(ref: StorageRef): Promise<DesenlaceDeLectura>;
   borrar(ref: StorageRef): Promise<DesenlaceDeBorrado>;
 
-  /* ── Costuras de fases posteriores. NO implementadas en MC-1. ───────────── */
+  /**
+   * MC-2 · LA LLAVE TEMPORAL. Opcional porque no todo proveedor sabe firmar:
+   * uno que solo guarde bytes es un proveedor perfectamente válido, y decirlo
+   * en el tipo es mejor que prometerlo y lanzar «no implementado».
+   *
+   * Devuelve también CUÁNDO caduca, y no solo la URL. Quien llama tiene que
+   * poder decírselo a quien pide sin adivinarlo sumando relojes, y el que sabe
+   * de verdad qué instante se firmó es el adaptador.
+   */
+  urlFirmada?(ref: StorageRef, vigenciaSegundos: number): Promise<DesenlaceDeFirma>;
+
+  /* ── Costuras de fases posteriores. NO implementadas. ───────────────────── */
 
   /** MC-3: traer los bytes. Hoy nadie los lee por aquí. */
   traer?(ref: StorageRef): Promise<DesenlaceDeLectura & { cuerpo?: Buffer }>;
   /** MC-4: copiar dentro del mismo proveedor, para variantes y versiones. */
   copiar?(origen: StorageRef, destino: StorageRef): Promise<DesenlaceDeGuardado>;
-  /** MC-5: entrega firmada con caducidad. Hoy la entrega la resuelve la Fase 11. */
-  urlFirmada?(ref: StorageRef, vigenciaSegundos: number): Promise<{ ok: true; url: string } | { ok: false; error: WeeError }>;
 }
 
 /* ── Errores ───────────────────────────────────────────────────────────────── */

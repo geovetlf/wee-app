@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import {
   CAPACIDADES_DE_MC1,
+  CapacidadDeAlmacen,
   DesenlaceDeBorrado,
+  DesenlaceDeFirma,
   DesenlaceDeGuardado,
   DesenlaceDeLectura,
   DescriptorDeProveedorDeMedios,
@@ -33,11 +35,14 @@ import {
 
 export const FAKE_PROVIDER_ID = 'fake';
 
+/** Lo mismo que sabe hacer el adaptador real, para que una prueba pruebe lo mismo. */
+export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl'] as const);
+
 export const DESCRIPTOR_FALSO: DescriptorDeProveedorDeMedios = Object.freeze({
   id: FAKE_PROVIDER_ID,
   name: 'Almacén de mentira (solo pruebas)',
   estado: 'UNVERIFIED',
-  capacidades: CAPACIDADES_DE_MC1,
+  capacidades: CAPACIDADES_DE_FALSO,
   limites: Object.freeze({ maxLargoDeClave: 1024 }),
 });
 
@@ -73,7 +78,7 @@ export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?:
 
   return {
     providerId: FAKE_PROVIDER_ID,
-    capacidades: CAPACIDADES_DE_MC1,
+    capacidades: CAPACIDADES_DE_FALSO,
     /* Suyo, como el de cualquier adaptador: nadie de fuera se lo dice al guardar. */
     ...(opciones.contenedor ? { contenedor: opciones.contenedor } : {}),
     contenido,
@@ -116,6 +121,32 @@ export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?:
       }
       const g = contenido.get(claveDe(ref));
       return g ? { ok: true, objeto: comoObjeto(ref, g) } : { ok: false, motivo: 'no_existe' };
+    },
+
+    /**
+     * UNA LLAVE DE MENTIRA, PERO CON LAS MISMAS REGLAS.
+     *
+     * `fake.invalid` es un dominio que no existe y no puede existir: el TLD
+     * `.invalid` está reservado para esto justamente, así que si esta URL se
+     * escapara alguna vez a producción no llegaría a ningún sitio. Determinista
+     * y con su caducidad dentro, para que una prueba pueda comprobar las dos
+     * cosas sin red.
+     */
+    async urlFirmada(ref: StorageRef, vigenciaSegundos: number): Promise<DesenlaceDeFirma> {
+      if (!esStorageRef(ref) || ref.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'ref' }) };
+      }
+      if (!Number.isInteger(vigenciaSegundos) || vigenciaSegundos < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
+      }
+      if (!contenido.has(claveDe(ref))) return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'ref', reason_detail: 'no_existe' }) };
+      const desde = ahora();
+      const firma = createHash('sha256').update(`${claveDe(ref)}|${desde}|${vigenciaSegundos}`, 'utf8').digest('hex').slice(0, 32);
+      return {
+        ok: true,
+        url: `https://fake.invalid/object/${encodeURIComponent(ref.objectKey)}?expira=${desde + vigenciaSegundos * 1000}&firma=${firma}`,
+        expiraEn: desde + vigenciaSegundos * 1000,
+      };
     },
 
     async borrar(ref: StorageRef): Promise<DesenlaceDeBorrado> {

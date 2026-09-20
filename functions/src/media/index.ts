@@ -7,15 +7,13 @@ import {
   StorageRef,
   WeeError,
   claveDelObjeto,
-  crearRegistroDeMedios,
   falloDeAlmacen,
   proveedorParaGuardar,
   referenciaDelObjeto,
 } from '../core';
-import { env } from '../engine/http';
 import { AlmacenDeObjetosDeMedios, almacenDeObjetosDeMedios } from './almacen';
+import { adaptadoresDeMedios, proveedorConfigurado, registroDeMediosDeWee } from './catalogo';
 import { huellaDeMedios } from './huella';
-import { DESCRIPTOR_DE_R2, R2_PROVIDER_ID, crearAdaptadorDeR2 } from './r2';
 
 /**
  * WEE MEDIA — LA COMPOSICIÓN.
@@ -31,22 +29,6 @@ import { DESCRIPTOR_DE_R2, R2_PROVIDER_ID, crearAdaptadorDeR2 } from './r2';
  * archivo, no hay bucket creado y no se ha escrito un solo byte en R2. MC-1
  * construye la capa; encenderla es un paso aparte que pide autorización.
  */
-
-/** El catálogo vivo. Hoy un proveedor; mañana, uno más en esta lista y nada más cambia. */
-export const registroDeMediosDeWee = (): RegistroDeProveedoresDeMedios =>
-  crearRegistroDeMedios([DESCRIPTOR_DE_R2]).registro;
-
-/**
- * Los adaptadores de verdad, por su identidad. El de mentira no está aquí: es
- * de las pruebas. **Cada uno resuelve su propia configuración**: esto los
- * nombra, no los configura.
- */
-export const adaptadoresDeMedios = (): Readonly<Record<string, PuertoDeAlmacenamiento>> => ({
-  [R2_PROVIDER_ID]: crearAdaptadorDeR2(),
-});
-
-/** Cuál se usa hoy. Se puede cambiar sin tocar código con `MEDIA_PROVIDER`. */
-export const proveedorConfigurado = (): string => env('MEDIA_PROVIDER') || R2_PROVIDER_ID;
 
 /* ── Guardar el original de un material ────────────────────────────────────── */
 
@@ -166,3 +148,6 @@ export type { AlmacenDeObjetosDeMedios, AltaDeObjeto } from './almacen';
 export { crearAdaptadorDeR2, DESCRIPTOR_DE_R2, R2_ENV, R2_PROVIDER_ID, R2_REGION, anfitrionDeR2, configuracionDeR2, configuracionDeR2Valida } from './r2';
 export { firmar, codificarParaFirma, marcasDeTiempo, rutaCanonicaDeObjeto } from './firma';
 export { huellaDeMedios } from './huella';
+export { adaptadoresDeMedios, proveedorConfigurado, registroDeMediosDeWee } from './catalogo';
+export { solicitarEntrega } from './entrega';
+export type { DepsDeEntrega, PeticionDeEntrega, DesenlaceDeEntrega, TrazaDeEntrega } from './entrega';
