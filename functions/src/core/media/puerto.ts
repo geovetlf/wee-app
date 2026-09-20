@@ -36,7 +36,16 @@ export type CapacidadDeAlmacen =
   | 'object.put'
   | 'object.head'
   | 'object.delete'
-  /* Declaradas para que el registro pueda describirlas; NO implementadas en MC-1. */
+  /**
+   * MC-3 · conceder a un tercero permiso para ESCRIBIR un objeto.
+   *
+   * Es una capacidad aparte de `object.put` a propósito, y no un sinónimo:
+   * aquella es «yo, el servidor, escribo estos bytes»; esta es «autorizo a otro
+   * a escribirlos sin pasar por mí». Un proveedor puede saber hacer la primera
+   * y no la segunda, y confundirlas sería conceder permisos que nadie declaró.
+   */
+  | 'object.upload'
+  /* Declaradas para que el registro pueda describirlas; NO implementadas. */
   | 'object.get'
   | 'object.copy'
   | 'object.signedUrl';
@@ -105,6 +114,35 @@ export type DesenlaceDeFirma =
   | { ok: true; url: string; expiraEn: number }
   | { ok: false; error: WeeError };
 
+/**
+ * LO QUE SE LE PIDE AL ADAPTADOR PARA UNA SUBIDA DIRECTA.
+ *
+ * `maxBytes` viaja porque el proveedor puede saber imponerlo; si no sabe, lo
+ * dirá el tamaño real al confirmar. Declararlo aquí evita que quien llame se
+ * crea que el límite ya está aplicado cuando no lo está.
+ */
+export interface PeticionDeSubidaDirecta {
+  /** Dónde. Lo DERIVA Weë; nunca lo manda un cliente. */
+  destino: StorageRef;
+  /** El tipo que se exigirá a quien suba. */
+  contentType: string;
+  vigenciaSegundos: number;
+  maxBytes: number;
+  /** Escribir solo si la clave está libre: lo mismo que hace guardar, por lo mismo. */
+  siNoExiste?: boolean;
+}
+
+export type DesenlaceDeSubidaDirecta =
+  | {
+    ok: true;
+    url: string;
+    metodo: 'PUT';
+    /** Obligatorias: van firmadas. Mandar otra cosa hace que el proveedor rechace. */
+    cabeceras: Readonly<Record<string, string>>;
+    expiraEn: number;
+  }
+  | { ok: false; error: WeeError };
+
 export type DesenlaceDeBorrado =
   /* `yaNoEstaba` distingue «lo borré» de «no había nada», sin que ninguna de las dos sea un fallo. */
   | { ok: true; yaNoEstaba: boolean }
@@ -149,6 +187,17 @@ export interface PuertoDeAlmacenamiento {
    * de verdad qué instante se firmó es el adaptador.
    */
   urlFirmada?(ref: StorageRef, vigenciaSegundos: number): Promise<DesenlaceDeFirma>;
+
+  /**
+   * MC-3 · EL PERMISO DE ESCRITURA. También opcional, y por lo mismo.
+   *
+   * Recibe un destino que Weë ya derivó y autorizó —nunca datos de un cliente—
+   * y devuelve por dónde y cómo subir. Las cabeceras que salen son OBLIGATORIAS
+   * para quien suba: van dentro de la firma, así que cambiarlas la invalida. Es
+   * lo que convierte un tipo de contenido declarado en uno exigido, sin que
+   * Weë tenga que mirar los bytes.
+   */
+  urlDeSubida?(peticion: PeticionDeSubidaDirecta): Promise<DesenlaceDeSubidaDirecta>;
 
   /* ── Costuras de fases posteriores. NO implementadas. ───────────────────── */
 

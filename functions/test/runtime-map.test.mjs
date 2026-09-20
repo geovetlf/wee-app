@@ -96,7 +96,7 @@ const MAPA = [
   { id: 'content', canonico: ['core/content/content.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'asset', canonico: ['core/content/asset.js'], composicion: 'content/index.js', fabrica: 'crearMaterialDesdeUrl', enUso: ['content/index.js'], cargada: true,
-    motor: 'CONNECTED', simbolos: ['FORMA_DE_ID_DE_MATERIAL', 'esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'retirar'] },
+    motor: 'CONNECTED', simbolos: ['FORMA_DE_ID_DE_MATERIAL', 'esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'puedePasarA', 'retirar'] },
   { id: 'publication', canonico: ['core/content/publication.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   /* Los otros singulares. No son de este bloque, pero «un solo motor por pieza» los incluye. */
@@ -124,6 +124,8 @@ const OTROS_DEL_CORE = {
   'core/capability.js': ['modalidadDe'],
   'core/errors.js': ['DESDE_ENGINE', 'errorDelCore'],
   'core/job-queue.js': ['leerMensajeDeCola', 'mensajeDeCola', 'workerValido'],
+  /* MC-3: la Fase 11 aprende a crear un material para una subida, y comprueba que su clave vive en la carpeta de su cuenta. */
+  'core/media/objeto.js': ['RAIZ_DE_CUENTAS', 'claveEsDeLaCuenta'],
 };
 
 /* Las Functions que producción expone, y de qué módulo sale cada una. */

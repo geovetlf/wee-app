@@ -485,9 +485,9 @@ console.log('\n── H · Lo ajeno, lo inventado y lo que llega de fuera ──
 console.log('\n── I · Qué NO se ha construido ──');
 {
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son cinco archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,puerto.ts,registro.ts', delCore.join(','));
+  check('el Core de medios son seis archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, ocho', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,r2.ts', fuera.join(','));
+  check('y la composición, nueve', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,r2.ts,subida.ts', fuera.join(','));
 
   /* R2 vive en UN sitio. */
   const nombraR2 = ['functions/src'].flatMap(() => {

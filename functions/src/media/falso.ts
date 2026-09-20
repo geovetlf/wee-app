@@ -6,6 +6,8 @@ import {
   DesenlaceDeFirma,
   DesenlaceDeGuardado,
   DesenlaceDeLectura,
+  DesenlaceDeSubidaDirecta,
+  PeticionDeSubidaDirecta,
   DescriptorDeProveedorDeMedios,
   ObjetoGuardado,
   PeticionDeGuardado,
@@ -36,7 +38,7 @@ import {
 export const FAKE_PROVIDER_ID = 'fake';
 
 /** Lo mismo que sabe hacer el adaptador real, para que una prueba pruebe lo mismo. */
-export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl'] as const);
+export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload'] as const);
 
 export const DESCRIPTOR_FALSO: DescriptorDeProveedorDeMedios = Object.freeze({
   id: FAKE_PROVIDER_ID,
@@ -146,6 +148,41 @@ export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?:
         ok: true,
         url: `https://fake.invalid/object/${encodeURIComponent(ref.objectKey)}?expira=${desde + vigenciaSegundos * 1000}&firma=${firma}`,
         expiraEn: desde + vigenciaSegundos * 1000,
+      };
+    },
+
+    /**
+     * UN PERMISO DE SUBIDA DE MENTIRA, CON LAS MISMAS REGLAS.
+     *
+     * Devuelve las mismas cabeceras obligatorias que el real —porque en el real
+     * van firmadas— para que una prueba pueda comprobar que quien sube está
+     * atado al tipo que se declaró. Igual que el real, firma aunque la clave
+     * esté ocupada: quien rechaza la segunda escritura es el propio almacén.
+     */
+    async urlDeSubida(peticion: PeticionDeSubidaDirecta): Promise<DesenlaceDeSubidaDirecta> {
+      if (!esStorageRef(peticion.destino) || peticion.destino.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'destino' }) };
+      }
+      if (!Number.isInteger(peticion.vigenciaSegundos) || peticion.vigenciaSegundos < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
+      }
+      if (typeof peticion.contentType !== 'string' || !peticion.contentType) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'contentType' }) };
+      }
+      if (!Number.isSafeInteger(peticion.maxBytes) || peticion.maxBytes < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'maxBytes' }) };
+      }
+      const desde = ahora();
+      const firma = createHash('sha256').update(`subida|${claveDe(peticion.destino)}|${desde}|${peticion.vigenciaSegundos}`, 'utf8').digest('hex').slice(0, 32);
+      return {
+        ok: true,
+        metodo: 'PUT',
+        url: `https://fake.invalid/upload/${encodeURIComponent(peticion.destino.objectKey)}?expira=${desde + peticion.vigenciaSegundos * 1000}&firma=${firma}`,
+        cabeceras: Object.freeze({
+          'content-type': peticion.contentType,
+          ...(peticion.siNoExiste ? { 'if-none-match': '*' } : {}),
+        }),
+        expiraEn: desde + peticion.vigenciaSegundos * 1000,
       };
     },
 

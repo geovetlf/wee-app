@@ -151,3 +151,5 @@ export { huellaDeMedios } from './huella';
 export { adaptadoresDeMedios, proveedorConfigurado, registroDeMediosDeWee } from './catalogo';
 export { solicitarEntrega } from './entrega';
 export type { DepsDeEntrega, PeticionDeEntrega, DesenlaceDeEntrega, TrazaDeEntrega } from './entrega';
+export { solicitarSubida, confirmarSubida, depsDeSubidaDeWee, identidadDeMaterialDeSubida } from './subida';
+export type { DepsDeSubida, PeticionDeSubida, PeticionDeConfirmacion, DesenlaceDeSubida, DesenlaceDeConfirmacion, TrazaDeSubida } from './subida';

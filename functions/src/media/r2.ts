@@ -5,6 +5,8 @@ import {
   DesenlaceDeFirma,
   DesenlaceDeGuardado,
   DesenlaceDeLectura,
+  DesenlaceDeSubidaDirecta,
+  PeticionDeSubidaDirecta,
   DescriptorDeProveedorDeMedios,
   PeticionDeGuardado,
   PuertoDeAlmacenamiento,
@@ -13,7 +15,7 @@ import {
   falloDeAlmacen,
 } from '../core';
 import { env } from '../engine/http';
-import { firmar, firmarConsultaDeEntrega, rutaCanonicaDeObjeto } from './firma';
+import { firmar, firmarConsulta, rutaCanonicaDeObjeto } from './firma';
 
 /**
  * CLOUDFLARE R2 — EL ÚNICO ARCHIVO DE WEË QUE SABE QUE R2 EXISTE.
@@ -75,11 +77,12 @@ export const R2_REGION = 'auto';
 export const MAX_VIGENCIA_DE_R2 = 604_800;
 
 /**
- * LO QUE ESTE ADAPTADOR SABE HACER DE VERDAD. Las tres de MC-1 más la entrega
- * firmada de MC-2. Lo que no esté aquí, no se le pide — y el registro contesta
- * que no puede, que es como se evita prometer una capacidad que no existe.
+ * LO QUE ESTE ADAPTADOR SABE HACER DE VERDAD. Las tres de MC-1, la entrega
+ * firmada de MC-2 y la subida directa de MC-3. Lo que no esté aquí, no se le
+ * pide — y el registro contesta que no puede, que es como se evita prometer
+ * una capacidad que no existe.
  */
-export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl'] as const);
+export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload'] as const);
 
 /** El descriptor para el registro. Sin una sola credencial dentro. */
 export const DESCRIPTOR_DE_R2: DescriptorDeProveedorDeMedios = Object.freeze({
@@ -294,12 +297,64 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
       if (!Number.isInteger(vigenciaSegundos) || vigenciaSegundos < 1 || vigenciaSegundos > MAX_VIGENCIA_DE_R2) {
         return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
       }
-      const { url, expiraEn } = firmarConsultaDeEntrega(
-        { host: p.host, ruta: p.ruta, vigenciaSegundos },
+      const { url, expiraEn } = firmarConsulta(
+        { metodo: 'GET', host: p.host, ruta: p.ruta, vigenciaSegundos },
         { ...p.config, region: R2_REGION, servicio: 's3' },
         ahora(),
       );
       return { ok: true, url, expiraEn };
+    },
+
+    /**
+     * MC-3 · EL PERMISO PARA QUE OTRO ESCRIBA ESTOS BYTES.
+     *
+     * ── Lo verificado en la documentación oficial (`/r2/api/s3/presigned-urls/`
+     *    y `/r2/objects/upload-objects/`, 2026-09-20) ─────────────────────────
+     *
+     *   · `PUT` prefirmado    SOPORTADO. Es el mecanismo.
+     *   · `POST` prefirmado   **NO soportado**: «POST (multipart form uploads
+     *                         via HTML forms) is not currently supported».
+     *   · multipart prefirmado  no documentado → no se construye.
+     *   · subida simple       hasta 5 GiB.
+     *   · `Content-Type`      la propia documentación recomienda firmarlo para
+     *                         restringirlo: si quien sube manda otro, R2
+     *                         responde 403. Eso convierte un tipo DECLARADO en
+     *                         uno EXIGIDO sin que Weë mire un solo byte.
+     *
+     * Por eso hay un mecanismo y no una abstracción para tres: el proveedor
+     * soporta uno, y construir para los otros dos sería inventar capacidades.
+     *
+     * `If-None-Match: *` va firmado cuando se pide, así que **el destino es de
+     * una sola escritura y lo hace cumplir el proveedor**: repetir la intención
+     * no puede duplicar el objeto ni pisar el que ya esté. Es exactamente la
+     * misma operación condicional en la que se apoya `guardar`.
+     */
+    async urlDeSubida(peticion: PeticionDeSubidaDirecta): Promise<DesenlaceDeSubidaDirecta> {
+      const p = preparar(peticion.destino);
+      if (!p.ok) return { ok: false, error: p.error };
+      if (!Number.isInteger(peticion.vigenciaSegundos) || peticion.vigenciaSegundos < 1 || peticion.vigenciaSegundos > MAX_VIGENCIA_DE_R2) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
+      }
+      if (typeof peticion.contentType !== 'string' || !peticion.contentType) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'contentType' }) };
+      }
+      /* Lo que el proveedor publica para una subida simple. Más que esto exige multipart, que no es de esta fase. */
+      if (!Number.isSafeInteger(peticion.maxBytes) || peticion.maxBytes < 1 || peticion.maxBytes > (DESCRIPTOR_DE_R2.limites?.maxBytesDeUnaSubida ?? 0)) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'maxBytes' }) };
+      }
+
+      const { url, expiraEn, cabecerasObligatorias } = firmarConsulta({
+        metodo: 'PUT',
+        host: p.host,
+        ruta: p.ruta,
+        vigenciaSegundos: peticion.vigenciaSegundos,
+        cabeceras: {
+          'content-type': peticion.contentType,
+          ...(peticion.siNoExiste ? { 'if-none-match': '*' } : {}),
+        },
+      }, { ...p.config, region: R2_REGION, servicio: 's3' }, ahora());
+
+      return { ok: true, url, metodo: 'PUT', cabeceras: cabecerasObligatorias, expiraEn };
     },
 
     async borrar(ref: StorageRef): Promise<DesenlaceDeBorrado> {

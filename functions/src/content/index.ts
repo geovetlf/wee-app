@@ -9,9 +9,12 @@ import {
   FORMA_DE_ID_DE_MATERIAL,
   Provenance,
   StorageRef,
+  RAIZ_DE_CUENTAS,
+  claveEsDeLaCuenta,
   esStorageRef,
   materialEsDeLaCuenta,
   materialValido,
+  puedePasarA,
   retirar,
 } from '../core';
 import { parseStorageUrl, storageBucket } from '../engine/http';
@@ -286,6 +289,149 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
   }
   await assets().doc(assetId).set(doc);
   return doc;
+};
+
+/* ── Un material cuyos bytes todavía no han llegado ───────────────────────── */
+
+export interface NuevoMaterialParaSubida {
+  /** La cuenta. Del Principal autenticado; nunca del cliente. */
+  ownerAccountId: string;
+  /** La identidad, SIEMPRE calculada por quien llama: es lo que hace idempotente repetir. */
+  assetId: string;
+  kind: AssetKind;
+  /** Dónde VAN a estar los bytes. La deriva el servidor; nunca llega de un cliente. */
+  storageRef: StorageRef;
+  provenance: Provenance;
+  /** Lo que se ESPERA que sea. Todavía no se ha visto un solo byte. */
+  mimeType?: string;
+  name?: string;
+  createdByEntityId?: string;
+  createdByEntityType?: Asset['createdByEntityType'];
+  metadata?: Asset['metadata'];
+}
+
+export type ResultadoDeCreacionParaSubida =
+  | { status: 'creado'; material: AssetDoc }
+  /* Ya estaba: la misma intención llegó dos veces. No se pisa nada. */
+  | { status: 'ya_estaba'; material: AssetDoc }
+  | { status: 'invalido' }
+  /* Existe, pero no es de esta cuenta. Un identificador no da acceso a nada. */
+  | { status: 'no_es_tuyo' };
+
+/**
+ * CREAR LA FICHA DE UN MATERIAL **ANTES** DE QUE EXISTAN SUS BYTES.
+ *
+ * ── Por qué hacía falta otra puerta ─────────────────────────────────────────
+ *
+ * `crearMaterialDesdeUrl` referencia un archivo que YA está: pide una URL, lee
+ * su metadata y nace `ready`. Es exactamente lo que necesita un resultado de
+ * IA, y exactamente lo que no sirve para una subida directa, donde el orden es
+ * el contrario — primero hay que decirle a alguien dónde escribir, y los bytes
+ * llegan después.
+ *
+ * Esto es esa otra puerta, y es deliberadamente pequeña: el contrato de la Fase
+ * 11 ya contemplaba este caso —`uploading` existe, `uploading → ready` está
+ * permitido y un material sin bytes es válido—, solo que ningún camino lo
+ * producía. Aquí no se inventa ningún estado ni se cambia ninguna regla: se usa
+ * la que ya estaba escrita y no se había usado nunca.
+ *
+ * Nace SIN `delivery`, y eso es correcto en los dos sentidos: todavía no hay
+ * nada que entregar, y para un almacén que firma entregas temporales no existe
+ * una URL permanente que guardar.
+ *
+ * ── Idempotente por identidad calculada ─────────────────────────────────────
+ *
+ * El `assetId` lo calcula quien llama a partir de su propia clave de operación,
+ * así que la misma intención que llega dos veces pide el MISMO material y se
+ * encuentra el que ya estaba, con su fecha y su procedencia intactas. Es el
+ * mismo mecanismo que ya usa la creación desde URL, por la misma razón.
+ */
+export const crearMaterialParaSubida = async (datos: NuevoMaterialParaSubida): Promise<ResultadoDeCreacionParaSubida> => {
+  if (!FORMA_DE_ID_DE_MATERIAL.test(datos.assetId ?? '')) return { status: 'invalido' };
+  if (!esStorageRef(datos.storageRef)) return { status: 'invalido' };
+  if (typeof datos.ownerAccountId !== 'string' || !datos.ownerAccountId) return { status: 'invalido' };
+
+  /*
+   * UNA FICHA NO PUEDE APUNTAR FUERA DE SU CUENTA. Dos reglas, una por mundo:
+   * la del Storage de Weë, que ya existía, y la de Media Cloud, cuya clave
+   * empieza por la cuenta. Las dos se comprueban por prefijo ENTERO.
+   */
+  const ref = datos.storageRef;
+  if (ref.provider === PROVEEDOR_WEE && !esDeLaCuenta(ref, datos.ownerAccountId)) return { status: 'invalido' };
+  if (ref.objectKey.startsWith(`${RAIZ_DE_CUENTAS}/`) && !claveEsDeLaCuenta(ref.objectKey, datos.ownerAccountId)) return { status: 'invalido' };
+
+  const at = ahora();
+  const doc = limpiar<AssetDoc>({
+    contract: CONTENT_CORE_CONTRACT_VERSION,
+    assetId: datos.assetId,
+    ownerAccountId: datos.ownerAccountId,
+    createdByEntityId: datos.createdByEntityId,
+    createdByEntityType: datos.createdByEntityType,
+    kind: tipoPorMime(datos.mimeType, datos.kind),
+    /* Los bytes vienen de camino. No hay `bytes`, no hay `delivery`, no hay nada que entregar. */
+    status: 'uploading',
+    storageRef: ref,
+    mimeType: datos.mimeType,
+    provenance: limpiar({ ...datos.provenance }),
+    name: datos.name,
+    metadata: datos.metadata,
+    createdAt: at,
+    updatedAt: at,
+  });
+  if (!materialValido(doc)) return { status: 'invalido' };
+
+  try {
+    await assets().doc(datos.assetId).create(doc);
+    return { status: 'creado', material: doc };
+  } catch {
+    const yaEstaba = await leerMaterial(datos.assetId);
+    if (!yaEstaba) return { status: 'invalido' };
+    return materialEsDeLaCuenta(yaEstaba, datos.ownerAccountId)
+      ? { status: 'ya_estaba', material: yaEstaba }
+      : { status: 'no_es_tuyo' };
+  }
+};
+
+export type ResultadoDeSubidaConfirmada =
+  | { status: 'listo'; material: AssetDoc }
+  /* Ya estaba listo: confirmar dos veces no es un error, es un no-op. */
+  | { status: 'ya_estaba_listo'; material: AssetDoc }
+  | { status: 'no_encontrado' }
+  | { status: 'no_es_tuyo' }
+  /* No estaba en subida: no se fuerza una transición que el contrato no permite. */
+  | { status: 'estado_incompatible'; actual: Asset['status'] };
+
+/**
+ * LOS BYTES YA ESTÁN: DE `uploading` A `ready`.
+ *
+ * La transición la autoriza el contrato de la Fase 11 (`puedePasarA`), no esta
+ * función: aquí solo se comprueba de quién es el material y se anota lo que se
+ * ha MEDIDO del objeto —su tamaño y su tipo reales—, que hasta ahora solo era
+ * lo que alguien dijo que iba a subir.
+ *
+ * Confirmar dos veces deja el material igual y lo dice; no se vuelve a escribir
+ * la fecha ni se pisa nada.
+ */
+export const marcarMaterialSubido = async (
+  accountId: string,
+  assetId: string,
+  medido: { bytes?: number; mimeType?: string },
+): Promise<ResultadoDeSubidaConfirmada> => {
+  const doc = await leerMaterial(assetId);
+  if (!doc) return { status: 'no_encontrado' };
+  if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
+  if (doc.status === 'ready') return { status: 'ya_estaba_listo', material: doc };
+  if (!puedePasarA(doc.status, 'ready')) return { status: 'estado_incompatible', actual: doc.status };
+
+  const at = ahora();
+  const cambios = limpiar<Partial<AssetDoc>>({
+    status: 'ready',
+    bytes: Number.isSafeInteger(medido.bytes) ? medido.bytes : undefined,
+    mimeType: medido.mimeType ?? doc.mimeType,
+    updatedAt: at,
+  });
+  await assets().doc(assetId).update(cambios);
+  return { status: 'listo', material: { ...doc, ...cambios } as AssetDoc };
 };
 
 /** La ficha, o nada. Nunca lanza por un id que no existe. */

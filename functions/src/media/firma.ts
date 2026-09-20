@@ -205,13 +205,34 @@ export const firmar = (
  * los parámetros van ORDENADOS por nombre, y basta reordenarlos al escribir la
  * URL para que la firma deje de valer.
  */
-export const firmarConsultaDeEntrega = (
-  peticion: { host: string; ruta: RutaCanonica; vigenciaSegundos: number },
+export interface ConsultaAFirmar {
+  metodo: 'GET' | 'PUT';
+  host: string;
+  ruta: RutaCanonica;
+  vigenciaSegundos: number;
+  /**
+   * Cabeceras que van FIRMADAS además del destino. Quien use la URL tiene que
+   * mandarlas exactamente así o el proveedor rechaza la petición — y eso es
+   * justamente para lo que se usan: en una subida, firmar `content-type`
+   * convierte una declaración del cliente en una restricción que aplica el
+   * proveedor, sin que Weë mire un solo byte.
+   */
+  cabeceras?: Readonly<Record<string, string>>;
+}
+
+export const firmarConsulta = (
+  peticion: ConsultaAFirmar,
   credenciales: CredencialesDeFirma,
   ahora: number,
-): { url: string; expiraEn: number } => {
+): { url: string; expiraEn: number; cabecerasObligatorias: Readonly<Record<string, string>> } => {
   const { completa, dia } = marcasDeTiempo(ahora);
   const ambito = ambitoDe(dia, credenciales);
+
+  /* `host` siempre; lo demás, lo que pida quien firma. Minúsculas y ordenadas. */
+  const extra = Object.entries(peticion.cabeceras ?? {}).map(([k, v]) => [k.toLowerCase(), String(v).trim()] as const);
+  const cabeceras: Record<string, string> = { host: peticion.host, ...Object.fromEntries(extra) };
+  const nombres = Object.keys(cabeceras).sort();
+  const firmadas = nombres.join(';');
 
   /*
    * Ordenados por nombre, que es parte del protocolo y no una preferencia.
@@ -222,7 +243,7 @@ export const firmarConsultaDeEntrega = (
     ['X-Amz-Credential', `${credenciales.accessKeyId}/${ambito}`],
     ['X-Amz-Date', completa],
     ['X-Amz-Expires', String(peticion.vigenciaSegundos)],
-    ['X-Amz-SignedHeaders', 'host'],
+    ['X-Amz-SignedHeaders', firmadas],
   ];
   const consultaCanonica = parametros
     .map(([k, v]) => `${codificarParaFirma(k, false)}=${codificarParaFirma(v, false)}`)
@@ -230,12 +251,12 @@ export const firmarConsultaDeEntrega = (
     .join('&');
 
   const peticionCanonica = [
-    'GET',
+    peticion.metodo,
     peticion.ruta,
     consultaCanonica,
-    `host:${peticion.host}\n`,
-    'host',
-    /* Un GET firmado por consulta no lleva cuerpo, y así lo dice el protocolo. */
+    nombres.map((nombre) => `${nombre}:${cabeceras[nombre]}\n`).join(''),
+    firmadas,
+    /* Firmada por consulta, la petición no lleva resumen del cuerpo. Así lo dice el protocolo. */
     'UNSIGNED-PAYLOAD',
   ].join('\n');
 
@@ -245,5 +266,7 @@ export const firmarConsultaDeEntrega = (
     /* La MISMA consulta canónica que se firmó, más la firma al final. */
     url: `https://${peticion.host}${peticion.ruta}?${consultaCanonica}&X-Amz-Signature=${firma}`,
     expiraEn: ahora + peticion.vigenciaSegundos * 1000,
+    /* Lo que quien use la URL está OBLIGADO a mandar, porque va dentro de la firma. */
+    cabecerasObligatorias: Object.freeze(Object.fromEntries(extra)),
   };
 };
