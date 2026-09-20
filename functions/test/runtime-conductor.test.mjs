@@ -569,7 +569,18 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
   check('con UNA capacidad autorizada en el código: la configuración puede cerrar, nunca ampliar', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(brainVivo) && /puerta\.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY/.test(brainVivo));
   check('CORE o LEGACY, nunca los dos: un pensador, elegido una vez', /const pensador: Thinker = porElCore \? await pensadorDelConductor\(\) : pensadorDeSiempre\(\)/.test(brainVivo) && brainVivo.match(/engine\.generate\(/g).length === 1);
   check('y la cuenta con la que se decide es la del principal autenticado, no la que mande el cliente', /userId: uid, experienceId: EXPERIENCIA_DE_BRAIN/.test(brainVivo) && /const uid = request\.auth\.uid/.test(brainVivo));
-  check('e index.ts sigue sin exportar el runtime: la única entrada es la puerta de brainChat', !/runtime/.test(leer('functions/src/index.ts')));
+  /*
+   * Con el paso I, `index.ts` despliega UNA tarea programada de mantenimiento
+   * —preguntar y liquidar—, y eso NO es una entrada al conductor. Lo que se
+   * fija sigue siendo lo mismo: nadie puede pedirle al conductor que ejecute
+   * algo salvo por la puerta de `brainChat`. Se mira sin comentarios, porque
+   * nombrar algo al explicarlo no es exportarlo.
+   */
+  const INDEX_VIVO = sinComentarios(leer('functions/src/index.ts'));
+  check('e index.ts sigue sin exportar el conductor: la única entrada es la puerta de brainChat',
+    !/conductorDeWee|crearConductor|from '\.\/runtime'/.test(INDEX_VIVO));
+  check('lo único que despliega del runtime es la pasada de mantenimiento, que no ejecuta trabajos',
+    (INDEX_VIVO.match(/from '\.\/settlement\//g) || []).length === 1 && /barridoDeLiquidacion/.test(INDEX_VIVO));
   check('las cabeceras lo dicen donde se lee', ['conductor.ts', 'almacen.ts', 'index.ts', 'puerta.ts'].every((f) => /NADA DE PRODUCCIÓN (PASA POR AQUÍ|LEE ESTA PUERTA) TODAVÍA/.test(leer(`${dir}/${f}`))));
   check('esta suite está en la cadena de `npm test`', /runtime-conductor\.test\.mjs/.test(leer('functions/package.json')));
 }

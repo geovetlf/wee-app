@@ -427,7 +427,8 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    */
   const quienLoUsa = fuentes('functions/src').filter((f) => !f.endsWith('job/worker.ts') && /job\/worker|atenderEntrega|barrerRecuperables/.test(sinComentarios(leer(f))));
   check('65) UN solo módulo atiende entregas: el conductor. Y NADA DE PRODUCCIÓN PASA POR AQUÍ: `index.ts` no exporta nada de esto',
-    quienLoUsa.join(',') === 'functions/src/runtime/conductor.ts' && !/job-queue|job\/worker|atenderEntrega|runtime/.test(leer('functions/src/index.ts')), quienLoUsa.join(', '));
+    quienLoUsa.join(',') === 'functions/src/runtime/conductor.ts'
+    && !/job-queue|job\/worker|atenderEntrega|from '\.\/runtime'/.test(sinComentarios(leer('functions/src/index.ts'))), quienLoUsa.join(', '));
   const estadoDeModulo = (src) => [...(src.match(/^(let|var)\s+\w+/gm) || []), ...(src.match(/^const\s+\w+[^=\n]*=\s*(new (Map|Set|WeakMap|WeakSet)\(\s*\)|\[\s*\])/gm) || [])];
   const colas = fuentes('functions/src').filter((f) => /guarantee: 'at_least_once',/.test(sinComentarios(leer(f))));
   const COLA = leer('functions/src/runtime/cola.ts');

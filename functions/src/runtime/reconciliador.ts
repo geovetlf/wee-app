@@ -47,6 +47,21 @@ export interface ReconciliadorDeps extends AtencionDeps {
   quietoDesdeMs?: number;
   porPagina?: number;
   maxPaginas?: number;
+  /**
+   * CUÁNTAS PREGUNTAS COMO MUCHO EN UNA PASADA. Lo que impide que esto se coma
+   * su propio plazo.
+   *
+   * Mirar trabajos es barato —se descartan leyendo lo guardado— pero PREGUNTAR
+   * es una llamada por la red, en serie, con su propio tiempo límite. Sin tope,
+   * una pasada con muchos trabajos esperando se quedaría a medias cuando la
+   * tarea programada venciera, y lo que se hubiera hecho hasta ahí se
+   * conservaría igual pero sin dejar dicho dónde se quedó.
+   *
+   * Con tope, la pasada TERMINA, dice que quedaron trabajos por preguntar, y la
+   * siguiente sigue. No se pierde nada: un trabajo que no se preguntó hoy sigue
+   * esperando exactamente igual, y esperar es seguro.
+   */
+  maxPreguntas?: number;
   observarPregunta?: (v: VistoAlReconciliar) => void;
 }
 
@@ -77,6 +92,8 @@ export interface InformeDelReconciliador {
   aplazados: number;
   /** No había nada que preguntar. */
   omitidos: number;
+  /** Se llegó al tope de preguntas: quedan trabajos por preguntar, y los coge la siguiente pasada. */
+  agotadas: boolean;
   cursor?: string;
   vistos: readonly VistoAlReconciliar[];
 }
@@ -85,20 +102,36 @@ const POR_PAGINA = 100;
 const MAX_PAGINAS = 10;
 /** Un trabajo que acaba de moverse no necesita que nadie pregunte por él. */
 const QUIETO_DESDE_MS = 60_000;
+/**
+ * DOCE. Sale de una cuenta, no de una intuición: una consulta al proveedor tiene
+ * treinta segundos de tiempo límite y la tarea programada tiene novecientos. Doce
+ * preguntas que se agotaran TODAS son trescientos sesenta segundos, que deja
+ * sitio de sobra para el resto de la pasada y para la liquidación que viene
+ * detrás. Lo normal es que contesten en menos de un segundo y no se llegue.
+ */
+const MAX_PREGUNTAS = 12;
 
 export const reconciliarTrabajos = async (deps: ReconciliadorDeps): Promise<InformeDelReconciliador> => {
   const porPagina = Math.max(1, Math.min(Math.floor(deps.porPagina ?? POR_PAGINA), 500));
   const maxPaginas = Math.max(1, Math.min(Math.floor(deps.maxPaginas ?? MAX_PAGINAS), 100));
   const quieto = Math.max(0, Math.floor(deps.quietoDesdeMs ?? QUIETO_DESDE_MS));
+  const maxPreguntas = Math.max(1, Math.min(Math.floor(deps.maxPreguntas ?? MAX_PREGUNTAS), 100));
   const vistos: VistoAlReconciliar[] = [];
   let mirados = 0; let preguntados = 0; let resueltos = 0; let enMarcha = 0;
   let sinRespuesta = 0; let rendidos = 0; let aplazados = 0; let omitidos = 0;
+  let agotadas = false;
   let cursor: string | undefined;
 
-  for (let pagina = 0; pagina < maxPaginas; pagina++) {
+  for (let pagina = 0; pagina < maxPaginas && !agotadas; pagina++) {
     const ahora = deps.ahora();
     const { jobs, cursor: siguiente } = await deps.trabajos.recuperables({ before: ahora - quieto, limit: porPagina, ...(cursor ? { cursor } : {}) });
     for (const job of jobs) {
+      /*
+       * Se acabaron las preguntas de esta pasada. Se para ANTES de mirar, no
+       * después: mirar y no preguntar contaría un trabajo como visto sin
+       * haberle hecho nada, y la siguiente pasada tiene que verlo igual.
+       */
+      if (preguntados >= maxPreguntas) { agotadas = true; break; }
       mirados++;
       const visto = await reconciliarUno(deps, job);
       vistos.push(visto);
@@ -115,7 +148,7 @@ export const reconciliarTrabajos = async (deps: ReconciliadorDeps): Promise<Info
     if (!cursor) break;
   }
 
-  return { mirados, preguntados, resueltos, enMarcha, sinRespuesta, rendidos, aplazados, omitidos, ...(cursor ? { cursor } : {}), vistos };
+  return { mirados, preguntados, resueltos, enMarcha, sinRespuesta, rendidos, aplazados, omitidos, agotadas, ...(cursor ? { cursor } : {}), vistos };
 };
 
 /** Un trabajo, de principio a fin. Aparte para que se lea, y para poder probarlo solo. */

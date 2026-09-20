@@ -52,6 +52,20 @@ export const AI_SECRETS = declared.map(([, secret]) => secret);
 export const CALLBACK_SECRETS = [SECRETS.SEEDANCE_CALLBACK_TOKEN];
 
 /**
+ * LO MÍNIMO PARA PREGUNTARLE A UN PROVEEDOR QUÉ FUE DE UNA TAREA SUYA.
+ *
+ * La tarea de reconciliación NO genera nada: no llama a ningún modelo, no crea
+ * ninguna tarea y no gasta un céntimo. Lo único que hace con una clave es una
+ * consulta de estado, que es de LECTURA. Por eso no lleva `AI_SECRETS` entera:
+ * darle las ocho claves a una tarea que solo pregunta por una sería regalar
+ * alcance sin motivo.
+ *
+ * Hoy solo Seedance (ModelArk) tiene un camino asíncrono. Cuando otro proveedor
+ * lo tenga, su clave se añade AQUÍ y solo aquí.
+ */
+export const RECONCILIATION_SECRETS = [SECRETS.ARK_API_KEY];
+
+/**
  * Valor de un secreto desde Secret Manager. Solo funciona dentro de una función
  * con ese secreto declarado; fuera (pruebas, scripts) devuelve undefined en vez
  * de fallar. Nunca se registra ni se devuelve al cliente.

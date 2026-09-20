@@ -61,6 +61,7 @@ const { decidirLiquidacion } = lib('runtime/liquidacion.js');
 const { leerAvisoDeSeedance } = lib('engine/providers/seedance.js');
 const { crearJobEngine, POLITICA_DE_TRABAJO } = lib('core/job.js');
 const { mismoTestigo } = lib('engine/webhooks.js');
+const { mantenimientoDeWee } = lib('runtime/index.js');
 
 const motor = crearJobEngine();
 const T0 = 1_700_000_000_000;
@@ -459,6 +460,41 @@ console.log('\n── H · La reconciliación: la segunda forma de enterarse ─
   const informe = await reconciliarTrabajos({ ...d3, resolutores: { seedance: resolutorFalso({ conocido: false, motivo: 'no_contesta' }) }, plazos: P, quietoDesdeMs: 0 });
   check('la pasada cuenta lo que hizo sin inventarse nada', informe.mirados === 1 && informe.preguntados === 1 && informe.sinRespuesta === 1 && informe.resueltos === 0 && e3.escrituras === 0);
   check('y no es un bucle: entra, mira lo que le dejan y sale', !/while \(true\)/.test(sinComentarios(leer('functions/src/runtime/reconciliador.ts'))));
+
+  /* El tope de preguntas: lo que impide que una pasada se coma su propio plazo. */
+  const muchos = Array.from({ length: 9 }, (_, i) => trabajo({ jobId: `j${i}`, attempts: [intento({ attemptId: `j${i}#1`, providerRef: { providerId: 'seedance', operationId: `cgt-${i}` } })] }));
+  const { deps: d4, estado: e4 } = mundo({ jobs: muchos });
+  let preguntas = 0;
+  const lento = { consultar: async () => { preguntas++; return { conocido: false, motivo: 'no_contesta' }; } };
+  const acotado = await reconciliarTrabajos({ ...d4, resolutores: { seedance: lento }, plazos: P, quietoDesdeMs: 0, maxPreguntas: 3 });
+  check('con nueve trabajos que preguntar y un tope de tres, se hacen TRES llamadas y ni una más', preguntas === 3 && acotado.preguntados === 3);
+  check('y la pasada lo DICE en vez de fingir que terminó', acotado.agotadas === true);
+  check('los que no se preguntaron no se cuentan como mirados: la siguiente pasada tiene que verlos igual', acotado.mirados === 3);
+  check('nada se cerró ni se movió por haberse quedado sin preguntas', e4.escrituras === 0 && [...e4.jobs.values()].every((j) => j.state === 'waiting'));
+  const sinTope = await reconciliarTrabajos({ ...mundo({ jobs: muchos }).deps, resolutores: { seedance: { consultar: async () => ({ conocido: false, motivo: 'no_contesta' }) } }, plazos: P, quietoDesdeMs: 0 });
+  check('sin llegar al tope, la pasada no dice que se agotara', sinTope.agotadas === false && sinTope.preguntados === 9);
+}
+
+/* ── La pasada de mantenimiento: preguntar, y DESPUÉS liquidar ────────────── */
+{
+  const orden = [];
+  const pasada = mantenimientoDeWee({
+    reconciliacion: async () => { orden.push('preguntar'); return { mirados: 1, preguntados: 1, resueltos: 1, enMarcha: 0, sinRespuesta: 0, rendidos: 0, aplazados: 0, omitidos: 0, agotadas: false, vistos: [] }; },
+    liquidacion: async () => { orden.push('liquidar'); return { sweepId: 's1', startedAt: 0, finishedAt: 1, durationMs: 1, examined: 1, settled: 1, refunded: 0, skipped: 0, unknown: 0, errors: 0, pending: false }; },
+  });
+  const r = await pasada();
+  check('primero se pregunta y DESPUÉS se liquida: al revés, el dinero de un vídeo hecho tardaría una pasada de más', orden.join('→') === 'preguntar→liquidar');
+  check('y la pasada devuelve las dos cosas', r.reconciliacion.resueltos === 1 && r.liquidacion.settled === 1 && r.falloAlPreguntar === false);
+
+  /* Un proveedor caído no puede impedir que se cobre lo que ya estaba resuelto. */
+  const orden2 = [];
+  const conFallo = mantenimientoDeWee({
+    reconciliacion: async () => { orden2.push('preguntar'); throw new Error('el proveedor no está'); },
+    liquidacion: async () => { orden2.push('liquidar'); return { sweepId: 's2', startedAt: 0, finishedAt: 1, durationMs: 1, examined: 3, settled: 2, refunded: 0, skipped: 1, unknown: 0, errors: 0, pending: false }; },
+  });
+  const r2 = await conFallo();
+  check('si preguntar revienta, se liquida igual: lo ya resuelto no espera a que vuelva un proveedor', orden2.join('→') === 'preguntar→liquidar' && r2.liquidacion.settled === 2);
+  check('y se dice que no se pudo preguntar, en vez de contarlo como que no había nada', r2.falloAlPreguntar === true && r2.reconciliacion === undefined);
 }
 
 /* ═══ I · EL DINERO ════════════════════════════════════════════════════════ */
@@ -508,7 +544,7 @@ console.log('\n── J · De quién es cada cosa ──');
   check('el proveedor lo fija la RUTA, no el cuerpo: nadie elige desde fuera qué adaptador lo lee', !/body\.provider|cuerpo\.provider/.test(WH));
   check('contesta lo mismo exista el trabajo o no: este puerto no es un buscador de cuentas ajenas', (WH.match(/status\(202\)/g) || []).length === 1 && !/status\(404\)/.test(WH));
   check('no registra el cuerpo, ni el enlace, ni el testigo', !/console\.(log|warn|error)\([^)]*(cuerpo|body|recurso|token)/.test(WH));
-  check('NO ESTÁ DESPLEGADO: `index.ts` no lo exporta', !/avisoDeProveedor/.test(leer('functions/src/index.ts')));
+  check('NO ESTÁ DESPLEGADO: `index.ts` no lo exporta —nombrarlo al explicarlo no es exportarlo—', !/avisoDeProveedor/.test(sinComentarios(leer('functions/src/index.ts'))));
 
   check('el testigo se compara bien', mismoTestigo('abc', 'abc') === true);
   check('y mal cuando toca: distinto, vacío, ausente o de otra longitud',
@@ -538,8 +574,22 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
   check('ni una colección nueva de Media Cloud', !['mediaProviders', 'mediaObjects', 'mediaOperations', 'mediaUsage'].some((c) => fs.readdirSync(path.resolve(RAIZ, 'functions/src/runtime')).some((f) => leer(`functions/src/runtime/${f}`).includes(c))));
   check('el cliente no puede leer trabajos', !/match \/jobs\//.test(leer('firestore.rules')) || /allow read: if false/.test(leer('firestore.rules')));
 
-  /* Lo que sigue sin conectar. */
-  check('el reconciliador NO está programado: ninguna tarea lo llama', !fs.readdirSync(path.resolve(RAIZ, 'functions/src/settlement')).some((f) => /reconciliacionDeWee|reconciliarTrabajos/.test(sinComentarios(leer(`functions/src/settlement/${f}`)))));
+  /*
+   * ESTO CAMBIÓ CON EL PASO I. El reconciliador YA está programado: es la red
+   * de seguridad del dinero y se pone antes de saltar, no después. Lo que
+   * sigue sin conectar es todo lo demás.
+   */
+  const PROG = sinComentarios(leer('functions/src/settlement/programado.ts'));
+  const INDEX = sinComentarios(leer('functions/src/index.ts'));
+  check('el reconciliador SÍ está programado, y por la pasada del runtime, no por una suya', /mantenimientoDeWee/.test(PROG));
+  check('la tarea está desplegada', /export \{ barridoDeLiquidacion \} from '\.\/settlement\/programado'/.test(INDEX));
+  check('cada cinco minutos', /every \$\{minutosDelBarrido\(\)\} minutes/.test(PROG) && /SETTLEMENT_SWEEP_MINUTES/.test(PROG));
+  check('el programador dispara y NO decide: ni orden, ni cobros, ni reembolsos, ni desenlaces',
+    !/decidirLiquidacion|decidirReconciliacion|completeCredits|refundCredits|atenderAviso|consultar\(/.test(PROG));
+  check('el ORDEN —preguntar y después liquidar— vive en el runtime, que es donde es correctitud',
+    /const liquidacion = await liquidar\(\)/.test(sinComentarios(leer('functions/src/runtime/index.ts'))));
+  check('y declara SOLO la clave que hace falta para preguntar, no las ocho', /secrets: RECONCILIATION_SECRETS/.test(PROG) && /RECONCILIATION_SECRETS = \[SECRETS\.ARK_API_KEY\]/.test(sinComentarios(leer('functions/src/secrets.ts'))));
+  check('con memoria para traerse un resultado, que es lo que puede acabar haciendo', /memory: '1GiB'/.test(PROG));
   check('la aceptación asíncrona está CERRADA por defecto: nadie la enciende', !/aceptaAsincrono: true/.test(sinComentarios(leer('functions/src/runtime/index.ts'))));
   check('ninguna capacidad de vídeo está migrada: el canary sigue siendo solo texto', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(leer('functions/src/creator/brain.ts')));
   check('el camino de siempre sigue entero: `creatorRun` y el vídeo no pasan por aquí', /pollUntil/.test(leer('functions/src/engine/providers/seedance.ts')) && /videoEngine/.test(leer('functions/src/engine/video.ts')));

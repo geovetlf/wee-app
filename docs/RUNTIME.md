@@ -1585,3 +1585,79 @@ llamada al proveedor.
 - **El reconciliador no está programado.** Ninguna tarea lo llama.
 
 Encender cualquiera de los cuatro es un paso aparte y requiere autorización explícita.
+
+## 17. F12-D · Paso I: la red de seguridad, puesta antes de saltar
+
+Todo lo de la § 16 estaba construido y **nada estaba enchufado**. Este paso enchufa
+exactamente una cosa: una tarea programada que pregunta y liquida. Ni una capacidad
+asíncrona de usuario, ni el receptor de avisos, ni el vídeo.
+
+El orden importa y es deliberado: **la reconciliación se despliega ANTES que el primer
+trabajo asíncrono**. Es lo que impide que un vídeo pagado se quede sin cobrar o sin
+entregar, y una red se pone antes de saltar, no después de caerse.
+
+### 17.1 Una tarea, dos pasadas, un orden que es correctitud
+
+    cada 5 minutos → preguntar (reconciliación) → liquidar (barrendero)
+
+Al revés no sería incorrecto, sería tonto: el barrendero **aparta** lo que no tiene
+desenlace en vez de adivinarlo, así que cada pasada suya miraría trabajos cuya respuesta
+estaba a una pregunta de distancia, y el dinero de un vídeo terminado tardaría una pasada
+de más en cerrarse.
+
+Por eso el orden vive en `runtime/index.ts` (`mantenimientoDeWee`) y **no** en
+`settlement/programado.ts`. Quien programa dispara una pasada; no elige qué pasa dentro.
+El programador no nombra `decidirLiquidacion`, ni `atenderAviso`, ni el Credit Engine —lo
+fija una prueba—, y eso es lo que lo mantiene siendo infraestructura.
+
+Preguntar habla por la red y puede reventar; liquidar no. Así que preguntar va envuelto:
+**un proveedor caído no puede impedir que se cobre lo que ya estaba resuelto.** El fallo
+se cuenta, se dice en el registro, y se reintenta dentro de cinco minutos.
+
+### 17.2 El tope de preguntas
+
+Mirar trabajos es barato —se descartan leyendo lo guardado— pero **preguntar es una
+llamada por la red, en serie, con su propio plazo**. Sin tope, una pasada con muchos
+trabajos esperando se quedaría a medias justo cuando la tarea venciera.
+
+Doce preguntas por pasada, y el número sale de una cuenta: 12 × 30 s = 360 s, dentro de
+los 540 s de la tarea y con sitio para la liquidación que viene detrás. Al llegar al tope
+la pasada **termina y lo dice** (`agotadas`), y los trabajos que no se preguntaron no se
+cuentan como mirados, porque la siguiente pasada tiene que verlos igual. No se pierde
+nada: un trabajo que no se preguntó hoy sigue esperando, y esperar es seguro.
+
+### 17.3 Qué se le dio, y qué no
+
+| | |
+|---|---|
+| Frecuencia | `every 5 minutes` — el valor razonado. `SETTLEMENT_SWEEP_MINUTES` no está puesto en producción, así que rige el de por defecto |
+| Plazo | 540 s |
+| Memoria | **1 GiB**, no 256 MiB |
+| Secretos | **solo `ARK_API_KEY`** |
+| Región | `us-central1`, como todo lo demás |
+
+**La memoria** no es la de una tarea de mantenimiento porque esta tarea puede acabar
+**trayendo** un resultado: si al preguntar resulta que el vídeo está hecho, hay que
+guardarlo antes de que caduque su enlace, y eso pasa por memoria. Es el mismo motivo por
+el que `generateVideo` tiene 1 GiB. Con 256 MiB se moriría justo el día que hiciera falta.
+
+**Los secretos** son uno y no ocho. Esta tarea no genera nada, no llama a ningún modelo y
+no gasta un céntimo: lo único que hace con una clave es una consulta de estado, que es de
+lectura. Darle `AI_SECRETS` entera sería regalar alcance sin motivo, así que hay una lista
+aparte —`RECONCILIATION_SECRETS`— y cuando otro proveedor tenga camino asíncrono, su clave
+se añade ahí y solo ahí.
+
+### 17.4 Lo que este paso NO despliega
+
+- **`avisoDeProveedor` sigue sin exportarse.** El programador no lo necesita, y la regla
+  era no exportar nada por estética. Es una frontera HTTP pública que hoy no puede recibir
+  ningún aviso legítimo, porque no hay ninguna tarea asíncrona en casa de nadie.
+- **Ninguna capacidad asíncrona de usuario.** `CAPACIDAD_DEL_CANARY` sigue siendo
+  `text.generate`; el vídeo sigue por `generateVideo` y su sondeo de siempre.
+- **`aceptaAsincrono` sigue cerrado.** Ningún adaptador acepta y suelta en producción.
+- **El `seedanceCallback` legacy no se tocó.** Sigue guardando su payload en
+  `aiProviderCallbacks` —incluida una URL firmada—, que es deuda conocida del camino de
+  sondeo. El camino nuevo no usa ese mecanismo y nunca lo usará.
+
+Con todo eso, la tarea desplegada **pasa, no encuentra nada y se va**. Es exactamente lo
+que tiene que hacer hasta que exista el primer trabajo asíncrono.

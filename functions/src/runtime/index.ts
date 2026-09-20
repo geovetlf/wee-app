@@ -337,6 +337,70 @@ export const reconciliacionDeWee = (deps: {
   });
 };
 
+/**
+ * LA PASADA DE MANTENIMIENTO DE WEË: PREGUNTAR, Y DESPUÉS LIQUIDAR.
+ *
+ * ── Por qué en este orden, y por qué el orden vive AQUÍ ─────────────────────
+ *
+ * El barrendero cierra el dinero de lo que ya tiene desenlace, y **aparta** lo
+ * que no lo tiene en vez de adivinarlo. El reconciliador es quien consigue ese
+ * desenlace. Al revés, cada pasada del barrendero miraría trabajos cuya
+ * respuesta estaba a una pregunta de distancia, y el dinero de un vídeo
+ * terminado tardaría una pasada más en cerrarse por nada.
+ *
+ * Que sea correctitud —y no una preferencia de quien programa la tarea— es lo
+ * que hace que el orden esté en el runtime y no en la infraestructura. Quien
+ * programa dispara una pasada; no elige en qué orden pasan las cosas dentro.
+ *
+ * ── Ninguna de las dos lanza ────────────────────────────────────────────────
+ *
+ * El barrido ya no lanza nunca (`pasarElBarrendero`). La reconciliación sí
+ * podría, porque habla por la red, así que se envuelve: un proveedor caído no
+ * puede impedir que se liquide lo que ya estaba resuelto. Lo que falla se
+ * cuenta y se vuelve a intentar en la siguiente pasada, que es dentro de unos
+ * minutos.
+ *
+ * ── Dos a la vez ────────────────────────────────────────────────────────────
+ *
+ * Es seguro, y no hay cerrojo. Dos pasadas simultáneas acaban llamando a las
+ * mismas operaciones idempotentes: el Credit Engine por `requestId`, el
+ * material por su identidad calculada, y el motor de trabajos por el CAS del
+ * almacén. Exactamente una transición por operación.
+ */
+export const mantenimientoDeWee = (deps: {
+  db?: Firestore;
+  ahora?: () => number;
+  reconciliacion?: () => Promise<InformeDelReconciliador>;
+  liquidacion?: () => Promise<InformeDeBarrido>;
+  anotar?: (v: { reconciliacion?: InformeDelReconciliador; liquidacion: InformeDeBarrido; falloAlPreguntar: boolean }) => void;
+} = {}) => {
+  /*
+   * PEREZOSO A PROPÓSITO. Solo se pide Firestore si hace falta construir una de
+   * las dos pasadas; con las dos puestas, esto no toca Firebase. Pedirlo
+   * siempre obligaría a tener una app inicializada para componer algo que
+   * quizá ni la use — y eso es lo que hace que una pieza solo se pueda probar
+   * levantando media infraestructura.
+   */
+  const baseDeDatos = () => deps.db ?? getFirestore();
+  const preguntar = deps.reconciliacion ?? (() => reconciliacionDeWee({ db: baseDeDatos(), ...(deps.ahora ? { ahora: deps.ahora } : {}) })());
+  const liquidar = deps.liquidacion ?? (() => barridoDeLiquidacionDeWee({ db: baseDeDatos(), ...(deps.ahora ? { ahora: deps.ahora } : {}) })());
+
+  return async (): Promise<{ reconciliacion?: InformeDelReconciliador; liquidacion: InformeDeBarrido; falloAlPreguntar: boolean }> => {
+    let reconciliacion: InformeDelReconciliador | undefined;
+    let falloAlPreguntar = false;
+    try {
+      reconciliacion = await preguntar();
+    } catch {
+      /* Preguntar salió mal. NO impide liquidar lo que ya estaba resuelto, y no cierra ni devuelve nada. */
+      falloAlPreguntar = true;
+    }
+    const liquidacion = await liquidar();
+    const salida = { ...(reconciliacion ? { reconciliacion } : {}), liquidacion, falloAlPreguntar };
+    deps.anotar?.(salida);
+    return salida;
+  };
+};
+
 export interface ConductorDeWeeDeps {
   db: Firestore;
   ahora?: () => number;

@@ -572,7 +572,16 @@ console.log('\n── H · El programador: dispara una pasada, y nada más ─�
   check('el programador no decide nada: ni cobros, ni reembolsos, ni recuperación, ni propiedad', !/completeCredits|refundCredits|decidirLiquidacion|reclamar|owner|recuperables/.test(PROG));
   check('ni guarda estado entre pasadas', !/^(let|var) /m.test(PROG.replace(/^import[\s\S]*?;$/gm, '')) && !/new Map\(|new Set\(/.test(PROG));
   check('y el runtime no sabe de Firebase Scheduler: la dependencia va al revés', !/onSchedule|firebase-functions/.test(sinComentarios(leer('functions/src/runtime/barrido.ts')) + sinComentarios(leer('functions/src/runtime/barrendero.ts'))));
-  check('NO ESTÁ DESPLEGADO: `index.ts` no exporta la tarea programada', !/settlement|barridoDeLiquidacion/.test(leer('functions/src/index.ts')));
+  /*
+   * ESTO CAMBIÓ CON EL PASO I: la tarea programada SÍ está desplegada. Lo que
+   * NO cambió es qué decide —nada— ni quién decide: sigue siendo `runtime/`.
+   * Se mira el código sin comentarios a propósito: nombrar algo al explicarlo
+   * no es exportarlo, y la comprobación anterior confundía las dos cosas.
+   */
+  const INDEX = sinComentarios(leer('functions/src/index.ts'));
+  check('la tarea programada SÍ está desplegada: `index.ts` la exporta', /export \{ barridoDeLiquidacion \} from '\.\/settlement\/programado'/.test(INDEX));
+  check('y es lo ÚNICO que sale de settlement/: una tarea, no un módulo entero', (INDEX.match(/from '\.\/settlement\//g) || []).length === 1);
+  check('cada cinco minutos, que es el valor razonado y no uno cualquiera', CADA_CUANTO_POR_DEFECTO_MIN === 5 && /every \$\{minutosDelBarrido\(\)\} minutes/.test(PROG));
   check('no hay temporizadores por trabajo, ni sondeo ocupado, ni nada dentro de Brain', !/setInterval|setTimeout/.test(sinComentarios(leer('functions/src/runtime/barrendero.ts'))) && !/barrer|barrendero|sweep/i.test(sinComentarios(leer('functions/src/creator/brain.ts'))));
 }
 

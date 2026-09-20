@@ -141,6 +141,8 @@ const FUNCTIONS = {
   './social/econtact': ['requestEContact', 'acceptEContact'],
   './identity/nacimiento': ['nacimientoDeCuenta'],
   './moderation': ['reportContent', 'moderationAdmin'],
+  /* Paso I: la red de seguridad del dinero. Una tarea programada, no una puerta de usuario. */
+  './settlement/programado': ['barridoDeLiquidacion'],
   './credits': ['getCreditsBalance', 'getCreditHistory', 'getCreditCost', 'spendCredits', 'grantCredits', 'refundCredits', 'validatePurchase', 'restorePurchase', 'creditsAdmin'],
   '(index)': ['sendPushNotification', 'sendMessagePushNotification'],
 };
@@ -200,7 +202,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta: las veintiocho de antes y las dos de moderación', reales.length === 30, `${reales.length}`);
+  check('5) y son treinta y una: las treinta de antes y el barrido programado del paso I', reales.length === 31, `${reales.length}`);
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
   check('7) ninguna Function sale de una composición del Core que no esté conectada',

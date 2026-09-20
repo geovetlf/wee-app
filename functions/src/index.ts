@@ -107,6 +107,25 @@ export { nacimientoDeCuenta } from './identity/nacimiento';
  */
 export { reportContent, moderationAdmin } from './moderation';
 
+/*
+ * WEË RUNTIME · LA RED DE SEGURIDAD DEL DINERO (docs/RUNTIME.md § 17).
+ *
+ * Una tarea programada, cada cinco minutos, que hace dos cosas y ninguna más:
+ * le pregunta al proveedor qué fue de las tareas de las que no se sabe nada, y
+ * después cierra el dinero de las que ya tienen desenlace. Nada de lo que
+ * decide está aquí ni está en `settlement/`: vive en `runtime/`, es puro y se
+ * prueba sin levantar nada.
+ *
+ * SE DESPLIEGA ANTES QUE EL PRIMER TRABAJO ASÍNCRONO a propósito: una red se
+ * pone antes de saltar. Mientras no haya ninguno —y hoy no hay— pasa, no
+ * encuentra nada y se va.
+ *
+ * Lo que esta línea NO despliega: ninguna capacidad asíncrona de usuario, el
+ * receptor de avisos de proveedor (`avisoDeProveedor`, que sigue sin
+ * exportarse) y ningún cambio en el vídeo, que sigue por el camino de siempre.
+ */
+export { barridoDeLiquidacion } from './settlement/programado';
+
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
   getCreditsBalance,
