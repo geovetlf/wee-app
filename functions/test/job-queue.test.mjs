@@ -378,8 +378,24 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     ['QueueMessage', 'QueueDelivery', 'QueuePort', 'WorkerConfig'].every((n) => interfaz(n, leer('functions/src/core/job-queue.ts')).length > 0 && !PROHIBIDOS.test(sinComentarios(interfaz(n, leer('functions/src/core/job-queue.ts'))))));
   check('62) la identidad de quien actúa sale del almacén, no del mensaje', /const principal: Principal = \{ userId: job\.owner\.userId/.test(WORKER) && !/mensaje\.(userId|accountId|owner|principal)/.test(WORKER));
 
-  const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/job.ts functions/src/job/index.ts functions/src/core/workflow.ts functions/src/core/orchestrator.ts functions/src/core/router.ts functions/src/core/gateway.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
-  check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Workflow, Orchestrator, Router, Gateway, Financial y Credits son los del commit desplegado', tocados === '', tocados);
+  const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/job.ts functions/src/job/index.ts functions/src/core/workflow.ts functions/src/core/orchestrator.ts functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
+  check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Workflow, Orchestrator, Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
+  /*
+   * EL GATEWAY SALIÓ DE ESA LISTA A PROPÓSITO (F12-D, endurecimiento previo a la
+   * migración), y por UNA cosa: `leerTraza` —de la Fase 2— se comía en silencio
+   * los cinco campos que la Fase 10 añadió a la traza. Es un defecto demostrado de
+   * una fase cerrada, y se corrigió con autorización. Lo que se vigila ahora es que
+   * sea eso y NADA MÁS: un import, y cambios solo dentro de esa función.
+   */
+  const delGateway = execSync('git diff -U0 c3515b3 -- functions/src/core/gateway.ts', { cwd: RAIZ, encoding: 'utf8' });
+  const trozos = delGateway.split('\n').filter((l) => l.startsWith('@@'));
+  const añadidas = delGateway.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
+  const quitadas = delGateway.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1));
+  const fueraDeLeerTraza = trozos.filter((t) => !/leerTraza/.test(t));
+  check('63b) y del Gateway cambió SOLO `leerTraza`: un import, y el resto dentro de esa función',
+    trozos.length > 0 && fueraDeLeerTraza.length === 1 && añadidas.includes("import { esTipoDeEntidad } from './identity';")
+    && quitadas.length === 1 && /for \(const opcional of \[/.test(quitadas[0]),
+    `${trozos.length} trozos · fuera de leerTraza: ${fueraDeLeerTraza.length} · líneas quitadas: ${quitadas.length}`);
   check('64) sigue habiendo UN motor de trabajos y UN almacén por contrato: aquí no se escribió un segundo', !/crearJobEngine\s*=|createJobEngine|implements JobStore|crearSiAusente\s*[:(]/.test(PUERTOS + WORKER) && /crearJobEngine/.test(leer('functions/src/core/job.ts')));
   const fuentes = (dir) => fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fuentes(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
   /*

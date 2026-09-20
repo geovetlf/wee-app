@@ -209,6 +209,8 @@ export interface PasoDelConductor {
   origenDeLaRuta?: 'router' | 'cadena';
   /** Lo que contestó el proveedor. SOLO en la invocación que lo ejecutó: no se guarda en ningún sitio. */
   respuesta?: CanonicalResponse;
+  /** Lo sirvió un proveedor INTERNO: es una muestra, no un resultado. Lo dice el registro, no quien lo pide. */
+  sintetico?: boolean;
   usage?: GatewayUsage;
   outputRefs: readonly string[];
   error?: WeeError;
@@ -545,6 +547,7 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
           ...(implementation ? { implementation } : {}),
           ...(origen ? { origenDeLaRuta: origen } : {}),
           ...(gateway?.response ? { respuesta: gateway.response } : {}),
+          ...(gateway?.implementation.type === 'internal' ? { sintetico: true } : {}),
           ...(gateway?.usage ?? ultimo?.usage ? { usage: gateway?.usage ?? ultimo?.usage } : {}),
           outputRefs: paso.outputRefs ?? [],
           ...(error ? { error } : {}),

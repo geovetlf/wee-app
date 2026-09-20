@@ -278,6 +278,17 @@ console.log('\n── P2b · F12-D: la misma medida, con la capa de compatibilid
   /* Y aquí SÍ cambiaría el producto: hoy devuelven una muestra; el Core no da por elegible un resultado sintético. No se migran sin decidirlo. */
   check('28) y ahí el Core contesta «no hay con qué», con capa y sin ella: migrarlas apagaría el modo demo', igual([...demoEnElCore], ['✘ unavailable']), [...demoEnElCore].join(' | '));
   check('29) PUERTA Router + capa de compatibilidad: ABIERTA a nivel de decisión para las 21', igualesConCapa.length === 21 && respaldoDistinto.length === 0 && sinEstimar.length === 0);
+
+  /* La capa de Policy & Eligibility (endurecimiento previo a la migración) arranca SIN reglas, y sin reglas no puede mover nada. */
+  const { politicaPorReglas, SIN_REGLAS } = lib('runtime/politica.js');
+  const conPolitica = resolutorPorCadena(router, cadena, politicaPorReglas(SIN_REGLAS));
+  const movidas = [];
+  for (const capability of Object.keys(DEFAULT_ROUTING)) {
+    const a = await conCapa.resolver({ peticion: { capability, trace }, input: {} });
+    const b = await conPolitica.resolver({ peticion: { capability, trace }, input: {} });
+    if (id(a) !== id(b) || (a.ok && b.ok && JSON.stringify(a.alternatives) !== JSON.stringify(b.alternatives))) movidas.push(capability);
+  }
+  check('29b) y con la capa de política puesta —sin reglas, que es lo que hay— el resultado es IDÉNTICO en las 28: no inventa restricciones', movidas.length === 0, movidas.join(', '));
 }
 
 console.log('\n── P3 · El documento dice lo mismo ──');

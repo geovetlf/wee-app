@@ -462,9 +462,9 @@ Ninguno se arregla en este bloque. Se dejan medidos.
 
 ## 11. F12-D · El conductor — primer tramo
 
-> **TODO LO DE ESTA SECCIÓN ES LOCAL.** Está escrito, compilado y probado —109
-> comprobaciones con los motores de verdad y un proveedor de mentira, y 55 contra el
-> emulador de Firestore—. **No está desplegado, ningún callable lo importa y ninguna
+> **TODO LO DE ESTA SECCIÓN ES LOCAL.** Está escrito, compilado y probado —108
+> comprobaciones con los motores de verdad y un proveedor de mentira, y 71 contra el
+> emulador de Firestore, contadas sin la línea de cierre de cada suite—. **No está desplegado, ningún callable lo importa y ninguna
 > capacidad se ha migrado.** Donde dice «hace», léase «hace en las pruebas».
 
 ### 11.1 Auditoría previa (D0): por dónde pasa hoy cada cosa
@@ -666,7 +666,7 @@ transacción de Credits por `requestId`. Nada lleva claves, tokens ni el texto d
 
 | Dónde | Qué | Clase | Cómo se convive |
 |---|---|---|---|
-| `leerTraza` (F2) | conserva nueve campos y **descarta sin avisar** `accountId`, `entityId`, `entityType`, `operationId` y `workspaceId`, que la F10 añadió a la traza | COMPATIBILITY | van en el contexto del trabajo, que sí los guarda |
+| `leerTraza` (F2) | conservaba nueve campos y **descartaba sin avisar** `accountId`, `entityId`, `entityType`, `operationId` y `workspaceId`, que la F10 añadió a la traza | COMPATIBILITY | **CORREGIDO** en el endurecimiento previo a la migración (§ 12.4), con autorización. Es el único cambio hecho a una fase cerrada |
 | `Tracer` del Gateway (F2) | sin uso, y con `attempt: 1` fijo: no sirve como libro | COMPATIBILITY | el libro entra por el puerto del ejecutor |
 | Gateway (F2) | `accepted` está declarado y **ninguna ruta lo produce** | **BLOCKER para el vídeo** | no afecta al texto |
 | Gateway (F2) | la clave de idempotencia **no llega al adaptador**; al vencer no se aborta la llamada | NON-BLOCKING | igual que hoy |
@@ -686,17 +686,241 @@ Hoy la puerta no la consulta nadie. Es una función pura con sus pruebas.
 
 ### 11.13 Lo que NO se sabe todavía
 
-- Si Firestore de producción sirve **sin índice compuesto** las dos consultas del
-  almacén. El emulador no lo exige, así que allí no se puede comprobar: **NOT VERIFIED**.
+- ~~Si Firestore de producción sirve sin índice compuesto las consultas del almacén.~~
+  **VERIFICADO** contra producción, en solo lectura (§ 12.2).
 - Cuánto añade el conductor a la latencia de un mensaje de Weë Brain: tres escrituras
   de trabajo más las de la ejecución, contra cero de hoy. **NOT YET MEASURED.**
-- Si el contexto de una conversación larga cabe siempre en los 128 KiB que admite la
-  entrada de un trabajo. **NOT VERIFIED.**
-- **Qué texto de la persona acabaría guardado.** Un trabajo guarda su ENTRADA —hace
-  falta para poder ejecutarlo tras una caída— y su huella de idempotencia lleva el
-  principio de esa entrada. Para Weë Brain eso sería el mensaje y su historial,
-  duplicados en `jobs/`, cuando hoy el libro evita a propósito guardar ese texto
-  (`creator/brain.ts:358`). Antes de migrar Brain hay que decidir si la entrada viaja
-  como **referencia** (`chatId`, `messageId`) y se resuelve al ejecutar, y cuánto vive
-  un trabajo terminado. **No decidido, y bloquea el paso 5.**
+- ~~Si el contexto de una conversación larga cabe en la entrada de un trabajo~~ y
+  ~~qué texto de la persona acabaría guardado.~~ **RESUELTO**: el contexto viaja por
+  referencia y en `jobs/` no queda ni una palabra de la conversación (§ 12.1).
+- Cuánto vive un trabajo terminado. No hay recogida todavía. **No decidido**; ya no
+  guarda texto de nadie, así que dejó de ser urgente.
 - Nada de esto ha corrido contra un proveedor real.
+
+---
+
+## 12. F12-D · Endurecimiento previo a la migración
+
+> Antes de conectar Weë Brain. **Sigue siendo todo local**: nada desplegado, ningún
+> callable tocado, la puerta cerrada y sin consultar. La única interacción con
+> producción fue de **solo lectura**, para comprobar consultas (§ 12.2).
+> Lo vigila `functions/test/runtime-premigracion.test.mjs` (116 comprobaciones) y la
+> sección J de la suite del emulador.
+
+### 12.1 El contexto de un trabajo viaja por referencia
+
+Un trabajo guarda su entrada: hace falta para ejecutarlo tras una caída. Para un
+mensaje de Weë Brain esa entrada sería el mensaje y su historial, copiados en `jobs/`:
+una segunda base de conversaciones, con otro ciclo de vida y otras reglas. **No se
+hace.** El trabajo guarda *dónde* está el contexto:
+
+```
+{ contextRef: { kind: 'brain.message', chatId, messageId, entityId?, quotedInputHash? }, locale? }
+```
+
+y el ejecutor lo **resuelve** contra la fuente de verdad —`brainChats/{chatId}` y sus
+`messages`, que ya existen y ya tienen dueño— justo antes de bajar al Gateway. Lo
+resuelto vive en memoria lo que dura la llamada y no se guarda en ningún sitio.
+Comprobado de punta a punta sobre Firestore: en `jobs/` y `workflowRuns/` no queda ni
+una palabra de la conversación, ni en la huella de idempotencia.
+
+| | |
+|---|---|
+| `runtime/contexto.ts` | la referencia, su lector estricto, el resolutor y la huella de una entrada. Puro: solo puertos |
+| `runtime/conversaciones.ts` | el puerto de **solo lectura** sobre `brainChats`. No es otro almacén ni una copia, y no tiene ni una escritura |
+
+**Estable por construcción.** La referencia está en el trabajo *guardado*: un
+reintento, una recuperación tras caducar la concesión, una entrega repetida u otro
+proceso resuelven lo mismo. No depende de la memoria de nadie.
+
+**El historial «anterior a».** Hoy el historial se lee antes de guardar el mensaje de
+la persona. Para reconstruirlo idéntico después, se piden los mensajes cuya fecha es
+anterior a la de *ese* mensaje, con la precisión con que la guarda Firestore
+(microsegundos). Si dos mensajes llegaran a empatar, no se adivina el orden: la huella
+no coincide y el trabajo falla sin salir hacia ningún proveedor.
+
+**Lo que se cotizó es lo que se ejecuta.** El precio de un mensaje se calcula sobre
+la entrada exacta del motor. Si la referencia trae la huella (`sha256`) de esa entrada,
+lo reconstruido tiene que dar la misma; si no —alguien escribió entre medias— el paso
+falla con `context_changed`, **sin haber salido**, y no se reintenta. La función que
+construye la entrada entra por un puerto y es **la misma que cotiza**: si cotizar y
+ejecutar la construyeran por caminos distintos, un día dejarían de coincidir.
+
+**Saber una referencia no da derecho a leerla.**
+
+| Caso | Qué pasa |
+|---|---|
+| La conversación es de la cuenta dueña del trabajo | se resuelve |
+| Es de otra cuenta | `context_not_found`, y no se le lee ni un mensaje |
+| No existe | **exactamente la misma respuesta**: no se dice ni que exista |
+| El mensaje es de otra conversación, aunque sea de la misma persona | `context_not_found` |
+| Referencia modificada, con una barra, con una clave de más, de otra clase | `invalid_context_ref`, sin tocar la base de datos |
+| Trae una cara (`entityId`) que es suya y está activa | se resuelve — con la **misma regla que la moderación** (`actorDeLaCuenta`) |
+| Trae una cara ajena, retirada, o no hay quien lo compruebe | `entity_not_owned` |
+| El trabajo tiene referencia y el ejecutor no tiene resolutor | **no se ejecuta**: una referencia no se le manda al proveedor como si fuera el encargo |
+
+La cuenta contra la que se comprueba sale del **trabajo guardado**, nunca de la traza
+ni de la referencia. No es un detalle: `job.crear` no exige que `trace.userId` coincida
+con el dueño, así que la traza es un dato que viajó y nada más. Hay una prueba con la
+traza diciendo «Ana» y el almacén diciendo que el trabajo es de otro: manda el almacén.
+
+### 12.2 Consultas e índices — comprobado contra producción, en solo lectura
+
+El emulador no exige índices, así que allí no se podía saber. Se lanzó cada consulta
+real del runtime contra Firestore de `get-wee` con `select()` —sin traer ningún
+campo— y contra rutas que no tocan datos de nadie: `jobs` y `workflowRuns` no existen
+todavía, y la subcolección de mensajes se consultó bajo un chat inexistente. Un
+guardián bloqueaba cualquier escritura antes de salir de la máquina.
+
+Firestore decide si una consulta necesita índice **por su forma**, antes de mirar
+datos. Para que eso no fuera una suposición hubo un **control**: una consulta que sí
+exige un índice compuesto que no existe. Falló con `FAILED_PRECONDITION: The query
+requires an index` sobre una colección que no existe — el método vale.
+
+| Consulta | ¿Índice? | ¿Presente? | Resultado |
+|---|---|---|---|
+| `jobs/{id}` · `workflowRuns/{id}` · `brainChats/{id}` · `messages/{id}` | no | — | SERVIDA |
+| `jobs where jobId == ? limit 1` | campo único | automático | SERVIDA |
+| `jobs where terminal == false orderBy __name__ limit n` (+ `startAfter`) | campo único | automático | SERVIDA |
+| `count(jobs where state == 'running')` | campo único | automático | SERVIDA |
+| `count(… state == 'running' and ownerUserId == ?)` | fusión de campo único | automático | SERVIDA |
+| `count(… state == 'running' and providerId == ?)` | fusión de campo único | automático | SERVIDA |
+| `count(… state == 'queued' and ownerUserId == ?)` | fusión de campo único | automático | SERVIDA |
+| `messages where createdAt < ? orderBy createdAt desc limit n` | campo único | automático | SERVIDA |
+| **CONTROL** `jobs where state == ? orderBy updatedAt desc` | COMPUESTO | **no existe** | `FAILED_PRECONDITION` |
+
+**13 consultas, 13 servidas, 0 índices que crear, 0 escrituras.** `firestore.indexes.json`
+no cambia. La decimocuarta lectura del runtime, `entities/{id}` —de quién es una cara—,
+es una lectura por identificador y no se sondeó aparte: una lectura así no usa índice. Una recomendación, **sin aplicar**: exentar de indexado `jobs.json`,
+`workflowRuns.runJson` y `workflowRuns.workflowJson`. Son textos largos que nadie
+consulta, y Firestore los indexa truncados a 1.500 bytes en cada escritura. No rompe
+nada; cuesta escrituras de índice. Es un cambio de infraestructura y espera decisión.
+
+### 12.3 `accepted`: auditado, acotado, y sin cambio
+
+| | |
+|---|---|
+| ¿Dónde se declara? | `GatewayStatus = 'completed' \| 'failed' \| 'accepted'` (`core/gateway.ts`) |
+| ¿Qué produce hoy el Gateway? | **solo `completed` y `failed`**. Su puerto hacia los adaptadores no tiene forma de decir otra cosa: `ExecutorOutcome` es «salió bien, con respuesta» o «salió mal, con error» |
+| ¿Quién lo consume? | únicamente `informeDelGateway` (`job/index.ts`), que lo traduce a un intento `unknown` → trabajo `waiting` |
+| ¿El trabajador? ¿el Job Engine? ¿el Orchestrator? | ninguno mira el estado del Gateway. El trabajador consume el informe del intento; el Job Engine, avisos del proveedor (`recibirEvento`), que es otro camino; el Orchestrator, desenlaces de paso |
+| ¿Lo necesita Weë Brain? | **no.** `text.generate` y `text.search` se contestan en la misma llamada |
+| ¿Qué bloquea? | lo asíncrono: el vídeo. Dárselo al Gateway es diseñar la ejecución asíncrona entera —una variante nueva del puerto, adaptadores que no sondeen, y quien reciba el aviso del proveedor— |
+
+**Decisión: no se toca.** No es obligatorio para lo que se va a migrar, y producirlo
+«un poco» sería peor que no producirlo. Queda vigilado por pruebas en los seis casos
+—éxito, error del proveedor, fallo de la petición, plazo, respuesta mal formada y
+`accepted`—, y con esto demostrado: si un día el Gateway lo contestara, **el runtime ya
+es seguro** — el trabajo queda esperando, el paso sigue `running`, no se repite la
+llamada y la invocación no se queda esperando al plazo.
+
+### 12.4 La traza: F2 conserva lo que añadió F10
+
+`leerTraza` copiaba nueve campos por su nombre. La Fase 10 añadió cinco a la traza y
+nadie tocó el lector: desaparecían en el primero, sin error, y por ese lector pasa toda
+traza que entra en Brain, Workflow, Orchestrator, Router, Job Engine y Gateway.
+
+Ahora los conserva. Tres cosas a propósito:
+
+- **Solo si vienen.** Una traza que no los trae sale exactamente como salía, clave por
+  clave. Weë Brain —que es producción y pasa por este lector— no nota el cambio, y las
+  seis suites del Core que leen trazas siguen verdes sin tocarlas.
+- **`accountId` tiene que ser `userId`.** El contrato dice «mismo valor». Mientras el
+  lector lo tiraba daba igual lo que trajera; conservarlo sin comprobarlo abriría una
+  puerta que estaba cerrada por accidente, porque `cuentaDeTraza()` prefiere
+  `accountId`. Una traza con la cuenta de otro **no vale entera**: no se «corrige».
+- **`entityType` tiene que ser uno de los tres que existen.**
+
+Es el **único cambio hecho a una fase cerrada**, con autorización y con el defecto
+demostrado. `job-queue` 63b vigila que de `core/gateway.ts` haya cambiado eso y nada más.
+
+### 12.5 Policy & Eligibility
+
+```
+candidato del Router → ELEGIBILIDAD / POLÍTICA → política de ruteo → implementación
+```
+
+Una capa muy ligera (`runtime/politica.ts`), y antes que ella, quién es dueño de qué:
+
+| Comprobación | Dueño | Por qué |
+|---|---|---|
+| capacidad compatible · proveedor habilitado · modelo habilitado · adaptador activo | **Router** | se deduce del registro: `puedeEjecutarse` y `getCapabilityImplementations` |
+| idioma · modalidad · duración · calidad mínima · presupuesto | **Router** | filtros duros que ya tenía |
+| región **técnica**: dónde declara servir un modelo | **Router** | `constraints.region` contra las `regions` del registro |
+| una **restricción explícita**: un contrato, una decisión, un aviso legal | **Política** | el registro no puede saberlo: es una regla, con su fuente |
+
+La capa **no repite ningún filtro del Router**. Sus veredictos se *leen* de su
+decisión, y a la política solo se le pregunta por los candidatos que el Router ya dio
+por buenos. Cada veredicto dice quién lo dio (`router` o `policy`) y, si fue una regla,
+cuál y de dónde sale. La política solo quita: no reordena ni puntúa.
+
+**No inventar.** Sin una regla conocida no se bloquea nada. No hay lista de países, ni
+geolocalización, ni servicio externo. Si una regla depende de la región y la petición
+no trae región, **la regla no aplica**: no saber dónde está alguien no es saber que
+está donde no se puede. Una regla sin fuente invalida la lista entera —media lista de
+restricciones es peor que ninguna, porque parece que se cumple—. Es determinista y
+síncrona: no lee el reloj, no tira dados y no sale a la red.
+
+**Hoy Weë no tiene ninguna regla de este tipo**, y la composición arranca con la lista
+vacía. Medido: con la capa puesta, el resultado es idéntico en las 28 capacidades.
+
+**Política de ruteo del Core frente a la de compatibilidad con producción.** Son dos
+cosas y conviven sin tocarse. La del **Core** puntúa: calidad, velocidad, coste,
+disponibilidad. La de **compatibilidad** (`runtime/resolucion.ts`) obedece la cadena
+de producto, que es lo que producción hace hoy. `core/router.ts` no se modificó para
+acercar una a la otra, y la paridad sigue en **21 de 21**. Las siete MISSING PROVIDER
+siguen siéndolo: ni adaptadores, ni modelos, ni precios inventados.
+
+### 12.6 Credits: demostrado con el Credit Engine de verdad
+
+`runtime/pensador.ts` es la otra implementación de `Thinker` —la que pasa por el
+conductor—, para que el día del canary cambiar de camino sea cambiar de pensador y nada
+más. **No está enchufado.**
+
+La prueba monta el **Credit Engine real** sobre un Firestore en memoria y reproduce la
+contabilidad de `creator/brain.ts` paso a paso:
+
+| Caso | Resultado |
+|---|---|
+| Búsqueda, sale bien | reserva → ejecuta → cobra **una** vez |
+| Búsqueda, el proveedor falla | reembolso entero; el error que sube es el del Core, con su código |
+| Conversación: 11 de cada 12 | no cobran; la duodécima cobra el Credit del bloque — igual que hoy |
+| Conversación, falla la que cerraba el bloque | ni se cobra ni se gasta el bloque |
+| El mismo mensaje otra vez | ni doble reserva, ni doble cobro, ni doble ejecución |
+| Dos invocaciones a la vez | el proveedor se llama una vez; respuesta entregada y cobrada **una** vez |
+| Salió y no se sabe | ni se reembolsa ni se cobra: la reserva se queda `AUTHORIZED`, como hoy cuando el proceso muere |
+
+**El hallazgo.** Hoy `creator/brain.ts` reembolsa en su `catch` *siempre* que el
+pensador lance. Con el motor de siempre es correcto: un error significa que la única
+invocación que existe no consiguió nada. **Con trabajos ya no basta.** Dos
+invocaciones del mismo mensaje comparten un trabajo: mientras una ejecuta, la otra
+llega, lo encuentra en marcha, no tiene nada que devolver y lanza. Si su `catch`
+reembolsa, deshace la reserva de la que sí está ejecutando, cuyo `completeCredits` no
+hace nada después sobre una transacción ya reembolsada: **respuesta entregada, nada
+cobrado, ningún error a la vista.** La suite lo reproduce como CONTROL: con la regla de
+hoy, esa carrera entrega la respuesta gratis.
+
+Por eso el pensador no lanza un error cualquiera: lanza uno que dice si reembolsar es
+**seguro** — `true` solo cuando el trabajo terminó mal o nunca llegó a existir, y
+`false` cuando salió y no se sabe, lo tiene otro proceso o ya terminó en otra
+invocación. La regla con la que se enchufe al callable será una línea: *reembolsar
+solo si `reembolsoSeguro`*. Aquí se decidió y se probó; enchufarlo es del canary.
+
+No se tocó el Financial Core, ni el Credit Engine, ni los precios, ni la política de
+un Credit cada doce respuestas. La suite comprueba, leyendo el fuente, que
+`creator/brain.ts` sigue teniendo la forma que el modelo reproduce.
+
+### 12.7 Lo que sigue sin poder migrarse, y por qué
+
+> **EL SISTEMA NO ESTÁ PREPARADO PARA MOVER OPERACIONES LARGAS A TRABAJADORES
+> ASÍNCRONOS.** La reserva y la liquidación de Credits dependen del `catch` del
+> callable: si el callable devuelve antes de conocer el desenlace, nadie liquida. Y la
+> regla de abandono de hoy reembolsaría por debajo un trabajo que sigue vivo (§ 11.9).
+
+Por eso **no se migra vídeo, ni ninguna operación de larga duración, ni `creatorRun`**,
+y **no se resuelve modificando el Financial Core**: es un bloque posterior del Runtime
+Consolidation —liquidación que viaja con el trabajo, barrendero programado, `accepted`
+en el Gateway—. El avatar tampoco: sigue fuera del motor y necesita antes su adaptador.
+
+Lo único que este tramo deja listo es el canary de `brainChat → text.generate`, que es
+síncrono y cuya liquidación se queda exactamente donde está.

@@ -15,6 +15,9 @@
  *   G · El conductor ENTERO sobre Firestore: termina, retoma y no repite.
  *   H · Cuánto hay en marcha: solo se cuenta lo que alguien va a comparar.
  *   I · Las reglas: un cliente no lee ni escribe trabajos ni ejecuciones.
+ *   J · El contexto por referencia, contra la conversación de verdad: fechas de
+ *       Firestore (microsegundos), propiedad, la regla de entidades de la
+ *       moderación, y de punta a punta sin que quede una palabra en `jobs/`.
  *
  * No está en `npm test` a propósito: necesita el emulador y Java 21.
  *
@@ -277,6 +280,86 @@ console.log('\n── I · Las reglas ──');
   ];
   for (const [nombre, res] of casos) check(nombre, res.status === 403, String(res.status));
   check('y el trabajo sigue exactamente como estaba', igual(await store.obtener(mio.jobId), JSON.parse(JSON.stringify(mio))));
+}
+
+/* ── J ─────────────────────────────────────────────────────────────────────── */
+console.log('\n── J · El contexto por referencia, contra la conversación DE VERDAD ──');
+{
+  await vaciar();
+  const { conversacionesDeBrain, entidadesDeWee } = lib('runtime/conversaciones.js');
+  const { resolutorDeBrain, huellaDeEntrada, CLAVE_DE_REFERENCIA } = lib('runtime/contexto.js');
+  const { Timestamp } = require('firebase-admin/firestore');
+  const borrar = async (ruta) => { const s = await db.collection(ruta).get(); await Promise.all(s.docs.map((d) => d.ref.delete())); };
+  for (const c of ['chatDeAna0001', 'chatDelOtro0001']) await borrar(`brainChats/${c}/messages`);
+  await borrar('brainChats'); await borrar('entities');
+
+  /* La conversación, escrita como la escribe `creator/brain.ts`: fechas de Firestore, el mensaje de la persona y la respuesta de Weë. */
+  const SECRETO = 'esto lo escribió Ana y no es de nadie más';
+  const chat = db.collection('brainChats').doc('chatDeAna0001');
+  await chat.set({ userId: 'usuario1', title: 'hola', messageCount: 0, createdAt: Timestamp.fromMillis(1000), updatedAt: Timestamp.fromMillis(1000) });
+  const ms = chat.collection('messages');
+  await ms.doc('msg_0001').set({ role: 'user', text: 'primer mensaje', createdAt: new Timestamp(10, 1000) });
+  await ms.doc('msg_0001_wee').set({ role: 'wee', text: 'primera respuesta', createdAt: new Timestamp(10, 2000) });
+  /* Los cuatro en el MISMO milisegundo y en microsegundos distintos —que es la precisión con la que guarda Firestore—: si la fecha se redondeara a milisegundos, se mezclarían. */
+  await ms.doc('msg_0002').set({ role: 'user', text: SECRETO, imageUrl: 'https://almacen.invalido/u/foto.png', webSearch: false, createdAt: new Timestamp(10, 3000) });
+  await ms.doc('msg_0002_wee').set({ role: 'wee', text: 'respuesta POSTERIOR: no es historial de msg_0002', createdAt: new Timestamp(10, 4000) });
+  await db.collection('brainChats').doc('chatDelOtro0001').set({ userId: 'intruso9', createdAt: Timestamp.fromMillis(1), updatedAt: Timestamp.fromMillis(1) });
+  await db.collection('brainChats').doc('chatDelOtro0001').collection('messages').doc('msg_7001').set({ role: 'user', text: 'del otro', createdAt: new Timestamp(5, 0) });
+  await db.collection('entities').doc('ent_ynpwrhg3eeprae0zntc5ema9b0').set({ entityId: 'ent_ynpwrhg3eeprae0zntc5ema9b0', entityType: 'WEE_PROFILE', ownerAccountId: 'usuario1', status: 'ACTIVE' });
+  await db.collection('entities').doc('ent_ynpwrhg3eeprae0zntc5ema9b1').set({ entityId: 'ent_ynpwrhg3eeprae0zntc5ema9b1', entityType: 'PAGE', ownerAccountId: 'usuario1', status: 'DELETED' });
+  await db.collection('entities').doc('ent_ynpwrhg3eeprae0zntc5ema9b2').set({ entityId: 'ent_ynpwrhg3eeprae0zntc5ema9b2', entityType: 'REAL_PROFILE', ownerAccountId: 'intruso9', status: 'ACTIVE' });
+
+  const fuente = conversacionesDeBrain(db);
+  check('el dueño de una conversación se lee de ella', (await fuente.duenoDe('chatDeAna0001')) === 'usuario1' && (await fuente.duenoDe('noExiste')) === undefined);
+  const anteriores = await fuente.anterioresA('chatDeAna0001', 'msg_0002', 12);
+  check('el historial ANTERIOR a un mensaje: los dos de antes, en orden, y NI el propio mensaje NI lo que vino después', anteriores.map((m) => m.text).join('|') === 'primer mensaje|primera respuesta');
+  check('con la fecha tal como la guarda Firestore: cuatro mensajes en el mismo milisegundo no se mezclan', (await fuente.anterioresA('chatDeAna0001', 'msg_0001_wee', 12)).length === 1 && (await fuente.anterioresA('chatDeAna0001', 'msg_0001', 12)).length === 0);
+  check('y respeta el tope de turnos', (await fuente.anterioresA('chatDeAna0001', 'msg_0002_wee', 2)).map((m) => m.text).join('|') === `primera respuesta|${SECRETO}`);
+  const elMensaje = await fuente.mensaje('chatDeAna0001', 'msg_0002');
+  check('un mensaje vuelve con lo que guarda la conversación, adjuntos incluidos', elMensaje.role === 'user' && elMensaje.text === SECRETO && elMensaje.imageUrl.endsWith('foto.png'));
+  check('un mensaje de OTRA conversación no está en esta', (await fuente.mensaje('chatDeAna0001', 'msg_7001')) === undefined);
+
+  const entidades = entidadesDeWee(db);
+  check('ENTIDADES, con la regla de la moderación: suya y activa, sí', (await entidades.esDeLaCuenta('usuario1', 'ent_ynpwrhg3eeprae0zntc5ema9b0')) === true);
+  check('de otro, NO · retirada, NO · inexistente, NO', !(await entidades.esDeLaCuenta('usuario1', 'ent_ynpwrhg3eeprae0zntc5ema9b2')) && !(await entidades.esDeLaCuenta('usuario1', 'ent_ynpwrhg3eeprae0zntc5ema9b1')) && !(await entidades.esDeLaCuenta('usuario1', 'ent_ynpwrhg3eeprae0zntc5ema9b3')));
+
+  const construirEntrada = ({ mensaje, historial, locale }) => ({ system: `Weë Brain · ${locale ?? 'es'}`, prompt: mensaje.text, history: historial, imageUrl: mensaje.imageUrl, kind: 'answer' });
+  const resolutor = resolutorDeBrain({ conversaciones: fuente, entidades, construirEntrada, turnos: 12 });
+  const REF = { kind: 'brain.message', chatId: 'chatDeAna0001', messageId: 'msg_0002' };
+  const propia = await resolutor.resolver({ ownerUserId: 'usuario1', input: { [CLAVE_DE_REFERENCIA]: REF } });
+  check('el resolutor, sobre Firestore: la dueña recibe su mensaje y su historial', propia.ok && propia.input.prompt === SECRETO && propia.input.history.length === 2 && propia.input.history[1].role === 'model');
+  const ajena = await resolutor.resolver({ ownerUserId: 'intruso9', input: { [CLAVE_DE_REFERENCIA]: REF } });
+  const fantasma = await resolutor.resolver({ ownerUserId: 'usuario1', input: { [CLAVE_DE_REFERENCIA]: { ...REF, chatId: 'noExiste0001' } } });
+  check('otra cuenta NO, y contesta lo mismo que si no existiera', !ajena.ok && !fantasma.ok && JSON.stringify(ajena.error) === JSON.stringify(fantasma.error));
+  check('con una cara ajena, o retirada, tampoco', !(await resolutor.resolver({ ownerUserId: 'usuario1', input: { [CLAVE_DE_REFERENCIA]: { ...REF, entityId: 'ent_ynpwrhg3eeprae0zntc5ema9b2' } } })).ok && !(await resolutor.resolver({ ownerUserId: 'usuario1', input: { [CLAVE_DE_REFERENCIA]: { ...REF, entityId: 'ent_ynpwrhg3eeprae0zntc5ema9b1' } } })).ok);
+  const huella = huellaDeEntrada(propia.input);
+  check('lo cotizado es lo ejecutado: la huella coincide al resolver otra vez —otro proceso, un reintento—', (await resolutor.resolver({ ownerUserId: 'usuario1', input: { [CLAVE_DE_REFERENCIA]: { ...REF, quotedInputHash: huella } } })).ok);
+
+  /* Y DE PUNTA A PUNTA: conductor + almacén de Firestore + conversación de Firestore. */
+  const llamadas = [];
+  const adapters = { x: { id: 'x', name: 'x', modalities: ['text'], models: [{ id: 'x-1', provider: 'x', capabilities: ['text.generate'], quality: 3, speed: 3, cost: { unit: 'call', usd: 0.01 } }], isConfigured: () => true, supports: (c) => c === 'text.generate', async run(req) { llamadas.push(req); return { output: { kind: 'text', content: 'contestado' }, costUSD: 0.001, latencyMs: 2 }; } } };
+  const config = { providers: {}, settings: ajustes.DEFAULT_SETTINGS };
+  const registro = core.crearRegistro(registroDeWee.datosDelRegistro(adapters, config.providers));
+  const trabajos = almacenDeTrabajos(db);
+  const conductor = crearConductor({
+    trabajos, ejecuciones: almacenDeEjecuciones(db, now), cola: colaDeInvocacion(now), motor,
+    resolver: resolutorDelRouter(core.crearRouter({ registry: registro })),
+    ejecutor: crearEjecutor({ gateway: core.crearGateway({ registry: registro, executor: motorDelGateway.crearEjecutorDelMotor({ adapters, config: () => config, now }), tracer: { record() {} }, now }), ahora: now, repetir: () => () => {}, contexto: resolutor, duenoDelTrabajo: async (id) => (await trabajos.obtener(id))?.owner.userId }),
+    trabajador: { worker: 'w-ref', visibilityMs: 30_000, backpressureDelayMs: 1_000 }, ahora: now,
+  });
+  const r = await conductor.ejecutar({ principal: { userId: 'usuario1' }, trace: { traceId: 'brain_ref_0001', requestId: 'brain_ref_0001', userId: 'usuario1', workplace: 'brain' },
+    workflow: { id: 'wf_ref_1', contract: '1.1', goal: 'brain.reply', steps: [{ id: 'pensar', capability: 'text.generate', purpose: 'Contestar', input: { [CLAVE_DE_REFERENCIA]: { ...REF, quotedInputHash: huella } } }] } });
+  check('DE PUNTA A PUNTA sobre Firestore: termina, y el proveedor recibió el mensaje entero', r.estado === 'terminada' && r.cierre.state === 'done' && llamadas[0].input.prompt === SECRETO);
+  const guardado = (await db.collection(COLECCION_DE_TRABAJOS).get()).docs.map((d) => JSON.stringify(d.data())).join('\n') + (await db.collection(COLECCION_DE_EJECUCIONES).get()).docs.map((d) => JSON.stringify(d.data())).join('\n');
+  check('y en `jobs/` y `workflowRuns/` no quedó NI UNA PALABRA de la conversación: solo la referencia', !guardado.includes(SECRETO) && !guardado.includes('primer mensaje') && guardado.includes('chatDeAna0001') && guardado.includes('msg_0002'));
+  const intruso = await conductor.ejecutar({ principal: { userId: 'intruso9' }, trace: { traceId: 'brain_ref_0002', requestId: 'brain_ref_0002', userId: 'intruso9' },
+    workflow: { id: 'wf_ref_2', contract: '1.1', goal: 'brain.reply', steps: [{ id: 'pensar', capability: 'text.generate', purpose: 'Contestar', input: { [CLAVE_DE_REFERENCIA]: REF } }] } });
+  check('OTRA CUENTA con la referencia de Ana: el paso falla, y el proveedor no se llama', intruso.cierre.state === 'failed' && intruso.pasos[0].error.details.reason === 'context_not_found' && llamadas.length === 1);
+  const antes = (await ms.get()).docs.map((d) => JSON.stringify(d.data())).join('|');
+  check('y la conversación está exactamente como estaba: este camino no escribe en ella', (await ms.get()).docs.map((d) => JSON.stringify(d.data())).join('|') === antes && (await ms.get()).size === 4);
+
+  for (const c of ['chatDeAna0001', 'chatDelOtro0001']) await borrar(`brainChats/${c}/messages`);
+  await borrar('brainChats'); await borrar('entities');
 }
 
 await vaciar();

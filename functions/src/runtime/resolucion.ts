@@ -6,6 +6,7 @@ import {
   RoutingCandidate,
   RoutingDecision,
 } from '../core';
+import { ContextoDePolitica, PolicyEligibilityPort } from './politica';
 
 /**
  * WEË RUNTIME — CON QUÉ SE ATIENDE UN PASO.
@@ -48,6 +49,17 @@ import {
  * El resultado es el primer eslabón de la cadena que el Router considera
  * elegible. Si ninguno lo es, NO se sale de la cadena a buscar otro: «no hay
  * con qué» es la respuesta correcta, y la que el producto ya da hoy.
+ *
+ * ── Y entre medias, la política ─────────────────────────────────────────────
+ *
+ *   candidato del Router → ELEGIBILIDAD / POLÍTICA → política de ruteo → implementación
+ *
+ * La elegibilidad tiene dos dueños y aquí se juntan SIN mezclarse. Lo que un
+ * proveedor PUEDE hacer lo dice el Router (habilitado, capacidad, modelo, región
+ * técnica…) y se LEE de su decisión. Lo que alguien DECIDIÓ que no se haga lo
+ * dice la política (`politica.ts`), a la que solo se le pregunta por los
+ * candidatos que el Router ya dio por buenos. Ninguna comprobación se hace dos
+ * veces, y cada veredicto dice quién lo dio.
  *
  * Es una capa de TRANSICIÓN. El día que producto decida que una capacidad la
  * elija la puntuación del Core, se le quita la cadena a esa capacidad —el
@@ -94,6 +106,18 @@ export interface CadenaDeProducto {
   }): Promise<readonly EslabonDeCadena[] | undefined>;
 }
 
+/** Por qué un candidato puede o no puede, y QUIÉN lo dijo. */
+export interface VeredictoDeCandidato {
+  providerId: string;
+  modelId: string;
+  eligible: boolean;
+  reason: string;
+  /** `router`: lo que el proveedor puede hacer. `policy`: lo que alguien decidió. */
+  decidedBy: 'router' | 'policy';
+  rule?: string;
+  source?: string;
+}
+
 export type Resolucion =
   | {
     ok: true;
@@ -105,12 +129,14 @@ export type Resolucion =
     /** Quién puso el orden: la puntuación del Router o la cadena de producto. */
     origen: 'router' | 'cadena';
     estimado?: { usd?: number; credits?: number };
+    elegibilidad: readonly VeredictoDeCandidato[];
   }
   | {
     ok: false;
-    /** `invalid` = arregla lo que pediste. `unavailable` = hoy no hay con qué. `chain_unavailable` = lo hay, pero no en la cadena. */
-    reason: 'invalid' | 'unavailable' | 'chain_unavailable';
+    /** `invalid` = arregla lo que pediste. `unavailable` = hoy no hay con qué. `chain_unavailable` = lo hay, pero no en la cadena. `policy_denied` = lo hay, y una regla lo impide. */
+    reason: 'invalid' | 'unavailable' | 'chain_unavailable' | 'policy_denied';
     decision: RoutingDecision;
+    elegibilidad: readonly VeredictoDeCandidato[];
   };
 
 export interface ResolutorDeImplementacion {
@@ -126,14 +152,46 @@ const referenciaDe = (c: RoutingCandidate): ImplementationRef =>
 
 const clave = (providerId: string, modelId: string): string => `${providerId.length}.${providerId}:${modelId}`;
 
+/**
+ * LOS VEREDICTOS, CADA UNO CON SU DUEÑO.
+ *
+ * Lo que dice el Router se copia tal cual —ni se recalcula ni se discute—. A la
+ * política solo se le pregunta por lo que el Router ya dio por elegible: a un
+ * proveedor apagado no hay regla que aplicarle, porque ya no puede.
+ */
+const veredictos = (decision: RoutingDecision, peticion: PeticionDeResolucion, politica?: PolicyEligibilityPort): readonly VeredictoDeCandidato[] =>
+  Object.freeze(decision.candidates.map((c): VeredictoDeCandidato => {
+    const base = { providerId: c.providerId, modelId: c.modelId };
+    if (!c.eligible) return { ...base, eligible: false, reason: c.reason, decidedBy: 'router' };
+    if (!politica) return { ...base, eligible: true, reason: 'eligible', decidedBy: 'router' };
+    const contexto: ContextoDePolitica = {
+      capability: peticion.capability,
+      ...base,
+      ...(peticion.appId ? { appId: peticion.appId } : {}),
+      ...(peticion.workspaceId ? { workspaceId: peticion.workspaceId } : {}),
+      /* La región, SOLO si la petición la trae. Aquí nadie la deduce. */
+      ...(peticion.constraints?.region ? { region: peticion.constraints.region } : {}),
+    };
+    const v = politica.evaluar(contexto);
+    return v.eligible
+      ? { ...base, eligible: true, reason: 'eligible', decidedBy: 'router' }
+      : { ...base, eligible: false, reason: v.reason, decidedBy: 'policy', ...(v.rule ? { rule: v.rule } : {}), ...(v.source ? { source: v.source } : {}) };
+  }));
+
 /** El Router del Core decide solo. Es el destino final de toda capacidad. */
-export const resolutorDelRouter = (router: Router): ResolutorDeImplementacion => ({
+export const resolutorDelRouter = (router: Router, politica?: PolicyEligibilityPort): ResolutorDeImplementacion => ({
   async resolver({ peticion }): Promise<Resolucion> {
     const decision = router.resolver({ contract: ROUTER_CONTRACT_VERSION, ...peticion });
-    if (decision.status === 'routed' && decision.selected) {
-      return { ok: true, implementation: decision.selected, alternatives: decision.alternatives, decision, origen: 'router' };
+    const elegibilidad = veredictos(decision, peticion, politica);
+    if (decision.status !== 'routed' || !decision.selected) {
+      return { ok: false, reason: decision.status === 'invalid' ? 'invalid' : 'unavailable', decision, elegibilidad };
     }
-    return { ok: false, reason: decision.status === 'invalid' ? 'invalid' : 'unavailable', decision };
+    /* El ORDEN sigue siendo el del Router: el elegido y después sus alternativas. La política solo quita; no reordena ni puntúa. */
+    const permitido = new Set(elegibilidad.filter((v) => v.eligible).map((v) => clave(v.providerId, v.modelId)));
+    const enOrden = [decision.selected, ...decision.alternatives].filter((r) => permitido.has(clave(r.providerId, r.modelId)));
+    if (!enOrden.length) return { ok: false, reason: 'policy_denied', decision, elegibilidad };
+    const [primero, ...resto] = enOrden;
+    return { ok: true, implementation: primero, alternatives: Object.freeze(resto), decision, origen: 'router', elegibilidad };
   },
 });
 
@@ -143,8 +201,8 @@ export const resolutorDelRouter = (router: Router): ResolutorDeImplementacion =>
  * Ni un filtro propio: la elegibilidad de cada candidato se LEE de la decisión
  * del Router (`candidates[].eligible`), no se vuelve a calcular.
  */
-export const resolutorPorCadena = (router: Router, producto: CadenaDeProducto): ResolutorDeImplementacion => {
-  const soloRouter = resolutorDelRouter(router);
+export const resolutorPorCadena = (router: Router, producto: CadenaDeProducto, politica?: PolicyEligibilityPort): ResolutorDeImplementacion => {
+  const soloRouter = resolutorDelRouter(router, politica);
   return {
     async resolver(consulta): Promise<Resolucion> {
       const eslabones = await producto.cadena(consulta);
@@ -157,17 +215,23 @@ export const resolutorPorCadena = (router: Router, producto: CadenaDeProducto): 
         /* La cabeza de la cadena viaja como preferencia para que la decisión que se guarda cuente lo que se quería. */
         ...(cabeza ? { preference: { providerId: cabeza.providerId, modelId: cabeza.modelId } } : {}),
       });
-      if (decision.status === 'invalid') return { ok: false, reason: 'invalid', decision };
+      const elegibilidad = veredictos(decision, consulta.peticion, politica);
+      if (decision.status === 'invalid') return { ok: false, reason: 'invalid', decision, elegibilidad };
 
+      const permitido = new Set(elegibilidad.filter((v) => v.eligible).map((v) => clave(v.providerId, v.modelId)));
       const elegibles = new Map<string, RoutingCandidate>();
-      for (const c of decision.candidates) if (c.eligible) elegibles.set(clave(c.providerId, c.modelId), c);
+      for (const c of decision.candidates) if (permitido.has(clave(c.providerId, c.modelId))) elegibles.set(clave(c.providerId, c.modelId), c);
 
       const enOrden = eslabones
         .map((e) => ({ eslabon: e, candidato: elegibles.get(clave(e.providerId, e.modelId)) }))
         .filter((x): x is { eslabon: EslabonDeCadena; candidato: RoutingCandidate } => x.candidato !== undefined);
 
       /* Hay quien puede, pero no en la cadena: NO se sale de ella. Es una decisión de producto, no un despiste. */
-      if (!enOrden.length) return { ok: false, reason: decision.status === 'routed' ? 'chain_unavailable' : 'unavailable', decision };
+      if (!enOrden.length) {
+        /* ¿La cadena tenía a alguien que el Router daba por bueno y una regla quitó? Entonces no es que no haya: es que no se puede, y se dice. */
+        const vetado = eslabones.some((e) => elegibilidad.some((v) => v.decidedBy === 'policy' && v.providerId === e.providerId && v.modelId === e.modelId));
+        return { ok: false, reason: vetado ? 'policy_denied' : decision.status === 'routed' ? 'chain_unavailable' : 'unavailable', decision, elegibilidad };
+      }
 
       const [primero, ...resto] = enOrden;
       const { estimatedUsd, estimatedCredits } = primero.eslabon;
@@ -177,6 +241,7 @@ export const resolutorPorCadena = (router: Router, producto: CadenaDeProducto): 
         alternatives: Object.freeze(resto.map((x) => referenciaDe(x.candidato))),
         decision,
         origen: 'cadena',
+        elegibilidad,
         ...(estimatedUsd !== undefined || estimatedCredits !== undefined
           ? { estimado: { ...(estimatedUsd !== undefined ? { usd: estimatedUsd } : {}), ...(estimatedCredits !== undefined ? { credits: estimatedCredits } : {}) } }
           : {}),

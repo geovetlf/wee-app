@@ -1,6 +1,7 @@
 import { GATEWAY_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { CostLine, CostUnit } from './cost';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
+import { esTipoDeEntidad } from './identity';
 import { LanguageContext, LanguageTag, normalizarEtiqueta } from './language';
 import { CAMPOS_PROHIBIDOS, OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { CanonicalResponse } from './provider';
@@ -547,10 +548,32 @@ export const leerTraza = (req: unknown): TraceContext | null => {
   if (!esTexto(t.traceId) || !FORMA_DE_ID.test(t.traceId)) return null;
   if (!esTexto(t.requestId) || !FORMA_DE_ID.test(t.requestId)) return null;
   if (!esTexto(t.userId) || !FORMA_DE_ID.test(t.userId)) return null;
-  for (const opcional of ['sessionId', 'runId', 'stepId', 'appId', 'workplace', 'projectId']) {
+  for (const opcional of ['sessionId', 'runId', 'stepId', 'appId', 'workplace', 'projectId', 'entityId', 'operationId', 'workspaceId']) {
     const v = t[opcional];
     if (v !== undefined && (!esTexto(v) || !FORMA_DE_ETIQUETA_DE_TRAZA.test(v))) return null;
   }
+  /*
+   * LOS CINCO CAMPOS DE LA FASE 10, QUE ESTE LECTOR SE COMÍA.
+   *
+   * La Fase 10 añadió a la traza `accountId`, `entityId`, `entityType`,
+   * `operationId` y `workspaceId` para que la atribución viajara de la primera
+   * capa a la última. Este lector es de la Fase 2, copiaba nueve campos por su
+   * nombre y nadie lo tocó: los cinco nuevos desaparecían en el PRIMER lector,
+   * sin error y sin aviso, y por este lector pasa toda traza que entra en Brain,
+   * en el Workflow, en el Orchestrator, en el Router, en el Job Engine y en el
+   * Gateway. Se encontró al construir el conductor (Fase 12-D), que tuvo que
+   * llevarlos por otro sitio.
+   *
+   * `accountId` NO es una etiqueta más. El contrato dice que es «la cuenta,
+   * dicha con su nombre. Mismo valor que `userId`», y mientras este lector lo
+   * tiraba daba igual lo que trajera. Conservarlo sin comprobarlo abriría una
+   * puerta que estaba cerrada por accidente: `cuentaDeTraza()` prefiere
+   * `accountId`, así que una traza con la cuenta de OTRO ahí dentro atribuiría
+   * la operación a esa otra cuenta. Si viene, tiene que ser el mismo. Si no lo
+   * es, la traza entera no vale —no se «corrige»—.
+   */
+  if (t.accountId !== undefined && t.accountId !== t.userId) return null;
+  if (t.entityType !== undefined && !esTipoDeEntidad(t.entityType)) return null;
   return {
     traceId: t.traceId,
     requestId: t.requestId,
@@ -562,6 +585,15 @@ export const leerTraza = (req: unknown): TraceContext | null => {
     appId: t.appId as string | undefined,
     workplace: t.workplace as string | undefined,
     projectId: t.projectId as string | undefined,
+    /*
+     * Solo si vienen. Una traza que no los trae sale EXACTAMENTE como salía
+     * antes, clave por clave: nada de lo que ya funciona nota este cambio.
+     */
+    ...(t.accountId !== undefined ? { accountId: t.accountId as string } : {}),
+    ...(t.entityId !== undefined ? { entityId: t.entityId as string } : {}),
+    ...(t.entityType !== undefined ? { entityType: t.entityType as string } : {}),
+    ...(t.operationId !== undefined ? { operationId: t.operationId as string } : {}),
+    ...(t.workspaceId !== undefined ? { workspaceId: t.workspaceId as string } : {}),
   };
 };
 

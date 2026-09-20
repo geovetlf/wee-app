@@ -524,7 +524,7 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
 {
   const dir = 'functions/src/runtime';
   const archivos = fs.readdirSync(path.resolve(RAIZ, dir)).sort();
-  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,cola.ts,conductor.ts,ejecutor.ts,index.ts,puerta.ts,resolucion.ts', archivos.join(','));
+  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,cola.ts,conductor.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
   const puros = ['conductor.ts', 'cola.ts', 'ejecutor.ts', 'resolucion.ts', 'puerta.ts'].map((f) => sinComentarios(leer(`${dir}/${f}`)));
   check('conductor, cola, ejecutor, resolución y puerta NO saben de Firestore: todo les entra por puertos', puros.every((s) => !/firebase|firestore/i.test(s)));
   check('ni leen el reloj ni tiran dados: el tiempo entra por la puerta', puros.every((s) => !/Date\.now\(|Math\.random\(|new Date\(/.test(s)));
@@ -532,7 +532,8 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
   const conductor = sinComentarios(leer(`${dir}/conductor.ts`));
   check('el conductor no guarda nada a nivel de módulo', !/^(let|var) /m.test(conductor) && !/^const \w+ = new (Map|Set)\(/m.test(conductor));
   check('NO decide: no ordena candidatos, no puntúa, no calcula esperas ni reintentos', !/\.sort\(|score|backoff|maxAttempts|Math\.pow/.test(conductor));
-  check('el ejecutor NO elige implementación: usa la que trae el trabajo', !/resolver\(|crearRouter|resolverConContexto/.test(sinComentarios(leer(`${dir}/ejecutor.ts`))) && /peticionDeGateway\(dispatch\)/.test(leer(`${dir}/ejecutor.ts`)));
+  /* Resuelve CONTEXTO (una referencia a una conversación), que no es elegir: del Router no sabe nada. */
+  check('el ejecutor NO elige implementación: usa la que trae el trabajo', !/crearRouter|resolverConContexto|resolutorPorCadena|resolutorDelRouter|ResolutorDeImplementacion|\.candidates|\.selected/.test(sinComentarios(leer(`${dir}/ejecutor.ts`))) && /peticionDeGateway\(/.test(leer(`${dir}/ejecutor.ts`)) && /implementation/.test(leer(`${dir}/ejecutor.ts`)));
   check('las dos conversiones trabajo ↔ Gateway son las de la Fase 8: no se reescribieron', /import \{ informeDelGateway, peticionDeGateway \} from '\.\.\/job'/.test(leer(`${dir}/ejecutor.ts`)));
   check('la capa de compatibilidad no filtra por su cuenta: la elegibilidad se LEE de la decisión del Router', /c\.eligible/.test(leer(`${dir}/resolucion.ts`)) && !/puedeEjecutarse|.health|provider.status|model.status|.enabled/.test(sinComentarios(leer(`${dir}/resolucion.ts`))));
   check('la cadena de producto sale de la función de decisión que YA usa producción, no de una copia', /engine\.route\(/.test(leer(`${dir}/index.ts`)) && !/linksFor|pickModel|byPolicy/.test(leer(`${dir}/index.ts`)));

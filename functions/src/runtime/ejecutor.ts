@@ -8,6 +8,7 @@ import {
   errorDelCore,
 } from '../core';
 import { informeDelGateway, peticionDeGateway } from '../job';
+import { CLAVE_DE_REFERENCIA, ResolutorDeContexto } from './contexto';
 
 /**
  * WEË RUNTIME — QUIEN EJECUTA UN INTENTO.
@@ -42,6 +43,15 @@ import { informeDelGateway, peticionDeGateway } from '../job';
  * resultado entero y el número de intento de verdad es este ejecutor, así que
  * el libro entra por un puerto suyo. No se toca ningún contrato cerrado.
  *
+ * ── El contexto viaja por referencia ────────────────────────────────────────
+ *
+ * Un trabajo no guarda una conversación: guarda DÓNDE está (`contexto.ts`). Si la
+ * entrada trae una referencia, se resuelve AQUÍ, contra la fuente de verdad y
+ * con el dueño del trabajo LEÍDO DEL ALMACÉN —el paquete no lo lleva, y la traza
+ * es un dato que viajó, no una prueba de quién es nadie—. Se resuelve antes de
+ * abrir el libro y antes de salir: si la referencia no es de la cuenta, no se
+ * anota ni se paga nada. Lo resuelto no se guarda en ningún sitio.
+ *
  * ── Sigo vivo ───────────────────────────────────────────────────────────────
  *
  * Una concesión dura un minuto y un texto puede tardar noventa segundos. Sin
@@ -61,6 +71,10 @@ export interface LibroDeIntentos {
 export interface EjecutorDeps {
   gateway: Gateway;
   libro?: LibroDeIntentos;
+  /** Quien convierte una referencia de contexto en la entrada de verdad. Sin él, un trabajo con referencia NO se ejecuta. */
+  contexto?: ResolutorDeContexto;
+  /** De quién es un trabajo, según el ALMACÉN. Hace falta para resolver contexto: la cuenta no se saca de la traza. */
+  duenoDelTrabajo?: (jobId: string) => Promise<string | undefined>;
   ahora: () => number;
   /** Cada cuánto se dice «sigo vivo». Tiene que ser bastante menos que lo que dura una concesión. */
   latidoMs?: number;
@@ -115,7 +129,33 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
     async ejecutar(dispatch, control): Promise<AttemptReport> {
       /* Una miniatura o una transcodificación las hace otro ejecutor. Mandarla a un proveedor de IA sería un error caro. */
       if (dispatch.task || !dispatch.capability || !dispatch.implementation) return noSalio(dispatch, 'not_an_ai_operation', 'INVALID_REQUEST');
-      const peticion = peticionDeGateway(dispatch);
+
+      /*
+       * ¿LA ENTRADA ES UNA REFERENCIA? Entonces se resuelve, o no se ejecuta.
+       * Mandarle al proveedor `{ contextRef: … }` como si fuera el encargo sería
+       * pagar por una respuesta a nada.
+       */
+      let entrada = dispatch.input;
+      if (Object.prototype.hasOwnProperty.call(dispatch.input, CLAVE_DE_REFERENCIA)) {
+        if (!deps.contexto || !deps.duenoDelTrabajo) return noSalio(dispatch, 'context_resolver_missing', 'INVALID_REQUEST');
+        let dueno: string | undefined;
+        try {
+          dueno = await deps.duenoDelTrabajo(dispatch.jobId);
+        } catch {
+          return noSalio(dispatch, 'context_unavailable', 'INTERNAL_ERROR');
+        }
+        if (!dueno) return noSalio(dispatch, 'context_not_found', 'INVALID_REQUEST');
+        let resuelto;
+        try {
+          resuelto = await deps.contexto.resolver({ ownerUserId: dueno, input: dispatch.input });
+        } catch {
+          return noSalio(dispatch, 'context_unavailable', 'INTERNAL_ERROR');
+        }
+        /* No es de la cuenta, no existe, o ya no es lo que se cotizó: NO SALIÓ, y no se reintenta —no va a cambiar—. */
+        if (!resuelto.ok) return { attemptId: dispatch.attemptId, outcome: 'failed', dispatched: false, error: resuelto.error };
+        entrada = resuelto.input;
+      }
+      const peticion = peticionDeGateway(entrada === dispatch.input ? dispatch : { ...dispatch, input: entrada });
 
       /* Sin poder anotarlo, no sale: una operación que cuesta dinero y no deja rastro no puede existir por accidente. */
       let fila: string | undefined;

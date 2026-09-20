@@ -5,6 +5,7 @@ import {
   CapabilityId,
   JobLimits,
   JobPolicy,
+  LIMITES_DE_CONTEXTO,
   Tracer,
   crearRegistro,
   crearRouter,
@@ -20,7 +21,10 @@ import { datosDelRegistro } from '../registry';
 import { almacenDeEjecuciones, almacenDeTrabajos, contadorDeCapacidad } from './almacen';
 import { colaDeInvocacion } from './cola';
 import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
+import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
+import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
+import { ReglaDePolitica, SIN_REGLAS, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
 
 /**
@@ -174,6 +178,15 @@ export interface ConductorDeWeeDeps {
   tracer?: Tracer;
   libro?: LibroDeIntentos;
   paralelismo?: number;
+  /**
+   * De lo que guarda la conversación a la entrada exacta del motor. Lo pone
+   * quien COTIZA —su misma función—, porque cotizar y ejecutar tienen que
+   * construir la entrada por el mismo camino. Sin él, un trabajo cuya entrada sea
+   * una referencia no se ejecuta.
+   */
+  construirEntradaDeBrain?: ConstructorDeEntrada;
+  /** Las restricciones EXPLÍCITAS conocidas. Hoy no hay ninguna, y sin ellas no se bloquea nada. */
+  reglas?: readonly ReglaDePolitica[];
 }
 
 /**
@@ -190,14 +203,28 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
   const gateway = crearGatewayDelMotor({ adapters: ADAPTERS, loadConfig, tracer: deps.tracer ?? trazaDeConsola, now: ahora });
   const { motor } = crearMotorDeTrabajosDeWee(deps.politica);
   const capacidad = deps.limites ? contadorDeCapacidad(deps.db, deps.limites) : undefined;
+  const trabajos = almacenDeTrabajos(deps.db);
+  const contexto = deps.construirEntradaDeBrain
+    ? resolutorDeBrain({
+      conversaciones: conversacionesDeBrain(deps.db),
+      entidades: entidadesDeWee(deps.db),
+      construirEntrada: deps.construirEntradaDeBrain,
+      turnos: LIMITES_DE_CONTEXTO.turnos,
+    })
+    : undefined;
 
   return crearConductor({
-    trabajos: almacenDeTrabajos(deps.db),
+    trabajos,
     ejecuciones: almacenDeEjecuciones(deps.db, ahora),
     cola: colaDeInvocacion(ahora),
     motor,
-    resolver: resolutorPorCadena(router, cadenaViva),
-    ejecutor: crearEjecutor({ gateway, libro: deps.libro ?? libroDelMotor(), ahora }),
+    resolver: resolutorPorCadena(router, cadenaViva, politicaPorReglas(deps.reglas ?? SIN_REGLAS)),
+    ejecutor: crearEjecutor({
+      gateway, libro: deps.libro ?? libroDelMotor(), ahora,
+      ...(contexto ? { contexto } : {}),
+      /* El dueño, del ALMACÉN. El paquete no lo lleva y la traza no es prueba de quién es nadie. */
+      duenoDelTrabajo: async (jobId) => (await trabajos.obtener(jobId))?.owner.userId,
+    }),
     material: materialDeWee,
     trabajador: {
       worker: `inv-${randomUUID()}`,
@@ -216,3 +243,5 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
 export { crearConductor } from './conductor';
 export type { Conductor, EjecucionPreparada, ResultadoDelConductor } from './conductor';
 export { decidirRuntime, leerPuerta, PUERTA_CERRADA } from './puerta';
+export { huellaDeEntrada } from './contexto';
+export { FalloDelPensador, pensadorSobreConductor } from './pensador';

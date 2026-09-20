@@ -288,8 +288,9 @@ console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y NO está con
    * es. El día que un módulo vivo lo importe, esas comprobaciones cambiarán todas a
    * la vez — que es exactamente lo que tienen que hacer.
    */
-  const DEL_CONDUCTOR = ['runtime/almacen.js', 'runtime/cola.js', 'runtime/conductor.js', 'runtime/ejecutor.js', 'runtime/index.js', 'runtime/puerta.js', 'runtime/resolucion.js'];
-  check('110) el conductor está compilado: sus siete módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
+  const DEL_CONDUCTOR = ['runtime/almacen.js', 'runtime/cola.js', 'runtime/conductor.js', 'runtime/contexto.js', 'runtime/conversaciones.js', 'runtime/ejecutor.js', 'runtime/index.js',
+    'runtime/pensador.js', 'runtime/politica.js', 'runtime/puerta.js', 'runtime/resolucion.js'];
+  check('110) el conductor está compilado: sus once módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
   check('111) y NINGUNO lo carga producción: no se llega a ellos desde `lib/index.js`', DEL_CONDUCTOR.every((m) => !VIVOS.has(m)), DEL_CONDUCTOR.filter((m) => VIVOS.has(m)).join(', '));
   check('112) ningún módulo vivo invoca su fábrica', invocadaDesde('conductorDeWee').length === 0 && invocadaDesde('crearConductor').length === 0, [...invocadaDesde('conductorDeWee'), ...invocadaDesde('crearConductor')].join(', '));
   const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
@@ -298,6 +299,8 @@ console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y NO está con
   check('113) hay UN conductor. Un segundo sería el segundo runtime que esta fase existe para impedir', igual(conductores, ['runtime/conductor.ts']), conductores.join(', '));
   const puertas = fuentes.filter((f) => /decidirRuntime\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
   check('114) y la puerta CORE/LEGACY todavía no la consulta nadie: ningún callable decide por dónde va', puertas.length === 0, puertas.join(', '));
+  const pensadores = fuentes.filter((f) => /pensadorSobreConductor\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
+  check('116) ni Weë Brain piensa por el conductor: el pensador nuevo existe y nadie lo enchufa', pensadores.length === 0 && /engine\.generate\(/.test(leer('functions/src/creator/brain.ts')), pensadores.join(', '));
 }
 
 console.log('\n── E · Quién llama desde la app ──');
