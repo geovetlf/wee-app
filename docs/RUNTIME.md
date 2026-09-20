@@ -1934,3 +1934,110 @@ Por eso `avisoDeProveedor` **sigue sin exportarse**: sin una generación nueva n
 ningún aviso legítimo que pueda llegarle, y desplegar una frontera pública que nadie puede
 llamar es superficie sin función. La línea está escrita y probada; encenderla va junto con
 la primera generación que configure el callback.
+
+## 21. F12-D · CERRADA
+
+**M-2 COMPLETED · F12-D COMPLETED.**
+
+Quince commits, del conductor construido y desconectado hasta un vídeo real creado,
+recuperado, archivado y cobrado por el camino asíncrono. Lo que sigue es el acta: qué
+quedó demostrado, con qué evidencia, y qué NO se demostró.
+
+### 21.1 Qué se cerró
+
+| | |
+|---|---|
+| Conductor, Job Engine, Router, Gateway | conectados y probados con los motores de verdad |
+| Liquidación de Credits | real, en producción, sin doble cobro ni reembolso indebido |
+| `accepted` + `providerRef` | producidos por un proveedor real |
+| `eventId` determinista + dedup persistente | probados con los tres reintentos que ModelArk documenta |
+| Receptor de avisos | probado de punta a punta sobre Firestore real |
+| Reconciliación | ejecutada **contra ModelArk de verdad**, en producción |
+| Persistencia del resultado | vídeo real archivado como material F11 antes de cerrar el trabajo |
+| Barrido programado | desplegado, cada 5 minutos, con 0 errores |
+
+### 21.2 La afirmación exacta sobre el callback
+
+El callback se validó **reproduciendo cuerpos reales** obtenidos de tareas reales de
+ModelArk —las dos que dejó M-1—, aprovechando que BytePlus documenta que el cuerpo del
+webhook es idéntico a la respuesta de consultar la tarea, y que consultar es un `GET` que
+no crea nada.
+
+La frase correcta, y la única que se sostiene, es esta:
+
+> El receptor real y su procesamiento fueron validados mediante replay de payloads reales
+> obtenidos de tareas reales de ModelArk; **la entrega espontánea BytePlus → `callback_url`
+> no fue ejercitada** para evitar una tercera generación.
+
+Es decir: **no se afirma que BytePlus haya llamado a nuestro endpoint en producción.** No
+lo hizo. Lo que sí está probado —sobre Firestore real— es todo lo que ocurre **desde que
+el cuerpo entra**: autenticación, límites, resolución de la referencia, identidad del
+aviso, deduplicación, traducción de estados, transición del trabajo, materialización,
+liquidación y aislamiento entre cuentas.
+
+Probar el salto de red exigiría otra generación real. **Por decisión de coste no se
+ejecutó.** En M-2 se gastaron **0 Credits** y no se creó ninguna tarea nueva.
+
+### 21.3 Estado de producción al cerrar
+
+    puerta aiSettings/runtime : { habilitado: false, capacidades: [] }
+    capacidades migradas      : ninguna (los dos candados siguen en su sitio)
+    aceptaAsincrono           : lo enciende UN módulo, detrás de la puerta cerrada
+    avisoDeProveedor          : NO exportado, NO desplegado
+    Functions                 : 31 — las 30 de siempre más el barrido programado
+    vídeo para usuarios       : el camino de siempre, intacto
+
+### 21.4 Decisión diferida: política de reintento asíncrona
+
+**F12-D Deferred Decision — Async Provider Retry Policy.**
+
+Cuando un proveedor termina en `failed`, `expired` o `cancelled` por el camino asíncrono:
+
+- el INTENTO termina fallado —correcto—;
+- el motor considera el fallo REINTENTABLE y programa otro intento —correcto, es su
+  política: tres intentos—;
+- el TRABAJO vuelve a `queued`, recuperable;
+- **pero hoy no hay ningún actor que ejecute ese reintento en ese camino**: el conductor
+  solo corre dentro de una invocación, y en producción no hay trabajador recogiendo la
+  cola.
+
+La parte financiera funciona **correctamente**: no cobra dos veces, no reembolsa antes de
+tiempo, no regala Credits, y mantiene el caso como recuperable mientras lo sea. El dinero
+queda retenido, no perdido ni regalado.
+
+Lo que habrá que decidir más adelante, **por capacidad**:
+
+- `maxAttempts`
+- política de reintento
+- quién recupera los trabajos pendientes
+- cómo se relacionan reintento y liquidación
+
+**No se arregla aquí, y no bloquea el cierre.** Es una decisión de producto —si un vídeo
+que falla se reintenta o no— disfrazada de detalle técnico, y merece decidirse aparte.
+
+### 21.5 Lo demás que queda anotado y sin arreglar
+
+- El `seedanceCallback` **legacy** sigue guardando su payload entero en
+  `aiProviderCallbacks`, con la URL firmada dentro. Es del camino de sondeo; el camino
+  nuevo no lo usa.
+- En modo **síncrono** el trabajo guarda la URL de descarga como `outputRefs`; el
+  asíncrono guarda el `assetId`.
+- `estimatedUsd` en el trabajo es la estimación **gruesa del Router** (coste por segundo),
+  no la fórmula oficial. Dos nociones con el mismo nombre.
+- El coste real de ModelArk salió **+5,63 %** sobre la fórmula publicada, igual en las dos
+  pruebas. Medido, no corregido.
+- El `tsconfig.json` de la raíz no tiene `exclude`, así que el `tsc` de la app también
+  compila `functions/`.
+
+### 21.6 Lo siguiente: MC-1
+
+F12-D queda cerrada. La siguiente fase es **WEE MEDIA CLOUD — MC-1**, y **no empieza
+aquí**. Su diseño está en MC-0; su alcance aprobado es el registro de proveedores de
+medios, el puerto de almacenamiento, el adaptador de R2 sobre documentación oficial
+verificada, `mediaObjects`, claves aisladas por cuenta, un proveedor falso, idempotencia,
+pruebas y la integración mínima con el Asset Core de F11.
+
+La regla que la gobierna es la misma que ha gobernado F12-D: **F11 sigue siendo la fuente
+de verdad del material**. El identificador del material es de Weë; el del proveedor nunca
+lo es; la clave de almacenamiento no es identidad; la propiedad sale siempre de la cuenta
+de Weë. Y no se construye un segundo sistema de nada.
