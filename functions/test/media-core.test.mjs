@@ -65,7 +65,8 @@ console.log('\n── A · Quién hay, qué sabe hacer, y qué no se acepta ─�
   check('y esa identidad es la MISMA que cabe en un `StorageRef`', esStorageRef({ provider: R2_PROVIDER_ID, objectKey: 'x' }));
   check('sabe guardar, mirar y borrar', ['object.put', 'object.head', 'object.delete'].every((c) => registro.puede('r2', c)));
   check('sabe FIRMAR una entrega desde MC-2', registro.puede('r2', 'object.signedUrl'));
-  check('y NO dice saber lo que no implementa', !registro.puede('r2', 'object.copy') && !registro.puede('r2', 'object.get'));
+  check('sabe TRAER los bytes desde MC-4, que es lo que necesita el procesado', registro.puede('r2', 'object.get'));
+  check('y NO dice saber lo que no implementa', !registro.puede('r2', 'object.copy'));
   check('no lleva ni una credencial dentro, solo los NOMBRES de sus variables',
     !JSON.stringify(DESCRIPTOR_DE_R2).match(/[A-Za-z0-9/+]{40,}/) && DESCRIPTOR_DE_R2.credencialesEnv.includes('R2_SECRET_ACCESS_KEY'));
   check('declara los límites PUBLICADOS: clave 1.024, subida simple 5 GiB, objeto 5 TiB',
@@ -485,9 +486,9 @@ console.log('\n── H · Lo ajeno, lo inventado y lo que llega de fuera ──
 console.log('\n── I · Qué NO se ha construido ──');
 {
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son seis archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
+  check('el Core de medios son ocho archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, nueve', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,r2.ts,subida.ts', fuera.join(','));
+  check('y la composición, doce', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
 
   /* R2 vive en UN sitio. */
   const nombraR2 = ['functions/src'].flatMap(() => {
@@ -514,7 +515,7 @@ console.log('\n── I · Qué NO se ha construido ──');
   /* MC-2 implementó la firma de entrega. Las otras dos siguen siendo costura y nada más. */
   const R2SRC = sinComentarios(leer('functions/src/media/r2.ts'));
   check('el adaptador de R2 trae la que MC-2 implementó', /async urlFirmada\(/.test(R2SRC));
-  check('y NO trae las que no: no se finge lo que no hay', !/async traer|async copiar/.test(R2SRC));
+  check('y NO trae la que no: no se finge lo que no hay', !/async copiar/.test(R2SRC));
   check('las capacidades de MC-1 son tres', CAPACIDADES_DE_MC1.length === 3);
 
   /* Nada conectado. */

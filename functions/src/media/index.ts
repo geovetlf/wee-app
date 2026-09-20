@@ -153,3 +153,6 @@ export { solicitarEntrega } from './entrega';
 export type { DepsDeEntrega, PeticionDeEntrega, DesenlaceDeEntrega, TrazaDeEntrega } from './entrega';
 export { solicitarSubida, confirmarSubida, depsDeSubidaDeWee, identidadDeMaterialDeSubida } from './subida';
 export type { DepsDeSubida, PeticionDeSubida, PeticionDeConfirmacion, DesenlaceDeSubida, DesenlaceDeConfirmacion, TrazaDeSubida } from './subida';
+export { solicitarProceso, crearEjecutorDeMedios, depsDeProcesoDeWee, almacenesParaProcesar, capacidadesDeProcesoDeWee } from './proceso';
+export type { DepsDeProceso, PeticionDeProcesoDeMedios, DesenlaceDeSolicitudDeProceso, TrazaDeProceso, DepsDelEjecutorDeMedios } from './proceso';
+export { crearProcesadorDeImagen, DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN, PROCESADOR_DE_IMAGEN_ID } from './procesador';

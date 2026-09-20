@@ -21,3 +21,5 @@ export * from './objeto';
 export * from './registro';
 export * from './entrega';
 export * from './subida';
+export * from './proceso';
+export * from './procesador';

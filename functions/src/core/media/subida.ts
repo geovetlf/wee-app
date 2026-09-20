@@ -1,6 +1,7 @@
 import { Asset, FORMA_DE_MIME, MAXIMO_DE_BYTES_DE_MATERIAL, materialEsDeLaCuenta } from '../content/asset';
 import { Huella } from '../moderation';
 import { MediaObject } from './objeto';
+import { MetodoDeSubida } from './puerto';
 import { RegistroDeProveedoresDeMedios } from './registro';
 
 /**
@@ -215,7 +216,8 @@ export interface UploadIntent {
   /** El material de la Fase 11 que va a quedar completo. SÍ es identidad de Weë. */
   assetId: string;
   url: string;
-  metodo: 'PUT';
+  /** Lo que dijo el proveedor que hay que usar. Weë no lo impone. */
+  metodo: MetodoDeSubida;
   /** Lo que hay que mandar tal cual: va dentro de la firma, y cambiarlo la invalida. */
   cabeceras: Readonly<Record<string, string>>;
   maxBytes: number;

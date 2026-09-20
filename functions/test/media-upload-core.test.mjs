@@ -498,9 +498,9 @@ console.log('\n── K · Qué NO se ha construido ──');
     !/^(let|var|export (let|var)) /m.test(SUB) && !/^(let|var|export (let|var)) /m.test(CORE_SUB));
 
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son seis archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
+  check('el Core de medios son ocho archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, nueve', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,r2.ts,subida.ts', fuera.join(','));
+  check('y la composición, doce', fuera.join(',') === 'almacen.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
 
   check('AE · ninguna Function importa la capa de medios: sigue sin conectar',
     !/from '\.\/media|from '\.\.\/media/.test(leer('functions/src/index.ts')));

@@ -37,7 +37,8 @@ import { firmar, firmarConsulta, rutaCanonicaDeObjeto } from './firma';
  *                    `If-Unmodified-Since`
  *   · `HeadObject`   implementado, con condicionales
  *   · `DeleteObject` implementado
- *   · `GetObject` y `CopyObject` implementados — no se usan en MC-1
+ *   · `GetObject`   implementado — lo usa MC-4 para leer el original
+ *   · `CopyObject` implementado — no se usa
  *   · clave          hasta 1.024 bytes
  *   · metadatos      hasta 8.192 bytes
  *   · objeto         hasta 5 TiB; subida simple hasta 5 GiB
@@ -78,11 +79,12 @@ export const MAX_VIGENCIA_DE_R2 = 604_800;
 
 /**
  * LO QUE ESTE ADAPTADOR SABE HACER DE VERDAD. Las tres de MC-1, la entrega
- * firmada de MC-2 y la subida directa de MC-3. Lo que no esté aquí, no se le
+ * firmada de MC-2, la subida directa de MC-3 y la lectura de MC-4. Lo que no
+ * esté aquí, no se le
  * pide — y el registro contesta que no puede, que es como se evita prometer
  * una capacidad que no existe.
  */
-export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload'] as const);
+export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get'] as const);
 
 /** El descriptor para el registro. Sin una sola credencial dentro. */
 export const DESCRIPTOR_DE_R2: DescriptorDeProveedorDeMedios = Object.freeze({
@@ -355,6 +357,42 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
       }, { ...p.config, region: R2_REGION, servicio: 's3' }, ahora());
 
       return { ok: true, url, metodo: 'PUT', cabeceras: cabecerasObligatorias, expiraEn };
+    },
+
+    /**
+     * MC-4 · TRAER LOS BYTES. La costura que MC-1 declaró y que el procesado
+     * necesita: sin poder LEER el original no hay derivado posible.
+     *
+     * `GetObject` está implementado en R2 según su documentación oficial. Se
+     * firma por cabecera —como guardar, mirar y borrar— porque la petición la
+     * hace el servidor, no un tercero: una URL prefirmada es para dársela a
+     * alguien, y aquí no hay nadie a quien dársela.
+     *
+     * Esto SÍ mueve bytes, y por eso no vive en el camino de control: lo llama
+     * quien ejecuta un trabajo, dentro de un trabajador.
+     */
+    async traer(ref: StorageRef): Promise<DesenlaceDeLectura & { cuerpo?: Buffer }> {
+      const p = preparar(ref);
+      if (!p.ok) return { ok: false, motivo: 'fallo', error: p.error };
+      const cabeceras = firmar({ metodo: 'GET', host: p.host, ruta: p.ruta }, { ...p.config, region: R2_REGION, servicio: 's3' }, ahora());
+      try {
+        const r = await llamar(`https://${p.host}${p.ruta}`, { method: 'GET', headers: cabeceras });
+        if (r.status === 404) return { ok: false, motivo: 'no_existe' };
+        if (!r.ok) return { ok: false, motivo: 'fallo', error: falloDeAlmacen(R2_PROVIDER_ID, motivoDe(r.status), { status: r.status }) };
+        const cuerpo = Buffer.from(await r.arrayBuffer());
+        return {
+          ok: true,
+          cuerpo,
+          objeto: {
+            ref,
+            bytes: cuerpo.length,
+            ...(r.headers.get('content-type') ? { contentType: r.headers.get('content-type') as string } : {}),
+            ...(etiqueta(r) ? { etiquetaDelProveedor: etiqueta(r) } : {}),
+          },
+        };
+      } catch {
+        return { ok: false, motivo: 'fallo', error: falloDeAlmacen(R2_PROVIDER_ID, 'proveedor_no_disponible') };
+      }
     },
 
     async borrar(ref: StorageRef): Promise<DesenlaceDeBorrado> {

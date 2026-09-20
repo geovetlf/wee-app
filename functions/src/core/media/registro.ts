@@ -29,13 +29,13 @@ export type EstadoDeProveedorDeMedios =
 /**
  * LO QUE EL REGISTRO SABE DE UN PROVEEDOR. Sin una sola credencial.
  */
-export interface DescriptorDeProveedorDeMedios {
+export interface DescriptorDeProveedorDeMedios<C extends string = CapacidadDeAlmacen> {
   /** La identidad canónica, y la MISMA que aparece en `StorageRef.provider` y en las fichas. */
   id: string;
   name: string;
   estado: EstadoDeProveedorDeMedios;
   /** Lo que sabe hacer de verdad. Lo que no esté aquí, no se le pide. */
-  capacidades: readonly CapacidadDeAlmacen[];
+  capacidades: readonly C[];
   /** Regiones, cuando el proveedor las distingue. R2 usa `auto`. */
   regiones?: readonly string[];
   /** Nombres de las variables con sus credenciales. EL NOMBRE, nunca el valor. */
@@ -64,19 +64,19 @@ export type AltaEnElRegistro =
   | { ok: true }
   | { ok: false; motivo: FalloDeRegistro };
 
-export interface RegistroDeProveedoresDeMedios {
+export interface RegistroDeProveedoresDeMedios<C extends string = CapacidadDeAlmacen> {
   /** Todos los declarados, encendidos o no. */
-  todos(): readonly DescriptorDeProveedorDeMedios[];
+  todos(): readonly DescriptorDeProveedorDeMedios<C>[];
   /** Uno por su identidad. `undefined` si no está declarado. */
-  buscar(providerId: string): DescriptorDeProveedorDeMedios | undefined;
+  buscar(providerId: string): DescriptorDeProveedorDeMedios<C> | undefined;
   /**
    * ¿Puede este proveedor hacer esto AHORA? Un proveedor apagado no puede,
    * aunque lo declare: es la única pregunta que hace falta responder antes de
    * pedirle nada, y se contesta sin red.
    */
-  puede(providerId: string, capacidad: CapacidadDeAlmacen): boolean;
+  puede(providerId: string, capacidad: C): boolean;
   /** Los que están encendidos. */
-  disponibles(): readonly DescriptorDeProveedorDeMedios[];
+  disponibles(): readonly DescriptorDeProveedorDeMedios<C>[];
 }
 
 /**
@@ -87,10 +87,10 @@ export interface RegistroDeProveedoresDeMedios {
  * No lanza: un catálogo mal escrito es un dato, no una excepción, y quien lo
  * compone tiene que poder verlo entero antes de decidir.
  */
-export const crearRegistroDeMedios = (
-  descriptores: readonly DescriptorDeProveedorDeMedios[],
-): { registro: RegistroDeProveedoresDeMedios; rechazados: readonly { id: string; motivo: FalloDeRegistro }[] } => {
-  const aceptados = new Map<string, DescriptorDeProveedorDeMedios>();
+export const crearRegistroDeMedios = <C extends string = CapacidadDeAlmacen>(
+  descriptores: readonly DescriptorDeProveedorDeMedios<C>[],
+): { registro: RegistroDeProveedoresDeMedios<C>; rechazados: readonly { id: string; motivo: FalloDeRegistro }[] } => {
+  const aceptados = new Map<string, DescriptorDeProveedorDeMedios<C>>();
   const rechazados: { id: string; motivo: FalloDeRegistro }[] = [];
 
   for (const d of descriptores ?? []) {
@@ -108,7 +108,7 @@ export const crearRegistroDeMedios = (
     registro: Object.freeze({
       todos: () => lista,
       buscar: (providerId: string) => aceptados.get(providerId),
-      puede: (providerId: string, capacidad: CapacidadDeAlmacen) => {
+      puede: (providerId: string, capacidad: C) => {
         const d = aceptados.get(providerId);
         return !!d && d.estado !== 'DISABLED' && d.capacidades.includes(capacidad);
       },

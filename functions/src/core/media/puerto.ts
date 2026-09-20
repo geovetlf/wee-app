@@ -132,11 +132,27 @@ export interface PeticionDeSubidaDirecta {
   siNoExiste?: boolean;
 }
 
+/**
+ * CÓMO SE MANDAN LOS BYTES. Lo dice el PROVEEDOR, no Weë.
+ *
+ * Estaba escrito `'PUT'` a secas, y eso convertía la implementación de R2 en
+ * el mecanismo de subida de todo Weë: un proveedor cuyo `object.upload` fuese
+ * un formulario no habría cabido en el contrato sin tocar el Core. Ahora el
+ * método es un RESULTADO de la capacidad, como debe ser.
+ *
+ * Dos valores y no más, porque son los dos que existen de verdad en la API que
+ * Weë habla: `PUT` directo —lo que implementa R2— y `POST` con política de
+ * formulario —mecanismo real de S3 que R2 documenta explícitamente como NO
+ * soportado—. No se declara ninguno más: abstraer la capacidad no es inventar
+ * APIs que nadie tiene.
+ */
+export type MetodoDeSubida = 'PUT' | 'POST';
+
 export type DesenlaceDeSubidaDirecta =
   | {
     ok: true;
     url: string;
-    metodo: 'PUT';
+    metodo: MetodoDeSubida;
     /** Obligatorias: van firmadas. Mandar otra cosa hace que el proveedor rechace. */
     cabeceras: Readonly<Record<string, string>>;
     expiraEn: number;

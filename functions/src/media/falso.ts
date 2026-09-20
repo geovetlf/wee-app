@@ -38,7 +38,7 @@ import {
 export const FAKE_PROVIDER_ID = 'fake';
 
 /** Lo mismo que sabe hacer el adaptador real, para que una prueba pruebe lo mismo. */
-export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload'] as const);
+export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get'] as const);
 
 export const DESCRIPTOR_FALSO: DescriptorDeProveedorDeMedios = Object.freeze({
   id: FAKE_PROVIDER_ID,
@@ -184,6 +184,14 @@ export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?:
         }),
         expiraEn: desde + peticion.vigenciaSegundos * 1000,
       };
+    },
+
+    /** Traer los bytes, con las mismas reglas: los de otro proveedor no se leen. */
+    async traer(ref: StorageRef): Promise<DesenlaceDeLectura & { cuerpo?: Buffer }> {
+      const leido = await this.mirar(ref);
+      if (!leido.ok) return leido;
+      const g = contenido.get(claveDe(ref));
+      return g ? { ...leido, cuerpo: Buffer.from(g.cuerpo) } : { ok: false, motivo: 'no_existe' };
     },
 
     async borrar(ref: StorageRef): Promise<DesenlaceDeBorrado> {
