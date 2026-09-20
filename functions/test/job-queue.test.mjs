@@ -382,9 +382,26 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Workflow, Orchestrator, Router, Gateway, Financial y Credits son los del commit desplegado', tocados === '', tocados);
   check('64) sigue habiendo UN motor de trabajos y UN almacén por contrato: aquí no se escribió un segundo', !/crearJobEngine\s*=|createJobEngine|implements JobStore|crearSiAusente\s*[:(]/.test(PUERTOS + WORKER) && /crearJobEngine/.test(leer('functions/src/core/job.ts')));
   const fuentes = (dir) => fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fuentes(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
+  /*
+   * 65 Y 66 DECÍAN «TODAVÍA NO HAY NADIE» HASTA LA FASE 12-D, que es la que
+   * construyó a ese alguien: el conductor (`functions/src/runtime/`). Lo que se
+   * vigila ahora es que sea UNO. Un segundo módulo que llame al trabajador sería un
+   * segundo runtime; una segunda cola, o una a nivel de módulo, sería el `Array`
+   * haciéndose pasar por infraestructura contra el que avisa `core/job-queue.ts`.
+   * Y sigue siendo verdad lo que importa: nada de esto lo exporta `index.ts`.
+   */
   const quienLoUsa = fuentes('functions/src').filter((f) => !f.endsWith('job/worker.ts') && /job\/worker|atenderEntrega|barrerRecuperables/.test(sinComentarios(leer(f))));
-  check('65) NADA DE PRODUCCIÓN PASA POR AQUÍ: ningún módulo importa el trabajador, y `index.ts` no exporta nada nuevo', quienLoUsa.length === 0 && !/job-queue|job\/worker|atenderEntrega/.test(leer('functions/src/index.ts')), quienLoUsa.join(', '));
-  check('66) no hay almacén ni cola en el código de producción: los de esta suite viven en esta suite', fuentes('functions/src').every((f) => !/colaEnProceso|InMemoryQueue|new Map\(\)\s*;?\s*\/\/ cola/.test(leer(f))) && /No hay almacén\. `JobStore` es un puerto/.test(leer('functions/src/job/index.ts')));
+  check('65) UN solo módulo atiende entregas: el conductor. Y NADA DE PRODUCCIÓN PASA POR AQUÍ: `index.ts` no exporta nada de esto',
+    quienLoUsa.join(',') === 'functions/src/runtime/conductor.ts' && !/job-queue|job\/worker|atenderEntrega|runtime/.test(leer('functions/src/index.ts')), quienLoUsa.join(', '));
+  const estadoDeModulo = (src) => [...(src.match(/^(let|var)\s+\w+/gm) || []), ...(src.match(/^const\s+\w+[^=\n]*=\s*(new (Map|Set|WeakMap|WeakSet)\(\s*\)|\[\s*\])/gm) || [])];
+  const colas = fuentes('functions/src').filter((f) => /guarantee: 'at_least_once',/.test(sinComentarios(leer(f))));
+  const COLA = leer('functions/src/runtime/cola.ts');
+  check('66) UNA sola cola en el código, y es la de UNA invocación: nace con la ejecución, no guarda nada a nivel de módulo y dice de sí misma que no es distribuida',
+    colas.join(',') === 'functions/src/runtime/cola.ts'
+    && estadoDeModulo(sinComentarios(COLA)).length === 0
+    && /NO es una cola distribuida y NO es durable/.test(COLA) && /LO DURABLE ES EL ALMACÉN/.test(COLA)
+    && fuentes('functions/src').every((f) => !/colaEnProceso|InMemoryQueue/.test(leer(f)))
+    && /No hay almacén\. `JobStore` es un puerto/.test(leer('functions/src/job/index.ts')));
   check('67) esta suite está en la cadena de `npm test`', leer('functions/package.json').includes('node test/job-queue.test.mjs'));
 }
 

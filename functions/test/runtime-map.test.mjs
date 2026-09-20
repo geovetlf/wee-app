@@ -274,6 +274,32 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
     /CANÓNICO {3}`core\/job\.ts`/.test(leer('functions/src/creator/types.ts')) && /NO PUEDE HABER UN TERCERO/.test(leer('functions/src/creator/types.ts')));
 }
 
+console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y NO está conectado ──');
+{
+  /*
+   * La Fase 12-D construyó la pieza que faltaba: quien une Orchestrator → Router →
+   * Job Engine → cola → trabajador → Gateway. Está en `functions/src/runtime/`, con
+   * sus pruebas, y NINGUNA ruta de producción pasa por él. Eso no es un descuido:
+   * conectarlo es poner fin a los «todavía» de la sección F, y se hace de frente,
+   * capacidad a capacidad y detrás de una puerta.
+   *
+   * Por eso los motores de la sección C siguen saliendo NOT CONNECTED aunque ya
+   * exista quien los llama: lo que se mide ahí es PRODUCCIÓN, y el conductor no lo
+   * es. El día que un módulo vivo lo importe, esas comprobaciones cambiarán todas a
+   * la vez — que es exactamente lo que tienen que hacer.
+   */
+  const DEL_CONDUCTOR = ['runtime/almacen.js', 'runtime/cola.js', 'runtime/conductor.js', 'runtime/ejecutor.js', 'runtime/index.js', 'runtime/puerta.js', 'runtime/resolucion.js'];
+  check('110) el conductor está compilado: sus siete módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
+  check('111) y NINGUNO lo carga producción: no se llega a ellos desde `lib/index.js`', DEL_CONDUCTOR.every((m) => !VIVOS.has(m)), DEL_CONDUCTOR.filter((m) => VIVOS.has(m)).join(', '));
+  check('112) ningún módulo vivo invoca su fábrica', invocadaDesde('conductorDeWee').length === 0 && invocadaDesde('crearConductor').length === 0, [...invocadaDesde('conductorDeWee'), ...invocadaDesde('crearConductor')].join(', '));
+  const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  const fuentes = andar(SRC, '.ts').map((abs) => ({ r: path.relative(SRC, abs).split(path.sep).join('/'), src: sinComentarios(fs.readFileSync(abs, 'utf8')) }));
+  const conductores = fuentes.filter((f) => /export const crearConductor\b/.test(f.src)).map((f) => f.r);
+  check('113) hay UN conductor. Un segundo sería el segundo runtime que esta fase existe para impedir', igual(conductores, ['runtime/conductor.ts']), conductores.join(', '));
+  const puertas = fuentes.filter((f) => /decidirRuntime\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
+  check('114) y la puerta CORE/LEGACY todavía no la consulta nadie: ningún callable decide por dónde va', puertas.length === 0, puertas.join(', '));
+}
+
 console.log('\n── E · Quién llama desde la app ──');
 {
   const CLIENTE = ['services', 'hooks', 'screens', 'components', 'navigation', 'contexts', 'utils'];
@@ -338,6 +364,9 @@ console.log('\n── G · El mapa escrito dice lo mismo que el medido ──');
     const dice = /\bNOT CONNECTED\b/.test(fila) ? 'NOT CONNECTED' : /\bCONNECTED\b/.test(fila) ? 'CONNECTED' : '(sin fila)';
     check(`${n++}) ${nombre}: el documento dice ${c.motor}`, dice === c.motor, `dice ${dice}`);
   }
+  /* El conductor no es una pieza del Core sino quien las une; su fila va aparte, y dice lo mismo que se mide en D2. */
+  const filaDelConductor = doc.split('\n').find((l) => l.startsWith('| **Conductor** |')) || '';
+  check(`${n++}) Conductor: el documento dice NOT CONNECTED, que es lo que se mide`, /\bNOT CONNECTED\b/.test(filaDelConductor), filaDelConductor ? 'la fila no lo dice' : '(sin fila)');
   check(`${n++}) esta suite está en la cadena de \`npm test\``, leer('functions/package.json').includes('node test/runtime-map.test.mjs'));
 }
 

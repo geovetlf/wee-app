@@ -1,7 +1,9 @@
 # RUNTIME — qué ejecuta producción y qué es el Core
 
 > F12-A · Bloque A · Runtime Consolidation. Medido sobre `0123cdc`, el 2026-09-19.
-> Lo vigilan `functions/test/runtime-map.test.mjs` y `functions/test/runtime-paridad.test.mjs`.
+> F12-D · primer tramo · el conductor (§ 11). 2026-09-20. **Local: nada de esto está desplegado ni conectado.**
+> Lo vigilan `functions/test/runtime-map.test.mjs`, `functions/test/runtime-paridad.test.mjs`,
+> `functions/test/runtime-conductor.test.mjs` y, contra el emulador, `functions/test/runtime-conductor.emulator.mjs`.
 
 En Weë conviven dos arquitecturas de servidor. Las dos están bien hechas y las dos
 tienen pruebas. Solo una atiende a la gente.
@@ -86,6 +88,16 @@ Fase 12-A/B, sin una versión anterior con la que convivir); **Identity** CONNEC
 (Brain y Asset). Las otras nueve se ejecutan con lo que había antes del Core, y el
 Core correspondiente no ejecuta nada.
 
+Y la pieza que no es del Core sino quien las une, construida en la Fase 12-D (§ 11):
+
+| Pieza | Dónde | En uso (producción) | Estado | Qué une |
+|---|---|---|---|---|
+| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | nada: producción sigue por `creatorRun` y `engine.generate` | NOT CONNECTED | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
+
+Que exista el conductor **no conecta nada**. Los nueve motores de arriba siguen
+NOT CONNECTED porque lo que se mide es producción, y ninguna ruta de producción
+importa `runtime/`.
+
 ## 4. El mapa, pieza por pieza
 
 Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` · `DEPLOYED` · `NOT VERIFIED`.
@@ -123,7 +135,7 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Consumidor | `CreatorFlowScreen`, `SpecialistScreen`, `ChefScreen`, `ProjectScreen` → `services/creatorService.ts` → `creatorRun` |
 | Runtime hoy | el `while`. Las composiciones del Core no las carga ninguna ruta de producción |
 | Runtime objetivo | Job Engine → Orchestrator (qué toca) → Router (con qué) → Gateway (ejecuta) |
-| Estrategia | La lógica ya es compatible (§ 6, P1: 255 de 255 planes). Lo que **no existe** es quien ejecute lo que el Orchestrator despacha, lo guarde y lo cobre. Ese conductor es el mismo trabajo que el almacén del Job Engine: se hace en el **Bloque D**, no aquí |
+| Estrategia | La lógica ya es compatible (§ 6, P1: 255 de 255 planes). Lo que no existía era quien ejecutase lo que el Orchestrator despacha y lo guardase: **ya existe** —el conductor, § 11— y sigue sin estar conectado. Cobrar no es suyo: los Credits los mueve quien llama, antes y después |
 | Producción | ninguna colección del Core existe: `workflows`, `workflowRuns`, `runs`, `jobs` = 0 documentos |
 
 ### Router — EXISTS · NOT CONNECTED · puerta CERRADA
@@ -135,7 +147,7 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Consumidor | todo lo que pide IA: `gateway/index.ts`, `creator/brain.ts`, `engine/video.ts` → `engine.generate` |
 | Runtime hoy | una sola instancia, `engine/index.ts:32` |
 | Runtime objetivo | el Router del Core elige; el vivo deja de elegir |
-| Estrategia | **Hoy no se puede migrar sin cambiar el producto** (§ 6, P2: en 15 de 28 capacidades elegiría otro modelo). El Router del Core puntúa candidatos; producción obedece cadenas que son decisiones de producto. Hace falta un adaptador en la composición (`router/index.ts`) que le presente al Router del Core un registro ya acotado por la cadena viva — sin tocar `core/router.ts`. Se mide otra vez, y solo con 0 divergencias se abre la puerta |
+| Estrategia | **Solo, no se puede migrar sin cambiar el producto** (§ 6, P2: en 15 de 28 capacidades elegiría otro modelo). El Router del Core puntúa candidatos; producción obedece cadenas que son decisiones de producto. La Fase 12-D puso la capa que faltaba, **sin tocar `core/router.ts`**: `runtime/resolucion.ts` separa *quién puede* (el Router del Core, con todos sus filtros) de *en qué orden* (la cadena de producto). Medido otra vez: **21 de 21** (§ 6, P2b) |
 | Producción | `aiGenerations`: 19, todas con `ledgerVersion` y `attempt` (la forma que escribe `engine/ledger.ts`). `aiRouting`, `aiProviders`, `aiSettings`: vacías → manda `DEFAULT_ROUTING` |
 
 ### Gateway — EXISTS · NOT CONNECTED · puerta CERRADA
@@ -147,7 +159,7 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Consumidor | `creator/index.ts` (3 llamadas) y `creator/planner.ts` (1) |
 | Runtime hoy | `runCapability` → `engine.generate` → adaptador |
 | Runtime objetivo | Gateway del Core ejecuta la implementación que eligió el Router del Core |
-| Estrategia | No es un reemplazo directo y la propia composición lo dice: «no elige proveedor», «no escribe el libro (`aiGenerations`)», «no sabe de Credits». Va detrás del Router y necesita que el Job Engine persista los intentos. Hasta entonces `gateway/index.ts` **es** la capa de compatibilidad y se queda |
+| Estrategia | No es un reemplazo directo y la propia composición lo dice: «no elige proveedor», «no escribe el libro (`aiGenerations`)», «no sabe de Credits». Las dos primeras ya tienen quien las cubra en el conductor: la implementación llega elegida en el trabajo, y el libro lo escribe el ejecutor por un puerto (§ 11). Los Credits siguen siendo de quien llama. `gateway/index.ts` **es** la capa de compatibilidad de lo que atiende hoy, y se queda |
 | Producción | ver Router |
 
 **La única duplicación de runtime que existe hoy** está aquí, y no es Core contra
@@ -157,7 +169,7 @@ respaldo y sin fila en `aiGenerations`. Cobran bien (Credit Engine). Es un segun
 camino hacia un proveedor, está acotado por `runtime-map.test.mjs` (104, 105) y su
 arreglo es un adaptador de `engine/providers/`, no de este bloque.
 
-### Job Engine — EXISTS · NOT CONNECTED · **MISSING: almacén**
+### Job Engine — EXISTS · NOT CONNECTED · almacén: EXISTS desde F12-D, sin conectar
 
 | | |
 |---|---|
@@ -166,7 +178,7 @@ arreglo es un adaptador de `engine/providers/`, no de este bloque.
 | Consumidor | `creatorRun`, `generateVideo` |
 | Runtime hoy | el documento `creatorJobs`. Del Core: dos funciones puras, `operacionAbandonada` y `presupuestoDeIntento` |
 | Runtime objetivo | el Job Engine del Core, con un `JobStore` sobre Firestore y un barrendero |
-| Estrategia | **«No crear otro Job Engine» se cumple conectando este, no ampliando `creatorJobs`.** `job/index.ts` lo dice: «No hay almacén. `JobStore` es un puerto». Falta la implementación de Firestore, el conductor y el barrendero. Es exactamente el **Bloque D** (lease, heartbeat, deadline, recovery, reconciliación de Credits). El seam ya está puesto: `ESTADO_CANONICO` en `creator/types.ts` traduce cada estado en uso al vocabulario del canónico |
+| Estrategia | **«No crear otro Job Engine» se cumple conectando este, no ampliando `creatorJobs`.** `job/index.ts` sigue diciendo «No hay almacén. `JobStore` es un puerto», y sigue siendo verdad de ESA composición: el almacén de Firestore vive en `runtime/almacen.ts` (F12-D), probado contra el emulador. **Sigue faltando el barrendero programado** —`barrerRecuperables` existe y nadie lo llama cada cierto tiempo— y **la reconciliación de Credits**, que es lo que bloquea cualquier capacidad asíncrona (§ 11.9). El seam ya está puesto: `ESTADO_CANONICO` en `creator/types.ts` traduce cada estado en uso al vocabulario del canónico |
 | Producción | `creatorJobs`: 3, con la forma legacy (sin `contract`, sin `attempts`, sin `lease`). `jobs`: 0 |
 
 ### Project — EXISTS (contrato) · NOT CONNECTED
@@ -247,7 +259,11 @@ enfrenta los dos motores con las mismas entradas y fija el resultado como una pu
 |---|---|---|
 | Workflow + Orchestrator | ABIERTA (a nivel de decisión) | 255 de 255 planes aceptados, 255 llegan al final, 255 en el mismo orden que el `while` |
 | Router | CERRADA | de 28 capacidades: 6 iguales, 15 distintas, 7 sin proveedor real |
+| Router + capa de compatibilidad (F12-D) | ABIERTA (a nivel de decisión) | **21 de 21** con proveedor real: mismo proveedor, mismo modelo, mismo orden de respaldo y misma estimación |
 | Gateway | CERRADA | va detrás del Router; no escribe `aiGenerations` ni sabe de Credits |
+
+«ABIERTA a nivel de decisión» significa que el Core **decidiría** lo mismo. No
+significa que nada se haya ejecutado por él en producción: eso no ha ocurrido.
 
 **P1 — Workflow + Orchestrator.** Se construyen todos los planes que producción
 puede construir (las 11 experiencias × sin respuestas, todo «no sé» y cada opción
@@ -278,6 +294,32 @@ ElevenLabs y DeepSeek configurados). No es una afirmación sobre qué secretos t
 producción. La conclusión no depende de ello: con cualquier conjunto realista de
 claves divergen entre 12 y 15.
 
+**P2b — Router + capa de compatibilidad (F12-D).** La capa (`runtime/resolucion.ts`)
+separa dos preguntas que el router de hoy contesta juntas: *quién puede* —el Router
+del Core, con todos sus filtros duros, sin tocar— y *en qué orden* —la cadena de
+producto, que entra por un puerto y que en la composición real es la función de
+decisión que ya usa producción (`engine.route`)—. La capa **no filtra nada por su
+cuenta**: la elegibilidad se lee de la decisión del Router. Resultado: **21 de 21**
+capacidades con proveedor real eligen el mismo proveedor y el mismo modelo que
+producción, con el mismo orden de respaldo eslabón a eslabón y la misma estimación
+de coste y de Credits.
+
+Eso **clasifica** las divergencias, y por qué se puede afirmar: si cambiando *solo el
+orden* las quince coinciden, es que el Core ya daba por elegible lo que elige
+producción.
+
+| Clase | Cuántas | Cuáles |
+|---|---|---|
+| **POLICY DIFFERENCE** | 15 | todas las de P2: puntuación frente a cadena de producto. La cadena es una decisión (el vídeo es de una sola familia; Weë Brain contesta con el modelo que se cotizó) |
+| **MISSING PROVIDER** | 7 | `audio.sfx`, `doc.render`, `image.try_on`, `music.generate`, `video.compose`, `video.montage`, `video.vertical` |
+| BUG · MISSING CAPABILITY · COMPATIBILITY ISSUE · EXPECTED IMPROVEMENT | 0 | — |
+
+Las siete **MISSING PROVIDER** no se migran sin una decisión de producto: hoy las
+sirve el modo demo, y el Core contesta «no hay con qué» (con capa y sin ella) porque
+no da por elegible un resultado sintético. Migrarlas **apagaría el modo demo**. Y un
+dato que conviene tener delante al decidirlo: en modo de precios simulado, producción
+**cobra el precio de catálogo** por esos resultados de muestra (`engine/pricing.ts`).
+
 ## 7. Estrategia de migración
 
 `LEGACY → ADAPTADOR / COMPATIBILIDAD → CORE CANÓNICO → PRODUCCIÓN`, una pieza cada
@@ -291,13 +333,24 @@ runtime de IA **no es un bloque aparte: es el Bloque D**.
 
 | Paso | Qué | Puerta | Cuándo |
 |---|---|---|---|
-| 0 | Frontera medida y vigilada (este bloque) | — | hecho |
-| 1 | `JobStore` sobre Firestore + barrendero; `creatorJobs` se proyecta desde el Job del Core con `ESTADO_CANONICO` para que el cliente no note nada | emulador: muerte del trabajador, concesión vencida, reintento, reconciliación de Credits | Bloque D |
-| 2 | El conductor: Job Engine → Orchestrator → (router vivo) → (`runCapability`) — el Core decide **qué** toca; lo vivo sigue decidiendo **con qué** y ejecutando | P1 abierta (ya) + ejecución en sombra: mismo resultado, mismos Credits | Bloque D |
-| 3 | Adaptador de cadenas en `router/index.ts`; el Router del Core elige | P2 con 0 divergencias | después de D |
-| 4 | Gateway del Core ejecuta; `engine/ledger.ts` pasa a ser el puerto de persistencia del intento | paridad de uso, coste y Credits con el adaptador de demo | después del 3 |
-| 5 | Las plantillas pasan a ser una fuente de planes del Planner del Core | decisión de producto (CLAUDE.md § 10) | sin fecha |
-| 6 | Se retira lo que quede sin consumidores ni contratos | `runtime-map.test.mjs` sin nada EN USO fuera del Core | al final |
+| 0 | Frontera medida y vigilada | — | hecho (F12-A) |
+| 1 | `JobStore` sobre Firestore y almacén de ejecuciones | emulador: crear y escribir bajo concurrencia, ida y vuelta intacta, el conductor entero sobre Firestore | **hecho (F12-D), sin conectar** |
+| 2 | El conductor: Orchestrator → Router → Job Engine → cola → trabajador → Gateway | la cadena entera con los motores de verdad y un proveedor de mentira: muertes, repeticiones, carreras, desenlace desconocido | **hecho (F12-D), sin conectar** |
+| 3 | Capa de compatibilidad delante del Router del Core | P2b con 0 divergencias | **hecho (F12-D): 21 de 21** |
+| 4 | El libro por el puerto del ejecutor: mismas filas de `aiGenerations` que hoy | filas por intento con el número de intento de verdad | **hecho (F12-D), sin conectar** |
+| 5 | **La puerta CORE/LEGACY en UN callable, para UNA capacidad, con la puerta cerrada.** Primera: texto de Weë Brain | desplegar con la puerta cerrada y comprobar que nada cambió; abrirla para una cuenta controlada; comparar respuesta, Credits y fila del libro; cerrarla y comprobar que vuelve | **siguiente — necesita autorización** |
+| 6 | Barrendero programado + liquidación que viaja con el trabajo | sin esto NO se migra nada asíncrono: § 11.9 | después del 5 |
+| 7 | `creatorRun` por el conductor; `creatorJobs` se proyecta desde el trabajo del Core con `ESTADO_CANONICO` | ejecución en sombra: mismo resultado, mismos Credits | después del 6 |
+| 8 | Las plantillas pasan a ser una fuente de planes del Planner del Core | decisión de producto (CLAUDE.md § 10) | sin fecha |
+| 9 | Se retira lo que quede sin consumidores ni contratos | `runtime-map.test.mjs` sin nada EN USO fuera del Core | al final |
+
+El orden cambió respecto al que este documento proponía en F12-A, y conviene decir
+por qué. Entonces el paso 2 era un conductor que dejaba *elegir y ejecutar* al router
+vivo, y el Router y el Gateway del Core venían después. Al construirlo resultó que el
+contrato cerrado del Job Engine **exige la implementación para crear un trabajo** y
+la mete en su huella de idempotencia: el Router va antes del trabajo, no después. Con
+eso, la forma más corta y más fiel a los contratos fue unir los motores del Core de
+una vez y poner delante del Router la capa que hace que decida lo mismo que hoy.
 
 Cada paso que conecta una pieza del Core pone fin a un «todavía» de una fase cerrada
 (§ 8). Eso se hace de frente: se cambia esa comprobación en su suite, con aprobación,
@@ -330,9 +383,14 @@ El Job Engine de la Fase 8 **no se tocó**: ya tenía concesiones con dueño, `m
 hacia el proveedor, `renovar`, recuperación que cierra el intento muerto y numera uno nuevo (un
 `attemptId` no se reutiliza jamás), el desenlace `unknown` que impide el reintento ciego, y los topes
 de capacidad por cuenta y por proveedor. Conectar una cola real será implementar `QueuePort` en un
-adaptador; conectar producción seguirá siendo el Bloque D. **Nada de producción pasa por aquí**, y no
-hay ninguna cola —ni en memoria— en el código: la de las pruebas vive en
-`functions/test/job-queue.test.mjs`.
+adaptador. **Nada de producción pasa por aquí.**
+
+Desde la Fase 12-D hay **una** cola en el código, y conviene decir exactamente qué es:
+`runtime/cola.ts` es la cola de **una invocación**. Nace con cada ejecución del conductor, no guarda
+nada a nivel de módulo y muere con la petición. **No es distribuida ni durable, y no lo finge**: lo
+durable es el almacén, y perder un aviso cuesta tiempo, nunca un trabajo. Sirve para lo que espera la
+persona en la misma petición —un mensaje de Weë Brain—; el día que un trabajo tenga que sobrevivir a
+la petición que lo creó, se sustituye por un transporte de verdad detrás del mismo puerto.
 
 **Lo que NO se hace:** no se reescribe ninguna pieza del Core; no se borra
 `gateway/`, `engine/router.ts` ni el `while` mientras tengan consumidores; no se
@@ -399,3 +457,246 @@ Ninguno se arregla en este bloque. Se dejan medidos.
 5. **No se borra nada con consumidores o con contratos.** Primero importadores,
    después contratos, después se retira.
 6. **No se dice «Core runtime»** de una pieza que esté NOT CONNECTED en el § 3.
+
+---
+
+## 11. F12-D · El conductor — primer tramo
+
+> **TODO LO DE ESTA SECCIÓN ES LOCAL.** Está escrito, compilado y probado —109
+> comprobaciones con los motores de verdad y un proveedor de mentira, y 55 contra el
+> emulador de Firestore—. **No está desplegado, ningún callable lo importa y ninguna
+> capacidad se ha migrado.** Donde dice «hace», léase «hace en las pruebas».
+
+### 11.1 Auditoría previa (D0): por dónde pasa hoy cada cosa
+
+Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada salto.
+
+| Capacidad | Ruta de hoy | Ruta objetivo | Diferencia | Riesgo | Estrategia |
+|---|---|---|---|---|---|
+| **Texto de Weë Brain** | `brainChat` (`creator/brain.ts:246`) → `crearBrainDeWee` → pensador en línea → `engine.generate` (`:367`) con `modelId` + `allowedProviders` fijados (`:376`) | el mismo Brain; su pensador ejecuta por el conductor | hoy no hay trabajo, ni intentos, ni recuperación | BAJO: síncrono, 120 s, la liquidación se queda donde está | **primera capacidad a migrar**, detrás de la puerta |
+| **Pasos de texto de `creatorRun`** | `creatorRun` (`creator/index.ts:401`) → `while` (`:463`) → `runCapability` (`gateway/index.ts:23`) → `engine.generate` | workflow → conductor | el `while` no reintenta ni recupera; `deadlineAt` se pierde en `runCapability` | MEDIO: la liquidación es del trabajo entero | después del barrendero y la liquidación |
+| **Imagen** | igual, con `planImage` fijando un solo proveedor (`engine/image.ts:31`) | igual | sin respaldo entre proveedores, a propósito | MEDIO | con `creatorRun` |
+| **Vídeo** | `creatorRun` → `videoEngine.generate` (`engine/video.ts:148`) → Seedance con sondeo cada 10 s dentro de la Function | trabajo → proveedor acepta → `waiting` → aviso del proveedor | hoy ocupa una Function hasta 25 min; la tarea **no se cancela** en el proveedor si vence | **ALTO** | **no se migra todavía** (§ 11.9) |
+| **Voz** | `creatorRun` → `runCapability` → ElevenLabs › MiniMax | igual | — | MEDIO | con `creatorRun` |
+| **Documentos** | no existe una ruta propia: Weë Writer es texto por `CreatorFlow`; `doc.render` es solo demo; `doc.read` está enrutada y **nadie la pide** | — | — | — | nada que migrar |
+| **Avatar** | `generateAvatarWithGemini` / `avatarReplacement` → `vertexAI.ts` → SDK directo | adaptador de `engine/providers/` → conductor | fuera del router: sin límites, sin respaldo, sin fila en `aiGenerations`, sin plazo; un duplicado todavía `AUTHORIZED` **vuelve a ejecutar** | **ALTO** | necesita primero su adaptador; **no se migra antes** de que el conductor garantice Credits, plazo y material |
+| **`generateVideo`** | desplegada, 1.500 s, **sin ninguna pantalla que la llame** | — | — | — | decidir si se retira |
+| **`creatorJobs`** | documento escrito a mano; seis estados; sin intentos ni concesión | proyección del trabajo del Core con `ESTADO_CANONICO` | — | MEDIO: el cliente lo lee | los históricos **no se migran**: se quedan como están |
+| **`aiGenerations`** | una fila por intento, la escribe `engine/router.ts` | **las mismas filas**, por el puerto del ejecutor | ninguna en la forma | BAJO | hecho en el tramo 1 |
+| **Cobro de Credits** | reserva (débito real, `AUTHORIZED`) → proveedor → `completeCredits` / `refundCredits`, todo en la misma invocación | **igual, sin tocar** | ninguna | **P0** | § 11.9 |
+
+Un solo embudo hacia los proveedores (`engine.generate`, tres llamadores) más el avatar.
+Las 30 Functions desplegadas son las 30 que exporta `index.ts`; seis tocan IA.
+
+### 11.2 Contrato frente a implementación frente a producción
+
+| Pieza | Contrato del Core | Implementación | En producción |
+|---|---|---|---|
+| Brain | EXISTS | EXISTS | CONNECTED |
+| Planner | EXISTS | EXISTS | NOT CONNECTED — y no es la misma función que el planificador de plantillas |
+| Workflow · Orchestrator | EXISTS | EXISTS | NOT CONNECTED |
+| Router | EXISTS | EXISTS · **PARTIAL** sin la capa: puntúa, y producción obedece cadenas | NOT CONNECTED |
+| Gateway | EXISTS | EXISTS · **PARTIAL**: nunca contesta `accepted`, no pasa la clave de idempotencia al adaptador, no aborta la llamada al vencer | NOT CONNECTED |
+| Job Engine | EXISTS | EXISTS | NOT CONNECTED |
+| `JobStore` | EXISTS (puerto) | **EXISTS desde F12-D** | NOT CONNECTED |
+| Cola | EXISTS (puerto) | **PARTIAL desde F12-D**: la de una invocación; no hay transporte durable | NOT CONNECTED |
+| Conductor | — | **EXISTS desde F12-D** | NOT CONNECTED |
+| Barrendero | `barrerRecuperables` EXISTS | **MISSING**: nadie lo programa | — |
+| Liquidación de Credits asíncrona | — | **MISSING** | — |
+| Financial Core | EXISTS | EXISTS | NOT CONNECTED — NOT APPLICABLE a este tramo |
+
+### 11.3 El runtime objetivo, y el orden que de verdad imponen los contratos
+
+```
+Brain → Planner → Workflow → Orchestrator → ROUTER → Job Engine → cola → trabajador → Gateway → adaptador → proveedor
+```
+
+El Router va **antes** del trabajo, no después del trabajador. No es una preferencia
+del conductor: el Job Engine exige la implementación para crear una operación de IA
+(`core/job.ts:1669`: «Ya elegida por el Router. Si falta, no hay trabajo que crear»), la
+guarda con la nota «Aquí no se vuelve a elegir» (`:431`) y **la mete en la huella de
+idempotencia** (`:1706`). Es también lo que sostiene una garantía de dinero: el modelo
+que se cotizó es el que se ejecuta, también en el tercer intento. Por eso, al
+**retomar**, el conductor busca primero el trabajo que ya existe y **no vuelve a
+preguntarle al Router**.
+
+Las responsabilidades no se mueven: el Router elige, el Gateway ejecuta, el trabajador
+ejecuta el trabajo. Lo único que cambia respecto al diagrama lineal es *cuándo* elige.
+
+### 11.4 El conductor
+
+`functions/src/runtime/conductor.ts`. Une; no decide. Cada vuelta: le pregunta al
+Orchestrator qué toca y **guarda** que eso ya empezó; por cada paso le pregunta al
+Router con qué, le pide un trabajo al Job Engine, lo **guarda** y avisa por la cola;
+el trabajador (`job/worker.ts`, sin tocar) reclama, marca que sale, ejecuta e informa;
+el conductor lee cómo quedó cada trabajo y se lo cuenta al Orchestrator. Hasta que el
+Workflow diga que se acabó.
+
+No tiene estado de módulo, se construye por ejecución, el reloj le entra por la
+puerta, y **no contiene ninguna decisión**: ni qué paso, ni qué proveedor, ni si se
+reintenta, ni cuándo. Una suite lo comprueba mirando su código.
+
+| Archivo | Qué es |
+|---|---|
+| `conductor.ts` | el conductor, puro: solo puertos |
+| `resolucion.ts` | el puerto del Router y la capa de compatibilidad |
+| `ejecutor.ts` | `JobExecutor` sobre el Gateway, con el libro y el «sigo vivo» |
+| `cola.ts` | la cola de una invocación |
+| `almacen.ts` | `JobStore`, ejecuciones y recuento de capacidad sobre Firestore |
+| `puerta.ts` | CORE o LEGACY: función pura, sin nadie que la consulte todavía |
+| `index.ts` | la composición con las piezas reales de Weë |
+
+### 11.5 Trabajo, cola y trabajador
+
+**Trabajo.** Un paso del workflow es un trabajo. Su identidad es determinista:
+
+```
+requestId    la traza del paso = claveDePaso(ejecución, paso, intento)
+operationId  en el CONTEXTO del trabajo (la traza lo pierde: § 11.11)
+jobId        claveDeIdempotencia(cuenta, requestId)
+attemptId    claveDeIntento(jobId, n)  ·  la clave que baja al proveedor es la del INTENTO
+```
+
+Así, la misma operación pedida dos veces es el mismo trabajo, y dos servidores que
+despachen lo mismo calculan la misma clave sin hablarse.
+
+**Almacén** (`jobs/`, `workflowRuns/`). Crear es atómico: el identificador del
+documento **es** la identidad de idempotencia y se crea con `create()`, que falla si
+ya está. Escribir es un compare-and-set por revisión, **estricto**: no da por buena
+una escritura «porque el documento ya está como yo lo iba a dejar» — dos trabajadores
+con la misma identidad en el mismo milisegundo producirían el mismo documento y los
+dos creerían haber reclamado. Un compare-and-set estricto puede costar un intento
+perdido; el atajo puede costar dinero. El trabajo se guarda **como texto**, con campos
+de búsqueda al lado: Firestore rechaza los `undefined` que el motor deja, las listas
+dentro de listas y las claves con punto, y traducirlo campo a campo sería mantener una
+segunda definición de `Job`. El barrido **no necesita índice compuesto**.
+
+**Cola.** La de una invocación (§ 7). «Al menos una vez».
+
+**Trabajador.** El de la Fase 12-A, sin tocar. Quién actúa se **lee del trabajo
+guardado**, nunca del aviso. Una identidad nueva por invocación: la concesión es de un
+proceso, no de «el conductor».
+
+### 11.6 Router, Gateway y adaptadores
+
+**Router.** El del Core, sin tocar, con la capa delante (§ 6, P2b). Router y Gateway
+miran **el mismo registro**, el de la configuración viva: antes el Router leía una
+foto fija del arranque y podía elegir un modelo que un administrador acababa de apagar,
+para que el Gateway lo rechazase después.
+
+**Gateway.** El del Core, sin tocar. Ejecuta lo que le mandan.
+
+**El libro.** La documentación del Core preveía escribir `aiGenerations` inyectando el
+libro como `Tracer` del Gateway. **No cabe**: `OperationTrace` no lleva el uso y el
+Gateway anota siempre `attempt: 1`. Quien sí tiene el resultado entero y el intento de
+verdad es el ejecutor, así que el libro entra por un puerto suyo, sobre el `Ledger` que
+ya existe. Las filas salen **con la misma forma** que hoy. Y si no se puede abrir la
+fila, **la operación no sale**.
+
+**Adaptadores.** Los mismos de `engine/providers/`, solo APIs oficiales. Ninguno nuevo.
+
+### 11.7 Material
+
+`resultado del proveedor → trabajo → MATERIAL → contenido → publicación`. Un paso no
+le pasa a otro una URL: le pasa la referencia de un material que ya es de la cuenta. El
+Workflow lo impone —una URL con `?token=` ni siquiera cabe en `outputRefs`—. El
+material lo crea el Content Core, por la misma función que usa hoy `creatorRun`. Un
+trabajo guarda referencias, **nunca contenido**: lo que contestó el proveedor vuelve a
+quien lo pidió dentro de la misma invocación y no se guarda en ningún sitio.
+
+### 11.8 Fallo, y recuperación
+
+| Qué pasa | Qué hace el sistema |
+|---|---|
+| El proveedor rechaza la petición (`CONTENT_POLICY`…) | un intento; el paso falla con su código. **No se reintenta** |
+| Fallo que admite otro intento (429, 5xx, plazo) | lo decide el **Job Engine**: intento nuevo, identidad nueva, **misma implementación**, con la espera que él diga |
+| Esta invocación no puede esperar al reintento | `en_curso` + `retry_pending`. Otro proceso lo retoma |
+| El trabajador muere **antes** de salir | caduca su concesión → el intento se cierra → intento nuevo, otro trabajador. Al proveedor se sale **una** vez |
+| El trabajador muere **después** de salir | **no se repite.** El intento queda `unknown`, el trabajo `waiting`, el paso `running`. El conductor devuelve `en_curso` + `outcome_unknown` |
+| El mismo aviso, tres veces | una ejecución; las otras dos no hacen nada |
+| Dos conductores a la vez | el proveedor se llama una vez |
+| Un zombi informa tarde | su informe no mueve nada |
+| Cancelar | lo decide el Workflow (y comprueba el dueño); a cada trabajo en vuelo se le **pide** parar |
+| Una cuenta llena la cola | no se le acepta el trabajo al **crear** |
+
+**`UNKNOWN` no es `failed`.** No existe desenlace «desconocido» para un paso, y los
+contratos ya lo imponen: el paso sigue `running` hasta que lo cierre el aviso del
+proveedor o el plazo. El conductor no le inventa un final, no lo relanza y **no se
+queda esperando** a que venza.
+
+### 11.9 Credits — P0
+
+**El conductor no toca Credits.** Ni reserva, ni cobra, ni reembolsa, ni liquida.
+
+La cadena de hoy, que **no cambia**:
+
+```
+cotizar → RESERVAR (débito real, AUTHORIZED) → proveedor → resultado → completeCredits | refundCredits → ledger.settle
+```
+
+| Pregunta | Respuesta, hoy |
+|---|---|
+| ¿Cuándo se reserva? | al empezar el callable, antes de cualquier proveedor. Weë Brain en conversación es la excepción: **no reserva**, y cobra después, cada duodécima respuesta |
+| ¿Cuándo se cobra? | `completeCredits`, cuando el resultado existe y está guardado |
+| ¿Cuándo se libera? | en el `catch` de **la misma invocación** |
+| ¿Y si el proveedor falla? | reembolso entero, también si pasos anteriores salieron bien |
+| ¿Y si el callable muere? | **no corre ningún `catch`**. Reserva colgada hasta que alguien vuelva a llamar con la misma clave. **No hay barrendero** |
+| ¿Y si no se sabe cómo acabó? | ese estado **no existe** hoy: todo error tras salir es «falló» y se reembolsa, aunque el proveedor pueda terminar y facturar |
+| ¿Entrega repetida? | `duplicate: true`, sin segundo cobro |
+| ¿Respaldo a otro proveedor? | se cobra **una** vez |
+
+**Por qué el texto síncrono sí se puede migrar y lo demás no.** El conductor corre
+dentro de la misma invocación que reservó: el `try/catch` que liquida sigue exactamente
+donde está. Pero la regla de abandono de hoy (`operacionAbandonada`: «pasó el plazo y
+sigue en marcha ⇒ el proceso murió ⇒ reembolsar») **fallaría en silencio con un
+trabajador asíncrono**: reembolsaría un trabajo legítimamente vivo, y el
+`completeCredits` posterior no haría nada (`creditEngine.ts:411-414`). Resultado
+entregado, nada cobrado, ningún error a la vista. **Ninguna capacidad asíncrona se
+migra hasta que la liquidación viaje con el trabajo.**
+
+### 11.10 Observabilidad
+
+Cada entrega deja `jobId`, `attemptId`, `requestId`, `traceId`, `operationId`, cuenta,
+producto, tiempos de cola y de ejecución, cómo acabó el intento y en qué estado quedó
+el trabajo. Cada paso: capacidad, implementación, quién puso el orden (`router` o
+`cadena`), uso y coste medido. La fila de `aiGenerations` se une al trabajo y a la
+transacción de Credits por `requestId`. Nada lleva claves, tokens ni el texto de nadie.
+
+### 11.11 Defectos encontrados en fases cerradas — **no se tocó ninguno**
+
+| Dónde | Qué | Clase | Cómo se convive |
+|---|---|---|---|
+| `leerTraza` (F2) | conserva nueve campos y **descarta sin avisar** `accountId`, `entityId`, `entityType`, `operationId` y `workspaceId`, que la F10 añadió a la traza | COMPATIBILITY | van en el contexto del trabajo, que sí los guarda |
+| `Tracer` del Gateway (F2) | sin uso, y con `attempt: 1` fijo: no sirve como libro | COMPATIBILITY | el libro entra por el puerto del ejecutor |
+| Gateway (F2) | `accepted` está declarado y **ninguna ruta lo produce** | **BLOCKER para el vídeo** | no afecta al texto |
+| Gateway (F2) | la clave de idempotencia **no llega al adaptador**; al vencer no se aborta la llamada | NON-BLOCKING | igual que hoy |
+| `router/index.ts` (F7) | lee un registro fijo del arranque, no la configuración viva | COMPATIBILITY | el conductor construye el Router sobre el registro vivo |
+| Job Engine (F8) | la implementación queda fijada en el trabajo: **no hay respaldo a otro proveedor entre intentos** | COMPATIBILITY | no afecta a Weë Brain, que hoy tampoco lo tiene. Hay que resolverlo antes de migrar lo que sí |
+| `job/worker.ts` | un informe mal formado del ejecutor deja el trabajo varado hasta su plazo | NON-BLOCKING | el ejecutor construye sus informes con `informeDelGateway` |
+
+### 11.12 Volver atrás
+
+`runtime/puerta.ts`: cerrada por defecto; una configuración que no se entiende no abre
+nada; se abre por capacidad y primero para cuentas concretas —para probar en
+producción con una cuenta controlada—; y **`habilitado: false` manda sobre todo lo
+demás**. Volver atrás es un booleano, sin desplegar y sin migrar datos: los trabajos
+del Core viven en colecciones nuevas, y **ninguna colección de hoy se toca**.
+
+Hoy la puerta no la consulta nadie. Es una función pura con sus pruebas.
+
+### 11.13 Lo que NO se sabe todavía
+
+- Si Firestore de producción sirve **sin índice compuesto** las dos consultas del
+  almacén. El emulador no lo exige, así que allí no se puede comprobar: **NOT VERIFIED**.
+- Cuánto añade el conductor a la latencia de un mensaje de Weë Brain: tres escrituras
+  de trabajo más las de la ejecución, contra cero de hoy. **NOT YET MEASURED.**
+- Si el contexto de una conversación larga cabe siempre en los 128 KiB que admite la
+  entrada de un trabajo. **NOT VERIFIED.**
+- **Qué texto de la persona acabaría guardado.** Un trabajo guarda su ENTRADA —hace
+  falta para poder ejecutarlo tras una caída— y su huella de idempotencia lleva el
+  principio de esa entrada. Para Weë Brain eso sería el mensaje y su historial,
+  duplicados en `jobs/`, cuando hoy el libro evita a propósito guardar ese texto
+  (`creator/brain.ts:358`). Antes de migrar Brain hay que decidir si la entrada viaja
+  como **referencia** (`chatId`, `messageId`) y se resuelve al ejecutar, y cuánto vive
+  un trabajo terminado. **No decidido, y bloquea el paso 5.**
+- Nada de esto ha corrido contra un proveedor real.

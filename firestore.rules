@@ -924,6 +924,19 @@ service cloud.firestore {
     match /aiProviderVerification/{providerId} {
       allow read, write: if false;
     }
+    // === WEË RUNTIME (Core): trabajos y ejecuciones de workflow ===
+    // Los escribe el conductor con el Admin SDK, que no pasa por estas reglas. El
+    // cliente no lee ni escribe: un trabajo lleva dentro la entrada de la operación
+    // —lo que la persona pidió— y la traza entera. Lo que la persona ve de su
+    // trabajo se le contesta por el callable, nunca leyendo aquí. Sin regla ya
+    // estarían cerradas (Firestore deniega por defecto); se escribe para que nadie
+    // las abra por descuido con una regla más ancha.
+    match /jobs/{jobId} {
+      allow read, write: if false;
+    }
+    match /workflowRuns/{runId} {
+      allow read, write: if false;
+    }
 
     // === WEË BRAIN: conversaciones ===
     // La persona lee sus conversaciones y mensajes; escribe solo el servidor (brainChat)

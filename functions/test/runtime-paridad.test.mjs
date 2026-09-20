@@ -18,6 +18,11 @@
  * Si una puerta cambia de estado, esta suite falla: es el momento de actualizar
  * `docs/RUNTIME.md`, no de ablandar la comprobación.
  *
+ * F12-D añadió la sección P2b: la misma medida, con la capa de compatibilidad del
+ * conductor (`runtime/resolucion.ts`) delante del Router del Core. Y volvió del
+ * revés las comprobaciones 9 y 10, que decían «todavía no existe quien ejecute» y
+ * «todavía no hay almacén»: ahora existen, y lo que se vigila es que haya UNO.
+ *
  * Usa el compilado (`functions/lib`), como `runtime-map.test.mjs`: se compara lo
  * que se despliega.
  */
@@ -63,6 +68,8 @@ const core = lib('core/index.js');
 const { resolverConContexto } = lib('router/index.js');
 const { createRouter, memoryHealth, resolveQuality } = lib('engine/router.js');
 const { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } = lib('engine/registry.js');
+const { registroDeWee } = lib('registry/index.js');
+const { resolutorPorCadena, resolutorDelRouter } = lib('runtime/resolucion.js');
 
 const trace = { traceId: 'brain_paridad_0001', requestId: 'brain_paridad_0001', userId: 'user-0001', appId: 'wee', workplace: 'studio' };
 const principal = { userId: 'user-0001', appId: 'wee' };
@@ -146,14 +153,21 @@ console.log('\n── P1 · Workflow + Orchestrator: cada plan que producción p
   /* No es una divergencia: es lo que se gana. El `while` hace en serie pasos que no dependen entre sí (el clip y la voz de un vídeo). */
   check('7) el Core además sabe que hay pasos que pueden ir a la vez (hoy van en serie)', conParalelismo > 0 && maxParalelo >= 2, `${conParalelismo} despachos con más de un paso · hasta ${maxParalelo} a la vez`);
   check('8) PUERTA Workflow + Orchestrator: ABIERTA a nivel de decisión', aceptados === planes && terminan === planes && mismoOrden === planes && fuera.length === 0);
-  /* Abierta «a nivel de decisión» no es «migrable mañana»: lo que falta no es lógica, es quien ejecute, guarde y cobre. */
-  check('9) pero no hay todavía quien EJECUTE lo que el Orchestrator despacha: ningún módulo une Orchestrator → Router → Gateway',
-    !fs.readdirSync(path.resolve(RAIZ, 'functions/src'), { recursive: true }).filter((f) => String(f).endsWith('.ts') && !String(f).startsWith('core'))
-      .some((f) => { const s = leer('functions/src/' + String(f).split(path.sep).join('/')); return /orquestadorDeWee\(/.test(s) && /gatewayDeWee\(/.test(s); }));
-  check('10) ni almacén de trabajos: `JobStore` es un puerto que solo implementan las pruebas',
-    /No hay almacén\. `JobStore` es un puerto/.test(leer('functions/src/job/index.ts'))
-    && !fs.readdirSync(path.resolve(RAIZ, 'functions/src'), { recursive: true }).filter((f) => String(f).endsWith('.ts') && !String(f).startsWith('core'))
-      .some((f) => /:\s*JobStore\s*=|implements JobStore|crearSiAusente\s*[:(]\s*async|crearSiAusente:\s/.test(leer('functions/src/' + String(f).split(path.sep).join('/')))));
+  /*
+   * HASTA LA FASE 12-D ESTAS DOS DECÍAN LO CONTRARIO: «no hay todavía quien EJECUTE
+   * lo que el Orchestrator despacha» y «`JobStore` es un puerto que solo implementan
+   * las pruebas». Eran la medida de lo que faltaba, y lo que faltaba ya está: el
+   * conductor. Lo que se vigila ahora es que sea UNO —un segundo módulo que una los
+   * motores sería justo el segundo runtime que esa fase existe para impedir—.
+   */
+  const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  const fuentes = fs.readdirSync(path.resolve(RAIZ, 'functions/src'), { recursive: true }).map((f) => String(f).split(path.sep).join('/'))
+    .filter((f) => f.endsWith('.ts') && !f.startsWith('core'));
+  const queUnen = fuentes.filter((f) => f !== 'orchestrator/index.ts' && /orquestadorDeWee\(/.test(sinComentarios(leer('functions/src/' + f))));
+  check('9) ya hay quien EJECUTE lo que el Orchestrator despacha, y es UNO: el conductor', igual(queUnen, ['runtime/conductor.ts']), queUnen.join(', '));
+  const almacenes = fuentes.filter((f) => /:\s*JobStore\s*=|implements JobStore|crearSiAusente\s*[:(]\s*async|crearSiAusente:\s|async crearSiAusente\(job\)/.test(leer('functions/src/' + f)));
+  check('10) y hay UN almacén de trabajos de verdad, fuera de la composición del Job Engine —que sigue sin tenerlo, y lo dice—',
+    /No hay almacén\. `JobStore` es un puerto/.test(leer('functions/src/job/index.ts')) && igual(almacenes, ['runtime/almacen.ts']), almacenes.join(', '));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -200,9 +214,76 @@ console.log('\n── P2 · Router: qué elige cada uno, capacidad por capacidad
     /No elige proveedor: ejecuta el que le mandan\. No escribe el libro/.test(leer('functions/src/engine/gateway.ts')));
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── P2b · F12-D: la misma medida, con la capa de compatibilidad delante del Router del Core ──');
+{
+  /*
+   * La capa (`runtime/resolucion.ts`) separa dos preguntas que el router de hoy
+   * contesta juntas: QUIÉN PUEDE —el Router del Core, con todos sus filtros— y EN
+   * QUÉ ORDEN —la cadena de producto, que aquí es la función de decisión que ya usa
+   * producción—. No filtra nada por su cuenta. Así que lo que salga de aquí mide
+   * una cosa muy concreta: si el Core considera ELEGIBLE lo que producción elige.
+   */
+  const config = { providers: DEFAULT_PROVIDERS, routing: DEFAULT_ROUTING, settings: DEFAULT_SETTINGS, source: 'defaults' };
+  const libroNulo = new Proxy({}, { get: () => async () => 'gen_paridad' });
+  const vivo = createRouter({ adapters: ADAPTERS, loadConfig: async () => config, ledger: libroNulo, health: memoryHealth(), usageToday: async () => undefined });
+  const router = core.crearRouter({ registry: registroDeWee() });
+  const cadena = {
+    async cadena({ peticion, input }) {
+      const d = await vivo.route({ capability: peticion.capability, input: { ...input }, userId: peticion.trace.userId });
+      return d.candidates.map((c) => ({ providerId: c.provider, modelId: c.model.id, estimatedUsd: c.estimatedUsd, estimatedCredits: c.estimatedCredits }));
+    },
+  };
+  const conCapa = resolutorPorCadena(router, cadena);
+  const soloRouter = resolutorDelRouter(router);
+  const id = (r) => (r.ok ? `${r.implementation.providerId}/${r.implementation.modelId}` : `✘ ${r.reason}`);
+
+  const igualesConCapa = [], distintasConCapa = [], respaldoDistinto = [], demo = [], demoEnElCore = new Set(), sinEstimar = [];
+  let igualesSinCapa = 0;
+  for (const capability of Object.keys(DEFAULT_ROUTING)) {
+    const dv = await vivo.route({ capability, input: {}, userId: 'user-0001' });
+    const cabeza = dv.candidates[0];
+    const r = await conCapa.resolver({ peticion: { capability, trace }, input: {} });
+    if (!cabeza || cabeza.provider === 'mock') { demo.push(capability); demoEnElCore.add(id(r)); continue; }
+    const deHoy = `${cabeza.provider}/${cabeza.model.id}`;
+    if (id(await soloRouter.resolver({ peticion: { capability, trace }, input: {} })) === deHoy) igualesSinCapa++;
+    (id(r) === deHoy ? igualesConCapa : distintasConCapa).push(capability);
+    const cadenaDeHoy = dv.candidates.map((c) => `${c.provider}/${c.model.id}`).join('›');
+    const cadenaDelCore = r.ok ? [r.implementation, ...r.alternatives].map((x) => `${x.providerId}/${x.modelId}`).join('›') : '';
+    if (cadenaDeHoy !== cadenaDelCore) respaldoDistinto.push(capability);
+    if (r.ok && (r.estimado?.usd !== cabeza.estimatedUsd || r.estimado?.credits !== cabeza.estimatedCredits)) sinEstimar.push(capability);
+  }
+
+  check('21) sin la capa, la línea base no se ha movido: el Router del Core coincide en seis', igualesSinCapa === 6, String(igualesSinCapa));
+  check('22) CON la capa coincide en las VEINTIUNA que tienen proveedor real: mismo proveedor y mismo modelo', igualesConCapa.length === 21 && distintasConCapa.length === 0, `${igualesConCapa.length}/21 · distintas: ${distintasConCapa.join(', ') || 'ninguna'}`);
+  check('23) y el orden de RESPALDO es el mismo eslabón a eslabón', respaldoDistinto.length === 0, respaldoDistinto.join(', '));
+  check('24) lo que se estimó que costaría —dólares y Credits— viaja tal cual: el modelo cotizado es el que se ejecuta', sinEstimar.length === 0, sinEstimar.join(', '));
+
+  /*
+   * LA CLASIFICACIÓN, y por qué se puede afirmar. Si cambiando SOLO el orden las
+   * quince coinciden, es que el Core ya daba por elegible lo que elige producción:
+   * ninguna divergencia venía de que al Core le faltara una capacidad o un
+   * proveedor, ni de un error suyo. Eran la misma lista ordenada con otro criterio
+   * —puntuación frente a cadena—, y el criterio es una decisión de producto.
+   */
+  const CLASIFICACION = {
+    'POLICY DIFFERENCE': ['image.background_remove', 'image.edit', 'image.generate', 'image.identity_edit', 'image.object_remove', 'image.reference', 'image.space_restyle', 'image.upscale',
+      'subtitle.generate', 'text.generate', 'text.structure', 'video.generate', 'video.image_to_video', 'video.reference', 'vision.describe'],
+    'MISSING PROVIDER': ['audio.sfx', 'doc.render', 'image.try_on', 'music.generate', 'video.compose', 'video.montage', 'video.vertical'],
+    'EXPECTED IMPROVEMENT': [], 'COMPATIBILITY ISSUE': [], BUG: [], 'MISSING CAPABILITY': [],
+  };
+  check('25) las quince divergencias son POLICY DIFFERENCE: con solo cambiar el orden desaparecen todas', CLASIFICACION['POLICY DIFFERENCE'].length === 15 && CLASIFICACION['POLICY DIFFERENCE'].every((c) => igualesConCapa.includes(c)));
+  check('26) ninguna es BUG, MISSING CAPABILITY ni COMPATIBILITY ISSUE: el Core considera elegible todo lo que producción elige', CLASIFICACION.BUG.length + CLASIFICACION['MISSING CAPABILITY'].length + CLASIFICACION['COMPATIBILITY ISSUE'].length === 0 && distintasConCapa.length === 0);
+  check('27) las siete sin proveedor real son MISSING PROVIDER: hoy las sirve el modo demo', igual(demo, CLASIFICACION['MISSING PROVIDER']), demo.join(', '));
+  /* Y aquí SÍ cambiaría el producto: hoy devuelven una muestra; el Core no da por elegible un resultado sintético. No se migran sin decidirlo. */
+  check('28) y ahí el Core contesta «no hay con qué», con capa y sin ella: migrarlas apagaría el modo demo', igual([...demoEnElCore], ['✘ unavailable']), [...demoEnElCore].join(' | '));
+  check('29) PUERTA Router + capa de compatibilidad: ABIERTA a nivel de decisión para las 21', igualesConCapa.length === 21 && respaldoDistinto.length === 0 && sinEstimar.length === 0);
+}
+
 console.log('\n── P3 · El documento dice lo mismo ──');
 {
   const doc = fs.existsSync(path.resolve(RAIZ, 'docs/RUNTIME.md')) ? leer('docs/RUNTIME.md') : '';
+  check('30) `docs/RUNTIME.md` recoge la medida de F12-D: 21 de 21 con la capa, y las 7 que no se migran', /21 de 21/.test(doc) && /POLICY DIFFERENCE/.test(doc) && /MISSING PROVIDER/.test(doc));
   check('18) `docs/RUNTIME.md` recoge las tres puertas con su estado',
     /Workflow \+ Orchestrator[^\n]*ABIERTA/.test(doc) && /\| \*\*Router\*\*[^\n]*CERRADA|Router[^\n|]*\|[^\n]*CERRADA/.test(doc) && /Gateway[^\n]*CERRADA/.test(doc));
   check('19) y las cifras medidas: 6 iguales, 15 distintas, 7 sin proveedor real', /\b6\b[^\n]*iguales/.test(doc) && /\b15\b[^\n]*distint/.test(doc) && /\b7\b[^\n]*(sin proveedor|modo demo)/.test(doc));
