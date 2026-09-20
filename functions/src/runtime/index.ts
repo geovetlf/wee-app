@@ -429,6 +429,16 @@ export interface ConductorDeWeeDeps {
   construirEntradaDeBrain?: ConstructorDeEntrada;
   /** Las restricciones EXPLÍCITAS conocidas. Hoy no hay ninguna, y sin ellas no se bloquea nada. */
   reglas?: readonly ReglaDePolitica[];
+  /**
+   * PEDIRLE AL PROVEEDOR QUE ACEPTE Y SUELTE. Cerrado por defecto.
+   *
+   * Solo lo enciende quien tiene detrás las dos cosas que hacen falta para que
+   * una tarea a medias no se pierda: el trabajo guardado con su referencia, y
+   * alguien que después pregunte por ella. Hoy eso es el canary de vídeo, y
+   * nadie más — con esto ausente, ningún adaptador acepta y suelta, y el
+   * comportamiento es exactamente el de siempre.
+   */
+  aceptaAsincrono?: boolean;
 }
 
 /**
@@ -442,7 +452,13 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
   const config = await loadConfig();
   const registro = crearRegistro(datosDelRegistro(ADAPTERS, config.providers));
   const router = crearRouter({ registry: registro });
-  const gateway = crearGatewayDelMotor({ adapters: ADAPTERS, loadConfig, tracer: deps.tracer ?? trazaDeConsola, now: ahora });
+  const gateway = crearGatewayDelMotor({
+    adapters: ADAPTERS,
+    loadConfig,
+    tracer: deps.tracer ?? trazaDeConsola,
+    now: ahora,
+    ...(deps.aceptaAsincrono ? { aceptaAsincrono: true } : {}),
+  });
   const { motor } = crearMotorDeTrabajosDeWee(deps.politica);
   const capacidad = deps.limites ? contadorDeCapacidad(deps.db, deps.limites) : undefined;
   const trabajos = almacenDeTrabajos(deps.db);
@@ -508,6 +524,8 @@ export { decidirReconciliacion } from './reconciliacion';
 export type { AccionDeReconciliacion, EstadoSegunElProveedor, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor } from './reconciliacion';
 export { reconciliarTrabajos, reconciliarUno } from './reconciliador';
 export type { InformeDelReconciliador, ReconciliadorDeps, VistoAlReconciliar } from './reconciliador';
+export { pedirMedio, interpretarMedio, PASO_DE_MEDIO } from './medios';
+export type { DesenlaceDelMedio, MotivoDeEsperaDelMedio, PasoDeMedioDeps } from './medios';
 export { identidadDelMaterial, procedenciaDe, tipoDeMaterialDe } from './materializacion';
 export type { DesenlaceDeMaterializacion, PeticionDeMaterializacion, PuertoDeMaterializacion } from './materializacion';
 export { FalloDelPensador, pensadorSobreConductor } from './pensador';

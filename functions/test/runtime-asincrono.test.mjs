@@ -47,6 +47,13 @@ const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^
 /* Para preguntar por el ORDEN de las cosas: un `import` de arriba no es «usarlo antes». */
 const sinImportes = (src) => sinComentarios(src).replace(/^\s*import[\s\S]*?from\s+'[^']+';$/gm, ' ');
 
+/** Los módulos que producción carga de verdad. Un archivo muerto no enciende nada. */
+const fuentesVivas = () => [
+  'functions/src/index.ts', 'functions/src/creator/index.ts', 'functions/src/creator/brain.ts',
+  'functions/src/creator/video.ts', 'functions/src/creator/planner.ts', 'functions/src/engine/index.ts',
+  'functions/src/engine/gateway.ts', 'functions/src/engine/router.ts', 'functions/src/settlement/programado.ts',
+];
+
 let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => { n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : '')); if (!cond) failures++; };
 
@@ -599,9 +606,24 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
     /const liquidacion = await liquidar\(\)/.test(sinComentarios(leer('functions/src/runtime/index.ts'))));
   check('y declara SOLO la clave que hace falta para preguntar, no las ocho', /secrets: RECONCILIATION_SECRETS/.test(PROG) && /RECONCILIATION_SECRETS = \[SECRETS\.ARK_API_KEY\]/.test(sinComentarios(leer('functions/src/secrets.ts'))));
   check('con memoria para traerse un resultado, que es lo que puede acabar haciendo', /memory: '1GiB'/.test(PROG));
-  check('la aceptación asíncrona está CERRADA por defecto: nadie la enciende', !/aceptaAsincrono: true/.test(sinComentarios(leer('functions/src/runtime/index.ts'))));
-  check('ninguna capacidad de vídeo está migrada: el canary sigue siendo solo texto', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(leer('functions/src/creator/brain.ts')));
-  check('el camino de siempre sigue entero: `creatorRun` y el vídeo no pasan por aquí', /pollUntil/.test(leer('functions/src/engine/providers/seedance.ts')) && /videoEngine/.test(leer('functions/src/engine/video.ts')));
+  /*
+   * M-1 encendió la aceptación asíncrona en UN sitio y solo uno. Lo que se fija
+   * ya no es «nadie la enciende» —sería mentira— sino que quien la enciende es
+   * la puerta del canary de vídeo, y que por defecto sigue apagada.
+   */
+  const VIDEO = sinComentarios(leer('functions/src/creator/video.ts'));
+  const RT = sinComentarios(leer('functions/src/runtime/index.ts'));
+  check('la aceptación asíncrona sigue siendo opt-in: el conductor solo la pide si se la piden', /\.\.\.\(deps\.aceptaAsincrono \? \{ aceptaAsincrono: true \} : \{\}\)/.test(RT));
+  check('y la enciende EXACTAMENTE un módulo vivo: la puerta del canary de vídeo',
+    fuentesVivas().filter((f) => /aceptaAsincrono: true/.test(sinComentarios(leer(f)))).join(',') === 'functions/src/creator/video.ts');
+  check('detrás de la puerta, nunca antes: si la puerta dice legacy, no se enciende nada', VIDEO.indexOf('decidirRuntime') < VIDEO.indexOf('aceptaAsincrono: true'));
+  check('el canary de texto de Brain no cambió: su candado sigue siendo `text.generate`', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(leer('functions/src/creator/brain.ts')));
+  check('el camino de siempre sigue entero: el sondeo y `videoEngine` siguen ahí para quien no pase por la puerta',
+    /pollUntil/.test(leer('functions/src/engine/providers/seedance.ts')) && /videoEngine\.generate\(/.test(VIDEO));
+  /* El dinero: en marcha NO se cobra y NO se devuelve. Es la regla que protege una tarea viva. */
+  check('con el vídeo en marcha no se cobra ni se devuelve: lo cierra la liquidación',
+    /estado === 'en_marcha'/.test(VIDEO) && !/en_marcha'[\s\S]{0,400}(completeCredits|refundCredits)/.test(VIDEO));
+  check('y la reserva viaja DENTRO del trabajo, que es lo que la liquidación sabrá leer', /creditRequestId: requestId/.test(VIDEO) && /creditTransactionId: usageTransactionId\(requestId\)/.test(VIDEO));
 
   check('esta suite está en la cadena de `npm test`', /runtime-asincrono\.test\.mjs/.test(leer('functions/package.json')));
 }

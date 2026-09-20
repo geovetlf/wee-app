@@ -578,7 +578,7 @@ console.log('\n── G · Qué se añadió, qué se tocó a propósito y qué s
    * un segundo módulo vivo que importe el runtime hace fallar esto.
    */
   const conPuerta = vivos.filter((f) => /decidirRuntime/.test(sinComentarios(leer(f))));
-  check('UNA SOLA ENTRADA AL RUNTIME: la puerta la consulta `brainChat`, y nadie más', conPuerta.join(',') === 'functions/src/creator/brain.ts', conPuerta.join(','));
+  check('DOS ENTRADAS AL RUNTIME, y las dos son canaries declarados: `brainChat` (texto) y `generateVideo` (vídeo)', conPuerta.join(',') === 'functions/src/creator/brain.ts,functions/src/creator/video.ts', conPuerta.join(','));
   check('no se tocó el Financial Core ni el Credit Engine', !/runtime/.test(leer('functions/src/credits/creditEngine.ts')));
   /* De una fase cerrada se tocaron DOS cosas, las dos del Gateway y las dos autorizadas: `leerTraza` y el camino de `accepted`. */
   check('lo tocado de una fase cerrada está vigilado una por una en job-queue 63b–63e', (() => {

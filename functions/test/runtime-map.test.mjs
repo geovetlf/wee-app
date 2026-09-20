@@ -321,13 +321,13 @@ console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y entra por UN
   check('110) el conductor está compilado: sus doce módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
   check('111) y producción los carga TODOS: el canary los puso en la ruta, no a medias', DEL_CONDUCTOR.every((m) => VIVOS.has(m)), DEL_CONDUCTOR.filter((m) => !VIVOS.has(m)).join(', '));
   const fabrica = [...invocadaDesde('conductorDeWee'), ...invocadaDesde('crearConductor')];
-  check('112) y su fábrica la invoca UN solo módulo vivo: Weë Brain', igual(fabrica, ['creator/brain.js', 'runtime/index.js']), fabrica.join(', '));
+  check('112) y su fábrica la invocan DOS módulos vivos: los dos canaries declarados (Brain texto, Studio vídeo)', igual(fabrica, ['creator/brain.js', 'creator/video.js', 'runtime/index.js']), fabrica.join(', '));
   const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   const fuentes = andar(SRC, '.ts').map((abs) => ({ r: path.relative(SRC, abs).split(path.sep).join('/'), src: sinComentarios(fs.readFileSync(abs, 'utf8')) }));
   const conductores = fuentes.filter((f) => /export const crearConductor\b/.test(f.src)).map((f) => f.r);
   check('113) hay UN conductor. Un segundo sería el segundo runtime que esta fase existe para impedir', igual(conductores, ['runtime/conductor.ts']), conductores.join(', '));
   const puertas = fuentes.filter((f) => /decidirRuntime\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
-  check('114) la puerta CORE/LEGACY la consulta EXACTAMENTE un callable: `brainChat`', igual(puertas, ['creator/brain.ts']), puertas.join(', '));
+  check('114) la puerta CORE/LEGACY la consultan EXACTAMENTE dos callables: `brainChat` y `generateVideo`', igual(puertas, ['creator/brain.ts', 'creator/video.ts']), puertas.join(', '));
   const pensadores = fuentes.filter((f) => /pensadorSobreConductor\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
   check('116) Weë Brain puede pensar por el conductor, y el camino de siempre sigue entero al lado', igual(pensadores, ['creator/brain.ts']) && /engine\.generate\(/.test(leer('functions/src/creator/brain.ts')), pensadores.join(', '));
   /* UNA capacidad, escrita en el código: la configuración de la puerta puede cerrar el canary, nunca ampliarlo. */

@@ -537,7 +537,7 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
 {
   const dir = 'functions/src/runtime';
   const archivos = fs.readdirSync(path.resolve(RAIZ, dir)).sort();
-  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,atencion.ts,aviso.ts,barrendero.ts,barrido.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,materializacion.ts,pensador.ts,plazos.ts,politica.ts,proveedor.ts,puerta.ts,reconciliacion.ts,reconciliador.ts,resolucion.ts', archivos.join(','));
+  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,atencion.ts,aviso.ts,barrendero.ts,barrido.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,materializacion.ts,medios.ts,pensador.ts,plazos.ts,politica.ts,proveedor.ts,puerta.ts,reconciliacion.ts,reconciliador.ts,resolucion.ts', archivos.join(','));
   /* Y la infraestructura que lo programa vive FUERA: el runtime no sabe quién le pide que pase. */
   check('el programador de tareas no está en runtime/, y el runtime no lo nombra', fs.existsSync(path.resolve(RAIZ, 'functions/src/settlement/programado.ts'))
     && !archivos.some((f) => /onSchedule|firebase-functions/.test(leer(`${dir}/${f}`))));
@@ -562,8 +562,22 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
    * `text.generate`— y ninguna más. La guarda no se quita; se estrecha, para que
    * siga cazando al segundo módulo que entre sin que nadie lo autorice.
    */
+  /*
+   * Y AHORA SON DOS, no una. El canary de vídeo (M-1) abrió la segunda puerta:
+   * `generateVideo` con `video.generate`. La guarda sigue sin quitarse —se
+   * vuelve a estrechar— y lo que fija es lo que importa: CADA puerta declara en
+   * su propio código la ÚNICA capacidad que puede mandar al Core, y ninguna
+   * puede abrir la de la otra. Un tercer módulo que entre hace fallar esto.
+   */
   const entran = vivos.filter((f) => /from '\.\.?\/runtime'/.test(sinComentarios(leer(f))));
-  check('CONECTADO SOLO PARA EL CANARY DE TEXTO DE BRAIN: un único módulo vivo entra al runtime', entran.join(',') === 'functions/src/creator/brain.ts', entran.join(','));
+  check('CONECTADO SOLO PARA DOS CANARIES: texto en Brain y vídeo en Studio, y nadie más',
+    entran.join(',') === 'functions/src/creator/brain.ts,functions/src/creator/video.ts', entran.join(','));
+  const videoVivo = sinComentarios(leer('functions/src/creator/video.ts'));
+  check('el de vídeo también entra por la PUERTA, con una sola decisión', /decidirRuntime\(await configuracionDeLaPuerta\(getFirestore\(\)\)/.test(videoVivo) && videoVivo.match(/decidirRuntime\(/g).length === 1);
+  check('y con SU capacidad escrita en SU código: la configuración puede cerrar, nunca ampliar',
+    /CAPACIDAD_DEL_CANARY: CapabilityId = 'video\.generate'/.test(videoVivo) && /normalizado\.capability === CAPACIDAD_DEL_CANARY/.test(videoVivo));
+  check('los dos candados son independientes: ninguna puerta puede abrir la capacidad de la otra',
+    /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(sinComentarios(leer('functions/src/creator/brain.ts'))));
   const brainVivo = sinComentarios(leer('functions/src/creator/brain.ts'));
   check('y entra por la PUERTA: una sola decisión, cerrada por defecto', /decidirRuntime\(await configuracionDeLaPuerta\(db\)/.test(brainVivo) && brainVivo.match(/decidirRuntime\(/g).length === 1);
   check('con UNA capacidad autorizada en el código: la configuración puede cerrar, nunca ampliar', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(brainVivo) && /puerta\.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY/.test(brainVivo));
