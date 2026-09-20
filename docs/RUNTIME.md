@@ -1834,3 +1834,103 @@ arriba pasó **solo con reconciliación**. Eso es lo que se quería probar —qu
 se recupera aunque nadie avise— y es también lo que falta para M-2, donde el aviso del
 proveedor debería llegar antes y las dos vías tendrían que converger en el mismo estado
 sin cobrar dos veces.
+
+## 20. F12-D · M-2: el aviso del proveedor, validado sin generar nada
+
+El callback se validó **sin una tercera creación real**, y la forma de hacerlo la da la
+propia documentación de BytePlus:
+
+> «The callback request content structure is consistent with the response body of the
+> Retrieve a video generation task API.»
+
+Es decir: **el cuerpo del webhook ES lo que devuelve consultar la tarea**. Y consultar es
+un `GET` que no crea nada y no cuesta nada. Así que se consultaron las dos tareas reales
+que dejó M-1 y se reprodujo ese cuerpo —el suyo, con sus campos— contra el receptor de
+verdad, sobre Firestore de verdad.
+
+Lo único que no se copia es la URL firmada del vídeo: va firmada, caduca, y no se guarda
+en ningún sitio.
+
+### 20.1 Lo que dice la documentación oficial, comprobado
+
+| | |
+|---|---|
+| Método | `POST` a la dirección de `callback_url` cuando cambia el estado |
+| Cuerpo | idéntico a la respuesta de consultar la tarea |
+| Estados | `queued`, `running`, `succeeded`, `failed`, `expired` |
+| Reintentos | **tres**, si no hay confirmación en cinco segundos |
+| `expired` | la tarea pasó más de `execution_expires_after` en cola o ejecutándose |
+| **Firma** | **no existe** — no hay HMAC, ni secreto de webhook, ni cabecera de firma |
+
+Lo último importa y se dice tal cual: buscando `signature`, `HMAC`, `webhook secret` y
+`Authorization` en la página oficial, lo único que aparece es la autenticación de la
+LLAMADA a la API (`Bearer ARK_API_KEY`), nunca del callback. Así que el testigo en la URL
+es lo único comprobable, y el hueco de la firma (`comprobarFirma`) sigue preparado y
+vacío. **No se inventa una firma que el proveedor no tiene.**
+
+Nota: la lista de estados del CALLBACK son cinco; `cancelled` aparece como estado de
+tarea pero no entre los que él dice que notifica. El traductor lo mapea igual —a fallo—
+porque un superconjunto no hace daño y el día que lo mande estará contemplado.
+
+### 20.2 Convergencia: dos caminos, un solo estado
+
+Lo que M-2 tenía que demostrar, demostrado en las dos direcciones con el mismo cuerpo real:
+
+    AVISO → PREGUNTA    la pregunta ya no pregunta: `trabajo_terminal`
+    PREGUNTA → AVISO    el aviso llega tarde: `repetido`
+
+Y en los dos casos el trabajo queda **idéntico campo por campo** —estado, desenlace del
+intento, referencia del proveedor, número de salidas, eventos vistos y tokens— con **un
+solo material**, cuyo nombre coincide porque se calcula igual por los dos caminos. El
+segundo en llegar no mueve ni una revisión.
+
+No son dos sistemas: es el mismo traductor (`leerAvisoDeSeedance`), el mismo lector
+(`leerAviso`), el mismo motor y el mismo almacén. Por eso no pueden discrepar.
+
+### 20.3 Idempotencia, con los reintentos que él documenta
+
+El mismo aviso tres veces —el número exacto que ModelArk reintenta— no hace nada las tres:
+un intento, una salida, un material, un asiento. Y tres entregas SIMULTÁNEAS sobre el CAS
+de Firestore: exactamente una aplica.
+
+La identidad del aviso se calcula del cuerpo y queda guardada DENTRO del trabajo, que es
+lo que sobrevive a la muerte del proceso.
+
+### 20.4 El hallazgo: un fallo del proveedor deja el trabajo esperando a nadie
+
+Esto lo destapó la prueba, y es lo más importante de M-2.
+
+Un `failed`, `expired` o `cancelled` cierra el INTENTO como fallado —correcto— pero **no
+cierra el TRABAJO**: el motor programa un reintento, porque un fallo de proveedor es
+reintentable y su política permite tres. Eso es correcto y es suyo.
+
+El problema es lo que viene después: **en el camino asíncrono de hoy no hay nadie
+ejecutando reintentos**. El conductor solo corre dentro de una invocación, y en producción
+no hay trabajador recogiendo la cola. Así que un vídeo que falle se queda en `queued`
+esperando un reintento que no va a ocurrir.
+
+El dinero no se pierde ni se regala —la liquidación dice `esperar / recuperable` y **no
+reembolsa**, que es lo conservador y correcto— pero tampoco se devuelve nunca. Queda
+retenido.
+
+Lo que falta para cerrarlo es una de dos, y ninguna es de este bloque:
+
+- que alguien ejecute los reintentos pendientes (la recuperación del Job Engine, que
+  existe como consulta `recuperables` y no está programada), o
+- que la política de la capacidad de vídeo declare `maxAttempts: 1`, y entonces un fallo
+  del proveedor sea terminal a la primera y la liquidación lo devuelva.
+
+Queda dicho, medido y sin arreglar: arreglarlo es una decisión de producto sobre si un
+vídeo que falla se reintenta.
+
+### 20.5 Lo que sigue sin validarse
+
+**El salto por la red.** Nada de lo anterior prueba que ModelArk llame de verdad a nuestra
+dirección: para eso hace falta una generación nueva, con `callback_url` configurada y el
+receptor desplegado. Lo que sí está probado es todo lo que pasa **desde que el cuerpo
+llega**.
+
+Por eso `avisoDeProveedor` **sigue sin exportarse**: sin una generación nueva no existe
+ningún aviso legítimo que pueda llegarle, y desplegar una frontera pública que nadie puede
+llamar es superficie sin función. La línea está escrita y probada; encenderla va junto con
+la primera generación que configure el callback.
