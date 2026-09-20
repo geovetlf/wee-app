@@ -1191,3 +1191,140 @@ de la Fase 11.x-6. Los saldos de las cuentas reales no se movieron: 240 / 240 / 
 
 Al terminar: puerta borrada, cuenta borrada, y producción con 0 trabajos, 0 ejecuciones,
 19 generaciones, 13 asientos, 16 perfiles, 12 entidades, 8 cuentas y 10 cuentas de Auth.
+
+---
+
+## 14. F12-D · Que el dinero sobreviva al proceso
+
+> **NADA DE ESTO ESTÁ CONECTADO NI DESPLEGADO.** No hay barrendero programado,
+> no hay ninguna capacidad asíncrona migrada y ningún callable llama a esto. Lo que
+> hay es la pieza que faltaba, construida y probada.
+> La liquidación **síncrona** de Weë Brain sí está validada en producción (§ 13.10);
+> la **asíncrona** sigue sin habilitarse.
+> Lo vigila `functions/test/runtime-liquidacion.test.mjs` (67 comprobaciones) y la
+> sección K de la suite del emulador.
+
+### 14.1 El problema, dicho exacto
+
+Hoy la liquidación vive en el `try/catch` de la llamada que empezó la operación. Para
+un texto de dos segundos basta —y está demostrado—. Para un vídeo de veinte minutos
+no: la llamada devuelve mucho antes, y si el proceso que la atendía desaparece no queda
+**nadie** que cobre o devuelva lo reservado. Los Credits se quedan retenidos para
+siempre y la persona no se entera.
+
+### 14.2 La regla
+
+**El trabajo guardado tiene que bastar.** `runtime/liquidacion.ts` lee un trabajo y dice
+qué toca hacer con su dinero, sin preguntarle nada a nadie: sin reloj propio, sin red,
+sin memoria. Que la respuesta dependa solo de lo escrito es lo que permite que la tome
+otro proceso, media hora después, y le salga lo mismo.
+
+| Lo que dice el trabajo guardado | Qué toca |
+|---|---|
+| No declara reserva | **nada** |
+| `completed` | **liquidar** por lo que se cotizó |
+| Terminal y no completado, sin haber salido nunca | **reembolsar** (`no_salio`) |
+| Terminal y no completado, salió y se sabe que acabó mal | **reembolsar** (`fallo_definitivo`) |
+| Algún intento **salió y no se sabe cómo acabó** | **reconciliar** — ni cobrar ni devolver |
+| No terminal, con la **concesión viva** | **esperar** (`en_marcha`) |
+| No terminal, sin dueño (incluido un fallo que se va a reintentar) | **esperar** (`recuperable`) |
+
+**Las dos cosas que nunca hace.** No devuelve el dinero de un trabajo que sigue vivo,
+por mucho que tarde: mientras la evidencia guardada diga que hay alguien ejecutándolo,
+reembolsar sería quitarle la reserva a quien trabaja. Y no devuelve el dinero de un
+desenlace **desconocido**: «salió y no se sabe» no es «no pasó nada», puede haber un
+vídeo hecho y cobrado al otro lado.
+
+Que la llamada original ya no exista **no es evidencia de nada**, y que se pase un plazo
+tampoco por sí solo: un plazo cuenta cuando el motor de trabajos ya lo ha convertido en
+un estado final, que es cuando hay constancia de que el intento no sigue vivo.
+
+### 14.3 Estados financieros: los que ya había
+
+**No se inventó ninguno, y no hizo falta tocar el Financial Core.** El Credit Engine ya
+tenía justo lo necesario:
+
+```
+PENDING → AUTHORIZED → COMPLETED          (se cobró)
+PENDING → AUTHORIZED → FAILED → REFUNDED  (se devolvió)
+```
+
+`completeCredits` y `refundCredits` ya son **idempotentes por `requestId`**: si la
+transacción no está `AUTHORIZED`, no tocan nada y contestan el estado. Esa es toda la
+garantía de «exactamente una transición», y es del motor de Credits, no del barrendero.
+
+La **reconciliación** no es un estado del libro: es una **acción** del barrendero —no
+hacer nada y dejarlo anotado—. La reserva se queda `AUTHORIZED`, que es exactamente lo
+que significa: el dinero está retenido y todavía no se sabe de quién es.
+
+**Una asimetría que conviene saber.** `refundCredits` dice si el reembolso era duplicado;
+`completeCredits` no: contesta `COMPLETED` tanto si acaba de cobrar como si ya estaba
+cobrado. Así que el barrendero **no puede saber si cobró él**, y por eso no lo dice: su
+contador significa «quedó cobrado». No afecta a la seguridad —el cobro sigue siendo uno—
+solo a lo que el informe puede presumir.
+
+### 14.4 El barrendero
+
+`runtime/barrendero.ts`. Entra, recorre lo que le dejan recorrer y sale: **no es un
+bucle**, no tiene temporizadores por trabajo, no vive dentro de Weë Brain, no reclama,
+no ejecuta y no habla con ningún proveedor. Distingue los seis casos de la tabla de
+arriba y solo mueve dinero en dos de ellos.
+
+**Cómo encuentra lo que se quedó abierto.** El almacén marca con un campo de búsqueda
+—`liquidacion: 'pendiente'`— los trabajos que declaran una reserva, y el barrendero
+consulta por ese campo con el orden por identificador: campo único, **sin índice
+compuesto**, igual que la consulta de recuperación (§ 12.2). Cuando termina con uno, lo
+marca `'hecha'` con una escritura que **no toca el `json`**, que es la verdad del motor:
+no es una transición y no compite con el CAS.
+
+**Esa marca es una optimización, no la verdad.** Si una transición posterior la devuelve
+a `'pendiente'`, el barrendero lo mirará otra vez y el Credit Engine le dirá que ya
+estaba: cuesta una lectura, no un cobro. La verdad de si una reserva está cerrada la
+tiene la transacción, y solo ella.
+
+**Es el mismo almacén**, con un papel más (`AlmacenDeTrabajosDeWee = JobStore &
+FuenteDeTrabajosPorLiquidar`). No hay un segundo almacén, ni una segunda cola, ni un
+segundo motor de trabajos. La cola sigue siendo transporte y el `JobStore` sigue siendo
+la fuente de verdad.
+
+### 14.5 Concurrencia: exactamente una transición
+
+Probado con el Credit Engine **de verdad** sobre un Firestore en memoria:
+
+| Caso | Resultado |
+|---|---|
+| Dos barrenderos a la vez sobre el mismo trabajo | un cobro, un apunte |
+| Barrendero y el camino síncrono a la vez | un cobro |
+| Cobrar y devolver compitiendo | gana uno; el otro no hace nada |
+| Tres barrenderos sobre dos operaciones | una transición cada una |
+| Liquidar dos veces · reembolsar dos veces | un apunte, y el segundo reembolso no devuelve nada |
+| Cinco pasadas sobre un trabajo vivo | cero reembolsos |
+
+Y los seis momentos en los que puede morir el proceso: antes de salir (se devuelve),
+después del proveedor y antes de liquidar (otro lo cobra), durante el proveedor con la
+concesión viva (no se toca nada), y con la concesión caducada (el dinero espera a que el
+motor de trabajos lo mueva).
+
+### 14.6 Lo que cuesta
+
+Medido contra el emulador, con 30 trabajos:
+
+| | |
+|---|---|
+| Crear el trabajo | 10 ms de media |
+| Las tres escrituras del trabajador (reclamar · marcar envío · informar) | 94 ms |
+| Decidir qué hacer con el dinero | **0,2 µs** — es una función pura |
+| Consulta de pendientes (30 trabajos) | 25 ms |
+| Pasada del barrendero | 16 ms por trabajo |
+| Consulta de recuperables | 13 ms |
+
+Son cifras de emulador en un portátil, no de producción. No se optimizó nada.
+
+### 14.7 Qué sigue bloqueado
+
+La fundación existe; **habilitarla es otro bloque**. Sigue sin migrar el vídeo, las
+operaciones largas, `creatorRun` y el avatar, y para que puedan migrar faltan tres cosas
+que este bloque no hace: **quién llama al barrendero** (un programador de tareas, que es
+infraestructura nueva), **`accepted` en el Gateway** (§ 12.3, sin lo cual una operación
+asíncrona no puede decir «lo tengo» y volver luego) y **quién resuelve lo que queda a
+reconciliar**, que hoy es nadie.

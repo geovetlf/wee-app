@@ -452,9 +452,22 @@ console.log('\n── H · El conductor no toca Credits, y el libro recibe lo qu
   check('la fila se abre ANTES de salir y se cierra con el coste medido del proveedor', fila.status === 'COMPLETED' && fila.providerCost === 0.002 && fila.attempt === 1);
   check('y el conductor NO liquida: eso es de quien reservó los Credits', m.libro.usage.credits === 0 && fila.creditsCharged === undefined);
 
-  const fuentes = fs.readdirSync(path.resolve(RAIZ, 'functions/src/runtime')).map((f) => sinComentarios(leer('functions/src/runtime/' + f))).join('\n');
-  check('nada en runtime/ reserva, cobra, reembolsa ni liquida', !/spendCredits|completeCredits|refundCredits|holdCredits|settleCredits|creditEngine|\.settle\(/.test(fuentes));
-  check('ni importa el Credit Engine ni el Financial Core', !/from '\.\.\/credits|from '\.\.\/financial|core\/financial/.test(fuentes));
+  /*
+   * EL DINERO SIGUE FUERA DEL CONDUCTOR, y ahora se puede decir con más
+   * precisión que antes. La fundación de liquidación asíncrona (F12-D) añadió
+   * UN sitio en todo `runtime/` que habla con el Credit Engine: la composición,
+   * y solo para implementar el puerto de liquidación con las dos llamadas que
+   * ya existían. Ni el conductor, ni el ejecutor, ni el barrendero lo tocan.
+   */
+  const archivos = fs.readdirSync(path.resolve(RAIZ, 'functions/src/runtime'));
+  const tocanDinero = archivos.filter((f) => /spendCredits|completeCredits|refundCredits|holdCredits|creditEngine|\.settle\(/.test(sinComentarios(leer('functions/src/runtime/' + f))));
+  check('en todo runtime/ hay UN solo sitio que mueve dinero: la composición', tocanDinero.join(',') === 'index.ts', tocanDinero.join(','));
+  check('y el conductor, el ejecutor y el barrendero no están entre ellos', !['conductor.ts', 'ejecutor.ts', 'barrendero.ts', 'liquidacion.ts', 'almacen.ts'].some((f) => tocanDinero.includes(f)));
+  check('lo que usa son las dos operaciones del Credit Engine que ya existían: nada nuevo', (() => {
+    const s = sinComentarios(leer('functions/src/runtime/index.ts'));
+    return /credits\.completeCredits\(/.test(s) && /credits\.refundCredits\(/.test(s) && !/spendCredits|holdCredits|crearTransaccion|nuevoAsiento/.test(s);
+  })());
+  check('ni el Financial Core se importa desde aquí', !archivos.map((f) => sinComentarios(leer('functions/src/runtime/' + f))).join('\n').match(/from '\.\.\/financial|core\/financial/));
 
   const sinLibro = mundo({ libro: { async open() { throw new Error('Firestore caído'); }, async close() {} } });
   const rs = await sinLibro.conductor.ejecutar(pedir(workflow([unPaso()]), {}));
@@ -524,7 +537,7 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
 {
   const dir = 'functions/src/runtime';
   const archivos = fs.readdirSync(path.resolve(RAIZ, dir)).sort();
-  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
+  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,barrendero.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,pensador.ts,politica.ts,puerta.ts,resolucion.ts', archivos.join(','));
   const puros = ['conductor.ts', 'cola.ts', 'ejecutor.ts', 'resolucion.ts', 'puerta.ts'].map((f) => sinComentarios(leer(`${dir}/${f}`)));
   check('conductor, cola, ejecutor, resolución y puerta NO saben de Firestore: todo les entra por puertos', puros.every((s) => !/firebase|firestore/i.test(s)));
   check('ni leen el reloj ni tiran dados: el tiempo entra por la puerta', puros.every((s) => !/Date\.now\(|Math\.random\(|new Date\(/.test(s)));

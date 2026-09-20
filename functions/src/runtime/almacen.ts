@@ -14,6 +14,8 @@ import {
   esTrabajoTerminal,
 } from '../core';
 import type { AlmacenDeEjecuciones, EjecucionGuardada } from './conductor';
+import type { FuenteDeTrabajosPorLiquidar } from './barrendero';
+import { reservaDe } from './liquidacion';
 
 /**
  * WEË RUNTIME — DÓNDE VIVEN LOS TRABAJOS Y LAS EJECUCIONES.
@@ -101,6 +103,14 @@ const proyeccionDe = (job: Job): Record<string, unknown> => ({
   availableAt: job.availableAt,
   deadlineAt: job.deadlineAt,
   attemptCount: job.attemptCount,
+  /*
+   * ¿ESTE TRABAJO DECLARA DINERO RESERVADO? Solo es un campo de BÚSQUEDA, para
+   * que el barrendero pueda encontrar lo que se quedó sin cerrar sin recorrer
+   * la colección entera. No es la verdad de si está liquidado —esa la tiene la
+   * transacción del Credit Engine, que es idempotente— y por eso volver a
+   * escribirlo no rompe nada: como mucho hace mirar dos veces.
+   */
+  ...(reservaDe(job) ? { liquidacion: 'pendiente' } : {}),
   /* La verdad. Todo lo de arriba se deduce de esto y existe solo para poder buscar. */
   json: JSON.stringify(job),
 });
@@ -117,7 +127,14 @@ const trabajoDe = (snap: DocumentSnapshot): Job | undefined => {
   }
 };
 
-export const almacenDeTrabajos = (db: Firestore): JobStore => {
+/**
+ * El almacén de Weë: el `JobStore` que pide la Fase 8, y además lo que el
+ * barrendero necesita para encontrar lo que se quedó sin cerrar. Son dos
+ * papeles del MISMO almacén, no dos almacenes.
+ */
+export type AlmacenDeTrabajosDeWee = JobStore & FuenteDeTrabajosPorLiquidar;
+
+export const almacenDeTrabajos = (db: Firestore): AlmacenDeTrabajosDeWee => {
   const coleccion = db.collection(COLECCION_DE_TRABAJOS);
   const refDe = (job: Job): DocumentReference => coleccion.doc(idDeTrabajo(job.idempotency.scope, job.idempotency.key));
 
@@ -175,6 +192,38 @@ export const almacenDeTrabajos = (db: Firestore): JobStore => {
       const jobs = pagina.docs.map(trabajoDe).filter((j): j is Job => !!j && j.updatedAt <= before);
       /* El cursor es del DOCUMENTO, no del último trabajo que pasó el filtro: si no, un filtrado al final de página repetiría la página. */
       return { jobs, ...(pagina.size === tope ? { cursor: pagina.docs[pagina.size - 1].id } : {}) };
+    },
+
+    /**
+     * Lo que declara dinero reservado y todavía no consta cerrado. Misma forma
+     * que `recuperables`: un campo único más el orden por identificador, que
+     * Firestore sirve con su índice automático (docs/RUNTIME.md § 12.2).
+     */
+    async porLiquidar({ limit, cursor }) {
+      const tope = Math.max(1, Math.min(Math.floor(limit), 500));
+      let consulta = coleccion.where('liquidacion', '==', 'pendiente').orderBy(FieldPath.documentId()).limit(tope);
+      if (typeof cursor === 'string' && cursor.startsWith('j.')) consulta = consulta.startAfter(cursor);
+      const pagina = await consulta.get();
+      const jobs = pagina.docs.map(trabajoDe).filter((j): j is Job => !!j);
+      return { jobs, ...(pagina.size === tope ? { cursor: pagina.docs[pagina.size - 1].id } : {}) };
+    },
+
+    /**
+     * «De este ya no hace falta volver a mirar». Escribe UN campo de búsqueda y
+     * no toca `json`, que es la verdad del motor: esto no es una transición y
+     * no compite con el CAS. Si una transición posterior lo devuelve a
+     * `pendiente`, el barrendero lo mirará otra vez y el Credit Engine le dirá
+     * que ya estaba: cuesta una lectura, no un cobro.
+     */
+    async marcarLiquidado(jobId: string) {
+      if (typeof jobId !== 'string' || !FORMA_BUSCABLE.test(jobId)) return;
+      /* El mismo camino que `obtener`: lo normal es que el documento se llame como el trabajo; si no, se busca por el campo. */
+      const directo = coleccion.doc(`j.${jobId}`);
+      const snap = await directo.get();
+      const ref = snap.exists && snap.get('jobId') === jobId
+        ? directo
+        : (await coleccion.where('jobId', '==', jobId).limit(1).get()).docs[0]?.ref;
+      if (ref) await ref.update({ liquidacion: 'hecha' }).catch(() => undefined);
     },
   };
 };

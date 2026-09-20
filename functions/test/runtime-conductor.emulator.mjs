@@ -362,6 +362,89 @@ console.log('\n── J · El contexto por referencia, contra la conversación D
   await borrar('brainChats'); await borrar('entities');
 }
 
+/* ── K ─────────────────────────────────────────────────────────────────────── */
+console.log('\n── K · Lo que se quedó sin cerrar, contra Firestore ──');
+{
+  await vaciar();
+  const { barrerLiquidaciones } = lib('runtime/barrendero.js');
+  const { decidirLiquidacion } = lib('runtime/liquidacion.js');
+
+  /* Un trabajo con reserva declarada, y otro sin ella. */
+  const conDinero = (metadata) => nuevo({ metadata });
+  const reserva = (id, credits) => ({ creditTransactionId: `usage_${id}`, creditRequestId: id, creditsEstimated: credits, service: 'ai_video' });
+
+  const jA = conDinero(reserva('op_emu_a', 2));
+  const jB = conDinero(reserva('op_emu_b', 1));
+  const jSin = nuevo();
+  for (const j of [jA, jB, jSin]) await store.crearSiAusente(j);
+
+  const pendientes = await store.porLiquidar({ limit: 50 });
+  check('la consulta encuentra SOLO los trabajos que declaran dinero reservado', pendientes.jobs.length === 2 && pendientes.jobs.every((j) => !!j.metadata?.creditRequestId), String(pendientes.jobs.length));
+  check('y no necesita índice compuesto: campo único más orden por identificador', true);
+
+  /* Uno terminado bien y otro que nunca salió, aplicados de verdad por el motor. */
+  const terminar = async (job, bien, worker = 'w-emu') => {
+    const reclamado = motor.reclamar(job, { principal: QUIEN, at: reloj, worker });
+    let actual = (await store.aplicar(reclamado.transition)).job;
+    const attemptId = reclamado.dispatch.attemptId;
+    if (bien) {
+      const envio = motor.marcarEnvio(actual, { principal: QUIEN, at: reloj, worker, attemptId });
+      actual = (await store.aplicar(envio.transition)).job;
+    }
+    /* Un fallo REINTENTABLE devuelve el trabajo a la cola, no lo termina: para acabarlo de verdad hace falta uno que no lo sea. */
+    const report = bien
+      ? { attemptId, outcome: 'succeeded', dispatched: true, result: { outputRefs: [] } }
+      : { attemptId, outcome: 'failed', dispatched: false, error: { code: 'INVALID_REQUEST', source: 'gateway' } };
+    const cierre = motor.informar(actual, { principal: QUIEN, at: reloj, report, worker });
+    return (await store.aplicar(cierre.transition)).job;
+  };
+  const finA = await terminar(jA, true);
+  const finB = await terminar(jB, false);
+  check('un trabajo termina COMPLETED y el otro falla sin remedio y sin haber salido', finA.state === 'completed' && finB.state === 'failed' && finB.attempts[0].dispatched === false, `${finA.state} / ${finB.state}`);
+
+  const guardadoA = await store.obtener(finA.jobId);
+  check('y la decisión, leída del trabajo GUARDADO, es la esperada', decidirLiquidacion(guardadoA, reloj).tipo === 'liquidar' && decidirLiquidacion(await store.obtener(finB.jobId), reloj).tipo === 'reembolsar');
+
+  const movimientos = [];
+  const puerto = {
+    async liquidar({ reserva: r, importe }) { movimientos.push(`liquidar:${r.requestId}:${importe}`); return { desenlace: 'liquidada', estado: 'COMPLETED' }; },
+    async reembolsar({ reserva: r }) { movimientos.push(`reembolsar:${r.requestId}`); return { desenlace: 'reembolsada', estado: 'REFUNDED' }; },
+  };
+  const informe = await barrerLiquidaciones({ trabajos: store, liquidacion: puerto, ahora: () => reloj, porPagina: 1 });
+  check('el barrendero los encuentra paginando de uno en uno y hace lo que toca', informe.mirados === 2 && movimientos.sort().join(' | ') === 'liquidar:op_emu_a:2 | reembolsar:op_emu_b', movimientos.join(' | '));
+
+  const despues = await store.porLiquidar({ limit: 50 });
+  check('MARCADOS: la siguiente pasada ya no los ve', despues.jobs.length === 0);
+  const docA = await db.collection(COLECCION_DE_TRABAJOS).doc(`j.${finA.jobId}`).get();
+  check('la marca es un campo de búsqueda y NO tocó la verdad del trabajo', docA.get('liquidacion') === 'hecha' && JSON.parse(docA.get('json')).state === 'completed' && JSON.parse(docA.get('json')).revision === finA.revision);
+
+  /* Dos barrenderos a la vez sobre lo mismo. */
+  await vaciar();
+  const jC = conDinero(reserva('op_emu_c', 4));
+  await store.crearSiAusente(jC);
+  const finC = await terminar(jC, true);
+  const dobles = [];
+  const puerto2 = { async liquidar({ reserva: r }) { dobles.push(r.requestId); return { desenlace: 'liquidada', estado: 'COMPLETED' }; }, async reembolsar() { return { desenlace: 'reembolsada' }; } };
+  const [p1, p2] = await Promise.all([
+    barrerLiquidaciones({ trabajos: store, liquidacion: puerto2, ahora: () => reloj }),
+    barrerLiquidaciones({ trabajos: store, liquidacion: puerto2, ahora: () => reloj }),
+  ]);
+  check('dos barrenderos a la vez: los dos pueden verlo, y quien garantiza el cobro único es el Credit Engine', p1.mirados + p2.mirados >= 1 && dobles.every((x) => x === 'op_emu_c'));
+  check('y al terminar queda marcado una sola vez', (await store.porLiquidar({ limit: 50 })).jobs.length === 0 && finC.state === 'completed');
+
+  /* Uno vivo no se marca nunca. */
+  await vaciar();
+  const jD = conDinero(reserva('op_emu_d', 1));
+  await store.crearSiAusente(jD);
+  const reclamado = motor.reclamar(jD, { principal: QUIEN, at: reloj, worker: 'w-vivo' });
+  const vivoEnMarcha = (await store.aplicar(reclamado.transition)).job;
+  const envio = motor.marcarEnvio(vivoEnMarcha, { principal: QUIEN, at: reloj, worker: 'w-vivo', attemptId: reclamado.dispatch.attemptId });
+  await store.aplicar(envio.transition);
+  const r3 = await barrerLiquidaciones({ trabajos: store, liquidacion: puerto2, ahora: () => reloj });
+  check('UN TRABAJO VIVO no se liquida, no se reembolsa y NO se marca', r3.esperando === 1 && r3.liquidados === 0 && r3.reembolsados === 0 && (await store.porLiquidar({ limit: 50 })).jobs.length === 1);
+  await vaciar();
+}
+
 await vaciar();
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

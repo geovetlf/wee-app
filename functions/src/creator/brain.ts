@@ -509,8 +509,20 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
           ...(data.locale ? { locale: data.locale } : {}),
           /* El mismo modelo y el mismo proveedor que se cotizaron, pedidos igual que arriba. */
           ruteo: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] },
-          /* Lo que el libro tiene que anotar, con la misma transacción de Credits que liquida este archivo. */
-          contabilidad: { service, creditsEstimated: creditsDelMensaje, estimatedUsd: price.usd, creditTransactionId: usageTransactionId(requestId) },
+          /*
+           * Lo que el libro tiene que anotar, con la misma transacción de
+           * Credits que liquida este archivo. Y `creditRequestId`, que es lo
+           * que permitiría a otro proceso cerrar esta operación leyendo solo el
+           * trabajo guardado, si algún día esto fuera asíncrono. Hoy no lo es:
+           * quien liquida sigue siendo el `try/catch` de aquí abajo.
+           */
+          contabilidad: {
+            service,
+            creditsEstimated: creditsDelMensaje,
+            estimatedUsd: price.usd,
+            creditTransactionId: usageTransactionId(requestId),
+            creditRequestId: requestId,
+          },
           deadlineAt: Date.now() + MARGEN_DEL_CONDUCTOR_MS,
         });
         return {

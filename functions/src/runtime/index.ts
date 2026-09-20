@@ -12,6 +12,7 @@ import {
   crearRouter,
   modalidadDe,
 } from '../core';
+import { creditEngine } from '../credits/creditEngine';
 import { engine } from '../engine';
 import { loadConfig } from '../engine/config';
 import { crearGatewayDelMotor, trazaDeConsola } from '../engine/gateway';
@@ -25,6 +26,7 @@ import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
 import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
 import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
+import { PuertoDeLiquidacion } from './liquidacion';
 import { ReglaDePolitica, SIN_REGLAS, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
 
@@ -185,6 +187,59 @@ export const materialDeWee: PuertoDeMaterial = {
   },
 };
 
+/**
+ * LA LIQUIDACIÓN, POR EL MOTOR DE CREDITS QUE YA EXISTE.
+ *
+ * Dos llamadas, y son exactamente las dos que hace hoy `creator/brain.ts`
+ * cuando conoce el desenlace: `completeCredits` para cobrar lo reservado y
+ * `refundCredits` para devolverlo, más la fila del libro que se liquida con el
+ * mismo identificador de transacción. No hay un segundo libro, ni un segundo
+ * motor financiero, ni un estado nuevo: los que hay —`AUTHORIZED`,
+ * `COMPLETED`, `REFUNDED`— ya cubren esto, y las dos operaciones ya son
+ * idempotentes por `requestId`, que es lo que permite que dos barrenderos, o un
+ * barrendero y un trabajador, hagan esto a la vez sin cobrar dos veces.
+ *
+ * Lo único que cambia respecto de hoy es QUIÉN las llama: hoy, la invocación
+ * que empezó la operación; con esto, también quien la encuentre abierta
+ * después, leyendo del trabajo guardado.
+ */
+export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?: Ledger } = {}): PuertoDeLiquidacion => {
+  const credits = deps.credits ?? creditEngine;
+  const ledger = deps.ledger ?? firestoreLedger;
+  const cerrarFila = async (creditTransactionId: string, finalAmount: number) => {
+    await ledger.settle({ creditTransactionId, finalAmount }).catch(() => undefined);
+  };
+  return {
+    async liquidar({ userId, reserva, importe, jobId }) {
+      try {
+        /*
+         * `completeCredits` solo mueve algo si la transacción está
+         * `AUTHORIZED`; si ya estaba `COMPLETED`, `FAILED` o `REFUNDED`
+         * devuelve el estado y no toca nada. Esa es toda la protección contra
+         * el doble cobro, y es del motor de Credits, no de aquí.
+         */
+        const r = await credits.completeCredits({ userId, requestId: reserva.requestId, finalAmount: importe, meta: { jobId } });
+        await cerrarFila(reserva.transactionId, importe);
+        return { desenlace: r.status === 'COMPLETED' ? 'liquidada' : 'ya_estaba', estado: r.status };
+      } catch (e) {
+        return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
+      }
+    },
+    async reembolsar({ userId, reserva }) {
+      try {
+        const r = await credits.refundCredits({ userId, requestId: reserva.requestId, reason: 'Weë · la operación no llegó a completarse', source: 'weë-runtime' });
+        await cerrarFila(reserva.transactionId, 0);
+        return { desenlace: r.duplicate ? 'ya_estaba' : 'reembolsada', estado: 'REFUNDED' };
+      } catch (e) {
+        /* Ya estaba devuelta, o ya se cobró y no se toca sin que lo decida una persona: no es un fallo del barrendero. */
+        const code = (e as { code?: string })?.code;
+        if (code === 'ALREADY_REFUNDED' || code === 'ALREADY_COMPLETED') return { desenlace: 'ya_estaba', estado: code };
+        return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
+      }
+    },
+  };
+};
+
 export interface ConductorDeWeeDeps {
   db: Firestore;
   ahora?: () => number;
@@ -262,4 +317,9 @@ export type { ConfiguracionDePuerta, DecisionDePuerta } from './puerta';
 export { configuracionDeLaPuerta, olvidarLaPuerta } from './configuracion';
 export { huellaDeEntrada } from './contexto';
 export type { LibroDeIntentos } from './ejecutor';
+export { barrerLiquidaciones } from './barrendero';
+export type { BarrenderoDeps, InformeDelBarrendero, VistoPorElBarrendero } from './barrendero';
+export { decidirLiquidacion, reservaDe } from './liquidacion';
+export type { AccionDeLiquidacion, PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
+export type { AlmacenDeTrabajosDeWee } from './almacen';
 export { FalloDelPensador, pensadorSobreConductor } from './pensador';
