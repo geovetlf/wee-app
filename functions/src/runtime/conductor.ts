@@ -261,8 +261,16 @@ export interface Conductor {
 
 const MAX_CARRERAS = 8;
 const MAX_ESPERAS = 8;
-/** Margen para poder guardar y contestar antes de que muera la invocación. */
-const MARGEN_DE_CIERRE_MS = 5_000;
+/**
+ * Margen para poder guardar y contestar antes de que muera la invocación.
+ *
+ * Se exporta porque tiene un segundo lector legítimo: quien calcula cuánto
+ * puede durar UN intento que esta invocación va a esperar. Ese presupuesto y
+ * este margen son dos mitades del mismo reparto —lo que se espera más lo que se
+ * reserva para cerrar cabe en la vida del trabajo—, y escribirlo dos veces sería
+ * dejar que se separen sin que nadie se entere.
+ */
+export const MARGEN_DE_CIERRE_MS = 5_000;
 
 const fallo = (code: WeeErrorCode, reason: string, extra: Record<string, unknown> = {}): WeeError =>
   errorDelCore(code, 'runtime', { details: { reason, ...extra } });

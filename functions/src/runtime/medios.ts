@@ -88,6 +88,24 @@ export interface PasoDeMedioDeps {
   contexto?: { appId?: string; workspaceId?: string; operationId?: string };
   /** Cuándo muere la invocación que aloja al conductor. */
   deadlineAt?: number;
+  /**
+   * CUÁNTO PUEDE DURAR UN INTENTO DE ESTE PASO. Opcional, y sin él no cambia
+   * nada: manda el defecto del Job Engine.
+   *
+   * No es un mecanismo nuevo. `timeoutMs` es un campo que el paso del Workflow
+   * ya declara (`WorkflowStep.timeoutMs`), que el Orchestrator ya mete en el
+   * despacho y que el conductor ya convierte en `policy.attemptTimeoutMs` del
+   * trabajo. Lo único que faltaba era que quien pide un medio pudiera decirlo:
+   * el hueco estaba en esta interfaz, no en la arquitectura.
+   *
+   * Existe porque hay una diferencia real entre los dos desenlaces. Cuando el
+   * proveedor acepta y suelta, un intento es un POST y sobran segundos. Cuando
+   * el adaptador sondea hasta el final, el intento dura lo que dure el vídeo, y
+   * medirlo con la vara del POST lo declara vencido cuando iba bien.
+   *
+   * Quien no lo pase sigue exactamente igual que antes.
+   */
+  timeoutMs?: number;
 }
 
 /** UN paso, y se llama siempre igual: dos ejecuciones de la misma petición retoman la misma. */
@@ -170,6 +188,8 @@ export const pedirMedio = async (deps: PasoDeMedioDeps): Promise<DesenlaceDelMed
         capability: deps.capability,
         purpose: deps.proposito,
         input: deps.input,
+        /* Viaja EN EL PASO, que es de quien es: el Job Engine global no se entera. */
+        ...(deps.timeoutMs !== undefined ? { timeoutMs: deps.timeoutMs } : {}),
       }],
     },
     ...(deps.ruteo ? { ruteo: { [PASO_DE_MEDIO]: deps.ruteo } } : {}),

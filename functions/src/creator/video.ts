@@ -12,8 +12,8 @@ import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
-import { CapabilityId, operacionAbandonada } from '../core';
-import { conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio } from '../runtime';
+import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
+import { MARGEN_DE_CIERRE_MS, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio } from '../runtime';
 import { crearMaterialDesdeUrl } from '../content';
 
 /**
@@ -47,11 +47,49 @@ const CAPACIDAD_DEL_CANARY: CapabilityId = 'video.generate';
 const EXPERIENCIA_DE_STUDIO = 'studio';
 
 /**
- * Lo que esta invocación espera antes de irse. Corto a propósito: el camino
- * asíncrono contesta en cuanto el proveedor acusa recibo —segundos—, y quedarse
- * más sería justo lo que este bloque existe para quitar.
+ * ── QUÉ DESENLACE LE PIDE ESTA PUERTA AL PROVEEDOR ──────────────────────────
+ *
+ * Encendida, el proveedor coge la tarea y suelta; el desenlace llega después
+ * por su aviso. Apagada, el adaptador sondea hasta el final y el desenlace
+ * llega dentro de esta llamada. El trabajo, el cobro y el material son los
+ * mismos; lo único que cambia es quién espera.
+ *
+ * Tiene nombre porque de ella cuelga el reparto de tiempo de abajo: son la
+ * misma decisión, y escribirla dos veces sería dejar que se separen.
+ */
+const ACEPTA_ASINCRONO: boolean = true;
+
+/**
+ * Lo que esta invocación espera antes de irse CUANDO NO ESPERA NADA. Corto a
+ * propósito: el camino asíncrono contesta en cuanto el proveedor acusa recibo
+ * —segundos—, y quedarse más sería justo lo que este bloque existe para quitar.
  */
 const MARGEN_DEL_CANARY_MS = 120_000;
+
+/**
+ * ── Y CUÁNTO PUEDE DURAR UN INTENTO CUANDO SÍ SE ESPERA ─────────────────────
+ *
+ * No es un número elegido: es lo que sobra. El trabajo vive `maxLifetimeMs`, y
+ * de esa vida hay que apartar lo que el conductor necesita para guardar y
+ * contestar antes de que la invocación muera. Lo demás es del sondeo.
+ *
+ *     presupuesto del sondeo = vida del trabajo − margen de cierre
+ *
+ * Los dos sumandos son constantes que ya existían y que no se tocan: el Job
+ * Engine sigue con su `attemptTimeoutMs` de dos minutos para todo lo demás, y
+ * el conductor con sus cinco segundos. Lo único nuevo es que este paso —y solo
+ * este— dice cuánto dura SU intento, por la costura que el Workflow, el
+ * Orchestrator y el conductor ya tenían montada.
+ *
+ * Por qué hacía falta: dos minutos es la vara del POST asíncrono, y el único
+ * vídeo real medido tardó 78 931 ms. Medir un sondeo con esa vara declara
+ * vencido un trabajo que iba bien, y deja la ejecución abierta —exactamente el
+ * estado en que se quedó `canary-m1b`—.
+ */
+const PRESUPUESTO_DEL_SONDEO_MS = POLITICA_DE_TRABAJO.maxLifetimeMs - MARGEN_DE_CIERRE_MS;
+
+/** El plazo del trabajo, que es lo que deja pasar —o no— al presupuesto de arriba. */
+const PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO ? MARGEN_DEL_CANARY_MS : POLITICA_DE_TRABAJO.maxLifetimeMs;
 
 /**
  * generateVideo — entrada abstracta del Weë Video Engine para la app.
@@ -207,7 +245,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       const conductor = await conductorDeWee({
         db: getFirestore(),
         /* LO ÚNICO que enciende la aceptación asíncrona en todo Weë. */
-        aceptaAsincrono: true,
+        aceptaAsincrono: ACEPTA_ASINCRONO,
       });
       const desenlace = await pedirMedio({
         conductor,
@@ -230,7 +268,14 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
           creditRequestId: requestId,
         },
         contexto: { appId: 'wee', operationId: requestId },
-        deadlineAt: Date.now() + MARGEN_DEL_CANARY_MS,
+        deadlineAt: Date.now() + PLAZO_DEL_TRABAJO_MS,
+        /*
+         * Y el presupuesto del intento, SOLO cuando esta invocación se queda a
+         * esperar. Con la aceptación encendida no se pasa: un POST no necesita
+         * diez minutos, y dárselos alargaría la vida de un trabajo que ya no
+         * está en nuestras manos.
+         */
+        ...(ACEPTA_ASINCRONO ? {} : { timeoutMs: PRESUPUESTO_DEL_SONDEO_MS }),
       });
 
       if (desenlace.estado === 'en_marcha') {
