@@ -527,12 +527,18 @@ console.log('\n── I · Qué NO se ha construido ──');
   check('y NO trae la que no: no se finge lo que no hay', !/async copiar/.test(R2SRC));
   check('las capacidades de MC-1 son tres', CAPACIDADES_DE_MC1.length === 3);
 
-  /* Nada conectado. */
+  /*
+   * UNA PUERTA, Y SOLO UNA. Desde la preparación del canary, `index.ts` exporta
+   * `mediaCanary`: de administración, con su material derivado y su
+   * transformación escrita en el código. Lo que se vigila ahora es que sea la
+   * ÚNICA — ni la subida, ni la entrega, ni el procesado tienen puerta propia,
+   * así que Media Cloud sigue sin estar activo para nadie.
+   */
   const INDEX = sinComentarios(leer('functions/src/index.ts'));
-  check('NADA DE PRODUCCIÓN PASA POR AQUÍ: `index.ts` no exporta ni importa la capa de medios', !/media/i.test(INDEX));
-  check('ninguna Function la importa', !fs.readdirSync(path.resolve(RAIZ, 'functions/src'), { withFileTypes: true })
-    .filter((e) => e.isFile() && e.name.endsWith('.ts'))
-    .some((e) => /from '\.\/media/.test(sinComentarios(leer(`functions/src/${e.name}`)))));
+  check('la ÚNICA puerta de Media Cloud es la del canary',
+    (INDEX.match(/from '\.\/media\//g) || []).length === 1 && /export \{ mediaCanary \}/.test(INDEX));
+  check('ni la subida, ni la entrega, ni el procesado se exponen: Media Cloud no está activo para nadie',
+    !/solicitarSubida|confirmarSubida|solicitarEntrega|solicitarProceso|guardarMaterial/.test(INDEX));
   check('el almacén de mentira NO se compone en producción', !/falso|Falso/.test(sinComentarios(leer('functions/src/media/index.ts'))));
 
   /* Lo que NO se tocó. */

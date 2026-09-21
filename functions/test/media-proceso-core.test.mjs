@@ -544,8 +544,10 @@ console.log('\n── J · Qué NO se ha construido ──');
   check('y la composición, trece',
     fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
 
-  check('AK · ninguna Function importa la capa de medios: sigue sin conectar',
-    !/from '\.\/media|from '\.\.\/media/.test(leer('functions/src/index.ts')));
+  /* El procesado NO tiene puerta propia: la única de Media Cloud es la del canary. */
+  check('AK · el procesado no está expuesto: ninguna Function lo llama',
+    !/solicitarProceso|crearEjecutorDeMedios/.test(leer('functions/src/index.ts'))
+    && (leer('functions/src/index.ts').match(/from '\.\/media\//g) || []).length === 1);
   check('esta suite está en la cadena de `npm test`', /media-proceso-core\.test\.mjs/.test(leer('functions/package.json')));
 }
 

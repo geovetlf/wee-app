@@ -502,8 +502,10 @@ console.log('\n── K · Qué NO se ha construido ──');
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
   check('y la composición, trece', fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,subida.ts', fuera.join(','));
 
-  check('AE · ninguna Function importa la capa de medios: sigue sin conectar',
-    !/from '\.\/media|from '\.\.\/media/.test(leer('functions/src/index.ts')));
+  /* La subida NO tiene puerta propia: la única de Media Cloud es la del canary. */
+  check('AE · la subida no está expuesta: ninguna Function la llama',
+    !/solicitarSubida|confirmarSubida/.test(leer('functions/src/index.ts'))
+    && (leer('functions/src/index.ts').match(/from '\.\/media\//g) || []).length === 1);
   check('las reglas de `mediaObjects` siguen cerradas al cliente',
     /match \/mediaObjects\/\{objectRef\} \{\s*allow read, write: if false;/.test(leer('firestore.rules')));
   check('esta suite está en la cadena de `npm test`', /media-upload-core\.test\.mjs/.test(leer('functions/package.json')));

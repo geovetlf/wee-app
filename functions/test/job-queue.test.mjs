@@ -433,9 +433,20 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    * —cada una le pasa sus dependencias y le llama— y que NADA de esto lo exporte
    * `index.ts`. Un tercero que copiara la lógica sí sería un segundo runtime.
    */
-  check('65) solo COMPOSICIONES atienden entregas, ninguna reimplementa al trabajador. Y NADA DE PRODUCCIÓN PASA POR AQUÍ: `index.ts` no exporta nada de esto',
-    quienLoUsa.join(',') === 'functions/src/media/canary.ts,functions/src/runtime/conductor.ts'
-    && !/job-queue|job\/worker|atenderEntrega|from '\.\/runtime'|media\/canary|mediaCanary/.test(sinComentarios(leer('functions/src/index.ts'))), quienLoUsa.join(', '));
+  /*
+   * LO QUE `index.ts` PUEDE EXPORTAR, Y LO QUE NO. La regla ya no es «nada»:
+   * la puerta del canary de Media Cloud SÍ se exporta a propósito —es admin y
+   * deriva su propio material—, y el conductor de F12-D sigue sin exportarse.
+   * Lo que no puede salir nunca son las TRIPAS: el trabajador, la cola y el
+   * módulo del runtime. Exportar eso sí sería poner infraestructura en la calle.
+   */
+  const INDICE = sinComentarios(leer('functions/src/index.ts'));
+  check('65) solo COMPOSICIONES atienden entregas, ninguna reimplementa al trabajador',
+    quienLoUsa.join(',') === 'functions/src/media/canary.ts,functions/src/runtime/conductor.ts', quienLoUsa.join(', '));
+  check('65b) y `index.ts` no exporta las tripas: ni trabajador, ni cola, ni el runtime',
+    !/job-queue|job\/worker|atenderEntrega|barrerRecuperables|from '\.\/runtime'/.test(INDICE));
+  check('65c) el conductor de F12-D sigue SIN exportarse; la puerta del canary, sí y a propósito',
+    !/conductor|crearConductor/.test(INDICE) && /export \{ mediaCanary \}/.test(INDICE));
   const estadoDeModulo = (src) => [...(src.match(/^(let|var)\s+\w+/gm) || []), ...(src.match(/^const\s+\w+[^=\n]*=\s*(new (Map|Set|WeakMap|WeakSet)\(\s*\)|\[\s*\])/gm) || [])];
   const colas = fuentes('functions/src').filter((f) => /guarantee: 'at_least_once',/.test(sinComentarios(leer(f))));
   const COLA = leer('functions/src/runtime/cola.ts');

@@ -29,6 +29,7 @@ const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^
 let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => { n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : '')); if (!cond) failures++; };
 
+const core = lib('core/index.js');
 const CANARY = sinComentarios(leer('functions/src/media/canary.ts'));
 const SECRETOS = leer('functions/src/secrets.ts');
 const INDEX = leer('functions/src/index.ts');
@@ -96,12 +97,45 @@ console.log('\n── B · MEDIA_SECRETS no roza AI_SECRETS ──');
     !/url|firma|signature|secret|credential/i.test(CANARY.split('export interface ResumenDelCanary')[1].split('}')[0]));
 }
 
+/* ═══ B2 · LAS TRES ACCIONES ══════════════════════════════════════════════ */
+console.log('\n── B2 · Subir, confirmar, procesar: las tres reutilizan MC-3/MC-4 ──');
+{
+  const { ACCIONES_DEL_CANARY, MAX_BYTES_DEL_CANARY, TIPOS_DEL_CANARY } = lib('media/canary.js');
+
+  check('hay TRES acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar');
+  check('una acción desconocida se rechaza', /ACCIONES_DEL_CANARY\.includes\(accion\)/.test(CANARY) && /Acción desconocida/.test(CANARY));
+
+  /* Reutilización literal: se llaman las funciones de MC-3, no se reescriben. */
+  check('`subir` llama a `solicitarSubida` de MC-3', /await solicitarSubida\(depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
+  check('`confirmar` llama a `confirmarSubida` de MC-3', /await confirmarSubida\(depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
+  check('`procesar` sigue llamando a la composición de MC-4', /return ejecutarCanaryDeMedios\(accountId, assetId\)/.test(CANARY));
+  check('NO hay un segundo flujo de subida: ni firma, ni clave, ni contenedor propios',
+    !/urlDeSubida\(|claveDelObjeto\(|firmarConsulta|rutaCanonica|contenedor/.test(CANARY));
+  check('ni se toca la Fase 11 desde aquí: las tres operaciones entran por `depsDeSubidaDeWee`',
+    !/crearMaterialParaSubida|marcarMaterialSubido|assets\(\)/.test(CANARY));
+
+  /* El canary estrecha lo que MC-3 admite. */
+  check('acepta como mucho una imagen PEQUEÑA', MAX_BYTES_DEL_CANARY === 2 * 1024 * 1024);
+  check('y solo tipos que el procesador sabe abrir', TIPOS_DEL_CANARY.join(',') === 'image/png,image/jpeg,image/webp');
+  check('es MÁS estrecho que MC-3, nunca más ancho', MAX_BYTES_DEL_CANARY < core.POLITICA_DE_SUBIDA.maxBytes);
+  check('un tipo o un tamaño fuera de eso se rechazan en la puerta',
+    /TIPOS_DEL_CANARY\.includes\(contentType\)/.test(CANARY) && /bytes > MAX_BYTES_DEL_CANARY/.test(CANARY));
+
+  /* LO QUE MÁS IMPORTA: el material NO se nombra desde fuera. */
+  check('el material se DERIVA de (cuenta, clave de operación): no llega ningún identificador',
+    /identidadDeMaterialDeSubida\(accountId, operationId\)/.test(CANARY) && !/datos\.assetId/.test(CANARY));
+  check('y por tanto no se puede apuntar a un material ajeno ni a uno propio que el canary no creara',
+    core.FORMA_DE_ID_DE_MATERIAL.test(lib('media/subida.js').identidadDeMaterialDeSubida('Dl2Ycaoab', 'operacion-de-prueba')));
+  check('la clave de operación está acotada', /operationId\.length < 8 \|\| operationId\.length > 128/.test(CANARY));
+}
+
 /* ═══ C · PROPIEDAD Y SEGURIDAD ═══════════════════════════════════════════ */
 console.log('\n── C · La puerta no deja elegir nada ──');
 {
   check('7 · solo administración: reutiliza el guardián que ya existe', /assertAdmin\(request\.auth\)/.test(CANARY) && /from '\.\.\/shared\/admin'/.test(CANARY));
-  check('7 · LA CUENTA SALE DE LA SESIÓN, nunca de la petición', /ejecutarCanaryDeMedios\(request\.auth!\.uid, assetId\)/.test(CANARY));
-  check('7 · quien llama manda UN dato: cuál de sus materiales', /\(request\.data \|\| \{\}\)\.assetId/.test(CANARY));
+  check('7 · LA CUENTA SALE DE LA SESIÓN, nunca de la petición', /const accountId = request\.auth!\.uid;/.test(CANARY));
+  check('7 · y el material NI SIQUIERA SE NOMBRA: se deriva de la cuenta y la clave de operación',
+    /const assetId = identidadDeMaterialDeSubida\(accountId, operationId\);/.test(CANARY));
   check('7 · y no puede elegir cuenta, dueño, proveedor, contenedor, clave, destino ni transformación',
     !/data\)\.(accountId|ownerAccountId|providerId|bucket|objectKey|destino|transformacion|processor)/.test(CANARY));
   check('7 · la transformación está escrita en el código, no llega de fuera', /transformaciones: \[TRANSFORMACION_DEL_CANARY\]/.test(CANARY));
@@ -114,10 +148,10 @@ console.log('\n── C · La puerta no deja elegir nada ──');
 /* ═══ D · QUÉ NO SE HA HECHO ══════════════════════════════════════════════ */
 console.log('\n── D · Preparado, no desplegado ──');
 {
-  check('NO está exportada desde `index.ts`: no se despliega por arrastre',
-    !/mediaCanary|media\/canary/.test(INDEX), 'igual que se hizo con `avisoDeProveedor` antes de su canary');
-  check('ninguna otra Function importa la capa de medios',
-    !/from '\.\/media|from '\.\.\/media/.test(INDEX));
+  check('está exportada desde `index.ts`, que es el gesto explícito de «esto ya se despliega»',
+    /export \{ mediaCanary \} from '\.\/media\/canary'/.test(INDEX));
+  check('y es la ÚNICA de Media Cloud que se exporta: ni subida, ni entrega, ni procesado tienen puerta propia',
+    (INDEX.match(/from '\.\/media\//g) || []).length === 1);
   check('el puente no crea infraestructura: ni Pub/Sub, ni Tasks, ni Redis, ni cola durable',
     !/PubSub|CloudTasks|redis|kafka|durable|onMessagePublished|onSchedule/i.test(CANARY));
   /* El comentario parte la frase en dos líneas; se junta antes de buscarla. */

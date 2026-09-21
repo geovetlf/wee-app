@@ -126,6 +126,20 @@ export { reportContent, moderationAdmin } from './moderation';
  */
 export { barridoDeLiquidacion } from './settlement/programado';
 
+/*
+ * WEE MEDIA CLOUD — LA PUERTA DEL CANARY, Y NADA MÁS DE MEDIA CLOUD.
+ *
+ * Es la ÚNICA Function de Media Cloud desplegable, y no es una API: solo
+ * administración (`assertAdmin`), sobre material que ella misma deriva, con una
+ * transformación escrita en el código. Lleva `MEDIA_SECRETS` —separado de
+ * `AI_SECRETS` a propósito—, así que si faltara el secreto de R2 lo único que
+ * no se despliega es esto.
+ *
+ * Media Cloud sigue SIN estar activo para nadie: ni la subida, ni la entrega,
+ * ni el procesado tienen puerta propia. Esta existe para ejecutar UNA prueba.
+ */
+export { mediaCanary } from './media/canary';
+
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
   getCreditsBalance,

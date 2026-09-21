@@ -10,6 +10,7 @@ import { assertAdmin } from '../shared/admin';
 import { almacenDeObjetosDeMedios } from './almacen';
 import { adaptadoresDeMedios } from './catalogo';
 import { crearEjecutorDeMedios, depsDeProcesoDeWee, solicitarProceso } from './proceso';
+import { confirmarSubida, depsDeSubidaDeWee, identidadDeMaterialDeSubida, solicitarSubida } from './subida';
 import { crearProcesadorDeImagen } from './procesador';
 
 /**
@@ -164,6 +165,67 @@ export const ejecutarCanaryDeMedios = async (
   };
 };
 
+/* ── Subir y confirmar: las dos mitades de MC-3, sin reescribir ninguna ────── */
+
+/**
+ * LO QUE EL CANARY ACEPTA SUBIR. Más estrecho que MC-3, y a propósito.
+ *
+ * MC-3 admite hasta el tope de la Fase 11; un canary no necesita nada de eso.
+ * Una imagen pequeña y de un tipo que el procesador sepa abrir es todo lo que
+ * hace falta para demostrar la cadena, y cuanto menos quepa por esta puerta,
+ * menos hay que vigilar.
+ */
+export const MAX_BYTES_DEL_CANARY = 2 * 1024 * 1024;
+export const TIPOS_DEL_CANARY: readonly string[] = Object.freeze(['image/png', 'image/jpeg', 'image/webp']);
+
+/** Las tres cosas que sabe hacer esta puerta. No hay una cuarta. */
+export type AccionDelCanary = 'subir' | 'confirmar' | 'procesar';
+export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'confirmar', 'procesar'] as const);
+
+/**
+ * PEDIR PERMISO PARA SUBIR. Llama a `solicitarSubida` de MC-3 tal cual.
+ *
+ * Aquí no hay un segundo flujo de subida: se compone `depsDeSubidaDeWee` —que
+ * ya ata la puerta de cuentas y las tres operaciones de la Fase 11— y se le
+ * pasa una petición cuyos únicos datos variables son la clave de operación, el
+ * tipo y el tamaño. El material, la clave del objeto, el contenedor y el
+ * proveedor los sigue derivando MC-3 en el servidor.
+ */
+export const pedirSubidaDelCanary = async (
+  accountId: string,
+  operationId: string,
+  contentType: string,
+  bytes: number,
+): Promise<unknown> => {
+  if (!TIPOS_DEL_CANARY.includes(contentType)) throw new HttpsError('invalid-argument', 'Tipo no admitido por el canary');
+  if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > MAX_BYTES_DEL_CANARY) {
+    throw new HttpsError('invalid-argument', 'El canary solo admite una imagen pequeña');
+  }
+  const r = await solicitarSubida(depsDeSubidaDeWee(getFirestore()), {
+    principalId: accountId,
+    operationId,
+    kind: 'image',
+    contentType,
+    bytes,
+  });
+  if (!r.ok) throw new HttpsError('failed-precondition', `No se concedió la subida: ${r.motivo}`);
+  /* El intento entero: lleva la URL y las cabeceras OBLIGATORIAS, y ninguna credencial. */
+  return { intento: r.intento, traza: r.traza };
+};
+
+/** CERRAR LA SUBIDA. `confirmarSubida` de MC-3, que va a MIRAR el objeto en vez de creerse nada. */
+export const confirmarSubidaDelCanary = async (
+  accountId: string,
+  assetId: string,
+  operationId: string,
+): Promise<unknown> => {
+  const r = await confirmarSubida(depsDeSubidaDeWee(getFirestore()), { principalId: accountId, assetId, operationId });
+  if (!r.ok) throw new HttpsError('failed-precondition', `La subida no está confirmada: ${r.motivo}`);
+  return { assetId: r.assetId, bytes: r.bytes, objectRef: r.objectRef, traza: r.traza };
+};
+
+/* ── La puerta ─────────────────────────────────────────────────────────────── */
+
 /**
  * LA PUERTA. Solo administración, y solo sobre material propio.
  *
@@ -171,16 +233,42 @@ export const ejecutarCanaryDeMedios = async (
  * R2 no existiera todavía en Secret Manager, lo único que no se desplegaría es
  * esta función — que es exactamente el aislamiento que se buscaba.
  *
- * La respuesta es un resumen de referencias y recuentos: ni una URL, ni una
- * firma, ni una credencial, ni nada del contenido de nadie.
+ * ── Lo único que quien llama elige ──────────────────────────────────────────
+ *
+ * Una **clave de operación**, y para subir, el tipo y el tamaño. **El material
+ * NO se nombra**: se DERIVA de (cuenta, clave de operación) con la misma
+ * función de MC-3, así que ni siquiera se puede apuntar a un material propio
+ * que no haya creado este canary — y mucho menos a uno ajeno. La cuenta sale de
+ * la sesión, y el contenedor, la clave, el proveedor y el destino los siguen
+ * derivando MC-3 y MC-4.
+ *
+ * La respuesta es un resumen de referencias y recuentos, más —solo al subir— el
+ * permiso temporal que hay que usar para mandar los bytes. Ni una credencial.
  */
 export const mediaCanary = onCall(
   { region: 'us-central1', timeoutSeconds: 120, memory: '1GiB', secrets: MEDIA_SECRETS },
   async (request) => {
     assertAdmin(request.auth);
-    const assetId = String((request.data || {}).assetId || '');
-    if (!assetId) throw new HttpsError('invalid-argument', 'Falta el material');
+    const datos = (request.data || {}) as Record<string, unknown>;
+
+    const accion = String(datos.accion ?? 'procesar') as AccionDelCanary;
+    if (!ACCIONES_DEL_CANARY.includes(accion)) throw new HttpsError('invalid-argument', 'Acción desconocida');
+
+    const operationId = String(datos.operationId ?? '');
+    if (operationId.length < 8 || operationId.length > 128) {
+      throw new HttpsError('invalid-argument', 'Falta una clave de operación utilizable');
+    }
+
     /* LA CUENTA SALE DE LA SESIÓN. Quien llama no elige de quién es nada. */
-    return ejecutarCanaryDeMedios(request.auth!.uid, assetId);
+    const accountId = request.auth!.uid;
+    /* Y EL MATERIAL SE DERIVA. No llega ningún identificador de fuera. */
+    const assetId = identidadDeMaterialDeSubida(accountId, operationId);
+    if (!assetId) throw new HttpsError('invalid-argument', 'La clave de operación no produce material');
+
+    if (accion === 'subir') {
+      return pedirSubidaDelCanary(accountId, operationId, String(datos.contentType ?? ''), Number(datos.bytes));
+    }
+    if (accion === 'confirmar') return confirmarSubidaDelCanary(accountId, assetId, operationId);
+    return ejecutarCanaryDeMedios(accountId, assetId);
   },
 );

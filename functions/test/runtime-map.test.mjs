@@ -90,7 +90,7 @@ const MAPA = [
     motor: 'NOT CONNECTED', simbolos: ['FORMA_DE_ETIQUETA_DE_TRAZA', 'FORMA_DE_ID', 'crearGateway', 'esObjetoPlano', 'esTexto', 'normalizarUso', 'puedeEjecutarse', 'sanearMeta'] },
   /* F12-D · CANARY: el conductor construye el Job Engine del Core. `creatorJobs` sigue intacto y sin tocar. */
   { id: 'job', canonico: ['core/job.js'], composicion: 'job/index.js', fabrica: 'crearMotorDeTrabajosDeWee', enUso: ['creator/index.js', 'creator/video.js', 'runtime/index.js'], cargada: true,
-    motor: 'CONNECTED', simbolos: ['POLITICA_DE_TRABAJO', 'alcanceDeIdempotencia', 'claveDeIdempotencia', 'crearJobEngine', 'esTrabajoTerminal', 'operacionAbandonada', 'presupuestoDeIntento'] },
+    motor: 'CONNECTED', simbolos: ['POLITICA_DE_TRABAJO', 'alcanceDeIdempotencia', 'claveDeIdempotencia', 'crearJobEngine', 'esTareaGeneral', 'esTrabajoTerminal', 'operacionAbandonada', 'presupuestoDeIntento'] },
   { id: 'project', canonico: ['core/project.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'content', canonico: ['core/content/content.js'], composicion: null, fabrica: null, enUso: [],
@@ -125,7 +125,18 @@ const OTROS_DEL_CORE = {
   'core/errors.js': ['DESDE_ENGINE', 'errorDelCore'],
   'core/job-queue.js': ['leerMensajeDeCola', 'mensajeDeCola', 'workerValido'],
   /* MC-3: la Fase 11 aprende a crear un material para una subida, y comprueba que su clave vive en la carpeta de su cuenta. */
-  'core/media/objeto.js': ['RAIZ_DE_CUENTAS', 'claveEsDeLaCuenta'],
+  /*
+   * MC-4.5: exportar la puerta del canary pone en producción el Core de medios
+   * ENTERO — almacenamiento, subida, entrega y proceso. Es lo esperado: una sola
+   * Function de administración enciende la cadena que MC-1..MC-4 construyeron,
+   * y estas listas son la prueba de qué usa de verdad y qué no.
+   */
+  'core/media/objeto.js': ['PIEZA_ORIGINAL', 'RAIZ_DE_CUENTAS', 'claveDelObjeto', 'claveEsDeLaCuenta', 'objetoEsDeLaCuenta', 'objetoValido', 'referenciaDelObjeto'],
+  'core/media/puerto.js': ['CAPACIDADES_DE_MC1', 'falloDeAlmacen'],
+  'core/media/registro.js': ['crearRegistroDeMedios'],
+  'core/media/subida.js': ['decidirSubida', 'identidadDeIntento', 'tamanoAprobado', 'tipoDeContenidoAceptable', 'topeDeSubida', 'vigenciaDeSubidaAprobada'],
+  'core/media/proceso.js': ['CAPACIDADES_DE_MC4', 'LIMITES_DE_TRANSFORMACION', 'decidirProceso', 'leerPaqueteDeProceso', 'transformacionValida', 'varianteDeResultado'],
+  'core/media/procesador.js': ['falloDeProceso'],
 };
 
 /* Las Functions que producción expone, y de qué módulo sale cada una. */
@@ -145,6 +156,8 @@ const FUNCTIONS = {
   './moderation': ['reportContent', 'moderationAdmin'],
   /* Paso I: la red de seguridad del dinero. Una tarea programada, no una puerta de usuario. */
   './settlement/programado': ['barridoDeLiquidacion'],
+  /* MC-4.5: la ÚNICA puerta de Media Cloud. De administración, y no es una API. */
+  './media/canary': ['mediaCanary'],
   './credits': ['getCreditsBalance', 'getCreditHistory', 'getCreditCost', 'spendCredits', 'grantCredits', 'refundCredits', 'validatePurchase', 'restorePurchase', 'creditsAdmin'],
   '(index)': ['sendPushNotification', 'sendMessagePushNotification'],
 };
@@ -204,7 +217,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y una: las treinta de antes y el barrido programado del paso I', reales.length === 31, `${reales.length}`);
+  check('5) y son treinta y dos: las treinta y una de antes y la puerta del canary de Media Cloud', reales.length === 32, `${reales.length}`);
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
   check('7) ninguna Function sale de una composición del Core que no esté conectada',
