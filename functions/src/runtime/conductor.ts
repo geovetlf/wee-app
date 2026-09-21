@@ -17,6 +17,7 @@ import {
   OrchestratorRequest,
   PreparedWorkflow,
   Principal,
+  QueuePort,
   ResultadoDeEntrega,
   RunClosure,
   StepDispatch,
@@ -37,7 +38,6 @@ import {
 import { crearTrabajo } from '../job';
 import { atenderEntrega } from '../job/worker';
 import { orquestadorDeWee } from '../orchestrator';
-import { ColaDeInvocacion } from './cola';
 import { EjecutorDelConductor } from './ejecutor';
 import { PreferenciasDeRuteo, Resolucion, ResolutorDeImplementacion } from './resolucion';
 
@@ -150,8 +150,13 @@ export interface PuertosDelConductor {
   trabajos: JobStore;
   /** La verdad de la ejecución del workflow. */
   ejecuciones: AlmacenDeEjecuciones;
-  /** Transporte. No es la verdad de nada. */
-  cola: ColaDeInvocacion;
+  /**
+   * Transporte. No es la verdad de nada, y por eso entra por el PUERTO: el
+   * conductor no sabe —ni tiene por qué— si los avisos viven en la memoria de
+   * esta invocación o en una colección que sobrevive al proceso. Lo único que
+   * pide es `QueuePort`, y cualquier transporte que lo cumpla vale.
+   */
+  cola: QueuePort;
   motor: JobEngine;
   /** El Router, por su composición. */
   resolver: ResolutorDeImplementacion;
@@ -632,8 +637,17 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
        */
       if (enOtrasManos) { avisos.add('leased_elsewhere'); return resultado('en_curso'); }
 
-      /* Si lo único que falta es la hora de un reintento y se puede esperar, se espera; si no, se dice. */
-      const proximo = cola.proximoVisible(ahora());
+      /*
+       * Si lo único que falta es la hora de un reintento y se puede esperar, se
+       * espera; si no, se dice.
+       *
+       * Preguntar es OPCIONAL y el silencio es una respuesta válida: un
+       * transporte durable no contesta —no debe dormir dentro de una Function—
+       * y entonces esto sale por `en_curso`, que es exactamente lo correcto: el
+       * aviso sigue guardado con su hora, y otra entrega lo recogerá cuando
+       * toque. Nada se pierde por no esperar.
+       */
+      const proximo = cola.proximoVisible?.(ahora());
       const cabe = proximo !== undefined && (limite === undefined || proximo < limite);
       if (!puertos.esperar || !cabe || esperas >= MAX_ESPERAS) return resultado('en_curso');
       esperas++;

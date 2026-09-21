@@ -3,12 +3,17 @@
  *
  * Lo que se demuestra aquí, en una frase: **el mismo conductor, el mismo
  * Router, el mismo Orchestrator y el mismo trabajador funcionan sobre la cola
- * durable exactamente igual que sobre la de invocación** — y lo único que lo
- * impide hoy es un método que el conductor le pide a la cola y que solo tiene
- * sentido dentro de una invocación.
+ * durable exactamente igual que sobre la de invocación**, porque el conductor
+ * depende del PUERTO y no de un transporte concreto.
+ *
+ * Lo que distinguía a los dos transportes era una pregunta —«¿cuándo podría
+ * coger el siguiente?»— que solo tiene sentido dentro de una invocación. Hoy es
+ * una capacidad OPCIONAL del puerto: la de invocación la contesta y se espera;
+ * la durable no la tiene, y entonces no se espera, se devuelve, y otra entrega
+ * la recoge. Ninguna de las dos finge.
  *
  *   A · La cadena entera: Planner → Workflow → conductor → … → adaptador
- *   B · El único acoplamiento que queda, medido
+ *   B · El contrato, y el reintento por los DOS transportes
  *   C · Lo que el transporte NO puede llevar ni decidir
  *
  * Sin proveedor real, sin vídeo, sin audio, sin generación externa.
@@ -173,8 +178,9 @@ const mundo = (opciones = {}) => {
     tracer: { record() {} }, now,
   });
   const router = core.crearRouter({ registry: registro });
-  const trabajos = almacen();
-  const runs = ejecuciones();
+  /* Se pueden compartir para representar OTRO PROCESO sobre los mismos datos. */
+  const trabajos = opciones.trabajos ?? almacen();
+  const runs = opciones.runs ?? ejecuciones();
   const entregas = [];
   const db = fakeDb();
   const cola = opciones.cola ?? colaDeInvocacion(now);
@@ -196,29 +202,11 @@ const mundo = (opciones = {}) => {
 };
 
 /**
- * La cola durable, con el ÚNICO método que el conductor le pide y que ella no
- * tiene. Se añade AQUÍ, en la prueba, a propósito: así queda medido que el
- * acoplamiento es exactamente uno, y no se toca ningún contrato para
- * demostrarlo.
+ * LA COLA DURABLE, TAL CUAL. Sin puente, sin envoltorio, sin un método añadido
+ * en la prueba para que el conductor no se rompa: exactamente la misma que se
+ * compondría en producción. Que esto baste es el objeto de esta suite.
  */
-const durableConPuente = (db) => {
-  const base = colaDurableDeTrabajos(db, { ahora: now, particion: 0, particiones: 1 });
-  return {
-    ...base,
-    enqueue: (m) => base.enqueue(m),
-    claim: (o) => base.claim(o),
-    ack: (id) => base.ack(id),
-    nack: (id, o) => base.nack(id, o),
-    /*
-     * `proximoVisible` es «¿cuándo podría coger el siguiente, para esperarlo
-     * aquí dentro?». En un transporte durable esa pregunta no se hace: el
-     * trabajador devuelve y otra entrega llega después. Devolver `undefined`
-     * es la respuesta correcta —no esperes— y es lo que haría el conductor con
-     * el método ausente si el contrato lo admitiera como opcional.
-     */
-    proximoVisible: () => undefined,
-  };
-};
+const durable = (db) => colaDurableDeTrabajos(db, { ahora: now, particion: 0, particiones: 1 });
 
 /* ═══ A · LA CADENA ENTERA, POR EL TRANSPORTE DURABLE ═════════════════════ */
 console.log('\n── A · Planner → Workflow → conductor → … → adaptador, sobre la cola durable ──');
@@ -247,7 +235,7 @@ console.log('\n── A · Planner → Workflow → conductor → … → adapta
 
   /* B–L · Y de ahí al conductor, con la cola DURABLE. */
   const db = fakeDb();
-  const m = mundo({ cola: durableConPuente(db) });
+  const m = mundo({ cola: durable(db) });
   const r = await m.conductor.ejecutar({ principal: QUIEN, trace: t, workflow: construido.workflow });
 
   check('B/C) Orchestrator prepara y el Router resuelve una implementación válida',
@@ -276,62 +264,111 @@ console.log('\n── A · Planner → Workflow → conductor → … → adapta
   check('A) y lo que contestó el proveedor vuelve a quien lo pidió', r.pasos[0].respuesta?.content === 'listo');
 }
 
-/* ═══ B · EL ÚNICO ACOPLAMIENTO QUE QUEDA ════════════════════════════════ */
-console.log('\n── B · Medir exactamente qué impide enchufar la cola durable ──');
+/* ═══ B · EL CONTRATO: EL CONDUCTOR DEPENDE DEL PUERTO ═══════════════════ */
+console.log('\n── B · Conductor → QueuePort, y el silencio como respuesta válida ──');
 {
   reloj = T0;
   const CONDUCTOR = leer('functions/src/runtime/conductor.ts');
   const DURABLE = leer('functions/src/runtime/cola-durable.ts');
+  const PUERTO = leer('functions/src/core/job-queue.ts');
+  const INVOCACION = leer('functions/src/runtime/cola.ts');
 
-  check('B) el conductor tipa su cola como `ColaDeInvocacion`, no como `QueuePort`',
-    /cola: ColaDeInvocacion;/.test(CONDUCTOR) && !/cola: QueuePort/.test(CONDUCTOR));
-  check('B) y le pide UN método que el puerto no declara',
-    /cola\.proximoVisible\(/.test(CONDUCTOR) && !/proximoVisible/.test(DURABLE));
+  check('B) el conductor tipa su cola por el PUERTO, no por un transporte concreto',
+    /cola: QueuePort;/.test(CONDUCTOR) && !/ColaDeInvocacion/.test(CONDUCTOR));
+  check('B) y `proximoVisible` es una capacidad OPCIONAL del puerto: nadie está obligado a tenerla',
+    /proximoVisible\?\(at: number\): number \| undefined;/.test(PUERTO));
+  check('B) el conductor pregunta sin exigir, y el silencio no lo rompe',
+    /cola\.proximoVisible\?\.\(ahora\(\)\)/.test(CONDUCTOR));
+  check('B) la cola de invocación SÍ la declara —obligatoria para ella—, y la durable NO la tiene',
+    /^ {2}proximoVisible\(at: number\): number \| undefined;$/m.test(INVOCACION) && !/proximoVisible/.test(DURABLE));
+  check('B) y NO hay puente artificial en ningún sitio: nadie devuelve `undefined` para callar al conductor',
+    !/proximoVisible: \(\) => undefined/.test(DURABLE + leer('functions/src/runtime/index.ts') + leer('functions/test/camino-durable.test.mjs')));
 
-  /* Cuáles de las operaciones del puerto usa de verdad: esas sí las tiene la durable. */
+  /* Del puerto, el conductor usa dos; `ack`/`nack` son del trabajador. */
   const usadas = ['enqueue', 'claim', 'ack', 'nack'].filter((m2) => new RegExp(`cola\\.${m2}\\(`).test(CONDUCTOR));
   check('B) del PUERTO solo usa `enqueue` y `claim`; `ack`/`nack` los hace el trabajador',
     usadas.join(',') === 'enqueue,claim', usadas.join(',') || 'ninguna');
-  const extra = [...CONDUCTOR.matchAll(/cola\.([a-zA-Z]+)\(/g)].map((x) => x[1]).filter((x) => !['enqueue', 'claim', 'ack', 'nack'].includes(x));
-  check('B) y fuera del puerto, exactamente UNO: ése es todo el bloqueo',
-    [...new Set(extra)].join(',') === 'proximoVisible', [...new Set(extra)].join(',') || 'ninguno');
+  const extra = [...CONDUCTOR.matchAll(/cola\.([a-zA-Z]+)[?(]/g)].map((x) => x[1]).filter((x) => !['enqueue', 'claim', 'ack', 'nack'].includes(x));
+  check('B) y fuera de esas cuatro, nada que el puerto no declare',
+    [...new Set(extra)].every((x) => x === 'proximoVisible'), [...new Set(extra)].join(',') || 'ninguno');
+
+  /* La durable cumple el puerto entero, sin añadidos. */
+  const dbForma = fakeDb();
+  const cd = durable(dbForma);
+  check('B) `colaDurableDeTrabajos` satisface `QueuePort`: la promesa y las cuatro operaciones',
+    cd.guarantee === 'at_least_once' && ['enqueue', 'claim', 'ack', 'nack'].every((k2) => typeof cd[k2] === 'function')
+    && cd.proximoVisible === undefined);
+  check('B) y la de invocación también, más su capacidad propia',
+    (() => { const ci = colaDeInvocacion(now); return ci.guarantee === 'at_least_once' && ['enqueue', 'claim', 'ack', 'nack'].every((k2) => typeof ci[k2] === 'function') && typeof ci.proximoVisible === 'function'; })());
 
   /*
-   * Y EL BLOQUEO, DEMOSTRADO. En el camino feliz el conductor nunca llega a
-   * preguntar —solo lo hace cuando falta esperar el retraso de un reintento—,
-   * así que aquí se fuerza ese camino: el proveedor falla de forma
-   * reintentable, el trabajo vuelve a `queued` con su espera, y ahí es donde
-   * el conductor le pregunta a la cola cuándo podría volver a coger algo.
+   * ── EL CAMINO DEL REINTENTO, POR LOS DOS TRANSPORTES ─────────────────────
+   *
+   * En el camino feliz el conductor nunca llega a preguntar. Solo pregunta
+   * cuando lo único que falta es la hora de un reintento. Así que se fuerza ese
+   * camino —un 429, reintentable— y se mira qué hace cada transporte.
    */
-  const db = fakeDb();
-  const cruda = colaDurableDeTrabajos(db, { ahora: now, particion: 0, particiones: 1 });
-  const m = mundo({
-    cola: cruda,
-    /* Un 429: reintentable, que es lo que deja el trabajo esperando. */
-    fallar: () => { throw new ProviderError('x respondió 429: slow down', 'x', 429, true); },
-    esperar: async (ms) => { reloj += ms + 1; },
-  });
-  let fallo;
-  try {
-    const w = await unWorkflow();
-    await m.conductor.ejecutar({ principal: QUIEN, trace: traza(), workflow: w });
-  } catch (e) { fallo = String(e?.message ?? e); }
+  const unFallo = () => { throw new ProviderError('x respondió 429: slow down', 'x', 429, true); };
 
-  check('B) forzado el camino del reintento, el conductor SÍ pregunta y la cola durable no sabe contestar',
-    fallo !== undefined && /proximoVisible/.test(fallo), fallo ?? 'no falló: el camino no se alcanzó');
-  check('B) y con el puente puesto, el mismo camino funciona: el bloqueo es ESE método y nada más',
-    await (async () => {
-      reloj = T0;
-      const db2 = fakeDb();
-      const m2 = mundo({
-        cola: durableConPuente(db2),
-        fallar: () => { throw new ProviderError('x respondió 429: slow down', 'x', 429, true); },
-        esperar: async (ms) => { reloj += ms + 1; },
-      });
-      const w = await unWorkflow();
-      const r = await m2.conductor.ejecutar({ principal: QUIEN, trace: traza(), workflow: w });
-      return r.estado === 'en_curso' || r.estado === 'terminada';
-    })());
+  /* B.1 · LA DURABLE: no espera aquí dentro, y no pierde el reintento. */
+  reloj = T0;
+  const dbD = fakeDb();
+  const esperasD = [];
+  const mD = mundo({ cola: durable(dbD), fallar: unFallo, esperar: async (ms) => { esperasD.push(ms); reloj += ms + 1; } });
+  const rD = await mD.conductor.ejecutar({ principal: QUIEN, trace: traza(), workflow: await unWorkflow() });
+
+  check('B.1) la cola DURABLE sin `proximoVisible` NO rompe al conductor: contesta `en_curso`',
+    rD.estado === 'en_curso', rD.estado);
+  check('B.1) y NO durmió dentro de la invocación: cero esperas locales',
+    esperasD.length === 0, esperasD.join(',') || 'ninguna');
+
+  const avisos = dbD.volcado(COLECCION_DE_COLA);
+  const trabajoD = [...mD.trabajos.porId.values()][0];
+  check('B.1) el reintento NO se perdió: el aviso sigue guardado, esperando su hora',
+    avisos.length === 1 && avisos[0].jobId === trabajoD.jobId, `${avisos.length} avisos`);
+  check('B.1) y conserva `notBefore` como `disponibleEn`: la espera del trabajo, intacta en el transporte',
+    avisos[0].visibleEn === trabajoD.availableAt && avisos[0].disponibleEn === trabajoD.availableAt
+    && avisos[0].disponibleEn > reloj,
+    `disponibleEn=${avisos[0].disponibleEn} availableAt=${trabajoD.availableAt}`);
+  check('B.1) un trabajo, una ejecución, un intento: nada duplicado',
+    [...mD.trabajos.porId.values()].length === 1 && mD.runs.m.size === 1
+    && trabajoD.attempts.length === 1 && mD.ad.llamadas.length === 1,
+    `trabajos=${[...mD.trabajos.porId.values()].length} runs=${mD.runs.m.size} intentos=${trabajoD.attempts.length} llamadas=${mD.ad.llamadas.length}`);
+  check('B.1) y el aviso que quedó SIGUE sin llevar nada del trabajo salvo su identificador',
+    !['provider', 'model', 'account', 'accountId', 'prompt', 'input', 'implementation', 'secret', 'url'].some((k2) => k2 in avisos[0]));
+
+  /*
+   * B.2 · CUANDO LLEGA LA HORA, SE RECOGE. Que no se espere dentro de la
+   * invocación no vale de nada si nadie vuelve: aquí se adelanta el reloj y se
+   * retoma la MISMA ejecución con un conductor NUEVO —otro proceso, que es el
+   * caso real— sobre la MISMA base de datos.
+   */
+  reloj = trabajoD.availableAt + 1;
+  const mD2 = mundo({ cola: durable(dbD), trabajos: mD.trabajos, runs: mD.runs });
+  const rD2 = await mD2.conductor.retomar({ principal: QUIEN, runId: rD.runId, trace: traza() });
+  check('B.2) al llegar la hora, otro proceso recoge el aviso y la ejecución TERMINA',
+    rD2.estado === 'terminada' && rD2.cierre?.state === 'done', `${rD2.estado}/${rD2.cierre?.state}`);
+  check('B.2) enqueue → claim → atenderEntrega → ejecución → ack: la cola quedó vacía',
+    dbD.volcado(COLECCION_DE_COLA).length === 0 && mD2.entregas.some((e) => e.outcome === 'executed'));
+  check('B.2) y sigue habiendo UN trabajo y UNA ejecución: el reintento no creó un segundo',
+    [...mD.trabajos.porId.values()].length === 1 && mD.runs.m.size === 1);
+
+  /* B.3 · LA DE INVOCACIÓN: sigue usando su capacidad y sigue esperando aquí dentro. */
+  reloj = T0;
+  const esperasI = [];
+  const mI = mundo({ fallar: unFallo, esperar: async (ms) => { esperasI.push(ms); reloj += ms + 1; } });
+  const rI = await mI.conductor.ejecutar({ principal: QUIEN, trace: traza(), workflow: await unWorkflow() });
+  check('B.3) la cola de INVOCACIÓN sí contesta, y el conductor SÍ espera dentro de la invocación',
+    esperasI.length >= 1, esperasI.join(',') || 'ninguna');
+  /*
+   * Y AHÍ ESTÁ LA DIFERENCIA, EN UNA LÍNEA: con el mismo fallo y el mismo
+   * workflow, la durable hizo UN intento y devolvió `en_curso` dejando el aviso
+   * guardado; ésta se queda dentro, consume las esperas y agota los tres
+   * intentos hasta cerrar. Las dos son correctas. Son transportes distintos.
+   */
+  check('B.3) y con las esperas consumidas, los reintentos ocurren DENTRO de la misma llamada, hasta cerrar',
+    rI.estado === 'terminada' && mI.ad.llamadas.length === 3 && mD.ad.llamadas.length === 1,
+    `invocación: ${rI.estado} con ${mI.ad.llamadas.length} intentos · durable: ${rD.estado} con ${mD.ad.llamadas.length}`);
 }
 
 /* ═══ C · LO QUE EL TRANSPORTE NO LLEVA NI DECIDE ════════════════════════ */
@@ -339,7 +376,7 @@ console.log('\n── C · Un transporte que no decide nada ──');
 {
   reloj = T0;
   const db = fakeDb();
-  const m = mundo({ cola: durableConPuente(db) });
+  const m = mundo({ cola: durable(db) });
   const tracer = { record() {} };
   const t = traza();
   const planner = core.crearPlanner({ availability: { disponible: () => true }, tracer, now });
@@ -354,7 +391,7 @@ console.log('\n── C · Un transporte que no decide nada ──');
   const w = await core.crearWorkflowEngine({ tracer, now }).construir({ contract: core.WORKFLOW_CONTRACT_VERSION, trace: t, plan: p.plan });
   /* Se mira la cola ANTES de que el trabajador la vacíe. */
   const visto = [];
-  const espia = { ...durableConPuente(db), claim: async (o) => { visto.push(db.volcado(COLECCION_DE_COLA).map((x) => ({ ...x }))); return durableConPuente(db).claim(o); } };
+  const espia = { ...durable(db), claim: async (o) => { visto.push(db.volcado(COLECCION_DE_COLA).map((x) => ({ ...x }))); return durable(db).claim(o); } };
   const m2 = mundo({ cola: espia });
   await m2.conductor.ejecutar({ principal: QUIEN, trace: t, workflow: w.workflow });
 

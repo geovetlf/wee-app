@@ -400,7 +400,12 @@ console.log('\n── G · Lo que tiene otro proceso no se espera ──');
   check('y son dos relojes distintos: la visibilidad de la cola de esta prueba es otra', CONCESION_DE_TRABAJO_MS !== VISIBILIDAD_DE_COLA_MS);
   check('el arreglo NO fue acortar ninguno: la composición sigue dando un minuto de visibilidad', /visibilityMs: 60_000/.test(leer('functions/src/runtime/index.ts')));
   check('el trabajador sigue aplazando lo que no toca todavía y lo que no cabe', /reclamo\.refusal === 'not_available_yet' \|\| reclamo\.refusal === 'at_capacity' \|\| reclamo\.refusal === 'leased'/.test(leer('functions/src/job/worker.ts')));
-  check('y la espera sigue existiendo para lo que SÍ vuelve: un reintento programado', /const proximo = cola\.proximoVisible\(ahora\(\)\);/.test(leer('functions/src/runtime/conductor.ts')) && /await puertos\.esperar\(Math\.max\(0, proximo - ahora\(\)\)\)/.test(leer('functions/src/runtime/conductor.ts')));
+  /*
+   * La pregunta pasó a ser OPCIONAL —el conductor depende del `QueuePort` y un
+   * transporte durable no contesta— pero la espera que este arreglo protege
+   * sigue exactamente donde estaba, y para lo mismo.
+   */
+  check('y la espera sigue existiendo para lo que SÍ vuelve: un reintento programado', /const proximo = cola\.proximoVisible\?\.\(ahora\(\)\);/.test(leer('functions/src/runtime/conductor.ts')) && /await puertos\.esperar\(Math\.max\(0, proximo - ahora\(\)\)\)/.test(leer('functions/src/runtime/conductor.ts')));
   check('la decisión se toma por el ESTADO del trabajo, no por una cadena de diagnóstico', /avisos\.add\('leased_elsewhere'\);\s*enOtrasManos = true;/.test(leer('functions/src/runtime/conductor.ts')) && !/e\.detail === 'leased'/.test(leer('functions/src/runtime/conductor.ts')));
 
   /* Y lo que ve quien llamó. */

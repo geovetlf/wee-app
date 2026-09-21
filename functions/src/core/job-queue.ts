@@ -185,6 +185,21 @@ export interface QueuePort {
   ack(deliveryId: string): Promise<void>;
   /** No pude, o todavía no toca: devolver, opcionalmente para más tarde. */
   nack(deliveryId: string, options?: { delayMs?: number }): Promise<void>;
+  /**
+   * OPCIONAL, y opcional a propósito: «¿cuándo se podrá coger el próximo aviso
+   * que ahora mismo no se puede?». `undefined` = no lo sé, o no hay ninguno.
+   *
+   * NINGÚN transporte está obligado a contestar, y no contestar no es una
+   * carencia. La pregunta solo sirve para decidir si merece la pena ESPERAR
+   * aquí mismo, y eso solo tiene sentido en un transporte que vive dentro de
+   * una invocación y muere con ella. Un transporte durable no debe dormir
+   * esperando: devuelve, y otra entrega llega después. Por eso esto vive aquí
+   * como una capacidad que se tiene o no se tiene, y nunca como una obligación
+   * que fuerce a todos a fingir una respuesta.
+   *
+   * Quien pregunta tiene que estar preparado para el silencio.
+   */
+  proximoVisible?(at: number): number | undefined;
 }
 
 /* ── El contrato del trabajador ───────────────────────────────────────────── */

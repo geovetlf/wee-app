@@ -51,7 +51,15 @@ interface Aviso {
 export interface ColaDeInvocacion extends QueuePort {
   /** Avisos que siguen sin confirmar. */
   pendientes(): number;
-  /** Cuándo se podrá coger el próximo aviso que ahora mismo no se puede. `undefined` = no hay ninguno esperando. */
+  /**
+   * Cuándo se podrá coger el próximo aviso que ahora mismo no se puede.
+   * `undefined` = no hay ninguno esperando.
+   *
+   * En el puerto esto es OPCIONAL; aquí es OBLIGATORIO, y es lo único que
+   * distingue a esta cola de cualquier otra: vive dentro de una invocación, así
+   * que esperar aquí dentro a que llegue la hora de un reintento sí tiene
+   * sentido. Un transporte que sobrevive a la invocación no debe contestarla.
+   */
   proximoVisible(at: number): number | undefined;
 }
 
