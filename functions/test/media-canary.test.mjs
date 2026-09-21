@@ -102,11 +102,23 @@ console.log('\n── B2 · Subir, confirmar, procesar: las tres reutilizan MC-3
 {
   const { ACCIONES_DEL_CANARY, MAX_BYTES_DEL_CANARY, TIPOS_DEL_CANARY } = lib('media/canary.js');
 
-  check('hay CUATRO acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar,entregar');
+  /*
+   * CUATRO DE PRODUCTO Y DOS DE EXPERIMENTO, y la lista entera fijada aquí para
+   * que aparecer una séptima rompa esto. `subirSinCondicional` midió H1 (ya
+   * refutada) y `credenciales` mide H2; las dos se BORRAN en cuanto H2 quede
+   * resuelta, y el día que se vayan este pin vuelve a cuatro.
+   */
+  check('hay SEIS acciones —cuatro de producto y dos de experimento— y ninguna más',
+    ACCIONES_DEL_CANARY.join(',') === 'subir,subirSinCondicional,confirmar,procesar,entregar,credenciales');
   check('una acción desconocida se rechaza', /ACCIONES_DEL_CANARY\.includes\(accion\)/.test(CANARY) && /Acción desconocida/.test(CANARY));
+  /* La variante la elige el NOMBRE de la acción, nunca un campo que mande quien llama. */
+  check('la variante de H1 no se enciende con ningún dato del cliente',
+    /accion === 'subirSinCondicional',/.test(CANARY)
+    && !/datos\.(sinCondicional|diagnostico|variante|condicional)/i.test(CANARY));
 
   /* Reutilización literal: se llaman las funciones de MC-2/MC-3/MC-4, no se reescriben. */
-  check('`subir` llama a `solicitarSubida` de MC-3', /await solicitarSubida\(depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
+  check('`subir` llama a `solicitarSubida` de MC-3',
+    /await solicitarSubida\(/.test(CANARY) && /depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
   check('`confirmar` llama a `confirmarSubida` de MC-3', /await confirmarSubida\(depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
   check('`procesar` sigue llamando a la composición de MC-4', /return ejecutarCanaryDeMedios\(accountId, assetId\)/.test(CANARY));
   check('`entregar` llama a `solicitarEntrega` de MC-2', /await solicitarEntrega\(depsDeEntregaDeWee\(getFirestore\(\)\)/.test(CANARY));

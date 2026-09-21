@@ -138,7 +138,32 @@ export interface TrazaDeSubida {
   ms: number;
   /** `sub_<16 hex>` de la URL. Sirve para cruzar un problema sin escribirla. */
   huellaDeUrl?: string;
+  /**
+   * EL STATUS QUE DIO EL PROVEEDOR, cuando lo hubo.
+   *
+   * Es un NÚMERO y nada más. Al confirmar, `mirar()` ya traía el status dentro
+   * de su fallo y esta capa lo tiraba, así que un 403 —«tus credenciales no
+   * valen»— y un 400 —«tu petición está mal»— llegaban arriba indistinguibles,
+   * que son justo los dos diagnósticos opuestos que hay que separar.
+   *
+   * Solo el número. Ni cabeceras, ni cuerpo, ni URL, ni nada más de `details`.
+   */
+  statusDelProveedor?: number;
 }
+
+/**
+ * DEL FALLO DEL ALMACÉN SOLO SE RESCATA UN NÚMERO.
+ *
+ * `details` es un saco abierto (`Record<string, unknown>`), así que no se copia:
+ * se busca UNA clave y se exige que sea un entero en el rango de los status
+ * HTTP. Lo que no lo sea, no sale. Por aquí no puede colarse una cabecera, una
+ * URL ni un rastro de credencial — ni hoy, ni el día que a algún adaptador se
+ * le ocurra meter algo más en ese objeto.
+ */
+const statusDelProveedor = (e: { details?: Record<string, unknown> } | undefined): number | undefined => {
+  const s = e?.details?.status;
+  return typeof s === 'number' && Number.isInteger(s) && s >= 100 && s <= 599 ? s : undefined;
+};
 
 export type DesenlaceDeSubida =
   | { ok: true; intento: UploadIntent; traza: TrazaDeSubida }
@@ -379,9 +404,15 @@ export const confirmarSubida = async (
   /* La única llamada al proveedor de toda la confirmación: metadata, no bytes. */
   const visto = await puerto.mirar(material.storageRef);
   if (!visto.ok) {
-    return visto.motivo === 'no_existe'
-      ? { ok: false, motivo: 'pendiente', traza: fin({ accountId, assetId: material.assetId, objectRef, providerId, resultado: 'pendiente', detalle: 'bytes_no_estan' }) }
-      : no('no_disponible', { accountId, assetId: material.assetId, objectRef, providerId, detalle: 'bytes_no_estan' });
+    /* 404 no es un fallo: es «todavía no están los bytes». No lleva status porque no hace falta. */
+    if (visto.motivo === 'no_existe') {
+      return { ok: false, motivo: 'pendiente', traza: fin({ accountId, assetId: material.assetId, objectRef, providerId, resultado: 'pendiente', detalle: 'bytes_no_estan' }) };
+    }
+    const status = statusDelProveedor(visto.error);
+    return no('no_disponible', {
+      accountId, assetId: material.assetId, objectRef, providerId, detalle: 'bytes_no_estan',
+      ...(status !== undefined ? { statusDelProveedor: status } : {}),
+    });
   }
 
   /*

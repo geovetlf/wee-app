@@ -9,6 +9,7 @@ import { MEDIA_SECRETS } from '../secrets';
 import { assertAdmin } from '../shared/admin';
 import { almacenDeObjetosDeMedios } from './almacen';
 import { adaptadoresDeMedios } from './catalogo';
+import { R2_ENV, R2_PROVIDER_ID, configuracionDeR2, crearAdaptadorDeR2 } from './r2';
 import { depsDeEntregaDeWee, solicitarEntrega } from './entrega';
 import { crearEjecutorDeMedios, depsDeProcesoDeWee, solicitarProceso } from './proceso';
 import { confirmarSubida, depsDeSubidaDeWee, identidadDeMaterialDeSubida, solicitarSubida } from './subida';
@@ -179,9 +180,14 @@ export const ejecutarCanaryDeMedios = async (
 export const MAX_BYTES_DEL_CANARY = 2 * 1024 * 1024;
 export const TIPOS_DEL_CANARY: readonly string[] = Object.freeze(['image/png', 'image/jpeg', 'image/webp']);
 
-/** Las cuatro cosas que sabe hacer esta puerta. No hay una quinta. */
-export type AccionDelCanary = 'subir' | 'confirmar' | 'procesar' | 'entregar';
-export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'confirmar', 'procesar', 'entregar'] as const);
+/**
+ * Lo que sabe hacer esta puerta. Cuatro son el producto; la quinta es un
+ * EXPERIMENTO con fecha de caducidad —ver `subirSinCondicional`— y por eso
+ * tiene nombre propio en vez de esconderse dentro de `subir`: quien lee el
+ * registro de una llamada tiene que poder distinguir cuál de las dos corrió.
+ */
+export type AccionDelCanary = 'subir' | 'subirSinCondicional' | 'confirmar' | 'procesar' | 'entregar' | 'credenciales';
+export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'subirSinCondicional', 'confirmar', 'procesar', 'entregar', 'credenciales'] as const);
 
 /**
  * PEDIR PERMISO PARA SUBIR. Llama a `solicitarSubida` de MC-3 tal cual.
@@ -197,12 +203,35 @@ export const pedirSubidaDelCanary = async (
   operationId: string,
   contentType: string,
   bytes: number,
+  /*
+   * EL EXPERIMENTO H1, Y NADA MÁS. No llega del cliente: lo decide la ACCIÓN,
+   * que se valida contra una lista cerrada, y el despacho de abajo lo pasa como
+   * literal. Tres PUT prefirmados seguidos han dado 400 InvalidArgument, y esto
+   * pregunta una sola cosa: ¿los acepta R2 si la condicional no está?
+   *
+   * Se monta por el seam que MC-3 ya tenía —`DepsDeSubida.adaptadores`— así que
+   * no hay un segundo flujo de subida: es el MISMO `solicitarSubida`, con el
+   * mismo catálogo, y solo el adaptador de R2 cambiado por uno que firma sin
+   * `if-none-match`. Todo lo demás —material, clave, contenedor, proveedor,
+   * cuenta— lo sigue derivando MC-3 igual que siempre.
+   *
+   * El resto de Weë no se entera: `adaptadoresDeMedios()` sigue devolviendo el
+   * adaptador normal, con su escritura condicional.
+   */
+  sinCondicional = false,
 ): Promise<unknown> => {
   if (!TIPOS_DEL_CANARY.includes(contentType)) throw new HttpsError('invalid-argument', 'Tipo no admitido por el canary');
   if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > MAX_BYTES_DEL_CANARY) {
     throw new HttpsError('invalid-argument', 'El canary solo admite una imagen pequeña');
   }
-  const r = await solicitarSubida(depsDeSubidaDeWee(getFirestore()), {
+  const deps = depsDeSubidaDeWee(getFirestore());
+  const r = await solicitarSubida(sinCondicional === true ? {
+    ...deps,
+    adaptadores: {
+      ...adaptadoresDeMedios(),
+      [R2_PROVIDER_ID]: crearAdaptadorDeR2({ diagnosticoSinCondicional: true }),
+    },
+  } : deps, {
     principalId: accountId,
     operationId,
     kind: 'image',
@@ -221,8 +250,112 @@ export const confirmarSubidaDelCanary = async (
   operationId: string,
 ): Promise<unknown> => {
   const r = await confirmarSubida(depsDeSubidaDeWee(getFirestore()), { principalId: accountId, assetId, operationId });
-  if (!r.ok) throw new HttpsError('failed-precondition', `La subida no está confirmada: ${r.motivo}`);
+  if (!r.ok) {
+    /*
+     * El motivo, el DETALLE y, si lo hubo, el status del proveedor.
+     *
+     * `no_disponible` sale de once sitios de `confirmarSubida`, y ocho están
+     * ANTES del HEAD: sin el detalle, «no encontré tu material» y «el proveedor
+     * rechazó la petición» llegan aquí con la misma cara. El detalle es un enum
+     * cerrado de cadenas escritas en el código —`sin_material`,
+     * `bytes_no_estan`…—: no sale de quien llama, ni del proveedor, ni de la
+     * configuración, así que no puede arrastrar nada. Y el status es un número.
+     */
+    const s = r.traza.statusDelProveedor;
+    throw new HttpsError('failed-precondition', `La subida no está confirmada: ${r.motivo} / ${r.traza.detalle}${s !== undefined ? ` (proveedor: ${s})` : ''}`);
+  }
   return { assetId: r.assetId, bytes: r.bytes, objectRef: r.objectRef, traza: r.traza };
+};
+
+/* ── H2 · La FORMA de las credenciales, sin ver ni un carácter ─────────────── */
+
+/**
+ * LO ÚNICO QUE SALE DE AQUÍ SON MEDIDAS.
+ *
+ * Tres PUT prefirmados han dado `400 InvalidArgument` con una firma SigV4
+ * demostrada correcta. Un 400 no es lo que S3 contesta a una credencial
+ * EQUIVOCADA —eso es 403— sino a una MALFORMADA: si el Access Key ID llevara
+ * una barra, un espacio o un carácter que se codifica en porcentaje, el ámbito
+ * `<clave>/<fecha>/<región>/<servicio>/aws4_request` dejaría de tener cinco
+ * segmentos y el proveedor rechazaría antes de mirar la firma. Esto mide
+ * exactamente eso.
+ *
+ * El valor **no entra en ninguna cadena**: se le pide `.length` y se le pasa un
+ * `.test()`, que devuelve un booleano. No se concatena, no se interpola, no se
+ * registra, no se devuelve y no se escribe. De la respuesta no se puede
+ * reconstruir nada porque en la respuesta no hay nada del valor.
+ *
+ * Es TEMPORAL, como `subirSinCondicional`: se borra cuando H2 quede resuelta.
+ */
+export interface FormaDeLaClaveDelCanary {
+  presente: boolean;
+  longitud: number;
+  charsetValido: boolean;
+  longitudCrudaDistinta: boolean;
+}
+
+export interface FormaDelSecretoDelCanary {
+  presente: boolean;
+  longitud: number;
+  longitudSha256Esperada: boolean;
+  charsetHexValido: boolean;
+  longitudCrudaDistinta: boolean;
+}
+
+/**
+ * Regla LOCAL y explícita, no un formato de Cloudflare que nadie ha publicado.
+ * Lo que se exige es lo que el USO exige: el Access Key ID viaja como primer
+ * segmento de `X-Amz-Credential`, así que solo valen caracteres que atraviesan
+ * la consulta sin transformarse y sin partir el ámbito.
+ */
+const CHARSET_DE_CLAVE = /^[A-Za-z0-9._~-]+$/;
+
+/** La regla documentada: el Secret Access Key es un SHA-256 en hexadecimal. */
+const SHA256_EN_HEX = /^[0-9a-fA-F]{64}$/;
+
+/**
+ * `env()` recorta. Comparar contra el crudo de `process.env` —que es donde el
+ * runtime inyecta el secreto— dice si venía con un espacio o un salto de línea
+ * pegado, sin materializar nada: solo se restan dos longitudes.
+ */
+const midaSinVer = (nombre: string, valor: string | undefined) => {
+  const crudo = process.env[nombre];
+  const largo = typeof valor === 'string' ? valor.length : 0;
+  return {
+    presente: largo > 0,
+    longitud: largo,
+    longitudCrudaDistinta: typeof crudo === 'string' && crudo.length !== largo,
+  };
+};
+
+/**
+ * Las CLAVES de la respuesta se las pide al adaptador, no están escritas aquí.
+ *
+ * No es un rodeo: es la regla. El nombre de una credencial de un proveedor no
+ * puede salir de su adaptador, y esta puerta no tiene por qué saber cómo se
+ * llaman las variables de nadie. Pregunta «¿cómo se llaman las tuyas?» y mide
+ * lo que le devuelvan. El día que el proveedor sea otro, esto sigue valiendo
+ * sin tocar una letra.
+ */
+export const formaDeLasCredenciales = (): Readonly<Record<string, FormaDeLaClaveDelCanary | FormaDelSecretoDelCanary>> => {
+  const c = configuracionDeR2();
+  const clave = midaSinVer(R2_ENV.accessKeyId, c.accessKeyId);
+  const secreto = midaSinVer(R2_ENV.secretAccessKey, c.secretAccessKey);
+  return Object.freeze({
+    [R2_ENV.accessKeyId]: Object.freeze({
+      presente: clave.presente,
+      longitud: clave.longitud,
+      charsetValido: typeof c.accessKeyId === 'string' && CHARSET_DE_CLAVE.test(c.accessKeyId),
+      longitudCrudaDistinta: clave.longitudCrudaDistinta,
+    }),
+    [R2_ENV.secretAccessKey]: Object.freeze({
+      presente: secreto.presente,
+      longitud: secreto.longitud,
+      longitudSha256Esperada: secreto.longitud === 64,
+      charsetHexValido: typeof c.secretAccessKey === 'string' && SHA256_EN_HEX.test(c.secretAccessKey),
+      longitudCrudaDistinta: secreto.longitudCrudaDistinta,
+    }),
+  });
 };
 
 /**
@@ -287,6 +420,14 @@ export const mediaCanary = onCall(
     const accion = String(datos.accion ?? 'procesar') as AccionDelCanary;
     if (!ACCIONES_DEL_CANARY.includes(accion)) throw new HttpsError('invalid-argument', 'Acción desconocida');
 
+    /*
+     * H2 · La única acción que no trabaja sobre un material: mide la FORMA de
+     * las credenciales. Va antes de exigir `operationId` porque no lo necesita
+     * —no hay material, no hay clave, no hay objeto— y por debajo del
+     * `assertAdmin`, que ya se hizo arriba.
+     */
+    if (accion === 'credenciales') return formaDeLasCredenciales();
+
     const operationId = String(datos.operationId ?? '');
     if (operationId.length < 8 || operationId.length > 128) {
       throw new HttpsError('invalid-argument', 'Falta una clave de operación utilizable');
@@ -298,8 +439,12 @@ export const mediaCanary = onCall(
     const assetId = identidadDeMaterialDeSubida(accountId, operationId);
     if (!assetId) throw new HttpsError('invalid-argument', 'La clave de operación no produce material');
 
-    if (accion === 'subir') {
-      return pedirSubidaDelCanary(accountId, operationId, String(datos.contentType ?? ''), Number(datos.bytes));
+    if (accion === 'subir' || accion === 'subirSinCondicional') {
+      /* La variante la elige la ACCIÓN, con un literal. El cliente no manda ninguna bandera. */
+      return pedirSubidaDelCanary(
+        accountId, operationId, String(datos.contentType ?? ''), Number(datos.bytes),
+        accion === 'subirSinCondicional',
+      );
     }
     if (accion === 'confirmar') return confirmarSubidaDelCanary(accountId, assetId, operationId);
     if (accion === 'entregar') return pedirEntregaDelCanary(accountId, assetId, operationId);
