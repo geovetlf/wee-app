@@ -1,3 +1,4 @@
+import { ExecutionHints } from '../core';
 import { CapabilityId, ResultKind } from '../creator/types';
 
 /**
@@ -225,6 +226,22 @@ export interface ProviderRunRequest {
    * tarea; el que sepa, contesta `ProviderAccepted` y suelta el proceso.
    */
   acceptAsync?: boolean;
+  /**
+   * LOS REQUISITOS ABSTRACTOS DEL RESULTADO, tal y como salieron de Weë.
+   *
+   * `prefs` es del ENRUTADO —qué calidad, cuántos segundos, qué se puede
+   * elegir— y por eso lleva años siendo dos escalares. Esto es otra cosa: lo
+   * que la persona pidió del resultado. La intención creativa (S2) y lo que
+   * tiene que quedarse igual (C2) viajaban por todo el sistema y se perdían
+   * justo aquí, en la última línea, porque la composición solo copiaba esos
+   * dos escalares. Se medía en las pruebas de transporte y no lo veía nadie:
+   * el adaptador nunca supo que existían.
+   *
+   * Opcional, y ningún adaptador está obligado a leerla. Traducir un requisito
+   * a los mandos de un proveedor concreto es trabajo SUYO y de nadie más: aquí
+   * solo se le entrega, intacto y en el vocabulario del Core.
+   */
+  hints?: ExecutionHints;
 }
 
 /** Contrato que implementa cada adaptador (video, imagen, voz, música, LLM…). */

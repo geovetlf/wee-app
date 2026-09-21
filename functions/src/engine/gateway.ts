@@ -262,6 +262,12 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
             timeoutMs,
             onStatus,
             /*
+             * Y los requisitos ENTEROS, no los dos escalares que `prefs`
+             * recorta. Quien sepa traducirlos los traducirá; quien no, los
+             * ignora y se comporta exactamente como antes.
+             */
+            ...(execution.hints ? { hints: execution.hints } : {}),
+            /*
              * EXPLÍCITO Y SIEMPRE PRESENTE. Antes iba en un spread condicional:
              * el adaptador recibía la propiedad o no la recibía, y «no
              * recibirla» era indistinguible de «se perdió por el camino» —que

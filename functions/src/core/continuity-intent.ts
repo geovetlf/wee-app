@@ -314,3 +314,62 @@ export const resolverIntencionDeContinuidad = (
  */
 export const sujetosSinResolver = (r: IntencionResuelta): readonly string[] =>
   Object.freeze([...r.unresolved, ...r.ambiguities.map((a) => a.label)]);
+
+/* ── El puente hacia la ejecución ─────────────────────────────────────────── */
+
+/**
+ * LO QUE HACE FALTA SABER ANTES DE PODER PLANIFICAR.
+ *
+ * Un nombre que no se resolvió, dos cosas que se llaman igual o un aspecto
+ * exigido y liberado a la vez: las tres dejan la intención INCOMPLETA, y una
+ * intención incompleta no se ejecuta. Se devuelven para que entren en
+ * `BrainUnderstanding.missing`, que es el mecanismo que YA existe y que el
+ * Planner YA respeta —con `missing` no vacío contesta `needs_clarification` y
+ * no planifica—.
+ *
+ * Eso importa más de lo que parece: no hay ninguna política nueva. Lo que
+ * impide ejecutar una intención a medias es la misma regla que impide
+ * ejecutar cualquier otra cosa que Brain no supo.
+ */
+export const loQueFaltaDeLaContinuidad = (r: IntencionResuelta): readonly string[] =>
+  Object.freeze([...sujetosSinResolver(r), ...r.conflicts.map((c) => c.aspect)]);
+
+/**
+ * DE LA INTENCIÓN DE BRAIN A LA FORMA QUE VIAJA CON LA EJECUCIÓN.
+ *
+ * ── Por qué esto es todo lo que hacía falta ─────────────────────────────────
+ *
+ * El Planner ya fusiona `understanding.preferences` en las pistas de cada paso,
+ * y las pistas ya cruzan el Workflow, el Orchestrator, el trabajo y el Gateway
+ * enteras. Así que el puente no es una capa: es poner los requisitos resueltos
+ * donde el sistema ya sabe mirar.
+ *
+ * Ninguna capa del camino cambia. Ninguna aprende qué es un rostro. El Planner
+ * transporta, el Workflow transporta, el Orchestrator transporta, el Job Engine
+ * transporta y el Gateway entrega. Y este archivo no vuelve a interpretar
+ * lenguaje: recibe lo que el modelo ya entendió.
+ *
+ * ── Y lo que NO hace ────────────────────────────────────────────────────────
+ *
+ * No resuelve nada dos veces —quien resuelve es `resolverIntencionDeContinuidad`
+ * y no hay una segunda—, no sube versiones, no inventa identificadores y no
+ * convierte una ambigüedad en una decisión. Lo que quedó sin resolver sale por
+ * `missing`, y con `missing` no vacío no se planifica.
+ */
+export const conContinuidadResuelta = <U extends {
+  continuity?: ContinuityIntent;
+  preferences?: { continuity?: ContinuityRequirements };
+  missing: readonly string[];
+}>(entendimiento: U, candidatos: readonly CandidatoDeContinuidad[] = []): U => {
+  const r = resolverIntencionDeContinuidad(entendimiento.continuity, candidatos);
+  if (r.status === 'sin_intencion' && !r.requirements) return entendimiento;
+
+  const falta = loQueFaltaDeLaContinuidad(r);
+  return Object.freeze({
+    ...entendimiento,
+    ...(r.requirements
+      ? { preferences: { ...(entendimiento.preferences ?? {}), continuity: r.requirements } }
+      : {}),
+    ...(falta.length ? { missing: Object.freeze([...entendimiento.missing, ...falta]) } : {}),
+  }) as U;
+};
