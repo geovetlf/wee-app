@@ -482,8 +482,14 @@ console.log('\n── E · Estructura: lo que hay, y lo que a propósito no hay 
   check('110) y su historial y los límites, igual', /match \/history\/\{entryId\} \{\s*allow read, write: if false;/.test(bloque) && /match \/moderationLimits\/\{accountId\} \{\s*allow read, write: if false;/.test(bloque));
   const indices = JSON.parse(leer('firestore.indexes.json')).indexes;
   const deReportes = indices.filter((i) => i.collectionGroup === 'reports');
-  check('111) UN índice nuevo y justificado —la cola: estado + antigüedad—, y los 28 de antes siguen',
-    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 29);
+  /*
+   * El total se fija a propósito: que nadie añada un índice sin que se vea. Subió
+   * a 30 cuando el transporte durable trajo el suyo (`jobQueue`, preparado y NO
+   * desplegado); la parte de moderación —UNO y solo uno— no se ha movido.
+   */
+  check('111) UN índice nuevo y justificado —la cola: estado + antigüedad—, y los de antes siguen',
+    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 30,
+    `${deReportes.length} de reports, ${indices.length} en total`);
   check('112) el contrato de contenido ya tenía la costura: `moderationStatus` y `moderationCaseId` siguen ahí, sin tocar',
     /export type ModerationStatus = 'clear' \| 'pending' \| 'restricted' \| 'removed';/.test(leer('functions/src/core/content/content.ts')));
   check('113) la documentación existe', existe('docs/MODERATION.md') && /reportContent/.test(leer('docs/MODERATION.md')));

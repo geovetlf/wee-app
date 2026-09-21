@@ -934,6 +934,16 @@ service cloud.firestore {
     match /jobs/{jobId} {
       allow read, write: if false;
     }
+    /*
+     * El transporte durable del Job Engine. Cerrado como `jobs`, y por el mismo
+     * motivo: un aviso dice qué trabajo hay que mirar, y poder escribir uno
+     * sería poder hacer que un trabajador mire el trabajo de otro. Se encola
+     * desde el servidor y se atiende desde el servidor; el cliente no tiene
+     * nada que hacer aquí.
+     */
+    match /jobQueue/{avisoId} {
+      allow read, write: if false;
+    }
     match /workflowRuns/{runId} {
       allow read, write: if false;
     }

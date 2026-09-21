@@ -445,6 +445,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "jobQueue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "particion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "disponibleEn",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
