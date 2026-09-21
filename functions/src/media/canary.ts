@@ -1,6 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { Transformacion, mensajeDeCola } from '../core';
+import { PuertoDeAlmacenamiento, Transformacion, claveEsDeLaCuenta, mensajeDeCola, prefijoDeCuenta } from '../core';
 import { crearMotorDeTrabajosDeWee, crearTrabajo } from '../job';
 import { atenderEntrega } from '../job/worker';
 import { almacenDeTrabajos } from '../runtime/almacen';
@@ -8,7 +8,7 @@ import { colaDeInvocacion } from '../runtime/cola';
 import { MEDIA_SECRETS } from '../secrets';
 import { assertAdmin } from '../shared/admin';
 import { almacenDeObjetosDeMedios } from './almacen';
-import { adaptadoresDeMedios } from './catalogo';
+import { adaptadoresDeMedios, proveedorConfigurado } from './catalogo';
 import { depsDeEntregaDeWee, solicitarEntrega } from './entrega';
 import { crearEjecutorDeMedios, depsDeProcesoDeWee, solicitarProceso } from './proceso';
 import { confirmarSubida, depsDeSubidaDeWee, identidadDeMaterialDeSubida, solicitarSubida } from './subida';
@@ -179,9 +179,81 @@ export const ejecutarCanaryDeMedios = async (
 export const MAX_BYTES_DEL_CANARY = 2 * 1024 * 1024;
 export const TIPOS_DEL_CANARY: readonly string[] = Object.freeze(['image/png', 'image/jpeg', 'image/webp']);
 
-/** Las cuatro cosas que sabe hacer esta puerta. No hay una quinta. */
-export type AccionDelCanary = 'subir' | 'confirmar' | 'procesar' | 'entregar';
-export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'confirmar', 'procesar', 'entregar'] as const);
+/** Las cinco cosas que sabe hacer esta puerta. No hay una sexta. */
+export type AccionDelCanary = 'subir' | 'confirmar' | 'procesar' | 'entregar' | 'listar';
+export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'confirmar', 'procesar', 'entregar', 'listar'] as const);
+
+/**
+ * MC-9 · CUÁNTO SE DEJA ENUMERAR POR ESTA PUERTA.
+ *
+ * Cien, y no los mil que admite el proveedor. Esta puerta existe para VERIFICAR
+ * que el listado funciona, no para recorrer un inventario: un tope pequeño hace
+ * que una llamada equivocada sea barata y que nadie se acostumbre a usar la
+ * puerta administrativa como si fuera la del producto.
+ */
+export const MAX_OBJETOS_DEL_CANARY = 100;
+
+/**
+ * MC-9 · ENUMERAR LO QUE HAY DE VERDAD, DE ESTA CUENTA Y DE NADIE MÁS.
+ *
+ * Solo lectura: no escribe, no borra, no marca, no confirma y no crea fichas.
+ * Lo único que hace es preguntarle al proveedor qué tiene bajo el prefijo de la
+ * cuenta y devolver metadatos.
+ *
+ * ── El prefijo NO se recibe ────────────────────────────────────────────────
+ *
+ * Sale de `prefijoDeCuenta(accountId)`, y la cuenta sale de la sesión. Aceptar
+ * un prefijo de fuera convertiría esta puerta en la forma más barata de leer el
+ * inventario ajeno, que es exactamente lo que la enumeración hace peligrosa.
+ *
+ * ── Y lo que sale está acotado a mano ──────────────────────────────────────
+ *
+ * No se devuelve lo que el adaptador trae: se COPIA campo a campo lo que se ha
+ * decidido que puede salir. Devolver el objeto entero dejaría que cualquier
+ * cosa que un adaptador añada mañana saliera por esta puerta sin que nadie lo
+ * decidiera hoy.
+ */
+export const listarDelCanary = async (
+  accountId: string,
+  cursor?: string,
+  /** Solo para pruebas. Sin esto se usa el adaptador configurado, como el resto. */
+  adaptadores?: Readonly<Record<string, PuertoDeAlmacenamiento>>,
+): Promise<unknown> => {
+  const prefijo = prefijoDeCuenta(accountId);
+  if (!prefijo) throw new HttpsError('invalid-argument', 'La cuenta no produce un prefijo utilizable');
+
+  const providerId = proveedorConfigurado();
+  const puerto = (adaptadores ?? adaptadoresDeMedios())[providerId];
+  if (!puerto?.listar) throw new HttpsError('failed-precondition', 'El proveedor configurado no sabe enumerar');
+
+  const r = await puerto.listar({ prefijo, limite: MAX_OBJETOS_DEL_CANARY, ...(cursor ? { cursor } : {}) });
+  /* Ni el error del proveedor sale entero: lleva dentro lo que él quiera poner. */
+  if (!r.ok) throw new HttpsError('unavailable', `El proveedor no pudo enumerar: ${r.error.code}`);
+
+  return {
+    providerId,
+    /* El contenedor lo dice el puerto. Es un nombre, no una credencial. */
+    contenedor: puerto.contenedor,
+    prefijo,
+    objetos: r.objetos
+      /*
+       * AUNQUE EL PREFIJO SE LO DIMOS NOSOTROS. Que el proveedor filtre no es
+       * una garantía nuestra: lo que no caiga en la carpeta de esta cuenta no
+       * sale por aquí, venga de donde venga.
+       */
+      .filter((o) => claveEsDeLaCuenta(o.objectKey, accountId))
+      .map((o) => ({
+        objectKey: o.objectKey,
+        ...(o.bytes !== undefined ? { bytes: o.bytes } : {}),
+        ...(o.contentType ? { contentType: o.contentType } : {}),
+        ...(o.etiquetaDelProveedor ? { etiqueta: o.etiquetaDelProveedor } : {}),
+        ...(o.modificadoEn !== undefined ? { modificadoEn: o.modificadoEn } : {}),
+      })),
+    ...(r.cursor ? { cursor: r.cursor } : {}),
+    /* Sin cursor, se vio el prefijo entero. Con cursor, NO — y eso no autoriza nada. */
+    completo: !r.cursor,
+  };
+};
 
 /**
  * PEDIR PERMISO PARA SUBIR. Llama a `solicitarSubida` de MC-3 tal cual.
@@ -299,6 +371,20 @@ export const mediaCanary = onCall(
 
     const accion = String(datos.accion ?? 'procesar') as AccionDelCanary;
     if (!ACCIONES_DEL_CANARY.includes(accion)) throw new HttpsError('invalid-argument', 'Acción desconocida');
+
+    /*
+     * MC-9 · ENUMERAR va ANTES de exigir clave de operación, porque no opera
+     * sobre ningún material: mira lo que hay. Y su cuenta sale de la sesión
+     * igual que la de las otras cuatro — si llega un `accountId` en los datos,
+     * no se lee, porque aquí no se lee ningún campo con ese nombre.
+     */
+    if (accion === 'listar') {
+      const cursor = typeof datos.cursor === 'string' && datos.cursor ? datos.cursor : undefined;
+      if (cursor !== undefined && cursor.length > 2048) {
+        throw new HttpsError('invalid-argument', 'Cursor no utilizable');
+      }
+      return listarDelCanary(request.auth!.uid, cursor);
+    }
 
     const operationId = String(datos.operationId ?? '');
     if (operationId.length < 8 || operationId.length > 128) {

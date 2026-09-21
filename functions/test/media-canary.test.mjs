@@ -102,7 +102,7 @@ console.log('\n── B2 · Subir, confirmar, procesar: las tres reutilizan MC-3
 {
   const { ACCIONES_DEL_CANARY, MAX_BYTES_DEL_CANARY, TIPOS_DEL_CANARY } = lib('media/canary.js');
 
-  check('hay CUATRO acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar,entregar');
+  check('hay CINCO acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar,entregar,listar');
   check('una acción desconocida se rechaza', /ACCIONES_DEL_CANARY\.includes\(accion\)/.test(CANARY) && /Acción desconocida/.test(CANARY));
   /*
    * Y NO QUEDA NADA DEL DIAGNÓSTICO DE SEPTIEMBRE. Dos acciones temporales
@@ -122,7 +122,14 @@ console.log('\n── B2 · Subir, confirmar, procesar: las tres reutilizan MC-3
   check('`procesar` sigue llamando a la composición de MC-4', /return ejecutarCanaryDeMedios\(accountId, assetId\)/.test(CANARY));
   check('`entregar` llama a `solicitarEntrega` de MC-2', /await solicitarEntrega\(depsDeEntregaDeWee\(getFirestore\(\)\)/.test(CANARY));
   check('NO hay un segundo flujo de subida NI de entrega: ni firma, ni clave, ni contenedor propios',
-    !/urlDeSubida\(|urlFirmada\(|claveDelObjeto\(|firmarConsulta|rutaCanonica|contenedor/.test(CANARY));
+    !/urlDeSubida\(|urlFirmada\(|claveDelObjeto\(|firmarConsulta|rutaCanonica|contenedor:\s*'|R2_BUCKET|env\(/.test(CANARY));
+  /*
+   * MC-9 · `listar` SÍ nombra el contenedor, pero para PEDÍRSELO al puerto, que
+   * es exactamente lo contrario de tener uno propio: el valor sigue saliendo del
+   * adaptador y esta puerta no sabe de dónde.
+   */
+  check('y el contenedor lo sigue diciendo el PUERTO, no la puerta',
+    /contenedor: puerto\.contenedor/.test(CANARY));
   check('`entregar` usa el MISMO material derivado, no uno que llegue de fuera',
     /pedirEntregaDelCanary\(accountId, assetId, operationId\)/.test(CANARY));
   check('devuelve la llave —sin ella no hay GET— y NO la persiste en ningún sitio',
@@ -184,6 +191,202 @@ console.log('\n── D · Preparado, no desplegado ──');
   check('no implementa vídeo, audio ni documentos', !/video|audio|document|ffmpeg/i.test(CANARY));
 
   check('esta suite está en la cadena de `npm test`', /media-canary\.test\.mjs/.test(leer('functions/package.json')));
+}
+
+/* ═══ Z · MC-9 · LA QUINTA ACCIÓN: ENUMERAR ═══════════════════════════════ */
+console.log('\n── Z · Enumerar: solo lectura, y solo lo de uno ──');
+{
+  const { createHmac, createHash } = require('node:crypto');
+  const { ACCIONES_DEL_CANARY, MAX_OBJETOS_DEL_CANARY, listarDelCanary } = lib('media/canary.js');
+  const { crearAdaptadorDeR2, R2_PROVIDER_ID, anfitrionDeR2, MAX_CLAVES_POR_PAGINA } = lib('media/r2.js');
+  const { claveDelObjeto, prefijoDeCuenta, claveEsDeLaCuenta } = core;
+
+  const ANA = 'cuentaDeAna';
+  const BEA = 'cuentaDeBea';
+  const CUENTA_R2 = 'a'.repeat(32);
+  const CONFIG = { accountId: CUENTA_R2, accessKeyId: 'AKIAEJEMPLO', secretAccessKey: 'c0ffee'.repeat(10) + 'abcd', bucket: 'wee-media-canary' };
+  const T0 = Date.UTC(2026, 8, 21, 12, 0, 0);
+  const CLAVE = claveDelObjeto(ANA, 'asset_abc123');
+
+  /* 1/2/3 · quién puede y de quién es. */
+  check('Z1) la acción exige admin ANTES de leer nada del cuerpo',
+    /assertAdmin\(request\.auth\);\s*const datos/.test(CANARY));
+  check('Z2) la cuenta sale de la sesión, no del cuerpo',
+    /listarDelCanary\(request\.auth!\.uid/.test(CANARY));
+  check('Z3) no se lee NINGÚN campo `accountId`, `prefijo`, `bucket` ni `objectKey` del cliente',
+    !/datos\.(accountId|prefijo|prefix|bucket|objectKey|container|providerId)/.test(CANARY));
+  check('Z3) lo único que acepta de fuera es la acción y un cursor',
+    (CANARY.match(/datos\.[a-zA-Z]+/g) || []).every((c) => ['datos.accion', 'datos.operationId', 'datos.contentType', 'datos.bytes', 'datos.cursor'].includes(c)),
+    [...new Set(CANARY.match(/datos\.[a-zA-Z]+/g) || [])].join(' '));
+
+  /* 4/5 · proveedor y prefijo, del servidor. */
+  check('Z4) el proveedor lo elige el servidor por configuración', /proveedorConfigurado\(\)/.test(CANARY));
+  check('Z5) el prefijo lo deriva `prefijoDeCuenta` y no hay otra fuente',
+    /prefijoDeCuenta\(accountId\)/.test(CANARY) && !/prefijo = [^p]/.test(CANARY));
+  check('Z11) no hay forma de pedir un prefijo arbitrario: el adaptador rechaza el vacío',
+    (await crearAdaptadorDeR2({ config: () => CONFIG, fetch: async () => { throw new Error('no'); } })
+      .listar({ prefijo: '', limite: 10 })).ok === false);
+
+  /* 6 · el tope. */
+  check('Z6) el canary enumera como mucho 100, muy por debajo del tope del proveedor',
+    MAX_OBJETOS_DEL_CANARY === 100 && MAX_OBJETOS_DEL_CANARY < MAX_CLAVES_POR_PAGINA);
+  check('Z6) y el límite no llega del cliente: va escrito en el código',
+    /limite: MAX_OBJETOS_DEL_CANARY/.test(CANARY) && !/datos\.limite|datos\.max/.test(CANARY));
+  check('Z6) el adaptador rechaza cualquier límite por encima del documentado',
+    (await crearAdaptadorDeR2({ config: () => CONFIG, fetch: async () => { throw new Error('no'); } })
+      .listar({ prefijo: prefijoDeCuenta(ANA), limite: MAX_CLAVES_POR_PAGINA + 1 })).ok === false);
+
+  /* 7 · el cursor. */
+  check('Z7) el cursor del cliente se acota y se pasa opaco',
+    /cursor\.length > 2048/.test(CANARY) && /\.\.\.\(cursor \? \{ cursor \} : \{\}\)/.test(CANARY));
+
+  /* ── 12 · LA PETICIÓN CANÓNICA DE `ListObjectsV2` ──────────────────────── */
+  let visto;
+  const xml = (items, truncado = false, token = '') => `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Name>${CONFIG.bucket}</Name>
+<IsTruncated>${truncado}</IsTruncated>${token ? `<NextContinuationToken>${token}</NextContinuationToken>` : ''}${items}</ListBucketResult>`;
+  const contenido = (k, s) => `<Contents><Key>${k}</Key><Size>${s}</Size><LastModified>2026-09-21T10:00:00.000Z</LastModified><ETag>&quot;deadbeef&quot;</ETag></Contents>`;
+
+  const adaptador = (respuesta) => crearAdaptadorDeR2({
+    config: () => CONFIG,
+    ahora: () => T0,
+    fetch: async (url, init) => { visto = { url, init }; return respuesta(); },
+  });
+
+  const r19 = await adaptador(() => ({ ok: true, status: 200, text: async () => xml(contenido(CLAVE, 577908)) }))
+    .listar({ prefijo: prefijoDeCuenta(ANA), limite: 100 });
+
+  /* 19 · provider result with object. */
+  check('Z19) un listado con un objeto se lee entero',
+    r19.ok && r19.objetos.length === 1 && r19.objetos[0].objectKey === CLAVE && r19.objetos[0].bytes === 577908
+    && r19.objetos[0].etiquetaDelProveedor === 'deadbeef' && r19.objetos[0].modificadoEn > 0);
+  check('Z19) y sin cursor: se vio el prefijo entero', r19.cursor === undefined);
+
+  /* 12 · la firma, reconstruida a mano. */
+  const u = new URL(visto.url);
+  const consulta = u.search.slice(1);
+  check('Z12) el método es GET y la URI es la del CONTENEDOR, no la de un objeto',
+    visto.init.method === 'GET' && u.pathname === `/${CONFIG.bucket}`);
+  check('Z12) el host es el derivado de la cuenta de R2', u.host === anfitrionDeR2(CUENTA_R2));
+  check('Z12) la consulta va ordenada y codificada, con los parámetros de `ListObjectsV2`',
+    consulta === `list-type=2&max-keys=100&prefix=${encodeURIComponent(prefijoDeCuenta(ANA))}`, consulta);
+
+  const cab = Object.fromEntries(Object.entries(visto.init.headers).map(([k, v]) => [k.toLowerCase(), v]));
+  const vacioSha = createHash('sha256').update(Buffer.alloc(0)).digest('hex');
+  check('Z12) lleva `x-amz-date` y `x-amz-content-sha256` del cuerpo vacío',
+    /^\d{8}T\d{6}Z$/.test(cab['x-amz-date']) && cab['x-amz-content-sha256'] === vacioSha);
+
+  /* La petición canónica, escrita aquí a mano según el protocolo. */
+  const nombres = Object.keys(cab).filter((k) => k !== 'authorization').sort();
+  const canonica = [
+    'GET', u.pathname, consulta,
+    nombres.map((k) => `${k}:${cab[k]}\n`).join(''),
+    nombres.join(';'),
+    vacioSha,
+  ].join('\n');
+  const dia = cab['x-amz-date'].slice(0, 8);
+  const ambito = `${dia}/auto/s3/aws4_request`;
+  const paraFirmar = ['AWS4-HMAC-SHA256', cab['x-amz-date'], ambito, createHash('sha256').update(canonica).digest('hex')].join('\n');
+  let k = createHmac('sha256', `AWS4${CONFIG.secretAccessKey}`).update(dia).digest();
+  for (const p of ['auto', 's3', 'aws4_request']) k = createHmac('sha256', k).update(p).digest();
+  const esperada = createHmac('sha256', k).update(paraFirmar).digest('hex');
+
+  check('Z12) la firma del adaptador coincide con la recalculada a mano según SigV4',
+    cab.authorization === `AWS4-HMAC-SHA256 Credential=${CONFIG.accessKeyId}/${ambito}, SignedHeaders=${nombres.join(';')}, Signature=${esperada}`,
+    cab.authorization?.slice(0, 40) + '…');
+  check('Z12) y la consulta que se FIRMÓ es exactamente la que se ENVÍA',
+    canonica.split('\n')[2] === consulta);
+
+  /* 15/16/17/18 · lo que dice el proveedor. */
+  const estado = async (s) => adaptador(() => ({ ok: false, status: s, text: async () => '' }))
+    .listar({ prefijo: prefijoDeCuenta(ANA), limite: 10 });
+  check('Z15) un 404 no produce una lista vacía: produce un fallo', (await estado(404)).ok === false);
+  check('Z16) un 403 tampoco, y se traduce a «sin permiso»',
+    (await estado(403)).ok === false && (await estado(403)).error.code === 'PROVIDER_UNAVAILABLE');
+  check('Z17) un 500 tampoco', (await estado(500)).ok === false);
+  const r18 = await adaptador(() => ({ ok: true, status: 200, text: async () => xml('') }))
+    .listar({ prefijo: prefijoDeCuenta(ANA), limite: 10 });
+  check('Z18) un listado legítimamente VACÍO sí es una lista vacía y completa',
+    r18.ok && r18.objetos.length === 0 && r18.cursor === undefined);
+  check('Z13) un XML que no se entiende es un fallo, nunca una lista vacía',
+    (await adaptador(() => ({ ok: true, status: 200, text: async () => '<nope/>' }))
+      .listar({ prefijo: prefijoDeCuenta(ANA), limite: 10 })).ok === false);
+  check('Z14) truncado SIN token se rechaza entero',
+    (await adaptador(() => ({ ok: true, status: 200, text: async () => xml(contenido(CLAVE, 10), true, '') }))
+      .listar({ prefijo: prefijoDeCuenta(ANA), limite: 10 })).ok === false);
+  const trunco = await adaptador(() => ({ ok: true, status: 200, text: async () => xml(contenido(CLAVE, 10), true, 'tok-1') }))
+    .listar({ prefijo: prefijoDeCuenta(ANA), limite: 10 });
+  check('Z14) y truncado CON token devuelve cursor: hay más y se sabe', trunco.cursor === 'tok-1');
+
+  /* 8/9/10 · lo que sale por la puerta. */
+  const SALIDA = CANARY.match(/export const listarDelCanary[\s\S]*?\n\};/)[0];
+  check('Z8) la salida se copia campo a campo, no se devuelve lo que trae el adaptador',
+    /objectKey: o\.objectKey/.test(SALIDA) && !/\.\.\.o[,\s}]/.test(SALIDA));
+  check('Z9/Z10) y no hay ni un campo de secreto, credencial, firma o URL',
+    !/url|firma|signature|secret|accessKey|Authorization|token|credencial/i.test(SALIDA));
+  check('Z10) ni el error del proveedor sale entero: solo su código',
+    /\$\{r\.error\.code\}/.test(SALIDA) && !/JSON\.stringify\(r\.error\)/.test(SALIDA));
+  check('Z9) la Function sigue sin imprimir nada', !/console\./.test(CANARY));
+
+  /* 20 · aislamiento. */
+  check('Z20) el prefijo de dos cuentas nunca coincide', prefijoDeCuenta(ANA) !== prefijoDeCuenta(BEA));
+  check('Z20) y una clave de BEA no es de ANA',
+    claveEsDeLaCuenta(claveDelObjeto(BEA, 'asset_abc123'), ANA) === false
+    && claveEsDeLaCuenta(claveDelObjeto(ANA, 'asset_abc123'), ANA) === true);
+  check('Z20) aunque el proveedor devuelva una clave ajena, no sale por esta puerta',
+    /\.filter\(\(o\) => claveEsDeLaCuenta\(o\.objectKey, accountId\)\)/.test(SALIDA));
+
+  /* La puerta sigue siendo lo que era. */
+  check('Z) las acciones son exactamente cinco, y `listar` es la nueva',
+    ACCIONES_DEL_CANARY.length === 5 && ACCIONES_DEL_CANARY.includes('listar'));
+  check('Z) no se coló ninguna acción experimental',
+    !/subirSinCondicional|credenciales|diagnostico|sonda|temporal|debug/i.test(CANARY));
+  check('Z) enumerar es SOLO LECTURA: no escribe, no marca, no confirma, no crea ficha',
+    !/marcarMaterialFallido|registrarHuerfano|marcarBorrado|reconciliarSubidas|\.borrar\(/.test(SALIDA));
+  check('Z) y `listarDelCanary` existe y es una función', typeof listarDelCanary === 'function');
+
+  /*
+   * §15 · SE INTENTA FILTRAR A PROPÓSITO. Un adaptador hostil devuelve, junto a
+   * cada objeto, todo lo que jamás debería salir: credencial, firma, URL
+   * firmada, cabecera de autorización y un token. Si la puerta devolviera lo
+   * que le dan en vez de copiar campo a campo, esto saldría por la respuesta.
+   */
+  {
+    const VENENO = {
+      accessKey: 'AKIAFILTRADA', secret: 'secretofiltrado', Authorization: 'AWS4-HMAC-SHA256 Credential=filtrada',
+      signedUrl: 'https://x.r2.cloudflarestorage.com/a?X-Amz-Signature=deadbeef',
+      signature: 'deadbeefdeadbeef', token: 'tok-filtrado', canonicalRequest: 'GET\n/x\n\n',
+    };
+    const hostil = {
+      [R2_PROVIDER_ID]: {
+        providerId: R2_PROVIDER_ID, capacidades: ['object.list'], contenedor: CONFIG.bucket,
+        async listar() {
+          return {
+            ok: true,
+            objetos: [
+              { objectKey: CLAVE, bytes: 10, contentType: 'image/png', etiquetaDelProveedor: 'e1', modificadoEn: T0, ...VENENO },
+              /* Y una clave ajena, por si el filtro de cuenta se hubiera caído. */
+              { objectKey: claveDelObjeto(BEA, 'asset_abc123'), bytes: 10, ...VENENO },
+            ],
+            cursor: 'tok-siguiente',
+          };
+        },
+      },
+    };
+    const salida = await listarDelCanary(ANA, undefined, hostil);
+    const texto = JSON.stringify(salida);
+    const filtrado = Object.entries(VENENO).filter(([k, v]) => texto.includes(k) || texto.includes(v));
+    check('§15) un adaptador hostil no consigue filtrar NADA por esta puerta',
+      filtrado.length === 0, filtrado.map(([k]) => k).join(',') || 'nada');
+    check('§15) ni la clave de otra cuenta, aunque el proveedor la devuelva',
+      !texto.includes(BEA) && salida.objetos.length === 1 && salida.objetos[0].objectKey === CLAVE);
+    check('§15) sale exactamente lo que se decidió que salga, y nada más',
+      Object.keys(salida.objetos[0]).join(',') === 'objectKey,bytes,contentType,etiqueta,modificadoEn');
+    check('§15) y con cursor, `completo` es FALSO: un listado a medias no autoriza nada',
+      salida.cursor === 'tok-siguiente' && salida.completo === false);
+    check('§15) las claves de primer nivel también están acotadas',
+      Object.keys(salida).sort().join(',') === 'completo,contenedor,cursor,objetos,prefijo,providerId');
+  }
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

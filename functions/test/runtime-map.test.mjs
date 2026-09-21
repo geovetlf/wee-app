@@ -131,7 +131,7 @@ const OTROS_DEL_CORE = {
    * Function de administración enciende la cadena que MC-1..MC-4 construyeron,
    * y estas listas son la prueba de qué usa de verdad y qué no.
    */
-  'core/media/objeto.js': ['PIEZA_ORIGINAL', 'RAIZ_DE_CUENTAS', 'claveDelObjeto', 'claveEsDeLaCuenta', 'objetoEsDeLaCuenta', 'objetoValido', 'referenciaDelObjeto'],
+  'core/media/objeto.js': ['PIEZA_ORIGINAL', 'RAIZ_DE_CUENTAS', 'claveDelObjeto', 'claveEsDeLaCuenta', 'objetoEsDeLaCuenta', 'objetoValido', 'prefijoDeCuenta', 'referenciaDelObjeto'],
   'core/media/puerto.js': ['CAPACIDADES_DE_MC1', 'falloDeAlmacen'],
   'core/media/registro.js': ['crearRegistroDeMedios'],
   'core/media/subida.js': ['decidirSubida', 'identidadDeIntento', 'tamanoAprobado', 'tipoDeContenidoAceptable', 'topeDeSubida', 'vigenciaDeSubidaAprobada'],
