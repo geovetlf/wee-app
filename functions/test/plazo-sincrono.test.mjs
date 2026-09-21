@@ -237,13 +237,14 @@ check('y el timeout por paso viaja por la costura que ya existía, no por una nu
   /dispatch\.timeoutMs !== undefined \? \{ policy: \{ attemptTimeoutMs: dispatch\.timeoutMs \} \}/.test(sinComentarios(leer('functions/src/runtime/conductor.ts'))));
 
 /*
- * Y LO QUE ESTO NO HACE HOY. La puerta sigue pidiendo aceptación, así que
- * `PLAZO_DEL_TRABAJO_MS` vale lo que valía y el presupuesto no se pasa: lo que
- * corre en producción es exactamente lo de antes. Esta fase monta la tubería;
- * encenderla es otra decisión, y se toma en otro sitio.
+ * Y QUÉ PIDE LA PUERTA HOY. S6-F la apagó: el canario de vídeo recorre el Core
+ * de punta a punta con el proveedor real y quiere el desenlace DENTRO de la
+ * llamada. Con eso encendido, `PLAZO_DEL_TRABAJO_MS` pasa a ser la vida del
+ * trabajo y el presupuesto del sondeo SÍ viaja — que es justo lo que las
+ * comprobaciones de arriba miden.
  */
-check('HOY la puerta sigue en asíncrono: esta fase no cambia lo que corre en producción',
-  /const ACEPTA_ASINCRONO: boolean = true;/.test(VIDEO), 'ACEPTA_ASINCRONO = true');
+check('la puerta pide el desenlace DENTRO de la llamada: el canario es síncrono',
+  /const ACEPTA_ASINCRONO: boolean = false;/.test(VIDEO), 'ACEPTA_ASINCRONO = false');
 
 check('esta suite está en la cadena de `npm test`', /plazo-sincrono\.test\.mjs/.test(leer('functions/package.json')));
 

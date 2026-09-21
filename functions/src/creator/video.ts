@@ -57,7 +57,7 @@ const EXPERIENCIA_DE_STUDIO = 'studio';
  * Tiene nombre porque de ella cuelga el reparto de tiempo de abajo: son la
  * misma decisión, y escribirla dos veces sería dejar que se separen.
  */
-const ACEPTA_ASINCRONO: boolean = true;
+const ACEPTA_ASINCRONO: boolean = false;
 
 /**
  * Lo que esta invocación espera antes de irse CUANDO NO ESPERA NADA. Corto a
