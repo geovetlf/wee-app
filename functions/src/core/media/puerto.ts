@@ -45,6 +45,19 @@ export type CapacidadDeAlmacen =
    * y no la segunda, y confundirlas sería conceder permisos que nadie declaró.
    */
   | 'object.upload'
+  /**
+   * MC-9 · ENUMERAR LO QUE HAY DE VERDAD EN EL PROVEEDOR.
+   *
+   * Es la única capacidad que mira desde el otro lado. Todas las demás parten
+   * de que Weë sabe qué objeto quiere; esta contesta a «¿qué hay ahí?», que es
+   * la pregunta que ninguna ficha puede responder — y sin ella unos bytes
+   * escritos que nunca llegaron a tener ficha son invisibles para siempre.
+   *
+   * Se enumera SIEMPRE bajo un prefijo que deriva Weë de una cuenta. No existe
+   * forma de pedir «todo»: un listado sin prefijo sería una enumeración de lo
+   * ajeno disfrazada de mantenimiento.
+   */
+  | 'object.list'
   /* Declaradas para que el registro pueda describirlas; NO implementadas. */
   | 'object.get'
   | 'object.copy'
@@ -196,6 +209,52 @@ export type DesenlaceDeSubidaDirecta =
   }
   | { ok: false; error: WeeError };
 
+/**
+ * MC-9 · QUÉ SE PIDE AL ENUMERAR. Nunca «todo».
+ *
+ * `prefijo` lo DERIVA Weë de una cuenta (`prefijoDeCuenta`), jamás lo manda un
+ * cliente ni un operador. Es lo que convierte el listado en una operación
+ * acotada a una cuenta en vez de un recorrido del contenedor entero: sin él,
+ * enumerar sería la forma más barata de ver lo de los demás.
+ */
+export interface PeticionDeListado {
+  prefijo: string;
+  /** Desde dónde seguir, tal y como lo devolvió la página anterior. Opaco. */
+  cursor?: string;
+  /** Cuántos como mucho. Acotado por quien llama, nunca ilimitado. */
+  limite: number;
+  bucket?: string;
+}
+
+/**
+ * LO QUE EL PROVEEDOR DICE DE UN OBJETO SUYO AL ENUMERARLO.
+ *
+ * Casi todo opcional porque casi todo depende del proveedor. La clave no: sin
+ * clave no hay objeto. Y la `suma` solo se rellena cuando el adaptador sabe de
+ * qué algoritmo es la suya — una etiqueta opaca va a `etiquetaDelProveedor` y
+ * no se asciende a suma de comprobación por parecerse a un MD5.
+ */
+export interface ObjetoListado {
+  objectKey: string;
+  bytes?: number;
+  contentType?: string;
+  suma?: SumaDeComprobacion;
+  etiquetaDelProveedor?: string;
+  modificadoEn?: number;
+}
+
+/**
+ * UNA PÁGINA DE LISTADO.
+ *
+ * `cursor` presente significa QUE HAY MÁS, y eso es la mitad del contrato: un
+ * listado que se quedó a medias no prueba que algo no exista, y por tanto no
+ * puede autorizar ningún borrado por ausencia. Quien recorra páginas solo sabe
+ * que vio el prefijo entero cuando la última página vuelve sin cursor.
+ */
+export type DesenlaceDeListado =
+  | { ok: true; objetos: readonly ObjetoListado[]; cursor?: string }
+  | { ok: false; error: WeeError };
+
 export type DesenlaceDeBorrado =
   /* `yaNoEstaba` distingue «lo borré» de «no había nada», sin que ninguna de las dos sea un fallo. */
   | { ok: true; yaNoEstaba: boolean }
@@ -251,6 +310,15 @@ export interface PuertoDeAlmacenamiento {
    * Weë tenga que mirar los bytes.
    */
   urlDeSubida?(peticion: PeticionDeSubidaDirecta): Promise<DesenlaceDeSubidaDirecta>;
+
+  /**
+   * MC-9 · ENUMERAR BAJO UN PREFIJO. Opcional, y por el mismo motivo que las
+   * demás: un proveedor que no sepa listar es un proveedor válido, y decirlo en
+   * el tipo es mejor que prometerlo y fingir un listado vacío — que sería la
+   * peor respuesta posible, porque «no hay nada» es justo lo que autorizaría a
+   * borrar cosas que sí están.
+   */
+  listar?(peticion: PeticionDeListado): Promise<DesenlaceDeListado>;
 
   /* ── Costuras de fases posteriores. NO implementadas. ───────────────────── */
 

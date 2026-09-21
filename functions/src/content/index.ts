@@ -392,6 +392,75 @@ export const crearMaterialParaSubida = async (datos: NuevoMaterialParaSubida): P
   }
 };
 
+/**
+ * MC-9 · ANOTAR HASTA CUÁNDO VALE EL PERMISO QUE SE ACABA DE CONCEDER.
+ *
+ * Es lo único que un reaper puede usar como autoridad para decir que una subida
+ * ya no va a llegar. Sin esto habría que deducirlo de la antigüedad del
+ * material, y eso miente: el material se crea UNA vez con `create`, así que
+ * pedir un permiso nuevo dos horas después no mueve su fecha, y un reaper que
+ * mirara la edad expiraría un permiso que todavía vale.
+ *
+ * Solo escribe si el material sigue esperando bytes y si la caducidad AVANZA.
+ * Un permiso más corto concedido después no puede acortar la vida de uno más
+ * largo que ya se entregó y que el proveedor sigue aceptando.
+ */
+export const anotarPermisoDeSubida = async (
+  accountId: string,
+  assetId: string,
+  expiraEn: number,
+): Promise<boolean> => {
+  if (!Number.isFinite(expiraEn)) return false;
+  const doc = await leerMaterial(assetId);
+  if (!doc || !materialEsDeLaCuenta(doc, accountId) || doc.status !== 'uploading') return false;
+  const previo = typeof doc.uploadExpiresAt === 'number' ? doc.uploadExpiresAt : 0;
+  if (expiraEn <= previo) return false;
+  await assets().doc(assetId).update({ uploadExpiresAt: expiraEn, updatedAt: ahora() });
+  return true;
+};
+
+export type ResultadoDeMaterialFallido =
+  | { status: 'fallido'; material: AssetDoc }
+  /* Ya estaba fallido: repetir no es un error, es un no-op. Y no se pisa el motivo original. */
+  | { status: 'ya_estaba'; material: AssetDoc }
+  | { status: 'no_encontrado' }
+  | { status: 'no_es_tuyo' }
+  | { status: 'estado_incompatible'; actual: AssetDoc['status'] };
+
+/**
+ * MC-9 · CERRAR UN MATERIAL QUE NUNCA RECIBIÓ SUS BYTES.
+ *
+ * `uploading → failed` estaba declarada en `TRANSICIONES_DE_MATERIAL` desde la
+ * Fase 11 y **no la producía nadie**: por eso un material que esperaba bytes se
+ * quedaba esperando para siempre, y se le enseñaba a su dueño como «llegando»
+ * indefinidamente. Esto es el productor que faltaba, y no un estado nuevo.
+ *
+ * **No borra la identidad.** La ficha se queda entera —su id, su dueño, su
+ * procedencia— con el motivo y la fecha escritos al lado. Un material fallido
+ * sigue explicando qué se intentó; borrarlo dejaría un hueco sin explicación.
+ */
+export const marcarMaterialFallido = async (
+  accountId: string,
+  assetId: string,
+  motivo: string,
+): Promise<ResultadoDeMaterialFallido> => {
+  const doc = await leerMaterial(assetId);
+  if (!doc) return { status: 'no_encontrado' };
+  if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
+  if (doc.status === 'failed') return { status: 'ya_estaba', material: doc };
+  if (!puedePasarA(doc.status, 'failed')) return { status: 'estado_incompatible', actual: doc.status };
+
+  const at = ahora();
+  const cambios = limpiar<Partial<AssetDoc>>({
+    status: 'failed',
+    failedReason: typeof motivo === 'string' && motivo.length > 0 && motivo.length <= 64 ? motivo : 'desconocido',
+    failedAt: at,
+    updatedAt: at,
+  });
+  await assets().doc(assetId).update(cambios);
+  return { status: 'fallido', material: { ...doc, ...cambios } as AssetDoc };
+};
+
 export type ResultadoDeSubidaConfirmada =
   | { status: 'listo'; material: AssetDoc }
   /* Ya estaba listo: confirmar dos veces no es un error, es un no-op. */

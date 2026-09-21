@@ -565,11 +565,11 @@ console.log('\n── J · Qué NO se ha construido ──');
     && !fs.existsSync(path.resolve(RAIZ, 'functions/src/core/media/variante.ts')));
 
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son once archivos y ninguno más',
-    delCore.join(',') === 'entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts,uso.ts', delCore.join(','));
+  check('el Core de medios son doce archivos y ninguno más',
+    delCore.join(',') === 'entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,reconciliacion.ts,registro.ts,subida.ts,uso.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, dieciocho',
-    fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts,uso.ts', fuera.join(','));
+  check('y la composición, diecinueve',
+    fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
 
   /* El procesado NO tiene puerta propia: la única de Media Cloud es la del canary. */
   check('AK · el procesado no está expuesto: ninguna Function lo llama',

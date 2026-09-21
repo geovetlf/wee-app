@@ -6,6 +6,8 @@ import {
   DesenlaceDeFirma,
   DesenlaceDeGuardado,
   DesenlaceDeLectura,
+  DesenlaceDeListado,
+  PeticionDeListado,
   DesenlaceDeSubidaDirecta,
   PeticionDeSubidaDirecta,
   DescriptorDeProveedorDeMedios,
@@ -38,7 +40,7 @@ import {
 export const FAKE_PROVIDER_ID = 'fake';
 
 /** Lo mismo que sabe hacer el adaptador real, para que una prueba pruebe lo mismo. */
-export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get'] as const);
+export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get', 'object.list'] as const);
 
 export const DESCRIPTOR_FALSO: DescriptorDeProveedorDeMedios = Object.freeze({
   id: FAKE_PROVIDER_ID,
@@ -60,7 +62,7 @@ export interface AlmacenFalso extends PuertoDeAlmacenamiento {
   /** Para poder mirar por dentro en una prueba, sin pasar por el puerto. */
   readonly contenido: ReadonlyMap<string, Guardado>;
   /** Cuántas veces se llamó a cada operación: sirve para probar que algo NO se repitió. */
-  readonly llamadas: { guardar: number; mirar: number; borrar: number };
+  readonly llamadas: { guardar: number; mirar: number; borrar: number; listar: number };
   /** Hacer que la siguiente operación falle, para probar el camino malo. */
   fallarUnaVez(motivo: 'proveedor_no_disponible' | 'sin_permiso'): void;
 }
@@ -69,7 +71,7 @@ const claveDe = (ref: StorageRef): string => `${ref.provider}|${ref.bucket ?? ''
 
 export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?: string } = {}): AlmacenFalso => {
   const contenido = new Map<string, Guardado>();
-  const llamadas = { guardar: 0, mirar: 0, borrar: 0 };
+  const llamadas = { guardar: 0, mirar: 0, borrar: 0, listar: 0 };
   const ahora = opciones.ahora ?? (() => Date.now());
   let falloPendiente: 'proveedor_no_disponible' | 'sin_permiso' | undefined;
 
@@ -205,6 +207,50 @@ export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?:
       const habia = contenido.has(k);
       contenido.delete(k);
       return { ok: true, yaNoEstaba: !habia };
+    },
+
+    /**
+     * MC-9 · ENUMERAR, con paginación de verdad.
+     *
+     * Pagina de verdad y no de mentira a propósito: el caso que importa probar
+     * es el TRUNCADO —una página con cursor pendiente—, porque es el que no
+     * puede autorizar ningún borrado por ausencia. Un falso que devolviera todo
+     * de una vez no ejercitaría nunca esa rama.
+     */
+    async listar(peticion: PeticionDeListado): Promise<DesenlaceDeListado> {
+      llamadas.listar++;
+      const f = tomarFallo();
+      if (f) return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, f) };
+      if (typeof peticion?.prefijo !== 'string' || !peticion.prefijo) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'prefijo' }) };
+      }
+      if (!Number.isSafeInteger(peticion.limite) || peticion.limite < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'limite' }) };
+      }
+
+      const todas = [...contenido.entries()]
+        .map(([k, g]) => ({ objectKey: k.split('|')[2] ?? '', g }))
+        .filter((x) => x.objectKey.startsWith(peticion.prefijo))
+        .sort((a, b) => (a.objectKey < b.objectKey ? -1 : a.objectKey > b.objectKey ? 1 : 0));
+
+      const desde = peticion.cursor ? todas.findIndex((x) => x.objectKey === peticion.cursor) + 1 : 0;
+      if (peticion.cursor && desde === 0) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'cursor' }) };
+      }
+      const trozo = todas.slice(desde, desde + peticion.limite);
+      const hayMas = desde + peticion.limite < todas.length;
+
+      return {
+        ok: true,
+        objetos: trozo.map((x) => ({
+          objectKey: x.objectKey,
+          bytes: x.g.cuerpo.length,
+          contentType: x.g.contentType,
+          etiquetaDelProveedor: x.g.etag,
+          modificadoEn: x.g.actualizadoEn,
+        })),
+        ...(hayMas && trozo.length ? { cursor: trozo[trozo.length - 1].objectKey } : {}),
+      };
     },
   };
 };

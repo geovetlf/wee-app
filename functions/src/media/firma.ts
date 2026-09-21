@@ -64,6 +64,20 @@ const SEGMENTO_QUE_SE_RESUELVE = (s: string): boolean => s === '.' || s === '..'
  * Ante eso se dice que no; escribir en el sitio equivocado en silencio sería
  * mucho peor que fallar.
  */
+/**
+ * MC-9 · LA RUTA DEL CONTENEDOR, sin objeto detrás.
+ *
+ * Enumerar no se le pide a un objeto: se le pide al contenedor, y por eso hace
+ * falta una ruta que termine ahí. Separada de la de objeto a propósito —
+ * dejar pasar una clave vacía por `rutaCanonicaDeObjeto` habría convertido un
+ * error de quien llama en una petición al contenedor entero.
+ */
+export const rutaCanonicaDeContenedor = (contenedor: string): RutaCanonica | undefined => {
+  if (typeof contenedor !== 'string' || !contenedor) return undefined;
+  const ruta = `/${codificarParaFirma(contenedor, false)}`;
+  return ruta.split('/').some(SEGMENTO_QUE_SE_RESUELVE) ? undefined : (ruta as RutaCanonica);
+};
+
 export const rutaCanonicaDeObjeto = (contenedor: string, objectKey: string): RutaCanonica | undefined => {
   if (typeof contenedor !== 'string' || !contenedor) return undefined;
   if (typeof objectKey !== 'string' || !objectKey || objectKey.startsWith('/')) return undefined;
@@ -92,7 +106,34 @@ export interface PeticionAFirmar {
   cabeceras?: Readonly<Record<string, string>>;
   /** El cuerpo, para el resumen. Sin cuerpo se firma el resumen del vacío. */
   cuerpo?: Buffer;
+  /**
+   * MC-9 · LA CONSULTA, YA CANÓNICA. Salida de `consultaCanonicaDe`.
+   *
+   * Mismo trato que la ruta y por el mismo motivo: se construye UNA vez, se
+   * firma tal cual y se envía tal cual. Dejar que quien llama componga la URL
+   * por su cuenta es cómo se acaba firmando una cadena y mandando otra — que es
+   * exactamente el fallo que costó cuatro PUT reales en la fase del incidente.
+   */
+  consulta?: ConsultaCanonica;
 }
+
+/** Una consulta ya ordenada y codificada. El tipo existe para que no pueda entrar otra cosa. */
+export type ConsultaCanonica = string & { readonly __canonica: unique symbol };
+
+/**
+ * MC-9 · DE UNOS PARÁMETROS A LA CADENA QUE SE FIRMA Y SE ENVÍA.
+ *
+ * Ordenada por nombre y codificada, que es parte del protocolo y no una
+ * preferencia. Es la misma construcción que ya hacía `firmarConsulta`, sacada
+ * aquí para que las dos formas de firmar usen una sola.
+ */
+export const consultaCanonicaDe = (
+  parametros: readonly (readonly [string, string])[],
+): ConsultaCanonica =>
+  parametros
+    .map(([k, v]) => `${codificarParaFirma(k, false)}=${codificarParaFirma(v, false)}`)
+    .sort()
+    .join('&') as ConsultaCanonica;
 
 export interface CredencialesDeFirma {
   accessKeyId: string;
@@ -166,8 +207,8 @@ export const firmar = (
   const peticionCanonica = [
     peticion.metodo,
     peticion.ruta,
-    /* Sin parámetros: las tres operaciones de MC-1 no los usan. */
-    '',
+    /* Las tres operaciones de MC-1 no llevan; el listado de MC-9 sí, y ya llega canónica. */
+    peticion.consulta ?? '',
     cabecerasCanonicas,
     firmadas,
     resumenDelCuerpo,

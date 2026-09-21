@@ -21,7 +21,7 @@ import {
   topeDeSubida,
   vigenciaDeSubidaAprobada,
 } from '../core';
-import { AssetDoc, crearMaterialParaSubida, leerMaterial, marcarMaterialSubido } from '../content';
+import { AssetDoc, anotarPermisoDeSubida, crearMaterialParaSubida, leerMaterial, marcarMaterialSubido } from '../content';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 import { AlmacenDeObjetosDeMedios, almacenDeObjetosDeMedios } from './almacen';
 import { adaptadoresDeMedios, proveedorConfigurado, registroDeMediosDeWee } from './catalogo';
@@ -74,6 +74,8 @@ export interface DepsDeSubida {
   cuentaDelPrincipal: (principalId: string, cuentaSolicitada?: string) => Promise<{ accountId: string } | null>;
   /** Crear la ficha del material ANTES de que existan sus bytes. De la Fase 11. */
   crearMaterial: typeof crearMaterialParaSubida;
+  /** MC-9 · Guardar la caducidad del permiso. Es la autoridad del reaper. */
+  anotarPermiso: typeof anotarPermisoDeSubida;
   /** Leer el material. De la Fase 11. */
   leerMaterial: (assetId: string) => Promise<AssetDoc | Asset | null | undefined>;
   /** Pasar el material a `ready` cuando los bytes ya están. De la Fase 11. */
@@ -97,6 +99,7 @@ export const depsDeSubidaDeWee = (db: Firestore): DepsDeSubida => ({
   db,
   cuentaDelPrincipal: (principalId, cuentaSolicitada) => cuentaDelPrincipalEnWee(db, principalId, cuentaSolicitada),
   crearMaterial: crearMaterialParaSubida,
+  anotarPermiso: anotarPermisoDeSubida,
   leerMaterial: (assetId) => leerMaterial(assetId),
   marcarSubido: marcarMaterialSubido,
 });
@@ -307,6 +310,22 @@ export const solicitarSubida = async (
 
   const intentId = identidadDeIntento(huellaDeMedios, objectRef);
   if (!intentId) return no('no_disponible', { accountId, assetId, objectRef, providerId, detalle: 'sin_destino' });
+
+  /*
+   * MC-9 · SE ANOTA HASTA CUÁNDO VALE ESTE PERMISO.
+   *
+   * Es lo único que permitirá saber, más adelante, que una subida ya no va a
+   * llegar. Se escribe DESPUÉS de que el proveedor conceda —antes no se sabe
+   * cuándo caduca— y no puede hacer fallar la concesión: si esta anotación no
+   * se guarda, quien la necesite verá «no se sabe», y no saber **protege**. Lo
+   * contrario —negarle el permiso a alguien porque no pudimos apuntar una
+   * fecha— rompería la subida para arreglar el mantenimiento.
+   */
+  try {
+    await deps.anotarPermiso(accountId, assetId, permiso.expiraEn);
+  } catch {
+    /* Sin registrar nada: el error puede venir del almacén y no aporta al llamante. */
+  }
 
   return {
     ok: true,

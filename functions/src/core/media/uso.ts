@@ -153,7 +153,7 @@ export type OperacionFisica =
   | 'legacy.read';
 
 export const OPERACIONES_FISICAS: readonly OperacionFisica[] = Object.freeze([
-  'object.put', 'object.head', 'object.delete', 'object.upload', 'object.get', 'object.copy',
+  'object.put', 'object.head', 'object.delete', 'object.upload', 'object.get', 'object.copy', 'object.list',
   'process.run', 'legacy.read',
 ] as const);
 

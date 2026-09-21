@@ -76,6 +76,22 @@ export const claveDelObjeto = (accountId: string, assetId: string, pieza: string
  * `accounts/uAnaX/` no es de `uAna`, y comprobarlo con `includes` o con un
  * `startsWith` sin la barra final sería justo el fallo que deja leer lo ajeno.
  */
+/**
+ * MC-9 · EL PREFIJO BAJO EL QUE VIVE TODO LO DE UNA CUENTA.
+ *
+ * Existe para enumerar, y es la única forma en que enumerar es seguro: se
+ * deriva de la cuenta igual que la clave, así que no hay manera de pedirle a un
+ * proveedor «lístame lo de otro». Un prefijo que llegara de fuera convertiría
+ * el mantenimiento en la puerta más barata para leer el inventario ajeno.
+ *
+ * Devuelve `undefined` en vez de una cadena a medias: sin cuenta válida no hay
+ * prefijo, y sin prefijo no se enumera nada.
+ */
+export const prefijoDeCuenta = (accountId: unknown): string | undefined =>
+  typeof accountId === 'string' && FORMA_DE_SEGMENTO.test(accountId)
+    ? `${RAIZ_DE_CUENTAS}/${accountId}/`
+    : undefined;
+
 export const claveEsDeLaCuenta = (objectKey: unknown, accountId: unknown): boolean =>
   typeof objectKey === 'string' && typeof accountId === 'string'
   && FORMA_DE_SEGMENTO.test(accountId)

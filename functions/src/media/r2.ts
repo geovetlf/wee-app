@@ -5,6 +5,9 @@ import {
   DesenlaceDeFirma,
   DesenlaceDeGuardado,
   DesenlaceDeLectura,
+  DesenlaceDeListado,
+  ObjetoListado,
+  PeticionDeListado,
   DesenlaceDeSubidaDirecta,
   PeticionDeSubidaDirecta,
   DescriptorDeProveedorDeMedios,
@@ -15,7 +18,7 @@ import {
   falloDeAlmacen,
 } from '../core';
 import { env } from '../engine/http';
-import { firmar, firmarConsulta, rutaCanonicaDeObjeto } from './firma';
+import { consultaCanonicaDe, firmar, firmarConsulta, rutaCanonicaDeContenedor, rutaCanonicaDeObjeto } from './firma';
 
 /**
  * CLOUDFLARE R2 — EL ÚNICO ARCHIVO DE WEË QUE SABE QUE R2 EXISTE.
@@ -39,6 +42,8 @@ import { firmar, firmarConsulta, rutaCanonicaDeObjeto } from './firma';
  *   · `DeleteObject` implementado
  *   · `GetObject`   implementado — lo usa MC-4 para leer el original
  *   · `CopyObject` implementado — no se usa
+ *   · `ListObjectsV2` implementado — lo usa MC-9 para reconciliar, con
+ *     `prefix`, `max-keys` (hasta 1.000) y `continuation-token`
  *   · clave          hasta 1.024 bytes
  *   · metadatos      hasta 8.192 bytes
  *   · objeto         hasta 5 TiB; subida simple hasta 5 GiB
@@ -84,7 +89,7 @@ export const MAX_VIGENCIA_DE_R2 = 604_800;
  * pide — y el registro contesta que no puede, que es como se evita prometer
  * una capacidad que no existe.
  */
-export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get'] as const);
+export const CAPACIDADES_DE_R2: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get', 'object.list'] as const);
 
 /** El descriptor para el registro. Sin una sola credencial dentro. */
 export const DESCRIPTOR_DE_R2: DescriptorDeProveedorDeMedios = Object.freeze({
@@ -444,7 +449,119 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
         return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'proveedor_no_disponible') };
       }
     },
+
+    /**
+     * MC-9 · ENUMERAR BAJO UN PREFIJO. `ListObjectsV2`, que es lo que la API
+     * S3-compatible de este proveedor documenta como soportado.
+     *
+     * ── Sin SDK ────────────────────────────────────────────────────────────
+     *
+     * La misma firma SigV4 que ya usan las otras cuatro operaciones, con la
+     * consulta construida UNA vez por `consultaCanonicaDe` y firmada y enviada
+     * tal cual. Traer un SDK entero para componer cuatro parámetros y leer un
+     * XML sería añadir una dependencia que después hay que mantener, auditar y
+     * actualizar, para no escribir treinta líneas.
+     *
+     * ── Y la respuesta se lee con cuidado ──────────────────────────────────
+     *
+     * Es XML, y el que la manda es otro. Si no se entiende, la respuesta es un
+     * fallo — **nunca una lista vacía**: «no hay nada» es justo lo que
+     * autorizaría a tratar como huérfano lo que sí está.
+     */
+    async listar(peticion: PeticionDeListado): Promise<DesenlaceDeListado> {
+      const c = config();
+      if (!configuracionDeR2Valida(c)) return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'no_configurado') };
+      if (peticion?.bucket !== undefined && peticion.bucket !== c.bucket) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'bucket' }) };
+      }
+      /* Un prefijo vacío enumeraría el contenedor entero: aquí eso no es una petición válida. */
+      if (typeof peticion?.prefijo !== 'string' || !peticion.prefijo) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'prefijo' }) };
+      }
+      const limite = peticion.limite;
+      if (!Number.isSafeInteger(limite) || limite < 1 || limite > MAX_CLAVES_POR_PAGINA) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'limite' }) };
+      }
+      if (peticion.cursor !== undefined && (typeof peticion.cursor !== 'string' || !peticion.cursor || peticion.cursor.length > 2048)) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'cursor' }) };
+      }
+      const ruta = rutaCanonicaDeContenedor(c.bucket);
+      if (!ruta) return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'bucket' }) };
+
+      const consulta = consultaCanonicaDe([
+        ['list-type', '2'],
+        ['max-keys', String(limite)],
+        ['prefix', peticion.prefijo],
+        ...(peticion.cursor ? [['continuation-token', peticion.cursor] as const] : []),
+      ]);
+      const host = anfitrionDeR2(c.accountId);
+      const cabeceras = firmar({ metodo: 'GET', host, ruta, consulta }, { ...c, region: R2_REGION, servicio: 's3' }, ahora());
+
+      try {
+        const r = await llamar(`https://${host}${ruta}?${consulta}`, { method: 'GET', headers: cabeceras });
+        if (!r.ok) return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, motivoDe(r.status), { status: r.status }) };
+        const cuerpo = await r.text();
+        const leido = leerListado(cuerpo);
+        if (!leido) return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'respuesta_ilegible') };
+        return { ok: true, objetos: leido.objetos, ...(leido.cursor ? { cursor: leido.cursor } : {}) };
+      } catch {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'proveedor_no_disponible') };
+      }
+    },
   };
+};
+
+/** Lo que la API publica como máximo de claves por página. Documentado, no supuesto. */
+export const MAX_CLAVES_POR_PAGINA = 1000;
+
+const dentro = (xml: string, etiqueta: string): string | undefined => {
+  const m = xml.match(new RegExp(`<${etiqueta}>([\\s\\S]*?)</${etiqueta}>`));
+  return m ? m[1] : undefined;
+};
+
+const desescapar = (s: string): string =>
+  s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+
+/**
+ * MC-9 · LEER LA RESPUESTA DEL LISTADO.
+ *
+ * Devuelve `undefined` cuando no se entiende, y eso es deliberado: un XML roto
+ * NO puede salir de aquí como una lista vacía, porque una lista vacía dice «no
+ * hay nada» y eso es lo único que convertiría un fallo de lectura en permiso
+ * para tratar objetos existentes como huérfanos.
+ *
+ * `IsTruncated` manda: si viene `true`, tiene que haber un token de
+ * continuación; si no lo hay, la respuesta se contradice a sí misma y se
+ * rechaza entera en vez de devolver media verdad.
+ */
+export const leerListado = (xml: unknown): { objetos: ObjetoListado[]; cursor?: string } | undefined => {
+  if (typeof xml !== 'string' || !/<ListBucketResult[\s>]/.test(xml)) return undefined;
+
+  const truncado = (dentro(xml, 'IsTruncated') ?? '').trim() === 'true';
+  const token = dentro(xml, 'NextContinuationToken')?.trim();
+  if (truncado && !token) return undefined;
+
+  const objetos: ObjetoListado[] = [];
+  for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+    const bloque = m[1];
+    const clave = dentro(bloque, 'Key');
+    if (clave === undefined) return undefined;
+    const tamano = Number(dentro(bloque, 'Size') ?? NaN);
+    const fecha = Date.parse(dentro(bloque, 'LastModified') ?? '');
+    /*
+     * El `ETag` va a `etiquetaDelProveedor` y NO a `suma`: es opaco, y en un
+     * objeto subido en varias partes deja de ser el MD5 del contenido. Darlo
+     * por una suma de comprobación sería inventar una garantía.
+     */
+    const etag = dentro(bloque, 'ETag')?.trim().replace(/^&quot;|&quot;$/g, '').replace(/^"|"$/g, '');
+    objetos.push({
+      objectKey: desescapar(clave),
+      ...(Number.isSafeInteger(tamano) && tamano >= 0 ? { bytes: tamano } : {}),
+      ...(Number.isFinite(fecha) ? { modificadoEn: fecha } : {}),
+      ...(etag ? { etiquetaDelProveedor: desescapar(etag) } : {}),
+    });
+  }
+  return { objetos, ...(truncado && token ? { cursor: desescapar(token) } : {}) };
 };
 
 /** Las capacidades que este adaptador declara de verdad. Lo demás no existe aquí. */
