@@ -137,6 +137,7 @@ const OTROS_DEL_CORE = {
   'core/media/subida.js': ['decidirSubida', 'identidadDeIntento', 'tamanoAprobado', 'tipoDeContenidoAceptable', 'topeDeSubida', 'vigenciaDeSubidaAprobada'],
   'core/media/proceso.js': ['CAPACIDADES_DE_MC4', 'LIMITES_DE_TRANSFORMACION', 'decidirProceso', 'leerPaqueteDeProceso', 'transformacionValida', 'varianteDeResultado'],
   'core/media/procesador.js': ['falloDeProceso'],
+  'core/media/entrega.js': ['decidirEntrega', 'huellaDeEntrega'],
 };
 
 /* Las Functions que producción expone, y de qué módulo sale cada una. */

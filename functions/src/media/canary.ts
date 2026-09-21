@@ -9,6 +9,7 @@ import { MEDIA_SECRETS } from '../secrets';
 import { assertAdmin } from '../shared/admin';
 import { almacenDeObjetosDeMedios } from './almacen';
 import { adaptadoresDeMedios } from './catalogo';
+import { depsDeEntregaDeWee, solicitarEntrega } from './entrega';
 import { crearEjecutorDeMedios, depsDeProcesoDeWee, solicitarProceso } from './proceso';
 import { confirmarSubida, depsDeSubidaDeWee, identidadDeMaterialDeSubida, solicitarSubida } from './subida';
 import { crearProcesadorDeImagen } from './procesador';
@@ -178,9 +179,9 @@ export const ejecutarCanaryDeMedios = async (
 export const MAX_BYTES_DEL_CANARY = 2 * 1024 * 1024;
 export const TIPOS_DEL_CANARY: readonly string[] = Object.freeze(['image/png', 'image/jpeg', 'image/webp']);
 
-/** Las tres cosas que sabe hacer esta puerta. No hay una cuarta. */
-export type AccionDelCanary = 'subir' | 'confirmar' | 'procesar';
-export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'confirmar', 'procesar'] as const);
+/** Las cuatro cosas que sabe hacer esta puerta. No hay una quinta. */
+export type AccionDelCanary = 'subir' | 'confirmar' | 'procesar' | 'entregar';
+export const ACCIONES_DEL_CANARY: readonly AccionDelCanary[] = Object.freeze(['subir', 'confirmar', 'procesar', 'entregar'] as const);
 
 /**
  * PEDIR PERMISO PARA SUBIR. Llama a `solicitarSubida` de MC-3 tal cual.
@@ -222,6 +223,38 @@ export const confirmarSubidaDelCanary = async (
   const r = await confirmarSubida(depsDeSubidaDeWee(getFirestore()), { principalId: accountId, assetId, operationId });
   if (!r.ok) throw new HttpsError('failed-precondition', `La subida no está confirmada: ${r.motivo}`);
   return { assetId: r.assetId, bytes: r.bytes, objectRef: r.objectRef, traza: r.traza };
+};
+
+/**
+ * PEDIR LA LLAVE TEMPORAL. `solicitarEntrega` de MC-2, tal cual.
+ *
+ * Aquí no se firma nada: firmar es del adaptador, y decidir quién puede es del
+ * Core. Esto solo compone `depsDeEntregaDeWee` —que ata la puerta de cuentas y
+ * la lectura de la Fase 11— y le pasa el material que el propio canary derivó.
+ *
+ * ── Lo que entrega, dicho con precisión ─────────────────────────────────────
+ *
+ * **El objeto ORIGINAL del material, no su miniatura.** MC-2 firma la referencia
+ * de almacén del material (`material.storageRef`) y su petición no admite una
+ * variante; entregar un derivado exigiría cambiar aquel contrato, y no se
+ * cambia. Que la miniatura existe lo demuestra el paso anterior —su ficha de
+ * objeto y su `AssetVariant`—, no este.
+ *
+ * Devuelve la llave porque sin ella no hay `GET` que hacer, y eso NO es
+ * persistirla: no se guarda en ningún sitio y la traza solo lleva su huella.
+ */
+export const pedirEntregaDelCanary = async (
+  accountId: string,
+  assetId: string,
+  operationId: string,
+): Promise<unknown> => {
+  const r = await solicitarEntrega(depsDeEntregaDeWee(getFirestore()), {
+    principalId: accountId,
+    assetId,
+    operationId,
+  });
+  if (!r.ok) throw new HttpsError('failed-precondition', `No se concedió la entrega: ${r.motivo}`);
+  return { entrega: r.entrega, traza: r.traza };
 };
 
 /* ── La puerta ─────────────────────────────────────────────────────────────── */
@@ -269,6 +302,7 @@ export const mediaCanary = onCall(
       return pedirSubidaDelCanary(accountId, operationId, String(datos.contentType ?? ''), Number(datos.bytes));
     }
     if (accion === 'confirmar') return confirmarSubidaDelCanary(accountId, assetId, operationId);
+    if (accion === 'entregar') return pedirEntregaDelCanary(accountId, assetId, operationId);
     return ejecutarCanaryDeMedios(accountId, assetId);
   },
 );

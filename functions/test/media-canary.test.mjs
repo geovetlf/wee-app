@@ -102,15 +102,22 @@ console.log('\n── B2 · Subir, confirmar, procesar: las tres reutilizan MC-3
 {
   const { ACCIONES_DEL_CANARY, MAX_BYTES_DEL_CANARY, TIPOS_DEL_CANARY } = lib('media/canary.js');
 
-  check('hay TRES acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar');
+  check('hay CUATRO acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar,entregar');
   check('una acción desconocida se rechaza', /ACCIONES_DEL_CANARY\.includes\(accion\)/.test(CANARY) && /Acción desconocida/.test(CANARY));
 
-  /* Reutilización literal: se llaman las funciones de MC-3, no se reescriben. */
+  /* Reutilización literal: se llaman las funciones de MC-2/MC-3/MC-4, no se reescriben. */
   check('`subir` llama a `solicitarSubida` de MC-3', /await solicitarSubida\(depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
   check('`confirmar` llama a `confirmarSubida` de MC-3', /await confirmarSubida\(depsDeSubidaDeWee\(getFirestore\(\)\)/.test(CANARY));
   check('`procesar` sigue llamando a la composición de MC-4', /return ejecutarCanaryDeMedios\(accountId, assetId\)/.test(CANARY));
-  check('NO hay un segundo flujo de subida: ni firma, ni clave, ni contenedor propios',
-    !/urlDeSubida\(|claveDelObjeto\(|firmarConsulta|rutaCanonica|contenedor/.test(CANARY));
+  check('`entregar` llama a `solicitarEntrega` de MC-2', /await solicitarEntrega\(depsDeEntregaDeWee\(getFirestore\(\)\)/.test(CANARY));
+  check('NO hay un segundo flujo de subida NI de entrega: ni firma, ni clave, ni contenedor propios',
+    !/urlDeSubida\(|urlFirmada\(|claveDelObjeto\(|firmarConsulta|rutaCanonica|contenedor/.test(CANARY));
+  check('`entregar` usa el MISMO material derivado, no uno que llegue de fuera',
+    /pedirEntregaDelCanary\(accountId, assetId, operationId\)/.test(CANARY));
+  check('devuelve la llave —sin ella no hay GET— y NO la persiste en ningún sitio',
+    /return \{ entrega: r\.entrega, traza: r\.traza \}/.test(CANARY) && !/\.set\(|\.create\(|\.update\(/.test(CANARY));
+  check('y deja escrito que MC-2 entrega el ORIGINAL, no la miniatura: su contrato no admite variante',
+    /el objeto ORIGINAL del material, no su miniatura/i.test(leer('functions/src/media/canary.ts').replace(/\n\s*\*\s?/g, ' ')));
   check('ni se toca la Fase 11 desde aquí: las tres operaciones entran por `depsDeSubidaDeWee`',
     !/crearMaterialParaSubida|marcarMaterialSubido|assets\(\)/.test(CANARY));
 
