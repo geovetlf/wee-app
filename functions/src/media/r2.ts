@@ -91,11 +91,17 @@ export const DESCRIPTOR_DE_R2: DescriptorDeProveedorDeMedios = Object.freeze({
   id: R2_PROVIDER_ID,
   name: 'Cloudflare R2',
   /*
-   * UNVERIFIED, y es lo honesto: el adaptador está implementado y probado
-   * contra su contrato, pero ninguna llamada real ha llegado a R2 todavía.
-   * Pasa a READY el día que un canary autorizado lo confirme, no antes.
+   * READY desde el 2026-09-21, y con qué se ganó: un canary autorizado recorrió
+   * la cadena entera contra R2 de verdad. Permiso concedido, `PUT` prefirmado
+   * con `if-none-match` firmado y enviado → 200, `HEAD` firmado por cabecera
+   * que encuentra los 577.908 bytes, confirmación, material listo y su ficha de
+   * objeto escrita. Las cuatro operaciones que este descriptor declara.
+   *
+   * Estuvo en `UNVERIFIED` hasta ese día a propósito: estaba implementado y
+   * probado contra su contrato, pero una firma escrita a mano no está
+   * verificada hasta que un proveedor real la acepta. Ahora la aceptó.
    */
-  estado: 'UNVERIFIED',
+  estado: 'READY',
   capacidades: CAPACIDADES_DE_R2,
   regiones: Object.freeze([R2_REGION]),
   credencialesEnv: Object.freeze([R2_ENV.accountId, R2_ENV.accessKeyId, R2_ENV.secretAccessKey, R2_ENV.bucket]),
@@ -115,11 +121,40 @@ export interface ConfiguracionDeR2 {
   bucket: string;
 }
 
+/**
+ * LA FORMA DEL ACCESS KEY ID. Lo que su USO exige, no un formato inventado.
+ *
+ * Cloudflare no publica una longitud fija para el Access Key ID —los tokens
+ * actuales usan un formato distinto del `id` hexadecimal de 32 que tenían los
+ * antiguos—, así que aquí no se fija ninguna. Lo que sí se exige es lo que la
+ * firma necesita: el valor viaja como PRIMER SEGMENTO de `X-Amz-Credential`,
+ * dentro de `<clave>/<fecha>/<región>/<servicio>/aws4_request`. Una barra, un
+ * espacio o cualquier carácter que se codifique en porcentaje parte ese ámbito
+ * y el proveedor responde 400 antes de mirar la firma.
+ */
+const FORMA_DE_CLAVE_DE_ACCESO = /^[A-Za-z0-9._~-]+$/;
+
+/**
+ * LA FORMA DEL SECRET ACCESS KEY. Esta sí está documentada.
+ *
+ * Cloudflare publica que el Secret Access Key de R2 es el **SHA-256 en
+ * hexadecimal** del valor del token. Un SHA-256 en hexadecimal son 64
+ * caracteres y no hay otra posibilidad, así que es comprobable.
+ *
+ * Esto no es celo: en septiembre de 2026, un valor que no era el que debía
+ * costó cuatro `PUT` reales contra R2 devolviendo `400 InvalidArgument` y una
+ * tarde entera de diagnóstico, porque Weë solo exigía que no estuviera vacío y
+ * el fallo aparecía tres capas más abajo, en el proveedor. Con esto, un secreto
+ * mal pegado hace que R2 salga como `no_configurado` desde el primer momento,
+ * con un motivo que se lee, y ni siquiera se intenta firmar.
+ */
+const FORMA_DE_SECRETO = /^[0-9a-f]{64}$/i;
+
 /** ¿Está configurado? Se mira la FORMA, nunca se registra el valor. */
 export const configuracionDeR2Valida = (c: Partial<ConfiguracionDeR2> | undefined): c is ConfiguracionDeR2 =>
   !!c && typeof c.accountId === 'string' && /^[a-f0-9]{32}$/i.test(c.accountId)
-  && typeof c.accessKeyId === 'string' && c.accessKeyId.length > 0
-  && typeof c.secretAccessKey === 'string' && c.secretAccessKey.length > 0
+  && typeof c.accessKeyId === 'string' && FORMA_DE_CLAVE_DE_ACCESO.test(c.accessKeyId)
+  && typeof c.secretAccessKey === 'string' && FORMA_DE_SECRETO.test(c.secretAccessKey)
   && typeof c.bucket === 'string' && /^[a-z0-9][a-z0-9-]{1,62}$/.test(c.bucket);
 
 export const anfitrionDeR2 = (accountId: string): string => `${accountId}.r2.cloudflarestorage.com`;

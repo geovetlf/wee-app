@@ -33,6 +33,14 @@ const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
+/*
+ * Un Secret Access Key de mentira CON LA FORMA DOCUMENTADA: Cloudflare
+ * publica que es el SHA-256 en hexadecimal del valor del token, o sea 64
+ * caracteres. Antes aquí había una cadena cualquiera, y por eso el fixture no
+ * habría detectado lo que costó cuatro PUT reales en septiembre de 2026.
+ */
+const SECRETO_DE_PRUEBA = 'c0ffee'.repeat(10) + 'abcd';
+
 let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => { n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : '')); if (!cond) failures++; };
 
@@ -52,7 +60,7 @@ const BEA = 'cuentaDeBea';
 const MATERIAL = 'asset_abc123';
 const T0 = 1_700_000_000_000;
 
-const CONFIG_R2 = { accountId: 'a'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: 'secretoDePrueba', bucket: 'wee-media' };
+const CONFIG_R2 = { accountId: 'a'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: SECRETO_DE_PRUEBA, bucket: 'wee-media' };
 
 /* Un material de la Fase 11, lo justo para decidir. */
 const material = (o = {}) => ({
@@ -284,7 +292,7 @@ console.log('\n── E · La URL firmada, contra el protocolo ──');
   check('otra clave, otra firma', otraClave.ok && new URL(otraClave.url).searchParams.get('X-Amz-Signature') !== q.get('X-Amz-Signature'));
   const otraVigencia = await adaptador.urlFirmada(ref, 600);
   check('otra vigencia, otra firma: el tiempo va firmado', otraVigencia.ok && new URL(otraVigencia.url).searchParams.get('X-Amz-Signature') !== q.get('X-Amz-Signature'));
-  const otroSecreto = await crearAdaptadorDeR2({ config: () => ({ ...CONFIG_R2, secretAccessKey: 'otroSecreto' }), ahora: () => T0 }).urlFirmada(ref, 900);
+  const otroSecreto = await crearAdaptadorDeR2({ config: () => ({ ...CONFIG_R2, secretAccessKey: 'dec0de'.repeat(10) + 'dcba' }), ahora: () => T0 }).urlFirmada(ref, 900);
   check('y otro secreto, otra firma', otroSecreto.ok && otroSecreto.url !== firmada.url);
 
   check('EL SECRETO NO VIAJA EN LA URL, en ninguna forma', !firmada.url.includes(CONFIG_R2.secretAccessKey));

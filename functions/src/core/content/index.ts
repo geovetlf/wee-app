@@ -9,6 +9,9 @@
  *                    por referencia; borrador o listo
  *   publication.ts   la publicación: el acto de poner un contenido en un sitio,
  *                    desde una cara, con una visibilidad
+ *   vista.ts         lo que una persona ve de un material: estado visible,
+ *                    origen, qué objeto enseñar y cómo se llega a él. Funciones
+ *                    puras sobre un material ya leído; no guardan nada
  *
  * Como todo el Core: sin Firebase, sin red, sin reloj, sin dados, y sin el
  * nombre de ningún almacén. El cableado con los almacenes de verdad vive en
@@ -31,3 +34,4 @@
 export * from './asset';
 export * from './content';
 export * from './publication';
+export * from './vista';

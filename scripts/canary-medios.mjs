@@ -308,7 +308,26 @@ const CODIGO_DE_PROVEEDOR = /<Code>\s*([A-Za-z]{3,48})\s*<\/Code>/;
  */
 const MENSAJE_DE_PROVEEDOR = /<Message>\s*([^<]{0,400}?)\s*<\/Message>/;
 const FORMA_DE_MENSAJE = /^[A-Za-z][A-Za-z0-9 .,:;'"()[\]_-]{2,159}$/;
-const MENSAJE_PROHIBIDO = /(x-amz|aws4|https?:|bearer|authorization|signature|credential|[0-9a-f]{20,})/i;
+/*
+ * Lo que se tira aunque la forma encaje. Son cosas que DELATAN UN VALOR, no
+ * palabras del vocabulario: `x-amz-…` es el nombre de una cabecera concreta,
+ * `AWS4-…` el principio de un StringToSign, `http:` una URL, y una tirada de
+ * veinte hexadecimales solo puede ser un resumen o una firma.
+ *
+ * Lo que aquí NO está, y estuvo: las palabras sueltas `credential`, `signature`
+ * y `authorization`. Durante el incidente de septiembre bloquearon el mensaje
+ * del proveedor —«Credential access key has length…» empieza por una de ellas—
+ * y nos dejaron a ciegas justo delante de la respuesta. Un sustantivo en una
+ * frase no filtra nada; lo que filtra es el valor que lo acompaña, y ese cae
+ * por su forma. Se sigue tirando `x-amz-credential`, que sí nombra algo real.
+ *
+ * Y al aflojar las reglas por PALABRA se aprieta la de FORMA: cualquier tirada
+ * de 24 caracteres seguidos sin espacio ni puntuación se tira, venga como
+ * venga. Una frase de diagnóstico no tiene ninguna; una clave de acceso, un
+ * token `cfat_…` o un trozo de base64 son exactamente eso. Cubre lo que las
+ * palabras no cubrían: un valor suelto, sin nada que lo anuncie.
+ */
+const MENSAJE_PROHIBIDO = /(x-amz-|aws4-|https?:\/\/|bearer\s+[A-Za-z0-9._-]{8}|[0-9a-f]{20,}|[A-Za-z0-9_-]{24,})/i;
 
 /* Puros: trabajan sobre la cadena ya acotada. El cuerpo se lee UNA vez, arriba. */
 const codigoDe = (xml) => CODIGO_DE_PROVEEDOR.exec(xml)?.[1] ?? 'unknown';

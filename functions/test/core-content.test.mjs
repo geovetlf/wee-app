@@ -422,5 +422,132 @@ console.log('\n── J · Sigue siendo Core ──');
   check('70) el contrato declara versión', core.CONTENT_CORE_CONTRACT_VERSION === '1.0');
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── H · Lo que una persona ve de un material ──');
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * El backend decide QUÉ es verdad; la interfaz decide CÓMO se dice. Esta
+ * sección vigila esa frontera, y existe porque hoy está rota en producción:
+ * `assetsService` elige la miniatura recorriendo `variants` a mano y
+ * `RejillaDeCreaciones` fabrica su clave de traducción pegando trozos del
+ * estado interno. El segundo cliente que aparezca lo volverá a escribir
+ * distinto, y renombrar un estado del Core romperá la interfaz en silencio.
+ */
+{
+  const { estadoVisible, ESTADOS_VISIBLES, seListaAlDueno, origenDe, generacionVisible,
+    representacionPara, modoDeEntrega, vistaDeMaterial, ESTADOS_DE_MATERIAL } = core;
+
+  /* 71 · Todo estado interno tiene uno visible, y son vocabularios distintos. */
+  check('71) los cinco estados internos tienen su estado visible',
+    ESTADOS_DE_MATERIAL.every((s) => ESTADOS_VISIBLES.includes(estadoVisible(s))));
+  check('71) y son dos vocabularios distintos, no el mismo con otro nombre',
+    ESTADOS_VISIBLES.every((v) => !ESTADOS_DE_MATERIAL.includes(v)));
+  check('71) la correspondencia es la declarada',
+    estadoVisible('uploading') === 'llegando' && estadoVisible('processing') === 'preparando'
+    && estadoVisible('ready') === 'disponible' && estadoVisible('failed') === 'no_se_pudo'
+    && estadoVisible('deleted') === 'retirado');
+  check('71) un estado que no existe no revienta ni miente', estadoVisible('inventado') === 'no_se_pudo');
+  check('71) al dueño se le listan todos menos el retirado',
+    ESTADOS_DE_MATERIAL.filter(seListaAlDueno).join(',') === 'uploading,processing,ready,failed');
+
+  /* 72 · NI UNA FRASE. Un estado con texto sería interfaz dentro del Core. */
+  check('72) los estados visibles no son textos de interfaz',
+    ESTADOS_VISIBLES.every((v) => /^[a-z_]+$/.test(v)));
+  check('72) y `vista.ts` no trae ni una frase para enseñar',
+    !/(Subiendo|Procesando|Listo|No se pudo|Cargando|Preparando…)/.test(sinComentarios(leer('functions/src/core/content/vista.ts'))));
+
+  /* 73 · El origen se DEDUCE, no se guarda: ni un campo nuevo, ni migración. */
+  check('73) sin procedencia de IA, lo subió alguien', origenDe(material()) === 'subido');
+  check('73) con capacidad, lo generó Weë',
+    origenDe(material({ provenance: { createdAt: 1, capability: 'image.generate' } })) === 'generado');
+  check('73) con material de partida, es un derivado',
+    origenDe(material({ provenance: { createdAt: 1, sourceAssetIds: ['asset_0002'] } })) === 'derivado');
+  check('73) y un derivado generado se cuenta primero como derivado',
+    origenDe(material({ provenance: { createdAt: 1, capability: 'image.edit', sourceAssetIds: ['asset_0002'] } })) === 'derivado');
+  check('73) no hay ningún campo `origen` guardado en el material',
+    !/\borigen\??:/.test(sinComentarios(leer('functions/src/core/content/asset.ts'))));
+
+  /* 74 · LA FRONTERA DE SEGURIDAD: qué se puede contar de cómo se hizo. */
+  const conTodo = {
+    createdAt: 7, capability: 'image.generate', provider: 'unProveedor', model: 'un-modelo-v3',
+    cost: { amount: 12, currency: 'USD' }, generationId: 'gen_1', jobId: 'job_1', runId: 'run_1',
+    stepId: 'step_1', requestId: 'req_1', operationId: 'op_1', traceId: 'trace_1',
+    sourceAssetIds: ['asset_0002'],
+  };
+  const visible = generacionVisible(conTodo);
+  check('74) lo que se puede contar: que lo hizo Weë, qué clase, de qué partió y cuándo',
+    visible.hechoConWee === true && visible.capacidad === 'image.generate'
+    && visible.partioDe.join(',') === 'asset_0002' && visible.creadoEn === 7);
+  check('74) y NO sale el proveedor, ni el modelo, ni el coste, ni un solo identificador de operación',
+    !JSON.stringify(visible).match(/unProveedor|un-modelo-v3|USD|gen_1|job_1|run_1|step_1|req_1|op_1|trace_1/));
+  check('74) sus claves son exactamente las declaradas',
+    Object.keys(visible).sort().join(',') === 'capacidad,creadoEn,hechoConWee,partioDe');
+  check('74) un material que no generó Weë no cuenta ninguna generación',
+    generacionVisible({ createdAt: 1 }) === undefined && generacionVisible(undefined) === undefined);
+  check('74) es un objeto NUEVO: añadir un campo a la procedencia no lo filtra',
+    generacionVisible({ ...conTodo, secretoNuevo: 'no-debe-salir' }).secretoNuevo === undefined);
+
+  /* 75 · Qué objeto se enseña. Una rejilla no puede bajarse mil originales. */
+  const conVariantes = material({
+    variants: [
+      { kind: 'thumbnail', storageRef: { ...REF, objectKey: 'u/mini.png' }, bytes: 900, width: 200 },
+      { kind: 'preview', storageRef: { ...REF, objectKey: 'u/vista.png' }, bytes: 9000 },
+    ],
+  });
+  check('75) la miniatura es la miniatura, no el original',
+    representacionPara(conVariantes, 'miniatura').variante === 'thumbnail'
+    && representacionPara(conVariantes, 'miniatura').esElOriginal === false
+    && representacionPara(conVariantes, 'miniatura').bytes === 900);
+  check('75) la vista prefiere la vista previa', representacionPara(conVariantes, 'vista').variante === 'preview');
+  check('75) el original es el ORIGINAL, siempre',
+    representacionPara(conVariantes, 'original').esElOriginal === true
+    && representacionPara(conVariantes, 'original').ref.objectKey === REF.objectKey
+    && representacionPara(conVariantes, 'original').variante === undefined);
+  check('75) sin derivados se cae al original, que es lo honesto',
+    representacionPara(material(), 'miniatura').esElOriginal === true);
+  check('75) el póster sirve de miniatura de un vídeo',
+    representacionPara(material({ kind: 'video', variants: [{ kind: 'poster', storageRef: REF }] }), 'miniatura').variante === 'poster');
+  check('75) un material retirado no ofrece ninguna',
+    ['miniatura', 'vista', 'original'].every((p) => representacionPara(material({ status: 'deleted', deletedAt: 9 }), p) === undefined));
+  check('75) y devuelve una REFERENCIA, nunca una URL',
+    !/url/i.test(JSON.stringify(representacionPara(conVariantes, 'miniatura'))));
+
+  /* 76 · Cómo se llega a los bytes, sin decir por dónde. */
+  check('76) con objeto, hay que pedir una llave firmada', modoDeEntrega(material()) === 'firmada');
+  check('76) salvo que el material traiga su propia dirección (lo heredado de F11)',
+    modoDeEntrega(material(), true) === 'directa');
+  check('76) un retirado no se entrega', modoDeEntrega(material({ status: 'deleted', deletedAt: 9 }), true) === 'ninguna');
+  check('76) un texto sin objeto se entrega solo', modoDeEntrega({ ...material(), kind: 'text', storageRef: undefined, content: 'hola' }) === 'directa');
+  check('76) y un material sin objeto ni texto, no', modoDeEntrega({ ...material(), storageRef: undefined }) === 'ninguna');
+
+  /* 77 · La proyección entera: lo que la interfaz recibe, y lo que jamás. */
+  const vista = vistaDeMaterial(material({
+    name: 'mi foto', tags: ['a'], previousVersionId: 'asset_0000',
+    provenance: { createdAt: 7, capability: 'image.generate', provider: 'unProveedor', model: 'un-modelo-v3' },
+    variants: [{ kind: 'thumbnail', storageRef: { ...REF, objectKey: 'u/mini.png' } }],
+  }));
+  check('77) lleva identidad, tipo, estado visible y origen',
+    vista.assetId === 'asset_0001' && vista.tipo === 'image' && vista.estado === 'disponible' && vista.origen === 'generado');
+  check('77) lleva sus tres representaciones y su modo de entrega',
+    vista.miniatura.variante === 'thumbnail' && vista.original.esElOriginal === true && vista.entrega === 'firmada');
+  check('77) NO lleva la referencia de almacén del material, ni el proveedor, ni el contenedor, ni la clave',
+    vista.storageRef === undefined && !/unProveedor|un-modelo-v3/.test(JSON.stringify(vista)));
+  check('77) ni el proveedor del ALMACÉN se filtra por las representaciones',
+    JSON.stringify(vista).includes(REF.provider) === true
+    && /* la referencia sí va dentro de la representación, que es su sitio */ vista.miniatura.ref.provider === REF.provider);
+  check('77) el nombre puede faltar, y entonces no se inventa ninguno',
+    vistaDeMaterial(material()).nombre === undefined);
+  check('77) y un retirado se ve retirado y sin nada que enseñar',
+    (() => { const v = vistaDeMaterial(material({ status: 'deleted', deletedAt: 9 }));
+      return v.estado === 'retirado' && v.miniatura === undefined && v.original === undefined && v.entrega === 'ninguna'; })());
+
+  /* 78 · Y sigue siendo Core: puro, y sin saber de ningún proveedor. */
+  const VISTA = sinComentarios(leer('functions/src/core/content/vista.ts'));
+  check('78) no guarda, no consulta, no mira el reloj y no tira dados',
+    !/Date\.now|Math\.random|firebase|firestore|fetch\(|require\(/i.test(VISTA));
+  check('78) y no nombra ningún proveedor ni ninguna dirección',
+    !/r2|cloudflare|cloudinary|s3|aws|gcs|azure|https?:/i.test(VISTA));
+}
+
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

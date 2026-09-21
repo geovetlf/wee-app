@@ -32,6 +32,14 @@ const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
+/*
+ * Un Secret Access Key de mentira CON LA FORMA DOCUMENTADA: Cloudflare
+ * publica que es el SHA-256 en hexadecimal del valor del token, o sea 64
+ * caracteres. Antes aquí había una cadena cualquiera, y por eso el fixture no
+ * habría detectado lo que costó cuatro PUT reales en septiembre de 2026.
+ */
+const SECRETO_DE_PRUEBA = 'c0ffee'.repeat(10) + 'abcd';
+
 let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => { n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : '')); if (!cond) failures++; };
 
@@ -71,7 +79,14 @@ console.log('\n── A · Quién hay, qué sabe hacer, y qué no se acepta ─�
     !JSON.stringify(DESCRIPTOR_DE_R2).match(/[A-Za-z0-9/+]{40,}/) && DESCRIPTOR_DE_R2.credencialesEnv.includes('R2_SECRET_ACCESS_KEY'));
   check('declara los límites PUBLICADOS: clave 1.024, subida simple 5 GiB, objeto 5 TiB',
     DESCRIPTOR_DE_R2.limites.maxLargoDeClave === 1024 && DESCRIPTOR_DE_R2.limites.maxBytesDeUnaSubida === 5 * 1024 ** 3 && DESCRIPTOR_DE_R2.limites.maxBytesPorObjeto === 5 * 1024 ** 4);
-  check('y se declara UNVERIFIED, porque ninguna llamada real ha llegado todavía', DESCRIPTOR_DE_R2.estado === 'UNVERIFIED');
+  /*
+   * READY desde el 2026-09-21. Se lo ganó un canary autorizado que recorrió la
+   * cadena entera contra R2: permiso, `PUT` prefirmado → 200, `HEAD` firmado por
+   * cabecera que encuentra los bytes, confirmación y ficha de objeto escrita.
+   * Estuvo en UNVERIFIED hasta entonces porque una firma escrita a mano no está
+   * verificada hasta que un proveedor real la acepta.
+   */
+  check('y se declara READY: un canary real recorrió la cadena entera contra R2', DESCRIPTOR_DE_R2.estado === 'READY');
   check('con la documentación oficial en la que se basa', /developers\.cloudflare\.com\/r2\//.test(DESCRIPTOR_DE_R2.docsUrl));
 
   const dup = crearRegistroDeMedios([DESCRIPTOR_DE_R2, { ...DESCRIPTOR_DE_R2, name: 'otro' }]);
@@ -237,9 +252,27 @@ console.log('\n── E · El puerto, contra el almacén de mentira ──');
 /* ═══ F · EL ADAPTADOR DE R2, SIN RED ═════════════════════════════════════ */
 console.log('\n── F · R2: lo que se manda y lo que se entiende ──');
 {
-  const CONFIG = { accountId: 'a'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: 'secretoDePrueba', bucket: 'wee-media' };
+  const CONFIG = { accountId: 'a'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: SECRETO_DE_PRUEBA, bucket: 'wee-media' };
   check('la configuración se valida por su FORMA', configuracionDeR2Valida(CONFIG));
   check('y se rechaza la que no lo es', [undefined, {}, { ...CONFIG, accountId: 'corto' }, { ...CONFIG, bucket: 'MAL' }, { ...CONFIG, secretAccessKey: '' }].every((c) => !configuracionDeR2Valida(c)));
+  /*
+   * LA FORMA DE LAS DOS CREDENCIALES, que antes no se miraba. En septiembre de
+   * 2026 un valor que no era el que debía costó cuatro `PUT` reales devolviendo
+   * `400 InvalidArgument`, porque Weë solo exigía que no estuviera vacío y el
+   * fallo salía tres capas más abajo. El secreto SÍ tiene forma documentada
+   * —SHA-256 en hexadecimal, 64 caracteres—; el Access Key ID no, así que de él
+   * solo se exige lo que su uso impone: caber entero en un segmento de
+   * `X-Amz-Credential` sin partirlo.
+   */
+  check('el secreto tiene que ser un SHA-256 en hexadecimal, que es su forma documentada',
+    ['x'.repeat(64), 'abc', 'c0ffee'.repeat(10), `${'a'.repeat(63)} `, 'A'.repeat(64).replace('A', 'g')]
+      .every((s) => !configuracionDeR2Valida({ ...CONFIG, secretAccessKey: s }))
+    && configuracionDeR2Valida({ ...CONFIG, secretAccessKey: 'F'.repeat(64) }));
+  check('y el Access Key ID no puede partir el ámbito de la credencial',
+    ['con/barra', 'con espacio', 'con%porciento', 'con+mas', 'con=igual', 'con&ampersand', '']
+      .every((k) => !configuracionDeR2Valida({ ...CONFIG, accessKeyId: k }))
+    && ['AKIAEJEMPLO', 'cfat_abc-DEF.123~xyz', 'a'.repeat(53)]
+      .every((k) => configuracionDeR2Valida({ ...CONFIG, accessKeyId: k })));
   check('la dirección es la oficial: <ACCOUNT_ID>.r2.cloudflarestorage.com', anfitrionDeR2(CONFIG.accountId) === `${CONFIG.accountId}.r2.cloudflarestorage.com`);
 
   const vistas = [];
@@ -300,7 +333,7 @@ console.log('\n── F · R2: lo que se manda y lo que se entiende ──');
 /* ═══ F-1 · LA RUTA QUE SE FIRMA ES, LETRA POR LETRA, LA QUE SE ENVÍA ═════ */
 console.log('\n── F-1 · Una sola ruta: la firmada y la transmitida ──');
 {
-  const CONFIG = { accountId: 'b'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: 'secretoDePrueba', bucket: 'wee-media' };
+  const CONFIG = { accountId: 'b'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: SECRETO_DE_PRUEBA, bucket: 'wee-media' };
   const CUERPO = Buffer.from('unos bytes');
   const TIPO = 'application/octet-stream';
   let vista;
@@ -407,7 +440,7 @@ console.log('\n── F-2 · Cambiar de proveedor es cambiar una variable ──
   check('D · y como el contenedor entra en la identidad, son objetos distintos', conOtro.ok && conFalso.ok && conOtro.ref.objectKey === conFalso.ref.objectKey && conOtro.objeto.objectRef !== conFalso.objeto.objectRef);
 
   /* A · Con R2 elegido, se usa el adaptador de R2 — y él sí conoce su contenedor. */
-  const suyo = crearAdaptadorDeR2({ config: () => ({ accountId: 'c'.repeat(32), accessKeyId: 'k', secretAccessKey: 's', bucket: 'wee-media' }) });
+  const suyo = crearAdaptadorDeR2({ config: () => ({ accountId: 'c'.repeat(32), accessKeyId: 'k', secretAccessKey: SECRETO_DE_PRUEBA, bucket: 'wee-media' }) });
   check('A · el adaptador de R2 dice cuál es SU contenedor', suyo.providerId === R2_PROVIDER_ID && suyo.contenedor === 'wee-media');
 
   /* C · Sin configuración de R2, solo falla quien intente usar R2. */

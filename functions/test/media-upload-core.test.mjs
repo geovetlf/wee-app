@@ -34,6 +34,14 @@ const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
+/*
+ * Un Secret Access Key de mentira CON LA FORMA DOCUMENTADA: Cloudflare
+ * publica que es el SHA-256 en hexadecimal del valor del token, o sea 64
+ * caracteres. Antes aquí había una cadena cualquiera, y por eso el fixture no
+ * habría detectado lo que costó cuatro PUT reales en septiembre de 2026.
+ */
+const SECRETO_DE_PRUEBA = 'c0ffee'.repeat(10) + 'abcd';
+
 let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => { n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : '')); if (!cond) failures++; };
 
@@ -54,7 +62,7 @@ const ANA = 'cuentaDeAna';
 const BEA = 'cuentaDeBea';
 const T0 = 1_700_000_000_000;
 const OP = 'operacion-de-ana-0001';
-const CONFIG_R2 = { accountId: 'a'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: 'secretoDePrueba', bucket: 'wee-media' };
+const CONFIG_R2 = { accountId: 'a'.repeat(32), accessKeyId: 'AKIAEJEMPLO', secretAccessKey: SECRETO_DE_PRUEBA, bucket: 'wee-media' };
 const REGISTRO_FALSO = crearRegistroDeMedios([DESCRIPTOR_FALSO]).registro;
 
 const material = (o = {}) => {
