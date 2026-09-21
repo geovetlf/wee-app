@@ -697,13 +697,53 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
    * pidieron: eso es una tubería, no una decisión. Quien DECIDE es quien la
    * pone a `true` sin que nadie se la haya pedido, y ese tiene que ser uno.
    */
-  const laEnciende = (src) => sinComentarios(src)
+  /*
+   * ── QUIÉN DECIDE, medido por la FORMA y no por el VALOR ─────────────────────
+   *
+   * Este detector buscaba el literal `aceptaAsincrono: true`, y eso lo ataba al
+   * valor en vez de a la decisión: apagar la bandera lo hacía fallar, con lo
+   * que el guard terminaba prohibiendo el estado MÁS estricto de todos y
+   * dejando el camino síncrono del Core estructuralmente fuera de alcance. No
+   * es lo que dice defender.
+   *
+   * Ahora se quitan las TRES formas de reenviar —la extensión condicional y las
+   * dos asignaciones desde `deps`— más la declaración del tipo, y se marca
+   * cualquier asignación que quede. Eso es decidir: ponerle un valor propio sin
+   * que nadie se lo haya pedido. Sale más estricto que antes, porque también
+   * caza a quien la encienda desde una variable en vez de desde un literal.
+   */
+  const laEnciende = (src) => /aceptaAsincrono\s*:/.test(sinComentarios(src)
     .replace(/\.\.\.\(deps\.aceptaAsincrono \? \{ aceptaAsincrono: true \} : \{\}\)/g, ' ')
-    .includes('aceptaAsincrono: true');
-  check('y la ENCIENDE exactamente un módulo vivo: la puerta del canary de vídeo (los demás solo la reenvían)',
-    fuentesVivas().filter((f) => laEnciende(leer(f))).join(',') === 'functions/src/creator/video.ts',
-    fuentesVivas().filter((f) => laEnciende(leer(f))).join(','));
-  check('detrás de la puerta, nunca antes: si la puerta dice legacy, no se enciende nada', VIDEO.indexOf('decidirRuntime') < VIDEO.indexOf('aceptaAsincrono: true'));
+    .replace(/aceptaAsincrono: deps\.aceptaAsincrono === true/g, ' ')
+    .replace(/acceptAsync: deps\.aceptaAsincrono === true/g, ' ')
+    .replace(/aceptaAsincrono\?: boolean/g, ' '));
+  /*
+   * Y la comprobación es de SUBCONJUNTO, no de igualdad, porque lo que hay que
+   * impedir es que la decida alguien que no sea la puerta del canary de vídeo.
+   * Vacuo no queda: con la puerta decidiendo —valga `true` o `false`— la lista
+   * tiene exactamente un elemento, y cualquier módulo nuevo que la asigne
+   * aparece y rompe.
+   */
+  const laEncienden = fuentesVivas().filter((f) => laEnciende(leer(f)));
+  check('y la DECIDE, como mucho, un módulo vivo: la puerta del canary de vídeo (los demás solo la reenvían)',
+    laEncienden.every((f) => f === 'functions/src/creator/video.ts'),
+    laEncienden.join(',') || '(ninguno)');
+  /*
+   * ── DETRÁS DE LA PUERTA, NUNCA ANTES ────────────────────────────────────────
+   *
+   * El ancla es la LLAMADA que construye el conductor, no una propiedad suelta:
+   * se exige que `conductorDeWee({...})` reciba la bandera DENTRO de sus
+   * argumentos y que la decisión del runtime esté tomada ANTES de esa llamada.
+   * Sigue midiendo lo mismo con la bandera encendida o apagada, y rompe si
+   * alguien construye el conductor por delante de `decidirRuntime` o deja de
+   * pasarle la bandera.
+   */
+  const abreConductor = VIDEO.indexOf('conductorDeWee({');
+  const cierraArgumentos = abreConductor < 0 ? -1 : VIDEO.indexOf('})', abreConductor);
+  const argumentosDelConductor = abreConductor < 0 || cierraArgumentos < 0 ? '' : VIDEO.slice(abreConductor, cierraArgumentos);
+  check('detrás de la puerta, nunca antes: `conductorDeWee({…aceptaAsincrono…})` se construye DESPUÉS de `decidirRuntime`',
+    abreConductor > 0 && /aceptaAsincrono\s*:/.test(argumentosDelConductor) && VIDEO.indexOf('decidirRuntime') < abreConductor,
+    `decidirRuntime=${VIDEO.indexOf('decidirRuntime')} conductorDeWee=${abreConductor} bandera_en_sus_argumentos=${/aceptaAsincrono\s*:/.test(argumentosDelConductor)}`);
   check('el canary de texto de Brain no cambió: su candado sigue siendo `text.generate`', /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(leer('functions/src/creator/brain.ts')));
   check('el camino de siempre sigue entero: el sondeo y `videoEngine` siguen ahí para quien no pase por la puerta',
     /pollUntil/.test(leer('functions/src/engine/providers/seedance.ts')) && /videoEngine\.generate\(/.test(VIDEO));
