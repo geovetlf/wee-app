@@ -520,9 +520,9 @@ console.log('\n── I · Qué NO se ha construido ──');
 {
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
   /* MC-5 añadió `recoleccion.ts` a cada lado: la decisión de cuándo unos bytes dejan de hacer falta, y su barrido. */
-  check('el Core de medios son nueve archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts', delCore.join(','));
+  check('el Core de medios son diez archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, catorce', fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts', fuera.join(','));
+  check('y la composición, diecisiete', fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts', fuera.join(','));
 
   /* R2 vive en UN sitio. */
   const nombraR2 = ['functions/src'].flatMap(() => {

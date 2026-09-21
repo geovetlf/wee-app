@@ -444,7 +444,8 @@ console.log('\n── I · Muchas a la vez, y qué NO se ha construido ──');
   const TODO = ['media', 'core/media'].map((d) => fs.readdirSync(path.resolve(RAIZ, 'functions/src', d)).map((x) => leer(`functions/src/${d}/${x}`)).join('\n')).join('\n');
   const SIN_COMENTARIOS = sinComentarios(TODO);
   /*  y  salieron de esta lista en MC-4: ya no son futuro, son derivados. */
-  const futuras = ['directUpload', 'multipart', 'lifecycle', 'migrat', 'qiniu', 'alibaba', 'tencent', 'AssetPicker', 'ControlCenter']
+  /* `migrat` salió en MC-6, por lo mismo: la migración ya está construida, así que dejó de ser futuro. */
+  const futuras = ['directUpload', 'multipart', 'lifecycle', 'qiniu', 'alibaba', 'tencent', 'AssetPicker', 'ControlCenter']
     .filter((t) => new RegExp(t, 'i').test(SIN_COMENTARIOS));
   check('32 · ninguna fase futura se coló en el código', futuras.length === 0, futuras.join(','));
   /* `traer` la implementó MC-4, que es quien necesitaba leer un original. `copiar` sigue siendo costura. */
@@ -452,9 +453,9 @@ console.log('\n── I · Muchas a la vez, y qué NO se ha construido ──');
     !/async copiar\(/.test(SIN_COMENTARIOS) && /copiar\?\(/.test(leer('functions/src/core/media/puerto.ts')));
 
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son nueve archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts', delCore.join(','));
+  check('el Core de medios son diez archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, catorce', fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,entrega.ts,falso.ts,firma.ts,huella.ts,index.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts', fuera.join(','));
+  check('y la composición, diecisiete', fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts', fuera.join(','));
 
   /* 13 · R2 no se menciona fuera de su adaptador. */
   /*

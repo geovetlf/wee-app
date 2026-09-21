@@ -78,6 +78,34 @@ export interface PeticionDeGuardado {
   siNoExiste?: boolean;
 }
 
+/**
+ * MC-6 · UNA SUMA DE COMPROBACIÓN, CON SU ALGORITMO DELANTE.
+ *
+ * El algoritmo va DENTRO y no se supone nunca. La etiqueta opaca de un
+ * proveedor se parece a un MD5 lo bastante como para tentar a compararla con
+ * uno, y deja de serlo en cuanto el objeto sube en varias partes: una suma sin
+ * su algoritmo declarado no es una suma, es una cadena que se parece a una.
+ */
+export interface SumaDeComprobacion {
+  /** `md5`, `sha256`, `crc32c`… Lo dice el adaptador, que es quien lo sabe. */
+  algoritmo: string;
+  valor: string;
+}
+
+/**
+ * MC-6 · LOS HECHOS COMPARABLES DE UN OBJETO, vengan de donde vengan.
+ *
+ * Es la forma en la que un origen histórico y un destino describen lo mismo, y
+ * por eso ninguno de los dos está privilegiado cuando se comparan: se comparan
+ * hechos, no proveedores. Todo opcional porque nadie está obligado a saberlo
+ * todo — lo que nadie puede es que se dé por sabido lo que no dijo.
+ */
+export interface HechosDelObjeto {
+  bytes?: number;
+  contentType?: string;
+  suma?: SumaDeComprobacion;
+}
+
 /** Lo que el almacén dice de un objeto suyo. Sin tipos del SDK de nadie. */
 export interface ObjetoGuardado {
   ref: StorageRef;
@@ -89,6 +117,15 @@ export interface ObjetoGuardado {
    * cambiado, y **no es la identidad de nada en Weë**.
    */
   etiquetaDelProveedor?: string;
+  /**
+   * MC-6 · La suma, CUANDO el adaptador sabe de qué algoritmo es la suya.
+   *
+   * Opcional a propósito: un proveedor que solo da una etiqueta opaca no llena
+   * esto, y entonces la verificación baja de nivel en vez de fingir que
+   * comprobó una suma. Rellenarlo con la etiqueta «porque suele ser un MD5»
+   * sería inventar una garantía.
+   */
+  suma?: SumaDeComprobacion;
   actualizadoEn?: number;
 }
 
