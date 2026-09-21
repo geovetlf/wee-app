@@ -99,6 +99,24 @@ export const ELEMENT_CONTRACT_VERSION = '1.0' as const;
  */
 export const VISUAL_CONTEXT_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * Forma de unos requisitos de continuidad y de su veredicto.
+ *
+ * Vocabulario y reglas, nada más: qué debe conservarse entre una generación y
+ * la siguiente, y cómo quedó cuando alguien lo comprobó. Nace en 1.0 sin
+ * jerarquía de aspectos y sin umbrales numéricos, las dos cosas a propósito.
+ */
+export const CONTINUITY_CONTRACT_VERSION = '1.0' as const;
+
+/**
+ * Forma de una escena y de un plano dentro de un proyecto.
+ *
+ * El eje temporal que le faltaba al catálogo: qué va antes, qué va después y
+ * quién sale en cada sitio. Un mismo número para los dos porque son el mismo
+ * contrato leído a dos alturas.
+ */
+export const SHOT_CONTRACT_VERSION = '1.0' as const;
+
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 
