@@ -75,7 +75,7 @@ const URL_POR_DEFECTO = 'https://us-central1-get-wee.cloudfunctions.net/mediaCan
 const FIRMANTE = 'firebase-adminsdk-fbsvc@get-wee.iam.gserviceaccount.com';
 
 /* Lo que la puerta admite. Tiene que coincidir con `media/canary.ts`; si no, la rechaza ella. */
-const ACCIONES = ['subir', 'confirmar', 'procesar', 'entregar'];
+const ACCIONES = ['subir', 'confirmar', 'procesar', 'entregar', 'listar'];
 const TIPOS = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -261,6 +261,35 @@ const enseñar = (respuesta) => {
     console.log('  caduca     :', new Date(e.expiraEn).toISOString(), `(${e.vigenciaSegundos}s)`);
     console.log('  huella     :', r?.traza?.huellaDeUrl ?? '(sin huella)');
     console.log('  url firmada: [no se imprime: es una credencial de lectura]');
+  }
+
+  /*
+   * MC-9 · `listar`. Lo que hay de verdad al otro lado.
+   *
+   * La clave del objeto lleva dentro la cuenta —esa es toda la gracia del
+   * aislamiento— así que NO se imprime entera: se comprueba que empieza por el
+   * prefijo que el servidor derivó y se enseña solo lo que hay DESPUÉS de él.
+   * Así se ve qué material y qué pieza son, que es lo que hay que verificar,
+   * sin escribir un identificador de persona en una terminal.
+   */
+  const objetos = r?.objetos;
+  if (Array.isArray(objetos)) {
+    const prefijo = String(r.prefijo ?? '');
+    console.log('  proveedor  :', r.providerId);
+    console.log('  contenedor :', r.contenedor);
+    console.log('  prefijo    :', prefijo.replace(/^accounts\/[^/]+\//, 'accounts/<cuenta>/'), '(derivado por el servidor)');
+    console.log('  objetos    :', objetos.length);
+    console.log('  completo   :', r.completo === true, r.cursor ? '(hay más páginas)' : '(se vio el prefijo entero)');
+    for (const o of objetos) {
+      const dentro = typeof o.objectKey === 'string' && o.objectKey.startsWith(prefijo);
+      console.log(`    · ${dentro ? o.objectKey.slice(prefijo.length) : '[FUERA DEL PREFIJO]'}`
+        + `  ${o.bytes ?? '?'} bytes`
+        + `  ${o.contentType ?? 'sin tipo'}`
+        + `  ${o.modificadoEn ? new Date(o.modificadoEn).toISOString() : 'sin fecha'}`
+        + `  ${o.etiqueta ? 'etiqueta:sí' : 'etiqueta:no'}`);
+      if (!dentro) console.log('      ¡AISLAMIENTO ROTO! una clave fuera del prefijo de la cuenta');
+    }
+    return;
   }
 
   const { intento, entrega, ...resto } = r ?? {};
