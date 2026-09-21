@@ -1,4 +1,5 @@
 import { GATEWAY_CONTRACT_VERSION, contratoCompatible } from './contracts';
+import { ContinuityRequirements, continuidadValida } from './continuity';
 import { CostLine, CostUnit } from './cost';
 import { CreativeParameters, creativosValidos } from './creative';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
@@ -80,6 +81,16 @@ export interface ExecutionHints {
   durationSec?: number;
   /** La intención creativa, estructurada. Vocabulario cerrado; jamás sintaxis de un proveedor. */
   creative?: CreativeParameters;
+  /**
+   * QUÉ NO PUEDE CAMBIAR. Vocabulario cerrado y con su propio contrato.
+   *
+   * Es la segunda clave que entra por aquí, y por el mismo motivo que la
+   * primera: es un REQUISITO del resultado, no una elección de con qué hacerlo.
+   * El Gateway no sabe qué es una fachada ni un rostro —ni falta que le hace—;
+   * lo transporta y lo entrega al adaptador, que es quien sabe traducirlo a los
+   * mandos que tenga su proveedor.
+   */
+  continuity?: ContinuityRequirements;
 }
 
 export interface ExecutionOptions {
@@ -379,7 +390,7 @@ const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
 const CLAVES_DE_IDIOMA = ['appLanguage', 'userLocale', 'inputLanguage', 'outputLanguage', 'contentLanguage'];
 const CLAVES_DE_USO_NORMALIZADO = ['inputTokens', 'outputTokens', 'totalTokens', 'images', 'videoSeconds', 'audioSeconds', 'characters', 'calls', 'searchQueries'] as const;
 const CLAVES_DE_EJECUCION = ['mode', 'timeoutMs', 'deadlineAt', 'stream', 'hints'];
-const CLAVES_DE_HINTS = ['quality', 'durationSec', 'creative'];
+const CLAVES_DE_HINTS = ['quality', 'durationSec', 'creative', 'continuity'];
 const CALIDADES = ['standard', 'high', 'max'];
 const CLASES_DE_RESPUESTA = ['text', 'image', 'video', 'audio', 'document'];
 
@@ -667,12 +678,17 @@ export const leerHints = (crudo: unknown, prefijo: string): { ok: true; hints?: 
   if (crudo.creative !== undefined && !creativosValidos(crudo.creative)) {
     return { ok: false, field: `${prefijo}.creative`, reason: 'invalid_request' };
   }
+  /* Y los requisitos de continuidad, igual: contrato propio, entero o nada. */
+  if (crudo.continuity !== undefined && !continuidadValida(crudo.continuity)) {
+    return { ok: false, field: `${prefijo}.continuity`, reason: 'invalid_request' };
+  }
   return {
     ok: true,
     hints: {
       quality: crudo.quality as ExecutionHints['quality'],
       durationSec: crudo.durationSec as number | undefined,
       creative: crudo.creative as CreativeParameters | undefined,
+      continuity: crudo.continuity as ContinuityRequirements | undefined,
     },
   };
 };

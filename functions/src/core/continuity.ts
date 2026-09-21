@@ -52,62 +52,183 @@ import { CONTINUITY_CONTRACT_VERSION } from './contracts';
 /* ── Qué puede cambiar, y qué no ──────────────────────────────────────────── */
 
 /**
- * LOS ASPECTOS. Cerrados, en cuatro familias más dos que no son visuales.
+ * LOS ASPECTOS. Cerrados, y de TODO WEË, no solo de los personajes.
  *
- * Cerrados porque el adaptador tiene que poder traducirlos: una lista abierta
- * sería un campo de texto con otro nombre, y nadie podría prometer nada sobre
- * él. Añadir un valor sube la versión del contrato; ensanchar una unión no
- * rompe a quien ya la usa.
+ * ── Por qué esta lista no es la de C1 ───────────────────────────────────────
  *
- * ── Por qué `identity.*` y `appearance.*` están separados ───────────────────
+ * C1 nació con diecisiete aspectos pensados para una persona en un plano, y esa
+ * forma no aguanta la frase que de verdad hay que poder decir:
  *
- * Porque es justo la distinción que la gente pide en voz alta: «cambia la ropa
- * pero no cambies a Luna». La identidad es quién es —la cara, el pelo, el
- * cuerpo—; la apariencia es cómo va vestida hoy. Si fueran una sola familia,
- * esa frase no se podría expresar.
+ *     «Conserva exactamente esta arquitectura y cambia solo los muebles.»
+ *     «Mantén esta botella y cambia solo el fondo.»
+ *     «Conserva la fachada y cambia las ventanas.»
  *
- * `identity.appearance` existe para el caso en que alguien quiere fijar el
- * aspecto general del personaje sin enumerar sus partes. Se solapa a propósito
- * con `appearance.*`, y ese solapamiento NO se resuelve aquí: este archivo no
- * construye una jerarquía de aspectos. Pedir `identity.appearance` y dejar
- * `appearance.outfit` libre es una contradicción de intención, no de forma, y
- * el Core no adivina intenciones.
+ * Son el MISMO requisito que «cambia la ropa pero no cambies a Luna», y tenían
+ * que caber en el mismo contrato. Con `scene.*` y `objects.*` como únicas
+ * familias no cabían: un edificio no es un objeto del plano y una distribución
+ * no es una escena. Así que las familias se rehicieron ANTES de que nada
+ * persistiera —C1 no toca Firestore, no tiene puerta y no está desplegado—,
+ * que es exactamente cuando cuesta un test y no una migración.
+ *
+ * Lo que NO cambió es ninguna decisión de C1: dos listas, `unknown` nunca es
+ * `pass`, el silencio no es permiso, sin puntuación, y un puntero es un id con
+ * su versión.
+ *
+ * ── Cómo se lee ─────────────────────────────────────────────────────────────
+ *
+ * `familia.detalle`. La familia dice de qué se habla; el detalle, qué parte.
+ * Pedir la familia entera no existe a propósito: «conserva la arquitectura» son
+ * cinco cosas concretas, y enumerarlas es lo que permite que un proveedor diga
+ * cuáles sabe y cuáles no.
+ *
+ * ── Y por qué `identity.*` y el resto están separados ───────────────────────
+ *
+ * Porque es la distinción que la gente pide en voz alta. La identidad es quién
+ * es —la cara, el cuerpo, los rasgos—; la apariencia es cómo va hoy, y el
+ * vestuario es otra cosa todavía. Si fueran una sola familia, «cambia el
+ * vestido pero no cambies a Luna» no se podría escribir.
+ *
+ * `identity.appearance` existe para fijar el aspecto general sin enumerar.
+ * Se solapa a propósito con `appearance.*` y ese solapamiento NO se resuelve
+ * aquí: este archivo no construye una jerarquía. Una jerarquía inventada sería
+ * el Core opinando sobre lo que la gente quiso decir.
  */
 export type ContinuityAspect =
-  /* Quién es. Lo que no puede moverse si se quiere el mismo personaje. */
+  /* QUIÉN O QUÉ ES. Lo que no puede moverse sin que deje de ser lo mismo. */
   | 'identity.face'
-  | 'identity.hair'
   | 'identity.body'
-  /* El aspecto general del personaje, sin desglosar. */
+  | 'identity.hair'
+  | 'identity.features'
   | 'identity.appearance'
-  /* Cómo va hoy. Puede cambiar sin dejar de ser la misma persona. */
-  | 'appearance.outfit'
-  | 'appearance.accessories'
-  | 'appearance.colors'
-  /* El tratamiento visual del conjunto. */
-  | 'style'
-  /* Dónde ocurre y cómo está iluminado. */
-  | 'scene.location'
-  | 'scene.environment'
-  | 'scene.lighting'
-  | 'scene.spatial'
-  /* Las cosas que hay en el plano. */
-  | 'objects.presence'
-  | 'objects.position'
-  | 'objects.state'
-  /* Que el tiempo avance como debe. */
-  | 'temporal'
-  /* Que la historia siga teniendo sentido. */
-  | 'narrative';
+  /* CÓMO SE VE HOY. Cambia sin dejar de ser la misma persona. */
+  | 'appearance.hairstyle'
+  | 'appearance.hairColor'
+  | 'appearance.skin'
+  | 'appearance.eyes'
+  | 'appearance.facialHair'
+  | 'appearance.makeup'
+  /* LO QUE LLEVA PUESTO. */
+  | 'outfit.clothing'
+  | 'outfit.footwear'
+  | 'outfit.accessories'
+  | 'outfit.complete'
+  /* UNA COSA. Un coche, una silla, una guitarra. */
+  | 'object.identity'
+  | 'object.geometry'
+  | 'object.proportions'
+  | 'object.color'
+  | 'object.material'
+  | 'object.texture'
+  | 'object.markings'
+  | 'object.presence'
+  | 'object.position'
+  | 'object.state'
+  /* ALGO QUE SE VENDE. Un objeto con marca encima, y la marca importa. */
+  | 'product.identity'
+  | 'product.geometry'
+  | 'product.packaging'
+  | 'product.label'
+  | 'product.branding'
+  /* UN EDIFICIO. La familia que hace que esto sirva para Weë Design. */
+  | 'architecture.identity'
+  | 'architecture.geometry'
+  | 'architecture.facade'
+  | 'architecture.openings'
+  | 'architecture.structure'
+  | 'architecture.proportions'
+  | 'architecture.spatialLayout'
+  | 'architecture.materials'
+  | 'architecture.elements'
+  /* LO DE DENTRO. Se conserva la casa y se cambian los muebles, o al revés. */
+  | 'interior.layout'
+  | 'interior.furniture'
+  | 'interior.fixtures'
+  | 'interior.materials'
+  | 'interior.finishes'
+  | 'interior.decoration'
+  /* LO DE FUERA. */
+  | 'exterior.site'
+  | 'exterior.landscape'
+  | 'exterior.terrain'
+  | 'exterior.vegetation'
+  | 'exterior.surroundings'
+  /* DÓNDE OCURRE. */
+  | 'environment.location'
+  | 'environment.scene'
+  | 'environment.background'
+  | 'environment.spatialContext'
+  /* EL TRATAMIENTO VISUAL DEL CONJUNTO. */
+  | 'style.visual'
+  | 'style.artistic'
+  | 'style.rendering'
+  | 'style.composition'
+  /* DESDE DÓNDE SE MIRA. */
+  | 'camera.framing'
+  | 'camera.perspective'
+  | 'camera.position'
+  | 'camera.focal'
+  | 'camera.shotType'
+  /* CÓMO ESTÁ ILUMINADO. */
+  | 'lighting.type'
+  | 'lighting.direction'
+  | 'lighting.intensity'
+  | 'lighting.timeOfDay'
+  /* CÓMO ESTÁ PUESTO Y QUÉ HACE. */
+  | 'pose.body'
+  | 'pose.position'
+  | 'action.activity'
+  | 'action.movement'
+  /* DÓNDE ESTÁ CADA COSA RESPECTO A LAS DEMÁS. Ver `SpatialConstraint`. */
+  | 'spatial.relationships'
+  | 'spatial.alignment'
+  | 'spatial.containment'
+  | 'spatial.relativePosition'
+  /* QUE EL TIEMPO AVANCE COMO DEBE. */
+  | 'temporal.previousShot'
+  | 'temporal.sceneState'
+  | 'temporal.subjectState'
+  | 'temporal.environmentState'
+  | 'temporal.objectState'
+  | 'temporal.motion'
+  /* QUE LA HISTORIA SIGA TENIENDO SENTIDO. */
+  | 'narrative.state'
+  | 'narrative.logic';
 
 export const ASPECTOS_DE_CONTINUIDAD: readonly ContinuityAspect[] = Object.freeze([
-  'identity.face', 'identity.hair', 'identity.body', 'identity.appearance',
-  'appearance.outfit', 'appearance.accessories', 'appearance.colors',
-  'style',
-  'scene.location', 'scene.environment', 'scene.lighting', 'scene.spatial',
-  'objects.presence', 'objects.position', 'objects.state',
-  'temporal', 'narrative',
+  'identity.face', 'identity.body', 'identity.hair', 'identity.features', 'identity.appearance',
+  'appearance.hairstyle', 'appearance.hairColor', 'appearance.skin', 'appearance.eyes',
+  'appearance.facialHair', 'appearance.makeup',
+  'outfit.clothing', 'outfit.footwear', 'outfit.accessories', 'outfit.complete',
+  'object.identity', 'object.geometry', 'object.proportions', 'object.color',
+  'object.material', 'object.texture', 'object.markings',
+  'object.presence', 'object.position', 'object.state',
+  'product.identity', 'product.geometry', 'product.packaging', 'product.label', 'product.branding',
+  'architecture.identity', 'architecture.geometry', 'architecture.facade', 'architecture.openings',
+  'architecture.structure', 'architecture.proportions', 'architecture.spatialLayout',
+  'architecture.materials', 'architecture.elements',
+  'interior.layout', 'interior.furniture', 'interior.fixtures', 'interior.materials',
+  'interior.finishes', 'interior.decoration',
+  'exterior.site', 'exterior.landscape', 'exterior.terrain', 'exterior.vegetation', 'exterior.surroundings',
+  'environment.location', 'environment.scene', 'environment.background', 'environment.spatialContext',
+  'style.visual', 'style.artistic', 'style.rendering', 'style.composition',
+  'camera.framing', 'camera.perspective', 'camera.position', 'camera.focal', 'camera.shotType',
+  'lighting.type', 'lighting.direction', 'lighting.intensity', 'lighting.timeOfDay',
+  'pose.body', 'pose.position', 'action.activity', 'action.movement',
+  'spatial.relationships', 'spatial.alignment', 'spatial.containment', 'spatial.relativePosition',
+  'temporal.previousShot', 'temporal.sceneState', 'temporal.subjectState',
+  'temporal.environmentState', 'temporal.objectState', 'temporal.motion',
+  'narrative.state', 'narrative.logic',
 ] as const);
+
+/**
+ * LAS FAMILIAS, derivadas de los propios aspectos y no escritas a mano.
+ *
+ * Existe para que quien enseñe esto a una persona pueda agrupar sin aprenderse
+ * la lista, y para que una familia nueva no obligue a tocar dos sitios.
+ */
+export const FAMILIAS_DE_CONTINUIDAD: readonly string[] = Object.freeze(
+  [...new Set(ASPECTOS_DE_CONTINUIDAD.map((a) => a.slice(0, a.indexOf('.'))))],
+);
 
 export const esAspectoDeContinuidad = (v: unknown): v is ContinuityAspect =>
   typeof v === 'string' && (ASPECTOS_DE_CONTINUIDAD as readonly string[]).includes(v);
@@ -163,6 +284,49 @@ export interface ContinuityRequirements {
   anchors?: readonly ContinuityAnchor[];
   /** Cuánto apretar. Ausente = `standard`. */
   strength?: ContinuityStrength;
+  /** Qué tiene que seguir estando al lado de qué. Ver `SpatialConstraint`. */
+  spatial?: readonly SpatialConstraint[];
+}
+
+/* ── Dónde está cada cosa respecto a las demás ────────────────────────────── */
+
+/**
+ * LAS RELACIONES QUE SE PUEDEN EXIGIR. Ocho, cerradas.
+ *
+ * `spatial.relationships` dice QUE hay que conservar la disposición; esto dice
+ * CUÁL. Sin las dos cosas, «la lámpara sigue encima de la mesa» no se puede
+ * escribir: el aspecto solo no sabe de qué lámpara habla.
+ *
+ * No es un grafo nuevo. Son dos identificadores de Element y un verbo, y viven
+ * dentro del requisito que los necesita — se van con él cuando el plano se
+ * rehace, y no dejan aristas sueltas por ningún sitio.
+ */
+export type SpatialRelationKind =
+  | 'next_to'
+  | 'behind'
+  | 'in_front_of'
+  | 'inside'
+  | 'above'
+  | 'below'
+  | 'aligned_with'
+  | 'attached_to';
+
+export const RELACIONES_ESPACIALES: readonly SpatialRelationKind[] = Object.freeze([
+  'next_to', 'behind', 'in_front_of', 'inside', 'above', 'below', 'aligned_with', 'attached_to',
+] as const);
+
+/**
+ * UNA RELACIÓN A CONSERVAR. Sujeto, verbo y objeto, los tres por identificador.
+ *
+ * El orden importa: «A detrás de B» y «B detrás de A» son cosas distintas, y
+ * por eso no hay un solo campo con dos identificadores dentro.
+ */
+export interface SpatialConstraint {
+  /** El Element que se sitúa. */
+  subject: string;
+  relation: SpatialRelationKind;
+  /** El Element respecto al que se sitúa. */
+  object: string;
 }
 
 /* ── Límites ──────────────────────────────────────────────────────────────── */
@@ -186,6 +350,8 @@ export type MotivoDeContinuidadInvalida =
   | 'invalid_strength'
   | 'invalid_anchor'
   | 'duplicate_anchor'
+  | 'invalid_relation'
+  | 'self_relation'
   | 'too_many';
 
 export interface ProblemaDeContinuidad {
@@ -226,7 +392,9 @@ const normalizar = (c: string): string => c.toLowerCase().replace(/[-_]/g, '');
 export const claveProhibidaDeContinuidad = (clave: string): boolean =>
   PROHIBIDAS.includes(clave.toLowerCase()) || PROHIBIDAS.includes(normalizar(clave));
 
-const CAMPOS_DE_REQUISITOS: readonly string[] = ['preserve', 'mayChange', 'anchors', 'strength'];
+const CAMPOS_DE_REQUISITOS: readonly string[] = ['preserve', 'mayChange', 'anchors', 'strength', 'spatial'];
+const CAMPOS_DE_RELACION: readonly string[] = ['subject', 'relation', 'object'];
+export const MAX_RELACIONES_ESPACIALES = 16;
 const CAMPOS_DE_ANCLAJE: readonly string[] = ['elementId', 'version'];
 
 /**
@@ -324,6 +492,26 @@ export const validarContinuidad = (crudo: unknown): readonly ProblemaDeContinuid
     }
   }
 
+  if (d.spatial !== undefined) {
+    if (!Array.isArray(d.spatial)) p.push(mal('spatial', 'invalid_shape'));
+    else {
+      if (d.spatial.length > MAX_RELACIONES_ESPACIALES) p.push(mal('spatial', 'too_many'));
+      for (let i = 0; i < d.spatial.length; i++) {
+        const r: unknown = d.spatial[i];
+        const campo = `spatial[${i}]`;
+        if (!esObjeto(r) || Object.keys(r).some((k) => !CAMPOS_DE_RELACION.includes(k))) {
+          p.push(mal(campo, 'invalid_relation')); continue;
+        }
+        const sujetoOk = esTxt(r.subject) && FORMA_DE_ID_DE_ANCLAJE.test(r.subject);
+        const objetoOk = esTxt(r.object) && FORMA_DE_ID_DE_ANCLAJE.test(r.object);
+        const verboOk = esTxt(r.relation) && (RELACIONES_ESPACIALES as readonly string[]).includes(r.relation);
+        if (!sujetoOk || !objetoOk || !verboOk) { p.push(mal(campo, 'invalid_relation')); continue; }
+        /* «A al lado de A» no dice nada, y no poder decirlo es mejor que poder decirlo y que nadie lo mire. */
+        if (r.subject === r.object) p.push(mal(campo, 'self_relation'));
+      }
+    }
+  }
+
   return Object.freeze(p);
 };
 
@@ -349,6 +537,93 @@ export const exigenciaDe = (
   if (requisitos.preserve.includes(aspecto)) return 'preserve';
   if (requisitos.mayChange?.includes(aspecto)) return 'may_change';
   return 'unspecified';
+};
+
+/* ── ¿Hay alguien capaz de cumplir esto? ──────────────────────────────────── */
+
+/**
+ * LO QUE UNA IMPLEMENTACIÓN DECLARA QUE SABE CONSERVAR.
+ *
+ * Y fíjate en que esto ENTRA, no se calcula. Quién sabe conservar un rostro lo
+ * sabe su adaptador, y quién sabe conservar una fachada lo sabrá otro: el
+ * catálogo lo recoge y lo pasa. Si este archivo tuviera una tabla de
+ * proveedores, el Core habría dejado de ser agnóstico esa misma tarde.
+ *
+ * La lista es de lo que SÍ. Lo que no esté, no se sabe conservar — y no saberlo
+ * es exactamente el caso que hay que atrapar antes de gastar dinero.
+ */
+export interface ContinuitySupport {
+  preserves: readonly ContinuityAspect[];
+}
+
+/**
+ * POR QUÉ NO SE PUEDE NI EMPEZAR.
+ *
+ * Hoy uno solo, y tiene nombre propio para que no se confunda con un fallo de
+ * validación. Son dos cosas distintas y llegan en momentos distintos:
+ *
+ *   PRE_EXECUTION_REJECTED   nadie sabe hacer esto. No hay trabajo, no hay
+ *                            llamada al proveedor y no hay cobro.
+ *   verdict `fail`           se hizo, se pagó, y el resultado no conserva lo
+ *                            que se exigía.
+ *
+ * Confundirlas sería cobrar por algo que se sabía imposible desde el principio,
+ * o dar por imposible algo que solo salió mal una vez.
+ */
+export type MotivoDeRechazoPrevio = 'unsupported_aspect';
+
+export interface RechazoPrevio {
+  status: 'pre_execution_rejected';
+  reason: MotivoDeRechazoPrevio;
+  /** Qué se exigía y nadie declara saber hacer. Concreto, para poder decirlo. */
+  missing: readonly ContinuityAspect[];
+}
+
+export type RevisionPrevia = { ok: true } | RechazoPrevio;
+
+/**
+ * QUÉ SE EXIGE QUE NADIE SABE HACER. Pura, y solo mira `preserve`.
+ *
+ * Lo liberado no se comprueba —da igual si se sabe conservar algo que se
+ * autorizó a cambiar— y lo que nadie mencionó tampoco: un requisito no dicho no
+ * puede hacer fracasar una ruta.
+ */
+export const aspectosSinCubrir = (
+  requisitos: ContinuityRequirements | undefined,
+  soporte: ContinuitySupport | undefined,
+): readonly ContinuityAspect[] => {
+  const exigidos = requisitos?.preserve ?? [];
+  if (exigidos.length === 0) return Object.freeze([]);
+  const sabe = new Set(soporte?.preserves ?? []);
+  return Object.freeze(exigidos.filter((a) => !sabe.has(a)));
+};
+
+export const puedeCumplir = (
+  requisitos: ContinuityRequirements | undefined,
+  soporte: ContinuitySupport | undefined,
+): boolean => aspectosSinCubrir(requisitos, soporte).length === 0;
+
+/**
+ * ANTES DE CREAR NADA. La comprobación que evita pagar por lo imposible.
+ *
+ * Sin requisitos no hay nada que comprobar y pasa: la continuidad es opcional y
+ * quien no la pide sigue funcionando exactamente igual que antes.
+ *
+ * ── Por qué `strength` no cambia esto ───────────────────────────────────────
+ *
+ * Porque `strength` dice cuánto hay que apretar, no si hace falta. Un
+ * `relaxed` sobre un aspecto que NADIE sabe conservar sigue siendo una promesa
+ * que no se puede cumplir, y aflojarla no la convierte en cumplible: la
+ * convierte en una promesa floja que tampoco se cumple. Quien quiera que algo
+ * sea opcional lo pone en `mayChange`, que es el campo que existe para eso.
+ */
+export const revisarAntesDeEjecutar = (
+  requisitos: ContinuityRequirements | undefined,
+  soporte: ContinuitySupport | undefined,
+): RevisionPrevia => {
+  const faltan = aspectosSinCubrir(requisitos, soporte);
+  if (faltan.length === 0) return { ok: true };
+  return Object.freeze({ status: 'pre_execution_rejected', reason: 'unsupported_aspect', missing: faltan });
 };
 
 /* ── El veredicto ─────────────────────────────────────────────────────────── */

@@ -595,11 +595,18 @@ console.log('\n── G · Qué se añadió, qué se tocó a propósito y qué s
    * cada una siga teniendo la suya: una fase que toque el Gateway sin dejar
    * nombre hace fallar esto.
    */
+  /*
+   * Lo que importa es que las CUATRO sigan existiendo con su número, no cómo
+   * estén redactadas. Escrito contra la frase entera, esto se rompía cada vez
+   * que una fase legítima reformulaba un guard —C2 amplió 63f de «UNA clave»
+   * a «las claves que haya»— y eso convierte una vigilancia en una molestia
+   * que alguien acaba borrando.
+   */
   check('lo tocado de una fase cerrada está vigilado una por una en job-queue 63b–63f', (() => {
     const jq = leer('functions/test/job-queue.test.mjs');
-    return /63b\) del Gateway cambió `leerTraza`/.test(jq) && /63c\) y se completó `accepted`/.test(jq)
-      && /63e\) del Gateway solo se han quitado las dos líneas de F12-D/.test(jq)
-      && /63f\) y lo que S2 abrió en el Gateway es UNA clave de pista/.test(jq);
+    return ['63b', '63c', '63e', '63f'].every((id) => new RegExp(`check\\('${id}\\) `).test(jq))
+      && /63b\) del Gateway cambió `leerTraza`/.test(jq)
+      && /63c\) y se completó `accepted`/.test(jq);
   })());
   check('esta suite está en la cadena de `npm test`', /runtime-premigracion\.test\.mjs/.test(leer('functions/package.json')));
 }

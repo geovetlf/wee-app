@@ -185,8 +185,14 @@ console.log('\n── B · Por la costura que ya existía, y por ninguna otra �
     pistas.ok && pistas.hints.creative.camera.type === 'aerial' && pistas.hints.durationSec === 12);
   check('AB) y rechaza una intención rota antes de que viaje a ningún sitio',
     leerHints({ creative: { version: V, camera: { type: 'submarino' } } }, 'hints').ok === false);
+  /*
+   * Lo que esto defiende es que la intención creativa viaje POR LA COSTURA que
+   * ya existe, no que sea la única que lo haga. Escrito como la lista entera,
+   * el guard fijaba también a sus vecinas: C2 añadió `continuity` por la misma
+   * puerta y por el mismo motivo, y esto rompía sin que nada se hubiera roto.
+   */
   check('AB) el canal es UNO: `creative` es una clave de `hints`, no una tubería nueva',
-    /const CLAVES_DE_HINTS = \['quality', 'durationSec', 'creative'\];/.test(leer('functions/src/core/gateway.ts')));
+    /const CLAVES_DE_HINTS = \[[^\]]*'creative'[^\]]*\];/.test(leer('functions/src/core/gateway.ts')));
 
   /* Q/R · El Planner. */
   const entendimiento = (extra = {}) => ({

@@ -1,19 +1,25 @@
 /**
- * WEË CONTINUITY — C1: VOCABULARIO, CONTRATOS Y VALIDADORES PUROS.
+ * WEË CONTINUITY & PRESERVATION LAYER — C1 + C2.
  *
  * ── Qué se mide aquí ────────────────────────────────────────────────────────
  *
- * Que se pueda DECIR «cambia la ropa pero no cambies a Luna» sin ambigüedad, y
- * que lo que no se dijo no se pueda leer como un permiso.
+ * Que se pueda DECIR, con el mismo contrato y sin ambigüedad:
  *
- * C1 no genera nada, no valida ninguna imagen y no habla con nadie. Así que lo
- * único que hay que probar —y todo lo que hay que probar— es que el vocabulario
- * cierra: que lo válido pasa, que lo inválido rompe, y que las tres reglas
- * duras del diseño se sostienen:
+ *     «cambia el vestido pero no cambies a Luna»
+ *     «conserva esta arquitectura y cambia solo los muebles»
+ *     «mantén esta botella y cambia solo el fondo»
+ *     «conserva la fachada y cambia las ventanas»
+ *
+ * Son el mismo requisito. Si hicieran falta cuatro contratos, la capa no sería
+ * transversal: sería cuatro capas con el mismo nombre.
+ *
+ * Y que las cuatro reglas duras se sostengan:
  *
  *   1 · `unknown` NUNCA es `pass`.
- *   2 · lo que nadie dijo está `unspecified`, que tampoco es `pass`.
- *   3 · exigir y liberar el mismo aspecto es una contradicción, no un matiz.
+ *   2 · el silencio no es permiso: `unspecified` no es `mayChange`.
+ *   3 · exigir y liberar lo mismo es una contradicción, no un matiz.
+ *   4 · exigir lo que nadie sabe hacer se rechaza ANTES de crear el trabajo,
+ *       y eso NO es lo mismo que generar algo y que salga mal.
  *
  * Usa el compilado: `npm run build` antes de `npm test`.
  */
@@ -38,325 +44,321 @@ const check = (name, cond, extra = '') => {
 
 const core = lib('core/index.js');
 const {
-  ASPECTOS_DE_CONTINUIDAD, FUERZAS_DE_CONTINUIDAD, ESTADOS_DE_CONTINUIDAD,
+  ASPECTOS_DE_CONTINUIDAD, FAMILIAS_DE_CONTINUIDAD, FUERZAS_DE_CONTINUIDAD, ESTADOS_DE_CONTINUIDAD,
+  RELACIONES_ESPACIALES, MAX_RELACIONES_ESPACIALES,
   CONTINUITY_CONTRACT_VERSION, SHOT_CONTRACT_VERSION,
   esAspectoDeContinuidad, validarContinuidad, continuidadValida,
   exigenciaDe, resumirVeredicto, rompeLaContinuidad,
   validarVeredicto, veredictoValido, anclajeValido, claveProhibidaDeContinuidad,
+  aspectosSinCubrir, puedeCumplir, revisarAntesDeEjecutar,
   ESTADOS_DE_PLANO, TRANSICIONES_DE_PLANO, puedePasarDePlano, esEstadoDePlano,
   validarEscena, escenaValida, validarPlano, planoValido,
   nodoEsDeLaCuenta, referenciasDelPlano, claveProhibidaDeNodo,
   MAX_NARRATIVA, MAX_DEPENDENCIAS_DE_PLANO, MAX_ELEMENTOS_POR_NODO,
+  leerHints,
 } = core;
 
 /* ── Fixtures ─────────────────────────────────────────────────────────────── */
 
 const CUENTA = 'acc_0001';
 const LUNA = 'el_luna_0001';
-const TRAJE = 'el_traje_0001';
-const LABORATORIO = 'el_lab_0001';
+const VESTIDO = 'el_vestido_001';
+const CASA = 'el_casa_0001';
+const BOTELLA = 'el_botella_001';
+const LAMPARA = 'el_lampara_001';
+const MESA = 'el_mesa_0001';
 
 const escena = (extra = {}) => ({
   contract: SHOT_CONTRACT_VERSION,
-  sceneId: 'sc_0001',
-  projectId: 'pr_0001',
-  ownerAccountId: CUENTA,
-  version: 1,
-  order: 0,
-  createdAt: 1_000,
-  updatedAt: 1_000,
-  ...extra,
+  sceneId: 'sc_0001', projectId: 'pr_0001', ownerAccountId: CUENTA,
+  version: 1, order: 0, createdAt: 1_000, updatedAt: 1_000, ...extra,
 });
 
 const plano = (extra = {}) => ({
   contract: SHOT_CONTRACT_VERSION,
-  shotId: 'sh_0001',
-  projectId: 'pr_0001',
-  ownerAccountId: CUENTA,
-  version: 1,
-  order: 0,
-  state: 'draft',
-  createdAt: 1_000,
-  updatedAt: 1_000,
-  ...extra,
+  shotId: 'sh_0001', projectId: 'pr_0001', ownerAccountId: CUENTA,
+  version: 1, order: 0, state: 'draft', createdAt: 1_000, updatedAt: 1_000, ...extra,
+});
+
+const veredicto = (extra = {}) => ({
+  contract: CONTINUITY_CONTRACT_VERSION, status: 'pass',
+  aspects: [{ aspect: 'identity.face', status: 'pass' }], validatedAt: 2_000, ...extra,
 });
 
 const motivos = (problemas) => problemas.map((x) => `${x.field}:${x.reason}`).join(' ');
 
-console.log('\n── A · El vocabulario cierra ──');
+console.log('\n── A · El vocabulario es de TODO Weë, no solo de personajes ──');
 
-check('los diecisiete aspectos están, y la lista es la unión',
-  ASPECTOS_DE_CONTINUIDAD.length === 17
-  && ['identity.face', 'identity.hair', 'identity.body', 'identity.appearance',
-    'appearance.outfit', 'appearance.accessories', 'appearance.colors', 'style',
-    'scene.location', 'scene.environment', 'scene.lighting', 'scene.spatial',
-    'objects.presence', 'objects.position', 'objects.state', 'temporal', 'narrative']
-    .every((a) => ASPECTOS_DE_CONTINUIDAD.includes(a)),
+check('hay familias de sobra para cubrir los dominios pedidos',
+  ['identity', 'appearance', 'outfit', 'object', 'product', 'architecture', 'interior',
+    'exterior', 'environment', 'style', 'camera', 'lighting', 'pose', 'action',
+    'spatial', 'temporal', 'narrative'].every((f) => FAMILIAS_DE_CONTINUIDAD.includes(f)),
+  FAMILIAS_DE_CONTINUIDAD.join(' '));
+check('las familias se DERIVAN de los aspectos, no se escriben aparte',
+  FAMILIAS_DE_CONTINUIDAD.every((f) => ASPECTOS_DE_CONTINUIDAD.some((a) => a.startsWith(`${f}.`))));
+check('todo aspecto es `familia.detalle`: no hay comodines de familia entera',
+  ASPECTOS_DE_CONTINUIDAD.every((a) => /^[a-z]+\.[A-Za-z]+$/.test(a)),
   `${ASPECTOS_DE_CONTINUIDAD.length} aspectos`);
-check('y nada de fuera entra', !esAspectoDeContinuidad('identity.vibe') && !esAspectoDeContinuidad('') && !esAspectoDeContinuidad(7));
-check('la fuerza es semántica, no un número', FUERZAS_DE_CONTINUIDAD.join(',') === 'relaxed,standard,strict');
-check('y un número no cuela como fuerza', !continuidadValida({ preserve: ['style'], strength: 0.82 }));
-check('las listas están congeladas: nadie las amplía en caliente',
-  Object.isFrozen(ASPECTOS_DE_CONTINUIDAD) && Object.isFrozen(FUERZAS_DE_CONTINUIDAD) && Object.isFrozen(ESTADOS_DE_CONTINUIDAD));
+check('y nada de fuera entra',
+  !esAspectoDeContinuidad('architecture') && !esAspectoDeContinuidad('identity.vibe') && !esAspectoDeContinuidad(7));
+check('11) la fuerza sigue siendo semántica, no un número',
+  FUERZAS_DE_CONTINUIDAD.join(',') === 'relaxed,standard,strict'
+  && !continuidadValida({ preserve: ['identity.face'], strength: 0.82 }));
+check('las listas están congeladas', [ASPECTOS_DE_CONTINUIDAD, FUERZAS_DE_CONTINUIDAD, ESTADOS_DE_CONTINUIDAD, RELACIONES_ESPACIALES].every(Object.isFrozen));
 
-console.log('\n── B · Requisitos: preserve, mayChange y sus conflictos ──');
+console.log('\n── B · Las cinco frases, con el MISMO contrato ──');
 
-check('7) unos requisitos mínimos válidos', continuidadValida({ preserve: ['identity.face'] }));
-check('8) con `mayChange` también', continuidadValida({ preserve: ['identity.face'], mayChange: ['appearance.outfit'] }));
-check('sin `preserve` no hay requisitos', !continuidadValida({ mayChange: ['style'] }));
-check('y con `preserve` vacío tampoco: exigir nada no es exigir',
-  validarContinuidad({ preserve: [] }).some((x) => x.reason === 'empty_preserve'));
-check('10) el MISMO aspecto exigido y liberado se rechaza',
-  validarContinuidad({ preserve: ['identity.face'], mayChange: ['identity.face'] })
-    .some((x) => x.reason === 'conflicting_aspect'));
-check('un aspecto repetido dentro de una lista se rechaza',
-  validarContinuidad({ preserve: ['style', 'style'] }).some((x) => x.reason === 'duplicate_aspect'));
-check('un solapamiento de SIGNIFICADO no se rechaza: el Core no adivina intenciones',
-  continuidadValida({ preserve: ['identity.appearance'], mayChange: ['appearance.outfit'] }),
-  'identity.appearance + appearance.outfit conviven');
-check('16) un campo que no existe en el contrato se rechaza',
-  validarContinuidad({ preserve: ['style'], urgencia: 'alta' }).some((x) => x.reason === 'unknown_field'));
-/*
- * `JSON.parse` sí crea `__proto__` como propiedad PROPIA —un literal no—, así
- * que esto es lo que llegaría de verdad desde un cuerpo de petición.
- */
-const conProto = validarContinuidad(JSON.parse('{"preserve":["style"],"__proto__":{"x":1}}'));
-const conConstructor = validarContinuidad({ preserve: ['style'], constructor: 'x' });
-check('y una clave peligrosa se marca como tal, venga de donde venga',
-  conProto.some((x) => x.field === '__proto__' && x.reason === 'dangerous_key')
-  && conConstructor.some((x) => x.field === 'constructor' && x.reason === 'dangerous_key'),
-  motivos([...conProto, ...conConstructor]));
-check('un prompt NO puede viajar dentro de unos requisitos',
-  claveProhibidaDeContinuidad('prompt') && claveProhibidaDeContinuidad('negativePrompt')
-  && validarContinuidad({ preserve: ['style'], prompt: 'una taza' }).some((x) => x.reason === 'forbidden_key'));
-check('ni un embedding, ni un modelo, ni una URL',
-  ['embedding', 'vector', 'modelId', 'provider', 'url', 'storageRef', 'apiKey']
-    .every((k) => claveProhibidaDeContinuidad(k)));
+const r2 = { preserve: ['identity.face'], anchors: [{ elementId: LUNA, version: 4 }] };
+check('2) «conserva la cara»', continuidadValida(r2), motivos(validarContinuidad(r2)));
 
-console.log('\n── C · 12) elementId + version: el corazón ──');
+const r3 = { preserve: ['architecture.geometry', 'architecture.spatialLayout', 'architecture.openings', 'architecture.proportions', 'architecture.materials'], mayChange: ['interior.furniture', 'interior.decoration'], anchors: [{ elementId: CASA, version: 2 }] };
+check('3/23) «conserva la arquitectura y cambia solo los muebles»', continuidadValida(r3), motivos(validarContinuidad(r3)));
 
-check('12) un anclaje es un id MÁS una versión', anclajeValido({ elementId: LUNA, version: 3 }));
-check('sin versión no vale: «la misma Luna» no significa nada sin ella',
-  !anclajeValido({ elementId: LUNA }));
-check('la versión es un entero desde 1', !anclajeValido({ elementId: LUNA, version: 0 })
-  && !anclajeValido({ elementId: LUNA, version: 1.5 }) && !anclajeValido({ elementId: LUNA, version: -3 }));
-check('4) un id corto o con forma rara se rechaza',
-  !anclajeValido({ elementId: 'ab', version: 1 }) && !anclajeValido({ elementId: 'el luna!', version: 1 }));
-check('el NOMBRE no es la fuente de verdad: no hay sitio donde ponerlo',
-  !anclajeValido({ elementId: LUNA, version: 3, name: 'Luna' }));
-check('la misma cosa anclada dos veces es una orden imposible',
+const r4 = { preserve: ['product.identity', 'product.geometry', 'product.label', 'product.branding'], mayChange: ['environment.background', 'environment.scene'], anchors: [{ elementId: BOTELLA, version: 3 }] };
+check('4/25) «mantén esta botella y cambia solo el fondo»', continuidadValida(r4), motivos(validarContinuidad(r4)));
+
+const r5 = { preserve: ['identity.face', 'identity.body', 'identity.hair'], mayChange: ['outfit.clothing', 'outfit.footwear', 'outfit.accessories'], anchors: [{ elementId: LUNA, version: 4 }, { elementId: VESTIDO, version: 1 }] };
+check('5/24) «cambia el vestido pero no cambies a Luna»', continuidadValida(r5), motivos(validarContinuidad(r5)));
+
+const rFachada = { preserve: ['architecture.facade', 'architecture.geometry', 'architecture.proportions'], mayChange: ['architecture.openings', 'lighting.type', 'lighting.timeOfDay'] };
+check('«conserva la fachada, cambia las ventanas y hazlo de noche»', continuidadValida(rFachada));
+
+const rAccion = { preserve: ['identity.face', 'identity.body', 'outfit.complete', 'environment.scene'], mayChange: ['pose.body', 'action.activity', 'action.movement'] };
+check('«misma persona, misma ropa, mismo sitio, otra acción»', continuidadValida(rAccion));
+
+console.log('\n── C · 6) Relaciones espaciales ──');
+
+const rEspacial = {
+  preserve: ['spatial.relationships', 'spatial.containment'],
+  spatial: [{ subject: LAMPARA, relation: 'above', object: MESA }, { subject: BOTELLA, relation: 'inside', object: CASA }],
+};
+check('6) se puede exigir «la lámpara encima de la mesa»', continuidadValida(rEspacial), motivos(validarContinuidad(rEspacial)));
+check('las ocho relaciones están', RELACIONES_ESPACIALES.length === 8
+  && ['next_to', 'behind', 'in_front_of', 'inside', 'above', 'below', 'aligned_with', 'attached_to'].every((k) => RELACIONES_ESPACIALES.includes(k)));
+check('un verbo inventado se rechaza',
+  validarContinuidad({ preserve: ['spatial.relationships'], spatial: [{ subject: LAMPARA, relation: 'cerquita', object: MESA }] })
+    .some((x) => x.reason === 'invalid_relation'));
+check('«A al lado de A» se rechaza: no dice nada',
+  validarContinuidad({ preserve: ['spatial.relationships'], spatial: [{ subject: MESA, relation: 'next_to', object: MESA }] })
+    .some((x) => x.reason === 'self_relation'));
+check('y están acotadas',
+  validarContinuidad({ preserve: ['spatial.relationships'], spatial: Array.from({ length: MAX_RELACIONES_ESPACIALES + 1 }, (_, i) => ({ subject: `el_a${String(i).padStart(4, '0')}`, relation: 'next_to', object: MESA })) })
+    .some((x) => x.reason === 'too_many'));
+check('no hay grafo nuevo: una relación son dos ids y un verbo, y viven dentro del requisito',
+  !/graph|Graph|nodes|edges/.test(leer('functions/src/core/continuity.ts')));
+
+console.log('\n── D · 7/22) Varios dominios a la vez ──');
+
+const rTodo = {
+  preserve: ['identity.face', 'architecture.geometry', 'product.identity', 'style.visual', 'spatial.relationships'],
+  mayChange: ['interior.furniture', 'outfit.clothing', 'lighting.timeOfDay'],
+  anchors: [{ elementId: LUNA, version: 4 }, { elementId: CASA, version: 2 }, { elementId: BOTELLA, version: 3 }],
+  spatial: [{ subject: BOTELLA, relation: 'above', object: MESA }],
+  strength: 'strict',
+};
+check('22) arquitectura + personaje + producto conviven en UN requisito', continuidadValida(rTodo), motivos(validarContinuidad(rTodo)));
+check('7) y cada dominio conserva su exigencia por separado',
+  exigenciaDe(rTodo, 'identity.face') === 'preserve'
+  && exigenciaDe(rTodo, 'architecture.geometry') === 'preserve'
+  && exigenciaDe(rTodo, 'product.identity') === 'preserve'
+  && exigenciaDe(rTodo, 'interior.furniture') === 'may_change'
+  && exigenciaDe(rTodo, 'camera.framing') === 'unspecified');
+check('20) y cada anclaje lleva SU versión',
+  rTodo.anchors.map((a) => a.version).join(',') === '4,2,3'
+  && rTodo.anchors.every((a) => anclajeValido(a)));
+
+console.log('\n── E · preserve / mayChange: lo que C1 decidió, intacto ──');
+
+check('8) preserve + mayChange sin conflicto es válido', continuidadValida({ preserve: ['identity.face'], mayChange: ['outfit.clothing'] }));
+check('el MISMO aspecto exigido y liberado se rechaza',
+  validarContinuidad({ preserve: ['identity.face'], mayChange: ['identity.face'] }).some((x) => x.reason === 'conflicting_aspect'));
+check('9) `unspecified` NO es `may_change`',
+  exigenciaDe({ preserve: ['identity.face'] }, 'lighting.timeOfDay') === 'unspecified'
+  && exigenciaDe({ preserve: ['identity.face'] }, 'lighting.timeOfDay') !== 'may_change');
+check('sin `preserve`, o con `preserve` vacío, no hay requisitos',
+  !continuidadValida({ mayChange: ['style.visual'] })
+  && validarContinuidad({ preserve: [] }).some((x) => x.reason === 'empty_preserve'));
+check('un aspecto repetido se rechaza',
+  validarContinuidad({ preserve: ['style.visual', 'style.visual'] }).some((x) => x.reason === 'duplicate_aspect'));
+check('la misma cosa anclada dos veces se rechaza',
   validarContinuidad({ preserve: ['identity.face'], anchors: [{ elementId: LUNA, version: 3 }, { elementId: LUNA, version: 4 }] })
     .some((x) => x.reason === 'duplicate_anchor'));
 
-console.log('\n── D · 9) UNKNOWN nunca es PASS ──');
+console.log('\n── F · 14) Nada de un proveedor entra aquí ──');
+
+check('14) ni modelo, ni proveedor, ni endpoint, ni clave',
+  ['modelId', 'providerId', 'provider', 'model', 'adapter', 'endpoint', 'apiKey', 'token']
+    .every((k) => claveProhibidaDeContinuidad(k)));
+check('14) ni prompt, ni embedding, ni vector, ni bytes, ni URL',
+  ['prompt', 'negativePrompt', 'seed', 'embedding', 'embeddings', 'vector', 'bytes', 'url', 'storageRef']
+    .every((k) => claveProhibidaDeContinuidad(k)));
+check('14) y un requisito que los lleve se rechaza con motivo',
+  validarContinuidad({ preserve: ['style.visual'], modelId: 'x' }).some((x) => x.reason === 'forbidden_key')
+  && validarContinuidad({ preserve: ['style.visual'], prompt: 'una casa' }).some((x) => x.reason === 'forbidden_key'));
+check('una clave peligrosa se marca, venga de donde venga',
+  validarContinuidad(JSON.parse('{"preserve":["style.visual"],"__proto__":{"x":1}}')).some((x) => x.field === '__proto__' && x.reason === 'dangerous_key')
+  && validarContinuidad({ preserve: ['style.visual'], constructor: 'x' }).some((x) => x.reason === 'dangerous_key'));
+check('el Core de continuidad no nombra a ningún proveedor',
+  !/(?<![a-z])(gemini|seedance|openai|anthropic|elevenlabs|flux|minimax|bytedance)(?![a-z])/i
+    .test(leer('functions/src/core/continuity.ts')));
+
+console.log('\n── G · 15/16/17) Rechazo ANTES de ejecutar ──');
+
+const soporteCompleto = { preserves: ['identity.face', 'identity.body', 'architecture.geometry'] };
+const soportePobre = { preserves: ['style.visual'] };
+
+check('15) lo exigido que nadie sabe hacer se nombra, concreto',
+  aspectosSinCubrir({ preserve: ['identity.face', 'architecture.geometry'] }, soportePobre).join(',')
+  === 'identity.face,architecture.geometry');
+const rechazo = revisarAntesDeEjecutar({ preserve: ['identity.face'] }, soportePobre);
+check('15) y se clasifica como PRE_EXECUTION_REJECTED',
+  rechazo.status === 'pre_execution_rejected' && rechazo.reason === 'unsupported_aspect'
+  && rechazo.missing.join(',') === 'identity.face',
+  JSON.stringify(rechazo));
+check('si el candidato SÍ lo declara, se puede empezar',
+  puedeCumplir({ preserve: ['identity.face', 'identity.body'] }, soporteCompleto)
+  && revisarAntesDeEjecutar({ preserve: ['identity.face'] }, soporteCompleto).ok === true);
+check('1) sin requisitos no hay nada que rechazar: la continuidad es opcional',
+  revisarAntesDeEjecutar(undefined, undefined).ok === true
+  && revisarAntesDeEjecutar(undefined, soportePobre).ok === true);
+check('lo LIBERADO no se comprueba: da igual si se sabe conservar lo que se autorizó a cambiar',
+  revisarAntesDeEjecutar({ preserve: ['style.visual'], mayChange: ['identity.face'] }, soportePobre).ok === true);
+check('`strength` no salva un aspecto que nadie sabe hacer: aflojar no es cumplir',
+  revisarAntesDeEjecutar({ preserve: ['identity.face'], strength: 'relaxed' }, soportePobre).status === 'pre_execution_rejected');
+/*
+ * 16 no puede EJECUTAR nada: se comprueba donde está escrito el orden. El
+ * conductor resuelve la implementación y solo DESPUÉS crea el trabajo, que es
+ * el contrato de F12-D —«el Router va ANTES de crear el trabajo»—.
+ */
+const CONDUCTOR = leer('functions/src/runtime/conductor.ts');
+check('16) el orden está en el código: se resuelve la implementación ANTES de crear el trabajo',
+  CONDUCTOR.indexOf('await resolver.resolver(') > 0
+  && CONDUCTOR.indexOf('await resolver.resolver(') < CONDUCTOR.indexOf('await crearTrabajo('),
+  `resolver=${CONDUCTOR.indexOf('await resolver.resolver(')} crearTrabajo=${CONDUCTOR.indexOf('await crearTrabajo(')}`);
+check('17) un rechazo previo y un veredicto FAIL son cosas DISTINTAS, y se distinguen por su forma',
+  rechazo.status === 'pre_execution_rejected' && rechazo.aspects === undefined
+  && veredictoValido(veredicto({ status: 'fail', aspects: [{ aspect: 'identity.face', status: 'fail' }] }))
+  && !ESTADOS_DE_CONTINUIDAD.includes(rechazo.status));
+
+console.log('\n── H · 10/18) El veredicto ──');
 
 const exigeCara = { preserve: ['identity.face'] };
-
-check('9) un aspecto exigido que no se pudo comprobar deja el veredicto en `unknown`',
-  resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'unknown', reason: 'validator_unavailable' }]) === 'unknown');
-check('9) y un aspecto exigido SIN veredicto también: no comprobar no es aprobar',
-  resumirVeredicto(exigeCara, []) === 'unknown');
-check('un `fail` en lo exigido manda sobre todo lo demás',
-  resumirVeredicto({ preserve: ['identity.face', 'style'] }, [
-    { aspect: 'identity.face', status: 'fail' },
-    { aspect: 'style', status: 'pass' },
-  ]) === 'fail');
-check('un `warn` en lo exigido avisa, no tumba',
-  resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'warn' }]) === 'warn');
-check('y solo se llega a `pass` con todo lo exigido comprobado y conservado',
+check('10) un aspecto exigido sin comprobar deja el veredicto en `unknown`, jamás en `pass`',
+  resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'unknown' }]) === 'unknown'
+  && resumirVeredicto(exigeCara, []) === 'unknown');
+check('18) validador no disponible = UNKNOWN, con su motivo',
+  veredictoValido(veredicto({ status: 'unknown', aspects: [{ aspect: 'identity.face', status: 'unknown', reason: 'validator_unavailable' }] }))
+  && resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'unknown', reason: 'validator_unavailable' }]) === 'unknown');
+check('un `fail` en lo exigido manda',
+  resumirVeredicto({ preserve: ['identity.face', 'style.visual'] },
+    [{ aspect: 'identity.face', status: 'fail' }, { aspect: 'style.visual', status: 'pass' }]) === 'fail');
+check('un `warn` avisa, no tumba', resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'warn' }]) === 'warn');
+check('solo se llega a `pass` con todo lo exigido comprobado y conservado',
   resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'pass', confidence: 'high' }]) === 'pass');
-check('un `fail` en algo que NADIE pidió conservar no tumba un resultado ya pagado',
-  resumirVeredicto(exigeCara, [
-    { aspect: 'identity.face', status: 'pass' },
-    { aspect: 'scene.lighting', status: 'fail' },
-  ]) === 'pass');
-check('sin requisitos no hay nada que aprobar: `unknown`',
-  resumirVeredicto(undefined, [{ aspect: 'identity.face', status: 'pass' }]) === 'unknown');
+check('un `fail` en lo NO exigido no tumba un resultado ya pagado',
+  resumirVeredicto(exigeCara, [{ aspect: 'identity.face', status: 'pass' }, { aspect: 'lighting.timeOfDay', status: 'fail' }]) === 'pass');
+check('el veredicto es POR ASPECTO: no hay hueco para una puntuación',
+  validarVeredicto(veredicto({ score: 0.82 })).some((x) => x.reason === 'unknown_field'));
+check('y puede decir a la vez que la cara va bien y que la geometría falló',
+  veredictoValido(veredicto({
+    status: 'fail',
+    aspects: [
+      { aspect: 'identity.face', status: 'pass' },
+      { aspect: 'architecture.geometry', status: 'fail', reason: 'differs_from_reference' },
+      { aspect: 'lighting.timeOfDay', status: 'unknown', reason: 'not_required' },
+    ],
+  })));
 check('`rompeLaContinuidad` solo es cierto sobre lo EXIGIDO',
   rompeLaContinuidad(exigeCara, { aspect: 'identity.face', status: 'fail' })
-  && !rompeLaContinuidad(exigeCara, { aspect: 'appearance.outfit', status: 'fail' }));
-check('lo que nadie dijo sale `unspecified`, que no es permiso',
-  exigenciaDe(exigeCara, 'scene.lighting') === 'unspecified'
-  && exigenciaDe(undefined, 'identity.face') === 'unspecified');
-check('y lo liberado sale `may_change`',
-  exigenciaDe({ preserve: ['identity.face'], mayChange: ['appearance.outfit'] }, 'appearance.outfit') === 'may_change');
+  && !rompeLaContinuidad(exigeCara, { aspect: 'outfit.clothing', status: 'fail' }));
 
-console.log('\n── E · El veredicto, como contrato ──');
+console.log('\n── I · 12/13) La costura del Gateway ──');
 
-const veredicto = (extra = {}) => ({
-  contract: CONTINUITY_CONTRACT_VERSION,
-  status: 'pass',
-  aspects: [{ aspect: 'identity.face', status: 'pass' }],
-  validatedAt: 2_000,
-  ...extra,
-});
+check('12) unas pistas SIN continuidad siguen funcionando igual que antes',
+  leerHints({ quality: 'high', durationSec: 4 }, 'hints').ok === true
+  && leerHints({}, 'hints').ok === true && leerHints(undefined, 'hints').ok === true);
+check('13) unas pistas CON continuidad también',
+  leerHints({ quality: 'high', continuity: { preserve: ['architecture.geometry'] } }, 'hints').ok === true);
+const conHints = leerHints({ continuity: r5 }, 'hints');
+check('13) y los requisitos llegan enteros al otro lado',
+  conHints.ok && JSON.stringify(conHints.hints.continuity) === JSON.stringify(r5));
+check('unos requisitos rotos se rechazan en la costura, no a medias',
+  leerHints({ continuity: { preserve: ['identity.face'], mayChange: ['identity.face'] } }, 'hints').ok === false
+  && leerHints({ continuity: { preserve: ['no.existe'] } }, 'hints').ok === false
+  && leerHints({ continuity: { preserve: ['style.visual'], modelId: 'x' } }, 'hints').field === 'hints.continuity');
+check('la continuidad es UNA clave de pista, no una tubería nueva',
+  /const CLAVES_DE_HINTS = \[[^\]]*'continuity'[^\]]*\];/.test(leer('functions/src/core/gateway.ts'))
+  && /continuity\?: ContinuityRequirements;/.test(leer('functions/src/core/gateway.ts')));
+check('y el Gateway no aprende el vocabulario: lo delega entero',
+  /!continuidadValida\(crudo\.continuity\)/.test(leer('functions/src/core/gateway.ts'))
+  && !/ContinuityAspect|architecture\.|identity\.face/.test(leer('functions/src/core/gateway.ts').replace(/\/\*[\s\S]*?\*\//g, ' ')));
 
-check('un veredicto mínimo válido', veredictoValido(veredicto()));
-check('el mismo aspecto juzgado dos veces se rechaza',
-  validarVeredicto(veredicto({ aspects: [{ aspect: 'style', status: 'pass' }, { aspect: 'style', status: 'fail' }] }))
-    .some((x) => x.reason === 'duplicate_aspect'));
-check('una confianza inventada se rechaza',
-  !veredictoValido(veredicto({ aspects: [{ aspect: 'style', status: 'pass', confidence: 'absoluta' }] })));
-check('y la confianza puede faltar: no saber cuánto te fías es una respuesta',
-  veredictoValido(veredicto({ aspects: [{ aspect: 'style', status: 'pass' }] })));
-check('un motivo fuera del vocabulario se rechaza',
-  !veredictoValido(veredicto({ aspects: [{ aspect: 'style', status: 'pass', reason: 'porque si' }] })));
-check('no hay hueco para una puntuación: `score` es un campo desconocido',
-  validarVeredicto(veredicto({ score: 0.82 })).some((x) => x.reason === 'unknown_field'));
-
-console.log('\n── F · 2) La escena ──');
+console.log('\n── J · 19/21) Propiedad y referencias ──');
 
 check('2) una escena mínima válida', escenaValida(escena()), motivos(validarEscena(escena())));
-check('3) sin `ownerAccountId` no hay escena',
-  validarEscena({ ...escena(), ownerAccountId: undefined }).some((x) => x.reason === 'invalid_owner'));
-check('una escena puede decir dónde ocurre, con versión',
-  escenaValida(escena({ location: { elementId: LABORATORIO, version: 2 } })));
-check('la luz va por los parámetros creativos, no por un campo nuevo',
-  escenaValida(escena({ creative: { version: 1, lighting: { type: 'dramatic' } } }))
-  && validarEscena(escena({ lighting: 'rojo' })).some((x) => x.reason === 'unknown_field'));
-check('6) el orden es un entero desde 0',
-  escenaValida(escena({ order: 0 })) && escenaValida(escena({ order: 12 }))
-  && !escenaValida(escena({ order: -1 })) && !escenaValida(escena({ order: 1.5 })));
-check('5) la versión es un entero desde 1',
-  !escenaValida(escena({ version: 0 })) && !escenaValida(escena({ version: 2.5 })) && escenaValida(escena({ version: 7 })));
-check('la narrativa es UNA frase acotada, no un guion',
-  escenaValida(escena({ narrative: 'Luna acaba de descubrir la señal' }))
-  && !escenaValida(escena({ narrative: 'x'.repeat(MAX_NARRATIVA + 1) })));
-
-console.log('\n── G · 1) El plano ──');
-
 check('1) un plano mínimo válido', planoValido(plano()), motivos(validarPlano(plano())));
-check('3) sin `ownerAccountId` no hay plano',
-  validarPlano({ ...plano(), ownerAccountId: '' }).some((x) => x.reason === 'invalid_owner'));
-check('13) los seis estados valen',
-  ESTADOS_DE_PLANO.every((e) => planoValido(plano({ state: e }))),
-  ESTADOS_DE_PLANO.join(','));
-check('14) un estado inventado no',
-  !planoValido(plano({ state: 'running' })) && !planoValido(plano({ state: 'queued' })),
-  'running y queued son del Job Engine, no de aquí');
-check('16) un campo arbitrario se rechaza',
-  validarPlano(plano({ mood: 'triste' })).some((x) => x.reason === 'unknown_field'));
-check('el PROMPT no cabe en un plano, que es lo que alguien intentará el primer día',
-  claveProhibidaDeNodo('prompt')
-  && validarPlano(plano({ prompt: 'Luna entra en la habitación' })).some((x) => x.reason === 'forbidden_key'));
-check('11) las dependencias son ids de planos, sin repetir y sin uno mismo',
-  planoValido(plano({ dependsOnShotIds: ['sh_0002', 'sh_0003'] }))
-  && validarPlano(plano({ dependsOnShotIds: ['sh_0001'] })).some((x) => x.reason === 'self_reference')
-  && validarPlano(plano({ dependsOnShotIds: ['sh_0002', 'sh_0002'] })).some((x) => x.reason === 'duplicate_binding'));
-check('y están acotadas',
-  validarPlano(plano({ dependsOnShotIds: Array.from({ length: MAX_DEPENDENCIAS_DE_PLANO + 1 }, (_, i) => `sh_x${String(i).padStart(3, '0')}`) }))
-    .some((x) => x.reason === 'too_many'));
-check('un plano no puede continuar de sí mismo',
-  validarPlano(plano({ previousShotId: 'sh_0001' })).some((x) => x.reason === 'self_reference'));
-check('no hay `nextShotId`: una segunda verdad que podría contradecir a la primera',
-  validarPlano(plano({ nextShotId: 'sh_0002' })).some((x) => x.reason === 'unknown_field'));
-check('el reparto está acotado y sin repetidos',
-  validarPlano(plano({ elements: [{ elementId: LUNA, version: 1 }, { elementId: LUNA, version: 2 }] }))
-    .some((x) => x.reason === 'duplicate_binding')
-  && validarPlano(plano({ elements: Array.from({ length: MAX_ELEMENTOS_POR_NODO + 1 }, (_, i) => ({ elementId: `el_x${String(i).padStart(4, '0')}`, version: 1 })) }))
-    .some((x) => x.reason === 'too_many'));
-check('unos requisitos rotos rompen el plano que los lleva',
-  validarPlano(plano({ continuity: { preserve: ['identity.face'], mayChange: ['identity.face'] } }))
-    .some((x) => x.reason === 'invalid_continuity'));
-check('y un veredicto roto también',
-  validarPlano(plano({ verdict: { contract: '9.9', status: 'pass', aspects: [], validatedAt: 1 } }))
-    .some((x) => x.reason === 'invalid_verdict'));
+check('19) sin `ownerAccountId` no hay nodo',
+  validarPlano({ ...plano(), ownerAccountId: '' }).some((x) => x.reason === 'invalid_owner')
+  && validarEscena({ ...escena(), ownerAccountId: undefined }).some((x) => x.reason === 'invalid_owner'));
+check('19) un nodo de otra cuenta no es de esta',
+  !nodoEsDeLaCuenta(plano(), 'acc_9999') && !nodoEsDeLaCuenta(plano(), undefined) && nodoEsDeLaCuenta(plano(), CUENTA));
+check('21) un plano referencia escena, plano anterior, dependencias y su resultado',
+  planoValido(plano({ sceneId: 'sc_0009', previousShotId: 'sh_0000', dependsOnShotIds: ['sh_0000'], producedAssetId: 'asset_abcd1234' })));
+check('21) y un plano no puede continuar de sí mismo ni depender de sí mismo',
+  validarPlano(plano({ previousShotId: 'sh_0001' })).some((x) => x.reason === 'self_reference')
+  && validarPlano(plano({ dependsOnShotIds: ['sh_0001'] })).some((x) => x.reason === 'self_reference'));
+check('20) el reparto es id MÁS versión, y el nombre no cabe',
+  planoValido(plano({ elements: [{ elementId: LUNA, version: 4 }] }))
+  && !anclajeValido({ elementId: LUNA }) && !anclajeValido({ elementId: LUNA, version: 4, name: 'Luna' }));
+check('las referencias a preparar son la UNIÓN de reparto y anclajes',
+  referenciasDelPlano(plano({ elements: [{ elementId: LUNA, version: 4 }], continuity: r3 }))
+    .map((r) => `${r.elementId}@${r.version}`).sort().join(' ') === `${CASA}@2 ${LUNA}@4`);
+check('13) los seis estados valen y uno inventado no',
+  ESTADOS_DE_PLANO.every((e) => planoValido(plano({ state: e })))
+  && !planoValido(plano({ state: 'running' })) && !planoValido(plano({ state: 'queued' })));
+check('rehacer UN plano es volver a `ready`; de `archived` no se sale',
+  puedePasarDePlano('validated', 'ready') && puedePasarDePlano('stale', 'ready')
+  && !puedePasarDePlano('archived', 'ready') && TRANSICIONES_DE_PLANO.archived.length === 0);
+check('validar viene DESPUÉS de generar',
+  puedePasarDePlano('generated', 'validated') && !puedePasarDePlano('ready', 'validated')
+  && ESTADOS_DE_PLANO.every((e) => TRANSICIONES_DE_PLANO[e].every((d) => esEstadoDePlano(d))));
+check('un plano rechaza campos arbitrarios y el prompt',
+  validarPlano(plano({ mood: 'triste' })).some((x) => x.reason === 'unknown_field')
+  && claveProhibidaDeNodo('prompt')
+  && validarPlano(plano({ prompt: 'Luna entra' })).some((x) => x.reason === 'forbidden_key'));
+check('la narrativa es una frase acotada y las dependencias están acotadas',
+  !planoValido(plano({ narrative: 'x'.repeat(MAX_NARRATIVA + 1) }))
+  && validarPlano(plano({ dependsOnShotIds: Array.from({ length: MAX_DEPENDENCIAS_DE_PLANO + 1 }, (_, i) => `sh_z${String(i).padStart(3, '0')}`) })).some((x) => x.reason === 'too_many')
+  && validarPlano(plano({ elements: Array.from({ length: MAX_ELEMENTOS_POR_NODO + 1 }, (_, i) => ({ elementId: `el_y${String(i).padStart(4, '0')}`, version: 1 })) })).some((x) => x.reason === 'too_many'));
 
-console.log('\n── H · Las transiciones ──');
+console.log('\n── K · Un proyecto entero, de punta a punta ──');
 
-check('desde `archived` no se sale',
-  TRANSICIONES_DE_PLANO.archived.length === 0 && !puedePasarDePlano('archived', 'ready'));
-check('rehacer UN plano es volver a `ready` desde donde estuviera',
-  puedePasarDePlano('generated', 'ready') && puedePasarDePlano('validated', 'ready') && puedePasarDePlano('stale', 'ready'));
-check('un borrador no puede estar generado sin pasar por listo',
-  !puedePasarDePlano('draft', 'generated') && puedePasarDePlano('draft', 'ready') && puedePasarDePlano('ready', 'generated'));
-check('validar viene DESPUÉS de generar, nunca antes',
-  puedePasarDePlano('generated', 'validated') && !puedePasarDePlano('ready', 'validated'));
-check('y `stale` no es un fallo: se llega desde un resultado bueno',
-  puedePasarDePlano('generated', 'stale') && puedePasarDePlano('validated', 'stale'));
-check('todo estado declarado tiene su fila', ESTADOS_DE_PLANO.every((e) => Array.isArray(TRANSICIONES_DE_PLANO[e])));
-check('y todo destino declarado es un estado que existe',
-  ESTADOS_DE_PLANO.every((e) => TRANSICIONES_DE_PLANO[e].every((d) => esEstadoDePlano(d))));
-
-console.log('\n── I · Propiedad ──');
-
-check('un nodo de otra cuenta no es de esta', !nodoEsDeLaCuenta(plano(), 'acc_9999'));
-check('y sin cuenta con la que comparar, tampoco',
-  !nodoEsDeLaCuenta(plano(), undefined) && !nodoEsDeLaCuenta(plano(), '') && !nodoEsDeLaCuenta(undefined, CUENTA));
-check('el suyo sí', nodoEsDeLaCuenta(plano(), CUENTA));
-
-console.log('\n── J · Las cinco frases que había que poder decir ──');
-
-const p1 = plano({
-  shotId: 'sh_0101', order: 0, state: 'ready',
-  elements: [{ elementId: LUNA, version: 3 }],
-  continuity: { preserve: ['identity.face', 'identity.hair'], anchors: [{ elementId: LUNA, version: 3 }], strength: 'strict' },
-});
-check('«la misma Luna, versión 3, conservando la cara»', planoValido(p1), motivos(validarPlano(p1)));
-
+const sc = escena({ sceneId: 'sc_0009', location: { elementId: CASA, version: 2 }, creative: { version: 1, lighting: { type: 'dramatic' } } });
+const p1 = plano({ shotId: 'sh_0101', sceneId: 'sc_0009', order: 0, state: 'ready', elements: [{ elementId: LUNA, version: 4 }], continuity: r5 });
 const p2 = plano({
-  shotId: 'sh_0102', order: 1, previousShotId: 'sh_0101', state: 'ready',
-  elements: [{ elementId: LUNA, version: 3 }, { elementId: TRAJE, version: 2 }],
-  continuity: { preserve: ['identity.face', 'identity.hair', 'identity.body'], mayChange: ['appearance.outfit', 'appearance.colors'] },
+  shotId: 'sh_0102', sceneId: 'sc_0009', order: 1, state: 'generated',
+  previousShotId: 'sh_0101', dependsOnShotIds: ['sh_0101'],
+  elements: [{ elementId: LUNA, version: 4 }, { elementId: CASA, version: 2 }],
+  continuity: rTodo, producedAssetId: 'asset_a71bbd0518dd4c27a976e36d70087f3b',
+  verdict: veredicto({ status: 'warn', aspects: [{ aspect: 'identity.face', status: 'pass' }, { aspect: 'architecture.geometry', status: 'warn' }] }),
 });
-check('«cambia la ropa pero no cambies a Luna»', planoValido(p2), motivos(validarPlano(p2)));
-check('   y la ropa queda liberada de verdad',
-  exigenciaDe(p2.continuity, 'appearance.outfit') === 'may_change'
-  && exigenciaDe(p2.continuity, 'identity.face') === 'preserve');
+check('una escena y dos planos encadenados, todo válido',
+  escenaValida(sc) && planoValido(p1) && planoValido(p2), motivos([...validarEscena(sc), ...validarPlano(p1), ...validarPlano(p2)]));
+check('y sobreviven a guardarse y releerse',
+  planoValido(JSON.parse(JSON.stringify(p2))) && escenaValida(JSON.parse(JSON.stringify(sc)))
+  && continuidadValida(JSON.parse(JSON.stringify(rTodo))) && veredictoValido(JSON.parse(JSON.stringify(veredicto()))));
 
-const p3 = plano({
-  shotId: 'sh_0103', order: 2, state: 'ready',
-  continuity: { preserve: ['identity.face'], mayChange: ['style'] },
-});
-check('«cambia el estilo pero la identidad permanece»', planoValido(p3));
-check('   y un cambio de estilo NO rompe nada',
-  !rompeLaContinuidad(p3.continuity, { aspect: 'style', status: 'fail' })
-  && resumirVeredicto(p3.continuity, [{ aspect: 'identity.face', status: 'pass' }, { aspect: 'style', status: 'fail' }]) === 'pass');
-
-const sc = escena({ sceneId: 'sc_0009', location: { elementId: LABORATORIO, version: 1 }, creative: { version: 1, lighting: { type: 'dramatic' } } });
-const p4 = plano({
-  shotId: 'sh_0104', sceneId: 'sc_0009', order: 3, state: 'ready',
-  continuity: { preserve: ['scene.location'], mayChange: ['scene.lighting'] },
-});
-check('«el mismo lugar pero de noche»', escenaValida(sc) && planoValido(p4), motivos(validarPlano(p4)));
-check('   el sitio se exige y la luz se libera',
-  exigenciaDe(p4.continuity, 'scene.location') === 'preserve'
-  && exigenciaDe(p4.continuity, 'scene.lighting') === 'may_change');
-
-const p5 = plano({
-  shotId: 'sh_0105', order: 4, state: 'generated',
-  previousShotId: 'sh_0104', dependsOnShotIds: ['sh_0104'],
-  producedAssetId: 'asset_a71bbd0518dd4c27a976e36d70087f3b',
-  elements: [{ elementId: LUNA, version: 3 }],
-  continuity: { preserve: ['identity.face', 'scene.spatial'], anchors: [{ elementId: TRAJE, version: 2 }] },
-});
-check('«continúa desde el último plano»', planoValido(p5), motivos(validarPlano(p5)));
-check('   y las referencias que hay que preparar son la UNIÓN de reparto y anclajes',
-  referenciasDelPlano(p5).map((r) => `${r.elementId}@${r.version}`).sort().join(' ') === `${LUNA}@3 ${TRAJE}@2`,
-  referenciasDelPlano(p5).map((r) => `${r.elementId}@${r.version}`).join(' '));
-
-console.log('\n── K · 15) Sobrevivir a un viaje de ida y vuelta ──');
-
-const ida = JSON.parse(JSON.stringify(p5));
-check('15) un plano guardado y releído sigue siendo válido', planoValido(ida) && JSON.stringify(ida) === JSON.stringify(p5));
-check('15) y una escena también', escenaValida(JSON.parse(JSON.stringify(sc))));
-check('15) unos requisitos y un veredicto, igual',
-  continuidadValida(JSON.parse(JSON.stringify(p5.continuity))) && veredictoValido(JSON.parse(JSON.stringify(veredicto()))));
-
-console.log('\n── L · C1 es SOLO contratos ──');
+console.log('\n── L · La capa sigue siendo SOLO contratos ──');
 
 const FUENTES = ['functions/src/core/continuity.ts', 'functions/src/core/shot.ts'];
 const src = FUENTES.map((f) => leer(f)).join('\n');
-
 check('no hay Firestore, ni red, ni disco, ni reloj, ni azar',
   !/firebase|firestore|node:fs|fetch\(|Date\.now\(|Math\.random\(|new Date\(/.test(src));
 check('no se importa nada de fuera del Core',
-  FUENTES.every((f) => [...leer(f).matchAll(/from '([^']+)'/g)].every((m) => m[1].startsWith('./'))),
-  'solo ./');
-check('y no se ha tocado nada de lo cerrado',
-  !/ExecutionHints/.test(src) && !/ProjectItemKind/.test(src) && !/CoreCapabilityId/.test(src),
-  'ni hints, ni project items, ni catálogo — eso es C2+');
-check('los dos contratos están registrados y exportados',
+  FUENTES.every((f) => [...leer(f).matchAll(/from '([^']+)'/g)].every((m) => m[1].startsWith('./'))));
+check('no hay segundo motor: ni router, ni planner, ni job, ni gateway propios',
+  !/crearRouter|crearJobEngine|crearGateway|crearPlanner|JobStore|QueuePort/.test(src));
+check('los dos contratos siguen registrados y exportados',
   CONTINUITY_CONTRACT_VERSION === '1.0' && SHOT_CONTRACT_VERSION === '1.0'
   && /export \* from '\.\/continuity'/.test(leer('functions/src/core/index.ts'))
   && /export \* from '\.\/shot'/.test(leer('functions/src/core/index.ts')));

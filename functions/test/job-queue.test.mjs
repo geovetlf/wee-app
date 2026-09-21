@@ -430,13 +430,34 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   check('63e) del Gateway solo se han quitado las dos líneas de F12-D y la costura de pistas que abrió S2',
     quitadas.filter(deF12D).length === 2 && quitadas.every((l) => deF12D(l) || deS2(l)),
     `${quitadas.length}: ${quitadas.map((l) => l.trim().slice(0, 40)).join(' | ')}`);
-  check('63f) y lo que S2 abrió en el Gateway es UNA clave de pista, con su contrato aparte',
-    /const CLAVES_DE_HINTS = \['quality', 'durationSec', 'creative'\];/.test(GATEWAY)
-    && /creative\?: CreativeParameters;/.test(GATEWAY)
-    /* La intención creativa NO se valida aquí: tiene su propio contrato y se delega entero. */
-    && /!creativosValidos\(crudo\.creative\)/.test(GATEWAY)
-    /* Y el Gateway no sabe ni una palabra del vocabulario creativo. En los comentarios sí, que para eso están. */
-    && !/aerial|dolly_out|golden_hour|CameraType|MovementType/.test(sinComentarios(GATEWAY)));
+  /*
+   * 63f VIGILA LA COSTURA, NO SUS INQUILINOS.
+   *
+   * Escrito como la lista literal, este guard fijaba qué claves de pista
+   * existían, y eso es lo contrario de lo que dice defender: la costura se
+   * abrió justamente para que quepan requisitos nuevos sin tubería nueva. C2
+   * metió `continuity` por ella y esto rompía sin que nada se hubiera roto.
+   *
+   * Lo que de verdad hay que sostener son tres cosas, y ahora se comprueban
+   * sobre las claves que HAYA, sean las que sean:
+   *
+   *   1 · las dos escalares de siempre siguen estando;
+   *   2 · toda clave que no sea escalar DELEGA entera en su propio contrato
+   *       —se valida con una llamada suya, no a trozos aquí—;
+   *   3 · y el Gateway no aprende ni una palabra de ninguno de esos
+   *       vocabularios. En los comentarios sí, que para eso están.
+   */
+  const clavesDeHints = (GATEWAY.match(/const CLAVES_DE_HINTS = \[([^\]]*)\]/) ?? [, ''])[1]
+    .split(',').map((s) => s.trim().replace(/'/g, '')).filter(Boolean);
+  const ESCALARES = ['quality', 'durationSec'];
+  const delegadas = clavesDeHints.filter((k) => !ESCALARES.includes(k));
+  check('63f) y lo que se abrió en el Gateway son claves de pista que delegan en su propio contrato',
+    ESCALARES.every((k) => clavesDeHints.includes(k))
+    && delegadas.length > 0
+    && delegadas.every((k) => new RegExp(`${k}\\?: `).test(GATEWAY))
+    && delegadas.every((k) => new RegExp(`!\\w+\\(crudo\\.${k}\\)`).test(GATEWAY))
+    && !/aerial|dolly_out|golden_hour|CameraType|MovementType|ContinuityAspect|identity\.face|architecture\./.test(sinComentarios(GATEWAY)),
+    `escalares=${ESCALARES.join(',')} delegadas=${delegadas.join(',') || '(ninguna)'}`);
   check('64) sigue habiendo UN motor de trabajos y UN almacén por contrato: aquí no se escribió un segundo', !/crearJobEngine\s*=|createJobEngine|implements JobStore|crearSiAusente\s*[:(]/.test(PUERTOS + WORKER) && /crearJobEngine/.test(leer('functions/src/core/job.ts')));
   const fuentes = (dir) => fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fuentes(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
   /*
