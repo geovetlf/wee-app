@@ -450,12 +450,23 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const estadoDeModulo = (src) => [...(src.match(/^(let|var)\s+\w+/gm) || []), ...(src.match(/^const\s+\w+[^=\n]*=\s*(new (Map|Set|WeakMap|WeakSet)\(\s*\)|\[\s*\])/gm) || [])];
   const colas = fuentes('functions/src').filter((f) => /guarantee: 'at_least_once',/.test(sinComentarios(leer(f))));
   const COLA = leer('functions/src/runtime/cola.ts');
-  check('66) UNA sola cola en el código, y es la de UNA invocación: nace con la ejecución, no guarda nada a nivel de módulo y dice de sí misma que no es distribuida',
-    colas.join(',') === 'functions/src/runtime/cola.ts'
-    && estadoDeModulo(sinComentarios(COLA)).length === 0
+  /*
+   * DOS colas, y solo dos: la de una invocación y la durable. Son dos
+   * TRANSPORTES del mismo puerto, no dos sistemas — ninguna decide nada sobre
+   * un trabajo. Que aparezca una tercera sin que nadie lo decida hace fallar
+   * esto, que es para lo que está.
+   */
+  const DURABLE = leer('functions/src/runtime/cola-durable.ts');
+  check('66) DOS colas y ninguna más, y las dos son transportes del mismo puerto',
+    colas.join(',') === 'functions/src/runtime/cola-durable.ts,functions/src/runtime/cola.ts',
+    colas.join(', '));
+  check('66) la de invocación sigue sin guardar nada a nivel de módulo y dice de sí misma lo que es',
+    estadoDeModulo(sinComentarios(COLA)).length === 0
     && /NO es una cola distribuida y NO es durable/.test(COLA) && /LO DURABLE ES EL ALMACÉN/.test(COLA)
     && fuentes('functions/src').every((f) => !/colaEnProceso|InMemoryQueue/.test(leer(f)))
     && /No hay almacén\. `JobStore` es un puerto/.test(leer('functions/src/job/index.ts')));
+  check('66) y la durable tampoco guarda estado de módulo: lo durable está en el almacenamiento, no en el proceso',
+    estadoDeModulo(sinComentarios(DURABLE)).length === 0 && /runTransaction/.test(DURABLE));
   check('67) esta suite está en la cadena de `npm test`', leer('functions/package.json').includes('node test/job-queue.test.mjs'));
 }
 

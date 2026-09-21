@@ -537,7 +537,7 @@ console.log('\n── L · Qué se añadió, qué NO se tocó y qué sigue sin c
 {
   const dir = 'functions/src/runtime';
   const archivos = fs.readdirSync(path.resolve(RAIZ, dir)).sort();
-  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,atencion.ts,aviso.ts,barrendero.ts,barrido.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,materializacion.ts,medios.ts,pensador.ts,plazos.ts,politica.ts,proveedor.ts,puerta.ts,reconciliacion.ts,reconciliador.ts,resolucion.ts', archivos.join(','));
+  check('el conductor vive en su propio directorio', archivos.join(',') === 'almacen.ts,atencion.ts,aviso.ts,barrendero.ts,barrido.ts,cola-durable.ts,cola.ts,conductor.ts,configuracion.ts,contexto.ts,conversaciones.ts,ejecutor.ts,index.ts,liquidacion.ts,materializacion.ts,medios.ts,pensador.ts,plazos.ts,politica.ts,proveedor.ts,puerta.ts,reconciliacion.ts,reconciliador.ts,resolucion.ts', archivos.join(','));
   /* Y la infraestructura que lo programa vive FUERA: el runtime no sabe quién le pide que pase. */
   check('el programador de tareas no está en runtime/, y el runtime no lo nombra', fs.existsSync(path.resolve(RAIZ, 'functions/src/settlement/programado.ts'))
     && !archivos.some((f) => /onSchedule|firebase-functions/.test(leer(`${dir}/${f}`))));
