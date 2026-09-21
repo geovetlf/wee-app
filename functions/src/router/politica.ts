@@ -66,6 +66,86 @@ export interface EslabonDeCadena {
  */
 export type CadenasDeRuteo = Readonly<Record<string, readonly EslabonDeCadena[]>>;
 
+/* ── De la configuración que existe, a la frontera ────────────────────────── */
+
+/**
+ * LO QUE UN ESLABÓN DEL MOTOR DECLARA HOY.
+ *
+ * Escrito aquí, y no importado de `engine/types`, porque esta capa no debe
+ * depender del motor: recibe una forma, no un módulo. El día que la
+ * configuración viva en otro sitio, cambia quien llama y esto no se entera.
+ */
+export interface EslabonDeclarado {
+  provider: string;
+  model?: string;
+  /** Solo para tareas de al menos esta calidad. */
+  minQuality?: string;
+  /** No para tareas que pidan más que esta. */
+  maxQuality?: string;
+}
+
+export interface CadenaDeclarada {
+  capability: string;
+  chain: readonly EslabonDeclarado[];
+}
+
+export interface TraduccionDeCadenas {
+  cadenas: CadenasDeRuteo;
+  /**
+   * Las capacidades que NO se pudieron traducir fielmente, con el motivo.
+   *
+   * Y no están en `cadenas`: quien use esta traducción NO tiene política para
+   * ellas, así que el Core verá el registro entero. Eso es lo correcto y es lo
+   * contrario de lo que parece — una frontera a medias es peor que ninguna,
+   * porque una cadena recortada en silencio prohíbe cosas que la
+   * configuración sí permitía, y nadie se entera de por qué dejó de salir un
+   * proveedor. Se dice, y quien llama decide.
+   */
+  sinTraducir: readonly { capability: string; motivo: 'banda_de_calidad' }[];
+}
+
+/**
+ * LA CONFIGURACIÓN DE SIEMPRE, LEÍDA COMO FRONTERA.
+ *
+ * `aiRouting` ya dice, capacidad por capacidad, qué proveedores están
+ * autorizados y en qué orden. Eso ES la política — lleva años siendo la
+ * política— y lo único que faltaba era leerla con este vocabulario.
+ *
+ * ── Lo que NO se traduce, y por qué se dice en vez de aproximarse ───────────
+ *
+ * Un eslabón con banda de calidad (`minQuality`/`maxQuality`) solo vale para
+ * tareas de cierto nivel, y esta frontera no sabe de niveles: traducirlo sin
+ * la banda lo dejaría SIEMPRE autorizado, que es ensanchar la frontera por
+ * descuido. Hoy no hay ninguno —se midió: cero de los 28 eslabones de
+ * `DEFAULT_ROUTING`—, pero el día que aparezca, la capacidad entera se queda
+ * fuera de la traducción y se informa.
+ *
+ * Una cadena VACÍA sí se traduce, y a vacía: el motor tampoco encuentra a
+ * nadie en ella, y las cuatro que hay hoy (`video.compose`, `video.montage`,
+ * `video.vertical`, `doc.render`) están declaradas sin implementación a
+ * propósito. Vacía significa cerrada en los dos mundos.
+ */
+export const cadenasDesdeLaConfiguracion = (
+  declaradas: Readonly<Record<string, CadenaDeclarada | undefined>>,
+): TraduccionDeCadenas => {
+  const cadenas: Record<string, readonly EslabonDeCadena[]> = {};
+  const sinTraducir: { capability: string; motivo: 'banda_de_calidad' }[] = [];
+
+  for (const [capability, declarada] of Object.entries(declaradas)) {
+    if (!declarada || !Array.isArray(declarada.chain)) continue;
+    if (declarada.chain.some((l) => l.minQuality !== undefined || l.maxQuality !== undefined)) {
+      sinTraducir.push({ capability, motivo: 'banda_de_calidad' });
+      continue;
+    }
+    cadenas[capability] = declarada.chain.map((l) => ({
+      providerId: l.provider,
+      ...(l.model !== undefined ? { modelId: l.model } : {}),
+    }));
+  }
+
+  return { cadenas, sinTraducir };
+};
+
 /* ── Lo que la política recibe ya decidido ────────────────────────────────── */
 
 /**
