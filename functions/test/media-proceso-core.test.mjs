@@ -43,13 +43,14 @@ const {
   NOMBRE_DE_TAREA_DE_MEDIOS, PIEZA_ORIGINAL, FORMA_DE_TAREA,
   canonizarTransformacion, capacidadDeProceso, claveDelObjeto, crearRegistroDeMedios,
   decidirProceso, esTareaGeneral, identidadDeVariante, leerPaqueteDeProceso, piezaDeVariante,
-  referenciaDelObjeto, transformacionValida, transformacionesValidas, varianteDeResultado,
+  referenciaDelObjeto, transformacionValida, transformacionesValidas, varianteDeResultado, usoValido,
 } = core;
 const { crearAlmacenFalso, DESCRIPTOR_FALSO, FAKE_PROVIDER_ID } = lib('media/falso.js');
 const { crearProcesadorFalso, DESCRIPTOR_DEL_PROCESADOR_FALSO, PROCESADOR_FALSO_ID } = lib('media/procesador-falso.js');
 const { crearProcesadorDeImagen, DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN, PROCESADOR_DE_IMAGEN_ID } = lib('media/procesador.js');
 const { huellaDeMedios } = lib('media/huella.js');
 const { solicitarProceso, crearEjecutorDeMedios } = lib('media/proceso.js');
+const { crearMedidor } = lib('media/uso.js');
 
 const ANA = 'cuentaDeAna';
 const BEA = 'cuentaDeBea';
@@ -269,12 +270,13 @@ const mundo = (o = {}) => {
 /* ═══ E · EL EJECUTOR ═════════════════════════════════════════════════════ */
 console.log('\n── E · Traer, procesar, guardar, verificar ──');
 
-const ejecutorDe = (m) => crearEjecutorDeMedios({
+const ejecutorDe = (m, medidor) => crearEjecutorDeMedios({
   almacenes: { [FAKE_PROVIDER_ID]: m.almacen },
   procesador: m.procesador,
   objetos: m.deps.objetos,
   anotarVariante: m.deps.anotarVariante,
   ahora: () => T0,
+  ...(medidor ? { medidor } : {}),
 });
 
 const despacho = (solicitud, i = 1) => ({
@@ -292,6 +294,31 @@ const despacho = (solicitud, i = 1) => ({
 
   const informe = await eje.ejecutar(despacho(r.solicitudes[0]), { renovar: async () => true });
   check('D · una miniatura se produce y el intento termina bien', informe.outcome === 'succeeded' && informe.dispatched === true);
+
+  /*
+   * MC-7 · el procesado consume cuatro cosas distintas y las mide por separado.
+   * Se comprueba aquí, donde ya vive el arnés del ejecutor, en vez de levantar
+   * uno segundo en la suite de MC-7 solo para esto.
+   */
+  {
+    const mm = mundo();
+    const rr = await solicitarProceso(mm.deps, { principalId: ANA, assetId: MATERIAL, transformaciones: [MINIATURA], operationId: OP });
+    await mm.almacen.guardar({ destino: material().storageRef, cuerpo: Buffer.from('bytes del original'), contentType: 'image/png' });
+    const medida = crearMedidor(huellaDeMedios);
+    await ejecutorDe(mm, medida.medidor).ejecutar(despacho(rr.solicitudes[0]), { renovar: async () => true });
+    const hechos = medida.pendientes();
+    const clases = new Set(hechos.map((h) => `${h.operacion}:${h.metrica}`));
+    check('MC-7 · el procesado mide lo que lee, lo que computa, lo que escribe y lo que verifica',
+      clases.has('object.get:bytes_leidos') && clases.has('process.run:segundos_de_proceso')
+      && clases.has('object.put:bytes_escritos') && clases.has('object.head:operaciones'),
+      [...clases].join(' · '));
+    check('MC-7 · todas las medidas son hechos válidos y van ancladas al intento',
+      hechos.length > 0 && hechos.every(usoValido) && hechos.every((h) => h.ancla.attemptId === 'att-1'));
+    check('MC-7 · con la cuenta del paquete ya autorizado, nunca declarada por nadie',
+      hechos.every((h) => h.accountId === ANA && h.assetId === MATERIAL));
+    check('MC-7 · el cómputo se le atribuye al PROCESADOR, no al almacén',
+      hechos.filter((h) => h.metrica === 'segundos_de_proceso').every((h) => h.providerId === mm.procesador.processorId));
+  }
   check('AB · el resultado lleva REFERENCIAS, no URLs', informe.result.outputRefs.length === 2 && !JSON.stringify(informe.result).includes('http'));
   check('los bytes nuevos quedaron en el almacén, en su pieza', m.almacen.contenido.size === 2);
   check('AB · y se verificó mirando lo que hay, no creyendo al almacén', m.almacen.llamadas.mirar >= 1);
@@ -538,11 +565,11 @@ console.log('\n── J · Qué NO se ha construido ──');
     && !fs.existsSync(path.resolve(RAIZ, 'functions/src/core/media/variante.ts')));
 
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
-  check('el Core de medios son diez archivos y ninguno más',
-    delCore.join(',') === 'entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts', delCore.join(','));
+  check('el Core de medios son once archivos y ninguno más',
+    delCore.join(',') === 'entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,registro.ts,subida.ts,uso.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, diecisiete',
-    fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts', fuera.join(','));
+  check('y la composición, dieciocho',
+    fuera.join(',') === 'almacen.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,subida.ts,uso.ts', fuera.join(','));
 
   /* El procesado NO tiene puerta propia: la única de Media Cloud es la del canary. */
   check('AK · el procesado no está expuesto: ninguna Function lo llama',

@@ -158,7 +158,7 @@ const mundo = (o = {}) => {
         const f = fichas.get(ref); if (f) f.intentosDeBorrado = intentos;
       },
       ahora: () => T0,
-      ...(o.anotarOperacionFisica ? { anotarOperacionFisica: (...a) => { llamadas.coste++; o.anotarOperacionFisica(...a); } } : {}),
+      ...(o.medidor ? { medidor: { medir: (u) => { llamadas.coste++; o.medidor(u); } } } : {}),
     },
   };
 };
@@ -359,9 +359,13 @@ console.log('\n── F · Puro, agnóstico y sin una sola credencial ──');
   check('F · no hay segunda cola, ni segundo trabajador, ni segundo planificador',
     !/QueuePort|onSchedule|scheduler|crearCola|enqueue/i.test(COMP));
 
-  /* La costura de coste, sin inventar un precio. */
-  check('F · la costura de coste de MC-7 existe y no inventa ninguna cifra',
-    /anotarOperacionFisica\?:/.test(leer('functions/src/media/recoleccion.ts'))
+  /*
+   * La costura de medida, sin inventar un precio. MC-7 sustituyó la que dejó
+   * MC-5 (`anotarOperacionFisica`) por el medidor común: la misma forma para
+   * las cuatro fases que miden, en vez de tres parecidas y distintas.
+   */
+  check('F · la costura de medida de MC-7 existe y no inventa ninguna cifra',
+    /medidor\?: MedidorDeUso/.test(leer('functions/src/media/recoleccion.ts'))
     && !/precio|price|coste:|cost:|tarifa/i.test(COMP));
 }
 

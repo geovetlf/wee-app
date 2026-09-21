@@ -293,14 +293,14 @@ const mundo = (o = {}) => {
       },
       anotarItem: async (x) => { llamadas.anotar++; items.set(x.itemId, x); return true; },
       ahora: () => T0,
-      ...(o.anotarOperacionFisica ? { anotarOperacionFisica: (...a) => llamadas.coste.push(a) } : {}),
+      ...(o.medidor ? { medidor: { medir: (u) => llamadas.coste.push(u) } } : {}),
     },
   };
 };
 
 {
   /* El camino feliz, que también verifica. */
-  const m = mundo({ anotarOperacionFisica: true });
+  const m = mundo({ medidor: true });
   const r = await migrarLote(m.deps, 'mg_1');
   check('F · un recurso histórico se copia, se verifica y se completa',
     r.copiados === 1 && r.completados === 1 && r.fallidos === 0, JSON.stringify({ c: r.copiados, v: r.completados }));
@@ -310,9 +310,17 @@ const mundo = (o = {}) => {
     m.llamadas.registrar === 1 && [...m.items.values()][0].estado === 'completado');
   check('F · el objeto quedó en la carpeta de su cuenta',
     m.objetos.has(`accounts/${CUENTA}/assets/${MATERIAL}/original`));
-  check('F · y la costura de coste de MC-7 ve la lectura y la escritura, sin inventar cifra',
-    m.llamadas.coste.length === 2 && m.llamadas.coste.every((c) => typeof c[2] === 'number' && !('precio' in c)),
-    JSON.stringify(m.llamadas.coste.map((c) => [c[0], c[1]])));
+  /*
+   * MC-7 sustituyó la costura propia de MC-6 (`anotarOperacionFisica`) por el
+   * medidor común. Lo que se comprueba aquí sigue siendo lo mismo: que el
+   * traslado DICE lo que consumió y no pone una cifra de dinero en ningún sitio.
+   */
+  check('F · el medidor de MC-7 ve la lectura en la fuente y la escritura en el destino',
+    m.llamadas.coste.some((u) => u.providerId === FUENTE_FALSA_ID && u.metrica === 'bytes_leidos')
+    && m.llamadas.coste.some((u) => u.providerId === FAKE_PROVIDER_ID && u.metrica === 'bytes_escritos'),
+    [...new Set(m.llamadas.coste.map((u) => `${u.providerId}:${u.operacion}`))].join(' · '));
+  check('F · y ninguna medida lleva precio, moneda ni importe: MC-6 no valora nada',
+    m.llamadas.coste.every((u) => !('precio' in u) && !('coste' in u) && !('currency' in u)));
 
   /* 18 · recurso ya migrado. */
   const r2 = await migrarLote(m.deps, 'mg_1');

@@ -6,10 +6,12 @@ import {
   PuertoDeAlmacenamiento,
   ReferenciaLogica,
   claveEsDeLaCuenta,
+  MedidorDeUso,
   decidirRecoleccion,
   informeVacio,
   objetoEsDeLaCuenta,
   referenciaDeAlmacenDe,
+  usoDeOperacion,
 } from '../core';
 import { JobState } from '../core/job';
 
@@ -74,13 +76,14 @@ export interface DepsDeRecoleccion {
   ahora: () => number;
   politica?: PoliticaDeRecoleccion;
   /**
-   * MC-7 · La costura del coste, y nada más que la costura.
+   * MC-7 · POR DÓNDE SALE LA MEDIDA. Opcional: sin medidor el barrido va igual.
    *
-   * Un borrado físico es una operación que algún día habrá que contabilizar.
-   * Esto permite que MC-7 la observe sin que MC-5 invente un precio, una unidad
-   * ni un libro. Hoy no la pone nadie y no pasa nada.
+   * Era una costura con forma propia —`anotarOperacionFisica`— y MC-7 la
+   * sustituyó por la forma única que ahora comparten las cuatro fases que
+   * miden. Tener tres costuras parecidas y distintas habría dado tres maneras
+   * de contar lo mismo.
    */
-  anotarOperacionFisica?: (providerId: string, operacion: 'delete', cantidad: number) => void;
+  medidor?: MedidorDeUso;
 }
 
 const sumar = (m: Record<string, number>, k: string): Record<string, number> => ({ ...m, [k]: (m[k] ?? 0) + 1 });
@@ -176,7 +179,21 @@ export const recogerObjetosHuerfanos = async (
        */
       if (borrado.yaNoEstaba) informe.yaNoEstaban++; else informe.borrados++;
       if (!(await deps.marcarBorrado(objeto.objectRef, objeto.accountId, at))) informe.fichasNoCerradas++;
-      deps.anotarOperacionFisica?.(objeto.providerId, 'delete', 1);
+      /*
+       * MC-7 · El borrado se mide SIEMPRE, incluso cuando el objeto ya no
+       * estaba: la petición salió y el proveedor la cobra igual. Medir solo los
+       * borrados «de verdad» dejaría fuera justo las peticiones que no sirvieron
+       * para nada, que son las que interesa ver.
+       */
+      if (deps.medidor) for (const u of usoDeOperacion({
+        accountId: objeto.accountId,
+        providerId: objeto.providerId,
+        operacion: 'object.delete',
+        occurredAt: at,
+        ancla: { runId, objectRef: objeto.objectRef },
+        assetId: objeto.assetId,
+        objectRef: objeto.objectRef,
+      })) deps.medidor.medir(u);
       continue;
     }
 

@@ -10,6 +10,7 @@ import {
   JOB_ENGINE_CONTRACT_VERSION,
   LIMITES_DE_TRANSFORMACION,
   MediaObject,
+  MedidorDeUso,
   MotivoDeProceso,
   PIEZA_ORIGINAL,
   PuertoDeAlmacenamiento,
@@ -20,6 +21,9 @@ import {
   errorDelCore,
   esTareaGeneral,
   leerPaqueteDeProceso,
+  usoDeEscritura,
+  usoDeLectura,
+  usoDeOperacion,
   referenciaDelObjeto,
   varianteDeResultado,
 } from '../core';
@@ -229,6 +233,16 @@ export interface DepsDelEjecutorDeMedios {
   objetos: AlmacenDeObjetosDeMedios;
   anotarVariante: typeof anotarVariante;
   ahora?: () => number;
+  /**
+   * MC-7 · POR DÓNDE SALEN LAS MEDIDAS. La misma forma que en MC-5 y MC-6.
+   *
+   * El procesado es la operación que más cosas distintas consume a la vez —lee
+   * bytes de un sitio, gasta cómputo y escribe bytes en otro, que puede ser otro
+   * proveedor— y por eso produce cuatro medidas y no una. El ancla de las cuatro
+   * es el `attemptId` del trabajo, que es exactamente «esta ejecución»: un
+   * reintento trae un intento nuevo y vuelve a contar, porque vuelve a costar.
+   */
+  medidor?: MedidorDeUso;
 }
 
 export const crearEjecutorDeMedios = (deps: DepsDelEjecutorDeMedios): JobExecutor => {
@@ -275,11 +289,37 @@ export const crearEjecutorDeMedios = (deps: DepsDelEjecutorDeMedios): JobExecuto
         return noSalio(dispatch, 'origen_fuera_de_limites');
       }
 
+      /* MC-7 · Lo que se leyó del origen, en el proveedor del origen. */
+      const base = {
+        accountId: paquete.accountId,
+        assetId: paquete.sourceAssetId,
+        jobId: dispatch.jobId,
+        ancla: { attemptId: dispatch.attemptId },
+      };
+      if (deps.medidor) for (const u of usoDeLectura({
+        ...base, providerId: paquete.origen.provider, operacion: 'object.get', occurredAt: ahora(),
+      }, cuerpo.length)) deps.medidor.medir(u);
+
       /* 2 · La transformación. El procesador no sabe de quién es nada de esto. */
+      const empezoElProceso = ahora();
       const hecho = await deps.procesador.procesar({
         cuerpo,
         contentType: origen.objeto.contentType ?? 'application/octet-stream',
         transformacion: paquete.transformacion,
+      });
+      /*
+       * MC-7 · El cómputo se mide AUNQUE la transformación falle: el procesador
+       * gastó el tiempo igual, y no medirlo haría que los fallos salieran
+       * gratis justo cuando más interesa verlos.
+       */
+      if (deps.medidor) deps.medidor.medir({
+        ...base,
+        providerId: deps.procesador.processorId,
+        operacion: 'process.run',
+        metrica: 'segundos_de_proceso',
+        unidad: 'segundo',
+        cantidad: Math.max(0, Math.round((ahora() - empezoElProceso) / 1000)),
+        occurredAt: ahora(),
       });
       if (!hecho.ok) {
         return { attemptId: dispatch.attemptId, outcome: 'failed', dispatched: true, error: hecho.error };
@@ -296,6 +336,15 @@ export const crearEjecutorDeMedios = (deps: DepsDelEjecutorDeMedios): JobExecuto
       if (!guardado.ok) {
         return { attemptId: dispatch.attemptId, outcome: 'failed', dispatched: true, error: guardado.error };
       }
+
+      /* MC-7 · Los bytes de salida, en el proveedor del DESTINO, que puede no ser el del origen. */
+      if (deps.medidor) for (const u of usoDeEscritura({
+        ...base, providerId: paquete.destino.provider, operacion: 'object.put', occurredAt: ahora(),
+      }, hecho.resultado.cuerpo.length)) deps.medidor.medir(u);
+      /* Y la consulta con la que se verifica, que también se cobra. */
+      if (deps.medidor) for (const u of usoDeOperacion({
+        ...base, providerId: paquete.destino.provider, operacion: 'object.head', occurredAt: ahora(),
+      })) deps.medidor.medir(u);
 
       /*
        * 4 · VERIFICAR. No basta con que el almacén haya dicho que sí: se mira lo

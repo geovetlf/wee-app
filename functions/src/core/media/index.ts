@@ -25,3 +25,4 @@ export * from './proceso';
 export * from './procesador';
 export * from './recoleccion';
 export * from './migracion';
+export * from './uso';

@@ -1,4 +1,5 @@
 import { CapacidadDeAlmacen } from './puerto';
+import { MetricaDeUso, PrecioDeProveedor } from './uso';
 
 /**
  * WEE MEDIA — EL REGISTRO DE PROVEEDORES DE ALMACENAMIENTO.
@@ -49,6 +50,23 @@ export interface DescriptorDeProveedorDeMedios<C extends string = CapacidadDeAlm
     maxLargoDeClave?: number;
     maxBytesDeMetadatos?: number;
   };
+  /**
+   * MC-7 · QUÉ MIDE ESTE PROVEEDOR. No todos miden lo mismo.
+   *
+   * Declararlo evita preguntarle por una métrica que no publica y, sobre todo,
+   * evita suponer que la tiene porque otro proveedor la tiene.
+   */
+  metricas?: readonly MetricaDeUso[];
+  /**
+   * MC-7 · QUÉ COBRA, cuando alguien lo ha verificado y escrito.
+   *
+   * **Ausente no es gratis.** Un descriptor sin tarifas hace que el coste de sus
+   * operaciones salga `desconocido`, que es la verdad: nadie ha declarado qué
+   * cuesta. Rellenarlo de memoria o copiando una página web sería inventar el
+   * dato más fácil de comprobar y más caro de equivocar, y por eso los
+   * adaptadores de hoy lo llevan vacío a propósito.
+   */
+  precios?: readonly PrecioDeProveedor[];
 }
 
 /** La misma forma que exige `StorageRef.provider`: si no encaja, no puede escribirse en un material. */

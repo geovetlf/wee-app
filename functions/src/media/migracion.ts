@@ -14,10 +14,14 @@ import {
   StorageRef,
   claveEsDeLaCuenta,
   decidirMigracion,
+  MedidorDeUso,
   destinoDeMigracion,
   errorDeMigracionSaneado,
   hechosDelDestino,
   informeDeMigracionVacio,
+  usoDeEscritura,
+  usoDeLectura,
+  usoDeOperacion,
   verificarCopia,
 } from '../core';
 import { JobState } from '../core/job';
@@ -86,13 +90,13 @@ export interface DepsDeMigracion {
   ahora: () => number;
   politica?: PoliticaDeMigracion;
   /**
-   * MC-7 · La costura del coste, y nada más que la costura.
+   * MC-7 · POR DÓNDE SALEN LAS MEDIDAS. La misma forma que usan MC-4 y MC-5.
    *
-   * Una migración mueve bytes, y mover bytes cuesta. Esto deja que MC-7 lo
-   * observe sin que MC-6 invente un precio, una unidad ni un libro. Hoy no la
-   * pone nadie y no pasa nada.
+   * Una migración es lo que más bytes mueve de todo Media Cloud —lee de una
+   * fuente y escribe en un destino— así que produce medidas en los DOS
+   * proveedores, cada una con la identidad del suyo.
    */
-  anotarOperacionFisica?: (providerId: string, operacion: 'read' | 'write', bytes: number) => void;
+  medidor?: MedidorDeUso;
 }
 
 const sumar = (m: Record<string, number>, k: string): Record<string, number> => ({ ...m, [k]: (m[k] ?? 0) + 1 });
@@ -216,6 +220,7 @@ export const migrarLote = async (
      * significar cuando el inventario es grande.
      */
     const yaPuesto = await puerto.mirar(destino);
+    medirConsulta(deps, item, material, destino.provider, ANTES_DE_COPIAR);
     if (yaPuesto.ok) {
       informe.yaEstaban++;
       const resultado = await comprobar(deps, item, puerto, destino, entrada.origenDice, material, yaPuesto.objeto);
@@ -255,7 +260,15 @@ export const migrarLote = async (
       continue;
     }
 
-    deps.anotarOperacionFisica?.(fuente.sourceId, 'read', leido.cuerpo.length);
+    /* MC-7 · Lo que se leyó de la fuente histórica: bytes y petición, en SU proveedor. */
+    if (deps.medidor) for (const u of usoDeLectura({
+      accountId: material.ownerAccountId,
+      providerId: fuente.sourceId,
+      operacion: 'legacy.read',
+      occurredAt: deps.ahora(),
+      ancla: { runId: item.migrationId, objectRef: item.itemId },
+      assetId: material.assetId,
+    }, leido.cuerpo.length)) deps.medidor.medir(u);
 
     const guardado = await puerto.guardar({
       destino,
@@ -280,8 +293,23 @@ export const migrarLote = async (
     else {
       informe.copiados++;
       informe.bytesCopiados += leido.cuerpo.length;
-      deps.anotarOperacionFisica?.(deps.destinoProviderId, 'write', leido.cuerpo.length);
     }
+
+    /*
+     * MC-7 · La escritura se mide TAMBIÉN cuando ya existía: la petición salió
+     * hacia el proveedor y se cobra igual. Lo que cambia es la cantidad — un
+     * `siNoExiste` que rebota no transfiere el cuerpo— y por eso los bytes van
+     * a cero y la operación sigue contando una.
+     */
+    const transferidos = guardado.yaExistia ? 0 : leido.cuerpo.length;
+    if (deps.medidor) for (const u of usoDeEscritura({
+      accountId: material.ownerAccountId,
+      providerId: deps.destinoProviderId,
+      operacion: 'object.put',
+      occurredAt: deps.ahora(),
+      ancla: { runId: item.migrationId, objectRef: item.itemId },
+      assetId: material.assetId,
+    }, transferidos)) deps.medidor.medir(u);
 
     /*
      * Se comprueba contra lo que la fuente DECLARÓ, no contra lo que llegó.
@@ -330,6 +358,36 @@ const describir = async (
   return d.ok ? d.hechos : undefined;
 };
 
+/**
+ * MC-7 · CUÁL DE LAS DOS CONSULTAS ES.
+ *
+ * El traslado pregunta al destino como mucho dos veces: una antes de copiar
+ * —«¿ya está?»— y otra para verificar. Son dos peticiones distintas y el
+ * proveedor cobra las dos, así que no pueden compartir identidad. La secuencia
+ * la dice QUIEN LLAMA, que es quien sabe cuál es; contarlas con un contador de
+ * módulo habría puesto estado compartido entre ejecuciones concurrentes.
+ */
+const ANTES_DE_COPIAR = 0;
+const AL_VERIFICAR = 1;
+
+/** Una consulta de metadatos, medida. Escrita una vez para que las dos se cuenten igual. */
+const medirConsulta = (
+  deps: DepsDeMigracion,
+  item: ItemDeMigracion,
+  material: Asset,
+  providerId: string,
+  secuencia: number,
+): void => {
+  if (deps.medidor) for (const u of usoDeOperacion({
+    accountId: material.ownerAccountId,
+    providerId,
+    operacion: 'object.head',
+    occurredAt: deps.ahora(),
+    ancla: { runId: item.migrationId, objectRef: item.itemId, secuencia },
+    assetId: material.assetId,
+  })) deps.medidor.medir(u);
+};
+
 type ResultadoDeComprobacion =
   | { estado: 'completado'; nivel: NivelDeVerificacion }
   | { estado: 'fallido'; motivo: string };
@@ -354,7 +412,14 @@ const comprobar = async (
   /** Lo que el destino ya dijo de sí mismo, si se le acaba de preguntar. Evita un segundo vistazo. */
   yaVisto?: ObjetoGuardado,
 ): Promise<ResultadoDeComprobacion> => {
+  /*
+   * MC-7 · La VERIFICACIÓN es una consulta de metadatos contra el proveedor, y
+   * se cobra como cualquier otra. Solo se mide cuando de verdad se pregunta: si
+   * el destino ya se había mirado, esa consulta ya se midió en su sitio y
+   * contarla otra vez duplicaría una petición que solo ocurrió una vez.
+   */
   const visto = yaVisto ? { ok: true as const, objeto: yaVisto } : await puerto.mirar(destino);
+  if (!yaVisto) medirConsulta(deps, item, material, destino.provider, AL_VERIFICAR);
   const hechos = visto.ok ? hechosDelDestino(visto.objeto) : undefined;
   const veredicto = verificarCopia(origenDice, hechos);
   const at = deps.ahora();
