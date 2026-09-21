@@ -146,26 +146,6 @@ export interface DepsDeR2 {
   /** Entra por la puerta para poder probar el adaptador entero sin red. */
   fetch?: typeof fetch;
   ahora?: () => number;
-  /**
-   * EXPERIMENTO. NO ES UNA OPCIÓN DE PRODUCTO.
-   *
-   * Existe para contestar UNA pregunta —¿R2 acepta el PUT prefirmado si la
-   * condicional no está?— y para nada más. Cuando está puesta, `urlDeSubida`
-   * firma SIN `if-none-match`: fuera de las cabeceras canónicas, fuera de
-   * `SignedHeaders` y fuera de las obligatorias, de modo que la firma se
-   * construye coherentemente desde el principio. Quitar la cabecera DESPUÉS de
-   * firmar no probaría nada: `SignedHeaders` seguiría nombrándola y el
-   * proveedor rechazaría por otra razón.
-   *
-   * NO cambia el significado de `siNoExiste`, que sigue siendo el contrato y
-   * sigue siendo lo normal. NO la pone nadie: la raíz de composición llama a
-   * `crearAdaptadorDeR2()` sin deps, así que en producción vale `false` y el
-   * comportamiento es exactamente el de siempre. Y NO llega del cliente: vive
-   * en la construcción del adaptador, no en la petición.
-   *
-   * Se borra en cuanto H1 quede resuelta, en un sentido o en el otro.
-   */
-  diagnosticoSinCondicional?: boolean;
 }
 
 /**
@@ -185,8 +165,6 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
   const llamar = deps.fetch ?? fetch;
   const ahora = deps.ahora ?? (() => Date.now());
   const config = deps.config ?? configuracionDeR2;
-  /* Se lee UNA vez y solo vale si es exactamente `true`: nada de valores que se parezcan. */
-  const sinCondicionalEnUrlDeSubida = deps.diagnosticoSinCondicional === true;
 
   /** Comprueba configuración y que la referencia sea de ESTE proveedor y ESTE contenedor. */
   const preparar = (ref: StorageRef) => {
@@ -374,8 +352,7 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
         vigenciaSegundos: peticion.vigenciaSegundos,
         cabeceras: {
           'content-type': peticion.contentType,
-          /* La condicional sale de aquí, que es ANTES de firmar: si no entra, no se firma. */
-          ...(peticion.siNoExiste && !sinCondicionalEnUrlDeSubida ? { 'if-none-match': '*' } : {}),
+          ...(peticion.siNoExiste ? { 'if-none-match': '*' } : {}),
         },
       }, { ...p.config, region: R2_REGION, servicio: 's3' }, ahora());
 

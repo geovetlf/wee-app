@@ -102,19 +102,18 @@ console.log('\n── B2 · Subir, confirmar, procesar: las tres reutilizan MC-3
 {
   const { ACCIONES_DEL_CANARY, MAX_BYTES_DEL_CANARY, TIPOS_DEL_CANARY } = lib('media/canary.js');
 
-  /*
-   * CUATRO DE PRODUCTO Y DOS DE EXPERIMENTO, y la lista entera fijada aquí para
-   * que aparecer una séptima rompa esto. `subirSinCondicional` midió H1 (ya
-   * refutada) y `credenciales` mide H2; las dos se BORRAN en cuanto H2 quede
-   * resuelta, y el día que se vayan este pin vuelve a cuatro.
-   */
-  check('hay SEIS acciones —cuatro de producto y dos de experimento— y ninguna más',
-    ACCIONES_DEL_CANARY.join(',') === 'subir,subirSinCondicional,confirmar,procesar,entregar,credenciales');
+  check('hay CUATRO acciones y ninguna más', ACCIONES_DEL_CANARY.join(',') === 'subir,confirmar,procesar,entregar');
   check('una acción desconocida se rechaza', /ACCIONES_DEL_CANARY\.includes\(accion\)/.test(CANARY) && /Acción desconocida/.test(CANARY));
-  /* La variante la elige el NOMBRE de la acción, nunca un campo que mande quien llama. */
-  check('la variante de H1 no se enciende con ningún dato del cliente',
-    /accion === 'subirSinCondicional',/.test(CANARY)
-    && !/datos\.(sinCondicional|diagnostico|variante|condicional)/i.test(CANARY));
+  /*
+   * Y NO QUEDA NADA DEL DIAGNÓSTICO DE SEPTIEMBRE. Dos acciones temporales
+   * —`subirSinCondicional` para H1, `credenciales` para H2— y una opción en el
+   * adaptador vivieron aquí mientras se buscaba por qué R2 devolvía 400. Las
+   * tres se retiraron al cerrarse el incidente, y esto impide que vuelvan sin
+   * que alguien lo decida.
+   */
+  check('no queda ninguna acción de diagnóstico temporal',
+    !/subirSinCondicional|'credenciales'|formaDeLasCredenciales|diagnosticoSinCondicional/.test(CANARY)
+    && !/diagnosticoSinCondicional/.test(leer('functions/src/media/r2.ts')));
 
   /* Reutilización literal: se llaman las funciones de MC-2/MC-3/MC-4, no se reescriben. */
   check('`subir` llama a `solicitarSubida` de MC-3',

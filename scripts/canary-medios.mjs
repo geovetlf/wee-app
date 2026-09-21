@@ -75,9 +75,7 @@ const URL_POR_DEFECTO = 'https://us-central1-get-wee.cloudfunctions.net/mediaCan
 const FIRMANTE = 'firebase-adminsdk-fbsvc@get-wee.iam.gserviceaccount.com';
 
 /* Lo que la puerta admite. Tiene que coincidir con `media/canary.ts`; si no, la rechaza ella. */
-/* `subirSinCondicional` es el experimento H1: misma subida, firmada sin `if-none-match`. */
-const ACCIONES = ['subir', 'subirSinCondicional', 'confirmar', 'procesar', 'entregar', 'credenciales'];
-const ACCIONES_QUE_SUBEN = ['subir', 'subirSinCondicional'];
+const ACCIONES = ['subir', 'confirmar', 'procesar', 'entregar'];
 const TIPOS = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -164,7 +162,7 @@ const leerImagen = () => {
  * El tamaño sale del archivo, no de un parámetro: declarar uno y mandar otro es
  * una discrepancia que nadie detectaría hasta el final.
  */
-const imagen = ACCIONES_QUE_SUBEN.includes(accion) ? leerImagen() : undefined;
+const imagen = accion === 'subir' ? leerImagen() : undefined;
 const paquete = imagen
   ? { accion, operationId, contentType: imagen.contentType, bytes: imagen.datos.length }
   : { accion, operationId };
@@ -265,29 +263,7 @@ const enseñar = (respuesta) => {
     console.log('  url firmada: [no se imprime: es una credencial de lectura]');
   }
 
-  /*
-   * MEDIDAS, QUE NO SON CREDENCIALES AUNQUE SE LLAMEN COMO ELLAS.
-   *
-   * `credenciales` devuelve objetos cuyas claves son los NOMBRES de las
-   * variables —y por eso `sanear` los taparía enteros: uno lleva «secret»
-   * dentro—. No se toca el saneador por eso: se reconoce la forma antes, y la
-   * regla es estructural, no de nombre — **un objeto cuyas hojas son todas
-   * booleanos o números no puede transportar una credencial**. Una cadena, sí;
-   * por eso basta con que aparezca una para que esto no se aplique y el objeto
-   * caiga al saneador de siempre.
-   */
-  const soloMedidas = (v) => v && typeof v === 'object' && !Array.isArray(v)
-    && Object.keys(v).length > 0
-    && Object.values(v).every((x) => typeof x === 'boolean' || typeof x === 'number');
-
-  const medidas = Object.entries(r ?? {}).filter(([, v]) => soloMedidas(v));
-  for (const [nombre, campos] of medidas) {
-    console.log(`  ${nombre}`);
-    for (const [k, v] of Object.entries(campos)) console.log(`    ${k.padEnd(23)}:`, v);
-  }
-
   const { intento, entrega, ...resto } = r ?? {};
-  for (const [nombre] of medidas) delete resto[nombre];
   if (Object.keys(resto).length) console.log('  resto      :', JSON.stringify(sanear(resto)));
 };
 

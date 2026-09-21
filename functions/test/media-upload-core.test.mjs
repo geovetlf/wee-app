@@ -42,6 +42,7 @@ const {
   ESTADOS_QUE_ADMITEN_SUBIDA, MAXIMO_DE_BYTES_DE_MATERIAL, POLITICA_DE_SUBIDA, PIEZA_ORIGINAL,
   claveDelObjeto, crearRegistroDeMedios, decidirSubida, identidadDeIntento, referenciaDelObjeto,
   tamanoAprobado, tipoDeContenidoAceptable, topeDeSubida, vigenciaDeSubidaAprobada, FORMA_DE_INTENTO,
+  falloDeAlmacen,
 } = core;
 const { crearAlmacenFalso, DESCRIPTOR_FALSO, FAKE_PROVIDER_ID } = lib('media/falso.js');
 const { crearAdaptadorDeR2, DESCRIPTOR_DE_R2, MAX_VIGENCIA_DE_R2, R2_PROVIDER_ID, anfitrionDeR2 } = lib('media/r2.js');
@@ -322,6 +323,125 @@ console.log('\n── F · No se cree al cliente: se mira el objeto ──');
   const conTope = { ...grande.deps, politica: { ...POLITICA_DE_SUBIDA, maxBytes: 50 } };
   const pasado = await confirmarSubida(conTope, { principalId: ANA, assetId: rg.intento.assetId });
   check('un objeto más grande de lo permitido NO se marca listo', !pasado.ok && pasado.traza.detalle === 'bytes_de_mas' && grande.materiales.get(rg.intento.assetId).status === 'uploading');
+}
+
+/* ═══ F2 · QUÉ CONTESTÓ EL PROVEEDOR ══════════════════════════════════════ */
+/*
+ * Esto existe por un incidente real de septiembre de 2026. Cuatro PUT
+ * prefirmados contra R2 devolvieron `400 InvalidArgument` con una firma SigV4
+ * demostrada correcta, y Weë no sabía decir por qué: `confirmarSubida` juntaba
+ * once fallos distintos bajo la misma palabra, `no_disponible`, y tiraba el
+ * status que el adaptador ya traía dentro. Con once causas posibles y ningún
+ * número, no se podía distinguir «ni se intentó el HEAD» de «R2 contestó 400».
+ *
+ * Conservar ese número fue lo que movió el diagnóstico: separó el 403 —«tus
+ * credenciales no valen»— del 400 —«tu petición está mal»—, que son los dos
+ * diagnósticos opuestos, y llevó la causa fuera del código.
+ *
+ * Lo que se protege aquí es el contrato completo de esa rama, incluido lo que
+ * NO debe salir: `details` es un `Record<string, unknown>` que cualquier
+ * adaptador puede llenar, y de ahí solo puede rescatarse un entero.
+ */
+console.log('\n── F2 · Al confirmar, el status del proveedor no se pierde ──');
+{
+  /*
+   * El almacén falso de siempre, con `mirar` sustituido por lo que contestaría
+   * R2 ante cada status. Se delega por prototipo para no perder el resto del
+   * puerto —`urlDeSubida` entre otros, que es lo que concede el permiso— ni sus
+   * descriptores de acceso.
+   */
+  const puertoQueContesta = (status) => {
+    const puerto = Object.create(crearAlmacenFalso({ ahora: () => T0 }));
+    puerto.mirar = async () => {
+      if (status === null) return { ok: false, motivo: 'fallo', error: falloDeAlmacen(FAKE_PROVIDER_ID, 'proveedor_no_disponible') };
+      if (status === 404) return { ok: false, motivo: 'no_existe' };
+      return { ok: false, motivo: 'fallo', error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { status }) };
+    };
+    return puerto;
+  };
+
+  /* El mismo puerto, pero con un `details` puesto a mano: `Record<string, unknown>`. */
+  const puertoConDetalle = (details) => {
+    const puerto = Object.create(crearAlmacenFalso({ ahora: () => T0 }));
+    puerto.mirar = async () => ({ ok: false, motivo: 'fallo', error: { code: 'PROVIDER_ERROR', source: 'storage:x', details } });
+    return puerto;
+  };
+
+  /* Un material en `uploading` cuyos bytes nunca llegaron, que es el caso real. */
+  const conPuerto = async (puerto) => {
+    const m = mundo({ adaptadores: { [FAKE_PROVIDER_ID]: puerto } });
+    const r = await solicitarSubida(m.deps, PETICION);
+    const res = await confirmarSubida(m.deps, { principalId: ANA, assetId: r.intento.assetId, operationId: OP });
+    return { m, res, assetId: r.intento.assetId };
+  };
+
+  /* 404 · no es un fallo, es «todavía no están los bytes». Y no lleva status. */
+  {
+    const { m, res, assetId } = await conPuerto(puertoQueContesta(404));
+    check('F2 · 404 sigue siendo `pendiente` / `bytes_no_estan`',
+      !res.ok && res.motivo === 'pendiente' && res.traza.resultado === 'pendiente' && res.traza.detalle === 'bytes_no_estan');
+    check('F2 · y no lleva status, porque no hace falta', res.traza.statusDelProveedor === undefined && !('statusDelProveedor' in res.traza));
+    check('F2 · un 404 no toca nada: ni el material ni las fichas',
+      m.materiales.get(assetId).status === 'uploading' && m.fichas.size === 0);
+  }
+
+  /* 400 · 401 · 403 y los demás · siguen siendo fallo, y AHORA llevan su número. */
+  for (const status of [400, 401, 403, 409, 412, 500, 503]) {
+    const { m, res, assetId } = await conPuerto(puertoQueContesta(status));
+    check(`F2 · ${status} es fallo, conserva su status y no escribe nada`,
+      !res.ok && res.motivo === 'no_disponible' && res.traza.resultado === 'no_disponible'
+      && res.traza.detalle === 'bytes_no_estan' && res.traza.statusDelProveedor === status
+      && m.materiales.get(assetId).status === 'uploading' && m.fichas.size === 0,
+      `status=${res.traza.statusDelProveedor}`);
+  }
+
+  /* Sin status · la petición no llegó a contestar. No se inventa ninguno. */
+  {
+    const { res } = await conPuerto(puertoQueContesta(null));
+    check('F2 · si la petición no llega, es fallo SIN status y la clave ni aparece',
+      !res.ok && res.motivo === 'no_disponible' && res.traza.detalle === 'bytes_no_estan'
+      && res.traza.statusDelProveedor === undefined && !('statusDelProveedor' in res.traza));
+  }
+
+  /* Lo que NO es un status plausible no pasa: `details` es un saco abierto. */
+  const noSonStatus = ['403', 99, 600, 403.5, null, {}, [], true, NaN, Infinity, -403, '', undefined];
+  let colados = [];
+  for (const s of noSonStatus) {
+    const { res } = await conPuerto(puertoConDetalle({ status: s }));
+    if (res.traza.statusDelProveedor !== undefined) colados.push(`${typeof s}:${String(s)}`);
+  }
+  check('F2 · solo pasa un ENTERO entre 100 y 599; trece formas inválidas se rechazan',
+    colados.length === 0, colados.join(', '));
+
+  /* Y del resto de `details` no sobrevive absolutamente nada. */
+  {
+    const FIRMA = 'a1b2c3d4e5f60718293a4b5c6d7e8f901a2b3c4d5e6f708192a3b4c5d6e7f801';
+    const sucio = {
+      status: 403,
+      authorization: `AWS4-HMAC-SHA256 Credential=AKIAEXAMPLE/20260921/auto/s3/aws4_request, Signature=${FIRMA}`,
+      url: `https://ejemplo.r2.cloudflarestorage.com/cubo/x?X-Amz-Signature=${FIRMA}`,
+      secretAccessKey: 'f'.repeat(64),
+      cabeceras: { host: 'ejemplo.r2.cloudflarestorage.com', 'x-amz-date': '20260921T013428Z' },
+      cuerpo: '<Error><Code>AccessDenied</Code><Message>no</Message></Error>',
+    };
+    const { res } = await conPuerto(puertoConDetalle(sucio));
+    const texto = JSON.stringify(res);
+    const agujas = [['la firma', FIRMA], ['la credencial', 'AKIAEXAMPLE'], ['una URL', 'https://'],
+      ['Authorization', 'AWS4-HMAC'], ['X-Amz-*', 'X-Amz-'], ['un secreto', 'f'.repeat(32)],
+      ['cabeceras', 'x-amz-date'], ['el cuerpo XML', '<Error>']];
+    const filtradas = agujas.filter(([, a]) => texto.includes(a)).map(([q]) => q);
+    check('F2 · del resto de `details` no sobrevive nada: ni firma, ni URL, ni credencial, ni cabeceras, ni cuerpo',
+      res.traza.statusDelProveedor === 403 && filtradas.length === 0, filtradas.join(', '));
+    check('F2 · y la traza solo lleva campos declarados',
+      Object.keys(res.traza).every((k) => ['operationId', 'accountId', 'assetId', 'objectRef', 'providerId', 'resultado', 'detalle', 'ms', 'huellaDeUrl', 'statusDelProveedor'].includes(k)),
+      Object.keys(res.traza).join(','));
+  }
+
+  /* El extractor no copia: busca UNA clave. Si cambia eso, esto se entera. */
+  check('F2 · el status se rescata por su clave, nunca copiando `details`',
+    /const s = e\?\.details\?\.status;/.test(leer('functions/src/media/subida.ts'))
+    && /s >= 100 && s <= 599/.test(leer('functions/src/media/subida.ts'))
+    && !/\.\.\.e\?\.details|\.\.\.visto\.error/.test(leer('functions/src/media/subida.ts')));
 }
 
 /* ═══ G · LA FIRMA DE R2 ══════════════════════════════════════════════════ */
