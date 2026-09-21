@@ -67,6 +67,15 @@ export const GATEWAY_CONTRACT_VERSION = '1.0' as const;
 /** Forma de una petición y una respuesta de Weë Brain. */
 export const BRAIN_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * Forma de un Skill: su descriptor, su registro y el resultado de resolverlo.
+ *
+ * Nace en 1.0 con lo mínimo que hace falta para que WEE PUEDA usar Skills sin
+ * DEPENDER de ellos. Los parámetros creativos (S2) y el contexto visual y los
+ * elementos (S3) entrarán como campos opcionales y subirán el menor.
+ */
+export const SKILL_CONTRACT_VERSION = '1.0' as const;
+
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 

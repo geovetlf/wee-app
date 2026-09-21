@@ -6,6 +6,7 @@ import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { CAPABILITY_CATALOG, CatalogEntry, CoreCapabilityId } from './registry';
 import { ExecutionHints, claveProhibida, esObjetoPlano, esTexto, leerHints, nombreDeCampo, sanearMeta } from './gateway';
+import { CAMPOS_DE_APORTACION, SkillPlanContribution, clavePeligrosa } from './skill';
 
 /**
  * WEE PLANNER — DE LO QUE SE ENTENDIÓ A LO QUE HAY QUE HACER.
@@ -135,6 +136,20 @@ export interface PlannerRequest {
   understanding: BrainUnderstanding;
   /** Requisitos abstractos de quien pide. Nunca una implementación. */
   hints?: ExecutionHints;
+  /**
+   * LO QUE APORTA UN SKILL, cuando hay uno. OPCIONAL, y esa es la propiedad
+   * importante: sin esto el Planner se comporta EXACTAMENTE como antes, porque
+   * es el mismo código con una lista vacía.
+   *
+   * Es la vista estrecha (`SkillPlanContribution`), no el descriptor: aquí
+   * llegan capacidades del catálogo, frases de progreso y límites numéricos, y
+   * nada más. Un Skill no puede pedir un proveedor por esta puerta porque esa
+   * puerta no existe, y se comprueba igual que todo lo que cruza una frontera.
+   *
+   * Quien compone lo saca de una resolución con `aportacionDe()`, que solo
+   * devuelve algo cuando la resolución fue `found`.
+   */
+  skill?: SkillPlanContribution;
 }
 
 export interface PlannerResponse {
@@ -288,7 +303,7 @@ export const modalidadesAportadas = (entendimiento: BrainUnderstanding): readonl
 
 /* ── Validación ───────────────────────────────────────────────────────────── */
 
-const CLAVES_DE_PETICION = ['contract', 'trace', 'understanding', 'hints'];
+const CLAVES_DE_PETICION = ['contract', 'trace', 'understanding', 'hints', 'skill'];
 
 /**
  * LO QUE NADIE PUEDE PEDIRLE AL PLANNER.
@@ -368,6 +383,55 @@ const revisarPistas = (
 /* ── El Planner ───────────────────────────────────────────────────────────── */
 
 /** Lo que el plan intenta conseguir, dicho para quien lo lee. */
+/**
+ * EL APORTE DE UN SKILL, REVISADO EN LA FRONTERA.
+ *
+ * Un descriptor de Skill es contenido configurable, así que lo que sale de él
+ * se comprueba aquí igual que se comprueba un entendimiento: no porque se
+ * desconfíe de quien compone, sino porque esto es una frontera y las fronteras
+ * comprueban. Si el aporte trae cualquier cosa rara, el Planner NO planifica a
+ * medias ni lo ignora en silencio: dice que la petición es inválida.
+ */
+const revisarAportacionDeSkill = (
+  crudo: unknown,
+): { ok: true; skill?: SkillPlanContribution } | { ok: false; field: string; reason: string } => {
+  if (crudo === undefined) return { ok: true };
+  if (!esObjetoPlano(crudo)) return { ok: false, field: 'skill', reason: 'invalid_request' };
+  for (const clave of Object.keys(crudo)) {
+    if (clavePeligrosa(clave)) return { ok: false, field: `skill.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+    if (claveDeImplementacion(clave) || claveProhibida(clave)) {
+      return { ok: false, field: `skill.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+    }
+    if (!CAMPOS_DE_APORTACION.includes(clave)) return { ok: false, field: `skill.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+  }
+  const s = crudo;
+  if (!esTexto(s.skillId) || s.skillId.length === 0 || s.skillId.length > 64) return { ok: false, field: 'skill.skillId', reason: 'invalid_request' };
+  if (typeof s.version !== 'number' || !Number.isInteger(s.version) || s.version < 1) return { ok: false, field: 'skill.version', reason: 'invalid_request' };
+  if (!Array.isArray(s.capabilities) || s.capabilities.length === 0 || s.capabilities.length > 16) {
+    return { ok: false, field: 'skill.capabilities', reason: 'invalid_request' };
+  }
+  for (const c of s.capabilities) {
+    /* Del CATÁLOGO, y de ningún otro sitio: un Skill no inventa capacidades. */
+    if (!esTexto(c) || !entradaDe(c as CoreCapabilityId)) return { ok: false, field: 'skill.capabilities', reason: 'unknown_capability' };
+  }
+  if (s.purposes !== undefined) {
+    if (!esObjetoPlano(s.purposes)) return { ok: false, field: 'skill.purposes', reason: 'invalid_request' };
+    for (const [clave, valor] of Object.entries(s.purposes)) {
+      if (clavePeligrosa(clave) || !entradaDe(clave as CoreCapabilityId)) return { ok: false, field: 'skill.purposes', reason: 'invalid_request' };
+      /* Una frase para una persona. Si fuera larga, sería un prompt escondido. */
+      if (!esTexto(valor) || valor.length === 0 || valor.length > 160) return { ok: false, field: 'skill.purposes', reason: 'invalid_request' };
+    }
+  }
+  if (s.limits !== undefined) {
+    if (!esObjetoPlano(s.limits)) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
+    for (const [clave, valor] of Object.entries(s.limits)) {
+      if (clavePeligrosa(clave)) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
+      if (typeof valor !== 'number' || !Number.isFinite(valor) || valor < 0) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
+    }
+  }
+  return { ok: true, skill: s as unknown as SkillPlanContribution };
+};
+
 const proposito = (entrada: CatalogEntry): string => {
   const accion = String(entrada.id).split('.')[1] ?? String(entrada.id);
   return `${accion.replace(/_/g, ' ')} (${entrada.category})`;
@@ -471,8 +535,28 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
         return terminar('needs_clarification', { clarification: { missing: u.missing } });
       }
 
+      /* ── Lo que aporta un Skill, si hay uno ───────────────────────────────── */
+      const aporte = revisarAportacionDeSkill(request.skill);
+      if (!aporte.ok) return fallar('invalid', 'INVALID_REQUEST', aporte.reason, { field: aporte.field });
+      const skill = aporte.skill;
+
       /* ── Qué capacidades hacen falta ──────────────────────────────────────── */
-      const pedidas = [...new Set([...(u.capability ? [u.capability] : []), ...(u.capabilities ?? [])])];
+      /*
+       * EL SKILL APORTA, NO MANDA. Sus capacidades entran en la misma lista que
+       * las que pidió la persona y pasan por exactamente los mismos filtros: el
+       * catálogo, la disponibilidad y el orden por dependencia. Si el Skill pide
+       * algo que hoy no sirve nadie, el plan sale `unsupported` igual que si lo
+       * hubiera pedido cualquiera — un Skill no tiene un carril propio.
+       *
+       * Las de la persona van PRIMERO: lo que se pidió no se reordena porque un
+       * Skill opine, y cuando el catálogo deja el orden libre, gana lo que se
+       * pidió.
+       */
+      const pedidas = [...new Set([
+        ...(u.capability ? [u.capability] : []),
+        ...(u.capabilities ?? []),
+        ...(skill?.capabilities ?? []),
+      ])];
       if (pedidas.length === 0) {
         /*
          * Sin capacidad no hay nada que planificar. Si además no hacía falta
@@ -552,7 +636,13 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
         return {
           id,
           capability,
-          purpose: proposito(entrada),
+          /*
+           * La frase del Skill cuando la tiene, y la del catálogo cuando no. Es
+           * TODO lo que un Skill cambia de un paso: una frase que lee una
+           * persona en la barra de progreso. Ni la capacidad, ni el orden, ni
+           * las dependencias, ni la entrada.
+           */
+          purpose: skill?.purposes?.[String(capability)] ?? proposito(entrada),
           ...(dependsOn.length ? { dependsOn } : {}),
           produces: entrada.produces,
           ...conPistas,
@@ -582,7 +672,18 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
          */
         constraints: { ...u.constraints },
         ...conPistas,
-        assumptions: [...u.assumptions],
+        /*
+         * Y SE DICE. Planificar con un Skill es una suposición sobre cómo se
+         * resuelve mejor lo que se pidió, y una suposición callada es una
+         * mentira: viaja con el plan, como todas las demás.
+         *
+         * AQUÍ Y NO EN UN CAMPO NUEVO. Un `plan.skill` habría obligado a abrir
+         * la lista cerrada de claves del Workflow —un contrato ya desplegado—
+         * para que no lo rechazara, y eso es mucho cambio para guardar una
+         * atribución que ya tiene sitio. `assumptions` existe justo para esto,
+         * lo copia el Workflow desde la Fase 5, y nadie tiene que enterarse.
+         */
+        assumptions: skill ? [...u.assumptions, `skill:${skill.skillId}@${skill.version}`] : [...u.assumptions],
         warnings: [...warnings],
       };
 

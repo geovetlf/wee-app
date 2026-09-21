@@ -45,6 +45,7 @@ export * from './observability';
 export * from './registry';
 export * from './gateway';
 export * from './brain';
+export * from './skill';
 export * from './planner';
 export * from './orchestrator';
 export * from './router';
