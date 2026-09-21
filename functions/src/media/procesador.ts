@@ -48,14 +48,22 @@ export const PROCESADOR_DE_IMAGEN_ID = 'wee-image';
 /**
  * LO QUE SABE HACER DE VERDAD: las tres de imagen. Ni una más.
  *
- * `UNVERIFIED` porque la librería está probada pero este procesador no ha
- * corrido todavía contra un material real en producción. Pasa a `READY` cuando
- * un canary autorizado lo confirme, no antes.
+ * READY desde el 2026-09-21, y con qué se ganó: un canary autorizado recorrió
+ * la cadena entera contra material real. Un JPEG de 577.908 bytes que ya vivía
+ * en el proveedor se leyó con un GET firmado, `sharp` lo redimensionó de verdad
+ * a una miniatura de 400×400 en WebP —10.604 bytes—, se escribió con «solo si
+ * está libre», se comprobó con un HEAD, y de ahí salieron su ficha de objeto y
+ * su `AssetVariant`. El trabajo quedó `completed` en el Job Engine con un solo
+ * intento, y repetirlo no produjo nada: `skipped`.
+ *
+ * Estuvo en `UNVERIFIED` hasta ese día a propósito: la librería estaba probada
+ * —hay pruebas que la ejercitan de verdad— pero un procesador no está
+ * verificado hasta que transforma un material real en producción. Ahora lo hizo.
  */
 export const DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN: DescriptorDeProveedorDeMedios<CapacidadDeProceso> = Object.freeze({
   id: PROCESADOR_DE_IMAGEN_ID,
   name: 'Procesador de imagen de Weë (sharp)',
-  estado: 'UNVERIFIED',
+  estado: 'READY',
   capacidades: CAPACIDADES_DE_MC4,
 });
 

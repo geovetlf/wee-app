@@ -400,8 +400,8 @@ console.log('\n── G · `sharp`, sin red y sin comandos ──');
 {
   const proc = crearProcesadorDeImagen();
   check('declara SOLO las tres de imagen que implementa', proc.capacidades.join(',') === CAPACIDADES_DE_MC4.join(',') && CAPACIDADES_DE_MC4.length === 3);
-  check('y se declara UNVERIFIED: la librería está probada, este procesador no ha corrido en producción',
-    DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN.estado === 'UNVERIFIED' && DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN.id === PROCESADOR_DE_IMAGEN_ID);
+  check('y se declara READY: el canary del 2026-09-21 lo confirmó contra material real',
+    DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN.estado === 'READY' && DESCRIPTOR_DEL_PROCESADOR_DE_IMAGEN.id === PROCESADOR_DE_IMAGEN_ID);
 
   /* Un PNG mínimo de verdad, hecho por la propia librería. */
   const sharpMod = await import('sharp');
