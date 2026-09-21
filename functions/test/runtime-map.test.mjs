@@ -116,7 +116,7 @@ const MAPA = [
 const OTROS_DEL_CORE = {
   /* Las cuatro versiones nuevas entran con el canary: el conductor habla con Workflow, Orchestrator, Router y Job Engine. */
   'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'ELEMENT_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION',
-    'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION'],
+    'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'SHOT_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION'],
   /*
    * S5: exportar la puerta de Elements pone en producción los dos contratos de
    * S3. Es lo esperado y es lo que estas listas existen para enseñar: qué usa
@@ -126,6 +126,15 @@ const OTROS_DEL_CORE = {
    */
   'core/element.js': ['archivar', 'elementoValido', 'esTipoDeElemento', 'puedeReferenciar', 'validarElemento'],
   'core/visual-context.js': ['MAX_ELEMENTOS_EN_RESULTADO', 'MAX_REFERENCIAS', 'materialesDelContexto', 'necesidadValida', 'resolverContexto', 'trazaDeContexto'],
+  /*
+   * C3: exportar la puerta de escenas y planos pone en producción los dos
+   * contratos de C1/C2. Otra vez lo esperado, y otra vez esto es donde se ve:
+   * de continuidad producción usa el VALIDADOR y los punteros, y no usa todavía
+   * `revisarAntesAntesDeEjecutar` ni `resumirVeredicto` —esos los estrenará
+   * quien enrute y quien valide, que son fases posteriores—.
+   */
+  'core/shot.js': ['esEstadoDePlano', 'escenaValida', 'planoValido', 'puedePasarDePlano', 'referenciasDelPlano', 'validarEscena', 'validarPlano'],
+  'core/continuity.js': ['anclajeValido', 'continuidadValida'],
   'core/language.js': ['contextoDeIdioma'],
   /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
   'core/social-identity.js': ['actorDeLaCuenta'],
@@ -173,6 +182,13 @@ const FUNCTIONS = {
    * cuenta puede actuar quien llama.
    */
   './elements/puerta': ['elements'],
+  /*
+   * C3: la puerta de escenas y planos. Guarda y devuelve ESTADO CREATIVO —qué
+   * tiene que representar cada plano y qué material lo representa hoy— y no
+   * genera nada: producirlo sigue siendo del conductor, del Job y del Gateway.
+   * Delega entera en el runtime de C3, que comprueba la propiedad una por una.
+   */
+  './shots/puerta': ['shots'],
   /* Paso I: la red de seguridad del dinero. Una tarea programada, no una puerta de usuario. */
   './settlement/programado': ['barridoDeLiquidacion'],
   /* MC-4.5: la ÚNICA puerta de Media Cloud. De administración, y no es una API. */
@@ -236,12 +252,12 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y tres: las treinta y dos de antes y la puerta de Elements (S5)', reales.length === 33, `${reales.length}`);
+  check('5) y son treinta y cuatro: las treinta y dos de antes, Elements (S5) y Scenes/Shots (C3)', reales.length === 34, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
-   * S5 tuvo que tocar este mapa: añadió una Function (`elements`) y puso dos
-   * módulos del Core en producción. Actualizar una guarda es la forma más
+   * S5 y C3 tuvieron que tocar este mapa: cada una añadió una Function
+   * —`elements` y `shots`—. Actualizar una guarda es la forma más
    * fácil de desactivarla sin querer, así que aquí se demuestra que sigue
    * haciendo su trabajo: se le presenta una Function que NADIE declaró y se
    * comprueba que la detectaría.
@@ -249,7 +265,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const inventada = [...reales, 'functionQueNadieDeclaro'];
   check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
     inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
-    && inventada.length !== 33);
+    && inventada.length !== 34);
 
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));

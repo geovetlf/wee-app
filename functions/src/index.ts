@@ -107,6 +107,7 @@ export { nacimientoDeCuenta } from './identity/nacimiento';
  */
 export { reportContent, moderationAdmin } from './moderation';
 export { elements } from './elements/puerta';
+export { shots } from './shots/puerta';
 
 /*
  * WEË RUNTIME · LA RED DE SEGURIDAD DEL DINERO (docs/RUNTIME.md § 17).

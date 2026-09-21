@@ -484,12 +484,13 @@ console.log('\n── E · Estructura: lo que hay, y lo que a propósito no hay 
   const deReportes = indices.filter((i) => i.collectionGroup === 'reports');
   /*
    * El total se fija a propósito: que nadie añada un índice sin que se vea. Subió
-   * a 30 con el transporte durable (`jobQueue`) y a 32 con S4 (`elements` y
-   * `projectItems`), los tres preparados y NINGUNO desplegado; la parte de
-   * moderación —UNO y solo uno— no se ha movido desde entonces.
+   * a 30 con el transporte durable (`jobQueue`), a 32 con S4 (`elements` y
+   * `projectItems`) y a 35 con C3 (uno de `scenes` y dos de `shots`), los seis
+   * preparados y NINGUNO desplegado; la parte de moderación —UNO y solo uno—
+   * no se ha movido desde entonces.
    */
   check('111) UN índice nuevo y justificado —la cola: estado + antigüedad—, y los de antes siguen',
-    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 32,
+    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 35,
     `${deReportes.length} de reports, ${indices.length} en total`);
   check('112) el contrato de contenido ya tenía la costura: `moderationStatus` y `moderationCaseId` siguen ahí, sin tocar',
     /export type ModerationStatus = 'clear' \| 'pending' \| 'restricted' \| 'removed';/.test(leer('functions/src/core/content/content.ts')));

@@ -1118,5 +1118,28 @@ service cloud.firestore {
         request.resource.data.userId == resource.data.userId;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
+
+    // === C3 · ESCENAS Y PLANOS ===
+    // El estado creativo de una cuenta: qué tiene que representar cada plano y
+    // qué material lo representa hoy. NO son trabajos, ni materiales, ni
+    // ejecuciones — eso vive en `jobs`, en `assets` y en la procedencia, que ya
+    // lo llevan.
+    //
+    // Se lee solo lo propio, y se escribe SOLO por la callable `shots`, que
+    // corre con el Admin SDK y comprueba la propiedad en el dominio una por
+    // una. Estas reglas son la segunda cerradura, no la única.
+    //
+    // Van al final del archivo a propósito: la franja que va de `elements` a
+    // Media Cloud la mide un guard de S4 que cuenta sus dos bloques cerrados,
+    // y meter aquí dos más lo haría fallar sin que nada se hubiera roto.
+    match /scenes/{sceneId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /shots/{shotId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
   }
 }
