@@ -155,6 +155,18 @@ export interface MediaObject {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+  /**
+   * MC-5 · CUÁNTAS VECES SE INTENTÓ BORRAR ESTOS BYTES Y FALLÓ.
+   *
+   * No es un estado nuevo: el objeto sigue `guardado` hasta que deje de estarlo.
+   * Es la contabilidad mínima que impide dos cosas opuestas y ambas malas —
+   * reintentar en bucle un fallo permanente, y rendirse ante uno pasajero.
+   *
+   * Sin esto, un objeto que el proveedor no deja borrar se reintentaría en cada
+   * barrido, para siempre, convirtiendo una avería suya en una factura nuestra.
+   */
+  intentosDeBorrado?: number;
+  ultimoIntentoDeBorradoEn?: number;
 }
 
 /** La referencia del almacén que corresponde a una ficha. La misma forma que usa la Fase 11. */

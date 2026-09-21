@@ -23,3 +23,4 @@ export * from './entrega';
 export * from './subida';
 export * from './proceso';
 export * from './procesador';
+export * from './recoleccion';
