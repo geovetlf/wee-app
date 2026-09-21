@@ -98,7 +98,7 @@ const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
  */
 export const BRAIN_UNDERSTAND_SYSTEM = [
   'Eres el módulo de comprensión de Weë. NO conversas y NO escribes para nadie: devuelves solamente un objeto JSON.',
-  'Campos: intent, confidence, goal, capability, capabilities, constraints, missing, assumptions, suggestedExperience, creative, context.',
+  'Campos: intent, confidence, goal, capability, capabilities, constraints, missing, assumptions, suggestedExperience, creative, context, continuity.',
   /*
    * El vocabulario va LITERAL y CERRADO. Sin la lista, el modelo inventa
    * valores parecidos —«dolly_backwards», «cámara aérea»— que el validador
@@ -120,6 +120,26 @@ export const BRAIN_UNDERSTAND_SYSTEM = [
   '"context" dice QUÉ COSAS YA EXISTENTES de la persona hacen falta, cuando se refiere a algo suyo ("usa mi hamburguesa", "el personaje de ayer", "el logo de mi restaurante").',
   'Forma: [{"kind":"element","elementType":"character|product|brand|place|object|scene","required":true}] o [{"kind":"asset","assetKind":"image|video|audio|document|text|model3d","required":true}].',
   'NO adivines CUÁL: solo de qué clase. Si no se refiere a nada que ya tenga, omite "context".',
+  /*
+   * C5: qué tiene que quedarse igual. Es el campo con la regla más delicada de
+   * todo el esquema —el silencio NO autoriza— y por eso se le dice tres veces
+   * de tres formas: omite lo que no se dijo, no completes listas, no inventes
+   * identificadores. Un modelo que rellena huecos aquí da permiso para cambiar
+   * la cara de alguien sin que nadie se lo haya pedido.
+   */
+  '"continuity" dice QUÉ DEBE QUEDARSE IGUAL y QUÉ PUEDE CAMBIAR, solo cuando la persona lo expresa ("deja a Luna igual", "no cambies el rostro", "mantén la arquitectura", "cambia solo el vestido", "hazlo de noche").',
+  'Forma: {"preserve":[...], "mayChange":[...], "subjects":["Luna","la casa"], "strength":"relaxed|standard|strict", "spatial":[{"subject":"lámpara","relation":"next_to","object":"sofá"}]}.',
+  'Aspectos admitidos, familia.detalle: identity.face|body|hair|features|appearance. appearance.hairstyle|hairColor|skin|eyes|facialHair|makeup. outfit.clothing|footwear|accessories|complete.',
+  'object.identity|geometry|proportions|color|material|texture|markings|presence|position|state. product.identity|geometry|packaging|label|branding.',
+  'architecture.identity|geometry|facade|openings|structure|proportions|spatialLayout|materials|elements. interior.layout|furniture|fixtures|materials|finishes|decoration.',
+  'exterior.site|landscape|terrain|vegetation|surroundings. environment.location|scene|background|spatialContext. style.visual|artistic|rendering|composition.',
+  'camera.framing|perspective|position|focal|shotType. lighting.type|direction|intensity|timeOfDay. pose.body|position. action.activity|movement.',
+  'spatial.relationships|alignment|containment|relativePosition. temporal.previousShot|sceneState|subjectState|environmentState|objectState|motion. narrative.state|logic.',
+  'relation admite: next_to|behind|in_front_of|inside|above|below|aligned_with|attached_to.',
+  'REGLA: pon en "preserve" SOLO lo que la persona dijo que se queda igual, y en "mayChange" SOLO lo que dijo que puede cambiar. Lo que no mencionó NO va en ninguna lista: el silencio no es permiso.',
+  '"solo"/"únicamente"/"nada más" refuerzan que lo demás se conserva, pero NO completes la lista con aspectos que nadie nombró.',
+  '"subjects" son los NOMBRES que usó la persona, nunca identificadores: no los conoces y no debes inventarlos.',
+  'Usa "strength":"strict" solo si dijo algo como "exactamente", "idéntico" o "sin cambiar nada". Si no habló de conservar nada, omite "continuity" entero.',
   'Nunca incluyas nombres de modelos, proveedores, URLs, identificadores ni claves. Devuelve solo el JSON, sin explicaciones.',
 ].join(' ');
 

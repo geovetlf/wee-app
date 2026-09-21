@@ -1,6 +1,7 @@
 import { BRAIN_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { Modality } from './capability';
 import { CreativeParameters, creativosValidos } from './creative';
+import { ContinuityIntent, leerIntencionDeContinuidad } from './continuity-intent';
 import { ContextNeed, MAX_NECESIDADES, necesidadValida } from './visual-context';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
@@ -330,6 +331,21 @@ export interface BrainUnderstanding {
    * falta nada: ese es el caso normal y no se resuelve nada.
    */
   context?: readonly ContextNeed[];
+  /**
+   * QUÉ TIENE QUE QUEDARSE IGUAL Y QUÉ PUEDE CAMBIAR.
+   *
+   * «Mantén a Luna y cámbiale el vestido» son DOS cosas y hay que decirlas por
+   * separado, porque el silencio sobre todo lo demás no autoriza nada. Sale de
+   * la MISMA llamada que ya entendió la petición —igual que los parámetros
+   * creativos y las necesidades de contexto—, y en el vocabulario cerrado de C2.
+   *
+   * Los sujetos vienen POR SU NOMBRE, nunca por identificador: el modelo no los
+   * conoce, y uno inventado que pasara la validación apuntaría a la cosa de
+   * otra persona. Resolver el nombre es de `resolverIntencionDeContinuidad`.
+   *
+   * Ausente significa que nadie pidió conservar nada, que es el caso normal.
+   */
+  continuity?: ContinuityIntent;
   /** Lo que falta por saber. Sale del modelo o queda vacío: nunca se inventa. */
   missing: readonly string[];
   /** Lo que Brain dio por supuesto. Explícito a propósito: una suposición callada es una mentira. */
@@ -685,6 +701,14 @@ export const interpretarEntendimiento = (
    * «esto necesita un producto»; qué producto es no lo decide él.
    */
   context?: readonly ContextNeed[];
+  /**
+   * LO QUE HAY QUE CONSERVAR Y LO QUE PUEDE CAMBIAR, en el vocabulario de C2.
+   *
+   * A diferencia de `creative`, esto NO es entero o nada: cada aspecto es
+   * independiente, y descartar «conserva el rostro» porque el modelo escribió
+   * mal otro aspecto sería perder lo que sí se entendió.
+   */
+  continuity?: ContinuityIntent;
 } => {
   const vacio = { capabilities: [], constraints: {}, missing: [], assumptions: [] };
   if (!esObjetoPlano(crudo)) return vacio;
@@ -726,6 +750,8 @@ export const interpretarEntendimiento = (
       && crudo.context.every(necesidadValida)
       ? (crudo.context as readonly ContextNeed[])
       : undefined,
+    /* Aspecto a aspecto, y los sujetos por su nombre. Sin resolver: eso es de otra capa. */
+    continuity: leerIntencionDeContinuidad(crudo.continuity),
     missing: listaDeTextos(crudo.missing, 8),
     assumptions: listaDeTextos(crudo.assumptions, 8),
     suggestedExperience: sugerida,
