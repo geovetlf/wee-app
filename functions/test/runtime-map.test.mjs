@@ -135,6 +135,13 @@ const OTROS_DEL_CORE = {
    */
   'core/shot.js': ['esEstadoDePlano', 'escenaValida', 'planoValido', 'puedePasarDePlano', 'referenciasDelPlano', 'validarEscena', 'validarPlano'],
   'core/continuity.js': ['anclajeValido', 'continuidadValida'],
+  /*
+   * C4: la comprobación ESTRUCTURAL. Producción usa el comprobador y nada más
+   * —ni `revisarCambioDePlano`, ni `aspectosSinEvidencia`, ni la tabla de
+   * evidencia—, y eso es lo que estas listas existen para enseñar: qué se usa
+   * de verdad y qué sigue siendo Core construido que nadie toca todavía.
+   */
+  'core/continuity-check.js': ['revisarEstructura'],
   'core/language.js': ['contextoDeIdioma'],
   /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
   'core/social-identity.js': ['actorDeLaCuenta'],

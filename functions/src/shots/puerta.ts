@@ -21,6 +21,7 @@ import {
   marcarPlanoObsoleto,
   planosDeLaEscena,
 } from './index';
+import { revisarPlanoGuardado } from './validacion';
 
 /**
  * WEË SCENES & SHOTS — LA PUERTA. Y solo eso.
@@ -234,6 +235,18 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
     if (r.status === 'no_encontrado') noEsta();
     if (r.status !== 'actualizado') throw new HttpsError('failed-precondition', 'Ese cambio de estado no se puede hacer.');
     return { status: r.status, shot: r.shot };
+  }
+
+  /*
+   * C4 · La comprobación ESTRUCTURAL. No mira ninguna imagen y no genera nada:
+   * dice si lo guardado cuadra y si lo que se exige conservar tiene a qué
+   * agarrarse. Un `fail` es una respuesta, no una orden de rehacer.
+   */
+  if (op === 'shot.validate') {
+    if (!shotId) noVale();
+    const r = await revisarPlanoGuardado({ accountId, shotId: shotId as string, at }, { db });
+    if (!r) noEsta();
+    return { review: r };
   }
 
   if (op === 'shot.context') {

@@ -50,6 +50,7 @@ export * from './element';
 export * from './visual-context';
 export * from './continuity';
 export * from './shot';
+export * from './continuity-check';
 export * from './skill';
 export * from './planner';
 export * from './orchestrator';
