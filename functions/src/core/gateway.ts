@@ -1,5 +1,6 @@
 import { GATEWAY_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { CostLine, CostUnit } from './cost';
+import { CreativeParameters, creativosValidos } from './creative';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { esTipoDeEntidad } from './identity';
 import { LanguageContext, LanguageTag, normalizarEtiqueta } from './language';
@@ -62,12 +63,23 @@ export interface ImplementationRef {
 export type ExecutionMode = 'sync' | 'async';
 
 /**
- * Lo ÚNICO que un adaptador lee de las preferencias hoy. No es selección:
- * calidad y duración describen el resultado que se quiere, no quién lo hace.
+ * LO QUE SE QUIERE DEL RESULTADO. Nunca quién lo hace.
+ *
+ * Calidad y duración describen el resultado, no la implementación, y por eso
+ * viajan de Brain al adaptador enteras. `creative` es lo mismo un paso más
+ * allá: la intención creativa de quien pidió, ya estructurada —`aerial`,
+ * `dolly_out`, `golden_hour`— en el vocabulario cerrado de Weë.
+ *
+ * ESTE ES EL SITIO, Y NO UNO NUEVO. Una segunda tubería para la intención
+ * creativa habría obligado a tocar el Workflow, el Orchestrator y el Router
+ * para transportar lo mismo que esta ya transporta. Aquí cabe, aquí se valida
+ * con el mismo lector, y aguas abajo nadie tiene que enterarse.
  */
 export interface ExecutionHints {
   quality?: 'standard' | 'high' | 'max';
   durationSec?: number;
+  /** La intención creativa, estructurada. Vocabulario cerrado; jamás sintaxis de un proveedor. */
+  creative?: CreativeParameters;
 }
 
 export interface ExecutionOptions {
@@ -367,7 +379,7 @@ const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
 const CLAVES_DE_IDIOMA = ['appLanguage', 'userLocale', 'inputLanguage', 'outputLanguage', 'contentLanguage'];
 const CLAVES_DE_USO_NORMALIZADO = ['inputTokens', 'outputTokens', 'totalTokens', 'images', 'videoSeconds', 'audioSeconds', 'characters', 'calls', 'searchQueries'] as const;
 const CLAVES_DE_EJECUCION = ['mode', 'timeoutMs', 'deadlineAt', 'stream', 'hints'];
-const CLAVES_DE_HINTS = ['quality', 'durationSec'];
+const CLAVES_DE_HINTS = ['quality', 'durationSec', 'creative'];
 const CALIDADES = ['standard', 'high', 'max'];
 const CLASES_DE_RESPUESTA = ['text', 'image', 'video', 'audio', 'document'];
 
@@ -647,7 +659,22 @@ export const leerHints = (crudo: unknown, prefijo: string): { ok: true; hints?: 
   if (crudo.durationSec !== undefined && (!esNumero(crudo.durationSec) || crudo.durationSec <= 0 || crudo.durationSec > MAX_DURATION_SEC)) {
     return { ok: false, field: `${prefijo}.durationSec`, reason: 'invalid_request' };
   }
-  return { ok: true, hints: { quality: crudo.quality as ExecutionHints['quality'], durationSec: crudo.durationSec as number | undefined } };
+  /*
+   * La intención creativa se valida ENTERA con su propio contrato —vocabulario
+   * cerrado, rangos, unidades— y se rechaza si algo no encaja. No se recorta ni
+   * se admite a medias: media intención es una intención distinta.
+   */
+  if (crudo.creative !== undefined && !creativosValidos(crudo.creative)) {
+    return { ok: false, field: `${prefijo}.creative`, reason: 'invalid_request' };
+  }
+  return {
+    ok: true,
+    hints: {
+      quality: crudo.quality as ExecutionHints['quality'],
+      durationSec: crudo.durationSec as number | undefined,
+      creative: crudo.creative as CreativeParameters | undefined,
+    },
+  };
 };
 
 const validarEjecucion = (crudo: unknown): { ok: true; execution: PeticionValidada['execution'] } | Fallo => {

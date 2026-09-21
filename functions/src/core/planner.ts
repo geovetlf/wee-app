@@ -6,6 +6,7 @@ import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { CAPABILITY_CATALOG, CatalogEntry, CoreCapabilityId } from './registry';
 import { ExecutionHints, claveProhibida, esObjetoPlano, esTexto, leerHints, nombreDeCampo, sanearMeta } from './gateway';
+import { CreativeParameters, completarCreativos, creativosValidos } from './creative';
 import { CAMPOS_DE_APORTACION, SkillPlanContribution, clavePeligrosa } from './skill';
 
 /**
@@ -429,6 +430,8 @@ const revisarAportacionDeSkill = (
       if (typeof valor !== 'number' || !Number.isFinite(valor) || valor < 0) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
     }
   }
+  /* La intención creativa que aporta, con su propio contrato: entera o nada. */
+  if (s.creative !== undefined && !creativosValidos(s.creative)) return { ok: false, field: 'skill.creative', reason: 'invalid_request' };
   return { ok: true, skill: s as unknown as SkillPlanContribution };
 };
 
@@ -527,8 +530,6 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
        */
       const sinVacíos = (h?: ExecutionHints) => Object.fromEntries(Object.entries(h ?? {}).filter(([, v]) => v !== undefined));
       const pistas = { ...sinVacíos(preferencias.hints), ...sinVacíos(pistasPedidas.hints) };
-      /* Lo que pide quien llama manda sobre lo que se dedujo de la conversación. */
-      const conPistas = Object.keys(pistas).length ? { hints: pistas as ExecutionHints } : {};
 
       /* ── Lo que Brain no supo, el Planner no lo inventa ───────────────────── */
       if (u.missing.length > 0) {
@@ -539,6 +540,24 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
       const aporte = revisarAportacionDeSkill(request.skill);
       if (!aporte.ok) return fallar('invalid', 'INVALID_REQUEST', aporte.reason, { field: aporte.field });
       const skill = aporte.skill;
+
+      /*
+       * ── LA INTENCIÓN CREATIVA, JUNTA ───────────────────────────────────────
+       *
+       * Lo que pide quien llama manda sobre lo que se dedujo de la conversación,
+       * y las dos cosas mandan sobre lo que aporta un Skill: el Skill RELLENA
+       * los huecos, nunca pisa. Alguien que pidió una toma a ras de suelo no
+       * acaba con una toma aérea porque un Skill las prefiera.
+       *
+       * Y va por el MISMO campo de siempre. `hints` ya viajaba de aquí al
+       * adaptador entera; esto solo añade una clave a un objeto que ya cruzaba
+       * el sistema, y por eso ni el Workflow, ni el Orchestrator, ni el Router,
+       * ni el Job Engine, ni la cola se enteran de que existe.
+       */
+      const creativo = completarCreativos(pistas.creative as CreativeParameters | undefined, skill?.creative);
+      const conPistas = Object.keys(pistas).length || creativo
+        ? { hints: { ...pistas, ...(creativo ? { creative: creativo } : {}) } as ExecutionHints }
+        : {};
 
       /* ── Qué capacidades hacen falta ──────────────────────────────────────── */
       /*

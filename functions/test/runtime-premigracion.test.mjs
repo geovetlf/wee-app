@@ -587,10 +587,19 @@ console.log('\n── G · Qué se añadió, qué se tocó a propósito y qué s
   const conPuerta = vivos.filter((f) => /decidirRuntime/.test(sinComentarios(leer(f))));
   check('DOS ENTRADAS AL RUNTIME, y las dos son canaries declarados: `brainChat` (texto) y `generateVideo` (vídeo)', conPuerta.join(',') === 'functions/src/creator/brain.ts,functions/src/creator/video.ts', conPuerta.join(','));
   check('no se tocó el Financial Core ni el Credit Engine', !/runtime/.test(leer('functions/src/credits/creditEngine.ts')));
-  /* De una fase cerrada se tocaron DOS cosas, las dos del Gateway y las dos autorizadas: `leerTraza` y el camino de `accepted`. */
-  check('lo tocado de una fase cerrada está vigilado una por una en job-queue 63b–63e', (() => {
+  /*
+   * De una fase cerrada se tocaron DOS cosas en F12-D, las dos del Gateway y
+   * las dos autorizadas: `leerTraza` y el camino de `accepted`. S2 añadió una
+   * tercera, también en el Gateway y también autorizada —la clave `creative` de
+   * las pistas—, y tiene su propia comprobación. Lo que se vigila aquí es que
+   * cada una siga teniendo la suya: una fase que toque el Gateway sin dejar
+   * nombre hace fallar esto.
+   */
+  check('lo tocado de una fase cerrada está vigilado una por una en job-queue 63b–63f', (() => {
     const jq = leer('functions/test/job-queue.test.mjs');
-    return /63b\) del Gateway cambió `leerTraza`/.test(jq) && /63c\) y se completó `accepted`/.test(jq) && /63e\) y lo único que se quitó del Gateway/.test(jq);
+    return /63b\) del Gateway cambió `leerTraza`/.test(jq) && /63c\) y se completó `accepted`/.test(jq)
+      && /63e\) del Gateway solo se han quitado las dos líneas de F12-D/.test(jq)
+      && /63f\) y lo que S2 abrió en el Gateway es UNA clave de pista/.test(jq);
   })());
   check('esta suite está en la cadena de `npm test`', /runtime-premigracion\.test\.mjs/.test(leer('functions/package.json')));
 }

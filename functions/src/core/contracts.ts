@@ -76,6 +76,13 @@ export const BRAIN_CONTRACT_VERSION = '1.0' as const;
  */
 export const SKILL_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * La versión del LENGUAJE CREATIVO. Un entero, como la versión de un Skill, y
+ * no un contrato con mayor y menor: nadie depende de esto por rango. Un plan
+ * guardado con la 1 se sigue leyendo como la 1 aunque exista la 2.
+ */
+export const CREATIVE_PARAMETERS_VERSION = 1;
+
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 

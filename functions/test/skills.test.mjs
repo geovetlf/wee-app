@@ -493,8 +493,18 @@ console.log('\n── E · Una capa nueva que no obliga a nadie a cambiar ──
     !/[Ss]kill/.test(leer('functions/src/job/worker.ts') + leer('functions/src/job/index.ts') + leer('functions/src/runtime/cola-durable.ts')));
 
   /* §25 · lo que NO se implementó. */
-  check('§25) S1 no trae Creative Parameters, ni Visual Context, ni Elements, ni Director, ni Evals',
-    !/CreativeParameter|VisualContext|ElementDescriptor|Director|EvalRunner|crearEvals/.test(SKILL + leer('functions/src/skills/index.ts')));
+  /*
+   * Los Creative Parameters SÍ llegaron: son S2, y esta suite los ve porque el
+   * descriptor ya puede declarar con qué intención creativa trabaja. Lo que
+   * sigue sin existir es todo lo demás, y eso es lo que se vigila aquí.
+   */
+  check('§25) sigue sin haber Visual Context, ni Elements, ni Director, ni Evals',
+    !/VisualContext|ElementDescriptor|DirectorEngine|EvalRunner|crearEvals/.test(SKILL + leer('functions/src/skills/index.ts')));
+  check('S2) y los Creative Parameters entran por su contrato, no por un cajón', (() => {
+    /* Ningún CAMPO de ninguna interfaz exportada puede ser un cajón abierto. */
+    const interfaces = [...SKILL.matchAll(/export interface \w+ \{[\s\S]*?\n\}/g)].map(([s]) => s).join('\n');
+    return /SkillCreativeProfile/.test(SKILL) && !/Record<string, unknown>/.test(interfaces);
+  })());
   /*
    * §23 · Drone View se NOMBRA en los comentarios —es el ejemplo con el que se
    * explica el versionado— y eso no es implementarlo. Lo que se mira es el

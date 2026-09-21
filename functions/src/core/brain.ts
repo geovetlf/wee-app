@@ -1,5 +1,6 @@
 import { BRAIN_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { Modality } from './capability';
+import { CreativeParameters, creativosValidos } from './creative';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
@@ -625,6 +626,19 @@ const listaDeTextos = (v: unknown, tope: number, largo = 200): readonly string[]
  * compuso Brain; lo que no case, se descarta. Un campo descartado queda
  * ausente, nunca relleno con algo parecido.
  */
+/**
+ * Las pistas de quien llamó, con la intención creativa que el modelo dedujo del
+ * texto. Lo explícito manda: solo se rellena lo que no venía.
+ */
+const conIntencionCreativa = (
+  pistas: ExecutionHints | undefined,
+  creative: CreativeParameters | undefined,
+): ExecutionHints | undefined => {
+  if (!creative) return pistas;
+  if (pistas?.creative) return pistas;
+  return { ...(pistas ?? {}), creative };
+};
+
 export const interpretarEntendimiento = (
   crudo: unknown,
   esperado: NonNullable<ThoughtRequest['expected']>,
@@ -639,6 +653,16 @@ export const interpretarEntendimiento = (
   assumptions: readonly string[];
   suggestedExperience?: string;
   question?: string;
+  /**
+   * LA INTENCIÓN CREATIVA QUE EL MODELO ENTENDIÓ, ya estructurada.
+   *
+   * Aquí es donde «que la cámara se aleje lentamente desde arriba» deja de ser
+   * una frase y pasa a ser `camera.type = aerial`, `movement.type = dolly_out`,
+   * `movement.speed = slow`. Lo hace EL MISMO modelo que ya está entendiendo la
+   * petición: no hay una segunda llamada, ni un intérprete, ni un analizador de
+   * texto en ningún sitio.
+   */
+  creative?: CreativeParameters;
 } => {
   const vacio = { capabilities: [], constraints: {}, missing: [], assumptions: [] };
   if (!esObjetoPlano(crudo)) return vacio;
@@ -664,6 +688,13 @@ export const interpretarEntendimiento = (
     capability,
     capabilities,
     constraints,
+    /*
+     * ENTERA O NADA. Igual que las capacidades, que se descartan si no están en
+     * el catálogo: lo que el modelo diga se acepta si encaja en el vocabulario
+     * cerrado, y si no, se ignora. Media intención creativa sería peor que
+     * ninguna — el plan saldría describiendo algo que nadie pidió.
+     */
+    creative: creativosValidos(crudo.creative) ? crudo.creative : undefined,
     missing: listaDeTextos(crudo.missing, 8),
     assumptions: listaDeTextos(crudo.assumptions, 8),
     suggestedExperience: sugerida,
@@ -1043,7 +1074,15 @@ export const crearBrain = (ports: BrainPorts): Brain => {
       inputs: { text: contexto.inmediato.text, attachments: contexto.inmediato.attachments },
       references: contexto.inmediato.attachments.map((a) => a.assetId ?? a.url ?? '').filter(Boolean),
       constraints: leido.constraints,
-      preferences: p.options.hints,
+      /*
+       * LO QUE PIDIÓ QUIEN LLAMA, Y LO QUE ENTENDIÓ EL MODELO, EN EL MISMO
+       * SITIO. `preferences` ya viajaba de aquí al Planner y de ahí al
+       * adaptador; la intención creativa entra por ese mismo campo en vez de
+       * abrir otro. Y manda lo EXPLÍCITO: si quien llama ya trajo parámetros
+       * creativos —una interfaz avanzada, una repetición de algo anterior— lo
+       * deducido del texto no los pisa.
+       */
+      preferences: conIntencionCreativa(p.options.hints, leido.creative),
       language: p.language,
       workplace: p.workplace ? { id: p.workplace.id, experienceId: p.workplace.experienceId } : undefined,
       projectId: p.project?.id,

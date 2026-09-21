@@ -1,6 +1,7 @@
 import {
   BrainUnderstanding,
   CoreCapabilityId,
+  CreativeParameters,
   RegistroDeSkills,
   SkillDescriptor,
   SkillPlanContribution,
@@ -68,6 +69,14 @@ export interface ResolucionDeSkillDeps {
   disponible?: (capability: CoreCapabilityId) => boolean;
   /** Pedir uno concreto por referencia guardada. */
   prefer?: SkillRef;
+  /**
+   * La intención creativa, si no viene ya dentro del entendimiento.
+   *
+   * Lo normal es NO pasarla: Brain la deja en `understanding.preferences.creative`
+   * y el resolutor la encuentra sola. Esto es para una interfaz avanzada que
+   * quiera resolver con una intención concreta sin tocar el entendimiento.
+   */
+  creative?: CreativeParameters;
 }
 
 /**
@@ -86,7 +95,7 @@ export const resolverSkillDeWee = (
       registro: deps.registro ?? registroDeSkillsDeWee().registro,
       disponible: deps.disponible ?? ((c) => disponibilidadDeWee.disponible(c)),
     },
-    { understanding, ...(deps.prefer ? { prefer: deps.prefer } : {}) },
+    { understanding, ...(deps.prefer ? { prefer: deps.prefer } : {}), ...(deps.creative ? { creative: deps.creative } : {}) },
   );
 
 /**

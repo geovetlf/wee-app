@@ -1,6 +1,16 @@
 import { BrainIntent, BrainUnderstanding } from './brain';
 import { Modality } from './capability';
 import { SKILL_CONTRACT_VERSION } from './contracts';
+import {
+  CreativeParameterPath,
+  CreativeParameters,
+  RUTAS_CREATIVAS,
+  completarCreativos,
+  conflictosCreativos,
+  creativosValidos,
+  rutasDefinidas,
+  valorCreativo,
+} from './creative';
 import { claveProhibida, esNumero, esObjetoPlano, esTexto } from './gateway';
 import { CAPABILITY_CATALOG, CoreCapabilityId } from './registry';
 
@@ -129,17 +139,40 @@ export interface SkillFragmentStep {
 }
 
 /**
- * COSTURA PARA S2 — CREATIVE PARAMETERS. Hoy solo el NOMBRE.
+ * LA COSTURA DE S1 — el nombre suelto de un parámetro.
  *
- * Deliberadamente NO es `Record<string, unknown>`: un cajón abierto es un sitio
- * donde cualquiera mete cualquier cosa, y a los dos meses hay un `providerId`
- * dentro. Un Skill puede decir «yo trabajo con un parámetro que se llama
- * `movimiento`» y nada más: ni su tipo, ni su rango, ni su valor, ni qué hace
- * con él. Todo eso es S2 y tendrá su propio contrato.
+ * S2 la cerró: `SkillCreativeProfile` es la forma estructurada, con rutas del
+ * vocabulario cerrado en vez de cadenas libres. Esto se conserva porque un
+ * contrato no se retira con un descriptor ya escrito por ahí, pero un Skill
+ * declara uno de los dos, nunca los dos: dos formas de decir lo mismo son dos
+ * verdades, y la validación lo rechaza.
  */
 export interface SkillParameterRef {
   name: string;
   required?: boolean;
+}
+
+/**
+ * LO QUE UN SKILL DICE SOBRE LA INTENCIÓN CREATIVA. La costura de S1, cerrada.
+ *
+ * Tres cosas distintas, y la diferencia entre ellas es todo:
+ *
+ *   `declares`  con qué rutas trabaja. Documentación honesta: si una petición
+ *               no toca ninguna de ellas, este Skill no tiene nada que aportar.
+ *   `requires`  lo que EXIGE. Si lo que se pidió lo contradice, este Skill no
+ *               sirve para esto y se descarta. Un Skill submarino no atiende
+ *               una petición aérea, y no hay que discutirlo.
+ *   `prefers`   lo que hace especialmente bien. Es SEÑAL para desempatar, no un
+ *               filtro: no descarta a nadie, solo gana cuando coincide.
+ *
+ * Y lo que un Skill NO puede decir sigue siendo lo mismo que en S1: con qué
+ * proveedor, con qué modelo, a qué dirección. `CreativeParameters` no tiene
+ * ninguno de esos campos, así que no hay nada que prohibir aquí.
+ */
+export interface SkillCreativeProfile {
+  declares: readonly CreativeParameterPath[];
+  requires?: CreativeParameters;
+  prefers?: CreativeParameters;
 }
 
 /* ── El descriptor ────────────────────────────────────────────────────────── */
@@ -180,8 +213,10 @@ export interface SkillDescriptor {
    */
   contextRequirements?: readonly string[];
   elementRequirements?: readonly string[];
-  /** COSTURA PARA S2. Ver `SkillParameterRef`. */
+  /** La forma de S1. Se conserva; un Skill nuevo declara `creative`. */
   parameters?: readonly SkillParameterRef[];
+  /** La intención creativa con la que trabaja, en el vocabulario cerrado de Weë. */
+  creative?: SkillCreativeProfile;
   /** Lo que acota el resultado. Números, como las restricciones del plan. */
   limits?: Readonly<Record<string, number>>;
   costHint?: SkillCostHint;
@@ -242,7 +277,7 @@ const propia = (o: Record<string, unknown>, clave: string): boolean => Object.pr
 const CAMPOS_DE_DESCRIPTOR: readonly string[] = [
   'id', 'version', 'contract', 'status', 'intents', 'requiredCapabilities', 'optionalCapabilities',
   'planFragment', 'outputModality', 'experienceId', 'contextRequirements', 'elementRequirements',
-  'parameters', 'limits', 'costHint', 'evalsRef', 'note',
+  'parameters', 'creative', 'limits', 'costHint', 'evalsRef', 'note',
 ];
 
 const EN_CATALOGO: ReadonlySet<string> = new Set(CAPABILITY_CATALOG.map((c) => String(c.id)));
@@ -265,6 +300,10 @@ export type MotivoDeSkillInvalido =
   | 'invalid_fragment'
   | 'too_many'
   | 'invalid_limit'
+  /* La intención creativa que declara no encaja en el vocabulario, o se contradice. */
+  | 'invalid_creative'
+  /* Declara la costura de S1 y la de S2 a la vez: dos formas de decir lo mismo. */
+  | 'two_shapes'
   | 'invalid_text';
 
 export interface ProblemaDeSkill {
@@ -425,6 +464,36 @@ export const validarSkill = (crudo: unknown): readonly ProblemaDeSkill[] => {
       }
     }
   }
+  /* ── La intención creativa que declara ────────────────────────────────── */
+  if (d.creative !== undefined) {
+    /* UNA sola forma de decirlo. La de S1 y la de S2 juntas serían dos verdades. */
+    if (d.parameters !== undefined) p.push(problema(ref, 'creative', 'two_shapes'));
+    if (!esObjetoPlano(d.creative)) {
+      p.push(problema(ref, 'creative', 'invalid_shape'));
+    } else {
+      const c = d.creative;
+      for (const clave of Object.keys(c)) {
+        if (!['declares', 'requires', 'prefers'].includes(clave)) p.push(problema(ref, `creative.${clave}`, 'unknown_field'));
+      }
+      if (!Array.isArray(c.declares) || c.declares.length === 0 || c.declares.length > RUTAS_CREATIVAS.length
+        || !c.declares.every((r) => esTexto(r) && (RUTAS_CREATIVAS as readonly string[]).includes(r))) {
+        p.push(problema(ref, 'creative.declares', 'invalid_creative'));
+      }
+      for (const campo of ['requires', 'prefers'] as const) {
+        const v = c[campo];
+        if (v === undefined) continue;
+        if (!creativosValidos(v)) { p.push(problema(ref, `creative.${campo}`, 'invalid_creative')); continue; }
+        /*
+         * Y COHERENTE CONSIGO MISMO: exigir una cosa y preferir la contraria
+         * dejaría un Skill que se descarta a sí mismo. Es un error del
+         * descriptor, no una decisión que haya que tomar en cada petición.
+         */
+        if (campo === 'prefers' && creativosValidos(c.requires) && conflictosCreativos(c.requires, v).length) {
+          p.push(problema(ref, 'creative.prefers', 'invalid_creative'));
+        }
+      }
+    }
+  }
   if (d.costHint !== undefined && (!esTexto(d.costHint) || !COSTES.includes(d.costHint as SkillCostHint))) {
     p.push(problema(ref, 'costHint', 'invalid_shape'));
   }
@@ -564,6 +633,10 @@ export type MotivoDeResolucion =
   | 'capability_not_covered'
   | 'modality_mismatch'
   | 'experience_mismatch'
+  /* Todos los que sabían hacer esto EXIGEN algo que contradice lo que se pidió. */
+  | 'creative_mismatch'
+  /* Quedan varios y lo que declaran sobre la intención se contradice entre sí. */
+  | 'creative_conflict'
   | 'tie'
   | 'capability_unavailable'
   | 'invalid_request';
@@ -583,6 +656,15 @@ export interface SkillPlanContribution {
   /** capacidad → frase de progreso. Texto para una persona, nunca para un proveedor. */
   purposes?: Readonly<Record<string, string>>;
   limits?: Readonly<Record<string, number>>;
+  /**
+   * LA INTENCIÓN CREATIVA QUE EL SKILL APORTA. Lo que exige, y lo que prefiere.
+   *
+   * Llega al Planner como RELLENO, nunca como orden: lo que la persona pidió
+   * manda en cada ruta que tocó, y esto solo cubre lo que nadie dijo. Un Skill
+   * de vista aérea puede rellenar `movement.speed = slow` si nadie habló de
+   * velocidad; no puede convertir en aéreo lo que alguien pidió a ras de suelo.
+   */
+  creative?: CreativeParameters;
 }
 
 export interface SkillResolution {
@@ -594,6 +676,8 @@ export interface SkillResolution {
   candidates?: readonly SkillRef[];
   /** Solo en `unsupported`: qué falta por servir. */
   unavailable?: readonly CoreCapabilityId[];
+  /** Solo cuando la intención creativa choca: en qué rutas, exactamente. */
+  conflicts?: readonly CreativeParameterPath[];
   reason?: MotivoDeResolucion;
 }
 
@@ -611,6 +695,16 @@ export interface SkillResolverRequest {
   understanding: BrainUnderstanding;
   /** Pedir uno concreto, por referencia guardada. Se respeta la versión exacta. */
   prefer?: SkillRef;
+  /**
+   * LA INTENCIÓN CREATIVA, si se entendió alguna.
+   *
+   * Es la señal que S1 no tenía y por la que dos Skills de vídeo empataban sin
+   * remedio. Viene de `understanding.preferences.creative`, así que quien
+   * compone puede pasarla directamente; se acepta aquí aparte para que una
+   * prueba —o una interfaz avanzada— pueda resolver con una intención concreta
+   * sin fabricar un entendimiento entero.
+   */
+  creative?: CreativeParameters;
 }
 
 const sinSkill = (reason: MotivoDeResolucion): SkillResolution => ({
@@ -631,12 +725,15 @@ export const aportacionDeSkill = (s: SkillDescriptor): SkillPlanContribution => 
    */
   const delFragmento = s.planFragment.map((paso) => paso.capability);
   const capabilities = [...new Set([...delFragmento, ...s.requiredCapabilities])];
+  /* Lo que exige manda sobre lo que prefiere: las dos son suyas y no se contradicen (lo valida el descriptor). */
+  const creative = completarCreativos(s.creative?.requires, s.creative?.prefers);
   return {
     skillId: s.id,
     version: s.version,
     capabilities,
     ...(Object.keys(purposes).length ? { purposes: { ...purposes } } : {}),
     ...(s.limits ? { limits: { ...s.limits } } : {}),
+    ...(creative ? { creative } : {}),
   };
 };
 
@@ -736,8 +833,22 @@ export const resolverSkill = (puertos: SkillResolverPorts, request: SkillResolve
   if (!conCapacidad.length) return sinSkill('capability_not_covered');
   const conModalidad = conCapacidad.filter(coincideModalidad);
   if (!conModalidad.length) return sinSkill('modality_mismatch');
-  const candidatos = conModalidad.filter(coincideExperiencia);
-  if (!candidatos.length) return sinSkill('experience_mismatch');
+  const conExperiencia = conModalidad.filter(coincideExperiencia);
+  if (!conExperiencia.length) return sinSkill('experience_mismatch');
+
+  /*
+   * ── Filtro 5 · LO QUE EL SKILL EXIGE ────────────────────────────────────
+   *
+   * `requires` descarta, `prefers` no. Un Skill que exige una cámara submarina
+   * no atiende una petición aérea: no es que sea peor candidato, es que no es
+   * candidato. Y esto ocurre ANTES del desempate a propósito — desempatar entre
+   * dos que no sirven sería elegir el menos malo.
+   */
+  const pedida = request.creative ?? u.preferences?.creative;
+  const candidatos = pedida
+    ? conExperiencia.filter((s) => conflictosCreativos(s.creative?.requires, pedida).length === 0)
+    : conExperiencia;
+  if (!candidatos.length) return sinSkill('creative_mismatch');
   if (candidatos.length === 1) return comprobar(candidatos[0]);
 
   /*
@@ -753,17 +864,50 @@ export const resolverSkill = (puertos: SkillResolverPorts, request: SkillResolve
    * alfabético haría que la elección dependiera de cómo se llamen.
    */
   const conSuExperiencia = candidatos.filter((s) => s.experienceId !== undefined);
-  const finalistas = conSuExperiencia.length ? conSuExperiencia : candidatos;
+  const porExperiencia = conSuExperiencia.length ? conSuExperiencia : candidatos;
+
+  /*
+   * ── Desempate 2 · LA EVIDENCIA CREATIVA ─────────────────────────────────
+   *
+   * Aquí es donde S2 resuelve lo que S1 no podía. Dos Skills de vídeo con las
+   * mismas capacidades y la misma modalidad empataban siempre; ahora gana el
+   * que ACIERTA en más de lo que se pidió: cuántas de las rutas que trajo la
+   * petición coinciden, valor a valor, con lo que él prefiere.
+   *
+   * No es un parecido ni una puntuación borrosa: es contar coincidencias
+   * exactas sobre un vocabulario cerrado. Si nadie acierta nada, este paso no
+   * desempata y se sigue al siguiente — ausencia de evidencia no es evidencia.
+   */
+  const aciertos = (s: SkillDescriptor): number =>
+    pedida ? rutasDefinidas(pedida).filter((r) => valorCreativo(s.creative?.prefers, r) === valorCreativo(pedida, r)).length : 0;
+  const mejor = Math.max(...porExperiencia.map(aciertos));
+  const porEvidencia = mejor > 0 ? porExperiencia.filter((s) => aciertos(s) === mejor) : porExperiencia;
+  if (porEvidencia.length === 1) return comprobar(porEvidencia[0]);
+
   const tamaño = (s: SkillDescriptor) => s.requiredCapabilities.length + (s.optionalCapabilities?.length ?? 0);
-  const menor = Math.min(...finalistas.map(tamaño));
-  const ajustados = finalistas.filter((s) => tamaño(s) === menor);
+  const menor = Math.min(...porEvidencia.map(tamaño));
+  const ajustados = porEvidencia.filter((s) => tamaño(s) === menor);
   if (ajustados.length === 1) return comprobar(ajustados[0]);
+
+  /*
+   * Siguen empatados. Si además se contradicen entre ellos sobre la intención,
+   * se dice DÓNDE: no es lo mismo «los dos valen igual» que «los dos quieren
+   * cosas incompatibles», y quien pregunte después necesita saber por cuál de
+   * las dos cosas está preguntando.
+   */
+  const choques = new Set<CreativeParameterPath>();
+  for (let i = 0; i < ajustados.length; i++) {
+    for (let j = i + 1; j < ajustados.length; j++) {
+      for (const r of conflictosCreativos(ajustados[i].creative?.prefers, ajustados[j].creative?.prefers)) choques.add(r);
+    }
+  }
 
   return {
     contract: SKILL_CONTRACT_VERSION,
     status: 'ambiguous',
     candidates: ajustados.map((s) => ({ skillId: s.id, version: s.version })),
-    reason: 'tie',
+    ...(choques.size ? { conflicts: [...choques] } : {}),
+    reason: choques.size ? 'creative_conflict' : 'tie',
   };
 };
 
@@ -794,5 +938,5 @@ export const trazaDeResolucion = (
 
 /** Campos que un aporte de Skill puede traer. Lo que no esté aquí, el Planner lo rechaza. */
 export const CAMPOS_DE_APORTACION: readonly string[] = Object.freeze([
-  'skillId', 'version', 'capabilities', 'purposes', 'limits',
+  'skillId', 'version', 'capabilities', 'purposes', 'limits', 'creative',
 ]);

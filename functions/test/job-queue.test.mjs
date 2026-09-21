@@ -413,8 +413,30 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     /mode: 'sync' as const/.test(leer('functions/src/job/index.ts'))
     && /if \(mode === 'async'\) return \{ ok: false/.test(GATEWAY)
     && /execution: ExecutionOptions & \{ mode: 'sync' \}/.test(GATEWAY));
-  check('63e) y lo único que se quitó del Gateway en todo F12-D es una línea de `leerTraza`',
-    quitadas.length === 2 && quitadas.every((l) => /for \(const opcional of \[/.test(l) || /\| \{ ok: true; response: CanonicalResponse/.test(l)), `${quitadas.length}: ${quitadas.map((l) => l.trim().slice(0, 40)).join(' | ')}`);
+  /*
+   * 63e CUENTA DOS FASES, Y LAS DISTINGUE. Sigue vigilando lo mismo —que del
+   * Gateway no se haya quitado nada que nadie autorizó— pero ya no puede
+   * hacerlo con un número, porque S2 tocó la costura de las pistas:
+   * `ExecutionHints` ganó `creative`, la lista blanca lo admite y el lector lo
+   * devuelve. Son tres líneas modificadas y su comentario, todas en el mismo
+   * sitio y todas del lenguaje creativo.
+   *
+   * Lo que se comprueba es que CADA línea quitada sea de una de las dos fases,
+   * y que las dos de F12-D sigan siendo exactamente dos. Una línea que no
+   * encaje en ninguna de las dos listas hace fallar esto, que es el punto.
+   */
+  const deF12D = (l) => /for \(const opcional of \[/.test(l) || /\| \{ ok: true; response: CanonicalResponse/.test(l);
+  const deS2 = (l) => /CLAVES_DE_HINTS|return \{ ok: true, hints:|Lo ÚNICO que un adaptador lee|calidad y duración describen el resultado/.test(l);
+  check('63e) del Gateway solo se han quitado las dos líneas de F12-D y la costura de pistas que abrió S2',
+    quitadas.filter(deF12D).length === 2 && quitadas.every((l) => deF12D(l) || deS2(l)),
+    `${quitadas.length}: ${quitadas.map((l) => l.trim().slice(0, 40)).join(' | ')}`);
+  check('63f) y lo que S2 abrió en el Gateway es UNA clave de pista, con su contrato aparte',
+    /const CLAVES_DE_HINTS = \['quality', 'durationSec', 'creative'\];/.test(GATEWAY)
+    && /creative\?: CreativeParameters;/.test(GATEWAY)
+    /* La intención creativa NO se valida aquí: tiene su propio contrato y se delega entero. */
+    && /!creativosValidos\(crudo\.creative\)/.test(GATEWAY)
+    /* Y el Gateway no sabe ni una palabra del vocabulario creativo. En los comentarios sí, que para eso están. */
+    && !/aerial|dolly_out|golden_hour|CameraType|MovementType/.test(sinComentarios(GATEWAY)));
   check('64) sigue habiendo UN motor de trabajos y UN almacén por contrato: aquí no se escribió un segundo', !/crearJobEngine\s*=|createJobEngine|implements JobStore|crearSiAusente\s*[:(]/.test(PUERTOS + WORKER) && /crearJobEngine/.test(leer('functions/src/core/job.ts')));
   const fuentes = (dir) => fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fuentes(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
   /*
