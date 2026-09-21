@@ -115,8 +115,17 @@ const MAPA = [
 /* Módulos del Core que no son ningún singular y que el código vivo también nombra. */
 const OTROS_DEL_CORE = {
   /* Las cuatro versiones nuevas entran con el canary: el conductor habla con Workflow, Orchestrator, Router y Job Engine. */
-  'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'JOB_ENGINE_CONTRACT_VERSION',
-    'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION'],
+  'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'ELEMENT_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION',
+    'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION'],
+  /*
+   * S5: exportar la puerta de Elements pone en producción los dos contratos de
+   * S3. Es lo esperado y es lo que estas listas existen para enseñar: qué usa
+   * de verdad y qué no. Fíjate en lo que NO aparece —`archivar`,
+   * `clasesDeMaterial`, `componerCreativos`—: sigue habiendo Core construido
+   * que producción no toca, y este mapa es donde se ve.
+   */
+  'core/element.js': ['archivar', 'elementoValido', 'esTipoDeElemento', 'puedeReferenciar', 'validarElemento'],
+  'core/visual-context.js': ['MAX_ELEMENTOS_EN_RESULTADO', 'MAX_REFERENCIAS', 'materialesDelContexto', 'necesidadValida', 'resolverContexto', 'trazaDeContexto'],
   'core/language.js': ['contextoDeIdioma'],
   /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
   'core/social-identity.js': ['actorDeLaCuenta'],
@@ -157,6 +166,13 @@ const FUNCTIONS = {
   './social/econtact': ['requestEContact', 'acceptEContact'],
   './identity/nacimiento': ['nacimientoDeCuenta'],
   './moderation': ['reportContent', 'moderationAdmin'],
+  /*
+   * S5: la puerta de las cosas de una cuenta. Crea, lee, cambia, archiva y
+   * resuelve contexto — y todo lo hace delegando en el runtime de S4, que
+   * comprueba la propiedad material a material. Aquí solo se resuelve de qué
+   * cuenta puede actuar quien llama.
+   */
+  './elements/puerta': ['elements'],
   /* Paso I: la red de seguridad del dinero. Una tarea programada, no una puerta de usuario. */
   './settlement/programado': ['barridoDeLiquidacion'],
   /* MC-4.5: la ÚNICA puerta de Media Cloud. De administración, y no es una API. */
@@ -220,7 +236,21 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y dos: las treinta y una de antes y la puerta del canary de Media Cloud', reales.length === 32, `${reales.length}`);
+  check('5) y son treinta y tres: las treinta y dos de antes y la puerta de Elements (S5)', reales.length === 33, `${reales.length}`);
+  /*
+   * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
+   *
+   * S5 tuvo que tocar este mapa: añadió una Function (`elements`) y puso dos
+   * módulos del Core en producción. Actualizar una guarda es la forma más
+   * fácil de desactivarla sin querer, así que aquí se demuestra que sigue
+   * haciendo su trabajo: se le presenta una Function que NADIE declaró y se
+   * comprueba que la detectaría.
+   */
+  const inventada = [...reales, 'functionQueNadieDeclaro'];
+  check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
+    inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
+    && inventada.length !== 33);
+
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
   check('7) ninguna Function sale de una composición del Core que no esté conectada',

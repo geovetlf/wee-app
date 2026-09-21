@@ -1,6 +1,7 @@
 import { BRAIN_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { Modality } from './capability';
 import { CreativeParameters, creativosValidos } from './creative';
+import { ContextNeed, MAX_NECESIDADES, necesidadValida } from './visual-context';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
@@ -316,6 +317,19 @@ export interface BrainUnderstanding {
   suggestedExperience?: string;
   /** ¿Hace falta un plan, o esto se resuelve contestando? */
   needsPlanning: boolean;
+  /**
+   * QUÉ DE LO QUE YA TIENE LA PERSONA HACE FALTA PARA ESTO.
+   *
+   * «Usa la hamburguesa que creamos ayer» es una intención que necesita algo
+   * que ya existe. Esto lo dice en el vocabulario cerrado de S3
+   * (`ContextNeed`): un Element de una clase, o material de una clase. Nada
+   * más; ni un id, ni una URL, ni texto libre.
+   *
+   * Brain dice QUÉ HACE FALTA. Quién es «la hamburguesa» lo decide el contexto
+   * visual, que es otra capa y otro archivo. Y ausente significa que no hacía
+   * falta nada: ese es el caso normal y no se resuelve nada.
+   */
+  context?: readonly ContextNeed[];
   /** Lo que falta por saber. Sale del modelo o queda vacío: nunca se inventa. */
   missing: readonly string[];
   /** Lo que Brain dio por supuesto. Explícito a propósito: una suposición callada es una mentira. */
@@ -663,6 +677,14 @@ export const interpretarEntendimiento = (
    * texto en ningún sitio.
    */
   creative?: CreativeParameters;
+  /**
+   * LO QUE HACE FALTA TENER DELANTE, en el vocabulario cerrado de S3.
+   *
+   * Sale de la MISMA llamada que ya entendió la petición: no hay una segunda
+   * pasada, ni un segundo modelo, ni un analizador de texto. El modelo dice
+   * «esto necesita un producto»; qué producto es no lo decide él.
+   */
+  context?: readonly ContextNeed[];
 } => {
   const vacio = { capabilities: [], constraints: {}, missing: [], assumptions: [] };
   if (!esObjetoPlano(crudo)) return vacio;
@@ -695,6 +717,15 @@ export const interpretarEntendimiento = (
      * ninguna — el plan saldría describiendo algo que nadie pidió.
      */
     creative: creativosValidos(crudo.creative) ? crudo.creative : undefined,
+    /*
+     * ENTERO O NADA, y acotado. Lo que no encaje en el vocabulario se descarta
+     * sin avisar, igual que una capacidad que no está en el catálogo: media
+     * necesidad de contexto haría buscar algo que nadie pidió.
+     */
+    context: Array.isArray(crudo.context) && crudo.context.length > 0 && crudo.context.length <= MAX_NECESIDADES
+      && crudo.context.every(necesidadValida)
+      ? (crudo.context as readonly ContextNeed[])
+      : undefined,
     missing: listaDeTextos(crudo.missing, 8),
     assumptions: listaDeTextos(crudo.assumptions, 8),
     suggestedExperience: sugerida,
@@ -1087,6 +1118,8 @@ export const crearBrain = (ports: BrainPorts): Brain => {
       workplace: p.workplace ? { id: p.workplace.id, experienceId: p.workplace.experienceId } : undefined,
       projectId: p.project?.id,
       suggestedExperience: sugerida,
+      /* Lo que hace falta tener delante, si el modelo lo dijo. Ausente es el caso normal. */
+      ...(leido.context ? { context: leido.context } : {}),
       needsPlanning: necesitaPlan,
       missing: leido.missing,
       assumptions: leido.assumptions,

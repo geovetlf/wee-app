@@ -432,8 +432,16 @@ console.log('\n── F · Una tubería, no una plataforma ──');
   check('§79) NO hay interfaz: nadie tocó una pantalla',
     !fs.existsSync(path.resolve(RAIZ, 'screens/ElementsScreen.tsx'))
     && !/ElementType|crearElemento/.test(leer('screens/MisCreacionesScreen.tsx') + leer('components/creator/RejillaDeCreaciones.tsx')));
-  check('§59/§84) y NADA se exporta desde `index.ts`: esto no es una puerta todavía',
-    !/elements/.test(leer('functions/src/index.ts')));
+  /*
+   * S4 no exportaba nada: no había puerta. S5 abrió UNA —`elements`— y lo que
+   * esta suite vigila ahora es que siga siendo una: que lo exportado sea la
+   * puerta y no las tripas. El repositorio, el cargador y el resolutor no
+   * salen de aquí, igual que el trabajador y la cola del Job Engine no salen
+   * de `runtime/`.
+   */
+  check('§56) lo que se exporta es LA PUERTA, no las tripas',
+    /export \{ elements \} from '\.\/elements\/puerta';/.test(leer('functions/src/index.ts'))
+    && !/crearElemento|mundoDeContextoDeWee|candidatosDeLaCuenta|contextoParaBrain/.test(leer('functions/src/index.ts')));
 
   /* Y/AA · Reglas e índices, PREPARADOS. */
   check('Y/§45) las reglas de `elements` son las de `assets`: leer lo tuyo, y escribir nunca desde el cliente',

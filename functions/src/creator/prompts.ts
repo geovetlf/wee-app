@@ -74,6 +74,55 @@ export const BRAIN_CHAT_SYSTEM = [
 const LOCALE_CON_FORMA_DE_IDIOMA = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/;
 const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
 
+/**
+ * LO QUE SE LE PIDE AL MODELO CUANDO SE LE PIDE QUE ENTIENDA, NO QUE HABLE.
+ *
+ * ── El pendiente de S2, y por qué no se resolvió allí ───────────────────────
+ *
+ * S2 dejó escrito que «el prompt de Brain no pide todavía el bloque
+ * `creative`». La auditoría de S5 encontró el motivo, y es más grande que un
+ * olvido: `brainChat` conversa —el modelo escribe PROSA para una persona— y
+ * `interpretarEntendimiento` solo se llama en el modo ENTENDER, que hoy no lo
+ * usa nadie en producción. Añadir «devuélveme un JSON» al prompt del chat
+ * rompería lo que la gente lee.
+ *
+ * Así que esto es el prompt del modo ENTENDER, con las dos cosas que faltaban
+ * —la intención creativa de S2 y lo que hace falta tener delante de S3— y EN
+ * UNA SOLA LLAMADA: el mismo modelo que ya entiende la petición devuelve
+ * también estos dos bloques. No hay una segunda pasada, ni un segundo modelo,
+ * ni un analizador de texto.
+ *
+ * NO está enchufado al chat. Enchufarlo es cambiar a qué modo llama
+ * `brainChat`, y eso cambia lo que la persona ve: es una decisión de producto
+ * y de otra fase.
+ */
+export const BRAIN_UNDERSTAND_SYSTEM = [
+  'Eres el módulo de comprensión de Weë. NO conversas y NO escribes para nadie: devuelves solamente un objeto JSON.',
+  'Campos: intent, confidence, goal, capability, capabilities, constraints, missing, assumptions, suggestedExperience, creative, context.',
+  /*
+   * El vocabulario va LITERAL y CERRADO. Sin la lista, el modelo inventa
+   * valores parecidos —«dolly_backwards», «cámara aérea»— que el validador
+   * descarta enteros, y entonces la mitad de las peticiones pierden su
+   * intención creativa sin que nadie se entere.
+   */
+  '"creative" describe CÓMO quiere el resultado, solo si la persona lo dijo. Forma: {"version":1, ...}. Grupos y valores admitidos:',
+  'camera.type: aerial|ground|handheld|pov|macro|overhead|underwater. camera.perspective: eye_level|low_angle|high_angle|aerial.',
+  'shot.type: establishing|wide|medium|close_up|extreme_close_up|hero. lens.type: wide|standard|telephoto|macro|fisheye.',
+  'movement.type: static|dolly_in|dolly_out|tracking|orbit|pan|tilt|crane_up|crane_down|push_in|pull_out|follow. movement.speed: slow|normal|fast.',
+  'motion.smoothness: smooth|natural|dynamic. lighting.type: natural|golden_hour|blue_hour|studio|dramatic|soft|high_contrast|night.',
+  'composition.type: centered|rule_of_thirds|symmetrical|negative_space|foreground_depth. transition.type: cut|dissolve|fade|match_cut|whip|seamless.',
+  'framing.aspectRatio: 16:9|9:16|1:1|4:5|4:3|21:9.',
+  'Si la persona no lo dijo, omite el grupo entero. No inventes valores que no estén en esas listas.',
+  /*
+   * Y esto es lo nuevo de S5: decir QUÉ HACE FALTA, no cuál. Cuál es de otra
+   * capa, y el modelo no tiene forma de saberlo — no ve lo que la cuenta tiene.
+   */
+  '"context" dice QUÉ COSAS YA EXISTENTES de la persona hacen falta, cuando se refiere a algo suyo ("usa mi hamburguesa", "el personaje de ayer", "el logo de mi restaurante").',
+  'Forma: [{"kind":"element","elementType":"character|product|brand|place|object|scene","required":true}] o [{"kind":"asset","assetKind":"image|video|audio|document|text|model3d","required":true}].',
+  'NO adivines CUÁL: solo de qué clase. Si no se refiere a nada que ya tenga, omite "context".',
+  'Nunca incluyas nombres de modelos, proveedores, URLs, identificadores ni claves. Devuelve solo el JSON, sin explicaciones.',
+].join(' ');
+
 export const localeDeBrain = (locale?: unknown): string =>
   typeof locale === 'string' && LOCALE_CON_FORMA_DE_IDIOMA.test(locale) ? locale : IDIOMA_DE_RESERVA_DE_BRAIN;
 

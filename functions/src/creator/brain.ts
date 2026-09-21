@@ -1,6 +1,7 @@
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { engine } from '../engine';
+import { contextoParaBrain } from '../elements/contexto';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
@@ -561,6 +562,31 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         ...(documentUrl ? [{ kind: 'document' as const, url: documentUrl }] : []),
         ...(audioUrl ? [{ kind: 'audio' as const, url: audioUrl }] : []),
       ];
+      /*
+       * ── EL CONTEXTO VISUAL, DETRÁS DE SU INTERRUPTOR (S5) ───────────────────
+       *
+       * «Usa la hamburguesa que creamos ayer.» Lo que la persona ya tiene
+       * guardado entra en la conversación como ADJUNTOS: la misma forma que ya
+       * usaban una foto o un documento del mensaje, y la que el Planner ya lee.
+       * No se copia un byte — son referencias a material que ya es suyo.
+       *
+       * APAGADO ES EL ESTADO NORMAL, y apagado significa que aquí no pasa NADA:
+       * `contextoParaBrain` mira el interruptor ANTES de consultar nada, así que
+       * con la puerta cerrada esto no cuesta ni una lectura ni un milisegundo.
+       * Y aunque esté abierta, sin necesidades declaradas tampoco consulta.
+       *
+       * Este primer tramo entra con el entendimiento que ya se tiene en la mano.
+       * Que el MODELO declare esas necesidades —el modo entender, con
+       * `BRAIN_UNDERSTAND_SYSTEM`— es el paso siguiente y no es de esta fase:
+       * cambiar de modo cambia lo que la persona lee.
+       */
+      const contexto = await contextoParaBrain(uid, {
+        intent: 'creation', confidence: 'low', goal: message,
+        inputs: { text: message, attachments: adjuntos },
+        references: [], constraints: {}, needsPlanning: false, missing: [], assumptions: [],
+      }, { db, observar: (linea) => console.log(linea, 'traceId=' + requestId) });
+      if (contexto.adjuntos.length) adjuntos.push(...contexto.adjuntos);
+
       const pensado = await cerebro.conversar({
         contract: BRAIN_CONTRACT_VERSION,
         /*
