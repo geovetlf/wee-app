@@ -62,8 +62,16 @@ console.log('\n── A · «Mis creaciones»: sus estados, y de quién es ─�
 console.log('\n── B · La biblioteca: cuenta, cursor y una de más ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  check('13) filtra por dueño (la cuenta) y por estados visibles', /where\('ownerAccountId', '==', accountUid\)/.test(servicio) && /where\('status', 'in', VISIBLES\)/.test(servicio));
-  check('14) lo borrado no se lista', /VISIBLES: AssetStatus\[\] = \['ready', 'processing', 'failed', 'uploading'\]/.test(servicio));
+  check('13) filtra por dueño (la cuenta) y por estados visibles', /where\('ownerAccountId', '==', accountUid\)/.test(servicio) && /where\('status', 'in', ESTADOS_QUE_SE_LISTAN\)/.test(servicio));
+  /*
+   * La lista ya no se escribe a mano en el servicio: se DERIVA de
+   * `seListaAlDueno`, que es la misma regla que aplica el Core. Así, añadir un
+   * estado al Core no deja una consulta desactualizada sin que nadie se entere.
+   */
+  check('14) lo borrado no se lista, y la lista se deriva en vez de copiarse',
+    /\.filter\(seListaAlDueno\)/.test(leer('services/vistaDeAsset.ts'))
+    && /seListaAlDueno = \(status: AssetStatus\): boolean => status !== 'deleted'/.test(leer('services/vistaDeAsset.ts'))
+    && !/\['ready', 'processing', 'failed', 'uploading'\]/.test(servicio));
   check('15) pagina con cursor y pide UNO DE MÁS para saber si hay otra página', /startAfter\(cursor\)/.test(servicio) && /limit\(CREACIONES_POR_PAGINA \+ 1\)/.test(servicio) && /const hayMas = docs\.length > CREACIONES_POR_PAGINA;/.test(servicio));
   check('16) sin contar la colección entera', !/getCountFromServer|\.count\(\)/.test(servicio));
   check('17) los índices de esa consulta están declarados', (() => {
@@ -97,7 +105,11 @@ console.log('\n── D · Sin progreso inventado, sin ids a la vista ──');
   check('29) el compositor cuenta archivos, no porcentajes (C11)', /t\('composer\.uploadingFiles', \{ n: subida\.n, total: subida\.total \}\)/.test(crear) && !/uploadProgressFill|porcentaje/.test(sinComentarios(crear)));
   check('30) las subidas a Cloudinary avisan de empezar y terminar, y nada más', !/onProgress\?\.\(\d+\)/.test(leer('services/cloudinaryService.ts')) && /onEstado\?\.\('subiendo'\)/.test(leer('services/cloudinaryService.ts')) && /onEstado\?\.\('terminado'\)/.test(leer('services/cloudinaryService.ts')));
   /* El id solo puede aparecer como `key` de React o como `recyclingKey` de expo-image (reciclado de celdas): ninguno se pinta. */
-  check('31) la rejilla no pinta ningún id', !/\{asset\.assetId\}|\{item\.assetId\}|\.jobId\}/.test(rejilla.replace(/(?:recyclingK|k)ey=\{[^}]*\}/g, '')) && /creaciones\.kind/.test(rejilla));
+  /*
+   * Y el nombre del tipo ya no se fabrica pegando el `kind` interno: sale de
+   * `CLAVE_DE_TIPO`, un mapa explícito que el compilador obliga a completar.
+   */
+  check('31) la rejilla no pinta ningún id, y dice el tipo por su clave declarada', !/\{asset\.assetId\}|\{item\.assetId\}|\.jobId\}/.test(rejilla.replace(/(?:recyclingK|k)ey=\{[^}]*\}/g, '')) && /CLAVE_DE_TIPO\[/.test(rejilla) && !/creaciones\.kind\$\{/.test(rejilla));
   /* `width: '100%'` es un estilo; lo que no puede haber es un porcentaje en un texto ni una barra de progreso. */
   check('32) ni un estado como porcentaje', !/progress|porcentaje|percent/i.test(sinComentarios(rejilla)) && !/>\s*[^<{]*\d+\s?%[^<]*</.test(rejilla));
 }

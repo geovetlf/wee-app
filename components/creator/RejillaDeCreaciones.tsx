@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { AssetDoc, assetsService } from '../../services/assetsService';
+import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../../services/vistaDeAsset';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -53,11 +54,22 @@ interface TarjetaProps {
 const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDelete }) => {
   const { theme } = useTheme();
   const t = useT();
-  const url = assetsService.urlDeMiniatura(asset);
-  const conImagen = !!url && (asset.kind === 'image' || asset.kind === 'video');
-  const claveDeTipo = `creaciones.kind${asset.kind.charAt(0).toUpperCase()}${asset.kind.slice(1)}` as const;
-  const claveDeEstado = asset.status === 'ready' ? null : (`creaciones.status${asset.status.charAt(0).toUpperCase()}${asset.status.slice(1)}` as const);
-  const fallo = asset.status === 'failed';
+  /*
+   * TODO LO QUE SE ENSEÑA SALE DE LA PROYECCIÓN, no del documento.
+   *
+   * Antes esta tarjeta leía `asset.status` y fabricaba su clave de traducción
+   * pegando trozos: `creaciones.status${Capitalize(status)}`. Eso ataba la
+   * interfaz a los nombres internos del Core —renombrar uno dejaba la pantalla
+   * buscando una clave inexistente, sin que nada fallara al compilar— y la
+   * misma línea estaba copiada en `MisCreacionesScreen`.
+   */
+  const vista = vistaDeAsset(asset);
+  const miniatura = assetsService.miniatura(asset);
+  const url = miniatura?.url ?? null;
+  const conImagen = !!url && (vista.tipo === 'image' || vista.tipo === 'video');
+  const claveDeTipo = CLAVE_DE_TIPO[vista.tipo];
+  const claveDeEstado = vista.estado === 'disponible' ? null : CLAVE_DE_ESTADO[vista.estado];
+  const fallo = vista.estado === 'no_se_pudo';
 
   return (
     <View style={{ width: ancho as never, padding: SPACING.xs }}>

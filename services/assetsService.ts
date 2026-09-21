@@ -11,6 +11,10 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
+import {
+  AssetDoc, AssetKind, AssetStatus, Representacion,
+  ESTADOS_QUE_SE_LISTAN, representacionPara,
+} from './vistaDeAsset';
 
 /**
  * Mis creaciones — el material de la CUENTA.
@@ -35,49 +39,20 @@ import { db, functions } from '../config/firebase';
  * `firestore.indexes.json`.
  */
 
-export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d';
-export type AssetStatus = 'uploading' | 'processing' | 'ready' | 'failed' | 'deleted';
-
-export interface AssetProvenance {
-  createdAt: number;
-  generationId?: string;
-  jobId?: string;
-  stepId?: string;
-  requestId?: string;
-  capability?: string;
-  provider?: string;
-}
-
-export interface AssetVariant {
-  kind: 'thumbnail' | 'poster' | 'preview' | 'transcoded';
-  storageRef: { provider: string; bucket?: string; objectKey: string; version?: string };
-  width?: number;
-  height?: number;
-}
-
-/** Lo que el servidor guarda en `assets/{assetId}`. Espejo de `functions/src/content` — se lee, no se escribe. */
-export interface AssetDoc {
-  assetId: string;
-  ownerAccountId: string;
-  kind: AssetKind;
-  status: AssetStatus;
-  mimeType?: string;
-  bytes?: number;
-  width?: number;
-  height?: number;
-  durationSec?: number;
-  name?: string;
-  variants?: AssetVariant[];
-  provenance: AssetProvenance;
-  /** Libre y acotado: de qué experiencia salió, y poco más. */
-  metadata?: Record<string, string | number | boolean>;
-  createdAt: number;
-  updatedAt: number;
-  deletedAt?: number;
-  /** La URL de entrega. Caché, no identidad: puede cambiar sin que el material cambie. */
-  delivery?: { url: string; kind: 'bearer_token' | 'public' };
-  pendingPhysicalDeletion?: boolean;
-}
+/*
+ * La forma del material y lo que se ve de él viven en `vistaDeAsset`, que es
+ * puro y no sabe de Firebase. Aquí se vuelven a exportar para que nadie tenga
+ * que cambiar sus imports, y porque este sigue siendo el sitio por el que se
+ * pide una creación.
+ */
+export type {
+  AssetKind, AssetStatus, AssetDoc, AssetVariant, AssetProvenance, StorageRef,
+  EstadoVisible, OrigenDeMaterial, Representacion, ModoDeEntrega, VistaDeMaterial, GeneracionVisible,
+} from './vistaDeAsset';
+export {
+  estadoVisible, origenDe, representacionPara, modoDeEntrega, vistaDeAsset,
+  CLAVE_DE_ESTADO, CLAVE_DE_TIPO,
+} from './vistaDeAsset';
 
 export type OrdenDeCreaciones = 'recent' | 'oldest';
 
@@ -93,9 +68,6 @@ export interface PaginaDeCreaciones {
 }
 
 export const CREACIONES_POR_PAGINA = 24;
-
-/* Lo que se enseña: lo listo, lo que se está procesando y lo que falló. Lo retirado, no. */
-const VISIBLES: AssetStatus[] = ['ready', 'processing', 'failed', 'uploading'];
 
 const assets = () => collection(db, 'assets');
 
@@ -119,7 +91,7 @@ export const assetsService = {
   ): Promise<PaginaDeCreaciones> => {
     const partes = [
       where('ownerAccountId', '==', accountUid),
-      where('status', 'in', VISIBLES),
+      where('status', 'in', ESTADOS_QUE_SE_LISTAN),
       ...(filtro.kind ? [where('kind', '==', filtro.kind)] : []),
       orderBy('createdAt', filtro.orden === 'oldest' ? 'asc' : 'desc'),
       ...(cursor ? [startAfter(cursor)] : []),
@@ -139,11 +111,44 @@ export const assetsService = {
   /** La URL con la que se enseña. Puede no haberla todavía (subiendo, procesando) o ya no (retirada). */
   urlDeEntrega: (a: AssetDoc): string | null => (a.status === 'deleted' ? null : a.delivery?.url ?? null),
 
-  /** La miniatura si el servidor hizo una; si no, la entrega. Nunca se inventa una transformación. */
-  urlDeMiniatura: (a: AssetDoc): string | null => {
-    const miniatura = a.variants?.find((v) => v.kind === 'thumbnail' || v.kind === 'poster');
-    /* Una variante se enseña por su propia entrega, que hoy no se guarda: se cae a la entrega del original. */
-    return miniatura ? assetsService.urlDeEntrega(a) : assetsService.urlDeEntrega(a);
+  /**
+   * CON QUÉ SE PINTA UNA MINIATURA, Y SI LO QUE SE DA ES EL ORIGINAL.
+   *
+   * ── El error que había aquí, y por qué no era un descuido ─────────────────
+   *
+   * La versión anterior buscaba la miniatura entre las variantes y luego
+   * devolvía lo mismo en las dos ramas: la entrega del ORIGINAL. El `find` se
+   * calculaba y se tiraba. No era un typo — era que **una variante no tiene
+   * entrega propia**: `AssetVariant` guarda su `storageRef`, y una referencia
+   * de almacén no se convierte en URL en el cliente. Quien la convierte es la
+   * capa de entrega, que sabe de proveedores y de caducidades. Sin eso, no
+   * había forma de enseñar una miniatura, y el código lo disimulaba.
+   *
+   * La consecuencia se pagaba de verdad: una rejilla de veinticuatro creaciones
+   * se bajaba veinticuatro ORIGINALES. En móvil, eso son megas por pantalla.
+   *
+   * ── Lo que hace ahora ─────────────────────────────────────────────────────
+   *
+   * Elige la representación con la ÚNICA función que decide eso
+   * (`representacionPara`, espejo del Core) y dice honestamente qué está
+   * devolviendo. Mientras la entrega de variantes no exista, `esElOriginal` es
+   * `true` y quien pinta lo sabe; el día que exista, esto devolverá la
+   * miniatura de verdad sin que la interfaz cambie.
+   *
+   * Nunca se inventa una transformación ni se construye una URL desde una
+   * `StorageRef`.
+   */
+  miniatura: (a: AssetDoc): { url: string; esElOriginal: boolean } | null => {
+    const elegida: Representacion | undefined = representacionPara(a, 'miniatura');
+    const url = assetsService.urlDeEntrega(a);
+    if (!elegida || !url) return null;
+    /*
+     * La única dirección guardada es la del original. Si `elegida` fuese una
+     * variante, seguiría sin poder entregarse, así que lo que se devuelve es el
+     * original —y se dice—. El día que las variantes tengan entrega, este
+     * `esElOriginal` pasará a `false` solo y la interfaz no cambia.
+     */
+    return { url, esElOriginal: true };
   },
 
   /**
