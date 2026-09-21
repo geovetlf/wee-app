@@ -467,8 +467,16 @@ console.log('\n── E · Dos capas nuevas que no obligaron a nadie a cambiar �
   check('W/X/§64/§65) sigue sin haber Director, ni Evals, ni replan',
     !/DirectorEngine|crearDirector|EvalRunner|crearEvals|replan/.test(EL + VC + sinComentarios(leer('functions/src/core/skill.ts'))));
   check('AE) y el CATÁLOGO DE SKILLS sigue vacío', lib('skills/index.js').CATALOGO_DE_SKILLS.length === 0);
-  check('§44/§70) sin persistencia: no se creó ninguna colección, ni regla, ni índice',
-    !/elements|visualContext/i.test(leer('firestore.rules')) && !/elements|visualContext/i.test(leer('firestore.indexes.json')));
+  /*
+   * S3 no creó persistencia, y S4 sí: la colección `elements`, su regla y su
+   * índice existen desde entonces. Lo que sigue siendo verdad —y es lo que
+   * esta suite tiene que vigilar— es que el CORE no se enteró: los contratos
+   * de S3 no saben que Firestore existe, y la dirección nunca se invirtió.
+   */
+  check('§44/§76) el Core sigue sin persistencia: ni Firestore, ni colecciones, ni el runtime al revés',
+    !/[Ff]irestore|collection\(|getFirestore|elements'/.test(EL + VC)
+    && !/elements\/index|crearElemento|mundoDeContextoDeWee/.test(
+      leer('functions/src/core/element.ts') + leer('functions/src/core/visual-context.ts')));
 
   check('esta suite está en la cadena de `npm test`', /contexto-visual\.test\.mjs/.test(leer('functions/package.json')));
 }

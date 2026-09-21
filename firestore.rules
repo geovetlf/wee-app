@@ -1065,6 +1065,34 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // === WEE ELEMENTS (S4): las cosas de una cuenta, con nombre ===
+    // Una hamburguesa, un personaje, un sitio. Referencian materiales; no los
+    // contienen. Cada cuenta lee lo suyo, con consulta acotada por
+    // `ownerAccountId`, y el modelo es EXACTAMENTE el de `assets`: leer sí,
+    // escribir no.
+    //
+    // Escribir desde el cliente sería poder decir «esta foto es mía» sin que
+    // nadie lo compruebe, y poder ponerle a una cosa el `ownerAccountId` que
+    // uno quiera. Quien crea un Element tiene que comprobar antes, material a
+    // material, que cada uno es de esa cuenta y se puede usar — y eso lo hace
+    // el servidor a partir de la sesión, que es el único que sabe quién es
+    // quien pide. Archivar tampoco se escribe desde fuera: cambia un estado
+    // que decide si esa cosa sigue apareciendo, y es una operación del dominio.
+    match /elements/{elementId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // === F11 · LAS FILAS DE UN PROYECTO ===
+    // `ProjectItem`: un proyecto, una cosa dentro, cuándo se añadió. Hoy no las
+    // escribe nadie —el contrato existe desde F11 y su runtime no— y se cierran
+    // igual que todo lo demás para que el día que alguien escriba ahí no herede
+    // una puerta abierta.
+    match /projectItems/{itemId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
     // === WEE MEDIA CLOUD (MC-1): dónde están físicamente los bytes de un material ===
     // Las escribe el servidor con el Admin SDK, que no pasa por estas reglas.
     // El cliente NO lee y NO escribe, y esto es más estricto que `assets` a
