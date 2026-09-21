@@ -12,6 +12,7 @@ import {
   valorCreativo,
 } from './creative';
 import { claveProhibida, esNumero, esObjetoPlano, esTexto } from './gateway';
+import { ContextNeed, MAX_NECESIDADES, necesidadValida } from './visual-context';
 import { CAPABILITY_CATALOG, CoreCapabilityId } from './registry';
 
 /**
@@ -207,12 +208,18 @@ export interface SkillDescriptor {
    */
   experienceId?: string;
   /**
-   * COSTURA, SIN RESOLVER. Qué contexto visual necesitaría (S3) y qué elementos
-   * (S3). Hoy son NOMBRES declarados y nada más: nadie los busca, nadie los
-   * carga y nadie falla por no tenerlos.
+   * LAS COSTURAS DE S1 — nombres sueltos. S3 las cerró, y en UNA.
+   *
+   * La primera pregunta de S3 fue si «necesito un Element de producto» y
+   * «necesito imágenes de referencia» son dos conceptos. No lo son: es la misma
+   * frase con distinto complemento. Así que `context` es una sola lista y lo
+   * que cambia es `kind`, y estas dos se conservan sin retirarse — pero un
+   * Skill declara una forma o la otra, nunca las dos.
    */
   contextRequirements?: readonly string[];
   elementRequirements?: readonly string[];
+  /** Lo que este Skill necesita tener delante para trabajar. La forma de S3. */
+  context?: readonly ContextNeed[];
   /** La forma de S1. Se conserva; un Skill nuevo declara `creative`. */
   parameters?: readonly SkillParameterRef[];
   /** La intención creativa con la que trabaja, en el vocabulario cerrado de Weë. */
@@ -277,7 +284,7 @@ const propia = (o: Record<string, unknown>, clave: string): boolean => Object.pr
 const CAMPOS_DE_DESCRIPTOR: readonly string[] = [
   'id', 'version', 'contract', 'status', 'intents', 'requiredCapabilities', 'optionalCapabilities',
   'planFragment', 'outputModality', 'experienceId', 'contextRequirements', 'elementRequirements',
-  'parameters', 'creative', 'limits', 'costHint', 'evalsRef', 'note',
+  'parameters', 'creative', 'context', 'limits', 'costHint', 'evalsRef', 'note',
 ];
 
 const EN_CATALOGO: ReadonlySet<string> = new Set(CAPABILITY_CATALOG.map((c) => String(c.id)));
@@ -302,6 +309,8 @@ export type MotivoDeSkillInvalido =
   | 'invalid_limit'
   /* La intención creativa que declara no encaja en el vocabulario, o se contradice. */
   | 'invalid_creative'
+  /* Lo que declara necesitar delante no es una necesidad de contexto válida. */
+  | 'invalid_context'
   /* Declara la costura de S1 y la de S2 a la vez: dos formas de decir lo mismo. */
   | 'two_shapes'
   | 'invalid_text';
@@ -464,6 +473,19 @@ export const validarSkill = (crudo: unknown): readonly ProblemaDeSkill[] => {
       }
     }
   }
+  /* ── Lo que necesita tener delante ────────────────────────────────────── */
+  if (d.context !== undefined) {
+    /* Una forma o la otra. Las dos juntas serían dos verdades sobre lo mismo. */
+    if (d.contextRequirements !== undefined || d.elementRequirements !== undefined) p.push(problema(ref, 'context', 'two_shapes'));
+    if (!Array.isArray(d.context) || d.context.length === 0 || d.context.length > MAX_NECESIDADES) {
+      p.push(problema(ref, 'context', 'too_many'));
+    } else {
+      for (const need of d.context) {
+        if (!necesidadValida(need)) p.push(problema(ref, 'context', 'invalid_context'));
+      }
+    }
+  }
+
   /* ── La intención creativa que declara ────────────────────────────────── */
   if (d.creative !== undefined) {
     /* UNA sola forma de decirlo. La de S1 y la de S2 juntas serían dos verdades. */
@@ -935,6 +957,16 @@ export const trazaDeResolucion = (
   status: resolucion.status,
   ...(resolucion.reason ? { reason: resolucion.reason } : {}),
 });
+
+/**
+ * LO QUE UN SKILL NECESITA TENER DELANTE, listo para pedírselo al contexto.
+ *
+ * Una línea en quien compone, y la costura entera: un Skill declara «necesito
+ * un producto y sus imágenes», y eso ES una `VisualContextRequest.needs` sin
+ * traducir nada. No hay conversión porque no hay dos vocabularios — que era el
+ * objetivo de unificar las dos listas de S1 en una.
+ */
+export const necesidadesDelSkill = (s: SkillDescriptor | undefined): readonly ContextNeed[] => s?.context ?? [];
 
 /** Campos que un aporte de Skill puede traer. Lo que no esté aquí, el Planner lo rechaza. */
 export const CAMPOS_DE_APORTACION: readonly string[] = Object.freeze([

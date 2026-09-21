@@ -83,6 +83,22 @@ export const SKILL_CONTRACT_VERSION = '1.0' as const;
  */
 export const CREATIVE_PARAMETERS_VERSION = 1;
 
+/**
+ * Forma de un Element: una entidad creativa de la cuenta que REFERENCIA
+ * materiales. Nace en 1.0 con nombre, tipo, referencias y relaciones por id, y
+ * sin un solo campo libre: los atributos de una cosa —el pelo de un personaje,
+ * la receta de un plato— llegarán con su propio contrato cerrado.
+ */
+export const ELEMENT_CONTRACT_VERSION = '1.0' as const;
+
+/**
+ * Forma de una petición de contexto visual y de su resolución.
+ *
+ * Resolver referencias, y solo eso: ni interpretar lenguaje, ni elegir modelo,
+ * ni entregar bytes. La búsqueda semántica no está en 1.0 a propósito.
+ */
+export const VISUAL_CONTEXT_CONTRACT_VERSION = '1.0' as const;
+
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 

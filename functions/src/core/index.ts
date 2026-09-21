@@ -46,6 +46,8 @@ export * from './registry';
 export * from './gateway';
 export * from './brain';
 export * from './creative';
+export * from './element';
+export * from './visual-context';
 export * from './skill';
 export * from './planner';
 export * from './orchestrator';
