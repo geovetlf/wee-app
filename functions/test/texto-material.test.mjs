@@ -1,16 +1,23 @@
 /**
  * WEË — C13: EL TEXTO TAMBIÉN ES MATERIAL.
  *
- * ── Lo que C12 midió, y que explica por qué esto existe ─────────────────────
+ * ── Lo que C12 midió, corregido en C26 ──────────────────────────────────────────
  *
- * Cuarenta aristas de dependencia en las once plantillas. TREINTA Y SEIS salen
- * de un paso que produce texto —`text.generate` 27, `vision.describe` 8,
- * `text.search` 1—. Y un resultado de texto no tenía referencia: `referenciasDe`
- * devuelve las URLs de la respuesta, un texto no tiene ninguna, y `materialDe`
- * descarta lo que llega sin `outputRefs`.
+ * CUARENTA Y UNA aristas de dependencia al enumerar las once plantillas, y
+ * TREINTA Y OCHO salen de un paso que produce texto —`text.generate` 23,
+ * `vision.describe` 14, `text.search` 1—. Y un resultado de texto no tenía
+ * referencia: `referenciasDe` devuelve las URLs de la respuesta, un texto no
+ * tiene ninguna, y `materialDe` descarta lo que llega sin `outputRefs`.
  *
- * Así que el noventa por ciento del grafo de Weë terminaba en un paso que no
- * podía leer lo que el anterior había escrito.
+ * Así que el noventa y tres por ciento del grafo de Weë terminaba en un paso
+ * que no podía leer lo que el anterior había escrito.
+ *
+ * C12 escribió «40 aristas, 36 de texto: 27 + 8 + 1». Hoy las plantillas dan 41
+ * aristas y 38; el código tiene 39 declaraciones `dependsOn` y 40 líneas que
+ * nombran esa palabra, porque una es la firma del helper. No he reconstruido
+ * con cuál de esas cuentas se escribió aquel 40, y da igual: los números vivían
+ * en el NOMBRE de un check que no los miraba, así que nada avisó cuando
+ * dejaron de cuadrar. La sección D ya no los recuerda: los cuenta.
  *
  * ── Y lo que NO hubo que construir ──────────────────────────────────────────
  *
@@ -145,17 +152,100 @@ check('F6 · una capacidad que NO produce texto no produce material de texto',
 check('un despacho sin identidad no produce material',
   materialDeTexto(despacho('text.generate', { jobId: '', attemptId: '' }), GUION, AHORA) === undefined);
 
-console.log('\n── D · Los tres productores que midió C12 ──');
+console.log('\n── D · Los productores de texto, MEDIDOS y no recordados ──');
 
-for (const [capability, aristas] of [['text.generate', 27], ['vision.describe', 8], ['text.search', 1]]) {
+/*
+ * ── POR QUÉ ESTO SE MIDE AQUÍ Y YA NO SE RECUERDA ───────────────────────────
+ *
+ * Hasta C26 esta sección se llamaba «LAS 36 ARISTAS DE TEXTO: 27 + 8 + 1» y
+ * comprobaba otra cosa: que las tres capacidades producen material de texto.
+ * Los números vivían en el NOMBRE del check y no los leía nadie, así que
+ * habrían sobrevivido a cualquier cambio de las plantillas. Y ya no eran
+ * ciertos cuando alguien fue a mirarlos.
+ *
+ * Hay dos cuentas distintas, y las dos son legítimas:
+ *
+ *   39  declaraciones `dependsOn` escritas en el código de las plantillas
+ *   41  aristas al ENUMERAR las 35 formas distintas que salen de ellas
+ *
+ * Y ninguna se deriva de la otra. Hay dos motivos, los dos comprobados abajo:
+ * una declaración puede nombrar a DOS productores, y una sola línea cuya
+ * capacidad depende de lo que conteste la persona se convierte en VARIAS
+ * formas —la de Photo, en cuatro—. C12 contó declaraciones; la medición
+ * canónica de C15d enumera formas, que es lo que de verdad corre.
+ *
+ * Así que aquí ya no se recuerda ningún número: se cuenta.
+ */
+const PLANTILLAS = lib('creator/templates.js').TEMPLATES;
+const CATALOGO = core.CAPABILITY_CATALOG;
+const produce = (id) => CATALOGO.find((c) => c.id === id)?.produces;
+
+const respuestaBase = (t) => Object.fromEntries((t.questions ?? []).map((q) => [q.id, q.options?.[0]?.id ?? '']));
+const FORMAS_DE_HOY = [];
+for (const [exp, t] of Object.entries(PLANTILLAS)) {
+  const b = respuestaBase(t);
+  const vistas = new Map();
+  const probar = (respuestas, rama) => {
+    let p;
+    try { p = t.buildPlan('un encargo de ejemplo', respuestas); } catch { return; }
+    const clave = p.steps.map((s) => s.capability).join('>');
+    if (!vistas.has(clave)) vistas.set(clave, { exp, rama, steps: p.steps });
+  };
+  probar(b, '(defecto)');
+  for (const q of (t.questions ?? [])) for (const o of (q.options ?? [])) probar({ ...b, [q.id]: o.id }, `${q.id}=${o.id}`);
+  FORMAS_DE_HOY.push(...vistas.values());
+}
+
+const porProductor = {};
+let ARISTAS = 0;
+for (const f of FORMAS_DE_HOY) {
+  const porId = Object.fromEntries(f.steps.map((s) => [s.id, s]));
+  for (const s of f.steps) for (const d of (s.dependsOn ?? [])) {
+    const p = porId[d];
+    if (!p) continue;
+    ARISTAS++;
+    porProductor[p.capability] = (porProductor[p.capability] ?? 0) + 1;
+  }
+}
+const deTexto = Object.entries(porProductor).filter(([cap]) => produce(cap) === 'text');
+const ARISTAS_DE_TEXTO = deTexto.reduce((a, [, c]) => a + c, 0);
+
+check('C26 · las aristas se CUENTAN, y son las 41 de la medición canónica',
+  ARISTAS === 41,
+  `${ARISTAS} · el mismo número que pincha \`puente-necesidades\``);
+check('C26 · y 38 de las 41 salen de un paso que produce texto',
+  ARISTAS_DE_TEXTO === 38,
+  JSON.stringify(Object.fromEntries(deTexto)));
+check('C26 · son exactamente TRES capacidades las que producen ese texto',
+  igual(deTexto.map(([c]) => c).sort(), ['text.generate', 'text.search', 'vision.describe']),
+  deTexto.map(([c, n2]) => `${c} ${n2}`).join(' · '));
+
+for (const [capability, aristas] of deTexto.slice().sort()) {
   const r = materialDeTexto(despacho(capability), GUION, AHORA);
-  check(`${capability} (${aristas} aristas en Legacy) produce material de texto`,
+  check(`${capability} (${aristas} aristas medidas hoy) produce material de texto`,
     !!r && r.kind === 'text' && r.contenido === GUION && r.provenance.capability === capability);
 }
-check('LAS 36 ARISTAS DE TEXTO, CUBIERTAS: 27 + 8 + 1',
-  [['text.generate', 27], ['vision.describe', 8], ['text.search', 1]]
-    .every(([c]) => materialDeTexto(despacho(c), GUION, AHORA)?.kind === 'text'),
-  'las tres capacidades que producen las 36 dependencias de C12');
+check('C26 · y las 3 restantes salen de productores que NO son texto: no se les finge material',
+  ARISTAS - ARISTAS_DE_TEXTO === 3
+  && Object.entries(porProductor).filter(([c]) => produce(c) !== 'text')
+    .every(([c]) => materialDeTexto(despacho(c), GUION, AHORA) === undefined),
+  Object.entries(porProductor).filter(([c]) => produce(c) !== 'text').map(([c, n2]) => `${c} ${n2}`).join(' · '));
+
+/* Y por qué contar el código y contar las formas dan números distintos. */
+const FUENTE_PLANTILLAS = leer('functions/src/creator/templates.ts');
+const DECLARACIONES = (FUENTE_PLANTILLAS.match(/dependsOn:/g) ?? []).length;
+check('C26 · 39 declaraciones en el código y 41 aristas al enumerar: son DOS medidas',
+  DECLARACIONES === 39 && ARISTAS === 41,
+  `${DECLARACIONES} declaraciones · ${ARISTAS} aristas · ninguna se deriva de la otra`);
+check('C26 · motivo uno: una sola declaración puede nombrar a DOS productores',
+  /dependsOn: \['[a-z_]+', '[a-z_]+'\]/.test(FUENTE_PLANTILLAS)
+  && FORMAS_DE_HOY.some((f) => f.steps.some((s2) => (s2.dependsOn ?? []).length === 2)),
+  'la de Weë Business: el texto final cuelga del análisis Y del mercado');
+check('C26 · motivo dos: UNA línea puede ser CUATRO aristas, según lo que conteste la persona',
+  FORMAS_DE_HOY.filter((f) => f.exp === 'photo'
+    && f.steps.some((s) => s.id === 'edit' && (s.dependsOn ?? []).includes('look'))).length === 4
+  && (FUENTE_PLANTILLAS.match(/step\('edit', capability, purpose, \{ dependsOn: \['look'\]/g) ?? []).length === 1,
+  'la capacidad de ese paso la decide la respuesta, y cada una es otra forma');
 
 console.log('\n── E · El ejecutor: de material a referencia consumible ──');
 

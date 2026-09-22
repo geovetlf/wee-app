@@ -167,7 +167,7 @@ const CLASE_POR_MODALIDAD: Readonly<Record<string, AssetKind>> = Object.freeze({
  * Porque adivinaba, y adivinaba mal en treinta y ocho de las sesenta y ocho
  * capacidades. Mientras esto solo guardaba vídeos e imágenes nadie lo notó —ahí
  * el prefijo y el catálogo dicen lo mismo—, pero el prefijo no veía que
- * `vision.describe` produce texto (ocho de las treinta y seis dependencias de
+ * `vision.describe` produce texto (catorce de las cuarenta y una dependencias de
  * Weë salen de ahí), ni que `script.write`, `scene.split`, `subtitle.generate`,
  * `doc.read` o `translation.text` también.
  *
@@ -231,9 +231,10 @@ export const procedenciaDelDespacho = (
  *
  * Porque `referenciasDe` devuelve las URLs del resultado, y un texto no tiene
  * ninguna. Sin referencia, `materialDe` lo descartaba, y el paso siguiente no
- * recibía nada: treinta y seis de las cuarenta dependencias de Weë salen de un
- * paso que produce texto, así que el noventa por ciento del grafo terminaba en
- * un paso que no podía leer lo que el anterior había escrito.
+ * recibía nada: treinta y ocho de las cuarenta y una dependencias de Weë
+ * salen de un paso que produce texto, así que el noventa y tres por ciento
+ * del grafo terminaba en un paso que no podía leer lo que el anterior
+ * había escrito.
  *
  * La identidad es la MISMA que la de cualquier otro material —`jobId` más
  * `attemptId`, calculada y no sorteada—, así que dos llegadas del mismo intento
