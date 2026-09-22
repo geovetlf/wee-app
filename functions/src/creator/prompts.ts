@@ -130,14 +130,34 @@ const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
 export const vocabularioParaElPrompt = (esperado: ThoughtRequest['expected']): string => {
   if (!esperado) return '';
   const enElCatalogo = (id: string) => CAPABILITY_CATALOG.find((c) => c.id === id);
-  const capacidades = CAPABILITY_CATALOG
-    .filter((c) => esperado.capabilities.includes(c.id))
-    .map((c) => c.id);
+  const delCatalogo = CAPABILITY_CATALOG
+    .filter((c) => esperado.capabilities.includes(c.id));
+  const capacidades = delCatalogo.map((c) => c.id);
   if (!capacidades.length) return '';
 
   const lineas: string[] = [
     `Intenciones posibles: ${[...esperado.intents].join(', ')}.`,
-    `Capacidades del catálogo: ${capacidades.join(', ')}.`,
+    /*
+     * ── QUÉ RECIBE Y QUÉ DA CADA UNA ──────────────────────────────────────
+     *
+     * Hasta G20 aquí iba la lista pelada de ids, y con eso el modelo podía
+     * NOMBRAR una capacidad pero no saber cuál puede alimentar a cuál. Desde
+     * C27 un paso sí puede declarar de qué otro bebe, así que la pregunta
+     * dejó de ser teórica: sin esto tendría que adivinarlo.
+     *
+     * Sale ENTERO del catálogo, entrada por entrada. No hay aquí ninguna tabla
+     * de compatibilidades escrita a mano, ni una sola pareja de capacidades
+     * nombrada: eso sería una segunda verdad, y el día que alguien cambiara
+     * un `accepts` solo se enteraría la mitad del sistema. Lo que se escribe
+     * a mano es UNA frase: cómo se leen los dos lados de la flecha.
+     *
+     * El catálogo declara que un `accepts` vacío significa «no necesita
+     * material de entrada». Hoy no hay ninguna así, pero si la hubiera se dice,
+     * porque callarla la haría parecer una que lo acepta todo.
+     */
+    `Capacidades del catálogo. Antes de la flecha, las clases de material que RECIBE; después, la que DA:`,
+    ...delCatalogo.map((c) => `  ${c.id} — ${c.accepts.length ? c.accepts.join('+') : 'nada'} → ${c.produces}`),
+    `Un paso solo puede beber de otro si lo que aquel DA es una de las clases que este RECIBE.`,
   ];
 
   /* Solo las que declaran variantes, y solo las variantes que son SUYAS. */

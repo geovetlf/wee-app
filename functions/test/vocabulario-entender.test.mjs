@@ -119,14 +119,20 @@ console.log('\n── C · El orden: determinista, y no una preferencia ──')
 check('G18-9 · el mismo `expected` da el mismo texto, siempre',
   vocabularioParaElPrompt(esperadoReal()) === texto
   && vocabularioParaElPrompt(esperadoReal()) === vocabularioParaElPrompt(esperadoReal()));
+/*
+ * G20 cambió la FORMA de esta lista: de una línea con los ids a una línea por
+ * capacidad con lo que recibe y lo que da. Lo que este guard dice no cambia
+ * —el orden es el del catálogo, y no un ranking—, así que se lee del formato
+ * nuevo y sigue siendo igual de estricto.
+ */
+const idsEnElTexto = texto.split('\n')
+  .filter((l) => /^ {2}\S+ — /.test(l))
+  .map((l) => l.trim().split(' — ')[0]);
 check('las capacidades salen en el orden del catálogo, no reordenadas',
-  (() => {
-    const linea = texto.split('\n').find((l) => l.startsWith('Capacidades'));
-    const enTexto = linea.replace('Capacidades del catálogo: ', '').replace(/\.$/, '').split(', ');
-    return enTexto.join() === CAPABILITY_CATALOG.map((c) => c.id).join();
-  })());
+  idsEnElTexto.join() === CAPABILITY_CATALOG.map((c) => c.id).join(),
+  `${idsEnElTexto.length} capacidades, en el orden en que las declara el catálogo`);
 check('y las variantes en orden alfabético, que es orden y no ranking',
-  texto.split(/\n(?= {2}[a-z])/).filter((b) => b.includes(" — ")).every((b) => {
+  texto.split(/\n(?= {2}[a-z])/).filter((b) => b.split(/\n/).some((x) => x.startsWith('    '))).every((b) => {
     const claves = b.split("\n").filter((x) => x.startsWith("    ")).map((x) => x.trim().split(" — ")[0]);
     return [...claves].sort().join() === claves.join();
   }),
