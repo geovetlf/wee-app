@@ -83,8 +83,8 @@ const entender = async (json, mensaje = 'lo que sea') => {
   });
   return { r, pensador };
 };
-const planear = (u) => crearPlannerDeWee({ availability: disponibilidadDe(ROUTABLES), tracer: { record() {} }, now: () => 1000 })
-  .planificar({ contract: PLANNER_CONTRACT_VERSION, trace: { traceId: 'c19_0001', requestId: 'c19_0001', userId: 'acc_mia' }, understanding: entendimientoParaPlanificar(u) });
+const planear = (u, candidatos = []) => crearPlannerDeWee({ availability: disponibilidadDe(ROUTABLES), tracer: { record() {} }, now: () => 1000 })
+  .planificar({ contract: PLANNER_CONTRACT_VERSION, trace: { traceId: 'c19_0001', requestId: 'c19_0001', userId: 'acc_mia' }, understanding: entendimientoParaPlanificar(u, candidatos) });
 
 console.log('\n── A · El vocabulario sale del catálogo, y de ningún otro sitio ──');
 
@@ -184,7 +184,7 @@ const photoPlan = await planear({
     ? { ...s, needs: [{ from: 'user', modality: 'image', required: true }] }
     : { ...s, needs: [{ from: 'user', modality: 'image', required: true }, { from: 'upstream', stepKey: 'mirar', modality: 'text' }] })),
   inputs: { text: 'restaura', attachments: [{ kind: 'image', assetId: 'as_abuela' }] },
-});
+}, [{ elementId: 'el_abuela_0001', name: 'abuela', version: 2, status: 'active' }]);
 check('C19 · PHOTO: mirar → restaurar, cada paso con su variante y con la foto',
   photoPlan.status === 'ready'
   && igual(photoPlan.plan?.steps?.map((s) => s.input.kind), ['describe', 'restore'])
@@ -193,7 +193,7 @@ check('C19 · PHOTO: mirar → restaurar, cada paso con su variante y con la fot
 check('lo creativo que declaró el modelo SÍ llega al paso',
   photoPlan.plan?.steps?.[1]?.hints?.creative?.lighting?.type === 'natural');
 /*
- * ── G17, ENCONTRADO AQUÍ Y NO ARREGLADO AQUÍ ────────────────────────────────
+ * ── G17, ENCONTRADO AQUÍ Y CERRADO EN C24 ───────────────────────────────────
  *
  * La continuidad que declara el modelo se LEE (`interpretarEntendimiento` la
  * valida entera con su contrato) y después el ensamblado del entendimiento no
@@ -203,10 +203,20 @@ check('lo creativo que declaró el modelo SÍ llega al paso',
  * toca aquí porque C19 es B2. El día que se arregle, esta comprobación falla,
  * que es lo que se quiere de ella.
  */
-check('G17 (MEDIDO, NO ARREGLADO) · la continuidad se valida y se pierde en el ensamblado',
-  photoU.understanding.continuity === undefined
-  && photoPlan.plan?.steps?.[1]?.hints?.continuity === undefined,
-  'el modelo la dijo, el lector la aceptó, y no viaja');
+check('G17 (CERRADO en C24) · la continuidad que el modelo declaró ya viaja',
+  photoU.understanding.continuity?.strength === 'strict'
+  && photoPlan.plan?.steps?.[1]?.hints?.continuity?.strength === 'strict',
+  JSON.stringify(photoPlan.plan?.steps?.[1]?.hints?.continuity ?? null));
+check('y si Weë no sabe quién es «abuela», PREGUNTA en vez de seguir',
+  await (async () => {
+    const r = await planear({
+      ...photoU.understanding,
+      steps: photoU.understanding.steps.map((s) => ({ ...s, needs: [{ from: 'user', modality: 'image', required: true }] })),
+      inputs: { text: 'restaura', attachments: [{ kind: 'image', assetId: 'as_abuela' }] },
+    }); /* sin candidatos */
+    return r.status === 'needs_clarification' && r.clarification?.missing?.includes('abuela');
+  })(),
+  'antes no preguntaba porque la continuidad no llegaba siquiera');
 check('las necesidades NO las dice el modelo: se las pone quien sabe de material',
   photoU.understanding.steps.every((s) => s.needs === undefined),
   'C19 es capacidad + variante; de dónde sale el material es otra cosa');

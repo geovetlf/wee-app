@@ -187,9 +187,16 @@ check('`VARIANTES_DEL_CATALOGO` sigue siendo proyección por referencia',
 check('el Core sigue sin construir prompts: el texto vive donde vivían los otros',
   !/vocabularioParaElPrompt|Intenciones posibles/.test(leer('functions/src/core/brain.ts'))
   && /export const vocabularioParaElPrompt/.test(leer('functions/src/creator/prompts.ts')));
-check('G17 sigue abierto y sin tocar: la continuidad se sigue perdiendo',
-  !/leido\.continuity/.test(leer('functions/src/core/brain.ts')),
-  'C21 era G18, y no se ha aprovechado el viaje');
+/*
+ * El prompt SÍ nombra la continuidad —le dice al modelo dónde ponerla, y eso es
+ * de C19—. Lo que se comprueba es que el renderizador del vocabulario, que es
+ * lo que C21 añadió, no la tocara.
+ */
+check('C21 no aprovechó el viaje para arreglar G17: lo cerró C24, aparte',
+  /leido[.]continuity/.test(leer('functions/src/core/brain.ts'))
+  && !/continuity/.test((leer('functions/src/creator/prompts.ts')
+    .match(/export const vocabularioParaElPrompt[^]*?\n};/) ?? [''])[0]),
+  'cada gap en su fase, y ninguno de paso');
 check('esta suite está en la cadena de `npm test`',
   /vocabulario-entender\.test\.mjs/.test(leer('functions/package.json')));
 

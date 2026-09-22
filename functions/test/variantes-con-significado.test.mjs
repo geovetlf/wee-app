@@ -153,8 +153,9 @@ console.log('\n── D · Lo que no se tocó ──');
 
 check('el Planner sigue rechazando una variante de otra capacidad',
   /entrada\.variants\?\.some\(\(v\) => v\.key === kind\)/.test(leer('functions/src/core/planner.ts')));
-check('G17 sigue abierto: la continuidad se sigue perdiendo',
-  !/leido\.continuity/.test(leer('functions/src/core/brain.ts')));
+check('C23 tampoco lo aprovechó: G17 se cerró en C24, y el catálogo no lo tocó',
+  /leido\.continuity/.test(leer('functions/src/core/brain.ts'))
+  && !/continuity/.test(leer('functions/src/core/registry/capabilities.ts')));
 check('B3 sigue abierto: `creator/planner.ts` no se ha tocado',
   /template\.buildPlan\(goal, record\)/.test(leer('functions/src/creator/planner.ts'))
   && !/crearPlannerDeWee/.test(leer('functions/src/creator/planner.ts')));

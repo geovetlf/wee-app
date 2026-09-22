@@ -1430,6 +1430,24 @@ export const crearBrain = (ports: BrainPorts): Brain => {
       suggestedExperience: sugerida,
       /* Lo que hace falta tener delante, si el modelo lo dijo. Ausente es el caso normal. */
       ...(leido.context ? { context: leido.context } : {}),
+      /*
+       * ── LO QUE HAY QUE CONSERVAR, QUE SE LEÍA Y SE TIRABA ──────────────────
+       *
+       * El intérprete la sacaba del JSON y la validaba ENTERA con su contrato
+       * —`leerIntencionDeContinuidad`, vocabulario cerrado de C2— y después
+       * este ensamblado no la copiaba. De los catorce campos que devuelve, era
+       * el único que no leía nadie.
+       *
+       * Lo enseñó un canary real: a «una foto de mi abuela… sin que deje de
+       * parecerse a sí misma» el modelo contestó exactamente
+       * `{preserve:['identity.face'], subjects:['abuela'], strength:'strict'}`,
+       * y eso se perdía aquí mismo, después de haber salido bien.
+       *
+       * Viaja con los SUJETOS POR SU NOMBRE, que es como el modelo los conoce.
+       * Convertir «abuela» en un `elementId@version` es de otra capa —el puente
+       * al Planner, con los candidatos de la cuenta delante— y sigue siéndolo.
+       */
+      ...(leido.continuity ? { continuity: leido.continuity } : {}),
       needsPlanning: necesitaPlan,
       missing: leido.missing,
       assumptions: leido.assumptions,
