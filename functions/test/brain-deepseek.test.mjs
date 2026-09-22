@@ -220,14 +220,18 @@ const fin = async () => {
     usage: { prompt_tokens: 10, completion_tokens: 20 },
   });
   const loQueFalla = async (cuerpo) => { try { await correr(cuerpo); return null; } catch (e) { return e; } };
+  /* Y su simétrica: si lo que debía salir bien explota, se cuenta como fallo CON NOMBRE
+     en vez de tumbar la suite entera y dejar de decir cuál era. */
+  const loQueSale = async (cuerpo) => { try { return await correr(cuerpo); } catch (e) { return { roto: e }; } };
 
-  const normal = await correr(respuesta('una respuesta de verdad', 'stop'));
+  const normal = await loQueSale(respuesta('una respuesta de verdad', 'stop'));
   check('P1) una respuesta con contenido sigue funcionando igual',
-    normal.output.kind === 'text' && normal.output.content === 'una respuesta de verdad'
-    && normal.usage.inputTokens === 10 && normal.usage.outputTokens === 20 && normal.costUSD > 0,
-    JSON.stringify({ content: normal.output.content, usage: normal.usage }));
+    normal?.output?.kind === 'text' && normal?.output?.content === 'una respuesta de verdad'
+    && normal?.usage?.inputTokens === 10 && normal?.usage?.outputTokens === 20 && normal?.costUSD > 0,
+    normal?.roto ? 'explotó: ' + normal.roto.message : JSON.stringify({ content: normal?.output?.content, usage: normal?.usage }));
 
-  const vacia = await loQueFalla(respuesta('', 'length'));
+  /* Con `stop`, no con `length`: el techo tiene su propia guarda y su propio test. */
+  const vacia = await loQueFalla(respuesta('', 'stop'));
   check('P2) `content` vacío ya NO es un éxito: es un error del proveedor',
     vacia?.name === 'ProviderError' && /lleg. vac/.test(vacia.message),
     vacia ? vacia.message : 'no lanzó: el vacío se coló');
@@ -242,29 +246,83 @@ const fin = async () => {
     ausente?.name === 'ProviderError' && nulo?.name === 'ProviderError');
 
   check('y el error DICE el desenlace, que es lo que faltaba para diagnosticar',
-    /finish_reason: length/.test(vacia?.message ?? ''),
+    /finish_reason: stop/.test(vacia?.message ?? ''),
     vacia?.message);
 
-  for (const desenlace of ['length', 'stop', 'content_filter']) {
-    const r = await correr(respuesta('algo', desenlace));
-    check(`P4-6) finish_reason "${desenlace}" queda disponible en \`meta\``,
-      r.meta?.finishReason === desenlace,
-      JSON.stringify(r.meta ?? null));
+  for (const desenlace of ['stop', 'content_filter']) {
+    const r = await loQueSale(respuesta('algo', desenlace));
+    check(`P4-5) finish_reason "${desenlace}" queda disponible en \`meta\` y sigue siendo un éxito`,
+      r?.meta?.finishReason === desenlace,
+      r?.roto ? 'explotó: ' + r.roto.message : JSON.stringify(r?.meta ?? null));
   }
+
+  console.log('\n── Y una respuesta CORTADA tampoco es una respuesta ──');
+
+  /*
+   * ── LO QUE MIDIÓ EL SEGUNDO CANARY ─────────────────────────────────────────
+   *
+   * Beauty, tres pasos. El modelo compuso bien los tres y se quedó sin techo
+   * escribiendo el tercero. Llegó un JSON sin cerrar: NO vacío, así que la
+   * guarda del vacío no lo veía. Pasó por bueno, `JSON.parse` falló en
+   * silencio, el entendimiento se rellenó con señales y salió un plan
+   * degradado. En producción eso se habría cobrado.
+   *
+   * Lo que manda es el MOTIVO DE TERMINACIÓN, no la forma del texto: si la
+   * API dice que cortó por el techo, lo escrito está incompleto aunque
+   * casualmente parsee. Eso es lo que hace falta pinchar, porque es lo que
+   * un guard ingenuo —«¿parsea?»— dejaría pasar.
+   */
+  const cortada = await loQueFalla(respuesta('{"version":1,"steps":[{"key":"a","capab', 'length'));
+  check('T1) `finish_reason: length` con contenido parcial NO es un éxito',
+    cortada?.name === 'ProviderError' && /se cort./.test(cortada.message),
+    cortada ? cortada.message : 'no lanzó: la respuesta cortada se coló');
+
+  const cortadaPeroValida = await loQueFalla(respuesta('{"version":1,"steps":[]}', 'length'));
+  check('T2) y con un JSON que CASUALMENTE cierra, tampoco',
+    cortadaPeroValida?.name === 'ProviderError',
+    'el motivo de terminación tiene autoridad: falta lo que no llegó a escribirse');
+
+  const cortadaYVacia = await loQueFalla(respuesta('', 'length'));
+  check('T3) `length` con contenido vacío: también falla',
+    cortadaYVacia?.name === 'ProviderError',
+    cortadaYVacia?.message);
+
+  check('T4) el error DICE el motivo, que es lo que hace falta para diagnosticarlo',
+    /finish_reason: length/.test(cortada?.message ?? ''),
+    cortada?.message);
+
+  const buena = await loQueSale(respuesta('{"version":1,"steps":[]}', 'stop'));
+  check('T5) `stop` con JSON válido sigue pasando, intacto',
+    buena?.output?.content === '{"version":1,"steps":[]}' && buena?.meta?.finishReason === 'stop',
+    buena?.roto ? 'explotó: ' + buena.roto.message : 'ok');
+
+  const sinMotivo = await loQueSale({ choices: [{ message: { content: 'algo' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+  check('T6) sin `finish_reason` y con contenido: el comportamiento de antes, sin tocar',
+    sinMotivo?.output?.content === 'algo' && sinMotivo?.meta === undefined,
+    sinMotivo?.roto ? 'explotó: ' + sinMotivo.roto.message : 'ok');
+
+  const filtrada = await loQueSale(respuesta('lo que sea', 'content_filter'));
+  check('T7) `content_filter` conserva su precedente: no se le inventa una política',
+    filtrada?.output?.content === 'lo que sea' && filtrada?.meta?.finishReason === 'content_filter',
+    'solo `length` cambia de comportamiento; lo demás se queda como estaba');
+
+  check('T8) y cortarse no dispara una segunda llamada: una respuesta, un fetch',
+    await (async () => { const antes = llamadasAlFetch; await loQueFalla(respuesta('x', 'length')); return llamadasAlFetch - antes === 1; })(),
+    'sin reintento y sin respaldo: el adaptador informa y se aparta');
 
   check('P7) la metadata NO altera el resultado normal',
     (() => {
-      const { meta, ...sinMeta } = normal;
-      return sinMeta.output.content === 'una respuesta de verdad'
-        && sinMeta.usage.outputTokens === 20
-        && Object.keys(normal.meta ?? {}).length === 1;
+      const { meta, ...sinMeta } = normal ?? {};
+      return sinMeta.output?.content === 'una respuesta de verdad'
+        && sinMeta.usage?.outputTokens === 20
+        && Object.keys(normal?.meta ?? {}).length === 1;
     })(),
     'solo se añade; salida, uso y coste se quedan donde estaban');
 
-  const sinDesenlace = await correr({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+  const sinDesenlace = await loQueSale({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
   check('y si la API no manda `finish_reason`, no se inventa ninguno',
-    sinDesenlace.meta === undefined,
-    JSON.stringify(sinDesenlace.meta ?? null));
+    sinDesenlace?.meta === undefined && !sinDesenlace?.roto,
+    JSON.stringify(sinDesenlace?.meta ?? null));
 
   check('F5) no se introdujo ningún reintento: una respuesta, una llamada',
     await (async () => { const antes = llamadasAlFetch; await loQueFalla(respuesta('', 'length')); return llamadasAlFetch - antes === 1; })(),

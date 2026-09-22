@@ -183,6 +183,26 @@ export const deepseekAdapter: ProviderAdapter = {
      * es la misma regla en el otro adaptador, no una nueva.
      */
     const finishReason = data.choices?.[0]?.finish_reason;
+    /*
+     * ── Y UNA RESPUESTA CORTADA TAMPOCO ES UNA RESPUESTA ──────────────────────────
+     *
+     * El mismo canary, otra vez, con otra ropa: el modelo compuso bien los tres
+     * pasos y se quedó sin techo mientras escribía el tercero. Llegó un JSON sin
+     * cerrar, que NO está vacío, así que la guarda de arriba no lo veía: pasaba
+     * por bueno, `JSON.parse` fallaba en silencio y el entendimiento se rellenaba
+     * con señales. Un plan degradado, y cobrado.
+     *
+     * Manda el MOTIVO DE TERMINACIÓN, no la forma del texto. Si la API dice
+     * que cortó por el techo, da igual que lo escrito hasta ahí resulte parsear:
+     * falta lo que no llegó a escribir. Aquí no se repara nada ni se adivina el
+     * final; se dice que no hubo respuesta y quien llamó decide.
+     */
+    if (finishReason === 'length') {
+      throw new ProviderError(
+        `deepseek: la respuesta se cortó por el techo de tokens (finish_reason: length)`,
+        'deepseek',
+      );
+    }
     if (!content) {
       throw new ProviderError(
         `deepseek: la respuesta llegó vacía${finishReason ? ` (finish_reason: ${finishReason})` : ''}`,
