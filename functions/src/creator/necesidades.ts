@@ -168,7 +168,7 @@ export const clasificarArista = (consumidor: PlanStep, productor: PlanStep): Ari
 const entradaDelPaso = (paso: PlanStep): BrainStepInput | undefined => {
   const input = (paso.input ?? {}) as { kind?: unknown; brief?: unknown };
   const variantes = entradaDe(paso.capability)?.variants ?? [];
-  const kind = typeof input.kind === 'string' && variantes.includes(input.kind) ? input.kind : undefined;
+  const kind = typeof input.kind === 'string' && variantes.some((v) => v.key === input.kind) ? input.kind : undefined;
   const brief = typeof input.brief === 'string' && input.brief.trim() ? input.brief.trim().slice(0, 300) : undefined;
   if (kind === undefined && brief === undefined) return undefined;
   return { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) };

@@ -63,18 +63,16 @@ check('G18-1 · con `expected`, hay vocabulario; sin él, no se inventa nada',
   && vocabularioParaElPrompt({ intents: [], capabilities: [], experiences: [] }) === '',
   `${texto.length} caracteres`);
 check('G18-2 · cada variante renderizada es la del catálogo',
-  CAPABILITY_CATALOG.filter((c) => c.variants?.length).every((c) => {
-    const linea = texto.split('\n').find((l) => l.trim().startsWith(`${c.id}:`));
-    return linea && [...c.variants].sort().join(', ') === linea.split(': ').slice(1).join(': ');
-  }),
+  CAPABILITY_CATALOG.filter((c) => c.variants?.length).every((c) =>
+    c.variants.every((v) => texto.includes(`    ${v.key} — ${v.description}`))),
   '14 capacidades con variantes, todas comprobadas una a una');
 check('G18-4 · una capacidad puede tener varias variantes, y salen todas',
-  (texto.match(/^ {2}text\.search: .*$/m) ?? [''])[0]
-    .endsWith('activities, analysis, destinations, ideas, itinerary, shopping, transport'));
+  ['activities', 'analysis', 'destinations', 'ideas', 'itinerary', 'shopping', 'transport']
+    .every((k) => new RegExp(`^ {4}${k} — `, 'm').test(texto)));
 check('G18-10 · si cambia el catálogo, cambia el vocabulario renderizado',
   (() => {
     const quitada = vocabularioParaElPrompt(esperadoReal({
-      variants: { ...VARIANTES_DEL_CATALOGO, 'text.search': VARIANTES_DEL_CATALOGO['text.search'].filter((v) => v !== 'destinations') },
+      variants: { ...VARIANTES_DEL_CATALOGO, 'text.search': VARIANTES_DEL_CATALOGO['text.search'].filter((v) => v.key !== 'destinations') },
     }));
     return texto.includes('destinations') && !quitada.includes('destinations')
       && quitada.includes('itinerary');
@@ -91,19 +89,25 @@ console.log('\n── B · Lo que no se renderiza ──');
 check('G18-6 · una variante que no es de esa capacidad no se ofrece EN ESA capacidad',
   (() => {
     const t = vocabularioParaElPrompt(esperadoReal({
-      variants: { ...VARIANTES_DEL_CATALOGO, 'text.search': ['restore', 'itinerary'] },
+      variants: { ...VARIANTES_DEL_CATALOGO, 'text.search': [{ key: 'restore', description: 'x' }, { key: 'itinerary', description: 'el plan día a día' }] },
     }));
-    const suya = t.split('\n').find((l) => l.trim().startsWith('text.search:')) ?? '';
-    const deEdit = t.split('\n').find((l) => l.trim().startsWith('image.edit:')) ?? '';
-    return !suya.includes('restore') && suya.includes('itinerary') && deEdit.includes('restore');
+    /* Cada capacidad rinde un bloque: su cabecera y sus variantes indentadas. */
+    const bloque = (id) => t.split(/\n(?= {2}[a-z])/).find((b) => b.trim().startsWith(`${id}:`)) ?? '';
+    return !bloque('text.search').includes('restore —') && bloque('text.search').includes('itinerary —')
+      && bloque('image.edit').includes('restore —');
   })(),
   '`restore` es de `image.edit`, y ahí sigue');
 check('una capacidad que el catálogo no conoce no se renderiza',
   !vocabularioParaElPrompt(esperadoReal({
     capabilities: [...CAPABILITY_CATALOG.map((c) => c.id), 'text.inventada'],
   })).includes('inventada'));
-check('G18-7 · ni proveedor, ni modelo, ni adaptador, ni precio',
-  !/provider|modelId|adapter|precio|price|usd|credits/i.test(texto));
+/*
+ * Se buscan proveedores y el dinero de Weë, no la palabra: «opciones, duración
+ * y precio» es el precio de un billete de tren, y es parte de lo que significa
+ * buscar transporte.
+ */
+check('G18-7 · ni proveedor, ni modelo, ni adaptador, ni Credits',
+  !/gemini|openai|anthropic|claude|flux|seedance|deepseek|providerId|modelId|adapterId|Credits/i.test(texto));
 check('G18-8 · ni una sola palabra de Workflow',
   !/workflow|dependsOn|"uses"|produces|jobId|stepId|runId/i.test(texto));
 check('el renderizador no toca red, ni Firestore, ni proveedor',
@@ -122,13 +126,17 @@ check('las capacidades salen en el orden del catálogo, no reordenadas',
     return enTexto.join() === CAPABILITY_CATALOG.map((c) => c.id).join();
   })());
 check('y las variantes en orden alfabético, que es orden y no ranking',
-  texto.split('\n').filter((l) => l.startsWith('  ')).every((l) => {
-    const vs = l.split(': ').slice(1).join(': ').split(', ');
-    return [...vs].sort().join() === vs.join();
+  texto.split(/\n(?= {2}[a-z])/).filter((b) => b.includes(" — ")).every((b) => {
+    const claves = b.split("\n").filter((x) => x.startsWith("    ")).map((x) => x.trim().split(" — ")[0]);
+    return [...claves].sort().join() === claves.join();
   }),
   'el prompt no dice en ningún sitio que la primera sea mejor');
-check('el vocabulario no sugiere preferencia',
-  !/prefer|mejor|recomendad|primero usa|por defecto/i.test(texto));
+/*
+ * Igual aquí: «una distribución mejor de un espacio» es lo que esa variante
+ * SIGNIFICA. Lo que no puede aparecer es una frase que elija por el modelo.
+ */
+check('el vocabulario no sugiere qué variante preferir',
+  !/usa .* por defecto|prefiere |la más recomendable|empieza siempre por|la primera es/i.test(texto));
 
 console.log('\n── D · El prompt sigue siendo general ──');
 
@@ -161,7 +169,7 @@ const entradaEntender = entradaDeEntender(esperadoReal(), 'una petición cualqui
 check('y en modo «entender» manda el prompt de estructura con el vocabulario',
   entradaEntender.kind === 'understand'
   && String(entradaEntender.system).includes(String(BRAIN_UNDERSTAND_SYSTEM).slice(0, 60))
-  && String(entradaEntender.system).includes('text.search: activities')
+  && /^ {4}activities — /m.test(String(entradaEntender.system))
   && entradaEntender.prompt === 'una petición cualquiera',
   String(entradaEntender.system).length + ' caracteres de system');
 check('en modo «conversar» se manda EXACTAMENTE lo que se cotizó',

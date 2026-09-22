@@ -78,12 +78,12 @@ const conVariantes = CAPABILITY_CATALOG.filter((e) => e.variants);
  * ninguna sale de la nada, todas salen de las plantillas.
  */
 check('el catálogo declara variantes donde de verdad las hay',
-  conVariantes.length === 14 && new Set(conVariantes.flatMap((e) => e.variants)).size === 44,
-  `${conVariantes.length} capacidades · ${new Set(conVariantes.flatMap((e) => e.variants)).size} variantes`);
+  conVariantes.length === 14 && new Set(conVariantes.flatMap((e) => e.variants.map((v) => v.key))).size === 44,
+  `${conVariantes.length} capacidades · ${new Set(conVariantes.flatMap((e) => e.variants.map((v) => v.key))).size} variantes`);
 check('ninguna variante es inventada: todas salen de las plantillas o de la tabla de ediciones',
   (() => {
     const deLasPlantillas = new Set([...leer('functions/src/creator/templates.ts').matchAll(/kind: '([a-z_.]+)'/g)].map((m) => m[1]));
-    const declaradas = new Set(conVariantes.flatMap((e) => e.variants));
+    const declaradas = new Set(conVariantes.flatMap((e) => e.variants.map((v) => v.key)));
     return [...deLasPlantillas].every((k) => declaradas.has(k));
   })(),
   'los 36 kinds de Legacy están cubiertos');

@@ -424,7 +424,7 @@ const revisarPasos = (
       const brief: unknown = (paso.input as Record<string, unknown>).brief;
       if (kind !== undefined) {
         if (!esTexto(kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'invalid_request' };
-        if (!entrada.variants?.includes(kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'unknown_variant' };
+        if (!entrada.variants?.some((v) => v.key === kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'unknown_variant' };
       }
       if (brief !== undefined && (!esTexto(brief) || !brief.trim() || brief.length > MAX_BRIEF_DEL_PASO)) {
         return { ok: false, field: `${sitio}.input.brief`, reason: 'invalid_request' };
@@ -734,7 +734,7 @@ const entradaDelPaso = (
    * era lo que hacía que dos pasos distintos pidieran lo mismo.
    */
   const pedida = constraints[CLAVE_DE_VARIANTE];
-  const delPlan = esTexto(pedida) && entrada.variants?.includes(pedida) ? pedida : undefined;
+  const delPlan = esTexto(pedida) && entrada.variants?.some((v) => v.key === pedida) ? pedida : undefined;
   const kind = declarada?.kind ?? delPlan;
   const brief = declarada?.brief ?? (typeof goal === 'string' ? goal.trim() : '');
   if (kind === undefined && !brief) return { ok: true };

@@ -145,8 +145,19 @@ export const vocabularioParaElPrompt = (esperado: ThoughtRequest['expected']): s
     .map((id) => {
       const declaradas = enElCatalogo(id)?.variants ?? [];
       const pedidas = esperado.variants?.[id] ?? [];
-      const validas = [...pedidas].filter((v) => declaradas.includes(v)).sort();
-      return validas.length ? `  ${id}: ${validas.join(', ')}` : '';
+      /*
+       * Con su SIGNIFICADO. El nombre solo no bastaba: a «el texto de una
+       * campaña» el modelo contestaba `campaign` —que es diseñar la campaña
+       * entera— en vez de `copy`, que es el texto. Y una variante sin
+       * significado no se ofrece: preferimos que el modelo no la conozca a que
+       * la elija a ciegas.
+       */
+      const validas = [...pedidas]
+        .filter((v) => v?.description && declaradas.some((d) => d.key === v.key))
+        .sort((a, b) => a.key.localeCompare(b.key));
+      return validas.length
+        ? [`  ${id}:`, ...validas.map((v) => `    ${v.key} — ${v.description}`)].join('\n')
+        : '';
     })
     .filter(Boolean);
   if (conVariantes.length) {

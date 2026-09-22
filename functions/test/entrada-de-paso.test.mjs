@@ -188,9 +188,9 @@ check('las variantes se DECLARAN solo en el catálogo; Brain las transporta sin 
     vs === CAPABILITY_CATALOG.find((c) => c.id === id).variants),
   'es la MISMA referencia, no una copia: quitar una del catálogo la quita de lo que Brain lleva');
 check('y las 3 que faltaban son las que Legacy usaba y el Core rechazaba',
-  CAT('image.generate').variants.includes('logo')
-  && igual(CAT('image.space_restyle').variants, ['space'])
-  && igual(CAT('video.image_to_video').variants, ['clip']));
+  CAT('image.generate').variants.some((v) => v.key === 'logo')
+  && igual(CAT('image.space_restyle').variants.map((v) => v.key), ['space'])
+  && igual(CAT('video.image_to_video').variants.map((v) => v.key), ['clip']));
 
 console.log('\n── E · Lo que NO entra en el input ──');
 

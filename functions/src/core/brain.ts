@@ -8,7 +8,7 @@ import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { AssetKind } from './content';
 import { CanonicalResponse, SourceRef } from './provider';
-import { CAPABILITY_CATALOG, CoreCapabilityId } from './registry';
+import { CAPABILITY_CATALOG, VarianteDeCapacidad, CoreCapabilityId } from './registry';
 import { WorkplaceManifest } from './workplace';
 import {
   ExecutionHints,
@@ -618,7 +618,7 @@ export interface ThoughtRequest {
      * precio, ni qué hay disponible hoy: nada de eso ayuda a entender lo que
      * alguien pidió, y todo eso invita a elegir por su cuenta.
      */
-    variants?: Readonly<Record<string, readonly string[]>>;
+    variants?: Readonly<Record<string, readonly VarianteDeCapacidad[]>>;
   };
   hints?: ExecutionHints;
   accounting?: BrainAccounting;
@@ -1174,8 +1174,8 @@ const capacidadDePensar = (options: BrainOptions, kind: 'reply' | 'understand'):
  * Las otras 54 se piden sin variante y eso ya era legal.
  */
 
-export const VARIANTES_DEL_CATALOGO: Readonly<Record<string, readonly string[]>> = Object.freeze(
-  Object.fromEntries(CAPABILITY_CATALOG.filter((c) => c.variants?.length).map((c) => [c.id, c.variants as readonly string[]])),
+export const VARIANTES_DEL_CATALOGO: Readonly<Record<string, readonly VarianteDeCapacidad[]>> = Object.freeze(
+  Object.fromEntries(CAPABILITY_CATALOG.filter((c) => c.variants?.length).map((c) => [c.id, c.variants as readonly VarianteDeCapacidad[]])),
 );
 
 /**
@@ -1216,7 +1216,7 @@ const MAX_BRIEF_DEL_MODELO = 300;
 
 export const interpretarPasos = (
   crudo: unknown,
-  esperado: { capabilities: readonly string[]; variants?: Readonly<Record<string, readonly string[]>> },
+  esperado: { capabilities: readonly string[]; variants?: Readonly<Record<string, readonly VarianteDeCapacidad[]>> },
 ): readonly BrainStep[] => {
   if (!Array.isArray(crudo)) return [];
   const salida: BrainStep[] = [];
@@ -1242,7 +1242,7 @@ export const interpretarPasos = (
 
     const entrada = esObjetoPlano(bruto.input) ? bruto.input : {};
     const declaradas = esperado.variants?.[capability] ?? [];
-    const kind = esTexto(entrada.kind) && declaradas.includes(entrada.kind) ? entrada.kind : undefined;
+    const kind = esTexto(entrada.kind) && declaradas.some((d) => d.key === entrada.kind) ? entrada.kind : undefined;
     const brief = esTexto(entrada.brief) && entrada.brief.trim() ? recortar(entrada.brief.trim(), MAX_BRIEF_DEL_MODELO) : undefined;
     const input = kind !== undefined || brief !== undefined
       ? { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) }
