@@ -3,6 +3,7 @@ import { AI_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { PlannerInput, getPlanner, respuestaPara } from './planner';
+import { configuracionDeLaSombra, entendimientoDelTramo1, sombraDelPlan } from './sombra';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
 import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
@@ -301,6 +302,35 @@ export const creatorChat = onCall(
       }
       job.updatedAt = now();
       await ref.set(clean(job));
+
+      /*
+       * ── LA SOMBRA DEL CORE ──────────────────────────────────────────────────
+       *
+       * Legacy ya terminó: el plan está hecho, el trabajo guardado y nada de lo
+       * que venga puede cambiarlo. Solo entonces el Core piensa en paralelo, se
+       * compara y se guarda en `private/shadow`, donde ningún cliente llega.
+       *
+       * CERRADA POR DEFECTO y solo para cuentas nombradas una a una.
+       *
+       * Se ESPERA a propósito. Este proyecto no tiene ninguna convención de
+       * tarea en segundo plano —todo se espera, y lo que puede fallar se traga
+       * con un `catch`—, y una promesa suelta después de contestar no está
+       * garantizada en un callable: la sombra se cortaría a medias unas veces sí
+       * y otras no, que es la peor forma de medir. `sombraDelPlan` no lanza
+       * nunca, así que esperarla no puede romper esto.
+       */
+      if (job.status === 'planned' && job.plan) {
+        await sombraDelPlan({
+          jobRef: ref,
+          jobId: job.id,
+          userId: uid,
+          experienceId: job.experienceId,
+          goal: job.goal,
+          legacyPlan: job.plan,
+          puerta: await configuracionDeLaSombra(db()),
+          entendimientoDe: entendimientoDelTramo1,
+        });
+      }
 
       return chatResponse(job, turn.question ?? null, job.status === 'planned' ? await pricingFor(job, uid) : null);
     } catch (error) {

@@ -66,7 +66,7 @@ El código ya lo usaba (`functions/src/creator/types.ts`, «NO PUEDE HABER UN TE
 | Pieza | Canónico (Core) | En uso (producción) | Motor del Core | Piezas del Core que sí corren en producción |
 |---|---|---|---|---|
 | **Brain** | `core/brain.ts` + `brain/index.ts` | `creator/brain.ts` (`brainChat`, `brainQuote`) | CONNECTED | `crearBrain`, `interpretarMarca`, `LIMITES_DE_CONTEXTO` |
-| **Planner** | `core/planner.ts` + `planner/index.ts` | `creator/planner.ts` (`getPlanner` → `templatePlanner` / `llmPlanner`) | NOT CONNECTED | solo el puerto `disponibilidadDeWee` |
+| **Planner** | `core/planner.ts` + `planner/index.ts` | `creator/planner.ts` (`getPlanner` → `templatePlanner` / `llmPlanner`) | CONNECTED | SOMBRA: `creator/sombra.ts` calcula un plan del Core en paralelo, tras un interruptor cerrado. No lo ejecuta |
 | **Workflow** | `core/workflow.ts` + `workflow/index.ts` | el `while (done.size < steps.length)` de `creatorRun` | NOT CONNECTED | `prepararWorkflow`, `esEstadoFinal` (las usa el conductor; su composición sigue sin cargarse) |
 | **Orchestrator** | `core/orchestrator.ts` + `orchestrator/index.ts` | el mismo `while` — y, **solo en el canary de texto de Brain**, el conductor | CONNECTED | `crearOrchestrator`, `claveDePaso` |
 | **Router** | `core/router.ts` + `router/index.ts` | `engine/router.ts` (`createRouter`, una instancia en `engine/index.ts`) | NOT CONNECTED | `crearRouter` — el conductor lo construye **sin** pasar por `router/index.ts`, con el registro de la configuración viva |
@@ -118,16 +118,17 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Estrategia | Nada que migrar en Brain. El cambio de pensador llega solo cuando se abran las puertas de Router y Gateway (§ 7) |
 | Producción | `brainChats`: 2 conversaciones, 12 mensajes · `aiGenerations` con `experienceId=brain`: 7 |
 
-### Planner — EXISTS · PARTIAL · motor NOT CONNECTED
+### Planner — EXISTS · PARTIAL · motor CONNECTED (solo SOMBRA)
 
 | | |
 |---|---|
 | Legacy | `creator/planner.ts`: `getPlanner()` → `templatePlanner` (plantillas de `creator/templates.ts`) o `llmPlanner` |
 | Core | `core/planner.ts` (`crearPlanner`) · composición `planner/index.ts` (`crearPlannerDeWee`) |
 | Consumidor | `screens/CreatorFlowScreen.tsx` → `services/creatorService.ts` → `creatorChat` / `creatorQuote` |
-| Runtime hoy | `creator/index.ts:275` `getPlanner().next(…)`. Del Core solo usa `disponibilidadDeWee` (¿hay con qué servir esta capacidad?) |
+| Runtime hoy | `creator/index.ts:275` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula EN PARALELO el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/shadow`. Nada de eso se ejecuta ni se le enseña a nadie |
 | Runtime objetivo | Brain → Planner del Core → plan de capacidades |
 | Estrategia | **No son la misma función.** El planificador vivo conduce una conversación guiada por plantillas (preguntas con «🤷 No sé») y devuelve un plan por experiencia; el del Core convierte un *entendimiento* de Brain en un plan. Sustituir uno por otro cambiaría el producto (CLAUDE.md § 5 y § 10: las interfaces guiadas son la referencia y el orquestador central «no se adelanta»). El camino es un adaptador: las plantillas pasan a ser una fuente de planes del Planner, no un segundo planificador. No es de este bloque |
+| Puerta | `aiSettings/sombra` — **cerrada por defecto y SIN comodín**: sin lista de cuentas no se abre para nadie. No es la puerta del runtime (`aiSettings/runtime`) y no puede abrirla: la sombra no manda nada a ejecutar |
 | Producción | `creatorJobs`: 3 (los tres de `travel`, un paso `text.search`) |
 
 ### Workflow y Orchestrator — EXISTS · NOT CONNECTED · puerta ABIERTA a nivel de decisión

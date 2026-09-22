@@ -69,8 +69,20 @@ const diferencia = (esperado, real) => {
 const MAPA = [
   { id: 'brain', canonico: ['core/brain.js'], composicion: 'brain/index.js', fabrica: 'crearBrainDeWee', enUso: ['creator/brain.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['LIMITES_DE_CONTEXTO', 'crearBrain', 'interpretarMarca'] },
-  { id: 'planner', canonico: ['core/planner.js'], composicion: 'planner/index.js', fabrica: 'crearPlannerDeWee', enUso: ['creator/planner.js'], cargada: true,
-    motor: 'NOT CONNECTED', simbolos: ['crearPlanner'] },
+  /*
+   * EL PLANNER YA ESTÁ CONECTADO, y conviene leer bien qué significa: la sombra
+   * de `creator/sombra.js` invoca la fábrica y calcula un plan del Core EN
+   * PARALELO al de Legacy, para compararlos y guardarlos en la subcolección
+   * privada del trabajo. No ejecuta ese plan —no llega al Workflow, ni al
+   * Orchestrator, ni al Router, ni al Job, ni al Gateway— y está detrás de un
+   * interruptor cerrado por defecto y abierto solo para cuentas nombradas.
+   *
+   * Legacy sigue siendo la AUTORIDAD DE EJECUCIÓN. Esto es observación. Pero el
+   * motor se invoca desde código vivo, así que aquí pone CONNECTED: el mapa
+   * dice lo que hay, no lo que se ejecuta.
+   */
+  { id: 'planner', canonico: ['core/planner.js'], composicion: 'planner/index.js', fabrica: 'crearPlannerDeWee', enUso: ['creator/planner.js', 'creator/sombra.js'], cargada: true,
+    motor: 'CONNECTED', simbolos: ['crearPlanner'] },
   /* El conductor usa DOS piezas sueltas del Workflow del Core (`prepararWorkflow`, `esEstadoFinal`), no su composición. */
   { id: 'workflow', canonico: ['core/workflow.js'], composicion: 'workflow/index.js', fabrica: 'crearWorkflowEngineDeWee', enUso: ['creator/index.js'], cargada: false,
     motor: 'NOT CONNECTED', simbolos: ['esEstadoFinal', 'prepararWorkflow'] },
@@ -115,7 +127,7 @@ const MAPA = [
 /* Módulos del Core que no son ningún singular y que el código vivo también nombra. */
 const OTROS_DEL_CORE = {
   /* Las cuatro versiones nuevas entran con el canary: el conductor habla con Workflow, Orchestrator, Router y Job Engine. */
-  'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'ELEMENT_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION',
+  'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'ELEMENT_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'PLANNER_CONTRACT_VERSION',
     'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'SHOT_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION'],
   /*
    * S5: exportar la puerta de Elements pone en producción los dos contratos de
@@ -341,9 +353,17 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
     }
     for (const vivo of c.enUso) check(`${n++}) ${c.id}: lo que atiende hoy (${vivo}) sí se despliega`, VIVOS.has(vivo));
   }
-  /* El Planner es el caso raro: su composición SÍ se carga, pero solo por el puerto de disponibilidad. */
-  check(`${n++}) planner: su composición se carga solo por \`disponibilidadDeWee\`, que usa el planificador vivo`,
-    VIVOS.has('planner/index.js') && /disponibilidadDeWee/.test(codigo(path.join(LIB, 'creator/planner.js'))) && invocadaDesde('crearPlannerDeWee').length === 0);
+  /*
+   * El Planner dejó de ser el caso raro. Su composición se cargaba SOLO por el
+   * puerto de disponibilidad —`disponibilidadDeWee`, que usa el planificador
+   * vivo para elegir entre plantilla y LLM— y nadie invocaba la fábrica. Ahora
+   * la invoca la sombra, y solo la sombra: si apareciera un segundo sitio, esto
+   * lo diría por su nombre.
+   */
+  check(`${n++}) planner: el puerto de disponibilidad sigue siendo lo que usa el planificador vivo`,
+    VIVOS.has('planner/index.js') && /disponibilidadDeWee/.test(codigo(path.join(LIB, 'creator/planner.js'))));
+  check(`${n++}) planner: la fábrica la invoca la SOMBRA, y nadie más`,
+    igual(['creator/sombra.js'], invocadaDesde('crearPlannerDeWee')), invocadaDesde('crearPlannerDeWee').join(', ') || 'nadie');
   const otros = Object.entries(OTROS_DEL_CORE);
   for (const [mod, simbolos] of otros) check(`${n++}) ${mod}: símbolos nombrados [${simbolos.join(', ')}]`, igual(simbolos, [...(nombrados.get(mod) || [])]), diferencia(simbolos, [...(nombrados.get(mod) || [])]));
   const declarados = new Set([...MAPA.flatMap((c) => c.canonico), ...Object.keys(OTROS_DEL_CORE)]);
