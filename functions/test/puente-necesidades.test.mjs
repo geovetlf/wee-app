@@ -121,6 +121,67 @@ check('C15d-F6 · 5 apuntan a capacidades que hoy no sirve nadie',
   clases.NON_EXECUTABLE_CAPABILITY_DEPENDENCY === 5,
   'music.generate y video.compose: no se finge soporte');
 
+/*
+ * ── LA REGLA QUE HAY DEBAJO DE LAS NUEVE ────────────────────────────────────
+ *
+ * Las nueve no son nueve casos sueltos. Ocho son EL MISMO caso, y se cumple
+ * sin una sola excepción en las 35 formas:
+ *
+ *   mirar una foto  →  un paso de TEXTO            transmite SIEMPRE  (6 de 6)
+ *   mirar una foto  →  un paso de IMAGEN o VÍDEO   no transmite NUNCA (8 de 8)
+ *
+ * Y tiene sentido: a un modelo de imagen se le entrega la foto, así que
+ * describírsela antes no le añade nada. A uno de texto no se le puede entregar
+ * la foto, así que la descripción es lo único que le llega de ella.
+ *
+ * ── Por qué esto se pincha aquí y no se queda en un informe ──────────────────
+ *
+ * En C22 di por FALLADO un canary de Photo porque el modelo produjo UN paso
+ * —editar la foto— donde la plantilla de Legacy hace dos. El EXPECTED lo saqué
+ * de la plantilla. Esta regla, que ya estaba medida en C15d antes de aquel
+ * canary, dice que el segundo paso de esa rama no recibe nada del primero: la
+ * arista `look → edit` de Photo está en el grupo de las ocho.
+ *
+ * O sea que el modelo no se dejó una dependencia. Se dejó un paso que Legacy
+ * incluye para que la persona LEA qué vio Weë, que es una decisión de producto,
+ * no una necesidad material. El veredicto era mío, no suyo.
+ *
+ * Pincharlo aquí evita que alguien —yo el mes que viene— vuelva a escribir
+ * aquel EXPECTED creyendo que mide composición.
+ */
+const desdeMirar = [];
+for (const f of FORMAS) {
+  const porId = Object.fromEntries(f.steps.map((s) => [s.id, s]));
+  for (const s of f.steps) for (const d of (s.dependsOn ?? [])) {
+    const prod = porId[d];
+    if (prod?.capability !== 'vision.describe') continue;
+    desdeMirar.push({ forma: `${f.exp}/${f.rama}`, hacia: s.capability, clase: clasificarArista(s, prod).clase });
+  }
+}
+const haciaTexto = desdeMirar.filter((x) => x.hacia.startsWith('text.'));
+const haciaVer = desdeMirar.filter((x) => x.hacia.startsWith('image.') || x.hacia.startsWith('video.'));
+
+check('C25 · mirar una foto alimenta a un paso de TEXTO: las 6 veces, sin excepción',
+  haciaTexto.length === 6 && haciaTexto.every((x) => x.clase === 'REAL_MATERIAL_DEPENDENCY'),
+  `${haciaTexto.length} aristas · un modelo de texto no puede ver la foto`);
+check('C25 · y a uno de IMAGEN o VÍDEO: las 8 veces, tampoco con excepción',
+  haciaVer.length === 8 && haciaVer.every((x) => x.clase === 'LEGACY_ORDER_ARTIFACT'),
+  `${haciaVer.length} aristas · a un modelo de imagen se le da la foto, no su descripción`);
+check('C25 · y entre las dos explican TODO lo que sale de mirar: 14 aristas',
+  haciaTexto.length + haciaVer.length === desdeMirar.length && desdeMirar.length === 14,
+  'sin un resto que haya que explicar aparte');
+const capDe = (a, id) => a.steps.find((s) => s.id === id)?.capability ?? '?';
+const sinMirar = artefactos
+  .filter((a) => a.clase === 'LEGACY_ORDER_ARTIFACT' && capDe(a, a.prod) !== 'vision.describe')
+  .map((a) => `${capDe(a, a.prod)} → ${capDe(a, a.cons)}`);
+check('C25 · esas 8 son 8 de las 9 que solo ordenaban, y la novena es la simétrica',
+  haciaVer.length === clases.LEGACY_ORDER_ARTIFACT - 1
+  && sinMirar.length === 1 && sinMirar[0] === 'image.generate → text.generate',
+  sinMirar.join(', ') + ' · de una imagen tampoco sale texto que leer');
+check('C25 · y la rama de Photo que el canary de C22 imitaba está entre las 8',
+  desdeMirar.some((x) => x.forma === 'photo/(defecto)' && x.hacia === 'image.edit' && x.clase === 'LEGACY_ORDER_ARTIFACT'),
+  'el EXPECTED de aquel canary pedía reproducir una arista que no transmite');
+
 console.log('\n── B · El viaje entero: Legacy → puente → Planner ──');
 
 let fieles = 0, sinProveedor = 0, aristasEsperadas = 0, aristasObtenidas = 0, pidenFoto = 0;
