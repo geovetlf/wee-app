@@ -600,3 +600,74 @@ export const anotarVariante = async (accountId: string, assetId: string, variant
 /** Para las pruebas y el inventario: la marca de tiempo de Firestore, en milisegundos. */
 export const milisegundos = (v: unknown): number | undefined =>
   v instanceof Timestamp ? v.toMillis() : typeof v === 'number' ? v : undefined;
+
+/* ── El texto también es material ─────────────────────────────────────────── */
+
+export interface NuevoMaterialDeTexto {
+  /** Calculada por quien llama. La misma llegada pide el mismo material. */
+  assetId: string;
+  /** La cuenta. Del trabajo guardado; nunca del cliente ni de un proveedor. */
+  ownerAccountId: string;
+  /** El resultado, entero. Aquí no hay enlace que caduque. */
+  contenido: string;
+  provenance: Provenance;
+  name?: string;
+  metadata?: Readonly<Record<string, string | number | boolean>>;
+}
+
+/**
+ * GUARDAR UN RESULTADO DE TEXTO COMO MATERIAL. Sin almacén y sin inventar nada.
+ *
+ * ── Por qué no hay `storageRef` ─────────────────────────────────────────────
+ *
+ * Porque el contrato de la Fase 11 ya dice que un material de texto no lo
+ * necesita: `materialValido` exige referencia de almacén a todo MENOS al texto,
+ * y `AssetKind` lo incluye desde el primer día. Lo que faltaba no era el
+ * contrato: era que alguien lo usara.
+ *
+ * Subir el texto a un objeto habría costado una escritura en el almacén, una
+ * firma y una descarga cada vez que el paso siguiente quisiera leerlo — por una
+ * respuesta que ya estaba en memoria.
+ *
+ * ── Se crea SOLO SI NO EXISTE ───────────────────────────────────────────────
+ *
+ * Misma disciplina que el resto: `create` en vez de `set`. Dos llegadas del
+ * mismo intento —un reintento que corre a la vez, una reconciliación— dejan UN
+ * material, y la segunda recibe el que ya estaba en lugar de pisarlo.
+ */
+export const crearMaterialDeTexto = async (datos: NuevoMaterialDeTexto): Promise<AssetDoc | null> => {
+  if (!FORMA_DE_ID_DE_MATERIAL.test(datos.assetId)) {
+    console.warn('Content: identidad de material mal formada; no se crea la ficha de texto');
+    return null;
+  }
+  if (typeof datos.contenido !== 'string' || !datos.contenido.length) return null;
+  const at = Date.now();
+  const bruto: AssetDoc = {
+    contract: CONTENT_CORE_CONTRACT_VERSION,
+    assetId: datos.assetId,
+    ownerAccountId: datos.ownerAccountId,
+    kind: 'text',
+    status: 'ready',
+    mimeType: 'text/plain',
+    bytes: Buffer.byteLength(datos.contenido, 'utf8'),
+    provenance: limpiar({ ...datos.provenance }),
+    name: datos.name,
+    metadata: datos.metadata,
+    createdAt: at,
+    updatedAt: at,
+  };
+  const doc = limpiar(bruto);
+  if (!materialValido(doc)) {
+    console.error('Content: el material de texto construido no cumple el contrato', datos.assetId);
+    return null;
+  }
+  const ref = assets().doc(datos.assetId);
+  try {
+    await ref.create({ ...doc, contenido: datos.contenido });
+    return doc;
+  } catch {
+    /* Ya estaba: otra llegada se adelantó. Su ficha es la buena. */
+    const ya = await leerMaterial(datos.assetId);
+    return ya && ya.ownerAccountId === datos.ownerAccountId ? ya : null;
+  }
+};

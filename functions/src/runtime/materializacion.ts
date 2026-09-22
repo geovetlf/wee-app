@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AssetKind, CapabilityId, Job, Provenance } from '../core';
+import { AssetKind, CAPABILITY_CATALOG, CapabilityId, Job, Provenance } from '../core';
 import { AvisoNormalizado } from './aviso';
 
 /**
@@ -99,8 +99,30 @@ export interface PeticionDeMaterializacion {
   /** La cuenta a la que pertenece. Sale del TRABAJO guardado, nunca del aviso. */
   userId: string;
   kind: AssetKind;
-  /** TEMPORAL Y FIRMADO. Se usa para traerse los bytes y se olvida. */
-  recurso: string;
+  /**
+   * TEMPORAL Y FIRMADO. Se usa para traerse los bytes y se olvida.
+   *
+   * Vacío cuando lo que hay que guardar no son bytes en ningún sitio sino
+   * TEXTO, que llega entero en la respuesta. Ver `contenido`.
+   */
+  recurso?: string;
+  /**
+   * EL TEXTO, CUANDO EL RESULTADO ES TEXTO. La otra mitad de `recurso`.
+   *
+   * Un guion, una descripción de una foto, una búsqueda con fuentes: eso no es
+   * un enlace que caduca, es la respuesta entera. Pedirle una URL habría
+   * obligado a subir un archivo a un almacén para poder volver a leerlo dos
+   * segundos después, en el mismo proceso — un objeto pagado, una firma y una
+   * descarga para algo que ya estaba en memoria.
+   *
+   * La Fase 11 ya lo contempla: `materialValido` admite un material de texto
+   * SIN `storageRef`, y `AssetKind` incluye `text` desde el primer día. Esto
+   * no abre un contrato: usa el que estaba esperando.
+   *
+   * Una de las dos, nunca las dos: quien implemente el puerto elige camino por
+   * cuál llegó, y dos verdades sobre el mismo material no viajan juntas.
+   */
+  contenido?: string;
   provenance: Provenance;
   /** Escalares del proveedor, ya acotados. Ni enlaces, ni texto de nadie. */
   metadata?: Readonly<Record<string, string | number | boolean>>;
@@ -128,12 +150,122 @@ export interface PuertoDeMaterializacion {
   guardar(peticion: PeticionDeMaterializacion): Promise<DesenlaceDeMaterializacion>;
 }
 
-/** Qué clase de material produce una capacidad. Sin esto no se sabe qué se está guardando. */
+/** De la modalidad que declara el catálogo a la clase de material de la Fase 11. */
+const CLASE_POR_MODALIDAD: Readonly<Record<string, AssetKind>> = Object.freeze({
+  text: 'text', image: 'image', video: 'video',
+  voice: 'audio', audio: 'audio', music: 'audio',
+  doc: 'document', '3d': 'model3d',
+  /* Mirar una foto produce una DESCRIPCIÓN, y una descripción es texto. */
+  vision: 'text',
+});
+
+/**
+ * QUÉ CLASE DE MATERIAL PRODUCE UNA CAPACIDAD. Lo dice EL CATÁLOGO.
+ *
+ * ── Por qué ya no se lee el prefijo ─────────────────────────────────────────
+ *
+ * Porque adivinaba, y adivinaba mal en treinta y ocho de las sesenta y ocho
+ * capacidades. Mientras esto solo guardaba vídeos e imágenes nadie lo notó —ahí
+ * el prefijo y el catálogo dicen lo mismo—, pero el prefijo no veía que
+ * `vision.describe` produce texto (ocho de las treinta y seis dependencias de
+ * Weë salen de ahí), ni que `script.write`, `scene.split`, `subtitle.generate`,
+ * `doc.read` o `translation.text` también.
+ *
+ * Y cinco eran peores que un olvido: `image.analyze`, `video.analyze`,
+ * `audio.transcribe`, `audio.analyze` y `music.analyze` producen TEXTO y el
+ * prefijo decía imagen, vídeo y audio. Guardar una transcripción como material
+ * de audio habría intentado descargar bytes de un enlace que no existe.
+ *
+ * El catálogo ya declaraba `produces` en las sesenta y ocho. Había una verdad y
+ * una suposición; se quita la suposición.
+ */
 export const tipoDeMaterialDe = (capability: string | undefined): AssetKind | undefined => {
   if (typeof capability !== 'string') return undefined;
-  if (capability.startsWith('video.')) return 'video';
-  if (capability.startsWith('image.')) return 'image';
-  if (capability.startsWith('audio.') || capability.startsWith('voice.') || capability.startsWith('music.')) return 'audio';
-  if (capability.startsWith('text.')) return 'text';
-  return undefined;
+  const entrada = CAPABILITY_CATALOG.find((e) => e.id === capability);
+  return entrada ? CLASE_POR_MODALIDAD[entrada.produces] : undefined;
+};
+
+/* ── El texto también es material ─────────────────────────────────────────── */
+
+/**
+ * CUÁNTO TEXTO SE GUARDA COMO MATERIAL.
+ *
+ * Un guion largo cabe de sobra; una respuesta que se fue de madre, no. El tope
+ * existe porque esto acaba en un documento y un documento tiene un límite duro,
+ * y porque un resultado que no cabe es una señal de que algo salió mal antes.
+ */
+export const MAX_TEXTO_DEL_MATERIAL = 200_000;
+
+/**
+ * DE DÓNDE VIENE, CONSTRUIDA DEL DESPACHO.
+ *
+ * Hermana de `procedenciaDe`, que se construye del trabajo guardado y del aviso
+ * de un proveedor. Esta es la del camino SÍNCRONO: no hay aviso que leer porque
+ * el resultado llegó en la misma llamada, y todo lo que ata este material a lo
+ * que lo produjo sale del despacho, que lo armó el Job Engine.
+ */
+export const procedenciaDelDespacho = (
+  dispatch: {
+    jobId: string;
+    capability?: string;
+    implementation?: { providerId?: string; modelId?: string };
+    trace: { runId?: string; stepId?: string; requestId?: string; traceId?: string };
+  },
+  at: number,
+): Provenance => ({
+  ...(dispatch.trace.runId ? { runId: dispatch.trace.runId } : {}),
+  ...(dispatch.trace.stepId ? { stepId: dispatch.trace.stepId } : {}),
+  ...(dispatch.trace.requestId ? { requestId: dispatch.trace.requestId } : {}),
+  ...(dispatch.trace.traceId ? { traceId: dispatch.trace.traceId } : {}),
+  jobId: dispatch.jobId,
+  ...(dispatch.capability ? { capability: dispatch.capability as CapabilityId } : {}),
+  ...(dispatch.implementation?.providerId ? { provider: dispatch.implementation.providerId } : {}),
+  ...(dispatch.implementation?.modelId ? { model: dispatch.implementation.modelId } : {}),
+  createdAt: at,
+});
+
+/**
+ * LO QUE HAY QUE GUARDAR DE UN RESULTADO DE TEXTO. Pura: aquí no se guarda nada.
+ *
+ * ── Por qué esto tenía que existir ──────────────────────────────────────────
+ *
+ * Porque `referenciasDe` devuelve las URLs del resultado, y un texto no tiene
+ * ninguna. Sin referencia, `materialDe` lo descartaba, y el paso siguiente no
+ * recibía nada: treinta y seis de las cuarenta dependencias de Weë salen de un
+ * paso que produce texto, así que el noventa por ciento del grafo terminaba en
+ * un paso que no podía leer lo que el anterior había escrito.
+ *
+ * La identidad es la MISMA que la de cualquier otro material —`jobId` más
+ * `attemptId`, calculada y no sorteada—, así que dos llegadas del mismo intento
+ * piden el mismo material y no aparecen dos guiones idénticos.
+ *
+ * De quién es sale del despacho, que lo armó el Job Engine desde el trabajo
+ * guardado. Nunca de lo que conteste un proveedor.
+ */
+export const materialDeTexto = (
+  dispatch: {
+    jobId: string;
+    attemptId: string;
+    capability?: string;
+    implementation?: { providerId?: string; modelId?: string };
+    trace: { userId: string; runId?: string; stepId?: string; requestId?: string; traceId?: string };
+  },
+  contenido: unknown,
+  at: number,
+): PeticionDeMaterializacion | undefined => {
+  if (typeof contenido !== 'string') return undefined;
+  const texto = contenido.trim();
+  if (!texto.length || texto.length > MAX_TEXTO_DEL_MATERIAL) return undefined;
+  /* Solo lo que el catálogo dice que produce texto. Un vídeo con `content` no es un texto. */
+  if (tipoDeMaterialDe(dispatch.capability) !== 'text') return undefined;
+  const assetId = identidadDelMaterial(dispatch.jobId, dispatch.attemptId);
+  if (!assetId) return undefined;
+  return Object.freeze({
+    assetId,
+    /* DEL DESPACHO, que lo armó el Job Engine. Ni del resultado, ni del cliente. */
+    userId: dispatch.trace.userId,
+    kind: 'text' as const,
+    contenido: texto,
+    provenance: procedenciaDelDespacho(dispatch, at),
+  });
 };

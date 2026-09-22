@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { DesenlaceDeMaterializacion, PeticionDeMaterializacion, PuertoDeMaterializacion } from '../runtime/materializacion';
 import { downloadUrlFor, extensionFor, fetchBytes, storageBucket } from '../engine/http';
 import { ProviderError } from '../engine/http';
-import { crearMaterialDesdeUrl, leerMaterial } from './index';
+import { crearMaterialDesdeUrl, crearMaterialDeTexto, leerMaterial } from './index';
 
 /**
  * WEË CONTENT — TRAERSE A CASA EL RESULTADO DE UNA TAREA ASÍNCRONA.
@@ -56,6 +56,30 @@ export const materializadorDeWee: PuertoDeMaterializacion = {
       if (yaEstaba.ownerAccountId !== peticion.userId) return { ok: false, motivo: 'rechazado' };
       return { ok: true, assetId: yaEstaba.assetId, yaEstaba: true };
     }
+
+    /*
+     * ── EL TEXTO NO SE DESCARGA: YA ESTÁ AQUÍ ─────────────────────────────
+     *
+     * Un guion, la descripción de una foto o una búsqueda con fuentes llegan
+     * enteros en la respuesta. Subirlos a un almacén para poder volver a
+     * leerlos dos segundos después habría sido pagar un objeto, una firma y una
+     * descarga por algo que ya estaba en memoria — y todo para que el paso
+     * siguiente pudiera leerlo.
+     *
+     * La Fase 11 ya lo tenía previsto: `materialValido` admite un material de
+     * texto SIN referencia de almacén. Aquí solo se usa ese camino.
+     */
+    if (peticion.contenido !== undefined) {
+      const ficha = await crearMaterialDeTexto({
+        assetId: peticion.assetId,
+        ownerAccountId: peticion.userId,
+        contenido: peticion.contenido,
+        provenance: peticion.provenance,
+        ...(peticion.metadata ? { metadata: peticion.metadata } : {}),
+      });
+      return ficha ? { ok: true, assetId: ficha.assetId, yaEstaba: false } : { ok: false, motivo: 'rechazado' };
+    }
+    if (!peticion.recurso) return { ok: false, motivo: 'rechazado' };
 
     let bytes: Buffer;
     let contentType: string;

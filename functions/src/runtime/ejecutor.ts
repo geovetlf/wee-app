@@ -8,6 +8,7 @@ import {
   errorDelCore,
 } from '../core';
 import { informeDelGateway, peticionDeGateway } from '../job';
+import { PuertoDeMaterializacion, materialDeTexto } from './materializacion';
 import { CLAVE_DE_REFERENCIA, ResolutorDeContexto } from './contexto';
 
 /**
@@ -87,6 +88,19 @@ export interface EjecutorDeps {
    * que es el que el Gateway devuelve al aceptar una tarea.
    */
   referenciaDeProveedor?: (resultado: GatewayResult) => ProviderOperationRef | undefined;
+  /**
+   * QUIEN GUARDA UN RESULTADO DE TEXTO COMO MATERIAL. Opcional a propósito.
+   *
+   * Es el MISMO puerto que ya guarda un vídeo cuando un proveedor avisa de que
+   * terminó; lo único que cambia es que un texto llega entero en la respuesta y
+   * no por un enlace que caduca.
+   *
+   * Sin él, un resultado de texto se comporta exactamente como antes: sale sin
+   * referencia y el paso siguiente no recibe nada. Eso NO es un descuido — es
+   * lo que había, y así una composición que no lo enchufe no cambia de
+   * comportamiento por haberse añadido esto.
+   */
+  material?: PuertoDeMaterializacion;
 }
 
 /**
@@ -196,7 +210,47 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
        */
       const ref = deps.referenciaDeProveedor?.(resultado)
         ?? (resultado.operation ? { providerId: resultado.operation.providerId, operationId: resultado.operation.operationId } : undefined);
-      return informeDelGateway(dispatch, resultado, ref);
+      const informe = informeDelGateway(dispatch, resultado, ref);
+
+      /*
+       * ── EL TEXTO, CONVERTIDO EN MATERIAL ──────────────────────────────────
+       *
+       * Aquí y no antes: el Gateway EJECUTA y no puede convertirse en quien
+       * administra material, y el Job TRANSPORTA y no puede convertirse en
+       * dueño de nada. Este es el punto donde el resultado ya existe, el
+       * trabajo todavía no se ha cerrado, y ya hay un puerto para hablar con la
+       * Fase 11 — el mismo que guarda un vídeo cuando llega su aviso.
+       *
+       * Y se AÑADE a lo que ya hubiera: un resultado puede traer URLs y texto,
+       * y quedarse con uno solo sería tirar la mitad.
+       */
+      if (deps.material && informe.outcome === 'succeeded') {
+        const aGuardar = materialDeTexto(dispatch, resultado.response?.content, deps.ahora());
+        if (aGuardar) {
+          const guardado = await deps.material.guardar(aGuardar).catch(() => ({ ok: false as const, motivo: 'fallo' as const }));
+          if (guardado.ok) {
+            /*
+             * La referencia es el identificador del material, no una URL. El
+             * contrato nunca dijo que `outputRefs` fueran direcciones —son
+             * referencias— y lo que las consume pregunta por ellas a la Fase 11,
+             * que es quien sabe de quién es cada cosa.
+             */
+            const previas = informe.result?.outputRefs ?? [];
+            return {
+              ...informe,
+              result: { ...(informe.result ?? {}), outputRefs: Object.freeze([...previas, guardado.assetId]) },
+            };
+          }
+          /*
+           * No se pudo guardar. El resultado SIGUE siendo bueno —ya se ejecutó y
+           * ya se pagó—, así que el intento no se convierte en un fallo: lo que
+           * se pierde es la referencia, y quien dependa de ella lo notará en su
+           * sitio. Mentir aquí habría cobrado dos veces por lo mismo.
+           */
+          console.warn(`WEË RUNTIME: no se pudo guardar el texto como material (${dispatch.trace.requestId})`);
+        }
+      }
+      return informe;
     },
   };
 };
