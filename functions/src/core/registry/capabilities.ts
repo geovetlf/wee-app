@@ -128,6 +128,23 @@ export interface CatalogEntry {
   status: CatalogStatus;
   /** Frase corta para administración. Nunca se le enseña a nadie. */
   note?: string;
+  /**
+   * LAS VARIANTES DE ESTA CAPACIDAD. Cerradas, y de nadie.
+   *
+   * «Generar una imagen» no es una sola cosa: una portada, un plato y un
+   * espacio son la misma capacidad pedida de tres maneras. Eso no es un
+   * proveedor, ni un modelo, ni un prompt — es una distinción del catálogo, y
+   * hasta hoy vivía repartida por las plantillas de cada experiencia bajo el
+   * nombre `kind`.
+   *
+   * Lo que un nombre de estos SIGNIFICA para una API concreta —la frase en
+   * inglés, la instrucción de edición— se queda donde está, del lado del
+   * adaptador. Aquí solo se declara QUÉ variantes existen, para que el Planner
+   * pueda aceptar una y rechazar una inventada.
+   *
+   * Ausente = esta capacidad no tiene variantes, y se comporta como siempre.
+   */
+  variants?: readonly string[];
 }
 
 const e = (
@@ -137,7 +154,11 @@ const e = (
   produces: Modality,
   status: CatalogStatus,
   note?: string,
-): CatalogEntry => ({ id, contract: CAPABILITY_CONTRACT_VERSION, category, accepts, produces, status, note });
+  variants?: readonly string[],
+): CatalogEntry => ({
+  id, contract: CAPABILITY_CONTRACT_VERSION, category, accepts, produces, status, note,
+  ...(variants?.length ? { variants: Object.freeze([...variants]) } : {}),
+});
 
 /**
  * EL CATÁLOGO.
@@ -153,9 +174,15 @@ const e = (
  */
 export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   /* ── TEXTO ─────────────────────────────────────────────────────────────── */
-  e('text.generate', 'text', ['text'], 'text', 'ROUTABLE'),
+  e('text.generate', 'text', ['text'], 'text', 'ROUTABLE', undefined, [
+    'advise', 'analysis', 'answer', 'business', 'campaign', 'concept', 'copy', 'cv', 'facestyle',
+    'layout', 'lyrics', 'menu', 'metrics', 'mixnotes', 'narration', 'polish', 'published',
+    'recipe', 'reply', 'schedule', 'script', 'shopping', 'skincare',
+  ]),
   e('text.structure', 'text', ['text'], 'text', 'ROUTABLE'),
-  e('text.search', 'text', ['text'], 'text', 'ROUTABLE'),
+  e('text.search', 'text', ['text'], 'text', 'ROUTABLE', undefined, [
+    'activities', 'analysis', 'destinations', 'ideas', 'itinerary', 'shopping', 'transport',
+  ]),
   e('script.write', 'text', ['text'], 'text', 'ROUTABLE'),
   e('scene.split', 'text', ['text'], 'text', 'ROUTABLE'),
   e('subtitle.generate', 'text', ['text'], 'text', 'ROUTABLE'),
@@ -164,21 +191,22 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   e('text.transform', 'text', ['text'], 'text', 'DECLARED'),
 
   /* ── IMAGEN ────────────────────────────────────────────────────────────── */
-  e('image.generate', 'image', ['text'], 'image', 'ROUTABLE'),
-  e('image.edit', 'image', ['image', 'text'], 'image', 'ROUTABLE'),
+  e('image.generate', 'image', ['text'], 'image', 'ROUTABLE', undefined, ['business', 'cover', 'dish', 'photo', 'space']),
+  e('image.edit', 'image', ['image', 'text'], 'image', 'ROUTABLE', undefined,
+    ['colorize', 'dish_edit', 'enhance', 'restore', 'transform']),
   e('image.reference', 'image', ['image', 'text'], 'image', 'ROUTABLE'),
-  e('image.background_remove', 'image', ['image'], 'image', 'ROUTABLE'),
-  e('image.object_remove', 'image', ['image', 'text'], 'image', 'ROUTABLE'),
-  e('image.identity_edit', 'image', ['image', 'text'], 'image', 'ROUTABLE', 'Conservar el rostro es lo que la define.'),
+  e('image.background_remove', 'image', ['image'], 'image', 'ROUTABLE', undefined, ['background']),
+  e('image.object_remove', 'image', ['image', 'text'], 'image', 'ROUTABLE', undefined, ['remove']),
+  e('image.identity_edit', 'image', ['image', 'text'], 'image', 'ROUTABLE', 'Conservar el rostro es lo que la define.', ['look', 'retouch']),
   e('image.space_restyle', 'image', ['image', 'text'], 'image', 'ROUTABLE'),
-  e('image.try_on', 'image', ['image'], 'image', 'ROUTABLE'),
+  e('image.try_on', 'image', ['image'], 'image', 'ROUTABLE', undefined, ['look']),
   e('image.upscale', 'image', ['image'], 'image', 'ROUTABLE'),
-  e('vision.describe', 'image', ['image'], 'text', 'ROUTABLE'),
+  e('vision.describe', 'image', ['image'], 'text', 'ROUTABLE', undefined, ['describe']),
   e('image.analyze', 'image', ['image'], 'text', 'DECLARED'),
   e('image.transform', 'image', ['image'], 'image', 'DECLARED'),
 
   /* ── VÍDEO ─────────────────────────────────────────────────────────────── */
-  e('video.generate', 'video', ['text'], 'video', 'ROUTABLE'),
+  e('video.generate', 'video', ['text'], 'video', 'ROUTABLE', undefined, ['clip']),
   e('video.image_to_video', 'video', ['image', 'text'], 'video', 'ROUTABLE'),
   e('video.reference', 'video', ['image', 'video', 'text'], 'video', 'ROUTABLE'),
   e('video.compose', 'video', ['video'], 'video', 'DECLARED', 'El motor la declara con cadena vacía: nadie la sirve.'),
@@ -188,7 +216,7 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   e('video.analyze', 'video', ['video'], 'text', 'DECLARED'),
 
   /* ── AUDIO Y VOZ ───────────────────────────────────────────────────────── */
-  e('voice.tts', 'audio', ['text'], 'voice', 'ROUTABLE'),
+  e('voice.tts', 'audio', ['text'], 'voice', 'ROUTABLE', undefined, ['lyrics', 'narration']),
   e('audio.transcribe', 'audio', ['voice'], 'text', 'ROUTABLE'),
   e('audio.sfx', 'audio', ['text'], 'music', 'PENDING', 'Su único eslabón está desactivado mientras no haya matriz.'),
   e('audio.generate', 'audio', ['text'], 'music', 'DECLARED'),
@@ -196,7 +224,7 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   e('audio.analyze', 'audio', ['music'], 'text', 'DECLARED'),
 
   /* ── MÚSICA ────────────────────────────────────────────────────────────── */
-  e('music.generate', 'music', ['text'], 'music', 'PENDING', 'Sin matriz con API oficial y licencia comercial todavía.'),
+  e('music.generate', 'music', ['text'], 'music', 'PENDING', 'Sin matriz con API oficial y licencia comercial todavía.', ['lyrics']),
   e('music.edit', 'music', ['music', 'text'], 'music', 'DECLARED'),
   e('music.extend', 'music', ['music'], 'music', 'DECLARED'),
   e('music.analyze', 'music', ['music'], 'text', 'DECLARED'),

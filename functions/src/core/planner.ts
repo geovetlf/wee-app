@@ -381,6 +381,66 @@ const revisarPistas = (
   return leidas.ok ? { ok: true, hints: leidas.hints } : { ok: false, field: leidas.field, reason: 'invalid_request' };
 };
 
+/* ── Con qué entra un paso ────────────────────────────────────────────────── */
+
+/**
+ * LA CLAVE DE LA VARIANTE. Una sola, y con nombre propio.
+ *
+ * Es la misma palabra que las plantillas llevan usando desde el principio, y se
+ * conserva a propósito: renombrarla no habría cambiado nada salvo obligar a
+ * traducirla en el único sitio que la lee de verdad, que es el ensamblado del
+ * prompt del lado del adaptador.
+ */
+export const CLAVE_DE_VARIANTE = 'kind';
+
+/**
+ * CON QUÉ ENTRA UN PASO. Y fíjate en lo corto que es.
+ *
+ * ── Lo que lleva ────────────────────────────────────────────────────────────
+ *
+ *   kind    cuál de las variantes que el catálogo declara. Se pide en
+ *           `constraints.kind` y se COMPRUEBA: una que la capacidad no declare
+ *           no se arrastra ni se ignora, se rechaza.
+ *   brief   el encargo, que son LAS PALABRAS DE LA PERSONA. No una frase que
+ *           compusimos nosotros.
+ *
+ * ── Y lo que NO lleva, que es lo que importa ────────────────────────────────
+ *
+ * No lleva `quality` ni `durationSec`: esos ya viven en `hints`, y tenerlos en
+ * los dos sitios es tener dos verdades y descubrir tarde cuál ganaba. No lleva
+ * las demás restricciones: viajan en el plan y el Orchestrator ya las despacha,
+ * así que copiarlas aquí sería duplicarlas paso a paso. No lleva creativos ni
+ * continuidad: están en `hints`, enteros, desde S2 y C2.
+ *
+ * Y sobre todo no lleva prosa compuesta desde etiquetas de interfaz. El plan
+ * viaja al servidor y se guarda; una frase armada con lo que ponía un botón
+ * queda atada al idioma en el que estaba esa persona ese día.
+ */
+const entradaDelPaso = (
+  entrada: CatalogEntry,
+  goal: string,
+  constraints: Readonly<Record<string, string | number | boolean>>,
+): { ok: true; input?: Readonly<Record<string, unknown>> } | { ok: false; field: string } => {
+  const pedida = constraints[CLAVE_DE_VARIANTE];
+  let kind: string | undefined;
+  if (pedida !== undefined) {
+    /* Una variante sobre una capacidad que no declara ninguna es una invención. */
+    if (!esTexto(pedida) || !entrada.variants?.includes(pedida)) {
+      return { ok: false, field: `understanding.constraints.${CLAVE_DE_VARIANTE}` };
+    }
+    kind = pedida;
+  }
+  const brief = typeof goal === 'string' ? goal.trim() : '';
+  if (kind === undefined && !brief) return { ok: true };
+  return {
+    ok: true,
+    input: Object.freeze({
+      ...(kind !== undefined ? { [CLAVE_DE_VARIANTE]: kind } : {}),
+      ...(brief ? { brief } : {}),
+    }),
+  };
+};
+
 /* ── El Planner ───────────────────────────────────────────────────────────── */
 
 /** Lo que el plan intenta conseguir, dicho para quien lo lee. */
@@ -647,9 +707,12 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
       /* ── Los pasos ────────────────────────────────────────────────────────── */
       const anteriores: { id: string; produces: Modality }[] = [];
       const deLaPersona = new Set<Modality>(aportadas);
+      let entradaInvalida: string | undefined;
       const steps: PlanStep[] = completas.map((capability, i) => {
         const entrada = entradaDe(capability)!;
         const id = idDePaso(capability, i + 1);
+        const conQue = entradaDelPaso(entrada, u.goal, u.constraints);
+        if (!conQue.ok) entradaInvalida = conQue.field;
         const dependsOn = dependenciasDe(entrada, anteriores, deLaPersona);
         anteriores.push({ id, produces: entrada.produces });
         return {
@@ -663,10 +726,13 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
            */
           purpose: skill?.purposes?.[String(capability)] ?? proposito(entrada),
           ...(dependsOn.length ? { dependsOn } : {}),
+          ...(conQue.ok && conQue.input ? { input: conQue.input } : {}),
           produces: entrada.produces,
           ...conPistas,
         };
       });
+      /* Una variante inventada NO se planifica a medias: se rechaza el plan entero. */
+      if (entradaInvalida) return fallar('invalid', 'INVALID_REQUEST', 'invalid_request', { field: entradaInvalida });
 
       if (u.confidence === 'low') warnings.push('low_confidence');
       if (u.assumptions.length) warnings.push('assumptions_carried');
