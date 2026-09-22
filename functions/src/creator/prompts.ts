@@ -184,7 +184,7 @@ const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
   brain: 'Ahora eres Weë Brain, el asistente general: explicas fácil y siempre propones por dónde empezar.',
 };
 
-const KIND_INSTRUCTIONS: Record<string, string> = {
+export const KIND_INSTRUCTIONS: Record<string, string> = {
   /*
    * Weë Travel. Cuatro tareas y una regla común: nunca inventar un sitio que se
    * pueda visitar. Un restaurante que no existe o un museo cerrado hace daño de

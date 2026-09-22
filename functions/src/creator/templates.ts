@@ -1494,7 +1494,21 @@ const home: ExperienceTemplate = {
           dependsOn: ['look'],
           input: { count: 2, kind: 'space', focus: HOME_FOCUS[kind] ?? HOME_FOCUS.design, brief: `${room}, estilo ${look}` },
         }),
-        step('list', 'text.generate', 'Armar la lista de cambios y compras', { dependsOn: ['restyle'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
+        /*
+         * LA LISTA CUELGA DE LO QUE SE VIO, NO DE LO QUE SE DIBUJÓ.
+         *
+         * Dependía de `restyle`, y `restyle` es una imagen: lo que le llegaba a
+         * la lista de la compra no era el espacio, era la DIRECCIÓN de un png
+         * metida dentro del prompt —porque un resultado de imagen no trae
+         * `content`, trae `url`—. Un modelo de texto no puede abrirla.
+         *
+         * Lo que la lista necesita para agrupar por zonas y priorizar es cómo
+         * es el espacio, que es justo lo que escribió `look`. La rama
+         * «distribución» de esta misma experiencia ya lo hacía así.
+         *
+         * De paso deja de esperar al render: son dos cosas que pueden ir a la vez.
+         */
+        step('list', 'text.generate', 'Armar la lista de cambios y compras', { dependsOn: ['look'], input: { kind: 'shopping', brief: `${room}, estilo ${look}` } }),
       ],
       explainToUser: `Voy a ${action} ${room} en un estilo ${look}, en dos propuestas, y te dejo la lista de cambios y compras.${decided(space.idk && kind !== 'garden', 'empiezo por la sala')}${decided(style.idk, 'elegí un estilo acogedor')}`,
     };
