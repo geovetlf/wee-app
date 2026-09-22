@@ -212,6 +212,8 @@ export const BRAIN_UNDERSTAND_SYSTEM = [
    */
   '"steps" son los pasos, en el orden en que hay que hacerlos, cuando lo que se pide necesita más de una operación.',
   'Cada paso: {"key":"un_nombre_corto", "capability":"una del catálogo", "input":{"kind":"una variante de ESA capacidad", "brief":"qué hace este paso, en una frase"}}.',
+  'Si un paso necesita el resultado de otro, dilo EN ESE PASO: "needs":[{"from":"upstream","stepKey":"la clave del paso del que bebe"}]. Solo hacia atrás: se puede beber de un paso anterior, nunca de uno posterior.',
+  'No digas ahí de qué clase es lo que bebe: eso ya lo dice el paso que lo produce.',
   'La MISMA capacidad puede aparecer varias veces: «escribe el borrador y luego púlelo» son DOS pasos de text.generate, uno con kind "copy" y otro con kind "polish".',
   'No inventes capacidades ni variantes: si la que harías falta no está en las listas que se te dan, dilo en "missing" en vez de aproximar.',
   'No elijas proveedor, modelo ni precio, y no escribas el texto final que leería un generador: solo QUÉ hay que hacer y de qué clase es.',

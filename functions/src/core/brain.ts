@@ -1213,14 +1213,107 @@ const vocabulario = (experiencias: readonly string[]): NonNullable<ThoughtReques
  */
 const MAX_PASOS_DEL_MODELO = 12;
 const MAX_BRIEF_DEL_MODELO = 300;
+const MAX_NECESIDADES_DEL_PASO = 4;
+
+/**
+ * DE DÓNDE SACA SU MATERIAL UN PASO, DICHO POR EL MODELO.
+ *
+ * ── Por qué esto tenía que existir ──────────────────────────────────────────
+ *
+ * `StepNeed` existe desde C15c, el Planner lo valida entero y el puente de
+ * Legacy lo produce. Lo que faltaba era el único tramo que importa para que
+ * Weë Brain componga: que el modelo PUEDA DECIRLO. Ni el prompt lo pedía ni
+ * esta función lo leía, así que un paso nunca podía declarar que bebe de otro
+ * y todo plan del Brain salía con los pasos sueltos.
+ *
+ * Se vio midiendo Chef: «mira lo que tengo en la nevera y dime qué cocinar»
+ * son dos pasos, y el segundo es `text.generate`, que acepta SOLO texto. La
+ * foto no le puede llegar; lo único que le llega de ella es la descripción del
+ * primero. Sin este campo, Weë escribía una receta sin mirar la nevera.
+ *
+ * ── La modalidad la pone el CATÁLOGO, no el modelo ──────────────────────────
+ *
+ * Al modelo se le pregunta DE QUÉ PASO bebe, no de qué clase es lo que bebe:
+ * eso ya lo dice `produces` del paso que produce, y preguntarlo dos veces solo
+ * añade una forma de contestar mal.
+ *
+ * ── Y una necesidad imposible NO se tira: se deja pasar ─────────────────────
+ *
+ * Aquí se descarta mucho —una capacidad inventada, una variante que no
+ * existe—, y esto va al revés a propósito. Tirar una capacidad inventada quita
+ * un paso que el modelo se sacó de la manga. Tirar un «este paso bebe de aquel»
+ * cambia lo que el plan SIGNIFICA, de «cocina con lo que ves» a «cocina
+ * cualquier cosa», y lo cambia sin que nadie se entere: es exactamente el
+ * silencio que hizo falta arreglar aquí.
+ *
+ * Así que una necesidad que no se puede cumplir VIAJA, y la mata el Planner
+ * por su nombre y con su campo: `modality_not_accepted` si este paso no sabe
+ * recibir lo que aquel produce, y `unknown_step_key` si señala hacia adelante o
+ * a sí mismo. Ruidoso y con sitio, en vez de callado y plausible.
+ *
+ * Hay UNA autoridad para eso, y no es esta.
+ */
+const necesidadesDelModelo = (
+  crudo: unknown,
+  capability: CoreCapabilityId,
+  claveDe: ReadonlyMap<string, string>,
+  capacidadDe: ReadonlyMap<string, CoreCapabilityId>,
+): readonly StepNeed[] => {
+  if (!Array.isArray(crudo)) return [];
+  const entrada = CAPABILITY_CATALOG.find((c) => c.id === capability);
+  if (!entrada) return [];
+  const salida: StepNeed[] = [];
+  const vistas = new Set<string>();
+  for (const bruta of crudo.slice(0, MAX_NECESIDADES_DEL_PASO)) {
+    if (!esObjetoPlano(bruta)) continue;
+    const required = bruta.required === false ? { required: false } : {};
+
+    if (bruta.from === 'upstream') {
+      const stepKey = claveDe.get(esTexto(bruta.stepKey) ? bruta.stepKey : '');
+      if (!stepKey) continue;
+      const produce = capacidadDe.get(stepKey);
+      const modality = produce ? modalidadDeCapacidad(produce) : undefined;
+      if (!modality) continue;
+      const huella = stepKey;
+      if (vistas.has(huella)) continue;
+      vistas.add(huella);
+      salida.push(Object.freeze({ from: 'upstream' as const, modality, stepKey, ...required }));
+      continue;
+    }
+
+    if (bruta.from === 'user') {
+      const modality = bruta.modality;
+      if (!esTexto(modality) || !entrada.accepts.includes(modality as Modality)) continue;
+      const huella = `user:${modality}`;
+      if (vistas.has(huella)) continue;
+      vistas.add(huella);
+      salida.push(Object.freeze({ from: 'user' as const, modality: modality as Modality, ...required }));
+    }
+  }
+  return Object.freeze(salida);
+};
 
 export const interpretarPasos = (
   crudo: unknown,
   esperado: { capabilities: readonly string[]; variants?: Readonly<Record<string, readonly VarianteDeCapacidad[]>> },
 ): readonly BrainStep[] => {
   if (!Array.isArray(crudo)) return [];
-  const salida: BrainStep[] = [];
+
+  /*
+   * DOS PASADAS, Y NO UNA.
+   *
+   * Porque un paso puede señalar a otro por su clave, y las claves las pone
+   * Weë —el modelo propone y aquí se acepta o se sustituye—. Con una sola
+   * pasada, señalar hacia ADELANTE se caería por el orden del bucle y no por
+   * una regla; sería un ciclo colándose como un olvido. Se resuelven todas las
+   * claves primero, y que el Planner aplique su regla de mirar solo hacia
+   * atrás, que es suya.
+   */
+  const aceptados: { bruto: Record<string, unknown>; key: string; capability: CoreCapabilityId; input?: { kind?: string; brief?: string } }[] = [];
   const claves = new Set<string>();
+  const claveDe = new Map<string, string>();
+  const capacidadDe = new Map<string, CoreCapabilityId>();
+
   for (const bruto of crudo.slice(0, MAX_PASOS_DEL_MODELO)) {
     if (!esObjetoPlano(bruto)) continue;
     const capability = bruto.capability;
@@ -1236,9 +1329,13 @@ export const interpretarPasos = (
     const propuesta = esTexto(bruto.key) ? bruto.key : '';
     const key = FORMA_DE_CLAVE_DE_PASO.test(propuesta) && !claves.has(propuesta)
       ? propuesta
-      : `p${salida.length + 1}`;
+      : `p${aceptados.length + 1}`;
     if (claves.has(key)) continue;
     claves.add(key);
+    /* Quien señale por el nombre que dijo el modelo tiene que llegar igual. */
+    if (propuesta && !claveDe.has(propuesta)) claveDe.set(propuesta, key);
+    claveDe.set(key, key);
+    capacidadDe.set(key, capability as CoreCapabilityId);
 
     const entrada = esObjetoPlano(bruto.input) ? bruto.input : {};
     const declaradas = esperado.variants?.[capability] ?? [];
@@ -1248,13 +1345,18 @@ export const interpretarPasos = (
       ? { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) }
       : undefined;
 
-    salida.push(Object.freeze({
-      key,
-      capability: capability as CoreCapabilityId,
-      ...(input ? { input: Object.freeze(input) } : {}),
-    }));
+    aceptados.push({ bruto, key, capability: capability as CoreCapabilityId, ...(input ? { input } : {}) });
   }
-  return Object.freeze(salida);
+
+  return Object.freeze(aceptados.map(({ bruto, key, capability, input }) => {
+    const needs = necesidadesDelModelo(bruto.needs, capability, claveDe, capacidadDe);
+    return Object.freeze({
+      key,
+      capability,
+      ...(needs.length ? { needs } : {}),
+      ...(input ? { input: Object.freeze(input) } : {}),
+    });
+  }));
 };
 
 /** Todas las intenciones, como lista: la única, para que quien valide una no tenga que copiarla. */
