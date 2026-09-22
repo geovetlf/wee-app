@@ -260,6 +260,30 @@ export const BRAIN_UNDERSTAND_SYSTEM = [
    * descarta enteros, y entonces la mitad de las peticiones pierden su
    * intención creativa sin que nadie se entere.
    */
+  /*
+   * ── LA TERCERA VEZ QUE UN CAMPO SIN FORMA SE RELLENA COMO SE PUEDE ────────────
+   *
+   * `constraints` se nombraba en la lista de campos de arriba y no se
+   * explicaba en ninguna parte — ni siquiera aparecía entre comillas, que es como
+   * se presenta cada campo que sí se explica. En un canary de Travel el modelo
+   * devolvió cinco restricciones REALES de la persona —Lisboa, cinco días, abril,
+   * la comida, sin prisas— en forma de LISTA DE FRASES. El contrato espera pares
+   * sueltos, así que el intérprete no vio un objeto plano y se quedó en {}.
+   *
+   * Es el mismo hueco que ya se pagó dos veces: `needs`, que se pedía en prosa y
+   * acabó dentro de `input`, y `confidence`, cuyo vocabulario no se decía y llegó
+   * un 0.9. Un campo nombrado y no mostrado se rellena como se pueda.
+   *
+   * ── Y LAS CLAVES SIGUEN SIENDO ABIERTAS, A PROPÓSITO ───────────────────
+   *
+   * Lo que acota a una persona no cabe en una lista que Weë decida de
+   * antemano: hoy es «sin gluten» y mañana «que quepa en el maletero». Por eso
+   * se enseña la FORMA —pares planos, valores escalares— y se dice explicitamente
+   * que los nombres los elige el modelo. El ejemplo es un ejemplo, no un
+   * catálogo: convertirlo en lista cerrada sería otra fase y otra decisión.
+   */
+  '"constraints" son los límites que puso la persona, en pares sueltos de nombre y valor: {"duracion":30, "tono":"cercano", "urgente":true}. Los valores son texto, número o sí/no, nunca listas ni objetos.',
+  'Los nombres de esas claves los eliges tú: no hay lista cerrada. Si no acotó nada, omite "constraints" entero.',
   '"creative" describe CÓMO quiere el resultado, solo si la persona lo dijo. Forma: {"version":1, ...}. Grupos y valores admitidos:',
   'camera.type: aerial|ground|handheld|pov|macro|overhead|underwater. camera.perspective: eye_level|low_angle|high_angle|aerial.',
   'shot.type: establishing|wide|medium|close_up|extreme_close_up|hero. lens.type: wide|standard|telephoto|macro|fisheye.',

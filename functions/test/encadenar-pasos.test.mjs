@@ -322,6 +322,125 @@ check('y una palabra inventada tampoco',
   && ['low', 'medium', 'high'].includes(await confianzaDe('altísima')),
   'el vocabulario es cerrado, y lo era antes de decirlo: lo que faltaba era decirlo');
 
+
+console.log('\n── I · `constraints`, el tercer campo sin forma (B3.2) ──');
+
+/*
+ * ── LO QUE MIDIÓ EL CANARY DE TRAVEL ────────────────────────────────────────
+ *
+ * El modelo devolvió cinco restricciones REALES de la persona —Lisboa, cinco
+ * días, abril, la comida, sin prisas— en forma de LISTA DE FRASES. El contrato
+ * espera pares sueltos de nombre y valor, así que el intérprete no vio un
+ * objeto plano y el entendimiento llegó con `constraints: {}`.
+ *
+ * El contrato no estaba mal: el prompt nombraba `constraints` en la lista de
+ * campos y no lo explicaba en ninguna parte. Tercera vez que el mismo hueco
+ * produce el mismo fallo, después de `needs` (que acabó dentro de `input`) y
+ * de `confidence` (que llegó como 0.9).
+ *
+ * Lo que se pincha aquí es lo mismo que en la sección G: que la FORMA que se
+ * le enseña al modelo y la forma que el intérprete ACEPTA sean la misma. El
+ * ejemplo se saca del prompt de verdad y se le hace viajar.
+ */
+const ejemploDeConstraints = (() => {
+  const marca = '"constraints" son los límites que puso la persona, en pares sueltos de nombre y valor: ';
+  const i = sistema.indexOf(marca);
+  if (i < 0) return null;
+  const s = sistema.slice(i + marca.length);
+  const fin = s.indexOf('}');
+  try { return JSON.parse(s.slice(0, fin + 1)); } catch { return null; }
+})();
+
+check('B3.2 · el prompt ENSEÑA la forma de `constraints`, y es JSON legible',
+  !!ejemploDeConstraints && typeof ejemploDeConstraints === 'object' && !Array.isArray(ejemploDeConstraints),
+  JSON.stringify(ejemploDeConstraints));
+check('y es un objeto PLANO de escalares, ni listas ni objetos dentro',
+  /* Con el ejemplo ausente, `Object.values({}).every()` es `true`: habia que
+     exigir que HAYA claves, o el guard pasaba justo cuando no habia nada. */
+  Object.keys(ejemploDeConstraints ?? {}).length > 0
+  && Object.values(ejemploDeConstraints ?? {}).every((v) => ['string', 'number', 'boolean'].includes(typeof v)),
+  Object.entries(ejemploDeConstraints ?? {}).map(([k, v]) => `${k}:${typeof v}`).join(' '));
+
+const conConstraints = async (c) => (await entender({ ...chefDiciendo([MIRAR, RECETA()]), constraints: c })).understanding?.constraints;
+
+check('F1 · un objeto plano válido se conserva entero',
+  igual(await conConstraints(ejemploDeConstraints), ejemploDeConstraints),
+  JSON.stringify(await conConstraints(ejemploDeConstraints)));
+check('F2 · texto, número y sí/no: los tres sobreviven',
+  igual(await conConstraints({ sitio: 'Lisboa', dias: 5, urgente: true }), { sitio: 'Lisboa', dias: 5, urgente: true }),
+  JSON.stringify(await conConstraints({ sitio: 'Lisboa', dias: 5, urgente: true })));
+check('F3 · una LISTA no cuela como `constraints`: no se acepta en silencio',
+  igual(await conConstraints(['Lisboa ya decidido', 'cinco días', 'abril']), {}),
+  'lo que llegó en el canary de Travel · ahora el prompt enseña la forma que sí entra');
+check('F4 · sin restricciones, el campo queda vacío: no se inventa ninguna',
+  igual(await conConstraints(undefined), {}) && igual(await conConstraints({}), {}));
+check('F5 · con varias claves, se preservan TODAS',
+  Object.keys((await conConstraints({ a: 1, b: 'dos', c: true, d: 4, e: 'cinco' })) ?? {}).length === 5);
+check('F6 · las claves siguen ABIERTAS: un nombre que Weë nunca declaró también entra',
+  igual(await conConstraints({ que_quepa_en_el_maletero: true, sin_gluten: 'estricto' }),
+    { que_quepa_en_el_maletero: true, sin_gluten: 'estricto' }),
+  'no es un catálogo: el prompt dice que los nombres los elige el modelo');
+check('y el prompt lo dice explícitamente, para que no se lea como lista cerrada',
+  /Los nombres de esas claves los eliges t/.test(sistema) && /no hay lista cerrada/.test(sistema));
+check('`constraints` sigue siendo un Record abierto en el contrato: no se cerró nada',
+  /constraints: Readonly<Record<string, string \| number \| boolean>>/.test(leer('functions/src/core/brain.ts')),
+  'el contrato no cambió; lo que faltaba era enseñarlo');
+
+console.log('\n── J · `suggestedExperience`: sugerencia, no autoridad del plan ──');
+
+/*
+ * En el canary de Travel el modelo sugirió `business` para un viaje. Es un id
+ * válido, así que pasó el validador; era la experiencia equivocada. No tocó el
+ * plan, y esta sección fija por qué: el Planner no lo lee.
+ *
+ * Fuera del plan SÍ tiene autoridad —`core/skill.ts` lo usa como experiencia
+ * activa cuando no hay una elegida, y el chat de `creator/brain.ts` decide con
+ * él a qué especialista deriva—. Eso pertenece a Skills y al chat, y esta fase
+ * no lo toca: solo deja escrita la frontera.
+ */
+const cerebroDe = (experiencias, json) => core.crearBrain({
+  thinker: { async pensar() { return { response: { kind: 'text', content: JSON.stringify(json), actual: { provider: { lines: [], usd: 0 }, latencyMs: 1 }, model: 'de-prueba' }, usage: { totalTokens: 9 } }; } },
+  tracer: { async record() {} }, now: () => 1000, experiences: experiencias,
+});
+const entenderCon = (experiencias, json) => cerebroDe(experiencias, json).entender({
+  contract: '1.0',
+  trace: { traceId: 'b32_0001', requestId: 'b32_0001', userId: 'acc_b32', sessionId: 'chat_b32', runId: 'chat_b32', stepId: 'm_0001' },
+  message: { text: 'un viaje a Lisboa' },
+  options: { mode: 'understand' },
+});
+const VIAJE = {
+  version: 1, intent: 'planning', confidence: 'high', goal: 'un viaje',
+  capability: 'text.search', capabilities: ['text.search'],
+  steps: [{ key: 'ruta', capability: 'text.search', input: { kind: 'itinerary', brief: 'el itinerario' } }],
+};
+
+const malSugerida = (await entenderCon(['chef', 'travel', 'business'], { ...VIAJE, suggestedExperience: 'business' })).understanding;
+const planConSugerenciaMala = await planear({ ...malSugerida, inputs: { text: 'un viaje', attachments: [] } });
+const planSinSugerencia = await planear({
+  ...(await entenderCon(['chef', 'travel', 'business'], VIAJE)).understanding,
+  inputs: { text: 'un viaje', attachments: [] },
+});
+check('F7 · una sugerencia válida pero equivocada NO cambia el plan',
+  malSugerida.suggestedExperience === 'business'
+  && igual(planConSugerenciaMala.plan?.steps?.map((s) => `${s.capability}/${s.input?.kind}`),
+    planSinSugerencia.plan?.steps?.map((s) => `${s.capability}/${s.input?.kind}`)),
+  `con=${JSON.stringify(planConSugerenciaMala.plan?.steps?.map((s) => s.capability))} sin=${JSON.stringify(planSinSugerencia.plan?.steps?.map((s) => s.capability))}`);
+check('F8 · una experiencia desconocida se descarta, como hacía el contrato',
+  (await entenderCon(['chef', 'travel'], { ...VIAJE, suggestedExperience: 'no_existe' })).understanding?.suggestedExperience === undefined,
+  'se valida contra las experiencias declaradas; no se inventa autoridad nueva');
+check('F9 · el Core Planner NO lee `suggestedExperience` para elegir capacidades',
+  !/suggestedExperience/.test(leer('functions/src/core/planner.ts'))
+  && !/suggestedExperience/.test(leer('functions/src/planner/index.ts')),
+  'cero apariciones en las dos capas del Planner');
+check('y donde SÍ manda es fuera del plan, en Skills y en el chat',
+  /suggestedExperience/.test(leer('functions/src/core/skill.ts'))
+  && /suggestedExperience/.test(leer('functions/src/creator/brain.ts')),
+  'frontera documentada: sugerencia del Brain ≠ autoridad del Plan');
+check('F10 · Legacy no entra en la construcción del plan del Core',
+  !/templates|buildPlan|KIND_INSTRUCTIONS/.test(sinComentarios(leer('functions/src/planner/index.ts')))
+  && !/templates|buildPlan/.test(sinComentarios(leer('functions/src/core/planner.ts'))),
+  'ni el Planner del Core ni su frontera importan nada de `creator/templates`');
+
 console.log('\n── F · Lo que no se tocó ──');
 
 const cerebro = sinComentarios(leer('functions/src/core/brain.ts'));
