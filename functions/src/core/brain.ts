@@ -274,6 +274,93 @@ export const LIMITES_DE_CONTEXTO = {
 /** Cuánto se fía Brain de lo que entendió. */
 export type BrainConfidence = 'high' | 'medium' | 'low';
 
+/* ── Lo que hace falta, y DE DÓNDE VIENE ──────────────────────────────────── */
+
+/**
+ * DE DÓNDE SALE EL MATERIAL DE UN PASO. Dos sitios, y ninguno más.
+ *
+ * `user` es lo que ya existe cuando el plan empieza: lo que la persona adjuntó,
+ * y lo que el contexto resolvió de sus cosas —que entra por el mismo canal a
+ * propósito, como `BrainAttachment`—.
+ *
+ * `upstream` es lo que produce OTRO PASO de este mismo plan, y entonces hay que
+ * decir cuál. No «el último que produjo una imagen»: cuál.
+ */
+export type OrigenDelMaterial = 'user' | 'upstream';
+
+/**
+ * QUÉ NECESITA ESTA INSTANCIA DE PASO, Y DE DÓNDE.
+ *
+ * ── Por qué no es `ContextNeed` ─────────────────────────────────────────────
+ *
+ * Se miró en serio, porque duplicar un vocabulario cerrado es de las peores
+ * cosas que se pueden hacer aquí. No sirve, por tres razones y la primera es
+ * medible: `ContextNeed` habla en `AssetKind` —seis clases de material
+ * guardado— y esto tiene que compararse contra `accepts` y `produces`, que
+ * hablan en `Modality`. El puente entre las dos pierde cosas: `music` no tiene
+ * ningún `AssetKind` que la represente, y son OCHO capacidades del catálogo.
+ *
+ * Las otras dos: `ContextNeed` es de otro motor —el contexto visual, que
+ * resuelve nombres contra las cosas de la cuenta y no sabe nada de pasos— y
+ * vive a otro nivel: se resuelve ANTES de planificar, y esto DURANTE.
+ *
+ * Lo que sí se le copia es la forma: obligatoriedad explícita, vocabulario
+ * cerrado, y ni un identificador ni una dirección por ningún lado.
+ *
+ * ── Por qué NO lleva `role` ─────────────────────────────────────────────────
+ *
+ * Porque no habría contra qué emparejarlo. `role` serviría para decir «esta
+ * foto es el sujeto y esa otra el fondo», pero un `BrainAttachment` es
+ * `{kind, url?, assetId?, name?}` y no tiene dónde llevar ese papel. Declarar
+ * algo que nadie puede resolver es peor que no declararlo.
+ */
+export interface StepNeed {
+  from: OrigenDelMaterial;
+  /** En el vocabulario del CATÁLOGO, que es contra lo que se comprueba. */
+  modality: Modality;
+  /** Solo con `from: 'upstream'`: la `key` del paso que lo produce. Obligatoria ahí. */
+  stepKey?: string;
+  /** Sin esto no se puede hacer el paso. Por defecto, sí. */
+  required?: boolean;
+}
+
+/**
+ * UNA INSTANCIA DE PASO, COMO LA PIENSA BRAIN.
+ *
+ * Y la diferencia con `capabilities` es la que costó dos fases entender:
+ * `capabilities` contesta QUÉ HACE FALTA y es un conjunto —Brain lo deduplica
+ * al leerlo, y el Workflow comprueba que el plan diga lo mismo—; esto contesta
+ * QUÉ PASOS HAY, y admite la misma capacidad tres veces porque escribir el
+ * guion, el pie y la descripción son tres pasos y no uno.
+ *
+ * Los dos campos viven juntos y ninguno sustituye al otro.
+ *
+ * La `key` es de Brain y se queda en Brain: no sale al plan, no viaja a ningún
+ * proveedor y no se guarda en ningún sitio. Sirve para UNA cosa —que un paso
+ * pueda señalar a otro— y por eso tiene que ser única dentro del entendimiento,
+ * estable mientras se planifica, y no depender de nada de abajo.
+ */
+export interface BrainStep {
+  /** Nombre corto y propio del encargo: `guion`, `pie`, `mirar_la_foto`. */
+  key: string;
+  capability: CoreCapabilityId;
+  /**
+   * DE DÓNDE SALE LO QUE ESTE PASO NECESITA.
+   *
+   * Ausente NO significa «dedúcelo»: significa que este paso no declara nada, y
+   * entonces nadie inventa una dependencia por él. Que una capacidad acepte
+   * imágenes y otra las produzca no las relaciona — eso es lo que rompía Weë
+   * Chef, que acababa describiendo la foto que el propio plan había dibujado.
+   */
+  needs?: readonly StepNeed[];
+}
+
+/** Como mucho, los pasos que caben en un encargo. El mismo techo que las capacidades. */
+export const MAX_PASOS_DEL_ENTENDIMIENTO = 12;
+
+/** La forma de una `key`: corta, minúscula y legible. Ni un id, ni una URL. */
+export const FORMA_DE_CLAVE_DE_PASO = /^[a-z][a-z0-9_]{0,39}$/;
+
 /**
  * EL ENTENDIMIENTO: la salida que consumirá el Planner (Fase 4).
  *
@@ -281,9 +368,17 @@ export type BrainConfidence = 'high' | 'medium' | 'low';
  * cine» a algo sobre lo que se puede razonar: qué clase de cosa es, qué
  * capacidad hace falta, qué entra, qué restricciones hay y qué falta por saber.
  *
- * Lo que NO lleva: pasos, orden, dependencias, proveedor, modelo ni precio. Eso
- * es del Planner, del Router y del sistema de Credits, y meterlo aquí sería
- * exactamente convertir a Brain en lo que no debe ser.
+ * Lo que NO lleva: proveedor, modelo ni precio. Eso es del Router y del sistema
+ * de Credits, y meterlo aquí sería exactamente convertir a Brain en lo que no
+ * debe ser.
+ *
+ * Pasos y dependencias SÍ lleva, desde C15c, y no es una contradicción: lo que
+ * declara son pasos SEMÁNTICOS —qué hay que hacer y de dónde sale lo que cada
+ * uno necesita—, no ejecución. Quién lo hace, en qué orden real, con qué
+ * material resuelto y a qué coste sigue siendo del Planner para abajo. La
+ * razón de que suba hasta aquí es que abajo NO SE PUEDE SABER: que una
+ * capacidad produzca imágenes y otra las acepte no las relaciona, y deducirlo
+ * era inventar.
  */
 export interface BrainUnderstanding {
   intent: BrainIntent;
@@ -302,6 +397,22 @@ export interface BrainUnderstanding {
    * Planner del catálogo, que es quien sabe qué produce y qué acepta cada una.
    */
   capabilities?: readonly CoreCapabilityId[];
+  /**
+   * LOS PASOS, CUANDO BRAIN SABE DECIRLOS.
+   *
+   * `capabilities` dice qué hace falta; esto dice QUÉ PASOS HAY, en qué orden y
+   * —lo que no se podía decir hasta ahora— de dónde sale lo que cada uno
+   * necesita.
+   *
+   * Cuando está, MANDA: el orden es el declarado y las dependencias son las
+   * declaradas. El Planner deja de deducirlas del catálogo, que es justo lo que
+   * hacía que Weë Chef describiera la foto que el propio plan acababa de
+   * dibujar. Cuando no está, todo sigue exactamente como estaba.
+   *
+   * No sustituye a `capabilities`: el plan sigue llevando el conjunto, porque
+   * el Workflow lo comprueba contra los pasos.
+   */
+  steps?: readonly BrainStep[];
   /** Qué clase de resultado se espera. Se deduce de la capacidad, no se inventa. */
   modality?: Modality;
   inputs: { text: string; attachments: readonly BrainAttachment[] };

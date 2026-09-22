@@ -376,10 +376,26 @@ check('ni uno de menos ni uno de más: 1→1, 2→2, 3→3, 4→4',
 
 console.log('\n── H · Lo que no se creó ──');
 
-check('`BrainUnderstanding` NO cambió: ni `steps`, ni `key`, ni `needs`',
-  !/steps\?:|key\?:|needs\?:/.test(
-    (leer('functions/src/core/brain.ts').match(/export interface BrainUnderstanding \{[\s\S]*?\n\}/) ?? [''])[0]),
-  'la lista ordenada que ya existía bastaba');
+/*
+ * G9 NO NECESITÓ TOCAR EL CONTRATO, y eso sigue siendo verdad.
+ *
+ * Este check decía que `BrainUnderstanding` no tenía `steps` ni `needs`. C15c se
+ * los dio —hacían falta para otra cosa: decir DE DÓNDE sale el material de
+ * cada paso—, así que lo que se comprueba ahora es lo que G9 de verdad
+ * demostró: que la repetición funciona SIN declarar nada, por el camino que ya
+ * existía. Un entendimiento con `capabilities` y sin `steps` da sus tres pasos.
+ */
+check('G9 no necesitó cambiar el contrato: sin `steps`, la repetición ya funciona',
+  tres.plan?.steps?.length === 3 && tres.plan.steps.every((s) => s.capability === 'text.generate'),
+  'la lista ordenada que ya existía bastaba, y sigue bastando');
+const brainSrc = leer('functions/src/core/brain.ts');
+const bloqueEntendimiento = brainSrc.slice(
+  brainSrc.indexOf('export interface BrainUnderstanding {'),
+  brainSrc.indexOf('export type BrainStatus'));
+check('y lo que C15c añadió cuelga DEL PASO, no es una lista paralela',
+  brainSrc.includes('needs?: readonly StepNeed[]')
+  && !bloqueEntendimiento.includes('  needs?:'),
+  'la necesidad es de quien la tiene');
 check('no se creó ningún motor de dependencias ni de identidad',
   !/DependencyEngine|StepIdentityEngine|OutputGraph|SemanticGraph/.test(
     ['core/planner.ts', 'core/workflow.ts', 'core/orchestrator.ts'].map((f) => leer(`functions/src/${f}`)).join('\n')));

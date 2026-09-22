@@ -1,4 +1,4 @@
-import { BrainAttachment, BrainIntent, BrainUnderstanding } from './brain';
+import { BrainAttachment, BrainIntent, BrainStep, BrainUnderstanding, FORMA_DE_CLAVE_DE_PASO, MAX_PASOS_DEL_ENTENDIMIENTO, StepNeed } from './brain';
 import { Modality } from './capability';
 import { PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
@@ -287,6 +287,175 @@ const dependenciasDe = (
     if (productor && !deps.includes(productor.id)) deps.push(productor.id);
   }
   return deps;
+};
+
+/* ── Los pasos que declara Brain ──────────────────────────────────────────── */
+
+/**
+ * LO QUE NO PUEDE CABER DENTRO DE UNA NECESIDAD.
+ *
+ * Un `need` dice QUÉ hace falta y DE DÓNDE, en vocabulario cerrado. Todo lo que
+ * sea un identificador, una dirección o una elección de implementación es de
+ * otra capa, y si colara aquí viajaría hasta el plan — que es el documento que
+ * leen el Workflow y el Router. Se RECHAZA en vez de ignorarse, porque ignorar
+ * dejaría pasar un entendimiento que dice una cosa y consigue otra.
+ */
+/*
+ * Se escribe como la FORMA que describe, y no como una lista de textos, por un
+ * motivo tonto y real: el guard de pureza del Core aísla cada módulo
+ * reescribiendo sus imports por su texto, y una lista que empieza por la palabra
+ * `from` entre comillas le parecía un import. Antes que aflojar ese guard —que
+ * es de los que sujetan todo esto— se escribe la forma, que además dice lo
+ * mismo con menos vueltas: estas son las claves que un `StepNeed` puede tener.
+ */
+const CLAVES_DE_NECESIDAD = Object.keys({ from: 0, modality: 0, stepKey: 0, required: 0 });
+const CLAVES_DE_PASO = ['key', 'capability', 'needs'];
+
+/**
+ * LOS PASOS DECLARADOS, REVISADOS.
+ *
+ * Es una frontera y las fronteras comprueban, sobre todo esta: lo que llega es
+ * lo que un modelo escribió, y de aquí sale el grafo de ejecución.
+ *
+ * Se mira TODO hacia atrás: un `stepKey` solo puede señalar a un paso ANTERIOR.
+ * No es una comodidad, es lo que hace imposible un ciclo por construcción —y
+ * de paso, que un paso dependa de sí mismo—. No hay que detectar ciclos: no
+ * caben.
+ */
+const revisarPasos = (
+  crudo: unknown,
+): { ok: true; pasos: readonly BrainStep[] } | { ok: false; field: string; reason: string } => {
+  if (!Array.isArray(crudo)) return { ok: false, field: 'understanding.steps', reason: 'invalid_request' };
+  if (crudo.length === 0 || crudo.length > MAX_PASOS_DEL_ENTENDIMIENTO) {
+    return { ok: false, field: 'understanding.steps', reason: 'invalid_request' };
+  }
+  const pasos: BrainStep[] = [];
+  const claves = new Set<string>();
+  const producePorClave = new Map<string, Modality>();
+
+  for (let i = 0; i < crudo.length; i++) {
+    const paso: unknown = crudo[i];
+    const sitio = `understanding.steps.${i}`;
+    if (!esObjetoPlano(paso)) return { ok: false, field: sitio, reason: 'invalid_request' };
+    for (const clave of Object.keys(paso)) {
+      if (claveDeImplementacion(clave)) return { ok: false, field: `${sitio}.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+      if (!CLAVES_DE_PASO.includes(clave)) return { ok: false, field: `${sitio}.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+    }
+    /* La clave: única, con forma, y de nadie de abajo. */
+    if (!esTexto(paso.key) || !FORMA_DE_CLAVE_DE_PASO.test(paso.key)) {
+      return { ok: false, field: `${sitio}.key`, reason: 'invalid_request' };
+    }
+    if (claves.has(paso.key)) return { ok: false, field: `${sitio}.key`, reason: 'duplicate_step_key' };
+    /* Sin capacidad no hay paso, y la capacidad sale del catálogo o no sale. */
+    if (!esTexto(paso.capability)) return { ok: false, field: `${sitio}.capability`, reason: 'invalid_request' };
+    const entrada = entradaDe(paso.capability as CoreCapabilityId);
+    if (!entrada) return { ok: false, field: `${sitio}.capability`, reason: 'unknown_capability' };
+
+    const needs: StepNeed[] = [];
+    if (paso.needs !== undefined) {
+      if (!Array.isArray(paso.needs) || paso.needs.length > MAX_PASOS_DEL_ENTENDIMIENTO) {
+        return { ok: false, field: `${sitio}.needs`, reason: 'invalid_request' };
+      }
+      const vistas = new Set<string>();
+      for (let j = 0; j < paso.needs.length; j++) {
+        const need: unknown = paso.needs[j];
+        const donde = `${sitio}.needs.${j}`;
+        if (!esObjetoPlano(need)) return { ok: false, field: donde, reason: 'invalid_request' };
+        for (const clave of Object.keys(need)) {
+          if (claveDeImplementacion(clave)) return { ok: false, field: `${donde}.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+          if (!CLAVES_DE_NECESIDAD.includes(clave)) return { ok: false, field: `${donde}.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+        }
+        if (need.from !== 'user' && need.from !== 'upstream') return { ok: false, field: `${donde}.from`, reason: 'invalid_source' };
+        if (!esTexto(need.modality)) return { ok: false, field: `${donde}.modality`, reason: 'invalid_request' };
+        if (need.required !== undefined && typeof need.required !== 'boolean') {
+          return { ok: false, field: `${donde}.required`, reason: 'invalid_request' };
+        }
+        const modality = need.modality as Modality;
+        /*
+         * Lo que necesita tiene que ser algo que su capacidad SEPA recibir. Un
+         * paso que pide vídeo cuando solo acepta imagen no es un plan raro: es
+         * un plan que no se puede ejecutar, y se dice ahora y no al llegar al
+         * proveedor con los Credits ya retenidos.
+         */
+        if (!entrada.accepts.includes(modality)) return { ok: false, field: `${donde}.modality`, reason: 'modality_not_accepted' };
+
+        if (need.from === 'upstream') {
+          if (!esTexto(need.stepKey)) return { ok: false, field: `${donde}.stepKey`, reason: 'invalid_request' };
+          /* HACIA ATRÁS Y SOLO HACIA ATRÁS: aquí mueren el ciclo y la auto-dependencia. */
+          const produce = producePorClave.get(need.stepKey);
+          if (produce === undefined) return { ok: false, field: `${donde}.stepKey`, reason: 'unknown_step_key' };
+          /* Y lo que aquel produce tiene que ser lo que este pide. */
+          if (produce !== modality) return { ok: false, field: `${donde}.stepKey`, reason: 'modality_mismatch' };
+        } else if (need.stepKey !== undefined) {
+          /* `stepKey` sin `upstream` es una declaración que se contradice: no se sanea, se rechaza. */
+          return { ok: false, field: `${donde}.stepKey`, reason: 'invalid_request' };
+        }
+        /* La misma necesidad dos veces no aporta nada y esconde un error de quien la escribió. */
+        const huella = `${need.from}:${modality}:${need.stepKey ?? ''}`;
+        if (vistas.has(huella)) return { ok: false, field: donde, reason: 'duplicate_need' };
+        vistas.add(huella);
+        needs.push(Object.freeze({
+          from: need.from,
+          modality,
+          ...(need.stepKey ? { stepKey: need.stepKey as string } : {}),
+          ...(need.required !== undefined ? { required: need.required } : {}),
+        }));
+      }
+    }
+    claves.add(paso.key);
+    producePorClave.set(paso.key, entrada.produces);
+    pasos.push(Object.freeze({
+      key: paso.key,
+      capability: paso.capability as CoreCapabilityId,
+      ...(needs.length ? { needs: Object.freeze(needs) } : {}),
+    }));
+  }
+  return { ok: true, pasos: Object.freeze(pasos) };
+};
+
+/**
+ * ¿ES OBLIGATORIA? Todo lo que no se declaró opcional.
+ *
+ * El silencio no autoriza a seguir sin el material: si alguien se molestó en
+ * decir que un paso necesita una foto, lo normal es que sin la foto no haya
+ * paso. Para lo contrario está `required: false`, escrito.
+ */
+const esObligatoria = (need: StepNeed): boolean => need.required !== false;
+
+/**
+ * LAS NECESIDADES DE UN PASO, COMPLETADAS.
+ *
+ * Lo que el catálogo dice que la capacidad acepta y NADIE declaró de dónde sale
+ * se trata como material de la persona y obligatorio. Es el lado seguro del
+ * silencio: nunca crea una dependencia —eso solo puede salir de una
+ * declaración— y como mucho hace que Weë pregunte por una foto que hace falta.
+ *
+ * El texto no entra: está disponible siempre, porque el encargo ya es texto.
+ */
+const necesidadesDe = (paso: BrainStep, entrada: CatalogEntry): readonly StepNeed[] => {
+  const declaradas = paso.needs ?? [];
+  const cubiertas = new Set(declaradas.map((n) => n.modality));
+  const implicitas: StepNeed[] = [];
+  for (const necesita of entrada.accepts) {
+    if (necesita === 'text' || cubiertas.has(necesita)) continue;
+    implicitas.push(Object.freeze({ from: 'user' as const, modality: necesita }));
+  }
+  return implicitas.length ? Object.freeze([...declaradas, ...implicitas]) : declaradas;
+};
+
+/** Qué posiciones de lo que trajo la persona sirven para estas necesidades suyas. */
+const recursosDeLasNecesidades = (
+  needs: readonly StepNeed[],
+  recursos: readonly BrainAttachment[],
+): readonly number[] => {
+  const quiere = new Set(needs.filter((n) => n.from === 'user').map((n) => n.modality));
+  if (!quiere.size || !recursos.length) return [];
+  const usa: number[] = [];
+  for (let i = 0; i < recursos.length; i++) {
+    const modalidad = MODALIDAD_DE_MATERIAL[recursos[i].kind];
+    if (modalidad && quiere.has(modalidad)) usa.push(i);
+  }
+  return usa;
 };
 
 /**
@@ -740,7 +909,24 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
        * Del Skill sí se descarta lo repetido: aporta lo que falta, y añadir una
        * segunda copia de algo que ya se pidió sería mandar, no aportar.
        */
-      const deLaPersonaEnOrden = u.capabilities?.length
+      /*
+       * ── LOS PASOS QUE DECLARA BRAIN MANDAN ───────────────────────────────
+       *
+       * Cuando vienen, el orden es el suyo y las dependencias son las suyas.
+       * El Planner deja de deducirlas del catálogo — que era lo que hacía que
+       * Weë Chef acabara describiendo la foto que el propio plan había
+       * dibujado, en vez de la que trajo la persona.
+       */
+      let declarados: readonly BrainStep[] | undefined;
+      if (u.steps !== undefined) {
+        const leidos = revisarPasos(u.steps);
+        if (!leidos.ok) return fallar('invalid', 'INVALID_REQUEST', leidos.reason, { field: leidos.field });
+        declarados = leidos.pasos;
+      }
+
+      const deLaPersonaEnOrden = declarados
+        ? declarados.map((paso) => paso.capability)
+        : u.capabilities?.length
         ? [...u.capabilities]
         : (u.capability ? [u.capability] : []);
       const pedidas = [
@@ -770,7 +956,16 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
 
       /* ── El orden, deducido del catálogo ──────────────────────────────────── */
       const aportadas = modalidadesAportadas(u);
-      const { orden, sinResolver } = ordenarPorDependencia(pedidas, aportadas);
+      /*
+       * DECLARADO NO SE REORDENA. `ordenarPorDependencia` resuelve el orden a
+       * partir de qué modalidad produce cada capacidad, y eso solo sirve cuando
+       * nadie ha dicho nada: en cuanto hay declaración, reordenar sería pisarla.
+       * Las capacidades que aporte un Skill van detrás, sin declarar nada, y por
+       * eso no pueden crear ninguna relación.
+       */
+      const { orden, sinResolver } = declarados
+        ? { orden: pedidas, sinResolver: [] as readonly CoreCapabilityId[] }
+        : ordenarPorDependencia(pedidas, aportadas);
 
       /*
        * Un paso cuya entrada nadie produce y nadie aportó: a veces se puede
@@ -817,6 +1012,9 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
 
       /* ── Los pasos ────────────────────────────────────────────────────────── */
       const anteriores: { id: string; produces: Modality }[] = [];
+      /* La `key` de Brain no sale al plan: se traduce aquí al id del paso y se queda aquí. */
+      const idPorClave = new Map<string, string>();
+      const faltaMaterial = new Set<Modality>();
       const deLaPersona = new Set<Modality>(aportadas);
       /*
        * LOS RECURSOS, COPIADOS Y EN ORDEN. Ni convertidos, ni resueltos, ni
@@ -835,8 +1033,32 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
         const id = idDePaso(capability, i + 1);
         const conQue = entradaDelPaso(entrada, u.goal, u.constraints);
         if (conQue.ok && conQue.input?.[CLAVE_DE_VARIANTE] !== undefined) laReconocioAlguien = true;
-        const usa = recursosDelPaso(entrada, recursos);
-        const dependsOn = dependenciasDe(entrada, anteriores, deLaPersona);
+        /*
+         * DE DÓNDE SALE LO QUE ESTE PASO NECESITA.
+         *
+         * Declarado: de lo que dice el paso, y de nada más. Sin declarar: como
+         * siempre — los recursos por modalidad y la dependencia deducida del
+         * catálogo—, que es el comportamiento que ya tenían todos los que
+         * llaman hoy.
+         */
+        const declarado = declarados?.[i];
+        const misNecesidades = declarado ? necesidadesDe(declarado, entrada) : undefined;
+        const usa = misNecesidades
+          ? recursosDeLasNecesidades(misNecesidades, recursos)
+          : recursosDelPaso(entrada, recursos);
+        const dependsOn = misNecesidades
+          ? [...new Set(misNecesidades
+              .filter((n) => n.from === 'upstream')
+              .map((n) => idPorClave.get(n.stepKey as string) as string))]
+          : dependenciasDe(entrada, anteriores, deLaPersona);
+        if (declarado) idPorClave.set(declarado.key, id);
+        /* Lo obligatorio que la persona no trajo se PREGUNTA, y se pregunta ahora. */
+        for (const necesidad of misNecesidades ?? []) {
+          if (necesidad.from === 'user' && esObligatoria(necesidad)
+            && !recursos.some((r) => MODALIDAD_DE_MATERIAL[r.kind] === necesidad.modality)) {
+            faltaMaterial.add(necesidad.modality);
+          }
+        }
         anteriores.push({ id, produces: entrada.produces });
         return {
           id,
@@ -855,6 +1077,17 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
           ...conPistas,
         };
       });
+      /*
+       * SIN LO OBLIGATORIO NO HAY PLAN. Se pregunta aquí —antes de que exista
+       * un plan, un trabajo, un proveedor o un Credit retenido— y no al llegar
+       * al adaptador, que es donde se notaba hasta ahora y solo en uno.
+       */
+      if (faltaMaterial.size) {
+        return terminar('needs_clarification', {
+          clarification: { missing: [...faltaMaterial].map((m) => `material:${m}`) },
+        });
+      }
+
       /* Una variante que nadie del plan sabe qué es NO se planifica a medias: se rechaza entero. */
       if (variantePedida !== undefined && !laReconocioAlguien) {
         return fallar('invalid', 'INVALID_REQUEST', 'invalid_request', { field: `understanding.constraints.${CLAVE_DE_VARIANTE}` });

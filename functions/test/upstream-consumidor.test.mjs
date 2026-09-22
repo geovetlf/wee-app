@@ -140,9 +140,29 @@ check('el material entra en la entrada de EJECUCIÓN, con su propia clave',
   Array.isArray(entrada.upstream) && entrada.upstream.length === 2 && entrada.prompt === 'escribe la escena 2');
 check('G8-F9 · y no se mezcla con lo demás: `prompt` sigue intacto',
   entrada.prompt === 'escribe la escena 2');
-check('G8-F7/F8 · el PLAN no lo lleva: ni en `references`, ni en `uses`, ni en su `input`',
-  !/upstream/.test(sinComentarios(leer('functions/src/core/planner.ts'))),
-  'lo que aportó la persona y lo que produjo un paso son dos cosas');
+/*
+ * ── ESTE GUARD SE AFINÓ EN C15c, Y NO SE AFLOJÓ ─────────────────────────────
+ *
+ * Decía: la palabra <upstream> no aparece en el Planner. Era una buena
+ * aproximación mientras el Planner no supiera nada de fuentes, y dejó de
+ * serlo cuando Brain aprendió a declarar de dónde sale el material de cada
+ * paso: ahí la palabra aparece, pero como ETIQUETA DE ORIGEN.
+ *
+ * Lo que G8 protege no es la palabra: es que el MATERIAL RESUELTO —lo que
+ * escribió otro paso, su ficha, su dirección firmada— no suba hasta la capa
+ * que decide. Eso es lo que se comprueba ahora, y es más difícil de pasar.
+ */
+const planificacion = ['functions/src/core/planner.ts', 'functions/src/core/brain.ts']
+  .map((f) => sinComentarios(leer(f))).join('\n');
+check('G8-F7/F8 · el PLAN no lleva material resuelto: ni contenido, ni fichas, ni direcciones',
+  !/MaterialDeUpstream|UpstreamMaterial|outputRefs|contenido/.test(planificacion),
+  'la palabra puede estar; lo que otro paso escribió, no');
+check('y donde aparece es SOLO como etiqueta de origen, nunca como carga',
+  [...planificacion.matchAll(/upstream/gi)].every((m) => {
+    const cerca = planificacion.slice(Math.max(0, m.index - 60), m.index + 30);
+    return cerca.includes('from') || cerca.includes('OrigenDelMaterial');
+  }),
+  'declarar de dónde viene algo no es transportarlo');
 check('el conductor ya NO lo mete dentro de `input`',
   !/\{ \.\.\.dispatch\.input, upstream: dispatch\.upstream \}/.test(leer('functions/src/runtime/conductor.ts'))
   && /\.\.\.\(dispatch\.upstream\.length \? \{ upstream: dispatch\.upstream \} : \{\}\)/.test(leer('functions/src/runtime/conductor.ts')),
@@ -236,8 +256,10 @@ check('G8-F18 · C13 sigue intacto: el texto se materializa igual',
 check('el Planner NO cambió: G6a sigue pendiente',
   /if \(necesita === 'text' \|\| aportadas\.has\(necesita\)\) continue;/.test(leer('functions/src/core/planner.ts')),
   'G8 no deriva ninguna arista nueva');
-check('y Brain tampoco',
-  !/upstream/i.test(sinComentarios(leer('functions/src/core/brain.ts'))));
+check('y Brain tampoco: lo suyo es declarar, y declarar no es transportar',
+  !/MaterialDeUpstream|UpstreamMaterial|outputRefs/.test(sinComentarios(leer('functions/src/core/brain.ts')))
+  && /export type OrigenDelMaterial/.test(leer('functions/src/core/brain.ts')),
+  'C15c le dio el vocabulario de la fuente, no el del material');
 check('esta suite está en la cadena de `npm test`',
   /upstream-consumidor\.test\.mjs/.test(leer('functions/package.json')));
 
