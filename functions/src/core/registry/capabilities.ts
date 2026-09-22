@@ -191,14 +191,15 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   e('text.transform', 'text', ['text'], 'text', 'DECLARED'),
 
   /* ── IMAGEN ────────────────────────────────────────────────────────────── */
-  e('image.generate', 'image', ['text'], 'image', 'ROUTABLE', undefined, ['business', 'cover', 'dish', 'photo', 'space']),
+  /* `logo` faltaba: la extracción de C11 lo dejó fuera y Weë Design lo pide desde siempre. */
+  e('image.generate', 'image', ['text'], 'image', 'ROUTABLE', undefined, ['business', 'cover', 'dish', 'logo', 'photo', 'space']),
   e('image.edit', 'image', ['image', 'text'], 'image', 'ROUTABLE', undefined,
     ['colorize', 'dish_edit', 'enhance', 'restore', 'transform']),
   e('image.reference', 'image', ['image', 'text'], 'image', 'ROUTABLE'),
   e('image.background_remove', 'image', ['image'], 'image', 'ROUTABLE', undefined, ['background']),
   e('image.object_remove', 'image', ['image', 'text'], 'image', 'ROUTABLE', undefined, ['remove']),
   e('image.identity_edit', 'image', ['image', 'text'], 'image', 'ROUTABLE', 'Conservar el rostro es lo que la define.', ['look', 'retouch']),
-  e('image.space_restyle', 'image', ['image', 'text'], 'image', 'ROUTABLE'),
+  e('image.space_restyle', 'image', ['image', 'text'], 'image', 'ROUTABLE', undefined, ['space']),
   e('image.try_on', 'image', ['image'], 'image', 'ROUTABLE', undefined, ['look']),
   e('image.upscale', 'image', ['image'], 'image', 'ROUTABLE'),
   e('vision.describe', 'image', ['image'], 'text', 'ROUTABLE', undefined, ['describe']),
@@ -207,7 +208,7 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
 
   /* ── VÍDEO ─────────────────────────────────────────────────────────────── */
   e('video.generate', 'video', ['text'], 'video', 'ROUTABLE', undefined, ['clip']),
-  e('video.image_to_video', 'video', ['image', 'text'], 'video', 'ROUTABLE'),
+  e('video.image_to_video', 'video', ['image', 'text'], 'video', 'ROUTABLE', undefined, ['clip']),
   e('video.reference', 'video', ['image', 'video', 'text'], 'video', 'ROUTABLE'),
   e('video.compose', 'video', ['video'], 'video', 'DECLARED', 'El motor la declara con cadena vacía: nadie la sirve.'),
   e('video.montage', 'video', ['video'], 'video', 'DECLARED', 'Cadena vacía en el motor.'),

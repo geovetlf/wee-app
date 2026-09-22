@@ -1,4 +1,4 @@
-import { BrainAttachment, BrainIntent, BrainStep, BrainUnderstanding, FORMA_DE_CLAVE_DE_PASO, MAX_PASOS_DEL_ENTENDIMIENTO, StepNeed } from './brain';
+import { BrainAttachment, BrainIntent, BrainStep, BrainStepInput, BrainUnderstanding, FORMA_DE_CLAVE_DE_PASO, MAX_PASOS_DEL_ENTENDIMIENTO, StepNeed } from './brain';
 import { Modality } from './capability';
 import { PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
@@ -309,7 +309,10 @@ const dependenciasDe = (
  * mismo con menos vueltas: estas son las claves que un `StepNeed` puede tener.
  */
 const CLAVES_DE_NECESIDAD = Object.keys({ from: 0, modality: 0, stepKey: 0, required: 0 });
-const CLAVES_DE_PASO = ['key', 'capability', 'needs'];
+const CLAVES_DE_PASO = ['key', 'capability', 'needs', 'input'];
+const CLAVES_DE_ENTRADA_DEL_PASO = Object.keys({ kind: 0, brief: 0 });
+/** Una frase que dice qué hace un paso cabe de sobra aquí. Un prompt, no. */
+const MAX_BRIEF_DEL_PASO = 300;
 
 /**
  * LOS PASOS DECLARADOS, REVISADOS.
@@ -402,12 +405,44 @@ const revisarPasos = (
         }));
       }
     }
+    /*
+     * LO QUE ESTE PASO HACE, REVISADO CONTRA SU PROPIA CAPACIDAD.
+     *
+     * La variante no vale «si existe en algún sitio»: tiene que estar entre
+     * las que declara ESTA capacidad. `polish` es de `text.generate` y
+     * `restore` de `image.edit`, y confundirlas daría un paso pidiendo algo
+     * que su capacidad no sabe hacer.
+     */
+    let entradaDeclarada: BrainStepInput | undefined;
+    if (paso.input !== undefined) {
+      if (!esObjetoPlano(paso.input)) return { ok: false, field: `${sitio}.input`, reason: 'invalid_request' };
+      for (const clave of Object.keys(paso.input)) {
+        if (claveDeImplementacion(clave)) return { ok: false, field: `${sitio}.input.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+        if (!CLAVES_DE_ENTRADA_DEL_PASO.includes(clave)) return { ok: false, field: `${sitio}.input.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+      }
+      const kind: unknown = (paso.input as Record<string, unknown>).kind;
+      const brief: unknown = (paso.input as Record<string, unknown>).brief;
+      if (kind !== undefined) {
+        if (!esTexto(kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'invalid_request' };
+        if (!entrada.variants?.includes(kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'unknown_variant' };
+      }
+      if (brief !== undefined && (!esTexto(brief) || !brief.trim() || brief.length > MAX_BRIEF_DEL_PASO)) {
+        return { ok: false, field: `${sitio}.input.brief`, reason: 'invalid_request' };
+      }
+      if (kind !== undefined || brief !== undefined) {
+        entradaDeclarada = Object.freeze({
+          ...(kind !== undefined ? { kind: kind as string } : {}),
+          ...(brief !== undefined ? { brief: (brief as string).trim() } : {}),
+        });
+      }
+    }
     claves.add(paso.key);
     producePorClave.set(paso.key, entrada.produces);
     pasos.push(Object.freeze({
       key: paso.key,
       capability: paso.capability as CoreCapabilityId,
       ...(needs.length ? { needs: Object.freeze(needs) } : {}),
+      ...(entradaDeclarada ? { input: entradaDeclarada } : {}),
     }));
   }
   return { ok: true, pasos: Object.freeze(pasos) };
@@ -660,6 +695,7 @@ const entradaDelPaso = (
   entrada: CatalogEntry,
   goal: string,
   constraints: Readonly<Record<string, string | number | boolean>>,
+  declarada?: BrainStepInput,
 ): { ok: true; input?: Readonly<Record<string, unknown>> } | { ok: false; field: string } => {
   /*
    * ── LA VARIANTE ES DEL PLAN, PERO SOLO LA COGE QUIEN LA ENTIENDE ──────────
@@ -675,9 +711,20 @@ const entradaDelPaso = (
    * entero; eso lo comprueba quien arma los pasos, que es el único que las ve
    * todas.
    */
+  /*
+   * ── Y LO QUE DIJO EL PASO MANDA SOBRE LO QUE DIJO EL PLAN ────────────────
+   *
+   * La variante del plan es UNA para todos, y sirve cuando de verdad lo es.
+   * En cuanto un paso dice la suya, gana el paso: al revés, «pule el menú»
+   * acabaría escribiendo otro menú.
+   *
+   * Igual la frase. Dársela a todos igual —el objetivo entero de la persona—
+   * era lo que hacía que dos pasos distintos pidieran lo mismo.
+   */
   const pedida = constraints[CLAVE_DE_VARIANTE];
-  const kind = esTexto(pedida) && entrada.variants?.includes(pedida) ? pedida : undefined;
-  const brief = typeof goal === 'string' ? goal.trim() : '';
+  const delPlan = esTexto(pedida) && entrada.variants?.includes(pedida) ? pedida : undefined;
+  const kind = declarada?.kind ?? delPlan;
+  const brief = declarada?.brief ?? (typeof goal === 'string' ? goal.trim() : '');
   if (kind === undefined && !brief) return { ok: true };
   return {
     ok: true,
@@ -1031,7 +1078,7 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
       const steps: PlanStep[] = completas.map((capability, i) => {
         const entrada = entradaDe(capability)!;
         const id = idDePaso(capability, i + 1);
-        const conQue = entradaDelPaso(entrada, u.goal, u.constraints);
+        const conQue = entradaDelPaso(entrada, u.goal, u.constraints, declarados?.[i]?.input);
         if (conQue.ok && conQue.input?.[CLAVE_DE_VARIANTE] !== undefined) laReconocioAlguien = true;
         /*
          * DE DÓNDE SALE LO QUE ESTE PASO NECESITA.

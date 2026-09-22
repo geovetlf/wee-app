@@ -68,8 +68,17 @@ const entender = (extra = {}) => ({
 console.log('\n── A · El catálogo declara variantes, y nada más ──');
 
 const conVariantes = CAPABILITY_CATALOG.filter((e) => e.variants);
+/*
+ * 14 y 44, no 12 y 43: C17 completó tres que esta extracción dejó fuera y que
+ * las plantillas llevaban usando desde siempre —`logo` en `image.generate`,
+ * `space` en `image.space_restyle` y `clip` en `video.image_to_video`—. Sin
+ * ellas, esos cuatro pasos perdían su variante al cruzar al Core.
+ *
+ * Lo que NO cambia es la regla que viene justo debajo, y es la que importa:
+ * ninguna sale de la nada, todas salen de las plantillas.
+ */
 check('el catálogo declara variantes donde de verdad las hay',
-  conVariantes.length === 12 && new Set(conVariantes.flatMap((e) => e.variants)).size === 43,
+  conVariantes.length === 14 && new Set(conVariantes.flatMap((e) => e.variants)).size === 44,
   `${conVariantes.length} capacidades · ${new Set(conVariantes.flatMap((e) => e.variants)).size} variantes`);
 check('ninguna variante es inventada: todas salen de las plantillas o de la tabla de ediciones',
   (() => {

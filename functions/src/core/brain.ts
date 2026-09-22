@@ -325,6 +325,40 @@ export interface StepNeed {
 }
 
 /**
+ * LO QUE TIENE QUE HACER ESTE PASO, Y SOLO ESTE.
+ *
+ * ── Por qué hacía falta ─────────────────────────────────────────────────────
+ *
+ * El plan sabía decir «esto va de restaurar» una vez, para todos sus pasos. Y
+ * casi nunca es verdad: «escribe el menú y luego púlelo» son dos pasos de la
+ * misma capacidad que hacen cosas distintas, y hasta aquí los dos recibían la
+ * misma variante y la misma frase —el objetivo entero de la persona, copiado—.
+ *
+ * Medido sobre los 65 pasos comparables de las experiencias: 64 perdían su
+ * variante y los 65 recibían el mismo `brief`.
+ *
+ * ── Lo que NO es ────────────────────────────────────────────────────────────
+ *
+ * No es un prompt. `brief` es una frase corta que dice QUÉ hace este paso, en
+ * las palabras del encargo; la instrucción que lee un proveedor se arma abajo,
+ * en ejecución, y sigue sin subir hasta aquí. Tampoco lleva proveedor, modelo,
+ * adaptador, identificador de material ni dirección: para eso están las otras
+ * capas y hay una comprobación que lo impide.
+ */
+export interface BrainStepInput {
+  /**
+   * LA VARIANTE, del catálogo y de la capacidad de ESTE paso.
+   *
+   * `draft` y `polish` son dos maneras de pedir `text.generate`, y quién sabe
+   * cuáles existen es el catálogo — no Brain, ni las plantillas, ni quien
+   * ejecuta—. Una que la capacidad no declare se rechaza en vez de pasar.
+   */
+  kind?: string;
+  /** Qué hace este paso, en una frase corta. Si falta, se usa el objetivo. */
+  brief?: string;
+}
+
+/**
  * UNA INSTANCIA DE PASO, COMO LA PIENSA BRAIN.
  *
  * Y la diferencia con `capabilities` es la que costó dos fases entender:
@@ -353,6 +387,11 @@ export interface BrainStep {
    * Chef, que acababa describiendo la foto que el propio plan había dibujado.
    */
   needs?: readonly StepNeed[];
+  /**
+   * QUÉ HACE ESTE PASO. Ausente = lo que se venía haciendo: la variante del
+   * plan, si su capacidad la reconoce, y el objetivo de la persona como frase.
+   */
+  input?: BrainStepInput;
 }
 
 /** Como mucho, los pasos que caben en un encargo. El mismo techo que las capacidades. */

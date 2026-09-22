@@ -1,5 +1,5 @@
 import { CAPABILITY_CATALOG, CoreCapabilityId } from '../core/registry';
-import { BrainStep, Modality, StepNeed } from '../core';
+import { BrainStep, BrainStepInput, Modality, StepNeed } from '../core';
 
 import { IMAGE_INPUT_CAPS } from './inputs';
 import { KIND_INSTRUCTIONS } from './prompts';
@@ -147,6 +147,33 @@ export const clasificarArista = (consumidor: PlanStep, productor: PlanStep): Ari
   return { clase: 'LEGACY_ORDER_ARTIFACT', motivo: 'consumidor sin forma conocida de leer lo anterior' };
 };
 
+/* ── Lo que cada paso hace ────────────────────────────────────────────────── */
+
+/**
+ * LA VARIANTE Y LA FRASE DE ESTE PASO, COPIADAS TAL CUAL.
+ *
+ * Sin reconstruir nada: `kind` es el que la plantilla escribió, y `brief`
+ * también. No se deduce de la capacidad, ni del texto del prompt, ni de la
+ * etiqueta que se le enseña a la persona — de eso iba justamente el problema.
+ *
+ * Y NO se copia todo lo demás. `count`, `focus`, `voice`, `mood`, `genre`,
+ * `quality`, `durationSec`, `aspectRatio` y `resolution` NO son lo que un paso
+ * hace: son cuánto, cómo o con qué se ejecuta, y cada uno tiene ya su sitio o
+ * le falta uno. Meterlos aquí sería inventar un segundo sistema de entrada.
+ *
+ * Una variante que el catálogo no declare para esa capacidad se deja fuera en
+ * vez de colar: el Planner la rechazaría, y perder la frase por un `kind` mal
+ * escrito sería peor que no llevarlo.
+ */
+const entradaDelPaso = (paso: PlanStep): BrainStepInput | undefined => {
+  const input = (paso.input ?? {}) as { kind?: unknown; brief?: unknown };
+  const variantes = entradaDe(paso.capability)?.variants ?? [];
+  const kind = typeof input.kind === 'string' && variantes.includes(input.kind) ? input.kind : undefined;
+  const brief = typeof input.brief === 'string' && input.brief.trim() ? input.brief.trim().slice(0, 300) : undefined;
+  if (kind === undefined && brief === undefined) return undefined;
+  return { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) };
+};
+
 /* ── La traducción ────────────────────────────────────────────────────────── */
 
 export interface PasosParaElCore {
@@ -189,10 +216,12 @@ export const pasosParaElCore = (steps: readonly PlanStep[]): PasosParaElCore => 
     if (IMAGE_INPUT_CAPS.includes(paso.capability as CapabilityId)) {
       needs.push({ from: 'user', modality: 'image', required: true });
     }
+    const input = entradaDelPaso(paso);
     salida.push({
       key: paso.id,
       capability: paso.capability as CoreCapabilityId,
       ...(needs.length ? { needs } : {}),
+      ...(input ? { input } : {}),
     });
   }
   return { steps: salida, descartadas };
