@@ -378,8 +378,51 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     ['QueueMessage', 'QueueDelivery', 'QueuePort', 'WorkerConfig'].every((n) => interfaz(n, leer('functions/src/core/job-queue.ts')).length > 0 && !PROHIBIDOS.test(sinComentarios(interfaz(n, leer('functions/src/core/job-queue.ts'))))));
   check('62) la identidad de quien actúa sale del almacén, no del mensaje', /const principal: Principal = \{ userId: job\.owner\.userId/.test(WORKER) && !/mensaje\.(userId|accountId|owner|principal)/.test(WORKER));
 
-  const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/job.ts functions/src/job/index.ts functions/src/core/workflow.ts functions/src/core/orchestrator.ts functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
-  check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Workflow, Orchestrator, Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
+  const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/job.ts functions/src/job/index.ts functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
+    check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
+  /*
+   * EL WORKFLOW Y EL ORCHESTRATOR SALIERON DE ESA LISTA, y con el mismo trato
+   * que recibió el Gateway: algo autorizado, medido y vigilado de otra forma.
+   *
+   * C11.1 encontró que los recursos que una persona aporta —su foto— existen en
+   * el entendimiento y NO tienen camino hasta el paso que los necesita. Hoy
+   * llegan porque `creator/inputs.ts` los inyecta en ejecución, que es Legacy
+   * siendo autoridad de algo que es del Core. C11.2 abre ese camino:
+   * `Plan.references` → `Workflow.references` → `PlanStep.uses` → despacho.
+   *
+   * Y lo que se vigila ahora es MÁS fuerte que «no se tocó»: que el cambio sea
+   * estrictamente ADITIVO. Las únicas líneas que desaparecen son las que se
+   * alargaron en su sitio, y las cuatro listas de claves conservan todas las
+   * que ya tenían.
+   */
+  const RECURSOS = 'functions/src/core/workflow.ts functions/src/core/orchestrator.ts';
+  const delTransporte = execSync('git diff -U0 c3515b3 -- ' + RECURSOS, { cwd: RAIZ, encoding: 'utf8' });
+  const fuera = delTransporte.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1));
+  const alargada = (l) => /^import \{|^const CLAVES_DE_|^\s*const hints = leerPistas\(crudo\.hints/.test(l);
+  check('63g) del Workflow y el Orchestrator no se ha QUITADO nada: todo lo que desaparece es una línea alargada',
+    fuera.length > 0 && fuera.every(alargada),
+    fuera.length + ' líneas · ' + fuera.filter((l) => !alargada(l)).length + ' sin justificar');
+  {
+    const WF = leer('functions/src/core/workflow.ts');
+    const lista = (nombre) => {
+      const desde = WF.indexOf(`const ${nombre} = [`);
+      if (desde < 0) return [];
+      return WF.slice(desde + `const ${nombre} = [`.length, WF.indexOf(']', desde))
+        .split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean);
+    };
+    const ANTES = {
+      CLAVES_DE_PLAN: ['id', 'contract', 'goal', 'intent', 'steps', 'capabilities', 'language', 'workplace', 'projectId', 'constraints', 'hints', 'explainToUser', 'assumptions', 'warnings'],
+      CLAVES_DE_PASO_DE_PLAN: ['id', 'capability', 'purpose', 'dependsOn', 'input', 'produces', 'hints'],
+      CLAVES_DE_WORKFLOW: ['id', 'contract', 'goal', 'workplace', 'steps', 'budget', 'explainToUser', 'metadata', 'planId', 'intent', 'projectId', 'language', 'constraints', 'hints', 'assumptions', 'warnings'],
+      CLAVES_DE_PASO: ['id', 'capability', 'purpose', 'dependsOn', 'input', 'when', 'retry', 'onFailure', 'timeoutMs', 'requiresApproval', 'quality', 'budget', 'produces', 'hints'],
+    };
+    const perdidas = Object.entries(ANTES).flatMap(([nombre, ks]) => ks.filter((k) => !lista(nombre).includes(k)).map((k) => nombre + '.' + k));
+    check('63h) las cuatro listas de claves solo han CRECIDO: ni una de las de antes se ha caído',
+      perdidas.length === 0, perdidas.length ? perdidas.join(' ') : 'ninguna perdida');
+    check('63i) y lo que han ganado es exactamente el transporte de recursos',
+      lista('CLAVES_DE_PLAN').includes('references') && lista('CLAVES_DE_WORKFLOW').includes('references')
+      && lista('CLAVES_DE_PASO_DE_PLAN').includes('uses') && lista('CLAVES_DE_PASO').includes('uses'));
+  }
   /*
    * EL GATEWAY SALIÓ DE ESA LISTA A PROPÓSITO, y por DOS cosas, las dos
    * autorizadas y las dos del bloque F12-D:

@@ -1,4 +1,4 @@
-import { BrainIntent, BrainUnderstanding } from './brain';
+import { BrainAttachment, BrainIntent, BrainUnderstanding } from './brain';
 import { Modality } from './capability';
 import { PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
@@ -69,6 +69,26 @@ export interface PlanStep {
   produces: Modality;
   /** Requisitos abstractos del resultado. Nunca una implementación. */
   hints?: ExecutionHints;
+  /**
+   * CUÁLES DE LOS RECURSOS DEL PLAN NECESITA ESTE PASO.
+   *
+   * Posiciones en `Plan.references`, no copias: un mismo material puede hacer
+   * falta en tres pasos y no puede aparecer tres veces, porque entonces habría
+   * tres verdades sobre el mismo objeto y bastaría con que una se quedara vieja.
+   *
+   * ── Por qué por POSICIÓN y no por `assetId` ─────────────────────────────
+   *
+   * Porque `assetId` es OPCIONAL en un adjunto: una foto que alguien acaba de
+   * subir puede llegar con URL y sin ficha todavía. Una clave que no siempre
+   * existe no sirve para señalar, así que se usa la única que siempre está.
+   *
+   * El riesgo de un índice es conocido —si alguien reordenara o filtrara la
+   * lista, apuntaría a otra cosa en silencio—, y por eso la lista se copia
+   * ENTERA y en orden del plan al workflow, y hay un guard que lo vigila.
+   *
+   * Ausente = este paso no necesita nada de lo que se aportó.
+   */
+  uses?: readonly number[];
 }
 
 export type PlanWarning =
@@ -103,6 +123,21 @@ export interface Plan {
   /** Lo que acota el resultado. Escalares que vinieron del entendimiento. */
   constraints: Readonly<Record<string, string | number | boolean>>;
   hints?: ExecutionHints;
+  /**
+   * LO QUE LA PERSONA APORTÓ. Recursos, no parámetros.
+   *
+   * Es el MISMO `BrainAttachment` que ya viajaba en el entendimiento —con su
+   * `assetId` cuando lo tiene, que es la llave con la que después se comprueba
+   * de quién es—, copiado tal cual. Ni un tipo nuevo, ni una conversión a URL,
+   * ni un segundo sistema de contexto.
+   *
+   * Y va AQUÍ y no dentro de `PlanStep.input` a propósito. Una foto no es un
+   * parámetro de la tarea: es un recurso que hay que autorizar. Mezclarlos
+   * habría metido material del que alguien es dueño en el mismo saco que
+   * `count` o `kind`, y la autorización habría acabado dependiendo de mirar
+   * las claves de un objeto libre.
+   */
+  references?: readonly BrainAttachment[];
   /** Lo que se le cuenta a la persona antes de empezar. */
   explainToUser?: string;
   /** Lo que se dio por supuesto. Viaja explícito desde el entendimiento. */
@@ -290,6 +325,15 @@ export const ordenarPorDependencia = (
 };
 
 /** Lo que la persona ya trajo: cada adjunto deja disponible su modalidad. */
+/**
+ * CUÁNTOS RECURSOS COMO MUCHO LLEVA UN PLAN.
+ *
+ * Acotado porque el plan se guarda, se copia y se recorre, y porque lo que
+ * cabe aquí es lo que una persona adjuntó a un mensaje: ocho es de sobra y el
+ * día que no baste, es un número.
+ */
+export const MAX_RECURSOS_DEL_PLAN = 8;
+
 const MODALIDAD_DE_MATERIAL: Readonly<Record<string, Modality>> = {
   text: 'text',
   image: 'image',
@@ -381,6 +425,33 @@ const revisarPistas = (
   return leidas.ok ? { ok: true, hints: leidas.hints } : { ok: false, field: leidas.field, reason: 'invalid_request' };
 };
 
+/* ── Qué recursos usa un paso ─────────────────────────────────────────────── */
+
+/**
+ * CUÁLES DE LOS RECURSOS APORTADOS LE HACEN FALTA A ESTE PASO.
+ *
+ * La regla es la del catálogo y no una lista escrita a mano: un paso usa los
+ * recursos cuya MODALIDAD su capacidad declara aceptar. `vision.describe`
+ * acepta imagen, así que se lleva las fotos; `text.generate` no acepta
+ * ninguna, así que no se lleva nada aunque haya tres adjuntas.
+ *
+ * Devuelve POSICIONES en el orden del plan, sin repetir. Vacío significa que
+ * este paso no necesita nada de lo que alguien trajo, y entonces no se escribe
+ * la clave: un paso sin recursos tiene que salir exactamente como salía antes.
+ */
+const recursosDelPaso = (
+  entrada: CatalogEntry,
+  recursos: readonly BrainAttachment[],
+): readonly number[] => {
+  if (recursos.length === 0 || entrada.accepts.length === 0) return [];
+  const usa: number[] = [];
+  for (let i = 0; i < recursos.length; i++) {
+    const modalidad = MODALIDAD_DE_MATERIAL[recursos[i].kind];
+    if (modalidad && entrada.accepts.includes(modalidad)) usa.push(i);
+  }
+  return usa;
+};
+
 /* ── Con qué entra un paso ────────────────────────────────────────────────── */
 
 /**
@@ -421,15 +492,22 @@ const entradaDelPaso = (
   goal: string,
   constraints: Readonly<Record<string, string | number | boolean>>,
 ): { ok: true; input?: Readonly<Record<string, unknown>> } | { ok: false; field: string } => {
+  /*
+   * ── LA VARIANTE ES DEL PLAN, PERO SOLO LA COGE QUIEN LA ENTIENDE ──────────
+   *
+   * Lo encontró el canary de Photo: «restaura esta foto» son DOS pasos —mirar
+   * la foto y editarla— y `restore` es una variante de editar, no de mirar.
+   * Rechazar el plan porque un paso no la reconoce habría hecho imposible
+   * cualquier plan de más de un paso, que es la forma normal de casi todos.
+   *
+   * Así que la coge el paso cuya capacidad la declara, y a los demás no les
+   * pasa nada. Lo que NO cambia es la protección: una variante que no declara
+   * NINGUNA capacidad del plan sigue siendo una invención y tumba el plan
+   * entero; eso lo comprueba quien arma los pasos, que es el único que las ve
+   * todas.
+   */
   const pedida = constraints[CLAVE_DE_VARIANTE];
-  let kind: string | undefined;
-  if (pedida !== undefined) {
-    /* Una variante sobre una capacidad que no declara ninguna es una invención. */
-    if (!esTexto(pedida) || !entrada.variants?.includes(pedida)) {
-      return { ok: false, field: `understanding.constraints.${CLAVE_DE_VARIANTE}` };
-    }
-    kind = pedida;
-  }
+  const kind = esTexto(pedida) && entrada.variants?.includes(pedida) ? pedida : undefined;
   const brief = typeof goal === 'string' ? goal.trim() : '';
   if (kind === undefined && !brief) return { ok: true };
   return {
@@ -707,12 +785,24 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
       /* ── Los pasos ────────────────────────────────────────────────────────── */
       const anteriores: { id: string; produces: Modality }[] = [];
       const deLaPersona = new Set<Modality>(aportadas);
-      let entradaInvalida: string | undefined;
+      /*
+       * LOS RECURSOS, COPIADOS Y EN ORDEN. Ni convertidos, ni resueltos, ni
+       * mirados: el plan dice QUÉ trajo la persona, y de quién es cada cosa lo
+       * comprobará quien tenga permiso para leerlo, que no es el Planner.
+       */
+      const recursos: readonly BrainAttachment[] = Object.freeze(
+        u.inputs.attachments.slice(0, MAX_RECURSOS_DEL_PLAN).map((a) => Object.freeze({ ...a })),
+      );
+
+      /* ¿Alguna capacidad del plan reconoce la variante que se pidió? Si ninguna, es inventada. */
+      const variantePedida = u.constraints[CLAVE_DE_VARIANTE];
+      let laReconocioAlguien = false;
       const steps: PlanStep[] = completas.map((capability, i) => {
         const entrada = entradaDe(capability)!;
         const id = idDePaso(capability, i + 1);
         const conQue = entradaDelPaso(entrada, u.goal, u.constraints);
-        if (!conQue.ok) entradaInvalida = conQue.field;
+        if (conQue.ok && conQue.input?.[CLAVE_DE_VARIANTE] !== undefined) laReconocioAlguien = true;
+        const usa = recursosDelPaso(entrada, recursos);
         const dependsOn = dependenciasDe(entrada, anteriores, deLaPersona);
         anteriores.push({ id, produces: entrada.produces });
         return {
@@ -727,12 +817,15 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
           purpose: skill?.purposes?.[String(capability)] ?? proposito(entrada),
           ...(dependsOn.length ? { dependsOn } : {}),
           ...(conQue.ok && conQue.input ? { input: conQue.input } : {}),
+          ...(usa.length ? { uses: Object.freeze(usa) } : {}),
           produces: entrada.produces,
           ...conPistas,
         };
       });
-      /* Una variante inventada NO se planifica a medias: se rechaza el plan entero. */
-      if (entradaInvalida) return fallar('invalid', 'INVALID_REQUEST', 'invalid_request', { field: entradaInvalida });
+      /* Una variante que nadie del plan sabe qué es NO se planifica a medias: se rechaza entero. */
+      if (variantePedida !== undefined && !laReconocioAlguien) {
+        return fallar('invalid', 'INVALID_REQUEST', 'invalid_request', { field: `understanding.constraints.${CLAVE_DE_VARIANTE}` });
+      }
 
       if (u.confidence === 'low') warnings.push('low_confidence');
       if (u.assumptions.length) warnings.push('assumptions_carried');
@@ -756,6 +849,7 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
          * textos en silencio, que es alterar lo que la persona pidió.
          */
         constraints: { ...u.constraints },
+        ...(recursos.length ? { references: recursos } : {}),
         ...conPistas,
         /*
          * Y SE DICE. Planificar con un Skill es una suposición sobre cómo se
