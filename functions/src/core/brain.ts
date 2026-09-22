@@ -392,6 +392,20 @@ export interface BrainStep {
    * plan, si su capacidad la reconoce, y el objetivo de la persona como frase.
    */
   input?: BrainStepInput;
+  /**
+   * LO QUE ESTE PASO PIDE DEL RESULTADO. El mismo contrato de siempre.
+   *
+   * Un guion no dura diez segundos: dura diez segundos el vídeo que sale de
+   * él. Y la proporción vertical es del clip, no de la frase que lo describe.
+   * Medido sobre las 35 formas: hay DIEZ planes donde una pista la pide un
+   * solo paso, y dársela a todos le pondría a un paso de texto una duración
+   * y un encuadre — y, peor, una calidad `max` que nadie pidió para él, que
+   * es de las pocas pistas que cambian a qué modelo se va y cuánto cuesta.
+   *
+   * Ausente = las del plan, como hasta ahora. Presente = manda esta, clave a
+   * clave: lo que el paso no diga lo sigue poniendo el plan.
+   */
+  hints?: ExecutionHints;
 }
 
 /** Como mucho, los pasos que caben en un encargo. El mismo techo que las capacidades. */

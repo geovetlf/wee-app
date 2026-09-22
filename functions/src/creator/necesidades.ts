@@ -1,5 +1,5 @@
 import { CAPABILITY_CATALOG, CoreCapabilityId } from '../core/registry';
-import { BrainStep, BrainStepInput, Modality, StepNeed } from '../core';
+import { AspectRatio, BrainStep, BrainStepInput, ExecutionHints, Modality, StepNeed, creativosValidos } from '../core';
 
 import { IMAGE_INPUT_CAPS } from './inputs';
 import { KIND_INSTRUCTIONS } from './prompts';
@@ -174,6 +174,45 @@ const entradaDelPaso = (paso: PlanStep): BrainStepInput | undefined => {
   return { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) };
 };
 
+/* ── Lo que cada paso pide del resultado ──────────────────────────────────── */
+
+/**
+ * LAS PISTAS DE ESTE PASO, CADA UNA A SU DUEÑO.
+ *
+ * Las plantillas las escriben dentro de `input`, todas revueltas, y no todas
+ * son lo mismo:
+ *
+ *   `quality` y `durationSec`  son requisitos del resultado → `ExecutionHints`.
+ *   `aspectRatio`              es encuadre → `CreativeParameters.framing`, que
+ *                              ya viaja dentro de las pistas.
+ *   `resolution`               NO viene: la calcula la Resolution Policy en
+ *                              ejecución, a partir de la foto de verdad, y con
+ *                              ella se cotizó el precio. Traerla aquí sería
+ *                              una segunda opinión sobre los mismos píxeles.
+ *
+ * Y son DEL PASO, no del plan. Weë Studio lo enseña de un vistazo: el guion
+ * pide `standard`, el clip pide diez segundos y vertical, y la voz no pide
+ * nada. Repartirlas le pondría al guion —que es texto— una duración y un
+ * encuadre; y en otros diez planes, una calidad `max` que nadie pidió para él
+ * y que sí cambia a qué modelo se va y cuánto cuesta.
+ */
+const pistasDelPaso = (paso: PlanStep): ExecutionHints | undefined => {
+  const input = (paso.input ?? {}) as Record<string, unknown>;
+  const quality = input.quality;
+  const durationSec = input.durationSec;
+  const aspectRatio = input.aspectRatio;
+  const creative = typeof aspectRatio === 'string'
+    ? { version: 1 as const, framing: { aspectRatio: aspectRatio as AspectRatio } }
+    : undefined;
+  const pistas: ExecutionHints = {
+    ...(quality === 'standard' || quality === 'high' || quality === 'max' ? { quality } : {}),
+    ...(typeof durationSec === 'number' && durationSec > 0 ? { durationSec } : {}),
+    /* Entera o nada, con su propio contrato: media intención creativa es otra intención. */
+    ...(creative && creativosValidos(creative) ? { creative } : {}),
+  };
+  return Object.keys(pistas).length ? pistas : undefined;
+};
+
 /* ── La traducción ────────────────────────────────────────────────────────── */
 
 export interface PasosParaElCore {
@@ -217,11 +256,13 @@ export const pasosParaElCore = (steps: readonly PlanStep[]): PasosParaElCore => 
       needs.push({ from: 'user', modality: 'image', required: true });
     }
     const input = entradaDelPaso(paso);
+    const hints = pistasDelPaso(paso);
     salida.push({
       key: paso.id,
       capability: paso.capability as CoreCapabilityId,
       ...(needs.length ? { needs } : {}),
       ...(input ? { input } : {}),
+      ...(hints ? { hints } : {}),
     });
   }
   return { steps: salida, descartadas };

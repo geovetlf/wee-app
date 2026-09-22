@@ -309,7 +309,7 @@ const dependenciasDe = (
  * mismo con menos vueltas: estas son las claves que un `StepNeed` puede tener.
  */
 const CLAVES_DE_NECESIDAD = Object.keys({ from: 0, modality: 0, stepKey: 0, required: 0 });
-const CLAVES_DE_PASO = ['key', 'capability', 'needs', 'input'];
+const CLAVES_DE_PASO = ['key', 'capability', 'needs', 'input', 'hints'];
 const CLAVES_DE_ENTRADA_DEL_PASO = Object.keys({ kind: 0, brief: 0 });
 /** Una frase que dice qué hace un paso cabe de sobra aquí. Un prompt, no. */
 const MAX_BRIEF_DEL_PASO = 300;
@@ -436,6 +436,17 @@ const revisarPasos = (
         });
       }
     }
+    /*
+     * Y sus pistas, con el MISMO lector que las del plan. Un segundo lector
+     * sería una segunda idea de qué es una pista, y con ella un `providerId`
+     * podría colarse por el carril del paso mientras el del plan lo rechaza.
+     */
+    let pistasDelPaso: ExecutionHints | undefined;
+    if (paso.hints !== undefined) {
+      const leidas = revisarPistas(paso.hints, `${sitio}.hints`);
+      if (!leidas.ok) return { ok: false, field: leidas.field, reason: leidas.reason };
+      pistasDelPaso = leidas.hints;
+    }
     claves.add(paso.key);
     producePorClave.set(paso.key, entrada.produces);
     pasos.push(Object.freeze({
@@ -443,6 +454,7 @@ const revisarPasos = (
       capability: paso.capability as CoreCapabilityId,
       ...(needs.length ? { needs: Object.freeze(needs) } : {}),
       ...(entradaDeclarada ? { input: entradaDeclarada } : {}),
+      ...(pistasDelPaso ? { hints: pistasDelPaso } : {}),
     }));
   }
   return { ok: true, pasos: Object.freeze(pasos) };
@@ -909,9 +921,28 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
        * ni el Job Engine, ni la cola se enteran de que existe.
        */
       const creativo = completarCreativos(pistas.creative as CreativeParameters | undefined, skill?.creative);
-      const conPistas = Object.keys(pistas).length || creativo
-        ? { hints: { ...pistas, ...(creativo ? { creative: creativo } : {}) } as ExecutionHints }
-        : {};
+      const pistasDelPlan = { ...pistas, ...(creativo ? { creative: creativo } : {}) } as ExecutionHints;
+      /*
+       * ── LAS PISTAS DEL PLAN SON EL FONDO; LAS DEL PASO, LO QUE MANDA ───────
+       *
+       * Y se mezclan CLAVE A CLAVE, no objeto contra objeto: un paso que pide
+       * `durationSec` no pierde la calidad que la persona eligió para todo el
+       * encargo, ni al revés.
+       *
+       * Lo que NO se hace es repartir a todos lo que pidió uno. Un guion no
+       * dura diez segundos: dura diez segundos el vídeo que sale de él.
+       */
+      const pistasDe = (paso?: BrainStep): { hints?: ExecutionHints } => {
+        /*
+         * `sinVacíos` NO es adorno. `leerHints` devuelve SIEMPRE las cuatro
+         * claves, tres de ellas quizá `undefined`, y un `undefined` encima
+         * borra en silencio lo que el plan sí tenía: un paso que solo pide
+         * duración perdería la calidad que eligió la persona. Es la misma
+         * trampa de veinte líneas más arriba, y el compilador tampoco la ve.
+         */
+        const juntas = { ...pistasDelPlan, ...sinVacíos(paso?.hints) } as ExecutionHints;
+        return Object.keys(juntas).length ? { hints: Object.freeze(juntas) } : {};
+      };
 
       /* ── Qué capacidades hacen falta ──────────────────────────────────────── */
       /*
@@ -1121,7 +1152,7 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
           ...(conQue.ok && conQue.input ? { input: conQue.input } : {}),
           ...(usa.length ? { uses: Object.freeze(usa) } : {}),
           produces: entrada.produces,
-          ...conPistas,
+          ...pistasDe(declarados?.[i]),
         };
       });
       /*
@@ -1169,7 +1200,8 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
          */
         constraints: { ...u.constraints },
         ...(recursos.length ? { references: recursos } : {}),
-        ...conPistas,
+        /* Las del PLAN, que son las que valen de fondo para quien no diga las suyas. */
+        ...pistasDe(),
         /*
          * Y SE DICE. Planificar con un Skill es una suposición sobre cómo se
          * resuelve mejor lo que se pidió, y una suposición callada es una
