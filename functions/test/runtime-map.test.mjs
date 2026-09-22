@@ -67,7 +67,13 @@ const diferencia = (esperado, real) => {
  *   simbolos     símbolos de `canonico` que el código vivo nombra (fuera del Core)
  * ═══════════════════════════════════════════════════════════════════════════ */
 const MAPA = [
-  { id: 'brain', canonico: ['core/brain.js'], composicion: 'brain/index.js', fabrica: 'crearBrainDeWee', enUso: ['creator/brain.js'], cargada: true,
+  /*
+   * `creator/sombra.js` también construye el Brain: la sombra le pide un
+   * ENTENDIMIENTO por el motor de siempre, con `creditsEstimated: 0` y sin
+   * transacción de Credits. Mismo motor, mismo libro, cero cobro — y detrás de
+   * un interruptor cerrado por defecto.
+   */
+  { id: 'brain', canonico: ['core/brain.js'], composicion: 'brain/index.js', fabrica: 'crearBrainDeWee', enUso: ['creator/brain.js', 'creator/sombra.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['LIMITES_DE_CONTEXTO', 'crearBrain', 'interpretarMarca'] },
   /*
    * EL PLANNER YA ESTÁ CONECTADO, y conviene leer bien qué significa: la sombra

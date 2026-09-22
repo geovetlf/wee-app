@@ -1,5 +1,9 @@
 import type { DocumentReference } from 'firebase-admin/firestore';
-import { BrainUnderstanding, CAPABILITY_CATALOG, CapabilityAvailability, CoreCapabilityId, PLANNER_CONTRACT_VERSION } from '../core';
+import { BRAIN_CONTRACT_VERSION, BrainUnderstanding, CAPABILITY_CATALOG, CapabilityAvailability, CoreCapabilityId, PLANNER_CONTRACT_VERSION, Thinker } from '../core';
+import { crearBrainDeWee, pensamientoDesde } from '../brain';
+import { EngineResult } from '../engine/types';
+import { EXPERIENCIAS_PARA_SUGERIR } from './experiencias';
+import { entradaDeEntender } from './prompts';
 import { crearPlannerDeWee, disponibilidadDe, disponibilidadDeWee, entendimientoParaPlanificar } from '../planner';
 import { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad, Diferencia } from './paridad';
 import { ExperienceId, Plan as PlanDeLegacy } from './types';
@@ -22,14 +26,18 @@ import { ExperienceId, Plan as PlanDeLegacy } from './types';
  *
  * ── La puerta ───────────────────────────────────────────────────────────────
  *
- * Cerrada por defecto y por CUENTAS CONCRETAS. Vive en el mismo documento que
- * la puerta del runtime —`aiSettings/runtime`, ya cerrado a los clientes— bajo
- * su propia clave, para no inventar un segundo sistema de interruptores y, a la
- * vez, no confundirse con él: abrir la sombra no puede abrir el conductor.
- *
+ * Cerrada por defecto y por CUENTAS CONCRETAS, en `aiSettings/sombra` (el
+ * porqué de que NO sea el documento del runtime está unas líneas más abajo).
  * Y a diferencia de la del runtime, esta NO admite comodín: sin lista de
  * cuentas no se abre para nadie. Una observación que se encienda para todo el
  * mundo por olvidar una lista deja de ser una prueba controlada.
+ *
+ * ── El dinero ───────────────────────────────────────────────────────────────
+ *
+ * Cuando el entendimiento venga del Brain de verdad, la llamada pasa por el
+ * motor de siempre y deja su fila en el libro: lo que cuesta un proveedor se
+ * apunta. Lo que NO ocurre es cobrarle Credits a nadie, y no hace falta ninguna
+ * bandera nueva para eso — está explicado en `entendimientoRealDelBrain`.
  *
  * ── Fallar no puede costarle nada a nadie ───────────────────────────────────
  *
@@ -198,6 +206,96 @@ export type FuenteDeEntendimiento =
 
 export const entendimientoDelTramo1: FuenteDeEntendimiento = async (experienceId, goal) =>
   (experienceId === 'travel' ? entendimientoDePruebaDeTravel(goal) : undefined);
+
+/*
+ * ── EL BRAIN DE VERDAD, POR EL CAMINO DE SIEMPRE ────────────────────────────
+ *
+ * ¿Por qué por el motor y no hablando con el adaptador, que sería más barato de
+ * escribir y no dejaría rastro? Precisamente por el rastro. Una llamada a un
+ * proveedor cuesta dinero de verdad, y Weë tiene un sitio donde eso se apunta:
+ * el libro. Un segundo camino que gastara sin apuntar sería una contabilidad
+ * paralela, y la primera vez que alguien preguntara «¿cuánto nos costó ayer?»
+ * la respuesta estaría mal sin que nadie pudiera notarlo.
+ *
+ * ── Y entonces, ¿cómo se gasta sin cobrarle a nadie? ────────────────────────
+ *
+ * No hace falta inventar nada: el libro YA separa las dos cosas —«coste del
+ * proveedor (providerCost) separado de los Credits cobrados (creditsCharged)»,
+ * lo dice su propia cabecera—. Se usan dos piezas que ya existen:
+ *
+ *   `creditsEstimated: 0`      → lo que esto le cuesta a la persona es CERO.
+ *                                No es una bandera nueva: es el mismo campo con
+ *                                el que Weë Brain anota que once de cada doce
+ *                                respuestas valen cero.
+ *   sin `creditTransactionId`  → `settle()` se va en la primera línea si no lo
+ *                                hay, así que `creditsCharged` no se escribe
+ *                                NUNCA y la fila se queda sin liquidar. Sin
+ *                                transacción no hay cobro que repartir.
+ *
+ * Inventar un id de transacción para rellenar el hueco habría sido peor que no
+ * tenerlo: ataría una fila a un cobro que no existe.
+ *
+ * El modelo y el techo de salida NO se escriben aquí: los recibe, para que haya
+ * una sola verdad sobre con qué modelo habla Weë Brain y cuánto puede contestar.
+ */
+export interface BrainRealParaLaSombra {
+  /** El mismo modelo con el que habla Weë Brain. No se deduce aquí. */
+  modelo: string;
+  /** El mismo techo de salida de producción. No se deduce aquí. */
+  maxOutputTokens: number;
+  userId: string;
+  jobId: string;
+  /** El motor. Se inyecta para poder probar la forma de la petición sin gastar. */
+  generar: (peticion: PeticionAlMotor) => Promise<EngineResult>;
+}
+
+export interface PeticionAlMotor {
+  capability: CoreCapabilityId;
+  input: Record<string, unknown>;
+  prefs?: { modelId?: string; allowedProviders?: string[] };
+  userId: string;
+  jobId?: string;
+  stepId?: string;
+  experienceId?: string;
+  requestId?: string;
+  creditsEstimated?: number;
+}
+
+export const entendimientoRealDelBrain = (deps: BrainRealParaLaSombra): FuenteDeEntendimiento =>
+  async (experienceId, goal) => {
+    const pensador: Thinker = {
+      async pensar(peticion) {
+        const input = entradaDeEntender(peticion.expected, peticion.context?.inmediato?.text ?? goal, deps.maxOutputTokens);
+        const run = await deps.generar({
+          capability: CAPACIDAD_DEL_ENTENDIMIENTO,
+          prefs: { modelId: deps.modelo, allowedProviders: ['deepseek'] },
+          input,
+          userId: deps.userId,
+          jobId: deps.jobId,
+          stepId: SELLO_DE_LA_SOMBRA,
+          experienceId,
+          /* El mismo `requestId` en dos turnos sería la misma operación: lleva el trabajo. */
+          requestId: `${deps.jobId}:${SELLO_DE_LA_SOMBRA}`,
+          /* CERO Credits para la persona. El coste del proveedor sí se apunta. */
+          creditsEstimated: 0,
+        });
+        return pensamientoDesde(run);
+      },
+    };
+    const cerebro = crearBrainDeWee({ pensador, experiences: EXPERIENCIAS_PARA_SUGERIR });
+    const salida = await cerebro.entender({
+      contract: BRAIN_CONTRACT_VERSION,
+      trace: { traceId: deps.jobId, requestId: `${deps.jobId}:${SELLO_DE_LA_SOMBRA}`, userId: deps.userId },
+      message: { text: goal },
+      options: { mode: 'understand' },
+    });
+    return salida.understanding;
+  };
+
+/** Lo que la sombra le pide al Brain. Entender, nunca generar contenido. */
+export const CAPACIDAD_DEL_ENTENDIMIENTO: CoreCapabilityId = 'text.generate';
+/** Con qué se reconoce una operación de sombra en el libro. */
+export const SELLO_DE_LA_SOMBRA = 'sombra';
 
 export interface EntradaDeSombra {
   jobRef: DocumentReference;

@@ -13,8 +13,9 @@
  *
  * ── Sin proveedor ───────────────────────────────────────────────────────────
  *
- * Cero llamadas: el entendimiento es un fijo y el Planner es el de verdad. Un
- * contador envuelve `fetch` y exige que no salga ni una petición.
+ * Cero llamadas. El Planner y el comparador son los de verdad; el motor va
+ * doblado, así que la ruta financiera se mide sin gastar un céntimo. Un contador
+ * envuelve `fetch` y exige que no salga ni una petición.
  */
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -30,7 +31,7 @@ const sinComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\
 const {
   sombraDelPlan, decidirSombra, leerSombra, entendimientoDePruebaDeTravel,
   entendimientoDelTramo1, disponibilidadDelCatalogo, CLAVE_DE_LA_SOMBRA,
-  configuracionDeLaSombra, olvidarLaSombra,
+  configuracionDeLaSombra, olvidarLaSombra, entendimientoRealDelBrain,
 } = lib('creator/sombra.js');
 const { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad } = lib('creator/paridad.js');
 const { TEMPLATES } = lib('creator/templates.js');
@@ -76,6 +77,24 @@ const CUENTA_B = 'cuenta_de_prueba_B';
 const JOB = 'job_de_prueba_0001';
 const GOAL = 'Quiero organizar un viaje a Lisboa en abril. Serían cinco días, me interesa mucho la comida y prefiero ir sin prisas.';
 const ABIERTA = { habilitado: true, cuentas: [CUENTA_A] };
+
+/*
+ * Lo que un modelo devolvería: JSON CRUDO, no un entendimiento ya interpretado.
+ * Así el parser de verdad —`interpretarEntendimiento` e `interpretarPasos`—
+ * hace su trabajo en la prueba, en vez de saltárselo.
+ */
+const entendimientoCrudoDeTravel = () => ({
+  version: 1, intent: 'planning', confidence: 'high',
+  goal: 'Organizar un viaje de cinco días a Lisboa en abril, con foco en la comida y sin prisas.',
+  capability: 'text.search', capabilities: ['text.search'],
+  constraints: { destino: 'Lisboa', mes: 'abril', duracion: 5, interes_principal: 'comida', ritmo: 'sin prisas' },
+  missing: [], assumptions: [], suggestedExperience: 'travel',
+  steps: [
+    { key: 'que_hacer_y_comer', capability: 'text.search', input: { kind: 'activities', brief: 'Buscar qué ver y dónde comer en Lisboa.' } },
+    { key: 'plan_dia_a_dia', capability: 'text.search', input: { kind: 'itinerary', brief: 'Repartirlo en cinco días, sin prisas.' },
+      needs: [{ from: 'upstream', stepKey: 'que_hacer_y_comer' }] },
+  ],
+});
 
 const planDeLegacy = async () => (await TEMPLATES.travel.buildPlan(TEMPLATES.travel.defaultGoal, { what: 'plan' }));
 
@@ -342,6 +361,116 @@ check('y solo cuando hay plan',
   /if \(job\.status === 'planned' && job\.plan\) \{\s*await sombraDelPlan/.test(sinComentarios(leer('functions/src/creator/index.ts'))));
 check('F27) esta suite está en la cadena de `npm test`',
   /node test\/sombra-experiencia\.test\.mjs/.test(leer('functions/package.json')));
+
+console.log('\n── El dinero: se apunta el coste, no se le cobra a nadie ──');
+
+/*
+ * ── QUÉ SE MIDE AQUÍ ────────────────────────────────────────────────────────
+ *
+ * Que una llamada de sombra al Brain real DEJE RASTRO del coste del proveedor y
+ * a la vez NO le cueste Credits a la persona. Son dos cosas distintas y el
+ * libro ya las separa; lo que se comprueba es que la sombra usa esa separación
+ * en vez de inventarse una.
+ *
+ * El motor va doblado: se anota QUÉ se le pidió, sin llamar a nadie. Lo que
+ * importa de esa petición son dos campos, y sobre todo uno que NO está.
+ */
+const peticionesAlMotor = [];
+const motorDoblado = async (peticion) => {
+  peticionesAlMotor.push(peticion);
+  return {
+    output: { kind: 'text', content: JSON.stringify(entendimientoCrudoDeTravel()) },
+    usage: { inputTokens: 100, outputTokens: 50 },
+    costUSD: 0.00042, latencyMs: 10, provider: 'deepseek', modelId: 'deepseek-flash',
+    credits: 0, generationId: 'gen_de_prueba', demo: false, attempts: 1,
+  };
+};
+
+const fuenteReal = entendimientoRealDelBrain({
+  modelo: 'deepseek-flash', maxOutputTokens: 1400,
+  userId: CUENTA_A, jobId: JOB, generar: motorDoblado,
+});
+const entendido = await fuenteReal('travel', GOAL);
+const pet = peticionesAlMotor[0];
+
+check('F14) la ruta pasa por el MOTOR: no habla con ningún adaptador',
+  peticionesAlMotor.length === 1 && !!pet,
+  'una sola petición al motor');
+check('F13) y no existe ningún atajo al adaptador en el código de la sombra',
+  !/deepseekAdapter|geminiAdapter|\.run\(\{ capability/.test(sinComentarios(leer('functions/src/creator/sombra.ts'))),
+  'lo que se inyecta es el motor, no un proveedor');
+check('F5/F10) `creditsEstimated: 0` — a la persona le cuesta CERO',
+  pet.creditsEstimated === 0,
+  'el mismo campo con el que Brain anota que 11 de cada 12 respuestas valen 0');
+check('F18/F19) y NO se inventa ningún `creditTransactionId`',
+  pet.creditTransactionId === undefined && !('creditTransactionId' in pet),
+  'sin transacción, `settle()` se va en su primera línea y `creditsCharged` no se escribe nunca');
+check('F9) el coste del proveedor sí viaja, para que quede trazable',
+  typeof pet.userId === 'string' && pet.jobId === JOB && /sombra/.test(String(pet.requestId)),
+  `requestId=${pet.requestId} · stepId=${pet.stepId}`);
+check('F15) la operación es reconocible en el libro como sombra',
+  pet.stepId === 'sombra' && pet.experienceId === 'travel');
+check('F37) con el techo de salida real de producción',
+  pet.input.maxOutputTokens === 1400,
+  'no 2200: el arnés medía con otro y esto mide con el de producción');
+check('la capacidad pedida es ENTENDER, nunca generar contenido',
+  pet.capability === 'text.generate' && pet.prefs.modelId === 'deepseek-flash'
+  && igual(pet.prefs.allowedProviders, ['deepseek']),
+  'y se nombra al proveedor explícitamente, como hace Weë Brain');
+check('F10) el parser real produce un BrainUnderstanding válido',
+  !!entendido && entendido.intent === 'planning' && (entendido.steps ?? []).length === 2,
+  'sin normalizar nada a mano: `crearBrain().entender()` entero');
+
+/*
+ * Y la otra mitad: que la sombra no pueda cobrar aunque quisiera. No hay
+ * ninguna palabra de dinero en su código ni en el del comparador.
+ */
+const DINERO = /spendCredits|holdCredits|settleCredits|refund|creditEngine|Payment|wallet|balance|creditsCharged|creditTransactionId\s*:/i;
+check('F3/F20) ni la sombra ni el comparador saben cobrar',
+  !DINERO.test(sinComentarios(leer('functions/src/creator/sombra.ts')))
+  && !DINERO.test(sinComentarios(leer('functions/src/creator/paridad.ts'))),
+  'F11/F12: no hay wallet de sombra ni contabilidad de sombra');
+check('F20) y el Financial Core no se tocó',
+  !/creator\/sombra|creator\/paridad/.test(leer('functions/src/credits/creditEngine.ts')),
+  'la solución vive dentro de la frontera que ya existía');
+check('F17) una operación de sombra no puede volverse facturable por accidente',
+  (() => {
+    /* Para cobrar hacen falta las dos: un importe y una transacción. La sombra
+       fija la primera en cero y no aporta la segunda. */
+    const conDinero = peticionesAlMotor.filter((p) => (p.creditsEstimated ?? 0) > 0 || p.creditTransactionId);
+    return conDinero.length === 0;
+  })(),
+  'sin importe y sin transacción no hay cobro que repartir');
+check('F16) y el libro conserva su propia trazabilidad, que no es de la sombra',
+  /providerCost, USD\) separado de los Credits cobrados/.test(leer('functions/src/engine/ledger.ts'))
+  && /creditsCharged NO se inicializa/.test(leer('functions/src/engine/ledger.ts')),
+  'la separación coste-del-proveedor ≠ cobro ya estaba escrita; se reutiliza');
+check('F1/F2) con la puerta cerrada no se pide nada al motor',
+  await (async () => {
+    const antes = peticionesAlMotor.length;
+    const db = new BaseFalsa();
+    await sombraDelPlan({
+      jobRef: db.collection('creatorJobs').doc(JOB), jobId: JOB, userId: CUENTA_A,
+      experienceId: 'travel', goal: GOAL, legacyPlan: await planDeLegacy(),
+      puerta: undefined, entendimientoDe: fuenteReal,
+      disponibilidad: disponibilidadDelCatalogo(), ahora: () => 1000, observar: () => {},
+    });
+    return peticionesAlMotor.length === antes && db.escrituras.length === 0;
+  })(),
+  'apagada: cero peticiones al motor, cero filas en el libro, cero escrituras');
+check('F4) y con la puerta abierta, la sombra pide UNA y solo una',
+  await (async () => {
+    const antes = peticionesAlMotor.length;
+    const db = new BaseFalsa();
+    const r = await sombraDelPlan({
+      jobRef: db.collection('creatorJobs').doc(JOB), jobId: JOB, userId: CUENTA_A,
+      experienceId: 'travel', goal: GOAL, legacyPlan: await planDeLegacy(),
+      puerta: ABIERTA, entendimientoDe: fuenteReal,
+      disponibilidad: disponibilidadDelCatalogo(), ahora: () => 1000, observar: () => {},
+    });
+    return peticionesAlMotor.length === antes + 1 && r.escrita && r.estado === 'ok';
+  })(),
+  'una petición al motor por sombra: la fila del libro sería una');
 
 globalThis.fetch = fetchDeVerdad;
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\nLa sombra mira y no toca: ${n} comprobaciones, cero llamadas al proveedor`);
