@@ -3,6 +3,7 @@ import {
   CanonicalResponse,
   CapabilityId,
   DESDE_ENGINE,
+  BrainAttachment,
   ContinuityRequirements,
   ExecutorOutcome,
   Gateway,
@@ -90,6 +91,14 @@ export interface EjecutorDeps {
    * el comportamiento que había antes de C8.
    */
   referencias?: (accountId: string, requisitos: ContinuityRequirements) => Promise<ResolucionDeReferencias>;
+  /**
+   * DE UN ADJUNTO A MATERIAL AUTORIZADO. C11.4, y por la misma costura.
+   *
+   * Separado del de arriba porque son dos preguntas distintas: uno resuelve
+   * «lo de Luna, versión 4» y este «la foto que subió». Pasan por la MISMA
+   * puerta de Media Cloud; lo que cambia es cuánto hay que resolver antes.
+   */
+  recursos?: (accountId: string, adjuntos: readonly BrainAttachment[]) => Promise<ResolucionDeReferencias>;
 }
 
 /** Tiempo límite TOTAL de la ejecución, agotado. Distinto del de una llamada HTTP dentro del adaptador. */
@@ -276,6 +285,24 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
        * repartida en once archivos y distinta en cada uno.
        */
       let entrada = input as Record<string, unknown>;
+      /*
+       * ── C11.4 · LO QUE LA PERSONA ADJUNTÓ, PRIMERO ────────────────────────
+       *
+       * Antes que la continuidad porque es material de la tarea: la foto que
+       * hay que restaurar. Y falla cerrado igual que todo lo demás: un adjunto
+       * que no se puede entregar —de otra cuenta, retirado, sin ficha— para la
+       * ejecución aquí, sin llamar a nadie.
+       */
+      if (req.references?.length && deps.recursos) {
+        const resueltos = await deps.recursos(trace.userId, req.references);
+        if (resueltos.fallos.length > 0) {
+          return rechazo('INVALID_REQUEST', 'invalid_request', {
+            resources: 'pre_execution_rejected',
+            unresolved: resueltos.fallos.map((f) => f.reason),
+          });
+        }
+        entrada = materialEnLaEntrada(resueltos.materiales, entrada);
+      }
       const requisitosDeContinuidad = execution.hints?.continuity;
       if (requisitosDeContinuidad && deps.referencias) {
         /*
@@ -411,6 +438,8 @@ export interface GatewayDelMotorDeps {
   aceptaAsincrono?: boolean;
   /** C8. Se declara AQUÍ por la misma lección de arriba: nada viaja por un spread. */
   referencias?: EjecutorDeps['referencias'];
+  /** C11.4, por la misma razón. */
+  recursos?: EjecutorDeps['recursos'];
 }
 
 /**
@@ -437,6 +466,7 @@ export const crearGatewayDelMotor = (deps: GatewayDelMotorDeps): Gateway => {
       /* EXPLÍCITO. Un spread aquí es exactamente por donde se perdió la primera vez. */
       aceptaAsincrono: deps.aceptaAsincrono === true,
       referencias: deps.referencias,
+      recursos: deps.recursos,
     }),
     tracer: deps.tracer,
     now: deps.now ?? (() => Date.now()),
@@ -477,6 +507,10 @@ export const gatewayDeWee = (): Gateway => {
       referencias: async (accountId, requisitos) => {
         const { referenciasDeContinuidadDeWee } = await import('./referencias-de-wee');
         return referenciasDeContinuidadDeWee(accountId, requisitos);
+      },
+      recursos: async (accountId, adjuntos) => {
+        const { recursosAdjuntosDeWee } = await import('./referencias-de-wee');
+        return recursosAdjuntosDeWee(accountId, adjuntos);
       },
     });
   }

@@ -99,6 +99,8 @@ const congelarPeticion = (
   capability,
   implementation,
   input: dispatch.input,
+  /* El recurso cruza el seam: el Gateway lo materializará por la puerta de C8. */
+  ...(dispatch.references?.length ? { references: dispatch.references } : {}),
   trace: dispatch.trace,
   ...(dispatch.language ? { language: dispatch.language } : {}),
   idempotencyKey: dispatch.idempotencyKey,

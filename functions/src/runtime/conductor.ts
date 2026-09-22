@@ -419,6 +419,8 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
         implementation: resolucion.implementation,
         /* Lo que dejaron las dependencias viaja como REFERENCIAS, aparte de lo que el plan declaró. */
         input: dispatch.upstream.length ? { ...dispatch.input, upstream: dispatch.upstream } : dispatch.input,
+        /* Y los recursos que el Orchestrator ya eligió, por su propio canal. */
+        ...(dispatch.references?.length ? { references: dispatch.references } : {}),
         trace: dispatch.trace,
         ...(dispatch.language ? { language: dispatch.language } : {}),
         ...(dispatch.hints ? { hints: dispatch.hints } : {}),

@@ -341,3 +341,64 @@ export const materialEnLaEntrada = (
   for (const [clave, lista] of Object.entries(porClase)) if (lista.length) salida[clave] = lista;
   return salida;
 };
+
+/* ── Los recursos que alguien adjuntó ─────────────────────────────────────── */
+
+/**
+ * DE UN ADJUNTO A MATERIAL AUTORIZADO. La misma puerta, un camino más corto.
+ *
+ * Un anclaje de continuidad dice «lo de Luna, versión 4» y hay que resolver el
+ * elemento antes de llegar al material. Un adjunto ya SEÑALA el material: la
+ * persona subió esa foto y el entendimiento la trajo con su `assetId`. Así que
+ * aquí no hay elemento ni versión que resolver —sería inventarse un paso— y se
+ * va derecho a la misma entrega de Media Cloud, que es quien comprueba de quién
+ * es, en qué estado está y si se puede firmar.
+ *
+ * ── Una URL suelta NO es autoridad ──────────────────────────────────────────
+ *
+ * Un adjunto puede llegar sin `assetId` —una foto recién subida que todavía no
+ * tiene ficha— y entonces lo único que trae es una dirección. Eso no se manda a
+ * ningún proveedor: una URL que eligió quien llama es exactamente lo que esta
+ * capa existe para no aceptar. Sale como `no_material` y se queda ahí.
+ */
+export const materializarRecursos = async (
+  accountId: string,
+  recursos: readonly { kind: string; assetId?: string; url?: string; name?: string }[] | undefined,
+  deps: Pick<DepsDeReferencias, 'entrega'>,
+): Promise<ResolucionDeReferencias> => {
+  const vacio: ResolucionDeReferencias = Object.freeze({ materiales: [], fallos: [], lecturas: 0 });
+  if (typeof accountId !== 'string' || !accountId || !recursos?.length) return vacio;
+
+  const materiales: ReferenciaDeContinuidad[] = [];
+  const fallos: FalloDeReferencia[] = [];
+  let lecturas = 0;
+  const vistos = new Set<string>();
+
+  for (const recurso of recursos.slice(0, MAX_ANCLAJES_DE_CONTINUIDAD)) {
+    /*
+     * El identificador del adjunto hace de `elementId` en el resultado: quien
+     * lo lea sabe de qué recurso salió cada material, y no hay versión que
+     * declarar porque un material no tiene versiones — las tiene el elemento.
+     */
+    const id = recurso.assetId;
+    if (!id) { fallos.push({ elementId: recurso.name ?? 'adjunto', requestedVersion: 0, reason: 'no_material' }); continue; }
+    if (vistos.has(id)) continue;
+    vistos.add(id);
+
+    const entrega = await deps.entrega(id);
+    lecturas += 2;
+    if (!entrega) { fallos.push({ elementId: id, requestedVersion: 0, reason: 'material_unavailable' }); continue; }
+
+    materiales.push(Object.freeze({
+      elementId: id,
+      requestedVersion: 0,
+      assetId: entrega.assetId,
+      role: 'primary' as const,
+      materialType: recurso.kind as ReferenciaDeContinuidad['materialType'],
+      url: entrega.url,
+      expiresAt: entrega.expiraEn,
+    }));
+  }
+
+  return Object.freeze({ materiales: Object.freeze(materiales), fallos: Object.freeze(fallos), lecturas });
+};

@@ -2,7 +2,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { ContinuityRequirements } from '../core';
 import { leerElemento } from '../elements';
 import { depsDeEntregaDeWee, solicitarEntrega } from '../media/entrega';
-import { ResolucionDeReferencias, resolverReferenciasDeContinuidad } from './referencias';
+import { ResolucionDeReferencias, materializarRecursos, resolverReferenciasDeContinuidad } from './referencias';
 
 /**
  * WEË — LAS DOS PUERTAS DE VERDAD, ATADAS A LA RESOLUCIÓN DE REFERENCIAS.
@@ -46,6 +46,29 @@ export const referenciasDeContinuidadDeWee = (
     entrega: async (assetId) => {
       const desenlace = await solicitarEntrega(deps, { principalId: accountId, assetId, operationId });
       /* Un «no» de la entrega no se desmenuza aquí: hacia fuera todos los motivos contestan igual. */
+      return desenlace.ok ? desenlace.entrega : null;
+    },
+  });
+};
+
+/**
+ * LOS ADJUNTOS DE UNA PETICIÓN, AUTORIZADOS. La misma puerta, sin el rodeo.
+ *
+ * Un adjunto ya señala el material —la persona subió esa foto y llegó con su
+ * `assetId`—, así que no hay elemento ni versión que resolver antes. Lo que no
+ * cambia es quién decide: `solicitarEntrega`, que comprueba cuenta, estado y
+ * ficha del objeto antes de firmar nada.
+ */
+export const recursosAdjuntosDeWee = (
+  accountId: string,
+  adjuntos: readonly { kind: string; assetId?: string; url?: string; name?: string }[],
+  operationId?: string,
+): Promise<ResolucionDeReferencias> => {
+  const db = getFirestore();
+  const deps = depsDeEntregaDeWee(db);
+  return materializarRecursos(accountId, adjuntos, {
+    entrega: async (assetId) => {
+      const desenlace = await solicitarEntrega(deps, { principalId: accountId, assetId, operationId });
       return desenlace.ok ? desenlace.entrega : null;
     },
   });

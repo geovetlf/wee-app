@@ -1,3 +1,4 @@
+import { BrainAttachment } from './brain';
 import { GATEWAY_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { ContinuityRequirements, continuidadValida } from './continuity';
 import { CostLine, CostUnit } from './cost';
@@ -132,6 +133,18 @@ export interface GatewayRequest {
   input: Readonly<Record<string, unknown>>;
   trace: TraceContext;
   language?: LanguageContext;
+  /**
+   * LOS RECURSOS QUE ESTA OPERACIÓN NECESITA. Referencias, todavía no material.
+   *
+   * Llegan con su `assetId` y NADA más: ni una URL firmada, ni un contenedor,
+   * ni una clave de objeto. Convertirlas en algo que un proveedor pueda leer es
+   * un paso aparte —el mismo que ya materializa los anclajes de continuidad— y
+   * pasa por la puerta que comprueba de quién es cada cosa.
+   *
+   * Y viaja por aquí, no dentro de `input`, porque `input` son los parámetros
+   * de la tarea y esto es material con dueño.
+   */
+  references?: readonly BrainAttachment[];
   idempotencyKey?: string;
   metadata?: GatewayMetadata;
   execution?: ExecutionOptions;
@@ -268,6 +281,8 @@ export interface ExecutorRequest {
   entry: CatalogEntry;
   implementation: CapabilityImplementation;
   input: Readonly<Record<string, unknown>>;
+  /** Los recursos de la petición, tal como llegaron. Referencias, no material. */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   execution: ExecutionOptions & { mode: 'sync' };
@@ -384,7 +399,10 @@ const MAX_DURATION_SEC = 3600;
 const MAX_METADATA_KEYS = 32;
 const MAX_METADATA_TEXT = 256;
 
-const CLAVES_DE_PETICION = ['contract', 'capability', 'implementation', 'input', 'trace', 'language', 'idempotencyKey', 'metadata', 'execution'];
+/** Lo que una persona puede adjuntar a un mensaje. El mismo tope que el plan y el trabajo. */
+export const MAX_RECURSOS_DE_LA_PETICION = 8;
+
+const CLAVES_DE_PETICION = ['contract', 'capability', 'implementation', 'input', 'trace', 'language', 'references', 'idempotencyKey', 'metadata', 'execution'];
 const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
 /* Las cinco de `LanguageContext`. Lista local porque una interfaz no tiene claves en tiempo de ejecución. */
 const CLAVES_DE_IDIOMA = ['appLanguage', 'userLocale', 'inputLanguage', 'outputLanguage', 'contentLanguage'];
@@ -584,6 +602,7 @@ interface PeticionValidada {
   capability: CoreCapabilityId;
   implementation: ImplementationRef;
   input: Readonly<Record<string, unknown>>;
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   idempotencyKey: string;
@@ -807,12 +826,31 @@ const validarPeticion = (req: unknown, trace: TraceContext | null, maxInputBytes
   const ejecucion = validarEjecucion(req.execution);
   if (!ejecucion.ok) return ejecucion;
 
+  /*
+   * LOS RECURSOS, REVISADOS EN LA PUERTA. La forma y nada más: aquí no se lee
+   * ninguna ficha, así que de quién es cada material lo dirá la entrega. Lo que
+   * sí se exige es que no entre un objeto con claves de más haciéndose pasar
+   * por un adjunto.
+   */
+  const recursos: BrainAttachment[] = [];
+  if (req.references !== undefined) {
+    if (!Array.isArray(req.references) || req.references.length > MAX_RECURSOS_DE_LA_PETICION) return invalido('references');
+    for (const [i, ref] of req.references.entries()) {
+      if (!esObjetoPlano(ref) || !esTexto(ref.kind)) return invalido(`references[${i}]`);
+      for (const clave of Object.keys(ref)) {
+        if (!['kind', 'url', 'assetId', 'name'].includes(clave)) return invalido(`references[${i}].${nombreDeCampo(clave)}`);
+      }
+      recursos.push(Object.freeze({ ...ref } as unknown as BrainAttachment));
+    }
+  }
+
   return {
     ok: true,
     peticion: {
       capability: req.capability as CoreCapabilityId,
       implementation: { providerId: ref.providerId, modelId: ref.modelId, adapterId: ref.adapterId as string | undefined },
       input: req.input,
+      ...(recursos.length ? { references: Object.freeze(recursos) } : {}),
       trace,
       language: idioma.language,
       idempotencyKey: (req.idempotencyKey as string | undefined) ?? trace.requestId,
@@ -1024,6 +1062,7 @@ export const crearGateway = (ports: GatewayPorts): Gateway => {
         entry,
         implementation: impl,
         input: p.input,
+        ...(p.references?.length ? { references: p.references } : {}),
         trace: p.trace,
         language: p.language,
         execution: p.execution,

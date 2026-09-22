@@ -378,8 +378,8 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     ['QueueMessage', 'QueueDelivery', 'QueuePort', 'WorkerConfig'].every((n) => interfaz(n, leer('functions/src/core/job-queue.ts')).length > 0 && !PROHIBIDOS.test(sinComentarios(interfaz(n, leer('functions/src/core/job-queue.ts'))))));
   check('62) la identidad de quien actúa sale del almacén, no del mensaje', /const principal: Principal = \{ userId: job\.owner\.userId/.test(WORKER) && !/mensaje\.(userId|accountId|owner|principal)/.test(WORKER));
 
-  const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/job.ts functions/src/job/index.ts functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
-    check('63) CONTRATOS CERRADOS SIN TOCAR: Job Engine, su composición, Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
+  const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
+    check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
   /*
    * EL WORKFLOW Y EL ORCHESTRATOR SALIERON DE ESA LISTA, y con el mismo trato
    * que recibió el Gateway: algo autorizado, medido y vigilado de otra forma.
@@ -423,6 +423,36 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
       lista('CLAVES_DE_PLAN').includes('references') && lista('CLAVES_DE_WORKFLOW').includes('references')
       && lista('CLAVES_DE_PASO_DE_PLAN').includes('uses') && lista('CLAVES_DE_PASO').includes('uses'));
   }
+  /*
+   * EL JOB ENGINE Y SU COMPOSICIÓN SALEN TAMBIÉN, y con la prueba más fuerte
+   * que hay: de esos dos archivos no desaparece NI UNA LÍNEA.
+   *
+   * C11.3 midió el seam que faltaba: el recurso que la persona aporta llegaba
+   * al despacho del Orchestrator y ahí se quedaba, porque `JobDispatch` no
+   * tenía dónde ponerlo. Con mecanismo pero sin material, el Gateway rechazaba
+   * por `missing_material`: no era cosmético, cortaba la ejecución. C11.4 abre
+   * ese paso, y lo abre AÑADIENDO.
+   */
+  const DEL_TRABAJO = 'functions/src/core/job.ts functions/src/job/index.ts';
+  const delTrabajo = execSync('git diff -U0 c3515b3 -- ' + DEL_TRABAJO, { cwd: RAIZ, encoding: 'utf8' });
+  const fueraDelTrabajo = delTrabajo.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));
+  check('63j) del Job Engine y su composición no desaparece NI UNA LÍNEA: el cambio es puro añadido',
+    delTrabajo.length > 0 && fueraDelTrabajo.length === 0,
+    fueraDelTrabajo.length + ' líneas quitadas');
+  {
+    const JOB = leer('functions/src/core/job.ts');
+    const COMPOSICION = leer('functions/src/job/index.ts');
+    const dentro = [...delTrabajo.matchAll(/^\+\s*(\w+)\??:/gm)].map((m) => m[1]);
+    check('63k) y lo único que gana es el transporte del recurso',
+      dentro.every((c) => c === 'references'),
+      dentro.length ? [...new Set(dentro)].join(',') : 'ningún campo nuevo');
+    check('63l) el trabajo TRANSPORTA el recurso: no lo resuelve, no lo firma y no sabe de quién es',
+      !/solicitarEntrega|urlFirmada|leerElemento|leerMaterial|ownerAccountId|getFirestore|https:\/\/|firmar|signUrl/i.test(sinComentarios(JOB + COMPOSICION)),
+      'la autorización sigue siendo de la puerta de C8');
+    check('63m) y no entra por `input`: el recurso tiene su propio canal',
+      !/input\.references|input\.assetId|input\.attachments/.test(JOB + COMPOSICION));
+  }
+
   /*
    * EL GATEWAY SALIÓ DE ESA LISTA A PROPÓSITO, y por DOS cosas, las dos
    * autorizadas y las dos del bloque F12-D:
@@ -470,9 +500,27 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    */
   const deF12D = (l) => /for \(const opcional of \[/.test(l) || /\| \{ ok: true; response: CanonicalResponse/.test(l);
   const deS2 = (l) => /CLAVES_DE_HINTS|return \{ ok: true, hints:|Lo ÚNICO que un adaptador lee|calidad y duración describen el resultado/.test(l);
-  check('63e) del Gateway solo se han quitado las dos líneas de F12-D y la costura de pistas que abrió S2',
-    quitadas.filter(deF12D).length === 2 && quitadas.every((l) => deF12D(l) || deS2(l)),
-    `${quitadas.length}: ${quitadas.map((l) => l.trim().slice(0, 40)).join(' | ')}`);
+  /*
+   * Y AHORA CUENTA TRES FASES. C11.4 abrió el seam del recurso, y para eso
+   * alargó UNA línea más: la lista de claves de la petición, que ahora admite
+   * `references`. Es la misma clase de cambio que hizo S2 con las pistas —una
+   * costura que gana un inquilino— y por eso va en su propia lista en vez de
+   * ensanchar la de nadie.
+   */
+  const deC114 = (l) => /^const CLAVES_DE_PETICION = /.test(l.trim());
+  check('63e) del Gateway solo se han quitado las de F12-D, la costura de pistas de S2 y la de recursos de C11.4',
+    quitadas.filter(deF12D).length === 2 && quitadas.filter(deC114).length <= 1
+    && quitadas.every((l) => deF12D(l) || deS2(l) || deC114(l)),
+    `${quitadas.length} quitadas · ${quitadas.filter((l) => !deF12D(l) && !deS2(l) && !deC114(l)).length} sin justificar`);
+  check('63n) y la clave que ganó la petición es SOLO el recurso',
+    (() => {
+      const claves = (l) => (l.match(/'([a-zA-Z]+)'/g) ?? []).map((x) => x.replace(/'/g, ''));
+      const nueva = añadidas.find((l) => /^const CLAVES_DE_PETICION = /.test(l.trim()));
+      const vieja = quitadas.find((l) => /^const CLAVES_DE_PETICION = /.test(l.trim()));
+      if (!nueva || !vieja) return false;
+      return claves(vieja).every((c) => claves(nueva).includes(c))
+        && claves(nueva).filter((c) => !claves(vieja).includes(c)).join() === 'references';
+    })());
   /*
    * 63f VIGILA LA COSTURA, NO SUS INQUILINOS.
    *

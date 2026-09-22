@@ -235,8 +235,10 @@ check('Continuity, Financial, Credits y Media Cloud, intactos',
       .map((f) => leer(`functions/src/${f}`)).join('\n')));
 check('el Router no conoce recursos',
   !/references|uses\b|BrainAttachment/.test(sinComentarios(leer('functions/src/core/router.ts'))));
-check('el Gateway no necesitó cambiar',
-  !/BrainAttachment/.test(leer('functions/src/core/gateway.ts')));
+check('C11.4: el Gateway ganó el recurso, y SOLO eso',
+  /references\?: readonly BrainAttachment\[\]/.test(leer('functions/src/core/gateway.ts'))
+  && !/imageUrl|solicitarEntrega|leerElemento/.test(sinComentarios(leer('functions/src/core/gateway.ts'))),
+  'lo recibe; materializarlo es del lado del motor, por la puerta de C8');
 check('`input` sigue siendo solo parámetros: ni un recurso dentro',
   igual(Object.keys(editar?.input ?? {}).sort(), ['brief', 'kind']));
 check('esta suite está en la cadena de `npm test`',

@@ -1,5 +1,5 @@
 /**
- * WEË — C11.3: PHOTO, LA EXPERIENCIA VISUAL, POR EL CORE ENTERO.
+ * WEË — C11.3/C11.4: PHOTO, LA EXPERIENCIA VISUAL, POR EL CORE ENTERO.
  *
  * ── El caso ─────────────────────────────────────────────────────────────────
  *
@@ -231,6 +231,8 @@ const peticion = peticionDeGateway({
   /* Tres ids y nada más: la única verdad sobre una implementación es el registro. */
   implementation: { providerId: 'probe', modelId: 'probe-1', adapterId: 'adapter:probe' },
   input: primero.input, trace: primero.trace, hints: primero.hints,
+  /* C11.4: el recurso cruza el seam. Antes se quedaba en el despacho. */
+  ...(primero.references?.length ? { references: primero.references } : {}),
   mode: 'sync', idempotencyKey: primero.idempotencyKey, timeoutMs: 30_000, deadlineAt: 99_000,
 });
 
@@ -240,9 +242,12 @@ check('y las pistas ENTERAS: creativo, continuidad y calidad',
   igual(peticion.execution.hints?.creative, CREATIVO)
   && igual(peticion.execution.hints?.continuity, REQUISITO)
   && peticion.execution.hints?.quality === 'max');
-check('GAP MEDIDO · G5: el recurso NO cruza el seam del Job',
-  peticion.references === undefined && !/references/.test(leer('functions/src/core/job.ts')),
-  'Plan → Workflow → Orchestrator lo llevan; `JobDispatch` no tiene dónde ponerlo');
+check('G5 CERRADO · el recurso cruza el seam del Job hasta el Gateway',
+  igual(peticion.references, [LA_FOTO]) && peticion.references?.[0]?.assetId === 'as_abuela_0001',
+  'C11.3 lo midió como hueco; C11.4 lo cerró, y con su `assetId` intacto');
+check('y sigue FUERA de `input`: dos canales, no uno',
+  peticion.input?.assetId === undefined && peticion.input?.references === undefined,
+  'el recurso tiene su propio camino y no contamina los parámetros');
 
 /*
  * ── Y AQUÍ EL CANARY ENSEÑA LO MEJOR QUE TENÍA QUE ENSEÑAR ──────────────────
@@ -286,7 +291,7 @@ const sinMaterial = await montarGateway(conMecanismo).ejecutar(peticion);
 check('CONSECUENCIA DE G5: con mecanismo pero sin material, también se rechaza',
   sinMaterial.status === 'failed' && conMecanismo.llamadas.length === 0
   && igual(sinMaterial.error?.details?.reasons, ['missing_material']),
-  'la foto se quedó en el despacho: G5 no es cosmético, corta la ejecución');
+  'sin el puerto de recursos no se materializa nada: el seam se cierra abajo');
 
 /*
  * El tercero pone la URL en la entrada A MANO —lo que hará el Gateway el día
@@ -310,6 +315,68 @@ check('y el adaptador recibe la variante, lo creativo y la continuidad sin descu
 check('cero proveedores reales: la sonda es local y su coste declarado es cero',
   vioElAdaptador?.model?.id === 'probe-1' && conMaterial.models[0].cost.usd === 0);
 
+
+
+/*
+ * ── Y AHORA CON LA PUERTA PUESTA: C11.4 de punta a punta ────────────────────
+ *
+ * El tercer caso de arriba metía la URL a mano porque el seam estaba abierto.
+ * Ya no lo está: se enchufa el puerto de recursos —el que en producción llama a
+ * `solicitarEntrega`— y el Gateway materializa el adjunto él mismo.
+ */
+const entregasPedidas = [];
+const puertoDeRecursos = async (accountId, adjuntos) => {
+  const { materializarRecursos } = lib('engine/referencias.js');
+  return materializarRecursos(accountId, adjuntos, {
+    entrega: async (assetId) => {
+      entregasPedidas.push({ accountId, assetId });
+      /* La puerta de verdad comprueba cuenta, estado y ficha. Aquí se imita su CONTRATO. */
+      return accountId === 'acc_mia' && assetId === 'as_abuela_0001'
+        ? { assetId, url: `https://llave.invalid/${assetId}`, expiraEn: 9_000, vigenciaSegundos: 900 }
+        : null;
+    },
+  });
+};
+const conPuerta = sondaCon(MECANISMO);
+const deWee = await motorDelGateway.crearGatewayDelMotor({
+  adapters: { probe: conPuerta },
+  loadConfig: async () => config,
+  tracer: callado,
+  now: reloj,
+  recursos: puertoDeRecursos,
+}).ejecutar(peticion);
+
+check('G5 CERRADO DE VERDAD: el Gateway materializa el adjunto y EJECUTA',
+  deWee.status === 'completed' && conPuerta.llamadas.length === 1,
+  deWee.status + ' · ' + JSON.stringify(deWee.error?.details ?? ''));
+check('la materialización pasó por la puerta, con la cuenta del servidor',
+  igual(entregasPedidas, [{ accountId: 'acc_mia', assetId: 'as_abuela_0001' }]),
+  'ni el cliente eligió la cuenta, ni se firmó nada antes');
+check('y el adaptador recibe la URL en la clave abstracta del motor',
+  igual(conPuerta.llamadas[0]?.input?.referenceImages, ['https://llave.invalid/as_abuela_0001']),
+  'referenceImages, no `input_image`: el nombre del proveedor no sube hasta aquí');
+check('SEGURIDAD · con otra cuenta, el adjunto no se materializa y no se ejecuta',
+  await (async () => {
+    const ajena = sondaCon(MECANISMO);
+    const r = await motorDelGateway.crearGatewayDelMotor({
+      adapters: { probe: ajena }, loadConfig: async () => config, tracer: callado, now: reloj,
+      recursos: (_cuenta, adjuntos) => puertoDeRecursos('acc_ajena', adjuntos),
+    }).ejecutar(peticion);
+    return r.status === 'failed' && ajena.llamadas.length === 0
+      && r.error?.details?.resources === 'pre_execution_rejected';
+  })(),
+  'falla cerrado y sin una sola llamada');
+check('SEGURIDAD · una URL suelta sin `assetId` NO es autoridad',
+  await (async () => {
+    const suelta = sondaCon(MECANISMO);
+    const r = await motorDelGateway.crearGatewayDelMotor({
+      adapters: { probe: suelta }, loadConfig: async () => config, tracer: callado, now: reloj,
+      recursos: puertoDeRecursos,
+    }).ejecutar({ ...peticion, references: [{ kind: 'image', url: 'https://cualquiera.invalid/foto.jpg' }] });
+    return r.status === 'failed' && suelta.llamadas.length === 0
+      && igual(r.error?.details?.unresolved, ['no_material']);
+  })(),
+  'una dirección que eligió quien llama no se manda a ningún proveedor');
 
 console.log('\n── F · La continuidad SÍ llega a material, por C8 ──');
 

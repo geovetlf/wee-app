@@ -1,3 +1,4 @@
+import { BrainAttachment } from './brain';
 import { JOB_ENGINE_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import {
@@ -432,6 +433,8 @@ export interface Job {
   /** Tarea general: qué hay que hacer, sin proveedor ni modelo. Ausente en una operación de IA. */
   task?: JobTask;
   input: Readonly<Record<string, unknown>>;
+  /** Los recursos del paso, tal como los eligió el Orchestrator. Solo se transportan. */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   hints?: ExecutionHints;
@@ -459,6 +462,15 @@ export interface Job {
 
 /* ── La petición ──────────────────────────────────────────────────────────── */
 
+/**
+ * CUÁNTOS RECURSOS COMO MUCHO TRANSPORTA UN TRABAJO.
+ *
+ * El mismo tope que el plan, y por el mismo motivo: lo que cabe aquí es lo que
+ * una persona adjuntó a un mensaje. El trabajo se guarda y se lee muchas veces;
+ * una lista sin fin la pagaría cada lectura.
+ */
+export const MAX_RECURSOS_DEL_TRABAJO = 8;
+
 export interface JobRequest {
   contract: string;
   /** Quién lo pide de verdad. No es lo que diga el contexto. */
@@ -472,6 +484,19 @@ export interface JobRequest {
   /** Tarea general. Con `capability`/`implementation`, no se manda: es una u otra. */
   task?: JobTask;
   input: Readonly<Record<string, unknown>>;
+  /**
+   * LOS RECURSOS QUE ESTE PASO NECESITA, ya elegidos por el Orchestrator.
+   *
+   * El mismo `BrainAttachment` que viene del entendimiento, con su `assetId`.
+   * Va por su propio canal y NO dentro de `input` a propósito: `input` son
+   * parámetros de la tarea y esto es material del que alguien es dueño, y
+   * mezclarlos habría hecho que la autorización dependiera de mirar las claves
+   * de un objeto libre.
+   *
+   * El trabajo solo lo TRANSPORTA. No lo elige, no lo resuelve, no lo firma y
+   * no sabe de quién es: eso sigue siendo de la puerta de C8.
+   */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   hints?: ExecutionHints;
@@ -567,6 +592,8 @@ export interface JobDispatch {
   implementation?: ImplementationRef;
   task?: JobTask;
   input: Readonly<Record<string, unknown>>;
+  /** Los recursos del paso. Se transportan tal cual; aquí no se resuelve ninguno. */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   hints?: ExecutionHints;
@@ -1435,6 +1462,7 @@ const congelarTrabajo = (job: Job): Job => Object.freeze({
   attempts: Object.freeze(job.attempts.map(congelarIntento)),
   seenEvents: Object.freeze([...job.seenEvents]),
   input: congelarHondo(job.input),
+  ...(job.references?.length ? { references: Object.freeze(job.references.map((r) => Object.freeze({ ...r }))) } : {}),
   ...(job.hints ? { hints: Object.freeze({ ...job.hints }) } : {}),
   ...(job.language ? { language: Object.freeze({ ...job.language }) } : {}),
   ...(job.metadata ? { metadata: congelarHondo(job.metadata) } : {}),
@@ -1779,6 +1807,28 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
      * Un trabajo de diez minutos con tres reintentos de diez minutos cada uno
      * son treinta minutos, y entonces el plazo no era un plazo.
      */
+    /*
+     * LOS RECURSOS, REVISADOS COMO TODO LO QUE ENTRA.
+     *
+     * La FORMA, no la propiedad: de quién es cada material lo dirá quien tenga
+     * permiso para leerlo, y eso no pasa en el Job Engine, que no lee nada. Lo
+     * que sí se exige es que no llegue un objeto con claves de más disfrazado
+     * de adjunto, ni una lista sin fin.
+     */
+    const recursos: BrainAttachment[] = [];
+    if (request.references !== undefined) {
+      if (!Array.isArray(request.references) || request.references.length > MAX_RECURSOS_DEL_TRABAJO) {
+        return invalido('invalid_request', 'references');
+      }
+      for (const [i, ref] of request.references.entries()) {
+        if (!esObjetoPlano(ref) || !esTexto((ref as Record<string, unknown>).kind)) return invalido('invalid_request', `references[${i}]`);
+        for (const clave of Object.keys(ref)) {
+          if (!['kind', 'url', 'assetId', 'name'].includes(clave)) return invalido('invalid_request', `references[${i}]`);
+        }
+        recursos.push(Object.freeze({ ...ref } as unknown as BrainAttachment));
+      }
+    }
+
     const porPolitica = at + policy.maxLifetimeMs;
     const pedido = esNumero(request.deadlineAt) ? request.deadlineAt : undefined;
     const deadlineAt = pedido !== undefined ? Math.min(pedido, porPolitica) : porPolitica;
@@ -1795,6 +1845,7 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
         ? { task: tarea }
         : { capability: request.capability as CoreCapabilityId, implementation: implementation as ImplementationRef }),
       input: entrada.input,
+      ...(recursos.length ? { references: recursos } : {}),
       trace,
       ...(idioma.language ? { language: idioma.language } : {}),
       ...(pistas.hints ? { hints: pistas.hints } : {}),
@@ -1965,6 +2016,7 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
         ? { task: job.task }
         : { capability: job.capability as CoreCapabilityId, implementation: job.implementation as ImplementationRef }),
       input: job.input,
+      ...(job.references?.length ? { references: job.references } : {}),
       trace: job.trace,
       ...(job.language ? { language: job.language } : {}),
       ...(job.hints ? { hints: job.hints } : {}),
