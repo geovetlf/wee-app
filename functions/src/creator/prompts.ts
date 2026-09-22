@@ -1,6 +1,7 @@
 import { CAPABILITY_CATALOG } from '../core/registry';
 import { ThoughtRequest } from '../core';
 import { ExperienceId } from './types';
+import { DESCRIPCIONES_PARA_DERIVAR, EXPERIENCIAS_PARA_DERIVAR } from './experiencias';
 
 /**
  * Prompts internos de Weë Brain (docs/CREATOR.md §6): la persona nunca los ve.
@@ -13,17 +14,9 @@ export const BRAIN_SYSTEM = [
   'Entregas resultados completos y listos para usar; no pides más información ni haces preguntas.',
 ].join(' ');
 
-/** Especialistas a los que Weë Brain puede derivar (nunca Weë Music mientras no esté conectado). */
-export const BRAIN_SPECIALISTS: Record<string, string> = {
-  design: 'Weë Design (logos, afiches, productos, personajes, escenas, cualquier diseño visual)',
-  studio: 'Weë Studio (videos, animar fotos, anuncios en video)',
-  photo: 'Weë Photo (mejorar, restaurar, transformar o editar fotos)',
-  writer: 'Weë Writer (textos, historias, guiones, emails, CV, traducciones, correcciones)',
-  beauty: 'Weë Beauty (maquillaje, cabello, barba, outfits, cambios de look en tu foto)',
-  chef: 'Weë Chef (recetas, menús, cocinar con lo que tienes)',
-  home: 'Hogar & Diseño (rediseñar, redecorar o reorganizar espacios de la casa)',
-  business: 'Weë Business (ideas, marketing, contenido para redes, estrategia, documentos de negocio)',
-};
+/** «a, b o c» — para que una lista derivada se lea como la escribiría alguien. */
+const enumerar = (ids: readonly string[]): string =>
+  ids.length < 2 ? ids.join('') : `${ids.slice(0, -1).join(', ')} o ${ids[ids.length - 1]}`;
 
 /**
  * Weë Brain como asistente general (chat con contexto): conversa, explica,
@@ -44,8 +37,13 @@ export const BRAIN_CHAT_SYSTEM = [
   'Si te dan resultados de búsqueda, úsalos para responder con información actual y menciona de dónde sale sin inventar datos; si no sabes algo, dilo.',
   'Nunca mencionas modelos, proveedores, prompts ni términos técnicos de IA. No inventes cifras ni resultados.',
   'Formato: texto plano; listas con • o pasos numerados cuando ayuden; sin símbolos de markdown como # o **; emojis con moderación.',
-  `Weë tiene especialistas: ${Object.values(BRAIN_SPECIALISTS).join('; ')}.`,
-  'Cuando lo que la persona quiere lograr lo hace mejor uno de esos especialistas (crear una imagen, un video, editar una foto, escribir un texto largo, una receta, un cambio de look, redecorar, hacer crecer un negocio), responde primero brevemente y termina tu mensaje con una línea final exactamente así: [[WEE:id]] usando el id del especialista (design, studio, photo, writer, beauty, chef, home o business). Si no corresponde derivar, no escribas esa línea.',
+  `Weë tiene especialistas: ${DESCRIPCIONES_PARA_DERIVAR.join('; ')}.`,
+  /*
+   * Los ids también se derivan. Estaban escritos a mano aquí dentro —"design,
+   * studio, … home o business"— y eran una tercera copia de la lista, metida en
+   * una cadena de texto donde ningún compilador iba a mirarla.
+   */
+  `Cuando lo que la persona quiere lograr lo hace mejor uno de esos especialistas (crear una imagen, un video, editar una foto, escribir un texto largo, una receta, un cambio de look, redecorar, preparar un viaje, hacer crecer un negocio), responde primero brevemente y termina tu mensaje con una línea final exactamente así: [[WEE:id]] usando el id del especialista (${enumerar(EXPERIENCIAS_PARA_DERIVAR)}). Si no corresponde derivar, no escribas esa línea.`,
 ].join(' ');
 
 /**

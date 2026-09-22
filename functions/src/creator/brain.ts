@@ -6,7 +6,7 @@ import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
 import { SourceRef } from '../engine/types';
-import { CapabilityId } from './types';
+import { CapabilityId, ExperienceId } from './types';
 import { CreditService } from '../credits/creditCosts';
 import { priceOperation } from '../credits/aiPricing';
 import { tarifaDeModeloDeTexto } from '../engine/pricing';
@@ -18,7 +18,8 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
-import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, entradaDeEntender, instruccionDeIdioma, localeDeBrain } from './prompts';
+import { BRAIN_CHAT_SYSTEM, entradaDeEntender, instruccionDeIdioma, localeDeBrain } from './prompts';
+import { EXPERIENCIAS_PARA_DERIVAR } from './experiencias';
 import { AI_SECRETS } from '../secrets';
 import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, ThoughtRequest, contextoDeIdioma, interpretarMarca } from '../core';
 import { crearBrainDeWee, pensamientoDesde } from '../brain';
@@ -102,12 +103,17 @@ export interface BrainAnswer {
  * existen. Misma salida de siempre para quien ya la usaba.
  */
 export const parseSuggestion = (raw: string): BrainAnswer => {
-  const { text, suggestedExperience } = interpretarMarca(raw, Object.keys(BRAIN_SPECIALISTS));
+  const { text, suggestedExperience } = interpretarMarca(raw, EXPERIENCIAS_PARA_DERIVAR);
   return { text, suggestedExperience };
 };
 
-/** Detección de intención por palabras clave (respaldo cuando el modelo no marca nada). */
-const KEYWORDS: Record<string, string[]> = {
+/*
+ * Detección de intención por palabras clave (respaldo cuando el modelo no marca
+ * nada). Las claves son ExperienceId y el tipo lo comprueba; el contenido no
+ * cambia. Es PARCIAL a propósito: no toda experiencia tiene palabras que la
+ * delaten, y rellenarlas a la fuerza sería inventarlas.
+ */
+const KEYWORDS: Partial<Record<ExperienceId, readonly string[]>> = {
   design: ['logo', 'afiche', 'poster', 'póster', 'flyer', 'diseñ', 'ilustraci', 'portada', 'banner', 'personaje'],
   studio: ['video', 'anima', 'reel', 'weel', 'weël', 'anuncio en video', 'clip'],
   photo: ['foto', 'retocar', 'restaurar', 'quitar el fondo', 'fondo de', 'colorizar', 'imagen borrosa'],
@@ -118,10 +124,17 @@ const KEYWORDS: Record<string, string[]> = {
   business: ['negocio', 'emprend', 'marketing', 'vender', 'ventas', 'clientes', 'campaña', 'campana', 'redes de mi', 'estrategia', 'presentación para', 'inversor'],
 };
 
-export const guessExperience = (message: string): string | undefined => {
+/*
+ * Este respaldo también PROPONE una experiencia, así que también tiene que
+ * respetar el vocabulario: era el segundo productor de `suggestedExperience` y
+ * no lo validaba nadie. Hoy no cambia nada —sus claves ya están todas en la
+ * proyección— y mañana no podrá proponer algo que el chat no puede abrir.
+ */
+export const guessExperience = (message: string): ExperienceId | undefined => {
   const lower = message.toLowerCase();
-  const scores = Object.entries(KEYWORDS)
-    .map(([id, words]) => [id, words.filter((w) => lower.includes(w)).length] as [string, number])
+  const scores = (Object.entries(KEYWORDS) as [ExperienceId, readonly string[]][])
+    .filter(([id]) => EXPERIENCIAS_PARA_DERIVAR.includes(id))
+    .map(([id, words]) => [id, words.filter((w) => lower.includes(w)).length] as [ExperienceId, number])
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1]);
   return scores[0]?.[0];
@@ -577,7 +590,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * El cerebro se construye por petición: no guarda nada de nadie, así que
        * un servidor puede desaparecer y otro seguir con lo que hay en Firestore.
        */
-      const cerebro = crearBrainDeWee({ pensador, experiences: Object.keys(BRAIN_SPECIALISTS) });
+      /*
+       * `brainChat` conversa, así que lo que le toca es la proyección de
+       * DERIVAR: a qué secciones puede mandar a la persona. El Core usa esa
+       * misma lista para validar la marca [[WEE:id]] que devuelva el modelo.
+       */
+      const cerebro = crearBrainDeWee({ pensador, experiences: EXPERIENCIAS_PARA_DERIVAR });
       const adjuntos: BrainAttachment[] = [
         ...(imageUrl ? [{ kind: 'image' as const, url: imageUrl }] : []),
         ...(documentUrl ? [{ kind: 'document' as const, url: documentUrl }] : []),

@@ -1,4 +1,4 @@
-import { CapabilityId } from '../../creator/types';
+import { CapabilityId, ExperienceId } from '../../creator/types';
 import { GatewayContext, ProviderAdapter, ProviderOutput, ProviderResult } from '../types';
 
 /**
@@ -8,9 +8,15 @@ import { GatewayContext, ProviderAdapter, ProviderOutput, ProviderResult } from 
  */
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const EMOJI: Record<string, string> = {
+/*
+ * Un emoji por experiencia. El Record es TOTAL sobre `ExperienceId` para que no
+ * se repita lo de siempre: esto tenía diez y se quedó sin Weë Travel cuando
+ * llegó la undécima, sin que nadie lo notara —el `?? '✨'` de abajo lo tapaba—.
+ * El emoji de Travel es el que la experiencia ya tiene en la app, no uno nuevo.
+ */
+const EMOJI: Record<ExperienceId, string> = {
   design: '🎨', studio: '🎬', photo: '📸', writer: '✍️', music: '🎵',
-  beauty: '💄', chef: '👨‍🍳', home: '🏠', business: '💼', brain: '🧠',
+  beauty: '💄', chef: '👨‍🍳', home: '🏠', business: '💼', travel: '✈️', brain: '🧠',
 };
 
 const escapeXml = (value: string) =>
@@ -229,7 +235,14 @@ export const mockProvider: ProviderAdapter = {
     const purpose = String(input.purpose ?? capability);
     const brief = String(input.brief ?? '');
     const kind = String(input.kind ?? '');
-    const emoji = EMOJI[ctx.experienceId] ?? '✨';
+    /*
+     * El `experienceId` del contexto es un `string` suelto —lo dice el propio
+     * contrato del Gateway—, así que la búsqueda tiene que admitir una clave
+     * que no sea ninguna experiencia. Por eso sigue el respaldo de abajo. Lo
+     * que ya no puede pasar es que falte una experiencia REAL: eso lo sujeta
+     * el tipo de la tabla, no esta línea.
+     */
+    const emoji = (EMOJI as Record<string, string | undefined>)[ctx.experienceId] ?? '✨';
 
     let output: ProviderOutput;
     if (capability.startsWith('text.') || capability === 'vision.describe') {
