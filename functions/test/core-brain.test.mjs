@@ -146,8 +146,19 @@ console.log('\n── A · Pureza: Brain no sabe de nadie ──');
 
   check('6) sin lógica de Router: ni cadenas, ni candidatos, ni política, ni fallback',
     !/createRouter|pickModel|resolveQuality|candidates|fallback|linksFor|allowedProviders|excludeProviders/.test(codigoCore + codigoComp));
-  check('7) sin Planner ni Workflow: no monta pasos ni dependencias',
-    !/dependsOn|buildPlan|PlanStep|WorkflowStep|pasosListos|steps:/.test(codigoCore));
+  /*
+   * ── AFINADO EN C19, Y NO AFLOJADO ─────────────────────────────────────────
+   *
+   * Prohibía la palabra `steps:`. Era buena aproximación mientras Brain no
+   * supiera decir los pasos, y dejó de serlo cuando aprendió: ahora emite
+   * `{key, capability, input}` — QUÉ hay que hacer y de qué clase es.
+   *
+   * Lo que este guard protege no es la palabra: es que Brain no MONTE un plan.
+   * Ni orden de ejecución, ni dependencias, ni estructura de Workflow. Eso es
+   * lo que se comprueba ahora, y es más difícil de pasar.
+   */
+  check('7) sin Planner ni Workflow: dice qué pasos hay, no cómo se ejecutan',
+    !/dependsOn|buildPlan|PlanStep|WorkflowStep|pasosListos|ordenar|uses/.test(codigoCore));
   check('8) sin Job Engine: no inventa estados de trabajo', !/JobStatus|createJob|queue|enqueue|poll/i.test(codigoCore));
   check('9) sin Credits: no cobra, no reserva, no escribe libro',
     !/spendCredits|refundCredits|creditEngine|creditsCharged|creditsPerUsd|ledger|aiGenerations/.test(codigoCore + codigoComp));

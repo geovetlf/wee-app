@@ -176,10 +176,17 @@ check('C17-F6 · una variante inventada se rechaza',
     const r = await planear([{ key: 'a', capability: 'text.generate', input: { kind: 'inventada' } }]);
     return r.status === 'invalid' && razon(r) === 'unknown_variant';
   })());
-check('las variantes siguen viviendo SOLO en el catálogo',
+/*
+ * AFINADO EN C19. Decía que la palabra `variants` no aparece en Brain, y desde
+ * C19 aparece: Brain las LLEVA al modelo para que pueda decir de qué clase es
+ * cada paso. Lo que este guard protege es que no las DECLARE — que no haya una
+ * segunda lista escrita a mano que se quede vieja el día que cambie el catálogo.
+ */
+check('las variantes se DECLARAN solo en el catálogo; Brain las transporta sin copiarlas',
   CAPABILITY_CATALOG.reduce((a, c) => a + (c.variants ?? []).length, 0) === 53
-  && !/variants/.test(sinComentarios(leer('functions/src/core/brain.ts'))),
-  '53 tras completar las 3 que la extracción de C11 dejó fuera');
+  && Object.entries(core.VARIANTES_DEL_CATALOGO).every(([id, vs]) =>
+    vs === CAPABILITY_CATALOG.find((c) => c.id === id).variants),
+  'es la MISMA referencia, no una copia: quitar una del catálogo la quita de lo que Brain lleva');
 check('y las 3 que faltaban son las que Legacy usaba y el Core rechazaba',
   CAT('image.generate').variants.includes('logo')
   && igual(CAT('image.space_restyle').variants, ['space'])

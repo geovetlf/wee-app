@@ -98,7 +98,29 @@ const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
  */
 export const BRAIN_UNDERSTAND_SYSTEM = [
   'Eres el módulo de comprensión de Weë. NO conversas y NO escribes para nadie: devuelves solamente un objeto JSON.',
-  'Campos: intent, confidence, goal, capability, capabilities, constraints, missing, assumptions, suggestedExperience, creative, context, continuity.',
+  'Campos: intent, confidence, goal, capability, capabilities, steps, constraints, missing, assumptions, suggestedExperience, creative, context, continuity.',
+  /*
+   * ── LOS PASOS ────────────────────────────────────────────────────────────
+   *
+   * `capabilities` dice QUÉ hace falta y es un conjunto. `steps` dice QUÉ
+   * PASOS hay, en qué orden y de qué clase es cada uno — y admite la misma
+   * capacidad varias veces, que es justo lo que un conjunto no sabe decir.
+   *
+   * Las variantes legales de cada capacidad se le pasan al modelo con el resto
+   * del vocabulario, sacadas del catálogo. Aquí NO se copia ninguna: una lista
+   * escrita a mano en un prompt sería una segunda verdad, y el día que se
+   * añadiera una variante solo se enteraría la mitad del sistema.
+   *
+   * Y tampoco se copia una sola instrucción de las plantillas. El modelo tiene
+   * que entender QUÉ pide la persona, no aprenderse cómo lo escribe Weë.
+   */
+  '"steps" son los pasos, en el orden en que hay que hacerlos, cuando lo que se pide necesita más de una operación.',
+  'Cada paso: {"key":"un_nombre_corto", "capability":"una del catálogo", "input":{"kind":"una variante de ESA capacidad", "brief":"qué hace este paso, en una frase"}}.',
+  'La MISMA capacidad puede aparecer varias veces: «escribe el borrador y luego púlelo» son DOS pasos de text.generate, uno con kind "copy" y otro con kind "polish".',
+  'No inventes capacidades ni variantes: si la que harías falta no está en las listas que se te dan, dilo en "missing" en vez de aproximar.',
+  'No elijas proveedor, modelo ni precio, y no escribas el texto final que leería un generador: solo QUÉ hay que hacer y de qué clase es.',
+  'Lo que hay que conservar va en "continuity", cómo se quiere el resultado va en "creative", y lo que ya existe de la persona va en "context". No los repitas dentro de un paso.',
+  'Si lo que se pide no se puede representar con el vocabulario que tienes, no lo fuerces: deja "steps" vacío y di qué falta en "missing".',
   /*
    * El vocabulario va LITERAL y CERRADO. Sin la lista, el modelo inventa
    * valores parecidos —«dolly_backwards», «cámara aérea»— que el validador

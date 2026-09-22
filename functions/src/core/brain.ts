@@ -605,6 +605,20 @@ export interface ThoughtRequest {
     intents: readonly BrainIntent[];
     capabilities: readonly CoreCapabilityId[];
     experiences: readonly string[];
+    /**
+     * QUÉ VARIANTES ADMITE CADA CAPACIDAD, para las que tienen.
+     *
+     * Sin esto, el modelo sabe que existe `text.generate` pero no que `polish`
+     * es una manera de pedirla, así que no puede decir qué hace cada paso: lo
+     * encontró la auditoría de C18. Sale del catálogo y de ningún otro sitio —
+     * un segundo listado sería una segunda verdad sobre lo mismo, y el día que
+     * se añadiera una variante solo se enteraría la mitad del sistema.
+     *
+     * Solo el vocabulario semántico. Ni un proveedor, ni un modelo, ni un
+     * precio, ni qué hay disponible hoy: nada de eso ayuda a entender lo que
+     * alguien pidió, y todo eso invita a elegir por su cuenta.
+     */
+    variants?: Readonly<Record<string, readonly string[]>>;
   };
   hints?: ExecutionHints;
   accounting?: BrainAccounting;
@@ -842,6 +856,8 @@ export const interpretarEntendimiento = (
   goal?: string;
   capability?: CoreCapabilityId;
   capabilities: readonly CoreCapabilityId[];
+  /** Los pasos que el modelo supo decir. Vacío cuando no dijo ninguno, que es el caso de hoy. */
+  steps: readonly BrainStep[];
   constraints: Readonly<Record<string, string | number | boolean>>;
   missing: readonly string[];
   assumptions: readonly string[];
@@ -874,12 +890,13 @@ export const interpretarEntendimiento = (
    */
   continuity?: ContinuityIntent;
 } => {
-  const vacio = { capabilities: [], constraints: {}, missing: [], assumptions: [] };
+  const vacio = { capabilities: [], steps: [], constraints: {}, missing: [], assumptions: [] };
   if (!esObjetoPlano(crudo)) return vacio;
   const intent = esTexto(crudo.intent) && (esperado.intents as readonly string[]).includes(crudo.intent) ? (crudo.intent as BrainIntent) : undefined;
   const confidence = crudo.confidence === 'high' || crudo.confidence === 'medium' || crudo.confidence === 'low' ? crudo.confidence : undefined;
   const capability = esTexto(crudo.capability) && (esperado.capabilities as readonly string[]).includes(crudo.capability) ? (crudo.capability as CoreCapabilityId) : undefined;
   /* Igual que la principal: lo que no esté en el catálogo se descarta, no se aproxima. */
+  const steps = interpretarPasos(crudo.steps, esperado);
   const capabilities = Array.isArray(crudo.capabilities)
     ? [...new Set(crudo.capabilities.filter((c): c is CoreCapabilityId => esTexto(c) && (esperado.capabilities as readonly string[]).includes(c)))].slice(0, 12)
     : [];
@@ -897,6 +914,7 @@ export const interpretarEntendimiento = (
     goal: esTexto(crudo.goal) ? recortar(crudo.goal.trim(), 300) : undefined,
     capability,
     capabilities,
+    steps,
     constraints,
     /*
      * ENTERA O NADA. Igual que las capacidades, que se descartan si no están en
@@ -1149,6 +1167,96 @@ const capacidadDePensar = (options: BrainOptions, kind: 'reply' | 'understand'):
   return options.webSearch === true ? 'text.search' : 'text.generate';
 };
 
+/**
+ * CAPACIDAD → SUS VARIANTES. Una PROYECCIÓN del catálogo, no una copia.
+ *
+ * Se calcula al cargar y solo incluye a las que tienen variantes: hoy 14 de 68.
+ * Las otras 54 se piden sin variante y eso ya era legal.
+ */
+
+export const VARIANTES_DEL_CATALOGO: Readonly<Record<string, readonly string[]>> = Object.freeze(
+  Object.fromEntries(CAPABILITY_CATALOG.filter((c) => c.variants?.length).map((c) => [c.id, c.variants as readonly string[]])),
+);
+
+/**
+ * EL VOCABULARIO CERRADO, ARMADO UNA SOLA VEZ.
+ *
+ * Se lo lleva el modelo para saber qué puede decir, y lo usa el intérprete
+ * para comprobar lo que dijo. Tienen que ser EL MISMO: se construía por
+ * separado en dos sitios, y al añadir las variantes solo se enteró uno —el
+ * modelo las recibía y el intérprete las descartaba todas—. Lo cazó el canary
+ * de Travel, que devolvía cuatro pasos sin variante.
+ */
+const vocabulario = (experiencias: readonly string[]): NonNullable<ThoughtRequest['expected']> => ({
+  intents: INTENCIONES,
+  capabilities: CAPABILITY_CATALOG.map((c) => c.id),
+  experiences: experiencias,
+  variants: VARIANTES_DEL_CATALOGO,
+});
+
+/**
+ * LOS PASOS QUE DIJO EL MODELO, REVISADOS.
+ *
+ * Con la MISMA regla que el resto de este archivo: lo que no encaje en el
+ * vocabulario cerrado se descarta, no se aproxima. Una capacidad que no está
+ * en el catálogo no es un paso; una variante que su capacidad no declara
+ * tampoco lo es, y se le quita la variante en vez de tirar el paso entero —
+ * perder «escribe el menú» porque el modelo escribió mal `menú` sería peor.
+ *
+ * Lo que NO se hace aquí es planificar. Ni se ordena, ni se deducen
+ * dependencias, ni se valida que el plan sea posible: eso es del Planner, que
+ * lo vuelve a comprobar todo porque es una frontera y las fronteras comprueban.
+ *
+ * Y las claves de más se DESCARTAN: si el modelo se inventa un `providerId`
+ * dentro de un paso, no viaja. El Planner además lo rechazaría, pero un dato
+ * que no debería existir no debe llegar hasta allí para que lo rechacen.
+ */
+const MAX_PASOS_DEL_MODELO = 12;
+const MAX_BRIEF_DEL_MODELO = 300;
+
+export const interpretarPasos = (
+  crudo: unknown,
+  esperado: { capabilities: readonly string[]; variants?: Readonly<Record<string, readonly string[]>> },
+): readonly BrainStep[] => {
+  if (!Array.isArray(crudo)) return [];
+  const salida: BrainStep[] = [];
+  const claves = new Set<string>();
+  for (const bruto of crudo.slice(0, MAX_PASOS_DEL_MODELO)) {
+    if (!esObjetoPlano(bruto)) continue;
+    const capability = bruto.capability;
+    if (!esTexto(capability) || !esperado.capabilities.includes(capability)) continue;
+    /*
+     * LA CLAVE LA PONE WEË, NO EL MODELO.
+     *
+     * Un nombre que otro paso usa para señalar a este tiene que ser único y
+     * estable, y un modelo puede repetirlo o dejarlo en blanco. Se acepta el
+     * suyo cuando tiene forma y no está cogido —se lee mejor en una traza—, y
+     * si no, se pone uno derivado de la posición.
+     */
+    const propuesta = esTexto(bruto.key) ? bruto.key : '';
+    const key = FORMA_DE_CLAVE_DE_PASO.test(propuesta) && !claves.has(propuesta)
+      ? propuesta
+      : `p${salida.length + 1}`;
+    if (claves.has(key)) continue;
+    claves.add(key);
+
+    const entrada = esObjetoPlano(bruto.input) ? bruto.input : {};
+    const declaradas = esperado.variants?.[capability] ?? [];
+    const kind = esTexto(entrada.kind) && declaradas.includes(entrada.kind) ? entrada.kind : undefined;
+    const brief = esTexto(entrada.brief) && entrada.brief.trim() ? recortar(entrada.brief.trim(), MAX_BRIEF_DEL_MODELO) : undefined;
+    const input = kind !== undefined || brief !== undefined
+      ? { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) }
+      : undefined;
+
+    salida.push(Object.freeze({
+      key,
+      capability: capability as CoreCapabilityId,
+      ...(input ? { input: Object.freeze(input) } : {}),
+    }));
+  }
+  return Object.freeze(salida);
+};
+
 /** Todas las intenciones, como lista: la única, para que quien valide una no tenga que copiarla. */
 export const INTENCIONES: readonly BrainIntent[] = [
   'conversation', 'question', 'creation', 'edit', 'transform',
@@ -1253,7 +1361,7 @@ export const crearBrain = (ports: BrainPorts): Brain => {
         hints: p.options.hints,
         accounting: p.accounting,
         ...(kind === 'understand'
-          ? { expected: { intents: INTENCIONES, capabilities: CAPABILITY_CATALOG.map((c) => c.id), experiences: experiencias } }
+          ? { expected: vocabulario(experiencias) }
           : {}),
       });
     } catch (error) {
@@ -1273,8 +1381,8 @@ export const crearBrain = (ports: BrainPorts): Brain => {
 
     /* Lo que el modelo devolvió como estructura, ya validado contra el catálogo. */
     const leido = kind === 'understand'
-      ? interpretarEntendimiento(leerJson(crudo), { intents: INTENCIONES, capabilities: CAPABILITY_CATALOG.map((c) => c.id), experiences: experiencias })
-      : { capabilities: [] as readonly CoreCapabilityId[], constraints: {}, missing: [] as readonly string[], assumptions: [] as readonly string[] } as ReturnType<typeof interpretarEntendimiento>;
+      ? interpretarEntendimiento(leerJson(crudo), vocabulario(experiencias))
+      : { capabilities: [] as readonly CoreCapabilityId[], steps: [] as readonly BrainStep[], constraints: {}, missing: [] as readonly string[], assumptions: [] as readonly string[] } as ReturnType<typeof interpretarEntendimiento>;
 
     const señales = clasificarIntencion(contexto, marca.suggestedExperience);
     const intent = leido.intent ?? señales.intent;
@@ -1291,6 +1399,18 @@ export const crearBrain = (ports: BrainPorts): Brain => {
       capability,
       /* La principal entra en la lista aunque el modelo no la repita: la lista es el conjunto, no un extra. */
       capabilities: [...new Set([...(capability ? [capability] : []), ...leido.capabilities])],
+      /*
+       * LOS PASOS, CUANDO EL MODELO SUPO DECIRLOS.
+       *
+       * Y aquí NO se deduplican: `capabilities` es el conjunto —lo dice la
+       * línea de arriba— y esto es la lista de instancias. Escribir el guion,
+       * el pie y el título son tres pasos de `text.generate`, y un conjunto los
+       * dejaría en uno. Costó dos fases entenderlo (G9); no se repite.
+       *
+       * Ausente cuando el modelo no dijo ninguno, que hoy es SIEMPRE: el modo
+       * «entender» todavía no está enchufado a nada en producción.
+       */
+      ...(leido.steps.length ? { steps: leido.steps } : {}),
       modality: capability ? modalidadDeCapacidad(capability) : undefined,
       inputs: { text: contexto.inmediato.text, attachments: contexto.inmediato.attachments },
       references: contexto.inmediato.attachments.map((a) => a.assetId ?? a.url ?? '').filter(Boolean),
