@@ -156,6 +156,7 @@ const asBase64 = async (url: string): Promise<{ base64: string; size?: { width: 
 };
 
 export const fluxAdapter: ProviderAdapter = {
+  continuidad: (_capability, modelId) => mecanismoDeContinuidad(modelId),
   id: 'flux',
   name: 'FLUX (Black Forest Labs)',
   modalities: ['image'],

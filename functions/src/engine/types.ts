@@ -1,5 +1,6 @@
 import { ExecutionHints } from '../core';
 import { CapabilityId, ResultKind } from '../creator/types';
+import { MecanismoDeContinuidad } from './continuidad';
 
 /**
  * WEË AI ENGINE — tipos (docs/AI-ENGINE.md).
@@ -261,6 +262,18 @@ export interface ProviderAdapter {
   run(request: ProviderRunRequest): Promise<ProviderOutcome>;
   /** Hasta dónde está comprobada esta integración (ver VerificationState). */
   verification?: ProviderVerification;
+  /**
+   * QUÉ SABE HACER ESTA IMPLEMENTACIÓN CON LA CONTINUIDAD. Lo declara ella.
+   *
+   * Existe para que el Gateway pueda RECHAZAR ANTES de ejecutar —si lo que se
+   * exigió conservar no cabe en el mecanismo, no se llama a nadie y no se paga
+   * nada—, y para que esa decisión no viva dentro del adaptador: un adaptador
+   * traduce, no decide si una generación puede ocurrir.
+   *
+   * Opcional a propósito. Un adaptador que no lo declara es uno que no tiene
+   * mecanismo, y eso ya es la respuesta correcta: no se le supone ninguno.
+   */
+  continuidad?(capability: CapabilityId, modelId: string): MecanismoDeContinuidad;
 }
 
 /** Un eslabón de la cadena de enrutamiento de una capacidad. */

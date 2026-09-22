@@ -340,8 +340,9 @@ const aspectFromOutput = (input: Record<string, unknown>): string | undefined =>
  * a un modelo que no cambie una cara es una esperanza, no una garantía, así que
  * no suma nada aquí: lo que se declara son las cuatro referencias y punto.
  */
-const mecanismoDeContinuidad = (): MecanismoDeContinuidad => ({
-  referenciasDeImagen: MAX_REFERENCIAS_DE_IMAGEN,
+const mecanismoDeContinuidad = (capability: CapabilityId): MecanismoDeContinuidad => ({
+  /* Solo la imagen tiene huecos: pedirle a un texto que conserve un rostro no tiene dónde caer. */
+  referenciasDeImagen: IMAGE_CAPS.includes(capability) ? MAX_REFERENCIAS_DE_IMAGEN : 0,
   referenciasDeVideo: 0,
   controlesDedicados: [],
   admiteFuerza: false,
@@ -356,7 +357,7 @@ async function runImage(ai: any, request: ProviderRunRequest, start: number): Pr
   const parts: any[] = [{ text: prompt }];
   for (const url of imageUrlsOf(input)) parts.push(await imagePart(url));
   /* Qué se pidió conservar y hasta dónde llega esto. No toca el prompt ni el cuerpo. */
-  const continuidad = traducirContinuidad(request.hints?.continuity, mecanismoDeContinuidad(), materialDeLaEntrada(input));
+  const continuidad = traducirContinuidad(request.hints?.continuity, mecanismoDeContinuidad(capability), materialDeLaEntrada(input));
 
   /*
    * La proporción sale de las medidas que ya resolvió la Resolution Policy.
@@ -409,6 +410,7 @@ async function runImage(ai: any, request: ProviderRunRequest, start: number): Pr
 }
 
 export const geminiAdapter: ProviderAdapter = {
+  continuidad: (capability) => mecanismoDeContinuidad(capability),
   id: 'gemini',
   name: 'Google Gemini (texto, búsqueda, visión, imagen)',
   modalities: ['text', 'vision', 'image'],

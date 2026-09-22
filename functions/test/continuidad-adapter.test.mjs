@@ -222,7 +222,9 @@ check('seedance: los huecos dependen de la CAPACIDAD, no solo del modelo',
   'un texto a video no tiene dónde meter una referencia');
 check('gemini: su tope de referencias sale de una sola constante',
   /MAX_REFERENCIAS_DE_IMAGEN = 4/.test(leer('functions/src/engine/providers/gemini.ts'))
-  && /referenciasDeImagen: MAX_REFERENCIAS_DE_IMAGEN/.test(leer('functions/src/engine/providers/gemini.ts')));
+  && /referenciasDeImagen: .*MAX_REFERENCIAS_DE_IMAGEN/.test(leer('functions/src/engine/providers/gemini.ts'))
+  && /urls\.slice\(0, MAX_REFERENCIAS_DE_IMAGEN\)/.test(leer('functions/src/engine/providers/gemini.ts')),
+  'el tope declarado y el tope aplicado salen del mismo sitio');
 check('gemini: la frase de identidad SIGUE en el prompt, y NO cuenta como soporte',
   /'image\.identity_edit': 'Keep the identity/.test(leer('functions/src/engine/providers/gemini.ts')),
   'está medida, no borrada: lo que se niega es que sea un mecanismo');

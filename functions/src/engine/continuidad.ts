@@ -164,7 +164,7 @@ export const materialDeLaEntrada = (input: unknown): MaterialDisponible => {
 /**
  * DEL REQUISITO A LO QUE ESTA IMPLEMENTACIÓN PUEDE INTENTAR. Pura.
  *
- * ── Las cinco reglas que hace cumplir ───────────────────────────────────────
+ * ── Las seis reglas que hace cumplir ────────────────────────────────────────
  *
  * 1 · NADA SE DEGRADA EN SILENCIO. Un aspecto exigido que no se puede sostener
  *     sale en `noCubiertos`, con su nombre. No se quita de la lista, no se
@@ -182,6 +182,11 @@ export const materialDeLaEntrada = (input: unknown): MaterialDisponible => {
  * 5 · LA FUERZA NO SE BAJA. Si la implementación no sabe traducirla, se
  *     transporta tal cual y se marca `fuerzaSinTraducir`. `strict` nunca se
  *     convierte en `standard` por el camino.
+ *
+ * 6 · LO QUE NO CABE NO SE RECORTA. Si llega más material del que el mecanismo
+ *     admite, no se cogen los primeros: nada queda cubierto y se dice
+ *     `slots_exhausted`. Elegir cuál de las cosas que alguien pidió conservar
+ *     se queda fuera no es una optimización, es decidir por él.
  */
 export const traducirContinuidad = (
   requisitos: ContinuityRequirements | undefined,
@@ -195,6 +200,16 @@ export const traducirContinuidad = (
   const disponibles = Math.max(0, material.imagenes) + Math.max(0, material.videos ?? 0);
   const usadas = Math.min(huecos, disponibles);
   const hayReferencia = usadas > 0;
+  /*
+   * MÁS MATERIAL QUE HUECOS. Y esto NO se resuelve cogiendo los primeros.
+   *
+   * Con seis referencias y cuatro sitios, elegir cuatro es decidir por la
+   * persona cuál de las cosas que pidió conservar deja de estar protegida —y
+   * hacerlo en silencio, que es lo peor de todo—. Aquí no hay prioridad que
+   * inventar: el material no cabe, se dice que no cabe, y quien tenga que
+   * rechazar la ejecución lo hará con `noCubiertos` en la mano.
+   */
+  const sobraMaterial = disponibles > huecos;
 
   const aspects: TraduccionDeAspecto[] = [];
   const noCubiertos: ContinuityAspect[] = [];
@@ -209,6 +224,11 @@ export const traducirContinuidad = (
     }
     if (!hayReferencia) {
       aspects.push({ aspect, support: 'unsupported', reason: 'missing_material' });
+      noCubiertos.push(aspect);
+      continue;
+    }
+    if (sobraMaterial) {
+      aspects.push({ aspect, support: 'unsupported', reason: 'slots_exhausted' });
       noCubiertos.push(aspect);
       continue;
     }

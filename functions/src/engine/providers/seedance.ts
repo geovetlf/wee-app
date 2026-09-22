@@ -277,6 +277,7 @@ const callbackResult = async (taskId: string): Promise<Record<string, any> | nul
 };
 
 export const seedanceAdapter: ProviderAdapter = {
+  continuidad: (capability, modelId) => mecanismoDeContinuidad(capability, modelId),
   id: 'seedance',
   name: 'ByteDance Seedance (BytePlus ModelArk)',
   modalities: ['video'],

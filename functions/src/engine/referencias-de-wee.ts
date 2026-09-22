@@ -1,0 +1,52 @@
+import { getFirestore } from 'firebase-admin/firestore';
+import { ContinuityRequirements } from '../core';
+import { leerElemento } from '../elements';
+import { depsDeEntregaDeWee, solicitarEntrega } from '../media/entrega';
+import { ResolucionDeReferencias, resolverReferenciasDeContinuidad } from './referencias';
+
+/**
+ * WEË — LAS DOS PUERTAS DE VERDAD, ATADAS A LA RESOLUCIÓN DE REFERENCIAS.
+ *
+ * `referencias.ts` no sabe de Firestore a propósito: recibe puertos y se puede
+ * probar entero sin base de datos. Este archivo es el único sitio donde esos
+ * puertos se enchufan a lo real, y lo que enchufa son **las puertas que ya
+ * existían**:
+ *
+ *   `leerElemento`      la de S4. Devuelve `null` si el elemento no está O si
+ *                       es de otra cuenta, sin distinguirlo.
+ *   `solicitarEntrega`  la de MC-2. Comprueba cuenta, estado del material,
+ *                       ficha del objeto y capacidad del almacén, y firma una
+ *                       llave temporal sin escribir nada.
+ *
+ * Ni una segunda forma de preguntar «¿es tuyo?», ni un segundo firmador, ni un
+ * segundo cliente de almacenamiento. Si algún día cambia cómo se autoriza un
+ * material, cambia en su sitio y esto se entera solo.
+ */
+
+/**
+ * LA RESOLUCIÓN DE WEË. Una cuenta, unos requisitos, el material autorizado.
+ *
+ * ── Por qué la cuenta vale como principal ───────────────────────────────────
+ *
+ * Porque `solicitarEntrega` resuelve la cuenta por la única puerta que contesta
+ * esa pregunta en todo Weë, y esa puerta, cuando nadie pide actuar desde otra
+ * cuenta, devuelve la propia sin leer nada. Así que pasar aquí el identificador
+ * autenticado no cuesta una lectura extra y sigue sin duplicar la autenticación:
+ * quien decide de qué cuenta puede actuar alguien sigue siendo la misma función.
+ */
+export const referenciasDeContinuidadDeWee = (
+  accountId: string,
+  requisitos: ContinuityRequirements,
+  operationId?: string,
+): Promise<ResolucionDeReferencias> => {
+  const db = getFirestore();
+  const deps = depsDeEntregaDeWee(db);
+  return resolverReferenciasDeContinuidad(accountId, requisitos, {
+    elemento: (cuenta, elementId) => leerElemento(cuenta, elementId, { db }),
+    entrega: async (assetId) => {
+      const desenlace = await solicitarEntrega(deps, { principalId: accountId, assetId, operationId });
+      /* Un «no» de la entrega no se desmenuza aquí: hacia fuera todos los motivos contestan igual. */
+      return desenlace.ok ? desenlace.entrega : null;
+    },
+  });
+};
