@@ -709,11 +709,44 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
        * Skill opine, y cuando el catálogo deja el orden libre, gana lo que se
        * pidió.
        */
-      const pedidas = [...new Set([
-        ...(u.capability ? [u.capability] : []),
-        ...(u.capabilities ?? []),
-        ...(skill?.capabilities ?? []),
-      ])];
+      /*
+       * ── UNA CAPACIDAD PUEDE HACER FALTA VARIAS VECES ──────────────────────
+       *
+       * Aquí había un `Set`. «Escribe el análisis, mira el mercado, escribe las
+       * ideas» son dos pasos de `text.generate` con uno en medio, y el conjunto
+       * los dejaba en uno.
+       *
+       * Medido sobre los planes de verdad —las 35 formas distintas que producen
+       * las once experiencias—: 74 pasos, de los que el conjunto dejaba pasar
+       * 68. Seis pasos que Weë no llegaba a dar. Weë Business era la más
+       * castigada: 9 pasos convertidos en 6, tres de sus cuatro formas tocadas.
+       *
+       * Y debajo hacía algo peor. De las 42 aristas que Legacy declara, 9 tienen
+       * la misma capacidad en los dos extremos: al fundirse los extremos, esas
+       * nueve se habrían vuelto un paso dependiendo de sí mismo.
+       *
+       * Un conjunto contesta «qué capacidades hacen falta». Un plan necesita
+       * contestar «qué pasos hay», que es otra pregunta. La lista que trae el
+       * entendimiento ya venía ordenada y ya admitía repeticiones; lo único que
+       * había que dejar de hacer era tirarlas.
+       *
+       * ── Por qué `capability` ya no se antepone ────────────────────────────
+       *
+       * Porque `capabilities` es, por contrato, la lista COMPLETA —`capability`
+       * es solo cuál de ellas es la principal—. Anteponerla era inofensivo
+       * mientras el conjunto absorbía el duplicado; sin él, añadiría un paso que
+       * nadie pidió. Se usa la lista cuando está, y la principal cuando no.
+       *
+       * Del Skill sí se descarta lo repetido: aporta lo que falta, y añadir una
+       * segunda copia de algo que ya se pidió sería mandar, no aportar.
+       */
+      const deLaPersonaEnOrden = u.capabilities?.length
+        ? [...u.capabilities]
+        : (u.capability ? [u.capability] : []);
+      const pedidas = [
+        ...deLaPersonaEnOrden,
+        ...(skill?.capabilities ?? []).filter((c) => !deLaPersonaEnOrden.includes(c)),
+      ];
       if (pedidas.length === 0) {
         /*
          * Sin capacidad no hay nada que planificar. Si además no hacía falta
@@ -837,7 +870,13 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
         goal: u.goal,
         intent: u.intent,
         steps,
-        capabilities: steps.map((s) => s.capability),
+        /*
+         * EL CONJUNTO, no la lista. Son dos verdades distintas y cada una tiene
+         * su sitio: `capabilities` dice QUÉ hace falta —y el Workflow comprueba
+         * que coincida con lo de los pasos, comparándolo contra un conjunto—, y
+         * `steps` dice CUÁNTAS VECES y en qué orden.
+         */
+        capabilities: [...new Set(steps.map((s) => s.capability))],
         language: u.language,
         workplace: u.workplace?.id,
         projectId: u.projectId,

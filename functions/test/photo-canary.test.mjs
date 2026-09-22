@@ -308,10 +308,21 @@ const vioElAdaptador = conMaterial.llamadas[0];
 check('con el material delante, el Gateway ejecuta la implementación que le dieron',
   ejecutado.status === 'completed' && conMaterial.llamadas.length === 1,
   ejecutado.status + ' · ' + conMaterial.llamadas.length + ' llamada(s) a la SONDA');
-check('y el adaptador recibe la variante, lo creativo y la continuidad sin descubrir nada',
-  vioElAdaptador?.input?.kind === 'restore'
-  && igual(vioElAdaptador?.hints?.creative, CREATIVO)
+/*
+ * C15a CAMBIÓ CUÁL ES EL PRIMER PASO, y a mejor. El Planner anteponía
+ * `understanding.capability` a la lista, así que «editar» se colaba delante de
+ * «mirar la foto» aunque el entendimiento las declarara al revés. Eso era
+ * inofensivo mientras un conjunto absorbía el duplicado; ahora se respeta el
+ * orden declarado, y el primer despacho es el de mirar.
+ */
+check('el primer paso despachado es el que el entendimiento declaró primero',
+  primero?.capability === 'vision.describe' && vioElAdaptador?.input?.kind === undefined,
+  'mirar la foto no lleva variante: `restore` es de editar');
+check('y el adaptador recibe lo creativo y la continuidad sin descubrir nada',
+  igual(vioElAdaptador?.hints?.creative, CREATIVO)
   && igual(vioElAdaptador?.hints?.continuity, REQUISITO));
+check('el paso de editar SÍ lleva su variante, y espera su turno',
+  editar?.input?.kind === 'restore' && editar?.id === 's2-image_edit');
 check('cero proveedores reales: la sonda es local y su coste declarado es cero',
   vioElAdaptador?.model?.id === 'probe-1' && conMaterial.models[0].cost.usd === 0);
 
