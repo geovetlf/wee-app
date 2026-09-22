@@ -1,5 +1,5 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
-import { env, fetchJson, NotConfiguredError, readImage, toDataUri } from '../http';
+import { env, fetchJson, NotConfiguredError, ProviderError, readImage, toDataUri } from '../http';
 
 /**
  * DEEPSEEK — API OFICIAL (api.deepseek.com), clave DEEPSEEK_API_KEY.
@@ -167,6 +167,28 @@ export const deepseekAdapter: ProviderAdapter = {
     });
 
     const content = String(data.choices?.[0]?.message?.content ?? '').trim();
+    /*
+     * ── POR QUÉ EL DESENLACE SE GUARDA Y EL VACÍO SE RECHAZA ────────────────────────
+     *
+     * En un canary de Weë Brain esta API contestó con `content` vacío habiendo
+     * gastado los 1.400 tokens de salida enteros. Sin `finish_reason` no hay forma
+     * de saber si la cortaron por el techo, si decidió no escribir nada o si se
+     * negó, y cada una de las tres pide algo distinto. Lo devuelve la API en cada
+     * respuesta y aquí se tiraba, así que ahora viaja en `meta`, que es el canal que
+     * ya existía para esto y que el Router ya guarda en el libro.
+     *
+     * Y una respuesta vacía deja de pasar por buena. Pasaba: el Router cerraba la
+     * fila COMPLETED, ascendía al proveedor a verificado y se cobraba el Credit, todo
+     * por un texto que no existía. Gemini ya lo rechazaba desde su primer día; esto
+     * es la misma regla en el otro adaptador, no una nueva.
+     */
+    const finishReason = data.choices?.[0]?.finish_reason;
+    if (!content) {
+      throw new ProviderError(
+        `deepseek: la respuesta llegó vacía${finishReason ? ` (finish_reason: ${finishReason})` : ''}`,
+        'deepseek',
+      );
+    }
     const inputTokens = Number(data.usage?.prompt_tokens ?? 0);
     const outputTokens = Number(data.usage?.completion_tokens ?? 0);
     /* El coste que se apunta en el libro es el de verdad: tokens reales por la tarifa de esta hora. */
@@ -177,6 +199,8 @@ export const deepseekAdapter: ProviderAdapter = {
       costUSD: (inputTokens * tarifa.input + outputTokens * tarifa.output) / 1_000_000,
       latencyMs: Date.now() - start,
       model: model.id,
+      /* Aditivo: no cambia salida, uso ni coste. Si la API no lo manda, no se inventa. */
+      ...(finishReason ? { meta: { finishReason } } : {}),
     };
   },
 };

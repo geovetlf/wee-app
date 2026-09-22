@@ -172,6 +172,116 @@ const fin = async () => {
   const apartados = deBrain.skipped.filter((x) => x.provider !== 'deepseek');
   check('28) y quien lo pide aparta a los demás DICIENDO por qué', apartados.length === 3 && apartados.every((x) => /familia de modelos permitida/.test(x.reason)),
     apartados.map((x) => x.provider).join(', '));
+  console.log('\n── El desenlace del proveedor, y el vacío que se colaba ──');
+
+  /*
+   * ── LO QUE MIDIÓ UN CANARY, Y POR QUÉ ESTO EXISTE ──────────────────────────
+   *
+   * DeepSeek contestó a Weë Brain con `content` vacío habiendo gastado los
+   * 1.400 tokens de salida enteros. Dos agujeros a la vez:
+   *
+   *   · `finish_reason` venía en la respuesta y se tiraba aquí, así que no se
+   *     podía saber si la cortaron por el techo, si decidió no escribir nada o
+   *     si se negó. Las tres piden cosas distintas.
+   *
+   *   · el vacío pasaba por ÉXITO. El Router cerraba la fila COMPLETED,
+   *     ascendía al proveedor a verificado y se cobraba el Credit, por un
+   *     texto que no existía.
+   *
+   * Gemini ya rechazaba el vacío desde el principio. Esto no es una regla
+   * nueva: es la misma en el otro adaptador.
+   */
+  const MODELO_TEXTO = deepseekAdapter.models.find((m) => m.capabilities.includes('text.generate'));
+  let llamadasAlFetch = 0;
+
+  const conFetch = async (cuerpo, fn) => {
+    const antesFetch = globalThis.fetch;
+    const antesClave = process.env.DEEPSEEK_API_KEY;
+    /* Nunca una clave de verdad: al adaptador solo le hace falta que exista una. */
+    process.env.DEEPSEEK_API_KEY = 'de-prueba-no-es-una-clave';
+    globalThis.fetch = async () => {
+      llamadasAlFetch++;
+      return { ok: true, status: 200, text: async () => JSON.stringify(cuerpo) };
+    };
+    try { return await fn(); } finally {
+      globalThis.fetch = antesFetch;
+      if (antesClave === undefined) delete process.env.DEEPSEEK_API_KEY;
+      else process.env.DEEPSEEK_API_KEY = antesClave;
+    }
+  };
+  const correr = (cuerpo) => conFetch(cuerpo, () => deepseekAdapter.run({
+    capability: 'text.generate',
+    input: { system: 'eres de prueba', prompt: 'hola', maxOutputTokens: 100 },
+    model: MODELO_TEXTO,
+    timeoutMs: 1000,
+  }));
+  const respuesta = (content, finish) => ({
+    choices: [{ message: content === undefined ? {} : { content }, ...(finish ? { finish_reason: finish } : {}) }],
+    usage: { prompt_tokens: 10, completion_tokens: 20 },
+  });
+  const loQueFalla = async (cuerpo) => { try { await correr(cuerpo); return null; } catch (e) { return e; } };
+
+  const normal = await correr(respuesta('una respuesta de verdad', 'stop'));
+  check('P1) una respuesta con contenido sigue funcionando igual',
+    normal.output.kind === 'text' && normal.output.content === 'una respuesta de verdad'
+    && normal.usage.inputTokens === 10 && normal.usage.outputTokens === 20 && normal.costUSD > 0,
+    JSON.stringify({ content: normal.output.content, usage: normal.usage }));
+
+  const vacia = await loQueFalla(respuesta('', 'length'));
+  check('P2) `content` vacío ya NO es un éxito: es un error del proveedor',
+    vacia?.name === 'ProviderError' && /lleg. vac/.test(vacia.message),
+    vacia ? vacia.message : 'no lanzó: el vacío se coló');
+  const soloEspacios = await loQueFalla(respuesta('   \n  ', 'stop'));
+  check('y un contenido que solo tiene espacios tampoco',
+    soloEspacios?.name === 'ProviderError',
+    'el adaptador ya hacía `.trim()`: vacío después de recortar es vacío');
+
+  const ausente = await loQueFalla(respuesta(undefined, 'stop'));
+  const nulo = await loQueFalla(respuesta(null, 'stop'));
+  check('P3) `content` ausente o nulo, lo mismo',
+    ausente?.name === 'ProviderError' && nulo?.name === 'ProviderError');
+
+  check('y el error DICE el desenlace, que es lo que faltaba para diagnosticar',
+    /finish_reason: length/.test(vacia?.message ?? ''),
+    vacia?.message);
+
+  for (const desenlace of ['length', 'stop', 'content_filter']) {
+    const r = await correr(respuesta('algo', desenlace));
+    check(`P4-6) finish_reason "${desenlace}" queda disponible en \`meta\``,
+      r.meta?.finishReason === desenlace,
+      JSON.stringify(r.meta ?? null));
+  }
+
+  check('P7) la metadata NO altera el resultado normal',
+    (() => {
+      const { meta, ...sinMeta } = normal;
+      return sinMeta.output.content === 'una respuesta de verdad'
+        && sinMeta.usage.outputTokens === 20
+        && Object.keys(normal.meta ?? {}).length === 1;
+    })(),
+    'solo se añade; salida, uso y coste se quedan donde estaban');
+
+  const sinDesenlace = await correr({ choices: [{ message: { content: 'x' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+  check('y si la API no manda `finish_reason`, no se inventa ninguno',
+    sinDesenlace.meta === undefined,
+    JSON.stringify(sinDesenlace.meta ?? null));
+
+  check('F5) no se introdujo ningún reintento: una respuesta, una llamada',
+    await (async () => { const antes = llamadasAlFetch; await loQueFalla(respuesta('', 'length')); return llamadasAlFetch - antes === 1; })(),
+    'el adaptador llama una vez y propaga; reintentar no es suyo');
+
+  check('F4) el adaptador sigue sin saber nada de Credits',
+    !/credit/i.test(
+      leer('functions/src/engine/providers/deepseek.ts')
+        .split('/*').map((t, k) => (k ? t.slice(t.indexOf('*/') + 2) : t)).join(' '),
+    ),
+    'el vacío deja de cobrarse porque deja de ser un éxito, no porque esto toque el dinero');
+
+  check('el `retryable` es el mismo que ya usaba Gemini para su vacío',
+    vacia?.retryable === true
+    && /new ProviderError\('gemini: la respuesta llegó vacía', 'gemini'\)/.test(leer('functions/src/engine/providers/gemini.ts')),
+    'por defecto `true`: en `router.ts` eso solo decide si cuenta para el cortacircuitos, no reintenta nada');
+
   console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
   process.exit(failures ? 1 : 0);
 };
