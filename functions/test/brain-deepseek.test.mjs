@@ -340,6 +340,85 @@ const fin = async () => {
     && /new ProviderError\('gemini: la respuesta llegó vacía', 'gemini'\)/.test(leer('functions/src/engine/providers/gemini.ts')),
     'por defecto `true`: en `router.ts` eso solo decide si cuenta para el cortacircuitos, no reintenta nada');
 
+
+  console.log('\n── Y cuánto gastó, que hasta ahora se tiraba ──');
+
+  /*
+   * Cuando una respuesta se corta, el número que hace falta es cuánto consumió.
+   * Las guardas lanzaban antes de leer `usage`, así que una llamada truncada no
+   * dejaba ni un contador y había que medir por ausencias. El dato ya venía en
+   * la respuesta; solo se leía dos líneas más tarde.
+   *
+   * Lo que se anota es lo que el proveedor entrega. Si falta un contador no se
+   * inventa, y lo que signifiquen esos `completion_tokens` se decide en otro
+   * sitio: aquí solo se observan.
+   */
+  const conUso = (content, finish, uso) => ({
+    choices: [{ message: { content }, ...(finish ? { finish_reason: finish } : {}) }],
+    ...(uso === undefined ? {} : { usage: uso }),
+  });
+
+  const u1 = await loQueFalla(conUso('{"a":1', 'length', { prompt_tokens: 3641, completion_tokens: 2200, total_tokens: 5841 }));
+  check('U1) `length` con `usage` completo: error, y conserva los tres contadores',
+    u1?.name === 'ProviderError'
+    && /prompt_tokens: 3641/.test(u1.message)
+    && /completion_tokens: 2200/.test(u1.message)
+    && /total_tokens: 5841/.test(u1.message),
+    u1?.message);
+
+  const u2 = await loQueFalla(conUso('{"a":1', 'length', undefined));
+  check('U2) `usage` ausente: sigue siendo error y NO se inventa ningún contador',
+    u2?.name === 'ProviderError' && !/tokens: /.test(u2.message),
+    u2?.message);
+
+  const u3 = await loQueFalla(conUso('{"a":1', 'length', { completion_tokens: 2200 }));
+  check('U3) `usage` parcial: solo viaja lo que existe',
+    u3?.name === 'ProviderError'
+    && /completion_tokens: 2200/.test(u3.message)
+    && !/prompt_tokens/.test(u3.message) && !/total_tokens/.test(u3.message),
+    u3?.message);
+
+  const u3b = await loQueFalla(conUso('{"a":1', 'length', { completion_tokens: 'muchos' }));
+  check('y un contador que no es un número tampoco cuela',
+    u3b?.name === 'ProviderError' && !/completion_tokens/.test(u3b.message),
+    'se exige `typeof === number`, no «lo que venga»');
+
+  const u4 = await loQueSale(conUso('{"version":1}', 'stop', { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }));
+  check('U4) `stop` con `usage` completo: éxito intacto, y los contadores donde siempre',
+    u4?.output?.content === '{"version":1}' && u4?.usage?.inputTokens === 10 && u4?.usage?.outputTokens === 20,
+    u4?.roto ? 'explotó: ' + u4.roto.message : JSON.stringify(u4?.usage));
+
+  const u5 = await loQueFalla(conUso('{"version":1,"steps":[]}', 'length', { completion_tokens: 2200 }));
+  check('U5) medir el gasto NO hace que un JSON válido pase: `length` sigue siendo error',
+    u5?.name === 'ProviderError',
+    'el motivo de terminación sigue mandando por encima de la forma del texto');
+
+  check('U6) y el mensaje dice a la vez el motivo Y el gasto',
+    /finish_reason: length/.test(u1?.message ?? '') && /completion_tokens/.test(u1?.message ?? ''),
+    u1?.message);
+
+  check('U7) leer el gasto no dispara una segunda llamada: una respuesta, un fetch',
+    await (async () => {
+      const antes = llamadasAlFetch;
+      await loQueFalla(conUso('{"a":1', 'length', { completion_tokens: 1 }));
+      return llamadasAlFetch - antes === 1;
+    })(),
+    'sin reintento y sin respaldo');
+
+  const u8 = await loQueSale(conUso('algo', 'content_filter', { prompt_tokens: 1, completion_tokens: 2 }));
+  check('U8) `content_filter` conserva su precedente, con gasto o sin él',
+    u8?.output?.content === 'algo' && u8?.meta?.finishReason === 'content_filter',
+    u8?.roto ? 'explotó: ' + u8.roto.message : 'ok');
+
+  const u9 = await loQueSale(conUso('algo', undefined, { prompt_tokens: 1, completion_tokens: 2 }));
+  check('U9) sin `finish_reason`: comportamiento de antes, sin tocar',
+    u9?.output?.content === 'algo' && u9?.meta === undefined && u9?.usage?.inputTokens === 1,
+    u9?.roto ? 'explotó: ' + u9.roto.message : 'ok');
+
+  check('y el vacío también aprovecha el gasto, que es la misma necesidad',
+    /completion_tokens: 7/.test((await loQueFalla(conUso('', 'stop', { completion_tokens: 7 })))?.message ?? ''),
+    'una línea compartida: negárselo al caso vacío habría sido arbitrario');
+
   console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
   process.exit(failures ? 1 : 0);
 };

@@ -184,6 +184,23 @@ export const deepseekAdapter: ProviderAdapter = {
      */
     const finishReason = data.choices?.[0]?.finish_reason;
     /*
+     * ── LOS CONTADORES SE LEEN ANTES DE RECHAZAR, NO DESPUÉS ──────────────────────
+     *
+     * Cuando una respuesta se corta, lo primero que hace falta saber es CUÁNTO
+     * gastó, y hasta ahora se tiraba: las guardas de abajo lanzaban antes de que
+     * nadie mirara `usage`, así que una llamada truncada no dejaba ni un número.
+     * El dato ya venía en la respuesta; solo estaba leyendo dos líneas más tarde.
+     *
+     * Se apunta lo que el proveedor da y nada más: si falta un contador, no se
+     * inventa. Lo que significan esos `completion_tokens` —y por qué una petición
+     * gasta más que otra— no se decide aquí: aquí solo se anota lo observado.
+     */
+    const usage = (data.usage ?? {}) as Record<string, unknown>;
+    const contados = (['prompt_tokens', 'completion_tokens', 'total_tokens'] as const)
+      .filter((k) => typeof usage[k] === 'number')
+      .map((k) => `${k}: ${usage[k]}`);
+    const gasto = contados.length ? `, ${contados.join(', ')}` : '';
+    /*
      * ── Y UNA RESPUESTA CORTADA TAMPOCO ES UNA RESPUESTA ──────────────────────────
      *
      * El mismo canary, otra vez, con otra ropa: el modelo compuso bien los tres
@@ -199,18 +216,18 @@ export const deepseekAdapter: ProviderAdapter = {
      */
     if (finishReason === 'length') {
       throw new ProviderError(
-        `deepseek: la respuesta se cortó por el techo de tokens (finish_reason: length)`,
+        `deepseek: la respuesta se cortó por el techo de tokens (finish_reason: length${gasto})`,
         'deepseek',
       );
     }
     if (!content) {
       throw new ProviderError(
-        `deepseek: la respuesta llegó vacía${finishReason ? ` (finish_reason: ${finishReason})` : ''}`,
+        `deepseek: la respuesta llegó vacía${finishReason ? ` (finish_reason: ${finishReason}${gasto})` : gasto ? ` (${gasto.slice(2)})` : ''}`,
         'deepseek',
       );
     }
-    const inputTokens = Number(data.usage?.prompt_tokens ?? 0);
-    const outputTokens = Number(data.usage?.completion_tokens ?? 0);
+    const inputTokens = Number(usage.prompt_tokens ?? 0);
+    const outputTokens = Number(usage.completion_tokens ?? 0);
     /* El coste que se apunta en el libro es el de verdad: tokens reales por la tarifa de esta hora. */
     const tarifa = tarifaVigente();
     return {
