@@ -35,6 +35,7 @@ const {
 } = lib('creator/sombra.js');
 const { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad } = lib('creator/paridad.js');
 const { TEMPLATES } = lib('creator/templates.js');
+const { BRAIN_MAX_OUTPUT_TOKENS, MODELO_DE_BRAIN } = lib('creator/brain.js');
 
 let failures = 0;
 let n = 0;
@@ -386,10 +387,7 @@ const motorDoblado = async (peticion) => {
   };
 };
 
-const fuenteReal = entendimientoRealDelBrain({
-  modelo: 'deepseek-flash', maxOutputTokens: 1400,
-  userId: CUENTA_A, jobId: JOB, generar: motorDoblado,
-});
+const fuenteReal = entendimientoRealDelBrain({ userId: CUENTA_A, jobId: JOB, generar: motorDoblado });
 const entendido = await fuenteReal('travel', GOAL);
 const pet = peticionesAlMotor[0];
 
@@ -410,13 +408,31 @@ check('F9) el coste del proveedor sí viaja, para que quede trazable',
   `requestId=${pet.requestId} · stepId=${pet.stepId}`);
 check('F15) la operación es reconocible en el libro como sombra',
   pet.stepId === 'sombra' && pet.experienceId === 'travel');
-check('F37) con el techo de salida real de producción',
-  pet.input.maxOutputTokens === 1400,
-  'no 2200: el arnés medía con otro y esto mide con el de producción');
+/*
+ * ── UNA SOLA VERDAD SOBRE EL MODELO Y EL TECHO ──────────────────────────────
+ *
+ * No se comparan contra literales escritos aquí: se comparan contra lo que
+ * EXPORTA `creator/brain.ts`. Si alguien cambiara el modelo de Weë Brain, la
+ * sombra lo seguiría sola y esto seguiría en verde — que es justo lo que se
+ * quiere. Lo que NO puede pasar es que se separen, y eso es lo que se mide.
+ */
+check('F37) la sombra usa el techo de salida OFICIAL de Weë Brain',
+  pet.input.maxOutputTokens === BRAIN_MAX_OUTPUT_TOKENS,
+  `el mismo que produce el chat: ${BRAIN_MAX_OUTPUT_TOKENS}`);
+check('F37) y ese techo sigue siendo 1400, sin tocar',
+  BRAIN_MAX_OUTPUT_TOKENS === 1400);
+check('y habla con el modelo OFICIAL de Weë Brain, no con uno suyo',
+  pet.prefs.modelId === MODELO_DE_BRAIN && igual(pet.prefs.allowedProviders, ['deepseek']),
+  `modelo=${MODELO_DE_BRAIN} · el proveedor se nombra explícitamente, como hace el chat`);
+check('no hay forma de pedirle otro modelo ni otro techo: no existe ese parámetro',
+  !/modelo\s*[:?]\s*string|maxOutputTokens\s*[:?]\s*number/.test(
+    /export interface BrainRealParaLaSombra \{[\s\S]*?\n\}/.exec(leer('functions/src/creator/sombra.ts'))[0]),
+  'se leen de `creator/brain.ts`; no se reciben');
+check('ni se repiten en ninguna parte de la sombra',
+  !/deepseek-flash|1400|BRAIN_TEXT_MODEL/.test(sinComentarios(leer('functions/src/creator/sombra.ts'))),
+  'cero literales duplicados');
 check('la capacidad pedida es ENTENDER, nunca generar contenido',
-  pet.capability === 'text.generate' && pet.prefs.modelId === 'deepseek-flash'
-  && igual(pet.prefs.allowedProviders, ['deepseek']),
-  'y se nombra al proveedor explícitamente, como hace Weë Brain');
+  pet.capability === 'text.generate');
 check('F10) el parser real produce un BrainUnderstanding válido',
   !!entendido && entendido.intent === 'planning' && (entendido.steps ?? []).length === 2,
   'sin normalizar nada a mano: `crearBrain().entender()` entero');

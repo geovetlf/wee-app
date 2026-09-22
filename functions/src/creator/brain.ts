@@ -168,8 +168,15 @@ export interface BrainChatInput {
   locale?: string;
 }
 
-/** Salida máxima de una respuesta de Weë Brain. Es el techo del coste de salida. */
-const BRAIN_MAX_OUTPUT_TOKENS = 1400;
+/**
+ * Salida máxima de una respuesta de Weë Brain. Es el techo del coste de salida.
+ *
+ * Se exporta para que la sombra (`creator/sombra.ts`) mida con ESTE número y no
+ * con uno suyo. No es una configuración compartida: es la misma verdad leída
+ * desde un solo sitio, que es lo contrario de dos números que se parecen hasta
+ * el día en que dejan de parecerse.
+ */
+export const BRAIN_MAX_OUTPUT_TOKENS = 1400;
 
 /**
  * CON QUÉ MODELO CONVERSA WEË BRAIN (decisión del usuario, 2026-09-16).
@@ -191,7 +198,9 @@ const BRAIN_MAX_OUTPUT_TOKENS = 1400;
  * La BÚSQUEDA con fuentes no pasa por aquí: la sirve Gemini con Google Search
  * grounding, y se queda como estaba.
  */
-const MODELO_DE_BRAIN = process.env.BRAIN_TEXT_MODEL?.trim() || DEEPSEEK_TEXT_MODEL;
+/* Se exporta por el mismo motivo que el techo de salida: la sombra habla con el
+   MISMO modelo que Weë Brain, y eso se garantiza leyéndolo, no repitiéndolo. */
+export const MODELO_DE_BRAIN = process.env.BRAIN_TEXT_MODEL?.trim() || DEEPSEEK_TEXT_MODEL;
 
 /** Últimos mensajes de la conversación, en el formato que entiende el motor. */
 async function readHistory(messages: FirebaseFirestore.CollectionReference): Promise<{ role: string; text: string }[]> {

@@ -4,6 +4,7 @@ import { crearBrainDeWee, pensamientoDesde } from '../brain';
 import { EngineResult } from '../engine/types';
 import { EXPERIENCIAS_PARA_SUGERIR } from './experiencias';
 import { entradaDeEntender } from './prompts';
+import { BRAIN_MAX_OUTPUT_TOKENS, MODELO_DE_BRAIN } from './brain';
 import { crearPlannerDeWee, disponibilidadDe, disponibilidadDeWee, entendimientoParaPlanificar } from '../planner';
 import { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad, Diferencia } from './paridad';
 import { ExperienceId, Plan as PlanDeLegacy } from './types';
@@ -235,14 +236,12 @@ export const entendimientoDelTramo1: FuenteDeEntendimiento = async (experienceId
  * Inventar un id de transacción para rellenar el hueco habría sido peor que no
  * tenerlo: ataría una fila a un cobro que no existe.
  *
- * El modelo y el techo de salida NO se escriben aquí: los recibe, para que haya
- * una sola verdad sobre con qué modelo habla Weë Brain y cuánto puede contestar.
+ * El modelo y el techo de salida se LEEN de `creator/brain.ts`, que es donde los
+ * decide Weë Brain. No se reciben ni se deducen ni se repiten: no hay forma de
+ * pedirle a la sombra que hable con otro modelo o con otro techo, porque no hay
+ * dónde decírselo. Una sola verdad, leída desde un solo sitio.
  */
 export interface BrainRealParaLaSombra {
-  /** El mismo modelo con el que habla Weë Brain. No se deduce aquí. */
-  modelo: string;
-  /** El mismo techo de salida de producción. No se deduce aquí. */
-  maxOutputTokens: number;
   userId: string;
   jobId: string;
   /** El motor. Se inyecta para poder probar la forma de la petición sin gastar. */
@@ -265,10 +264,10 @@ export const entendimientoRealDelBrain = (deps: BrainRealParaLaSombra): FuenteDe
   async (experienceId, goal) => {
     const pensador: Thinker = {
       async pensar(peticion) {
-        const input = entradaDeEntender(peticion.expected, peticion.context?.inmediato?.text ?? goal, deps.maxOutputTokens);
+        const input = entradaDeEntender(peticion.expected, peticion.context?.inmediato?.text ?? goal, BRAIN_MAX_OUTPUT_TOKENS);
         const run = await deps.generar({
           capability: CAPACIDAD_DEL_ENTENDIMIENTO,
-          prefs: { modelId: deps.modelo, allowedProviders: ['deepseek'] },
+          prefs: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] },
           input,
           userId: deps.userId,
           jobId: deps.jobId,
