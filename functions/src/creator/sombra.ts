@@ -7,7 +7,7 @@ import { entradaDeEntender } from './prompts';
 import { BRAIN_MAX_OUTPUT_TOKENS, MODELO_DE_BRAIN } from './brain';
 import { crearPlannerDeWee, disponibilidadDe, disponibilidadDeWee, entendimientoParaPlanificar } from '../planner';
 import { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad, Diferencia } from './paridad';
-import { ExperienceId, Plan as PlanDeLegacy } from './types';
+import { CapabilityId, ExperienceId, Plan as PlanDeLegacy } from './types';
 
 /**
  * LA SOMBRA DEL PLAN: EL CORE PIENSA EN PARALELO Y NO TOCA NADA.
@@ -248,8 +248,17 @@ export interface BrainRealParaLaSombra {
   generar: (peticion: PeticionAlMotor) => Promise<EngineResult>;
 }
 
+/*
+ * La forma de lo que se le pide al motor. La capacidad va con el tipo DEL
+ * MOTOR y no con el del Core: el catálogo del Core es más ancho —tiene cosas
+ * que ningún adaptador sirve todavía— y esto es una petición de ejecución, no
+ * una declaración de intención. Lo dijo el compilador, no yo.
+ *
+ * Y fíjate en lo que NO hay: `creditTransactionId`. No es un olvido — no
+ * existe el campo, así que no se puede inventar una transacción ni queriendo.
+ */
 export interface PeticionAlMotor {
-  capability: CoreCapabilityId;
+  capability: CapabilityId;
   input: Record<string, unknown>;
   prefs?: { modelId?: string; allowedProviders?: string[] };
   userId: string;
@@ -292,7 +301,7 @@ export const entendimientoRealDelBrain = (deps: BrainRealParaLaSombra): FuenteDe
   };
 
 /** Lo que la sombra le pide al Brain. Entender, nunca generar contenido. */
-export const CAPACIDAD_DEL_ENTENDIMIENTO: CoreCapabilityId = 'text.generate';
+export const CAPACIDAD_DEL_ENTENDIMIENTO: CapabilityId = 'text.generate';
 /** Con qué se reconoce una operación de sombra en el libro. */
 export const SELLO_DE_LA_SOMBRA = 'sombra';
 

@@ -363,6 +363,20 @@ check('y solo cuando hay plan',
 check('F27) esta suite está en la cadena de `npm test`',
   /node test\/sombra-experiencia\.test\.mjs/.test(leer('functions/package.json')));
 
+/*
+ * El cableado del canary: producción pide el entendimiento al Brain DE VERDAD.
+ * El fijo de Travel sigue existiendo —lo usan estas pruebas— pero ya no lo toca
+ * nadie en el flujo de experiencia, y eso es lo que se fija aquí.
+ */
+const INDEX = sinComentarios(leer('functions/src/creator/index.ts'));
+check('el flujo de experiencia pide el entendimiento al Brain REAL',
+  /entendimientoDe: entendimientoRealDelBrain\(\{/.test(INDEX)
+  && /generar: \(peticion\) => engine\.generate\(peticion\)/.test(INDEX),
+  'por `engine.generate`, no por un adaptador');
+check('y ya no usa el fijo del Tramo 1',
+  !/entendimientoDelTramo1/.test(INDEX),
+  'el andamio queda solo para estas pruebas');
+
 console.log('\n── El dinero: se apunta el coste, no se le cobra a nadie ──');
 
 /*

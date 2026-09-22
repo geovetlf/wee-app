@@ -3,10 +3,11 @@ import { AI_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { PlannerInput, getPlanner, respuestaPara } from './planner';
-import { configuracionDeLaSombra, entendimientoDelTramo1, sombraDelPlan } from './sombra';
+import { configuracionDeLaSombra, entendimientoRealDelBrain, sombraDelPlan } from './sombra';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
 import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
+import { engine } from '../engine';
 import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { progressTextFor, friendlyFailure } from '../engine/humanize';
@@ -328,7 +329,21 @@ export const creatorChat = onCall(
           goal: job.goal,
           legacyPlan: job.plan,
           puerta: await configuracionDeLaSombra(db()),
-          entendimientoDe: entendimientoDelTramo1,
+          /*
+           * El Brain de VERDAD, por el camino de siempre: `engine.generate` →
+           * Router → libro → adaptador → proveedor. Aquí acaba el andamio del
+           * Tramo 1; era esta línea y nada más.
+           *
+           * Le cuesta 0 Credits a la persona y no lleva transacción, así que el
+           * coste del proveedor se apunta y no se cobra nada (el porqué está en
+           * `entendimientoRealDelBrain`). Y sigue sin poder pasar nada: la
+           * puerta de arriba está cerrada salvo para cuentas nombradas una a una.
+           */
+          entendimientoDe: entendimientoRealDelBrain({
+            userId: uid,
+            jobId: job.id,
+            generar: (peticion) => engine.generate(peticion),
+          }),
         });
       }
 

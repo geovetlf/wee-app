@@ -385,9 +385,20 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
   const donde = (re, filtro = () => true) => fuentes.filter((f) => filtro(f.r) && re.test(f.src)).map((f) => f.r);
   check('100) el router vivo se instancia UNA vez, en `engine/index.ts`', igual(donde(/\bcreateRouter\(\{/), ['engine/index.ts']), donde(/\bcreateRouter\(\{/).join(', '));
   check('101) hay UN bucle de ejecución de pasos, y está en `creatorRun`', igual(donde(/while \(done\.size < steps\.length\)/), ['creator/index.ts']));
-  /* Todo lo que llega a un proveedor entra por `engine.generate`. Estos son TODOS los que lo llaman. */
+  /*
+   * Todo lo que llega a un proveedor entra por `engine.generate`. Estos son
+   * TODOS los que lo llaman.
+   *
+   * `creator/index.ts` entra con la SOMBRA: le pasa el motor a
+   * `entendimientoRealDelBrain` para que el Core pueda pensar un plan en
+   * paralelo. Es una llamada más por el mismo embudo —Router y libro incluidos,
+   * que es justo por lo que se eligió este camino— con `creditsEstimated: 0` y
+   * sin transacción de Credits, y detrás de un interruptor cerrado por defecto.
+   * Que aparezca aquí es la prueba de que NO se abrió un camino paralelo.
+   */
   const embudo = donde(/\bengine\.generate\(/, (r) => !r.startsWith('core/'));
-  check('102) todo lo que pide IA entra por un único embudo: `engine.generate`', igual(embudo, ['creator/brain.ts', 'engine/video.ts', 'gateway/index.ts']), embudo.join(', '));
+  check('102) todo lo que pide IA entra por un único embudo: `engine.generate`',
+    igual(embudo, ['creator/brain.ts', 'creator/index.ts', 'engine/video.ts', 'gateway/index.ts']), embudo.join(', '));
   check('103) y a `runCapability` solo lo llama Weë Creator', igual(donde(/\brunCapability\(/, (r) => r !== 'gateway/index.ts'), ['creator/index.ts', 'creator/planner.ts']));
   /*
    * LA ÚNICA DUPLICACIÓN DE RUNTIME QUE EXISTE HOY, y está a la vista a propósito:
