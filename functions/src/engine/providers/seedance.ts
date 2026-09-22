@@ -2,6 +2,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../../creator/types';
 import { ModelSpec, ProviderAdapter, ProviderOutcome, ProviderRunRequest } from '../types';
 import { env, fetchJson, persistRemoteFile, pollUntil, ProviderError, readImage, toDataUri } from '../http';
+import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
 import { arkBase, arkHeaders, isArkConfigured } from './ark';
 import type { AvisoNormalizado, DesenlaceDelProveedor } from '../../runtime/aviso';
 import type { ResolutorDeEstadoDeProveedor } from '../../runtime/reconciliacion';
@@ -183,6 +184,28 @@ export interface SeedanceRequestBody {
   callback_url?: string;
 }
 
+/**
+ * LO QUE ESTE ADAPTADOR SABE HACER DE VERDAD CON LA CONTINUIDAD.
+ *
+ * Y depende de la capacidad, no solo del modelo: los huecos de referencia
+ * —`reference_image`, `reference_video`— existen únicamente en `video.reference`.
+ * Un texto a video no tiene dónde meter nada, y un primer cuadro es un punto de
+ * partida, no una referencia que se conserve.
+ *
+ * Controles dedicados: ninguno. Hay condicionamiento por referencia, que ayuda
+ * sin prometer, y eso es todo lo que se puede declarar sin mentir.
+ */
+const mecanismoDeContinuidad = (capability: CapabilityId, modelId: string): MecanismoDeContinuidad => {
+  const spec = specOf(modelId);
+  const conReferencias = capability === 'video.reference';
+  return {
+    referenciasDeImagen: conReferencias ? spec.maxReferenceImages : 0,
+    referenciasDeVideo: conReferencias ? spec.maxReferenceClips : 0,
+    controlesDedicados: [],
+    admiteFuerza: false,
+  };
+};
+
 /** Traduce el input abstracto de Weë al cuerpo oficial de ModelArk (función pura salvo la lectura de imágenes). */
 export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ body: SeedanceRequestBody; estimatedTokens: number; rate: number; withVideoInput: boolean }> {
   const { capability, input, model, prefs } = request;
@@ -263,6 +286,19 @@ export const seedanceAdapter: ProviderAdapter = {
   async run(request: ProviderRunRequest): Promise<ProviderOutcome> {
     const { model, ctx } = request;
     const start = Date.now();
+    /* Qué se pidió conservar y hasta dónde llega esto. No cambia el cuerpo: lo declara. */
+    const continuidad = traducirContinuidad(
+      request.hints?.continuity,
+      mecanismoDeContinuidad(request.capability, model.id),
+      materialDeLaEntrada(request.input)
+    );
+    const fichaDeContinuidad = continuidad
+      ? {
+          continuityUncovered: continuidad.noCubiertos.length,
+          continuityReferences: continuidad.referenciasUsadas,
+          continuityDropped: continuidad.referenciasDescartadas,
+        }
+      : {};
     const headers = arkHeaders('seedance');
     const { body, estimatedTokens, rate, withVideoInput } = await buildSeedanceBody(request);
 
@@ -308,6 +344,7 @@ export const seedanceAdapter: ProviderAdapter = {
           generateAudio: body.generate_audio,
           /* Lo que se le pidió durar: sin esto, quien reconcilie no sabe qué esperaba. */
           requestedDurationSec: body.duration,
+          ...fichaDeContinuidad,
         },
       };
     }
@@ -350,6 +387,7 @@ export const seedanceAdapter: ProviderAdapter = {
         estimatedUsd: seedanceUsd(estimatedTokens, rate),
         withVideoInput,
         generateAudio: body.generate_audio,
+        ...fichaDeContinuidad,
       },
     };
   },
