@@ -126,6 +126,21 @@ export type GatewayMetadata = Readonly<Record<string, string | number | boolean>
  * clave. Cuando no viene, ES el requestId, que ya es la clave de idempotencia
  * del Credit Engine.
  */
+/**
+ * LO QUE PRODUJO UN PASO ANTERIOR. El subconjunto que esta capa mira.
+ *
+ * Escrito aquí y no importado del coordinador a propósito: la dependencia va en
+ * un solo sentido —el coordinador conoce a las capas de abajo, no al revés— y un
+ * import aquí la habría invertido. Misma decisión que `FichaDeMaterial` en el
+ * contrato de los Elements, y por el mismo motivo.
+ */
+export interface MaterialDeUpstream {
+  stepId: string;
+  capability: string;
+  produces?: string;
+  outputRefs: readonly string[];
+}
+
 export interface GatewayRequest {
   contract: string;
   capability: CoreCapabilityId;
@@ -145,6 +160,15 @@ export interface GatewayRequest {
    * de la tarea y esto es material con dueño.
    */
   references?: readonly BrainAttachment[];
+  /**
+   * LO QUE PRODUJERON LOS PASOS ANTERIORES. Referencias, todavía no material.
+   *
+   * Distinto de `references`: aquello lo aportó la persona, esto nació dentro
+   * del mismo plan. Se separan porque su autorización es distinta —uno es de la
+   * cuenta desde el principio y el otro lo acaba de crear esta ejecución— y
+   * porque mezclarlos habría hecho imposible saber cuál era cuál.
+   */
+  upstream?: readonly MaterialDeUpstream[];
   idempotencyKey?: string;
   metadata?: GatewayMetadata;
   execution?: ExecutionOptions;
@@ -283,6 +307,8 @@ export interface ExecutorRequest {
   input: Readonly<Record<string, unknown>>;
   /** Los recursos de la petición, tal como llegaron. Referencias, no material. */
   references?: readonly BrainAttachment[];
+  /** Lo que produjeron los pasos de los que este depende. Referencias, no material. */
+  upstream?: readonly MaterialDeUpstream[];
   trace: TraceContext;
   language?: LanguageContext;
   execution: ExecutionOptions & { mode: 'sync' };
@@ -402,7 +428,7 @@ const MAX_METADATA_TEXT = 256;
 /** Lo que una persona puede adjuntar a un mensaje. El mismo tope que el plan y el trabajo. */
 export const MAX_RECURSOS_DE_LA_PETICION = 8;
 
-const CLAVES_DE_PETICION = ['contract', 'capability', 'implementation', 'input', 'trace', 'language', 'references', 'idempotencyKey', 'metadata', 'execution'];
+const CLAVES_DE_PETICION = ['contract', 'capability', 'implementation', 'input', 'trace', 'language', 'references', 'upstream', 'idempotencyKey', 'metadata', 'execution'];
 const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
 /* Las cinco de `LanguageContext`. Lista local porque una interfaz no tiene claves en tiempo de ejecución. */
 const CLAVES_DE_IDIOMA = ['appLanguage', 'userLocale', 'inputLanguage', 'outputLanguage', 'contentLanguage'];
@@ -603,6 +629,7 @@ interface PeticionValidada {
   implementation: ImplementationRef;
   input: Readonly<Record<string, unknown>>;
   references?: readonly BrainAttachment[];
+  upstream?: readonly MaterialDeUpstream[];
   trace: TraceContext;
   language?: LanguageContext;
   idempotencyKey: string;
@@ -851,6 +878,9 @@ const validarPeticion = (req: unknown, trace: TraceContext | null, maxInputBytes
       implementation: { providerId: ref.providerId, modelId: ref.modelId, adapterId: ref.adapterId as string | undefined },
       input: req.input,
       ...(recursos.length ? { references: Object.freeze(recursos) } : {}),
+      ...(Array.isArray(req.upstream) && req.upstream.length
+        ? { upstream: Object.freeze((req.upstream as readonly MaterialDeUpstream[]).map((u) => Object.freeze({ ...u }))) }
+        : {}),
       trace,
       language: idioma.language,
       idempotencyKey: (req.idempotencyKey as string | undefined) ?? trace.requestId,
@@ -1063,6 +1093,7 @@ export const crearGateway = (ports: GatewayPorts): Gateway => {
         implementation: impl,
         input: p.input,
         ...(p.references?.length ? { references: p.references } : {}),
+        ...(p.upstream?.length ? { upstream: p.upstream } : {}),
         trace: p.trace,
         language: p.language,
         execution: p.execution,

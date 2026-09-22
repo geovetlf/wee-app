@@ -106,6 +106,24 @@ const partesDeImagen = async (urls: string[]) => {
   return partes;
 };
 
+/**
+ * LO QUE ESCRIBIERON LOS PASOS ANTERIORES, PUESTO EN EL ENCARGO.
+ *
+ * Llega ya resuelto —el Gateway lo pidió a la puerta que comprueba de quién
+ * es— así que aquí solo se lee y se coloca. Y se coloca APARTE de lo que pidió
+ * la persona, con su etiqueta, porque son dos cosas distintas: una es lo que
+ * alguien quiere y la otra es material de trabajo que produjo el propio plan.
+ * Mezclarlos haría que el modelo no supiera cuál obedecer.
+ */
+const loQueEscribieronAntes = (upstream: unknown): string => {
+  if (!Array.isArray(upstream)) return '';
+  const textos = upstream
+    .filter((u) => u && typeof u === 'object' && typeof (u as { contenido?: unknown }).contenido === 'string')
+    .map((u, i) => `[${i + 1}] ${(u as { contenido: string }).contenido}`);
+  if (!textos.length) return '';
+  return `Material de los pasos anteriores (úsalo, no lo repitas):\n${textos.join('\n\n')}`;
+};
+
 export const deepseekAdapter: ProviderAdapter = {
   id: 'deepseek',
   name: 'DeepSeek',
@@ -120,7 +138,8 @@ export const deepseekAdapter: ProviderAdapter = {
     const start = Date.now();
     const wantJson = capability === 'text.structure';
     const system = String(input.system ?? 'Eres Weë. Responde en español, claro y breve.');
-    const prompt = String(input.prompt ?? input.purpose ?? '');
+    const anterior = loQueEscribieronAntes(input.upstream);
+    const prompt = [String(input.prompt ?? input.purpose ?? ''), anterior].filter(Boolean).join('\n\n');
 
     const urls = [
       ...(input.imageUrl ? [String(input.imageUrl)] : []),

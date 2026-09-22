@@ -436,15 +436,26 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const DEL_TRABAJO = 'functions/src/core/job.ts functions/src/job/index.ts';
   const delTrabajo = execSync('git diff -U0 c3515b3 -- ' + DEL_TRABAJO, { cwd: RAIZ, encoding: 'utf8' });
   const fueraDelTrabajo = delTrabajo.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));
-  check('63j) del Job Engine y su composición no desaparece NI UNA LÍNEA: el cambio es puro añadido',
-    delTrabajo.length > 0 && fueraDelTrabajo.length === 0,
-    fueraDelTrabajo.length + ' líneas quitadas');
+  /*
+   * G8 alargó una línea: el import del Job, que ahora también trae el contrato
+   * del material de upstream. Sigue sin desaparecer NADA — lo que se va es una
+   * línea que vuelve más larga, igual que en 63g.
+   */
+  const alargadaDelTrabajo = (l) => /^import {$|^import {/.test(l.trim());
+  check('63j) del Job Engine y su composición no se QUITA nada: lo que desaparece es una línea alargada',
+    delTrabajo.length > 0 && fueraDelTrabajo.every((l) => alargadaDelTrabajo(l.slice(1))),
+    fueraDelTrabajo.length + ' líneas · ' + fueraDelTrabajo.filter((l) => !alargadaDelTrabajo(l.slice(1))).length + ' sin justificar');
   {
     const JOB = leer('functions/src/core/job.ts');
     const COMPOSICION = leer('functions/src/job/index.ts');
     const dentro = [...delTrabajo.matchAll(/^\+\s*(\w+)\??:/gm)].map((m) => m[1]);
-    check('63k) y lo único que gana es el transporte del recurso',
-      dentro.every((c) => c === 'references'),
+    /*
+     * DOS transportes, y los dos nombrados: `references` es lo que aportó la
+     * persona (C11.4) y `upstream` lo que produjo otro paso del mismo plan (G8).
+     * Son cosas distintas a propósito, y por eso son dos campos y no uno.
+     */
+    check('63k) y lo único que gana son los dos transportes autorizados',
+      dentro.every((c) => c === 'references' || c === 'upstream'),
       dentro.length ? [...new Set(dentro)].join(',') : 'ningún campo nuevo');
     check('63l) el trabajo TRANSPORTA el recurso: no lo resuelve, no lo firma y no sabe de quién es',
       !/solicitarEntrega|urlFirmada|leerElemento|leerMaterial|ownerAccountId|getFirestore|https:\/\/|firmar|signUrl/i.test(sinComentarios(JOB + COMPOSICION)),
@@ -512,14 +523,14 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     quitadas.filter(deF12D).length === 2 && quitadas.filter(deC114).length <= 1
     && quitadas.every((l) => deF12D(l) || deS2(l) || deC114(l)),
     `${quitadas.length} quitadas · ${quitadas.filter((l) => !deF12D(l) && !deS2(l) && !deC114(l)).length} sin justificar`);
-  check('63n) y la clave que ganó la petición es SOLO el recurso',
+  check('63n) y las claves que ganó la petición son SOLO los dos transportes',
     (() => {
       const claves = (l) => (l.match(/'([a-zA-Z]+)'/g) ?? []).map((x) => x.replace(/'/g, ''));
       const nueva = añadidas.find((l) => /^const CLAVES_DE_PETICION = /.test(l.trim()));
       const vieja = quitadas.find((l) => /^const CLAVES_DE_PETICION = /.test(l.trim()));
       if (!nueva || !vieja) return false;
       return claves(vieja).every((c) => claves(nueva).includes(c))
-        && claves(nueva).filter((c) => !claves(vieja).includes(c)).join() === 'references';
+        && claves(nueva).filter((c) => !claves(vieja).includes(c)).sort().join() === 'references,upstream';
     })());
   /*
    * 63f VIGILA LA COSTURA, NO SUS INQUILINOS.

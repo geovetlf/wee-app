@@ -1,8 +1,11 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { ContinuityRequirements } from '../core';
 import { leerElemento } from '../elements';
+import { leerTextoDelMaterial } from '../content';
 import { depsDeEntregaDeWee, solicitarEntrega } from '../media/entrega';
-import { ResolucionDeReferencias, materializarRecursos, resolverReferenciasDeContinuidad } from './referencias';
+import {
+  ResolucionDeReferencias, materializarRecursos, resolverMaterialDeUpstream, resolverReferenciasDeContinuidad,
+} from './referencias';
 
 /**
  * WEË — LAS DOS PUERTAS DE VERDAD, ATADAS A LA RESOLUCIÓN DE REFERENCIAS.
@@ -67,6 +70,30 @@ export const recursosAdjuntosDeWee = (
   const db = getFirestore();
   const deps = depsDeEntregaDeWee(db);
   return materializarRecursos(accountId, adjuntos, {
+    entrega: async (assetId) => {
+      const desenlace = await solicitarEntrega(deps, { principalId: accountId, assetId, operationId });
+      return desenlace.ok ? desenlace.entrega : null;
+    },
+  });
+};
+
+/**
+ * EL MATERIAL DE LOS PASOS ANTERIORES, ATADO A LAS PUERTAS DE VERDAD.
+ *
+ * Dos puertas porque hay dos clases de material y no se leen igual: el texto
+ * está en su ficha y lo lee `leerTextoDelMaterial` comprobando la cuenta; lo
+ * demás está en el almacén y lo firma `solicitarEntrega`, que comprueba lo
+ * mismo y algo más. Ni una tercera, ni un atajo.
+ */
+export const upstreamDeWee = (
+  accountId: string,
+  upstream: readonly { stepId: string; capability: string; produces?: string; outputRefs: readonly string[] }[],
+  operationId?: string,
+) => {
+  const db = getFirestore();
+  const deps = depsDeEntregaDeWee(db);
+  return resolverMaterialDeUpstream(accountId, upstream, {
+    texto: (assetId) => leerTextoDelMaterial(accountId, assetId),
     entrega: async (assetId) => {
       const desenlace = await solicitarEntrega(deps, { principalId: accountId, assetId, operationId });
       return desenlace.ok ? desenlace.entrega : null;

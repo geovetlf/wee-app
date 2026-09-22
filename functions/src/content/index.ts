@@ -671,3 +671,22 @@ export const crearMaterialDeTexto = async (datos: NuevoMaterialDeTexto): Promise
     return ya && ya.ownerAccountId === datos.ownerAccountId ? ya : null;
   }
 };
+
+/**
+ * EL CONTENIDO DE UN MATERIAL DE TEXTO, SI ES DE ESTA CUENTA.
+ *
+ * Hermana de `leerMaterial`, que devuelve la ficha. Esto devuelve lo que un
+ * paso escribió, y solo a quien le pertenece: un material de otra cuenta
+ * contesta `null`, igual que uno que no existe — distinguirlos permitiría
+ * averiguar qué tiene otra cuenta probando identificadores.
+ *
+ * Un material que no es de texto también contesta `null`: sus bytes no están
+ * aquí, están en el almacén, y para eso está la entrega firmada.
+ */
+export const leerTextoDelMaterial = async (accountId: string, assetId: string): Promise<string | null> => {
+  if (typeof accountId !== 'string' || !accountId || !FORMA_DE_ID_DE_MATERIAL.test(assetId)) return null;
+  const snap = await assets().doc(assetId).get();
+  const d = snap.data();
+  if (!d || d.ownerAccountId !== accountId || d.kind !== 'text' || d.status !== 'ready') return null;
+  return typeof d.contenido === 'string' ? d.contenido : null;
+};

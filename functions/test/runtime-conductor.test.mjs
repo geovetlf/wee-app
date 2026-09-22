@@ -125,7 +125,26 @@ const mundo = (opciones = {}) => {
   const trazas = [];
   const gateway = opciones.gateway ?? core.crearGateway({
     registry: registro,
-    executor: motorDelGateway.crearEjecutorDelMotor({ adapters, config: () => config, now }),
+    executor: motorDelGateway.crearEjecutorDelMotor({
+      adapters, config: () => config, now,
+      /*
+       * G8: la puerta que resuelve lo que produjo un paso anterior. Aquí se
+       * imita su CONTRATO —material ya resuelto— sin base de datos.
+       */
+      ...(opciones.upstream !== false
+        ? {
+            upstream: async (_cuenta, pasos) => ({
+              materiales: pasos.flatMap((x) => x.outputRefs.map((ref) => ({
+                stepId: x.stepId, capability: x.capability,
+                materialType: x.produces === 'text' ? 'text' : 'image',
+                assetId: ref,
+                ...(x.produces === 'text' ? { contenido: 'lo que escribió ' + x.stepId } : { url: 'https://llave.invalido/' + ref }),
+              }))),
+              fallos: [],
+            }),
+          }
+        : {}),
+    }),
     tracer: { record: (t) => { trazas.push(t); } }, now,
   });
   const router = core.crearRouter({ registry: registro });
@@ -217,7 +236,16 @@ console.log('\n── B · Varios pasos: dependencias, material y paralelismo �
   const r = await m.conductor.ejecutar(pedir(w));
   check('dos pasos dependientes terminan, y en su orden', r.estado === 'terminada' && a.llamadas.map((l) => l.capability).join('>') === 'image.generate>video.image_to_video');
   check('resultado del proveedor → MATERIAL: el paso deja la referencia del material, no la URL', r.pasos[0].outputRefs[0] === 'asset_imagen' && !JSON.stringify(r.run.steps).includes('token='));
-  check('y el paso siguiente recibe ESA referencia como material de su dependencia', a.llamadas[1].input.upstream?.[0]?.outputRefs?.[0] === 'asset_imagen' && a.llamadas[1].input.upstream[0].stepId === 'imagen');
+  /*
+   * G8 CAMBIÓ ESTO, Y A MEJOR. Antes el conductor metía la referencia CRUDA
+   * dentro de `input` y nadie la leía: el paso siguiente recibía un
+   * identificador que no sabía abrir. Ahora el Gateway se lo pide a la puerta
+   * que comprueba de quién es, y al adaptador le llega el material.
+   */
+  check('y el paso siguiente recibe ese material YA RESUELTO, no una referencia cruda',
+    a.llamadas[1].input.upstream?.[0]?.assetId === 'asset_imagen'
+    && a.llamadas[1].input.upstream[0].stepId === 'imagen'
+    && a.llamadas[1].input.upstream[0].outputRefs === undefined);
   check('el material se pidió una vez por paso, con lo que dejó el proveedor', recibido.length === 2 && recibido[0].urls[0].includes('a.png'));
 
   const sinPuerto = mundo({ adapters: { x: adaptador('x', imagen('https://almacen.invalido/u/a.png?token=abc')) } });

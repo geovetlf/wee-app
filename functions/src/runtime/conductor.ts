@@ -417,8 +417,16 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
         at: ahora(),
         capability: dispatch.capability,
         implementation: resolucion.implementation,
-        /* Lo que dejaron las dependencias viaja como REFERENCIAS, aparte de lo que el plan declaró. */
-        input: dispatch.upstream.length ? { ...dispatch.input, upstream: dispatch.upstream } : dispatch.input,
+        input: dispatch.input,
+        /*
+         * LO QUE DEJARON LAS DEPENDENCIAS, POR SU PROPIO CANAL.
+         *
+         * Antes se metía DENTRO de `input`, y ahí se quedaba: nadie lo leía, y
+         * de paso confundía un parámetro de la tarea con el resultado de otro
+         * paso. Ahora viaja aparte hasta el Gateway, que es quien sabe pedirle
+         * el material a la puerta que comprueba de quién es.
+         */
+        ...(dispatch.upstream.length ? { upstream: dispatch.upstream } : {}),
         /* Y los recursos que el Orchestrator ya eligió, por su propio canal. */
         ...(dispatch.references?.length ? { references: dispatch.references } : {}),
         trace: dispatch.trace,

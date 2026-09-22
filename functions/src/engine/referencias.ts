@@ -402,3 +402,101 @@ export const materializarRecursos = async (
 
   return Object.freeze({ materiales: Object.freeze(materiales), fallos: Object.freeze(fallos), lecturas });
 };
+
+/* ── Lo que produjeron los pasos anteriores ───────────────────────────────── */
+
+/**
+ * EL MATERIAL DE UN PASO ANTERIOR, RESUELTO. Y hay dos caminos, no uno.
+ *
+ * Un paso anterior pudo producir una imagen o un texto, y no se leen igual:
+ *
+ *   imagen, vídeo, audio   viven en el almacén → una llave temporal, firmada
+ *                          por la misma puerta de siempre.
+ *   texto                  vive en su propia ficha (C13) → se lee el contenido,
+ *                          que ya está ahí. Firmar una URL para un texto que
+ *                          cabe en un documento habría sido inventarse un
+ *                          objeto en el almacén para no leer un campo.
+ *
+ * Lo que NO cambia es quién autoriza: los dos caminos pasan por una puerta que
+ * comprueba de quién es el material antes de dar nada.
+ */
+export interface MaterialDeUnPasoAnterior {
+  stepId: string;
+  capability: string;
+  materialType: AssetKind;
+  assetId: string;
+  /** Para un texto: su contenido. Para lo demás, ausente. */
+  contenido?: string;
+  /** Para lo que vive en el almacén: la llave temporal. Para un texto, ausente. */
+  url?: string;
+}
+
+export interface DepsDeUpstream {
+  /** El contenido de un material de texto, por la puerta que comprueba dueño. */
+  texto: (assetId: string) => Promise<string | null>;
+  /** La llave temporal de lo que vive en el almacén. La de MC-2, ya atada a quien pide. */
+  entrega: (assetId: string) => Promise<Entrega | null>;
+}
+
+/**
+ * DE LAS REFERENCIAS DE UN PASO ANTERIOR AL MATERIAL QUE OTRO PUEDE USAR.
+ *
+ * ── Por qué no se salta una referencia rota en silencio ─────────────────────
+ *
+ * Porque si el paso B depende de A, ejecutar B sin lo que A escribió es generar
+ * algo que no es lo que se pidió — y cobrarlo. Una referencia que no se puede
+ * resolver sale en `fallos`, y quien decida si esto se ejecuta lo hará con esa
+ * lista delante.
+ */
+export const resolverMaterialDeUpstream = async (
+  accountId: string,
+  upstream: readonly { stepId: string; capability: string; produces?: string; outputRefs: readonly string[] }[] | undefined,
+  deps: DepsDeUpstream,
+): Promise<{ materiales: readonly MaterialDeUnPasoAnterior[]; fallos: readonly FalloDeReferencia[]; lecturas: number }> => {
+  const vacio = Object.freeze({ materiales: Object.freeze([]), fallos: Object.freeze([]), lecturas: 0 });
+  if (typeof accountId !== 'string' || !accountId || !upstream?.length) return vacio;
+
+  const materiales: MaterialDeUnPasoAnterior[] = [];
+  const fallos: FalloDeReferencia[] = [];
+  let lecturas = 0;
+
+  for (const paso of upstream.slice(0, MAX_ANCLAJES_DE_CONTINUIDAD)) {
+    const tipo = (paso.produces === 'text' ? 'text' : paso.produces) as AssetKind | undefined;
+    for (const assetId of paso.outputRefs.slice(0, MAX_ANCLAJES_DE_CONTINUIDAD)) {
+      if (tipo === 'text') {
+        const contenido = await deps.texto(assetId);
+        lecturas += 1;
+        if (contenido === null) { fallos.push({ elementId: paso.stepId, requestedVersion: 0, reason: 'material_unavailable' }); continue; }
+        materiales.push(Object.freeze({ stepId: paso.stepId, capability: paso.capability, materialType: 'text', assetId, contenido }));
+        continue;
+      }
+      const entrega = await deps.entrega(assetId);
+      lecturas += 2;
+      if (!entrega) { fallos.push({ elementId: paso.stepId, requestedVersion: 0, reason: 'material_unavailable' }); continue; }
+      materiales.push(Object.freeze({
+        stepId: paso.stepId, capability: paso.capability,
+        materialType: (tipo ?? 'image') as AssetKind, assetId, url: entrega.url,
+      }));
+    }
+  }
+  return Object.freeze({ materiales: Object.freeze(materiales), fallos: Object.freeze(fallos), lecturas });
+};
+
+/**
+ * EL MATERIAL DE LOS PASOS ANTERIORES, EN LA ENTRADA.
+ *
+ * `upstream` es la clave abstracta con la que el motor ya describía esto —el
+ * conductor la escribía, aunque nadie la leyera— y se conserva: renombrarla no
+ * habría cambiado nada salvo romper lo poco que ya la conocía. Lo que cambia es
+ * que ahora llega RESUELTA: con el texto dentro o con la llave puesta, en vez
+ * de con una referencia que el adaptador no sabría abrir.
+ *
+ * Y NO pisa lo que ya venía: lo que aportó la persona sigue donde estaba.
+ */
+export const upstreamEnLaEntrada = (
+  materiales: readonly MaterialDeUnPasoAnterior[],
+  entrada: Record<string, unknown>,
+): Record<string, unknown> => {
+  if (materiales.length === 0) return entrada;
+  return { ...entrada, upstream: Object.freeze(materiales.map((m) => Object.freeze({ ...m }))) };
+};

@@ -26,7 +26,9 @@ import { NotConfiguredError, ProviderError } from './http';
 import { ADAPTERS, DEFAULT_ROUTING } from './registry';
 import { sanitizeForLog } from './sanitize';
 import { cubreLoExigido, traducirContinuidad, materialDeLaEntrada } from './continuidad';
-import { ResolucionDeReferencias, materialEnLaEntrada } from './referencias';
+import {
+  MaterialDeUnPasoAnterior, ResolucionDeReferencias, materialEnLaEntrada, upstreamEnLaEntrada,
+} from './referencias';
 import { EngineContext, ModelSpec, ProviderAdapter, ProviderConfig, ProviderResult, RoutingPrefs } from './types';
 
 /**
@@ -99,6 +101,17 @@ export interface EjecutorDeps {
    * puerta de Media Cloud; lo que cambia es cuánto hay que resolver antes.
    */
   recursos?: (accountId: string, adjuntos: readonly BrainAttachment[]) => Promise<ResolucionDeReferencias>;
+  /**
+   * LO QUE PRODUJERON LOS PASOS ANTERIORES. G8, y por la misma costura.
+   *
+   * Tercera pregunta distinta con la misma respuesta: quién autoriza. Un
+   * anclaje de continuidad, un adjunto y el resultado de otro paso son tres
+   * cosas, y las tres pasan por una puerta que comprueba de quién son.
+   */
+  upstream?: (
+    accountId: string,
+    pasos: readonly { stepId: string; capability: string; produces?: string; outputRefs: readonly string[] }[],
+  ) => Promise<{ materiales: readonly MaterialDeUnPasoAnterior[]; fallos: readonly { reason: string }[] }>;
 }
 
 /** Tiempo límite TOTAL de la ejecución, agotado. Distinto del de una llamada HTTP dentro del adaptador. */
@@ -286,7 +299,28 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
        */
       let entrada = input as Record<string, unknown>;
       /*
-       * ── C11.4 · LO QUE LA PERSONA ADJUNTÓ, PRIMERO ────────────────────────
+       * ── G8 · LO QUE ESCRIBIÓ EL PASO ANTERIOR ─────────────────────────────
+       *
+       * Primero de todo, porque sin ello este paso no es el que se planificó:
+       * si B depende de A, ejecutar B sin lo que A escribió es generar otra
+       * cosa — y cobrarla. Una referencia que no se puede resolver para la
+       * ejecución aquí, antes de llamar a nadie.
+       *
+       * Llega RESUELTO: con el texto dentro o con la llave puesta. El adaptador
+       * no tiene que saber que existían identificadores de material.
+       */
+      if (req.upstream?.length && deps.upstream) {
+        const anterior = await deps.upstream(trace.userId, req.upstream);
+        if (anterior.fallos.length > 0) {
+          return rechazo('INVALID_REQUEST', 'invalid_request', {
+            upstream: 'pre_execution_rejected',
+            unresolved: anterior.fallos.map((f) => f.reason),
+          });
+        }
+        entrada = upstreamEnLaEntrada(anterior.materiales, entrada);
+      }
+      /*
+       * ── C11.4 · LO QUE LA PERSONA ADJUNTÓ ─────────────────────────────────
        *
        * Antes que la continuidad porque es material de la tarea: la foto que
        * hay que restaurar. Y falla cerrado igual que todo lo demás: un adjunto
@@ -440,6 +474,8 @@ export interface GatewayDelMotorDeps {
   referencias?: EjecutorDeps['referencias'];
   /** C11.4, por la misma razón. */
   recursos?: EjecutorDeps['recursos'];
+  /** G8, por la misma razón. */
+  upstream?: EjecutorDeps['upstream'];
 }
 
 /**
@@ -467,6 +503,7 @@ export const crearGatewayDelMotor = (deps: GatewayDelMotorDeps): Gateway => {
       aceptaAsincrono: deps.aceptaAsincrono === true,
       referencias: deps.referencias,
       recursos: deps.recursos,
+      upstream: deps.upstream,
     }),
     tracer: deps.tracer,
     now: deps.now ?? (() => Date.now()),
@@ -511,6 +548,10 @@ export const gatewayDeWee = (): Gateway => {
       recursos: async (accountId, adjuntos) => {
         const { recursosAdjuntosDeWee } = await import('./referencias-de-wee');
         return recursosAdjuntosDeWee(accountId, adjuntos);
+      },
+      upstream: async (accountId, pasos) => {
+        const { upstreamDeWee } = await import('./referencias-de-wee');
+        return upstreamDeWee(accountId, pasos);
       },
     });
   }
