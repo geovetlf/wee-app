@@ -18,9 +18,9 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
-import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, instruccionDeIdioma, localeDeBrain } from './prompts';
+import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, BRAIN_UNDERSTAND_SYSTEM, instruccionDeIdioma, localeDeBrain, vocabularioParaElPrompt } from './prompts';
 import { AI_SECRETS } from '../secrets';
-import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, contextoDeIdioma, interpretarMarca } from '../core';
+import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, ThoughtRequest, contextoDeIdioma, interpretarMarca } from '../core';
 import { crearBrainDeWee, pensamientoDesde } from '../brain';
 import {
   conductorDeWee,
@@ -431,8 +431,36 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        */
       let causaDelFallo: unknown;
       let salida: SalidaDeBrain | undefined;
+      /*
+       * ── ENTENDER NO ES CONVERSAR, Y HASTA AQUÍ ERA LO MISMO ─────────────────
+       *
+       * Este pensador declaraba `async pensar()` SIN PARÁMETRO: tiraba la
+       * petición entera, y con ella el vocabulario que el Core venía armando
+       * —las capacidades y las variantes de cada una— desde C19. El canary de
+       * C20 tuvo que renderizarlo a mano en su propio script para poder
+       * preguntarle algo al modelo.
+       *
+       * Ahora la lee. En modo «entender» manda el prompt de estructura MÁS el
+       * vocabulario, y pide JSON; en modo «conversar» no cambia nada: el mismo
+       * `engineInput` que se cotizó, palabra por palabra.
+       *
+       * Conectar el carril no es abrirlo: quien llama sigue pidiendo
+       * `conversar`, así que esta rama todavía no se recorre en producción.
+       * Cambiar de modo cambia lo que la persona lee, y eso es otra fase.
+       */
+      const entradaDelModo = (peticion?: ThoughtRequest): Record<string, unknown> => {
+        if (peticion?.kind !== 'understand') return engineInput;
+        const vocabulario = vocabularioParaElPrompt(peticion.expected);
+        return {
+          system: [String(BRAIN_UNDERSTAND_SYSTEM), vocabulario].filter(Boolean).join('\n\n'),
+          prompt: peticion.context?.inmediato?.text ?? '',
+          kind: 'understand',
+          maxOutputTokens: BRAIN_MAX_OUTPUT_TOKENS,
+          temperature: 0.2,
+        };
+      };
       const pensadorDeSiempre = (): Thinker => ({
-        async pensar() {
+        async pensar(peticion) {
           try {
             const run = await engine.generate({
               capability: capacidad,
@@ -444,7 +472,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
                * se ve; nunca se cambia de proveedor por detrás.
                */
               ...(webSearch ? null : { prefs: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] } }),
-              input: engineInput,
+              input: entradaDelModo(peticion),
               userId: uid,
               jobId: chatRef.id,
               stepId: messageId,

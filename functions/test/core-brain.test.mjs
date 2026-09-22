@@ -572,7 +572,15 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
   check('92) el input enviado es EXACTAMENTE el que se cotizó: mismo objeto, una sola fuente',
     typeof inputVisto.input.system === 'string' && inputVisto.input.prompt === 'quiero un logo' && inputVisto.input.kind === 'answer'
     && Array.isArray(inputVisto.input.history) && inputVisto.input.maxOutputTokens === 1400 && inputVisto.input.temperature === 0.7
-    && /input: engineInput,/.test(leer(CALLABLE)), Object.keys(inputVisto.input).join(','));
+    /*
+     * C21 afinó esta línea. Exigía el texto `input: engineInput,`, y desde que
+     * el pensador distingue «entender» de «conversar» el texto es una llamada.
+     * Lo que protege NO es la forma de escribirlo: es que conversar mande el
+     * MISMO OBJETO que se cotizó. Eso es lo que se comprueba ahora, y sigue
+     * siendo identidad y no parecido.
+     */
+    && leer(CALLABLE).includes("if (peticion?.kind !== 'understand') return engineInput;"),
+    Object.keys(inputVisto.input).join(','));
   check('93) y el idioma de la interfaz va dentro, con la reserva de siempre para un cliente viejo',
     /código es/.test(inputVisto.input.system));
   engineMod.engine.generate = async (req) => { inputVisto = req; return { output: { kind: 'text', content: 'はい' }, usage: {}, costUSD: 0.001, latencyMs: 3, provider: 'x', modelId: 'm', credits: 0, generationId: 'g2', attempts: 1, demo: false, decision: {} }; };

@@ -1,3 +1,5 @@
+import { CAPABILITY_CATALOG } from '../core/registry';
+import { ThoughtRequest } from '../core';
 import { ExperienceId } from './types';
 
 /**
@@ -96,6 +98,65 @@ const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
  * `brainChat`, y eso cambia lo que la persona ve: es una decisión de producto
  * y de otra fase.
  */
+/**
+ * EL VOCABULARIO QUE RECIBE EL MODELO, EN TEXTO.
+ *
+ * ── El agujero que tapa ─────────────────────────────────────────────────────
+ *
+ * El Core armaba `ThoughtRequest.expected` con las capacidades y sus variantes,
+ * y NADIE lo leía: el pensador declaraba `async pensar()` sin parámetro y
+ * tiraba la petición entera. El canary de C20 tuvo que renderizar el
+ * vocabulario a mano en su propio script para poder preguntarle al modelo.
+ * Un canary que necesita su propio renderizador no está midiendo el producto.
+ *
+ * ── Y por qué se construye, no se escribe ───────────────────────────────────
+ *
+ * Las listas salen del catálogo en el momento de armar la petición. Escribirlas
+ * aquí sería una segunda verdad: el día que se añadiera una variante, el
+ * validador la aceptaría y el modelo no sabría que existe.
+ *
+ * Se descarta lo que no reconoce el catálogo —una capacidad inventada, una
+ * variante que no es de esa capacidad— en vez de arreglarlo. Esto NO corrige
+ * al modelo: le dice qué puede decir, y de comprobar lo que diga se encargan
+ * el lector y el Planner, cada uno por su cuenta.
+ *
+ * ── El orden no es una preferencia ──────────────────────────────────────────
+ *
+ * Las capacidades salen en el orden del catálogo y las variantes en orden
+ * alfabético. Es determinista para que dos peticiones iguales den el mismo
+ * texto, y NO significa que la primera sea mejor: aquí se define qué se puede
+ * expresar, no qué conviene elegir.
+ */
+export const vocabularioParaElPrompt = (esperado: ThoughtRequest['expected']): string => {
+  if (!esperado) return '';
+  const enElCatalogo = (id: string) => CAPABILITY_CATALOG.find((c) => c.id === id);
+  const capacidades = CAPABILITY_CATALOG
+    .filter((c) => esperado.capabilities.includes(c.id))
+    .map((c) => c.id);
+  if (!capacidades.length) return '';
+
+  const lineas: string[] = [
+    `Intenciones posibles: ${[...esperado.intents].join(', ')}.`,
+    `Capacidades del catálogo: ${capacidades.join(', ')}.`,
+  ];
+
+  /* Solo las que declaran variantes, y solo las variantes que son SUYAS. */
+  const conVariantes = capacidades
+    .map((id) => {
+      const declaradas = enElCatalogo(id)?.variants ?? [];
+      const pedidas = esperado.variants?.[id] ?? [];
+      const validas = [...pedidas].filter((v) => declaradas.includes(v)).sort();
+      return validas.length ? `  ${id}: ${validas.join(', ')}` : '';
+    })
+    .filter(Boolean);
+  if (conVariantes.length) {
+    lineas.push('Variantes ("kind") que admite cada capacidad; una que no aparezca aquí no tiene variantes:');
+    lineas.push(...conVariantes);
+  }
+  if (esperado.experiences.length) lineas.push(`Experiencias: ${[...esperado.experiences].join(', ')}.`);
+  return lineas.join('\n');
+};
+
 export const BRAIN_UNDERSTAND_SYSTEM = [
   'Eres el módulo de comprensión de Weë. NO conversas y NO escribes para nadie: devuelves solamente un objeto JSON.',
   'Campos: intent, confidence, goal, capability, capabilities, steps, constraints, missing, assumptions, suggestedExperience, creative, context, continuity.',

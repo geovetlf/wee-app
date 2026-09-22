@@ -55,7 +55,14 @@ check('2) y Brain lo usa, en la cotización y en el cobro', /const service: Cred
   && /const service = webSearch \? 'ai_search' : 'ai_brain'/.test(leer('functions/src/creator/brain.ts')));
 check('3) su margen es el suyo, no el global', getCreditMargin('ai_brain', settings.margin) === 0.2 && settings.margin === 0.3, `Brain ${getCreditMargin('ai_brain', settings.margin)} · global ${settings.margin}`);
 check('4) y se cobra por coste real, no por catálogo', getCreditPricingMode('ai_brain', settings.pricingMode) === 'real' && settings.pricingMode === 'simulated');
-check('5) el margen NO está escrito dentro de Brain', !/0\.2\b|BRAIN_MARGIN/.test(leer('functions/src/creator/brain.ts')));
+/*
+ * C21 afinó esta línea. Prohibía cualquier , y una 
+ * —que es cuánto se arriesga el modelo al escribir— no es un margen de
+ * Credits. Lo que se prohíbe es que el MARGEN viva aquí.
+ */
+check('5) el margen NO está escrito dentro de Brain',
+  !/getCreditMargin|creditMargin|BRAIN_MARGIN|margen de credit/i.test(leer('functions/src/creator/brain.ts')),
+  'MARGEN_DEL_CONDUCTOR_MS es un plazo, no un margen de dinero');
 check('6) la búsqueda con fuentes sigue siendo ai_search', /webSearch \? 'ai_search'/.test(leer('functions/src/creator/brain.ts')));
 
 console.log('\n── B · Las demás experiencias no se enteran ──');
