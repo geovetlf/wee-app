@@ -45,7 +45,7 @@ const check = (name, cond, extra = '') => {
 
 const core = lib('core/index.js');
 const { CAPABILITY_CATALOG, VARIANTES_DEL_CATALOGO, INTENCIONES } = core;
-const { vocabularioParaElPrompt, BRAIN_UNDERSTAND_SYSTEM } = lib('creator/prompts.js');
+const { vocabularioParaElPrompt, entradaDeEntender, BRAIN_UNDERSTAND_SYSTEM } = lib('creator/prompts.js');
 
 const esperadoReal = (extra = {}) => ({
   intents: INTENCIONES,
@@ -153,12 +153,19 @@ const cerebroSrc = leer('functions/src/creator/brain.ts');
 check('G18-5 · el pensador YA NO tira la petición',
   /async pensar\(peticion\)/.test(cerebroSrc) && !/async pensar\(\) \{/.test(cerebroSrc),
   'ahí estaba el agujero: `async pensar()` sin parámetro');
+/*
+ * Se comprueba LO QUE PRODUCE, no cómo está escrito: el cierre se extrajo en
+ * C22 para que un canary pudiera usar la MISMA función en vez de rehacerla.
+ */
+const entradaEntender = entradaDeEntender(esperadoReal(), 'una petición cualquiera', 1400);
 check('y en modo «entender» manda el prompt de estructura con el vocabulario',
-  /peticion\?\.kind !== 'understand'/.test(cerebroSrc)
-  && /vocabularioParaElPrompt\(peticion\.expected\)/.test(cerebroSrc)
-  && /BRAIN_UNDERSTAND_SYSTEM/.test(cerebroSrc));
+  entradaEntender.kind === 'understand'
+  && String(entradaEntender.system).includes(String(BRAIN_UNDERSTAND_SYSTEM).slice(0, 60))
+  && String(entradaEntender.system).includes('text.search: activities')
+  && entradaEntender.prompt === 'una petición cualquiera',
+  String(entradaEntender.system).length + ' caracteres de system');
 check('en modo «conversar» se manda EXACTAMENTE lo que se cotizó',
-  /if \(peticion\?\.kind !== 'understand'\) return engineInput;/.test(cerebroSrc),
+  /[?] engineInput/.test(cerebroSrc) && /entradaDeEntender[(]peticion[.]expected/.test(cerebroSrc),
   'lo que se enseña, lo que se envía y lo que se cobra siguen siendo el mismo número');
 check('el carril queda conectado, NO abierto: nadie pide todavía «entender»',
   !/mode: 'understand'|\.entender\(/.test(sinComentarios(cerebroSrc)),

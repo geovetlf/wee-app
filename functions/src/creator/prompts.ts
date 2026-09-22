@@ -157,6 +157,30 @@ export const vocabularioParaElPrompt = (esperado: ThoughtRequest['expected']): s
   return lineas.join('\n');
 };
 
+/**
+ * CON QUÉ SE LE PREGUNTA AL MODELO EN MODO «ENTENDER».
+ *
+ * Vivía dentro del callable, como un cierre, y desde fuera no se podía ni
+ * mirar: para comprobar qué recibe el modelo había que reescribirlo, y un
+ * canary que reescribe el camino que dice medir se mide a sí mismo. Así que
+ * sale aquí, entero y puro, y el callable lo llama.
+ *
+ * No decide nada: junta el prompt de estructura con el vocabulario que trae la
+ * petición. Ni elige proveedor, ni modelo, ni sabe de Credits.
+ */
+export const entradaDeEntender = (
+  esperado: ThoughtRequest['expected'],
+  texto: string,
+  maxOutputTokens: number,
+): Record<string, unknown> => ({
+  system: [String(BRAIN_UNDERSTAND_SYSTEM), vocabularioParaElPrompt(esperado)].filter(Boolean).join('\n\n'),
+  prompt: texto,
+  kind: 'understand',
+  maxOutputTokens,
+  /* Estructurar no es escribir: aquí se quiere la misma respuesta dos veces. */
+  temperature: 0.2,
+});
+
 export const BRAIN_UNDERSTAND_SYSTEM = [
   'Eres el módulo de comprensión de Weë. NO conversas y NO escribes para nadie: devuelves solamente un objeto JSON.',
   'Campos: intent, confidence, goal, capability, capabilities, steps, constraints, missing, assumptions, suggestedExperience, creative, context, continuity.',

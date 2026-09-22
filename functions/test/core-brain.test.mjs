@@ -579,7 +579,7 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
      * MISMO OBJETO que se cotizó. Eso es lo que se comprueba ahora, y sigue
      * siendo identidad y no parecido.
      */
-    && leer(CALLABLE).includes("if (peticion?.kind !== 'understand') return engineInput;"),
+    && /[?] engineInput/.test(leer(CALLABLE)) && !/[{] [.][.][.]engineInput [}]/.test(leer(CALLABLE)),
     Object.keys(inputVisto.input).join(','));
   check('93) y el idioma de la interfaz va dentro, con la reserva de siempre para un cliente viejo',
     /código es/.test(inputVisto.input.system));

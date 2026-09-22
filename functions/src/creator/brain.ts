@@ -18,7 +18,7 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
-import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, BRAIN_UNDERSTAND_SYSTEM, instruccionDeIdioma, localeDeBrain, vocabularioParaElPrompt } from './prompts';
+import { BRAIN_CHAT_SYSTEM, BRAIN_SPECIALISTS, entradaDeEntender, instruccionDeIdioma, localeDeBrain } from './prompts';
 import { AI_SECRETS } from '../secrets';
 import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, ThoughtRequest, contextoDeIdioma, interpretarMarca } from '../core';
 import { crearBrainDeWee, pensamientoDesde } from '../brain';
@@ -448,17 +448,10 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * `conversar`, así que esta rama todavía no se recorre en producción.
        * Cambiar de modo cambia lo que la persona lee, y eso es otra fase.
        */
-      const entradaDelModo = (peticion?: ThoughtRequest): Record<string, unknown> => {
-        if (peticion?.kind !== 'understand') return engineInput;
-        const vocabulario = vocabularioParaElPrompt(peticion.expected);
-        return {
-          system: [String(BRAIN_UNDERSTAND_SYSTEM), vocabulario].filter(Boolean).join('\n\n'),
-          prompt: peticion.context?.inmediato?.text ?? '',
-          kind: 'understand',
-          maxOutputTokens: BRAIN_MAX_OUTPUT_TOKENS,
-          temperature: 0.2,
-        };
-      };
+      const entradaDelModo = (peticion?: ThoughtRequest): Record<string, unknown> =>
+        peticion?.kind !== 'understand'
+          ? engineInput
+          : entradaDeEntender(peticion.expected, peticion.context?.inmediato?.text ?? '', BRAIN_MAX_OUTPUT_TOKENS);
       const pensadorDeSiempre = (): Thinker => ({
         async pensar(peticion) {
           try {
