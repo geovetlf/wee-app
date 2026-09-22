@@ -209,6 +209,119 @@ check('y NO le enseña a mano qué enlaces son legales',
   !/accepts|produces/.test(sistema),
   'HUECO REPORTADO: el vocabulario le pasa ids y variantes, nunca `accepts` ni `produces`');
 
+console.log('\n── G · Lo que se ENSEÑA es lo que se ACEPTA (B2) ──');
+
+/*
+ * ── EL CANARY REAL DE B2, Y LO QUE DEJÓ MEDIDO ──────────────────────────────
+ *
+ * Una llamada a DeepSeek con el prompt de producción. El modelo compuso la
+ * tarea entera bien —mirar la foto y luego escribir la receta—, eligió las dos
+ * capacidades y las dos variantes, y declaró la dependencia con la clave EXACTA
+ * del primer paso. Y la metió DENTRO de `input`:
+ *
+ *   { key, capability, input: { kind, brief, needs: [...] } }
+ *
+ * El esquema del prompt se cerraba en `input`, y `needs` se pedía en la frase
+ * siguiente, en prosa. «Dilo en ese paso» no dice en qué SITIO del paso, así
+ * que se colocó donde cabía. El intérprete lo descartó con razón y la
+ * dependencia nunca llegó al Planner.
+ *
+ * No fue un fallo de razonamiento del modelo: fue un contrato ambiguo.
+ *
+ * ── Por qué el guard mira la FORMA y no una frase ───────────────────────────
+ *
+ * Comprobar que el prompt «menciona needs» es lo que ya pasaba, y pasó igual
+ * mientras el campo se perdía. Lo que hay que pinchar es que la forma que se le
+ * ENSEÑA al modelo y la forma que el intérprete ACEPTA sean la misma. Así que
+ * el esquema se saca del prompt de verdad y se le hace viajar entero.
+ */
+const esquemaDelPaso = (() => {
+  const marca = 'Cada paso: ';
+  const i = sistema.indexOf(marca);
+  if (i < 0) return null;
+  const s = sistema.slice(i + marca.length);
+  let hondo = 0;
+  for (let k = 0; k < s.length; k++) {
+    if (s[k] === '{') hondo++;
+    else if (s[k] === '}') {
+      hondo--;
+      if (!hondo) { try { return JSON.parse(s.slice(0, k + 1)); } catch { return null; } }
+    }
+  }
+  return null;
+})();
+
+check('B2 · el prompt ENSEÑA un esquema de paso, y es JSON legible',
+  !!esquemaDelPaso && typeof esquemaDelPaso === 'object',
+  esquemaDelPaso ? Object.keys(esquemaDelPaso).join(', ') : 'no se pudo leer');
+check('B2 · `needs` es HERMANO de `key`, `capability` e `input`',
+  !!esquemaDelPaso?.needs && !('needs' in (esquemaDelPaso?.input ?? {})),
+  'en el canary real el modelo lo puso dentro de `input`, y el esquema se lo permitía');
+check('y dentro del need se enseña SOLO lo que el contrato usa',
+  igual(Object.keys(esquemaDelPaso?.needs?.[0] ?? {}).sort(), ['from', 'stepKey'])
+  && esquemaDelPaso?.needs?.[0]?.from === 'upstream',
+  'sin `modality`: en un upstream la pone el catálogo, y pedirla invitaría a inventarla');
+
+/*
+ * El paso se construye CON LA FORMA DEL ESQUEMA, no con una copiada a mano: si
+ * alguien devuelve `needs` al interior de `input`, esto lo construye ahí y el
+ * viaje falla, que es justo lo que tiene que pasar.
+ */
+const conLaFormaDelEsquema = (valores) => {
+  const paso = {};
+  for (const clave of Object.keys(esquemaDelPaso ?? {})) {
+    if (clave === 'input') {
+      paso.input = {};
+      for (const k of Object.keys(esquemaDelPaso.input)) if (valores.input?.[k] !== undefined) paso.input[k] = valores.input[k];
+      if (valores.input?.needs) paso.input.needs = valores.input.needs;
+    } else if (clave === 'needs') {
+      if (valores.needs) paso.needs = valores.needs;
+    } else if (valores[clave] !== undefined) paso[clave] = valores[clave];
+  }
+  return paso;
+};
+
+const viaje = leerPasos([
+  conLaFormaDelEsquema({ key: 'look', capability: 'vision.describe', input: { kind: 'describe', brief: 'mirar la foto' } }),
+  conLaFormaDelEsquema({
+    key: 'recipe', capability: 'text.generate',
+    input: { kind: 'recipe', brief: 'escribir la receta' },
+    needs: [{ from: 'upstream', stepKey: 'look' }],
+  }),
+]);
+check('B2 · un paso con LA FORMA QUE SE ENSEÑA atraviesa el intérprete',
+  igual(viaje[1]?.needs, [{ from: 'upstream', modality: 'text', stepKey: 'look' }]),
+  JSON.stringify(viaje[1]?.needs ?? null));
+
+/* Y la forma que contestó DeepSeek, para que quede medida y nadie la dé por buena. */
+const comoContestoDeepSeek = leerPasos([
+  { key: 'analizar_foto', capability: 'vision.describe', input: { kind: 'describe', brief: 'mirar' } },
+  { key: 'receta', capability: 'text.generate', input: { kind: 'recipe', brief: 'escribir', needs: [{ from: 'upstream', stepKey: 'analizar_foto' }] } },
+]);
+check('B2 · `needs` dentro de `input` sigue SIN viajar, y eso es lo correcto',
+  comoContestoDeepSeek[1]?.needs === undefined,
+  'el intérprete lee el contrato; no adivina dónde quiso ponerlo quien contestó');
+
+console.log('\n── H · `confidence`, que tampoco tenía vocabulario ──');
+
+check('B2 · el prompt declara los tres valores que valen',
+  /"confidence" admite EXACTAMENTE tres valores: low, medium o high/.test(sistema),
+  'el modelo contestó 0.9 porque nadie le había dicho cuáles son');
+
+const base = chefDiciendo([MIRAR, RECETA([{ from: 'upstream', stepKey: 'look' }])]);
+const confianzaDe = async (v) => (await entender({ ...base, confidence: v })).understanding?.confidence;
+check('y el intérprete acepta exactamente esos tres',
+  (await confianzaDe('low')) === 'low'
+  && (await confianzaDe('medium')) === 'medium'
+  && (await confianzaDe('high')) === 'high');
+check('un número NO pasa: cae a lo que digan las señales, no a lo que dijo el modelo',
+  (await confianzaDe(0.9)) !== 0.9 && ['low', 'medium', 'high'].includes(await confianzaDe(0.9)),
+  'lo que llegó en el canary real: 0.9 acabó en «' + (await confianzaDe(0.9)) + '»');
+check('y una palabra inventada tampoco',
+  (await confianzaDe('altísima')) !== 'altísima'
+  && ['low', 'medium', 'high'].includes(await confianzaDe('altísima')),
+  'el vocabulario es cerrado, y lo era antes de decirlo: lo que faltaba era decirlo');
+
 console.log('\n── F · Lo que no se tocó ──');
 
 const cerebro = sinComentarios(leer('functions/src/core/brain.ts'));
@@ -227,7 +340,7 @@ check('el replanteamiento de G6 sigue abierto y sin tocar',
   /GAP MEDIDO . G6/.test(leer('functions/test/photo-canary.test.mjs')));
 check('B2 NO se cierra aquí: que el canal exista no dice que el modelo lo use',
   /No cierra B2/.test(leer('functions/test/encadenar-pasos.test.mjs')),
-  'eso lo mide el canary de Chef/cook, con una llamada real que no se ha hecho');
+  'el canary de Chef/cook ya corrió: el modelo compuso bien y colocó el need dentro de `input`');
 check('esta suite está en la cadena de `npm test`',
   /encadenar-pasos\.test\.mjs/.test(leer('functions/package.json')));
 
