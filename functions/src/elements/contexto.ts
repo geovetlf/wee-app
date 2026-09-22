@@ -7,6 +7,8 @@ import {
   materialesDelContexto,
   resolverContexto,
   trazaDeContexto,
+  CandidatoDeContinuidad,
+  candidatosDesdeElementos,
 } from '../core';
 import { DepsDeElementos, mundoDeContextoDeWee } from './index';
 
@@ -148,6 +150,20 @@ export interface ContextoResuelto {
   resultado: VisualContextResult;
   /** Los materiales, en la forma que Brain y el Planner YA leen. Nunca una copia. */
   adjuntos: readonly BrainAttachment[];
+  /**
+   * LAS COSAS DE LA CUENTA QUE SE LEYERON, para poder resolver a quién se
+   * refería un nombre.
+   *
+   * Estaban aquí y se tiraban. El mundo de contexto se consultaba, se decidía
+   * con él qué materiales entraban como adjuntos, y los ELEMENTOS —con su
+   * nombre y su versión— se perdían al salir de esta función. Después, resolver
+   * «conserva a Luna» habría exigido volver a consultarlos: la misma lectura,
+   * pagada dos veces, por una verdad que ya estaba en la mano.
+   *
+   * Vacío cuando no se consultó nada, que es el caso normal con el interruptor
+   * cerrado. No cuesta ni una lectura más: es una proyección.
+   */
+  candidatos: readonly CandidatoDeContinuidad[];
   motivo: MotivoDelContexto;
 }
 
@@ -161,6 +177,7 @@ export interface DepsDelContextoDeBrain extends DepsDeElementos {
 const NADA: ContextoResuelto = Object.freeze({
   resultado: Object.freeze({ contract: '1.0', status: 'not_found', reason: 'no_needs' }) as VisualContextResult,
   adjuntos: Object.freeze([]) as readonly BrainAttachment[],
+  candidatos: Object.freeze([]) as readonly CandidatoDeContinuidad[],
   motivo: 'deshabilitado',
 });
 
@@ -200,5 +217,6 @@ export const contextoParaBrain = async (
     const t = trazaDeContexto(resultado);
     deps.observar(`WEË CONTEXTO: ${t.status} elementos=${t.elements} materiales=${t.assets}${t.reason ? ` reason=${t.reason}` : ''}`);
   }
-  return { resultado, adjuntos, motivo: decision.motivo };
+  /* Los elementos ya están aquí: proyectarlos no consulta nada. */
+  return { resultado, adjuntos, candidatos: candidatosDesdeElementos(mundo.elementos), motivo: decision.motivo };
 };

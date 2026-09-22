@@ -373,3 +373,36 @@ export const conContinuidadResuelta = <U extends {
     ...(falta.length ? { missing: Object.freeze([...entendimiento.missing, ...falta]) } : {}),
   }) as U;
 };
+
+/* ── Los candidatos, sin volver a leer nada ───────────────────────────────── */
+
+/**
+ * LAS COSAS DE LA CUENTA, EN LA FORMA QUE NECESITA LA RESOLUCIÓN.
+ *
+ * Tres campos de cada Element y ni uno más: cómo se llama —que es lo que la
+ * persona escribió en su mensaje—, su identificador y la versión por la que va.
+ * Ni los materiales, ni las relaciones, ni las fechas, ni el dueño.
+ *
+ * ── Por qué esto existe y no es una consulta ────────────────────────────────
+ *
+ * Porque los elementos YA están leídos. El mundo de contexto de S4 los trae
+ * acotados y por cuenta para decidir a qué se refería «la hamburguesa de ayer»,
+ * y quien lo llamaba se quedaba solo con los materiales y tiraba los elementos.
+ * Volver a consultarlos para resolver continuidad habría sido pagar dos veces
+ * por la misma verdad. Esto es una proyección: cero lecturas.
+ *
+ * Los archivados NO entran. Una cosa guardada no compite por un nombre —es la
+ * misma regla que ya aplica la consulta de S4— y dejarla entrar haría que «usa
+ * a Luna» empatara con una Luna que su dueño retiró hace meses.
+ */
+export const candidatosDesdeElementos = (
+  elementos: readonly { elementId: string; name: string; version: number; status?: string }[] | undefined,
+): readonly CandidatoDeContinuidad[] => {
+  if (!Array.isArray(elementos)) return Object.freeze([]);
+  return Object.freeze(
+    elementos
+      .filter((e) => e && typeof e.elementId === 'string' && typeof e.name === 'string'
+        && Number.isInteger(e.version) && e.status !== 'archived')
+      .map((e) => Object.freeze({ elementId: e.elementId, name: e.name, version: e.version })),
+  );
+};

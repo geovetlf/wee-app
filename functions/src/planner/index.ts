@@ -3,6 +3,9 @@ import {
   CoreCapabilityId,
   Planner,
   PlannerPorts,
+  BrainUnderstanding,
+  CandidatoDeContinuidad,
+  conContinuidadResuelta,
   Tracer,
   crearPlanner,
   puedeEjecutarse,
@@ -69,3 +72,42 @@ export const crearPlannerDeWee = (deps: PlannerDeWeeDeps = {}): Planner =>
     tracer: deps.tracer ?? trazaDelPlanner,
     now: deps.now ?? (() => Date.now()),
   } satisfies PlannerPorts);
+
+/* ── La frontera de la planificación ──────────────────────────────────────── */
+
+/**
+ * EL ENTENDIMIENTO, LISTO PARA PLANIFICAR.
+ *
+ * ── Qué hace, y por qué aquí ────────────────────────────────────────────────
+ *
+ * Brain dice «conserva a Luna» con el nombre que escribió la persona, porque el
+ * modelo no conoce identificadores y uno inventado que pasara la validación
+ * apuntaría a la cosa de otra cuenta. El Planner, en cambio, necesita
+ * `elementId@version`: un plan no puede llevar un nombre propio dentro.
+ *
+ * Entre esas dos cosas hay un paso, y ese paso es ESTO. No es planificar —no
+ * decide capacidades, ni orden, ni dependencias— y no es entender —no
+ * interpreta nada—: resuelve nombres contra lo que la cuenta tiene, y deja el
+ * resultado donde el Planner ya mira.
+ *
+ * ── Por qué ANTES del plan y no dentro ──────────────────────────────────────
+ *
+ * Porque lo dice el código que ya existía. `conContinuidadResuelta` escribe en
+ * `preferences.continuity`, y el Planner lee `u.preferences` para armar las
+ * pistas del paso. Lo irresoluble lo empuja a `missing`, y el Planner ya
+ * convierte `missing` en `needs_clarification`. Resolver DENTRO del Planner
+ * habría exigido darle una lista de elementos de la cuenta —y con ella, la
+ * capacidad de leer cosas de alguien—, que es justo lo que un Planner no puede
+ * ser. Esta función se escribió para este sitio y llevaba dos fases esperándolo.
+ *
+ * ── Lo que NO hace ──────────────────────────────────────────────────────────
+ *
+ * No consulta nada. Los candidatos vienen ya proyectados del mundo de contexto
+ * que S4 leyó —cero lecturas nuevas, cero segundo resolutor de elementos—. Sin
+ * candidatos y sin intención, devuelve EL MISMO objeto: sin continuidad, el
+ * camino se comporta exactamente como antes de esta fase.
+ */
+export const entendimientoParaPlanificar = (
+  entendimiento: BrainUnderstanding,
+  candidatos: readonly CandidatoDeContinuidad[] = [],
+): BrainUnderstanding => conContinuidadResuelta(entendimiento, candidatos);

@@ -142,6 +142,15 @@ const OTROS_DEL_CORE = {
    * de verdad y qué sigue siendo Core construido que nadie toca todavía.
    */
   'core/continuity-check.js': ['revisarEstructura'],
+  /*
+   * C10: la frontera de la planificación —`planner/index.ts`— estrena las dos
+   * piezas que convierten «conserva a Luna» en `elementId@version`. Es el
+   * cambio que esta fase existe para hacer, y aquí es donde se ve: de C5
+   * producción usa el PUENTE y la proyección de candidatos, y sigue sin usar
+   * `resolverIntencionDeContinuidad` suelta ni `sujetosSinResolver` —eso lo
+   * estrenará quien pregunte por una ambigüedad en pantalla—.
+   */
+  'core/continuity-intent.js': ['candidatosDesdeElementos', 'conContinuidadResuelta'],
   'core/language.js': ['contextoDeIdioma'],
   /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
   'core/social-identity.js': ['actorDeLaCuenta'],
