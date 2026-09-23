@@ -30,9 +30,11 @@
  * clase de dato que acaba en una pantalla como si fuera cierto.
  */
 
+import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { PlanStep } from '../planner';
 import { QualityRequirement } from '../workflow';
-import { Confidence, Uncertainty } from './signals';
+import { Confidence, Evidence, SignalSource, Uncertainty } from './signals';
+import { ObjectiveAxis } from './objective';
 
 /* ── Lo que puede ir a la vez ─────────────────────────────────────────────── */
 
@@ -186,6 +188,84 @@ export interface StrategyExpectation {
   confidence: Confidence;
   /** El eje honesto: cuando no hay evidencia, se dice. */
   uncertainty: Uncertainty;
+  /**
+   * DE DÓNDE SALE CADA NÚMERO, uno por uno. (A3)
+   *
+   * `confidence` arriba es de la previsión ENTERA, y eso no basta: el coste
+   * puede venir de treinta mediciones y la calidad de una suposición, y decir
+   * «confianza 0,7» de las dos juntas pierde exactamente lo que hace falta para
+   * actuar. Aquí cada eje lleva la suya.
+   *
+   * No se repiten los NÚMEROS —esos viven arriba, en un solo sitio—: esto es
+   * solo su procedencia. Dos copias del mismo valor acaban discrepando.
+   */
+  porEje?: Partial<Readonly<Record<ObjectiveAxis, ProcedenciaDeEje>>>;
+  /**
+   * LOS RIESGOS CONCRETOS, no solo el número.
+   *
+   * `risk` de arriba es el resumen; esto es qué se encontró. Sin el detalle,
+   * «riesgo 0,5» no le dice a nadie qué arreglar.
+   */
+  risks?: readonly RiesgoEstructural[];
+}
+
+/** Cuánto se sabe de UN eje, y por qué. */
+export interface ProcedenciaDeEje {
+  /** 0–1. Lo que se cree de ESTE número, no de la previsión entera. */
+  confidence: number;
+  /** De dónde salió. La jerarquía de A0: medido > declarado > catálogo > … */
+  source: SignalSource;
+  /** Cuántas observaciones lo sostienen, cuando se sabe. */
+  sampleSize?: number;
+  /** Lo que lo respalda, rastreable hasta su señal. */
+  basis?: readonly Evidence[];
+}
+
+/**
+ * UN RIESGO ESTRUCTURAL: algo de la FORMA del trabajo que puede salir mal.
+ *
+ * Cerrado, y ni uno de estos es una probabilidad. Son cosas que se pueden ver
+ * mirando el grafo y la evidencia, no estimaciones de cuántas veces fallará.
+ */
+export type ClaseDeRiesgo =
+  /* Un paso del que depende todo lo demás: si cae, cae el trabajo entero. */
+  | 'single_point_of_failure'
+  /* La cadena es muy larga: cada eslabón multiplica la probabilidad de un fallo. */
+  | 'dependency_depth'
+  /* Se piden muchas cosas a la vez: más cuota, más límites, más que puede romperse. */
+  | 'excessive_parallelism'
+  /* Los números de los que depende la decisión no los sostiene nada. */
+  | 'insufficient_evidence'
+  /* La estrategia es un respaldo, no la propuesta principal. */
+  | 'fallback_dependence'
+  /* Alguna capacidad todavía no la sirve nadie de forma verificada. */
+  | 'unverified_capability'
+  /* Lo que se espera se sabe tan mal que apostar por ello es apostar. */
+  | 'high_uncertainty';
+
+/**
+ * CUÁNTO IMPORTA, en una escala ORDINAL declarada.
+ *
+ * `bajo < medio < alto`, y los números que le corresponden son una convención
+ * para poder ordenar — NO una probabilidad. Escribir 0,75 y llamarlo
+ * «probabilidad de fallo» sería inventar una medición que nadie ha hecho, y
+ * esta capa existe en parte para no hacer eso.
+ */
+export type Severidad = 'bajo' | 'medio' | 'alto';
+
+export const VALOR_DE_SEVERIDAD: Readonly<Record<Severidad, number>> = Object.freeze({
+  bajo: 0.25, medio: 0.5, alto: 0.75,
+});
+
+export interface RiesgoEstructural {
+  kind: ClaseDeRiesgo;
+  severity: Severidad;
+  /** Qué se vio, en una frase. Para el informe. */
+  because: string;
+  /** A qué pasos afecta, cuando afecta a unos concretos. */
+  steps?: readonly string[];
+  /** Cuánto se cree ESTE riesgo. Los estructurales se ven; los de evidencia se deducen. */
+  confidence?: number;
 }
 
 /* ── La estrategia ────────────────────────────────────────────────────────── */
@@ -200,10 +280,22 @@ export interface StrategyExpectation {
 export interface Strategy {
   /** Único dentro de la decisión que la produjo. */
   id: string;
+  /**
+   * LA VERSIÓN DE LA FORMA, no un número suelto. (A3)
+   *
+   * Opcional para no romper lo que ya existe, y A3 siempre la pone. Es el mismo
+   * patrón que `Plan`, `AlgorithmDecision` o `SkillDescriptor`: una estrategia
+   * guardada hoy tiene que poder leerse dentro de dos años sabiendo con qué
+   * contrato se escribió. Quién la produjo y con qué versión del algoritmo ya
+   * lo dice `proposedBy`, así que un tercer número sería un campo que nadie lee.
+   */
+  contract?: typeof ALGORITHM_CONTRACT_VERSION;
   /** Qué la distingue de las otras, en una frase: 'en paralelo', 'sin la ilustración'. */
   label: string;
   /** Qué algoritmo la propuso. `id@version`. */
   proposedBy: string;
+  /** De qué descomposición de A2 salió, cuando salió de una. */
+  fromDecomposition?: string;
   steps: readonly PlanStep[];
   /** Lo que puede ir junto. Derivable de `steps`, y explícito para poder acotarlo. */
   parallelGroups?: readonly ParallelGroup[];
@@ -211,6 +303,27 @@ export interface Strategy {
   /** Qué hacer si falla, por tipo de fallo. */
   recovery?: readonly RecoveryProposal[];
   expected: StrategyExpectation;
+  /**
+   * EL CAMINO CRÍTICO: la cadena que fija cuánto dura el trabajo. (A3)
+   *
+   * Acortar cualquier otra cosa no cambia nada; acortar esto sí. Es la primera
+   * pregunta que hay que poder responder para optimizar, y sin ella «hacerlo
+   * más rápido» es adivinar dónde tocar.
+   */
+  criticalPath?: readonly string[];
+  /** Lo que sostiene las previsiones, rastreable hasta su señal. */
+  evidence?: readonly Evidence[];
+  /**
+   * ES LA REFERENCIA, no una propuesta en igualdad de condiciones. (A3)
+   *
+   * Existe para poder medir contra ella. Una línea base presentada como «la
+   * mejor» es un sistema sin criterio con aspecto de tenerlo.
+   */
+  isBaseline?: boolean;
+  /** Es el respaldo. Va marcado siempre: nunca se presenta como equivalente. */
+  isFallback?: boolean;
+  /** De qué estrategia es respaldo. */
+  fallbackFrom?: string;
 }
 
 /**
@@ -273,7 +386,58 @@ export const problemasDeEstrategia = (s: Strategy): readonly string[] => {
   if (!s.expected?.uncertainty) malos.push('expected:uncertainty');
   if (!s.id) malos.push('id');
   if (!s.proposedBy) malos.push('proposedBy');
+
+  /* ── Lo que A3 añadió. Todo opcional, así que nada de lo que valía deja de valer. ── */
+  if (s.isFallback && !s.fallbackFrom) malos.push('fallbackFrom:missing');
+  if (s.fallbackFrom && s.fallbackFrom === s.id) malos.push('fallbackFrom:self');
+  if (s.criticalPath) {
+    for (const id of s.criticalPath) if (!unicos.has(id)) malos.push(`criticalPath:${id}:unknown_step`);
+  }
+  for (const [eje, p] of Object.entries(s.expected?.porEje ?? {})) {
+    if (!p || typeof p.confidence !== 'number' || p.confidence < 0 || p.confidence > 1) malos.push(`porEje:${eje}:confidence`);
+    if (!p?.source) malos.push(`porEje:${eje}:source`);
+  }
+  for (const r of s.expected?.risks ?? []) {
+    if (!(r.severity in VALOR_DE_SEVERIDAD)) malos.push(`risks:${r.kind}:severity`);
+    for (const id of r.steps ?? []) if (!unicos.has(id)) malos.push(`risks:${r.kind}:${id}:unknown_step`);
+  }
   return malos;
 };
 
 export const estrategiaCoherente = (s: Strategy): boolean => problemasDeEstrategia(s).length === 0;
+
+/**
+ * ¿HAY UN BUCLE DE RESPALDOS? A → B → A.
+ *
+ * Es una propiedad del CONJUNTO, no de una estrategia suelta: mirando solo una
+ * nunca se ve. Y si existe, el sistema puede quedarse dando vueltas buscando a
+ * quién ceder el paso — que es exactamente el fallo que un respaldo debía
+ * evitar.
+ *
+ * Mismo criterio que los ciclos de A2: se devuelve QUIÉN lo forma, en orden
+ * canónico, para que dos ejecuciones lo describan igual.
+ */
+export const ciclosDeRespaldo = (estrategias: readonly Strategy[]): readonly (readonly string[])[] => {
+  const siguiente = new Map<string, string>();
+  for (const s of estrategias ?? []) if (s?.id && s.fallbackFrom) siguiente.set(s.id, s.fallbackFrom);
+  const encontrados = new Map<string, readonly string[]>();
+  for (const inicio of [...siguiente.keys()].sort()) {
+    const camino: string[] = [];
+    const enCamino = new Set<string>();
+    let actual: string | undefined = inicio;
+    let restantes = siguiente.size + 1;
+    while (actual && restantes-- > 0) {
+      if (enCamino.has(actual)) {
+        const ciclo = camino.slice(camino.indexOf(actual));
+        const menor = ciclo.indexOf([...ciclo].sort()[0]);
+        const canonico = [...ciclo.slice(menor), ...ciclo.slice(0, menor)];
+        encontrados.set(canonico.join('>'), Object.freeze(canonico));
+        break;
+      }
+      camino.push(actual);
+      enCamino.add(actual);
+      actual = siguiente.get(actual);
+    }
+  }
+  return Object.freeze([...encontrados.keys()].sort().map((k) => encontrados.get(k) as readonly string[]));
+};

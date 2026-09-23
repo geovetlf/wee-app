@@ -199,8 +199,19 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * puntuación, porque `pesosNormalizados` solo reparte entre los que traen peso.
  * Lo que sí cambia es la FORMA de `Record<ObjectiveAxis, number>`, que gana
  * tres claves a cero; por eso sube el menor y no se hace en silencio.
+ *
+ * 1.3 (A3): una estrategia pasa a poder contar de dónde sale CADA previsión.
+ * `StrategyExpectation` gana `porEje` —confianza, procedencia y muestra, eje a
+ * eje— y `risks`; `Strategy` gana `contract`, `criticalPath`, `evidence`,
+ * `isBaseline`, `isFallback`, `fallbackFrom` y `fromDecomposition`. Todos
+ * opcionales, así que nada de lo que valía deja de valer.
+ *
+ * El motivo del `porEje` merece decirse: una sola confianza para toda la
+ * previsión juntaba treinta mediciones de coste con una suposición de calidad
+ * en un número, y perdía justo lo que hace falta para actuar. Los VALORES no se
+ * duplican —siguen arriba, en un sitio—; esto es solo su procedencia.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.2' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.3' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

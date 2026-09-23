@@ -67,7 +67,8 @@ console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
  * qué apareció sin avisar.
  */
 const MODULOS = ['authority', 'baseline', 'budget', 'decision', 'decision-engine', 'decomposition',
-  'decomposition-engine', 'index', 'objective', 'registry', 'scoring', 'signals', 'strategy', 'types', 'value'];
+  'decomposition-engine', 'index', 'objective', 'registry', 'scoring', 'signals', 'strategy',
+  'strategy-engine', 'types', 'value'];
 check('1 · están exactamente los módulos declarados, ni uno más',
   igual(FUENTES.map((x) => x.f.replace('.ts', '')).sort(), [...MODULOS].sort()), FUENTES.map((x) => x.f).join(' '));
 /* Si esto se rompiera, el Core habría dejado de ser probable con una tabla de casos. */

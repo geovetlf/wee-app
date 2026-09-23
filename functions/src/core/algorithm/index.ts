@@ -46,3 +46,4 @@ export * from './decision-engine';
 export * from './baseline';
 export * from './decomposition';
 export * from './decomposition-engine';
+export * from './strategy-engine';
