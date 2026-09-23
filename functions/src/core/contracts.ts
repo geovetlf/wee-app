@@ -164,6 +164,20 @@ export const PLANNER_CONTRACT_VERSION = '1.0' as const;
  */
 export const MAX_PROPUESTAS_POR_PASO = 4;
 
+/**
+ * Forma de un contexto de decisión algorítmica y de la recomendación que produce.
+ *
+ * Nace en 1.0 con el vocabulario de RAZONAR sobre estrategias: señales con
+ * procedencia, confianza con su base, incertidumbre, objetivos con
+ * restricciones, presupuesto computacional y puntuación comparativa. Ni un
+ * algoritmo: A0 declara la forma y nada decide todavía.
+ *
+ * Lo que NO entra, y a propósito: elegir proveedor o modelo. Eso es del Router
+ * y el intento de meterlo en un plan ya se rechazó una vez (B3.15.2). El mismo
+ * predicado que lo impidió —`claveDeImplementacion`— guarda esta capa.
+ */
+export const ALGORITHM_CONTRACT_VERSION = '1.0' as const;
+
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
 

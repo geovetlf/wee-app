@@ -54,6 +54,7 @@ export * from './continuity-check';
 export * from './continuity-intent';
 export * from './skill';
 export * from './planner';
+export * from './algorithm';
 export * from './orchestrator';
 export * from './router';
 export * from './job';
