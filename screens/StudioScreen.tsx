@@ -102,7 +102,9 @@ const StudioScreen: React.FC = () => {
    * decide qué ajustes preguntar—, y esto dice QUÉ se quiere conseguir, que es
    * lo que viaja como contexto a la experiencia común.
    */
-  const [experiencia, setExperiencia] = useState<{ id: string; clave: string; experienceId?: string } | null>(null);
+  const [experiencia, setExperiencia] = useState<
+    { id: string; clave: string; experienceId?: string; respuestas?: readonly { questionId: string; optionId: string }[] } | null
+  >(null);
   /*
    * POR QUÉ ENTRADA SE PASÓ, SI SE PASÓ POR ALGUNA.
    *
@@ -223,6 +225,20 @@ const StudioScreen: React.FC = () => {
           .filter(Boolean)
           .join(' '),
         ...(Object.keys(creative).length ? { creative } : {}),
+        /*
+         * LO QUE ELEGIR LA EXPERIENCIA YA CONTESTÓ.
+         *
+         * Por el canal que existe desde siempre para esto —`presets`, el mismo
+         * de las acciones de los especialistas—, así que la conversación empieza
+         * donde tiene que empezar en vez de preguntar lo que la persona acaba de
+         * decir al tocar "Retrato".
+         *
+         * Y es lo que hace que el plan sea de VERDAD el de crear una imagen:
+         * sin esto la plantilla deducía la acción de las palabras del objetivo,
+         * no encontraba ninguna que significara «desde cero», y acababa pidiendo
+         * una foto para editar.
+         */
+        ...(experiencia?.respuestas?.length ? { presets: [...experiencia.respuestas] } : {}),
         ...(adjuntos.length ? { adjuntos } : {}),
         /*
          * La primera foto entra además por donde ya entraban las fotos
@@ -259,7 +275,13 @@ const StudioScreen: React.FC = () => {
     setControles(eleccion.controles);
     setExperiencia(
       eleccion.experiencia
-        ? { id: eleccion.experiencia.id, clave: eleccion.experiencia.clave, experienceId: puerta?.experienceId }
+        ? {
+            id: eleccion.experiencia.id,
+            clave: eleccion.experiencia.clave,
+            experienceId: puerta?.experienceId,
+            /* Lo que elegirla ya contesta: viaja con el trabajo para no repreguntarlo. */
+            respuestas: eleccion.experiencia.respuestas,
+          }
         : null
     );
     setPanel(null);

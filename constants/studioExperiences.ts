@@ -123,10 +123,45 @@ export interface ExperienciaDeStudio {
   controles: string[];
   /** Si pide un material para empezar: una foto, un vídeo, un documento. */
   pideMaterial?: boolean;
+  /**
+   * LO QUE ELEGIR ESTA EXPERIENCIA YA CONTESTA.
+   *
+   * Es el mismo mecanismo que usan las acciones de los especialistas desde
+   * siempre (`constants/specialists.ts` → `preset`): respuestas que viajan con
+   * el trabajo nuevo para que no se pregunte lo que ya está decidido.
+   *
+   * ── Por qué hace falta, medido ──────────────────────────────────────────
+   *
+   * Sin esto, las seis experiencias de imagen acababan en `image.edit`: la
+   * plantilla deduce la acción de las PALABRAS del objetivo, y «Retrato»,
+   * «Producto» o «Cartel» no están entre las que significan «crear desde
+   * cero». Así que Weë pedía una foto para editarla cuando lo que se quería
+   * era una imagen nueva.
+   *
+   * Elegir «Retrato» ES decir «créame una imagen». Decirlo aquí no es añadir
+   * un camino: es usar el que ya existía para exactamente esto.
+   */
+  respuestas?: readonly { questionId: string; optionId: string }[];
 }
 
-const x = (id: string, clave: string, icono: string, controles: string[] = [], pideMaterial = false): ExperienciaDeStudio =>
-  ({ id, clave, icono, controles, ...(pideMaterial ? { pideMaterial } : {}) });
+const x = (
+  id: string,
+  clave: string,
+  icono: string,
+  controles: string[] = [],
+  pideMaterial = false,
+  respuestas?: readonly { questionId: string; optionId: string }[]
+): ExperienciaDeStudio =>
+  ({ id, clave, icono, controles, ...(pideMaterial ? { pideMaterial } : {}), ...(respuestas ? { respuestas } : {}) });
+
+/**
+ * Crear una imagen desde cero, dicho en el idioma de la plantilla `photo`.
+ *
+ * `action: 'generate'` es lo que hace que el plan sea `image.generate` con tres
+ * propuestas, en vez de `vision.describe` + `image.edit` sobre una foto que
+ * nadie subió.
+ */
+const CREAR_IMAGEN = { questionId: 'action', optionId: 'generate' } as const;
 
 /**
  * IMAGEN. Seis maneras de empezar, no dieciocho herramientas.
@@ -136,12 +171,21 @@ const x = (id: string, clave: string, icono: string, controles: string[] = [], p
  * de las tres. Por eso son experiencias y no botones.
  */
 export const EXPERIENCIAS_DE_IMAGEN: ExperienciaDeStudio[] = [
-  x('portrait', 'studio.xpPortrait', 'person-outline', ['shot', 'lighting', 'composition']),
-  x('product', 'studio.xpProduct', 'cube-outline', ['shot', 'lighting', 'composition']),
-  x('editorial', 'studio.xpEditorial', 'newspaper-outline', ['shot', 'lighting', 'composition', 'lens']),
-  x('cinematic', 'studio.xpCinematic', 'film-outline', ['camera', 'perspective', 'shot', 'lens', 'lighting', 'composition']),
-  x('social', 'studio.xpSocial', 'heart-outline', ['composition']),
-  x('poster', 'studio.xpPoster', 'easel-outline', ['composition']),
+  x('portrait', 'studio.xpPortrait', 'person-outline', ['shot', 'lighting', 'composition'], false, [CREAR_IMAGEN]),
+  /*
+   * Producto y Redes contestan además CÓMO se quiere, porque en esas dos la
+   * respuesta es siempre la misma y preguntarla sería hacer perder un paso:
+   * un producto se enseña sobre fondo limpio y algo para redes tiene que
+   * destacar. Las otras cuatro no lo dan por hecho: ahí Weë pregunta, que es
+   * lo correcto cuando no hay una respuesta obvia.
+   */
+  x('product', 'studio.xpProduct', 'cube-outline', ['shot', 'lighting', 'composition'], false,
+    [CREAR_IMAGEN, { questionId: 'detail', optionId: 'clean' }]),
+  x('editorial', 'studio.xpEditorial', 'newspaper-outline', ['shot', 'lighting', 'composition', 'lens'], false, [CREAR_IMAGEN]),
+  x('cinematic', 'studio.xpCinematic', 'film-outline', ['camera', 'perspective', 'shot', 'lens', 'lighting', 'composition'], false, [CREAR_IMAGEN]),
+  x('social', 'studio.xpSocial', 'heart-outline', ['composition'], false,
+    [CREAR_IMAGEN, { questionId: 'detail', optionId: 'vivid' }]),
+  x('poster', 'studio.xpPoster', 'easel-outline', ['composition'], false, [CREAR_IMAGEN]),
 ];
 
 /**
