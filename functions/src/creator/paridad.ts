@@ -76,6 +76,46 @@ export interface Diferencia {
 export const DEFAULTS_DE_PLANTILLA: readonly string[] =
   Object.freeze(['quality', 'count', 'resolution', 'durationSec', 'aspectRatio']);
 
+/**
+ * DÓNDE MIRAR CADA UNO EN EL PLAN DEL CORE. Cada cosa acabó en un sitio.
+ *
+ * Esto existía repartido y escondía dos falsos negativos: la cantidad se
+ * buscaba en `hints` cuando desde G13.5 vive en `input`, y la proporción se
+ * buscaba suelta cuando el puente la mete dentro de los creativos. Las dos
+ * salían siempre como «Legacy lo tiene y el Core no», que es justo lo contrario
+ * de lo que pasaba.
+ *
+ *   `count`        → `input.count`                           (G13.5)
+ *   `quality`      → `hints.quality`
+ *   `durationSec`  → `hints.durationSec`
+ *   `aspectRatio`  → `hints.creative.framing.aspectRatio`
+ *   `resolution`   → EN NINGÚN SITIO, a propósito: la calcula la Resolution
+ *                    Policy en ejecución, con la foto de verdad delante.
+ */
+const DONDE_EN_EL_CORE: Readonly<Record<string, (s: PlanStep) => unknown>> = Object.freeze({
+  count: (s) => leer(s.input, 'count'),
+  quality: (s) => (s.hints as Record<string, unknown> | undefined)?.quality,
+  durationSec: (s) => (s.hints as Record<string, unknown> | undefined)?.durationSec,
+  aspectRatio: (s) => (s.hints as { creative?: { framing?: { aspectRatio?: unknown } } } | undefined)?.creative?.framing?.aspectRatio,
+  resolution: () => undefined,
+});
+
+/**
+ * LO QUE LEGACY SABE DECIR Y EL CONTRATO DEL CORE TODAVÍA NO.
+ *
+ * No son defaults de plantilla: son parámetros de la capacidad que la persona
+ * eligió o que la experiencia dedujo de lo que escribió. Que no viajen no es
+ * «no heredar una decisión de producción»: es perder información. Cada uno
+ * tiene su fase abierta y ninguno se ha inventado un campo para que esto salga
+ * verde.
+ */
+const SIN_SITIO_EN_EL_CORE: Readonly<Record<string, string>> = Object.freeze({
+  focus: 'G14',
+  mood: 'G15',
+  genre: 'G15',
+  voice: 'G15',
+});
+
 const cat = (id: string) => CAPABILITY_CATALOG.find((c) => c.id === id);
 const igual = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const leer = (input: Readonly<Record<string, unknown>> | undefined, clave: string): unknown => input?.[clave];
@@ -191,16 +231,60 @@ export const compararPlanes = (
     anotar(`steps[${L.id}].key`, L.id === C.id ? 'EXACT_MATCH' : 'SEMANTICALLY_EQUIVALENT',
       `legacy=${L.id} core=${C.id} · el Core numera por posición`);
 
+    /*
+     * LA FRASE DE CADA PASO. Es lo que la persona lee mientras Weë trabaja —en
+     * los pasos de imagen— y el título con el que se guarda el resultado, así
+     * que no es decoración interna. Legacy la escribe a mano en español; el
+     * Core la deriva del catálogo salvo que la ponga un Skill, y no hay Skills.
+     */
+    anotar(`steps[${L.id}].purpose`, igual(L.purpose, C.purpose) ? 'EXACT_MATCH' : 'LEGACY_ONLY_INFORMATION',
+      igual(L.purpose, C.purpose) ? String(L.purpose) : `legacy=${JSON.stringify(L.purpose)} core=${JSON.stringify(C.purpose)}`,
+      igual(L.purpose, C.purpose) ? undefined : 'frase para la persona');
+
     /* Lo que Legacy lleva y el Core no: de dónde viene decide si importa. */
     for (const k of DEFAULTS_DE_PLANTILLA) {
       const enL = (L.input as Record<string, unknown> | undefined)?.[k];
-      const enC = (C.hints as Record<string, unknown> | undefined)?.[k];
+      const enC = DONDE_EN_EL_CORE[k]?.(C);
       if (enL === undefined && enC === undefined) continue;
-      if (igual(enL, enC)) { anotar(`steps[${L.id}].${k}`, 'SEMANTICALLY_EQUIVALENT', 'mismo valor, otro sitio: input → hints'); continue; }
+      if (igual(enL, enC)) {
+        anotar(`steps[${L.id}].${k}`, 'EXACT_MATCH',
+          k === 'count' ? `${JSON.stringify(enL)} · input → input` : `${JSON.stringify(enL)} · mismo valor, otro sitio`);
+        continue;
+      }
       if (enL === undefined) { anotar(`steps[${L.id}].${k}`, 'CORE_ADDS_INFORMATION', JSON.stringify(enC)); continue; }
       anotar(`steps[${L.id}].${k}`, 'LEGACY_ONLY_INFORMATION',
         `legacy.input.${k}=${JSON.stringify(enL)} · lo pone la PLANTILLA, no la persona`, 'default de plantilla');
     }
+
+    /* Y lo que todavía no tiene dónde caber. Se nombra, con su fase. */
+    for (const [k, fase] of Object.entries(SIN_SITIO_EN_EL_CORE)) {
+      const enL = (L.input as Record<string, unknown> | undefined)?.[k];
+      if (enL === undefined) continue;
+      anotar(`steps[${L.id}].${k}`, 'LEGACY_ONLY_INFORMATION',
+        `legacy.input.${k}=${JSON.stringify(enL)} · el contrato del Core no tiene dónde ponerlo`, fase);
+    }
+
+    /*
+     * EL ORDEN. Legacy lo dice con `dependsOn` y el Core con `needs`, que además
+     * distingue de dónde viene cada cosa. El puente ya midió que 9 de las 41
+     * aristas de Legacy solo ordenaban y no transmitían nada, así que faltar no
+     * es siempre perder.
+     */
+    const depL = [...(L.dependsOn ?? [])].sort();
+    const depC = [...(C.dependsOn ?? [])].sort();
+    if (depL.length || depC.length) {
+      anotar(`steps[${L.id}].dependsOn`,
+        depL.length === depC.length ? (depC.length ? 'SEMANTICALLY_EQUIVALENT' : 'EXACT_MATCH')
+          : depC.length > depL.length ? 'CORE_ADDS_INFORMATION' : 'LEGACY_ONLY_INFORMATION',
+        `legacy=[${depL.join(',')}] core=[${depC.join(',')}] · el Core renombra los pasos por posición`,
+        depL.length > depC.length ? 'arista que solo ordenaba' : undefined);
+    }
+    /*
+     * Y las NECESIDADES no aparecen aquí porque en el plan ya no existen: son de
+     * `BrainStep`, y el Planner las convierte en dos cosas distintas —`dependsOn`
+     * para lo que produce otro paso y `uses` para lo que trajo la persona—. Las
+     * dos se comparan, cada una por su lado, y eso es toda la información.
+     */
     for (const [campo, valor] of [['produces', C.produces], ['uses', C.uses], ['hints', C.hints]] as const) {
       if (valor === undefined || valor === null) continue;
       anotar(`steps[${L.id}].${campo}`, 'CORE_ADDS_INFORMATION', JSON.stringify(valor));
@@ -214,6 +298,38 @@ export const compararPlanes = (
   anotar('steps.length', pasosL.length === pasosC.length ? 'EXACT_MATCH' : todoDentro ? 'CORE_ADDS_INFORMATION' : 'STRUCTURAL_MISMATCH',
     `legacy=${pasosL.length} core=${pasosC.length}` + (todoDentro ? ' · todo lo de Legacy está dentro' : ''));
 
+  /*
+   * ── LO QUE WEË LE DICE A LA PERSONA ANTES DE EMPEZAR ──────────────────────
+   *
+   * «Voy a prepararte el itinerario del 2 al 6 de marzo, día a día y con un
+   * presupuesto aproximado». Legacy la escribe en las 35 formas y la persona la
+   * lee en la tarjeta del plan antes de aprobar el gasto. El contrato del Core
+   * TIENE el campo —`Plan.explainToUser`, y el Workflow lo transporta— pero no
+   * hay una sola línea en `core/` que lo escriba.
+   *
+   * No es un default de plantilla ni una diferencia de representación: es una
+   * promesa al usuario que el otro lado no sabe hacer todavía.
+   */
+  const explicaL = typeof legacy?.explainToUser === 'string' ? legacy.explainToUser.trim() : '';
+  const explicaC = typeof plan?.explainToUser === 'string' ? plan.explainToUser.trim() : '';
+  if (explicaL || explicaC) {
+    anotar('explainToUser',
+      igual(explicaL, explicaC) ? 'EXACT_MATCH' : explicaC ? 'SEMANTICALLY_EQUIVALENT' : 'LEGACY_ONLY_INFORMATION',
+      explicaC ? `legacy=${explicaL.length} car · core=${explicaC.length} car` : `legacy=${explicaL.length} car · el Core no lo escribe`,
+      explicaC ? undefined : 'promesa al usuario');
+  }
+
+  /* Y lo que el Core sabe decir de más sobre el encargo entero. */
+  for (const [campo, valor] of [
+    ['references', plan?.references?.length],
+    ['capabilities', plan?.capabilities?.length],
+    ['assumptions', plan?.assumptions?.length],
+    ['warnings', plan?.warnings?.length],
+  ] as const) {
+    if (!valor) continue;
+    anotar(campo, 'CORE_ADDS_INFORMATION', `${valor} · Legacy no lo declara`);
+  }
+
   return dif;
 };
 
@@ -224,13 +340,28 @@ export const compararPlanes = (
  * pidió. Una diferencia estructural tampoco: dos formas distintas pueden decir
  * lo mismo. Lo que cuenta es perder intención o salirse del catálogo.
  */
+/**
+ * LO QUE LEGACY TIENE DE MÁS Y NO CUENTA COMO PÉRDIDA. Dos cosas, y solo dos.
+ *
+ *   `default de plantilla`      · la persona no lo pidió: lo inyectó Legacy.
+ *   `arista que solo ordenaba`  · medido sobre las 41 aristas reales: 9 no
+ *                                 transmiten nada que se pueda usar. El Core no
+ *                                 las tiene porque no hay nada que transportar.
+ *
+ * Todo lo demás que Legacy sepa decir y el Core no SÍ cuenta. En particular la
+ * frase de cada paso y la promesa al usuario, que no son detalles internos: son
+ * lo que la persona lee. Y `focus`, `mood`, `genre` y `voice`, que salen de lo
+ * que alguien contestó y hoy no tienen dónde caber.
+ */
+const NO_ES_PERDIDA: readonly string[] = Object.freeze(['default de plantilla', 'arista que solo ordenaba']);
+
 export const erroresDeParidad = (
   autoridad: readonly Diferencia[],
   regresion: readonly Diferencia[],
 ): Diferencia[] => [
   ...autoridad.filter((d) => d.clase === 'UNSUPPORTED' || d.clase === 'LEGACY_ONLY_INFORMATION'),
   ...regresion.filter((d) => d.clase === 'UNSUPPORTED'),
-  ...regresion.filter((d) => d.clase === 'LEGACY_ONLY_INFORMATION' && d.origen !== 'default de plantilla'),
+  ...regresion.filter((d) => d.clase === 'LEGACY_ONLY_INFORMATION' && !NO_ES_PERDIDA.includes(d.origen ?? '')),
 ];
 
 /** Cuántas de cada clase. Para guardar un número, no una novela. */

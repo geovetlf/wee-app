@@ -314,8 +314,29 @@ check('F12) la regresión clasifica sin llamar error a una forma distinta',
   JSON.stringify(resumenDeParidad(regresion)));
 check('F13) `quality: max` de la plantilla es LEGACY_ONLY, con su origen, y NO es error',
   regresion.some((d) => /\.quality$/.test(d.campo) && d.clase === 'LEGACY_ONLY_INFORMATION' && d.origen === 'default de plantilla')
-  && erroresDeParidad([], regresion).length === 0,
+  && erroresDeParidad([], regresion).every((d) => d.origen !== 'default de plantilla'),
   'lo pone la plantilla, no la persona');
+/*
+ * ── B3.7 · Y LO QUE SÍ CUENTA COMO PÉRDIDA ─────────────────────────────────
+ *
+ * Esta comprobación afirmaba que la regresión no producía NINGÚN error, y era
+ * verdad porque el comparador no miraba dos campos: la frase de cada paso y la
+ * promesa que la persona lee antes de aprobar el gasto. B3.7 los mira, y los
+ * dos faltan: el Core tiene el campo `explainToUser` y no hay una sola línea en
+ * `core/` que lo escriba, y el `purpose` lo deriva del catálogo salvo que lo
+ * ponga un Skill —y no hay Skills—.
+ *
+ * Eso NO se arregla aquí ni se esconde: se nombra. Un plan del Core que
+ * sustituyera al de Legacy hoy dejaría a la persona sin las dos frases.
+ */
+const perdidas = erroresDeParidad([], regresion);
+check('B3.7) la promesa al usuario y la frase del paso SÍ cuentan como pérdida, y se nombran',
+  perdidas.some((d) => d.campo === 'explainToUser' && d.origen === 'promesa al usuario')
+  && perdidas.some((d) => /\.purpose$/.test(d.campo) && d.origen === 'frase para la persona'),
+  perdidas.map((d) => d.campo).join(' · '));
+check('B3.7) y una arista que solo ordenaba NO cuenta: no hay nada que transportar',
+  !perdidas.some((d) => d.origen === 'arista que solo ordenaba'),
+  'medido sobre las 41 aristas reales: 9 no transmiten material');
 check('F14) que el Core añada `produces` o un paso no es regresión',
   regresion.some((d) => /\.produces$/.test(d.campo) && d.clase === 'CORE_ADDS_INFORMATION')
   && regresion.find((d) => d.campo === 'steps.length')?.clase === 'CORE_ADDS_INFORMATION');
