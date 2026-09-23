@@ -16,6 +16,8 @@ export const design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: '¿Qué quieres diseñar hoy?',
+  /* Aquí los ajustes no cambian con lo escrito: siempre se diseña algo que se ve. */
+  settingsHint: 'Cómo quieres que se vea',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: 'Explora',

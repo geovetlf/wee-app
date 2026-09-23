@@ -205,7 +205,14 @@ console.log('\n─── E. El teclado, el volver y el aire ───');
  * gesto de atrás saliéndose de la sección con lo escrito dentro, el aviso de
  * "Creando…" detrás del teclado y la caja pegada a él.
  */
-const ajustes = leer('components/studio/PromptSettings.tsx');
+/*
+ * La hoja de ajustes es UNA (B3.10): `AjustesContextuales`. Había dos —esta y
+ * `studio/PromptSettings`, que era la misma hoja con otro catálogo— y para usar
+ * la segunda Weë Design tenía que decir que estaba en el área "imágenes" del
+ * Studio, que no es verdad. Se quedó la que ya sabía de contextos, de lo
+ * sugerido y de cuántas referencias viajan.
+ */
+const ajustes = leer('components/creator/AjustesContextuales.tsx');
 check('19) la hoja de ajustes reserva la zona segura, como la hoja de Crear',
   /Math\.max\(insets\.bottom, SPACING\.lg\)/.test(ajustes) && /useSafeAreaInsets/.test(ajustes));
 check('19) y la de Crear sigue siendo el patrón que copia',
@@ -259,8 +266,22 @@ check('22) y no deja a nadie encerrado si no hay atrás',
 
 /* El estado de la creación se ve siempre: sube con el teclado, que además se va al enviar. */
 for (const [rel, src] of [['screens/StudioScreen.tsx', studio], ['screens/DesignScreen.tsx', design]]) {
-  check(`23) ${rel} sube el aviso con el teclado`, /bottom: SITIO_DE_LA_BARRA \+ alturaTeclado/.test(src) && /useAlturaDelTeclado/.test(src));
+  check(`23) ${rel} sube el aviso con el teclado`,
+    /<AvisoDeCreacion[\s\S]{0,120}bottom=\{SITIO_DE_LA_BARRA \+ alturaTeclado\}/.test(src) && /useAlturaDelTeclado/.test(src));
 }
+/*
+ * El aviso también es UNO desde B3.10 (`components/creator/AvisoDeCreacion.tsx`):
+ * antes estaba copiado renglón por renglón en las dos pantallas. Así que la
+ * comprobación se parte en dos mitades, que juntas dicen lo mismo que antes
+ * decía una: que cada pantalla le pasa la altura con el teclado sumado, y que
+ * el aviso de verdad flota encima en lugar de ir dentro de la lista.
+ */
+const aviso = leer('components/creator/AvisoDeCreacion.tsx');
+check('23) y el aviso flota encima, a la altura que le dan',
+  /position: 'absolute'/.test(aviso) && /borderColor: theme\.colors\.border, bottom \}/.test(aviso));
+/* Y no deja de decir que todavía no hay nada generado de verdad. */
+check('23) y sigue avisando de que es una demostración',
+  /clavePista = 'studio\.readyHint'/.test(aviso));
 check('23) y al enviar el teclado se retira', /Keyboard\.dismiss\(\);\s*\n\s*onEnviar\(\);/.test(leer('components/creator/CajaDePrompt.tsx')));
 
 /* CONTROL: sin el `return true`, atrás volvería a llevarse la sección. */

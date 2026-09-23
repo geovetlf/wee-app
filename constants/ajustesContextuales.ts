@@ -142,3 +142,25 @@ export const ajustesDe = (
   contexto: ContextoDeCreacion,
   grupos: GrupoDeAjustes[] = GRUPOS_DE_AJUSTES
 ): GrupoDeAjustes[] => grupos.filter((grupo) => grupo.contextos.includes(contexto));
+
+/**
+ * UN CATÁLOGO QUE NO CAMBIA CON EL CONTEXTO, PUESTO EN ESTA FORMA.
+ *
+ * Weë Design pregunta siempre lo mismo —estilo, materiales, iluminación,
+ * formato, calidad— porque allí siempre se está diseñando algo que se ve. No
+ * tiene un "todavía no sé qué quieres" del que dependa la pregunta, así que sus
+ * grupos no llevan `contextos` y viven en `constants/designTools.ts` con la
+ * forma de siempre, que es la misma menos ese campo.
+ *
+ * Esto los deja entrar en el panel común sin tocar ese archivo y sin que Weë
+ * Design tenga que disfrazarse de "imágenes" para usarlo. `contextos` se pone
+ * en TODOS los que hay: un catálogo propio ya viene elegido por quien lo pasa,
+ * y volver a filtrarlo aquí sería esconderle grupos a quien los trajo.
+ */
+export const siempreSePregunta = (
+  grupos: readonly { id: string; clave: string; opciones: OpcionDeAjuste[] }[]
+): GrupoDeAjustes[] =>
+  grupos.map((grupo) => ({ ...grupo, contextos: TODOS_LOS_CONTEXTOS }));
+
+/** Los seis. Escrito una vez para que `siempreSePregunta` diga lo que promete. */
+const TODOS_LOS_CONTEXTOS: ContextoDeCreacion[] = ['general', 'imagen', 'video', 'voz', 'texto', 'documento'];

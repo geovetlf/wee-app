@@ -503,8 +503,12 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * 2 301 → 2 318 en la Fase 12-A/B: entra el módulo `moderation` (24 claves) y
    * salen las siete de `wall.report*`, que daban las gracias por un reporte que no
    * existía y prometían una revisión que nadie hacía.
+   * 2 318 → 2 319 en B3.10: `design.settingsHint`. Weë Design pasa a la hoja de
+   * ajustes común y necesita su propia línea bajo el título, porque allí los
+   * ajustes NO cambian con lo que se escribe —siempre se diseña algo que se ve—
+   * y la frase del Studio, «cambian según lo que estés creando», no sería cierta.
    */
-  const CLAVES_PT = 2318;
+  const CLAVES_PT = 2319;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

@@ -16,6 +16,7 @@ export const design: typeof import('../es/design').design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Что хотите спроектировать сегодня?',
+  settingsHint: 'Как это должно выглядеть',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: 'Обзор',

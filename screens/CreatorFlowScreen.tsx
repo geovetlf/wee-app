@@ -18,6 +18,7 @@ import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
 import { WEE_EXPERIENCES, EXPERIENCE_AREA, experienceLabel, getExperienceById } from '../constants/weeExperiences';
+import { ContextoDeExperiencia } from '../constants/weeWorkspaces';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -31,17 +32,19 @@ const CreatorFlowScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const params = (route.params || {}) as {
-    experienceId?: string;
-    goal?: string;
-    jobId?: string;
-    preset?: { questionId: string; optionId: string };
-    /** Varias respuestas ya dadas (puente de "No sé qué hacer", fase 2E-60). */
-    presets?: { questionId: string; optionId: string }[];
-    imageUri?: string;
-    /** Documento del editor que pidió la ayuda (Weë Writer). */
-    editorDocId?: string;
-  };
+  /*
+    * LO QUE EL SITIO DE DONDE SE VIENE YA SABE.
+    *
+    * La forma no se declara aquí: es `ContextoDeExperiencia`, en
+    * `constants/weeWorkspaces.ts`. Estaba escrita suelta dentro de esta pantalla,
+    * así que cada portada que quisiera mandar algo tenía que adivinarla mirando
+    * este archivo; ahora se lee de un sitio y el compilador avisa si una portada
+    * manda algo que el flujo no espera.
+    *
+    * Lo que llega aquí es transporte, no entendimiento: quien entiende es Weë
+    * Brain, en el servidor. Esta pantalla lo reúne y lo lleva.
+    */
+  const params = (route.params || {}) as ContextoDeExperiencia;
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   /*

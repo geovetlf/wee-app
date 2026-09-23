@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,22 +13,20 @@ import AjustesContextuales from '../components/creator/AjustesContextuales';
 import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import StudioToolGrid from '../components/studio/StudioToolGrid';
-import StudioCreations from '../components/studio/StudioCreations';
 import StudioPanel from '../components/studio/StudioPanel';
+import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
+import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import { AreaDeStudio, HerramientaDeStudio } from '../constants/studioTools';
+import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-
-const isWeb = Platform.OS === 'web';
 
 /** Cuánto tarda la creación de mentira. Lo justo para ver el estado, no para esperar. */
 const LO_QUE_TARDA_LA_DEMO = 1600;
 
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
-
-type EstadoDeCreacion = 'quieto' | 'creando' | 'listo';
 
 /**
  * WEË STUDIO — EL SITIO DONDE SE CREA.
@@ -233,7 +231,8 @@ const StudioScreen: React.FC = () => {
               <StudioToolGrid porFila={porFila} onAbrir={(a) => setPanel(a)} />
             </View>
 
-            <StudioCreations
+            <FilaDeCreaciones
+              creaciones={CREACIONES_DEL_STUDIO}
               onVerTodas={() => navigation.navigate('Projects')}
               onOpciones={() => {}}
             />
@@ -252,38 +251,11 @@ const StudioScreen: React.FC = () => {
         Al enviar, además, el teclado se retira solo (`CajaDePrompt`), así que
         esto solo cubre el momento en que todavía se está yendo.
       */}
-      {estado !== 'quieto' && (
-        <View
-          style={[
-            styles.aviso,
-            { backgroundColor: theme.colors.card, borderColor: theme.colors.border, bottom: SITIO_DE_LA_BARRA + alturaTeclado },
-          ]}
-        >
-          {estado === 'creando' ? (
-            <>
-              <Ionicons name="sparkles" size={scale(18)} color={theme.colors.accentDark} />
-              <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.creating')}</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={scale(18)} color={theme.colors.success} />
-              <View style={styles.avisoCuerpo}>
-                <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.ready')}</Text>
-                <Text style={[styles.avisoPista, { color: theme.colors.textSecondary }]}>{t('studio.readyHint')}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setEstado('quieto')}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
-              >
-                <Text style={[styles.avisoCerrar, { color: theme.colors.accentDark }]}>{t('studio.dismiss')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+      <AvisoDeCreacion
+        estado={estado}
+        bottom={SITIO_DE_LA_BARRA + alturaTeclado}
+        onCerrar={() => setEstado('quieto')}
+      />
 
       <AjustesContextuales
         visible={ajustesAbiertos}
@@ -325,28 +297,6 @@ const styles = StyleSheet.create({
     maxWidth: scale(170),
   },
   fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
-  aviso: {
-    position: 'absolute',
-    left: SPACING.lg,
-    right: SPACING.lg,
-    bottom: SITIO_DE_LA_BARRA,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderRadius: scale(18),
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: scale(16),
-    shadowOffset: { width: 0, height: scale(4) },
-    elevation: 4,
-  },
-  avisoCuerpo: { flex: 1, gap: scale(1) },
-  avisoTexto: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
-  avisoPista: { fontSize: FONT_SIZE.xs, lineHeight: scale(16) },
-  avisoCerrar: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
 });
 
 /*

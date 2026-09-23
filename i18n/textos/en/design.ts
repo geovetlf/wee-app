@@ -11,6 +11,8 @@ export const design: typeof import('../es/design').design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'What do you want to design today?',
+  /* Aquí los ajustes no cambian con lo escrito: siempre se diseña algo que se ve. */
+  settingsHint: 'How you want it to look',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: 'Explore',

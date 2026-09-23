@@ -50,3 +50,24 @@ export const CREACIONES_DE_MUESTRA: CreacionDeMuestra[] = [
   { id: 'm3', tipo: 'audio', titulo: 'Narracion en espanol', tono: '#E8E8EA' },
   { id: 'm4', tipo: 'document', titulo: 'Good Ideas Better People', tono: '#F1EEE7' },
 ];
+
+/**
+ * Las mismas cuatro, en la forma que pide la fila común de creaciones
+ * (`components/creator/FilaDeCreaciones.tsx`).
+ *
+ * La fila no sabe de tipos: le llega la etiqueta ya resuelta a una clave y el
+ * icono ya elegido. Weë Studio etiqueta por tipo —imagen, video, voz,
+ * documento— y Weë Design por clase de diseño, y las dos entran igual.
+ *
+ * La traducción NO se hace aquí: un archivo de `constants/` se importa fuera de
+ * React, donde no hay traductor, así que lo que viaja es la clave y quien pinta
+ * la resuelve (CLAUDE.md §8).
+ */
+export const CREACIONES_DEL_STUDIO = CREACIONES_DE_MUESTRA.map((c) => ({
+  id: c.id,
+  claveTipo: CLAVE_DEL_TIPO[c.tipo],
+  icono: ICONO_DEL_TIPO[c.tipo],
+  titulo: c.titulo,
+  tono: c.tono,
+  duracion: c.duracion,
+}));

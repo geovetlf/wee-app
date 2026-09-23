@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,17 +9,17 @@ import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
-import PromptSettings from '../components/studio/PromptSettings';
+import AjustesContextuales from '../components/creator/AjustesContextuales';
+import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
+import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
-import DesignCreations from '../components/design/DesignCreations';
 import DesignPanel from '../components/design/DesignPanel';
-import { AJUSTES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { siempreSePregunta } from '../constants/ajustesContextuales';
+import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
+import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-
-const isWeb = Platform.OS === 'web';
 
 /** Cuánto tarda la creación de mentira. Lo justo para ver el estado. */
 const LO_QUE_TARDA_LA_DEMO = 1600;
@@ -27,7 +27,12 @@ const LO_QUE_TARDA_LA_DEMO = 1600;
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
 
-type EstadoDeCreacion = 'quieto' | 'creando' | 'listo';
+/**
+ * Sus ajustes se preguntan siempre: en Weë Design siempre se está diseñando
+ * algo que se ve, así que no hay contexto del que dependan. Se pone la forma
+ * del panel común una sola vez, fuera del componente: es una tabla, no cambia.
+ */
+const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
 
 /**
  * WEË DESIGN — DISEÑAR CASI CUALQUIER COSA.
@@ -204,51 +209,49 @@ const DesignScreen: React.FC = () => {
 
             <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
 
-            <DesignCreations onVerTodas={() => navigation.navigate('Projects')} />
+            {/*
+              La misma fila que la de Weë Studio —es la misma fila— con lo que
+              se hace aquí: un interior, una casa, un barco, una silla. La
+              etiqueta dice qué CLASE de diseño es, que es por lo que se busca en
+              esta galería, no si es imagen o video.
+
+              Un poco más ancha y más baja que la del Studio, porque un diseño se
+              reconoce por lo ancho y un video por lo alto.
+            */}
+            <FilaDeCreaciones
+              creaciones={CREACIONES_DE_DESIGN}
+              ancho={scale(140)}
+              alto={scale(120)}
+              onVerTodas={() => navigation.navigate('Projects')}
+            />
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
 
       {/* Como en el Studio: el aviso sube con el teclado y nunca se queda detrás. */}
-      {estado !== 'quieto' && (
-        <View
-          style={[
-            styles.aviso,
-            { backgroundColor: theme.colors.card, borderColor: theme.colors.border, bottom: SITIO_DE_LA_BARRA + alturaTeclado },
-          ]}
-        >
-          {estado === 'creando' ? (
-            <>
-              <Ionicons name="sparkles" size={scale(18)} color={theme.colors.accentDark} />
-              <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.creating')}</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={scale(18)} color={theme.colors.success} />
-              <View style={styles.avisoCuerpo}>
-                <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.ready')}</Text>
-                <Text style={[styles.avisoPista, { color: theme.colors.textSecondary }]}>{t('studio.readyHint')}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setEstado('quieto')}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
-              >
-                <Text style={[styles.avisoCerrar, { color: theme.colors.accentDark }]}>{t('studio.dismiss')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+      <AvisoDeCreacion
+        estado={estado}
+        bottom={SITIO_DE_LA_BARRA + alturaTeclado}
+        onCerrar={() => setEstado('quieto')}
+      />
 
-      <PromptSettings
+      {/*
+        El panel de ajustes es el común de Weë AI, con el catálogo de Weë Design
+        dentro. Antes había una segunda copia del panel solo para poder pasarle
+        otra lista, y para usarla Weë Design tenía que decir que estaba en el
+        área "imágenes" del Studio, que no es verdad y no lleva a ninguna parte.
+
+        La pista de debajo del título es la suya: aquí los ajustes NO cambian con
+        lo que se escribe, así que decir que cambian sería mentir.
+      */}
+      <AjustesContextuales
         visible={ajustesAbiertos}
-        area="images"
-        ajustes={AJUSTES_DE_DESIGN}
+        contexto="imagen"
+        grupos={AJUSTES}
+        pista={t('design.settingsHint')}
+        referencias={referencias.length}
         elegido={ajustes}
-        onElegir={(ajuste, opcion) => setAjustes((antes) => ({ ...antes, [ajuste]: opcion }))}
+        onElegir={(grupo, opcion) => setAjustes((antes) => ({ ...antes, [grupo]: opcion }))}
         onCerrar={() => setAjustesAbiertos(false)}
       />
     </SafeAreaView>
@@ -284,28 +287,6 @@ const styles = StyleSheet.create({
     maxWidth: scale(170),
   },
   fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
-  aviso: {
-    position: 'absolute',
-    left: SPACING.lg,
-    right: SPACING.lg,
-    bottom: SITIO_DE_LA_BARRA,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderRadius: scale(18),
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: scale(16),
-    shadowOffset: { width: 0, height: scale(4) },
-    elevation: 4,
-  },
-  avisoCuerpo: { flex: 1, gap: scale(1) },
-  avisoTexto: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
-  avisoPista: { fontSize: FONT_SIZE.xs, lineHeight: scale(16) },
-  avisoCerrar: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
 });
 
 /*
