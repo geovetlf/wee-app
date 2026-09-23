@@ -20,7 +20,7 @@
  *  D. El Router de siempre sigue registrando igual.
  *  E. Es genérica: sin nombres de proveedor ni de capacidad.
  *  F. Idempotencia y forma del documento.
- *  G. No se cambió ninguna otra autoridad.
+ *  G. El registro vive en dos sitios, y en ningún otro.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -168,24 +168,46 @@ check('y el seam no espera a que termine', /void recordRealSuccess\(/.test(seam)
 check('el requestId no se parsea ni se restringe',
   !/run_/.test(sinComentarios(verificacion)) && !/requestId/.test(sinComentarios(verificacion)));
 
-console.log('\n─── G. No se cambió ninguna otra autoridad ───');
+console.log(String.fromCharCode(10) + '─── G. El registro vive en dos sitios, y en ningún otro ───');
 
-/* Lo que no cambió se comprueba contra git, no de memoria. */
-import { execSync } from 'node:child_process';
 /*
- * Sin `functions/lib/`: es la salida de compilación, se regenera con cada build
- * y ya venía modificada de antes de esta fase. Contarla decía que se había
- * tocado el Credit Engine cuando lo único que cambió fue su `.js` compilado.
+ * LA PRIMERA VERSIÓN DE ESTE GRUPO SOLO PODÍA PASAR UNA VEZ.
+ *
+ * Preguntaba a `git diff HEAD` qué archivos estaban tocados, y eso describe el
+ * árbol de trabajo, no el código: pasaba mientras el cambio estaba sin commit y
+ * falló para siempre en cuanto se confirmó. Una prueba que mide un estado
+ * transitorio no protege nada; solo avisa de que alguien hizo commit.
+ *
+ * Lo que de verdad hay que sostener es dónde VIVE el registro: en el Router del
+ * motor y en el seam del conductor, y en ningún otro sitio. Eso es cierto hoy y
+ * mañana, y se rompe justo cuando importa: cuando alguien añade una tercera
+ * llamada suelta en un adaptador o en una capacidad.
  */
-const tocados = execSync('git diff --name-only HEAD', { cwd: RAIZ })
-  .toString().split('\n').filter(Boolean)
-  .filter((f) => !f.startsWith('functions/lib/'));
-const prohibidos = tocados.filter((f) => /engine\/router\.ts|core\/gateway\.ts|creditEngine|engine\/ledger\.ts|engine\/registry\.ts|creator\/templates\.ts|core\/planner\.ts|core\/brain\.ts/.test(f));
-check('no se tocó Router, Gateway, Credits, Ledger, Registry, Planner ni Brain',
-  prohibidos.length === 0, prohibidos.join(', ') || `${tocados.length} archivo(s) tocados`);
-check('y el cambio se queda en dos archivos de código',
-  tocados.filter((f) => f.startsWith('functions/src/')).length === 2,
-  tocados.filter((f) => f.startsWith('functions/src/')).join(', '));
+const fuentes = [];
+const recorrer = (dir) => {
+  for (const f of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+    if (f.isDirectory()) recorrer(`${dir}/${f.name}`);
+    else if (f.name.endsWith('.ts')) fuentes.push(`${dir}/${f.name}`);
+  }
+};
+recorrer('functions/src');
+
+const LLAMADA = 'recordRealSuccess(';
+const llaman = fuentes.filter((f) => leer(f).includes(LLAMADA) && !f.endsWith('engine/verification.ts'));
+check('solo dos sitios llaman al registro', llaman.length === 2, llaman.join(', '));
+check('y son el Router del motor y el seam del conductor',
+  llaman.includes('functions/src/engine/router.ts') && llaman.includes('functions/src/runtime/index.ts'),
+  llaman.join(', '));
+/* Ni un adaptador lo llama por su cuenta: eso sería volver a tener N caminos. */
+const adaptadores = fuentes.filter((f) => f.includes('/providers/') && /recordRealSuccess/.test(leer(f)));
+check('ningún adaptador lo llama por su cuenta', adaptadores.length === 0, adaptadores.join(', ') || 'ninguno');
+check('y lo declara un solo archivo',
+  fuentes.filter((f) => /export async function recordRealSuccess/.test(leer(f))).length === 1);
+
+/* CONTROL: una tercera llamada suelta TIENE que caer. */
+check('CONTROL: una tercera llamada suelta sería detectada',
+  "void recordRealSuccess('x','y','z');".includes(LLAMADA),
+  'si esto pasara, el grupo G no protegería nada');
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nEl conductor deja constancia igual que el Router');
 process.exit(failures ? 1 : 0);
