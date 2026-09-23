@@ -191,6 +191,46 @@ for (const f of FUTURAS) {
 check('19b · y las ocho llegan hasta A5: se optimizan sin que el núcleo las nombre',
   optimizadas === 8, sinMejora.join(', ') || 'las ocho con propuesta y ganancia > 0');
 
+/* Y hasta A6: un resultado de cada una se verifica y, si falla, se propone qué
+ * hacer. Con evaluadores SINTÉTICOS, que es lo único que debe existir hoy: el
+ * día que haya un evaluador de verdad entrará por el mismo puerto. */
+const a6 = A.crearMotorDeVerificacion({
+  evaluadores: [{
+    id: 'evaluator.sintetico',
+    supports: (c) => c.type.startsWith('quality.'),
+    evaluate: (c) => ({
+      status: 'fail', value: 0.3, because: 'el evaluador sintético mide 0.3',
+      evidence: [{ claim: 'quality', supports: false,
+        signal: { key: 'quality.sintetica.score', subject: c.subject, value: 0.3, source: 'measured', sampleSize: 9 } }],
+    }),
+  }],
+});
+const a6r = A.crearMotorDeRecuperacion();
+let verificadas = 0; const sinVeredicto = [];
+for (const fx of FUTURAS) {
+  const id = fx.capabilityId;
+  const v = a6.verificar({
+    expected: [{ kind: id, quality: { minScore: 0.9 } }],
+    actual: { id: `v_${id}`, status: 'succeeded', outputs: [{ kind: id, ref: `ref://${id}` }] },
+  });
+  const r = a6r.analizar(v, {});
+  const ok = v.status === 'partial' && v.evidence.length === 1 &&
+    r.failureClass === 'quality_failure' && r.proposals[0].kind === 'regenerate';
+  if (ok) verificadas++; else sinVeredicto.push(`${id}:${v.status}/${r.failureClass}/${r.proposals[0]?.kind}`);
+}
+check('19c · y hasta A6: las ocho se verifican con evaluadores sintéticos y proponen recuperación',
+  verificadas === 8, sinVeredicto.join(', ') || 'las ocho');
+check('19d · y una capacidad inventada en ejecución, igual',
+  (() => {
+    /* Construida aquí y no reusada de más abajo: ni siquiera aparece entera. */
+    const nadie = ['future', 'capability', 'v' + (6 * 7)].join('.');
+    const v = a6.verificar({
+      expected: [{ kind: nadie, quality: { minScore: 0.9 } }],
+      actual: { id: 'v_x', status: 'succeeded', outputs: [{ kind: nadie, ref: 'ref://x' }] },
+    });
+    return v.status === 'partial' && a6r.analizar(v, {}).proposals.length > 0;
+  })());
+
 console.log('\n─── D. La capacidad que nadie ha inventado ───');
 
 /*
@@ -318,7 +358,15 @@ console.log('\n─── H. El guard de arquitectura ───');
  */
 const PROHIBIDOS_EN_NUCLEO = ['gemini', 'deepseek', 'seedance', 'elevenlabs', 'minimax', 'openai',
   'claude', 'qwen', 'suno', 'flux', 'seedream', 'anthropic',
-  'lipsync', 'faceswap', 'face_swap', 'talking_avatar', 'motion_transfer', 'video_translation'];
+  'lipsync', 'faceswap', 'face_swap', 'talking_avatar', 'motion_transfer', 'video_translation',
+  /* A6 · MODELOS. Un id de modelo en el núcleo es la misma dependencia que un
+   * proveedor, con menos aspecto de serlo. */
+  'gpt', 'sonnet', 'opus', 'veo', 'kling', 'runway', 'sora', 'midjourney', 'imagen', 'whisper',
+  /* A6 · ADAPTADORES Y MOTORES ESPECIALIZADOS. El día que exista el Quality
+   * Engine, A6 tiene que seguir sin nombrarlo: los evaluadores entran por
+   * puerto, y un import aquí convertiría la capa general en la suya. */
+  'adapter', 'adapters', 'adaptador', 'qualityengine', 'visionengine', 'motionengine',
+  'identityengine', 'lipsyncengine', 'audioengine', 'videoengine'];
 /*
  * Se compara por TOKEN, no por subcadena. Buscar «suno» dentro del texto marca
  * `almenosuno` —una variable en castellano— y un guard que grita por eso deja
@@ -327,10 +375,27 @@ const PROHIBIDOS_EN_NUCLEO = ['gemini', 'deepseek', 'seedance', 'elevenlabs', 'm
  */
 const tokens = (src) => new Set(sinComentarios(src).toLowerCase().match(/[a-z0-9_]+/g) ?? []);
 const sucios = [];
+/*
+ * UNA EXCEPCIÓN, y solo una: `authority.ts` ES la lista negra. Tiene que
+ * contener las palabras «adapter», «adaptador», «model» y «provider» porque su
+ * trabajo es rechazarlas, y marcarlas ahí sería como acusar al diccionario de
+ * decir tacos. Una cadena dentro de una lista de prohibidos es lo CONTRARIO de
+ * una dependencia; el guard busca dependencias.
+ */
+const VOCABULARIO_DE_LA_PROHIBICION = new Set(['adapter', 'adapters', 'adaptador']);
 for (const { f, src } of FUENTES_NUCLEO) {
   const t = tokens(src);
-  for (const p of PROHIBIDOS_EN_NUCLEO) if (t.has(p)) sucios.push(`${f}:${p}`);
+  const exento = f === 'authority.ts';
+  for (const p of PROHIBIDOS_EN_NUCLEO) {
+    if (exento && VOCABULARIO_DE_LA_PROHIBICION.has(p)) continue;
+    if (t.has(p)) sucios.push(`${f}:${p}`);
+  }
 }
+/* Y la exención no es una puerta abierta: `authority.ts` sigue sin poder
+ * nombrar un proveedor concreto, que es lo que de verdad importa. */
+check('50b · CONTROL · la exención de `authority.ts` es solo del vocabulario, no de los proveedores',
+  !['gemini', 'elevenlabs', 'seedance', 'minimax', 'openai']
+    .some((x) => tokens(leer('functions/src/core/algorithm/authority.ts')).has(x)));
 check('51 · GUARD · ningún nombre de proveedor ni de capacidad concreta en el núcleo',
   sucios.length === 0, sucios.join(', ') || 'ninguno');
 /* CONTROL: el guard tiene que cazar de verdad, o no protege nada. */
@@ -338,16 +403,41 @@ check('51b · CONTROL · el guard SÍ caza una dependencia real',
   tokens("const cliente = llamarA('gemini');").has('gemini') &&
   tokens('const x = almenosuno;').has('suno') === false,
   'token, no subcadena');
+/* Y los nombres nuevos también, con su control: un guard que no se prueba
+ * a sí mismo es una lista de buenas intenciones. */
+check('51c · CONTROL · y caza también un modelo y un motor especializado',
+  tokens('import { x } from "../lipsyncEngine";').has('lipsyncengine') &&
+  tokens('const m = "gpt";').has('gpt') &&
+  tokens('const adaptado = true;').has('adapter') === false,
+  'modelos y motores, por token');
 /* Y el guard sirve de algo: los mismos nombres SÍ están aquí, como fixtures. */
 check('52 · GUARD · el guard distingue: esos nombres sí están en esta prueba',
   PROHIBIDOS_EN_NUCLEO.filter((p) => leer('functions/test/algorithm-agnostic.test.mjs').includes(p)).length >= 6);
-const INFRA = ['firebase', 'firestore', 'getFirestore', 'fetch(', 'http', 'axios', 'process.env',
-  'spendCredits', 'creditsBalance', 'createAsset', 'crearJob', 'defineSecret', 'apiKey'];
+/*
+ * DOS LISTAS, y la separación importa.
+ *
+ * Buscar `onRequest` por subcadena marcaba `VerificationRequest` —el mismo
+ * error que «suno» dentro de «almenosuno», dos fases después—. Lo que se puede
+ * tokenizar se compara POR TOKEN; lo que lleva puntuación y no sobrevive a un
+ * tokenizador se compara por subcadena, que ahí sí es lo correcto.
+ */
+const INFRA_TOKENS = ['firebase', 'firestore', 'getfirestore', 'axios', 'spendcredits',
+  'creditsbalance', 'createasset', 'crearjob', 'definesecret', 'apikey',
+  'jobstore', 'enqueue', 'getauth', 'secretmanager', 'oncall', 'onrequest'];
+const INFRA_SUBCADENAS = ['fetch(', 'process.env', 'dispatch(', 'admin.', 'https://', 'http://'];
 const conInfra = [];
 for (const { f, src } of FUENTES_NUCLEO) {
   const limpio = sinComentarios(src);
-  for (const p of INFRA) if (limpio.toLowerCase().includes(p.toLowerCase())) conInfra.push(`${f}:${p}`);
+  const t = tokens(limpio);
+  for (const p of INFRA_TOKENS) if (t.has(p)) conInfra.push(`${f}:${p}`);
+  for (const p of INFRA_SUBCADENAS) if (limpio.toLowerCase().includes(p)) conInfra.push(`${f}:${p}`);
 }
+/* CONTROL: las dos mitades tienen que cazar de verdad. */
+check('52b · CONTROL · el guard de infraestructura caza por token y por subcadena',
+  tokens('const db = getFirestore();').has('getfirestore') &&
+  tokens('interface VerificationRequest {}').has('onrequest') === false &&
+  'const r = await fetch(url);'.includes('fetch('),
+  'onRequest ya no marca VerificationRequest');
 check('53 · GUARD · ni infraestructura: red, Firestore, secretos, Credits, Assets, Jobs',
   conInfra.length === 0, conInfra.join(', ') || 'ninguno');
 /* El grafo de dependencias: solo contratos del Core. */

@@ -221,6 +221,10 @@ export interface AlgorithmBudgetLimits {
   maxEvidence?: number;
   /** Cuántos algoritmos puede invocar la composición entera. */
   maxAlgorithmCalls?: number;
+  /** Cuántas comprobaciones se evalúan. Una lista de checks sin tope es un scan. */
+  maxChecks?: number;
+  /** Cuántas llamadas a evaluadores externos. Cada una es trabajo de otro. */
+  maxEvaluators?: number;
 }
 
 /**
@@ -241,6 +245,8 @@ export const TOPES_POR_DEFECTO: Required<AlgorithmBudgetLimits> = Object.freeze(
   maxReplans: 2,
   maxEvidence: 64,
   maxAlgorithmCalls: 16,
+  maxChecks: 64,
+  maxEvaluators: 16,
 });
 
 /**
@@ -258,6 +264,8 @@ export const TOPES_MAXIMOS: Required<AlgorithmBudgetLimits> = Object.freeze({
   maxReplans: 5,
   maxEvidence: 512,
   maxAlgorithmCalls: 64,
+  maxChecks: 512,
+  maxEvaluators: 64,
 });
 
 /** Cuántos algoritmos caben en el registro. Como `MAX_SKILLS`, y por lo mismo. */

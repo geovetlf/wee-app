@@ -223,19 +223,147 @@ trabajadores), que hoy no existe en ninguna capa. Escribir el operador antes que
 el modelo sería teatro.
 
 
-## 10 · Lo que está probado, y dónde
+## 10 · A6, y la regla que un verificador rompe siempre
+
+A6 contesta dos preguntas, **separadas a propósito**: ¿esto cumple lo que se
+esperaba? y, si no, ¿qué tendría sentido hacer al respecto? Son dos motores y no
+uno con dos métodos, porque mezclarlas lleva a diagnosticar mirando la cura.
+
+> **NO SABER NO ES APROBAR.**
+> **UN REQUISITO DURO NO SE COMPENSA CON CALIDAD.**
+> **A6 PROPONE. NO EJECUTA NADA DE LO QUE PROPONE.**
+
+La primera es la que se rompe siempre. Si no hay evaluador, si la señal no
+llegó, si el evaluador revienta, el camino cómodo es tratar el hueco como un
+aprobado y seguir. Eso convierte «no lo hemos mirado» en «está bien».
+
+### Seis estados, y dos de ellos son «no se sabe»
+
+| estado | qué significa |
+|---|---|
+| `pass` | cumple, y hay con qué sostenerlo |
+| `pass_with_uncertainty` | los duros están; la calidad no se pudo medir |
+| `fail` | un duro incumplido, o un evaluador que dice que no |
+| `partial` | una parte sí y otra no, y las dos se pueden nombrar |
+| `unknown` | **no se miró** |
+| `inconclusive` | **se miró y no alcanzó** |
+
+Los dos últimos no son lo mismo y por eso son dos: el primero se arregla
+ejecutando un evaluador; el segundo, consiguiendo mejor evidencia. Fundirlos
+haría imposible saber cuál de las dos cosas hacer.
+
+La unión es **cerrada**, al contrario que `ClaseDeFallo`. El motivo: los estados
+son el vocabulario con el que A6 CONCLUYE y quien lo lea tiene que contemplarlos
+todos; las clases de fallo son el vocabulario con el que el mundo ROMPE, y el
+mundo rompe de maneras nuevas. Una clase desconocida cae en `unknown`, que es
+seguro; un estado desconocido caería en el `default` del `switch`, que casi
+siempre es «pasa».
+
+### Lo único que A6 sabe mirar solo
+
+Estructura: que la salida esté, que traiga referencia, cuántas vinieron, qué
+campos declara, cómo terminó, y las dependencias que no llegaron. Todo genérico
+por construcción —contar y comparar nombres no exige saber si son imágenes o
+mallas—. **A6 no abre ningún material y no distingue un vídeo de una malla 3D.**
+
+Y una que no es estructura: la **autoridad**. Un resultado que trae dentro la
+elección de un proveedor no es un resultado, es una decisión colada por la
+puerta de atrás; se comprueba con el mismo `violacionesEn` del Planner.
+
+### El puerto de evaluadores: aquí entra el Quality Engine
+
+```
+Quality Engine (futuro)
+        ↓  VerificationEvaluator { id, supports, evaluate }
+     Signal / Evidence
+        ↓
+       A6  →  VerificationResult  →  Algorithm Engine
+```
+
+A6 pregunta quién soporta la comprobación, recoge el veredicto y lo compone.
+**No importa ningún evaluador y no sabe qué miden.** Un evaluador de sincronía
+labial, uno de identidad o uno de coherencia temporal entran por aquí sin tocar
+una línea del núcleo; lo vigila el guard de arquitectura, que desde A6 también
+rechaza nombres de modelo y de motor especializado.
+
+Tres maneras de no saber, y las tres acaban igual: **sin evaluador**, **el
+evaluador revienta**, **el evaluador devuelve un estado que no existe**. Ninguna
+aprueba nada.
+
+### La confianza mide FUERZA, no dirección
+
+Aquí se equivoca la intuición y costó un error: `confianzaDeEvidencia` contesta
+«¿cuánto APOYA esto la afirmación?» y resta lo que la contradice. Correcto para
+su pregunta, y al revés para la de A6. La confianza del veredicto no es «cuánto
+creo que pasó»: es «cuánto me creo ESTE VEREDICTO, diga lo que diga». Una
+medición firme de que algo FALLÓ es un veredicto muy fiable; pasarla por la otra
+función lo dejaría en cero, es decir, un fallo seguro disfrazado de «no se sabe».
+
+Así que se mide la fuerza —procedencia, frescura, muestra, con la jerarquía que
+ya existe— y **la cobertura la baja**: un veredicto sostenido en la mitad de las
+comprobaciones vale la mitad, por firme que sea cada una.
+
+### Recuperación: nueve propuestas, ninguna ejecutada
+
+La clase del fallo sale del **Core** cuando hay código —`CLASE_DE_CODIGO` es un
+`Record<WeeErrorCode, …>`, así que si el Core añade un código esto deja de
+compilar hasta que alguien diga dónde cae— y de las comprobaciones cuando el
+fallo nació verificando. La reintentabilidad se **pregunta** a
+`sePuedeReintentarConOtro` y `esDeLaPeticion`: dos capas decidiendo lo mismo
+acaban discrepando, y la que discrepa con el dinero es la cara.
+
+| clase | qué se propone |
+|---|---|
+| `provider_failure` · `transient` · `timeout` | `retry` |
+| `quality_failure` | `regenerate` — no hubo error que repetir |
+| nada concluyó | `verify_again` — lo que falló fue MIRAR |
+| `partial` | `partial` — quedarse con lo que sí salió |
+| `resource` | `reduce_scope` — pedir menos es lo único que cambia la respuesta |
+| `unmet_requirement` · `dependency_failure` · `consistency_failure` | `replan` |
+| — | `fallback` · `alternative_strategy` cuando el contexto los declara |
+| siempre, y siempre la última | `abort` |
+
+Los bucles los corta el **historial**, no el fallo: el fallo sigue ahí cada vez y
+`retry` tendría razón siempre. La huella es por lo que el intento ES —qué, sobre
+qué, contra qué fallo— y nunca por un id; un intento previo sin pasos significa
+«el trabajo entero» y subsume cualquier intento del mismo tipo sobre una parte.
+
+### Lo que A6 no hace
+
+No mide calidad, no abre materiales, no llama a nadie, no reintenta, no
+replanifica, no crea trabajos, no toca Credits ni Assets, no escribe en
+Firestore y no conoce ninguna capacidad. La especialización futura pertenece a
+los evaluadores; la ejecución, al Orchestrator, al Job Engine y al Workflow.
+
+### El camino de LIPSYNC, otra vez y ahora completo
+
+```
+LIPSYNC capability → LIPSYNC Skill → WEE LipSync Engine → modelo → proveedor
+                                            ↓
+                          LipSync Quality Evaluator (futuro)
+                                            ↓  Signal / Evidence
+                                           A6  →  VerificationResult
+```
+
+Nada de esa columna toca el Algorithm Engine. Probado hoy con evaluadores
+**sintéticos** sobre las ocho capacidades futuras y una inventada en tiempo de
+ejecución: las ocho se verifican, producen señales y proponen recuperación sin
+que el núcleo las nombre.
+
+
+## 11 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
 | `algorithm-agnostic.test.mjs` | ocho capacidades futuras sintéticas y una inventada en ejecución recorren la cadena entera; la metadata está acotada; diez propiedades de extensibilidad; el guard de arquitectura |
-| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` | A0–A5 |
+| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` | A0–A6 |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 11 · Lo que esta capa NO hace, dicho una vez más
+## 12 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.

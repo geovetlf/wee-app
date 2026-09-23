@@ -219,8 +219,30 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *
  * `ParallelGroup` NO cambia: ya tenía `expectedSavingsMs` y `risk` esperando a
  * que alguien supiera llenarlos, y A4 los llena.
+ *
+ * 1.5 (A6): dos cosas, y las dos crecen un vocabulario cerrado, que es el único
+ * motivo por el que sube el menor.
+ *
+ * `RecoveryKind` gana `regenerate`, `reduce_scope` y `verify_again`. Las tres
+ * existen porque A3 solo podía hablar de fallos de EJECUCIÓN y A6 habla también
+ * de fallos de VERIFICACIÓN, que son otra cosa: cuando el trabajo terminó bien y
+ * lo que no llega es la calidad, `retry` es la respuesta equivocada —no hubo
+ * error que repetir—. `regenerate` es el término que `QualityRequirement.onBelow`
+ * ya usaba desde F12 sin que nadie pudiera proponerlo; `verify_again` es la
+ * única respuesta honesta cuando lo que falló fue mirar y no hacer.
+ *
+ * `AlgorithmBudgetLimits` gana `maxChecks` y `maxEvaluators`, con sus contadores
+ * en `AlgorithmSpend`. No valía reutilizar `maxCandidates`: las comprobaciones y
+ * los candidatos de recuperación se acotan por separado a propósito, porque
+ * compartir tope significa que una lista larga de checks se come el presupuesto
+ * de recuperarse justo cuando hay más que recuperar. Y los evaluadores son
+ * trabajo de OTRO —el Quality Engine del día que exista—, así que su tope no es
+ * el de los algoritmos propios.
+ *
+ * Aditivo: nada de lo que valía en 1.4 deja de valer, y un motor que no gasta
+ * los contadores nuevos no nota la diferencia.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.4' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.5' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

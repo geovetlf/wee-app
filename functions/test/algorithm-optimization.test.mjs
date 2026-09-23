@@ -61,8 +61,14 @@ check('1 · su descriptor vale y es de la familia `optimization`',
 check('2 · es puro y EXPERIMENTAL: nadie lo elige solo',
   A.DESCRIPTOR_DE_OPTIMIZACION.purity === 'pure' &&
   A.crearRegistroDeAlgoritmos([A.DESCRIPTOR_DE_OPTIMIZACION]).registro.seleccionable(A.OPTIMIZATION_ENGINE_ID) === false);
-check('3 · el contrato NO subió: A5 no necesitó tocar ninguno',
-  ALGORITHM_CONTRACT_VERSION === '1.4', ALGORITHM_CONTRACT_VERSION);
+/* La afirmación de A5 NO es que la versión se quede clavada —una fase
+ * posterior puede subirla con todo el derecho, y A6 lo hizo—: es que A5 no
+ * necesitó añadir NI UN CAMPO. Eso es lo que se mide, y así sigue valiendo. */
+check('3 · A5 no necesitó tocar ningún contrato: no hay entrada suya en el historial',
+  !/(A5)/.test(leer('functions/src/core/contracts.ts')) &&
+  /^1.[0-9]+$/.test(ALGORITHM_CONTRACT_VERSION), ALGORITHM_CONTRACT_VERSION);
+check('3b · y el motor declara el contrato vigente, sea el que sea',
+  A.DESCRIPTOR_DE_OPTIMIZACION.contract === ALGORITHM_CONTRACT_VERSION);
 
 console.log('\n─── B. Factibilidad primero ───');
 

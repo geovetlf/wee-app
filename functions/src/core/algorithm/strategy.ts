@@ -149,6 +149,15 @@ export type RecoveryKind =
   | 'replan'
   /* Pasárselo al algoritmo declarado como `fallback`. */
   | 'fallback'
+  /* Volver a producirlo porque no salió lo bastante bien. NO es `retry`: no
+   * hubo error, hubo resultado y no llega. Lo distingue `QualityRequirement`
+   * desde F12, que ya tenía `onBelow: 'regenerate'` esperando a quien lo dijera. */
+  | 'regenerate'
+  /* Pedir menos: soltar lo opcional y quedarse con lo que sí cabe. */
+  | 'reduce_scope'
+  /* Volver a mirar con mejor evidencia. La única respuesta honesta cuando lo
+   * que falló fue la VERIFICACIÓN y no el trabajo. */
+  | 'verify_again'
   /* Parar. Con reembolso, que de eso ya sabe el Financial Core. */
   | 'abort';
 

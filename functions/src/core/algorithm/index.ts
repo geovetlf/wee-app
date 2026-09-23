@@ -52,3 +52,7 @@ export * from './parallelization';
 export * from './parallelization-engine';
 export * from './optimization';
 export * from './optimization-engine';
+export * from './verification';
+export * from './verification-engine';
+export * from './recovery';
+export * from './recovery-engine';

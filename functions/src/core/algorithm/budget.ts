@@ -42,10 +42,13 @@ export interface AlgorithmSpend {
   replans: number;
   evidence: number;
   algorithmCalls: number;
+  checks: number;
+  evaluators: number;
 }
 
 export const GASTO_CERO: Readonly<AlgorithmSpend> = Object.freeze({
   latencyMs: 0, candidates: 0, iterations: 0, depth: 0, replans: 0, evidence: 0, algorithmCalls: 0,
+  checks: 0, evaluators: 0,
 });
 
 /** Qué tope corresponde a cada contador. Escrito una vez para que nadie lo empareje mal. */
@@ -57,6 +60,8 @@ const TOPE_DE: Readonly<Record<keyof AlgorithmSpend, keyof AlgorithmBudgetLimits
   replans: 'maxReplans',
   evidence: 'maxEvidence',
   algorithmCalls: 'maxAlgorithmCalls',
+  checks: 'maxChecks',
+  evaluators: 'maxEvaluators',
 });
 
 export const CONTADORES: readonly (keyof AlgorithmSpend)[] = Object.freeze(
