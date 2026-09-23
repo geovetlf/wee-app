@@ -61,7 +61,15 @@ const estrategia = (id, steps, extra = {}) => ({
 
 console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
 
-check('1 · los trece archivos del módulo están', FUENTES.length === 13, FUENTES.map((x) => x.f).join(' '));
+/*
+ * Se nombran los módulos en vez de contarlos: un número obliga a editar esta
+ * línea cada fase y no dice nada cuando falla. Una lista sí dice qué falta o
+ * qué apareció sin avisar.
+ */
+const MODULOS = ['authority', 'baseline', 'budget', 'decision', 'decision-engine', 'decomposition',
+  'decomposition-engine', 'index', 'objective', 'registry', 'scoring', 'signals', 'strategy', 'types', 'value'];
+check('1 · están exactamente los módulos declarados, ni uno más',
+  igual(FUENTES.map((x) => x.f.replace('.ts', '')).sort(), [...MODULOS].sort()), FUENTES.map((x) => x.f).join(' '));
 /* Si esto se rompiera, el Core habría dejado de ser probable con una tabla de casos. */
 const importesFuera = FUENTES.flatMap(({ f, src }) =>
   [...sinComentarios(src).matchAll(/from '([^']+)'/g)].map((m) => m[1]).filter((r) => !r.startsWith('.')).map((r) => `${f}→${r}`));
@@ -436,9 +444,10 @@ check('117b · y ninguno es seleccionable automáticamente',
 const conectado = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router']
   .filter((d) => { try { return require_('node:child_process').execSync(`grep -rl "core/algorithm\\|AlgorithmDecision\\|DecisionContext" ${d} 2>/dev/null || true`, { cwd: RAIZ, encoding: 'utf8' }).trim().length > 0; } catch { return false; } });
 check('118 · y nadie lo ha conectado a ninguna ruta', conectado.length === 0, conectado.join(', ') || 'ninguna');
-/* Subió a 1.1 con A1: campos opcionales. Lo que importa es que el MAYOR no se movió. */
-check('119 · el contrato sigue en el mayor 1, y va por 1.1',
-  ALGORITHM_CONTRACT_VERSION === '1.1' && ALGORITHM_CONTRACT_VERSION.split('.')[0] === '1');
+/* Un salto de MENOR es aditivo y legítimo; uno de MAYOR rompería a quien ya lo usa. */
+const [MAYOR, MENOR] = ALGORITHM_CONTRACT_VERSION.split('.').map(Number);
+check('119 · el contrato NO ha roto el mayor, y ya va por el menor 2 o más',
+  MAYOR === 1 && MENOR >= 2, ALGORITHM_CONTRACT_VERSION);
 check('120 · y el Core lo exporta por su puerta única',
   /export \* from '\.\/algorithm';/.test(leer('functions/src/core/index.ts')));
 

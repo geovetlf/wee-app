@@ -41,7 +41,7 @@ import { AlgorithmConstraints, Objective, ObjectiveAxis, conflictosDeRestriccion
 import { Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales } from './signals';
 import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
-import { violacionesDeEstrategia } from './authority';
+import { violacionesDeEstrategia, violacionesEn } from './authority';
 import {
   AlgorithmDecision,
   DecisionContext,
@@ -160,11 +160,23 @@ export interface OpcionesDelMotor {
   comparadores?: readonly Comparador[];
 }
 
-/** Reconoce una `Strategy` sin pedir que nadie la anuncie. */
+/**
+ * RECONOCE UNA `Strategy` SIN PEDIR QUE NADIE LA ANUNCIE.
+ *
+ * Mira `expected`, y no solo `id` + `steps`, por un fallo concreto: una
+ * descomposición de A2 también tiene id y pasos, así que se la tomaba por una
+ * estrategia mal formada y se rechazaba por «le falta la previsión» — cuando lo
+ * que le faltaba era no ser una estrategia.
+ *
+ * `expected` es el campo que una `Strategy` tiene OBLIGATORIAMENTE y que no
+ * tiene ninguna otra cosa de esta capa. Reconocer por lo obligatorio, no por lo
+ * común, es lo que hace que el reconocimiento signifique algo.
+ */
 export const estrategiaPorDefecto = (valor: unknown): Strategy | undefined => {
   if (typeof valor !== 'object' || valor === null) return undefined;
   const v = valor as Partial<Strategy>;
-  return Array.isArray(v.steps) && typeof v.id === 'string' ? (valor as Strategy) : undefined;
+  const tieneExpected = typeof v.expected === 'object' && v.expected !== null;
+  return Array.isArray(v.steps) && typeof v.id === 'string' && tieneExpected ? (valor as Strategy) : undefined;
 };
 
 /* ── 1 · Validación ───────────────────────────────────────────────────────── */
@@ -247,11 +259,21 @@ export const filtrarPorRestricciones = <T>(
     const v = o.values ?? {};
     const fuera = (reason: string, unverifiable = false): Veredicto => ({ id: o.id, eligible: false, reason, unverifiable });
 
-    /* La frontera primero: una opción que nombra una implementación no compite, valga lo que valga. */
+    /*
+     * La frontera primero: una opción que nombra una implementación no compite,
+     * valga lo que valga.
+     *
+     * Y se comprueba en TODAS, no solo en las que se reconocen como estrategia.
+     * Reconocer primero y vigilar después dejaría una puerta abierta del tamaño
+     * de «no parezcas una estrategia»: bastaría con omitir un campo para que
+     * nadie mirase dentro.
+     */
     const estrategia = opts.estrategiaDe(o.value);
+    const violaciones = estrategia
+      ? violacionesDeEstrategia(estrategia)
+      : violacionesEn(o.value, `option:${o.id}`);
+    if (violaciones.length) return fuera(`authority:${violaciones[0].clave}`);
     if (estrategia) {
-      const violaciones = violacionesDeEstrategia(estrategia);
-      if (violaciones.length) return fuera(`authority:${violaciones[0].clave}`);
       const incoherencias = problemasDeEstrategia(estrategia);
       if (incoherencias.length) return fuera(`incoherent:${incoherencias[0]}`);
     }

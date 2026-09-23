@@ -68,8 +68,9 @@ check('5 · y la línea base es `draft`: nunca decide de verdad',
   A.DESCRIPTOR_DE_LA_BASE.status === 'draft' && reg.seleccionable(A.BASELINE_ID) === false);
 check('6 · cada decisión dice qué algoritmo y qué versión la tomó',
   motor.decidir(ctxDe([opt('a', { quality: 1 })])).algorithm === `${A.DECISION_ENGINE_ID}@1`);
-check('7 · el contrato subió a 1.1 y sigue siendo compatible en mayor',
-  ALGORITHM_CONTRACT_VERSION === '1.1' && ALGORITHM_CONTRACT_VERSION.split('.')[0] === '1');
+check('7 · el contrato no ha roto el mayor',
+  Number(ALGORITHM_CONTRACT_VERSION.split('.')[0]) === 1 && Number(ALGORITHM_CONTRACT_VERSION.split('.')[1]) >= 1,
+  ALGORITHM_CONTRACT_VERSION);
 
 console.log('\n─── B. La matriz, de la A a la Z ───');
 
@@ -345,6 +346,23 @@ for (const [que, mala] of [
     d.selected !== mala && veredicto && !veredicto.eligible && veredicto.reason.startsWith('authority:'),
     veredicto ? veredicto.reason : 'NO DETECTADA');
 }
+/*
+ * Y la frontera vale para CUALQUIER opción, no solo para las que se reconocen
+ * como estrategia. Reconocer primero y vigilar después dejaría una puerta del
+ * tamaño de «no parezcas una estrategia»: bastaría omitir `expected`.
+ */
+const noEsEstrategia = motor.decidir(ctxDe([
+  { id: 'disfrazada', value: { id: 'x', steps: [{ id: 'a', input: { providerId: 'elevenlabs' } }] }, values: { quality: 1 } },
+  opt('limpia', { quality: 0.1 }),
+]));
+check('62b · una opción que NO es estrategia también se revisa',
+  noEsEstrategia.selected === 'limpia' &&
+  noEsEstrategia.candidates.find((c) => c.id === 'disfrazada').reason === 'authority:providerId',
+  noEsEstrategia.candidates.find((c) => c.id === 'disfrazada').reason);
+check('62c · y una descomposición no se confunde con una estrategia mal formada',
+  A.crearMotorDeDecision().decidir(ctxDe([
+    { id: 'desc', value: { id: 'T:x', steps: [paso('a', 'text.generate')], tandas: [['a']] }, values: { steps: 1 } },
+  ])).status === 'decided');
 check('63 · y la frontera es la de A0, sin segunda lista',
   leer('functions/src/core/algorithm/decision-engine.ts').includes("violacionesDeEstrategia") &&
   leer('functions/src/core/algorithm/authority.ts').includes("import { claveDeImplementacion } from '../planner'"));

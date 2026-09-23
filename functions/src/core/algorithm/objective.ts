@@ -46,14 +46,33 @@ export type ObjectiveAxis =
   /* La probabilidad de que el trabajo termine bien a la primera. */
   | 'successProbability'
   /* Lo que la persona valora. Sin medición todavía; ver arriba. */
-  | 'userValue';
+  | 'userValue'
+  /*
+   * ── LOS TRES ESTRUCTURALES (A2) ─────────────────────────────────────────
+   *
+   * Cuántas operaciones, cuántos niveles de dependencia, y cuántas cosas
+   * pueden ir a la vez. Existen porque sin ellos NO SE PUEDE decir «prefiero
+   * la descomposición con menos pasos», y la alternativa era peor: meter esas
+   * medidas en `cost` y `latency`, que significan dólares y milisegundos
+   * medidos. Un número estructural disfrazado de dinero es un dato inventado.
+   *
+   * Se miden de verdad —se cuentan sobre el grafo—, así que a diferencia de
+   * `userValue` estos SÍ tienen con qué llenarse desde el primer día.
+   */
+  /* Cuántas operaciones tiene el trabajo. Menos es mejor. */
+  | 'steps'
+  /* Niveles de dependencia: la longitud del camino crítico. Menos es mejor. */
+  | 'depth'
+  /* Cuánto puede ir a la vez. Más es mejor, si el objetivo lo pide. */
+  | 'parallelism';
 
 export const EJES: readonly ObjectiveAxis[] = Object.freeze([
   'quality', 'cost', 'latency', 'reliability', 'successProbability', 'userValue',
+  'steps', 'depth', 'parallelism',
 ]);
 
-/** Para `cost` y `latency`, menos es mejor. Se dice una vez y nadie lo reinventa al revés. */
-export const SE_MINIMIZA: readonly ObjectiveAxis[] = Object.freeze(['cost', 'latency']);
+/** Lo que se minimiza. Se dice una vez y nadie lo reinventa al revés. */
+export const SE_MINIMIZA: readonly ObjectiveAxis[] = Object.freeze(['cost', 'latency', 'steps', 'depth']);
 
 export const seMaximiza = (eje: ObjectiveAxis): boolean => !SE_MINIMIZA.includes(eje);
 

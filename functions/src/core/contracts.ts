@@ -187,8 +187,20 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * rechazarse en el registro. Hoy no rompe nada porque no hay ni un descriptor
  * guardado —A0 y A1 no están conectados a ninguna ruta—, y se deja dicho aquí
  * para que el día que los haya nadie se lo encuentre por sorpresa.
+ *
+ * 1.2 (A2): `ObjectiveAxis` gana tres ejes ESTRUCTURALES —`steps`, `depth` y
+ * `parallelism`— y ni uno de ellos es una estimación: se cuentan sobre el
+ * grafo. Existen porque sin ellos no se puede expresar «prefiero la
+ * descomposición con menos pasos», y la alternativa era meter medidas de
+ * estructura dentro de `cost` y `latency`, que significan dólares y
+ * milisegundos MEDIDOS — un dato inventado con nombre de dato real.
+ *
+ * Aditivo en la práctica: un eje que nadie pondera no cambia ninguna
+ * puntuación, porque `pesosNormalizados` solo reparte entre los que traen peso.
+ * Lo que sí cambia es la FORMA de `Record<ObjectiveAxis, number>`, que gana
+ * tres claves a cero; por eso sube el menor y no se hace en silencio.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.1' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.2' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
