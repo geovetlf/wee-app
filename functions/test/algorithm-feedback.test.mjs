@@ -648,6 +648,112 @@ check('R16 · F28 · y también los RESULTADOS, que van por otro camino',
   })(),
   'sin el tope, un lote grande se procesaría entero y el coste dejaría de estar acotado');
 
+
+console.log('\n─── S. El estado persistible no lleva identificadores individuales ───');
+
+/*
+ * LA FUGA QUE ENCONTRÓ A8, y que la prueba 21 no veía: 21 comprobaba que la
+ * cuenta no entrara en la CLAVE —y no entraba—, pero nadie miraba el campo
+ * `scope` que se guarda junto a ella, que copiaba el ámbito completo de la
+ * primera observación. La prueba medía el sustituto, no la afirmación.
+ *
+ * Aquí se mira lo que de verdad se guardaría: el agregado ENTERO serializado.
+ */
+const IDENTIFICADORES = ['account', 'accountId', 'requestId', 'jobId', 'sessionId', 'stepId', 'resultId', 'deviceId'];
+const MARCA = (k) => `MARCA_${k.toUpperCase()}`;
+const AMBITO_SUCIO = { capability: 'x.y', providerId: 'p1',
+  ...Object.fromEntries(IDENTIFICADORES.map((k) => [k, MARCA(k)])) };
+
+/* Todas las claves de un objeto, a cualquier profundidad. */
+const clavesDe = (o, acc = new Set()) => {
+  if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) { acc.add(k); clavesDe(v, acc); }
+  return acc;
+};
+const fugas = (estado) => {
+  const texto = JSON.stringify(estado);
+  const claves = clavesDe(JSON.parse(texto));
+  return [
+    ...IDENTIFICADORES.filter((k) => claves.has(k)).map((k) => `clave:${k}`),
+    ...IDENTIFICADORES.filter((k) => texto.includes(MARCA(k))).map((k) => `valor:${k}`),
+    ...(texto.includes('MARCA_SUJETO') ? ['valor:subject'] : []),
+  ];
+};
+
+const conFuga = aprender({
+  events: lote(40, (i) => ({ ...ev(`f${i}`, 'accepted', 'explicit', AHORA - (40 - i) * HORA, AMBITO_SUCIO), privacy: 'pseudonymous' })),
+  outcomes: lote(40, (i) => res(`g${i}`, 'success', AHORA - (40 - i) * HORA, AMBITO_SUCIO, {
+    signals: [{ ...sig('result.latencyMs', 800, 'measured', AHORA - (40 - i) * HORA), subject: 'MARCA_SUJETO' }],
+  })),
+});
+check('S1 · ningún identificador individual en el estado persistible del agregado',
+  fugas(conFuga.aggregates).length === 0, fugas(conFuga.aggregates).join(', ') || 'ninguno');
+check('S2 · ni en los candidatos, que copian el ámbito y la evidencia del agregado',
+  fugas(conFuga.candidates).length === 0, fugas(conFuga.candidates).join(', ') || 'ninguno');
+check('S3 · la evidencia que se guarda para explicar va SIN sujeto: podía ser una ejecución concreta',
+  conFuga.aggregates.every((a) => [...a.muestraDeApoyo, ...a.muestraDeContradiccion].every((e) => e.signal.subject === undefined)));
+check('S4 · y conserva lo que sostiene la explicación: métrica, valor, procedencia, cuándo',
+  conFuga.aggregates.flatMap((a) => a.muestraDeApoyo).every((e) =>
+    typeof e.signal.key === 'string' && typeof e.signal.value === 'number' && typeof e.signal.source === 'string' && typeof e.signal.at === 'number'));
+check('S5 · el ámbito guardado es EXACTAMENTE el de la clave, ni un campo más',
+  conFuga.aggregates.every((a) => Object.keys(a.scope).every((k) => A.ORDEN_DE_CLAVE.includes(k))),
+  JSON.stringify(conFuga.aggregates[0].scope));
+
+/* Lista BLANCA: un identificador que nadie previó también se queda fuera. */
+check('S6 · un identificador que nadie ha previsto también se queda fuera: es lista blanca, no negra',
+  !('sessionId' in A.ambitoAgregable({ capability: 'c', sessionId: 's' })) &&
+  !('loQueVengaEn2030' in A.ambitoAgregable({ capability: 'c', loQueVengaEn2030: 'x' })),
+  '`sessionId` ni siquiera está en el tipo, y se colaba');
+check('S7 · y la lista blanca es la MISMA que forma la clave, no una segunda',
+  /ORDEN_DE_CLAVE/.test(sinComentarios(leer('functions/src/core/algorithm/learning.ts')).split('ambitoAgregable')[1] ?? ''));
+
+/* Varias cuentas se siguen agregando bien. */
+const deTresCuentas = aprender({
+  events: ['u1', 'u2', 'u3'].flatMap((u) => lote(20, (i) =>
+    ({ ...ev(`${u}_${i}`, 'accepted', 'explicit', AHORA - (60 - i) * HORA, { capability: 'x.y', account: u }), privacy: 'pseudonymous' }))),
+});
+check('S8 · tres cuentas, un solo agregado: se agrega por lo aprendido, no por quién',
+  deTresCuentas.aggregates.length === 1 && deTresCuentas.aggregates[0].n === 60,
+  `${deTresCuentas.aggregates.length} agregado(s), n=${deTresCuentas.aggregates[0]?.n}`);
+check('S9 · la cuenta NO forma parte de la clave',
+  !deTresCuentas.aggregates[0].key.includes('account') && !deTresCuentas.aggregates[0].key.includes('u1'),
+  deTresCuentas.aggregates[0].key);
+check('S10 · y la clave NO cambió con el arreglo: la de siempre',
+  deTresCuentas.aggregates[0].key === 'feedback.satisfaction|capability=x.y');
+
+/* Observaciones equivalentes de cuentas distintas → el MISMO agregado. */
+const deUna = (cuenta) => aprender({
+  events: lote(30, (i) => ({ ...ev(`e${i}`, 'accepted', 'explicit', AHORA - (30 - i) * HORA,
+    { capability: 'x.y', providerId: 'p1', ...(cuenta ? { account: cuenta, jobId: `j_${cuenta}_${i}` } : {}) }), privacy: 'pseudonymous' })),
+}).aggregates;
+check('S11 · las mismas observaciones de la cuenta A y de la cuenta B dan el MISMO agregado',
+  JSON.stringify(deUna('A')) === JSON.stringify(deUna('B')));
+check('S12 · y el mismo que sin cuenta ninguna: la cuenta no deja rastro',
+  JSON.stringify(deUna('A')) === JSON.stringify(deUna(undefined)));
+
+/* El estado que ya existía: construido A MANO con la fuga, como habría quedado
+ * guardado antes del arreglo. Uno generado ahora ya vendría limpio y no
+ * probaría nada. */
+const SUCIO_DE_ANTES = {
+  ...A.agregadoVacio('outcome.success|capability=x.y', 'outcome.success', { capability: 'x.y' }),
+  n: 5, suma: 5, favorables: 5, min: 1, max: 1, primero: AHORA - 5 * HORA, ultimo: AHORA - HORA,
+  scope: AMBITO_SUCIO,
+  muestraDeApoyo: [{ claim: 'outcome.success', supports: true,
+    signal: { key: 'outcome.success', subject: 'MARCA_SUJETO', value: 1, source: 'measured', at: AHORA - HORA } }],
+};
+check('S13 · CONTROL · el estado de antes estaba de verdad sucio',
+  fugas(SUCIO_DE_ANTES).length > 0, fugas(SUCIO_DE_ANTES).join(', '));
+const recargado = aprender({ previo: [SUCIO_DE_ANTES], outcomes: [res('nuevo', 'success', AHORA)] });
+check('S14 · un `previo` guardado antes del arreglo se limpia al cargarlo',
+  fugas(recargado.aggregates).length === 0, fugas(recargado.aggregates).join(', ') || 'ninguno');
+check('S15 · incluso si esta llamada no lo toca: se reemitiría sucio',
+  fugas(aprender({ previo: [SUCIO_DE_ANTES] }).aggregates).length === 0);
+check('S16 · y lo aprendido se conserva al limpiarlo: la muestra sigue siendo la misma',
+  aprender({ previo: [SUCIO_DE_ANTES] }).aggregates[0].n === 5);
+check('S17 · limpiar es idempotente',
+  JSON.stringify(A.agregadoAgregable(A.agregadoAgregable(SUCIO_DE_ANTES))) === JSON.stringify(A.agregadoAgregable(SUCIO_DE_ANTES)));
+check('S18 · y no se sustituye nada por un hash: si no hace falta, no se guarda',
+  !/hash|sha|digest/i.test(sinComentarios(leer('functions/src/core/algorithm/learning.ts'))));
+
 console.log('\n─── Q. Rendimiento y escala ───');
 
 /*

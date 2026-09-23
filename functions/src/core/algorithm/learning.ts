@@ -65,6 +65,80 @@ export const claveDeAmbito = (scope: AmbitoDeEvento | undefined, metric: string)
   return [metric, ...partes].join('|') || metric;
 };
 
+/**
+ * LO ÚNICO QUE UN AGREGADO PUEDE GUARDAR DE UN ÁMBITO: las dimensiones por las
+ * que se agrega. Ni una más.
+ *
+ * Existe por una fuga que había: la CLAVE excluía bien la cuenta, pero el campo
+ * `scope` del agregado copiaba el ámbito COMPLETO de la primera observación
+ * —cuenta, petición, trabajo, paso, resultado y cualquier cosa que viniera—. Un
+ * agregado de miles de personas llevaba dentro la cuenta de quien lo abrió.
+ *
+ * Es una lista BLANCA y no una negra, y la diferencia la demostró la propia
+ * auditoría: `sessionId` se colaba sin estar siquiera en el tipo
+ * `AmbitoDeEvento`. Una lista de lo prohibido habría fallado con el siguiente
+ * identificador que nadie previó; una de lo permitido no puede.
+ *
+ * Y es la MISMA lista que forma la clave (`ORDEN_DE_CLAVE`), no una segunda:
+ * lo que se guarda y aquello por lo que se agrupa no pueden divergir.
+ *
+ * No se sustituye nada por un hash: si un identificador no hace falta para
+ * aprender del agregado —y ninguno hace falta—, no se guarda. Un hash de una
+ * cuenta sigue siendo un identificador de esa cuenta.
+ */
+export const ambitoAgregable = (scope: AmbitoDeEvento | undefined): AmbitoDeEvento => {
+  const salida: Partial<Record<keyof AmbitoDeEvento, string>> = {};
+  for (const k of ORDEN_DE_CLAVE) {
+    const v = scope?.[k];
+    if (typeof v === 'string' && v) salida[k] = v;
+  }
+  return Object.freeze(salida) as AmbitoDeEvento;
+};
+
+/**
+ * LA EVIDENCIA QUE UN AGREGADO GUARDA PARA EXPLICAR, sin su sujeto.
+ *
+ * El sujeto de una señal dice sobre QUÉ va, y en una señal adjunta a un
+ * resultado suele ser una ejecución concreta —un resultado, un trabajo—, que
+ * es un identificador individual. Para explicar un agregado no hace falta: el
+ * «sobre qué» del agregado ya lo dicen su clave y su ámbito. Se quita.
+ *
+ * Se conserva lo que sí sostiene la explicación y no identifica a nadie: la
+ * métrica, el valor, la procedencia, cuándo se midió, sobre cuántas
+ * observaciones y con cuánta confianza.
+ */
+export const evidenciaAgregable = (e: Evidence): Evidence => {
+  const s = e.signal;
+  const senal: Signal = {
+    key: s.key,
+    value: s.value,
+    source: s.source,
+    ...(typeof s.at === 'number' ? { at: s.at } : {}),
+    ...(typeof s.sampleSize === 'number' ? { sampleSize: s.sampleSize } : {}),
+    ...(typeof s.confidence === 'number' ? { confidence: s.confidence } : {}),
+  };
+  return Object.freeze({
+    claim: e.claim,
+    signal: Object.freeze(senal),
+    supports: e.supports,
+    ...(typeof e.weight === 'number' ? { weight: e.weight } : {}),
+  });
+};
+
+/**
+ * UN AGREGADO, REDUCIDO A LO QUE PUEDE PERSISTIR. Idempotente.
+ *
+ * Hace falta además de las dos de arriba por el estado que ya existía: un
+ * `previo` guardado antes del arreglo trae la fuga dentro, y reemitirlo tal
+ * cual la perpetuaría llamada tras llamada.
+ */
+export const agregadoAgregable = (a: AgregadoDeAprendizaje): AgregadoDeAprendizaje => ({
+  ...a,
+  scope: ambitoAgregable(a.scope),
+  muestraDeApoyo: Object.freeze((a.muestraDeApoyo ?? []).map(evidenciaAgregable)),
+  muestraDeContradiccion: Object.freeze((a.muestraDeContradiccion ?? []).map(evidenciaAgregable)),
+});
+
 /* ── El agregado ──────────────────────────────────────────────────────────── */
 
 /**
@@ -124,7 +198,7 @@ export interface AgregadoDeAprendizaje {
 export const MAX_MUESTRA = 3;
 
 export const agregadoVacio = (key: string, metric: string, scope: AmbitoDeEvento): AgregadoDeAprendizaje => ({
-  key, metric, scope,
+  key, metric, scope: ambitoAgregable(scope),
   n: 0, suma: 0, favorables: 0,
   min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY,
   primero: 0, ultimo: 0,
@@ -189,8 +263,9 @@ export const acumular = (
    *
    * Los contadores nunca dependieron del orden; esto era lo único que sí.
    */
-  const nuevaMuestra = (lista: readonly Evidence[], e: Evidence | undefined) => {
-    if (!e) return lista;
+  const nuevaMuestra = (lista: readonly Evidence[], cruda: Evidence | undefined) => {
+    if (!cruda) return lista;
+    const e = evidenciaAgregable(cruda);
     const juntas = [...lista, e].sort((x, y) => {
       const ax = x.signal?.at ?? 0, ay = y.signal?.at ?? 0;
       if (ax !== ay) return ax - ay;

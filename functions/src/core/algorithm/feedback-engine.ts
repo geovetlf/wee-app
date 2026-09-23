@@ -40,7 +40,7 @@ import {
   ResultadoDeDecision, eventoValido, fuenteDeGesto, origenDe, politicaEfectiva,
 } from './feedback';
 import {
-  AgregadoDeAprendizaje, agregadoVacio, acumular, claveDeAmbito, confianzaDeAgregado,
+  AgregadoDeAprendizaje, agregadoAgregable, agregadoVacio, acumular, claveDeAmbito, confianzaDeAgregado,
   estabilidadDe, frescuraDe, guardas, incertidumbreDeAgregado,
   mediaDe, senalDe, tasaDe, tendenciaDe, ventanaDe,
 } from './learning';
@@ -372,7 +372,9 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
     /* 2 · AGREGACIÓN. Por clave y con tamaño fijo: nunca un recorrido. */
     const agregados = new Map<string, AgregadoDeAprendizaje>();
     for (const a of entrada?.previo ?? []) {
-      if (a && typeof a.key === 'string') agregados.set(a.key, a);
+      /* Reducido al cargarlo: un estado guardado antes del arreglo trae la
+       * fuga dentro, y sin esto se reemitiría tal cual en cada llamada. */
+      if (a && typeof a.key === 'string') agregados.set(a.key, agregadoAgregable(a));
     }
     /* Qué claves se sostienen SOLO en gestos implícitos. Se lleva aparte porque
      * es una guarda, y una guarda que se deduce después ya no protege. */
