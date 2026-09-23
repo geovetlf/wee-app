@@ -67,7 +67,8 @@ console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
  * qué apareció sin avisar.
  */
 const MODULOS = ['authority', 'baseline', 'budget', 'capability', 'decision', 'decision-engine',
-  'decomposition', 'decomposition-engine', 'index', 'objective', 'parallelization',
+  'decomposition', 'decomposition-engine', 'index', 'objective', 'optimization',
+  'optimization-engine', 'parallelization',
   'parallelization-engine', 'registry', 'scoring', 'signals', 'strategy', 'strategy-engine',
   'types', 'value'];
 check('1 · están exactamente los módulos declarados, ni uno más',

@@ -158,6 +158,39 @@ for (const f of FUTURAS) {
 check('19 · las ocho capacidades futuras recorren A2 → A4 → A3 → A1',
   completadas === 8, fallos.join(', ') || 'todas');
 
+/* Y la cadena COMPLETA hasta A5: optimizar sobre una capacidad que no existe.
+ * Aquí el puerto de formas lleva A4 y A3 de verdad, así que lo que se demuestra
+ * no es que A5 tolere la capacidad: es que la transformación «secuencial →
+ * paralelo» se calcula sobre ella sin que nadie la haya nombrado nunca. */
+let optimizadas = 0; const sinMejora = [];
+for (const f of FUTURAS) {
+  const id = f.capabilityId;
+  const tarea = { id: `O_${id}`, steps: [
+    paso('origen', id), paso('ref', id, ['origen']), paso('salida', id, ['origen']), paso('fin', id, ['ref', 'salida'])] };
+  const senales = [
+    ...tarea.steps.map((s) => sig('step.latencyMs', s.id, 100 + s.id.length * 10)),
+    ...tarea.steps.map((s) => sig('step.costUsd', s.id, 0.01)),
+  ];
+  const todas = a4.variantes(tarea, senales).variantes;
+  const secuencial = a3.proponer(todas.slice(0, 1), senales).estrategias[0];
+  const motor = A.crearMotorDeOptimizacion({
+    operadores: [A.operadorDeFormas((c) => {
+      const e = c.value;
+      if (!e || !Array.isArray(e.steps)) return [];
+      const v = a4.variantes({ id: e.id, steps: e.steps }, senales).variantes;
+      return v.length ? a3.proponer(v, senales).estrategias.filter((x) => x.id !== c.id) : [];
+    })],
+  });
+  const r = motor.optimizar({
+    candidates: [secuencial], objective: { weights: { latency: 1 } },
+    evidence: senales.map((s) => ({ claim: s.key, signal: s, supports: true })),
+  });
+  if (r.feasible.length === 1 && r.proposals.length >= 1 && r.proposals[0].expectedGain > 0) optimizadas++;
+  else sinMejora.push(`${id}:${r.stoppedBecause}/${r.proposals.length}`);
+}
+check('19b · y las ocho llegan hasta A5: se optimizan sin que el núcleo las nombre',
+  optimizadas === 8, sinMejora.join(', ') || 'las ocho con propuesta y ganancia > 0');
+
 console.log('\n─── D. La capacidad que nadie ha inventado ───');
 
 /*

@@ -50,3 +50,5 @@ export * from './decomposition-engine';
 export * from './strategy-engine';
 export * from './parallelization';
 export * from './parallelization-engine';
+export * from './optimization';
+export * from './optimization-engine';

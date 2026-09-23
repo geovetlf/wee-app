@@ -343,7 +343,7 @@ export const resolverSenales = (
   const grupos = new Map<string, { s: Signal; i: number }[]>();
   (senales ?? []).forEach((s, i) => {
     if (!senalValida(s)) return;
-    const clave = `${s.key} ${s.subject ?? ''}`;
+    const clave = `${s.key}\0${s.subject ?? ''}`;
     const lista = grupos.get(clave) ?? [];
     lista.push({ s, i });
     grupos.set(clave, lista);

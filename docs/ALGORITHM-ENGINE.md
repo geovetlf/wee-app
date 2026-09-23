@@ -140,19 +140,102 @@ Para conectarlo **no hace falta tocar el Algorithm Engine**:
 
 El Algorithm Engine razona sobre ella el primer día, como con cualquier otra.
 
-## 9 · Lo que está probado, y dónde
+## 9 · A5 y el puerto de las formas alternativas
+
+A5 contesta una pregunta y solo una: **dado un conjunto de candidatos y un
+objetivo, ¿qué cambio ofrece una mejora justificable dentro de las
+restricciones?** Y, la mitad del trabajo, **se calla cuando no lo hay**.
+
+El orden no se negocia:
+
+> **LAS RESTRICCIONES DEFINEN LO FACTIBLE. LOS OBJETIVOS OPTIMIZAN DENTRO DE LO FACTIBLE.**
+
+Primero factibilidad —lo que se sale de un tope duro no compite, no puntúa y
+**no domina a nadie**—, luego el frente de Pareto sobre lo factible, luego las
+transformaciones, y al final la aceptación: una mejora que no se puede demostrar
+no se propone.
+
+### El puerto, y por qué existe
+
+Hay transformaciones que A5 **no puede hacer solo**, y la primera es
+`secuencial → paralelo`: saber qué pasos pueden ir juntos exige el grafo de
+dependencias (A2/A4) y saber cuánto cuesta cada forma exige recalcular la
+previsión entera —camino crítico, coste, calidad, riesgo— (A3).
+
+Reimplementar cualquiera de las dos aquí daría **un segundo cálculo que
+discreparía del primero** el día que uno de los dos cambie. Así que no se
+reimplementa: entra por puerto.
+
+```ts
+export type FuenteDeAlternativas<T> =
+  (c: Alternative<T>, ctx: ContextoDeOptimizacion) => readonly Alternative<T>[];
+
+const operador = operadorDeFormas(formasDe, { id: 'secuencial-a-paralelo' });
+```
+
+Quien tenga A2, A4 y A3 los enchufa; A5 solo sabe que algo le devuelve otras
+formas del mismo candidato y las trata como cualquier otra transformación.
+**Sin puerto, el operador sencillamente no es aplicable** —que es la respuesta
+honesta, y no un cero—.
+
+Lo que sí reusa A5, porque son **fuente única** y tener aquí una segunda copia
+daría dos respuestas distintas: `violaRestricciones` (A3) y `recursosDeSenales`
+(A4). Lo que **no** toca son los generadores: `descomponer`, `variantes` y
+`construir`. Lo vigila `algorithm-optimization.test.mjs` (E2-10 · E2-10b), con
+su control de que el detector no está roto.
+
+### Un operador devuelve VARIAS formas, no una
+
+«Esto se puede hacer en paralelo» no tiene una respuesta: tiene una **curva**
+—de uno en uno, de dos en dos, de tres—, y quedarse con un punto de ella es
+decidir, que no es de esta capa. A5 las evalúa todas y propone las que merecen
+la pena; **A1 elige**.
+
+Medido con el ejemplo de A4 (A=1000; B=2000, C=500, D=500; E=700) y objetivo
+`{ latency: 3, cost: 1 }`:
+
+| forma | latencia | ganancia ponderada |
+|---|---|---|
+| secuencial (referencia) | 4700 ms | — |
+| dos a la vez | 4200 ms | 8,0 % |
+| tres a la vez | 3700 ms | **16,0 %** |
+
+Y **no promete ×3 por poner tres a la vez**: 4700 → 3700 es ×1,27. Volver a una
+forma ya vista se descarta como bucle, y el motor converge.
+
+### Lo que A5 NO hace
+
+No decide —eso es A1—, no ejecuta, no cobra, no llama a nadie, no conoce
+ninguna capacidad, modelo ni proveedor, y **no inventa métricas**: si el delta
+no se puede medir sobre ejes que *las dos* partes midieron, la propuesta no
+sale. Un `expectedDelta` es previsión y lleva el nombre puesto; lo medido vive
+en otro sitio.
+
+### El hueco que queda declarado, no rellenado
+
+El brief pedía también un operador de **reordenación** cuando las dependencias
+lo permiten. **No se ha escrito, y es deliberado**: en el modelo de A3 el camino
+crítico sale del grafo de dependencias, así que reordenar pasos independientes
+no mueve ningún eje medible y el operador produciría un delta cero que
+`mereceLaPena` rechazaría siempre. Para que reordenar signifique algo hace falta
+un modelo de **planificación con recursos acotados** (makespan sobre N
+trabajadores), que hoy no existe en ninguna capa. Escribir el operador antes que
+el modelo sería teatro.
+
+
+## 10 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
 | `algorithm-agnostic.test.mjs` | ocho capacidades futuras sintéticas y una inventada en ejecución recorren la cadena entera; la metadata está acotada; diez propiedades de extensibilidad; el guard de arquitectura |
-| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` | A0–A4 |
+| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` | A0–A5 |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 10 · Lo que esta capa NO hace, dicho una vez más
+## 11 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.
