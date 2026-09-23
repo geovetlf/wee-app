@@ -42,3 +42,5 @@ export * from './scoring';
 export * from './decision';
 export * from './value';
 export * from './registry';
+export * from './decision-engine';
+export * from './baseline';

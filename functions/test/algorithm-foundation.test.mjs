@@ -61,7 +61,7 @@ const estrategia = (id, steps, extra = {}) => ({
 
 console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
 
-check('1 · los once archivos del módulo están', FUENTES.length === 11, FUENTES.map((x) => x.f).join(' '));
+check('1 · los trece archivos del módulo están', FUENTES.length === 13, FUENTES.map((x) => x.f).join(' '));
 /* Si esto se rompiera, el Core habría dejado de ser probable con una tabla de casos. */
 const importesFuera = FUENTES.flatMap(({ f, src }) =>
   [...sinComentarios(src).matchAll(/from '([^']+)'/g)].map((m) => m[1]).filter((r) => !r.startsWith('.')).map((r) => `${f}→${r}`));
@@ -417,14 +417,28 @@ check('115 · SABOTAJE 9 · opciones ilimitadas → el presupuesto las acota',
 check('116 · y puntuar 5 000 opciones sigue siendo lineal, no cuadrático',
   A.puntuar(milOpciones.slice(0, topeC), objetivo).length === topeC);
 
-console.log('\n─── L. A0 no decide nada todavía ───');
+console.log('\n─── L. Lo que hay, está declarado; y nada decide en producción ───');
 
-check('117 · no hay ningún algoritmo implementado',
-  !FUENTES.some(({ src }) => /:\s*Algorithm\s*=|const \w+: Algorithm</.test(sinComentarios(src))));
+/*
+ * A0 afirmaba «no hay ningún algoritmo». A1 lo cambió, así que la afirmación se
+ * ACTUALIZA en vez de dejarla pasando por accidente —su patrón no habría
+ * detectado el motor, que no se anota `: Algorithm`—. Lo que se vigila ahora es
+ * lo que de verdad importa: todo lo que decide está declarado en el registro, y
+ * NINGUNO es seleccionable automáticamente.
+ */
+const DESCRIPTORES = [A.DESCRIPTOR_DEL_MOTOR, A.DESCRIPTOR_DE_LA_BASE];
+const { registro: rTodos } = A.crearRegistroDeAlgoritmos(DESCRIPTORES);
+check('117 · todo lo que decide está declarado y validado',
+  DESCRIPTORES.every((d) => A.algoritmoValido(d)) && rTodos.cuantos() === DESCRIPTORES.length);
+check('117b · y ninguno es seleccionable automáticamente',
+  DESCRIPTORES.every((d) => rTodos.seleccionable(d.id) === false),
+  DESCRIPTORES.map((d) => `${d.id}:${d.status}`).join(' · '));
 const conectado = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router']
   .filter((d) => { try { return require_('node:child_process').execSync(`grep -rl "core/algorithm\\|AlgorithmDecision\\|DecisionContext" ${d} 2>/dev/null || true`, { cwd: RAIZ, encoding: 'utf8' }).trim().length > 0; } catch { return false; } });
 check('118 · y nadie lo ha conectado a ninguna ruta', conectado.length === 0, conectado.join(', ') || 'ninguna');
-check('119 · el contrato nace en 1.0', ALGORITHM_CONTRACT_VERSION === '1.0');
+/* Subió a 1.1 con A1: campos opcionales. Lo que importa es que el MAYOR no se movió. */
+check('119 · el contrato sigue en el mayor 1, y va por 1.1',
+  ALGORITHM_CONTRACT_VERSION === '1.1' && ALGORITHM_CONTRACT_VERSION.split('.')[0] === '1');
 check('120 · y el Core lo exporta por su puerta única',
   /export \* from '\.\/algorithm';/.test(leer('functions/src/core/index.ts')));
 

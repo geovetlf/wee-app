@@ -124,7 +124,15 @@ export type DecisionWarning =
   /* Se decidió con un algoritmo experimental. */
   | 'experimental_algorithm'
   /* Algún candidato intentaba nombrar una implementación y se descartó. */
-  | 'authority_violation';
+  | 'authority_violation'
+  /* Dos señales sobre lo mismo decían cosas distintas. Se resolvió y se cuenta. */
+  | 'signal_conflict'
+  /* Alguna restricción no se pudo comprobar porque al candidato le faltaba el dato. */
+  | 'constraint_unverifiable'
+  /* Se eligió algo cuya confianza no llega al mínimo pedido. */
+  | 'below_min_confidence'
+  /* Decidió el respaldo, no el algoritmo que se pidió. */
+  | 'fallback_used';
 
 /**
  * UN CANDIDATO, YA JUZGADO.
@@ -174,6 +182,35 @@ export interface AlgorithmDecision<T = unknown> {
   warnings: readonly DecisionWarning[];
   /** Con qué objetivo se decidió. Como la `policy` del Router: sin él no se reproduce. */
   objective: Objective;
+  /**
+   * CON QUÉ RESTRICCIONES se decidió. La otra mitad de la reproducibilidad.
+   *
+   * El objetivo dice qué se maximizaba; esto dice qué se exigía. Sin las dos no
+   * se puede volver a ejecutar una decisión, y entonces «por qué eligió esto»
+   * no tiene respuesta.
+   */
+  constraints?: AlgorithmConstraints;
+  /**
+   * Las CLAVES de las señales que se miraron. Nunca sus valores.
+   *
+   * Una decisión tiene que poder decir en qué se fijó. Los valores no entran:
+   * pueden ser datos de una persona y esto se copia, se exporta y se pega.
+   */
+  signalKeys?: readonly string[];
+  /**
+   * POR QUÉ, en frases que se leen. Generadas de la evidencia, nunca por un modelo.
+   *
+   * «Selected B» no es una explicación. Esto es lo que convierte la decisión en
+   * algo que alguien puede revisar sin leer el código.
+   */
+  explanation?: readonly string[];
+  /**
+   * Los que nadie domina, por id. Presente solo cuando hay más de uno: es la
+   * forma de decir «aquí no hay un ganador objetivo» sin dejar de elegir.
+   */
+  paretoFront?: readonly string[];
+  /** Qué algoritmo cedió el paso, cuando decidió un respaldo. `id@version`. */
+  fallbackFrom?: string;
   /** Qué se gastó pensando. Lo que permite saber si esta capa sale a cuenta. */
   spend: Readonly<AlgorithmSpend>;
   trace: TraceContext;

@@ -116,6 +116,18 @@ export interface AlgorithmConstraints {
   /** Riesgo máximo admisible, 0–1. Por encima, se descarta. */
   maxRisk?: number;
   /**
+   * CUÁNTO HAY QUE SABER PARA PODER ELEGIR ALGO, 0–1.
+   *
+   * No hay un umbral universal y no se inventa uno: una recomendación de qué
+   * ver puede decidirse con poco, y un trabajo que cuesta dinero no. Quien pide
+   * lo declara, y si no lo declara, la confianza se informa pero no descarta.
+   *
+   * Se comprueba DESPUÉS de puntuar, porque la confianza depende de la
+   * cobertura y la cobertura no existe hasta que hay puntuación. Sigue siendo
+   * una restricción dura: lo que no llega, se rechaza con su motivo.
+   */
+  minConfidence?: number;
+  /**
    * CAPACIDADES QUE NO SE PUEDEN USAR. Del catálogo del Core.
    *
    * Sirve para lo que hoy no se puede decir: «hazlo sin música» porque
@@ -187,6 +199,7 @@ export const conflictosDeRestricciones = (c: AlgorithmConstraints | undefined): 
   if (c.maxParallel !== undefined && !positivo(c.maxParallel)) malas.push('maxParallel');
   if (c.maxLatencyMs !== undefined && !positivo(c.maxLatencyMs)) malas.push('maxLatencyMs');
   if (c.maxRisk !== undefined && (typeof c.maxRisk !== 'number' || c.maxRisk < 0 || c.maxRisk > 1)) malas.push('maxRisk');
+  if (c.minConfidence !== undefined && (typeof c.minConfidence !== 'number' || c.minConfidence < 0 || c.minConfidence > 1)) malas.push('minConfidence');
   if (c.budget?.maxCredits !== undefined && c.budget.maxCredits < 0) malas.push('budget.maxCredits');
   if (c.budget?.maxUsd !== undefined && c.budget.maxUsd < 0) malas.push('budget.maxUsd');
   if (c.quality?.minScore !== undefined && (c.quality.minScore < 0 || c.quality.minScore > 1)) malas.push('quality.minScore');

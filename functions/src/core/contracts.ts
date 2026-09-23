@@ -175,8 +175,20 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * Lo que NO entra, y a propósito: elegir proveedor o modelo. Eso es del Router
  * y el intento de meterlo en un plan ya se rechazó una vez (B3.15.2). El mismo
  * predicado que lo impidió —`claveDeImplementacion`— guarda esta capa.
+ *
+ * 1.1 (A1): el primer algoritmo real obligó a que una decisión pudiera contar
+ * más de sí misma. Se AÑADEN, todos opcionales: `constraints` —el objetivo dice
+ * qué se maximizaba y esto qué se exigía; sin las dos no se reproduce nada—,
+ * `signalKeys`, `explanation` (frases deterministas, jamás de un modelo),
+ * `paretoFront` y `fallbackFrom`; más cuatro avisos y `minConfidence` en las
+ * restricciones. Nada de lo que valía en 1.0 deja de valer.
+ *
+ * Con la regla de compatibilidad del Core, un descriptor que declare 1.0 pasa a
+ * rechazarse en el registro. Hoy no rompe nada porque no hay ni un descriptor
+ * guardado —A0 y A1 no están conectados a ninguna ruta—, y se deja dicho aquí
+ * para que el día que los haya nadie se lo encuentre por sorpresa.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.0' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.1' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

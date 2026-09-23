@@ -295,3 +295,92 @@ export const incertidumbreDe = (c: Confidence | undefined): Uncertainty => {
 
 /** ¿Alcanza para decidir, o lo honesto es decir que no se sabe? */
 export const alcanzaParaDecidir = (u: Uncertainty): boolean => u === 'known' || u === 'probable';
+
+/* ── Cuando dos señales dicen cosas distintas ─────────────────────────────── */
+
+/**
+ * DOS SEÑALES SOBRE LO MISMO QUE NO COINCIDEN.
+ *
+ * Pasa constantemente y no es un error: el libro dice que la calidad media fue
+ * 0,9 y un modelo estima 0,7. Lo que sí sería un error es tratarlas como
+ * iguales, o quedarse con «la última», que es lo que ocurre cuando nadie decide
+ * y el orden de un array acaba mandando sobre la verdad.
+ */
+export interface ConflictoDeSenales {
+  key: string;
+  subject?: string;
+  /** La que se queda, y el criterio por el que ganó. */
+  elegida: Signal;
+  porque: 'fuente' | 'frescura' | 'muestra' | 'orden';
+  /** Las que se apartan. No se tiran: una decisión tiene que poder contarlas. */
+  descartadas: readonly Signal[];
+}
+
+/**
+ * UNA SEÑAL POR (CLAVE, SUJETO), Y DETERMINISTA.
+ *
+ * El orden de desempate es la tesis de este archivo llevada a su conclusión:
+ *
+ *   1. LA PROCEDENCIA manda. Una medición no la tumba una estimación de un
+ *      modelo, por mucho que la estimación sea más reciente. Esto es lo que
+ *      impide que una señal débil sustituya en silencio a una buena — que es
+ *      exactamente el fallo que esto viene a evitar.
+ *   2. A igual procedencia, la más FRESCA. Sin fecha se pierde: una señal que
+ *      no dice cuándo se midió no puede ganarle a una que sí.
+ *   3. A igual frescura, la de MÁS MUESTRA. 3 000 observaciones no valen lo
+ *      mismo que 3.
+ *   4. Y si todo empata, la que llegó ANTES. No es un criterio de calidad: es
+ *      que el resultado tiene que ser el mismo en dos ejecuciones iguales, y
+ *      «da igual cuál» no es una respuesta reproducible.
+ *
+ * Solo se cuenta como conflicto cuando los VALORES difieren. Dos mediciones
+ * idénticas no son un desacuerdo, y llamarlas así llenaría de ruido cualquier
+ * informe.
+ */
+export const resolverSenales = (
+  senales: readonly Signal[],
+): { resueltas: readonly Signal[]; conflictos: readonly ConflictoDeSenales[] } => {
+  const grupos = new Map<string, { s: Signal; i: number }[]>();
+  (senales ?? []).forEach((s, i) => {
+    if (!senalValida(s)) return;
+    const clave = `${s.key} ${s.subject ?? ''}`;
+    const lista = grupos.get(clave) ?? [];
+    lista.push({ s, i });
+    grupos.set(clave, lista);
+  });
+
+  const resueltas: Signal[] = [];
+  const conflictos: ConflictoDeSenales[] = [];
+  /* Se recorre por clave ordenada: el resultado no puede depender del orden del Map. */
+  for (const clave of [...grupos.keys()].sort()) {
+    const lista = grupos.get(clave) as { s: Signal; i: number }[];
+    if (lista.length === 1) { resueltas.push(lista[0].s); continue; }
+
+    let porque: ConflictoDeSenales['porque'] = 'orden';
+    const ordenadas = [...lista].sort((a, b) => {
+      const fa = PESO_DE_FUENTE[a.s.source] ?? 0;
+      const fb = PESO_DE_FUENTE[b.s.source] ?? 0;
+      if (fa !== fb) return fb - fa;
+      const ta = typeof a.s.at === 'number' ? a.s.at : -Infinity;
+      const tb = typeof b.s.at === 'number' ? b.s.at : -Infinity;
+      if (ta !== tb) return tb - ta;
+      const ma = a.s.sampleSize ?? 0;
+      const mb = b.s.sampleSize ?? 0;
+      if (ma !== mb) return mb - ma;
+      return a.i - b.i;
+    });
+    const ganadora = ordenadas[0];
+    const segunda = ordenadas[1];
+    if ((PESO_DE_FUENTE[ganadora.s.source] ?? 0) !== (PESO_DE_FUENTE[segunda.s.source] ?? 0)) porque = 'fuente';
+    else if ((ganadora.s.at ?? -Infinity) !== (segunda.s.at ?? -Infinity)) porque = 'frescura';
+    else if ((ganadora.s.sampleSize ?? 0) !== (segunda.s.sampleSize ?? 0)) porque = 'muestra';
+
+    resueltas.push(ganadora.s);
+    const descartadas = ordenadas.slice(1).map((x) => x.s);
+    /* Solo es desacuerdo si de verdad dicen cosas distintas. */
+    if (descartadas.some((d) => d.value !== ganadora.s.value)) {
+      conflictos.push({ key: ganadora.s.key, subject: ganadora.s.subject, elegida: ganadora.s, porque, descartadas });
+    }
+  }
+  return { resueltas, conflictos };
+};
