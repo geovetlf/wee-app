@@ -20,6 +20,7 @@ import { engine } from '../engine';
 import { loadConfig } from '../engine/config';
 import { crearGatewayDelMotor, trazaDeConsola } from '../engine/gateway';
 import { Ledger, firestoreLedger } from '../engine/ledger';
+import { esExitoRealDeProveedor, recordRealSuccess } from '../engine/verification';
 import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
 import { crearMotorDeTrabajosDeWee } from '../job';
 import { datosDelRegistro } from '../registry';
@@ -145,6 +146,43 @@ export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: Iden
     });
   },
   async cerrar(fila, { dispatch, resultado, durationMs }) {
+    /*
+     * QUE EL CONDUCTOR TAMBIÉN DEJE CONSTANCIA DE QUE UN PROVEEDOR CONTESTÓ.
+     *
+     * `aiProviderVerification` es la única prueba de que una integración pasó de
+     * «escrita» a «respondió de verdad», y hasta ahora solo la escribía el Router
+     * del motor. El conductor no pasa por ahí, así que sus generaciones reales no
+     * constaban: medido en producción, Seedance había generado dos vídeos con
+     * coste de proveedor real y el registro decía que nunca había contestado.
+     *
+     * Un inventario que se queda corto es peor que no tenerlo, porque nadie duda
+     * de él. Así que se registra aquí, que es el ÚNICO punto por el que pasa todo
+     * lo que el conductor ejecuta, justo donde ya se sabe quién contestó y con
+     * qué modelo.
+     *
+     * ── Qué cuenta como éxito real ──────────────────────────────────────────
+     *
+     * Lo decide `esExitoRealDeProveedor`, que vive junto al registro porque es
+     * la misma pregunta que ese archivo lleva contestando. Es genérica —no sabe
+     * de ningún proveedor ni de ninguna capacidad— y descarta `accepted`, los
+     * resultados sintéticos y el modo demostración.
+     *
+     * El Router del motor llega a lo mismo por su cuenta: descarta `accepted`
+     * antes (lanza `accepted_sin_soporte`), comprueba `!demo` y deja que
+     * `recordRealSuccess` aparte `mock`. No se ha unificado porque cambiarlo
+     * sería tocar el Router, y esta fase no lo toca. Son equivalentes hoy, y
+     * eso es exactamente lo que una prueba tiene que sostener.
+     *
+     * Antes de cerrar la fila y no después, igual que en el Router: si anotar
+     * fallara, una respuesta que ya se pagó no puede perder su constancia.
+     * `recordRealSuccess` se traga sus propios errores y no devuelve nada, así
+     * que esto no puede tumbar una generación que salió bien.
+     */
+    const quien = resultado.implementation ?? dispatch.implementation;
+    if (esExitoRealDeProveedor(resultado.status, resultado.warnings, quien?.providerId)) {
+      void recordRealSuccess(quien.providerId, quien.modelId ?? '', resultado.capability ?? dispatch.capability ?? '', fila);
+    }
+
     const meta = dispatch.metadata ?? {};
     const uso = resultado.usage
       ? Object.fromEntries(Object.entries(resultado.usage).filter((par): par is [string, number] => typeof par[1] === 'number'))
