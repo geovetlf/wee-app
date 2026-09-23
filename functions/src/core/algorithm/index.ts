@@ -33,6 +33,7 @@
  */
 
 export * from './types';
+export * from './capability';
 export * from './signals';
 export * from './objective';
 export * from './budget';
@@ -47,3 +48,5 @@ export * from './baseline';
 export * from './decomposition';
 export * from './decomposition-engine';
 export * from './strategy-engine';
+export * from './parallelization';
+export * from './parallelization-engine';

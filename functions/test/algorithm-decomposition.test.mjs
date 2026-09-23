@@ -165,8 +165,20 @@ console.log('\n─── E. Capacidades ───');
 
 check('36 · una capacidad del catálogo se admite', A.capacidadDelCatalogo('text.generate'));
 check('37 · una inventada, no', !A.capacidadDelCatalogo('magia.instantanea'));
-const inventada = d2.descomponer(tarea('T', [paso('a', 'magia.instantanea')]));
-check('38 · una subtarea con capacidad desconocida invalida la tarea',
+/*
+ * POR DEFECTO EL MOTOR NO EXIGE EL CATÁLOGO, y es deliberado: atarlo hacía que
+ * una capacidad futura se rechazara de entrada, y entonces esta capa no podía
+ * razonar sobre nada que no conociera ya. No saber si algo existe no es lo
+ * mismo que saber que no existe.
+ */
+const permisivo = d2.descomponer(tarea('T', [paso('a', 'magia.instantanea')]));
+check('37b · sin puerto, una capacidad desconocida NO se rechaza',
+  permisivo.opciones.length === 1 && permisivo.problemas.length === 0,
+  JSON.stringify(permisivo.problemas.map((p) => p.reason)));
+/* Y quien quiera exigir el catálogo lo pide en una línea. */
+const d2Estricto = A.crearMotorDeDescomposicion({ capacidades: { conocida: A.capacidadDelCatalogo } });
+const inventada = d2Estricto.descomponer(tarea('T', [paso('a', 'magia.instantanea')]));
+check('38 · con el puerto del catálogo, una capacidad desconocida invalida la tarea',
   inventada.opciones.length === 0 && inventada.problemas.some((p) => p.reason === 'unknown_capability'),
   JSON.stringify(inventada.problemas.map((p) => p.reason)));
 check('39 · y se contabiliza', inventada.metricas.capabilityRejections === 1 && inventada.metricas.failures === 1);
@@ -332,6 +344,7 @@ check('67 · cada corrida deja sus contadores', libre.metricas.attempts === 1 &&
 check('68 · y los rechazos se cuentan por motivo',
   acotado.metricas.maxParallelRejections === 1 && acotado.metricas.optionsRejected === 1);
 check('69 · un fallo se cuenta como fallo', inventada.metricas.failures === 1 && inventada.metricas.success === 0);
+check('69b · y una corrida permisiva se cuenta como éxito', permisivo.metricas.success === 1 && permisivo.metricas.failures === 0);
 check('70 · los ciclos se cuentan',
   d2.descomponer(tarea('T', [paso('a', 'text.generate', ['b']), paso('b', 'text.generate', ['a'])])).metricas.cyclesDetected === 1);
 /* Y las métricas no llevan nada de nadie: son números sobre la estructura. */
@@ -365,7 +378,7 @@ check('77 · SABOTAJE 2 · cambiar maxDepth se nota', conDepth(tarea('T', ABANIC
 check('78 · SABOTAJE 3 · contar nodos descartados se notaría',
   acotado.opciones.every((o) => o.value.medidas.steps === 6) && acotado.rechazadas.length === 1);
 check('79 · SABOTAJE 4 · ignorar maxParallel se nota', acotado.opciones.every((o) => o.value.medidas.parallelism <= 2));
-check('80 · SABOTAJE 5 · quitar la validación de capacidades se nota', inventada.opciones.length === 0);
+check('80 · SABOTAJE 5 · quitar la validación de capacidades se nota (con el puerto puesto)', inventada.opciones.length === 0);
 check('81 · SABOTAJE 6 · alterar el orden se nota', igual(d2.descomponer(tarea('T', barajado)).opciones.map((o) => o.id),
   libre.opciones.map((o) => o.id)));
 check('82 · SABOTAJE 7 · introducir azar se nota', doce.every((r) => igual(r, doce[0])));

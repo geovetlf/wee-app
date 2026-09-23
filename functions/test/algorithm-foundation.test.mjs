@@ -66,9 +66,10 @@ console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
  * línea cada fase y no dice nada cuando falla. Una lista sí dice qué falta o
  * qué apareció sin avisar.
  */
-const MODULOS = ['authority', 'baseline', 'budget', 'decision', 'decision-engine', 'decomposition',
-  'decomposition-engine', 'index', 'objective', 'registry', 'scoring', 'signals', 'strategy',
-  'strategy-engine', 'types', 'value'];
+const MODULOS = ['authority', 'baseline', 'budget', 'capability', 'decision', 'decision-engine',
+  'decomposition', 'decomposition-engine', 'index', 'objective', 'parallelization',
+  'parallelization-engine', 'registry', 'scoring', 'signals', 'strategy', 'strategy-engine',
+  'types', 'value'];
 check('1 · están exactamente los módulos declarados, ni uno más',
   igual(FUENTES.map((x) => x.f.replace('.ts', '')).sort(), [...MODULOS].sort()), FUENTES.map((x) => x.f).join(' '));
 /* Si esto se rompiera, el Core habría dejado de ser probable con una tabla de casos. */
@@ -449,8 +450,18 @@ check('118 · y nadie lo ha conectado a ninguna ruta', conectado.length === 0, c
 const [MAYOR, MENOR] = ALGORITHM_CONTRACT_VERSION.split('.').map(Number);
 check('119 · el contrato NO ha roto el mayor, y ya va por el menor 2 o más',
   MAYOR === 1 && MENOR >= 2, ALGORITHM_CONTRACT_VERSION);
-check('120 · y el Core lo exporta por su puerta única',
-  /export \* from '\.\/algorithm';/.test(leer('functions/src/core/index.ts')));
+/*
+ * La afirmación CAMBIÓ, y con su motivo escrito en el propio `core/index.ts`:
+ * el Algorithm Engine tiene su PROPIA puerta y el Core NO lo reexporta. Es una
+ * capa que hoy no consume nadie, importa del Core y no al revés, y meterla en
+ * la puerta única engordaba lo que carga todo el que pide un contrato — hasta
+ * dejar sin memoria al arnés que incrusta cada módulo en sus dependientes.
+ */
+check('120 · el Algorithm Engine tiene su propia puerta, y el Core NO lo reexporta',
+  /export \* from '\.\/types';/.test(leer('functions/src/core/algorithm/index.ts')) &&
+  !/export \* from '\.\/algorithm';/.test(leer('functions/src/core/index.ts')));
+check('120b · y la decisión está explicada donde se toma',
+  /EL ALGORITHM ENGINE NO SE REEXPORTA AQUÍ/.test(leer('functions/src/core/index.ts')));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA0: la fundación está, y no decide nada todavía');
 process.exit(failures ? 1 : 0);

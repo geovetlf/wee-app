@@ -25,7 +25,6 @@
  * arreglarlo hace falta saber quién apunta a quién.
  */
 
-import { CoreCapabilityId } from '../registry/capabilities';
 import { PlanStep } from '../planner';
 import { nivelesDeDependencia } from './strategy';
 
@@ -166,12 +165,28 @@ export const detectarCiclos = (
 
 /* ── Validación ───────────────────────────────────────────────────────────── */
 
-/** Lo que hace falta saber de fuera para juzgar las capacidades. */
+/**
+ * LO QUE HACE FALTA SABER DE FUERA PARA JUZGAR LAS CAPACIDADES.
+ *
+ * Los dos puertos toman un `string`, no la unión cerrada del catálogo de hoy, y
+ * la diferencia no es cosmética: `CoreCapabilityId` son 38 identificadores
+ * concretos, así que tipar aquí con esa unión significaría que una capacidad
+ * que no existía cuando se escribió esto NI SIQUIERA COMPILA. Un motor de
+ * inteligencia algorítmica no puede depender de conocer el catálogo.
+ *
+ * `CoreCapabilityId` es asignable a `string`, así que quien ya pasaba una
+ * función tipada con la unión sigue funcionando igual.
+ *
+ * Y los dos son OPCIONALES, con el mismo criterio: sin puerto NO se afirma
+ * nada. No saber si una capacidad existe no es lo mismo que saber que no
+ * existe, y tratar lo primero como lo segundo es lo que impedía razonar sobre
+ * cualquier capacidad futura.
+ */
 export interface PuertosDeCapacidad {
-  /** ¿Existe en el catálogo? Por defecto, se pregunta al catálogo del Core. */
-  conocida?: (c: CoreCapabilityId) => boolean;
+  /** ¿Existe? Sin puerto, no se afirma que no: se razona igual. */
+  conocida?: (c: string) => boolean;
   /** ¿La sirve alguien HOY? Sin puerto, no se afirma que falte: no se sabe. */
-  disponible?: (c: CoreCapabilityId) => boolean;
+  disponible?: (c: string) => boolean;
 }
 
 /**

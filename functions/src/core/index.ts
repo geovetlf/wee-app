@@ -54,7 +54,28 @@ export * from './continuity-check';
 export * from './continuity-intent';
 export * from './skill';
 export * from './planner';
-export * from './algorithm';
+/*
+ * EL ALGORITHM ENGINE NO SE REEXPORTA AQUÍ, Y ES DELIBERADO.
+ *
+ * Tiene su propia puerta —`core/algorithm/index.ts`— y quien lo use la abre.
+ * Tres motivos, en orden de importancia:
+ *
+ *   · Es una capa que HOY no consume nadie. Meterla en la puerta única haría
+ *     que todo el que importa un contrato del Core cargase además diecinueve
+ *     módulos que no va a usar.
+ *   · La dirección de la dependencia es al revés que la del resto: el
+ *     Algorithm Engine importa DEL Core (`planner`, `cost`, `workflow`,
+ *     `observability`), no al contrario. Exportarlo desde aquí convertiría la
+ *     puerta en algo que apunta hacia dentro y hacia fuera a la vez.
+ *   · Y lo medido: el arnés que incrusta cada módulo dentro de sus
+ *     dependientes —`core-gateway`, `core-planner`— se quedaba sin memoria al
+ *     añadir los módulos de A4. Ese arnés exagera un crecimiento que en
+ *     producción no existe, pero exagerarlo es justo para lo que sirve: avisa
+ *     de que la puerta estaba engordando sin que nadie lo pidiera.
+ *
+ * El día que una ruta de producción use el Algorithm Engine, lo importará por
+ * su puerta, que es lo que hacen ya sus pruebas.
+ */
 export * from './orchestrator';
 export * from './router';
 export * from './job';

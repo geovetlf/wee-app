@@ -241,7 +241,37 @@ export type ClaseDeRiesgo =
   /* Alguna capacidad todavía no la sirve nadie de forma verificada. */
   | 'unverified_capability'
   /* Lo que se espera se sabe tan mal que apostar por ello es apostar. */
-  | 'high_uncertainty';
+  | 'high_uncertainty'
+  /*
+   * ── LOS SEIS DE A4 ───────────────────────────────────────────────────────
+   *
+   * Todos se VEN en el grafo o salen de una señal de recursos. Ninguno es una
+   * probabilidad, igual que los de arriba.
+   */
+  /* Se piden más cosas a la vez de las que el sistema puede atender. */
+  | 'concurrency_pressure'
+  /* De un paso salen muchos: si ese falla, se pierde todo lo que arrancó con él. */
+  | 'fan_out'
+  /* Un paso espera a varios: no se avanza hasta que termine el más lento. */
+  | 'synchronization_bottleneck'
+  /* Con N cosas a la vez, basta que falle una para tirar la tanda entera. */
+  | 'failure_amplification'
+  /* Demasiado colgando de un mismo punto del grafo. */
+  | 'dependency_concentration'
+  /* Recuperarse de un fallo a medio paralelo cuesta más que en fila. */
+  | 'recovery_complexity'
+  /*
+   * ── Y CUALQUIERA QUE VENGA ────────────────────────────────────────────────
+   *
+   * Las de arriba son las que esta capa sabe DETECTAR sola. Un Skill o una
+   * capacidad futura puede aportar la suya —y debe poder hacerlo sin tocar el
+   * núcleo—, así que la unión queda abierta: los nombres conocidos siguen
+   * autocompletando y documentados, y uno nuevo entra como dato.
+   *
+   * Lo que NO se abre es `Severidad`: ordenar riesgos exige una escala común, y
+   * un valor suelto no se podría comparar con nada.
+   */
+  | (string & {});
 
 /**
  * CUÁNTO IMPORTA, en una escala ORDINAL declarada.

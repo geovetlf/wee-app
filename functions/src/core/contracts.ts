@@ -210,8 +210,17 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * previsión juntaba treinta mediciones de coste con una suposición de calidad
  * en un número, y perdía justo lo que hace falta para actuar. Los VALORES no se
  * duplican —siguen arriba, en un sitio—; esto es solo su procedencia.
+ *
+ * 1.4 (A4): `ClaseDeRiesgo` gana seis clases de la paralelización —presión de
+ * concurrencia, fan-out, punto de sincronización, amplificación del fallo,
+ * concentración de dependencias y coste de recuperarse—. Se añaden a una unión
+ * cerrada, así que quien la lea exhaustivamente tiene que contemplarlas; por
+ * eso sube el menor. Ninguna es una probabilidad: se ven en el grafo.
+ *
+ * `ParallelGroup` NO cambia: ya tenía `expectedSavingsMs` y `risk` esperando a
+ * que alguien supiera llenarlos, y A4 los llena.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.3' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.4' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

@@ -35,7 +35,7 @@
  */
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
-import { CoreCapabilityId, CAPABILITY_CATALOG } from '../registry/capabilities';
+import { CAPABILITY_CATALOG } from '../registry/capabilities';
 import { PlanStep } from '../planner';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
 import { Contador, crearContador, presupuestoEfectivo } from './budget';
@@ -95,7 +95,7 @@ export const DESCRIPTOR_DE_DESCOMPOSICION: AlgorithmDescriptor = Object.freeze({
  * que los junta estaría planificando con otro nombre. Se dice aquí en voz alta
  * porque la tentación de añadirla es real.
  */
-export type Heuristica = 'secuencial' | 'por-niveles' | 'acotada';
+export type Heuristica = 'secuencial' | 'por-niveles' | 'acotada' | (string & {});
 
 export const HEURISTICAS: readonly Heuristica[] = Object.freeze(['secuencial', 'por-niveles', 'acotada']);
 
@@ -222,13 +222,26 @@ export interface OpcionesDelDescompositor {
   ahora?: () => number;
 }
 
-/** Las capacidades que el catálogo del Core conoce. Se PREGUNTA, no se copia. */
-export const capacidadDelCatalogo = (c: CoreCapabilityId): boolean =>
-  CAPABILITY_CATALOG.some((e) => e.id === c);
+/**
+ * LOS PUERTOS DE WEË, QUE SON OPCIONALES Y NO EL COMPORTAMIENTO POR DEFECTO.
+ *
+ * Preguntan al catálogo del Core —no lo copian—, y existen para que quien SÍ
+ * quiera exigir el catálogo de hoy pueda hacerlo en una línea.
+ *
+ * Lo que NO hacen es venir puestos. Atarlos por defecto significaba que el
+ * motor rechazaba cualquier capacidad que no estuviera ya en la lista de 38, y
+ * entonces razonar sobre una capacidad futura era imposible sin tocar esta
+ * capa — exactamente lo que esta capa no puede exigir.
+ *
+ * Toman `string`: una capacidad futura no tiene por qué caber en la unión
+ * cerrada de hoy para poder preguntarse por ella.
+ */
+export const capacidadDelCatalogo = (c: string): boolean =>
+  CAPABILITY_CATALOG.some((e) => String(e.id) === c);
 
 /** Y las que hoy puede servir alguien: `ROUTABLE`, según el mismo catálogo. */
-export const capacidadEnrutable = (c: CoreCapabilityId): boolean =>
-  CAPABILITY_CATALOG.some((e) => e.id === c && e.status === 'ROUTABLE');
+export const capacidadEnrutable = (c: string): boolean =>
+  CAPABILITY_CATALOG.some((e) => String(e.id) === c && e.status === 'ROUTABLE');
 
 /**
  * EL ORDEN CANÓNICO.
@@ -252,7 +265,13 @@ const senal = (key: string, subject: string, value: number): Signal =>
 
 export const crearMotorDeDescomposicion = (opciones: OpcionesDelDescompositor = {}) => {
   const puertos: PuertosDeCapacidad = {
-    conocida: opciones.capacidades?.conocida ?? capacidadDelCatalogo,
+    /*
+     * Sin puerto NO se afirma que una capacidad no exista. Antes el defecto era
+     * el catálogo de Weë, así que `future.unknown.capability.v42` se rechazaba
+     * de entrada y el motor no podía razonar sobre nada que no conociera ya.
+     * Quien quiera exigir el catálogo pasa `capacidadDelCatalogo`.
+     */
+    conocida: opciones.capacidades?.conocida,
     /*
      * Sin puerto de disponibilidad NO se afirma que falte: «no lo sé» y «no
      * está» son cosas distintas, y tratar la primera como la segunda descarta
