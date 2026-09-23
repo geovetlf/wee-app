@@ -172,6 +172,68 @@ const fin = async () => {
   const apartados = deBrain.skipped.filter((x) => x.provider !== 'deepseek');
   check('28) y quien lo pide aparta a los demás DICIENDO por qué', apartados.length === 3 && apartados.every((x) => /familia de modelos permitida/.test(x.reason)),
     apartados.map((x) => x.provider).join(', '));
+
+  /*
+   * ── Y LA OTRA CAPACIDAD, LA QUE USA EL PLANIFICADOR VIVO ───────────────────
+   *
+   * `text.generate` ya estaba fijada arriba. Faltaba su hermana, y la que de
+   * verdad importa para lo que atiende a la gente hoy: el planificador de
+   * experiencias (`llmPlanner.inferAnswers`) deduce respuestas con
+   * `text.structure`, y por esa capacidad NUNCA debe aparecer DeepSeek.
+   *
+   * No es una preferencia de gusto. El adaptador de DeepSeek se endureció —una
+   * respuesta vacía o cortada ahora LANZA en vez de colarse—, y ese cambio es
+   * bueno para quien lo pide a propósito y ajeno a quien no. Lo único que hoy
+   * mantiene esa frontera es que DeepSeek no está en la cadena de
+   * `text.structure`. Un canary real lo midió en producción: Legacy fue a
+   * Gemini. Pero medir no es proteger, y esto lo protege.
+   *
+   * Se comprueban las DOS puertas por las que podría entrar, porque el Router
+   * arma los candidatos con `cadena + los que la petición nombre`:
+   */
+  const conEsquema = { system: 'x', prompt: 'y', schema: { type: 'object' }, maxOutputTokens: 512 };
+
+  /* 1 · La cadena. La puerta de delante. */
+  const sinDeepSeek = (routing) => !routing['text.structure'].chain.some((l) => l.provider === 'deepseek');
+  check('29) DeepSeek no está en la cadena de `text.structure`', sinDeepSeek(DEFAULT_ROUTING),
+    DEFAULT_ROUTING['text.structure'].chain.map((l) => l.provider).join(' → '));
+  /*
+   * Y que esa comprobación no es decorativa: sobre una cadena alterada EN
+   * MEMORIA —con DeepSeek metido a mano— tiene que decir que no. No se toca
+   * ningún archivo ni ninguna configuración real.
+   */
+  const alterada = { ...DEFAULT_ROUTING, 'text.structure': { ...DEFAULT_ROUTING['text.structure'], chain: [...DEFAULT_ROUTING['text.structure'].chain, { provider: 'deepseek' }] } };
+  check('29) y la comprobación MUERDE: con DeepSeek metido a mano, dice que no',
+    sinDeepSeek(alterada) === false && sinDeepSeek(DEFAULT_ROUTING) === true,
+    'la cadena real sigue intacta después de la prueba: ' + DEFAULT_ROUTING['text.structure'].chain.map((l) => l.provider).join(' → '));
+
+  /*
+   * 2 · El Router de verdad, ejecutado. Y se miran las DOS listas, no solo los
+   * candidatos: en las pruebas no hay credenciales, así que todas las matrices
+   * caen por falta de clave y «no está entre los candidatos» sería verdad
+   * aunque DeepSeek estuviera en la cadena. Lo cazó un sabotaje.
+   *
+   * Un eslabón de la cadena acaba SIEMPRE en una de las dos listas. Que no esté
+   * en ninguna significa que el Router no llegó a considerarlo.
+   */
+  const estructura = await router.route({ capability: 'text.structure', input: conEsquema, userId: 'u' });
+  const vistos = [...estructura.candidates, ...estructura.skipped].map((c) => c.provider);
+  check('30) y el Router, ejecutado, ni siquiera lo CONSIDERA para `text.structure`',
+    !vistos.includes('deepseek'),
+    'evaluados: ' + (vistos.join(', ') || 'ninguno'));
+
+  /*
+   * 3 · La puerta de atrás, y la que cierra el círculo: la cadena no basta.
+   * Quien NOMBRA a un proveedor se lo añade a los candidatos, así que si algún
+   * día `inferAnswers` pidiera DeepSeek por su nombre, las dos comprobaciones
+   * de arriba seguirían en verde y la frontera se habría roto igual.
+   */
+  const planificador = sinComentarios(leer('functions/src/creator/planner.ts'));
+  const llamada = /runCapability\(\s*'text\.structure',([\s\S]*?)\n\s*\);/.exec(planificador);
+  check('31) y el planificador vivo no nombra a ningún proveedor al pedirla',
+    !!llamada && !/allowedProviders|modelId|prefs/.test(llamada[1]),
+    'sin `prefs`, nadie se añade a la cadena');
+
   console.log('\n── El desenlace del proveedor, y el vacío que se colaba ──');
 
   /*
