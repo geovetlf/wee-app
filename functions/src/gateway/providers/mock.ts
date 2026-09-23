@@ -1,5 +1,6 @@
 import { CapabilityId, ExperienceId } from '../../creator/types';
 import { GatewayContext, ProviderAdapter, ProviderOutput, ProviderResult } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../../engine/types';
 
 /**
  * Proveedor de prueba (modo demo): devuelve resultados de muestra sin llamar a
@@ -251,7 +252,7 @@ export const mockProvider: ProviderAdapter = {
     } else if (capability === 'doc.render') {
       output = { kind: 'document', content: `📎 Documento listo (demo): "${ctx.goal}". En la versión real recibirás un PDF o una presentación para descargar.` };
     } else if (capability.startsWith('image.')) {
-      const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+      const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
       const urls = Array.from({ length: count }, (_, i) =>
         demoImage(count > 1 ? `Propuesta ${i + 1}` : purpose, ctx.goal, emoji)
       );

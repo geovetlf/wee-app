@@ -379,7 +379,38 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   check('62) la identidad de quien actúa sale del almacén, no del mensaje', /const principal: Principal = \{ userId: job\.owner\.userId/.test(WORKER) && !/mensaje\.(userId|accountId|owner|principal)/.test(WORKER));
 
   const tocados = execSync('git diff --name-only c3515b3 -- functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
-    check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y Credits son los del commit desplegado', tocados === '', tocados);
+  /*
+   * CREDITS SALIÓ DE LA LISTA POR UN ARCHIVO, y con el mismo trato que
+   * recibieron en su día el Gateway, el Workflow y el Orchestrator: algo
+   * autorizado, medido y vigilado de otra forma.
+   *
+   * `credits/aiPricing.ts` guardaba un máximo de propuestas propio —`Math.min(8,
+   * …)`, escrito el 2026-09-07— mientras los cuatro adaptadores guardaban otro
+   * —4, del día anterior—. Entre los dos había una ventana: pedir ocho retoques
+   * costaba 108 Credits y devolvía cuatro imágenes. Eso no se arregla
+   * congelando el archivo: se arregla quitándole el número, y para quitárselo
+   * hay que tocarlo.
+   *
+   * Así que la afirmación cambia de forma, no de fuerza. Antes decía «este
+   * archivo es byte a byte el desplegado»; ahora dice «este archivo ya no tiene
+   * un máximo propio». Lo primero era una foto; lo segundo es la regla que la
+   * foto protegía, y es la que de verdad importa. El resto de Credits
+   * —`creditEngine`, `creditCosts`, `creditValidation`, `creditTransactions`—
+   * sigue congelado exactamente igual que antes.
+   *
+   * Lo que sigue a esto NO es la política del techo ni su valor: eso vive en
+   * `test/techo-de-propuestas.test.mjs`, que es de quien es el tema. Aquí solo
+   * se comprueba el radio de acción: qué se ha tocado de lo cerrado, y por qué.
+   */
+  const AI_PRICING = 'functions/src/credits/aiPricing.ts';
+  const fueraDelPermiso = tocados.split('\n').map((l) => l.trim()).filter((l) => l && l !== AI_PRICING);
+  check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y el resto de Credits son los del commit desplegado', fueraDelPermiso.length === 0, fueraDelPermiso.join(' '));
+  const PRECIO = sinComentarios(leer(AI_PRICING));
+  const TECHO = /const count = Math\.max\(1, Math\.min\(MAX_PROPUESTAS_POR_PASO, Number\(input\.count \?\? 1\)\)\);/;
+  check('63o) y el único que se tocó ya no guarda un máximo de propuestas propio: lo lee de la autoridad compartida',
+    TECHO.test(PRECIO) && /MAX_PROPUESTAS_POR_PASO.*from '\.\.\/engine\/types'/.test(PRECIO)
+    && !/Math\.min\(\s*\d+\s*,\s*Number\(input\.count/.test(PRECIO),
+    'G13.4 · el 8 ya no está, y no se ha puesto otro número en su sitio');
   /*
    * EL WORKFLOW Y EL ORCHESTRATOR SALIERON DE ESA LISTA, y con el mismo trato
    * que recibió el Gateway: algo autorizado, medido y vigilado de otra forma.

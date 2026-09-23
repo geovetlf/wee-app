@@ -1,5 +1,5 @@
 import { CapabilityId } from '../../creator/types';
-import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { MAX_PROPUESTAS_POR_PASO, ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
 import { fetchJson, persistRemoteFile, ProviderError, readImage, toDataUri } from '../http';
 import { arkBase, arkHeaders, isArkConfigured } from './ark';
 import { aspectOf, nearestAspectLabel } from '../resolutionPolicy';
@@ -140,7 +140,7 @@ export const seedreamAdapter: ProviderAdapter = {
     const { input, model, ctx } = request;
     const start = Date.now();
     const headers = arkHeaders('seedream');
-    const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+    const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
     const prompt = [String(input.prompt ?? input.purpose ?? ''), String(input.brief ?? '')].filter(Boolean).join('\n');
     /*
      * La imagen de entrada se lee AQUÍ, en el servidor, y viaja INCRUSTADA.

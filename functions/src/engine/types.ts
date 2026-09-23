@@ -149,11 +149,58 @@ export interface SourceRef {
   title?: string;
 }
 
+/**
+ * EL TECHO DE SEGURIDAD DE PROPUESTAS POR PASO.
+ *
+ * Una «propuesta» es una de las salidas alternativas y equivalentes que un paso
+ * entrega para que la persona elija entre ellas: los tres logos de Weë Design,
+ * los dos looks de Weë Beauty. Esto es cuántas como mucho, y es lo ÚNICO que
+ * este número significa.
+ *
+ * ── Por qué existe ──────────────────────────────────────────────────────────
+ *
+ * Porque había dos. El precio recortaba a 8 (`credits/aiPricing.ts`, escrito el
+ * 2026-09-07) y los cuatro adaptadores recortaban a 4 (heredado del mock del
+ * 2026-09-05, un día antes). Ninguno de los dos números tenía origen: no venía
+ * de ningún proveedor, de ningún modelo ni de ninguna decisión escrita. Y entre
+ * los dos había una ventana —de 5 a 8— en la que se cobraban imágenes que nunca
+ * se llegaban a hacer: pedir 8 retoques costaba 108 Credits y devolvía 4.
+ *
+ * Así que el número pasa a estar UNA vez, aquí, y lo leen todos. Mientras dos
+ * sitios puedan escribirlo por su cuenta, la ventana puede volver a abrirse.
+ *
+ * ── Lo que NO es ────────────────────────────────────────────────────────────
+ *
+ *   · NO es un límite de un proveedor. Ninguna API nos lo impone: los
+ *     adaptadores ni siquiera usan el parámetro de lote que traen; piden las
+ *     imágenes de una en una, en un bucle nuestro.
+ *   · NO es un límite de un modelo.
+ *   · NO es `maxReferences` (`engine/imageModels.ts`), que es cuántas imágenes
+ *     acepta un modelo COMO ENTRADA y varía de 4 a 14 según cuál sea. Entrada y
+ *     salida son ejes distintos y no comparten número.
+ *   · NO es una cantidad genérica. «Para cuántas personas» es una receta y
+ *     viaja dentro del texto del encargo, no aquí.
+ *
+ * ── Hasta dónde llega hoy ───────────────────────────────────────────────────
+ *
+ * Hoy esto es un TECHO y se aplica RECORTANDO, en el precio y en cada
+ * adaptador. Eso es una barrera defensiva temporal, no el contrato final: pedir
+ * cinco no es válido, y que hoy se conviertan en cuatro solo significa que
+ * todavía no hay nadie que sepa decir que no.
+ *
+ * El día que el Planner del Core valide la cantidad, una cantidad imposible
+ * tumbará el plan en vez de encogerse en silencio, y quien la reciba después
+ * —precio y adaptador— ya no tendrá que recortar nada: solo leerla. Hasta
+ * entonces el recorte se queda, porque quitarlo antes de que exista quien
+ * valide dejaría el camino sin ninguna protección.
+ */
+export const MAX_PROPUESTAS_POR_PASO = 4;
+
 export interface ProviderOutput {
   kind: ResultKind;
   content?: string;
   url?: string;
-  /** Varias propuestas cuando el paso pide count > 1. */
+  /** Varias propuestas cuando el paso pide count > 1. Nunca más de `MAX_PROPUESTAS_POR_PASO`. */
   urls?: string[];
   /** Duración real (audio/video) cuando se conoce. */
   durationSec?: number;

@@ -1,5 +1,5 @@
 import { CapabilityId } from '../creator/types';
-import { EngineSettings } from '../engine/types';
+import { EngineSettings, MAX_PROPUESTAS_POR_PASO } from '../engine/types';
 
 import { ImageSize, chooseImageModel, imageModelOf, isEditCapability, usdFor, volumeFactor } from '../engine/imageModels';
 import { resolveForModel } from '../engine/resolutionPolicy';
@@ -348,7 +348,7 @@ export function imageServiceFor(capability: CapabilityId, input: Record<string, 
  * El precio depende siempre de tres cosas: modelo, resolución y cantidad.
  */
 export function priceImage(input: ImagePriceInput, settings: EngineSettings): OperationPrice {
-  const count = Math.max(1, Math.min(8, Number(input.count ?? 1)));
+  const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
   const need = { capability: input.capability, kind: input.kind, quality: input.quality, resolution: input.resolution, references: input.references, resolutionFromEngine: input.resolutionFromEngine };
   const chosen = input.modelId && imageModelOf(input.modelId)
     ? { model: imageModelOf(input.modelId)!, size: (input.resolution as ImageSize) || '1K', tier: imageModelOf(input.modelId)!.tier, reason: 'lo eligió la persona' }

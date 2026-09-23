@@ -281,6 +281,7 @@ check('la escalera de imagen: rostro y restauración al modelo de máxima precis
 const { chooseImageModel, usdFor, volumeFactor } = elib('imageModels.js');
 const { creditsFor } = elib('pricing.js');
 const { providerReady: readyReal } = elib('image.js');
+const { MAX_PROPUESTAS_POR_PASO } = elib('types.js');
 const simgNadie = priceImage({ capability: 'image.generate', available: () => false }, simulated);
 const todos = () => true;
 check('una imagen sencilla usa el modelo más económico, no el Pro', chooseImageModel({ capability: 'image.generate' }, todos).model.modelId === 'flux-2-klein-9b');
@@ -293,10 +294,32 @@ check('el motivo de la elección se puede explicar', /económico|texto|rostro|re
 
 const iSimple = priceImage({ capability: 'image.generate', available: todos }, real);
 const iTres = priceImage({ capability: 'image.generate', count: 3, available: todos }, real);
+const iCuatro = priceImage({ capability: 'image.generate', count: 4, available: todos }, real);
 const iCinco = priceImage({ capability: 'image.generate', count: 5, available: todos }, real);
 check('una imagen sencilla cuesta el precio oficial del modelo económico (USD 0.015)', Math.abs(iSimple.usd - 0.015) < 1e-9 && iSimple.model === 'flux-2-klein-9b' && iSimple.service === 'ai_image_lite', String(iSimple.usd));
 check('el coste protegido son tres imágenes completas: el descuento comercial NO lo toca', Math.abs(iTres.usd - 3 * 0.015) < 1e-9 && iTres.detail.volumeDiscount === 5, String(iTres.usd));
-check('el coste protegido de cinco son cinco imágenes completas, y crece con la cantidad', Math.abs(iCinco.usd - 5 * 0.015) < 1e-9 && iCinco.usd > iTres.usd, String(iCinco.usd));
+check('y crece con la cantidad: cuatro cuestan más que tres, y son cuatro imágenes completas', Math.abs(iCuatro.usd - 4 * 0.015) < 1e-9 && iCuatro.usd > iTres.usd, String(iCuatro.usd));
+/*
+ * ── G13.4 · CINCO YA NO SON CINCO ───────────────────────────────────────────
+ *
+ * Esta comprobación decía «el coste protegido de cinco son cinco imágenes
+ * completas», y era verdad: el precio recortaba a 8 mientras los adaptadores
+ * recortaban a 4, así que cobraba cinco y entregaba cuatro. Esa ventana era el
+ * fallo, no el contrato, y `MAX_PROPUESTAS_POR_PASO` la cerró.
+ *
+ * Lo que se afirma ahora es la política nueva: cinco está FUERA del techo, y
+ * mientras no exista quien lo rechace, el precio lo frena en cuatro. Pedir
+ * cinco cuesta exactamente lo que cuestan cuatro, porque cuatro es lo que se
+ * va a entregar.
+ *
+ * CUIDADO CON LEER ESTO AL REVÉS: que cinco cueste como cuatro NO lo hace
+ * válido. Es una barrera defensiva temporal. Cuando el Planner del Core valide
+ * la cantidad (G13.6), un cinco será `invalid_request` y no llegará hasta aquí
+ * —y entonces esta comprobación volverá a cambiar, porque estará afirmando algo
+ * que ya no puede ocurrir—.
+ */
+check('G13.4 · pedir cinco cuesta exactamente lo que cuestan cuatro: el techo lo frena antes de cobrar', iCinco.credits === iCuatro.credits && iCinco.usd === iCuatro.usd && iCinco.detail.count === 4, iCinco.credits + ' Credits · count=' + iCinco.detail.count);
+check('G13.4 · y no se le cobra ni un Credit de las que no se van a entregar', Math.abs(iCinco.usd - 5 * 0.015) > 1e-9 && iCinco.detail.count === MAX_PROPUESTAS_POR_PASO, 'antes de G13.4 esto costaba cinco imágenes y devolvía cuatro');
 
 // ── Suelo de coste de imagen: el descuento comercial nunca vende por debajo del coste ──
 const soloGemini = (p) => p === 'gemini';

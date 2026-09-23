@@ -1,5 +1,5 @@
 import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
-import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { MAX_PROPUESTAS_POR_PASO, ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
 import { env, fetchJson, NotConfiguredError, persistRemoteFile, pollUntil, ProviderError, readImage } from '../http';
 import { IMAGE_MODELS, usdFor } from '../imageModels';
 import { dimensionsOf } from '../imageMeta';
@@ -169,7 +169,7 @@ export const fluxAdapter: ProviderAdapter = {
     const { input, model, ctx } = request;
     const start = Date.now();
     const headers = { 'x-key': apiKey };
-    const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+    const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
     const prompt = [String(input.prompt ?? input.purpose ?? ''), String(input.brief ?? '')].filter(Boolean).join('\n');
     if (!prompt.trim()) throw new ProviderError('flux: falta la descripción de la imagen', 'flux', undefined, false);
 

@@ -1,5 +1,5 @@
 import { CapabilityId } from '../../creator/types';
-import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
+import { MAX_PROPUESTAS_POR_PASO, ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
 import { env, NotConfiguredError, persistBase64, ProviderError, readImage } from '../http';
 import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
 import { estimateInputTokens } from '../../credits/aiPricing';
@@ -350,7 +350,7 @@ const mecanismoDeContinuidad = (capability: CapabilityId): MecanismoDeContinuida
 
 async function runImage(ai: any, request: ProviderRunRequest, start: number): Promise<ProviderResult> {
   const { capability, input, ctx, model, prefs } = request;
-  const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+  const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
   const kind = String(input.kind ?? '');
   const instruction = EDIT_INSTRUCTIONS[kind] || EDIT_INSTRUCTIONS[capability] || '';
   const prompt = [String(input.prompt ?? input.purpose ?? ''), String(input.brief ?? ''), instruction].filter(Boolean).join('\n');
