@@ -79,7 +79,21 @@ export const ENTRADAS_PRINCIPALES: PuertaDeEntrada[] = [
   { id: 'images', clave: 'studio.imagesTitle', claveHint: 'studio.imagesHint', icono: 'image-outline', area: 'images', experienceId: 'photo' },
   { id: 'videos', clave: 'studio.videosTitle', claveHint: 'studio.videosHint', icono: 'videocam-outline', area: 'videos', experienceId: 'studio' },
   { id: 'text', clave: 'studio.textTitle', claveHint: 'studio.textHint', icono: 'create-outline', area: 'writer', experienceId: 'writer' },
-  { id: 'voice', clave: 'studio.voiceTitle', claveHint: 'studio.voiceHint', icono: 'mic-outline', area: 'voice' },
+  /*
+   * VOZ LLEVA A `music`, y no es un capricho: es lo medido.
+   *
+   * En todo Weë hay UN plan que produce voz sola —`text.generate` + `voice.tts`,
+   * sin tocar `music.generate`— y vive en la plantilla de Weë Music, cuyo
+   * catálogo incluye «🗣️ Una voz o narración». El otro `voice.tts` que existe
+   * es el tercer paso de un plan de vídeo, así que pedir una narración por ahí
+   * generaría también un vídeo.
+   *
+   * Tiene una consecuencia que se dice en vez de taparse: quien entra por Voz
+   * ve «Weë Music» en la cabecera del flujo. No es mentira —esa sección hace
+   * narraciones— pero tampoco es lo que esperaba. Separarlo exige sacar la rama
+   * de voz a su propia plantilla, que es servidor y es otra fase.
+   */
+  { id: 'voice', clave: 'studio.voiceTitle', claveHint: 'studio.voiceHint', icono: 'mic-outline', area: 'voice', experienceId: 'music' },
 ];
 
 /**
@@ -184,6 +198,24 @@ const CREAR_IMAGEN = { questionId: 'action', optionId: 'generate' } as const;
  * de vídeo del Studio la pide.
  */
 const ENSENAR_ALGO = { questionId: 'type', optionId: 'promo' } as const;
+
+/**
+ * Lo que elegir una experiencia de VOZ ya contesta.
+ *
+ * `DECIR_ALGO` es «una voz o narración» en el catálogo de Weë Music, que es lo
+ * que separa un plan de voz sola de uno que además compone una canción. Sin
+ * ella, «Lectura» —que no lleva ninguna palabra que suene a voz— acababa
+ * pidiendo `music.generate`, que está PENDIENTE, más una portada.
+ *
+ * `VOZ_QUE_ELIGE_WEE` es la respuesta honesta a «¿qué voz?» mientras la
+ * elegida no llegue al proveedor: el plan escribe `input.voice` y los
+ * adaptadores solo leen `input.voiceId`, así que hoy SIEMPRE suena la voz por
+ * defecto. Preguntar «¿femenina o masculina?» para después ignorarlo sería
+ * prometer una elección que no existe; que Weë elija es lo que de verdad pasa.
+ * Arreglarlo pide un catálogo de voces por proveedor, y eso no se inventa.
+ */
+const DECIR_ALGO = { questionId: 'what', optionId: 'voice' } as const;
+const VOZ_QUE_ELIGE_WEE = { questionId: 'voice', optionId: 'idk' } as const;
 const PARA_REDES = { questionId: 'type', optionId: 'social' } as const;
 const CONTAR_ALGO = { questionId: 'type', optionId: 'story' } as const;
 
@@ -279,10 +311,10 @@ export const EXPERIENCIAS_DE_TEXTO: ExperienciaDeStudio[] = [
 
 /** VOZ. Sin controles de cámara, claro: una voz no se encuadra. */
 export const EXPERIENCIAS_DE_VOZ: ExperienciaDeStudio[] = [
-  x('narration', 'studio.voxNarration', 'mic-outline'),
-  x('voiceOver', 'studio.xpVoiceOver', 'volume-high-outline'),
-  x('characterVoice', 'studio.xpCharacterVoice', 'person-circle-outline'),
-  x('reading', 'studio.xpReading', 'book-outline'),
+  x('narration', 'studio.voxNarration', 'mic-outline', [], false, [DECIR_ALGO, VOZ_QUE_ELIGE_WEE]),
+  x('voiceOver', 'studio.xpVoiceOver', 'volume-high-outline', [], false, [DECIR_ALGO, VOZ_QUE_ELIGE_WEE]),
+  x('characterVoice', 'studio.xpCharacterVoice', 'person-circle-outline', [], false, [DECIR_ALGO, VOZ_QUE_ELIGE_WEE]),
+  x('reading', 'studio.xpReading', 'book-outline', [], false, [DECIR_ALGO, VOZ_QUE_ELIGE_WEE]),
 ];
 
 /**

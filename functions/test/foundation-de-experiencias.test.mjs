@@ -199,9 +199,22 @@ check('22) y cuando nada encaja no se inventa un destino', /return null;/.test(d
  */
 check('23) se guarda quién decidió, para poder medir si acierta',
   /export type OrigenDelDestino = 'brain' \| 'puerta' \| 'palabras';/.test(destino));
+/*
+ * El orden no cambia: Brain, puerta, palabras. Lo que cambió en B3.15 es a
+ * quién se le aplica el filtro de lugar de trabajo, y por eso la comprobación
+ * ya no puede buscar `cabeEn` en las tres.
+ *
+ * `dentroDe` está para que ADIVINAR no se vaya de paseo —quien escribe «una
+ * receta» en Weë Studio no acaba en Weë Chef por una palabra—. Lo que una
+ * puerta DECLARA no es una lectura que pueda fallar: es una decisión escrita a
+ * mano en el catálogo, y filtrarla hacía que el catálogo se contradijera solo.
+ */
 check('23) y Brain le gana a la puerta, que le gana a las palabras',
-  destino.indexOf('sugeridaPorBrain && cabeEn') < destino.indexOf('declaradaPorLaPuerta && cabeEn')
-  && destino.indexOf('declaradaPorLaPuerta && cabeEn') < destino.indexOf('matchExperiences(goal)'));
+  destino.indexOf('sugeridaPorBrain && cabeEn') < destino.indexOf('declaradaPorLaPuerta && workspaceDe')
+  && destino.indexOf('declaradaPorLaPuerta && workspaceDe') < destino.indexOf('matchExperiences(goal)'));
+check('23) el filtro de sitio protege a las palabras, no a la declaración',
+  /candidatas: WeeExperience\[\] = matchExperiences\(goal\)\.filter\(\(e\) => cabeEn\(e\.id, dentroDe\)\)/.test(destino)
+  && /if \(declaradaPorLaPuerta && workspaceDe\(declaradaPorLaPuerta\)\)/.test(destino));
 
 /* CONTROL: una lista de palabras propia sería un segundo router. */
 check('CONTROL: un router con palabras propias sería detectado',

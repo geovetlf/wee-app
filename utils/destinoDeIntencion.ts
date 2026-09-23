@@ -109,8 +109,27 @@ export const destinoDeIntencion = (
     return llevar(sugeridaPorBrain, 'brain');
   }
 
-  /* Y después lo que la puerta declara, que es un acto y no una lectura. */
-  if (declaradaPorLaPuerta && cabeEn(declaradaPorLaPuerta, dentroDe)) {
+  /*
+   * Y después lo que la puerta declara, que es un acto y no una lectura.
+   *
+   * ── Por qué a esta NO se le aplica `dentroDe` ───────────────────────────
+   *
+   * Porque `dentroDe` está para que ADIVINAR no se vaya de paseo: quien escribe
+   * «una receta» en Weë Studio no puede acabar en Weë Chef por una palabra. Eso
+   * protege contra una lectura que puede fallar.
+   *
+   * Lo que una puerta declara no es una lectura: es una decisión de producto,
+   * tomada a mano y escrita en el catálogo. Filtrarla sería que el catálogo se
+   * contradijera a sí mismo en silencio —declarar un destino y no ir— que es
+   * peor que ir a otro sitio, porque nadie se entera.
+   *
+   * Hoy pasa con la Voz: el único plan de Weë que produce voz sola vive en la
+   * plantilla de Weë Music, que es otro lugar de trabajo. Filtrarlo dejaba la
+   * Voz muerta y mandaba a quien escribía «Lectura: mi libro» a Weë Writer por
+   * la palabra «libro» —peor aún: un texto en vez de un audio—. Lo encontró el
+   * navegador, no una lectura del código.
+   */
+  if (declaradaPorLaPuerta && workspaceDe(declaradaPorLaPuerta)) {
     return llevar(declaradaPorLaPuerta, 'puerta');
   }
 
