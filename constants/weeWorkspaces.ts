@@ -181,8 +181,38 @@ export interface Adjunto {
 export interface ContextoDeExperiencia {
   /** A qué experiencia se entra. Sin él, el flujo abre la primera. */
   experienceId?: string;
+  /** Desde qué lugar de trabajo se vino. */
+  workspace?: WorkspaceId;
   /** Lo que la persona escribió con sus palabras. */
   goal?: string;
+  /**
+   * LO QUE ELIGIÓ EN LOS CONTROLES, POR RUTA DEL LENGUAJE CREATIVO DE WEË.
+   *
+   * `{ 'shot.type': 'close_up', 'lighting.type': 'golden_hour' }`. No es un
+   * sistema de parámetros nuevo: son las rutas y los valores que el Core ya
+   * conoce (`core/creative.ts`), y el espejo del frontend —
+   * `constants/camaraCinematica.ts`— es lo único que hay aquí, con su prueba
+   * que impide que los dos se separen.
+   *
+   * Lo que entra se filtra con `filtrarCreativo`: una ruta que el Core no tiene
+   * o un valor que esa ruta no acepta se deja fuera, no se aproxima.
+   *
+   * ── Por qué aquí y no dentro de `input` ─────────────────────────────────
+   *
+   * Porque en el Core la intención creativa vive en `hints.creative` y NO en
+   * la entrada del paso, que es `{ kind, brief }` y se quedó así a propósito
+   * (B3.7.2). Meterlo en `input` desde el frontend contradiría esa decisión.
+   */
+  creative?: Readonly<Record<string, string>>;
+  /**
+   * Los materiales con los que se llega, con su clase.
+   *
+   * NO es un almacén nuevo: subir sigue siendo de `services/creatorUploads.ts`
+   * —al Storage de Weë, `users/{uid}/creator-inputs`, la única ruta que el
+   * servidor acepta— y los resultados siguen viviendo en el Asset Core. Aquí
+   * viaja QUÉ ES cada cosa, que es lo único que el almacén no sabe.
+   */
+  adjuntos?: readonly Adjunto[];
   /** Un trabajo que ya existe y se vuelve a abrir. */
   jobId?: string;
   /** Una respuesta ya dada: la acción por la que se entró. */

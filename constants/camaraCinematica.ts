@@ -228,3 +228,63 @@ export const comandoPorAlias = (alias: string): ComandoDeCamara | null =>
  */
 export const claveDelValor = (ruta: string, valor: string): string | null =>
   COMANDOS_DE_CAMARA.find((c) => c.ruta === ruta && c.valor === valor)?.clave ?? null;
+
+/* ── Lo que se transporta ──────────────────────────────────────────────────── */
+
+/**
+ * LO QUE LA PERSONA ELIGIÓ, POR RUTA DEL LENGUAJE CREATIVO.
+ *
+ * `{ 'shot.type': 'close_up', 'lighting.type': 'golden_hour' }` y nada más. Es
+ * la MISMA forma que guarda el panel de controles de Weë Studio, a propósito:
+ * lo que se ve en pantalla y lo que viaja tienen que ser el mismo dato, porque
+ * dos copias del mismo estado se separan y entonces la persona ve una cosa y
+ * Weë recibe otra.
+ */
+export type SeleccionCreativa = Readonly<Record<string, string>>;
+
+/**
+ * LO QUE SE PUEDE MANDAR, Y NADA MÁS. CIERRA AL FALLAR.
+ *
+ * Una ruta que el Core no tiene, o un valor que esa ruta no acepta, NO se
+ * transforma ni se aproxima: se deja fuera. Aproximar sería inventar lo que
+ * alguien quiso decir, y este archivo no sabe eso —lo sabe Weë Brain—.
+ *
+ * Por qué hace falta filtrar si la biblioteca ya solo ofrece valores válidos:
+ * porque lo elegido se guarda, viaja por la navegación y puede volver de una
+ * pantalla anterior o de una versión vieja de la app. Lo que entra por una
+ * puerta que no controlas se comprueba en la puerta.
+ */
+export const filtrarCreativo = (crudo: unknown): SeleccionCreativa => {
+  if (typeof crudo !== 'object' || crudo === null || Array.isArray(crudo)) return {};
+  const limpio: Record<string, string> = {};
+  for (const [ruta, valor] of Object.entries(crudo as Record<string, unknown>)) {
+    if (typeof valor !== 'string') continue;
+    const permitidos = VALORES_CREATIVOS[ruta];
+    if (!permitidos || !permitidos.includes(valor)) continue;
+    limpio[ruta] = valor;
+  }
+  return limpio;
+};
+
+/**
+ * Lo elegido, dicho con palabras, para que Weë Brain pueda leerlo.
+ *
+ * Esto NO sustituye a la estructura: `creative` viaja entero y por separado.
+ * Pero hoy el camino de producción entiende una frase y todavía no sabe leer
+ * `lighting.type`, así que lo elegido también se dice en voz alta —«con hora
+ * dorada, primer plano»— para que no se pierda por el camino. El día que el
+ * plan sepa transportar la estructura, esta frase sobra y se quita; mientras
+ * tanto, quitarla sería perder lo que la persona eligió.
+ *
+ * El traductor entra por parámetro y es OBLIGATORIO: así ninguna pantalla puede
+ * olvidarse de él y acabar mandando «golden hour» en una app en francés.
+ */
+export const creativoEnPalabras = (
+  creative: SeleccionCreativa,
+  t: (clave: string) => string
+): string =>
+  Object.entries(creative)
+    .map(([ruta, valor]) => claveDelValor(ruta, valor))
+    .filter((clave): clave is string => !!clave)
+    .map((clave) => t(clave).toLowerCase())
+    .join(', ');

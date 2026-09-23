@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -19,11 +20,12 @@ import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
 import { EntradaDeStudio, entradaPorId } from '../constants/studioExperiences';
+import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
 import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
 import { destinoDeIntencion } from '../utils/destinoDeIntencion';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
-import { claveDelValor } from '../constants/camaraCinematica';
+import { claveDelValor, creativoEnPalabras, filtrarCreativo } from '../constants/camaraCinematica';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -101,10 +103,28 @@ const StudioScreen: React.FC = () => {
    * lo que viaja como contexto a la experiencia común.
    */
   const [experiencia, setExperiencia] = useState<{ id: string; clave: string; experienceId?: string } | null>(null);
+  /*
+   * POR QUÉ ENTRADA SE PASÓ, SI SE PASÓ POR ALGUNA.
+   *
+   * `null` mientras nadie haya abierto ninguna, y eso NO es "Imágenes": es no
+   * haber entrado por ninguna puerta. La diferencia importa —la encontró el
+   * recorrido de Documentos—: con "Imágenes" por defecto, escribir algo que no
+   * encaja con nada acababa en Weë Photo, que es inventarle a alguien una
+   * sección por la que no pasó.
+   */
+  const [entrada, setEntrada] = useState<EntradaDeStudio | null>(null);
   const [controles, setControles] = useState<ControlesElegidos>({});
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
-  const [referencias, setReferencias] = useState<string[]>([]);
+  /*
+   * LOS MATERIALES, YA CON LA FORMA CON LA QUE VIAJAN.
+   *
+   * Antes eran nombres inventados —"referencia-1.png"— porque no había selector
+   * de archivos. Ahora son `Adjunto`, que es el tipo del contrato: la misma
+   * cosa que se ve en pantalla es la que llega a la experiencia, sin traducción
+   * por el medio. Dos formas del mismo dato se separan; una sola, no.
+   */
+  const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
   const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -164,24 +184,67 @@ const StudioScreen: React.FC = () => {
     if (!texto) return;
 
     const destino = destinoDeIntencion(texto, {
-      declaradaPorLaPuerta: experiencia?.experienceId ?? entradaPorId(panel ?? ('images' as EntradaDeStudio))?.experienceId,
+      /*
+       * La puerta declara su experiencia SOLO si se pasó por una. Sin puerta no
+       * hay nada que declarar, y entonces deciden las palabras; y si las
+       * palabras tampoco encajan, no hay destino y se dice, en vez de llevar a
+       * alguien a una sección que no pidió.
+       */
+      declaradaPorLaPuerta: experiencia?.experienceId ?? (entrada ? entradaPorId(entrada)?.experienceId : undefined),
       dentroDe: 'studio',
     });
 
     if (destino) {
       /*
-       * Nada se cobra por llegar: `CreatorFlow` pregunta y planifica, y el
-       * dinero no se mueve hasta que la persona ve el plan con su precio y
-       * pulsa Crear. Lo que viaja de aquí es contexto, para no repetir lo que
-       * ya está dicho.
+       * ── LO QUE VIAJA, Y POR QUÉ VIAJA DOS VECES ──────────────────────────
+       *
+       * La ESTRUCTURA va entera y aparte: `creative` con las rutas del lenguaje
+       * creativo de Weë, `adjuntos` con su clase, `experienceId` y el `goal`
+       * tal como se escribió. Eso es el contrato, y es lo que tiene que
+       * sobrevivir.
+       *
+       * Y ADEMÁS lo elegido se dice con palabras dentro del goal. No es lo
+       * mismo ni sustituye a lo otro: es que hoy el camino de producción
+       * entiende una frase y todavía no sabe leer `lighting.type`, así que sin
+       * esa frase lo que la persona eligió no llegaría a ninguna parte. Cuando
+       * el plan sepa transportar la estructura, esta frase sobra.
+       *
+       * El texto de la persona NO se toca: se le añade delante de qué va y
+       * detrás con qué, y lo suyo queda entero en medio.
        */
-      navigation.navigate('CreatorFlow', { experienceId: destino.experienceId, goal: texto });
+      const creative = filtrarCreativo(controles);
+      const conPalabras = creativoEnPalabras(creative, t);
+      const nombre = experiencia ? t(experiencia.clave) : '';
+
+      const contexto: ContextoDeExperiencia = {
+        experienceId: destino.experienceId,
+        workspace: 'studio',
+        goal: [nombre ? `${nombre}:` : '', texto, conPalabras ? `· ${conPalabras}` : '']
+          .filter(Boolean)
+          .join(' '),
+        ...(Object.keys(creative).length ? { creative } : {}),
+        ...(adjuntos.length ? { adjuntos } : {}),
+        /*
+         * La primera foto entra además por donde ya entraban las fotos
+         * (`imageUri` → `creatorUploads` → Storage de Weë). No se duplica el
+         * almacén: es el mismo camino de siempre, y `adjuntos` solo añade de
+         * QUÉ CLASE es cada material, que es lo que ese camino no sabe.
+         */
+        ...(adjuntos[0] ? { imageUri: adjuntos[0].uri } : {}),
+      };
+
+      /*
+       * Nada se cobra por llegar: `CreatorFlow` pregunta y planifica con
+       * `creditsCharged: 0`, y el dinero no se mueve hasta que la persona ve el
+       * plan con su precio y pulsa Crear.
+       */
+      navigation.navigate('CreatorFlow', contexto);
       return;
     }
 
     setEstado('creando');
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt, experiencia, panel, navigation]);
+  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t]);
 
   /**
    * LO ELEGIDO DENTRO DE UNA PUERTA VUELVE AL COMPOSITOR.
@@ -192,7 +255,7 @@ const StudioScreen: React.FC = () => {
    */
   const alElegir = useCallback((eleccion: EleccionDeStudio) => {
     const puerta = entradaPorId(eleccion.entrada);
-    if (puerta && eleccion.entrada !== 'more') setArea(puerta.area);
+    if (puerta && eleccion.entrada !== 'more') { setArea(puerta.area); setEntrada(eleccion.entrada); }
     setControles(eleccion.controles);
     setExperiencia(
       eleccion.experiencia
@@ -200,13 +263,40 @@ const StudioScreen: React.FC = () => {
         : null
     );
     setPanel(null);
-    const clave = eleccion.experiencia?.clave ?? eleccion.herramienta?.clave;
+    /*
+     * LO ELEGIDO YA NO SE ESCRIBE DENTRO DE LA CAJA.
+     *
+     * Antes se ponía "Retrato: " delante de lo que la persona fuera a escribir.
+     * Era cómodo de ver y caro de mantener: mezclaba en un solo texto la
+     * experiencia —que es un dato— con lo que alguien quería decir, y luego no
+     * había forma de volver a separarlos. La experiencia ya se ve como ficha y
+     * viaja como dato; la caja se queda para las palabras de la persona.
+     *
+     * Una herramienta del catálogo de siempre sí deja su nombre escrito: no es
+     * una experiencia, no tiene dónde viajar, y perderla sería peor.
+     */
+    const clave = eleccion.herramienta?.clave;
     if (clave) setPrompt((antes) => (antes.trim() ? antes : `${t(clave)}: `));
   }, [t]);
 
-  const alAnadirReferencia = useCallback(() => {
-    /* Sin selector de archivos todavía: se añade una de muestra para ver la forma. */
-    setReferencias((antes) => [...antes, `referencia-${antes.length + 1}.png`]);
+  /**
+   * UNA REFERENCIA DE VERDAD, POR EL CAMINO DE SIEMPRE.
+   *
+   * El mismo selector que usan Weë Brain y Weë Chef. Lo que se guarda es un
+   * `Adjunto` con su CLASE —una referencia inspira, no se reproduce—, y quien
+   * sube el archivo sigue siendo `creatorUploads` cuando llegue el momento:
+   * aquí no hay almacén, ni se crea uno.
+   */
+  const alAnadirReferencia = useCallback(async () => {
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) return;
+    const elegido = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    const foto = elegido.canceled ? null : elegido.assets?.[0];
+    if (!foto?.uri) return;
+    setAdjuntos((antes) => [
+      ...antes,
+      { clase: 'referencia', uri: foto.uri, nombre: foto.fileName ?? undefined },
+    ]);
   }, []);
 
   /*
@@ -297,7 +387,7 @@ const StudioScreen: React.FC = () => {
               acordarse de lo que eligió hace tres pantallas, y para que no se
               lo vuelvan a preguntar. Tocar una ficha la suelta.
             */}
-            {(!!experiencia || Object.keys(controles).length > 0 || referencias.length > 0) && (
+            {(!!experiencia || Object.keys(controles).length > 0 || adjuntos.length > 0) && (
               <View style={styles.contexto}>
                 {!!experiencia && (
                   <FichaDeContexto
@@ -316,12 +406,12 @@ const StudioScreen: React.FC = () => {
                     etiquetaQuitar={t('studio.removeContext')}
                   />
                 ))}
-                {referencias.map((r, i) => (
+                {adjuntos.map((a, i) => (
                   <FichaDeContexto
-                    key={`${r}-${i}`}
+                    key={`${a.uri}-${i}`}
                     icono="image-outline"
-                    texto={r}
-                    onQuitar={() => setReferencias((antes) => antes.filter((_, j) => j !== i))}
+                    texto={a.nombre ?? t('studio.reference')}
+                    onQuitar={() => setAdjuntos((antes) => antes.filter((_, j) => j !== i))}
                     etiquetaQuitar={t('studio.removeContext')}
                   />
                 ))}
@@ -361,7 +451,7 @@ const StudioScreen: React.FC = () => {
         contexto={contexto}
         elegido={ajustes}
         sugerido={sugerido}
-        referencias={referencias.length}
+        referencias={adjuntos.length}
         onElegir={(ajuste, opcion) => setAjustes((antes) => ({ ...antes, [ajuste]: opcion }))}
         onCerrar={() => setAjustesAbiertos(false)}
       />

@@ -386,4 +386,7 @@ export const studio: typeof import('../es/studio').studio = {
   smSmooth: '平滑',
   smNatural: '自然',
   smDynamic: '動感',
+
+  /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
+  reference: '參考圖',
 };

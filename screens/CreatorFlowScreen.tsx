@@ -19,6 +19,8 @@ import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
 import { WEE_EXPERIENCES, EXPERIENCE_AREA, experienceLabel, getExperienceById } from '../constants/weeExperiences';
 import { ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
+import FichaDeContexto from '../components/creator/FichaDeContexto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -458,8 +460,58 @@ const CreatorFlowScreen: React.FC = () => {
    */
   const area = EXPERIENCE_AREA[experience.id];
 
+  /*
+   * LO QUE LLEGÓ DEL LUGAR DE TRABAJO, EN FICHAS.
+   *
+   * Se lee del contexto que viajó —no de un estado propio— y se filtra otra vez
+   * contra el vocabulario del Core: lo que entra por la navegación es lo que
+   * entra por una puerta que esta pantalla no controla, y lo que entra por una
+   * puerta que no controlas se comprueba en la puerta. Un valor que el Core no
+   * conoce no se aproxima: se deja fuera, y no se enseña.
+   *
+   * Una ruta cruda —`shot.type`— no se pinta nunca: si la biblioteca no sabe
+   * cómo se llama en palabras, esa ficha no aparece. Nadie tiene por qué leer
+   * `close_up` en una pantalla de Weë.
+   */
+  const contextoQueLlego = useMemo(() => {
+    const fichas: { clave: string; icono: string; texto: string }[] = [];
+    for (const [ruta, valor] of Object.entries(filtrarCreativo(params.creative))) {
+      const clave = claveDelValor(ruta, valor);
+      if (clave) fichas.push({ clave: ruta, icono: 'videocam-outline', texto: t(clave) });
+    }
+    for (const adjunto of params.adjuntos ?? []) {
+      fichas.push({ clave: adjunto.uri, icono: 'image-outline', texto: adjunto.nombre ?? t('studio.reference') });
+    }
+    return fichas;
+  }, [params.creative, params.adjuntos, t]);
+
   return (
       <CreatorShell activeId={area ? area.section : experience.id} overline="🤖 Weë AI" title={`${experience.emoji} ${area ? t(area.claveEtiqueta) : experience.name}`} breadcrumb={area ? t(area.claveEtiqueta) : experience.name} contentStyle={styles.content}>
+        {/*
+          LO QUE SE TRAE DE DONDE SE VENÍA, A LA VISTA (B3.12).
+
+          Quien eligió Retrato, hora dorada y primer plano en Weë Studio tiene
+          que VER que llegaron. Si no se ven, no hay forma de saber si Weë se
+          acordó, y la única salida es volver a elegirlo todo —que es justo lo
+          que un lugar de trabajo existe para evitar—.
+
+          Son las MISMAS fichas del Studio (`FichaDeContexto`) y el MISMO dato:
+          lo que viaja en el contexto es lo que se pinta aquí. No hay un estado
+          de interfaz por un lado y un contexto por otro, porque dos copias del
+          mismo dato se separan y entonces la persona ve una cosa y Weë recibe
+          otra.
+
+          Sin aspa: aquí ya no se quitan. Lo elegido viajó con la petición y
+          cambiarlo ahora sería cambiar lo que ya se pidió; para eso se vuelve
+          atrás, que es lo que hace el gesto de siempre.
+        */}
+        {contextoQueLlego.length > 0 && (
+          <View style={styles.contextoTraido}>
+            {contextoQueLlego.map((ficha) => (
+              <FichaDeContexto key={ficha.clave} icono={ficha.icono} texto={ficha.texto} />
+            ))}
+          </View>
+        )}
         {needsPhoto && !imageUri && status !== 'done' && status !== 'running' && (
           <UploadBox
             config={subidaConfig}
@@ -651,6 +703,8 @@ const CreatorFlowScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  /* La tira de lo que se trajo, arriba del todo y sin robar sitio. */
+  contextoTraido: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
   container: {
     flex: 1,
   },

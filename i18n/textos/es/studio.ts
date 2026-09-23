@@ -336,4 +336,7 @@ export const studio = {
   smSmooth: 'Suave',
   smNatural: 'Natural',
   smDynamic: 'Con nervio',
+
+  /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
+  reference: 'Referencia',
 };

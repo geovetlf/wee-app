@@ -512,8 +512,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * Timelapse…) y 50 de la biblioteca de cámara y cinemática, que es el
    * vocabulario creativo de Weë dicho en palabras de la persona —«Acercarse» en
    * vez de `push_in`—. Las 104 entran en los once diccionarios a la vez.
+   * 2 423 → 2 424 en B3.12: `studio.reference`, el nombre corto de una
+   * referencia en su ficha. `referenceLabel` no servía: es el botón que la
+   * añade —«Añadir una imagen de referencia»—, no cómo se llama después.
    */
-  const CLAVES_PT = 2423;
+  const CLAVES_PT = 2424;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

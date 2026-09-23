@@ -330,4 +330,7 @@ export const studio: typeof import('../es/studio').studio = {
   smSmooth: 'Sanft',
   smNatural: 'Natürlich',
   smDynamic: 'Dynamisch',
+
+  /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
+  reference: 'Referenz',
 };

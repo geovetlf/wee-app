@@ -351,4 +351,7 @@ export const studio: typeof import('../es/studio').studio = {
   smSmooth: '부드럽게',
   smNatural: '자연스럽게',
   smDynamic: '역동적으로',
+
+  /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
+  reference: '레퍼런스',
 };

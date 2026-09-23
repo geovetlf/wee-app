@@ -349,4 +349,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   smSmooth: 'Плавно',
   smNatural: 'Естественно',
   smDynamic: 'Динамично',
+
+  /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
+  reference: 'Референс',
 };

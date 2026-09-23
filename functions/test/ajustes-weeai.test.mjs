@@ -139,7 +139,18 @@ check('21) y al entrar no se da por hecho que sea una imagen',
   /useState<AreaDeStudio \| null>\(null\)/.test(studio) && !/useState<AreaDeStudio>\('images'\)/.test(studio));
 check('22) la sugerencia de duración solo existe en video',
   /if \(contexto !== 'video'\) return undefined;/.test(studio) && /duracionEnElTexto\(prompt\)/.test(studio));
-check('23) y el panel dice cuántas referencias van', /referencias=\{referencias\.length\}/.test(studio));
+/*
+ * Y el panel dice cuántas referencias van — contando LA MISMA lista que viaja.
+ *
+ * En Weë Studio esa lista pasó a ser `adjuntos` (B3.12), que es el tipo del
+ * contrato y lleva la CLASE de cada material. Lo que se vigila no es cómo se
+ * llama la variable: es que el número salga de la lista que se manda y no de un
+ * contador aparte, porque un contador aparte se queda atrás y entonces el panel
+ * dice «2 referencias» mientras viaja una.
+ */
+check('23) y el panel dice cuántas referencias van', /referencias=\{adjuntos\.length\}/.test(studio));
+check('23) contando la misma lista que viaja',
+  /adjuntos\.length \? \{ adjuntos \} : \{\}/.test(studio) && !/useState<string\[\]>\(\[\]\)/.test(studio));
 
 /*
  * WEË DESIGN PASA A LA MISMA HOJA (B3.10 §5), Y ESTA COMPROBACIÓN CAMBIA CON
