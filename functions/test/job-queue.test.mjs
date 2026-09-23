@@ -408,9 +408,9 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const PRECIO = sinComentarios(leer(AI_PRICING));
   const TECHO = /const count = Math\.max\(1, Math\.min\(MAX_PROPUESTAS_POR_PASO, Number\(input\.count \?\? 1\)\)\);/;
   check('63o) y el único que se tocó ya no guarda un máximo de propuestas propio: lo lee de la autoridad compartida',
-    TECHO.test(PRECIO) && /MAX_PROPUESTAS_POR_PASO.*from '\.\.\/engine\/types'/.test(PRECIO)
+    TECHO.test(PRECIO) && /import \{ MAX_PROPUESTAS_POR_PASO \} from '[^']+';/.test(PRECIO)
     && !/Math\.min\(\s*\d+\s*,\s*Number\(input\.count/.test(PRECIO),
-    'G13.4 · el 8 ya no está, y no se ha puesto otro número en su sitio');
+    'G13.4 · el 8 ya no está, y no se ha puesto otro número en su sitio · dónde vive lo vigila `techo-de-propuestas`');
   /*
    * EL WORKFLOW Y EL ORCHESTRATOR SALIERON DE ESA LISTA, y con el mismo trato
    * que recibió el Gateway: algo autorizado, medido y vigilado de otra forma.

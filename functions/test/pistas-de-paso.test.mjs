@@ -20,9 +20,14 @@
  *
  * No hay un segundo sistema de pistas: es el MISMO `ExecutionHints`, leído con
  * el MISMO lector. Lo creativo sigue siendo `CreativeParameters` y la
- * continuidad sigue siendo la suya. `count`, `focus`, `voice`, `mood` y `genre`
- * siguen sin dueño y siguen fuera: son G13, G14 y G15, y no se les ha inventado
- * un campo para que un test pase.
+ * continuidad sigue siendo la suya. `focus`, `voice`, `mood` y `genre` siguen
+ * sin dueño y siguen fuera: son G14 y G15, y no se les ha inventado un campo
+ * para que un test pase.
+ *
+ * `count` SÍ tiene dueño desde G13.5, y no es una pista: es hermana de `input`,
+ * la valida el Planner contra un techo del Core y se rechaza en vez de
+ * recortarse. Sigue sin caber aquí —`hints:{count}` se rechaza, sección H— y
+ * todo lo suyo vive en `test/techo-de-propuestas.test.mjs`.
  *
  * Usa el compilado: `npm run build` antes de `npm test`.
  */
@@ -202,9 +207,34 @@ console.log('\n── G · Lo que sigue sin dueño, y sigue fuera ──');
 
 const puente = sinComentarios(leer('functions/src/creator/necesidades.ts'));
 const planner = sinComentarios(leer('functions/src/core/planner.ts'));
-check('G16-F13 · G13 sigue abierto: no se ha inventado un `count`',
-  !/count/.test(puente) && !/count/.test(planner),
-  '17 pasos siguen sin poder decir cuántos resultados quieren');
+/*
+ * ── G13 SE CERRÓ, Y ESTA AFIRMACIÓN CAMBIÓ DE SIGNO ─────────────────────────
+ *
+ * Decía «no se ha inventado un `count`», y era lo correcto mientras no hubiera
+ * una decisión: 17 pasos sabían cuántos resultados querían y no tenían dónde
+ * decirlo. En G13.3 se decidió —techo 4, rechazo sin recorte, la cantidad la
+ * sigue poniendo la experiencia— y en G13.5 se construyó.
+ *
+ * Así que ya no se vigila que NO EXISTA. Se vigila que exista BIEN, y eso es
+ * otra cosa: que viaje como hermana de `input` y no dentro; que la valide el
+ * Planner y no quien cobra; que una cantidad imposible tumbe el plan en vez de
+ * encogerse. Todo eso vive en `test/techo-de-propuestas.test.mjs`, que es de
+ * quien es el tema. Aquí solo queda lo que le toca a este archivo: que el
+ * puente no se la invente ni la corrija, y que el sitio donde vive siga siendo
+ * uno.
+ *
+ * Lo que NO ha cambiado es G14 y G15, justo debajo. Que `count` saliera no los
+ * saca: cada uno se audita por separado.
+ */
+check('G13 CERRADO · el `count` ya existe, y el puente lo COPIA sin corregirlo',
+  /const propuestasDelPaso = \(paso: PlanStep\): number \| undefined/.test(puente)
+  && !/Math\.(min|max|round|floor|ceil|trunc)/.test((puente.match(/const propuestasDelPaso[\s\S]*?\n\};/) || [''])[0]),
+  'quien decide si cabe es el Planner; recortarlo aquí lo dejaría sin nada que rechazar');
+check('y el Planner es quien lo valida, con el techo declarado en el propio Core',
+  /MAX_PROPUESTAS_POR_PASO/.test(planner)
+  && /Number\.isInteger\(c\)/.test(planner)
+  && !/Math\.(min|max)\([^)]*count/.test(planner),
+  'el techo lo declara `core/contracts.ts`; la matriz entera vive en `techo-de-propuestas.test.mjs`');
 check('G16-F14 · G14 sigue abierto: no se ha inventado un `focus`',
   !/focus/.test(puente) && !/focus/.test(planner));
 check('G16-F15 · G15 sigue abierto: ni `voice`, ni `mood`, ni `genre`',

@@ -1,5 +1,6 @@
 import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
-import { MAX_PROPUESTAS_POR_PASO, ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../types';
 import { env, fetchJson, NotConfiguredError, persistRemoteFile, pollUntil, ProviderError, readImage } from '../http';
 import { IMAGE_MODELS, usdFor } from '../imageModels';
 import { dimensionsOf } from '../imageMeta';

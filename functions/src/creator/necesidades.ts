@@ -174,6 +174,29 @@ const entradaDelPaso = (paso: PlanStep): BrainStepInput | undefined => {
   return { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) };
 };
 
+/**
+ * CUÁNTAS PROPUESTAS PIDE ESTE PASO. Se copia, no se arregla.
+ *
+ * Las plantillas llevan años diciéndolo —los tres logos de Weë Design, los dos
+ * looks de Weë Beauty— y hasta G13.5 se perdía aquí: el contrato del Core no
+ * tenía dónde ponerlo, y `entradaDelPaso` solo copia `kind` y `brief`.
+ * Ya lo tiene, y es hermano de `input`, igual que `needs`.
+ *
+ * Lo que este puente NO hace es corregir. Si una plantilla pidiera una cantidad
+ * imposible, se copia tal cual y la tumba el Planner con el campo señalado.
+ * Recortarla aquí sería inventarse una cantidad que nadie pidió y, peor, dejar
+ * al Planner sin nada que rechazar: el fallo pasaría inadvertido justo en el
+ * sitio que se construyó para verlo. Solo se descarta lo que no es un número,
+ * que no es una cantidad equivocada sino la ausencia de una.
+ *
+ * Medido sobre las 35 formas: 20 pasos la llevan, con valores 1, 2, 3 y 4, y
+ * los 54 restantes no la llevan — que no es lo mismo que pedir una.
+ */
+const propuestasDelPaso = (paso: PlanStep): number | undefined => {
+  const pedidas = (paso.input ?? {}).count;
+  return typeof pedidas === 'number' ? pedidas : undefined;
+};
+
 /* ── Lo que cada paso pide del resultado ──────────────────────────────────── */
 
 /**
@@ -257,12 +280,14 @@ export const pasosParaElCore = (steps: readonly PlanStep[]): PasosParaElCore => 
     }
     const input = entradaDelPaso(paso);
     const hints = pistasDelPaso(paso);
+    const count = propuestasDelPaso(paso);
     salida.push({
       key: paso.id,
       capability: paso.capability as CoreCapabilityId,
       ...(needs.length ? { needs } : {}),
       ...(input ? { input } : {}),
       ...(hints ? { hints } : {}),
+      ...(count !== undefined ? { count } : {}),
     });
   }
   return { steps: salida, descartadas };

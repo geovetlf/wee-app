@@ -406,6 +406,36 @@ export interface BrainStep {
    * clave: lo que el paso no diga lo sigue poniendo el plan.
    */
   hints?: ExecutionHints;
+  /**
+   * CUÁNTAS PROPUESTAS ALTERNATIVAS ENTREGA ESTE PASO PARA QUE LA PERSONA ELIJA.
+   *
+   * Los tres logos de Weë Design, los dos looks de Weë Beauty. No es una
+   * cantidad cualquiera: son salidas equivalentes entre sí, de las que la
+   * persona se queda con una. Cuántos días dura un viaje o para cuántas
+   * personas es una receta NO es esto — eso viaja dentro de `input.brief`,
+   * donde ha viajado siempre.
+   *
+   * ── Por qué al lado de `input` y no dentro ──────────────────────────────
+   *
+   * Porque `input` dice QUÉ HACE el paso —su variante y su frase— y esto dice
+   * CUÁNTAS VECES entrega el resultado. Es la misma distinción que ya separa a
+   * `needs`, que también vive fuera. El Planner la coloca en `input.count` al
+   * armar el plan, que es donde el precio y el adaptador llevan años
+   * leyéndola; aquí es transporte, allí es contrato.
+   *
+   * ── BRAIN NO LA ESCRIBE ─────────────────────────────────────────────────
+   *
+   * Y no es un olvido. El intérprete de lo que contesta el modelo NO lee esta
+   * clave, y el prompt no la enseña: un modelo que se inventara una cantidad
+   * la vería descartada antes de llegar a ser un paso. Hoy la cantidad nace
+   * donde nació siempre —en la plantilla de la experiencia— y cruza al Core por
+   * el puente. Que Brain pueda decidirla algún día es otra fase, y exige
+   * medirlo antes.
+   *
+   * Ausente ≠ 1. Ausente es «este paso no pide varias», que es el caso normal.
+   * Un `1` escrito es alguien afirmando que quiere exactamente una.
+   */
+  count?: number;
 }
 
 /** Como mucho, los pasos que caben en un encargo. El mismo techo que las capacidades. */

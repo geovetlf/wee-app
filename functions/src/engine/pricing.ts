@@ -1,5 +1,6 @@
 import { CapabilityId } from '../creator/types';
-import { EngineSettings, MAX_PROPUESTAS_POR_PASO, ModelSpec, RoutingPrefs, modalityOf } from './types';
+import { EngineSettings, ModelSpec, RoutingPrefs, modalityOf } from './types';
+import { MAX_PROPUESTAS_POR_PASO } from '../core/contracts';
 import { serviceForCapability } from '../credits/creditCosts';
 import { ModeloDeTexto, priceImage, priceOperation, usdToCredits } from '../credits/aiPricing';
 import { providerReady } from './image';

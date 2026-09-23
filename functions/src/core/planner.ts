@@ -1,6 +1,6 @@
 import { BrainAttachment, BrainIntent, BrainStep, BrainStepInput, BrainUnderstanding, FORMA_DE_CLAVE_DE_PASO, MAX_PASOS_DEL_ENTENDIMIENTO, StepNeed } from './brain';
 import { Modality } from './capability';
-import { PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
+import { MAX_PROPUESTAS_POR_PASO, PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
@@ -309,10 +309,11 @@ const dependenciasDe = (
  * mismo con menos vueltas: estas son las claves que un `StepNeed` puede tener.
  */
 const CLAVES_DE_NECESIDAD = Object.keys({ from: 0, modality: 0, stepKey: 0, required: 0 });
-const CLAVES_DE_PASO = ['key', 'capability', 'needs', 'input', 'hints'];
+const CLAVES_DE_PASO = ['key', 'capability', 'needs', 'input', 'hints', 'count'];
 const CLAVES_DE_ENTRADA_DEL_PASO = Object.keys({ kind: 0, brief: 0 });
 /** Una frase que dice qué hace un paso cabe de sobra aquí. Un prompt, no. */
 const MAX_BRIEF_DEL_PASO = 300;
+
 
 /**
  * LOS PASOS DECLARADOS, REVISADOS.
@@ -447,6 +448,30 @@ const revisarPasos = (
       if (!leidas.ok) return { ok: false, field: leidas.field, reason: leidas.reason };
       pistasDelPaso = leidas.hints;
     }
+    /*
+     * CUÁNTAS PROPUESTAS PIDE ESTE PASO. SE VALIDA, NO SE ARREGLA.
+     *
+     * Aquí no hay `Math.min`, ni `Math.max`, ni `Number()`, ni redondeo, y es a
+     * propósito: son justo las herramientas que producían el fallo que esto
+     * viene a cerrar. Recortar un cinco a cuatro no es aceptar un cinco con
+     * prudencia —es prometer cinco, cobrar cinco y entregar cuatro—, y un 3,7
+     * redondeado a 3 es lo mismo más pequeño. Lo que el Planner hace con una
+     * cantidad imposible es lo mismo que hace con una variante inventada o con
+     * un proveedor colado en las pistas: decir que no, con el campo señalado.
+     *
+     * Ausente NO es cero ni uno: es «este paso no pide varias», que es el caso
+     * normal y el que tienen 54 de los 74 pasos de Weë. Y un `1` escrito es
+     * otra cosa: es alguien afirmando que quiere exactamente una. Las dos se
+     * ejecutan igual y no significan lo mismo, así que no se confunden.
+     */
+    let cuantasPropuestas: number | undefined;
+    if (paso.count !== undefined) {
+      const c: unknown = paso.count;
+      if (typeof c !== 'number' || !Number.isInteger(c) || c < 1 || c > MAX_PROPUESTAS_POR_PASO) {
+        return { ok: false, field: `${sitio}.count`, reason: 'invalid_request' };
+      }
+      cuantasPropuestas = c;
+    }
     claves.add(paso.key);
     producePorClave.set(paso.key, entrada.produces);
     pasos.push(Object.freeze({
@@ -455,6 +480,7 @@ const revisarPasos = (
       ...(needs.length ? { needs: Object.freeze(needs) } : {}),
       ...(entradaDeclarada ? { input: entradaDeclarada } : {}),
       ...(pistasDelPaso ? { hints: pistasDelPaso } : {}),
+      ...(cuantasPropuestas !== undefined ? { count: cuantasPropuestas } : {}),
     }));
   }
   return { ok: true, pasos: Object.freeze(pasos) };
@@ -708,6 +734,7 @@ const entradaDelPaso = (
   goal: string,
   constraints: Readonly<Record<string, string | number | boolean>>,
   declarada?: BrainStepInput,
+  propuestas?: number,
 ): { ok: true; input?: Readonly<Record<string, unknown>> } | { ok: false; field: string } => {
   /*
    * ── LA VARIANTE ES DEL PLAN, PERO SOLO LA COGE QUIEN LA ENTIENDE ──────────
@@ -737,12 +764,25 @@ const entradaDelPaso = (
   const delPlan = esTexto(pedida) && entrada.variants?.some((v) => v.key === pedida) ? pedida : undefined;
   const kind = declarada?.kind ?? delPlan;
   const brief = declarada?.brief ?? (typeof goal === 'string' ? goal.trim() : '');
-  if (kind === undefined && !brief) return { ok: true };
+  /*
+   * ── Y LA CANTIDAD, QUE VIAJA AL LADO Y ATERRIZA DENTRO ───────────────────
+   *
+   * El paso la declara como hermana de `input` —igual que `needs`— y aquí entra
+   * en el input, que es su sitio canónico: quien la consume después, el precio
+   * y el adaptador, lleva años leyendo `input.count` y no hay motivo para
+   * mandarle a mirar a otro lado.
+   *
+   * No hay defecto. Un paso que no la pide no la lleva, y eso es distinto de
+   * pedir una: lo primero es silencio y lo segundo es una afirmación. Ya viene
+   * validada de `revisarPasos`; aquí solo se coloca.
+   */
+  if (kind === undefined && !brief && propuestas === undefined) return { ok: true };
   return {
     ok: true,
     input: Object.freeze({
       ...(kind !== undefined ? { [CLAVE_DE_VARIANTE]: kind } : {}),
       ...(brief ? { brief } : {}),
+      ...(propuestas !== undefined ? { count: propuestas } : {}),
     }),
   };
 };
@@ -1109,7 +1149,7 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
       const steps: PlanStep[] = completas.map((capability, i) => {
         const entrada = entradaDe(capability)!;
         const id = idDePaso(capability, i + 1);
-        const conQue = entradaDelPaso(entrada, u.goal, u.constraints, declarados?.[i]?.input);
+        const conQue = entradaDelPaso(entrada, u.goal, u.constraints, declarados?.[i]?.input, declarados?.[i]?.count);
         if (conQue.ok && conQue.input?.[CLAVE_DE_VARIANTE] !== undefined) laReconocioAlguien = true;
         /*
          * DE DÓNDE SALE LO QUE ESTE PASO NECESITA.

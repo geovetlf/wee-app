@@ -1,5 +1,6 @@
 import { CapabilityId } from '../../creator/types';
-import { MAX_PROPUESTAS_POR_PASO, ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../types';
 import { fetchJson, persistRemoteFile, ProviderError, readImage, toDataUri } from '../http';
 import { arkBase, arkHeaders, isArkConfigured } from './ark';
 import { aspectOf, nearestAspectLabel } from '../resolutionPolicy';

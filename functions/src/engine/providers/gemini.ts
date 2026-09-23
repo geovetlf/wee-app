@@ -1,5 +1,6 @@
 import { CapabilityId } from '../../creator/types';
-import { MAX_PROPUESTAS_POR_PASO, ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
+import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../types';
 import { env, NotConfiguredError, persistBase64, ProviderError, readImage } from '../http';
 import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
 import { estimateInputTokens } from '../../credits/aiPricing';

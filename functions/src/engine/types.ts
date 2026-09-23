@@ -149,58 +149,48 @@ export interface SourceRef {
   title?: string;
 }
 
-/**
- * EL TECHO DE SEGURIDAD DE PROPUESTAS POR PASO.
+/*
+ * ── DÓNDE ESTÁ EL TECHO DE PROPUESTAS POR PASO ──────────────────────────────
  *
- * Una «propuesta» es una de las salidas alternativas y equivalentes que un paso
- * entrega para que la persona elija entre ellas: los tres logos de Weë Design,
- * los dos looks de Weë Beauty. Esto es cuántas como mucho, y es lo ÚNICO que
- * este número significa.
+ * En `core/planner.ts`, que es quien rechaza una cantidad imposible, y de ahí
+ * lo leen los seis sitios que además lo aplican como segunda barrera.
  *
- * ── Por qué existe ──────────────────────────────────────────────────────────
+ * AQUÍ NO ESTÁ, y no es un descuido. Este archivo lo importa medio motor, y
+ * todo lo que le pedía al Core eran TIPOS, que el compilador borra al emitir.
+ * Colgarle un valor le daba al módulo más compartido del motor una dependencia
+ * de EJECUCIÓN con el Core entero. Medido con el arnés de pureza del Core, el
+ * grafo pasaba de 6,9 MB a 37,3 MB y lo tumbaba por falta de memoria — que es
+ * la forma ruidosa de avisar de un acoplamiento que no se veía.
  *
- * Porque había dos. El precio recortaba a 8 (`credits/aiPricing.ts`, escrito el
- * 2026-09-07) y los cuatro adaptadores recortaban a 4 (heredado del mock del
- * 2026-09-05, un día antes). Ninguno de los dos números tenía origen: no venía
- * de ningún proveedor, de ningún modelo ni de ninguna decisión escrita. Y entre
- * los dos había una ventana —de 5 a 8— en la que se cobraban imágenes que nunca
- * se llegaban a hacer: pedir 8 retoques costaba 108 Credits y devolvía 4.
- *
- * Así que el número pasa a estar UNA vez, aquí, y lo leen todos. Mientras dos
- * sitios puedan escribirlo por su cuenta, la ventana puede volver a abrirse.
- *
- * ── Lo que NO es ────────────────────────────────────────────────────────────
- *
- *   · NO es un límite de un proveedor. Ninguna API nos lo impone: los
- *     adaptadores ni siquiera usan el parámetro de lote que traen; piden las
- *     imágenes de una en una, en un bucle nuestro.
- *   · NO es un límite de un modelo.
- *   · NO es `maxReferences` (`engine/imageModels.ts`), que es cuántas imágenes
- *     acepta un modelo COMO ENTRADA y varía de 4 a 14 según cuál sea. Entrada y
- *     salida son ejes distintos y no comparten número.
- *   · NO es una cantidad genérica. «Para cuántas personas» es una receta y
- *     viaja dentro del texto del encargo, no aquí.
- *
- * ── Hasta dónde llega hoy ───────────────────────────────────────────────────
- *
- * Hoy esto es un TECHO y se aplica RECORTANDO, en el precio y en cada
- * adaptador. Eso es una barrera defensiva temporal, no el contrato final: pedir
- * cinco no es válido, y que hoy se conviertan en cuatro solo significa que
- * todavía no hay nadie que sepa decir que no.
- *
- * El día que el Planner del Core valide la cantidad, una cantidad imposible
- * tumbará el plan en vez de encogerse en silencio, y quien la reciba después
- * —precio y adaptador— ya no tendrá que recortar nada: solo leerla. Hasta
- * entonces el recorte se queda, porque quitarlo antes de que exista quien
- * valide dejaría el camino sin ninguna protección.
+ * Así que cada consumidor lo pide donde vive. Una línea más en cada uno, una
+ * dependencia menos en el sitio por el que pasa todo.
  */
-export const MAX_PROPUESTAS_POR_PASO = 4;
 
+/**
+ * EL TECHO DE PROPUESTAS POR PASO, reexportado para el motor.
+ *
+ * Se DECLARA en `core/contracts.ts`, porque quien rechaza una cantidad
+ * imposible es el Planner y el Core no importa del motor: la direccion es de
+ * ida. Aqui solo se reexporta, y por dos motivos que no son de comodidad.
+ *
+ * Uno: los adaptadores de proveedor tienen prohibido nombrar al Core —lo vigila
+ * `gateway-autoridad`— y con razon, porque un adaptador traduce para una API y
+ * no tiene por que saber que hay un Core detras. Leen de su propia capa.
+ *
+ * Dos: se reexporta desde `core/contracts`, que no importa nada, y NO desde el
+ * barril `../core`. La diferencia no es de estilo. Este archivo lo importa
+ * medio motor y todo lo que le pedia al Core eran TIPOS, que el compilador
+ * borra al emitir; colgarle el barril entero le daba una dependencia de
+ * EJECUCION con todo el Core. Medido con el arnes de pureza, que incrusta cada
+ * modulo dentro de sus dependientes: 6,9 MB -> 37,3 MB y sin memoria. Con la
+ * hoja, cuesta lo que ocupa la hoja.
+ */
+export { MAX_PROPUESTAS_POR_PASO } from '../core/contracts';
 export interface ProviderOutput {
   kind: ResultKind;
   content?: string;
   url?: string;
-  /** Varias propuestas cuando el paso pide count > 1. Nunca más de `MAX_PROPUESTAS_POR_PASO`. */
+  /** Varias propuestas cuando el paso pide count > 1. Nunca más de `MAX_PROPUESTAS_POR_PASO` (`core/planner.ts`). */
   urls?: string[];
   /** Duración real (audio/video) cuando se conoce. */
   durationSec?: number;

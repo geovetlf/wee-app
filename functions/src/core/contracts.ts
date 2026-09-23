@@ -120,6 +120,50 @@ export const SHOT_CONTRACT_VERSION = '1.0' as const;
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * CUÁNTAS PROPUESTAS COMO MUCHO PUEDE ENTREGAR UN PASO.
+ *
+ * Una «propuesta» es una de las salidas alternativas y equivalentes entre las
+ * que la persona elige: los tres logos de Weë Design, los dos looks de Weë
+ * Beauty. Esto es cuántas como mucho, y es lo único que este número significa.
+ *
+ * ── Lo que NO es ────────────────────────────────────────────────────────────
+ *
+ *   · NO es un límite de un proveedor. Ninguna API nos lo impone: los
+ *     adaptadores ni siquiera usan el parámetro de lote que traen; piden las
+ *     imágenes de una en una, en un bucle nuestro.
+ *   · NO es un límite de un modelo.
+ *   · NO es `maxReferences` (`engine/imageModels.ts`), que es cuántas imágenes
+ *     acepta un modelo COMO ENTRADA y varía de 4 a 14 según cuál sea. Entrada y
+ *     salida son ejes distintos y no comparten número.
+ *   · NO es una cantidad genérica. «Para cuántas personas» es una receta y
+ *     viaja dentro de la frase del paso, no aquí.
+ *
+ * ── Por qué está en este archivo y no junto al Planner ──────────────────────
+ *
+ * Porque lo leen siete sitios muy separados: el Planner, que RECHAZA lo que no
+ * cabe, y seis que lo aplican después como segunda barrera —el precio, la
+ * estimación del Router, los tres adaptadores de imagen y el proveedor de
+ * demostración—. Dejarlo en `planner.ts` obligaba a cada adaptador a importar
+ * el Planner entero para leer un número, y eso es exactamente al revés: un
+ * adaptador traduce, no planifica.
+ *
+ * No es una preferencia estética. Medido con el arnés de pureza del Core, que
+ * incrusta cada módulo dentro de sus dependientes: `engine/registry.ts` pasaba
+ * de 0,7 MB a 5,2 MB y `engine/gateway.ts` de 8,5 MB a 21,9 MB, y las suites se
+ * quedaban sin memoria. Este archivo no importa nada, así que leerlo no cuesta
+ * nada, y sigue habiendo UNA sola declaración en todo el servidor.
+ *
+ * ── Hasta dónde llega el recorte de los seis ────────────────────────────────
+ *
+ * Desde G13.5 el Planner rechaza una cantidad imposible en vez de encogerla, y
+ * lo que hacen los seis es una SEGUNDA barrera: hoy hay otro camino hasta un
+ * proveedor —el de Legacy, que arma el plan y lo ejecuta sin pasar por el
+ * Core—, y mientras exista, ese recorte es lo único que lo protege. Quitarlo es
+ * de G13.6.
+ */
+export const MAX_PROPUESTAS_POR_PASO = 4;
+
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
 

@@ -1,5 +1,6 @@
 import { CapabilityId } from '../creator/types';
-import { EngineSettings, MAX_PROPUESTAS_POR_PASO } from '../engine/types';
+import { EngineSettings } from '../engine/types';
+import { MAX_PROPUESTAS_POR_PASO } from '../core/contracts';
 
 import { ImageSize, chooseImageModel, imageModelOf, isEditCapability, usdFor, volumeFactor } from '../engine/imageModels';
 import { resolveForModel } from '../engine/resolutionPolicy';

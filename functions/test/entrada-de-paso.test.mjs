@@ -205,9 +205,25 @@ check('C17-F24 · el input solo admite `kind` y `brief`',
     return true;
   })(),
   'count, focus, quality y un proveedor: los cuatro rechazados');
-check('C17-F18/F19 · el puente NO copia `count` ni `focus`',
-  !/count|focus/.test(puente),
-  'no son lo que un paso hace: son cuánto y cómo');
+/*
+ * ── `count` SALIÓ DE ESTA LISTA EN G13.5; `focus` SIGUE DENTRO ──────────────
+ *
+ * La afirmación era «el puente no copia `count` ni `focus`», y para los dos
+ * valía el mismo motivo: no son lo que un paso HACE. Sigue siendo verdad de los
+ * dos, y por eso ninguno entró en `input` —la comprobación de arriba lo sujeta:
+ * `input` admite `kind` y `brief`, y nada más—.
+ *
+ * Lo que cambió es que la cantidad encontró su sitio, que es FUERA de `input`:
+ * viaja como hermana, igual que `needs`, y el Planner la valida contra un techo
+ * declarado en el propio Core. `focus` no tiene todavía ni decisión ni sitio, y
+ * G14 sigue abierto: se audita por separado, como se hizo con este.
+ */
+check('C17-F18/F19 · el puente NO mete `count` ni `focus` dentro de `input`',
+  !/count|focus/.test((puente.match(/const entradaDelPaso[\s\S]*?\n\};/) || [''])[0]),
+  'siguen sin ser lo que un paso hace: son cuánto y cómo');
+check('G13.5 · y la cantidad sí cruza, pero por su propio carril',
+  /const propuestasDelPaso/.test(puente) && /\.\.\.\(count !== undefined \? \{ count \} : \{\}\)/.test(puente),
+  'hermana de `input`, como `needs` · G14 sigue abierto para `focus`');
 /*
  * Se mira el CAMPO, no la palabra: el puente nombra `voice.tts` porque es una
  * capacidad, y eso no es copiar el campo `voice` de un input.
