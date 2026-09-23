@@ -65,7 +65,31 @@ export interface Diferencia {
   evidencia: string;
   /** De dónde sale lo que Legacy tiene y el Core no. Decide si importa. */
   origen?: string;
+  /** Por qué camino se construyó el plan del Core que se está comparando. */
+  camino?: CaminoDelCore;
 }
+
+/**
+ * LOS DOS CAMINOS QUE LLEVAN A UN PLAN DEL CORE, Y POR QUÉ NO MIDEN LO MISMO.
+ *
+ *   `brain`   plantilla → Brain → entendimiento → Planner
+ *   `puente`  plan de Legacy → puente → `BrainStep` → Planner
+ *
+ * El primero contesta «¿qué sabe construir el Core con lo que el modelo
+ * entendió?». El segundo, «¿qué sobrevive de lo que Weë ya sabía?». Son
+ * preguntas distintas y confundirlas lleva a conclusiones falsas: por el camino
+ * del Brain la CANTIDAD no llega nunca —Brain no la produce, y es deliberado—,
+ * así que leer ese cero como «el Planner pierde la cantidad» sería culpar al
+ * sitio equivocado. Por el puente llega entera.
+ *
+ * Por eso cada diferencia lleva marcado su camino y las dos comparaciones se
+ * guardan por separado: una no puede tapar a la otra.
+ */
+export type CaminoDelCore = 'brain' | 'puente';
+
+/** Lo que el camino del Brain no puede traer por diseño. No es pérdida del Planner. */
+const NO_VIAJA_POR_EL_BRAIN: readonly string[] = Object.freeze(['count']);
+export const ORIGEN_SIN_TRANSPORTE = 'Brain no transporta este campo';
 
 /**
  * Lo que las plantillas de Legacy inyectan por su cuenta, dijera lo que dijera
@@ -197,10 +221,11 @@ export const compararPlanes = (
   legacy: PlanDeLegacy | undefined,
   plan: PlanDelCore | undefined,
   estadoDelCore?: string,
+  camino?: CaminoDelCore,
 ): Diferencia[] => {
   const dif: Diferencia[] = [];
   const anotar = (campo: string, clase: ClaseDeParidad, evidencia: string, origen?: string) =>
-    dif.push(origen ? { campo, clase, evidencia, origen } : { campo, clase, evidencia });
+    dif.push({ campo, clase, evidencia, ...(origen ? { origen } : {}), ...(camino ? { camino } : {}) });
   const pasosL = legacy?.steps ?? [];
   const pasosC = plan?.steps ?? [];
 
@@ -252,6 +277,18 @@ export const compararPlanes = (
         continue;
       }
       if (enL === undefined) { anotar(`steps[${L.id}].${k}`, 'CORE_ADDS_INFORMATION', JSON.stringify(enC)); continue; }
+      /*
+       * Y si falta porque el camino por el que vino el plan no sabe traerlo,
+       * eso se dice con su nombre. Un `count` ausente en el camino del Brain no
+       * es el Planner perdiéndolo: es Brain no produciéndolo, que es una
+       * decisión tomada y no un defecto. Culpar al Planner de esto fue el error
+       * de lectura que B3.7 dejó avisado.
+       */
+      if (camino === 'brain' && NO_VIAJA_POR_EL_BRAIN.includes(k)) {
+        anotar(`steps[${L.id}].${k}`, 'LEGACY_ONLY_INFORMATION',
+          `legacy.input.${k}=${JSON.stringify(enL)} · por este camino no viaja; por el puente sí`, ORIGEN_SIN_TRANSPORTE);
+        continue;
+      }
       anotar(`steps[${L.id}].${k}`, 'LEGACY_ONLY_INFORMATION',
         `legacy.input.${k}=${JSON.stringify(enL)} · lo pone la PLANTILLA, no la persona`, 'default de plantilla');
     }
@@ -353,7 +390,17 @@ export const compararPlanes = (
  * lo que la persona lee. Y `focus`, `mood`, `genre` y `voice`, que salen de lo
  * que alguien contestó y hoy no tienen dónde caber.
  */
-const NO_ES_PERDIDA: readonly string[] = Object.freeze(['default de plantilla', 'arista que solo ordenaba']);
+const NO_ES_PERDIDA: readonly string[] = Object.freeze([
+  'default de plantilla',
+  'arista que solo ordenaba',
+  /*
+   * Y lo que el camino del Brain no sabe traer. No se le apunta al Planner una
+   * pérdida que no es suya: el mismo campo, por el puente, llega entero. Que la
+   * diferencia exista se sigue viendo —está clasificada y contada—; lo que no
+   * se hace es llamarla error del sitio equivocado.
+   */
+  ORIGEN_SIN_TRANSPORTE,
+]);
 
 export const erroresDeParidad = (
   autoridad: readonly Diferencia[],

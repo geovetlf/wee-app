@@ -145,6 +145,17 @@ const OTROS_DEL_CORE = {
   'core/element.js': ['archivar', 'elementoValido', 'esTipoDeElemento', 'puedeReferenciar', 'validarElemento'],
   'core/visual-context.js': ['MAX_ELEMENTOS_EN_RESULTADO', 'MAX_REFERENCIAS', 'materialesDelContexto', 'necesidadValida', 'resolverContexto', 'trazaDeContexto'],
   /*
+   * B3.7.1: la sombra pasa a construir TAMBIÉN el plan que sale del puente de
+   * Legacy, y el puente pregunta si unos creativos son válidos antes de
+   * llevarlos. Eso pone `core/creative.js` en producción, y lo pone por una
+   * sola función: la que VALIDA. Fíjate en lo que sigue sin aparecer
+   * —`componerCreativos`, `completarCreativos`, `conflictosCreativos`,
+   * `compatibilidadCreativa`—: producción no compone intención creativa, solo
+   * comprueba la que Legacy ya tenía. Y llega por la sombra, que está detrás de
+   * una puerta cerrada y no ejecuta nada.
+   */
+  'core/creative.js': ['creativosValidos'],
+  /*
    * C3: exportar la puerta de escenas y planos pone en producción los dos
    * contratos de C1/C2. Otra vez lo esperado, y otra vez esto es donde se ve:
    * de continuidad producción usa el VALIDADOR y los punteros, y no usa todavía

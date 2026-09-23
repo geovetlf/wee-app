@@ -1,5 +1,5 @@
 import type { DocumentReference } from 'firebase-admin/firestore';
-import { BRAIN_CONTRACT_VERSION, BrainUnderstanding, CAPABILITY_CATALOG, CapabilityAvailability, CoreCapabilityId, PLANNER_CONTRACT_VERSION, Thinker } from '../core';
+import { BRAIN_CONTRACT_VERSION, BrainStep, BrainUnderstanding, CAPABILITY_CATALOG, CapabilityAvailability, CoreCapabilityId, PLANNER_CONTRACT_VERSION, PlanStep, Thinker } from '../core';
 import { crearBrainDeWee, pensamientoDesde } from '../brain';
 import { EngineResult } from '../engine/types';
 import { EXPERIENCIAS_PARA_SUGERIR } from './experiencias';
@@ -8,6 +8,7 @@ import { BRAIN_MAX_OUTPUT_TOKENS, MODELO_DE_BRAIN } from './brain';
 import { crearPlannerDeWee, disponibilidadDe, disponibilidadDeWee, entendimientoParaPlanificar } from '../planner';
 import { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad, Diferencia } from './paridad';
 import { CapabilityId, ExperienceId, Plan as PlanDeLegacy } from './types';
+import { pasosParaElCore } from './necesidades';
 
 /**
  * LA SOMBRA DEL PLAN: EL CORE PIENSA EN PARALELO Y NO TOCA NADA.
@@ -48,7 +49,7 @@ import { CapabilityId, ExperienceId, Plan as PlanDeLegacy } from './types';
  */
 
 export const CLAVE_DE_LA_SOMBRA = 'sombra';
-export const CONTRATO_DE_LA_SOMBRA = '1.0' as const;
+export const CONTRATO_DE_LA_SOMBRA = '1.1' as const;
 
 /**
  * ── DÓNDE VIVE EL INTERRUPTOR, Y POR QUÉ AQUÍ Y NO EN `aiSettings/runtime` ──
@@ -304,6 +305,39 @@ export const entendimientoRealDelBrain = (deps: BrainRealParaLaSombra): FuenteDe
 export const CAPACIDAD_DEL_ENTENDIMIENTO: CapabilityId = 'text.generate';
 /** Con qué se reconoce una operación de sombra en el libro. */
 export const SELLO_DE_LA_SOMBRA = 'sombra';
+/** El del segundo camino. Otro sello para que las dos trazas no se confundan. */
+export const SELLO_DEL_PUENTE = 'sombra-puente';
+
+/**
+ * EL ENTENDIMIENTO DEL SEGUNDO CAMINO. No lo entiende nadie: ya estaba entendido.
+ *
+ * El plan de Legacy es el resultado de una conversación que ya ocurrió —las
+ * preguntas, las respuestas, lo que la plantilla dedujo— y el puente lo dice en
+ * el vocabulario del Core. Aquí solo se envuelve en la forma que el Planner
+ * espera, sin añadir ni una intención que nadie tuviera.
+ *
+ * `confidence: 'high'` porque no hay nada que estimar: no lo dijo un modelo, lo
+ * decidió Weë. Y `constraints` vacío a propósito: lo que acota cada paso ya
+ * viaja dentro del paso, y rellenarlo aquí sería inventarse una segunda verdad.
+ */
+const entendimientoDelPuente = (
+  entrada: Pick<EntradaDeSombra, 'goal' | 'experienceId'>,
+  pasos: readonly BrainStep[],
+): BrainUnderstanding => ({
+  intent: 'creation',
+  confidence: 'high',
+  goal: entrada.goal,
+  capability: pasos[0]?.capability,
+  capabilities: [...new Set(pasos.map((p) => p.capability))],
+  steps: pasos,
+  inputs: { text: entrada.goal, attachments: [] },
+  references: [],
+  constraints: {},
+  workplace: { id: 'wee', experienceId: entrada.experienceId },
+  needsPlanning: true,
+  missing: [],
+  assumptions: [],
+});
 
 export interface EntradaDeSombra {
   jobRef: DocumentReference;
@@ -333,7 +367,28 @@ const formasDelPlan = (pasos: readonly { capability: string; input?: Readonly<Re
   pasos.slice(0, TOPE_DE_LISTA).map((s) => `${s.capability}/${typeof s.input?.kind === 'string' ? s.input.kind : '-'}`);
 
 const recorte = (dif: readonly Diferencia[]) =>
-  dif.slice(0, TOPE_DE_LISTA).map((d) => ({ campo: d.campo, clase: d.clase, evidencia: d.evidencia.slice(0, 240) }));
+  dif.slice(0, TOPE_DE_LISTA).map((d) => ({
+    campo: d.campo,
+    clase: d.clase,
+    evidencia: d.evidencia.slice(0, 240),
+    ...(d.origen ? { origen: d.origen } : {}),
+    ...(d.camino ? { camino: d.camino } : {}),
+  }));
+
+/** Lo que se guarda de un plan del Core. Lo mismo para los dos caminos, para poder restarlos. */
+const vistaDelPlan = (estado: string | undefined, plan: { steps?: readonly PlanStep[] } | undefined) => ({
+  status: estado ?? null,
+  pasos: plan?.steps?.length ?? 0,
+  formas: formasDelPlan(plan?.steps ?? []),
+  /* Las cantidades, por paso. Es el campo que distingue un camino del otro. */
+  cantidades: (plan?.steps ?? [])
+    .slice(0, TOPE_DE_LISTA)
+    .map((s) => (typeof s.input?.count === 'number' ? `${s.id}=${s.input.count}` : `${s.id}=-`)),
+  dependencias: (plan?.steps ?? [])
+    .filter((s) => (s.dependsOn ?? []).length)
+    .slice(0, TOPE_DE_LISTA)
+    .map((s) => `${s.id}←${(s.dependsOn ?? []).join('+')}`),
+});
 
 /**
  * CALCULA LA SOMBRA Y LA GUARDA. No devuelve nada que nadie tenga que mirar y
@@ -358,6 +413,17 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
     const ahora = entrada.ahora ?? (() => Date.now());
     const entendimiento = await entrada.entendimientoDe(entrada.experienceId, entrada.goal);
 
+    const planner = crearPlannerDeWee({
+      availability: entrada.disponibilidad ?? disponibilidadDeWee,
+      tracer: { record: () => {} },
+      now: ahora,
+    });
+    const planificar = (understanding: BrainUnderstanding, sello: string) => planner.planificar({
+      contract: PLANNER_CONTRACT_VERSION,
+      trace: { traceId: entrada.jobId, requestId: `${entrada.jobId}:${sello}`, userId: entrada.userId },
+      understanding: entendimientoParaPlanificar(understanding),
+    });
+
     let estado: EstadoDeSombra = 'ok';
     let plan;
     let estadoDelPlan: string | undefined;
@@ -367,21 +433,39 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
     if (!entendimiento) {
       estado = 'sin_entendimiento';
     } else {
-      const planner = crearPlannerDeWee({
-        availability: entrada.disponibilidad ?? disponibilidadDeWee,
-        tracer: { record: () => {} },
-        now: ahora,
-      });
-      const salida = await planner.planificar({
-        contract: PLANNER_CONTRACT_VERSION,
-        trace: { traceId: entrada.jobId, requestId: `${entrada.jobId}:sombra`, userId: entrada.userId },
-        understanding: entendimientoParaPlanificar(entendimiento),
-      });
+      const salida = await planificar(entendimiento, SELLO_DE_LA_SOMBRA);
       estadoDelPlan = salida.status;
       plan = salida.plan;
       if (salida.status !== 'ready' || !plan) estado = 'plan_no_listo';
       autoridad = compararIntencion(entendimiento, plan);
-      regresion = compararPlanes(entrada.legacyPlan, plan, salida.status);
+      regresion = compararPlanes(entrada.legacyPlan, plan, salida.status, 'brain');
+    }
+
+    /*
+     * ── EL SEGUNDO CAMINO: LO QUE WEË YA SABÍA ────────────────────────────
+     *
+     * El de arriba contesta «¿qué sabe construir el Core con lo que el modelo
+     * entendió?». Este contesta otra cosa: «¿qué sobrevive de lo que la
+     * experiencia ya había decidido?». Y hace falta preguntarlo por separado,
+     * porque hay campos que solo pueden llegar por aquí — la CANTIDAD el
+     * primero: Brain no la produce, a propósito, así que por el camino de
+     * arriba nunca aparece y leer ese hueco como una pérdida del Planner sería
+     * culpar al sitio equivocado.
+     *
+     * No pide nada a nadie. Es el puente de G13.5 sobre el plan que Legacy ya
+     * armó: determinista, sin modelo, sin red y sin un solo Credit. Por eso
+     * corre aunque el Brain haya fallado — cuando el de arriba se queda sin
+     * entendimiento, este sigue teniendo algo que decir.
+     */
+    const { steps: pasosDelPuente, descartadas } = pasosParaElCore(entrada.legacyPlan?.steps ?? []);
+    let planDelPuente;
+    let estadoDelPuente: string | undefined;
+    let regresionDelPuente: Diferencia[] = [];
+    if (pasosDelPuente.length) {
+      const salida = await planificar(entendimientoDelPuente(entrada, pasosDelPuente), SELLO_DEL_PUENTE);
+      estadoDelPuente = salida.status;
+      planDelPuente = salida.plan;
+      regresionDelPuente = compararPlanes(entrada.legacyPlan, planDelPuente, salida.status, 'puente');
     }
 
     const errores = erroresDeParidad(autoridad, regresion);
@@ -396,18 +480,27 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
         pasos: entrada.legacyPlan?.steps?.length ?? 0,
         formas: formasDelPlan(entrada.legacyPlan?.steps ?? []),
       },
-      core: {
-        status: estadoDelPlan ?? null,
-        pasos: plan?.steps?.length ?? 0,
-        formas: formasDelPlan(plan?.steps ?? []),
-        dependencias: (plan?.steps ?? [])
-          .filter((s) => (s.dependsOn ?? []).length)
-          .slice(0, TOPE_DE_LISTA)
-          .map((s) => `${s.id}←${(s.dependsOn ?? []).join('+')}`),
+      /*
+       * `core` se queda con lo del camino del Brain y con el mismo nombre que
+       * tenía: quien ya leía sombras no se entera del cambio, y las que hay
+       * escritas siguen queriendo decir lo mismo. Lo nuevo va al lado.
+       */
+      core: vistaDelPlan(estadoDelPlan, plan),
+      coreDesdeBrain: { origen: 'brain' as const, ...vistaDelPlan(estadoDelPlan, plan) },
+      coreDesdePuente: {
+        origen: 'puente' as const,
+        ...vistaDelPlan(estadoDelPuente, planDelPuente),
+        /* Lo que el puente no convirtió, contado. Nunca se borra en silencio. */
+        aristasDescartadas: descartadas.length,
       },
       autoridad: { resumen: resumenDeParidad(autoridad), diferencias: recorte(autoridad) },
       regresion: { resumen: resumenDeParidad(regresion), diferencias: recorte(regresion) },
+      regresionDesdePuente: {
+        resumen: resumenDeParidad(regresionDelPuente),
+        diferencias: recorte(regresionDelPuente),
+      },
       errores: recorte(errores),
+      erroresDesdePuente: recorte(erroresDeParidad([], regresionDelPuente)),
     };
 
     await ref.create(documento);

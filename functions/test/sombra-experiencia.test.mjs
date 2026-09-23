@@ -33,7 +33,7 @@ const {
   entendimientoDelTramo1, disponibilidadDelCatalogo, CLAVE_DE_LA_SOMBRA,
   configuracionDeLaSombra, olvidarLaSombra, entendimientoRealDelBrain,
 } = lib('creator/sombra.js');
-const { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad } = lib('creator/paridad.js');
+const { compararIntencion, compararPlanes, erroresDeParidad, resumenDeParidad, ORIGEN_SIN_TRANSPORTE } = lib('creator/paridad.js');
 const { TEMPLATES } = lib('creator/templates.js');
 const { BRAIN_MAX_OUTPUT_TOKENS, MODELO_DE_BRAIN } = lib('creator/brain.js');
 
@@ -522,6 +522,155 @@ check('F4) y con la puerta abierta, la sombra pide UNA y solo una',
     return peticionesAlMotor.length === antes + 1 && r.escrita && r.estado === 'ok';
   })(),
   'una petición al motor por sombra: la fila del libro sería una');
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── B3.7.1 · Los dos caminos, y que no se contaminan ──');
+
+/*
+ * La sombra construye AHORA dos planes del Core y los guarda por separado:
+ *
+ *   `coreDesdeBrain`   plantilla → Brain → entendimiento → Planner
+ *   `coreDesdePuente`  plan de Legacy → puente → BrainStep → Planner
+ *
+ * No es un capricho de formato. Por el camino del Brain la CANTIDAD no llega
+ * nunca —Brain no la produce, y es deliberado—, así que medir solo ese camino
+ * daba 0/20 y se leía como «el Planner pierde la cantidad». Por el puente llega
+ * entera. Las dos preguntas son válidas y son distintas; mezclarlas producía
+ * una respuesta falsa.
+ */
+{
+  const dos = await correr();
+  const s = dos.sombra;
+  check('B3.7.1) la sombra guarda los DOS planes del Core, cada uno con su origen',
+    s.coreDesdeBrain?.origen === 'brain' && s.coreDesdePuente?.origen === 'puente'
+    && typeof s.coreDesdeBrain.status === 'string' && typeof s.coreDesdePuente.status === 'string',
+    `brain=${s.coreDesdeBrain?.status} puente=${s.coreDesdePuente?.status}`);
+  check('B3.7.1) y las dos comparaciones viven separadas: una no puede tapar a la otra',
+    !!s.regresion && !!s.regresionDesdePuente && !!s.errores && !!s.erroresDesdePuente
+    && s.regresionDesdePuente.diferencias.every((d) => d.camino === 'puente')
+    && s.regresion.diferencias.every((d) => d.camino === 'brain'),
+    'cada diferencia lleva marcado de qué camino viene');
+  check('B3.7.1) `core` sigue significando lo de siempre: el camino del Brain',
+    s.core.status === s.coreDesdeBrain.status && s.core.pasos === s.coreDesdeBrain.pasos,
+    'las sombras ya escritas siguen queriendo decir lo mismo');
+}
+
+/*
+ * ── LA PRUEBA QUE IMPORTA: QUE NO SE COPIEN LA CANTIDAD ────────────────────
+ *
+ * Un plan de Legacy que pide CUATRO. El entendimiento del Brain, falso a
+ * propósito, no dice nada de cantidades. Si alguna vez alguien «arreglara» la
+ * paridad copiando la cantidad de Legacy al plan del Brain, esto se pondría
+ * rojo — y con razón, porque la medición dejaría de medir nada.
+ */
+{
+  const planCuatro = {
+    experience: 'design', goal: GOAL, explainToUser: 'Voy a crear 4 propuestas.',
+    steps: [{ id: 'images', capability: 'image.generate', purpose: 'Crear 4 propuestas', input: { count: 4, kind: 'logo', brief: 'cuatro logos' } }],
+  };
+  const sinCantidad = async () => ({
+    intent: 'creation', confidence: 'high', goal: GOAL,
+    capability: 'image.generate', capabilities: ['image.generate'],
+    steps: [{ key: 'images', capability: 'image.generate', input: { kind: 'logo', brief: 'cuatro logos' } }],
+    inputs: { text: GOAL, attachments: [] }, references: [], constraints: {},
+    needsPlanning: true, missing: [], assumptions: [],
+  });
+  const db = new BaseFalsa();
+  await sombraDelPlan({
+    jobRef: db.collection('creatorJobs').doc(JOB), jobId: JOB, userId: CUENTA_A,
+    experienceId: 'design', goal: GOAL, legacyPlan: planCuatro, puerta: ABIERTA,
+    entendimientoDe: sinCantidad, disponibilidad: disponibilidadDelCatalogo(),
+    ahora: () => 1000, observar: () => {},
+  });
+  const s = db.docs.get(`creatorJobs/${JOB}/private/${CLAVE_DE_LA_SOMBRA}`);
+  check('B3.7.1) Legacy pide 4 · el camino del Brain NO lo inventa',
+    s.coreDesdeBrain.cantidades.every((c) => c.endsWith('=-')),
+    JSON.stringify(s.coreDesdeBrain.cantidades));
+  check('B3.7.1) …y el camino del puente SÍ lo conserva: 4',
+    s.coreDesdePuente.cantidades.some((c) => c.endsWith('=4')),
+    JSON.stringify(s.coreDesdePuente.cantidades));
+  check('B3.7.1) la cantidad ausente del Brain NO se le apunta como pérdida al Planner',
+    s.regresion.diferencias.some((d) => /\.count$/.test(d.campo) && d.origen === ORIGEN_SIN_TRANSPORTE)
+    && !s.errores.some((d) => /\.count$/.test(d.campo)),
+    'se clasifica y se cuenta; lo que no se hace es culpar al sitio equivocado');
+  check('B3.7.1) y por el puente la cantidad no es ninguna diferencia: coincide',
+    s.regresionDesdePuente.diferencias.some((d) => /\.count$/.test(d.campo) && d.clase === 'EXACT_MATCH'),
+    'el mismo campo, el mismo plan de Legacy, otro camino');
+  check('B3.7.1) los dos siguen perdiendo lo mismo: la frase del paso y la promesa al usuario',
+    [s.errores, s.erroresDesdePuente].every((e) => e.some((d) => d.campo === 'explainToUser') && e.some((d) => /\.purpose$/.test(d.campo))),
+    'el GAP no lo arregla cambiar de camino');
+}
+
+/*
+ * Y una cantidad imposible NO se encoge por venir de Legacy: el puente la copia
+ * tal cual y el Planner tumba el plan, con lo que la sombra registra que por
+ * ese camino no hay plan. Es lo contrario de lo que hacen hoy los seis recortes
+ * del precio y los adaptadores, y ese contraste es justamente lo que G13.6
+ * tendrá que cerrar.
+ */
+const porElPuente = async (cantidad) => {
+  const db = new BaseFalsa();
+  await sombraDelPlan({
+    jobRef: db.collection('creatorJobs').doc(JOB), jobId: JOB, userId: CUENTA_A,
+    experienceId: 'design', goal: GOAL, puerta: ABIERTA,
+    legacyPlan: { experience: 'design', goal: GOAL, explainToUser: 'x',
+      steps: [{ id: 'images', capability: 'image.generate', purpose: 'p', input: { count: cantidad, kind: 'logo' } }] },
+    entendimientoDe: async () => undefined, disponibilidad: disponibilidadDelCatalogo(),
+    ahora: () => 1000, observar: () => {},
+  });
+  return db.docs.get(`creatorJobs/${JOB}/private/${CLAVE_DE_LA_SOMBRA}`).coreDesdePuente;
+};
+
+for (const [cantidad, comoSeLlama] of [[5, 'se pasa del techo'], [3.7, 'decimal'], [0, 'cero'], [-1, 'negativo']]) {
+  const c = await porElPuente(cantidad);
+  check(`B3.7.1) count=${JSON.stringify(cantidad)} por el puente → el plan NO sale, y no se encoge`,
+    c.status === 'invalid' && c.pasos === 0,
+    `${comoSeLlama} · status=${c.status}`);
+}
+
+/*
+ * ── HALLAZGO DE B3.7.1 · UN NÚMERO MAL ESCRITO NO SE RECHAZA: SE PIERDE ────
+ *
+ * Una cantidad que no es un número —un `"3"` de texto en una plantilla— no
+ * llega a la validación. El puente la descarta antes: `propuestasDelPaso` solo
+ * copia lo que ya es `number`, y G13.5 lo escribió así a conciencia («no es una
+ * cantidad equivocada sino la ausencia de una»).
+ *
+ * Medido ahora de punta a punta, esa regla tiene un filo que no se había visto:
+ * el plan sale `ready` SIN cantidad, mientras el precio de Legacy hace
+ * `Number("3")` y cobra tres. Es decir, los dos lados discrepan en silencio —la
+ * misma forma del fallo que G13 lleva cerrando—, solo que aquí el silencio lo
+ * produce el puente en vez de un recorte.
+ *
+ * NO lo arreglo aquí. Cambiarlo significa decidir quién tipa el transporte: si
+ * `BrainStep.count` sigue siendo `number` y el puente filtra, o pasa a llevar lo
+ * que Legacy escribió y juzga el Planner —que ya sabe rechazarlo—. Eso es una
+ * decisión de contrato, no un ajuste. Queda medida y nombrada.
+ */
+{
+  const c = await porElPuente('3');
+  check('B3.7.1) GAP · un `"3"` de texto NO se rechaza: el puente lo descarta y el plan sale sin cantidad',
+    c.status === 'ready' && c.cantidades.every((x) => x.endsWith('=-')),
+    `status=${c.status} cantidades=${JSON.stringify(c.cantidades)} · el precio de Legacy cobraría 3`);
+  check('B3.7.1) …y desde luego NO se convierte en 3, que era el peligro nombrado',
+    !c.cantidades.some((x) => x.endsWith('=3')),
+    'no hay coerción; hay pérdida');
+}
+
+check('B3.7.1) el camino del puente no le pide nada a nadie: corre aunque el Brain falle',
+  await (async () => {
+    const antes = peticionesAlMotor.length;
+    const db = new BaseFalsa();
+    await sombraDelPlan({
+      jobRef: db.collection('creatorJobs').doc(JOB), jobId: JOB, userId: CUENTA_A,
+      experienceId: 'travel', goal: GOAL, legacyPlan: await planDeLegacy(), puerta: ABIERTA,
+      entendimientoDe: async () => undefined, disponibilidad: disponibilidadDelCatalogo(),
+      ahora: () => 1000, observar: () => {},
+    });
+    const s = db.docs.get(`creatorJobs/${JOB}/private/${CLAVE_DE_LA_SOMBRA}`);
+    return peticionesAlMotor.length === antes && s.estado === 'sin_entendimiento' && s.coreDesdePuente.status === 'ready';
+  })(),
+  'determinista y gratis: sin modelo, sin red, sin un solo Credit');
 
 globalThis.fetch = fetchDeVerdad;
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\nLa sombra mira y no toca: ${n} comprobaciones, cero llamadas al proveedor`);
