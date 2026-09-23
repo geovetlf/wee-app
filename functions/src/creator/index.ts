@@ -521,9 +521,45 @@ export const creatorRun = onCall(
           // El nivel que la persona eligió en el presupuesto manda sobre el de la plantilla
           if (job.quality) input.quality = job.quality;
           const stepInput = next.input || {};
+          /*
+           * QUÉ FAMILIA DE PROVEEDORES ADMITE ESTE PASO, SI LO DICE.
+           *
+           * El Router lleva desde siempre obedeciendo `prefs.allowedProviders`
+           * —salta cualquier eslabón que no esté en la lista— y tres sitios de
+           * producción ya lo usan: el Weë Video Engine fija la familia Seedance,
+           * el Weë Image Engine fija el proveedor del modelo elegido, y Weë
+           * Brain fija DeepSeek. Lo que faltaba no era el mecanismo: era que un
+           * paso del plan pudiera declararlo.
+           *
+           * Sin esto, un paso que cae en la rama genérica —voz, texto— no puede
+           * acotar su cadena, así que si el primer proveedor falla el Router
+           * prueba el siguiente. Para casi todo eso es lo que se quiere; para
+           * medir si UN proveedor concreto funciona, no: el respaldo esconde
+           * justo lo que se está midiendo.
+           *
+           * ── Lo que NO hace ────────────────────────────────────────────────
+           *
+           * No decide nada. No conoce ninguna capacidad ni ningún proveedor: si
+           * el paso no lo declara, `prefs` sale exactamente igual que antes y el
+           * enrutamiento no cambia para nadie. Y el vídeo y la imagen siguen
+           * poniendo la suya después, que es la que manda para ellos.
+           *
+           * ── Una lista vacía ───────────────────────────────────────────────
+           *
+           * Se transporta tal cual, porque el Router ya tiene una respuesta para
+           * ella: con `[]` no hay eslabón que pase el filtro y la petición acaba
+           * en NOT_AVAILABLE. Inventar aquí que «vacía significa sin
+           * restricción» sería darle un segundo significado a un dato que ya
+           * tiene uno.
+           */
+          const familiaDelPaso = stepInput.allowedProviders;
+          const soloEstos = Array.isArray(familiaDelPaso) && familiaDelPaso.every((p) => typeof p === 'string')
+            ? (familiaDelPaso as string[])
+            : undefined;
           const prefs: RoutingPrefs = {
             quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
             durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
+            ...(soloEstos ? { allowedProviders: soloEstos } : {}),
           };
           const stepCtx = { ...ctx, stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: serviceForCapability(next.capability, stepInput) };
           // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
