@@ -629,32 +629,35 @@ for (const [cantidad, comoSeLlama] of [[5, 'se pasa del techo'], [3.7, 'decimal'
 }
 
 /*
- * ── HALLAZGO DE B3.7.1 · UN NÚMERO MAL ESCRITO NO SE RECHAZA: SE PIERDE ────
+ * ── B3.7.2 · UNA CANTIDAD MAL ESCRITA NO PUEDE DESAPARECER EN EL CAMINO ────
  *
- * Una cantidad que no es un número —un `"3"` de texto en una plantilla— no
- * llega a la validación. El puente la descarta antes: `propuestasDelPaso` solo
- * copia lo que ya es `number`, y G13.5 lo escribió así a conciencia («no es una
- * cantidad equivocada sino la ausencia de una»).
+ * B3.7.1 midió esto de punta a punta y encontró el filo: con un `"3"` de texto,
+ * el puente lo descartaba —«no es una cantidad equivocada sino la ausencia de
+ * una»— y el plan salía LISTO sin cantidad, mientras el precio de Legacy hacía
+ * `Number("3")` y cobraba tres. Los dos lados discrepaban en silencio.
  *
- * Medido ahora de punta a punta, esa regla tiene un filo que no se había visto:
- * el plan sale `ready` SIN cantidad, mientras el precio de Legacy hace
- * `Number("3")` y cobra tres. Es decir, los dos lados discrepan en silencio —la
- * misma forma del fallo que G13 lleva cerrando—, solo que aquí el silencio lo
- * produce el puente en vez de un recorte.
+ * Ahora hay dos responsabilidades y están separadas:
  *
- * NO lo arreglo aquí. Cambiarlo significa decidir quién tipa el transporte: si
- * `BrainStep.count` sigue siendo `number` y el puente filtra, o pasa a llevar lo
- * que Legacy escribió y juzga el Planner —que ya sabe rechazarlo—. Eso es una
- * decisión de contrato, no un ajuste. Queda medida y nombrada.
+ *   EL PUENTE   el TRANSPORTE. Si Legacy declara una cantidad, tiene que ser un
+ *               número. Si no lo es, no hay pasos y se dice por qué.
+ *   EL PLANNER  el SENTIDO. Entero, al menos uno, no más que el techo.
+ *
+ * Ninguno convierte nada. El puente no sabe cuánto vale el techo y no le hace
+ * falta; el Planner no sabe de dónde vino el plan y tampoco le hace falta.
  */
-{
-  const c = await porElPuente('3');
-  check('B3.7.1) GAP · un `"3"` de texto NO se rechaza: el puente lo descarta y el plan sale sin cantidad',
-    c.status === 'ready' && c.cantidades.every((x) => x.endsWith('=-')),
-    `status=${c.status} cantidades=${JSON.stringify(c.cantidades)} · el precio de Legacy cobraría 3`);
-  check('B3.7.1) …y desde luego NO se convierte en 3, que era el peligro nombrado',
-    !c.cantidades.some((x) => x.endsWith('=3')),
-    'no hay coerción; hay pérdida');
+for (const [cantidad, comoSeLlama] of [
+  ['3', 'texto que parece número'], ['tres', 'texto'], [true, 'booleano'], [false, 'booleano'],
+  [null, 'nulo'], [{}, 'objeto'], [[], 'lista'],
+]) {
+  const c = await porElPuente(cantidad);
+  check(`B3.7.2) count=${JSON.stringify(cantidad)} NO cruza: el transporte falla cerrado`,
+    c.status === 'invalid' && c.pasos === 0
+    && c.rechazos.length === 1 && c.rechazos[0].motivo === 'invalid_request'
+    && /\.input\.count$/.test(c.rechazos[0].campo),
+    `${comoSeLlama} · ${c.rechazos[0]?.evidencia ?? '(sin rechazo)'}`);
+  check('B3.7.2)   …y no se convierte en nada: ni en 3, ni en 1, ni en una ausencia',
+    c.cantidades.length === 0 && c.status !== 'ready',
+    'el plan no existe, así que no hay nada que cobrar ni que ejecutar');
 }
 
 check('B3.7.1) el camino del puente no le pide nada a nadie: corre aunque el Brain falle',

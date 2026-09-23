@@ -457,11 +457,18 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
      * corre aunque el Brain haya fallado — cuando el de arriba se queda sin
      * entendimiento, este sigue teniendo algo que decir.
      */
-    const { steps: pasosDelPuente, descartadas } = pasosParaElCore(entrada.legacyPlan?.steps ?? []);
+    const { steps: pasosDelPuente, descartadas, rechazos } = pasosParaElCore(entrada.legacyPlan?.steps ?? []);
     let planDelPuente;
     let estadoDelPuente: string | undefined;
     let regresionDelPuente: Diferencia[] = [];
-    if (pasosDelPuente.length) {
+    if (rechazos.length) {
+      /*
+       * Algo no pudo ni cruzar. No es «no hay plan»: es que la petición está mal
+       * formada, y se dice con la misma palabra que usaría el Planner si le
+       * hubiera llegado. Callarlo era el fallo que B3.7.1 encontró.
+       */
+      estadoDelPuente = 'invalid';
+    } else if (pasosDelPuente.length) {
       const salida = await planificar(entendimientoDelPuente(entrada, pasosDelPuente), SELLO_DEL_PUENTE);
       estadoDelPuente = salida.status;
       planDelPuente = salida.plan;
@@ -492,6 +499,10 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
         ...vistaDelPlan(estadoDelPuente, planDelPuente),
         /* Lo que el puente no convirtió, contado. Nunca se borra en silencio. */
         aristasDescartadas: descartadas.length,
+        /* Y lo que ni pudo cruzar, con el campo y el porqué. */
+        rechazos: rechazos.slice(0, TOPE_DE_LISTA).map((r) => ({
+          campo: r.campo, motivo: r.motivo, evidencia: r.evidencia.slice(0, 240),
+        })),
       },
       autoridad: { resumen: resumenDeParidad(autoridad), diferencias: recorte(autoridad) },
       regresion: { resumen: resumenDeParidad(regresion), diferencias: recorte(regresion) },

@@ -183,18 +183,38 @@ const entradaDelPaso = (paso: PlanStep): BrainStepInput | undefined => {
  * Ya lo tiene, y es hermano de `input`, igual que `needs`.
  *
  * Lo que este puente NO hace es corregir. Si una plantilla pidiera una cantidad
- * imposible, se copia tal cual y la tumba el Planner con el campo señalado.
- * Recortarla aquí sería inventarse una cantidad que nadie pidió y, peor, dejar
- * al Planner sin nada que rechazar: el fallo pasaría inadvertido justo en el
- * sitio que se construyó para verlo. Solo se descarta lo que no es un número,
- * que no es una cantidad equivocada sino la ausencia de una.
+ * imposible —un 9, un 3,7— se copia tal cual y la tumba el Planner con el campo
+ * señalado. Recortarla aquí sería inventarse una cantidad que nadie pidió y,
+ * peor, dejar al Planner sin nada que rechazar: el fallo pasaría inadvertido
+ * justo en el sitio que se construyó para verlo.
+ *
+ * ── LO QUE NO ES UN NÚMERO TAMPOCO SE TIRA ─────────────────────────────────
+ *
+ * Esto decía antes que un valor no numérico «no es una cantidad equivocada sino
+ * la ausencia de una», y lo descartaba. B3.7.1 lo midió de punta a punta y esa
+ * frase tenía un filo: con un `"3"` de texto, el plan del Core salía LISTO y
+ * sin cantidad mientras el precio de Legacy hacía `Number("3")` y cobraba tres.
+ * Los dos lados discrepaban en silencio — la misma forma del fallo que G13
+ * lleva cerrando, con el silencio puesto en el transporte en vez de en un
+ * recorte.
+ *
+ * Así que ahora hay dos responsabilidades y están separadas:
+ *
+ *   EL PUENTE   comprueba el TRANSPORTE: si Legacy declara una cantidad, tiene
+ *               que ser un número. Si no lo es, no hay pasos que planificar y
+ *               se dice por qué. No convierte, no redondea, no tira.
+ *   EL PLANNER  comprueba el SENTIDO: entero, al menos uno, y no más que el
+ *               techo. Eso sigue siendo suyo y aquí no se copia — este archivo
+ *               no sabe cuánto vale `MAX_PROPUESTAS_POR_PASO` ni le hace falta.
  *
  * Medido sobre las 35 formas: 20 pasos la llevan, con valores 1, 2, 3 y 4, y
  * los 54 restantes no la llevan — que no es lo mismo que pedir una.
  */
-const propuestasDelPaso = (paso: PlanStep): number | undefined => {
+const propuestasDelPaso = (paso: PlanStep): { ok: true; count?: number } | { ok: false } => {
   const pedidas = (paso.input ?? {}).count;
-  return typeof pedidas === 'number' ? pedidas : undefined;
+  if (pedidas === undefined) return { ok: true };
+  if (typeof pedidas === 'number') return { ok: true, count: pedidas };
+  return { ok: false };
 };
 
 /* ── Lo que cada paso pide del resultado ──────────────────────────────────── */
@@ -242,6 +262,23 @@ export interface PasosParaElCore {
   steps: readonly BrainStep[];
   /** Una línea por arista descartada. No se borran en silencio: se cuentan. */
   descartadas: readonly { consumidor: string; productor: string; clase: ClaseDeArista; motivo: string }[];
+  /**
+   * LO QUE NI SIQUIERA PUEDE CRUZAR, y por qué.
+   *
+   * No es lo mismo que `descartadas`: aquella cuenta lo que se miró y se decidió
+   * no convertir —una arista que solo ordenaba—, y el plan sigue adelante sin
+   * ella porque no había nada que llevar. Esto es lo contrario: hay algo que
+   * llevar y NO se puede, porque no tiene la forma que el contrato del Core
+   * exige. Un plan al que le falte esto no es un plan más pobre: es otro plan.
+   *
+   * Por eso, cuando esta lista trae algo, `steps` viene VACÍO. No se deja una
+   * versión «casi buena» que alguien pueda planificar sin darse cuenta: quien
+   * llame se encuentra sin pasos y con el motivo delante.
+   *
+   * `motivo` usa la palabra del Core —`invalid_request`— a propósito: no hay un
+   * segundo sistema de errores, hay el mismo dicho antes.
+   */
+  rechazos: readonly { paso: string; campo: string; motivo: 'invalid_request'; evidencia: string }[];
 }
 
 /**
@@ -260,6 +297,7 @@ export interface PasosParaElCore {
 export const pasosParaElCore = (steps: readonly PlanStep[]): PasosParaElCore => {
   const porId = new Map(steps.map((s) => [s.id, s]));
   const descartadas: { consumidor: string; productor: string; clase: ClaseDeArista; motivo: string }[] = [];
+  const rechazos: PasosParaElCore['rechazos'][number][] = [];
   const salida: BrainStep[] = [];
 
   for (const paso of steps) {
@@ -280,15 +318,25 @@ export const pasosParaElCore = (steps: readonly PlanStep[]): PasosParaElCore => 
     }
     const input = entradaDelPaso(paso);
     const hints = pistasDelPaso(paso);
-    const count = propuestasDelPaso(paso);
+    const cuantas = propuestasDelPaso(paso);
+    if (!cuantas.ok) {
+      rechazos.push({
+        paso: paso.id,
+        campo: `steps[${paso.id}].input.count`,
+        motivo: 'invalid_request',
+        evidencia: `la cantidad tiene que ser un número y llegó ${typeof (paso.input ?? {}).count}`,
+      });
+      continue;
+    }
     salida.push({
       key: paso.id,
       capability: paso.capability as CoreCapabilityId,
       ...(needs.length ? { needs } : {}),
       ...(input ? { input } : {}),
       ...(hints ? { hints } : {}),
-      ...(count !== undefined ? { count } : {}),
+      ...(cuantas.count !== undefined ? { count: cuantas.count } : {}),
     });
   }
-  return { steps: salida, descartadas };
+  /* Si algo no pudo cruzar, no se entrega media travesía: no hay pasos. */
+  return { steps: rechazos.length ? [] : salida, descartadas, rechazos };
 };

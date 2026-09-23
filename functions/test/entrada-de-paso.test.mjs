@@ -221,8 +221,17 @@ check('C17-F24 · el input solo admite `kind` y `brief`',
 check('C17-F18/F19 · el puente NO mete `count` ni `focus` dentro de `input`',
   !/count|focus/.test((puente.match(/const entradaDelPaso[\s\S]*?\n\};/) || [''])[0]),
   'siguen sin ser lo que un paso hace: son cuánto y cómo');
+/*
+ * Se mira el SITIO, no la forma exacta de la línea: la cantidad se pone al lado
+ * de `key` y `capability`, nunca dentro de `input`. Cómo se escriba ese `...` es
+ * asunto del puente —en B3.7.2 cambió, para poder rechazar lo que no es un
+ * número— y una prueba que se agarre a la sintaxis se rompe sin que nada se
+ * haya roto.
+ */
 check('G13.5 · y la cantidad sí cruza, pero por su propio carril',
-  /const propuestasDelPaso/.test(puente) && /\.\.\.\(count !== undefined \? \{ count \} : \{\}\)/.test(puente),
+  /const propuestasDelPaso/.test(puente)
+  && /\.\.\.\([^)]*count[^)]*\?\s*\{ count(:|\s*\})/.test(puente)
+  && !/count/.test((puente.match(/const entradaDelPaso[\s\S]*?\n\};/) || [''])[0]),
   'hermana de `input`, como `needs` · G14 sigue abierto para `focus`');
 /*
  * Se mira el CAMPO, no la palabra: el puente nombra `voice.tts` porque es una

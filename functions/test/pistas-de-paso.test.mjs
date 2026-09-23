@@ -226,9 +226,16 @@ const planner = sinComentarios(leer('functions/src/core/planner.ts'));
  * Lo que NO ha cambiado es G14 y G15, justo debajo. Que `count` saliera no los
  * saca: cada uno se audita por separado.
  */
+/*
+ * B3.7.2 le cambió la firma: ya no devuelve «el número o nada», porque ese
+ * «nada» se tragaba un `"3"` de texto y el plan salía listo sin cantidad. Ahora
+ * dice si el transporte vale, y lo que no vale no cruza. Lo que NO cambió, y es
+ * lo que aquí importa, es que sigue sin corregir nada.
+ */
 check('G13 CERRADO · el `count` ya existe, y el puente lo COPIA sin corregirlo',
-  /const propuestasDelPaso = \(paso: PlanStep\): number \| undefined/.test(puente)
-  && !/Math\.(min|max|round|floor|ceil|trunc)/.test((puente.match(/const propuestasDelPaso[\s\S]*?\n\};/) || [''])[0]),
+  /const propuestasDelPaso = \(paso: PlanStep\)/.test(puente)
+  && !/Math\.(min|max|round|floor|ceil|trunc)|Number\(|parseInt|parseFloat/
+    .test((puente.match(/const propuestasDelPaso[\s\S]*?\n\};/) || [''])[0]),
   'quien decide si cabe es el Planner; recortarlo aquí lo dejaría sin nada que rechazar');
 check('y el Planner es quien lo valida, con el techo declarado en el propio Core',
   /MAX_PROPUESTAS_POR_PASO/.test(planner)

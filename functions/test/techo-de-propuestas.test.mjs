@@ -464,6 +464,58 @@ const { pasosParaElCore } = lib('creator/necesidades.js');
     'recortarla aquí dejaría al Planner sin nada que rechazar');
 }
 
+console.log('\n── I-bis · B3.7.2 · DOS RESPONSABILIDADES, Y NINGUNA INVADE LA OTRA ──');
+
+/*
+ * El puente responde por el TRANSPORTE y el Planner por el SENTIDO. Se ve mejor
+ * en los cuatro casos de abajo que en cualquier explicación: la misma cantidad
+ * muere en un sitio distinto según lo que le pase, y en ninguno se convierte en
+ * otra cosa.
+ */
+const soloPaso = (count) => [{ id: 'x', capability: 'image.generate', purpose: 'p', input: { kind: 'logo', count } }];
+
+check('B3.7.2 · un `"3"` de texto muere en el PUENTE: no es transportable',
+  (() => {
+    const r = pasosParaElCore(soloPaso('3'));
+    return r.steps.length === 0 && r.rechazos.length === 1
+      && r.rechazos[0].motivo === 'invalid_request' && /\.input\.count$/.test(r.rechazos[0].campo);
+  })(),
+  'y no llega al Planner, porque no hay nada bien formado que darle');
+
+check('B3.7.2 · un 3,7 CRUZA el puente y muere en el PLANNER: es un número, pero no una cantidad',
+  (() => {
+    const r = pasosParaElCore(soloPaso(3.7));
+    return r.rechazos.length === 0 && r.steps[0].count === 3.7;
+  })() && (await planear({ count: 3.7 })).status === 'invalid',
+  'el puente no sabe qué es un entero, y no tiene por qué saberlo');
+
+check('B3.7.2 · un 5 CRUZA el puente y muere en el PLANNER: el techo no es del transporte',
+  (() => {
+    const r = pasosParaElCore(soloPaso(5));
+    return r.rechazos.length === 0 && r.steps[0].count === 5;
+  })() && (await planear({ count: 5 })).status === 'invalid');
+
+check('B3.7.2 · y un 4 pasa por los dos: transportable y con sentido',
+  pasosParaElCore(soloPaso(4)).steps[0].count === 4 && (await planear({ count: 4 })).status === 'ready');
+
+check('B3.7.2 · el puente NO sabe cuánto vale el techo, y no le hace falta',
+  (() => {
+    const src = sinComentarios(leer('functions/src/creator/necesidades.ts'));
+    return !/MAX_PROPUESTAS_POR_PASO/.test(src)
+      && !/count\s*[<>]=?\s*\d|\d\s*[<>]=?\s*count/.test(src)
+      && !/Number\.isInteger/.test(src);
+  })(),
+  'la autoridad semántica sigue siendo una sola, y está en el Planner');
+
+check('B3.7.2 · ni convierte: ni `Number()`, ni `parseInt`, ni redondeo sobre la cantidad',
+  (() => {
+    const bloque = (sinComentarios(leer('functions/src/creator/necesidades.ts'))
+      .match(/const propuestasDelPaso[\s\S]*?\n\};/) || [''])[0];
+    return bloque.length > 0
+      && !/Number\(|parseInt|parseFloat|Math\.(round|floor|ceil|trunc|min|max)/.test(bloque);
+  })(),
+  'copia lo que es un número y rechaza lo que no; no hay tercera salida');
+
 {
   const t = [...TUPLAS.values()].find((x) => x.count === 4);
   const { steps } = pasosParaElCore([{ id: t.paso, capability: t.cap, purpose: 'x', input: t.input }]);
