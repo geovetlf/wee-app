@@ -332,4 +332,9 @@ export const studio: typeof import('../es/studio').studio = {
 
   /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
   reference: 'Reference',
+
+  /* Por qué una experiencia todavía no se puede hacer (B3.14). Medido, no «pronto». */
+  pendMusic: "Weë can’t compose music yet. That’s the missing piece, not the video.",
+  pendCompose: "Weë can’t stitch several scenes into one video yet.",
+  pendTwoRefs: "Weë can carry only one reference image today, and this needs two.",
 };

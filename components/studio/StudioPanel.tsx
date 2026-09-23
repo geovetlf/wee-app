@@ -6,7 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { HERRAMIENTAS_POR_AREA, GRUPOS_DE_HERRAMIENTAS, HerramientaDeStudio, AreaDeStudio } from '../../constants/studioTools';
 import { EntradaDeStudio, ExperienciaDeStudio, entradaPorId, experienciasDeLaEntrada } from '../../constants/studioExperiences';
 import StudioControles, { ControlesElegidos } from './StudioControles';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
@@ -59,6 +59,8 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
   /* Dentro del panel se avanza un paso: de las experiencias a sus controles. */
   const [elegida, setElegida] = useState<ExperienciaDeStudio | null>(null);
   const [controles, setControles] = useState<ControlesElegidos>({});
+  /* El motivo que se está explicando, cuando se toca algo que todavía no se puede. */
+  const [explicando, setExplicando] = useState<string | null>(null);
 
   const puerta = entradaPorId(entrada);
   const titulo = puerta?.marca ?? (puerta ? t(puerta.clave as string) : '');
@@ -68,22 +70,36 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
   const volverUnPaso = () => (elegida ? setElegida(null) : onVolver());
 
   /* ── Una tarjeta, igual para una experiencia y para una herramienta ────── */
-  const tarjeta = (clave: string, icono: string, id: string, onPress: () => void) => (
+  const tarjeta = (clave: string, icono: string, id: string, onPress: () => void, pendiente?: string) => (
     <TouchableOpacity
       key={id}
       style={[styles.hueco, { width: `${100 / porFila}%` as any }]}
-      onPress={onPress}
+      onPress={pendiente ? () => setExplicando(pendiente) : onPress}
       activeOpacity={0.75}
       accessibilityRole="button"
-      accessibilityLabel={t(clave)}
+      accessibilityLabel={pendiente ? `${t(clave)} — ${t(pendiente)}` : t(clave)}
+      accessibilityState={{ disabled: !!pendiente }}
     >
       <View style={[
         styles.pieza,
         { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+        /*
+          LO QUE TODAVÍA NO SE PUEDE HACER SE VE, Y SE VE QUE NO SE PUEDE.
+          Apagada y con su sello. Ni escondida —nadie sabría que existe— ni
+          igual que las demás —alguien gastaría Credits en algo que no va a
+          salir—. Tocarla cuenta por qué falta, que es lo único útil que puede
+          hacer hoy.
+        */
+        !!pendiente && { opacity: OPACITY.disabled },
         isWeb && ({ cursor: 'pointer' } as any),
       ]}>
         <Ionicons name={icono as any} size={scale(22)} color={theme.colors.text} />
         <Text style={[styles.piezaTexto, { color: theme.colors.text }]} numberOfLines={2}>{t(clave)}</Text>
+        {!!pendiente && (
+          <View style={[styles.sello, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.selloTexto, { color: theme.colors.textSecondary }]}>{t('studio.soon')}</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -176,10 +192,33 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         ) : (
           /* ── CAPA 2 · qué quieres conseguir ─────────────────────────────── */
           <View style={styles.rejilla}>
-            {experiencias.map((x) => tarjeta(x.clave, x.icono, x.id, () => setElegida(x)))}
+            {experiencias.map((x) => tarjeta(x.clave, x.icono, x.id, () => setElegida(x), x.pendiente))}
           </View>
         )}
       </ScrollView>
+
+      {/*
+        POR QUÉ ESA NO SE PUEDE TODAVÍA.
+
+        Debajo y en su sitio, no en una alerta que tape lo que se estaba
+        mirando. Dice qué pieza concreta falta —no «pronto»—, porque «pronto»
+        no ayuda a decidir qué hacer ahora.
+      */}
+      {!!explicando && (
+        <View style={[styles.motivo, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Ionicons name="information-circle-outline" size={scale(17)} color={theme.colors.textSecondary} />
+          <Text style={[styles.motivoTexto, { color: theme.colors.text }]}>{t(explicando)}</Text>
+          <TouchableOpacity
+            onPress={() => setExplicando(null)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('studio.dismiss')}
+            style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
+          >
+            <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -232,6 +271,25 @@ const styles = StyleSheet.create({
     minHeight: scale(96),
   },
   piezaTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, lineHeight: scale(18) },
+  sello: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(2),
+    borderRadius: BORDER_RADIUS.full,
+  },
+  selloTexto: { fontSize: scale(10), fontWeight: FONT_WEIGHT.semibold, textTransform: 'uppercase', letterSpacing: scale(0.4) },
+  motivo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  motivoTexto: { fontSize: FONT_SIZE.sm, flex: 1, lineHeight: scale(19) },
   sinControles: { fontSize: FONT_SIZE.sm, paddingHorizontal: SPACING.xl, lineHeight: scale(20) },
   seguir: {
     marginHorizontal: SPACING.xl,

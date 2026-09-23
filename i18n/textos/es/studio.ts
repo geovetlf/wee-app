@@ -339,4 +339,9 @@ export const studio = {
 
   /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
   reference: 'Referencia',
+
+  /* Por qué una experiencia todavía no se puede hacer (B3.14). Medido, no «pronto». */
+  pendMusic: "Weë todavía no compone música. Falta esa pieza, no el vídeo.",
+  pendCompose: "Weë todavía no sabe unir varias escenas en un solo vídeo.",
+  pendTwoRefs: "Hoy Weë solo puede llevar una imagen de referencia, y esto necesita dos.",
 };

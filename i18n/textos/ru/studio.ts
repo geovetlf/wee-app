@@ -352,4 +352,9 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
 
   /* El nombre corto de una referencia en su ficha. El botón es `referenceLabel`. */
   reference: 'Референс',
+
+  /* Por qué una experiencia todavía no se puede hacer (B3.14). Medido, no «pronto». */
+  pendMusic: "Weë пока не сочиняет музыку. Не хватает именно её, а не видео.",
+  pendCompose: "Weë пока не умеет соединять несколько сцен в одно видео.",
+  pendTwoRefs: "Сейчас Weë переносит только один референс, а здесь нужны два.",
 };

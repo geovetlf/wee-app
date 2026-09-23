@@ -142,6 +142,18 @@ export interface ExperienciaDeStudio {
    * un camino: es usar el que ya existía para exactamente esto.
    */
   respuestas?: readonly { questionId: string; optionId: string }[];
+  /**
+   * POR QUÉ ESTA TODAVÍA NO SE PUEDE HACER. La clave de i18n del motivo.
+   *
+   * Una experiencia con motivo se ve, se puede leer y NO se puede abrir. Es a
+   * propósito: la alternativa era enseñarla como si funcionara —y que alguien
+   * gastara Credits en algo que no iba a salir— o quitarla del catálogo, y
+   * entonces nadie sabría que está pensada y por qué falta.
+   *
+   * El motivo se mide, no se supone: cada una de las tres que hay hoy dice qué
+   * pieza concreta del motor no existe todavía.
+   */
+  pendiente?: string;
 }
 
 const x = (
@@ -162,6 +174,18 @@ const x = (
  * nadie subió.
  */
 const CREAR_IMAGEN = { questionId: 'action', optionId: 'generate' } as const;
+
+/**
+ * Para qué es un vídeo, en el idioma de la plantilla `studio`.
+ *
+ * Tres de las cuatro opciones que tiene: promocionar algo, algo para redes, o
+ * contar una historia. La cuarta —animar una foto— NO se pone nunca desde
+ * aquí: es un plan distinto que EXIGE una foto subida, y ninguna experiencia
+ * de vídeo del Studio la pide.
+ */
+const ENSENAR_ALGO = { questionId: 'type', optionId: 'promo' } as const;
+const PARA_REDES = { questionId: 'type', optionId: 'social' } as const;
+const CONTAR_ALGO = { questionId: 'type', optionId: 'story' } as const;
 
 /**
  * IMAGEN. Seis maneras de empezar, no dieciocho herramientas.
@@ -197,21 +221,50 @@ export const EXPERIENCIAS_DE_IMAGEN: ExperienciaDeStudio[] = [
  * un viaje de verdad. Comparten la palabra y nada más.
  */
 export const EXPERIENCIAS_DE_VIDEO: ExperienciaDeStudio[] = [
-  x('travelTime', 'studio.xpTravelTime', 'airplane-outline', ['camera', 'movement', 'speed', 'lighting']),
-  x('timelapse', 'studio.xpTimelapse', 'time-outline', ['camera', 'perspective', 'speed']),
-  x('map', 'studio.xpMap', 'map-outline', ['camera', 'movement', 'speed']),
-  x('whiteboard', 'studio.xpWhiteboard', 'clipboard-outline', ['speed']),
-  x('cinematicVideo', 'studio.xpVidCinematic', 'film-outline', ['camera', 'perspective', 'shot', 'lens', 'movement', 'speed', 'lighting', 'composition']),
-  x('character', 'studio.xpCharacter', 'person-outline', ['shot', 'movement', 'lighting'], true),
-  x('productVideo', 'studio.xpVidProduct', 'cube-outline', ['camera', 'movement', 'lighting', 'composition'], true),
-  x('socialVideo', 'studio.xpVidSocial', 'heart-outline', ['movement', 'speed']),
-  x('story', 'studio.xpStory', 'book-outline', ['shot', 'movement', 'lighting']),
-  x('ad', 'studio.xpAd', 'megaphone-outline', ['camera', 'movement', 'speed', 'lighting']),
-  x('musicVideo', 'studio.xpMusicVideo', 'musical-notes-outline', ['camera', 'movement', 'speed', 'lighting']),
-  x('scene', 'studio.vidScene', 'albums-outline', ['camera', 'shot', 'movement', 'lighting', 'composition']),
-  x('multiScene', 'studio.xpMultiScene', 'layers-outline', ['shot', 'movement', 'lighting']),
-  x('beforeAfter', 'studio.xpBeforeAfter', 'git-compare-outline', ['shot'], true),
-  x('cameraMove', 'studio.xpCameraMove', 'videocam-outline', ['camera', 'perspective', 'movement', 'speed'], true),
+  /*
+   * PARA QUÉ ES EL VÍDEO, cuando elegir la experiencia ya lo dice.
+   *
+   * La plantilla pregunta «¿qué tipo de vídeo?» —promocionar, redes, una
+   * historia, animar una foto— y de eso salen las palabras del encargo y el
+   * nivel del guion. Donde la respuesta es obvia se contesta; donde no lo es,
+   * Weë pregunta, que es lo correcto cuando nadie lo ha dicho.
+   *
+   * Y hay una que se contesta por un motivo distinto: «Pizarra animada» lleva
+   * la palabra «animada» en su propio nombre, y la plantilla la leía como
+   * «animar una foto». El plan salía pidiendo una foto que nadie tenía. El
+   * nombre de la experiencia contaminaba lo que Weë entendía.
+   */
+  x('travelTime', 'studio.xpTravelTime', 'airplane-outline', ['camera', 'movement', 'speed', 'lighting'], false, [CONTAR_ALGO]),
+  x('timelapse', 'studio.xpTimelapse', 'time-outline', ['camera', 'perspective', 'speed'], false, [CONTAR_ALGO]),
+  x('map', 'studio.xpMap', 'map-outline', ['camera', 'movement', 'speed'], false, [CONTAR_ALGO]),
+  x('whiteboard', 'studio.xpWhiteboard', 'clipboard-outline', ['speed'], false, [CONTAR_ALGO]),
+  x('cinematicVideo', 'studio.xpVidCinematic', 'film-outline', ['camera', 'perspective', 'shot', 'lens', 'movement', 'speed', 'lighting', 'composition'], false, [CONTAR_ALGO]),
+  x('character', 'studio.xpCharacter', 'person-outline', ['shot', 'movement', 'lighting'], true, [CONTAR_ALGO]),
+  x('productVideo', 'studio.xpVidProduct', 'cube-outline', ['camera', 'movement', 'lighting', 'composition'], true, [ENSENAR_ALGO]),
+  x('socialVideo', 'studio.xpVidSocial', 'heart-outline', ['movement', 'speed'], false,
+    [PARA_REDES, { questionId: 'where', optionId: 'vertical' }]),
+  /* `storyVideo` y no `story`: el de Texto ya se llamaba así, y dos experiencias
+     distintas con el mismo identificador es una trampa esperando. La lista de
+     vídeo ya distinguía con sufijo —`productVideo`, `socialVideo`— y esta sigue
+     la misma regla. Lo encontró el guard, no una lectura. */
+  x('storyVideo', 'studio.xpStory', 'book-outline', ['shot', 'movement', 'lighting'], false, [CONTAR_ALGO]),
+  x('ad', 'studio.xpAd', 'megaphone-outline', ['camera', 'movement', 'speed', 'lighting'], false, [ENSENAR_ALGO]),
+  x('scene', 'studio.vidScene', 'albums-outline', ['camera', 'shot', 'movement', 'lighting', 'composition'], false, [CONTAR_ALGO]),
+  x('cameraMove', 'studio.xpCameraMove', 'videocam-outline', ['camera', 'perspective', 'movement', 'speed'], true, [CONTAR_ALGO]),
+
+  /*
+   * ── LAS TRES QUE TODAVÍA NO SE PUEDEN HACER ────────────────────────────
+   *
+   * Medido, no supuesto. Se ven y no se abren, porque enseñarlas como si
+   * funcionaran acabaría con alguien gastando Credits en algo que no iba a
+   * salir.
+   */
+  { ...x('musicVideo', 'studio.xpMusicVideo', 'musical-notes-outline', ['camera', 'movement', 'speed', 'lighting']),
+    pendiente: 'studio.pendMusic' },
+  { ...x('multiScene', 'studio.xpMultiScene', 'layers-outline', ['shot', 'movement', 'lighting']),
+    pendiente: 'studio.pendCompose' },
+  { ...x('beforeAfter', 'studio.xpBeforeAfter', 'git-compare-outline', ['shot'], true),
+    pendiente: 'studio.pendTwoRefs' },
 ];
 
 /** TEXTO. Las seis que ya existían en el catálogo, con sus claves de siempre. */

@@ -515,8 +515,12 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * 2 423 → 2 424 en B3.12: `studio.reference`, el nombre corto de una
    * referencia en su ficha. `referenceLabel` no servía: es el botón que la
    * añade —«Añadir una imagen de referencia»—, no cómo se llama después.
+   * 2 424 → 2 427 en B3.14: los tres motivos de las experiencias de vídeo que
+   * todavía no se pueden hacer. Cada uno dice qué pieza concreta del motor
+   * falta —componer varias escenas, componer música, llevar dos referencias—
+   * en vez de un «pronto», que no ayuda a decidir qué hacer ahora.
    */
-  const CLAVES_PT = 2424;
+  const CLAVES_PT = 2427;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
