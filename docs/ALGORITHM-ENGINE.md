@@ -351,19 +351,152 @@ ejecución: las ocho se verifican, producen señales y proponen recuperación si
 que el núcleo las nombre.
 
 
-## 11 · Lo que está probado, y dónde
+## 11 · A7, y por qué un evento no es un conocimiento
+
+> **APRENDER DE LA EVIDENCIA. NUNCA INVENTAR CONOCIMIENTO.**
+> **DISEÑAR PARA DIEZ MILLONES. CALCULAR PARA HOY.**
+
+Alguien pulsa «otra versión». Puede significar que no le gustó, que quería una
+variante, que cambió de idea, que la referencia estaba mal o que el prompt era
+ambiguo. Convertirlo en «este proveedor es malo» es inventar, y es la manera
+más rápida de que un sistema que aprende empeore.
+
+Por eso la cadena tiene seis eslabones y no se salta ninguno:
+
+```
+EVENTO → SEÑAL → EVIDENCIA → AGREGADO → CANDIDATO → GUARDAS → HECHO
+```
+
+**Cien regeneraciones no condenan a nadie.** Está probado: salen cero validados
+y el motivo es `implicit_only`.
+
+### Explícito, implícito y del sistema
+
+| origen | qué es | procedencia de señal |
+|---|---|---|
+| `explicit` | la persona lo dijo con un control hecho para decirlo | `measured` |
+| `system` | terminó, falló, se verificó | `measured` |
+| `implicit` | la persona hizo algo y alguien lo interpreta | **`derived`** |
+
+Que lo implícito entre como `derived` no es cosmético: `PESO_DE_FUENTE` ya
+ordena esas dos procedencias, así que la diferencia la hace cumplir la tabla que
+existe desde A0 y no una escala nueva.
+
+El origen se **declara y se comprueba** contra `PROCEDENCIA_DE_GESTO`. Marcar un
+`regenerated` como `explicit` se rechaza con `source_mismatch`: es la vía por la
+que lo ambiguo ascendería a verdad de campo rellenando un formulario.
+
+**Los pesos son ORDINALES, no números.** Decir que una corrección vale 0,9 y una
+descarga 0,4 sería una precisión que nadie ha medido con aspecto de medida. El
+orden es un juicio de producto declarado y auditable; cuando haya datos, se
+sustituye por `pesos` en la política. Hasta entonces **no hay ningún número que
+copiar por error**.
+
+### Agregación: tamaño fijo, pase lo que pase
+
+Con diez millones de cuentas, «dame el histórico y recalcula» es una pregunta
+que se come un servidor. Aquí no hay histórico: hay agregados por clave que
+ocupan lo mismo con diez observaciones que con diez millones.
+
+```
+clave = metrica|capability=…|experience=…|strategyId=…|providerId=…|modelId=…
+```
+
+**La cuenta NO entra en la clave**, y es la decisión de privacidad más
+importante del módulo: agrupar por persona convierte un agregado operativo en
+un perfil. Sirve para deduplicar, que es otra cosa.
+
+Cada agregado lleva la ventana partida en cuatro **tramos**, porque una media es
+un embustero educado: «tasa 0,8 sobre mil» puede ser mil ejecuciones tranquilas
+o novecientas a 0,95 y las últimas cien a 0,3 — mismo número, acciones opuestas.
+
+Medido: **100 000 eventos en 318 ms (3,18 µs/evento)**, con el coste por evento
+plano y el estado en 20 claves.
+
+### Dos relojes que no son el mismo
+
+`vidaMs` es cuándo deja de valer una evidencia —el horizonte de **decadencia**—.
+`ventanaMs` es sobre qué tramo de tiempo se parte la ventana para ver si algo se
+**mueve**. Atarlos costó un rato: sesenta observaciones de las últimas sesenta
+horas caían todas en el mismo tramo de un mes, la estabilidad salía cero y nada
+validaba jamás, ni siquiera una degradación evidente.
+
+### «No se puede saber» no es «es inestable»
+
+`estabilidadDe` devuelve `undefined` con un solo tramo con datos, y las guardas
+emiten `stability_unknown`, distinto de `unstable_across_window`. Es la misma
+regla de A6 —no saber no es suspender— aplicada en la otra dirección.
+
+### Las guardas
+
+`minSampleSize` · `minConfidence` · `vidaMs`/`minFreshness` · `minStability` ·
+`maxContradiction` · `maxMagnitude` · `permitirSoloImplicito`.
+
+Todas configurables, y **nunca por debajo del suelo**: `politicaEfectiva` deja
+ser más estricto siempre y menos nunca, igual que `presupuestoEfectivo` en A0.
+Devuelven **todos** los motivos, no el primero: quien vaya a arreglarlo necesita
+saber si le falta muestra o le falta frescura.
+
+### Describir no es elegir
+
+La línea más fina del módulo, y la primera versión la cruzó mal.
+
+- El **ámbito** de un evento **puede** nombrar un proveedor: es el sujeto de la
+  observación, y sin él no se aprende nada de nadie.
+- La **metadata** no: ahí es donde una decisión se colaría, y se rechaza con el
+  mismo `claveDeImplementacion` del Planner.
+
+### Lo que A7 produce, y para quién
+
+**Señales `derived`** —nunca `measured`: lo que sale de aquí es un cálculo sobre
+mediciones— y la **`HistoryWindow` que A1 ya sabe leer**. No un formato nuevo
+que obligue a tocar a nadie. La mediana se deja vacía a propósito: de un
+agregado no se puede sacar, y poner la media donde el contrato dice mediana
+rompería justo lo que ese campo protege.
+
+```
+A7 → señales aprendidas → Router → política → puntuación → proveedor
+```
+
+**Nunca `A7 → proveedor`.** La política define la frontera; la puntuación ordena
+dentro de ella. A7 no muta ninguna política y no tiene un solo verbo de
+escritura.
+
+### Lo que queda declarado y NO construido
+
+**Aprendizaje por cuenta.** La Fase 10 del brief lo contempla *«cuando exista
+consentimiento»*, y **en Weë no existe ningún contrato de consentimiento**:
+busqué en `core/identity.ts`, `core/moderation.ts` y el resto del Core. El
+ámbito de A7 es una clave genérica, así que cabría el día que se decida; hoy no
+hay ningún aprendizaje por cuenta, ningún perfil y ninguna inferencia de
+preferencias. Bloqueado, no rellenado.
+
+**Experimentos.** `Hipotesis`, `Variante` y `Experimento` existen como contrato
+y nada más: no hay asignación de cohortes, ni reparto de tráfico, ni
+significancia. Construir un A/B sin una sola pregunta real que responder sería
+hacer la parte cara antes de saber qué se quiere medir. Se llama `Referencia` y
+no `Baseline` porque `BASELINE_ID` ya existe en `algorithm/baseline.ts` y es
+otra cosa.
+
+**Persistencia.** `engine/ledger.ts` ya agrega `aiUsage/{día}` con
+`{capability: {provider: {calls, failed, usd, latencyMs}}}` por `increment`.
+El día que A7 se conecte, debe **extender esa agregación**, no crear una
+paralela. Queda dicho aquí para que no se descubra tarde.
+
+
+## 12 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
 | `algorithm-agnostic.test.mjs` | ocho capacidades futuras sintéticas y una inventada en ejecución recorren la cadena entera; la metadata está acotada; diez propiedades de extensibilidad; el guard de arquitectura |
-| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` | A0–A6 |
+| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` | A0–A7 |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 12 · Lo que esta capa NO hace, dicho una vez más
+## 13 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.

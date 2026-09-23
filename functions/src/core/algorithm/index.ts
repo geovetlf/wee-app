@@ -56,3 +56,6 @@ export * from './verification';
 export * from './verification-engine';
 export * from './recovery';
 export * from './recovery-engine';
+export * from './feedback';
+export * from './learning';
+export * from './feedback-engine';
