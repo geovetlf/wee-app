@@ -507,8 +507,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * ajustes común y necesita su propia línea bajo el título, porque allí los
    * ajustes NO cambian con lo que se escribe —siempre se diseña algo que se ve—
    * y la frase del Studio, «cambian según lo que estés creando», no sería cierta.
+   * 2 319 → 2 423 en B3.11, con las tres capas de Weë Studio: 54 claves de las
+   * entradas y las experiencias (Texto, Personajes, Beauty, Fashion, Retrato,
+   * Timelapse…) y 50 de la biblioteca de cámara y cinemática, que es el
+   * vocabulario creativo de Weë dicho en palabras de la persona —«Acercarse» en
+   * vez de `push_in`—. Las 104 entran en los once diccionarios a la vez.
    */
-  const CLAVES_PT = 2319;
+  const CLAVES_PT = 2423;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

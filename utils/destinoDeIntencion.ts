@@ -34,8 +34,19 @@
 import { matchExperiences, WeeExperience } from '../constants/weeExperiences';
 import { ContextoDeExperiencia, WorkspaceId, workspaceDe } from '../constants/weeWorkspaces';
 
-/** Quién decidió el destino. Se guarda para poder MEDIR si acierta. */
-export type OrigenDelDestino = 'brain' | 'palabras';
+/**
+ * Quién decidió el destino. Se guarda para poder MEDIR si acierta.
+ *
+ * Tres, y en este orden de autoridad:
+ *
+ *   brain     el servidor leyó la frase entera y dijo a dónde. Es quien sabe.
+ *   puerta    la persona entró por Imágenes, o por Beauty. Eso no es una
+ *             interpretación que pueda fallar: es un acto. Por eso le gana a
+ *             las palabras, y por eso NO le gana a Brain, que ha leído más.
+ *   palabras  las palabras clave del registro. Aciertan al instante y sin
+ *             gastar un Credit, que es lo que hace falta mientras se escribe.
+ */
+export type OrigenDelDestino = 'brain' | 'puerta' | 'palabras';
 
 export interface Destino {
   experienceId: string;
@@ -50,6 +61,16 @@ export interface OpcionesDeDestino {
    * ha leído la frase entera y el único que la entiende.
    */
   sugeridaPorBrain?: string | null;
+  /**
+   * La experiencia que declara la puerta por la que se entró. Weë Studio la
+   * pasa cuando alguien abrió Imágenes, Beauty o Texto: en ese momento ya no
+   * hay nada que adivinar, porque lo acaba de decir.
+   *
+   * Le gana a las palabras y pierde contra Brain. Que pierda importa: quien
+   * entró por Imágenes y escribió «una canción» está pidiendo otra cosa, y
+   * quien ha leído la frase entera es el único que puede notarlo.
+   */
+  declaradaPorLaPuerta?: string | null;
   /**
    * Quedarse dentro de un lugar de trabajo. Weë Studio lo usa para no mandar a
    * alguien a Weë Chef desde su portada: allí no se enseñan los otros sitios y
@@ -74,7 +95,7 @@ export const destinoDeIntencion = (
   texto: string,
   opciones: OpcionesDeDestino = {}
 ): Destino | null => {
-  const { sugeridaPorBrain, dentroDe, contexto } = opciones;
+  const { sugeridaPorBrain, declaradaPorLaPuerta, dentroDe, contexto } = opciones;
   const goal = texto.trim();
 
   const llevar = (experienceId: string, origen: OrigenDelDestino): Destino => ({
@@ -86,6 +107,11 @@ export const destinoDeIntencion = (
   /* Lo que dijo el servidor, si sigue siendo un sitio al que se puede ir. */
   if (sugeridaPorBrain && cabeEn(sugeridaPorBrain, dentroDe)) {
     return llevar(sugeridaPorBrain, 'brain');
+  }
+
+  /* Y después lo que la puerta declara, que es un acto y no una lectura. */
+  if (declaradaPorLaPuerta && cabeEn(declaradaPorLaPuerta, dentroDe)) {
+    return llevar(declaradaPorLaPuerta, 'puerta');
   }
 
   if (!goal) return null;

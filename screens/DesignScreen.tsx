@@ -12,6 +12,7 @@ import StudioPromptComposer from '../components/studio/StudioPromptComposer';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
 import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
 import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
+import FichaDeContexto from '../components/creator/FichaDeContexto';
 import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
@@ -196,13 +197,11 @@ const DesignScreen: React.FC = () => {
               />
             </View>
 
+{/* La misma ficha que en Weë Studio: lo que ya se sabe, a la vista. */}
             {referencias.length > 0 && (
               <View style={styles.referencias}>
                 {referencias.map((r, i) => (
-                  <View key={`${r}-${i}`} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                    <Ionicons name="image-outline" size={scale(14)} color={theme.colors.text} />
-                    <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{r}</Text>
-                  </View>
+                  <FichaDeContexto key={`${r}-${i}`} icono="image-outline" texto={r} />
                 ))}
               </View>
             )}
@@ -276,17 +275,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     marginTop: -SPACING.lg,
   },
-  ficha: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + scale(2),
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
-    maxWidth: scale(170),
-  },
-  fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
 });
 
 /*

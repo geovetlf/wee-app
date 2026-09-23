@@ -186,8 +186,22 @@ check('20) y no trae palabras clave propias', !/keywords\s*[:=]\s*\[/.test(desti
 check('21) lo que dijo Weë Brain manda sobre las palabras',
   /if \(sugeridaPorBrain && cabeEn\(sugeridaPorBrain, dentroDe\)\)[\s\S]{0,120}'brain'/.test(destino));
 check('22) y cuando nada encaja no se inventa un destino', /return null;/.test(destino) && !/\|\| 'brain'/.test(destino));
+/*
+ * Y se guarda QUIÉN decidió, para poder medir si acierta. Tres orígenes desde
+ * B3.11, y el orden entre ellos es la regla que de verdad carga peso:
+ *
+ *   brain     ha leído la frase entera. Gana siempre.
+ *   puerta    la persona entró por Imágenes o por Beauty: es un acto, no una
+ *             lectura, así que le gana a las palabras. Y pierde contra Brain,
+ *             porque quien entró por Imágenes y escribió «una canción» está
+ *             pidiendo otra cosa y solo Brain puede notarlo.
+ *   palabras  el último recurso, y el único gratis.
+ */
 check('23) se guarda quién decidió, para poder medir si acierta',
-  /export type OrigenDelDestino = 'brain' \| 'palabras';/.test(destino));
+  /export type OrigenDelDestino = 'brain' \| 'puerta' \| 'palabras';/.test(destino));
+check('23) y Brain le gana a la puerta, que le gana a las palabras',
+  destino.indexOf('sugeridaPorBrain && cabeEn') < destino.indexOf('declaradaPorLaPuerta && cabeEn')
+  && destino.indexOf('declaradaPorLaPuerta && cabeEn') < destino.indexOf('matchExperiences(goal)'));
 
 /* CONTROL: una lista de palabras propia sería un segundo router. */
 check('CONTROL: un router con palabras propias sería detectado',
