@@ -41,7 +41,7 @@ import {
 } from './feedback';
 import {
   AgregadoDeAprendizaje, agregadoAgregable, agregadoVacio, acumular, claveDeAmbito, confianzaDeAgregado,
-  estabilidadDe, frescuraDe, guardas, incertidumbreDeAgregado,
+  estabilidadDe, frescuraDe, guardas, incertidumbreDeAgregado, soloImplicitoDe,
   mediaDe, senalDe, tasaDe, tendenciaDe, ventanaDe,
 } from './learning';
 import { HistoryWindow } from './decision';
@@ -376,9 +376,6 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
        * fuga dentro, y sin esto se reemitiría tal cual en cada llamada. */
       if (a && typeof a.key === 'string') agregados.set(a.key, agregadoAgregable(a));
     }
-    /* Qué claves se sostienen SOLO en gestos implícitos. Se lleva aparte porque
-     * es una guarda, y una guarda que se deduce después ya no protege. */
-    const conExplicito = new Set<string>();
     const tocadas = new Set<string>();
 
     for (const o of observaciones) {
@@ -387,7 +384,6 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
       /* El TROCEO usa la ventana de observación; la DECADENCIA usa la vida. */
       agregados.set(clave, acumular(previo, o, ahora, politica.ventanaMs ?? politica.vidaMs));
       tocadas.add(clave);
-      if (!o.implicito) conExplicito.add(clave);
     }
     m.claves = agregados.size;
 
@@ -398,7 +394,10 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
       contador.gastar('candidates');
       const a = agregados.get(clave) as AgregadoDeAprendizaje;
       const d = catalogo.get(a.metric);
-      const soloImplicito = !conExplicito.has(clave);
+      /* Del AGREGADO, no de esta llamada. Antes era un conjunto que nacía vacío
+       * en cada `aprender`, y el apoyo explícito de llamadas anteriores se
+       * olvidaba: el veredicto dependía de cómo se trocearan los lotes. */
+      const soloImplicito = soloImplicitoDe(a);
 
       const media = mediaDe(a);
       const tasa = tasaDe(a);
@@ -410,7 +409,7 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
       /* Puede ser `undefined`: con un solo tramo con datos no se puede saber. */
       const estable = estabilidadDe(a);
 
-      const fallos = guardas(a, ahora, politica, { soloImplicito });
+      const fallos = guardas(a, ahora, politica);
       /* Una métrica que A7 no sabe interpretar se agrega igual —el dato no se
        * tira— pero NO se valida: sin saber qué dirección es mejor, no hay
        * conclusión que sacar. */

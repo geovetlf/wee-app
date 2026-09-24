@@ -754,6 +754,86 @@ check('S17 · limpiar es idempotente',
 check('S18 · y no se sustituye nada por un hash: si no hace falta, no se guarda',
   !/hash|sha|digest/i.test(sinComentarios(leer('functions/src/core/algorithm/learning.ts'))));
 
+
+console.log('\n─── T. «Solo implícito» se juzga sobre el agregado, no sobre la llamada ───');
+
+/*
+ * EL FALLO: la guarda se calculaba con un conjunto que nacía vacío en cada
+ * `aprender`, así que el agregado olvidaba entre llamadas el apoyo explícito
+ * que ya tenía. Los mismos 120 datos salían `validated` en una llamada y
+ * `rejected` en dos. Estas pruebas se escriben contra ESO.
+ */
+const EXPLICITAS_60 = lote(60, (i) => ev(`tx${i}`, 'accepted', 'explicit', AHORA - (60 - i) * HORA));
+const IMPLICITAS_60 = lote(60, (i) => ev(`ti${i}`, 'downloaded', 'implicit', AHORA - (120 - i) * HORA));
+const veredicto = (r) => r.candidates.map((c) => ({ id: c.id, state: c.state, because: [...c.because] }));
+const cuentas = (r) => r.aggregates.map((a) => [a.key, a.n, a.favorables, a.explicitas]);
+
+const enUna = aprender({ events: [...IMPLICITAS_60, ...EXPLICITAS_60] });
+const primeroExp = aprender({ events: IMPLICITAS_60, previo: aprender({ events: EXPLICITAS_60 }).aggregates });
+const primeroImp = aprender({ events: EXPLICITAS_60, previo: aprender({ events: IMPLICITAS_60 }).aggregates });
+check('T1 · los mismos datos dan el MISMO veredicto en una llamada o troceados en dos',
+  igual(veredicto(enUna), veredicto(primeroExp)) && igual(veredicto(enUna), veredicto(primeroImp)),
+  `${enUna.candidates[0].state} · ${primeroExp.candidates[0].state} · ${primeroImp.candidates[0].state}`);
+check('T2 · y las mismas cuentas, incluido el apoyo explícito',
+  igual(cuentas(enUna), cuentas(primeroExp)) && igual(cuentas(enUna), cuentas(primeroImp)),
+  JSON.stringify(cuentas(enUna)));
+check('T3 · el apoyo explícito SOBREVIVE al reinyectarse y a la limpieza de privacidad',
+  primeroExp.aggregates[0].explicitas === 60 && A.agregadoAgregable(primeroExp.aggregates[0]).explicitas === 60);
+
+/*
+ * LA GUARDA, SOLA. Gestos implícitos que traen una latencia MEDIDA: la
+ * procedencia es fuerte, la muestra alcanza, es fresca, estable y sin
+ * contradicción. Todo pasa menos una cosa, y esa cosa es la única que tiene
+ * que salir.
+ */
+const SOLO_IMPLICITO = lote(60, (i) => ({
+  ...ev(`si${i}`, 'downloaded', 'implicit', AHORA - (59 - i) * HORA),
+  signals: [sig('result.latencyMs', 800, 'measured', AHORA - (59 - i) * HORA)],
+}));
+const latenciaImplicita = (r) => r.candidates.find((c) => c.metric === 'result.latencyMs');
+const soloImpl = aprender({ events: SOLO_IMPLICITO });
+check('T4 · `implicit_only` es la ÚNICA razón del rechazo: todas las demás guardas pasan',
+  latenciaImplicita(soloImpl).state === 'rejected' && igual([...latenciaImplicita(soloImpl).because], ['implicit_only']),
+  JSON.stringify(latenciaImplicita(soloImpl).because));
+check('T5 · y no es por falta de confianza: la procedencia es medida',
+  latenciaImplicita(soloImpl).confidence.value > 0.9, latenciaImplicita(soloImpl).confidence.value.toFixed(3));
+check('T6 · CONTROL · con UNA sola observación explícita, lo mismo se valida',
+  latenciaImplicita(aprender({ events: [...SOLO_IMPLICITO, {
+    ...ev('una', 'accepted', 'explicit', AHORA), signals: [sig('result.latencyMs', 800, 'measured', AHORA)],
+  }] })).state === 'validated',
+  'la guarda era la única que lo impedía');
+check('T7 · CONTROL · y con la política que lo permite, también',
+  latenciaImplicita(aprender({ events: SOLO_IMPLICITO, policy: { ...VENTANA, permitirSoloImplicito: true } })).state === 'validated');
+
+/* La guarda se evalúa sola, sin que el llamador tenga que saber calcularla. */
+const aggImpl = soloImpl.aggregates.find((a) => a.metric === 'result.latencyMs');
+const aggExpl = enUna.aggregates[0];
+check('T8 · `guardas()` sin opciones juzga el agregado: quien la reevalúe más tarde pregunta lo mismo',
+  A.guardas(aggImpl, AHORA, A.politicaEfectiva(VENTANA)).includes('implicit_only') &&
+  !A.guardas(aggExpl, AHORA, A.politicaEfectiva(VENTANA)).includes('implicit_only'));
+check('T9 · y la respuesta sale de un solo sitio',
+  A.soloImplicitoDe(aggImpl) === true && A.soloImplicitoDe(aggExpl) === false);
+
+/* Qué cuenta como apoyo explícito. */
+check('T10 · lo implícito no suma apoyo explícito; lo explícito y lo del sistema sí',
+  aggImpl.explicitas === 0 &&
+  aprender({ outcomes: lote(10, (i) => res(i, 'success', AHORA - i * HORA)) }).aggregates[0].explicitas === 10);
+check('T11 · es una CUENTA, no un peso: entero y nunca mayor que la muestra',
+  [...soloImpl.aggregates, ...enUna.aggregates].every((a) => Number.isInteger(a.explicitas) && a.explicitas <= a.n));
+check('T12 · una observación que no dice si fue implícita NO suma: no saber no es tener apoyo',
+  A.acumular(A.agregadoVacio('k', 'm', {}), { value: 1, at: AHORA, favorable: true }, AHORA, DIA).explicitas === 0 &&
+  A.acumular(A.agregadoVacio('k', 'm', {}), { value: 1, at: AHORA, favorable: true, implicito: false }, AHORA, DIA).explicitas === 1);
+
+/* El estado guardado antes del arreglo, sin el campo. */
+const SIN_CAMPO = (() => { const a = { ...aggExpl }; delete a.explicitas; return a; })();
+check('T13 · un agregado de antes, sin el dato, se lee como apoyo explícito NO demostrado',
+  A.soloImplicitoDe(SIN_CAMPO) === true, 'puede retrasar una validación, nunca adelantarla');
+check('T14 · y una sola observación explícita nueva lo desbloquea',
+  A.soloImplicitoDe(aprender({ previo: [SIN_CAMPO], events: [ev('nueva', 'accepted', 'explicit', AHORA)] })
+    .aggregates.find((a) => a.key === SIN_CAMPO.key)) === false);
+check('T15 · la métrica del informe cuenta lo mismo que la guarda',
+  soloImpl.metricas.soloImplicitos === soloImpl.aggregates.filter((a) => A.soloImplicitoDe(a)).length);
+
 console.log('\n─── Q. Rendimiento y escala ───');
 
 /*

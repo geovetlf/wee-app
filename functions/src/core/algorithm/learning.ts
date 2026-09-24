@@ -192,6 +192,23 @@ export interface AgregadoDeAprendizaje {
   muestraDeContradiccion: readonly Evidence[];
   /** Cuántas contradicciones han entrado EN TOTAL, no cuántas se guardaron. */
   contradicciones: number;
+  /**
+   * CUÁNTAS OBSERVACIONES NO IMPLÍCITAS HAN ENTRADO: explícitas o del sistema.
+   *
+   * Existe por un fallo que había. «¿Se sostiene esto solo en gestos
+   * implícitos?» se calculaba sobre la LLAMADA —un conjunto que nacía vacío en
+   * cada `aprender`— y no sobre el agregado, que no guardaba el dato. Así, los
+   * mismos 120 datos salían `validated` en una llamada y `rejected` en dos: el
+   * agregado olvidaba entre llamadas el apoyo explícito que ya tenía.
+   *
+   * Es una CUENTA y no un peso: dice cuántas observaciones no fueron una
+   * interpretación, nada sobre cuánto valen. Y no identifica a nadie.
+   *
+   * Opcional para que un agregado guardado antes siga leyéndose. Su ausencia se
+   * lee como CERO —apoyo explícito no demostrado—, que es la dirección que no
+   * se equivoca: puede retrasar una validación, nunca adelantarla.
+   */
+  explicitas?: number;
 }
 
 /** Cuántas piezas de evidencia se guardan para poder explicar. Tope duro. */
@@ -207,6 +224,7 @@ export const agregadoVacio = (key: string, metric: string, scope: AmbitoDeEvento
   muestraDeApoyo: Object.freeze([]),
   muestraDeContradiccion: Object.freeze([]),
   contradicciones: 0,
+  explicitas: 0,
 });
 
 /**
@@ -234,7 +252,7 @@ export const tramoDe = (at: number, ahora: number, vidaMs: number): number => {
  */
 export const acumular = (
   a: AgregadoDeAprendizaje,
-  obs: { value: number; at: number; favorable: boolean; signal?: Signal; evidence?: Evidence },
+  obs: { value: number; at: number; favorable: boolean; signal?: Signal; evidence?: Evidence; implicito?: boolean },
   ahora: number,
   vidaMs: number,
 ): AgregadoDeAprendizaje => {
@@ -290,6 +308,9 @@ export const acumular = (
     muestraDeApoyo: apoya ? nuevaMuestra(a.muestraDeApoyo, obs.evidence) : a.muestraDeApoyo,
     muestraDeContradiccion: apoya ? a.muestraDeContradiccion : nuevaMuestra(a.muestraDeContradiccion, obs.evidence),
     contradicciones: a.contradicciones + (apoya ? 0 : 1),
+    /* Solo cuenta lo que SE SABE que no fue una interpretación. Una observación
+     * que no lo dice no suma: no saber no es tener apoyo explícito. */
+    explicitas: (a.explicitas ?? 0) + (obs.implicito === false ? 1 : 0),
   };
 };
 
@@ -476,6 +497,16 @@ export const senalDe = (
  * Fíjate en que no hay ninguna vía por la que esto devuelva «sí» sin evidencia.
  * Esa es toda la función.
  */
+/**
+ * ¿SE SOSTIENE ESTE AGREGADO SOLO EN GESTOS IMPLÍCITOS?
+ *
+ * Sobre el AGREGADO —todo lo que la clave ha aprendido— y no sobre la llamada
+ * que lo está tocando: es lo que la guarda siempre dijo medir. Escrito aquí,
+ * en un sitio, para que el motor y quien vuelva a evaluar las guardas más tarde
+ * pregunten exactamente lo mismo.
+ */
+export const soloImplicitoDe = (a: AgregadoDeAprendizaje): boolean => !((a.explicitas ?? 0) > 0);
+
 export const guardas = (
   a: AgregadoDeAprendizaje,
   ahora: number,
@@ -497,6 +528,9 @@ export const guardas = (
   if (typeof opciones.magnitud === 'number' && Math.abs(opciones.magnitud) > politica.maxMagnitude) {
     motivos.push('change_too_large');
   }
-  if (opciones.soloImplicito && !politica.permitirSoloImplicito) motivos.push('implicit_only');
+  /* Del agregado, salvo que quien llama lo fuerce: así la guarda es la misma la
+   * evalúe quien la evalúe, y no hace falta que cada llamador sepa calcularla. */
+  const soloImplicito = opciones.soloImplicito ?? soloImplicitoDe(a);
+  if (soloImplicito && !politica.permitirSoloImplicito) motivos.push('implicit_only');
   return Object.freeze(motivos);
 };
