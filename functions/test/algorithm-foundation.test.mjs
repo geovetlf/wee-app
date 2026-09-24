@@ -66,7 +66,7 @@ console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
  * línea cada fase y no dice nada cuando falla. Una lista sí dice qué falta o
  * qué apareció sin avisar.
  */
-const MODULOS = ['authority', 'baseline', 'budget', 'capability', 'decision', 'decision-engine',
+const MODULOS = ['authority', 'baseline', 'budget', 'capability', 'context', 'context-engine', 'decision', 'decision-engine',
   'decomposition', 'decomposition-engine', 'feedback', 'feedback-engine', 'index',
   'learning', 'objective', 'optimization',
   'optimization-engine', 'parallelization',

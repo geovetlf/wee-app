@@ -59,3 +59,5 @@ export * from './recovery-engine';
 export * from './feedback';
 export * from './learning';
 export * from './feedback-engine';
+export * from './context';
+export * from './context-engine';

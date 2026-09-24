@@ -24,6 +24,10 @@ acaba la lógica de alguien concreto.
 | **A2** Decomposition | ¿qué formas estructurales válidas hay de hacer este trabajo? |
 | **A3** Strategy | ¿qué esperamos de cada forma, y con qué evidencia? |
 | **A4** Parallelization | ¿cuánto paralelismo conviene, y cuánto valor aporta? |
+| **A5** Optimization | ¿qué cambio ofrece una mejora justificable dentro de las restricciones? |
+| **A6** Verification & Recovery | ¿se cumplió lo esperado, y qué recuperación cabe si no? |
+| **A7** Feedback & Learning | ¿qué se aprendió de lo que pasó, con evidencia suficiente para darlo por hecho? |
+| **A8** Context | ¿qué de lo aprendido le sirve a ESTA decisión, y por qué lo demás no? |
 
 ## 2 · Las capacidades son DATOS, no código
 
@@ -553,19 +557,154 @@ El día que A7 se conecte, debe **extender esa agregación**, no crear una
 paralela. Queda dicho aquí para que no se descubra tarde.
 
 
-## 12 · Lo que está probado, y dónde
+## 12 · A8, y por qué aprender a lo ancho no es usar a lo ancho
+
+> **APRENDER A LO ANCHO. USAR A LO ESTRECHO. NUNCA INVENTAR EVIDENCIA.**
+
+A7 aprende de todo. A8 coge lo aprendido y **una decisión concreta**, y dice qué
+de lo aprendido es **admisible para ella** —en su ámbito, válido ahora, a la
+altura de lo que pide— y por qué lo demás no. **Selecciona, filtra, clasifica y
+empaqueta.** No decide la acción, no elige proveedor, no ordena por calidad, no
+aprende, no guarda nada y no lee ningún reloj.
+
+`functions/src/core/algorithm/context.ts` (el modelo) y `context-engine.ts` (el
+motor, `crearMotorDeContexto().seleccionar`). Experimental, puro, sin conectar.
+
+### Las dos autoridades, que no se mezclan
+
+| pregunta | quién la contesta | con qué |
+|---|---|---|
+| ¿sigue siendo un hecho válido? | **A7** | sus `guardas()`, con **su** política, re-ejecutadas con el reloj de la decisión |
+| ¿le sirve a esta decisión? | **quien pide** | lo que **declare** en `requirements`; lo no declarado se informa y no descarta |
+
+La segunda es la regla que `minConfidence` dejó escrita en `AlgorithmConstraints`:
+no hay un umbral universal y no se inventa uno. Lo que sí descarta siempre, se
+declare o no, es lo que **no es evidencia**: un hecho que A7 ya no validaría, algo
+fuera de ámbito, algo con un campo de persona.
+
+### Lo que entra y lo que sale
+
+**Entra** (`PeticionDeContexto`): el reloj de la decisión (**obligatorio**), su
+ámbito, su objetivo, el consumidor, sus requisitos, los agregados de A7 tal como
+A7 los entrega y la política con la que A7 aprendió.
+
+**Sale** (`ConjuntoDeSenales`): una `Admision` por pieza mirada —con su estado y
+**todos** sus motivos—, y solo de lo admitido: `Evidence`, `Signal` y la
+`HistoryWindow` de A1. Ni un formato nuevo: son los tipos de A0, A1 y A7.
+
+### Ámbito
+
+`exact` · `narrower` (la evidencia precisa algo más: un proveedor dentro de la
+capacidad — sirve) · `broader` (más general que la decisión — **no sirve sin
+permiso explícito**, `allowBroaderScope`) · `conflict` (hablan de otra cosa).
+Los campos que cuentan son exactamente los de la clave de A7 (`ORDEN_DE_CLAVE`),
+leídos de su lista, no copiados.
+
+### Relevancia
+
+Por **componentes**, y nunca sumados en un número: encaje de ámbito, de eje y de
+consumidor, frescura y confianza van por separado. El eje sale de
+`EJE_DE_METRICA` contra el objetivo en vigor, con `pesosNormalizados` de A0 y su
+semántica de siempre —sin objetivo, o con pesos vacíos, rige el de por defecto,
+igual que en A1 y A5—. El consumidor **se informa y no filtra**.
+
+### Admisión
+
+Siete estados, unión cerrada: `admitted` · `filtered` · `out_of_scope` · `stale`
+· `conflicted` · `insufficient` · `unknown`. Con varios motivos manda el más
+grave, y se conservan todos. Un motivo de A7 que A8 no conoce cae en `unknown`,
+**nunca** en `admitted` (`estadoDeMotivo`, probado).
+
+Cada guarda tiene un caso donde es la **única** causa (sección F de la suite).
+
+### Frescura, confianza, incertidumbre, tendencia
+
+Todas de A7: `frescuraDe` (que es `frescura()` de A0), `confianzaDeAgregado`,
+`incertidumbreDeAgregado`, `estabilidadDe`, `tendenciaDe`. Recalculadas en el
+instante de la decisión con el reloj de la decisión. A8 no tiene rejilla ni curva
+de decadencia propias: un agregado sin rejilla válida sale como A7 lo juzga
+—estabilidad desconocida, `insufficient`—.
+
+`maxAgeMs` es de la decisión y mide desde la **última** observación: una ventana
+histórica ancha puede estar perfectamente fresca.
+
+### Procedencia
+
+Lo que sale es **`derived`, siempre**: un cálculo sobre mediciones. Presentarlo
+como `measured` lo colaría por delante de un dato real en `resolverSenales`.
+A favor y en contra van **contados**, no resumidos.
+
+### Deduplicación y orden
+
+La identidad es la **clave natural de A7**, sin hash. Dos agregados con la misma
+clave son dos fotos del mismo acumulador: se queda la más reciente; a igualdad,
+la de más muestra; a igualdad, la primera. Todo sale en **orden canónico por
+clave**, nunca por calidad: ordenar proveedores por rendimiento ya sería elegir.
+
+### Presupuesto
+
+El techo de evidencia de A0 (512 por llamada); declarando más no se pasa de él.
+A escala, A8 se llama por decisión con los agregados de **su** ámbito —pedidos
+por clave—, así que la entrada real de una llamada es pequeña.
+
+### Privacidad
+
+- **No hay aprendizaje por cuenta** ni perfiles: una decisión con un campo que no
+  es dimensión de aprendizaje —una cuenta— **no se contesta**, y no se ensancha
+  en silencio a la evidencia de toda la capacidad.
+- **Dos guardas, a propósito.** `privacy_scope` —un campo de persona en el
+  ámbito, preguntado a la **misma** función que la puerta de A7,
+  `campoDePersonaEnAmbito`— y `scope_not_aggregable` —cualquier campo que no es
+  dimensión—. Hoy un campo de persona dispara las dos, porque ninguno es
+  dimensión (`ORDEN_DE_CLAVE ∩ CAMPOS_DE_PERSONA = ∅`, probado). Si algún día
+  alguien mete uno en la clave, la segunda deja de verlo y **la primera lo sigue
+  parando**: se comprobó metiéndolo a propósito.
+- Se **filtra y se dice**; no se limpia a escondidas.
+
+### Sin reloj no se admite nada (contrato 1.6)
+
+Con la regla de A7 (`motivoDeReloj`). Antes había un `: 0`, y con 0 un agregado
+de hace 61 días salía con frescura 1 y **admitido**. Ahora: `rechazo`,
+`cierre: 'unknown'`, ninguna admisión.
+
+### Consumidores
+
+- **A1** — `paraDecision`: solo la `HistoryWindow` del ámbito **exacto**, y **sin
+  señales**, a propósito: A1 marca como favorable toda señal sobre una opción,
+  así que un aprendizaje malo le subiría la confianza a lo que describe. Medido
+  además: **A1 hoy no lee `history`** —decide igual con y sin ella—; la
+  integración real es un cambio en A1.
+- **A5 y A6** aceptan la evidencia sin romperse y no cambian su veredicto. A5 no
+  tiene puerto a propósito; a A6, el histórico no le verifica **este** resultado.
+- **El Router** — `paraRouter`: agrupado por proveedor y modelo, en orden
+  canónico, solo lo admitido. **Preparado y no consumido por nadie**: la política
+  define la frontera, la puntuación ordena dentro de ella, y A8 solo entregará
+  evidencia a quien puntúe, el día que puntúe con ella.
+
+### Lo que queda declarado y NO construido
+
+- **Integración con el Router**: `paraRouter` existe; nadie lo lee. Conectarlo
+  es una decisión del Router, no de A8.
+- **Aprendizaje por cuenta**: bloqueado. Requiere un **contrato de
+  consentimiento** que Weë no tiene; A8 no lo inventa, y hasta entonces una
+  decisión por cuenta no se contesta.
+- **Contrato de consentimiento**: deuda declarada. Cuando exista, entrará como
+  una dimensión nueva del ámbito **con** su consentimiento, no como una
+  excepción en A8.
+
+## 13 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
 | `algorithm-agnostic.test.mjs` | ocho capacidades futuras sintéticas y una inventada en ejecución recorren la cadena entera; la metadata está acotada; diez propiedades de extensibilidad; el guard de arquitectura |
-| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` | A0–A7 |
+| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` · `-context` | A0–A8 |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 13 · Lo que esta capa NO hace, dicho una vez más
+## 14 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.
