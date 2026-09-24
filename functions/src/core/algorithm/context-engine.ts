@@ -58,8 +58,8 @@ import {
 import { DescriptorDeMetrica, METRICAS_BASE } from './feedback-engine';
 import {
   Admision, CierreDeContexto, Consumidor, EncajeDeConsumidor, EncajeDeEje,
-  EstadoDeAdmision, GRAVEDAD_DE_ADMISION, METRICAS_DE_CONTEXTO_CERO, METRICA_POR_ALTERNATIVA, MetricasDeContexto,
-  RequisitosDeEvidencia, ejeDeMetrica, encajeDeAmbito,
+  EstadoDeAdmision, GRAVEDAD_DE_ADMISION, METRICAS_DE_CONTEXTO_CERO, METRICAS_SIN_EJE, METRICA_DE_EJECUCION,
+  METRICA_POR_ALTERNATIVA, MetricasDeContexto, RequisitosDeEvidencia, ejeDeMetrica, encajeDeAmbito,
 } from './context';
 
 export const CONTEXT_ENGINE_ID = 'motor-de-contexto';
@@ -330,6 +330,8 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
       const axis = ejeDeMetrica(metric, peticion?.ejes);
       let axisMatch: EncajeDeEje;
       if (!bienFormado) axisMatch = 'unknown';
+      /* Declarada SIN eje (1.9): se sabe leer, y ninguna decisión la optimiza. */
+      else if (!axis && METRICAS_SIN_EJE[metric]) { axisMatch = 'other_axis'; motivos.push('axis_not_in_objective'); estados.push('out_of_scope'); }
       else if (!axis) { axisMatch = 'unknown'; motivos.push('axis_unknown'); estados.push('unknown'); }
       else if (ejesPedidos.has(axis)) axisMatch = 'match';
       else { axisMatch = 'other_axis'; motivos.push('axis_not_in_objective'); estados.push('out_of_scope'); }
@@ -483,12 +485,17 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
  * Desde 1.8, también el historial de CADA alternativa (`historyByOption`), el
  * que A1 puede usar para ordenar. Solo si lo hay: sin evidencia por
  * alternativa no sale, y el del ámbito no lo sustituye.
+ *
+ * Y desde 1.9 la ventana del ámbito es la de la EJECUCIÓN
+ * (`METRICA_DE_EJECUCION`), no la primera admitida de cualquier métrica: con un
+ * objetivo de solo calidad salía la de `verification.passed`, y A1 contaba sus
+ * aprobados como «ejecuciones que salieron bien».
  */
 export const paraDecision = (c: ConjuntoDeSenales): {
   history?: HistoryWindow;
   historyByOption?: Readonly<Record<string, HistoryWindow>>;
 } => {
-  const exacta = c.admisiones.find((x) => x.status === 'admitted' && x.scopeMatch === 'exact');
+  const exacta = c.admisiones.find((x) => x.status === 'admitted' && x.scopeMatch === 'exact' && x.metric === METRICA_DE_EJECUCION);
   const porAlternativa = c.historyByOption ?? {};
   return Object.freeze({
     ...(exacta && c.history[exacta.key] ? { history: c.history[exacta.key] } : {}),

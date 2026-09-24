@@ -192,6 +192,13 @@ export interface AmbitoDeEvento {
   strategyId?: string;
   providerId?: string;
   modelId?: string;
+  /**
+   * El TIPO de recuperación que se ejecutó (contrato 1.9). Solo lo lleva lo
+   * aprendido de una recuperación. Antes viajaba en `strategyId`, y con la
+   * identidad de la alternativa ahí (1.8) la pisaba: las recuperaciones de dos
+   * alternativas acababan en el mismo agregado.
+   */
+  recoveryKind?: string;
   /** Opaco. Para acotar y deduplicar, nunca para perfilar. */
   account?: string;
   requestId?: string;
@@ -434,8 +441,18 @@ export interface ResultadoDeDecision {
   kind: ClaseDeResultado;
   at: number;
   scope?: AmbitoDeEvento;
-  /** El veredicto de A6, tal cual. No se resume ni se reinterpreta. */
-  verification?: { status: string; passed: boolean; confidence: Confidence };
+  /**
+   * El veredicto de A6, tal cual. No se resume ni se reinterpreta.
+   *
+   * `findings` son los hallazgos de ese veredicto (contrato 1.9). Sin ellos A7 no
+   * puede separar lo que A6 comprobó del RESULTADO de su puerta de ejecución —la
+   * comprobación que deriva aunque no se espere nada: que la ejecución terminó—, y
+   * un veredicto que no dice qué miró no se aprende como verificación.
+   */
+  verification?: {
+    status: string; passed: boolean; confidence: Confidence;
+    findings?: readonly { type: string; status: string }[];
+  };
   /** Qué recuperación se propuso y si llegó a hacerse. */
   recovery?: { kind: string; executed?: boolean; succeeded?: boolean };
   /** Lo medido. Con su procedencia, como todo aquí. */

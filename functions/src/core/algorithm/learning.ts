@@ -47,7 +47,7 @@ import { AmbitoDeEvento, CodigoDeRazon, PoliticaDeAprendizaje, Tendencia, motivo
  * parte en dos y las dos mitades mienten.
  */
 export const ORDEN_DE_CLAVE: readonly (keyof AmbitoDeEvento)[] = Object.freeze(
-  ['capability', 'experience', 'strategyId', 'providerId', 'modelId'],
+  ['capability', 'experience', 'strategyId', 'providerId', 'modelId', 'recoveryKind'],
 );
 
 /** Lo que separa las dimensiones en la clave. Por eso ningún valor puede contenerlo. */

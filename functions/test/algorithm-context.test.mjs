@@ -27,6 +27,7 @@
  *  U. Contrato 1.6: el reloj, la rejilla y la privacidad de A7, consumidos tal cual.
  *  V. A9.1: A8 filtra, no decide implementación.
  *  W. A9.2: el historial de cada alternativa.
+ *  X. A9.3: lo que llega a paraRouter, con cada desenlace en su sitio.
  *  T. Rendimiento.
  */
 import path from 'node:path';
@@ -160,9 +161,12 @@ check('21 · la relevancia sale de campos estructurados, no de texto',
 check('22 · un eje para una métrica futura se declara sin tocar el motor',
   una(agregado({ metric: 'metrica.nueva' }), { ejes: { 'metrica.nueva': 'latency' } },
     A.crearMotorDeContexto({ metricas: [{ key: 'metrica.nueva', mejor: 'baja', target: 'none', risk: 'bajo' }] })).status === 'admitted');
-check('23 · la tabla de ejes cubre TODAS las métricas base de A7: no puede desincronizarse',
-  A.METRICAS_BASE.every((d) => typeof A.EJE_DE_METRICA[d.key] === 'string'),
-  A.METRICAS_BASE.filter((d) => !A.EJE_DE_METRICA[d.key]).map((d) => d.key).join(',') || 'todas');
+/* Desde 1.9 una métrica base puede no informar NINGÚN eje —`recovery.succeeded`—,
+ * pero declarado y con su porqué: la tabla sigue sin poder desincronizarse. */
+check('23 · cada métrica base de A7 tiene su eje o está DECLARADA sin eje, con su porqué, y nunca las dos cosas',
+  A.METRICAS_BASE.every((d) => (typeof A.EJE_DE_METRICA[d.key] === 'string') !== (typeof A.METRICAS_SIN_EJE[d.key] === 'string')) &&
+  Object.values(A.METRICAS_SIN_EJE).every((porque) => porque.length > 20),
+  A.METRICAS_BASE.filter((d) => !A.EJE_DE_METRICA[d.key] && !A.METRICAS_SIN_EJE[d.key]).map((d) => d.key).join(',') || 'todas');
 check('24 · no hay un número de relevancia fabricado: van los componentes por separado',
   ['scopeMatch', 'axisMatch', 'consumerMatch', 'freshness', 'confidence'].every((k) => k in una(agBase)) &&
   !('relevance' in una(agBase)) && !('score' in una(agBase)));
@@ -376,10 +380,12 @@ check('60 · nadie ha conectado A8 a producción', (() => {
   const prod = ['creator', 'runtime', 'engine', 'gateway', 'credits', 'content', 'job'].flatMap((d) => recorrer('functions/src/' + d));
   return prod.length > 50 && prod.filter((f) => /context-engine|crearMotorDeContexto/.test(leer(f))).length === 0;
 })());
+const deEjecucion = sel([agregado({ metric: 'outcome.success' })], { scope: { capability: 'x.y' }, objective: { weights: { reliability: 1 } } });
 check('61 · el puerto de A1 NO le pasa señales: su `evidenciaDeOpcion` subiría la confianza de lo malo',
-  igual(Object.keys(A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } }))), ['history']) &&
-  !('signals' in A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } }))),
+  igual(Object.keys(A.paraDecision(deEjecucion)), ['history']) && !('signals' in A.paraDecision(deEjecucion)),
   'desde 1.8 puede llevar también `historyByOption` —sección W—, y nunca señales');
+check('61b · 1.9 · y la ventana del ámbito es la de la EJECUCIÓN: la de una latencia admitida no es historial de ejecuciones',
+  sel([agBase], { scope: { capability: 'x.y' } }).metricas.admitidas === 1 && igual(A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } })), {}));
 
 console.log('\n─── P. Agnosticismo de capacidad y de proveedor ───');
 
@@ -439,7 +445,9 @@ const aprendido = a7.aprender({
   outcomes: Array.from({ length: 60 }, (_, i) => ({ id: `o${i}`, kind: 'success', at: AHORA - (60 - i) * H, scope: { capability: 'x.y', providerId: 'p1' },
     signals: [{ key: 'result.latencyMs', value: 800, source: 'measured', at: AHORA - (60 - i) * H }] })),
 });
-const desdeA7 = a8.seleccionar({ ahora: AHORA, scope: { capability: 'x.y', providerId: 'p1' }, objective: { weights: { latency: 1 } }, learned: aprendido.aggregates });
+/* Con la fiabilidad en el objetivo: desde 1.9 la ventana del ámbito es la de la
+ * EJECUCIÓN (`outcome.success`, eje `reliability`), no la de la latencia. */
+const desdeA7 = a8.seleccionar({ ahora: AHORA, scope: { capability: 'x.y', providerId: 'p1' }, objective: { weights: { latency: 1, reliability: 1 } }, learned: aprendido.aggregates });
 check('68 · A7 → A8: lo que A7 entrega, A8 lo lee tal cual', desdeA7.metricas.admitidas >= 1, desdeA7.cierre);
 const deA1 = A.crearMotorDeDecision().decidir({
   contract: ALGORITHM_CONTRACT_VERSION, objective: { weights: { latency: 1 } },
@@ -589,8 +597,10 @@ check('V4 · el puerto de A1 lleva SOLO ventanas —la del ámbito y, desde 1.8,
   soloDe(A.paraDecision(desdeA7), ['history', 'historyByOption']) && soloDe(A.paraDecision(desdeA7).history, CAMPOS.ventana) &&
   A.violacionesEn(A.paraDecision(desdeA7), 'a1', 64).length === 0 &&
   Object.values(conImpl.history).every((w) => soloDe(w, CAMPOS.ventana)));
-const exacta = sel([agregado({ scope: { capability: 'x.y', providerId: 'p1' } })], { scope: { capability: 'x.y', providerId: 'p1' } });
-const masAncha = sel([agregado({ scope: { capability: 'x.y', providerId: 'p1' } })], { scope: { capability: 'x.y' } });
+/* De la EJECUCIÓN (`outcome.success`) y con la fiabilidad en el objetivo: desde 1.9 es la única ventana del ámbito. */
+const deEjecucionP1 = agregado({ metric: 'outcome.success', scope: { capability: 'x.y', providerId: 'p1' } });
+const exacta = sel([deEjecucionP1], { scope: { capability: 'x.y', providerId: 'p1' }, objective: { weights: { reliability: 1 } } });
+const masAncha = sel([deEjecucionP1], { scope: { capability: 'x.y' }, objective: { weights: { reliability: 1 } } });
 check('V5 · la ventana que llega a A1 es la del ámbito EXACTO: lo de un proveedor no se hace pasar por lo de la capacidad',
   typeof A.paraDecision(exacta).history?.sampleSize === 'number' && masAncha.metricas.admitidas === 1 &&
   igual(A.paraDecision(masAncha), {}), 'se ADMITE —es evidencia más estrecha— pero no es historial de ESTA decisión');
@@ -703,9 +713,112 @@ check('W13 · con historial del ámbito Y por alternativa, cada alternativa llev
   igual(ambosW.historyByOption[ALT_A], A.ventanaDe(exitoW(aprendidoW, ALT_A))) &&
   igual(ambosW.historyByOption[ALT_B], A.ventanaDe(exitoW(aprendidoW, ALT_B))) &&
   !igual(ambosW.historyByOption[ALT_B], A.paraDecision(ambosW).history), JSON.stringify(A.paraDecision(ambosW)));
-const decisionConAlt = sel(aprendidoW, { scope: { capability: 'x.y', strategyId: ALT_A }, objective: EXITO_W, learningPolicy: VENT_W });
+const decisionConAlt = sel(aprendidoW, { scope: { capability: 'x.y', strategyId: ALT_A },
+  objective: { weights: { latency: 1, reliability: 1, successProbability: 2 } }, learningPolicy: VENT_W });
 check('W12 · una decisión que ya fija la alternativa no elige entre alternativas: su historial es el del ámbito, no uno por alternativa',
   igual(decisionConAlt.historyByOption, {}) && typeof A.paraDecision(decisionConAlt).history?.sampleSize === 'number');
+
+console.log('\n─── X. A9.3 · Lo que llega a paraRouter, con cada desenlace en su sitio ───');
+
+/*
+ * `paraRouter` sigue PREPARADO y SIN CONECTAR. Lo que se prueba es qué EVIDENCIA
+ * lleva cuando alguien la lea: la ejecución, la verificación y el rendimiento de
+ * cada implementación, cada uno por su lado, y ninguna recuperación.
+ */
+/* Veredictos de A6 DE VERDAD, con sus hallazgos (1.9): el de un resultado que
+ * cumple, el de uno que no, y el de un fallo —la puerta de ejecución de A6 lo
+ * suspende, y no hay resultado suyo que verificar—. */
+const A6X = A.crearMotorDeVerificacion();
+const ESPERA_X = [{ kind: 'text' }];
+const veredicto8 = (pasa) => A6X.verificar({ expected: ESPERA_X,
+  actual: { id: 'v', status: 'succeeded', outputs: pasa ? [{ kind: 'text', ref: 'r' }] : [] } });
+const VEREDICTO_DE_UN_FALLO = A6X.verificar({ expected: ESPERA_X, actual: { id: 'v', status: 'failed', error: { code: 'x' }, outputs: [] } });
+const VENT_X = { ventanaMs: 4 * DIA };
+const OBJ_X = { weights: { reliability: 1, quality: 1, latency: 1 } };
+const implementacion = (p, n, cada) => Array.from({ length: n }, (_, i) => ({
+  id: `${p}-${i}`, at: AHORA - (n - i) * HORA, scope: { capability: 'x.y', providerId: p }, ...cada(i, AHORA - (n - i) * HORA) }));
+const OUTCOMES_X = [
+  /* p-mala: falla tres de cada cinco —y A6 suspende esos fallos—, recupera la mitad
+   * de ellos, y de lo que SÍ entrega cumple la mitad. Ochenta, para que lo que
+   * entrega (32) llegue a la muestra que exige A7. */
+  ...implementacion('p-mala', 80, (i, at) => (i % 5 < 3
+    ? { kind: 'failure', verification: VEREDICTO_DE_UN_FALLO, recovery: { kind: 'retry', executed: true, succeeded: i % 2 === 0 } }
+    : { kind: 'success', verification: veredicto8(i % 5 === 3), signals: [{ key: 'result.latencyMs', value: 1200, source: 'measured', at }] })),
+  /* p-termina: siempre termina, y su resultado nunca pasa la verificación. */
+  ...implementacion('p-termina', 40, () => ({ kind: 'success', verification: veredicto8(false) })),
+  /* p-recupera: siempre falla, y una recuperación siempre lo arregla. */
+  ...implementacion('p-recupera', 40, () => ({ kind: 'failure', recovery: { kind: 'retry', executed: true, succeeded: true } })),
+  /* p-rapida-al-fallar: la mitad falla deprisa; la otra mitad sale bien y tarda. Ochenta, para que las
+   * cuarenta buenas lleguen a la muestra que exige A7: la medida solo cuenta las que salieron bien. */
+  ...implementacion('p-rapida-al-fallar', 80, (i, at) => ({ kind: i % 2 ? 'success' : 'failure',
+    signals: [{ key: 'result.latencyMs', value: i % 2 ? 1500 : 50, source: 'measured', at }] })),
+];
+const aprendidoX = a7.aprender({ ahora: AHORA, policy: VENT_X, outcomes: OUTCOMES_X });
+const conjuntoX = sel(aprendidoX.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X });
+const rutaX = A.paraRouter(conjuntoX);
+const grupoX = (p) => rutaX.find((g) => g.providerId === p);
+const enGrupo = (p, m) => grupoX(p)?.admisiones.find((x) => x.metric === m);
+const agregadoX = (p, m) => aprendidoX.aggregates.find((a) => a.scope.providerId === p && a.metric === m);
+check('X1 · lo que falla a menudo LLEGA al Router como tal: su ejecución y su verificación, cada una con su tasa real',
+  VEREDICTO_DE_UN_FALLO.status === 'fail' &&
+  enGrupo('p-mala', 'outcome.success')?.value === 0.4 && enGrupo('p-mala', 'verification.passed')?.value === 0.5,
+  `${enGrupo('p-mala', 'outcome.success')?.value} · ${enGrupo('p-mala', 'verification.passed')?.value}`);
+check('X1b · y la verificación es la de lo que ENTREGÓ (32), no la de sus fallos: contarlos la dejaría en 0.2, y castigaría dos veces el mismo fallo',
+  agregadoX('p-mala', 'verification.passed')?.n === 32 && agregadoX('p-mala', 'verification.passed')?.favorables === 16 &&
+  agregadoX('p-mala', 'outcome.success')?.n === 80,
+  `n ${agregadoX('p-mala', 'verification.passed')?.n}`);
+check('X2 · ninguna recuperación llega al Router: no es la fiabilidad de la implementación que falló',
+  rutaX.every((g) => g.admisiones.every((x) => x.metric !== 'recovery.succeeded')) &&
+  conjuntoX.admisiones.filter((x) => x.metric === 'recovery.succeeded').length > 0 &&
+  conjuntoX.admisiones.filter((x) => x.metric === 'recovery.succeeded').every((x) => x.status === 'out_of_scope' && x.because.includes('axis_not_in_objective')));
+check('X3 · ni dándole un eje por configuración: una métrica declarada sin eje no lo gana',
+  sel(aprendidoX.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X, ejes: { 'recovery.succeeded': 'reliability' } })
+    .admisiones.filter((x) => x.metric === 'recovery.succeeded').every((x) => x.status === 'out_of_scope'));
+check('X4 · ni se cambia el eje de una conocida: la verificación no se hace pasar por fiabilidad',
+  sel(aprendidoX.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X, ejes: { 'verification.passed': 'reliability' } })
+    .admisiones.filter((x) => x.metric === 'verification.passed').every((x) => x.axis === 'quality'));
+check('X5 · una implementación que termina pero no cumple: la ejecución NO se castiga por la verificación, y la verificación va aparte',
+  enGrupo('p-termina', 'outcome.success')?.value === 1 && enGrupo('p-termina', 'verification.passed')?.value === 0);
+check('X6 · una que falla y se recupera: la ejecución NO se premia por la recuperación',
+  enGrupo('p-recupera', 'outcome.success')?.value === 0 && !enGrupo('p-recupera', 'recovery.succeeded'));
+check('X7 · el rendimiento es el de las ejecuciones que salieron bien: fallar deprisa no la hace rápida',
+  enGrupo('p-rapida-al-fallar', 'result.latencyMs')?.value === 1500 && enGrupo('p-rapida-al-fallar', 'outcome.success')?.value === 0.5);
+check('X8 · y paraRouter sigue sin decidir: grupos por proveedor en orden de clave, con lo admitido, ni ganador ni puntuación',
+  igual(rutaX.map((g) => g.providerId), [...rutaX.map((g) => g.providerId)].sort()) && rutaX.length === 4 &&
+  rutaX.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId']) && g.admisiones.every((x) => x.status === 'admitted')));
+const soloCalidadX = sel(aprendidoX.aggregates.filter((a) => a.scope.providerId === 'p-termina').map((a) => ({ ...a, scope: { capability: 'x.y' },
+  key: A.claveDeAmbito({ capability: 'x.y' }, a.metric) })), { scope: { capability: 'x.y' }, objective: { weights: { quality: 1 } }, learningPolicy: VENT_X });
+check('X9 · la ventana del ámbito para A1 es la de la EJECUCIÓN: con un objetivo de solo calidad, la verificación no se cuenta como ejecuciones',
+  soloCalidadX.admisiones.some((x) => x.metric === 'verification.passed' && x.status === 'admitted' && x.scopeMatch === 'exact') &&
+  A.paraDecision(soloCalidadX).history === undefined);
+/* Un proveedor con DOS modelos, y el de clave primera es el peor: elegir modelo
+ * —por valor o quedándose con uno— se nota en el orden o en el número de grupos. */
+const conModelo = (p, m, n, cada) => implementacion(p, n, cada).map((o) => ({ ...o, id: `${o.id}-${m}`, scope: { ...o.scope, modelId: m } }));
+const dosModelos = a7.aprender({ ahora: AHORA, policy: VENT_X, outcomes: [
+  ...conModelo('p-dos', 'm-a', 40, (i) => ({ kind: i % 2 ? 'success' : 'failure' })),
+  ...conModelo('p-dos', 'm-z', 40, () => ({ kind: 'success' })),
+] });
+const rutaModelos = A.paraRouter(sel(dosModelos.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X }));
+check('X10 · paraRouter no elige MODELO: un proveedor con dos da dos grupos, en orden de clave —el peor primero—, cada uno con su ejecución',
+  igual(rutaModelos.map((g) => `${g.providerId}/${g.modelId}`), ['p-dos/m-a', 'p-dos/m-z']) &&
+  rutaModelos.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId'])) &&
+  igual(rutaModelos.map((g) => g.admisiones.find((x) => x.metric === 'outcome.success')?.value), [0.5, 1]),
+  rutaModelos.map((g) => `${g.providerId}/${g.modelId}`).join(' '));
+check('X11 · ni nombra GANADOR: lo que devuelve es la lista de grupos y nada más, ni en la lista ni en un grupo',
+  [rutaX, rutaModelos, ruta8].every((r) => Array.isArray(r) && Object.keys(r).every((k) => /^\d+$/.test(k)) &&
+    r.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId']))));
+check('X12 · y no pone un modelo donde la evidencia no lo trae: el grupo es el de la evidencia, no una elección',
+  rutaX.every((g) => g.modelId === undefined && !('modelId' in g)) && rutaModelos.every((g) => typeof g.modelId === 'string'));
+/* DETERMINISMO de lo que llega al Router: los mismos resultados en otro orden, con
+ * sus señales en otro orden, y lo aprendido entregado a A8 en otro orden. */
+const barajarX = (xs, semilla) => { const r = [...xs]; let s = semilla; for (let i = r.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+check('X13 · barajar los resultados, sus señales y lo aprendido que recibe A8 da la misma evidencia para el Router, byte a byte',
+  [3, 17, 29].every((semilla) => {
+    const otro = a7.aprender({ ahora: AHORA, policy: VENT_X,
+      outcomes: barajarX(OUTCOMES_X, semilla).map((o) => (o.signals ? { ...o, signals: [...o.signals].reverse() } : o)) });
+    return igual(otro.aggregates, aprendidoX.aggregates) &&
+      igual(A.paraRouter(sel(barajarX(otro.aggregates, semilla + 1), { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X })), rutaX);
+  }));
 
 console.log('\n─── T. Rendimiento ───');
 

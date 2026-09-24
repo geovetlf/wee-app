@@ -44,6 +44,10 @@ import {
   mediaDe, senalDe, tasaDe, tendenciaDe, valorQueRompeLaClave, ventanaDe,
 } from './learning';
 import { HistoryWindow } from './decision';
+/* Los cubos del veredicto son de A6: A7 los pregunta, no los redefine. */
+import { EstadoDeVerificacion, afirmaFallo, dejaSeguir } from './verification';
+/* Y su puerta de ejecución, también: se le pregunta qué deriva sin expectativas. */
+import { derivarEstructurales } from './verification-engine';
 
 export const FEEDBACK_ENGINE_ID = 'motor-de-feedback';
 
@@ -217,6 +221,17 @@ const evidenciaDe = (claim: string, signal: Signal, supports: boolean): Evidence
   Object.freeze({ claim, signal, supports });
 
 /**
+ * LO QUE A7 DERIVA DE UN RESULTADO, cada cosa de su dueño (contrato 1.9). Una
+ * señal suelta —de un resultado o de un evento— con uno de estos nombres NO se
+ * agrega: suplantaría la ejecución, el veredicto de A6 o una recuperación que
+ * nunca pasó. Medido antes de cerrarlo: un FALLO con cuatro señales a 1 se
+ * aprendía como un éxito, una verificación aprobada y una recuperación buena.
+ */
+export const METRICAS_DERIVADAS: ReadonlySet<string> = new Set([
+  'outcome.success', 'strategy.succeeded', 'verification.passed', 'recovery.succeeded',
+]);
+
+/**
  * DE UN EVENTO A SUS OBSERVACIONES.
  *
  * Un evento puede producir varias —una por señal que traiga, más la de
@@ -238,9 +253,11 @@ export const observacionesDeEvento = (e: FeedbackEvent): readonly Observacion[] 
     });
   }
   /* Las señales que el evento traiga se agregan tal cual, con su procedencia
-   * intacta: A7 las transporta, no las reinterpreta. */
+   * intacta: A7 las transporta, no las reinterpreta. Salvo las que suplantarían
+   * lo que A7 deriva de un resultado (`METRICAS_DERIVADAS`): un gesto no dice
+   * cómo acabó una ejecución, ni qué dijo A6, ni si una recuperación funcionó. */
   for (const s of e.signals ?? []) {
-    if (!senalValida(s) || typeof s.value !== 'number') continue;
+    if (!senalValida(s) || typeof s.value !== 'number' || METRICAS_DERIVADAS.has(s.key)) continue;
     salida.push({
       metric: s.key, scope, value: s.value, at: typeof s.at === 'number' ? s.at : e.at,
       favorable: fav !== false, signal: s,
@@ -250,67 +267,145 @@ export const observacionesDeEvento = (e: FeedbackEvent): readonly Observacion[] 
   return Object.freeze(salida);
 };
 
-/** ¿Un resultado cuenta como favorable? Solo el éxito limpio. */
-const resultadoFavorable = (k: ClaseDeResultado): boolean => k === 'success';
+/**
+ * ¿TERMINÓ LA EJECUCIÓN? Bien, mal o a medias es un desenlace; `unknown` y
+ * `cancelled` no lo son: no se sabe cómo habría acabado, y contarlos como fallo
+ * inventaría uno. De un desenlace, solo el éxito limpio es favorable.
+ */
+const ejecucionConcluyente = (k: ClaseDeResultado): boolean => k === 'success' || k === 'partial_success' || k === 'failure';
 
+/** ¿ENTREGÓ la ejecución un resultado suyo? Solo entonces hay algo suyo que verificar. */
+const entregoResultado = (k: ClaseDeResultado): boolean => k === 'success' || k === 'partial_success';
+
+/**
+ * LA PUERTA DE EJECUCIÓN DE A6: lo que A6 comprueba aunque no se espere NADA —que
+ * la ejecución terminó—. Es la ejecución vista desde A6, no una condición del
+ * resultado. Se le PREGUNTA a A6 qué deriva sin expectativas, en vez de copiar su
+ * nombre: si un día la renombra o añade otra, A7 la sigue sin enterarse.
+ */
+export const COMPROBACIONES_DE_EJECUCION: ReadonlySet<string> = new Set(
+  derivarEstructurales({ id: 'puerta-de-ejecucion' }, []).map((c) => c.type),
+);
+
+/**
+ * ¿VERIFICÓ A6 EL RESULTADO, o solo repitió cómo acabó la ejecución? (contrato 1.9)
+ *
+ * Hace falta que el veredicto diga qué miró, que su puerta de ejecución pasara
+ * —si no pasó, el veredicto habla de la ejecución— y que concluyera al menos una
+ * condición DEL RESULTADO. Medido antes de cerrarlo: sin nada esperado, A6 da
+ * `pass` con la puerta como única comprobación —su test 93 lo fija—, y A7 lo
+ * aprendía como un aprobado: la ejecución, disfrazada de verificación.
+ */
+const verificoElResultado = (findings: readonly { type: string; status: string }[] | undefined): boolean => {
+  if (!Array.isArray(findings)) return false;
+  let condiciones = 0;
+  for (const f of findings) {
+    /* Un hallazgo que no dice qué es no deja separar una cosa de la otra. */
+    if (!f || typeof f.type !== 'string' || typeof f.status !== 'string') return false;
+    const estado = f.status as EstadoDeVerificacion;
+    if (COMPROBACIONES_DE_EJECUCION.has(f.type)) {
+      if (!dejaSeguir(estado)) return false;
+    } else if (dejaSeguir(estado) || afirmaFallo(estado)) {
+      condiciones++;
+    }
+  }
+  return condiciones > 0;
+};
+
+/**
+ * DE UN RESULTADO A SUS OBSERVACIONES: tres desenlaces que NO son el mismo, y
+ * las medidas de una ejecución que salió bien (contrato 1.9).
+ *
+ *   EJECUCIÓN      ¿terminó bien? Lo dice quien ejecutó (`kind`).
+ *   VERIFICACIÓN   ¿cumplió lo verificable lo que ENTREGÓ? Lo dice A6 (`verification`).
+ *   RECUPERACIÓN   ¿resolvió el fallo una recuperación? Lo dice quien la ejecutó.
+ *
+ * Ninguno se convierte en otro: una ejecución que termina y no pasa la
+ * verificación sigue siendo una ejecución que terminó, y un fallo que una
+ * recuperación arregla sigue siendo un fallo de la ejecución original. Y en los
+ * tres, un «no» es una MUESTRA de la tasa, no una contradicción: contarlo como
+ * contradicción dejaba sin validar todo lo que falla a menudo, y solo viajaban
+ * las buenas noticias —el error que A6 ya dejó escrito: una medición firme de
+ * que algo falló no es «no se sabe»—.
+ */
 export const observacionesDeResultado = (r: ResultadoDeDecision): readonly Observacion[] => {
   const salida: Observacion[] = [];
   const scope = r.scope ?? {};
   const at = typeof r.at === 'number' ? r.at : 0;
-  const fav = resultadoFavorable(r.kind);
+  const exito = r.kind === 'success';
 
-  /* `unknown` NO se agrega. Un resultado que no se sabe cómo acabó no es un
-   * fracaso, y meterlo como cero lo convertiría en uno. */
-  if (r.kind !== 'unknown') {
-    const s: Signal = { key: 'outcome.success', value: fav ? 1 : 0, source: 'measured', at };
+  /* EJECUCIÓN, en el ámbito y —si se sabe qué alternativa corrió— por alternativa. */
+  if (ejecucionConcluyente(r.kind)) {
+    const s: Signal = { key: 'outcome.success', value: exito ? 1 : 0, source: 'measured', at };
     salida.push({
-      metric: 'outcome.success', scope, value: fav ? 1 : 0, at, favorable: fav,
-      signal: s, evidence: evidenciaDe('outcome.success', s, fav), implicito: false,
+      metric: 'outcome.success', scope, value: exito ? 1 : 0, at, favorable: exito,
+      signal: s, evidence: evidenciaDe('outcome.success', s, true), implicito: false,
     });
   }
-  if (r.verification) {
-    const pasa = r.verification.passed === true;
-    const s: Signal = { key: 'verification.passed', value: pasa ? 1 : 0, source: 'measured', at };
-    salida.push({
-      metric: 'verification.passed', scope, value: pasa ? 1 : 0, at, favorable: pasa,
-      signal: s, evidence: evidenciaDe('verification.passed', s, pasa), implicito: false,
-    });
+  /*
+   * VERIFICACIÓN, con los cubos de A6 y no con uno propio: `dejaSeguir` es un sí,
+   * `afirmaFallo` es un no, y `esSinSaber` —no se miró, o no alcanzó— no es
+   * ninguna de las dos cosas: no se aprende. Un veredicto cuyo `passed` no casa
+   * con su estado se contradice a sí mismo, y tampoco.
+   *
+   * Y solo de un resultado que la ejecución ENTREGÓ, verificado de verdad (1.9):
+   * el veredicto de un fallo es la puerta de A6 repitiendo el fallo —o el de lo
+   * que una recuperación arregló, que premiaría a la implementación que falló—, y
+   * el de una ejecución sin nada que comprobar es la puerta repitiendo el éxito.
+   */
+  const v = r.verification;
+  if (v && typeof v.status === 'string' && entregoResultado(r.kind) && verificoElResultado(v.findings)) {
+    const estado = v.status as EstadoDeVerificacion;
+    const pasa = dejaSeguir(estado) && v.passed === true;
+    const falla = afirmaFallo(estado) && v.passed === false;
+    if (pasa || falla) {
+      const s: Signal = { key: 'verification.passed', value: pasa ? 1 : 0, source: 'measured', at };
+      salida.push({
+        metric: 'verification.passed', scope, value: pasa ? 1 : 0, at, favorable: pasa,
+        signal: s, evidence: evidenciaDe('verification.passed', s, true), implicito: false,
+      });
+    }
   }
-  /* Solo se aprende de una recuperación que SE EJECUTÓ. Una propuesta que nadie
-   * hizo no enseña nada sobre si funciona. */
+  /*
+   * RECUPERACIÓN: solo la que SE EJECUTÓ y dijo cómo fue —una que no se intentó, o
+   * que no aplicaba, no enseña nada—. Es de la MISMA alternativa, y su tipo va en
+   * su propia dimensión: antes pisaba `strategyId`, y las recuperaciones de dos
+   * alternativas se sumaban en un agregado.
+   */
   if (r.recovery?.executed === true && typeof r.recovery.succeeded === 'boolean') {
     const ok = r.recovery.succeeded;
     const s: Signal = { key: 'recovery.succeeded', value: ok ? 1 : 0, source: 'measured', at };
     salida.push({
       metric: 'recovery.succeeded',
-      scope: { ...scope, ...(r.recovery.kind ? { strategyId: r.recovery.kind } : {}) },
+      scope: { ...scope, ...(r.recovery.kind ? { recoveryKind: r.recovery.kind } : {}) },
       value: ok ? 1 : 0, at, favorable: ok,
-      signal: s, evidence: evidenciaDe('recovery.succeeded', s, ok), implicito: false,
+      signal: s, evidence: evidenciaDe('recovery.succeeded', s, true), implicito: false,
     });
   }
-  /*
-   * EL ÉXITO DE LA ALTERNATIVA EJECUTADA, que A8 entrega a A1 como probabilidad
-   * de éxito. Un fallo aquí NO contradice nada: es una muestra de la tasa, tan
-   * medida como un éxito. Contarlo como contradicción —como hacen las métricas
-   * de arriba— dejaba sin validar a toda estrategia que falla más de lo que
-   * tolera `maxContradiction`, y A1 solo recibía buenas noticias: una alternativa
-   * que siempre falla llegaba como «sin historial», y lo que falta no cuenta como
-   * malo. Es el error que A6 ya dejó escrito: una medición firme de que algo
-   * FALLÓ no es «no se sabe». `favorable` sigue contando los éxitos: es la tasa.
-   */
-  if (r.scope?.strategyId) {
-    const s: Signal = { key: 'strategy.succeeded', value: fav ? 1 : 0, source: 'measured', at };
+  /* EL ÉXITO DE LA ALTERNATIVA EJECUTADA, que A8 entrega a A1 como probabilidad de
+   * éxito: la misma ejecución, por alternativa (1.8). */
+  if (r.scope?.strategyId && ejecucionConcluyente(r.kind)) {
+    const s: Signal = { key: 'strategy.succeeded', value: exito ? 1 : 0, source: 'measured', at };
     salida.push({
-      metric: 'strategy.succeeded', scope, value: fav ? 1 : 0, at, favorable: fav,
+      metric: 'strategy.succeeded', scope, value: exito ? 1 : 0, at, favorable: exito,
       signal: s, evidence: evidenciaDe('strategy.succeeded', s, true), implicito: false,
     });
   }
-  for (const s of r.signals ?? []) {
-    if (!senalValida(s) || typeof s.value !== 'number') continue;
-    salida.push({
-      metric: s.key, scope, value: s.value, at: typeof s.at === 'number' ? s.at : at,
-      favorable: fav, signal: s, evidence: evidenciaDe(s.key, s, fav), implicito: false,
-    });
+  /*
+   * LAS MEDIDAS —latencia, coste, calidad medida—, de una ejecución que salió
+   * BIEN: son su rendimiento. Lo que midió una que falló, a medias o sin saberse
+   * no lo es —un fallo rápido abarataba la latencia media, y su contradicción
+   * invalidaba la medida—; que falló ya lo cuenta la ejecución. Y ninguna señal
+   * suplanta lo que A7 deriva.
+   */
+  if (exito) {
+    for (const s of r.signals ?? []) {
+      if (!senalValida(s) || typeof s.value !== 'number' || METRICAS_DERIVADAS.has(s.key)) continue;
+      salida.push({
+        metric: s.key, scope, value: s.value, at: typeof s.at === 'number' ? s.at : at,
+        favorable: true, signal: s, evidence: evidenciaDe(s.key, s, true), implicito: false,
+      });
+    }
   }
   return Object.freeze(salida);
 };
@@ -454,11 +549,11 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
         continue;
       }
       /*
-       * Y la clave. La identidad de la alternativa viaja como `strategyId`, y la
-       * recuperación ejecutada también acaba en esa dimensión: si cualquiera de
-       * los dos trae el separador, el resultado se sumaría al de otro ámbito.
+       * Y la clave. La identidad de la alternativa viaja como `strategyId`, y el
+       * tipo de la recuperación ejecutada como `recoveryKind` (1.9): si cualquiera
+       * de los dos trae el separador, el resultado se sumaría al de otro ámbito.
        */
-      if (valorQueRompeLaClave(r.scope) ?? valorQueRompeLaClave(r.recovery?.kind ? { strategyId: r.recovery.kind } : undefined)) {
+      if (valorQueRompeLaClave(r.scope) ?? valorQueRompeLaClave(r.recovery?.kind ? { recoveryKind: r.recovery.kind } : undefined)) {
         m.resultadosRechazados++;
         porMotivoDeResultado.malformed = (porMotivoDeResultado.malformed ?? 0) + 1;
         continue;

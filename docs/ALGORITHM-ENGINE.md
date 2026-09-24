@@ -1114,10 +1114,12 @@ por alternativa, O(1), con la clave de siempre. Faltaban dos cosas, y las dos se
    separador (`SEPARADOR_DE_CLAVE`) no entra —ni en resultados, ni en
    recuperaciones, ni en eventos— y se cuenta como `malformed`.
 
-`outcome.success`, `verification.passed` y `recovery.succeeded` siguen contando
+~~`outcome.success`, `verification.passed` y `recovery.succeeded` siguen contando
 el fallo como contradicción. Es la misma trampa, y queda **declarada, no
 corregida**: no llegan a A1 como historial por alternativa, pero el día que el
-Router lea `paraRouter` solo vería los proveedores que casi siempre salen bien.
+Router lea `paraRouter` solo vería los proveedores que casi siempre salen bien.~~
+Resuelto en A9.3 (§16): los tres desenlaces se separan, y en los tres un «no» es
+una muestra de la tasa.
 
 ### A8: el historial de CADA alternativa
 
@@ -1235,7 +1237,214 @@ Nada. Todo lo de arriba corre en las pruebas, con datos sintéticos y en
 memoria: ni Firestore, ni proveedores, ni Credits, ni Router de producción. Lo
 siguiente es evaluar una integración **SHADOW**, y conectarla es otra decisión.
 
-## 16 · Lo que está probado, y dónde
+## 16 · A9.3, ejecución ≠ verificación ≠ recuperación —antes de que nadie lea `paraRouter`—
+
+`paraRouter` será la entrada de la puntuación del Router (§14). Antes de que
+nadie la lea, lo que A7 aprende de un resultado tiene que significar **una sola
+cosa** por dimensión. Contrato **1.9**.
+
+### Lo que se midió
+
+Sin tocar nada, en 1.8:
+
+1. **Un «no» era una contradicción** en `outcome.success`, `verification.passed`
+   y `recovery.succeeded`: todo lo que fallaba a menudo quedaba rechazado por
+   `evidence_contradictory` y **no llegaba a `paraRouter`**. Solo viajaban las
+   buenas noticias.
+2. Un veredicto de A6 que **no sabe** (`unknown`, `inconclusive`) se aprendía
+   como un suspenso.
+3. Una ejecución `unknown` contaba como un fallo de la alternativa, y una
+   `cancelled`, como un fallo de la ejecución.
+4. El tipo de recuperación **pisaba `strategyId`**: las recuperaciones de dos
+   alternativas acababan en el mismo agregado.
+5. `recovery.succeeded` informaba el eje `reliability`: una recuperación que
+   arreglaba el fallo **premiaba a la implementación que falló**.
+6. La latencia de una ejecución que falló entraba en la media —fallar deprisa
+   hacía «rápida» a una implementación— y contaba como contradicción.
+7. La ventana del ámbito que llega a A1 podía salir de la verificación.
+8. Una señal suelta —de un resultado o de un evento— con el nombre de algo que
+   A7 deriva lo **suplantaba**: un fallo con cuatro señales a 1 se aprendía como
+   éxito, aprobado y recuperación buena.
+9. **La puerta de ejecución de A6.** A6 deriva siempre una comprobación
+   —`structural.status`, «terminó como terminó»— aunque no se espere nada. Sin
+   nada esperado su `pass` es esa puerta sola; a un fallo lo suspende por ella; y
+   si una recuperación arregla el resultado, lo aprueba. A7 aprendía las tres
+   cosas como verificación: la ejecución, disfrazada.
+
+Con el mismo banco, contra A9.2 y A9.3 compilados aparte (lo que llega al
+Router, con un objetivo de fiabilidad, calidad y latencia):
+
+| Implementación | A9.2 (1.8) | A9.3 (1.9) |
+|---|---|---|
+| falla 3 de cada 5, recupera la mitad, y de lo que entrega cumple la mitad | **nada**: todo rechazado por contradictorio | ejecución 0,40 · verificación 0,50 (de 32 entregas) · latencia 1200 |
+| siempre termina y nunca cumple | ejecución 1,00; la verificación, rechazada | ejecución 1,00 · verificación 0,00 |
+| siempre falla y una recuperación siempre lo arregla | verificación 1,00 y **recuperación 1,00 como fiabilidad**; la ejecución, rechazada | ejecución 0,00; ni verificación ni recuperación |
+| siempre termina, sin nada que verificar | ejecución 1,00 · **verificación 1,00** | ejecución 1,00 |
+
+### Tres preguntas, cada una de su dueño
+
+| Desenlace | Pregunta | Lo dice | Lo que aprende A7 |
+|---|---|---|---|
+| **Ejecución** | ¿terminó bien? | quien ejecutó (`kind`) | `outcome.success` —y, con alternativa, `strategy.succeeded`—: `success` es 1; `failure` y `partial_success`, 0; `cancelled` y `unknown` no se aprenden |
+| **Verificación** | ¿cumplió lo verificable lo que entregó? | A6, con sus hallazgos | `verification.passed`: 1 si `dejaSeguir`, 0 si `afirmaFallo`, nada si `esSinSaber`; solo de `success` o `partial_success`, y solo si A6 verificó el resultado (abajo) |
+| **Recuperación** | ¿resolvió el fallo una recuperación? | quien la ejecutó | `recovery.succeeded`, solo de la que **se ejecutó** y dijo cómo fue, en el ámbito de la alternativa y con su tipo en `recoveryKind` |
+
+- **Ninguna se convierte en otra.** Una ejecución que terminó y no cumplió sigue
+  siendo una ejecución que terminó; un fallo que arregla una recuperación sigue
+  siendo un fallo de la ejecución original, y lo que la recuperación dejó bien no
+  se apunta como verificación de quien falló.
+- **En las tres, un «no» es una MUESTRA** de la tasa, nunca una contradicción. La
+  contradicción la sigue poniendo quien la ve: un gesto explícito.
+- **Las medidas** —latencia, coste, calidad medida— son de las ejecuciones que
+  salieron bien: son su rendimiento. Que falló ya lo cuenta la ejecución.
+- **Nada suplanta lo derivado.** Una señal suelta con el nombre de una de las
+  cuatro métricas que A7 deriva de un resultado (`METRICAS_DERIVADAS`) no se
+  agrega, venga de un resultado o de un evento.
+
+Los ocho casos, uno a uno:
+
+| Caso | Ejecución | Verificación | Recuperación |
+|---|---|---|---|
+| 1 · termina, A6 aprueba | 1 | 1 | — |
+| 2 · termina, A6 suspende | 1 | 0 | — |
+| 3 · falla, la recuperación lo arregla | 0 | — | 1 |
+| 4 · falla, la recuperación falla | 0 | — | 0 |
+| 5 · termina, A6 no sabe | 1 | — | — |
+| 6 · no se sabe cómo acabó, A6 no sabe | — | — | — |
+| 7 · recuperación propuesta y no intentada | la que sea | — | — |
+| 8 · recuperación que no aplicaba | la que sea | — | — |
+
+### La puerta de ejecución de A6
+
+Para A6 la puerta es correcta: un fallo **no pasa** la verificación, y su
+recuperación necesita saberlo. Para aprender, es la ejecución. A7 no toca A6 ni
+copia el nombre de su comprobación: le **pregunta** qué deriva sin
+expectativas (`derivarEstructurales(x, [])`), y eso es
+`COMPROBACIONES_DE_EJECUCION`. Un veredicto se aprende como verificación solo si
+la ejecución **entregó** un resultado, la puerta **pasó** y concluyó al menos
+**una condición del resultado**. Por eso el veredicto viaja a A7 con sus
+`findings`, tal cual: sin ellos no se puede separar, y **no se aprende**. A9 los
+pasa.
+
+### A8 y `paraRouter`
+
+- `recovery.succeeded` **no informa ningún eje** (`METRICAS_SIN_EJE`, con su
+  motivo escrito). Se admite como `out_of_scope` diciendo
+  `axis_not_in_objective`, y la configuración (`ejes`) no puede darle uno ni
+  cambiar el de una métrica conocida.
+- La ventana del ámbito que `paraDecision` entrega a A1 es la de la
+  **ejecución** (`METRICA_DE_EJECUCION`), no la de la primera métrica admitida.
+- `paraRouter` lleva, por implementación, la **ejecución** (fiabilidad), la
+  **verificación** de lo que entregó (calidad) y las **medidas** de lo que salió
+  bien. **Ninguna recuperación.**
+- `paraRouter` **no decide nada**: grupos por proveedor y modelo, en orden de
+  clave, con lo admitido. Ni un ganador, ni una puntuación, ni un proveedor o un
+  modelo descartados o elegidos. Sigue **PREPARADO / NO CONECTADO**: `RouterPorts`
+  sigue siendo `registry`, `policy` y `costs`, y el Router sigue siendo la
+  **autoridad de implementación**.
+
+### Por alternativa, determinismo y política
+
+- **Cada desenlace se queda en su alternativa**: la ejecución de A no es la de B,
+  la verificación de A no es la de nadie más, y dos recuperaciones del mismo tipo
+  en A y en B son dos agregados.
+- **Determinismo**: barajar alternativas, resultados, historial o señales, o
+  trocear las llamadas, da lo mismo aprendido.
+- **Política**: `POLITICA_MINIMA.minSampleSize` (5) y los 30 por defecto, sin
+  tocar, y ningún umbral nuevo. La auditoría no pedía cambiar la política: lo
+  que estaba mal era qué cuenta como muestra y qué como contradicción.
+
+### Contrato 1.9
+
+Cambia la forma pública —`AmbitoDeEvento.recoveryKind` y
+`ResultadoDeDecision.verification.findings`— y cambia lo que se aprende de un
+resultado, así que sube de versión. Las claves sin `recoveryKind` son las
+mismas; un agregado de recuperación de 1.8 llevaba el tipo en `strategyId` y no
+se migra: A7 no está conectado, y no hay ninguno guardado.
+
+### Los sabotajes
+
+Ciento veinte: cincuenta y uno nuevos —los diez del brief, cada uno por varios
+caminos, y las guardas nuevas de 1.9— y los sesenta y nueve de A9.2 otra vez,
+con los patrones de 1.9 donde el código cambió. Cada uno rompe UNA cosa en la
+fuente, se reconstruye, corre su suite y se restaura byte a byte. Los ciento
+veinte caen por **aserción**, y en cada uno la suite llega a su recuento: ninguno
+solo porque reviente, y ninguno sin compilar.
+
+| Del brief | Qué se rompe |
+|---|---|
+| 1 · éxito → aprobado | la puerta de A6 sola cuenta como verificación (en A7 y en el ciclo) · A7 deriva la verificación del éxito · A9 aprueba lo que terminó |
+| 2 · suspenso → fallo | la verificación suspendida tumba la ejecución (en A7 y en `paraRouter`) · A9 saca la clase del veredicto |
+| 3 · recuperación → éxito | la recuperación cuenta como éxito de la ejecución (en A7 y en `paraRouter`) · lo que arregló una recuperación se apunta a la que falló (en A7 y en el ciclo) · la recuperación vuelve a ser fiabilidad |
+| 4 · recuperación no intentada | se cuenta la recuperación no intentada · un fallo sin recuperación es una recuperación fallida · A9 ejecuta la recuperación |
+| 5 · «no se sabe» → sí | una ejecución sin saber es un éxito · un veredicto sin saber es un aprobado · una ejecución sin saber o una cancelación son un desenlace |
+| 6 · contaminación | el tipo de recuperación pisa la identidad (1.8) · la recuperación, la verificación o la ejecución de una a cuenta de otra · la clave sin `recoveryKind` |
+| 7 · proveedor | `paraRouter` se queda con el mejor proveedor · descarta a los que fallan |
+| 8 · modelo | se queda con el mejor modelo · pone un modelo elegido · mezcla los modelos de un proveedor |
+| 9 · ganador | marca un ganador · pone el ganador primero |
+| 10 · política | A7 sin suelo de muestra · la política baja del mínimo · valida lo que no llega a la muestra · A8 admite sin la muestra de A7 · A1 sin suelo, por el ciclo |
+
+Las guardas de 1.9, cada una con su sabotaje: un resultado a medias no entregó
+nada · sin la puerta de A6 · un veredicto sin hallazgos, o con uno sin forma, se
+aprende · se copia el nombre de la puerta en vez de preguntarlo · un veredicto que
+se contradice · A9 no pasa los hallazgos · el «no» vuelve a ser contradicción en
+la ejecución, la verificación y la recuperación · se miden las ejecuciones que
+fallaron · una señal suelta suplanta lo derivado, en un resultado o en un evento ·
+`ejes` le da eje a la recuperación o cambia el de una conocida · sin la rama de
+las métricas sin eje · la ventana del ámbito de cualquier métrica.
+
+La primera pasada la hizo un corredor más estricto que el de A9.2: da por
+detectado un sabotaje solo si la suite llega a su recuento con algún ✘, y marca
+como inválido el que no compila. Encontró tres cosas, y las tres se arreglaron
+antes de la pasada final:
+
+- **Seis sabotajes heredados no eran TypeScript válido.** Dejaban una variable
+  sin leer (`noUnusedLocals`) o rompían un estrechamiento. `tsc` emite igual, y el
+  corredor de A9.2 no miraba la salida del build: corrían, pero mutando con un
+  error de tipos. Se reescribieron con el mismo efecto.
+- **Seis caían por aserción y después la suite reventaba** en una comprobación
+  posterior que daba por hecho lo que el sabotaje rompió. Las suites del ciclo y
+  de A7 se blindaron —`?.` más una guarda de existencia, para que «no existe en
+  ninguno de los dos lados» no pase por igual—, y de paso tres comprobaciones que
+  podían pasar en vacío (60, 79, Y10) exigen ahora lo que dicen.
+- **Dos no se detectaban.** El filtro de lo derivado en las señales de un
+  resultado solo se probaba en un fallo, cuyas señales ya se descartan por ser de
+  un fallo: faltaba la prueba en un éxito (Z14c). Y el suelo de muestra de A1 no
+  se probaba por el ciclo, que es por donde llega un historial que no viene de A8
+  (72e2).
+
+### Rendimiento
+
+A/B en la misma máquina: A9.2 (HEAD) y A9.3 compilados aparte con el mismo
+compilador, en procesos separados y siete rondas alternas; medianas.
+
+| Medida | A9.2 | A9.3 | |
+|---|---|---|---|
+| 10 000 decisiones sin historial | 380 µs | 380 µs | +0,1 % |
+| 10 000 decisiones con historial del ámbito · por alternativa | 405 · 367 µs | 395 · 350 µs | |
+| 1 000 ciclos completos sin historial | 458 µs | 449 µs | −2 % |
+| 1 000 ciclos leyendo lo aprendido | 508 µs | 506 µs | −0,4 % |
+| grafo de 4 · 6 · 10 pasos, sin historial | 359 · 848 · 1719 µs | 357 · 848 · 1730 µs | |
+| grafo de 4 · 6 · 10 pasos, con historial | 386 · 835 · 1772 µs | 395 · 848 · 1805 µs | |
+| solo A1, sin historial · con historial por alternativa | 34,3 · 53,6 µs | 35,8 · 54,1 µs | |
+| 1 000 ciclos por alternativa (strategy-A/B, de punta a punta) | 203 µs | 162 µs | −20 % |
+
+Nada sube de forma significativa. Lo que baja es el ciclo por alternativa, y
+baja porque A9.3 hace **menos**: ese banco cierra sin nada esperado, y en 1.8 cada
+cierre aprendía un aprobado vacío de A6 —un agregado más por alternativa que
+acumular, validar y admitir—; en 1.9 ese aprobado no es una verificación y no se
+aprende. A1 no cambió en A9.3: sus dos filas son la misma máquina en dos
+procesos, dentro del ruido.
+
+### Lo que A9.3 NO toca
+
+Las cinco deudas de A7 (§13) —`tramosAncho`, las fechas del futuro lejano, la
+entrega exactamente-una-vez, la estabilidad de `fuerza`, los resultados sin
+`at`— y tres límites declarados: **no explora**, **no aprende entre tareas** y
+**no juzga la calidad sin medir**. Nada de esto se conecta a producción: ni
+Firestore, ni proveedores, ni Credits, ni el Router.
+
+## 17 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
@@ -1243,13 +1452,14 @@ siguiente es evaluar una integración **SHADOW**, y conectarla es otra decisión
 | `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` · `-context` · `-cycle` | A0–A9 |
 | `-decision` §H · `-cycle` §L · `-context` §V · `-feedback` §X | A9.1: el historial como evidencia, el determinismo por permutaciones, y las fronteras de A7 y A8 |
 | `-decision` §I · `-cycle` §L2 · `-context` §W · `-feedback` §Y | A9.2: la identidad de las alternativas, el aprendizaje por alternativa y el ciclo de punta a punta |
+| `-feedback` §Z · `-context` §X · `-cycle` §L3 | A9.3: ejecución, verificación y recuperación por separado —los ocho casos, la puerta de ejecución de A6—, lo que llega a `paraRouter` y lo que no decide |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 17 · Lo que esta capa NO hace, dicho una vez más
+## 18 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.

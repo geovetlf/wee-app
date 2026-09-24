@@ -21,6 +21,7 @@
  *  K. El ciclo completo.
  *  L. La segunda pasada.
  *  L2. A9.2: aprender por alternativa, de punta a punta.
+ *  L3. A9.3: ejecución ≠ verificación ≠ recuperación, en el ciclo.
  *  M. Sin política automática.
  *  N. Las deudas, declaradas.
  *  O. Agnosticismo.
@@ -189,7 +190,7 @@ const soloOpciones = (extra = {}) => ({
   ...extra,
 });
 check('14 · decisión trivial: solo A1, y se entrega la elegida',
-  igual(ciclo.decidir(soloOpciones()).recorrido, ['decision', 'handoff']) && ciclo.decidir(soloOpciones()).entrega.elegida === 'o1');
+  igual(ciclo.decidir(soloOpciones()).recorrido, ['decision', 'handoff']) && ciclo.decidir(soloOpciones()).entrega?.elegida === 'o1');
 check('15 · con contexto aprendido, A8 va delante',
   igual(ciclo.decidir(soloOpciones({ aprendido: { ahora: T1, scope: { capability: CAP }, learned: [] } })).recorrido, ['context', 'decision', 'handoff']));
 check('16 · una tarea sin composición: A2 → A3 → A1, y ni A4 ni A5 corren porque sí',
@@ -242,7 +243,7 @@ check('29 · la elección de enfoque es de A1, igual que llamándolo directament
   igual(conEnfoques.approach, a1.decidir({ ...decisionBase(), options: ENFOQUES })));
 check('30 · y A2 descompone EXACTAMENTE la tarea elegida',
   igual(conEnfoques.decomposition, a2.descomponer(conEnfoques.approach.selected)) &&
-  conEnfoques.entrega.plan.steps.every((s) => conEnfoques.approach.selected.steps.some((x) => x.id === s.id)));
+  !!conEnfoques.entrega?.plan && conEnfoques.entrega.plan.steps.every((s) => conEnfoques.approach.selected.steps.some((x) => x.id === s.id)));
 const enfoquesImposibles = ciclo.decidir(peticion({ tarea: undefined, aprendido: undefined,
   decision: decisionBase({ constraints: { maxLatencyMs: 100 } }), enfoques: ENFOQUES }));
 check('31 · si A1 no elige enfoque, no hay nada que estructurar: se para ahí',
@@ -272,9 +273,9 @@ const sinA5 = ciclo.decidir(peticion({ decision: unTrabajador, aprendido: undefi
 check('36 · A5 declara inviable lo que pide más recursos de los que hay',
   conA5.optimization.rejected.some((x) => x.id === 'T:par2:estrategia'), JSON.stringify(conA5.optimization.rejected.map((x) => x.id)));
 check('37 · y A1 NUNCA ve lo inviable: decide entre lo que A5 dejó en pie',
-  !conA5.decision.candidates.some((c) => c.id === 'T:par2:estrategia') && conA5.entrega.plan.id === 'T:par1:estrategia');
+  !conA5.decision.candidates.some((c) => c.id === 'T:par2:estrategia') && conA5.entrega?.plan?.id === 'T:par1:estrategia');
 check('38 · CONTROL · sin A5, A1 sí lo ve y lo elige: la factibilidad era de A5 y solo de A5',
-  sinA5.decision.candidates.some((c) => c.id === 'T:par2:estrategia') && sinA5.entrega.plan.id === 'T:par2:estrategia');
+  sinA5.decision.candidates.some((c) => c.id === 'T:par2:estrategia') && sinA5.entrega?.plan?.id === 'T:par2:estrategia');
 /* Una tarea ancha: seis ramas. Aquí A5 PROPONE una mejora. */
 const RAMAS = ['r1', 'r2', 'r3', 'r4', 'r5', 'r6'];
 const ANCHA = { id: 'W', steps: [paso('o'), ...RAMAS.map((r) => paso(r, ['o'])), paso('z', RAMAS)] };
@@ -287,7 +288,7 @@ check('39 · A5 propone, y su propuesta entra en A1 como una alternativa más',
   ancha.optimization.proposals.every((p) => ancha.decision.candidates.some((c) => c.id === p.result.id)),
   JSON.stringify(ancha.optimization.proposals.map((p) => p.result.id)));
 check('40 · y quien ELIGE entre lo propuesto y lo de antes sigue siendo A1',
-  ancha.entrega.plan === ancha.decision.selected && typeof ancha.decision.selectedScore?.total === 'number', ancha.entrega.plan.id);
+  !!ancha.entrega?.plan && ancha.entrega.plan === ancha.decision.selected && typeof ancha.decision.selectedScore?.total === 'number', ancha.entrega?.plan?.id);
 /*
  * UN HALLAZGO DE LA INTEGRACIÓN, y no se corrige aquí: A3 y A5 (con
  * `violaRestricciones`) solo dan por incumplida una restricción si el valor está
@@ -306,13 +307,13 @@ check('41 · ni A4 ni A5 nombran una implementación: no hay A4 → proveedor ni
 
 console.log('\n─── H. La frontera del Router ───');
 
-const plan = R.entrega.plan;
+const plan = R.entrega?.plan;
 check('42 · el plan son los pasos del PLANNER, tal cual: A9 no inventa ni cambia uno',
-  plan.steps.length === TAREA.steps.length && plan.steps.every((s) => igual(s, TAREA.steps.find((x) => x.id === s.id))));
+  !!plan && plan.steps.length === TAREA.steps.length && plan.steps.every((s) => igual(s, TAREA.steps.find((x) => x.id === s.id))));
 check('43 · cada paso dice qué CAPACIDAD necesita: lo único sobre lo que el Router elige',
-  plan.steps.every((s) => typeof s.capability === 'string' && s.capability.length > 0));
+  !!plan && plan.steps.every((s) => typeof s.capability === 'string' && s.capability.length > 0));
 check('44 · y NADA en la entrega nombra una implementación',
-  A.violacionesEn(R.entrega, 'entrega').length === 0 &&
+  !!R.entrega && A.violacionesEn(R.entrega, 'entrega').length === 0 &&
   !JSON.stringify(R.entrega).match(/"(providerId|modelId|adapterId|implementation|allowedProviders)"/));
 const conRequisitos = ciclo.decidir(peticion({ decision: decisionBase({ constraints: { budget: { maxUsd: 1 }, maxLatencyMs: 5000 } }) }));
 check('45 · los requisitos de ejecución viajan tal cual: presupuesto y plazo, que el Router sí sabe leer',
@@ -338,19 +339,19 @@ for (const [clase, a6esperado, recuperacion] of [
   const c = CIERRES[clase];
   check(`50 · ${clase} → A6 dice «${a6esperado}» y la recuperación «${recuperacion}»`,
     c.status === 'closed' && c.verification.status === a6esperado && c.recovery.stoppedBecause === recuperacion,
-    `${c.verification.status} · ${c.recovery.stoppedBecause}: ${c.recovery.proposals.map((p) => p.kind).join(',') || '—'}`);
+    `${c.verification?.status} · ${c.recovery?.stoppedBecause}: ${c.recovery?.proposals.map((p) => p.kind).join(',') || '—'}`);
 }
 check('51 · el veredicto es de A6, igual que llamándolo directamente',
   igual(CIERRES.partial_success.verification, a6.verificar({ expected: EXPECTED, actual: observar(0, 'partial_success', T1 + HORA).actual })));
 check('52 · y la recuperación, de A6, con lo que la decisión ya sabía: sus alternativas y si había respaldo',
-  igual(CIERRES.failure.recovery, a6r.analizar(CIERRES.failure.verification, {
+  !!CIERRES.failure.recovery && igual(CIERRES.failure.recovery, a6r.analizar(CIERRES.failure.verification, {
     alternatives: R.decision.alternatives.map((v) => R.decision.candidates.find((c) => c.value === v).id),
     hasFallback: R.strategies.estrategias.some((c) => c.value.isFallback === true) })));
 check('53 · «no se pudo mirar» es `unknown`, no un aprobado ni un suspenso: verificar otra vez',
-  CIERRES.unknown.recovery.proposals.some((p) => p.kind === 'verify_again'));
+  !!CIERRES.unknown.recovery && CIERRES.unknown.recovery.proposals.some((p) => p.kind === 'verify_again'));
 check('54 · A9 no ejecuta ninguna recuperación: solo se aprende de la que ejecutó quien ejecuta',
-  CIERRES.failure.outcome.recovery === undefined &&
-  ciclo.cerrar(R, observar(1, 'failure', T1, { recovery: { kind: 'retry', executed: true, succeeded: true } })).outcome.recovery.executed === true);
+  !!CIERRES.failure.outcome && CIERRES.failure.outcome.recovery === undefined &&
+  ciclo.cerrar(R, observar(1, 'failure', T1, { recovery: { kind: 'retry', executed: true, succeeded: true } })).outcome?.recovery?.executed === true);
 check('55 · cerrar lo que no se decidió no tiene sentido: `not_decided`, dicho y no reventado',
   sinReventar(() => ciclo.cerrar(nada, observar(0, 'success', T1))).parada === 'not_decided' &&
   sinReventar(() => ciclo.cerrar(undefined, observar(0, 'success', T1))).parada === 'not_decided');
@@ -368,7 +369,7 @@ console.log('\n─── J. A7: aprendizaje ───');
 
 const exito = CIERRES.success;
 check('57 · el resultado habla el idioma de A7: la clase la dice quien ejecutó, el veredicto es de A6 tal cual',
-  exito.outcome.kind === 'success' && exito.outcome.verification.status === exito.verification.status &&
+  !!exito.outcome && exito.outcome.kind === 'success' && exito.outcome.verification.status === exito.verification.status &&
   exito.outcome.verification.passed === exito.verification.passed && exito.outcome.id === 'ejec_0');
 /*
  * CADA HECHO, DE SU DUEÑO. El ejecutor dice cómo ACABÓ; A6 dice si CUMPLE. Aquí
@@ -378,10 +379,10 @@ check('57 · el resultado habla el idioma de A7: la clase la dice quien ejecutó
  */
 const exitoQueNoCumple = ciclo.cerrar(R, { ...observar(5, 'success', T1), actual: observar(5, 'partial_success', T1).actual });
 check('57b · el ejecutor dice «éxito» y A6 dice que no cumple: la clase es del ejecutor, el veredicto de A6',
-  exitoQueNoCumple.outcome.kind === 'success' && exitoQueNoCumple.verification.status === 'partial' &&
+  !!exitoQueNoCumple.outcome && exitoQueNoCumple.outcome.kind === 'success' && exitoQueNoCumple.verification.status === 'partial' &&
   exitoQueNoCumple.outcome.verification.passed === false && exitoQueNoCumple.outcome.verification.status === 'partial');
 check('57c · y en los cuatro desenlaces la clase es la que dijo quien ejecutó, nunca una deducida del veredicto',
-  Object.keys(DESENLACE).every((k) => CIERRES[k].outcome.kind === k));
+  Object.keys(DESENLACE).every((k) => CIERRES[k].outcome?.kind === k));
 /*
  * Hasta 1.7 el resultado se aprendía en el ámbito de la decisión «sin añadirle
  * nada», y por eso lo aprendido no distinguía alternativas. Desde 1.8 lleva la
@@ -389,16 +390,16 @@ check('57c · y en los cuatro desenlaces la clase es la que dijo quien ejecutó,
  */
 check('58 · y se aprende en el ámbito en que se DECIDIÓ más la identidad de la alternativa ENTREGADA, y nada más',
   typeof R.entrega?.plan?.id === 'string' && R.entrega.plan.id === R.decision.candidates.find((c) => c.reason === 'selected').id &&
-  igual(exito.outcome.scope, { capability: CAP, strategyId: R.entrega.plan.id }), JSON.stringify(exito.outcome.scope));
+  igual(exito.outcome?.scope, { capability: CAP, strategyId: R.entrega.plan.id }), JSON.stringify(exito.outcome?.scope));
 check('58b · la identidad la pone la ENTREGA, no la observación: quien ejecuta no puede atribuir su resultado a otra',
   ciclo.cerrar(R, { ...observar(0, 'success', T1), scope: { strategyId: 'otra-alternativa' }, strategyId: 'otra' },
-    { ahora: T1 + HORA, policy: POL }).outcome.scope.strategyId === R.entrega.plan.id);
+    { ahora: T1 + HORA, policy: POL }).outcome?.scope?.strategyId === (R.entrega?.plan?.id ?? 'sin entrega'));
 check('59 · el aprendizaje es de A7, igual que llamándolo directamente',
   igual(exito.learning, a7.aprender({ ahora: T1 + HORA, policy: POL, outcomes: [exito.outcome] })));
 check('60 · sin reloj de aprendizaje, no se aprende: y no se inventa uno',
-  ciclo.cerrar(R, observar(0, 'success', T1)).learning === undefined);
+  ciclo.cerrar(R, observar(0, 'success', T1)).status === 'closed' && ciclo.cerrar(R, observar(0, 'success', T1)).learning === undefined);
 check('61 · con un reloj que no vale, A7 lo rechaza y el ciclo lo dice',
-  ciclo.cerrar(R, observar(0, 'success', T1), { ahora: NaN }).learning.rechazo === 'clock_invalid');
+  ciclo.cerrar(R, observar(0, 'success', T1), { ahora: NaN }).learning?.rechazo === 'clock_invalid');
 
 console.log('\n─── K. El ciclo completo ───');
 
@@ -417,9 +418,9 @@ check('62 · el ciclo entero recorre A8, A1, A2, A4, A3, A5, A1 y la entrega',
 check('63 · y cierra: A6 verifica y A7 aprende, también el éxito de la alternativa que se ejecutó',
   v1.c.status === 'closed' && v1.c.verification.status === 'pass' && v1.c.learning.aggregates.length === 4 &&
   v1.c.learning.aggregates.some((a) => a.metric === 'strategy.succeeded' && a.scope.strategyId === v1.r.entrega.plan.id),
-  v1.c.learning.aggregates.map((a) => a.metric).join(','));
+  v1.c.learning?.aggregates.map((a) => a.metric).join(','));
 check('64 · lo aprendido vuelve a entrar: la siguiente decisión lo lee por A8',
-  vuelta(v1.c.learning.aggregates, T1 + 2 * HORA).r.context.metricas.recibidas === 4);
+  !!v1.c.learning && vuelta(v1.c.learning.aggregates, T1 + 2 * HORA).r.context.metricas.recibidas === 4);
 check('65 · la misma entrada dos veces, el mismo resultado', igual(vuelta([], T1), v1));
 
 console.log('\n─── L. La segunda pasada ───');
@@ -430,20 +431,28 @@ let aprendido = [];
 for (let i = 0; i < 40; i++) {
   const at = T1 + (i + 1) * HORA;
   const c = ciclo.cerrar(primera, observar(i, i % 20 === 7 ? 'failure' : 'success', at), { ahora: at, previo: aprendido, policy: POL });
-  aprendido = c.learning.aggregates;
+  aprendido = c.learning?.aggregates ?? aprendido;
 }
 const T2 = T1 + 41 * HORA;
+const ID_PRIMERA = primera.entrega?.plan?.id ?? 'sin entrega';
 const segunda = ciclo.decidir(peticion({ aprendido: { ahora: T2, scope: { capability: CAP }, learned: aprendido, learningPolicy: POL } }));
 check('66 · primera pasada: sin evidencia histórica, y A1 decide con la de siempre',
   primera.context.cierre === 'no_evidence' && primera.historial === undefined && primera.status === 'decided');
+/* Desde 1.9 la latencia es de las 38 que salieron BIEN —lo que midió una ejecución
+ * que falló no es su rendimiento— y la verificación, de las 38 que ENTREGARON algo
+ * que verificar: el suspenso de A6 a un fallo es su puerta de ejecución repitiendo
+ * el fallo. La ejecución y el éxito de la alternativa cuentan las cuarenta. */
 check('67 · tras cuarenta ejecuciones, A7 tiene lo aprendido POR ALTERNATIVA: el ámbito de la decisión más la identidad de lo ejecutado',
-  aprendido.length === 4 && aprendido.every((a) => a.n === 40 && igual(a.scope, { capability: CAP, strategyId: primera.entrega.plan.id })),
-  aprendido.map((a) => a.metric).join(','));
+  aprendido.length === 4 && aprendido.every((a) => igual(a.scope, { capability: CAP, strategyId: ID_PRIMERA })) &&
+  ['outcome.success', 'strategy.succeeded'].every((m) => aprendido.find((a) => a.metric === m)?.n === 40) &&
+  ['result.latencyMs', 'verification.passed'].every((m) => aprendido.find((a) => a.metric === m)?.n === 38) &&
+  aprendido.find((a) => a.metric === 'verification.passed')?.favorables === 38,
+  aprendido.map((a) => `${a.metric}:${a.n}`).join(','));
 check('68 · segunda pasada: A8 ADMITE lo aprendido que habla de lo que esta decisión optimiza',
   segunda.context.cierre === 'admitted' &&
   igual(segunda.context.admisiones.filter((x) => x.status === 'admitted').map((x) => x.metric), ['outcome.success', 'result.latencyMs']));
 check('69 · y deja fuera, diciendo por qué, lo que no: la verificación no es un eje de este objetivo',
-  segunda.context.admisiones.find((x) => x.metric === 'verification.passed').because.includes('axis_not_in_objective'));
+  segunda.context.admisiones.find((x) => x.metric === 'verification.passed')?.because.includes('axis_not_in_objective') === true);
 /*
  * Desde 1.8 lo aprendido es de la alternativa que se ejecutó, así que ya no
  * hay ventana del ÁMBITO que dar —esa sale ahora de datos sin identidad, en
@@ -454,18 +463,18 @@ check('70 · con este objetivo A1 no recibe historial: ni del ámbito —todo se
   segunda.historial === undefined && segunda.historialPorAlternativa === undefined &&
   segunda.context.admisiones.some((x) => x.metric === 'strategy.succeeded' && x.because.includes('axis_not_in_objective')));
 check('71 · y A1 decide EXACTAMENTE lo mismo: no se finge que lo aprendido pese donde no puede pesar',
-  igual(segunda.decision, primera.decision) && igual(segunda.entrega, primera.entrega));
+  !!primera.entrega && igual(segunda.decision, primera.decision) && igual(segunda.entrega, primera.entrega));
 const OBJ_EXITO = { weights: { latency: 1, reliability: 1, successProbability: 2 } };
 const segundaConExito = ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO }),
   aprendido: { ahora: T2, scope: { capability: CAP }, learned: aprendido, learningPolicy: POL } }));
 check('72 · con un objetivo que SÍ pondera el éxito, A8 entrega el historial de la alternativa que se ejecutó, y SOLO de esa',
-  igual(Object.keys(segundaConExito.historialPorAlternativa ?? {}), [primera.entrega.plan.id]) &&
-  segundaConExito.historialPorAlternativa[primera.entrega.plan.id].sampleSize === 40 &&
-  segundaConExito.historialPorAlternativa[primera.entrega.plan.id].succeeded === 38 && segundaConExito.historial === undefined,
+  igual(Object.keys(segundaConExito.historialPorAlternativa ?? {}), [ID_PRIMERA]) &&
+  segundaConExito.historialPorAlternativa[ID_PRIMERA].sampleSize === 40 &&
+  segundaConExito.historialPorAlternativa[ID_PRIMERA].succeeded === 38 && segundaConExito.historial === undefined,
   JSON.stringify(segundaConExito.historialPorAlternativa));
 check('72b · A1 lo usa para ESA alternativa y lo dice; a la que nunca se ejecutó no se le inventa nada',
-  segundaConExito.decision.explanation.some((f) => f === `Historial propio usado como probabilidad de éxito: «${primera.entrega.plan.id}».`) &&
-  segundaConExito.decision.candidates.filter((c) => c.id !== primera.entrega.plan.id).every((c) => !c.score || c.score.missing.includes('successProbability')));
+  segundaConExito.decision.explanation.some((f) => f === `Historial propio usado como probabilidad de éxito: «${ID_PRIMERA}».`) &&
+  segundaConExito.decision.candidates.filter((c) => c.id !== ID_PRIMERA).every((c) => !c.score || c.score.missing.includes('successProbability')));
 
 /*
  * EL HISTORIAL POR ALTERNATIVA DECLARADO EN LA PETICIÓN, sin A8. Es el mismo
@@ -495,9 +504,16 @@ check('72d · y es A1 quien lo decide, igual que llamándolo directamente: A9 so
     options: opcionesDe(conPorAlternativa), signals: conPorAlternativa.strategies.signals })));
 const historialConProveedor = conExito({ historyByOption: Object.fromEntries(Object.entries(HBO).map(([id, h]) => [id, { ...h, providerId: 'p-favorito', modelId: 'm-favorito' }])) });
 check('72e · un historial que nombra proveedor o modelo no pasa de A1: se ignora, se dice, y el plan es el de sin historial',
-  igual(historialConProveedor.entrega, sinPorAlternativa.entrega) && A.violacionesEn(historialConProveedor.entrega, 'entrega').length === 0 &&
+  !!historialConProveedor.entrega && igual(historialConProveedor.entrega, sinPorAlternativa.entrega) && A.violacionesEn(historialConProveedor.entrega, 'entrega').length === 0 &&
   historialConProveedor.decision.explanation.filter((f) => /sin usar: su historial no se puede leer: nombra una implementación/.test(f)).length === 2);
+/* Por DEBAJO del suelo de muestra de A7: cuatro ejecuciones no son una muestra.
+ * Apunta al revés que el plan sin historial, así que si A1 lo usara se notaría. */
+const bajoElSuelo = conExito({ historyByOption: Object.fromEntries(Object.entries(HBO).map(([id, h]) => [id, { sampleSize: 4, succeeded: h.succeeded > 20 ? 4 : 0 }])) });
+check('72e2 · un historial con menos muestra que el suelo de A7 tampoco pasa de A1 por el ciclo: se ignora, se dice, y el plan es el de sin historial',
+  A.POLITICA_MINIMA.minSampleSize === 5 && !!bajoElSuelo.entrega && igual(bajoElSuelo.entrega, sinPorAlternativa.entrega) &&
+  bajoElSuelo.decision.explanation.filter((f) => /sin usar: su historial no se puede leer: muestra de 4, por debajo de 5: no es una muestra/.test(f)).length === Object.keys(HBO).length);
 check('72f · y la autoridad del Router no cambia: cada paso entregado lleva la misma forma que sin historial —capacidad, ninguna implementación—',
+  !!conPorAlternativa.entrega?.plan && !!sinPorAlternativa.entrega?.plan &&
   conPorAlternativa.entrega.plan.steps.every((s) => typeof s.capability === 'string' && A.violacionesEn(s, 'paso').length === 0) &&
   igual(conPorAlternativa.entrega.plan.steps.map((s) => Object.keys(s).sort()), sinPorAlternativa.entrega.plan.steps.map((s) => Object.keys(s).sort())));
 /*
@@ -559,7 +575,7 @@ const ejecutarAB = (desenlace, vueltas = 80, opciones = OPC_AB) => {
     if (desenlace[id] === 'success') bien[id]++;
     const c = ciclo.cerrar(r, observarAB(i, desenlace[id], ahora + 1), { ahora: ahora + 1, previo: learned, policy: POL });
     resultados.push(c.outcome);
-    learned = c.learning.aggregates;
+    learned = c.learning?.aggregates ?? learned;
   }
   return { learned, ejecutadas, bien, elegidas, resultados };
 };
@@ -623,12 +639,13 @@ check('S11 · barajar lo aprendido, las señales y las alternativas no cambia la
   JSON.parse(decisionesBarajadas[0]).candidates.find((c) => c.reason === 'selected').id === 'strategy-A');
 const deGolpe = a7.aprender({ ahora: T_AB, policy: POL, outcomes: barajar(AB.resultados, 7) });
 check('S12 · y los mismos resultados en cualquier orden, de una vez, dan lo mismo que aprendidos uno a uno',
+  ['strategy-A', 'strategy-B'].every((id) => !!exitoDe(deGolpe.aggregates, id) && !!exitoDe(AB.learned, id)) &&
   igual(exitoDe(deGolpe.aggregates, 'strategy-A').n, exitoDe(AB.learned, 'strategy-A').n) &&
   igual(A.ventanaDe(exitoDe(deGolpe.aggregates, 'strategy-B')), A.ventanaDe(exitoDe(AB.learned, 'strategy-B'))) &&
   igual(ciclo.decidir(pedirAB(T_AB, deGolpe.aggregates)).decision, segundaAB.decision));
 const HBO_AB = A.paraDecision(segundaAB.context).historyByOption;
 check('S13 · el historial por alternativa en otro orden de claves: la misma decisión',
-  igual(a1.decidir({ ...decisionAB(), historyByOption: Object.fromEntries(Object.entries(HBO_AB).reverse()) }), segundaAB.decision));
+  !!HBO_AB && igual(a1.decidir({ ...decisionAB(), historyByOption: Object.fromEntries(Object.entries(HBO_AB).reverse()) }), segundaAB.decision));
 
 /* SOLO EL HISTORIAL DEL ÁMBITO: lo que se aprendió sin saber qué alternativa corrió. */
 const soloAmbito = a7.aprender({ ahora: T_AB, policy: POL, outcomes: Array.from({ length: 60 }, (_, i) => ({
@@ -691,6 +708,65 @@ check('S17 · alternativas con la misma identidad: A1 no decide, y el ciclo no e
       ciclo.cerrar(r, observarAB(0, 'success', T1)).parada === 'not_decided';
   })());
 
+console.log('\n─── L3. A9.3 · Ejecución ≠ verificación ≠ recuperación, en el ciclo ───');
+
+/* Sin nada que verificar. MEDIDO: A6 da `pass` con su puerta de ejecución —«terminó
+ * como terminó»— como única comprobación. Es la ejecución vista desde A6, no un
+ * aprobado del resultado: A7 aprende la ejecución y ningún veredicto (1.9). */
+const sinExpectativas = ciclo.decidir({ decision: decisionAB() });
+const cierreSinNadaQueVerificar = ciclo.cerrar(sinExpectativas, observarAB(0, 'success', T1), { ahora: T1 + 1, policy: POL });
+check('L3a · sin nada que verificar, el `pass` de A6 es su puerta de ejecución: A7 aprende la ejecución y NINGÚN veredicto inventado',
+  cierreSinNadaQueVerificar.status === 'closed' && !!cierreSinNadaQueVerificar.learning &&
+  cierreSinNadaQueVerificar.verification.status === 'pass' &&
+  cierreSinNadaQueVerificar.verification.findings.length > 0 &&
+  cierreSinNadaQueVerificar.verification.findings.every((f) => A.COMPROBACIONES_DE_EJECUCION.has(f.type)) &&
+  cierreSinNadaQueVerificar.learning.aggregates.some((a) => a.metric === 'outcome.success' && a.favorables === 1) &&
+  !cierreSinNadaQueVerificar.learning.aggregates.some((a) => a.metric === 'verification.passed'),
+  cierreSinNadaQueVerificar.learning?.aggregates.map((a) => `${a.metric}:${a.favorables}/${a.n}`).join(','));
+check('L3a2 · A9 le pasa a A7 el veredicto de A6 CON sus hallazgos, tal cual: sin ellos A7 no separaría resultado y ejecución',
+  cierreSinNadaQueVerificar.status === 'closed' &&
+  cierreSinNadaQueVerificar.outcome.verification.findings === cierreSinNadaQueVerificar.verification.findings &&
+  cierreSinNadaQueVerificar.outcome.verification.status === cierreSinNadaQueVerificar.verification.status);
+const cierreRecuperado = ciclo.cerrar(sinExpectativas, { ...observarAB(1, 'failure', T1), recovery: { kind: 'retry', executed: true, succeeded: true } },
+  { ahora: T1 + 1, policy: POL });
+check('L3b · un fallo que una recuperación arregla sigue siendo un fallo de la alternativa entregada, y la recuperación es suya, con su tipo',
+  !!cierreRecuperado.learning && cierreRecuperado.learning.aggregates.find((a) => a.metric === 'outcome.success')?.favorables === 0 &&
+  cierreRecuperado.learning.aggregates.find((a) => a.metric === 'strategy.succeeded')?.favorables === 0 &&
+  igual(cierreRecuperado.learning.aggregates.find((a) => a.metric === 'recovery.succeeded')?.scope,
+    { strategyId: sinExpectativas.entrega?.elegida ?? 'sin entrega', recoveryKind: 'retry' }));
+const terminaSinCumplirR = ciclo.cerrar(R, { ...observar(5, 'success', T1), actual: observar(5, 'partial_success', T1).actual }, { ahora: T1 + HORA, policy: POL });
+const agregadoDe9 = (c, m) => c.learning?.aggregates.find((a) => a.metric === m);
+check('L3c · la ejecución terminó y el resultado no cumplió: un éxito de ejecución Y un suspenso de verificación, cada uno en lo suyo',
+  terminaSinCumplirR.verification?.status === 'partial' && agregadoDe9(terminaSinCumplirR, 'outcome.success')?.favorables === 1 &&
+  agregadoDe9(terminaSinCumplirR, 'strategy.succeeded')?.favorables === 1 &&
+  agregadoDe9(terminaSinCumplirR, 'verification.passed')?.n === 1 && agregadoDe9(terminaSinCumplirR, 'verification.passed')?.favorables === 0);
+/* Una alternativa que SIEMPRE termina y NUNCA cumple lo esperado, cuarenta veces. */
+const EXPECTED_AB = [{ kind: 'text', quality: { minScore: 0.8 } }];
+const terminaSinCumplir = (i, at) => ({ kind: 'success', at,
+  actual: { id: `tc_${i}`, status: 'succeeded', outputs: [{ kind: 'text', ref: `ref://tc${i}`, metadata: { puntuacion: 0.5 } }] } });
+let aprendidoTC = [];
+for (let i = 0; i < 40; i++) {
+  const ahora = T1 + (i + 1) * HORA;
+  const r = ciclo.decidir({ decision: decisionAB(JUSTA), expected: EXPECTED_AB, aprendido: { ahora, scope: { capability: CAP }, learned: aprendidoTC, learningPolicy: POL } });
+  aprendidoTC = ciclo.cerrar(r, terminaSinCumplir(i, ahora + 1), { ahora: ahora + 1, previo: aprendidoTC, policy: POL }).learning?.aggregates ?? aprendidoTC;
+}
+const conTC = ciclo.decidir({ decision: decisionAB(), expected: EXPECTED_AB,
+  aprendido: { ahora: T1 + 42 * HORA, scope: { capability: CAP }, learned: aprendidoTC, learningPolicy: POL } });
+check('L3d · y A1 recibe de ella su EJECUCIÓN como probabilidad de éxito, no su verificación: 40 de 40, aunque ninguna cumpliera',
+  conTC.historialPorAlternativa?.['strategy-A']?.succeeded === 40 && conTC.historialPorAlternativa['strategy-A'].sampleSize === 40 &&
+  aprendidoTC.find((a) => a.metric === 'verification.passed' && a.scope.strategyId === 'strategy-A')?.favorables === 0,
+  JSON.stringify(conTC.historialPorAlternativa));
+/* Un fallo que una recuperación arregló, y lo RECUPERADO cumple lo esperado: A6
+ * aprueba el resultado final, pero no lo entregó la alternativa que falló. */
+const recuperadoCumple = ciclo.cerrar(R, { ...observar(6, 'failure', T1), actual: observar(6, 'success', T1).actual,
+  recovery: { kind: 'retry', executed: true, succeeded: true } }, { ahora: T1 + HORA, policy: POL });
+check('L3e · lo que arregló una recuperación no premia a la alternativa que falló: A6 aprueba, y A7 no se lo apunta como verificación suya',
+  recuperadoCumple.verification?.status === 'pass' &&
+  agregadoDe9(recuperadoCumple, 'outcome.success')?.favorables === 0 &&
+  agregadoDe9(recuperadoCumple, 'recovery.succeeded')?.favorables === 1 &&
+  agregadoDe9(recuperadoCumple, 'verification.passed') === undefined,
+  `${recuperadoCumple.verification?.status} · ${recuperadoCumple.learning?.aggregates.map((a) => `${a.metric}:${a.favorables}/${a.n}`).join(',')}`);
+
 console.log('\n─── M. Sin política automática ───');
 
 const congelar = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); Object.values(o).forEach(congelar); } return o; };
@@ -714,11 +790,11 @@ check('77 · y no puede escribir en ninguna autoridad: ni una importación de Ro
 console.log('\n─── N. Las deudas, declaradas ───');
 
 const r1 = ciclo.cerrar(primera, observar(0, 'success', T2), { ahora: T2, policy: POL });
-const r2 = ciclo.cerrar(primera, observar(0, 'success', T2), { ahora: T2, previo: r1.learning.aggregates, policy: POL });
+const r2 = ciclo.cerrar(primera, observar(0, 'success', T2), { ahora: T2, previo: r1.learning?.aggregates ?? [], policy: POL });
 check('78 · DEUDA · cerrar dos veces la misma observación la cuenta dos veces: la entrega exactamente-una-vez es del integrador',
-  r2.learning.aggregates.every((a) => a.n === 2), 'no se resuelve metiendo identificadores en los agregados');
+  !!r2.learning && r2.learning.aggregates.length > 0 && r2.learning.aggregates.every((a) => a.n === 2), 'no se resuelve metiendo identificadores en los agregados');
 check('79 · y los agregados siguen sin guardar identificadores de ejecución',
-  !JSON.stringify(aprendido).includes('ejec_'));
+  aprendido.length > 0 && !JSON.stringify(aprendido).includes('ejec_'));
 const DOCS = leer('docs/ALGORITHM-ENGINE.md');
 check('80 · las deudas temporales de A7 están ESCRITAS antes de integrar persistencia',
   ['tramosAncho', 'futuro lejano', 'exactamente-una-vez', 'fuerza', 'sin `at`'].every((x) => DOCS.includes(x)),
@@ -832,7 +908,7 @@ const vueltas = (cuantas) => cronometrar((k = cuantas) => {
   for (let i = 0; i < k; i++) {
     const r = ciclo.decidir(peticion());
     const c = ciclo.cerrar(r, observar(i, 'success', T1 + i), { ahora: T1 + i, previo, policy: POL });
-    previo = c.learning.aggregates; if (c.status === 'closed') cerradas++;
+    previo = c.learning?.aggregates ?? previo; if (c.status === 'closed') cerradas++;
   }
   return { cerradas, claves: previo.length };
 });

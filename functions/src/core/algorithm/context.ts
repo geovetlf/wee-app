@@ -55,6 +55,10 @@ import { ORDEN_DE_CLAVE } from './learning';
  *
  * `feedback.satisfaction` va a `userValue`, que `ObjectiveAxis` tiene desde A0
  * con la nota «sin medición todavía». Es la primera medición que le llega.
+ *
+ * `recovery.succeeded` ya NO está (contrato 1.9): iba a `reliability`, y así el
+ * éxito de una recuperación contaba como fiabilidad de la implementación que
+ * falló —y llegaba a `paraRouter` como tal—. Está en `METRICAS_SIN_EJE`.
  */
 export const EJE_DE_METRICA: Readonly<Record<string, ObjectiveAxis>> = Object.freeze({
   'result.latencyMs': 'latency',
@@ -62,9 +66,19 @@ export const EJE_DE_METRICA: Readonly<Record<string, ObjectiveAxis>> = Object.fr
   'result.quality': 'quality',
   'outcome.success': 'reliability',
   'verification.passed': 'quality',
-  'recovery.succeeded': 'reliability',
   'strategy.succeeded': 'successProbability',
   'feedback.satisfaction': 'userValue',
+});
+
+/**
+ * LAS MÉTRICAS DE A7 QUE NO INFORMAN NINGÚN EJE DE DECISIÓN, con el porqué
+ * (contrato 1.9). No es un olvido: es una declaración, y la prueba que mantiene
+ * las dos tablas sincronizadas exige que cada métrica base esté en una de ellas.
+ * A8 no las admite para decidir —ninguna decisión las optimiza—, y por eso
+ * tampoco llegan a `paraRouter`. A7 las sigue aprendiendo.
+ */
+export const METRICAS_SIN_EJE: Readonly<Record<string, string>> = Object.freeze({
+  'recovery.succeeded': 'dice si una recuperación resolvió un fallo, no cómo de fiable es la implementación que falló',
 });
 
 /**
@@ -74,11 +88,24 @@ export const EJE_DE_METRICA: Readonly<Record<string, ObjectiveAxis>> = Object.fr
  */
 export const METRICA_POR_ALTERNATIVA = 'strategy.succeeded';
 
-/** Qué eje informa una métrica. `undefined` = no se sabe, y no se inventa. */
+/**
+ * LA MÉTRICA DE LA EJECUCIÓN (contrato 1.9): de la que sale el historial del
+ * ÁMBITO que ve A1 —«N ejecuciones, K bien»—. Una ventana de la verificación o
+ * de una medida no es historial de ejecuciones, y presentarla como tal
+ * convertía un «pasó la verificación» en un «salió bien».
+ */
+export const METRICA_DE_EJECUCION = 'outcome.success';
+
+/**
+ * Qué eje informa una métrica. `undefined` = no se sabe, o no informa ninguno, y
+ * no se inventa. Los ejes que añade quien pide son para métricas que A8 NO
+ * conoce —«además de, nunca en vez de»—: no cambian el de una conocida ni le dan
+ * uno a la que se declaró sin eje.
+ */
 export const ejeDeMetrica = (
   metric: string,
   extra?: Readonly<Record<string, ObjectiveAxis>>,
-): ObjectiveAxis | undefined => extra?.[metric] ?? EJE_DE_METRICA[metric];
+): ObjectiveAxis | undefined => EJE_DE_METRICA[metric] ?? (METRICAS_SIN_EJE[metric] ? undefined : extra?.[metric]);
 
 /* ── El ámbito ────────────────────────────────────────────────────────────── */
 

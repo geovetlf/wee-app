@@ -346,8 +346,59 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *       alternativa de A8; y declararlo además de pedirlo a A8 es `history_twice`.
  *
  * Las reglas con que A1 usa el historial son las de 1.7, sin tocar.
+ *
+ * 1.9 (A9.3): EJECUCIÓN ≠ VERIFICACIÓN ≠ RECUPERACIÓN. De un resultado A7 aprende
+ * tres desenlaces que no son el mismo, cada uno de su dueño, y en los tres un «no»
+ * es una MUESTRA de la tasa, nunca una contradicción —la contradicción la sigue
+ * poniendo un gesto explícito—. Medido antes de cambiarlo: lo que fallaba a menudo
+ * no se validaba nunca —cada fallo contaba como contradicción—, y a `paraRouter`
+ * solo le llegaban buenas noticias. Sube de versión porque cambia la forma pública
+ * —`AmbitoDeEvento.recoveryKind`, `ResultadoDeDecision.verification.findings`— y
+ * cambia lo que se aprende de un resultado:
+ *
+ *   EJECUCIÓN     `outcome.success` y `strategy.succeeded` salen de `kind` y de
+ *                 nada más: `success` es un sí; `failure` y `partial_success`,
+ *                 un no; `cancelled` y `unknown` no son desenlaces y no se
+ *                 aprenden.
+ *   VERIFICACIÓN  `verification.passed` sale del veredicto de A6 con sus cubos
+ *                 (`dejaSeguir` sí, `afirmaFallo` no, `esSinSaber` nada), y SOLO
+ *                 de un resultado que la ejecución ENTREGÓ (`success` o
+ *                 `partial_success`) y que A6 verificó de verdad: su puerta de
+ *                 ejecución —lo que deriva aunque no se espere nada,
+ *                 `COMPROBACIONES_DE_EJECUCION`, que se le pregunta y no se
+ *                 copia— pasó, y concluyó al menos una condición del resultado.
+ *                 Medido: sin nada esperado A6 da `pass` con esa puerta sola, y un
+ *                 fallo lo suspende por ella; las dos cosas eran la ejecución
+ *                 repetida, y una recuperación que arreglaba el resultado se
+ *                 apuntaba como verificación de la alternativa que falló. Por eso
+ *                 la verificación viaja con los `findings` de A6, tal cual: sin
+ *                 ellos no se puede separar, y no se aprende.
+ *   RECUPERACIÓN  `recovery.succeeded`, solo de una recuperación que se EJECUTÓ y
+ *                 dijo cómo fue, en el ámbito de la alternativa que falló y con
+ *                 su tipo en la nueva dimensión de la clave, `recoveryKind`, al
+ *                 final de `ORDEN_DE_CLAVE`: en 1.8 el tipo pisaba `strategyId`, y
+ *                 las recuperaciones de dos alternativas se sumaban.
+ *   MEDIDAS       latencia, coste y calidad medida, solo de una ejecución que
+ *                 salió bien. Y ninguna señal suelta —de un resultado o de un
+ *                 evento— con el nombre de algo que A7 deriva
+ *                 (`METRICAS_DERIVADAS`) se agrega: lo suplantaría.
+ *   A8            `recovery.succeeded` no informa ningún eje (`METRICAS_SIN_EJE`):
+ *                 dice si una recuperación resolvió un fallo, no cómo de fiable
+ *                 es lo que falló. Los `ejes` de quien pide vuelven a ser lo que
+ *                 su contrato decía —«además de, nunca en vez de»—: no le dan eje
+ *                 a una métrica declarada sin él ni cambian el de una conocida;
+ *                 antes lo cambiaban, y la verificación podía pasar por
+ *                 fiabilidad. Y la ventana del ámbito que `paraDecision` entrega
+ *                 a A1 es la de la EJECUCIÓN (`METRICA_DE_EJECUCION`), no la de
+ *                 cualquier métrica admitida.
+ *
+ * `paraRouter` sigue PREPARADO y SIN CONECTAR: evidencia por implementación, sin
+ * ganador ni puntuación, y la autoridad de implementación sigue siendo el Router.
+ * La política de A7 no cambia ni gana un umbral. Las claves sin `recoveryKind` no
+ * cambian; un agregado de recuperación de 1.8 llevaba el tipo en `strategyId` y no
+ * se migra —A7 no está conectado, así que no hay ninguno guardado—.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.8' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.9' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

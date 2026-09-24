@@ -30,6 +30,7 @@
  *  Q. Rendimiento y escala.
  *  X. A9.1: A7 observa, agrega y aprende; no enruta.
  *  Y. A9.2: aprender por alternativa.
+ *  Z. A9.3: ejecución ≠ verificación ≠ recuperación.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -172,9 +173,16 @@ check('31 · una valoración se lee del número, no del gesto',
 
 console.log('\n─── F. Resultados de una decisión ───');
 
+/* Veredictos DE A6, tal cual los da —con sus hallazgos, que desde 1.9 viajan con
+ * él—. Hasta 1.9 este lote llevaba `status: 'pass'` con `passed` falso —un veredicto
+ * que A6 no puede dar—, y A7 lo tragaba porque solo miraba `passed`. */
+const A6 = A.crearMotorDeVerificacion();
+const veredictoReal = (actual, expected = [{ kind: 'text' }]) => A6.verificar({ expected, actual: { id: 'v', ...actual } });
+const VEREDICTO_PASA = veredictoReal({ status: 'succeeded', outputs: [{ kind: 'text', ref: 'r' }] });
+const VEREDICTO_FALLA = veredictoReal({ status: 'succeeded', outputs: [] });
 const conVerificacion = aprender({
   outcomes: lote(40, (i) => res(i, i % 4 ? 'success' : 'failure', AHORA - (40 - i) * HORA, AMBITO, {
-    verification: { status: 'pass', passed: i % 4 !== 0, confidence: { kind: 'algorithm', value: 0.9, basis: [] } },
+    verification: i % 4 !== 0 ? VEREDICTO_PASA : VEREDICTO_FALLA,
   })),
 });
 check('32 · de un resultado salen varias observaciones, y cada una con su métrica',
@@ -187,8 +195,13 @@ check('34 · solo se aprende de una recuperación que SE EJECUTÓ',
     .candidates.every((c) => c.metric !== 'recovery.succeeded') &&
   aprender({ outcomes: [res(1, 'success', AHORA, AMBITO, { recovery: { kind: 'retry', executed: true, succeeded: true } })] })
     .candidates.some((c) => c.metric === 'recovery.succeeded'));
-check('35 · el veredicto de A6 entra tal cual, sin reinterpretarse',
-  conVerificacion.candidates.find((c) => c.metric === 'verification.passed').sampleSize === 40);
+/* 1.9: la verificación es de lo que la ejecución ENTREGÓ. Los diez fallos traen un
+ * «fail» de A6, pero es su puerta de ejecución repitiendo el fallo: no entra. */
+check('35 · el veredicto de A6 entra tal cual, sin reinterpretarse, y solo de lo que la ejecución entregó',
+  VEREDICTO_PASA.status === 'pass' && VEREDICTO_FALLA.status === 'fail' &&
+  conVerificacion.candidates.find((c) => c.metric === 'verification.passed')?.sampleSize === 30 &&
+  conVerificacion.aggregates.find((a) => a.metric === 'verification.passed')?.favorables === 30 &&
+  conVerificacion.aggregates.find((a) => a.metric === 'outcome.success')?.n === 40);
 check('36 · y una estrategia declarada produce su propia métrica',
   aprender({ outcomes: [res(1, 'success', AHORA, { ...AMBITO, strategyId: 's1' })] })
     .candidates.some((c) => c.metric === 'strategy.succeeded'));
@@ -287,11 +300,14 @@ check('54 · «no se puede saber» la estabilidad NO es «es inestable»',
 check('55 · y tiene su propio código de motivo, distinto del de inestable',
   A.guardas(A.acumular(A.agregadoVacio('k', 'm', {}), { value: 1, at: AHORA, favorable: true }, AHORA, DIA), AHORA, A.politicaEfectiva())
     .includes('stability_unknown'));
+/* La contradicción es de la EVIDENCIA: gestos de personas a favor y en contra de
+ * lo mismo. Hasta 1.9 este caso la sacaba de ejecuciones que fallaban, y eso era
+ * el error: un fallo es una muestra de la tasa, no evidencia en contra (sección Z). */
 check('56 · la contradicción se guarda, se cuenta y limita la conclusión',
   (() => {
     const contradictorio = aprender({
-      outcomes: lote(60, (i) => res(i, i % 2 ? 'success' : 'failure', AHORA - (60 - i) * HORA)),
-    }).candidates.find((c) => c.metric === 'outcome.success');
+      events: lote(60, (i) => ev(i, i % 2 ? 'accepted' : 'rejected', 'explicit', AHORA - (60 - i) * HORA)),
+    }).candidates.find((c) => c.metric === 'feedback.satisfaction');
     return contradictorio.contradicting.length > 0 && contradictorio.state !== 'validated';
   })());
 
@@ -488,8 +504,7 @@ check('92 · un veredicto de A6 alimenta a A7 sin traducir nada',
   (() => {
     const a6 = A.crearMotorDeVerificacion();
     const v = a6.verificar({ expected: [{ kind: 'salida' }], actual: { id: 'r', status: 'succeeded', outputs: [{ kind: 'salida', ref: 'x' }] } });
-    return aprender({ outcomes: [{ id: 'o', kind: 'success', at: AHORA, scope: AMBITO,
-      verification: { status: v.status, passed: v.passed, confidence: v.confidence } }] })
+    return aprender({ outcomes: [{ id: 'o', kind: 'success', at: AHORA, scope: AMBITO, verification: v }] })
       .candidates.some((c) => c.metric === 'verification.passed');
   })());
 check('93 · y una propuesta de A6 ejecutada se convierte en aprendizaje de recuperación',
@@ -589,9 +604,11 @@ check('R2 · F02 · con procedencia débil cae la CONFIANZA y solo ella',
 check('R3 · F03 · y con ella cae la incertidumbre, que es la otra mitad de la pregunta',
   latenciaDe(flojo).because.includes('uncertainty_too_high') && latenciaDe(flojo).state === 'rejected');
 
-/* F05 · La contradicción, SOLA. Mitad a favor y mitad en contra del mismo valor. */
+/* F05 · La contradicción, SOLA. Mitad a favor y mitad en contra del mismo valor:
+ * gestos de personas que aceptan o rechazan lo que midió 800 ms. Hasta 1.9 salía
+ * de ejecuciones que fallaban, y eso ya no es contradicción (sección Z). */
 const contradictorio = aprender({
-  outcomes: lote(60, (i) => res(`c${i}`, i % 2 ? 'success' : 'failure', AHORA - (60 - i) * HORA, AMBITO, {
+  events: lote(60, (i) => ev(`c${i}`, i % 2 ? 'accepted' : 'rejected', 'explicit', AHORA - (60 - i) * HORA, AMBITO, {
     signals: [sig('result.latencyMs', 800, 'measured', AHORA - (60 - i) * HORA, { sampleSize: 20 })],
   })),
 });
@@ -1269,11 +1286,11 @@ check('Y1 · cada resultado se suma a SU alternativa: la clave lleva su identida
   exitoDeAlt(AyB, 'A').key === A.claveDeAmbito(alt('A'), 'strategy.succeeded'));
 check('Y2 · una alternativa que SIEMPRE falla se valida como tal: una medición firme de que falla no es «no se sabe»',
   candidatoDeAlt(AyB, 'B')?.state === 'validated' && candidatoDeAlt(AyB, 'B').value === 0 &&
-  exitoDeAlt(AyB, 'B').contradicciones === 0, (candidatoDeAlt(AyB, 'B')?.because ?? []).join(','));
-check('Y3 · LIMITACIÓN DECLARADA · `outcome.success` sigue contando el fallo como contradicción: A9.2 solo corrige la métrica de la alternativa',
-  candidatoDeAlt(AyB, 'B', 'outcome.success')?.state === 'rejected' &&
-  candidatoDeAlt(AyB, 'B', 'outcome.success').because.includes('evidence_contradictory'),
-  'es la misma trampa para el Router el día que lea `paraRouter`: está escrita en los docs');
+  exitoDeAlt(AyB, 'B')?.contradicciones === 0, (candidatoDeAlt(AyB, 'B')?.because ?? []).join(','));
+check('Y3 · 1.9 · la limitación que A9.2 dejó declarada, cerrada: `outcome.success` valida como tal la ejecución que falla',
+  candidatoDeAlt(AyB, 'B', 'outcome.success')?.state === 'validated' && candidatoDeAlt(AyB, 'B', 'outcome.success').value === 0 &&
+  !candidatoDeAlt(AyB, 'B', 'outcome.success').because.includes('evidence_contradictory'),
+  (candidatoDeAlt(AyB, 'B', 'outcome.success')?.because ?? []).join(','));
 const mezcla = porAlt([{ id: 'M', n: 40, bien: (i) => i % 4 !== 0 }]);
 check('Y4 · una tasa intermedia y estable también se valida: 30 de 40, sin contradicción que la tape',
   candidatoDeAlt(mezcla, 'M')?.state === 'validated' && candidatoDeAlt(mezcla, 'M').value === 0.75, String(candidatoDeAlt(mezcla, 'M')?.value));
@@ -1297,6 +1314,7 @@ check('Y7 · y un EVENTO con el separador en el ámbito, igual: la clave es la m
   aprender({ events: [ev(1, 'accepted', 'explicit', AHORA, { capability: 'x.y', strategyId: 'S' })] }).metricas.eventosAdmitidos === 1);
 const BA7 = porAlt([{ id: 'A', n: 40, bien: () => false }, { id: 'B', n: 40, bien: () => true }]);
 check('Y8 · los mismos resultados al revés intercambian lo aprendido de cada una, sin cruzarse',
+  ['A', 'B'].every((id) => !!exitoDeAlt(BA7, id) && !!exitoDeAlt(AyB, id)) &&
   exitoDeAlt(BA7, 'A').favorables === exitoDeAlt(AyB, 'B').favorables && exitoDeAlt(BA7, 'B').favorables === exitoDeAlt(AyB, 'A').favorables &&
   exitoDeAlt(BA7, 'A').favorables !== exitoDeAlt(BA7, 'B').favorables);
 const salidasAlt = AyB.aggregates.map((a) => a.key);
@@ -1309,10 +1327,184 @@ check('Y9 · en cualquier orden y troceado en llamadas, lo aprendido por alterna
     return igual(alReves.aggregates, AyB.aggregates) && igual(enDos.aggregates, AyB.aggregates) && salidasAlt.length === 4;
   })());
 check('Y10 · lo aprendido de una alternativa no nombra ninguna implementación: ni en su ámbito, ni en lo que propone',
+  AyB.aggregates.some((a) => a.metric === 'strategy.succeeded') &&
   AyB.aggregates.filter((a) => a.metric === 'strategy.succeeded').every((a) => igual(Object.keys(a.scope).sort(), ['capability', 'strategyId'])) &&
   AyB.candidates.filter((c) => c.metric === 'strategy.succeeded' && c.proposedChange)
     .every((c) => c.proposedChange.target === 'strategy' && c.proposedChange.signalKey === 'learned.strategy.succeeded' &&
       A.violacionesEn(c.proposedChange, 'cambio').length === 0));
+
+console.log('\n─── Z. A9.3 · Ejecución ≠ verificación ≠ recuperación ───');
+
+/*
+ * Tres desenlaces que NO son el mismo, cada uno de su dueño: cómo acabó la
+ * ejecución lo dice quien ejecutó; si cumplió lo verificable, A6; si una
+ * recuperación arregló el fallo, quien la ejecutó. Los ocho casos del brief, uno
+ * a uno, mirando QUÉ observación sale de cada resultado.
+ */
+/* Un veredicto armado a mano con los hallazgos que lo sostienen (1.9): la puerta de
+ * ejecución de A6 —se le pregunta cuál es— pasó, y una condición del RESULTADO
+ * concluyó con el estado del veredicto. Si el veredicto no sabe, una condición
+ * concluyó y otra no: así, lo único que decide cada caso es el cubo del veredicto. */
+const PUERTA_A6 = [...A.COMPROBACIONES_DE_EJECUCION][0];
+const hallazgosDe = (status) => (['unknown', 'inconclusive'].includes(status)
+  ? [{ type: PUERTA_A6, status: 'pass' }, { type: 'structural.missing', status: 'pass' }, { type: 'quality.requirement', status }]
+  : [{ type: PUERTA_A6, status: 'pass' }, { type: 'structural.missing', status }]);
+const veredictoA6 = (status, passed, findings = hallazgosDe(status)) =>
+  ({ status, passed, confidence: { kind: 'algorithm', value: 0.9, basis: [] }, findings });
+const obsDe = (r) => A.observacionesDeResultado({ id: 'o', at: AHORA, scope: alt('S'), ...r });
+const de = (os, m) => os.filter((o) => o.metric === m).map((o) => o.value);
+const casos = {
+  c1: obsDe({ kind: 'success', verification: veredictoA6('pass', true) }),
+  c2: obsDe({ kind: 'success', verification: veredictoA6('fail', false) }),
+  c3: obsDe({ kind: 'failure', recovery: { kind: 'retry', executed: true, succeeded: true } }),
+  c4: obsDe({ kind: 'failure', recovery: { kind: 'retry', executed: true, succeeded: false } }),
+  c5: obsDe({ kind: 'success', verification: veredictoA6('unknown', false) }),
+  c5b: obsDe({ kind: 'success', verification: veredictoA6('inconclusive', false) }),
+  c6: obsDe({ kind: 'unknown', verification: veredictoA6('unknown', false) }),
+  c7: obsDe({ kind: 'failure', recovery: { kind: 'retry', executed: false } }),
+  c8: obsDe({ kind: 'failure' }),
+};
+check('Z1 · CASO 1 · ejecución correcta y resultado correcto, sin recuperación',
+  igual(de(casos.c1, 'outcome.success'), [1]) && igual(de(casos.c1, 'verification.passed'), [1]) &&
+  igual(de(casos.c1, 'recovery.succeeded'), []) && igual(de(casos.c1, 'strategy.succeeded'), [1]));
+check('Z2 · CASO 2 · la ejecución terminó bien y el resultado no cumplió: dos cosas, no un fallo de ejecución',
+  igual(de(casos.c2, 'outcome.success'), [1]) && igual(de(casos.c2, 'strategy.succeeded'), [1]) && igual(de(casos.c2, 'verification.passed'), [0]));
+check('Z3 · CASO 3 · la ejecución falló y una recuperación la arregló: sigue siendo un fallo de la ejecución original',
+  igual(de(casos.c3, 'outcome.success'), [0]) && igual(de(casos.c3, 'strategy.succeeded'), [0]) && igual(de(casos.c3, 'recovery.succeeded'), [1]));
+check('Z3b · y la recuperación es de ESA alternativa, con su tipo en su propia dimensión',
+  igual(casos.c3.find((o) => o.metric === 'recovery.succeeded').scope, { ...alt('S'), recoveryKind: 'retry' }));
+check('Z4 · CASO 4 · fallo y recuperación fallida: fallo completo',
+  igual(de(casos.c4, 'outcome.success'), [0]) && igual(de(casos.c4, 'recovery.succeeded'), [0]));
+check('Z5 · CASO 5 · ejecución buena y verificación sin saber: ni un aprobado ni un suspenso inventados',
+  igual(de(casos.c5, 'outcome.success'), [1]) && igual(de(casos.c5, 'verification.passed'), []) && igual(de(casos.c5b, 'verification.passed'), []));
+check('Z6 · CASO 6 · ejecución sin saber y verificación sin saber: nada, ni éxito ni fracaso',
+  casos.c6.length === 0, casos.c6.map((o) => `${o.metric}=${o.value}`).join(' ') || 'ninguna');
+check('Z7 · CASO 7 · una recuperación que no se intentó no es una recuperación fallida',
+  igual(de(casos.c7, 'recovery.succeeded'), []) && igual(de(casos.c7, 'outcome.success'), [0]));
+check('Z8 · CASO 8 · una recuperación que no aplicaba, tampoco',
+  igual(de(casos.c8, 'recovery.succeeded'), []) && igual(de(casos.c8, 'outcome.success'), [0]));
+check('Z9 · una cancelación no es un desenlace de la ejecución, y un resultado a medias es un «no»',
+  obsDe({ kind: 'cancelled' }).length === 0 && igual(de(obsDe({ kind: 'partial_success' }), 'outcome.success'), [0]));
+check('Z10 · un veredicto que se contradice a sí mismo no se aprende: `pass` sin aprobar, o `fail` aprobando',
+  igual(de(obsDe({ kind: 'success', verification: veredictoA6('pass', false) }), 'verification.passed'), []) &&
+  igual(de(obsDe({ kind: 'success', verification: veredictoA6('fail', true) }), 'verification.passed'), []));
+
+/* Agregado: cuarenta resultados que fallan, con veredicto de fallo y recuperación
+ * fallida; y cuarenta que ENTREGAN y no cumplen, que es de donde sale una
+ * verificación suspendida (1.9): el «fail» de un fallo es la ejecución repetida. */
+const fallaTodo = aprender({ outcomes: lote(40, (i) => res(`z${i}`, 'failure', AHORA - (40 - i) * HORA, alt('Z'), {
+  verification: veredictoA6('fail', false), recovery: { kind: 'retry', executed: true, succeeded: false } })) });
+const entregaMal = aprender({ outcomes: lote(40, (i) => res(`e${i}`, 'success', AHORA - (40 - i) * HORA, alt('E'), {
+  verification: VEREDICTO_FALLA })) });
+const fuenteZ = (m) => (m === 'verification.passed' ? entregaMal : fallaTodo);
+const agregadoZ = (m) => fuenteZ(m).aggregates.find((a) => a.metric === m);
+check('Z11 · un «no» es una MUESTRA de la tasa, no una contradicción: en ejecución, verificación y recuperación',
+  ['outcome.success', 'verification.passed', 'recovery.succeeded', 'strategy.succeeded']
+    .every((m) => agregadoZ(m)?.n === 40 && agregadoZ(m).contradicciones === 0 && agregadoZ(m).favorables === 0));
+check('Z12 · y por eso lo que falla SIEMPRE se valida como tal: la mala noticia también viaja',
+  ['outcome.success', 'verification.passed', 'recovery.succeeded'].every((m) =>
+    fuenteZ(m).candidates.find((c) => c.metric === m)?.state === 'validated' && fuenteZ(m).candidates.find((c) => c.metric === m).value === 0));
+check('Z12b · y el «fail» de cuarenta FALLOS no es ninguna verificación: no hubo resultado suyo que verificar',
+  fallaTodo.aggregates.every((a) => a.metric !== 'verification.passed') &&
+  entregaMal.aggregates.find((a) => a.metric === 'outcome.success')?.favorables === 40);
+const medidas = aprender({ outcomes: [
+  ...lote(20, (i) => res(`ok${i}`, 'success', AHORA - (40 - i) * HORA, alt('M'), { signals: [sig('result.latencyMs', 1200, 'measured', AHORA - (40 - i) * HORA)] })),
+  ...lote(20, (i) => res(`ko${i}`, 'failure', AHORA - (20 - i) * HORA, alt('M'), { signals: [sig('result.latencyMs', 90, 'measured', AHORA - (20 - i) * HORA)] })),
+] });
+const latM = medidas.aggregates.find((a) => a.metric === 'result.latencyMs');
+check('Z13 · las medidas son de las ejecuciones que salieron BIEN: un fallo rápido no abarata la latencia',
+  latM?.n === 20 && latM.suma / latM.n === 1200 && latM.contradicciones === 0, `n ${latM?.n} · media ${latM ? latM.suma / latM.n : '—'}`);
+const forjado = aprender({ outcomes: [res('f1', 'failure', AHORA, alt('F'), {
+  signals: ['outcome.success', 'verification.passed', 'recovery.succeeded', 'strategy.succeeded'].map((k) => sig(k, 1, 'measured', AHORA)) })] });
+check('Z14 · una señal suelta no suplanta lo que A7 deriva: un fallo con cuatro señales a 1 sigue siendo un fallo, y nada más',
+  igual(forjado.aggregates.map((a) => `${a.metric}:${a.favorables}/${a.n}`).sort(), ['outcome.success:0/1', 'strategy.succeeded:0/1']));
+/* En un ÉXITO, que es el único cuyas señales se aprenden: ahí es donde una señal
+ * con nombre de algo derivado inventaría un veredicto o una recuperación. */
+const forjadoBien = aprender({ outcomes: [res('f2', 'success', AHORA, alt('F'), {
+  signals: [...['outcome.success', 'strategy.succeeded'].map((k) => sig(k, 0, 'measured', AHORA)),
+    ...['verification.passed', 'recovery.succeeded'].map((k) => sig(k, 1, 'measured', AHORA)),
+    sig('result.latencyMs', 800, 'measured', AHORA)] })] });
+check('Z14c · y en un ÉXITO tampoco: sus medidas se aprenden, y ninguna señal le inventa un veredicto, una recuperación ni otra ejecución',
+  igual(forjadoBien.aggregates.map((a) => `${a.metric}:${a.favorables}/${a.n}`).sort(),
+    ['outcome.success:1/1', 'result.latencyMs:1/1', 'strategy.succeeded:1/1']),
+  forjadoBien.aggregates.map((a) => `${a.metric}:${a.favorables}/${a.n}`).sort().join(' '));
+check('Z14b · ni desde un evento: un gesto no dice cómo acabó una ejecución',
+  aprender({ events: [ev('g1', 'accepted', 'explicit', AHORA, alt('F'), { signals: [sig('outcome.success', 1, 'measured', AHORA)] })] })
+    .aggregates.every((a) => a.metric !== 'outcome.success'));
+
+/* Por alternativa: A ejecuta bien y no pasa la verificación; B falla y la recupera. */
+const AB3 = aprender({ outcomes: [
+  ...lote(40, (i) => res(`a${i}`, 'success', AHORA - (40 - i) * HORA, alt('A'), { verification: veredictoA6('fail', false) })),
+  ...lote(40, (i) => res(`b${i}`, 'failure', AHORA - (40 - i) * HORA, alt('B'), { recovery: { kind: 'retry', executed: true, succeeded: true } })),
+] });
+const de3 = (m, id) => AB3.aggregates.find((a) => a.metric === m && a.scope.strategyId === id);
+check('Z15 · cada dimensión se queda en SU alternativa: la ejecución de A no es la de B, ni la verificación de A la de nadie más',
+  de3('outcome.success', 'A')?.favorables === 40 && de3('outcome.success', 'B')?.favorables === 0 &&
+  de3('verification.passed', 'A')?.favorables === 0 && de3('verification.passed', 'B') === undefined &&
+  de3('recovery.succeeded', 'B')?.favorables === 40 && de3('recovery.succeeded', 'A') === undefined);
+const recuperacionesAyB = aprender({ outcomes: [
+  ...lote(30, (i) => res(`ra${i}`, 'failure', AHORA - (30 - i) * HORA, alt('A'), { recovery: { kind: 'retry', executed: true, succeeded: true } })),
+  ...lote(30, (i) => res(`rb${i}`, 'failure', AHORA - (30 - i) * HORA, alt('B'), { recovery: { kind: 'retry', executed: true, succeeded: false } })),
+] }).aggregates.filter((a) => a.metric === 'recovery.succeeded');
+check('Z16 · el mismo tipo de recuperación en dos alternativas son DOS agregados: antes se sumaban en «retry»',
+  recuperacionesAyB.length === 2 && igual(recuperacionesAyB.map((a) => `${a.scope.strategyId}:${a.scope.recoveryKind}:${a.favorables}`).sort(),
+    ['A:retry:30', 'B:retry:0']));
+check('Z17 · los mismos resultados en cualquier orden y en cualquier troceo dan lo mismo aprendido',
+  (() => {
+    const todos = [...lote(40, (i) => res(`a${i}`, 'success', AHORA - (40 - i) * HORA, alt('A'), { verification: veredictoA6('fail', false) })),
+      ...lote(40, (i) => res(`b${i}`, 'failure', AHORA - (40 - i) * HORA, alt('B'), { recovery: { kind: 'retry', executed: true, succeeded: true } }))];
+    const alReves = aprender({ outcomes: [...todos].reverse() });
+    const enDos = aprender({ outcomes: todos.slice(40), previo: aprender({ outcomes: todos.slice(0, 40) }).aggregates });
+    return igual(alReves.aggregates, AB3.aggregates) && igual(enDos.aggregates, AB3.aggregates);
+  })());
+const pocosFallos = aprender({ outcomes: lote(10, (i) => res(`p${i}`, 'failure', AHORA - (10 - i) * HORA, alt('P'))) });
+check('Z18 · la política es la de siempre: diez fallos no validan nada, por muy claros que sean',
+  A.POLITICA_MINIMA.minSampleSize === 5 && A.POLITICA_POR_DEFECTO.minSampleSize === 30 && A.POLITICA_POR_DEFECTO.maxContradiction === 0.3 &&
+  pocosFallos.candidates.filter((c) => c.metric === 'outcome.success').every((c) => c.state === 'observed' && c.because.includes('sample_below_minimum')));
+const motor7 = sinComentarios(leer('functions/src/core/algorithm/feedback-engine.ts'));
+check('Z19 · el veredicto se lee con los cubos de A6, no con una lista propia de estados',
+  /dejaSeguir\(/.test(motor7) && /afirmaFallo\(/.test(motor7) && !/'pass_with_uncertainty'|'inconclusive'/.test(motor7));
+
+/*
+ * LA VERIFICACIÓN ES DEL RESULTADO QUE SE ENTREGÓ (1.9). A6 mete en su veredicto
+ * una puerta de ejecución —«terminó como terminó»— que deriva aunque no se espere
+ * nada. Medido: sin nada esperado, su `pass` es esa puerta sola, y A7 lo aprendía
+ * como un aprobado. Cada guarda, con un caso en el que es la ÚNICA que decide.
+ */
+const sinNadaQueEsperar = veredictoReal({ status: 'succeeded', outputs: [] }, []);
+check('Z20 · MEDIDO · sin nada esperado, A6 da `pass` con su puerta de ejecución como única comprobación',
+  sinNadaQueEsperar.status === 'pass' && sinNadaQueEsperar.passed === true &&
+  sinNadaQueEsperar.findings.length === 1 && A.COMPROBACIONES_DE_EJECUCION.has(sinNadaQueEsperar.findings[0].type));
+check('Z21 · y A7 NO lo aprende como verificación: sería el éxito de la ejecución disfrazado de aprobado',
+  igual(de(obsDe({ kind: 'success', verification: sinNadaQueEsperar }), 'verification.passed'), []) &&
+  igual(de(obsDe({ kind: 'success', verification: sinNadaQueEsperar }), 'outcome.success'), [1]));
+check('Z22 · el veredicto de algo que la ejecución NO entregó no es suyo: ni el aprobado de lo que arregló una recuperación, ni el suspenso de un fallo',
+  ['failure', 'cancelled', 'unknown'].every((kind) =>
+    igual(de(obsDe({ kind, verification: VEREDICTO_PASA, recovery: { kind: 'retry', executed: true, succeeded: true } }), 'verification.passed'), []) &&
+    igual(de(obsDe({ kind, verification: VEREDICTO_FALLA }), 'verification.passed'), [])));
+check('Z23 · y un resultado A MEDIAS sí entregó algo: su veredicto se aprende, en los dos sentidos',
+  igual(de(obsDe({ kind: 'partial_success', verification: VEREDICTO_FALLA }), 'verification.passed'), [0]) &&
+  igual(de(obsDe({ kind: 'partial_success', verification: VEREDICTO_PASA }), 'verification.passed'), [1]));
+const rechazado = veredictoReal({ status: 'rejected', outputs: [{ kind: 'text', ref: 'r' }] });
+check('Z24 · MEDIDO · si la puerta de A6 no pasa, el veredicto suspende aunque lo que llegó cumpla',
+  rechazado.status === 'fail' && rechazado.passed === false &&
+  rechazado.findings.some((f) => A.COMPROBACIONES_DE_EJECUCION.has(f.type) && f.status === 'fail') &&
+  rechazado.findings.some((f) => !A.COMPROBACIONES_DE_EJECUCION.has(f.type) && f.status === 'pass'));
+check('Z25 · y A7 no aprende ese suspenso: habla de cómo acabó la ejecución, no de si el resultado cumplió',
+  igual(de(obsDe({ kind: 'success', verification: rechazado }), 'verification.passed'), []));
+check('Z26 · un veredicto que no dice qué miró —o con un hallazgo que no dice qué es— no se aprende, por mucho que diga `pass`',
+  igual(de(obsDe({ kind: 'success', verification: { status: 'pass', passed: true, confidence: VEREDICTO_PASA.confidence } }), 'verification.passed'), []) &&
+  igual(de(obsDe({ kind: 'success', verification: { ...VEREDICTO_PASA, findings: [...VEREDICTO_PASA.findings, { status: 'pass' }] } }), 'verification.passed'), []) &&
+  igual(de(obsDe({ kind: 'success', verification: VEREDICTO_PASA }), 'verification.passed'), [1]));
+check('Z29 · el orden de los hallazgos no cambia lo que se aprende del veredicto',
+  [VEREDICTO_PASA, VEREDICTO_FALLA, rechazado, sinNadaQueEsperar].every((v) =>
+    igual(obsDe({ kind: 'success', verification: { ...v, findings: [...v.findings].reverse() } }), obsDe({ kind: 'success', verification: v }))));
+check('Z28 · una ejecución buena SIN veredicto no es un aprobado: sin A6 no hay verificación que aprender, ni en el ámbito ni por alternativa',
+  igual(de(obsDe({ kind: 'success' }), 'verification.passed'), []) && igual(de(obsDe({ kind: 'partial_success' }), 'verification.passed'), []) &&
+  igual(de(obsDe({ kind: 'success' }), 'outcome.success'), [1]));
+check('Z27 · la puerta se le PREGUNTA a A6, no se copia: A7 no escribe el nombre de ninguna comprobación suya',
+  igual([...A.COMPROBACIONES_DE_EJECUCION], A.derivarEstructurales({ id: 'x' }, []).map((c) => c.type)) &&
+  !/structural\./.test(motor7));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA7: aprende de la evidencia, y se calla cuando la evidencia no alcanza');
 process.exit(failures ? 1 : 0);

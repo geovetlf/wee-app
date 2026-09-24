@@ -292,7 +292,12 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       kind: observacion.kind,
       at: observacion.at,
       ...(scope ? { scope } : {}),
-      verification: Object.freeze({ status: verification.status, passed: verification.passed, confidence: verification.confidence }),
+      /* Con sus hallazgos (1.9): sin ellos A7 no separa lo que A6 miró del RESULTADO
+       * de su puerta de ejecución, y no aprendería el veredicto como verificación. */
+      verification: Object.freeze({
+        status: verification.status, passed: verification.passed, confidence: verification.confidence,
+        findings: verification.findings,
+      }),
       ...(observacion.recovery ? { recovery: observacion.recovery } : {}),
       ...(observacion.signals ? { signals: observacion.signals } : {}),
     });
