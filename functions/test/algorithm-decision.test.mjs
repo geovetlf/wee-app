@@ -712,12 +712,25 @@ check('116 · y con un tope, la selección es determinista: las primeras por `id
 
 console.log('\n─── J. Sigue sin estar conectado ───');
 
-const conectado = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router', 'functions/src/planner']
-  .filter((d) => {
-    try { return require_('node:child_process').execSync(`grep -rl "core/algorithm\\|crearMotorDeDecision\\|AlgorithmDecision" ${d} 2>/dev/null || true`, { cwd: RAIZ, encoding: 'utf8' }).trim().length > 0; }
-    catch { return false; }
-  });
-check('77 · nadie lo ha conectado a ninguna ruta de producción', conectado.length === 0, conectado.join(', ') || 'ninguna');
+/*
+ * Con Node y no con `grep`: el `2>/dev/null` hacía que en Windows no corriera
+ * nunca y aprobara siempre. Y con UNA excepción desde S1: la sombra, que carga
+ * la capa por su puerta para observar. A1 por su nombre, ni ella.
+ */
+const PUERTA_DE_LA_SOMBRA = 'functions/src/creator/sombra.ts';
+const recorrer77 = (dir, out = []) => {
+  for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+    const h = dir + '/' + e.name;
+    if (e.isDirectory()) recorrer77(h, out); else out.push(h);
+  }
+  return out;
+};
+const archivos77 = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router', 'functions/src/planner']
+  .flatMap((d) => (fs.existsSync(path.resolve(RAIZ, d)) ? recorrer77(d) : []));
+const conectado = archivos77.filter((f) => /core\/algorithm|crearMotorDeDecision|AlgorithmDecision/.test(leer(f)));
+check('77 · nadie lo ha conectado a ninguna ruta de producción: solo la sombra observa, y sin nombrar a A1',
+  archivos77.length > 50 && conectado.every((f) => f === PUERTA_DE_LA_SOMBRA) && !/crearMotorDeDecision/.test(leer(PUERTA_DE_LA_SOMBRA)),
+  conectado.filter((f) => f !== PUERTA_DE_LA_SOMBRA).join(', ') || 'ninguna de más');
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA1: el motor decide, se explica y no puede saltarse a nadie');
 process.exit(failures ? 1 : 0);

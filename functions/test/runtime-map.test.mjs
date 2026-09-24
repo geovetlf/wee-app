@@ -134,7 +134,24 @@ const MAPA = [
 const OTROS_DEL_CORE = {
   /* Las cuatro versiones nuevas entran con el canary: el conductor habla con Workflow, Orchestrator, Router y Job Engine. */
   'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'ELEMENT_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'PLANNER_CONTRACT_VERSION',
-    'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'SHOT_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION', 'MAX_PROPUESTAS_POR_PASO'],
+    'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'SHOT_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION', 'MAX_PROPUESTAS_POR_PASO',
+    /* S1: la versión con la que la sombra le pide la decisión al Algorithm Engine. */
+    'ALGORITHM_CONTRACT_VERSION'],
+  /*
+   * S1 · EL ALGORITHM ENGINE, EN SOMBRA. La sombra del plan estrena la capa por
+   * su puerta y nombra exactamente tres cosas de ella: el CICLO que decide, la
+   * GUARDA que dice si algo de lo decidido nombra una implementación y los TOPES
+   * por defecto. Y de la observabilidad, el comprobador de claves prohibidas.
+   *
+   * Esto es SOMBRA, no runtime de producción: el ciclo decide sobre el plan del
+   * puente, la decisión se compara y se tira, y todo está detrás de
+   * `aiSettings/sombra`, cerrada por defecto. Lo que NO aparece es lo que dice
+   * de verdad hasta dónde llega: ni `cerrar`, ni A7, ni A8, ni `paraRouter`.
+   */
+  'core/algorithm/integration-cycle.js': ['crearCicloAlgoritmico'],
+  'core/algorithm/authority.js': ['violacionesEn'],
+  'core/algorithm/types.js': ['TOPES_POR_DEFECTO'],
+  'core/observability.js': ['trazaLimpia'],
   /*
    * S5: exportar la puerta de Elements pone en producción los dos contratos de
    * S3. Es lo esperado y es lo que estas listas existen para enseñar: qué usa
@@ -381,6 +398,18 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
     VIVOS.has('planner/index.js') && /disponibilidadDeWee/.test(codigo(path.join(LIB, 'creator/planner.js'))));
   check(`${n++}) planner: la fábrica la invoca la SOMBRA, y nadie más`,
     igual(['creator/sombra.js'], invocadaDesde('crearPlannerDeWee')), invocadaDesde('crearPlannerDeWee').join(', ') || 'nadie');
+  /*
+   * S1 · EL ALGORITHM ENGINE ESTÁ EN SOMBRA. No es una pieza de la sección de
+   * arriba —no tiene composición ni atiende a nadie— y su estado no es ni
+   * CONNECTED ni NOT CONNECTED: es SOMBRA. El ciclo lo crea la sombra y solo la
+   * sombra; lo que decide no llega a ningún ejecutor. Un segundo sitio que lo
+   * creara haría fallar esto con su nombre.
+   */
+  check(`${n++}) algorithm: SOMBRA — la fábrica del ciclo la invoca la sombra del plan, y nadie más`,
+    igual(['creator/sombra.js'], invocadaDesde('crearCicloAlgoritmico')), invocadaDesde('crearCicloAlgoritmico').join(', ') || 'nadie');
+  check(`${n++}) algorithm: y lo que decide no lo consume nadie: ni \`paraRouter\`, ni el cierre del ciclo, en ningún módulo vivo`,
+    invocadaDesde('paraRouter').length === 0 && vivosFueraDelCore.every((r) => !/\.cerrar\(\{|\bparaRouter\b/.test(codigo(path.join(LIB, r)))),
+    [...invocadaDesde('paraRouter')].join(', ') || 'nadie');
   const otros = Object.entries(OTROS_DEL_CORE);
   for (const [mod, simbolos] of otros) check(`${n++}) ${mod}: símbolos nombrados [${simbolos.join(', ')}]`, igual(simbolos, [...(nombrados.get(mod) || [])]), diferencia(simbolos, [...(nombrados.get(mod) || [])]));
   const declarados = new Set([...MAPA.flatMap((c) => c.canonico), ...Object.keys(OTROS_DEL_CORE)]);
@@ -538,6 +567,12 @@ console.log('\n── G · El mapa escrito dice lo mismo que el medido ──');
   const filaDelConductor = doc.split('\n').find((l) => l.startsWith('| **Conductor** |')) || '';
   check(`${n++}) Conductor: el documento dice CANARY — CONNECTED FOR BRAIN TEXT ONLY, que es lo que se mide`,
     /CANARY — CONNECTED FOR BRAIN TEXT ONLY/.test(filaDelConductor) && /text\.generate/.test(filaDelConductor), filaDelConductor ? 'la fila no lo dice' : '(sin fila)');
+  /* S1: el Algorithm Engine tiene su fila, y dice SOMBRA —lo que se mide en C—, no CONNECTED ni NOT CONNECTED. */
+  const filaDelAlgoritmo = doc.split('\n').find((l) => l.startsWith('| **Algorithm Engine** |')) || '';
+  check(`${n++}) Algorithm Engine: el documento dice SOMBRA, con su puerta, y no se atribuye autoridad de producción`,
+    /\bSOMBRA\b/.test(filaDelAlgoritmo) && !/\bCONNECTED\b/.test(filaDelAlgoritmo) && /aiSettings\/sombra/.test(filaDelAlgoritmo)
+    && /creator\/sombra\.ts/.test(filaDelAlgoritmo),
+    filaDelAlgoritmo ? 'la fila no lo dice' : '(sin fila)');
   check(`${n++}) esta suite está en la cadena de \`npm test\``, leer('functions/package.json').includes('node test/runtime-map.test.mjs'));
 }
 

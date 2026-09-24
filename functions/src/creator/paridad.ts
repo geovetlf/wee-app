@@ -84,8 +84,12 @@ export interface Diferencia {
  *
  * Por eso cada diferencia lleva marcado su camino y las dos comparaciones se
  * guardan por separado: una no puede tapar a la otra.
+ *
+ * `algoritmo` (S1) es el tercero: el plan que el Algorithm Engine eligió sobre
+ * el del puente. Se compara con este mismo comparador y con estas mismas
+ * clases; lo único nuevo es la marca, para que tampoco pueda tapar a nadie.
  */
-export type CaminoDelCore = 'brain' | 'puente';
+export type CaminoDelCore = 'brain' | 'puente' | 'algoritmo';
 
 /** Lo que el camino del Brain no puede traer por diseño. No es pérdida del Planner. */
 const NO_VIAJA_POR_EL_BRAIN: readonly string[] = Object.freeze(['count']);

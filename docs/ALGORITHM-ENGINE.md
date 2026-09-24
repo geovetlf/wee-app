@@ -1444,7 +1444,202 @@ entrega exactamente-una-vez, la estabilidad de `fuerza`, los resultados sin
 **no juzga la calidad sin medir**. Nada de esto se conecta a producción: ni
 Firestore, ni proveedores, ni Credits, ni el Router.
 
-## 17 · Lo que está probado, y dónde
+## 17 · S1, el Algorithm Engine en sombra —la canary de Travel, cerrada por defecto—
+
+S1 es la primera vez que esta capa tiene un sitio en el código que se despliega. Y
+lo tiene **sin autoridad**: Legacy sigue decidiendo qué se ejecuta; el Algorithm
+Engine observa, decide sobre una copia, se compara y su decisión se tira. El
+objetivo de la etapa no es que decida bien: es demostrar que **puede convivir con
+Legacy** —sin efectos secundarios, sin proveedores, sin Credits, sin materiales,
+sin Router, sin cambios públicos, con evidencia determinista y con marcha atrás
+inmediata—.
+
+### La arquitectura
+
+No hay una infraestructura de sombra nueva: S1 **extiende la de B3** (`creator/sombra.ts`),
+que ya calculaba en paralelo el plan del Core y lo comparaba con el de Legacy.
+
+```
+creatorChat ── Legacy planifica ── guarda el trabajo (AUTORIDAD) ── contesta
+                                        │
+                                        └─ sombraDelPlan  (después de guardar, nunca lanza)
+                                             ├─ camino `brain`      Brain → Planner            (opcional)
+                                             ├─ camino `puente`     plan de Legacy → puente → Planner
+                                             ├─ camino `algoritmo`  plan del puente → ciclo A9 → decisión   ← S1
+                                             │                        └─ comparación (dos ejes)
+                                             └─ UNA escritura: creatorJobs/{id}/private/sombra
+```
+
+El punto de inserción es exacto: dentro de `sombraDelPlan`, **después** del camino del
+puente —el algoritmo decide sobre su plan— y **antes** de `ref.create()`, que sigue
+siendo la única escritura. Del Algorithm Engine entran tres valores por su puerta
+(`crearCicloAlgoritmico`, `violacionesEn`, `TOPES_POR_DEFECTO`) y cuatro tipos; nada
+más, y lo vigila una lista explícita (`algorithm-context` V8c).
+
+### Etapa 1
+
+`S0 auditoría → S1 implementar en local → revisar → desplegar con la puerta cerrada →
+verificar que producción no cambió → aprobar la canary → canary real de Travel →
+analizar → S2`. S1 termina en local: ni despliegue, ni canary real, ni puerta abierta.
+
+### La puerta: `aiSettings/sombra`
+
+La misma de B3, **cerrada por defecto**, cacheada un minuto y que falla cerrada ante
+cualquier duda. S1 le añade tres campos, los tres opcionales y los tres estrictos:
+
+| Campo | Qué hace | Si está mal |
+|---|---|---|
+| `cuentas` | (ya existía) obligatoria, una a una; sin comodín: `[]` es nadie | ilegible → cerrada |
+| `experiencias` | (ya existía) solo estas | ilegible → cerrada |
+| `caminos` | qué caminos corren, de `brain`, `puente`, `algoritmo`. **Sin él, `brain` + `puente`: exactamente lo de antes.** El orden lo pone Weë | un camino desconocido, o `algoritmo` sin `puente` → ilegible → cerrada |
+| `capacidades` | TODAS las capacidades del plan de Legacy tienen que estar en la lista; un plan sin capacidades no pasa | ilegible → cerrada |
+| `hasta` | epoch ms; después de ese instante no corre (`fuera_de_plazo`) | ilegible → cerrada |
+
+La configuración de la canary de Travel sería —**no está escrita en ninguna parte**; la
+cuenta la elige una persona cuando se apruebe—:
+
+```json
+{ "habilitado": true, "cuentas": ["<cuenta de prueba>"], "experiencias": ["travel"],
+  "caminos": ["puente", "algoritmo"], "capacidades": ["text.search"], "hasta": <epoch ms> }
+```
+
+Sin `brain` a propósito: el camino del Brain es el único que llama a un proveedor, y la
+canary no lo necesita para lo que mide.
+
+### La canary de Travel
+
+Travel es el caso más pequeño y el mejor medido: un paso `text.search`, sin
+dependencias, sin foto. Medido en local, con la sombra de verdad sobre un Firestore
+falso: `decidido`, 0 violaciones, historial `ninguno`, 0 peticiones de red, 0 llamadas
+al Brain, 0 cambios de Credits, 0 materiales, 0 cambios en el trabajo y **un** documento
+privado. De las once experiencias, siete deciden sin red (design, studio, writer, chef,
+business, travel, brain); photo, beauty y home se quedan en el Planner por la foto que
+falta, y music no la sirve el Core (`sin_plan_del_core`).
+
+### Cero proveedor, cero Credits, cero materiales, cero Router
+
+No por disciplina: por construcción, y con una prueba para cada cosa.
+
+- **Proveedor**: sin el camino `brain` no se llama a `entendimientoDe`, que es la única
+  puerta de la sombra hacia un modelo. El ciclo es cálculo sobre pasos. La suite rechaza
+  `fetch` —antes solo lo contaba— y exige cero.
+- **Credits**: la sombra no importa nada de `credits/`, `financial/`, `settlement/` ni
+  `payments/`, y no escribe fuera de su documento.
+- **Materiales**: ni Asset Core, ni Content, ni Media, ni Storage.
+- **Router**: ningún módulo de router, ninguna `RouterRequest`, y `paraRouter` sigue
+  PREPARADO / NO CONECTADO. La entrega del ciclo no la lee nadie.
+
+### La evidencia privada
+
+`creatorJobs/{id}/private/sombra`, contrato **1.2** (aditivo: una 1.1 se lee igual), con
+`caminos` y, si corrió, la sección `algoritmo`:
+
+| Campo | Qué guarda |
+|---|---|
+| `contract` · `shadowRunId` | `1.9` · `<jobId>:algoritmo` |
+| `estado` · `duracionMs` | cómo acabó y cuánto tardó el camino entero (decidir + comparar) |
+| `objetivo` | `{ latency: 1, reliability: 1 }`: técnico, de la sombra; no es un objetivo de producto |
+| `entrada` | pasos, capacidades y aristas de lo que entró |
+| `decision` | estado, parada, recorrido, candidatas, estrategias, historial (`ninguno`), la elegida (id, etiqueta, quién la propuso, pasos, grupos paralelos, camino crítico, línea base, respaldo, si sus pasos son los del Core), descartadas con su motivo, confianza, incertidumbre, porqués y optimización |
+| `violaciones` | cuántas claves de implementación aparecieron —y cuáles, si alguna— |
+| `comparacion` | resumen, las 8 categorías, total y diferencias (≤ 24) |
+| `errores` | lo que cuenta como pérdida (≤ 24) |
+
+Listas ≤ 24, textos ≤ 240. La **petición** de sombra vive solo en memoria: sin `goal`,
+sin el `brief` de ningún paso —la única frase de la persona que viaja en uno—, sin
+historial, sin `aprendido`, sin restricciones. En la sección no se cita nada que no sea
+vocabulario de Weë: la frase de cada paso y la promesa al usuario aparecen solo con su
+**categoría y su longitud**.
+
+### La comparación
+
+Dos ejes, con el comparador de B3 tal cual y el camino marcado `algoritmo`:
+
+1. **Legacy frente a lo elegido** (`compararPlanes`): a lo elegido se le devuelve el
+   `brief` que se le quitó, para no contar como diferencia lo que quitó la sombra.
+2. **El plan del Core frente a la decisión**: pasos (capacidad, variante, cantidad,
+   dependencias, hints, frase, `produces`, `uses`), orden, dependencias, a la vez o en
+   fila, estrategia, candidatas, objetivo, optimización, restricciones y autoridad.
+
+Las categorías son las seis de B3 más dos desenlaces: `EXACT_MATCH`,
+`SEMANTICALLY_EQUIVALENT`, `LEGACY_ONLY_INFORMATION`, `CORE_ADDS_INFORMATION`,
+`UNSUPPORTED`, `STRUCTURAL_MISMATCH`, `AUTHORITY_VIOLATION`, `SHADOW_ERROR`. No hay
+ganador, ni puntuación, ni ranking. **Sin falsa paridad**: si la decisión cambiara un
+paso, lo quitara o lo pusiera a la vez, sale `STRUCTURAL_MISMATCH` con el campo que
+cambió. La frase del paso y la promesa al usuario siguen siendo el hueco del Core
+(`LEGACY_ONLY_INFORMATION`, en `errores`), igual que por el puente.
+
+### Cuando algo falla
+
+`sombraDelPlan` no lanza nunca, y en todos los casos el trabajo de Legacy queda igual
+byte a byte:
+
+| Qué pasa | Qué queda |
+|---|---|
+| el puente no deja un plan listo (cantidad mal formada, Music, falta la foto) | `sin_plan_del_core` |
+| el ciclo no decide | `no_decidido`, sin comparación |
+| algo de lo decidido nombra proveedor, modelo o adaptador | `violacion_de_autoridad`: se para, sin comparación ni nada después; se avisa en el registro. **No** se escribe en `aiSettings` ni se apaga nada solo |
+| tarda más de 250 ms (el tope del propio motor) | `fuera_de_presupuesto`, con la evidencia |
+| el ciclo o la comparación se rompen | `fallo` en su sección; el resto de la sombra se guarda |
+| no se puede escribir | nada escrito, resultado `fallo`, y se dice hasta dónde llegó el algoritmo |
+| otra instancia la escribió primero | `duplicado` —no `fallo`— y este intento no deja nada |
+| la puerta no se puede decidir (un paso nulo en el plan, un reloj que falla) | cerrada; un paso ilegible no es una capacidad permitida |
+| el ciclo devuelve un campo sin valor | entra como texto, número o `null`: Firestore no admite `undefined`, y uno solo tumbaría la escritura entera |
+
+### Marcha atrás
+
+Sin desplegar: quitar `algoritmo` de `caminos`, poner `habilitado: false` o borrar el
+documento. La caché es de un minuto. Lo ya escrito se queda en `private`, cerrado a
+los clientes.
+
+### Sin Router, sin autoridad de producción
+
+El ciclo lo crea la sombra y nadie más (`runtime-map`, `algorithm-cycle` 91); lo que
+decide no llega a ningún ejecutor; `paraRouter` no tiene consumidor; el ciclo solo
+**decide**: ni cierra, ni aprende, ni recibe lo aprendido.
+
+### Rendimiento
+
+Medido en local sobre el compilado final, 500 decisiones por experiencia —el camino
+entero: decidir y comparar—: Travel p50 0,33 ms, p95 0,68 ms, p99 1,55 ms; las siete
+que deciden, p99 ≤ 1,55 ms y, sin contar la primera del proceso, máximo ≤ 3,4 ms (de
+una medición a otra el p99 de Travel va de 1,2 a 1,6 ms). La primera decisión del
+proceso, 10,8 ms: lejos del tope de 250 ms. Cargar la capa añade unos 22 ms al
+arranque en frío **de cualquier Function del paquete**, esté la puerta abierta o no:
+el import es estático.
+
+### Los sabotajes
+
+47, y todos caen **por aserción**: cada uno rompe una sola cosa, se reconstruye, corre
+su suite y se restaura byte a byte. Los 17 del brief (plan con proveedor, modelo o
+adaptador; imports de Router, `engine/router`, `core/router` y Credits; una segunda
+escritura; `fetch`; llamar al Brain sin pedirlo; escribir fuera de `private`; el
+algoritmo sin el puente; comodín de cuentas; camino desconocido; canary caducada;
+filtros de experiencia y de capacidades), once de las piezas nuevas (el `brief` que
+llega al ciclo, la frase del paso guardada entera, el historial escrito a mano, la
+carrera perdida como `fallo`, sin tope de tiempo, sin guarda de autoridad, falsa
+paridad, el algoritmo por defecto, el camino mal marcado, una sombra que relanza, sin
+el eje de Legacy), quince de las guardas, alguna contra más de una suite (lo aprendido en la petición; la capa por un
+archivo interno o con un valor de más; otro archivo que la carga o que nombra
+`AlgorithmDecision` o `DecisionContext`; un segundo creador del ciclo; la fila del
+documento; la guarda que deja de ver `require`; lo que no se puede guardar) y cuatro de
+lo que llega roto (una puerta que relanza, un paso nulo, un `undefined` copiado del
+ciclo, un Firestore de mentira que lo acepta).
+
+Tres lecciones del método. Las comprobaciones de B3 leían la sombra sin `?.` y
+llamaban a `sombraDelPlan` sin red: un sabotaje que la movía o la hacía lanzar
+**reventaba** la suite en vez de fallar una aserción —ahora caen por aserción—. El
+Firestore de mentira tiraba los `undefined` al clonar; el de verdad los rechaza. Y en
+Windows las barras invertidas de un patrón no sobreviven al paso por `bash`: el
+corredor los pasa en base64.
+
+### Lo que S1 NO hace
+
+No despliega, no ejecuta la canary real, no abre `aiSettings/sombra`, no toca el
+Router, el Job Engine, el Financial Core, el Asset Core ni ningún proveedor, no cambia
+nada que vea la persona y no empieza S2 ni Filmmaker.
+
+## 18 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
@@ -1453,14 +1648,16 @@ Firestore, ni proveedores, ni Credits, ni el Router.
 | `-decision` §H · `-cycle` §L · `-context` §V · `-feedback` §X | A9.1: el historial como evidencia, el determinismo por permutaciones, y las fronteras de A7 y A8 |
 | `-decision` §I · `-cycle` §L2 · `-context` §W · `-feedback` §Y | A9.2: la identidad de las alternativas, el aprendizaje por alternativa y el ciclo de punta a punta |
 | `-feedback` §Z · `-context` §X · `-cycle` §L3 | A9.3: ejecución, verificación y recuperación por separado —los ocho casos, la puerta de ejecución de A6—, lo que llega a `paraRouter` y lo que no decide |
+| `sombra-experiencia` §S1 · `-context` V8–V8d · `-cycle` 91–91b · `runtime-map` · `-agnostic` 56 · `-decision` 77 · `-foundation` 118 | S1: la canary de Travel, la puerta y sus filtros, los cortafuegos, la evidencia privada, la comparación sin falsa paridad, los desenlaces, la carrera, y que solo la sombra carga la capa |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 18 · Lo que esta capa NO hace, dicho una vez más
+## 19 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.
-No elige implementación. Y no está conectada a ninguna ruta de producción.
+No elige implementación. Y no tiene autoridad en ninguna ruta de producción: su
+único sitio en el código vivo es la sombra (§ 17), que observa, se compara y se tira.

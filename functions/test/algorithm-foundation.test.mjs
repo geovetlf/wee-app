@@ -447,9 +447,24 @@ check('117 · todo lo que decide está declarado y validado',
 check('117b · y ninguno es seleccionable automáticamente',
   DESCRIPTORES.every((d) => rTodos.seleccionable(d.id) === false),
   DESCRIPTORES.map((d) => `${d.id}:${d.status}`).join(' · '));
-const conectado = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router']
-  .filter((d) => { try { return require_('node:child_process').execSync(`grep -rl "core/algorithm\\|AlgorithmDecision\\|DecisionContext" ${d} 2>/dev/null || true`, { cwd: RAIZ, encoding: 'utf8' }).trim().length > 0; } catch { return false; } });
-check('118 · y nadie lo ha conectado a ninguna ruta', conectado.length === 0, conectado.join(', ') || 'ninguna');
+/*
+ * Con Node y no con `grep` (el `2>/dev/null` la dejaba sin correr en Windows,
+ * aprobando siempre), y con la única excepción de S1: la sombra, que observa.
+ */
+const PUERTA_DE_LA_SOMBRA = 'functions/src/creator/sombra.ts';
+const recorrer118 = (dir, out = []) => {
+  for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+    const h = dir + '/' + e.name;
+    if (e.isDirectory()) recorrer118(h, out); else out.push(h);
+  }
+  return out;
+};
+const archivos118 = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router']
+  .flatMap((d) => (fs.existsSync(path.resolve(RAIZ, d)) ? recorrer118(d) : []));
+const conectado = archivos118.filter((f) => /core\/algorithm|AlgorithmDecision|DecisionContext/.test(leer(f)));
+check('118 · y nadie lo ha conectado a ninguna ruta: solo la sombra, que observa',
+  archivos118.length > 50 && conectado.every((f) => f === PUERTA_DE_LA_SOMBRA),
+  conectado.filter((f) => f !== PUERTA_DE_LA_SOMBRA).join(', ') || 'ninguna de más');
 /* Un salto de MENOR es aditivo y legítimo; uno de MAYOR rompería a quien ya lo usa. */
 const [MAYOR, MENOR] = ALGORITHM_CONTRACT_VERSION.split('.').map(Number);
 check('119 · el contrato NO ha roto el mayor, y ya va por el menor 2 o más',

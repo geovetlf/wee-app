@@ -102,6 +102,18 @@ comporta exactamente como antes. Los motores que cambiaron a CONNECTED arriba lo
 hicieron porque el conductor los construye y el conductor ya se carga; ninguno se
 conectó por su cuenta. Fuera de `text.generate` en Weë Brain, **todo es LEGACY**.
 
+Y la capa que razona sobre estrategias (A0–A9), que desde S1 tiene un sitio en el
+código vivo y **ninguna autoridad** en él ([`docs/ALGORITHM-ENGINE.md`](ALGORITHM-ENGINE.md) § 17):
+
+| Pieza | Dónde | En uso (producción) | Estado | Qué hace ahí |
+|---|---|---|---|---|
+| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, contrato 1.9) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
+
+**Qué significa exactamente ese SOMBRA.** Que el ciclo (`crearCicloAlgoritmico`) se
+crea desde un módulo vivo —la sombra, y solo ella— pero lo que decide no lo lee ningún
+ejecutor: se guarda, resumido, en `creatorJobs/{id}/private/sombra` y ahí se queda.
+Con la puerta cerrada, que es su estado, no corre para nadie.
+
 ## 4. El mapa, pieza por pieza
 
 Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` · `DEPLOYED` · `NOT VERIFIED`.
@@ -125,7 +137,7 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Legacy | `creator/planner.ts`: `getPlanner()` → `templatePlanner` (plantillas de `creator/templates.ts`) o `llmPlanner` |
 | Core | `core/planner.ts` (`crearPlanner`) · composición `planner/index.ts` (`crearPlannerDeWee`) |
 | Consumidor | `screens/CreatorFlowScreen.tsx` → `services/creatorService.ts` → `creatorChat` / `creatorQuote` |
-| Runtime hoy | `creator/index.ts:275` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula EN PARALELO el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/shadow`. Nada de eso se ejecuta ni se le enseña a nadie |
+| Runtime hoy | `creator/index.ts:275` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula EN PARALELO el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/sombra`. Desde S1, con un tercer camino opcional —el Algorithm Engine decide sobre el plan del puente— que se guarda en la misma sombra. Nada de eso se ejecuta ni se le enseña a nadie |
 | Runtime objetivo | Brain → Planner del Core → plan de capacidades |
 | Estrategia | **No son la misma función.** El planificador vivo conduce una conversación guiada por plantillas (preguntas con «🤷 No sé») y devuelve un plan por experiencia; el del Core convierte un *entendimiento* de Brain en un plan. Sustituir uno por otro cambiaría el producto (CLAUDE.md § 5 y § 10: las interfaces guiadas son la referencia y el orquestador central «no se adelanta»). El camino es un adaptador: las plantillas pasan a ser una fuente de planes del Planner, no un segundo planificador. No es de este bloque |
 | Puerta | `aiSettings/sombra` — **cerrada por defecto y SIN comodín**: sin lista de cuentas no se abre para nadie. No es la puerta del runtime (`aiSettings/runtime`) y no puede abrirla: la sombra no manda nada a ejecutar |

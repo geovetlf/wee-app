@@ -309,7 +309,10 @@ export const creatorChat = onCall(
        *
        * Legacy ya terminó: el plan está hecho, el trabajo guardado y nada de lo
        * que venga puede cambiarlo. Solo entonces el Core piensa en paralelo, se
-       * compara y se guarda en `private/shadow`, donde ningún cliente llega.
+       * compara y se guarda en `private/sombra`, donde ningún cliente llega. Qué
+       * caminos corren —el del Brain, el del puente y, desde S1, el del
+       * Algorithm Engine, que decide sobre el plan del puente y se tira— lo dice
+       * la puerta, no este código: aquí no cambia nada.
        *
        * CERRADA POR DEFECTO y solo para cuentas nombradas una a una.
        *

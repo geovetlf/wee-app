@@ -870,7 +870,14 @@ for (const [que, patron] of [
   ['elegir implementación', /selectedProvider|selectedModel|elegirProveedor|RoutingDecision/],
   ['ejecutar trabajos', /crearJob|dispatch\(|ejecutar\(/],
 ]) check(`90 · A9 no toca ${que}`, !patron.test(src9));
-check('91 · nadie ha conectado A9 a producción', (() => {
+/*
+ * 91 · A9 NO TIENE AUTORIDAD EN PRODUCCIÓN. Desde S1 hay UN sitio que lo crea:
+ * la sombra del plan (`creator/sombra.ts`), detrás de su puerta cerrada, donde
+ * decide, se compara y se tira. Ese archivo y ningún otro; y ni siquiera él
+ * entra por el archivo del ciclo: entra por la puerta de la capa.
+ */
+const PUERTA_DE_LA_SOMBRA = 'functions/src/creator/sombra.ts';
+check('91 · nadie ha conectado A9 a producción: solo la sombra lo crea, y solo para observar', (() => {
   const recorrer = (dir, out = []) => {
     for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
       const h = dir + '/' + e.name;
@@ -880,7 +887,19 @@ check('91 · nadie ha conectado A9 a producción', (() => {
   };
   const prod = ['creator', 'runtime', 'engine', 'gateway', 'credits', 'content', 'job', 'router', 'planner', 'orchestrator', 'brain']
     .flatMap((d) => (fs.existsSync(path.resolve(RAIZ, 'functions/src/' + d)) ? recorrer('functions/src/' + d) : []));
-  return prod.length > 50 && prod.filter((f) => /crearCicloAlgoritmico|integration-cycle/.test(leer(f))).length === 0;
+  const nombran = prod.filter((f) => /crearCicloAlgoritmico|integration-cycle/.test(leer(f)));
+  return prod.length > 50 && nombran.every((f) => f === PUERTA_DE_LA_SOMBRA) && !/integration-cycle/.test(leer(PUERTA_DE_LA_SOMBRA));
+})());
+check('91b · y en la sombra el ciclo solo DECIDE: ni cierra, ni aprende, ni recibe lo aprendido', (() => {
+  const src = sinComentarios(leer(PUERTA_DE_LA_SOMBRA));
+  const creaciones = src.match(/crearCicloAlgoritmico\)?\(\)/g) ?? [];
+  /* Lo que se le pide al ciclo vive entre la petición de sombra y la sección: ahí se mira. */
+  const desde = src.indexOf('export const peticionDeLaSombra');
+  const hasta = src.indexOf('const yaExiste');
+  const tercero = desde >= 0 && hasta > desde ? src.slice(desde, hasta) : '';
+  return creaciones.length === 1 && tercero.length > 0 && /\.decidir\(peticion\.algoritmo\)/.test(tercero)
+    && !/\.cerrar\(/.test(src)
+    && !/aprendido\s*:|historyByOption|history\s*:|options\s*:|enfoques\s*:|expected\s*:/.test(tercero);
 })());
 
 console.log('\n─── R. Rendimiento ───');

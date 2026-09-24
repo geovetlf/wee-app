@@ -629,12 +629,54 @@ const fuentesDe = (dir, out = []) => {
 };
 const fuera = fuentesDe('functions/src');
 const nombranRuta = fuera.filter((f) => /paraRouter|EvidenciaDeRuta/.test(sinComentarios(leer(f))));
-const importanLaCapa = fuera.filter((f) => /from\s+'[^']*core\/algorithm[^']*'|from\s+'\.\/algorithm[^']*'/.test(sinComentarios(leer(f))));
+/*
+ * ── QUIÉN CARGA LA CAPA, EN CUALQUIERA DE SUS FORMAS (S1) ───────────────────
+ *
+ * La versión anterior solo veía `from '…core/algorithm…'` con comillas simples
+ * y `from './algorithm'`: se le escapaban `'../algorithm'`, las comillas
+ * dobles, `require(…)`, `import(…)` y el `import '…'` sin nombres. Ahora se
+ * mira cualquier especificador de módulo que sea la capa, se cargue como se
+ * cargue, y el control de abajo lo demuestra con cada forma.
+ *
+ * Y hay UN archivo que sí puede: la sombra (S1), que es donde el Algorithm
+ * Engine observa sin mandar. Solo por la puerta de la capa, y solo con tres
+ * valores —el ciclo, la guarda de autoridad y los topes por defecto— más los
+ * tipos que nombran lo que recibe y devuelve. Nada de `import *`, nada de
+ * reexportar y nada de entrar por un archivo interno de la capa.
+ */
+const PUERTA_DE_LA_SOMBRA = 'functions/src/creator/sombra.ts';
+const VALORES_DE_LA_SOMBRA = ['TOPES_POR_DEFECTO', 'crearCicloAlgoritmico', 'violacionesEn'];
+const TIPOS_DE_LA_SOMBRA = ['AlgorithmDecisionResult', 'Objective', 'PeticionAlgoritmica', 'Strategy'];
+const especificadores = (src) =>
+  [...src.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s+)(['"])([^'"]+)\1/g)].map((m) => m[2]);
+/* `…/core/algorithm…`, `./algorithm…`, `../algorithm…`, `../../algorithm…`: la capa, entre por donde entre. */
+const esDeLaCapa = (m) => /(^|\/)(core|\.{1,2})\/algorithm(\/|$)/.test(m);
+const importanLaCapa = fuera.filter((f) => especificadores(sinComentarios(leer(f))).some(esDeLaCapa));
 const puertosDelRouter = [...(sinComentarios(leer('functions/src/core/router.ts')).match(/interface RouterPorts\s*\{([^}]*)\}/)?.[1] ?? '')
   .matchAll(/(\w+)\??\s*:/g)].map((m) => m[1]).sort();
-check('V8 · `paraRouter` no tiene consumidor: nada fuera del algoritmo lo nombra, y nadie importa la capa',
-  fuera.length > 100 && nombranRuta.length === 0 && importanLaCapa.length === 0,
-  `${fuera.length} archivos · ${[...nombranRuta, ...importanLaCapa].join(', ') || 'ninguno'}`);
+check('V8 · `paraRouter` no tiene consumidor: nada fuera del algoritmo lo nombra, y solo la sombra importa la capa',
+  fuera.length > 100 && nombranRuta.length === 0 && importanLaCapa.every((f) => f === PUERTA_DE_LA_SOMBRA),
+  `${fuera.length} archivos · ${[...nombranRuta, ...importanLaCapa.filter((f) => f !== PUERTA_DE_LA_SOMBRA)].join(', ') || 'ninguno de más'}`);
+{
+  const src = sinComentarios(leer(PUERTA_DE_LA_SOMBRA));
+  const cargas = especificadores(src).filter(esDeLaCapa);
+  const nombradas = [...src.matchAll(/\bimport\s+(type\s+)?\{([^}]*)\}\s*from\s*(['"])([^'"]+)\3/g)].filter((m) => esDeLaCapa(m[4]));
+  const nombres = (tipo) => nombradas.filter((m) => !!m[1] === tipo)
+    .flatMap((m) => m[2].split(',').map((x) => x.trim()).filter(Boolean)).sort();
+  check('V8c · la sombra entra SOLO por la puerta de la capa, con nombres explícitos y solo estos',
+    cargas.length > 0 && cargas.every((m) => m === '../core/algorithm') && nombradas.length === cargas.length
+    && nombradas.every((m) => !/\bas\b|\*|\btype\s/.test(m[2]))
+    && igual(nombres(false), [...VALORES_DE_LA_SOMBRA].sort()) && igual(nombres(true), [...TIPOS_DE_LA_SOMBRA].sort()),
+    `valores: ${nombres(false).join(', ') || '—'} · tipos: ${nombres(true).join(', ') || '—'}`);
+}
+check('V8d · y la guarda ve todas las formas de cargar la capa (control: si una se le escapa, esto falla)',
+  [
+    "import { x } from '../core/algorithm';", 'import { x } from "../core/algorithm";', "import * as A from '../algorithm';",
+    "const A = require('../core/algorithm');", "const A = await import('../core/algorithm/integration-cycle');",
+    "import '../core/algorithm';", "export { x } from './algorithm';", "import type { Strategy } from '../core/algorithm/strategy';",
+  ].every((s) => especificadores(s).some(esDeLaCapa))
+  && !["import { x } from '../core/router';", "import { y } from './paridad';"].some((s) => especificadores(s).some(esDeLaCapa)),
+  'comillas simples y dobles, `require`, `import()`, `import` sin nombres y reexportación');
 check('V8b · y el Router no tiene por dónde recibirlo: sus puertos son el Registry, la política y los costes',
   igual(puertosDelRouter, ['costs', 'policy', 'registry']), puertosDelRouter.join(', ') || 'no se encontró `RouterPorts`');
 

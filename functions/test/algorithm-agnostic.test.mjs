@@ -455,13 +455,27 @@ for (const prohibido of ['creator', 'runtime', 'engine/', 'gateway', 'financial'
     !importes.some((x) => x.r.includes(prohibido)),
     importes.filter((x) => x.r.includes(prohibido)).map((x) => x.f).join(',') || 'ninguno');
 }
-/* Y nadie ha conectado nada de esto a producción. */
-check('56 · GUARD · el Algorithm Engine sigue sin estar conectado', (() => {
-  try {
-    return require_('node:child_process').execSync(
-      'grep -rl "core/algorithm" functions/src/creator functions/src/runtime functions/src/engine functions/src/planner functions/src/router functions/src/orchestrator 2>/dev/null || true',
-      { cwd: RAIZ, encoding: 'utf8' }).trim().length === 0;
-  } catch { return false; }
+/*
+ * Y nadie ha conectado nada de esto a producción, salvo la SOMBRA (S1): la
+ * única que carga la capa, detrás de su puerta cerrada, para observar.
+ *
+ * Esta guarda era un `grep` con `2>/dev/null`, y en Windows no corría —la
+ * consola no sabe qué es `/dev/null`— así que devolvía vacío y aprobaba
+ * siempre. Ahora recorre los archivos con Node: mira lo mismo, en todas partes.
+ */
+check('56 · GUARD · el Algorithm Engine sigue sin estar conectado: solo lo carga la sombra, que observa', (() => {
+  const PUERTA_DE_LA_SOMBRA = 'functions/src/creator/sombra.ts';
+  const recorrer = (dir, out = []) => {
+    for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+      const h = dir + '/' + e.name;
+      if (e.isDirectory()) recorrer(h, out); else out.push(h);
+    }
+    return out;
+  };
+  const archivos = ['creator', 'runtime', 'engine', 'planner', 'router', 'orchestrator']
+    .flatMap((d) => (fs.existsSync(path.resolve(RAIZ, 'functions/src/' + d)) ? recorrer('functions/src/' + d) : []));
+  const nombran = archivos.filter((f) => /core\/algorithm/.test(leer(f)));
+  return archivos.length > 50 && nombran.every((f) => f === PUERTA_DE_LA_SOMBRA);
 })());
 
 console.log(failures
