@@ -37,6 +37,7 @@
 
 import { CAMPOS_PROHIBIDOS } from '../observability';
 import { QualityRequirement } from '../workflow';
+import { violacionesEn } from './authority';
 import { metadataSegura } from './capability';
 import { Confidence, Evidence, Signal, SignalSource, Uncertainty } from './signals';
 import { Severidad } from './strategy';
@@ -240,6 +241,41 @@ export type MotivoDeEventoInvalido =
   | 'unsafe_metadata' | 'bad_timestamp' | 'bad_rating' | 'bad_signal';
 
 /**
+ * ¿ES ESTO UN INSTANTE? Epoch ms, finito y no negativo.
+ *
+ * Escrito una vez porque lo preguntan dos sitios: la fecha de un evento y el
+ * reloj con el que se evalúa. Antes vivía en línea dentro de `eventoValido`.
+ */
+export const instanteValido = (t: unknown): t is number =>
+  typeof t === 'number' && Number.isFinite(t) && t >= 0;
+
+/**
+ * POR QUÉ SE RECHAZA UNA LLAMADA ENTERA. Hoy, solo por el reloj.
+ *
+ *   clock_missing   no vino ninguno.
+ *   clock_invalid   vino algo que no es un instante con el que evaluar.
+ */
+export type MotivoDeRechazo = 'clock_missing' | 'clock_invalid';
+
+/**
+ * ¿SE PUEDE EVALUAR CON ESTE RELOJ? `undefined` si sí; el motivo si no.
+ *
+ * Existe por un fallo: sin reloj, A7 evaluaba con 0, y con 0 todo lo aprendido
+ * parecía recién hecho —la frescura de algo de hace dos meses salía 1—. No
+ * saber qué hora es no puede acabar en «todo está fresco».
+ *
+ * El 0 se rechaza AUNQUE venga escrito: es exactamente el valor por defecto que
+ * produjo el fallo, y un reloj que llega antes que los datos es un error que
+ * PERMITE —todo parece del futuro, luego fresco—, no uno que frena. Una fecha de
+ * evento en 0 sí vale (`instanteValido`): esa solo puede hacer algo más viejo,
+ * que es la dirección que no se equivoca.
+ */
+export const motivoDeReloj = (ahora: unknown): MotivoDeRechazo | undefined => {
+  if (ahora === undefined || ahora === null) return 'clock_missing';
+  return instanteValido(ahora) && ahora > 0 ? undefined : 'clock_invalid';
+};
+
+/**
  * ¿ENTRA ESTE EVENTO?
  *
  * Estricto a propósito y en la puerta, que es el único sitio donde sale barato.
@@ -259,7 +295,7 @@ export const eventoValido = (
   const ev = e as Partial<FeedbackEvent>;
   if (typeof ev.id !== 'string' || !ev.id) return { ok: false, reason: 'malformed', detail: 'id' };
   if (typeof ev.type !== 'string' || !ev.type) return { ok: false, reason: 'malformed', detail: 'type' };
-  if (typeof ev.at !== 'number' || !Number.isFinite(ev.at) || ev.at < 0) return { ok: false, reason: 'bad_timestamp' };
+  if (!instanteValido(ev.at)) return { ok: false, reason: 'bad_timestamp' };
 
   const conocido = PROCEDENCIA_DE_GESTO[ev.type];
   if (!conocido) return { ok: false, reason: 'unknown_gesture', detail: ev.type };
@@ -296,9 +332,55 @@ export const eventoValido = (
   if (sucio) return { ok: false, reason: 'privacy_class', detail: `metadata.${sucio}` };
 
   /* Y el ámbito no puede traer nada que sea de alguien. */
-  for (const k of Object.keys(ev.scope ?? {})) {
-    if (CAMPOS_DE_PERSONA.has(k.toLowerCase())) return { ok: false, reason: 'privacy_class', detail: `scope.${k}` };
+  const deAlguien = campoDePersonaEnAmbito(ev.scope);
+  if (deAlguien) return { ok: false, reason: 'privacy_class', detail: `scope.${deAlguien}` };
+  return { ok: true };
+};
+
+/**
+ * ¿TRAE ESTE ÁMBITO UN CAMPO DE PERSONA? Devuelve el primero, para decir cuál.
+ *
+ * Un ámbito es donde se agrupa, y agrupar por «edad» o por «país» es cómo se
+ * empieza un perfil sin querer. Una sola función para todas las puertas que lo
+ * preguntan —eventos, resultados y quien consuma lo aprendido—, con la lista de
+ * siempre: si cada una tuviera la suya, acabarían diciendo cosas distintas.
+ *
+ * No depende de `ORDEN_DE_CLAVE` a propósito: es la defensa que sigue en pie si
+ * algún día alguien mete un campo de persona en la clave por error.
+ */
+export const campoDePersonaEnAmbito = (scope: unknown): string | undefined =>
+  typeof scope === 'object' && scope !== null
+    ? Object.keys(scope).find((k) => CAMPOS_DE_PERSONA.has(k.toLowerCase()))
+    : undefined;
+
+/**
+ * ¿ENTRA ESTE RESULTADO? La puerta de los resultados, hermana de `eventoValido`.
+ *
+ * Existía a trozos dentro del motor, y con dos huecos. Uno de privacidad: un
+ * resultado con «country» en el ámbito entraba —la lista blanca del agregado
+ * tiraba el campo, pero el resultado se admitía y se aprendía de él—, cuando el
+ * mismo campo en un EVENTO lo deja fuera. Y otro de diagnóstico: lo que no
+ * entraba desaparecía sin contarse.
+ *
+ * Aquí no se endurece nada más que eso: la forma mínima que ya se pedía, la
+ * autoridad sobre la metadata que ya se comprobaba, y los campos de persona con
+ * las MISMAS dos funciones que usan los eventos.
+ */
+export const resultadoValido = (
+  r: unknown,
+): { ok: true } | { ok: false; reason: MotivoDeEventoInvalido; detail?: string } => {
+  if (typeof r !== 'object' || r === null) return { ok: false, reason: 'malformed' };
+  const res = r as Partial<ResultadoDeDecision> & { metadata?: unknown };
+  if (typeof res.id !== 'string') return { ok: false, reason: 'malformed', detail: 'id' };
+  /* El ámbito describe; la metadata podría decidir. Es el mismo criterio que
+   * los eventos, y aquí no hay otra comprobación que lo sostenga. */
+  if (violacionesEn(res.metadata, `outcome:${res.id}:metadata`).length) {
+    return { ok: false, reason: 'unsafe_metadata', detail: 'metadata' };
   }
+  const enAmbito = campoDePersonaEnAmbito(res.scope);
+  if (enAmbito) return { ok: false, reason: 'privacy_class', detail: `scope.${enAmbito}` };
+  const enMetadata = campoDePersonaEn(res.metadata);
+  if (enMetadata) return { ok: false, reason: 'privacy_class', detail: `metadata.${enMetadata}` };
   return { ok: true };
 };
 
@@ -461,6 +543,8 @@ export type CodigoDeRazon =
   | 'sufficient_evidence'
   | 'consistent_recent_evidence'
   | 'stable_across_window'
+  /* Sin un reloj válido no se evalúa nada: ver `motivoDeReloj`. */
+  | MotivoDeRechazo
   | (string & {});
 
 /* ── Las guardas ──────────────────────────────────────────────────────────── */

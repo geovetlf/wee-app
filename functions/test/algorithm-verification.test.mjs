@@ -40,7 +40,7 @@ const check = (name, cond, extra = '') => {
 };
 
 const A = lib('core/algorithm/index.js');
-const { ALGORITHM_CONTRACT_VERSION } = lib('core/contracts.js');
+const { ALGORITHM_CONTRACT_VERSION, contratoCompatible } = lib('core/contracts.js');
 const a6 = A.crearMotorDeVerificacion();
 const rec = A.crearMotorDeRecuperacion();
 
@@ -64,8 +64,8 @@ check('2 · los dos son puros y EXPERIMENTALES: nadie los elige solo',
 check('3 · y son DOS motores, no uno con dos funciones mezcladas',
   typeof a6.verificar === 'function' && a6.analizar === undefined &&
   typeof rec.analizar === 'function' && rec.verificar === undefined);
-check('4 · el contrato subió a 1.5, y el motivo está escrito donde se decidió',
-  ALGORITHM_CONTRACT_VERSION === '1.5' &&
+check('4 · el contrato subió a 1.5 en A6, y el motivo está escrito donde se decidió',
+  contratoCompatible(ALGORITHM_CONTRACT_VERSION, '1.5') &&
   /1\.5 \(A6\)/.test(leer('functions/src/core/contracts.ts')), ALGORITHM_CONTRACT_VERSION);
 
 console.log('\n─── B. Estructura: lo único que A6 sabe mirar solo ───');

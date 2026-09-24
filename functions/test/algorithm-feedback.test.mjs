@@ -21,6 +21,12 @@
  *  N. Agnosticismo.
  *  O. Integración con A1, A5 y A6.
  *  P. Los sabotajes.
+ *  R. Lo que los sabotajes demostraron que faltaba.
+ *  S. El estado persistible no lleva identificadores individuales.
+ *  T. «Solo implícito» se juzga sobre el agregado.
+ *  U. La rejilla temporal es absoluta (contrato 1.6).
+ *  V. Sin reloj no se evalúa (contrato 1.6).
+ *  W. Los resultados pasan por la misma puerta de privacidad (contrato 1.6).
  *  Q. Rendimiento y escala.
  */
 import path from 'node:path';
@@ -43,7 +49,7 @@ const check = (name, cond, extra = '') => {
 };
 
 const A = lib('core/algorithm/index.js');
-const { ALGORITHM_CONTRACT_VERSION } = lib('core/contracts.js');
+const { ALGORITHM_CONTRACT_VERSION, contratoCompatible } = lib('core/contracts.js');
 const a7 = A.crearMotorDeFeedback();
 
 const T0 = 1_700_000_000_000;
@@ -68,8 +74,9 @@ check('1 · su descriptor vale y es de la familia `feedback`',
 check('2 · es puro y EXPERIMENTAL: nadie lo elige solo',
   A.DESCRIPTOR_DE_FEEDBACK.purity === 'pure' &&
   A.crearRegistroDeAlgoritmos([A.DESCRIPTOR_DE_FEEDBACK]).registro.seleccionable(A.FEEDBACK_ENGINE_ID) === false);
-check('3 · el contrato NO subió: A7 no necesitó añadir ni un campo',
-  ALGORITHM_CONTRACT_VERSION === '1.5' && !/\(A7\)/.test(leer('functions/src/core/contracts.ts')),
+check('3 · el contrato subió a 1.6 POR A7, y el motivo está escrito donde se decidió',
+  contratoCompatible(ALGORITHM_CONTRACT_VERSION, '1.6') &&
+  /1\.6 \(A7\)[\s\S]*tramosHasta[\s\S]*clock_missing[\s\S]*porMotivoDeResultado/.test(leer('functions/src/core/contracts.ts')),
   ALGORITHM_CONTRACT_VERSION);
 check('4 · las categorías `feedback` y `learning` ya estaban reservadas desde A0',
   /\| 'feedback'/.test(leer('functions/src/core/algorithm/types.ts')) &&
@@ -221,7 +228,12 @@ check('42 · el estado se REINYECTA y se sigue acumulando: no se recalcula nada'
     return previo.find((a) => a.metric === 'outcome.success').n === 60;
   })());
 check('43 · una observación que llega TARDE cae donde le toca por fecha, no por orden',
-  A.tramoDe(AHORA - 4 * DIA, AHORA, 5 * DIA) < A.tramoDe(AHORA - 1 * HORA, AHORA, 5 * DIA));
+  (() => {
+    const hasta = A.finDeTramo(AHORA, 5 * DIA);
+    const viejo = A.tramoDe(AHORA - 4 * DIA, hasta, 5 * DIA);
+    const nuevo = A.tramoDe(AHORA - 1 * HORA, hasta, 5 * DIA);
+    return typeof viejo === 'number' && typeof nuevo === 'number' && viejo < nuevo;
+  })());
 
 console.log('\n─── H. Frescura y decadencia ───');
 
@@ -752,7 +764,8 @@ check('S16 · y lo aprendido se conserva al limpiarlo: la muestra sigue siendo l
 check('S17 · limpiar es idempotente',
   JSON.stringify(A.agregadoAgregable(A.agregadoAgregable(SUCIO_DE_ANTES))) === JSON.stringify(A.agregadoAgregable(SUCIO_DE_ANTES)));
 check('S18 · y no se sustituye nada por un hash: si no hace falta, no se guarda',
-  !/hash|sha|digest/i.test(sinComentarios(leer('functions/src/core/algorithm/learning.ts'))));
+  !/hash|\bsha(1|224|256|384|512)?\b|digest/i.test(sinComentarios(leer('functions/src/core/algorithm/learning.ts'))),
+  '«sha» se busca como palabra: «tramosHasta» lo contiene y no es un hash');
 
 
 console.log('\n─── T. «Solo implícito» se juzga sobre el agregado, no sobre la llamada ───');
@@ -833,6 +846,274 @@ check('T14 · y una sola observación explícita nueva lo desbloquea',
     .aggregates.find((a) => a.key === SIN_CAMPO.key)) === false);
 check('T15 · la métrica del informe cuenta lo mismo que la guarda',
   soloImpl.metricas.soloImplicitos === soloImpl.aggregates.filter((a) => A.soloImplicitoDe(a)).length);
+
+console.log('\n─── U. La rejilla temporal es absoluta: el reloj de la llamada no la mueve ───');
+
+/*
+ * EL FALLO: el tramo de cada observación se calculaba contra el `ahora` de la
+ * llamada que la acumulaba, y ahí se quedaba congelado. Los mismos ochenta
+ * datos daban tramos distintos en una llamada que en dos, y en dos —cada una
+ * con su reloj, que es como se usa en vivo— una latencia multiplicada por seis
+ * salía `validated` y estable. Estas pruebas se escriben contra ESO.
+ */
+const V16 = { ventanaMs: 16 * DIA, vidaMs: 60 * DIA };
+const POL16 = A.politicaEfectiva(V16);
+/* Ochenta resultados: cinco al día durante dieciséis días. Ocho días a 500 ms y
+ * ocho a 3 000 ms. Una sola procedencia, para que lo único que varíe sea el tiempo. */
+const OCHENTA = lote(80, (i) => {
+  const at = T0 + Math.floor(i / 5) * DIA + (i % 5) * HORA;
+  return res(`u${String(i).padStart(2, '0')}`, 'success', at, { capability: 'x.y' },
+    { signals: [sig('result.latencyMs', i < 40 ? 500 : 3000, 'measured', at)] });
+});
+const FIN80 = OCHENTA[OCHENTA.length - 1].at;
+const trocear = (xs, k) => lote(k, (j) => xs.slice((j * xs.length) / k, ((j + 1) * xs.length) / k));
+/* Cada llamada con SU reloj —el de su último dato—: el uso en vivo, que era el que fallaba. */
+const enLlamadas = (lotes, reloj = (l) => l[l.length - 1].at) => {
+  let previo = []; let r = null;
+  for (const l of lotes) { r = a7.aprender({ ahora: reloj(l), policy: V16, outcomes: l, previo }); previo = r.aggregates; }
+  return r;
+};
+/* Park–Miller con semilla fija: barajar sin azar. */
+const barajar = (xs, semilla = 20260923) => {
+  const a = [...xs]; let s = semilla % 2147483647;
+  for (let i = a.length - 1; i > 0; i--) { s = (s * 48271) % 2147483647; const j = s % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
+const latAg = (r) => r.aggregates.find((a) => a.metric === 'result.latencyMs');
+const latCand = (r) => r.candidates.find((c) => c.metric === 'result.latencyMs');
+const unaVez = a7.aprender({ ahora: FIN80, policy: V16, outcomes: OCHENTA });
+const tramosN = (a) => JSON.stringify(a.tramos.map((t) => t.n));
+
+check('U1 · 80 datos en UNA llamada = en 2, 4 y 8, cada una con su propio reloj: el MISMO estado',
+  [2, 4, 8].every((k) => igual(enLlamadas(trocear(OCHENTA, k)).aggregates, unaVez.aggregates)),
+  `tramos ${tramosN(latAg(unaVez))}`);
+check('U2 · y con los lotes al revés, también',
+  [2, 4, 8].every((k) => igual(enLlamadas(trocear(OCHENTA, k).reverse()).aggregates, unaVez.aggregates)));
+check('U3 · y barajados, en una llamada o en cuatro',
+  igual(a7.aprender({ ahora: FIN80, policy: V16, outcomes: barajar(OCHENTA) }).aggregates, unaVez.aggregates) &&
+  igual(enLlamadas(trocear(barajar(OCHENTA), 4)).aggregates, unaVez.aggregates));
+check('U4 · la subida de 500 a 3 000 ms se VE como degradación, en 1, 2, 4 u 8 llamadas, y no se valida',
+  [1, 2, 4, 8].every((k) => {
+    const c = latCand(enLlamadas(trocear(OCHENTA, k)));
+    return c.trend === 'degrading' && c.state !== 'validated' && c.because.includes('unstable_across_window');
+  }),
+  [1, 2, 4, 8].map((k) => { const c = latCand(enLlamadas(trocear(OCHENTA, k))); return `${k}:${c.trend}/${c.state}`; }).join(' '));
+check('U4b · y nunca como `stable`: era el falso positivo',
+  [1, 2, 4, 8].every((k) => latCand(enLlamadas(trocear(OCHENTA, k))).trend !== 'stable'));
+
+/* Evaluar más tarde es la OTRA función del reloj, y no toca los tramos. */
+const agOchenta = latAg(unaVez);
+const frescurasDespues = [0, 10, 30, 59, 61].map((d) => A.frescuraDe(agOchenta, FIN80 + d * DIA, POL16.vidaMs));
+check('U5 · evaluar más tarde BAJA la frescura y la confianza…',
+  frescurasDespues.every((f, i) => i === 0 || f < frescurasDespues[i - 1]) &&
+  A.confianzaDeAgregado(agOchenta, FIN80 + 30 * DIA, POL16).value < A.confianzaDeAgregado(agOchenta, FIN80, POL16).value &&
+  A.guardas(agOchenta, FIN80 + 61 * DIA, POL16).includes('evidence_stale'),
+  frescurasDespues.map((f) => f.toFixed(3)).join(' → '));
+check('U5b · …y NO mueve un tramo: una llamada posterior sin datos devuelve el estado idéntico',
+  igual(a7.aprender({ ahora: FIN80 + 30 * DIA, policy: V16, previo: unaVez.aggregates }).aggregates, unaVez.aggregates));
+
+/* Un hueco mayor que la ventana: lo viejo sale de los tramos y se queda en los totales. */
+const TARDE = FIN80 + 3 * V16.ventanaMs;
+const trasHueco = latAg(a7.aprender({ ahora: TARDE, policy: V16, previo: unaVez.aggregates,
+  outcomes: [res('hueco', 'success', TARDE, { capability: 'x.y' }, { signals: [sig('result.latencyMs', 700, 'measured', TARDE)] })] }));
+check('U6 · tras un hueco mayor que la ventana, los tramos viejos SALEN y solo queda lo nuevo',
+  tramosN(trasHueco) === '[0,0,0,1]' && trasHueco.tramosHasta === A.finDeTramo(TARDE, V16.ventanaMs),
+  tramosN(trasHueco));
+check('U6b · y los totales conservan las 81', trasHueco.n === 81 && trasHueco.suma === agOchenta.suma + 700);
+
+/* Un dato que llega TARDE y es más viejo que toda la rejilla. */
+const VIEJO = res('viejo', 'success', T0 - 30 * DIA, { capability: 'x.y' },
+  { signals: [sig('result.latencyMs', 9999, 'measured', T0 - 30 * DIA)] });
+const viejoAlFinal = a7.aprender({ ahora: FIN80, policy: V16, previo: unaVez.aggregates, outcomes: [VIEJO] });
+const viejoAlPrincipio = enLlamadas([[VIEJO], ...trocear(OCHENTA, 4)]);
+check('U7 · un dato viejo que llega tarde CUENTA en los totales',
+  latAg(viejoAlFinal).n === 81 && latAg(viejoAlFinal).suma === agOchenta.suma + 9999 && latAg(viejoAlFinal).primero === VIEJO.at);
+check('U7b · pero no entra en ningún tramo ni mueve la rejilla',
+  igual(latAg(viejoAlFinal).tramos, agOchenta.tramos) && latAg(viejoAlFinal).tramosHasta === agOchenta.tramosHasta);
+check('U7c · y da igual que llegue el primero o el último: el mismo estado',
+  igual(viejoAlFinal.aggregates, viejoAlPrincipio.aggregates));
+
+/* Lo guardado ANTES de la rejilla absoluta: sin `tramosHasta`. */
+const polV = A.politicaEfectiva(VENTANA);
+const agLimpio = aprender({ outcomes: LIMPIO() }).aggregates.find((a) => a.metric === 'result.latencyMs');
+const LEGADO = (() => { const a = { ...agLimpio }; delete a.tramosHasta; return a; })();
+check('U8 · CONTROL · el agregado limpio pasa TODAS las guardas',
+  igual([...A.guardas(agLimpio, AHORA, polV)], []), JSON.stringify(A.guardas(agLimpio, AHORA, polV)));
+check('U8b · el mismo agregado SIN rejilla: `stability_unknown` es la ÚNICA razón',
+  igual([...A.guardas(LEGADO, AHORA, polV)], ['stability_unknown']), JSON.stringify(A.guardas(LEGADO, AHORA, polV)));
+check('U8c · su estabilidad no se sabe y su tendencia no se inventa, aunque sus tramos traigan datos',
+  A.estabilidadDe(LEGADO) === undefined && A.tendenciaDe(LEGADO, 'baja', polV) === 'insufficient_evidence' &&
+  LEGADO.tramos.filter((t) => t.n > 0).length >= 2);
+check('U8d · y reemitido sin tocar sigue sin rejilla: no se le inventa una',
+  aprender({ previo: [LEGADO] }).aggregates[0].tramosHasta === undefined);
+
+const NUEVAS = lote(10, (i) => res(`nu${i}`, 'success', AHORA - i * HORA, AMBITO,
+  { signals: [sig('result.latencyMs', 800, 'measured', AHORA - i * HORA)] }));
+const migrado = aprender({ previo: [LEGADO], outcomes: NUEVAS });
+const agMigrado = migrado.aggregates.find((a) => a.metric === 'result.latencyMs');
+const avisoDeRejilla = (r) => r.because.some((b) => /sin una rejilla temporal válida/.test(b));
+check('U9 · la primera observación nueva le da una rejilla: los tramos empiezan AHÍ',
+  typeof agMigrado.tramosHasta === 'number' && agMigrado.tramos.reduce((s, t) => s + t.n, 0) === 10, tramosN(agMigrado));
+check('U9b · y los totales de antes se conservan',
+  agMigrado.n === LEGADO.n + 10 && agMigrado.suma === LEGADO.suma + 8000);
+check('U9c · y se DICE, no se hace en silencio', avisoDeRejilla(migrado));
+check('U9d · CONTROL · un agregado con rejilla no dispara el aviso',
+  !avisoDeRejilla(aprender({ previo: [agLimpio], outcomes: NUEVAS })));
+
+check('U10 · el tercer argumento de `acumular` —el reloj de antes— ya no cambia NADA',
+  (() => {
+    const base = A.acumular(A.agregadoVacio('k', 'm', {}), { value: 1, at: AHORA - 3 * DIA, favorable: true }, AHORA, VENTANA.ventanaMs);
+    const obs = { value: 2, at: AHORA - HORA, favorable: true };
+    const ref = A.acumular(base, obs, AHORA, VENTANA.ventanaMs);
+    return [0, NaN, -5, AHORA + 400 * DIA, undefined].every((x) => igual(A.acumular(base, obs, x, VENTANA.ventanaMs), ref));
+  })());
+check('U11 · `tramosHasta` cae en un borde de la rejilla y cubre el dato más nuevo',
+  unaVez.aggregates.every((a) => {
+    const ancho = V16.ventanaMs / A.TRAMOS;
+    return a.tramosHasta % ancho === 0 && a.tramosHasta >= a.ultimo && a.tramosHasta < a.ultimo + ancho;
+  }));
+
+/* Otra ventana: la rejilla guardada es de otra. */
+const a16 = a7.aprender({ ahora: AHORA, policy: V16, outcomes: LIMPIO() }).aggregates.find((a) => a.metric === 'result.latencyMs');
+const conOtraVentana = aprender({ previo: [a16], outcomes: [NUEVAS[0]] });
+const a16en5 = conOtraVentana.aggregates.find((a) => a.metric === 'result.latencyMs');
+check('U12 · CONTROL · la rejilla de 16 días NO cae en la de 5: el caso es el que dice ser',
+  a16.tramosHasta % (VENTANA.ventanaMs / A.TRAMOS) !== 0);
+check('U12b · con OTRA ventana, los tramos se hicieron con otra rejilla: empiezan de nuevo, totales intactos',
+  tramosN(a16en5) === '[0,0,0,1]' && a16en5.n === a16.n + 1, tramosN(a16en5));
+check('U12c · y se dice', avisoDeRejilla(conOtraVentana));
+
+const V5 = VENTANA.ventanaMs;
+const H5 = A.finDeTramo(AHORA, V5);
+check('U13 · `tramoDe` coloca por FECHA contra el final de la rejilla',
+  A.tramoDe(AHORA, H5, V5) === A.TRAMOS - 1 && A.tramoDe(H5 - V5 + 1, H5, V5) === 0);
+check('U13b · y fuera de la rejilla no coloca: ni lo más viejo, ni lo más nuevo, ni contra un final que no cae en borde',
+  A.tramoDe(H5 - V5, H5, V5) === undefined && A.tramoDe(H5 + 1, H5, V5) === undefined &&
+  A.tramoDe(AHORA, H5 + 1, V5) === undefined && A.tramoDe(AHORA, H5, 0) === undefined && A.tramoDe(NaN, H5, V5) === undefined);
+
+/* Un dato con fecha de dentro de un año. La fecha manda, así que la rejilla va
+ * hasta él y lo de hoy queda por detrás. Lo que importa es que eso NO aprueba. */
+const LEJOS = AHORA + 365 * DIA;
+const conFuturo = aprender({ outcomes: [...LIMPIO(),
+  res('lejos', 'success', LEJOS, AMBITO, { signals: [sig('result.latencyMs', 800, 'measured', LEJOS)] })] });
+check('U14 · un dato fechado dentro de un año NO produce un aprendizaje: lo desconocido no aprueba',
+  latenciaDe(conFuturo).state !== 'validated' && latenciaDe(conFuturo).because.includes('stability_unknown'),
+  JSON.stringify(latenciaDe(conFuturo).because));
+check('U14b · y los totales lo cuentan todo', latAg(conFuturo).n === 61);
+
+const doceTemporal = lote(12, () => JSON.stringify(enLlamadas(trocear(barajar(OCHENTA), 8))));
+check('U15 · doce corridas, barajadas y troceadas en ocho llamadas con su reloj: idénticas',
+  doceTemporal.every((x) => x === doceTemporal[0]));
+
+console.log('\n─── V. Sin reloj no se evalúa ───');
+
+/*
+ * EL FALLO: sin reloj, A7 evaluaba con 0. Con 0, todo lo aprendido —también lo
+ * de hace dos meses— salía con frescura 1, porque todo parecía del futuro.
+ */
+const DIEZ = lote(10, (i) => res(`v${i}`, 'success', AHORA - i * HORA));
+const sinReloj = a7.aprender({ policy: VENTANA, outcomes: DIEZ, events: [ev('v', 'accepted', 'explicit')] });
+check('V1 · sin reloj, la llamada se RECHAZA y lo dice con un código', sinReloj.rechazo === 'clock_missing', String(sinReloj.rechazo));
+check('V1b · y no procesa NADA: ni candidatos, ni validados, ni señales, ni historial, ni un dato admitido',
+  sinReloj.candidates.length === 0 && sinReloj.validated.length === 0 && sinReloj.signals.length === 0 &&
+  Object.keys(sinReloj.history).length === 0 && sinReloj.metricas.eventosAdmitidos === 0 &&
+  sinReloj.metricas.resultadosAdmitidos === 0 && sinReloj.metricas.observaciones === 0);
+check('V1c · pero cuenta lo que le llegó, para que se sepa qué quedó sin procesar',
+  sinReloj.metricas.resultadosRecibidos === 10 && sinReloj.metricas.eventosRecibidos === 1 &&
+  sinReloj.because.some((b) => /sin procesar/.test(b)));
+for (const [etiqueta, reloj, motivo] of [
+  ['ausente', undefined, 'clock_missing'], ['null', null, 'clock_missing'], ['NaN', NaN, 'clock_invalid'],
+  ['Infinity', Infinity, 'clock_invalid'], ['negativo', -1, 'clock_invalid'], ['cero', 0, 'clock_invalid'],
+  ['un texto', String(AHORA), 'clock_invalid'],
+]) {
+  check(`V2 · reloj ${etiqueta} → ${motivo}`, a7.aprender({ ahora: reloj, policy: VENTANA, outcomes: DIEZ }).rechazo === motivo);
+}
+check('V2b · CONTROL · con un reloj válido no hay rechazo y se procesa',
+  !('rechazo' in aprender({ outcomes: DIEZ })) && aprender({ outcomes: DIEZ }).metricas.resultadosAdmitidos === 10);
+
+const rechazadoConPrevio = a7.aprender({ policy: V16, previo: unaVez.aggregates, outcomes: DIEZ });
+check('V3 · rechazada, el estado previo se devuelve INTACTO: quien lo guarde sin mirar no pierde nada',
+  igual(rechazadoConPrevio.aggregates, unaVez.aggregates));
+check('V3b · y reintentar con reloj no cuenta dos veces lo que se mandó',
+  igual(a7.aprender({ ahora: AHORA, policy: V16, previo: rechazadoConPrevio.aggregates, outcomes: DIEZ }).aggregates,
+    a7.aprender({ ahora: AHORA, policy: V16, previo: unaVez.aggregates, outcomes: DIEZ }).aggregates));
+
+/* El caso de la auditoría: un agregado cuyo último dato es de hace 61 días. */
+const DENTRO_DE_61 = FIN80 + 61 * DIA;
+check('V4 · con reloj, un agregado de hace 61 días está RANCIO',
+  A.frescuraDe(agOchenta, DENTRO_DE_61, POL16.vidaMs) === 0 && A.guardas(agOchenta, DENTRO_DE_61, POL16).includes('evidence_stale'));
+check('V4b · sin reloj NO se vuelve fresco: frescura 0 y confianza 0, nunca 1',
+  [undefined, null, NaN, 0].every((t) => A.frescuraDe(agOchenta, t, POL16.vidaMs) === 0 &&
+    A.confianzaDeAgregado(agOchenta, t, POL16).value === 0));
+check('V5 · `guardas()` sin reloj devuelve ESE motivo y ningún otro, aunque el agregado sea perfecto',
+  igual([...A.guardas(agLimpio, undefined, polV)], ['clock_missing']) &&
+  igual([...A.guardas(agLimpio, NaN, polV)], ['clock_invalid']) &&
+  igual([...A.guardas(agLimpio, AHORA, polV)], []),
+  'con reloj, el mismo agregado pasa todas');
+check('V6 · la frescura sin reloj es 0 —desconocida—, nunca NaN ni 1',
+  [undefined, null, NaN, 0, -1, Infinity, -Infinity].every((t) => A.frescuraDe(agLimpio, t, polV.vidaMs) === 0));
+check('V7 · y la confianza dice POR QUÉ es cero',
+  /sin reloj de evaluación \(clock_missing\)/.test(A.confianzaDeAgregado(agLimpio, undefined, polV).because));
+check('V8 · la regla es del RELOJ: la fecha de un evento en la época sigue siendo una fecha',
+  aprender({ events: [ev('epoca', 'accepted', 'explicit', 0)] }).metricas.eventosAdmitidos === 1);
+check('V8b · y una fecha negativa sigue sin serlo, con la misma definición de instante',
+  rechaza(ev('neg', 'accepted', 'explicit', -1), 'bad_timestamp'));
+check('V9 · sin entrada ninguna, se rechaza igual y devuelve un estado vacío, no uno inventado',
+  (() => { const r = a7.aprender(undefined); return r.rechazo === 'clock_missing' && r.aggregates.length === 0; })());
+
+console.log('\n─── W. Los resultados pasan por la misma puerta de privacidad que los eventos ───');
+
+/*
+ * EL HUECO: un resultado con «country» en el ámbito ENTRABA —la lista blanca
+ * del agregado tiraba el campo, pero el resultado se admitía y se aprendía de
+ * él—, cuando el mismo campo en un EVENTO lo deja fuera. Y lo que no entraba
+ * desaparecía sin contarse.
+ */
+const rechazaResultado = (r, motivo) => {
+  const x = aprender({ outcomes: [r] });
+  return x.metricas.resultadosAdmitidos === 0 && x.metricas.resultadosRechazados === 1 &&
+    x.metricas.porMotivoDeResultado[motivo] === 1 && x.metricas.claves === 0;
+};
+for (const campo of ['country', 'age', 'gender', 'email', 'prompt', 'City', 'EMAIL']) {
+  check(`W1 · «${campo}» en el ámbito de un RESULTADO: fuera, con su motivo`,
+    rechazaResultado(res(`w_${campo}`, 'success', AHORA, { ...AMBITO, [campo]: 'x' }), 'privacy_class'));
+}
+check('W2 · CONTROL · el mismo resultado sin ese campo entra: la puerta es la única causa',
+  aprender({ outcomes: [res('w_ok', 'success', AHORA, AMBITO)] }).metricas.resultadosAdmitidos === 1);
+check('W3 · un campo de persona en la METADATA de un resultado, también fuera',
+  rechazaResultado({ ...res('w_m', 'success'), metadata: { prompt: 'x' } }, 'privacy_class') &&
+  rechazaResultado({ ...res('w_m2', 'success'), metadata: { a: { b: { content: 'x' } } } }, 'privacy_class'));
+check('W4 · la autoridad sobre la metadata ya estaba, y ahora además se CUENTA',
+  rechazaResultado({ ...res('w_a', 'success'), metadata: { providerId: 'p9' } }, 'unsafe_metadata'));
+check('W5 · un resultado mal formado se cuenta como mal formado, no desaparece',
+  (() => {
+    const x = aprender({ outcomes: [null, { kind: 'success', at: AHORA }, 42] });
+    return x.metricas.resultadosRechazados === 3 && x.metricas.porMotivoDeResultado.malformed === 3;
+  })());
+check('W6 · el valor rechazado no aparece en NINGÚN sitio de la salida',
+  !JSON.stringify(aprender({ outcomes: [res('w_v', 'success', AHORA, { ...AMBITO, country: 'MARCA_PAIS' }), ...LIMPIO()] }))
+    .includes('MARCA_PAIS'));
+check('W7 · eventos y resultados rechazan EXACTAMENTE los mismos campos: la lista entera, uno a uno',
+  [...A.CAMPOS_DE_PERSONA].every((k) =>
+    A.eventoValido(ev('w7', 'accepted', 'explicit', AHORA, { ...AMBITO, [k]: 'x' })).reason === 'privacy_class' &&
+    A.resultadoValido(res('w7', 'success', AHORA, { ...AMBITO, [k]: 'x' })).reason === 'privacy_class'));
+check('W7b · y lo preguntan a la MISMA función, sin una lista propia en el motor',
+  (() => {
+    const f = sinComentarios(leer('functions/src/core/algorithm/feedback.ts'));
+    const cuerpo = (nombre) => f.split(`export const ${nombre}`)[1]?.split('export const')[0] ?? '';
+    return /campoDePersonaEnAmbito\(/.test(cuerpo('eventoValido')) && /campoDePersonaEnAmbito\(/.test(cuerpo('resultadoValido')) &&
+      !/CAMPOS_DE_PERSONA/.test(sinComentarios(leer('functions/src/core/algorithm/feedback-engine.ts')));
+  })());
+check('W8 · ESTRUCTURA · ningún campo de persona es una dimensión de la clave',
+  A.ORDEN_DE_CLAVE.filter((k) => A.CAMPOS_DE_PERSONA.has(String(k).toLowerCase())).length === 0,
+  JSON.stringify(A.ORDEN_DE_CLAVE));
+check('W9 · y la puerta NO se fía de eso: pregunta a la lista de persona, no a la clave',
+  !/ORDEN_DE_CLAVE/.test(sinComentarios(leer('functions/src/core/algorithm/feedback.ts'))
+    .split('export const campoDePersonaEnAmbito')[1]?.split('export const')[0] ?? 'ORDEN_DE_CLAVE'),
+  'si alguien mete un campo de persona en la clave, la puerta lo sigue parando');
+check('W10 · un resultado rechazado no gasta presupuesto de evidencia, igual que un evento',
+  aprender({ outcomes: [res('w10a', 'success', AHORA, { ...AMBITO, age: '30' }), res('w10b', 'success')], budget: { maxEvidence: 1 } })
+    .metricas.resultadosAdmitidos === 1);
 
 console.log('\n─── Q. Rendimiento y escala ───');
 

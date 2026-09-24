@@ -29,7 +29,7 @@
 
 import { HistoryWindow } from './decision';
 import { Confidence, Evidence, Signal, Uncertainty, confianzaDeSenal, frescura, incertidumbreDe } from './signals';
-import { AmbitoDeEvento, CodigoDeRazon, PoliticaDeAprendizaje, Tendencia } from './feedback';
+import { AmbitoDeEvento, CodigoDeRazon, PoliticaDeAprendizaje, Tendencia, motivoDeReloj } from './feedback';
 
 /* ── La clave ─────────────────────────────────────────────────────────────── */
 
@@ -185,6 +185,24 @@ export interface AgregadoDeAprendizaje {
   ultimo: number;
   /** La ventana partida. Del más viejo al más nuevo. */
   tramos: readonly Tramo[];
+  /**
+   * DÓNDE ACABA EL TRAMO MÁS NUEVO, en epoch ms: el final ABSOLUTO de la rejilla.
+   *
+   * Existe por un fallo que había. El tramo de una observación se calculaba
+   * contra el `ahora` de la llamada que la acumulaba, y el tramo quedaba
+   * congelado con ese reloj: los mismos ochenta datos daban tramos distintos
+   * según llegaran en una llamada o en dos, y en dos daban un `validated`
+   * estable sobre una latencia que se había multiplicado por seis.
+   *
+   * Ahora la rejilla es fija —celdas de `ventanaMs / TRAMOS` contadas desde la
+   * época— y el tramo de una observación sale SOLO de su `at`, de la ventana y
+   * de esta rejilla. Ver `finDeTramo`.
+   *
+   * Opcional para que un agregado guardado antes siga leyéndose. Su AUSENCIA
+   * quiere decir que sus tramos no son de fiar: los totales valen, la
+   * estabilidad y la tendencia no se saben hasta que haya una rejilla válida.
+   */
+  tramosHasta?: number;
   /** Cuánto pesa la procedencia de lo que ha entrado, 0–1. Media ponderada. */
   fuerza: number;
   /** Acotadas, y solo para explicar. Nunca para contar. */
@@ -227,20 +245,64 @@ export const agregadoVacio = (key: string, metric: string, scope: AmbitoDeEvento
   explicitas: 0,
 });
 
+/* ── La rejilla ───────────────────────────────────────────────────────────── */
+
+/** El ancho de un tramo, o `undefined` si la ventana no es una ventana. */
+const anchoDeTramo = (ventanaMs: number): number | undefined =>
+  (typeof ventanaMs === 'number' && Number.isFinite(ventanaMs) && ventanaMs > 0 ? ventanaMs / TRAMOS : undefined);
+
+/** ¿Cae este instante justo en un borde de la rejilla de este ancho? */
+const enBorde = (t: number, ancho: number): boolean => Number.isFinite(t) && Math.round(t / ancho) * ancho === t;
+
 /**
- * EN QUÉ TRAMO CAE UNA OBSERVACIÓN.
+ * DÓNDE ACABA LA CELDA DE LA REJILLA QUE CONTIENE `at`.
  *
- * Por tiempo y relativo a la ventana, no por orden de llegada: dos eventos que
- * llegan tarde y desordenados tienen que caer donde les toca por su fecha, o la
- * tendencia depende del orden en que se procesaron y deja de ser reproducible.
+ * LA REJILLA, entera, está aquí. Celdas de `ventanaMs / TRAMOS` contadas desde
+ * la época, cerradas por el final: la celda que acaba en `fin` cubre
+ * `(fin − ancho, fin]`. Es la misma para todos los agregados con la misma
+ * ventana y no se mueve con nada: ni con el reloj de quien llama, ni con el
+ * orden en que lleguen los datos.
  */
-export const tramoDe = (at: number, ahora: number, vidaMs: number): number => {
-  if (!Number.isFinite(at) || !Number.isFinite(ahora) || vidaMs <= 0) return TRAMOS - 1;
-  const edad = Math.max(0, ahora - at);
-  if (edad >= vidaMs) return 0;
-  /* 0 = el más viejo, TRAMOS-1 = el más nuevo. */
-  const i = TRAMOS - 1 - Math.floor((edad / vidaMs) * TRAMOS);
-  return Math.min(TRAMOS - 1, Math.max(0, i));
+export const finDeTramo = (at: number, ventanaMs: number): number | undefined => {
+  const ancho = anchoDeTramo(ventanaMs);
+  if (ancho === undefined || typeof at !== 'number' || !Number.isFinite(at)) return undefined;
+  return Math.ceil(at / ancho) * ancho;
+};
+
+/**
+ * ¿SE PUEDE FIAR DE LOS TRAMOS DE ESTE AGREGADO?
+ *
+ * Sí cuando dice dónde acaba su rejilla y trae sus TRAMOS tramos. Con una
+ * ventana, además, cuando ese final cae en la rejilla de ESA ventana: si no
+ * cae, los tramos se hicieron con otra y no se pueden seguir llenando.
+ */
+export const rejillaValida = (a: AgregadoDeAprendizaje, ventanaMs?: number): boolean => {
+  const hasta = a?.tramosHasta;
+  if (typeof hasta !== 'number' || !Number.isFinite(hasta)) return false;
+  if (!Array.isArray(a.tramos) || a.tramos.length !== TRAMOS) return false;
+  if (ventanaMs === undefined) return true;
+  const ancho = anchoDeTramo(ventanaMs);
+  return ancho !== undefined && enBorde(hasta, ancho);
+};
+
+/**
+ * EN QUÉ TRAMO CAE UNA OBSERVACIÓN, en la rejilla que acaba en `hasta`.
+ *
+ * Por su FECHA y nada más. El segundo argumento era el reloj de la llamada, y
+ * ese era el fallo: el tramo dependía de cuándo se acumulaba, no de cuándo
+ * pasó. Ahora es el final de la rejilla, que tiene que caer en un borde.
+ *
+ * `undefined` fuera de la rejilla —más vieja que su primer tramo, o más nueva
+ * que el último— o con algo que no es una fecha: no se sabe dónde va, y no se
+ * pone en ningún sitio por si acaso.
+ */
+export const tramoDe = (at: number, hasta: number, ventanaMs: number): number | undefined => {
+  const ancho = anchoDeTramo(ventanaMs);
+  const fin = finDeTramo(at, ventanaMs);
+  if (ancho === undefined || fin === undefined || !enBorde(hasta, ancho)) return undefined;
+  /* Cuántas celdas por detrás del final. 0 = el tramo más nuevo. */
+  const atras = Math.round((hasta - fin) / ancho);
+  return atras >= 0 && atras < TRAMOS ? TRAMOS - 1 - atras : undefined;
 };
 
 /**
@@ -249,17 +311,49 @@ export const tramoDe = (at: number, ahora: number, vidaMs: number): number => {
  * Inmutable a propósito. Un agregado que se muta en sitio es imposible de
  * probar por igualdad y, el día que esto viva detrás de una transacción, es
  * imposible de reintentar sin contar dos veces.
+ *
+ * El tercer argumento YA NO SE USA. Era el reloj de la llamada, y el tramo no
+ * puede depender de él. Sigue en la firma porque quitarlo correría `ventanaMs`
+ * a su sitio, y quien llamara como antes pasaría su reloj como ventana sin que
+ * nada se lo dijera.
  */
 export const acumular = (
   a: AgregadoDeAprendizaje,
   obs: { value: number; at: number; favorable: boolean; signal?: Signal; evidence?: Evidence; implicito?: boolean },
-  ahora: number,
-  vidaMs: number,
+  _ahora: number,
+  ventanaMs: number,
 ): AgregadoDeAprendizaje => {
   if (!Number.isFinite(obs?.value) || !Number.isFinite(obs?.at)) return a;
 
-  const i = tramoDe(obs.at, ahora, vidaMs);
-  const tramos = a.tramos.map((t, k) => (k !== i ? t : {
+  /*
+   * LA REJILLA, antes de colocar nada.
+   *
+   * Sin una rejilla de la que fiarse —un agregado nuevo, uno guardado antes de
+   * la rejilla absoluta, o uno hecho con otra ventana— los tramos EMPIEZAN AQUÍ
+   * y los totales se quedan como estaban: lo viejo no se puede recolocar porque
+   * no se guardó cuándo pasó cada cosa. Con una rejilla válida, si llega algo
+   * más nuevo que su final, la rejilla AVANZA: salen por detrás los tramos que
+   * se quedan fuera de la ventana y entran vacíos por delante.
+   */
+  const ancho = anchoDeTramo(ventanaMs);
+  const fin = finDeTramo(obs.at, ventanaMs);
+  let hasta = a.tramosHasta;
+  let tramos: readonly Tramo[] = a.tramos;
+  if (ancho !== undefined && fin !== undefined) {
+    if (!(a.n > 0 && rejillaValida(a, ventanaMs))) {
+      hasta = fin;
+      tramos = Array.from({ length: TRAMOS }, tramoCero);
+    } else if (fin > (hasta as number)) {
+      const salto = Math.min(TRAMOS, Math.round((fin - (hasta as number)) / ancho));
+      tramos = [...tramos.slice(salto), ...Array.from({ length: salto }, tramoCero)];
+      hasta = fin;
+    }
+  }
+  /* Lo que queda por detrás de la rejilla cuenta en los totales y en ningún
+   * tramo: meterlo en el más viejo, como se hacía, mezclaba en él datos de
+   * cualquier antigüedad. */
+  const i = typeof hasta === 'number' ? tramoDe(obs.at, hasta, ventanaMs) : undefined;
+  const nuevosTramos = i === undefined ? tramos : tramos.map((t, k) => (k !== i ? t : {
     n: t.n + 1,
     suma: t.suma + obs.value,
     favorables: t.favorables + (obs.favorable ? 1 : 0),
@@ -303,7 +397,8 @@ export const acumular = (
     max: Math.max(a.max, obs.value),
     primero: a.primero === 0 ? obs.at : Math.min(a.primero, obs.at),
     ultimo: Math.max(a.ultimo, obs.at),
-    tramos: Object.freeze(tramos),
+    tramos: Object.freeze(nuevosTramos),
+    ...(typeof hasta === 'number' ? { tramosHasta: hasta } : {}),
     fuerza,
     muestraDeApoyo: apoya ? nuevaMuestra(a.muestraDeApoyo, obs.evidence) : a.muestraDeApoyo,
     muestraDeContradiccion: apoya ? a.muestraDeContradiccion : nuevaMuestra(a.muestraDeContradiccion, obs.evidence),
@@ -331,9 +426,12 @@ export const tasaDe = (a: AgregadoDeAprendizaje): number | undefined => (a.n > 0
  * que no tenemos—.
  *
  * Sin fecha devuelve 0, que es lo correcto: un agregado que no sabe cuándo se
- * llenó no es fresco, es desconocido.
+ * llenó no es fresco, es desconocido. Y sin un reloj válido, lo mismo: `frescura`
+ * de A0 devuelve NaN con un reloj NaN, y un NaN no cae por debajo de ningún
+ * umbral, así que la guarda de frescura lo dejaba pasar.
  */
 export const frescuraDe = (a: AgregadoDeAprendizaje, ahora: number, vidaMs: number): number => {
+  if (motivoDeReloj(ahora)) return 0;
   if (!a.n || !a.ultimo) return 0;
   return frescura({ key: 'aggregate.freshness', value: 1, source: 'derived', at: a.ultimo }, ahora, vidaMs);
 };
@@ -345,11 +443,13 @@ export const frescuraDe = (a: AgregadoDeAprendizaje, ahora: number, vidaMs: numb
  * es plano y el otro es una escalera. Se mide comparando los tramos con datos:
  * cuanto más se parecen entre sí, más estable.
  *
- * Con un solo tramo con datos devuelve 0 y no 1: todo concentrado en un rato no
- * es estabilidad, es una foto. Y sin datos, 0 — que se lee como «no se sabe» y
- * no como «inestable», porque la política pide un mínimo aparte.
+ * Con menos de dos tramos con datos devuelve `undefined`: todo concentrado en
+ * un rato no es estabilidad, es una foto. Y lo mismo si los tramos no son de
+ * fiar —un agregado sin rejilla—: comparar trozos que no se sabe qué cubren no
+ * mide nada.
  */
 export const estabilidadDe = (a: AgregadoDeAprendizaje): number | undefined => {
+  if (!rejillaValida(a)) return undefined;
   const conDatos = a.tramos.filter((t) => t.n > 0);
   /* UNDEFINED, no cero. Con un solo tramo con datos no es que sea inestable: es
    * que no hay dos trozos que comparar. Devolver cero decía «inestable» de algo
@@ -374,12 +474,14 @@ export const estabilidadDe = (a: AgregadoDeAprendizaje): number | undefined => {
  * métrica sería adivinar por el texto.
  *
  * Sin tramos suficientes NO se inventa una tendencia: `insufficient_evidence`.
+ * Ni sin una rejilla de la que fiarse, que es no saber qué tramo es cuál.
  */
 export const tendenciaDe = (
   a: AgregadoDeAprendizaje,
   mejorDireccion: 'sube' | 'baja',
   politica: PoliticaDeAprendizaje,
 ): Tendencia => {
+  if (!rejillaValida(a)) return 'insufficient_evidence';
   const estabilidad = estabilidadDe(a);
   const conDatos = a.tramos.filter((t) => t.n > 0);
   if (a.n < politica.minSampleSize || conDatos.length < 2) return 'insufficient_evidence';
@@ -421,6 +523,9 @@ export const confianzaDeAgregado = (
   ahora: number,
   politica: PoliticaDeAprendizaje,
 ): Confidence => {
+  /* Sin reloj no hay frescura, y sin frescura no hay confianza: se dice por qué. */
+  const sinReloj = motivoDeReloj(ahora);
+  if (sinReloj) return { kind: 'evidence', value: 0, basis: [], because: `sin reloj de evaluación (${sinReloj})` };
   if (!a.n) return { kind: 'evidence', value: 0, basis: [], because: 'sin observaciones' };
   const muestra = Math.min(1, a.n / Math.max(1, politica.minSampleSize));
   const fresca = frescuraDe(a, ahora, politica.vidaMs);
@@ -514,6 +619,11 @@ export const guardas = (
   opciones: { soloImplicito?: boolean; magnitud?: number } = {},
 ): readonly CodigoDeRazon[] => {
   const motivos: CodigoDeRazon[] = [];
+  /* Sin un reloj válido no se evalúa NADA, y es el único motivo: frescura,
+   * confianza e incertidumbre dependen de él, y un NaN no cae por debajo de
+   * ningún umbral —lo desconocido pasaba por aprobado—. */
+  const sinReloj = motivoDeReloj(ahora);
+  if (sinReloj) { motivos.push(sinReloj); return Object.freeze(motivos); }
   if (!a.n) { motivos.push('no_evidence'); return Object.freeze(motivos); }
   if (a.n < politica.minSampleSize) motivos.push('sample_below_minimum');
 

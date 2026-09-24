@@ -33,15 +33,14 @@ import { AlgorithmDescriptor } from './types';
 import { Contador, crearContador, presupuestoEfectivo } from './budget';
 import { Confidence, Evidence, Signal, Uncertainty, senalValida } from './signals';
 import { Severidad } from './strategy';
-import { violacionesEn } from './authority';
 import {
   AmbitoDeEvento, CambioPropuesto, CandidatoDeAprendizaje, ClaseDeResultado, CodigoDeRazon,
-  EstadoDeAprendizaje, FeedbackEvent, MotivoDeEventoInvalido, PoliticaDeAprendizaje,
-  ResultadoDeDecision, eventoValido, fuenteDeGesto, origenDe, politicaEfectiva,
+  EstadoDeAprendizaje, FeedbackEvent, MotivoDeEventoInvalido, MotivoDeRechazo, PoliticaDeAprendizaje,
+  ResultadoDeDecision, eventoValido, fuenteDeGesto, motivoDeReloj, origenDe, politicaEfectiva, resultadoValido,
 } from './feedback';
 import {
   AgregadoDeAprendizaje, agregadoAgregable, agregadoVacio, acumular, claveDeAmbito, confianzaDeAgregado,
-  estabilidadDe, frescuraDe, guardas, incertidumbreDeAgregado, soloImplicitoDe,
+  estabilidadDe, frescuraDe, guardas, incertidumbreDeAgregado, rejillaValida, soloImplicitoDe,
   mediaDe, senalDe, tasaDe, tendenciaDe, ventanaDe,
 } from './learning';
 import { HistoryWindow } from './decision';
@@ -98,7 +97,15 @@ export const METRICAS_BASE: readonly DescriptorDeMetrica[] = Object.freeze([
 export interface EntradaDeAprendizaje {
   events?: readonly FeedbackEvent[];
   outcomes?: readonly ResultadoDeDecision[];
-  /** El reloj, por parámetro. A7 no lee ninguno: eso rompería el determinismo. */
+  /**
+   * EL RELOJ CON EL QUE SE EVALÚA, por parámetro: A7 no lee ninguno, eso
+   * rompería el determinismo. OBLIGATORIO. Sin él, o con algo que no es un
+   * instante posterior a la época, la llamada se rechaza entera: ver
+   * `motivoDeReloj` y `SalidaDeAprendizaje.rechazo`.
+   *
+   * Sirve para EVALUAR —frescura, confianza, guardas— y para nada más. Los
+   * tramos no dependen de él: salen de la fecha de cada observación.
+   */
   ahora: number;
   policy?: Partial<PoliticaDeAprendizaje>;
   /** Lo que ya se sabía. Se sigue acumulando encima, no se recalcula. */
@@ -114,6 +121,10 @@ export interface MetricasDeAprendizaje {
   eventosRechazados: number;
   porMotivo: Readonly<Partial<Record<MotivoDeEventoInvalido, number>>>;
   resultadosRecibidos: number;
+  resultadosAdmitidos: number;
+  /** Los que no pasaron `resultadoValido`. Antes desaparecían sin contarse. */
+  resultadosRechazados: number;
+  porMotivoDeResultado: Readonly<Partial<Record<MotivoDeEventoInvalido, number>>>;
   observaciones: number;
   claves: number;
   candidatos: number;
@@ -125,12 +136,22 @@ export interface MetricasDeAprendizaje {
 
 export const METRICAS_DE_APRENDIZAJE_CERO: Readonly<MetricasDeAprendizaje> = Object.freeze({
   eventosRecibidos: 0, eventosAdmitidos: 0, eventosRechazados: 0, porMotivo: Object.freeze({}),
-  resultadosRecibidos: 0, observaciones: 0, claves: 0, candidatos: 0,
+  resultadosRecibidos: 0, resultadosAdmitidos: 0, resultadosRechazados: 0, porMotivoDeResultado: Object.freeze({}),
+  observaciones: 0, claves: 0, candidatos: 0,
   validados: 0, rechazados: 0, soloImplicitos: 0, budgetExhausted: false,
 });
 
 export interface SalidaDeAprendizaje {
   contract: string;
+  /**
+   * SI LA LLAMADA ENTERA SE RECHAZÓ, por qué. Ausente = se procesó.
+   *
+   * Rechazada no se acumula ni se evalúa nada, y `aggregates` es el `previo`
+   * tal cual llegó —limpio de identificadores, como siempre—. Así, quien guarde
+   * `aggregates` sin mirar esto no pierde su estado, y quien reintente con un
+   * reloj no cuenta dos veces lo que mandó.
+   */
+  rechazo?: MotivoDeRechazo;
   /** El estado acumulado. Se vuelve a pasar como `previo` la próxima vez. */
   aggregates: readonly AgregadoDeAprendizaje[];
   candidates: readonly CandidatoDeAprendizaje[];
@@ -290,6 +311,25 @@ export interface OpcionesDelAprendiz {
   metricas?: readonly DescriptorDeMetrica[];
 }
 
+/**
+ * EL ESTADO QUE YA SE SABÍA, cargado. Igual se procese la llamada o no.
+ *
+ * Reducido al cargarlo: un estado guardado antes del arreglo de privacidad trae
+ * la fuga dentro, y sin esto se reemitiría tal cual en cada llamada.
+ */
+const cargarPrevio = (previo: readonly AgregadoDeAprendizaje[] | undefined): Map<string, AgregadoDeAprendizaje> => {
+  const agregados = new Map<string, AgregadoDeAprendizaje>();
+  for (const a of Array.isArray(previo) ? previo : []) {
+    if (a && typeof a.key === 'string') agregados.set(a.key, agregadoAgregable(a));
+  }
+  return agregados;
+};
+
+/* Orden canónico: el estado que sale tiene que ser el mismo con la misma
+ * entrada barajada, o `previo` deja de ser reproducible. */
+const enOrdenCanonico = (agregados: Map<string, AgregadoDeAprendizaje>): readonly AgregadoDeAprendizaje[] =>
+  Object.freeze([...agregados.values()].sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : 0)));
+
 export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
   const metricasBase = Object.freeze([...METRICAS_BASE, ...(opciones.metricas ?? [])]);
 
@@ -298,11 +338,44 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
     const topes = presupuestoEfectivo(entrada?.budget, DESCRIPTOR_DE_FEEDBACK.budget);
     const contador: Contador = crearContador(topes);
     contador.gastar('algorithmCalls');
-    const m: MetricasDeAprendizaje = { ...METRICAS_DE_APRENDIZAJE_CERO, porMotivo: {} };
+    const m: MetricasDeAprendizaje = { ...METRICAS_DE_APRENDIZAJE_CERO, porMotivo: {}, porMotivoDeResultado: {} };
     const porMotivo: Partial<Record<MotivoDeEventoInvalido, number>> = {};
+    const porMotivoDeResultado: Partial<Record<MotivoDeEventoInvalido, number>> = {};
     const porque: string[] = [];
+    const agregados = cargarPrevio(entrada?.previo);
 
-    const ahora = typeof entrada?.ahora === 'number' && Number.isFinite(entrada.ahora) ? entrada.ahora : 0;
+    /*
+     * 0 · EL RELOJ, antes que nada.
+     *
+     * Aquí había un `: 0`: sin reloj se evaluaba con la época, y todo lo
+     * aprendido —también lo de hace dos meses— salía con frescura 1. Ahora sin
+     * un reloj válido no se hace NADA: ni se acumula ni se evalúa. No se
+     * acumula aunque los tramos ya no dependan del reloj, porque una llamada a
+     * medias obliga a quien la hizo a adivinar qué se contó; así, reintentar con
+     * reloj es seguro.
+     */
+    const sinReloj = motivoDeReloj(entrada?.ahora);
+    if (sinReloj) {
+      m.eventosRecibidos = Array.isArray(entrada?.events) ? entrada.events.length : 0;
+      m.resultadosRecibidos = Array.isArray(entrada?.outcomes) ? entrada.outcomes.length : 0;
+      m.claves = agregados.size;
+      porque.push(sinReloj === 'clock_missing'
+        ? 'Sin reloj de evaluación: no se acumula ni se evalúa nada.'
+        : 'El reloj de evaluación no es un instante válido: no se acumula ni se evalúa nada.');
+      porque.push(`El estado previo se devuelve intacto (${agregados.size} agregado(s)); ${m.eventosRecibidos} evento(s) y ${m.resultadosRecibidos} resultado(s) quedan sin procesar.`);
+      return Object.freeze({
+        contract: ALGORITHM_CONTRACT_VERSION,
+        rechazo: sinReloj,
+        aggregates: enOrdenCanonico(agregados),
+        candidates: Object.freeze([]),
+        validated: Object.freeze([]),
+        signals: Object.freeze([]),
+        history: Object.freeze({}),
+        because: Object.freeze(porque),
+        metricas: { ...m, porMotivo: Object.freeze({}), porMotivoDeResultado: Object.freeze({}) },
+      }) as SalidaDeAprendizaje;
+    }
+    const ahora = entrada.ahora;
     const catalogo = new Map(
       [...metricasBase, ...(entrada?.metricas ?? [])].map((d) => [d.key, d]),
     );
@@ -348,41 +421,45 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
        * una guarda: es decoración que sugiere una protección que no da.
        *
        * Donde sí carga peso es en los RESULTADOS, que no pasan por
-       * `eventoValido`. Ahí está, y ahí se falsa.
+       * `eventoValido`: la llevan en `resultadoValido`, y ahí se falsa.
        */
       contador.gastar('evidence');
       m.eventosAdmitidos++;
       observaciones.push(...observacionesDeEvento(e));
     }
 
+    /* Los resultados, por SU puerta, que es hermana de la de los eventos: misma
+     * autoridad sobre la metadata, mismos campos de persona, y lo que no entra
+     * se cuenta con su motivo en vez de desaparecer. */
     const resultados = Array.isArray(entrada?.outcomes) ? entrada.outcomes : [];
     m.resultadosRecibidos = resultados.length;
     for (const r of resultados) {
-      if (!r || typeof r !== 'object' || typeof r.id !== 'string') continue;
       if (!contador.cabe('evidence')) { m.budgetExhausted = true; break; }
-      /* Mismo criterio: el ámbito describe, la metadata podría decidir. Un
-       * resultado no trae metadata libre, así que se comprueba lo que sí puede
-       * traer texto de fuera: las señales que alguien haya adjuntado. */
-      if (violacionesEn((r as { metadata?: unknown }).metadata, `outcome:${r.id}:metadata`).length) continue;
+      const v = resultadoValido(r);
+      if (!v.ok) {
+        m.resultadosRechazados++;
+        porMotivoDeResultado[v.reason] = (porMotivoDeResultado[v.reason] ?? 0) + 1;
+        continue;
+      }
       contador.gastar('evidence');
+      m.resultadosAdmitidos++;
       observaciones.push(...observacionesDeResultado(r));
     }
     m.observaciones = observaciones.length;
 
     /* 2 · AGREGACIÓN. Por clave y con tamaño fijo: nunca un recorrido. */
-    const agregados = new Map<string, AgregadoDeAprendizaje>();
-    for (const a of entrada?.previo ?? []) {
-      /* Reducido al cargarlo: un estado guardado antes del arreglo trae la
-       * fuga dentro, y sin esto se reemitiría tal cual en cada llamada. */
-      if (a && typeof a.key === 'string') agregados.set(a.key, agregadoAgregable(a));
-    }
     const tocadas = new Set<string>();
+    /* El TROCEO usa la ventana de observación; la DECADENCIA usa la vida. */
+    const ventana = politica.ventanaMs ?? politica.vidaMs;
+    /* Las que traían datos sin una rejilla válida para esta ventana: sus tramos
+     * empiezan de nuevo aquí, y eso se dice. */
+    const sinRejilla = new Set<string>();
 
     for (const o of observaciones) {
       const clave = claveDeAmbito(o.scope, o.metric);
       const previo = agregados.get(clave) ?? agregadoVacio(clave, o.metric, o.scope);
-      /* El TROCEO usa la ventana de observación; la DECADENCIA usa la vida. */
-      agregados.set(clave, acumular(previo, o, ahora, politica.ventanaMs ?? politica.vidaMs));
+      if (previo.n > 0 && !rejillaValida(previo, ventana)) sinRejilla.add(clave);
+      agregados.set(clave, acumular(previo, o, ahora, ventana));
       tocadas.add(clave);
     }
     m.claves = agregados.size;
@@ -474,23 +551,26 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
       if (a) historia[clave] = ventanaDe(a);
     }
 
-    porque.push(`${m.eventosAdmitidos} de ${m.eventosRecibidos} evento(s) admitidos; ${m.resultadosRecibidos} resultado(s).`);
+    porque.push(`${m.eventosAdmitidos} de ${m.eventosRecibidos} evento(s) admitidos; ${m.resultadosAdmitidos} de ${m.resultadosRecibidos} resultado(s) admitidos.`);
     porque.push(`${m.claves} clave(s) agregadas, ${m.candidatos} candidato(s), ${m.validados} validado(s).`);
     if (m.eventosRechazados) porque.push(`${m.eventosRechazados} evento(s) rechazados en la puerta.`);
+    if (m.resultadosRechazados) porque.push(`${m.resultadosRechazados} resultado(s) rechazados en la puerta.`);
+    if (sinRejilla.size) {
+      porque.push(`${sinRejilla.size} agregado(s) traían datos sin una rejilla temporal válida para esta ventana: `
+        + 'se conservan sus totales y sus tramos empiezan de nuevo aquí.');
+    }
     if (m.soloImplicitos) porque.push(`${m.soloImplicitos} clave(s) se sostienen solo en gestos implícitos: no validan solas.`);
     if (!m.validados) porque.push('Nada validado: producir evidencia y no concluir nada es un resultado, no un fallo.');
 
     return Object.freeze({
       contract: ALGORITHM_CONTRACT_VERSION,
-      /* Orden canónico: el estado que sale tiene que ser el mismo con la misma
-       * entrada barajada, o `previo` deja de ser reproducible. */
-      aggregates: Object.freeze([...agregados.values()].sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : 0))),
+      aggregates: enOrdenCanonico(agregados),
       candidates: Object.freeze(candidatos),
       validated: Object.freeze(validados),
       signals: Object.freeze(senales),
       history: Object.freeze(historia),
       because: Object.freeze(porque),
-      metricas: { ...m, porMotivo: Object.freeze(porMotivo) },
+      metricas: { ...m, porMotivo: Object.freeze(porMotivo), porMotivoDeResultado: Object.freeze(porMotivoDeResultado) },
     }) as SalidaDeAprendizaje;
   };
 

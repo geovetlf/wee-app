@@ -410,8 +410,11 @@ Cada agregado lleva la ventana partida en cuatro **tramos**, porque una media es
 un embustero educado: «tasa 0,8 sobre mil» puede ser mil ejecuciones tranquilas
 o novecientas a 0,95 y las últimas cien a 0,3 — mismo número, acciones opuestas.
 
-Medido: **100 000 eventos en 318 ms (3,18 µs/evento)**, con el coste por evento
-plano y el estado en 20 claves.
+Medido con el contrato 1.6: **100 000 resultados en ~370 ms (3,7 µs cada uno)**,
+en una comparación A/B intercalada con la versión anterior en la misma máquina
+(341 → 367 ms): la puerta de resultados y la rejilla absoluta cuestan un **7 %**.
+Dentro de la suite completa, que mide al final de todo, sale ~400 ms. El coste
+por resultado es plano de 100 a 100 000 y el estado queda en 20 claves.
 
 ### Dos relojes que no son el mismo
 
@@ -426,6 +429,72 @@ validaba jamás, ni siquiera una degradación evidente.
 `estabilidadDe` devuelve `undefined` con un solo tramo con datos, y las guardas
 emiten `stability_unknown`, distinto de `unstable_across_window`. Es la misma
 regla de A6 —no saber no es suspender— aplicada en la otra dirección.
+
+### La rejilla es absoluta (contrato 1.6)
+
+El tramo de cada observación se decidía contra el `ahora` de la llamada que la
+acumulaba, y ahí se quedaba congelado. Medido con ochenta resultados —ocho días
+a 500 ms y ocho a 3 000 ms—: en una llamada, tramos `[20,20,20,20]` y
+`degrading`; en **dos llamadas con su propio reloj**, que es como se usa en
+vivo, tramos `[0,0,40,40]` y un **`validated` estable a 1 750 ms**. Una
+degradación de seis veces, aprobada como estable.
+
+Ahora los tramos se cortan en una **rejilla fija**: celdas de `ventanaMs / 4`
+contadas desde la época y cerradas por el final. `tramosHasta` guarda dónde
+acaba la más nueva, y el tramo de un dato sale **solo de su fecha**, de la
+ventana y de esa rejilla:
+
+- llega algo más nuevo que el final → la rejilla **avanza** y salen por detrás
+  los tramos que se quedan fuera de la ventana;
+- llega algo más viejo que el primer tramo → cuenta en los **totales** y en
+  ningún tramo (antes se metía en el más viejo, mezclando cualquier antigüedad);
+- ni el orden de llegada ni el troceo cambian nada: 1, 2, 4 u 8 llamadas, en
+  orden, al revés o barajadas, dan el **mismo estado byte a byte**.
+
+El reloj solo **evalúa**: evaluar más tarde baja la frescura y la confianza y
+nunca mueve un tramo.
+
+Un agregado guardado antes no trae `tramosHasta`: sus **totales valen**; su
+estabilidad y su tendencia **no se saben** —nunca se aprueban por defecto—
+hasta que la primera observación nueva le da una rejilla, y eso se dice en
+`because`. Lo mismo si su rejilla no cae en un borde de la ventana en vigor: se
+hizo con otra.
+
+**Lo que esto NO resuelve, y queda dicho:**
+
+- **Cambiar `ventanaMs` a una ventana cuya rejilla comparta bordes con la
+  anterior** —la mitad, el doble— no se detecta: haría falta guardar también el
+  ancho de la rejilla. Es una decisión de contrato y queda pendiente.
+- **Un dato fechado en el futuro lejano** mueve la rejilla hasta él, porque la
+  fecha manda. Nunca aprueba nada —la clave se queda en `stability_unknown`—,
+  pero su tendencia deja de informar hasta que el tiempo lo alcance. Frenarlo
+  exigiría una tolerancia de reloj que nadie ha medido.
+- **Reenviar los mismos eventos** en dos llamadas los cuenta dos veces. La
+  entrega exactamente-una-vez es del punto de integración, y no se resuelve
+  metiendo identificadores en los agregados.
+
+### Sin reloj no se evalúa (contrato 1.6)
+
+Sin reloj, A7 evaluaba con 0, y con 0 todo lo aprendido —también lo de hace dos
+meses— salía con frescura 1: todo parecía del futuro. Ahora, sin un reloj válido
+(ausente, `NaN`, infinito, negativo o 0) la llamada se **rechaza entera** con
+`rechazo: 'clock_missing' | 'clock_invalid'`: ni se acumula ni se evalúa, y el
+estado previo se devuelve intacto, así que reintentar con reloj no cuenta dos
+veces y guardar la salida sin mirar no borra nada.
+
+`guardas()` sin reloj devuelve ese motivo y ningún otro; `frescuraDe` y
+`confianzaDeAgregado` devuelven 0 y dicen por qué. `frescura()` de A0 devuelve
+`NaN` con un reloj `NaN` —y un `NaN` no cae por debajo de ningún umbral, así que
+la guarda de frescura lo dejaba pasar—: A0 no se toca; se comprueba el reloj
+antes de llamarla.
+
+### Los resultados, por su puerta (contrato 1.6)
+
+`resultadoValido` es la hermana de `eventoValido`: la misma autoridad sobre la
+metadata, los mismos campos de persona —con la **misma función**,
+`campoDePersonaEnAmbito`, sin una lista propia— y lo que no entra **se cuenta**
+con su motivo en `porMotivoDeResultado`. Antes, un resultado con «country» en el
+ámbito entraba, y lo rechazado desaparecía sin contarse.
 
 ### Las guardas
 

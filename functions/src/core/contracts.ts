@@ -241,8 +241,52 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *
  * Aditivo: nada de lo que valía en 1.4 deja de valer, y un motor que no gasta
  * los contadores nuevos no nota la diferencia.
+ *
+ * 1.6 (A7): los tipos de A7 entran en el historial versionado, y lo hacen por un
+ * fallo de TIEMPO que no se podía arreglar sin decir una forma nueva.
+ *
+ * LA REJILLA. `AgregadoDeAprendizaje.tramosHasta` es el final ABSOLUTO, en epoch
+ * ms, del tramo más nuevo. Los tramos se cortan en una rejilla fija: celdas de
+ * `ventanaMs / TRAMOS` contadas desde la época y cerradas por el final —la que
+ * acaba en `fin` cubre `(fin − ancho, fin]`—. El tramo de una observación sale
+ * SOLO de su `at`, de la ventana y de esa rejilla; NUNCA del `ahora` de la
+ * llamada que la acumula. Antes salía de él y quedaba congelado: los mismos
+ * datos daban tramos distintos según llegaran en una llamada o en varias, y en
+ * dos llamadas una latencia multiplicada por seis salía `validated` y estable.
+ * Ahora: la rejilla AVANZA cuando llega una observación más nueva que su final;
+ * lo que queda más viejo que su primer tramo cuenta en los totales y en ningún
+ * tramo; y ni el orden de llegada ni el troceo en llamadas cambian el estado.
+ * El reloj solo EVALÚA —frescura, confianza, guardas— y evaluar más tarde puede
+ * bajar la frescura, nunca mover un tramo.
+ *
+ * `tramosHasta` es OPCIONAL, por compatibilidad: lo guardado antes no lo trae.
+ * Su AUSENCIA significa que la rejilla histórica no es de fiar. Los totales se
+ * conservan; la estabilidad y la tendencia, que salen de los tramos, quedan
+ * DESCONOCIDAS —nunca aprobadas por defecto— hasta que haya una rejilla válida,
+ * y esa empieza con la primera observación nueva, que reinicia los tramos. Lo
+ * mismo vale para un `tramosHasta` que no cae en un borde de la rejilla de la
+ * ventana en vigor: se construyó con otra ventana.
+ *
+ * EL RELOJ. `EntradaDeAprendizaje.ahora` era obligatorio en el tipo y opcional
+ * en la práctica: sin él se evaluaba con 0, y con 0 todo lo aprendido parecía
+ * recién hecho. Ahora, sin un reloj válido —ausente, NaN, infinito, negativo o
+ * 0— la llamada se RECHAZA entera: `SalidaDeAprendizaje` gana `rechazo`
+ * (`clock_missing` | `clock_invalid`), no se acumula ni se evalúa nada, y el
+ * estado previo se devuelve intacto para que reintentar con reloj no cuente dos
+ * veces. `guardas()` sin reloj válido devuelve ese motivo y ningún otro, y
+ * `CodigoDeRazon` gana los dos códigos.
+ *
+ * LOS RESULTADOS pasan por la misma puerta de privacidad que los eventos: un
+ * campo de persona en su ámbito o en su metadata los deja fuera, con motivo.
+ * `MetricasDeAprendizaje` gana `resultadosAdmitidos`, `resultadosRechazados` y
+ * `porMotivoDeResultado`; lo que antes no entraba desaparecía sin contarse.
+ *
+ * Aditivo en la forma: todo lo nuevo es opcional o un contador más, y nada de
+ * lo que valía en 1.5 deja de leerse. Cambian dos COMPORTAMIENTOS, y los dos
+ * eran el fallo: una llamada sin reloj ya no se procesa, y `tramoDe` recibe el
+ * final de la rejilla —ya no un reloj— y devuelve `undefined` fuera de ella.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.5' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.6' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
