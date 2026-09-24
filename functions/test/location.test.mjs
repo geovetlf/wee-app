@@ -1308,7 +1308,8 @@ console.log('\n── AF · una ciudad pequeña no queda tapada por una grande �
   const hua = lugares.buscarLugares('hua');
   const posicion = (id) => hua.findIndex((o) => o.id === id);
   check('AF) con "hua", Huancayo (principal) va antes que Huarmey (secundaria)', posicion('PE-HYO') >= 0 && posicion('PE-HYO') < posicion('PE-HRM'));
-  check('AF) pero las secundarias siguen apareciendo', hua.some((o) => o.tier !== 'major' || true) && hua.length > 1);
+  // Un resultado de búsqueda no trae `tier`: el nivel se mira en el catálogo.
+  check('AF) pero las secundarias siguen apareciendo', hua.some((o) => ciudades.find((c) => c.id === o.id)?.tier === 'secondary') && hua.length > 1);
 
   // El orden es estable: la lista no baila entre pulsaciones.
   check('AF) dos búsquedas iguales dan lo mismo, en el mismo orden', JSON.stringify(lugares.buscarLugares('san')) === JSON.stringify(lugares.buscarLugares('san')));

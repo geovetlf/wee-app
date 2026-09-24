@@ -302,8 +302,9 @@ console.log('\n── H · Control: no se rompió nada de lo anterior ──');
   check('28) los huecos de texto siguen entrando crudos',
     ES('wall.repostedBy', { nombre: 'Jazmín' }) === 'Jazmín reposteó'
     && EN('profile.shareMessage', { nombre: 'Jazmín' }) === 'Take a look at Jazmín on Weë');
+  /* Sin `contador` no hay plural y `communities.members` es 'miembros', sin hueco: el hueco vive en la forma plural. */
   check('29) un hueco sin valor sigue quedándose a la vista',
-    ES('communities.members', {}).includes('{{contador}}') === false || true);
+    ES('communities.members_other', {}).includes('{{contador}}'));
   check('29) y una clave que no existe sigue degradándose', ES('profile.noExisteEstaClave') === 'No Existe Esta Clave');
   check('30) el traductor sigue sin depender de React ni del almacenamiento',
     !/react|AsyncStorage|useState|window\./i.test(soloCodigo(leer('i18n/traducir.ts'))));
