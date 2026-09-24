@@ -30,6 +30,7 @@ acaba la lógica de alguien concreto.
 | **A8** Context | ¿qué de lo aprendido le sirve a ESTA decisión, y por qué lo demás no? |
 | **A9** Integración | ¿cómo se encadena todo lo anterior en un ciclo sin que nadie pierda su autoridad? |
 | **A9.1** Lo aprendido → la decisión | ¿cómo lee A1 lo que pasó sin que lo que pasó decida por él? |
+| **A9.2** Identidad y aprendizaje por alternativa | ¿qué alternativa es cuál, y qué se aprendió de CADA una? |
 
 ## 2 · Las capacidades son DATOS, no código
 
@@ -676,6 +677,8 @@ de hace 61 días salía con frescura 1 y **admitido**. Ahora: `rechazo`,
   así que un aprendizaje malo le subiría la confianza a lo que describe. Desde
   A9.1 (contrato 1.7) A1 **lee** esa ventana: la declara y la explica, y como es
   del ámbito entero —de todas las alternativas a la vez— no reordena (§14).
+  Desde A9.2 (1.8) le da también el historial de **cada alternativa**
+  (`historyByOption`), el único que puede ordenar (§15).
 - **A5 y A6** aceptan la evidencia sin romperse y no cambian su veredicto. A5 no
   tiene puerto a propósito; a A6, el histórico no le verifica **este** resultado.
 - **El Router** — `paraRouter`: agrupado por proveedor y modelo, en orden
@@ -782,10 +785,11 @@ salir. Es la única guarda que mira lo que la petición trae en `constraints` y 
 Entre `decidir` y `cerrar` pasa la ejecución, **fuera**. `cerrar` recibe lo
 observado: cómo acabó (en el vocabulario de A7, lo dice quien ejecutó) y qué
 salió (en el de A6). A6 verifica; su recuperación propone y **no se ejecuta
-nada**; el resultado se aprende en el **ámbito en que se decidió** —el de A8—,
-que es lo que A8 devolverá como historial la próxima vez que se decida ahí. Lo
-de la implementación —con qué proveedor— se aprendería en su propio ámbito, del
-lado de quien ejecuta.
+nada**; el resultado se aprende en el **ámbito en que se decidió** —el de A8—
+y, desde 1.8, con la **identidad de la alternativa entregada** (§15), que es lo
+que A8 devolverá como historial de ESA alternativa la próxima vez que se decida
+ahí. Lo de la implementación —con qué proveedor— se aprendería en su propio
+ámbito, del lado de quien ejecuta.
 
 ### La segunda pasada, medida
 
@@ -796,7 +800,9 @@ succeeded: 38}`. En A9 **A1 elegía lo mismo, byte a byte**, porque no leía
 `history`. Desde A9.1 lo lee —lo declara en `signalKeys` y lo cuenta en la
 explicación— y **sigue eligiendo lo mismo**, ahora por una razón de estructura:
 esa ventana es del ámbito, no de ninguna alternativa (§14). No se afirma que la
-segunda decisión sea mejor.
+segunda decisión sea mejor. Desde A9.2 esta pasada aprende por alternativa y ya
+no produce ventana del ámbito: lo que cambia, y cuándo cambia la decisión, está
+en §15.
 
 ### Hallazgos de la integración, sin corregir aquí
 
@@ -865,7 +871,7 @@ cerrar:   observación ─► A6 (+ recuperación propuesta) ─► A7 ─► ag
 | ejecución | Workflow, Orchestrator y, por paso, Router | **fuera**: el ciclo no ejecuta |
 | A6 → A7 | `ResultadoDeDecision`, en el ámbito en que se decidió | en el ciclo |
 | A7 → A8 | `SalidaDeAprendizaje.aggregates` como `learned` | en el ciclo, en memoria: sin persistir |
-| historial POR ALTERNATIVA → A1 | `DecisionContext.historyByOption` | puerto en A1 (1.7); **nadie lo produce todavía** |
+| historial POR ALTERNATIVA → A1 | `DecisionContext.historyByOption` | puerto en A1 (1.7); desde 1.8 lo produce A8 (§15) |
 
 El dibujo del brief dice «A2 → A3, A3 → A4/A5»; los contratos ponen A4 antes
 que A3 —A4 construye variantes con las primitivas de A2 y A3 las convierte en
@@ -908,6 +914,9 @@ entradas).
 
 ### La segunda pasada: qué cambia, y por qué
 
+Escrito en A9.1. Desde A9.2 la cadena real aprende por alternativa y el
+desenlace A es el suyo: §15.
+
 - **Con la cadena real: desenlace B.** Cuarenta ejecuciones → A7 → A8 →
   `{sampleSize: 40, succeeded: 38}` → A1 la lee, la declara y **elige lo
   mismo**. No es que no la lea: es que es del ámbito, y no hay evidencia **por
@@ -919,21 +928,16 @@ entradas).
   `derived` y lo explica. Una ventana que nombra proveedor o modelo no pasa y el
   plan es el de sin historial.
 
-### Lo que falta para que el desenlace A sea el de la cadena real
+### Lo que faltaba para que el desenlace A fuera el de la cadena real
 
-Declarado, **no construido**. Hacerlo es decidir qué ES una estrategia a
-efectos de memoria, y eso no es de A1:
+Declarado en A9.1 y **cerrado en A9.2** (§15):
 
-1. **Registrar el desenlace POR ESTRATEGIA.** `cerrar` aprende en el ámbito de
-   la decisión. Para que A7 agregue por alternativa, la observación tendría que
-   aprenderse en un ámbito que incluya la estrategia ejecutada. A7 ya tiene la
-   dimensión —`strategyId` está en `ORDEN_DE_CLAVE`—; falta quién la rellene.
-2. **Un puerto de A8 por alternativa.** `paraDecision` devuelve UNA ventana, la
-   del ámbito exacto. Haría falta uno que, dados los ids en juego, devuelva
-   `{[id]: HistoryWindow}` con las mismas reglas de admisión.
-3. **Una identidad de estrategia estable entre tareas.** Hoy el id es de la
-   tarea (`T:par1:estrategia`): la misma forma en otra tarea es, para el
-   historial, otra estrategia.
+1. **Registrar el desenlace POR ALTERNATIVA** — `cerrar` aprende con la
+   identidad de lo entregado, por la dimensión `strategyId` que A7 ya tenía.
+2. **Un puerto de A8 por alternativa** — `historyByOption`, en el mismo
+   `paraDecision`.
+3. **La identidad** — es el `id` que ya existía. Es de la TAREA: la misma forma
+   en otra tarea es otra alternativa, y eso se decidió así, no se dejó así.
 
 ### Determinismo: un hallazgo anterior a A9.1, corregido
 
@@ -993,7 +997,8 @@ Y cada uno tiene su forma de salida **cerrada**: un campo nuevo es una puerta.
 - **Nada del algoritmo.** Ningún archivo de `functions/src` fuera de
   `core/algorithm/` lo importa; `crearCicloAlgoritmico` solo lo llaman las
   pruebas.
-- **`historyByOption`**: puerto en A1, sin productor.
+- **`historyByOption`**: puerto en A1; desde 1.8 lo produce A8 dentro del ciclo
+  local (§15), sin conexión a producción.
 - **`paraRouter`**: productor en A8, sin consumidor.
 - **Lo aprendido** vive en memoria, dentro de las pruebas: no se persiste.
 - Ni Firestore, ni proveedores, ni Credits, ni Assets, ni `aiRouting`, ni
@@ -1045,20 +1050,206 @@ candidatas, nunca por el tamaño del mapa.
 
 Las cinco de §13 siguen donde estaban. A9.1 no las toca, por instrucción.
 
-## 15 · Lo que está probado, y dónde
+## 15 · A9.2, cada alternativa con su identidad —y lo aprendido de cada una—
+
+> **Una identidad identifica; no decide.** No dice qué alternativa gana, ni con
+> qué proveedor, modelo o adaptador se hace. Es el nombre con el que lo que
+> pasó al ejecutar una alternativa vuelve a ESA alternativa.
+
+### La identidad ya existía
+
+No nace ninguna. Es el `id` que las alternativas ya tenían:
+
+- en un plan, el de `Strategy`, derivado de la tarea y de su forma —A2
+  `tarea:heurística`, A4 `tarea:parN`, A3 `forma:estrategia`, A5
+  `base+operador`—: la misma tarea con la misma forma da el mismo `id` en cada
+  decisión;
+- en una decisión entre opciones dadas, el `id` de cada opción.
+
+En lo aprendido viaja por `strategyId`, una dimensión que la clave de A7 ya
+tenía. No es el proveedor, ni el modelo, ni el orden de llegada, ni un índice,
+ni un UUID por llamada, ni una fecha. Y es de la **tarea**: la misma forma en
+otra tarea es otra alternativa para el historial. Juntarlas sería afirmar que
+son la misma cosa, y eso no se puede saber desde aquí.
+
+### A1: sin identidad, no hay decisión
+
+Una alternativa sin `id` de texto, o dos con el mismo, dejan la petición **sin
+forma**: `status: 'invalid'` —el estado que el contrato ya tenía para eso— y la
+explicación dice cuál («options: ids repetidos «beta»»). Se comprueba **antes**
+del tope de candidatos —un repetido más allá del tope se vería o no según el
+orden de llegada— y antes del historial. Nada se arregla solo: ni se elige una,
+ni se renombra, ni se concatena. El motivo no depende del orden de llegada (los
+ids van ordenados, cinco como mucho), y la línea base comparte la puerta.
+
+### A9: el resultado vuelve a su alternativa
+
+`cerrar` aprende en el ámbito en que se decidió **más** la identidad de lo
+entregado: el `id` del plan o de la opción elegida. La pone la entrega —lo que
+eligió A1—, no la observación: quien ejecuta no puede atribuir su resultado a
+otra alternativa. Y declarar historial por alternativa además de pedírselo a A8
+es `history_twice`, como ya lo era con el del ámbito. Si la puerta de A7 no
+admite el resultado —una identidad con el separador de su clave—, el cierre lo
+dice, en vez de darlo por aprendido.
+
+### A7: aprender por alternativa, sin mezclar
+
+Con `strategyId` en el ámbito, A7 ya aprendía `strategy.succeeded`: un agregado
+por alternativa, O(1), con la clave de siempre. Faltaban dos cosas, y las dos se
+**midieron** antes de tocar nada:
+
+1. **Una alternativa que falla no llegaba nunca.** A7 contaba cada fallo como
+   evidencia en contra, y con más de un 30 % de fallos (`maxContradiction`) lo
+   aprendido de esa alternativa quedaba rechazado por contradictorio. Una que
+   falla siempre llegaba a A1 como «sin historial», y lo que falta no cuenta como
+   malo: solo viajaban las buenas noticias, y el caso más simple —A sale bien, B
+   sale mal— no podía cambiar nunca la decisión. En `strategy.succeeded` un
+   fallo es ahora una **muestra de la tasa**, no una contradicción: la lección
+   que A6 ya había dejado escrita —una medición firme de que algo falló no es
+   «no se sabe»—. La estabilidad sigue mandando: una tasa que cambia a lo largo
+   de la ventana no se valida.
+2. **La clave no era inyectiva.** Une las dimensiones con `|`, y la estrategia
+   «S|providerId=p» daba la misma clave que la «S» con el proveedor «p»: treinta
+   fallos de una se sumaban a treinta éxitos de la otra. Ahora un valor con el
+   separador (`SEPARADOR_DE_CLAVE`) no entra —ni en resultados, ni en
+   recuperaciones, ni en eventos— y se cuenta como `malformed`.
+
+`outcome.success`, `verification.passed` y `recovery.succeeded` siguen contando
+el fallo como contradicción. Es la misma trampa, y queda **declarada, no
+corregida**: no llegan a A1 como historial por alternativa, pero el día que el
+Router lea `paraRouter` solo vería los proveedores que casi siempre salen bien.
+
+### A8: el historial de CADA alternativa
+
+`ConjuntoDeSenales.historyByOption`, y `paraDecision` lo entrega:
+
+- solo `strategy.succeeded` —la métrica cuyo eje, `successProbability`, es el que
+  A1 rellena con historial—, y solo lo **admitido**, con las guardas y la
+  política de A7;
+- solo en el ámbito **exacto** de la decisión más `strategyId`: con un proveedor
+  además, habla de una implementación, que es del Router;
+- la identidad se lee del **ámbito** del agregado, nunca de su clave, y la
+  ventana es la suya;
+- sin evidencia por alternativa, **vacío**: el historial del ámbito no se copia
+  a nadie, ni se infiere que todas salieron igual.
+
+La muestra mínima es la de A7: A8 aplica su política —30 por defecto, nunca menos
+de `POLITICA_MINIMA.minSampleSize`, 5— y A1 vuelve a exigir ese suelo. Y A1 usa
+el historial con las reglas de 1.7, sin tocar ninguna.
+
+### El ciclo, de punta a punta
+
+Dos alternativas: B, la rápida y cara; A, la lenta y barata. Las peticiones con
+presupuesto justo solo admiten A; las demás las decide A1. Ochenta decisiones,
+y fuera, A sale siempre bien y B siempre mal:
+
+- **Pasada 1**: sin nada aprendido, A1 elige B.
+- **Durante las ochenta**: las justas ejecutan A; las libres, B, hasta que las
+  treinta de B —las que exige la política de A7— bastan para que su historial
+  llegue. Desde ahí A1 elige A también en las libres. Ejecutadas: A 50 (50 bien),
+  B 30 (ninguna).
+- **Pasada 2**: A8 entrega `{A: 50 de 50, B: 0 de 30}` y A1 elige **A**, igual
+  que llamado directamente, y lo explica.
+- **Al revés** —A mal, B bien—, los historiales se intercambian y gana B.
+- Con las alternativas en otro orden el ciclo entero hace **lo mismo**, y
+  barajar lo aprendido, las señales, las alternativas, los resultados o el mapa
+  no cambia nada.
+- Con **solo historial del ámbito**, A8 lo da, no lo copia a las alternativas y
+  A1 no cambia la decisión.
+- Con **menos muestra** de la que exige A7, no hay historial por alternativa y
+  A1 decide como la primera vez.
+- La entrega es **siempre** la elegida por A1, también cuando otra alternativa
+  tiene mejor historial.
+
+### Lo que el aprendizaje por alternativa NO hace
+
+- **No explora.** Una alternativa que nunca se ejecuta nunca tiene historial. En
+  el ejemplo A se ejecutó porque había peticiones que solo la admitían; decidir
+  cuándo probar lo que no se ha probado es una política, y no está aquí.
+- **No juzga calidad.** La divergencia entre A3/A5 y A1 sobre la calidad sin
+  medir sigue como estaba (§13): conservadora, sin puntuación inventada.
+- **No une tareas.** La identidad es de la tarea.
+- **No decide implementación.** Lo de un proveedor dentro de una alternativa va a
+  `paraRouter`, que sigue **PREPARADO / NO CONECTADO**: la futura etapa de
+  puntuación del Router, por un puerto que `RouterPorts` no tiene.
+
+### Las autoridades, después de A9.2
+
+Las de §14, y una atribución que antes no existía: **quién dice de qué
+alternativa es un resultado** es la entrega de A9, que repite lo que eligió A1.
+La identidad identifica; el Router sigue siendo la única autoridad de
+implementación, A6 la del veredicto, A7 aprende y no enruta, A8 filtra y no
+decide.
+
+### Los sabotajes
+
+Sesenta y nueve: veintiséis nuevos; cuarenta y uno de A9.1 y uno de A9 otra
+vez —la 1.8 tocó A1, A7, A8 y A9, y tenían que seguir cayendo—; y uno de A9.1
+reescrito. Cada uno rompe UNA cosa en la fuente, se reconstruye, corre su
+suite y se restaura byte a byte. Todos caen por **aserción**; ninguno porque la
+suite reviente.
+
+| Dónde | Qué se rompe (nuevos) |
+|---|---|
+| A1 | acepta ids repetidos · mira la identidad solo dentro del tope · acepta alternativas sin identidad · contamina el historial de una con el de otra |
+| A7 | sin la puerta de la clave en resultados, en la recuperación o en eventos · el fallo de la alternativa vuelve a ser contradicción · atribuye el éxito al revés · atribuye a otra alternativa · mezcla las alternativas · cuela un proveedor en lo de la alternativa |
+| A8 | copia el historial del ámbito a las alternativas · fabrica la identidad desde la clave · no comprueba el ámbito de la alternativa · acepta un ámbito más general · entrega solo a la ganadora · usa otra métrica como éxito de la alternativa · no lo entrega por su puerto |
+| A9 | fabrica historial por alternativa si A8 no lo da · no pasa a A1 lo que dio A8 · atribuye lo que diga la observación · aprende sin la identidad · se salta A1 y entrega la de mejor historial · admite dos fuentes de historial por alternativa · dice que A7 aprendió cuando A7 no admitió el resultado |
+
+Dos de los de A9.1 no cayeron a la primera, y no por lo mismo:
+
+- **Uno había dejado de significar algo.** Quitaba el historial por alternativa
+  de la petición antes de pasársela a A1; desde 1.8 llega además por el camino
+  explícito —el de A8 o el de la petición—, así que quitarlo de uno no cambia
+  nada que se pueda observar. Se reescribió quitándolo de los dos, y cae.
+- **El otro era un hueco de verdad.** A9 fabricando historial por alternativa
+  con la ventana del ámbito, en el camino de la TAREA: lo cubría la segunda
+  pasada de A9.1, que en 1.8 ya no da ventana del ámbito. Faltaba la prueba en
+  ese camino (S15b); ahora está, y cae.
+
+### Rendimiento
+
+A/B en la misma máquina: A9.1 (HEAD) y A9.2 compilados aparte con el mismo
+compilador, en procesos separados y siete rondas alternas; medianas.
+
+| Medida | A9.1 | A9.2 | |
+|---|---|---|---|
+| 10 000 decisiones sin historial | 378 µs | 380 µs | +0,6 % |
+| 1 000 ciclos completos sin historial | 445 µs | 447 µs | +0,5 % |
+| 1 000 ciclos leyendo lo aprendido | 475 µs | 490 µs | +3 % |
+| grafo de 4 · 6 · 10 pasos, sin historial | 354 · 854 · 1738 µs | 360 · 857 · 1699 µs | |
+| grafo de 4 · 6 · 10 pasos, con historial | 370 · 825 · 1750 µs | 381 · 822 · 1750 µs | |
+| solo A1, sin historial · con historial por alternativa | 34,2 · 52,0 µs | 33,8 · 52,1 µs | |
+| 1 000 ciclos por alternativa (strategy-A/B, de punta a punta) | 122 µs | 195 µs | +60 % |
+
+Lo que no cambia de trabajo cuesta lo mismo. Lo que sube es el ciclo por
+alternativa, y sube porque hace lo que en A9.1 no hacía: A7 aprende dos
+alternativas, A8 las admite y las entrega, y A1 puntúa con ellas. En esta
+máquina y ese día, A9.1 midió 378 µs por decisión y 445 por ciclo frente a los
+357 y 409 que registró: la diferencia es la máquina, y por eso se compara en
+la misma sesión.
+
+### Lo que NO está conectado a producción
+
+Nada. Todo lo de arriba corre en las pruebas, con datos sintéticos y en
+memoria: ni Firestore, ni proveedores, ni Credits, ni Router de producción. Lo
+siguiente es evaluar una integración **SHADOW**, y conectarla es otra decisión.
+
+## 16 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
 | `algorithm-agnostic.test.mjs` | ocho capacidades futuras sintéticas y una inventada en ejecución recorren la cadena entera; la metadata está acotada; diez propiedades de extensibilidad; el guard de arquitectura |
 | `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` · `-context` · `-cycle` | A0–A9 |
 | `-decision` §H · `-cycle` §L · `-context` §V · `-feedback` §X | A9.1: el historial como evidencia, el determinismo por permutaciones, y las fronteras de A7 y A8 |
+| `-decision` §I · `-cycle` §L2 · `-context` §W · `-feedback` §Y | A9.2: la identidad de las alternativas, el aprendizaje por alternativa y el ciclo de punta a punta |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 16 · Lo que esta capa NO hace, dicho una vez más
+## 17 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.

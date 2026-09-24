@@ -20,6 +20,7 @@
  *  J. A7: aprendizaje.
  *  K. El ciclo completo.
  *  L. La segunda pasada.
+ *  L2. A9.2: aprender por alternativa, de punta a punta.
  *  M. Sin política automática.
  *  N. Las deudas, declaradas.
  *  O. Agnosticismo.
@@ -381,8 +382,17 @@ check('57b · el ejecutor dice «éxito» y A6 dice que no cumple: la clase es d
   exitoQueNoCumple.outcome.verification.passed === false && exitoQueNoCumple.outcome.verification.status === 'partial');
 check('57c · y en los cuatro desenlaces la clase es la que dijo quien ejecutó, nunca una deducida del veredicto',
   Object.keys(DESENLACE).every((k) => CIERRES[k].outcome.kind === k));
-check('58 · y se aprende en el ámbito en que se DECIDIÓ, sin añadirle nada',
-  igual(exito.outcome.scope, { capability: CAP }));
+/*
+ * Hasta 1.7 el resultado se aprendía en el ámbito de la decisión «sin añadirle
+ * nada», y por eso lo aprendido no distinguía alternativas. Desde 1.8 lleva la
+ * IDENTIDAD de lo que se entregó, y solo eso.
+ */
+check('58 · y se aprende en el ámbito en que se DECIDIÓ más la identidad de la alternativa ENTREGADA, y nada más',
+  typeof R.entrega?.plan?.id === 'string' && R.entrega.plan.id === R.decision.candidates.find((c) => c.reason === 'selected').id &&
+  igual(exito.outcome.scope, { capability: CAP, strategyId: R.entrega.plan.id }), JSON.stringify(exito.outcome.scope));
+check('58b · la identidad la pone la ENTREGA, no la observación: quien ejecuta no puede atribuir su resultado a otra',
+  ciclo.cerrar(R, { ...observar(0, 'success', T1), scope: { strategyId: 'otra-alternativa' }, strategyId: 'otra' },
+    { ahora: T1 + HORA, policy: POL }).outcome.scope.strategyId === R.entrega.plan.id);
 check('59 · el aprendizaje es de A7, igual que llamándolo directamente',
   igual(exito.learning, a7.aprender({ ahora: T1 + HORA, policy: POL, outcomes: [exito.outcome] })));
 check('60 · sin reloj de aprendizaje, no se aprende: y no se inventa uno',
@@ -404,10 +414,12 @@ const vuelta = (learned, ahora) => {
 const v1 = vuelta([], T1);
 check('62 · el ciclo entero recorre A8, A1, A2, A4, A3, A5, A1 y la entrega',
   igual(v1.r.recorrido, ['context', 'approach', 'decomposition', 'parallelization', 'strategy', 'optimization', 'decision', 'handoff']));
-check('63 · y cierra: A6 verifica y A7 aprende',
-  v1.c.status === 'closed' && v1.c.verification.status === 'pass' && v1.c.learning.aggregates.length === 3);
+check('63 · y cierra: A6 verifica y A7 aprende, también el éxito de la alternativa que se ejecutó',
+  v1.c.status === 'closed' && v1.c.verification.status === 'pass' && v1.c.learning.aggregates.length === 4 &&
+  v1.c.learning.aggregates.some((a) => a.metric === 'strategy.succeeded' && a.scope.strategyId === v1.r.entrega.plan.id),
+  v1.c.learning.aggregates.map((a) => a.metric).join(','));
 check('64 · lo aprendido vuelve a entrar: la siguiente decisión lo lee por A8',
-  vuelta(v1.c.learning.aggregates, T1 + 2 * HORA).r.context.metricas.recibidas === 3);
+  vuelta(v1.c.learning.aggregates, T1 + 2 * HORA).r.context.metricas.recibidas === 4);
 check('65 · la misma entrada dos veces, el mismo resultado', igual(vuelta([], T1), v1));
 
 console.log('\n─── L. La segunda pasada ───');
@@ -424,39 +436,44 @@ const T2 = T1 + 41 * HORA;
 const segunda = ciclo.decidir(peticion({ aprendido: { ahora: T2, scope: { capability: CAP }, learned: aprendido, learningPolicy: POL } }));
 check('66 · primera pasada: sin evidencia histórica, y A1 decide con la de siempre',
   primera.context.cierre === 'no_evidence' && primera.historial === undefined && primera.status === 'decided');
-check('67 · tras cuarenta ejecuciones, A7 tiene lo aprendido en el ámbito de la decisión',
-  aprendido.every((a) => a.n === 40 && igual(a.scope, { capability: CAP })), aprendido.map((a) => a.metric).join(','));
+check('67 · tras cuarenta ejecuciones, A7 tiene lo aprendido POR ALTERNATIVA: el ámbito de la decisión más la identidad de lo ejecutado',
+  aprendido.length === 4 && aprendido.every((a) => a.n === 40 && igual(a.scope, { capability: CAP, strategyId: primera.entrega.plan.id })),
+  aprendido.map((a) => a.metric).join(','));
 check('68 · segunda pasada: A8 ADMITE lo aprendido que habla de lo que esta decisión optimiza',
   segunda.context.cierre === 'admitted' &&
   igual(segunda.context.admisiones.filter((x) => x.status === 'admitted').map((x) => x.metric), ['outcome.success', 'result.latencyMs']));
 check('69 · y deja fuera, diciendo por qué, lo que no: la verificación no es un eje de este objetivo',
   segunda.context.admisiones.find((x) => x.metric === 'verification.passed').because.includes('axis_not_in_objective'));
-check('70 · A1 RECIBE el historial: cuarenta ejecuciones, treinta y ocho bien',
-  igual(segunda.historial, A.paraDecision(segunda.context).history) && segunda.historial.sampleSize === 40 && segunda.historial.succeeded === 38,
-  JSON.stringify(segunda.historial));
-check('71 · el contexto de la decisión CAMBIÓ, y se explica: antes sin historial, ahora con él',
-  primera.historial === undefined && segunda.historial !== undefined && segunda.context.metricas.admitidas === 2);
 /*
- * Hasta A9.1 A1 no leía `history` y este caso lo dejaba escrito. Ahora lo lee
- * (contrato 1.7), y la segunda pasada tiene que decir QUÉ hace con él.
+ * Desde 1.8 lo aprendido es de la alternativa que se ejecutó, así que ya no
+ * hay ventana del ÁMBITO que dar —esa sale ahora de datos sin identidad, en
+ * L2—. Y con ESTE objetivo, que no pondera el éxito, A8 tampoco da el historial
+ * de la alternativa: `strategy.succeeded` es de un eje que no se optimiza.
  */
-check('72 · y A1 LEE ese historial: lo declara en lo que miró y lo cuenta en la explicación',
-  segunda.decision.signalKeys.includes('history.decision') && !primera.decision.signalKeys.includes('history.decision') &&
-  segunda.decision.explanation.some((f) => /^Historial del ámbito de la decisión: 40 ejecución\(es\), 38 bien\./.test(f)));
-const sinLectura = (d) => JSON.stringify({ ...d, signalKeys: undefined, explanation: undefined });
-check('72b · y elige LO MISMO, por estructura: la ventana de A8 es del ÁMBITO, de todas las alternativas a la vez, y no distingue a ninguna',
-  sinLectura(segunda.decision) === sinLectura(primera.decision) && igual(segunda.entrega, primera.entrega),
-  'desenlace B: no hay evidencia POR ALTERNATIVA; no se afirma que la segunda sea mejor');
+check('70 · con este objetivo A1 no recibe historial: ni del ámbito —todo se aprendió por alternativa— ni por alternativa —no pondera el éxito—',
+  segunda.historial === undefined && segunda.historialPorAlternativa === undefined &&
+  segunda.context.admisiones.some((x) => x.metric === 'strategy.succeeded' && x.because.includes('axis_not_in_objective')));
+check('71 · y A1 decide EXACTAMENTE lo mismo: no se finge que lo aprendido pese donde no puede pesar',
+  igual(segunda.decision, primera.decision) && igual(segunda.entrega, primera.entrega));
+const OBJ_EXITO = { weights: { latency: 1, reliability: 1, successProbability: 2 } };
+const segundaConExito = ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO }),
+  aprendido: { ahora: T2, scope: { capability: CAP }, learned: aprendido, learningPolicy: POL } }));
+check('72 · con un objetivo que SÍ pondera el éxito, A8 entrega el historial de la alternativa que se ejecutó, y SOLO de esa',
+  igual(Object.keys(segundaConExito.historialPorAlternativa ?? {}), [primera.entrega.plan.id]) &&
+  segundaConExito.historialPorAlternativa[primera.entrega.plan.id].sampleSize === 40 &&
+  segundaConExito.historialPorAlternativa[primera.entrega.plan.id].succeeded === 38 && segundaConExito.historial === undefined,
+  JSON.stringify(segundaConExito.historialPorAlternativa));
+check('72b · A1 lo usa para ESA alternativa y lo dice; a la que nunca se ejecutó no se le inventa nada',
+  segundaConExito.decision.explanation.some((f) => f === `Historial propio usado como probabilidad de éxito: «${primera.entrega.plan.id}».`) &&
+  segundaConExito.decision.candidates.filter((c) => c.id !== primera.entrega.plan.id).every((c) => !c.score || c.score.missing.includes('successProbability')));
 
 /*
- * EL HISTORIAL POR ALTERNATIVA, SINTÉTICO. La cadena que lo produciría —A9
- * registrando el desenlace por estrategia, un puerto de A8 por alternativa y
- * una identidad de estrategia estable entre tareas— NO existe, y los docs lo
- * dicen. Aquí se prueba lo único que sí existe: que el puerto de A1 atraviesa
- * el ciclo, y que lo que entra por él mueve el plan solo por la vía válida.
+ * EL HISTORIAL POR ALTERNATIVA DECLARADO EN LA PETICIÓN, sin A8. Es el mismo
+ * puerto de A1 por el otro camino que ya existía para `history`: sin `aprendido`,
+ * lo que la petición trae es lo que A1 recibe. Con `aprendido`, sería pedir dos
+ * fuentes para lo mismo (72i).
  */
-const OBJ_EXITO = { weights: { latency: 1, reliability: 1, successProbability: 2 } };
-const conExito = (extra) => ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO, ...extra }) }));
+const conExito = (extra) => ciclo.decidir(peticion({ aprendido: undefined, decision: decisionBase({ objective: OBJ_EXITO, ...extra }) }));
 /* La elegida, y solo si lo entregado (`selected`) es la que el ranking marca. */
 const elegidaDe = (r) => {
   const marcada = r.decision?.candidates.find((c) => c.reason === 'selected');
@@ -467,7 +484,7 @@ const HBO = Object.fromEntries(sinPorAlternativa.decision.candidates.map((c) =>
   [c.id, c.id === elegidaDe(sinPorAlternativa) ? { sampleSize: 40, succeeded: 4 } : { sampleSize: 40, succeeded: 39 }]));
 const conPorAlternativa = conExito({ historyByOption: HBO });
 const opcionesDe = (r) => [...r.optimization.feasible, ...r.optimization.proposals.map((p) => p.result)];
-check('72c · SINTÉTICO · el historial POR ALTERNATIVA atraviesa el ciclo hasta A1 y, con un objetivo que pondera el éxito, cambia el plan',
+check('72c · DECLARADO · el historial POR ALTERNATIVA atraviesa el ciclo hasta A1 y, con un objetivo que pondera el éxito, cambia el plan',
   conPorAlternativa.status === 'decided' && elegidaDe(conPorAlternativa) !== elegidaDe(sinPorAlternativa) &&
   conPorAlternativa.decision.signalKeys.includes('history.successRate') &&
   !igual(conPorAlternativa.entrega.plan, sinPorAlternativa.entrega.plan) &&
@@ -484,24 +501,195 @@ check('72f · y la autoridad del Router no cambia: cada paso entregado lleva la 
   conPorAlternativa.entrega.plan.steps.every((s) => typeof s.capability === 'string' && A.violacionesEn(s, 'paso').length === 0) &&
   igual(conPorAlternativa.entrega.plan.steps.map((s) => Object.keys(s).sort()), sinPorAlternativa.entrega.plan.steps.map((s) => Object.keys(s).sort())));
 /*
- * CON HISTORIAL DEL ÁMBITO, A1 recibe la petición y la ventana de A8, y NADA
- * más. El sabotaje Y02 —A9 fabricando historial por alternativa con la ventana
- * del ámbito— no se vio: con un objetivo que no pondera el éxito, A1 ignoraba
- * lo fabricado (regla 2) y solo cambiaba la explicación, que 72b no mira a
- * propósito. La propiedad que faltaba es la de B: A1 en el ciclo = A1 directo,
- * también en la segunda pasada.
+ * A1 EN EL CICLO = A1 DIRECTO, también en la segunda pasada: la petición más lo
+ * que A8 entrega por su puerto, y NADA más. Así cayó el sabotaje Y02 de A9.1
+ * —A9 fabricando historial por alternativa con la ventana del ámbito—, y así
+ * cae ahora cualquier historial que A9 añada o quite por su cuenta.
  */
-check('72g · en la segunda pasada, A1 en el ciclo = A1 directo con la petición y la ventana de A8: A9 no le añade nada',
-  igual(segunda.decision, a1.decidir({ ...decisionBase(), history: segunda.historial, options: opcionesDe(segunda), signals: segunda.strategies.signals })));
-const segundaConExito = ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO }),
-  aprendido: { ahora: T2, scope: { capability: CAP }, learned: aprendido, learningPolicy: POL } }));
-check('72h · y con un objetivo que pondera el éxito, igual: la ventana del ámbito no ordena, y no se convierte en historial de cada alternativa',
-  segundaConExito.status === 'decided' && segundaConExito.historial?.sampleSize === 40 &&
-  segundaConExito.decision.signalKeys.includes('history.decision') && !segundaConExito.decision.signalKeys.includes('history.successRate') &&
-  igual(segundaConExito.decision, a1.decidir({ ...decisionBase({ objective: OBJ_EXITO }), history: segundaConExito.historial,
+check('72g · en la segunda pasada, A1 en el ciclo = A1 directo con la petición y lo que da el puerto de A8: A9 no le añade nada',
+  igual(segunda.decision, a1.decidir({ ...decisionBase(), ...A.paraDecision(segunda.context),
+    options: opcionesDe(segunda), signals: segunda.strategies.signals })));
+check('72h · y con un objetivo que pondera el éxito, igual: lo que A1 usa es lo que A8 entregó, ni más ni menos',
+  segundaConExito.status === 'decided' && segundaConExito.decision.signalKeys.includes('history.successRate') &&
+  igual(segundaConExito.decision, a1.decidir({ ...decisionBase({ objective: OBJ_EXITO }), ...A.paraDecision(segundaConExito.context),
     options: opcionesDe(segundaConExito), signals: segundaConExito.strategies.signals })));
+check('72i · declarar historial por alternativa Y pedirlo a A8 son dos fuentes para lo mismo: no se elige una',
+  (() => {
+    const r = ciclo.decidir(peticion({ decision: decisionBase({ historyByOption: HBO }) }));
+    return r.status === 'invalid' && r.parada === 'history_twice' && !r.decision;
+  })());
 check('73 · lo aprendido llega como historial y SOLO como historial: ni una señal aprendida entra en A1',
   !(segunda.decision.signalKeys ?? []).some((k) => k.startsWith('learned.')));
+
+console.log('\n─── L2. A9.2 · Aprender por alternativa, de punta a punta ───');
+
+/*
+ * DOS ALTERNATIVAS CON IDENTIDAD —`strategy-A` y `strategy-B`—, decididas por
+ * el ciclo, ejecutadas FUERA con desenlaces distintos, aprendidas por A7 con su
+ * identidad, devueltas por A8 como historial de CADA una y leídas por A1.
+ *
+ * B es la rápida y la cara; A, la lenta y la barata. Las peticiones con
+ * presupuesto justo solo admiten A; las demás las decide A1. Nada aquí elige
+ * por A1: el bucle solo alterna el presupuesto y dice cómo salió lo que A1 eligió.
+ */
+const OPC_AB = Object.freeze([
+  Object.freeze({ id: 'strategy-A', value: Object.freeze({ nombre: 'A' }), values: Object.freeze({ latency: 1200, cost: 1 }) }),
+  Object.freeze({ id: 'strategy-B', value: Object.freeze({ nombre: 'B' }), values: Object.freeze({ latency: 800, cost: 3 }) }),
+]);
+const OBJ_AB = { weights: { latency: 1, reliability: 1, successProbability: 2 } };
+const decisionAB = (extra = {}, opciones = OPC_AB) => ({
+  contract: ALGORITHM_CONTRACT_VERSION, objective: OBJ_AB, trace: { traceId: 't', requestId: 'r', userId: 'u' }, options: opciones, ...extra,
+});
+const pedirAB = (ahora, learned, extra = {}, opciones = OPC_AB) => ({
+  decision: decisionAB(extra, opciones), aprendido: { ahora, scope: { capability: CAP }, learned, learningPolicy: POL },
+});
+const observarAB = (i, clase, at) => ({ kind: clase, at, actual: { id: `ab_${i}`, status: clase === 'failure' ? 'failed' : 'succeeded', outputs: [] } });
+const JUSTA = { constraints: { budget: { maxUsd: 2 } } };
+const ejecutarAB = (desenlace, vueltas = 80, opciones = OPC_AB) => {
+  let learned = [];
+  const ejecutadas = { 'strategy-A': 0, 'strategy-B': 0 };
+  const bien = { 'strategy-A': 0, 'strategy-B': 0 };
+  const elegidas = []; const resultados = [];
+  for (let i = 0; i < vueltas; i++) {
+    const ahora = T1 + (i + 1) * HORA;
+    const r = ciclo.decidir(pedirAB(ahora, learned, i % 2 === 0 ? JUSTA : {}, opciones));
+    const id = r.entrega?.elegida;
+    elegidas.push(id);
+    ejecutadas[id]++;
+    if (desenlace[id] === 'success') bien[id]++;
+    const c = ciclo.cerrar(r, observarAB(i, desenlace[id], ahora + 1), { ahora: ahora + 1, previo: learned, policy: POL });
+    resultados.push(c.outcome);
+    learned = c.learning.aggregates;
+  }
+  return { learned, ejecutadas, bien, elegidas, resultados };
+};
+const T_AB = T1 + 82 * HORA;
+const exitoDe = (learned, id) => learned.find((a) => a.metric === 'strategy.succeeded' && a.scope.strategyId === id);
+const primeraAB = ciclo.decidir(pedirAB(T1, []));
+const AB = ejecutarAB({ 'strategy-A': 'success', 'strategy-B': 'failure' });
+const segundaAB = ciclo.decidir(pedirAB(T_AB, AB.learned));
+const ventanas = segundaAB.historialPorAlternativa ?? {};
+
+check('S1 · primera decisión, sin nada aprendido: A1 elige strategy-B, la rápida',
+  primeraAB.entrega?.elegida === 'strategy-B' && primeraAB.historialPorAlternativa === undefined);
+check('S2 · A7 recibió cada desenlace con SU alternativa: lo ejecutado y lo que salió bien, uno a uno',
+  ['strategy-A', 'strategy-B'].every((id) => exitoDe(AB.learned, id)?.n === AB.ejecutadas[id] && exitoDe(AB.learned, id)?.favorables === AB.bien[id]) &&
+  AB.ejecutadas['strategy-B'] >= A.POLITICA_POR_DEFECTO.minSampleSize && AB.ejecutadas['strategy-A'] >= A.POLITICA_POR_DEFECTO.minSampleSize,
+  JSON.stringify({ ejecutadas: AB.ejecutadas, bien: AB.bien }));
+check('S3 · A8 conserva la identidad: el historial de cada alternativa es la ventana de SU agregado',
+  igual(Object.keys(ventanas), ['strategy-A', 'strategy-B']) &&
+  ['strategy-A', 'strategy-B'].every((id) => igual(ventanas[id], A.ventanaDe(exitoDe(AB.learned, id)))),
+  JSON.stringify(ventanas));
+check('S4 · y no se mezclan: A salió siempre bien y B siempre mal, y así llega',
+  ventanas['strategy-A']?.succeeded === ventanas['strategy-A']?.sampleSize && ventanas['strategy-B']?.succeeded === 0 &&
+  ventanas['strategy-A'].sampleSize === AB.ejecutadas['strategy-A'] && ventanas['strategy-B'].sampleSize === AB.ejecutadas['strategy-B']);
+check('S5 · segunda decisión: A1 elige strategy-A PORQUE A tiene evidencia suficiente de salir bien y B de salir mal',
+  segundaAB.entrega?.elegida === 'strategy-A' &&
+  segundaAB.decision.explanation.some((f) => f === 'Historial propio usado como probabilidad de éxito: «strategy-A», «strategy-B».') &&
+  segundaAB.decision.evidence.some((e) => e.claim === 'strategy-A:history.successRate' && e.signal.sampleSize === AB.ejecutadas['strategy-A']));
+check('S6 · y lo decide A1, igual que llamándolo directamente con lo que entregó A8: el ciclo no inventa ni quita historial',
+  igual(segundaAB.decision, a1.decidir({ ...decisionAB(), ...A.paraDecision(segundaAB.context) })));
+const libres = AB.elegidas.filter((_, i) => i % 2 === 1);
+const cambio = libres.indexOf('strategy-A');
+check('S7 · el cambio llegó cuando llegó la evidencia: las libres eligen B hasta que la de B alcanza, y desde ahí A',
+  cambio > 0 && libres.slice(0, cambio).every((x) => x === 'strategy-B') && libres.slice(cambio).every((x) => x === 'strategy-A'),
+  `cambio en la libre ${cambio} de ${libres.length}`);
+
+/* CONTAMINACIÓN: los mismos desenlaces, al revés. */
+const BA = ejecutarAB({ 'strategy-A': 'failure', 'strategy-B': 'success' });
+const segundaBA = ciclo.decidir(pedirAB(T_AB, BA.learned));
+const ventanasBA = segundaBA.historialPorAlternativa ?? {};
+check('S8 · CONTAMINACIÓN · con los desenlaces al revés, las historias se intercambian: A siempre mal, B siempre bien',
+  ventanasBA['strategy-A']?.succeeded === 0 && ventanasBA['strategy-B']?.succeeded === ventanasBA['strategy-B']?.sampleSize &&
+  !igual(ventanasBA['strategy-A'], ventanas['strategy-A']) && !igual(ventanasBA['strategy-B'], ventanas['strategy-B']),
+  JSON.stringify(ventanasBA));
+check('S9 · y la decisión sigue a la evidencia, no a la posición: ahora gana B',
+  segundaBA.entrega?.elegida === 'strategy-B' &&
+  igual(ciclo.decidir(pedirAB(T_AB, BA.learned, {}, [...OPC_AB].reverse())).decision, segundaBA.decision));
+const ABalReves = ejecutarAB({ 'strategy-A': 'success', 'strategy-B': 'failure' }, 80, [...OPC_AB].reverse());
+check('S10 · con las alternativas en otro orden, el ciclo entero hace LO MISMO: las mismas elecciones, lo mismo aprendido',
+  igual(ABalReves.elegidas, AB.elegidas) && igual(ABalReves.learned, AB.learned));
+
+/* BARAJAR: lo aprendido, los resultados, el historial y las señales. */
+const barajar = (xs, semilla) => { const r = [...xs]; let s = semilla; for (let i = r.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+const SEN_AB = [
+  { key: 'option.latency', value: 1180, source: 'measured', subject: 'strategy-A', sampleSize: 10 },
+  { key: 'option.latency', value: 790, source: 'measured', subject: 'strategy-B', sampleSize: 10 },
+  { key: 'contexto.carga', value: 3, source: 'derived' },
+];
+const decisionesBarajadas = [11, 23, 37, 41, 59].map((s) => JSON.stringify(ciclo.decidir(pedirAB(T_AB, barajar(AB.learned, s), { signals: barajar(SEN_AB, s + 1) }, barajar(OPC_AB, s + 2))).decision));
+check('S11 · barajar lo aprendido, las señales y las alternativas no cambia la decisión, byte a byte',
+  decisionesBarajadas.every((x) => x === decisionesBarajadas[0]) &&
+  JSON.parse(decisionesBarajadas[0]).candidates.find((c) => c.reason === 'selected').id === 'strategy-A');
+const deGolpe = a7.aprender({ ahora: T_AB, policy: POL, outcomes: barajar(AB.resultados, 7) });
+check('S12 · y los mismos resultados en cualquier orden, de una vez, dan lo mismo que aprendidos uno a uno',
+  igual(exitoDe(deGolpe.aggregates, 'strategy-A').n, exitoDe(AB.learned, 'strategy-A').n) &&
+  igual(A.ventanaDe(exitoDe(deGolpe.aggregates, 'strategy-B')), A.ventanaDe(exitoDe(AB.learned, 'strategy-B'))) &&
+  igual(ciclo.decidir(pedirAB(T_AB, deGolpe.aggregates)).decision, segundaAB.decision));
+const HBO_AB = A.paraDecision(segundaAB.context).historyByOption;
+check('S13 · el historial por alternativa en otro orden de claves: la misma decisión',
+  igual(a1.decidir({ ...decisionAB(), historyByOption: Object.fromEntries(Object.entries(HBO_AB).reverse()) }), segundaAB.decision));
+
+/* SOLO EL HISTORIAL DEL ÁMBITO: lo que se aprendió sin saber qué alternativa corrió. */
+const soloAmbito = a7.aprender({ ahora: T_AB, policy: POL, outcomes: Array.from({ length: 60 }, (_, i) => ({
+  id: `amb_${i}`, kind: 'success', at: T1 + (i + 1) * HORA, scope: { capability: CAP } })) });
+const conSoloAmbito = ciclo.decidir(pedirAB(T_AB, soloAmbito.aggregates));
+check('S14 · con historial del ámbito y ninguno por alternativa, A8 da el del ámbito y NO lo copia a las alternativas',
+  conSoloAmbito.historial?.sampleSize === 60 && conSoloAmbito.historialPorAlternativa === undefined &&
+  A.paraDecision(conSoloAmbito.context).historyByOption === undefined);
+check('S15 · y A1 NO cambia la decisión: lo declara, lo explica y sigue eligiendo B',
+  conSoloAmbito.entrega?.elegida === 'strategy-B' && conSoloAmbito.decision.signalKeys.includes('history.decision') &&
+  !conSoloAmbito.decision.signalKeys.includes('history.successRate') &&
+  JSON.stringify({ ...conSoloAmbito.decision, signalKeys: undefined, explanation: undefined }) ===
+  JSON.stringify({ ...primeraAB.decision, signalKeys: undefined, explanation: undefined }));
+
+/*
+ * Y EN EL CAMINO DE LA TAREA, que es donde un ciclo que fabricara historial por
+ * alternativa con la ventana del ámbito lo haría (el sabotaje Y02 de A9.1). Con
+ * la 1.8 la segunda pasada ya no da ventana del ámbito, y 72g/72h dejaron de
+ * cubrirlo: la batería lo encontró sin detectar. Esta es la prueba que faltaba.
+ */
+const tareaConAmbito = ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO }),
+  aprendido: { ahora: T_AB, scope: { capability: CAP }, learned: soloAmbito.aggregates, learningPolicy: POL } }));
+check('S15b · y en el camino de la tarea igual: con solo historial del ámbito, A1 en el ciclo = A1 directo y nadie fabrica historial por alternativa',
+  tareaConAmbito.status === 'decided' && tareaConAmbito.historial?.sampleSize === 60 && tareaConAmbito.historialPorAlternativa === undefined &&
+  !tareaConAmbito.decision.signalKeys.includes('history.successRate') &&
+  igual(tareaConAmbito.decision, a1.decidir({ ...decisionBase({ objective: OBJ_EXITO }), ...A.paraDecision(tareaConAmbito.context),
+    options: opcionesDe(tareaConAmbito), signals: tareaConAmbito.strategies.signals })));
+
+/* POCA EVIDENCIA POR ALTERNATIVA: no llega a lo que A7 exige, y no se usa. */
+const pocos = ejecutarAB({ 'strategy-A': 'success', 'strategy-B': 'failure' }, 20);
+const conPocos = ciclo.decidir(pedirAB(T1 + 22 * HORA, pocos.learned));
+check('S16 · con menos muestra de la que exige la política de A7, no hay historial por alternativa y A1 decide como la primera vez',
+  conPocos.historialPorAlternativa === undefined && conPocos.entrega?.elegida === 'strategy-B' &&
+  conPocos.context.admisiones.filter((x) => x.metric === 'strategy.succeeded').every((x) => x.because.includes('sample_below_minimum')),
+  JSON.stringify(pocos.ejecutadas));
+/*
+ * LA ENTREGA ES LA ELEGIDA POR A1, también cuando la de mejor historial es otra:
+ * B sale bien algo menos que A pero es bastante más rápida, y con este objetivo
+ * gana B. En los casos de arriba A1 y «la de mejor historial» coincidían, y así
+ * un ciclo que eligiera por el historial en vez de por A1 no se veía.
+ */
+const HBO_CERCA = { 'strategy-A': { sampleSize: 40, succeeded: 30 }, 'strategy-B': { sampleSize: 40, succeeded: 28 } };
+const cerca = ciclo.decidir({ decision: decisionAB({ historyByOption: HBO_CERCA }) });
+check('S18 · la entrega es SIEMPRE la elegida por A1, aunque otra tenga mejor historial',
+  cerca.status === 'decided' && cerca.entrega?.elegida === 'strategy-B' &&
+  a1.decidir(decisionAB({ historyByOption: HBO_CERCA })).candidates.find((c) => c.reason === 'selected').id === 'strategy-B' &&
+  HBO_CERCA['strategy-A'].succeeded > HBO_CERCA['strategy-B'].succeeded);
+const conSeparador = ciclo.decidir({ decision: decisionAB({}, [OPC_AB[0], { ...OPC_AB[1], id: 'strategy|B' }]) });
+const cierreConSeparador = conSeparador.status === 'decided'
+  ? ciclo.cerrar(conSeparador, observarAB(0, 'success', T1), { ahora: T1 + 1, policy: POL }) : undefined;
+check('S19 · si A7 no admite el resultado —una identidad con el separador de su clave—, el cierre lo dice en vez de darlo por aprendido',
+  conSeparador.entrega?.elegida === 'strategy|B' && cierreConSeparador?.learning?.metricas.resultadosAdmitidos === 0 &&
+  cierreConSeparador.learning.aggregates.length === 0 &&
+  cierreConSeparador.because.includes('A7 no admitió el resultado: no se aprendió nada de él.') &&
+  !cierreConSeparador.because.includes('A7 acumuló el resultado.'));
+check('S17 · alternativas con la misma identidad: A1 no decide, y el ciclo no entrega nada que cerrar',
+  (() => {
+    const r = ciclo.decidir(pedirAB(T1, [], {}, [OPC_AB[0], { ...OPC_AB[1], id: 'strategy-A' }]));
+    return r.status === 'invalid' && !r.entrega && r.decision?.status === 'invalid' &&
+      ciclo.cerrar(r, observarAB(0, 'success', T1)).parada === 'not_decided';
+  })());
 
 console.log('\n─── M. Sin política automática ───');
 
@@ -651,7 +839,7 @@ const vueltas = (cuantas) => cronometrar((k = cuantas) => {
 const VUELTAS = [100, 1000].map((c) => ({ c, ...vueltas(c) }));
 for (const t of VUELTAS) console.log(`   ${String(t.c).padStart(6)} ciclos completos → ${t.ms.toFixed(0)} ms · ${(t.ms / t.c * 1000).toFixed(0)} µs/ciclo · estado de A7: ${t.r.claves} clave(s)`);
 check('94 · el ciclo completo cierra todas, y el estado aprendido NO crece con las vueltas',
-  VUELTAS.every((t) => t.r.cerradas === t.c && t.r.claves === 3), VUELTAS.map((t) => `${t.c}: ${t.r.claves} claves`).join(' · '));
+  VUELTAS.every((t) => t.r.cerradas === t.c && t.r.claves === 4), VUELTAS.map((t) => `${t.c}: ${t.r.claves} claves`).join(' · '));
 /* Lo que SÍ depende del tamaño: el grafo. */
 const anchoDe = (k) => ({ id: `G${k}`, steps: [paso('o'), ...Array.from({ length: k }, (_, i) => paso(`r${i}`, ['o'])), paso('z', Array.from({ length: k }, (_, i) => `r${i}`))] });
 const GRAFO = [2, 4, 8].map((k) => {

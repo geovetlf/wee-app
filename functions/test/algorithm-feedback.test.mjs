@@ -29,6 +29,7 @@
  *  W. Los resultados pasan por la misma puerta de privacidad (contrato 1.6).
  *  Q. Rendimiento y escala.
  *  X. A9.1: A7 observa, agrega y aprende; no enruta.
+ *  Y. A9.2: aprender por alternativa.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1246,6 +1247,72 @@ const antes7 = JSON.stringify(ENTRADA7);
 const tras7 = (() => { try { return a7.aprender(ENTRADA7); } catch (e) { return { lanzo: String(e?.message ?? e) }; } })();
 check('X7 · A7 no toca lo que recibe —ni la política, ni lo de antes, ni los resultados—: entran congelados y salen iguales',
   !tras7.lanzo && JSON.stringify(ENTRADA7) === antes7 && tras7.aggregates.length > conProv.aggregates.length, tras7.lanzo ?? `${tras7.aggregates?.length} agregados`);
+
+console.log('\n─── Y. A9.2 · Aprender por alternativa ───');
+
+/*
+ * La identidad de la alternativa ejecutada viaja en `scope.strategyId`, una
+ * dimensión que la clave ya tenía. Lo que se prueba aquí es lo que A9.2 midió
+ * que faltaba: que cada resultado se sume a SU alternativa, que una alternativa
+ * que falla se pueda validar como tal, y que ningún valor pueda hacerse pasar
+ * por otro ámbito.
+ */
+const alt = (id, extra = {}) => ({ capability: 'x.y', strategyId: id, ...extra });
+const porAlt = (casos) => aprender({ outcomes: casos.flatMap(({ id, n, bien, scope }) =>
+  lote(n, (i) => res(`${id}-${i}`, bien(i) ? 'success' : 'failure', AHORA - (n - i) * HORA, scope ?? alt(id)))) });
+const exitoDeAlt = (r, id) => r.aggregates.find((a) => a.metric === 'strategy.succeeded' && a.scope.strategyId === id);
+const candidatoDeAlt = (r, id, metrica = 'strategy.succeeded') => r.candidates.find((c) => c.metric === metrica && c.scope.strategyId === id);
+const AyB = porAlt([{ id: 'A', n: 40, bien: () => true }, { id: 'B', n: 40, bien: () => false }]);
+check('Y1 · cada resultado se suma a SU alternativa: la clave lleva su identidad, y las muestras son las suyas',
+  exitoDeAlt(AyB, 'A')?.n === 40 && exitoDeAlt(AyB, 'A')?.favorables === 40 &&
+  exitoDeAlt(AyB, 'B')?.n === 40 && exitoDeAlt(AyB, 'B')?.favorables === 0 &&
+  exitoDeAlt(AyB, 'A').key === A.claveDeAmbito(alt('A'), 'strategy.succeeded'));
+check('Y2 · una alternativa que SIEMPRE falla se valida como tal: una medición firme de que falla no es «no se sabe»',
+  candidatoDeAlt(AyB, 'B')?.state === 'validated' && candidatoDeAlt(AyB, 'B').value === 0 &&
+  exitoDeAlt(AyB, 'B').contradicciones === 0, (candidatoDeAlt(AyB, 'B')?.because ?? []).join(','));
+check('Y3 · LIMITACIÓN DECLARADA · `outcome.success` sigue contando el fallo como contradicción: A9.2 solo corrige la métrica de la alternativa',
+  candidatoDeAlt(AyB, 'B', 'outcome.success')?.state === 'rejected' &&
+  candidatoDeAlt(AyB, 'B', 'outcome.success').because.includes('evidence_contradictory'),
+  'es la misma trampa para el Router el día que lea `paraRouter`: está escrita en los docs');
+const mezcla = porAlt([{ id: 'M', n: 40, bien: (i) => i % 4 !== 0 }]);
+check('Y4 · una tasa intermedia y estable también se valida: 30 de 40, sin contradicción que la tape',
+  candidatoDeAlt(mezcla, 'M')?.state === 'validated' && candidatoDeAlt(mezcla, 'M').value === 0.75, String(candidatoDeAlt(mezcla, 'M')?.value));
+const impostor = porAlt([
+  { id: 'S|providerId=p', n: 30, bien: () => false },
+  { id: 'S', n: 30, bien: () => true, scope: alt('S', { providerId: 'p' }) },
+]);
+check('Y5 · CONTAMINACIÓN · una identidad con el separador de la clave se rechaza, y no se suma a la de nadie',
+  impostor.metricas.resultadosRechazados === 30 && impostor.metricas.porMotivoDeResultado.malformed === 30 &&
+  impostor.aggregates.every((a) => a.n === 30 && a.favorables === 30 && a.scope.strategyId === 'S'),
+  impostor.aggregates.map((a) => `${a.key} n${a.n} fav${a.favorables}`).join(' · '));
+check('Y5b · CONTROL · sin el separador, la misma alternativa entra: la puerta es la única causa',
+  porAlt([{ id: 'S-providerId-p', n: 30, bien: () => false }]).metricas.resultadosAdmitidos === 30);
+check('Y6 · una recuperación ejecutada cuyo tipo trae el separador tampoco entra: acabaría en la misma dimensión',
+  aprender({ outcomes: [res('r1', 'failure', AHORA, alt('A'), { recovery: { kind: 'retry|providerId=p', executed: true, succeeded: true } })] })
+    .metricas.porMotivoDeResultado.malformed === 1 &&
+  aprender({ outcomes: [res('r1', 'failure', AHORA, alt('A'), { recovery: { kind: 'retry', executed: true, succeeded: true } })] })
+    .metricas.resultadosAdmitidos === 1);
+check('Y7 · y un EVENTO con el separador en el ámbito, igual: la clave es la misma para los dos',
+  aprender({ events: [ev(1, 'accepted', 'explicit', AHORA, { capability: 'x.y', strategyId: 'S|modelId=m' })] }).metricas.porMotivo.malformed === 1 &&
+  aprender({ events: [ev(1, 'accepted', 'explicit', AHORA, { capability: 'x.y', strategyId: 'S' })] }).metricas.eventosAdmitidos === 1);
+const BA7 = porAlt([{ id: 'A', n: 40, bien: () => false }, { id: 'B', n: 40, bien: () => true }]);
+check('Y8 · los mismos resultados al revés intercambian lo aprendido de cada una, sin cruzarse',
+  exitoDeAlt(BA7, 'A').favorables === exitoDeAlt(AyB, 'B').favorables && exitoDeAlt(BA7, 'B').favorables === exitoDeAlt(AyB, 'A').favorables &&
+  exitoDeAlt(BA7, 'A').favorables !== exitoDeAlt(BA7, 'B').favorables);
+const salidasAlt = AyB.aggregates.map((a) => a.key);
+check('Y9 · en cualquier orden y troceado en llamadas, lo aprendido por alternativa es el mismo',
+  (() => {
+    const todos = [...lote(40, (i) => res(`A-${i}`, 'success', AHORA - (40 - i) * HORA, alt('A'))),
+      ...lote(40, (i) => res(`B-${i}`, 'failure', AHORA - (40 - i) * HORA, alt('B')))];
+    const alReves = aprender({ outcomes: [...todos].reverse() });
+    const enDos = aprender({ outcomes: todos.slice(40), previo: aprender({ outcomes: todos.slice(0, 40) }).aggregates });
+    return igual(alReves.aggregates, AyB.aggregates) && igual(enDos.aggregates, AyB.aggregates) && salidasAlt.length === 4;
+  })());
+check('Y10 · lo aprendido de una alternativa no nombra ninguna implementación: ni en su ámbito, ni en lo que propone',
+  AyB.aggregates.filter((a) => a.metric === 'strategy.succeeded').every((a) => igual(Object.keys(a.scope).sort(), ['capability', 'strategyId'])) &&
+  AyB.candidates.filter((c) => c.metric === 'strategy.succeeded' && c.proposedChange)
+    .every((c) => c.proposedChange.target === 'strategy' && c.proposedChange.signalKey === 'learned.strategy.succeeded' &&
+      A.violacionesEn(c.proposedChange, 'cambio').length === 0));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA7: aprende de la evidencia, y se calla cuando la evidencia no alcanza');
 process.exit(failures ? 1 : 0);

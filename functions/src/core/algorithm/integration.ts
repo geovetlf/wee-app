@@ -133,7 +133,7 @@ export type MotivoDeParada =
   | 'malformed_request'
   /* Trae alternativas por más de un camino: no se elige cuál vale. */
   | 'ambiguous_alternatives'
-  /* Declara un historial Y pide a A8 que lo seleccione: dos fuentes para lo mismo. */
+  /* Declara un historial —del ámbito o por alternativa— Y pide a A8 que lo seleccione: dos fuentes para lo mismo. */
   | 'history_twice'
   /* A8 rechazó la petición de contexto: sin reloj no se sabe qué sigue valiendo. */
   | 'context_rejected'
@@ -188,14 +188,17 @@ export interface AlgorithmDecisionResult<T = unknown> {
   parada?: MotivoDeParada;
   context?: ConjuntoDeSenales;
   /**
-   * EL HISTORIAL QUE RECIBIÓ A1, leído del mismo contexto que se le pasó.
-   *
-   * Es la prueba de que lo aprendido LLEGA a la decisión. Que A1 lo use es
-   * otra cosa: hoy no lo lee (`decision-engine.ts` no toca `history`), así que
-   * una decisión con historial y sin él sale igual. Eso no se esconde aquí:
-   * se dice, y cambiarlo es de A1.
+   * EL HISTORIAL DEL ÁMBITO QUE RECIBIÓ A1, leído del mismo contexto que se le
+   * pasó: la prueba de que lo aprendido LLEGA. Desde 1.7 A1 lo lee, lo declara
+   * y no ordena con él, porque es de todas las alternativas a la vez.
    */
   historial?: HistoryWindow;
+  /**
+   * EL HISTORIAL DE CADA ALTERNATIVA QUE RECIBIÓ A1 (1.8), por su identidad: el
+   * que entregó A8, o el que declaró la petición cuando no hay A8. Es lo único
+   * que puede ordenar, y lo ordena A1 con sus reglas.
+   */
+  historialPorAlternativa?: Readonly<Record<string, HistoryWindow>>;
   approach?: AlgorithmDecision<TareaADescomponer>;
   decomposition?: ResultadoDeDescomposicion;
   parallelization?: AnalisisDeParalelizacion;
@@ -244,10 +247,14 @@ export type MotivoDeCierreInvalido =
 /**
  * EL CIERRE: lo que dijeron A6 y A7 de lo que pasó.
  *
- * El resultado de la decisión se aprende en el ámbito en que se DECIDIÓ —el de
- * A8—, y es lo que A8 devolverá como historial la próxima vez que se decida en
- * ese mismo ámbito. Lo de la implementación —con qué proveedor o modelo se
- * hizo— lo sabe quien ejecuta y se aprendería en SU ámbito: no es de A9.
+ * El resultado se aprende en el ámbito en que se DECIDIÓ —el de A8— más la
+ * IDENTIDAD de la alternativa que se entregó (`strategyId`, contrato 1.8): el
+ * `id` del plan elegido o de la opción elegida, que es lo que se ejecutó. Así
+ * A7 aprende por alternativa y A8 lo devuelve como historial de ESA alternativa
+ * la próxima vez que se decida en ese ámbito. La identidad la pone quien
+ * entregó, no quien ejecuta: una observación no puede atribuirse a otra. Lo de
+ * la implementación —con qué proveedor o modelo se hizo— lo sabe quien ejecuta
+ * y se aprendería en SU ámbito: no es de A9.
  */
 export interface CierreDelCiclo {
   contract: string;

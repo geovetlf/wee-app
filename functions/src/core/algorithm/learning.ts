@@ -50,6 +50,9 @@ export const ORDEN_DE_CLAVE: readonly (keyof AmbitoDeEvento)[] = Object.freeze(
   ['capability', 'experience', 'strategyId', 'providerId', 'modelId'],
 );
 
+/** Lo que separa las dimensiones en la clave. Por eso ningún valor puede contenerlo. */
+export const SEPARADOR_DE_CLAVE = '|';
+
 /**
  * `account`, `requestId`, `jobId`, `stepId` y `resultId` NO entran en la clave.
  *
@@ -62,8 +65,22 @@ export const claveDeAmbito = (scope: AmbitoDeEvento | undefined, metric: string)
   const partes = ORDEN_DE_CLAVE
     .map((k) => (typeof scope?.[k] === 'string' && scope[k] ? `${k}=${scope[k]}` : undefined))
     .filter((x): x is string => x !== undefined);
-  return [metric, ...partes].join('|') || metric;
+  return [metric, ...partes].join(SEPARADOR_DE_CLAVE) || metric;
 };
+
+/**
+ * ¿HAY UN VALOR QUE ROMPE LA CLAVE? Devuelve la dimensión, para decir cuál.
+ *
+ * La clave une las dimensiones con `SEPARADOR_DE_CLAVE`, y un valor que lo
+ * contenga puede hacerse pasar por otra dimensión: la estrategia «S|providerId=p»
+ * y la estrategia «S» con el proveedor «p» dan la MISMA clave, y sus resultados
+ * se sumaban en un solo agregado —un fallo de una contado como de la otra—. Se
+ * midió antes de escribir esto (A9.2). Con la identidad de la alternativa como
+ * dimensión de aprendizaje, la clave tiene que ser inyectiva, y eso se exige en
+ * la puerta: lo que no puede formar su propia clave no entra.
+ */
+export const valorQueRompeLaClave = (scope: AmbitoDeEvento | undefined): keyof AmbitoDeEvento | undefined =>
+  ORDEN_DE_CLAVE.find((k) => typeof scope?.[k] === 'string' && (scope[k] as string).includes(SEPARADOR_DE_CLAVE));
 
 /**
  * LO ÚNICO QUE UN AGREGADO PUEDE GUARDAR DE UN ÁMBITO: las dimensiones por las

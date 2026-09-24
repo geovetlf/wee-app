@@ -26,6 +26,7 @@
  *  S. Sabotajes de entrada.
  *  U. Contrato 1.6: el reloj, la rejilla y la privacidad de A7, consumidos tal cual.
  *  V. A9.1: A8 filtra, no decide implementación.
+ *  W. A9.2: el historial de cada alternativa.
  *  T. Rendimiento.
  */
 import path from 'node:path';
@@ -376,7 +377,9 @@ check('60 · nadie ha conectado A8 a producción', (() => {
   return prod.length > 50 && prod.filter((f) => /context-engine|crearMotorDeContexto/.test(leer(f))).length === 0;
 })());
 check('61 · el puerto de A1 NO le pasa señales: su `evidenciaDeOpcion` subiría la confianza de lo malo',
-  igual(Object.keys(A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } }))), ['history']));
+  igual(Object.keys(A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } }))), ['history']) &&
+  !('signals' in A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } }))),
+  'desde 1.8 puede llevar también `historyByOption` —sección W—, y nunca señales');
 
 console.log('\n─── P. Agnosticismo de capacidad y de proveedor ───');
 
@@ -570,7 +573,7 @@ check('V1 · CONTROL · lo aprendido SÍ trae proveedor y modelo en su ámbito: 
 check('V2 · y fuera del ámbito no sale ni una clave de implementación: ni en admisiones, ni en señales, ni en historial',
   A.violacionesEn(sinAmbitos(conImpl), 'a8', 64).length === 0 && A.violacionesEn(sinAmbitos(desdeA7), 'a8', 64).length === 0);
 const CAMPOS = {
-  resultado: ['admisiones', 'because', 'cierre', 'contract', 'evidence', 'history', 'metricas', 'rechazo', 'signals'],
+  resultado: ['admisiones', 'because', 'cierre', 'contract', 'evidence', 'history', 'historyByOption', 'metricas', 'rechazo', 'signals'],
   admision: ['axis', 'axisMatch', 'because', 'confidence', 'consumerMatch', 'contradicting', 'freshness', 'key', 'lastObservedAt',
     'metric', 'sampleSize', 'scope', 'scopeMatch', 'stability', 'status', 'supporting', 'trend', 'uncertainty', 'value'],
   senal: ['at', 'confidence', 'key', 'sampleSize', 'source', 'subject', 'value'],
@@ -582,8 +585,8 @@ check('V3 · la forma de lo que A8 entrega es CERRADA: resultado, admisiones y s
   [...conImpl.admisiones, ...desdeA7.admisiones].every((x) => soloDe(x, CAMPOS.admision)) &&
   [...conImpl.signals, ...desdeA7.signals].every((s) => soloDe(s, CAMPOS.senal) && s.source === 'derived' && s.key.startsWith('learned.')) &&
   conImpl.signals.length > 0);
-check('V4 · el puerto de A1 lleva SOLO la ventana, con los campos de HistoryWindow y sin implementación',
-  soloDe(A.paraDecision(desdeA7), ['history']) && soloDe(A.paraDecision(desdeA7).history, CAMPOS.ventana) &&
+check('V4 · el puerto de A1 lleva SOLO ventanas —la del ámbito y, desde 1.8, las de cada alternativa—, con los campos de HistoryWindow y sin implementación',
+  soloDe(A.paraDecision(desdeA7), ['history', 'historyByOption']) && soloDe(A.paraDecision(desdeA7).history, CAMPOS.ventana) &&
   A.violacionesEn(A.paraDecision(desdeA7), 'a1', 64).length === 0 &&
   Object.values(conImpl.history).every((w) => soloDe(w, CAMPOS.ventana)));
 const exacta = sel([agregado({ scope: { capability: 'x.y', providerId: 'p1' } })], { scope: { capability: 'x.y', providerId: 'p1' } });
@@ -624,6 +627,85 @@ check('V8 · `paraRouter` no tiene consumidor: nada fuera del algoritmo lo nombr
   `${fuera.length} archivos · ${[...nombranRuta, ...importanLaCapa].join(', ') || 'ninguno'}`);
 check('V8b · y el Router no tiene por dónde recibirlo: sus puertos son el Registry, la política y los costes',
   igual(puertosDelRouter, ['costs', 'policy', 'registry']), puertosDelRouter.join(', ') || 'no se encontró `RouterPorts`');
+
+console.log('\n─── W. A9.2 · El historial de CADA alternativa ───');
+
+/*
+ * Lo aprendido por A7 con la identidad de lo que se ejecutó (`strategyId`), de
+ * verdad y no a mano: el agregado del ayudante `agregado` cuenta las muestras
+ * desfavorables como contradicción, y para `strategy.succeeded` un fallo no lo
+ * es (sección X de A7). Los ids llevan `:`, `+` y `=` a propósito: la identidad
+ * se lee del ÁMBITO del agregado, y leerla de su clave la rompería.
+ */
+const VENT_W = { ventanaMs: 4 * DIA };
+const EXITO_W = { weights: { latency: 1, successProbability: 2 } };
+const ALT_A = 'T:par1:estrategia';
+const ALT_B = 'T:par2:estrategia+simple=2';
+const porAlternativa = (casos) => a7.aprender({ ahora: AHORA, policy: VENT_W, outcomes: casos.flatMap(({ id, n, bien, scope = {} }) =>
+  Array.from({ length: n }, (_, i) => ({ id: `${id}#${JSON.stringify(scope)}#${i}`, kind: bien(i) ? 'success' : 'failure',
+    at: AHORA - (n - i) * HORA, scope: { capability: 'x.y', strategyId: id, ...scope } }))) }).aggregates;
+const siempre = () => true; const nunca = () => false;
+const pedirW = (learned, extra = {}) => sel(learned, { scope: { capability: 'x.y' }, objective: EXITO_W, learningPolicy: VENT_W, ...extra });
+const aprendidoW = porAlternativa([{ id: ALT_A, n: 40, bien: siempre }, { id: ALT_B, n: 40, bien: nunca }]);
+const conjuntoW = pedirW(aprendidoW);
+const exitoW = (learned, id) => learned.find((a) => a.metric === 'strategy.succeeded' && a.scope.strategyId === id);
+check('W1 · A8 entrega el historial de CADA alternativa, con SU identidad y la ventana de SU agregado',
+  igual(Object.keys(conjuntoW.historyByOption), [ALT_A, ALT_B]) &&
+  igual(conjuntoW.historyByOption[ALT_A], A.ventanaDe(exitoW(aprendidoW, ALT_A))) &&
+  igual(conjuntoW.historyByOption[ALT_B], A.ventanaDe(exitoW(aprendidoW, ALT_B))),
+  JSON.stringify(conjuntoW.historyByOption));
+check('W2 · y no mezcla una con otra: la que salió siempre bien y la que salió siempre mal llegan así',
+  conjuntoW.historyByOption[ALT_A]?.succeeded === 40 && conjuntoW.historyByOption[ALT_B]?.succeeded === 0 &&
+  conjuntoW.historyByOption[ALT_B]?.sampleSize === 40);
+check('W3 · el puerto de A1 las lleva, y solo eso: ventanas, sin señales ni evidencia',
+  igual(A.paraDecision(conjuntoW).historyByOption, conjuntoW.historyByOption) &&
+  Object.keys(A.paraDecision(conjuntoW)).every((k) => ['history', 'historyByOption'].includes(k)) &&
+  Object.values(conjuntoW.historyByOption).every((w) => soloDe(w, CAMPOS.ventana)) &&
+  A.violacionesEn(A.paraDecision(conjuntoW), 'a1', 64).length === 0);
+const soloDelAmbito = a7.aprender({ ahora: AHORA, policy: VENT_W, outcomes: Array.from({ length: 40 }, (_, i) => ({
+  id: `amb${i}`, kind: 'success', at: AHORA - (40 - i) * HORA, scope: { capability: 'x.y' } })) }).aggregates;
+const conjuntoAmbito = pedirW(soloDelAmbito, { objective: { weights: { latency: 1, reliability: 1, successProbability: 2 } } });
+check('W4 · CONTROL · con evidencia del ámbito y ninguna por alternativa hay historial del ámbito…',
+  typeof A.paraDecision(conjuntoAmbito).history?.sampleSize === 'number');
+check('W5 · …y el historial por alternativa queda VACÍO: el del ámbito no se copia a nadie',
+  igual(conjuntoAmbito.historyByOption, {}) && A.paraDecision(conjuntoAmbito).historyByOption === undefined);
+const conProveedorW = porAlternativa([{ id: ALT_A, n: 40, bien: siempre, scope: { providerId: 'p1' } }]);
+const conjuntoProv = pedirW(conProveedorW);
+check('W6 · lo aprendido de una alternativa CON un proveedor habla de una implementación: no es historial de la alternativa',
+  conjuntoProv.admisiones.some((x) => x.metric === 'strategy.succeeded' && x.status === 'admitted' && x.scopeMatch === 'narrower') &&
+  igual(conjuntoProv.historyByOption, {}) && A.paraRouter(conjuntoProv).length === 1);
+const otraCapacidad = porAlternativa([{ id: ALT_A, n: 40, bien: siempre, scope: { capability: 'otra.cosa' } }]);
+check('W7 · lo de otra capacidad no cuenta para esta decisión, por buena que sea la alternativa',
+  igual(pedirW(otraCapacidad).historyByOption, {}) &&
+  pedirW(otraCapacidad).admisiones.every((x) => x.status !== 'admitted'));
+check('W8 · si el objetivo no pondera la probabilidad de éxito, `strategy.succeeded` no es de su eje y no se entrega',
+  igual(pedirW(aprendidoW, { objective: { weights: { latency: 1 } } }).historyByOption, {}) &&
+  pedirW(aprendidoW, { objective: { weights: { latency: 1 } } }).admisiones
+    .filter((x) => x.metric === 'strategy.succeeded').every((x) => x.because.includes('axis_not_in_objective')));
+const pocaW = porAlternativa([{ id: ALT_A, n: 10, bien: siempre }, { id: ALT_B, n: 40, bien: nunca }]);
+check('W9 · una alternativa con menos muestra de la que exige A7 no llega; la otra sí: no es todo o nada',
+  igual(Object.keys(pedirW(pocaW).historyByOption), [ALT_B]) &&
+  pedirW(pocaW).admisiones.some((x) => x.metric === 'strategy.succeeded' && x.scope.strategyId === ALT_A && x.because.includes('sample_below_minimum')));
+const soloUnaHecha = porAlternativa([{ id: ALT_B, n: 40, bien: nunca }]);
+check('W10 · sin ganador: entrega TODAS las que tienen evidencia, también la que falla, y ninguna más',
+  igual(Object.keys(pedirW(soloUnaHecha).historyByOption), [ALT_B]) &&
+  !Object.keys(conjuntoW).some((k) => /rank|score|best|winner|selected|mejor/i.test(k)));
+/* Park–Miller con semilla fija: barajar sin azar, y comprobar que de verdad baraja. */
+const barajarW = (xs, s) => { const r = [...xs]; for (let i = r.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+const ordenesW = [3, 5, 7, 11].map((s) => barajarW(aprendidoW, s));
+check('W11 · lo aprendido en cualquier orden da el mismo historial por alternativa, en orden de identidad',
+  new Set(ordenesW.map((o) => o.map((a) => a.key).join())).size > 1 &&
+  ordenesW.every((o) => JSON.stringify(pedirW(o).historyByOption) === JSON.stringify(conjuntoW.historyByOption)) &&
+  igual(Object.keys(conjuntoW.historyByOption), [ALT_A, ALT_B].sort()));
+const ambosW = pedirW([...soloDelAmbito, ...aprendidoW], { objective: { weights: { latency: 1, reliability: 1, successProbability: 2 } } });
+check('W13 · con historial del ámbito Y por alternativa, cada alternativa lleva el SUYO y el del ámbito va aparte',
+  typeof A.paraDecision(ambosW).history?.sampleSize === 'number' &&
+  igual(ambosW.historyByOption[ALT_A], A.ventanaDe(exitoW(aprendidoW, ALT_A))) &&
+  igual(ambosW.historyByOption[ALT_B], A.ventanaDe(exitoW(aprendidoW, ALT_B))) &&
+  !igual(ambosW.historyByOption[ALT_B], A.paraDecision(ambosW).history), JSON.stringify(A.paraDecision(ambosW)));
+const decisionConAlt = sel(aprendidoW, { scope: { capability: 'x.y', strategyId: ALT_A }, objective: EXITO_W, learningPolicy: VENT_W });
+check('W12 · una decisión que ya fija la alternativa no elige entre alternativas: su historial es el del ámbito, no uno por alternativa',
+  igual(decisionConAlt.historyByOption, {}) && typeof A.paraDecision(decisionConAlt).history?.sampleSize === 'number');
 
 console.log('\n─── T. Rendimiento ───');
 

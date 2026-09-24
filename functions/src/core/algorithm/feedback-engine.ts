@@ -41,7 +41,7 @@ import {
 import {
   AgregadoDeAprendizaje, agregadoAgregable, agregadoVacio, acumular, claveDeAmbito, confianzaDeAgregado,
   estabilidadDe, frescuraDe, guardas, incertidumbreDeAgregado, rejillaValida, soloImplicitoDe,
-  mediaDe, senalDe, tasaDe, tendenciaDe, ventanaDe,
+  mediaDe, senalDe, tasaDe, tendenciaDe, valorQueRompeLaClave, ventanaDe,
 } from './learning';
 import { HistoryWindow } from './decision';
 
@@ -288,11 +288,21 @@ export const observacionesDeResultado = (r: ResultadoDeDecision): readonly Obser
       signal: s, evidence: evidenciaDe('recovery.succeeded', s, ok), implicito: false,
     });
   }
+  /*
+   * EL ÉXITO DE LA ALTERNATIVA EJECUTADA, que A8 entrega a A1 como probabilidad
+   * de éxito. Un fallo aquí NO contradice nada: es una muestra de la tasa, tan
+   * medida como un éxito. Contarlo como contradicción —como hacen las métricas
+   * de arriba— dejaba sin validar a toda estrategia que falla más de lo que
+   * tolera `maxContradiction`, y A1 solo recibía buenas noticias: una alternativa
+   * que siempre falla llegaba como «sin historial», y lo que falta no cuenta como
+   * malo. Es el error que A6 ya dejó escrito: una medición firme de que algo
+   * FALLÓ no es «no se sabe». `favorable` sigue contando los éxitos: es la tasa.
+   */
   if (r.scope?.strategyId) {
     const s: Signal = { key: 'strategy.succeeded', value: fav ? 1 : 0, source: 'measured', at };
     salida.push({
       metric: 'strategy.succeeded', scope, value: fav ? 1 : 0, at, favorable: fav,
-      signal: s, evidence: evidenciaDe('strategy.succeeded', s, fav), implicito: false,
+      signal: s, evidence: evidenciaDe('strategy.succeeded', s, true), implicito: false,
     });
   }
   for (const s of r.signals ?? []) {
@@ -395,6 +405,8 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
         porMotivo[v.reason] = (porMotivo[v.reason] ?? 0) + 1;
         continue;
       }
+      /* Un valor de ámbito que rompe la clave se haría pasar por otro ámbito (A9.2). */
+      if (valorQueRompeLaClave(e.scope)) { m.eventosRechazados++; porMotivo.malformed = (porMotivo.malformed ?? 0) + 1; continue; }
       if (vistos.has(e.id)) { m.eventosRechazados++; porMotivo.malformed = (porMotivo.malformed ?? 0) + 1; continue; }
       vistos.add(e.id);
       /*
@@ -439,6 +451,16 @@ export const crearMotorDeFeedback = (opciones: OpcionesDelAprendiz = {}) => {
       if (!v.ok) {
         m.resultadosRechazados++;
         porMotivoDeResultado[v.reason] = (porMotivoDeResultado[v.reason] ?? 0) + 1;
+        continue;
+      }
+      /*
+       * Y la clave. La identidad de la alternativa viaja como `strategyId`, y la
+       * recuperación ejecutada también acaba en esa dimensión: si cualquiera de
+       * los dos trae el separador, el resultado se sumaría al de otro ámbito.
+       */
+      if (valorQueRompeLaClave(r.scope) ?? valorQueRompeLaClave(r.recovery?.kind ? { strategyId: r.recovery.kind } : undefined)) {
+        m.resultadosRechazados++;
+        porMotivoDeResultado.malformed = (porMotivoDeResultado.malformed ?? 0) + 1;
         continue;
       }
       contador.gastar('evidence');

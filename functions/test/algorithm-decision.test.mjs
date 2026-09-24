@@ -13,7 +13,8 @@
  *  F. Los veinte sabotajes.
  *  G. Rendimiento.
  *  H. El historial es evidencia (contrato 1.7): qué lee A1, cuándo pesa y cuándo no.
- *  I. Sigue sin estar conectado.
+ *  I. Cada alternativa, su identidad (contrato 1.8).
+ *  J. Sigue sin estar conectado.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -658,7 +659,58 @@ const usoDirecto = A.usoDeHistorial({ zeta: HIST.lenta, alfa: HIST.rapida, beta:
 check('106 · el uso del historial sale en orden de `id` aunque las alternativas lleguen desordenadas',
   igual(usoDirecto.usadas, ['alfa', 'gamma', 'zeta']) && igual(usoDirecto.sinUsar.map((s) => s.id), ['beta']));
 
-console.log('\n─── I. Sigue sin estar conectado ───');
+console.log('\n─── I. Cada alternativa, su identidad (contrato 1.8) ───');
+
+/*
+ * Una decisión compara alternativas que se distinguen por su `id`. Dos con el
+ * mismo no son dos alternativas: son una ambigüedad, y A1 no la resuelve —ni
+ * quedándose con una, ni renombrando, ni desempatando por el orden de llegada—.
+ * Dice que la petición no tiene forma, y lo dice igual llegue como llegue.
+ */
+const DUP = [opt('beta', { latency: 900 }), opt('alfa', { latency: 800 }), opt('beta', { latency: 700 }), opt('gamma', { latency: 1000 })];
+const rechazoDup = motor.decidir(ctxDe(DUP, { objective: EXITO }));
+check('107 · ids repetidos: la petición NO tiene forma, y A1 no decide',
+  rechazoDup.status === 'invalid' && rechazoDup.selected === undefined && rechazoDup.candidates.length === 0 &&
+  rechazoDup.explanation.some((f) => f.includes('options: ids repetidos «beta»')), rechazoDup.explanation.join(' | '));
+check('107b · y no «arregla» nada: ni se queda con una, ni renombra, ni concatena',
+  !JSON.stringify(rechazoDup).includes('beta#') && !JSON.stringify(rechazoDup).includes('beta-2') &&
+  rechazoDup.alternatives.length === 0 && rechazoDup.paretoFront === undefined);
+const rechazosPorOrden = new Set(permutaciones(DUP).map((p) => JSON.stringify(motor.decidir(ctxDe(p, { objective: EXITO })))));
+check('108 · con los repetidos en cualquier orden, el MISMO rechazo, byte a byte (las 24 permutaciones)',
+  rechazosPorOrden.size === 1 && JSON.parse([...rechazosPorOrden][0]).status === 'invalid');
+check('109 · y con un tope de candidatos que dejaría el repetido fuera, el mismo rechazo: se miran TODAS antes del tope',
+  JSON.stringify(motor.decidir(ctxDe([...DUP].reverse(), { objective: EXITO, budget: { maxCandidates: 2 } }))) ===
+  JSON.stringify(motor.decidir(ctxDe(DUP, { objective: EXITO, budget: { maxCandidates: 2 } }))) &&
+  motor.decidir(ctxDe(DUP, { objective: EXITO, budget: { maxCandidates: 2 } })).status === 'invalid');
+check('110 · y con historial por alternativa, el mismo rechazo: el historial no desempata identidades',
+  motor.decidir(ctxDe(DUP, { objective: EXITO, historyByOption: { beta: { sampleSize: 40, succeeded: 40 } } })).status === 'invalid' &&
+  JSON.stringify({ ...motor.decidir(ctxDe(DUP, { objective: EXITO, historyByOption: { beta: { sampleSize: 40, succeeded: 40 } } })), spend: undefined }) ===
+  JSON.stringify({ ...rechazoDup, spend: undefined }));
+/* Sin identidad, sin decisión: y si la puerta faltara, que se vea por aserción y no porque la suite reviente. */
+const sinReventar = (fn) => { try { return fn(); } catch (e) { return { lanzo: String(e?.message ?? e) }; } };
+for (const [que, rota] of [['sin id', { value: 'x', values: { latency: 1 } }], ['con id vacío', opt('', { latency: 1 })],
+  ['con un id que no es texto', { id: 7, value: 'x', values: { latency: 1 } }], ['que no es una alternativa', null]]) {
+  const d = sinReventar(() => motor.decidir(ctxDe([opt('alfa', { latency: 1 }), rota], { objective: EXITO })));
+  check(`111 · una alternativa ${que} tampoco tiene identidad: no se decide`,
+    d.status === 'invalid' && (d.explanation ?? []).some((f) => /sin identidad/.test(f)), d.lanzo ?? d.status);
+}
+check('112 · la línea base comparte la misma puerta: tampoco decide con identidades repetidas',
+  base.decidir(ctxDe(DUP, { objective: EXITO })).status === 'invalid');
+const muchasRepetidas = Array.from({ length: 40 }, (_, i) => opt(`id${i % 20}`, { latency: 100 + i }));
+check('113 · el motivo está acotado: cinco ids como mucho, y cuántos más',
+  motor.decidir(ctxDe(muchasRepetidas, { objective: EXITO })).explanation.some((f) => /«id0», «id1», «id10», «id11», «id12» y 15 más/.test(f)),
+  motor.decidir(ctxDe(muchasRepetidas, { objective: EXITO })).explanation.join(' | '));
+check('114 · CONTROL · las mismas alternativas con ids distintos sí se deciden',
+  motor.decidir(ctxDe(DUP.map((o, i) => ({ ...o, id: `${o.id}${i}` })), { objective: EXITO })).status === 'decided');
+/* Y los ocho del brief con identidades únicas: todas las permutaciones, el mismo historial, el tope. */
+const unicas = new Set(permutaciones(CUATRO).map((p) => JSON.stringify(motor.decidir(ctxDe(p, { objective: OBJ4, historyByOption: H4 })))));
+check('115 · ids únicos barajados, con el mismo historial: una sola decisión, byte a byte',
+  unicas.size === 1 && JSON.parse([...unicas][0]).status === 'decided');
+check('116 · y con un tope, la selección es determinista: las primeras por `id`, lleguen como lleguen',
+  new Set(permutaciones(CUATRO).map((p) => JSON.stringify(motor.decidir(ctxDe(p, { objective: OBJ4, historyByOption: H4, budget: { maxCandidates: 2 } }))))).size === 1 &&
+  igual(motor.decidir(ctxDe([...CUATRO].reverse(), { objective: OBJ4, budget: { maxCandidates: 2 } })).candidates.map((c) => c.id).sort(), ['lenta', 'lentisima']));
+
+console.log('\n─── J. Sigue sin estar conectado ───');
 
 const conectado = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router', 'functions/src/planner']
   .filter((d) => {

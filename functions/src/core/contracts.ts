@@ -318,8 +318,36 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * confianza son las de 1.6 —solo cambia el orden de esas listas—, y sin
  * historial y con las alternativas ya en orden de `id`, la decisión es la de
  * 1.6 byte a byte salvo el número de contrato que lleva.
+ *
+ * 1.8 (A9.2): cada alternativa tiene IDENTIDAD, y lo aprendido de una llega a
+ * A1 como historial de ESA. No nace ninguna identidad nueva: es el `id` que
+ * las alternativas ya tenían —el de `Strategy`, derivado de la tarea y de su
+ * forma—, y en lo aprendido viaja por la dimensión `strategyId` que la clave
+ * de A7 ya tenía. Cambian cinco cosas, y cada una cerraba un hueco medido:
+ *
+ *   A1  una alternativa sin `id` de texto, o dos con el mismo, dejan la
+ *       petición sin forma: `invalid`, explicado, antes del tope de candidatos
+ *       y antes del historial. Antes se decidía, y el orden de llegada
+ *       desempataba lo que no debía. Nada se arregla solo: ni se elige una, ni
+ *       se renombra, ni se concatena.
+ *   A7  un resultado cuya identidad —o la de su recuperación— trae el
+ *       separador de la clave (`SEPARADOR_DE_CLAVE`) no entra: se midió que la
+ *       estrategia «S|providerId=p» se sumaba al agregado de «S» con el
+ *       proveedor «p». Y en `strategy.succeeded` un fallo ya no cuenta como
+ *       contradicción —es una muestra de la tasa—: una alternativa que falla
+ *       se puede validar como tal. `outcome.success` y las demás no cambian.
+ *   A8  `ConjuntoDeSenales.historyByOption` y `paraDecision` lo entrega: la
+ *       ventana de `strategy.succeeded` admitida en «ámbito de la decisión +
+ *       `strategyId`», por identidad. Vacío si no hay evidencia por
+ *       alternativa; nunca se rellena con la del ámbito.
+ *   A9  `cerrar` aprende en el ámbito de la decisión MÁS la identidad de lo
+ *       entregado (el `id` del plan o de la opción elegida), que pone la
+ *       entrega y no la observación; `decidir` pasa a A1 el historial por
+ *       alternativa de A8; y declararlo además de pedirlo a A8 es `history_twice`.
+ *
+ * Las reglas con que A1 usa el historial son las de 1.7, sin tocar.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.7' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.8' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

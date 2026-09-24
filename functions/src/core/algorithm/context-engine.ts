@@ -58,7 +58,7 @@ import {
 import { DescriptorDeMetrica, METRICAS_BASE } from './feedback-engine';
 import {
   Admision, CierreDeContexto, Consumidor, EncajeDeConsumidor, EncajeDeEje,
-  EstadoDeAdmision, GRAVEDAD_DE_ADMISION, METRICAS_DE_CONTEXTO_CERO, MetricasDeContexto,
+  EstadoDeAdmision, GRAVEDAD_DE_ADMISION, METRICAS_DE_CONTEXTO_CERO, METRICA_POR_ALTERNATIVA, MetricasDeContexto,
   RequisitosDeEvidencia, ejeDeMetrica, encajeDeAmbito,
 } from './context';
 
@@ -121,6 +121,13 @@ export interface ConjuntoDeSenales {
   signals: readonly Signal[];
   /** En la forma que A1 ya declaró. Una por clave admitida. */
   history: Readonly<Record<string, HistoryWindow>>;
+  /**
+   * EL HISTORIAL DE CADA ALTERNATIVA, por su identidad (contrato 1.8): la
+   * ventana de `METRICA_POR_ALTERNATIVA` admitida en «ámbito de la decisión +
+   * `strategyId`», y nada más concreto. Vacío si la fuente no trae evidencia por
+   * alternativa: nunca se rellena con la del ámbito ni se copia de una a otra.
+   */
+  historyByOption: Readonly<Record<string, HistoryWindow>>;
   because: readonly string[];
   metricas: MetricasDeContexto;
 }
@@ -195,7 +202,7 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
       contract: ALGORITHM_CONTRACT_VERSION, cierre: 'unknown' as CierreDeContexto,
       ...(rechazo ? { rechazo } : {}),
       admisiones: Object.freeze([]), evidence: Object.freeze([]), signals: Object.freeze([]),
-      history: Object.freeze({}), because: Object.freeze(porque),
+      history: Object.freeze({}), historyByOption: Object.freeze({}), because: Object.freeze(porque),
       metricas: { ...m, porEstado: Object.freeze({}) },
     }) as ConjuntoDeSenales;
 
@@ -413,12 +420,29 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
       history[x.key] = ventanaDe(a);
     }
 
+    /*
+     * 3b · POR ALTERNATIVA (1.8). Solo `strategy.succeeded` —el eje que A1
+     * rellena con historial es la probabilidad de éxito, y esta es la métrica
+     * que la mide—, y solo en el ámbito EXACTO de la decisión más la identidad de
+     * la alternativa: con un proveedor además, ya habla de una implementación,
+     * que es del Router. La identidad se lee del ÁMBITO del agregado, nunca de
+     * su clave, y la ventana es la suya: la de otra no se le copia.
+     */
+    const historyByOption: Record<string, HistoryWindow> = {};
+    for (const x of admitidas) {
+      const id = x.scope.strategyId;
+      if (x.metric !== METRICA_POR_ALTERNATIVA || typeof id !== 'string' || !id || !history[x.key]) continue;
+      if (encajeDeAmbito({ ...x.scope, strategyId: undefined }, scopeDecision) !== 'exact') continue;
+      historyByOption[id] = history[x.key];
+    }
+
     const cierre: CierreDeContexto = !m.recibidas ? 'no_evidence'
       : admitidas.length ? 'admitted'
         : admisiones.length && admisiones.every((x) => x.status === 'unknown') ? 'unknown'
           : 'insufficient_evidence';
 
     porque.push(`${m.evaluadas} de ${m.recibidas} pieza(s) evaluadas; ${m.admitidas} admitida(s).`);
+    if (Object.keys(historyByOption).length) porque.push(`${Object.keys(historyByOption).length} alternativa(s) con historial propio.`);
     if (m.duplicadas) porque.push(`${m.duplicadas} duplicada(s) por clave: se quedó la foto más reciente.`);
     if (deAlguien) porque.push(`${deAlguien} agregado(s) traían un campo de persona en el ámbito: filtrados, no limpiados.`);
     if (noAgregables) porque.push(`${noAgregables} agregado(s) traían campos que no son dimensiones de aprendizaje: filtrados, no limpiados.`);
@@ -432,6 +456,7 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
       evidence: Object.freeze(evidence),
       signals: Object.freeze(signals),
       history: Object.freeze(history),
+      historyByOption: Object.freeze(historyByOption),
       because: Object.freeze(porque),
       metricas: { ...m, porEstado: Object.freeze(porEstado) },
     }) as ConjuntoDeSenales;
@@ -454,10 +479,21 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
  * malo le subiría la confianza a la opción que describe. Hasta que A1 compare
  * la evidencia con los valores de la opción, darle señales aprendidas es
  * dañino, y este puerto no lo hace.
+ *
+ * Desde 1.8, también el historial de CADA alternativa (`historyByOption`), el
+ * que A1 puede usar para ordenar. Solo si lo hay: sin evidencia por
+ * alternativa no sale, y el del ámbito no lo sustituye.
  */
-export const paraDecision = (c: ConjuntoDeSenales): { history?: HistoryWindow } => {
+export const paraDecision = (c: ConjuntoDeSenales): {
+  history?: HistoryWindow;
+  historyByOption?: Readonly<Record<string, HistoryWindow>>;
+} => {
   const exacta = c.admisiones.find((x) => x.status === 'admitted' && x.scopeMatch === 'exact');
-  return exacta && c.history[exacta.key] ? Object.freeze({ history: c.history[exacta.key] }) : Object.freeze({});
+  const porAlternativa = c.historyByOption ?? {};
+  return Object.freeze({
+    ...(exacta && c.history[exacta.key] ? { history: c.history[exacta.key] } : {}),
+    ...(Object.keys(porAlternativa).length ? { historyByOption: porAlternativa } : {}),
+  });
 };
 
 /**

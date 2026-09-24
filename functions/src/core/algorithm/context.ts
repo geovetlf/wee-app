@@ -67,6 +67,13 @@ export const EJE_DE_METRICA: Readonly<Record<string, ObjectiveAxis>> = Object.fr
   'feedback.satisfaction': 'userValue',
 });
 
+/**
+ * LA MÉTRICA QUE HABLA DE UNA ALTERNATIVA (contrato 1.8): la que A7 aprende
+ * cuando el resultado lleva la identidad de lo que se ejecutó (`strategyId`), y
+ * la única cuyo eje —`successProbability`— es el que A1 rellena con historial.
+ */
+export const METRICA_POR_ALTERNATIVA = 'strategy.succeeded';
+
 /** Qué eje informa una métrica. `undefined` = no se sabe, y no se inventa. */
 export const ejeDeMetrica = (
   metric: string,

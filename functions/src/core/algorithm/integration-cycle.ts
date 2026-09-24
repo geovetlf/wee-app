@@ -126,13 +126,15 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       porque.push('Trae alternativas por más de un camino —opciones, enfoques o tarea—: elegir cuál vale sería decidir por quien pide.');
       return fin('invalid', 'ambiguous_alternatives');
     }
-    if (peticion.aprendido && d.history) {
+    if (peticion.aprendido && (d.history !== undefined || d.historyByOption !== undefined)) {
       porque.push('Declara un historial y pide a A8 que lo seleccione: dos fuentes para lo mismo, y no se elige una.');
       return fin('invalid', 'history_twice');
     }
 
-    /* 1 · CONTEXTO. A8 selecciona lo aprendido; A1 lo recibe por su puerto. */
+    /* 1 · CONTEXTO. A8 selecciona lo aprendido; A1 lo recibe por su puerto: el del
+     * ámbito y el de cada alternativa, los dos de A8 y ninguno fabricado aquí. */
     let history = d.history;
+    let historyByOption = d.historyByOption;
     if (peticion.aprendido) {
       recorrido.push('context');
       const context = a8.seleccionar({ ...peticion.aprendido, objective: d.objective, budget: d.budget });
@@ -147,14 +149,18 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
         porque.push('A8 no contesta para el ámbito de esta decisión: no se decide en su lugar con otro.');
         return fin('invalid', 'context_refused');
       }
-      history = paraDecision(context).history;
+      const paraA1 = paraDecision(context);
+      history = paraA1.history;
+      historyByOption = paraA1.historyByOption;
     }
     const base: DecisionContext<unknown> = {
       ...(d as DecisionContext<unknown>),
       ...(history ? { history } : {}),
+      ...(historyByOption ? { historyByOption } : {}),
     };
     /* Lo que A1 va a recibir, leído de SU contexto y no de una variable aparte. */
     if (base.history) salida = { ...salida, historial: base.history };
+    if (base.historyByOption) salida = { ...salida, historialPorAlternativa: base.historyByOption };
 
     /* 2 · SIN TAREA: la decisión es entre lo que ya hay. */
     if (!tarea && !enfoques) {
@@ -271,12 +277,21 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     };
     const recovery = a6r.analizar(verification, contexto);
 
-    /* El resultado de la decisión, en el vocabulario de A7, en el ámbito en que se decidió. */
+    /*
+     * El resultado de la decisión, en el vocabulario de A7, en el ámbito en que se
+     * decidió y con la IDENTIDAD de lo que se entregó (1.8): el `id` del plan o de
+     * la opción elegida. Sale de la entrega de A9 —lo que A1 eligió—, nunca de la
+     * observación: quien ejecuta no puede atribuir su resultado a otra alternativa.
+     */
+    const identidad = entrega.plan?.id ?? entrega.elegida;
+    const scope = resultado.ambito || identidad
+      ? Object.freeze({ ...(resultado.ambito ?? {}), ...(identidad ? { strategyId: identidad } : {}) })
+      : undefined;
     const outcome: ResultadoDeDecision = Object.freeze({
       id: observacion.actual.id,
       kind: observacion.kind,
       at: observacion.at,
-      ...(resultado.ambito ? { scope: resultado.ambito } : {}),
+      ...(scope ? { scope } : {}),
       verification: Object.freeze({ status: verification.status, passed: verification.passed, confidence: verification.confidence }),
       ...(observacion.recovery ? { recovery: observacion.recovery } : {}),
       ...(observacion.signals ? { signals: observacion.signals } : {}),
@@ -287,7 +302,13 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     const learning = aprendizaje
       ? a7.aprender({ ahora: aprendizaje.ahora, previo: aprendizaje.previo, policy: aprendizaje.policy, outcomes: [outcome] })
       : undefined;
-    if (learning) porque.push(learning.rechazo ? `A7 rechazó el aprendizaje (${learning.rechazo}).` : 'A7 acumuló el resultado.');
+    /* Lo que dijo A7, y no lo que se esperaba que dijera: un resultado que su puerta
+     * no admite —p. ej. una identidad con el separador de su clave— no se aprendió. */
+    if (learning) {
+      porque.push(learning.rechazo ? `A7 rechazó el aprendizaje (${learning.rechazo}).`
+        : learning.metricas.resultadosAdmitidos ? 'A7 acumuló el resultado.'
+          : 'A7 no admitió el resultado: no se aprendió nada de él.');
+    }
 
     return Object.freeze({
       contract: ALGORITHM_CONTRACT_VERSION,

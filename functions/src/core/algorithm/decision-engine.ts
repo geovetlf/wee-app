@@ -185,11 +185,45 @@ export const estrategiaPorDefecto = (valor: unknown): Strategy | undefined => {
 /* ── 1 · Validación ───────────────────────────────────────────────────────── */
 
 /**
+ * ¿TIENE CADA ALTERNATIVA SU IDENTIDAD? Contrato 1.8.
+ *
+ * Una decisión compara alternativas que se distinguen por su `id`: con él se
+ * ordenan al entrar, se desempata, se encuentra su historial y se atribuye lo
+ * que pase al ejecutarla. Dos con el mismo `id` no son dos alternativas, son una
+ * ambigüedad, y cualquier forma de resolverla —quedarse con una, renombrar,
+ * desempatar por el orden de llegada— sería decidir por quien pidió. Se dice y
+ * no se decide.
+ *
+ * Mira TODAS, antes del tope de candidatos: un duplicado más allá del tope se
+ * vería o no según el orden de llegada. Y lo que dice no depende de ese orden:
+ * los ids repetidos van ordenados, y como mucho cinco.
+ */
+export const problemasDeIdentidad = (options: readonly unknown[]): readonly string[] => {
+  let sinIdentidad = 0;
+  const vistos = new Set<string>();
+  const repetidos = new Set<string>();
+  for (const o of options) {
+    const id = typeof o === 'object' && o !== null ? (o as { id?: unknown }).id : undefined;
+    if (typeof id !== 'string' || !id) { sinIdentidad++; continue; }
+    if (vistos.has(id)) repetidos.add(id); else vistos.add(id);
+  }
+  const malos: string[] = [];
+  if (sinIdentidad) malos.push(`options: ${sinIdentidad} alternativa(s) sin identidad`);
+  if (repetidos.size) {
+    const lista = [...repetidos].sort();
+    malos.push(`options: ids repetidos ${lista.slice(0, 5).map((id) => `«${id}»`).join(', ')}`
+      + (lista.length > 5 ? ` y ${lista.length - 5} más` : ''));
+  }
+  return malos;
+};
+
+/**
  * ¿Se puede trabajar con este contexto?
  *
  * Devuelve todos los problemas, como el resto del Core. Un contexto sin
  * objetivo o sin traza no es un caso límite que haya que sortear: es una
- * petición que no se puede atender ni auditar después.
+ * petición que no se puede atender ni auditar después. Tampoco uno con
+ * alternativas sin identidad (`problemasDeIdentidad`).
  */
 export const problemasDelContexto = (ctx: DecisionContext<unknown> | undefined): readonly string[] => {
   const malos: string[] = [];
@@ -197,6 +231,7 @@ export const problemasDelContexto = (ctx: DecisionContext<unknown> | undefined):
   if (!ctx.objective || typeof ctx.objective !== 'object') malos.push('objective');
   if (!ctx.trace || typeof ctx.trace.traceId !== 'string' || typeof ctx.trace.requestId !== 'string') malos.push('trace');
   if (ctx.options !== undefined && !Array.isArray(ctx.options)) malos.push('options');
+  else if (Array.isArray(ctx.options)) malos.push(...problemasDeIdentidad(ctx.options));
   if (ctx.signals !== undefined && !Array.isArray(ctx.signals)) malos.push('signals');
   if (ctx.replanCount !== undefined && (!Number.isInteger(ctx.replanCount) || ctx.replanCount < 0)) malos.push('replanCount');
   return malos;
