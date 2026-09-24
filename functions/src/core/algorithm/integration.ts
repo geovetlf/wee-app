@@ -44,6 +44,7 @@
 
 import { Signal } from './signals';
 import { AlgorithmConstraints } from './objective';
+import { violacionesEn } from './authority';
 import { Alternative } from './scoring';
 import { AlgorithmDecision, DecisionContext, DecisionStatus, HistoryWindow } from './decision';
 import { TareaADescomponer } from './decomposition';
@@ -145,7 +146,7 @@ export type MotivoDeParada =
   | 'invalid_task'
   /* A1 no eligió. No es un error: puede no haber nada que recomendar. */
   | 'undecided'
-  /* La entrega nombraba una implementación: eso es del Router. */
+  /* La petición —su objetivo, sus restricciones o el ámbito de lo aprendido (S2-A)— o la entrega nombraban una implementación: eso es del Router. */
   | 'authority_violation';
 
 /**
@@ -153,10 +154,11 @@ export type MotivoDeParada =
  *
  * El plan son los pasos del Planner, TAL CUAL, con la estructura que eligió A1
  * sobre lo que propusieron A3, A4 y A5. Las restricciones son los requisitos de
- * ejecución de la petición —calidad, presupuesto, plazo—, que es lo que el
- * Router puede leer de ellos. Nada de proveedor ni de modelo: lo comprueba
- * `violacionesEn` antes de entregar, y es la única guarda que mira lo que la
- * petición trae en `constraints` y en `expected`.
+ * ejecución EFECTIVOS —los de la petición y los de su objetivo, con lo más
+ * estrecho mandando (`restriccionesEfectivas`, S2-A)—: calidad, presupuesto,
+ * plazo… Qué lee cada uno de ellos lo dice `DESTINO_DEL_REQUISITO`. Nada de
+ * proveedor ni de modelo: lo comprueba `violacionesEn` al pedir y antes de
+ * entregar.
  */
 export interface EntregaDeEjecucion {
   /** El plan elegido, cuando la decisión fue entre planes. */
@@ -166,6 +168,93 @@ export interface EntregaDeEjecucion {
   constraints?: AlgorithmConstraints;
   expected?: readonly OutputExpectation[];
 }
+
+/* ── S2-A · De quién es cada requisito de la entrega ──────────────────────── */
+
+/**
+ * QUIÉN LEE CADA REQUISITO, una vez entregado. Datos, no un `if` por campo.
+ *
+ * El Algorithm Engine dice QUÉ hay que hacer y con qué exigencias; CON QUÉ se
+ * hace lo decide el Router, y cada exigencia tiene un lector que ya existe:
+ *
+ *   router         lo que el Router lee al elegir implementación: el mismo
+ *                  `Budget` y la misma `QualityRequirement` que ya forman parte de
+ *                  `RoutingConstraints`. No se copia ese tipo: se usan los suyos.
+ *   orchestrator   cuántos pasos a la vez. «Lo ejecuta el Orchestrator; aquí
+ *                  solo se acota» (`AlgorithmConstraints.maxParallel`).
+ *   execution      los relojes del TRABAJO: el plazo y la latencia máxima, que
+ *                  hacen cumplir el Job Engine y el Gateway con los suyos.
+ *   decision       lo que solo sirvió para decidir. El plan entregado ya lo
+ *                  cumple por construcción —A1 descartó lo que no— y nadie más
+ *                  tiene que volver a mirarlo.
+ *
+ * Un `Record` sobre las claves de `AlgorithmConstraints`: un requisito nuevo no
+ * compila hasta que alguien dice quién lo lee. Así no puede cruzar la frontera
+ * sin dueño, ni quedarse en ella sin que se sepa.
+ */
+export type DestinoDeRequisito = 'router' | 'orchestrator' | 'execution' | 'decision';
+
+export const DESTINO_DEL_REQUISITO: Readonly<Record<keyof AlgorithmConstraints, DestinoDeRequisito>> = Object.freeze({
+  budget: 'router',
+  quality: 'router',
+  maxParallel: 'orchestrator',
+  deadlineAt: 'execution',
+  maxLatencyMs: 'execution',
+  maxSteps: 'decision',
+  maxRisk: 'decision',
+  minConfidence: 'decision',
+  forbiddenCapabilities: 'decision',
+  requiredCapabilities: 'decision',
+});
+
+/**
+ * LOS REQUISITOS DE UNA ENTREGA, REPARTIDOS POR LECTOR (S2-A). Función pura.
+ *
+ * Es el contrato previo al Router, y NO está conectado: nadie de fuera de esta
+ * capa lo llama todavía. Reparte lo que ya viaja en la entrega; no calcula nada,
+ * no reparte presupuestos entre pasos —eso exigiría saber lo que cuesta cada
+ * uno— y no elige nada.
+ *
+ * Si las restricciones nombran una implementación, no hay reparto: se devuelve
+ * la violación y nada más, porque un requisito que elige proveedor no se puede
+ * entregar a nadie. Las claves que no son de `AlgorithmConstraints` no viajan a
+ * ningún lector y se nombran, ordenadas.
+ */
+export type RepartoDeRequisitos =
+  | {
+    ok: true;
+    porDestino: Readonly<Record<DestinoDeRequisito, Readonly<Partial<AlgorithmConstraints>>>>;
+    /** Lo que llegó y no es un requisito conocido: no lo lee nadie. */
+    sinDestino: readonly string[];
+  }
+  | { ok: false; violaciones: readonly string[] };
+
+export const repartirRequisitos = (constraints: AlgorithmConstraints | undefined): RepartoDeRequisitos => {
+  const cruces = violacionesEn(constraints, 'constraints');
+  if (cruces.length) return Object.freeze({ ok: false, violaciones: Object.freeze([...new Set(cruces.map((c) => c.clave))].sort()) });
+  const porDestino: Record<DestinoDeRequisito, Partial<AlgorithmConstraints>> = { router: {}, orchestrator: {}, execution: {}, decision: {} };
+  const sinDestino: string[] = [];
+  const presentes = constraints ?? {};
+  /* Recorrido por el MAPA, no por lo que llegue: el orden de salida no depende del de entrada. */
+  for (const clave of Object.keys(DESTINO_DEL_REQUISITO) as (keyof AlgorithmConstraints)[]) {
+    const valor = presentes[clave];
+    if (valor === undefined) continue;
+    (porDestino[DESTINO_DEL_REQUISITO[clave]] as Record<string, unknown>)[clave] = valor;
+  }
+  for (const clave of Object.keys(presentes).sort()) {
+    if (!(clave in DESTINO_DEL_REQUISITO) && (presentes as Record<string, unknown>)[clave] !== undefined) sinDestino.push(clave);
+  }
+  return Object.freeze({
+    ok: true,
+    porDestino: Object.freeze({
+      router: Object.freeze(porDestino.router),
+      orchestrator: Object.freeze(porDestino.orchestrator),
+      execution: Object.freeze(porDestino.execution),
+      decision: Object.freeze(porDestino.decision),
+    }),
+    sinDestino: Object.freeze(sinDestino),
+  });
+};
 
 /**
  * EL RESULTADO DEL CICLO DE DECISIÓN.

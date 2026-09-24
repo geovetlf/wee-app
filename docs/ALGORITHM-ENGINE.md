@@ -1639,7 +1639,237 @@ No despliega, no ejecuta la canary real, no abre `aiSettings/sombra`, no toca el
 Router, el Job Engine, el Financial Core, el Asset Core ni ningún proveedor, no cambia
 nada que vea la persona y no empieza S2 ni Filmmaker.
 
-## 18 · Lo que está probado, y dónde
+## 18 · S2-A, Decision Quality and Router Boundary —la calidad de la decisión y la frontera con el Router—
+
+Local, sin autoridad de producción, sin conexión con el Router, sin despliegue. S2-A
+no añade un motor: audita A0–A9.3 con una pregunta —¿se puede evaluar la calidad
+de una decisión sin inventar calidad, y entregarle al Router lo que necesita sin
+elegir por él?— y corrige lo que la auditoría demostró roto.
+
+### Quién decide qué
+
+```
+Brain → Planner → Algorithm Engine → decisión · estrategia · requisitos
+      → Router → modelo → adaptador del proveedor → API oficial
+```
+
+- **Algorithm Engine**: QUÉ se ejecuta —qué estrategia, con qué forma, bajo qué
+  requisitos—. Decide entre alternativas y entrega requisitos.
+- **Router**: CON QUÉ —capacidad → modelo → proveedor → adaptador—. Es el único
+  que elige implementación.
+- **Adaptador del proveedor**: la ejecución en el proveedor, por su API oficial.
+
+El Algorithm Engine no elige proveedor, ni modelo, ni adaptador, ni los recibe
+como autoridad: ni en lo que decide, ni en lo que se le pide, ni en lo que entrega.
+
+### Tres calidades que no se mezclan
+
+| Calidad | Qué es | Dónde vive | Cómo se juzga |
+|---|---|---|---|
+| **A · de la decisión** | coherencia con el objetivo, las restricciones, las capacidades, el presupuesto, los recursos, la evidencia y la incertidumbre | A1 (y A2–A5 al componer) | por REGLAS: factibilidad antes de puntuar; puntuación solo de lo medido o declarado, con lo que falta como `missing`; confianza con su base; frente de Pareto sin ganador |
+| **B · de la ejecución** | resultado, latencia, coste, fiabilidad, veredicto | quien ejecuta, A6 y A7, DESPUÉS | por muestras: A6 dice `pass` / `partial` / `fail` / `unknown`; A7 cuenta `n` y `favorables` |
+| **C · del proveedor** | cómo se porta una implementación concreta | evidencia de ejecución y de rutas: A7 en el ámbito de quien ejecuta, A8 `paraRouter` (preparado, sin conectar) | es del Router el día que puntúe con ella; nunca del Algorithm Engine como autoridad de selección |
+
+Una buena decisión (A) puede acabar en una mala ejecución (B) y al revés: por eso
+son dos preguntas y dos lugares. Y la calidad de un proveedor (C) no entra en A:
+S2-A lo hace cumplir también en el ÁMBITO de lo que se pide (abajo).
+
+### Qué devuelve `crearCicloAlgoritmico().decidir()`
+
+Un `AlgorithmDecisionResult`: `status` (`decided` · `undecided` · `invalid`),
+`recorrido` (qué autoridades actuaron, en orden), `parada` cuando se paró,
+`context` (A8), `historial` y `historialPorAlternativa` (lo que recibió A1),
+`approach` / `decomposition` / `parallelization` / `strategies` / `optimization`
+(la salida de cada autoridad, tal cual), `decision` (la de A1), `entrega` (lo que
+cruza la frontera), `ambito` y `because`.
+
+La decisión de A1 lleva: `selected` (una RECOMENDACIÓN), `selectedScore`
+(`fits` por eje, `total`, `missing`, `coverage`), `alternatives`, `candidates`
+(todas, con su motivo: `selected`, `lower_score`, `constraint:…`,
+`unverifiable:…`, `authority:…`), `confidence` (`value`, `basis`, `because`),
+`uncertainty`, `evidence`, `warnings`, `objective`, `constraints`, `signalKeys`
+(claves, nunca valores), `explanation` (frases deterministas), `paretoFront`
+(solo si hay más de una) y `spend`.
+
+La entrega (`EntregaDeEjecucion`) lleva el plan elegido o el id de la opción, las
+restricciones EFECTIVAS y lo esperado. Nada más —lo fija `algorithm-quality` 43—.
+
+### Evidencia antes de decidir y evidencia después de ejecutar
+
+| Categoría | Cuándo | Quién la produce | Qué hace con ella la decisión |
+|---|---|---|---|
+| factibilidad | antes | A1 (y A3 / A5 con las mismas reglas) | fuera ANTES de puntuar: `constraint:…`; lo que no se puede comprobar, `unverifiable:…` |
+| objetivo | antes | quien pide | pesos sobre los ejes MEDIDOS; un eje sin dato baja la cobertura, nunca vale 0 |
+| restricciones | antes | quien pide | las efectivas —petición + objetivo, lo más estrecho manda— |
+| señales | antes | quien mide | una por (clave, sujeto), la procedencia manda; son evidencia de la alternativa, no sus valores |
+| historial | antes | A7 → A8 | por alternativa, con muestra ≥ `POLITICA_MINIMA.minSampleSize` (5), como `successProbability` y procedencia `derived`; el del ámbito se lee y no ordena |
+| ejecución | después | quien ejecuta | `outcome.success`, `strategy.succeeded`: muestras de una tasa |
+| verificación | después | A6 | `verification.passed` SOLO si hubo un resultado entregado y A6 lo miró |
+| recuperación | después | quien la ejecutó | `recovery.succeeded` SOLO si se ejecutó, con su tipo |
+
+Lo de después no toca la decisión que ya se tomó: vuelve por A7 → A8 a la
+SIGUIENTE, y solo en su ámbito exacto.
+
+### Sin inventar calidad
+
+- Un número declarado por una alternativa puntúa, pero NO es evidencia: con solo
+  eso la confianza es 0 y se dice.
+- Un `pass` no es «calidad 1,0», un éxito no es «100» y un fallo no es «0»: son
+  muestras que A7 cuenta (`n`, `favorables`). Un desenlace `unknown` o `cancelled`
+  no se aprende —no se sabe cómo habría acabado—.
+- Un eje sin medir falta (`missing`) y baja la cobertura: el valor para la
+  persona (`userValue`) no tiene medición y así sale.
+- Un tope en Credits no se comprueba en esta capa: el precio es del Financial Core.
+  Se avisa (`constraint_unverifiable`) y no se descarta a nadie.
+
+### Por qué la confianza de S1 es 0
+
+Es la respuesta correcta. La confianza de A1 es la FUERZA de la evidencia (por su
+procedencia) por la COBERTURA (qué parte del peso del objetivo se pudo medir). En
+la sombra de S1 la estrategia trae evidencia estructural —cuatro piezas, todas a
+favor—, pero el objetivo pondera latencia y fiabilidad y ninguna de las dos está
+medida: cobertura 0, confianza 0, incertidumbre `unknown`, aviso `low_confidence`.
+En cuanto se mide la latencia de los pasos, la cobertura sube a 0,5 y la confianza
+deja de ser 0 (0,48, `uncertain`, en `algorithm-quality` 61). No se cambió nada
+para que dejara de ser 0.
+
+### La incertidumbre, sin convertirla en un número
+
+`Uncertainty` es una palabra de un vocabulario cerrado —`known` ≥ 0,85,
+`probable` ≥ 0,6, `uncertain` ≥ 0,25, `unknown`—, y sin base es `unknown` diga lo
+que diga el valor. Informa y se registra; no decide (`alcanzaParaDecidir` no tiene
+llamadas): lo que filtra es `minConfidence`. Los cinco estados de la pregunta:
+
+| Estado | Cómo se representa |
+|---|---|
+| desconocido | sin base de evidencia → `unknown` |
+| insuficiente | una muestra por debajo del suelo no se usa («no es una muestra»); bajo `minConfidence`, `insufficient_evidence` |
+| incompleto | `missing` y `coverage` < 1; `unverifiable:…` en una restricción |
+| en conflicto | `signal_conflict`, con el criterio que resolvió; la evidencia `supports: false` resta |
+| no disponible | un eje que nadie mide (`userValue`), un tope que no es de esta capa (`maxCredits`) |
+
+### El historial
+
+A1 consume dos cosas: la ventana del ÁMBITO (se lee, se declara, no reordena) y la
+de CADA alternativa (`historyByOption`, por su identidad). Las reglas: solo entre
+las que ya compiten; solo si el objetivo pondera `successProbability`; solo donde
+la alternativa no trae ese valor; con una ventana legible y sin implementación;
+con una muestra de al menos 5. A8 la sirve solo del ámbito EXACTO de la decisión más
+`strategyId`; ejecución, verificación y recuperación viajan separadas (1.9). S2-A
+no conecta aprendizaje productivo ni A7/A8 a nada nuevo.
+
+Un hallazgo, medido: el ÁMBITO que se pide (`aprendido.scope`) podía nombrar una
+implementación. Con el mismo aprendido, `providerId` en el ámbito cambiaba la
+alternativa elegida —el historial de ese proveedor decidía— y el cierre aprendía
+dentro de él. Es la calidad de un proveedor (C) entrando en la de la decisión (A),
+condicionada a algo que el Router aún no ha elegido. Ahora se para antes de pensar
+nada (`authority_violation`). Lo aprendido SÍ puede describir implementaciones: A8
+lo admite, `paraRouter` lo agrupa y a una decisión de otro ámbito no le llega
+(`algorithm-quality` 44–45).
+
+### El contrato previo al Router
+
+Ya existía: `EntregaDeEjecucion`. S2-A añade quién LEE cada requisito, como datos
+(`DESTINO_DEL_REQUISITO`, un `Record` sobre las claves de `AlgorithmConstraints`:
+un requisito nuevo no compila sin lector) y una función pura que lo reparte
+(`repartirRequisitos`). NO está conectado, no se importa desde el Router y no
+duplica `RoutingConstraints`: lo que va al Router son sus propios tipos.
+
+| Requisito | Lector | Por qué |
+|---|---|---|
+| `budget`, `quality` | router | `Budget` (core/cost) y `QualityRequirement` (core/workflow), los mismos de `RoutingConstraints` |
+| `maxParallel` | orchestrator | cuántos pasos a la vez: lo ejecuta el Orchestrator |
+| `deadlineAt`, `maxLatencyMs` | execution | los relojes del trabajo: Job Engine y Gateway |
+| `maxSteps`, `maxRisk`, `minConfidence`, `forbiddenCapabilities`, `requiredCapabilities` | decision | solo sirvieron para decidir; el plan entregado ya los cumple |
+
+Determinista, serializable, acotado; lo que no tiene lector se dice (`sinDestino`) y
+un requisito que nombra una implementación no se reparte.
+
+### Lo que S2-A corrigió
+
+1. **El desempate de señales.** Dos señales empatadas en procedencia, fecha y
+   muestra se resolvían por orden de llegada: medido, la misma opción salía con
+   confianza 0,90 o 0,30, y con `minConfidence` 0,5 se elegía o se descartaba.
+   Ahora decide un orden canónico del contenido —el valor y la confianza, y detrás
+   la señal entera (`formaCanonica`)—.
+2. **El desempate de A8.** Dos fotos del mismo acumulador con igual fecha y muestra
+   se resolvían por «el primero»: el orden de `learned` cambiaba el contexto. Ahora,
+   por forma canónica; y un `NaN` ya no corta el desempate.
+3. **El registro de la decisión** ordena sus claves de señal.
+4. **La frontera en lo que se pide.** A1 y A9 ignoraban una implementación nombrada
+   en el objetivo o en las restricciones, y la devolvían tal cual en la decisión
+   —por donde un requisito llega a quien ejecuta—. Ahora es una petición inválida
+   (`authority_violation`) y no se repite; en A9, también en el ámbito de lo
+   aprendido. Cambio de comportamiento declarado: `algorithm-cycle` 46b fijaba la
+   secuencia vieja (decidir y parar en la entrega) y ahora fija la nueva (parar
+   antes de pensar).
+5. **Las restricciones efectivas.** A2–A5 y la entrega recibían solo las de la
+   petición; un requisito escrito en el objetivo obligaba a A1 pero no a quien
+   compone ni a quien ejecuta. Ahora todos reciben las mismas.
+
+Sin subir el contrato (sigue 1.9): son arreglos de lo que el contrato ya prometía
+—determinismo y frontera— y exportaciones nuevas.
+
+### Las pruebas
+
+`algorithm-quality.test.mjs`, 100 comprobaciones: los quince escenarios
+sintéticos (A), el determinismo por permutaciones (B), Pareto (C), la matriz de
+fugas —12 grafías de implementación en cada posición de A1, A9, pasos, enfoques,
+historial y reparto— (D), la frontera con el Router (E), confianza e
+incertidumbre (F), el resultado de una decisión (G) y las deudas (H).
+
+### Los sabotajes
+
+25, y todos caen **por aserción** (corredor `sab5b.sh`: verde antes, un solo patrón,
+reconstruir, restaurar byte a byte): seis contra el determinismo (el desempate de
+señales por llegada, sin la señal entera, la forma canónica con orden de claves, el
+registro sin ordenar, el duplicado de A8 por llegada y el `NaN` que corta su
+desempate), seis contra la frontera en lo que se pide (A1 sin ella, A1 mirando solo
+el objetivo, A1 repitiendo lo que se pidió, A9 sin ella, A9 sin el ámbito de lo
+aprendido y A9 vetando también lo aprendido que solo describe), cinco contra las
+restricciones efectivas (la entrega, A2, A4, A3 y A5 con las de la petición), tres
+contra el reparto (un destino cambiado, sin su frontera, callando lo que no tiene
+lector), tres de la matriz de fugas (la guarda de la entrega, la de cada alternativa
+y la del historial) y dos contra este documento (sin las tres capas, o atribuyéndole
+al Algorithm Engine la elección del proveedor).
+
+Una lección del método: el que veta lo aprendido que solo describe caía la primera
+vez **por reventón** —la prueba pedía `paraRouter` sobre un contexto que ya no
+existía—. La suite se blindó con `?.` y ahora cae por aserción. Y después de
+optimizar el desempate de señales se volvieron a correr los tres que lo sabotean.
+
+### Rendimiento
+
+A/B contra S1 en la misma máquina, cada lado compilado aparte con el mismo
+compilador, mediana de siete rondas en procesos alternos: lo de siempre no cambia
+(ciclo +1,5 %, A1 +2 a +3 %, dentro del ruido: la ronda anterior dio −1 %). Lo que
+S2-A añade se paga donde se usa: la guarda de autoridad sobre objetivo y
+restricciones, +4 µs en A1 (13 → 17 µs); el ciclo con señales empatadas, +2 %; A1 con
+doce señales empatadas, +9 % (57 → 62 µs), después de calcular la forma canónica una
+vez por señal y solo si hace falta —calculándola en cada comparación eran 128 µs—; y
+A8 con ocho pares de fotos duplicadas de igual fecha y muestra, 42 → 180 µs, un caso
+que no debería darse y que ahora da siempre lo mismo. La sombra, como en S1: Travel
+p50 0,32 ms, p95 0,72 ms, p99 1,74 ms, primera decisión del proceso 11,5 ms; la capa
+añade 21–22 ms al arranque en frío.
+
+### Lo que queda declarado
+
+- La dirección de una señal no se compara con lo declarado: una medición que lo
+  contradice cuenta hoy como a favor (fuerza, no dirección). Corregirlo exige
+  decidir qué es «coincidir», y esa política no se inventa aquí
+  (`algorithm-quality` 71).
+- La muestra no entra en la fuerza de una señal: 9 y 9 000 mediciones pesan igual
+  como evidencia (72). La muestra ordena conflictos y pone el suelo del historial.
+- La confianza de A1 cuenta todas las señales de una alternativa como apoyo.
+- Un `id` de alternativa podría ser, él mismo, el nombre de un proveedor: la
+  frontera mira claves, no valores, y sin un registro no se puede saber.
+- Las comprobaciones de restricciones de A5 repiten las de A3 sobre las mismas
+  estrategias; solo se ven en sus propuestas (`quitar-comprobaciones`).
+- La deuda de A7 (`fuerza` en el último decimal según el orden) sigue declarada y
+  sin tocar.
+- Nada de esto está conectado al Router ni a producción.
+
+## 19 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
@@ -1649,15 +1879,16 @@ nada que vea la persona y no empieza S2 ni Filmmaker.
 | `-decision` §I · `-cycle` §L2 · `-context` §W · `-feedback` §Y | A9.2: la identidad de las alternativas, el aprendizaje por alternativa y el ciclo de punta a punta |
 | `-feedback` §Z · `-context` §X · `-cycle` §L3 | A9.3: ejecución, verificación y recuperación por separado —los ocho casos, la puerta de ejecución de A6—, lo que llega a `paraRouter` y lo que no decide |
 | `sombra-experiencia` §S1 · `-context` V8–V8d · `-cycle` 91–91b · `runtime-map` · `-agnostic` 56 · `-decision` 77 · `-foundation` 118 | S1: la canary de Travel, la puerta y sus filtros, los cortafuegos, la evidencia privada, la comparación sin falsa paridad, los desenlaces, la carrera, y que solo la sombra carga la capa |
+| `algorithm-quality.test.mjs` · `-cycle` 46b | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 19 · Lo que esta capa NO hace, dicho una vez más
+## 20 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.
-No elige implementación. Y no tiene autoridad en ninguna ruta de producción: su
+No elige implementación, ni la acepta en lo que se le pide (§ 18). Y no tiene autoridad en ninguna ruta de producción: su
 único sitio en el código vivo es la sombra (§ 17), que observa, se compara y se tira.

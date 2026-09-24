@@ -311,7 +311,8 @@ export const registroDeDecision = <T>(
 ): DecisionRecord => ({
   algorithm: d.algorithm,
   objective: d.objective,
-  signalKeys: Object.freeze([...new Set((context.signals ?? []).map((s) => s.key))]),
+  /* Ordenadas, como en la decisión: el registro para reproducir no puede depender del orden de llegada (S2-A). */
+  signalKeys: Object.freeze([...new Set((context.signals ?? []).map((s) => s.key))].sort()),
   candidateCount: d.candidates.length,
   selectedId,
   total: d.selectedScore?.total,

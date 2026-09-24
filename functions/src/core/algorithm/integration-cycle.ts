@@ -21,7 +21,7 @@
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { Evidence, Signal } from './signals';
 import { AlgorithmDecision, DecisionContext } from './decision';
-import { crearMotorDeDecision } from './decision-engine';
+import { crearMotorDeDecision, restriccionesEfectivas } from './decision-engine';
 import { PuertosDeCapacidad, TareaADescomponer } from './decomposition';
 import { Descomposicion, crearMotorDeDescomposicion } from './decomposition-engine';
 import { crearMotorDeParalelizacion } from './parallelization-engine';
@@ -95,9 +95,16 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * ENTERA, con el mismo predicado del Planner.
      */
     const entregar = (parte: Pick<EntregaDeEjecucion, 'plan' | 'elegida'>): AlgorithmDecisionResult<T> => {
+      /*
+       * Las EFECTIVAS (S2-A): las de la petición y las de su objetivo, con lo
+       * más estrecho mandando —las mismas con las que decidió A1—. Antes viajaban
+       * solo las de la petición, y un requisito escrito en el objetivo obligaba
+       * a decidir pero no llegaba a quien ejecuta.
+       */
+      const exigido = restriccionesEfectivas(peticion.decision);
       const entrega: EntregaDeEjecucion = Object.freeze({
         ...parte,
-        ...(peticion.decision.constraints ? { constraints: peticion.decision.constraints } : {}),
+        ...(exigido ? { constraints: exigido } : {}),
         ...(peticion.expected ? { expected: peticion.expected } : {}),
       });
       const cruces = violacionesEn(entrega, 'entrega');
@@ -129,6 +136,34 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     if (peticion.aprendido && (d.history !== undefined || d.historyByOption !== undefined)) {
       porque.push('Declara un historial y pide a A8 que lo seleccione: dos fuentes para lo mismo, y no se elige una.');
       return fin('invalid', 'history_twice');
+    }
+
+    /*
+     * 0b · LA FRONTERA EN LO QUE SE PIDE (S2-A). Lo que rige es la suma del
+     * objetivo y de las restricciones, con lo más estrecho mandando: lo mismo
+     * que usa A1, lo mismo que recibe cada autoridad y lo mismo que viaja en la
+     * entrega. Si nombra una implementación no se piensa nada: la entrega
+     * llevaría un requisito que elige con qué hacerlo, y eso es del Router.
+     */
+    const restricciones = restriccionesEfectivas(d);
+    /*
+     * Y el ÁMBITO en que se pide decidir. Un ámbito que nombra una implementación
+     * condiciona la decisión a algo que el Router todavía no ha elegido: A8 sirve
+     * el historial de ese ámbito exacto y el cierre aprendería dentro de él.
+     * Medido: con el mismo aprendido, `providerId` en el ámbito cambiaba la
+     * alternativa elegida. Lo aprendido (`learned`) sí puede DESCRIBIR
+     * implementaciones —es lo que pasó, y A8 no se lo sirve a una decisión de
+     * otro ámbito—; lo que se PIDE, no.
+     */
+    const pedidoDeContexto = peticion.aprendido ? { ...peticion.aprendido, learned: undefined } : undefined;
+    const cruzan = [
+      ...violacionesEn(d.objective, 'objective'),
+      ...violacionesEn(restricciones, 'constraints'),
+      ...violacionesEn(pedidoDeContexto, 'aprendido'),
+    ];
+    if (cruzan.length) {
+      porque.push(`La petición nombra una implementación en sus requisitos o en su ámbito (${[...new Set(cruzan.map((c) => c.clave))].sort().join(', ')}): eso lo elige el Router.`);
+      return fin('invalid', 'authority_violation');
     }
 
     /* 1 · CONTEXTO. A8 selecciona lo aprendido; A1 lo recibe por su puerto: el del
@@ -190,7 +225,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 4 · ESTRUCTURA. A2 es la autoridad sobre la tarea: si la rechaza, se para. */
     recorrido.push('decomposition');
-    const decomposition = a2.descomponer(t, d.constraints, d.budget);
+    const decomposition = a2.descomponer(t, restricciones, d.budget);
     salida = { ...salida, decomposition };
     if (decomposition.problemas.length) {
       porque.push(`A2 rechazó la tarea: ${decomposition.problemas.map((p) => p.reason).join(', ')}.`);
@@ -201,14 +236,14 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     /* 5 · PARALELISMO, si se pidió. A4 es la autoridad sobre la forma paralela. */
     if (peticion.componer?.paralelizar) {
       recorrido.push('parallelization');
-      const p = a4.variantes(t, d.signals ?? [], d.constraints, d.budget);
+      const p = a4.variantes(t, d.signals ?? [], restricciones, d.budget);
       salida = { ...salida, parallelization: p.analisis };
       formas = p.variantes;
     }
 
     /* 6 · ESTRATEGIAS. Solo A3 las genera. */
     recorrido.push('strategy');
-    const strategies = a3.proponer(formas, d.signals ?? [], d.constraints, d.budget);
+    const strategies = a3.proponer(formas, d.signals ?? [], restricciones, d.budget);
     salida = { ...salida, strategies };
     let candidatas = strategies.estrategias;
 
@@ -219,7 +254,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       const optimization = a5.optimizar({
         candidates: candidatas,
         objective: d.objective,
-        ...(d.constraints ? { constraints: d.constraints } : {}),
+        ...(restricciones ? { constraints: restricciones } : {}),
         ...(d.budget ? { budget: d.budget } : {}),
         evidence: comoEvidencia(d.signals ?? []),
         ...(baseline ? { baselineId: baseline.id } : {}),

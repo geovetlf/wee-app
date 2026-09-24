@@ -37,7 +37,7 @@ import {
   referenciaDeAlgoritmo,
 } from './types';
 import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints, Objective, ObjectiveAxis, conflictosDeRestricciones, pesosNormalizados } from './objective';
+import { AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, pesosNormalizados } from './objective';
 import { Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales } from './signals';
 import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
@@ -235,6 +235,23 @@ export const problemasDelContexto = (ctx: DecisionContext<unknown> | undefined):
   if (ctx.signals !== undefined && !Array.isArray(ctx.signals)) malos.push('signals');
   if (ctx.replanCount !== undefined && (!Number.isInteger(ctx.replanCount) || ctx.replanCount < 0)) malos.push('replanCount');
   return malos;
+};
+
+/**
+ * EL OBJETIVO QUE SE PUEDE DEVOLVER cuando la petición nombraba una
+ * implementación: su nombre y sus pesos sobre ejes conocidos, nada más. Ni sus
+ * restricciones ni ninguna clave de más, que es por donde venía lo que no cabe.
+ */
+export const objetivoSinImplementacion = (o: Objective | undefined): Objective => {
+  const pesos: Partial<Record<ObjectiveAxis, number>> = {};
+  for (const eje of EJES) {
+    const v = o?.weights?.[eje];
+    if (typeof v === 'number' && Number.isFinite(v)) pesos[eje] = v;
+  }
+  return Object.freeze({
+    ...(typeof o?.label === 'string' ? { label: o.label } : {}),
+    weights: Object.freeze(pesos),
+  });
 };
 
 /** Las restricciones que de verdad rigen: las del contexto y las del objetivo, juntas. */
@@ -672,6 +689,29 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
 
     const constraints = restriccionesEfectivas(ctx);
     const objective = ctx.objective;
+
+    /*
+     * LA FRONTERA TAMBIÉN EN LO QUE SE PIDE (S2-A).
+     *
+     * El objetivo y las restricciones son parte de la DECISIÓN —con ellos se
+     * decidió, y con ellos viaja lo que se exige a quien ejecuta—, así que
+     * tampoco pueden nombrar una implementación: eso lo elige el Router. Hasta
+     * S2-A se ignoraban al decidir y se devolvían TAL CUAL en `objective` y
+     * `constraints`, que es justo por donde un requisito llega a la ejecución.
+     * Ahora la petición se rechaza y lo que traía no se repite.
+     */
+    const cruces = [...violacionesEn(objective, 'objective'), ...violacionesEn(constraints, 'constraints')];
+    if (cruces.length) {
+      const claves = [...new Set(cruces.map((c) => c.clave))].sort();
+      return {
+        ...sinDecision<T>(DECISION_ENGINE_REF, { objective: objetivoSinImplementacion(objective), trace: ctx.trace },
+          'authority_violation', contador.gasto(), { warnings: ['authority_violation'] }),
+        status: 'invalid',
+        explanation: Object.freeze([
+          `La petición nombra una implementación en sus requisitos (${claves.join(', ')}): eso lo elige el Router, y no se decide sobre ella.`,
+        ]),
+      };
+    }
     const base = { objective, trace: ctx.trace };
     const cerrar = (fallo: AlgorithmFailureReason, frases: readonly string[], extra: Partial<AlgorithmDecision<T>> = {}) => ({
       ...sinDecision<T>(DECISION_ENGINE_REF, base, fallo, contador.gasto(), { warnings: [...avisos] }),

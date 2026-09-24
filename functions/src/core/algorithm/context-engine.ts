@@ -44,7 +44,7 @@
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmDescriptor } from './types';
 import { Contador, crearContador, presupuestoEfectivo } from './budget';
-import { Evidence, Signal } from './signals';
+import { Evidence, Signal, formaCanonica } from './signals';
 import { Objective, ObjectiveAxis, pesosNormalizados } from './objective';
 import { HistoryWindow } from './decision';
 import {
@@ -265,16 +265,24 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
     /* 1 · DEDUPLICACIÓN por la clave natural de A7, que es la identidad.
      * Dos agregados con la misma clave son dos fotos del MISMO acumulador:
      * sumarlos contaría dos veces. Se queda el más reciente; a igualdad, el de
-     * más muestra; y a igualdad, el primero — reproducible, no «el que sea». */
+     * más muestra; y a igualdad, el de forma canónica menor. Hasta S2-A era «el
+     * primero», y con dos fotos de igual fecha y muestra pero distinto contenido
+     * el orden de `learned` decidía cuál se leía: medido, la misma petición
+     * barajada daba dos contextos. Por contenido, da el mismo lleguen como
+     * lleguen; y dos iguales en forma son la misma foto. */
     const porClave = new Map<string, { a: AgregadoDeAprendizaje; i: number }>();
     entrada.forEach((a, i) => {
       if (!a || typeof a !== 'object' || typeof a.key !== 'string' || !a.key) return;
       const previo = porClave.get(a.key);
       if (!previo) { porClave.set(a.key, { a, i }); return; }
       m.duplicadas++;
-      const gana = (a.ultimo ?? 0) !== (previo.a.ultimo ?? 0)
-        ? (a.ultimo ?? 0) > (previo.a.ultimo ?? 0)
-        : (a.n ?? 0) > (previo.a.n ?? 0);
+      /* Un número que no lo es —un NaN— no puede cortar el desempate: `NaN !== NaN`. */
+      const finito = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+      const gana = finito(a.ultimo) !== finito(previo.a.ultimo)
+        ? finito(a.ultimo) > finito(previo.a.ultimo)
+        : finito(a.n) !== finito(previo.a.n)
+          ? finito(a.n) > finito(previo.a.n)
+          : formaCanonica(a) < formaCanonica(previo.a);
       if (gana) porClave.set(a.key, { a, i });
     });
 
