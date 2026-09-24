@@ -12,6 +12,8 @@
  *  E. La línea base, y cuánto aporta el motor sobre ella.
  *  F. Los veinte sabotajes.
  *  G. Rendimiento.
+ *  H. El historial es evidencia (contrato 1.7): qué lee A1, cuándo pesa y cuándo no.
+ *  I. Sigue sin estar conectado.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -453,7 +455,210 @@ check('75 · 256 opciones se deciden en menos de 50 ms', tiempos[3][1] < 50, `${
 const factor = tiempos[3][1] / Math.max(tiempos[1][1], 0.001);
 check('76 · y de 50 a 256 el coste crece de forma razonable, no cuadrática', factor < 20, `×${factor.toFixed(1)}`);
 
-console.log('\n─── H. Sigue sin estar conectado ───');
+console.log('\n─── H. El historial es EVIDENCIA (contrato 1.7) ───');
+
+/*
+ * A1 no leía `history`. Ahora lo lee, y lo que hace con él lo decide lo que el
+ * historial ES. El del ÁMBITO es de todas las alternativas a la vez: se declara
+ * y no ordena. El de CADA alternativa entra como su probabilidad de éxito
+ * medida, con cinco reglas, y es lo único que puede cambiar una decisión.
+ */
+const DOS = [opt('rapida', { latency: 800 }, { n: 'rapida' }), opt('lenta', { latency: 1200 }, { n: 'lenta' })];
+const HIST = Object.freeze({ rapida: Object.freeze({ sampleSize: 40, succeeded: 5 }), lenta: Object.freeze({ sampleSize: 40, succeeded: 38 }) });
+const EXITO = { weights: { latency: 1, successProbability: 2 } };
+/* La elegida, y solo si lo que se entrega (`selected`) es la que el ranking marca: si discrepan, no hay elegida. */
+const elegidaDe = (d) => {
+  const marcada = d.candidates.find((c) => c.reason === 'selected');
+  return marcada && d.selected === marcada.value ? marcada.id : undefined;
+};
+/* Lo que el historial NO debe tocar cuando no puede ordenar: todo menos lo que dice que lo leyó. */
+const sinLectura = (d) => JSON.stringify({ ...d, signalKeys: undefined, explanation: undefined });
+
+const sinHist = motor.decidir(ctxDe(DOS, { objective: EXITO }));
+const conHist = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: HIST }));
+check('78 · CONTROL · sin historial gana la rápida: el objetivo solo puede medir la latencia',
+  elegidaDe(sinHist) === 'rapida' && sinHist.selectedScore.missing.includes('successProbability'));
+check('79 · con el historial PROPIO de cada una, gana la que de verdad sale bien: el cambio es válido',
+  elegidaDe(conHist) === 'lenta', `rápida 5/40 · lenta 38/40 · ${conHist.candidates.map((c) => `${c.id} ${c.score?.total?.toFixed(3)}`).join(' · ')}`);
+check('80 · y se EXPLICA: qué historial se usó, como qué, y quién salió elegida',
+  conHist.explanation.some((f) => /Historial propio usado como probabilidad de éxito: «lenta», «rapida»/.test(f)) &&
+  conHist.explanation[0].includes('«lenta»') && conHist.signalKeys.includes('history.successRate'));
+check('81 · con su procedencia: una señal DERIVADA con su muestra, en la evidencia de la elegida',
+  conHist.evidence.some((e) => e.claim === 'lenta:history.successRate' && e.signal.source === 'derived' &&
+    e.signal.sampleSize === 40 && e.signal.value === 38 / 40 && e.signal.subject === 'lenta'));
+check('82 · el historial PESA, no decide: si el objetivo pesa más la latencia, sigue ganando la rápida',
+  elegidaDe(motor.decidir(ctxDe(DOS, { objective: { weights: { latency: 3, successProbability: 1 } }, historyByOption: HIST }))) === 'rapida');
+
+const soloLatencia = motor.decidir(ctxDe(DOS, { objective: { weights: { latency: 1 } } }));
+const soloLatenciaConHist = motor.decidir(ctxDe(DOS, { objective: { weights: { latency: 1 } }, historyByOption: HIST }));
+check('83 · REGLA 2 · si el objetivo no pondera la probabilidad de éxito, el historial no toca NADA de la evaluación',
+  sinLectura(soloLatenciaConHist) === sinLectura(soloLatencia));
+check('84 · y lo dice, alternativa a alternativa',
+  soloLatenciaConHist.explanation.filter((f) => /no pondera la probabilidad de éxito/.test(f)).length === 2);
+
+const propia = [opt('rapida', { latency: 800, successProbability: 0.9 }, { n: 'rapida' }), DOS[1]];
+const conPropia = motor.decidir(ctxDe(propia, { objective: EXITO, historyByOption: HIST }));
+check('85 · REGLA 3 · lo que la alternativa trae NO se pisa: su 0,9 sigue siendo su 0,9',
+  conPropia.candidates.find((c) => c.id === 'rapida').score.fits.successProbability === 0.9 &&
+  conPropia.explanation.some((f) => /«rapida» sin usar: trae su propia probabilidad de éxito/.test(f)));
+
+const fueraPorTope = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: HIST, constraints: { maxLatencyMs: 1000 } }));
+check('86 · REGLA 4 · una alternativa fuera por restricciones sigue fuera, con el mejor historial del mundo',
+  fueraPorTope.candidates.find((c) => c.id === 'lenta').eligible === false &&
+  fueraPorTope.candidates.find((c) => c.id === 'lenta').reason === 'constraint:maxLatencyMs' && elegidaDe(fueraPorTope) === 'rapida');
+check('87 · y se dice que el historial no rescata a nadie',
+  fueraPorTope.explanation.some((f) => /1 alternativa\(s\) con historial no competían: el historial no rescata a nadie/.test(f)));
+const conMinimo = (h) => motor.decidir(ctxDe(DOS, { objective: EXITO, constraints: { minConfidence: 0.5 }, ...(h ? { historyByOption: h } : {}) }));
+check('88 · REGLA 4 · la confianza mínima se juzga SIN el historial: ni con él entra quien no llegaba',
+  conMinimo().failure === 'insufficient_evidence' && conMinimo(HIST).failure === 'insufficient_evidence' &&
+  conMinimo(HIST).candidates.every((c) => c.reason === 'constraint:minConfidence'),
+  'el historial reordena a las que compiten; no mete a nadie');
+check('88b · y cuando no compite ninguna, también lo dice: el historial no rescató a nadie',
+  conMinimo(HIST).explanation.some((f) => f === '2 alternativa(s) con historial no competían: el historial no rescata a nadie.') &&
+  !conMinimo().explanation.some((f) => /historial/.test(f)));
+
+/*
+ * Cada ventana mala va con la de la rápida BUENA al lado. Solo así el caso es de
+ * los que prueban algo: si la de la lenta se usara, con su 38 de 40 ganaría la
+ * lenta (es el 79). Sin la de la rápida, la rápida ganaba igual —lo que no
+ * tiene historial no se castiga— y la guarda podía desaparecer sin que se viera.
+ */
+const SUELO = A.POLITICA_MINIMA.minSampleSize;
+for (const [que, ventana] of [
+  ['nombra un proveedor', { sampleSize: 40, succeeded: 38, providerId: 'p-favorito' }],
+  ['nombra un modelo', { sampleSize: 40, succeeded: 38, modelId: 'm-favorito' }],
+  ['nombra un adaptador', { sampleSize: 40, succeeded: 38, adapterId: 'a-favorito' }],
+  ['no tiene muestra', { sampleSize: 0, succeeded: 0 }],
+  ['tiene más éxitos que muestra', { sampleSize: 10, succeeded: 11 }],
+  ['no es un número', { sampleSize: '40', succeeded: 38 }],
+  ['no es una ventana', 'mucho éxito'],
+  ['es una anécdota: una muestra por debajo del suelo de A7', { sampleSize: SUELO - 1, succeeded: SUELO - 1 }],
+]) {
+  const d = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: { rapida: HIST.rapida, lenta: ventana } }));
+  check(`89 · REGLA 5 · una ventana que ${que} no se usa, y se dice`,
+    elegidaDe(d) === 'rapida' &&
+    d.explanation.some((f) => f === 'Historial propio usado como probabilidad de éxito: «rapida».') &&
+    d.explanation.some((f) => /«lenta» sin usar: su historial no se puede leer/.test(f)));
+}
+const soloLaLenta = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: { lenta: HIST.lenta } }));
+check('89b · a quien no tiene historial no se le castiga: lo que falta no cuenta como malo, y la rápida sigue ganando',
+  elegidaDe(soloLaLenta) === 'rapida' &&
+  soloLaLenta.candidates.find((c) => c.id === 'rapida').score.missing.includes('successProbability') &&
+  soloLaLenta.signalKeys.includes('history.successRate'),
+  'el historial reajusta a la alternativa de la que es; no degrada a las demás');
+check('90 · el historial nunca cambia QUÉ se elige, solo cómo puntúa: el valor entregado es el de la alternativa, intacto',
+  conHist.selected === DOS[1].value && !('successProbability' in DOS[1].values));
+const conVentanaDeProveedor = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: { rapida: HIST.rapida, lenta: { sampleSize: 40, succeeded: 38, providerId: 'p' } } }));
+check('91 · y la decisión no lleva ninguna implementación, venga lo que venga en el historial',
+  A.violacionesEn({ providerId: 'p' }, 'control').length > 0 &&
+  A.violacionesEn(conVentanaDeProveedor, 'decision').length === 0 &&
+  A.violacionesEn(conHist, 'decision').length === 0);
+
+const ambito = motor.decidir(ctxDe(DOS, { objective: EXITO, history: { sampleSize: 40, succeeded: 38 } }));
+check('92 · el historial del ÁMBITO se LEE: queda declarado en lo que A1 miró',
+  ambito.signalKeys.includes('history.decision') && !sinHist.signalKeys.includes('history.decision'));
+check('93 · y NO ordena: es de todas a la vez, así que todo lo demás es idéntico byte a byte',
+  sinLectura(ambito) === sinLectura(sinHist));
+check('94 · y se explica por qué no ordena',
+  ambito.explanation.some((f) => /Historial del ámbito de la decisión: 40 ejecución\(es\), 38 bien\. Es de todas las alternativas a la vez/.test(f)));
+const ambitoRoto = motor.decidir(ctxDe(DOS, { objective: EXITO, history: { sampleSize: 5, succeeded: 9 } }));
+check('95 · un historial del ámbito que no se puede leer no se declara como leído, y se dice',
+  !ambitoRoto.signalKeys.includes('history.decision') && ambitoRoto.explanation.some((f) => /no se puede leer/.test(f)) &&
+  sinLectura(ambitoRoto) === sinLectura(sinHist));
+
+const doceConHist = Array.from({ length: 12 }, () => JSON.stringify(motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: HIST }))));
+check('96 · la misma petición con el mismo historial, doce veces: idéntica', doceConHist.every((x) => x === doceConHist[0]));
+/*
+ * TODAS las permutaciones, no una. Con cuatro alternativas son 24, y cada
+ * contexto pasa por un camino donde el orden de llegada se colaba antes de
+ * 1.7: el frente de Pareto, las descartadas por restricciones o por confianza,
+ * el fallo sin ninguna por encima del mínimo y el tope de candidatos. Cada uno
+ * lleva su control: si el camino no se ejercita, la igualdad no prueba nada.
+ */
+const permutaciones = (xs) => (xs.length <= 1 ? [xs]
+  : xs.flatMap((x, i) => permutaciones([...xs.slice(0, i), ...xs.slice(i + 1)]).map((p) => [x, ...p])));
+const CUATRO = [
+  opt('rapida', { latency: 800, cost: 3 }, { n: 'rapida' }), opt('lenta', { latency: 1200, cost: 1 }, { n: 'lenta' }),
+  opt('media', { latency: 1000, cost: 2 }, { n: 'media' }), opt('lentisima', { latency: 5000, cost: 0.5 }, { n: 'lentisima' }),
+];
+const H4 = Object.freeze({ rapida: { sampleSize: 40, succeeded: 5 }, lenta: { sampleSize: 40, succeeded: 38 },
+  media: { sampleSize: 10, succeeded: 7 }, lentisima: { sampleSize: 40, succeeded: 40 } });
+const OBJ4 = { weights: { latency: 1, cost: 1, successProbability: 2 } };
+/* Señales que SÍ cuentan: tienen por sujeto una alternativa, así que mueven su confianza. */
+const SEN4 = [
+  senal('latency.p50', 1150, 'measured', { subject: 'lenta' }), senal('cost.real', 2, 'measured', { subject: 'media' }),
+  senal('latency.p50', 790, 'estimated', { subject: 'rapida' }), senal('demanda.hora', 3, 'derived'),
+];
+for (const [que, extra, control] of [
+  ['con historial y frente de Pareto', { objective: OBJ4, historyByOption: H4 },
+    (d) => d.paretoFront?.length === 4 && d.signalKeys.includes('history.successRate')],
+  ['sin historial y frente de Pareto', { objective: { weights: { latency: 1, cost: 1 } } }, (d) => d.paretoFront?.length === 4],
+  ['con descartadas por restricciones', { objective: OBJ4, historyByOption: H4, constraints: { maxLatencyMs: 900 } },
+    (d) => d.candidates.filter((c) => c.reason === 'constraint:maxLatencyMs').length === 3],
+  ['con descartadas por confianza mínima', { objective: OBJ4, historyByOption: H4, signals: SEN4, constraints: { minConfidence: 0.2 } },
+    (d) => d.status === 'decided' && d.candidates.filter((c) => c.reason === 'constraint:minConfidence').length === 2],
+  ['sin ninguna por encima de la confianza mínima', { objective: OBJ4, historyByOption: H4, constraints: { minConfidence: 0.2 } },
+    (d) => d.failure === 'insufficient_evidence' && d.candidates.length === 4],
+  ['bajo un tope de candidatos', { objective: OBJ4, historyByOption: H4, budget: { maxCandidates: 2 } },
+    (d) => d.warnings.includes('candidates_capped') && d.candidates.length === 2],
+]) {
+  const salidas = new Set(permutaciones(CUATRO).map((p) => JSON.stringify(motor.decidir(ctxDe(p, extra)))));
+  check(`97 · las 24 permutaciones de las alternativas ${que}: una sola decisión, byte a byte`,
+    control(motor.decidir(ctxDe(CUATRO, extra))) && salidas.size === 1, `${salidas.size} salida(s)`);
+}
+check('97b · bajo un tope se miran las primeras por `id`, no las primeras en llegar',
+  igual(motor.decidir(ctxDe([...CUATRO].reverse(), { objective: OBJ4, budget: { maxCandidates: 2 } })).candidates.map((c) => c.id).sort(),
+    ['lenta', 'lentisima']));
+check('98 · el historial en otro orden de claves, mismo resultado',
+  JSON.stringify(motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: { lenta: HIST.lenta, rapida: HIST.rapida } }))) === JSON.stringify(conHist));
+const conSenales = motor.decidir(ctxDe(CUATRO, { objective: OBJ4, historyByOption: H4, signals: SEN4 }));
+const salidasPorSenales = new Set(permutaciones(SEN4).map((s) => JSON.stringify(motor.decidir(ctxDe(CUATRO, { objective: OBJ4, historyByOption: H4, signals: s })))));
+check('99 · las 24 permutaciones de unas señales que SÍ mueven la decisión: una sola, byte a byte',
+  conSenales.confidence.value !== motor.decidir(ctxDe(CUATRO, { objective: OBJ4, historyByOption: H4 })).confidence.value &&
+  salidasPorSenales.size === 1, `${salidasPorSenales.size} salida(s)`);
+
+/* El mapa de historial vigilado: cada clave que A1 consulta, y si lo recorre. */
+const vistas = { recorridos: 0, claves: new Set() };
+const vigilado = new Proxy(Object.fromEntries(Array.from({ length: 50_000 }, (_, i) => [`fantasma${i}`, { sampleSize: 40, succeeded: 40 }])), {
+  ownKeys(t) { vistas.recorridos++; return Reflect.ownKeys(t); },
+  get(t, k, r) { vistas.claves.add(String(k)); return Reflect.get(t, k, r); },
+  getOwnPropertyDescriptor(t, k) { vistas.claves.add(String(k)); return Reflect.getOwnPropertyDescriptor(t, k); },
+  has(t, k) { vistas.claves.add(String(k)); return Reflect.has(t, k); },
+});
+const conFantasmas = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: vigilado }));
+check('100 · A1 pregunta al historial por SUS alternativas y por nada más: ni lo recorre ni mira las que no están sobre la mesa',
+  vistas.recorridos === 0 && igual([...vistas.claves].sort(), ['lenta', 'rapida']),
+  `claves consultadas: ${vistas.claves.size} (${[...vistas.claves].slice(0, 4).join(', ') || 'ninguna'}${vistas.claves.size > 4 ? ', …' : ''}) · recorridos: ${vistas.recorridos}`);
+check('100b · y lo que no está sobre la mesa no deja rastro: la decisión es la de sin historial, byte a byte',
+  JSON.stringify(conFantasmas) === JSON.stringify(sinHist));
+
+/* ── El suelo de muestra: no se inventa, es el de A7 ── */
+check('101 · el suelo es el de A7, el que ninguna política de aprendizaje puede aflojar', SUELO === 5);
+for (const n of [1, SUELO - 1]) {
+  const d = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: { rapida: { sampleSize: n, succeeded: 0 }, lenta: { sampleSize: n, succeeded: n } } }));
+  check(`102 · una muestra de ${n} no es una muestra: A1 decide como sin historial, y lo dice`,
+    sinLectura(d) === sinLectura(sinHist) && !d.signalKeys.includes('history.successRate') &&
+    d.explanation.filter((f) => f.includes(`por debajo de ${SUELO}: no es una muestra`)).length === 2);
+}
+const enElSuelo = motor.decidir(ctxDe(DOS, { objective: EXITO, historyByOption: { rapida: { sampleSize: SUELO, succeeded: 0 }, lenta: { sampleSize: SUELO, succeeded: SUELO } } }));
+check('103 · y en el suelo exacto ya es muestra: la frontera es la de A7, no una nueva',
+  elegidaDe(enElSuelo) === 'lenta' && enElSuelo.signalKeys.includes('history.successRate'));
+const ambitoCorto = motor.decidir(ctxDe(DOS, { objective: EXITO, history: { sampleSize: SUELO - 1, succeeded: 1 } }));
+check('104 · un historial del ámbito por debajo del suelo tampoco se declara como leído',
+  !ambitoCorto.signalKeys.includes('history.decision') && ambitoCorto.explanation.some((f) => /no es una muestra/.test(f)) &&
+  sinLectura(ambitoCorto) === sinLectura(sinHist));
+const importsDeA1 = [...sinComentarios(leer('functions/src/core/algorithm/decision-engine.ts')).matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
+check('105 · de A7, A1 toma la DEFINICIÓN de muestra y nada más: ni su motor, ni su aprendizaje, ni nada de A8',
+  /import\s*\{\s*POLITICA_MINIMA\s*\}\s*from\s*'\.\/feedback'/.test(leer('functions/src/core/algorithm/decision-engine.ts')) &&
+  !importsDeA1.some((p) => /feedback-engine|learning|context|integration/.test(p)), importsDeA1.join(' '));
+/* `usoDeHistorial` ordena por sí mismo: A1 ya le pasa las alternativas en orden de `id`,
+ * así que solo una llamada directa, desordenada, prueba que no depende de quien lo llame. */
+const usoDirecto = A.usoDeHistorial({ zeta: HIST.lenta, alfa: HIST.rapida, beta: { sampleSize: 0, succeeded: 0 }, gamma: HIST.lenta },
+  [opt('zeta', { latency: 1 }), opt('gamma', { latency: 1 }), opt('beta', { latency: 1 }), opt('alfa', { latency: 1 })], EXITO);
+check('106 · el uso del historial sale en orden de `id` aunque las alternativas lleguen desordenadas',
+  igual(usoDirecto.usadas, ['alfa', 'gamma', 'zeta']) && igual(usoDirecto.sinUsar.map((s) => s.id), ['beta']));
+
+console.log('\n─── I. Sigue sin estar conectado ───');
 
 const conectado = ['functions/src/creator', 'functions/src/runtime', 'functions/src/engine', 'functions/src/orchestrator', 'functions/src/router', 'functions/src/planner']
   .filter((d) => {

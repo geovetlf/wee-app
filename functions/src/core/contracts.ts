@@ -285,8 +285,41 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * lo que valía en 1.5 deja de leerse. Cambian dos COMPORTAMIENTOS, y los dos
  * eran el fallo: una llamada sin reloj ya no se procesa, y `tramoDe` recibe el
  * final de la rejilla —ya no un reloj— y devuelve `undefined` fuera de ella.
+ *
+ * 1.7 (A9.1): A1 LEE el historial, y el contrato gana lo mínimo para que ese
+ * historial pueda pesar donde tiene sentido que pese.
+ *
+ * `DecisionContext.history` existía desde 1.0 y A1 no lo leía. Ahora lo lee, y
+ * lo que hace con él lo decide lo que el historial ES: la ventana que entrega A8
+ * es del ÁMBITO de la decisión entero, no de ninguna alternativa, así que pesa
+ * igual sobre todas y NO puede ordenarlas —usarla para eso sería inventar—. A1
+ * la declara (`signalKeys` lleva `history.decision`) y dice en la explicación
+ * que la tuvo en cuenta y por qué no mueve el orden.
+ *
+ * Lo que sí puede ordenar es el historial de CADA alternativa, y para eso nace
+ * `DecisionContext.historyByOption`, opcional, por id de alternativa y con la
+ * misma `HistoryWindow` de siempre. A1 lo usa con cinco reglas: (1) la tasa de
+ * éxito medida entra como `successProbability`, el eje que A8 ya asigna a
+ * `strategy.succeeded` y que A0 puntúa en escala absoluta; (2) SOLO si el
+ * objetivo pondera ese eje; (3) SOLO rellena lo que falta, nunca pisa un valor
+ * que la alternativa trae; (4) entra DESPUÉS de las restricciones duras y de la
+ * confianza mínima, así que no resucita a nadie; (5) una ventana mal formada,
+ * que nombra una implementación o con una muestra por debajo del suelo de A7
+ * (`POLITICA_MINIMA.minSampleSize`: menos no es una muestra, es una anécdota)
+ * se ignora y se dice. Su procedencia es `derived`, como todo lo aprendido, y va
+ * en la evidencia de la alternativa.
+ *
+ * Aditivo en la forma. Cambian dos COMPORTAMIENTOS, y los dos eran huecos: con
+ * historial, la decisión dice que lo leyó; y A1 deja de depender del orden en
+ * que llegan las alternativas —las ordena por `id` al entrar—. Barajar las
+ * mismas alternativas cambiaba el orden del frente de Pareto y de las
+ * descartadas, y bajo un tope de candidatos, CUÁLES se miraban: ahora se miran
+ * las primeras por `id`. Fuera de un tope, la elegida, las puntuaciones y la
+ * confianza son las de 1.6 —solo cambia el orden de esas listas—, y sin
+ * historial y con las alternativas ya en orden de `id`, la decisión es la de
+ * 1.6 byte a byte salvo el número de contrato que lleva.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.6' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.7' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

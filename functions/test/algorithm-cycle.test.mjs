@@ -144,7 +144,7 @@ check('2 · NO es un algoritmo: no se registra ni trae descriptor',
   !/AlgorithmDescriptor|DESCRIPTOR_DE|algoritmoValido|crearRegistroDeAlgoritmos/.test(src9));
 check('3 · y no inventa una familia: las categorías siguen siendo las de A0',
   !A.CATEGORIAS.some((c) => /integra|ciclo|cycle|orquest/.test(c)), A.CATEGORIAS.length + ' categorías');
-check('4 · A9 NO sube el contrato: compone con el 1.6 y solo añade tipos suyos',
+check('4 · A9 NO sube el contrato: compone con el vigente y solo añade tipos suyos (la 1.7 es de A1, no de la frontera)',
   contratoCompatible(ALGORITHM_CONTRACT_VERSION, '1.6') && !/\(A9\)/.test(leer('functions/src/core/contracts.ts')),
   ALGORITHM_CONTRACT_VERSION);
 const R = ciclo.decidir(peticion());
@@ -436,9 +436,70 @@ check('70 · A1 RECIBE el historial: cuarenta ejecuciones, treinta y ocho bien',
   JSON.stringify(segunda.historial));
 check('71 · el contexto de la decisión CAMBIÓ, y se explica: antes sin historial, ahora con él',
   primera.historial === undefined && segunda.historial !== undefined && segunda.context.metricas.admitidas === 2);
-check('72 · y A1 elige LO MISMO: hoy no lee `history`. No se afirma que la segunda sea mejor',
-  igual(segunda.decision, primera.decision) && !/\bhistory\b/.test(sinComentarios(leer('functions/src/core/algorithm/decision-engine.ts'))),
-  'hacer que lo use es un cambio de A1, no de A9');
+/*
+ * Hasta A9.1 A1 no leía `history` y este caso lo dejaba escrito. Ahora lo lee
+ * (contrato 1.7), y la segunda pasada tiene que decir QUÉ hace con él.
+ */
+check('72 · y A1 LEE ese historial: lo declara en lo que miró y lo cuenta en la explicación',
+  segunda.decision.signalKeys.includes('history.decision') && !primera.decision.signalKeys.includes('history.decision') &&
+  segunda.decision.explanation.some((f) => /^Historial del ámbito de la decisión: 40 ejecución\(es\), 38 bien\./.test(f)));
+const sinLectura = (d) => JSON.stringify({ ...d, signalKeys: undefined, explanation: undefined });
+check('72b · y elige LO MISMO, por estructura: la ventana de A8 es del ÁMBITO, de todas las alternativas a la vez, y no distingue a ninguna',
+  sinLectura(segunda.decision) === sinLectura(primera.decision) && igual(segunda.entrega, primera.entrega),
+  'desenlace B: no hay evidencia POR ALTERNATIVA; no se afirma que la segunda sea mejor');
+
+/*
+ * EL HISTORIAL POR ALTERNATIVA, SINTÉTICO. La cadena que lo produciría —A9
+ * registrando el desenlace por estrategia, un puerto de A8 por alternativa y
+ * una identidad de estrategia estable entre tareas— NO existe, y los docs lo
+ * dicen. Aquí se prueba lo único que sí existe: que el puerto de A1 atraviesa
+ * el ciclo, y que lo que entra por él mueve el plan solo por la vía válida.
+ */
+const OBJ_EXITO = { weights: { latency: 1, reliability: 1, successProbability: 2 } };
+const conExito = (extra) => ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO, ...extra }) }));
+/* La elegida, y solo si lo entregado (`selected`) es la que el ranking marca. */
+const elegidaDe = (r) => {
+  const marcada = r.decision?.candidates.find((c) => c.reason === 'selected');
+  return marcada && r.decision.selected === marcada.value ? marcada.id : undefined;
+};
+const sinPorAlternativa = conExito({});
+const HBO = Object.fromEntries(sinPorAlternativa.decision.candidates.map((c) =>
+  [c.id, c.id === elegidaDe(sinPorAlternativa) ? { sampleSize: 40, succeeded: 4 } : { sampleSize: 40, succeeded: 39 }]));
+const conPorAlternativa = conExito({ historyByOption: HBO });
+const opcionesDe = (r) => [...r.optimization.feasible, ...r.optimization.proposals.map((p) => p.result)];
+check('72c · SINTÉTICO · el historial POR ALTERNATIVA atraviesa el ciclo hasta A1 y, con un objetivo que pondera el éxito, cambia el plan',
+  conPorAlternativa.status === 'decided' && elegidaDe(conPorAlternativa) !== elegidaDe(sinPorAlternativa) &&
+  conPorAlternativa.decision.signalKeys.includes('history.successRate') &&
+  !igual(conPorAlternativa.entrega.plan, sinPorAlternativa.entrega.plan) &&
+  conPorAlternativa.decision.explanation.some((f) => /^Historial propio usado como probabilidad de éxito: /.test(f)),
+  `${elegidaDe(sinPorAlternativa)} → ${elegidaDe(conPorAlternativa)}`);
+check('72d · y es A1 quien lo decide, igual que llamándolo directamente: A9 solo lo deja pasar',
+  igual(conPorAlternativa.decision, a1.decidir({ ...decisionBase({ objective: OBJ_EXITO, historyByOption: HBO }),
+    options: opcionesDe(conPorAlternativa), signals: conPorAlternativa.strategies.signals })));
+const historialConProveedor = conExito({ historyByOption: Object.fromEntries(Object.entries(HBO).map(([id, h]) => [id, { ...h, providerId: 'p-favorito', modelId: 'm-favorito' }])) });
+check('72e · un historial que nombra proveedor o modelo no pasa de A1: se ignora, se dice, y el plan es el de sin historial',
+  igual(historialConProveedor.entrega, sinPorAlternativa.entrega) && A.violacionesEn(historialConProveedor.entrega, 'entrega').length === 0 &&
+  historialConProveedor.decision.explanation.filter((f) => /sin usar: su historial no se puede leer: nombra una implementación/.test(f)).length === 2);
+check('72f · y la autoridad del Router no cambia: cada paso entregado lleva la misma forma que sin historial —capacidad, ninguna implementación—',
+  conPorAlternativa.entrega.plan.steps.every((s) => typeof s.capability === 'string' && A.violacionesEn(s, 'paso').length === 0) &&
+  igual(conPorAlternativa.entrega.plan.steps.map((s) => Object.keys(s).sort()), sinPorAlternativa.entrega.plan.steps.map((s) => Object.keys(s).sort())));
+/*
+ * CON HISTORIAL DEL ÁMBITO, A1 recibe la petición y la ventana de A8, y NADA
+ * más. El sabotaje Y02 —A9 fabricando historial por alternativa con la ventana
+ * del ámbito— no se vio: con un objetivo que no pondera el éxito, A1 ignoraba
+ * lo fabricado (regla 2) y solo cambiaba la explicación, que 72b no mira a
+ * propósito. La propiedad que faltaba es la de B: A1 en el ciclo = A1 directo,
+ * también en la segunda pasada.
+ */
+check('72g · en la segunda pasada, A1 en el ciclo = A1 directo con la petición y la ventana de A8: A9 no le añade nada',
+  igual(segunda.decision, a1.decidir({ ...decisionBase(), history: segunda.historial, options: opcionesDe(segunda), signals: segunda.strategies.signals })));
+const segundaConExito = ciclo.decidir(peticion({ decision: decisionBase({ objective: OBJ_EXITO }),
+  aprendido: { ahora: T2, scope: { capability: CAP }, learned: aprendido, learningPolicy: POL } }));
+check('72h · y con un objetivo que pondera el éxito, igual: la ventana del ámbito no ordena, y no se convierte en historial de cada alternativa',
+  segundaConExito.status === 'decided' && segundaConExito.historial?.sampleSize === 40 &&
+  segundaConExito.decision.signalKeys.includes('history.decision') && !segundaConExito.decision.signalKeys.includes('history.successRate') &&
+  igual(segundaConExito.decision, a1.decidir({ ...decisionBase({ objective: OBJ_EXITO }), history: segundaConExito.historial,
+    options: opcionesDe(segundaConExito), signals: segundaConExito.strategies.signals })));
 check('73 · lo aprendido llega como historial y SOLO como historial: ni una señal aprendida entra en A1',
   !(segunda.decision.signalKeys ?? []).some((k) => k.startsWith('learned.')));
 

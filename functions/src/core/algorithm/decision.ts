@@ -82,8 +82,24 @@ export interface DecisionContext<T = unknown> {
   signals?: readonly Signal[];
   /** Las alternativas que ya hay sobre la mesa. */
   options?: readonly Alternative<T>[];
-  /** Lo que ya pasó, resumido. */
+  /**
+   * Lo que ya pasó en el ÁMBITO de esta decisión, resumido. Es de todas las
+   * alternativas a la vez, así que A1 lo LEE y lo declara, pero no ordena con
+   * él: pesa igual sobre todas. Ver `historyByOption`.
+   */
   history?: HistoryWindow;
+  /**
+   * Lo que ya pasó con CADA alternativa, por su id. Lo único que puede ordenar.
+   *
+   * Contrato 1.7. La tasa de éxito medida entra como `successProbability` de la
+   * alternativa —solo si el objetivo pondera ese eje, solo si ella no trae ya
+   * ese valor, y siempre DESPUÉS de las restricciones duras y de la confianza
+   * mínima—. Una ventana por debajo del suelo de muestra de A7
+   * (`POLITICA_MINIMA.minSampleSize`) no se usa: A1 no inventa un mínimo, usa el
+   * que ya rige para todo lo aprendido. Quien la entrega puede exigir más (A8,
+   * `RequisitosDeEvidencia.minSampleSize`); menos, nadie.
+   */
+  historyByOption?: Readonly<Record<string, HistoryWindow>>;
   /** Cuánto se puede pensar. Se combina con lo del descriptor y con el techo. */
   budget?: AlgorithmBudgetLimits;
   /** En qué vuelta de replanificación va. 0 = la primera. */

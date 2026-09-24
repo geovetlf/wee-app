@@ -28,6 +28,7 @@
  *  V. Sin reloj no se evalúa (contrato 1.6).
  *  W. Los resultados pasan por la misma puerta de privacidad (contrato 1.6).
  *  Q. Rendimiento y escala.
+ *  X. A9.1: A7 observa, agrega y aprende; no enruta.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -439,9 +440,31 @@ check('87 · y declarándola, se valida sin tocar el motor',
   A.crearMotorDeFeedback({ metricas: [{ key: 'metrica.del.futuro', mejor: 'sube', target: 'none', risk: 'bajo' }] })
     .aprender({ ahora: AHORA, policy: VENTANA, outcomes: lote(60, (i) => res(i, 'success', AHORA - (60 - i) * HORA, AMBITO, { signals: [sig('metrica.del.futuro', 5, 'measured', AHORA - (60 - i) * HORA)] })) })
     .candidates.find((x) => x.metric === 'metrica.del.futuro').state === 'validated');
-check('88 · ni un `if` por capacidad, proveedor o modelo en todo el módulo',
-  ['feedback.ts', 'learning.ts', 'feedback-engine.ts'].every((x) =>
-    !/if\s*\([^)]*capability\s*===|if\s*\([^)]*provider\s*===|if\s*\([^)]*model\s*===/.test(sinComentarios(leer(`functions/src/core/algorithm/${x}`)))));
+/*
+ * UNA RAMA POR CAPACIDAD, PROVEEDOR O MODELO, se escriba como se escriba. Es la
+ * guarda de A9 (82b). La de antes solo veía `if (…capability ===` sin un
+ * paréntesis por medio, y NO miraba `providerId` ni `modelId`: la rama más
+ * probable —por proveedor— pasaba entera.
+ */
+const DIMENSION = '(?:capability|providerId|provider|modelId|model)';
+const FORMAS_DE_RAMA = [
+  new RegExp(`\\b${DIMENSION}\\b\\s*\\)*\\s*[!=]==?\\s*['"\`]`),
+  new RegExp(`['"\`][^'"\`\\n]*['"\`]\\s*[!=]==?\\s*[\\w.?()\\s]*\\b${DIMENSION}\\b`),
+  new RegExp(`switch\\s*\\((?:[^()]|\\([^()]*\\))*\\b${DIMENSION}\\b`),
+  new RegExp(`\\.(?:includes|indexOf|has)\\(\\s*[\\w.?]*\\b${DIMENSION}\\b`),
+];
+const esRama = (src) => FORMAS_DE_RAMA.some((r) => r.test(src));
+check('88 · ni una rama por capacidad, proveedor o modelo en todo el módulo, se escriba como se escriba',
+  ['feedback.ts', 'learning.ts', 'feedback-engine.ts'].every((x) => !esRama(sinComentarios(leer(`functions/src/core/algorithm/${x}`)))));
+check('88b · CONTROL · la guarda caza cada forma de rama —también con paréntesis y por proveedor— y no lo que no lo es',
+  [
+    "if (o.scope.capability === 'x.y') continue;",
+    "if ((o.scope as Record<string, unknown>).providerId === 'p-favorito') continue;",
+    "if ('m-favorito' === (o.scope as any).modelId) continue;",
+    "switch (o.scope.provider) { case 'p': break; }",
+    "if (new Set(['p']).has(o.scope.providerId)) continue;",
+  ].every(esRama) &&
+  !["if (o.kind === 'success') x = 1;", "if (e.source === 'explicit') y = 2;", "const c = o.scope.capability;"].some(esRama));
 
 console.log('\n─── O. Integración con A1, A5 y A6 ───');
 
@@ -1167,6 +1190,62 @@ check('105 · el tope de candidatos acota el trabajo aunque haya millones de cla
     budget: { maxEvidence: 5000, maxCandidates: 10 },
     outcomes: lote(5000, (i) => res(i, 'success', AHORA - i * 100, { capability: `c${i}` })),
   }).metricas.candidatos <= 10);
+
+console.log('\n─── X. A9.1 · A7 observa, agrega y aprende: no enruta ───');
+
+/*
+ * La misma frontera que A9 y A8. A7 ve proveedores y modelos —vienen en el
+ * ámbito de cada resultado— y lo más que hace con ellos es AGREGAR por ámbito.
+ * No elige, no ordena por calidad, no aplica lo que propone y no toca lo que
+ * recibe. Los valores van AL REVÉS de un orden cualquiera —ni suben ni bajan
+ * con la clave— para que un orden por valor, en un sentido o en el otro, se vea.
+ */
+const PROV7 = [['p-a', 3000], ['p-m', 9000], ['p-z', 100]];
+const conProv = aprender({
+  outcomes: PROV7.flatMap(([p, lat], k) => lote(60, (i) => res(`${k}_${i}`, 'success', AHORA - (60 - i) * HORA,
+    { capability: 'x.y', providerId: p, modelId: `m-${p}` }, { signals: [sig('result.latencyMs', lat, 'measured', AHORA - (60 - i) * HORA)] }))),
+});
+const cambios = conProv.candidates.filter((c) => c.proposedChange).map((c) => c.proposedChange);
+check('X1 · CONTROL · hay cambios propuestos que mirar: la prueba de abajo no pasa por vacía',
+  cambios.length === 6 && conProv.validated.length === 6, `${cambios.length} propuesto(s)`);
+check('X2 · un cambio propuesto dice A QUÉ CAPA y QUÉ SEÑAL: ni proveedor, ni modelo, ni ámbito',
+  cambios.every((c) => Object.keys(c).every((k) => ['target', 'signalKey', 'value', 'magnitude', 'risk'].includes(k)) &&
+    ['router', 'strategy', 'optimization', 'verification', 'recovery', 'none'].includes(c.target) &&
+    c.signalKey.startsWith('learned.') && A.violacionesEn(c, 'cambio').length === 0) &&
+  !PROV7.some(([p]) => JSON.stringify(cambios).includes(p)));
+check('X3 · CONTROL · y A7 SÍ conoce los proveedores: están en el ámbito de cada candidato',
+  PROV7.every(([p]) => conProv.candidates.some((c) => c.scope.providerId === p)));
+const sinAmbitos7 = (x) => JSON.parse(JSON.stringify(x, (k, v) => (k === 'scope' ? undefined : v)));
+check('X4 · fuera del ámbito, ni una clave de implementación en nada de lo que A7 entrega',
+  A.violacionesEn(conProv, 'a7', 64).length > 0 && A.violacionesEn(sinAmbitos7(conProv), 'a7', 64).length === 0);
+const latencias = conProv.candidates.filter((c) => c.metric === 'result.latencyMs');
+check('X5 · candidatos, validados, señales e historial salen en orden de CLAVE, no de valor: ni el mejor primero ni el peor',
+  igual(latencias.map((c) => c.scope.providerId), ['p-a', 'p-m', 'p-z']) && igual(latencias.map((c) => c.value), [3000, 9000, 100]) &&
+  igual(conProv.candidates.map((c) => c.id), conProv.candidates.map((c) => c.id).slice().sort()) &&
+  igual(conProv.validated.map((c) => c.id), conProv.candidates.map((c) => c.id)) &&
+  igual(conProv.signals.map((s) => s.subject), conProv.candidates.map((c) => c.id)) &&
+  igual(Object.keys(conProv.history), conProv.candidates.map((c) => c.id)));
+const CAMPOS7 = {
+  salida: ['aggregates', 'because', 'candidates', 'contract', 'history', 'metricas', 'rechazo', 'signals', 'validated'],
+  candidato: ['because', 'confidence', 'contradicting', 'freshness', 'id', 'metric', 'observation', 'proposedChange', 'sampleSize',
+    'scope', 'stability', 'state', 'supporting', 'trend', 'uncertainty', 'value'],
+  senal: ['at', 'confidence', 'key', 'sampleSize', 'source', 'subject', 'value'],
+};
+const soloDe7 = (o, campos) => Object.keys(o).every((k) => campos.includes(k));
+check('X6 · la forma de lo que A7 entrega es CERRADA: ni una política, ni un proveedor elegido, ni un campo más',
+  [conProv, aprender({ outcomes: [] })].every((r) => soloDe7(r, CAMPOS7.salida)) &&
+  conProv.candidates.every((c) => soloDe7(c, CAMPOS7.candidato)) &&
+  conProv.signals.every((s) => soloDe7(s, CAMPOS7.senal) && s.source === 'derived'));
+const congelar7 = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); Object.values(o).forEach(congelar7); } return o; };
+const POLITICA7 = congelar7({ ventanaMs: 5 * DIA, minSampleSize: 30 });
+const ENTRADA7 = congelar7(JSON.parse(JSON.stringify({ ahora: AHORA, policy: POLITICA7,
+  events: lote(10, (i) => ev(i, 'accepted', 'explicit', AHORA - (10 - i) * HORA)),
+  outcomes: lote(40, (i) => res(i, 'success', AHORA - (40 - i) * HORA, AMBITO, { signals: [sig('result.latencyMs', 800, 'measured', AHORA - (40 - i) * HORA)] })),
+  previo: conProv.aggregates })));
+const antes7 = JSON.stringify(ENTRADA7);
+const tras7 = (() => { try { return a7.aprender(ENTRADA7); } catch (e) { return { lanzo: String(e?.message ?? e) }; } })();
+check('X7 · A7 no toca lo que recibe —ni la política, ni lo de antes, ni los resultados—: entran congelados y salen iguales',
+  !tras7.lanzo && JSON.stringify(ENTRADA7) === antes7 && tras7.aggregates.length > conProv.aggregates.length, tras7.lanzo ?? `${tras7.aggregates?.length} agregados`);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA7: aprende de la evidencia, y se calla cuando la evidencia no alcanza');
 process.exit(failures ? 1 : 0);

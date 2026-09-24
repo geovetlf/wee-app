@@ -25,6 +25,7 @@
  *  R. Contratos de integración: A7 → A8 → A1, A5, A6.
  *  S. Sabotajes de entrada.
  *  U. Contrato 1.6: el reloj, la rejilla y la privacidad de A7, consumidos tal cual.
+ *  V. A9.1: A8 filtra, no decide implementación.
  *  T. Rendimiento.
  */
 import path from 'node:path';
@@ -394,8 +395,29 @@ check('63 · ni una capacidad, proveedor ni modelo nombrados en el núcleo de A8
   NOMBRES.filter((x) => t8.has(x)).length === 0, NOMBRES.filter((x) => t8.has(x)).join(',') || 'ninguno');
 check('64 · CONTROL · y el detector sí los caza cuando están',
   tokens("const x = 'seedance';").has('seedance'));
-check('64b · ni un `if` por capacidad, proveedor o modelo en todo A8',
-  !/if\s*\([^)]*(capability|providerId|provider|modelId|model)\s*[!=]==/.test(src8));
+/*
+ * UNA RAMA POR CAPACIDAD, PROVEEDOR O MODELO, se escriba como se escriba. Es la
+ * guarda de A9 (82b): la de antes era `if\s*\([^)]*…===` y no cruzaba un
+ * paréntesis —un cast delante del campo bastaba para esconder la rama—.
+ */
+const DIMENSION = '(?:capability|providerId|provider|modelId|model)';
+const FORMAS_DE_RAMA = [
+  new RegExp(`\\b${DIMENSION}\\b\\s*\\)*\\s*[!=]==?\\s*['"\`]`),
+  new RegExp(`['"\`][^'"\`\\n]*['"\`]\\s*[!=]==?\\s*[\\w.?()\\s]*\\b${DIMENSION}\\b`),
+  new RegExp(`switch\\s*\\((?:[^()]|\\([^()]*\\))*\\b${DIMENSION}\\b`),
+  new RegExp(`\\.(?:includes|indexOf|has)\\(\\s*[\\w.?]*\\b${DIMENSION}\\b`),
+];
+const esRama = (src) => FORMAS_DE_RAMA.some((r) => r.test(src));
+check('64b · ni una rama por capacidad, proveedor o modelo en todo A8, se escriba como se escriba', !esRama(src8));
+check('64c · CONTROL · la guarda caza cada forma de rama —también con paréntesis— y no lo que no lo es',
+  [
+    "if (a.scope.capability === 'x.y') continue;",
+    "if ((a.scope as Record<string, unknown>).providerId === 'p-favorito') continue;",
+    "if ('m-favorito' === (a.scope as any).modelId) continue;",
+    "switch (a.scope.provider) { case 'p': break; }",
+    "if (['p'].includes(a.scope.providerId)) continue;",
+  ].every(esRama) &&
+  !["if (a.status === 'admitted') x = 1;", "if (req.minSampleSize === 3) y = 2;", "const c = a.scope.capability;"].some(esRama));
 
 console.log('\n─── Q. Determinismo ───');
 
@@ -429,8 +451,14 @@ const sinA8 = A.crearMotorDeDecision().decidir({
   trace: { traceId: 't', requestId: 'r', userId: 'u' },
   options: [{ id: 'a', value: {}, values: { latency: 800 } }, { id: 'b', value: {}, values: { latency: 1200 } }],
 });
-check('70 · y A1 decide IGUAL: el hallazgo de la auditoría, medido — A1 no lee `history`',
-  deA1.chosen === sinA8.chosen && deA1.status === sinA8.status, 'la integración real es un cambio en A1');
+/*
+ * Este caso comparaba `chosen`, un campo que la decisión no tiene: pasaba con
+ * `undefined === undefined` dijera lo que dijera A1. Ahora compara lo que existe.
+ */
+check('70 · y A1 LEE la ventana (contrato 1.7): la declara, y como es del ámbito entero, no cambia a quién elige',
+  deA1.signalKeys.includes('history.decision') && !sinA8.signalKeys.includes('history.decision') &&
+  deA1.status === sinA8.status && igual(deA1.selected, sinA8.selected) && igual(deA1.candidates, sinA8.candidates) &&
+  deA1.candidates.length === 2, `elige ${deA1.candidates.find((c) => c.reason === 'selected')?.id} con y sin A8`);
 const optA5 = A.crearMotorDeOptimizacion().optimizar({
   candidates: [{ id: 'c1', value: {}, values: { latency: 800 } }], objective: { weights: { latency: 1 } }, evidence: desdeA7.evidence,
 });
@@ -525,6 +553,77 @@ check('U8 · un agregado que A7 construyó en varias llamadas con su reloj se le
 check('U9 · un motivo que A8 no conoce cae en `unknown`, nunca en `admitted` — también los del reloj de A7',
   A.estadoDeMotivo('motivo_que_nadie_ha_inventado') === 'unknown' && A.estadoDeMotivo('clock_missing') === 'unknown' &&
   A.estadoDeMotivo('evidence_stale') === 'stale');
+
+console.log('\n─── V. A9.1 · A8 FILTRA: no decide implementación, ni proveedor, ni modelo ───');
+
+/*
+ * A8 conoce proveedores y modelos —van en el ÁMBITO de lo aprendido, que es
+ * donde el Router los necesitará— y no puede sacarlos de ahí. Lo que entrega
+ * tiene una forma cerrada, y cada campo nuevo es una puerta.
+ */
+const PROVEEDORES = ['p-a', 'p-m', 'p-z'];
+const conImpl = sel(PROVEEDORES.map((p, k) => agregado({ scope: { capability: 'x.y', providerId: p, modelId: `m-${p}` }, valor: [3000, 9000, 100][k] })),
+  { scope: { capability: 'x.y' }, requirements: {} });
+const sinAmbitos = (x) => JSON.parse(JSON.stringify(x, (k, v) => (k === 'scope' ? undefined : v)));
+check('V1 · CONTROL · lo aprendido SÍ trae proveedor y modelo en su ámbito: la prueba de abajo mira algo',
+  A.violacionesEn(conImpl, 'a8', 64).length > 0 && conImpl.metricas.admitidas === 3, conImpl.cierre);
+check('V2 · y fuera del ámbito no sale ni una clave de implementación: ni en admisiones, ni en señales, ni en historial',
+  A.violacionesEn(sinAmbitos(conImpl), 'a8', 64).length === 0 && A.violacionesEn(sinAmbitos(desdeA7), 'a8', 64).length === 0);
+const CAMPOS = {
+  resultado: ['admisiones', 'because', 'cierre', 'contract', 'evidence', 'history', 'metricas', 'rechazo', 'signals'],
+  admision: ['axis', 'axisMatch', 'because', 'confidence', 'consumerMatch', 'contradicting', 'freshness', 'key', 'lastObservedAt',
+    'metric', 'sampleSize', 'scope', 'scopeMatch', 'stability', 'status', 'supporting', 'trend', 'uncertainty', 'value'],
+  senal: ['at', 'confidence', 'key', 'sampleSize', 'source', 'subject', 'value'],
+  ventana: ['medianCostUsd', 'medianLatencyMs', 'sampleSize', 'since', 'succeeded'],
+};
+const soloDe = (o, campos) => Object.keys(o).every((k) => campos.includes(k));
+check('V3 · la forma de lo que A8 entrega es CERRADA: resultado, admisiones y señales, sin un campo más',
+  [conImpl, desdeA7, sel([])].every((s) => soloDe(s, CAMPOS.resultado)) &&
+  [...conImpl.admisiones, ...desdeA7.admisiones].every((x) => soloDe(x, CAMPOS.admision)) &&
+  [...conImpl.signals, ...desdeA7.signals].every((s) => soloDe(s, CAMPOS.senal) && s.source === 'derived' && s.key.startsWith('learned.')) &&
+  conImpl.signals.length > 0);
+check('V4 · el puerto de A1 lleva SOLO la ventana, con los campos de HistoryWindow y sin implementación',
+  soloDe(A.paraDecision(desdeA7), ['history']) && soloDe(A.paraDecision(desdeA7).history, CAMPOS.ventana) &&
+  A.violacionesEn(A.paraDecision(desdeA7), 'a1', 64).length === 0 &&
+  Object.values(conImpl.history).every((w) => soloDe(w, CAMPOS.ventana)));
+const exacta = sel([agregado({ scope: { capability: 'x.y', providerId: 'p1' } })], { scope: { capability: 'x.y', providerId: 'p1' } });
+const masAncha = sel([agregado({ scope: { capability: 'x.y', providerId: 'p1' } })], { scope: { capability: 'x.y' } });
+check('V5 · la ventana que llega a A1 es la del ámbito EXACTO: lo de un proveedor no se hace pasar por lo de la capacidad',
+  typeof A.paraDecision(exacta).history?.sampleSize === 'number' && masAncha.metricas.admitidas === 1 &&
+  igual(A.paraDecision(masAncha), {}), 'se ADMITE —es evidencia más estrecha— pero no es historial de ESTA decisión');
+const ruta8 = A.paraRouter(conImpl);
+check('V6 · al Router, grupos por proveedor y modelo con lo admitido: ni puntuación, ni ranking, ni ganador',
+  ruta8.length === 3 && ruta8.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId']) && g.admisiones.every((x) => x.status === 'admitted')) &&
+  igual(ruta8.map((g) => g.providerId), PROVEEDORES), 'en orden de clave: p-a (3000), p-m (9000), p-z (100) — ni por valor subiendo ni bajando');
+const congelar8 = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); Object.values(o).forEach(congelar8); } return o; };
+const ENTRADA8 = congelar8(JSON.parse(JSON.stringify({ ...BASE, learned: [agBase, agregado({ scope: { capability: 'x.y', providerId: 'p9' } })] })));
+const antes8 = JSON.stringify(ENTRADA8);
+const tras8 = (() => { try { return a8.seleccionar(ENTRADA8); } catch (e) { return { lanzo: String(e?.message ?? e) }; } })();
+check('V7 · A8 no toca lo que recibe: la petición y lo aprendido entran congelados y salen iguales',
+  !tras8.lanzo && JSON.stringify(ENTRADA8) === antes8 && tras8.metricas.recibidas === 2, tras8.lanzo ?? tras8.cierre);
+/*
+ * `paraRouter`: PREPARADO / NO CONECTADO A PRODUCCIÓN. No solo el Router (74):
+ * NADA en `functions/src` fuera del propio algoritmo lo nombra ni importa la
+ * capa. Su consumidor futuro es la puntuación del Router, por un puerto que
+ * `RouterPorts` no tiene; hasta que exista, esto tiene que seguir en cero.
+ */
+const fuentesDe = (dir, out = []) => {
+  for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+    const h = dir + '/' + e.name;
+    if (e.isDirectory()) { if (h !== 'functions/src/core/algorithm') fuentesDe(h, out); } else if (/\.ts$/.test(e.name)) out.push(h);
+  }
+  return out;
+};
+const fuera = fuentesDe('functions/src');
+const nombranRuta = fuera.filter((f) => /paraRouter|EvidenciaDeRuta/.test(sinComentarios(leer(f))));
+const importanLaCapa = fuera.filter((f) => /from\s+'[^']*core\/algorithm[^']*'|from\s+'\.\/algorithm[^']*'/.test(sinComentarios(leer(f))));
+const puertosDelRouter = [...(sinComentarios(leer('functions/src/core/router.ts')).match(/interface RouterPorts\s*\{([^}]*)\}/)?.[1] ?? '')
+  .matchAll(/(\w+)\??\s*:/g)].map((m) => m[1]).sort();
+check('V8 · `paraRouter` no tiene consumidor: nada fuera del algoritmo lo nombra, y nadie importa la capa',
+  fuera.length > 100 && nombranRuta.length === 0 && importanLaCapa.length === 0,
+  `${fuera.length} archivos · ${[...nombranRuta, ...importanLaCapa].join(', ') || 'ninguno'}`);
+check('V8b · y el Router no tiene por dónde recibirlo: sus puertos son el Registry, la política y los costes',
+  igual(puertosDelRouter, ['costs', 'policy', 'registry']), puertosDelRouter.join(', ') || 'no se encontró `RouterPorts`');
 
 console.log('\n─── T. Rendimiento ───');
 

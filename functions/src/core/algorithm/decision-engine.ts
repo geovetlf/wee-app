@@ -42,10 +42,13 @@ import { Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incert
 import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
 import { violacionesDeEstrategia, violacionesEn } from './authority';
+/* Solo la DEFINICIÓN de muestra de A7. Ni su motor ni el de A8: A1 no lee de ellos. */
+import { POLITICA_MINIMA } from './feedback';
 import {
   AlgorithmDecision,
   DecisionContext,
   DecisionWarning,
+  HistoryWindow,
   JudgedOption,
   sinDecision,
 } from './decision';
@@ -419,6 +422,134 @@ export const quienDesempato = (
   comparadores: readonly Comparador[] = COMPARADORES,
 ): string | undefined => comparadores.find((c) => c.comparar(a, b) !== 0)?.nombre;
 
+/* ── 5b · Historial ───────────────────────────────────────────────────────── */
+
+/**
+ * ¿SE PUEDE LEER ESTA VENTANA? `undefined` si sí; el motivo si no.
+ *
+ * Forma y coherencia —una muestra entera y positiva, unos éxitos que caben en
+ * ella—; la frontera de siempre: una ventana que nombra una implementación no
+ * se lee, porque por ahí un historial se convertiría en una preferencia de
+ * proveedor, que es del Router; y una MUESTRA de verdad. Por debajo del suelo
+ * de A7 (`POLITICA_MINIMA.minSampleSize`) no hay muestra sino anécdota —un 1 de
+ * 1 no es una probabilidad de éxito de 1—, y ese suelo no se inventa aquí: es
+ * el que ninguna política de aprendizaje puede aflojar y el que A8 exige a todo
+ * lo que admite. Sin muestra suficiente, A1 decide como sin historial.
+ */
+export const problemaDeHistorial = (h: unknown): string | undefined => {
+  if (typeof h !== 'object' || h === null || Array.isArray(h)) return 'no es una ventana';
+  const w = h as Partial<HistoryWindow>;
+  if (typeof w.sampleSize !== 'number' || !Number.isInteger(w.sampleSize) || w.sampleSize <= 0) return 'sin muestra';
+  if (typeof w.succeeded !== 'number' || !Number.isInteger(w.succeeded) || w.succeeded < 0 || w.succeeded > w.sampleSize) {
+    return 'unos éxitos que no caben en la muestra';
+  }
+  for (const k of ['medianLatencyMs', 'medianCostUsd', 'since'] as const) {
+    const v = w[k];
+    if (v !== undefined && (typeof v !== 'number' || !Number.isFinite(v) || v < 0)) return `${k} imposible`;
+  }
+  const cruces = violacionesEn(h, 'history');
+  if (cruces.length) return `nombra una implementación (${cruces[0].clave})`;
+  if (w.sampleSize < POLITICA_MINIMA.minSampleSize) {
+    return `muestra de ${w.sampleSize}, por debajo de ${POLITICA_MINIMA.minSampleSize}: no es una muestra`;
+  }
+  return undefined;
+};
+
+/**
+ * LA EVIDENCIA QUE APORTA EL HISTORIAL DE UNA ALTERNATIVA: su tasa de éxito
+ * medida, con su muestra. `derived` porque es un cálculo sobre resultados
+ * medidos, como todo lo que sale de A7. Ni medianas ni un número nuevo: la
+ * ventana dice cuántas veces se hizo y cuántas salió bien, y eso es todo.
+ */
+export const evidenciaDeHistorial = (id: string, h: HistoryWindow): Evidence => Object.freeze({
+  claim: `${id}:history.successRate`,
+  supports: true,
+  signal: Object.freeze({
+    key: 'history.successRate', subject: id, value: h.succeeded / h.sampleSize,
+    source: 'derived' as const, sampleSize: h.sampleSize,
+  }),
+});
+
+/** Lo que el historial por alternativa hizo, alternativa a alternativa. */
+export interface UsoDeHistorial {
+  /** Las que lo usaron: su probabilidad de éxito salió de su historial. */
+  usadas: readonly string[];
+  /** Las que tenían historial y no lo usaron, con el porqué. */
+  sinUsar: readonly { id: string; because: string }[];
+  /** Los valores con los que puntúan las que lo usaron. */
+  valores: ReadonlyMap<string, AxisValues>;
+  evidencia: ReadonlyMap<string, Evidence>;
+}
+
+/**
+ * EL HISTORIAL DE CADA ALTERNATIVA, aplicado con sus cinco reglas.
+ *
+ * Solo a las que YA compiten —pasaron las restricciones duras y la confianza
+ * mínima sin él—; solo si el objetivo pondera `successProbability`; solo donde
+ * la alternativa no trae ese valor; y con ventanas que se pueden leer. Recorre
+ * las alternativas, no las claves que lleguen: el coste está acotado por el
+ * número de candidatos, venga lo que venga en el mapa.
+ */
+export const usoDeHistorial = <T>(
+  historial: DecisionContext<T>['historyByOption'],
+  compiten: readonly Alternative<T>[],
+  objective: Objective,
+): UsoDeHistorial => {
+  const usadas: string[] = [];
+  const sinUsar: { id: string; because: string }[] = [];
+  const valores = new Map<string, AxisValues>();
+  const evidencia = new Map<string, Evidence>();
+  const mapa = typeof historial === 'object' && historial !== null ? historial : undefined;
+  const pondera = (pesosNormalizados(objective).successProbability ?? 0) > 0;
+  for (const o of [...compiten].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
+    if (!mapa || !Object.prototype.hasOwnProperty.call(mapa, o.id)) continue;
+    const h = mapa[o.id];
+    const problema = problemaDeHistorial(h);
+    if (problema) { sinUsar.push({ id: o.id, because: `su historial no se puede leer: ${problema}` }); continue; }
+    if (!pondera) { sinUsar.push({ id: o.id, because: 'el objetivo no pondera la probabilidad de éxito' }); continue; }
+    const suya = o.values?.successProbability;
+    if (typeof suya === 'number' && Number.isFinite(suya)) {
+      sinUsar.push({ id: o.id, because: 'trae su propia probabilidad de éxito, y el historial no la pisa' });
+      continue;
+    }
+    const w = h as HistoryWindow;
+    valores.set(o.id, Object.freeze({ ...(o.values ?? {}), successProbability: w.succeeded / w.sampleSize }));
+    evidencia.set(o.id, evidenciaDeHistorial(o.id, w));
+    usadas.push(o.id);
+  }
+  return { usadas: Object.freeze(usadas), sinUsar: Object.freeze(sinUsar), valores, evidencia };
+};
+
+/**
+ * LO QUE EL HISTORIAL HIZO, en frases. Deterministas, y sacadas de lo que pasó.
+ *
+ * El del ámbito se declara siempre que llega, porque decir «lo leí y no cambia
+ * el orden» es la diferencia entre no usarlo y no leerlo. Y lo que no compitió
+ * se nombra: tenía historial y el historial no la rescató.
+ */
+export const explicarHistorial = (
+  delAmbito: { ventana: HistoryWindow } | { problema: string } | undefined,
+  uso: UsoDeHistorial,
+  noCompiten: readonly string[],
+): readonly string[] => {
+  const frases: string[] = [];
+  if (delAmbito && 'ventana' in delAmbito) {
+    frases.push(`Historial del ámbito de la decisión: ${delAmbito.ventana.sampleSize} ejecución(es), `
+      + `${delAmbito.ventana.succeeded} bien. Es de todas las alternativas a la vez, así que pesa igual sobre cada una `
+      + 'y no cambia el orden.');
+  } else if (delAmbito) {
+    frases.push(`Llegó un historial del ámbito que no se puede leer (${delAmbito.problema}): no se tuvo en cuenta.`);
+  }
+  if (uso.usadas.length) {
+    frases.push(`Historial propio usado como probabilidad de éxito: ${uso.usadas.map((id) => `«${id}»`).join(', ')}.`);
+  }
+  for (const s of uso.sinUsar) frases.push(`Historial de «${s.id}» sin usar: ${s.because}.`);
+  if (noCompiten.length) {
+    frases.push(`${noCompiten.length} alternativa(s) con historial no competían: el historial no rescata a nadie.`);
+  }
+  return Object.freeze(frases);
+};
+
 /* ── 6 · Explicación ──────────────────────────────────────────────────────── */
 
 /**
@@ -516,7 +647,14 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
     const conflictos = conflictosDeRestricciones(constraints);
     if (conflictos.length) return cerrar('constraint_conflict', [`Restricciones imposibles de cumplir: ${conflictos.join(', ')}.`]);
 
-    const todas = ctx.options ?? [];
+    /*
+     * En orden de `id`, no de llegada. Todo lo que sigue conserva el orden que
+     * recibe —el tope de candidatos, las restricciones, la confianza mínima, el
+     * frente de Pareto—, así que barajar las mismas alternativas cambiaba cuáles
+     * se miraban bajo un tope, en qué orden salían las descartadas y la frase del
+     * frente. Mismo contexto, misma decisión: también con el array barajado.
+     */
+    const todas = [...(ctx.options ?? [])].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     if (!todas.length) return cerrar('insufficient_evidence', ['No llegó ninguna alternativa que evaluar.']);
 
     /* 2 · Señales: una por clave y sujeto, con la procedencia mandando. */
@@ -567,15 +705,15 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       );
     }
 
-    /* 4 · Evidencia y 5 · puntuación. */
+    /* 4 · Evidencia y 5 · puntuación, SIN historial: así se decide quién compite. */
     const evidenciaPorId = new Map<string, readonly Evidence[]>();
     for (const o of admitidas) evidenciaPorId.set(o.id, evidenciaDeOpcion(o, resueltas, politica.estrategiaDe));
     contador.gastar('iterations');
     const puntuadas = puntuar(admitidas, objective);
     contador.gastar('iterations');
 
-    /* 6 · Confianza, y la restricción que solo se puede comprobar ahora. */
-    const juzgadas: Juzgada[] = [];
+    /* 6 · Confianza mínima, también SIN historial: el historial no resucita a nadie. */
+    const compiten = new Set<string>();
     const porConfianza: Veredicto[] = [];
     for (const p of puntuadas) {
       const confidence = confianzaDeOpcion(p.score, evidenciaPorId.get(p.id) ?? []);
@@ -583,18 +721,50 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
         porConfianza.push({ id: p.id, eligible: false, reason: 'constraint:minConfidence' });
         continue;
       }
-      juzgadas.push({ id: p.id, values: p.values ?? {}, score: p.score, confidence });
+      compiten.add(p.id);
+    }
+
+    /*
+     * 6b · EL HISTORIAL, y solo entre las que ya compiten.
+     *
+     * El del ÁMBITO se lee y se declara, pero no ordena: es de todas a la vez.
+     * El de CADA alternativa entra como su probabilidad de éxito medida, con las
+     * reglas de `usoDeHistorial`, y se vuelve a puntuar el MISMO conjunto para
+     * que la normalización de los demás ejes no cambie por el camino.
+     */
+    const problemaDelAmbito = ctx.history === undefined ? undefined : problemaDeHistorial(ctx.history);
+    const delAmbito = ctx.history === undefined ? undefined
+      : problemaDelAmbito ? { problema: problemaDelAmbito } : { ventana: ctx.history as HistoryWindow };
+    const uso = usoDeHistorial(ctx.historyByOption, admitidas.filter((o) => compiten.has(o.id)), objective);
+    const conHistorial = uso.usadas.length
+      ? puntuar(admitidas.map((o) => (uso.valores.has(o.id) ? { ...o, values: uso.valores.get(o.id) as AxisValues } : o)), objective)
+      : puntuadas;
+    if (uso.usadas.length) contador.gastar('iterations');
+    const evidenciaFinal = (id: string): readonly Evidence[] => {
+      const suya = uso.evidencia.get(id);
+      return suya ? Object.freeze([...(evidenciaPorId.get(id) ?? []), suya]) : (evidenciaPorId.get(id) ?? []);
+    };
+    const mapaHistorial = typeof ctx.historyByOption === 'object' && ctx.historyByOption !== null ? ctx.historyByOption : {};
+    const noCompiten = [...rechazadas, ...porConfianza]
+      .map((v) => v.id).filter((id) => Object.prototype.hasOwnProperty.call(mapaHistorial, id));
+
+    const juzgadas: Juzgada[] = [];
+    for (const p of conHistorial) {
+      if (!compiten.has(p.id)) continue;
+      juzgadas.push({ id: p.id, values: p.values ?? {}, score: p.score, confidence: confianzaDeOpcion(p.score, evidenciaFinal(p.id)) });
     }
     if (!juzgadas.length) {
+      /* Sin ninguna que compita, lo que el historial NO hizo también se dice: no rescató a nadie. */
       return cerrar('insufficient_evidence',
-        [`Las ${porConfianza.length} alternativas viables se quedan por debajo de la confianza mínima (${constraints?.minConfidence}).`],
+        [`Las ${porConfianza.length} alternativas viables se quedan por debajo de la confianza mínima (${constraints?.minConfidence}).`,
+          ...explicarHistorial(delAmbito, uso, noCompiten)],
         { candidates: juzgadasDe([...rechazadasComoCandidatas(), ...porConfianza.map((v) => ({
           id: v.id, value: (admitidas.find((o) => o.id === v.id) as Alternative<T>).value, eligible: false, reason: v.reason,
         }))]) });
     }
 
     /* 7 · Pareto: si hay varias que nadie domina, se dice en vez de fingir un ganador. */
-    const frente = pareto(puntuadas.filter((p) => juzgadas.some((j) => j.id === p.id)), objective).map((p) => p.id);
+    const frente = pareto(conHistorial.filter((p) => juzgadas.some((j) => j.id === p.id)), objective).map((p) => p.id);
     if (frente.length > 1) avisos.add('no_dominant_option');
 
     /* 8 · Selección, con la política determinista. */
@@ -610,7 +780,7 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
     if (DESCRIPTOR_DEL_MOTOR.status === 'experimental') avisos.add('experimental_algorithm');
     if (contador.agotado()) avisos.add('budget_exhausted');
 
-    const evidenciaElegida = evidenciaPorId.get(elegida.id) ?? [];
+    const evidenciaElegida = evidenciaFinal(elegida.id);
     const uncertainty: Uncertainty = incertidumbreDe(elegida.confidence);
     const candidatos: JudgedOption<T>[] = [
       ...ordenadas.map((j, i) => ({
@@ -635,8 +805,16 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       warnings: Object.freeze([...avisos]),
       objective,
       constraints,
-      signalKeys: Object.freeze([...new Set(resueltas.map((s) => s.key))].sort()),
-      explanation: explicar(elegida, ordenadas[1], [...rechazadas, ...porConfianza], objective, constraints, frente, comparadores),
+      /* Lo que se MIRÓ, también el historial: es la prueba de que se leyó. */
+      signalKeys: Object.freeze([...new Set([
+        ...resueltas.map((s) => s.key),
+        ...(delAmbito && 'ventana' in delAmbito ? ['history.decision'] : []),
+        ...(uso.usadas.length ? ['history.successRate'] : []),
+      ])].sort()),
+      explanation: Object.freeze([
+        ...explicar(elegida, ordenadas[1], [...rechazadas, ...porConfianza], objective, constraints, frente, comparadores),
+        ...explicarHistorial(delAmbito, uso, noCompiten),
+      ]),
       paretoFront: frente.length > 1 ? Object.freeze(frente) : undefined,
       spend: contador.gasto(),
       trace: ctx.trace,
