@@ -601,20 +601,94 @@ export const peticionDeLaSombra = (e: {
 const LITERAL = /"(?:[^"\\]|\\.)*"/g;
 const ETIQUETA = /^[A-Za-z0-9_.:-]{1,32}$/;
 const SOLO_SU_LONGITUD = /\.(purpose|focus|mood|genre|voice)$/;
+/*
+ * S1.2 · LO QUE ACOTÓ EL ENTENDIMIENTO. Sus valores salen de lo que escribió la
+ * persona —«Lisboa», «barato», un nombre—, y uno de una sola palabra tiene forma
+ * de etiqueta: la regla de arriba lo dejaba pasar. Aquí nunca se guarda el valor:
+ * su tipo y, si es texto, su longitud. La clase ya dice si coincidía.
+ */
+const VALOR_DEL_ENTENDIMIENTO = /^intención\.constraints\./;
+/* S1.2 · Las pistas y los usos de un paso: se dice QUÉ traen, nunca qué dicen. */
+const SOLO_SUS_CLAVES = /\.(hints|uses)$/;
+/*
+ * S1.2 · LO QUE POR CONTRATO ES UN NÚMERO. La cantidad y la duración que viajan en
+ * un paso de Legacy son números; un texto ahí es un plan roto, y con forma de
+ * etiqueta la regla general lo citaría. Los números se siguen viendo —son los que
+ * distinguen un camino del otro—; un texto, su longitud.
+ */
+const SOLO_NUMEROS = /\.(count|durationSec)$/;
+
+/** Un literal citado: si es vocabulario de Weë se queda; si no, su longitud. */
+const sinLiterales = (texto: string, siempre = false): string => texto.replace(LITERAL, (literal) => {
+  let valor: unknown;
+  try { valor = JSON.parse(literal); } catch { return `${literal.length} car`; }
+  const cadena = String(valor);
+  return !siempre && ETIQUETA.test(cadena) ? literal : `${cadena.length} car`;
+});
+
+/** Las claves de un JSON, en rutas ordenadas —las listas, con su tamaño—; ningún valor. */
+const soloLasClaves = (evidencia: string): string => {
+  let valor: unknown;
+  try { valor = JSON.parse(evidencia); } catch { return `${evidencia.length} car`; }
+  const rutas = new Set<string>();
+  const andar = (v: unknown, ruta: string, nivel: number): void => {
+    if (Array.isArray(v)) { rutas.add(`${ruta || '·'}[${v.length}]`); return; }
+    if (typeof v !== 'object' || v === null || nivel > 6) { rutas.add(ruta || '·'); return; }
+    const claves = Object.keys(v);
+    if (!claves.length) rutas.add(ruta || '·');
+    for (const k of claves) {
+      const nombre = ETIQUETA.test(k) ? k : `‹${k.length} car›`;
+      andar((v as Record<string, unknown>)[k], ruta ? `${ruta}.${nombre}` : nombre, nivel + 1);
+    }
+  };
+  andar(valor, '', 0);
+  return `claves: ${[...rutas].sort().join(', ')}`;
+};
+
+/** Qué es un valor del entendimiento, sin decir cuál: `texto(N car)`, `número`, `sí/no`, `nada`. */
+const formaDeValor = (crudo: string): string => {
+  let valor: unknown;
+  try { valor = JSON.parse(crudo); } catch { return `${crudo.length} car`; }
+  if (typeof valor === 'string') return `texto(${valor.length} car)`;
+  if (typeof valor === 'number') return 'número';
+  if (typeof valor === 'boolean') return 'sí/no';
+  return valor === null ? 'nada' : 'otro';
+};
+
+/*
+ * `k: entendimiento=V plan=P`, con V y P en JSON (así lo escribe el comparador).
+ * Se corta por el ` plan=` que deja JSON a los dos lados: un texto puede llevar
+ * esa misma secuencia dentro, y el primero que aparece no tiene por qué ser el bueno.
+ */
+const valoresDeLaRestriccion = (evidencia: string): readonly [string, string] | undefined => {
+  const marca = ': entendimiento=';
+  const inicio = evidencia.indexOf(marca);
+  if (inicio < 0) return undefined;
+  const resto = evidencia.slice(inicio + marca.length);
+  for (let i = resto.indexOf(' plan='); i >= 0; i = resto.indexOf(' plan=', i + 1)) {
+    const v = resto.slice(0, i);
+    const p = resto.slice(i + ' plan='.length);
+    try { JSON.parse(v); JSON.parse(p); return [v, p]; } catch { /* no era este corte */ }
+  }
+  return undefined;
+};
 
 const sinCitar = (d: Diferencia): Diferencia => {
-  const siempre = SOLO_SU_LONGITUD.test(d.campo);
+  if (SOLO_SUS_CLAVES.test(d.campo)) return { ...d, evidencia: soloLasClaves(d.evidencia) };
+  if (VALOR_DEL_ENTENDIMIENTO.test(d.campo)) {
+    /* La clave que eligió el entendimiento, solo si es una etiqueta; el valor, nunca. */
+    const k = d.campo.slice('intención.constraints.'.length);
+    const valores = valoresDeLaRestriccion(d.evidencia);
+    return {
+      ...d,
+      campo: ETIQUETA.test(k) ? d.campo : `intención.constraints.‹${k.length} car›`,
+      evidencia: valores ? `entendimiento=${formaDeValor(valores[0])} plan=${formaDeValor(valores[1])}` : `${d.evidencia.length} car`,
+    };
+  }
+  const frase = SOLO_SU_LONGITUD.test(d.campo);
   /* La frase idéntica la cita el comparador sin comillas: se cuenta entera. */
-  if (siempre && d.clase === 'EXACT_MATCH') return { ...d, evidencia: `idéntica · ${d.evidencia.length} car` };
-  return {
-    ...d,
-    evidencia: d.evidencia.replace(LITERAL, (literal) => {
-      let valor: unknown;
-      try { valor = JSON.parse(literal); } catch { return `${literal.length} car`; }
-      const texto = String(valor);
-      return !siempre && ETIQUETA.test(texto) ? literal : `${texto.length} car`;
-    }),
-  };
+  if (frase && d.clase === 'EXACT_MATCH') return { ...d, evidencia: `idéntica · ${d.evidencia.length} car` };
+  return { ...d, evidencia: sinLiterales(d.evidencia, frase || SOLO_NUMEROS.test(d.campo)) };
 };
 
 const formaDePaso = (s: PlanStep): string => `${s.capability}/${typeof s.input?.kind === 'string' ? s.input.kind : '-'}`;
@@ -938,6 +1012,16 @@ const yaExiste = (error: unknown): boolean => {
   return code === 6 || code === 'already-exists' || code === 'ALREADY_EXISTS';
 };
 
+/** De un fallo, QUÉ CLASE de fallo fue —el nombre, el código si es una etiqueta—; del mensaje, su longitud. */
+const descripcionDelFallo = (error: unknown): string => {
+  if (!(error instanceof Error)) return 'error desconocido';
+  const codigo = (error as { code?: unknown }).code;
+  const conCodigo = (typeof codigo === 'string' && ETIQUETA.test(codigo)) || (typeof codigo === 'number' && Number.isFinite(codigo))
+    ? ` · código ${codigo}` : '';
+  const nombre = ETIQUETA.test(error.name) ? error.name : `‹${error.name.length} car›`;
+  return `${nombre}${conCodigo} · mensaje de ${error.message.length} car`.slice(0, 240);
+};
+
 /**
  * CALCULA LA SOMBRA Y LA GUARDA. No devuelve nada que nadie tenga que mirar y
  * NUNCA lanza: quien la llama no puede enterarse de que ha fallado.
@@ -1075,6 +1159,16 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
     }
 
     const errores = erroresDeParidad(autoridad, regresion);
+    /*
+     * S1.2 · LO QUE SE GUARDA DE B3, SIN CITAR. Hasta aquí las secciones de B3
+     * guardaban la evidencia del comparador tal cual —la frase de un paso de
+     * Legacy, lo que acotó el entendimiento—, y en Home la frase puede llevar lo
+     * que escribió la persona. Pasan por la misma regla que la sección del
+     * algoritmo. Se sigue sabiendo QUÉ pasó —el campo, la clase, el origen, el
+     * camino—; lo que no se guarda es qué decía. Los resúmenes se cuentan sobre
+     * las diferencias enteras: la clase no depende del texto.
+     */
+    const guardable = (dif: readonly Diferencia[]) => recorte(dif.map(sinCitar));
     const documento = {
       contract: CONTRATO_DE_LA_SOMBRA,
       /* 1.2: qué caminos corrieron. Una sombra 1.1 no lo dice porque eran siempre los dos de siempre. */
@@ -1097,9 +1191,9 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
       ...(pide('brain') ? {
         core: vistaDelPlan(estadoDelPlan, plan),
         coreDesdeBrain: { origen: 'brain' as const, ...vistaDelPlan(estadoDelPlan, plan) },
-        autoridad: { resumen: resumenDeParidad(autoridad), diferencias: recorte(autoridad) },
-        regresion: { resumen: resumenDeParidad(regresion), diferencias: recorte(regresion) },
-        errores: recorte(errores),
+        autoridad: { resumen: resumenDeParidad(autoridad), diferencias: guardable(autoridad) },
+        regresion: { resumen: resumenDeParidad(regresion), diferencias: guardable(regresion) },
+        errores: guardable(errores),
       } : {}),
       ...(pide('puente') ? {
         coreDesdePuente: {
@@ -1109,14 +1203,14 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
           aristasDescartadas: descartadas.length,
           /* Y lo que ni pudo cruzar, con el campo y el porqué. */
           rechazos: rechazos.slice(0, TOPE_DE_LISTA).map((r) => ({
-            campo: r.campo, motivo: r.motivo, evidencia: r.evidencia.slice(0, 240),
+            campo: r.campo, motivo: r.motivo, evidencia: sinLiterales(r.evidencia).slice(0, 240),
           })),
         },
         regresionDesdePuente: {
           resumen: resumenDeParidad(regresionDelPuente),
-          diferencias: recorte(regresionDelPuente),
+          diferencias: guardable(regresionDelPuente),
         },
-        erroresDesdePuente: recorte(erroresDeParidad([], regresionDelPuente)),
+        erroresDesdePuente: guardable(erroresDeParidad([], regresionDelPuente)),
       } : {}),
       ...(algoritmo ? { algoritmo } : {}),
     };
@@ -1156,7 +1250,12 @@ export const sombraDelPlan = async (entrada: EntradaDeSombra): Promise<Resultado
         jobId: entrada.jobId,
         userId: entrada.userId,
         experienceId: entrada.experienceId,
-        fallo: error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 240) : 'error desconocido',
+        /*
+         * S1.2 · QUÉ CLASE de fallo, no qué decía: un mensaje puede traer un trozo
+         * de lo que se estaba leyendo. El nombre, el código si lo hay y es una
+         * etiqueta, y la longitud del mensaje.
+         */
+        fallo: descripcionDelFallo(error),
       });
       return { escrita: true, estado: 'fallo', motivo: 'fallo', ...hastaDonde };
     } catch (otro) {

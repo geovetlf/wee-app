@@ -21,6 +21,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { CAPAS_DE_PRODUCCION, PATRON_A2, describirHallazgos, guardaDeConexion } from './guardas.mjs';
 
 const require_ = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -400,13 +401,14 @@ for (const [que, palabras] of [
 const importes = FUENTES.flatMap(({ f, src }) =>
   [...sinComentarios(src).matchAll(/from '([^']+)'/g)].map((m) => m[1]).filter((r) => !r.startsWith('.')).map((r) => `${f}→${r}`));
 check('87 · y sigue sin importar nada de fuera del Core', importes.length === 0, importes.join(', ') || 'ninguno');
-check('88 · nadie ha conectado A2 a producción', (() => {
-  try {
-    return require_('node:child_process').execSync(
-      'grep -rl "decomposition\\|Descomposicion" functions/src/creator functions/src/runtime functions/src/engine functions/src/planner 2>/dev/null || true',
-      { cwd: RAIZ, encoding: 'utf8' }).trim().length === 0;
-  } catch { return false; }
-})());
+/*
+ * S1.2 · Con Node y no con `grep`: el `2>/dev/null || true` hacía que en Windows
+ * la búsqueda no corriera y la guarda aprobara siempre. Y con la IDENTIDAD de A2,
+ * no con la palabra inglesa: `decomposition` a secas casaba con
+ * `layer_decomposition`, una capacidad de Seedream que no es A2 (`guardas.mjs`).
+ */
+const guarda88 = guardaDeConexion({ raiz: RAIZ, capas: CAPAS_DE_PRODUCCION, patron: PATRON_A2 });
+check('88 · nadie ha conectado A2 a producción', guarda88.ok && guarda88.leidos > 50, describirHallazgos(guarda88));
 
 console.log('\n─── L. Rendimiento ───');
 

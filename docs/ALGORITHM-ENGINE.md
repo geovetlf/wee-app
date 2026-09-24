@@ -1551,6 +1551,22 @@ historial, sin `aprendido`, sin restricciones. En la sección no se cita nada qu
 vocabulario de Weë: la frase de cada paso y la promesa al usuario aparecen solo con su
 **categoría y su longitud**.
 
+**S1.2 · Y las secciones de B3 del mismo documento, también.** `autoridad`,
+`regresion`, `errores`, `regresionDesdePuente` y `erroresDesdePuente` guardaban la
+evidencia del comparador tal cual. Medido con un marcador en cada sitio donde puede
+llegar texto de alguien, aparecía en **14** sitios —la frase del paso de Legacy, lo que
+contestó la persona (`focus`, `mood`…), los valores que acotó el entendimiento— y el
+campo `fallo` guardaba el mensaje del error entero. Ahora aparece en **ninguno**: pasan
+por la misma regla (`sinCitar`), con tres casos más que solo aquí hacen falta —lo que
+acotó el entendimiento (su tipo y su longitud, nunca el valor; la clave, solo si es una
+etiqueta), las pistas y los usos de un paso (solo sus claves) y lo que por contrato es
+un número (`count`, `durationSec`: un texto ahí, su longitud)—, y `fallo` guarda la
+**clase** del error: el nombre, el código de sistema si lo hay y la longitud del mensaje.
+Se sigue sabiendo qué pasó —campo, clase, origen, camino, recuentos, longitudes— y lo que
+al Core le falta se sigue viendo. El mismo encargo con un texto neutro de la misma
+longitud deja un documento idéntico byte a byte (`sombra-sin-texto`). El contrato sigue
+siendo **1.2**: cambian los valores de `evidencia` y de `fallo`, no la forma.
+
 ### La comparación
 
 Dos ejes, con el comparador de B3 tal cual y el camino marcado `algoritmo`:
@@ -1632,6 +1648,18 @@ llamaban a `sombraDelPlan` sin red: un sabotaje que la movía o la hacía lanzar
 Firestore de mentira tiraba los `undefined` al clonar; el de verdad los rechaza. Y en
 Windows las barras invertidas de un patrón no sobreviven al paso por `bash`: el
 corredor los pasa en base64.
+
+**S1.2 · Las guardas 88 (A2) y 93 (A3) corren de verdad.** Seguían siendo un `grep`
+lanzado con `execSync` y `2>/dev/null || true`: en Windows `execSync` usa `cmd.exe`, la
+búsqueda no corría y las dos aprobaban sin mirar un archivo. Ahora son Node puro
+(`functions/test/guardas.mjs`): leen los archivos de las seis capas de producción, lanzan
+si falta una capa, no aprueban si no leyeron nada y rechazan un patrón que no es una
+expresión regular. La 88 busca la **identidad** de A2 —su módulo, su fábrica, sus
+tipos— y no la palabra `decomposition`, que ejecutada de verdad fallaba por
+`layer_decomposition`, una capacidad de Seedream que no es A2 y que no se toca. Tocar
+estas dos guardas en las suites de A2 y A3 es el único cambio en pruebas del motor, y
+es solo de la guarda: ni un contrato. `guardas-reales` demuestra que corren con fixtures
+—válido, violado, restaurado—, que fallan explícitamente y que no queda consola en ellas.
 
 ### Lo que S1 NO hace
 

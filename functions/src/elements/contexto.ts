@@ -68,17 +68,29 @@ export const CONTEXTO_CERRADO: ConfiguracionDelContexto = Object.freeze({ habili
 const FORMA_DE_CUENTA = /^[A-Za-z0-9_-]{1,128}$/;
 const MAX_CUENTAS = 64;
 
-/** Lo guardado, leído con desconfianza. Cualquier cosa rara deja el interruptor APAGADO. */
+/**
+ * Lo guardado, leído con desconfianza. Cualquier cosa rara deja el interruptor APAGADO.
+ *
+ * Y «rara» incluye la lista de cuentas (S1.2). Hasta aquí una lista mal formada
+ * —`null`, un objeto, un número, un elemento que no es una cuenta, `"*"`, una
+ * cadena vacía, más de 64— se DESCARTABA y quedaba `{ habilitado: true }` sin
+ * lista: abierto para TODAS las cuentas, justo lo contrario de lo que se quería
+ * decir. Ahora es la regla de la puerta del runtime y la de la sombra: lo que no
+ * se entiende entero no abre nada. La lista AUSENTE sigue significando lo que
+ * dice el contrato —sin acotar por cuenta—; la presente y rota, cerrado.
+ */
 export const leerConfiguracionDelContexto = (crudo: unknown): ConfiguracionDelContexto => {
   if (typeof crudo !== 'object' || crudo === null || Array.isArray(crudo)) return CONTEXTO_CERRADO;
   const c = crudo as Record<string, unknown>;
   if (typeof c.habilitado !== 'boolean') return CONTEXTO_CERRADO;
+  if (c.cuentas === undefined) return { habilitado: c.habilitado };
   const cuentas = Array.isArray(c.cuentas)
     && c.cuentas.length <= MAX_CUENTAS
     && c.cuentas.every((x) => typeof x === 'string' && FORMA_DE_CUENTA.test(x))
     ? (c.cuentas as readonly string[])
     : undefined;
-  return { habilitado: c.habilitado, ...(cuentas ? { cuentas } : {}) };
+  if (!cuentas) return CONTEXTO_CERRADO;
+  return { habilitado: c.habilitado, cuentas };
 };
 
 export type MotivoDelContexto = 'abierto' | 'deshabilitado' | 'cuenta_fuera_de_la_prueba' | 'sin_necesidades';
@@ -95,8 +107,15 @@ export const decidirContexto = (
   config: ConfiguracionDelContexto,
   peticion: { accountId?: string; necesidades: number },
 ): { resolver: boolean; motivo: MotivoDelContexto } => {
-  if (!config.habilitado) return { resolver: false, motivo: 'deshabilitado' };
-  if (config.cuentas && !(peticion.accountId && config.cuentas.includes(peticion.accountId))) {
+  /*
+   * Estricto también aquí (S1.2), por quien pase una configuración sin leerla:
+   * solo `true` enciende, y una lista presente que no es una lista no deja pasar
+   * a nadie. Con una configuración leída por `leerConfiguracionDelContexto` no
+   * cambia nada.
+   */
+  if (config?.habilitado !== true) return { resolver: false, motivo: 'deshabilitado' };
+  const cuenta = typeof peticion.accountId === 'string' && peticion.accountId ? peticion.accountId : undefined;
+  if (config.cuentas !== undefined && !(Array.isArray(config.cuentas) && cuenta !== undefined && config.cuentas.includes(cuenta))) {
     return { resolver: false, motivo: 'cuenta_fuera_de_la_prueba' };
   }
   if (peticion.necesidades === 0) return { resolver: false, motivo: 'sin_necesidades' };

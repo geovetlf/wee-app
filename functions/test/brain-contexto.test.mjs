@@ -152,9 +152,11 @@ console.log('\n── A · Apagado es el estado normal, y apagado no cuesta nada
   check('15) el canary se abre POR CUENTA: una que no está en la prueba no resuelve',
     decidirContexto({ habilitado: true, cuentas: [A] }, { accountId: B, necesidades: 1 }).motivo === 'cuenta_fuera_de_la_prueba'
     && decidirContexto({ habilitado: true, cuentas: [A] }, { accountId: A, necesidades: 1 }).resolver === true);
-  check('15) y la lista de cuentas está acotada y validada: una lista rara se ignora entera',
-    leerConfiguracionDelContexto({ habilitado: true, cuentas: Array(200).fill('x') }).cuentas === undefined
-    && leerConfiguracionDelContexto({ habilitado: true, cuentas: ['../otra'] }).cuentas === undefined
+  /* S1.2: antes una lista rara se IGNORABA entera y la puerta quedaba abierta para todas las cuentas. Ahora cierra. */
+  check('15) y la lista de cuentas está acotada y validada: una lista rara CIERRA la puerta, no la abre para todos',
+    leerConfiguracionDelContexto({ habilitado: true, cuentas: Array(200).fill('x') }).habilitado === false
+    && leerConfiguracionDelContexto({ habilitado: true, cuentas: ['../otra'] }).habilitado === false
+    && decidirContexto(leerConfiguracionDelContexto({ habilitado: true, cuentas: ['../otra'] }), { accountId: B, necesidades: 1 }).resolver === false
     && leerConfiguracionDelContexto({ habilitado: true, cuentas: [A] }).cuentas.join(',') === A);
   check('10) no es un sistema general de banderas: un documento, dos campos',
     (leer('functions/src/elements/contexto.ts').match(/export interface ConfiguracionDelContexto \{[\s\S]*?\n\}/) || [''])[0]

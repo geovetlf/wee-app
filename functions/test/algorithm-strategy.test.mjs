@@ -19,6 +19,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { CAPAS_DE_PRODUCCION, PATRON_A3, describirHallazgos, guardaDeConexion } from './guardas.mjs';
 
 const require_ = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -364,13 +365,13 @@ for (const [que, palabras] of [
 const importes = FUENTES.flatMap(({ f, src }) =>
   [...sinComentarios(src).matchAll(/from '([^']+)'/g)].map((mm) => mm[1]).filter((r) => !r.startsWith('.')).map((r) => `${f}→${r}`));
 check('92 · y sigue sin importar nada de fuera del Core', importes.length === 0, importes.join(', ') || 'ninguno');
-check('93 · nadie ha conectado A3 a producción', (() => {
-  try {
-    return require_('node:child_process').execSync(
-      'grep -rl "strategy-engine\\|crearMotorDeEstrategias" functions/src/creator functions/src/runtime functions/src/engine functions/src/planner 2>/dev/null || true',
-      { cwd: RAIZ, encoding: 'utf8' }).trim().length === 0;
-  } catch { return false; }
-})());
+/*
+ * S1.2 · Con Node y no con `grep`: el `2>/dev/null || true` hacía que en Windows
+ * la búsqueda no corriera y la guarda aprobara siempre. El patrón es el de
+ * siempre —el módulo de A3 y su fábrica—, que ya era preciso (`guardas.mjs`).
+ */
+const guarda93 = guardaDeConexion({ raiz: RAIZ, capas: CAPAS_DE_PRODUCCION, patron: PATRON_A3 });
+check('93 · nadie ha conectado A3 a producción', guarda93.ok && guarda93.leidos > 50, describirHallazgos(guarda93));
 
 console.log('\n─── J. Rendimiento ───');
 
