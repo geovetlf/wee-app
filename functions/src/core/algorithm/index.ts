@@ -61,3 +61,5 @@ export * from './learning';
 export * from './feedback-engine';
 export * from './context';
 export * from './context-engine';
+export * from './integration';
+export * from './integration-cycle';

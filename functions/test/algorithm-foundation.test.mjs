@@ -68,6 +68,7 @@ console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
  */
 const MODULOS = ['authority', 'baseline', 'budget', 'capability', 'context', 'context-engine', 'decision', 'decision-engine',
   'decomposition', 'decomposition-engine', 'feedback', 'feedback-engine', 'index',
+  'integration', 'integration-cycle',
   'learning', 'objective', 'optimization',
   'optimization-engine', 'parallelization',
   'parallelization-engine', 'recovery', 'recovery-engine', 'registry', 'scoring', 'signals',

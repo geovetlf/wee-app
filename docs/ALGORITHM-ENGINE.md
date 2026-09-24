@@ -28,6 +28,7 @@ acaba la lógica de alguien concreto.
 | **A6** Verification & Recovery | ¿se cumplió lo esperado, y qué recuperación cabe si no? |
 | **A7** Feedback & Learning | ¿qué se aprendió de lo que pasó, con evidencia suficiente para darlo por hecho? |
 | **A8** Context | ¿qué de lo aprendido le sirve a ESTA decisión, y por qué lo demás no? |
+| **A9** Integración | ¿cómo se encadena todo lo anterior en un ciclo sin que nadie pierda su autoridad? |
 
 ## 2 · Las capacidades son DATOS, no código
 
@@ -692,19 +693,159 @@ de hace 61 días salía con frescura 1 y **admitido**. Ahora: `rechazo`,
   una dimensión nueva del ámbito **con** su consentimiento, no como una
   excepción en A8.
 
-## 13 · Lo que está probado, y dónde
+## 13 · A9, la frontera de integración: A0–A8 como un ciclo
+
+> **A9 no es otro motor.** Es el sitio donde A0–A8 se encadenan sin que ninguno
+> pierda su autoridad y sin que aparezca otra.
+
+`functions/src/core/algorithm/integration.ts` (los contratos de la frontera) e
+`integration-cycle.ts` (`crearCicloAlgoritmico()` → `decidir` y `cerrar`). Dos
+funciones puras, sin estado, experimentales y sin conectar. **No es un
+algoritmo**: no elige nada, así que no se registra ni tiene categoría
+—`AlgorithmCategory` es cerrada— y **no sube el contrato**: compone con el 1.6 y
+solo añade tipos suyos.
+
+### El mapa de autoridad
+
+| Quién | Decide | En el ciclo |
+|---|---|---|
+| Planner | qué capacidades hacen falta: los `PlanStep` | llegan en la tarea, **tal cual** |
+| A8 | qué de lo aprendido es admisible para ESTA decisión | selecciona; A1 lo recibe por `paraDecision` |
+| A1 | entre alternativas que ya existen | decide el enfoque (si lo hay) y la estrategia |
+| A2 | la estructura de la tarea: DAG, dependencias, ciclos | la valida y la descompone; si la rechaza, se para |
+| A4 | la forma paralela y sus riesgos | variantes y análisis, si se pide |
+| A3 | las estrategias: baseline, fallback, previsiones, riesgos, recuperación | las genera; nadie más |
+| A5 | qué es factible y qué mejora dentro de las restricciones | filtra y propone; **no elige** |
+| Router | con qué implementación, paso a paso | **fuera**: después de la entrega |
+| A6 | si lo que salió cumple lo esperado, y qué hacer si no | verifica y propone recuperación |
+| A7 | qué se aprende de lo que pasó | acumula el resultado |
+
+Nada del algoritmo importa al Router, al Orchestrator, al Job Engine, al Gateway
+ni al Brain, y nada del Core importa el algoritmo. Ningún código de producción
+componía motores antes de A9: solo las pruebas.
+
+### El orden, y por qué no es el del dibujo
+
+El dibujo conceptual pone DECISIÓN antes de DESCOMPOSICIÓN. Los contratos no
+lo permiten: A1 **recibe** alternativas y A3 las **genera**
+(`DecisionContext.options`), A5 «no elige: eso es A1», y A4 construye sus
+variantes con las primitivas de A2. Así que el orden real es:
+
+```
+decidir:  A8 → [A1 enfoque] → A2 → [A4] → A3 → [A5] → A1 → entrega
+cerrar:   A6 → A6 recuperación → resultado de la decisión → [A7]
+```
+
+El «A1 → A2» existe, **un nivel más arriba**: cuando lo primero es elegir el
+ENFOQUE —qué tarea—, A1 elige, A2 estructura el elegido y A1 vuelve a decidir
+entre sus estrategias. Dos decisiones, cada una entre alternativas que ya
+existen.
+
+**Nada corre porque sí.** La petición declara qué compone: `paralelizar` (A4) y
+`optimizar` (A5). Una decisión entre opciones ya dadas es solo A1.
+
+### Contratos
+
+**Reutilizados, sin copiar:** `DecisionContext` como petición —objetivo, traza,
+restricciones (que son los requisitos de ejecución), señales, presupuesto,
+opciones—, `TareaADescomponer` y `PlanStep`, `Strategy` como plan de ejecución,
+`AlgorithmDecision`, `OptimizationOutcome`, `VerificationResult`,
+`AnalisisDeRecuperacion`, `ResultadoDeDecision`, `SalidaDeAprendizaje`,
+`ConjuntoDeSenales`, `HistoryWindow`.
+
+**Nuevos, y solo lo que ninguno cubría:** `PeticionAlgoritmica` (lo que A1 no
+lleva: tarea, enfoques, lo esperado, lo aprendido, la composición),
+`AlgorithmDecisionResult` (un sobre con la salida de cada autoridad, sin
+resumir: la confianza, la incertidumbre, la evidencia y la explicación están en
+`decision`, que es de A1), `EntregaDeEjecucion`, `ObservacionDeEjecucion` y
+`CierreDelCiclo`.
+
+### La frontera del Router
+
+> **La política define la frontera. La puntuación ordena dentro de ella.**
+
+A9 acaba en la **entrega**: el plan elegido —los pasos del Planner, tal cual,
+con la estructura que eligió A1—, las restricciones y lo esperado. Lo siguiente
+es del Workflow, del Orchestrator y, **paso a paso**, del Router, cuyo
+`RouterRequest` recibe UNA capacidad con calidad y presupuesto: ni estrategias,
+ni señales, ni evidencia. A9 no construye esa petición y no podría: su contrato
+no se importa desde aquí.
+
+La entrega entera pasa por `violacionesEn` —el predicado del Planner— antes de
+salir. Es la única guarda que mira lo que la petición trae en `constraints` y en
+`expected`: un `providerId` escondido ahí se para con `authority_violation`.
+
+### Verificación, resultado y aprendizaje
+
+Entre `decidir` y `cerrar` pasa la ejecución, **fuera**. `cerrar` recibe lo
+observado: cómo acabó (en el vocabulario de A7, lo dice quien ejecutó) y qué
+salió (en el de A6). A6 verifica; su recuperación propone y **no se ejecuta
+nada**; el resultado se aprende en el **ámbito en que se decidió** —el de A8—,
+que es lo que A8 devolverá como historial la próxima vez que se decida ahí. Lo
+de la implementación —con qué proveedor— se aprendería en su propio ámbito, del
+lado de quien ejecuta.
+
+### La segunda pasada, medida
+
+Cuarenta ejecuciones sintéticas de la misma decisión → A7 aprende (n = 40, tres
+tramos) → A8 admite `outcome.success` y la latencia en ámbito exacto, y deja
+fuera la verificación diciendo por qué → A1 recibe `{sampleSize: 40,
+succeeded: 38}`. **Y A1 elige lo mismo, byte a byte**, porque hoy no lee
+`history`. El aprendizaje LLEGA a la decisión por el puerto que existe; que
+influya en ella es un cambio de A1, no de A9. No se afirma que la segunda
+decisión sea mejor.
+
+### Hallazgos de la integración, sin corregir aquí
+
+- **A1 no lee `history`.** El ciclo lo demuestra y lo deja dicho.
+- **A1 y A3/A5 juzgan distinto la misma restricción.** Con la calidad sin medir,
+  `violaRestricciones` (A3, y A5 a través de él) solo da por incumplido lo que
+  está medido e incumple; A1 lo marca como no verificable. En el ciclo decide A1
+  el último, así que el resultado es el conservador —indeciso—, pero A5 informa
+  de algo factible que A1 luego no admite.
+
+### Deudas de A7 que hay que resolver antes de persistir
+
+Declaradas en A7 (contrato 1.6) y repetidas aquí porque A9 es el primer sitio
+que encadena resultados reales:
+
+1. **`tramosAncho`.** Cambiar `ventanaMs` a una ventana cuya rejilla comparta
+   bordes con la anterior —la mitad, el doble— no se detecta: haría falta
+   guardar también el ancho de la rejilla.
+2. **Tolerancia de fechas del futuro lejano.** Un dato fechado muy por delante
+   mueve la rejilla; nunca aprueba nada, pero la tendencia de esa clave deja de
+   informar hasta que el tiempo lo alcance.
+3. **Entrega exactamente-una-vez.** A7 asume que la capa de integración
+   garantiza la semántica de entrega: cerrar dos veces la misma observación la
+   cuenta dos veces. Se decidirá después —clave de idempotencia, identidad del
+   evento, ingestión transaccional u otro mecanismo—, y **no** metiendo
+   identificadores en los agregados.
+4. **`fuerza`** es una media acumulada: con procedencias mezcladas depende del
+   orden de llegada en el último decimal. Hay que evaluarla por estabilidad
+   numérica y orden antes de persistir.
+5. **Un resultado sin `at`** se fecha en la época (heredado de A7): queda fuera
+   de la rejilla y solo cuenta en los totales.
+
+### Rendimiento
+
+Medido en la suite, todo procesado: la decisión es O(1) por petición y O(N) en
+N peticiones; lo que crece es el GRAFO —A2, A4 y A3 trabajan sobre pasos y
+anchura—; cada autoridad está acotada por su presupuesto; y el estado aprendido
+no crece con las vueltas: se queda en las claves de A7.
+
+## 14 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
 |---|---|
 | `algorithm-agnostic.test.mjs` | ocho capacidades futuras sintéticas y una inventada en ejecución recorren la cadena entera; la metadata está acotada; diez propiedades de extensibilidad; el guard de arquitectura |
-| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` · `-context` | A0–A8 |
+| `algorithm-foundation` · `-decision` · `-decomposition` · `-strategy` · `-parallelization` · `-optimization` · `-verification` · `-feedback` · `-context` · `-cycle` | A0–A9 |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
 distingue producción de fixture: los nombres de capacidades futuras deben estar
 en las pruebas y **no** en `core/algorithm/**`.
 
-## 14 · Lo que esta capa NO hace, dicho una vez más
+## 15 · Lo que esta capa NO hace, dicho una vez más
 
 No ejecuta proveedores. No cobra Credits. No crea materiales. No crea trabajos.
 No escribe en Firestore. No abre red. No lee secretos. No modifica el Registry.
