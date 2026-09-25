@@ -1667,6 +1667,87 @@ No despliega, no ejecuta la canary real, no abre `aiSettings/sombra`, no toca el
 Router, el Job Engine, el Financial Core, el Asset Core ni ningún proveedor, no cambia
 nada que vea la persona y no empieza S2 ni Filmmaker.
 
+### Después de S1: la canary real de Travel (S1.1–S1.6), cerrada
+
+**S1.1** desplegó solo `creatorChat` (`creatorchat-00008-qow`, el código de `05ab31b`) con la
+puerta cerrada. La canary se abrió el **2026-09-24 a las 23:17:46Z** para **una** cuenta —la
+de la prueba manual de Travel— y se cerró el **2026-09-25 a las 01:16:10Z** (S1.6), con 4
+de los 20 trabajos que permitía:
+
+```json
+{ "habilitado": true, "cuentas": ["<una cuenta>"], "experiencias": ["travel"],
+  "caminos": ["puente", "algoritmo"], "capacidades": ["text.search"], "hasta": <apertura + 7 días> }
+```
+
+`experiencias` va aunque la canary diseñada no lo pedía: sin él, la puerta no filtra por
+experiencia, y **Weë Writer** también puede dar un plan solo de `text.search`. El `hasta`
+salió del reloj del servidor (la hora de lectura de la transacción que la abrió).
+
+| Caso | Trabajo | Petición | Primera llamada | Algoritmo | Legacy |
+|---|---|---|---|---|---|
+| 1 | `PYJhb3IBLkrwcwkzjXE4` | Travel, 5 días | 15,1 s (arranque en frío 11,9 s) | 16,84 ms | 1 `text.structure` |
+| 2 | `RNna9hcNJ8xMTDCojcCW` | Travel, 7 días | 3,2 s (caliente) | 3,71 ms | 1 `text.structure` |
+| 3 | `3jMUA0bF71CCe8UhYzB6` | Madrid, 4 días | 13,4 s (frío 8,4 s) | 17,09 ms | 2 `text.structure` |
+| 4 | `ThJWYprsHFWirFhiNscB` | Japón, 10 días, fechas en el texto | 2,1 s (caliente) | 2,71 ms | 1 `text.structure` + **se pulsó «Crear»**: `creatorRun` ejecutó y cobró 3 Credits |
+
+En los cuatro: `decidido`, «en fila, 1 pasos», la línea base con los mismos pasos que el
+plan del Core, 1 candidata, confianza 0, incertidumbre `unknown`, historial `ninguno`, 0
+violaciones, **determinista** (repetida en local con el código desplegado, idéntica), una
+sola escritura y sin ningún texto de la persona. La comparación salió **igual en los
+cuatro**: 23 diferencias (11 exactas, 2 equivalentes, 8 que añade el Core, 2 que solo tiene
+Legacy, 0 estructurales, 0 sin soporte, 0 de autoridad, 0 de sombra rota); las 2 de Legacy
+son la frase del paso y la promesa al usuario, el hueco conocido del Core. Por eso
+`algoritmo.errores` vale 2: son **diferencias de paridad**, no fallos.
+
+| Cierre | Resultado |
+|---|---|
+| Casos reales válidos | **4/4 PASS** (canary 4/20) |
+| Llamadas a proveedor de la sombra | 0 (las de Legacy, aparte: 5 de planificación y 1 de ejecución) |
+| Credits · materiales · trabajos de ejecución de la sombra | 0 · 0 · 0 |
+| Router · aprendizaje de la sombra | 0 · 0 |
+| Privacidad · idempotencia | PASS · PASS |
+| Monitor | 24/24 mientras la canary estuvo abierta (la regla #20 espera la puerta abierta: con la canary cerrada ya no aplica) |
+| Ejecución de producción · Algorithm Engine | sin cambios · sin cambios |
+| Autoridad del Core en producción | cerrada (`aiSettings/runtime` cerrado, sin tocar) |
+| Brain · Router · aprendizaje | excluidos |
+
+**El monitor** (`scripts/canary-sombra.mjs`, solo lectura contra producción) mide las 24
+condiciones de parada. Tres de sus reglas se corrigieron por lo que enseñó la canary, sin
+tocar nada de lo que se ejecuta: la **#12** confundía las diferencias de paridad y
+`estado: omitido` («al Brain no se le preguntó») con fallos; la **#3** y la **#5** decidían
+por la cuenta y por el estado del trabajo, y el «Crear» del caso 4 las hizo saltar
+(S1.4); la **#4** buscaba al dueño de un material en campos que el Content Core no tiene
+—el suyo es `ownerAccountId`— (S1.5). Ahora #3, #4 y #5 las decide
+`scripts/canary-sombra-atribucion.mjs` por la **identidad de la sombra**, leída de su
+propio código —`<jobId>:algoritmo` y los sellos `sombra` y `sombra-puente`—: un cargo, un
+material o una ejecución es de la sombra solo si la lleva él, o la fila del libro que lo
+enlaza, o el material del que sale. Lo de Legacy se reconoce por su propia evidencia: la
+fila de ejecución de `creatorRun` que enlaza el cargo (`creditTransactionId`) o su
+retención sobre el trabajo, el paso `<jobId>:<paso>` del libro y la procedencia del
+material (una generación sin sello, un paso de `creatorRun`, una ejecución del runtime).
+En el caso 4 quedó así: 3 Credits y 1 ejecución de Legacy, 0 y 0 de la sombra. Lo que no
+tiene dueño causal es `INVESTIGAR`, nunca culpa de la sombra.
+
+**El cierre** fue solo de configuración: `habilitado: false`, y se conservan la cuenta,
+`travel`, `text.search`, los caminos y el `hasta` como evidencia. No se borró nada —ni los
+trabajos, ni sus `private/sombra`, ni el libro, ni la telemetría— y desde el cierre no
+cambió nada más en Firestore ni hubo una sola llamada a ningún servicio.
+
+**Lo que esta canary NO demuestra.** Que el Algorithm Engine decida bien: Travel da
+siempre un plan de un paso, así que la decisión es siempre «en fila, 1 pasos» y la canary
+prueba **convivencia y seguridad**, no calidad. Tampoco ve la intención: al algoritmo solo
+llegan capacidad, variante y calidad; el destino, las fechas, los intereses y el ritmo
+viajan dentro del `brief`, que la sombra quita a propósito. Y Travel no tiene dónde poner
+«tecnología» ni «tren».
+
+**Deuda que queda, para después:** arranques en frío de `creatorChat` de 31,2 / 11,9 /
+8,4 s desde S1.1 (antes, 1,5–4,0 s); trabajos duplicados cuando la app repite un inicio;
+el calendario de Travel, que propone hoy; los huecos semánticos de Travel (tecnología,
+transporte) y la frase del paso y la promesa al usuario que el Core no escribe; la
+intención creativa estructurada; S2-A, que sigue en su rama (`s2a-decision-quality`) y
+choca con `main` en la línea única de la cadena de tests de `functions/package.json`; y la
+autoridad del Core en producción, el Router, el Brain y el aprendizaje, que siguen fuera.
+
 ## 18 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
@@ -1677,6 +1758,7 @@ nada que vea la persona y no empieza S2 ni Filmmaker.
 | `-decision` §I · `-cycle` §L2 · `-context` §W · `-feedback` §Y | A9.2: la identidad de las alternativas, el aprendizaje por alternativa y el ciclo de punta a punta |
 | `-feedback` §Z · `-context` §X · `-cycle` §L3 | A9.3: ejecución, verificación y recuperación por separado —los ocho casos, la puerta de ejecución de A6—, lo que llega a `paraRouter` y lo que no decide |
 | `sombra-experiencia` §S1 · `-context` V8–V8d · `-cycle` 91–91b · `runtime-map` · `-agnostic` 56 · `-decision` 77 · `-foundation` 118 | S1: la canary de Travel, la puerta y sus filtros, los cortafuegos, la evidencia privada, la comparación sin falsa paridad, los desenlaces, la carrera, y que solo la sombra carga la capa |
+| `canary-sombra-atribucion` · `canary-sombra-assets` | S1.4–S1.5: el monitor de la canary atribuye cargos (#3), materiales (#4) y ejecuciones (#5) por la identidad de la sombra, no por la cuenta, el trabajo ni la hora; el caso 4 (Japón) como fixture |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
