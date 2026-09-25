@@ -56,7 +56,13 @@ import {
 /* ── Quién es el motor ────────────────────────────────────────────────────── */
 
 export const DECISION_ENGINE_ID = 'motor-de-decision';
-export const DECISION_ENGINE_VERSION = 1;
+/*
+ * 2 desde S2-A (contrato 1.10): A1 rechaza la petición que nombra una
+ * implementación y desempata las señales por contenido, así que cambia lo que
+ * DECIDE, y esa es la regla de `AlgorithmDescriptor.version`. Las fases
+ * anteriores no la aplicaron; el contrato sí subió con cada una.
+ */
+export const DECISION_ENGINE_VERSION = 2;
 export const DECISION_ENGINE_REF = referenciaDeAlgoritmo(DECISION_ENGINE_ID, DECISION_ENGINE_VERSION);
 
 /**

@@ -67,7 +67,8 @@ export const CONTEXT_ENGINE_ID = 'motor-de-contexto';
 
 export const DESCRIPTOR_DE_CONTEXTO: AlgorithmDescriptor = Object.freeze({
   id: CONTEXT_ENGINE_ID,
-  version: 1,
+  /* 2 desde S2-A (contrato 1.10): dos fotos duplicadas empatadas se eligen por su contenido y no por su llegada, así que cambia lo que se admite. */
+  version: 2,
   contract: ALGORITHM_CONTRACT_VERSION,
   category: 'routing-signals',
   status: 'experimental',

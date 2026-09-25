@@ -28,6 +28,8 @@
  *  L. R4 — la integridad de esta misma suite: la 41 llega a A1 (y la 41b dice
  *     dónde para el ciclo), la 50 usa el vocabulario real de `Budget`, y la
  *     igualdad con que se compara no confunde lo que el JSON calla.
+ *  M. R5 — el versionado: contrato 1.10 con su entrada, y los motores cuya
+ *     decisión cambió, a su versión 2.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1139,6 +1141,24 @@ const alExcederDelRouter = (srcRouter.match(/const AL_EXCEDER[^=]*=\s*\[([^\]]*)
 check('100 · R4 · el ejemplo de la 50 habla el vocabulario de `Budget`, el mismo que valida el Router: onExceed ∈ {degrade, fail}',
   igual(alExcederDeBudget, ['degrade', 'fail']) && igual(alExcederDelRouter, alExcederDeBudget) && alExcederDeBudget.includes(EXIGIDO.budget.onExceed),
   `Budget: ${alExcederDeBudget.join('|')} · Router: ${alExcederDelRouter.join('|')} · ejemplo: ${EXIGIDO.budget.onExceed}`);
+
+console.log('\n─── M. R5 · El versionado ───');
+
+const srcContratos = leer('functions/src/core/contracts.ts');
+const { contratoCompatible } = lib('core/contracts.js');
+check('101 · R5 · el contrato del Algorithm Engine es 1.10, y la evidencia que se produzca lo dirá: la sección y la decisión llevan ese número',
+  ALGORITHM_CONTRACT_VERSION === '1.10' && R.contract === '1.10' && R.decision?.contract === '1.10' && E1.contract === '1.10');
+check('102 · R5 · 1.10 está registrado en su historial —qué cambia y por qué sube—, y el historial anterior sigue intacto',
+  /\* 1\.10 \(S2-A\): /.test(srcContratos) && /\* 1\.9 \(A9\.3\): /.test(srcContratos) && /\* 1\.7 \(A9\.1\): /.test(srcContratos) &&
+  ['DESEMPATE', 'FRONTERA', 'EFECTIVAS', 'REGISTRO', 'CONFIANZA'].every((p) => new RegExp(`\\* {3}${p} `).test(srcContratos)) &&
+  !/\(A9\)/.test(srcContratos));
+check('103 · R5 · la compatibilidad compara números, no texto: 1.10 habla con quien espera 1.9, y un descriptor de 1.9 ya no vale para 1.10',
+  contratoCompatible('1.10', '1.9') && !contratoCompatible('1.9', '1.10') && contratoCompatible('1.10', '1.10') && '1.10' < '1.9');
+check('104 · R5 · los motores cuya decisión cambió suben a su versión 2 —«sube cuando cambia lo que el algoritmo DECIDE»—; los demás, no',
+  A.DECISION_ENGINE_VERSION === 2 && A.DECISION_ENGINE_REF === 'motor-de-decision@2' && E1.algorithm === 'motor-de-decision@2' &&
+  A.DESCRIPTOR_DE_CONTEXTO.version === 2 && A.DESCRIPTOR_DEL_MOTOR.version === 2 &&
+  [A.DECOMPOSITION_ENGINE_VERSION, A.STRATEGY_ENGINE_VERSION, A.PARALLELIZATION_ENGINE_VERSION, A.OPTIMIZATION_ENGINE_VERSION].every((v) => v === 1),
+  `A1=${A.DECISION_ENGINE_REF} · A8=${A.DESCRIPTOR_DE_CONTEXTO.version}`);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);

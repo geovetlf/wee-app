@@ -1536,7 +1536,7 @@ No por disciplina: por construcción, y con una prueba para cada cosa.
 
 | Campo | Qué guarda |
 |---|---|
-| `contract` · `shadowRunId` | `1.9` · `<jobId>:algoritmo` |
+| `contract` · `shadowRunId` | el contrato con que decidió —`1.9` en S1; `1.10` desde S2-A— · `<jobId>:algoritmo` |
 | `estado` · `duracionMs` | cómo acabó y cuánto tardó el camino entero (decidir + comparar) |
 | `objetivo` | `{ latency: 1, reliability: 1 }`: técnico, de la sombra; no es un objetivo de producto |
 | `entrada` | pasos, capacidades y aristas de lo que entró |
@@ -1807,8 +1807,11 @@ un requisito que nombra una implementación no se reparte.
    petición; un requisito escrito en el objetivo obligaba a A1 pero no a quien
    compone ni a quien ejecuta. Ahora todos reciben las mismas.
 
-Sin subir el contrato (sigue 1.9): son arreglos de lo que el contrato ya prometía
-—determinismo y frontera— y exportaciones nuevas.
+El contrato sube a **1.10** (R5): aunque la forma pública solo crece, cambia lo
+que se decide —desempates, frontera en lo que se pide, restricciones efectivas,
+lo que A6 ve al cerrar—, y ese es el criterio con que subió 1.7. `motor-de-decision`
+y `motor-de-contexto` pasan a su versión 2 por la regla de
+`AlgorithmDescriptor.version`. La entrada está en `core/contracts.ts`.
 
 ### Las pruebas
 
