@@ -23,6 +23,8 @@
  *  I. R1 — lo que no es un número finito, o una fuente que no es del vocabulario,
  *     no hace señal: no desempata ni es evidencia.
  *  J. R2 — la forma canónica: total, determinista y acotada de verdad.
+ *  K. R3 — `restriccionesEfectivas`, campo a campo: su regla, en los dos sentidos,
+ *     con un solo lado y con ninguno.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -943,6 +945,142 @@ check('88 · R2 · en A8: dos fotos duplicadas con un BigInt o un ciclo tampoco 
 check('89 · R2 · los topes son explícitos, están congelados y son los declarados: profundidad 8, anchura 256, nodos 4096, texto 256, salida 65 536',
   Object.isFrozen(LIM) && igual(Object.keys(LIM).sort(), ['anchura', 'nodos', 'profundidad', 'salida', 'texto']) &&
   LIM.profundidad === 8 && LIM.anchura === 256 && LIM.nodos === 4096 && LIM.texto === 256 && LIM.salida === 65_536);
+
+console.log('\n─── K. R3 · La fusión de restricciones, campo a campo ───');
+
+/*
+ * `restriccionesEfectivas(ctx)`: IZQUIERDA = `objective.constraints`, DERECHA =
+ * `constraints` de la petición. Desde S2-A es lo que leen A1, A2–A5, la entrega
+ * y A6 al cerrar, así que cada campo lleva SU propiedad —su regla en los dos
+ * sentidos, con un lado solo y con ninguno—, no una prueba genérica que pueda
+ * tapar una diferencia de semántica. Lo que cada uno hace hoy:
+ *
+ *   CAMPO                  REGLA                  POR QUÉ
+ *   maxLatencyMs           el menor               un tope no se relaja por venir dos veces
+ *   maxSteps               el menor               ídem
+ *   maxParallel            el menor               ídem (el Orchestrator lo llama `maxConcurrent`; esa traducción no es de aquí)
+ *   maxRisk                el menor               ídem
+ *   deadlineAt             el menor (el antes)    ídem
+ *   budget.maxUsd          el menor               ídem
+ *   budget.maxCredits      el menor               ídem (no se comprueba en esta capa: su precio es del Financial Core)
+ *   minConfidence          el mayor               un suelo no se baja por venir dos veces
+ *   quality.minScore       el mayor               ídem
+ *   forbiddenCapabilities  la unión               lo prohibido por uno sigue prohibido
+ *   requiredCapabilities   la unión               lo exigido por uno sigue exigido
+ *   budget.prefer          manda la petición      es una preferencia, no un límite
+ *   budget.onExceed        manda la petición      DEUDA: puede relajar `fail` → `degrade`
+ *   quality.checks         manda la petición      DEUDA: puede quitar comprobaciones del objetivo
+ *   quality.onBelow        manda la petición      DEUDA: puede relajar a `accept`
+ *
+ * Con un solo objeto de restricciones, se devuelve ese objeto tal cual; con
+ * ninguno, `undefined`. Con los dos, un campo que nadie declara queda
+ * `undefined` —y las listas de capacidades, vacías—.
+ */
+const efectivas = (izquierda, derecha) => A.restriccionesEfectivas({
+  contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA,
+  objective: { weights: { quality: 1 }, ...(izquierda ? { constraints: izquierda } : {}) },
+  ...(derecha ? { constraints: derecha } : {}),
+});
+const leerRuta = (o, ruta) => ruta.split('.').reduce((x, k) => (x === undefined || x === null ? undefined : x[k]), o);
+const conRuta = (ruta, valor) => {
+  const [a, b] = ruta.split('.');
+  return b === undefined ? { [a]: valor } : { [a]: { [b]: valor } };
+};
+/* Un campo que no es ninguno de los que se prueban, para que haya DOS objetos sin que ninguno traiga el campo. */
+const AJENO = (ruta) => (ruta === 'maxSteps' ? { maxRisk: 0.5 } : { maxSteps: 9 });
+
+const propiedadDeCampo = (ruta, estricto, laxo) => {
+  const fallos = [];
+  const mira = (que, obtenido, esperado) => { if (!igual(obtenido, esperado)) fallos.push(`${que}: ${JSON.stringify(obtenido)} ≠ ${JSON.stringify(esperado)}`); };
+  mira('izquierda más estricta', leerRuta(efectivas(conRuta(ruta, estricto), conRuta(ruta, laxo)), ruta), estricto);
+  mira('derecha más estricta', leerRuta(efectivas(conRuta(ruta, laxo), conRuta(ruta, estricto)), ruta), estricto);
+  mira('solo la izquierda lo trae', leerRuta(efectivas(conRuta(ruta, laxo), AJENO(ruta)), ruta), laxo);
+  mira('solo la derecha lo trae', leerRuta(efectivas(AJENO(ruta), conRuta(ruta, laxo)), ruta), laxo);
+  mira('ninguno lo trae', leerRuta(efectivas(AJENO(ruta), AJENO(ruta)), ruta), undefined);
+  const soloIzq = conRuta(ruta, laxo);
+  const soloDer = conRuta(ruta, estricto);
+  if (efectivas(soloIzq, undefined) !== soloIzq) fallos.push('con un solo objeto (izquierda) no se devuelve ese objeto');
+  if (efectivas(undefined, soloDer) !== soloDer) fallos.push('con un solo objeto (derecha) no se devuelve ese objeto');
+  if (efectivas(undefined, undefined) !== undefined) fallos.push('sin ninguno no es undefined');
+  return fallos;
+};
+
+for (const [ruta, estricto, laxo, regla] of [
+  ['maxLatencyMs', 800, 5_000, 'el menor'],
+  ['maxSteps', 3, 7, 'el menor'],
+  ['maxParallel', 2, 4, 'el menor'],
+  ['maxRisk', 0.1, 0.4, 'el menor'],
+  ['deadlineAt', T1, T1 + DIA, 'el menor (el antes)'],
+  ['budget.maxUsd', 0.5, 2, 'el menor'],
+  ['budget.maxCredits', 10, 40, 'el menor'],
+  ['minConfidence', 0.8, 0.3, 'el mayor'],
+  ['quality.minScore', 0.9, 0.6, 'el mayor'],
+]) {
+  const fallos = propiedadDeCampo(ruta, estricto, laxo);
+  check(`90 · R3 · ${ruta}: gana ${regla}, venga de donde venga; un lado solo se conserva; ninguno, undefined`,
+    fallos.length === 0, fallos.join(' · '));
+}
+
+const propiedadDeUnion = (campo) => {
+  const fallos = [];
+  const comoConjunto = (x) => [...new Set(x ?? [])].sort();
+  const union = efectivas({ [campo]: ['cap.a', 'cap.b'] }, { [campo]: ['cap.b', 'cap.c'] })?.[campo];
+  if (!igual(comoConjunto(union), ['cap.a', 'cap.b', 'cap.c'])) fallos.push(`A ∪ B = ${JSON.stringify(union)}`);
+  const soloIzq = efectivas({ [campo]: ['cap.a'] }, AJENO(campo))?.[campo];
+  if (!igual(comoConjunto(soloIzq), ['cap.a'])) fallos.push(`solo la izquierda: ${JSON.stringify(soloIzq)}`);
+  const soloDer = efectivas(AJENO(campo), { [campo]: ['cap.c'] })?.[campo];
+  if (!igual(comoConjunto(soloDer), ['cap.c'])) fallos.push(`solo la derecha: ${JSON.stringify(soloDer)}`);
+  const ninguno = efectivas(AJENO(campo), AJENO(campo))?.[campo];
+  if (!(Array.isArray(ninguno) && ninguno.length === 0)) fallos.push(`ninguno: ${JSON.stringify(ninguno)}`);
+  return fallos;
+};
+for (const campo of ['forbiddenCapabilities', 'requiredCapabilities']) {
+  const fallos = propiedadDeUnion(campo);
+  check(`91 · R3 · ${campo}: la unión —lo que uno prohíbe o exige, se sigue prohibiendo o exigiendo—; un lado solo se conserva; ninguno, lista vacía`,
+    fallos.length === 0, fallos.join(' · '));
+}
+
+check('92 · R3 · budget.prefer: es una preferencia y no un límite; con las dos, manda la petición; con una, esa',
+  efectivas({ budget: { prefer: 'quality' } }, { budget: { prefer: 'cost' } })?.budget?.prefer === 'cost' &&
+  efectivas({ budget: { prefer: 'quality' } }, AJENO('budget'))?.budget?.prefer === 'quality' &&
+  efectivas(AJENO('budget'), { budget: { prefer: 'speed' } })?.budget?.prefer === 'speed' &&
+  efectivas(AJENO('budget'), AJENO('budget'))?.budget === undefined);
+/*
+ * DEUDA DECLARADA (R3, sin corregir a propósito): para `onExceed`, `checks` y
+ * `onBelow` manda la petición, y eso puede RELAJAR lo que pedía el objetivo —
+ * lo contrario de «una restricción no se relaja por venir dos veces»—. Hacerlos
+ * «el más estricto» exige decidir un orden de rigor que el Core no declara (¿es
+ * `regenerate` más estricto que `fail`?), y esa política no se inventa en el
+ * endurecimiento. Estas pruebas FIJAN lo de hoy para que el día que cambie se vea.
+ */
+check('93 · R3 · DEUDA: budget.onExceed — manda la petición, aunque relaje (`fail` del objetivo → `degrade`)',
+  efectivas({ budget: { onExceed: 'fail' } }, { budget: { onExceed: 'degrade' } })?.budget?.onExceed === 'degrade' &&
+  efectivas({ budget: { onExceed: 'fail' } }, AJENO('budget'))?.budget?.onExceed === 'fail');
+check('94 · R3 · DEUDA: quality.checks — manda la petición, aunque quite comprobaciones del objetivo',
+  igual(efectivas({ quality: { checks: ['brand', 'technical'] } }, { quality: { checks: ['consistency'] } })?.quality?.checks, ['consistency']) &&
+  igual(efectivas({ quality: { checks: ['brand'] } }, AJENO('quality'))?.quality?.checks, ['brand']));
+check('95 · R3 · DEUDA: quality.onBelow — manda la petición, aunque relaje (`fail` del objetivo → `accept`)',
+  efectivas({ quality: { onBelow: 'fail' } }, { quality: { onBelow: 'accept' } })?.quality?.onBelow === 'accept' &&
+  efectivas({ quality: { onBelow: 'regenerate' } }, AJENO('quality'))?.quality?.onBelow === 'regenerate');
+
+/* Y lo que dice la fusión es lo que hace quien la lee: A1 descarta con la más estricta, venga de donde venga. */
+const FIABILIDAD_09 = [opcion('opcion-a', { reliability: 0.9, cost: 0.02 }), opcion('opcion-b', { reliability: 0.99, cost: 0.03 })];
+const conRiesgo = (izq, der) => a1.decidir(contexto({ objective: { weights: { reliability: 1, cost: 1 }, constraints: { maxRisk: izq } },
+  constraints: { maxRisk: der }, options: FIABILIDAD_09 }));
+check('96 · R3 · A1 usa la más estricta: maxRisk 0,05 en el objetivo y 0,5 en la petición deja fuera la de riesgo 0,10, y al revés igual',
+  candidata(conRiesgo(0.05, 0.5), 'opcion-a')?.reason === 'constraint:maxRisk' && candidata(conRiesgo(0.5, 0.05), 'opcion-a')?.reason === 'constraint:maxRisk' &&
+  elegidaDe(conRiesgo(0.05, 0.5)) === 'opcion-b' && elegidaDe(conRiesgo(0.5, 0.5)) === 'opcion-a');
+const conMinimoDe = (izq, der) => a1.decidir(contexto({ objective: { weights: { quality: 1 }, constraints: { minConfidence: izq } },
+  constraints: { minConfidence: der }, options: [opcion('opcion-a', { quality: 0.8 })],
+  signals: [{ key: 'option.quality', subject: 'opcion-a', value: 0.8, source: 'derived' }] }));
+check('97 · R3 · y el suelo más alto: confianza 0,6 no llega a un mínimo de 0,9 declarado en cualquiera de los dos lados',
+  conMinimoDe(0.9, 0.1).failure === 'insufficient_evidence' && conMinimoDe(0.1, 0.9).failure === 'insufficient_evidence' &&
+  conMinimoDe(0.1, 0.1).status === 'decided', `${conMinimoDe(0.9, 0.1).status} · ${conMinimoDe(0.1, 0.9).status} · ${conMinimoDe(0.1, 0.1).status}`);
+const pedirConParalelo = (izq, der) => ciclo.decidir(peticion({ decision: decisionBase({ objective: { ...OBJ_CICLO, constraints: { maxParallel: izq } },
+  constraints: { maxParallel: der } }) }));
+check('98 · R3 · y A2/A4 componen con el paralelismo más estrecho: 1 en el objetivo y 4 en la petición compone lo mismo que 1 en los dos',
+  igual(COMPOSICION(pedirConParalelo(1, 4)), COMPOSICION(pedirConParalelo(1, 1))) && igual(COMPOSICION(pedirConParalelo(4, 1)), COMPOSICION(pedirConParalelo(1, 1))) &&
+  !igual(COMPOSICION(pedirConParalelo(4, 4)), COMPOSICION(pedirConParalelo(1, 1))));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
