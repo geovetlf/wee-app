@@ -25,18 +25,28 @@
  *  J. R2 — la forma canónica: total, determinista y acotada de verdad.
  *  K. R3 — `restriccionesEfectivas`, campo a campo: su regla, en los dos sentidos,
  *     con un solo lado y con ninguno.
+ *  L. R4 — la integridad de esta misma suite: la 41 llega a A1 (y la 41b dice
+ *     dónde para el ciclo), la 50 usa el vocabulario real de `Budget`, y la
+ *     igualdad con que se compara no confunde lo que el JSON calla.
  */
 import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 
 const require_ = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const lib = (p) => require_(path.resolve(here, '../lib/' + p));
-const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/*
+ * Igualdad ESTRICTA (R4): el mismo JSON —que ve el orden de las claves— Y la misma
+ * estructura —que ve lo que el JSON calla: `NaN` frente a `null`, `undefined`
+ * frente a una clave ausente, `-0` frente a `0`—. Solo con el JSON, dos
+ * decisiones distintas en eso pasaban por «la misma, byte a byte».
+ */
+const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b) && isDeepStrictEqual(a, b);
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 /* Una petición rota tiene que dar un DIAGNÓSTICO, no una excepción. */
 const sinReventar = (fn) => { try { return fn(); } catch (e) { return { lanzo: String(e?.message ?? e) }; } };
@@ -496,18 +506,52 @@ const EN_PASOS = [
   ['su entrada', (k) => ({ ...paso('b', ['a']), input: { [k]: MARCA } })],
   ['su raíz', (k) => ({ ...paso('b', ['a']), [k]: MARCA })],
 ];
+/*
+ * 41 · Una implementación dentro de un PASO. Hasta R4 esto era una sola
+ * comprobación que decía «ninguna estrategia que la lleve compite» sin llegar
+ * nunca a A1: A3 las apartaba antes —medido: en los 36 casos A1 recibió cero
+ * candidatas—, así que esa mitad se cumplía sin mirarse. Ahora son dos, y cada
+ * una prueba lo que dice: la 41 LLEVA la estrategia hasta A1 —una de las que A3
+ * genera de verdad, con la clave puesta y unos valores que lo ganarían todo—, y
+ * la 41b dice DÓNDE se para en el ciclo.
+ */
+const ESTRATEGIAS_41 = R.strategies?.estrategias ?? [];
+const GANADORA = { latency: 1, reliability: 1 };
+const contaminar = (alt, pasoMalo) => ({
+  id: 'contaminada',
+  value: { ...alt.value, id: 'contaminada', steps: alt.value.steps.map((s) => (s.id === 'b' ? pasoMalo(s) : s)) },
+  values: GANADORA,
+});
+const conPasoMalo = {
+  'sus pistas': (k) => (s) => ({ ...s, hints: { ...(s.hints ?? {}), [k]: MARCA } }),
+  'su entrada': (k) => (s) => ({ ...s, input: { ...(s.input ?? {}), [k]: MARCA } }),
+  'su raíz': (k) => (s) => ({ ...s, [k]: MARCA }),
+};
+const decidirEntre = (opciones) => a1.decidir(contexto({ objective: OBJ_CICLO, options: opciones, signals: R.strategies?.signals ?? [] }));
+/* Control: la misma, LIMPIA, con esos valores, gana. Sin él, «aunque lo gane todo» no probaría nada. */
+const controlLimpio = decidirEntre([...ESTRATEGIAS_41, contaminar(ESTRATEGIAS_41[0], (s) => s)]);
+for (const [donde] of EN_PASOS) {
+  const malas = CLAVES.filter((k) => {
+    const d = sinReventar(() => decidirEntre([...ESTRATEGIAS_41, contaminar(ESTRATEGIAS_41[0], conPasoMalo[donde](k))]));
+    const c = candidata(d, 'contaminada');
+    return !(!('lanzo' in d) && d.status === 'decided' && c?.eligible === false && c?.reason === `authority:${k}` &&
+      c?.score === undefined && elegidaDe(d) !== 'contaminada' && limpio(d.selected));
+  });
+  check(`41 · A1 · una estrategia con una implementación en un paso (${donde}) llega a A1 y no compite, aunque lo gane todo: fuera por autoridad, y se elige otra`,
+    ESTRATEGIAS_41.length > 1 && elegidaDe(controlLimpio) === 'contaminada' && malas.length === 0,
+    `control=${elegidaDe(controlLimpio)} · ${malas.join(', ') || `${CLAVES.length} claves`}`);
+}
 for (const [donde, pasoMalo] of EN_PASOS) {
-  let sinEntrega = 0;
   const malas = CLAVES.filter((k) => {
     const t = { id: 'T', steps: [paso('a'), pasoMalo(k)] };
     const r = sinReventar(() => ciclo.decidir(peticion({ tarea: t, decision: decisionBase({ signals: senalesDe(t) }) })));
-    if (r.entrega === undefined) sinEntrega++;
-    const laLlevan = (r.decision?.candidates ?? []).filter((c) => A.violacionesEn(c.value, 'c').length > 0);
-    return !(!('lanzo' in r) && (r.entrega === undefined || limpio(r.entrega)) &&
-      laLlevan.every((c) => c.eligible === false && c.reason.startsWith('authority:')));
+    const rechazadas = r.strategies?.rechazadas ?? [];
+    return !(!('lanzo' in r) && rechazadas.length > 0 && rechazadas.every((x) => x.reason === 'authority') &&
+      (r.strategies?.estrategias ?? []).length === 0 && (r.decision?.candidates ?? []).length === 0 &&
+      r.status !== 'decided' && r.entrega === undefined);
   });
-  check(`41 · A9 · una implementación en un paso de la tarea (${donde}): ninguna estrategia que la lleve compite, y la entrega nunca la lleva`,
-    malas.length === 0, `${malas.join(', ') || 'ninguna fuga'} · sin entrega en ${sinEntrega}/${CLAVES.length}`);
+  check(`41b · A9 · y por el ciclo (${donde}), A3 la aparta antes, por autoridad: A1 no recibe ninguna y no hay entrega`,
+    malas.length === 0, malas.join(', ') || `${CLAVES.length} claves`);
 }
 const enfoqueMalo = ciclo.decidir(peticion({ tarea: undefined, enfoques: [
   { id: 'enfoque-1', value: { ...TAREA, providerId: MARCA }, values: { quality: 0.99, cost: 0.001 } }, ENFOQUES[1]] }));
@@ -568,7 +612,8 @@ check('48 · con SUS tipos, no con una copia: `Budget` de core/cost y `QualityRe
 check('49 · y los destinos son un vocabulario cerrado: router, orchestrator, execution, decision',
   [...new Set(Object.values(A.DESTINO_DEL_REQUISITO))].sort().join(',') === 'decision,execution,orchestrator,router');
 
-const EXIGIDO = { maxLatencyMs: 5000, budget: { maxUsd: 1, onExceed: 'reject' }, quality: { minScore: 0.7 }, maxParallel: 2,
+/* `onExceed` es del vocabulario de `Budget` —`fail` | `degrade`, el mismo que valida el Router—; hasta R4 decía `reject`, que no existe. */
+const EXIGIDO = { maxLatencyMs: 5000, budget: { maxUsd: 1, onExceed: 'fail' }, quality: { minScore: 0.7 }, maxParallel: 2,
   deadlineAt: T1, maxSteps: 6, maxRisk: 0.2, minConfidence: 0.1, forbiddenCapabilities: ['otra.cosa'], requiredCapabilities: [CAP] };
 const reparto = A.repartirRequisitos(EXIGIDO);
 check('50 · el reparto: cada requisito a su lector, con su valor tal cual —sin calcular nada—',
@@ -1081,6 +1126,19 @@ const pedirConParalelo = (izq, der) => ciclo.decidir(peticion({ decision: decisi
 check('98 · R3 · y A2/A4 componen con el paralelismo más estrecho: 1 en el objetivo y 4 en la petición compone lo mismo que 1 en los dos',
   igual(COMPOSICION(pedirConParalelo(1, 4)), COMPOSICION(pedirConParalelo(1, 1))) && igual(COMPOSICION(pedirConParalelo(4, 1)), COMPOSICION(pedirConParalelo(1, 1))) &&
   !igual(COMPOSICION(pedirConParalelo(4, 4)), COMPOSICION(pedirConParalelo(1, 1))));
+
+console.log('\n─── L. R4 · La integridad de esta suite ───');
+
+check('99 · R4 · la igualdad con que se compara esta suite no confunde lo que el JSON calla: NaN ≠ null, undefined ≠ ausente, -0 ≠ 0',
+  !igual({ a: NaN }, { a: null }) && !igual({ a: undefined }, {}) && !igual([-0], [0]) && !igual({ b: 1, a: 2 }, { a: 2, b: 1 }) &&
+  igual({ a: [1, { b: 2, c: undefined }] }, { a: [1, { b: 2, c: undefined }] }) && igual(NaN, NaN));
+/* El vocabulario se lee de donde se declara —el tipo `Budget` y la lista con que valida el Router—, no se supone. */
+const srcCost = sinComentarios(leer('functions/src/core/cost.ts'));
+const alExcederDeBudget = (srcCost.match(/onExceed\?:\s*([^;]+);/)?.[1] ?? '').match(/'([a-z]+)'/g)?.map((x) => x.slice(1, -1)).sort() ?? [];
+const alExcederDelRouter = (srcRouter.match(/const AL_EXCEDER[^=]*=\s*\[([^\]]*)\]/)?.[1] ?? '').match(/'([a-z]+)'/g)?.map((x) => x.slice(1, -1)).sort() ?? [];
+check('100 · R4 · el ejemplo de la 50 habla el vocabulario de `Budget`, el mismo que valida el Router: onExceed ∈ {degrade, fail}',
+  igual(alExcederDeBudget, ['degrade', 'fail']) && igual(alExcederDelRouter, alExcederDeBudget) && alExcederDeBudget.includes(EXIGIDO.budget.onExceed),
+  `Budget: ${alExcederDeBudget.join('|')} · Router: ${alExcederDelRouter.join('|')} · ejemplo: ${EXIGIDO.budget.onExceed}`);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
