@@ -44,7 +44,8 @@
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmDescriptor } from './types';
 import { Contador, crearContador, presupuestoEfectivo } from './budget';
-import { Evidence, Signal, formaCanonica } from './signals';
+import { Evidence, Signal } from './signals';
+import { formaCanonica } from './canonical';
 import { Objective, ObjectiveAxis, pesosNormalizados } from './objective';
 import { HistoryWindow } from './decision';
 import {

@@ -69,6 +69,8 @@ console.log('\n─── A. La capa es pura, y no duplica a nadie ───');
 const MODULOS = ['authority', 'baseline', 'budget', 'capability', 'context', 'context-engine', 'decision', 'decision-engine',
   'decomposition', 'decomposition-engine', 'feedback', 'feedback-engine', 'index',
   'integration', 'integration-cycle',
+  /* S2-A · R2: la forma canónica —total y acotada— con la que se desempata por contenido. */
+  'canonical',
   'learning', 'objective', 'optimization',
   'optimization-engine', 'parallelization',
   'parallelization-engine', 'recovery', 'recovery-engine', 'registry', 'scoring', 'signals',

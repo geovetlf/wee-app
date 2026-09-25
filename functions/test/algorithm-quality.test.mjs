@@ -22,6 +22,7 @@
  *
  *  I. R1 — lo que no es un número finito, o una fuente que no es del vocabulario,
  *     no hace señal: no desempata ni es evidencia.
+ *  J. R2 — la forma canónica: total, determinista y acotada de verdad.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -797,6 +798,151 @@ check('77 · R1 · y sin validar tampoco: confianza NaN o fuente heredada valen 
   A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'measured' }) === 1 &&
   A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'model', confidence: 0.25 }) === 0.25 &&
   A.confianzaDeEvidencia([{ claim: 'x', supports: true, signal: { key: 'a.b', value: 1, source: 'toString' } }]).value === 0);
+
+console.log('\n─── J. R2 · La forma canónica: total, determinista y acotada ───');
+
+/* Si alguna vez lanzara, cada comprobación tiene que CAER por aserción, no reventar la suite: se devuelve un texto que no casa con nada. */
+const FC = (v) => { const r = sinReventar(() => A.formaCanonica(v)); return typeof r === 'string' ? r : `<lanzó: ${r.lanzo}>`; };
+const LIM = A.LIMITES_DE_FORMA_CANONICA;
+/* Lo más que puede ocupar: la salida, más la última clave y el último valor que entraron, más los cierres. */
+const TOPE_DE_FORMA = LIM.salida + 2 * LIM.texto + 128;
+/* Para comparar resultados que llevan BigInt o ciclos sin que la comparación reviente. */
+const serializarSeguro = (x) => {
+  const vistos = new WeakSet();
+  return JSON.stringify(x, (k, v) => {
+    if (typeof v === 'bigint') return `${v}n`;
+    if (typeof v === 'object' && v !== null) { if (vistos.has(v)) return '[repetido]'; vistos.add(v); }
+    return v;
+  });
+};
+
+const propio = { nombre: 'c' }; propio.yo = propio;
+const cicloA = { nombre: 'a' }; const cicloB = { nombre: 'b' }; cicloA.hijo = cicloB; cicloB.hijo = cicloA;
+const revocado = Proxy.revocable({}, {}); revocado.revoke();
+const hondo = (fondo) => { let x = fondo; for (let i = 0; i < 10_000; i++) x = Array.isArray(fondo) ? [x] : { x }; return x; };
+const ancho = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`k${i}`, i]));
+const HOSTILES = [
+  ['un ciclo propio', propio], ['un ciclo a↔b', cicloA],
+  ['un BigInt', 12_345_678_901_234_567_890n], ['un BigInt negativo', -(2n ** 70n)], ['un BigInt de 30 000 dígitos', 7n ** 35_000n],
+  ['NaN', NaN], ['Infinity', Infinity], ['-Infinity', -Infinity], ['-0', -0], ['undefined', undefined], ['null', null],
+  ['un símbolo', Symbol('s')], ['una función', () => 1],
+  ['un proxy revocado', revocado.proxy], ['un proxy cuyo ownKeys revienta', new Proxy({}, { ownKeys() { throw new Error('ownKeys'); } })],
+  ['un getter que revienta', Object.defineProperty({}, 'x', { enumerable: true, get() { throw new Error('getter'); } })],
+  ['un array tipado', new Float64Array(8)], ['un Map', new Map([[1, 2]])], ['una fecha', new Date(0)], ['un objeto sin prototipo', Object.create(null)],
+  ['10 000 objetos anidados', hondo({ fondo: true })], ['10 000 arrays anidados', hondo([])],
+  ['un array de 200 000', Array.from({ length: 200_000 }, (_, i) => i)], ['un objeto de 200 000 claves', ancho(200_000)],
+  ['un texto de 1 000 000', 'x'.repeat(1_000_000)], ['un array con huecos', [, 1, , 2]],
+];
+const reventones = HOSTILES.map(([que, v]) => [que, sinReventar(() => A.formaCanonica(v))])
+  .filter(([, r]) => typeof r !== 'string' || r.length > TOPE_DE_FORMA);
+check('78 · R2 · total: ni un ciclo, ni un BigInt, ni un proxy o un getter que revientan la hacen lanzar, y nada pasa del tope',
+  reventones.length === 0, reventones.map(([que, r]) => `${que}: ${typeof r === 'string' ? r.length : r.lanzo}`).join(' · ') || `${HOSTILES.length} valores`);
+
+const conOtroOrden = (o) => Object.fromEntries(Object.entries(o).reverse());
+const cicloConOrden = (primero) => { const c = primero ? { b: 1, a: 2n } : { a: 2n, b: 1 }; c.yo = c; return c; };
+const parCon = (orden) => { const x = orden ? { n: 'x', m: NaN } : { m: NaN, n: 'x' }; const y = { n: 'y' }; x.otro = y; y.otro = x; return x; };
+const PARES_IGUALES = [
+  [{ a: 1, b: 2 }, { b: 2, a: 1 }],
+  [{ x: { b: [1, { d: 2, c: 3 }], a: null } }, { x: { a: null, b: [1, { c: 3, d: 2 }] } }],
+  [{ big: 2n ** 80n, nan: NaN, inf: -Infinity, cero: -0 }, conOtroOrden({ big: 2n ** 80n, nan: NaN, inf: -Infinity, cero: -0 })],
+  [cicloConOrden(true), cicloConOrden(false)],
+  [parCon(true), parCon(false)],
+];
+const desiguales = PARES_IGUALES.filter(([x, y]) => FC(x) !== FC(y));
+check('79 · R2 · determinista: el orden de las claves no cuenta —tampoco con ciclos, BigInt, NaN o -0— y lo mismo da lo mismo',
+  desiguales.length === 0 && HOSTILES.every(([, v]) => sinReventar(() => FC(v)) === sinReventar(() => FC(v))),
+  desiguales.map(([x]) => FC(x).slice(0, 60)).join(' | '));
+
+const GRUPOS_DISTINTOS = [
+  ['1 · "1" · 1n · true · [1] · {0:1}', [1, '1', 1n, true, [1], { 0: 1 }]],
+  ['NaN · null · undefined · "NaN"', [NaN, null, undefined, 'NaN']],
+  ['Infinity · -Infinity · "Infinity"', [Infinity, -Infinity, 'Infinity']],
+  ['0 · -0', [0, -0]],
+  ['[1,2] · [2,1]', [[1, 2], [2, 1]]],
+  ['2^64 · 2^64+1 (Number los junta)', [2n ** 64n, 2n ** 64n + 1n]],
+  ['5n · -5n', [5n, -5n]],
+  ['separadores dentro de un texto', [['a,s:b', 'c'], ['a', 'b,s:c']]],
+  ['una clave con undefined · sin ella', [{ a: 'x' }, { a: 'x', b: undefined }]],
+  ['un Map · un objeto vacío', [new Map(), {}]],
+];
+const juntados = GRUPOS_DISTINTOS.filter(([, vs]) => new Set(vs.map(FC)).size !== vs.length).map(([que]) => que);
+check('80 · R2 · exacta dentro de los topes: tipos, signos, precisión de un BigInt, orden de un array y separadores no se confunden',
+  juntados.length === 0 && Number(2n ** 64n) === Number(2n ** 64n + 1n), juntados.join(' · '));
+
+check('81 · R2 · un ciclo se escribe como un salto a su antepasado, y dos iguales dan lo mismo sin desplegarse',
+  FC(propio).includes('^1') && FC(cicloA).includes('^2') && FC(propio).length < 64 && FC(cicloA).length < 96 &&
+  FC(propio) !== FC({ nombre: 'c', yo: { nombre: 'c', yo: {} } }), `${FC(propio)} · ${FC(cicloA)}`);
+
+const ANCHOS = [200, 1_000, 10_000, 50_000, 200_000];
+const anchurasMal = ANCHOS.filter((n) => {
+  const arr = FC(Array.from({ length: n }, (_, i) => i));
+  const obj = FC(ancho(n));
+  const txt = FC('y'.repeat(n));
+  const arrOk = arr.startsWith(`a${n}[`) && arr.length <= TOPE_DE_FORMA &&
+    (n > LIM.anchura ? arr.endsWith(',…]') && arr.split(',').length === LIM.anchura + 1 : !arr.includes('…'));
+  const objOk = n > LIM.anchura ? obj === `o${n}{…}` : obj.startsWith(`o${n}{`) && !obj.includes('…');
+  const txtOk = txt === (n > LIM.texto ? `s${n}:${'y'.repeat(LIM.texto)}…` : `s${n}:${'y'.repeat(n)}`);
+  return !(arrOk && objOk && txtOk);
+});
+check('82 · R2 · anchura: arrays, objetos y textos de 200 a 200 000 se escriben hasta su tope, con su tamaño real y «…», y ni un elemento más',
+  anchurasMal.length === 0, anchurasMal.join(', ') || ANCHOS.join(' · '));
+const mil = Array.from({ length: 1_000 }, (_, i) => i);
+const milOtro = mil.map((x, i) => (i === 300 ? -1 : x));
+check('82b · R2 · y el límite se dice: el tamaño real distingue, y lo que queda más allá de la anchura, no (dos arrays que solo difieren en el 301.º comparten forma)',
+  FC(mil) !== FC(Array.from({ length: 1_001 }, (_, i) => i)) && FC(mil) === FC(milOtro) && FC(mil).endsWith(',…]'));
+
+check('83 · R2 · profundidad: 10 000 niveles no la hacen bajar más de ocho; lo de debajo se resume',
+  FC(hondo({ fondo: true })).includes('o{…}') && FC(hondo([])).includes('a1[…]') &&
+  FC(hondo({ fondo: true })).length < 200 && FC(hondo([])).length < 200, FC(hondo({ fondo: true })));
+
+const muchasHojas = Array.from({ length: 100 }, () => Array.from({ length: 100 }, (_, i) => i));
+const formaDeHojas = FC(muchasHojas);
+const hojasEscritas = (formaDeHojas.match(/[[,]d\d/g) ?? []).length;
+check('84 · R2 · nodos: diez mil hojas no se visitan todas; se para en su presupuesto y lo marca',
+  formaDeHojas.includes('!') && hojasEscritas < LIM.nodos && formaDeHojas.length <= TOPE_DE_FORMA, `${hojasEscritas} hojas escritas`);
+
+const largos = Array.from({ length: 200 }, (_, i) => Array.from({ length: 20 }, (_, j) => String.fromCharCode(97 + ((i + j) % 26)).repeat(LIM.texto)));
+const formaLarga = FC(largos);
+const textosEscritos = (formaLarga.match(new RegExp(`s${LIM.texto}:`, 'g')) ?? []).length;
+check('85 · R2 · salida: textos largos no la hacen crecer sin fin; se para al llenar su tope, mucho antes que el de nodos',
+  formaLarga.includes('!') && formaLarga.length <= TOPE_DE_FORMA && textosEscritos < LIM.nodos / 4, `${formaLarga.length} caracteres · ${textosEscritos} textos`);
+
+let enumeraciones = 0;
+const contado = new Proxy({ a: 1, b: 2, c: 3, d: 4, e: 5 }, { ownKeys(t) { enumeraciones++; return Reflect.ownKeys(t); } });
+FC(Array.from({ length: 100 }, () => contado));
+check('86 · R2 · un objeto referenciado cien veces se enumera UNA: su anchura no se paga por cada referencia',
+  enumeraciones === 1, `${enumeraciones} enumeraciones`);
+
+/* Y donde se usa: dos señales empatadas en todo lo que decide, distintas en un campo que no. */
+const conCampo = (nota, meta) => ({ key: 'option.quality', subject: 'o1', value: 0.5, source: 'measured', at: T1, sampleSize: 20, nota, meta });
+const cicloEnCampo = {}; cicloEnCampo.yo = cicloEnCampo;
+const PARES_EN_SENALES = [
+  ['un ciclo', [conCampo('x', cicloEnCampo), conCampo('y', cicloEnCampo)]],
+  ['un BigInt', [conCampo('x', 10n), conCampo('y', 11n)]],
+  ['un array de 200 000', [conCampo('x', Array(200_000).fill(1)), conCampo('y', Array(200_000).fill(1))]],
+];
+const senalesMal = PARES_EN_SENALES.filter(([, par]) => {
+  const r1 = sinReventar(() => A.resolverSenales(par));
+  const r2 = sinReventar(() => A.resolverSenales([...par].reverse()));
+  return 'lanzo' in r1 || 'lanzo' in r2 || r1.resueltas[0] !== r2.resueltas[0] || r1.resueltas.length !== 1;
+}).map(([que]) => que);
+check('87 · R2 · en `resolverSenales`: dos señales empatadas con un ciclo, un BigInt o un campo enorme ni revientan ni dependen del orden',
+  senalesMal.length === 0, senalesMal.join(', '));
+
+const gemeloConBigInt = { ...original, etiqueta: 10n };
+const gemeloConCiclo = { ...original, etiqueta: cicloEnCampo };
+const OTROS_A8 = APRENDIDO.filter((a) => a !== original);
+const a8Mal = [[gemeloConBigInt, gemeloConCiclo]].filter(([g1, g2]) => {
+  const r1 = sinReventar(() => pedirContexto([...OTROS_A8, g1, g2]));
+  const r2 = sinReventar(() => pedirContexto([g2, ...OTROS_A8, g1]));
+  return 'lanzo' in r1 || 'lanzo' in r2 || serializarSeguro(r1) !== serializarSeguro(r2);
+});
+check('88 · R2 · en A8: dos fotos duplicadas con un BigInt o un ciclo tampoco revientan ni dependen del orden',
+  a8Mal.length === 0);
+
+check('89 · R2 · los topes son explícitos, están congelados y son los declarados: profundidad 8, anchura 256, nodos 4096, texto 256, salida 65 536',
+  Object.isFrozen(LIM) && igual(Object.keys(LIM).sort(), ['anchura', 'nodos', 'profundidad', 'salida', 'texto']) &&
+  LIM.profundidad === 8 && LIM.anchura === 256 && LIM.nodos === 4096 && LIM.texto === 256 && LIM.salida === 65_536);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);

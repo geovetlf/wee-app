@@ -35,6 +35,7 @@
 export * from './types';
 export * from './capability';
 export * from './signals';
+export * from './canonical';
 export * from './objective';
 export * from './budget';
 export * from './strategy';

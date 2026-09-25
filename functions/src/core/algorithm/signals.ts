@@ -32,6 +32,8 @@
  */
 
 import { CAMPOS_PROHIBIDOS } from '../observability';
+/* La clave de desempate por contenido (S2-A · R2): total y acotada, en su propio archivo. */
+import { formaCanonica } from './canonical';
 
 /**
  * DE DÓNDE SALE UN DATO.
@@ -368,21 +370,6 @@ export interface ConflictoDeSenales {
  * idénticas no son un desacuerdo, y llamarlas así llenaría de ruido cualquier
  * informe.
  */
-/**
- * UN VALOR ESCRITO SIN DEPENDER DEL ORDEN DE SUS CLAVES (S2-A).
- *
- * Para desempatar por CONTENIDO cuando todo lo que significa algo empata: dos
- * cosas con la misma forma canónica son la misma, y da igual cuál quede. No es
- * un criterio de calidad y no ordena nada que alguien vaya a leer como tal.
- * Acotado en profundidad, como `violacionesEn`: más abajo se escribe tal cual.
- */
-export const formaCanonica = (v: unknown, profundidad = 0): string => {
-  if (profundidad > 8 || typeof v !== 'object' || v === null) return JSON.stringify(v) ?? String(v);
-  if (Array.isArray(v)) return `[${v.map((x) => formaCanonica(x, profundidad + 1)).join(',')}]`;
-  const o = v as Record<string, unknown>;
-  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${formaCanonica(o[k], profundidad + 1)}`).join(',')}}`;
-};
-
 /**
  * Lo que dice una señal, en una forma que se compara igual venga de donde venga:
  * primero el valor y la confianza, y SOLO si empatan, la señal ENTERA. Sin lo
