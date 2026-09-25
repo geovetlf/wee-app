@@ -17,6 +17,11 @@
  *  F. Confianza e incertidumbre.
  *  G. El resultado de una decisión.
  *  H. Las deudas, declaradas.
+ *
+ * Y el endurecimiento previo a la integración (R1–R6), cada cosa con su sección:
+ *
+ *  I. R1 — lo que no es un número finito, o una fuente que no es del vocabulario,
+ *     no hace señal: no desempata ni es evidencia.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -725,6 +730,73 @@ check('71 · DEUDA: una medición que CONTRADICE lo declarado cuenta hoy como a 
 check('72 · DEUDA: la muestra no entra en la fuerza de una señal —9 y 9 000 mediciones pesan lo mismo como evidencia—',
   A.confianzaDeEvidencia([{ claim: 'x', supports: true, signal: medida('option.quality', 'o', 0.8, { sampleSize: 9 }) }]).value ===
   A.confianzaDeEvidencia([{ claim: 'x', supports: true, signal: medida('option.quality', 'o', 0.8, { sampleSize: 9000 }) }]).value);
+
+console.log('\n─── I. R1 · Lo que no es un número finito no desempata ───');
+
+/*
+ * Lo que S2-A dejó abierto: `sampleSize: NaN` pasaba `senalValida` —`NaN < 0` es
+ * falso— y el orden por muestra de `resolverSenales` devolvía `NaN`, que `sort`
+ * toma por empate: volvía a ganar la que llegaba antes. Y una confianza `NaN` se
+ * leía como ausente, así que pesaba lo que su fuente. Ninguna de las dos es una
+ * señal: no entra, igual que una mal formada.
+ */
+const sobreA = (value, extra = {}) => ({ key: 'option.quality', subject: 'opcion-a', value, source: 'measured', at: T1, ...extra });
+const ROTAS = [
+  ['sampleSize NaN', sobreA(0.9, { sampleSize: NaN })],
+  ['sampleSize Infinity', sobreA(0.9, { sampleSize: Infinity })],
+  ['sampleSize -Infinity', sobreA(0.9, { sampleSize: -Infinity })],
+  ['confidence NaN', sobreA(0.9, { sampleSize: 20, confidence: NaN })],
+  ...['toString', 'constructor', '__proto__', 'hasOwnProperty', 'valueOf'].map((f) => [`source ${f}`, { ...sobreA(0.9, { sampleSize: 20 }), source: f }]),
+];
+const aceptadasRotas = ROTAS.filter(([, s]) => A.senalValida(s)).map(([nombre]) => nombre);
+check('73 · R1 · una muestra o una confianza que no son números finitos, o una fuente que no es del vocabulario, no hacen señal',
+  aceptadasRotas.length === 0, aceptadasRotas.join(', ') || `${ROTAS.length} rechazadas`);
+const BUENAS = [
+  sobreA(0.9, { sampleSize: 0 }), sobreA(0.9, { sampleSize: 2.5 }), sobreA(0.9, { sampleSize: 3000 }),
+  sobreA(0.9, { confidence: 0 }), sobreA(0.9, { confidence: 1 }), sobreA(0.9, { confidence: 0.35 }),
+  ...Object.keys(A.PESO_DE_FUENTE).map((f) => ({ ...sobreA(0.5), source: f })),
+];
+check('73b · R1 · y lo válido sigue valiendo: muestra 0, fraccionaria o grande, confianza en sus bordes, y las seis fuentes',
+  Object.keys(A.PESO_DE_FUENTE).length === 6 && BUENAS.every((s) => A.senalValida(s)));
+
+/* X rota, Y válida y con OTRO valor: si X entrara, el orden elegiría entre ellas. */
+const Y_VALIDA = sobreA(0.2, { sampleSize: 20 });
+const enLosDosOrdenes = ROTAS.filter(([, x]) => {
+  const r1 = A.resolverSenales([x, Y_VALIDA]);
+  const r2 = A.resolverSenales([Y_VALIDA, x]);
+  return !(igual(r1, r2) && r1.resueltas.length === 1 && r1.resueltas[0] === Y_VALIDA && r1.conflictos.length === 0);
+}).map(([nombre]) => nombre);
+check('74 · R1 · X rota e Y válida, en los dos órdenes: la misma resolución, solo con Y, y sin un conflicto que contar',
+  enLosDosOrdenes.length === 0, enLosDosOrdenes.join(', '));
+
+/* El caso 18 —el que S2-A corrigió— con la muestra de la primera en NaN. */
+const CASO_18_ROTO = [
+  medida('option.quality', 'opcion-a', 0.8, { at: T1, confidence: 0.9, sampleSize: NaN }),
+  medida('option.quality', 'opcion-a', 0.7, { at: T1, confidence: 0.3 }),
+];
+const rotoDeUnaForma = conMinimo(CASO_18_ROTO);
+const rotoDeLaOtra = conMinimo([...CASO_18_ROTO].reverse());
+check('75 · R1 · el caso 18 con una muestra NaN: el orden ya no decide, y la señal rota no llega a la evidencia',
+  igual(rotoDeUnaForma, rotoDeLaOtra) && igual(rotoDeUnaForma.confidence, rotoDeLaOtra.confidence) &&
+  (rotoDeUnaForma.candidates ?? []).length === 2 &&
+  !JSON.stringify(rotoDeUnaForma).includes('"confidence":0.9'),
+  `${rotoDeUnaForma.status}/${rotoDeUnaForma.confidence?.value} · ${rotoDeLaOtra.status}/${rotoDeLaOtra.confidence?.value}`);
+
+const SOLO_CONFIANZA_NAN = a1.decidir(contexto({ objective: { weights: { quality: 1 } }, options: [opcion('o', { quality: 0.8 })],
+  signals: [medida('option.quality', 'o', 0.8, { confidence: NaN })] }));
+check('76 · R1 · una confianza NaN no es evidencia: sin nada más, confianza 0 e `unknown`, no la del peso de su fuente',
+  SOLO_CONFIANZA_NAN.status === 'decided' && SOLO_CONFIANZA_NAN.evidence.length === 0 &&
+  SOLO_CONFIANZA_NAN.confidence.value === 0 && SOLO_CONFIANZA_NAN.uncertainty === 'unknown',
+  `${SOLO_CONFIANZA_NAN.evidence.length} evidencia(s) · ${SOLO_CONFIANZA_NAN.confidence.value}`);
+
+/* Y fuera de la puerta —quien llame a `confianzaDeSenal` sin validar— tampoco se convierte en una confianza. */
+check('77 · R1 · y sin validar tampoco: confianza NaN o fuente heredada valen 0, nunca el peso de la fuente ni NaN',
+  A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'measured', confidence: NaN }) === 0 &&
+  A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'measured', confidence: 7 }) === 0 &&
+  A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'toString' }) === 0 &&
+  A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'measured' }) === 1 &&
+  A.confianzaDeSenal({ key: 'a.b', value: 1, source: 'model', confidence: 0.25 }) === 0.25 &&
+  A.confianzaDeEvidencia([{ claim: 'x', supports: true, signal: { key: 'a.b', value: 1, source: 'toString' } }]).value === 0);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);

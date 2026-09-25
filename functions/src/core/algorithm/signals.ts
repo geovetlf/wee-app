@@ -117,16 +117,30 @@ export const frescura = (signal: Signal, ahora: number, vidaMs: number): number 
 };
 
 /**
+ * ¿Es una fuente del vocabulario? Solo las claves PROPIAS de `PESO_DE_FUENTE`:
+ * con `in`, `toString` o `constructor` —heredadas de cualquier objeto— pasaban
+ * por fuentes, y su «peso» era una función que acababa en `NaN` (S2-A · R1).
+ */
+const esFuente = (x: unknown): x is SignalSource =>
+  typeof x === 'string' && Object.prototype.hasOwnProperty.call(PESO_DE_FUENTE, x);
+
+/**
  * Lo que se cree una señal cuando no lo dice: su fuente, nada más.
  *
  * No se mezcla la frescura aquí. Quien decida si una señal vieja vale menos
  * necesita saber cuál de las dos cosas falló, y un número que las funde ya no
  * lo permite.
+ *
+ * Y lo que no es una confianza no se convierte en una (S2-A · R1): una
+ * `confidence` PRESENTE que no es un número finito entre 0 y 1 vale 0 —antes se
+ * leía como ausente y pesaba lo que su fuente, 1 si era `measured`—. Para una
+ * señal válida nada cambia: si la trae, `senalValida` ya exigió que lo fuera.
  */
-export const confianzaDeSenal = (signal: Signal): number =>
-  typeof signal.confidence === 'number' && signal.confidence >= 0 && signal.confidence <= 1
-    ? signal.confidence
-    : PESO_DE_FUENTE[signal.source] ?? 0;
+export const confianzaDeSenal = (signal: Signal): number => {
+  const c = signal?.confidence;
+  if (c !== undefined) return typeof c === 'number' && Number.isFinite(c) && c >= 0 && c <= 1 ? c : 0;
+  return esFuente(signal?.source) ? PESO_DE_FUENTE[signal.source] : 0;
+};
 
 const NOMBRE_DE_SENAL = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
 
@@ -136,6 +150,14 @@ const NOMBRE_DE_SENAL = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
  * Lo segundo importa tanto como lo primero: se reutiliza `CAMPOS_PROHIBIDOS` de
  * la traza en vez de escribir otra lista, porque dos listas de secretos acaban
  * siendo una lista de secretos y otra desactualizada.
+ *
+ * Los números con que se ORDENA una señal —la muestra y la confianza— tienen que
+ * ser FINITOS (S2-A · R1). `NaN` pasaba las comprobaciones de rango —`NaN < 0` es
+ * falso— y dentro de `resolverSenales` el orden por muestra devolvía `NaN`, que
+ * `sort` toma por empate: volvía a ganar la que llegaba antes. Medido: el caso
+ * que S2-A corrigió se reproducía entero con `sampleSize: NaN`. Una muestra
+ * infinita tampoco es una muestra. Esa señal no es válida y no entra, como
+ * cualquier otra mal formada; ninguna se arregla ni se convierte en otra cosa.
  */
 export const senalValida = (s: unknown): s is Signal => {
   if (typeof s !== 'object' || s === null || Array.isArray(s)) return false;
@@ -147,11 +169,11 @@ export const senalValida = (s: unknown): s is Signal => {
   if (typeof v !== 'number' && typeof v !== 'boolean' && typeof v !== 'string') return false;
   if (typeof v === 'number' && !Number.isFinite(v)) return false;
   if (typeof v === 'string' && (v.length === 0 || v.length > 64)) return false;
-  if (typeof sig.source !== 'string' || !(sig.source in PESO_DE_FUENTE)) return false;
+  if (!esFuente(sig.source)) return false;
   if (sig.subject !== undefined && (typeof sig.subject !== 'string' || sig.subject.length > 128)) return false;
   if (sig.at !== undefined && (typeof sig.at !== 'number' || !Number.isFinite(sig.at))) return false;
-  if (sig.sampleSize !== undefined && (typeof sig.sampleSize !== 'number' || sig.sampleSize < 0)) return false;
-  if (sig.confidence !== undefined && (typeof sig.confidence !== 'number' || sig.confidence < 0 || sig.confidence > 1)) return false;
+  if (sig.sampleSize !== undefined && (typeof sig.sampleSize !== 'number' || !Number.isFinite(sig.sampleSize) || sig.sampleSize < 0)) return false;
+  if (sig.confidence !== undefined && (typeof sig.confidence !== 'number' || !Number.isFinite(sig.confidence) || sig.confidence < 0 || sig.confidence > 1)) return false;
   return true;
 };
 
