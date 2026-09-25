@@ -30,6 +30,9 @@
  *     igualdad con que se compara no confunde lo que el JSON calla.
  *  M. R5 — el versionado: contrato 1.10 con su entrada, y los motores cuya
  *     decisión cambió, a su versión 2.
+ *  N. R6 — el documento dice lo que hay: la historia de S1 de `main` delante,
+ *     S2-A pendiente de integración, la cadena entera, el estado real de cada
+ *     lector, lo que A6 ve al cerrar y las deudas.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1159,6 +1162,46 @@ check('104 · R5 · los motores cuya decisión cambió suben a su versión 2 —
   A.DESCRIPTOR_DE_CONTEXTO.version === 2 && A.DESCRIPTOR_DEL_MOTOR.version === 2 &&
   [A.DECOMPOSITION_ENGINE_VERSION, A.STRATEGY_ENGINE_VERSION, A.PARALLELIZATION_ENGINE_VERSION, A.OPTIMIZATION_ENGINE_VERSION].every((v) => v === 1),
   `A1=${A.DECISION_ENGINE_REF} · A8=${A.DESCRIPTOR_DE_CONTEXTO.version}`);
+
+console.log('\n─── N. R6 · El documento dice lo que hay ───');
+
+const S18 = (() => { const i = DOC.indexOf('## 18 · S2-A'); const j = DOC.indexOf('## 19 · '); return i >= 0 && j > i ? DOC.slice(i, j) : ''; })();
+const posicion = (t) => DOC.indexOf(t);
+check('105 · R6 · primero la historia de S1 de `main` y después S2-A: § 17 con S1.1–S1.6, § 18 S2-A, § 19 lo probado, § 20 lo que no hace —cada uno una vez—',
+  posicion('## 17 · S1') > 0 && posicion('### Después de S1: la canary real de Travel') > posicion('## 17 · S1') &&
+  posicion('### Después de S1: la canary real de Travel') < posicion('## 18 · S2-A') && posicion('## 18 · S2-A') < posicion('## 19 · Lo que está probado') &&
+  posicion('## 19 · Lo que está probado') < posicion('## 20 · Lo que esta capa NO hace') &&
+  ['17', '18', '19', '20'].every((n) => (DOC.match(new RegExp(`^## ${n} · `, 'gm')) ?? []).length === 1));
+const FILA_S1_45 = '| `canary-sombra-atribucion` · `canary-sombra-assets` |';
+const FILA_S2A = '| `algorithm-quality.test.mjs` ·';
+check('106 · R6 · en la tabla de lo probado, la fila de S1.4–S1.5 y después la de S2-A',
+  posicion(FILA_S1_45) > posicion('## 19 · Lo que está probado') && posicion(FILA_S1_45) < posicion(FILA_S2A));
+check('107 · R6 · S2-A se dice como es: en su rama, endurecida y pendiente de integración —no en `main`—; la frase caducada ya no está y nada la da por integrada',
+  S18.includes('branch hardening / pre-integration') && /no está\s+en `main`/.test(S18) && !DOC.includes('que sigue en su rama') &&
+  /S2-A, en su rama \(`s2a-decision-quality`\), endurecida/.test(DOC) &&
+  !/S2-A[^.\n]{0,80}(integrad[ao] en `?main`?|ya está en `?main`?)/i.test(DOC));
+check('108 · R6 · el diagrama es la cadena entera, en orden, sin saltar del Algorithm Engine al Router',
+  /Brain → Planner → Algorithm Engine → Workflow → Orchestrator → Router\s*\n\s*→ Job Engine → Gateway → adaptador del proveedor → API oficial del proveedor/.test(S18) &&
+  !/Algorithm Engine → decisión · estrategia · requisitos\s*\n\s*→ Router/.test(DOC));
+const lineaDe = (clave) => S18.split('\n').find((l) => l.startsWith(`| ${clave}`)) ?? '';
+check('109 · R6 · cada lector con su estado real: presupuesto y calidad, CONSUMIDOS por el Router; maxParallel (→ maxConcurrent) y maxLatencyMs, PLANNED TRANSLATION / NOT CURRENTLY CONSUMED; deadlineAt, que ya existe en el Job Engine y el Gateway',
+  /CONSUMIDO/.test(lineaDe('`budget`, `quality`')) &&
+  /`maxConcurrent`/.test(lineaDe('`maxParallel`')) && /PLANNED TRANSLATION \/ NOT CURRENTLY CONSUMED/.test(lineaDe('`maxParallel`')) &&
+  /PLANNED TRANSLATION \/ NOT CURRENTLY CONSUMED/.test(lineaDe('`maxLatencyMs`')) &&
+  /Job Engine/.test(lineaDe('`deadlineAt`')) && /Gateway/.test(lineaDe('`deadlineAt`')) &&
+  !DOC.includes('los relojes del trabajo: Job Engine y Gateway'));
+check('110 · R6 · A6 al cerrar: restricciones efectivas SÍ, señales observadas TODAVÍA NO, y ese `unknown` no es un fallo de calidad',
+  S18.includes('restricciones efectivas al cerrar: **SÍ**') && S18.includes('señales observadas al cerrar: **TODAVÍA NO**') &&
+  S18.includes('no es un fallo de calidad'));
+const DEUDAS_R6 = ['un eje sin dato', 'el desglose', 'señales observadas a a6', 'procedencia de las restricciones', '`minconfidence: nan`', '`maxrisk: nan`',
+  'antes de resolverlas', '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real'];
+const deudasQueFaltan = DEUDAS_R6.filter((d) => !S18.toLowerCase().includes(d));
+check('111 · R6 · las diez deudas que no bloquean, escritas —ninguna implementada aquí—',
+  deudasQueFaltan.length === 0, deudasQueFaltan.join(' · ') || `${DEUDAS_R6.length} deudas`);
+const comentarioDeDestino = leer('functions/src/core/algorithm/integration.ts');
+check('112 · R6 · y el código dice lo mismo: el comentario de DESTINO_DEL_REQUISITO nombra `maxConcurrent` y dice que la latencia máxima hoy no la lee nadie',
+  comentarioDeDestino.includes('`maxConcurrent`') && /latencia máxima hoy no\s*\n?\s*\*?\s*la lee nadie/.test(comentarioDeDestino) &&
+  !/el plazo y la latencia máxima, que\s*\n\s*\*\s*hacen cumplir el Job Engine y el Gateway/.test(comentarioDeDestino));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);

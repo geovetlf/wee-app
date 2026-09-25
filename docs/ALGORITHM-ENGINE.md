@@ -1551,6 +1551,22 @@ historial, sin `aprendido`, sin restricciones. En la sección no se cita nada qu
 vocabulario de Weë: la frase de cada paso y la promesa al usuario aparecen solo con su
 **categoría y su longitud**.
 
+**S1.2 · Y las secciones de B3 del mismo documento, también.** `autoridad`,
+`regresion`, `errores`, `regresionDesdePuente` y `erroresDesdePuente` guardaban la
+evidencia del comparador tal cual. Medido con un marcador en cada sitio donde puede
+llegar texto de alguien, aparecía en **14** sitios —la frase del paso de Legacy, lo que
+contestó la persona (`focus`, `mood`…), los valores que acotó el entendimiento— y el
+campo `fallo` guardaba el mensaje del error entero. Ahora aparece en **ninguno**: pasan
+por la misma regla (`sinCitar`), con tres casos más que solo aquí hacen falta —lo que
+acotó el entendimiento (su tipo y su longitud, nunca el valor; la clave, solo si es una
+etiqueta), las pistas y los usos de un paso (solo sus claves) y lo que por contrato es
+un número (`count`, `durationSec`: un texto ahí, su longitud)—, y `fallo` guarda la
+**clase** del error: el nombre, el código de sistema si lo hay y la longitud del mensaje.
+Se sigue sabiendo qué pasó —campo, clase, origen, camino, recuentos, longitudes— y lo que
+al Core le falta se sigue viendo. El mismo encargo con un texto neutro de la misma
+longitud deja un documento idéntico byte a byte (`sombra-sin-texto`). El contrato sigue
+siendo **1.2**: cambian los valores de `evidencia` y de `fallo`, no la forma.
+
 ### La comparación
 
 Dos ejes, con el comparador de B3 tal cual y el camino marcado `algoritmo`:
@@ -1633,25 +1649,132 @@ Firestore de mentira tiraba los `undefined` al clonar; el de verdad los rechaza.
 Windows las barras invertidas de un patrón no sobreviven al paso por `bash`: el
 corredor los pasa en base64.
 
+**S1.2 · Las guardas 88 (A2) y 93 (A3) corren de verdad.** Seguían siendo un `grep`
+lanzado con `execSync` y `2>/dev/null || true`: en Windows `execSync` usa `cmd.exe`, la
+búsqueda no corría y las dos aprobaban sin mirar un archivo. Ahora son Node puro
+(`functions/test/guardas.mjs`): leen los archivos de las seis capas de producción, lanzan
+si falta una capa, no aprueban si no leyeron nada y rechazan un patrón que no es una
+expresión regular. La 88 busca la **identidad** de A2 —su módulo, su fábrica, sus
+tipos— y no la palabra `decomposition`, que ejecutada de verdad fallaba por
+`layer_decomposition`, una capacidad de Seedream que no es A2 y que no se toca. Tocar
+estas dos guardas en las suites de A2 y A3 es el único cambio en pruebas del motor, y
+es solo de la guarda: ni un contrato. `guardas-reales` demuestra que corren con fixtures
+—válido, violado, restaurado—, que fallan explícitamente y que no queda consola en ellas.
+
 ### Lo que S1 NO hace
 
 No despliega, no ejecuta la canary real, no abre `aiSettings/sombra`, no toca el
 Router, el Job Engine, el Financial Core, el Asset Core ni ningún proveedor, no cambia
 nada que vea la persona y no empieza S2 ni Filmmaker.
 
+### Después de S1: la canary real de Travel (S1.1–S1.6), cerrada
+
+**S1.1** desplegó solo `creatorChat` (`creatorchat-00008-qow`, el código de `05ab31b`) con la
+puerta cerrada. La canary se abrió el **2026-09-24 a las 23:17:46Z** para **una** cuenta —la
+de la prueba manual de Travel— y se cerró el **2026-09-25 a las 01:16:10Z** (S1.6), con 4
+de los 20 trabajos que permitía:
+
+```json
+{ "habilitado": true, "cuentas": ["<una cuenta>"], "experiencias": ["travel"],
+  "caminos": ["puente", "algoritmo"], "capacidades": ["text.search"], "hasta": <apertura + 7 días> }
+```
+
+`experiencias` va aunque la canary diseñada no lo pedía: sin él, la puerta no filtra por
+experiencia, y **Weë Writer** también puede dar un plan solo de `text.search`. El `hasta`
+salió del reloj del servidor (la hora de lectura de la transacción que la abrió).
+
+| Caso | Trabajo | Petición | Primera llamada | Algoritmo | Legacy |
+|---|---|---|---|---|---|
+| 1 | `PYJhb3IBLkrwcwkzjXE4` | Travel, 5 días | 15,1 s (arranque en frío 11,9 s) | 16,84 ms | 1 `text.structure` |
+| 2 | `RNna9hcNJ8xMTDCojcCW` | Travel, 7 días | 3,2 s (caliente) | 3,71 ms | 1 `text.structure` |
+| 3 | `3jMUA0bF71CCe8UhYzB6` | Madrid, 4 días | 13,4 s (frío 8,4 s) | 17,09 ms | 2 `text.structure` |
+| 4 | `ThJWYprsHFWirFhiNscB` | Japón, 10 días, fechas en el texto | 2,1 s (caliente) | 2,71 ms | 1 `text.structure` + **se pulsó «Crear»**: `creatorRun` ejecutó y cobró 3 Credits |
+
+En los cuatro: `decidido`, «en fila, 1 pasos», la línea base con los mismos pasos que el
+plan del Core, 1 candidata, confianza 0, incertidumbre `unknown`, historial `ninguno`, 0
+violaciones, **determinista** (repetida en local con el código desplegado, idéntica), una
+sola escritura y sin ningún texto de la persona. La comparación salió **igual en los
+cuatro**: 23 diferencias (11 exactas, 2 equivalentes, 8 que añade el Core, 2 que solo tiene
+Legacy, 0 estructurales, 0 sin soporte, 0 de autoridad, 0 de sombra rota); las 2 de Legacy
+son la frase del paso y la promesa al usuario, el hueco conocido del Core. Por eso
+`algoritmo.errores` vale 2: son **diferencias de paridad**, no fallos.
+
+| Cierre | Resultado |
+|---|---|
+| Casos reales válidos | **4/4 PASS** (canary 4/20) |
+| Llamadas a proveedor de la sombra | 0 (las de Legacy, aparte: 5 de planificación y 1 de ejecución) |
+| Credits · materiales · trabajos de ejecución de la sombra | 0 · 0 · 0 |
+| Router · aprendizaje de la sombra | 0 · 0 |
+| Privacidad · idempotencia | PASS · PASS |
+| Monitor | 24/24 mientras la canary estuvo abierta (la regla #20 espera la puerta abierta: con la canary cerrada ya no aplica) |
+| Ejecución de producción · Algorithm Engine | sin cambios · sin cambios |
+| Autoridad del Core en producción | cerrada (`aiSettings/runtime` cerrado, sin tocar) |
+| Brain · Router · aprendizaje | excluidos |
+
+**El monitor** (`scripts/canary-sombra.mjs`, solo lectura contra producción) mide las 24
+condiciones de parada. Tres de sus reglas se corrigieron por lo que enseñó la canary, sin
+tocar nada de lo que se ejecuta: la **#12** confundía las diferencias de paridad y
+`estado: omitido` («al Brain no se le preguntó») con fallos; la **#3** y la **#5** decidían
+por la cuenta y por el estado del trabajo, y el «Crear» del caso 4 las hizo saltar
+(S1.4); la **#4** buscaba al dueño de un material en campos que el Content Core no tiene
+—el suyo es `ownerAccountId`— (S1.5). Ahora #3, #4 y #5 las decide
+`scripts/canary-sombra-atribucion.mjs` por la **identidad de la sombra**, leída de su
+propio código —`<jobId>:algoritmo` y los sellos `sombra` y `sombra-puente`—: un cargo, un
+material o una ejecución es de la sombra solo si la lleva él, o la fila del libro que lo
+enlaza, o el material del que sale. Lo de Legacy se reconoce por su propia evidencia: la
+fila de ejecución de `creatorRun` que enlaza el cargo (`creditTransactionId`) o su
+retención sobre el trabajo, el paso `<jobId>:<paso>` del libro y la procedencia del
+material (una generación sin sello, un paso de `creatorRun`, una ejecución del runtime).
+En el caso 4 quedó así: 3 Credits y 1 ejecución de Legacy, 0 y 0 de la sombra. Lo que no
+tiene dueño causal es `INVESTIGAR`, nunca culpa de la sombra.
+
+**El cierre** fue solo de configuración: `habilitado: false`, y se conservan la cuenta,
+`travel`, `text.search`, los caminos y el `hasta` como evidencia. No se borró nada —ni los
+trabajos, ni sus `private/sombra`, ni el libro, ni la telemetría— y desde el cierre no
+cambió nada más en Firestore ni hubo una sola llamada a ningún servicio.
+
+**Lo que esta canary NO demuestra.** Que el Algorithm Engine decida bien: Travel da
+siempre un plan de un paso, así que la decisión es siempre «en fila, 1 pasos» y la canary
+prueba **convivencia y seguridad**, no calidad. Tampoco ve la intención: al algoritmo solo
+llegan capacidad, variante y calidad; el destino, las fechas, los intereses y el ritmo
+viajan dentro del `brief`, que la sombra quita a propósito. Y Travel no tiene dónde poner
+«tecnología» ni «tren».
+
+**Deuda que queda, para después:** arranques en frío de `creatorChat` de 31,2 / 11,9 /
+8,4 s desde S1.1 (antes, 1,5–4,0 s); trabajos duplicados cuando la app repite un inicio;
+el calendario de Travel, que propone hoy; los huecos semánticos de Travel (tecnología,
+transporte) y la frase del paso y la promesa al usuario que el Core no escribe; la
+intención creativa estructurada; S2-A, en su rama (`s2a-decision-quality`), endurecida
+(R1–R6, § 18) y pendiente de integración —no está en `main`—, cuya integración tendrá que
+resolver la línea única de la cadena de tests de `functions/package.json`; y la
+autoridad del Core en producción, el Router, el Brain y el aprendizaje, que siguen fuera.
+
 ## 18 · S2-A, Decision Quality and Router Boundary —la calidad de la decisión y la frontera con el Router—
 
-Local, sin autoridad de producción, sin conexión con el Router, sin despliegue. S2-A
-no añade un motor: audita A0–A9.3 con una pregunta —¿se puede evaluar la calidad
-de una decisión sin inventar calidad, y entregarle al Router lo que necesita sin
-elegir por él?— y corrige lo que la auditoría demostró roto.
+**Estado: branch hardening / pre-integration.** S2-A vive en la rama
+`s2a-decision-quality`, endurecida antes de integrarse (R1–R6, abajo) y PENDIENTE DE
+INTEGRACIÓN: no está en `main`. Local, sin autoridad de producción, sin conexión con el
+Router, sin despliegue. S2-A no añade un motor: audita A0–A9.3 con una pregunta —¿se
+puede evaluar la calidad de una decisión sin inventar calidad, y entregarle al Router
+lo que necesita sin elegir por él?— y corrige lo que la auditoría demostró roto.
+
+Este documento de la rama ya trae, en el § 17 y DELANTE de S2-A, la historia de S1 que
+vive en `main` (S1.1–S1.6, con sus pruebas `guardas-reales`, `sombra-sin-texto`,
+`contexto-cerrado` y `canary-sombra-*`, que están en `main` y no en esta rama): así la
+integración no tiene que reordenar nada.
 
 ### Quién decide qué
 
 ```
-Brain → Planner → Algorithm Engine → decisión · estrategia · requisitos
-      → Router → modelo → adaptador del proveedor → API oficial
+Brain → Planner → Algorithm Engine → Workflow → Orchestrator → Router
+      → Job Engine → Gateway → adaptador del proveedor → API oficial del proveedor
 ```
+
+El Algorithm Engine entrega QUÉ —el plan elegido, sus requisitos y lo que se espera
+de la salida—; el Workflow lo convierte en un trabajo; el Orchestrator coordina sus
+pasos; el Router elige CON QUÉ, paso a paso; el Job Engine lo ejecuta con sus relojes;
+y el Gateway llama al adaptador, que habla con la API oficial del proveedor. Ninguno
+de esos saltos se lo salta el Algorithm Engine, y ninguno está conectado a él hoy.
 
 - **Algorithm Engine**: QUÉ se ejecuta —qué estrategia, con qué forma, bajo qué
   requisitos—. Decide entre alternativas y entrega requisitos.
@@ -1775,15 +1898,37 @@ un requisito nuevo no compila sin lector) y una función pura que lo reparte
 (`repartirRequisitos`). NO está conectado, no se importa desde el Router y no
 duplica `RoutingConstraints`: lo que va al Router son sus propios tipos.
 
-| Requisito | Lector | Por qué |
-|---|---|---|
-| `budget`, `quality` | router | `Budget` (core/cost) y `QualityRequirement` (core/workflow), los mismos de `RoutingConstraints` |
-| `maxParallel` | orchestrator | cuántos pasos a la vez: lo ejecuta el Orchestrator |
-| `deadlineAt`, `maxLatencyMs` | execution | los relojes del trabajo: Job Engine y Gateway |
-| `maxSteps`, `maxRisk`, `minConfidence`, `forbiddenCapabilities`, `requiredCapabilities` | decision | solo sirvieron para decidir; el plan entregado ya los cumple |
+`DESTINO_DEL_REQUISITO` dice DE QUIÉN es cada requisito, no que ya lo lea. Su estado
+real hoy, lector a lector (auditado en `core/router.ts`, `core/orchestrator.ts`,
+`core/job.ts` y `core/gateway.ts`):
 
-Determinista, serializable, acotado; lo que no tiene lector se dice (`sinDestino`) y
-un requisito que nombra una implementación no se reparte.
+| Requisito | Lector | Estado real hoy | Por qué |
+|---|---|---|---|
+| `budget`, `quality` | router | CONSUMIDO: el Router ya lee `constraints.budget` —con su vocabulario: `onExceed` es `fail` o `degrade`— y `constraints.quality.minScore` | `Budget` (core/cost) y `QualityRequirement` (core/workflow), los mismos de `RoutingConstraints` |
+| `maxParallel` | orchestrator | PLANNED TRANSLATION / NOT CURRENTLY CONSUMED: el Orchestrator acota con su propio `maxConcurrent`; `maxParallel` → `maxConcurrent` es una traducción pendiente | cuántos pasos a la vez |
+| `deadlineAt` | execution | el campo YA EXISTE en el Job Engine y en el Gateway (`deadlineAt`); lo que falta es que la entrega llegue hasta ellos | el reloj del trabajo |
+| `maxLatencyMs` | execution | PLANNED TRANSLATION / NOT CURRENTLY CONSUMED: ningún lector de la ejecución lo lee; allí hay `timeoutMs` y `deadlineAt` | la latencia máxima de lo que se ejecuta |
+| `maxSteps`, `maxRisk`, `minConfidence`, `forbiddenCapabilities`, `requiredCapabilities` | decision | CONSUMIDO por A1, y por A2–A5 al componer | solo sirvieron para decidir; el plan entregado ya los cumple |
+
+S2-A no crea ningún consumidor: ni la traducción a `maxConcurrent`, ni un lector de
+`maxLatencyMs`, ni la conexión de la entrega con nadie. Determinista, serializable,
+acotado; lo que no tiene lector se dice (`sinDestino`) y un requisito que nombra una
+implementación no se reparte.
+
+### A6 al cerrar: restricciones efectivas sí, señales observadas todavía no
+
+Desde S2-A, `cerrar` le pasa a A6 las restricciones EFECTIVAS —las de la entrega, que
+ya incluyen las del objetivo—. Pero no le pasa las señales OBSERVADAS: las de la
+observación van a A7, no a A6. Así que una restricción que solo se comprueba con una
+medición —`maxLatencyMs` contra `result.latencyMs`— cierra `unknown` («no se midió»),
+el cierre propone mirar otra vez y A7 no aprende `verification.passed`:
+
+- restricciones efectivas al cerrar: **SÍ**
+- señales observadas al cerrar: **TODAVÍA NO**
+
+Un `unknown` ahí no es un fallo de calidad: es no haber podido mirar. Antes de S2-A
+pasaba lo mismo con las restricciones de la PETICIÓN; S2-A lo extiende a las del
+objetivo. Queda como deuda declarada (abajo) y no se arregla en esta fase.
 
 ### Lo que S2-A corrigió
 
@@ -1813,13 +1958,66 @@ lo que A6 ve al cerrar—, y ese es el criterio con que subió 1.7. `motor-de-de
 y `motor-de-contexto` pasan a su versión 2 por la regla de
 `AlgorithmDescriptor.version`. La entrada está en `core/contracts.ts`.
 
+### El endurecimiento previo a la integración (R1–R6)
+
+La auditoría de la rama (lectura, sin merge) dejó S2-A en «lista con cambios
+exigidos»: nada rojo y nada bloqueante, y seis grupos que arreglar antes de integrar.
+Todos están hechos en la rama, cada uno en su commit:
+
+1. **R1 · Lo que no es un número finito no desempata.** `sampleSize: NaN` pasaba
+   `senalValida` —`NaN < 0` es falso— y el orden por muestra devolvía `NaN`, que
+   `sort` toma por empate: el caso 18 que S2-A había corregido volvía a depender del
+   orden. Ahora la muestra y la confianza, si vienen, tienen que ser finitas, y la
+   fuente, una clave PROPIA del vocabulario (con `in`, `toString` pasaba y la
+   confianza salía `NaN`); una señal así no es válida y no entra. Y `confianzaDeSenal`
+   ya no convierte una confianza rota en el peso de su fuente: vale 0.
+2. **R2 · La forma canónica, total y acotada de verdad** (`core/algorithm/canonical.ts`).
+   La de S2-A se quedaba en `JSON.stringify` al pasar de ocho niveles: un ciclo o un
+   BigInt la hacían lanzar en cualquier motor que resuelve señales, y un campo de
+   200 000 elementos costaba 106 ms. Ahora tiene topes explícitos y congelados
+   (`LIMITES_DE_FORMA_CANONICA`: profundidad 8, anchura 256, nodos 4 096, texto 256,
+   salida 65 536), escribe un ciclo como un salto a su antepasado, un BigInt sin pasar
+   por `Number`, y lo que no se puede leer como `e`. Es exacta dentro de los topes y,
+   más allá, resume con el tamaño real y lo dice. Un objeto hay que enumerarlo para
+   saber sus claves —en V8 no hay otra forma, y cortar un `for…in` no la ahorra—: se
+   enumera una vez por objeto y por llamada, y si es más ancho que la anchura se
+   resume con su número de claves. El criterio es el de la huella del Job Engine; el
+   código no se importa, porque esta capa no puede importarlo.
+3. **R3 · La fusión de restricciones, campo a campo.** Solo `maxLatencyMs` estaba
+   fijado; los otros siete sobrevivían invertidos. Ahora cada campo tiene su
+   propiedad: el menor para los topes —`maxLatencyMs`, `maxSteps`, `maxParallel`,
+   `maxRisk`, `deadlineAt`, `budget.maxUsd`, `budget.maxCredits`—, el mayor para los
+   suelos —`minConfidence`, `quality.minScore`—, la unión para las capacidades, y
+   en `budget.prefer` manda la petición (es una preferencia, no un límite).
+4. **R4 · La integridad de la suite.** La 41 decía «ninguna estrategia que la lleve
+   compite» sin llegar nunca a A1 —A3 las apartaba antes—: ahora la 41 las lleva a A1
+   y la 41b dice dónde para el ciclo. La 50 usaba `onExceed: 'reject'`, que no existe:
+   ahora `fail`, leído del vocabulario de `Budget` y del Router. Y la igualdad de la
+   suite ya no confunde lo que el JSON calla (`NaN` y `null`, `undefined` y ausente).
+5. **R5 · El versionado.** Contrato 1.10 con su entrada, `motor-de-decision@2` y
+   `motor-de-contexto` 2 (arriba).
+6. **R6 · Este documento.** La historia de S1 de `main` delante, S2-A detrás; el
+   diagrama con la cadena entera; el estado real de cada lector; lo que A6 ve al
+   cerrar; y las deudas, escritas.
+
+Compatible hacia atrás en lo que no toca: sin implementación en lo que se pide, sin
+restricciones en el objetivo, sin empates exactos y sin señales rotas, la decisión es
+la de 1.9 salvo sus sellos (1.10 y `@2`). Con una de esas condiciones, el
+comportamiento nuevo es el esperado: el orden ya no decide, un ciclo o un BigInt ya
+no revientan, lo más estrecho manda también en la composición, y una implementación
+en lo que se pide para la petición.
+
 ### Las pruebas
 
-`algorithm-quality.test.mjs`, 100 comprobaciones: los quince escenarios
-sintéticos (A), el determinismo por permutaciones (B), Pareto (C), la matriz de
-fugas —12 grafías de implementación en cada posición de A1, A9, pasos, enfoques,
-historial y reparto— (D), la frontera con el Router (E), confianza e
-incertidumbre (F), el resultado de una decisión (G) y las deudas (H).
+`algorithm-quality.test.mjs`, 154 comprobaciones: las 100 de S2-A —los quince
+escenarios sintéticos (A), el determinismo por permutaciones (B), Pareto (C), la
+matriz de fugas —12 grafías de implementación en cada posición de A1, A9, pasos,
+enfoques, historial y reparto— (D), la frontera con el Router (E), confianza e
+incertidumbre (F), el resultado de una decisión (G) y las deudas (H)— y las del
+endurecimiento: señales rotas (I, R1), la forma canónica (J, R2), la fusión campo a
+campo (K, R3), la integridad de la suite (L, R4; con la 41 rehecha en la D), el
+versionado (M, R5) y este documento (N, R6). `algorithm-foundation` declara el módulo
+nuevo, y `algorithm-decision` y `sombra-experiencia` fijan las versiones nuevas.
 
 ### Los sabotajes
 
@@ -1841,6 +2039,21 @@ vez **por reventón** —la prueba pedía `paraRouter` sobre un contexto que ya 
 existía—. La suite se blindó con `?.` y ahora cae por aserción. Y después de
 optimizar el desempate de señales se volvieron a correr los tres que lo sabotean.
 
+El endurecimiento añade 50 más, en el worktree de la rama y con el mismo método
+(fuente, compilar, correr, restaurar y comprobar la huella), y los 50 caen **por
+aserción**: 5 de R1 (cada guarda nueva de `senalValida` y de `confianzaDeSenal`),
+15 de R2 (ciclos, BigInt por `Number`, anchura de arrays y de objetos, profundidad,
+presupuesto de nodos y de salida, claves sin ordenar, números por JSON, textos sin
+su longitud, un getter y un proxy sin su guarda, la caché de claves, y las señales y
+A8 volviendo a JSON), 16 de R3 (los siete que sobrevivían en la auditoría, cada uno
+cazado por la propiedad de SU campo, más `maxCredits`, las dos uniones, los caminos
+de un solo lado y las precedencias), 4 de R4 (A1 y A3 sin su frontera, la igualdad
+solo por JSON, `reject`), 4 de R5 (contrato, las dos versiones y la entrada del
+historial) y 6 de R6 (este documento y el comentario de `DESTINO_DEL_REQUISITO`).
+Dos lecciones: en R3, un mutante escrito como `undefined ?? y` era EQUIVALENTE —daba
+`y`— y se rehízo antes de contarlo; y en R4, quitar la frontera de A1 ya rompe la 41,
+cosa que con la 41 de S2-A no pasaba.
+
 ### Rendimiento
 
 A/B contra S1 en la misma máquina, cada lado compilado aparte con el mismo
@@ -1854,6 +2067,28 @@ A8 con ocho pares de fotos duplicadas de igual fecha y muestra, 42 → 180 µs, 
 que no debería darse y que ahora da siempre lo mismo. La sombra, como en S1: Travel
 p50 0,32 ms, p95 0,72 ms, p99 1,74 ms, primera decisión del proceso 11,5 ms; la capa
 añade 21–22 ms al arranque en frío.
+
+Después del endurecimiento (mediana de siete, en local e indicativo; `main` frente a
+la S2-A auditada frente a la endurecida):
+
+| Qué | `main` | S2-A auditada | endurecida |
+|---|---|---|---|
+| forma canónica de un array de 200 000 | — | 39 ms | 0,03 ms (1 180 caracteres) |
+| de un objeto de 200 000 claves | — | 184 ms | 65 ms, casi todo la enumeración de V8 (10 caracteres) |
+| de 10 000 niveles anidados | — | revienta (`RangeError`) | 0,02 ms |
+| de un ciclo · de un BigInt de 30 000 dígitos | — | revienta (`TypeError`) | menos de 0,01 ms |
+| 10 000 hojas · 4 000 textos de 256 | — | 2,6 ms · 1,9 ms | 1,0 ms · 0,08 ms, cortando en su presupuesto |
+| dos señales empatadas con un campo de 200 000 | 0,01 ms | 47 ms | 0,28 ms |
+| A1 con 12 · 1 000 · 10 000 señales empatadas | 0,25 · 1,8 · 12 ms | 0,44 · 3,2 · 70 ms | 0,32 · 3,2 · 85 ms |
+| A1 con 50 000 señales empatadas | 75 ms | 362 ms | **326 ms** |
+| `restriccionesEfectivas` ×1 000 · A1 con 32 opciones y las dos restricciones | 6,3 · 0,36 ms | — | 5,6 · 0,34 ms |
+
+Nada crece de forma exponencial: todo es lineal en lo que se mira, y los topes de la
+forma canónica cortan donde dicen. Lo único que pasa de 250 ms es A1 con 50 000
+señales empatadas sobre lo mismo: es el desempate por contenido de S2-A —con él se
+compara lo que antes decidía el orden—, no una consecuencia de R2 (que lo baja de
+362 a 326 ms), y su raíz es que A1 resuelve TODAS las señales antes de aplicar
+`maxEvidence`. Queda registrado como deuda (abajo), sin optimizarlo aquí.
 
 ### Lo que queda declarado
 
@@ -1872,6 +2107,43 @@ añade 21–22 ms al arranque en frío.
   sin tocar.
 - Nada de esto está conectado al Router ni a producción.
 
+Y lo que la auditoría de la rama encontró y el endurecimiento deja ESCRITO, sin
+implementarlo —nada de esto bloquea la integración, y ninguno se arregla aquí—:
+
+1. **Un eje sin dato no penaliza el total.** El total se renormaliza sobre lo que
+   tiene dato: con lo demás igual, una alternativa que no declara su calidad —o la
+   declara `NaN`— puntúa 1,000 frente a 0,700 de una que declara 0,4. La cobertura
+   baja, pero el objetivo ordena antes que la cobertura, y gana la que no informa.
+2. **El desglose no cuadra en ese caso**: la explicación dice «quality 0.00×0.50 ·
+   cost 1.00×0.50» junto a un total de 1,000.
+3. **`cerrar` no pasa las señales observadas a A6** (arriba): lo que A6 no puede
+   medir cierra `unknown`, y A7 no aprende la verificación.
+4. **La procedencia de las restricciones**: «lo más estrecho manda» no sabe si un
+   límite lo puso la persona o es un defecto de Weë, así que un defecto más estrecho
+   puede estrechar lo que la persona permitió. Antes de que el Planner alimente
+   restricciones de verdad hace falta esa regla.
+5. **`minConfidence: NaN`** se ignora —el mínimo deja de exigirse— porque
+   `conflictosDeRestricciones` no la rechaza.
+6. **`maxRisk: NaN`** deja fuera a todas —nadie cumple— por el mismo motivo: ni una ni
+   otra se tratan como una restricción mal formada.
+7. **Las señales no se acotan antes de resolverlas**: A1 las resuelve TODAS y después
+   aplica `maxEvidence` (con 50 000 empatadas, 326 ms).
+8. **`maxLatencyMs` no tiene lector** en la ejecución: PLANNED TRANSLATION / NOT
+   CURRENTLY CONSUMED.
+9. **`maxParallel` → `maxConcurrent`**: la traducción al campo del Orchestrator está
+   pendiente.
+10. **Una sola alternativa no lleva una marca de «sin elección real»**: se deduce de
+    que A1 recibiera una candidata, pero no se dice.
+11. **`budget.onExceed`, `quality.checks` y `quality.onBelow`**: manda la petición y
+    puede RELAJAR lo que pedía el objetivo (`algorithm-quality` 93–95 lo fijan).
+    Hacerlos «el más estricto» exige un orden de rigor que el Core no declara —¿es
+    `regenerate` más estricto que `fail`?—, y esa política no se inventa aquí.
+
+Y una nota de pruebas, sin tocarla: `algorithm-optimization` 3 comprueba
+`!/(A5)/` sobre `core/contracts.ts` con los paréntesis sin escapar, así que prohíbe el
+texto «A5» en CUALQUIER sitio del historial —quería prohibir una entrada «(A5)»—; por
+eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
+
 ## 19 · Lo que está probado, y dónde
 
 | Prueba | Qué demuestra |
@@ -1882,7 +2154,8 @@ añade 21–22 ms al arranque en frío.
 | `-decision` §I · `-cycle` §L2 · `-context` §W · `-feedback` §Y | A9.2: la identidad de las alternativas, el aprendizaje por alternativa y el ciclo de punta a punta |
 | `-feedback` §Z · `-context` §X · `-cycle` §L3 | A9.3: ejecución, verificación y recuperación por separado —los ocho casos, la puerta de ejecución de A6—, lo que llega a `paraRouter` y lo que no decide |
 | `sombra-experiencia` §S1 · `-context` V8–V8d · `-cycle` 91–91b · `runtime-map` · `-agnostic` 56 · `-decision` 77 · `-foundation` 118 | S1: la canary de Travel, la puerta y sus filtros, los cortafuegos, la evidencia privada, la comparación sin falsa paridad, los desenlaces, la carrera, y que solo la sombra carga la capa |
-| `algorithm-quality.test.mjs` · `-cycle` 46b | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué |
+| `canary-sombra-atribucion` · `canary-sombra-assets` | S1.4–S1.5: el monitor de la canary atribuye cargos (#3), materiales (#4) y ejecuciones (#5) por la identidad de la sombra, no por la cuenta, el trabajo ni la hora; el caso 4 (Japón) como fixture |
+| `algorithm-quality.test.mjs` · `-cycle` 46b · `-foundation` 1 · `-decision` 1, 6, 31 · `sombra-experiencia` S1-5 | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué; y el endurecimiento R1–R6: señales rotas que no desempatan (I), la forma canónica total y acotada (J), la fusión de restricciones campo a campo (K), la integridad de la suite (L y la 41), el contrato 1.10 y las versiones 2 (M) y este documento con su estado real (N) |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y

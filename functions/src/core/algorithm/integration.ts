@@ -175,18 +175,27 @@ export interface EntregaDeEjecucion {
  * QUIÉN LEE CADA REQUISITO, una vez entregado. Datos, no un `if` por campo.
  *
  * El Algorithm Engine dice QUÉ hay que hacer y con qué exigencias; CON QUÉ se
- * hace lo decide el Router, y cada exigencia tiene un lector que ya existe:
+ * hace lo decide el Router. Cada exigencia tiene DUEÑO; que ese dueño ya la lea es
+ * otra cosa, y se dice lector a lector (R6, auditado en el Router, el
+ * Orchestrator, el Job Engine y el Gateway):
  *
  *   router         lo que el Router lee al elegir implementación: el mismo
  *                  `Budget` y la misma `QualityRequirement` que ya forman parte de
  *                  `RoutingConstraints`. No se copia ese tipo: se usan los suyos.
+ *                  Hoy SÍ los lee.
  *   orchestrator   cuántos pasos a la vez. «Lo ejecuta el Orchestrator; aquí
- *                  solo se acota» (`AlgorithmConstraints.maxParallel`).
- *   execution      los relojes del TRABAJO: el plazo y la latencia máxima, que
- *                  hacen cumplir el Job Engine y el Gateway con los suyos.
+ *                  solo se acota» (`AlgorithmConstraints.maxParallel`). Su campo
+ *                  es `maxConcurrent`: la traducción está PENDIENTE y hoy no lo
+ *                  lee nadie.
+ *   execution      los relojes del TRABAJO. El plazo ya existe en el Job Engine
+ *                  y en el Gateway como `deadlineAt`. La latencia máxima hoy no
+ *                  la lee nadie: allí hay `timeoutMs` y `deadlineAt`, y la
+ *                  traducción está PENDIENTE.
  *   decision       lo que solo sirvió para decidir. El plan entregado ya lo
  *                  cumple por construcción —A1 descartó lo que no— y nadie más
  *                  tiene que volver a mirarlo.
+ *
+ * Ninguna de esas traducciones se construye aquí, y nada está conectado.
  *
  * Un `Record` sobre las claves de `AlgorithmConstraints`: un requisito nuevo no
  * compila hasta que alguien dice quién lo lee. Así no puede cruzar la frontera
