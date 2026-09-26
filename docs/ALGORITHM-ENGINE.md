@@ -2259,11 +2259,12 @@ válidas y se quedarían donde están. Lo auditado:
 
 La contradicción: el contrato vive en `core/contracts.ts`, y esta fase no puede tocar ese
 archivo. **La decisión que falta** es autorizar ese cambio —solo el número y la entrada
-1.11—. Las opciones:
+1.11—; con él cambian también el motor, sus comprobaciones de versión y este documento, y
+la 201 no deja cambiar el código sin el documento. Las opciones:
 
 | Opción | Qué pasa | Pruebas |
 |---|---|---|
-| 1.11 y `motor-de-decision@3` (lo que dice la regla) | los sellos de cada decisión, estrategia y entrega pasan a 1.11 y `@3`; nada más cambia | ensayo en un árbol aparte: 175 suites en verde, con las 6 comprobaciones que fijan versiones puestas al día y la de los sellos (200) al revés |
+| 1.11 y `motor-de-decision@3` (lo que dice la regla) | los sellos de cada decisión, estrategia y entrega pasan a 1.11 y `@3`; nada más cambia | ensayo en un árbol aparte sobre esta rama: con el código y sus pruebas de versión puestos al día y este documento sin tocar, solo cae la 201; con el documento también, 175 suites en verde —las 6 comprobaciones que fijan versiones, la de los sellos (200) al revés y la 201 por su otra rama— |
 | seguir en 1.10 y `@2` (hoy) | contradice la regla: B.4 decide distinto con entradas válidas | las de hoy; la 200 lo fija como pendiente |
 | solo `motor-de-decision@3` | contradice la entrada 1.10 del historial | no se ensayó: no es coherente |
 
@@ -2297,8 +2298,10 @@ truncar grupos de duplicados; validar el presupuesto en A2–A8; tocar `resolver
 Pruebas: `algorithm-quality` §S (190–201, 12 comprobaciones), la 111, la 182, la 187 y la 189
 puestas al día, y la equivalencia campo a campo con f30079c, dacf18d y 0df8be2
 (`equivalencia-s2b.mjs` y sus huellas en `equivalencia-s2b.json`). Sabotajes: 13 nuevos sobre el código y 8 sobre este
-documento caen por aserción, y los 116 de antes siguen cayendo —cuatro de los del documento,
-re-apuntados a su texto nuevo con la misma mutación—.
+documento caen por aserción, y los 116 de antes siguen cayendo: cuatro del documento,
+re-apuntados a su texto nuevo con la misma mutación, y dos del código (D7a-p y D7a-q),
+reescritos porque el tipo de B.5 ya no deja borrar una clave de `RANGO_DEL_PRESUPUESTO`
+—la misma intención, en la forma que compila—.
 
 ### Lo que queda declarado
 
