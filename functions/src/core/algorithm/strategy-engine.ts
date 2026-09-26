@@ -32,7 +32,7 @@ import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { PlanStep } from '../planner';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
 import { Contador, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints, ObjectiveAxis } from './objective';
+import { AlgorithmConstraints, ObjectiveAxis, problemasDeLosLados } from './objective';
 import {
   Confidence, Evidence, PESO_DE_FUENTE, Signal, SignalSource, Uncertainty,
   confianzaDeEvidencia, incertidumbreDe, resolverSenales,
@@ -433,6 +433,14 @@ export const crearMotorDeEstrategias = (opciones: OpcionesDelEstratega = {}) => 
       validationFailures: 0, expectedAxes: 0, unknownAxes: 0, budgetExhausted: false,
     };
     const { resueltas } = resolverSenales(senalesCrudas);
+    /*
+     * (S2-B · B.1) Unas restricciones mal formadas no se aplican a medias. Aquí
+     * `riesgo > NaN` es falso, así que un `maxRisk: NaN` dejaba pasar todo
+     * mientras A1 dejaba fuera a todas: la misma entrada, dos lecturas. Con la
+     * regla de A1, ninguna estrategia se da por buena sobre ellas, y cada una dice
+     * por qué. En el ciclo no llegan: A9 se para antes.
+     */
+    const malFormadas = problemasDeLosLados(undefined, constraints);
 
     const construidas: { alt: Alternative<Strategy>; signals: readonly Signal[] }[] = [];
     const rechazadas: EstrategiaRechazada[] = [];
@@ -465,7 +473,11 @@ export const crearMotorDeEstrategias = (opciones: OpcionesDelEstratega = {}) => 
         rechazadas.push({ id: estrategia.id, reason: 'incoherent', detail: problemas[0] });
         m.rejected++; m.validationFailures++; continue;
       }
-      /* 3 · Las restricciones duras. Ninguna puntuación las compensa. */
+      /* 3 · Las restricciones duras. Ninguna puntuación las compensa. Y si están mal formadas, no hay nada que cumplir. */
+      if (malFormadas.length) {
+        rechazadas.push({ id: estrategia.id, reason: 'constraint_conflict', detail: malFormadas.join('; ') });
+        m.rejected++; continue;
+      }
       const fuera = violaRestricciones(estrategia, values, constraints, topes);
       if (fuera) { rechazadas.push({ id: estrategia.id, reason: fuera }); m.rejected++; continue; }
 

@@ -33,6 +33,10 @@
  *  N. R6 — el documento dice lo que hay: la historia de S1 de `main` delante,
  *     S2-A integrada en `main`, la cadena entera, el estado real de cada
  *     lector, lo que A6 ve al cerrar y las deudas.
+ *  O. S2-B · B.1 — las restricciones mal formadas: UNA regla (finito y en su
+ *     rango de siempre), cada lado validado antes de fundir, un conflicto que
+ *     nombra lado, campo y motivo, una fusión que nunca da un no-finito; A9 se
+ *     para antes de A2, y A3, A5 y A8 aplican la misma regla.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1203,6 +1207,328 @@ const comentarioDeDestino = leer('functions/src/core/algorithm/integration.ts');
 check('112 · R6 · y el código dice lo mismo: el comentario de DESTINO_DEL_REQUISITO nombra `maxConcurrent` y dice que la latencia máxima hoy no la lee nadie',
   comentarioDeDestino.includes('`maxConcurrent`') && /latencia máxima hoy no\s*\n?\s*\*?\s*la lee nadie/.test(comentarioDeDestino) &&
   !/el plazo y la latencia máxima, que\s*\n\s*\*\s*hacen cumplir el Job Engine y el Gateway/.test(comentarioDeDestino));
+
+/*
+ * ═══ S2-B ═══ Las comprobaciones de S2-B van numeradas a continuación de la 112,
+ * en el orden en que corren (`numero()`), y cada una dice de qué bloque es.
+ */
+let siguiente = 113;
+const numero = () => siguiente++;
+
+console.log('\n─── O. S2-B · B.1 · Restricciones mal formadas: ni se funden ni deciden ───');
+
+/*
+ * Los seis campos de B.1, con su rango DE SIEMPRE, un valor válido para el
+ * control, otro para fundir con él, y los rotos: NaN, ±Infinity, null, un texto
+ * y —donde el campo tiene rango— lo que se sale de él. `deadlineAt` no tiene
+ * rango: solo lo rompe lo que no es un número finito.
+ */
+const RANGO_B1 = {
+  fraccion: 'fuera de rango: entre 0 y 1', noNegativo: 'fuera de rango: no puede ser negativo',
+  positivo: 'fuera de rango: tiene que ser mayor que 0',
+};
+const CAMPOS_B1 = [
+  { ruta: 'maxRisk', rango: 'fraccion', fuera: [1.5, -0.1], valido: 0.5, otro: 0.4, funde: 'menor' },
+  { ruta: 'minConfidence', rango: 'fraccion', fuera: [1.5, -0.1], valido: 0, otro: 0, funde: 'mayor' },
+  { ruta: 'budget.maxUsd', rango: 'noNegativo', fuera: [-1], valido: 10, otro: 8, funde: 'menor' },
+  { ruta: 'budget.maxCredits', rango: 'noNegativo', fuera: [-1], valido: 100, otro: 90, funde: 'menor' },
+  { ruta: 'quality.minScore', rango: 'fraccion', fuera: [1.5, -0.1], valido: 0.1, otro: 0.2, funde: 'mayor' },
+  { ruta: 'deadlineAt', rango: 'finito', fuera: [], valido: 1_900_000_000_000, otro: 1_800_000_000_000, funde: 'menor' },
+];
+const rotosDe = (c) => [
+  [NaN, 'no es un número finito (NaN)'], [Infinity, 'no es un número finito (Infinity)'],
+  [-Infinity, 'no es un número finito (-Infinity)'], [null, 'no es un número (null)'], ['0.5', 'no es un número (string)'],
+  ...c.fuera.map((v) => [v, RANGO_B1[c.rango]]),
+];
+/* Con reloj, para que `deadlineAt` se pueda comprobar de verdad en el control. */
+const a1B1 = A.crearMotorDeDecision({ ahora: () => T0 });
+const OPCIONES_B1 = [opcion('a', { quality: 0.8, cost: 1, latency: 100, reliability: 0.9 }),
+  opcion('b', { quality: 0.6, cost: 2, latency: 50, reliability: 0.7 })];
+const decidirB1 = (objetivo, peticionB1) => a1B1.decidir(contexto({
+  objective: { weights: { quality: 1, cost: 1 }, ...(objetivo !== undefined ? { constraints: objetivo } : {}) },
+  ...(peticionB1 !== undefined ? { constraints: peticionB1 } : {}),
+  options: OPCIONES_B1,
+}));
+const CABEZA_B1 = 'Restricciones mal formadas, que ni se funden ni se usan para decidir: ';
+/* La lista EXACTA de problemas que dice la decisión: cada uno `ruta: motivo`, y la ruta dice el lado. */
+const problemasDichos = (d) => {
+  const e = d?.explanation?.[0] ?? '';
+  return e.startsWith(CABEZA_B1) && e.endsWith('.') ? e.slice(CABEZA_B1.length, -1).split('; ') : null;
+};
+/* Un conflicto de B.1 es eso y nada más: sin decisión, sin restricciones efectivas y sin repetir lo roto. */
+const esConflictoB1 = (d, esperados) => d?.status === 'undecided' && d.failure === 'constraint_conflict'
+  && igual(problemasDichos(d), esperados) && d.constraints === undefined && d.candidates.length === 0
+  && d.objective?.constraints === undefined;
+const LADOS_B1 = [
+  ['la petición', (c, v) => [undefined, conRuta(c.ruta, v)], ['constraints']],
+  ['el objetivo', (c, v) => [conRuta(c.ruta, v), undefined], ['objective.constraints']],
+  ['los dos', (c, v) => [conRuta(c.ruta, v), conRuta(c.ruta, v)], ['constraints', 'objective.constraints']],
+];
+for (const c of CAMPOS_B1) {
+  for (const [lado, construir, rutas] of LADOS_B1) {
+    const fallos = [];
+    for (const [v, motivo] of rotosDe(c)) {
+      const d = decidirB1(...construir(c, v));
+      if (!esConflictoB1(d, rutas.map((r) => `${r}.${c.ruta}: ${motivo}`))) {
+        fallos.push(`${String(v)} → ${d.status}/${d.failure} ${JSON.stringify(problemasDichos(d))}`);
+      }
+    }
+    check(`${numero()} · B.1 · ${c.ruta} roto en ${lado}: constraint_conflict que nombra lado, campo y motivo (${rotosDe(c).length} valores)`,
+      fallos.length === 0, fallos.slice(0, 3).join(' | '));
+  }
+}
+
+/* Un lado roto y el otro VÁLIDO: el válido no tapa el error ni se usa en su lugar. */
+const absorcion = (titulo, caso) => {
+  const fallos = [];
+  for (const c of CAMPOS_B1) {
+    for (const [v, motivo] of rotosDe(c)) {
+      const { d, esperados } = caso(c, v, motivo);
+      if (!esConflictoB1(d, esperados)) fallos.push(`${c.ruta}=${String(v)} → ${d.status}/${d.failure} ${JSON.stringify(problemasDichos(d))}`);
+    }
+  }
+  check(`${numero()} · B.1 · ${titulo}`, fallos.length === 0, fallos.slice(0, 3).join(' | '));
+};
+absorcion('petición rota + objetivo válido: el conflicto es de la PETICIÓN, y el valor válido del objetivo no lo tapa ni se usa',
+  (c, v, motivo) => ({ d: decidirB1(conRuta(c.ruta, c.valido), conRuta(c.ruta, v)), esperados: [`constraints.${c.ruta}: ${motivo}`] }));
+absorcion('petición válida + objetivo roto: el conflicto es del OBJETIVO, y el valor válido de la petición no lo tapa ni se usa',
+  (c, v, motivo) => ({ d: decidirB1(conRuta(c.ruta, v), conRuta(c.ruta, c.valido)), esperados: [`objective.constraints.${c.ruta}: ${motivo}`] }));
+absorcion('los dos rotos: se nombran los dos, la petición primero',
+  (c, v, motivo) => ({ d: decidirB1(conRuta(c.ruta, v), conRuta(c.ruta, v)),
+    esperados: [`constraints.${c.ruta}: ${motivo}`, `objective.constraints.${c.ruta}: ${motivo}`] }));
+{
+  const fallos = [];
+  for (const c of CAMPOS_B1) {
+    const d = decidirB1(conRuta(c.ruta, c.valido), conRuta(c.ruta, c.otro));
+    const esperado = c.funde === 'menor' ? Math.min(c.valido, c.otro) : Math.max(c.valido, c.otro);
+    if (d.status !== 'decided' || leerRuta(d.constraints, c.ruta) !== esperado) fallos.push(`${c.ruta}: ${d.status} ${leerRuta(d.constraints, c.ruta)}`);
+  }
+  check(`${numero()} · B.1 · CONTROL · los dos válidos: se decide, y lo efectivo es lo de siempre (el más estrecho de los dos)`,
+    fallos.length === 0, fallos.join(' | '));
+}
+
+/* El resto de la familia numérica, con la MISMA regla: ningún número de restricción se salta la validación. */
+{
+  const FAMILIA = ['maxSteps', 'maxParallel', 'maxLatencyMs'].map((ruta) => ({ ruta, rango: 'positivo', fuera: [0, -1] }));
+  const fallos = [];
+  for (const c of FAMILIA) {
+    for (const [, construir, rutas] of LADOS_B1) {
+      for (const [v, motivo] of rotosDe(c)) {
+        const d = decidirB1(...construir(c, v));
+        if (!esConflictoB1(d, rutas.map((r) => `${r}.${c.ruta}: ${motivo}`))) fallos.push(`${c.ruta}=${String(v)} ${JSON.stringify(problemasDichos(d))}`);
+      }
+    }
+  }
+  check(`${numero()} · B.1 · el resto de la familia numérica —maxSteps, maxParallel, maxLatencyMs— con la misma regla, en cada lado`,
+    fallos.length === 0, fallos.slice(0, 3).join(' | '));
+}
+check(`${numero()} · B.1 · un contenedor o un lado entero que no es un objeto también se nombra, sin repetir lo que traía; \`null\` sigue siendo no pedir nada`,
+  [
+    [[undefined, { budget: 'mucho' }], ['constraints.budget: no es un objeto (string)']],
+    [[{ quality: 5 }, undefined], ['objective.constraints.quality: no es un objeto (number)']],
+    [[undefined, 'x'], ['constraints: no es un objeto de restricciones (string)']],
+    [[[], undefined], ['objective.constraints: no es un objeto de restricciones (array)']],
+  ].every(([[o, p], esperados]) => esConflictoB1(decidirB1(o, p), esperados))
+  && decidirB1(undefined, null).status === 'decided' && decidirB1(null, undefined).status === 'decided');
+
+/* La regla, una sola: el motivo exacto de cada caso, y los nombres de siempre en `conflictosDeRestricciones`. */
+check(`${numero()} · B.1 · UNA regla (\`motivoDeNumeroInvalido\`): finito y en su rango de siempre; el motivo dice el tipo, no el valor`,
+  [
+    ['fraccion', 0.5, undefined], ['fraccion', 0, undefined], ['fraccion', 1, undefined], ['fraccion', -0, undefined],
+    ['fraccion', 1.0000001, RANGO_B1.fraccion], ['noNegativo', 0, undefined], ['noNegativo', 1e12, undefined],
+    ['noNegativo', -1e-9, RANGO_B1.noNegativo], ['positivo', 1e-9, undefined], ['positivo', 0, RANGO_B1.positivo],
+    ['finito', -5, undefined], ['finito', NaN, 'no es un número finito (NaN)'], ['noNegativo', Infinity, 'no es un número finito (Infinity)'],
+    ['fraccion', -Infinity, 'no es un número finito (-Infinity)'], ['finito', true, 'no es un número (boolean)'],
+    ['finito', 10n, 'no es un número (bigint)'], ['finito', {}, 'no es un número (object)'], ['finito', [1], 'no es un número (array)'],
+  ].every(([rango, v, motivo]) => A.motivoDeNumeroInvalido(rango, v) === motivo)
+  && igual(A.conflictosDeRestricciones({ maxSteps: 2, maxParallel: 5, maxRisk: NaN, minConfidence: Infinity,
+    budget: { maxUsd: null, maxCredits: '1' }, quality: { minScore: -Infinity }, deadlineAt: NaN }),
+  ['maxRisk', 'minConfidence', 'budget.maxCredits', 'budget.maxUsd', 'quality.minScore', 'deadlineAt', 'maxParallel>maxSteps']));
+
+/* LA FUSIÓN. Un generador determinista —congruencial, semilla fija—: ni azar de verdad ni reloj. */
+const generador = (semilla) => { let s = semilla >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; };
+const azarB1 = generador(20260926);
+const elegirB1 = (xs) => xs[Math.floor(azarB1() * xs.length)];
+const ponerRuta = (o, ruta, v) => {
+  const [a, b] = ruta.split('.');
+  if (b === undefined) o[a] = v; else o[a] = { ...(o[a] && typeof o[a] === 'object' ? o[a] : {}), [b]: v };
+};
+const ladoAlAzar = (valores) => {
+  if (azarB1() < 0.08) return elegirB1([undefined, null, 'x', 5, []]);
+  const c = {};
+  for (const ruta of Object.keys(A.RANGO_DE_RESTRICCION)) { const v = elegirB1(valores); if (v !== undefined) ponerRuta(c, ruta, v); }
+  if (azarB1() < 0.05) c.budget = elegirB1(['b', 3, null]);
+  if (azarB1() < 0.05) c.quality = elegirB1(['q', 4, null]);
+  return c;
+};
+const fundirB1 = (o, p) => A.restriccionesEfectivas({ contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA,
+  objective: { weights: { quality: 1 }, ...(o !== undefined ? { constraints: o } : {}) }, ...(p !== undefined ? { constraints: p } : {}) });
+{
+  const TODO = [undefined, undefined, NaN, Infinity, -Infinity, null, 'x', true, {}, -1, 0, 0.3, 0.7, 1, 2, 5, 1e12];
+  const rotas = [];
+  for (let i = 0; i < 3000; i++) {
+    const e = fundirB1(ladoAlAzar(TODO), ladoAlAzar(TODO));
+    for (const ruta of Object.keys(A.RANGO_DE_RESTRICCION)) {
+      const v = e === undefined || e === null ? undefined : leerRuta(e, ruta);
+      if (v !== undefined && !(typeof v === 'number' && Number.isFinite(v))) rotas.push(`${ruta}=${String(v)}`);
+    }
+  }
+  check(`${numero()} · B.1 · PROPIEDAD · fundir nunca da NaN, ±Infinity ni un no-número en ninguna restricción efectiva (3 000 pares al azar, semilla fija)`,
+    rotas.length === 0, rotas.slice(0, 5).join(', '));
+}
+{
+  /* La fusión de S2-A, transcrita tal cual como referencia: con lados VÁLIDOS tiene que dar lo mismo, y un lado solo, el MISMO objeto. */
+  const fusionS2A = (a, b) => {
+    if (!a) return b;
+    if (!b) return a;
+    const menor = (x, y) => (typeof x === 'number' ? (typeof y === 'number' ? Math.min(x, y) : x) : y);
+    const mayor = (x, y) => (typeof x === 'number' ? (typeof y === 'number' ? Math.max(x, y) : x) : y);
+    return {
+      ...a, ...b,
+      budget: a.budget || b.budget ? {
+        ...a.budget, ...b.budget,
+        maxUsd: menor(a.budget?.maxUsd, b.budget?.maxUsd),
+        maxCredits: menor(a.budget?.maxCredits, b.budget?.maxCredits),
+      } : undefined,
+      quality: a.quality || b.quality ? { ...a.quality, ...b.quality, minScore: mayor(a.quality?.minScore, b.quality?.minScore) } : undefined,
+      maxLatencyMs: menor(a.maxLatencyMs, b.maxLatencyMs),
+      maxSteps: menor(a.maxSteps, b.maxSteps),
+      maxParallel: menor(a.maxParallel, b.maxParallel),
+      maxRisk: menor(a.maxRisk, b.maxRisk),
+      minConfidence: mayor(a.minConfidence, b.minConfidence),
+      deadlineAt: menor(a.deadlineAt, b.deadlineAt),
+      forbiddenCapabilities: Object.freeze([...(a.forbiddenCapabilities ?? []), ...(b.forbiddenCapabilities ?? [])]),
+      requiredCapabilities: Object.freeze([...(a.requiredCapabilities ?? []), ...(b.requiredCapabilities ?? [])]),
+    };
+  };
+  const VALIDOS = { maxSteps: [undefined, 1, 4], maxParallel: [undefined, 1, 3], maxLatencyMs: [undefined, 500, 2000],
+    maxRisk: [undefined, 0, 0.3, 1], minConfidence: [undefined, 0, 0.5, 1], deadlineAt: [undefined, 1_800_000_000_000, -5],
+    'budget.maxUsd': [undefined, 0, 2.5], 'budget.maxCredits': [undefined, 0, 40], 'quality.minScore': [undefined, 0, 0.8] };
+  const ladoValido = () => {
+    if (azarB1() < 0.15) return undefined;
+    const c = {};
+    for (const [ruta, vs] of Object.entries(VALIDOS)) { const v = elegirB1(vs); if (v !== undefined) ponerRuta(c, ruta, v); }
+    if (azarB1() < 0.3) ponerRuta(c, 'budget.prefer', elegirB1(['quality', 'speed', 'cost']));
+    if (azarB1() < 0.3) ponerRuta(c, 'quality.onBelow', elegirB1(['regenerate', 'accept', 'fail']));
+    if (azarB1() < 0.3) c.forbiddenCapabilities = [elegirB1(['text.generate', 'image.generate'])];
+    return c;
+  };
+  const distintas = [];
+  for (let i = 0; i < 2000; i++) {
+    const o = ladoValido(); const p = ladoValido();
+    const nueva = fundirB1(o, p); const vieja = fusionS2A(o, p);
+    const mismoObjeto = (!o || !p) ? nueva === vieja : true;
+    if (!igual(nueva, vieja) || !mismoObjeto) distintas.push(JSON.stringify([o, p]).slice(0, 120));
+  }
+  check(`${numero()} · B.1 · CONTROL · con lados válidos la fusión es EXACTAMENTE la de S2-A (2 000 pares), y un lado solo es el mismo objeto`,
+    distintas.length === 0, distintas.slice(0, 2).join(' | '));
+}
+
+/* A9 · el ciclo se para en 0b, antes del contexto y de A2, y quien lo dice es A1. */
+const paradaB1 = (r, esperados) => r.status === 'undecided' && r.parada === 'undecided' && igual(r.recorrido, ['decision'])
+  && esConflictoB1(r.decision, esperados) && r.context === undefined && r.decomposition === undefined
+  && r.strategies === undefined && r.optimization === undefined && r.entrega === undefined
+  && (r.because ?? []).some((f) => f.startsWith('Restricciones mal formadas ('));
+const cicloB1 = (camino, objetivo, peticionB1) => {
+  const d = decisionBase({
+    objective: { ...OBJ_CICLO, ...(objetivo !== undefined ? { constraints: objetivo } : {}) },
+    ...(peticionB1 !== undefined ? { constraints: peticionB1 } : {}),
+  });
+  if (camino === 'tarea') return ciclo.decidir(peticion({ decision: d }));
+  if (camino === 'opciones') return ciclo.decidir({ decision: { ...d, options: OPCIONES_B1 } });
+  return ciclo.decidir({ decision: d, enfoques: [opcion('e1', { latency: 10 }, TAREA)] });
+};
+for (const camino of ['tarea', 'opciones', 'enfoques']) {
+  const fallos = [];
+  for (const c of CAMPOS_B1) {
+    for (const [, construir, rutas] of LADOS_B1) {
+      for (const [v, motivo] of rotosDe(c)) {
+        const r = cicloB1(camino, ...construir(c, v));
+        if (!paradaB1(r, rutas.map((ru) => `${ru}.${c.ruta}: ${motivo}`))) fallos.push(`${c.ruta}=${String(v)} → ${r.status}/${r.parada} [${r.recorrido}]`);
+      }
+    }
+  }
+  check(`${numero()} · B.1 · A9 por el camino de ${camino}: con restricciones rotas se para en 0b —ni contexto ni A2— y A1 lo dice como conflicto`,
+    fallos.length === 0, fallos.slice(0, 3).join(' | '));
+}
+check(`${numero()} · B.1 · CONTROL · A9 con restricciones válidas compone como siempre: contexto, A2, A4, A3, A5, A1 y entrega`,
+  (() => {
+    /* Restricciones que las estrategias SÍ pueden cumplir sin mediciones que no hay: `maxSteps` se cuenta sobre el plan. */
+    const r = cicloB1('tarea', { maxSteps: 10 }, { minConfidence: 0 });
+    return r.status === 'decided' && igual(r.recorrido,
+      ['context', 'decomposition', 'parallelization', 'strategy', 'optimization', 'decision', 'handoff'])
+      && r.entrega?.constraints?.maxSteps === 10 && r.entrega?.constraints?.minConfidence === 0;
+  })(), JSON.stringify(cicloB1('tarea', { maxSteps: 10 }, { minConfidence: 0 }).recorrido));
+
+/* A3, A5 y A8 con la MISMA regla —y el mismo motivo—. */
+const a3B1 = A.crearMotorDeEstrategias();
+const FORMAS_B1 = A.crearMotorDeDescomposicion().descomponer(TAREA).opciones.map((o) => o.value);
+{
+  const fallos = [];
+  for (const c of CAMPOS_B1) {
+    for (const [v, motivo] of rotosDe(c)) {
+      const r = a3B1.proponer(FORMAS_B1, SENALES, conRuta(c.ruta, v));
+      const bien = r.estrategias.length === 0 && r.rechazadas.length === FORMAS_B1.length
+        && r.rechazadas.every((x) => x.reason === 'constraint_conflict' && x.detail === `constraints.${c.ruta}: ${motivo}`);
+      if (!bien) fallos.push(`${c.ruta}=${String(v)} → ${r.estrategias.length} estrategias, ${JSON.stringify(r.rechazadas[0])}`);
+    }
+    if (!a3B1.proponer(FORMAS_B1, SENALES, conRuta(c.ruta, c.valido)).estrategias.length) fallos.push(`${c.ruta} válido: sin estrategias`);
+  }
+  check(`${numero()} · B.1 · A3 con la regla de A1: sobre restricciones rotas no da por buena ninguna estrategia, y cada rechazo nombra campo y motivo`,
+    fallos.length === 0, fallos.slice(0, 3).join(' | '));
+}
+{
+  const optimizarB1 = (restr) => a5.optimizar({ candidates: ESTRATEGIAS, objective: OBJ_CICLO, evidence: EVIDENCIA,
+    baselineId: ESTRATEGIAS.find((x) => x.value.isBaseline)?.id, ...(restr ? { constraints: restr } : {}) });
+  const fallos = [];
+  for (const c of CAMPOS_B1) {
+    for (const [v, motivo] of rotosDe(c)) {
+      const r = optimizarB1(conRuta(c.ruta, v));
+      const bien = r.feasible.length === 0 && r.stoppedBecause === 'infeasible' && r.rejected.length === ESTRATEGIAS.length
+        && r.rejected.every((x) => x.why?.reason === 'constraint' && x.why.detail === `constraint_conflict · constraints.${c.ruta}: ${motivo}`);
+      if (!bien) fallos.push(`${c.ruta}=${String(v)} → ${r.feasible.length} factibles, ${JSON.stringify(r.rejected[0]?.why)}`);
+    }
+  }
+  check(`${numero()} · B.1 · A5 con la regla de A1: nada es factible sobre restricciones rotas, y cada rechazo nombra campo y motivo`,
+    ESTRATEGIAS.length > 0 && optimizarB1(undefined).feasible.length > 0 && fallos.length === 0, fallos.slice(0, 3).join(' | '));
+}
+{
+  /* Un operador propio, inventado aquí —como en `algorithm-optimization`—, para que HAYA propuestas que aceptar. */
+  const MITAD = {
+    id: 'mitad-b1', label: 'coste a la mitad', affects: ['cost'],
+    aplicable: (c) => typeof c.values?.cost === 'number' && c.values.cost > 0.01,
+    aplicar: (c) => ({ id: `${c.id}+mitad`, value: c.value, values: { ...c.values, cost: c.values.cost / 2 } }),
+  };
+  const conMitad = A.crearMotorDeOptimizacion({ operadores: [MITAD] });
+  const proponerB1 = (acceptance) => conMitad.optimizar({ candidates: [opcion('base', { cost: 1, latency: 100 })],
+    objective: { weights: { cost: 1 } }, ...(acceptance !== undefined ? { acceptance } : {}) });
+  const control = proponerB1({ minConfidence: 0 });
+  const fallos = [];
+  for (const [v, motivo] of rotosDe({ rango: 'fraccion', fuera: [1.5, -0.1] })) {
+    const r = proponerB1({ minConfidence: v });
+    if (r.proposals.length !== 0 || !r.discarded.some((x) => x.because === `acceptance.minConfidence: ${motivo}`)) {
+      fallos.push(`${String(v)} → ${r.proposals.length} propuestas, ${JSON.stringify(r.discarded.map((x) => x.because))}`);
+    }
+  }
+  check(`${numero()} · B.1 · A5 con su propio \`acceptance.minConfidence\`: roto no apaga el mínimo —no se acepta nada, y se dice por qué—`,
+    control.proposals.length > 0 && fallos.length === 0, `control ${control.proposals.length} · ${fallos.slice(0, 2).join(' | ')}`);
+}
+{
+  const contextoB1 = (requirements) => a8.seleccionar({ ahora: T1, scope: { capability: CAP }, learned: APRENDIDO, learningPolicy: POL,
+    objective: { weights: { successProbability: 1 } }, ...(requirements !== undefined ? { requirements } : {}) });
+  const control = contextoB1(undefined);
+  const fallos = [];
+  for (const [v, motivo] of rotosDe({ rango: 'fraccion', fuera: [1.5, -0.1] })) {
+    const r = contextoB1({ minConfidence: v });
+    if (r.admisiones.length !== 0
+      || !r.because.includes(`requirements.minConfidence: ${motivo}. Unos requisitos mal formados no se sirven: no se admite nada.`)) {
+      fallos.push(`${String(v)} → ${r.admisiones.length} admisiones`);
+    }
+  }
+  check(`${numero()} · B.1 · A8 con su propio \`minConfidence\`: roto no apaga el suelo —no se admite nada, y se dice por qué—; válido, lo de siempre`,
+    control.admisiones.length > 0 && igual(contextoB1({ minConfidence: 0 }).admisiones, control.admisiones) && fallos.length === 0,
+    fallos.slice(0, 2).join(' | '));
+}
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);

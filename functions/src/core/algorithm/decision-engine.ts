@@ -37,7 +37,9 @@ import {
   referenciaDeAlgoritmo,
 } from './types';
 import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, pesosNormalizados } from './objective';
+import {
+  AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
+} from './objective';
 import { Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales } from './signals';
 import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
@@ -260,10 +262,19 @@ export const objetivoSinImplementacion = (o: Objective | undefined): Objective =
   });
 };
 
-/** Las restricciones que de verdad rigen: las del contexto y las del objetivo, juntas. */
+/**
+ * Las restricciones que de verdad rigen: las del contexto y las del objetivo, juntas.
+ *
+ * Presupone lados VÁLIDOS (S2-B · B.1): A1 y A9 validan cada uno con
+ * `problemasDeLosLados` antes de llamarla, y un lado mal formado es un
+ * `constraint_conflict` que no llega a fundirse. Aun así, lo que devuelve nunca
+ * lleva un número que no sea finito (`ladoFundible`): antes `Math.max(0.5, NaN)`
+ * daba `NaN` y un lado roto borraba el valor válido del otro. Con lados válidos
+ * el resultado es exactamente el de siempre, y un lado solo se devuelve tal cual.
+ */
 export const restriccionesEfectivas = (ctx: DecisionContext<unknown>): AlgorithmConstraints | undefined => {
-  const a = ctx.objective?.constraints;
-  const b = ctx.constraints;
+  const a = ladoFundible(ctx.objective?.constraints);
+  const b = ladoFundible(ctx.constraints);
   if (!a) return b;
   if (!b) return a;
   /* Se combinan quedándose con lo MÁS ESTRECHO: una restricción no se relaja por venir dos veces. */
@@ -693,7 +704,6 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       };
     }
 
-    const constraints = restriccionesEfectivas(ctx);
     const objective = ctx.objective;
 
     /*
@@ -705,8 +715,16 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
      * S2-A se ignoraban al decidir y se devolvían TAL CUAL en `objective` y
      * `constraints`, que es justo por donde un requisito llega a la ejecución.
      * Ahora la petición se rechaza y lo que traía no se repite.
+     *
+     * Desde S2-B se mira sobre los DOS lados tal como llegan —cada uno desde su
+     * raíz, con las mismas claves que su fusión— y no sobre la fusión: así nada
+     * se funde antes de validarlo, y la frontera sigue yendo primero.
      */
-    const cruces = [...violacionesEn(objective, 'objective'), ...violacionesEn(constraints, 'constraints')];
+    const cruces = [
+      ...violacionesEn(objective, 'objective'),
+      ...violacionesEn(objective?.constraints, 'constraints'),
+      ...violacionesEn(ctx.constraints, 'constraints'),
+    ];
     if (cruces.length) {
       const claves = [...new Set(cruces.map((c) => c.clave))].sort();
       return {
@@ -718,6 +736,28 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
         ]),
       };
     }
+
+    /*
+     * LOS DOS LADOS, BIEN FORMADOS, ANTES DE FUNDIRLOS (S2-B · B.1).
+     *
+     * La petición y su objetivo se validan cada uno por su cuenta, con la regla
+     * de `motivoDeNumeroInvalido`. Un lado roto no se funde: antes `Math.max(0.5,
+     * NaN)` daba `NaN` y un `minConfidence` válido desaparecía; un `maxRisk: NaN`
+     * dejaba fuera a todas diciendo que no cumplían. Ahora es un conflicto que
+     * nombra el lado, el campo y el motivo, y lo roto no se repite: el objetivo
+     * se devuelve sin sus restricciones y no hay `constraints` efectivas.
+     */
+    const malFormadas = problemasDeLosLados(objective?.constraints, ctx.constraints);
+    if (malFormadas.length) {
+      return {
+        ...sinDecision<T>(DECISION_ENGINE_REF, { objective: objetivoSinImplementacion(objective), trace: ctx.trace },
+          'constraint_conflict', contador.gasto()),
+        explanation: Object.freeze([
+          `Restricciones mal formadas, que ni se funden ni se usan para decidir: ${malFormadas.join('; ')}.`,
+        ]),
+      };
+    }
+    const constraints = restriccionesEfectivas(ctx);
     const base = { objective, trace: ctx.trace };
     const cerrar = (fallo: AlgorithmFailureReason, frases: readonly string[], extra: Partial<AlgorithmDecision<T>> = {}) => ({
       ...sinDecision<T>(DECISION_ENGINE_REF, base, fallo, contador.gasto(), { warnings: [...avisos] }),

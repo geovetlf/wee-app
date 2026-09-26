@@ -22,6 +22,7 @@ import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { Evidence, Signal } from './signals';
 import { AlgorithmDecision, DecisionContext } from './decision';
 import { crearMotorDeDecision, restriccionesEfectivas } from './decision-engine';
+import { problemasDeLosLados } from './objective';
 import { PuertosDeCapacidad, TareaADescomponer } from './decomposition';
 import { Descomposicion, crearMotorDeDescomposicion } from './decomposition-engine';
 import { crearMotorDeParalelizacion } from './parallelization-engine';
@@ -144,9 +145,11 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * que usa A1, lo mismo que recibe cada autoridad y lo mismo que viaja en la
      * entrega. Si nombra una implementación no se piensa nada: la entrega
      * llevaría un requisito que elige con qué hacerlo, y eso es del Router.
-     */
-    const restricciones = restriccionesEfectivas(d);
-    /*
+     *
+     * Desde S2-B la frontera se mira sobre los DOS lados tal como llegan —cada
+     * uno desde su raíz, las mismas claves que su suma— y la suma se hace
+     * DESPUÉS de validarlos: nada se funde antes de saber que se puede fundir.
+     *
      * Y el ÁMBITO en que se pide decidir. Un ámbito que nombra una implementación
      * condiciona la decisión a algo que el Router todavía no ha elegido: A8 sirve
      * el historial de ese ámbito exacto y el cierre aprendería dentro de él.
@@ -158,13 +161,35 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     const pedidoDeContexto = peticion.aprendido ? { ...peticion.aprendido, learned: undefined } : undefined;
     const cruzan = [
       ...violacionesEn(d.objective, 'objective'),
-      ...violacionesEn(restricciones, 'constraints'),
+      ...violacionesEn(d.objective?.constraints, 'constraints'),
+      ...violacionesEn(d.constraints, 'constraints'),
       ...violacionesEn(pedidoDeContexto, 'aprendido'),
     ];
     if (cruzan.length) {
       porque.push(`La petición nombra una implementación en sus requisitos o en su ámbito (${[...new Set(cruzan.map((c) => c.clave))].sort().join(', ')}): eso lo elige el Router.`);
       return fin('invalid', 'authority_violation');
     }
+
+    /*
+     * 0b · Y LAS RESTRICCIONES, BIEN FORMADAS, ANTES DE COMPONER NADA (S2-B · B.1).
+     *
+     * Cada lado con la regla de A1 (`problemasDeLosLados`). Antes, un `NaN` o un
+     * infinito cruzaban A2–A5 sin que nadie los mirara —solo A1 valida, y es la
+     * última— y cada autoridad lo leía a su manera: `maxRisk: NaN` no excluía
+     * nada en A3 y excluía todo en A1. Ahora el ciclo se para aquí, antes del
+     * contexto y de A2, y quien lo dice es A1, la dueña de ese veredicto: se le
+     * pregunta, contesta `constraint_conflict` nombrando lado, campo y motivo, y
+     * no se compone nada.
+     */
+    const malFormadas = problemasDeLosLados(d.objective?.constraints, d.constraints);
+    if (malFormadas.length) {
+      recorrido.push('decision');
+      const decision = a1.decidir(d as DecisionContext<unknown>) as AlgorithmDecision<T | Strategy>;
+      salida = { ...salida, decision };
+      porque.push(`Restricciones mal formadas (${malFormadas.join('; ')}): se para antes de componer, y A1 lo dice como conflicto de restricciones.`);
+      return fin(decision.status === 'decided' ? 'undecided' : decision.status, 'undecided');
+    }
+    const restricciones = restriccionesEfectivas(d);
 
     /* 1 · CONTEXTO. A8 selecciona lo aprendido; A1 lo recibe por su puerto: el del
      * ámbito y el de cada alternativa, los dos de A8 y ninguno fabricado aquí. */

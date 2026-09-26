@@ -46,7 +46,7 @@ import { AlgorithmDescriptor } from './types';
 import { Contador, crearContador, presupuestoEfectivo } from './budget';
 import { Evidence, Signal } from './signals';
 import { formaCanonica } from './canonical';
-import { Objective, ObjectiveAxis, pesosNormalizados } from './objective';
+import { Objective, ObjectiveAxis, motivoDeNumeroInvalido, pesosNormalizados } from './objective';
 import { HistoryWindow } from './decision';
 import {
   AmbitoDeEvento, CodigoDeRazon, MotivoDeRechazo, PoliticaDeAprendizaje,
@@ -262,6 +262,20 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
         : `El ámbito de la decisión trae «${noServible}», que no es una dimensión de aprendizaje: `
           + 'el aprendizaje por cuenta está bloqueado y no se contesta con otra evidencia en su lugar.');
       return vacia();
+    }
+
+    /*
+     * (S2-B · B.1) EL MÍNIMO DE CONFIANZA DE LA DECISIÓN, con la regla de las
+     * restricciones (`motivoDeNumeroInvalido`): un `NaN` o un texto no apagan el
+     * suelo —con `valor < NaN` falso, se admitía todo sin decirlo—. Unos
+     * requisitos mal formados no se sirven: no se admite nada, y se dice por qué.
+     */
+    if (req.minConfidence !== undefined) {
+      const malo = motivoDeNumeroInvalido('fraccion', req.minConfidence);
+      if (malo) {
+        porque.push(`requirements.minConfidence: ${malo}. Unos requisitos mal formados no se sirven: no se admite nada.`);
+        return vacia();
+      }
     }
 
     /* 1 · DEDUPLICACIÓN por la clave natural de A7, que es la identidad.
