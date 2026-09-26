@@ -411,13 +411,32 @@ const compararSenales = (a: EnGrupo, b: EnGrupo): number => compararProcedencia(
 export const resolverSenales = (
   senales: readonly Signal[],
 ): { resueltas: readonly Signal[]; conflictos: readonly ConflictoDeSenales[] } => {
-  /* Sin el orden de llegada: ya no decide nada, así que no se guarda. */
-  const grupos = new Map<string, EnGrupo[]>();
+  /*
+   * (S2-C) LO YA RESUELTO SE DEVUELVE TAL CUAL. Cada señal se lee como siempre —su
+   * validez y su clave (clave, sujeto), una vez— y se apunta si las claves llegan
+   * ESTRICTAMENTE crecientes. Si llegan así —es lo que devuelve una resolución
+   * anterior, como la que A9 pasa a A4, A3 y A5—, cada grupo tiene una sola señal y
+   * el orden de las claves es el de llegada: el resultado es el mismo que agrupando
+   * y ordenando, sin agrupar ni ordenar. Si no, se agrupa lo ya leído —sin volver a
+   * leer nada de ninguna señal— y sigue el camino de siempre. El orden de llegada no
+   * decide nada: solo dice si ya estaba resuelto.
+   */
+  const claves: string[] = [];
+  const validas: Signal[] = [];
+  let crecen = true;
   (senales ?? []).forEach((s) => {
     if (!senalValida(s)) return;
     const clave = `${s.key}\0${s.subject ?? ''}`;
+    if (crecen && claves.length > 0 && !(claves[claves.length - 1] < clave)) crecen = false;
+    claves.push(clave);
+    validas.push(s);
+  });
+  if (crecen) return { resueltas: validas, conflictos: [] };
+
+  const grupos = new Map<string, EnGrupo[]>();
+  claves.forEach((clave, i) => {
     const lista = grupos.get(clave) ?? [];
-    lista.push({ s });
+    lista.push({ s: validas[i] });
     grupos.set(clave, lista);
   });
 
