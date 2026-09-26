@@ -23,6 +23,7 @@ import { Evidence, Signal, resolverSenales } from './signals';
 import { AlgorithmDecision, DecisionContext } from './decision';
 import { crearMotorDeDecision, restriccionesEfectivas } from './decision-engine';
 import { problemasDeLosLados } from './objective';
+import { problemasDelPresupuesto } from './budget';
 import { PuertosDeCapacidad, TareaADescomponer } from './decomposition';
 import { Descomposicion, crearMotorDeDescomposicion } from './decomposition-engine';
 import { crearMotorDeParalelizacion } from './parallelization-engine';
@@ -181,7 +182,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * pregunta, contesta `constraint_conflict` nombrando lado, campo y motivo, y
      * no se compone nada.
      */
-    const malFormadas = problemasDeLosLados(d.objective?.constraints, d.constraints);
+    /* (S2-B · B.4) Con los topes de pensar que se leen —`maxEvidence`, `maxDepth`—: la misma regla, y A1 lo dice igual. */
+    const malFormadas = [...problemasDeLosLados(d.objective?.constraints, d.constraints), ...problemasDelPresupuesto(d.budget)];
     if (malFormadas.length) {
       recorrido.push('decision');
       const decision = a1.decidir(d as DecisionContext<unknown>) as AlgorithmDecision<T | Strategy>;

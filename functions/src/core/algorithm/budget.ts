@@ -32,6 +32,7 @@
  */
 
 import { AlgorithmBudgetLimits, TOPES_MAXIMOS, TOPES_POR_DEFECTO } from './types';
+import { RangoDeRestriccion, motivoDeNumeroInvalido } from './objective';
 
 /** Lo que se lleva gastado. Las mismas claves que los topes, para poder comparar. */
 export interface AlgorithmSpend {
@@ -104,6 +105,45 @@ export const presupuestoEfectivo = (
     salida[clave] = Math.min(valor, TOPES_MAXIMOS[clave]);
   }
   return Object.freeze(salida);
+};
+
+/**
+ * LOS TOPES DE PENSAR QUE SE VALIDAN, CON SU RANGO DE SIEMPRE (S2-B · B.4).
+ *
+ * `maxEvidence` y `maxDepth`: los dos a los que S2-B · B.4 les da significado.
+ * Su rango NO es nuevo: es el que `presupuestoEfectivo` ya exigía para tenerlos
+ * en cuenta —un número finito y no negativo—. Lo que cambia es qué pasa con uno
+ * que no lo cumple: ya no se ignora en silencio para que rija el defecto, sino
+ * que se rechaza con la regla de las restricciones (`motivoDeNumeroInvalido`,
+ * S2-B · B.1), la misma función y el mismo veredicto. El resto de topes sigue,
+ * por ahora, con la regla de `presupuestoEfectivo`.
+ */
+export const RANGO_DEL_PRESUPUESTO: Readonly<Partial<Record<keyof AlgorithmBudgetLimits, RangoDeRestriccion>>> = Object.freeze({
+  maxEvidence: 'noNegativo',
+  maxDepth: 'noNegativo',
+});
+
+/**
+ * LO MAL FORMADO DE UN PRESUPUESTO DE PENSAR, como `budget.<campo>: motivo`.
+ *
+ * Ausente (`undefined`, o `null` como con un lado de restricciones) es no
+ * declarar nada. Un `budget` que no es un objeto sí es un problema: sus topes no
+ * se podrían leer, y callarlo sería perderlos sin decirlo. El motivo dice el
+ * tipo, nunca el valor.
+ */
+export const problemasDelPresupuesto = (budget: unknown): readonly string[] => {
+  if (budget === undefined || budget === null) return Object.freeze([]);
+  if (typeof budget !== 'object' || Array.isArray(budget)) {
+    return Object.freeze([`budget: no es un objeto de presupuesto (${Array.isArray(budget) ? 'array' : typeof budget})`]);
+  }
+  const malas: string[] = [];
+  for (const [campo, rango] of Object.entries(RANGO_DEL_PRESUPUESTO) as [keyof AlgorithmBudgetLimits, RangoDeRestriccion][]) {
+    const v = (budget as Record<string, unknown>)[campo];
+    if (v === undefined) continue;
+    const motivo = motivoDeNumeroInvalido(rango, v);
+    if (motivo) malas.push(`budget.${campo}: ${motivo}`);
+  }
+  return Object.freeze(malas);
 };
 
 /** ¿Se pasó algún contador? Devuelve cuál, para poder decirlo; `undefined` si cabe. */

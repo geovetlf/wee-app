@@ -36,7 +36,9 @@ import {
   AlgorithmFailureReason,
   referenciaDeAlgoritmo,
 } from './types';
-import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo, topeDelContador } from './budget';
+import {
+  AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador,
+} from './budget';
 import {
   AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
 } from './objective';
@@ -846,12 +848,18 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
      * se devuelve sin sus restricciones y no hay `constraints` efectivas.
      */
     const malFormadas = problemasDeLosLados(objective?.constraints, ctx.constraints);
-    if (malFormadas.length) {
+    /*
+     * Y los topes de pensar que S2-B · B.4 lee —`maxEvidence`, `maxDepth`—, con
+     * la MISMA regla y el mismo veredicto: uno roto ya no se ignora para que rija
+     * el defecto sin decirlo. Van detrás de las restricciones.
+     */
+    const presupuestoMalFormado = problemasDelPresupuesto(ctx.budget);
+    if (malFormadas.length || presupuestoMalFormado.length) {
       return {
         ...sinDecision<T>(DECISION_ENGINE_REF, { objective: objetivoSinImplementacion(objective), trace: ctx.trace },
           'constraint_conflict', contador.gasto()),
         explanation: Object.freeze([
-          `Restricciones mal formadas, que ni se funden ni se usan para decidir: ${malFormadas.join('; ')}.`,
+          `Restricciones mal formadas, que ni se funden ni se usan para decidir: ${[...malFormadas, ...presupuestoMalFormado].join('; ')}.`,
         ]),
       };
     }

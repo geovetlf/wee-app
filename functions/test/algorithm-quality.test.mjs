@@ -2061,5 +2061,61 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     cuatro.map((d) => `${d.failure}: ${d.explanation[0]}`).join(' ‖ '));
 }
 
+/*
+ * 12 · UN TOPE DE PENSAR MAL FORMADO, con la regla de B.1: la misma función
+ * (`motivoDeNumeroInvalido`, rango `noNegativo`, el que `presupuestoEfectivo` ya
+ * exigía) y el mismo veredicto (`constraint_conflict`). Ni una segunda política.
+ */
+{
+  const ROTOS_R = [[NaN, 'no es un número finito (NaN)'], [Infinity, 'no es un número finito (Infinity)'],
+    [-Infinity, 'no es un número finito (-Infinity)'], [-1, 'fuera de rango: no puede ser negativo'], ['64', 'no es un número (string)'],
+    [null, 'no es un número (null)'], [true, 'no es un número (boolean)'], [{}, 'no es un número (object)'], [[], 'no es un número (array)']];
+  const fallos = [];
+  for (const campo of ['maxEvidence', 'maxDepth']) {
+    for (const [v, motivo] of ROTOS_R) {
+      const d = decidirR(piezasR(65), { [campo]: v });
+      if (!esConflictoB1(d, [`budget.${campo}: ${motivo}`]) || motivo !== A.motivoDeNumeroInvalido('noNegativo', v) || d.spend.evidence !== 0) {
+        fallos.push(`${campo}=${String(v)} → ${d.failure} «${d.explanation?.[0]}»`);
+      }
+    }
+  }
+  check(`${numero()} · B.4 · maxEvidence y maxDepth mal formados —NaN, ±Infinity, negativo, texto, null, booleano, objeto, array—: \`constraint_conflict\` que nombra \`budget.<campo>\` con el motivo de B.1, la MISMA función, sin gastar evidencia ni decidir`,
+    fallos.length === 0, fallos.slice(0, 3).join(' | '));
+  const noObjeto = ['x', 5, []].map((b) => [b, decidirR([], b)]);
+  const conNull = a1.decidir(contexto({ options: OPCIONES_R, budget: null }));
+  const cero = decidirR(piezasR(3), { maxEvidence: 0, maxDepth: 0 });
+  const ambos = a1.decidir(contexto({ options: OPCIONES_R, constraints: { maxRisk: NaN }, budget: { maxDepth: -1, maxEvidence: 'x' } }));
+  check(`${numero()} · B.4 · un \`budget\` que no es un objeto se nombra; \`null\` es no declararlo; 0 es un tope VÁLIDO (0 piezas: se decide y se dice); y con restricciones rotas, primero ellas y después el presupuesto, en su orden`,
+    noObjeto.every(([b, d]) => esConflictoB1(d, [`budget: no es un objeto de presupuesto (${Array.isArray(b) ? 'array' : typeof b})`]))
+    && conNull.status === 'decided' && acotadaR(cero, 0, 3, 0)
+    && esConflictoB1(ambos, ['constraints.maxRisk: no es un número finito (NaN)', 'budget.maxEvidence: no es un número (string)',
+      'budget.maxDepth: fuera de rango: no puede ser negativo']),
+    `${noObjeto.map(([, d]) => d.explanation?.[0]).join(' ‖ ')} ‖ ${verR(cero)} ‖ ${ambos.explanation?.[0]}`);
+  /* A9 lo mira en 0b, ANTES de componer, y se lo pregunta a A1: por los tres caminos. */
+  const cicloPresupuesto = (camino, budget) => {
+    const d = decisionBase({ budget });
+    if (camino === 'tarea') return ciclo.decidir(peticion({ decision: d }));
+    if (camino === 'opciones') return ciclo.decidir({ decision: { ...d, options: OPCIONES_B1 } });
+    return ciclo.decidir({ decision: d, enfoques: [opcion('e1', { latency: 10 }, TAREA)] });
+  };
+  const paradas = [];
+  for (const camino of ['tarea', 'opciones', 'enfoques']) {
+    for (const [budget, esperado] of [[{ maxDepth: NaN }, 'budget.maxDepth: no es un número finito (NaN)'], [{ maxEvidence: -5 }, 'budget.maxEvidence: fuera de rango: no puede ser negativo']]) {
+      const r = cicloPresupuesto(camino, budget);
+      if (!paradaB1(r, [esperado])) paradas.push(`${camino}: ${r.status}/${r.parada} [${r.recorrido}]`);
+    }
+  }
+  const control = cicloPresupuesto('tarea', { maxDepth: 6, maxEvidence: 64 });
+  check(`${numero()} · B.4 · A9 con un tope de pensar roto se para en 0b —ni contexto ni A2— y A1 lo dice como conflicto, por los tres caminos; con topes válidos compone como siempre`,
+    paradas.length === 0 && control.status === 'decided'
+    && igual(control.recorrido, ['context', 'decomposition', 'parallelization', 'strategy', 'optimization', 'decision', 'handoff']),
+    paradas.slice(0, 3).join(' | ') || control.recorrido.join('>'));
+  /* Lo que NO se valida todavía, fijado para que no cambie sin decirlo: el resto de la familia del presupuesto. */
+  const familia = a1.decidir(contexto({ options: OPCIONES_R, budget: { maxCandidates: NaN, maxIterations: -1, maxLatencyMs: 'x', maxChecks: Infinity } }));
+  check(`${numero()} · B.4 · DEUDA ABIERTA, fijada: el resto de topes de pensar (maxCandidates, maxIterations, maxLatencyMs, maxChecks…) sigue con la regla de \`presupuestoEfectivo\` —lo mal formado se ignora y rige el defecto—`,
+    familia.status === 'decided' && familia.spend.candidates === 2 && Object.keys(A.RANGO_DEL_PRESUPUESTO).join(',') === 'maxEvidence,maxDepth',
+    verR(familia));
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
