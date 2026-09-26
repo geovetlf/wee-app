@@ -1206,11 +1206,30 @@ check('109 · R6 · cada lector con su estado real: presupuesto y calidad, CONSU
 check('110 · R6 · A6 al cerrar: restricciones efectivas SÍ, señales observadas TODAVÍA NO, y ese `unknown` no es un fallo de calidad',
   S18.includes('restricciones efectivas al cerrar: **SÍ**') && S18.includes('señales observadas al cerrar: **TODAVÍA NO**') &&
   S18.includes('no es un fallo de calidad'));
-const DEUDAS_R6 = ['un eje sin dato', 'el desglose', 'señales observadas a a6', 'procedencia de las restricciones', '`minconfidence: nan`', '`maxrisk: nan`',
-  'antes de resolverlas', '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real'];
-const deudasQueFaltan = DEUDAS_R6.filter((d) => !S18.toLowerCase().includes(d));
-check('111 · R6 · las diez deudas que no bloquean, escritas —ninguna implementada aquí—',
-  deudasQueFaltan.length === 0, deudasQueFaltan.join(' · ') || `${DEUDAS_R6.length} deudas`);
+/*
+ * Las diez deudas que dejó escritas la auditoría de S2-A siguen ESCRITAS. Tres las cerró después S2-B
+ * (B.1 las dos de NaN, B.2 el desglose) y se dicen cerradas, con su bloque, y no como lo que pasa hoy;
+ * las demás siguen abiertas —la 7 dice que sigue abierta—, y B.2 deja abierto el contrato de `fits`.
+ * El documento va partido en líneas: se compara con los espacios juntos.
+ */
+const S18_PLANO = S18.toLowerCase().replace(/\s+/g, ' ');
+const DEUDAS_ABIERTAS = ['un eje sin dato', 'señales observadas a a6', 'procedencia de las restricciones', 'antes de resolverlas',
+  '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real', '`strategyscore.fits` guarda un 0 de relleno'];
+const CERRADAS_EN_S2B = [
+  ['2. **el desglose no cuadraba', 'cerrada en s2-b · b.2'],
+  ['5. **`minconfidence: nan`** se ignoraba', 'cerrada en s2-b · b.1'],
+  ['6. **`maxrisk: nan`** dejaba fuera', 'cerrada en s2-b · b.1'],
+];
+const COMO_SI_FUERAN_DE_HOY = ['se ignora —el mínimo deja de exigirse—', 'deja fuera a todas —nadie cumple—', 'la explicación dice «quality 0.00×0.50'];
+const tramoDe = (inicio) => { const i = S18_PLANO.indexOf(inicio); return i < 0 ? '' : S18_PLANO.slice(i, i + 400); };
+const abiertasQueFaltan = DEUDAS_ABIERTAS.filter((d) => !S18_PLANO.includes(d));
+const cerradasMalDichas = CERRADAS_EN_S2B.filter(([deuda, cierre]) => !tramoDe(deuda).includes(cierre)).map(([d]) => d);
+const dichasComoDeHoy = COMO_SI_FUERAN_DE_HOY.filter((f) => S18_PLANO.includes(f));
+const septima = tramoDe('7. **las señales no se acotan antes de resolverlas**');
+check('111 · R6 · S2-B · las deudas de S2-A siguen escritas: las abiertas como abiertas —con el contrato de `fits` que dejó B.2— y las tres que cerró S2-B como cerradas, con su bloque, y no como lo que pasa hoy',
+  abiertasQueFaltan.length === 0 && cerradasMalDichas.length === 0 && dichasComoDeHoy.length === 0
+  && septima.includes('sigue abierta') && !septima.includes('cerrada en s2-b'),
+  [...abiertasQueFaltan, ...cerradasMalDichas, ...dichasComoDeHoy].join(' · ') || `${DEUDAS_ABIERTAS.length} abiertas · ${CERRADAS_EN_S2B.length} cerradas`);
 const comentarioDeDestino = leer('functions/src/core/algorithm/integration.ts');
 check('112 · R6 · y el código dice lo mismo: el comentario de DESTINO_DEL_REQUISITO nombra `maxConcurrent` y dice que la latencia máxima hoy no la lee nadie',
   comentarioDeDestino.includes('`maxConcurrent`') && /latencia máxima hoy no\s*\n?\s*\*?\s*la lee nadie/.test(comentarioDeDestino) &&

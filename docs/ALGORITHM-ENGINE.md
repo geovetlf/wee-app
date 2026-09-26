@@ -2091,6 +2091,54 @@ compara lo que antes decidía el orden—, no una consecuencia de R2 (que lo baj
 362 a 326 ms), y su raíz es que A1 resuelve TODAS las señales antes de aplicar
 `maxEvidence`. Queda registrado como deuda (abajo), sin optimizarlo aquí.
 
+### S2-B · lo que se cerró después de la integración (B.1–B.3)
+
+**Estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión.** Local,
+sin despliegue y sin autoridad nueva. Sale de la auditoría posterior a S2-A (D1–D11) y
+hace solo lo que no necesitaba una decisión antes de tocar código: B.1, B.2 y B.3. El
+contrato sigue en 1.10 y los motores en su versión 2; si un cambio que solo toca
+entradas mal formadas debe subir versión queda como decisión abierta.
+
+- **B.1 · Las restricciones mal formadas.** Una regla (`motivoDeNumeroInvalido` sobre
+  `RANGO_DE_RESTRICCION`): un número de restricción tiene que ser un número, finito y
+  en el rango que su campo ya tenía —ningún rango nuevo; `deadlineAt` sigue sin
+  rango—. La petición (`constraints`) y su objetivo (`objective.constraints`) se
+  validan por separado ANTES de fundirse (`problemasDeLosLados`): un valor roto es un
+  `constraint_conflict` que nombra el lado, el campo y el motivo —el tipo, nunca el
+  valor—, sin restricciones efectivas y sin repetir lo roto; el valor válido del otro
+  lado no lo tapa. La fusión solo ve lados fundibles (`ladoFundible`): nunca da un
+  número que no sea finito, y con lados válidos es exactamente la de siempre. A9 lo
+  comprueba en el paso 0b y se para antes del contexto y de A2 —se lo pregunta a A1,
+  que contesta el conflicto—; A3 y A5 aplican la misma regla a lo que reciben, y A5
+  (`acceptance.minConfidence`) y A8 (`requirements.minConfidence`) a su propio mínimo.
+- **B.2 · El desglose cuadra con el total.** Un eje que no se pudo medir sale «sin
+  medir», sin número; uno medido, con su número aunque valga 0; uno sin peso no sale.
+  Cuando falta algo, una frase dice sobre qué se calculó el total —la suma de lo medido
+  entre el peso medido— y la cobertura. La puntuación y la decisión no cambian.
+- **B.3 · Resolver señales sin ordenar de más.** `resolverSenales` ya no ordena el grupo
+  entero para quedarse con una: en una pasada, la mejor por procedencia, frescura y
+  muestra, y las que empatan con ella; entre esas, la forma corta y la forma canónica
+  SOLO entre las que empatan también en lo corto. El mismo orden, el mismo desempate y
+  la misma salida por identidad —la ganadora, el porqué, los conflictos y las
+  descartadas en su orden, que solo hacen falta si hay desacuerdo—. Y A9 resuelve las
+  señales de la petición UNA vez para A4, A3 y A5, que las resolvían cada una por su
+  cuenta.
+
+| 50 000 señales | antes de B.3 | con B.3 |
+|---|---|---|
+| empatadas en todo · `resolverSenales` / A1 / ciclo | 165 / 142 / 407 ms | 163 / 136 / **130 ms** |
+| una ganadora sobre 50 000 empatadas por debajo · `resolverSenales` | 164 ms | **48 ms** |
+| ninguna empatada · `resolverSenales` | 46 ms | 45 ms |
+
+Mediana de siete rondas en procesos alternos, en local e indicativo. Con todas empatadas
+en todo, resolverlas sigue costando lo mismo: para elegir hay que calcular la forma
+canónica de cada una, y eso es la semántica del desempate, no el orden. El repositorio no
+tiene un umbral contractual de rendimiento, y no se inventa aquí.
+
+Pruebas: `algorithm-quality` §O (B.1, 35 comprobaciones), §P (B.2, 7) y §Q (B.3, 8).
+Sabotajes: 29 nuevos —14 de B.1, 7 de B.2 y 8 de B.3— caen por aserción, y los 50 del
+endurecimiento siguen cayendo sobre este código.
+
 ### Lo que queda declarado
 
 - La dirección de una señal no se compara con lo declarado: una medición que lo
@@ -2115,20 +2163,27 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
    tiene dato: con lo demás igual, una alternativa que no declara su calidad —o la
    declara `NaN`— puntúa 1,000 frente a 0,700 de una que declara 0,4. La cobertura
    baja, pero el objetivo ordena antes que la cobertura, y gana la que no informa.
-2. **El desglose no cuadra en ese caso**: la explicación dice «quality 0.00×0.50 ·
-   cost 1.00×0.50» junto a un total de 1,000.
+2. **El desglose no cuadraba en ese caso** —la explicación decía «quality 0.00×0.50 ·
+   cost 1.00×0.50» junto a un total de 1,000—. **Cerrada en S2-B · B.2**: lo que no se
+   midió sale «sin medir» y se dice sobre qué se renormalizó el total. Sigue abierto
+   el contrato de la puntuación (D2b): `StrategyScore.fits` guarda un 0 de relleno
+   para lo ausente y para lo sin peso.
 3. **`cerrar` no pasa las señales observadas a A6** (arriba): lo que A6 no puede
    medir cierra `unknown`, y A7 no aprende la verificación.
 4. **La procedencia de las restricciones**: «lo más estrecho manda» no sabe si un
    límite lo puso la persona o es un defecto de Weë, así que un defecto más estrecho
    puede estrechar lo que la persona permitió. Antes de que el Planner alimente
    restricciones de verdad hace falta esa regla.
-5. **`minConfidence: NaN`** se ignora —el mínimo deja de exigirse— porque
-   `conflictosDeRestricciones` no la rechaza.
-6. **`maxRisk: NaN`** deja fuera a todas —nadie cumple— por el mismo motivo: ni una ni
-   otra se tratan como una restricción mal formada.
+5. **`minConfidence: NaN`** se ignoraba —el mínimo dejaba de exigirse—. **Cerrada en
+   S2-B · B.1**: es un `constraint_conflict` que nombra el lado, el campo y el motivo,
+   y A5 y A8 aplican la misma regla a su propio mínimo.
+6. **`maxRisk: NaN`** dejaba fuera a todas —nadie cumplía—. **Cerrada en S2-B · B.1**,
+   con toda la familia numérica (`budget.maxUsd`, `budget.maxCredits`,
+   `quality.minScore`, `deadlineAt`…): cada lado se valida antes de fundirse.
 7. **Las señales no se acotan antes de resolverlas**: A1 las resuelve TODAS y después
-   aplica `maxEvidence` (con 50 000 empatadas, 326 ms).
+   aplica `maxEvidence`. Sigue abierta: qué hace `maxEvidence` y si se acota antes de
+   resolver es la decisión de S2-B.4. S2-B · B.3 solo resuelve sin ordenar de más y una
+   vez por ciclo (el ciclo con 50 000 empatadas, de unos 400 a unos 130 ms).
 8. **`maxLatencyMs` no tiene lector** en la ejecución: PLANNED TRANSLATION / NOT
    CURRENTLY CONSUMED.
 9. **`maxParallel` → `maxConcurrent`**: la traducción al campo del Orchestrator está
@@ -2157,6 +2212,7 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `sombra-experiencia` §S1 · `-context` V8–V8d · `-cycle` 91–91b · `runtime-map` · `-agnostic` 56 · `-decision` 77 · `-foundation` 118 | S1: la canary de Travel, la puerta y sus filtros, los cortafuegos, la evidencia privada, la comparación sin falsa paridad, los desenlaces, la carrera, y que solo la sombra carga la capa |
 | `canary-sombra-atribucion` · `canary-sombra-assets` | S1.4–S1.5: el monitor de la canary atribuye cargos (#3), materiales (#4) y ejecuciones (#5) por la identidad de la sombra, no por la cuenta, el trabajo ni la hora; el caso 4 (Japón) como fixture |
 | `algorithm-quality.test.mjs` · `-cycle` 46b · `-foundation` 1 · `-decision` 1, 6, 31 · `sombra-experiencia` S1-5 | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué; y el endurecimiento R1–R6: señales rotas que no desempatan (I), la forma canónica total y acotada (J), la fusión de restricciones campo a campo (K), la integridad de la suite (L y la 41), el contrato 1.10 y las versiones 2 (M) y este documento con su estado real (N) |
+| `algorithm-quality.test.mjs` §O · §P · §Q (113–162) | S2-B: las restricciones mal formadas —una regla, los dos lados validados antes de fundir, un conflicto que nombra lado, campo y motivo, una fusión que nunca da un no finito, A9 parado en 0b y A3, A5 y A8 con la misma regla— (O); el desglose que cuadra con el total —lo ausente «sin medir», total = lo medido entre el peso medido, sin cambiar ninguna decisión— (P); y la resolución de señales sin ordenar de más, idéntica por identidad a la de S2-A, con la forma canónica solo entre las empatadas, y una vez por ciclo (Q) |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
