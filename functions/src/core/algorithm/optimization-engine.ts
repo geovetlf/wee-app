@@ -32,7 +32,7 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
-import { Contador, GASTO_CERO, crearContador, presupuestoEfectivo } from './budget';
+import { Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
 import { AlgorithmConstraints, ObjectiveAxis, problemasDeLosLados } from './objective';
 import {
   Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales,
@@ -324,8 +324,11 @@ export const crearMotorDeOptimizacion = <T = Strategy>(opciones: OpcionesDelOpti
      * ellas y cada candidato dice cuál está mal; lo demás del juez —la frontera,
      * la forma, los recursos— va antes, como siempre. En el ciclo no llegan: A9
      * se para antes.
+     *
+     * (S2-C) Y los topes de pensar, con la misma regla y el mismo veredicto que
+     * A1 y A9 desde S2-B.4/B.5. Van detrás de las restricciones.
      */
-    const malFormadas = problemasDeLosLados(undefined, problema.constraints);
+    const malFormadas = [...problemasDeLosLados(undefined, problema.constraints), ...problemasDelPresupuesto(problema.budget)];
 
     /* 1 · FACTIBILIDAD. Antes de puntuar, comparar o transformar nada. */
     const factibles: (Alternative<T> & { feasible: boolean })[] = [];

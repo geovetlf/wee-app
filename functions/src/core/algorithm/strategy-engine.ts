@@ -31,7 +31,7 @@
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { PlanStep } from '../planner';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
-import { Contador, crearContador, presupuestoEfectivo } from './budget';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
 import { AlgorithmConstraints, ObjectiveAxis, problemasDeLosLados } from './objective';
 import {
   Confidence, Evidence, PESO_DE_FUENTE, Signal, SignalSource, Uncertainty,
@@ -439,8 +439,12 @@ export const crearMotorDeEstrategias = (opciones: OpcionesDelEstratega = {}) => 
      * mientras A1 dejaba fuera a todas: la misma entrada, dos lecturas. Con la
      * regla de A1, ninguna estrategia se da por buena sobre ellas, y cada una dice
      * por qué. En el ciclo no llegan: A9 se para antes.
+     *
+     * (S2-C) Y los topes de pensar, con la misma regla y el mismo veredicto que
+     * A1 y A9 desde S2-B.4/B.5: uno mal formado ya no se ignora para que rija el
+     * defecto sin decirlo. Van detrás de las restricciones.
      */
-    const malFormadas = problemasDeLosLados(undefined, constraints);
+    const malFormadas = [...problemasDeLosLados(undefined, constraints), ...problemasDelPresupuesto(limites)];
 
     const construidas: { alt: Alternative<Strategy>; signals: readonly Signal[] }[] = [];
     const rechazadas: EstrategiaRechazada[] = [];

@@ -43,7 +43,7 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmDescriptor } from './types';
-import { Contador, crearContador, presupuestoEfectivo } from './budget';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
 import { Evidence, Signal } from './signals';
 import { formaCanonica } from './canonical';
 import { Objective, ObjectiveAxis, motivoDeNumeroInvalido, pesosNormalizados } from './objective';
@@ -276,6 +276,17 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
         porque.push(`requirements.minConfidence: ${malo}. Unos requisitos mal formados no se sirven: no se admite nada.`);
         return vacia();
       }
+    }
+    /*
+     * (S2-C) Y LOS TOPES DE PENSAR, con la misma regla y el mismo veredicto que A1 y
+     * A9 desde S2-B.4/B.5: uno mal formado ya no se ignora para que rija el defecto
+     * sin decirlo. Se trata como unos requisitos mal formados —no se admite nada, y
+     * se dice por qué—. En el ciclo no llegan: A9 se para antes.
+     */
+    const topesMalFormados = problemasDelPresupuesto(peticion?.budget);
+    if (topesMalFormados.length) {
+      porque.push(`${topesMalFormados.join('; ')}. Unos topes de pensar mal formados no se sirven: no se admite nada.`);
+      return vacia();
     }
 
     /* 1 · DEDUPLICACIÓN por la clave natural de A7, que es la identidad.

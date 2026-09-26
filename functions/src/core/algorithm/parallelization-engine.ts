@@ -29,8 +29,8 @@
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { PlanStep } from '../planner';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
-import { Contador, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints } from './objective';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { AlgorithmConstraints, problemasDeLosLados } from './objective';
 import { Signal, SignalSource, confianzaDeSenal, resolverSenales } from './signals';
 import { ParallelGroup, RiesgoEstructural, nivelesDeDependencia } from './strategy';
 import { Descomposicion, tandasAcotadas } from './decomposition-engine';
@@ -78,7 +78,10 @@ export interface AnalisisDeParalelizacion {
   risks: readonly RiesgoEstructural[];
   /** Lo previsto para el punto recomendado. Solo si se pudo medir. */
   esperado?: AhorroEsperado;
-  /** Lo que estaba mal en la tarea. Con algo aquí, no hay curva. */
+  /**
+   * Lo que estaba mal en la tarea o en lo que se pidió —restricciones y topes de
+   * pensar, con la regla de A1 (S2-C)—. Con algo aquí, no hay curva.
+   */
   problemas: readonly string[];
   metricas: MetricasDeParalelizacion;
 }
@@ -139,8 +142,20 @@ export const crearMotorDeParalelizacion = (opciones: OpcionesDelParalelizador = 
     contador.gastar('algorithmCalls');
     const m: MetricasDeParalelizacion = { ...METRICAS_CERO };
 
-    /* El grafo se valida con el de A2. No hay una segunda validación aquí. */
-    const problemas = validarDAG(tarea).map((p) => `${p.ref}:${p.reason}`);
+    /*
+     * El grafo se valida con el de A2. No hay una segunda validación aquí.
+     *
+     * (S2-C) Y lo que se pide, con la regla de A1 (S2-B · B.1, B.4, B.5): unas
+     * restricciones o unos topes de pensar mal formados no se reinterpretan —un
+     * `maxParallel` de 0 o de -1 no es «uno a la vez», y un `NaN` no es «nada»—:
+     * se dicen aquí, detrás de los del grafo, y sin ellos no hay curva. En el
+     * ciclo no llegan: A9 se para antes.
+     */
+    const problemas = [
+      ...validarDAG(tarea).map((p) => `${p.ref}:${p.reason}`),
+      ...problemasDeLosLados(undefined, constraints),
+      ...problemasDelPresupuesto(limites),
+    ];
     if (problemas.length) {
       return {
         anchoPosible: 0, anchoExplorado: 0, niveles: [], fanOut: [], fanIn: [], bottlenecks: [],
