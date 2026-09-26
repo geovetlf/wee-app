@@ -2372,5 +2372,114 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
     [r2a, r3a].map((r) => `${r.parada}/${r.decision?.failure}`).join(' · '));
 }
 
+/*
+ * PARTE 7 · UN GRUPO CON MILES DE DUPLICADOS es UNA pieza y se resuelve ENTERO: el ganador de B.3 depende de verlo
+ * todo, así que B.4 no lo trunca nunca, esté donde esté la ganadora y sea cual sea el tope.
+ */
+{
+  const fallos = [];
+  for (const posicion of [0, 500, 1000]) {
+    for (const tope of [1, 2, 64]) {
+      const grupo = Array.from({ length: 1000 }, (_, i) => ({ key: 'option.quality', subject: 'a', value: 0.5, source: 'catalog', at: T0, nota: `n${i}` }));
+      grupo.splice(posicion, 0, { key: 'option.quality', subject: 'a', value: 0.9, source: 'measured', at: T0 });
+      const d = decidirR(grupo, { maxEvidence: tope });
+      const ganadora = A.resolverSenales(grupo).resueltas[0];
+      const suya = d.evidence.filter((e) => e.signal?.subject === 'a');
+      if (!(d.selected?.nombre === 'a' && d.spend.evidence === 1 && suya.length === 1 && suya[0].signal === ganadora && ganadora.source === 'measured'
+        && !fraseR(d) && d.warnings.includes('signal_conflict'))) fallos.push(`posición ${posicion} · tope ${tope} · ${d.spend.evidence} · ${suya[0]?.signal?.source}`);
+    }
+  }
+  check(`${numero()} · B.5 · un grupo de 1 001 señales —1 000 duplicadas y la ganadora en la posición 0, 500 o 1 000— es UNA pieza y gana la de B.3 aunque el tope sea 1: B.4 nunca trunca dentro de un grupo`,
+    fallos.length === 0, fallos.slice(0, 3).join(' | '));
+}
+
+/*
+ * PARTE 9 · LA PROPIEDAD CENTRAL, sobre entradas válidas al azar: fija lo que B.4 eligió, no inventa nada.
+ */
+{
+  const azar = generador(9_2026_0926);
+  const elegir = (xs) => xs[Math.floor(azar() * xs.length)];
+  const TOPES_S = [0, 1, 64, 65, 512, 513, undefined];
+  const fallos = [];
+  let acotadas = 0;
+  for (let k = 0; k < 300; k++) {
+    const opciones = Array.from({ length: 1 + Math.floor(azar() * 4) }, (_, i) => opcion(`o${i}`, { quality: elegir([0.2, 0.5, 0.9]), cost: elegir([1, 2, 3]) }));
+    const npiezas = elegir([0, 1, 3, 40, 64, 65, 100, 512, 513, 600]);
+    const piezas = Array.from({ length: npiezas }, (_, i) => ({ key: `option.k${String(i).padStart(4, '0')}`, subject: elegir(opciones).id, value: elegir([0.5, 1]),
+      source: elegir(['measured', 'catalog', 'model']) }));
+    const duplicadas = piezas.slice(0, Math.floor(azar() * 5)).map((s) => ({ ...s, source: 'model' }));
+    const ajenas = Array.from({ length: elegir([0, 10, 100]) }, (_, i) => ({ key: `ajena.k${i}`, ...(azar() < 0.5 ? { subject: 'ajeno' } : {}), value: 1, source: 'measured' }));
+    const senales = [...piezas, ...duplicadas, ...ajenas];
+    const tope = elegir(TOPES_S);
+    const efectivo = Math.min(tope ?? A.TOPES_POR_DEFECTO.maxEvidence, A.TOPES_MAXIMOS.maxEvidence);
+    const ctx = contexto({ options: opciones, signals: senales, ...(tope === undefined ? {} : { budget: { maxEvidence: tope } }) });
+    const d = a1.decidir(ctx);
+    const sinAjenas = a1.decidir({ ...ctx, signals: [...piezas, ...duplicadas] });
+    const turnos = A.piezasPorTurnos(A.inventarioDeSenales(senales), [...opciones].map((o) => o.id).sort());
+    const usadas = Math.min(turnos.length, efectivo);
+    const usadasPares = new Set(turnos.slice(0, usadas).map((g) => `${g[0].subject}\0${g[0].key}`));
+    const evidenciaFuera = d.evidence.filter((e) => e.signal && !usadasPares.has(`${e.signal.subject}\0${e.signal.key}`));
+    const acoto = turnos.length > efectivo;
+    if (acoto) acotadas++;
+    const bien = d.status === 'decided' && d.spend.evidence === usadas && d.spend.evidence <= efectivo && evidenciaFuera.length === 0
+      && sinAjenas.spend.evidence === d.spend.evidence && igual(nucleoR(sinAjenas), nucleoR(d))
+      && d.warnings.includes('budget_exhausted') === acoto && !!fraseR(d) === acoto
+      && (tope !== 1 || turnos.length === 0 || (d.spend.evidence === 1 && usadasPares.has(`${turnos[0][0].subject}\0${turnos[0][0].key}`)));
+    if (!bien) fallos.push(`#${k} · tope ${tope} · piezas ${turnos.length} · gasto ${d.spend.evidence} · fuera ${evidenciaFuera.length}`);
+  }
+  check(`${numero()} · B.5 · PROPIEDAD CENTRAL · 300 decisiones al azar con maxEvidence 0, 1, 64, 65, 512, 513 o sin declarar: piezas usadas = min(piezas sobre alternativas, tope efectivo) y nunca más; lo ajeno no cambia ni el gasto ni la decisión; la evidencia de la elegida sale SOLO de lo usado; \`budget_exhausted\` y la frase si y solo si se acotó (${acotadas} acotadas)`,
+    fallos.length === 0 && acotadas > 20, fallos.slice(0, 3).join(' | '));
+
+  const cicloP = A.crearCicloAlgoritmico();
+  const fallosD = [];
+  let paradas = 0;
+  for (let k = 0; k < 120; k++) {
+    const n = 2 + Math.floor(azar() * 9);
+    const pasos = Array.from({ length: n }, (_, i) => ({ id: `s${i}`, capability: 'text.generate', purpose: `p${i}`,
+      ...(i ? { dependsOn: [azar() < 0.6 ? `s${i - 1}` : `s${Math.floor(azar() * i)}`] } : {}) }));
+    const maxDepth = elegir([6, 7, 8, undefined]);
+    const componer = elegir([undefined, { paralelizar: true }, { paralelizar: true, optimizar: true }]);
+    const r = cicloP.decidir({ decision: { contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA, objective: OBJ_CICLO, ...(maxDepth ? { budget: { maxDepth } } : {}) },
+      tarea: { id: 'T', steps: pasos }, ...(componer ? { componer } : {}) });
+    const niveles = A.nivelesDeDependencia(pasos).niveles.length;
+    const noCabe = niveles > (maxDepth ?? A.TOPES_POR_DEFECTO.maxDepth);
+    const paro = typeof r.because?.[0] === 'string' && r.because[0].startsWith('El plan existe —') && !r.recorrido.includes('decision');
+    if (paro) paradas++;
+    if (noCabe !== paro || (!noCabe && r.status !== 'decided')) fallosD.push(`#${k} · ${n} pasos, ${niveles} niveles, maxDepth ${maxDepth ?? 6} · ${r.status}/${r.parada}`);
+  }
+  check(`${numero()} · B.5 · PROPIEDAD CENTRAL · 120 planes al azar con maxDepth 6, 7, 8 o sin declarar, por los dos caminos: el ciclo se para diciendo que el plan existe SI Y SOLO SI sus niveles de dependencia superan el tope; si no, decide (${paradas} paradas)`,
+    fallosD.length === 0 && paradas > 10, fallosD.slice(0, 3).join(' | '));
+}
+
+/*
+ * PARTE 10 · LA EQUIVALENCIA, campo a campo, con las tres versiones anteriores —compilaciones limpias de f30079c,
+ * dacf18d y 0df8be2, fijadas en `equivalencia-s2b.json`— sobre entradas VÁLIDAS que no activan ningún límite.
+ * Frente a f30079c, la explicación se compara sin las frases que B.2 cambió a propósito.
+ */
+{
+  const E = await import('./equivalencia-s2b.mjs');
+  const H = JSON.parse(fs.readFileSync(path.resolve(here, 'equivalencia-s2b.json'), 'utf8'));
+  const a1E = A.crearMotorDeDecision();
+  const cicloE = A.crearCicloAlgoritmico();
+  const ahora = {
+    a1: E.entradasA1(ALGORITHM_CONTRACT_VERSION).map((ctx) => { const d = a1E.decidir(ctx); return [E.huellasA1(d, false), E.huellasA1(d, true)]; }),
+    ciclo: E.entradasCiclo(ALGORITHM_CONTRACT_VERSION, A.TOPES_POR_DEFECTO).map((p) => { const r = cicloE.decidir(p); return [E.huellasCiclo(r, false), E.huellasCiclo(r, true)]; }),
+  };
+  const diferencias = [];
+  for (const tipo of ['a1', 'ciclo']) {
+    for (const version of H.versiones) {
+      const antes = H[tipo][version];
+      if (antes.length !== ahora[tipo].length) diferencias.push(`${tipo}/${version}: ${antes.length} ≠ ${ahora[tipo].length} entradas`);
+      ahora[tipo].forEach(([conB2, sinB2], i) => H.campos[tipo].forEach((campo, k) => {
+        if ((version === 'f30079c' ? sinB2[k] : conB2[k]) !== antes[i]?.[k]) diferencias.push(`${tipo} #${i} · ${campo} ≠ ${version}`);
+      }));
+    }
+  }
+  check(`${numero()} · B.5 · EQUIVALENCIA · ${ahora.a1.length} decisiones de A1 y ${ahora.ciclo.length} del ciclo (6 de la sombra) que no activan ningún límite, campo a campo —decisión, elegida, candidatas, puntuaciones, confianza, avisos, restricciones, entrega, recorrido, explicación…—: idénticas a 0df8be2 y a dacf18d, y a f30079c salvo las frases de B.2`,
+    igual(H.versiones, ['f30079c', 'dacf18d', '0df8be2']) && igual(H.campos.a1, E.CAMPOS_A1) && igual(H.campos.ciclo, E.CAMPOS_CICLO)
+    && ahora.a1.length === 40 && ahora.ciclo.length === 28 && diferencias.length === 0,
+    diferencias.slice(0, 5).join(' | ') || `${H.campos.a1.length} + ${H.campos.ciclo.length} campos × 3 versiones`);
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
