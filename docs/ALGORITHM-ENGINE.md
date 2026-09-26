@@ -2235,6 +2235,71 @@ el código —12 del presupuesto de evidencia, 3 del presupuesto agotado, 6 de l
 formados, 7 de `maxDepth` y 1 de la frontera con la ejecución— y 5 sobre este documento
 caen por aserción, y los de S2-A y S2-B.1–B.3 siguen cayendo sobre este código.
 
+### S2-B.5 · el cierre de S2-B: cerrado, parcialmente cerrado y aplazado
+
+**Estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión.** Local,
+sin despliegue y sin autoridad nueva. S2-B.5 cierra lo que todavía era de S2-B y dice, una
+a una, qué queda fuera y por qué. **S2-B no está cerrada**: el versionado sigue pendiente
+de una decisión que no se puede tomar en esta fase (abajo).
+
+**El versionado: PENDIENTE, sin inventarlo.** S2-B.4 cambia lo que `motor-de-decision`
+decide con entradas VÁLIDAS —65 señales ajenas: antes `no_valid_strategy` con «0
+alternativas», ahora decide—, así que por la regla de `AlgorithmDescriptor.version` («sube
+cuando cambia lo que el algoritmo DECIDE») correspondería `motor-de-decision@3` y el
+contrato 1.11; `motor-de-contexto` y el resto no cambian lo que deciden con entradas
+válidas y se quedarían donde están. Lo auditado:
+
+- dónde se registran: el contrato en `core/contracts.ts` (`ALGORITHM_CONTRACT_VERSION` y su
+  historial); el motor en `decision-engine.ts` (`DECISION_ENGINE_VERSION`), que su descriptor
+  y cada decisión llevan, y cada descriptor declara el contrato vigente;
+- qué pruebas lo fijan: `algorithm-decision` 1, 6 y 31; `algorithm-quality` 101 y 104 (y la
+  equivalencia de S2-B.5, que ya compara los sellos aparte); `sombra-experiencia` S1-5;
+- ninguna regla obliga a subir otro descriptor, pero la entrada 1.10 del historial dice que
+  sus sellos son «este número y `motor-de-decision@2`»: subir solo el motor la contradiría.
+
+La contradicción: el contrato vive en `core/contracts.ts`, y esta fase no puede tocar ese
+archivo. **La decisión que falta** es autorizar ese cambio —solo el número y la entrada
+1.11—. Las opciones:
+
+| Opción | Qué pasa | Pruebas |
+|---|---|---|
+| 1.11 y `motor-de-decision@3` (lo que dice la regla) | los sellos de cada decisión, estrategia y entrega pasan a 1.11 y `@3`; nada más cambia | ensayo en un árbol aparte: 175 suites en verde, con las 6 comprobaciones que fijan versiones puestas al día y la de los sellos (200) al revés |
+| seguir en 1.10 y `@2` (hoy) | contradice la regla: B.4 decide distinto con entradas válidas | las de hoy; la 200 lo fija como pendiente |
+| solo `motor-de-decision@3` | contradice la entrada 1.10 del historial | no se ensayó: no es coherente |
+
+Lo que la entrada 1.11 recogería, por bloque: VALIDACIÓN —restricciones (B.1) y topes de
+pensar (B.4, B.5) mal formados son `constraint_conflict`; solo cambia con entradas mal
+formadas—; DESGLOSE —solo texto (B.2)—; RESOLUCIÓN —la misma salida (B.3)—; EVIDENCIA
+—`maxEvidence`, las piezas por turnos, `spend.evidence`, `budget_exhausted` y la frase
+(B.4); cambia decisiones VÁLIDAS—; PRESUPUESTO —`budget_exceeded` (B.4)—; PROFUNDIDAD —la
+parada del ciclo cuando el plan no cabe (B.4)—; COMPOSICIÓN —el porqué del ciclo cuando se
+vacía (B.5)—. Ningún campo público nuevo.
+
+| Deuda | Estado | Qué |
+|---|---|---|
+| topes de pensar mal formados | CERRADO en A1 y en el ciclo | los nueve de `AlgorithmBudgetLimits`, con la regla de B.1; el rango de siempre (finito ≥ 0) |
+| composición vaciada por restricciones o por el presupuesto de candidatas | PARCIALMENTE CERRADO | el porqué del ciclo lo dice, con los motivos de A2, A4, A3 y A5; la decisión no cambia. APLAZADO: el motivo estructurado —la parada sigue siendo `undecided` y A1 dice lo que ve, «No llegó ninguna alternativa»—: sería contrato |
+| motivo propio de `maxDepth` | APLAZADO | `MotivoDeParada` es cerrada; la razón viaja ya en `max_depth_exceeded` (A2), `constraint:maxDepth` (A3) y el porqué |
+| aviso estructurado de evidencia acotada | APLAZADO | ningún consumidor lo lee hoy y sería contrato. **Evidencia acotada se comunica actualmente mediante `budget_exhausted` + `spend.evidence` + `explanation`; falta campo contractual explícito** |
+| A9 resuelve una vez | PARCIALMENTE CERRADO | lo caro —el desempate con formas canónicas— se hace una vez; A4, A3 y A5 vuelven a pasar por `resolverSenales` lo ya resuelto, una pasada lineal e idempotente. APLAZADO: quitarla exige tocar A4 o la forma de llamar a A3 y A5 |
+| grupos con miles de duplicados | APLAZADO, auditado | un grupo es una pieza y se resuelve entero: el ganador depende de verlo todo, y truncarlo cambiaría la señal que gana. Se materializa entero en el inventario y en la resolución —memoria y tiempo lineales en el grupo, formas canónicas solo entre finalistas— |
+| doble validación en A1 (la regresión de B.4) | APLAZADO | quitarla exige tocar `resolverSenales` (B.3), que esta fase no rehace |
+| A2–A8 llamados sueltos con topes mal formados | APLAZADO | leen el presupuesto con `presupuestoEfectivo`; esta fase no toca A2, A4, A6, A7 ni A8 |
+| versionado | PENDIENTE de decisión | arriba |
+| D11 (sin elección real) | APLAZADA | necesita decidir qué es «sin elección real» y si va como aviso o como campo: contrato |
+| D1, D2b, D3, D4, D8, D9, D10 | APLAZADAS | fuera de S2-B, cada una con su decisión |
+
+**Lo que NO se decidió aquí**: subir el contrato y el motor; crear `evidence_capped`; crear
+un motivo de parada por presupuesto o por profundidad; que el ciclo se pare antes de A1
+cuando la composición se vacía por restricciones o por candidatas —cambiaría la decisión—;
+truncar grupos de duplicados; validar el presupuesto en A2–A8; tocar `resolverSenales`.
+
+Pruebas: `algorithm-quality` §S (190–201, 12 comprobaciones), la 111, la 182, la 187 y la 189
+puestas al día, y la equivalencia campo a campo con f30079c, dacf18d y 0df8be2
+(`equivalencia-s2b.mjs` y sus huellas en `equivalencia-s2b.json`). Sabotajes: 13 nuevos sobre el código y 8 sobre este
+documento caen por aserción, y los 116 de antes siguen cayendo —cuatro de los del documento,
+re-apuntados a su texto nuevo con la misma mutación—.
+
 ### Lo que queda declarado
 
 - La dirección de una señal no se compara con lo declarado: una medición que lo
@@ -2260,10 +2325,10 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
    declara `NaN`— puntúa 1,000 frente a 0,700 de una que declara 0,4. La cobertura
    baja, pero el objetivo ordena antes que la cobertura, y gana la que no informa.
 2. **El desglose no cuadraba en ese caso** —la explicación decía «quality 0.00×0.50 ·
-   cost 1.00×0.50» junto a un total de 1,000—. **Cerrada en S2-B · B.2**: lo que no se
-   midió sale «sin medir» y se dice sobre qué se renormalizó el total. Sigue abierto
-   el contrato de la puntuación (D2b): `StrategyScore.fits` guarda un 0 de relleno
-   para lo ausente y para lo sin peso.
+   cost 1.00×0.50» junto a un total de 1,000—. **Cerrada en S2-B · B.2 (D2a)**: lo que no
+   se midió sale «sin medir» y se dice sobre qué se renormalizó el total. Es otra deuda, y
+   está APLAZADA, el contrato de la puntuación (D2b): `StrategyScore.fits` guarda un 0 de
+   relleno para lo ausente y para lo sin peso.
 3. **`cerrar` no pasa las señales observadas a A6** (arriba): lo que A6 no puede
    medir cierra `unknown`, y A7 no aprende la verificación.
 4. **La procedencia de las restricciones**: «lo más estrecho manda» no sabe si un
@@ -2278,14 +2343,14 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
    `quality.minScore`, `deadlineAt`…): cada lado se valida antes de fundirse.
 7. **Las señales no se acotaban antes de resolverlas**: A1 las resolvía TODAS, cada una
    gastaba evidencia, y pasado `maxEvidence` salía «Ninguna de las 0 alternativas…».
-   **Cerrada en S2-B · B.4** en lo que decide: `maxEvidence` cuenta solo la evidencia de
-   lo que se evalúa, se aplica antes de resolver y nunca deja sin alternativas (arriba).
-   Siguen abiertos: un aviso estructurado propio de evidencia acotada y un motivo de
-   parada por presupuesto (contrato); el resto de topes de pensar, que siguen ignorando
-   lo mal formado; la composición vaciada por restricciones o por `maxCandidates` en el
-   ciclo, que sigue acabando en «No llegó ninguna alternativa»; que A9 resuelva todas las
-   señales de la petición para A4, A3 y A5; y que un grupo con miles de duplicados sea una
-   pieza y se resuelva entero.
+   **PARCIALMENTE CERRADA.** Cerrada en S2-B · B.4 en lo que decide: `maxEvidence` cuenta
+   solo la evidencia de lo que se evalúa, se aplica antes de resolver y nunca deja sin
+   alternativas (arriba). Cerrado en S2-B.5: los nueve topes de pensar siguen la regla de
+   B.1 en A1 y en el ciclo, y el ciclo dice por qué se vació la composición. Aplazado
+   (S2-B.5): un aviso estructurado propio de evidencia acotada y un motivo de parada por
+   presupuesto (contrato); el motivo estructurado de una composición vaciada; los topes mal
+   formados en A2–A8 llamados sueltos; que A9 resuelva todas las señales de la petición para
+   A4, A3 y A5; y que un grupo con miles de duplicados sea una pieza y se resuelva entero.
 8. **`maxLatencyMs` no tiene lector** en la ejecución: PLANNED TRANSLATION / NOT
    CURRENTLY CONSUMED.
 9. **`maxParallel` → `maxConcurrent`**: la traducción al campo del Orchestrator está
@@ -2297,10 +2362,11 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
     Hacerlos «el más estricto» exige un orden de rigor que el Core no declara —¿es
     `regenerate` más estricto que `fail`?—, y esa política no se inventa aquí.
 12. **Un plan que no cabía en `maxDepth` se contaba como «No llegó ninguna
-    alternativa»**: la composición se vaciaba y A1 recibía una lista vacía. **Cerrada en
-    S2-B · B.4**: el ciclo se para y dice que el plan existe y no cabe. Sigue abierto el
-    motivo de parada propio (contrato), y A3 sigue llamando `constraint:maxDepth` a lo
-    que poda por profundidad —es su vocabulario, fijado por sus pruebas—.
+    alternativa»**: la composición se vaciaba y A1 recibía una lista vacía. **PARCIALMENTE
+    CERRADA.** Cerrada en S2-B · B.4 en lo que hace: el ciclo se para y dice que el plan
+    existe y no cabe. Aplazado: el motivo de parada propio (contrato); y A3 sigue llamando
+    `constraint:maxDepth` a lo que poda por profundidad —es su vocabulario, fijado por sus
+    pruebas—.
 
 Y una nota de pruebas, sin tocarla: `algorithm-optimization` 3 comprueba
 `!/(A5)/` sobre `core/contracts.ts` con los paréntesis sin escapar, así que prohíbe el
@@ -2320,6 +2386,7 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `canary-sombra-atribucion` · `canary-sombra-assets` | S1.4–S1.5: el monitor de la canary atribuye cargos (#3), materiales (#4) y ejecuciones (#5) por la identidad de la sombra, no por la cuenta, el trabajo ni la hora; el caso 4 (Japón) como fixture |
 | `algorithm-quality.test.mjs` · `-cycle` 46b · `-foundation` 1 · `-decision` 1, 6, 31 · `sombra-experiencia` S1-5 | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué; y el endurecimiento R1–R6: señales rotas que no desempatan (I), la forma canónica total y acotada (J), la fusión de restricciones campo a campo (K), la integridad de la suite (L y la 41), el contrato 1.10 y las versiones 2 (M) y este documento con su estado real (N) |
 | `algorithm-quality.test.mjs` §O · §P · §Q (113–162) | S2-B: las restricciones mal formadas —una regla, los dos lados validados antes de fundir, un conflicto que nombra lado, campo y motivo, una fusión que nunca da un no finito, A9 parado en 0b y A3, A5 y A8 con la misma regla— (O); el desglose que cuadra con el total —lo ausente «sin medir», total = lo medido entre el peso medido, sin cambiar ninguna decisión— (P); y la resolución de señales sin ordenar de más, idéntica por identidad a la de S2-A, con la forma canónica solo entre las empatadas, y una vez por ciclo (Q) |
+| `algorithm-quality.test.mjs` §S (190–201) · `equivalencia-s2b.mjs` · `equivalencia-s2b.json` | S2-B.5: los nueve topes de pensar con la regla de B.1 y sin tocar lo válido, el porqué del ciclo cuando la composición se vacía y los seis «no hay decisión» distintos, el hueco estructurado fijado, los grupos de duplicados sin truncar, la propiedad central de `maxEvidence` y `maxDepth`, la equivalencia campo a campo con f30079c, dacf18d y 0df8be2 con los sellos aparte, el versionado fijado como pendiente, y este documento con lo cerrado, lo parcialmente cerrado y lo aplazado |
 | `algorithm-quality.test.mjs` §R (163–189) | S2-B.4: `maxEvidence` sobre la evidencia de lo que se evalúa —las fronteras 64/65 y 512/513, las señales ajenas fuera, los turnos, permutaciones, lo mismo que antes sin llegar al tope, «sin evidencia» frente a «evidencia acotada», el tope antes del desempate caro—, `budget_exceeded` cuando el presupuesto no deja mirar ninguna, los topes mal formados con la regla de B.1, `maxDepth` con planes de 6, 7 y 8 pasos, vacíos, con ramas y permutados, y el presupuesto de pensar fuera de la entrega |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar

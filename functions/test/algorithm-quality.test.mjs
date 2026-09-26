@@ -1220,12 +1220,15 @@ const S18_PLANO = S18.toLowerCase().replace(/\s+/g, ' ');
 /*
  * Desde S2-B.4 la 7 se dice cerrada EN LO QUE DECIDE, con lo que deja abierto escrito a continuación —los
  * huecos de contrato y el resto—, y la 12 (`maxDepth`, la misma familia) se añade cerrada con su hueco. Nada
- * de lo abierto se da por cerrado.
+ * de lo abierto se da por cerrado. Desde S2-B.5 la 7 y la 12 se dicen PARCIALMENTE CERRADAS —una deuda con una
+ * parte abierta no se llama «cerrada»—: la 7 con lo que cerró B.5 (los nueve topes de pensar y el porqué de la
+ * composición vaciada) y con lo aplazado escrito; y lo que B.5 cerró ya no se dice como si pasara hoy.
  */
 const DEUDAS_ABIERTAS = ['un eje sin dato', 'señales observadas a a6', 'procedencia de las restricciones', 'antes de resolverlas',
   '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real', '`strategyscore.fits` guarda un 0 de relleno',
-  'un aviso estructurado propio de evidencia acotada', 'un motivo de parada por presupuesto', 'el resto de topes de pensar',
-  'que a9 resuelva todas las señales de la petición'];
+  'un aviso estructurado propio de evidencia acotada', 'un motivo de parada por presupuesto',
+  'el motivo estructurado de una composición vaciada', 'los topes mal formados en a2–a8 llamados sueltos',
+  'que a9 resuelva todas las señales de la petición', 'un grupo con miles de duplicados'];
 const CERRADAS_EN_S2B = [
   ['2. **el desglose no cuadraba', 'cerrada en s2-b · b.2'],
   ['5. **`minconfidence: nan`** se ignoraba', 'cerrada en s2-b · b.1'],
@@ -1234,16 +1237,23 @@ const CERRADAS_EN_S2B = [
   ['12. **un plan que no cabía en `maxdepth`', 'cerrada en s2-b · b.4'],
 ];
 const COMO_SI_FUERAN_DE_HOY = ['se ignora —el mínimo deja de exigirse—', 'deja fuera a todas —nadie cumple—', 'la explicación dice «quality 0.00×0.50',
-  'a1 las resuelve todas y después aplica `maxevidence`'];
+  'a1 las resuelve todas y después aplica `maxevidence`', 'el resto de topes de pensar, que siguen ignorando lo mal formado',
+  'que sigue acabando en «no llegó ninguna alternativa»'];
 const tramoDe = (inicio, largo = 400) => { const i = S18_PLANO.indexOf(inicio); return i < 0 ? '' : S18_PLANO.slice(i, i + largo); };
 const abiertasQueFaltan = DEUDAS_ABIERTAS.filter((d) => !S18_PLANO.includes(d));
 const cerradasMalDichas = CERRADAS_EN_S2B.filter(([deuda, cierre]) => !tramoDe(deuda).includes(cierre)).map(([d]) => d);
 const dichasComoDeHoy = COMO_SI_FUERAN_DE_HOY.filter((f) => S18_PLANO.includes(f));
-const septima = tramoDe('7. **las señales no se acotaban antes de resolverlas**', 900);
-const duodecima = tramoDe('12. **un plan que no cabía en `maxdepth`', 500);
-check('111 · R6 · S2-B · las deudas de S2-A siguen escritas: las abiertas como abiertas —con `fits` (B.2) y lo que B.4 deja abierto— y las que cerró S2-B (B.1, B.2 y B.4) como cerradas, con su bloque, y no como lo que pasa hoy',
+/* Cada punto hasta el siguiente, para que lo que diga uno no lo cubra otro. */
+const puntoDe = (inicio, siguiente) => { const i = S18_PLANO.indexOf(inicio); const j = i < 0 ? -1 : S18_PLANO.indexOf(siguiente, i + inicio.length);
+  return i < 0 || j < 0 ? '' : S18_PLANO.slice(i, j); };
+const septima = puntoDe('7. **las señales no se acotaban antes de resolverlas**', '8. **');
+const duodecima = puntoDe('12. **un plan que no cabía en `maxdepth`', 'y una nota de pruebas');
+check('111 · R6 · S2-B · las deudas de S2-A siguen escritas: las abiertas como abiertas —con `fits` (B.2) y lo que B.4 y B.5 dejan aplazado— y las que cerró S2-B (B.1, B.2, B.4 y B.5) con su bloque —PARCIALMENTE si les queda una parte—, y no como lo que pasa hoy',
   abiertasQueFaltan.length === 0 && cerradasMalDichas.length === 0 && dichasComoDeHoy.length === 0
-  && septima.includes('en lo que decide') && septima.includes('siguen abiertos:') && duodecima.includes('sigue abierto el motivo de parada propio'),
+  && septima.includes('**parcialmente cerrada.** cerrada en s2-b · b.4 en lo que decide')
+  && septima.includes('cerrado en s2-b.5: los nueve topes de pensar siguen la regla de b.1 en a1 y en el ciclo, y el ciclo dice por qué se vació la composición')
+  && septima.includes('aplazado (s2-b.5):') && !septima.includes('siguen abiertos:')
+  && duodecima.includes('**parcialmente cerrada.** cerrada en s2-b · b.4') && duodecima.includes('aplazado: el motivo de parada propio (contrato)'),
   [...abiertasQueFaltan, ...cerradasMalDichas, ...dichasComoDeHoy].join(' · ') || `${DEUDAS_ABIERTAS.length} abiertas · ${CERRADAS_EN_S2B.length} cerradas`);
 const comentarioDeDestino = leer('functions/src/core/algorithm/integration.ts');
 check('112 · R6 · y el código dice lo mismo: el comentario de DESTINO_DEL_REQUISITO nombra `maxConcurrent` y dice que la latencia máxima hoy no la lee nadie',
@@ -2260,7 +2270,7 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
 
 /* Y el documento dice de S2-B.4 lo que hay: su estado, el versionado sin decidir, las reglas, los huecos y la regresión. */
 {
-  const B4 = (() => { const i = S18_PLANO.indexOf('### s2-b.4'); const j = S18_PLANO.indexOf('### lo que queda declarado'); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
+  const B4 = (() => { const i = S18_PLANO.indexOf('### s2-b.4'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
   const DEBE_DECIR = [
     'estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión',
     'b.4 sí cambia lo que a1 decide con entradas válidas', 'queda como decisión pendiente', 'sin aplicar',
@@ -2491,6 +2501,49 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   check(`${numero()} · B.5 · VERSIONADO PENDIENTE, fijado: los sellos son los de las tres versiones anteriores —contrato ${H.sellos['0df8be2'].contrato} y ${H.sellos['0df8be2'].motor}—, aunque S2-B.4 cambie decisiones válidas; subirlos es la decisión abierta`,
     H.versiones.every((v) => igual(H.sellos[v], selloHoy)) && ALGORITHM_CONTRACT_VERSION === '1.10' && A.DECISION_ENGINE_REF === 'motor-de-decision@2'
     && A.DESCRIPTOR_DE_CONTEXTO.version === 2, `${selloHoy.contrato} · ${selloHoy.motor}`);
+}
+
+/*
+ * PARTE 15 · Y EL DOCUMENTO DICE DE S2-B.5 LO QUE HAY: CERRADO, PARCIALMENTE CERRADO y APLAZADO, fila a fila,
+ * sin llamar «cerrada» a una deuda con una parte abierta; la frase exacta de la evidencia acotada; lo que no se
+ * decidió; y el versionado en el MISMO estado que el código —pendiente mientras los sellos sean 1.10 y
+ * `motor-de-decision@2`; si se suben, el documento tiene que dejar de decir «pendiente»—.
+ */
+{
+  const B5 = (() => { const i = S18_PLANO.indexOf('### s2-b.5'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
+  const B5_LINEAS = (() => { const i = S18.indexOf('### S2-B.5'); const j = i < 0 ? -1 : S18.indexOf('### ', i + 4); return i >= 0 && j > i ? S18.slice(i, j).toLowerCase().split('\n') : []; })();
+  const pendiente = ALGORITHM_CONTRACT_VERSION === '1.10' && A.DECISION_ENGINE_REF === 'motor-de-decision@2';
+  const FILAS = [
+    ['topes de pensar mal formados', 'cerrado en a1 y en el ciclo'],
+    ['composición vaciada por restricciones o por el presupuesto de candidatas', 'parcialmente cerrado'],
+    ['motivo propio de `maxdepth`', 'aplazado'],
+    ['aviso estructurado de evidencia acotada', 'aplazado'],
+    ['a9 resuelve una vez', 'parcialmente cerrado'],
+    ['grupos con miles de duplicados', 'aplazado, auditado'],
+    ['doble validación en a1 (la regresión de b.4)', 'aplazado'],
+    ['a2–a8 llamados sueltos con topes mal formados', 'aplazado'],
+    ['versionado', pendiente ? 'pendiente de decisión' : 'resuelto'],
+    ['d11 (sin elección real)', 'aplazada'],
+    ['d1, d2b, d3, d4, d8, d9, d10', 'aplazadas'],
+  ];
+  const filasMal = FILAS.filter(([deuda, estado]) => !B5.includes(`| ${deuda} | ${estado} |`)).map(([d]) => d);
+  const DEBE_DECIR = [
+    'estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión',
+    'evidencia acotada se comunica actualmente mediante `budget_exhausted` + `spend.evidence` + `explanation`; falta campo contractual explícito',
+    '**lo que no se decidió aquí**', 'crear `evidence_capped`', 'truncar grupos de duplicados', 'tocar `resolversenales`',
+    '§s (190–201, 12 comprobaciones)', '13 nuevos sobre el código', '8 sobre este documento',
+    ...(pendiente ? ['**s2-b no está cerrada**', '**el versionado: pendiente, sin inventarlo.**', '**la decisión que falta**',
+      '| 1.11 y `motor-de-decision@3` (lo que dice la regla) |', '| seguir en 1.10 y `@2` (hoy) |', '| solo `motor-de-decision@3` |'] : []),
+  ];
+  const NO_DEBE_DECIR = pendiente ? ['el versionado: resuelto', 'el aviso `evidence_capped`'] : ['el versionado: pendiente', 'el aviso `evidence_capped`'];
+  const faltan = DEBE_DECIR.filter((f) => !B5.includes(f));
+  const sobran = NO_DEBE_DECIR.filter((f) => B5.includes(f));
+  /* Ninguna fila que deje algo APLAZADO se llama «cerrado» a secas. */
+  const cerradasConParteAbierta = B5_LINEAS.filter((l) => l.startsWith('| ')).map((l) => l.split(' | '))
+    .filter((c) => c.length >= 3 && /^cerrad[oa](\s|$)/.test(c[1]) && /aplazad/.test(c.slice(2).join(' | '))).map((c) => c[0]);
+  check(`${numero()} · B.5 · el documento dice lo que hay: cada deuda CERRADA, PARCIALMENTE CERRADA o APLAZADA —ninguna «cerrada» con una parte abierta—, la frase exacta de la evidencia acotada, lo que no se decidió, y el versionado en el mismo estado que el código (${pendiente ? 'PENDIENTE' : 'RESUELTO'})`,
+    B5.length > 0 && B5_LINEAS.length > 0 && filasMal.length === 0 && faltan.length === 0 && sobran.length === 0 && cerradasConParteAbierta.length === 0,
+    [...filasMal, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...cerradasConParteAbierta.map((c) => `cerrada con parte abierta: ${c}`)].join(' · ') || `${FILAS.length} filas · ${DEBE_DECIR.length} afirmaciones`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
