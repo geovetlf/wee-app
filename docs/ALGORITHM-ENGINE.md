@@ -2322,6 +2322,130 @@ sección de la sombra y la del Algorithm Engine en `docs/RUNTIME.md`. Sabotajes 
 antes siguen cayendo, con 5 re-apuntados al estado resuelto (R5-a, R5-b, S5-m, Bdoc5-a y
 Bdoc5-h).
 
+### S2-C · la fase técnica: la regla de B.1 en las llamadas sueltas, los huecos de pruebas y lo que sigue bloqueado
+
+**Estado: en la rama `s2c-technical-hardening`, desde e3a9e94 y fuera de `main` hasta su revisión.**
+Local, sin despliegue y sin autoridad nueva. Ni el contrato ni los motores suben —1.11,
+`motor-de-decision@3`, `motor-de-contexto@2`—, porque nada cambia con entradas válidas. S2-C no
+decide ninguna de las deudas de la auditoría (D1, D2b, D3, D4, D8, D9, D10 y D11): endurece lo
+que la regla de B.1 ya determinaba, fija con pruebas lo que hay, mide, y dice qué decisión falta en
+cada bloqueo.
+
+**Qué cambia, y solo con entradas mal formadas.** Las llamadas SUELTAS a A3, A4, A5 y A8 siguen la
+regla de B.1 —un número finito en su rango de siempre; lo mal formado se rechaza y se dice por
+qué—, cada una con la forma de rechazo que ya tenía:
+
+| Motor | Qué rechaza ahora | Cómo lo dice (la forma que ya existía) |
+|---|---|---|
+| A3 | los nueve topes de pensar (las restricciones, desde B.1) | cada estrategia fuera con `constraint_conflict` y `budget.<campo>: motivo`, detrás de las restricciones |
+| A5 | los nueve topes de pensar (las restricciones, desde B.1) | nada factible: cada candidata fuera con `constraint_conflict · budget.<campo>: motivo` |
+| A4 | las restricciones —los nueve campos de B.1— y los nueve topes | en `problemas`, detrás de los del grafo, y sin variantes ni curva |
+| A8 | los nueve topes de pensar | no se admite nada: «`budget.<campo>: motivo`. Unos topes de pensar mal formados no se sirven: no se admite nada.» |
+
+Antes, A4 leía un `maxParallel` de 0 o -1 como «uno a la vez», un `NaN` como «ninguna variante» sin
+decir por qué, y un texto o un infinito como «sin tope»; y A3, A5 y A8 dejaban pasar un tope roto y
+regía el defecto sin decirlo. En el ciclo no cambia nada: A9 se para en 0b antes de llamarlos, y les
+pasa el presupuesto de la petición ya validado y las restricciones efectivas, que la fusión nunca
+deja mal formadas. Con entradas válidas, nada: 102 entradas al azar (`equivalencia-s2c.mjs`) dan en
+A3, A4, A5 y A8 lo mismo que e3a9e94, y la equivalencia de S2-B.5 —A1 y el ciclo— sigue pasando.
+
+No hace falta subir el contrato: la entrada 1.11 ya dice que una restricción o un tope de pensar que
+no es un número finito en su rango de siempre «ya no se ignora ni se funde», y las llamadas sueltas
+seguían sin cumplirlo. No hay tipo, campo ni vocabulario nuevos, y los descriptores no suben porque
+ninguno decide distinto con entradas válidas —la regla de `AlgorithmDescriptor.version`, como en
+B.1—. `core/contracts.ts` no se tocó: si esta ampliación tiene que constar en su historial es una
+de las decisiones que quedan escritas abajo.
+
+**Lo que no se endurece: BLOCKED — HUMAN DECISION.** Se fija tal como está, cada uno con su prueba,
+para que nadie lo cambie sin la decisión que falta:
+
+| Motor | Qué hace hoy con lo mal formado | Qué lo bloquea |
+|---|---|---|
+| A2 | `maxSteps` o `maxParallel` NaN, infinito, texto o `null` se ignoran; -∞, -1 o 0 dejan todas las disposiciones fuera por `max_*_exceeded`; el resto de campos y los nueve topes, ignorados | rechazarlo exige un motivo nuevo en `MotivoDeDescomposicionInvalida`, una unión cerrada de doce: contrato |
+| A6 | un `NaN` en `maxLatencyMs`, `budget.maxUsd` o `quality.minScore` suspende siempre (620 ≤ NaN es falso); un infinito aprueba un techo y suspende un suelo; 0 o un negativo suspenden un techo; un texto o `null` quitan la comprobación; los topes de pensar rotos se ignoran | ninguna regla de B.1 ni de B.5 llega a A6 —la entrada VALIDACIÓN de 1.11 nombra la decisión, el ciclo, las estrategias, la optimización y los mínimos de confianza propios— y corregirlo es elegir un veredicto (`fail`, `unknown`, `inconclusive`…): decisión humana |
+| A7 | su política cae al defecto (NaN, texto) y al suelo (un negativo, lo que afloja de más) —su propia regla, «MÁS estricto siempre, y menos nunca»— y sus topes rotos se ignoran | `MotivoDeRechazo` es cerrada (`clock_missing` · `clock_invalid`), y qué regla manda sobre la política propia de A7 es decisión humana |
+
+**A6 y el sujeto (D3): prueba sí, corrección no.** `comprobarRestricciones` toma la primera medida por
+clave sin mirar el sujeto, y como las señales le llegan resueltas —en orden de clave y sujeto—, la
+primera es la del sujeto que va antes por orden alfabético: con el resultado «job-z» a 620 ms y un
+paso «alpha» a 5 000 ms en `result.latencyMs`, suspende; con los valores cambiados, aprueba en falso.
+La llegada no decide. No viola ninguna regla aprobada: la de 1.10 (DESEMPATE) —que el orden de
+llegada no decida— se cumple, y la entrada 1.11 declara como deuda que `cerrar` no le pasa a A6 las
+señales observadas. Corregirlo es decidir qué sujeto es «el resultado», si un `result.*` sin sujeto
+es suyo, quién emite las observaciones y quién llama a `cerrar`, y qué aprende A7 —que hoy suma las
+dos medidas en un solo agregado—: D3.
+
+**`maxLatencyMs` (D9)** es hoy un criterio sobre lo medido, y nada más: en A1, sin dato, queda
+`unverifiable`; en A3 y A5 con estrategias, sin dato, pasa; en A5 con otras candidatas, sin dato,
+`unverifiable`; en A6 aprueba si cabe —también en el borde— y es `unknown` sin medida. No se
+convirtió en plazo, aborto, cancelación ni reembolso.
+
+**Los huecos de pruebas de la auditoría**, cerrados fijando lo que hay: A6 con dos sujetos (210), A6
+con `maxLatencyMs` (211), A1 frente a A3 y A5 sin dato de latencia (212), el rechazo propio de A1 por
+`maxParallel` (213), el desempate por cobertura aislado (214), D11 con sus cinco estados —y en E las
+candidatas que no caben desaparecen del resultado— (215), `maxCandidates: 0` según la vía (216), las
+llamadas sueltas rotas a A2, A6 y A7 (207–209) y a A4 (204), y dos equivalentes: `budget_exhausted`
+dice hoy tres cosas (217) y `maxReplans` no tiene consumidor (218). Las que fijan una decisión
+pendiente lo dicen en su nombre: «BLOCKED — HUMAN DECISION».
+
+**Rendimiento: lo ya resuelto se devuelve tal cual (implementado, exacto).** `resolverSenales` lee
+cada señal como siempre —su validez y su clave (clave, sujeto), una vez— y apunta si las claves
+llegan estrictamente crecientes. Si llegan así —es lo que devuelve una resolución anterior, lo que
+A9 pasa a A4, A3 y A5—, cada grupo tiene una sola señal y el orden de las claves es el de llegada: el
+resultado es el de agrupar y ordenar, sin agrupar ni ordenar. Si no, agrupa lo ya leído y sigue el
+camino de siempre. La API no cambia, A3, A4 y A5 no cambian, y la salida es la misma por identidad:
+en la verificación de esta fase, 4 000 entradas al azar y 3 000 con 11 403 conflictos dieron las
+mismas señales (===), en el mismo orden, con las mismas ganadoras, porqués y descartadas que
+e3a9e94, y cada señal se lee lo mismo que antes —cuatro veces la clave y cuatro el sujeto—.
+
+**Lo que sigue sin quitarse**, medido:
+
+- la segunda pasada de A4, A3 y A5 sobre lo que A9 ya resolvió sigue ahí —ahora sin agrupar ni
+  ordenar—: quitarla del todo exige que sepan que la lista viene resuelta, un parámetro nuevo, y eso
+  es cambiar su API;
+- la doble validación de A1 —la de su inventario y la de `resolverSenales`—: unos 21 µs de
+  `senalValida` y unos 8 µs de agrupado, medidos por separado, de los casi 290 µs que cuesta A1
+  con 64 piezas; compartirla exige una función nueva que `export *` publicaría: también API;
+- un grupo con miles de duplicados sigue siendo una pieza y se resuelve entero: su coste es lineal y
+  está en las formas canónicas de las finalistas, que B.3 exige; no hay nada exacto que ganar sin
+  reescribir el comparador, y no se trunca.
+
+Y una que se probó y se descartó: `senalValida` con la clave en minúsculas una vez por señal es
+exacta, pero no mejora nada que se pueda medir.
+
+**Rendimiento, la línea base post-S2-B (bloque D).** Node v24.19.0, Windows 11 (10.0.26200), Intel
+Core i5-1135G7 (8 hilos) y 8 GiB; un proceso limpio por versión y caso, en orden alterno; mediana
+(mín–máx) de 11 rondas para A1 con 64 y 65 piezas, y de 7 para el resto. Sin umbral: el repositorio
+no tiene un criterio contractual, y proponer uno es una decisión humana.
+
+| Caso | f30079c | e3a9e94 | S2-C |
+|---|---|---|---|
+| A1 · 64 piezas (µs) | 209,3 (197,5–268,9) | 294,6 (287,5–353,7) | 288,0 (284,2–299,6) |
+| A1 · 50 000 señales ajenas distintas (ms) | 85,4 (78,9–91,1), sin decidir | 64,9 (55,9–82,3) | 61,5 (43,6–69,4) |
+| ciclo · 50 000 empatadas sobre un paso (ms) | 438,8 (430,6–462,8) | 161,2 (154,2–172,6) | 166,9 (160,9–180,6) |
+| ciclo · 50 000 distintas, barajadas (ms) | 305,9 (292,6–354,2) | 266,8 (260,4–289,7) | 176,5 (171,8–285,1) |
+| `resolverSenales` · lo ya resuelto, 50 000 (ms) | 63,8 (61,8–77,3) | 57,7 (56,1–60,7) | 25,3 (24,9–27,0) |
+| `resolverSenales` · 50 000 empatadas (ms) | 164,3 (158,7–171,6) | 162,5 (151,0–175,8) | 167,9 (157,3–178,9) |
+
+La regresión de B.4 sigue ahí y S2-C no la toca: A1 con 64 piezas cuesta un 41 % más que en
+f30079c —209,3 µs en f30079c, 210,3 en dacf18d, 291,7 en 0df8be2 y 294,6 en e3a9e94; la auditoría
+midió 218,7, 220,9, 299,8 y 302,3 (+38 %)—, y en S2-C queda en 288,0 µs, dentro del ruido. Lo ya
+resuelto cuesta un 56 % menos y el ciclo con 50 000 señales distintas barajadas un 34 % menos; el
+resto de los casos de la auditoría, dentro del ruido (±5 %, con los rangos solapados). El
+endurecimiento sí se nota en las llamadas sueltas con entradas válidas: A4 pasa de 37,4 a 41,1 µs y
+A8 de 14,8 a 16,0 µs —validar dos lados y nueve topes en cada llamada—; A3 (+2,7 %) y A5 (−1,7 %),
+en el ruido. Si esa diferencia importa es, como el umbral, una decisión humana.
+
+**Lo que NO se decidió aquí**: D1, D2b, D3, D4, D8, D9, D10 y D11; crear `evidence_capped`; nombres
+o motivos de parada nuevos; subir el contrato o un motor; el veredicto de A6 ante un tope mal
+formado; un motivo nuevo para A2 o para A7; qué regla manda sobre la política de A7; que S2-C conste
+en el historial del contrato; y un umbral de rendimiento.
+
+Pruebas: `algorithm-quality` §T (202–222, 21 comprobaciones) y la equivalencia con e3a9e94
+(`equivalencia-s2c.mjs` y sus huellas en `equivalencia-s2c.json`). Sabotajes: 31 nuevos —21 sobre el
+código y los fixtures de la equivalencia, y 10 sobre este documento— caen por aserción, y los 148 de
+antes siguen cayendo sin re-apuntar ninguno: sus patrones siguen apareciendo una vez.
+
 ### Lo que queda declarado
 
 - La dirección de una señal no se compara con lo declarado: una medición que lo
@@ -2373,6 +2497,9 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
    presupuesto (contrato); el motivo estructurado de una composición vaciada; los topes mal
    formados en A2–A8 llamados sueltos; que A9 resuelva todas las señales de la petición para
    A4, A3 y A5; y que un grupo con miles de duplicados sea una pieza y se resuelva entero.
+   Después, en S2-C (la fase técnica, arriba): A3, A4, A5 y A8 sueltos siguen ya la regla con
+   los nueve topes —y A4 también con las restricciones—; A2, A6 y A7 quedan BLOCKED — HUMAN
+   DECISION; y la segunda pasada de A4, A3 y A5 sigue, sin agrupar ni ordenar lo ya resuelto.
 8. **`maxLatencyMs` no tiene lector** en la ejecución: PLANNED TRANSLATION / NOT
    CURRENTLY CONSUMED.
 9. **`maxParallel` → `maxConcurrent`**: la traducción al campo del Orchestrator está
@@ -2410,6 +2537,7 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `algorithm-quality.test.mjs` §O · §P · §Q (113–162) | S2-B: las restricciones mal formadas —una regla, los dos lados validados antes de fundir, un conflicto que nombra lado, campo y motivo, una fusión que nunca da un no finito, A9 parado en 0b y A3, A5 y A8 con la misma regla— (O); el desglose que cuadra con el total —lo ausente «sin medir», total = lo medido entre el peso medido, sin cambiar ninguna decisión— (P); y la resolución de señales sin ordenar de más, idéntica por identidad a la de S2-A, con la forma canónica solo entre las empatadas, y una vez por ciclo (Q) |
 | `algorithm-quality.test.mjs` §S (190–201) · `equivalencia-s2b.mjs` · `equivalencia-s2b.json` | S2-B.5: los nueve topes de pensar con la regla de B.1 y sin tocar lo válido, el porqué del ciclo cuando la composición se vacía y los seis «no hay decisión» distintos, el hueco estructurado fijado, los grupos de duplicados sin truncar, la propiedad central de `maxEvidence` y `maxDepth`, la equivalencia campo a campo con f30079c, dacf18d y 0df8be2 con los sellos aparte, el versionado, pendiente hasta autorizarlo y resuelto después en 1.11 y `motor-de-decision@3` (200 y 201), y este documento con lo cerrado, lo parcialmente cerrado y lo aplazado |
 | `algorithm-quality.test.mjs` §R (163–189) | S2-B.4: `maxEvidence` sobre la evidencia de lo que se evalúa —las fronteras 64/65 y 512/513, las señales ajenas fuera, los turnos, permutaciones, lo mismo que antes sin llegar al tope, «sin evidencia» frente a «evidencia acotada», el tope antes del desempate caro—, `budget_exceeded` cuando el presupuesto no deja mirar ninguna, los topes mal formados con la regla de B.1, `maxDepth` con planes de 6, 7 y 8 pasos, vacíos, con ramas y permutados, y el presupuesto de pensar fuera de la entrega |
+| `algorithm-quality.test.mjs` §T (202–222) · `equivalencia-s2c.mjs` · `equivalencia-s2c.json` | S2-C, la fase técnica: los nueve topes de pensar —y en A4 también las restricciones— mal formados en A3, A4, A5 y A8 llamados sueltos, con la regla de B.1 y la forma que cada uno ya tenía; una regla por todas las puertas; A2, A6 y A7 fijados como BLOCKED — HUMAN DECISION; los huecos de la auditoría (A6 con dos sujetos y con `maxLatencyMs`, A1 frente a A3 y A5, el `maxParallel` de A1, la cobertura aislada, D11 A–E, `maxCandidates: 0` según la vía, `budget_exhausted` y `maxReplans`); la equivalencia con e3a9e94 con entradas válidas; lo ya resuelto devuelto tal cual; y este documento |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y

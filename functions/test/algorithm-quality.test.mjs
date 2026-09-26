@@ -49,6 +49,13 @@
  *     alternativas»: `maxEvidence` sobre la evidencia de lo que se evalúa (las
  *     fronteras 64/65 y 512/513, las señales ajenas fuera, por turnos y sin
  *     depender del orden), y `maxDepth` que dice que el plan existe.
+ *  S. S2-B.5 — el cierre de S2-B: los nueve topes de pensar con la regla de B.1,
+ *     el porqué de la composición vaciada, los grupos de duplicados, la
+ *     equivalencia con las versiones anteriores y el versionado.
+ *  T. S2-C — la fase técnica: la regla de B.1 en las llamadas sueltas a A3, A4,
+ *     A5 y A8; A2, A6 y A7 fijados como «BLOCKED — HUMAN DECISION»; los huecos de
+ *     pruebas de la auditoría; la equivalencia con e3a9e94 con entradas válidas; y
+ *     lo ya resuelto, devuelto tal cual.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -2564,6 +2571,526 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
     && numeroFuera.length === 0 && faltanFuera.length === 0,
     [...filasMal, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...cerradasConParteAbierta.map((c) => `cerrada con parte abierta: ${c}`), ...numeroFuera, ...faltanFuera].join(' · ')
     || `${FILAS.length} filas · ${DEBE_DECIR.length} afirmaciones · el número vigente fuera de §18`);
+}
+
+console.log('\n─── T. S2-C · Endurecimiento técnico sin semántica nueva, huecos de pruebas y bloqueos fijados ───');
+
+/*
+ * S2-C, la fase técnica. La regla de B.1 —un número finito en su rango de siempre; lo mal formado ni se ignora ni se
+ * interpreta: se rechaza y se dice por qué— llega a las llamadas SUELTAS de A3, A4, A5 y A8, cada una con la forma de
+ * rechazo que YA tenía: A3 y A5 rechazan cada alternativa nombrando campo y motivo, A4 lo dice en `problemas` y no da
+ * curva, y A8 no admite nada y dice por qué. En el ciclo nada de esto llega —A9 se para en 0b— y con entradas válidas
+ * no cambia nada (la equivalencia con e3a9e94, abajo).
+ *
+ * Y los huecos de pruebas de la auditoría, fijando lo que HAY. Donde lo que hay no se puede cambiar sin decidir algo
+ * que no es técnico, la comprobación lo dice en su nombre —«BLOCKED — HUMAN DECISION»— con la decisión que falta.
+ * Ninguna comprobación de esta sección decide semántica: si una falla, lo que ha cambiado es una decisión.
+ */
+const TOPES_T = Object.keys(A.TOPES_POR_DEFECTO);
+const ROTOS_T = [NaN, Infinity, -Infinity, -1, '3', null, true, {}, []];
+const VALIDOS_T = [0, 0.5, 1, 64, 1e9];
+const motivoT = (v) => A.motivoDeNumeroInvalido('noNegativo', v);
+const ponerT = (campo, v) => { const [f, d] = campo.split('.'); return d ? { [f]: { [d]: v } } : { [f]: v }; };
+const rotosDeRangoT = (rango) => [NaN, Infinity, -Infinity, 'x', null,
+  ...(rango === 'positivo' ? [0, -1] : rango === 'fraccion' ? [-0.1, 1.5] : rango === 'noNegativo' ? [-1] : [])];
+const a4T = A.crearMotorDeParalelizacion();
+const COLA_T = 'Unos topes de pensar mal formados no se sirven: no se admite nada.';
+const contextoT = (budget, requirements) => a8.seleccionar({ ahora: T1, scope: { capability: CAP }, learned: APRENDIDO, learningPolicy: POL,
+  objective: { weights: { successProbability: 1 } }, ...(requirements !== undefined ? { requirements } : {}), ...(budget !== undefined ? { budget } : {}) });
+const optimizarT = (budget, restr) => a5.optimizar({ candidates: ESTRATEGIAS, objective: OBJ_CICLO, evidence: EVIDENCIA,
+  baselineId: ESTRATEGIAS.find((x) => x.value.isBaseline)?.id, ...(restr ? { constraints: restr } : {}), ...(budget !== undefined ? { budget } : {}) });
+
+/* PARTE 1 · EL ENDURECIMIENTO: A3, A5, A4 y A8 sueltos, con la regla de B.1 y la forma que cada uno ya tenía. */
+{
+  const fallos = [];
+  for (const campo of TOPES_T) {
+    for (const v of ROTOS_T) {
+      const r = sinReventar(() => a3B1.proponer(FORMAS_B1, SENALES, undefined, { [campo]: v }));
+      const bien = r.estrategias?.length === 0 && r.rechazadas.length === FORMAS_B1.length
+        && r.rechazadas.every((x) => x.reason === 'constraint_conflict' && x.detail === `budget.${campo}: ${motivoT(v)}`);
+      if (!bien) fallos.push(`${campo}=${String(v)} → ${JSON.stringify(r.lanzo ?? r.rechazadas?.[0])}`);
+    }
+    for (const v of VALIDOS_T) {
+      if (a3B1.proponer(FORMAS_B1, SENALES, undefined, { [campo]: v }).rechazadas.some((x) => x.reason === 'constraint_conflict')) fallos.push(`${campo}=${v} válido → constraint_conflict`);
+    }
+  }
+  /* Restricciones y topes rotos a la vez: primero las restricciones y después los topes, el orden de A1. */
+  const ambos = a3B1.proponer(FORMAS_B1, SENALES, { maxRisk: NaN }, { maxDepth: 'x' });
+  const noObjeto = sinReventar(() => a3B1.proponer(FORMAS_B1, SENALES, undefined, 'x'));
+  check(`${numero()} · S2-C · A3 suelto con los ${TOPES_T.length} topes de pensar mal formados: ninguna estrategia se da por buena y cada rechazo es \`constraint_conflict\` con \`budget.<campo>\` y el motivo de B.1 —la MISMA función—; con topes válidos, ni un conflicto`,
+    TOPES_T.length === 9 && fallos.length === 0
+    && ambos.estrategias.length === 0 && ambos.rechazadas.every((x) => x.detail === 'constraints.maxRisk: no es un número finito (NaN); budget.maxDepth: no es un número (string)')
+    && noObjeto.estrategias?.length === 0 && noObjeto.rechazadas.every((x) => x.detail === 'budget: no es un objeto de presupuesto (string)'),
+    fallos.slice(0, 3).join(' | ') || `${TOPES_T.length} topes × ${ROTOS_T.length} rotos · ${VALIDOS_T.length} válidos`);
+}
+{
+  const fallos = [];
+  for (const campo of TOPES_T) {
+    for (const v of ROTOS_T) {
+      const r = sinReventar(() => optimizarT({ [campo]: v }));
+      const bien = r.feasible?.length === 0 && r.stoppedBecause === 'infeasible' && r.rejected.length === ESTRATEGIAS.length
+        && r.rejected.every((x) => x.why?.reason === 'constraint' && x.why.detail === `constraint_conflict · budget.${campo}: ${motivoT(v)}`);
+      if (!bien) fallos.push(`${campo}=${String(v)} → ${JSON.stringify(r.lanzo ?? r.rejected?.[0]?.why)}`);
+    }
+    for (const v of VALIDOS_T) {
+      if (optimizarT({ [campo]: v }).rejected.some((x) => /constraint_conflict/.test(x.why?.detail ?? ''))) fallos.push(`${campo}=${v} válido → constraint_conflict`);
+    }
+  }
+  const ambos = optimizarT({ maxDepth: 'x' }, { maxRisk: NaN });
+  check(`${numero()} · S2-C · A5 suelto con los ${TOPES_T.length} topes mal formados: nada es factible y cada rechazo nombra \`budget.<campo>\` y el motivo —detrás de las restricciones—; con topes válidos, ni un conflicto`,
+    ESTRATEGIAS.length > 0 && optimizarT(undefined).feasible.length > 0 && fallos.length === 0
+    && ambos.rejected.length === ESTRATEGIAS.length
+    && ambos.rejected.every((x) => x.why?.detail === 'constraint_conflict · constraints.maxRisk: no es un número finito (NaN); budget.maxDepth: no es un número (string)'),
+    fallos.slice(0, 3).join(' | '));
+}
+{
+  const CAMPOS_T = Object.entries(A.RANGO_DE_RESTRICCION);
+  const sinCurva = (p, problemas) => p.variantes?.length === 0 && igual([...p.analisis.problemas], problemas)
+    && p.analisis.curva.length === 0 && p.analisis.niveles.length === 0;
+  const fallos = [];
+  for (const [campo, rango] of CAMPOS_T) {
+    for (const v of rotosDeRangoT(rango)) {
+      const p = sinReventar(() => a4T.variantes(TAREA, SENALES, ponerT(campo, v)));
+      if (!sinCurva(p, [`constraints.${campo}: ${A.motivoDeNumeroInvalido(rango, v)}`])) fallos.push(`${campo}=${String(v)} → ${p.lanzo ?? JSON.stringify(p.analisis?.problemas)}`);
+    }
+  }
+  for (const campo of TOPES_T) {
+    for (const v of ROTOS_T) {
+      const p = sinReventar(() => a4T.variantes(TAREA, SENALES, undefined, { [campo]: v }));
+      if (!sinCurva(p, [`budget.${campo}: ${motivoT(v)}`])) fallos.push(`tope ${campo}=${String(v)} → ${p.lanzo ?? JSON.stringify(p.analisis?.problemas)}`);
+    }
+  }
+  /* El grafo primero —con el validador de A2, como siempre—, después las restricciones y después los topes. */
+  const conCiclo = a4T.variantes({ id: 'C', steps: [paso('a', ['b']), paso('b', ['a'])] }, [], { maxParallel: NaN }, { maxDepth: 'x' });
+  /* Lo válido no es un problema: fracciones, paralelos por encima del ancho y topes de 0 a 1e9. */
+  const controles = [{ maxParallel: 2 }, { maxParallel: 0.5 }, { maxParallel: 1.5 }, { maxSteps: 3 }, { deadlineAt: 0 }, undefined]
+    .map((c) => a4T.variantes(TAREA, SENALES, c));
+  const controlesTope = TOPES_T.flatMap((campo) => VALIDOS_T.map((v) => a4T.variantes(TAREA, SENALES, undefined, { [campo]: v })));
+  check(`${numero()} · S2-C · A4 suelto con restricciones (los ${CAMPOS_T.length} campos de B.1) o topes de pensar mal formados: sin variantes ni curva, y \`problemas\` dice campo y motivo —un \`maxParallel\` de 0 o -1 ya no es «uno a la vez», ni un NaN «nada», ni un texto o un infinito «sin tope»—; lo válido, sin problemas`,
+    CAMPOS_T.length === 9 && fallos.length === 0
+    && igual([...conCiclo.analisis.problemas], ['a:decomposition_cycle', 'constraints.maxParallel: no es un número finito (NaN)', 'budget.maxDepth: no es un número (string)'])
+    && [...controles, ...controlesTope].every((p) => p.analisis.problemas.length === 0) && controles[0].variantes.length > 0,
+    fallos.slice(0, 3).join(' | ') || `${controles.length + controlesTope.length} controles válidos sin problemas`);
+}
+{
+  const control = contextoT(undefined);
+  const fallos = [];
+  for (const campo of TOPES_T) {
+    for (const v of ROTOS_T) {
+      const r = sinReventar(() => contextoT({ [campo]: v }));
+      if (r.admisiones?.length !== 0 || r.cierre !== 'unknown' || r.rechazo !== undefined || !r.because.includes(`budget.${campo}: ${motivoT(v)}. ${COLA_T}`)) {
+        fallos.push(`${campo}=${String(v)} → ${r.lanzo ?? `${r.admisiones?.length} admisiones`}`);
+      }
+    }
+    for (const v of VALIDOS_T) if (contextoT({ [campo]: v }).because.some((f) => f.endsWith(COLA_T))) fallos.push(`${campo}=${v} válido → rechazado`);
+  }
+  const noObjeto = contextoT('x');
+  /* Los requisitos van antes, como siempre: con los dos rotos se dice lo de los requisitos, y solo eso. */
+  const ambos = contextoT({ maxEvidence: NaN }, { minConfidence: NaN });
+  check(`${numero()} · S2-C · A8 suelto con los ${TOPES_T.length} topes mal formados: no se admite nada y se dice por qué —la forma de su \`minConfidence\` roto (B.1)—; con topes válidos, lo de siempre`,
+    control.admisiones.length > 0 && igual(contextoT({ maxEvidence: A.TOPES_POR_DEFECTO.maxEvidence }).admisiones, control.admisiones) && fallos.length === 0
+    && noObjeto.admisiones.length === 0 && noObjeto.because.includes(`budget: no es un objeto de presupuesto (string). ${COLA_T}`)
+    && ambos.admisiones.length === 0 && ambos.because.some((f) => f.startsWith('requirements.minConfidence: ')) && !ambos.because.some((f) => f.endsWith(COLA_T)),
+    fallos.slice(0, 3).join(' | '));
+}
+{
+  /* UNA regla por todas las puertas: el mismo campo con el mismo motivo en el ciclo (lo dice A1) y en cada motor suelto. */
+  const fallos = [];
+  for (const campo of TOPES_T) {
+    for (const v of ['x', NaN, -1]) {
+      const esperado = `budget.${campo}: ${motivoT(v)}`;
+      const rc = ciclo.decidir(peticion({ decision: decisionBase({ budget: { [campo]: v } }) }));
+      const dichos = {
+        a3: [a3B1.proponer(FORMAS_B1, SENALES, undefined, { [campo]: v }).rechazadas[0]?.detail],
+        a4: [...a4T.variantes(TAREA, SENALES, undefined, { [campo]: v }).analisis.problemas],
+        a5: [optimizarT({ [campo]: v }).rejected[0]?.why?.detail?.replace('constraint_conflict · ', '')],
+        a8: contextoT({ [campo]: v }).because.filter((f) => f.endsWith(COLA_T)).map((f) => f.slice(0, -(COLA_T.length + 2))),
+      };
+      const malos = Object.entries(dichos).filter(([, d]) => !igual(d, [esperado])).map(([k, d]) => `${k}:${JSON.stringify(d)}`);
+      if (malos.length || !paradaB1(rc, [esperado])) fallos.push(`${campo}=${String(v)} · ${malos.join(' ') || `ciclo ${rc.status}/${rc.parada}`}`);
+    }
+  }
+  for (const [campo, rango] of Object.entries(A.RANGO_DE_RESTRICCION)) {
+    const esperado = `constraints.${campo}: ${A.motivoDeNumeroInvalido(rango, 'x')}`;
+    const rc = ciclo.decidir(peticion({ decision: decisionBase({ constraints: ponerT(campo, 'x') }) }));
+    const dichos = [a3B1.proponer(FORMAS_B1, SENALES, ponerT(campo, 'x')).rechazadas[0]?.detail,
+      ...a4T.variantes(TAREA, SENALES, ponerT(campo, 'x')).analisis.problemas,
+      optimizarT(undefined, ponerT(campo, 'x')).rejected[0]?.why?.detail?.replace('constraint_conflict · ', '')];
+    if (!paradaB1(rc, [esperado]) || !dichos.every((d) => d === esperado) || dichos.length !== 3) fallos.push(`${campo} · ${JSON.stringify(dichos)}`);
+  }
+  check(`${numero()} · S2-C · UNA regla por todas las puertas: con un tope de pensar o una restricción rotos, el ciclo —que se para en 0b y lo dice A1— y A3, A4, A5 y A8 sueltos nombran el MISMO campo con el MISMO motivo`,
+    fallos.length === 0, fallos.slice(0, 3).join(' | ') || `${TOPES_T.length * 3} topes · ${Object.keys(A.RANGO_DE_RESTRICCION).length} restricciones`);
+}
+
+/*
+ * PARTE 2 · LO QUE NO SE ENDURECE, FIJADO COMO ESTÁ. A2, A6 y A7 también leen lo mal formado a su manera, pero
+ * rechazarlo exige algo que esta fase no puede decidir: un motivo nuevo en una unión cerrada (contrato) o un
+ * veredicto. Estas comprobaciones fijan lo que hacen HOY para que nadie lo cambie sin esa decisión.
+ */
+{
+  const a2T = A.crearMotorDeDescomposicion();
+  const baseA2 = a2T.descomponer(TAREA);
+  const comoSinNada = (r) => igual(r, baseA2);
+  const todasFuera = (r, motivo) => r.opciones.length === 0 && r.rechazadas.length === baseA2.opciones.length
+    && r.rechazadas.every((x) => x.reason === motivo) && r.problemas.length === 0;
+  const fallos = [];
+  for (const [campo, motivo] of [['maxSteps', 'max_steps_exceeded'], ['maxParallel', 'max_parallel_exceeded']]) {
+    for (const v of [NaN, Infinity, 'x', null]) if (!comoSinNada(a2T.descomponer(TAREA, { [campo]: v }))) fallos.push(`${campo}=${String(v)} ya no se ignora`);
+    for (const v of [-Infinity, -1, 0]) if (!todasFuera(a2T.descomponer(TAREA, { [campo]: v }), motivo)) fallos.push(`${campo}=${String(v)} ya no deja todas fuera por ${motivo}`);
+  }
+  for (const [campo, rango] of Object.entries(A.RANGO_DE_RESTRICCION).filter(([c]) => c !== 'maxSteps' && c !== 'maxParallel')) {
+    for (const v of rotosDeRangoT(rango)) if (!comoSinNada(a2T.descomponer(TAREA, ponerT(campo, v)))) fallos.push(`${campo}=${String(v)} ya no se ignora`);
+  }
+  for (const campo of TOPES_T) for (const v of ROTOS_T) if (!comoSinNada(a2T.descomponer(TAREA, undefined, { [campo]: v }))) fallos.push(`tope ${campo}=${String(v)} ya no se ignora`);
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION · A2 suelto con lo mal formado, FIJADO como está: \`maxSteps\` o \`maxParallel\` NaN, infinito, texto o null se ignoran; -∞, -1 o 0 dejan todas las disposiciones fuera por \`max_*_exceeded\`; el resto de campos y los nueve topes, ignorados. Rechazarlo con la regla de B.1 exige un motivo nuevo en \`MotivoDeDescomposicionInvalida\`, una unión CERRADA de 12: contrato`,
+    igual(baseA2.opciones.map((o) => o.value.heuristica), ['por-niveles', 'secuencial']) && fallos.length === 0,
+    fallos.slice(0, 3).join(' | '));
+}
+{
+  const a6T = A.crearMotorDeVerificacion();
+  const evT = (key, subject, value) => ({ claim: key, supports: true, signal: { key, subject, value, source: 'measured' } });
+  const MEDIDAS_T = [evT('result.latencyMs', 'R', 620), evT('result.costUsd', 'R', 0.05), evT('result.quality', 'R', 0.7)];
+  const verificarT = (constraints, evidence = MEDIDAS_T, budget) => a6T.verificar({ expected: [], actual: { id: 'R', outputs: [] }, constraints, evidence,
+    ...(budget !== undefined ? { budget } : {}) });
+  const hallazgoT = (constraints, id, evidence) => verificarT(constraints, evidence).findings.find((f) => f.checkId === `constraint:${id}`);
+  /* Con 620 ms, 0,05 $ y calidad 0,7 medidos: qué hace cada valor mal formado —según B.1— en cada tope que A6 comprueba. */
+  const MATRIZ = [
+    ['maxLatencyMs', [[NaN, 'fail'], [Infinity, 'pass'], [-Infinity, 'fail'], [-1, 'fail'], [0, 'fail'], ['x', '—'], [null, '—']]],
+    ['budget.maxUsd', [[NaN, 'fail'], [Infinity, 'pass'], [-Infinity, 'fail'], [-1, 'fail'], ['x', '—'], [null, '—']]],
+    ['quality.minScore', [[NaN, 'fail'], [Infinity, 'fail'], [-Infinity, 'pass'], [-1, 'pass'], [1.5, 'fail'], ['x', '—'], [null, '—']]],
+  ];
+  const fallos = [];
+  for (const [campo, casos] of MATRIZ) {
+    for (const [v, fijado] of casos) {
+      if (!A.motivoDeNumeroInvalido(A.RANGO_DE_RESTRICCION[campo], v)) fallos.push(`${campo}=${String(v)} no es mal formado`);
+      const visto = hallazgoT(ponerT(campo, v), campo)?.status ?? '—';
+      if (visto !== fijado) fallos.push(`${campo}=${String(v)} → ${visto} (fijado ${fijado})`);
+    }
+  }
+  const nan = hallazgoT({ maxLatencyMs: NaN }, 'maxLatencyMs');
+  /* Lo válido, como siempre: cabe, no cabe, el dinero a 0, la calidad a 0 y sin medida. */
+  const validos = [hallazgoT({ maxLatencyMs: 1000 }, 'maxLatencyMs'), hallazgoT({ maxLatencyMs: 500 }, 'maxLatencyMs'), hallazgoT({ budget: { maxUsd: 0 } }, 'budget.maxUsd'),
+    hallazgoT({ quality: { minScore: 0 } }, 'quality.minScore'), hallazgoT({ maxLatencyMs: 1000 }, 'maxLatencyMs', [])].map((f) => f?.status);
+  /* Y los topes de pensar mal formados se ignoran: el mismo informe que sin ellos. */
+  const sinTopes = verificarT({ maxLatencyMs: 1000 });
+  const topesQueCambian = TOPES_T.filter((c) => !ROTOS_T.every((v) => igual(verificarT({ maxLatencyMs: 1000 }, MEDIDAS_T, { [c]: v }), sinTopes)));
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION · A6 con un tope mal formado, FIJADO como está: lo INTERPRETA —un NaN suspende siempre (620 ≤ NaN es falso), un infinito aprueba o suspende según el lado, un 0 o un negativo suspenden un techo— o, si no es un número, la comprobación desaparece; y los topes de pensar rotos se ignoran. Ninguna regla de B.1/B.5 llega a A6 —la entrada VALIDACIÓN de 1.11 nombra la decisión, el ciclo, las estrategias, la optimización y los mínimos de confianza propios— y corregirlo es elegir un VEREDICTO`,
+    fallos.length === 0 && nan?.because === 'result.latencyMs = 620, y el tope es ≤ NaN' && nan.hard === true
+    && igual(validos, ['pass', 'fail', 'fail', 'pass', 'unknown']) && topesQueCambian.length === 0,
+    fallos.slice(0, 3).join(' | ') || `${validos.join(',')} · topes que cambian: ${topesQueCambian.join(',') || 'ninguno'}`);
+}
+{
+  const P = A.POLITICA_POR_DEFECTO;
+  const pol = A.politicaEfectiva;
+  const aprenderT = (budget) => a7.aprender({ ahora: T1, policy: POL, outcomes: resultadosAB, ...(budget !== undefined ? { budget } : {}) });
+  const base7 = aprenderT(undefined);
+  const topesQueCambian = TOPES_T.filter((c) => !ROTOS_T.every((v) => { const r = aprenderT({ [c]: v }); return igual(r, base7) && r.rechazo === undefined; }));
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION · A7 con lo mal formado, FIJADO como está: su política cae al defecto (NaN, texto) y al suelo (un negativo, lo que afloja de más) —su regla propia, «MÁS estricto siempre, y menos nunca»— y sus topes de pensar rotos se ignoran. Rechazarlo exige un motivo nuevo en \`MotivoDeRechazo\` ('clock_missing' | 'clock_invalid'), una unión CERRADA, y decidir qué regla manda sobre la política de A7`,
+    pol({ ventanaMs: NaN }).ventanaMs === P.vidaMs && pol({ ventanaMs: 'x' }).ventanaMs === P.vidaMs && pol({ ventanaMs: -1 }).ventanaMs === 1
+    && pol({ minSampleSize: NaN }).minSampleSize === P.minSampleSize && pol({ minSampleSize: 1 }).minSampleSize === A.POLITICA_MINIMA.minSampleSize
+    && pol({ minConfidence: NaN }).minConfidence === P.minConfidence && pol({ minConfidence: 0 }).minConfidence === A.POLITICA_MINIMA.minConfidence
+    && base7.aggregates.length > 0 && base7.rechazo === undefined && topesQueCambian.length === 0,
+    `topes que cambian: ${topesQueCambian.join(',') || 'ninguno'}`);
+}
+
+/* PARTE 3 · LOS HUECOS DE PRUEBAS DE LA AUDITORÍA, fijando lo que hay. */
+{
+  /* A6 elige la medida por CLAVE; con dos sujetos en la misma clave, ¿cuál? */
+  const a6S = A.crearMotorDeVerificacion();
+  const evS = (subject, value) => ({ claim: 'latencia', supports: true,
+    signal: { key: 'result.latencyMs', ...(subject !== undefined ? { subject } : {}), value, source: 'measured' } });
+  const medidaS = (evidence) => {
+    const f = a6S.verificar({ expected: [], actual: { id: 'job-z', outputs: [] }, constraints: { maxLatencyMs: 1000 }, evidence })
+      .findings.find((x) => x.checkId === 'constraint:maxLatencyMs');
+    return `${f?.status}·${f?.value}`;
+  };
+  const CASOS = [
+    /* el paso «alpha» va antes por orden alfabético: suspende al resultado «job-z», que cumplía */
+    [[evS('job-z', 620), evS('alpha', 5000)], 'fail·5000'],
+    /* barajadas, lo mismo: no decide la llegada (1.10 · DESEMPATE), decide el sujeto */
+    [[evS('alpha', 5000), evS('job-z', 620)], 'fail·5000'],
+    /* «zeta» va detrás: se usa la del resultado */
+    [[evS('job-z', 620), evS('zeta', 5000)], 'pass·620'],
+    /* el FALSO aprobado: el resultado no cumple y aprueba con la medida del paso */
+    [[evS('job-z', 5000), evS('alpha', 620)], 'pass·620'],
+    /* solo la de un paso, o una sin sujeto: cuentan como del resultado */
+    [[evS('alpha', 620)], 'pass·620'],
+    [[evS(undefined, 620)], 'pass·620'],
+  ];
+  const vistos = CASOS.map(([ev]) => medidaS(ev));
+  /* Y su gemela en A7: las dos en el MISMO agregado, sin sujeto. */
+  const dos = a7.aprender({ ahora: T1, outcomes: [{ id: 'o-sujetos', kind: 'success', at: T1 - HORA, scope: { capability: CAP },
+    signals: [{ key: 'result.latencyMs', subject: 'job-z', value: 620, source: 'measured' }, { key: 'result.latencyMs', subject: 'alpha', value: 5000, source: 'measured' }] }] })
+    .aggregates.filter((a) => a.metric === 'result.latencyMs');
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (D3) · A6 con dos sujetos en la MISMA clave, FIJADO como está: toma la primera medida por clave sin mirar el sujeto, y la primera es la del sujeto que va antes por orden alfabético —«alpha» suspende a «job-z», y al revés da un falso \`pass\`—; la llegada no decide. A7 igual: las dos en un solo agregado. Qué sujeto es «el resultado» es D3`,
+    igual(vistos, CASOS.map(([, e]) => e)) && dos.length === 1 && dos[0].n === 2 && dos[0].suma === 5620 && !('subject' in dos[0].scope),
+    `${vistos.join(' | ')} · A7 ${dos.map((a) => `n${a.n} suma ${a.suma}`).join(',')}`);
+}
+{
+  const a6L = A.crearMotorDeVerificacion();
+  const verL = (max, evidence) => a6L.verificar({ expected: [], actual: { id: 'R', outputs: [] }, constraints: { maxLatencyMs: max }, evidence })
+    .findings.find((f) => f.checkId === 'constraint:maxLatencyMs');
+  const lat = (v) => [{ claim: 'latencia', supports: true, signal: { key: 'result.latencyMs', subject: 'R', value: v, source: 'measured' } }];
+  const vistos = [verL(1000, lat(620)), verL(500, lat(620)), verL(620, lat(620)), verL(1000, [])];
+  check(`${numero()} · S2-C · A6 con \`maxLatencyMs\`, FIJADO: es un CRITERIO sobre lo medido —aprueba si cabe, también en el borde; suspende si no; \`unknown\` sin \`result.latencyMs\`—, una comprobación dura y estructural que no lee ningún reloj. Si además es plazo, aborto o reembolso es D9 (BLOCKED — HUMAN DECISION)`,
+    igual(vistos.map((f) => f?.status), ['pass', 'fail', 'pass', 'unknown']) && vistos[3].because === 'no se midió result.latencyMs'
+    && vistos.every((f) => f.hard === true && f.type === 'constraint.limit' && f.by === 'structural'),
+    vistos.map((f) => f?.status).join(','));
+}
+{
+  const sinLat = [opcion('a', { quality: 0.9 }), opcion('b', { quality: 0.8, latency: 500 })];
+  const pedirLat = (motor) => motor.decidir(contexto({ objective: { weights: { quality: 1 } }, options: sinLat, constraints: { maxLatencyMs: 1000 } }));
+  const d1 = pedirLat(a1);
+  const d1admit = pedirLat(A.crearMotorDeDecision({ datoAusente: 'admit' }));
+  const e3sin = a3B1.proponer(FORMAS_B1, [], { maxLatencyMs: 1 });
+  const e3con = a3B1.proponer(FORMAS_B1, SENALES, { maxLatencyMs: 1 });
+  const estr = a3B1.proponer(FORMAS_B1, []).estrategias;
+  const o5 = a5.optimizar({ candidates: estr, objective: { weights: { latency: 1 } }, constraints: { maxLatencyMs: 1 }, evidence: [] });
+  const o5x = a5.optimizar({ candidates: [opcion('x', { quality: 0.9 })], objective: { weights: { quality: 1 } }, constraints: { maxLatencyMs: 1000 }, evidence: [] });
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (D1/D9) · SIN DATO de latencia, \`maxLatencyMs\` se lee distinto, FIJADO como está: A1 deja fuera la alternativa (\`unverifiable:maxLatencyMs\`, o la admite con \`datoAusente: 'admit'\`), A3 y A5 dejan PASAR las estrategias y A5 deja fuera lo que no es estrategia; con el dato medido, A3 las poda. Unificarlo es decidir qué significa «no medido» y qué es \`maxLatencyMs\``,
+    candidata(d1, 'a')?.reason === 'unverifiable:maxLatencyMs' && elegidaDe(d1) === 'b' && d1.warnings.includes('constraint_unverifiable')
+    && elegidaDe(d1admit) === 'a'
+    && e3sin.estrategias.length === FORMAS_B1.length && e3sin.rechazadas.length === 0
+    && e3con.estrategias.length === 0 && e3con.rechazadas.length === FORMAS_B1.length && e3con.rechazadas.every((x) => x.reason === 'constraint:maxLatencyMs')
+    && estr.length > 0 && o5.feasible.length === estr.length && o5.rejected.length === 0
+    && o5x.feasible.length === 0 && igual(o5x.rejected.map((x) => x.why), [{ reason: 'unverifiable', detail: 'maxLatencyMs' }]),
+    `A1 ${candidata(d1, 'a')?.reason} · A3 ${e3sin.estrategias.length}/${e3con.estrategias.length} · A5 ${o5.feasible.length}/${o5x.feasible.length}`);
+}
+{
+  /* Estrategias que A3 construyó SIN restricciones: lo que quede fuera, lo deja fuera A1. */
+  const estr = a3B1.proponer(FORMAS_B1, []).estrategias;
+  const anchos = Object.fromEntries(estr.map((e) => [e.id, Math.max(0, ...(e.value.parallelGroups ?? []).map((g) => g.steps.length))]));
+  const conMP = (mp) => a1.decidir(contexto({ objective: { weights: { latency: 1, reliability: 1 } }, options: estr, constraints: { maxParallel: mp } }));
+  const [uno, dos] = [conMP(1), conMP(2)];
+  const niveles = candidata(uno, 'T:por-niveles:estrategia');
+  check(`${numero()} · S2-C · A1 poda POR SÍ MISMA con \`maxParallel\`, FIJADO: con las estrategias que A3 construyó sin restricciones, la de un grupo de 2 queda fuera con 1 (\`constraint:maxParallel\`) y dentro con 2; la secuencial, dentro siempre`,
+    igual(anchos, { 'T:secuencial:estrategia': 0, 'T:por-niveles:estrategia': 2 })
+    && niveles?.eligible === false && niveles.reason === 'constraint:maxParallel' && elegidaDe(uno) === 'T:secuencial:estrategia'
+    && dos.candidates.length === 2 && dos.candidates.every((c) => c.eligible) && elegidaDe(dos) === 'T:por-niveles:estrategia',
+    `${niveles?.reason} · ${elegidaDe(uno)} · ${elegidaDe(dos)}`);
+}
+{
+  const opts = [opcion('a', { quality: 0.8 }), opcion('b', { quality: 0.6, cost: 5 })];
+  const d = a1.decidir(contexto({ options: opts }));
+  const barajada = a1.decidir(contexto({ options: [...opts].reverse() }));
+  const [sa, sb] = [candidata(d, 'a')?.score, candidata(d, 'b')?.score];
+  check(`${numero()} · S2-C · el desempate por COBERTURA, aislado y FIJADO: «a» (solo calidad 0.8) y «b» (calidad 0.6 y coste) empatan a 0.800 en el objetivo, ninguna tiene evidencia, y gana «b» por cubrir más —1.00 frente a 0.50—; barajadas, lo mismo. Es el orden de siempre —objetivo, confianza, cobertura, id—, y tocarlo es D1`,
+    elegidaDe(d) === 'b' && candidata(d, 'a')?.reason === 'lower_score' && casi(sa?.total, 0.8) && casi(sb?.total, 0.8)
+    && sa?.coverage === 0.5 && sb?.coverage === 1 && d.confidence?.value === 0
+    && d.explanation.includes('Por delante de «a» (0.800) por coverage.') && igual(barajada, d),
+    `${elegidaDe(d)} · ${sa?.total}/${sa?.coverage} frente a ${sb?.total}/${sb?.coverage}`);
+}
+/* D11, los cinco estados de hoy —los de la sonda de la auditoría—, a mano para la siguiente también. */
+const optD11 = (id, values) => ({ id, value: id, values });
+const W_D11 = { weights: { quality: 1, cost: 1 } };
+const TRES_D11 = [optD11('a', { quality: 0.9, cost: 2 }), optD11('b', { quality: 0.8, cost: 1 }), optD11('c', { quality: 0.7, cost: 1 })];
+const evD11 = (ids) => ids.map((id) => ({ key: 'option.quality', subject: id, value: 0.9, source: 'measured', sampleSize: 20 }));
+const D11 = {
+  A: a1.decidir(contexto({ objective: { weights: { cost: 1, latency: 1 } }, options: [optD11('a', { cost: 3, latency: 900 })] })),
+  B: a1.decidir(contexto({ objective: W_D11, constraints: { maxRisk: 0.3 }, options: [optD11('a', { quality: 0.9, cost: 2, reliability: 0.95 }),
+    optD11('b', { quality: 0.9, cost: 1, reliability: 0.5 }), optD11('c', { quality: 0.5, cost: 1, reliability: 0.6 })] })),
+  C: a1.decidir(contexto({ objective: W_D11, constraints: { minConfidence: 0.3 }, signals: evD11(['a']), options: TRES_D11 })),
+  D: a1.decidir(contexto({ objective: W_D11, constraints: { minConfidence: 0.3 }, budget: { maxEvidence: 1 }, signals: evD11(['a', 'b', 'c']), options: TRES_D11 })),
+  E: a1.decidir(contexto({ objective: W_D11, budget: { maxCandidates: 1 }, options: TRES_D11 })),
+};
+{
+  const ids = (d) => d.candidates.map((c) => `${c.id}:${c.reason}`);
+  const esperado = {
+    A: [['a:selected'], ['low_confidence', 'experimental_algorithm'], 1],
+    B: [['a:selected', 'b:constraint:maxRisk', 'c:constraint:maxRisk'], ['low_confidence', 'experimental_algorithm'], 0.95],
+    C: [['a:selected', 'b:constraint:minConfidence', 'c:constraint:minConfidence'], ['experimental_algorithm'], 0.45],
+    D: [['a:selected', 'b:constraint:minConfidence', 'c:constraint:minConfidence'], ['budget_exhausted', 'experimental_algorithm'], 0.45],
+    E: [['a:selected'], ['candidates_capped', 'budget_exhausted', 'low_confidence', 'experimental_algorithm'], 0.95],
+  };
+  const malos = Object.entries(esperado).filter(([k, [cands, avisos, total]]) => {
+    const d = D11[k];
+    return !(d.status === 'decided' && d.selected === 'a' && igual(ids(d), cands) && igual(d.warnings, avisos) && casi(d.selectedScore?.total, total));
+  }).map(([k]) => `${k}: ${ids(D11[k]).join(',')} · ${D11[k].warnings.join(',')} · ${D11[k].selectedScore?.total}`);
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (D11) · «sin elección real», los cinco estados de HOY, FIJADOS: A (llega una) decide sin marca; B (las restricciones dejan una) y C (\`minConfidence\` deja una) listan las de fuera con su motivo; D (evidencia acotada con \`minConfidence\`) es C con \`budget_exhausted\` y la frase; y en E (\`maxCandidates: 1\`) las otras dos DESAPARECEN —ni en \`candidates\` ni en la explicación: solo \`candidates_capped\` y \`budget_exhausted\`—. Ningún aviso ni campo dice «sin elección»`,
+    malos.length === 0 && D11.B.explanation.includes('Cumple las restricciones; 2 opción(es) quedaron fuera por no cumplirlas.')
+    && !!fraseR(D11.D) && !fraseR(D11.C) && !D11.E.explanation.some((f) => /«[bc]»/.test(f)) && D11.E.candidates.length === 1,
+    malos.join(' ‖ '));
+}
+{
+  const cicloT = A.crearCicloAlgoritmico();
+  const pasoT = (id, capability, dep) => ({ id, capability, purpose: `p-${id}`, ...(dep ? { dependsOn: dep } : {}) });
+  const pasosT = [pasoT('s0', 'text.generate'), pasoT('s1', 'image.generate', ['s0']), pasoT('s2', 'text.generate', ['s1'])];
+  const pedirT = (extra, componer) => cicloT.decidir({
+    decision: { contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA, objective: OBJ_CICLO, budget: { maxCandidates: 0 }, ...extra },
+    ...(extra.options ? {} : { tarea: { id: 'T', steps: pasosT } }), ...(componer ? { componer } : {}),
+  });
+  const suelto = a1.decidir(contexto({ objective: { weights: { quality: 1 } }, budget: { maxCandidates: 0 }, options: [opcion('a', { quality: 0.9 }), opcion('b', { quality: 0.8 })] }));
+  const porOpciones = pedirT({ options: [opcion('a', { latency: 1 }), opcion('b', { latency: 2 })] });
+  const simple = pedirT({});
+  const compuesto = pedirT({}, { paralelizar: true, optimizar: true });
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (vocabulario) · \`maxCandidates: 0\`, el MISMO presupuesto con fallos distintos según la vía, FIJADO: A1 suelto y el ciclo por opciones dan \`budget_exceeded\`; con tarea, la composición se vacía y A1 da \`insufficient_evidence\` —el porqué (B.5) nombra \`optionLimitReached\` de A2 o \`budgetExhausted\` de A4—. Un motivo estructurado común sería contrato`,
+    suelto.status === 'undecided' && suelto.failure === 'budget_exceeded' && igual(suelto.warnings, ['candidates_capped', 'budget_exhausted'])
+    && suelto.explanation[0].startsWith('Llegaron 2 alternativa(s), pero el presupuesto de pensar se agotó (maxCandidates 0) antes de evaluar ninguna')
+    && porOpciones.decision?.failure === 'budget_exceeded'
+    && simple.status === 'undecided' && simple.parada === 'undecided' && simple.decision?.failure === 'insufficient_evidence' && simple.because[0].endsWith('(`optionLimitReached`).')
+    && compuesto.status === 'undecided' && compuesto.decision?.failure === 'insufficient_evidence' && compuesto.because[0].endsWith('(`budgetExhausted`).'),
+    `${suelto.failure} · ${porOpciones.decision?.failure} · ${simple.decision?.failure} · ${compuesto.decision?.failure}`);
+}
+{
+  const porContador = a1.decidir(contexto({ objective: { weights: { quality: 1 } }, options: [opcion('a', { quality: 0.9 }), opcion('b', { quality: 0.8 })], budget: { maxIterations: 1 } }));
+  const tres = [D11.E, D11.D, porContador];
+  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (vocabulario, \`evidence_capped\`) · \`budget_exhausted\` dice hoy TRES cosas, FIJADO: candidatas acotadas (con \`candidates_capped\`), evidencia acotada (solo la frase y \`spend.evidence\` la distinguen) y un contador pasado —\`maxIterations: 1\` decide igual, con \`spend.iterations\` 2 y sin nombrarlo en la explicación—. Separarlas es vocabulario: contrato`,
+    tres.every((d) => d.status === 'decided' && d.warnings.includes('budget_exhausted'))
+    && D11.E.warnings.includes('candidates_capped') && !D11.D.warnings.includes('candidates_capped') && !porContador.warnings.includes('candidates_capped')
+    && !!fraseR(D11.D) && !fraseR(D11.E) && !fraseR(porContador) && D11.D.spend.evidence === 1
+    && porContador.spend.iterations === 2 && !porContador.explanation.some((f) => /iteraci|maxIterations/.test(f)),
+    tres.map((d) => d.warnings.join('+')).join(' ‖ '));
+}
+{
+  const opts = [opcion('a', { quality: 0.9 }), opcion('b', { quality: 0.8 })];
+  const sin = a1.decidir(contexto({ objective: { weights: { quality: 1 } }, options: opts }));
+  const con = a1.decidir(contexto({ objective: { weights: { quality: 1 } }, options: opts, budget: { maxReplans: 0 } }));
+  const cSin = ciclo.decidir(peticion());
+  const cCon = ciclo.decidir(peticion({ decision: decisionBase({ budget: { maxReplans: 0 } }) }));
+  check(`${numero()} · S2-C · \`maxReplans\` no tiene consumidor, FIJADO: con 0 —el tope más estricto— A1 y el ciclo deciden EXACTAMENTE igual y \`spend.replans\` sigue en 0. Se valida (B.5), pero nadie lo gasta: quién replanifica no está decidido`,
+    igual(con, sin) && con.spend.replans === 0 && cSin.status === 'decided' && igual(cCon, cSin),
+    `${con.spend.replans} · ${cSin.status}`);
+}
+
+/* PARTE 4 · LA EQUIVALENCIA: con entradas VÁLIDAS, A3, A4, A5 y A8 devuelven lo mismo que en e3a9e94. */
+{
+  const E = await import('./equivalencia-s2c.mjs');
+  const H = JSON.parse(fs.readFileSync(path.resolve(here, 'equivalencia-s2c.json'), 'utf8'));
+  const hoy = E.huellasDe(A);
+  const salidas = E.salidasDe(A);
+  const diferencias = [];
+  for (const k of ['a3', 'a4', 'a5', 'a8']) {
+    if ((H.huellas?.[k] ?? []).length !== hoy[k].length) diferencias.push(`${k}: ${H.huellas?.[k]?.length} ≠ ${hoy[k].length} entradas`);
+    hoy[k].forEach((h, i) => { if (h !== H.huellas?.[k]?.[i]) diferencias.push(`${k} #${i}`); });
+  }
+  /* Que la equivalencia no sea vacía, y que ninguna entrada válida se tome por mal formada. */
+  const suma = (xs, f) => xs.reduce((m, x) => m + f(x), 0);
+  const cubre = suma(salidas.a4, (p) => p.variantes.length) > 0 && suma(salidas.a3, (r) => r.estrategias.length) > 0
+    && suma(salidas.a3, (r) => r.rechazadas.length) > 0 && suma(salidas.a5, (o) => o.feasible.length) > 0 && suma(salidas.a8, (c) => c.admisiones.length) > 0;
+  const tomadasPorRotas = [
+    ...salidas.a3.flatMap((r) => r.rechazadas).filter((x) => x.reason === 'constraint_conflict'),
+    ...salidas.a4.flatMap((p) => p.analisis.problemas).filter((x) => /^(constraints|budget)[.:]/.test(x)),
+    ...salidas.a5.flatMap((o) => o.rejected).filter((x) => /constraint_conflict/.test(x.why?.detail ?? '')),
+    ...salidas.a8.flatMap((c) => c.because).filter((f) => f.endsWith(COLA_T)),
+  ];
+  check(`${numero()} · S2-C · EQUIVALENCIA · ${hoy.a3.length + hoy.a4.length + hoy.a5.length + hoy.a8.length} entradas VÁLIDAS —tareas, restricciones y topes al azar con semilla fija, y lo aprendido para A8—: A3, A4, A5 y A8 devuelven lo mismo que en e3a9e94, huella a huella, y ninguna se toma por mal formada`,
+    H.version === 'e3a9e94' && hoy.a3.length === 30 && hoy.a4.length === 30 && hoy.a5.length === 30 && hoy.a8.length === 12
+    && diferencias.length === 0 && cubre && tomadasPorRotas.length === 0,
+    diferencias.slice(0, 5).join(' | ') || `A3 ${suma(salidas.a3, (r) => r.estrategias.length)} estrategias · A4 ${suma(salidas.a4, (p) => p.variantes.length)} variantes · A5 ${suma(salidas.a5, (o) => o.feasible.length)} factibles · A8 ${suma(salidas.a8, (c) => c.admisiones.length)} admisiones`);
+}
+{
+  /* La regla es LA de A0, no una copia; y lo bloqueado sigue sin llamarla. */
+  const fuente = (f) => sinComentarios(leer(`functions/src/core/algorithm/${f}`));
+  const USA = {
+    'strategy-engine.ts': ['problemasDeLosLados(undefined, constraints)', 'problemasDelPresupuesto(limites)'],
+    'optimization-engine.ts': ['problemasDeLosLados(undefined, problema.constraints)', 'problemasDelPresupuesto(problema.budget)'],
+    'parallelization-engine.ts': ['problemasDeLosLados(undefined, constraints)', 'problemasDelPresupuesto(limites)'],
+    'context-engine.ts': ['problemasDelPresupuesto(peticion?.budget)'],
+  };
+  const faltan = Object.entries(USA).flatMap(([f, xs]) => xs.filter((x) => !fuente(f).includes(x)).map((x) => `${f}: falta ${x}`));
+  const copias = Object.keys(USA).filter((f) => /motivoDeNumeroInvalido\(\s*'noNegativo'/.test(fuente(f))).map((f) => `${f}: copia la regla`);
+  const bloqueadasQueLaLlaman = ['decomposition-engine.ts', 'verification-engine.ts', 'feedback-engine.ts']
+    .filter((f) => /problemasDelPresupuesto\(|problemasDeLosLados\(/.test(fuente(f))).map((f) => `${f}: la llama`);
+  check(`${numero()} · S2-C · la regla es LA de B.1, no una copia: A3, A4, A5 y A8 llaman a \`problemasDeLosLados\` y \`problemasDelPresupuesto\` de A0 —ni un validador propio—; y A2, A6 y A7, bloqueados, no las llaman`,
+    faltan.length === 0 && copias.length === 0 && bloqueadasQueLaLlaman.length === 0,
+    [...faltan, ...copias, ...bloqueadasQueLaLlaman].join(' · '));
+}
+
+/*
+ * PARTE 5 · RENDIMIENTO EXACTO (bloque C): LO YA RESUELTO SE DEVUELVE TAL CUAL. Si las válidas llegan con claves
+ * (clave, sujeto) estrictamente crecientes —lo que devuelve una resolución anterior, lo que A9 pasa a A4, A3 y A5—,
+ * cada grupo tiene una sola señal y el orden de las claves es el de llegada: `resolverSenales` las devuelve sin
+ * agrupar ni ordenar. Lo mismo que antes, por identidad; y cada señal se lee exactamente lo mismo que en e3a9e94.
+ */
+{
+  const azar = generador(27_09_2026);
+  const uno = (xs) => xs[Math.floor(azar() * xs.length)];
+  const alAzar = () => ({ key: uno(['a.b', 'a.c', 'option.q', 'step.latencyMs']), value: uno([1, 2, 'z', NaN]),
+    source: uno(['measured', 'catalog', 'model', 'nada']), ...(azar() < 0.8 ? { subject: uno(['x', 'y', 'job-z']) } : {}), ...(azar() < 0.4 ? { at: uno([1, 2]) } : {}) });
+  const fallos = [];
+  for (let k = 0; k < 500; k++) {
+    const r = A.resolverSenales(Array.from({ length: 1 + Math.floor(azar() * 30) }, alAzar));
+    const otra = A.resolverSenales(r.resueltas);
+    if (!(otra.resueltas.length === r.resueltas.length && otra.resueltas.every((x, i) => x === r.resueltas[i]) && otra.conflictos.length === 0)) fallos.push(`#${k}`);
+  }
+  /* El atajo, SOLO con claves estrictamente crecientes: al revés, con repetidas o con una inválida en medio, lo de siempre. */
+  const sn = (key, subject, value, extra = {}) => ({ key, subject, value, source: 'measured', ...extra });
+  const [b1, c1, d1] = [sn('a.b', 'x', 1), sn('a.c', 'x', 1), sn('a.d', 'x', 1)];
+  const mismas = (r, esperadas) => r.resueltas.length === esperadas.length && r.resueltas.every((x, i) => x === esperadas[i]);
+  const enOrden = A.resolverSenales([b1, c1, d1]);
+  const alReves = A.resolverSenales([d1, c1, b1]);
+  const conInvalida = A.resolverSenales([b1, sn('a.c', 'x', NaN), d1]);
+  const repetidas = A.resolverSenales([b1, sn('a.b', 'x', 2, { source: 'catalog' })]);
+  /* Las lecturas de cada señal, contadas: la clave y el sujeto, cuatro veces cada uno —las de e3a9e94—, ordenadas o no. */
+  const lecturas = (claves) => {
+    const cuenta = { key: 0, subject: 0 };
+    A.resolverSenales(claves.map(([k, sub]) => {
+      const o = { value: 1, source: 'measured' };
+      Object.defineProperty(o, 'key', { get() { cuenta.key++; return k; }, enumerable: true });
+      Object.defineProperty(o, 'subject', { get() { cuenta.subject++; return sub; }, enumerable: true });
+      return o;
+    }));
+    return [cuenta.key / claves.length, cuenta.subject / claves.length];
+  };
+  check(`${numero()} · S2-C · bloque C · lo YA resuelto se devuelve tal cual —500 resoluciones al azar vueltas a resolver: las MISMAS señales (===), en el mismo orden y sin conflictos—; el atajo solo con claves (clave, sujeto) estrictamente crecientes —al revés, con repetidas o con una inválida en medio, el camino de siempre—; y cada señal se lee lo mismo que en e3a9e94`,
+    fallos.length === 0 && mismas(enOrden, [b1, c1, d1]) && mismas(alReves, [b1, c1, d1]) && mismas(conInvalida, [b1, d1])
+    && mismas(repetidas, [b1]) && repetidas.conflictos.length === 1 && repetidas.conflictos[0].descartadas.length === 1
+    && igual(lecturas([['a.b', 'x'], ['a.c', 'x'], ['a.d', 'y']]), [4, 4]) && igual(lecturas([['a.d', 'y'], ['a.b', 'x'], ['a.c', 'x']]), [4, 4]),
+    fallos.slice(0, 3).join(' | ') || `lecturas ${lecturas([['a.b', 'x'], ['a.c', 'x']]).join('/')}`);
+}
+
+/*
+ * PARTE 6 · Y EL DOCUMENTO DICE DE S2-C LO QUE HAY: lo endurecido con su forma; lo BLOCKED con la decisión que falta;
+ * A6 y el sujeto —prueba sí, corrección no—; `maxLatencyMs` sin convertirse en un reloj; el atajo exacto y lo que sigue
+ * sin quitarse; la línea base; lo que NO se decidió —ninguna deuda de la auditoría se da por cerrada—; el rango de
+ * esta sección, sacado del contador; la fila de §19 y la nota del punto 7. Sin marcadores pendientes.
+ */
+{
+  const C2 = (() => { const i = S18_PLANO.indexOf('### s2-c'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
+  const ENDURECIDAS = [
+    ['a3', 'los nueve topes de pensar (las restricciones, desde b.1)'],
+    ['a5', 'los nueve topes de pensar (las restricciones, desde b.1)'],
+    ['a4', 'las restricciones —los nueve campos de b.1— y los nueve topes'],
+    ['a8', 'los nueve topes de pensar'],
+  ];
+  const BLOQUEADAS = [['a2', 'contrato'], ['a6', 'decisión humana'], ['a7', 'decisión humana']];
+  /* Cada fila en SU tabla: las endurecidas antes de «lo que no se endurece», las bloqueadas después y antes de A6 y el sujeto. */
+  const tramo = (desde, hasta) => { const i = C2.indexOf(desde); const j = i < 0 ? -1 : C2.indexOf(hasta, i); return i >= 0 && j > i ? C2.slice(i, j) : ''; };
+  const tablaEndurecida = tramo('**qué cambia, y solo con entradas mal formadas.**', '**lo que no se endurece');
+  const tablaBloqueada = tramo('**lo que no se endurece: blocked — human decision.**', '**a6 y el sujeto (d3)');
+  const filaDe = (m) => (tablaBloqueada.match(new RegExp(`\\| ${m} \\|.*?(?=\\| a\\d \\||$)`)) ?? [''])[0];
+  const faltanFilas = [
+    ...ENDURECIDAS.filter(([m, que]) => !tablaEndurecida.includes(`| ${m} | ${que} |`)).map(([m]) => `endurecida ${m}`),
+    ...BLOQUEADAS.filter(([m, porque]) => !filaDe(m).includes(porque)).map(([m]) => `bloqueada ${m}`),
+    ...ENDURECIDAS.filter(([m]) => tablaBloqueada.includes(`| ${m} |`)).map(([m]) => `${m} entre las bloqueadas`),
+    ...BLOQUEADAS.filter(([m]) => tablaEndurecida.includes(`| ${m} |`)).map(([m]) => `${m} entre las endurecidas`),
+  ];
+  const rango = `§t (202–${siguiente}, ${siguiente - 201} comprobaciones)`;
+  const DEBE_DECIR = [
+    'estado: en la rama `s2c-technical-hardening`, desde e3a9e94 y fuera de `main` hasta su revisión',
+    'ni el contrato ni los motores suben —1.11, `motor-de-decision@3`, `motor-de-contexto@2`—',
+    's2-c no decide ninguna de las deudas de la auditoría (d1, d2b, d3, d4, d8, d9, d10 y d11)',
+    '**qué cambia, y solo con entradas mal formadas.**', 'en el ciclo no cambia nada', '«ya no se ignora ni se funde»',
+    '**lo que no se endurece: blocked — human decision.**', 'una unión cerrada de doce: contrato', 'corregirlo es elegir un veredicto',
+    '`motivoderechazo` es cerrada', '**a6 y el sujeto (d3): prueba sí, corrección no.**', 'no viola ninguna regla aprobada',
+    'no se convirtió en plazo, aborto, cancelación ni reembolso', '«blocked — human decision»',
+    '**rendimiento: lo ya resuelto se devuelve tal cual (implementado, exacto).**', 'la api no cambia',
+    'un parámetro nuevo, y eso es cambiar su api', 'también api', 'y no se trunca', 'y se descartó',
+    '**rendimiento, la línea base post-s2-b (bloque d).**', '**lo que no se decidió aquí**', 'que s2-c conste en el historial del contrato',
+    'un umbral de rendimiento', rango,
+  ];
+  const NO_DEBE_DECIR = ['pendiente-', 'contrato 1.12', 'motor-de-decision@4', 'd1 cerrada', 'd3 cerrada', 'd9 cerrada', 'd11 cerrada', 'cerrada en s2-c',
+    'se crea `evidence_capped`', 'el umbral aceptable es'];
+  const faltan = DEBE_DECIR.filter((f) => !C2.includes(f));
+  const sobran = NO_DEBE_DECIR.filter((f) => C2.includes(f));
+  /* «### Lo que queda declarado» a secas: hay dos «… y NO construido» antes, en las secciones de A0 y A1. */
+  const enSuSitio = posicion('### S2-B.5') < posicion('### S2-C') && posicion('### S2-C') < posicion('\n### Lo que queda declarado\n');
+  const fila19 = DOC.includes('| `algorithm-quality.test.mjs` §T (202–222) · `equivalencia-s2c.mjs` · `equivalencia-s2c.json` |');
+  const nota7 = septima.includes('después, en s2-c (la fase técnica, arriba)') && septima.includes('quedan blocked — human decision');
+  check(`${numero()} · S2-C · el documento dice lo que hay: lo endurecido con su forma, lo BLOCKED con la decisión que falta, A6 y el sujeto (prueba sí, corrección no), \`maxLatencyMs\` sin volverse un reloj, el atajo exacto y lo que sigue sin quitarse, la línea base, lo que NO se decidió, su rango (${rango}), la fila de §19 y la nota del punto 7`,
+    C2.length > 0 && enSuSitio && faltanFilas.length === 0 && faltan.length === 0 && sobran.length === 0 && fila19 && nota7,
+    [...faltanFilas, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...(enSuSitio ? [] : ['fuera de su sitio']), ...(fila19 ? [] : ['sin fila en §19']), ...(nota7 ? [] : ['sin nota en el punto 7'])].join(' · ')
+    || `${DEBE_DECIR.length} afirmaciones · ${ENDURECIDAS.length + BLOQUEADAS.length} filas`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
