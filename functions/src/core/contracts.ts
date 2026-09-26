@@ -439,8 +439,50 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * guardado. Y la evidencia de la sombra lleva el contrato con que se decidió
  * (`contracts.algoritmo`): la de la canary de S1 dice 1.9, y la que venga después
  * de integrar S2-A dirá 1.10.
+ *
+ * 1.11 (S2-B): la decisión con entradas rotas, con presupuesto de pensar y sin lo que no
+ * es evidencia. Cambia lo que decide `motor-de-decision` con entradas VÁLIDAS, y por eso
+ * sube a su versión 3; ningún otro motor cambia lo que decide con entradas válidas, y se
+ * quedan donde estaban:
+ *
+ *   VALIDACIÓN   una restricción o un tope de pensar que no es un número finito en su
+ *                rango de siempre ya no se ignora ni se funde. En la decisión y en el
+ *                ciclo es un `constraint_conflict` que dice qué campo y por qué —y de qué
+ *                lado, si es una restricción—, antes de fundir nada: las restricciones y
+ *                los nueve topes de pensar. Las estrategias y la optimización no dan por
+ *                buena ninguna alternativa sobre restricciones rotas, y cada rechazo
+ *                nombra campo y motivo; y un mínimo de confianza propio roto —el de
+ *                aceptación de la optimización, el de los requisitos del contexto— no
+ *                apaga el mínimo: no se acepta nada, y se dice por qué. Solo cambia con
+ *                entradas mal formadas.
+ *   DESGLOSE     la explicación dice «sin medir» lo que no se midió, y sobre qué se
+ *                renormalizó el total. Solo texto.
+ *   RESOLUCIÓN   `resolverSenales` elige sin ordenar el grupo entero —la forma canónica,
+ *                solo entre las finalistas—, y el ciclo resuelve una vez las señales de
+ *                la petición para la paralelización, las estrategias y la optimización,
+ *                que las reciben ya resueltas. La misma salida.
+ *   EVIDENCIA    `maxEvidence` es el presupuesto de evidencia de la evaluación, y cuenta
+ *                piezas: una pieza es un grupo (clave, sujeto) sobre una alternativa
+ *                admitida —sus duplicados cuentan una vez y el grupo se resuelve entero—,
+ *                y lo que no es evidencia de ninguna alternativa no gasta. Se aplica
+ *                antes de resolver, se toma por turnos y nunca deja sin alternativas;
+ *                `spend.evidence` son las piezas usadas, y si se acota lo dicen
+ *                `budget_exhausted` y una frase. Cambia decisiones VÁLIDAS: 65 señales
+ *                ajenas dejaban «Ninguna de las 0 alternativas…» y ahora se decide.
+ *   PRESUPUESTO  si llegan alternativas y un tope no deja evaluar ninguna, el fallo es
+ *                `budget_exceeded`.
+ *   PROFUNDIDAD  un plan que no cabe en `maxDepth` para el ciclo con `undecided` y un
+ *                porqué que dice que el plan existe, sin pedir que se elija entre nada.
+ *   COMPOSICIÓN  si la composición se queda sin alternativas antes de decidir, el porqué
+ *                del ciclo dice por qué (restricciones o presupuesto); la decisión no
+ *                cambia.
+ *
+ * Ningún campo público nuevo: se usan los avisos, fallos y motivos de parada que ya había.
+ * Siguen fuera, sin inventarlos: un aviso propio de evidencia acotada y un motivo de parada
+ * por presupuesto o por profundidad. La evidencia de la sombra que venga después de
+ * integrar S2-B dirá 1.11.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.10' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.11' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

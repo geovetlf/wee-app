@@ -838,9 +838,9 @@ check('S1-2) puerta abierta para la canary: el algoritmo decide y la sombra qued
     && s !== undefined && ['core', 'coreDesdeBrain', 'autoridad', 'regresion', 'errores'].every((k) => !(k in s))
     && s?.coreDesdePuente?.status === 'ready' && !!s?.regresionDesdePuente,
     `caminos=${JSON.stringify(s?.caminos)} estado=${s?.estado}`);
-  /* 1.10 desde S2-A: la sección lleva el contrato con que DECIDIÓ; la evidencia real de la canary de S1 sigue diciendo 1.9. */
+  /* 1.11 desde S2-B (1.10 fue S2-A): la sección lleva el contrato con que DECIDIÓ; la evidencia real de la canary de S1 sigue diciendo 1.9. */
   check('S1-5) la sección habla el contrato del algoritmo y se identifica por su trabajo',
-    a?.contract === '1.10' && a?.contract === ALGORITHM_CONTRACT_VERSION && a?.shadowRunId === `${JOB}:algoritmo`
+    a?.contract === '1.11' && a?.contract === ALGORITHM_CONTRACT_VERSION && a?.shadowRunId === `${JOB}:algoritmo`
     && igual(a?.objetivo, { latency: 1, reliability: 1 })
     && a?.entrada?.pasos === 1 && igual(a?.entrada?.capacidades, ['text.search']) && a?.entrada?.aristas === 0,
     `shadowRunId=${a?.shadowRunId}`);

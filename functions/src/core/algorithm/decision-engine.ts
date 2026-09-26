@@ -68,7 +68,8 @@ export const DECISION_ENGINE_ID = 'motor-de-decision';
  * DECIDE, y esa es la regla de `AlgorithmDescriptor.version`. Las fases
  * anteriores no la aplicaron; el contrato sí subió con cada una.
  */
-export const DECISION_ENGINE_VERSION = 2;
+/* 3 desde S2-B (contrato 1.11): con entradas VÁLIDAS decide distinto —la evidencia de lo que se evalúa (B.4)—. */
+export const DECISION_ENGINE_VERSION = 3;
 export const DECISION_ENGINE_REF = referenciaDeAlgoritmo(DECISION_ENGINE_ID, DECISION_ENGINE_VERSION);
 
 /**

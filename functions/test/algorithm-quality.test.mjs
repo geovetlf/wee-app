@@ -28,8 +28,8 @@
  *  L. R4 — la integridad de esta misma suite: la 41 llega a A1 (y la 41b dice
  *     dónde para el ciclo), la 50 usa el vocabulario real de `Budget`, y la
  *     igualdad con que se compara no confunde lo que el JSON calla.
- *  M. R5 — el versionado: contrato 1.10 con su entrada, y los motores cuya
- *     decisión cambió, a su versión 2.
+ *  M. R5 — el versionado: contrato 1.10 con su entrada (S2-A) y 1.11 (S2-B), y
+ *     los motores cuya decisión cambió: A1 a su versión 3 y A8 a la 2.
  *  N. R6 — el documento dice lo que hay: la historia de S1 de `main` delante,
  *     S2-A integrada en `main`, la cadena entera, el estado real de cada
  *     lector, lo que A6 ve al cerrar y las deudas.
@@ -1165,17 +1165,18 @@ console.log('\n─── M. R5 · El versionado ───');
 
 const srcContratos = leer('functions/src/core/contracts.ts');
 const { contratoCompatible } = lib('core/contracts.js');
-check('101 · R5 · el contrato del Algorithm Engine es 1.10, y la evidencia que se produzca lo dirá: la sección y la decisión llevan ese número',
-  ALGORITHM_CONTRACT_VERSION === '1.10' && R.contract === '1.10' && R.decision?.contract === '1.10' && E1.contract === '1.10');
+check('101 · R5 · el contrato del Algorithm Engine es 1.11 (S2-B; 1.10 fue S2-A), y la evidencia que se produzca lo dirá: la sección y la decisión llevan ese número',
+  ALGORITHM_CONTRACT_VERSION === '1.11' && R.contract === '1.11' && R.decision?.contract === '1.11' && E1.contract === '1.11'
+  && /\* 1\.11 \(S2-B\): /.test(srcContratos));
 check('102 · R5 · 1.10 está registrado en su historial —qué cambia y por qué sube—, y el historial anterior sigue intacto',
   /\* 1\.10 \(S2-A\): /.test(srcContratos) && /\* 1\.9 \(A9\.3\): /.test(srcContratos) && /\* 1\.7 \(A9\.1\): /.test(srcContratos) &&
   ['DESEMPATE', 'FRONTERA', 'EFECTIVAS', 'REGISTRO', 'CONFIANZA'].every((p) => new RegExp(`\\* {3}${p} `).test(srcContratos)) &&
   !/\(A9\)/.test(srcContratos));
 check('103 · R5 · la compatibilidad compara números, no texto: 1.10 habla con quien espera 1.9, y un descriptor de 1.9 ya no vale para 1.10',
   contratoCompatible('1.10', '1.9') && !contratoCompatible('1.9', '1.10') && contratoCompatible('1.10', '1.10') && '1.10' < '1.9');
-check('104 · R5 · los motores cuya decisión cambió suben a su versión 2 —«sube cuando cambia lo que el algoritmo DECIDE»—; los demás, no',
-  A.DECISION_ENGINE_VERSION === 2 && A.DECISION_ENGINE_REF === 'motor-de-decision@2' && E1.algorithm === 'motor-de-decision@2' &&
-  A.DESCRIPTOR_DE_CONTEXTO.version === 2 && A.DESCRIPTOR_DEL_MOTOR.version === 2 &&
+check('104 · R5 · los motores cuya decisión cambió suben —«sube cuando cambia lo que el algoritmo DECIDE»—: A1 a 3 (S2-B, con entradas válidas), A8 sigue en 2 (S2-A); los demás, no',
+  A.DECISION_ENGINE_VERSION === 3 && A.DECISION_ENGINE_REF === 'motor-de-decision@3' && E1.algorithm === 'motor-de-decision@3' &&
+  A.DESCRIPTOR_DE_CONTEXTO.version === 2 && A.DESCRIPTOR_DEL_MOTOR.version === 3 &&
   [A.DECOMPOSITION_ENGINE_VERSION, A.STRATEGY_ENGINE_VERSION, A.PARALLELIZATION_ENGINE_VERSION, A.OPTIMIZATION_ENGINE_VERSION].every((v) => v === 1),
   `A1=${A.DECISION_ENGINE_REF} · A8=${A.DESCRIPTOR_DE_CONTEXTO.version}`);
 
@@ -2268,17 +2269,17 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     `${Object.keys(conTopes.entrega ?? {}).join(',')} · ${(fuentesB4.match(EJECUCION) ?? [''])[0]}`);
 }
 
-/* Y el documento dice de S2-B.4 lo que hay: su estado, el versionado sin decidir, las reglas, los huecos y la regresión. */
+/* Y el documento dice de S2-B.4 lo que hay: su estado, el versionado que dejó sin decidir —y que se aplicó al cerrar S2-B—, las reglas, los huecos y la regresión. */
 {
   const B4 = (() => { const i = S18_PLANO.indexOf('### s2-b.4'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
   const DEBE_DECIR = [
     'estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión',
-    'b.4 sí cambia lo que a1 decide con entradas válidas', 'queda como decisión pendiente', 'sin aplicar',
+    'b.4 sí cambia lo que a1 decide con entradas válidas', 'queda como decisión pendiente', 'sin aplicar', 'se aplicó al cerrar s2-b',
     'por turnos', '64/65', '512/513', 'antes de resolver', '`budget_exceeded`', 'sigue la regla de b.1', 'el plan existe',
     'huecos de contrato, dichos y no inventados', 'la regresión es real', 'no hay umbral contractual', '§r (163–189, 27 comprobaciones', '29 nuevos sobre el código', '5 sobre este documento',
   ];
   const faltan = DEBE_DECIR.filter((f) => !B4.includes(f));
-  check(`${numero()} · B.4 · el documento dice lo que hay: en la rama y sin integrar, el versionado SIN decidir, las reglas (por turnos, 64/65, 512/513, antes de resolver, \`budget_exceeded\`, la regla de B.1, el plan que existe), los huecos de contrato, la regresión y las pruebas`,
+  check(`${numero()} · B.4 · el documento dice lo que hay: en la rama y sin integrar, el versionado que B.4 dejó SIN decidir y que se aplicó al cerrar S2-B, las reglas (por turnos, 64/65, 512/513, antes de resolver, \`budget_exceeded\`, la regla de B.1, el plan que existe), los huecos de contrato, la regresión y las pruebas`,
     B4.length > 0 && faltan.length === 0, faltan.join(' · ') || `${DEBE_DECIR.length} afirmaciones`);
 }
 
@@ -2494,20 +2495,23 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
     diferencias.slice(0, 5).join(' | ') || `${H.campos.a1.length} + ${H.campos.ciclo.length} campos × 3 versiones`);
 
   /*
-   * LOS SELLOS, aparte. El versionado de S2-B está PENDIENTE: el contrato vive en `core/contracts.ts`, que esta fase
-   * no puede tocar, y subir solo el motor contradiría la entrada 1.10 («sus sellos —este número y
-   * `motor-de-decision@2`—»). Esta comprobación impide decir que está resuelto sin estarlo: cuando se decida, cambia.
+   * LOS SELLOS, aparte. El versionado de S2-B quedó PENDIENTE en S2-B.5 —el contrato vive en `core/contracts.ts`, que
+   * esa fase no podía tocar, y subir solo el motor contradecía la entrada 1.10— y se RESOLVIÓ con la autorización del
+   * usuario (2026-09-26): contrato 1.11 y `motor-de-decision@3`. Frente a las tres versiones anteriores cambian los
+   * sellos y solo los sellos; `motor-de-contexto` sigue en 2.
    */
-  check(`${numero()} · B.5 · VERSIONADO PENDIENTE, fijado: los sellos son los de las tres versiones anteriores —contrato ${H.sellos['0df8be2'].contrato} y ${H.sellos['0df8be2'].motor}—, aunque S2-B.4 cambie decisiones válidas; subirlos es la decisión abierta`,
-    H.versiones.every((v) => igual(H.sellos[v], selloHoy)) && ALGORITHM_CONTRACT_VERSION === '1.10' && A.DECISION_ENGINE_REF === 'motor-de-decision@2'
-    && A.DESCRIPTOR_DE_CONTEXTO.version === 2, `${selloHoy.contrato} · ${selloHoy.motor}`);
+  check(`${numero()} · B.5 · VERSIONADO RESUELTO: los sellos, y solo los sellos, cambian —contrato 1.11 y motor-de-decision@3 frente a ${H.sellos['0df8be2'].contrato} y ${H.sellos['0df8be2'].motor} de las tres anteriores—; motor-de-contexto sigue en 2`,
+    H.versiones.every((v) => igual(H.sellos[v], { contrato: '1.10', motor: 'motor-de-decision@2' })) && ALGORITHM_CONTRACT_VERSION === '1.11'
+    && A.DECISION_ENGINE_REF === 'motor-de-decision@3' && A.DESCRIPTOR_DE_CONTEXTO.version === 2, `${selloHoy.contrato} · ${selloHoy.motor}`);
 }
 
 /*
  * PARTE 15 · Y EL DOCUMENTO DICE DE S2-B.5 LO QUE HAY: CERRADO, PARCIALMENTE CERRADO y APLAZADO, fila a fila,
  * sin llamar «cerrada» a una deuda con una parte abierta; la frase exacta de la evidencia acotada; lo que no se
  * decidió; y el versionado en el MISMO estado que el código —pendiente mientras los sellos sean 1.10 y
- * `motor-de-decision@2`; si se suben, el documento tiene que dejar de decir «pendiente»—.
+ * `motor-de-decision@2`; resuelto, con su cierre escrito, en cuanto se suben—. Y los dos sitios que dicen el número
+ * del contrato fuera de §18 —la fila `contract` de la sección de la sombra y la fila del Algorithm Engine en
+ * docs/RUNTIME.md— dicen el vigente.
  */
 {
   const B5 = (() => { const i = S18_PLANO.indexOf('### s2-b.5'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
@@ -2533,17 +2537,33 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
     '**lo que no se decidió aquí**', 'crear `evidence_capped`', 'truncar grupos de duplicados', 'tocar `resolversenales`',
     '§s (190–201, 12 comprobaciones)', '13 nuevos sobre el código', '8 sobre este documento',
     ...(pendiente ? ['**s2-b no está cerrada**', '**el versionado: pendiente, sin inventarlo.**', '**la decisión que falta**',
-      '| 1.11 y `motor-de-decision@3` (lo que dice la regla) |', '| seguir en 1.10 y `@2` (hoy) |', '| solo `motor-de-decision@3` |'] : []),
+      '| 1.11 y `motor-de-decision@3` (lo que dice la regla) |', '| seguir en 1.10 y `@2` (hoy) |', '| solo `motor-de-decision@3` |']
+      : ['**el versionado: resuelto en 1.11 y `motor-de-decision@3`, sin inventarlo.**', 'y se resolvió después con la primera opción de abajo',
+        'se autorizó ese cambio —solo el número y la entrada 1.11—', '**cierre del versionado (autorizado por el usuario el 2026-09-26).**']),
   ];
-  const NO_DEBE_DECIR = pendiente ? ['el versionado: resuelto', 'el aviso `evidence_capped`'] : ['el versionado: pendiente', 'el aviso `evidence_capped`'];
+  const NO_DEBE_DECIR = pendiente ? ['el versionado: resuelto', 'el aviso `evidence_capped`']
+    : ['el versionado: pendiente', 'el aviso `evidence_capped`', '**s2-b no está cerrada**', '| versionado | pendiente', '| seguir en 1.10 y `@2` (hoy) |',
+      '**la decisión que falta**'];
   const faltan = DEBE_DECIR.filter((f) => !B5.includes(f));
   const sobran = NO_DEBE_DECIR.filter((f) => B5.includes(f));
+  /* Resuelto, también fuera del apartado de B.5: las notas de B.1–B.3 y B.4, y B.4 ya no llama «1.11» a un contrato futuro. */
+  const FUERA_DE_B5 = pendiente ? [] : ['se resolvió al cerrar s2-b: contrato 1.11 y `motor-de-decision@3`', 'se aplicó al cerrar s2-b',
+    'la 1.11 de s2-b no los incluye'];
+  const faltanFuera = [...FUERA_DE_B5.filter((f) => !S18_PLANO.includes(f)), ...(pendiente || !S18_PLANO.includes('es decir, contrato 1.11.') ? [] : ['sobra: es decir, contrato 1.11.'])];
+  /* El número vigente, también fuera de §18. */
+  const filaDelMotor = leer('docs/RUNTIME.md').split('\n').find((l) => l.startsWith('| **Algorithm Engine** |')) ?? '';
+  const numeroFuera = [
+    [DOC.includes(`\`${ALGORITHM_CONTRACT_VERSION}\` desde S2-`), 'la fila `contract` de la sombra no dice el contrato vigente'],
+    [filaDelMotor.includes(`contrato ${ALGORITHM_CONTRACT_VERSION})`), 'docs/RUNTIME.md no dice el contrato vigente'],
+  ].filter(([ok]) => !ok).map(([, m]) => m);
   /* Ninguna fila que deje algo APLAZADO se llama «cerrado» a secas. */
   const cerradasConParteAbierta = B5_LINEAS.filter((l) => l.startsWith('| ')).map((l) => l.split(' | '))
     .filter((c) => c.length >= 3 && /^cerrad[oa](\s|$)/.test(c[1]) && /aplazad/.test(c.slice(2).join(' | '))).map((c) => c[0]);
   check(`${numero()} · B.5 · el documento dice lo que hay: cada deuda CERRADA, PARCIALMENTE CERRADA o APLAZADA —ninguna «cerrada» con una parte abierta—, la frase exacta de la evidencia acotada, lo que no se decidió, y el versionado en el mismo estado que el código (${pendiente ? 'PENDIENTE' : 'RESUELTO'})`,
-    B5.length > 0 && B5_LINEAS.length > 0 && filasMal.length === 0 && faltan.length === 0 && sobran.length === 0 && cerradasConParteAbierta.length === 0,
-    [...filasMal, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...cerradasConParteAbierta.map((c) => `cerrada con parte abierta: ${c}`)].join(' · ') || `${FILAS.length} filas · ${DEBE_DECIR.length} afirmaciones`);
+    B5.length > 0 && B5_LINEAS.length > 0 && filasMal.length === 0 && faltan.length === 0 && sobran.length === 0 && cerradasConParteAbierta.length === 0
+    && numeroFuera.length === 0 && faltanFuera.length === 0,
+    [...filasMal, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...cerradasConParteAbierta.map((c) => `cerrada con parte abierta: ${c}`), ...numeroFuera, ...faltanFuera].join(' · ')
+    || `${FILAS.length} filas · ${DEBE_DECIR.length} afirmaciones · el número vigente fuera de §18`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');

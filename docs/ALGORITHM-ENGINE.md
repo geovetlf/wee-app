@@ -1536,7 +1536,7 @@ No por disciplina: por construcción, y con una prueba para cada cosa.
 
 | Campo | Qué guarda |
 |---|---|
-| `contract` · `shadowRunId` | el contrato con que decidió —`1.9` en S1; `1.10` desde S2-A— · `<jobId>:algoritmo` |
+| `contract` · `shadowRunId` | el contrato con que decidió —`1.9` en S1; `1.10` desde S2-A; `1.11` desde S2-B— · `<jobId>:algoritmo` |
 | `estado` · `duracionMs` | cómo acabó y cuánto tardó el camino entero (decidir + comparar) |
 | `objetivo` | `{ latency: 1, reliability: 1 }`: técnico, de la sombra; no es un objetivo de producto |
 | `entrada` | pasos, capacidades y aristas de lo que entró |
@@ -2098,7 +2098,9 @@ S2-A; S2-B · B.4 aplica el tope antes de resolver: ver su apartado.)
 sin despliegue y sin autoridad nueva. Sale de la auditoría posterior a S2-A (D1–D11) y
 hace solo lo que no necesitaba una decisión antes de tocar código: B.1, B.2 y B.3. El
 contrato sigue en 1.10 y los motores en su versión 2; si un cambio que solo toca
-entradas mal formadas debe subir versión queda como decisión abierta.
+entradas mal formadas debe subir versión queda como decisión abierta. (Se resolvió al
+cerrar S2-B: contrato 1.11 y `motor-de-decision@3`, por B.4, que sí cambia decisiones
+válidas; ver «S2-B.5 · el cierre de S2-B».)
 
 - **B.1 · Las restricciones mal formadas.** Una regla (`motivoDeNumeroInvalido` sobre
   `RANGO_DE_RESTRICCION`): un número de restricción tiene que ser un número, finito y
@@ -2147,7 +2149,8 @@ sin despliegue y sin autoridad nueva. El contrato sigue en 1.10 y `motor-de-deci
 su versión 2, pero B.4 SÍ cambia lo que A1 decide con entradas válidas —65 señales sobre
 algo que no es una alternativa: antes «Ninguna de las 0 alternativas…», ahora decide—,
 así que subir `motor-de-decision` y el contrato queda como decisión pendiente, con su
-propuesta (@3 y 1.11), sin aplicar.
+propuesta (@3 y 1.11), sin aplicar. Se aplicó al cerrar S2-B (ver «S2-B.5 · el cierre de
+S2-B»).
 
 **`maxEvidence`** es el presupuesto de evidencia de la EVALUACIÓN de A1: cuántas piezas
 usa, como mucho, para evaluar las alternativas que evalúa. Una pieza es un grupo (clave,
@@ -2207,7 +2210,7 @@ ningún límite de quien ejecuta.
 evidencia acotada (como `candidates_capped`) ni un campo con las piezas omitidas —se dice
 con `budget_exhausted` y la frase—, y `MotivoDeParada` no tiene un motivo de presupuesto
 —se usa `undecided`, y el recorrido sin `decision` dice que A1 no corrió—. Los dos son
-ampliar una unión cerrada, es decir, contrato 1.11.
+ampliar una unión cerrada, es decir, subir el contrato: la 1.11 de S2-B no los incluye.
 
 | 50 000 señales salvo donde se dice | f30079c | antes de B.4 | con B.4 |
 |---|---|---|---|
@@ -2239,10 +2242,10 @@ caen por aserción, y los de S2-A y S2-B.1–B.3 siguen cayendo sobre este códi
 
 **Estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión.** Local,
 sin despliegue y sin autoridad nueva. S2-B.5 cierra lo que todavía era de S2-B y dice, una
-a una, qué queda fuera y por qué. **S2-B no está cerrada**: el versionado sigue pendiente
-de una decisión que no se puede tomar en esta fase (abajo).
+a una, qué queda fuera y por qué. El versionado quedó pendiente en S2-B.5 —esa fase no podía
+tocar `core/contracts.ts`— y se resolvió después con la primera opción de abajo.
 
-**El versionado: PENDIENTE, sin inventarlo.** S2-B.4 cambia lo que `motor-de-decision`
+**El versionado: RESUELTO en 1.11 y `motor-de-decision@3`, sin inventarlo.** S2-B.4 cambia lo que `motor-de-decision`
 decide con entradas VÁLIDAS —65 señales ajenas: antes `no_valid_strategy` con «0
 alternativas», ahora decide—, así que por la regla de `AlgorithmDescriptor.version` («sube
 cuando cambia lo que el algoritmo DECIDE») correspondería `motor-de-decision@3` y el
@@ -2257,24 +2260,24 @@ válidas y se quedarían donde están. Lo auditado:
 - ninguna regla obliga a subir otro descriptor, pero la entrada 1.10 del historial dice que
   sus sellos son «este número y `motor-de-decision@2`»: subir solo el motor la contradiría.
 
-La contradicción: el contrato vive en `core/contracts.ts`, y esta fase no puede tocar ese
-archivo. **La decisión que falta** es autorizar ese cambio —solo el número y la entrada
-1.11—; con él cambian también el motor, sus comprobaciones de versión y este documento, y
-la 201 no deja cambiar el código sin el documento. Las opciones:
+La contradicción era que el contrato vive en `core/contracts.ts`, que S2-B.5 no podía tocar.
+Se autorizó ese cambio —solo el número y la entrada 1.11—: la primera de estas opciones.
 
 | Opción | Qué pasa | Pruebas |
 |---|---|---|
 | 1.11 y `motor-de-decision@3` (lo que dice la regla) | los sellos de cada decisión, estrategia y entrega pasan a 1.11 y `@3`; nada más cambia | ensayo en un árbol aparte sobre esta rama: con el código y sus pruebas de versión puestos al día y este documento sin tocar, solo cae la 201; con el documento también, 175 suites en verde —las 6 comprobaciones que fijan versiones, la de los sellos (200) al revés y la 201 por su otra rama— |
-| seguir en 1.10 y `@2` (hoy) | contradice la regla: B.4 decide distinto con entradas válidas | las de hoy; la 200 lo fija como pendiente |
+| seguir en 1.10 y `@2` | contradice la regla: B.4 decide distinto con entradas válidas | la 200 lo fijaba como pendiente |
 | solo `motor-de-decision@3` | contradice la entrada 1.10 del historial | no se ensayó: no es coherente |
 
-Lo que la entrada 1.11 recogería, por bloque: VALIDACIÓN —restricciones (B.1) y topes de
-pensar (B.4, B.5) mal formados son `constraint_conflict`; solo cambia con entradas mal
-formadas—; DESGLOSE —solo texto (B.2)—; RESOLUCIÓN —la misma salida (B.3)—; EVIDENCIA
-—`maxEvidence`, las piezas por turnos, `spend.evidence`, `budget_exhausted` y la frase
-(B.4); cambia decisiones VÁLIDAS—; PRESUPUESTO —`budget_exceeded` (B.4)—; PROFUNDIDAD —la
-parada del ciclo cuando el plan no cabe (B.4)—; COMPOSICIÓN —el porqué del ciclo cuando se
-vacía (B.5)—. Ningún campo público nuevo.
+Lo que recoge la entrada 1.11, por bloque: VALIDACIÓN —restricciones (B.1) y topes de
+pensar (B.4, B.5) mal formados: `constraint_conflict` en la decisión y en el ciclo, rechazo
+con campo y motivo en las estrategias y la optimización, y nada aceptado con un mínimo de
+confianza propio roto; solo cambia con entradas mal formadas—; DESGLOSE —solo texto (B.2)—;
+RESOLUCIÓN —la misma salida (B.3)—; EVIDENCIA —`maxEvidence` por piezas (un grupo de
+duplicados es una pieza y se resuelve entero), por turnos, `spend.evidence`,
+`budget_exhausted` y la frase (B.4); cambia decisiones VÁLIDAS—; PRESUPUESTO
+—`budget_exceeded` (B.4)—; PROFUNDIDAD —la parada del ciclo cuando el plan no cabe (B.4)—;
+COMPOSICIÓN —el porqué del ciclo cuando se vacía (B.5)—. Ningún campo público nuevo.
 
 | Deuda | Estado | Qué |
 |---|---|---|
@@ -2286,11 +2289,11 @@ vacía (B.5)—. Ningún campo público nuevo.
 | grupos con miles de duplicados | APLAZADO, auditado | un grupo es una pieza y se resuelve entero: el ganador depende de verlo todo, y truncarlo cambiaría la señal que gana. Se materializa entero en el inventario y en la resolución —memoria y tiempo lineales en el grupo, formas canónicas solo entre finalistas— |
 | doble validación en A1 (la regresión de B.4) | APLAZADO | quitarla exige tocar `resolverSenales` (B.3), que esta fase no rehace |
 | A2–A8 llamados sueltos con topes mal formados | APLAZADO | leen el presupuesto con `presupuestoEfectivo`; esta fase no toca A2, A4, A6, A7 ni A8 |
-| versionado | PENDIENTE de decisión | arriba |
+| versionado | RESUELTO | 1.11 y `motor-de-decision@3` (arriba) |
 | D11 (sin elección real) | APLAZADA | necesita decidir qué es «sin elección real» y si va como aviso o como campo: contrato |
 | D1, D2b, D3, D4, D8, D9, D10 | APLAZADAS | fuera de S2-B, cada una con su decisión |
 
-**Lo que NO se decidió aquí**: subir el contrato y el motor; crear `evidence_capped`; crear
+**Lo que NO se decidió aquí**: crear `evidence_capped`; crear
 un motivo de parada por presupuesto o por profundidad; que el ciclo se pare antes de A1
 cuando la composición se vacía por restricciones o por candidatas —cambiaría la decisión—;
 truncar grupos de duplicados; validar el presupuesto en A2–A8; tocar `resolverSenales`.
@@ -2302,6 +2305,22 @@ documento caen por aserción, y los 116 de antes siguen cayendo: cuatro del docu
 re-apuntados a su texto nuevo con la misma mutación, y dos del código (D7a-p y D7a-q),
 reescritos porque el tipo de B.5 ya no deja borrar una clave de `RANGO_DEL_PRESUPUESTO`
 —la misma intención, en la forma que compila—.
+
+**Cierre del versionado (autorizado por el usuario el 2026-09-26).** Contrato 1.11, con su
+entrada en el historial de `core/contracts.ts` —de ese archivo solo cambian el número y la
+entrada—, y `motor-de-decision@3`; `motor-de-contexto` sigue en 2 y los demás motores en 1,
+porque ninguno cambia lo que decide con entradas válidas. La entrada dice lo que el código
+hace: la validación en la decisión y en el ciclo (`constraint_conflict`), en las estrategias
+y la optimización (rechazo con campo y motivo) y en los mínimos de confianza propios (no se
+acepta nada); las piezas de evidencia como grupos que se resuelven enteros; y lo que sigue
+fuera sin inventarse. Puestas al día: `algorithm-decision` 1, 6 y 31; `algorithm-quality`
+101, 104, 189 —B.4 dejó el versionado sin decidir, y se aplicó al cerrar S2-B—, 200 —ahora
+«resuelto»— y 201, cuya rama de «resuelto» exige este cierre, las notas de B.1–B.3 y B.4 y
+el número vigente fuera de §18; `sombra-experiencia` S1-5; la fila `contract` de la
+sección de la sombra y la del Algorithm Engine en `docs/RUNTIME.md`. Sabotajes del cierre:
+11 nuevos —4 sobre el código y 7 sobre los documentos— caen por aserción, y los 137 de
+antes siguen cayendo, con 5 re-apuntados al estado resuelto (R5-a, R5-b, S5-m, Bdoc5-a y
+Bdoc5-h).
 
 ### Lo que queda declarado
 
@@ -2387,9 +2406,9 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `-feedback` §Z · `-context` §X · `-cycle` §L3 | A9.3: ejecución, verificación y recuperación por separado —los ocho casos, la puerta de ejecución de A6—, lo que llega a `paraRouter` y lo que no decide |
 | `sombra-experiencia` §S1 · `-context` V8–V8d · `-cycle` 91–91b · `runtime-map` · `-agnostic` 56 · `-decision` 77 · `-foundation` 118 | S1: la canary de Travel, la puerta y sus filtros, los cortafuegos, la evidencia privada, la comparación sin falsa paridad, los desenlaces, la carrera, y que solo la sombra carga la capa |
 | `canary-sombra-atribucion` · `canary-sombra-assets` | S1.4–S1.5: el monitor de la canary atribuye cargos (#3), materiales (#4) y ejecuciones (#5) por la identidad de la sombra, no por la cuenta, el trabajo ni la hora; el caso 4 (Japón) como fixture |
-| `algorithm-quality.test.mjs` · `-cycle` 46b · `-foundation` 1 · `-decision` 1, 6, 31 · `sombra-experiencia` S1-5 | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué; y el endurecimiento R1–R6: señales rotas que no desempatan (I), la forma canónica total y acotada (J), la fusión de restricciones campo a campo (K), la integridad de la suite (L y la 41), el contrato 1.10 y las versiones 2 (M) y este documento con su estado real (N) |
+| `algorithm-quality.test.mjs` · `-cycle` 46b · `-foundation` 1 · `-decision` 1, 6, 31 · `sombra-experiencia` S1-5 | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué; y el endurecimiento R1–R6: señales rotas que no desempatan (I), la forma canónica total y acotada (J), la fusión de restricciones campo a campo (K), la integridad de la suite (L y la 41), el contrato 1.10 y las versiones 2 (M; desde S2-B, 1.11 y `motor-de-decision@3`) y este documento con su estado real (N) |
 | `algorithm-quality.test.mjs` §O · §P · §Q (113–162) | S2-B: las restricciones mal formadas —una regla, los dos lados validados antes de fundir, un conflicto que nombra lado, campo y motivo, una fusión que nunca da un no finito, A9 parado en 0b y A3, A5 y A8 con la misma regla— (O); el desglose que cuadra con el total —lo ausente «sin medir», total = lo medido entre el peso medido, sin cambiar ninguna decisión— (P); y la resolución de señales sin ordenar de más, idéntica por identidad a la de S2-A, con la forma canónica solo entre las empatadas, y una vez por ciclo (Q) |
-| `algorithm-quality.test.mjs` §S (190–201) · `equivalencia-s2b.mjs` · `equivalencia-s2b.json` | S2-B.5: los nueve topes de pensar con la regla de B.1 y sin tocar lo válido, el porqué del ciclo cuando la composición se vacía y los seis «no hay decisión» distintos, el hueco estructurado fijado, los grupos de duplicados sin truncar, la propiedad central de `maxEvidence` y `maxDepth`, la equivalencia campo a campo con f30079c, dacf18d y 0df8be2 con los sellos aparte, el versionado fijado como pendiente, y este documento con lo cerrado, lo parcialmente cerrado y lo aplazado |
+| `algorithm-quality.test.mjs` §S (190–201) · `equivalencia-s2b.mjs` · `equivalencia-s2b.json` | S2-B.5: los nueve topes de pensar con la regla de B.1 y sin tocar lo válido, el porqué del ciclo cuando la composición se vacía y los seis «no hay decisión» distintos, el hueco estructurado fijado, los grupos de duplicados sin truncar, la propiedad central de `maxEvidence` y `maxDepth`, la equivalencia campo a campo con f30079c, dacf18d y 0df8be2 con los sellos aparte, el versionado, pendiente hasta autorizarlo y resuelto después en 1.11 y `motor-de-decision@3` (200 y 201), y este documento con lo cerrado, lo parcialmente cerrado y lo aplazado |
 | `algorithm-quality.test.mjs` §R (163–189) | S2-B.4: `maxEvidence` sobre la evidencia de lo que se evalúa —las fronteras 64/65 y 512/513, las señales ajenas fuera, los turnos, permutaciones, lo mismo que antes sin llegar al tope, «sin evidencia» frente a «evidencia acotada», el tope antes del desempate caro—, `budget_exceeded` cuando el presupuesto no deja mirar ninguna, los topes mal formados con la regla de B.1, `maxDepth` con planes de 6, 7 y 8 pasos, vacíos, con ramas y permutados, y el presupuesto de pensar fuera de la entrega |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar

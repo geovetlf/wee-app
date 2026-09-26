@@ -57,9 +57,9 @@ const estrategia = (id, steps, extra = {}) => ({
 
 console.log('\n─── A. Quién es ───');
 
-/* Versión 2 desde S2-A (contrato 1.10): A1 cambió lo que decide. */
+/* Versión 3 desde S2-B (contrato 1.11): A1 cambió lo que decide con entradas válidas (B.4). */
 check('1 · se registra por el Registry de A0, no por uno nuevo',
-  !!A.crearRegistroDeAlgoritmos([A.DESCRIPTOR_DEL_MOTOR]).registro.obtener(A.DECISION_ENGINE_ID, 2));
+  !!A.crearRegistroDeAlgoritmos([A.DESCRIPTOR_DEL_MOTOR]).registro.obtener(A.DECISION_ENGINE_ID, 3));
 check('2 · su descriptor es válido según A0', A.algoritmoValido(A.DESCRIPTOR_DEL_MOTOR),
   JSON.stringify(A.validarAlgoritmo(A.DESCRIPTOR_DEL_MOTOR)));
 check('3 · es de la familia `decision` y PURO',
@@ -71,7 +71,7 @@ check('4 · es EXPERIMENTAL: no es seleccionable automáticamente',
 check('5 · y la línea base es `draft`: nunca decide de verdad',
   A.DESCRIPTOR_DE_LA_BASE.status === 'draft' && reg.seleccionable(A.BASELINE_ID) === false);
 check('6 · cada decisión dice qué algoritmo y qué versión la tomó',
-  motor.decidir(ctxDe([opt('a', { quality: 1 })])).algorithm === `${A.DECISION_ENGINE_ID}@2`);
+  motor.decidir(ctxDe([opt('a', { quality: 1 })])).algorithm === `${A.DECISION_ENGINE_ID}@3`);
 check('7 · el contrato no ha roto el mayor',
   Number(ALGORITHM_CONTRACT_VERSION.split('.')[0]) === 1 && Number(ALGORITHM_CONTRACT_VERSION.split('.')[1]) >= 1,
   ALGORITHM_CONTRACT_VERSION);
@@ -165,9 +165,9 @@ check('30 · Q · dos ejecuciones idénticas dan lo MISMO, campo por campo',
   igual(mismo(), mismo()));
 
 /* R · versionado. S · sin evidencia. T · evidencia insuficiente. */
-/* @2 desde S2-A (contrato 1.10): A1 cambió lo que decide —la frontera en lo que se pide y el desempate por contenido—. */
+/* @3 desde S2-B (contrato 1.11): A1 cambió lo que decide con entradas válidas (B.4); @2 fue S2-A. */
 check('31 · R · la versión viaja en la decisión y en el registro',
-  mismo().algorithm === A.DECISION_ENGINE_REF && A.DECISION_ENGINE_REF.endsWith('@2'));
+  mismo().algorithm === A.DECISION_ENGINE_REF && A.DECISION_ENGINE_REF.endsWith('@3'));
 const sinEv = motor.decidir(ctxDe([opt('a', { quality: 0.9, cost: 0.1 })]));
 check('32 · S · sin evidencia, confianza 0 e incertidumbre `unknown`',
   sinEv.confidence.value === 0 && sinEv.uncertainty === 'unknown' && sinEv.warnings.includes('low_confidence'));
