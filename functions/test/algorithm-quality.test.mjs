@@ -2117,5 +2117,129 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     verR(familia));
 }
 
+/*
+ * 13–21 · `maxDepth`: el plan existe aunque no quepa. Planes lineales de 6, 7 y
+ * 8 pasos con tope 6 y 7, por el camino simple (A2 → A3) y el paralelo
+ * (A2 → A4 → A3), un plan vacío, uno con ramas y sus permutaciones.
+ */
+{
+  const cicloD = A.crearCicloAlgoritmico();
+  const pasoD = (id, dep) => ({ id, capability: 'text.generate', purpose: `p-${id}`, ...(dep ? { dependsOn: dep } : {}) });
+  const linealD = (n) => Array.from({ length: n }, (_, i) => pasoD(`p${i}`, i ? [`p${i - 1}`] : undefined));
+  const COMPONER_D = { simple: undefined, paralelo: { paralelizar: true, optimizar: true } };
+  const pedirD = (pasos, maxDepth, camino) => ({
+    decision: { contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA, objective: OBJ_CICLO, ...(maxDepth ? { budget: { maxDepth } } : {}) },
+    tarea: { id: 'T', steps: pasos }, ...(COMPONER_D[camino] ? { componer: COMPONER_D[camino] } : {}),
+  });
+  const PARADA_D = /^El plan existe —(\d+) paso\(s\), (\d+) nivel\(es\) de dependencia— pero ninguna de sus disposiciones cabe en el presupuesto de profundidad \(maxDepth (\d+)\): fuera por él, (\d+) disposición\(es\)(?:; por otros motivos, (\d+))?\. Se para aquí: ni se inventa una alternativa ni se le pide a A1 que elija entre nada\.$/;
+  /* Fuera del tope: se para tras la composición, sin A1, sin entrega, con las razones de A2/A3 de siempre y sin «No llegó ninguna». */
+  const paradaD = (r, pasos, niveles, tope, camino) => {
+    const m = PARADA_D.exec(r.because?.[0] ?? '');
+    const rechazadas = camino === 'simple' ? r.decomposition?.rechazadas : r.strategies?.rechazadas;
+    const razon = camino === 'simple' ? 'max_depth_exceeded' : 'constraint:maxDepth';
+    return r.status === 'undecided' && r.parada === 'undecided' && !r.recorrido.includes('decision') && r.recorrido.at(-1) === 'strategy'
+      && r.decision === undefined && r.entrega === undefined && r.strategies?.estrategias.length === 0
+      && !!m && m[1] === String(pasos) && m[2] === String(niveles) && m[3] === String(tope)
+      && rechazadas?.length > 0 && rechazadas.every((x) => x.reason === razon) && m[4] === String(rechazadas.length)
+      && !JSON.stringify(r).includes('No llegó ninguna alternativa');
+  };
+  const decididaD = (r, pasos) => r.status === 'decided' && r.entrega?.plan?.steps.length === pasos && r.recorrido.includes('decision');
+  const tabla = [];
+  let bien = true;
+  for (const camino of ['simple', 'paralelo']) {
+    for (const [pasos, tope] of [[6, 6], [7, 6], [8, 6], [6, 7], [7, 7], [8, 7]]) {
+      const r = cicloD.decidir(pedirD(linealD(pasos), tope === 6 ? undefined : tope, camino));
+      const cabe = pasos <= tope;
+      const ok = cabe ? decididaD(r, pasos) : paradaD(r, pasos, pasos, tope, camino);
+      bien = bien && ok;
+      tabla.push(`${camino} ${pasos}/${tope}:${ok ? (cabe ? 'decide' : 'para') : `MAL ${r.status}/${r.parada}`}`);
+    }
+  }
+  check(`${numero()} · B.4 · maxDepth 6 (el defecto) y 7, con planes lineales de 6, 7 y 8 pasos, por los dos caminos: lo que cabe se decide como siempre; lo que no, se para diciendo que el plan EXISTE —pasos, niveles y tope—, sin A1, sin entrega y con los motivos de A2 y A3`,
+    bien, tabla.join(' · '));
+
+  const vacio = cicloD.decidir(pedirD([], undefined, 'simple'));
+  const ocho = cicloD.decidir(pedirD(linealD(8), undefined, 'simple'));
+  const nada = cicloD.decidir({ decision: decisionBase({ signals: [] }) });
+  check(`${numero()} · B.4 · tres cosas distintas: el plan que NO existe (vacío: \`invalid_task\`, \`empty_decomposition\`), el que no tiene alternativas (A1 corre: «No llegó ninguna…») y el que existe y no cabe en maxDepth (el ciclo se para antes de A1)`,
+    vacio.status === 'invalid' && vacio.parada === 'invalid_task' && vacio.decomposition?.problemas?.[0]?.reason === 'empty_decomposition'
+    && nada.status === 'undecided' && nada.parada === 'undecided' && igual(nada.recorrido, ['decision'])
+    && nada.decision?.failure === 'insufficient_evidence' && nada.decision.explanation[0] === 'No llegó ninguna alternativa que evaluar.'
+    && paradaD(ocho, 8, 8, 6, 'simple') && ocho.decomposition.problemas.length === 0,
+    `${vacio.parada} · ${nada.decision?.explanation?.[0]} · ${ocho.because?.[0]}`);
+
+  /* 19 · con ramas: 8 pasos en 5 niveles. Con tope 6 cabe la disposición por niveles y la de 8 en fila se queda fuera; con tope 4, ninguna. */
+  const RAMAS_D = [pasoD('r'), ...['a', 'b'].flatMap((rama) => [1, 2, 3].map((k) => pasoD(`${rama}${k}`, [k === 1 ? 'r' : `${rama}${k - 1}`]))), pasoD('fin', ['a3', 'b3'])];
+  const ramas6 = cicloD.decidir(pedirD(RAMAS_D, undefined, 'simple'));
+  const ramas6p = cicloD.decidir(pedirD(RAMAS_D, undefined, 'paralelo'));
+  const ramas4 = cicloD.decidir(pedirD(RAMAS_D, 4, 'simple'));
+  const ramas4p = cicloD.decidir(pedirD(RAMAS_D, 4, 'paralelo'));
+  check(`${numero()} · B.4 · un plan con ramas (8 pasos, 5 niveles): con tope 6 se decide entre lo que cabe —la fila de 8 se queda fuera con su motivo—; con tope 4 ninguna cabe y se dice con sus 5 niveles, no con sus 8 pasos`,
+    ramas6.status === 'decided' && ramas6.entrega?.plan?.id === 'T:por-niveles:estrategia'
+    && igual(ramas6.decomposition.rechazadas.map((x) => `${x.heuristica}:${x.reason}`), ['secuencial:max_depth_exceeded'])
+    && ramas6p.status === 'decided' && ramas6p.strategies.rechazadas.every((x) => x.reason === 'constraint:maxDepth')
+    && paradaD(ramas4, 8, 5, 4, 'simple') && paradaD(ramas4p, 8, 5, 4, 'paralelo'),
+    `${ramas6.entrega?.plan?.id} · ${ramas6p.entrega?.plan?.id} · ${ramas4.because?.[0]}`);
+
+  /*
+   * 20, 23 · las permutaciones del mismo plan dan lo mismo, cabe o no. Lo único que sigue el orden de llegada
+   * es lo que ya lo seguía en f30079c, sin decidir nada: la LISTA de pasos que el plan lleva —la del Planner tal
+   * cual; A2 no la reordena, «los mismos pasos siempre»— y los `niveles` que A4 informa, cada uno con sus pasos en
+   * el orden en que llegaron (las tandas sí van ordenadas). Se comparan en orden de id; todo lo demás —tandas,
+   * ids, decisión, motivos, porqué— tiene que ser idéntico. La misma petición dos veces, o en un ciclo nuevo: byte a byte.
+   */
+  const pasosEnOrden = (x) => JSON.stringify(x, (k, v) => {
+    if (k === 'steps' && Array.isArray(v) && v.every((s) => typeof s?.id === 'string')) return [...v].sort((p, q) => (p.id < q.id ? -1 : p.id > q.id ? 1 : 0));
+    if (k === 'niveles' && Array.isArray(v) && v.every(Array.isArray)) return v.map((nivel) => [...nivel].sort());
+    return v;
+  });
+  const azar = generador(20_20_2026);
+  const barajar = (xs) => { const c = [...xs]; for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(azar() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; } return c; };
+  const distintas = [];
+  for (const [nombre, pasos, tope, camino] of [['ramas 6', RAMAS_D, undefined, 'simple'], ['ramas 4', RAMAS_D, 4, 'paralelo'], ['8 en fila', linealD(8), undefined, 'paralelo'], ['7 en fila, tope 7', linealD(7), 7, 'simple']]) {
+    const r = cicloD.decidir(pedirD(pasos, tope, camino));
+    const ref = pasosEnOrden(r);
+    for (let k = 0; k < 20; k++) if (pasosEnOrden(cicloD.decidir(pedirD(barajar(pasos), tope, camino))) !== ref) { distintas.push(nombre); break; }
+    if (JSON.stringify(A.crearCicloAlgoritmico().decidir(pedirD(pasos, tope, camino))) !== JSON.stringify(r)
+      || !igual(cicloD.decidir(pedirD(pasos, tope, camino)), r)) distintas.push(`${nombre} (dos veces)`);
+  }
+  check(`${numero()} · B.4 · PROPIEDAD · 20 permutaciones de los pasos de cada plan —con ramas, en fila, cabiendo o no— dan el mismo resultado (la lista de pasos del Planner, en orden de id); y la misma petición dos veces, o en un ciclo nuevo, byte a byte`,
+    distintas.length === 0, distintas.join(' · '));
+
+  /*
+   * CONTROL · la parada es SOLO del presupuesto. Si la composición se vacía por restricciones (aquí `maxSteps`
+   * por debajo de los pasos del plan), ningún tope se alcanzó y el ciclo sigue como en f30079c: A1 recibe la lista
+   * vacía y dice «No llegó ninguna alternativa». Eso es una DEUDA ABIERTA —«descartadas por restricciones» no llega
+   * a A1 en el ciclo— y se fija aquí para que no cambie sin decirlo.
+   */
+  const porRestricciones = cicloD.decidir({ ...pedirD(linealD(4), undefined, 'simple'),
+    decision: { ...pedirD(linealD(4), undefined, 'simple').decision, constraints: { maxSteps: 2 } } });
+  check(`${numero()} · B.4 · CONTROL · vaciada por restricciones (maxSteps 2 en un plan de 4): sin frase de profundidad, y sigue la DEUDA ABIERTA —A1 dice «No llegó ninguna alternativa»—`,
+    porRestricciones.status === 'undecided' && porRestricciones.recorrido.includes('decision')
+    && porRestricciones.decomposition.rechazadas.every((x) => x.reason === 'max_steps_exceeded')
+    && !porRestricciones.because.some((f) => PARADA_D.test(f))
+    && porRestricciones.decision?.explanation?.[0] === 'No llegó ninguna alternativa que evaluar.',
+    `${porRestricciones.status}/${porRestricciones.parada} · ${porRestricciones.decision?.explanation?.[0]}`);
+}
+
+/*
+ * 25 · D · el presupuesto de pensar NO es una autoridad de ejecución: no viaja en
+ * la entrega, no tiene lector en `DESTINO_DEL_REQUISITO` y no se traduce a ningún
+ * límite de quien ejecuta. (Que ningún archivo prohibido cambie lo comprueba la
+ * integridad de la rama con `git diff`, fuera de esta suite.)
+ */
+{
+  const conTopes = ciclo.decidir(peticion({ decision: decisionBase({ budget: { maxEvidence: 64, maxDepth: 6, maxCandidates: 32 } }) }));
+  const textoEntrega = JSON.stringify(conTopes.entrega ?? {});
+  const fuentesB4 = ['budget.ts', 'decision-engine.ts', 'integration-cycle.ts'].map((f) => sinComentarios(leer(`functions/src/core/algorithm/${f}`))).join('\n');
+  /* Los límites de quien ejecuta, por su nombre, y cualquier import de sus capas. (Las frases que ya decían «eso lo elige el Router» no cuentan: son texto.) */
+  const EJECUCION = /maxConcurrent|timeoutMs|RetryPolicy|retryPolicy|ProviderLimits|providerLimits|from ['"][^'"]*(orchestrator|workflow|\/job|job-queue|gateway|router|provider)[^'"]*['"]/;
+  check(`${numero()} · B.4 · D · el presupuesto de pensar no cruza la frontera: la entrega no lo lleva, \`DESTINO_DEL_REQUISITO\` no le da lector, y el código de B.4 no nombra ningún límite ni capa de ejecución`,
+    conTopes.status === 'decided' && igual(Object.keys(conTopes.entrega).sort(), ['constraints', 'expected', 'plan'].filter((k) => k in conTopes.entrega).sort())
+    && !/maxEvidence|maxDepth|maxCandidates|"budget"\s*:\s*\{\s*"max/.test(textoEntrega)
+    && !['maxEvidence', 'maxDepth'].some((k) => k in A.DESTINO_DEL_REQUISITO) && !EJECUCION.test(fuentesB4),
+    `${Object.keys(conTopes.entrega ?? {}).join(',')} · ${(fuentesB4.match(EJECUCION) ?? [''])[0]}`);
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);

@@ -23,11 +23,11 @@ import { Evidence, Signal, resolverSenales } from './signals';
 import { AlgorithmDecision, DecisionContext } from './decision';
 import { crearMotorDeDecision, restriccionesEfectivas } from './decision-engine';
 import { problemasDeLosLados } from './objective';
-import { problemasDelPresupuesto } from './budget';
+import { presupuestoEfectivo, problemasDelPresupuesto } from './budget';
 import { PuertosDeCapacidad, TareaADescomponer } from './decomposition';
 import { Descomposicion, crearMotorDeDescomposicion } from './decomposition-engine';
 import { crearMotorDeParalelizacion } from './parallelization-engine';
-import { Strategy } from './strategy';
+import { Strategy, nivelesDeDependencia } from './strategy';
 import { crearMotorDeEstrategias } from './strategy-engine';
 import { crearMotorDeOptimizacion } from './optimization-engine';
 import { VerificationEvaluator } from './verification';
@@ -283,6 +283,42 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     const strategies = a3.proponer(formas, senales, restricciones, d.budget);
     salida = { ...salida, strategies };
     let candidatas = strategies.estrategias;
+
+    /*
+     * 6b · EL PLAN EXISTE Y NO CABE EN `maxDepth` (S2-B · B.4).
+     *
+     * `maxDepth` es un tope de PENSAR: cuántas tandas en secuencia puede tener una
+     * disposición para que A2 y A3 la analicen. Cuando alguna cabe, las demás se
+     * quedan fuera con su motivo y se decide entre las que caben, como siempre.
+     * Cuando NINGUNA cabe —el plan tiene más niveles de dependencia que el tope—,
+     * la composición se queda vacía, y hasta S2-B se le pasaba a A1 una lista
+     * vacía para que dijera «No llegó ninguna alternativa que evaluar»: como si
+     * el plan no existiera. Ahora el ciclo se para aquí y lo dice: el plan
+     * existe, con sus pasos y sus niveles, y no cabe en el tope. No se inventa
+     * una alternativa, no se le pide a A1 que elija entre nada y no se ejecuta
+     * nada. La razón estructurada ya viaja en el resultado: `max_depth_exceeded`
+     * en A2 y `constraint:maxDepth` en A3, con sus nombres de siempre.
+     *
+     * `MotivoDeParada` no tiene un motivo de presupuesto (es cerrada): se usa
+     * `undecided`, «no hay nada que recomendar; no es un error», y el recorrido
+     * sin `decision` dice que A1 no llegó a correr. Un motivo propio es contrato.
+     *
+     * Solo cuando el tope cortó ALGO: si la composición se vació por otras
+     * razones —restricciones—, el ciclo sigue como siempre.
+     */
+    if (!candidatas.length) {
+      const deA2 = peticion.componer?.paralelizar ? [] : decomposition.rechazadas;
+      const porProfundidad = deA2.filter((r) => r.reason === 'max_depth_exceeded').length
+        + strategies.rechazadas.filter((r) => r.reason === 'constraint:maxDepth').length;
+      if (porProfundidad) {
+        const otras = deA2.length + strategies.rechazadas.length - porProfundidad;
+        porque.push(`El plan existe —${t.steps.length} paso(s), ${nivelesDeDependencia(t.steps).niveles.length} nivel(es) de dependencia— `
+          + `pero ninguna de sus disposiciones cabe en el presupuesto de profundidad (maxDepth ${presupuestoEfectivo(d.budget).maxDepth}): `
+          + `fuera por él, ${porProfundidad} disposición(es)${otras ? `; por otros motivos, ${otras}` : ''}. `
+          + 'Se para aquí: ni se inventa una alternativa ni se le pide a A1 que elija entre nada.');
+        return fin('undecided', 'undecided');
+      }
+    }
 
     /* 7 · OPTIMIZACIÓN, si se pidió. A5 dice qué es factible y qué mejora; no elige. */
     if (peticion.componer?.optimizar) {
