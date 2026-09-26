@@ -648,10 +648,32 @@ export const explicar = (
       ? `Cumple las restricciones; ${duras.length} opción(es) quedaron fuera por no cumplirlas.`
       : 'Cumple las restricciones, y ninguna quedó fuera por ellas.');
   }
-  const desglose = elegida.score
-    ? ejes.map((e) => `${e} ${(elegida.score as StrategyScore).fits[e].toFixed(2)}×${pesos[e].toFixed(2)}`).join(' · ')
-    : '';
-  if (desglose) frases.push(`Desglose: ${desglose}.`);
+  /*
+   * EL DESGLOSE, QUE CUADRA CON EL TOTAL (S2-B · B.2).
+   *
+   * Un eje con peso que no se pudo medir sale «sin medir», sin número: el `fit`
+   * que guarda la puntuación es un 0 de relleno —`puntuar` lo nombra en
+   * `missing`—, y escrito como «0.00×0.50» junto a un total que no lo contó, el
+   * desglose no sumaba y parecía que lo ausente había puntuado 0. Un eje medido
+   * sale con su número aunque valga 0: un 0 medido es un dato. Un eje sin peso no
+   * sale. Y cuando falta algo se dice sobre qué se calculó el total: la suma de
+   * lo medido entre el peso medido, con la cobertura. El total no cambia.
+   */
+  const score = elegida.score;
+  if (score) {
+    const faltan = new Set(score.missing);
+    frases.push(`Desglose: ${ejes.map((e) => (faltan.has(e)
+      ? `${e} sin medir`
+      : `${e} ${score.fits[e].toFixed(2)}×${pesos[e].toFixed(2)}`)).join(' · ')}.`);
+    const medidos = ejes.filter((e) => !faltan.has(e));
+    if (medidos.length < ejes.length) {
+      const pesoMedido = medidos.reduce((s, e) => s + pesos[e], 0);
+      const aporta = medidos.reduce((s, e) => s + score.fits[e] * pesos[e], 0);
+      frases.push(pesoMedido > 0
+        ? `Total renormalizado sobre lo medido: ${aporta.toFixed(3)} ÷ ${pesoMedido.toFixed(2)} = ${score.total.toFixed(3)}; cobertura ${score.coverage.toFixed(2)}.`
+        : 'Ningún eje con peso se pudo medir: el total vale 0 por convención, y la cobertura es 0.');
+    }
+  }
 
   if (segunda) {
     const quien = quienDesempato(elegida, segunda, comparadores);

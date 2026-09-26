@@ -37,6 +37,10 @@
  *     rango de siempre), cada lado validado antes de fundir, un conflicto que
  *     nombra lado, campo y motivo, una fusión que nunca da un no-finito; A9 se
  *     para antes de A2, y A3, A5 y A8 aplican la misma regla.
+ *  P. S2-B · B.2 — el desglose cuadra con el total: lo ausente sale «sin
+ *     medir» y sin número, lo medido con su número aunque valga 0, lo sin peso
+ *     no sale; total = S_medido / W_medido y cobertura = W_medido / W_total, en
+ *     ocho escenarios, sin cambiar ninguna decisión.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1529,6 +1533,95 @@ const FORMAS_B1 = A.crearMotorDeDescomposicion().descomponer(TAREA).opciones.map
     control.admisiones.length > 0 && igual(contextoB1({ minConfidence: 0 }).admisiones, control.admisiones) && fallos.length === 0,
     fallos.slice(0, 2).join(' | '));
 }
+
+console.log('\n─── P. S2-B · B.2 · El desglose cuadra con el total ───');
+
+/*
+ * Ocho escenarios —A todo medido · B algo medido · C un solo eje medido · D nada
+ * medido · E un eje medido que vale 0 · F un eje ausente · G un eje sin peso · H
+ * todo mezclado—, cada uno con la elegida que YA tenía: el desglose cambia de
+ * palabras y la decisión no. Para cada candidata, con los pesos de la regla de
+ * siempre (`pesosNormalizados`):
+ *   W_total  = Σ pesos de los ejes con peso      W_medido = Σ pesos de los medidos
+ *   S_medido = Σ fit × peso de los medidos
+ *   total = S_medido / W_medido  (0 si W_medido = 0)      cobertura = W_medido / W_total
+ */
+const ESCENARIOS_B2 = [
+  { id: 'A · todo medido', objective: { weights: { quality: 1, cost: 1 } },
+    options: [opcion('a', { quality: 0.7, cost: 1 }), opcion('b', { quality: 0.6, cost: 2 })], elegida: 'a' },
+  { id: 'B · algo medido', objective: { weights: { quality: 1, cost: 1, latency: 1 } },
+    options: [opcion('a', { quality: 0.9, cost: 1 }), opcion('b', { quality: 0.5, cost: 2, latency: 400 })], elegida: 'a' },
+  { id: 'C · un solo eje medido', objective: { weights: { quality: 1, cost: 1 } },
+    options: [opcion('A', { quality: 0.4, cost: 1 }), opcion('B', { cost: 1 })], elegida: 'B' },
+  { id: 'D · nada medido', objective: { weights: { latency: 1, reliability: 1 } },
+    options: [opcion('a', { quality: 0.4 }), opcion('b', { quality: 0.9 })], elegida: 'a' },
+  { id: 'E · un eje medido que vale 0', objective: { weights: { quality: 2, cost: 1 } },
+    options: [opcion('a', { quality: 1, cost: 10 }), opcion('b', { quality: 0, cost: 1 })], elegida: 'a' },
+  { id: 'F · un eje ausente', objective: { weights: { quality: 0.6, reliability: 0.4 } },
+    options: [opcion('a', { quality: 0.9 }), opcion('b', { quality: 0.5, reliability: 0.99 })], elegida: 'a' },
+  { id: 'G · un eje sin peso', objective: { weights: { quality: 1 } },
+    options: [opcion('a', { quality: 0.8, cost: 5, latency: 100 }), opcion('b', { quality: 0.5, cost: 1 })], elegida: 'a' },
+  /* Medido, medido que vale 0 (el coste más caro), ausente (la latencia) y sin peso (la fiabilidad), en la MISMA elegida. */
+  { id: 'H · todo mezclado', objective: { weights: { quality: 0.6, cost: 0.2, latency: 0.2 } },
+    options: [opcion('a', { quality: 0.95, cost: 3, reliability: 0.8 }), opcion('b', { quality: 0.1, cost: 1, latency: 900 })], elegida: 'a' },
+];
+const DECISIONES_B2 = ESCENARIOS_B2.map((e) => ({ e, d: a1.decidir(contexto({ objective: e.objective, options: e.options })) }));
+/* Lo que la puntuación TIENE que cumplir, recalculado aquí en el mismo orden de ejes. */
+const cuentasB2 = (score, objective) => {
+  const pesos = A.pesosNormalizados(objective);
+  const conPeso = A.EJES.filter((e) => pesos[e] > 0);
+  const medidos = conPeso.filter((e) => !score.missing.includes(e));
+  const W = conPeso.reduce((s, e) => s + pesos[e], 0);
+  const Wm = medidos.reduce((s, e) => s + pesos[e], 0);
+  const Sm = medidos.reduce((s, e) => s + score.fits[e] * pesos[e], 0);
+  return { pesos, conPeso, medidos, W, Wm, Sm };
+};
+check(`${numero()} · B.2 · la decisión NO cambia: en los ocho escenarios gana la que ya ganaba (C sigue siendo la deuda D1, sin tocar)`,
+  DECISIONES_B2.every(({ e, d }) => d.status === 'decided' && candidata(d, e.elegida)?.reason === 'selected'),
+  DECISIONES_B2.map(({ e, d }) => `${e.id}→${d.candidates.find((c) => c.reason === 'selected')?.id}`).join(' · '));
+check(`${numero()} · B.2 · PROPIEDAD · para CADA candidata: total = S_medido / W_medido (0 sin nada medido) y cobertura = W_medido / W_total`,
+  DECISIONES_B2.every(({ e, d }) => d.candidates.filter((c) => c.score).every((c) => {
+    const { Wm, Sm, W } = cuentasB2(c.score, e.objective);
+    return casi(c.score.total, Wm > 0 ? Sm / Wm : 0) && casi(c.score.coverage, W > 0 ? Wm / W : 0);
+  })));
+/* El desglose de la elegida, pieza a pieza. */
+const DESGLOSE_B2 = /^Desglose: (.*)\.$/;
+const piezasB2 = (d) => (d.explanation.find((f) => DESGLOSE_B2.test(f)) ?? '').replace(DESGLOSE_B2, '$1').split(' · ').filter(Boolean);
+check(`${numero()} · B.2 · un eje AUSENTE nunca sale con número —ni 0 ni 0.00—: sale «sin medir»`,
+  DECISIONES_B2.every(({ e, d }) => {
+    const el = candidata(d, e.elegida);
+    const piezas = piezasB2(d);
+    return el.score.missing.every((eje) => piezas.includes(`${eje} sin medir`) && !piezas.some((p) => p.startsWith(`${eje} `) && /\d/.test(p)));
+  }) && !DECISIONES_B2[2].d.explanation.some((f) => f.includes('quality 0.00')),
+  piezasB2(DECISIONES_B2[2].d).join(' · '));
+check(`${numero()} · B.2 · un eje MEDIDO sale con su número y su peso, también cuando vale 0 («cost 0.00×0.33» en E)`,
+  DECISIONES_B2.every(({ e, d }) => {
+    const el = candidata(d, e.elegida);
+    const { pesos, medidos } = cuentasB2(el.score, e.objective);
+    return medidos.every((eje) => piezasB2(d).includes(`${eje} ${el.score.fits[eje].toFixed(2)}×${pesos[eje].toFixed(2)}`));
+  }) && piezasB2(DECISIONES_B2[4].d).includes('cost 0.00×0.33'), piezasB2(DECISIONES_B2[4].d).join(' · '));
+check(`${numero()} · B.2 · un eje SIN PESO no sale: el desglose tiene exactamente los ejes con peso, en su orden`,
+  DECISIONES_B2.every(({ e, d }) => {
+    const { conPeso } = cuentasB2(candidata(d, e.elegida).score, e.objective);
+    return igual(piezasB2(d).map((p) => p.split(' ')[0]), conPeso);
+  }) && !piezasB2(DECISIONES_B2[6].d).some((p) => /^(cost|latency) /.test(p)), piezasB2(DECISIONES_B2[6].d).join(' · '));
+const RENORMALIZADO_B2 = /^Total renormalizado sobre lo medido: (\d+\.\d{3}) ÷ (\d+\.\d{2}) = (\d+\.\d{3}); cobertura (\d+\.\d{2})\.$/;
+const NADA_MEDIDO_B2 = 'Ningún eje con peso se pudo medir: el total vale 0 por convención, y la cobertura es 0.';
+check(`${numero()} · B.2 · cuando falta algo se dice sobre qué se calculó el total —S ÷ W = total, con la cobertura—, y cuando no falta nada no se añade nada`,
+  DECISIONES_B2.every(({ e, d }) => {
+    const el = candidata(d, e.elegida);
+    const { Wm, Sm, medidos, conPeso } = cuentasB2(el.score, e.objective);
+    const frase = d.explanation.find((f) => RENORMALIZADO_B2.test(f) || f === NADA_MEDIDO_B2);
+    if (medidos.length === conPeso.length) return frase === undefined;
+    if (Wm === 0) return frase === NADA_MEDIDO_B2 && el.score.total === 0 && el.score.coverage === 0;
+    const [, s, w, t, cob] = RENORMALIZADO_B2.exec(frase ?? '') ?? [];
+    return s === Sm.toFixed(3) && w === Wm.toFixed(2) && t === el.score.total.toFixed(3) && cob === el.score.coverage.toFixed(2);
+  }), DECISIONES_B2.map(({ d }) => d.explanation.find((f) => RENORMALIZADO_B2.test(f) || f === NADA_MEDIDO_B2) ?? '—').join(' | '));
+check(`${numero()} · B.2 · el caso de la auditoría (C): «quality sin medir · cost 1.00×0.50» y «0.500 ÷ 0.50 = 1.000; cobertura 0.50», junto a «lo que falta NO se contó como malo»`,
+  DECISIONES_B2[2].d.explanation.includes('Desglose: quality sin medir · cost 1.00×0.50.')
+  && DECISIONES_B2[2].d.explanation.includes('Total renormalizado sobre lo medido: 0.500 ÷ 0.50 = 1.000; cobertura 0.50.')
+  && DECISIONES_B2[2].d.explanation.some((f) => f.includes('Lo que falta NO se contó como malo')),
+  DECISIONES_B2[2].d.explanation.join(' | '));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
