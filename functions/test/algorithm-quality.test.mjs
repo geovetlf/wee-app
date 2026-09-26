@@ -1217,22 +1217,33 @@ check('110 · R6 · A6 al cerrar: restricciones efectivas SÍ, señales observad
  * El documento va partido en líneas: se compara con los espacios juntos.
  */
 const S18_PLANO = S18.toLowerCase().replace(/\s+/g, ' ');
+/*
+ * Desde S2-B.4 la 7 se dice cerrada EN LO QUE DECIDE, con lo que deja abierto escrito a continuación —los
+ * huecos de contrato y el resto—, y la 12 (`maxDepth`, la misma familia) se añade cerrada con su hueco. Nada
+ * de lo abierto se da por cerrado.
+ */
 const DEUDAS_ABIERTAS = ['un eje sin dato', 'señales observadas a a6', 'procedencia de las restricciones', 'antes de resolverlas',
-  '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real', '`strategyscore.fits` guarda un 0 de relleno'];
+  '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real', '`strategyscore.fits` guarda un 0 de relleno',
+  'un aviso estructurado propio de evidencia acotada', 'un motivo de parada por presupuesto', 'el resto de topes de pensar',
+  'que a9 resuelva todas las señales de la petición'];
 const CERRADAS_EN_S2B = [
   ['2. **el desglose no cuadraba', 'cerrada en s2-b · b.2'],
   ['5. **`minconfidence: nan`** se ignoraba', 'cerrada en s2-b · b.1'],
   ['6. **`maxrisk: nan`** dejaba fuera', 'cerrada en s2-b · b.1'],
+  ['7. **las señales no se acotaban antes de resolverlas**', 'cerrada en s2-b · b.4'],
+  ['12. **un plan que no cabía en `maxdepth`', 'cerrada en s2-b · b.4'],
 ];
-const COMO_SI_FUERAN_DE_HOY = ['se ignora —el mínimo deja de exigirse—', 'deja fuera a todas —nadie cumple—', 'la explicación dice «quality 0.00×0.50'];
-const tramoDe = (inicio) => { const i = S18_PLANO.indexOf(inicio); return i < 0 ? '' : S18_PLANO.slice(i, i + 400); };
+const COMO_SI_FUERAN_DE_HOY = ['se ignora —el mínimo deja de exigirse—', 'deja fuera a todas —nadie cumple—', 'la explicación dice «quality 0.00×0.50',
+  'a1 las resuelve todas y después aplica `maxevidence`'];
+const tramoDe = (inicio, largo = 400) => { const i = S18_PLANO.indexOf(inicio); return i < 0 ? '' : S18_PLANO.slice(i, i + largo); };
 const abiertasQueFaltan = DEUDAS_ABIERTAS.filter((d) => !S18_PLANO.includes(d));
 const cerradasMalDichas = CERRADAS_EN_S2B.filter(([deuda, cierre]) => !tramoDe(deuda).includes(cierre)).map(([d]) => d);
 const dichasComoDeHoy = COMO_SI_FUERAN_DE_HOY.filter((f) => S18_PLANO.includes(f));
-const septima = tramoDe('7. **las señales no se acotan antes de resolverlas**');
-check('111 · R6 · S2-B · las deudas de S2-A siguen escritas: las abiertas como abiertas —con el contrato de `fits` que dejó B.2— y las tres que cerró S2-B como cerradas, con su bloque, y no como lo que pasa hoy',
+const septima = tramoDe('7. **las señales no se acotaban antes de resolverlas**', 900);
+const duodecima = tramoDe('12. **un plan que no cabía en `maxdepth`', 500);
+check('111 · R6 · S2-B · las deudas de S2-A siguen escritas: las abiertas como abiertas —con `fits` (B.2) y lo que B.4 deja abierto— y las que cerró S2-B (B.1, B.2 y B.4) como cerradas, con su bloque, y no como lo que pasa hoy',
   abiertasQueFaltan.length === 0 && cerradasMalDichas.length === 0 && dichasComoDeHoy.length === 0
-  && septima.includes('sigue abierta') && !septima.includes('cerrada en s2-b'),
+  && septima.includes('en lo que decide') && septima.includes('siguen abiertos:') && duodecima.includes('sigue abierto el motivo de parada propio'),
   [...abiertasQueFaltan, ...cerradasMalDichas, ...dichasComoDeHoy].join(' · ') || `${DEUDAS_ABIERTAS.length} abiertas · ${CERRADAS_EN_S2B.length} cerradas`);
 const comentarioDeDestino = leer('functions/src/core/algorithm/integration.ts');
 check('112 · R6 · y el código dice lo mismo: el comentario de DESTINO_DEL_REQUISITO nombra `maxConcurrent` y dice que la latencia máxima hoy no la lee nadie',
@@ -2239,6 +2250,20 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     && !/maxEvidence|maxDepth|maxCandidates|"budget"\s*:\s*\{\s*"max/.test(textoEntrega)
     && !['maxEvidence', 'maxDepth'].some((k) => k in A.DESTINO_DEL_REQUISITO) && !EJECUCION.test(fuentesB4),
     `${Object.keys(conTopes.entrega ?? {}).join(',')} · ${(fuentesB4.match(EJECUCION) ?? [''])[0]}`);
+}
+
+/* Y el documento dice de S2-B.4 lo que hay: su estado, el versionado sin decidir, las reglas, los huecos y la regresión. */
+{
+  const B4 = (() => { const i = S18_PLANO.indexOf('### s2-b.4'); const j = S18_PLANO.indexOf('### lo que queda declarado'); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
+  const DEBE_DECIR = [
+    'estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión',
+    'b.4 sí cambia lo que a1 decide con entradas válidas', 'queda como decisión pendiente', 'sin aplicar',
+    'por turnos', '64/65', '512/513', 'antes de resolver', '`budget_exceeded`', 'sigue la regla de b.1', 'el plan existe',
+    'huecos de contrato, dichos y no inventados', 'la regresión es real', 'no hay umbral contractual', '§r (163–189, 27 comprobaciones', '29 nuevos sobre el código', '5 sobre este documento',
+  ];
+  const faltan = DEBE_DECIR.filter((f) => !B4.includes(f));
+  check(`${numero()} · B.4 · el documento dice lo que hay: en la rama y sin integrar, el versionado SIN decidir, las reglas (por turnos, 64/65, 512/513, antes de resolver, \`budget_exceeded\`, la regla de B.1, el plan que existe), los huecos de contrato, la regresión y las pruebas`,
+    B4.length > 0 && faltan.length === 0, faltan.join(' · ') || `${DEBE_DECIR.length} afirmaciones`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');

@@ -2089,7 +2089,8 @@ forma canónica cortan donde dicen. Lo único que pasa de 250 ms es A1 con 50 00
 señales empatadas sobre lo mismo: es el desempate por contenido de S2-A —con él se
 compara lo que antes decidía el orden—, no una consecuencia de R2 (que lo baja de
 362 a 326 ms), y su raíz es que A1 resuelve TODAS las señales antes de aplicar
-`maxEvidence`. Queda registrado como deuda (abajo), sin optimizarlo aquí.
+`maxEvidence`. Queda registrado como deuda (abajo), sin optimizarlo aquí. (Así era en
+S2-A; S2-B · B.4 aplica el tope antes de resolver: ver su apartado.)
 
 ### S2-B · lo que se cerró después de la integración (B.1–B.3)
 
@@ -2139,6 +2140,101 @@ Pruebas: `algorithm-quality` §O (B.1, 35 comprobaciones), §P (B.2, 7) y §Q (B
 Sabotajes: 29 nuevos —14 de B.1, 7 de B.2 y 8 de B.3— caen por aserción, y los 50 del
 endurecimiento siguen cayendo sobre este código.
 
+### S2-B.4 · el presupuesto de pensar no es «no hay alternativas» (D7a y `maxDepth`)
+
+**Estado: en la rama `s2b-decision-quality`, fuera de `main` hasta su revisión.** Local,
+sin despliegue y sin autoridad nueva. El contrato sigue en 1.10 y `motor-de-decision` en
+su versión 2, pero B.4 SÍ cambia lo que A1 decide con entradas válidas —65 señales sobre
+algo que no es una alternativa: antes «Ninguna de las 0 alternativas…», ahora decide—,
+así que subir `motor-de-decision` y el contrato queda como decisión pendiente, con su
+propuesta (@3 y 1.11), sin aplicar.
+
+**`maxEvidence`** es el presupuesto de evidencia de la EVALUACIÓN de A1: cuántas piezas
+usa, como mucho, para evaluar las alternativas que evalúa. Una pieza es un grupo (clave,
+sujeto) cuyo sujeto es una alternativa admitida —pasó el tope de candidatas y las
+restricciones duras—: exactamente lo que se convierte en su evidencia. No cuentan las
+señales sin sujeto o sobre cualquier otra cosa (un paso, una capacidad, una alternativa
+que no compite): no son evidencia de nadie. Tampoco, como antes, la base de previsión que
+trae una estrategia ni el historial. El tope se aplica ANTES de resolver: una pasada
+lineal y barata hace el inventario (validez, claves, grupos, desacuerdo) y solo se
+resuelven —con el desempate de B.3, sin cambiarlo— las piezas que caben. Si hay más que
+el tope, se toman **por turnos** entre las alternativas en su orden de `id` —la primera
+clave de cada una, luego la segunda…— y por clave dentro de cada una: determinista, sin
+depender del orden de llegada, y sin darle toda la evidencia a una y ninguna a otra.
+Todas las admitidas se siguen evaluando: se decide con lo que cupo (lo mejor encontrado)
+y se dice con lo que el contrato ya tiene —`budget_exhausted`, `spend.evidence` (las
+usadas) y una frase («Evidencia acotada por el presupuesto: se usaron N de M…»)—.
+Fronteras: 64/65 con el defecto y 512/513 en el techo (`TOPES_MAXIMOS`; pedir 513 es
+pedir 512). Sin llegar al tope nada cambia —la misma evidencia en el mismo orden,
+`signalKeys` con todas las claves y `signal_conflict` por las mismas señales—, salvo
+`spend.evidence`, que deja de contar lo que no es evidencia de nadie.
+
+**Presupuesto agotado antes de mirar ninguna.** Si llegan alternativas y un tope de
+pensar no deja evaluar ninguna (`maxCandidates` o `maxAlgorithmCalls` a 0, o el reloj),
+A1 dice `budget_exceeded`, nombrando el tope, y no «Ninguna de las 0…».
+
+**Un tope mal formado** —`budget.maxEvidence` o `budget.maxDepth` que no son un número
+finito ≥ 0, el rango que `presupuestoEfectivo` ya exigía— sigue la regla de B.1: la misma
+función (`motivoDeNumeroInvalido`) y el mismo `constraint_conflict`, nombrando
+`budget.<campo>` y el motivo, detrás de las restricciones; A9 lo mira en 0b. Antes se
+ignoraba y regía el defecto sin decirlo.
+
+**`maxDepth`** es cuántas tandas en secuencia puede tener una disposición del plan para
+que A2 y A3 la analicen: un tope de pensar, ni una restricción del plan ni un límite de
+ejecución. Si alguna disposición cabe, las demás se quedan fuera con su motivo, como
+siempre. Si NINGUNA cabe —un plan lineal de 7 u 8 pasos con el defecto de 6—, A9 se para
+en cuanto la composición se queda vacía por ese tope: `undecided`, sin llamar a A1 con una
+lista vacía, sin inventar una alternativa y sin ejecutar nada, con un `because` que dice
+que el plan existe —sus pasos y sus niveles de dependencia— y no cabe. La razón
+estructurada viaja en el resultado con sus nombres de siempre: `max_depth_exceeded` en A2
+y `constraint:maxDepth` en A3.
+
+| Situación | A1 | El ciclo |
+|---|---|---|
+| no hay alternativas | `insufficient_evidence`, «No llegó ninguna alternativa que evaluar» | A1 corre con la lista vacía |
+| las hay y el presupuesto no dejó evaluarlas | `budget_exceeded`, «Llegaron N… se agotó (tope)» | parada tras la composición, «El plan existe…» |
+| se evaluaron y no cumplen las restricciones | `no_valid_strategy`, «Ninguna de las N (≥ 1)…» | sin cambio |
+| se evaluaron y no hay evidencia bastante | `insufficient_evidence` (la confianza mínima) | sin cambio |
+
+«Evidencia acotada» no es ninguna de las cuatro: es un aviso y una frase sobre una
+decisión que sí se tomó.
+
+**Sin autoridad de ejecución.** El presupuesto de pensar no viaja en la entrega, no tiene
+lector en `DESTINO_DEL_REQUISITO` y no se traduce a `maxConcurrent`, `timeoutMs` ni a
+ningún límite de quien ejecuta.
+
+**Huecos de contrato, dichos y no inventados.** No hay un aviso estructurado propio de
+evidencia acotada (como `candidates_capped`) ni un campo con las piezas omitidas —se dice
+con `budget_exhausted` y la frase—, y `MotivoDeParada` no tiene un motivo de presupuesto
+—se usa `undecided`, y el recorrido sin `decision` dice que A1 no corrió—. Los dos son
+ampliar una unión cerrada, es decir, contrato 1.11.
+
+| 50 000 señales salvo donde se dice | f30079c | antes de B.4 | con B.4 |
+|---|---|---|---|
+| `resolverSenales`, empatadas en todo | 175 ms | 171 ms | 164 ms (la misma función) |
+| A1, empatadas sobre una alternativa | 174 ms | 170 ms | **185 ms** (+15: el inventario) |
+| ciclo, empatadas sobre un paso | 468 ms | 184 ms | 174 ms |
+| A1, empatadas sobre un sujeto ajeno | 169 ms | 176 ms | **28 ms** |
+| A1, distintas sobre un sujeto ajeno | 91 ms, «0 alternativas» | 91 ms, «0 alternativas» | 67 ms, decide |
+| A1 en el límite: 64 piezas + 49 936 ajenas | 95 ms, «0 alternativas» | 93 ms, «0 alternativas» | 74 ms, decide con 64 |
+| A1 por encima: 50 000 piezas, tope 64 | 96 ms, «0 alternativas» | 104 ms, «0 alternativas» | 92 ms, decide con 64 |
+| A1 con 64 piezas, por llamada | 208 µs | 218 µs | **299 µs** |
+| A1 con 65 piezas, por llamada | 121 µs, «0 alternativas» | 129 µs, «0 alternativas» | 303 µs, decide con 64 |
+
+Mediana de siete rondas en procesos alternos, en local e indicativo. Donde antes salía
+«0 alternativas», lo que se medía era un atajo equivocado —no se evaluaba ninguna—; ahora
+se decide. La REGRESIÓN es real y se deja dicha: A1 con pocas piezas y con un grupo enorme
+de empatadas sobre una alternativa hace ahora dos pasadas —el inventario y la resolución
+de B.3— y pregunta al contador antes de cada pieza (con 64 piezas, de 158 a 233 µs
+medidos en el mismo proceso; con 8, de 41 a 54; sin señales, igual). No se optimiza a
+ciegas: validar una sola vez pediría tocar `resolverSenales` (B.3). No hay umbral
+contractual y no se inventa.
+
+Pruebas: `algorithm-quality` §R (163–189, 27 comprobaciones). Sabotajes: 29 nuevos sobre
+el código —12 del presupuesto de evidencia, 3 del presupuesto agotado, 6 de los topes mal
+formados, 7 de `maxDepth` y 1 de la frontera con la ejecución— y 5 sobre este documento
+caen por aserción, y los de S2-A y S2-B.1–B.3 siguen cayendo sobre este código.
+
 ### Lo que queda declarado
 
 - La dirección de una señal no se compara con lo declarado: una medición que lo
@@ -2180,10 +2276,16 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
 6. **`maxRisk: NaN`** dejaba fuera a todas —nadie cumplía—. **Cerrada en S2-B · B.1**,
    con toda la familia numérica (`budget.maxUsd`, `budget.maxCredits`,
    `quality.minScore`, `deadlineAt`…): cada lado se valida antes de fundirse.
-7. **Las señales no se acotan antes de resolverlas**: A1 las resuelve TODAS y después
-   aplica `maxEvidence`. Sigue abierta: qué hace `maxEvidence` y si se acota antes de
-   resolver es la decisión de S2-B.4. S2-B · B.3 solo resuelve sin ordenar de más y una
-   vez por ciclo (el ciclo con 50 000 empatadas, de unos 400 a unos 130 ms).
+7. **Las señales no se acotaban antes de resolverlas**: A1 las resolvía TODAS, cada una
+   gastaba evidencia, y pasado `maxEvidence` salía «Ninguna de las 0 alternativas…».
+   **Cerrada en S2-B · B.4** en lo que decide: `maxEvidence` cuenta solo la evidencia de
+   lo que se evalúa, se aplica antes de resolver y nunca deja sin alternativas (arriba).
+   Siguen abiertos: un aviso estructurado propio de evidencia acotada y un motivo de
+   parada por presupuesto (contrato); el resto de topes de pensar, que siguen ignorando
+   lo mal formado; la composición vaciada por restricciones o por `maxCandidates` en el
+   ciclo, que sigue acabando en «No llegó ninguna alternativa»; que A9 resuelva todas las
+   señales de la petición para A4, A3 y A5; y que un grupo con miles de duplicados sea una
+   pieza y se resuelva entero.
 8. **`maxLatencyMs` no tiene lector** en la ejecución: PLANNED TRANSLATION / NOT
    CURRENTLY CONSUMED.
 9. **`maxParallel` → `maxConcurrent`**: la traducción al campo del Orchestrator está
@@ -2194,6 +2296,11 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
     puede RELAJAR lo que pedía el objetivo (`algorithm-quality` 93–95 lo fijan).
     Hacerlos «el más estricto» exige un orden de rigor que el Core no declara —¿es
     `regenerate` más estricto que `fail`?—, y esa política no se inventa aquí.
+12. **Un plan que no cabía en `maxDepth` se contaba como «No llegó ninguna
+    alternativa»**: la composición se vaciaba y A1 recibía una lista vacía. **Cerrada en
+    S2-B · B.4**: el ciclo se para y dice que el plan existe y no cabe. Sigue abierto el
+    motivo de parada propio (contrato), y A3 sigue llamando `constraint:maxDepth` a lo
+    que poda por profundidad —es su vocabulario, fijado por sus pruebas—.
 
 Y una nota de pruebas, sin tocarla: `algorithm-optimization` 3 comprueba
 `!/(A5)/` sobre `core/contracts.ts` con los paréntesis sin escapar, así que prohíbe el
@@ -2213,6 +2320,7 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `canary-sombra-atribucion` · `canary-sombra-assets` | S1.4–S1.5: el monitor de la canary atribuye cargos (#3), materiales (#4) y ejecuciones (#5) por la identidad de la sombra, no por la cuenta, el trabajo ni la hora; el caso 4 (Japón) como fixture |
 | `algorithm-quality.test.mjs` · `-cycle` 46b · `-foundation` 1 · `-decision` 1, 6, 31 · `sombra-experiencia` S1-5 | S2-A: los quince escenarios sintéticos, el determinismo por permutaciones (señales, alternativas, historial, duplicados de A8), Pareto sin ganador, la matriz de fugas de implementación, el contrato previo al Router, confianza e incertidumbre sin inventar calidad, y que este documento diga quién decide qué; y el endurecimiento R1–R6: señales rotas que no desempatan (I), la forma canónica total y acotada (J), la fusión de restricciones campo a campo (K), la integridad de la suite (L y la 41), el contrato 1.10 y las versiones 2 (M) y este documento con su estado real (N) |
 | `algorithm-quality.test.mjs` §O · §P · §Q (113–162) | S2-B: las restricciones mal formadas —una regla, los dos lados validados antes de fundir, un conflicto que nombra lado, campo y motivo, una fusión que nunca da un no finito, A9 parado en 0b y A3, A5 y A8 con la misma regla— (O); el desglose que cuadra con el total —lo ausente «sin medir», total = lo medido entre el peso medido, sin cambiar ninguna decisión— (P); y la resolución de señales sin ordenar de más, idéntica por identidad a la de S2-A, con la forma canónica solo entre las empatadas, y una vez por ciclo (Q) |
+| `algorithm-quality.test.mjs` §R (163–189) | S2-B.4: `maxEvidence` sobre la evidencia de lo que se evalúa —las fronteras 64/65 y 512/513, las señales ajenas fuera, los turnos, permutaciones, lo mismo que antes sin llegar al tope, «sin evidencia» frente a «evidencia acotada», el tope antes del desempate caro—, `budget_exceeded` cuando el presupuesto no deja mirar ninguna, los topes mal formados con la regla de B.1, `maxDepth` con planes de 6, 7 y 8 pasos, vacíos, con ramas y permutados, y el presupuesto de pensar fuera de la entrega |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
 «suno» dentro del texto marcaba `almenosuno`, una variable en castellano—, y
