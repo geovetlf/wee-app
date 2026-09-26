@@ -19,7 +19,7 @@
  */
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
-import { Evidence, Signal } from './signals';
+import { Evidence, Signal, resolverSenales } from './signals';
 import { AlgorithmDecision, DecisionContext } from './decision';
 import { crearMotorDeDecision, restriccionesEfectivas } from './decision-engine';
 import { problemasDeLosLados } from './objective';
@@ -258,17 +258,27 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     }
     let formas: readonly Descomposicion[] = decomposition.opciones.map((o) => o.value);
 
+    /*
+     * (S2-B · B.3) LAS SEÑALES DE LA PETICIÓN, RESUELTAS UNA VEZ para A4, A3 y A5.
+     * Cada una las resolvía por su cuenta —el mismo trabajo tres veces— y ninguna
+     * usa otra cosa que lo resuelto; resolver lo ya resuelto da lo mismo (una por
+     * clave y sujeto, todas válidas, en su orden), así que lo que componen es
+     * idéntico. A1 no: por el camino de opciones y de enfoques recibe las de la
+     * petición tal cual, porque sus conflictos son parte de lo que dice.
+     */
+    const senales = resolverSenales(d.signals ?? []).resueltas;
+
     /* 5 · PARALELISMO, si se pidió. A4 es la autoridad sobre la forma paralela. */
     if (peticion.componer?.paralelizar) {
       recorrido.push('parallelization');
-      const p = a4.variantes(t, d.signals ?? [], restricciones, d.budget);
+      const p = a4.variantes(t, senales, restricciones, d.budget);
       salida = { ...salida, parallelization: p.analisis };
       formas = p.variantes;
     }
 
     /* 6 · ESTRATEGIAS. Solo A3 las genera. */
     recorrido.push('strategy');
-    const strategies = a3.proponer(formas, d.signals ?? [], restricciones, d.budget);
+    const strategies = a3.proponer(formas, senales, restricciones, d.budget);
     salida = { ...salida, strategies };
     let candidatas = strategies.estrategias;
 
@@ -281,7 +291,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
         objective: d.objective,
         ...(restricciones ? { constraints: restricciones } : {}),
         ...(d.budget ? { budget: d.budget } : {}),
-        evidence: comoEvidencia(d.signals ?? []),
+        evidence: comoEvidencia(senales),
         ...(baseline ? { baselineId: baseline.id } : {}),
         ...(typeof d.seed === 'number' ? { seed: d.seed } : {}),
       });

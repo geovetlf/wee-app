@@ -1781,6 +1781,12 @@ const senalAlAzar = () => {
     && mismaResolucion(A.resolverSenales([...debajo, ganadoraSola]), resolverS2A([...debajo, ganadoraSola])),
     `${vistasConflicto.length}`);
 }
+/*
+ * Los trabajadores disponibles: la ÚNICA señal que A5 lee de lo resuelto (sus recursos). Dos, en desacuerdo, para
+ * que resolverlas decida algo —con 1, el operador que acota el paralelo a los trabajadores entra; con 8, no—.
+ */
+const recursoAlAzar = () => ({ key: 'resource.availableWorkers', value: elegirB3([1, 2, 8]),
+  source: elegirB3(['measured', 'model', 'catalog']), sampleSize: elegirB3([5, 20]) });
 {
   /*
    * RESOLVER LO YA RESUELTO da lo mismo —una por clave y sujeto, todas válidas, en su
@@ -1791,7 +1797,8 @@ const senalAlAzar = () => {
   const fallos = [];
   const a4B3 = A.crearMotorDeParalelizacion();
   for (let n = 0; n < 300; n++) {
-    const crudas = [...SENALES, ...Array.from({ length: 6 }, () => ({ ...elegirB3(SENALES), value: elegirB3([100, 300, 900]), source: elegirB3(['measured', 'model']) }))];
+    const crudas = [...SENALES, ...Array.from({ length: 6 }, () => ({ ...elegirB3(SENALES), value: elegirB3([100, 300, 900]), source: elegirB3(['measured', 'model']) })),
+      recursoAlAzar(), recursoAlAzar()];
     const r = A.resolverSenales(crudas);
     const otraVez = A.resolverSenales(r.resueltas);
     if (!(otraVez.conflictos.length === 0 && otraVez.resueltas.length === r.resueltas.length && otraVez.resueltas.every((x, i) => x === r.resueltas[i]))) fallos.push('idempotencia');
@@ -1809,7 +1816,8 @@ const senalAlAzar = () => {
   const a2B3 = A.crearMotorDeDescomposicion(); const a4B3 = A.crearMotorDeParalelizacion();
   const fallos = [];
   for (let n = 0; n < 60; n++) {
-    const crudas = [...SENALES, ...Array.from({ length: 5 }, () => ({ ...elegirB3(SENALES), value: elegirB3([100, 300, 900]), source: elegirB3(['measured', 'model']) }))];
+    const crudas = [...SENALES, ...Array.from({ length: 5 }, () => ({ ...elegirB3(SENALES), value: elegirB3([100, 300, 900]), source: elegirB3(['measured', 'model']) })),
+      recursoAlAzar(), recursoAlAzar()];
     const d = decisionBase({ signals: crudas });
     const r = ciclo.decidir({ decision: d, tarea: TAREA, componer: { paralelizar: true, optimizar: true } });
     const restr = A.restriccionesEfectivas(d);
