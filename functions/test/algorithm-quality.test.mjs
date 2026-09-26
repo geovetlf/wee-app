@@ -45,6 +45,10 @@
  *     de S2-A por identidad, permutaciones, la forma canónica solo entre las
  *     empatadas con la ganadora, y resolver una vez lo que A4, A3 y A5 resolvían
  *     cada una por su cuenta.
+ *  R. S2-B · B.4 — el presupuesto de pensar no se convierte en «no hay
+ *     alternativas»: `maxEvidence` sobre la evidencia de lo que se evalúa (las
+ *     fronteras 64/65 y 512/513, las señales ajenas fuera, por turnos y sin
+ *     depender del orden), y `maxDepth` que dice que el plan existe.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1850,6 +1854,180 @@ const recursoAlAzar = () => ({ key: 'resource.availableWorkers', value: elegirB3
   }
   check(`${numero()} · B.3 · el ciclo compone EXACTAMENTE como si A4, A3 y A5 resolvieran cada uno las señales crudas (60 peticiones con desacuerdos)`,
     fallos.length === 0, fallos.slice(0, 5).join(', '));
+}
+
+console.log('\n─── R. S2-B · B.4 · El presupuesto de pensar no es «no hay alternativas» ───');
+
+/*
+ * LA EVIDENCIA DE LO QUE SE EVALÚA. Dos alternativas, `a` y `b`; una pieza es un
+ * grupo (clave, sujeto) sobre una de ellas. `piezasR(n)` reparte n claves
+ * distintas alternando sujeto; `ajenasR(n)` son n claves sobre un sujeto que no
+ * es ninguna alternativa. Las fuentes varían para que QUÉ piezas entran se note
+ * en la confianza.
+ */
+const OPCIONES_R = Object.freeze([opcion('a', { quality: 0.7, cost: 2 }), opcion('b', { quality: 0.9, cost: 3 })]);
+const decidirR = (senales, budget, extra = {}) => a1.decidir(contexto({ options: OPCIONES_R, signals: senales, ...(budget ? { budget } : {}), ...extra }));
+const claveR = (i) => `option.k${String(i).padStart(4, '0')}`;
+const piezasR = (n, fuentes = ['measured', 'catalog', 'model']) =>
+  Array.from({ length: n }, (_, i) => ({ key: claveR(i), subject: i % 2 ? 'a' : 'b', value: 0.5, source: fuentes[i % fuentes.length] }));
+const ajenasR = (n, subject = 'otro', prefijo = 'ajena') =>
+  Array.from({ length: n }, (_, i) => ({ key: `${prefijo}.k${String(i).padStart(4, '0')}`, ...(subject ? { subject } : {}), value: 1, source: 'measured' }));
+const FRASE_R = /^Evidencia acotada por el presupuesto: se usaron (\d+) de (\d+) pieza\(s\) sobre las (\d+) alternativa\(s\) evaluadas \((.+)\), por turnos entre ellas en orden de id; el resto no se miró\.$/;
+const fraseR = (d) => (d.explanation ?? []).find((f) => FRASE_R.test(f));
+/* Llega al tope: decide, lo dice con `budget_exhausted` y la frase, y gasta exactamente el tope. */
+const acotadaR = (d, usadas, piezas, tope) => {
+  const [, u, p, n, porque] = FRASE_R.exec(fraseR(d) ?? '') ?? [];
+  return d.status === 'decided' && d.candidates.length === 2 && d.warnings.includes('budget_exhausted') && d.spend.evidence === usadas
+    && u === String(usadas) && p === String(piezas) && n === '2' && porque === `maxEvidence ${tope}`;
+};
+/* Cabe: decide sin aviso ni frase de presupuesto, con toda la evidencia. */
+const enteraR = (d, piezas) => d.status === 'decided' && d.candidates.length === 2 && !d.warnings.includes('budget_exhausted')
+  && !fraseR(d) && d.spend.evidence === piezas;
+const verR = (d) => `${d.status}/${d.failure ?? '-'} · ${d.candidates.length} cand · evidencia ${d.spend.evidence} · ${d.warnings.join(',')} · ${fraseR(d) ?? (d.explanation ?? [])[0]}`;
+
+/* 1–4, 7, 8 · las fronteras: 64/65 (el defecto) y 512/513 (el techo). */
+const en64 = decidirR(piezasR(64), { maxEvidence: 64 });
+const sobre64 = decidirR(piezasR(65), { maxEvidence: 64 });
+check(`${numero()} · B.4 · maxEvidence 64: 64 piezas caben enteras —el límite exacto—, y la 65.ª activa el presupuesto: decide igual, con 64 usadas, \`budget_exhausted\` y la frase`,
+  enteraR(en64, 64) && acotadaR(sobre64, 64, 65, 64), `${verR(en64)} ‖ ${verR(sobre64)}`);
+const en65 = decidirR(piezasR(65), { maxEvidence: 65 });
+const sobre65 = decidirR(piezasR(66), { maxEvidence: 65 });
+check(`${numero()} · B.4 · maxEvidence 65: 65 caben y 66 no, con la misma regla`,
+  enteraR(en65, 65) && acotadaR(sobre65, 65, 66, 65), `${verR(en65)} ‖ ${verR(sobre65)}`);
+const en512 = decidirR(piezasR(512), { maxEvidence: 512 });
+const sobre512 = decidirR(piezasR(513), { maxEvidence: 512 });
+check(`${numero()} · B.4 · maxEvidence 512: 512 caben —el techo, exacto— y 513 no`,
+  enteraR(en512, 512) && acotadaR(sobre512, 512, 513, 512), `${verR(en512)} ‖ ${verR(sobre512)}`);
+const pide513 = decidirR(piezasR(513), { maxEvidence: 513 });
+check(`${numero()} · B.4 · maxEvidence 513 pide más que el techo: rige 512 (\`TOPES_MAXIMOS\`), y con 513 piezas se acota en 512 —ni una más—`,
+  A.TOPES_MAXIMOS.maxEvidence === 512 && acotadaR(pide513, 512, 513, 512) && igual(pide513, sobre512), verR(pide513));
+const sinTope = decidirR(piezasR(65));
+check(`${numero()} · B.4 · sin declarar maxEvidence rige el defecto (${A.TOPES_POR_DEFECTO.maxEvidence}): 64 caben, 65 se acotan en 64`,
+  A.TOPES_POR_DEFECTO.maxEvidence === 64 && enteraR(decidirR(piezasR(64)), 64) && acotadaR(sinTope, 64, 65, 64) && igual(sinTope, sobre64), verR(sinTope));
+
+/* 5 · las 65 del caso de la auditoría, sobre algo que no es una alternativa. */
+const CERO_R = /Ninguna de las 0 alternativas/;
+const ajenas65 = decidirR(ajenasR(65));
+const sinSujeto65 = decidirR(ajenasR(65, null));
+check(`${numero()} · B.4 · 65 señales sobre un sujeto que no es alternativa —o sin sujeto—: se decide entre las 2, sin gastar evidencia, y nunca «Ninguna de las 0 alternativas…»`,
+  [ajenas65, sinSujeto65].every((d) => d.status === 'decided' && d.candidates.length === 2 && d.spend.evidence === 0
+    && !d.warnings.includes('budget_exhausted') && !d.explanation.some((f) => CERO_R.test(f)) && d.signalKeys.length === 65),
+  `${verR(ajenas65)} ‖ ${verR(sinSujeto65)}`);
+
+/* 6 · las ajenas no le quitan presupuesto a las que sí son evidencia. */
+const conAjenas = decidirR([...ajenasR(1000), ...piezasR(64), ...ajenasR(1000, null, 'suelta')]);
+const nucleoR = (d) => ({ status: d.status, failure: d.failure, selected: d.selected, selectedScore: d.selectedScore, alternatives: d.alternatives,
+  candidates: d.candidates, confidence: d.confidence, uncertainty: d.uncertainty, evidence: d.evidence, explanation: d.explanation, paretoFront: d.paretoFront });
+check(`${numero()} · B.4 · 64 piezas entre 2 000 señales ajenas: caben las 64 —las ajenas no gastan— y la decisión es la de las 64 solas`,
+  enteraR(conAjenas, 64) && igual(nucleoR(conAjenas), nucleoR(en64)) && conAjenas.signalKeys.length === 64 + 2000,
+  verR(conAjenas));
+
+/* 8 · por encima del límite, QUÉ se deja fuera: la última vuelta de los turnos. */
+const turnos66 = decidirR(piezasR(66, ['measured']), { maxEvidence: 64 });
+const clavesDe = (d, id) => d.candidates.find((c) => c.id === id) && A.inventarioDeSenales(piezasR(66, ['measured'])).porSujeto.get(id);
+const evidenciaDe = (d) => d.evidence.map((e) => e.signal.key);
+check(`${numero()} · B.4 · 66 piezas (33 por alternativa) con tope 64: entran las 32 primeras claves de CADA una —por turnos— y se quedan fuera las dos 33.as, no 2 de una sola`,
+  acotadaR(turnos66, 64, 66, 64) && evidenciaDe(turnos66).length === 32 && !evidenciaDe(turnos66).includes(claveR(64)) && !evidenciaDe(turnos66).includes(claveR(65))
+    && !!clavesDe(turnos66, 'a'), `${turnos66.selected?.nombre}: ${evidenciaDe(turnos66).length} piezas`);
+const ordenR = A.piezasPorTurnos(A.inventarioDeSenales([
+  ...['k3', 'k1', 'k2'].map((k) => medida(`option.${k}`, 'b', 1)), ...['k2', 'k1'].map((k) => medida(`option.${k}`, 'a', 1)), medida('option.k9', 'z', 1),
+]), ['a', 'b']).map((g) => `${g[0].subject}:${g[0].key}`);
+check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, claves ordenadas, una de cada una por vuelta, y lo ajeno nunca`,
+  igual(ordenR, ['a:option.k1', 'b:option.k1', 'a:option.k2', 'b:option.k2', 'b:option.k3']), ordenR.join(' '));
+
+/* 9, 23 · las permutaciones de las mismas señales dan la MISMA decisión, byte a byte, también acotando. */
+{
+  const azar = generador(4_0404_2026);
+  const barajar = (xs) => { const c = [...xs]; for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(azar() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; } return c; };
+  const base = [...piezasR(70), ...ajenasR(30), ...piezasR(20).map((s) => ({ ...s, value: 0.9, source: 'model' })), ...ajenasR(5, null)];
+  const referencia = JSON.stringify(decidirR(base, { maxEvidence: 50 }));
+  const distintas = Array.from({ length: 40 }, () => JSON.stringify(decidirR(barajar(base), { maxEvidence: 50 }))).filter((x) => x !== referencia).length;
+  const dosVeces = igual(decidirR(base, { maxEvidence: 50 }), decidirR(base, { maxEvidence: 50 }))
+    && igual(A.crearMotorDeDecision().decidir(contexto({ options: OPCIONES_R, signals: base, budget: { maxEvidence: 50 } })), decidirR(base, { maxEvidence: 50 }));
+  check(`${numero()} · B.4 · PROPIEDAD · 40 permutaciones de 125 señales —con desacuerdos, ajenas y acotando en 50—: una sola decisión, byte a byte; y la misma entrada dos veces, o con otro motor, da lo mismo`,
+    distintas === 0 && dosVeces && acotadaR(JSON.parse(referencia), 50, 70, 50), `${distintas} distinta(s)`);
+}
+
+/* 10, 11, 24 · sin llegar al tope, A1 decide EXACTAMENTE como antes. */
+{
+  const azar = generador(10_24_2026);
+  const elegir = (xs) => xs[Math.floor(azar() * xs.length)];
+  const fallos = [];
+  for (let k = 0; k < 400; k++) {
+    const opciones = Array.from({ length: 2 + Math.floor(azar() * 4) }, (_, i) => opcion(`o${i}`, { quality: elegir([0.2, 0.5, 0.9]), cost: elegir([1, 2, 3]) }));
+    const sujetos = [...opciones.map((o) => o.id), 'ajeno', undefined];
+    const senales = Array.from({ length: Math.floor(azar() * 60) }, () => {
+      const s = { key: elegir(['option.quality', 'option.cost', 'x.y', 'option.k1', 'option.k2']), value: elegir([0.5, 0.7, 1, 'alto']),
+        source: elegir(['measured', 'catalog', 'model', 'declared']) };
+      const sujeto = elegir(sujetos); if (sujeto !== undefined) s.subject = sujeto;
+      if (azar() < 0.5) s.at = elegir([1, 2, 3]);
+      if (azar() < 0.4) s.sampleSize = elegir([5, 20]);
+      return s;
+    });
+    const tope = elegir([undefined, 64, 200, 512]);
+    const ctx = contexto({ options: opciones, signals: senales, ...(tope ? { budget: { maxEvidence: tope } } : {}),
+      ...(azar() < 0.3 ? { constraints: { minConfidence: elegir([0.1, 0.5]) } } : {}) });
+    const d = a1.decidir(ctx);
+    /* El oráculo de ANTES: la evidencia de cada alternativa salía de TODAS las señales resueltas, filtradas por su sujeto. */
+    const resueltasAntes = A.resolverSenales(senales).resueltas;
+    const soloSuyas = a1.decidir({ ...ctx, signals: resueltasAntes.filter((s) => opciones.some((o) => o.id === s.subject)) });
+    const evidenciaAntes = d.status === 'decided'
+      ? A.evidenciaDeOpcion(opciones.find((o) => o.value === d.selected), resueltasAntes, A.estrategiaPorDefecto) : undefined;
+    const clavesAntes = [...new Set(resueltasAntes.map((s) => s.key))].sort();
+    /* Las claves las dice una decisión tomada; sin decisión nunca las llevó, ni antes ni ahora. */
+    const bien = igual(nucleoR(d), nucleoR(soloSuyas)) && (d.status === 'decided' ? igual(d.signalKeys, clavesAntes) : d.signalKeys === undefined)
+      && d.warnings.includes('signal_conflict') === (A.resolverSenales(senales).conflictos.length > 0)
+      && !d.warnings.includes('budget_exhausted')
+      && (d.status !== 'decided' || (igual(d.evidence, evidenciaAntes) && casi(d.confidence.value, A.confianzaDeOpcion(d.selectedScore, evidenciaAntes).value)));
+    if (!bien) fallos.push(String(k));
+  }
+  check(`${numero()} · B.4 · PROPIEDAD · 400 peticiones al azar sin llegar al tope (sin declararlo, 64, 200 o 512): la misma evidencia, confianza, candidatas, elegida y explicación que con la regla de antes, las mismas claves y el mismo \`signal_conflict\``,
+    fallos.length === 0, fallos.slice(0, 5).join(', '));
+}
+
+/* 22 · «sin evidencia» no es «evidencia acotada». */
+{
+  const sinNada = decidirR([]);
+  const soloAjena = decidirR(ajenasR(100));
+  const exigente = decidirR(ajenasR(100), undefined, { constraints: { minConfidence: 0.5 } });
+  const acotada = decidirR(piezasR(65, ['measured']));
+  const sinEvidencia = (d) => d.status === 'decided' && d.confidence.value === 0 && d.warnings.includes('low_confidence')
+    && !d.warnings.includes('budget_exhausted') && !fraseR(d) && d.spend.evidence === 0;
+  check(`${numero()} · B.4 · SIN evidencia —nada, o solo ajena— es confianza 0 y \`low_confidence\`, y con un mínimo, \`insufficient_evidence\`; evidencia ACOTADA es \`budget_exhausted\`, la frase y una confianza que sí sale de lo que cupo`,
+    sinEvidencia(sinNada) && sinEvidencia(soloAjena) && exigente.failure === 'insufficient_evidence' && !fraseR(exigente)
+      && acotadaR(acotada, 64, 65, 64) && acotada.confidence.value > 0 && !acotada.warnings.includes('low_confidence'),
+    `${verR(sinNada)} ‖ ${verR(exigente)} ‖ ${verR(acotada)}`);
+}
+
+/* El presupuesto se aplica ANTES de resolver: lo ajeno y lo que no cabe no llegan al desempate caro. */
+{
+  const canonico = lib('core/algorithm/canonical.js');
+  const original = canonico.formaCanonica;
+  let llamadas = 0;
+  canonico.formaCanonica = (...xs) => { llamadas++; return original(...xs); };
+  try {
+    /* 300 empatadas en todo sobre un sujeto ajeno: para resolverlas harían falta 300 formas canónicas. */
+    const empatadasAjenas = Array.from({ length: 300 }, (_, i) => ({ key: 'option.quality', subject: 'otro', value: 0.5, source: 'measured', at: T0, nota: `n${i}` }));
+    llamadas = 0; decidirR(empatadasAjenas); const ajenasLlamadas = llamadas;
+    llamadas = 0; A.resolverSenales(empatadasAjenas); const siSeResolvieran = llamadas;
+    /* 40 grupos de 3 empatadas sobre las alternativas, con tope 10: solo se resuelven los 10 que caben. */
+    const grupos = Array.from({ length: 40 }, (_, g) => [0, 1, 2].map((j) => ({ key: claveR(g), subject: g % 2 ? 'a' : 'b', value: 0.5, source: 'measured', at: T0, nota: `g${g}-${j}` }))).flat();
+    llamadas = 0; const diez = decidirR(grupos, { maxEvidence: 10 }); const acotadasLlamadas = llamadas;
+    check(`${numero()} · B.4 · el tope va ANTES de resolver: 300 empatadas ajenas no piden ni una forma canónica (resolverlas pediría ${siSeResolvieran}), y de 40 grupos de 3 empatadas con tope 10 solo se desempatan los 10 que caben`,
+      ajenasLlamadas === 0 && siSeResolvieran === 300 && acotadasLlamadas === 30 && diez.spend.evidence === 10,
+      `${ajenasLlamadas} · ${siSeResolvieran} · ${acotadasLlamadas}`);
+  } finally {
+    canonico.formaCanonica = original;
+  }
+}
+
+/* Y por el camino de opciones del ciclo, lo mismo: las 65 ajenas no dejan a A9 sin alternativas. */
+{
+  const cicloR = A.crearCicloAlgoritmico();
+  const r = cicloR.decidir({ decision: contexto({ options: OPCIONES_R, signals: ajenasR(65) }) });
+  check(`${numero()} · B.4 · A9, camino de opciones, con las 65 ajenas de la auditoría: A1 elige y se entrega —no «Ninguna de las 0»—`,
+    r.status === 'decided' && r.entrega?.elegida === 'a' && r.decision?.spend.evidence === 0 && !r.decision.explanation.some((f) => CERO_R.test(f)),
+    `${r.status}/${r.parada ?? '-'} · ${r.entrega?.elegida}`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');

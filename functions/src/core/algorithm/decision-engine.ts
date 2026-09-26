@@ -40,7 +40,9 @@ import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectiv
 import {
   AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
 } from './objective';
-import { Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales } from './signals';
+import {
+  Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales, senalValida,
+} from './signals';
 import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
 import { violacionesDeEstrategia, violacionesEn } from './authority';
@@ -426,6 +428,80 @@ export const evidenciaDeOpcion = <T>(
   return Object.freeze([...suyas, ...propias]);
 };
 
+/* ── 3b · Cuánta evidencia cabe (S2-B · B.4) ──────────────────────────────── */
+
+/**
+ * LO QUE TRAEN LAS SEÑALES, SIN RESOLVER NADA TODAVÍA (S2-B · B.4).
+ *
+ * Una pasada lineal y barata sobre TODAS: cuáles son válidas, qué claves traen,
+ * qué grupos (clave, sujeto) forman y si en alguno se contradicen. Lo caro —el
+ * desempate de B.3, con sus formas canónicas— se deja para las piezas que de
+ * verdad se van a usar.
+ *
+ * El desacuerdo se mira con el mismo predicado que `resolverSenales`: un grupo
+ * lo tiene si alguna señal dice otra cosa que la primera. Es lo mismo que «otra
+ * cosa que la elegida», sea cual sea la elegida, y así el aviso `signal_conflict`
+ * sigue saliendo por las mismas señales que antes, también por las que no son
+ * evidencia de nadie.
+ */
+export interface InventarioDeSenales {
+  /** Por sujeto (`''` sin sujeto, como agrupa `resolverSenales`) y por clave: las válidas, en su orden de llegada. */
+  porSujeto: ReadonlyMap<string, ReadonlyMap<string, readonly Signal[]>>;
+  /** Las claves de todas las válidas, ordenadas: lo que se miró (`signalKeys`). */
+  claves: readonly string[];
+  /** ¿Algún grupo, de cualquier sujeto, con valores distintos? */
+  hayConflicto: boolean;
+}
+
+export const inventarioDeSenales = (senales: readonly unknown[] | undefined): InventarioDeSenales => {
+  const porSujeto = new Map<string, Map<string, Signal[]>>();
+  const claves = new Set<string>();
+  let hayConflicto = false;
+  for (const s of senales ?? []) {
+    if (!senalValida(s)) continue;
+    claves.add(s.key);
+    const sujeto = s.subject ?? '';
+    let porClave = porSujeto.get(sujeto);
+    if (!porClave) { porClave = new Map(); porSujeto.set(sujeto, porClave); }
+    const grupo = porClave.get(s.key);
+    if (!grupo) porClave.set(s.key, [s]);
+    else { if (s.value !== grupo[0].value) hayConflicto = true; grupo.push(s); }
+  }
+  return { porSujeto, claves: Object.freeze([...claves].sort()), hayConflicto };
+};
+
+/**
+ * EN QUÉ ORDEN SE TOMAN LAS PIEZAS DE EVIDENCIA (S2-B · B.4).
+ *
+ * Una pieza es un grupo (clave, sujeto) cuyo sujeto es una alternativa que se
+ * evalúa: lo que `evidenciaDeOpcion` convierte en su evidencia. Las de sujetos
+ * que no se evalúan —ni `subject`, un paso, una alternativa que no compite— no
+ * son evidencia de nadie y no entran aquí: no gastan el presupuesto.
+ *
+ * Por TURNOS entre las alternativas, en el orden en que llegan —el de su `id`—:
+ * la primera clave de cada una, luego la segunda… y dentro de cada una por
+ * clave. No «todo lo de la primera»: la evidencia es su confianza, y dársela
+ * entera a unas y nada a otras las desempataría por su nombre. No es una
+ * puntuación: es el orden en que se toma lo que cabe, y no depende del orden de
+ * llegada de nada.
+ */
+export const piezasPorTurnos = (
+  inventario: InventarioDeSenales,
+  sujetos: readonly string[],
+): readonly (readonly Signal[])[] => {
+  const colas = sujetos.map((id) => {
+    const porClave = inventario.porSujeto.get(id);
+    return porClave ? [...porClave.keys()].sort().map((k) => porClave.get(k) as readonly Signal[]) : [];
+  });
+  const salida: (readonly Signal[])[] = [];
+  for (let turno = 0; ; turno++) {
+    let alguna = false;
+    for (const cola of colas) if (turno < cola.length) { salida.push(cola[turno]); alguna = true; }
+    if (!alguna) break;
+  }
+  return salida;
+};
+
 /* ── 4 · Confianza ────────────────────────────────────────────────────────── */
 
 /**
@@ -800,11 +876,19 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
     const todas = [...(ctx.options ?? [])].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     if (!todas.length) return cerrar('insufficient_evidence', ['No llegó ninguna alternativa que evaluar.']);
 
-    /* 2 · Señales: una por clave y sujeto, con la procedencia mandando. */
-    const { resueltas, conflictos: choques } = resolverSenales(ctx.signals ?? []);
-    if (choques.length) avisos.add('signal_conflict');
-    /* Cada señal que se mira cuesta: un contexto con diez mil no puede salir gratis. */
-    for (let i = 0; i < resueltas.length; i++) if (!contador.gastar('evidence')) break;
+    /*
+     * 2 · Señales: lo que traen, SIN resolverlas todavía (S2-B · B.4).
+     *
+     * Hasta S2-B se resolvían TODAS aquí y cada una gastaba evidencia, fuera de
+     * quien fuera. Con más que `maxEvidence` el contador se agotaba antes de mirar
+     * una sola alternativa, `cabe('candidates')` decía que no, y salía «Ninguna de
+     * las 0 alternativas cumple las restricciones» —también con 65 señales sobre
+     * algo que ni era una alternativa—. Aquí solo se hace el inventario, que es
+     * lineal y barato; qué evidencia cabe se decide después, sobre las
+     * alternativas que de verdad se evalúan, y solo eso se resuelve.
+     */
+    const inventario = inventarioDeSenales(ctx.signals);
+    if (inventario.hayConflicto) avisos.add('signal_conflict');
 
     /* 3 · Restricciones duras, ANTES de puntuar, y acotado por presupuesto. */
     const consideradas: Alternative<T>[] = [];
@@ -847,6 +931,36 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
         { candidates: juzgadasDe(rechazadasComoCandidatas()) },
       );
     }
+
+    /*
+     * 3b · EL PRESUPUESTO DE EVIDENCIA, SOBRE LO QUE SE EVALÚA (S2-B · B.4).
+     *
+     * `maxEvidence` es cuántas piezas de evidencia usa la evaluación: una pieza,
+     * un grupo (clave, sujeto) cuyo sujeto es una alternativa admitida. Las
+     * demás señales no son evidencia de nadie y no gastan nada. Se pregunta ANTES
+     * de gastar, como con las candidatas, y lo que no cabe no se resuelve ni se
+     * mira: se decide con lo que cupo —lo mejor encontrado, la regla de
+     * `budget.ts`— y se dice con lo que el contrato ya tiene: `budget_exhausted`,
+     * `spend.evidence` (las usadas) y una frase. Todas las admitidas se siguen
+     * evaluando: un presupuesto de evidencia nunca deja «0 alternativas».
+     */
+    const turnos = piezasPorTurnos(inventario, admitidas.map((o) => o.id));
+    const crudas: Signal[] = [];
+    let usadas = 0;
+    for (const grupo of turnos) {
+      if (!contador.cabe('evidence')) break;
+      contador.gastar('evidence');
+      usadas++;
+      for (const s of grupo) crudas.push(s);
+    }
+    const fraseDeEvidencia: readonly string[] = usadas < turnos.length
+      ? [`Evidencia acotada por el presupuesto: se usaron ${usadas} de ${turnos.length} pieza(s) sobre las ${admitidas.length} `
+        + `alternativa(s) evaluadas (${usadas >= topes.maxEvidence ? `maxEvidence ${topes.maxEvidence}` : `se agotó ${contador.agotado() ?? 'el presupuesto'}`}), `
+        + 'por turnos entre ellas en orden de id; el resto no se miró.']
+      : [];
+    if (fraseDeEvidencia.length) avisos.add('budget_exhausted');
+    /* Una por clave y sujeto, con la procedencia mandando: B.3, sobre lo que cupo. */
+    const { resueltas } = resolverSenales(crudas);
 
     /* 4 · Evidencia y 5 · puntuación, SIN historial: así se decide quién compite. */
     const evidenciaPorId = new Map<string, readonly Evidence[]>();
@@ -900,7 +1014,7 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       /* Sin ninguna que compita, lo que el historial NO hizo también se dice: no rescató a nadie. */
       return cerrar('insufficient_evidence',
         [`Las ${porConfianza.length} alternativas viables se quedan por debajo de la confianza mínima (${constraints?.minConfidence}).`,
-          ...explicarHistorial(delAmbito, uso, noCompiten)],
+          ...explicarHistorial(delAmbito, uso, noCompiten), ...fraseDeEvidencia],
         { candidates: juzgadasDe([...rechazadasComoCandidatas(), ...porConfianza.map((v) => ({
           id: v.id, value: (admitidas.find((o) => o.id === v.id) as Alternative<T>).value, eligible: false, reason: v.reason,
         }))]) });
@@ -950,13 +1064,14 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       constraints,
       /* Lo que se MIRÓ, también el historial: es la prueba de que se leyó. */
       signalKeys: Object.freeze([...new Set([
-        ...resueltas.map((s) => s.key),
+        ...inventario.claves,
         ...(delAmbito && 'ventana' in delAmbito ? ['history.decision'] : []),
         ...(uso.usadas.length ? ['history.successRate'] : []),
       ])].sort()),
       explanation: Object.freeze([
         ...explicar(elegida, ordenadas[1], [...rechazadas, ...porConfianza], objective, constraints, frente, comparadores),
         ...explicarHistorial(delAmbito, uso, noCompiten),
+        ...fraseDeEvidencia,
       ]),
       paretoFront: frente.length > 1 ? Object.freeze(frente) : undefined,
       spend: contador.gasto(),
