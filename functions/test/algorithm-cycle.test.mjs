@@ -321,8 +321,18 @@ check('45 · los requisitos de ejecución viajan tal cual: presupuesto y plazo, 
 const conProveedor = ciclo.decidir(peticion({ decision: decisionBase({ constraints: { providerId: 'p-favorito' } }) }));
 check('46 · una restricción que nombra proveedor NO cruza: `authority_violation`',
   conProveedor.status === 'invalid' && conProveedor.parada === 'authority_violation' && !conProveedor.entrega);
-check('46b · y es la ÚNICA causa: todo lo demás decidió',
-  conProveedor.decision?.status === 'decided' && !conProveedor.recorrido.includes('handoff'));
+/*
+ * 46b · Hasta S2-A esto afirmaba «todo lo demás decidió»: la restricción con
+ * proveedor se veía SOLO en la entrega, después de estructurar, generar
+ * estrategias y decidir —y la decisión devolvía la restricción tal cual—. Desde
+ * S2-A se ve AL PEDIR: no se piensa nada con un requisito que elige proveedor,
+ * y no queda nada que lo repita. La prueba de que la guarda de la entrega sigue
+ * viva para lo que solo ella ve es la 47 (lo esperado).
+ */
+check('46b · y es la ÚNICA causa, vista al PEDIR: ni estructura, ni estrategias, ni decisión, y nada la repite',
+  Array.isArray(conProveedor.recorrido) && conProveedor.recorrido.length === 0 && conProveedor.decision === undefined
+  && (conProveedor.because ?? []).some((f) => /providerId/.test(f)) && A.violacionesEn(conProveedor, 'resultado').length === 0,
+  `recorrido=${JSON.stringify(conProveedor.recorrido)}`);
 const conModelo = ciclo.decidir(peticion({ expected: [{ kind: 'text', metadata: { modelId: 'm-favorito' } }] }));
 check('47 · ni un modelo escondido en lo esperado', conModelo.parada === 'authority_violation');
 check('48 · A9 no importa al Router, ni al Orchestrator, ni al Job Engine, ni al Gateway, ni al Brain',

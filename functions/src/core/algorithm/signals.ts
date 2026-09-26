@@ -32,6 +32,8 @@
  */
 
 import { CAMPOS_PROHIBIDOS } from '../observability';
+/* La clave de desempate por contenido (S2-A · R2): total y acotada, en su propio archivo. */
+import { formaCanonica } from './canonical';
 
 /**
  * DE DÓNDE SALE UN DATO.
@@ -117,16 +119,30 @@ export const frescura = (signal: Signal, ahora: number, vidaMs: number): number 
 };
 
 /**
+ * ¿Es una fuente del vocabulario? Solo las claves PROPIAS de `PESO_DE_FUENTE`:
+ * con `in`, `toString` o `constructor` —heredadas de cualquier objeto— pasaban
+ * por fuentes, y su «peso» era una función que acababa en `NaN` (S2-A · R1).
+ */
+const esFuente = (x: unknown): x is SignalSource =>
+  typeof x === 'string' && Object.prototype.hasOwnProperty.call(PESO_DE_FUENTE, x);
+
+/**
  * Lo que se cree una señal cuando no lo dice: su fuente, nada más.
  *
  * No se mezcla la frescura aquí. Quien decida si una señal vieja vale menos
  * necesita saber cuál de las dos cosas falló, y un número que las funde ya no
  * lo permite.
+ *
+ * Y lo que no es una confianza no se convierte en una (S2-A · R1): una
+ * `confidence` PRESENTE que no es un número finito entre 0 y 1 vale 0 —antes se
+ * leía como ausente y pesaba lo que su fuente, 1 si era `measured`—. Para una
+ * señal válida nada cambia: si la trae, `senalValida` ya exigió que lo fuera.
  */
-export const confianzaDeSenal = (signal: Signal): number =>
-  typeof signal.confidence === 'number' && signal.confidence >= 0 && signal.confidence <= 1
-    ? signal.confidence
-    : PESO_DE_FUENTE[signal.source] ?? 0;
+export const confianzaDeSenal = (signal: Signal): number => {
+  const c = signal?.confidence;
+  if (c !== undefined) return typeof c === 'number' && Number.isFinite(c) && c >= 0 && c <= 1 ? c : 0;
+  return esFuente(signal?.source) ? PESO_DE_FUENTE[signal.source] : 0;
+};
 
 const NOMBRE_DE_SENAL = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
 
@@ -136,6 +152,14 @@ const NOMBRE_DE_SENAL = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
  * Lo segundo importa tanto como lo primero: se reutiliza `CAMPOS_PROHIBIDOS` de
  * la traza en vez de escribir otra lista, porque dos listas de secretos acaban
  * siendo una lista de secretos y otra desactualizada.
+ *
+ * Los números con que se ORDENA una señal —la muestra y la confianza— tienen que
+ * ser FINITOS (S2-A · R1). `NaN` pasaba las comprobaciones de rango —`NaN < 0` es
+ * falso— y dentro de `resolverSenales` el orden por muestra devolvía `NaN`, que
+ * `sort` toma por empate: volvía a ganar la que llegaba antes. Medido: el caso
+ * que S2-A corrigió se reproducía entero con `sampleSize: NaN`. Una muestra
+ * infinita tampoco es una muestra. Esa señal no es válida y no entra, como
+ * cualquier otra mal formada; ninguna se arregla ni se convierte en otra cosa.
  */
 export const senalValida = (s: unknown): s is Signal => {
   if (typeof s !== 'object' || s === null || Array.isArray(s)) return false;
@@ -147,11 +171,11 @@ export const senalValida = (s: unknown): s is Signal => {
   if (typeof v !== 'number' && typeof v !== 'boolean' && typeof v !== 'string') return false;
   if (typeof v === 'number' && !Number.isFinite(v)) return false;
   if (typeof v === 'string' && (v.length === 0 || v.length > 64)) return false;
-  if (typeof sig.source !== 'string' || !(sig.source in PESO_DE_FUENTE)) return false;
+  if (!esFuente(sig.source)) return false;
   if (sig.subject !== undefined && (typeof sig.subject !== 'string' || sig.subject.length > 128)) return false;
   if (sig.at !== undefined && (typeof sig.at !== 'number' || !Number.isFinite(sig.at))) return false;
-  if (sig.sampleSize !== undefined && (typeof sig.sampleSize !== 'number' || sig.sampleSize < 0)) return false;
-  if (sig.confidence !== undefined && (typeof sig.confidence !== 'number' || sig.confidence < 0 || sig.confidence > 1)) return false;
+  if (sig.sampleSize !== undefined && (typeof sig.sampleSize !== 'number' || !Number.isFinite(sig.sampleSize) || sig.sampleSize < 0)) return false;
+  if (sig.confidence !== undefined && (typeof sig.confidence !== 'number' || !Number.isFinite(sig.confidence) || sig.confidence < 0 || sig.confidence > 1)) return false;
   return true;
 };
 
@@ -329,23 +353,52 @@ export interface ConflictoDeSenales {
  *      no dice cuándo se midió no puede ganarle a una que sí.
  *   3. A igual frescura, la de MÁS MUESTRA. 3 000 observaciones no valen lo
  *      mismo que 3.
- *   4. Y si todo empata, la que llegó ANTES. No es un criterio de calidad: es
- *      que el resultado tiene que ser el mismo en dos ejecuciones iguales, y
- *      «da igual cuál» no es una respuesta reproducible.
+ *   4. Y si todo empata, un orden CANÓNICO de lo que dicen —el valor y la
+ *      confianza que declaran, y detrás la señal entera—. Dos que empatan
+ *      también ahí son la misma señal, y da igual cuál quede. No es un
+ *      criterio de calidad: ninguna de las
+ *      dos sabe más que la otra, y el conflicto se cuenta igual. Es que el
+ *      resultado tiene que ser el mismo con las mismas señales, lleguen en el
+ *      orden que lleguen.
+ *
+ *      Hasta S2-A este último paso era «la que llegó antes», y eso hacía que
+ *      barajar dos señales empatadas cambiara la decisión: medido, la misma
+ *      opción salía con confianza 0,90 o 0,30 según el orden, y con una
+ *      confianza mínima de 0,5 se elegía o se descartaba.
  *
  * Solo se cuenta como conflicto cuando los VALORES difieren. Dos mediciones
  * idénticas no son un desacuerdo, y llamarlas así llenaría de ruido cualquier
  * informe.
  */
+/**
+ * Lo que dice una señal, en una forma que se compara igual venga de donde venga:
+ * primero el valor y la confianza, y SOLO si empatan, la señal ENTERA. Sin lo
+ * segundo, dos que empatan en lo primero y difieren en otro campo —una muestra
+ * ausente frente a una de 0, un campo descriptivo— se seguían eligiendo por orden
+ * de llegada. Cada forma se calcula una vez por señal y solo si hace falta: la
+ * entera es lo caro y solo desempata (medido: calculándolas en cada comparación,
+ * A1 con doce señales empatadas pasaba de 56 a 128 µs).
+ */
+interface EnGrupo { s: Signal; corta?: string; entera?: string }
+const compararContenido = (a: EnGrupo, b: EnGrupo): number => {
+  const ca = (a.corta ??= JSON.stringify([typeof a.s.value, a.s.value, a.s.confidence ?? null]));
+  const cb = (b.corta ??= JSON.stringify([typeof b.s.value, b.s.value, b.s.confidence ?? null]));
+  if (ca !== cb) return ca < cb ? -1 : 1;
+  const ea = (a.entera ??= formaCanonica(a.s));
+  const eb = (b.entera ??= formaCanonica(b.s));
+  return ea < eb ? -1 : ea > eb ? 1 : 0;
+};
+
 export const resolverSenales = (
   senales: readonly Signal[],
 ): { resueltas: readonly Signal[]; conflictos: readonly ConflictoDeSenales[] } => {
-  const grupos = new Map<string, { s: Signal; i: number }[]>();
-  (senales ?? []).forEach((s, i) => {
+  /* Sin el orden de llegada: ya no decide nada, así que no se guarda. */
+  const grupos = new Map<string, EnGrupo[]>();
+  (senales ?? []).forEach((s) => {
     if (!senalValida(s)) return;
     const clave = `${s.key}\0${s.subject ?? ''}`;
     const lista = grupos.get(clave) ?? [];
-    lista.push({ s, i });
+    lista.push({ s });
     grupos.set(clave, lista);
   });
 
@@ -353,7 +406,7 @@ export const resolverSenales = (
   const conflictos: ConflictoDeSenales[] = [];
   /* Se recorre por clave ordenada: el resultado no puede depender del orden del Map. */
   for (const clave of [...grupos.keys()].sort()) {
-    const lista = grupos.get(clave) as { s: Signal; i: number }[];
+    const lista = grupos.get(clave) as EnGrupo[];
     if (lista.length === 1) { resueltas.push(lista[0].s); continue; }
 
     let porque: ConflictoDeSenales['porque'] = 'orden';
@@ -367,7 +420,8 @@ export const resolverSenales = (
       const ma = a.s.sampleSize ?? 0;
       const mb = b.s.sampleSize ?? 0;
       if (ma !== mb) return mb - ma;
-      return a.i - b.i;
+      /* El contenido, en un orden fijo. Iguales en todo = la misma señal: da igual cuál quede. */
+      return compararContenido(a, b);
     });
     const ganadora = ordenadas[0];
     const segunda = ordenadas[1];

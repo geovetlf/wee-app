@@ -397,8 +397,50 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * La política de A7 no cambia ni gana un umbral. Las claves sin `recoveryKind` no
  * cambian; un agregado de recuperación de 1.8 llevaba el tipo en `strategyId` y no
  * se migra —A7 no está conectado, así que no hay ninguno guardado—.
+ *
+ * 1.10 (S2-A): la calidad de la DECISIÓN y la frontera con el Router. La forma
+ * pública solo CRECE —`formaCanonica` con `LIMITES_DE_FORMA_CANONICA`,
+ * `objetivoSinImplementacion`, `DESTINO_DEL_REQUISITO` y `repartirRequisitos`—,
+ * pero cambia lo que se decide en cinco sitios, y por eso sube el menor: como en
+ * 1.7, que subió por cerrar huecos del mismo tipo. Cada uno cerraba uno medido:
+ *
+ *   DESEMPATE    dos señales empatadas en procedencia, fecha y muestra se ordenan
+ *                por su CONTENIDO (`formaCanonica`, total y acotada), no por su
+ *                llegada; lo mismo dos fotos duplicadas de un acumulador en A8.
+ *                Y una señal con una muestra o una confianza que no son números
+ *                finitos, o con una fuente que no es del vocabulario, NO es válida
+ *                (`senalValida`): un `NaN` pasaba y devolvía el desempate al orden.
+ *   FRONTERA     A1 y A9 rechazan —`invalid` y `authority_violation`, sin repetir
+ *                lo que traía— una petición cuyo objetivo o cuyas restricciones,
+ *                y en A9 lo que se le pide a A8, nombran una implementación. Antes
+ *                A1 decidía y las devolvía tal cual, y A9 solo miraba la entrega.
+ *                El TIPO `AmbitoDeEvento` sigue admitiendo `providerId` y
+ *                `modelId`, porque lo aprendido sí puede DESCRIBIR una
+ *                implementación; lo que ya no se admite es PEDIR contexto en ese
+ *                ámbito.
+ *   EFECTIVAS    la composición —descomposición, estrategias, paralelismo y
+ *                optimización— y la entrega reciben las restricciones EFECTIVAS —las
+ *                de la petición y las de su objetivo, con lo más estrecho mandando—, así
+ *                que `EntregaDeEjecucion.constraints` pasa de «las de la petición» a
+ *                «las efectivas», y A6 las ve al cerrar. Como `cerrar` todavía no le
+ *                pasa a A6 las señales observadas (deuda declarada), lo que A6 no
+ *                puede medir cierra `unknown`, que no es un fallo de calidad.
+ *   REGISTRO     `DecisionRecord.signalKeys` sale ordenado.
+ *   CONFIANZA    una `confidence` presente que no es un número finito entre 0 y 1
+ *                vale 0 en `confianzaDeSenal`, nunca el peso de su fuente.
+ *
+ * Compatible hacia atrás en lo que no toca: sin implementación en lo que se pide,
+ * sin restricciones en el objetivo, sin empates exactos y sin señales rotas, la
+ * decisión es la de 1.9 byte a byte salvo sus sellos —este número y
+ * `motor-de-decision@2`—. `motor-de-decision` y `motor-de-contexto` suben a su
+ * versión 2 por la regla de `AlgorithmDescriptor.version` («sube cuando cambia lo
+ * que el algoritmo DECIDE»), que hasta aquí no se había aplicado. Con la regla de
+ * compatibilidad, un descriptor que declare 1.9 pasa a rechazarse; no hay ninguno
+ * guardado. Y la evidencia de la sombra lleva el contrato con que se decidió
+ * (`contracts.algoritmo`): la de la canary de S1 dice 1.9, y la que venga después
+ * de integrar S2-A dirá 1.10.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.9' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.10' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;
