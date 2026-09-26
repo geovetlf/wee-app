@@ -439,8 +439,91 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * guardado. Y la evidencia de la sombra lleva el contrato con que se decidió
  * (`contracts.algoritmo`): la de la canary de S1 dice 1.9, y la que venga después
  * de integrar S2-A dirá 1.10.
+ *
+ * 1.11 (S2-B): la decisión con entradas rotas, con presupuesto de pensar y sin lo que no
+ * es evidencia. Cambia lo que decide `motor-de-decision` con entradas VÁLIDAS, y por eso
+ * sube a su versión 3; ningún otro motor cambia lo que decide con entradas válidas, y se
+ * quedan donde estaban:
+ *
+ *   VALIDACIÓN   una restricción o un tope de pensar que no es un número finito en su
+ *                rango de siempre ya no se ignora ni se funde. En la decisión y en el
+ *                ciclo es un `constraint_conflict` que dice qué campo y por qué —y de qué
+ *                lado, si es una restricción—, antes de fundir nada: las restricciones y
+ *                los nueve topes de pensar. Las estrategias y la optimización no dan por
+ *                buena ninguna alternativa sobre restricciones rotas, y cada rechazo
+ *                nombra campo y motivo; y un mínimo de confianza propio roto —el de
+ *                aceptación de la optimización, el de los requisitos del contexto— no
+ *                apaga el mínimo: no se acepta nada, y se dice por qué. Solo cambia con
+ *                entradas mal formadas.
+ *   DESGLOSE     la explicación dice «sin medir» lo que no se midió, y sobre qué se
+ *                renormalizó el total. Solo texto.
+ *   RESOLUCIÓN   `resolverSenales` elige sin ordenar el grupo entero —la forma canónica,
+ *                solo entre las finalistas—, y el ciclo resuelve una vez las señales de
+ *                la petición para la paralelización, las estrategias y la optimización,
+ *                que las reciben ya resueltas. La misma salida.
+ *   EVIDENCIA    `maxEvidence` es el presupuesto de evidencia de la evaluación, y cuenta
+ *                piezas: una pieza es un grupo (clave, sujeto) sobre una alternativa
+ *                admitida —sus duplicados cuentan una vez y el grupo se resuelve entero—,
+ *                y lo que no es evidencia de ninguna alternativa no gasta. Se aplica
+ *                antes de resolver, se toma por turnos y nunca deja sin alternativas;
+ *                `spend.evidence` son las piezas usadas, y si se acota lo dicen
+ *                `budget_exhausted` y una frase. Cambia decisiones VÁLIDAS: 65 señales
+ *                ajenas dejaban «Ninguna de las 0 alternativas…» y ahora se decide.
+ *   PRESUPUESTO  si llegan alternativas y un tope no deja evaluar ninguna, el fallo es
+ *                `budget_exceeded`.
+ *   PROFUNDIDAD  un plan que no cabe en `maxDepth` para el ciclo con `undecided` y un
+ *                porqué que dice que el plan existe, sin pedir que se elija entre nada.
+ *   COMPOSICIÓN  si la composición se queda sin alternativas antes de decidir, el porqué
+ *                del ciclo dice por qué (restricciones o presupuesto); la decisión no
+ *                cambia.
+ *
+ * Ningún campo público nuevo: se usan los avisos, fallos y motivos de parada que ya había.
+ * Siguen fuera, sin inventarlos: un aviso propio de evidencia acotada y un motivo de parada
+ * por presupuesto o por profundidad. La evidencia de la sombra que venga después de
+ * integrar S2-B dirá 1.11.
+ *
+ * 1.12 (S2-C.1): las decisiones humanas de la matriz S2-C.1, en una sola ampliación. La
+ * forma pública CRECE y ninguna decisión válida cambia lo que se elige, así que
+ * `motor-de-decision` sigue en su versión 3; lo que sí cambia —de quién es una medida,
+ * SUJETO— lo deciden la verificación y el aprendizaje, y sus motores suben:
+ *
+ *   SIN ELECCIÓN   una decisión tomada en la que solo una alternativa llegó a competir
+ *                  lleva `noRealChoice`, con sus causas en el orden en que se filtra:
+ *                  una sola llegó, el tope de candidatas, las restricciones, la evidencia
+ *                  acotada con la confianza mínima, la confianza mínima. La selección, la
+ *                  puntuación y la confianza son las de siempre.
+ *   AVISOS         `budget_exhausted` sigue siendo el aviso general, y ahora cada causa
+ *                  tiene el suyo: `candidates_capped` (ya estaba), `evidence_capped` (la
+ *                  evidencia se acotó) y `counter_exhausted` (se pasó otro contador:
+ *                  iteraciones, llamadas, reloj…).
+ *   PARADAS        el ciclo dice con motivo propio lo que antes era `undecided`:
+ *                  `max_depth_exceeded` (el plan no cabe en `maxDepth`), `composition_emptied`
+ *                  (la composición se vació antes de A1 por otra cosa que el presupuesto:
+ *                  restricciones, candidatas inviables) y `budget_exceeded` (el presupuesto
+ *                  de pensar no dejó evaluar ninguna: por opciones, cuando A1 falla así; con
+ *                  tarea, cuando la composición se vació por él). La decisión de A1 es la
+ *                  misma: corre donde corría y no corre donde no corría.
+ *   VALIDACIÓN     lo mal formado —con la regla de B.1— en las tres llamadas sueltas que
+ *                  faltaban. A2 lo dice en `problemas` con un motivo nuevo de su unión,
+ *                  `invalid_constraint` (la ruta y el motivo en `detail`). A6 da
+ *                  `inconclusive` a la comprobación de un tope mal formado, y al veredicto
+ *                  salvo que otra comprobación afirme un fallo; con los topes de pensar
+ *                  rotos no verifica con ellos. A7 aplica en cada campo roto la política por
+ *                  defecto y después su suelo, sin aflojar nada, y sus topes por defecto.
+ *                  Con entradas válidas, lo de siempre.
+ *   SUJETO         (D3) el resultado se identifica por `subject === actual.id`. A6 comprueba
+ *                  sus topes solo con lo medido de ese sujeto: la medida de un paso, la de
+ *                  otro resultado o una `result.*` sin sujeto no se le atribuyen. `cerrar`
+ *                  le pasa esa evidencia —la de la observación, del resultado— y el cierre
+ *                  la lleva a A7, que aprende `verification.passed` del resultado correcto y
+ *                  no suma lo medido de otros sujetos. Quien ejecuta produce sus medidas con
+ *                  el sujeto; quien llama a `cerrar` las entrega. `motor-de-verificacion` y
+ *                  `motor-de-feedback` suben a su versión 2: cambia lo que deciden.
+ *   PUNTUACIÓN     `StrategyScore.fits` se queda como estaba: un 0 puede ser un eje sin dato,
+ *                  la ausencia la dice `missing`, y un 0 no es evidencia negativa. Solo
+ *                  queda escrito.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.10' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

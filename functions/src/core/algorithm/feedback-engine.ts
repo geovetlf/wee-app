@@ -53,7 +53,8 @@ export const FEEDBACK_ENGINE_ID = 'motor-de-feedback';
 
 export const DESCRIPTOR_DE_FEEDBACK: AlgorithmDescriptor = Object.freeze({
   id: FEEDBACK_ENGINE_ID,
-  version: 1,
+  /* 2 desde S2-C.1 (D3): lo medido de otro sujeto ya no se suma al resultado, y eso cambia lo que aprende. */
+  version: 2,
   contract: ALGORITHM_CONTRACT_VERSION,
   category: 'feedback',
   status: 'experimental',
@@ -401,6 +402,12 @@ export const observacionesDeResultado = (r: ResultadoDeDecision): readonly Obser
   if (exito) {
     for (const s of r.signals ?? []) {
       if (!senalValida(s) || typeof s.value !== 'number' || METRICAS_DERIVADAS.has(s.key)) continue;
+      /*
+       * (S2-C.1 · D3) Lo medido de OTRO sujeto —un paso, otro resultado— no es de este
+       * resultado: no se mezcla en su agregado. Hasta 1.11 las dos latencias de un
+       * resultado y de uno de sus pasos se sumaban en una sola.
+       */
+      if (typeof s.subject === 'string' && s.subject !== r.id) continue;
       salida.push({
         metric: s.key, scope, value: s.value, at: typeof s.at === 'number' ? s.at : at,
         favorable: true, signal: s, evidence: evidenciaDe(s.key, s, true), implicito: false,

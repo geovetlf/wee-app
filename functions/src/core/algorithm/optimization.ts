@@ -30,7 +30,7 @@
 
 import { AlgorithmBudgetLimits } from './types';
 import { AlgorithmSpend } from './budget';
-import { AlgorithmConstraints, EJES, Objective, ObjectiveAxis, pesosNormalizados, seMaximiza } from './objective';
+import { AlgorithmConstraints, EJES, Objective, ObjectiveAxis, motivoDeNumeroInvalido, pesosNormalizados, seMaximiza } from './objective';
 import { Confidence, Evidence, SignalSource, Uncertainty } from './signals';
 import { Alternative, AxisValues } from './scoring';
 
@@ -241,8 +241,17 @@ export const mereceLaPena = (
     const d = deltas.find((x) => x.axis === eje);
     if (d && d.absolute < 0) return { ok: false, because: `retrocede en ${eje}` };
   }
-  if (typeof acceptance?.minConfidence === 'number' && (confidence?.value ?? 0) < acceptance.minConfidence) {
-    return { ok: false, because: `confianza ${(confidence?.value ?? 0).toFixed(2)} por debajo de ${acceptance.minConfidence}` };
+  if (acceptance?.minConfidence !== undefined) {
+    /*
+     * (S2-B · B.1) La regla de las restricciones: un mínimo que no es un número
+     * finito entre 0 y 1 no se apaga en silencio —con `NaN`, `valor < NaN` era
+     * falso y pasaba cualquier propuesta—. No se acepta ninguna con él, y se dice.
+     */
+    const malo = motivoDeNumeroInvalido('fraccion', acceptance.minConfidence);
+    if (malo) return { ok: false, because: `acceptance.minConfidence: ${malo}` };
+    if ((confidence?.value ?? 0) < acceptance.minConfidence) {
+      return { ok: false, because: `confianza ${(confidence?.value ?? 0).toFixed(2)} por debajo de ${acceptance.minConfidence}` };
+    }
   }
   if (ganancia === undefined) return { ok: false, because: 'no hay ejes comparables: la mejora no se puede demostrar' };
   if (ganancia < minimo) {

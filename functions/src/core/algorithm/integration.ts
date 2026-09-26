@@ -146,6 +146,12 @@ export type MotivoDeParada =
   | 'invalid_task'
   /* A1 no eligió. No es un error: puede no haber nada que recomendar. */
   | 'undecided'
+  /* (1.12) La composición se quedó sin alternativas antes de A1 por otra cosa que el presupuesto de pensar —restricciones en A2 o A3, candidatas inviables en la optimización—; A1 corrió igual, sobre la lista vacía. */
+  | 'composition_emptied'
+  /* (1.12) El plan existe pero ninguna disposición cabe en `maxDepth`: el ciclo se para antes de A1. El mismo nombre que en A2. */
+  | 'max_depth_exceeded'
+  /* (1.12) El presupuesto de pensar no dejó evaluar ninguna alternativa —`maxCandidates: 0`, `maxAlgorithmCalls: 0`…—: por opciones, A1 falla con `budget_exceeded`; con tarea, la composición se vacía por él. El mismo nombre que el fallo de A1. */
+  | 'budget_exceeded'
   /* La petición —su objetivo, sus restricciones o el ámbito de lo aprendido (S2-A)— o la entrega nombraban una implementación: eso es del Router. */
   | 'authority_violation';
 
@@ -323,7 +329,14 @@ export interface ObservacionDeEjecucion {
   actual: ResultadoAVerificar;
   /** Cuándo acabó. Epoch ms. */
   at: number;
-  /** Lo medido —latencia, coste—, con su procedencia. */
+  /**
+   * Lo medido —latencia, coste—, con su procedencia.
+   *
+   * (S2-C.1 · D3) Y con su SUJETO: una medida es del resultado si su `subject` es
+   * `actual.id`. Solo esas llegan a A6 como evidencia y a A7 como lo medido de este
+   * resultado; la de un paso, la de otro resultado o una `result.*` sin sujeto no se
+   * le atribuyen. Quien ejecuta las produce así, y quien llama a `cerrar` las entrega.
+   */
   signals?: readonly Signal[];
   /** Si se ejecutó una recuperación, y cómo fue. Solo de lo ejecutado se aprende. */
   recovery?: { kind: string; executed?: boolean; succeeded?: boolean };

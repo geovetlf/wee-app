@@ -32,6 +32,7 @@
  */
 
 import { AlgorithmBudgetLimits, TOPES_MAXIMOS, TOPES_POR_DEFECTO } from './types';
+import { RangoDeRestriccion, motivoDeNumeroInvalido } from './objective';
 
 /** Lo que se lleva gastado. Las mismas claves que los topes, para poder comparar. */
 export interface AlgorithmSpend {
@@ -68,6 +69,9 @@ export const CONTADORES: readonly (keyof AlgorithmSpend)[] = Object.freeze(
   Object.keys(TOPE_DE) as (keyof AlgorithmSpend)[],
 );
 
+/** El tope que vigila un contador: para NOMBRAR el presupuesto que se agotó (S2-B · B.4). */
+export const topeDelContador = (contador: keyof AlgorithmSpend): keyof AlgorithmBudgetLimits => TOPE_DE[contador];
+
 /**
  * EL TOPE QUE DE VERDAD RIGE.
  *
@@ -101,6 +105,54 @@ export const presupuestoEfectivo = (
     salida[clave] = Math.min(valor, TOPES_MAXIMOS[clave]);
   }
   return Object.freeze(salida);
+};
+
+/**
+ * LOS TOPES DE PENSAR QUE SE VALIDAN, CON SU RANGO DE SIEMPRE (S2-B · B.4, B.5).
+ *
+ * TODOS los de `AlgorithmBudgetLimits`. Su rango NO es nuevo: es el que
+ * `presupuestoEfectivo` ya exigía para tenerlos en cuenta —un número finito y no
+ * negativo, el mismo para los nueve—. Lo que cambia es qué pasa con uno que no lo
+ * cumple: ya no se ignora en silencio para que rija el defecto, sino que se
+ * rechaza con la regla de las restricciones (`motivoDeNumeroInvalido`, S2-B ·
+ * B.1), la misma función y el mismo veredicto. Primero los dos a los que S2-B.4
+ * les dio significado; después los demás, en el orden en que los declara el
+ * contrato. `maxReplans` no lo lee nadie todavía, y se valida igual: es de la
+ * familia.
+ */
+export const RANGO_DEL_PRESUPUESTO: Readonly<Record<keyof AlgorithmBudgetLimits, RangoDeRestriccion>> = Object.freeze({
+  maxEvidence: 'noNegativo',
+  maxDepth: 'noNegativo',
+  maxLatencyMs: 'noNegativo',
+  maxCandidates: 'noNegativo',
+  maxIterations: 'noNegativo',
+  maxReplans: 'noNegativo',
+  maxAlgorithmCalls: 'noNegativo',
+  maxChecks: 'noNegativo',
+  maxEvaluators: 'noNegativo',
+});
+
+/**
+ * LO MAL FORMADO DE UN PRESUPUESTO DE PENSAR, como `budget.<campo>: motivo`.
+ *
+ * Ausente (`undefined`, o `null` como con un lado de restricciones) es no
+ * declarar nada. Un `budget` que no es un objeto sí es un problema: sus topes no
+ * se podrían leer, y callarlo sería perderlos sin decirlo. El motivo dice el
+ * tipo, nunca el valor.
+ */
+export const problemasDelPresupuesto = (budget: unknown): readonly string[] => {
+  if (budget === undefined || budget === null) return Object.freeze([]);
+  if (typeof budget !== 'object' || Array.isArray(budget)) {
+    return Object.freeze([`budget: no es un objeto de presupuesto (${Array.isArray(budget) ? 'array' : typeof budget})`]);
+  }
+  const malas: string[] = [];
+  for (const [campo, rango] of Object.entries(RANGO_DEL_PRESUPUESTO) as [keyof AlgorithmBudgetLimits, RangoDeRestriccion][]) {
+    const v = (budget as Record<string, unknown>)[campo];
+    if (v === undefined) continue;
+    const motivo = motivoDeNumeroInvalido(rango, v);
+    if (motivo) malas.push(`budget.${campo}: ${motivo}`);
+  }
+  return Object.freeze(malas);
 };
 
 /** ¿Se pasó algún contador? Devuelve cuál, para poder decirlo; `undefined` si cabe. */

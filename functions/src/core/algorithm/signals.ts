@@ -380,25 +380,63 @@ export interface ConflictoDeSenales {
  * A1 con doce señales empatadas pasaba de 56 a 128 µs).
  */
 interface EnGrupo { s: Signal; corta?: string; entera?: string }
+/* Lo que dice una señal, barato: el valor y la confianza. Una vez por señal. */
+const cortaDe = (a: EnGrupo): string => (a.corta ??= JSON.stringify([typeof a.s.value, a.s.value, a.s.confidence ?? null]));
+/* La señal entera en forma canónica: lo caro. Una vez por señal, y SOLO si hace falta. */
+const enteraDe = (a: EnGrupo): string => (a.entera ??= formaCanonica(a.s));
 const compararContenido = (a: EnGrupo, b: EnGrupo): number => {
-  const ca = (a.corta ??= JSON.stringify([typeof a.s.value, a.s.value, a.s.confidence ?? null]));
-  const cb = (b.corta ??= JSON.stringify([typeof b.s.value, b.s.value, b.s.confidence ?? null]));
+  const ca = cortaDe(a);
+  const cb = cortaDe(b);
   if (ca !== cb) return ca < cb ? -1 : 1;
-  const ea = (a.entera ??= formaCanonica(a.s));
-  const eb = (b.entera ??= formaCanonica(b.s));
+  const ea = enteraDe(a);
+  const eb = enteraDe(b);
   return ea < eb ? -1 : ea > eb ? 1 : 0;
 };
+/* Lo que ordena ANTES del contenido: la procedencia, la frescura y la muestra. 0 = empatan en las tres. */
+const compararProcedencia = (a: EnGrupo, b: EnGrupo): number => {
+  const fa = PESO_DE_FUENTE[a.s.source] ?? 0;
+  const fb = PESO_DE_FUENTE[b.s.source] ?? 0;
+  if (fa !== fb) return fb - fa;
+  const ta = typeof a.s.at === 'number' ? a.s.at : -Infinity;
+  const tb = typeof b.s.at === 'number' ? b.s.at : -Infinity;
+  if (ta !== tb) return tb - ta;
+  const ma = a.s.sampleSize ?? 0;
+  const mb = b.s.sampleSize ?? 0;
+  if (ma !== mb) return mb - ma;
+  return 0;
+};
+/* El orden ENTERO de siempre: procedencia, frescura, muestra y, si empatan en todo eso, el contenido. */
+const compararSenales = (a: EnGrupo, b: EnGrupo): number => compararProcedencia(a, b) || compararContenido(a, b);
 
 export const resolverSenales = (
   senales: readonly Signal[],
 ): { resueltas: readonly Signal[]; conflictos: readonly ConflictoDeSenales[] } => {
-  /* Sin el orden de llegada: ya no decide nada, así que no se guarda. */
-  const grupos = new Map<string, EnGrupo[]>();
+  /*
+   * (S2-C) LO YA RESUELTO SE DEVUELVE TAL CUAL. Cada señal se lee como siempre —su
+   * validez y su clave (clave, sujeto), una vez— y se apunta si las claves llegan
+   * ESTRICTAMENTE crecientes. Si llegan así —es lo que devuelve una resolución
+   * anterior, como la que A9 pasa a A4, A3 y A5—, cada grupo tiene una sola señal y
+   * el orden de las claves es el de llegada: el resultado es el mismo que agrupando
+   * y ordenando, sin agrupar ni ordenar. Si no, se agrupa lo ya leído —sin volver a
+   * leer nada de ninguna señal— y sigue el camino de siempre. El orden de llegada no
+   * decide nada: solo dice si ya estaba resuelto.
+   */
+  const claves: string[] = [];
+  const validas: Signal[] = [];
+  let crecen = true;
   (senales ?? []).forEach((s) => {
     if (!senalValida(s)) return;
     const clave = `${s.key}\0${s.subject ?? ''}`;
+    if (crecen && claves.length > 0 && !(claves[claves.length - 1] < clave)) crecen = false;
+    claves.push(clave);
+    validas.push(s);
+  });
+  if (crecen) return { resueltas: validas, conflictos: [] };
+
+  const grupos = new Map<string, EnGrupo[]>();
+  claves.forEach((clave, i) => {
     const lista = grupos.get(clave) ?? [];
-    lista.push({ s });
+    lista.push({ s: validas[i] });
     grupos.set(clave, lista);
   });
 
@@ -409,30 +447,66 @@ export const resolverSenales = (
     const lista = grupos.get(clave) as EnGrupo[];
     if (lista.length === 1) { resueltas.push(lista[0].s); continue; }
 
+    /*
+     * SIN ORDENAR EL GRUPO ENTERO PARA QUEDARSE CON UNA (S2-B · B.3).
+     *
+     * Hasta S2-B se ordenaba todo el grupo y se tomaba la primera: con 50 000
+     * señales empatadas, 50 000 · log 50 000 comparaciones de formas canónicas
+     * para elegir UNA. Ahora, con el MISMO orden:
+     *
+     *   1. en una pasada, la mejor por procedencia, frescura y muestra, y las que
+     *      empatan con ella en las tres —en su orden de llegada—;
+     *   2. entre esas, el contenido: primero la forma corta —el valor y la
+     *      confianza, barata— y la forma canónica SOLO entre las que empatan
+     *      también en ella. A igualdad total gana la que llegó antes, como con
+     *      el `sort` estable: da igual cuál quede, son la misma señal.
+     *
+     * Ganadora, porqué, conflictos y descartadas salen EXACTAMENTE como antes:
+     * las descartadas solo hacen falta si hay desacuerdo, y entonces se ordenan
+     * con el orden entero de siempre (`compararSenales`), que es lo que devolvía
+     * el `sort`. Ninguna decisión depende del orden de llegada.
+     */
+    let empatadas: number[] = [0];
+    for (let i = 1; i < lista.length; i++) {
+      const c = compararProcedencia(lista[i], lista[empatadas[0]]);
+      if (c < 0) empatadas = [i];
+      else if (c === 0) empatadas.push(i);
+    }
+    let g = empatadas[0];
+    if (empatadas.length > 1) {
+      let minima = cortaDe(lista[g]);
+      for (const i of empatadas) { const corta = cortaDe(lista[i]); if (corta < minima) minima = corta; }
+      const finalistas = empatadas.filter((i) => cortaDe(lista[i]) === minima);
+      g = finalistas[0];
+      for (let k = 1; k < finalistas.length; k++) {
+        if (enteraDe(lista[finalistas[k]]) < enteraDe(lista[g])) g = finalistas[k];
+      }
+    }
+    const ganadora = lista[g];
+
+    /*
+     * El porqué, contra la SEGUNDA del orden entero. Si otra empata con la
+     * ganadora en procedencia, frescura y muestra, la segunda es una de ellas y
+     * el porqué es el orden; si no, es la mejor de las demás en esas tres cosas
+     * —el contenido no cambia el porqué—, la primera en llegar.
+     */
     let porque: ConflictoDeSenales['porque'] = 'orden';
-    const ordenadas = [...lista].sort((a, b) => {
-      const fa = PESO_DE_FUENTE[a.s.source] ?? 0;
-      const fb = PESO_DE_FUENTE[b.s.source] ?? 0;
-      if (fa !== fb) return fb - fa;
-      const ta = typeof a.s.at === 'number' ? a.s.at : -Infinity;
-      const tb = typeof b.s.at === 'number' ? b.s.at : -Infinity;
-      if (ta !== tb) return tb - ta;
-      const ma = a.s.sampleSize ?? 0;
-      const mb = b.s.sampleSize ?? 0;
-      if (ma !== mb) return mb - ma;
-      /* El contenido, en un orden fijo. Iguales en todo = la misma señal: da igual cuál quede. */
-      return compararContenido(a, b);
-    });
-    const ganadora = ordenadas[0];
-    const segunda = ordenadas[1];
-    if ((PESO_DE_FUENTE[ganadora.s.source] ?? 0) !== (PESO_DE_FUENTE[segunda.s.source] ?? 0)) porque = 'fuente';
-    else if ((ganadora.s.at ?? -Infinity) !== (segunda.s.at ?? -Infinity)) porque = 'frescura';
-    else if ((ganadora.s.sampleSize ?? 0) !== (segunda.s.sampleSize ?? 0)) porque = 'muestra';
+    if (empatadas.length === 1) {
+      let s = -1;
+      for (let i = 0; i < lista.length; i++) {
+        if (i === g) continue;
+        if (s < 0 || compararProcedencia(lista[i], lista[s]) < 0) s = i;
+      }
+      const segunda = lista[s];
+      if ((PESO_DE_FUENTE[ganadora.s.source] ?? 0) !== (PESO_DE_FUENTE[segunda.s.source] ?? 0)) porque = 'fuente';
+      else if ((ganadora.s.at ?? -Infinity) !== (segunda.s.at ?? -Infinity)) porque = 'frescura';
+      else if ((ganadora.s.sampleSize ?? 0) !== (segunda.s.sampleSize ?? 0)) porque = 'muestra';
+    }
 
     resueltas.push(ganadora.s);
-    const descartadas = ordenadas.slice(1).map((x) => x.s);
     /* Solo es desacuerdo si de verdad dicen cosas distintas. */
-    if (descartadas.some((d) => d.value !== ganadora.s.value)) {
+    if (lista.some((x, i) => i !== g && x.s.value !== ganadora.s.value)) {
+      const descartadas = lista.filter((_, i) => i !== g).sort(compararSenales).map((x) => x.s);
       conflictos.push({ key: ganadora.s.key, subject: ganadora.s.subject, elegida: ganadora.s, porque, descartadas });
     }
   }

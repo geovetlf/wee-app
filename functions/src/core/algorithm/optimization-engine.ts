@@ -32,8 +32,8 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
-import { Contador, GASTO_CERO, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints, ObjectiveAxis } from './objective';
+import { Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { AlgorithmConstraints, ObjectiveAxis, problemasDeLosLados } from './objective';
 import {
   Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales,
 } from './signals';
@@ -316,6 +316,20 @@ export const crearMotorDeOptimizacion = <T = Strategy>(opciones: OpcionesDelOpti
       topes,
     };
 
+    /*
+     * (S2-B · B.1) Unas restricciones mal formadas, con la regla de A1. Antes
+     * cada camino las leía a su manera: una estrategia pasaba por
+     * `violaRestricciones` (`riesgo > NaN` es falso: pasa) y cualquier otra cosa
+     * por su tope (`coste <= NaN` es falso: fuera). Ahora nada es factible sobre
+     * ellas y cada candidato dice cuál está mal; lo demás del juez —la frontera,
+     * la forma, los recursos— va antes, como siempre. En el ciclo no llegan: A9
+     * se para antes.
+     *
+     * (S2-C) Y los topes de pensar, con la misma regla y el mismo veredicto que
+     * A1 y A9 desde S2-B.4/B.5. Van detrás de las restricciones.
+     */
+    const malFormadas = [...problemasDeLosLados(undefined, problema.constraints), ...problemasDelPresupuesto(problema.budget)];
+
     /* 1 · FACTIBILIDAD. Antes de puntuar, comparar o transformar nada. */
     const factibles: (Alternative<T> & { feasible: boolean })[] = [];
     const rechazados: Viabilidad[] = [];
@@ -323,7 +337,10 @@ export const crearMotorDeOptimizacion = <T = Strategy>(opciones: OpcionesDelOpti
       if (!contador.cabe('candidates')) { m.budgetExhausted = true; break; }
       contador.gastar('candidates');
       m.candidatesEvaluated++;
-      const why = juez(c, ctx);
+      const why = malFormadas.length
+        ? (juez(c, { ...ctx, constraints: undefined })
+          ?? { reason: 'constraint' as const, detail: `constraint_conflict · ${malFormadas.join('; ')}` })
+        : juez(c, ctx);
       if (why) { rechazados.push({ id: c?.id ?? '?', feasible: false, why }); m.constraintsRejected++; continue; }
       factibles.push({ ...c, feasible: true });
     }

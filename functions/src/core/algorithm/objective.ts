@@ -198,6 +198,149 @@ export const pesosNormalizados = (objective: Objective | undefined): Readonly<Re
   return Object.freeze(salida);
 };
 
+/* ── Los números de una restricción (S2-B · B.1) ─────────────────────────── */
+
+/**
+ * QUÉ RANGO TIENE CADA NÚMERO DE UNA RESTRICCIÓN.
+ *
+ * Los rangos NO son nuevos: son los que `conflictosDeRestricciones` ya exigía
+ * —un tope positivo para los pasos, el paralelo y la latencia; una fracción
+ * 0–1 para el riesgo, la confianza y la calidad; nada negativo en el dinero—.
+ * `deadlineAt` no tenía ninguno y sigue sin tenerlo: basta con que sea un
+ * instante que se pueda comparar. Lo que añade S2-B es que el número sea de
+ * verdad un número, y FINITO. En este orden salen los conflictos: el de siempre,
+ * con `deadlineAt` detrás.
+ */
+export type RangoDeRestriccion = 'positivo' | 'fraccion' | 'noNegativo' | 'finito';
+
+export const RANGO_DE_RESTRICCION: Readonly<Record<string, RangoDeRestriccion>> = Object.freeze({
+  maxSteps: 'positivo',
+  maxParallel: 'positivo',
+  maxLatencyMs: 'positivo',
+  maxRisk: 'fraccion',
+  minConfidence: 'fraccion',
+  'budget.maxCredits': 'noNegativo',
+  'budget.maxUsd': 'noNegativo',
+  'quality.minScore': 'fraccion',
+  deadlineAt: 'finito',
+});
+
+/** El tipo de lo que llegó, para decirlo sin repetir el valor: un texto podría traer cualquier cosa. */
+const tipoDe = (v: unknown): string => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
+
+/**
+ * ¿VALE ESTE NÚMERO? `undefined` si vale; el motivo si no.
+ *
+ * UNA regla, y la aplican todos: A1 y A9 a cada lado antes de fundirlo, la
+ * fusión, A3, A5 —con sus restricciones y con su `acceptance.minConfidence`— y
+ * A8 con su `minConfidence`. Hacía falta porque `NaN < 0` y `NaN > 1` son
+ * falsos: un `NaN` pasaba por «en rango» y, según el campo, apagaba el mínimo
+ * (`minConfidence`), dejaba fuera a todas (`maxRisk`, `budget.maxUsd`,
+ * `quality.minScore`) o se ignoraba (`deadlineAt`). Un infinito no es un tope
+ * ni un suelo, y un texto o un `null` no son números. Nada de eso se arregla ni
+ * se interpreta: se rechaza, y se dice por qué.
+ */
+export const motivoDeNumeroInvalido = (rango: RangoDeRestriccion, v: unknown): string | undefined => {
+  if (typeof v !== 'number') return `no es un número (${tipoDe(v)})`;
+  if (Number.isNaN(v)) return 'no es un número finito (NaN)';
+  if (!Number.isFinite(v)) return `no es un número finito (${v > 0 ? 'Infinity' : '-Infinity'})`;
+  if (rango === 'positivo' && v <= 0) return 'fuera de rango: tiene que ser mayor que 0';
+  if (rango === 'fraccion' && (v < 0 || v > 1)) return 'fuera de rango: entre 0 y 1';
+  if (rango === 'noNegativo' && v < 0) return 'fuera de rango: no puede ser negativo';
+  return undefined;
+};
+
+const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+
+/** Un campo de `RANGO_DE_RESTRICCION` —`maxRisk`, `budget.maxUsd`…— leído de un objeto de restricciones. */
+const leerCampo = (c: Record<string, unknown>, campo: string): unknown => {
+  const [fuera, dentro] = campo.split('.');
+  if (dentro === undefined) return c[fuera];
+  const contenedor = c[fuera];
+  return esObjeto(contenedor) ? contenedor[dentro] : undefined;
+};
+
+/** Lo mal formado de UN objeto de restricciones: qué campo y por qué. */
+export interface RestriccionMalFormada {
+  /** `maxRisk`, `budget.maxUsd`…; `budget` o `quality` si el contenedor no es un objeto; vacío si no lo es el lado entero. */
+  campo: string;
+  motivo: string;
+}
+
+/**
+ * LO MAL FORMADO DE UN OBJETO DE RESTRICCIONES, mirando cada valor por separado
+ * —ningún cruce entre campos, eso es `conflictosDeRestricciones`—.
+ *
+ * Ausente (`undefined`, o `null` como hasta ahora) no es un error: es no pedir
+ * nada. Un lado o un contenedor (`budget`, `quality`) que no es un objeto sí lo
+ * es: sus números no se podrían leer, y callarlos sería perderlos sin decirlo.
+ */
+export const restriccionesMalFormadas = (c: unknown): readonly RestriccionMalFormada[] => {
+  if (c === undefined || c === null) return Object.freeze([]);
+  if (!esObjeto(c)) return Object.freeze([{ campo: '', motivo: `no es un objeto de restricciones (${tipoDe(c)})` }]);
+  const malas: RestriccionMalFormada[] = [];
+  for (const contenedor of ['budget', 'quality']) {
+    const v = c[contenedor];
+    if (v !== undefined && v !== null && !esObjeto(v)) malas.push({ campo: contenedor, motivo: `no es un objeto (${tipoDe(v)})` });
+  }
+  for (const [campo, rango] of Object.entries(RANGO_DE_RESTRICCION)) {
+    const v = leerCampo(c, campo);
+    if (v === undefined) continue;
+    const motivo = motivoDeNumeroInvalido(rango, v);
+    if (motivo) malas.push({ campo, motivo });
+  }
+  return Object.freeze(malas);
+};
+
+/**
+ * LOS DOS LADOS, CADA UNO CON SU RUTA, ANTES DE FUNDIRLOS (S2-B · B.1).
+ *
+ * La petición (`constraints`) y su objetivo (`objective.constraints`) se miran
+ * por separado. Mirando solo lo fundido, un valor roto de un lado lo tapaba el
+ * otro —un texto se ignoraba y pasaba el número del otro lado— o lo borraba
+ * —`Math.max(0.5, NaN)` es `NaN`—, y nadie sabía de qué lado venía. Cada
+ * problema sale como `ruta: motivo`, primero los de la petición y después los
+ * del objetivo, cada lado en el orden de `RANGO_DE_RESTRICCION`.
+ */
+export const problemasDeLosLados = (objetivo: unknown, peticion: unknown): readonly string[] => {
+  const conRuta = (lado: string) => ({ campo, motivo }: RestriccionMalFormada): string =>
+    `${campo ? `${lado}.${campo}` : lado}: ${motivo}`;
+  return Object.freeze([
+    ...restriccionesMalFormadas(peticion).map(conRuta('constraints')),
+    ...restriccionesMalFormadas(objetivo).map(conRuta('objective.constraints')),
+  ]);
+};
+
+/**
+ * UN LADO QUE SE PUEDE FUNDIR: un objeto, y sin números que no sean finitos.
+ *
+ * Es la guarda de la fusión (`restriccionesEfectivas`), no la validación: quien
+ * funde ya validó cada lado con `problemasDeLosLados` y se paró si algo estaba
+ * mal. Aun así, lo que no es un número finito no entra en una restricción
+ * efectiva —ni se funde con el otro lado ni pasa tal cual—, y un contenedor que
+ * no es un objeto no se lee. Un lado sin nada de eso se devuelve TAL CUAL, el
+ * mismo objeto: con entradas válidas, la fusión es exactamente la de siempre.
+ */
+export const ladoFundible = (c: unknown): AlgorithmConstraints | undefined => {
+  if (!esObjeto(c)) return undefined;
+  const rotos = Object.keys(RANGO_DE_RESTRICCION).filter((campo) => {
+    const v = leerCampo(c, campo);
+    return v !== undefined && !(typeof v === 'number' && Number.isFinite(v));
+  });
+  const contenedoresRotos = ['budget', 'quality'].filter((k) => c[k] !== undefined && c[k] !== null && !esObjeto(c[k]));
+  if (!rotos.length && !contenedoresRotos.length) return c as AlgorithmConstraints;
+  const copia: Record<string, unknown> = { ...c };
+  for (const k of contenedoresRotos) delete copia[k];
+  for (const campo of rotos) {
+    const [fuera, dentro] = campo.split('.');
+    if (dentro === undefined) { delete copia[fuera]; continue; }
+    const contenedor = { ...(copia[fuera] as Record<string, unknown>) };
+    delete contenedor[dentro];
+    copia[fuera] = contenedor;
+  }
+  return copia as AlgorithmConstraints;
+};
+
 /**
  * ¿SE CONTRADICEN LAS RESTRICCIONES?
  *
@@ -208,20 +351,15 @@ export const pesosNormalizados = (objective: Objective | undefined): Readonly<Re
  * Solo detecta lo que se puede afirmar SIN estimar nada. Un «este presupuesto
  * no alcanza para esta calidad» necesita saber lo que cuestan las cosas, y eso
  * es del estimador, no de aquí: decirlo sin datos sería inventar.
+ *
+ * Cada número, con la regla de `motivoDeNumeroInvalido` (S2-B · B.1): la misma
+ * con que se valida cada lado antes de fundirlo. Los nombres y el orden de
+ * los conflictos son los de siempre; `deadlineAt` va detrás.
  */
 export const conflictosDeRestricciones = (c: AlgorithmConstraints | undefined): readonly string[] => {
   if (!c) return [];
-  const malas: string[] = [];
-  const positivo = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0;
-
-  if (c.maxSteps !== undefined && !positivo(c.maxSteps)) malas.push('maxSteps');
-  if (c.maxParallel !== undefined && !positivo(c.maxParallel)) malas.push('maxParallel');
-  if (c.maxLatencyMs !== undefined && !positivo(c.maxLatencyMs)) malas.push('maxLatencyMs');
-  if (c.maxRisk !== undefined && (typeof c.maxRisk !== 'number' || c.maxRisk < 0 || c.maxRisk > 1)) malas.push('maxRisk');
-  if (c.minConfidence !== undefined && (typeof c.minConfidence !== 'number' || c.minConfidence < 0 || c.minConfidence > 1)) malas.push('minConfidence');
-  if (c.budget?.maxCredits !== undefined && c.budget.maxCredits < 0) malas.push('budget.maxCredits');
-  if (c.budget?.maxUsd !== undefined && c.budget.maxUsd < 0) malas.push('budget.maxUsd');
-  if (c.quality?.minScore !== undefined && (c.quality.minScore < 0 || c.quality.minScore > 1)) malas.push('quality.minScore');
+  const malas: string[] = restriccionesMalFormadas(c).map((m) => m.campo || 'constraints');
+  const positivo = (v: unknown) => motivoDeNumeroInvalido('positivo', v) === undefined;
 
   /* Pedir y prohibir la misma capacidad no se puede cumplir de ninguna manera. */
   const prohibidas = new Set(c.forbiddenCapabilities ?? []);

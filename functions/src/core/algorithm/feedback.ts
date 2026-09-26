@@ -39,6 +39,7 @@ import { CAMPOS_PROHIBIDOS } from '../observability';
 import { QualityRequirement } from '../workflow';
 import { violacionesEn } from './authority';
 import { metadataSegura } from './capability';
+import { RangoDeRestriccion, motivoDeNumeroInvalido } from './objective';
 import { Confidence, Evidence, Signal, SignalSource, Uncertainty } from './signals';
 import { Severidad } from './strategy';
 
@@ -630,25 +631,58 @@ export const POLITICA_MINIMA: Readonly<Pick<PoliticaDeAprendizaje, 'minSampleSiz
 });
 
 /**
+ * (S2-C.1 · ALC) EL RANGO DE CADA NÚMERO DE LA POLÍTICA, para la regla de B.1
+ * (`motivoDeNumeroInvalido`, de A0). No son rangos nuevos: son los que
+ * `politicaEfectiva` ya imponía recortando —una fracción para lo que se mide de 0
+ * a 1, nada negativo en la muestra ni en la magnitud, una duración mayor que 0—, y
+ * el de `minConfidence` es el de B.1. Sin exportar: es de A7.
+ */
+const RANGO_DE_LA_POLITICA: Readonly<Record<'minSampleSize' | 'minConfidence' | 'vidaMs' | 'ventanaMs' | 'minFreshness'
+  | 'minStability' | 'maxContradiction' | 'maxMagnitude', RangoDeRestriccion>> = Object.freeze({
+  minSampleSize: 'noNegativo',
+  minConfidence: 'fraccion',
+  vidaMs: 'positivo',
+  ventanaMs: 'positivo',
+  minFreshness: 'fraccion',
+  minStability: 'fraccion',
+  maxContradiction: 'fraccion',
+  maxMagnitude: 'noNegativo',
+});
+
+/**
  * La política de verdad: lo declarado, pero nunca por debajo del suelo.
  *
  * El mismo patrón que `presupuestoEfectivo` en A0, y por el mismo motivo: que
  * alguien pueda ser MÁS estricto siempre, y menos nunca.
+ *
+ * (S2-C.1 · ALC) Y lo MAL FORMADO no afloja nada: un número que no cumple su rango
+ * —con la regla de B.1— o que no es un número es como no declararlo, y rige en ese
+ * campo la política por defecto, con su suelo. Hasta aquí un `NaN` o un texto ya
+ * caían al defecto, pero un negativo o una fracción fuera de 0–1 se recortaban al
+ * extremo: `minSampleSize: -1` bajaba al suelo, `minFreshness: -1` quitaba la
+ * frescura y `maxContradiction: 2` toleraba toda contradicción. Lo válido, como
+ * siempre —con el suelo incluido—. Una política que no es un objeto, la de por defecto.
  */
 export const politicaEfectiva = (declarada?: Partial<PoliticaDeAprendizaje>): PoliticaDeAprendizaje => {
-  const base = { ...POLITICA_POR_DEFECTO, ...(declarada ?? {}) };
-  const num = (v: unknown, porDefecto: number) => (typeof v === 'number' && Number.isFinite(v) ? v : porDefecto);
+  const leida: Partial<PoliticaDeAprendizaje> =
+    typeof declarada === 'object' && declarada !== null && !Array.isArray(declarada) ? declarada : {};
+  const base = { ...POLITICA_POR_DEFECTO, ...leida };
+  const num = (campo: keyof typeof RANGO_DE_LA_POLITICA, porDefecto: number): number => {
+    const v: unknown = leida[campo];
+    return v !== undefined && motivoDeNumeroInvalido(RANGO_DE_LA_POLITICA[campo], v) === undefined ? (v as number) : porDefecto;
+  };
+  const vidaMs = num('vidaMs', POLITICA_POR_DEFECTO.vidaMs);
   return Object.freeze({
     ...base,
-    minSampleSize: Math.max(POLITICA_MINIMA.minSampleSize, num(base.minSampleSize, POLITICA_POR_DEFECTO.minSampleSize)),
-    minConfidence: Math.max(POLITICA_MINIMA.minConfidence, num(base.minConfidence, POLITICA_POR_DEFECTO.minConfidence)),
-    vidaMs: Math.max(1, num(base.vidaMs, POLITICA_POR_DEFECTO.vidaMs)),
-    minFreshness: Math.min(1, Math.max(0, num(base.minFreshness, POLITICA_POR_DEFECTO.minFreshness))),
-    minStability: Math.min(1, Math.max(0, num(base.minStability, POLITICA_POR_DEFECTO.minStability))),
-    maxContradiction: Math.min(1, Math.max(0, num(base.maxContradiction, POLITICA_POR_DEFECTO.maxContradiction))),
-    maxMagnitude: Math.max(0, num(base.maxMagnitude, POLITICA_POR_DEFECTO.maxMagnitude)),
+    minSampleSize: Math.max(POLITICA_MINIMA.minSampleSize, num('minSampleSize', POLITICA_POR_DEFECTO.minSampleSize)),
+    minConfidence: Math.max(POLITICA_MINIMA.minConfidence, num('minConfidence', POLITICA_POR_DEFECTO.minConfidence)),
+    vidaMs: Math.max(1, vidaMs),
+    minFreshness: Math.min(1, Math.max(0, num('minFreshness', POLITICA_POR_DEFECTO.minFreshness))),
+    minStability: Math.min(1, Math.max(0, num('minStability', POLITICA_POR_DEFECTO.minStability))),
+    maxContradiction: Math.min(1, Math.max(0, num('maxContradiction', POLITICA_POR_DEFECTO.maxContradiction))),
+    maxMagnitude: Math.max(0, num('maxMagnitude', POLITICA_POR_DEFECTO.maxMagnitude)),
     permitirSoloImplicito: base.permitirSoloImplicito === true,
-    ventanaMs: Math.max(1, num(base.ventanaMs, num(base.vidaMs, POLITICA_POR_DEFECTO.vidaMs))),
+    ventanaMs: Math.max(1, num('ventanaMs', vidaMs)),
   });
 };
 

@@ -27,7 +27,8 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmDescriptor } from './types';
-import { Contador, crearContador, presupuestoEfectivo } from './budget';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { restriccionesMalFormadas } from './objective';
 import { Confidence, Evidence, Signal, resolverSenales } from './signals';
 import { Severidad } from './strategy';
 import { violacionesEn } from './authority';
@@ -42,7 +43,8 @@ export const VERIFICATION_ENGINE_ID = 'motor-de-verificacion';
 
 export const DESCRIPTOR_DE_VERIFICACION: AlgorithmDescriptor = Object.freeze({
   id: VERIFICATION_ENGINE_ID,
-  version: 1,
+  /* 2 desde S2-C.1 (D3): los topes se comprueban solo con lo medido del resultado, y eso cambia lo que decide. */
+  version: 2,
   contract: ALGORITHM_CONTRACT_VERSION,
   category: 'verification',
   status: 'experimental',
@@ -183,19 +185,57 @@ export const resolverEstructural = (
  *
  * Solo lo que se sabe. Un tope de coste sin coste medido no es un aprobado ni
  * un suspenso: es `unknown`, y si el tope importaba, alguien tendrá que medir.
+ *
+ * (S2-C.1 · ALC) Y un tope MAL FORMADO no se interpreta. Con la regla de B.1
+ * —`restriccionesMalFormadas`, de A0— su comprobación es `inconclusive`: se pidió
+ * y no se puede concluir. Hasta aquí un `NaN` suspendía siempre (620 ≤ NaN es
+ * falso), un infinito aprobaba un techo o suspendía un suelo, 0 o un negativo
+ * suspendían un techo, y un texto o un `null` quitaban la comprobación. Un
+ * contenedor (`budget`, `quality`) que no es un objeto deja sin leer el tope de
+ * dentro, y unas restricciones que no son un objeto, todos: se dice igual. Es el
+ * ÚNICO `inconclusive` que sale de aquí.
  */
 export const comprobarRestricciones = (ctx: ContextoDeVerificacion): readonly VerificationFinding[] => {
   const c = ctx.constraints;
-  if (!c) return Object.freeze([]);
+  if (c === undefined || c === null) return Object.freeze([]);
   const salida: VerificationFinding[] = [];
+  const malas = restriccionesMalFormadas(c);
+  const comprobacion = (id: string): VerificationCheck => ({ id: `constraint:${id}`, type: 'constraint.limit', subject: id, hard: true, severity: 'alto' });
+  const ilegibles = malas.find((x) => x.campo === '');
+  if (ilegibles) {
+    salida.push(hallazgo(comprobacion('constraints'), 'inconclusive',
+      `las restricciones están mal formadas (${ilegibles.motivo}): no se puede concluir ningún tope`, 'structural'));
+    return Object.freeze(salida);
+  }
+  const malFormado = (id: string): string | undefined => {
+    const contenedor = id.includes('.') ? id.slice(0, id.indexOf('.')) : undefined;
+    const p = malas.find((x) => x.campo === id || (contenedor !== undefined && x.campo === contenedor));
+    return p ? (p.campo === id ? p.motivo : `${p.campo}: ${p.motivo}`) : undefined;
+  };
+  /*
+   * (S2-C.1 · D3) LO MEDIDO DEL RESULTADO, y solo eso. El resultado se identifica por
+   * su `id`, y una medida es suya si su `subject` es ese `id`: la de un paso, la de
+   * otro resultado o una `result.*` sin sujeto no se le atribuyen. Hasta 1.11 se
+   * tomaba la primera medida por clave sin mirar el sujeto —y, como llegan resueltas
+   * en orden de clave y sujeto, mandaba el que iba antes por orden alfabético: un paso
+   * «alpha» suspendía al resultado «job-z», o lo aprobaba en falso—.
+   */
+  const delResultado = ctx.resultado?.id;
   const medido = (clave: string): number | undefined => {
-    const s = ctx.signals.find((x) => x.key === clave && typeof x.value === 'number');
+    const s = typeof delResultado === 'string'
+      ? ctx.signals.find((x) => x.key === clave && x.subject === delResultado && typeof x.value === 'number')
+      : undefined;
     return s ? (s.value as number) : undefined;
   };
   const tope = (id: string, clave: string, max: number | undefined, cabe: boolean) => {
+    const check = comprobacion(id);
+    const motivo = malFormado(id);
+    if (motivo) {
+      salida.push(hallazgo(check, 'inconclusive', `el tope ${id} está mal formado (${motivo}): no se puede concluir si cumple`, 'structural'));
+      return;
+    }
     if (typeof max !== 'number') return;
     const v = medido(clave);
-    const check: VerificationCheck = { id: `constraint:${id}`, type: 'constraint.limit', subject: id, hard: true, severity: 'alto' };
     if (typeof v !== 'number') { salida.push(hallazgo(check, 'unknown', `no se midió ${clave}`, 'structural')); return; }
     const cumple = cabe ? v <= max : v >= max;
     salida.push(hallazgo(check, cumple ? 'pass' : 'fail',
@@ -247,6 +287,14 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
      * es una decisión colada por la puerta de atrás. */
     const violaciones = violacionesEn(resultado, `result:${resultado.id}`);
 
+    /*
+     * (S2-C.1 · ALC) UNOS TOPES DE PENSAR MAL FORMADOS no se interpretan: con la regla
+     * de B.1 —la de A1, A3, A4, A5, A8 y el ciclo— no se verifica con ellos. Hasta aquí
+     * se ignoraban y regía el defecto sin decirlo. La autoridad se comprueba igual: un
+     * resultado que nombra implementación falla, esté como esté el presupuesto.
+     */
+    const limitesRotos = problemasDelPresupuesto(peticion.budget);
+
     const expected = [...(peticion.expected ?? [])].filter((e) => !!e && typeof e.kind === 'string');
     const { resueltas } = resolverSenales((peticion.evidence ?? []).map((e) => e?.signal).filter(Boolean) as Signal[]);
     const ctx: ContextoDeVerificacion = {
@@ -272,9 +320,15 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
       m.durosIncumplidos++;
     }
 
-    /* 2 · Resolverlas, acotado. */
+    /* 2 · Resolverlas, acotado. Con los topes de pensar rotos, ninguna: el veredicto no se puede concluir. */
     const vistos = new Set<string>();
-    for (const c of todas) {
+    if (limitesRotos.length) {
+      findings.push(hallazgo({ id: 'budget:limites', type: 'budget.limits', subject: 'budget', hard: true, severity: 'alto' }, 'inconclusive',
+        `los topes de pensar están mal formados (${limitesRotos.join('; ')}): no se verificó con ellos`, 'structural'));
+      m.duros++;
+      porque.push(`Topes de pensar mal formados (${limitesRotos.join('; ')}): no se verifica con ellos, así que no se puede concluir.`);
+    }
+    for (const c of limitesRotos.length ? [] : todas) {
       if (vistos.has(c.id)) continue;      /* Un id repetido es una comprobación, no dos. */
       vistos.add(c.id);
       if (!contador.gastar('checks')) { m.budgetExhausted = true; porque.push('se llegó al tope de comprobaciones'); break; }
@@ -319,18 +373,26 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
     }
 
     /* 3 · Las restricciones, que son topes del Core y no comprobaciones declaradas. */
-    for (const f of comprobarRestricciones(ctx)) {
+    let topesRotos = 0;
+    for (const f of limitesRotos.length ? [] : comprobarRestricciones(ctx)) {
       findings.push(f);
       if (f.hard) { m.duros++; if (afirmaFallo(f.status)) m.durosIncumplidos++; }
+      if (f.status === 'inconclusive') topesRotos++;
     }
+    if (topesRotos) porque.push(`${topesRotos} tope(s) mal formado(s): no se puede concluir si se cumplen.`);
 
     /* 4 · La evidencia: la que entró y la que aportaron los evaluadores. Sin fabricar. */
     const evidencia: Evidence[] = [...(peticion.evidence ?? [])].filter(Boolean);
     const senales: Signal[] = [];
     for (const f of findings) for (const e of f.evidence ?? []) { evidencia.push(e); if (e.signal) senales.push(e.signal); }
 
-    /* 5 · El veredicto. */
-    const status = fusionarEstados(findings);
+    /*
+     * 5 · El veredicto. (S2-C.1 · ALC) Con un tope —o los topes de pensar— mal formados
+     * no se puede concluir: `inconclusive`, ni `fail`, ni `pass`, ni `unknown`. Salvo que
+     * otra comprobación AFIRME un fallo, que se dice igual: un tope roto no tapa un suspenso.
+     */
+    const fundido = fusionarEstados(findings);
+    const status: EstadoDeVerificacion = (topesRotos || limitesRotos.length) && !afirmaFallo(fundido) ? 'inconclusive' : fundido;
     const confidence = confianzaDelVeredicto(findings, evidencia);
     const failures = findings.filter((f) => afirmaFallo(f.status));
     const warnings = findings.filter((f) => esSinSaber(f.status));

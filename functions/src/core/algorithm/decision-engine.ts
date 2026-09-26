@@ -36,9 +36,15 @@ import {
   AlgorithmFailureReason,
   referenciaDeAlgoritmo,
 } from './types';
-import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, pesosNormalizados } from './objective';
-import { Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales } from './signals';
+import {
+  AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador,
+} from './budget';
+import {
+  AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
+} from './objective';
+import {
+  Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales, senalValida,
+} from './signals';
 import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
 import { violacionesDeEstrategia, violacionesEn } from './authority';
@@ -50,6 +56,7 @@ import {
   DecisionWarning,
   HistoryWindow,
   JudgedOption,
+  NoRealChoiceCause,
   sinDecision,
 } from './decision';
 
@@ -62,7 +69,8 @@ export const DECISION_ENGINE_ID = 'motor-de-decision';
  * DECIDE, y esa es la regla de `AlgorithmDescriptor.version`. Las fases
  * anteriores no la aplicaron; el contrato sí subió con cada una.
  */
-export const DECISION_ENGINE_VERSION = 2;
+/* 3 desde S2-B (contrato 1.11): con entradas VÁLIDAS decide distinto —la evidencia de lo que se evalúa (B.4)—. */
+export const DECISION_ENGINE_VERSION = 3;
 export const DECISION_ENGINE_REF = referenciaDeAlgoritmo(DECISION_ENGINE_ID, DECISION_ENGINE_VERSION);
 
 /**
@@ -260,10 +268,19 @@ export const objetivoSinImplementacion = (o: Objective | undefined): Objective =
   });
 };
 
-/** Las restricciones que de verdad rigen: las del contexto y las del objetivo, juntas. */
+/**
+ * Las restricciones que de verdad rigen: las del contexto y las del objetivo, juntas.
+ *
+ * Presupone lados VÁLIDOS (S2-B · B.1): A1 y A9 validan cada uno con
+ * `problemasDeLosLados` antes de llamarla, y un lado mal formado es un
+ * `constraint_conflict` que no llega a fundirse. Aun así, lo que devuelve nunca
+ * lleva un número que no sea finito (`ladoFundible`): antes `Math.max(0.5, NaN)`
+ * daba `NaN` y un lado roto borraba el valor válido del otro. Con lados válidos
+ * el resultado es exactamente el de siempre, y un lado solo se devuelve tal cual.
+ */
 export const restriccionesEfectivas = (ctx: DecisionContext<unknown>): AlgorithmConstraints | undefined => {
-  const a = ctx.objective?.constraints;
-  const b = ctx.constraints;
+  const a = ladoFundible(ctx.objective?.constraints);
+  const b = ladoFundible(ctx.constraints);
   if (!a) return b;
   if (!b) return a;
   /* Se combinan quedándose con lo MÁS ESTRECHO: una restricción no se relaja por venir dos veces. */
@@ -413,6 +430,80 @@ export const evidenciaDeOpcion = <T>(
   const estrategia = estrategiaDe(opcion.value);
   const suyas = estrategia?.expected?.confidence?.basis ?? [];
   return Object.freeze([...suyas, ...propias]);
+};
+
+/* ── 3b · Cuánta evidencia cabe (S2-B · B.4) ──────────────────────────────── */
+
+/**
+ * LO QUE TRAEN LAS SEÑALES, SIN RESOLVER NADA TODAVÍA (S2-B · B.4).
+ *
+ * Una pasada lineal y barata sobre TODAS: cuáles son válidas, qué claves traen,
+ * qué grupos (clave, sujeto) forman y si en alguno se contradicen. Lo caro —el
+ * desempate de B.3, con sus formas canónicas— se deja para las piezas que de
+ * verdad se van a usar.
+ *
+ * El desacuerdo se mira con el mismo predicado que `resolverSenales`: un grupo
+ * lo tiene si alguna señal dice otra cosa que la primera. Es lo mismo que «otra
+ * cosa que la elegida», sea cual sea la elegida, y así el aviso `signal_conflict`
+ * sigue saliendo por las mismas señales que antes, también por las que no son
+ * evidencia de nadie.
+ */
+export interface InventarioDeSenales {
+  /** Por sujeto (`''` sin sujeto, como agrupa `resolverSenales`) y por clave: las válidas, en su orden de llegada. */
+  porSujeto: ReadonlyMap<string, ReadonlyMap<string, readonly Signal[]>>;
+  /** Las claves de todas las válidas, ordenadas: lo que se miró (`signalKeys`). */
+  claves: readonly string[];
+  /** ¿Algún grupo, de cualquier sujeto, con valores distintos? */
+  hayConflicto: boolean;
+}
+
+export const inventarioDeSenales = (senales: readonly unknown[] | undefined): InventarioDeSenales => {
+  const porSujeto = new Map<string, Map<string, Signal[]>>();
+  const claves = new Set<string>();
+  let hayConflicto = false;
+  for (const s of senales ?? []) {
+    if (!senalValida(s)) continue;
+    claves.add(s.key);
+    const sujeto = s.subject ?? '';
+    let porClave = porSujeto.get(sujeto);
+    if (!porClave) { porClave = new Map(); porSujeto.set(sujeto, porClave); }
+    const grupo = porClave.get(s.key);
+    if (!grupo) porClave.set(s.key, [s]);
+    else { if (s.value !== grupo[0].value) hayConflicto = true; grupo.push(s); }
+  }
+  return { porSujeto, claves: Object.freeze([...claves].sort()), hayConflicto };
+};
+
+/**
+ * EN QUÉ ORDEN SE TOMAN LAS PIEZAS DE EVIDENCIA (S2-B · B.4).
+ *
+ * Una pieza es un grupo (clave, sujeto) cuyo sujeto es una alternativa que se
+ * evalúa: lo que `evidenciaDeOpcion` convierte en su evidencia. Las de sujetos
+ * que no se evalúan —ni `subject`, un paso, una alternativa que no compite— no
+ * son evidencia de nadie y no entran aquí: no gastan el presupuesto.
+ *
+ * Por TURNOS entre las alternativas, en el orden en que llegan —el de su `id`—:
+ * la primera clave de cada una, luego la segunda… y dentro de cada una por
+ * clave. No «todo lo de la primera»: la evidencia es su confianza, y dársela
+ * entera a unas y nada a otras las desempataría por su nombre. No es una
+ * puntuación: es el orden en que se toma lo que cabe, y no depende del orden de
+ * llegada de nada.
+ */
+export const piezasPorTurnos = (
+  inventario: InventarioDeSenales,
+  sujetos: readonly string[],
+): readonly (readonly Signal[])[] => {
+  const colas = sujetos.map((id) => {
+    const porClave = inventario.porSujeto.get(id);
+    return porClave ? [...porClave.keys()].sort().map((k) => porClave.get(k) as readonly Signal[]) : [];
+  });
+  const salida: (readonly Signal[])[] = [];
+  for (let turno = 0; ; turno++) {
+    let alguna = false;
+    for (const cola of colas) if (turno < cola.length) { salida.push(cola[turno]); alguna = true; }
+    if (!alguna) break;
+  }
+  return salida;
 };
 
 /* ── 4 · Confianza ────────────────────────────────────────────────────────── */
@@ -637,10 +728,32 @@ export const explicar = (
       ? `Cumple las restricciones; ${duras.length} opción(es) quedaron fuera por no cumplirlas.`
       : 'Cumple las restricciones, y ninguna quedó fuera por ellas.');
   }
-  const desglose = elegida.score
-    ? ejes.map((e) => `${e} ${(elegida.score as StrategyScore).fits[e].toFixed(2)}×${pesos[e].toFixed(2)}`).join(' · ')
-    : '';
-  if (desglose) frases.push(`Desglose: ${desglose}.`);
+  /*
+   * EL DESGLOSE, QUE CUADRA CON EL TOTAL (S2-B · B.2).
+   *
+   * Un eje con peso que no se pudo medir sale «sin medir», sin número: el `fit`
+   * que guarda la puntuación es un 0 de relleno —`puntuar` lo nombra en
+   * `missing`—, y escrito como «0.00×0.50» junto a un total que no lo contó, el
+   * desglose no sumaba y parecía que lo ausente había puntuado 0. Un eje medido
+   * sale con su número aunque valga 0: un 0 medido es un dato. Un eje sin peso no
+   * sale. Y cuando falta algo se dice sobre qué se calculó el total: la suma de
+   * lo medido entre el peso medido, con la cobertura. El total no cambia.
+   */
+  const score = elegida.score;
+  if (score) {
+    const faltan = new Set(score.missing);
+    frases.push(`Desglose: ${ejes.map((e) => (faltan.has(e)
+      ? `${e} sin medir`
+      : `${e} ${score.fits[e].toFixed(2)}×${pesos[e].toFixed(2)}`)).join(' · ')}.`);
+    const medidos = ejes.filter((e) => !faltan.has(e));
+    if (medidos.length < ejes.length) {
+      const pesoMedido = medidos.reduce((s, e) => s + pesos[e], 0);
+      const aporta = medidos.reduce((s, e) => s + score.fits[e] * pesos[e], 0);
+      frases.push(pesoMedido > 0
+        ? `Total renormalizado sobre lo medido: ${aporta.toFixed(3)} ÷ ${pesoMedido.toFixed(2)} = ${score.total.toFixed(3)}; cobertura ${score.coverage.toFixed(2)}.`
+        : 'Ningún eje con peso se pudo medir: el total vale 0 por convención, y la cobertura es 0.');
+    }
+  }
 
   if (segunda) {
     const quien = quienDesempato(elegida, segunda, comparadores);
@@ -693,7 +806,6 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       };
     }
 
-    const constraints = restriccionesEfectivas(ctx);
     const objective = ctx.objective;
 
     /*
@@ -705,8 +817,16 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
      * S2-A se ignoraban al decidir y se devolvían TAL CUAL en `objective` y
      * `constraints`, que es justo por donde un requisito llega a la ejecución.
      * Ahora la petición se rechaza y lo que traía no se repite.
+     *
+     * Desde S2-B se mira sobre los DOS lados tal como llegan —cada uno desde su
+     * raíz, con las mismas claves que su fusión— y no sobre la fusión: así nada
+     * se funde antes de validarlo, y la frontera sigue yendo primero.
      */
-    const cruces = [...violacionesEn(objective, 'objective'), ...violacionesEn(constraints, 'constraints')];
+    const cruces = [
+      ...violacionesEn(objective, 'objective'),
+      ...violacionesEn(objective?.constraints, 'constraints'),
+      ...violacionesEn(ctx.constraints, 'constraints'),
+    ];
     if (cruces.length) {
       const claves = [...new Set(cruces.map((c) => c.clave))].sort();
       return {
@@ -718,6 +838,34 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
         ]),
       };
     }
+
+    /*
+     * LOS DOS LADOS, BIEN FORMADOS, ANTES DE FUNDIRLOS (S2-B · B.1).
+     *
+     * La petición y su objetivo se validan cada uno por su cuenta, con la regla
+     * de `motivoDeNumeroInvalido`. Un lado roto no se funde: antes `Math.max(0.5,
+     * NaN)` daba `NaN` y un `minConfidence` válido desaparecía; un `maxRisk: NaN`
+     * dejaba fuera a todas diciendo que no cumplían. Ahora es un conflicto que
+     * nombra el lado, el campo y el motivo, y lo roto no se repite: el objetivo
+     * se devuelve sin sus restricciones y no hay `constraints` efectivas.
+     */
+    const malFormadas = problemasDeLosLados(objective?.constraints, ctx.constraints);
+    /*
+     * Y los topes de pensar que S2-B · B.4 lee —`maxEvidence`, `maxDepth`—, con
+     * la MISMA regla y el mismo veredicto: uno roto ya no se ignora para que rija
+     * el defecto sin decirlo. Van detrás de las restricciones.
+     */
+    const presupuestoMalFormado = problemasDelPresupuesto(ctx.budget);
+    if (malFormadas.length || presupuestoMalFormado.length) {
+      return {
+        ...sinDecision<T>(DECISION_ENGINE_REF, { objective: objetivoSinImplementacion(objective), trace: ctx.trace },
+          'constraint_conflict', contador.gasto()),
+        explanation: Object.freeze([
+          `Restricciones mal formadas, que ni se funden ni se usan para decidir: ${[...malFormadas, ...presupuestoMalFormado].join('; ')}.`,
+        ]),
+      };
+    }
+    const constraints = restriccionesEfectivas(ctx);
     const base = { objective, trace: ctx.trace };
     const cerrar = (fallo: AlgorithmFailureReason, frases: readonly string[], extra: Partial<AlgorithmDecision<T>> = {}) => ({
       ...sinDecision<T>(DECISION_ENGINE_REF, base, fallo, contador.gasto(), { warnings: [...avisos] }),
@@ -738,11 +886,19 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
     const todas = [...(ctx.options ?? [])].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     if (!todas.length) return cerrar('insufficient_evidence', ['No llegó ninguna alternativa que evaluar.']);
 
-    /* 2 · Señales: una por clave y sujeto, con la procedencia mandando. */
-    const { resueltas, conflictos: choques } = resolverSenales(ctx.signals ?? []);
-    if (choques.length) avisos.add('signal_conflict');
-    /* Cada señal que se mira cuesta: un contexto con diez mil no puede salir gratis. */
-    for (let i = 0; i < resueltas.length; i++) if (!contador.gastar('evidence')) break;
+    /*
+     * 2 · Señales: lo que traen, SIN resolverlas todavía (S2-B · B.4).
+     *
+     * Hasta S2-B se resolvían TODAS aquí y cada una gastaba evidencia, fuera de
+     * quien fuera. Con más que `maxEvidence` el contador se agotaba antes de mirar
+     * una sola alternativa, `cabe('candidates')` decía que no, y salía «Ninguna de
+     * las 0 alternativas cumple las restricciones» —también con 65 señales sobre
+     * algo que ni era una alternativa—. Aquí solo se hace el inventario, que es
+     * lineal y barato; qué evidencia cabe se decide después, sobre las
+     * alternativas que de verdad se evalúan, y solo eso se resuelve.
+     */
+    const inventario = inventarioDeSenales(ctx.signals);
+    if (inventario.hayConflicto) avisos.add('signal_conflict');
 
     /* 3 · Restricciones duras, ANTES de puntuar, y acotado por presupuesto. */
     const consideradas: Alternative<T>[] = [];
@@ -756,6 +912,22 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       if (!contador.cabe('candidates')) { avisos.add('candidates_capped'); avisos.add('budget_exhausted'); break; }
       contador.gastar('candidates');
       consideradas.push(o);
+    }
+    /*
+     * LLEGARON ALTERNATIVAS Y EL PRESUPUESTO NO DEJÓ MIRAR NINGUNA (S2-B · B.4).
+     *
+     * No es «ninguna cumple las restricciones»: no se llegó a mirarlas. Es el
+     * único caso en que el presupuesto no deja nada que devolver, y para eso
+     * está `budget_exceeded` («Fallar solo es correcto cuando NO hay nada que
+     * devolver», `budget.ts`). Con el presupuesto de evidencia ya no pasa —se
+     * gasta después, sobre lo que se evalúa—; queda para los topes que sí
+     * cortan antes: `maxCandidates` o `maxAlgorithmCalls` a 0, o el reloj.
+     */
+    if (!consideradas.length) {
+      const agotado = contador.agotado();
+      const tope = agotado ? topeDelContador(agotado) : 'maxCandidates';
+      return cerrar('budget_exceeded', [`Llegaron ${todas.length} alternativa(s), pero el presupuesto de pensar se agotó `
+        + `(${tope} ${topes[tope]}) antes de evaluar ninguna: no es que no las haya, es que no se llegó a mirarlas.`]);
     }
     const veredictos = filtrarPorRestricciones(consideradas, constraints, politica);
     const porId = new Map(veredictos.map((v) => [v.id, v]));
@@ -785,6 +957,37 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
         { candidates: juzgadasDe(rechazadasComoCandidatas()) },
       );
     }
+
+    /*
+     * 3b · EL PRESUPUESTO DE EVIDENCIA, SOBRE LO QUE SE EVALÚA (S2-B · B.4).
+     *
+     * `maxEvidence` es cuántas piezas de evidencia usa la evaluación: una pieza,
+     * un grupo (clave, sujeto) cuyo sujeto es una alternativa admitida. Las
+     * demás señales no son evidencia de nadie y no gastan nada. Se pregunta ANTES
+     * de gastar, como con las candidatas, y lo que no cabe no se resuelve ni se
+     * mira: se decide con lo que cupo —lo mejor encontrado, la regla de
+     * `budget.ts`— y se dice con lo que el contrato ya tiene: `budget_exhausted`,
+     * `spend.evidence` (las usadas) y una frase. Todas las admitidas se siguen
+     * evaluando: un presupuesto de evidencia nunca deja «0 alternativas».
+     */
+    const turnos = piezasPorTurnos(inventario, admitidas.map((o) => o.id));
+    const crudas: Signal[] = [];
+    let usadas = 0;
+    for (const grupo of turnos) {
+      if (!contador.cabe('evidence')) break;
+      contador.gastar('evidence');
+      usadas++;
+      for (const s of grupo) crudas.push(s);
+    }
+    const fraseDeEvidencia: readonly string[] = usadas < turnos.length
+      ? [`Evidencia acotada por el presupuesto: se usaron ${usadas} de ${turnos.length} pieza(s) sobre las ${admitidas.length} `
+        + `alternativa(s) evaluadas (${usadas >= topes.maxEvidence ? `maxEvidence ${topes.maxEvidence}` : `se agotó ${contador.agotado() ?? 'el presupuesto'}`}), `
+        + 'por turnos entre ellas en orden de id; el resto no se miró.']
+      : [];
+    /* (1.12) El aviso general, y el propio: la evidencia se acotó (S2-C.1 · V). */
+    if (fraseDeEvidencia.length) { avisos.add('budget_exhausted'); avisos.add('evidence_capped'); }
+    /* Una por clave y sujeto, con la procedencia mandando: B.3, sobre lo que cupo. */
+    const { resueltas } = resolverSenales(crudas);
 
     /* 4 · Evidencia y 5 · puntuación, SIN historial: así se decide quién compite. */
     const evidenciaPorId = new Map<string, readonly Evidence[]>();
@@ -838,7 +1041,7 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       /* Sin ninguna que compita, lo que el historial NO hizo también se dice: no rescató a nadie. */
       return cerrar('insufficient_evidence',
         [`Las ${porConfianza.length} alternativas viables se quedan por debajo de la confianza mínima (${constraints?.minConfidence}).`,
-          ...explicarHistorial(delAmbito, uso, noCompiten)],
+          ...explicarHistorial(delAmbito, uso, noCompiten), ...fraseDeEvidencia],
         { candidates: juzgadasDe([...rechazadasComoCandidatas(), ...porConfianza.map((v) => ({
           id: v.id, value: (admitidas.find((o) => o.id === v.id) as Alternative<T>).value, eligible: false, reason: v.reason,
         }))]) });
@@ -859,7 +1062,29 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       avisos.add('below_min_confidence');
     }
     if (DESCRIPTOR_DEL_MOTOR.status === 'experimental') avisos.add('experimental_algorithm');
-    if (contador.agotado()) avisos.add('budget_exhausted');
+    /*
+     * (1.12) El aviso general, y el propio: se pasó un contador. Los de candidatas y
+     * evidencia se preguntan ANTES de gastar y nunca se pasan —esos los dicen
+     * `candidates_capped` y `evidence_capped`—, así que lo que llega aquí es otro
+     * contador: iteraciones, llamadas, reloj… (S2-C.1 · V).
+     */
+    if (contador.agotado()) { avisos.add('budget_exhausted'); avisos.add('counter_exhausted'); }
+
+    /*
+     * (1.12 · S2-C.1 · D11) SIN ELECCIÓN REAL: solo una llegó a competir. Se dice por
+     * qué, en el orden en que se filtró; no toca la selección, la puntuación ni la
+     * confianza —esas ya están decididas arriba—.
+     */
+    const sinEleccion: NoRealChoiceCause[] = [];
+    if (juzgadas.length === 1) {
+      if (todas.length === 1) sinEleccion.push('single_option');
+      else {
+        if (consideradas.length < todas.length) sinEleccion.push('candidates_capped');
+        if (rechazadas.length) sinEleccion.push('constraints');
+        if (porConfianza.length && fraseDeEvidencia.length) sinEleccion.push('evidence_capped');
+        if (porConfianza.length) sinEleccion.push('min_confidence');
+      }
+    }
 
     const evidenciaElegida = evidenciaFinal(elegida.id);
     const uncertainty: Uncertainty = incertidumbreDe(elegida.confidence);
@@ -884,17 +1109,19 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       uncertainty,
       evidence: evidenciaElegida,
       warnings: Object.freeze([...avisos]),
+      ...(sinEleccion.length ? { noRealChoice: Object.freeze({ causes: Object.freeze(sinEleccion) }) } : {}),
       objective,
       constraints,
       /* Lo que se MIRÓ, también el historial: es la prueba de que se leyó. */
       signalKeys: Object.freeze([...new Set([
-        ...resueltas.map((s) => s.key),
+        ...inventario.claves,
         ...(delAmbito && 'ventana' in delAmbito ? ['history.decision'] : []),
         ...(uso.usadas.length ? ['history.successRate'] : []),
       ])].sort()),
       explanation: Object.freeze([
         ...explicar(elegida, ordenadas[1], [...rechazadas, ...porConfianza], objective, constraints, frente, comparadores),
         ...explicarHistorial(delAmbito, uso, noCompiten),
+        ...fraseDeEvidencia,
       ]),
       paretoFront: frente.length > 1 ? Object.freeze(frente) : undefined,
       spend: contador.gasto(),
