@@ -108,19 +108,28 @@ export const presupuestoEfectivo = (
 };
 
 /**
- * LOS TOPES DE PENSAR QUE SE VALIDAN, CON SU RANGO DE SIEMPRE (S2-B · B.4).
+ * LOS TOPES DE PENSAR QUE SE VALIDAN, CON SU RANGO DE SIEMPRE (S2-B · B.4, B.5).
  *
- * `maxEvidence` y `maxDepth`: los dos a los que S2-B · B.4 les da significado.
- * Su rango NO es nuevo: es el que `presupuestoEfectivo` ya exigía para tenerlos
- * en cuenta —un número finito y no negativo—. Lo que cambia es qué pasa con uno
- * que no lo cumple: ya no se ignora en silencio para que rija el defecto, sino
- * que se rechaza con la regla de las restricciones (`motivoDeNumeroInvalido`,
- * S2-B · B.1), la misma función y el mismo veredicto. El resto de topes sigue,
- * por ahora, con la regla de `presupuestoEfectivo`.
+ * TODOS los de `AlgorithmBudgetLimits`. Su rango NO es nuevo: es el que
+ * `presupuestoEfectivo` ya exigía para tenerlos en cuenta —un número finito y no
+ * negativo, el mismo para los nueve—. Lo que cambia es qué pasa con uno que no lo
+ * cumple: ya no se ignora en silencio para que rija el defecto, sino que se
+ * rechaza con la regla de las restricciones (`motivoDeNumeroInvalido`, S2-B ·
+ * B.1), la misma función y el mismo veredicto. Primero los dos a los que S2-B.4
+ * les dio significado; después los demás, en el orden en que los declara el
+ * contrato. `maxReplans` no lo lee nadie todavía, y se valida igual: es de la
+ * familia.
  */
-export const RANGO_DEL_PRESUPUESTO: Readonly<Partial<Record<keyof AlgorithmBudgetLimits, RangoDeRestriccion>>> = Object.freeze({
+export const RANGO_DEL_PRESUPUESTO: Readonly<Record<keyof AlgorithmBudgetLimits, RangoDeRestriccion>> = Object.freeze({
   maxEvidence: 'noNegativo',
   maxDepth: 'noNegativo',
+  maxLatencyMs: 'noNegativo',
+  maxCandidates: 'noNegativo',
+  maxIterations: 'noNegativo',
+  maxReplans: 'noNegativo',
+  maxAlgorithmCalls: 'noNegativo',
+  maxChecks: 'noNegativo',
+  maxEvaluators: 'noNegativo',
 });
 
 /**

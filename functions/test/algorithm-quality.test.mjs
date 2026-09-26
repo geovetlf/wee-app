@@ -2121,10 +2121,15 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     paradas.length === 0 && control.status === 'decided'
     && igual(control.recorrido, ['context', 'decomposition', 'parallelization', 'strategy', 'optimization', 'decision', 'handoff']),
     paradas.slice(0, 3).join(' | ') || control.recorrido.join('>'));
-  /* Lo que NO se valida todavía, fijado para que no cambie sin decirlo: el resto de la familia del presupuesto. */
+  /*
+   * Lo que B.4 dejó fijado como DEUDA ABIERTA —el resto de la familia del presupuesto, que se ignoraba si venía
+   * mal formado— lo cerró S2-B.5 en A1 y en el ciclo: la misma regla, los nueve topes, en su orden.
+   */
   const familia = a1.decidir(contexto({ options: OPCIONES_R, budget: { maxCandidates: NaN, maxIterations: -1, maxLatencyMs: 'x', maxChecks: Infinity } }));
-  check(`${numero()} · B.4 · DEUDA ABIERTA, fijada: el resto de topes de pensar (maxCandidates, maxIterations, maxLatencyMs, maxChecks…) sigue con la regla de \`presupuestoEfectivo\` —lo mal formado se ignora y rige el defecto—`,
-    familia.status === 'decided' && familia.spend.candidates === 2 && Object.keys(A.RANGO_DEL_PRESUPUESTO).join(',') === 'maxEvidence,maxDepth',
+  check(`${numero()} · B.4 · (cerrada en S2-B.5) el resto de topes de pensar ya no se ignora mal formado: la misma regla de B.1 para los nueve, en el orden de \`RANGO_DEL_PRESUPUESTO\``,
+    esConflictoB1(familia, ['budget.maxLatencyMs: no es un número (string)', 'budget.maxCandidates: no es un número finito (NaN)',
+      'budget.maxIterations: fuera de rango: no puede ser negativo', 'budget.maxChecks: no es un número finito (Infinity)'])
+    && Object.keys(A.RANGO_DEL_PRESUPUESTO).join(',') === 'maxEvidence,maxDepth,maxLatencyMs,maxCandidates,maxIterations,maxReplans,maxAlgorithmCalls,maxChecks,maxEvaluators',
     verR(familia));
 }
 
@@ -2264,6 +2269,48 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
   const faltan = DEBE_DECIR.filter((f) => !B4.includes(f));
   check(`${numero()} · B.4 · el documento dice lo que hay: en la rama y sin integrar, el versionado SIN decidir, las reglas (por turnos, 64/65, 512/513, antes de resolver, \`budget_exceeded\`, la regla de B.1, el plan que existe), los huecos de contrato, la regresión y las pruebas`,
     B4.length > 0 && faltan.length === 0, faltan.join(' · ') || `${DEBE_DECIR.length} afirmaciones`);
+}
+
+console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───');
+
+/*
+ * PARTE 3 · TODOS LOS TOPES DE PENSAR, con la regla de B.1. La lista sale del contrato
+ * (`TOPES_POR_DEFECTO` tiene una clave por campo de `AlgorithmBudgetLimits`), no de aquí.
+ */
+{
+  const TODOS = Object.keys(A.TOPES_POR_DEFECTO);
+  const ROTOS_S = [[NaN, 'no es un número finito (NaN)'], [Infinity, 'no es un número finito (Infinity)'], [-Infinity, 'no es un número finito (-Infinity)'],
+    [-1, 'fuera de rango: no puede ser negativo'], ['3', 'no es un número (string)'], [null, 'no es un número (null)'], [true, 'no es un número (boolean)'],
+    [{}, 'no es un número (object)'], [[], 'no es un número (array)']];
+  const fallos = [];
+  for (const campo of TODOS) {
+    for (const [v, motivo] of ROTOS_S) {
+      const d = decidirR(piezasR(4), { [campo]: v });
+      if (!esConflictoB1(d, [`budget.${campo}: ${motivo}`]) || motivo !== A.motivoDeNumeroInvalido('noNegativo', v)) fallos.push(`${campo}=${String(v)} → ${d.failure}`);
+    }
+  }
+  check(`${numero()} · B.5 · los ${TODOS.length} topes de pensar del contrato —no solo maxEvidence y maxDepth— mal formados (NaN, ±Infinity, negativo, texto, null, booleano, objeto, array): \`constraint_conflict\` con \`budget.<campo>\` y el motivo de B.1, la MISMA función`,
+    TODOS.length === 9 && igual([...TODOS].sort(), Object.keys(A.RANGO_DEL_PRESUPUESTO).sort()) && fallos.length === 0, fallos.slice(0, 4).join(' | '));
+
+  /* Y NO cambia ninguna decisión válida: un número finito ≥ 0 —0, fraccionario o por encima del techo, que se recorta— nunca es un problema. */
+  const azar = generador(5_3_2026);
+  const VALIDOS = [0, 0.5, 1, 3, 64, 1e9];
+  const falsosPositivos = [];
+  for (let k = 0; k < 500; k++) {
+    const budget = Object.fromEntries(TODOS.filter(() => azar() < 0.5).map((c) => [c, VALIDOS[Math.floor(azar() * VALIDOS.length)]]));
+    const d = decidirR(piezasR(6), budget);
+    if (A.problemasDelPresupuesto(budget).length || d.failure === 'constraint_conflict') falsosPositivos.push(JSON.stringify(budget));
+  }
+  check(`${numero()} · B.5 · PROPIEDAD · 500 presupuestos VÁLIDOS al azar (0, fraccionarios, por encima del techo): ninguno es mal formado, y A1 nunca responde \`constraint_conflict\` por ellos —lo válido decide como antes—`,
+    falsosPositivos.length === 0, falsosPositivos.slice(0, 2).join(' | '));
+
+  /* A9 lo mira en 0b para cualquiera de los nueve, antes de componer. */
+  const paradas = TODOS.map((campo) => {
+    const r = ciclo.decidir(peticion({ decision: decisionBase({ budget: { [campo]: 'x' } }) }));
+    return paradaB1(r, [`budget.${campo}: no es un número (string)`]) ? '' : `${campo}: ${r.status}/${r.parada} [${r.recorrido}]`;
+  }).filter(Boolean);
+  check(`${numero()} · B.5 · A9 se para en 0b con CUALQUIERA de los nueve topes mal formado —ni contexto ni A2— y A1 lo dice como conflicto`,
+    paradas.length === 0, paradas.slice(0, 3).join(' | '));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
