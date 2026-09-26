@@ -64,6 +64,49 @@ const idDe = <T>(d: AlgorithmDecision<T>, valor: T | undefined): string | undefi
 const comoEvidencia = (senales: readonly Signal[]): readonly Evidence[] =>
   Object.freeze(senales.map((s) => Object.freeze({ claim: s.key, signal: s, supports: true })));
 
+/** Cuántos de cada motivo, en orden fijo: `max_steps_exceeded ×2, constraint:maxLatencyMs ×1`. */
+const cuentaDeMotivos = (motivos: readonly string[]): string => {
+  const n = new Map<string, number>();
+  for (const m of motivos) n.set(m, (n.get(m) ?? 0) + 1);
+  return [...n.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([m, k]) => `${m} ×${k}`).join(', ');
+};
+const esDeRestriccion = (motivo: string): boolean => motivo === 'max_steps_exceeded' || motivo === 'max_parallel_exceeded'
+  || motivo.startsWith('constraint:') || motivo === 'constraint' || motivo === 'unverifiable' || motivo === 'resource';
+
+/**
+ * POR QUÉ LA COMPOSICIÓN SE QUEDÓ SIN ALTERNATIVAS ANTES DE A1 (S2-B.5).
+ *
+ * Solo lee lo que cada autoridad ya devolvió —los descartes de A2, A4, A3 y A5
+ * con sus motivos de siempre, y sus marcas de presupuesto—, del camino que de
+ * verdad alimentó la decisión: A2 sin `paralelizar`, A4 con él. No decide nada ni
+ * cambia nada: A1 sigue recibiendo la lista vacía y sigue diciendo lo que ve
+ * («No llegó ninguna alternativa que evaluar»); esto dice en el `because` del
+ * ciclo lo que pasó antes, que A1 no puede saber. `maxDepth` no llega aquí: el
+ * ciclo ya se paró (S2-B.4).
+ */
+const porQueSeVacio = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult, 'decomposition' | 'parallelization' | 'strategies' | 'optimization'>): string => {
+  const partes: string[] = [];
+  const di = (quien: string, que: string, motivos: readonly string[]): void => {
+    if (!motivos.length) return;
+    const todas = motivos.every(esDeRestriccion);
+    partes.push(`${quien} descartó ${motivos.length} ${que}${todas ? ' por restricciones' : ''} (${cuentaDeMotivos(motivos)})`);
+  };
+  if (!paralelizar) {
+    di('A2', 'disposición(es)', (r.decomposition?.rechazadas ?? []).map((x) => x.reason));
+    if (r.decomposition?.metricas.optionLimitReached && !(r.decomposition.opciones.length)) {
+      partes.push('el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`)');
+    }
+  } else if (r.parallelization?.metricas.budgetExhausted && !r.parallelization.metricas.variants) {
+    partes.push('el presupuesto de pensar no dejó a A4 proponer ninguna variante (`budgetExhausted`)');
+  }
+  di('A3', 'estrategia(s)', (r.strategies?.rechazadas ?? []).map((x) => x.reason));
+  if (r.strategies?.metricas.budgetExhausted && !r.strategies.estrategias.length) {
+    partes.push('el presupuesto de pensar no dejó a A3 construir ninguna estrategia (`budgetExhausted`)');
+  }
+  di('A5', 'candidata(s) por inviables', (r.optimization?.rejected ?? []).map((x) => x.why?.reason ?? 'malformed'));
+  return `La composición se quedó sin alternativas antes de A1 —no es que no llegara ninguna—: ${partes.join('; ') || 'sin un motivo que lo explique'}.`;
+};
+
 export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
   const a1 = crearMotorDeDecision<unknown>();
   const a2 = crearMotorDeDescomposicion(opciones.capacidades ? { capacidades: opciones.capacidades } : {});
@@ -336,6 +379,14 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       salida = { ...salida, optimization };
       candidatas = [...optimization.feasible, ...optimization.proposals.map((p) => p.result)];
     }
+
+    /*
+     * 7b · (S2-B.5) Si la composición se quedó sin alternativas por otra cosa que
+     * `maxDepth` —restricciones, el presupuesto de candidatas—, el ciclo lo dice
+     * con lo que las autoridades devolvieron. La decisión no cambia: A1 corre
+     * igual, sobre la lista vacía.
+     */
+    if (!candidatas.length) porque.push(porQueSeVacio(peticion.componer?.paralelizar === true, salida));
 
     /* 8 · DECISIÓN. A1, entre lo que A3 generó y A5 dejó en pie o propuso. */
     recorrido.push('decision');

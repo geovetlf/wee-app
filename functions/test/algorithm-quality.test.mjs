@@ -2224,16 +2224,17 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
 
   /*
    * CONTROL · la parada es SOLO del presupuesto. Si la composición se vacía por restricciones (aquí `maxSteps`
-   * por debajo de los pasos del plan), ningún tope se alcanzó y el ciclo sigue como en f30079c: A1 recibe la lista
-   * vacía y dice «No llegó ninguna alternativa». Eso es una DEUDA ABIERTA —«descartadas por restricciones» no llega
-   * a A1 en el ciclo— y se fija aquí para que no cambie sin decirlo.
+   * por debajo de los pasos del plan), ningún tope se alcanzó y la DECISIÓN sigue como en f30079c: A1 recibe la
+   * lista vacía y dice lo que ve, «No llegó ninguna alternativa». Desde S2-B.5 el `because` del ciclo dice además
+   * por qué se vació (A2, por restricciones); el motivo ESTRUCTURADO sigue siendo el genérico —deuda de contrato—.
    */
   const porRestricciones = cicloD.decidir({ ...pedirD(linealD(4), undefined, 'simple'),
     decision: { ...pedirD(linealD(4), undefined, 'simple').decision, constraints: { maxSteps: 2 } } });
-  check(`${numero()} · B.4 · CONTROL · vaciada por restricciones (maxSteps 2 en un plan de 4): sin frase de profundidad, y sigue la DEUDA ABIERTA —A1 dice «No llegó ninguna alternativa»—`,
-    porRestricciones.status === 'undecided' && porRestricciones.recorrido.includes('decision')
+  check(`${numero()} · B.4 · CONTROL · vaciada por restricciones (maxSteps 2 en un plan de 4): sin frase de profundidad; la decisión, la de siempre (A1 dice lo que ve, «No llegó ninguna alternativa»), y el ciclo dice por qué (S2-B.5)`,
+    porRestricciones.status === 'undecided' && porRestricciones.parada === 'undecided' && porRestricciones.recorrido.includes('decision')
     && porRestricciones.decomposition.rechazadas.every((x) => x.reason === 'max_steps_exceeded')
     && !porRestricciones.because.some((f) => PARADA_D.test(f))
+    && porRestricciones.because[0] === 'La composición se quedó sin alternativas antes de A1 —no es que no llegara ninguna—: A2 descartó 2 disposición(es) por restricciones (max_steps_exceeded ×2).'
     && porRestricciones.decision?.explanation?.[0] === 'No llegó ninguna alternativa que evaluar.',
     `${porRestricciones.status}/${porRestricciones.parada} · ${porRestricciones.decision?.explanation?.[0]}`);
 }
@@ -2311,6 +2312,64 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   }).filter(Boolean);
   check(`${numero()} · B.5 · A9 se para en 0b con CUALQUIERA de los nueve topes mal formado —ni contexto ni A2— y A1 lo dice como conflicto`,
     paradas.length === 0, paradas.slice(0, 3).join(' | '));
+}
+
+/*
+ * PARTE 4 · LOS SEIS «NO HAY DECISIÓN» DEL CICLO, que no se confunden. Solo cambia el `because` del ciclo cuando la
+ * composición se vacía antes de A1; la decisión —status, parada, lo que A1 dice— sigue siendo la misma.
+ */
+{
+  const cicloS = A.crearCicloAlgoritmico();
+  const pasoS = (id, dep) => ({ id, capability: 'text.generate', purpose: `p-${id}`, ...(dep ? { dependsOn: dep } : {}) });
+  const filaS = (n) => Array.from({ length: n }, (_, i) => pasoS(`p${i}`, i ? [`p${i - 1}`] : undefined));
+  const pedirS = ({ pasos = filaS(4), budget, constraints, componer, signals, options }) => ({
+    decision: { contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA, objective: OBJ_CICLO, ...(budget ? { budget } : {}), ...(constraints ? { constraints } : {}),
+      ...(signals ? { signals } : {}), ...(options ? { options } : {}) },
+    ...(options ? {} : { tarea: { id: 'T', steps: pasos } }), ...(componer ? { componer } : {}),
+  });
+  const CAB = 'La composición se quedó sin alternativas antes de A1 —no es que no llegara ninguna—: ';
+  const NO_LLEGO = 'No llegó ninguna alternativa que evaluar.';
+  const latS = (pasos, ms) => pasos.map((p) => ({ key: 'step.latencyMs', subject: p.id, value: ms, source: 'measured', sampleSize: 20 }));
+  const r1 = cicloS.decidir(pedirS({ options: [] }));
+  const r2a = cicloS.decidir(pedirS({ constraints: { maxSteps: 2 } }));
+  const r2b = cicloS.decidir(pedirS({ constraints: { maxSteps: 2 }, componer: { paralelizar: true } }));
+  const r2d = cicloS.decidir(pedirS({ constraints: { maxLatencyMs: 100 }, componer: { optimizar: true }, signals: latS(filaS(4), 300) }));
+  const r3a = cicloS.decidir(pedirS({ budget: { maxCandidates: 0 } }));
+  const r3b = cicloS.decidir(pedirS({ budget: { maxCandidates: 0 }, componer: { paralelizar: true } }));
+  const r3c = cicloS.decidir(pedirS({ budget: { maxAlgorithmCalls: 0 } }));
+  const r4 = cicloS.decidir(pedirS({ pasos: filaS(8) }));
+  const r5 = cicloS.decidir(pedirS({ options: [opcion('x', { latency: 1 })], budget: { maxCandidates: 0 } }));
+  const r6 = cicloS.decidir(pedirS({ options: [opcion('x', { latency: 1 }), opcion('y', { latency: 2 })], constraints: { minConfidence: 0.9 }, budget: { maxEvidence: 1 },
+    signals: ['x', 'y'].flatMap((s) => [1, 2, 3].map((k) => ({ key: `option.k${k}`, subject: s, value: 1, source: k === 1 ? 'model' : 'measured' }))) }));
+  /* La decisión de siempre en todos los que A1 ve vacíos: indecisa, `undecided`, y A1 dice lo que ve. */
+  const vaciaParaA1 = (r) => r.status === 'undecided' && r.parada === 'undecided' && r.recorrido.at(-1) === 'decision'
+    && r.decision?.failure === 'insufficient_evidence' && r.decision.explanation[0] === NO_LLEGO && r.because.at(-1) === 'A1 no eligió entre las estrategias.';
+  const esperados = [
+    [r2a, 'A2 descartó 2 disposición(es) por restricciones (max_steps_exceeded ×2).'],
+    [r2b, 'A3 descartó 1 estrategia(s) por restricciones (constraint:maxSteps ×1).'],
+    [r2d, 'A3 descartó 1 estrategia(s) por restricciones (constraint:maxLatencyMs ×1).'],
+    [r3a, 'el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`).'],
+    [r3b, 'el presupuesto de pensar no dejó a A4 proponer ninguna variante (`budgetExhausted`).'],
+    [r3c, 'el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`).'],
+  ];
+  const malos = esperados.filter(([r, cola]) => !(vaciaParaA1(r) && r.because.length === 2 && r.because[0] === CAB + cola)).map(([r]) => r.because[0]);
+  check(`${numero()} · B.5 · la composición vaciada por RESTRICCIONES (A2, A3 por el camino paralelo y tras medir) o por el PRESUPUESTO de candidatas (A2, A4, maxAlgorithmCalls) lo dice el ciclo, con sus motivos; la decisión sigue siendo la de siempre`,
+    malos.length === 0, malos.slice(0, 2).join(' | '));
+  const primeras = [
+    r1.because[0], r2a.because[0], r3a.because[0], r4.because[0],
+    r5.decision?.explanation?.[0], r6.decision?.explanation?.find((f) => f.startsWith('Evidencia acotada')),
+  ];
+  check(`${numero()} · B.5 · los seis casos, distintos: no llegó ninguna (camino de opciones, «${NO_LLEGO}»), restricciones, presupuesto de candidatas, \`maxDepth\` («El plan existe…»), \`budget_exceeded\` en A1 y evidencia acotada bajo la confianza mínima`,
+    r1.because.length === 1 && r1.because[0] === 'A1 no eligió entre las alternativas dadas.' && r1.decision?.explanation?.[0] === NO_LLEGO
+    && r4.because[0].startsWith('El plan existe —') && !r4.recorrido.includes('decision')
+    && r5.decision?.failure === 'budget_exceeded' && r6.decision?.failure === 'insufficient_evidence'
+    && primeras.every((f) => typeof f === 'string') && new Set(primeras).size === 6
+    && ![r1, r4, r5, r6].some((r) => r.because.some((f) => f.startsWith(CAB))),
+    primeras.map((f) => (f ?? '—').slice(0, 50)).join(' ‖ '));
+  /* El motivo ESTRUCTURADO no existe todavía: sigue siendo el genérico. Así no se puede dar por cerrado sin serlo. */
+  check(`${numero()} · B.5 · HUECO DE CONTRATO, fijado: el motivo estructurado de una composición vaciada sigue siendo el genérico —parada \`undecided\` y A1 \`insufficient_evidence\`—; solo el \`because\` lo explica`,
+    [r2a, r2b, r3a, r3b].every((r) => r.parada === 'undecided' && r.decision?.failure === 'insufficient_evidence'),
+    [r2a, r3a].map((r) => `${r.parada}/${r.decision?.failure}`).join(' · '));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
