@@ -41,6 +41,10 @@
  *     medir» y sin número, lo medido con su número aunque valga 0, lo sin peso
  *     no sale; total = S_medido / W_medido y cobertura = W_medido / W_total, en
  *     ocho escenarios, sin cambiar ninguna decisión.
+ *  Q. S2-B · B.3 — resolver señales sin ordenar de más: la misma salida que la
+ *     de S2-A por identidad, permutaciones, la forma canónica solo entre las
+ *     empatadas con la ganadora, y resolver una vez lo que A4, A3 y A5 resolvían
+ *     cada una por su cuenta.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -1622,6 +1626,204 @@ check(`${numero()} · B.2 · el caso de la auditoría (C): «quality sin medir �
   && DECISIONES_B2[2].d.explanation.includes('Total renormalizado sobre lo medido: 0.500 ÷ 0.50 = 1.000; cobertura 0.50.')
   && DECISIONES_B2[2].d.explanation.some((f) => f.includes('Lo que falta NO se contó como malo')),
   DECISIONES_B2[2].d.explanation.join(' | '));
+
+console.log('\n─── Q. S2-B · B.3 · Resolver señales sin ordenar de más ───');
+
+/*
+ * LA REFERENCIA: `resolverSenales` de S2-A transcrita TAL CUAL —ordena el grupo
+ * entero y toma la primera—, con las mismas piezas del motor (`senalValida`,
+ * `PESO_DE_FUENTE`, `formaCanonica`). La nueva tiene que dar exactamente lo mismo:
+ * las mismas señales —el MISMO objeto—, en el mismo orden, los mismos conflictos
+ * con la misma elegida, el mismo porqué y las mismas descartadas en el mismo orden.
+ */
+const resolverS2A = (senales) => {
+  const grupos = new Map();
+  (senales ?? []).forEach((s) => {
+    if (!A.senalValida(s)) return;
+    const clave = `${s.key}\0${s.subject ?? ''}`;
+    const lista = grupos.get(clave) ?? [];
+    lista.push({ s });
+    grupos.set(clave, lista);
+  });
+  const contenido = (a, b) => {
+    const ca = (a.corta ??= JSON.stringify([typeof a.s.value, a.s.value, a.s.confidence ?? null]));
+    const cb = (b.corta ??= JSON.stringify([typeof b.s.value, b.s.value, b.s.confidence ?? null]));
+    if (ca !== cb) return ca < cb ? -1 : 1;
+    const ea = (a.entera ??= A.formaCanonica(a.s));
+    const eb = (b.entera ??= A.formaCanonica(b.s));
+    return ea < eb ? -1 : ea > eb ? 1 : 0;
+  };
+  const resueltas = []; const conflictos = [];
+  for (const clave of [...grupos.keys()].sort()) {
+    const lista = grupos.get(clave);
+    if (lista.length === 1) { resueltas.push(lista[0].s); continue; }
+    let porque = 'orden';
+    const ordenadas = [...lista].sort((a, b) => {
+      const fa = A.PESO_DE_FUENTE[a.s.source] ?? 0; const fb = A.PESO_DE_FUENTE[b.s.source] ?? 0;
+      if (fa !== fb) return fb - fa;
+      const ta = typeof a.s.at === 'number' ? a.s.at : -Infinity; const tb = typeof b.s.at === 'number' ? b.s.at : -Infinity;
+      if (ta !== tb) return tb - ta;
+      const ma = a.s.sampleSize ?? 0; const mb = b.s.sampleSize ?? 0;
+      if (ma !== mb) return mb - ma;
+      return contenido(a, b);
+    });
+    const ganadora = ordenadas[0]; const segunda = ordenadas[1];
+    if ((A.PESO_DE_FUENTE[ganadora.s.source] ?? 0) !== (A.PESO_DE_FUENTE[segunda.s.source] ?? 0)) porque = 'fuente';
+    else if ((ganadora.s.at ?? -Infinity) !== (segunda.s.at ?? -Infinity)) porque = 'frescura';
+    else if ((ganadora.s.sampleSize ?? 0) !== (segunda.s.sampleSize ?? 0)) porque = 'muestra';
+    resueltas.push(ganadora.s);
+    const descartadas = ordenadas.slice(1).map((x) => x.s);
+    if (descartadas.some((d) => d.value !== ganadora.s.value)) conflictos.push({ key: ganadora.s.key, subject: ganadora.s.subject, elegida: ganadora.s, porque, descartadas });
+  }
+  return { resueltas, conflictos };
+};
+/* La MISMA salida, estricta: por identidad de cada señal, y además igual en forma (claves, orden, NaN, undefined). */
+const mismaResolucion = (a, b) => igual(a, b)
+  && a.resueltas.length === b.resueltas.length && a.resueltas.every((x, i) => x === b.resueltas[i])
+  && a.conflictos.length === b.conflictos.length && a.conflictos.every((c, i) => {
+    const d = b.conflictos[i];
+    return c.elegida === d.elegida && c.porque === d.porque && c.descartadas.length === d.descartadas.length
+      && c.descartadas.every((x, j) => x === d.descartadas[j]);
+  });
+const azarB3 = generador(3_1415_9265);
+const elegirB3 = (xs) => xs[Math.floor(azarB3() * xs.length)];
+const barajarB3 = (xs) => { const c = [...xs]; for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(azarB3() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; } return c; };
+const senalAlAzar = () => {
+  const x = { key: elegirB3(['option.quality', 'step.latencyMs', 'a.b']), value: elegirB3([0.5, 0.5, 0.7, 'alto', true, 3]),
+    source: elegirB3(['measured', 'measured', 'catalog', 'model', 'declared']) };
+  if (azarB3() < 0.7) x.subject = elegirB3(['s1', 's2']);
+  if (azarB3() < 0.6) x.at = elegirB3([1, 2, 2, 3]);
+  if (azarB3() < 0.6) x.sampleSize = elegirB3([5, 20, 20]);
+  if (azarB3() < 0.4) x.confidence = elegirB3([0.5, 0.9]);
+  if (azarB3() < 0.5) x.nota = elegirB3(['a', 'b', 'c', 'x'.repeat(300)]);
+  if (azarB3() < 0.05) x.sampleSize = NaN;
+  return x;
+};
+{
+  let casos = 0; let conConflicto = 0; const distintos = [];
+  for (let n = 0; n < 3000; n++) {
+    const base = Array.from({ length: 1 + Math.floor(azarB3() * 12) }, senalAlAzar);
+    if (azarB3() < 0.2) base.push(base[0]);
+    if (azarB3() < 0.2) base.push({ ...base[0] });
+    for (let p = 0; p < 4; p++) {
+      const lista = p === 0 ? base : barajarB3(base);
+      const vieja = resolverS2A(lista); const nueva = A.resolverSenales(lista);
+      casos++; if (vieja.conflictos.length) conConflicto++;
+      if (!mismaResolucion(nueva, vieja)) distintos.push(JSON.stringify(lista).slice(0, 160));
+    }
+  }
+  check(`${numero()} · B.3 · EQUIVALENCIA · la nueva frente a la de S2-A, por identidad: las mismas resueltas, conflictos, elegida, porqué y descartadas en su orden (${casos} casos al azar, ${conConflicto} con desacuerdo, semilla fija)`,
+    distintos.length === 0 && conConflicto > 0, distintos.slice(0, 2).join(' | '));
+}
+{
+  /* Si ninguna señal empata con otra en TODO —ni en forma canónica—, el orden de llegada no puede cambiar nada. */
+  const fallos = [];
+  for (let n = 0; n < 800; n++) {
+    const vistas = new Set();
+    const base = Array.from({ length: 2 + Math.floor(azarB3() * 10) }, senalAlAzar)
+      .filter((s) => A.senalValida(s) && !vistas.has(A.formaCanonica(s)) && vistas.add(A.formaCanonica(s)));
+    const referencia = JSON.stringify(A.resolverSenales(base));
+    for (let p = 0; p < 6; p++) if (JSON.stringify(A.resolverSenales(barajarB3(base))) !== referencia) { fallos.push(JSON.stringify(base).slice(0, 120)); break; }
+  }
+  check(`${numero()} · B.3 · PROPIEDAD · sin dos señales idénticas, las permutaciones dan la misma ganadora, los mismos conflictos y las mismas descartadas (800 conjuntos × 6 órdenes)`,
+    fallos.length === 0, fallos.slice(0, 2).join(' | '));
+}
+{
+  const s = (value, source, extra = {}) => ({ key: 'option.quality', subject: 's', value, source, at: 5, sampleSize: 20, ...extra });
+  const peor = s(0.2, 'model'); const mejor = s(0.9, 'measured');
+  const escalera = [s(0.1, 'default'), s(0.2, 'model'), s(0.3, 'derived'), s(0.4, 'catalog'), s(0.5, 'declared'), s(0.6, 'measured')];
+  const empatadas = ['d', 'b', 'c', 'a'].map((nota) => s(0.5, 'measured', { nota }));
+  const ganaLaDeNotaMenor = A.resolverSenales(empatadas).resueltas[0];
+  check(`${numero()} · B.3 · la peor primero y la mejor después: gana la mejor; la mejor primero: sigue ganando; sustituida varias veces: gana la última mejor`,
+    A.resolverSenales([peor, mejor]).resueltas[0] === mejor && A.resolverSenales([mejor, peor]).resueltas[0] === mejor
+    && A.resolverSenales(escalera).resueltas[0] === escalera[5] && A.resolverSenales([...escalera].reverse()).resueltas[0] === escalera[5]
+    && A.resolverSenales([peor, mejor]).conflictos[0]?.porque === 'fuente');
+  check(`${numero()} · B.3 · todas empatadas en procedencia, fecha, muestra, valor y confianza: decide la forma canónica —la nota «a»—, llegue en el orden que llegue, y el porqué es el orden`,
+    ganaLaDeNotaMenor?.nota === 'a' && [0, 1, 2, 3, 4].every(() => A.resolverSenales(barajarB3(empatadas)).resueltas[0].nota === 'a')
+    && A.resolverSenales([empatadas[0], empatadas[1]]).resueltas[0].nota === 'b'
+    && mismaResolucion(A.resolverSenales(empatadas), resolverS2A(empatadas)));
+}
+{
+  /*
+   * LA FORMA CANÓNICA, SOLO ENTRE LAS EMPATADAS CON LA GANADORA. Se espía `formaCanonica`
+   * en su módulo —`resolverSenales` la llama por él— y se cuentan sus llamadas.
+   */
+  const CANONICA = lib('core/algorithm/canonical.js');
+  const original = CANONICA.formaCanonica;
+  const espiar = (fn) => {
+    const vistas = [];
+    CANONICA.formaCanonica = (x) => { vistas.push(x); return original(x); };
+    try { fn(); } finally { CANONICA.formaCanonica = original; }
+    return vistas;
+  };
+  const s = (value, source, extra = {}) => ({ key: 'option.quality', subject: 's', value, source, at: 5, sampleSize: 20, ...extra });
+  const unica = s(0.5, 'measured');
+  const debajo = Array.from({ length: 20 }, (_, i) => s(0.5, 'catalog', { nota: `n${i}` }));
+  const cinco = ['e', 'd', 'c', 'b', 'a'].map((nota) => s(0.5, 'measured', { nota }));
+  const distintas = [0.1, 0.2, 0.3, 0.4, 0.5].map((value) => s(value, 'measured'));
+  const vistasUnica = espiar(() => A.resolverSenales([...debajo, unica]));
+  const vistasCinco = espiar(() => A.resolverSenales([...debajo, ...cinco]));
+  const vistasDistintas = espiar(() => A.resolverSenales(distintas));
+  check(`${numero()} · B.3 · para ELEGIR, la forma canónica solo entre las empatadas con la ganadora: sin empate, ninguna; cinco empatadas en todo, exactamente esas cinco y ninguna de las otras veinte; empatadas pero con valores distintos, ninguna`,
+    CANONICA.formaCanonica === original && vistasUnica.length === 0
+    && vistasCinco.length === 5 && cinco.every((x) => vistasCinco.includes(x)) && !debajo.some((x) => vistasCinco.includes(x))
+    && vistasDistintas.length === 0,
+    `${vistasUnica.length} · ${vistasCinco.length} · ${vistasDistintas.length}`);
+  /*
+   * Y cuando HAY desacuerdo, las descartadas salen en el orden de siempre: para eso
+   * hace falta la forma canónica de las descartadas que empatan ENTRE SÍ —la misma
+   * que calculaba el `sort` de S2-A—, nunca la de la ganadora sin empate.
+   */
+  const ganadoraSola = s(0.9, 'measured');
+  const vistasConflicto = espiar(() => A.resolverSenales([...debajo, ganadoraSola]));
+  check(`${numero()} · B.3 · con desacuerdo, para ORDENAR las descartadas como siempre, la forma canónica solo de las descartadas que empatan entre sí —las veinte—, y nunca la de la ganadora`,
+    vistasConflicto.length === 20 && debajo.every((x) => vistasConflicto.includes(x)) && !vistasConflicto.includes(ganadoraSola)
+    && mismaResolucion(A.resolverSenales([...debajo, ganadoraSola]), resolverS2A([...debajo, ganadoraSola])),
+    `${vistasConflicto.length}`);
+}
+{
+  /*
+   * RESOLVER LO YA RESUELTO da lo mismo —una por clave y sujeto, todas válidas, en su
+   * orden—: es lo que permite resolver las señales de la petición UNA vez para A4, A3
+   * y A5, que solo usan lo resuelto. Y cada motor da lo MISMO con lo crudo que con lo
+   * resuelto.
+   */
+  const fallos = [];
+  const a4B3 = A.crearMotorDeParalelizacion();
+  for (let n = 0; n < 300; n++) {
+    const crudas = [...SENALES, ...Array.from({ length: 6 }, () => ({ ...elegirB3(SENALES), value: elegirB3([100, 300, 900]), source: elegirB3(['measured', 'model']) }))];
+    const r = A.resolverSenales(crudas);
+    const otraVez = A.resolverSenales(r.resueltas);
+    if (!(otraVez.conflictos.length === 0 && otraVez.resueltas.length === r.resueltas.length && otraVez.resueltas.every((x, i) => x === r.resueltas[i]))) fallos.push('idempotencia');
+    if (!igual(a4B3.variantes(TAREA, crudas), a4B3.variantes(TAREA, r.resueltas))) fallos.push('A4');
+    if (!igual(a3B1.proponer(FORMAS_B1, crudas), a3B1.proponer(FORMAS_B1, r.resueltas))) fallos.push('A3');
+    const ev = (xs) => xs.map((x) => ({ claim: x.key, signal: x, supports: true }));
+    if (!igual(a5.optimizar({ candidates: ESTRATEGIAS, objective: OBJ_CICLO, evidence: ev(crudas) }),
+      a5.optimizar({ candidates: ESTRATEGIAS, objective: OBJ_CICLO, evidence: ev(r.resueltas) }))) fallos.push('A5');
+  }
+  check(`${numero()} · B.3 · resolver lo ya resuelto da lo mismo, y A4, A3 y A5 dan lo MISMO con las señales crudas que con las resueltas (300 conjuntos con desacuerdos)`,
+    fallos.length === 0, [...new Set(fallos)].join(', '));
+}
+{
+  /* El ciclo tiene que componer EXACTAMENTE como si cada motor resolviera las señales crudas por su cuenta. */
+  const a2B3 = A.crearMotorDeDescomposicion(); const a4B3 = A.crearMotorDeParalelizacion();
+  const fallos = [];
+  for (let n = 0; n < 60; n++) {
+    const crudas = [...SENALES, ...Array.from({ length: 5 }, () => ({ ...elegirB3(SENALES), value: elegirB3([100, 300, 900]), source: elegirB3(['measured', 'model']) }))];
+    const d = decisionBase({ signals: crudas });
+    const r = ciclo.decidir({ decision: d, tarea: TAREA, componer: { paralelizar: true, optimizar: true } });
+    const restr = A.restriccionesEfectivas(d);
+    const descompuesta = a2B3.descomponer(TAREA, restr, d.budget);
+    const p = a4B3.variantes(TAREA, crudas, restr, d.budget);
+    const st = a3B1.proponer(p.variantes, crudas, restr, d.budget);
+    const base = st.estrategias.find((c) => c.value.isBaseline);
+    const op = a5.optimizar({ candidates: st.estrategias, objective: d.objective, evidence: crudas.map((x) => ({ claim: x.key, signal: x, supports: true })),
+      ...(base ? { baselineId: base.id } : {}) });
+    if (!igual(r.decomposition, descompuesta) || !igual(r.parallelization, p.analisis) || !igual(r.strategies, st) || !igual(r.optimization, op)) fallos.push(String(n));
+  }
+  check(`${numero()} · B.3 · el ciclo compone EXACTAMENTE como si A4, A3 y A5 resolvieran cada uno las señales crudas (60 peticiones con desacuerdos)`,
+    fallos.length === 0, fallos.slice(0, 5).join(', '));
+}
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
