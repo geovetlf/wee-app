@@ -56,6 +56,7 @@ import {
   DecisionWarning,
   HistoryWindow,
   JudgedOption,
+  NoRealChoiceCause,
   sinDecision,
 } from './decision';
 
@@ -983,7 +984,8 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
         + `alternativa(s) evaluadas (${usadas >= topes.maxEvidence ? `maxEvidence ${topes.maxEvidence}` : `se agotó ${contador.agotado() ?? 'el presupuesto'}`}), `
         + 'por turnos entre ellas en orden de id; el resto no se miró.']
       : [];
-    if (fraseDeEvidencia.length) avisos.add('budget_exhausted');
+    /* (1.12) El aviso general, y el propio: la evidencia se acotó (S2-C.1 · V). */
+    if (fraseDeEvidencia.length) { avisos.add('budget_exhausted'); avisos.add('evidence_capped'); }
     /* Una por clave y sujeto, con la procedencia mandando: B.3, sobre lo que cupo. */
     const { resueltas } = resolverSenales(crudas);
 
@@ -1060,7 +1062,29 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       avisos.add('below_min_confidence');
     }
     if (DESCRIPTOR_DEL_MOTOR.status === 'experimental') avisos.add('experimental_algorithm');
-    if (contador.agotado()) avisos.add('budget_exhausted');
+    /*
+     * (1.12) El aviso general, y el propio: se pasó un contador. Los de candidatas y
+     * evidencia se preguntan ANTES de gastar y nunca se pasan —esos los dicen
+     * `candidates_capped` y `evidence_capped`—, así que lo que llega aquí es otro
+     * contador: iteraciones, llamadas, reloj… (S2-C.1 · V).
+     */
+    if (contador.agotado()) { avisos.add('budget_exhausted'); avisos.add('counter_exhausted'); }
+
+    /*
+     * (1.12 · S2-C.1 · D11) SIN ELECCIÓN REAL: solo una llegó a competir. Se dice por
+     * qué, en el orden en que se filtró; no toca la selección, la puntuación ni la
+     * confianza —esas ya están decididas arriba—.
+     */
+    const sinEleccion: NoRealChoiceCause[] = [];
+    if (juzgadas.length === 1) {
+      if (todas.length === 1) sinEleccion.push('single_option');
+      else {
+        if (consideradas.length < todas.length) sinEleccion.push('candidates_capped');
+        if (rechazadas.length) sinEleccion.push('constraints');
+        if (porConfianza.length && fraseDeEvidencia.length) sinEleccion.push('evidence_capped');
+        if (porConfianza.length) sinEleccion.push('min_confidence');
+      }
+    }
 
     const evidenciaElegida = evidenciaFinal(elegida.id);
     const uncertainty: Uncertainty = incertidumbreDe(elegida.confidence);
@@ -1085,6 +1109,7 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       uncertainty,
       evidence: evidenciaElegida,
       warnings: Object.freeze([...avisos]),
+      ...(sinEleccion.length ? { noRealChoice: Object.freeze({ causes: Object.freeze(sinEleccion) }) } : {}),
       objective,
       constraints,
       /* Lo que se MIRÓ, también el historial: es la prueba de que se leyó. */

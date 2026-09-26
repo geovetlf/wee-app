@@ -127,8 +127,12 @@ export type DecisionStatus =
 export type DecisionWarning =
   /* Había más candidatos de los que el presupuesto permite evaluar. */
   | 'candidates_capped'
-  /* Se acabó el presupuesto y se devuelve lo mejor encontrado hasta ahí. */
+  /* Se acabó el presupuesto y se devuelve lo mejor encontrado hasta ahí. Es el aviso general: cuál se acabó lo dicen los tres de abajo (S2-C.1). */
   | 'budget_exhausted'
+  /* (1.12) El presupuesto de evidencia acotó la evidencia de lo que se evaluaba: no se miró todo. */
+  | 'evidence_capped'
+  /* (1.12) Se pasó un contador del presupuesto de pensar que no es el de candidatas ni el de evidencia (iteraciones, llamadas, reloj…). */
+  | 'counter_exhausted'
   /* Faltaban señales que el algoritmo declara como opcionales. */
   | 'signals_missing'
   /* La evidencia no da para tanto como el total sugiere. */
@@ -149,6 +153,31 @@ export type DecisionWarning =
   | 'below_min_confidence'
   /* Decidió el respaldo, no el algoritmo que se pidió. */
   | 'fallback_used';
+
+/**
+ * (1.12 · S2-C.1 · D11) POR QUÉ SOLO UNA ALTERNATIVA LLEGÓ A COMPETIR. Cerrada.
+ *
+ * Los cinco estados de la matriz, en el orden en que A1 filtra: una sola llegó; el
+ * tope de candidatas dejó fuera a las demás sin mirarlas; las restricciones dejaron
+ * una; con la evidencia acotada por su presupuesto, la confianza mínima dejó una; la
+ * confianza mínima dejó una. Pueden ir varias a la vez, salvo `single_option`.
+ */
+export type NoRealChoiceCause =
+  /* A · llegó una sola alternativa. */
+  | 'single_option'
+  /* E · `maxCandidates` dejó fuera, sin mirarlas, a las que no cupieron. */
+  | 'candidates_capped'
+  /* B · las restricciones dejaron fuera a las demás. */
+  | 'constraints'
+  /* D · la evidencia se acotó por su presupuesto y la confianza mínima dejó fuera a alguna. */
+  | 'evidence_capped'
+  /* C · la confianza mínima dejó fuera a las demás. */
+  | 'min_confidence';
+
+export interface NoRealChoice {
+  /** Las causas, en el orden en que A1 filtra. Nunca vacía. */
+  causes: readonly NoRealChoiceCause[];
+}
 
 /**
  * UN CANDIDATO, YA JUZGADO.
@@ -196,6 +225,13 @@ export interface AlgorithmDecision<T = unknown> {
   /** El error del Core, cuando lo hay. Vocabulario compartido, no uno nuevo. */
   error?: WeeError;
   warnings: readonly DecisionWarning[];
+  /**
+   * (1.12 · S2-C.1 · D11) SIN ELECCIÓN REAL: se decidió, pero solo UNA alternativa llegó a
+   * competir, y aquí se dice por qué. Solo en decisiones tomadas con una; ausente si hubo
+   * entre qué elegir. Es representación: la selección, la puntuación y la confianza son las
+   * mismas que sin él.
+   */
+  noRealChoice?: NoRealChoice;
   /** Con qué objetivo se decidió. Como la `policy` del Router: sin él no se reproduce. */
   objective: Objective;
   /**

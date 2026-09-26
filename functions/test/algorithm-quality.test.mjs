@@ -156,8 +156,9 @@ const observar = (i, clase, at, extra = {}) => {
   const outputs = 'puntuacion' in x
     ? [{ kind: 'text', ref: `ref://${i}`, ...(typeof x.puntuacion === 'number' ? { metadata: { puntuacion: x.puntuacion } } : {}) }]
     : [];
+  /* (S2-C.1 · D3) Quien ejecuta produce lo medido CON EL SUJETO del resultado: `subject` es `actual.id`. */
   return { kind: clase, at, actual: { id: `ejec_${i}`, status: x.status, outputs },
-    signals: [{ key: 'result.latencyMs', value: 1000, source: 'measured', at }], ...extra };
+    signals: [{ key: 'result.latencyMs', subject: `ejec_${i}`, value: 1000, source: 'measured', at }], ...extra };
 };
 const R = ciclo.decidir(peticion());
 const cerrar = (obs) => ciclo.cerrar(R, obs, { ahora: T1 + HORA, policy: POL });
@@ -776,10 +777,12 @@ check('69 · el ámbito en que se aprende es el de la decisión más la IDENTIDA
   typeof R.entrega?.plan?.id === 'string' && igual(C11.outcome?.scope, { capability: CAP, strategyId: R.entrega.plan.id }) &&
   (C11.learning?.aggregates ?? []).length > 0 &&
   C11.learning.aggregates.every((a) => Object.keys(a.scope).every((k) => ['capability', 'strategyId'].includes(k))));
-check('70 · la confianza del veredicto es la de A6 —evidencia del evaluador, con su procedencia—, no un número puesto por el ciclo',
+check('70 · la confianza del veredicto es la de A6 —evidencia del evaluador y, desde S2-C.1 (D3), la observada del resultado, con su procedencia—, no un número puesto por el ciclo',
   !!C11.outcome?.verification?.confidence && C11.outcome.verification.confidence === C11.verification?.confidence &&
   (C11.verification?.confidence?.basis ?? []).length > 0 &&
-  C11.verification.confidence.basis.every((e) => e.signal.key === 'quality.sintetica' && e.signal.source === 'measured'));
+  C11.verification.confidence.basis.some((e) => e.signal.key === 'quality.sintetica') &&
+  C11.verification.confidence.basis.every((e) => e.signal.source === 'measured'
+    && (e.signal.key === 'quality.sintetica' || (e.signal.key === 'result.latencyMs' && e.signal.subject === C11.outcome.id))));
 
 console.log('\n─── H. Las deudas, declaradas ───');
 
@@ -1172,9 +1175,9 @@ console.log('\n─── M. R5 · El versionado ───');
 
 const srcContratos = leer('functions/src/core/contracts.ts');
 const { contratoCompatible } = lib('core/contracts.js');
-check('101 · R5 · el contrato del Algorithm Engine es 1.11 (S2-B; 1.10 fue S2-A), y la evidencia que se produzca lo dirá: la sección y la decisión llevan ese número',
-  ALGORITHM_CONTRACT_VERSION === '1.11' && R.contract === '1.11' && R.decision?.contract === '1.11' && E1.contract === '1.11'
-  && /\* 1\.11 \(S2-B\): /.test(srcContratos));
+check('101 · R5 · el contrato del Algorithm Engine es 1.12 (S2-C.1; 1.11 fue S2-B y 1.10 S2-A), y la evidencia que se produzca lo dirá: la sección y la decisión llevan ese número',
+  ALGORITHM_CONTRACT_VERSION === '1.12' && R.contract === '1.12' && R.decision?.contract === '1.12' && E1.contract === '1.12'
+  && /\* 1\.12 \(S2-C\.1\): /.test(srcContratos) && /\* 1\.11 \(S2-B\): /.test(srcContratos));
 check('102 · R5 · 1.10 está registrado en su historial —qué cambia y por qué sube—, y el historial anterior sigue intacto',
   /\* 1\.10 \(S2-A\): /.test(srcContratos) && /\* 1\.9 \(A9\.3\): /.test(srcContratos) && /\* 1\.7 \(A9\.1\): /.test(srcContratos) &&
   ['DESEMPATE', 'FRONTERA', 'EFECTIVAS', 'REGISTRO', 'CONFIANZA'].every((p) => new RegExp(`\\* {3}${p} `).test(srcContratos)) &&
@@ -1232,11 +1235,13 @@ const S18_PLANO = S18.toLowerCase().replace(/\s+/g, ' ');
  * parte abierta no se llama «cerrada»—: la 7 con lo que cerró B.5 (los nueve topes de pensar y el porqué de la
  * composición vaciada) y con lo aplazado escrito; y lo que B.5 cerró ya no se dice como si pasara hoy.
  */
-const DEUDAS_ABIERTAS = ['un eje sin dato', 'señales observadas a a6', 'procedencia de las restricciones', 'antes de resolverlas',
-  '`maxlatencyms` no tiene lector', '`maxparallel` → `maxconcurrent`', 'sin elección real', '`strategyscore.fits` guarda un 0 de relleno',
-  'un aviso estructurado propio de evidencia acotada', 'un motivo de parada por presupuesto',
-  'el motivo estructurado de una composición vaciada', 'los topes mal formados en a2–a8 llamados sueltos',
-  'que a9 resuelva todas las señales de la petición', 'un grupo con miles de duplicados'];
+/*
+ * (S2-C.1) Ya no queda ninguna ABIERTA: S2-C.1 las decidió todas. D11 y el vocabulario de 1.12 los fija §U (225–228),
+ * con los puntos 7, 10 y 12 al día; lo mal formado en A2, A6 y A7 (ALC), §T 207–209 y §U 229; las señales observadas
+ * que `cerrar` no le pasaba a A6 (D3), §T 210 y §U 230; y la procedencia (D4), `maxLatencyMs` (D9), `maxParallel` (D8),
+ * la segunda pasada de A9 y los grupos de duplicados (mantener), §U 231, que exige verlas escritas como decididas.
+ */
+const DEUDAS_ABIERTAS = [];
 const CERRADAS_EN_S2B = [
   ['2. **el desglose no cuadraba', 'cerrada en s2-b · b.2'],
   ['5. **`minconfidence: nan`** se ignoraba', 'cerrada en s2-b · b.1'],
@@ -2166,12 +2171,15 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     tarea: { id: 'T', steps: pasos }, ...(COMPONER_D[camino] ? { componer: COMPONER_D[camino] } : {}),
   });
   const PARADA_D = /^El plan existe —(\d+) paso\(s\), (\d+) nivel\(es\) de dependencia— pero ninguna de sus disposiciones cabe en el presupuesto de profundidad \(maxDepth (\d+)\): fuera por él, (\d+) disposición\(es\)(?:; por otros motivos, (\d+))?\. Se para aquí: ni se inventa una alternativa ni se le pide a A1 que elija entre nada\.$/;
-  /* Fuera del tope: se para tras la composición, sin A1, sin entrega, con las razones de A2/A3 de siempre y sin «No llegó ninguna». */
+  /*
+   * Fuera del tope: se para tras la composición, sin A1, sin entrega, con las razones de A2/A3 de siempre y sin «No
+   * llegó ninguna». La parada, `undecided` hasta 1.11, es desde S2-C.1 (1.12) la suya: `max_depth_exceeded`.
+   */
   const paradaD = (r, pasos, niveles, tope, camino) => {
     const m = PARADA_D.exec(r.because?.[0] ?? '');
     const rechazadas = camino === 'simple' ? r.decomposition?.rechazadas : r.strategies?.rechazadas;
     const razon = camino === 'simple' ? 'max_depth_exceeded' : 'constraint:maxDepth';
-    return r.status === 'undecided' && r.parada === 'undecided' && !r.recorrido.includes('decision') && r.recorrido.at(-1) === 'strategy'
+    return r.status === 'undecided' && r.parada === 'max_depth_exceeded' && !r.recorrido.includes('decision') && r.recorrido.at(-1) === 'strategy'
       && r.decision === undefined && r.entrega === undefined && r.strategies?.estrategias.length === 0
       && !!m && m[1] === String(pasos) && m[2] === String(niveles) && m[3] === String(tope)
       && rechazadas?.length > 0 && rechazadas.every((x) => x.reason === razon) && m[4] === String(rechazadas.length)
@@ -2189,7 +2197,7 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
       tabla.push(`${camino} ${pasos}/${tope}:${ok ? (cabe ? 'decide' : 'para') : `MAL ${r.status}/${r.parada}`}`);
     }
   }
-  check(`${numero()} · B.4 · maxDepth 6 (el defecto) y 7, con planes lineales de 6, 7 y 8 pasos, por los dos caminos: lo que cabe se decide como siempre; lo que no, se para diciendo que el plan EXISTE —pasos, niveles y tope—, sin A1, sin entrega y con los motivos de A2 y A3`,
+  check(`${numero()} · B.4 · maxDepth 6 (el defecto) y 7, con planes lineales de 6, 7 y 8 pasos, por los dos caminos: lo que cabe se decide como siempre; lo que no, se para diciendo que el plan EXISTE —pasos, niveles y tope—, sin A1, sin entrega y con los motivos de A2 y A3, y desde S2-C.1 (1.12) con su parada propia, \`max_depth_exceeded\``,
     bien, tabla.join(' · '));
 
   const vacio = cicloD.decidir(pedirD([], undefined, 'simple'));
@@ -2244,12 +2252,13 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
    * CONTROL · la parada es SOLO del presupuesto. Si la composición se vacía por restricciones (aquí `maxSteps`
    * por debajo de los pasos del plan), ningún tope se alcanzó y la DECISIÓN sigue como en f30079c: A1 recibe la
    * lista vacía y dice lo que ve, «No llegó ninguna alternativa». Desde S2-B.5 el `because` del ciclo dice además
-   * por qué se vació (A2, por restricciones); el motivo ESTRUCTURADO sigue siendo el genérico —deuda de contrato—.
+   * por qué se vació (A2, por restricciones); el motivo ESTRUCTURADO, el genérico hasta 1.11 —deuda de contrato—,
+   * es desde S2-C.1 (1.12) la parada `composition_emptied`.
    */
   const porRestricciones = cicloD.decidir({ ...pedirD(linealD(4), undefined, 'simple'),
     decision: { ...pedirD(linealD(4), undefined, 'simple').decision, constraints: { maxSteps: 2 } } });
-  check(`${numero()} · B.4 · CONTROL · vaciada por restricciones (maxSteps 2 en un plan de 4): sin frase de profundidad; la decisión, la de siempre (A1 dice lo que ve, «No llegó ninguna alternativa»), y el ciclo dice por qué (S2-B.5)`,
-    porRestricciones.status === 'undecided' && porRestricciones.parada === 'undecided' && porRestricciones.recorrido.includes('decision')
+  check(`${numero()} · B.4 · CONTROL · vaciada por restricciones (maxSteps 2 en un plan de 4): sin frase de profundidad; la decisión, la de siempre (A1 dice lo que ve, «No llegó ninguna alternativa»), el ciclo dice por qué (S2-B.5) y, desde S2-C.1 (1.12), la parada es \`composition_emptied\``,
+    porRestricciones.status === 'undecided' && porRestricciones.parada === 'composition_emptied' && porRestricciones.recorrido.includes('decision')
     && porRestricciones.decomposition.rechazadas.every((x) => x.reason === 'max_steps_exceeded')
     && !porRestricciones.because.some((f) => PARADA_D.test(f))
     && porRestricciones.because[0] === 'La composición se quedó sin alternativas antes de A1 —no es que no llegara ninguna—: A2 descartó 2 disposición(es) por restricciones (max_steps_exceeded ×2).'
@@ -2334,7 +2343,8 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
 
 /*
  * PARTE 4 · LOS SEIS «NO HAY DECISIÓN» DEL CICLO, que no se confunden. Solo cambia el `because` del ciclo cuando la
- * composición se vacía antes de A1; la decisión —status, parada, lo que A1 dice— sigue siendo la misma.
+ * composición se vacía antes de A1; la decisión —status, lo que A1 dice— sigue siendo la misma. La parada, `undecided`
+ * hasta 1.11, tiene desde S2-C.1 (1.12) nombre propio: `composition_emptied` o, si fue el presupuesto, `budget_exceeded`.
  */
 {
   const cicloS = A.crearCicloAlgoritmico();
@@ -2359,19 +2369,19 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   const r5 = cicloS.decidir(pedirS({ options: [opcion('x', { latency: 1 })], budget: { maxCandidates: 0 } }));
   const r6 = cicloS.decidir(pedirS({ options: [opcion('x', { latency: 1 }), opcion('y', { latency: 2 })], constraints: { minConfidence: 0.9 }, budget: { maxEvidence: 1 },
     signals: ['x', 'y'].flatMap((s) => [1, 2, 3].map((k) => ({ key: `option.k${k}`, subject: s, value: 1, source: k === 1 ? 'model' : 'measured' }))) }));
-  /* La decisión de siempre en todos los que A1 ve vacíos: indecisa, `undecided`, y A1 dice lo que ve. */
-  const vaciaParaA1 = (r) => r.status === 'undecided' && r.parada === 'undecided' && r.recorrido.at(-1) === 'decision'
+  /* La decisión de siempre en todos los que A1 ve vacíos: indecisa, y A1 dice lo que ve; la parada, con su nombre (1.12). */
+  const vaciaParaA1 = (r, parada) => r.status === 'undecided' && r.parada === parada && r.recorrido.at(-1) === 'decision'
     && r.decision?.failure === 'insufficient_evidence' && r.decision.explanation[0] === NO_LLEGO && r.because.at(-1) === 'A1 no eligió entre las estrategias.';
   const esperados = [
-    [r2a, 'A2 descartó 2 disposición(es) por restricciones (max_steps_exceeded ×2).'],
-    [r2b, 'A3 descartó 1 estrategia(s) por restricciones (constraint:maxSteps ×1).'],
-    [r2d, 'A3 descartó 1 estrategia(s) por restricciones (constraint:maxLatencyMs ×1).'],
-    [r3a, 'el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`).'],
-    [r3b, 'el presupuesto de pensar no dejó a A4 proponer ninguna variante (`budgetExhausted`).'],
-    [r3c, 'el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`).'],
+    [r2a, 'A2 descartó 2 disposición(es) por restricciones (max_steps_exceeded ×2).', 'composition_emptied'],
+    [r2b, 'A3 descartó 1 estrategia(s) por restricciones (constraint:maxSteps ×1).', 'composition_emptied'],
+    [r2d, 'A3 descartó 1 estrategia(s) por restricciones (constraint:maxLatencyMs ×1).', 'composition_emptied'],
+    [r3a, 'el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`).', 'budget_exceeded'],
+    [r3b, 'el presupuesto de pensar no dejó a A4 proponer ninguna variante (`budgetExhausted`).', 'budget_exceeded'],
+    [r3c, 'el presupuesto de pensar no dejó a A2 proponer ninguna disposición (`optionLimitReached`).', 'budget_exceeded'],
   ];
-  const malos = esperados.filter(([r, cola]) => !(vaciaParaA1(r) && r.because.length === 2 && r.because[0] === CAB + cola)).map(([r]) => r.because[0]);
-  check(`${numero()} · B.5 · la composición vaciada por RESTRICCIONES (A2, A3 por el camino paralelo y tras medir) o por el PRESUPUESTO de candidatas (A2, A4, maxAlgorithmCalls) lo dice el ciclo, con sus motivos; la decisión sigue siendo la de siempre`,
+  const malos = esperados.filter(([r, cola, parada]) => !(vaciaParaA1(r, parada) && r.because.length === 2 && r.because[0] === CAB + cola)).map(([r]) => `${r.parada} · ${r.because[0]}`);
+  check(`${numero()} · B.5 · la composición vaciada por RESTRICCIONES (A2, A3 por el camino paralelo y tras medir) o por el PRESUPUESTO de candidatas (A2, A4, maxAlgorithmCalls) lo dice el ciclo, con sus motivos; la decisión sigue siendo la de siempre, y desde S2-C.1 (1.12) la parada lo nombra: \`composition_emptied\` o \`budget_exceeded\``,
     malos.length === 0, malos.slice(0, 2).join(' | '));
   const primeras = [
     r1.because[0], r2a.because[0], r3a.because[0], r4.because[0],
@@ -2384,9 +2394,14 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
     && primeras.every((f) => typeof f === 'string') && new Set(primeras).size === 6
     && ![r1, r4, r5, r6].some((r) => r.because.some((f) => f.startsWith(CAB))),
     primeras.map((f) => (f ?? '—').slice(0, 50)).join(' ‖ '));
-  /* El motivo ESTRUCTURADO no existe todavía: sigue siendo el genérico. Así no se puede dar por cerrado sin serlo. */
-  check(`${numero()} · B.5 · HUECO DE CONTRATO, fijado: el motivo estructurado de una composición vaciada sigue siendo el genérico —parada \`undecided\` y A1 \`insufficient_evidence\`—; solo el \`because\` lo explica`,
-    [r2a, r2b, r3a, r3b].every((r) => r.parada === 'undecided' && r.decision?.failure === 'insufficient_evidence'),
+  /*
+   * El motivo ESTRUCTURADO, que S2-B.5 dejó como hueco de contrato, existe desde S2-C.1 (1.12, V): lo dice la parada.
+   * A1 no cambia —la lista le llega vacía y dice `insufficient_evidence`—, y el presupuesto se nombra igual que por
+   * el camino de opciones, `budget_exceeded`: la representación común de `maxCandidates: 0`.
+   */
+  check(`${numero()} · B.5 · HUECO DE CONTRATO CERRADO en S2-C.1 (1.12): el motivo estructurado de una composición vaciada es la parada —\`composition_emptied\` por restricciones, \`budget_exceeded\` por el presupuesto de pensar—; A1 sigue diciendo \`insufficient_evidence\` y el \`because\`, por qué`,
+    [r2a, r2b, r2d].every((r) => r.parada === 'composition_emptied') && [r3a, r3b, r3c].every((r) => r.parada === 'budget_exceeded')
+    && [r2a, r2b, r2d, r3a, r3b, r3c].every((r) => r.status === 'undecided' && r.decision?.failure === 'insufficient_evidence'),
     [r2a, r3a].map((r) => `${r.parada}/${r.decision?.failure}`).join(' · '));
 }
 
@@ -2481,7 +2496,9 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   const cicloE = A.crearCicloAlgoritmico();
   /* Igual SALVO LOS SELLOS: los de hoy se escriben como los de 0df8be2; los sellos se comprueban aparte (abajo). */
   const selloHoy = { contrato: ALGORITHM_CONTRACT_VERSION, motor: A.DECISION_ENGINE_REF };
-  const comoAntes = (x) => E.sinSellos(x, selloHoy, H.sellos['0df8be2']);
+  /* (1.12 · S2-C.1 · D11) Y salvo `noRealChoice`, el campo nuevo de la decisión: se compara sin él y se comprueba aparte. */
+  const sinCampoNuevo = (x) => JSON.parse(JSON.stringify(x ?? null, (k, v) => (k === 'noRealChoice' ? undefined : v)));
+  const comoAntes = (x) => E.sinSellos(sinCampoNuevo(x), selloHoy, H.sellos['0df8be2']);
   const ahora = {
     a1: E.entradasA1(ALGORITHM_CONTRACT_VERSION).map((ctx) => { const d = comoAntes(a1E.decidir(ctx)); return [E.huellasA1(d, false), E.huellasA1(d, true)]; }),
     ciclo: E.entradasCiclo(ALGORITHM_CONTRACT_VERSION, A.TOPES_POR_DEFECTO).map((p) => { const r = comoAntes(cicloE.decidir(p)); return [E.huellasCiclo(r, false), E.huellasCiclo(r, true)]; }),
@@ -2496,10 +2513,16 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
       }));
     }
   }
-  check(`${numero()} · B.5 · EQUIVALENCIA · ${ahora.a1.length} decisiones de A1 y ${ahora.ciclo.length} del ciclo (6 de la sombra) que no activan ningún límite, campo a campo —decisión, elegida, candidatas, puntuaciones, confianza, avisos, restricciones, entrega, recorrido, explicación…—: idénticas a 0df8be2 y a dacf18d, y a f30079c salvo las frases de B.2`,
+  /* Lo único nuevo, donde debe: `noRealChoice` en una decisión tomada si y solo si compite UNA sola alternativa. */
+  const decisionesE = [...E.entradasA1(ALGORITHM_CONTRACT_VERSION).map((ctx) => a1E.decidir(ctx)),
+    ...E.entradasCiclo(ALGORITHM_CONTRACT_VERSION, A.TOPES_POR_DEFECTO).map((p) => cicloE.decidir(p).decision).filter(Boolean)];
+  const unaQueCompite = (d) => d.status === 'decided' && (d.candidates ?? []).filter((c) => c.eligible).length === 1;
+  const marcaMal = decisionesE.filter((d) => !!d.noRealChoice !== unaQueCompite(d)).length;
+  const conMarca = decisionesE.filter((d) => d.noRealChoice).length;
+  check(`${numero()} · B.5 · EQUIVALENCIA · ${ahora.a1.length} decisiones de A1 y ${ahora.ciclo.length} del ciclo (6 de la sombra) que no activan ningún límite, campo a campo —decisión, elegida, candidatas, puntuaciones, confianza, avisos, restricciones, entrega, recorrido, explicación…—: idénticas a 0df8be2 y a dacf18d, y a f30079c salvo las frases de B.2; lo único nuevo (1.12, D11) es \`noRealChoice\`, y solo donde compite una sola alternativa (${conMarca})`,
     igual(H.versiones, ['f30079c', 'dacf18d', '0df8be2']) && igual(H.campos.a1, E.CAMPOS_A1) && igual(H.campos.ciclo, E.CAMPOS_CICLO)
-    && ahora.a1.length === 40 && ahora.ciclo.length === 28 && diferencias.length === 0,
-    diferencias.slice(0, 5).join(' | ') || `${H.campos.a1.length} + ${H.campos.ciclo.length} campos × 3 versiones`);
+    && ahora.a1.length === 40 && ahora.ciclo.length === 28 && diferencias.length === 0 && marcaMal === 0 && conMarca > 0,
+    diferencias.slice(0, 5).join(' | ') || (marcaMal ? `${marcaMal} marca(s) fuera de sitio` : `${H.campos.a1.length} + ${H.campos.ciclo.length} campos × 3 versiones`));
 
   /*
    * LOS SELLOS, aparte. El versionado de S2-B quedó PENDIENTE en S2-B.5 —el contrato vive en `core/contracts.ts`, que
@@ -2507,8 +2530,8 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
    * usuario (2026-09-26): contrato 1.11 y `motor-de-decision@3`. Frente a las tres versiones anteriores cambian los
    * sellos y solo los sellos; `motor-de-contexto` sigue en 2.
    */
-  check(`${numero()} · B.5 · VERSIONADO RESUELTO: los sellos, y solo los sellos, cambian —contrato 1.11 y motor-de-decision@3 frente a ${H.sellos['0df8be2'].contrato} y ${H.sellos['0df8be2'].motor} de las tres anteriores—; motor-de-contexto sigue en 2`,
-    H.versiones.every((v) => igual(H.sellos[v], { contrato: '1.10', motor: 'motor-de-decision@2' })) && ALGORITHM_CONTRACT_VERSION === '1.11'
+  check(`${numero()} · B.5 · VERSIONADO RESUELTO: los sellos, y solo los sellos, cambian —contrato 1.11 (1.12 desde S2-C.1) y motor-de-decision@3 frente a ${H.sellos['0df8be2'].contrato} y ${H.sellos['0df8be2'].motor} de las tres anteriores—; motor-de-contexto sigue en 2`,
+    H.versiones.every((v) => igual(H.sellos[v], { contrato: '1.10', motor: 'motor-de-decision@2' })) && ALGORITHM_CONTRACT_VERSION === '1.12'
     && A.DECISION_ENGINE_REF === 'motor-de-decision@3' && A.DESCRIPTOR_DE_CONTEXTO.version === 2, `${selloHoy.contrato} · ${selloHoy.motor}`);
 }
 
@@ -2723,74 +2746,120 @@ const optimizarT = (budget, restr) => a5.optimizar({ candidates: ESTRATEGIAS, ob
 }
 
 /*
- * PARTE 2 · LO QUE NO SE ENDURECE, FIJADO COMO ESTÁ. A2, A6 y A7 también leen lo mal formado a su manera, pero
- * rechazarlo exige algo que esta fase no puede decidir: un motivo nuevo en una unión cerrada (contrato) o un
- * veredicto. Estas comprobaciones fijan lo que hacen HOY para que nadie lo cambie sin esa decisión.
+ * PARTE 2 · LO QUE NO SE ENDURECÍA. A2, A6 y A7 también leían lo mal formado a su manera, y rechazarlo exigía algo que
+ * S2-C no podía decidir: un motivo nuevo en una unión cerrada (contrato) o un veredicto. S2-C.1 lo decidió (ALC): A2
+ * lo dice con `invalid_constraint`, A6 con `inconclusive` y A7 con su política por defecto y su suelo. Estas tres
+ * comprobaciones fijaban lo que hacían; desde S2-C.1 fijan lo decidido.
  */
 {
   const a2T = A.crearMotorDeDescomposicion();
   const baseA2 = a2T.descomponer(TAREA);
-  const comoSinNada = (r) => igual(r, baseA2);
-  const todasFuera = (r, motivo) => r.opciones.length === 0 && r.rechazadas.length === baseA2.opciones.length
-    && r.rechazadas.every((x) => x.reason === motivo) && r.problemas.length === 0;
+  /* Rechazada con la regla de B.1: un solo problema, de la tarea entera, con la ruta y el motivo; ni opciones ni rechazadas. */
+  const rechazada = (r, detail) => r.opciones.length === 0 && r.rechazadas.length === 0 && r.signals.length === 0
+    && igual(r.problemas, [{ ref: '*', reason: 'invalid_constraint', detail }]);
   const fallos = [];
-  for (const [campo, motivo] of [['maxSteps', 'max_steps_exceeded'], ['maxParallel', 'max_parallel_exceeded']]) {
-    for (const v of [NaN, Infinity, 'x', null]) if (!comoSinNada(a2T.descomponer(TAREA, { [campo]: v }))) fallos.push(`${campo}=${String(v)} ya no se ignora`);
-    for (const v of [-Infinity, -1, 0]) if (!todasFuera(a2T.descomponer(TAREA, { [campo]: v }), motivo)) fallos.push(`${campo}=${String(v)} ya no deja todas fuera por ${motivo}`);
+  for (const campo of ['maxSteps', 'maxParallel']) {
+    for (const v of [NaN, Infinity, -Infinity, 'x', null, -1, 0]) {
+      if (!rechazada(a2T.descomponer(TAREA, { [campo]: v }), `constraints.${campo}: ${A.motivoDeNumeroInvalido('positivo', v)}`)) fallos.push(`${campo}=${String(v)}`);
+    }
   }
   for (const [campo, rango] of Object.entries(A.RANGO_DE_RESTRICCION).filter(([c]) => c !== 'maxSteps' && c !== 'maxParallel')) {
-    for (const v of rotosDeRangoT(rango)) if (!comoSinNada(a2T.descomponer(TAREA, ponerT(campo, v)))) fallos.push(`${campo}=${String(v)} ya no se ignora`);
+    for (const v of rotosDeRangoT(rango)) {
+      if (!rechazada(a2T.descomponer(TAREA, ponerT(campo, v)), `constraints.${campo}: ${A.motivoDeNumeroInvalido(rango, v)}`)) fallos.push(`${campo}=${String(v)}`);
+    }
   }
-  for (const campo of TOPES_T) for (const v of ROTOS_T) if (!comoSinNada(a2T.descomponer(TAREA, undefined, { [campo]: v }))) fallos.push(`tope ${campo}=${String(v)} ya no se ignora`);
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION · A2 suelto con lo mal formado, FIJADO como está: \`maxSteps\` o \`maxParallel\` NaN, infinito, texto o null se ignoran; -∞, -1 o 0 dejan todas las disposiciones fuera por \`max_*_exceeded\`; el resto de campos y los nueve topes, ignorados. Rechazarlo con la regla de B.1 exige un motivo nuevo en \`MotivoDeDescomposicionInvalida\`, una unión CERRADA de 12: contrato`,
-    igual(baseA2.opciones.map((o) => o.value.heuristica), ['por-niveles', 'secuencial']) && fallos.length === 0,
-    fallos.slice(0, 3).join(' | '));
+  for (const campo of TOPES_T) for (const v of ROTOS_T) {
+    if (!rechazada(a2T.descomponer(TAREA, undefined, { [campo]: v }), `budget.${campo}: ${motivoT(v)}`)) fallos.push(`tope ${campo}=${String(v)}`);
+  }
+  /* Lo válido, como siempre: lo que cabe deja las mismas disposiciones, y lo que no, fuera con su motivo de siempre. */
+  const validos = igual(a2T.descomponer(TAREA, { maxSteps: 100, maxParallel: 8 }, { maxDepth: 6 }).opciones, baseA2.opciones)
+    && a2T.descomponer(TAREA, { maxSteps: 1 }).rechazadas.every((x) => x.reason === 'max_steps_exceeded');
+  /* Detrás de los del grafo: con un ciclo y un tope roto se dicen las dos cosas, el grafo primero. */
+  const conCiclo = a2T.descomponer({ id: 'C', steps: [paso('a', ['b']), paso('b', ['a'])] }, { maxSteps: NaN });
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (ALC) · A2 suelto con lo mal formado: \`invalid_constraint\` en \`problemas\` —\`'*'\`, con la ruta y el motivo de B.1 en \`detail\`, detrás de los del grafo—, sin opciones ni rechazadas, para \`maxSteps\` y \`maxParallel\` (NaN, ±∞, texto, null, -1 y 0), el resto de campos y los nueve topes de pensar; lo válido, como siempre`,
+    igual(baseA2.opciones.map((o) => o.value.heuristica), ['por-niveles', 'secuencial']) && fallos.length === 0 && validos
+    && conCiclo.problemas.length > 1 && conCiclo.problemas[0].reason !== 'invalid_constraint'
+    && igual(conCiclo.problemas.at(-1), { ref: '*', reason: 'invalid_constraint', detail: 'constraints.maxSteps: no es un número finito (NaN)' }),
+    fallos.slice(0, 3).join(' | ') || `${conCiclo.problemas.map((p) => p.reason).join(',')}`);
 }
 {
   const a6T = A.crearMotorDeVerificacion();
   const evT = (key, subject, value) => ({ claim: key, supports: true, signal: { key, subject, value, source: 'measured' } });
   const MEDIDAS_T = [evT('result.latencyMs', 'R', 620), evT('result.costUsd', 'R', 0.05), evT('result.quality', 'R', 0.7)];
-  const verificarT = (constraints, evidence = MEDIDAS_T, budget) => a6T.verificar({ expected: [], actual: { id: 'R', outputs: [] }, constraints, evidence,
+  const BIEN_T = { id: 'R', status: 'succeeded', outputs: [] };
+  const verificarT = (constraints, evidence = MEDIDAS_T, budget, actual = { id: 'R', outputs: [] }) => a6T.verificar({ expected: [], actual, constraints, evidence,
     ...(budget !== undefined ? { budget } : {}) });
   const hallazgoT = (constraints, id, evidence) => verificarT(constraints, evidence).findings.find((f) => f.checkId === `constraint:${id}`);
-  /* Con 620 ms, 0,05 $ y calidad 0,7 medidos: qué hace cada valor mal formado —según B.1— en cada tope que A6 comprueba. */
+  /* Con 620 ms, 0,05 $ y calidad 0,7 medidos, y el resultado bien terminado: cada valor mal formado —según B.1— en cada tope que A6 comprueba. */
   const MATRIZ = [
-    ['maxLatencyMs', [[NaN, 'fail'], [Infinity, 'pass'], [-Infinity, 'fail'], [-1, 'fail'], [0, 'fail'], ['x', '—'], [null, '—']]],
-    ['budget.maxUsd', [[NaN, 'fail'], [Infinity, 'pass'], [-Infinity, 'fail'], [-1, 'fail'], ['x', '—'], [null, '—']]],
-    ['quality.minScore', [[NaN, 'fail'], [Infinity, 'fail'], [-Infinity, 'pass'], [-1, 'pass'], [1.5, 'fail'], ['x', '—'], [null, '—']]],
+    ['maxLatencyMs', [NaN, Infinity, -Infinity, -1, 0, 'x', null]],
+    ['budget.maxUsd', [NaN, Infinity, -Infinity, -1, 'x', null]],
+    ['quality.minScore', [NaN, Infinity, -Infinity, -1, 1.5, 'x', null]],
   ];
   const fallos = [];
   for (const [campo, casos] of MATRIZ) {
-    for (const [v, fijado] of casos) {
-      if (!A.motivoDeNumeroInvalido(A.RANGO_DE_RESTRICCION[campo], v)) fallos.push(`${campo}=${String(v)} no es mal formado`);
-      const visto = hallazgoT(ponerT(campo, v), campo)?.status ?? '—';
-      if (visto !== fijado) fallos.push(`${campo}=${String(v)} → ${visto} (fijado ${fijado})`);
+    for (const v of casos) {
+      const motivo = A.motivoDeNumeroInvalido(A.RANGO_DE_RESTRICCION[campo], v);
+      if (!motivo) fallos.push(`${campo}=${String(v)} no es mal formado`);
+      const r = verificarT(ponerT(campo, v), MEDIDAS_T, undefined, BIEN_T);
+      const f = r.findings.find((x) => x.checkId === `constraint:${campo}`);
+      if (!(f?.status === 'inconclusive' && f.hard === true && f.because === `el tope ${campo} está mal formado (${motivo}): no se puede concluir si cumple`
+        && r.status === 'inconclusive' && r.passed === false)) fallos.push(`${campo}=${String(v)} → ${f?.status}/${r.status}`);
     }
   }
-  const nan = hallazgoT({ maxLatencyMs: NaN }, 'maxLatencyMs');
+  /* Un contenedor que no es un objeto deja sin leer su tope; unas restricciones que no lo son, todos. */
+  const contenedor = verificarT({ budget: 'x' }, MEDIDAS_T, undefined, BIEN_T).findings.find((x) => x.checkId === 'constraint:budget.maxUsd');
+  const ilegibles = verificarT('x', MEDIDAS_T, undefined, BIEN_T);
+  /* Un fallo AFIRMADO no lo tapa un tope roto: si terminó cancelado, `fail`. */
+  const conFallo = verificarT({ maxLatencyMs: NaN }, MEDIDAS_T, undefined, { id: 'R', status: 'cancelled', outputs: [] });
   /* Lo válido, como siempre: cabe, no cabe, el dinero a 0, la calidad a 0 y sin medida. */
   const validos = [hallazgoT({ maxLatencyMs: 1000 }, 'maxLatencyMs'), hallazgoT({ maxLatencyMs: 500 }, 'maxLatencyMs'), hallazgoT({ budget: { maxUsd: 0 } }, 'budget.maxUsd'),
     hallazgoT({ quality: { minScore: 0 } }, 'quality.minScore'), hallazgoT({ maxLatencyMs: 1000 }, 'maxLatencyMs', [])].map((f) => f?.status);
-  /* Y los topes de pensar mal formados se ignoran: el mismo informe que sin ellos. */
-  const sinTopes = verificarT({ maxLatencyMs: 1000 });
-  const topesQueCambian = TOPES_T.filter((c) => !ROTOS_T.every((v) => igual(verificarT({ maxLatencyMs: 1000 }, MEDIDAS_T, { [c]: v }), sinTopes)));
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION · A6 con un tope mal formado, FIJADO como está: lo INTERPRETA —un NaN suspende siempre (620 ≤ NaN es falso), un infinito aprueba o suspende según el lado, un 0 o un negativo suspenden un techo— o, si no es un número, la comprobación desaparece; y los topes de pensar rotos se ignoran. Ninguna regla de B.1/B.5 llega a A6 —la entrada VALIDACIÓN de 1.11 nombra la decisión, el ciclo, las estrategias, la optimización y los mínimos de confianza propios— y corregirlo es elegir un VEREDICTO`,
-    fallos.length === 0 && nan?.because === 'result.latencyMs = 620, y el tope es ≤ NaN' && nan.hard === true
-    && igual(validos, ['pass', 'fail', 'fail', 'pass', 'unknown']) && topesQueCambian.length === 0,
-    fallos.slice(0, 3).join(' | ') || `${validos.join(',')} · topes que cambian: ${topesQueCambian.join(',') || 'ninguno'}`);
+  /* Los topes de pensar rotos: no se verifica con ellos —una sola comprobación, `inconclusive`— y la autoridad, igual. */
+  const conImplementacion = { id: 'R', status: 'succeeded', outputs: [], metadata: { providerId: 'x' } };
+  const topesMal = TOPES_T.filter((c) => !ROTOS_T.every((v) => {
+    const r = verificarT({ maxLatencyMs: 1000 }, MEDIDAS_T, { [c]: v }, BIEN_T);
+    const a = verificarT({ maxLatencyMs: 1000 }, MEDIDAS_T, { [c]: v }, conImplementacion);
+    return r.status === 'inconclusive' && r.passed === false && igual(r.findings.map((f) => `${f.checkId}:${f.status}`), ['budget:limites:inconclusive'])
+      && r.findings[0].because === `los topes de pensar están mal formados (budget.${c}: ${motivoT(v)}): no se verificó con ellos`
+      && a.status === 'fail' && a.findings.some((f) => f.checkId === 'authority:implementacion' && f.status === 'fail');
+  }));
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (ALC) · A6 con un tope mal formado —NaN, ±∞, 0 o un negativo en un techo, fuera de 0–1 en la calidad, un texto o null, o un contenedor o unas restricciones que no son un objeto—: su comprobación es \`inconclusive\` —ni \`fail\`, ni \`pass\`, ni \`unknown\`— y el veredicto también, salvo que otra comprobación afirme un fallo; con los topes de pensar rotos no se verifica con ellos —\`inconclusive\`— y la autoridad se comprueba igual; lo válido, como siempre`,
+    fallos.length === 0 && contenedor?.status === 'inconclusive'
+    && contenedor.because === 'el tope budget.maxUsd está mal formado (budget: no es un objeto (string)): no se puede concluir si cumple'
+    && ilegibles.status === 'inconclusive' && igual(ilegibles.findings.filter((f) => f.type === 'constraint.limit').map((f) => f.checkId), ['constraint:constraints'])
+    && conFallo.status === 'fail' && conFallo.findings.find((f) => f.checkId === 'constraint:maxLatencyMs')?.status === 'inconclusive'
+    && igual(validos, ['pass', 'fail', 'fail', 'pass', 'unknown']) && topesMal.length === 0,
+    fallos.slice(0, 3).join(' | ') || `${validos.join(',')} · topes que no se comportan: ${topesMal.join(',') || 'ninguno'}`);
 }
 {
-  const P = A.POLITICA_POR_DEFECTO;
+  /*
+   * A7: lo mal formado es como no declararlo —rige en ese campo la política por defecto, y después su suelo—, con el
+   * rango de B.1 de cada número. Nada afloja: un negativo ya no baja al suelo ni una fracción fuera de 0–1 se recorta
+   * al extremo. Lo válido, como siempre, con el suelo incluido. Sus topes de pensar rotos: los suyos por defecto,
+   * como antes. Sin un motivo nuevo de rechazo: `MotivoDeRechazo` sigue siendo del reloj.
+   */
+  const P = A.politicaEfectiva();
   const pol = A.politicaEfectiva;
+  const RANGOS_A7 = { minSampleSize: 'noNegativo', minConfidence: 'fraccion', vidaMs: 'positivo', ventanaMs: 'positivo', minFreshness: 'fraccion',
+    minStability: 'fraccion', maxContradiction: 'fraccion', maxMagnitude: 'noNegativo' };
+  const fallos = [];
+  for (const [campo, rango] of Object.entries(RANGOS_A7)) {
+    for (const v of [...rotosDeRangoT(rango), true, {}, []]) {
+      const p = pol({ [campo]: v });
+      if (!igual(p, P)) fallos.push(`${campo}=${String(v)} → ${p[campo]} (defecto ${P[campo]})`);
+    }
+  }
+  /* Lo válido, como siempre: el suelo manda sobre lo declarado más flojo, lo más estricto se respeta, y una política que no es un objeto es la de por defecto. */
+  const validos = pol({ minSampleSize: 1 }).minSampleSize === A.POLITICA_MINIMA.minSampleSize && pol({ minConfidence: 0 }).minConfidence === A.POLITICA_MINIMA.minConfidence
+    && pol({ minSampleSize: 50 }).minSampleSize === 50 && pol({ minFreshness: 0 }).minFreshness === 0 && pol({ maxContradiction: 1 }).maxContradiction === 1
+    && pol({ vidaMs: 0.5 }).vidaMs === 1 && pol({ ventanaMs: 5 }).ventanaMs === 5 && igual(pol('x'), P) && P.ventanaMs === A.POLITICA_POR_DEFECTO.vidaMs;
   const aprenderT = (budget) => a7.aprender({ ahora: T1, policy: POL, outcomes: resultadosAB, ...(budget !== undefined ? { budget } : {}) });
   const base7 = aprenderT(undefined);
   const topesQueCambian = TOPES_T.filter((c) => !ROTOS_T.every((v) => { const r = aprenderT({ [c]: v }); return igual(r, base7) && r.rechazo === undefined; }));
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION · A7 con lo mal formado, FIJADO como está: su política cae al defecto (NaN, texto) y al suelo (un negativo, lo que afloja de más) —su regla propia, «MÁS estricto siempre, y menos nunca»— y sus topes de pensar rotos se ignoran. Rechazarlo exige un motivo nuevo en \`MotivoDeRechazo\` ('clock_missing' | 'clock_invalid'), una unión CERRADA, y decidir qué regla manda sobre la política de A7`,
-    pol({ ventanaMs: NaN }).ventanaMs === P.vidaMs && pol({ ventanaMs: 'x' }).ventanaMs === P.vidaMs && pol({ ventanaMs: -1 }).ventanaMs === 1
-    && pol({ minSampleSize: NaN }).minSampleSize === P.minSampleSize && pol({ minSampleSize: 1 }).minSampleSize === A.POLITICA_MINIMA.minSampleSize
-    && pol({ minConfidence: NaN }).minConfidence === P.minConfidence && pol({ minConfidence: 0 }).minConfidence === A.POLITICA_MINIMA.minConfidence
-    && base7.aggregates.length > 0 && base7.rechazo === undefined && topesQueCambian.length === 0,
-    `topes que cambian: ${topesQueCambian.join(',') || 'ninguno'}`);
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (ALC) · A7 con lo mal formado: rige en ese campo la política por defecto y después su suelo —con el rango de B.1 de cada número—, sin aflojar nada (un negativo ya no baja al suelo ni una fracción fuera de 0–1 se recorta al extremo); lo válido, como siempre, con el suelo incluido; sus topes de pensar rotos, los suyos por defecto; y sin motivo nuevo de rechazo`,
+    fallos.length === 0 && validos && base7.aggregates.length > 0 && base7.rechazo === undefined && topesQueCambian.length === 0,
+    fallos.slice(0, 3).join(' | ') || `topes que cambian: ${topesQueCambian.join(',') || 'ninguno'}`);
 }
 
 /* PARTE 3 · LOS HUECOS DE PRUEBAS DE LA AUDITORÍA, fijando lo que hay. */
@@ -2804,27 +2873,41 @@ const optimizarT = (budget, restr) => a5.optimizar({ candidates: ESTRATEGIAS, ob
       .findings.find((x) => x.checkId === 'constraint:maxLatencyMs');
     return `${f?.status}·${f?.value}`;
   };
+  /*
+   * (S2-C.1 · D3, decidida) El resultado se identifica por `subject === actual.id`: A6 comprueba sus topes solo con lo
+   * medido de ese sujeto. Hasta 1.11 tomaba la primera medida por clave —la del sujeto que iba antes por orden
+   * alfabético—: «alpha» suspendía a «job-z», y al revés daba un falso `pass`.
+   */
   const CASOS = [
-    /* el paso «alpha» va antes por orden alfabético: suspende al resultado «job-z», que cumplía */
-    [[evS('job-z', 620), evS('alpha', 5000)], 'fail·5000'],
-    /* barajadas, lo mismo: no decide la llegada (1.10 · DESEMPATE), decide el sujeto */
-    [[evS('alpha', 5000), evS('job-z', 620)], 'fail·5000'],
-    /* «zeta» va detrás: se usa la del resultado */
+    /* el paso «alpha» ya no suspende al resultado «job-z»: se mira lo de «job-z» */
+    [[evS('job-z', 620), evS('alpha', 5000)], 'pass·620'],
+    /* barajadas, lo mismo: no decide la llegada ni el orden de los sujetos */
+    [[evS('alpha', 5000), evS('job-z', 620)], 'pass·620'],
     [[evS('job-z', 620), evS('zeta', 5000)], 'pass·620'],
-    /* el FALSO aprobado: el resultado no cumple y aprueba con la medida del paso */
-    [[evS('job-z', 5000), evS('alpha', 620)], 'pass·620'],
-    /* solo la de un paso, o una sin sujeto: cuentan como del resultado */
-    [[evS('alpha', 620)], 'pass·620'],
-    [[evS(undefined, 620)], 'pass·620'],
+    /* el falso aprobado, corregido: el resultado no cumple y suspende con SU medida */
+    [[evS('job-z', 5000), evS('alpha', 620)], 'fail·5000'],
+    /* solo la de un paso, o una `result.*` sin sujeto: no son del resultado —no se midió— */
+    [[evS('alpha', 620)], 'unknown·undefined'],
+    [[evS(undefined, 620)], 'unknown·undefined'],
   ];
   const vistos = CASOS.map(([ev]) => medidaS(ev));
-  /* Y su gemela en A7: las dos en el MISMO agregado, sin sujeto. */
-  const dos = a7.aprender({ ahora: T1, outcomes: [{ id: 'o-sujetos', kind: 'success', at: T1 - HORA, scope: { capability: CAP },
-    signals: [{ key: 'result.latencyMs', subject: 'job-z', value: 620, source: 'measured' }, { key: 'result.latencyMs', subject: 'alpha', value: 5000, source: 'measured' }] }] })
+  /* Y en A7: el resultado «job-z» con su latencia y la de su paso «alpha» aprende solo la suya; otro resultado, ninguna de las dos. */
+  const DOS = [{ key: 'result.latencyMs', subject: 'job-z', value: 620, source: 'measured' }, { key: 'result.latencyMs', subject: 'alpha', value: 5000, source: 'measured' }];
+  const aprenderS = (id) => a7.aprender({ ahora: T1, outcomes: [{ id, kind: 'success', at: T1 - HORA, scope: { capability: CAP }, signals: DOS }] })
     .aggregates.filter((a) => a.metric === 'result.latencyMs');
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (D3) · A6 con dos sujetos en la MISMA clave, FIJADO como está: toma la primera medida por clave sin mirar el sujeto, y la primera es la del sujeto que va antes por orden alfabético —«alpha» suspende a «job-z», y al revés da un falso \`pass\`—; la llegada no decide. A7 igual: las dos en un solo agregado. Qué sujeto es «el resultado» es D3`,
-    igual(vistos, CASOS.map(([, e]) => e)) && dos.length === 1 && dos[0].n === 2 && dos[0].suma === 5620 && !('subject' in dos[0].scope),
-    `${vistos.join(' | ')} · A7 ${dos.map((a) => `n${a.n} suma ${a.suma}`).join(',')}`);
+  const suyo = aprenderS('job-z');
+  const ajeno = aprenderS('o-sujetos');
+  /* Y el ciclo: `cerrar` les pasa a A6 y a A7 solo lo del resultado —ni lo del paso «alpha» ni una latencia sin sujeto—. */
+  const obsS = observar(7, 'success', T1 + HORA);
+  const cS = ciclo.cerrar(R, { ...obsS, signals: [...obsS.signals, { key: 'result.latencyMs', subject: 'alpha', value: 5000, source: 'measured', at: T1 + HORA },
+    { key: 'result.latencyMs', value: 9000, source: 'measured', at: T1 + HORA }] }, { ahora: T1 + HORA, policy: POL });
+  const latS = cS.learning?.aggregates.find((a) => a.metric === 'result.latencyMs');
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (D3) · el sujeto: A6 comprueba los topes del resultado solo con lo medido de \`subject === actual.id\` —ni la llegada ni el orden alfabético deciden, y el falso \`pass\` desaparece—; la de un paso o una \`result.*\` sin sujeto no se le atribuyen (\`unknown\`); A7 no suma lo de otro sujeto; y \`cerrar\` les pasa a A6 y a A7 solo lo del resultado`,
+    igual(vistos, CASOS.map(([, e]) => e)) && suyo.length === 1 && suyo[0].n === 1 && suyo[0].suma === 620 && !('subject' in suyo[0].scope) && ajeno.length === 0
+    && igual(cS.outcome.signals.map((s) => `${s.subject}:${s.value}`), ['ejec_7:1000']) && latS?.n === 1 && latS.suma === 1000
+    && cS.verification.evidence.some((e) => e.signal?.subject === 'ejec_7')
+    && cS.verification.evidence.every((e) => e.signal?.subject === 'ejec_7' || e.signal?.key === 'quality.sintetica'),
+    `${vistos.join(' | ')} · A7 ${suyo.map((a) => `n${a.n} suma ${a.suma}`).join(',')} · ajeno ${ajeno.length} · cerrar ${latS?.n}/${latS?.suma}`);
 }
 {
   const a6L = A.crearMotorDeVerificacion();
@@ -2847,7 +2930,7 @@ const optimizarT = (budget, restr) => a5.optimizar({ candidates: ESTRATEGIAS, ob
   const estr = a3B1.proponer(FORMAS_B1, []).estrategias;
   const o5 = a5.optimizar({ candidates: estr, objective: { weights: { latency: 1 } }, constraints: { maxLatencyMs: 1 }, evidence: [] });
   const o5x = a5.optimizar({ candidates: [opcion('x', { quality: 0.9 })], objective: { weights: { quality: 1 } }, constraints: { maxLatencyMs: 1000 }, evidence: [] });
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (D1/D9) · SIN DATO de latencia, \`maxLatencyMs\` se lee distinto, FIJADO como está: A1 deja fuera la alternativa (\`unverifiable:maxLatencyMs\`, o la admite con \`datoAusente: 'admit'\`), A3 y A5 dejan PASAR las estrategias y A5 deja fuera lo que no es estrategia; con el dato medido, A3 las poda. Unificarlo es decidir qué significa «no medido» y qué es \`maxLatencyMs\``,
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (D1 = mantener, D9 = criterio) · SIN DATO de latencia, \`maxLatencyMs\` se lee distinto, FIJADO como está: A1 deja fuera la alternativa (\`unverifiable:maxLatencyMs\`, o la admite con \`datoAusente: 'admit'\`), A3 y A5 dejan PASAR las estrategias y A5 deja fuera lo que no es estrategia; con el dato medido, A3 las poda. Así se queda: D1 mantiene «no medido» y D9 deja \`maxLatencyMs\` como criterio`,
     candidata(d1, 'a')?.reason === 'unverifiable:maxLatencyMs' && elegidaDe(d1) === 'b' && d1.warnings.includes('constraint_unverifiable')
     && elegidaDe(d1admit) === 'a'
     && e3sin.estrategias.length === FORMAS_B1.length && e3sin.rechazadas.length === 0
@@ -2874,7 +2957,7 @@ const optimizarT = (budget, restr) => a5.optimizar({ candidates: ESTRATEGIAS, ob
   const d = a1.decidir(contexto({ options: opts }));
   const barajada = a1.decidir(contexto({ options: [...opts].reverse() }));
   const [sa, sb] = [candidata(d, 'a')?.score, candidata(d, 'b')?.score];
-  check(`${numero()} · S2-C · el desempate por COBERTURA, aislado y FIJADO: «a» (solo calidad 0.8) y «b» (calidad 0.6 y coste) empatan a 0.800 en el objetivo, ninguna tiene evidencia, y gana «b» por cubrir más —1.00 frente a 0.50—; barajadas, lo mismo. Es el orden de siempre —objetivo, confianza, cobertura, id—, y tocarlo es D1`,
+  check(`${numero()} · S2-C · el desempate por COBERTURA, aislado y FIJADO: «a» (solo calidad 0.8) y «b» (calidad 0.6 y coste) empatan a 0.800 en el objetivo, ninguna tiene evidencia, y gana «b» por cubrir más —1.00 frente a 0.50—; barajadas, lo mismo. Es el orden de siempre —objetivo, confianza, cobertura, id—, y D1 (S2-C.1) lo mantiene`,
     elegidaDe(d) === 'b' && candidata(d, 'a')?.reason === 'lower_score' && casi(sa?.total, 0.8) && casi(sb?.total, 0.8)
     && sa?.coverage === 0.5 && sb?.coverage === 1 && d.confidence?.value === 0
     && d.explanation.includes('Por delante de «a» (0.800) por coverage.') && igual(barajada, d),
@@ -2895,18 +2978,25 @@ const D11 = {
 };
 {
   const ids = (d) => d.candidates.map((c) => `${c.id}:${c.reason}`);
+  /*
+   * (S2-C.1 · D11, decidida: A–E son «sin elección real», con un CAMPO que distingue los cinco.) Lo que S2-C fijó
+   * —candidatas, avisos, puntuación— sigue igual, y la confianza, la de 9544b7f: la marca no toca la selección, la
+   * puntuación ni la confianza. Lo nuevo es `noRealChoice.causes`, en el orden en que se filtra; y D lleva además
+   * `evidence_capped` (V).
+   */
   const esperado = {
-    A: [['a:selected'], ['low_confidence', 'experimental_algorithm'], 1],
-    B: [['a:selected', 'b:constraint:maxRisk', 'c:constraint:maxRisk'], ['low_confidence', 'experimental_algorithm'], 0.95],
-    C: [['a:selected', 'b:constraint:minConfidence', 'c:constraint:minConfidence'], ['experimental_algorithm'], 0.45],
-    D: [['a:selected', 'b:constraint:minConfidence', 'c:constraint:minConfidence'], ['budget_exhausted', 'experimental_algorithm'], 0.45],
-    E: [['a:selected'], ['candidates_capped', 'budget_exhausted', 'low_confidence', 'experimental_algorithm'], 0.95],
+    A: [['a:selected'], ['low_confidence', 'experimental_algorithm'], 1, 0, ['single_option']],
+    B: [['a:selected', 'b:constraint:maxRisk', 'c:constraint:maxRisk'], ['low_confidence', 'experimental_algorithm'], 0.95, 0, ['constraints']],
+    C: [['a:selected', 'b:constraint:minConfidence', 'c:constraint:minConfidence'], ['experimental_algorithm'], 0.45, 1, ['min_confidence']],
+    D: [['a:selected', 'b:constraint:minConfidence', 'c:constraint:minConfidence'], ['budget_exhausted', 'evidence_capped', 'experimental_algorithm'], 0.45, 1, ['evidence_capped', 'min_confidence']],
+    E: [['a:selected'], ['candidates_capped', 'budget_exhausted', 'low_confidence', 'experimental_algorithm'], 0.95, 0, ['candidates_capped']],
   };
-  const malos = Object.entries(esperado).filter(([k, [cands, avisos, total]]) => {
+  const malos = Object.entries(esperado).filter(([k, [cands, avisos, total, confianza, causas]]) => {
     const d = D11[k];
-    return !(d.status === 'decided' && d.selected === 'a' && igual(ids(d), cands) && igual(d.warnings, avisos) && casi(d.selectedScore?.total, total));
-  }).map(([k]) => `${k}: ${ids(D11[k]).join(',')} · ${D11[k].warnings.join(',')} · ${D11[k].selectedScore?.total}`);
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (D11) · «sin elección real», los cinco estados de HOY, FIJADOS: A (llega una) decide sin marca; B (las restricciones dejan una) y C (\`minConfidence\` deja una) listan las de fuera con su motivo; D (evidencia acotada con \`minConfidence\`) es C con \`budget_exhausted\` y la frase; y en E (\`maxCandidates: 1\`) las otras dos DESAPARECEN —ni en \`candidates\` ni en la explicación: solo \`candidates_capped\` y \`budget_exhausted\`—. Ningún aviso ni campo dice «sin elección»`,
+    return !(d.status === 'decided' && d.selected === 'a' && igual(ids(d), cands) && igual(d.warnings, avisos) && casi(d.selectedScore?.total, total)
+      && casi(d.confidence?.value, confianza) && igual(d.noRealChoice?.causes, causas) && Object.isFrozen(d.noRealChoice) && Object.isFrozen(d.noRealChoice?.causes));
+  }).map(([k]) => `${k}: ${ids(D11[k]).join(',')} · ${D11[k].warnings.join(',')} · ${D11[k].selectedScore?.total} · ${D11[k].confidence?.value} · ${(D11[k].noRealChoice?.causes ?? []).join('+')}`);
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (D11) · «sin elección real», los cinco estados con su causa en \`noRealChoice\`: A \`single_option\`, B \`constraints\`, C \`min_confidence\`, D \`evidence_capped\` y \`min_confidence\`, y E \`candidates_capped\` —donde las otras dos siguen sin aparecer en \`candidates\` ni en la explicación: la causa dice por qué—; la elección, la puntuación y la confianza, las de antes`,
     malos.length === 0 && D11.B.explanation.includes('Cumple las restricciones; 2 opción(es) quedaron fuera por no cumplirlas.')
     && !!fraseR(D11.D) && !fraseR(D11.C) && !D11.E.explanation.some((f) => /«[bc]»/.test(f)) && D11.E.candidates.length === 1,
     malos.join(' ‖ '));
@@ -2923,20 +3013,21 @@ const D11 = {
   const porOpciones = pedirT({ options: [opcion('a', { latency: 1 }), opcion('b', { latency: 2 })] });
   const simple = pedirT({});
   const compuesto = pedirT({}, { paralelizar: true, optimizar: true });
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (vocabulario) · \`maxCandidates: 0\`, el MISMO presupuesto con fallos distintos según la vía, FIJADO: A1 suelto y el ciclo por opciones dan \`budget_exceeded\`; con tarea, la composición se vacía y A1 da \`insufficient_evidence\` —el porqué (B.5) nombra \`optionLimitReached\` de A2 o \`budgetExhausted\` de A4—. Un motivo estructurado común sería contrato`,
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (V, representación común) · \`maxCandidates: 0\`: el ciclo lo nombra igual por las tres vías —parada \`budget_exceeded\` por opciones y con tarea, simple o compuesta—; A1 sigue diciendo lo que ve —\`budget_exceeded\` si le llegan alternativas, \`insufficient_evidence\` si la composición se vació antes— y el porqué (B.5) nombra \`optionLimitReached\` de A2 o \`budgetExhausted\` de A4`,
     suelto.status === 'undecided' && suelto.failure === 'budget_exceeded' && igual(suelto.warnings, ['candidates_capped', 'budget_exhausted'])
     && suelto.explanation[0].startsWith('Llegaron 2 alternativa(s), pero el presupuesto de pensar se agotó (maxCandidates 0) antes de evaluar ninguna')
-    && porOpciones.decision?.failure === 'budget_exceeded'
-    && simple.status === 'undecided' && simple.parada === 'undecided' && simple.decision?.failure === 'insufficient_evidence' && simple.because[0].endsWith('(`optionLimitReached`).')
-    && compuesto.status === 'undecided' && compuesto.decision?.failure === 'insufficient_evidence' && compuesto.because[0].endsWith('(`budgetExhausted`).'),
-    `${suelto.failure} · ${porOpciones.decision?.failure} · ${simple.decision?.failure} · ${compuesto.decision?.failure}`);
+    && porOpciones.status === 'undecided' && porOpciones.parada === 'budget_exceeded' && porOpciones.decision?.failure === 'budget_exceeded'
+    && simple.status === 'undecided' && simple.parada === 'budget_exceeded' && simple.decision?.failure === 'insufficient_evidence' && simple.because[0].endsWith('(`optionLimitReached`).')
+    && compuesto.status === 'undecided' && compuesto.parada === 'budget_exceeded' && compuesto.decision?.failure === 'insufficient_evidence' && compuesto.because[0].endsWith('(`budgetExhausted`).'),
+    `paradas ${porOpciones.parada} · ${simple.parada} · ${compuesto.parada} · A1 ${suelto.failure} · ${porOpciones.decision?.failure} · ${simple.decision?.failure} · ${compuesto.decision?.failure}`);
 }
 {
   const porContador = a1.decidir(contexto({ objective: { weights: { quality: 1 } }, options: [opcion('a', { quality: 0.9 }), opcion('b', { quality: 0.8 })], budget: { maxIterations: 1 } }));
   const tres = [D11.E, D11.D, porContador];
-  check(`${numero()} · S2-C · BLOCKED — HUMAN DECISION (vocabulario, \`evidence_capped\`) · \`budget_exhausted\` dice hoy TRES cosas, FIJADO: candidatas acotadas (con \`candidates_capped\`), evidencia acotada (solo la frase y \`spend.evidence\` la distinguen) y un contador pasado —\`maxIterations: 1\` decide igual, con \`spend.iterations\` 2 y sin nombrarlo en la explicación—. Separarlas es vocabulario: contrato`,
+  const soloSuyo = (d, suyo) => ['candidates_capped', 'evidence_capped', 'counter_exhausted'].every((w) => d.warnings.includes(w) === (w === suyo));
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (V, \`evidence_capped\`) · \`budget_exhausted\` se separa en tres avisos propios: candidatas acotadas (\`candidates_capped\`), evidencia acotada (\`evidence_capped\`, con su frase y \`spend.evidence\`) y un contador pasado (\`counter_exhausted\`: \`maxIterations: 1\` decide igual, con \`spend.iterations\` 2 y sin nombrarlo en la explicación); \`budget_exhausted\` sigue como aviso general y cada caso lleva SOLO el suyo`,
     tres.every((d) => d.status === 'decided' && d.warnings.includes('budget_exhausted'))
-    && D11.E.warnings.includes('candidates_capped') && !D11.D.warnings.includes('candidates_capped') && !porContador.warnings.includes('candidates_capped')
+    && soloSuyo(D11.E, 'candidates_capped') && soloSuyo(D11.D, 'evidence_capped') && soloSuyo(porContador, 'counter_exhausted')
     && !!fraseR(D11.D) && !fraseR(D11.E) && !fraseR(porContador) && D11.D.spend.evidence === 1
     && porContador.spend.iterations === 2 && !porContador.explanation.some((f) => /iteraci|maxIterations/.test(f)),
     tres.map((d) => d.warnings.join('+')).join(' ‖ '));
@@ -2956,8 +3047,14 @@ const D11 = {
 {
   const E = await import('./equivalencia-s2c.mjs');
   const H = JSON.parse(fs.readFileSync(path.resolve(here, 'equivalencia-s2c.json'), 'utf8'));
-  const hoy = E.huellasDe(A);
+  /*
+   * (1.12) Igual SALVO EL SELLO: e3a9e94 decidía con el contrato 1.11 y lo escribía en cada estrategia, en cada
+   * resultado de la optimización y en cada selección de A8; el de hoy se escribe como aquel antes de la huella, y el
+   * número vigente lo comprueba la 101. Solo se sustituye un texto que es EXACTAMENTE el sello.
+   */
+  const comoE3a9e94 = (x) => JSON.parse(JSON.stringify(x ?? null, (k, v) => (v === ALGORITHM_CONTRACT_VERSION ? '1.11' : v)));
   const salidas = E.salidasDe(A);
+  const hoy = Object.fromEntries(Object.entries(salidas).map(([k, v]) => [k, v.map((x) => E.huella(comoE3a9e94(x)))]));
   const diferencias = [];
   for (const k of ['a3', 'a4', 'a5', 'a8']) {
     if ((H.huellas?.[k] ?? []).length !== hoy[k].length) diferencias.push(`${k}: ${H.huellas?.[k]?.length} ≠ ${hoy[k].length} entradas`);
@@ -2973,27 +3070,28 @@ const D11 = {
     ...salidas.a5.flatMap((o) => o.rejected).filter((x) => /constraint_conflict/.test(x.why?.detail ?? '')),
     ...salidas.a8.flatMap((c) => c.because).filter((f) => f.endsWith(COLA_T)),
   ];
-  check(`${numero()} · S2-C · EQUIVALENCIA · ${hoy.a3.length + hoy.a4.length + hoy.a5.length + hoy.a8.length} entradas VÁLIDAS —tareas, restricciones y topes al azar con semilla fija, y lo aprendido para A8—: A3, A4, A5 y A8 devuelven lo mismo que en e3a9e94, huella a huella, y ninguna se toma por mal formada`,
+  check(`${numero()} · S2-C · EQUIVALENCIA · ${hoy.a3.length + hoy.a4.length + hoy.a5.length + hoy.a8.length} entradas VÁLIDAS —tareas, restricciones y topes al azar con semilla fija, y lo aprendido para A8—: A3, A4, A5 y A8 devuelven lo mismo que en e3a9e94, huella a huella —salvo el sello del contrato, 1.12 desde S2-C.1—, y ninguna se toma por mal formada`,
     H.version === 'e3a9e94' && hoy.a3.length === 30 && hoy.a4.length === 30 && hoy.a5.length === 30 && hoy.a8.length === 12
     && diferencias.length === 0 && cubre && tomadasPorRotas.length === 0,
     diferencias.slice(0, 5).join(' | ') || `A3 ${suma(salidas.a3, (r) => r.estrategias.length)} estrategias · A4 ${suma(salidas.a4, (p) => p.variantes.length)} variantes · A5 ${suma(salidas.a5, (o) => o.feasible.length)} factibles · A8 ${suma(salidas.a8, (c) => c.admisiones.length)} admisiones`);
 }
 {
-  /* La regla es LA de A0, no una copia; y lo bloqueado sigue sin llamarla. */
+  /* La regla es LA de A0, no una copia: la de A3, A4, A5 y A8 desde S2-C, y la de A2, A6 y A7 desde S2-C.1 (ALC). */
   const fuente = (f) => sinComentarios(leer(`functions/src/core/algorithm/${f}`));
   const USA = {
     'strategy-engine.ts': ['problemasDeLosLados(undefined, constraints)', 'problemasDelPresupuesto(limites)'],
     'optimization-engine.ts': ['problemasDeLosLados(undefined, problema.constraints)', 'problemasDelPresupuesto(problema.budget)'],
     'parallelization-engine.ts': ['problemasDeLosLados(undefined, constraints)', 'problemasDelPresupuesto(limites)'],
     'context-engine.ts': ['problemasDelPresupuesto(peticion?.budget)'],
+    'decomposition-engine.ts': ['problemasDeLosLados(undefined, constraints)', 'problemasDelPresupuesto(limites)'],
+    'verification-engine.ts': ['restriccionesMalFormadas(c)', 'problemasDelPresupuesto(peticion.budget)'],
+    'feedback.ts': ['motivoDeNumeroInvalido(RANGO_DE_LA_POLITICA[campo], v)'],
   };
   const faltan = Object.entries(USA).flatMap(([f, xs]) => xs.filter((x) => !fuente(f).includes(x)).map((x) => `${f}: falta ${x}`));
   const copias = Object.keys(USA).filter((f) => /motivoDeNumeroInvalido\(\s*'noNegativo'/.test(fuente(f))).map((f) => `${f}: copia la regla`);
-  const bloqueadasQueLaLlaman = ['decomposition-engine.ts', 'verification-engine.ts', 'feedback-engine.ts']
-    .filter((f) => /problemasDelPresupuesto\(|problemasDeLosLados\(/.test(fuente(f))).map((f) => `${f}: la llama`);
-  check(`${numero()} · S2-C · la regla es LA de B.1, no una copia: A3, A4, A5 y A8 llaman a \`problemasDeLosLados\` y \`problemasDelPresupuesto\` de A0 —ni un validador propio—; y A2, A6 y A7, bloqueados, no las llaman`,
-    faltan.length === 0 && copias.length === 0 && bloqueadasQueLaLlaman.length === 0,
-    [...faltan, ...copias, ...bloqueadasQueLaLlaman].join(' · '));
+  check(`${numero()} · S2-C · la regla es LA de B.1, no una copia: A3, A4, A5 y A8 —y desde S2-C.1 (ALC) A2, A6 y A7— llaman a las funciones de A0 (\`problemasDeLosLados\`, \`problemasDelPresupuesto\`, \`restriccionesMalFormadas\`, \`motivoDeNumeroInvalido\` con su rango), ni un validador propio`,
+    faltan.length === 0 && copias.length === 0,
+    [...faltan, ...copias].join(' · '));
 }
 
 /*
@@ -3087,10 +3185,278 @@ const D11 = {
   const enSuSitio = posicion('### S2-B.5') < posicion('### S2-C') && posicion('### S2-C') < posicion('\n### Lo que queda declarado\n');
   const fila19 = DOC.includes('| `algorithm-quality.test.mjs` §T (202–222) · `equivalencia-s2c.mjs` · `equivalencia-s2c.json` |');
   const nota7 = septima.includes('después, en s2-c (la fase técnica, arriba)') && septima.includes('quedan blocked — human decision');
-  check(`${numero()} · S2-C · el documento dice lo que hay: lo endurecido con su forma, lo BLOCKED con la decisión que falta, A6 y el sujeto (prueba sí, corrección no), \`maxLatencyMs\` sin volverse un reloj, el atajo exacto y lo que sigue sin quitarse, la línea base, lo que NO se decidió, su rango (${rango}), la fila de §19 y la nota del punto 7`,
-    C2.length > 0 && enSuSitio && faltanFilas.length === 0 && faltan.length === 0 && sobran.length === 0 && fila19 && nota7,
-    [...faltanFilas, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...(enSuSitio ? [] : ['fuera de su sitio']), ...(fila19 ? [] : ['sin fila en §19']), ...(nota7 ? [] : ['sin nota en el punto 7'])].join(' · ')
+  /*
+   * (S2-C.1) Lo de arriba es la FOTO de S2-C y se queda así; lo BLOCKED de A2, A6 y A7 lo decidió S2-C.1 (ALC), y eso lo
+   * dice su sección —no esta—, y el punto 7 lo nombra. Sin eso, el documento seguiría diciendo como de hoy lo que ya no es.
+   */
+  const C21 = (() => { const i = S18_PLANO.indexOf('### s2-c.1'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
+  const decididoDespues = C21.includes('**alc · lo mal formado en a2, a6 y a7 — cerrado') && C21.includes('aquellos apartados se quedan como su foto de entonces')
+    && septima.includes('y en s2-c.1 (alc)') && C21.includes('**d3 · el sujeto — cerrada');
+  check(`${numero()} · S2-C · el documento dice lo que hay: lo endurecido con su forma, lo BLOCKED con la decisión que faltaba —que S2-C.1 tomó (ALC y D3), dicho en su sección y en el punto 7—, A6 y el sujeto (prueba sí, corrección no, en su foto), \`maxLatencyMs\` sin volverse un reloj, el atajo exacto y lo que sigue sin quitarse, la línea base, lo que NO se decidió, su rango (${rango}), la fila de §19 y la nota del punto 7`,
+    C2.length > 0 && enSuSitio && faltanFilas.length === 0 && faltan.length === 0 && sobran.length === 0 && fila19 && nota7 && decididoDespues,
+    [...faltanFilas, ...faltan, ...sobran.map((s) => `sobra: ${s}`), ...(enSuSitio ? [] : ['fuera de su sitio']), ...(fila19 ? [] : ['sin fila en §19']), ...(nota7 ? [] : ['sin nota en el punto 7']),
+      ...(decididoDespues ? [] : ['sin lo que S2-C.1 decidió'])].join(' · ')
     || `${DEBE_DECIR.length} afirmaciones · ${ENDURECIDAS.length + BLOQUEADAS.length} filas`);
+}
+
+console.log('\n─── U. S2-C.1 · Las decisiones humanas, aplicadas ───');
+
+/*
+ * S2-C.1: el usuario tomó las decisiones de la matriz (2026-09-26). Cada comprobación de esta sección fija una
+ * decisión: lo que cambió en el código por ella o, si la decisión es mantener, que no cambió nada y que el documento
+ * lo dice como semántica y no como deuda.
+ */
+const DECISIONES_S2C1 = (() => { const i = S18_PLANO.indexOf('### s2-c.1'); const j = i < 0 ? -1 : S18_PLANO.indexOf('### ', i + 4); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; })();
+const puntoDeclarado = (inicio, siguiente) => { const i = S18_PLANO.indexOf(inicio); const j = i < 0 ? -1 : S18_PLANO.indexOf(siguiente, i + inicio.length); return i >= 0 && j > i ? S18_PLANO.slice(i, j) : ''; };
+{
+  /* D1 = a) mantener: el caso de la auditoría sigue igual —«a» sin calidad saca 1,000 y gana a «b» con 0,4— y el documento lo dice. */
+  const d = a1.decidir(contexto({ options: [opcion('a', { cost: 1 }), opcion('b', { quality: 0.4, cost: 1 })] }));
+  const sa = candidata(d, 'a')?.score;
+  const punto1 = puntoDeclarado('1. **un eje sin dato no penaliza el total.**', '2. **');
+  check(`${numero()} · S2-C.1 · D1 CERRADA (a, mantener): «no medido» sigue siendo lo que era —se renormaliza sobre lo medido, cobertura = peso medido ÷ peso total, \`missing\`— y el documento lo dice como semántica, no como deuda`,
+    elegidaDe(d) === 'a' && casi(sa?.total, 1) && sa?.coverage === 0.5 && igual(sa?.missing, ['quality']) && casi(candidata(d, 'b')?.score?.total, 0.7)
+    && DECISIONES_S2C1.includes('**d1 · qué significa «no medido» — cerrada: a) mantener.**') && DECISIONES_S2C1.includes('no hay `datoausente` para la puntuación')
+    && punto1.includes('**decidida en s2-c.1 (d1 = a, mantener): es la semántica, no una deuda**'),
+    `${elegidaDe(d)} · ${sa?.total} · ${sa?.coverage}`);
+}
+{
+  /*
+   * D2b = mantener el 0 y documentar: la forma de siempre —las cuatro claves y los nueve ejes con número—, un eje con
+   * peso sin dato vale 0 Y aparece en `missing`, uno sin peso medido conserva su ajuste y uno sin peso ausente vale 0.
+   */
+  const d = a1.decidir(contexto({ objective: { weights: { quality: 1, cost: 1 } },
+    options: [opcion('a', { cost: 1, reliability: 0.95 }), opcion('b', { quality: 0.4, cost: 1 })] }));
+  const sa = candidata(d, 'a')?.score;
+  const punto2 = puntoDeclarado('2. **el desglose no cuadraba en ese caso**', '3. **');
+  check(`${numero()} · S2-C.1 · D2b CERRADA (mantener el 0 y documentar): \`fits\` conserva su forma —cuatro claves, nueve ejes con número—; un 0 puede ser un eje sin dato, la ausencia la dice \`missing\`, y el documento escribe la convención`,
+    igual(Object.keys(sa ?? {}).sort(), ['coverage', 'fits', 'missing', 'total']) && Object.keys(sa?.fits ?? {}).length === 9
+    && Object.values(sa?.fits ?? {}).every((v) => typeof v === 'number')
+    && sa.fits.quality === 0 && igual(sa.missing, ['quality']) && sa.fits.reliability === 0.95 && sa.fits.latency === 0
+    && DECISIONES_S2C1.includes('**d2b · la forma de `fits` — cerrada: se mantiene el 0 y la convención queda escrita.**')
+    && DECISIONES_S2C1.includes('un `fits` de 0 no es evidencia negativa del eje')
+    && punto2.includes('**decidida en s2-c.1 (d2b = mantener el 0 y documentar la convención)**'),
+    `${JSON.stringify(sa?.fits)} · missing ${JSON.stringify(sa?.missing)}`);
+}
+
+{
+  /*
+   * D11 = A–E son «sin elección real», con un CAMPO que distingue los cinco (1.12). PROPIEDAD sobre 1 500 decisiones al
+   * azar —de una a cinco alternativas, restricciones, confianza mínima, topes de candidatas y de evidencia—:
+   * `noRealChoice` está si y solo si se decidió con UNA sola que compite, y sus causas son las que la decisión ya dice
+   * —cuántas llegaron, `candidates_capped`, las de fuera por restricciones, las de fuera por confianza y
+   * `evidence_capped`—, en ese orden; no depende del orden de llegada, y está congelado. Que la marca no toca la
+   * selección, la puntuación ni la confianza lo fijan la 215 (los cinco casos, con los valores de 9544b7f) y la 199
+   * (la equivalencia con las tres versiones anteriores).
+   */
+  const azar = generador(2026_0926_225);
+  const elegir = (xs) => xs[Math.floor(azar() * xs.length)];
+  const EJES_U = { quality: [0.2, 0.5, 0.9], cost: [1, 2, 3], latency: [100, 500, 900], reliability: [0.5, 0.8, 0.95] };
+  const vistas = {};
+  const fallos = [];
+  for (let k = 0; k < 1500; k++) {
+    const ops = Array.from({ length: 1 + Math.floor(azar() * 5) }, (_, i) => opcion(`o${i}`,
+      Object.fromEntries(Object.entries(EJES_U).filter(() => azar() < 0.75).map(([e, vs]) => [e, elegir(vs)]))));
+    const constraints = elegir([undefined, { maxRisk: 0.3 }, { minConfidence: elegir([0.2, 0.3, 0.6]) }, { maxLatencyMs: 600 }, { maxRisk: 0.4, minConfidence: 0.3 }]);
+    const budget = elegir([undefined, { maxCandidates: elegir([1, 2, 3]) }, { maxEvidence: elegir([0, 1, 2]) }, { maxCandidates: 2, maxEvidence: 1 }]);
+    const signals = Array.from({ length: elegir([0, 1, 3, 8]) }, (_, i) => ({ key: `option.k${i % 4}`, subject: elegir(ops).id, value: elegir([0.5, 1]),
+      source: elegir(['measured', 'catalog', 'model']), ...(azar() < 0.5 ? { sampleSize: 20 } : {}) }));
+    const ctx = contexto({ objective: { weights: { quality: 1, cost: 1, latency: 1 } }, options: ops,
+      ...(constraints ? { constraints } : {}), ...(budget ? { budget } : {}), ...(signals.length ? { signals } : {}) });
+    const d = a1.decidir(ctx);
+    const alReves = a1.decidir({ ...ctx, options: [...ops].reverse() });
+    const cands = d.candidates ?? [];
+    const esperadas = [];
+    if (d.status === 'decided' && cands.filter((c) => c.eligible).length === 1) {
+      if (ops.length === 1) esperadas.push('single_option');
+      else {
+        const porConfianza = cands.some((c) => c.reason === 'constraint:minConfidence');
+        if (d.warnings.includes('candidates_capped')) esperadas.push('candidates_capped');
+        if (cands.some((c) => !c.eligible && c.reason !== 'constraint:minConfidence')) esperadas.push('constraints');
+        if (porConfianza && d.warnings.includes('evidence_capped')) esperadas.push('evidence_capped');
+        if (porConfianza) esperadas.push('min_confidence');
+      }
+    }
+    const causas = d.noRealChoice?.causes;
+    for (const c of causas ?? []) vistas[c] = (vistas[c] ?? 0) + 1;
+    if (!igual(causas ?? [], esperadas) || (esperadas.length === 0) !== (d.noRealChoice === undefined)
+      || !igual(alReves.noRealChoice, d.noRealChoice) || (d.noRealChoice && !(Object.isFrozen(d.noRealChoice) && Object.isFrozen(causas)))) {
+      fallos.push(`#${k} · ${(causas ?? []).join('+') || '—'} ≠ ${esperadas.join('+') || '—'}`);
+    }
+  }
+  const CAUSAS = ['single_option', 'candidates_capped', 'constraints', 'evidence_capped', 'min_confidence'];
+  check(`${numero()} · S2-C.1 · D11 CERRADA (1.12) · PROPIEDAD · 1 500 decisiones al azar: \`noRealChoice\` si y solo si se decidió con UNA sola que compite, con las causas que la decisión ya dice y en el orden en que se filtra —${CAUSAS.join(', ')}—; igual con las alternativas al revés, y congelado`,
+    fallos.length === 0 && CAUSAS.every((c) => vistas[c] > 10), fallos.slice(0, 3).join(' | ') || JSON.stringify(vistas));
+}
+{
+  /*
+   * V · LAS PARADAS de 1.12. PROPIEDAD sobre 600 peticiones al azar al ciclo —por opciones o con tarea, simple o
+   * compuesta, con topes y restricciones—: cada parada nueva donde su causa, leída de lo que el ciclo ya dice, y en
+   * ningún otro sitio: `max_depth_exceeded` si el porqué empieza por «El plan existe…»; `composition_emptied` si la
+   * composición se vació y no fue el presupuesto; `budget_exceeded` si se vació por el presupuesto, o si A1 falló con
+   * `budget_exceeded` por el camino de opciones. Las tres, con el `status` de siempre: `undecided`.
+   */
+  const cicloU = A.crearCicloAlgoritmico();
+  const azar = generador(2026_0926_226);
+  const elegir = (xs) => xs[Math.floor(azar() * xs.length)];
+  const CAB_U = 'La composición se quedó sin alternativas antes de A1';
+  const NUEVAS = ['max_depth_exceeded', 'composition_emptied', 'budget_exceeded'];
+  const vistas = {};
+  const fallos = [];
+  for (let k = 0; k < 600; k++) {
+    const porOpciones = azar() < 0.3;
+    const n = 2 + Math.floor(azar() * 8);
+    const pasos = Array.from({ length: n }, (_, i) => ({ id: `s${i}`, capability: 'text.generate', purpose: `p${i}`,
+      ...(i ? { dependsOn: [azar() < 0.6 ? `s${i - 1}` : `s${Math.floor(azar() * i)}`] } : {}) }));
+    const opciones = Array.from({ length: 1 + Math.floor(azar() * 3) }, (_, i) => opcion(`x${i}`, { latency: elegir([1, 2, 3]) }));
+    const budget = elegir([undefined, { maxCandidates: elegir([0, 1]) }, { maxAlgorithmCalls: 0 }, { maxDepth: elegir([3, 4, 6]) }]);
+    const constraints = elegir([undefined, { maxSteps: elegir([2, 3, 5]) }, { maxLatencyMs: elegir([100, 800]) }]);
+    const componer = elegir([undefined, { paralelizar: true }, { optimizar: true }, { paralelizar: true, optimizar: true }]);
+    const latencias = pasos.map((p) => ({ key: 'step.latencyMs', subject: p.id, value: elegir([100, 300]), source: 'measured', sampleSize: 20 }));
+    const r = cicloU.decidir({
+      decision: { contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA, objective: OBJ_CICLO, ...(budget ? { budget } : {}), ...(constraints ? { constraints } : {}),
+        ...(porOpciones ? { options: opciones } : { signals: latencias }) },
+      ...(porOpciones ? {} : { tarea: { id: 'T', steps: pasos }, ...(componer ? { componer } : {}) }),
+    });
+    vistas[r.parada ?? '—'] = (vistas[r.parada ?? '—'] ?? 0) + 1;
+    const vacia = (r.because ?? []).find((f) => f.startsWith(CAB_U));
+    const esperada = (r.because?.[0] ?? '').startsWith('El plan existe —') ? 'max_depth_exceeded'
+      : vacia ? (vacia.includes('el presupuesto de pensar no dejó') ? 'budget_exceeded' : 'composition_emptied')
+      : porOpciones && r.decision?.failure === 'budget_exceeded' ? 'budget_exceeded' : undefined;
+    if (esperada ? !(r.parada === esperada && r.status === 'undecided') : NUEVAS.includes(r.parada)) fallos.push(`#${k} · ${r.status}/${r.parada} ≠ ${esperada ?? 'ninguna nueva'}`);
+  }
+  check(`${numero()} · S2-C.1 · V (1.12) · PROPIEDAD · 600 peticiones al azar al ciclo: \`max_depth_exceeded\`, \`composition_emptied\` y \`budget_exceeded\` —antes \`undecided\`— están donde su causa, leída del porqué y de A1, y en ningún otro sitio, con el \`status\` de siempre`,
+    fallos.length === 0 && NUEVAS.every((p) => vistas[p] > 5), fallos.slice(0, 3).join(' | ') || JSON.stringify(vistas));
+}
+{
+  /*
+   * V · LOS AVISOS de 1.12. PROPIEDAD sobre otras 1 500 decisiones al azar: `budget_exhausted` está si y solo si está
+   * alguno de los tres propios; `evidence_capped` si y solo si está la frase de la evidencia acotada; y, en una decisión
+   * tomada, `counter_exhausted` si y solo si se pasó un contador —`contadorAgotado` sobre el gasto y el presupuesto
+   * efectivo—, que nunca es el de candidatas ni el de evidencia: esos se preguntan antes de gastar.
+   */
+  const azar = generador(2026_0926_227);
+  const elegir = (xs) => xs[Math.floor(azar() * xs.length)];
+  const vistas = { candidates_capped: 0, evidence_capped: 0, counter_exhausted: 0 };
+  const fallos = [];
+  for (let k = 0; k < 1500; k++) {
+    const ops = Array.from({ length: 1 + Math.floor(azar() * 4) }, (_, i) => opcion(`o${i}`, { quality: elegir([0.2, 0.5, 0.9]), cost: elegir([1, 2, 3]) }));
+    const budget = elegir([undefined, { maxCandidates: elegir([1, 2]) }, { maxEvidence: elegir([0, 1, 2]) }, { maxIterations: elegir([1, 2, 3]) },
+      { maxAlgorithmCalls: elegir([1, 2]) }, { maxCandidates: 2, maxEvidence: 1, maxIterations: 1 }]);
+    const signals = Array.from({ length: elegir([0, 2, 6]) }, (_, i) => ({ key: `option.k${i % 3}`, subject: elegir(ops).id, value: 1, source: elegir(['measured', 'model']) }));
+    const d = a1.decidir(contexto({ options: ops, ...(budget ? { budget } : {}), ...(signals.length ? { signals } : {}),
+      ...(azar() < 0.3 ? { constraints: { minConfidence: 0.3 } } : {}) }));
+    const w = d.warnings;
+    for (const x of Object.keys(vistas)) if (w.includes(x)) vistas[x]++;
+    const agotado = A.contadorAgotado(d.spend, A.presupuestoEfectivo(budget));
+    const bien = w.includes('budget_exhausted') === ['candidates_capped', 'evidence_capped', 'counter_exhausted'].some((x) => w.includes(x))
+      && w.includes('evidence_capped') === !!fraseR(d)
+      && (d.status === 'decided' ? w.includes('counter_exhausted') === (agotado !== undefined) : !w.includes('counter_exhausted'))
+      && agotado !== 'candidates' && agotado !== 'evidence';
+    if (!bien) fallos.push(`#${k} · ${d.status} · ${w.join('+')} · agotado ${agotado ?? '—'}`);
+  }
+  check(`${numero()} · S2-C.1 · V (1.12) · PROPIEDAD · 1 500 decisiones al azar: \`budget_exhausted\` si y solo si \`candidates_capped\`, \`evidence_capped\` o \`counter_exhausted\`; \`evidence_capped\` si y solo si la frase de la evidencia acotada; y \`counter_exhausted\`, en una decisión tomada, si y solo si se pasó un contador —nunca el de candidatas ni el de evidencia—`,
+    fallos.length === 0 && Object.values(vistas).every((v) => v > 20), fallos.slice(0, 3).join(' | ') || JSON.stringify(vistas));
+}
+{
+  /*
+   * 1.12, UNA sola ampliación y en su sitio: la entrada del historial nombra lo nuevo —el campo, los dos avisos y las tres
+   * paradas— y dice por qué `motor-de-decision` no sube; las uniones cerradas lo tienen; y el documento dice D11 y V como
+   * decididas, con los puntos 7, 10 y 12 de «lo que queda declarado» al día.
+   */
+  const entrada = (() => { const i = srcContratos.indexOf('* 1.12 (S2-C.1): '); const j = srcContratos.indexOf('export const ALGORITHM_CONTRACT_VERSION', i); return i >= 0 && j > i ? srcContratos.slice(i, j) : ''; })();
+  const fuenteDecision = leer('functions/src/core/algorithm/decision.ts');
+  const fuenteIntegracion = leer('functions/src/core/algorithm/integration.ts');
+  const NUEVOS = ['`noRealChoice`', '`evidence_capped`', '`counter_exhausted`', '`max_depth_exceeded`', '`composition_emptied`', '`budget_exceeded`'];
+  const punto10 = puntoDeclarado('10. **una sola alternativa no lleva una marca de «sin elección real»**', '11. **');
+  const punto12 = puntoDeclarado('12. **un plan que no cabía en `maxdepth`', 'y una nota de pruebas');
+  const faltan = [
+    ...NUEVOS.filter((x) => !entrada.includes(x)).map((x) => `entrada: ${x}`),
+    ...(entrada.includes('`motor-de-decision` sigue en su versión 3') ? [] : ['entrada: el motor']),
+    ...["| 'evidence_capped'", "| 'counter_exhausted'", 'noRealChoice?: NoRealChoice', "| 'single_option'", "| 'candidates_capped'", "| 'constraints'", "| 'min_confidence'"]
+      .filter((x) => !fuenteDecision.includes(x)).map((x) => `decision.ts: ${x}`),
+    ...["| 'composition_emptied'", "| 'max_depth_exceeded'", "| 'budget_exceeded'"].filter((x) => !fuenteIntegracion.includes(x)).map((x) => `integration.ts: ${x}`),
+    ...['**d11 · «sin elección real» — cerrada', '**v · el vocabulario — cerrado en una sola ampliación: contrato 1.12.**', '`motor-de-decision` sigue en @3',
+      'no toca la selección, la puntuación ni la confianza', 'la representación común de `maxcandidates: 0`'].filter((x) => !DECISIONES_S2C1.includes(x)).map((x) => `doc: ${x}`),
+    ...(punto10.includes('**cerrada en s2-c.1 (d11, contrato 1.12)**') ? [] : ['punto 10']),
+    ...(punto12.includes('**cerrado en s2-c.1 (v, contrato 1.12)**') ? [] : ['punto 12']),
+    ...(S18_PLANO.includes('y en s2-c.1 (v, contrato 1.12)') ? [] : ['punto 7']),
+  ];
+  check(`${numero()} · S2-C.1 · 1.12, una sola ampliación: la entrada del historial nombra el campo, los dos avisos y las tres paradas y dice por qué \`motor-de-decision\` sigue en 3; las uniones cerradas los tienen; y el documento dice D11 y V como decididas, con los puntos 7, 10 y 12 al día`,
+    faltan.length === 0, faltan.join(' · ') || `${NUEVOS.length} nombres · 3 puntos`);
+}
+{
+  /*
+   * ALC, en su sitio: la entrada 1.12 del historial lo dice —`invalid_constraint` en A2, `inconclusive` en A6, la
+   * política por defecto con su suelo en A7—; la unión de A2 lo tiene; y el documento lo dice como decidido, con el
+   * punto 7 al día. Lo que hace cada motor lo fijan 207–209 (§T), reescritas con lo decidido.
+   */
+  const entrada = (() => { const i = srcContratos.indexOf('* 1.12 (S2-C.1): '); const j = srcContratos.indexOf('export const ALGORITHM_CONTRACT_VERSION', i); return i >= 0 && j > i ? srcContratos.slice(i, j) : ''; })();
+  const fuenteA2 = leer('functions/src/core/algorithm/decomposition.ts');
+  /* La entrada es un comentario: sus frases se leen sin los saltos ni los asteriscos de cada línea. */
+  const entradaPlana = entrada.replace(/\s*\n\s*\*\s*/g, ' ');
+  const faltan = [
+    ...['`invalid_constraint`', '`inconclusive`', 'la política por defecto', 'VALIDACIÓN'].filter((x) => !entradaPlana.includes(x)).map((x) => `entrada: ${x}`),
+    ...(fuenteA2.includes("| 'invalid_constraint';") ? [] : ['decomposition.ts: la unión']),
+    ...['**alc · lo mal formado en a2, a6 y a7 — cerrado', 'ni `fail`, ni `pass`, ni `unknown`', 'sin aflojar nada', '`motivoderechazo` sigue siendo',
+      'ningún descriptor sube'].filter((x) => !DECISIONES_S2C1.includes(x)).map((x) => `doc: ${x}`),
+    ...(S18_PLANO.includes('y en s2-c.1 (alc)') ? [] : ['punto 7']),
+  ];
+  check(`${numero()} · S2-C.1 · ALC, en su sitio: la entrada 1.12 dice \`invalid_constraint\` en A2, \`inconclusive\` en A6 y la política por defecto con su suelo en A7; la unión de A2 lo tiene; y el documento lo dice como decidido, con el punto 7 al día`,
+    faltan.length === 0, faltan.join(' · ') || '3 motores · 1 unión');
+}
+{
+  /*
+   * D3, en su sitio: la entrada 1.12 lo dice (bloque SUJETO); A6 y A7 suben a su versión 2 —cambia lo que deciden, la
+   * regla de `AlgorithmDescriptor.version`—; el contrato de la observación dice de quién es una medida; y el documento
+   * lo dice como decidido, con el punto 3 al día. Lo que hacen A6, A7 y `cerrar` lo fija la 210 (§T), reescrita.
+   */
+  const entrada = (() => { const i = srcContratos.indexOf('* 1.12 (S2-C.1): '); const j = srcContratos.indexOf('export const ALGORITHM_CONTRACT_VERSION', i); return i >= 0 && j > i ? srcContratos.slice(i, j) : ''; })();
+  const entradaPlana = entrada.replace(/\s*\n\s*\*\s*/g, ' ');
+  const observacion = leer('functions/src/core/algorithm/integration.ts').replace(/\s*\n\s*\*\s*/g, ' ');
+  const punto3 = puntoDeclarado('3. **`cerrar` no pasa las señales observadas a a6**', '4. **');
+  const faltan = [
+    ...['SUJETO', '`subject === actual.id`', 'sin sujeto no se le atribuyen', '`motor-de-verificacion`', '`motor-de-feedback`', 'versión 2']
+      .filter((x) => !entradaPlana.includes(x)).map((x) => `entrada: ${x}`),
+    ...(A.DESCRIPTOR_DE_VERIFICACION.version === 2 && A.DESCRIPTOR_DE_FEEDBACK.version === 2 ? [] : ['versiones de A6 y A7']),
+    ...(observacion.includes('una medida es del resultado si su `subject` es `actual.id`') ? [] : ['ObservacionDeEjecucion.signals']),
+    ...['**d3 · el sujeto — cerrada', 'quien ejecuta produce sus medidas con el sujeto del resultado', 'quien llama a `cerrar` las entrega',
+      '`motor-de-verificacion@2` y `motor-de-feedback@2`', 'no suma lo medido de otro sujeto'].filter((x) => !DECISIONES_S2C1.includes(x)).map((x) => `doc: ${x}`),
+    ...(punto3.includes('**cerrada en s2-c.1 (d3)**') ? [] : ['punto 3']),
+  ];
+  check(`${numero()} · S2-C.1 · D3, en su sitio: la entrada 1.12 lo dice (SUJETO), \`motor-de-verificacion\` y \`motor-de-feedback\` suben a 2, el contrato de la observación dice de quién es una medida, y el documento lo dice como decidido, con el punto 3 al día`,
+    faltan.length === 0, faltan.join(' · ') || '2 motores · 1 contrato');
+}
+{
+  /*
+   * FASE 3 · lo que se decide SIN construir nada —D4, D8, D9 y D10— y lo que se queda como está —REN, A9, DV y DUP—,
+   * escrito como decidido; los puntos 4, 7, 8, 9 y 11 al día; el rango de esta sección, sacado del contador; y su
+   * fila en §19. Y ninguna infraestructura en el código del motor: ni `maxConcurrent`, ni un reloj que corte.
+   */
+  const rangoU = `§u (223–${siguiente}, ${siguiente - 222} comprobaciones)`;
+  const DEBE = ['**d4 · la procedencia de las restricciones — cerrada: a) el productor resuelve antes del algoritmo.**',
+    'no hay una sexta autoridad ni campos de procedencia', '**d8 · `maxparallel` y `maxconcurrent` — cerrada: no se implementa.**',
+    '**d9 · `maxlatencyms` — cerrada: un criterio del algoritmo.**', 'ni timeout, ni deadline, ni abort',
+    '**d10 · `budget.onexceed`, `quality.checks` y `quality.onbelow` — cerrada: se mantiene la arquitectura.**',
+    'sin motor de calidad nuevo ni jerarquía global de rigor', '**ren — sin umbral.**', '**a9 — la optimización parcial se queda.**', 'b.3 intacta',
+    '**dv — la doble validación de a1 se queda.**', 'no hay exportación nueva', '**dup — un grupo de duplicados es una pieza y se resuelve entero.**',
+    'sin truncar ni top-k', rangoU];
+  const PUNTOS = [
+    ['4. **la procedencia de las restricciones**', '5. **', '**decidida en s2-c.1 (d4 = a'],
+    ['8. **`maxlatencyms` no tiene lector**', '9. **', '**decidida en s2-c.1 (d9 = criterio)**'],
+    ['9. **`maxparallel` → `maxconcurrent`**', '10. **', '**decidida en s2-c.1 (d8 = no implementar)**'],
+    ['11. **`budget.onexceed`, `quality.checks` y `quality.onbelow`**', '12. **', '**decidida en s2-c.1 (d10 = mantener la arquitectura)**'],
+  ];
+  const codigoDelMotor = FUENTES_SRC('functions/src/core/algorithm').map((p) => sinComentarios(leer(p))).join('\n');
+  const faltan = [
+    ...DEBE.filter((x) => !DECISIONES_S2C1.includes(x)).map((x) => `doc: ${x}`),
+    ...PUNTOS.filter(([inicio, fin, dice]) => !puntoDeclarado(inicio, fin).includes(dice)).map(([inicio]) => `punto: ${inicio.slice(0, 30)}`),
+    ...(S18_PLANO.includes('y en s2-c.1 (a9 y dup, mantener)') ? [] : ['punto 7']),
+    ...(DOC.includes(`| \`algorithm-quality.test.mjs\` §U (223–${siguiente}) |`) ? [] : ['sin fila en §19']),
+    ...(/maxConcurrent|AbortController|setTimeout|clearTimeout/.test(codigoDelMotor) ? ['infraestructura en el motor'] : []),
+    ...(DEUDAS_ABIERTAS.length ? ['quedan deudas abiertas'] : []),
+  ];
+  check(`${numero()} · S2-C.1 · FASE 3: D4, D8, D9 y D10 decididos sin construir nada, y REN, A9, DV y DUP como están, escritos como decididos; los puntos 4, 7, 8, 9 y 11 al día; su rango (${rangoU}) y su fila en §19; y ninguna infraestructura en el motor`,
+    faltan.length === 0, faltan.join(' · ') || `${DEBE.length} afirmaciones · ${PUNTOS.length + 1} puntos`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');

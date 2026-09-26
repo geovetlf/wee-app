@@ -481,8 +481,49 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * Siguen fuera, sin inventarlos: un aviso propio de evidencia acotada y un motivo de parada
  * por presupuesto o por profundidad. La evidencia de la sombra que venga después de
  * integrar S2-B dirá 1.11.
+ *
+ * 1.12 (S2-C.1): las decisiones humanas de la matriz S2-C.1, en una sola ampliación. La
+ * forma pública CRECE y ninguna decisión válida cambia lo que se elige, así que
+ * `motor-de-decision` sigue en su versión 3; lo que sí cambia —de quién es una medida,
+ * SUJETO— lo deciden la verificación y el aprendizaje, y sus motores suben:
+ *
+ *   SIN ELECCIÓN   una decisión tomada en la que solo una alternativa llegó a competir
+ *                  lleva `noRealChoice`, con sus causas en el orden en que se filtra:
+ *                  una sola llegó, el tope de candidatas, las restricciones, la evidencia
+ *                  acotada con la confianza mínima, la confianza mínima. La selección, la
+ *                  puntuación y la confianza son las de siempre.
+ *   AVISOS         `budget_exhausted` sigue siendo el aviso general, y ahora cada causa
+ *                  tiene el suyo: `candidates_capped` (ya estaba), `evidence_capped` (la
+ *                  evidencia se acotó) y `counter_exhausted` (se pasó otro contador:
+ *                  iteraciones, llamadas, reloj…).
+ *   PARADAS        el ciclo dice con motivo propio lo que antes era `undecided`:
+ *                  `max_depth_exceeded` (el plan no cabe en `maxDepth`), `composition_emptied`
+ *                  (la composición se vació antes de A1 por otra cosa que el presupuesto:
+ *                  restricciones, candidatas inviables) y `budget_exceeded` (el presupuesto
+ *                  de pensar no dejó evaluar ninguna: por opciones, cuando A1 falla así; con
+ *                  tarea, cuando la composición se vació por él). La decisión de A1 es la
+ *                  misma: corre donde corría y no corre donde no corría.
+ *   VALIDACIÓN     lo mal formado —con la regla de B.1— en las tres llamadas sueltas que
+ *                  faltaban. A2 lo dice en `problemas` con un motivo nuevo de su unión,
+ *                  `invalid_constraint` (la ruta y el motivo en `detail`). A6 da
+ *                  `inconclusive` a la comprobación de un tope mal formado, y al veredicto
+ *                  salvo que otra comprobación afirme un fallo; con los topes de pensar
+ *                  rotos no verifica con ellos. A7 aplica en cada campo roto la política por
+ *                  defecto y después su suelo, sin aflojar nada, y sus topes por defecto.
+ *                  Con entradas válidas, lo de siempre.
+ *   SUJETO         (D3) el resultado se identifica por `subject === actual.id`. A6 comprueba
+ *                  sus topes solo con lo medido de ese sujeto: la medida de un paso, la de
+ *                  otro resultado o una `result.*` sin sujeto no se le atribuyen. `cerrar`
+ *                  le pasa esa evidencia —la de la observación, del resultado— y el cierre
+ *                  la lleva a A7, que aprende `verification.passed` del resultado correcto y
+ *                  no suma lo medido de otros sujetos. Quien ejecuta produce sus medidas con
+ *                  el sujeto; quien llama a `cerrar` las entrega. `motor-de-verificacion` y
+ *                  `motor-de-feedback` suben a su versión 2: cambia lo que deciden.
+ *   PUNTUACIÓN     `StrategyScore.fits` se queda como estaba: un 0 puede ser un eje sin dato,
+ *                  la ausencia la dice `missing`, y un 0 no es evidencia negativa. Solo
+ *                  queda escrito.
  */
-export const ALGORITHM_CONTRACT_VERSION = '1.11' as const;
+export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */
 export const ORCHESTRATOR_CONTRACT_VERSION = '1.0' as const;

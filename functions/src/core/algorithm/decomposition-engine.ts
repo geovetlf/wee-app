@@ -38,8 +38,8 @@ import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { CAPABILITY_CATALOG } from '../registry/capabilities';
 import { PlanStep } from '../planner';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
-import { Contador, crearContador, presupuestoEfectivo } from './budget';
-import { AlgorithmConstraints } from './objective';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { AlgorithmConstraints, problemasDeLosLados } from './objective';
 import { Signal } from './signals';
 import { Alternative, AxisValues } from './scoring';
 import { ParallelGroup, nivelesDeDependencia } from './strategy';
@@ -290,8 +290,22 @@ export const crearMotorDeDescomposicion = (opciones: OpcionesDelDescompositor = 
     contador.gastar('algorithmCalls');
     const m = { ...METRICAS_CERO, attempts: 1 };
 
-    /* 1 · La tarea entera, antes de proponer nada. */
-    const problemas = validarDAG(tarea, puertos);
+    /*
+     * 1 · La tarea entera, antes de proponer nada.
+     *
+     * (S2-C.1 · ALC) Y lo mal formado —las restricciones y los nueve topes de pensar—
+     * con la regla de B.1, la misma función que A1, A3, A4, A5, A8 y el ciclo. Hasta
+     * aquí un `maxSteps` o un `maxParallel` NaN, infinito, texto o `null` se ignoraban,
+     * y -∞, -1 o 0 dejaban todas las disposiciones fuera por `max_*_exceeded`; el resto
+     * de campos y los topes, ignorados. Ahora es un problema de la tarea tal como llegó
+     * —`'*'`, `invalid_constraint`, con la ruta y el motivo en `detail`—, detrás de los
+     * del grafo, y no se propone nada. En el ciclo no llega: A9 se para en 0b.
+     */
+    const problemas: ProblemaDeDescomposicion[] = [
+      ...validarDAG(tarea, puertos),
+      ...[...problemasDeLosLados(undefined, constraints), ...problemasDelPresupuesto(limites)]
+        .map((detail): ProblemaDeDescomposicion => ({ ref: '*', reason: 'invalid_constraint', detail })),
+    ];
     if (problemas.length) {
       return {
         opciones: [], rechazadas: [], problemas, signals: [],

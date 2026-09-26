@@ -1536,7 +1536,7 @@ No por disciplina: por construcción, y con una prueba para cada cosa.
 
 | Campo | Qué guarda |
 |---|---|
-| `contract` · `shadowRunId` | el contrato con que decidió —`1.9` en S1; `1.10` desde S2-A; `1.11` desde S2-B— · `<jobId>:algoritmo` |
+| `contract` · `shadowRunId` | el contrato con que decidió —`1.9` en S1; `1.10` desde S2-A; `1.11` desde S2-B; `1.12` desde S2-C.1— · `<jobId>:algoritmo` |
 | `estado` · `duracionMs` | cómo acabó y cuánto tardó el camino entero (decidir + comparar) |
 | `objetivo` | `{ latency: 1, reliability: 1 }`: técnico, de la sombra; no es un objetivo de producto |
 | `entrada` | pasos, capacidades y aristas de lo que entró |
@@ -2446,6 +2446,136 @@ Pruebas: `algorithm-quality` §T (202–222, 21 comprobaciones) y la equivalenci
 código y los fixtures de la equivalencia, y 10 sobre este documento— caen por aserción, y los 148 de
 antes siguen cayendo sin re-apuntar ninguno: sus patrones siguen apareciendo una vez.
 
+### S2-C.1 · las decisiones humanas
+
+**Estado: aplicadas sobre 9544b7f, fuera de `main` hasta su revisión.** Local, sin despliegue.
+Cada decisión la tomó el usuario (2026-09-26); aquí se dice cuál fue y qué cambió. Lo que S2-B.5
+y S2-C dejaron aplazado o BLOCKED y se decide aquí lo dice cada decisión: aquellos apartados se
+quedan como su foto de entonces.
+
+**D1 · qué significa «no medido» — CERRADA: a) mantener.** Es la semántica, no una deuda: un
+eje con peso que no tiene dato no entra en el total, que se renormaliza sobre los ejes medidos
+—suma de ajuste × peso de los medidos ÷ el peso de esos ejes—; la cobertura es el peso medido ÷
+el peso total; lo que falta se nombra en `missing`. No hay `datoAusente` para la puntuación, y
+no cambian la puntuación, la selección, la confianza, Pareto, la API ni `motor-de-decision`: con
+el caso de la auditoría, «a» sin calidad sigue sacando 1,000 frente a 0,700.
+
+**D2b · la forma de `fits` — CERRADA: se mantiene el 0 y la convención queda escrita.** En
+`StrategyScore.fits` (y por tanto en `selectedScore` y `candidates[].score`) un 0 puede ser un eje
+SIN DATO: la señal de la ausencia es `missing`, que nombra los ejes con peso que no se midieron.
+Un `fits` de 0 no es evidencia negativa del eje: se lee con `missing` y con los pesos. Un eje sin
+peso no entra en ninguna cuenta: medido conserva su ajuste y ausente vale 0, y `fits` no los
+distingue. No cambian `StrategyScore`, `fits`, `selectedScore`, `candidates[].score`, la
+puntuación ni la API; el 0 ya era compatible con 1.11.
+
+**D11 · «sin elección real» — CERRADA: los cinco casos (A–E) lo son, y un campo lo dice.**
+Cuando solo UNA alternativa llega a competir, la decisión tomada lleva `noRealChoice`, con sus
+causas en el orden en que se filtra: `single_option` (llegó una sola: A), `candidates_capped` (el
+tope de candidatas dejó fuera a las demás: E), `constraints` (las restricciones duras: B),
+`evidence_capped` (la evidencia acotada dejó a las demás bajo la confianza mínima: D) y
+`min_confidence` (la confianza mínima: C y D). Es un campo del resultado, no un aviso, y no toca
+la selección, la puntuación ni la confianza: se calcula cuando ya están decididas, con lo que la
+decisión ya sabe. Una decisión sin tomar, o con dos o más que compiten, no lo lleva. En E las
+otras dos siguen sin aparecer en `candidates` —no se llegaron a mirar—, y la causa dice por qué.
+
+**V · el vocabulario — CERRADO en una sola ampliación: contrato 1.12.** Sin cambiar ninguna
+decisión:
+
+- `budget_exhausted` se separa por causa: las candidatas acotadas ya tenían `candidates_capped`;
+  la evidencia acotada lleva además `evidence_capped` —la frase y `spend.evidence` siguen—, y un
+  contador pasado (iteraciones, llamadas, reloj…) `counter_exhausted`. `budget_exhausted` se
+  queda como aviso general, para quien ya lo lee, y está si y solo si está alguno de los tres.
+- El ciclo nombra tres paradas que hasta 1.11 eran `undecided`: `max_depth_exceeded` —el plan
+  existe y no cabe en `maxDepth` (S2-B.4), el mismo nombre que en A2—; `composition_emptied` —la
+  composición se vació antes de A1 por otra cosa que el presupuesto: restricciones, candidatas
+  inviables—; y `budget_exceeded` —el presupuesto de pensar no dejó alternativas: por el camino
+  de opciones, cuando A1 falla con `budget_exceeded`; con tarea, cuando A2, A4 o A3 no
+  propusieron nada por él—. El `status` sigue siendo `undecided`, y A1 corre donde corría.
+- Esa es la representación común de `maxCandidates: 0`: la parada `budget_exceeded` por
+  opciones y con tarea, simple o compuesta. Lo que A1 dice no cambia —`budget_exceeded` cuando
+  le llegan alternativas, `insufficient_evidence` cuando la composición se vació antes—.
+
+El contrato sube a 1.12 —un campo y un vocabulario nuevos, en la entrada «1.12 (S2-C.1)» de
+`core/contracts.ts`, que también escribe D2b—, y `motor-de-decision` sigue en @3: la regla de
+`AlgorithmDescriptor.version` sube el motor cuando cambia lo que DECIDE, y aquí solo cambia cómo
+se dice. Contra 9544b7f, 4 000 decisiones de A1 y 1 200 del ciclo al azar salen idénticas salvo
+el sello, `noRealChoice`, los dos avisos nuevos y las tres paradas, cada marca donde su oráculo
+dice; y las equivalencias de S2-B.5 y de S2-C siguen pasando con el sello y `noRealChoice` aparte.
+
+**ALC · lo mal formado en A2, A6 y A7 — CERRADO: la regla de B.1, con la forma de cada uno.** Las
+tres llamadas sueltas que S2-C dejó BLOCKED — HUMAN DECISION siguen ya la regla de B.1, con las
+funciones de A0; con entradas válidas no cambia nada:
+
+| Motor | Lo mal formado | Cómo lo dice |
+|---|---|---|
+| A2 | las restricciones —los nueve campos de B.1— y los nueve topes de pensar | en `problemas`, con `ref` `'*'` y un motivo nuevo de su unión, `invalid_constraint` —la ruta y el motivo en `detail`—, detrás de los del grafo; sin opciones ni rechazadas |
+| A6 | un tope que comprueba (`maxLatencyMs`, `budget.maxUsd`, `quality.minScore`), su contenedor o las restricciones enteras | la comprobación sale `inconclusive` —ni `fail`, ni `pass`, ni `unknown`— y el veredicto también, salvo que otra comprobación afirme un fallo |
+| A6 | los nueve topes de pensar | no verifica con ellos: una comprobación `budget:limites` `inconclusive`, el veredicto `inconclusive`, y la autoridad se comprueba igual |
+| A7 | un número de su política fuera de su rango, o que no es un número | rige en ese campo la política por defecto y después su suelo, sin aflojar nada: un negativo ya no baja al suelo ni una fracción fuera de 0–1 se recorta al extremo |
+| A7 | los topes de pensar | los suyos por defecto, como antes |
+
+A2 amplía su unión cerrada —contrato, en la entrada 1.12, bloque VALIDACIÓN—; A6 y A7 no amplían
+ninguna: `inconclusive` ya era un estado de A6, y `MotivoDeRechazo` sigue siendo el del reloj
+(`clock_missing` · `clock_invalid`). A7 no lo dice en su porqué, porque decirlo exigía publicar
+una función nueva (API), y lo decidido es que nada mal formado afloje su política. `politicaEfectiva`
+es también la de A8, así que una política de aprendizaje mal formada se lee igual allí. Ningún
+descriptor sube: con entradas válidas nadie decide distinto —contra 9544b7f, 3 000 entradas al
+azar de A2, 3 000 de A6 y 1 500 de A7 y de A8 salen idénticas salvo el sello—.
+
+**D3 · el sujeto — CERRADA: el resultado se identifica por `subject === actual.id`.** Una medida
+es del resultado si su `subject` es el `id` de lo que salió. A6 comprueba sus topes
+(`maxLatencyMs`, `budget.maxUsd`, `quality.minScore`) solo con esas: la de un paso, la de otro
+resultado o una `result.*` sin sujeto no se le atribuyen, y sin una medida suya la comprobación
+es `unknown`. Ya no decide el orden alfabético de los sujetos: un paso «alpha» suspendía al
+resultado «job-z», o lo aprobaba en falso. `cerrar` le pasa a A6 esa evidencia —hasta 1.11 no le
+pasaba nada, y lo que dependía de una medida cerraba `unknown`— y el cierre lleva lo mismo a A7,
+que aprende `verification.passed` del resultado correcto y no suma lo medido de otro sujeto: antes
+la latencia de un resultado y la de uno de sus pasos salían en un solo agregado. Quien ejecuta
+produce sus medidas con el sujeto del resultado, y quien llama a `cerrar` las entrega en la
+observación (`ObservacionDeEjecucion.signals`, que lo dice). Hoy nadie en producción llama a
+`cerrar` —la sombra solo decide—: la regla queda escrita para quien lo haga. Llamado suelto, A7
+sigue leyendo las medidas de un resultado como suyas salvo que nombren otro sujeto —su contrato
+de siempre, sin rediseñarlo—; en el ciclo, `cerrar` ya solo le da las del resultado. Cambia lo que
+A6 y A7 deciden, y sus motores suben por la regla de `AlgorithmDescriptor.version`:
+`motor-de-verificacion@2` y `motor-de-feedback@2`. El contrato lo escribe en la entrada 1.12
+(bloque SUJETO).
+
+**D4 · la procedencia de las restricciones — CERRADA: a) el productor resuelve antes del
+algoritmo.** Quien produce las restricciones —el Planner, Weë— decide antes qué límite es de la
+persona y cuál es un defecto, y al algoritmo le llega lo ya resuelto; el algoritmo lo funde como
+siempre: lo más estrecho manda. No hay una sexta autoridad ni campos de procedencia en el
+contrato. Hoy ningún productor alimenta restricciones de verdad; cuando lo haga, esa resolución
+es suya.
+
+**D8 · `maxParallel` y `maxConcurrent` — CERRADA: no se implementa.** `maxParallel` sigue siendo
+una restricción del algoritmo —cuántos pasos a la vez puede tener una disposición que A2, A3, A4 y
+A1 analizan— y no se traduce a `maxConcurrent`: cuántos se ejecutan de verdad a la vez lo decide
+quien ejecuta, con su propio campo. La frontera queda escrita —aquí y en `DESTINO_DEL_REQUISITO`—
+y no se construye nada.
+
+**D9 · `maxLatencyMs` — CERRADA: un criterio del algoritmo.** Es un criterio sobre lo medido
+—A1, A3, A5 y A6 lo leen así— y nada más: ni timeout, ni deadline, ni abort, ni cancelación, ni
+reembolso. No tendrá lector en la ejecución.
+
+**D10 · `budget.onExceed`, `quality.checks` y `quality.onBelow` — CERRADA: se mantiene la
+arquitectura.** Sin motor de calidad nuevo ni jerarquía global de rigor: manda la petición, como
+hasta ahora, y `algorithm-quality` 93–95 lo siguen fijando.
+
+**Lo que se queda como está, decidido:**
+
+- **REN — sin umbral.** El repositorio no tiene un criterio contractual de rendimiento y no se
+  crea: la línea base de S2-C queda como medida, no como límite.
+- **A9 — la optimización parcial se queda.** La segunda pasada de A4, A3 y A5 sobre lo que A9 ya
+  resolvió sigue, sin agrupar ni ordenar (S2-C); quitarla exigía cambiar su API, y no se cambia.
+  B.3 intacta.
+- **DV — la doble validación de A1 se queda.** Compartirla exigía una función nueva que
+  `export *` publicaría: no hay exportación nueva.
+- **DUP — un grupo de duplicados es una pieza y se resuelve entero.** Sin truncar ni top-K: el
+  ganador de B.3 depende de verlo todo.
+
+Pruebas: `algorithm-quality` §U (223–231, 9 comprobaciones) y las de §T reescritas con lo
+decidido (207–210 y 215–217), con los diferenciales contra 9544b7f que cada decisión dice.
+
 ### Lo que queda declarado
 
 - La dirección de una señal no se compara con lo declarado: una medición que lo
@@ -2470,17 +2600,23 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
    tiene dato: con lo demás igual, una alternativa que no declara su calidad —o la
    declara `NaN`— puntúa 1,000 frente a 0,700 de una que declara 0,4. La cobertura
    baja, pero el objetivo ordena antes que la cobertura, y gana la que no informa.
+   **DECIDIDA en S2-C.1 (D1 = a, mantener): es la semántica, no una deuda** —ver
+   «S2-C.1 · las decisiones humanas», arriba—.
 2. **El desglose no cuadraba en ese caso** —la explicación decía «quality 0.00×0.50 ·
    cost 1.00×0.50» junto a un total de 1,000—. **Cerrada en S2-B · B.2 (D2a)**: lo que no
    se midió sale «sin medir» y se dice sobre qué se renormalizó el total. Es otra deuda, y
    está APLAZADA, el contrato de la puntuación (D2b): `StrategyScore.fits` guarda un 0 de
-   relleno para lo ausente y para lo sin peso.
+   relleno para lo ausente y para lo sin peso. **DECIDIDA en S2-C.1 (D2b = mantener el 0 y
+   documentar la convención)** —ver «S2-C.1 · las decisiones humanas», arriba—.
 3. **`cerrar` no pasa las señales observadas a A6** (arriba): lo que A6 no puede
-   medir cierra `unknown`, y A7 no aprende la verificación.
+   medir cierra `unknown`, y A7 no aprende la verificación. **CERRADA en S2-C.1 (D3)**:
+   `cerrar` le pasa la evidencia del resultado —`subject === actual.id`— y A6 solo la suya
+   (ver «S2-C.1 · las decisiones humanas», arriba).
 4. **La procedencia de las restricciones**: «lo más estrecho manda» no sabe si un
    límite lo puso la persona o es un defecto de Weë, así que un defecto más estrecho
    puede estrechar lo que la persona permitió. Antes de que el Planner alimente
-   restricciones de verdad hace falta esa regla.
+   restricciones de verdad hace falta esa regla. **DECIDIDA en S2-C.1 (D4 = a, el productor
+   resuelve antes del algoritmo)**: sin sexta autoridad ni campos de procedencia (arriba).
 5. **`minConfidence: NaN`** se ignoraba —el mínimo dejaba de exigirse—. **Cerrada en
    S2-B · B.1**: es un `constraint_conflict` que nombra el lado, el campo y el motivo,
    y A5 y A8 aplican la misma regla a su propio mínimo.
@@ -2500,22 +2636,34 @@ implementarlo —nada de esto bloquea la integración, y ninguno se arregla aqu�
    Después, en S2-C (la fase técnica, arriba): A3, A4, A5 y A8 sueltos siguen ya la regla con
    los nueve topes —y A4 también con las restricciones—; A2, A6 y A7 quedan BLOCKED — HUMAN
    DECISION; y la segunda pasada de A4, A3 y A5 sigue, sin agrupar ni ordenar lo ya resuelto.
+   Y en S2-C.1 (V, contrato 1.12): el aviso propio de la evidencia acotada es `evidence_capped`,
+   y la composición vaciada tiene su parada —`composition_emptied`, o `budget_exceeded` si fue
+   el presupuesto— (ver «S2-C.1 · las decisiones humanas», arriba). Y en S2-C.1 (ALC): A2, A6 y
+   A7 sueltos siguen ya la regla —`invalid_constraint`, `inconclusive`, la política por defecto con
+   su suelo—. Y en S2-C.1 (A9 y DUP, mantener): la optimización parcial de A9 se queda, sin
+   cambiar la API, y un grupo de duplicados sigue siendo una pieza que se resuelve entera.
 8. **`maxLatencyMs` no tiene lector** en la ejecución: PLANNED TRANSLATION / NOT
-   CURRENTLY CONSUMED.
+   CURRENTLY CONSUMED. **DECIDIDA en S2-C.1 (D9 = criterio)**: es un criterio del algoritmo
+   sobre lo medido, sin timeout, deadline ni abort, y no tendrá lector en la ejecución.
 9. **`maxParallel` → `maxConcurrent`**: la traducción al campo del Orchestrator está
-   pendiente.
+   pendiente. **DECIDIDA en S2-C.1 (D8 = no implementar)**: `maxParallel` sigue siendo una
+   restricción del algoritmo y no se traduce; la frontera queda escrita (arriba).
 10. **Una sola alternativa no lleva una marca de «sin elección real»**: se deduce de
-    que A1 recibiera una candidata, pero no se dice.
+    que A1 recibiera una candidata, pero no se dice. **CERRADA en S2-C.1 (D11, contrato
+    1.12)**: la marca es `noRealChoice`, con su causa, en los cinco casos (arriba).
 11. **`budget.onExceed`, `quality.checks` y `quality.onBelow`**: manda la petición y
     puede RELAJAR lo que pedía el objetivo (`algorithm-quality` 93–95 lo fijan).
     Hacerlos «el más estricto» exige un orden de rigor que el Core no declara —¿es
-    `regenerate` más estricto que `fail`?—, y esa política no se inventa aquí.
+    `regenerate` más estricto que `fail`?—, y esa política no se inventa aquí. **DECIDIDA en
+    S2-C.1 (D10 = mantener la arquitectura)**: sin motor de calidad nuevo ni jerarquía global de
+    rigor; manda la petición.
 12. **Un plan que no cabía en `maxDepth` se contaba como «No llegó ninguna
     alternativa»**: la composición se vaciaba y A1 recibía una lista vacía. **PARCIALMENTE
     CERRADA.** Cerrada en S2-B · B.4 en lo que hace: el ciclo se para y dice que el plan
     existe y no cabe. Aplazado: el motivo de parada propio (contrato); y A3 sigue llamando
     `constraint:maxDepth` a lo que poda por profundidad —es su vocabulario, fijado por sus
-    pruebas—.
+    pruebas—. El motivo de parada propio, **CERRADO en S2-C.1 (V, contrato 1.12)**:
+    `max_depth_exceeded`, el mismo nombre que en A2.
 
 Y una nota de pruebas, sin tocarla: `algorithm-optimization` 3 comprueba
 `!/(A5)/` sobre `core/contracts.ts` con los paréntesis sin escapar, así que prohíbe el
@@ -2537,6 +2685,7 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `algorithm-quality.test.mjs` §O · §P · §Q (113–162) | S2-B: las restricciones mal formadas —una regla, los dos lados validados antes de fundir, un conflicto que nombra lado, campo y motivo, una fusión que nunca da un no finito, A9 parado en 0b y A3, A5 y A8 con la misma regla— (O); el desglose que cuadra con el total —lo ausente «sin medir», total = lo medido entre el peso medido, sin cambiar ninguna decisión— (P); y la resolución de señales sin ordenar de más, idéntica por identidad a la de S2-A, con la forma canónica solo entre las empatadas, y una vez por ciclo (Q) |
 | `algorithm-quality.test.mjs` §S (190–201) · `equivalencia-s2b.mjs` · `equivalencia-s2b.json` | S2-B.5: los nueve topes de pensar con la regla de B.1 y sin tocar lo válido, el porqué del ciclo cuando la composición se vacía y los seis «no hay decisión» distintos, el hueco estructurado fijado, los grupos de duplicados sin truncar, la propiedad central de `maxEvidence` y `maxDepth`, la equivalencia campo a campo con f30079c, dacf18d y 0df8be2 con los sellos aparte, el versionado, pendiente hasta autorizarlo y resuelto después en 1.11 y `motor-de-decision@3` (200 y 201), y este documento con lo cerrado, lo parcialmente cerrado y lo aplazado |
 | `algorithm-quality.test.mjs` §R (163–189) | S2-B.4: `maxEvidence` sobre la evidencia de lo que se evalúa —las fronteras 64/65 y 512/513, las señales ajenas fuera, los turnos, permutaciones, lo mismo que antes sin llegar al tope, «sin evidencia» frente a «evidencia acotada», el tope antes del desempate caro—, `budget_exceeded` cuando el presupuesto no deja mirar ninguna, los topes mal formados con la regla de B.1, `maxDepth` con planes de 6, 7 y 8 pasos, vacíos, con ramas y permutados, y el presupuesto de pensar fuera de la entrega |
+| `algorithm-quality.test.mjs` §U (223–231) | S2-C.1, las decisiones humanas: D1 y D2b como semántica y no como deuda; D11 (`noRealChoice`) y el vocabulario de 1.12 —`evidence_capped`, `counter_exhausted` y las tres paradas— por propiedad sobre entradas al azar; ALC en A2, A6 y A7; D3, el sujeto; y este documento con lo decidido —D4, D8, D9 y D10— y lo que se queda como está —REN, A9, DV y DUP— |
 | `algorithm-quality.test.mjs` §T (202–222) · `equivalencia-s2c.mjs` · `equivalencia-s2c.json` | S2-C, la fase técnica: los nueve topes de pensar —y en A4 también las restricciones— mal formados en A3, A4, A5 y A8 llamados sueltos, con la regla de B.1 y la forma que cada uno ya tenía; una regla por todas las puertas; A2, A6 y A7 fijados como BLOCKED — HUMAN DECISION; los huecos de la auditoría (A6 con dos sujetos y con `maxLatencyMs`, A1 frente a A3 y A5, el `maxParallel` de A1, la cobertura aislada, D11 A–E, `maxCandidates: 0` según la vía, `budget_exhausted` y `maxReplans`); la equivalencia con e3a9e94 con entradas válidas; lo ya resuelto devuelto tal cual; y este documento |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar

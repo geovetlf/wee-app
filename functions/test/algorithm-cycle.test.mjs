@@ -120,8 +120,9 @@ const observar = (i, clase, at, extra = {}) => {
   const outputs = 'puntuacion' in x
     ? [{ kind: 'text', ref: `ref://${i}`, ...(typeof x.puntuacion === 'number' ? { metadata: { puntuacion: x.puntuacion } } : {}) }]
     : [];
+  /* (S2-C.1 · D3) Quien ejecuta produce lo medido CON EL SUJETO del resultado: `subject` es `actual.id`. */
   return { kind: clase, at, actual: { id: `ejec_${i}`, status: x.status, outputs },
-    signals: [{ key: 'result.latencyMs', value: 1000 + (i % 3) * 10, source: 'measured', at }], ...extra };
+    signals: [{ key: 'result.latencyMs', subject: `ejec_${i}`, value: 1000 + (i % 3) * 10, source: 'measured', at }], ...extra };
 };
 
 /* Las autoridades, llamadas DIRECTAMENTE, para comparar. */
@@ -351,8 +352,11 @@ for (const [clase, a6esperado, recuperacion] of [
     c.status === 'closed' && c.verification.status === a6esperado && c.recovery.stoppedBecause === recuperacion,
     `${c.verification?.status} · ${c.recovery?.stoppedBecause}: ${c.recovery?.proposals.map((p) => p.kind).join(',') || '—'}`);
 }
-check('51 · el veredicto es de A6, igual que llamándolo directamente',
-  igual(CIERRES.partial_success.verification, a6.verificar({ expected: EXPECTED, actual: observar(0, 'partial_success', T1 + HORA).actual })));
+/* Desde S2-C.1 (D3), `cerrar` le pasa a A6 la evidencia del resultado: las señales de la observación con su sujeto. */
+const OBS_51 = observar(0, 'partial_success', T1 + HORA);
+check('51 · el veredicto es de A6, igual que llamándolo directamente con la evidencia que `cerrar` le pasa —la observada del resultado (S2-C.1 · D3)—',
+  igual(CIERRES.partial_success.verification, a6.verificar({ expected: EXPECTED, actual: OBS_51.actual,
+    evidence: OBS_51.signals.filter((s) => s.subject === OBS_51.actual.id).map((s) => ({ claim: s.key, signal: s, supports: true })) })));
 check('52 · y la recuperación, de A6, con lo que la decisión ya sabía: sus alternativas y si había respaldo',
   !!CIERRES.failure.recovery && igual(CIERRES.failure.recovery, a6r.analizar(CIERRES.failure.verification, {
     alternatives: R.decision.alternatives.map((v) => R.decision.candidates.find((c) => c.value === v).id),

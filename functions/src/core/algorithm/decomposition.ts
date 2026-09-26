@@ -79,7 +79,9 @@ export type MotivoDeDescomposicionInvalida =
   /* Más subtareas de las permitidas. */
   | 'max_steps_exceeded'
   /* Pediría más cosas a la vez de las permitidas. */
-  | 'max_parallel_exceeded';
+  | 'max_parallel_exceeded'
+  /* (1.12 · S2-C.1 · ALC) Una restricción o un tope de pensar mal formado, con la regla de B.1: `detail` dice la ruta y el motivo. */
+  | 'invalid_constraint';
 
 export interface ProblemaDeDescomposicion {
   /** Qué subtarea, o `'*'` cuando el problema es de la tarea entera. */

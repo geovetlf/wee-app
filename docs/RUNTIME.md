@@ -107,7 +107,7 @@ código vivo y **ninguna autoridad** en él ([`docs/ALGORITHM-ENGINE.md`](ALGORI
 
 | Pieza | Dónde | En uso (producción) | Estado | Qué hace ahí |
 |---|---|---|---|---|
-| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, S2-A y S2-B, contrato 1.11) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
+| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, S2-A, S2-B y S2-C.1, contrato 1.12) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
 
 **Qué significa exactamente ese SOMBRA.** Que el ciclo (`crearCicloAlgoritmico`) se
 crea desde un módulo vivo —la sombra, y solo ella— pero lo que decide no lo lee ningún

@@ -107,6 +107,17 @@ const porQueSeVacio = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult, 'd
   return `La composición se quedó sin alternativas antes de A1 —no es que no llegara ninguna—: ${partes.join('; ') || 'sin un motivo que lo explique'}.`;
 };
 
+/**
+ * (1.12 · S2-C.1 · V) ¿SE VACIÓ POR EL PRESUPUESTO DE PENSAR? Las mismas marcas que usa
+ * `porQueSeVacio` —A2 sin opciones por `optionLimitReached`, A4 sin variantes por
+ * `budgetExhausted`, A3 sin estrategias por `budgetExhausted`—, del camino que alimentó la
+ * decisión. Si alguna está, la parada es `budget_exceeded`; si no, `composition_emptied`.
+ */
+const porElPresupuesto = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult, 'decomposition' | 'parallelization' | 'strategies'>): boolean =>
+  (!paralelizar && !!r.decomposition?.metricas.optionLimitReached && !r.decomposition.opciones.length)
+  || (paralelizar && !!r.parallelization?.metricas.budgetExhausted && !r.parallelization.metricas.variants)
+  || (!!r.strategies?.metricas.budgetExhausted && !r.strategies.estrategias.length);
+
 export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
   const a1 = crearMotorDeDecision<unknown>();
   const a2 = crearMotorDeDescomposicion(opciones.capacidades ? { capacidades: opciones.capacidades } : {});
@@ -274,7 +285,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       salida = { ...salida, decision };
       if (decision.status !== 'decided') {
         porque.push('A1 no eligió entre las alternativas dadas.');
-        return fin(decision.status, 'undecided');
+        /* (1.12) Si fue el presupuesto el que no dejó mirar ninguna, la parada lo dice con el nombre del fallo de A1. */
+        return fin(decision.status, decision.failure === 'budget_exceeded' ? 'budget_exceeded' : 'undecided');
       }
       return entregar({ elegida: idDe(decision, decision.selected) });
     }
@@ -342,9 +354,9 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * nada. La razón estructurada ya viaja en el resultado: `max_depth_exceeded`
      * en A2 y `constraint:maxDepth` en A3, con sus nombres de siempre.
      *
-     * `MotivoDeParada` no tiene un motivo de presupuesto (es cerrada): se usa
-     * `undecided`, «no hay nada que recomendar; no es un error», y el recorrido
-     * sin `decision` dice que A1 no llegó a correr. Un motivo propio es contrato.
+     * Hasta 1.11 la parada era `undecided`; desde 1.12 (S2-C.1 · V) es su motivo
+     * propio, `max_depth_exceeded` —el mismo nombre que en A2—, y el recorrido sin
+     * `decision` sigue diciendo que A1 no llegó a correr.
      *
      * Solo cuando el tope cortó ALGO: si la composición se vació por otras
      * razones —restricciones—, el ciclo sigue como siempre.
@@ -359,7 +371,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
           + `pero ninguna de sus disposiciones cabe en el presupuesto de profundidad (maxDepth ${presupuestoEfectivo(d.budget).maxDepth}): `
           + `fuera por él, ${porProfundidad} disposición(es)${otras ? `; por otros motivos, ${otras}` : ''}. `
           + 'Se para aquí: ni se inventa una alternativa ni se le pide a A1 que elija entre nada.');
-        return fin('undecided', 'undecided');
+        return fin('undecided', 'max_depth_exceeded');
       }
     }
 
@@ -386,7 +398,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * con lo que las autoridades devolvieron. La decisión no cambia: A1 corre
      * igual, sobre la lista vacía.
      */
-    if (!candidatas.length) porque.push(porQueSeVacio(peticion.componer?.paralelizar === true, salida));
+    const vaciada = !candidatas.length;
+    if (vaciada) porque.push(porQueSeVacio(peticion.componer?.paralelizar === true, salida));
 
     /* 8 · DECISIÓN. A1, entre lo que A3 generó y A5 dejó en pie o propuso. */
     recorrido.push('decision');
@@ -394,7 +407,16 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     salida = { ...salida, decision };
     if (decision.status !== 'decided' || !decision.selected) {
       porque.push('A1 no eligió entre las estrategias.');
-      return fin(decision.status === 'decided' ? 'undecided' : decision.status, 'undecided');
+      /*
+       * (1.12 · S2-C.1 · V) La parada dice POR QUÉ con un motivo propio: una composición
+       * vaciada por el presupuesto de pensar es `budget_exceeded` —el mismo nombre que el
+       * fallo de A1 por opciones—, y por lo demás, `composition_emptied`. A1 corrió igual:
+       * la decisión es la de siempre, solo cambia el nombre de la parada.
+       */
+      const parada: MotivoDeParada = vaciada
+        ? (porElPresupuesto(peticion.componer?.paralelizar === true, salida) ? 'budget_exceeded' : 'composition_emptied')
+        : decision.failure === 'budget_exceeded' ? 'budget_exceeded' : 'undecided';
+      return fin(decision.status === 'decided' ? 'undecided' : decision.status, parada);
     }
     return entregar({ plan: decision.selected as Strategy });
 
@@ -422,11 +444,22 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       return invalido('malformed_observation');
     }
 
+    /*
+     * (S2-C.1 · D3) LO OBSERVADO DEL RESULTADO: las señales cuyo `subject` es el `id` de
+     * lo que salió. Es la evidencia que A6 necesita para comprobar los topes —hasta 1.11
+     * no se le pasaba, y cerraba `unknown`— y lo medido que A7 aprende de este resultado.
+     * Lo de un paso, lo de otro resultado o una `result.*` sin sujeto no es suyo: ni se
+     * le atribuye ni se mezcla. Quien ejecuta lo produce con su sujeto, y quien llama a
+     * `cerrar` lo entrega en la observación.
+     */
+    const delResultado = (observacion.signals ?? []).filter((s) => !!s && s.subject === observacion.actual.id);
+
     /* A6 verifica lo que salió contra lo esperado. A9 no dice si pasó. */
     const verification = a6.verificar({
       expected: entrega.expected ?? [],
       actual: observacion.actual,
       ...(entrega.constraints ? { constraints: entrega.constraints } : {}),
+      ...(delResultado.length ? { evidence: comoEvidencia(delResultado) } : {}),
     });
     /* Y propone qué hacer si no pasó, con lo que la decisión ya sabía. Nada se ejecuta. */
     const decision = resultado.decision;
@@ -458,7 +491,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
         findings: verification.findings,
       }),
       ...(observacion.recovery ? { recovery: observacion.recovery } : {}),
-      ...(observacion.signals ? { signals: observacion.signals } : {}),
+      ...(observacion.signals ? { signals: Object.freeze(delResultado) } : {}),
     });
     porque.push(`A6: ${verification.status}. Resultado: ${outcome.kind}.`);
 
