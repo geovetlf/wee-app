@@ -102,3 +102,12 @@ export const huellasCiclo = (r, explicacionSinB2 = false) =>
   CAMPOS_CICLO.map((c) => huella(explicacionSinB2 && (c === 'decision' || c === 'approach') ? sinB2(r[c]) : r[c]));
 /* Los campos en los que S2-B.2 cambió la explicación: frente a f30079c se comparan sin esas frases. */
 export const CAMPOS_CON_B2 = Object.freeze({ a1: ['explanation'], ciclo: ['decision', 'approach'] });
+
+/*
+ * LOS SELLOS APARTE. El número del contrato y la versión del motor de decisión viajan en cada decisión, en cada
+ * estrategia y en la entrega: si el versionado cambia, cambian en todas partes sin que cambie nada de lo que se
+ * decide. Por eso la equivalencia compara «igual salvo los sellos» —los de hoy se escriben como los de antes— y
+ * los sellos se comprueban por separado. Solo se sustituye un texto que es EXACTAMENTE un sello.
+ */
+export const sinSellos = (x, hoy, antes) => JSON.parse(JSON.stringify(x ?? null, (k, v) => (
+  v === hoy.contrato ? antes.contrato : v === hoy.motor ? antes.motor : v)));

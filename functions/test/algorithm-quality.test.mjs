@@ -2461,9 +2461,12 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   const H = JSON.parse(fs.readFileSync(path.resolve(here, 'equivalencia-s2b.json'), 'utf8'));
   const a1E = A.crearMotorDeDecision();
   const cicloE = A.crearCicloAlgoritmico();
+  /* Igual SALVO LOS SELLOS: los de hoy se escriben como los de 0df8be2; los sellos se comprueban aparte (abajo). */
+  const selloHoy = { contrato: ALGORITHM_CONTRACT_VERSION, motor: A.DECISION_ENGINE_REF };
+  const comoAntes = (x) => E.sinSellos(x, selloHoy, H.sellos['0df8be2']);
   const ahora = {
-    a1: E.entradasA1(ALGORITHM_CONTRACT_VERSION).map((ctx) => { const d = a1E.decidir(ctx); return [E.huellasA1(d, false), E.huellasA1(d, true)]; }),
-    ciclo: E.entradasCiclo(ALGORITHM_CONTRACT_VERSION, A.TOPES_POR_DEFECTO).map((p) => { const r = cicloE.decidir(p); return [E.huellasCiclo(r, false), E.huellasCiclo(r, true)]; }),
+    a1: E.entradasA1(ALGORITHM_CONTRACT_VERSION).map((ctx) => { const d = comoAntes(a1E.decidir(ctx)); return [E.huellasA1(d, false), E.huellasA1(d, true)]; }),
+    ciclo: E.entradasCiclo(ALGORITHM_CONTRACT_VERSION, A.TOPES_POR_DEFECTO).map((p) => { const r = comoAntes(cicloE.decidir(p)); return [E.huellasCiclo(r, false), E.huellasCiclo(r, true)]; }),
   };
   const diferencias = [];
   for (const tipo of ['a1', 'ciclo']) {
@@ -2479,6 +2482,15 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
     igual(H.versiones, ['f30079c', 'dacf18d', '0df8be2']) && igual(H.campos.a1, E.CAMPOS_A1) && igual(H.campos.ciclo, E.CAMPOS_CICLO)
     && ahora.a1.length === 40 && ahora.ciclo.length === 28 && diferencias.length === 0,
     diferencias.slice(0, 5).join(' | ') || `${H.campos.a1.length} + ${H.campos.ciclo.length} campos × 3 versiones`);
+
+  /*
+   * LOS SELLOS, aparte. El versionado de S2-B está PENDIENTE: el contrato vive en `core/contracts.ts`, que esta fase
+   * no puede tocar, y subir solo el motor contradiría la entrada 1.10 («sus sellos —este número y
+   * `motor-de-decision@2`—»). Esta comprobación impide decir que está resuelto sin estarlo: cuando se decida, cambia.
+   */
+  check(`${numero()} · B.5 · VERSIONADO PENDIENTE, fijado: los sellos son los de las tres versiones anteriores —contrato ${H.sellos['0df8be2'].contrato} y ${H.sellos['0df8be2'].motor}—, aunque S2-B.4 cambie decisiones válidas; subirlos es la decisión abierta`,
+    H.versiones.every((v) => igual(H.sellos[v], selloHoy)) && ALGORITHM_CONTRACT_VERSION === '1.10' && A.DECISION_ENGINE_REF === 'motor-de-decision@2'
+    && A.DESCRIPTOR_DE_CONTEXTO.version === 2, `${selloHoy.contrato} · ${selloHoy.motor}`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
