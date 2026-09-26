@@ -36,7 +36,7 @@ import {
   AlgorithmFailureReason,
   referenciaDeAlgoritmo,
 } from './types';
-import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo } from './budget';
+import { AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo, topeDelContador } from './budget';
 import {
   AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
 } from './objective';
@@ -902,6 +902,22 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
       if (!contador.cabe('candidates')) { avisos.add('candidates_capped'); avisos.add('budget_exhausted'); break; }
       contador.gastar('candidates');
       consideradas.push(o);
+    }
+    /*
+     * LLEGARON ALTERNATIVAS Y EL PRESUPUESTO NO DEJÓ MIRAR NINGUNA (S2-B · B.4).
+     *
+     * No es «ninguna cumple las restricciones»: no se llegó a mirarlas. Es el
+     * único caso en que el presupuesto no deja nada que devolver, y para eso
+     * está `budget_exceeded` («Fallar solo es correcto cuando NO hay nada que
+     * devolver», `budget.ts`). Con el presupuesto de evidencia ya no pasa —se
+     * gasta después, sobre lo que se evalúa—; queda para los topes que sí
+     * cortan antes: `maxCandidates` o `maxAlgorithmCalls` a 0, o el reloj.
+     */
+    if (!consideradas.length) {
+      const agotado = contador.agotado();
+      const tope = agotado ? topeDelContador(agotado) : 'maxCandidates';
+      return cerrar('budget_exceeded', [`Llegaron ${todas.length} alternativa(s), pero el presupuesto de pensar se agotó `
+        + `(${tope} ${topes[tope]}) antes de evaluar ninguna: no es que no las haya, es que no se llegó a mirarlas.`]);
     }
     const veredictos = filtrarPorRestricciones(consideradas, constraints, politica);
     const porId = new Map(veredictos.map((v) => [v.id, v]));

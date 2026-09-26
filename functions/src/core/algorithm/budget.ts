@@ -68,6 +68,9 @@ export const CONTADORES: readonly (keyof AlgorithmSpend)[] = Object.freeze(
   Object.keys(TOPE_DE) as (keyof AlgorithmSpend)[],
 );
 
+/** El tope que vigila un contador: para NOMBRAR el presupuesto que se agotó (S2-B · B.4). */
+export const topeDelContador = (contador: keyof AlgorithmSpend): keyof AlgorithmBudgetLimits => TOPE_DE[contador];
+
 /**
  * EL TOPE QUE DE VERDAD RIGE.
  *

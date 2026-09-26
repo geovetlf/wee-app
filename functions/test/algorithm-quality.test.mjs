@@ -2030,5 +2030,36 @@ check(`${numero()} · B.4 · el orden de los turnos: alternativas en su orden, c
     `${r.status}/${r.parada ?? '-'} · ${r.entrega?.elegida}`);
 }
 
+/*
+ * LAS CUATRO SITUACIONES de A1, que no se confunden: no hay alternativas; las
+ * hay y el presupuesto no dejó mirarlas; se miraron y no cumplen; se miraron y
+ * no hay evidencia bastante. «Ninguna de las 0 alternativas…» ya no puede salir.
+ */
+{
+  const reloj = () => { let t = 0; return () => (t += 300); };
+  const presupuestoR = (budget, ahora) => (ahora ? A.crearMotorDeDecision({ ahora }) : a1).decidir(contexto({ options: OPCIONES_R, budget }));
+  const porCandidatas = presupuestoR({ maxCandidates: 0 });
+  const porLlamadas = presupuestoR({ maxAlgorithmCalls: 0 });
+  const porReloj = presupuestoR(undefined, reloj());
+  const PRESUPUESTO_R = /^Llegaron 2 alternativa\(s\), pero el presupuesto de pensar se agotó \((\w+) (\d+)\) antes de evaluar ninguna/;
+  const nombra = (d, tope, valor) => { const m = PRESUPUESTO_R.exec(d.explanation?.[0] ?? ''); return !!m && m[1] === tope && m[2] === String(valor); };
+  check(`${numero()} · B.4 · llegaron alternativas y el presupuesto no dejó mirar ninguna: \`budget_exceeded\`, nombrando el tope —maxCandidates 0, maxAlgorithmCalls 0 o el reloj—, con \`candidates_capped\` y \`budget_exhausted\``,
+    [[porCandidatas, 'maxCandidates', 0], [porLlamadas, 'maxAlgorithmCalls', 0], [porReloj, 'maxLatencyMs', 250]].every(([d, tope, v]) =>
+      d.status === 'undecided' && d.failure === 'budget_exceeded' && d.candidates.length === 0 && nombra(d, tope, v)
+      && d.warnings.includes('candidates_capped') && d.warnings.includes('budget_exhausted')),
+    [porCandidatas, porLlamadas, porReloj].map((d) => `${d.failure} «${d.explanation?.[0]}»`).join(' ‖ '));
+  const sinAlternativas = a1.decidir(contexto({ options: [] }));
+  const noCumplen = a1.decidir(contexto({ options: OPCIONES_R, constraints: { budget: { maxUsd: 1 } } }));
+  const bajoMinimo = a1.decidir(contexto({ options: OPCIONES_R, constraints: { minConfidence: 0.5 } }));
+  const cuatro = [sinAlternativas, porCandidatas, noCumplen, bajoMinimo];
+  check(`${numero()} · B.4 · las cuatro, distintas: sin alternativas (\`insufficient_evidence\`, «No llegó ninguna…»), presupuesto (\`budget_exceeded\`), restricciones (\`no_valid_strategy\` sobre 2) y evidencia (\`insufficient_evidence\` por la confianza mínima); en ninguna «Ninguna de las 0»`,
+    sinAlternativas.failure === 'insufficient_evidence' && sinAlternativas.explanation[0] === 'No llegó ninguna alternativa que evaluar.'
+    && porCandidatas.failure === 'budget_exceeded'
+    && noCumplen.failure === 'no_valid_strategy' && noCumplen.explanation[0].startsWith('Ninguna de las 2 alternativas')
+    && bajoMinimo.failure === 'insufficient_evidence' && bajoMinimo.explanation[0].includes('por debajo de la confianza mínima')
+    && new Set(cuatro.map((d) => d.explanation[0])).size === 4 && !cuatro.some((d) => d.explanation.some((f) => CERO_R.test(f))),
+    cuatro.map((d) => `${d.failure}: ${d.explanation[0]}`).join(' ‖ '));
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nS2-A: se decide con reglas que se pueden comprobar, sin inventar calidad, y el CON QUÉ sigue siendo del Router');
 process.exit(failures ? 1 : 0);
