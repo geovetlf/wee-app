@@ -2854,10 +2854,15 @@ const optimizarT = (budget, restr) => a5.optimizar({ candidates: ESTRATEGIAS, ob
   const validos = pol({ minSampleSize: 1 }).minSampleSize === A.POLITICA_MINIMA.minSampleSize && pol({ minConfidence: 0 }).minConfidence === A.POLITICA_MINIMA.minConfidence
     && pol({ minSampleSize: 50 }).minSampleSize === 50 && pol({ minFreshness: 0 }).minFreshness === 0 && pol({ maxContradiction: 1 }).maxContradiction === 1
     && pol({ vidaMs: 0.5 }).vidaMs === 1 && pol({ ventanaMs: 5 }).ventanaMs === 5 && igual(pol('x'), P) && P.ventanaMs === A.POLITICA_POR_DEFECTO.vidaMs;
+  /*
+   * (S2-D · G3) EL SUELO DE `ventanaMs`: un valor VÁLIDO por debajo de 1 ms no lo atraviesa, queda en 1. Desde ALC un
+   * valor ≤ 0 es mal formado y toma el defecto antes de llegar al suelo, así que el suelo solo se ve entre 0 y 1.
+   */
+  if (pol({ ventanaMs: 0.5 }).ventanaMs !== 1) fallos.push(`ventanaMs=0.5 → ${pol({ ventanaMs: 0.5 }).ventanaMs} (el suelo es 1)`);
   const aprenderT = (budget) => a7.aprender({ ahora: T1, policy: POL, outcomes: resultadosAB, ...(budget !== undefined ? { budget } : {}) });
   const base7 = aprenderT(undefined);
   const topesQueCambian = TOPES_T.filter((c) => !ROTOS_T.every((v) => { const r = aprenderT({ [c]: v }); return igual(r, base7) && r.rechazo === undefined; }));
-  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (ALC) · A7 con lo mal formado: rige en ese campo la política por defecto y después su suelo —con el rango de B.1 de cada número—, sin aflojar nada (un negativo ya no baja al suelo ni una fracción fuera de 0–1 se recorta al extremo); lo válido, como siempre, con el suelo incluido; sus topes de pensar rotos, los suyos por defecto; y sin motivo nuevo de rechazo`,
+  check(`${numero()} · S2-C · DECIDIDO en S2-C.1 (ALC) · A7 con lo mal formado: rige en ese campo la política por defecto y después su suelo —con el rango de B.1 de cada número—, sin aflojar nada (un negativo ya no baja al suelo ni una fracción fuera de 0–1 se recorta al extremo); lo válido, como siempre, con el suelo incluido —también el de \`ventanaMs\`: 0,5 queda en 1—; sus topes de pensar rotos, los suyos por defecto; y sin motivo nuevo de rechazo`,
     fallos.length === 0 && validos && base7.aggregates.length > 0 && base7.rechazo === undefined && topesQueCambian.length === 0,
     fallos.slice(0, 3).join(' | ') || `topes que cambian: ${topesQueCambian.join(',') || 'ninguno'}`);
 }
@@ -3228,14 +3233,19 @@ const puntoDeclarado = (inicio, siguiente) => { const i = S18_PLANO.indexOf(inic
     options: [opcion('a', { cost: 1, reliability: 0.95 }), opcion('b', { quality: 0.4, cost: 1 })] }));
   const sa = candidata(d, 'a')?.score;
   const punto2 = puntoDeclarado('2. **el desglose no cuadraba en ese caso**', '3. **');
-  check(`${numero()} · S2-C.1 · D2b CERRADA (mantener el 0 y documentar): \`fits\` conserva su forma —cuatro claves, nueve ejes con número—; un 0 puede ser un eje sin dato, la ausencia la dice \`missing\`, y el documento escribe la convención`,
+  /*
+   * (S2-D · G3) Y el punto 2 sigue diciendo QUÉ ERA la deuda que D2b cerró —«`StrategyScore.fits` guarda un 0 de
+   * relleno»— junto a su cierre: sin eso, la nota «DECIDIDA en S2-C.1» quedaría sin decir qué se decidió.
+   */
+  const deudaEscrita = punto2.includes('`strategyscore.fits` guarda un 0 de relleno');
+  check(`${numero()} · S2-C.1 · D2b CERRADA (mantener el 0 y documentar): \`fits\` conserva su forma —cuatro claves, nueve ejes con número—; un 0 puede ser un eje sin dato, la ausencia la dice \`missing\`, y el documento escribe la convención —y el punto 2 conserva qué era la deuda: \`StrategyScore.fits\` guarda un 0 de relleno—`,
     igual(Object.keys(sa ?? {}).sort(), ['coverage', 'fits', 'missing', 'total']) && Object.keys(sa?.fits ?? {}).length === 9
     && Object.values(sa?.fits ?? {}).every((v) => typeof v === 'number')
     && sa.fits.quality === 0 && igual(sa.missing, ['quality']) && sa.fits.reliability === 0.95 && sa.fits.latency === 0
     && DECISIONES_S2C1.includes('**d2b · la forma de `fits` — cerrada: se mantiene el 0 y la convención queda escrita.**')
     && DECISIONES_S2C1.includes('un `fits` de 0 no es evidencia negativa del eje')
-    && punto2.includes('**decidida en s2-c.1 (d2b = mantener el 0 y documentar la convención)**'),
-    `${JSON.stringify(sa?.fits)} · missing ${JSON.stringify(sa?.missing)}`);
+    && punto2.includes('**decidida en s2-c.1 (d2b = mantener el 0 y documentar la convención)**') && deudaEscrita,
+    `${JSON.stringify(sa?.fits)} · missing ${JSON.stringify(sa?.missing)}${deudaEscrita ? '' : ' · el punto 2 ya no dice qué era la deuda de `fits`'}`);
 }
 
 {
@@ -3415,7 +3425,7 @@ const puntoDeclarado = (inicio, siguiente) => { const i = S18_PLANO.indexOf(inic
   const observacion = leer('functions/src/core/algorithm/integration.ts').replace(/\s*\n\s*\*\s*/g, ' ');
   const punto3 = puntoDeclarado('3. **`cerrar` no pasa las señales observadas a a6**', '4. **');
   const faltan = [
-    ...['SUJETO', '`subject === actual.id`', 'sin sujeto no se le atribuyen', '`motor-de-verificacion`', '`motor-de-feedback`', 'versión 2']
+    ...['SUJETO         (D3)', '`subject === actual.id`', 'sin sujeto no se le atribuyen', '`motor-de-verificacion`', '`motor-de-feedback`', 'versión 2']
       .filter((x) => !entradaPlana.includes(x)).map((x) => `entrada: ${x}`),
     ...(A.DESCRIPTOR_DE_VERIFICACION.version === 2 && A.DESCRIPTOR_DE_FEEDBACK.version === 2 ? [] : ['versiones de A6 y A7']),
     ...(observacion.includes('una medida es del resultado si su `subject` es `actual.id`') ? [] : ['ObservacionDeEjecucion.signals']),
