@@ -1065,6 +1065,14 @@ await seccion('Y', async () => {
   check('Y7) ni el dominio de F1-A ni el Algorithm Engine se tocaron para esto: Filmmaker sigue siendo cinco archivos de dominio',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).sort().join() === 'modelo.ts,operaciones.ts,recomendaciones.ts,requisitos.ts,validacion.ts'
     && !/productions/.test(fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).map((f) => leer(`functions/src/filmmaker/${f}`)).join('\n')));
+  /*
+   * `runtime-map` mide lo que se carga siguiendo los `import` del compilado. Una carga PEREZOSA —un `require(` o un
+   * `import(` dentro de una función— se le escaparía, y con ella lo que la conexión pone en producción. Ni una.
+   */
+  const conCargaPerezosa = ['productions', 'filmmaker'].flatMap((dir) => fs.readdirSync(path.resolve(RAIZ, `functions/src/${dir}`))
+    .filter((x) => x.endsWith('.ts')).map((x) => `functions/src/${dir}/${x}`)).filter((x) => /\brequire\s*\(|\bimport\s*\(/.test(sinComentarios(leer(x))));
+  check('Y8) nada se carga a escondidas del mapa del runtime: ni `require(` ni `import(` dinámico en `productions/` ni en `filmmaker/`',
+    conCargaPerezosa.length === 0, conCargaPerezosa.join(', '));
 });
 
 /* ═══ Z · REGLAS, ÍNDICE, PUERTA Y DOCUMENTACIÓN ═══════════════════════════ */
