@@ -164,10 +164,20 @@ export interface ExperienciaDeStudio {
    * gastara Credits en algo que no iba a salir— o quitarla del catálogo, y
    * entonces nadie sabría que está pensada y por qué falta.
    *
-   * El motivo se mide, no se supone: cada una de las tres que hay hoy dice qué
-   * pieza concreta del motor no existe todavía.
+   * El motivo se mide, no se supone: cada una de las que hay hoy dice qué pieza
+   * concreta del motor no existe todavía.
    */
   pendiente?: string;
+  /**
+   * NO ES UN CLIP: ABRE UNA PRODUCCIÓN (Weë Filmmaker, F1-C).
+   *
+   * Lo escrito en la caja del Studio no va a `CreatorFlow`, que hace UN clip: abre
+   * la producción de Weë Filmmaker, donde se construye escena a escena y plano a
+   * plano, con los controles elegidos como dirección de toda ella. Allí todavía no
+   * se genera nada —juntar varias escenas en un solo vídeo llega en otra fase—: se
+   * guarda, se edita y se dirige.
+   */
+  produccion?: true;
 }
 
 const x = (
@@ -285,7 +295,15 @@ export const EXPERIENCIAS_DE_VIDEO: ExperienciaDeStudio[] = [
   x('cameraMove', 'studio.xpCameraMove', 'videocam-outline', ['camera', 'perspective', 'movement', 'speed'], true, [CONTAR_ALGO]),
 
   /*
-   * ── LAS TRES QUE TODAVÍA NO SE PUEDEN HACER ────────────────────────────
+   * ── VARIAS ESCENAS NO ES UN CLIP ────────────────────────────────────────
+   *
+   * Abre la producción de Weë Filmmaker (F1-C): una producción de verdad,
+   * guardada, que se construye escena a escena. No pasa por `CreatorFlow` ni
+   * sale de ella ningún plan de un solo clip.
+   */
+  { ...x('multiScene', 'studio.xpMultiScene', 'layers-outline', ['shot', 'movement', 'lighting']), produccion: true },
+  /*
+   * ── LAS DOS QUE TODAVÍA NO SE PUEDEN HACER ─────────────────────────────
    *
    * Medido, no supuesto. Se ven y no se abren, porque enseñarlas como si
    * funcionaran acabaría con alguien gastando Credits en algo que no iba a
@@ -293,8 +311,6 @@ export const EXPERIENCIAS_DE_VIDEO: ExperienciaDeStudio[] = [
    */
   { ...x('musicVideo', 'studio.xpMusicVideo', 'musical-notes-outline', ['camera', 'movement', 'speed', 'lighting']),
     pendiente: 'studio.pendMusic' },
-  { ...x('multiScene', 'studio.xpMultiScene', 'layers-outline', ['shot', 'movement', 'lighting']),
-    pendiente: 'studio.pendCompose' },
   { ...x('beforeAfter', 'studio.xpBeforeAfter', 'git-compare-outline', ['shot'], true),
     pendiente: 'studio.pendTwoRefs' },
 ];
@@ -365,3 +381,11 @@ export const EXPERIENCIAS_POR_ENTRADA: Readonly<Partial<Record<EntradaDeStudio, 
 
 export const experienciasDeLaEntrada = (id: EntradaDeStudio): ExperienciaDeStudio[] =>
   EXPERIENCIAS_POR_ENTRADA[id] ?? [];
+
+/**
+ * ¿UN SOLO CLIP O VARIAS ESCENAS? Lo dice el catálogo —la experiencia elegida—,
+ * no las palabras de lo escrito: leer «varias escenas» dentro de una frase es
+ * cosa de Weë Brain, en otra fase. Hoy solo «Varias escenas» abre la producción.
+ */
+export const abreLaProduccion = (experienciaId?: string | null): boolean =>
+  !!experienciaId && Object.values(EXPERIENCIAS_POR_ENTRADA).some((xs) => (xs ?? []).some((e) => e.id === experienciaId && e.produccion === true));
