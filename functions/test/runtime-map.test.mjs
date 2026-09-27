@@ -56,6 +56,30 @@ const diferencia = (esperado, real) => {
   return [sobra.length ? `sobra: ${sobra.join(', ')}` : '', falta.length ? `falta: ${falta.join(', ')}` : ''].filter(Boolean).join(' · ');
 };
 
+/*
+ * F1-B · LO QUE LA CONEXIÓN DE `productions` PONE EN PRODUCCIÓN, Y NADA MÁS.
+ *
+ * Exportar la puerta de las producciones vuelve vivo el dominio de Filmmaker de
+ * F1-A —`modelo`, `validacion` y `operaciones`—, y ese dominio habla el
+ * vocabulario del Core: comprueba cada nodo con la regla de claves prohibidas,
+ * valida intención creativa y continuidad con los validadores de siempre, respeta
+ * los límites de un `ShotNode` para que un plano quepa en uno y resuelve la
+ * intención creativa EFECTIVA de cada plano para calcular, en memoria, lo que
+ * quedaría pendiente de rehacer. Nada de eso genera, cobra, encola ni llama a un
+ * motor: son vocabularios, límites y validadores puros.
+ *
+ * Son estos veinte, autorizados uno por uno. Las cinco listas de abajo los añaden
+ * a las que ya había SIN tocarlas, y la sección C comprueba que son exactamente
+ * los que solo nombra este código: uno más, o uno menos, falla por su nombre.
+ */
+const DE_PRODUCTIONS = {
+  'core/content/asset.js': ['TIPOS_DE_MATERIAL'],
+  'core/creative.js': ['completarCreativos', 'validarCreativos', 'versionCreativaActual', 'PROPORCIONES', 'RUTAS_CREATIVAS', 'valorCreativo'],
+  'core/shot.js': ['claveProhibidaDeNodo', 'FORMA_DE_ID_DE_PLANO', 'MAX_NOMBRE_DE_ESCENA', 'MAX_NARRATIVA', 'MAX_ELEMENTOS_POR_NODO', 'MAX_DEPENDENCIAS_DE_PLANO'],
+  'core/continuity.js': ['validarContinuidad', 'ASPECTOS_DE_CONTINUIDAD', 'FUERZAS_DE_CONTINUIDAD', 'RELACIONES_ESPACIALES', 'MAX_ANCLAJES', 'MAX_RELACIONES_ESPACIALES'],
+  'core/language.js': ['normalizarEtiqueta'],
+};
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * EL MAPA. Es la única parte de este archivo que se edita a mano.
  *
@@ -113,8 +137,9 @@ const MAPA = [
     motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'content', canonico: ['core/content/content.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
+  /* F1-B: la validación de Filmmaker nombra el vocabulario de clases de material para comprobar cada referencia. Vocabulario, no motor. */
   { id: 'asset', canonico: ['core/content/asset.js'], composicion: 'content/index.js', fabrica: 'crearMaterialDesdeUrl', enUso: ['content/index.js'], cargada: true,
-    motor: 'CONNECTED', simbolos: ['FORMA_DE_ID_DE_MATERIAL', 'esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'puedePasarA', 'retirar'] },
+    motor: 'CONNECTED', simbolos: ['FORMA_DE_ID_DE_MATERIAL', 'esStorageRef', 'materialEsDeLaCuenta', 'materialValido', 'puedePasarA', 'retirar', ...DE_PRODUCTIONS['core/content/asset.js']] },
   { id: 'publication', canonico: ['core/content/publication.js'], composicion: null, fabrica: null, enUso: [],
     motor: 'NOT CONNECTED', simbolos: [] },
   /* Los otros singulares. No son de este bloque, pero «un solo motor por pieza» los incluye. */
@@ -164,23 +189,38 @@ const OTROS_DEL_CORE = {
   /*
    * B3.7.1: la sombra pasa a construir TAMBIÉN el plan que sale del puente de
    * Legacy, y el puente pregunta si unos creativos son válidos antes de
-   * llevarlos. Eso pone `core/creative.js` en producción, y lo pone por una
-   * sola función: la que VALIDA. Fíjate en lo que sigue sin aparecer
-   * —`componerCreativos`, `completarCreativos`, `conflictosCreativos`,
-   * `compatibilidadCreativa`—: producción no compone intención creativa, solo
-   * comprueba la que Legacy ya tenía. Y llega por la sombra, que está detrás de
-   * una puerta cerrada y no ejecuta nada.
+   * llevarlos. Eso puso `core/creative.js` en producción por una sola función:
+   * la que VALIDA. Llega por la sombra, que está detrás de una puerta cerrada y
+   * no ejecuta nada.
+   *
+   * F1-B: conectar `productions` añade el vocabulario creativo que usa el dominio
+   * de Filmmaker, y lo usa de forma PURAMENTE FUNCIONAL: valida la intención de
+   * cada nivel (`validarCreativos`), resuelve la EFECTIVA de cada plano
+   * completando lo del plano con lo de su escena y su producción
+   * (`completarCreativos`, `versionCreativaActual`) y recorre sus rutas
+   * (`RUTAS_CREATIVAS`, `valorCreativo`, `PROPORCIONES`) para validar y para
+   * calcular, en memoria, lo que queda pendiente de rehacer. Eso no genera ni
+   * ejecuta nada. Lo que sigue sin aparecer —`componerCreativos`,
+   * `conflictosCreativos`, `compatibilidadCreativa`— dice dónde está el borde:
+   * producción no compone intenciones que chocan ni decide entre ellas.
    */
-  'core/creative.js': ['creativosValidos'],
+  'core/creative.js': ['creativosValidos', ...DE_PRODUCTIONS['core/creative.js']],
   /*
    * C3: exportar la puerta de escenas y planos pone en producción los dos
    * contratos de C1/C2. Otra vez lo esperado, y otra vez esto es donde se ve:
    * de continuidad producción usa el VALIDADOR y los punteros, y no usa todavía
    * `revisarAntesAntesDeEjecutar` ni `resumirVeredicto` —esos los estrenará
    * quien enrute y quien valide, que son fases posteriores—.
+   *
+   * F1-B: las producciones de Filmmaker traen la regla de claves prohibidas
+   * (`claveProhibidaDeNodo`, aplicada a cada nodo de una producción), la forma de
+   * id de los planos y los límites de un `ShotNode` —para que un plano del
+   * storyboard quepa en uno sin renombrar nada—, y de continuidad su VALIDADOR y
+   * su vocabulario. Siguen sin aparecer `revisarAntesAntesDeEjecutar` y
+   * `resumirVeredicto`: validar un plan no es ejecutarlo.
    */
-  'core/shot.js': ['esEstadoDePlano', 'escenaValida', 'planoValido', 'puedePasarDePlano', 'referenciasDelPlano', 'validarEscena', 'validarPlano'],
-  'core/continuity.js': ['anclajeValido', 'continuidadValida'],
+  'core/shot.js': ['esEstadoDePlano', 'escenaValida', 'planoValido', 'puedePasarDePlano', 'referenciasDelPlano', 'validarEscena', 'validarPlano', ...DE_PRODUCTIONS['core/shot.js']],
+  'core/continuity.js': ['anclajeValido', 'continuidadValida', ...DE_PRODUCTIONS['core/continuity.js']],
   /*
    * C4: la comprobación ESTRUCTURAL. Producción usa el comprobador y nada más
    * —ni `revisarCambioDePlano`, ni `aspectosSinEvidencia`, ni la tabla de
@@ -197,7 +237,8 @@ const OTROS_DEL_CORE = {
    * estrenará quien pregunte por una ambigüedad en pantalla—.
    */
   'core/continuity-intent.js': ['candidatosDesdeElementos', 'conContinuidadResuelta'],
-  'core/language.js': ['contextoDeIdioma'],
+  /* F1-B: la validación de Filmmaker normaliza las etiquetas de una producción con la misma regla que el resto del Core. */
+  'core/language.js': ['contextoDeIdioma', ...DE_PRODUCTIONS['core/language.js']],
   /* La regla «¿puede esta cuenta actuar con esta cara?». La estrenó la moderación (Fase 12-A/B). */
   'core/social-identity.js': ['actorDeLaCuenta'],
   /* Los tres que estrena el canary de F12-D. */
@@ -251,6 +292,14 @@ const FUNCTIONS = {
    * Delega entera en el runtime de C3, que comprueba la propiedad una por una.
    */
   './shots/puerta': ['shots'],
+  /*
+   * F1-B: la puerta de las producciones de Filmmaker —el storyboard guardado—.
+   * Crea, lee, lista, aplica lotes de operaciones con CAS, archiva y duplica, y
+   * lo hace delegando en `productions/index.ts`, que comprueba la propiedad y
+   * escribe en transacciones. No genera, no cobra y no llama a ningún proveedor.
+   * Conectada para que F1-C pueda usarla; desplegarla es otro paso.
+   */
+  './productions/puerta': ['productions'],
   /* Paso I: la red de seguridad del dinero. Una tarea programada, no una puerta de usuario. */
   './settlement/programado': ['barridoDeLiquidacion'],
   /* MC-4.5: la ÚNICA puerta de Media Cloud. De administración, y no es una API. */
@@ -314,12 +363,12 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y cuatro: las treinta y dos de antes, Elements (S5) y Scenes/Shots (C3)', reales.length === 34, `${reales.length}`);
+  check('5) y son treinta y cinco: las treinta y dos de antes, Elements (S5), Scenes/Shots (C3) y Productions (F1-B)', reales.length === 35, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
-   * S5 y C3 tuvieron que tocar este mapa: cada una añadió una Function
-   * —`elements` y `shots`—. Actualizar una guarda es la forma más
+   * S5, C3 y F1-B tuvieron que tocar este mapa: cada una añadió una Function
+   * —`elements`, `shots` y `productions`—. Actualizar una guarda es la forma más
    * fácil de desactivarla sin querer, así que aquí se demuestra que sigue
    * haciendo su trabajo: se le presenta una Function que NADIE declaró y se
    * comprueba que la detectaría.
@@ -327,7 +376,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const inventada = [...reales, 'functionQueNadieDeclaro'];
   check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
     inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
-    && inventada.length !== 34);
+    && inventada.length !== 35);
 
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
@@ -412,6 +461,24 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
     [...invocadaDesde('paraRouter')].join(', ') || 'nadie');
   const otros = Object.entries(OTROS_DEL_CORE);
   for (const [mod, simbolos] of otros) check(`${n++}) ${mod}: símbolos nombrados [${simbolos.join(', ')}]`, igual(simbolos, [...(nombrados.get(mod) || [])]), diferencia(simbolos, [...(nombrados.get(mod) || [])]));
+  /*
+   * F1-B · LA CONEXIÓN DE `productions`, MEDIDA. Los símbolos del Core que SOLO
+   * nombran `productions/` y `filmmaker/` son exactamente los veinte autorizados,
+   * cada uno definido donde se declara; y lo que la conexión carga son cinco
+   * módulos: la puerta, el almacén y tres del dominio de F1-A —ni `requisitos`
+   * ni `recomendaciones`, que siguen sin estar en la ruta—.
+   */
+  const deFilmmaker = (r) => r.startsWith('productions/') || r.startsWith('filmmaker/');
+  const soloDeProductions = [...quienNombra].filter(([, quien]) => [...quien].every(deFilmmaker)).map(([s]) => s);
+  const autorizados = Object.values(DE_PRODUCTIONS).flat();
+  check(`${n++}) productions: la conexión pone en producción EXACTAMENTE los veinte símbolos autorizados, y ninguno más`,
+    autorizados.length === 20 && new Set(autorizados).size === 20 && igual(soloDeProductions, autorizados), diferencia(autorizados, soloDeProductions));
+  check(`${n++}) productions: cada uno de los veinte es del módulo del Core en el que está autorizado`,
+    Object.entries(DE_PRODUCTIONS).every(([modulo, simbolos]) => simbolos.every((s) => definidoEn.get(s) === modulo)),
+    Object.entries(DE_PRODUCTIONS).flatMap(([modulo, simbolos]) => simbolos.filter((s) => definidoEn.get(s) !== modulo).map((s) => `${s} → ${definidoEn.get(s)}`)).join(', '));
+  check(`${n++}) productions: y lo que carga son cinco módulos —la puerta, el almacén y \`modelo\`, \`validacion\` y \`operaciones\` de F1-A—`,
+    igual([...VIVOS].filter(deFilmmaker), ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js', 'productions/index.js', 'productions/puerta.js']),
+    [...VIVOS].filter(deFilmmaker).join(', '));
   const declarados = new Set([...MAPA.flatMap((c) => c.canonico), ...Object.keys(OTROS_DEL_CORE)]);
   const sinDeclarar = [...nombrados.keys()].filter((m) => !declarados.has(m));
   check(`${n++}) ningún otro módulo del Core está siendo usado por producción sin figurar en el mapa`, sinDeclarar.length === 0, sinDeclarar.join(', '));

@@ -1053,10 +1053,15 @@ await seccion('Y', async () => {
   check('Y4) sus colecciones son las suyas: ni `scenes`, ni `shots`, ni consultas de grupo',
     P.COLECCION_DE_PRODUCCIONES === 'productions' && P.COLECCION_DE_ESCENAS === 'productionScenes' && P.COLECCION_DE_REVISIONES === 'productionRevisions'
     && !/collectionGroup|collection\('(scenes|shots)'\)|COLECCION_DE_PLANOS/.test(codigo));
-  check('Y5) no está conectada: ni `index.ts` ni lo que se despliega la cargan',
-    !/productions/i.test(leer('functions/src/index.ts')) && !/productions/.test(leer('functions/lib/index.js')));
+  const indice = leer('functions/src/index.ts');
+  const compilado = leer('functions/lib/index.js');
+  check('Y5) está conectada, y UNA vez: `index.ts` la exporta desde su puerta en una sola línea, y el compilado la carga desde ella',
+    indice.split('\n').filter((l) => /productions/i.test(l)).join('\n') === "export { productions } from './productions/puerta';"
+    && (compilado.match(/require\("\.\/productions\/puerta"\)/g) || []).length === 1
+    && (compilado.match(/Object\.defineProperty\(exports, "productions"/g) || []).length === 1);
   const mapa = leer('functions/test/runtime-map.test.mjs');
-  check('Y6) y el mapa del runtime sigue en 34, sin ella', /reales\.length === 34/.test(mapa) && !/productions/.test(mapa));
+  check('Y6) y el mapa del runtime la declara: 35 Functions, `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
+    /reales\.length === 35/.test(mapa) && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
   check('Y7) ni el dominio de F1-A ni el Algorithm Engine se tocaron para esto: Filmmaker sigue siendo cinco archivos de dominio',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).sort().join() === 'modelo.ts,operaciones.ts,recomendaciones.ts,requisitos.ts,validacion.ts'
     && !/productions/.test(fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).map((f) => leer(`functions/src/filmmaker/${f}`)).join('\n')));
