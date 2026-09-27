@@ -540,6 +540,8 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
     resolver: resolutorPorCadena(router, cadenaViva, politicaPorReglas(deps.reglas ?? SIN_REGLAS)),
     ejecutor: crearEjecutor({
       gateway, libro: deps.libro ?? libroDelMotor(), ahora,
+      /* La misma bandera que el Gateway: con ella, un POST que se queda sin respuesta es un desenlace desconocido. */
+      aceptaAsincrono: deps.aceptaAsincrono === true,
       ...(contexto ? { contexto } : {}),
       /* El dueño, del ALMACÉN. El paquete no lo lleva y la traza no es prueba de quién es nadie. */
       duenoDelTrabajo: async (jobId) => (await trabajos.obtener(jobId))?.owner.userId,
