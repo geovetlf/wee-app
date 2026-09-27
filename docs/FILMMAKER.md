@@ -1,11 +1,12 @@
 # Weë Filmmaker — la producción: su dominio (F1-A) y su persistencia (F1-B)
 
-> Estado: **F1-A y F1-B construidas; nada conectado**. F1-A es un dominio puro: no guarda, no genera, no cobra
-> y no tiene interfaz; vive en `functions/src/filmmaker/`. F1-B lo guarda: `functions/src/productions/`, con
-> reglas e índice **preparados y sin desplegar**, y una callable `productions` que **no se exporta** desde
-> `functions/src/index.ts`. Pruebas: `functions/test/filmmaker-modelo.test.mjs` y
-> `functions/test/productions-runtime.test.mjs`, dentro de la cadena de `npm test`, y
-> `functions/test/productions.emulator.mjs`, fuera de ella.
+> Estado: **F1-A y F1-B construidas; la callable `productions`, conectada y sin desplegar**. F1-A es un dominio
+> puro: no guarda, no genera, no cobra y no tiene interfaz; vive en `functions/src/filmmaker/`. F1-B lo guarda:
+> `functions/src/productions/`, con reglas e índice **preparados y sin desplegar**, y la callable `productions`, que
+> `functions/src/index.ts` **exporta** y el mapa del runtime declara (35 Functions, ADR-FM-010). Pruebas:
+> `functions/test/filmmaker-modelo.test.mjs` y `functions/test/productions-runtime.test.mjs`, dentro de la cadena de
+> `npm test`, y `functions/test/productions.emulator.mjs` y `functions/test/productions-callable.emulator.mjs`, fuera
+> de ella.
 
 ## Propósito
 
@@ -313,6 +314,38 @@ generar sigue pendiente (D9).
   (`atenderProducciones` y `.run` con una base de mentira) y contra el emulador.
 - *Alternativas descartadas.* Conectarla ya (superficie nueva sin interfaz ni autorización); un endpoint HTTP aparte
   (otra forma de autenticar); una callable por operación (repetiría la resolución de la cuenta siete veces).
+- *Actualización.* La conexión se autorizó después y se hizo como paso aparte, sin desplegar: ADR-FM-010.
+
+**ADR-FM-010 · La conexión de `productions`, y lo que pone en producción.**
+
+- *Contexto.* F1-C tiene que poder llamar a `productions`, también en el emulador de Functions, que solo sirve lo que
+  `functions/src/index.ts` exporta. Exportarla vuelve vivo el dominio de F1-A que la puerta usa —`modelo`,
+  `validacion` y `operaciones`—, y `runtime-map` no solo cuenta Functions: fija, módulo a módulo, qué símbolos del
+  Core nombra el código que se despliega. La conexión los cambia, y eso se autorizó uno por uno.
+- *Decisión.* `productions` se exporta desde `functions/src/index.ts` en una línea, junto a `elements` y `shots`.
+  `runtime-map` la declara (34 → 35) y amplía EXACTAMENTE cinco listas de símbolos del Core, conservando lo que ya
+  tenían:
+
+  | Lista | Lo que añade la conexión |
+  |---|---|
+  | `asset` | `TIPOS_DE_MATERIAL` |
+  | `core/creative.js` | `completarCreativos`, `validarCreativos`, `versionCreativaActual`, `PROPORCIONES`, `RUTAS_CREATIVAS`, `valorCreativo` |
+  | `core/shot.js` | `claveProhibidaDeNodo`, `FORMA_DE_ID_DE_PLANO`, `MAX_NOMBRE_DE_ESCENA`, `MAX_NARRATIVA`, `MAX_ELEMENTOS_POR_NODO`, `MAX_DEPENDENCIAS_DE_PLANO` |
+  | `core/continuity.js` | `validarContinuidad`, `ASPECTOS_DE_CONTINUIDAD`, `FUERZAS_DE_CONTINUIDAD`, `RELACIONES_ESPACIALES`, `MAX_ANCLAJES`, `MAX_RELACIONES_ESPACIALES` |
+  | `core/language.js` | `normalizarEtiqueta` |
+
+  Son vocabularios, límites y validadores puros; `completarCreativos` resuelve en memoria la intención creativa
+  efectiva de cada plano para calcular lo pendiente de rehacer. Una valla nueva fija que la conexión pone en
+  producción estos veinte y ninguno más, cada uno de su módulo, y que carga cinco módulos: la puerta, el almacén y
+  tres del dominio. Nada se despliega.
+- *Consecuencias.* El runtime compilado y el emulador la sirven con sus guardas (`productions-callable.emulator.mjs`).
+  Ningún motor cambia de estado: no se invoca ninguna fábrica ni se carga ninguna composición nueva. La frase de
+  `runtime-map` que decía que producción no compone intención creativa se corrigió: ahora la completa, en memoria,
+  sin generar nada. `requisitos` y `recomendaciones` siguen fuera de la ruta. F1-A no cambia. Desplegar la
+  Function, las reglas y el índice es otro paso, con su propia autorización.
+- *Alternativas descartadas.* Cargarla de forma perezosa para que la valla no viera el dominio (le escondería el
+  cambio); ampliar las listas sin fijar cuáles son los veinte (un símbolo veintiuno pasaría en silencio); desplegar a
+  la vez (necesita su propia autorización).
 
 ### Decisiones de dominio tomadas en F1-A
 
@@ -357,8 +390,8 @@ lenguaje las tenga.
 
 ## F1-B · La producción, guardada
 
-Construida, probada y **sin conectar**: `functions/src/productions/index.ts` (el almacén) y
-`functions/src/productions/puerta.ts` (la callable `productions`, que `functions/src/index.ts` no exporta). No genera,
+Construida, probada y **conectada, sin desplegar**: `functions/src/productions/index.ts` (el almacén) y
+`functions/src/productions/puerta.ts` (la callable `productions`, que `functions/src/index.ts` exporta; ADR-FM-010). No genera,
 no cobra, no crea trabajos, no toca `scenes`/`shots` del Core, ni Elements, ni proveedores.
 
 ### Dónde vive
@@ -442,7 +475,7 @@ de 35 a 36, como subió con cada fase que añadió uno. Nada de esto está despl
 
 | Fase | Cómo usa este dominio |
 |---|---|
-| F1-B | **Hecha**: guarda la producción (D2), aplica operaciones en el servidor con CAS y registro (D12), sin conectar |
+| F1-B | **Hecha**: guarda la producción (D2), aplica operaciones en el servidor con CAS y registro (D12); conectada (35 Functions) y sin desplegar |
 | F1-C | Pinta el storyboard con las tarjetas, habla con `productions` y traduce los `messageKey` (`filmmaker.*`) a frases en todos los idiomas |
 | F1-D | Genera un plano a partir de su requisito (D4) |
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
@@ -460,7 +493,9 @@ lo que importa (transacciones con lecturas antes que escrituras, `create` que fa
 provocados al confirmar), de `create` a la puerta, las reglas, el índice y este documento.
 `functions/test/productions.emulator.mjs`, fuera de la cadena: las reglas y las transacciones contra el emulador
 (`firebase emulators:exec --only firestore --project demo-wee-filmmaker "node functions/test/productions.emulator.mjs"`,
-con Java 21).
+con Java 21). `functions/test/productions-callable.emulator.mjs`, también fuera: la callable servida por el runtime de
+Functions —el mismo `lib/index.js` que se desplegaría— con sus guardas
+(`firebase emulators:exec --only functions,firestore --project demo-wee-filmmaker "node functions/test/productions-callable.emulator.mjs"`).
 
 Las baterías de sabotajes de F1-A y F1-B se ejecutan como las de S2, con el mismo corredor externo; llevar las
 baterías al repositorio es una decisión aparte, todavía abierta.

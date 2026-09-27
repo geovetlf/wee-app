@@ -22,11 +22,11 @@ import {
  * delega en `./index`. Ni una regla de negocio ni una validación repetida: es el
  * mismo reparto que `shots/puerta` y `elements/puerta`.
  *
- * ── NO ESTÁ CONECTADA ───────────────────────────────────────────────────────
+ * ── CONECTADA, SIN DESPLEGAR ────────────────────────────────────────────────
  *
- * `functions/src/index.ts` no la exporta y nada la despliega: existe preparada
- * para cuando se autorice conectarla, en un paso aparte que también tendrá que
- * declararla en el mapa del runtime.
+ * `functions/src/index.ts` la exporta y el mapa del runtime la declara (35
+ * Functions): el runtime compilado y el emulador la sirven. Desplegarla es otro
+ * paso, con su propia autorización.
  *
  * ── Lo que NO se acepta del cliente, nunca ──────────────────────────────────
  *
