@@ -90,6 +90,8 @@ export interface FichaDeAsset {
   assetId: string;
   ownerAccountId: string;
   status: string;
+  /** La clase del material. Solo la mira quien exige una: el resultado de un plano es un vídeo. */
+  kind?: string;
 }
 
 export interface LectorDeAssets {
@@ -115,7 +117,7 @@ const elementoPorDefecto: LectorDeElementos = async (accountId, elementId) => {
 /** Y por defecto, el Content Core de F11 para los materiales. */
 const assetPorDefecto: LectorDeAssets = async (assetId) => {
   const a = await leerMaterial(assetId);
-  return a ? { assetId: a.assetId, ownerAccountId: a.ownerAccountId, status: a.status } : null;
+  return a ? { assetId: a.assetId, ownerAccountId: a.ownerAccountId, status: a.status, kind: a.kind } : null;
 };
 
 /* Firestore no admite `undefined`. Mismo apaño que `elements/index.ts`, y por lo mismo. */
@@ -506,6 +508,71 @@ export const actualizarPlano = async (
 
   await planos(deps).doc(shotId).set(siguiente);
   return { status: 'actualizado', shot: siguiente };
+};
+
+export type ResultadoDeFijado =
+  | { status: 'fijado' | 'ya_estaba'; shot: ShotNode }
+  | { status: 'no_encontrado' }
+  | { status: 'version_distinta'; actual: number }
+  | { status: 'transicion_invalida'; de: ShotState }
+  | { status: 'referencia_rechazada'; referencia: ReferenciaRechazada }
+  | { status: 'invalido'; problemas: readonly ProblemaDeNodo[] };
+
+/**
+ * FIJAR EL RESULTADO DE UN PLANO, YA VERIFICADO. La única escritura de
+ * `producedAssetId` que no pasa por `actualizarPlano`, y la hace en UNA
+ * transacción: se lee el plano, se compara su versión con la que vio quien lo
+ * pide —si la manda— y se escribe o no se escribe nada.
+ *
+ * «Verificado» quiere decir que quien llama ya comprobó que ese material nació
+ * de la generación de ESTE plano (Filmmaker lo hace en `creator/toma.ts`). Aquí
+ * se comprueba lo que es de este archivo: que el plano es de la cuenta, que no
+ * está archivado, que el material es suyo, está listo y es un VÍDEO, y que el
+ * plano puede llegar a `generated` —desde `ready`, o pasando por `ready` desde
+ * un borrador, un resultado anterior, uno validado o uno desactualizado—.
+ */
+export const fijarResultadoVerificado = async (
+  accountId: string,
+  shotId: string,
+  datos: { assetId: string; expectedVersion?: number; at: number },
+  deps: DepsDePlanos = {},
+): Promise<ResultadoDeFijado> => {
+  const leer = deps.asset ?? assetPorDefecto;
+  const ficha = await leer(datos.assetId);
+  if (!ficha || ficha.ownerAccountId !== accountId) {
+    return { status: 'referencia_rechazada', referencia: { tipo: 'asset', id: datos.assetId, motivo: 'no_encontrado' } };
+  }
+  if (ficha.status !== 'ready' || ficha.kind !== 'video') {
+    return { status: 'referencia_rechazada', referencia: { tipo: 'asset', id: datos.assetId, motivo: 'no_utilizable' } };
+  }
+  const ref = planos(deps).doc(shotId);
+  return laBase(deps).runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const actual = snap.exists ? snap.data() : undefined;
+    if (!planoValido(actual) || actual.ownerAccountId !== accountId) return { status: 'no_encontrado' } as ResultadoDeFijado;
+    if (datos.expectedVersion !== undefined && actual.version !== datos.expectedVersion) {
+      return { status: 'version_distinta', actual: actual.version } as ResultadoDeFijado;
+    }
+    if (actual.producedAssetId === datos.assetId && actual.state === 'generated') return { status: 'ya_estaba', shot: actual } as ResultadoDeFijado;
+    /* A `generated`, en uno o dos pasos, y los dos tienen que existir en la tabla del contrato. */
+    const pasos: ShotState[] = actual.state === 'generated' ? [] : actual.state === 'ready' ? ['generated'] : ['ready', 'generated'];
+    let desde: ShotState = actual.state;
+    for (const a of pasos) {
+      if (!puedePasarDePlano(desde, a)) return { status: 'transicion_invalida', de: actual.state } as ResultadoDeFijado;
+      desde = a;
+    }
+    const siguiente: ShotNode = limpiar({
+      ...actual,
+      state: 'generated' as ShotState,
+      producedAssetId: datos.assetId,
+      version: Math.min(actual.version + 1, 9999),
+      updatedAt: datos.at,
+    });
+    const problemas = validarPlano(siguiente);
+    if (problemas.length) return { status: 'invalido', problemas } as ResultadoDeFijado;
+    tx.set(ref, siguiente);
+    return { status: 'fijado', shot: siguiente } as ResultadoDeFijado;
+  });
 };
 
 /**

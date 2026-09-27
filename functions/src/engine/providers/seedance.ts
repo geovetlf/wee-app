@@ -182,6 +182,8 @@ export interface SeedanceRequestBody {
   camera_fixed?: boolean;
   omni_reference_task_type?: 'auto' | 'reference' | 'edit' | 'extend';
   callback_url?: string;
+  /** Cuánto puede estar la tarea en cola o ejecutándose antes de que ModelArk la dé por `expired`. En segundos. */
+  execution_expires_after?: number;
 }
 
 /**
@@ -255,6 +257,14 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
   if (Number.isFinite(Number(input.seed))) body.seed = Number(input.seed);
   if (input.cameraFixed === true) body.camera_fixed = true;
   if (taskType) body.omni_reference_task_type = taskType;
+  /*
+   * EL PLAZO DE LA TAREA, solo cuando se acepta y se suelta. Lo decide quien pide
+   * —`plazos.ts`, por la puerta— y aquí solo se traduce a su nombre. Sin él, ModelArk
+   * aplica el suyo, mucho más largo, y una tarea colgada retenía la reserva días.
+   * El sondeo de siempre no lo manda: espera dentro de la llamada y su plazo es otro.
+   */
+  const vidaEnElProveedor = Number(input.vidaEnElProveedorSec);
+  if (request.acceptAsync === true && Number.isInteger(vidaEnElProveedor) && vidaEnElProveedor > 0) body.execution_expires_after = vidaEnElProveedor;
   const callback = env('SEEDANCE_CALLBACK_URL');
   if (callback) body.callback_url = env('SEEDANCE_CALLBACK_TOKEN') ? `${callback}${callback.includes('?') ? '&' : '?'}token=${encodeURIComponent(env('SEEDANCE_CALLBACK_TOKEN') as string)}` : callback;
 

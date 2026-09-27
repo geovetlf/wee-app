@@ -43,6 +43,61 @@ export const MAX_BYTES_DE_RESULTADO = 512 * 1024 * 1024;
 export const rutaDelResultado = (userId: string, assetId: string, contentType: string): string =>
   `users/${userId}/ai-generations/${assetId}.${extensionFor(contentType)}`;
 
+/**
+ * LA MARCA DE IDENTIDAD DE UN OBJETO QUE GUARDÓ ESTO. Va en los metadatos del
+ * objeto, junto a su token, y dice de qué material es. Es lo que permite
+ * reconocer después un objeto propio sin volver a descargarlo.
+ */
+export const MARCA_DE_MATERIAL = 'weeMaterial';
+
+/**
+ * ADOPTAR UN OBJETO QUE YA ESTÁ Y NO TIENE FICHA.
+ *
+ * Pasa cuando una llegada guardó el vídeo y no llegó a crear su ficha —el
+ * proceso murió entre las dos cosas, o falló la ficha—. Antes, cada pasada
+ * volvía a descargar el vídeo entero, recibía un 412 al guardarlo y se
+ * aplazaba para siempre: el trabajo no se cerraba y la reserva seguía retenida.
+ *
+ * Ahora se busca en SU sitio —la ruta sale de la identidad del material, bajo
+ * la carpeta de la cuenta, donde solo escribe el servidor— y solo se adopta si
+ * el objeto lleva la marca de ESE material. Se reutilizan el objeto y su token:
+ * ni una segunda descarga, ni un segundo objeto, ni otra identidad.
+ */
+const adoptarObjeto = async (peticion: PeticionDeMaterializacion): Promise<DesenlaceDeMaterializacion | null> => {
+  const bucket = storageBucket();
+  const prefijo = `users/${peticion.userId}/ai-generations/${peticion.assetId}.`;
+  let archivos: { name: string; getMetadata: () => Promise<unknown> }[] = [];
+  try {
+    [archivos] = await bucket.getFiles({ prefix: prefijo, maxResults: 3 }) as unknown as [typeof archivos];
+  } catch {
+    return null;
+  }
+  for (const archivo of archivos ?? []) {
+    if (!archivo.name.startsWith(prefijo)) continue;
+    let propios: Record<string, unknown> = {};
+    try {
+      const [meta] = await archivo.getMetadata() as [{ metadata?: Record<string, unknown> }];
+      propios = meta?.metadata ?? {};
+    } catch {
+      continue;
+    }
+    if (propios[MARCA_DE_MATERIAL] !== peticion.assetId) continue;
+    const token = String(propios.firebaseStorageDownloadTokens ?? '').split(',')[0].trim();
+    if (!token) continue;
+    const material = await crearMaterialDesdeUrl({
+      ownerAccountId: peticion.userId,
+      assetId: peticion.assetId,
+      url: downloadUrlFor(bucket.name, archivo.name, token),
+      kind: peticion.kind,
+      provenance: peticion.provenance,
+      ...(peticion.metadata ? { metadata: peticion.metadata } : {}),
+    });
+    if (!material) return { ok: false, motivo: 'fallo' };
+    return { ok: true, assetId: material.assetId, yaEstaba: material.provenance.createdAt !== peticion.provenance.createdAt };
+  }
+  return null;
+};
+
 export const materializadorDeWee: PuertoDeMaterializacion = {
   async guardar(peticion: PeticionDeMaterializacion): Promise<DesenlaceDeMaterializacion> {
     /*
@@ -81,6 +136,10 @@ export const materializadorDeWee: PuertoDeMaterializacion = {
     }
     if (!peticion.recurso) return { ok: false, motivo: 'rechazado' };
 
+    /* ¿EL OBJETO YA ESTÁ, SIN FICHA? Se adopta, sin descargar nada. */
+    const adoptado = await adoptarObjeto(peticion);
+    if (adoptado) return adoptado;
+
     let bytes: Buffer;
     let contentType: string;
     try {
@@ -104,7 +163,7 @@ export const materializadorDeWee: PuertoDeMaterializacion = {
     const token = randomUUID();
     try {
       await bucket.file(ruta).save(bytes, {
-        metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } },
+        metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token, [MARCA_DE_MATERIAL]: peticion.assetId } },
         resumable: false,
         /* SOLO SI NO EXISTE. Quien llegue segundo recibe un 412 y no pisa el objeto del primero. */
         preconditionOpts: { ifGenerationMatch: 0 },
@@ -120,7 +179,8 @@ export const materializadorDeWee: PuertoDeMaterializacion = {
       if (status !== 412) return { ok: false, motivo: 'fallo' };
       const delOtro = await leerMaterial(peticion.assetId).catch(() => null);
       if (delOtro && delOtro.ownerAccountId === peticion.userId) return { ok: true, assetId: delOtro.assetId, yaEstaba: true };
-      return { ok: false, motivo: 'fallo' };
+      /* Está el objeto y no su ficha: se adopta el que hay, que es el mismo vídeo. */
+      return (await adoptarObjeto(peticion)) ?? { ok: false, motivo: 'fallo' };
     }
 
     const material = await crearMaterialDesdeUrl({
