@@ -281,9 +281,17 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
         await cerrarFila(reserva.transactionId, 0);
         return { desenlace: r.duplicate ? 'ya_estaba' : 'reembolsada', estado: 'REFUNDED' };
       } catch (e) {
-        /* Ya estaba devuelta, o ya se cobró y no se toca sin que lo decida una persona: no es un fallo del barrendero. */
+        /*
+         * Ya estaba devuelta, o ya se cobró y no se toca sin que lo decida una
+         * persona: no es un fallo del barrendero. Dicho como lo dice el Credit
+         * Engine: una reserva ya cobrada contesta `NOT_REFUNDABLE` con su estado
+         * —`COMPLETED`—. Aquí se esperaba `ALREADY_COMPLETED`, que el motor no dice
+         * nunca, y un segundo cierre salía como fallo y se volvía a intentar en
+         * cada pasada sin mover nada.
+         */
         const code = (e as { code?: string })?.code;
-        if (code === 'ALREADY_REFUNDED' || code === 'ALREADY_COMPLETED') return { desenlace: 'ya_estaba', estado: code };
+        if (code === 'NOT_REFUNDABLE') return { desenlace: 'ya_estaba', estado: String((e as { details?: { status?: unknown } }).details?.status ?? 'COMPLETED') };
+        if (code === 'ALREADY_REFUNDED') return { desenlace: 'ya_estaba', estado: code };
         return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
       }
     },
