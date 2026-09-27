@@ -1,6 +1,9 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import { newRequestId } from './creditsService';
+import type {
+  CalidadDeToma, CotizacionDeToma, RechazoDeToma, RespuestaDeGeneracion, ResultadoDeToma, UnidadDeToma,
+} from '../utils/controladorDeToma';
 
 /**
  * Weë Video Engine desde la app: una petición abstracta de video, sin nada del
@@ -69,6 +72,44 @@ export interface GenerateVideoAccepted {
 
 export type GenerateVideoResult = GenerateVideoCompleted | GenerateVideoAccepted;
 
+/**
+ * ── F1-D · UNA TOMA DE UN PLANO DE WEË FILMMAKER ──────────────────────────
+ *
+ * La misma callable, con otra entrada: el plano tal como lo calcula F1-A —su
+ * requisito—, la revisión guardada y la calidad que eligió la persona. El texto,
+ * la duración, el formato y el requestId los pone el servidor; aquí no se
+ * inventa ningún id, así que la misma toma es siempre la misma operación.
+ *
+ * Contestan con un resultado, no con una excepción: el motivo que dijo el
+ * servidor, para que la pantalla lo diga con sus palabras.
+ */
+export interface PlanoDeToma extends UnidadDeToma {
+  quality?: CalidadDeToma;
+}
+
+/** Lo que dijo el servidor —su `reason`, o su código— o que no se pudo hablar con él. */
+const rechazoDe = (error: unknown): RechazoDeToma => {
+  const e = (error ?? {}) as { code?: unknown; details?: unknown };
+  const detalles = e.details && typeof e.details === 'object' ? (e.details as Record<string, unknown>) : {};
+  const { reason, code, ...detalle } = detalles;
+  if (typeof reason === 'string') return { motivo: reason, detalle };
+  if (typeof code === 'string') return { motivo: code, detalle };
+  const sdk = typeof e.code === 'string' ? e.code : '';
+  if (/unavailable|deadline-exceeded|network/.test(sdk)) return { motivo: 'network' };
+  if (/unauthenticated/.test(sdk)) return { motivo: 'session_required' };
+  return { motivo: 'unknown' };
+};
+
+const llamarPorLaToma = async <T,>(datos: Record<string, unknown>, timeout: number): Promise<ResultadoDeToma<T>> => {
+  try {
+    const fn = httpsCallable<Record<string, unknown>, T>(functions, 'generateVideo', { timeout });
+    const r = await fn(datos);
+    return { ok: true, valor: r.data };
+  } catch (error) {
+    return { ok: false, rechazo: rechazoDe(error) };
+  }
+};
+
 export const videoService = {
   generateVideo: async (input: GenerateVideoInput): Promise<GenerateVideoResult> => {
     const requestId = input.requestId || newRequestId('video');
@@ -77,4 +118,12 @@ export const videoService = {
     /* El id es el que se mandó, no uno que se invente aquí: es con el que se reintenta sin volver a cobrar. */
     return result.data.status === 'ACCEPTED' ? { ...result.data, requestId } : result.data;
   },
+
+  /** Solo mirar: si esa toma se puede, cuánto costaría y qué tomas tiene ya el plano. Ni reserva ni cupo. */
+  quoteTake: (plano: PlanoDeToma): Promise<ResultadoDeToma<CotizacionDeToma>> =>
+    llamarPorLaToma<CotizacionDeToma>({ plano, cotizar: true }, 60_000),
+
+  /** Generar ESA toma por el precio que se enseñó. Si el precio cambió, el servidor no la genera y lo dice. */
+  generateTake: (plano: PlanoDeToma & { take: number }, creditosCotizados: number): Promise<ResultadoDeToma<RespuestaDeGeneracion>> =>
+    llamarPorLaToma<RespuestaDeGeneracion>({ plano, creditosCotizados }, 120_000),
 };

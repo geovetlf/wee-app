@@ -9,7 +9,9 @@ import ProductionDurationSummary from './ProductionDurationSummary';
 import ProductionRecommendations from './ProductionRecommendations';
 import ProductionInspector from './ProductionInspector';
 import ProductionAudio from './ProductionAudio';
+import ProductionShotGeneration from './ProductionShotGeneration';
 import type { Seleccion } from './ProductionStoryboard';
+import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import { RUTAS_CREATIVAS, claveDelValor } from '../../../constants/camaraCinematica';
 import { buscarEscena, buscarPlano, valorCreativo } from '../../../services/filmmaker/dominio';
 import type {
@@ -29,8 +31,12 @@ import { scale } from '../../../utils/scale';
  *
  * No hay conversación con Weë Brain: las recomendaciones son las reglas
  * deterministas de F1-A, y convertir «20 s, vertical, 5 planos» en operaciones
- * llega en otra fase. Tampoco hay generación ni precio: «Generar» se enseña como
- * lo que es hoy —todavía no disponible— y el coste, pendiente de cotización.
+ * llega en otra fase. La producción ENTERA no se genera: su «Generar», en
+ * Acciones, se enseña como lo que es hoy —todavía no disponible— y su coste,
+ * pendiente de cotización. Lo que sí se genera (F1-D) es la toma de UNA unidad
+ * elegida —un plano, o una escena sin planos—, en su propia sección, con su
+ * precio y su estado: `ProductionShotGeneration`, que solo pinta lo que le da
+ * la pantalla.
  */
 const ProductionDirectorPanel: React.FC<{
   produccion: FilmmakerProduction;
@@ -42,7 +48,9 @@ const ProductionDirectorPanel: React.FC<{
   editable: boolean;
   onGesto: (ops: readonly FilmmakerOperation[]) => void;
   onRechazar: (clave: string) => void;
-}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar }) => {
+  /** La toma de la unidad elegida (F1-D). Sin ella, esta sección no se pinta. */
+  toma?: TomaDelPlano;
+}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const direccion = produccion.creativeDirection;
@@ -106,6 +114,8 @@ const ProductionDirectorPanel: React.FC<{
       <Seccion titulo={titulado ?? t('filmmaker.directing')}>
         <ProductionInspector produccion={produccion} seleccion={seleccion} editable={editable} onGesto={onGesto} />
       </Seccion>
+
+      {!!toma && !!seleccion && <ProductionShotGeneration toma={toma} tipo={seleccion.tipo} />}
 
       <Seccion titulo={t('filmmaker.recommendations')}>
         <ProductionRecommendations

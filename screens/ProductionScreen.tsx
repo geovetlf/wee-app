@@ -5,6 +5,7 @@ import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano } from '../hooks/useProduccion';
+import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import CreatorShell from '../components/creator/CreatorShell';
 import ProductionHeader from '../components/studio/produccion/ProductionHeader';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
@@ -37,7 +38,9 @@ type Ruta = RouteProp<MainStackParamList, 'Production'>;
  *
  * Todo pasa por el servicio (`services/filmmakerService.ts`) y el estado
  * optimista (`utils/produccionOptimista.ts`); aquí no hay reglas de producción
- * ni llamadas a la red. Y no se genera nada: ni vídeo, ni miniaturas, ni voz.
+ * ni llamadas a la red. Lo único que se genera (F1-D) es la toma de UNA unidad
+ * elegida, y la lleva su hook (`hooks/useTomaDePlano.ts`) sobre lo GUARDADO:
+ * ni la producción entera, ni miniaturas, ni voz.
  */
 const ProductionScreen: React.FC = () => {
   const route = useRoute<Ruta>();
@@ -90,6 +93,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const vista = estado.vista;
   const editable = esEditable(estado);
   const hayCambios = hayCambiosSinGuardar(estado);
+  const toma = useTomaDePlano(estado.confirmada, hayCambios, seleccion);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Production')), [navigation]);
@@ -158,6 +162,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
         editable={editable}
         onGesto={gesto}
         onRechazar={(clave) => setRechazadas((antes) => new Set([...antes, clave]))}
+        toma={toma}
       />
     );
     contenido = (

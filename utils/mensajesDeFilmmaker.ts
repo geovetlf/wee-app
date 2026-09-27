@@ -1,6 +1,7 @@
 import type { FilmmakerIssue, FilmmakerOperation, FilmmakerProduction } from '../services/filmmaker/dominio';
 import type { FalloDeProducciones } from '../services/filmmakerService';
 import type { Traductor } from '../i18n/traducir';
+import type { CalidadDeToma, RechazoDeToma } from './controladorDeToma';
 
 /**
  * WEË FILMMAKER · DE LOS CÓDIGOS DEL DOMINIO A LO QUE SE LEE (F1-C).
@@ -107,5 +108,90 @@ export const fraseDeLaPropuesta = (ops: readonly FilmmakerOperation[], t: Traduc
       return t('filmmaker.propMatchSetting');
     default:
       return t('filmmaker.propApply');
+  }
+};
+
+/* ── F1-D · UNA TOMA DE UN PLANO ──────────────────────────────────────────── */
+
+/** Las tres calidades, en la clave que las nombra. */
+export const CLAVE_DE_CALIDAD: Readonly<Record<CalidadDeToma, string>> = Object.freeze({
+  standard: 'filmmaker.takeQualityStandard',
+  high: 'filmmaker.takeQualityHigh',
+  max: 'filmmaker.takeQualityMax',
+});
+
+/**
+ * POR QUÉ UNA TOMA NO SE PUEDE, EN LA CLAVE QUE LO DICE.
+ *
+ * Los motivos son los del servidor —el traductor del plano
+ * (`functions/src/creator/plano.ts`), las tomas (`creator/toma.ts`), la puerta
+ * del vídeo y el Credit Engine— y el de la red. Varios se dicen igual: a quien
+ * mira le importa qué hacer, no qué pieza lo dijo. Aquí es una tabla, y no una
+ * regla como la de arriba, porque estos motivos no tienen tramos: vienen de
+ * sitios distintos y algunos, de fuera de Filmmaker.
+ */
+const CLAVE_DEL_MOTIVO_DE_TOMA: Readonly<Record<string, string>> = Object.freeze({
+  capability_not_supported: 'filmmaker.takeReasonReferences',
+  references_not_supported: 'filmmaker.takeReasonReferences',
+  advanced_prompt_blocked: 'filmmaker.takeReasonAdvanced',
+  dialogue_not_supported: 'filmmaker.takeReasonDialogue',
+  description_missing: 'filmmaker.takeReasonDescription',
+  duration_too_long: 'filmmaker.takeReasonTooLong',
+  aspect_ratio_not_supported: 'filmmaker.takeReasonAspect',
+  quality_required: 'filmmaker.takeChooseQuality',
+  quality_not_representable: 'filmmaker.takeReasonQuality',
+  sound_constraints_not_supported: 'filmmaker.takeReasonSound',
+  take_in_flight: 'filmmaker.takeReasonInFlight',
+  DUPLICATE_REQUEST: 'filmmaker.takeReasonInFlight',
+  production_changed: 'filmmaker.takeReasonChanged',
+  take_out_of_order: 'filmmaker.takeReasonChanged',
+  production_not_found: 'filmmaker.takeReasonNotFound',
+  unit_not_found: 'filmmaker.takeReasonNotFound',
+  not_found: 'filmmaker.takeReasonNotFound',
+  production_archived: 'filmmaker.takeArchived',
+  take_limit: 'filmmaker.takeReasonLimit',
+  route_unavailable: 'filmmaker.takeReasonRoute',
+  price_changed: 'filmmaker.takePriceChanged',
+  shot_invalid: 'filmmaker.takeReasonInvalid',
+  take_invalid: 'filmmaker.takeReasonInvalid',
+  INSUFFICIENT_CREDITS: 'filmmaker.takeReasonCredits',
+  RATE_LIMITED: 'filmmaker.takeReasonDaily',
+  idempotency_conflict: 'filmmaker.takeReasonConflict',
+  result_not_available: 'filmmaker.takeReasonDone',
+  network: 'filmmaker.perNetwork',
+  session_required: 'filmmaker.perSessionRequired',
+  UNAUTHORIZED: 'filmmaker.perSessionRequired',
+  unknown: 'filmmaker.perUnknown',
+});
+
+/** La clave de un motivo; lo que no se conoce se dice con la frase general de «no se pudo preparar». */
+export const claveDelMotivoDeToma = (motivo: string): string => CLAVE_DEL_MOTIVO_DE_TOMA[motivo] ?? 'filmmaker.takeReasonInvalid';
+
+/** «4k» es como lo llama el motor; se lee «4K». El resto se lee tal cual (720p, 1080p). */
+export const resolucionVisible = (r: unknown): string => (String(r ?? '') === '4k' ? '4K' : String(r ?? ''));
+
+/** Lo poco del formato del idioma que hace falta aquí. */
+interface FormatoDeToma {
+  numero: (valor: number) => string;
+  lista: (cosas: readonly string[], tipo?: 'conjunction' | 'disjunction') => string;
+}
+
+/** LA FRASE DE UN RECHAZO, con sus números y en el idioma de quien mira. */
+export const fraseDelRechazoDeToma = (rechazo: RechazoDeToma, t: Traductor, formato: FormatoDeToma): string => {
+  const d = rechazo.detalle ?? {};
+  const clave = claveDelMotivoDeToma(rechazo.motivo);
+  switch (rechazo.motivo) {
+    case 'duration_too_long':
+      return t(clave, { segundos: formato.numero(Number(d.requestedSec)), maximo: formato.numero(Number(d.maxSec)) });
+    case 'aspect_ratio_not_supported': {
+      const sugeridas = Array.isArray(d.suggestions) ? d.suggestions.filter((x): x is string => typeof x === 'string') : [];
+      return t(clave, { formato: String(d.aspectRatio ?? ''), lista: formato.lista(sugeridas, 'disjunction') });
+    }
+    case 'quality_not_representable': {
+      const calidad = CLAVE_DE_CALIDAD[d.quality as CalidadDeToma];
+      return t(clave, { calidad: calidad ? t(calidad) : '', alcanza: resolucionVisible(d.reachable), resolucion: resolucionVisible(d.resolution) });
+    }
+    default:
+      return t(clave);
   }
 };
