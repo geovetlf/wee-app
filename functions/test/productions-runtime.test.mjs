@@ -1125,8 +1125,9 @@ await seccion('Z', async () => {
   check('Z10) la callable de verdad: sin sesión no hay nada, y con sesión la cuenta es la del uid',
     sinSesion?.code === 'unauthenticated' && conSesion.created === true && dato(baseDeLaPuerta, rutaRaiz(pid(5))).ownerAccountId === A);
   const paquete = leer('functions/package.json');
-  check('Z11) esta suite está en la cadena de `npm test`, y la del emulador existe y NO está', /productions-runtime\.test\.mjs/.test(paquete)
-    && fs.existsSync(path.resolve(RAIZ, 'functions/test/productions.emulator.mjs')) && !/productions\.emulator/.test(paquete));
+  check('Z11) esta suite está en la cadena de `npm test`, y las dos del emulador —reglas y callable servida por el runtime— existen y NO están', /productions-runtime\.test\.mjs/.test(paquete)
+    && ['productions.emulator.mjs', 'productions-callable.emulator.mjs'].every((x) => fs.existsSync(path.resolve(RAIZ, `functions/test/${x}`)))
+    && !/productions(-callable)?\.emulator/.test(paquete));
   const doc = leer('docs/FILMMAKER.md');
   const adrs = ['ADR-FM-005', 'ADR-FM-006', 'ADR-FM-007', 'ADR-FM-008', 'ADR-FM-009'];
   const secciones = adrs.map((id) => { const i = doc.indexOf(`**${id}`); const j = doc.indexOf('**ADR-FM-', i + 5); return i < 0 ? '' : doc.slice(i, j < 0 ? undefined : j); });
