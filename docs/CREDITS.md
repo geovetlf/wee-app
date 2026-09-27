@@ -54,7 +54,7 @@ userId, type (purchase | usage | grant | refund), amount (con signo),
 balanceBefore, balanceAfter, reason (concepto legible), source (weë-creator, wee-avatar,
 store:test, welcome, migration, admin…), service?, generationId?, purchaseId?,
 status (PENDING | AUTHORIZED | COMPLETED | FAILED | REFUNDED), statusHistory[{status, at}],
-requestId, authorizedAmount?, finalAmount?, refundOf?, meta?, createdAt, updatedAt,
+requestId, authorizedAmount?, fingerprint?, finalAmount?, refundOf?, meta?, createdAt, updatedAt,
 completedAt?, refundedAt?
 ```
 
@@ -100,6 +100,8 @@ REQUEST ─► PENDING ─► AUTHORIZED ─► (ejecutar IA) ─► COMPLETED
 4. Si falla: **`refundCredits({ userId, requestId, reason })`** → `FAILED → REFUNDED`, transacción `refund_<requestId>` por **exactamente** lo cobrado (menos ajustes ya devueltos) y saldo restaurado.
 
 **Doble cobro**: el id del documento es `usage_<requestId>`. Repetir la operación (doble clic, reintento de red) encuentra el documento y devuelve `duplicate: true` sin cobrar. Un `requestId` ya reembolsado no se puede reutilizar (`ALREADY_REFUNDED`): nadie genera gratis con una operación devuelta.
+
+**La misma clave es la misma operación** (PRE-F1-D). Encontrar el documento ya no basta para ser su duplicado: tiene que ser de la misma cuenta (`FORBIDDEN` si no) y del mismo servicio. Y si quien cobra da la **huella** de la operación (`fingerprint`, solo servidor: hoy, `generateVideo` con el vídeo pedido), también la misma huella y el mismo importe autorizado. Si no coincide, es otra operación con una clave prestada: `INVALID_REQUEST` con `reason: 'idempotency_conflict'`, sin tocar la reserva de antes ni el saldo —la misma regla que el Core escribió en el Financial Core y el Job Engine—. Antes, el `requestId` de una respuesta de Weë Brain ya cobrada (`brain_<messageId>`) pasaba como duplicado de un vídeo, y `generateVideo`, que no encontraba el vídeo, seguía hasta generarlo sin cobro. Sin huella —Brain, el avatar, `creatorRun`, la callable—, el importe no entra en la identidad: Brain recalcula el precio del mismo mensaje con el historial, y un reintento tras una caída podría cambiarlo. Y una operación de vídeo `COMPLETED` cuyo resultado no aparece ya no se vuelve a generar: `DUPLICATE_REQUEST` con `reason: 'result_not_available'`.
 
 **Doble reembolso**: `refund_<requestId>` también es determinista; si la operación ya está `REFUNDED`, se devuelve el reembolso existente con `duplicate: true` y el saldo no cambia. Una operación `COMPLETED` no se reembolsa salvo `force: true` (administración).
 

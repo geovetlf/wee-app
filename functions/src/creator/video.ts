@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
@@ -128,6 +129,27 @@ const ownUrls = (values: unknown, uid: string): string[] | undefined => {
   return values.slice(0, 30).map((value) => assertInputImageUrl(value, uid));
 };
 
+/**
+ * LA HUELLA DEL VÍDEO PEDIDO.
+ *
+ * Con ella el Credit Engine sabe si un `requestId` repetido es de verdad ESTE
+ * vídeo: la misma petición da la misma huella, y cualquier otra —otra
+ * descripción, otra duración, otra referencia— da otra. Sale solo de lo que ya
+ * se validó, y en orden canónico: el orden en que llegaron los campos no la
+ * cambia. Es un resumen: no guarda la descripción ni ninguna URL.
+ */
+const huellaDelVideo = (peticion: VideoRequest): string => {
+  const canonico = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(canonico);
+    if (v && typeof v === 'object') {
+      const o = v as Record<string, unknown>;
+      return Object.fromEntries(Object.keys(o).sort().filter((k) => o[k] !== undefined).map((k) => [k, canonico(o[k])]));
+    }
+    return v;
+  };
+  return createHash('sha256').update(JSON.stringify(canonico({ operacion: 'video', peticion }))).digest('hex');
+};
+
 export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
@@ -180,6 +202,8 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       requestId,
       reason: 'Weë Studio · video',
       source: 'weë-studio',
+      /* Lo que se pide: así un requestId repetido solo sirve para ESTE vídeo, y el de otra operación no. */
+      fingerprint: huellaDelVideo(videoRequest),
       meta: { model: price.model, estimatedUsd: price.usd, ...price.detail },
     });
 
@@ -192,6 +216,14 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         if (doc?.providerMeta?.videoUrl || doc?.videoUrl) {
           return { generationId: previous.docs[0].id, url: doc.videoUrl || doc.providerMeta.videoUrl, durationSec: doc.videoDurationSec ?? null, credits: 0, demo: doc.provider === 'mock', status: 'COMPLETED', duplicate: true };
         }
+        /*
+         * TERMINÓ Y SE COBRÓ, PERO SU RESULTADO NO ESTÁ AQUÍ.
+         *
+         * Pasa si el vídeo lo cerró la liquidación del Core —su libro no guarda
+         * la URL— o si la anotación se perdió. Seguir de largo era generar OTRO
+         * vídeo con el cobro del primero: una generación sin cobro. No se hace.
+         */
+        throw new EngineError('DUPLICATE_REQUEST', 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.', { reason: 'result_not_available' });
       } else if (operacionAbandonada(true, (spend.authorizedAt ?? Infinity) + PLAZO_DE_VIDEO_MS, Date.now())) {
         /*
          * SE QUEDÓ COLGADA. Pasó más tiempo del que esta función puede vivir y

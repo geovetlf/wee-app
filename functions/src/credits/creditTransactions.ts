@@ -28,6 +28,8 @@ export interface CreditTransaction {
   requestId?: string;
   /** Para usage: monto autorizado y final; para refund: la transacción que reembolsa. */
   authorizedAmount?: number;
+  /** Para usage: la huella de la operación, si quien cobró la dio (ver `SpendInput.fingerprint`). */
+  fingerprint?: string;
   finalAmount?: number;
   refundOf?: string;
   meta?: Record<string, unknown>;
