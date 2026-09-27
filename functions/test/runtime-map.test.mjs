@@ -471,12 +471,12 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
   const deFilmmaker = (r) => r.startsWith('productions/') || r.startsWith('filmmaker/');
   const soloDeProductions = [...quienNombra].filter(([, quien]) => [...quien].every(deFilmmaker)).map(([s]) => s);
   const autorizados = Object.values(DE_PRODUCTIONS).flat();
-  check(`${n++}) productions: la conexión pone en producción EXACTAMENTE los veinte símbolos autorizados, y ninguno más`,
+  check(`${n - 1}b) productions: la conexión pone en producción EXACTAMENTE los veinte símbolos autorizados, y ninguno más`,
     autorizados.length === 20 && new Set(autorizados).size === 20 && igual(soloDeProductions, autorizados), diferencia(autorizados, soloDeProductions));
-  check(`${n++}) productions: cada uno de los veinte es del módulo del Core en el que está autorizado`,
+  check(`${n - 1}c) productions: cada uno de los veinte es del módulo del Core en el que está autorizado`,
     Object.entries(DE_PRODUCTIONS).every(([modulo, simbolos]) => simbolos.every((s) => definidoEn.get(s) === modulo)),
     Object.entries(DE_PRODUCTIONS).flatMap(([modulo, simbolos]) => simbolos.filter((s) => definidoEn.get(s) !== modulo).map((s) => `${s} → ${definidoEn.get(s)}`)).join(', '));
-  check(`${n++}) productions: y lo que carga son cinco módulos —la puerta, el almacén y \`modelo\`, \`validacion\` y \`operaciones\` de F1-A—`,
+  check(`${n - 1}d) productions: y lo que carga son cinco módulos —la puerta, el almacén y \`modelo\`, \`validacion\` y \`operaciones\` de F1-A—`,
     igual([...VIVOS].filter(deFilmmaker), ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js', 'productions/index.js', 'productions/puerta.js']),
     [...VIVOS].filter(deFilmmaker).join(', '));
   const declarados = new Set([...MAPA.flatMap((c) => c.canonico), ...Object.keys(OTROS_DEL_CORE)]);
