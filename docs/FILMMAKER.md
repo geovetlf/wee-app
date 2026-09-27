@@ -367,24 +367,25 @@ generar sigue pendiente (D9).
 
 ## Decisiones aplazadas
 
-De las catorce decisiones de la auditoría, F1-B resolvió D2 y D12 (mínima) y D9 en parte, con autorización, y F1-C
-resolvió D1 y D3 con la autorización de su fase. Las demás siguen **pendientes**:
+De las catorce decisiones de la auditoría, F1-B resolvió D2 y D12 (mínima) y D9 en parte, con autorización; F1-C
+resolvió D1 y D3, y F1-D resolvió D4 y D5 y, en parte, D8 y D11, cada una con la autorización de su fase. Las demás
+siguen **pendientes**:
 
 | # | Decisión | Estado |
 |---|---|---|
 | D1 | Nombre visible y en código | **decidida** en F1-C: `filmmaker` en el código, sin «Engine»; «Varias escenas» a la vista y «Director» para el modo que dirige |
 | D2 | Dónde vive la producción (reutilizar `scenes`/`shots` o un agregado propio) | **decidida** en F1-B (ADR-FM-005): `productions` + `productionScenes`; el Core será la unidad de generación en F1-D |
 | D3 | Entrada en Weë Studio | **decidida** en F1-C: dentro de Videos, «Varias escenas» abre la producción desde la caja del Studio; un solo clip sigue yendo a CreatorFlow |
-| D4 | Ejecución por plano | pendiente |
-| D5 | Vídeo asíncrono | pendiente |
+| D4 | Ejecución por plano | **decidida** en F1-D: una toma de UNA unidad —un plano, o una escena sin planos— por `generateVideo` con el plano, hacia el Core; sin lotes |
+| D5 | Vídeo asíncrono | **decidida** en F1-D: el camino asíncrono del Core (PRE-F1-D), un intento, los plazos de `plazos.ts`; la app escucha la reserva de Credits de la toma |
 | D6 | Weë Brain para intención y cambios | pendiente: el idioma de las operaciones ya existe |
 | D7 | Montaje y render | pendiente |
-| D8 | Duración y publicación (Weëls ≤ 15 s) | pendiente |
-| D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); enseñarlo y usarlo al generar, pendiente |
+| D8 | Duración y publicación (Weëls ≤ 15 s) | **en parte**: una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; publicar, pendiente |
+| D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); al generar, un plano con prompt avanzado se rechaza (F1-D); enseñarlo y usarlo, pendiente (F6) |
 | D10 | Identidad de personajes | pendiente: sin biometría ni embeddings |
-| D11 | Precios, límites y cancelación | pendiente: no hay precios en F1-A |
+| D11 | Precios, límites y cancelación | **en parte**: el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); cancelar, pendiente |
 | D12 | Versiones y «restaurar» | **decidida** en su parte mínima (ADR-FM-006 y 007): revisión con CAS y registro; «restaurar», pendiente (F6) |
-| D13 | Reproductor | pendiente |
+| D13 | Reproductor | pendiente: «Ver vídeo» abre la dirección del material |
 | D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | pendiente: se usa el vocabulario actual del Core |
 
 ## Lo que el lenguaje aún no tiene
@@ -603,13 +604,74 @@ existe en el contrato de F1-A/F1-B y no se añadió (cambiarlo sería otro contr
 proyecto de Weë AI queda como decisión pendiente, y `projectItems` no se toca. Tampoco se sincroniza en vivo: otra
 pestaña ve lo nuevo al volver a abrir la producción, y un conflicto se resuelve al guardar.
 
+## F1-D · La toma de un plano
+
+Una unidad —un plano, o una escena sin planos— se genera de una en una, con un «Generar» explícito:
+
+    producción guardada (revisión R) → ShotRequirement (F1-A) → «Generar» → requestId de la toma (servidor)
+      → generateVideo → texto compuesto en el servidor → Credit Engine → video.generate → Seedance, asíncrono
+      → material asset_ → enlace verificado → ShotNode.producedAssetId
+
+### En el servidor
+
+- `functions/src/creator/plano.ts` traduce el requisito a la petición de vídeo: puro, versionado
+  (`PLANTILLA_DE_PLANO`), sin proveedores, sin Credits y sin importar `filmmaker/`. Solo lee lo que tiene sentido
+  para el vídeo —descripción, cámara y composición en texto, continuidad textual, duración, formato, calidad y
+  sonido—, quita las direcciones web del texto y no pasa de 3000 caracteres. El mismo requisito da el mismo texto.
+- Rechaza con su motivo, sin desviar a legacy ni degradar nada: una capacidad que no es `video.generate`,
+  referencias o fotogramas de partida, prompt avanzado (F6), diálogo a cámara (sin lip-sync), sin descripción,
+  más de 15 s, un formato que el proveedor no tiene (4:5 se bloquea y se proponen 9:16 o 1:1), sin calidad elegida,
+  una calidad que no llega a la resolución de la producción sin cambiar de modelo, y sonido pedido contra una
+  producción «sin música» o «sin diálogo». La duración generada es `max(4, ceil(pedida))`.
+- `functions/src/creator/toma.ts` nombra y ordena las tomas: `fm.<32 hex de cuenta|producción|unidad>.<toma>`,
+  determinista y dentro del tope del Core (≤ 87 con un uid de 28 caracteres); una toma viva por unidad, en orden y
+  hasta 50. Lee la producción guardada de la cuenta (la revisión debe ser la guardada) y firma la unidad —la raíz
+  de la producción y su escena— para saber después si cambió.
+- `generateVideo` acepta `plano` (y `cotizar`, `creditosCotizados`). La puerta se decide ANTES de reservar: una toma
+  solo va por el Core y, si no puede, se rechaza (`route_unavailable`) sin tocar cupo ni Credits. Cotizar no
+  reserva nada; generar exige el precio que se enseñó (`price_changed` si cambió). El precio sale de
+  `loadCostOverrides()` + `priceVideo`, como el resto: Filmmaker no calcula Credits. La reserva lleva en su meta de
+  qué producción, unidad, toma, revisión y firma es. Lo que el cliente mande al lado del plano —texto, requestId,
+  imágenes, referencias, duración, formato, modelo— no se usa.
+- El cupo es el de Weë Studio (12 vídeos al día); una operación repetida no lo gasta otra vez, tampoco si llega
+  dos veces a la vez (`engine/limits.ts`). El adaptador de Seedance le manda a ModelArk el plazo de `plazos.ts`
+  (`execution_expires_after`, 2 h) solo al aceptar y soltar: si vence, el barrido lo cierra y devuelve exacto.
+- `shots` gana `shot.result`: la app dice QUÉ toma de qué plano y el servidor comprueba lo demás —la reserva es de
+  la persona y está cobrada, coincide con la toma, la unidad sigue ahí con la misma firma y el material nació de
+  esa ejecución, es de la cuenta, está listo y es un vídeo—. Crea la escena y el plano del Core (`fm_…`,
+  `projectId` = la producción) y fija el resultado en una transacción, con la versión que vio la app si la manda.
+  Si el plano cambió, no se enlaza: el vídeo queda en Mis creaciones, cobrado una vez y sin regenerar.
+  `producedAssetId` ya no viaja por `shot.update`, y los nodos `fm_` no se escriben a mano.
+- Un vídeo que llegó a Storage sin su ficha se adopta sin volver a descargarlo: el objeto lleva la marca de su
+  material y solo se adopta el que la lleva (`content/materializador.ts`).
+
+### En la app
+
+`utils/controladorDeToma.ts` (sin React, sin Firebase y sin frases) consulta la unidad, cotiza con la calidad que
+elige la persona —no hay una por defecto—, genera una vez por clic, escucha la reserva de Credits de la toma
+(AUTHORIZED es «en proceso»; COMPLETED, pedir el enlace; REFUNDED o FAILED, que falló y se devolvió) y deja de
+escuchar al terminar o al salir. `hooks/useTomaDePlano.ts` es el único consumidor de `services/videoService.ts`
+(`quoteTake`, `generateTake`) y usa `services/tomaService.ts` para la reserva, el enlace y la dirección del vídeo.
+La pantalla compone los dos hooks; `ProductionShotGeneration` solo pinta, en el panel Director, con 50 claves
+`filmmaker.take*` en los once diccionarios. La unidad sale de lo GUARDADO: con cambios sin guardar no se genera.
+El «Generar» de la producción entera sigue sin estar.
+
+### Lo que F1-D no hace, y lo que queda dicho
+
+No genera varias unidades a la vez, ni monta, renderiza o exporta; no hay voz, música, efectos, lip-sync,
+personajes/Elements, transformación de vídeo ni prompt avanzado. La puerta `aiSettings/runtime` sigue cerrada por
+defecto y nada está desplegado. Límites conocidos: el requisito lo calcula el espejo de F1-A en la app y el servidor
+no lo recalcula (no carga el dominio), aunque sí comprueba la cuenta, la producción, la revisión, la firma y la
+procedencia del material; «aceptado» y «trabajando» se ven igual, «en proceso», porque la app solo puede leer la
+reserva; que el material sea `video` depende del tipo que devuelve la descarga; y la cuenta es el uid.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
 |---|---|
 | F1-B | **Hecha**: guarda la producción (D2), aplica operaciones en el servidor con CAS y registro (D12); conectada (35 Functions) y sin desplegar |
 | F1-C | **Hecha**: la producción en la app —«Varias escenas» dentro de Weë Studio—, con el storyboard, el panel Director, el estado optimista con CAS y los `messageKey` (`filmmaker.*`) en once idiomas; sin generar ni cobrar |
-| F1-D | Genera un plano a partir de su requisito (D4) |
+| F1-D | **Hecha** (local, sin desplegar): una toma de un plano a partir de su requisito (D4), asíncrona por el Core (D5), cotizada y enlazada a su `ShotNode` con verificación en el servidor |
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
 | F4 | Generación de varios planos, con los requisitos y el resumen por capacidad para cotizar |
@@ -640,6 +702,12 @@ provocados al confirmar), de `create` a la puerta, las reglas, el índice y este
 con Java 21). `functions/test/productions-callable.emulator.mjs`, también fuera: la callable servida por el runtime de
 Functions —el mismo `lib/index.js` que se desplegaría— con sus guardas
 (`firebase emulators:exec --only functions,firestore --project demo-wee-filmmaker "node functions/test/productions-callable.emulator.mjs"`).
+
+`functions/test/f1d-generacion.test.mjs`: la toma de punta a punta —la puerta, el conductor, el Job Engine, la
+liquidación, el materializador, productions, F1-A, `shots` y el Credit Engine de verdad sobre un Firestore en
+memoria—, cada rechazo, el precio, el cupo, el plazo, el enlace verificado, la adopción y las guardas de toda la
+carpeta `functions/src`. `functions/test/f1d-cliente.test.mjs`: el controlador, los servicios con Firebase doblado, lo
+que se ve con el español de verdad y una frase por motivo en los once idiomas.
 
 Las baterías de sabotajes de F1-A y F1-B se ejecutan como las de S2, con el mismo corredor externo; llevar las
 baterías al repositorio es una decisión aparte, todavía abierta.

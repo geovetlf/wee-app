@@ -2265,3 +2265,64 @@ Límites, dichos:
   de que ninguna lo guarde: se queda un objeto y una ficha (la segunda escritura la rechaza
   `ifGenerationMatch: 0`), y cualquier llegada posterior lo encuentra sin descargar.
 - `creatorRun` sigue por su camino legacy, intacto, como se autorizó.
+
+## 24. F1-D · La toma de un plano, por la puerta del vídeo
+
+Weë Filmmaker genera UNA unidad de una producción —un plano, o una escena sin planos— por `generateVideo`, la
+segunda puerta del conductor, sin conductor nuevo, sin tercera puerta, sin otro motor y sin otra contabilidad.
+Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
+
+### 24.1 La entrada
+
+- `generateVideo({ plano, cotizar? , creditosCotizados? })`. `plano` = `productionId`, `sceneId`, `unitId`,
+  `revision`, `take`, `quality` y `requirement` (el `ShotRequirement` del espejo de F1-A). Con `plano`, lo demás
+  de la entrada se ignora: el texto (`creator/plano.ts`), el requestId (`creator/toma.ts`) y la petición los
+  pone el servidor.
+- La puerta (`decidirRuntime`, una llamada) se decide antes de reservar. Una toma solo va por el Core; si no puede,
+  `route_unavailable`, sin cupo ni Credits. Lo demás de la puerta no cambia de resultado: solo se lee antes.
+
+### 24.2 Dinero y cupo
+
+- `loadCostOverrides()` antes de `priceVideo`: la misma petición, el mismo precio en cualquier instancia.
+- Cotizar no reserva; generar exige `creditosCotizados === precio` o `price_changed`. Una reserva, un cobro o un
+  reembolso exacto: lo de siempre del Credit Engine, con la meta `filmmaker` de la toma.
+- `limits.reserve(…, requestId)`: una operación cuenta una vez al día aunque llegue dos veces a la vez; repetir una
+  toma ya reservada no la cuenta.
+
+### 24.3 El plazo en el proveedor
+
+- El trabajo del Core lleva `vidaEnElProveedorSec = segundosParaElProveedor(PLAZOS_DE_VIDEO)` (7 200) y el adaptador
+  lo manda como `execution_expires_after` solo con `acceptAsync`. Vence ModelArk (`expired`) → FAILED → el barrido
+  devuelve exacto, una vez. No hay otro actor de vencimiento.
+
+### 24.4 El resultado, en su plano
+
+- `shots` · `shot.result` (`enlazarToma`): reserva cobrada de esa toma y de esa persona → unidad con la misma firma →
+  material por su procedencia (`traceId` = requestId, `runId` = `run_<requestId>`, de la cuenta, listo, vídeo) →
+  escena y plano del Core `fm_…` → `fijarResultadoVerificado` en una transacción (CAS con la versión vista).
+  Cambió el plano → `stale`, sin enlazar ni cobrar otra vez.
+- Material sin ficha: se adopta el objeto que lleva la marca `weeMaterial` de SU `asset_`, sin segunda descarga.
+
+### 24.5 Vallas reancladas, con autorización
+
+- `video-asincrono` H2 y `puente-pre-f1d` E4: el motor cambia en dos archivos nominales y de tamaño fijo
+  (`engine/limits.ts` +15 −3, `engine/providers/seedance.ts` +10 −0).
+- `puente-pre-f1d` F1 y F3: la lista nominal de archivos de F1-D; del contenido, solo `content/materializador.ts`.
+- `runtime-map` 128: `generateVideo` tiene UN consumidor nominal, `hooks/useTomaDePlano.ts`.
+- `i18n-preferencia-usuario` 57–58: 2 682 → 2 732 claves (50 `filmmaker.take*`).
+- `filmmaker-ui`: un doble del hook nuevo para la pantalla.
+
+### 24.6 Pruebas
+
+- `f1d-generacion.test.mjs` y `f1d-cliente.test.mjs`, en la cadena detrás de `puente-pre-f1d`.
+- Guardas sobre todo `functions/src`: un conductor y ningún alias, dos puertas, un Credit Engine, un Job Engine, el
+  motor de vídeo solo en la rama legacy y en `creatorRun`, ModelArk solo en los adaptadores, las cargas dinámicas
+  fijadas una a una, y `productions` y `filmmaker/` sin generar.
+
+### 24.7 Lo que queda pendiente, dicho
+
+- La puerta `aiSettings/runtime` sigue cerrada por defecto; nada de F1-D está desplegado.
+- El requisito lo calcula la app (espejo de F1-A); el servidor verifica identidad, revisión, firma y procedencia,
+  pero no recalcula F1-A.
+- «Aceptado» y «trabajando» se ven igual en la app: solo la reserva es legible por el cliente.
+- Varias unidades a la vez, montaje, voz, música, lip-sync, Elements y prompt avanzado: fases siguientes.
