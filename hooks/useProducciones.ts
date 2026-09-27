@@ -65,3 +65,6 @@ export const useProducciones = (status: EstadoDeProduccion, activa = true) => {
  * la que ya había, así que un doble toque no crea dos.
  */
 export const crearProduccion = (p: NuevaProduccion) => filmmakerService.createProduction(p);
+
+/** El id de una producción nueva: se decide una vez, antes de crearla, para que repetir no cree dos. */
+export { nuevoIdDeProduccion } from '../services/filmmakerService';

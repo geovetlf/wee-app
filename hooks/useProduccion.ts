@@ -45,3 +45,6 @@ export const useProduccion = (productionId: string) => {
   }, [estado.enVuelo, estado.pendientes.length, productionId]);
   return { controlador, carga, falloDeCarga, estado, derivado, duplicar };
 };
+
+/** Los ids de las escenas y los planos nuevos se ponen en el cliente: así un gesto repetido tras un conflicto es el mismo. */
+export { nuevoIdDeEscena, nuevoIdDePlano } from '../services/filmmakerService';
