@@ -1141,5 +1141,36 @@ service cloud.firestore {
       allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
       allow create, update, delete: if false;
     }
+
+    // === F1-B · WEË FILMMAKER: LAS PRODUCCIONES ===
+    // La producción es la verdad creativa de una cuenta: su guion gráfico, con
+    // escenas y planos. NO son las `scenes`/`shots` del Core —que en F1-D serán
+    // las unidades de generación—, ni trabajos, ni materiales.
+    //
+    // Se lee solo lo propio, y se escribe SOLO desde la callable `productions`,
+    // que corre con el Admin SDK, comprueba la propiedad en el dominio y escribe
+    // en transacciones. Hoy esa callable NO está conectada: nadie escribe aquí.
+    // Estas reglas son la segunda cerradura, no la única.
+    //
+    // Las escenas y el registro repiten `ownerAccountId` para que estas reglas no
+    // tengan que leer la raíz. El registro solo se añade, y el cliente tampoco
+    // lo escribe.
+    //
+    // Van al final, detrás de C3 y por su mismo motivo: no mover la franja de
+    // `elements` a Media Cloud que mide un guard de S4.
+    match /productions/{productionId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+
+      match /productionScenes/{sceneId} {
+        allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+        allow create, update, delete: if false;
+      }
+
+      match /productionRevisions/{revisionId} {
+        allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+        allow create, update, delete: if false;
+      }
+    }
   }
 }
