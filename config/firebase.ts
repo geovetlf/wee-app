@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, getAuth } from 'firebase/auth';
+import { initializeAuth, getAuth, connectAuthEmulator } from 'firebase/auth';
 // @ts-ignore: los tipos web de firebase/auth no declaran getReactNativePersistence (existe en runtime nativo)
 import { getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -107,6 +107,20 @@ try {
   if (storageEmulatorHost && storage) {
     connectStorageEmulator(storage, storageEmulatorHost, Number(process.env.EXPO_PUBLIC_STORAGE_EMULATOR_PORT || 9199));
     console.log(`🧪 Firebase Storage → emulador en ${storageEmulatorHost}`);
+  }
+
+  // Desarrollo contra un proyecto de demostración (`demo-…`): Auth y Firestore locales, SOLO si se piden. Sirve
+  // para probar de punta a punta en la web lo que pasa por una callable que necesita sesión —las producciones de
+  // Weë Filmmaker— sin tocar ninguna cuenta ni ningún dato reales. Sin estas variables no cambia nada.
+  const authEmulatorHost = process.env.EXPO_PUBLIC_AUTH_EMULATOR_HOST;
+  if (authEmulatorHost && auth) {
+    connectAuthEmulator(auth, `http://${authEmulatorHost}:${Number(process.env.EXPO_PUBLIC_AUTH_EMULATOR_PORT || 9099)}`, { disableWarnings: true });
+    console.log(`🧪 Firebase Auth → emulador en ${authEmulatorHost}`);
+  }
+  const firestoreEmulatorHost = process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST;
+  if (firestoreEmulatorHost && db) {
+    connectFirestoreEmulator(db, firestoreEmulatorHost, Number(process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080));
+    console.log(`🧪 Firebase Firestore → emulador en ${firestoreEmulatorHost}`);
   }
 
 } catch (error) {
