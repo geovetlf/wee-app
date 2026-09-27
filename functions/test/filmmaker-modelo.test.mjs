@@ -942,7 +942,34 @@ seccion('G', () => {
   check('G9) no crea trabajos ni estados de ejecución', codigo.every(([, s]) => !/crearJobEngine|JobStore|'queued'|'running'|'completed'/.test(s)));
   check('G10) y nada se llama «Engine»: Filmmaker no es otro motor', codigo.every(([, s]) => !/(?:const|class|interface|type|function)\s+\w*Engine\b/.test(s)));
   check('G11) producción no lo despliega: `index.ts` no lo exporta', !/filmmaker/i.test(leer('functions/src/index.ts')));
-  check('G12) y el compilado que se despliega no lo carga', !/filmmaker/.test(leer('functions/lib/index.js')));
+  /*
+   * G12 · LO QUE EL COMPILADO CARGA DE FILMMAKER, MEDIDO EN SU GRAFO DE `require`. Desde la conexión de
+   * `productions` (ADR-FM-010) el dominio SÍ se carga: `productions` lo usa para validar y aplicar operaciones.
+   * Lo que se vigila es que entre SOLO por ahí y SOLO lo que la puerta necesita: `modelo`, `validacion` y
+   * `operaciones`. `requisitos` y `recomendaciones` siguen fuera de lo que se despliega, ninguna otra Function lo
+   * alcanza y `lib/index.js` no lo nombra. Corregida en F1-C con autorización: la versión anterior miraba solo el
+   * texto de `lib/index.js` y ya no decía la verdad.
+   */
+  const LIB = path.resolve(RAIZ, 'functions/lib');
+  const requiresDe = (abs) => [...sinComentarios(fs.readFileSync(abs, 'utf8')).matchAll(/require\(["'](\.{1,2}\/[^"']+)["']\)/g)]
+    .map((m) => path.resolve(path.dirname(abs), m[1])).map((d) => (fs.existsSync(`${d}.js`) ? `${d}.js` : path.join(d, 'index.js')))
+    .filter((d) => fs.existsSync(d));
+  const alcanzables = (sinPasarPor) => {
+    const vistos = new Set(); const cola = [path.join(LIB, 'index.js')];
+    while (cola.length) {
+      const f = cola.shift();
+      if (vistos.has(f) || f === sinPasarPor) continue;
+      vistos.add(f); cola.push(...requiresDe(f));
+    }
+    return [...vistos].map((f) => path.relative(LIB, f).split(path.sep).join('/'));
+  };
+  const deFilmmaker = (xs) => xs.filter((r) => r.startsWith('filmmaker/')).sort();
+  const cargados = deFilmmaker(alcanzables());
+  const sinProductions = deFilmmaker(alcanzables(path.join(LIB, 'productions/puerta.js')));
+  check('G12) el compilado que se despliega carga el dominio SOLO a través de `productions`, y solo `modelo`, `validacion` y `operaciones`: ni `requisitos` ni `recomendaciones`, ninguna otra Function lo alcanza y `lib/index.js` no lo nombra',
+    iguales(cargados, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js'])
+    && sinProductions.length === 0 && !/filmmaker/.test(leer('functions/lib/index.js')),
+    `carga [${cargados.join(', ')}] · sin productions [${sinProductions.join(', ') || 'nada'}]`);
   check('G13) el contrato del Algorithm Engine sigue en 1.12, y los del Core, donde estaban',
     contratos.ALGORITHM_CONTRACT_VERSION === '1.12' && contratos.SHOT_CONTRACT_VERSION === '1.0' && contratos.CONTINUITY_CONTRACT_VERSION === '1.0'
     && contratos.CREATIVE_PARAMETERS_VERSION === 1 && contratos.ELEMENT_CONTRACT_VERSION === '1.0');

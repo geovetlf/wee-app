@@ -343,6 +343,9 @@ generar sigue pendiente (D9).
   `runtime-map` que decía que producción no compone intención creativa se corrigió: ahora la completa, en memoria,
   sin generar nada. `requisitos` y `recomendaciones` siguen fuera de la ruta. F1-A no cambia. Desplegar la
   Function, las reglas y el índice es otro paso, con su propia autorización.
+- *Actualización (F1-C, autorizada).* La valla G12 de F1-A decía que el compilado no carga Filmmaker y solo miraba el
+  texto de `lib/index.js`. Ahora recorre su grafo de `require` y comprueba lo que de verdad protege: el dominio se
+  carga SOLO a través de `productions`, y solo `modelo`, `validacion` y `operaciones`.
 - *Alternativas descartadas.* Cargarla de forma perezosa para que la valla no viera el dominio (le escondería el
   cambio); ampliar las listas sin fijar cuáles son los veinte (un símbolo veintiuno pasaría en silencio); desplegar a
   la vez (necesita su propia autorización).
