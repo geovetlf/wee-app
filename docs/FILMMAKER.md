@@ -493,6 +493,37 @@ tipo a tipo y campo a campo, las exportaciones de los dos árboles; y carga los 
 las operaciones, lo pendiente, las recomendaciones, la línea de tiempo, las tarjetas y los requisitos dan lo mismo.
 Si F1-A cambia y nadie regenera, o si alguien toca el espejo a mano, la cadena se pone en rojo.
 
+### El servicio de cliente
+
+`services/filmmakerService.ts` es la **única** frontera de la app con la callable: `createProduction`,
+`getProduction`, `listProductions`, `applyProductionOperations`, `archiveProduction`, `unarchiveProduction` y
+`duplicateProduction`, una por cada `op` de la puerta. Manda solo los argumentos funcionales —nunca la cuenta:
+no tiene dónde ponerla— y devuelve tipos del dominio y números, sin `Timestamp` ni nada de Firebase, leídos campo a
+campo para que lo que el servidor añada de más no llegue a un componente. No lanza: contesta un resultado, o un
+fallo con el código del servidor, su `messageKey` (`filmmaker.persistence.*`) y los problemas del dominio, en una de
+nueve formas que la pantalla sabe tratar (`conflicto`, `no_encontrada`, `archivada`, `rechazada`, `sin_sesion`,
+`sin_cuenta`, `sin_conexion`, `no_disponible`, `desconocido`). Los ids —de la producción, de cada lote, de cada
+escena y plano nuevos— se generan en el cliente, así que repetir una petición que no se sabe si llegó es repetir la
+misma. Lo usan los hooks de la producción (`hooks/useProduccion.ts`, `hooks/useProducciones.ts`); ningún
+componente lo llama suelto.
+
+### El estado optimista y el CAS
+
+`utils/produccionOptimista.ts` es un reductor puro: cada gesto se aplica en local con `aplicarOperaciones` de F1-A
+—el espejo— y se ve al momento; si F1-A lo rechaza, se dice por qué y nada cambia. Los gestos esperan y viajan
+agrupados en UN lote congelado —sus operaciones, su `operationId` y la revisión confirmada como `expectedRevision`—,
+sin partir un gesto entre dos lotes ni pasar de las 50 operaciones del servidor. Confirmado, la revisión del servidor
+manda y lo hecho mientras tanto se vuelve a aplicar encima.
+
+`utils/controladorDeProduccion.ts` decide cuándo se manda: espera a que la persona pare (agrupar, 900 ms), manda un
+lote cada vez y, al salir de la pantalla, lo que quedaba. Si la red falla, el lote se queda como estaba y
+«Reintentar» lo repite **tal cual**: el servidor reconoce el id y no lo aplica dos veces. Si el servidor rechaza el
+lote por lo que se mandó, se deshace el gesto culpable (`parameters.index`) o el lote entero, y se dice. Si contesta
+`aborted` por la revisión, se trae la versión de ahora, se vuelve a aplicar encima todo lo que el servidor no tenía,
+gesto a gesto, y se manda con la revisión nueva: lo de la otra persona no se pisa y lo tuyo que ya no cabe se aparta
+**con su problema**, nunca en silencio. Tras tres conflictos seguidos se para y se pregunta. No hay temporizadores de
+progreso ni estados inventados: la única espera es la de agrupar gestos.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -510,6 +541,10 @@ Si F1-A cambia y nadie regenera, o si alguien toca el espejo a mano, la cadena s
 
 `functions/test/filmmaker-espejo.test.mjs`: el espejo del cliente es F1-A —generado, igual tipo a tipo y en ejecución— y la
 app entra por una sola puerta.
+`functions/test/filmmaker-servicio.test.mjs`: las siete operaciones del servicio, lo que nunca se manda, cada fallo y la
+frontera (nadie más habla con `productions`). `functions/test/filmmaker-reductor.test.mjs`: cada gesto en local igual que
+en F1-A, los rechazos, el lote, la reversión, el conflicto y el controlador contra un servidor en memoria con el contrato
+de la puerta y el F1-A compilado.
 `functions/test/filmmaker-modelo.test.mjs` (con `npm run build` antes): modelo, formatos y presets, validación,
 operaciones, lo pendiente, recomendaciones, requisitos contra los validadores del Core, fronteras y determinismo.
 `functions/test/productions-runtime.test.mjs`: la persistencia con una base de mentira que se comporta como Firestore en
