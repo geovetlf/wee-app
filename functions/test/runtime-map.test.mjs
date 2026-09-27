@@ -577,8 +577,12 @@ console.log('\n── E · Quién llama desde la app ──');
   let n = 120;
   for (const [fn, servicio] of Object.entries(ESPERADO)) check(`${n++}) \`${fn}\` la invoca ${servicio}, y nadie más`, igual(quienNombraLaCallable(fn), [servicio]), quienNombraLaCallable(fn).join(', '));
   check(`${n++}) el flujo guiado y el chat de Weë Brain tienen pantallas detrás`, importadores('creatorService').includes('screens/CreatorFlowScreen.tsx') && importadores('brainService').includes('hooks/useBrainChat.ts'));
-  /* Desplegada, protegida por pruebas y sin nadie que la llame: el vídeo real entra por `creatorRun`. No se borra: se sabe. */
-  check(`${n++}) \`generateVideo\` está desplegada pero ninguna pantalla importa su servicio`, importadores('videoService').length === 0, importadores('videoService').join(', '));
+  /*
+   * Desplegada y protegida por pruebas; el vídeo de Weë Studio entra por `creatorRun`. Desde F1-D la usa
+   * UN consumidor nominal: la toma de un plano de Weë Filmmaker (`hooks/useTomaDePlano.ts`), que le manda
+   * el plano y nunca un texto. Ninguna pantalla ni componente la importa directamente.
+   */
+  check(`${n++}) \`generateVideo\` tiene UN consumidor nominal, la toma de un plano: ninguna pantalla importa su servicio`, igual(importadores('videoService'), ['hooks/useTomaDePlano.ts']), importadores('videoService').join(', '));
   check(`${n++}) los proyectos los escribe el cliente directamente: no hay callable de Project`, /collection\(db, 'creatorProjects'\)|doc\(db, 'creatorProjects'/.test(leer('services/projectsService.ts')) && !Object.values(FUNCTIONS).flat().some((f) => /project/i.test(f)));
   check(`${n++}) y las publicaciones también: \`posts\` no pasa por el modelo de Publication del Core`, /'posts'/.test(leer('services/firestoreService.ts')) && (nombrados.get('core/content/publication.js') || new Set()).size === 0);
 }

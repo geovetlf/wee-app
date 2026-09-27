@@ -115,6 +115,8 @@ const dobles = {
     nuevoIdDeProduccion: () => 'abcdefghijklmnopqrstuvwx',
   },
   '../hooks/useResponsive': { useResponsive: () => ({ isDesktop: true, isMobile: false, isTablet: false }) },
+  /* F1-D: la pantalla compone la toma del plano elegido. Aquí, quieta: lo que pinta se prueba en f1d-cliente. */
+  '../hooks/useTomaDePlano': { useTomaDePlano: () => ({ fase: { fase: 'sin_unidad', porque: 'nada' }, calidad: null, enElPlano: null, ultima: null, aviso: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} }) },
   '../hooks/useProduccion': { useProduccion: () => usoDeProduccion, nuevoIdDeEscena: () => 'sc_nueva0001', nuevoIdDePlano: () => 'sh_nuevo0001' },
   '../components/creator/CreatorShell': { __esModule: true, default: ({ title, overline, breadcrumb, children }) => { shell.push({ title, overline, breadcrumb }); return h('main', { 'aria-label': title }, children); } },
 };

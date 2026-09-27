@@ -567,8 +567,18 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   };
   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
   check('H1) la rama legacy de generateVideo es byte a byte la de antes', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC) === bloque(antes));
-  check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun',
-    git(`diff --name-only ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim() === '');
+  /*
+   * F1-D mueve DOS piezas del motor, con autorización y solo esas: el cupo cuenta
+   * una operación repetida UNA vez (`limits.ts`, decisión 14) y el adaptador de
+   * Seedance le manda a ModelArk el plazo de `plazos.ts` al aceptar y soltar
+   * (`providers/seedance.ts`, ficha 6). Se fijan por nombre y por tamaño: una
+   * línea más en cualquiera de las dos, o un archivo más, y esto falla.
+   */
+  const MOTOR_F1D = { 'functions/src/engine/limits.ts': '15\t3', 'functions/src/engine/providers/seedance.ts': '10\t0' };
+  const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)
+    .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);
+  check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D, del tamaño exacto',
+    JSON.stringify(Object.fromEntries(movidos)) === JSON.stringify(MOTOR_F1D), JSON.stringify(Object.fromEntries(movidos)));
   check('H3) F1-A y productions, sin tocar', git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions functions/src/core`).trim() === '');
 }
 

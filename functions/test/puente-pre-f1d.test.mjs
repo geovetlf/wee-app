@@ -503,21 +503,39 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
   await pasada();
   check('E3) ninguna reconciliación hace un POST: solo el que pide la persona sale hacia ModelArk',
     posts.length === postsAntes && posts.every((p) => p.acceptAsync === true));
+  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. */
   check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
-    && git(`diff --name-only ${RUTA} -- functions/src/engine`).trim() === '');
+    && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
+      === '15\t3\tfunctions/src/engine/limits.ts|10\t0\tfunctions/src/engine/providers/seedance.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
 console.log('\n── F · Lo que este puente toca, y lo que no ──');
 {
-  const tocados = git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean).sort();
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material',
-    JSON.stringify(tocados) === JSON.stringify(['functions/src/creator/video.ts', 'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts']),
+  /*
+   * Lo del puente —la puerta, el ejecutor, la composición del runtime y la
+   * identidad del material— y lo de F1-D, por nombre: el traductor del plano y
+   * las tomas (nuevos), la puerta del vídeo, el enlace verificado de `shots`, la
+   * adopción del objeto sin ficha y las dos piezas del motor. Un archivo más, y
+   * esto falla. Los nuevos cuentan aunque todavía no estén en un commit.
+   */
+  const nuevos = git('ls-files --others --exclude-standard functions/src').trim().split('\n').filter(Boolean);
+  const tocados = [...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos].sort();
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D',
+    JSON.stringify(tocados) === JSON.stringify([
+      'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
+      'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
+      'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
+      'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
+    ]),
     tocados.join(', '));
   check('F2) el Credit Engine, el Financial Core, el Router, creditCosts y credits/index: sin tocar',
     git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
-  check('F3) ni el Core, ni F1-A, ni productions, ni el contenido', git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions functions/src/content`).trim() === '');
+  /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
+  check('F3) ni el Core, ni F1-A, ni productions; del contenido, solo la adopción de F1-D',
+    git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim() === ''
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '62\t2\tfunctions/src/content/materializador.ts');
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));

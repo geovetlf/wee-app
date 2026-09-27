@@ -524,8 +524,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * Director y una frase por cada código de F1-A y F1-B—. No sale ninguna: el
    * motivo `studio.pendCompose` se queda, porque juntar varias escenas en un solo
    * vídeo sigue sin poder hacerse.
+   * 2 682 → 2 732 en F1-D: 50 claves `filmmaker.take*` —la toma de UNA unidad: su
+   * sección, las tres calidades, el precio, lo que de verdad se genera, «en
+   * proceso», el vídeo en su plano y una frase por cada motivo por el que no se
+   * puede— en los once diccionarios a la vez. No sale ninguna: «Generar» de la
+   * producción entera sigue sin estar, y dice lo mismo.
    */
-  const CLAVES_PT = 2682;
+  const CLAVES_PT = 2732;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
