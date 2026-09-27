@@ -13,7 +13,7 @@
  *
  * ── Lo que cambia ───────────────────────────────────────────────────────────
  *
- *   antes   conductor → input.upstream = [{stepId, outputRefs:['mat_…']}]  → nadie
+ *   antes   conductor → input.upstream = [{stepId, outputRefs:['asset_…']}]  → nadie
  *   ahora   conductor → JobRequest.upstream → Job → JobDispatch
  *                     → GatewayRequest.upstream
  *                     → el Gateway se lo pide a la puerta que comprueba dueño
@@ -58,8 +58,8 @@ const callado = { record() {} };
 const reloj = () => 1_000;
 
 /* Lo que dejó el paso «guion»: un material de texto (C13) y uno de imagen. */
-const DEL_GUION = { stepId: 'guion', capability: 'text.generate', produces: 'text', outputRefs: ['mat_guion'] };
-const DE_LA_FOTO = { stepId: 'foto', capability: 'image.generate', produces: 'image', outputRefs: ['mat_foto'] };
+const DEL_GUION = { stepId: 'guion', capability: 'text.generate', produces: 'text', outputRefs: ['asset_00000000000000000000000000000001'] };
+const DE_LA_FOTO = { stepId: 'foto', capability: 'image.generate', produces: 'image', outputRefs: ['asset_00000000000000000000000000000002'] };
 const GUION = 'ESCENA 1. Un patio al atardecer.';
 
 const puertas = (cuentaDueña = 'acc_mia') => {
@@ -68,11 +68,11 @@ const puertas = (cuentaDueña = 'acc_mia') => {
     pedidos,
     texto: async (assetId) => {
       pedidos.push(['texto', assetId]);
-      return assetId === 'mat_guion' && cuentaDueña === 'acc_mia' ? GUION : null;
+      return assetId === 'asset_00000000000000000000000000000001' && cuentaDueña === 'acc_mia' ? GUION : null;
     },
     entrega: async (assetId) => {
       pedidos.push(['entrega', assetId]);
-      return assetId === 'mat_foto' && cuentaDueña === 'acc_mia'
+      return assetId === 'asset_00000000000000000000000000000002' && cuentaDueña === 'acc_mia'
         ? { assetId, url: `https://llave.invalido/${assetId}`, expiraEn: 9_000, vigenciaSegundos: 900 }
         : null;
     },
@@ -108,7 +108,7 @@ check('y una imagen se resuelve a una llave TEMPORAL, no al contenido',
   && resuelto.materiales[1]?.contenido === undefined,
   'dos clases de material, dos formas de leerlas');
 check('G8-F6 · cada uno por SU puerta: el texto por la ficha, lo demás por la entrega',
-  igual(p1.pedidos, [['texto', 'mat_guion'], ['entrega', 'mat_foto']]),
+  igual(p1.pedidos, [['texto', 'asset_00000000000000000000000000000001'], ['entrega', 'asset_00000000000000000000000000000002']]),
   'ni una tercera puerta, ni un atajo');
 check('G8-F11 · varios upstreams se conservan, en orden',
   resuelto.materiales.length === 2 && resuelto.fallos.length === 0);
@@ -122,7 +122,7 @@ const ajena = await resolverMaterialDeUpstream('acc_ajena', [DEL_GUION], puertas
 check('G8-F4 · un material de otra cuenta NO se resuelve',
   ajena.materiales.length === 0 && ajena.fallos[0]?.reason === 'material_unavailable');
 check('G8-F3 · una referencia que no existe tampoco',
-  (await resolverMaterialDeUpstream('acc_mia', [{ ...DEL_GUION, outputRefs: ['mat_no_existe'] }], puertas()))
+  (await resolverMaterialDeUpstream('acc_mia', [{ ...DEL_GUION, outputRefs: ['asset_00000000000000000000000000000003'] }], puertas()))
     .fallos[0]?.reason === 'material_unavailable');
 check('G8-F4 · la cuenta que se usa es la del SERVIDOR, no otra',
   /await deps\.upstream\(trace\.userId, req\.upstream\)/.test(leer('functions/src/engine/gateway.ts')),

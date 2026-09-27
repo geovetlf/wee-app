@@ -266,8 +266,8 @@ console.log('\n── E · Lo que cuenta el proveedor, traducido sin fiarse ─�
   /* W · result URL expiration protection: un final bueno SIN resultado guardado no cierra. */
   const sinGuardar = leerAviso({ aviso: leerAvisoDeSeedance(seedanceFalso('succeeded')), job: j, intento: j.attempts[0], at });
   check('un final BUENO sin el resultado ya guardado NO cierra el trabajo: cerrarlo sería cobrar por un enlace que caduca', sinGuardar.ok === false && sinGuardar.motivo === 'sin_efecto');
-  const guardado = leerAviso({ aviso: leerAvisoDeSeedance(seedanceFalso('succeeded')), job: j, intento: j.attempts[0], at, outputRefs: ['mat_abc'] });
-  check('con el resultado en casa, sí', guardado.ok && guardado.evento.kind === 'succeeded' && guardado.evento.outputRefs[0] === 'mat_abc');
+  const guardado = leerAviso({ aviso: leerAvisoDeSeedance(seedanceFalso('succeeded')), job: j, intento: j.attempts[0], at, outputRefs: ['asset_00000000000000000000000000000abc'] });
+  check('con el resultado en casa, sí', guardado.ok && guardado.evento.kind === 'succeeded' && guardado.evento.outputRefs[0] === 'asset_00000000000000000000000000000abc');
   check('y el enlace del proveedor NO viaja al evento: ni en salidas, ni en metadatos, ni en el error',
     !JSON.stringify(guardado.evento).includes('SECRETO') && !JSON.stringify(guardado.evento).includes('ark-content'));
 }
@@ -280,7 +280,7 @@ console.log('\n── F · La identidad del material: calculada, no sorteada ─
   check('la misma llegada, calculada dos veces, pide el MISMO material', a === identidadDelMaterial('j1', 'j1#1'));
   check('otro INTENTO es otro material: un reintento no pisa el resultado del primero', a !== identidadDelMaterial('j1', 'j1#2'));
   check('y otro trabajo, también', a !== identidadDelMaterial('j2', 'j1#1'));
-  check('tiene la forma que el contrato del material admite', /^mat_[0-9a-f]{32}$/.test(a) && /^[A-Za-z0-9_-]{4,128}$/.test(a));
+  check('tiene la forma de cualquier otro material: asset_ y 32 hexadecimales, un solo espacio de nombres', /^asset_[0-9a-f]{32}$/.test(a) && /^[A-Za-z0-9_-]{4,128}$/.test(a));
   check('sin trabajo o sin intento no hay identidad', identidadDelMaterial('', 'x') === undefined && identidadDelMaterial('x', '') === undefined);
 
   const j = trabajo();
@@ -348,7 +348,7 @@ const mundo = (o = {}) => {
   /* H · provider success, camino entero. */
   const { deps, estado } = mundo();
   const r = await atenderAviso(deps, leerAvisoDeSeedance(seedanceFalso('succeeded')));
-  check('un final bueno: se guarda el resultado, se cierra el trabajo y se dice cuál es el material', r.estado === 'aplicado' && r.terminal === true && /^mat_/.test(r.assetId));
+  check('un final bueno: se guarda el resultado, se cierra el trabajo y se dice cuál es el material', r.estado === 'aplicado' && r.terminal === true && /^asset_[0-9a-f]{32}$/.test(r.assetId));
   check('el trabajo quedó terminado y con el material como salida', estado.jobs.get('j1').state === 'completed' && estado.jobs.get('j1').result.outputRefs[0] === r.assetId);
   check('y se guardó exactamente una vez', estado.descargas === 1);
   check('el enlace del proveedor no llegó al trabajo guardado', !JSON.stringify(estado.jobs.get('j1')).includes('SECRETO'));

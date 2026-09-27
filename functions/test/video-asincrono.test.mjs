@@ -210,7 +210,12 @@ const materializador = {
   async guardar(p) {
     traidos.push(p);
     if (traer !== 'ok') return { ok: false, motivo: traer };
-    if (!base.docs.has(`assets/${p.assetId}`)) base.docs.set(`assets/${p.assetId}`, { assetId: p.assetId, ownerAccountId: p.userId, kind: p.kind, status: 'ready' });
+    if (!base.docs.has(`assets/${p.assetId}`)) {
+      base.docs.set(`assets/${p.assetId}`, {
+        assetId: p.assetId, ownerAccountId: p.userId, kind: p.kind, status: 'ready',
+        delivery: { url: `https://almacen.invalid/users/${p.userId}/ai-generations/${p.assetId}.mp4?token=t`, kind: 'bearer_token' },
+      });
+    }
     return { ok: true, assetId: p.assetId, yaEstaba: false };
   },
 };
@@ -387,15 +392,20 @@ console.log('\n── D · Lo que contesta ModelArk decide, y solo eso ──');
   const traido = traidos.find((p) => p.provenance?.jobId === hecho.jobId);
   check('D1) G · el resultado se trae a casa ANTES de cerrar, a nombre del dueño del TRABAJO, como vídeo',
     !!traido && traido.userId === 'pruebaB0001' && traido.kind === 'video' && traido.recurso === `https://modelark.invalid/${tarea}.mp4`);
-  check('D2) G · el trabajo queda completado con su material', hecho.state === 'completed' && hecho.result?.outputRefs?.[0] === traido?.assetId && !!base.leer(`assets/${traido?.assetId}`));
+  check('D2) G · el trabajo queda completado con su material, en el espacio de nombres de siempre: asset_ y 32 hexadecimales',
+    hecho.state === 'completed' && hecho.result?.outputRefs?.[0] === traido?.assetId && !!base.leer(`assets/${traido?.assetId}`) && /^asset_[0-9a-f]{32}$/.test(traido?.assetId ?? ''),
+    traido?.assetId);
   check('D3) G · y se cobra lo reservado, una vez: completeCredits, sin reembolso',
     uso('vid-B')?.status === 'COMPLETED' && !reembolso('vid-B') && saldo('pruebaB0001') === saldoAntes && saldo('pruebaB0001') === SALDO - precio);
   await pasada();
   check('D4) G · otra pasada no cobra otra vez ni vuelve a traer nada', uso('vid-B')?.status === 'COMPLETED' && saldo('pruebaB0001') === SALDO - precio && traidos.filter((p) => p.provenance?.jobId === hecho.jobId).length === 1);
   /* Y reintentar ahora: ya terminó, y su resultado vive en el material. */
   const rG = await pedir('pruebaB0001', 'vid-B');
-  check('D5) G · reintentar lo terminado NUNCA lo vuelve a generar ni a cobrar',
-    !rG.ok && rG.error.details?.code === 'DUPLICATE_REQUEST' && llamadas.length === 2 && saldo('pruebaB0001') === SALDO - precio, codigo(rG));
+  const fichaG = base.leer(`assets/${traido?.assetId}`);
+  check('D5) G · reintentar lo terminado devuelve SU material, sin volver a generar ni a cobrar',
+    rG.ok && rG.valor.status === 'COMPLETED' && rG.valor.duplicate === true && rG.valor.credits === 0
+    && rG.valor.assetId === traido?.assetId && rG.valor.url === fichaG?.delivery?.url && rG.valor.jobId === hecho.jobId
+    && llamadas.length === 2 && saldo('pruebaB0001') === SALDO - precio, codigo(rG));
 
   /* F · FALLÓ EN MODELARK */
   modelArk = aceptar();

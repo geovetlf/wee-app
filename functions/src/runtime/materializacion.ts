@@ -59,13 +59,24 @@ import { AvisoNormalizado } from './aviso';
  *   un id al azar          una identidad por llegada, que es justo el problema
  *   la hora                dos llegadas nunca coinciden
  *   algo que diga el cliente  no es suyo, y no se le pregunta
+ *
+ * ── Y en el MISMO espacio que cualquier otro material ───────────────────────
+ *
+ * `asset_` y treinta y dos hexadecimales, como el que se sortea al crear un
+ * material desde una URL. Antes esta identidad se escribía `mat_…`, y un segundo
+ * espacio de nombres era un material que existía y que nadie podía leer:
+ * `leerMaterial` solo reconoce `asset_`, así que el «¿ya está?» de la
+ * materialización no lo encontraba —y volvía a descargarlo—, `deleteAsset` no
+ * podía retirarlo, productions no podía referenciarlo y un vídeo terminado no
+ * se podía devolver. Cómo nació un material lo dice su procedencia, no su
+ * prefijo.
  */
 export const identidadDelMaterial = (jobId: string, attemptId: string): string | undefined => {
   if (typeof jobId !== 'string' || typeof attemptId !== 'string') return undefined;
   const j = jobId.trim();
   const a = attemptId.trim();
   if (!j.length || !a.length || j.length > 400 || a.length > 400) return undefined;
-  return `mat_${createHash('sha256').update(`${j}|${a}`, 'utf8').digest('hex').slice(0, 32)}`;
+  return `asset_${createHash('sha256').update(`${j}|${a}`, 'utf8').digest('hex').slice(0, 32)}`;
 };
 
 /**

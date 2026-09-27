@@ -15,7 +15,7 @@ import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
 import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
 import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, trabajoDelMedioDeWee } from '../runtime';
-import { crearMaterialDesdeUrl } from '../content';
+import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 
 /**
  * Lo que puede durar esta función, de donde salen los demás plazos.
@@ -247,11 +247,22 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
           return { generationId: previous.docs[0].id, url: doc.videoUrl || doc.providerMeta.videoUrl, durationSec: doc.videoDurationSec ?? null, credits: 0, demo: doc.provider === 'mock', status: 'COMPLETED', duplicate: true };
         }
         /*
+         * TERMINÓ POR EL CORE: su resultado vive en el MATERIAL, no en el libro.
+         * El trabajo de esta petición lo nombra, el Content Core lo guarda, y se
+         * le devuelve a su dueño sin volver a generar ni a cobrar.
+         */
+        const delCore = await trabajoDelMedioDeWee(getFirestore(), uid, requestId);
+        const hecho = delCore?.state === 'completed' ? delCore.result?.outputRefs?.[0] : undefined;
+        const material = hecho ? await leerMaterial(hecho) : null;
+        if (material && material.ownerAccountId === uid && material.status === 'ready' && material.delivery?.url) {
+          return { generationId: null, assetId: material.assetId, url: material.delivery.url, durationSec: material.durationSec ?? null, credits: 0, demo: false, status: 'COMPLETED', jobId: delCore?.jobId ?? null, duplicate: true };
+        }
+        /*
          * TERMINÓ Y SE COBRÓ, PERO SU RESULTADO NO ESTÁ AQUÍ.
          *
-         * Pasa si el vídeo lo cerró la liquidación del Core —su libro no guarda
-         * la URL— o si la anotación se perdió. Seguir de largo era generar OTRO
-         * vídeo con el cobro del primero: una generación sin cobro. No se hace.
+         * Pasa si la anotación se perdió o si el material ya no se puede
+         * entregar. Seguir de largo era generar OTRO vídeo con el cobro del
+         * primero: una generación sin cobro. No se hace.
          */
         throw new EngineError('DUPLICATE_REQUEST', 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.', { reason: 'result_not_available' });
       } else if (await trabajoDelMedioDeWee(getFirestore(), uid, requestId)) {
