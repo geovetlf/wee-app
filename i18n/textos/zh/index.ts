@@ -71,6 +71,7 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
 import { moderation } from './moderation';
+import { filmmaker } from './filmmaker';
 import { FormaDelDiccionario } from '../es';
 
 export const zh: FormaDelDiccionario = {
@@ -110,4 +111,5 @@ export const zh: FormaDelDiccionario = {
   chef,
   brain,
   moderation,
+  filmmaker,
 };

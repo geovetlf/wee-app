@@ -519,8 +519,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * todavía no se pueden hacer. Cada uno dice qué pieza concreta del motor
    * falta —componer varias escenas, componer música, llevar dos referencias—
    * en vez de un «pronto», que no ayuda a decidir qué hacer ahora.
+   * 2 427 → 2 682 en F1-C: entra el módulo `filmmaker` («Varias escenas», 255 claves)
+   * en los once diccionarios a la vez —la producción, el storyboard, el panel
+   * Director y una frase por cada código de F1-A y F1-B—. No sale ninguna: el
+   * motivo `studio.pendCompose` se queda, porque juntar varias escenas en un solo
+   * vídeo sigue sin poder hacerse.
    */
-  const CLAVES_PT = 2427;
+  const CLAVES_PT = 2682;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
