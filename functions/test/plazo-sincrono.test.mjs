@@ -223,12 +223,18 @@ check('el presupuesto NO es un número mágico: se deriva de las dos constantes'
   'derivado, y 595000 no aparece escrito');
 check('H) el camino de siempre sigue intacto: su plazo y su motor no se tocaron',
   /PLAZO_DE_VIDEO_MS = 1_500_000/.test(VIDEO) && /videoEngine\.generate\(/.test(VIDEO) && /PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS/.test(VIDEO));
-check('E) el margen corto del camino asíncrono sigue siendo el de antes',
-  /MARGEN_DEL_CANARY_MS = 120_000/.test(VIDEO));
+/*
+ * PRE-F1-D (autorizado el 2026-09-27): el trabajo asíncrono ya no se mide con el
+ * margen de la invocación. Con ciento veinte segundos, un reintento tardío
+ * vencía un vídeo ACEPTADO que ModelArk seguía haciendo. Ahora vive lo que
+ * `plazos.ts` le da a un vídeo, y ese número no se escribe en la puerta.
+ */
+check('E) el trabajo asíncrono vive lo que plazos.ts da al vídeo, no el margen de la invocación',
+  !/MARGEN_DEL_CANARY_MS/.test(VIDEO) && /PLAZOS_DE_VIDEO\.vidaDelTrabajoMs/.test(VIDEO) && !/120_000/.test(VIDEO));
 check('E) y el presupuesto SOLO se pasa cuando la aceptación está apagada',
   /ACEPTA_ASINCRONO \? \{\} : \{ timeoutMs: PRESUPUESTO_DEL_SONDEO_MS \}/.test(VIDEO));
 check('E) el plazo del trabajo también depende de esa misma decisión, no de dos',
-  /PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO \? MARGEN_DEL_CANARY_MS : POLITICA_DE_TRABAJO\.maxLifetimeMs/.test(VIDEO));
+  /PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO \? PLAZOS_DE_VIDEO\.vidaDelTrabajoMs : POLITICA_DE_TRABAJO\.maxLifetimeMs/.test(VIDEO));
 check('D) y el adaptador sigue sondeando con lo que le den, sin plazo propio',
   /timeoutMs: request\.timeoutMs/.test(sinComentarios(leer('functions/src/engine/providers/seedance.ts'))));
 check('nadie tocó el `attemptTimeoutMs` del Job Engine',
@@ -237,14 +243,16 @@ check('y el timeout por paso viaja por la costura que ya existía, no por una nu
   /dispatch\.timeoutMs !== undefined \? \{ policy: \{ attemptTimeoutMs: dispatch\.timeoutMs \} \}/.test(sinComentarios(leer('functions/src/runtime/conductor.ts'))));
 
 /*
- * Y QUÉ PIDE LA PUERTA HOY. S6-F la apagó: el canario de vídeo recorre el Core
- * de punta a punta con el proveedor real y quiere el desenlace DENTRO de la
- * llamada. Con eso encendido, `PLAZO_DEL_TRABAJO_MS` pasa a ser la vida del
- * trabajo y el presupuesto del sondeo SÍ viaja — que es justo lo que las
- * comprobaciones de arriba miden.
+ * Y QUÉ PIDE LA PUERTA HOY. S6-F la apagó: el canario de vídeo recorría el Core
+ * de punta a punta con el proveedor real y quería el desenlace DENTRO de la
+ * llamada. PRE-F1-D la vuelve a encender (autorizado el 2026-09-27): el sondeo
+ * dentro de la llamada devolvía el dinero de tareas que ModelArk seguía
+ * haciendo. Con eso encendido, la llamada se va en cuanto el proveedor acepta,
+ * el presupuesto del sondeo NO viaja y el trabajo vive lo que `plazos.ts` da
+ * al vídeo — que es justo lo que las comprobaciones de arriba miden.
  */
-check('la puerta pide el desenlace DENTRO de la llamada: el canario es síncrono',
-  /const ACEPTA_ASINCRONO: boolean = false;/.test(VIDEO), 'ACEPTA_ASINCRONO = false');
+check('la puerta pide que el proveedor acepte y suelte: el vídeo es asíncrono',
+  /const ACEPTA_ASINCRONO: boolean = true;/.test(VIDEO), 'ACEPTA_ASINCRONO = true');
 
 check('esta suite está en la cadena de `npm test`', /plazo-sincrono\.test\.mjs/.test(leer('functions/package.json')));
 

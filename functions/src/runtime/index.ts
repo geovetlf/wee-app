@@ -6,6 +6,7 @@ import { materializadorDeWee } from '../content/materializador';
 import { resolutorDeSeedance } from '../engine/providers/seedance';
 import {
   CapabilityId,
+  Job,
   JobDispatch,
   JobLimits,
   JobPolicy,
@@ -38,6 +39,7 @@ import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
 import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
 import { PuertoDeLiquidacion } from './liquidacion';
+import { trabajoDelMedio } from './medios';
 import { ReglaDePolitica, SIN_REGLAS, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
 
@@ -450,6 +452,18 @@ export const mantenimientoDeWee = (deps: {
   };
 };
 
+/**
+ * ¿TIENE TRABAJO DEL CORE ESTA PETICIÓN DE MEDIO? Sobre el almacén de verdad, y
+ * solo lectura.
+ *
+ * Lo pregunta la puerta de vídeo antes de devolver una reserva que parece
+ * colgada: si hay trabajo, su dinero es de su liquidación —que le pregunta al
+ * proveedor antes de cobrar o devolver—, esté la puerta abierta o cerrada. No
+ * construye el conductor, no crea nada y no toca ningún trabajo.
+ */
+export const trabajoDelMedioDeWee = (db: Firestore, userId: string, requestId: string): Promise<Job | undefined> =>
+  trabajoDelMedio(almacenDeTrabajos(db), userId, requestId);
+
 export interface ConductorDeWeeDeps {
   db: Firestore;
   ahora?: () => number;
@@ -563,7 +577,7 @@ export { decidirReconciliacion } from './reconciliacion';
 export type { AccionDeReconciliacion, EstadoSegunElProveedor, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor } from './reconciliacion';
 export { reconciliarTrabajos, reconciliarUno } from './reconciliador';
 export type { InformeDelReconciliador, ReconciliadorDeps, VistoAlReconciliar } from './reconciliador';
-export { pedirMedio, interpretarMedio, PASO_DE_MEDIO } from './medios';
+export { pedirMedio, interpretarMedio, PASO_DE_MEDIO, ejecucionDelMedio, trabajoDelMedio } from './medios';
 export type { DesenlaceDelMedio, MotivoDeEsperaDelMedio, PasoDeMedioDeps } from './medios';
 export { identidadDelMaterial, procedenciaDe, tipoDeMaterialDe } from './materializacion';
 export type { DesenlaceDeMaterializacion, PeticionDeMaterializacion, PuertoDeMaterializacion } from './materializacion';

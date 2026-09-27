@@ -4,9 +4,10 @@ import { newRequestId } from './creditsService';
 
 /**
  * Weë Video Engine desde la app: una petición abstracta de video, sin nada del
- * proveedor. El servidor elige la versión de Seedance, cobra los Credits, genera,
- * guarda el video en Weë Storage y devuelve la URL. Weë Studio (CreatorFlow)
- * sigue usando creatorChat/creatorRun, que por dentro llaman a este mismo motor.
+ * proveedor. El servidor elige la versión de Seedance, reserva los Credits y
+ * contesta de una de dos formas: el video ya hecho y guardado en Weë Storage, o
+ * que ModelArk lo ACEPTÓ y lo está haciendo. Weë Studio (CreatorFlow) sigue
+ * usando creatorChat/creatorRun, que por dentro llaman a este mismo motor.
  */
 export interface VideoReferences {
   images?: string[];
@@ -31,20 +32,49 @@ export interface GenerateVideoInput {
   requestId?: string;
 }
 
-export interface GenerateVideoResult {
-  generationId: string;
-  url: string;
+/** El video ya está hecho y guardado en Weë. */
+export interface GenerateVideoCompleted {
+  status: 'COMPLETED';
+  generationId: string | null;
+  url: string | null;
   durationSec: number | null;
   credits: number;
   demo: boolean;
-  status: 'COMPLETED';
   duplicate: boolean;
+  assetId?: string | null;
+  jobId?: string | null;
 }
+
+/**
+ * ModelArk lo ACEPTÓ y lo está haciendo. La llamada vuelve en segundos y el
+ * video aparece en Mis creaciones cuando está listo. Aquí no hay URL ni progreso
+ * que enseñar, y no se inventan: se pinta con las claves del progreso que ya
+ * existen (`creaciones.progressWorking`, `creaciones.progressFindLater`).
+ */
+export interface GenerateVideoAccepted {
+  status: 'ACCEPTED';
+  /** El trabajo del Core que lo lleva. */
+  jobId: string | null;
+  /** La operación con la que se pidió: la misma que hay que repetir si se reintenta. */
+  requestId: string;
+  /** Reservados, no cobrados: se cobran cuando el video está hecho y se devuelven si ModelArk dice que falló. */
+  credits: number;
+  demo: boolean;
+  duplicate: boolean;
+  generationId: null;
+  assetId: null;
+  url: null;
+  durationSec: null;
+}
+
+export type GenerateVideoResult = GenerateVideoCompleted | GenerateVideoAccepted;
 
 export const videoService = {
   generateVideo: async (input: GenerateVideoInput): Promise<GenerateVideoResult> => {
+    const requestId = input.requestId || newRequestId('video');
     const fn = httpsCallable<GenerateVideoInput, GenerateVideoResult>(functions, 'generateVideo', { timeout: 25 * 60 * 1000 });
-    const result = await fn({ ...input, requestId: input.requestId || newRequestId('video') });
-    return result.data;
+    const result = await fn({ ...input, requestId });
+    /* El id es el que se mandó, no uno que se invente aquí: es con el que se reintenta sin volver a cobrar. */
+    return result.data.status === 'ACCEPTED' ? { ...result.data, requestId } : result.data;
   },
 };

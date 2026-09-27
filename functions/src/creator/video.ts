@@ -14,7 +14,7 @@ import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
 import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio } from '../runtime';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, trabajoDelMedioDeWee } from '../runtime';
 import { crearMaterialDesdeUrl } from '../content';
 
 /**
@@ -51,21 +51,22 @@ const EXPERIENCIA_DE_STUDIO = 'studio';
  * ── QUÉ DESENLACE LE PIDE ESTA PUERTA AL PROVEEDOR ──────────────────────────
  *
  * Encendida, el proveedor coge la tarea y suelta; el desenlace llega después
- * por su aviso. Apagada, el adaptador sondea hasta el final y el desenlace
- * llega dentro de esta llamada. El trabajo, el cobro y el material son los
- * mismos; lo único que cambia es quién espera.
+ * por su aviso o porque el barrido le pregunta. Apagada, el adaptador sondea
+ * hasta el final y el desenlace llega dentro de esta llamada. El trabajo, el
+ * cobro y el material son los mismos; lo único que cambia es quién espera.
+ *
+ * S6-F la apagó para que el canario recorriera el Core con el desenlace dentro
+ * de la llamada. PRE-F1-D la vuelve a encender (decisión del 2026-09-27): con
+ * el sondeo dentro de la llamada, un plazo que vence, un GET de estado que falla
+ * o una descarga que no llega convertían en reembolso una tarea que ModelArk
+ * seguía haciendo —y cobrando—. Aceptada, la tarea ya no depende de esta
+ * llamada: el trabajo guarda cómo la llama el proveedor, y solo lo que él
+ * conteste decide si se cobra o se devuelve.
  *
  * Tiene nombre porque de ella cuelga el reparto de tiempo de abajo: son la
  * misma decisión, y escribirla dos veces sería dejar que se separen.
  */
-const ACEPTA_ASINCRONO: boolean = false;
-
-/**
- * Lo que esta invocación espera antes de irse CUANDO NO ESPERA NADA. Corto a
- * propósito: el camino asíncrono contesta en cuanto el proveedor acusa recibo
- * —segundos—, y quedarse más sería justo lo que este bloque existe para quitar.
- */
-const MARGEN_DEL_CANARY_MS = 120_000;
+const ACEPTA_ASINCRONO: boolean = true;
 
 /**
  * ── Y CUÁNTO PUEDE DURAR UN INTENTO CUANDO SÍ SE ESPERA ─────────────────────
@@ -89,8 +90,37 @@ const MARGEN_DEL_CANARY_MS = 120_000;
  */
 const PRESUPUESTO_DEL_SONDEO_MS = POLITICA_DE_TRABAJO.maxLifetimeMs - MARGEN_DE_CIERRE_MS;
 
-/** El plazo del trabajo, que es lo que deja pasar —o no— al presupuesto de arriba. */
-const PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO ? MARGEN_DEL_CANARY_MS : POLITICA_DE_TRABAJO.maxLifetimeMs;
+/**
+ * EL PLAZO DEL TRABAJO, que es lo que deja pasar —o no— al presupuesto de arriba.
+ *
+ * Con la aceptación encendida, el trabajo vive lo que `plazos.ts` le da a un
+ * vídeo —dos horas y cuarto—, no lo que tarda esta llamada. Antes eran ciento
+ * veinte segundos, el margen de la invocación, y confundir los dos relojes
+ * perdía vídeos: un reintento del cliente pasados dos minutos llegaba al
+ * trabajador, que vencía el trabajo ACEPTADO; vencido, la liquidación lo aparta
+ * como «reconciliar» y nadie vuelve a preguntarle al proveedor. La llamada sigue
+ * contestando en segundos —en cuanto ModelArk acusa recibo—: lo que se alarga es
+ * la vida del trabajo, no la espera de nadie.
+ */
+const PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO ? PLAZOS_DE_VIDEO.vidaDelTrabajoMs : POLITICA_DE_TRABAJO.maxLifetimeMs;
+
+/**
+ * LA POLÍTICA DEL TRABAJO DE VÍDEO: los relojes de `plazos.ts` y UN intento.
+ *
+ * Un intento, sin reintentos del Job Engine (decisión del 2026-09-27). Reintentar
+ * un vídeo es un segundo POST a ModelArk —otra generación y otro coste— y en
+ * producción no hay nadie que ejecute esos reintentos: un vídeo que el proveedor
+ * daba por fallido volvía a la cola y su dinero se quedaba retenido para siempre
+ * (RUNTIME.md § 21.4). Con un intento, un fallo del proveedor es final y el
+ * barrido desplegado devuelve la reserva exacta.
+ *
+ * Solo para esta puerta: el Job Engine sigue con sus tres intentos para todo lo
+ * demás, y los relojes no se escriben aquí, se leen de `plazos.ts`.
+ */
+const POLITICA_DEL_VIDEO = politicaDe(PLAZOS_DE_VIDEO, {
+  ...POLITICA_DE_TRABAJO,
+  retry: { ...POLITICA_DE_TRABAJO.retry, maxAttempts: 1 },
+});
 
 /**
  * generateVideo — entrada abstracta del Weë Video Engine para la app.
@@ -224,6 +254,17 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
          * vídeo con el cobro del primero: una generación sin cobro. No se hace.
          */
         throw new EngineError('DUPLICATE_REQUEST', 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.', { reason: 'result_not_available' });
+      } else if (await trabajoDelMedioDeWee(getFirestore(), uid, requestId)) {
+        /*
+         * ESTA RESERVA ES DE UN TRABAJO DEL CORE, y de su dinero responde su
+         * liquidación: el barrido le pregunta al proveedor y solo con lo que él
+         * conteste cobra o devuelve. Aquí no se toca, lleve el tiempo que lleve
+         * —un vídeo aceptado puede estar en la cola de ModelArk mucho más de lo
+         * que esta función vive— y esté la puerta abierta o cerrada ahora. Se
+         * pregunta leyendo, sin montar el conductor. Lo de abajo sigue siendo
+         * para lo que nunca tuvo trabajo del Core.
+         */
+        throw new EngineError('DUPLICATE_REQUEST');
       } else if (operacionAbandonada(true, (spend.authorizedAt ?? Infinity) + PLAZO_DE_VIDEO_MS, Date.now())) {
         /*
          * SE QUEDÓ COLGADA. Pasó más tiempo del que esta función puede vivir y
@@ -278,6 +319,8 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         db: getFirestore(),
         /* LO ÚNICO que enciende la aceptación asíncrona en todo Weë. */
         aceptaAsincrono: ACEPTA_ASINCRONO,
+        /* Los relojes del vídeo y UN intento: el trabajo nace con ellos y los lleva dentro hasta que se liquida. */
+        politica: POLITICA_DEL_VIDEO,
       });
       const desenlace = await pedirMedio({
         conductor,

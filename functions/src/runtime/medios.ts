@@ -3,11 +3,15 @@ import {
   CoreCapabilityId,
   GatewayMetadata,
   GatewayUsage,
+  Job,
+  JobStore,
   LanguageContext,
   Principal,
   TraceContext,
   WeeError,
   WORKFLOW_CONTRACT_VERSION,
+  alcanceDeIdempotencia,
+  claveDePaso,
   errorDelCore,
 } from '../core';
 import { AvisoDelConductor, Conductor, ResultadoDelConductor } from './conductor';
@@ -111,6 +115,31 @@ export interface PasoDeMedioDeps {
 /** UN paso, y se llama siempre igual: dos ejecuciones de la misma petición retoman la misma. */
 export const PASO_DE_MEDIO = 'crear';
 
+/**
+ * CÓMO SE LLAMA LA EJECUCIÓN DE UN MEDIO: como su petición.
+ *
+ * Es el mismo nombre que el Workflow le pondría por su cuenta —`run_` y la
+ * petición—, dicho aquí para que quien pide el medio y quien pregunta después
+ * por su trabajo usen UNO, y no dos copias de la misma costumbre.
+ */
+export const ejecucionDelMedio = (requestId: string): string => `run_${requestId}`;
+
+/**
+ * EL TRABAJO DEL CORE DE UNA PETICIÓN DE MEDIO, SI LO TIENE. Solo lectura.
+ *
+ * Con la MISMA clave con la que el conductor lo crea y lo busca al retomar: la de
+ * la ejecución y el paso, primer intento —el Workflow no reintenta pasos—, dentro
+ * del ámbito de la cuenta. Contesta una pregunta que el dinero necesita sin
+ * montar el conductor: ¿esta reserva es de un trabajo del Core? Si lo es, la
+ * cierra su liquidación, y nadie más.
+ */
+export const trabajoDelMedio = (
+  trabajos: Pick<JobStore, 'porIdempotencia'>,
+  userId: string,
+  requestId: string,
+): Promise<Job | undefined> =>
+  trabajos.porIdempotencia(alcanceDeIdempotencia(userId), claveDePaso(ejecucionDelMedio(requestId), PASO_DE_MEDIO, 1));
+
 const sinNada = (reason: string): WeeError => errorDelCore('INTERNAL_ERROR', 'runtime', { details: { reason } });
 
 /** De los avisos del conductor al motivo de la espera. El orden importa: lo más concreto primero. */
@@ -177,6 +206,8 @@ export const pedirMedio = async (deps: PasoDeMedioDeps): Promise<DesenlaceDelMed
   const resultado = await deps.conductor.ejecutar({
     principal: deps.principal,
     trace: deps.trace,
+    /* El nombre que tendría por defecto, dicho aquí: `trabajoDelMedio` lo busca por este mismo. */
+    runId: ejecucionDelMedio(deps.trace.requestId),
     workflow: {
       id: `wf_${deps.trace.requestId}`,
       contract: WORKFLOW_CONTRACT_VERSION,
