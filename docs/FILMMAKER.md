@@ -474,6 +474,25 @@ detrás de C3. Un índice, el de la lista: `productions` (`ownerAccountId` ↑, 
 y el registro se leen por ruta y no necesitan ninguno. La guarda de `moderation` que fija el total de índices sube
 de 35 a 36, como subió con cada fase que añadió uno. Nada de esto está desplegado.
 
+## F1-C · La producción en la app
+
+### El espejo del dominio
+
+La pantalla de producción necesita el dominio entero —validar y aplicar una operación en local antes de guardarla,
+lo pendiente, las recomendaciones, la línea de tiempo y las tarjetas del storyboard—, y `metro.config.js` deja
+`functions/` fuera del bundle. Escribirlo otra vez en el cliente sería tener dos verdades, así que no se escribe:
+`scripts/espejo-filmmaker.mjs` **imprime** el árbol sintáctico de cada archivo de F1-A —con el compilador de
+TypeScript de la app, sin comentarios— en `services/filmmaker/espejo/`, con las mismas rutas relativas. Entran los
+cinco archivos de `functions/src/filmmaker/` y su cierre de importaciones en el Core (contratos y vocabularios puros,
+sin Firebase ni red ni reloj); de `core/gateway.ts` solo el tipo `ExecutionHints`, que es lo único que `modelo.ts`
+toma de él. La app entra por una sola puerta, `services/filmmaker/dominio.ts`, que solo reexporta.
+
+`node scripts/espejo-filmmaker.mjs` lo regenera y `--check` solo comprueba. `functions/test/filmmaker-espejo.test.mjs`
+lo vuelve a generar en memoria y exige que coincida byte a byte con lo que hay en disco; compara con el compilador,
+tipo a tipo y campo a campo, las exportaciones de los dos árboles; y carga los dos y comprueba que los vocabularios,
+las operaciones, lo pendiente, las recomendaciones, la línea de tiempo, las tarjetas y los requisitos dan lo mismo.
+Si F1-A cambia y nadie regenera, o si alguien toca el espejo a mano, la cadena se pone en rojo.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -489,6 +508,8 @@ de 35 a 36, como subió con cada fase que añadió uno. Nada de esto está despl
 
 ## Pruebas
 
+`functions/test/filmmaker-espejo.test.mjs`: el espejo del cliente es F1-A —generado, igual tipo a tipo y en ejecución— y la
+app entra por una sola puerta.
 `functions/test/filmmaker-modelo.test.mjs` (con `npm run build` antes): modelo, formatos y presets, validación,
 operaciones, lo pendiente, recomendaciones, requisitos contra los validadores del Core, fronteras y determinismo.
 `functions/test/productions-runtime.test.mjs`: la persistencia con una base de mentira que se comporta como Firestore en
