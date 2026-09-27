@@ -299,7 +299,11 @@ const nuevoControlador = (srv, r) => K.crearControladorDeProduccion(PID, { servi
     && c.leer().estado.guardado === 'guardado' && r.esperando() === 0);
 }
 {
-  /* Dos pantallas que se persiguen: tras tres conflictos seguidos se para y se pregunta, sin bucle infinito. */
+  /*
+   * Dos pantallas que se persiguen: tras TRES conflictos seguidos se para y se pregunta, sin bucle infinito. El número
+   * se fija aquí como un total exacto y no se lee de la constante: si se leyera, subirla a 30 seguiría en verde con
+   * treinta y una idas y vueltas. Cambiarlo es una decisión, y se hace cambiando también esta comprobación.
+   */
   const srv = servidor(base());
   const r = reloj();
   const c = nuevoControlador(srv, r);
@@ -309,9 +313,19 @@ const nuevoControlador = (srv, r) => K.crearControladorDeProduccion(PID, { servi
   c.gesto([{ op: 'change_weather', sceneId: 'sc-0002', weather: 'rain' }]);
   r.pasar(); await calma();
   const aplicaciones = srv.llamadas.filter((x) => x.startsWith('apply')).length;
-  check(`F13) tras ${K.CONFLICTOS_SEGUIDOS} conflictos seguidos se para: error visible, nada perdido y sin bucle`,
-    aplicaciones === K.CONFLICTOS_SEGUIDOS + 1 && c.leer().estado.guardado === 'error' && c.leer().estado.fallo.tipo === 'conflicto'
-    && c.leer().estado.enVuelo && c.leer().estado.vista.scenes.find((s) => s.id === 'sc-0002').weather === 'rain');
+  check('F13) tras tres conflictos seguidos se para —cuatro envíos en total—: error visible, nada perdido y sin bucle',
+    K.CONFLICTOS_SEGUIDOS === 3 && aplicaciones === 4 && c.leer().estado.guardado === 'error' && c.leer().estado.fallo.tipo === 'conflicto'
+    && c.leer().estado.enVuelo && c.leer().estado.vista.scenes.find((s) => s.id === 'sc-0002').weather === 'rain',
+    `${aplicaciones} envíos · límite ${K.CONFLICTOS_SEGUIDOS}`);
+
+  /* La otra pantalla se calla y la persona pulsa «Reintentar»: la cuenta vuelve a empezar y lo suyo se guarda. */
+  srv.api.applyProductionOperations = conflictivo;
+  c.reintentar(); await calma();
+  const despues = srv.llamadas.filter((x) => x.startsWith('apply')).length;
+  check('F13b) reintentar después de parar vuelve a empezar la cuenta: se reconstruye sobre lo de ahora y queda guardado',
+    despues > aplicaciones && c.leer().estado.guardado === 'guardado' && !c.leer().estado.fallo
+    && srv.vista.production.scenes.find((s) => s.id === 'sc-0002').weather === 'rain' && iguales(c.leer().estado.vista, srv.vista.production),
+    `${despues - aplicaciones} envíos más · ${c.leer().estado.guardado}`);
 }
 {
   const srv = servidor(base());
