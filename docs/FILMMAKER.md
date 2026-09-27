@@ -1,4 +1,4 @@
-# Weë Filmmaker — la producción: su dominio (F1-A) y su persistencia (F1-B)
+# Weë Filmmaker — la producción: su dominio (F1-A), su persistencia (F1-B) y su interfaz (F1-C)
 
 > Estado: **F1-A y F1-B construidas; la callable `productions`, conectada y sin desplegar**. F1-A es un dominio
 > puro: no guarda, no genera, no cobra y no tiene interfaz; vive en `functions/src/filmmaker/`. F1-B lo guarda:
@@ -7,6 +7,10 @@
 > `functions/test/filmmaker-modelo.test.mjs` y `functions/test/productions-runtime.test.mjs`, dentro de la cadena de
 > `npm test`, y `functions/test/productions.emulator.mjs` y `functions/test/productions-callable.emulator.mjs`, fuera
 > de ella.
+>
+> **F1-C construida, sin desplegar**: la producción en la app, dentro de Weë Studio —«Varias escenas»—: el servicio de
+> cliente (`services/filmmakerService.ts`), el espejo generado del dominio, el estado optimista con CAS, el storyboard,
+> la línea de tiempo y el panel Director, en los once idiomas. No genera, no cobra y no llama a ningún proveedor.
 
 ## Propósito
 
@@ -363,14 +367,14 @@ generar sigue pendiente (D9).
 
 ## Decisiones aplazadas
 
-De las catorce decisiones de la auditoría, F1-B resolvió D2 y D12 (mínima) y D9 en parte, con autorización. Las
-demás siguen **pendientes**:
+De las catorce decisiones de la auditoría, F1-B resolvió D2 y D12 (mínima) y D9 en parte, con autorización, y F1-C
+resolvió D1 y D3 con la autorización de su fase. Las demás siguen **pendientes**:
 
 | # | Decisión | Estado |
 |---|---|---|
-| D1 | Nombre visible y en código | pendiente (el módulo se llama `filmmaker`, sin «Engine») |
+| D1 | Nombre visible y en código | **decidida** en F1-C: `filmmaker` en el código, sin «Engine»; «Varias escenas» a la vista y «Director» para el modo que dirige |
 | D2 | Dónde vive la producción (reutilizar `scenes`/`shots` o un agregado propio) | **decidida** en F1-B (ADR-FM-005): `productions` + `productionScenes`; el Core será la unidad de generación en F1-D |
-| D3 | Entrada en Weë Studio | pendiente |
+| D3 | Entrada en Weë Studio | **decidida** en F1-C: dentro de Videos, «Varias escenas» abre la producción desde la caja del Studio; un solo clip sigue yendo a CreatorFlow |
 | D4 | Ejecución por plano | pendiente |
 | D5 | Vídeo asíncrono | pendiente |
 | D6 | Weë Brain para intención y cambios | pendiente: el idioma de las operaciones ya existe |
@@ -387,7 +391,7 @@ demás siguen **pendientes**:
 
 Añadir, editar o quitar personajes, lugares, objetos y referencias; cambiar la dirección creativa de la producción
 (salvo estilo, cámara, movimiento y luz); cambiar una transición; mover un plano a otra escena. No los pide F1-A y
-entrarán cuando una fase los necesite (F1-C, F2). Con F1-B, eso significa que las fichas y las referencias de una
+entrarán cuando una fase los necesite (F2 y siguientes); F1-C los enseña y no los edita. Con F1-B, eso significa que las fichas y las referencias de una
 producción guardada se fijan al crearla (`create` con una producción entera) y no cambian después hasta que el
 lenguaje las tenga.
 
@@ -524,12 +528,87 @@ gesto a gesto, y se manda con la revisión nueva: lo de la otra persona no se pi
 **con su problema**, nunca en silencio. Tras tres conflictos seguidos se para y se pregunta. No hay temporizadores de
 progreso ni estados inventados: la única espera es la de agrupar gestos.
 
+### La pantalla
+
+`screens/ProductionScreen.tsx` (ruta `Production`, `studio/produccion/:productionId?` en la web), montada sobre
+`CreatorShell` y con las piezas de `components/studio/produccion/`. Con una producción abierta: la cabecera
+(`ProductionHeader`: título, estado —`ProductionStatus`— y guardado —`ProductionSaveState`—, duplicar, archivar y
+desarchivar), los avisos (`ProductionAvisos`: archivada, conflicto y lo que ya no cabía, gesto rechazado), la línea de
+tiempo (`ProductionTimelinePreview`), el storyboard (`ProductionStoryboard` → `ProductionSceneCard` →
+`ProductionShotCard`) y el panel Director (`ProductionDirectorPanel`, con `ProductionFormatSelector`,
+`ProductionDurationSummary`, `ProductionInspector`, `ProductionRecommendations` y `ProductionAudio`). Sin producción: la
+producción que nace de lo escrito en Weë Studio (`ProductionNewCard`) y tus producciones de verdad
+(`ProductionList`); vacíos y errores, con `ProductionEmptyState`. En escritorio, storyboard y Director a dos columnas;
+en el teléfono, en dos pestañas.
+
+Lo que enseña sale de F1-A: las tarjetas del storyboard, la línea de tiempo, las recomendaciones, la validación en
+`ready` y lo pendiente de rehacer; los nombres de la cámara, de la biblioteca de Weë Studio
+(`constants/camaraCinematica.ts`). Los estados son los que existen: borrador, lista para generar (validación `ready` y
+cada tarjeta completa), con dependencias pendientes, archivada; y guardado, cambios sin guardar, guardando, conflicto y
+error. «Generar» se ve como lo que es hoy —todavía no disponible— y el coste, pendiente de cotización. No hay
+miniaturas: cada plano dice «Sin vista previa». La voz, el diálogo, la música, los efectos y el ambiente se enseñan
+como estructura, y hacerlos, como no disponible.
+
+Se edita solo lo que F1-A sabe cambiar con una operación: reordenar, duplicar, dividir y unir escenas y planos,
+alargar y acortar, la duración objetivo, el formato, el título y la descripción de una escena, la descripción de un
+plano, el clima y el momento del día, y la cámara, el movimiento y la luz. Personajes, lugares, referencias, la
+intención y el título de la producción se ven y no se editan: el lenguaje no tiene operaciones para ellos y F1-C no
+las inventa. Los campos de texto usan `components/creator/CampoQueCrece.tsx`, que crece como las cajas de Weë AI
+(CLAUDE.md §9) con la misma pieza, `useCajaQueCrece`. Las recomendaciones traen sus alternativas: «Aceptar» aplica
+esa propuesta como un gesto y «Rechazar» la aparta; ninguna se aplica sola.
+
+### La entrada: «Varias escenas» dentro de Weë Studio
+
+La caja «¿Qué quieres crear?» del Studio sigue siendo la única. Dentro de la puerta Videos, «Varias escenas»
+(`multiScene`) ya no está bloqueada: declara `produccion: true` en `constants/studioExperiences.ts` y
+`abreLaProduccion` lo lee del catálogo, no de las palabras de lo escrito. Al pulsar Crear, `StudioScreen` navega a
+`Production` con lo escrito y los controles elegidos, antes de decidir ningún destino de `CreatorFlow`: un solo clip va
+a `CreatorFlow`, como siempre; varias escenas, a la producción. El Studio solo navega: la producción la crea su
+pantalla, con `createProduction`, cuando la persona elige dónde se va a ver. La idea se guarda como intención y los
+controles como dirección de toda la producción; no se interpreta nada —eso es de Weë Brain, en F2—. La valla
+`studio-video` se actualizó con autorización: doce conectadas (siguen haciendo `video.generate`), una que abre la
+producción y nunca un plan de un clip, y dos bloqueadas con su motivo. Las cuatro puertas no cambian y no hay quinta.
+
+### Los textos
+
+El módulo `filmmaker` está en los once diccionarios: 255 claves (267 en ruso, con sus formas `_few`/`_many`). Los
+`messageKey` del dominio tienen tres tramos (`filmmaker.<área>.<código>`) y los diccionarios son planos, así que
+`utils/mensajesDeFilmmaker.ts` los lee con una regla —`filmmaker.validation.shape_invalid` →
+`filmmaker.valShapeInvalid`— y cada código de F1-A y F1-B tiene su frase. El catálogo `constants/filmmaker.ts` guarda
+claves, no frases. «Video de Instagram» y no la otra palabra, como en Weë Business. La valla `CLAVES_PT` subió de
+2 427 a 2 682 con autorización.
+
+### Probarlo en local, de punta a punta
+
+`config/firebase.ts` conecta Auth y Firestore a sus emuladores SOLO si se piden (`EXPO_PUBLIC_AUTH_EMULATOR_HOST`,
+`EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST`, como ya hacía con Functions y Storage); sin esas variables no cambia nada. Con un
+proyecto `demo-…`, la app web habla con los emuladores y con nada más:
+
+```
+firebase emulators:start --only auth,functions,firestore --project demo-wee-filmmaker
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=demo-wee-filmmaker EXPO_PUBLIC_FIREBASE_API_KEY=demo-api-key (y el resto de EXPO_PUBLIC_FIREBASE_* de demostración)
+EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST=127.0.0.1 EXPO_PUBLIC_AUTH_EMULATOR_HOST=127.0.0.1 EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST=127.0.0.1 npx expo start --web
+```
+
+Así se probó F1-C en el navegador: Studio → Videos → «Varias escenas» → Crear → la producción, creada con la callable;
+gestos guardados por lotes, recarga, conflicto entre dos pestañas reconstruido sin pisar nada, archivar, desarchivar y
+duplicar. `functions/test/filmmaker-servicio.emulator.mjs` hace lo mismo desde Node con el SDK de cliente de verdad.
+
+### Lo que F1-C no hace, y lo que queda pendiente
+
+No genera vídeo, miniaturas, voz ni música; no cobra ni cotiza; no conecta Weë Brain; no llama al motor, al Router, al
+Job Engine ni a ningún proveedor; no añade operaciones; no cambia las reglas de Firestore; no convierte escenas ni
+planos en `SceneNode`/`ShotNode` del Core, que siguen siendo la unidad de generación de F1-D. `creatorProjectId` no
+existe en el contrato de F1-A/F1-B y no se añadió (cambiarlo sería otro contrato): enlazar una producción con un
+proyecto de Weë AI queda como decisión pendiente, y `projectItems` no se toca. Tampoco se sincroniza en vivo: otra
+pestaña ve lo nuevo al volver a abrir la producción, y un conflicto se resuelve al guardar.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
 |---|---|
 | F1-B | **Hecha**: guarda la producción (D2), aplica operaciones en el servidor con CAS y registro (D12); conectada (35 Functions) y sin desplegar |
-| F1-C | Pinta el storyboard con las tarjetas, habla con `productions` y traduce los `messageKey` (`filmmaker.*`) a frases en todos los idiomas |
+| F1-C | **Hecha**: la producción en la app —«Varias escenas» dentro de Weë Studio—, con el storyboard, el panel Director, el estado optimista con CAS y los `messageKey` (`filmmaker.*`) en once idiomas; sin generar ni cobrar |
 | F1-D | Genera un plano a partir de su requisito (D4) |
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
@@ -541,6 +620,12 @@ progreso ni estados inventados: la única espera es la de agrupar gestos.
 
 `functions/test/filmmaker-espejo.test.mjs`: el espejo del cliente es F1-A —generado, igual tipo a tipo y en ejecución— y la
 app entra por una sola puerta.
+`functions/test/filmmaker-ui.test.mjs`: la pantalla dibujada con el traductor, el estado y el dominio de verdad —vacíos, cargada,
+selección, gestos, recomendaciones, guardado, error, conflicto y archivada—. `functions/test/filmmaker-i18n.test.mjs`: el
+módulo en los once diccionarios y una frase por código. `functions/test/filmmaker-navegacion.test.mjs`: la ruta, las cuatro
+puertas, CreatorFlow intacto y la entrada de «Varias escenas». `functions/test/filmmaker-servicio.emulator.mjs`, fuera de la
+cadena: el servicio y el controlador de la app contra la callable del emulador, con Auth
+(`firebase emulators:exec --only auth,functions,firestore --project demo-wee-filmmaker "node functions/test/filmmaker-servicio.emulator.mjs"`).
 `functions/test/filmmaker-servicio.test.mjs`: las siete operaciones del servicio, lo que nunca se manda, cada fallo y la
 frontera (nadie más habla con `productions`). `functions/test/filmmaker-reductor.test.mjs`: cada gesto en local igual que
 en F1-A, los rechazos, el lote, la reversión, el conflicto y el controlador contra un servidor en memoria con el contrato
