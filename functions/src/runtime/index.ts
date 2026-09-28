@@ -6,6 +6,7 @@ import { materializadorDeWee } from '../content/materializador';
 import { resolutorDeSeedance } from '../engine/providers/seedance';
 import {
   CapabilityId,
+  GatewayResult,
   Job,
   JobDispatch,
   JobLimits,
@@ -20,7 +21,8 @@ import { creditEngine } from '../credits/creditEngine';
 import { engine } from '../engine';
 import { loadConfig } from '../engine/config';
 import { crearGatewayDelMotor, trazaDeConsola } from '../engine/gateway';
-import { Ledger, firestoreLedger } from '../engine/ledger';
+import { Ledger, costeDeUnConsumo, firestoreLedger } from '../engine/ledger';
+import type { ProviderCostSource, ProviderCostStatus } from '../engine/types';
 import { esExitoRealDeProveedor, recordRealSuccess } from '../engine/verification';
 import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
 import { crearMotorDeTrabajosDeWee } from '../job';
@@ -38,7 +40,7 @@ import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
 import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
 import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
-import { PuertoDeLiquidacion } from './liquidacion';
+import { CosteDeLaOperacion, PuertoDeLiquidacion } from './liquidacion';
 import { trabajoDelMedio } from './medios';
 import { ReglaDePolitica, SIN_REGLAS, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
@@ -100,6 +102,58 @@ export const cadenaViva: CadenaDeProducto = {
 
 const numero = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.length ? v : undefined);
+const noNegativo = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined);
+
+/**
+ * EL COSTE DE UN INTENTO QUE YA TERMINÓ, sin confundir lo estimado con lo real.
+ *
+ *   · no llegó al proveedor —lo paró el Gateway—: costó 0, y eso SÍ se sabe;
+ *   · falló en el proveedor: no dijo lo que consumió → `unavailable`;
+ *   · el adaptador declara lo que el proveedor dijo haber consumido
+ *     (`providerReportedTokens`) y la tarifa: eso es el coste real, y si el
+ *     proveedor no lo dijo, NO se sustituye por la estimación → `unavailable`;
+ *   · si no, lo que el adaptador midió como coste de la respuesta.
+ *
+ * Nunca un 0 por defecto: `null` es «no se sabe».
+ */
+const costeAlTerminar = (r: GatewayResult): {
+  estado: ProviderCostStatus;
+  actual: number | null;
+  fuente?: ProviderCostSource;
+  tokens?: number;
+  tarifa?: number;
+} => {
+  if (r.status === 'failed') {
+    const alProveedor = String(r.error?.source ?? '').startsWith('adapter:');
+    return alProveedor || !r.error ? { estado: 'unavailable', actual: null } : { estado: 'actual', actual: 0, fuente: 'not_dispatched' };
+  }
+  const meta = (r.response?.meta ?? {}) as Record<string, unknown>;
+  const tarifa = noNegativo(meta.usdPerMillionTokens);
+  if (Object.prototype.hasOwnProperty.call(meta, 'providerReportedTokens')) {
+    const tokens = noNegativo(meta.providerReportedTokens);
+    const actual = costeDeUnConsumo(tokens, tarifa);
+    return actual === null
+      ? { estado: 'unavailable', actual: null, ...(tarifa !== undefined ? { tarifa } : {}) }
+      : { estado: 'actual', actual, fuente: 'provider_usage', tokens: tokens as number, tarifa: tarifa as number };
+  }
+  const usd = noNegativo(r.response?.actual.provider.usd);
+  return usd === undefined ? { estado: 'unavailable', actual: null } : { estado: 'actual', actual: usd, fuente: 'adapter_measure' };
+};
+
+/** Lo que el adaptador contó al aceptar: su estimación y su tarifa. Sigue siendo estimación. */
+const estimacionAlAceptar = (avance?: Readonly<Record<string, unknown>>) => {
+  if (!avance) return {};
+  const tokens = noNegativo(avance.estimatedTokens);
+  const usd = noNegativo(avance.estimatedUsd);
+  const tarifa = noNegativo(avance.usdPerMillionTokens);
+  const resolucion = texto(avance.resolution);
+  return {
+    ...(tokens !== undefined ? { estimatedTokens: tokens } : {}),
+    ...(usd !== undefined ? { estimatedProviderCost: usd } : {}),
+    ...(tarifa !== undefined ? { providerRateUsdPerMillionTokens: tarifa } : {}),
+    ...(resolucion ? { resolution: resolucion } : {}),
+  };
+};
 
 /**
  * EL LIBRO DE SIEMPRE, POR EL PUERTO DEL EJECUTOR.
@@ -142,12 +196,26 @@ export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: Iden
       model: dispatch.implementation.modelId,
       attempt: dispatch.attempt,
       estimatedUsd: numero(meta.estimatedUsd) ?? 0,
+      /*
+       * EL COSTE, SEPARADO. Lo estimado —el del catálogo, el mismo que se
+       * cotizó— y nada más: lo real no se sabe hasta que el proveedor diga lo
+       * que consumió, y hasta entonces es `null`, no 0.
+       */
+      estimatedProviderCost: noNegativo(meta.estimatedUsd) ?? null,
+      providerCostStatus: 'estimated',
+      /*
+       * EL PRECIO DE CATÁLOGO DEL PASO, DESDE EL PRINCIPIO. La liquidación reparte
+       * lo cobrado entre las filas en proporción a esto; antes lo ponía el cierre,
+       * y una fila que ya no se cierra al aceptar se quedaba sin él —y sin su
+       * parte del cobro—. El cierre lo vuelve a escribir, con el mismo valor.
+       */
+      creditsEstimated: numero(meta.creditsEstimated) ?? numero(meta.estimatedCredits),
       pricingMode: settings.pricingMode,
       service: texto(meta.service),
       creditTransactionId: texto(meta.creditTransactionId),
     });
   },
-  async cerrar(fila, { dispatch, resultado, durationMs }) {
+  async cerrar(fila, { dispatch, resultado, durationMs, avance, desconocido }) {
     /*
      * QUE EL CONDUCTOR TAMBIÉN DEJE CONSTANCIA DE QUE UN PROVEEDOR CONTESTÓ.
      *
@@ -185,13 +253,39 @@ export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: Iden
       void recordRealSuccess(quien.providerId, quien.modelId ?? '', resultado.capability ?? dispatch.capability ?? '', fila);
     }
 
+    /*
+     * ── LA TAREA SIGUE VIVA: LA FILA NO SE CIERRA ──────────────────────────
+     *
+     * Con `accepted` el proveedor se quedó la tarea; con un POST sin respuesta
+     * no se sabe si la tiene. En los dos casos no hay desenlace, y cerrar la
+     * fila aquí —como se hacía— la dejaba en COMPLETED con 0 USD un segundo
+     * después de salir, mientras el vídeo se seguía haciendo (canary real,
+     * 2026-09-28). Queda en PROCESSING, con el nombre de la tarea y lo que el
+     * adaptador estimó, y la cierra quien sepa cómo acabó (`closeOperation`).
+     */
+    if (resultado.status === 'accepted' || desconocido) {
+      await ledger.progress(fila, {
+        status: 'PROCESSING',
+        ...(resultado.operation?.operationId ? { providerTaskId: resultado.operation.operationId } : {}),
+        ...estimacionAlAceptar(avance),
+      });
+      return;
+    }
+
     const meta = dispatch.metadata ?? {};
     const uso = resultado.usage
       ? Object.fromEntries(Object.entries(resultado.usage).filter((par): par is [string, number] => typeof par[1] === 'number'))
       : undefined;
+    const coste = costeAlTerminar(resultado);
     await ledger.close(fila, {
       status: resultado.status === 'failed' ? 'FAILED' : 'COMPLETED',
-      providerCost: resultado.response?.actual.provider.usd ?? 0,
+      /* `providerCost` es el coste REAL, y solo cuando se sabe. Si no, falta: no es 0. */
+      ...(coste.actual !== null ? { providerCost: coste.actual } : {}),
+      actualProviderCost: coste.actual,
+      providerCostStatus: coste.estado,
+      ...(coste.fuente ? { providerCostSource: coste.fuente } : {}),
+      ...(coste.tokens !== undefined ? { providerUsageTokens: coste.tokens } : {}),
+      ...(coste.tarifa !== undefined ? { providerRateUsdPerMillionTokens: coste.tarifa } : {}),
       creditsEstimated: numero(meta.creditsEstimated) ?? numero(meta.estimatedCredits),
       durationMs,
       outputType: resultado.response?.kind,
@@ -259,8 +353,29 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
   const cerrarFila = async (creditTransactionId: string, finalAmount: number) => {
     await ledger.settle({ creditTransactionId, finalAmount }).catch(() => undefined);
   };
+  /*
+   * LA OTRA OPORTUNIDAD DEL COSTE. Normalmente la fila ya la cerró la atención
+   * del aviso; si no pudo, el trabajo guardado sigue sabiendo cómo llama el
+   * proveedor a la tarea y lo que declaró consumir. Cerrar dos veces no suma dos
+   * veces, y un fallo aquí no toca el dinero.
+   */
+  const cerrarCoste = async (o: CosteDeLaOperacion, desenlace: 'COMPLETED' | 'FAILED') => {
+    if (!o.operacion || !ledger.closeOperation) return;
+    try {
+      await ledger.closeOperation({
+        provider: o.operacion.providerId,
+        providerTaskId: o.operacion.operationId,
+        status: desenlace,
+        ...(o.tokens !== undefined ? { reportedTokens: o.tokens } : {}),
+      });
+    } catch {
+      /* Se queda en PROCESSING, visible; la próxima pasada lo vuelve a intentar. */
+    }
+  };
   return {
-    async liquidar({ userId, reserva, importe, jobId }) {
+    async liquidar(orden) {
+      const { userId, reserva, importe, jobId } = orden;
+      await cerrarCoste(orden, 'COMPLETED');
       try {
         /*
          * `completeCredits` solo mueve algo si la transacción está
@@ -275,7 +390,9 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
         return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
       }
     },
-    async reembolsar({ userId, reserva }) {
+    async reembolsar(orden) {
+      const { userId, reserva } = orden;
+      await cerrarCoste(orden, 'FAILED');
       try {
         const r = await credits.refundCredits({ userId, requestId: reserva.requestId, reason: 'Weë · la operación no llegó a completarse', source: 'weë-runtime' });
         await cerrarFila(reserva.transactionId, 0);
@@ -341,7 +458,13 @@ export const barridoDeLiquidacionDeWee = (deps: {
  *
  * NADIE LA LLAMA TODAVÍA: el receptor no se exporta como Function.
  */
-export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; materializar?: PuertoDeMaterializacion; observar?: (v: VistoAlAtender) => void } = {}): AtencionDeps => {
+export const atencionDeWee = (deps: {
+  db?: Firestore;
+  ahora?: () => number;
+  materializar?: PuertoDeMaterializacion;
+  observar?: (v: VistoAlAtender) => void;
+  libro?: AtencionDeps['libro'];
+} = {}): AtencionDeps => {
   const db = deps.db ?? getFirestore();
   return {
     trabajos: almacenDeTrabajos(db),
@@ -350,8 +473,26 @@ export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; mate
     materializar: deps.materializar ?? materializadorDeWee,
     ahora: deps.ahora ?? (() => Date.now()),
     ...(deps.observar ? { observar: deps.observar } : {}),
+    libro: deps.libro ?? libroDeOperaciones(),
   };
 };
+
+/**
+ * EL LIBRO DE SIEMPRE, POR EL PUERTO DE LA ATENCIÓN: cuando el proveedor dice
+ * cómo acabó una tarea, su fila de `aiGenerations` se cierra con lo que declaró
+ * haber consumido. El libro es el mismo; esto solo traduce los nombres.
+ */
+export const libroDeOperaciones = (ledger: Ledger = firestoreLedger): NonNullable<AtencionDeps['libro']> => ({
+  async cerrarOperacion(o) {
+    if (!ledger.closeOperation) return undefined;
+    return ledger.closeOperation({
+      provider: o.providerId,
+      providerTaskId: o.operationId,
+      status: o.desenlace === 'terminado' ? 'COMPLETED' : 'FAILED',
+      ...(o.tokens !== undefined ? { reportedTokens: o.tokens } : {}),
+    });
+  },
+});
 
 /**
  * LA PASADA DEL RECONCILIADOR DE WEË, compuesta.

@@ -88,10 +88,11 @@ const acotar = (valor: unknown, tope: number): string | undefined => {
 };
 
 /** Lo que el proveedor dijo haber consumido, si dijo un número. `undefined` es «no lo dijo», no «cero». */
-const tokensDe = (aviso: AvisoNormalizado): number | undefined => {
+export const tokensDeclarados = (aviso: AvisoNormalizado): number | undefined => {
   const bruto = aviso.usage?.tokens ?? aviso.usage?.totalTokens;
   return typeof bruto === 'number' && Number.isFinite(bruto) && bruto >= 0 ? bruto : undefined;
 };
+const tokensDe = tokensDeclarados;
 
 /**
  * DE UN DESENLACE A LO QUE EL MOTOR ENTIENDE.

@@ -1,5 +1,5 @@
 import { Job } from '../core';
-import { AccionDeLiquidacion, PuertoDeLiquidacion, decidirLiquidacion, reservaDe } from './liquidacion';
+import { AccionDeLiquidacion, PuertoDeLiquidacion, costeDeLaOperacion, decidirLiquidacion, reservaDe } from './liquidacion';
 
 /**
  * WEË RUNTIME — EL BARRENDERO: QUÉ SE QUEDÓ SIN CERRAR.
@@ -148,9 +148,11 @@ export const barrerLiquidaciones = async (deps: BarrenderoDeps): Promise<Informe
         continue;
       }
 
+      /* Y lo que el trabajo sabe del coste de su operación, para que el libro se cierre si nadie lo cerró antes. */
+      const coste = costeDeLaOperacion(job);
       const resultado = accion.tipo === 'liquidar'
-        ? await deps.liquidacion.liquidar({ userId: job.owner.userId, reserva, importe: accion.importe, jobId: job.jobId })
-        : await deps.liquidacion.reembolsar({ userId: job.owner.userId, reserva, motivo: accion.motivo, jobId: job.jobId });
+        ? await deps.liquidacion.liquidar({ userId: job.owner.userId, reserva, importe: accion.importe, jobId: job.jobId, ...coste })
+        : await deps.liquidacion.reembolsar({ userId: job.owner.userId, reserva, motivo: accion.motivo, jobId: job.jobId, ...coste });
 
       const visto = { ...base, desenlace: resultado.desenlace, ...(resultado.estado ? { estado: resultado.estado } : {}), ...(accion.tipo === 'liquidar' ? { importe: accion.importe } : {}) };
       vistos.push(visto); deps.observar?.(visto);

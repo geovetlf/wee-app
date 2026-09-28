@@ -1,6 +1,6 @@
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { strip } from '../credits/creditEngine';
-import { GenerationRecord, GenerationStatus } from './types';
+import { GenerationRecord, GenerationStatus, ProviderCostSource, ProviderCostStatus } from './types';
 
 /**
  * Libro de generaciones: aiGenerations/{generationId} (docs/CREDITS.md §generations).
@@ -10,6 +10,11 @@ import { GenerationRecord, GenerationStatus } from './types';
  * (creditsCharged), transacción de Credits, tipos de entrada/salida y tiempos.
  * La persona puede leer los suyos; solo el servidor escribe.
  * Además acumula por día en aiUsage/{día} para el panel de administración.
+ *
+ * Las filas del Core (F1-D, tras el canary real) llevan además el coste SEPARADO
+ * en tres campos que no se mezclan: `estimatedProviderCost` (lo estimado),
+ * `actualProviderCost` (lo real, o `null`) y `providerCostStatus` (estimated ·
+ * actual · unavailable). Un coste que no se conoce nunca se escribe como 0.
  */
 /**
  * EL DÍA DE UNA OPERACIÓN ES EL DÍA UTC EN QUE SE CREÓ.
@@ -39,7 +44,17 @@ export const LEDGER_VERSION = 2;
 
 export interface CloseRecord {
   status: Extract<GenerationStatus, 'COMPLETED' | 'FAILED' | 'CANCELLED'>;
-  providerCost: number;
+  /**
+   * El coste del proveedor. Las filas de siempre lo mandan siempre; las que
+   * llevan el coste separado, SOLO cuando se conoce (`actualProviderCost`).
+   */
+  providerCost?: number;
+  /* ── El coste, separado: solo quien abrió la fila con `providerCostStatus` ── */
+  actualProviderCost?: number | null;
+  providerCostStatus?: ProviderCostStatus;
+  providerCostSource?: ProviderCostSource;
+  providerUsageTokens?: number;
+  providerRateUsdPerMillionTokens?: number;
   /**
    * Precio de catálogo de este paso. Se escribe SIEMPRE, haya cobro o no: es lo
    * que la operación vale, no lo que se cobró. Cerrar una generación ya no
@@ -72,6 +87,33 @@ export interface ProgressRecord {
   estimatedTokens?: number;
   estimatedUsd?: number;
   resolution?: string;
+  /** La estimación del ADAPTADOR al aceptar (tokens × tarifa), que afina la del catálogo. Sigue siendo estimación. */
+  estimatedProviderCost?: number;
+  /** La tarifa con la que el proveedor valorará lo que consuma. Hace falta para convertir su consumo en dinero al final. */
+  providerRateUsdPerMillionTokens?: number;
+}
+
+/**
+ * EL FINAL DE UNA OPERACIÓN ASÍNCRONA, dicho por el proveedor.
+ *
+ * Se busca la fila por cómo llama el proveedor a la tarea —lo que el aviso y la
+ * pregunta traen—, no por nada que diga el mensaje sobre de quién es.
+ */
+export interface CloseOperationRecord {
+  provider: string;
+  providerTaskId: string;
+  status: Extract<GenerationStatus, 'COMPLETED' | 'FAILED'>;
+  /** Lo que el proveedor DECLARÓ haber consumido. Ausente = no lo dijo, que no es lo mismo que cero. */
+  reportedTokens?: number;
+}
+
+export interface CloseOperationResult {
+  /** Filas cerradas en esta llamada: 0 o 1. */
+  closed: number;
+  /** Ya estaba cerrada: no se tocó nada ni se volvió a sumar nada. */
+  already: boolean;
+  /** No hay fila del Core con esa tarea. No es un fallo: el camino de siempre no las abre así. */
+  found: boolean;
 }
 
 /** Desenlace de una transacción, ya conocido. */
@@ -96,7 +138,53 @@ export interface Ledger {
   progress(id: string, patch: ProgressRecord): Promise<void>;
   close(id: string, patch: CloseRecord): Promise<void>;
   settle(patch: SettleRecord): Promise<SettleResult>;
+  /**
+   * Cerrar la fila de una operación asíncrona cuando el proveedor ya dijo cómo
+   * acabó. IDEMPOTENTE: la segunda vez no cambia nada ni vuelve a sumar nada.
+   * Opcional para que un libro de prueba escrito a mano siga valiendo.
+   */
+  closeOperation?(patch: CloseOperationRecord): Promise<CloseOperationResult>;
 }
+
+/**
+ * LO QUE VALE UN CONSUMO DECLARADO, a la tarifa declarada. Pura.
+ *
+ * Solo con los dos números de verdad: un consumo que el proveedor no dijo, o una
+ * tarifa que el adaptador no declaró, no dan un coste —dan `null`—. Cero tokens
+ * es un consumo legítimo y vale cero.
+ */
+export const costeDeUnConsumo = (tokens: unknown, usdPorMillon: unknown): number | null => {
+  const t = typeof tokens === 'number' && Number.isFinite(tokens) && tokens >= 0 ? tokens : undefined;
+  const r = typeof usdPorMillon === 'number' && Number.isFinite(usdPorMillon) && usdPorMillon >= 0 ? usdPorMillon : undefined;
+  return t === undefined || r === undefined ? null : (t * r) / 1_000_000;
+};
+
+/**
+ * EL CIERRE DE UNA OPERACIÓN ASÍNCRONA, decidido sobre la fila GUARDADA. Pura.
+ *
+ * Devuelve `null` cuando no hay nada que hacer: una fila del camino de siempre
+ * (no lleva `providerCostStatus` y no se toca), o una que ya se cerró.
+ */
+export const cierreDeOperacion = (
+  fila: Record<string, unknown>,
+  patch: CloseOperationRecord,
+): { campos: Record<string, unknown>; actual: number | null } | null => {
+  if (fila.providerCostStatus === undefined) return null;
+  const cerrada = fila.status === 'COMPLETED' || fila.status === 'FAILED' || fila.status === 'CANCELLED';
+  if (cerrada && fila.providerCostStatus !== 'estimated') return null;
+  const actual = costeDeUnConsumo(patch.reportedTokens, fila.providerRateUsdPerMillionTokens);
+  return {
+    actual,
+    campos: {
+      status: patch.status,
+      actualProviderCost: actual,
+      providerCostStatus: actual === null ? 'unavailable' : 'actual',
+      ...(actual !== null ? { providerCost: actual, providerCostSource: 'provider_usage' } : {}),
+      ...(typeof patch.reportedTokens === 'number' && Number.isFinite(patch.reportedTokens) && patch.reportedTokens >= 0
+        ? { providerUsageTokens: patch.reportedTokens } : {}),
+    },
+  };
+};
 
 /**
  * Reparto contable de los Credits capturados entre los pasos que sí produjeron
@@ -133,6 +221,29 @@ const db = () => getFirestore();
  */
 const stripUndefined = strip;
 
+/**
+ * LA APERTURA DEL COSTE. La fila de siempre nace con `providerCost: 0` y la cierra
+ * quien la abrió. La que llega con el coste SEPARADO nace sin coste real —`null`,
+ * que es «todavía no se sabe»— y sin `providerCost`: un 0 aquí era el que se
+ * quedaba escrito cuando el vídeo terminaba fuera de la llamada.
+ */
+const costeAlAbrir = (record: OpenRecord): Record<string, unknown> =>
+  (record.providerCostStatus !== undefined ? { actualProviderCost: null } : { providerCost: 0 });
+
+/** Lo que una fila cerrada suma al resumen del día, contado igual en `close` y en `closeOperation`. */
+const sumaDelDia = (p: { status: string; providerCost?: number; durationMs?: number; sinCoste: boolean }) => ({
+  calls: FieldValue.increment(1),
+  failed: FieldValue.increment(p.status === 'FAILED' ? 1 : 0),
+  // Dinero real del proveedor y llamadas: ocurrieron de verdad aunque
+  // después se reembolse, así que se acumulan siempre. Los Credits NO
+  // se acumulan aquí: hasta que la transacción se liquide no se sabe
+  // si hubo ingreso. Lo hace ledger.settle().
+  usd: FieldValue.increment(p.providerCost || 0),
+  latencyMs: FieldValue.increment(p.durationMs || 0),
+  /* Las que terminaron SIN coste conocido se cuentan aparte: sumarlas como cero escondería el hueco. */
+  ...(p.sinCoste ? { unpricedCalls: FieldValue.increment(1) } : {}),
+});
+
 export const firestoreLedger: Ledger = {
   async open(record) {
     const ref = db().collection('aiGenerations').doc();
@@ -141,7 +252,7 @@ export const firestoreLedger: Ledger = {
       stripUndefined({
         ...record,
         status: 'QUEUED' as GenerationStatus,
-        providerCost: 0,
+        ...costeAlAbrir(record),
         providerCurrency: 'USD',
         // creditsCharged NO se inicializa: su ausencia significa "sin liquidar".
         ledgerVersion: LEDGER_VERSION,
@@ -167,6 +278,7 @@ export const firestoreLedger: Ledger = {
     const day = diaDelLibro(record.createdAt, now);
     const provider = record.provider || 'unknown';
     const capability = record.capability || 'unknown';
+    const sinCoste = patch.providerCostStatus === 'unavailable';
     await Promise.all([
       ref.set(clean, { merge: true }),
       db()
@@ -175,23 +287,65 @@ export const firestoreLedger: Ledger = {
         .set(
           {
             [capability]: {
+              [provider]: sumaDelDia({ status: patch.status, providerCost: patch.providerCost, durationMs: patch.durationMs, sinCoste }),
+            },
+            byProvider: {
               [provider]: {
                 calls: FieldValue.increment(1),
-                failed: FieldValue.increment(patch.status === 'FAILED' ? 1 : 0),
-                // Dinero real del proveedor y llamadas: ocurrieron de verdad aunque
-                // después se reembolse, así que se acumulan siempre. Los Credits NO
-                // se acumulan aquí: hasta que la transacción se liquide no se sabe
-                // si hubo ingreso. Lo hace ledger.settle().
                 usd: FieldValue.increment(patch.providerCost || 0),
-                latencyMs: FieldValue.increment(patch.durationMs || 0),
+                ...(sinCoste ? { unpricedCalls: FieldValue.increment(1) } : {}),
               },
             },
-            byProvider: { [provider]: { calls: FieldValue.increment(1), usd: FieldValue.increment(patch.providerCost || 0) } },
             updatedAt: now,
           },
           { merge: true }
         ),
     ]);
+  },
+  /**
+   * EL FINAL DE UNA OPERACIÓN ASÍNCRONA, UNA SOLA VEZ.
+   *
+   * La fila se abrió al salir y quedó en PROCESSING al aceptar la tarea; aquí se
+   * cierra con lo que el proveedor DECLARÓ haber consumido, valorado con la
+   * tarifa que el adaptador declaró al salir. Sin consumo declarado, el coste
+   * real queda en `null` y la fila dice `unavailable`: no se inventa ni se pone 0.
+   *
+   * En una transacción, y por eso idempotente: si el aviso y la pregunta llegan a
+   * la vez, o la liquidación vuelve a intentarlo, solo uno cierra y suma al día.
+   */
+  async closeOperation(patch) {
+    const providerTaskId = String(patch.providerTaskId ?? '').trim();
+    if (!providerTaskId || !patch.provider) return { closed: 0, already: false, found: false };
+    const snap = await db().collection('aiGenerations').where('providerTaskId', '==', providerTaskId).limit(4).get();
+    const suyas = snap.docs.filter((d) => d.get('provider') === patch.provider && d.get('providerCostStatus') !== undefined);
+    /* Una tarea es de UNA fila. Si hubiera dos, no se adivina cuál: se deja como está y se ve. */
+    if (suyas.length !== 1) return { closed: 0, already: false, found: suyas.length > 0 };
+    const ref = suyas[0].ref;
+    return db().runTransaction(async (tx) => {
+      const actual = await tx.get(ref);
+      const fila = (actual.data() || {}) as Record<string, unknown>;
+      const cierre = cierreDeOperacion(fila, patch);
+      if (!cierre) return { closed: 0, already: true, found: true };
+      const now = Timestamp.now();
+      const creada = (fila.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.();
+      const durationMs = typeof creada === 'number' ? Math.max(0, now.toMillis() - creada) : 0;
+      tx.set(ref, stripUndefined({ ...cierre.campos, durationMs, updatedAt: now, completedAt: patch.status === 'COMPLETED' ? now : undefined }), { merge: true });
+      const provider = String(fila.provider || 'unknown');
+      const capability = String(fila.capability || 'unknown');
+      const sinCoste = cierre.actual === null;
+      tx.set(db().collection('aiUsage').doc(diaDelLibro(fila.createdAt, now)), {
+        [capability]: { [provider]: sumaDelDia({ status: patch.status, providerCost: cierre.actual ?? undefined, durationMs, sinCoste }) },
+        byProvider: {
+          [provider]: {
+            calls: FieldValue.increment(1),
+            usd: FieldValue.increment(cierre.actual ?? 0),
+            ...(sinCoste ? { unpricedCalls: FieldValue.increment(1) } : {}),
+          },
+        },
+        updatedAt: now,
+      }, { merge: true });
+      return { closed: 1, already: false, found: true };
+    });
   },
 };
 
@@ -274,7 +428,7 @@ export const memoryLedger = (): Ledger & { records: Record<string, Record<string
     usage,
     async open(record) {
       const id = `gen-${++counter}`;
-      records[id] = { ...record, status: 'QUEUED', providerCost: 0, providerCurrency: 'USD', ledgerVersion: LEDGER_VERSION };
+      records[id] = { ...record, status: 'QUEUED', ...costeAlAbrir(record), providerCurrency: 'USD', ledgerVersion: LEDGER_VERSION };
       return id;
     },
     async progress(id, patch) {
@@ -282,6 +436,15 @@ export const memoryLedger = (): Ledger & { records: Record<string, Record<string
     },
     async close(id, patch) {
       records[id] = { ...(records[id] || {}), ...patch };
+    },
+    async closeOperation(patch) {
+      const suyas = Object.entries(records).filter(([, r]) => r.providerTaskId === patch.providerTaskId && r.provider === patch.provider && r.providerCostStatus !== undefined);
+      if (suyas.length !== 1) return { closed: 0, already: false, found: suyas.length > 0 };
+      const [id, fila] = suyas[0];
+      const cierre = cierreDeOperacion(fila, patch);
+      if (!cierre) return { closed: 0, already: true, found: true };
+      records[id] = { ...fila, ...cierre.campos };
+      return { closed: 1, already: false, found: true };
     },
     async settle(patch) {
       const filas = Object.entries(records).filter(([, r]) => r.creditTransactionId === patch.creditTransactionId);

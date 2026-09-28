@@ -1,4 +1,4 @@
-import { Job, JobAttempt, esTrabajoTerminal } from '../core';
+import { Job, JobAttempt, ProviderOperationRef, esTrabajoTerminal } from '../core';
 
 /**
  * WEË RUNTIME — QUÉ HAY QUE HACER CON EL DINERO DE UN TRABAJO.
@@ -221,6 +221,27 @@ export interface ResultadoDeLiquidacion {
  * que venía en el trabajo.
  */
 export interface PuertoDeLiquidacion {
-  liquidar(orden: { userId: string; reserva: ReservaDelTrabajo; importe: number; jobId: string }): Promise<ResultadoDeLiquidacion>;
-  reembolsar(orden: { userId: string; reserva: ReservaDelTrabajo; motivo: MotivoDeReembolso; jobId: string }): Promise<ResultadoDeLiquidacion>;
+  liquidar(orden: { userId: string; reserva: ReservaDelTrabajo; importe: number; jobId: string } & CosteDeLaOperacion): Promise<ResultadoDeLiquidacion>;
+  reembolsar(orden: { userId: string; reserva: ReservaDelTrabajo; motivo: MotivoDeReembolso; jobId: string } & CosteDeLaOperacion): Promise<ResultadoDeLiquidacion>;
 }
+
+/**
+ * LO QUE EL TRABAJO GUARDADO SABE DEL COSTE DE SU OPERACIÓN: cómo la llama el
+ * proveedor y lo que declaró haber consumido. No mueve dinero ni lo decide: es
+ * lo que permite, al liquidar, cerrar la fila del libro si nadie la cerró antes.
+ */
+export interface CosteDeLaOperacion {
+  operacion?: ProviderOperationRef;
+  /** Lo DECLARADO por el proveedor. Ausente si no lo dijo: no es cero. */
+  tokens?: number;
+}
+
+/** El coste de la operación de un trabajo, leído de su último intento. Puro. */
+export const costeDeLaOperacion = (job: Job): CosteDeLaOperacion => {
+  const intento = job.attempts[job.attempts.length - 1];
+  const tokens = intento?.usage?.totalTokens;
+  return {
+    ...(intento?.providerRef ? { operacion: { providerId: intento.providerRef.providerId, operationId: intento.providerRef.operationId } } : {}),
+    ...(typeof tokens === 'number' && Number.isFinite(tokens) && tokens >= 0 ? { tokens } : {}),
+  };
+};

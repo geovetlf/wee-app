@@ -1,5 +1,5 @@
 import { Job, JobEngine, JobStore, esTrabajoTerminal } from '../core';
-import { AvisoNormalizado, leerAviso } from './aviso';
+import { AvisoNormalizado, leerAviso, tokensDeclarados } from './aviso';
 import { PuertoDeMaterializacion, identidadDelMaterial, procedenciaDe, tipoDeMaterialDe } from './materializacion';
 import { BusquedaPorOperacion, identidadDeEvento } from './proveedor';
 
@@ -46,6 +46,25 @@ export interface AtencionDeps {
   ahora: () => number;
   /** Para poder verlo desde fuera sin que esto sepa cómo se registra nada. */
   observar?: (v: VistoAlAtender) => void;
+  /**
+   * EL LIBRO DE GENERACIONES: cerrar la fila de la operación con lo que el
+   * proveedor dijo que consumió. Opcional, y sin él nada cambia.
+   *
+   * Es anotación, no decisión: se escribe DESPUÉS de que el motor aplicó el
+   * desenlace, no mueve el trabajo ni el dinero, y si falla no tumba nada —se
+   * vuelve a intentar con el siguiente aviso o en la liquidación, y el cierre es
+   * idempotente—.
+   */
+  libro?: { cerrarOperacion(o: CierreDeOperacion): Promise<unknown> };
+}
+
+/** El final de una operación, tal como lo cuenta el proveedor, para el libro. */
+export interface CierreDeOperacion {
+  providerId: string;
+  operationId: string;
+  desenlace: 'terminado' | 'fallado';
+  /** Lo que DECLARÓ haber consumido. Ausente si no lo dijo: no es cero. */
+  tokens?: number;
 }
 
 export interface VistoAlAtender {
@@ -102,6 +121,26 @@ export const atenderAviso = async (deps: AtencionDeps, aviso: AvisoNormalizado):
     return v;
   };
 
+  /*
+   * 5 · EL LIBRO, cuando ya hay desenlace. Solo con un final —bueno o malo— y
+   * nunca con un avance. No decide nada y no lanza: una fila que no se pudo
+   * cerrar se vuelve a intentar, y cerrarla dos veces no suma dos veces.
+   */
+  const anotarElCoste = async (): Promise<void> => {
+    if (!deps.libro || (aviso.desenlace !== 'terminado' && aviso.desenlace !== 'fallado')) return;
+    const tokens = tokensDeclarados(aviso);
+    try {
+      await deps.libro.cerrarOperacion({
+        providerId: aviso.providerId,
+        operationId: aviso.operationId,
+        desenlace: aviso.desenlace,
+        ...(tokens !== undefined ? { tokens } : {}),
+      });
+    } catch {
+      console.warn(`WEË RUNTIME: no se pudo cerrar la fila del libro de ${aviso.providerId}/${aviso.operationId}`);
+    }
+  };
+
   /* 1 · ¿DE QUIÉN ES? Lo contesta el almacén buscando la operación, no el mensaje. */
   const busqueda = await deps.trabajos.porReferenciaDeProveedor(aviso.providerId, aviso.operationId);
   /*
@@ -134,6 +173,8 @@ export const atenderAviso = async (deps: AtencionDeps, aviso: AvisoNormalizado):
     ...(aviso.updatedAt !== undefined ? { updatedAt: aviso.updatedAt } : {}),
   });
   if (esTrabajoTerminal(job.state) || (identidad && job.seenEvents.includes(identidad))) {
+    /* Repetido: el trabajo no se toca, pero si la fila del libro se quedó sin cerrar, esta es otra oportunidad. */
+    if (esTrabajoTerminal(job.state)) await anotarElCoste();
     return ver({ estado: 'repetido', jobId: job.jobId }, { jobId: job.jobId, attemptId: intento.attemptId });
   }
 
@@ -160,6 +201,7 @@ export const atenderAviso = async (deps: AtencionDeps, aviso: AvisoNormalizado):
     const decision = deps.motor.recibirEvento(actual, lectura.evento, at);
     if (decision.status === 'noop') {
       /* El motor ya lo había visto, o llegó fuera de orden. Repetirse no cuesta nada: es el objetivo. */
+      if (lectura.terminal) await anotarElCoste();
       return ver({ estado: 'repetido', jobId: actual.jobId }, { jobId: actual.jobId, attemptId: intento.attemptId, ...(assetId ? { assetId } : {}) });
     }
     if (decision.status !== 'transition' || !decision.transition) {
@@ -167,6 +209,7 @@ export const atenderAviso = async (deps: AtencionDeps, aviso: AvisoNormalizado):
     }
     const escrito = await deps.almacen.aplicar(decision.transition);
     if (escrito.applied) {
+      if (lectura.terminal) await anotarElCoste();
       return ver(
         { estado: 'aplicado', jobId: actual.jobId, terminal: lectura.terminal, ...(assetId ? { assetId } : {}) },
         { jobId: actual.jobId, attemptId: intento.attemptId, ...(assetId ? { assetId } : {}) },

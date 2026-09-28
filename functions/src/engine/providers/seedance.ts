@@ -133,6 +133,19 @@ export function seedanceRate(modelId: string, resolution: SeedanceResolution, wi
 export const seedanceUsd = (tokens: number, ratePerMillion: number): number => (tokens * ratePerMillion) / 1_000_000;
 
 /**
+ * LO QUE MODELARK DECLARA HABER CONSUMIDO en una tarea: `usage.completion_tokens`
+ * (o `total_tokens`), y solo si es un número de verdad. Es la fuente del coste
+ * real —ModelArk no devuelve dinero por tarea: factura esos tokens a la tarifa
+ * del modelo—. Sin número declarado, `undefined`: nunca la estimación.
+ */
+export const consumoDeclarado = (usage: unknown): number | undefined => {
+  if (!usage || typeof usage !== 'object') return undefined;
+  const u = usage as Record<string, unknown>;
+  const bruto = typeof u.completion_tokens === 'number' ? u.completion_tokens : u.total_tokens;
+  return typeof bruto === 'number' && Number.isFinite(bruto) && bruto >= 0 ? bruto : undefined;
+};
+
+/**
  * Coste oficial estimado en USD de una generación, con la fórmula y las tarifas
  * publicadas por BytePlus. Es lo que usa el Credit Engine para fijar el precio
  * antes de generar; el coste real que se registra sale de usage.completion_tokens.
@@ -323,7 +336,8 @@ export const seedanceAdapter: ProviderAdapter = {
     }
     const taskId = String(task.id ?? '');
     if (!taskId) throw new ProviderError(`seedance: ${task.error?.message ?? 'no devolvió id de tarea'}`, 'seedance');
-    if (request.onStatus) await request.onStatus('PROCESSING', { providerTaskId: taskId, estimatedTokens, estimatedUsd: seedanceUsd(estimatedTokens, rate), resolution: body.resolution });
+    /* La tarifa viaja con la estimación: con ella, el consumo que ModelArk declare al final se convierte en dinero. */
+    if (request.onStatus) await request.onStatus('PROCESSING', { providerTaskId: taskId, estimatedTokens, estimatedUsd: seedanceUsd(estimatedTokens, rate), usdPerMillionTokens: rate, resolution: body.resolution });
 
     /*
      * AQUÍ SE SEPARAN LOS DOS CAMINOS, Y LA LLAMADA AL PROVEEDOR ES LA MISMA.
@@ -351,6 +365,7 @@ export const seedanceAdapter: ProviderAdapter = {
           ratio: body.ratio,
           estimatedTokens,
           estimatedUsd: seedanceUsd(estimatedTokens, rate),
+          usdPerMillionTokens: rate,
           withVideoInput,
           generateAudio: body.generate_audio,
           /* Lo que se le pidió durar: sin esto, quien reconcilie no sabe qué esperaba. */
@@ -379,6 +394,14 @@ export const seedanceAdapter: ProviderAdapter = {
     const remote = String(finished.content?.video_url ?? '');
     if (!remote) throw new ProviderError('seedance: terminó sin video', 'seedance');
     const url = await persistRemoteFile(ctx.userId, remote, 'seedance', 'weel');
+    /*
+     * LO QUE MODELARK DECLARÓ, Y NADA MÁS. `actualTokens` (y con él `costUSD`)
+     * sigue cayendo a la estimación cuando no lo declara, porque el camino de
+     * siempre lo lee así y esta fase no lo toca. `providerReportedTokens` es la
+     * versión honrada: el número que dio el proveedor, o `null` si no dio
+     * ninguno. El Core valora solo esta.
+     */
+    const reportado = consumoDeclarado(finished.usage);
     const actualTokens = Number(finished.usage?.completion_tokens ?? finished.usage?.total_tokens ?? estimatedTokens);
     const durationSec = Number(finished.duration ?? (body.duration === -1 ? 0 : body.duration)) || undefined;
 
@@ -395,6 +418,8 @@ export const seedanceAdapter: ProviderAdapter = {
         framesPerSecond: Number(finished.framespersecond ?? FPS),
         estimatedTokens,
         actualTokens,
+        providerReportedTokens: reportado ?? null,
+        usdPerMillionTokens: rate,
         estimatedUsd: seedanceUsd(estimatedTokens, rate),
         withVideoInput,
         generateAudio: body.generate_audio,
@@ -456,8 +481,8 @@ export const leerAvisoDeSeedance = (cuerpo: unknown): AvisoNormalizado | undefin
 
   const error = b.error && typeof b.error === 'object' ? (b.error as Record<string, any>) : undefined;
   const mensaje = error ? String(error.message ?? error.code ?? '') : '';
-  const usage = b.usage && typeof b.usage === 'object' ? (b.usage as Record<string, any>) : undefined;
-  const tokens = Number(usage?.completion_tokens ?? usage?.total_tokens ?? NaN);
+  /* Solo un NÚMERO declarado: un `null` no es cero tokens, es no haberlo dicho. */
+  const tokens = consumoDeclarado(b.usage);
 
   return {
     providerId: 'seedance',
@@ -470,7 +495,7 @@ export const leerAvisoDeSeedance = (cuerpo: unknown): AvisoNormalizado | undefin
     ...(typeof b.content?.video_url === 'string' && b.content.video_url ? { recurso: String(b.content.video_url) } : {}),
     ...(mensaje ? { motivo: isInputRejection(mensaje) ? `rechazo de entrada: ${mensaje}` : mensaje } : {}),
     ...(error?.code ? { codigo: String(error.code) } : {}),
-    ...(Number.isFinite(tokens) ? { usage: { tokens } } : {}),
+    ...(tokens !== undefined ? { usage: { tokens } } : {}),
   };
 };
 

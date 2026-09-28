@@ -1,5 +1,6 @@
 import {
   AttemptReport,
+  ExecutionHooks,
   Gateway,
   GatewayResult,
   JobDispatch,
@@ -65,8 +66,21 @@ import { CLAVE_DE_REFERENCIA, ResolutorDeContexto } from './contexto';
 export interface LibroDeIntentos {
   /** Antes de salir. Devuelve la fila, o `undefined` si este libro no abre filas. */
   abrir(dispatch: JobDispatch): Promise<string | undefined>;
-  /** Al volver, con el resultado entero: uso, coste medido, modelo real y error. */
-  cerrar(fila: string, cierre: { dispatch: JobDispatch; resultado: GatewayResult; durationMs: number }): Promise<void>;
+  /**
+   * Al volver, con el resultado entero: uso, coste medido, modelo real y error.
+   *
+   * `avance` es lo que el adaptador contó al aceptar la tarea —su estimación y la
+   * tarifa con la que se valorará— y `desconocido` dice que el POST salió y no
+   * volvió nada. En esos dos casos la operación NO ha terminado, y la fila no se
+   * cierra: la cierra quien conozca el desenlace.
+   */
+  cerrar(fila: string, cierre: {
+    dispatch: JobDispatch;
+    resultado: GatewayResult;
+    durationMs: number;
+    avance?: Readonly<Record<string, unknown>>;
+    desconocido?: boolean;
+  }): Promise<void>;
 }
 
 export interface EjecutorDeps {
@@ -219,14 +233,24 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
 
       const parar = repetir(latidoMs, () => { void control.renovar().catch(() => false); });
       const inicio = deps.ahora();
+      /*
+       * LO QUE EL ADAPTADOR CUENTA AL ACEPTAR: su estimación y la tarifa con la
+       * que se valorará lo que la tarea consuma. Es observación —el gancho no
+       * cambia nada de la ejecución— y es lo único que permite, cuando el
+       * proveedor diga al final cuántos tokens gastó, saber cuánto costó.
+       */
+      let avance: Readonly<Record<string, unknown>> | undefined;
+      const ganchos: ExecutionHooks = { onProgress: (e) => { if (e.providerMeta) avance = e.providerMeta; } };
       let resultado: GatewayResult;
       try {
-        resultado = await deps.gateway.ejecutar(peticion);
+        resultado = await deps.gateway.ejecutar(peticion, ganchos);
       } finally {
         parar();
       }
 
       resultados.set(dispatch.attemptId, resultado);
+      /* Un POST que no volvió, cuando se pidió aceptar y soltar, no es un fallo: no se sabe. */
+      const desconocido = deps.aceptaAsincrono === true && sinRespuestaDelProveedor(resultado);
       if (fila !== undefined) {
         /*
          * El proveedor YA contestó. Fallar el intento porque el libro no cerró
@@ -234,7 +258,11 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
          * avisa y se sigue: la fila queda abierta, que es visible y reconciliable.
          */
         try {
-          await deps.libro?.cerrar(fila, { dispatch, resultado, durationMs: Math.max(0, deps.ahora() - inicio) });
+          await deps.libro?.cerrar(fila, {
+            dispatch, resultado, durationMs: Math.max(0, deps.ahora() - inicio),
+            ...(avance ? { avance } : {}),
+            ...(desconocido ? { desconocido } : {}),
+          });
         } catch {
           console.warn(`WEË RUNTIME: no se pudo cerrar la fila del libro (${dispatch.trace.requestId})`);
         }
@@ -247,8 +275,7 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
        */
       const ref = deps.referenciaDeProveedor?.(resultado)
         ?? (resultado.operation ? { providerId: resultado.operation.providerId, operationId: resultado.operation.operationId } : undefined);
-      /* Un POST que no volvió, cuando se pidió aceptar y soltar, no es un fallo: no se sabe. */
-      const informe = deps.aceptaAsincrono === true && sinRespuestaDelProveedor(resultado)
+      const informe = desconocido
         ? desenlaceDesconocido(dispatch, resultado)
         : informeDelGateway(dispatch, resultado, ref);
 

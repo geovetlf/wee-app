@@ -386,6 +386,31 @@ export interface RouteDecision {
 /** Estados de una generación (docs/CREDITS.md §generations): QUEUED al crearla, PROCESSING cuando el proveedor la acepta. */
 export type GenerationStatus = 'PENDING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
+/**
+ * CUÁNTO SE SABE DEL COSTE DEL PROVEEDOR DE UNA FILA (F1-D, tras el canary real).
+ *
+ *   estimated    solo lo estimado: la operación salió y todavía no tiene desenlace
+ *   actual       se sabe lo que costó: el proveedor declaró lo que consumió —o
+ *                ni siquiera se le llamó, y entonces no costó nada—
+ *   unavailable  terminó y el proveedor no dio con qué calcularlo
+ *
+ * `unavailable` NUNCA se escribe como 0: un coste que no se conoce no es gratis,
+ * y sumarlo como cero es exactamente lo que dejaba el libro a 0 USD después de
+ * un vídeo real. Solo lo escriben las filas del Core (`runtime/index.ts`); las
+ * del camino de siempre siguen con su `providerCost` como antes.
+ */
+export type ProviderCostStatus = 'estimated' | 'actual' | 'unavailable';
+
+/**
+ * DE DÓNDE SALE UN COSTE REAL.
+ *
+ *   provider_usage   lo que el proveedor declaró haber consumido (tokens) por la
+ *                    tarifa oficial de ese modelo, que el adaptador declaró al salir
+ *   adapter_measure  lo que el adaptador midió y devolvió como coste de la respuesta
+ *   not_dispatched   la operación no llegó al proveedor: el Gateway la paró antes
+ */
+export type ProviderCostSource = 'provider_usage' | 'adapter_measure' | 'not_dispatched';
+
 /** Documento aiGenerations/{generationId}: lo que Weë sabe de cada generación. */
 export interface GenerationRecord {
   id: string;
@@ -406,8 +431,24 @@ export interface GenerationRecord {
   attempt: number;
   /** Coste del proveedor: estimado antes de llamar y medido/estimado al terminar. */
   estimatedUsd: number;
-  providerCost: number;
+  /**
+   * El coste del proveedor, en USD. En las filas de siempre, lo que escribió el
+   * cierre (0 al abrir). En las que llevan `providerCostStatus` es el coste REAL
+   * y solo aparece cuando se conoce: ausente es «no se sabe», no cero.
+   */
+  providerCost?: number;
   providerCurrency: 'USD';
+  /* ── El coste, separado (solo en las filas que llevan `providerCostStatus`) ── */
+  /** Lo estimado antes del desenlace, en USD. `null` si ni eso se sabe. */
+  estimatedProviderCost?: number | null;
+  /** Lo que costó de verdad, en USD. `null` mientras no se sabe o si el proveedor no dio con qué calcularlo. */
+  actualProviderCost?: number | null;
+  providerCostStatus?: ProviderCostStatus;
+  providerCostSource?: ProviderCostSource;
+  /** Lo que el proveedor DECLARÓ haber consumido, en tokens. Nunca una estimación. */
+  providerUsageTokens?: number;
+  /** La tarifa oficial con la que se valora ese consumo: USD por millón de tokens, la que el adaptador declaró al salir. */
+  providerRateUsdPerMillionTokens?: number;
   /**
    * Credits DEFINITIVAMENTE CAPTURADOS a la persona por este paso.
    *
