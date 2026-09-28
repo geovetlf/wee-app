@@ -1125,7 +1125,9 @@ await seccion('Z', async () => {
   check('Z5) la puerta atiende las siete operaciones',
     c.created && c.revision === 0 && g.productionId === pid(1) && l.productions.length === 1 && a.revision === 1 && a.alreadyApplied === false
     && ar.changed && ar.summary.status === 'archived' && un.changed && d.created && d.source.productionId === pid(1));
-  check('Z6) y son exactamente siete', iguales([...Pu.OPERACIONES_DE_PRODUCCION], ['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate']));
+  /* Filmmaker Engine, Fase 12 (decisión del usuario, 2026-09-28): la octava, `restore`, reancla esta valla por nombre. */
+  check('Z6) y son exactamente ocho: las siete de F1-B y `restore` (Filmmaker Engine, Fase 12)',
+    iguales([...Pu.OPERACIONES_DE_PRODUCCION], ['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate', 'restore']));
   const e1 = await lanza(() => hacer({ op: 'get', productionId: pid(1) }, B));
   const e2 = await lanza(() => hacer({ op: 'apply', productionId: pid(1), expectedRevision: 0, operations: [{ op: 'change_weather', sceneId: 'sc-0001', weather: 'fog' }] }));
   await hacer({ op: 'archive', productionId: pid(2) });

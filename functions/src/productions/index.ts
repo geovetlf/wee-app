@@ -10,7 +10,7 @@ import {
   ResolutionTarget, canonico, configuracionDePreset, produccionVacia,
 } from '../filmmaker/modelo';
 import { FilmmakerIssue, Params, integridad } from '../filmmaker/validacion';
-import { FilmmakerOperation, PendingRegeneration, aplicarOperaciones } from '../filmmaker/operaciones';
+import { FilmmakerOperation, PendingRegeneration, aplicarOperaciones, pendientesEntre } from '../filmmaker/operaciones';
 
 /**
  * WEË FILMMAKER — UNA PRODUCCIÓN, GUARDADA (F1-B).
@@ -101,14 +101,17 @@ export type RaizGuardada = Omit<FilmmakerProduction, 'scenes'> & SobreDeProducci
 /** Una escena tal como se guarda: la `ProductionScene` entera, de quién es y de qué producción. */
 export type EscenaGuardada = ProductionScene & { ownerAccountId: string; productionId: string };
 
-export type TipoDeRevision = 'create' | 'duplicate' | 'apply';
+export type TipoDeRevision = 'create' | 'duplicate' | 'apply' | 'restore';
 
 /**
  * UNA ENTRADA DEL REGISTRO. Una por revisión, y solo se añade: nadie la cambia
  * ni la borra.
  *
  *   revisión 0   `create` o `duplicate`: la producción entera, tal como nació.
- *   revisión n   `apply`: el lote que la llevó de n-1 a n, tal como se aplicó.
+ *   revisión n   `apply`: el lote que la llevó de n-1 a n, tal como se aplicó;
+ *                o `restore` (Filmmaker Engine, Fase 12): la vuelta a una revisión
+ *                anterior, la de `source.revision`. Sin foto ni operaciones: su
+ *                contenido ES el de aquella revisión, renumerado.
  *
  * Con la foto y los lotes, cualquier revisión se reconstruye —las operaciones
  * de F1-A son deterministas— y `result.hash` dice si la reconstrucción es fiel.
@@ -986,9 +989,9 @@ export const duplicarProduccion = async (p: PeticionDeDuplicado, deps: DepsDePro
 /* ── El registro: leerlo y reconstruir ────────────────────────────────────── */
 
 /**
- * EL REGISTRO DE UNA PRODUCCIÓN, en orden. Es la base de «restaurar» (F6), que no
- * se construye aquí. Con tope: un historial más largo que eso tendrá que leerse
- * desde una foto intermedia, que es trabajo de F6.
+ * EL REGISTRO DE UNA PRODUCCIÓN, en orden. Es la base de «restaurar» (F6, abajo).
+ * Con tope: un historial más largo que eso tendrá que leerse desde una foto
+ * intermedia, que sigue pendiente.
  */
 export const leerRegistro = async (accountId: string, productionId: unknown, deps: DepsDeProducciones = {}): Promise<ResultadoDeRegistro> => {
   if (!esIdDeProduccion(productionId) || typeof accountId !== 'string' || !accountId) return noEsta();
@@ -1005,8 +1008,13 @@ export const leerRegistro = async (accountId: string, productionId: unknown, dep
  * RECONSTRUIR UNA REVISIÓN desde el registro: la foto de la revisión 0 y, uno a
  * uno, los lotes, con las operaciones de F1-A. Puro: no lee ni escribe. Cada paso
  * se compara con la huella que se guardó; si algo no cuadra, el historial está
- * roto y se dice dónde. Es lo que hará posible «restaurar»; restaurar no existe
- * todavía.
+ * roto y se dice dónde.
+ *
+ * Desde la Fase 12 del motor, una entrada `restore` vale lo que valía la revisión
+ * a la que volvió (`source.revision`, siempre anterior), renumerada: por eso, al
+ * pasar por una revisión a la que alguna restauración vuelve, se guarda una copia,
+ * y solo de esas. Una restauración que apunte a sí misma, a una posterior o a otra
+ * producción es un historial roto.
  */
 export const reconstruirRevision = (entradas: readonly RevisionGuardada[], revision: number): ResultadoDeReconstruccion => {
   const roto = (en: number, motivo: string): Rechazo => rechazo('history_broken', [problema('history_broken', `revisions.${en}`, { reason: motivo })]);
@@ -1014,16 +1022,183 @@ export const reconstruirRevision = (entradas: readonly RevisionGuardada[], revis
   const porRevision = new Map(entradas.map((e) => [e.revision, e] as [number, RevisionGuardada]));
   const cero = porRevision.get(0);
   if (!cero || (cero.kind !== 'create' && cero.kind !== 'duplicate') || !cero.snapshot) return roto(0, 'no_snapshot');
+  /* A qué revisiones vuelve alguna restauración de aquí a la pedida: esas se guardan al pasar. */
+  const aGuardar = new Set<number>();
+  for (let k = 1; k <= revision; k++) {
+    const e = porRevision.get(k);
+    if (e?.kind === 'restore' && esEntero(e.source?.revision, 0, k - 1)) aGuardar.add(e.source?.revision as number);
+  }
+  const guardadas = new Map<number, string>();
   let estado = aJson(cero.snapshot);
   if (huella(estado) !== cero.result.hash) return roto(0, 'hash_mismatch');
+  if (aGuardar.has(0)) guardadas.set(0, JSON.stringify(estado));
   for (let k = 1; k <= revision; k++) {
     const e = porRevision.get(k);
     if (!e) return roto(k, 'missing');
-    if (e.kind !== 'apply' || !Array.isArray(e.operations)) return roto(k, 'not_a_batch');
-    const r = aplicarOperaciones(estado, e.operations);
-    if (!r.ok) return roto(k, 'batch_failed');
-    estado = aJson({ ...r.production, metadata: { ...r.production.metadata, revision: k } });
+    if (e.kind === 'restore') {
+      const fuente = e.source;
+      if (!fuente || fuente.productionId !== cero.productionId || !esEntero(fuente.revision, 0, k - 1) || !guardadas.has(fuente.revision)) {
+        return roto(k, 'restore_source_invalid');
+      }
+      const vuelta = JSON.parse(guardadas.get(fuente.revision) as string) as FilmmakerProduction;
+      estado = aJson({ ...vuelta, metadata: { ...vuelta.metadata, revision: k } });
+    } else {
+      if (e.kind !== 'apply' || !Array.isArray(e.operations)) return roto(k, 'not_a_batch');
+      const r = aplicarOperaciones(estado, e.operations);
+      if (!r.ok) return roto(k, 'batch_failed');
+      estado = aJson({ ...r.production, metadata: { ...r.production.metadata, revision: k } });
+    }
     if (huella(estado) !== e.result.hash) return roto(k, 'hash_mismatch');
+    if (aGuardar.has(k)) guardadas.set(k, JSON.stringify(estado));
   }
   return { ok: true, production: estado };
+};
+
+/* ── Restaurar (Filmmaker Engine, Fase 12 = D12 de F6) ─────────────────────── */
+
+export interface PeticionDeRestauracion {
+  /** La cuenta, ya resuelta desde la sesión. Nunca la que mande el cliente. */
+  readonly accountId: string;
+  readonly productionId: unknown;
+  /** La revisión que la app ve ahora. Si ya no es la que hay, no se restaura (CAS, como al aplicar un lote). */
+  readonly expectedRevision: unknown;
+  /** A cuál se vuelve: una ANTERIOR a la de ahora. */
+  readonly revision: unknown;
+  readonly operationId?: unknown;
+  readonly at: number;
+}
+
+export type ResultadoDeRestauracion =
+  | {
+    readonly ok: true;
+    readonly view: VistaDeProduccion;
+    /** De qué revisión es el contenido que queda. */
+    readonly restoredFrom: number;
+    /** Con `false`, lo pedido ya era lo que había: no se escribió nada ni subió la revisión. */
+    readonly changed: boolean;
+    /** Lo que la vuelta deja pendiente de rehacer, como un lote. En un reintento ya hecho va vacío. */
+    readonly pending: PendingRegeneration;
+    readonly timelineChanged: boolean;
+    readonly operationId: string;
+    /** Ya estaba restaurada con este `operationId`: es un reintento, y no se restauró dos veces. */
+    readonly alreadyApplied: boolean;
+  }
+  | Rechazo;
+
+/**
+ * RESTAURAR UNA REVISIÓN ANTERIOR (decisión del usuario, 2026-09-28: la opción
+ * recomendada, «restaurar una versión»).
+ *
+ * No se borra nada. La revisión a la que se vuelve se RECONSTRUYE con el registro
+ * —la foto de la revisión 0 y los lotes, huella a huella— y se guarda como una
+ * revisión NUEVA encima de la de ahora, con CAS, en una transacción. Las de en
+ * medio siguen en el registro, y se puede volver a cualquiera, también a esta.
+ *
+ * El registro gana un tipo, `restore`, SIN campos nuevos: su `source` —el mismo
+ * que ya llevaba `duplicate`— dice a qué revisión se volvió, y su huella, qué
+ * quedó. No guarda foto, así que una restauración no pesa más que un lote.
+ *
+ * Lo que vuelve con la revisión pasa por la MISMA política que un lote: un vínculo
+ * a un Element o un material que no está en la de ahora se comprueba otra vez
+ * —archivado, ajeno o retirado, se rechaza con su ruta—. Y lo reconstruido se
+ * valida con la `integridad()` de hoy: lo que el modelo de ahora no acepta no se
+ * escribe (`production_invalid`, `restored_revision_invalid`).
+ *
+ * Ni un código nuevo: todo lo que puede salir mal ya tenía nombre.
+ */
+export const restaurarRevision = async (p: PeticionDeRestauracion, deps: DepsDeProducciones = {}): Promise<ResultadoDeRestauracion> => {
+  if (!esIdDeProduccion(p.productionId) || typeof p.accountId !== 'string' || !p.accountId) return noEsta();
+  if (!esEntero(p.expectedRevision, 0, Number.MAX_SAFE_INTEGER)) return rechazo('revision_invalid');
+  const expected = p.expectedRevision;
+  if (!esEntero(p.revision, 0, Number.MAX_SAFE_INTEGER) || p.revision >= expected) {
+    return rechazo('revision_invalid', [problema('revision_invalid', 'revision', { reason: 'not_an_earlier_revision' })]);
+  }
+  if (p.operationId !== undefined && !esIdDeOperacion(p.operationId)) return rechazo('operation_id_invalid');
+  const productionId = p.productionId;
+  const destino = p.revision;
+  const operationId = (p.operationId as string | undefined) ?? idDerivado({ kind: 'restore', productionId, expectedRevision: expected, revision: destino });
+
+  /*
+   * El registro, FUERA de la transacción: solo se añade, así que lo que hay hasta
+   * la revisión pedida no cambia mientras tanto. Dentro se comprueba que la de
+   * ahora sigue siendo la que se vio.
+   */
+  const registro = await leerRegistro(p.accountId, productionId, deps);
+  if (!registro.ok) return registro;
+  const reconstruida = reconstruirRevision(registro.entries, destino);
+  if (!reconstruida.ok) return reconstruida;
+
+  const db = laBase(deps);
+  const ref = raizRef(db, productionId);
+  return db.runTransaction(async (tx): Promise<ResultadoDeRestauracion> => {
+    const raizSnap = await tx.get(ref);
+    if (!raizSnap.exists || raizSnap.data()?.ownerAccountId !== p.accountId) return noEsta();
+    const previas = await tx.get(ref.collection(COLECCION_DE_REVISIONES).where('operationId', '==', operationId).limit(1));
+    const escenasSnap = await tx.get(ref.collection(COLECCION_DE_ESCENAS).limit(LIMITES.escenas + 1));
+    const leida = reunir(productionId, p.accountId, raizSnap.data(), escenasSnap.docs.map((d) => ({ id: d.id, data: d.data() })));
+    if (!leida.ok) return leida;
+    const vista = leida.vista;
+
+    /* ¿Un reintento? El mismo id, a la misma revisión, ya se restauró; a otra, el id está gastado. */
+    if (!previas.empty) {
+      const e = previas.docs[0].data() as RevisionGuardada;
+      if (e.kind === 'restore' && e.source?.productionId === productionId && e.source.revision === destino) {
+        return {
+          ok: true, view: vista, restoredFrom: destino, changed: true, pending: SIN_PENDIENTES,
+          timelineChanged: e.result.timelineChanged === true, operationId, alreadyApplied: true,
+        };
+      }
+      return rechazo('operation_id_reused');
+    }
+    if (vista.status === 'archived') return rechazo('production_archived');
+    if (vista.revision !== expected) {
+      return rechazo('revision_conflict', [problema('revision_conflict', 'metadata.revision', { expected, current: vista.revision })], { currentRevision: vista.revision });
+    }
+
+    const revision = vista.revision + 1;
+    const nueva = aJson({ ...reconstruida.production, metadata: { ...reconstruida.production.metadata, revision } }) as FilmmakerProduction;
+    /* Volver a lo que ya hay no escribe nada, como un lote que no cambia nada. */
+    if (canonico({ ...nueva, metadata: { ...nueva.metadata, revision: vista.revision } }) === canonico(vista.production)) {
+      return { ok: true, view: vista, restoredFrom: destino, changed: false, pending: SIN_PENDIENTES, timelineChanged: false, operationId, alreadyApplied: false };
+    }
+    if (nueva.id !== productionId) return rechazo('history_broken', [problema('history_broken', `revisions.${destino}`, { reason: 'id_mismatch' })]);
+    const rota = integridad(nueva);
+    if (rota.length) return rechazo('production_invalid', [problema('production_invalid', '', { reason: 'restored_revision_invalid' }), ...rota]);
+    const vetada = await politica(vista.production, nueva, p.accountId, deps);
+    if (vetada) return vetada;
+    const { pending, timelineChanged } = pendientesEntre(vista.production, nueva);
+
+    const sobre: SobreDeProduccion = { ownerAccountId: p.accountId, status: 'active', createdAt: vista.createdAt, updatedAt: p.at };
+    const { raiz, escenas } = partir(nueva, sobre);
+    const pesada = pesar(productionId, raiz, escenas);
+    if (pesada) return pesada;
+    const antes = new Map(vista.production.scenes.map((s) => [s.id, canonico(s)] as [string, string]));
+    const escrituras: Escritura[] = [{ ref, ruta: rutaDeRaiz(productionId), tipo: 'set', datos: raiz }];
+    for (const s of nueva.scenes) {
+      if (antes.get(s.id) === canonico(s)) continue;
+      escrituras.push({ ref: ref.collection(COLECCION_DE_ESCENAS).doc(s.id), ruta: rutaDeEscena(productionId, s.id), tipo: 'set', datos: escenas.get(s.id) as Obj });
+    }
+    const quedan = new Set(nueva.scenes.map((s) => s.id));
+    for (const id of antes.keys()) {
+      if (!quedan.has(id)) escrituras.push({ ref: ref.collection(COLECCION_DE_ESCENAS).doc(id), ruta: rutaDeEscena(productionId, id), tipo: 'delete' });
+    }
+    const entrada: RevisionGuardada = {
+      productionId, ownerAccountId: p.accountId, revision, kind: 'restore', operationId, actorAccountId: p.accountId,
+      createdAt: p.at, modelVersion: FILMMAKER_MODEL_VERSION, source: { productionId, revision: destino },
+      result: { hash: huella(nueva), scenes: nueva.scenes.length, shots: planosDe(nueva), timelineChanged },
+    };
+    escrituras.push({
+      ref: ref.collection(COLECCION_DE_REVISIONES).doc(idDeRevision(revision)), ruta: rutaDeRevision(productionId, revision),
+      tipo: 'create', datos: aJson(entrada) as unknown as Obj,
+    });
+    const noCabe = medirEscrituras(escrituras);
+    if (noCabe) return noCabe;
+
+    escribir(tx, escrituras);
+    return {
+      ok: true,
+      view: { productionId, revision, status: 'active', createdAt: vista.createdAt, updatedAt: p.at, production: nueva },
+      restoredFrom: destino, changed: true, pending, timelineChanged, operationId, alreadyApplied: false,
+    };
+  });
 };

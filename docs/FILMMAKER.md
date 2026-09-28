@@ -387,7 +387,7 @@ siguen **pendientes**:
 | D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); al generar, un plano con prompt avanzado se rechaza (F1-D); enseñarlo y usarlo, pendiente (F6) |
 | D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
 | D11 | Precios, límites y cancelación | **en parte**: el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); cancelar, pendiente |
-| D12 | Versiones y «restaurar» | **decidida** en su parte mínima (ADR-FM-006 y 007): revisión con CAS y registro; «restaurar», pendiente (F6) |
+| D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; enseñarlo en la app, en el pase de UX |
 | D13 | Reproductor | pendiente: «Ver vídeo» abre la dirección del material |
 | D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | pendiente: se usa el vocabulario actual del Core |
 
@@ -448,7 +448,8 @@ existe. Los errores no llevan frases: `message` es el código y `details` trae `
 Ver ADR-FM-006 y ADR-FM-007. En corto: una revisión por lote; `expectedRevision` se compara en la transacción que
 escribe; un lote sin cambios no escribe ni deja entrada; el mismo `operationId` con el mismo lote es un reintento
 (`alreadyApplied`) y con otro, `operation_id_reused`; la revisión 0 es la foto y las siguientes, los lotes;
-`leerRegistro` + `reconstruirRevision` rehacen cualquier revisión comprobando su huella. Restaurar no existe (F6).
+`leerRegistro` + `reconstruirRevision` rehacen cualquier revisión comprobando su huella. Restaurar existe desde la
+Fase 12 del Filmmaker Engine (abajo): una revisión nueva de tipo `restore`.
 
 Archivada, una producción se lee, se lista entre las archivadas, se duplica y se desarchiva; no admite lotes.
 
@@ -1053,6 +1054,38 @@ planos) y G5 (la pasada descarta lo que no es un render ni un póster). Nada se 
 Pruebas: `functions/test/filmmaker-poster.test.mjs` (en la cadena, con FFmpeg de verdad); en la app, `f1d-cliente`
 (el servicio de los pósters) y `filmmaker-ui` (la tarjeta con su imagen).
 
+### Fase 12 · Restaurar una versión (D12 de F6)
+
+Decisión del usuario (2026-09-28): ante «¿qué capacidad hago ahora?», **sin preferencia**, así que va la recomendada,
+con la ampliación del contrato de F1-B que se le explicó antes de hacerla. Restaurar es **volver a una revisión
+anterior sin perder ninguna**.
+
+- **Qué hace** (`productions/index.ts`, `restaurarRevision`): lee el registro (`leerRegistro`), **reconstruye** la
+  revisión pedida con `reconstruirRevision` —la foto de la revisión 0 y los lotes, huella a huella— y la guarda como una
+  revisión **NUEVA** encima de la de ahora, en una transacción y con **CAS** (`expectedRevision`), igual que un lote. Las
+  revisiones de en medio siguen en el registro; se puede volver a cualquiera, también a una restauración.
+- **El contrato que se amplía**, y solo eso: el registro gana el tipo `restore`, **sin campos nuevos**. Su `source` —el
+  mismo que ya llevaba `duplicate`— dice a qué revisión se volvió, y `result.hash`, qué quedó. No guarda foto ni
+  operaciones, así que una restauración no pesa más que un lote. `reconstruirRevision` la sigue: una entrada `restore`
+  vale lo que valía la revisión a la que volvió, renumerada; una que apunte a sí misma, a una posterior, a otra
+  producción o a ninguna es un historial roto (`history_broken`, `restore_source_invalid`).
+- **Lo que vuelve pasa por la misma política que un lote**: un vínculo a un Element o un material que no está en la
+  revisión de ahora se comprueba otra vez —un Element archivado o un material retirado se rechazan con su ruta—, y lo
+  reconstruido se valida con la `integridad()` de hoy (lo que el modelo de ahora no acepta no se escribe:
+  `production_invalid`, `restored_revision_invalid`).
+- **Como un lote en todo lo demás**: el mismo `operationId` a la misma revisión es un reintento (`alreadyApplied`); a
+  otra, `operation_id_reused`; volver a lo que ya hay no escribe nada (`changed: false`); archivada no se restaura; lo
+  ajeno contesta como lo que no existe; y la respuesta dice lo pendiente de rehacer (`pendientesEntre` de F1-A) y si
+  cambió la línea de tiempo. **Ni un código nuevo**: todo lo que puede salir mal ya tenía nombre y frase.
+- **La puerta** (`productions`) gana la octava operación, `restore`: del cliente llegan la revisión que ve y a cuál
+  vuelve, nada más. Sin dinero, sin IA, sin trabajos; F1-A, las reglas, los índices y la app, sin tocar. Enseñarlo en la
+  app —la lista de versiones ya la puede leer su dueña (`productionRevisions`)— es del pase de UX.
+
+Valla reanclada por nombre con esta autorización: `productions-runtime` Z6 (las operaciones de la puerta, ahora ocho).
+Nada se despliega en esta fase.
+
+Pruebas: `functions/test/filmmaker-restaurar.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -1064,7 +1097,7 @@ Pruebas: `functions/test/filmmaker-poster.test.mjs` (en la cadena, con FFmpeg de
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados; usar sus imágenes al generar, pendiente de validar |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; y el póster de cada vídeo y del montaje (Fase 11); exportar o publicar el montaje, aparte |
-| F6 | Director avanzado: prompt avanzado (D9), versiones (D12) |
+| F6 | Director avanzado: prompt avanzado (D9), versiones (D12). **Hecho «restaurar»** (Filmmaker Engine, Fase 12; local, sin desplegar); el prompt avanzado, pendiente |
 
 ## Pruebas
 

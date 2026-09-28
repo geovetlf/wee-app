@@ -13,6 +13,7 @@ import {
   duplicarProduccion,
   leerProduccion,
   listarProducciones,
+  restaurarRevision,
 } from './index';
 
 /**
@@ -44,8 +45,11 @@ import {
 
 const REGION = 'us-central1';
 
-/** Las siete operaciones. Lo que no está aquí no existe. */
-export const OPERACIONES_DE_PRODUCCION = Object.freeze(['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate'] as const);
+/**
+ * Las ocho operaciones. Lo que no está aquí no existe. La octava, `restore`, es de
+ * la Fase 12 del Filmmaker Engine: volver a una revisión anterior, como una nueva.
+ */
+export const OPERACIONES_DE_PRODUCCION = Object.freeze(['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate', 'restore'] as const);
 
 /** De cada rechazo, el código estándar de una callable. */
 export const CODIGO_DE_CALLABLE: Readonly<Record<CodigoDePersistencia, FunctionsErrorCode>> = Object.freeze({
@@ -146,13 +150,25 @@ export const atenderProducciones = async (accountId: string, datos: unknown, ctx
       if (!r.ok) return fallar(r);
       return { created: r.created, source: r.source, ...r.view };
     }
+    case 'restore': {
+      /* Qué se restaura lo reconstruye el servidor con el registro: del cliente solo llegan la revisión que ve y a cuál vuelve. */
+      const r = await restaurarRevision({
+        accountId, productionId: data.productionId, expectedRevision: data.expectedRevision,
+        revision: data.revision, operationId: data.operationId, at,
+      }, deps);
+      if (!r.ok) return fallar(r);
+      return {
+        ...r.view, restoredFrom: r.restoredFrom, changed: r.changed, pending: r.pending, timelineChanged: r.timelineChanged,
+        operationId: r.operationId, alreadyApplied: r.alreadyApplied,
+      };
+    }
     default:
       throw error('invalid-argument', 'operation_unknown');
   }
 };
 
 /**
- * LAS PRODUCCIONES DE UNA CUENTA. Una puerta y siete operaciones; `op` elige.
+ * LAS PRODUCCIONES DE UNA CUENTA. Una puerta y ocho operaciones; `op` elige.
  * Lo ajeno contesta `not-found`, igual que lo inexistente.
  */
 export const productions = onCall({ region: REGION, timeoutSeconds: 60, memory: '512MiB' }, async (request) => {

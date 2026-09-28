@@ -87,6 +87,11 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * `anotarVariante` del Content Core, tal cual: el Content Core no se toca. Ni Credits, ni proveedores.
    */
   'functions/src/creator/poster.ts',
+  /*
+   * Fase 12 · restaurar una versión (D12 de F6; el usuario, sin preferencia, deja la recomendada): `productions/index.ts`
+   * gana `restaurarRevision` y el tipo de revisión `restore` —sin campos nuevos—, y `reconstruirRevision` lo sigue;
+   * `productions/puerta.ts` gana la operación `restore`. Los dos ya están en la lista desde la Fase 10. F1-A, sin tocar.
+   */
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */
