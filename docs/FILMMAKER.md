@@ -661,10 +661,12 @@ El «Generar» de la producción entera sigue sin estar.
 No genera varias unidades a la vez, ni monta, renderiza o exporta; no hay voz, música, efectos, lip-sync,
 personajes/Elements, transformación de vídeo ni prompt avanzado. La puerta `aiSettings/runtime` sigue cerrada por
 defecto. Para el canary real (2026-09-28) se desplegaron `generateVideo`, `barridoDeLiquidacion`, `shots` y
-`productions` desde `96b3f7a`; lo de después del canary está sin desplegar. Límites conocidos: el requisito lo calcula el espejo de F1-A en la app y el servidor
-no lo recalcula (no carga el dominio), aunque sí comprueba la cuenta, la producción, la revisión, la firma y la
-procedencia del material; «aceptado» y «trabajando» se ven igual, «en proceso», porque la app solo puede leer la
-reserva; que el material sea `video` depende del tipo que devuelve la descarga; y la cuenta es el uid.
+`productions` desde `96b3f7a`; lo de después del canary está sin desplegar. Límites conocidos al cerrar F1-D, y
+cómo quedaron: el requisito lo calculaba el espejo de F1-A en la app y el servidor solo comprobaba la cuenta, la
+producción, la revisión, la firma y la procedencia —desde la Fase 5 del Filmmaker Engine lo calcula el servidor—;
+«aceptado» y «trabajando» se veían igual, «en proceso», porque la app solo podía leer la reserva —desde la Fase 2 el
+servidor los distingue (`shot.takes`), y la app los proyectará en la pasada de UX—; que el material sea `video`
+depende del tipo que devuelve la descarga; y la cuenta es el uid.
 
 ### F1-D tras el canary real (2026-09-28)
 
@@ -809,6 +811,26 @@ liquidación del runtime; la toma pasa a `refunded` y el plano se puede volver a
 usuario (2026-09-28): el POST que salió y no volvió sigue retenido, para una persona. Detalle en `docs/RUNTIME.md` § 25.
 
 Pruebas: la sección F de `functions/test/filmmaker-toma-estado.test.mjs`.
+
+### Fase 5 · El requisito de cada plano, calculado por el servidor
+
+Hasta aquí el requisito de un plano —y con él el texto que va al proveedor, la duración, el formato y las calidades—
+lo calculaba la app con su espejo de F1-A, y el servidor lo aceptaba con su forma. Por decisión del usuario
+(2026-09-28), `creator/requisitoDelServidor.ts` lo calcula en el servidor: lee la producción guardada con el lector de
+`productions` —con su dueño— en la revisión pedida, calcula sus requisitos con F1-A y se queda con el de la unidad.
+Ese es el que usa `generateVideo` para todo; el de la app se lee con la misma función y solo se COMPARA.
+
+- **Si no es el mismo**, no se genera: ni reserva, ni cupo, ni POST. Se contesta `production_changed` con la causa
+  (`requirement_mismatch`), que es lo que la app ya sabe resolver: vuelve a leer lo guardado y a pedir. Otro texto,
+  otra duración para pagar menos o referencias coladas se paran antes del dinero —antes, otro texto lo paraba la
+  idempotencia del Credit Engine, y unas referencias coladas, la evaluación del plano—.
+- **La valla G12 se amplió por nombre**: el compilado carga `modelo`, `validacion`, `operaciones` y `requisitos`, por
+  dos puertas y solo por ellas —`productions/puerta` y `creator/requisitoDelServidor`—; `requisitos` entra solo por la
+  segunda y `recomendaciones` sigue fuera.
+- El requisito del servidor y el del espejo de la app son el mismo en producciones de verdad, unidad a unidad —con
+  personaje, lugar, objeto, dirección y una escena sin planos—, y su texto también.
+
+Pruebas: `functions/test/filmmaker-requisito-servidor.test.mjs` (en la cadena), y G12 en `filmmaker-modelo.test.mjs`.
 
 ## Próximas fases
 

@@ -2345,8 +2345,9 @@ Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
 
 - La puerta `aiSettings/runtime` sigue cerrada por defecto. Del canary real (2026-09-28) quedan desplegadas
   `generateVideo`, `barridoDeLiquidacion`, `shots` y `productions` desde `96b3f7a`; lo de después, sin desplegar.
-- El requisito lo calcula la app (espejo de F1-A); el servidor verifica identidad, revisión, firma y procedencia,
-  pero no recalcula F1-A.
+- El requisito lo calculaba la app (espejo de F1-A) y el servidor verificaba identidad, revisión, firma y
+  procedencia. Desde la Fase 5 del Filmmaker Engine lo calcula el servidor con F1-A de la producción guardada
+  (`creator/requisitoDelServidor.ts`, valla G12 ampliada con autorización), y el de la app solo se compara.
 - «Aceptado» y «trabajando» se ven igual en la app: solo la reserva es legible por el cliente.
 - El emulador de Storage no aplica `ifGenerationMatch: 0` (medido en `f1d.emulator.mjs`): el 412 del guardado «solo
   si no existe» se prueba en memoria; la biblioteca sí lo manda en la subida, así que en GCS real se aplica.

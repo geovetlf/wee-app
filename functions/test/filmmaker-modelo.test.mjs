@@ -949,27 +949,36 @@ seccion('G', () => {
    * `operaciones`. `requisitos` y `recomendaciones` siguen fuera de lo que se despliega, ninguna otra Function lo
    * alcanza y `lib/index.js` no lo nombra. Corregida en F1-C con autorización: la versión anterior miraba solo el
    * texto de `lib/index.js` y ya no decía la verdad.
+   *
+   * AMPLIADA con autorización en la Fase 5 del Filmmaker Engine (decisión del usuario, 2026-09-28): el servidor
+   * calcula el requisito de cada plano de la producción guardada en vez de fiarse del de la app. Entra `requisitos`,
+   * y lo hace por UNA puerta más, con nombre: `creator/requisitoDelServidor`. `recomendaciones` sigue fuera, y fuera
+   * de esas dos puertas el dominio no se alcanza.
    */
   const LIB = path.resolve(RAIZ, 'functions/lib');
   const requiresDe = (abs) => [...sinComentarios(fs.readFileSync(abs, 'utf8')).matchAll(/require\(["'](\.{1,2}\/[^"']+)["']\)/g)]
     .map((m) => path.resolve(path.dirname(abs), m[1])).map((d) => (fs.existsSync(`${d}.js`) ? `${d}.js` : path.join(d, 'index.js')))
     .filter((d) => fs.existsSync(d));
-  const alcanzables = (sinPasarPor) => {
+  const alcanzables = (...sinPasarPor) => {
     const vistos = new Set(); const cola = [path.join(LIB, 'index.js')];
     while (cola.length) {
       const f = cola.shift();
-      if (vistos.has(f) || f === sinPasarPor) continue;
+      if (vistos.has(f) || sinPasarPor.includes(f)) continue;
       vistos.add(f); cola.push(...requiresDe(f));
     }
     return [...vistos].map((f) => path.relative(LIB, f).split(path.sep).join('/'));
   };
   const deFilmmaker = (xs) => xs.filter((r) => r.startsWith('filmmaker/')).sort();
   const cargados = deFilmmaker(alcanzables());
-  const sinProductions = deFilmmaker(alcanzables(path.join(LIB, 'productions/puerta.js')));
-  check('G12) el compilado que se despliega carga el dominio SOLO a través de `productions`, y solo `modelo`, `validacion` y `operaciones`: ni `requisitos` ni `recomendaciones`, ninguna otra Function lo alcanza y `lib/index.js` no lo nombra',
-    iguales(cargados, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js'])
-    && sinProductions.length === 0 && !/filmmaker/.test(leer('functions/lib/index.js')),
-    `carga [${cargados.join(', ')}] · sin productions [${sinProductions.join(', ') || 'nada'}]`);
+  const PUERTAS_DEL_DOMINIO = [path.join(LIB, 'productions/puerta.js'), path.join(LIB, 'creator/requisitoDelServidor.js')];
+  const sinSusPuertas = deFilmmaker(alcanzables(...PUERTAS_DEL_DOMINIO));
+  const soloPorProductions = deFilmmaker(alcanzables(PUERTAS_DEL_DOMINIO[1]));
+  check('G12) el compilado que se despliega carga el dominio SOLO por sus dos puertas —`productions` y el requisito del servidor—, y solo `modelo`, `validacion`, `operaciones` y `requisitos`: ni `recomendaciones`, ni ninguna otra Function lo alcanza, y `lib/index.js` no lo nombra',
+    iguales(cargados, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/requisitos.js', 'filmmaker/validacion.js'])
+    && sinSusPuertas.length === 0 && !/filmmaker/.test(leer('functions/lib/index.js')),
+    `carga [${cargados.join(', ')}] · sin sus puertas [${sinSusPuertas.join(', ') || 'nada'}]`);
+  check('G12b) y `requisitos` entra SOLO por el requisito del servidor: por `productions` sigue entrando lo de siempre',
+    iguales(soloPorProductions, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js']), soloPorProductions.join(', '));
   check('G13) el contrato del Algorithm Engine sigue en 1.12, y los del Core, donde estaban',
     contratos.ALGORITHM_CONTRACT_VERSION === '1.12' && contratos.SHOT_CONTRACT_VERSION === '1.0' && contratos.CONTINUITY_CONTRACT_VERSION === '1.0'
     && contratos.CREATIVE_PARAMETERS_VERSION === 1 && contratos.ELEMENT_CONTRACT_VERSION === '1.0');

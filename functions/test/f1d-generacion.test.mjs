@@ -414,8 +414,14 @@ console.log('\n── E–F · Otra cuenta no llega; la misma toma con otra cosa
   const posts0 = posts.length; const saldo0 = saldo(A); const cupo0 = cupoDeVideo(A);
   const cambiado = { ...plUno, take: 1, requirement: { ...plUno.requirement, input: { ...plUno.requirement.input, description: 'Marina baja la escalera del faro' } } };
   const otra = await generar(A, cambiado, tomaUno.credits);
-  check('F) la misma toma con OTRO texto —otra operación—: idempotency_conflict, sin POST, sin cobro, sin cupo',
-    !otra.ok && motivo(otra) === 'idempotency_conflict' && posts.length === posts0 && saldo(A) === saldo0 && cupoDeVideo(A) === cupo0, codigo(otra));
+  /*
+   * Desde la Fase 5 del Filmmaker Engine (decisión del usuario, 2026-09-28) el requisito lo calcula el servidor: otro
+   * texto es un requisito que no es el de la producción guardada, y se para ANTES del Credit Engine —antes lo paraba
+   * su idempotencia, `idempotency_conflict`—. La app lo lee como «la producción cambió»; la causa va al lado.
+   */
+  check('F) la misma toma con OTRO texto: no es el requisito de lo guardado —production_changed, requirement_mismatch—, sin POST, sin cobro, sin cupo',
+    !otra.ok && motivo(otra) === 'production_changed' && otra.error?.details?.cause === 'requirement_mismatch'
+    && posts.length === posts0 && saldo(A) === saldo0 && cupoDeVideo(A) === cupo0, codigo(otra));
   const enMaxima = await generar(A, { ...plUno, take: 1, quality: 'max' }, tomaUno.credits);
   check('F) y en «Máxima», que no tiene su modelo validado: model_unavailable, sin POST, sin cobro, sin cupo',
     !enMaxima.ok && motivo(enMaxima) === 'model_unavailable' && posts.length === posts0 && saldo(A) === saldo0 && cupoDeVideo(A) === cupo0, codigo(enMaxima));
@@ -495,8 +501,11 @@ console.log('\n── I–P · Duración, formato, calidad, sonido, prompt avanz
   const primerFotograma = clon(requisito(v.view.production, 'sh-0101'));
   primerFotograma.input.firstFrameReferenceId = 'ref-x';
   const primerFotogramaG = await generar(A, { productionId: pid(6), sceneId: 'sc-0001', unitId: 'sh-0101', revision: v.view.revision, quality: 'high', requirement: primerFotograma, take: 1 }, 1);
-  check('P) y un requisito que diga `video.generate` con referencias o primer fotograma dentro, tampoco',
-    !forzadoG.ok && motivo(forzadoG) === 'references_not_supported' && !primerFotogramaG.ok && motivo(primerFotogramaG) === 'references_not_supported', `${codigo(forzadoG)} / ${codigo(primerFotogramaG)}`);
+  /* Fase 5: el requisito colado no es el de la producción guardada, y se para antes de mirarlo (production_changed, requirement_mismatch). */
+  check('P) y un requisito que diga `video.generate` con referencias o primer fotograma dentro, tampoco: no es el de lo guardado',
+    !forzadoG.ok && motivo(forzadoG) === 'production_changed' && forzadoG.error?.details?.cause === 'requirement_mismatch'
+    && !primerFotogramaG.ok && motivo(primerFotogramaG) === 'production_changed' && primerFotogramaG.error?.details?.cause === 'requirement_mismatch',
+    `${codigo(forzadoG)} / ${codigo(primerFotogramaG)}`);
   check('I–P) nada de lo rechazado gastó un POST, un Credit o un cupo', posts.length === antes.posts && saldo(A) === antes.saldo && cupoDeVideo(A) === antes.cupo);
   const conRestriccion = clon(requisito((await vista(A, 4)).view.production, 'sc-0002'));
   conRestriccion.output = { modality: 'video', withSound: true };

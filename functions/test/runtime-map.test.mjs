@@ -476,8 +476,13 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
   check(`${n - 1}c) productions: cada uno de los veinte es del módulo del Core en el que está autorizado`,
     Object.entries(DE_PRODUCTIONS).every(([modulo, simbolos]) => simbolos.every((s) => definidoEn.get(s) === modulo)),
     Object.entries(DE_PRODUCTIONS).flatMap(([modulo, simbolos]) => simbolos.filter((s) => definidoEn.get(s) !== modulo).map((s) => `${s} → ${definidoEn.get(s)}`)).join(', '));
-  check(`${n - 1}d) productions: y lo que carga son cinco módulos —la puerta, el almacén y \`modelo\`, \`validacion\` y \`operaciones\` de F1-A—`,
-    igual([...VIVOS].filter(deFilmmaker), ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js', 'productions/index.js', 'productions/puerta.js']),
+  /*
+   * Y desde la Fase 5 del Filmmaker Engine (decisión del usuario, 2026-09-28), `requisitos` también: el servidor
+   * calcula el requisito de cada plano de la producción guardada (`creator/requisitoDelServidor.ts`) en vez de fiarse
+   * del de la app. `recomendaciones` sigue fuera.
+   */
+  check(`${n - 1}d) productions: y lo que carga son seis módulos —la puerta, el almacén y \`modelo\`, \`validacion\`, \`operaciones\` y \`requisitos\` de F1-A—`,
+    igual([...VIVOS].filter(deFilmmaker), ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/requisitos.js', 'filmmaker/validacion.js', 'productions/index.js', 'productions/puerta.js']),
     [...VIVOS].filter(deFilmmaker).join(', '));
   const declarados = new Set([...MAPA.flatMap((c) => c.canonico), ...Object.keys(OTROS_DEL_CORE)]);
   const sinDeclarar = [...nombrados.keys()].filter((m) => !declarados.has(m));

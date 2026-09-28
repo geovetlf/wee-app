@@ -33,6 +33,13 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    */
   'functions/src/creator/recuperacionDeTomas.ts',
   'functions/src/settlement/programado.ts',
+  /*
+   * Fase 5 · el requisito de cada plano, calculado por el servidor con F1-A (decisión del usuario, 2026-09-28: la
+   * valla G12 se amplía por nombre). Un módulo nuevo de solo lectura que lee la producción guardada con el lector de
+   * `productions` y calcula sus requisitos; `creator/video.ts`, que ya nombran las vallas de F1-D, lo usa en vez del
+   * requisito de la app, que solo se compara.
+   */
+  'functions/src/creator/requisitoDelServidor.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

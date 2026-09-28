@@ -20,6 +20,7 @@ import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
 import { categoriaDelFallo } from './fallos';
+import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { SEEDANCE_MODEL_IDS, resolveResolution } from '../engine/providers/seedance';
 import {
   MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
@@ -280,18 +281,26 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   if (!productionId || !sceneId || !unitId || revision === undefined || (!soloCotizar && (pedida === undefined || pedida < 1 || pedida > MAX_TOMAS))) {
     throw new EngineError('INVALID_REQUEST', 'Esa toma no tiene forma válida.', { reason: 'take_invalid' });
   }
-  const requisito = leerRequisitoDePlano(d.requirement);
-  if (!requisito || requisito.unitId !== unitId || requisito.sceneId !== sceneId) {
+  const requisitoDeLaApp = leerRequisitoDePlano(d.requirement);
+  if (!requisitoDeLaApp || requisitoDeLaApp.unitId !== unitId || requisitoDeLaApp.sceneId !== sceneId) {
     throw new EngineError('INVALID_REQUEST', 'Ese plano no tiene forma válida.', { reason: 'shot_invalid' });
   }
   const db = getFirestore();
   const cuenta = await cuentaDelPrincipalEnWee(db, uid);
   if (!cuenta) throw new EngineError('INVALID_REQUEST', 'No encontramos esa producción.', { reason: 'production_not_found' });
   const accountId = cuenta.accountId;
-  const base = { uid, accountId, productionId, sceneId, unitId, revision, requisito };
 
   const leida = await leerUnidadEnLaProduccion(db, accountId, { productionId, sceneId, unitId, revision });
   const tomas = await tomasDeLaUnidad(db, uid, accountId, { productionId, unitId });
+  /*
+   * FILMMAKER ENGINE · FASE 5 · EL REQUISITO QUE VALE ES EL DEL SERVIDOR: el de la
+   * producción guardada en esa revisión, calculado con F1-A (`requisitoDelServidor`).
+   * De él sale todo lo demás —el texto, la duración, el formato, las calidades—. El
+   * de la app solo se compara, más abajo.
+   */
+  const delServidor = leida.ok ? await requisitoDelServidor(db, accountId, { productionId, sceneId, unitId, revision }) : null;
+  const requisito = delServidor?.ok ? delServidor.requisito : requisitoDeLaApp;
+  const base = { uid, accountId, productionId, sceneId, unitId, revision, requisito };
   const ultima = tomas[tomas.length - 1];
   /* Cotizar ofrece la siguiente, si la que hay ya terminó; generar pide una concreta. */
   const toma = soloCotizar
@@ -303,6 +312,18 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   const enOrden = puedePedirseLaToma(tomas, toma);
   if (enOrden) return { ...vacia, toma, requestId: null, motivo: enOrden };
   const requestId = requestIdDeToma(accountId, productionId, unitId, toma);
+
+  /*
+   * Si el servidor no pudo calcularlo, o la app dice otra cosa, no se genera: ni
+   * reserva, ni cupo. Se dice que la producción cambió —la app sabe resolverlo:
+   * vuelve a leer lo guardado y a pedir—, con la causa exacta al lado.
+   */
+  if (delServidor && !delServidor.ok) {
+    return { ...vacia, toma, requestId, motivo: delServidor.motivo, ...(delServidor.causa ? { detalle: { cause: delServidor.causa } } : {}) };
+  }
+  if (delServidor?.ok && !mismoRequisito(delServidor.requisito, requisitoDeLaApp)) {
+    return { ...vacia, toma, requestId, motivo: 'production_changed', detalle: { cause: 'requirement_mismatch' } };
+  }
 
   const evaluacion = evaluarPlano(requisito, d.quality);
   if (!evaluacion.ok) return { ...vacia, toma, requestId, motivo: evaluacion.motivo, ...(evaluacion.detalle ? { detalle: evaluacion.detalle } : {}) };
