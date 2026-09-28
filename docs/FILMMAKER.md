@@ -853,6 +853,36 @@ cobra o se devuelve por su cuenta.
 
 Pruebas: `functions/test/filmmaker-lotes.test.mjs` (en la cadena).
 
+### Fase 7 · El montaje final, como manifiesto (F5, primera parte)
+
+El render final es una capacidad del motor, no un botón, y antes de ejecutarlo hay que saber exactamente qué se
+monta. `creator/composicion.ts` lo dice en un manifiesto (`fm-montaje-1`), puro y con su huella —la misma entrada da
+el mismo, y un renderizador puede usarla para no hacer dos veces lo mismo—:
+
+- **Los planos**, en el orden de la línea de tiempo de F1-A que calcula el servidor (Fase 5), cada uno con el vídeo
+  que tiene puesto su plano —solo si es el material listo de una de sus tomas (Fase 3)—, recortado a la duración que
+  se pidió desde su principio, con su sonido si su requisito lo pidió.
+- **Las transiciones** de F1-A, montadas así: `dissolve` → fundido encadenado; `fade` → fundido a negro; `whip` →
+  barrido; `cut`, `match_cut` y `seamless` → corte (las dos últimas son intención de edición, y se guarda cuál era).
+  Una transición dura 0,5 s —F1-A no lo dice— y nunca más de la mitad de ninguno de los dos planos que une; el
+  montaje dura la línea de tiempo menos lo que se solapa, y se dicen las dos cifras.
+- **La salida**: la que F1-A le pide al montaje (o la de la producción), con el cuadro calculado de la proporción y
+  del lado corto de la resolución, a 24 fps, mp4 con h264, y con pista de sonido solo si algún plano la tiene.
+- **Si no se puede**, se dice: los planos sin vídeo (`not_ready`, con cuáles), nada que montar, una producción sin
+  resolución (no se inventa) o una proporción que no se sabe montar.
+
+`creator/ffmpeg.ts` traduce el manifiesto a los argumentos de FFmpeg —FFmpeg propio, decisión del usuario—: una
+lista para ejecutarse sin shell, con solo números y nombres fijos en el grafo de filtros; las rutas son argumentos
+sueltos y ningún identificador ni texto de una persona entra en él. Recorta, escala sin deformar con bandas,
+normaliza a 24 fps, concatena los cortes, solapa las transiciones con `xfade` y pone silencio a los planos mudos
+cuando la salida lleva sonido. `shots` gana `shot.montage` (producción y revisión): el manifiesto, o por qué no.
+
+Nada de esto ejecuta un render: no hay FFmpeg instalado todavía, ni dónde correrlo, ni dónde guardar el resultado.
+Eso es la segunda parte de F5, y pide decisiones (instalar el binario, dónde corre, dónde se guarda y si cuesta
+Credits).
+
+Pruebas: `functions/test/filmmaker-montaje.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -863,7 +893,7 @@ Pruebas: `functions/test/filmmaker-lotes.test.mjs` (en la cadena).
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
-| F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado |
+| F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Primera parte hecha** (Filmmaker Engine, Fase 7): el manifiesto del montaje y sus argumentos de FFmpeg; el render, pendiente de decisiones |
 | F6 | Director avanzado: prompt avanzado (D9), versiones (D12) |
 
 ## Pruebas

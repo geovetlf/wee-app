@@ -808,11 +808,11 @@ console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de
   check('D2) el dinero lo dice la liquidación del barrido —`decidirLiquidacion`—, sin una regla propia de concesiones',
     /decidirLiquidacion\(job, at\)/.test(src) && !/lease|until|concesion/i.test(src));
   const puerta = sinComentarios(leer('functions/src/shots/puerta.ts'));
-  /* Todas las operaciones de la puerta que lo necesitan —hoy `shot.takes` y `shot.production`— pasan ESE número. */
+  /* Todas las operaciones de la puerta que lo necesitan —`shot.takes`, `shot.production`, `shot.montage`…— pasan ESE número. */
   const vidas = puerta.match(/vidaDeLaLlamadaMs: [^,}\s]+/g) || [];
   check('D3) el plazo es el de la llamada de vídeo: el mismo número, pasado por la puerta en cada operación, y ninguna copia',
     /export const PLAZO_DE_VIDEO_MS = 1_500_000;/.test(leer('functions/src/creator/video.ts')) && !/1_500_000|1500000|25 \* 60/.test(src)
-    && vidas.length === 2 && vidas.every((x) => x === 'vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS'), vidas.join(' | '));
+    && vidas.length >= 2 && vidas.every((x) => x === 'vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS'), vidas.join(' | '));
   check('D4) la puerta solo deja salir la vista, nunca la traza', /return \{ takes: trazas\.map\(vistaDeLaToma\) \};/.test(puerta) && (puerta.match(/trazasDeLaUnidad\(/g) || []).length === 1);
   check('D5) el módulo nuevo está en la lista del motor, y el dinero no', TOCADOS_POR_EL_MOTOR.includes('functions/src/creator/estadoDeToma.ts') && TOCADOS_POR_EL_MOTOR.every((f) => !DINERO.some((re) => re.test(f))));
   /*

@@ -46,6 +46,13 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * el requisito del servidor. No cobra, no pone precio y no llama al conductor: eso lo sigue haciendo cada toma.
    */
   'functions/src/creator/lotes.ts',
+  /*
+   * Fase 7 (F5 del roadmap) · el montaje final, como manifiesto: qué se montaría y con qué, puro y con su huella; y
+   * los argumentos de FFmpeg que lo ejecutarían (decisión del usuario: FFmpeg propio). Ninguno ejecuta nada: el
+   * render llega cuando se decida dónde corre y cómo se instala el binario. `shots/puerta.ts` gana `shot.montage`.
+   */
+  'functions/src/creator/composicion.ts',
+  'functions/src/creator/ffmpeg.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

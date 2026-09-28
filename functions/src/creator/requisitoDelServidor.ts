@@ -75,6 +75,27 @@ export interface CapacidadDeLaProduccion {
   readonly totalSec?: number;
 }
 
+/** Un tramo de la línea de tiempo de F1-A: dónde empieza y acaba cada unidad, y cómo da paso a la siguiente. */
+export interface TramoDelServidor {
+  readonly unitId: string;
+  readonly sceneId: string;
+  readonly startSec: number;
+  readonly endSec: number;
+  readonly transitionOut?: string;
+}
+
+/** La línea de tiempo de la producción, tal como la calcula F1-A. `null` si no la hay (falta alguna duración). */
+export interface LineaDeTiempoDelServidor {
+  readonly totalSec: number;
+  readonly segments: readonly TramoDelServidor[];
+}
+
+/** El formato del montaje final: el de la salida que F1-A le pide al montaje, o el de la producción si no lo hay. */
+export interface FormatoDelMontaje {
+  readonly aspectRatio: string;
+  readonly resolution?: string;
+}
+
 /**
  * TODOS LOS REQUISITOS DE LA PRODUCCIÓN GUARDADA en esa revisión, y su resumen
  * por capacidad. La MISMA lectura y el MISMO cálculo que el de una unidad —que sale
@@ -86,7 +107,13 @@ export const requisitosDelServidor = async (
   accountId: string,
   u: { productionId: string; revision: number },
 ): Promise<
-  | { readonly ok: true; readonly unidades: readonly UnidadDelServidor[]; readonly capacidades: readonly CapacidadDeLaProduccion[] }
+  | {
+    readonly ok: true;
+    readonly unidades: readonly UnidadDelServidor[];
+    readonly capacidades: readonly CapacidadDeLaProduccion[];
+    readonly lineaDeTiempo: LineaDeTiempoDelServidor | null;
+    readonly formato: FormatoDelMontaje;
+  }
   | { readonly ok: false; readonly motivo: MotivoDelRequisito; readonly causa?: 'requirements_failed' }
 > => {
   const leida = await leerProduccion(accountId, u.productionId, { db });
@@ -94,10 +121,27 @@ export const requisitosDelServidor = async (
   if (leida.view.revision !== u.revision) return { ok: false, motivo: 'production_changed' };
   const calculados = requisitosDeProduccion(leida.view.production);
   if (!calculados.ok) return { ok: false, motivo: 'production_changed', causa: 'requirements_failed' };
+  const r = calculados.requirements;
+  /* La salida del montaje la pide F1-A; si no hay montaje (una sola unidad), el formato es el de la producción. */
+  const montaje = r.assembly.find((a) => a.purpose === 'montage')?.output;
+  const deLaProduccion = leida.view.production.format;
+  const formato: FormatoDelMontaje = {
+    aspectRatio: montaje?.aspectRatio ?? deLaProduccion.aspectRatio,
+    ...((montaje?.resolution ?? deLaProduccion.resolution) ? { resolution: (montaje?.resolution ?? deLaProduccion.resolution) as string } : {}),
+  };
   return {
     ok: true,
-    unidades: calculados.requirements.shots.map((s) => ({ sceneId: s.sceneId, unitId: s.unitId, crudo: JSON.parse(JSON.stringify(s)) })),
-    capacidades: calculados.requirements.capabilities.map((c) => ({ capability: c.capability, count: c.count, ...(c.totalSec !== undefined ? { totalSec: c.totalSec } : {}) })),
+    unidades: r.shots.map((s) => ({ sceneId: s.sceneId, unitId: s.unitId, crudo: JSON.parse(JSON.stringify(s)) })),
+    capacidades: r.capabilities.map((c) => ({ capability: c.capability, count: c.count, ...(c.totalSec !== undefined ? { totalSec: c.totalSec } : {}) })),
+    lineaDeTiempo: r.timeline && r.timeline.segments.length
+      ? {
+        totalSec: r.timeline.totalSec,
+        segments: r.timeline.segments.map((s) => ({
+          unitId: s.unitId, sceneId: s.sceneId, startSec: s.startSec, endSec: s.endSec, ...(s.transitionOut ? { transitionOut: s.transitionOut } : {}),
+        })),
+      }
+      : null,
+    formato,
   };
 };
 

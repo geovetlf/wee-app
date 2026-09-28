@@ -25,6 +25,7 @@ import { revisarPlanoGuardado } from './validacion';
 import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma, leerUnidadDeToma, videosDeLaProduccion } from '../creator/toma';
 import { estadoDeLaProduccion, trazasDeLaUnidad, vistaDeLaProduccion, vistaDeLaToma } from '../creator/estadoDeToma';
 import { PLAZO_DE_VIDEO_MS } from '../creator/video';
+import { componerMontaje } from '../creator/composicion';
 
 /**
  * WEË SCENES & SHOTS — LA PUERTA. Y solo eso.
@@ -290,6 +291,21 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
     if (!productionId) noVale();
     const estado = await estadoDeLaProduccion(db, { uid: request.auth.uid, accountId }, productionId as string, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
     return vistaDeLaProduccion(estado);
+  }
+
+  /*
+   * FILMMAKER ENGINE · FASE 7 · EL MONTAJE FINAL, COMO MANIFIESTO: qué se montaría
+   * —cada plano con su vídeo, en orden, recortado, con su transición y el formato
+   * de salida—, o qué falta para poder montarlo. Solo lectura: no renderiza nada.
+   */
+  if (op === 'shot.montage') {
+    const productionId = texto(data.productionId, 128);
+    const revision = entero(data.revision);
+    if (!productionId || revision === undefined || revision < 0) noVale();
+    const r = await componerMontaje(db, { uid: request.auth.uid, accountId }, { productionId: productionId as string, revision: revision as number }, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+    return r.ok
+      ? { montage: { ready: true, manifest: r.manifiesto } }
+      : { montage: { ready: false, reason: r.motivo, ...(r.faltan ? { missing: r.faltan } : {}) } };
   }
 
   if (op === 'shot.stale') {
