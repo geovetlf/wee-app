@@ -1,6 +1,8 @@
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
+import { existsSync } from 'fs';
 import { mkdtemp, rm, stat } from 'fs/promises';
+import * as binarioDeFfmpeg from 'ffmpeg-static';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import { AttemptReport, JobDispatch, JobExecutor, WeeErrorCode, errorDelCore, esTareaGeneral } from '../core';
@@ -66,17 +68,17 @@ export type LanzarFfmpeg = (argv: readonly string[]) => ProcesoDeFfmpeg;
 /**
  * EL BINARIO. El de `ffmpeg-static` (decisión del usuario, 2026-09-28), que lo
  * instala para la plataforma donde corre `npm ci`: el ordenador en local y
- * Linux en Cloud Build. Se busca al usarlo, no al cargar: una Function que no
- * monta nada no tiene por qué tenerlo.
+ * Linux en Cloud Build.
+ *
+ * Se importa arriba, como cualquier otra dependencia —nada de cargas perezosas,
+ * que el mapa del runtime no ve (`f1d-generacion` AE)—, y cuesta poco: el
+ * paquete solo calcula una ruta, no carga el binario. Lo que exporta ES esa ruta
+ * (`module.exports = ruta`), y por eso se lee como texto. Si el binario no está
+ * donde dice —una instalación que no lo bajó—, no hay FFmpeg, y se dice.
  */
 export const rutaDeFfmpeg = (): string | null => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const ruta: unknown = require('ffmpeg-static');
-    return typeof ruta === 'string' && ruta.length > 0 ? ruta : null;
-  } catch {
-    return null;
-  }
+  const ruta: unknown = binarioDeFfmpeg;
+  return typeof ruta === 'string' && ruta.length > 0 && existsSync(ruta) ? ruta : null;
 };
 
 /** Lo que se guarda de lo que FFmpeg escribe: la cola, que es donde está el error. */

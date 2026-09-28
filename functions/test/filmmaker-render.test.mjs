@@ -774,8 +774,8 @@ console.log('\n── G · Lo que el render no hace ──');
     /spawn\(binario, \[\.\.\.argv\], \{ shell: false/.test(src('renderizador.ts')) && !/(?<!\.)\bexec(Sync|File)?\(|shell: true/.test(todo)
     /* `.exec(` de una expresión regular no es un proceso: lo que no puede aparecer es el `exec` de child_process. */
     && /import \{ spawn \} from 'child_process';/.test(src('renderizador.ts')));
-  check('G4) ni `.run(` —la autoridad del Gateway no se toca— ni imports perezosos más allá del binario',
-    !/\.run\(/.test(todo) && (todo.match(/require\(/g) ?? []).length === 1 && /require\('ffmpeg-static'\)/.test(todo) && !/import\(/.test(todo));
+  check('G4) ni `.run(` —la autoridad del Gateway no se toca— ni cargas perezosas: el binario se importa arriba, como cualquier dependencia',
+    !/\.run\(/.test(todo) && !/\brequire\s*\(|\bimport\s*\(/.test(todo) && /import \* as binarioDeFfmpeg from 'ffmpeg-static';/.test(src('renderizador.ts')));
   const pasadaSrc = src('renders.ts');
   check('G5) la pasada descarta lo que no es un render ANTES de evaluar nada',
     pasadaSrc.indexOf('if (!esTrabajoDeRender(job)) continue;') > 0 && pasadaSrc.indexOf('if (!esTrabajoDeRender(job)) continue;') < pasadaSrc.indexOf('motor.evaluar('));
