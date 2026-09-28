@@ -308,6 +308,7 @@ export const filmmaker = {
   takePriceChanged: 'El precio cambió desde que lo viste. Este es el de ahora.',
   takeReasonReferences: 'Usa referencias o un fotograma de partida, y eso todavía no se puede generar aquí.',
   takeReasonAdvanced: 'Tiene un prompt avanzado, y eso todavía no se puede generar aquí.',
+  takeReasonAdvancedTooLong: 'Su prompt avanzado tiene {{caracteres}} caracteres y lo máximo son {{maximo}}: acórtalo.',
   takeReasonDialogue: 'Tiene diálogo, y el vídeo todavía no sincroniza voces.',
   takeReasonDescription: 'Describe qué pasa para poder generarlo.',
   takeReasonTooLong: 'Dura {{segundos}} s y lo máximo son {{maximo}} s: divídelo en planos más cortos.',

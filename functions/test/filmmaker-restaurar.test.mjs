@@ -311,6 +311,8 @@ const nucleo = lib('core/index.js');
 const { TOCADOS_POR_EL_MOTOR, DINERO } = await import('./motor-filmmaker-alcance.mjs');
 /** El último commit antes de esta fase: lo que no se toca se compara con él. */
 const ANTES = '9f0e912';
+/** El commit de esta fase, cuando ya existe: lo que la fase tocó se mide en SU tramo, y las siguientes no lo mueven. */
+const HASTA = git('log --format=%H -n 1 --grep "Filmmaker Engine phase 12 "').trim();
 
 let serieDeOperaciones = 0;
 const opId = (etiqueta) => `op-f12-${etiqueta}-${String(++serieDeOperaciones).padStart(4, '0')}`;
@@ -527,18 +529,20 @@ console.log('\n── G · Lo que restaurar no hace ──');
 {
   const src = (f) => sinComentarios(leer(`functions/src/productions/${f}`));
   const indice = src('index.ts');
+  /* Los códigos, como quedaron AL CERRAR la fase: una fase posterior puede añadir los suyos. */
+  const indiceDeLaFase = HASTA ? sinComentarios(git(`show ${HASTA}:functions/src/productions/index.ts`)) : indice;
   const cuerpo = indice.slice(indice.indexOf('export const restaurarRevision'));
-  check('G1) F1-A intacto: el lenguaje, el modelo y la validación no se tocan', git(`diff --name-only ${ANTES} -- functions/src/filmmaker`).trim() === '');
+  check('G1) F1-A intacto: el lenguaje, el modelo y la validación no se tocan', git(`diff --name-only ${ANTES} ${HASTA} -- functions/src/filmmaker`).trim() === '');
   const codigos = (s) => (s.match(/export type CodigoDePersistencia =[\s\S]*?;/) || [''])[0];
   check('G2) ni un código nuevo: todo lo que puede salir mal ya tenía nombre (y su frase en los once idiomas)',
-    codigos(indice).length > 100 && codigos(indice) === codigos(sinComentarios(git(`show ${ANTES}:functions/src/productions/index.ts`))));
+    codigos(indiceDeLaFase).length > 100 && codigos(indiceDeLaFase) === codigos(sinComentarios(git(`show ${ANTES}:functions/src/productions/index.ts`))));
   check('G3) ni dinero, ni trabajos, ni IA: restaurar solo lee el registro y escribe la producción',
     cuerpo.length > 500 && !/credit|spendCredits|crearTrabajo|conductor|engine|pedirMedio|fetch|http/i.test(cuerpo));
   const laEntrada = cuerpo.slice(cuerpo.indexOf("kind: 'restore', operationId"), cuerpo.indexOf('result:', cuerpo.indexOf("kind: 'restore', operationId")));
   check('G4) el registro de una restauración no guarda foto ni operaciones: solo de dónde viene y su huella',
     laEntrada.length > 40 && /source: \{ productionId, revision: destino \}/.test(laEntrada) && !/snapshot|operations/.test(laEntrada), laEntrada);
   check('G5) la app, las reglas y los índices no se tocan en esta fase',
-    git(`diff --name-only ${ANTES} -- services components screens hooks utils firestore.rules firestore.indexes.json storage.rules`).trim() === '');
+    git(`diff --name-only ${ANTES} ${HASTA} -- services components screens hooks utils firestore.rules firestore.indexes.json storage.rules`).trim() === '');
   check('G6) productions ya estaba en la lista del motor, y el dinero no',
     ['functions/src/productions/index.ts', 'functions/src/productions/puerta.ts'].every((f) => TOCADOS_POR_EL_MOTOR.includes(f)) && TOCADOS_POR_EL_MOTOR.every((f) => !DINERO.some((re) => re.test(f))));
   check('G7) la puerta: ocho operaciones, y `restore` solo lleva la revisión que se ve y a cuál se vuelve',

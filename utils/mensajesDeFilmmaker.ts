@@ -134,6 +134,8 @@ const CLAVE_DEL_MOTIVO_DE_TOMA: Readonly<Record<string, string>> = Object.freeze
   capability_not_supported: 'filmmaker.takeReasonReferences',
   references_not_supported: 'filmmaker.takeReasonReferences',
   advanced_prompt_blocked: 'filmmaker.takeReasonAdvanced',
+  /* Filmmaker Engine, Fase 13: el prompt avanzado se usa, pero tiene que caber entero. */
+  advanced_prompt_too_long: 'filmmaker.takeReasonAdvancedTooLong',
   dialogue_not_supported: 'filmmaker.takeReasonDialogue',
   description_missing: 'filmmaker.takeReasonDescription',
   duration_too_long: 'filmmaker.takeReasonTooLong',
@@ -245,6 +247,8 @@ export const fraseDelRechazoDeToma = (rechazo: RechazoDeToma, t: Traductor, form
       return t(claveDelFalloDeToma(rechazo.motivo, d.refunded !== true));
     case 'duration_too_long':
       return t(clave, { segundos: formato.numero(Number(d.requestedSec)), maximo: formato.numero(Number(d.maxSec)) });
+    case 'advanced_prompt_too_long':
+      return t(clave, { caracteres: formato.numero(Number(d.chars)), maximo: formato.numero(Number(d.maxChars)) });
     case 'aspect_ratio_not_supported': {
       const sugeridas = Array.isArray(d.suggestions) ? d.suggestions.filter((x): x is string => typeof x === 'string') : [];
       return t(clave, { formato: String(d.aspectRatio ?? ''), lista: formato.lista(sugeridas, 'disjunction') });

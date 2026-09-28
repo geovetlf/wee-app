@@ -234,8 +234,8 @@ calculan desde la producción y no se guardan en ella: así no pueden desfasarse
 
 **ADR-FM-004 · El prompt avanzado, en un solo sitio.** `shot.advanced.prompt` es el único lugar donde se admite la
 clave `prompt`; no admite semilla, modelo ni proveedor, no entra en `creative` y no llega a ningún `ShotNode`.
-Solo viaja al requisito de su plano. Cómo se guarda lo decide ADR-FM-008 (F1-B); cómo se enseña y cómo se usa al
-generar sigue pendiente (D9).
+Solo viaja al requisito de su plano. Cómo se guarda lo decide ADR-FM-008 (F1-B); al generar se usa desde la Fase 13
+del Filmmaker Engine (abajo); cómo se enseña y cómo se edita siguen pendientes (D9).
 
 **ADR-FM-005 · D2: la producción es un agregado propio, `productions`.**
 
@@ -384,7 +384,7 @@ siguen **pendientes**:
 | D6 | Weë Brain para intención y cambios | **decidida** en la Fase 9 del motor (2026-09-28): `brainChat` con la producción abierta como contexto; propone operaciones de F1-A comprobadas en memoria y la persona las aplica por `productions`; mismo precio, camino de siempre |
 | D7 | Montaje y render | **decidida** en la Fase 8 del motor (2026-09-28): FFmpeg propio (`ffmpeg-static`) como tarea general del Job Engine; el resultado, material `asset_` de la cuenta más un registro en la producción; gratis con cinco al día; exportar o publicar el montaje, pendiente (D8) |
 | D8 | Duración y publicación (Weëls ≤ 15 s) | **en parte**: una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; publicar, pendiente |
-| D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); al generar, un plano con prompt avanzado se rechaza (F1-D); enseñarlo y usarlo, pendiente (F6) |
+| D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); **usarlo al generar, decidido en la Fase 13 del motor** (2026-09-28): se AÑADE detrás del texto de Weë, que no cambia, en un bloque fijo en la última línea, entero, sin enlaces ni órdenes de proveedor (plantilla `fm-plano-2`); enseñarlo (un modo avanzado oculto) y editarlo (`update_shot` sigue con `not_editable_yet`), pendientes |
 | D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
 | D11 | Precios, límites y cancelación | **en parte**: el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); cancelar, pendiente |
 | D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; enseñarlo en la app, en el pase de UX |
@@ -623,7 +623,7 @@ Una unidad —un plano, o una escena sin planos— se genera de una en una, con 
   para el vídeo —descripción, cámara y composición en texto, continuidad textual, duración, formato, calidad y
   sonido—, quita las direcciones web del texto y no pasa de 3000 caracteres. El mismo requisito da el mismo texto.
 - Rechaza con su motivo, sin desviar a legacy ni degradar nada: una capacidad que no es `video.generate`,
-  referencias o fotogramas de partida, prompt avanzado (F6), diálogo a cámara (sin lip-sync), sin descripción,
+  referencias o fotogramas de partida, prompt avanzado (hasta la Fase 13 del motor, que lo usa), diálogo a cámara (sin lip-sync), sin descripción,
   más de 15 s, un formato que el proveedor no tiene (4:5 se bloquea y se proponen 9:16 o 1:1), sin calidad elegida,
   una calidad que no llega a la resolución de la producción sin cambiar de modelo, y sonido pedido contra una
   producción «sin música» o «sin diálogo». La duración generada es `max(4, ceil(pedida))`.
@@ -1086,6 +1086,47 @@ Nada se despliega en esta fase.
 
 Pruebas: `functions/test/filmmaker-restaurar.test.mjs` (en la cadena).
 
+### Fase 13 · El prompt avanzado, usado al generar (D9 de F6)
+
+Decisión del usuario (2026-09-28): **«AUTORIZADO D9 — ADVANCED PROMPT»**, con sus reglas: opcional, solo por un modo
+avanzado oculto; NUNCA reemplaza el prompt de Weë —el resultado es «prompt de Weë actual + bloque fijo»—; en una
+posición fija y determinista; las tomas sin prompt avanzado, exactamente como antes; Weë Brain sigue siendo la puerta
+de entrada; ni proveedores, ni llamadas de IA, ni Credits, ni pagos, ni trabajos, ni workers, ni infraestructura, ni
+F1-A, ni el Credit Engine, ni el Job Engine. El prompt avanzado de un plano (`shot.advanced.prompt`, guardado desde
+F1-B) **se usa al generar**.
+
+- **Dónde entra** (`creator/plano.ts`): el texto de Weë se compone con `componerTextoDeWee`, que es la plantilla
+  `fm-plano-1` **sin una coma cambiada** —el mismo cuerpo de función—, y `componerPromptDePlano` le AÑADE detrás, en
+  la **última línea**, el bloque `Additional direction: …` (`bloqueDelPromptAvanzado`): una sola línea, una sola vez.
+  El texto de Weë de la toma normal es, carácter a carácter, el principio del texto con prompt avanzado.
+- **Entero o nada**: el bloque tiene que caber en lo que queda de los 3000 caracteres detrás del texto de Weë de ESE
+  plano (`sitioParaElPromptAvanzado`). Si no cabe, se rechaza con `advanced_prompt_too_long` (`chars`: lo que mide;
+  `maxChars`: lo que cabe), con su frase en los once idiomas (`filmmaker.takeReasonAdvancedTooLong`); nunca se
+  recorta. Es la ÚLTIMA regla: las de siempre se aplican antes y en el mismo orden. Vacío, en blanco, que no sea texto
+  o que al limpiarlo se quede en nada, es como no tener.
+- **Limpio**: sin enlaces (como el resto del texto), sin saltos de línea (se juntan, para que el bloque sea la última
+  línea) y **sin órdenes de proveedor**: ModelArk admite parámetros escritos en el prompt (`--rs 1080p`, `--dur 10`,
+  `--seed`…), y el precio se calculó con los del cuerpo de la petición; se quitan los guiones que abren una orden y las
+  palabras se quedan. La suite comprueba que el cuerpo que armaría el adaptador pide lo mismo —modelo, resolución,
+  duración y proporción— con o sin el bloque.
+- **La plantilla, versionada**: la toma con prompt avanzado se compone con `fm-plano-2` (`PLANTILLA_DE_PLANO_CON_INDICACIONES`)
+  y la reserva de la toma lo dice (`meta.filmmaker.plantilla`); la que no lo lleva sigue con `fm-plano-1` **byte a
+  byte** —la suite lo compara con la versión anterior del traductor, compilada desde git—, también en producciones
+  antiguas y en cada una de sus revisiones, restauradas incluidas. Mismo precio, mismos límites, una toma = una reserva
+  y un trabajo, como siempre.
+- **Lo que NO hace**: enseñarlo —el modo avanzado oculto es de la app y queda para el pase de UX— ni editarlo: F1-A
+  sigue rechazando cambiarlo con `update_shot` (`not_editable_yet`), y tocar F1-A queda fuera de esta autorización; hoy
+  se pone al crear la producción. F1-A, el Credit Engine, el Job Engine, los precios y el adaptador de Seedance, sin tocar.
+- **Hallazgo, sin tocar**: el mismo hueco de las órdenes de proveedor existe desde F1-D en el resto del texto de la
+  persona (descripción, acciones, fichas), que ya está desplegado. Quitarlas ahí cambia el texto —y la huella— de
+  todos los planos que las lleven, así que es una decisión aparte.
+
+Vallas reancladas por nombre con esta autorización: `f1d-generacion` H (el texto avanzado ya viaja; las referencias,
+no) y O (el prompt avanzado ya no bloquea), `f1d-cliente` M1 (12 motivos del plano) y M5 (69 claves de la toma) e
+`i18n-preferencia-usuario` 57–58 (`CLAVES_PT` 3103 → 3104). Nada se despliega en esta fase.
+
+Pruebas: `functions/test/filmmaker-prompt-avanzado.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -1097,7 +1138,7 @@ Pruebas: `functions/test/filmmaker-restaurar.test.mjs` (en la cadena).
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados; usar sus imágenes al generar, pendiente de validar |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; y el póster de cada vídeo y del montaje (Fase 11); exportar o publicar el montaje, aparte |
-| F6 | Director avanzado: prompt avanzado (D9), versiones (D12). **Hecho «restaurar»** (Filmmaker Engine, Fase 12; local, sin desplegar); el prompt avanzado, pendiente |
+| F6 | Director avanzado: prompt avanzado (D9), versiones (D12). **Hechos «restaurar»** (Filmmaker Engine, Fase 12) **y usar el prompt avanzado al generar** (Fase 13), locales y sin desplegar; enseñarlo y editarlo, pendientes (pase de UX y lenguaje de F1-A) |
 
 ## Pruebas
 

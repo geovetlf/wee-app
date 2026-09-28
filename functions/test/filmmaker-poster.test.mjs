@@ -328,6 +328,8 @@ const { TOCADOS_POR_EL_MOTOR, DINERO } = await import('./motor-filmmaker-alcance
 const FFMPEG = require('ffmpeg-static');
 /** El último commit antes de esta fase: lo que no se toca se compara con él. */
 const ANTES = 'f159f9e';
+/** El commit de esta fase, cuando ya existe: lo que la fase tocó se mide en SU tramo, y las siguientes no lo mueven. */
+const HASTA = git('log --format=%H -n 1 --grep "Filmmaker Engine phase 11 "').trim();
 
 /* ═══ Vídeos de verdad, hechos aquí con FFmpeg ═══════════════════════════ */
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'fase11-'));
@@ -901,14 +903,14 @@ console.log('\n── G · Lo que el póster no hace ──');
     !/\.run\(|\brequire\s*\(|\bimport\s*\(/.test(todo) && /import type \{ AlmacenDelRender \} from '\.\/renderizador';/.test(leer('functions/src/creator/poster.ts'))
     && !/from '\.\/renderizador'/.test(poster.replace(/import type \{ AlmacenDelRender \} from '\.\/renderizador';/, '')));
   check('G5) el Content Core no se toca: la variante se escribe con `anotarVariante`, tal cual',
-    git(`diff --name-only ${ANTES} -- functions/src/content functions/src/core`).trim() === '' && /anotarVariante/.test(src('renderizador.ts')));
+    git(`diff --name-only ${ANTES} ${HASTA} -- functions/src/content functions/src/core`).trim() === '' && /anotarVariante/.test(src('renderizador.ts')));
   const anotarSrc = src('renderizador.ts').slice(src('renderizador.ts').indexOf('const anotarElPoster'), src('renderizador.ts').indexOf('export const guardarPoster'));
   check('G6) la variante no lleva dirección: la calcula quien lee, y no se guarda', anotarSrc.length > 100 && !/url|token/i.test(anotarSrc));
   check('G7) los módulos del póster están en la lista del motor, y el dinero no',
     ['functions/src/creator/poster.ts', 'functions/src/creator/renderizador.ts', 'functions/src/creator/renders.ts'].every((f) => TOCADOS_POR_EL_MOTOR.includes(f))
     && TOCADOS_POR_EL_MOTOR.every((f) => !DINERO.some((re) => re.test(f))));
   check('G8) ni una regla nueva: la variante vive en `assets` —la lee su dueño— y el objeto en la carpeta de la cuenta',
-    git(`diff --name-only ${ANTES} -- firestore.rules storage.rules`).trim() === '' && /match \/users\/\{userId\}\/ai-generations\/\{fileName\}/.test(leer('storage.rules')));
+    git(`diff --name-only ${ANTES} ${HASTA} -- firestore.rules storage.rules`).trim() === '' && /match \/users\/\{userId\}\/ai-generations\/\{fileName\}/.test(leer('storage.rules')));
   const servicio = sinComentarios(leer('services/tomaService.ts'));
   const tarjeta = sinComentarios(leer('components/studio/produccion/ProductionShotCard.tsx'));
   check('G9) la app pide los pósters por la puerta y pinta su imagen; sin póster, el vídeo, como antes',

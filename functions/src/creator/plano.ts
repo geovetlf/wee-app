@@ -21,9 +21,16 @@ import { CreativeParameters, creativosValidos } from '../core';
  * ── Lo que F1-D genera, y lo que rechaza DICIÉNDOLO ─────────────────────────
  *
  * Solo `video.generate`: un plano descrito, sin primer fotograma, sin
- * referencias de imagen, vídeo ni audio, sin prompt avanzado y sin diálogo a
- * cámara. Lo que no se puede representar tal cual no se degrada ni se desvía a
- * otro camino: se rechaza con un motivo que la app traduce.
+ * referencias de imagen, vídeo ni audio y sin diálogo a cámara. Lo que no se
+ * puede representar tal cual no se degrada ni se desvía a otro camino: se
+ * rechaza con un motivo que la app traduce.
+ *
+ * El prompt avanzado (D9) se USA desde la Fase 13 del Filmmaker Engine: el texto
+ * de Weë se compone EXACTAMENTE como siempre y el prompt avanzado se AÑADE detrás,
+ * como un bloque aparte en su última línea —nunca en su lugar—, sin enlaces ni
+ * órdenes de proveedor (`--rs`, `--dur`…). Si no cabe entero se dice, después de
+ * todas las demás reglas. El plano que lo lleva usa la plantilla `fm-plano-2`; el
+ * que no, la `fm-plano-1` de siempre, byte a byte.
  *
  *     duración   se genera max(4, ceil(pedida)) segundos, hasta 15. Más de 15 se
  *                rechaza: se propone dividir el plano, nunca recortarlo.
@@ -44,7 +51,18 @@ import { CreativeParameters, creativosValidos } from '../core';
  */
 
 export const PLANTILLA_DE_PLANO = 'fm-plano-1';
+/**
+ * LA DE UN PLANO CON PROMPT AVANZADO (Filmmaker Engine, Fase 13 = D9): el texto de
+ * `fm-plano-1` ENTERO, tal cual, y detrás —en su última línea— el bloque del prompt
+ * avanzado. Un plano sin prompt avanzado sigue siendo `fm-plano-1`, byte a byte.
+ */
+export const PLANTILLA_DE_PLANO_CON_INDICACIONES = 'fm-plano-2';
 export const MAX_PROMPT_DE_PLANO = 3000;
+/**
+ * El delimitador del bloque del prompt avanzado: una línea propia, la ÚLTIMA, que
+ * empieza siempre así. Fijo y en inglés, como las demás etiquetas.
+ */
+export const ETIQUETA_DEL_PROMPT_AVANZADO = 'Additional direction: ';
 
 /** Lo que genera esta ruta, y hasta dónde. Números de producto, no de ningún proveedor. */
 export const LIMITES_DE_PLANO = Object.freeze({
@@ -60,12 +78,19 @@ export const LIMITES_DE_PLANO = Object.freeze({
 export type CalidadDePlano = typeof LIMITES_DE_PLANO.calidades[number];
 export type ResolucionDePlano = typeof LIMITES_DE_PLANO.resoluciones[number];
 
-/** Por qué un plano no se genera. Códigos: la frase la pone la app. */
+/**
+ * Por qué un plano no se genera. Códigos: la frase la pone la app.
+ *
+ * Desde la Fase 13, `advanced_prompt_blocked` ya no se emite —el prompt avanzado
+ * se usa— y se queda para la app que lo conoce. `advanced_prompt_too_long`, con
+ * `chars` y `maxChars`, dice que no cabe entero.
+ */
 export type MotivoDePlano =
   | 'shot_invalid'
   | 'capability_not_supported'
   | 'references_not_supported'
   | 'advanced_prompt_blocked'
+  | 'advanced_prompt_too_long'
   | 'dialogue_not_supported'
   | 'description_missing'
   | 'duration_too_long'
@@ -77,6 +102,8 @@ export type MotivoDePlano =
 /* ── Leer lo que llega, con la forma justa ─────────────────────────────────── */
 
 const MAX_TEXTO = 2000;
+/** Lo que F1-A deja guardar en `advanced.prompt` (`LIMITES.textoLibre`): se lee entero para poder decir cuánto mide. */
+const MAX_TEXTO_AVANZADO = 4000;
 const MAX_NOMBRE = 120;
 const MAX_LISTA = 16;
 const MAX_ENTIDADES = 16;
@@ -127,6 +154,10 @@ export interface RequisitoDePlano {
   readonly primerFotograma: boolean;
   readonly ultimoFotograma: boolean;
   readonly promptAvanzado: boolean;
+  /** Fase 13: el texto del prompt avanzado, tal como lo escribió la persona (hasta lo que guarda F1-A). */
+  readonly avanzado?: string;
+  /** Y cuánto mide, para decir cuánto sobra si no cabe. 0 si no hay. */
+  readonly largoDelAvanzado: number;
   readonly duracionSec: number;
   readonly proporcion: string;
   readonly resolucion?: ResolucionDePlano;
@@ -165,10 +196,10 @@ const entidad = (crudo: unknown): EntidadDePlano | undefined => {
 /**
  * EL REQUISITO, LEÍDO. `null` si no tiene la forma de un requisito de plano.
  *
- * Solo se copian los campos que F1-D usa, cada uno con su tope. Las referencias,
- * el diálogo y el prompt avanzado se CUENTAN —hacen falta para rechazar el plano
- * diciendo por qué— pero su contenido no viaja: ni ids de material, ni el texto
- * avanzado, ni lo que se dice a cámara.
+ * Solo se copian los campos que F1-D usa, cada uno con su tope. Las referencias
+ * y el diálogo se CUENTAN —hacen falta para rechazar el plano diciendo por qué—
+ * pero su contenido no viaja: ni ids de material, ni lo que se dice a cámara. El
+ * prompt avanzado sí viaja desde la Fase 13, con el tope con el que lo guarda F1-A.
  */
 export const leerRequisitoDePlano = (crudo: unknown): RequisitoDePlano | null => {
   if (!esObj(crudo) || !esObj(crudo.input) || !esObj(crudo.format) || !esObj(crudo.output)) return null;
@@ -227,6 +258,7 @@ export const leerRequisitoDePlano = (crudo: unknown): RequisitoDePlano | null =>
     }
     : undefined;
   const fuerza = continuidadCruda ? vocablo(continuidadCruda.strength) : undefined;
+  const avanzado = texto(i.advancedPrompt, MAX_TEXTO_AVANZADO);
   return {
     unitId,
     sceneId,
@@ -251,6 +283,8 @@ export const leerRequisitoDePlano = (crudo: unknown): RequisitoDePlano | null =>
     primerFotograma: typeof i.firstFrameReferenceId === 'string',
     ultimoFotograma: typeof i.lastFrameReferenceId === 'string',
     promptAvanzado: typeof i.advancedPrompt === 'string' && i.advancedPrompt.length > 0,
+    ...(avanzado ? { avanzado } : {}),
+    largoDelAvanzado: typeof i.advancedPrompt === 'string' ? i.advancedPrompt.trim().length : 0,
     duracionSec: duracion,
     proporcion,
     ...(resolucion ? { resolucion } : {}),
@@ -293,7 +327,6 @@ export const evaluarPlano = (r: RequisitoDePlano, calidad: unknown): EvaluacionD
   const no = (motivo: MotivoDePlano, detalle?: PlanoRechazado['detalle']): PlanoRechazado => ({ ok: false, motivo, ...(detalle ? { detalle } : {}) });
   if (r.capacidad !== 'video.generate') return no('capability_not_supported', { capability: r.capacidad });
   if (r.referencias > 0 || r.primerFotograma || r.ultimoFotograma) return no('references_not_supported');
-  if (r.promptAvanzado) return no('advanced_prompt_blocked');
   if (r.lineasACamara > 0) return no('dialogue_not_supported');
   if (!r.descripcion && !r.descripcionDeEscena && !r.acciones.length) return no('description_missing');
   if (r.duracionSec > LIMITES_DE_PLANO.duracionMaximaSec) {
@@ -306,6 +339,19 @@ export const evaluarPlano = (r: RequisitoDePlano, calidad: unknown): EvaluacionD
   if (!elegida) return no('quality_required');
   const conSonido = r.conSonido === true;
   if (conSonido && r.restricciones.some((c) => c === 'no_music' || c === 'no_dialogue')) return no('sound_constraints_not_supported');
+  /*
+   * Fase 13 · EL PROMPT AVANZADO, la última regla: las de antes se aplican igual y
+   * en el mismo orden. Se usa ENTERO detrás del texto de Weë, que no se toca; si no
+   * cabe en lo que queda del tope, se dice cuánto mide y cuánto sitio hay. Nunca se
+   * recorta ni se cae en silencio.
+   */
+  if (r.largoDelAvanzado > 0) {
+    const bloque = bloqueDelPromptAvanzado(r);
+    const sitio = sitioParaElPromptAvanzado(r);
+    if (!r.avanzado || bloque.length - ETIQUETA_DEL_PROMPT_AVANZADO.length > sitio) {
+      return no('advanced_prompt_too_long', { chars: r.largoDelAvanzado, maxChars: sitio });
+    }
+  }
   return {
     ok: true,
     duracionPedidaSec: r.duracionSec,
@@ -348,6 +394,15 @@ export const calidadRepresentable = (
 
 /** Una URL dentro del texto de la persona no aporta nada al vídeo y es una puerta. Fuera. */
 const sinEnlaces = (t: string): string => t.replace(/https?:\/\/\S+/gi, '').replace(/\s{2,}/g, ' ').trim();
+
+/**
+ * NI UNA ORDEN AL PROVEEDOR DENTRO DEL TEXTO (Fase 13). ModelArk admite parámetros
+ * escritos al final del prompt —`--rs 1080p`, `--dur 10`, `--seed`…— y el precio se
+ * calculó con los del cuerpo de la petición: un prompt avanzado no puede pedir otra
+ * resolución ni otra duración por detrás. Se quitan los guiones que abren una
+ * orden; lo demás del texto queda como estaba.
+ */
+export const sinOrdenesDeProveedor = (t: string): string => t.replace(/(^|\s)-{2,}(?=[^\s-])/g, '$1').replace(/\s{2,}/g, ' ').trim();
 const palabra = (v: string): string => v.replace(/_/g, ' ');
 const frase = (partes: readonly (string | undefined)[], sep = '; '): string => partes.filter((p): p is string => !!p && p.length > 0).join(sep);
 
@@ -371,10 +426,13 @@ const describirCamara = (c: CreativeParameters | undefined): string => {
 };
 
 /**
- * EL TEXTO, por secciones y por orden de prioridad. Cada sección entra ENTERA o
- * no entra: un texto cortado a media frase le dice al proveedor otra cosa.
+ * EL TEXTO DE WEË, por secciones y por orden de prioridad. Cada sección entra
+ * ENTERA o no entra: un texto cortado a media frase le dice al proveedor otra cosa.
+ *
+ * Es la plantilla `fm-plano-1` tal cual, sin una coma cambiada: el prompt avanzado
+ * (Fase 13) NO entra aquí, se añade detrás (`componerPromptDePlano`).
  */
-export const componerPromptDePlano = (r: RequisitoDePlano): string => {
+export const componerTextoDeWee = (r: RequisitoDePlano): string => {
   const c = (t: string | undefined): string | undefined => (t ? sinEnlaces(t) : undefined);
   const secciones: string[] = [];
   const principal = c(r.descripcion) ?? c(r.descripcionDeEscena) ?? '';
@@ -421,3 +479,34 @@ export const componerPromptDePlano = (r: RequisitoDePlano): string => {
   }
   return salida;
 };
+
+/**
+ * EL BLOQUE DEL PROMPT AVANZADO (Fase 13 = D9), o nada. Una sola línea: la
+ * etiqueta fija y el texto de la persona sin enlaces, sin órdenes de proveedor y
+ * con los espacios y saltos juntados en uno, para que el bloque sea la última
+ * línea y nada más. En blanco, o que se quede en nada al limpiarlo, es nada.
+ */
+export const bloqueDelPromptAvanzado = (r: RequisitoDePlano): string => {
+  const limpio = r.avanzado ? sinOrdenesDeProveedor(sinEnlaces(r.avanzado)).replace(/\s+/g, ' ').trim() : '';
+  return limpio ? `${ETIQUETA_DEL_PROMPT_AVANZADO}${limpio}` : '';
+};
+
+/** Cuántos caracteres de prompt avanzado caben detrás del texto de Weë de ESTE plano, con su salto y su etiqueta. */
+export const sitioParaElPromptAvanzado = (r: RequisitoDePlano): number =>
+  Math.max(0, MAX_PROMPT_DE_PLANO - componerTextoDeWee(r).length - 1 - ETIQUETA_DEL_PROMPT_AVANZADO.length);
+
+/**
+ * EL TEXTO QUE SE MANDA: el de Weë, entero y sin tocar, y —si el plano lleva prompt
+ * avanzado— su bloque DETRÁS, en la última línea. Nunca en su lugar, nunca dos
+ * veces, nunca en otro sitio. `evaluarPlano` ya comprobó que cabe.
+ */
+export const componerPromptDePlano = (r: RequisitoDePlano): string => {
+  const deWee = componerTextoDeWee(r);
+  const bloque = bloqueDelPromptAvanzado(r);
+  if (!bloque) return deWee;
+  return deWee ? `${deWee}\n${bloque}` : bloque;
+};
+
+/** Con qué plantilla se compone el texto de este plano: la que se guarda con la reserva de su toma. */
+export const plantillaDePlano = (r: RequisitoDePlano): string =>
+  (bloqueDelPromptAvanzado(r) ? PLANTILLA_DE_PLANO_CON_INDICACIONES : PLANTILLA_DE_PLANO);

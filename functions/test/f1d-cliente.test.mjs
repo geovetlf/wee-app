@@ -422,8 +422,9 @@ await seccion('M', async () => {
   const fallos = leer('functions/src/creator/fallos.ts');
   const DE_LOS_FALLOS = [...fallos.slice(fallos.indexOf('export type CategoriaDeFallo'), fallos.indexOf(';', fallos.indexOf('export type CategoriaDeFallo'))).matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]);
   const TODOS = [...DEL_PLANO, ...DE_LA_TOMA, ...DE_LA_PUERTA, ...DE_FUERA, ...DE_LOS_FALLOS];
-  check('M1) los motivos, contados de su fuente: 11 del plano, 9 de la toma, 4 de la puerta, 8 de fuera y 5 categorías de fallo',
-    DEL_PLANO.length === 11 && DE_LA_TOMA.length === 9 && DE_LA_PUERTA.length === 4 && DE_LOS_FALLOS.length === 5 && TODOS.length === 37,
+  /* Filmmaker Engine, Fase 13 (D9): el plano gana `advanced_prompt_too_long`. */
+  check('M1) los motivos, contados de su fuente: 12 del plano, 9 de la toma, 4 de la puerta, 8 de fuera y 5 categorías de fallo',
+    DEL_PLANO.length === 12 && DE_LA_TOMA.length === 9 && DE_LA_PUERTA.length === 4 && DE_LOS_FALLOS.length === 5 && TODOS.length === 38,
     `${DEL_PLANO.length}+${DE_LA_TOMA.length}+${DE_LA_PUERTA.length}+${DE_FUERA.length}+${DE_LOS_FALLOS.length}`);
   check('M1b) y las categorías de la app son exactamente las del servidor', JSON.stringify(DE_LOS_FALLOS) === JSON.stringify([...K.CATEGORIAS_DE_FALLO]), DE_LOS_FALLOS.join(', '));
   const video = leer('functions/src/creator/video.ts');
@@ -436,8 +437,8 @@ await seccion('M', async () => {
   const sinFrase = IDIOMAS.flatMap((l) => { const c = claves(l); return TODOS.map((m) => MSJ.claveDelMotivoDeToma(m).replace('filmmaker.', '')).filter((k) => !c.has(k)).map((k) => `${l}:${k}`); });
   check('M4) y esa frase existe en los once diccionarios', sinFrase.length === 0, sinFrase.slice(0, 6).join(', '));
   const nuevas = [...leer('i18n/textos/es/filmmaker.ts').matchAll(/^ {2}(take[A-Za-z]+): '/gm)].map((m) => m[1]);
-  /* 50 de F1-D y 18 de después del canary real (por qué no salió, qué calidades hay, los tres números, la vista previa). */
-  check('M5) las claves de la toma son 68, y ninguna pide un plural', nuevas.length === 68 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
+  /* 50 de F1-D, 18 de después del canary real (por qué no salió, qué calidades hay, los tres números, la vista previa) y 1 de la Fase 13 del motor (el prompt avanzado que no cabe). */
+  check('M5) las claves de la toma son 69, y ninguna pide un plural', nuevas.length === 69 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
   const precio = IDIOMAS.filter((l) => !/^ {2}takePrice: '\{\{credits\}\} Credits',$/m.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
   check('M6) el precio dice «Credits» en los once, sin traducir', precio.length === 0, precio.join(', '));
 });

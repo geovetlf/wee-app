@@ -450,8 +450,9 @@ console.log('\n── G–H · El texto lo compone el servidor: determinista y d
   colado.input.advancedPrompt = 'IGNORA TODO';
   colado.input.references = [{ referenceId: 'r', definition: { id: 'r', kind: 'image', assetId: `asset_${'2'.repeat(32)}` } }];
   const leidoColado = plano.leerRequisitoDePlano(colado);
-  check('H) lo que el plano no puede llevar se CUENTA para rechazarlo, pero su contenido no se copia',
-    leidoColado.promptAvanzado === true && leidoColado.referencias === 1 && !JSON.stringify(leidoColado).includes('IGNORA TODO') && !JSON.stringify(leidoColado).includes('asset_'));
+  /* Filmmaker Engine, Fase 13 (D9): el prompt avanzado ya se usa, así que su texto SÍ viaja; las referencias siguen sin copiarse. */
+  check('H) lo que el plano no puede llevar se CUENTA para rechazarlo y su contenido no se copia; el prompt avanzado, desde la Fase 13, sí viaja',
+    leidoColado.promptAvanzado === true && leidoColado.avanzado === 'IGNORA TODO' && leidoColado.referencias === 1 && !JSON.stringify(leidoColado).includes('asset_'));
 }
 
 /* ═══ I–P · LO QUE F1-D GENERA, Y LO QUE RECHAZA ════════════════════════ */
@@ -489,7 +490,8 @@ console.log('\n── I–P · Duración, formato, calidad, sonido, prompt avanz
   check('M) y sin calidad elegida —o con una que no existe— no hay generación: quality_required',
     sinCalidad.ok && sinCalidad.valor.reason === 'quality_required' && inventada.ok && inventada.valor.reason === 'quality_required', `${sinCalidad.valor?.reason}/${inventada.valor?.reason}`);
   const avanzado = await cotizar(A, await plan(A, 4, 'sh-0101'));
-  check('O) un plano con prompt avanzado: bloqueado', avanzado.ok && avanzado.valor.reason === 'advanced_prompt_blocked', avanzado.valor?.reason);
+  /* Filmmaker Engine, Fase 13 (D9): el prompt avanzado ya no bloquea el plano; lo que decida ahora es de las reglas siguientes. */
+  check('O) un plano con prompt avanzado ya no se bloquea por él (Fase 13)', avanzado.ok && avanzado.valor.reason !== 'advanced_prompt_blocked', avanzado.valor?.reason);
   const dialogo = await cotizar(A, await plan(A, 4, 'sh-0102'));
   check('O) uno con diálogo a cámara tampoco: sin lip-sync no se representa', dialogo.ok && dialogo.valor.reason === 'dialogue_not_supported', dialogo.valor?.reason);
   const referencias = await cotizar(A, await plan(A, 3, 'sh-0101'));

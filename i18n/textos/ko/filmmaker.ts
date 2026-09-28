@@ -309,6 +309,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takePriceChanged: '확인하신 뒤로 가격이 바뀌었어요. 지금 가격은 이거예요.',
   takeReasonReferences: '레퍼런스나 시작 프레임을 사용하고 있어서 아직 여기서 생성할 수 없어요.',
   takeReasonAdvanced: '고급 프롬프트가 있어서 아직 여기서 생성할 수 없어요.',
+  takeReasonAdvancedTooLong: '고급 프롬프트가 {{caracteres}}자인데 최대 {{maximo}}자예요. 줄여 주세요.',
   takeReasonDialogue: '대사가 있는데, 영상은 아직 목소리를 맞추지 못해요.',
   takeReasonDescription: '생성하려면 무슨 일이 일어나는지 설명해 주세요.',
   takeReasonTooLong: '길이가 {{segundos}}초인데 최대 {{maximo}}초예요. 더 짧은 숏으로 나눠 주세요.',

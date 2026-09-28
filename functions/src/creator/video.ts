@@ -18,7 +18,7 @@ import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLa
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
-import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
+import { LIMITES_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano, plantillaDePlano } from './plano';
 import { categoriaDelFallo } from './fallos';
 import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
@@ -614,7 +614,8 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
         ...(deToma?.unidad ? {
           filmmaker: {
             productionId: deToma.productionId, sceneId: deToma.sceneId, unitId: deToma.unitId, take: deToma.toma,
-            revision: deToma.revision, firma: deToma.unidad.firma, plantilla: PLANTILLA_DE_PLANO,
+            /* La plantilla con la que se compuso SU texto: `fm-plano-2` si lleva prompt avanzado (Fase 13). */
+            revision: deToma.revision, firma: deToma.unidad.firma, plantilla: plantillaDePlano(deToma.requisito),
           },
         } : {}),
       },

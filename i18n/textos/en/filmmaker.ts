@@ -307,6 +307,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takePriceChanged: 'The price changed since you saw it. This is the current one.',
   takeReasonReferences: 'It uses references or a starting frame, and that can’t be generated here yet.',
   takeReasonAdvanced: 'It has an advanced prompt, and that can’t be generated here yet.',
+  takeReasonAdvancedTooLong: 'Its advanced prompt has {{caracteres}} characters and the maximum is {{maximo}}: shorten it.',
   takeReasonDialogue: 'It has dialogue, and the video doesn’t sync voices yet.',
   takeReasonDescription: 'Describe what happens so it can be generated.',
   takeReasonTooLong: 'It lasts {{segundos}} s and the maximum is {{maximo}} s: split it into shorter shots.',

@@ -324,6 +324,7 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   takePriceChanged: 'Цена изменилась с тех пор, как вы её видели. Вот текущая.',
   takeReasonReferences: 'Используются референсы или начальный кадр, а такое здесь пока не генерируется.',
   takeReasonAdvanced: 'Есть расширенный промпт, а такое здесь пока не генерируется.',
+  takeReasonAdvancedTooLong: 'В расширенном промпте {{caracteres}} символов, а максимум — {{maximo}}: сократите его.',
   takeReasonDialogue: 'Есть диалог, а видео пока не синхронизирует голоса.',
   takeReasonDescription: 'Опишите, что происходит, чтобы это можно было сгенерировать.',
   takeReasonTooLong: 'Длительность {{segundos}} с, а максимум — {{maximo}} с: разделите на планы покороче.',

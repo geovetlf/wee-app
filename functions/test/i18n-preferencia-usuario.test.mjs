@@ -544,8 +544,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * nombraba nadie —la pestaña Crear y el Home con «Ideas» de la App, el inicio
    * que no era de Weë Studio, el menú en hoja y la receta de Weë Design—, en los
    * once diccionarios a la vez. No entra ninguna.
+   * 3 103 → 3 104 con la Fase 13 del Filmmaker Engine (2026-09-28): entra
+   * `filmmaker.takeReasonAdvancedTooLong`, el prompt avanzado que no cabe entero,
+   * en los once diccionarios a la vez. No sale ninguna.
    */
-  const CLAVES_PT = 3103;
+  const CLAVES_PT = 3104;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

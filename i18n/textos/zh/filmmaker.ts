@@ -327,6 +327,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takePriceChanged: '价格在你查看后发生了变化。这是当前价格。',
   takeReasonReferences: '使用了参考素材或起始帧，这里暂时还不能生成。',
   takeReasonAdvanced: '包含高级提示词，这里暂时还不能生成。',
+  takeReasonAdvancedTooLong: '高级提示词有 {{caracteres}} 个字符，最多 {{maximo}} 个：请缩短。',
   takeReasonDialogue: '包含对白，而视频暂时还不能同步人声。',
   takeReasonDescription: '请描述发生了什么，才能生成。',
   takeReasonTooLong: '时长 {{segundos}} 秒，最长为 {{maximo}} 秒：请拆分成更短的镜头。',

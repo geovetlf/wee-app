@@ -91,6 +91,12 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * Fase 12 · restaurar una versión (D12 de F6; el usuario, sin preferencia, deja la recomendada): `productions/index.ts`
    * gana `restaurarRevision` y el tipo de revisión `restore` —sin campos nuevos—, y `reconstruirRevision` lo sigue;
    * `productions/puerta.ts` gana la operación `restore`. Los dos ya están en la lista desde la Fase 10. F1-A, sin tocar.
+   *
+   * Fase 13 · el prompt avanzado, usado al generar (D9 de F6; autorizado por el usuario, «AUTORIZADO D9 — ADVANCED
+   * PROMPT»): toca `creator/plano.ts` —el texto de Weë, sin cambiar, y DETRÁS el bloque, entero o rechazado, sin
+   * órdenes de proveedor, con la plantilla `fm-plano-2`— y `creator/video.ts` —la reserva guarda la plantilla de SU
+   * texto—, que no entran aquí porque las vallas de F1-D ya los nombran uno a uno. En la app,
+   * `utils/mensajesDeFilmmaker.ts` y una clave en los once diccionarios. F1-A, el dinero y el Job Engine, sin tocar.
    */
 ]);
 
