@@ -35,9 +35,11 @@ import {
  *
  * Y sirve para lo otro: si un proceso muere igualmente —despliegue, memoria,
  * infraestructura—, este número es lo que permite saber después que una
- * autorización de Credits se quedó colgada en vez de estar en marcha.
+ * autorización de Credits se quedó colgada en vez de estar en marcha. Por eso se
+ * exporta: el estado de una toma (`creator/estadoDeToma.ts`) usa ESTE número, y
+ * no una copia, para decir que una reserva sin trabajo ya no lo tendrá.
  */
-const PLAZO_DE_VIDEO_MS = 1_500_000;
+export const PLAZO_DE_VIDEO_MS = 1_500_000;
 const RESERVA_PARA_LIQUIDAR_MS = 45_000;
 
 /**

@@ -15,6 +15,13 @@
 export const TOCADOS_POR_EL_MOTOR = Object.freeze([
   /* Fase 1 · el lenguaje completo: 23 operaciones nuevas; modelo, validación, requisitos y recomendaciones, intactos. */
   'functions/src/filmmaker/operaciones.ts',
+  /*
+   * Fase 2 · el estado y la traza de una toma: un módulo NUEVO de solo lectura, que junta la reserva, el trabajo
+   * (por `decidirLiquidacion`, la del barrido), la fila del libro, el material y el plano. Además toca, sin pasar
+   * por esta lista porque las vallas de F1-D ya los nombran uno a uno, `creator/toma.ts` (leerUnidadDeToma),
+   * `creator/video.ts` (solo `export` en PLAZO_DE_VIDEO_MS) y `shots/puerta.ts` (la operación `shot.takes`).
+   */
+  'functions/src/creator/estadoDeToma.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

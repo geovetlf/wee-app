@@ -740,6 +740,44 @@ cerrada, todas o ninguna, integridad comprobada después de cada una y lo pendie
 Pruebas: `functions/test/filmmaker-lenguaje.test.mjs` (en la cadena), con una batería de sabotajes sobre el compilado
 (9/9) fuera del repositorio.
 
+### Fase 2 · El estado y la traza de una toma
+
+De una toma se sabían cosas sueltas —la reserva, el trabajo del Core, el material, la fila del libro y el plano— y la
+app solo veía la reserva, así que «aceptada» y «trabajando» se veían igual y lo que no se sabía cómo había acabado
+parecía «en proceso». `functions/src/creator/estadoDeToma.ts` las junta en UNA respuesta, calculada solo de lo escrito:
+no guarda nada, no mueve dinero, no reintenta y no pregunta al proveedor. Lo del dinero lo sigue diciendo
+`decidirLiquidacion` —la misma función con la que el barrido cobra o devuelve—: no es un segundo sistema de estados.
+
+| Estado | Qué dice lo guardado |
+|---|---|
+| `queued` | reservada y sin trabajo todavía (lo está creando la llamada que reservó), o el trabajo en la cola |
+| `preparing` | un trabajador la tiene y el proveedor todavía no ha dicho que la tiene |
+| `accepted` | el proveedor la aceptó y le puso nombre. ModelArk no distingue de forma durable su cola de su trabajo, así que no se inventa un «generando» |
+| `processing` | el proveedor terminó bien y el vídeo ya está en casa —el trabajo solo se cierra después de guardarlo—; falta cerrar el cobro |
+| `completed` | cobrada exacta, con su vídeo |
+| `failed` | acabó sin vídeo y el dinero está volviendo: el trabajo falló sin dudas, o la reserva se quedó sin trabajo más de lo que vive la llamada que tenía que crearlo (`abandoned`, con el `PLAZO_DE_VIDEO_MS` de `generateVideo`, el mismo número) |
+| `refunded` | devuelta entera |
+| `reconciling` | salió y no se sabe cómo acabó (el POST sin respuesta, una aceptada que venció), o lo escrito se contradice: ni se cobra ni se devuelve |
+
+- **La traza** (`trazasDeLaUnidad`) dice de cada toma de qué cuenta, producción, escena, plano y toma es, con qué
+  request, revisión, firma, plantilla y huella se pidió (lo escribió el servidor en la reserva al reservar), y su
+  trabajo, su fila del libro (por la transacción de la reserva), su material (por su procedencia) y su plano. El coste
+  del proveedor va en dólares y aparte, `null` si no se sabe; los Credits, en tres números —reservado, cobrado y
+  devuelto— con la misma regla que ya usaba la app.
+- **El vídeo en su plano**, con las reglas de `enlazarToma`: `linked`, `pending` (se puede enlazar), `superseded` (una
+  toma posterior ya está cobrada), `stale` (el plano cambió) o `none`.
+- **`shots` gana `shot.takes`** (producción, escena y unidad): las tomas de la unidad con su estado, su motivo, la
+  categoría del fallo, los Credits, su vídeo si es suyo y está listo, y el enlace. Nada de dentro: ni el trabajo, ni el
+  proveedor, ni su coste, ni la huella, ni el texto con que se pidió. De una unidad ajena o inexistente, ninguna; y si
+  no se puede leer el trabajo, contesta un error en vez de adivinar un estado.
+- La consulta de F1-D (`takes.current` de la cotización, con `outcome`/`failure`) sigue igual para la app de hoy;
+  proyectar los estados nuevos en la interfaz queda para la pasada de UX.
+
+Pruebas: `functions/test/filmmaker-toma-estado.test.mjs` (en la cadena): la tabla de estados contra
+`decidirLiquidacion`, el dinero contra la regla de la app, y de punta a punta sobre el arnés de F1-D —aceptada,
+en casa, cobrada, enlazada, sustituida, plano cambiado, fallo al pedir, fallo después, POST sin respuesta, reserva sin
+trabajo, cuentas separadas y la traza entera—.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

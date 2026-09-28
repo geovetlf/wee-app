@@ -22,7 +22,9 @@ import {
   planosDeLaEscena,
 } from './index';
 import { revisarPlanoGuardado } from './validacion';
-import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma, videosDeLaProduccion } from '../creator/toma';
+import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma, leerUnidadDeToma, videosDeLaProduccion } from '../creator/toma';
+import { trazasDeLaUnidad, vistaDeLaToma } from '../creator/estadoDeToma';
+import { PLAZO_DE_VIDEO_MS } from '../creator/video';
 
 /**
  * WEË SCENES & SHOTS — LA PUERTA. Y solo eso.
@@ -260,6 +262,21 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
     const productionId = texto(data.productionId, 128);
     if (!productionId) noVale();
     return { videos: await videosDeLaProduccion(db, accountId, productionId as string) };
+  }
+
+  /*
+   * FILMMAKER ENGINE · FASE 2 · LAS TOMAS DE UNA UNIDAD, CON SU ESTADO: en qué
+   * está cada una —de «queued» a «completed», «refunded» o «reconciling»—, sus
+   * tres números en Credits, su vídeo si es suyo y está listo, y si está en su
+   * plano. Solo lectura, calculada de lo guardado (`creator/estadoDeToma.ts`); de
+   * una unidad ajena o inexistente, ninguna. Lo de dentro —el trabajo, el coste
+   * del proveedor, la huella— no sale de aquí.
+   */
+  if (op === 'shot.takes') {
+    const unidad = leerUnidadDeToma({ productionId: data.productionId, sceneId: data.sceneId, unitId: data.unitId });
+    if (!unidad) noVale();
+    const trazas = await trazasDeLaUnidad(db, { uid: request.auth.uid, accountId }, unidad as NonNullable<typeof unidad>, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+    return { takes: trazas.map(vistaDeLaToma) };
   }
 
   if (op === 'shot.stale') {

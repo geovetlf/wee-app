@@ -106,6 +106,16 @@ export const leerPeticionDeToma = (crudo: unknown): PeticionDeToma | null => {
   return identidad && revision !== undefined ? { ...identidad, revision } : null;
 };
 
+/** La unidad de unas tomas, sin número: producción, escena y unidad, con su forma. `null` si falta algo. */
+export const leerUnidadDeToma = (crudo: unknown): Omit<IdentidadDeToma, 'toma'> | null => {
+  if (!esObj(crudo)) return null;
+  const { productionId, sceneId, unitId } = crudo;
+  if (typeof productionId !== 'string' || !FORMA_DE_PRODUCCION.test(productionId)) return null;
+  if (typeof sceneId !== 'string' || !FORMA_DE_ID.test(sceneId)) return null;
+  if (typeof unitId !== 'string' || !FORMA_DE_ID.test(unitId)) return null;
+  return { productionId, sceneId, unitId };
+};
+
 /* ── La producción, cruda ─────────────────────────────────────────────────── */
 
 /** Por qué no se puede generar ni enlazar una toma. Códigos: la frase la pone la app. */
