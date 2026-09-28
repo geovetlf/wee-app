@@ -1060,8 +1060,14 @@ await seccion('Y', async () => {
     && (compilado.match(/require\("\.\/productions\/puerta"\)/g) || []).length === 1
     && (compilado.match(/Object\.defineProperty\(exports, "productions"/g) || []).length === 1);
   const mapa = leer('functions/test/runtime-map.test.mjs');
-  check('Y6) y el mapa del runtime la declara: 35 Functions, `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
-    /reales\.length === 35/.test(mapa) && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
+  /*
+   * Treinta y cinco al conectar F1-B; treinta y siete desde la Fase 8 del Filmmaker Engine (decisiones del usuario,
+   * 2026-09-28), que añade las dos Functions del render —`renders` y `renderWorker`, de `creator/renders`—. Lo de
+   * `productions` no cambia: sale de su puerta con sus veinte símbolos.
+   */
+  check('Y6) y el mapa del runtime la declara: 37 Functions (las 35 de F1-B y las dos del render), `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
+    /reales\.length === 37/.test(mapa) && /'\.\/creator\/renders': \['renders', 'renderWorker'\]/.test(mapa)
+    && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
   check('Y7) ni el dominio de F1-A ni el Algorithm Engine se tocaron para esto: Filmmaker sigue siendo cinco archivos de dominio',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).sort().join() === 'modelo.ts,operaciones.ts,recomendaciones.ts,requisitos.ts,validacion.ts'
     && !/productions/.test(fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).map((f) => leer(`functions/src/filmmaker/${f}`)).join('\n')));
@@ -1080,12 +1086,16 @@ console.log('\n── Z · Reglas, índice, puerta y documentación ──');
 await seccion('Z', async () => {
   const reglas = leer('firestore.rules');
   const bloque = (col, v) => new RegExp(`match /${col}/\\{${v}\\} \\{\\s*allow read: if isAuthenticated\\(\\) && resource\\.data\\.ownerAccountId == request\\.auth\\.uid;\\s*allow create, update, delete: if false;`).test(reglas);
-  check('Z1) producciones, escenas y registro: las lee su dueño y el cliente no escribe nunca',
-    bloque('productions', 'productionId') && bloque('productionScenes', 'sceneId') && bloque('productionRevisions', 'revisionId'));
+  /*
+   * Desde la Fase 8 del motor (decisión del usuario, 2026-09-28: el render como material más un registro en la
+   * producción) hay un cuarto bloque, `productionRenders`, con la misma regla: lo lee su dueño y el cliente no escribe.
+   */
+  check('Z1) producciones, escenas, registro y renders: las lee su dueño y el cliente no escribe nunca',
+    bloque('productions', 'productionId') && bloque('productionScenes', 'sceneId') && bloque('productionRevisions', 'revisionId') && bloque('productionRenders', 'renderId'));
   const desde = reglas.indexOf('match /productions/{productionId}');
   const suyo = reglas.slice(desde);
   check('Z2) van al final, detrás de `shots`, sin un `if true` y sin tocar la franja de Elements a Media Cloud',
-    desde > reglas.indexOf('match /shots/{shotId}') && !/if true/.test(suyo) && (suyo.match(/allow create, update, delete: if false;/g) || []).length === 3
+    desde > reglas.indexOf('match /shots/{shotId}') && !/if true/.test(suyo) && (suyo.match(/allow create, update, delete: if false;/g) || []).length === 4
     && (reglas.slice(reglas.indexOf('match /elements/{elementId}'), reglas.indexOf('// === WEE MEDIA CLOUD (MC-1)')).match(/allow create, update, delete: if false;/g) || []).length === 2);
   const ix = JSON.parse(leer('firestore.indexes.json')).indexes;
   const deProducciones = ix.filter((i) => i.collectionGroup === 'productions');

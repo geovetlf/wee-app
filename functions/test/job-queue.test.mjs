@@ -768,8 +768,14 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    * módulo del runtime. Exportar eso sí sería poner infraestructura en la calle.
    */
   const INDICE = sinComentarios(leer('functions/src/index.ts'));
+  /*
+   * TRES DESDE LA FASE 8 DEL FILMMAKER ENGINE (decisión del usuario, 2026-09-28: el render final, con FFmpeg
+   * propio, como tarea general del Job Engine). `creator/renders.ts` es otra composición: le pasa al trabajador
+   * sus dependencias —el almacén de siempre, la cola de invocación, el motor con la política del render y el
+   * ejecutor del render— y le llama. No lo reimplementa.
+   */
   check('65) solo COMPOSICIONES atienden entregas, ninguna reimplementa al trabajador',
-    quienLoUsa.join(',') === 'functions/src/media/canary.ts,functions/src/runtime/conductor.ts', quienLoUsa.join(', '));
+    quienLoUsa.join(',') === 'functions/src/creator/renders.ts,functions/src/media/canary.ts,functions/src/runtime/conductor.ts', quienLoUsa.join(', '));
   check('65b) y `index.ts` no exporta las tripas: ni trabajador, ni cola, ni el runtime',
     !/job-queue|job\/worker|atenderEntrega|barrerRecuperables|from '\.\/runtime'/.test(INDICE));
   check('65c) el conductor de F12-D sigue SIN exportarse; la puerta del canary, sí y a propósito',

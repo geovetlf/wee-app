@@ -3,7 +3,8 @@
 > Estado: **F1-A y F1-B construidas; la callable `productions`, conectada y sin desplegar**. F1-A es un dominio
 > puro: no guarda, no genera, no cobra y no tiene interfaz; vive en `functions/src/filmmaker/`. F1-B lo guarda:
 > `functions/src/productions/`, con reglas e índice **preparados y sin desplegar**, y la callable `productions`, que
-> `functions/src/index.ts` **exporta** y el mapa del runtime declara (35 Functions, ADR-FM-010). Pruebas:
+> `functions/src/index.ts` **exporta** y el mapa del runtime declara (35 Functions al conectarla, ADR-FM-010; 37 desde
+> la Fase 8 del Filmmaker Engine, que añade `renders` y `renderWorker`). Pruebas:
 > `functions/test/filmmaker-modelo.test.mjs` y `functions/test/productions-runtime.test.mjs`, dentro de la cadena de
 > `npm test`, y `functions/test/productions.emulator.mjs` y `functions/test/productions-callable.emulator.mjs`, fuera
 > de ella.
@@ -184,6 +185,8 @@ Ninguna se aplica sola.
 
 Que una capacidad esté en el catálogo no significa que hoy se pueda servir: música y efectos están pendientes y el
 montaje no tiene quien lo sirva. Decirlo es del Registry, no de Filmmaker.
+(Desde la Fase 8 del motor, el montaje lo sirve el render propio —una tarea general del Job Engine, no una capacidad
+del Router—; sin desplegar.)
 
 ## Responsabilidades y fronteras
 
@@ -379,7 +382,7 @@ siguen **pendientes**:
 | D4 | Ejecución por plano | **decidida** en F1-D: una toma de UNA unidad —un plano, o una escena sin planos— por `generateVideo` con el plano, hacia el Core; sin lotes |
 | D5 | Vídeo asíncrono | **decidida** en F1-D: el camino asíncrono del Core (PRE-F1-D), un intento, los plazos de `plazos.ts`; la app escucha la reserva de Credits de la toma |
 | D6 | Weë Brain para intención y cambios | pendiente: el idioma de las operaciones ya existe |
-| D7 | Montaje y render | pendiente |
+| D7 | Montaje y render | **decidida** en la Fase 8 del motor (2026-09-28): FFmpeg propio (`ffmpeg-static`) como tarea general del Job Engine; el resultado, material `asset_` de la cuenta más un registro en la producción; gratis con cinco al día; exportar o publicar el montaje, pendiente (D8) |
 | D8 | Duración y publicación (Weëls ≤ 15 s) | **en parte**: una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; publicar, pendiente |
 | D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); al generar, un plano con prompt avanzado se rechaza (F1-D); enseñarlo y usarlo, pendiente (F6) |
 | D10 | Identidad de personajes | pendiente: sin biometría ni embeddings |
@@ -883,6 +886,55 @@ Credits).
 
 Pruebas: `functions/test/filmmaker-montaje.test.mjs` (en la cadena).
 
+### Fase 8 · El render final, ejecutado (F5, segunda parte)
+
+Decisiones del usuario (2026-09-28): FFmpeg propio (`ffmpeg-static`, dependencia del servidor) como **tarea general del
+Job Engine**; el resultado, un **material `asset_`** de la cuenta más un **registro en la producción**; y **gratis, con
+cinco al día por cuenta**, hasta medir el coste real. Sus Functions se despliegan solo con autorización aparte.
+
+- **Pedir** (`creator/render.ts`, callable `renders`, `op: 'render.request'`, producción y revisión). La cuenta sale de
+  la sesión y qué se monta lo calcula el servidor: el manifiesto de la Fase 7 en la revisión pedida. En orden: la
+  **puerta** —`aiSettings/render`, cerrada si no existe; abre por cuenta (`cuentas`) o para todas solo con
+  `todas: true`, y habilitada sin cuentas NO abre—, el manifiesto, los **topes** (60 planos, 10 minutos, 480p a 1080p:
+  4K no, porque ningún plano llega), **¿ya está?** (el mismo montaje hecho, en marcha o por reconciliar se devuelve tal
+  cual), el **cupo del día** en el limitador de siempre (`aiRateLimits`, clave `render`, deduplicado por petición), el
+  **trabajo** por `crearTrabajo` y, después, el **registro**. No toca Credits por ningún camino.
+- **Las identidades**, calculadas: la petición `fmr.<32 hex de cuenta|producción|huella>.<serie>` —el mismo montaje pide
+  el mismo trabajo; la serie solo sube cuando el anterior terminó sin vídeo— y el material
+  `asset_<32 hex de la petición>`, el mismo para todos los intentos de un trabajo.
+- **El trabajo**: tarea `media.render` (sin capacidad, sin proveedor), con su política —dos intentos, 20 min por
+  intento, concesión de 60 s renovada mientras FFmpeg trabaja, 90 min de vida— y un paquete que lleva referencias y el
+  manifiesto, nunca bytes ni una URL.
+- **El registro**: `productions/{id}/productionRenders/{huella}` —montaje, revisión, serie, trabajo, material, formato,
+  duración—, sin estado: el estado sale del material y del trabajo. Lo escribe solo el servidor; la cuenta dueña lo lee.
+- **Ejecutar** (`creator/renderizador.ts`): la tercera implementación del único puerto del trabajador, `JobExecutor`.
+  Lee el paquete recalculando su identidad y la huella del manifiesto (uno tocado no se monta); si el material ya
+  está, termina; si su objeto está sin ficha y lleva su marca, lo **adopta** sin montar; baja los planos —solo
+  materiales de la cuenta, listos, de vídeo y del Storage de Weë, nunca por URL—; los mira con FFmpeg (un plano que
+  pidió sonido y no trae pista se monta con silencio); monta con `spawn` **sin shell**; comprueba la salida —duración
+  con 0,25 s de tolerancia, cuadro, h264 y pista de sonido—; la guarda **solo si no existe**
+  (`users/{cuenta}/ai-generations/{material}.mp4`, con la marca del material) y crea la ficha en el Content Core, con
+  `sourceAssetIds` = sus planos (un **derivado**) y en `metadata` la producción, la revisión y la huella del montaje.
+- **El trabajador** (`creator/renders.ts`, `renderWorker`, cada minuto, 30 min, 4 GiB, 2 vCPU, una petición por
+  instancia): una composición como la del canary de medios —el almacén de siempre, la cola de invocación, el motor con
+  la política del render, `atenderEntrega` y este ejecutor—. Cada pasada busca en el almacén los trabajos sin terminar,
+  **descarta lo que no es un render antes de evaluar nada**, recupera las concesiones caducadas, reconcilia y avisa lo
+  que toca; no empieza un montaje que no quepa entero en lo que le queda de invocación.
+- **Reconciliar**: si un trabajador muere a mitad, el Job Engine deja el trabajo esperando —salió y no se sabe—. Para
+  un render la respuesta es el material: si está, `succeeded`; si no está pasados dos minutos, `failed`
+  (`render_lost`), y el Job Engine decide si hay otro intento. Es `recibirEvento`, el mismo camino que un aviso de
+  proveedor.
+- **Estados**, los de la Fase 2 que le tocan: `queued`, `processing`, `reconciling`, `completed` y `failed` (con un
+  código: `package_manifest`, `clip_not_available`, `render_lost`…). `render.status` (producción y huella del montaje)
+  y `render.list` (producción) lo enseñan; lo ajeno y lo inexistente contestan igual.
+
+El requisito `video.montage` de F1-A (montar los planos y el audio) lo sirve este render: no pasa por el Router ni por el
+catálogo de capacidades de IA, porque no es IA. La valla `job-queue` #65 pasa de dos composiciones del trabajador a tres, por nombre y con este motivo. Las reglas
+ganan `productionRenders`. Nada se despliega en esta fase.
+
+Pruebas: `functions/test/filmmaker-render.test.mjs` (en la cadena), con FFmpeg de verdad sobre vídeos mp4 generados en
+la propia prueba.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -893,7 +945,7 @@ Pruebas: `functions/test/filmmaker-montaje.test.mjs` (en la cadena).
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
-| F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Primera parte hecha** (Filmmaker Engine, Fase 7): el manifiesto del montaje y sus argumentos de FFmpeg; el render, pendiente de decisiones |
+| F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; exportar o publicar el montaje, aparte |
 | F6 | Director avanzado: prompt avanzado (D9), versiones (D12) |
 
 ## Pruebas

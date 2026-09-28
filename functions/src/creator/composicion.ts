@@ -133,6 +133,18 @@ const canonico = (v: unknown): unknown => {
   return v;
 };
 
+/**
+ * LA HUELLA DE UN MANIFIESTO: sha256 de todo él menos la propia huella, en orden
+ * canónico. Una sola función para quien lo compone y para quien lo ejecuta (Fase 8):
+ * el render vuelve a calcularla sobre lo que el trabajo guardó, y si no coincide no
+ * monta nada.
+ */
+export const huellaDelManifiesto = (m: object): string => {
+  const { huella: _fuera, ...sinHuella } = m as Record<string, unknown>;
+  void _fuera;
+  return createHash('sha256').update(JSON.stringify(canonico(sinHuella))).digest('hex');
+};
+
 /** Redondeo a milisegundos: las duraciones se escriben y se comparan igual en todas partes. */
 const ms = (n: number): number => Math.round(n * 1000) / 1000;
 
@@ -197,7 +209,7 @@ export const manifiestoDeMontaje = (e: EntradaDelMontaje): ResultadoDelMontaje =
     duracionSec: ms(total - solapes),
     duracionDeLaLineaDeTiempoSec: ms(e.lineaDeTiempo?.totalSec ?? total),
   };
-  const huella = createHash('sha256').update(JSON.stringify(canonico(sinHuella))).digest('hex');
+  const huella = huellaDelManifiesto(sinHuella);
   return { ok: true, manifiesto: Object.freeze({ ...sinHuella, huella }) as ManifiestoDeMontaje };
 };
 

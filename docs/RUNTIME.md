@@ -2377,3 +2377,34 @@ volvió (`reconciliar`, desenlace desconocido) **sigue retenido** para que lo re
 - **El programador** (`settlement/programado.ts`) solo lo compone; se despliega con la próxima autorización.
 
 Pruebas: la sección F de `functions/test/filmmaker-toma-estado.test.mjs`.
+
+## 26. Filmmaker Engine · El render final, la primera tarea general del Job Engine con trabajador propio
+
+Decisiones del usuario (2026-09-28): el montaje final se ejecuta con FFmpeg propio (`ffmpeg-static`) como **tarea
+general del Job Engine**, su resultado es un material `asset_` de la cuenta con un registro en la producción, y es
+**gratis** con cinco al día por cuenta. Detalle en `docs/FILMMAKER.md` § Fase 8.
+
+- **No es un segundo motor.** El trabajo es un `Job` de F8 con `task: { name: 'media.render' }` —el segundo tipo
+  de paquete que el motor lleva desde la Fase 11—, guardado en el almacén de siempre (`jobs`), con su propia
+  política por trabajo (dos intentos, 20 min, concesión de 60 s renovada, 90 min de vida). Sin capacidad, sin
+  implementación, sin proveedor: el Router y el Gateway no lo ven nunca.
+- **Tercera composición del trabajador.** `creator/renders.ts` ata, como el canary de medios, el almacén, la cola
+  de invocación, el motor con esa política, `atenderEntrega` —sin cambiar una línea— y el tercer `JobExecutor`,
+  `creator/renderizador.ts`. La valla `job-queue` #65 pasa de dos composiciones a tres, por nombre.
+- **La cola sigue sin ser durable, y no hace falta**: cada pasada del trabajador programado (`renderWorker`, cada
+  minuto, 30 min de vida) busca en el almacén los trabajos sin terminar —`recuperables`, sin índice nuevo—,
+  **descarta todo lo que no sea un render antes de evaluar nada** (los trabajos de IA son del conductor, de su
+  reconciliador y de su barrido, y esta pasada no los toca), recupera, reconcilia y avisa a la cola de su invocación.
+  No empieza un intento que no quepa entero en lo que le queda.
+- **Reconciliar sin proveedor.** Si el trabajador muere montando, el Job Engine deja el trabajo esperando (salió y no
+  se sabe). La respuesta de un render es su material: si está, `recibirEvento` con `succeeded`; si pasados dos
+  minutos no está, `failed` (`render_lost`), y el Job Engine decide el siguiente intento. Mismo camino que un aviso de
+  proveedor, sin un segundo motor de decisiones.
+- **Nada de dinero ni de IA.** Ni reserva, ni cobro, ni reembolso, ni liquidación; el tope es el limitador diario de
+  siempre con su propia clave. El barrido de liquidación no ve estos trabajos: no declaran reserva.
+- **Nace cerrado.** `aiSettings/render` no existe y sin él nadie puede pedir un render. Las dos Functions
+  (`renders`, `renderWorker`) están exportadas —37 en el mapa— y **sin desplegar**: desplegarlas, las reglas de
+  `productionRenders` y abrir la puerta a una cuenta de prueba son pasos aparte, con autorización.
+
+Pruebas: `functions/test/filmmaker-render.test.mjs` (en la cadena, con FFmpeg de verdad) y
+`functions/test/render.emulator.mjs` (fuera de ella, contra Firestore y Storage de los emuladores).

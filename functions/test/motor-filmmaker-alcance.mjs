@@ -53,6 +53,16 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    */
   'functions/src/creator/composicion.ts',
   'functions/src/creator/ffmpeg.ts',
+  /*
+   * Fase 8 (F5 del roadmap, segunda parte) · el render, ejecutado (decisiones del usuario, 2026-09-28: FFmpeg propio
+   * como tarea general del Job Engine; el resultado, material `asset_` más un registro en la producción; gratis con
+   * cinco al día). Tres módulos nuevos —el pedido y su registro, el ejecutor, y el trabajador con sus dos puertas— y
+   * `index.ts`, que exporta esas dos puertas. `composicion.ts` gana `huellaDelManifiesto`. Ni Credits, ni el conductor.
+   */
+  'functions/src/creator/render.ts',
+  'functions/src/creator/renderizador.ts',
+  'functions/src/creator/renders.ts',
+  'functions/src/index.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

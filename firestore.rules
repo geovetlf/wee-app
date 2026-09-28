@@ -1171,6 +1171,13 @@ service cloud.firestore {
         allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
         allow create, update, delete: if false;
       }
+
+      // Fase 8 · el registro de los renders: qué montaje, qué revisión, qué
+      // trabajo y qué material. Lo escribe solo la callable `renders`.
+      match /productionRenders/{renderId} {
+        allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+        allow create, update, delete: if false;
+      }
     }
   }
 }

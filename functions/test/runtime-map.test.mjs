@@ -304,6 +304,12 @@ const FUNCTIONS = {
   './settlement/programado': ['barridoDeLiquidacion'],
   /* MC-4.5: la ÚNICA puerta de Media Cloud. De administración, y no es una API. */
   './media/canary': ['mediaCanary'],
+  /*
+   * FILMMAKER ENGINE · FASE 8 (decisiones del usuario, 2026-09-28): el render final. `renders` pide y mira el render
+   * de una producción —nace CERRADO tras `aiSettings/render`—, y `renderWorker` es el trabajador programado que lo
+   * monta con FFmpeg propio como tarea general del Job Engine. Ni Credits, ni proveedores de IA, ni el conductor.
+   */
+  './creator/renders': ['renders', 'renderWorker'],
   './credits': ['getCreditsBalance', 'getCreditHistory', 'getCreditCost', 'spendCredits', 'grantCredits', 'refundCredits', 'validatePurchase', 'restorePurchase', 'creditsAdmin'],
   '(index)': ['sendPushNotification', 'sendMessagePushNotification'],
 };
@@ -363,7 +369,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y cinco: las treinta y dos de antes, Elements (S5), Scenes/Shots (C3) y Productions (F1-B)', reales.length === 35, `${reales.length}`);
+  check('5) y son treinta y siete: las treinta y dos de antes, Elements (S5), Scenes/Shots (C3), Productions (F1-B) y las dos del render (Filmmaker Engine, Fase 8)', reales.length === 37, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
@@ -376,7 +382,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const inventada = [...reales, 'functionQueNadieDeclaro'];
   check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
     inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
-    && inventada.length !== 35);
+    && inventada.length !== 37);
 
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
