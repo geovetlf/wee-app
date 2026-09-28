@@ -8,6 +8,9 @@
  *   C · de punta a punta: una toma que sale bien, otra que la sustituye, un plano
  *       que cambia, un fallo al pedir, un fallo después, un POST sin respuesta,
  *       una reserva que se queda sin trabajo, cuentas separadas y la traza entera;
+ *   E · la producción entera (Fase 3): sus unidades en el orden de la línea de
+ *       tiempo, la última toma de cada una, el vídeo de su plano, los Credits de
+ *       todas las tomas y si ya se puede montar;
  *   D · las guardas: solo lectura, la liquidación de siempre, el plazo de la
  *       llamada de vídeo y ni una fuga hacia la app.
  *
@@ -310,7 +313,7 @@ const videosDe = (uid, productionId) => intento(() => shotsPuerta.shots.run({ au
 /* ═══ FASE 2 · lo que se prueba aquí ═══════════════════════════════════════ */
 const {
   decidirEstadoDeLaToma, dineroDeLaReserva, decidirEnlace, vistaDeLaToma, falloDeLaToma, trazasDeLaUnidad,
-  ESTADOS_DE_TOMA, ESTADOS_CERRADOS_DE_TOMA,
+  ESTADOS_DE_TOMA, ESTADOS_CERRADOS_DE_TOMA, estadoDeLaProduccion, resumirProduccion,
 } = lib('creator/estadoDeToma.js');
 const { decidirLiquidacion } = lib('runtime/liquidacion.js');
 const { TOCADOS_POR_EL_MOTOR, DINERO, fueraDelMotor } = await import('./motor-filmmaker-alcance.mjs');
@@ -591,6 +594,121 @@ let primera;
     r.ok ? JSON.stringify(r.valor.map((t) => t.estado)) : '');
 }
 
+/* ═══ E · LA PRODUCCIÓN, DE UN VISTAZO (FASE 3) ═══════════════════════════ */
+console.log('\n── E · La producción entera: sus unidades en orden, la última toma de cada una y si ya se puede montar ──');
+const produccionDe = (uid, productionId) =>
+  intento(() => shotsPuerta.shots.run({ auth: { uid }, data: { op: 'shot.production', ...(productionId !== undefined ? { productionId } : {}) } }));
+{
+  const r = await produccionDe(A, pid(1));
+  const v = r.ok ? r.valor : null;
+  const [u1, u2] = v?.units ?? [];
+  const tomasU1 = (await tomasDe(A, 1)).valor.takes;
+  check('E1) sus unidades, en orden, con cuántas tomas tiene cada una y la última tal como la ve la app',
+    r.ok && v.units.length === 2 && u1?.unitId === 'sh-0101' && u1.sceneId === 'sc-0001' && u1.takes === 2
+    && JSON.stringify(u1.latest) === JSON.stringify(tomasU1[1]) && u2?.unitId === 'sh-0102' && u2.takes === 0 && !('latest' in u2), JSON.stringify(v?.units ?? codigo(r)));
+  check('E2) el vídeo de cada una es el que su plano tiene puesto —el de la segunda toma—, y la que no tiene, no lo tiene',
+    u1?.videoAssetId === tomasU1[1].assetId && !!u2 && !('videoAssetId' in u2));
+  const s = v?.summary;
+  const reservado = tomasU1.reduce((x, t) => x + t.credits.reserved, 0);
+  check('E3) el resumen: dos unidades y una con vídeo; una «completed» y otra sin tomas; y los Credits de TODAS las tomas',
+    s?.units === 2 && s.withVideo === 1 && s.byState.completed === 1 && s.byState.none === 1
+    && Object.entries(s.byState).filter(([k]) => !['completed', 'none'].includes(k)).every(([, x]) => x === 0)
+    && s.credits.reserved === reservado && s.credits.charged === reservado && s.credits.refunded === 0, JSON.stringify(s));
+  check('E4) todavía no se puede montar: falta una unidad, y se dice cuál', s?.readyToAssemble === false && JSON.stringify(s.missing) === JSON.stringify(['sh-0102']) && s.truncated === false);
+}
+{
+  /* Un plano cambiado: su toma está cobrada, pero su vídeo no está puesto, así que no cuenta para montar. */
+  const v = (await produccionDe(A, pid(2))).valor;
+  const deLa102 = v?.units.find((u) => u.unitId === 'sh-0102');
+  check('E5) cobrada con el plano cambiado: la última toma «completed» pero el plano sin vídeo, y falta',
+    deLa102?.latest?.state === 'completed' && deLa102.latest.link === 'stale' && !('videoAssetId' in deLa102)
+    && v.summary.missing.includes('sh-0102') && v.summary.readyToAssemble === false, JSON.stringify(deLa102));
+}
+{
+  /* Todas las unidades con su vídeo puesto: lista para montar. */
+  await crear(A, 7, conFaro());
+  for (const unitId of ['sh-0101', 'sh-0102']) {
+    const r = await pedir(A, 7, unitId);
+    termina(await tareaDe(A, r.rid), 'succeeded');
+    await pasada();
+    await enlazar(A, 7, 1, unitId);
+  }
+  const v = (await produccionDe(A, pid(7))).valor;
+  check('E6) todas las unidades con su vídeo listo en su plano: lista para montar, sin nada que falte',
+    v?.summary.readyToAssemble === true && v.summary.missing.length === 0 && v.summary.withVideo === 2 && v.summary.byState.completed === 2
+    && v.units.every((u) => typeof u.videoAssetId === 'string' && u.latest?.link === 'linked'), JSON.stringify(v?.summary));
+  /* Si el material que tiene puesto un plano deja de estar listo, ese plano ya no se puede montar. */
+  const puesto = v.units[0].videoAssetId;
+  const ficha = base.de('assets').find((m) => m.assetId === puesto);
+  const ruta = `assets/${ficha.id}`;
+  const antes = base.docs.get(ruta).status;
+  base.docs.get(ruta).status = 'deleted';
+  const w = (await produccionDe(A, pid(7))).valor;
+  base.docs.get(ruta).status = antes;
+  check('E7) si el material que tiene puesto un plano deja de estar listo, ese plano ya no cuenta para montar',
+    w.summary.readyToAssemble === false && JSON.stringify(w.summary.missing) === JSON.stringify([v.units[0].unitId]) && !('videoAssetId' in w.units[0]), JSON.stringify(w.summary));
+}
+{
+  /* El orden es el de la línea de tiempo de F1-A, no el de los identificadores de las escenas. */
+  const dos = clon({
+    ...M.produccionVacia({ title: 'Dos escenas', aspectRatio: '16:9', resolution: '720p' }),
+    format: { aspectRatio: '16:9', resolution: '720p' },
+    intent: { objective: 'Probar el orden' },
+    scenes: [
+      { id: 'sc-0009', order: 0, title: 'Primera', description: 'Va antes', shots: [
+        { id: 'sh-0901', order: 0, durationSec: 4, description: 'El primer plano de la primera escena' },
+        { id: 'sh-0902', order: 1, durationSec: 4, description: 'El segundo plano de la primera escena' },
+      ] },
+      { id: 'sc-0001', order: 1, title: 'Segunda', description: 'Va después', shots: [
+        { id: 'sh-0101', order: 0, durationSec: 4, description: 'El plano de la segunda escena' },
+      ] },
+    ],
+  });
+  await crear(A, 8, dos);
+  /*
+   * Firestore devuelve las escenas por su identificador —sc-0001 antes que sc-0009—; esta base de prueba, en el
+   * orden en que se escribieron. Se colocan como las devolvería Firestore: así, sin ordenar, esto fallaría.
+   */
+  const ruta9 = `productions/${pid(8)}/productionScenes/sc-0009`;
+  const escena9 = base.docs.get(ruta9);
+  base.docs.delete(ruta9);
+  base.docs.set(ruta9, escena9);
+  const leidas = base.de(`productions/${pid(8)}/productionScenes`).map((x) => x.id);
+  const v = (await produccionDe(A, pid(8))).valor;
+  const req = Rq.requisitosDeProduccion(dos);
+  const deF1A = req.ok ? req.requirements.timeline.segments.map((x) => x.unitId) : [];
+  check('E8) en el orden de la línea de tiempo de F1-A —escena y plano—, aunque los identificadores de las escenas digan otro',
+    JSON.stringify(leidas) === JSON.stringify(['sc-0001', 'sc-0009'])
+    && JSON.stringify(v?.units.map((u) => u.unitId)) === JSON.stringify(deF1A) && JSON.stringify(deF1A) === JSON.stringify(['sh-0901', 'sh-0902', 'sh-0101']),
+    `leídas ${JSON.stringify(leidas)} · ${JSON.stringify(v?.units.map((u) => u.unitId))} · F1-A ${JSON.stringify(deF1A)}`);
+}
+{
+  const ajena = await produccionDe(B, pid(1));
+  const inexistente = await produccionDe(A, pid(99));
+  const vacia = (x) => x.ok && x.valor.units.length === 0 && x.valor.summary.units === 0 && x.valor.summary.readyToAssemble === false && x.valor.summary.withVideo === 0;
+  check('E9) de otra cuenta o de una producción que no existe: una producción vacía, la misma respuesta, y nunca lista', vacia(ajena) && vacia(inexistente));
+  const mal = await produccionDe(A, 'x'.repeat(200));
+  const sin = await produccionDe(A);
+  check('E10) sin producción, o sin forma, no', !mal.ok && mal.error?.code === 'invalid-argument' && !sin.ok && sin.error?.code === 'invalid-argument');
+}
+{
+  const corta = await estadoDeLaProduccion(base, { uid: A, accountId: A }, pid(7), { at: Date.now(), vidaDeLaLlamadaMs: VIDA, tope: 1 });
+  check('E11) con más unidades que el tope, se dice: las de después no se cuentan y no se da por lista',
+    corta.unidades.length === 1 && corta.resumen.truncada === true && corta.resumen.listaParaMontar === false);
+  const vacio = resumirProduccion([], { reservado: 0, cobrado: 0, reembolsado: 0 }, false);
+  check('E12) una producción sin unidades nunca está lista para montar', vacio.listaParaMontar === false && vacio.unidades === 0 && vacio.faltan.length === 0);
+  const antes = JSON.stringify([...base.docs.entries()]);
+  const postsAntes = posts.length;
+  const descargasAntes = descargas;
+  await produccionDe(A, pid(1));
+  await produccionDe(A, pid(7));
+  check('E13) mirar la producción no cambia nada: ni un documento, ni un POST, ni una descarga',
+    JSON.stringify([...base.docs.entries()]) === antes && posts.length === postsAntes && descargas === descargasAntes);
+  const texto = JSON.stringify((await produccionDe(A, pid(7))).valor);
+  check('E14) y no deja salir nada de dentro: ni trabajos, ni el libro, ni costes del proveedor, ni huellas, ni firmas',
+    !/jobId|generationId|usd|fingerprint|huella|firma|plantilla|prompt|coste/i.test(texto), texto.slice(0, 300));
+}
+
 /* ═══ D · LAS GUARDAS ════════════════════════════════════════════════════ */
 console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de la llamada y ni una fuga ──');
 {
@@ -600,9 +718,11 @@ console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de
   check('D2) el dinero lo dice la liquidación del barrido —`decidirLiquidacion`—, sin una regla propia de concesiones',
     /decidirLiquidacion\(job, at\)/.test(src) && !/lease|until|concesion/i.test(src));
   const puerta = sinComentarios(leer('functions/src/shots/puerta.ts'));
-  check('D3) el plazo es el de la llamada de vídeo: el mismo número, pasado por la puerta, y ninguna copia',
+  /* Todas las operaciones de la puerta que lo necesitan —hoy `shot.takes` y `shot.production`— pasan ESE número. */
+  const vidas = puerta.match(/vidaDeLaLlamadaMs: [^,}\s]+/g) || [];
+  check('D3) el plazo es el de la llamada de vídeo: el mismo número, pasado por la puerta en cada operación, y ninguna copia',
     /export const PLAZO_DE_VIDEO_MS = 1_500_000;/.test(leer('functions/src/creator/video.ts')) && !/1_500_000|1500000|25 \* 60/.test(src)
-    && /vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS/.test(puerta));
+    && vidas.length === 2 && vidas.every((x) => x === 'vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS'), vidas.join(' | '));
   check('D4) la puerta solo deja salir la vista, nunca la traza', /return \{ takes: trazas\.map\(vistaDeLaToma\) \};/.test(puerta) && (puerta.match(/trazasDeLaUnidad\(/g) || []).length === 1);
   check('D5) el módulo nuevo está en la lista del motor, y el dinero no', TOCADOS_POR_EL_MOTOR.includes('functions/src/creator/estadoDeToma.ts') && TOCADOS_POR_EL_MOTOR.every((f) => !DINERO.some((re) => re.test(f))));
   check('D6) ni el runtime, ni los Credits, ni el Core: esta fase los lee, no los cambia',
@@ -614,9 +734,14 @@ console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de
   check('D9) el material se busca por su dueño Y su procedencia', /\.where\('ownerAccountId', '==', uid\)\s*\.where\('provenance\.traceId', '==', requestId\)/.test(src));
   check('D10) la reserva cuenta solo si es de quien pregunta, y la fila del libro también',
     /if \(!esObj\(d\) \|\| d\.userId !== uid\) break;/.test(src) && /d\.get\('userId'\) === uid/.test(src));
-  check('D7) documentado en FILMMAKER.md', /### Fase 2 · /.test(leer('docs/FILMMAKER.md')) && /shot\.takes/.test(leer('docs/FILMMAKER.md')));
+  check('D11) la producción sale hecha solo de vistas de toma: la puerta devuelve su vista y cada unidad lleva la de su última toma',
+    /return vistaDeLaProduccion\(estado\);/.test(puerta) && /ultima: ultima \? vistaDeLaToma\(ultima\) : null/.test(src));
+  check('D12) y el vídeo de una unidad solo cuenta si es el material listo de una de sus tomas',
+    /suyo\?\.material\?\.estado === 'ready' && suyo\.material\.clase === 'video' \? puesto : null/.test(src));
+  check('D7) documentado en FILMMAKER.md', /### Fase 2 · /.test(leer('docs/FILMMAKER.md')) && /shot\.takes/.test(leer('docs/FILMMAKER.md'))
+    && /### Fase 3 · /.test(leer('docs/FILMMAKER.md')) && /shot\.production/.test(leer('docs/FILMMAKER.md')));
   check('D8) esta suite está en la cadena de `npm test`', /filmmaker-toma-estado\.test\.mjs/.test(leer('functions/package.json')));
 }
 
-console.log(failures ? `\n✘ ${failures} fallos` : `\n✔ Fase 2 · el estado y la traza de una toma (${n} comprobaciones)`);
+console.log(failures ? `\n✘ ${failures} fallos` : `\n✔ Fases 2 y 3 · el estado y la traza de cada toma, y la producción entera (${n} comprobaciones)`);
 process.exit(failures ? 1 : 0);

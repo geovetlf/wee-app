@@ -393,23 +393,11 @@ export interface VideoDeUnidad {
  * guardada y contesta qué unidad tiene puesto qué material.
  *
  * Lo ajeno y lo inexistente contestan igual: nada. Se lee lo guardado —las
- * escenas y sus planos— y el `ShotNode` de cada unidad; no se escribe nada.
+ * escenas y sus planos, con `unidadesGuardadas`— y el `ShotNode` de cada unidad;
+ * no se escribe nada.
  */
 export const videosDeLaProduccion = async (db: Firestore, accountId: string, productionId: string): Promise<readonly VideoDeUnidad[]> => {
-  if (!FORMA_DE_PRODUCCION.test(productionId)) return [];
-  const raizSnap = await db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId).get();
-  const raiz = raizSnap.exists ? raizSnap.data() : undefined;
-  if (!esObj(raiz) || raiz.ownerAccountId !== accountId) return [];
-  const escenas = await db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId).collection(COLECCION_DE_ESCENAS_DE_PRODUCCION).get();
-  const unidades: string[] = [];
-  for (const d of escenas.docs) {
-    const e = d.data();
-    if (!esObj(e) || e.ownerAccountId !== accountId || e.productionId !== productionId) continue;
-    /* La misma regla que al generar: la escena sin planos es una unidad; si tiene planos, lo son ellos. */
-    const planos = Array.isArray(e.shots) ? e.shots.filter(esObj) : [];
-    const ids = planos.length ? planos.map((p) => p.id) : [e.id];
-    for (const id of ids) if (typeof id === 'string' && FORMA_DE_ID.test(id)) unidades.push(id);
-  }
+  const unidades = (await unidadesGuardadas(db, accountId, productionId)).map((u) => u.unitId);
   const nodos = await Promise.all(unidades.slice(0, MAX_UNIDADES_CON_VIDEO).map(async (unitId) => ({
     unitId,
     nodo: await nodoDeLaUnidad(db, accountId, { productionId, unitId }),
@@ -417,6 +405,41 @@ export const videosDeLaProduccion = async (db: Firestore, accountId: string, pro
   return Object.freeze(nodos
     .filter((x) => !!x.nodo?.producedAssetId)
     .map((x) => ({ unitId: x.unitId, producedAssetId: x.nodo?.producedAssetId as string, version: x.nodo?.version as number })));
+};
+
+/** Una unidad de la producción GUARDADA: su escena, ella y su sitio en la línea de tiempo. */
+export interface UnidadGuardada {
+  readonly sceneId: string;
+  readonly unitId: string;
+  readonly ordenDeEscena: number;
+  readonly orden: number;
+}
+
+/**
+ * LAS UNIDADES DE UNA PRODUCCIÓN GUARDADA, con la misma regla que al generar: la
+ * escena sin planos es una unidad; si tiene planos, lo son ellos. Salen en el
+ * orden en que se leen las escenas —el de sus identificadores, no el de la
+ * línea de tiempo—; quien necesite ese, que ordene por `ordenDeEscena` y `orden`.
+ * Lo ajeno y lo inexistente contestan igual: ninguna. Solo lectura.
+ */
+export const unidadesGuardadas = async (db: Firestore, accountId: string, productionId: string): Promise<readonly UnidadGuardada[]> => {
+  if (!FORMA_DE_PRODUCCION.test(productionId)) return [];
+  const raizSnap = await db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId).get();
+  const raiz = raizSnap.exists ? raizSnap.data() : undefined;
+  if (!esObj(raiz) || raiz.ownerAccountId !== accountId) return [];
+  const escenas = await db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId).collection(COLECCION_DE_ESCENAS_DE_PRODUCCION).get();
+  const salida: UnidadGuardada[] = [];
+  for (const d of escenas.docs) {
+    const e = d.data();
+    if (!esObj(e) || e.ownerAccountId !== accountId || e.productionId !== productionId) continue;
+    const sceneId = typeof e.id === 'string' ? e.id : d.id;
+    const planos = Array.isArray(e.shots) ? e.shots.filter(esObj) : [];
+    const lista = planos.length ? planos.map((p) => ({ unitId: p.id, orden: orden(p.order) })) : [{ unitId: e.id, orden: 0 }];
+    for (const u of lista) {
+      if (typeof u.unitId === 'string' && FORMA_DE_ID.test(u.unitId)) salida.push({ sceneId, unitId: u.unitId, ordenDeEscena: orden(e.order), orden: u.orden });
+    }
+  }
+  return Object.freeze(salida);
 };
 
 /** El plano de Filmmaker de una unidad, si existe y es de la cuenta: su resultado y su versión. */

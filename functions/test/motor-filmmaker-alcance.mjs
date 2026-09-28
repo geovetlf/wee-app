@@ -20,6 +20,8 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * (por `decidirLiquidacion`, la del barrido), la fila del libro, el material y el plano. Además toca, sin pasar
    * por esta lista porque las vallas de F1-D ya los nombran uno a uno, `creator/toma.ts` (leerUnidadDeToma),
    * `creator/video.ts` (solo `export` en PLAZO_DE_VIDEO_MS) y `shots/puerta.ts` (la operación `shot.takes`).
+   * Fase 3 · la producción entera: el mismo módulo (`estadoDeLaProduccion`), `creator/toma.ts` (`unidadesGuardadas`,
+   * que ahora usa también `shot.videos` con la misma regla y el mismo resultado) y `shots/puerta.ts` (`shot.production`).
    */
   'functions/src/creator/estadoDeToma.ts',
 ]);

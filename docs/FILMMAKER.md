@@ -778,6 +778,28 @@ Pruebas: `functions/test/filmmaker-toma-estado.test.mjs` (en la cadena): la tabl
 en casa, cobrada, enlazada, sustituida, plano cambiado, fallo al pedir, fallo después, POST sin respuesta, reserva sin
 trabajo, cuentas separadas y la traza entera—.
 
+### Fase 3 · La producción, de un vistazo
+
+Lo que la orquestación de una producción tiene que saber antes de hacer nada con ella. `estadoDeLaProduccion`
+(`creator/estadoDeToma.ts`) da sus unidades en el orden de la línea de tiempo —escena y plano, por el `order` que F1-A
+obliga a que coincida con la posición; Firestore devuelve las escenas por identificador, así que se ordena—, cuántas
+tomas tiene cada una, la última tal como la ve la app, el vídeo que tiene puesto su plano y un resumen: cuántas unidades
+tienen vídeo, el estado de la última toma de cada una, los Credits reservados, cobrados y devueltos de TODAS las tomas,
+qué unidades faltan y si ya se puede montar.
+
+- **Lista para montar** solo cuando todas las unidades tienen en su plano el material LISTO de una de sus tomas. Un
+  plano que apunta a un material borrado, o una toma cobrada cuyo plano cambió y no se enlazó, no cuentan. Una
+  producción sin unidades nunca está lista, y si hubo más unidades que el tope (400) se dice (`truncated`) y tampoco.
+- Hecha de lo mismo que la Fase 2: las unidades guardadas (`unidadesGuardadas`, que ahora usa también `shot.videos`,
+  con la misma regla y el mismo resultado) y la traza de cada una. No carga el dominio de F1-A.
+- **`shots` gana `shot.production`** (la producción): la vista, hecha solo de vistas de toma. Nada de dentro. De una
+  producción ajena o inexistente, una producción vacía, igual que `shot.videos`.
+
+Es el punto de partida de lo que viene: la generación de varios planos sabe qué no repetir, y el montaje final sabe
+si puede empezar y con qué material.
+
+Pruebas: la sección E de `functions/test/filmmaker-toma-estado.test.mjs`.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

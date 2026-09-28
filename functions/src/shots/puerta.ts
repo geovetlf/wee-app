@@ -23,7 +23,7 @@ import {
 } from './index';
 import { revisarPlanoGuardado } from './validacion';
 import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma, leerUnidadDeToma, videosDeLaProduccion } from '../creator/toma';
-import { trazasDeLaUnidad, vistaDeLaToma } from '../creator/estadoDeToma';
+import { estadoDeLaProduccion, trazasDeLaUnidad, vistaDeLaProduccion, vistaDeLaToma } from '../creator/estadoDeToma';
 import { PLAZO_DE_VIDEO_MS } from '../creator/video';
 
 /**
@@ -277,6 +277,19 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
     if (!unidad) noVale();
     const trazas = await trazasDeLaUnidad(db, { uid: request.auth.uid, accountId }, unidad as NonNullable<typeof unidad>, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
     return { takes: trazas.map(vistaDeLaToma) };
+  }
+
+  /*
+   * FILMMAKER ENGINE · FASE 3 · LA PRODUCCIÓN, DE UN VISTAZO: sus unidades en el
+   * orden de la línea de tiempo, la última toma de cada una, el vídeo que tiene
+   * puesto su plano, los Credits de todas las tomas y si ya se puede montar. Solo
+   * lectura; de una producción ajena o inexistente, una producción vacía.
+   */
+  if (op === 'shot.production') {
+    const productionId = texto(data.productionId, 128);
+    if (!productionId) noVale();
+    const estado = await estadoDeLaProduccion(db, { uid: request.auth.uid, accountId }, productionId as string, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+    return vistaDeLaProduccion(estado);
   }
 
   if (op === 'shot.stale') {

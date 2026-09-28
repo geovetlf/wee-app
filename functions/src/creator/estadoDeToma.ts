@@ -3,7 +3,7 @@ import { Job, JobState } from '../core';
 import { decidirLiquidacion, trabajoDelMedioDeWee } from '../runtime';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { CategoriaDeFallo, categoriaDelFallo } from './fallos';
-import { MAX_TOMAS, leerUnidadEnLaProduccion, nodoDeLaUnidad, requestIdDeToma } from './toma';
+import { MAX_TOMAS, MAX_UNIDADES_CON_VIDEO, UnidadGuardada, leerUnidadEnLaProduccion, nodoDeLaUnidad, requestIdDeToma, unidadesGuardadas } from './toma';
 
 /**
  * WEË FILMMAKER ENGINE · FASE 2 — EN QUÉ ESTÁ UNA TOMA, Y DE DÓNDE VIENE.
@@ -458,3 +458,129 @@ export const trazasDeLaUnidad = async (
   }
   return Object.freeze(trazas);
 };
+
+/* ── La producción, de un vistazo (Fase 3) ────────────────────────────────── */
+
+/**
+ * WEË FILMMAKER ENGINE · FASE 3 — LA PRODUCCIÓN ENTERA, UNIDAD A UNIDAD.
+ *
+ * Lo que la orquestación de una producción necesita saber antes de hacer nada
+ * con ella: sus unidades en el orden de la línea de tiempo, cuántas tomas tiene
+ * cada una, en qué está la última, qué vídeo tiene puesto su plano, cuánto se ha
+ * reservado, cobrado y devuelto en total, y si ya se puede montar —todas las
+ * unidades con un vídeo listo en su plano—. Es lo que un montaje final tiene que
+ * comprobar antes de empezar, y lo que una generación de varios planos tiene que
+ * saber para no repetir lo que ya está.
+ *
+ * Solo lectura y hecha de lo mismo que la Fase 2: las unidades guardadas
+ * (`unidadesGuardadas`) y la traza de cada una (`trazasDeLaUnidad`). No carga el
+ * dominio de F1-A —el servidor sigue sin él—: el orden sale de los campos que
+ * F1-A obliga a que coincidan con la posición (`order`), que es el mismo orden de
+ * su línea de tiempo.
+ */
+
+export type EstadoDeUnidad = EstadoDeToma | 'none';
+
+export interface UnidadDeLaProduccion {
+  readonly sceneId: string;
+  readonly unitId: string;
+  /** Cuántas tomas tiene. */
+  readonly tomas: number;
+  /** La última, como la ve la app; `null` si no tiene ninguna. */
+  readonly ultima: VistaDeToma | null;
+  /** El vídeo que su plano tiene puesto, solo si es el material listo de una de sus tomas. */
+  readonly video: string | null;
+}
+
+export interface ResumenDeProduccion {
+  readonly unidades: number;
+  readonly conVideo: number;
+  /** El estado de la ÚLTIMA toma de cada unidad; `none` las que no tienen ninguna. */
+  readonly porEstado: Readonly<Record<EstadoDeUnidad, number>>;
+  /** En Credits, sumadas todas las tomas de todas las unidades. */
+  readonly dinero: DineroDeLaToma;
+  /** Todas las unidades con un vídeo listo en su plano, y ninguna sin mirar. */
+  readonly listaParaMontar: boolean;
+  /** Las que no tienen vídeo en su plano, en el orden de la línea de tiempo. */
+  readonly faltan: readonly string[];
+  /** Hubo más unidades que el tope: las de después no están contadas, y no se da por lista. */
+  readonly truncada: boolean;
+}
+
+/** En el orden de la línea de tiempo: escena y, dentro, plano. Con desempate estable por si lo guardado no cuadra. */
+const enLaLineaDeTiempo = (a: UnidadGuardada, b: UnidadGuardada): number =>
+  a.ordenDeEscena - b.ordenDeEscena || a.orden - b.orden
+  || (a.sceneId < b.sceneId ? -1 : a.sceneId > b.sceneId ? 1 : 0) || (a.unitId < b.unitId ? -1 : a.unitId > b.unitId ? 1 : 0);
+
+/** EL RESUMEN. Puro: las mismas unidades dan lo mismo. */
+export const resumirProduccion = (unidades: readonly UnidadDeLaProduccion[], dinero: DineroDeLaToma, truncada: boolean): ResumenDeProduccion => {
+  const porEstado = Object.fromEntries([...ESTADOS_DE_TOMA, 'none'].map((s) => [s, 0])) as Record<EstadoDeUnidad, number>;
+  for (const u of unidades) porEstado[u.ultima ? u.ultima.state : 'none'] += 1;
+  const faltan = unidades.filter((u) => !u.video).map((u) => u.unitId);
+  return Object.freeze({
+    unidades: unidades.length,
+    conVideo: unidades.length - faltan.length,
+    porEstado: Object.freeze(porEstado),
+    dinero,
+    listaParaMontar: unidades.length > 0 && faltan.length === 0 && !truncada,
+    faltan: Object.freeze(faltan),
+    truncada,
+  });
+};
+
+/**
+ * EL VÍDEO DE UNA UNIDAD: el que su plano tiene puesto, y solo si es el material
+ * de una de sus tomas y sigue listo. Un plano que apunta a algo que ya no existe
+ * no cuenta como montable.
+ */
+export const videoDeLaUnidad = (trazas: readonly TrazaDeToma[]): string | null => {
+  const puesto = trazas.find((t) => t.plano?.producedAssetId)?.plano?.producedAssetId ?? null;
+  if (!puesto) return null;
+  const suyo = trazas.find((t) => t.material?.assetId === puesto);
+  return suyo?.material?.estado === 'ready' && suyo.material.clase === 'video' ? puesto : null;
+};
+
+export const estadoDeLaProduccion = async (
+  db: Firestore,
+  quien: { uid: string; accountId: string },
+  productionId: string,
+  opciones: { at: number; vidaDeLaLlamadaMs: number; tope?: number },
+): Promise<{ readonly unidades: readonly UnidadDeLaProduccion[]; readonly resumen: ResumenDeProduccion }> => {
+  const todas = [...(await unidadesGuardadas(db, quien.accountId, productionId))].sort(enLaLineaDeTiempo);
+  const mirar = todas.slice(0, Math.max(0, opciones.tope ?? MAX_UNIDADES_CON_VIDEO));
+  const unidades: UnidadDeLaProduccion[] = [];
+  let reservado = 0; let cobrado = 0; let reembolsado = 0;
+  for (const u of mirar) {
+    const trazas = await trazasDeLaUnidad(db, quien, { productionId, sceneId: u.sceneId, unitId: u.unitId }, opciones);
+    for (const t of trazas) { reservado += t.dinero.reservado; cobrado += t.dinero.cobrado; reembolsado += t.dinero.reembolsado; }
+    const ultima = trazas[trazas.length - 1];
+    unidades.push(Object.freeze({ sceneId: u.sceneId, unitId: u.unitId, tomas: trazas.length, ultima: ultima ? vistaDeLaToma(ultima) : null, video: videoDeLaUnidad(trazas) }));
+  }
+  return Object.freeze({
+    unidades: Object.freeze(unidades),
+    resumen: resumirProduccion(unidades, Object.freeze({ reservado, cobrado, reembolsado }), todas.length > mirar.length),
+  });
+};
+
+/**
+ * LA PRODUCCIÓN, COMO LA VE SU DUEÑO. Hecha solo de vistas de toma: nada de
+ * dentro sale por aquí tampoco.
+ */
+export const vistaDeLaProduccion = (p: { readonly unidades: readonly UnidadDeLaProduccion[]; readonly resumen: ResumenDeProduccion }) => Object.freeze({
+  units: p.unidades.map((u) => Object.freeze({
+    sceneId: u.sceneId,
+    unitId: u.unitId,
+    takes: u.tomas,
+    ...(u.ultima ? { latest: u.ultima } : {}),
+    ...(u.video ? { videoAssetId: u.video } : {}),
+  })),
+  summary: Object.freeze({
+    units: p.resumen.unidades,
+    withVideo: p.resumen.conVideo,
+    byState: p.resumen.porEstado,
+    credits: Object.freeze({ reserved: p.resumen.dinero.reservado, charged: p.resumen.dinero.cobrado, refunded: p.resumen.dinero.reembolsado }),
+    readyToAssemble: p.resumen.listaParaMontar,
+    missing: p.resumen.faltan,
+    truncated: p.resumen.truncada,
+  }),
+});
