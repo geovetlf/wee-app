@@ -6,6 +6,7 @@ import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano } from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
+import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import CreatorShell from '../components/creator/CreatorShell';
 import ProductionHeader from '../components/studio/produccion/ProductionHeader';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
@@ -94,6 +95,15 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const editable = esEditable(estado);
   const hayCambios = hayCambiosSinGuardar(estado);
   const toma = useTomaDePlano(estado.confirmada, hayCambios, seleccion);
+  /* El vídeo de cada plano, para su tarjeta. Se vuelve a preguntar cuando la toma del elegido pone uno nuevo. */
+  const delStoryboard = useVideosDeLaProduccion(estado.confirmada?.productionId ?? null, toma.enElPlano?.assetId ?? null);
+  /* Del plano elegido lo sabe también su toma, y más al día: lo que ella dice gana. */
+  const videos = useMemo(() => {
+    if (!seleccion || !toma.enElPlano) return delStoryboard;
+    const conElElegido = new Map(delStoryboard);
+    conElElegido.set(seleccion.id, toma.enElPlano);
+    return conElElegido;
+  }, [delStoryboard, seleccion, toma.enElPlano]);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Production')), [navigation]);
@@ -146,6 +156,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
           porRehacer={[...estado.porRehacer.shots, ...estado.porRehacer.scenes]}
           editable={editable}
           ids={ids}
+          videos={videos}
           onSeleccionar={(s) => { setSeleccion(s); }}
           onGesto={gesto}
         />

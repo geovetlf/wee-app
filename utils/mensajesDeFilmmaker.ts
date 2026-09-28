@@ -158,6 +158,14 @@ const CLAVE_DEL_MOTIVO_DE_TOMA: Readonly<Record<string, string>> = Object.freeze
   RATE_LIMITED: 'filmmaker.takeReasonDaily',
   idempotency_conflict: 'filmmaker.takeReasonConflict',
   result_not_available: 'filmmaker.takeReasonDone',
+  /* Tras el canary real: la calidad cuyo modelo no está, y un fallo del proveedor en su categoría. */
+  model_unavailable: 'filmmaker.takeFailModelUnavailable',
+  MODEL_UNAVAILABLE: 'filmmaker.takeFailModelUnavailable',
+  PROVIDER_TEMPORARY_ERROR: 'filmmaker.takeFailTemporary',
+  PROVIDER_REJECTED: 'filmmaker.takeFailRejected',
+  TIMEOUT: 'filmmaker.takeFailTimeout',
+  UNKNOWN_PROVIDER_ERROR: 'filmmaker.takeFailUnknown',
+  take_superseded: 'filmmaker.takeReasonSuperseded',
   network: 'filmmaker.perNetwork',
   session_required: 'filmmaker.perSessionRequired',
   UNAUTHORIZED: 'filmmaker.perSessionRequired',
@@ -176,11 +184,65 @@ interface FormatoDeToma {
   lista: (cosas: readonly string[], tipo?: 'conjunction' | 'disjunction') => string;
 }
 
+/**
+ * LA FRASE DE UNA TOMA QUE NO SALIÓ, según su categoría y según si sus Credits
+ * ya volvieron. «Reembolsados» solo se dice cuando es verdad: mientras la
+ * devolución está pendiente, se dice que se están devolviendo. Sin categoría
+ * —una toma de antes, o un fallo que el servidor no clasificó— queda la frase de
+ * siempre, con su número.
+ */
+export const claveDelFalloDeToma = (categoria: string | undefined, pendiente: boolean): string => {
+  switch (categoria) {
+    case 'MODEL_UNAVAILABLE': return 'filmmaker.takeFailModelUnavailable';
+    case 'PROVIDER_TEMPORARY_ERROR': return 'filmmaker.takeFailTemporary';
+    case 'PROVIDER_REJECTED': return 'filmmaker.takeFailRejected';
+    case 'TIMEOUT': return pendiente ? 'filmmaker.takeFailTimeoutPending' : 'filmmaker.takeFailTimeout';
+    case 'UNKNOWN_PROVIDER_ERROR': return pendiente ? 'filmmaker.takeFailUnknownPending' : 'filmmaker.takeFailUnknown';
+    default: return pendiente ? 'filmmaker.takeFailUnknownPending' : 'filmmaker.takeFailed';
+  }
+};
+
+/** Los tres números de Credits de una toma, en su frase cada uno. Siempre los tres. */
+export const frasesDeLaEconomia = (e: { reservados: number; cobrados: number; reembolsados: number }, t: Traductor, formato: Pick<FormatoDeToma, 'numero'>): readonly string[] => [
+  t('filmmaker.takeCreditsReserved', { credits: formato.numero(e.reservados) }),
+  t('filmmaker.takeCreditsCharged', { credits: formato.numero(e.cobrados) }),
+  t('filmmaker.takeCreditsRefunded', { credits: formato.numero(e.reembolsados) }),
+];
+
+/**
+ * LO QUE SE DICE DE LAS CALIDADES QUE NO SE PUEDEN PEDIR: las que no tienen su
+ * modelo, juntas en una frase; las que no llegan a la resolución de la
+ * producción, cada una con hasta dónde llega; y si no queda ninguna, que ahora
+ * no se puede generar este plano.
+ */
+export const frasesDeLasCalidades = (
+  calidades: Readonly<Partial<Record<CalidadDeToma, { available: boolean; reason?: string; reachable?: string; resolution?: string }>>> | null,
+  t: Traductor,
+  formato: FormatoDeToma,
+): readonly string[] => {
+  if (!calidades) return [];
+  const todas = (Object.keys(CLAVE_DE_CALIDAD) as CalidadDeToma[]);
+  const no = todas.filter((c) => calidades[c]?.available === false);
+  if (!no.length) return [];
+  if (no.length === todas.length) return [t('filmmaker.takeNoQualityAvailable')];
+  const sinModelo = no.filter((c) => calidades[c]?.reason === 'model_unavailable').map((c) => t(CLAVE_DE_CALIDAD[c]));
+  const noLlegan = no.filter((c) => calidades[c]?.reason === 'quality_not_representable').map((c) => t('filmmaker.takeQualityNotReachable', {
+    calidad: t(CLAVE_DE_CALIDAD[c]),
+    alcanza: resolucionVisible(calidades[c]?.reachable),
+    resolucion: resolucionVisible(calidades[c]?.resolution),
+  }));
+  return [...(sinModelo.length ? [t('filmmaker.takeQualitiesUnavailable', { lista: formato.lista(sinModelo) })] : []), ...noLlegan];
+};
+
 /** LA FRASE DE UN RECHAZO, con sus números y en el idioma de quien mira. */
 export const fraseDelRechazoDeToma = (rechazo: RechazoDeToma, t: Traductor, formato: FormatoDeToma): string => {
   const d = rechazo.detalle ?? {};
   const clave = claveDelMotivoDeToma(rechazo.motivo);
   switch (rechazo.motivo) {
+    case 'TIMEOUT':
+    case 'UNKNOWN_PROVIDER_ERROR':
+      /* Solo se afirma el reembolso si el servidor lo confirmó. */
+      return t(claveDelFalloDeToma(rechazo.motivo, d.refunded !== true));
     case 'duration_too_long':
       return t(clave, { segundos: formato.numero(Number(d.requestedSec)), maximo: formato.numero(Number(d.maxSec)) });
     case 'aspect_ratio_not_supported': {

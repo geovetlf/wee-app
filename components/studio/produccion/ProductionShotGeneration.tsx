@@ -4,9 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import { BotonPequeno, Seccion } from './ProductionPiezas';
-import { CALIDADES_DE_TOMA } from '../../../utils/controladorDeToma';
+import { CALIDADES_DE_TOMA, calidadDisponible } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
-import { CLAVE_DE_CALIDAD, fraseDelRechazoDeToma, resolucionVisible } from '../../../utils/mensajesDeFilmmaker';
+import {
+  CLAVE_DE_CALIDAD, claveDelFalloDeToma, fraseDelRechazoDeToma, frasesDeLaEconomia, frasesDeLasCalidades, resolucionVisible,
+} from '../../../utils/mensajesDeFilmmaker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -21,17 +23,22 @@ const isWeb = Platform.OS === 'web';
  * Aquí no se llama a nada, no se calcula ningún precio ni ningún id y no hay
  * relojes: si algo no se puede, se dice por qué con las palabras del motivo.
  *
+ * Tras el canary real: una calidad que el servidor no puede generar se ve, pero
+ * apagada y con su porqué; un fallo del proveedor se dice por su categoría, sin
+ * nada de dentro; y los Credits de la toma —reservados, cobrados, devueltos— se
+ * enseñan siempre que haya una.
+ *
  * El «Generar» de la producción entera, en Acciones, sigue sin estar: esto es
  * una toma de UNA unidad; juntar varias en un vídeo no se hace todavía.
  */
 const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | 'escena' }> = ({ toma, tipo }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
-  const { fase, calidad, enElPlano, ultima, aviso } = toma;
+  const { fase, calidad, enElPlano, ultima, aviso, calidades, economia } = toma;
   if (fase.fase === 'sin_unidad' && fase.porque === 'nada') return null;
 
-  const nota = (texto: string, tono: 'normal' | 'error' = 'normal') => (
-    <Text style={[styles.nota, { color: tono === 'error' ? theme.colors.error : theme.colors.textSecondary }]}>{texto}</Text>
+  const nota = (texto: string, tono: 'normal' | 'error' = 'normal', clave?: string) => (
+    <Text key={clave} style={[styles.nota, { color: tono === 'error' ? theme.colors.error : theme.colors.textSecondary }]}>{texto}</Text>
   );
   const titulo = tipo === 'escena' ? t('filmmaker.takeSectionScene') : t('filmmaker.takeSectionShot');
 
@@ -40,6 +47,17 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
     const clave = fase.porque === 'sin_guardar' ? 'filmmaker.takeNeedsSaving' : fase.porque === 'archivada' ? 'filmmaker.takeArchived' : 'filmmaker.takeNeedsReady';
     return <Seccion titulo={titulo}>{nota(t(clave))}</Seccion>;
   }
+
+  const hayAlgunaCalidad = !calidades || CALIDADES_DE_TOMA.some((c) => calidadDisponible(calidades, c));
+
+  /* Lo que movió de Credits la toma en curso o la última: siempre los tres números. */
+  const cuentas = economia ? (
+    <View style={styles.cuentas} accessibilityRole="text">
+      {frasesDeLaEconomia(economia, t, formato).map((f, i) => (
+        <Text key={i} style={[styles.cuenta, { color: theme.colors.textSecondary, borderColor: theme.colors.border }]}>{f}</Text>
+      ))}
+    </View>
+  ) : null;
 
   /* Lo que ya hay: el vídeo que el plano tiene puesto, y cómo acabó la última toma si no llegó a él. */
   const loQueHay = (
@@ -55,21 +73,25 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
           )}
         </View>
       )}
-      {ultima?.estado === 'fallida' && nota(t('filmmaker.takeFailed', { numero: ultima.toma }), 'error')}
-      {ultima?.estado === 'sin_enlazar' && nota(t(ultima.motivo === 'production_changed' ? 'filmmaker.takeStale' : 'filmmaker.takeNotLinked', { numero: ultima.toma }))}
+      {ultima?.estado === 'fallida' && nota(t(claveDelFalloDeToma(ultima.categoria, ultima.pendiente === true), { numero: ultima.toma }), 'error')}
+      {ultima?.estado === 'fallida' && ultima.categoria === 'MODEL_UNAVAILABLE' && hayAlgunaCalidad && nota(t('filmmaker.takeFailTryOtherQuality'))}
+      {ultima?.estado === 'sin_enlazar' && nota(t(
+        ultima.motivo === 'production_changed' ? 'filmmaker.takeStale' : ultima.motivo === 'take_superseded' ? 'filmmaker.takeReasonSuperseded' : 'filmmaker.takeNotLinked',
+        { numero: ultima.toma },
+      ))}
+      {cuentas}
     </>
   );
 
   if (fase.fase === 'consultando') return <Seccion titulo={titulo}>{nota(t('filmmaker.takeChecking'))}</Seccion>;
-  if (fase.fase === 'en_proceso' || fase.fase === 'terminando') {
+  if (fase.fase === 'en_proceso' || fase.fase === 'terminando' || fase.fase === 'cerrando') {
+    const texto = fase.fase === 'en_proceso' ? t('filmmaker.takeWorking') : fase.fase === 'terminando' ? t('filmmaker.takeLinking') : t('filmmaker.takeClosing');
     return (
       <Seccion titulo={titulo}>
         {loQueHay}
         <View style={[styles.fila, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-          <Ionicons name="hourglass-outline" size={scale(16)} color={theme.colors.accentDark} />
-          <Text style={[styles.texto, styles.estira, { color: theme.colors.text }]}>
-            {fase.fase === 'en_proceso' ? t('filmmaker.takeWorking') : t('filmmaker.takeLinking')}
-          </Text>
+          <Ionicons name={fase.fase === 'cerrando' ? 'return-down-back-outline' : 'hourglass-outline'} size={scale(16)} color={theme.colors.accentDark} />
+          <Text style={[styles.texto, styles.estira, { color: theme.colors.text }]}>{texto}</Text>
         </View>
       </Seccion>
     );
@@ -90,6 +112,9 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
   const etiquetaGenerar = ultima || enElPlano
     ? t('filmmaker.takeGenerateAgain')
     : tipo === 'escena' ? t('filmmaker.takeGenerateScene') : t('filmmaker.takeGenerateShot');
+  const sobreLasCalidades = frasesDeLasCalidades(calidades, t, formato);
+  /* Un rechazo por el modelo de la calidad elegida: si queda otra calidad, se dice que se puede probar con ella. */
+  const rechazoSinModelo = fase.fase === 'rechazada' && (fase.rechazo.motivo === 'model_unavailable' || fase.rechazo.motivo === 'MODEL_UNAVAILABLE');
 
   return (
     <Seccion titulo={titulo}>
@@ -98,31 +123,39 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
       <View style={styles.opciones}>
         {CALIDADES_DE_TOMA.map((c) => {
           const esta = c === calidad;
+          const disponible = calidadDisponible(calidades, c);
+          const apagada = pidiendo || !disponible;
           return (
             <TouchableOpacity
               key={c}
               onPress={() => toma.elegirCalidad(c)}
-              disabled={pidiendo}
+              disabled={apagada}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel={t(CLAVE_DE_CALIDAD[c])}
-              accessibilityState={{ selected: esta, disabled: pidiendo }}
+              accessibilityHint={disponible ? undefined : t('filmmaker.takeQualityUnavailable')}
+              accessibilityState={{ selected: esta, disabled: apagada }}
               style={[
                 styles.opcion,
-                { backgroundColor: esta ? theme.colors.accent : theme.colors.card, borderColor: esta ? theme.colors.accent : theme.colors.border },
-                pidiendo && { opacity: OPACITY.disabled },
-                isWeb && ({ cursor: pidiendo ? 'default' : 'pointer' } as any),
+                { backgroundColor: esta && disponible ? theme.colors.accent : theme.colors.card, borderColor: esta && disponible ? theme.colors.accent : theme.colors.border },
+                !disponible && styles.opcionApagada,
+                apagada && { opacity: OPACITY.disabled },
+                isWeb && ({ cursor: apagada ? 'default' : 'pointer' } as any),
               ]}
             >
-              <Text style={[styles.opcionTexto, { color: esta ? '#1F2937' : theme.colors.text }]} numberOfLines={1}>{t(CLAVE_DE_CALIDAD[c])}</Text>
+              <Text style={[styles.opcionTexto, { color: esta && disponible ? '#1F2937' : theme.colors.text }, !disponible && styles.opcionTextoApagado]} numberOfLines={1}>
+                {t(CLAVE_DE_CALIDAD[c])}
+              </Text>
             </TouchableOpacity>
           );
         })}
       </View>
+      {sobreLasCalidades.map((f, i) => nota(f, 'normal', `cal-${i}`))}
 
-      {fase.fase === 'elige_calidad' && nota(t('filmmaker.takeChooseQuality'))}
+      {fase.fase === 'elige_calidad' && hayAlgunaCalidad && nota(t('filmmaker.takeChooseQuality'))}
       {fase.fase === 'cotizando' && nota(t('filmmaker.takeQuoting'))}
       {fase.fase === 'rechazada' && nota(fraseDelRechazoDeToma(fase.rechazo, t, formato), 'error')}
+      {rechazoSinModelo && hayAlgunaCalidad && nota(t('filmmaker.takeFailTryOtherQuality'))}
       {fase.fase === 'cotizada' && (
         <View style={styles.bloque}>
           {aviso === 'precio_cambiado' && nota(t('filmmaker.takePriceChanged'), 'error')}
@@ -165,7 +198,11 @@ const styles = StyleSheet.create({
   acciones: { gap: SPACING.xs, alignItems: 'flex-start' },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   opcion: { minHeight: 36, paddingHorizontal: SPACING.md, borderWidth: 1, borderRadius: BORDER_RADIUS.full, justifyContent: 'center' },
+  opcionApagada: { borderStyle: 'dashed' },
   opcionTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },
+  opcionTextoApagado: { textDecorationLine: 'line-through' },
+  cuentas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
+  cuenta: { fontSize: FONT_SIZE.xs, borderWidth: 1, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 2 },
 });
 
 export default ProductionShotGeneration;

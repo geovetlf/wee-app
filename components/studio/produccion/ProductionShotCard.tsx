@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import { BotonPequeno, Chip } from './ProductionPiezas';
@@ -10,6 +11,7 @@ import { CLAVE_DEL_ENFOQUE, PASO_DE_DURACION_SEC } from '../../../constants/film
 import { LIMITES, buscarPlano } from '../../../services/filmmaker/dominio';
 import type { FilmmakerOperation, FilmmakerProduction, ProductionScene, ProductionShot, StoryboardCard } from '../../../services/filmmaker/dominio';
 import type { ResultadoDeGesto } from '../../../utils/controladorDeProduccion';
+import type { VideoDelPlano } from '../../../utils/controladorDeToma';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -26,8 +28,10 @@ export interface IdsNuevos {
  * nombres de cámara, de la biblioteca de Weë Studio. Cada gesto es una operación
  * de F1-A: subir, bajar, duplicar, dividir, unir, alargar, acortar y quitar.
  *
- * La miniatura: F1-C no genera ninguna, así que el hueco dice que no hay vista
- * previa. Nunca se pone una imagen de ejemplo como si fuera de este plano.
+ * La miniatura: si el plano ya tiene su vídeo (F1-D), es ese vídeo, quieto y sin
+ * sonido —el que el servidor dice que el plano tiene puesto, nunca otro—. Si no
+ * lo tiene, el hueco dice que no hay vista previa. Nunca se pone una imagen de
+ * ejemplo como si fuera de este plano.
  */
 const ProductionShotCard: React.FC<{
   produccion: FilmmakerProduction;
@@ -38,10 +42,12 @@ const ProductionShotCard: React.FC<{
   porRehacer: boolean;
   editable: boolean;
   ids: IdsNuevos;
+  /** El vídeo que el plano tiene puesto, si lo tiene. */
+  video?: VideoDelPlano | null;
   onSeleccionar: () => void;
   onGesto: (ops: readonly FilmmakerOperation[]) => ResultadoDeGesto;
   onQuitar: () => void;
-}> = ({ produccion, escena, plano, tarjeta, seleccionado, porRehacer, editable, ids, onSeleccionar, onGesto, onQuitar }) => {
+}> = ({ produccion, escena, plano, tarjeta, seleccionado, porRehacer, editable, ids, video, onSeleccionar, onGesto, onQuitar }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const segundos = useSegundos();
@@ -93,10 +99,26 @@ const ProductionShotCard: React.FC<{
         accessibilityState={{ selected: seleccionado }}
         style={[styles.cuerpo, isWeb && ({ cursor: 'pointer' } as any)]}
       >
-        <View style={[styles.miniatura, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Ionicons name="film-outline" size={scale(20)} color={theme.colors.textSecondary} />
-          <Text style={[styles.sinVista, { color: theme.colors.textSecondary }]} numberOfLines={2}>{t('filmmaker.noPreview')}</Text>
-        </View>
+        {video?.url ? (
+          <View style={[styles.miniatura, styles.conVideo, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Video
+              source={{ uri: video.url }}
+              style={StyleSheet.absoluteFill}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay={false}
+              isMuted
+              accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })}
+            />
+            <View style={styles.play} pointerEvents="none">
+              <Ionicons name="play" size={scale(12)} color="#FFFFFF" />
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.miniatura, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Ionicons name="film-outline" size={scale(20)} color={theme.colors.textSecondary} />
+            <Text style={[styles.sinVista, { color: theme.colors.textSecondary }]} numberOfLines={2}>{t('filmmaker.noPreview')}</Text>
+          </View>
+        )}
         <View style={styles.datos}>
           <View style={styles.filaTitulo}>
             <Text style={[styles.nombre, { color: theme.colors.text }]}>{nombre}</Text>
@@ -160,6 +182,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center', gap: 2, padding: 4,
   },
   sinVista: { fontSize: scale(10), textAlign: 'center' },
+  conVideo: { borderStyle: 'solid', overflow: 'hidden', padding: 0 },
+  play: {
+    position: 'absolute', right: 4, bottom: 4, width: scale(20), height: scale(20), borderRadius: scale(10),
+    backgroundColor: 'rgba(31, 41, 55, 0.72)', alignItems: 'center', justifyContent: 'center',
+  },
   datos: { flex: 1, gap: SPACING.xs, minWidth: 0 },
   filaTitulo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: SPACING.sm },
   nombre: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.bold as any },

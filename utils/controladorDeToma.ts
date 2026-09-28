@@ -15,10 +15,16 @@
  *   4 · mientras se hace, se ESCUCHA la reserva de Credits de esa toma, que es
  *       la fuente que ya existe: AUTHORIZED es «en proceso», COMPLETED que
  *       terminó y se cobró, REFUNDED o FAILED que no salió y se devolvió. Ni
- *       porcentajes, ni relojes, ni preguntar cada tanto;
+ *       porcentajes, ni relojes, ni preguntar cada tanto. De ella salen también
+ *       los tres números que siempre se enseñan: reservados, cobrados, devueltos;
  *   5 · cuando termina, se le pide al servidor que ponga el vídeo en SU plano.
  *       Él lo comprueba todo; si el plano cambió mientras tanto, no lo pone, y
  *       se dice.
+ *
+ * Tras el canary real (2026-09-28): las calidades que el servidor no puede
+ * generar llegan marcadas y no se piden; un fallo del proveedor llega en una de
+ * cinco categorías, sin nada de dentro; y si el TRABAJO ya terminó mientras la
+ * reserva sigue abierta, no se dice «en proceso» de algo que ya no se hace.
  *
  * Sin React, sin Firebase y sin frases: el servicio entra por parámetro —así se
  * prueba entero en Node, en `functions/test/f1d-cliente.test.mjs`— y lo que se
@@ -36,6 +42,58 @@ export const CALIDADES_DE_TOMA: readonly CalidadDeToma[] = Object.freeze(['stand
 /** El estado de la reserva de Credits de una toma, tal como la escribe el Credit Engine. */
 export type EstadoDeReserva = 'PENDING' | 'AUTHORIZED' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 
+/**
+ * LO QUE LA TOMA HA MOVIDO DE CREDITS, en los tres números que la persona tiene
+ * que poder leer siempre: cuánto se reservó, cuánto se cobró y cuánto se devolvió.
+ * Sale de la reserva que ya escribe el Credit Engine; aquí no se calcula ningún precio.
+ */
+export interface EconomiaDeToma {
+  readonly toma: number;
+  readonly estado: EstadoDeReserva;
+  readonly reservados: number;
+  readonly cobrados: number;
+  readonly reembolsados: number;
+}
+
+/**
+ * LOS TRES NÚMEROS, desde el documento de la reserva tal como lo escribe el
+ * Credit Engine: `amount` negativo al reservar, `finalAmount` al cobrar. Pura.
+ *
+ *   AUTHORIZED / PENDING → reservado, nada cobrado ni devuelto todavía
+ *   COMPLETED            → cobrado lo capturado; lo que sobre de la reserva, devuelto
+ *   REFUNDED             → devuelto entero
+ *   FAILED               → la reserva no llegó a hacerse: nada
+ */
+export const economiaDeLaReserva = (toma: number, doc: { status?: unknown; amount?: unknown; finalAmount?: unknown } | null | undefined): EconomiaDeToma | null => {
+  if (!doc || typeof doc.status !== 'string') return null;
+  const estado = doc.status as EstadoDeReserva;
+  const reservado = typeof doc.amount === 'number' && Number.isFinite(doc.amount) ? Math.abs(doc.amount) : 0;
+  if (estado === 'FAILED') return { toma, estado, reservados: 0, cobrados: 0, reembolsados: 0 };
+  if (estado === 'REFUNDED') return { toma, estado, reservados: reservado, cobrados: 0, reembolsados: reservado };
+  if (estado === 'COMPLETED') {
+    const final = typeof doc.finalAmount === 'number' && Number.isFinite(doc.finalAmount) ? Math.min(reservado, Math.max(0, doc.finalAmount)) : reservado;
+    return { toma, estado, reservados: reservado, cobrados: final, reembolsados: reservado - final };
+  }
+  return { toma, estado, reservados: reservado, cobrados: 0, reembolsados: 0 };
+};
+
+/**
+ * POR QUÉ NO SALIÓ UNA GENERACIÓN, en una de las cinco categorías que manda el
+ * servidor (`functions/src/creator/fallos.ts`). Nunca el detalle de dentro.
+ */
+export const CATEGORIAS_DE_FALLO = Object.freeze([
+  'MODEL_UNAVAILABLE', 'PROVIDER_TEMPORARY_ERROR', 'PROVIDER_REJECTED', 'TIMEOUT', 'UNKNOWN_PROVIDER_ERROR',
+] as const);
+export type CategoriaDeFallo = typeof CATEGORIAS_DE_FALLO[number];
+export const esCategoriaDeFallo = (v: unknown): v is CategoriaDeFallo => typeof v === 'string' && (CATEGORIAS_DE_FALLO as readonly string[]).includes(v);
+
+/** Si una calidad se puede pedir para este plano, y si no, por qué. Lo decide el servidor. */
+export type DisponibilidadDeCalidad =
+  | { readonly available: true }
+  | { readonly available: false; readonly reason: 'model_unavailable' }
+  | { readonly available: false; readonly reason: 'quality_not_representable'; readonly reachable?: string; readonly resolution?: string };
+export type CalidadesDeToma = Readonly<Partial<Record<CalidadDeToma, DisponibilidadDeCalidad>>>;
+
 /** Qué unidad se genera, sacada de la producción GUARDADA: su revisión y su requisito de F1-A. */
 export interface UnidadDeToma {
   readonly productionId: string;
@@ -48,7 +106,19 @@ export interface UnidadDeToma {
 
 /** Lo que el servidor cuenta de las tomas de una unidad y de su plano. */
 export interface TomasDelPlano {
-  readonly current: { readonly take: number; readonly requestId: string; readonly status: EstadoDeReserva } | null;
+  readonly current: {
+    readonly take: number;
+    readonly requestId: string;
+    readonly status: EstadoDeReserva;
+    /**
+     * Cómo va el TRABAJO de esa toma, que puede ir por delante de su reserva: ya
+     * terminó y la liquidación todavía no pasó. Con esto no se dice «en proceso»
+     * de algo que ya no se está haciendo.
+     */
+    readonly outcome?: 'in_progress' | 'succeeded' | 'failed';
+    /** Si falló, su categoría. Nada más de dentro. */
+    readonly failure?: string;
+  } | null;
   readonly next: { readonly take: number; readonly requestId: string } | null;
   readonly node: { readonly shotNodeId: string; readonly producedAssetId?: string; readonly version: number } | null;
 }
@@ -64,8 +134,8 @@ export interface TomaEfectiva {
 }
 
 export type CotizacionDeToma =
-  | { readonly status: 'QUOTED'; readonly allowed: true; readonly credits: number; readonly effective: TomaEfectiva; readonly takes: TomasDelPlano }
-  | { readonly status: 'QUOTED'; readonly allowed: false; readonly reason: string; readonly detail?: Readonly<Record<string, unknown>>; readonly takes?: TomasDelPlano };
+  | { readonly status: 'QUOTED'; readonly allowed: true; readonly credits: number; readonly effective: TomaEfectiva; readonly takes: TomasDelPlano; readonly qualities?: CalidadesDeToma }
+  | { readonly status: 'QUOTED'; readonly allowed: false; readonly reason: string; readonly detail?: Readonly<Record<string, unknown>>; readonly takes?: TomasDelPlano; readonly qualities?: CalidadesDeToma };
 
 export interface RespuestaDeGeneracion {
   readonly status: 'ACCEPTED' | 'COMPLETED';
@@ -92,8 +162,16 @@ export interface ServicioDeTomas {
   cotizar(unidad: UnidadDeToma, calidad?: CalidadDeToma): Promise<ResultadoDeToma<CotizacionDeToma>>;
   generar(unidad: UnidadDeToma, calidad: CalidadDeToma, toma: number, creditos: number): Promise<ResultadoDeToma<RespuestaDeGeneracion>>;
   enlazar(unidad: UnidadDeToma, toma: number): Promise<ResultadoDeToma<ResultadoDelEnlace>>;
-  /** Escuchar la reserva de una toma: avisa cada vez que cambia. Devuelve cómo dejar de escuchar. */
-  observarReserva(requestId: string, alCambiar: (estado: EstadoDeReserva | null) => void, alFallar: () => void): () => void;
+  /**
+   * Escuchar la reserva de una toma: avisa cada vez que cambia. Devuelve cómo
+   * dejar de escuchar. Con el estado llega, si se tiene, el documento de la
+   * reserva —su importe y lo cobrado—, de donde salen los tres números.
+   */
+  observarReserva(
+    requestId: string,
+    alCambiar: (estado: EstadoDeReserva | null, reserva?: { status?: unknown; amount?: unknown; finalAmount?: unknown } | null) => void,
+    alFallar: () => void,
+  ): () => void;
   urlDelMaterial(assetId: string): Promise<string | null>;
 }
 
@@ -146,12 +224,19 @@ export type FaseDeToma =
   | { readonly fase: 'pidiendo' }
   | { readonly fase: 'en_proceso'; readonly toma: number }
   | { readonly fase: 'terminando'; readonly toma: number }
+  /*
+   * El trabajo ya acabó mal y la reserva todavía no se ha devuelto: la liquidación
+   * pasa en unos minutos. No es «en proceso» —ya no se está haciendo nada—, y
+   * tampoco se puede pedir otra toma hasta que vuelvan los Credits.
+   */
+  | { readonly fase: 'cerrando'; readonly toma: number }
   | { readonly fase: 'error'; readonly rechazo: RechazoDeToma };
 
 /** La última toma que ya terminó, con lo que dejó: su vídeo en el plano, o por qué no está. */
 export type UltimaToma =
   | { readonly toma: number; readonly estado: 'lista'; readonly assetId: string; readonly url: string | null }
-  | { readonly toma: number; readonly estado: 'fallida' }
+  /* `categoria`: por qué no salió, si el servidor lo sabe. `pendiente`: el reembolso todavía no se ha hecho. */
+  | { readonly toma: number; readonly estado: 'fallida'; readonly categoria?: CategoriaDeFallo; readonly pendiente?: boolean }
   | { readonly toma: number; readonly estado: 'sin_enlazar'; readonly motivo: string };
 
 /** El vídeo que el plano del Core tiene puesto (`ShotNode.producedAssetId`): es lo que el plano ES hoy. */
@@ -167,18 +252,26 @@ export interface InstantaneaDeToma {
   readonly ultima: UltimaToma | null;
   /** Lo que acaba de pasar y conviene decir: que el precio cambió entre la cotización y el clic. */
   readonly aviso: 'precio_cambiado' | null;
+  /** Qué calidades se pueden pedir para esta unidad, según el servidor. `null` mientras no lo ha dicho. */
+  readonly calidades: CalidadesDeToma | null;
+  /** Reservados, cobrados y devueltos de la toma en curso o de la última. */
+  readonly economia: EconomiaDeToma | null;
 }
 
 export const INSTANTANEA_INICIAL: InstantaneaDeToma = Object.freeze({
-  fase: { fase: 'sin_unidad', porque: 'nada' } as FaseDeToma, calidad: null, enElPlano: null, ultima: null, aviso: null,
+  fase: { fase: 'sin_unidad', porque: 'nada' } as FaseDeToma, calidad: null, enElPlano: null, ultima: null, aviso: null, calidades: null, economia: null,
 });
+
+/** ¿Se puede elegir esta calidad? Sin respuesta del servidor todavía, sí: él lo dirá al cotizar. */
+export const calidadDisponible = (calidades: CalidadesDeToma | null, calidad: CalidadDeToma): boolean =>
+  calidades?.[calidad]?.available !== false;
 
 const VIVAS: ReadonlySet<string> = new Set(['PENDING', 'AUTHORIZED']);
 const DEVUELTAS: ReadonlySet<string> = new Set(['FAILED', 'REFUNDED']);
 /** Lo que dice que la toma ya existe: no se reintenta, se consulta y se sigue la que hay. */
 const YA_PEDIDA: ReadonlySet<string> = new Set(['take_in_flight', 'DUPLICATE_REQUEST']);
 /** Mientras pasa esto, elegir otra calidad no hace nada: hay una respuesta en camino o una toma en marcha. */
-const OCUPADA: ReadonlySet<FaseDeToma['fase']> = new Set(['consultando', 'pidiendo', 'en_proceso', 'terminando', 'sin_unidad', 'no_disponible']);
+const OCUPADA: ReadonlySet<FaseDeToma['fase']> = new Set(['consultando', 'pidiendo', 'en_proceso', 'terminando', 'cerrando', 'sin_unidad', 'no_disponible']);
 
 export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
   let entrada: EntradaDeToma = { tipo: 'sin_unidad', porque: 'nada' };
@@ -188,6 +281,8 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
   /* Y cada petición lleva su número: si la persona toca dos calidades seguidas, gana la última. */
   let pedido = 0;
   let dejarDeEscuchar: (() => void) | null = null;
+  /* Cuál es la escucha vigente: la respuesta de una anterior ya no cuenta. */
+  let escucha = 0;
   let instantanea: InstantaneaDeToma = INSTANTANEA_INICIAL;
   const oyentes = new Set<() => void>();
 
@@ -196,6 +291,7 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
     oyentes.forEach((f) => f());
   };
   const callar = (): void => {
+    escucha++;
     if (dejarDeEscuchar) { dejarDeEscuchar(); dejarDeEscuchar = null; }
   };
   const vigente = (v: number, p?: number): boolean => v === vuelta && (p === undefined || p === pedido);
@@ -226,35 +322,81 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
     poner({ fase: { fase: 'elige_calidad' }, calidad: null, ...(cierre.ultima ? { ultima: cierre.ultima } : {}), ...(cierre.enElPlano ? { enElPlano: cierre.enElPlano } : {}) });
   };
 
-  /** En proceso: se escucha la reserva de la toma, y nada más. */
-  const seguir = (v: number, toma: number, requestId: string): void => {
+  /**
+   * ESCUCHAR LA RESERVA DE UNA TOMA. De ella salen siempre los tres números
+   * —reservados, cobrados, devueltos—, y mientras la toma sigue viva, también el
+   * paso siguiente:
+   *
+   *   · en proceso → COMPLETED: se pone el vídeo en su plano; REFUNDED o FAILED:
+   *     se vuelve a consultar, porque el porqué lo sabe el servidor;
+   *   · cerrando (el trabajo ya falló) → REFUNDED: se consulta y queda devuelta;
+   *   · terminando (el trabajo ya salió bien) → COMPLETED: se pone en su plano;
+   *   · solo los números: una toma que ya terminó, para enseñar lo que movió.
+   *
+   * Cada escucha tiene su número: la que llegue de una escucha anterior no cuenta,
+   * aunque llegue en el mismo instante en que se abre la siguiente.
+   */
+  const escuchar = (v: number, toma: number, requestId: string, modo: 'en_proceso' | 'cerrando' | 'terminando' | 'solo_numeros'): void => {
     callar();
-    poner({ fase: { fase: 'en_proceso', toma } });
-    dejarDeEscuchar = servicio.observarReserva(
+    const mia = escucha;
+    if (modo !== 'solo_numeros') poner({ fase: { fase: modo, toma } });
+    const dejar = servicio.observarReserva(
       requestId,
-      (estado) => {
-        if (!vigente(v) || !estado || VIVAS.has(estado)) return;
+      (estado, reserva) => {
+        if (mia !== escucha || !vigente(v)) return;
+        if (reserva) {
+          const economia = economiaDeLaReserva(toma, reserva);
+          if (economia) poner({ economia });
+        }
+        if (!estado) return;
+        if (modo === 'solo_numeros') { if (!VIVAS.has(estado)) callar(); return; }
+        if (VIVAS.has(estado)) return;
         callar();
-        if (DEVUELTAS.has(estado)) { poner({ fase: { fase: 'elige_calidad' }, calidad: null, ultima: { toma, estado: 'fallida' } }); return; }
+        if (DEVUELTAS.has(estado)) {
+          /* Se dice al momento que no salió y que volvieron sus Credits; el porqué lo trae la consulta, del trabajo guardado. */
+          const previa = instantanea.ultima?.toma === toma && instantanea.ultima.estado === 'fallida' ? instantanea.ultima.categoria : undefined;
+          poner({ ultima: { toma, estado: 'fallida', ...(previa ? { categoria: previa } : {}) } });
+          void consultar(v);
+          return;
+        }
         if (estado === 'COMPLETED') void terminar(v, toma);
       },
       () => {
-        if (!vigente(v)) return;
+        if (mia !== escucha || !vigente(v)) return;
         callar();
-        poner({ fase: { fase: 'error', rechazo: { motivo: 'network' } } });
+        if (modo !== 'solo_numeros') poner({ fase: { fase: 'error', rechazo: { motivo: 'network' } } });
       },
     );
+    /* Si la primera respuesta llegó dentro de la propia llamada y ya dejó de escuchar, se suelta aquí. */
+    if (mia === escucha) dejarDeEscuchar = dejar; else dejar();
+  };
+
+  /**
+   * UNA TOMA CUYA RESERVA SIGUE VIVA. Lo normal es que se esté haciendo; pero el
+   * TRABAJO puede haber terminado ya y la liquidación no haber pasado. Entonces
+   * no se dice «en proceso»: si salió mal, se dice que no salió y que los Credits
+   * se están devolviendo; si salió bien, que se está poniendo en su sitio.
+   */
+  const seguirLaViva = (v: number, actual: NonNullable<TomasDelPlano['current']>): void => {
+    if (actual.outcome === 'failed') {
+      const categoria = esCategoriaDeFallo(actual.failure) ? actual.failure : undefined;
+      poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria ? { categoria } : {}), pendiente: true } });
+      escuchar(v, actual.take, actual.requestId, 'cerrando');
+      return;
+    }
+    escuchar(v, actual.take, actual.requestId, actual.outcome === 'succeeded' ? 'terminando' : 'en_proceso');
   };
 
   /** Lo que dice una cotización: el precio, que hay una toma en marcha, o por qué no. */
   const aplicar = (v: number, q: CotizacionDeToma, conCalidad: boolean): void => {
+    if (q.qualities) poner({ calidades: q.qualities });
     if (q.allowed) {
       if (!q.takes.next) { poner({ fase: { fase: 'rechazada', rechazo: { motivo: 'unknown' } } }); return; }
       poner({ fase: { fase: 'cotizada', creditos: q.credits, efectiva: q.effective, toma: q.takes.next.take } });
       return;
     }
     const actual = q.takes?.current;
-    if (actual && VIVAS.has(actual.status)) { seguir(v, actual.take, actual.requestId); return; }
+    if (actual && VIVAS.has(actual.status)) { seguirLaViva(v, actual); return; }
     if (!conCalidad && q.reason === 'quality_required') { poner({ fase: { fase: 'elige_calidad' } }); return; }
     poner({ fase: { fase: 'rechazada', rechazo: { motivo: q.reason, ...(q.detail ? { detalle: q.detail } : {}) } } });
   };
@@ -266,6 +408,7 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
     const r = await servicio.cotizar(unidad);
     if (!vigente(v, p)) return;
     if (!r.ok) { poner({ fase: { fase: 'error', rechazo: r.rechazo } }); return; }
+    if (r.valor.qualities) poner({ calidades: r.valor.qualities });
     /* Lo que el plano tiene puesto ahora, sea de la toma que sea. */
     const puesto = r.valor.takes?.node?.producedAssetId;
     if (puesto) {
@@ -274,14 +417,19 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
       poner({ enElPlano: { assetId: puesto, url } });
     }
     const actual = r.valor.takes?.current ?? null;
-    if (actual && VIVAS.has(actual.status)) { seguir(v, actual.take, actual.requestId); return; }
+    if (actual && VIVAS.has(actual.status)) { seguirLaViva(v, actual); return; }
     if (actual && actual.status === 'COMPLETED') {
       /* Terminó: que el servidor diga si su vídeo está en el plano, y si no, que lo ponga si todavía se puede. */
       const cierre = await cerrarTerminada(v, actual.take);
       if (!vigente(v, p)) return;
       if (cierre.ultima) poner({ ultima: cierre.ultima, ...(cierre.enElPlano ? { enElPlano: cierre.enElPlano } : {}) });
+      escuchar(v, actual.take, actual.requestId, 'solo_numeros');
     } else if (actual && DEVUELTAS.has(actual.status)) {
-      poner({ ultima: { toma: actual.take, estado: 'fallida' } });
+      /* El porqué lo dice el servidor desde el trabajo; si no lo sabe, se conserva el que trajo el error de la generación. */
+      const previa = instantanea.ultima?.toma === actual.take && instantanea.ultima.estado === 'fallida' ? instantanea.ultima.categoria : undefined;
+      const categoria = esCategoriaDeFallo(actual.failure) ? actual.failure : previa;
+      poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria ? { categoria } : {}) } });
+      escuchar(v, actual.take, actual.requestId, 'solo_numeros');
     }
     aplicar(v, r.valor, false);
   };
@@ -296,9 +444,10 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
     aplicar(v, r.valor, true);
   };
 
-  /** Elegir la calidad es pedir precio. No reserva nada. */
+  /** Elegir la calidad es pedir precio. No reserva nada. Una calidad que el servidor dijo que no está, no se pide. */
   const elegirCalidad = (calidad: CalidadDeToma): void => {
     if (!unidad || OCUPADA.has(instantanea.fase.fase)) return;
+    if (!calidadDisponible(instantanea.calidades, calidad)) return;
     void cotizarCon(vuelta, calidad, null);
   };
 
@@ -315,13 +464,23 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
       const r = await servicio.generar(laUnidad, calidad, f.toma, f.creditos);
       if (!vigente(v, p)) return;
       if (r.ok) {
-        if (r.valor.status === 'ACCEPTED' && r.valor.requestId) { seguir(v, r.valor.take ?? f.toma, r.valor.requestId); return; }
+        if (r.valor.status === 'ACCEPTED' && r.valor.requestId) { escuchar(v, r.valor.take ?? f.toma, r.valor.requestId, 'en_proceso'); return; }
         /* Ya estaba hecha: la consulta la encuentra y pone su vídeo en el plano. */
         await consultar(v);
         return;
       }
       if (r.rechazo.motivo === 'price_changed') { await cotizarCon(v, calidad, 'precio_cambiado'); return; }
       if (YA_PEDIDA.has(r.rechazo.motivo)) { await consultar(v); return; }
+      if (esCategoriaDeFallo(r.rechazo.motivo)) {
+        /*
+         * SALIÓ HACIA EL PROVEEDOR Y NO SE PUDO. El porqué va con la toma, y si
+         * los Credits ya volvieron lo dice el servidor; los tres números los
+         * cuenta la consulta, desde la reserva. Nunca «generando» después de esto.
+         */
+        poner({ ultima: { toma: f.toma, estado: 'fallida', categoria: r.rechazo.motivo, ...(r.rechazo.detalle?.refunded === true ? {} : { pendiente: true }) } });
+        await consultar(v);
+        return;
+      }
       poner({ fase: { fase: r.rechazo.motivo === 'network' ? 'error' : 'rechazada', rechazo: r.rechazo } as FaseDeToma });
     })();
   };

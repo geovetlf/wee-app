@@ -8,6 +8,7 @@ import type { IdsNuevos } from './ProductionShotCard';
 import { DURACION_DE_UN_PLANO_NUEVO_SEC } from '../../../constants/filmmaker';
 import type { FilmmakerOperation, FilmmakerProduction, ProductionScene, StoryboardCard } from '../../../services/filmmaker/dominio';
 import type { ResultadoDeGesto } from '../../../utils/controladorDeProduccion';
+import type { VideoDelPlano } from '../../../utils/controladorDeToma';
 import { confirmAction } from '../../../utils/notify';
 import { SPACING } from '../../../constants/design';
 
@@ -30,9 +31,11 @@ const ProductionStoryboard: React.FC<{
   porRehacer: readonly string[];
   editable: boolean;
   ids: IdsNuevos;
+  /** El vídeo que tiene puesto cada plano, por su id. Los que no están, no tienen. */
+  videos?: ReadonlyMap<string, VideoDelPlano>;
   onSeleccionar: (s: Seleccion) => void;
   onGesto: (ops: readonly FilmmakerOperation[]) => ResultadoDeGesto;
-}> = ({ produccion, tarjetas, seleccion, porRehacer, editable, ids, onSeleccionar, onGesto }) => {
+}> = ({ produccion, tarjetas, seleccion, porRehacer, editable, ids, videos, onSeleccionar, onGesto }) => {
   const t = useT();
   const rehacer = useMemo(() => new Set(porRehacer), [porRehacer]);
 
@@ -86,6 +89,7 @@ const ProductionStoryboard: React.FC<{
           porRehacer={rehacer}
           editable={editable}
           ids={ids}
+          videos={videos}
           onSeleccionar={onSeleccionar}
           onGesto={onGesto}
           onQuitarEscena={quitarEscena}

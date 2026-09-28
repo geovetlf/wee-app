@@ -10,6 +10,7 @@ import { aSec, buscarEscena, duracionDeEscenaMs } from '../../../services/filmma
 import type { FilmmakerOperation, FilmmakerProduction, ProductionScene, StoryboardCard } from '../../../services/filmmaker/dominio';
 import type { ResultadoDeGesto } from '../../../utils/controladorDeProduccion';
 import type { Seleccion } from './ProductionStoryboard';
+import type { VideoDelPlano } from '../../../utils/controladorDeToma';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 
 const isWeb = Platform.OS === 'web';
@@ -29,11 +30,12 @@ const ProductionSceneCard: React.FC<{
   porRehacer: ReadonlySet<string>;
   editable: boolean;
   ids: IdsNuevos;
+  videos?: ReadonlyMap<string, VideoDelPlano>;
   onSeleccionar: (s: Seleccion) => void;
   onGesto: (ops: readonly FilmmakerOperation[]) => ResultadoDeGesto;
   onQuitarEscena: (escena: ProductionScene, numero: number) => void;
   onQuitarPlano: (escena: ProductionScene, planoId: string, numero: number) => void;
-}> = ({ produccion, escena, indice, tarjetas, seleccion, porRehacer, editable, ids, onSeleccionar, onGesto, onQuitarEscena, onQuitarPlano }) => {
+}> = ({ produccion, escena, indice, tarjetas, seleccion, porRehacer, editable, ids, videos, onSeleccionar, onGesto, onQuitarEscena, onQuitarPlano }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const segundos = useSegundos();
@@ -112,6 +114,7 @@ const ProductionSceneCard: React.FC<{
             porRehacer={porRehacer.has(plano.id)}
             editable={editable}
             ids={ids}
+            video={videos?.get(plano.id) ?? null}
             onSeleccionar={() => onSeleccionar({ tipo: 'plano', id: plano.id })}
             onGesto={onGesto}
             onQuitar={() => onQuitarPlano(escena, plano.id, j + 1)}
