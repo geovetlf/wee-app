@@ -11,6 +11,9 @@
  *   E · la producción entera (Fase 3): sus unidades en el orden de la línea de
  *       tiempo, la última toma de cada una, el vídeo de su plano, los Credits de
  *       todas las tomas y si ya se puede montar;
+ *   F · la reserva de una toma que se quedó sin trabajo (Fase 4): el barrido la
+ *       devuelve pasada la vida de la llamada, exacta y una vez; nada más se toca
+ *       —ni el POST sin respuesta, que sigue retenido por decisión del usuario—;
  *   D · las guardas: solo lectura, la liquidación de siempre, el plazo de la
  *       llamada de vídeo y ni una fuga hacia la app.
  *
@@ -709,6 +712,93 @@ const produccionDe = (uid, productionId) =>
     !/jobId|generationId|usd|fingerprint|huella|firma|plantilla|prompt|coste/i.test(texto), texto.slice(0, 300));
 }
 
+/* ═══ F · LA RESERVA QUE SE QUEDÓ SIN TRABAJO (FASE 4) ═══════════════════ */
+console.log('\n── F · La reserva de una toma que se quedó sin trabajo se devuelve; nada más se toca ──');
+const rec = lib('creator/recuperacionDeTomas.js');
+{
+  const ahoraF = Date.now();
+  const lejos = ahoraF + VIDA + rec.MARGEN_DE_ABANDONO_MS + 60_000;
+  const barrer = (at, db = base) => rec.devolverTomasSinTrabajo(db, { at, vidaDeLaLlamadaMs: VIDA });
+  /* Lo que hay: la reserva abandonada de C14 (cuenta D), el POST sin respuesta de C12 (cuenta C), y además… */
+  const abandonada = toma.requestIdDeToma(D, pid(6), 'sh-0102', 1);
+  const sinRespuesta = toma.requestIdDeToma(C, pid(5), 'sh-0101', 1);
+  /* …una toma aceptada, viva en el proveedor; */
+  await crear(E, 9, conFaro());
+  const viva = await pedir(E, 9);
+  /* …una reserva del vídeo de siempre, que no es de ninguna toma; */
+  const servicio = uso(primera.rid).service;
+  await creditEngine.spendCredits({ userId: F, service: servicio, amount: 10, requestId: 'legacy-video-0001', reason: 'prueba', source: 'weë-studio' });
+  /* …una que se hace pasar por toma pero cuya meta no da su huella; */
+  const falsa = `fm.${'0'.repeat(32)}.1`;
+  await creditEngine.spendCredits({ userId: F, service: servicio, amount: 10, requestId: falsa, reason: 'prueba', source: 'weë-studio', meta: { filmmaker: { productionId: pid(1), unitId: 'sh-0101', take: 1 } } });
+  /* …y una de toma de verdad, pero sin fecha de reserva. */
+  const sinFecha = toma.requestIdDeToma(F, pid(50), 'sh-0101', 1);
+  await creditEngine.spendCredits({ userId: F, service: servicio, amount: 10, requestId: sinFecha, reason: 'prueba', source: 'weë-studio', meta: { filmmaker: { productionId: pid(50), unitId: 'sh-0101', take: 1 } } });
+  delete base.docs.get(`creditTransactions/usage_${sinFecha}`).createdAt;
+  const saldoAntes = saldo(D);
+
+  const ya = await barrer(ahoraF);
+  check('F1) dentro de la vida de la llamada, no se toca: la reserva abandonada sigue retenida',
+    uso(abandonada)?.status === 'AUTHORIZED' && ya.devueltas === 0 && ya.aTiempo >= 1, JSON.stringify(ya));
+  const pasado = await barrer(lejos);
+  check('F2) pasada la vida de la llamada, se devuelve EXACTA y una vez, por el puerto de liquidación de siempre',
+    uso(abandonada)?.status === 'REFUNDED' && reembolsos(abandonada).length === 1 && reembolsos(abandonada)[0].amount === 75
+    && saldo(D) === saldoAntes + 75 && pasado.devueltas === 1, JSON.stringify(pasado));
+  check('F3) y nada más: ni el POST sin respuesta —sigue retenido para una persona—, ni una aceptada viva, ni el vídeo de siempre, ni una falsa, ni una sin fecha',
+    uso(sinRespuesta)?.status === 'AUTHORIZED' && uso(viva.rid)?.status === 'AUTHORIZED' && uso('legacy-video-0001')?.status === 'AUTHORIZED'
+    && uso(falsa)?.status === 'AUTHORIZED' && uso(sinFecha)?.status === 'AUTHORIZED'
+    && reembolsos(sinRespuesta).length === 0 && reembolsos(viva.rid).length === 0);
+  check('F4) las cuentas de la pasada lo dicen: cuatro de tomas, dos con trabajo, una sin fecha, una devuelta, ningún error',
+    pasado.candidatas === 4 && pasado.conTrabajo === 2 && pasado.aTiempo === 1 && pasado.devueltas === 1 && pasado.errores === 0 && pasado.quedan === false, JSON.stringify(pasado));
+  const otra = await barrer(lejos);
+  check('F5) otra pasada no devuelve nada más: la devuelta ya no es una reserva autorizada', otra.devueltas === 0 && otra.yaEstaban === 0 && reembolsos(abandonada).length === 1, JSON.stringify(otra));
+  const [t] = (await tomasDe(D, 6, 'sh-0102')).valor.takes;
+  check('F6) y la toma dice «refunded», con lo devuelto', t?.state === 'refunded' && t.reason === 'refunded' && t.credits.refunded === 75, JSON.stringify(t));
+  const q = await cotizar(D, await plan(D, 6, 'sh-0102'));
+  check('F7) el plano ya no se queda bloqueado: se puede pedir la toma siguiente', q.ok && q.valor.allowed === true && q.valor.takes.next?.take === 2, codigo(q));
+
+  /* Sin poder leer si hay trabajo, no se devuelve nada. */
+  const otraAbandonada = toma.requestIdDeToma(D, pid(6), 'sh-0101', 1);
+  await creditEngine.spendCredits({ userId: D, service: servicio, amount: 75, requestId: otraAbandonada, reason: 'prueba', source: 'weë-studio', meta: { filmmaker: { productionId: pid(6), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } } });
+  const rota = { collection: (c) => (c === 'jobs' ? { doc: () => ({ get: async () => { throw new Error('almacén caído'); } }) } : base.collection(c)), doc: (p) => base.doc(p), runTransaction: (f) => base.runTransaction(f) };
+  const conFallo = await barrer(lejos, rota);
+  check('F8) si no se puede leer el trabajo, no se devuelve: se cuenta como error y la reserva sigue', uso(otraAbandonada)?.status === 'AUTHORIZED' && conFallo.errores >= 1 && conFallo.devueltas === 0, JSON.stringify(conFallo));
+  const bien = await barrer(lejos);
+  check('F8b) y la siguiente pasada, con el almacén de vuelta, la devuelve', uso(otraAbandonada)?.status === 'REFUNDED' && bien.devueltas === 1);
+
+  /* La pasada del runtime: el paso corre DESPUÉS de liquidar, y un fallo suyo no toca lo demás. */
+  const orden = [];
+  const informeVacio = { sweepId: 's', startedAt: 0, finishedAt: 1, durationMs: 1, examined: 0, settled: 0, refunded: 0, skipped: 0, unknown: 0, errors: 0, pending: false };
+  const reconciliacionVacia = async () => ({ mirados: 0, preguntados: 0, resueltos: 0, enMarcha: 0, sinRespuesta: 0, rendidos: 0, aplazados: 0, omitidos: 0, agotadas: false, vistos: [] });
+  const r1 = await rt.mantenimientoDeWee({
+    reconciliacion: reconciliacionVacia,
+    liquidacion: async () => { orden.push('liquidar'); return informeVacio; },
+    reservasSinTrabajo: async () => { orden.push('reservas'); return { miradas: 1, devueltas: 0, errores: 0 }; },
+  })();
+  const conPasoRoto = await intento(() => rt.mantenimientoDeWee({
+    reconciliacion: reconciliacionVacia,
+    liquidacion: async () => informeVacio,
+    reservasSinTrabajo: async () => { throw new Error('se cayó'); },
+  })());
+  const r2 = conPasoRoto.ok ? conPasoRoto.valor : {};
+  const r3 = await rt.mantenimientoDeWee({ reconciliacion: reconciliacionVacia, liquidacion: async () => informeVacio })();
+  check('F9) en la pasada del runtime, el paso corre DESPUÉS de liquidar y su informe sale con ella',
+    orden.join('→') === 'liquidar→reservas' && r1.reservasSinTrabajo?.miradas === 1 && r1.falloEnReservas === false);
+  check('F10) si el paso revienta, lo liquidado sigue ahí y se dice; y sin el paso, la pasada es la de siempre',
+    conPasoRoto.ok && r2.falloEnReservas === true && r2.liquidacion === informeVacio && !('reservasSinTrabajo' in r2)
+    && !('reservasSinTrabajo' in r3) && !('falloEnReservas' in r3));
+  /* Y compuesto como lo compone el programador. */
+  let anotado = null;
+  const r4 = await rt.mantenimientoDeWee({
+    reconciliacion: reconciliacionVacia,
+    liquidacion: async () => informeVacio,
+    reservasSinTrabajo: rec.tomasSinTrabajoDeWee({ db: base, ahora: () => lejos, anotar: (i) => { anotado = i; } }),
+  })();
+  check('F11) el paso compuesto, como en el programador: su plazo es el de la llamada de vídeo y su informe se anota',
+    anotado !== null && r4.reservasSinTrabajo === anotado && anotado.candidatas >= 2 && anotado.devueltas === 0
+    && uso(sinRespuesta)?.status === 'AUTHORIZED', JSON.stringify(anotado));
+}
+
 /* ═══ D · LAS GUARDAS ════════════════════════════════════════════════════ */
 console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de la llamada y ni una fuga ──');
 {
@@ -725,8 +815,14 @@ console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de
     && vidas.length === 2 && vidas.every((x) => x === 'vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS'), vidas.join(' | '));
   check('D4) la puerta solo deja salir la vista, nunca la traza', /return \{ takes: trazas\.map\(vistaDeLaToma\) \};/.test(puerta) && (puerta.match(/trazasDeLaUnidad\(/g) || []).length === 1);
   check('D5) el módulo nuevo está en la lista del motor, y el dinero no', TOCADOS_POR_EL_MOTOR.includes('functions/src/creator/estadoDeToma.ts') && TOCADOS_POR_EL_MOTOR.every((f) => !DINERO.some((re) => re.test(f))));
-  check('D6) ni el runtime, ni los Credits, ni el Core: esta fase los lee, no los cambia',
-    fueraDelMotor(git('diff --name-only d8d11ea -- functions/src/runtime functions/src/credits functions/src/core').trim().split('\n').filter(Boolean)).length === 0);
+  /*
+   * La Fase 4 (decisión del usuario, 2026-09-28) SÍ toca `runtime/index.ts`: la pasada gana el paso opcional de las
+   * reservas sin trabajo. Es el ÚNICO archivo del runtime con permiso; los Credits y el Core siguen sin tocar.
+   */
+  const CON_PERMISO_DE_LA_FASE_4 = ['functions/src/runtime/index.ts'];
+  check('D6) ni el runtime —salvo el paso de la Fase 4—, ni los Credits, ni el Core',
+    fueraDelMotor(git('diff --name-only d8d11ea -- functions/src/runtime functions/src/credits functions/src/core').trim().split('\n').filter(Boolean))
+      .filter((f) => !CON_PERMISO_DE_LA_FASE_4.includes(f)).length === 0);
   /*
    * Defensa en profundidad que la prueba de punta a punta no puede ver: el `requestId` de una toma ya lleva la
    * cuenta dentro, así que otra cuenta nunca llega a estas lecturas. Se fija que, aun así, cada una sea de su dueño.
@@ -738,10 +834,23 @@ console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de
     /return vistaDeLaProduccion\(estado\);/.test(puerta) && /ultima: ultima \? vistaDeLaToma\(ultima\) : null/.test(src));
   check('D12) y el vídeo de una unidad solo cuenta si es el material listo de una de sus tomas',
     /suyo\?\.material\?\.estado === 'ready' && suyo\.material\.clase === 'video' \? puesto : null/.test(src));
+  const PROG = sinComentarios(leer('functions/src/settlement/programado.ts'));
+  const REC = sinComentarios(leer('functions/src/creator/recuperacionDeTomas.ts'));
+  const RT = sinComentarios(leer('functions/src/runtime/index.ts'));
+  check('D13) el programador solo compone el paso de las tomas: no devuelve, no cobra y no decide',
+    /reservasSinTrabajo: tomasSinTrabajoDeWee\(/.test(PROG) && !/refundCredits|completeCredits|decidirLiquidacion|decidirEstadoDeLaToma|reembolsar\(/.test(PROG));
+  check('D14) la recuperación mueve dinero SOLO por el puerto de liquidación del runtime, y nunca cobra',
+    /puerto\.reembolsar\(/.test(REC) && !/creditEngine|refundCredits|completeCredits|spendCredits|\.settle\(|liquidar\(/.test(REC));
+  check('D15) decide con la regla de la Fase 2 y no toca nada que tenga trabajo',
+    /decidirEstadoDeLaToma\(/.test(REC) && /if \(estado\?\.motivo !== 'abandoned'\) \{ aTiempo\+\+; continue; \}/.test(REC)
+    && /if \(trabajo\) \{ conTrabajo\+\+; continue; \}/.test(REC) && /catch \{\s*errores\+\+;\s*continue;\s*\}/.test(REC));
+  check('D16) en la pasada del runtime el paso va DESPUÉS de liquidar, y dentro de su propio `try`',
+    /const liquidacion = await liquidar\(\);[\s\S]*?try \{\s*reservasSinTrabajo = await deps\.reservasSinTrabajo\(\);\s*\} catch \{\s*falloEnReservas = true;/.test(RT));
   check('D7) documentado en FILMMAKER.md', /### Fase 2 · /.test(leer('docs/FILMMAKER.md')) && /shot\.takes/.test(leer('docs/FILMMAKER.md'))
-    && /### Fase 3 · /.test(leer('docs/FILMMAKER.md')) && /shot\.production/.test(leer('docs/FILMMAKER.md')));
+    && /### Fase 3 · /.test(leer('docs/FILMMAKER.md')) && /shot\.production/.test(leer('docs/FILMMAKER.md'))
+    && /### Fase 4 · /.test(leer('docs/FILMMAKER.md')) && /reservasSinTrabajo/.test(leer('docs/RUNTIME.md')));
   check('D8) esta suite está en la cadena de `npm test`', /filmmaker-toma-estado\.test\.mjs/.test(leer('functions/package.json')));
 }
 
-console.log(failures ? `\n✘ ${failures} fallos` : `\n✔ Fases 2 y 3 · el estado y la traza de cada toma, y la producción entera (${n} comprobaciones)`);
+console.log(failures ? `\n✘ ${failures} fallos` : `\n✔ Fases 2, 3 y 4 · el estado y la traza de cada toma, la producción entera y la reserva sin trabajo (${n} comprobaciones)`);
 process.exit(failures ? 1 : 0);

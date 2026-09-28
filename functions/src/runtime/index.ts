@@ -556,11 +556,30 @@ export const reconciliacionDeWee = (deps: {
  * material por su identidad calculada, y el motor de trabajos por el CAS del
  * almacén. Exactamente una transición por operación.
  */
+/** Lo que dejó el paso de las reservas sin trabajo. Cuentas, nada más: ni de quién, ni cuánto. */
+export interface InformeDeReservasSinTrabajo {
+  readonly miradas: number;
+  readonly devueltas: number;
+  readonly errores: number;
+}
+
 export const mantenimientoDeWee = (deps: {
   db?: Firestore;
   ahora?: () => number;
   reconciliacion?: () => Promise<InformeDelReconciliador>;
   liquidacion?: () => Promise<InformeDeBarrido>;
+  /**
+   * LAS RESERVAS QUE NUNCA TUVIERON TRABAJO. Opcional: lo pone quien compone.
+   *
+   * La liquidación solo sabe de trabajos, y una reserva cuyo trabajo nunca llegó
+   * a crearse —el proceso murió entre reservar y crear— no la ve nadie. El runtime
+   * no sabe de qué producto es cada reserva ni cuándo se da por perdida, así que
+   * no la busca: quien lo sabe pone aquí su paso (Filmmaker, para sus tomas:
+   * `creator/recuperacionDeTomas.ts`). Lo que decide el runtime es CUÁNDO corre
+   * —después de liquidar: lo que ya tiene desenlace va primero— y que un fallo
+   * suyo no toque nada de lo demás.
+   */
+  reservasSinTrabajo?: () => Promise<InformeDeReservasSinTrabajo>;
   /**
    * Se llama EN CUANTO termina de preguntar, no al final.
    *
@@ -570,7 +589,7 @@ export const mantenimientoDeWee = (deps: {
    * que se lee tiene que ser el orden de lo que pasó.
    */
   anotarPregunta?: (informe: InformeDelReconciliador | undefined, fallo: boolean) => void;
-  anotar?: (v: { reconciliacion?: InformeDelReconciliador; liquidacion: InformeDeBarrido; falloAlPreguntar: boolean }) => void;
+  anotar?: (v: SalidaDelMantenimiento) => void;
 } = {}) => {
   /*
    * PEREZOSO A PROPÓSITO. Solo se pide Firestore si hace falta construir una de
@@ -583,7 +602,7 @@ export const mantenimientoDeWee = (deps: {
   const preguntar = deps.reconciliacion ?? (() => reconciliacionDeWee({ db: baseDeDatos(), ...(deps.ahora ? { ahora: deps.ahora } : {}) })());
   const liquidar = deps.liquidacion ?? (() => barridoDeLiquidacionDeWee({ db: baseDeDatos(), ...(deps.ahora ? { ahora: deps.ahora } : {}) })());
 
-  return async (): Promise<{ reconciliacion?: InformeDelReconciliador; liquidacion: InformeDeBarrido; falloAlPreguntar: boolean }> => {
+  return async (): Promise<SalidaDelMantenimiento> => {
     let reconciliacion: InformeDelReconciliador | undefined;
     let falloAlPreguntar = false;
     try {
@@ -595,11 +614,35 @@ export const mantenimientoDeWee = (deps: {
     /* Aquí, antes de liquidar: lo que se lee tiene que ir en el orden en que pasó. */
     deps.anotarPregunta?.(reconciliacion, falloAlPreguntar);
     const liquidacion = await liquidar();
-    const salida = { ...(reconciliacion ? { reconciliacion } : {}), liquidacion, falloAlPreguntar };
+    /* Después de liquidar, y solo si alguien lo compuso. Si revienta, lo de arriba ya está hecho y no se deshace. */
+    let reservasSinTrabajo: InformeDeReservasSinTrabajo | undefined;
+    let falloEnReservas = false;
+    if (deps.reservasSinTrabajo) {
+      try {
+        reservasSinTrabajo = await deps.reservasSinTrabajo();
+      } catch {
+        falloEnReservas = true;
+      }
+    }
+    const salida: SalidaDelMantenimiento = {
+      ...(reconciliacion ? { reconciliacion } : {}),
+      liquidacion,
+      falloAlPreguntar,
+      ...(deps.reservasSinTrabajo ? { ...(reservasSinTrabajo ? { reservasSinTrabajo } : {}), falloEnReservas } : {}),
+    };
     deps.anotar?.(salida);
     return salida;
   };
 };
+
+/** Lo que devuelve una pasada de mantenimiento. Las dos últimas, solo si se compuso el paso de las reservas sin trabajo. */
+export interface SalidaDelMantenimiento {
+  reconciliacion?: InformeDelReconciliador;
+  liquidacion: InformeDeBarrido;
+  falloAlPreguntar: boolean;
+  reservasSinTrabajo?: InformeDeReservasSinTrabajo;
+  falloEnReservas?: boolean;
+}
 
 /**
  * ¿TIENE TRABAJO DEL CORE ESTA PETICIÓN DE MEDIO? Sobre el almacén de verdad, y

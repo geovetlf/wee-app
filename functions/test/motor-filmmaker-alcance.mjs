@@ -24,6 +24,15 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * que ahora usa también `shot.videos` con la misma regla y el mismo resultado) y `shots/puerta.ts` (`shot.production`).
    */
   'functions/src/creator/estadoDeToma.ts',
+  /*
+   * Fase 4 · la reserva de una toma que se quedó sin trabajo (decisión del usuario, 2026-09-28: SOLO esa; el POST sin
+   * respuesta sigue retenido). Un módulo nuevo que decide qué reservas de tomas se devuelven —por el puerto de
+   * liquidación del runtime, sin llamar al Credit Engine por su cuenta— y el programador, que solo lo compone. La
+   * pasada del runtime gana el paso opcional `reservasSinTrabajo` en `runtime/index.ts`, que no pasa por esta lista
+   * porque las vallas de F1-D ya lo nombran.
+   */
+  'functions/src/creator/recuperacionDeTomas.ts',
+  'functions/src/settlement/programado.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

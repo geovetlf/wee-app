@@ -2,6 +2,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { CADA_CUANTO_POR_DEFECTO_MIN, InformeDeBarrido, InformeDelReconciliador, barridoDeLiquidacionDeWee, mantenimientoDeWee } from '../runtime';
 import { RECONCILIATION_SECRETS } from '../secrets';
+import { InformeDeTomasSinTrabajo, tomasSinTrabajoDeWee } from '../creator/recuperacionDeTomas';
 
 /**
  * WEË — QUIÉN LE PIDE AL BARRENDERO QUE PASE.
@@ -30,6 +31,11 @@ import { RECONCILIATION_SECRETS } from '../secrets';
  * las cosas dentro de la pasada: todo eso vive en `runtime/`, es puro, y lo
  * ejecuta el Credit Engine, que es idempotente. Tampoco guarda nada: la verdad
  * está en Firestore y aquí no se recuerda ni un trabajo entre pasada y pasada.
+ *
+ * Lo que sí hace es COMPONER: le da a la pasada sus piezas. Desde la Fase 4 del
+ * Filmmaker Engine, una más —las reservas de tomas que se quedaron sin trabajo
+ * (`creator/recuperacionDeTomas.ts`)—: qué reserva se devuelve lo decide ese
+ * módulo, y cuándo corre, el runtime.
  *
  * ── Dos a la vez ────────────────────────────────────────────────────────────
  *
@@ -77,6 +83,19 @@ export const anotarReconciliacion = (informe: InformeDelReconciliador | undefine
 };
 
 /**
+ * Lo que dejó el paso de las tomas sin trabajo. Cuentas: ni de quién, ni cuánto,
+ * ni qué toma. Si no había ninguna que mirar, no dice nada.
+ */
+export const anotarTomasSinTrabajo = (informe: InformeDeTomasSinTrabajo): void => {
+  if (!informe.candidatas && !informe.errores && !informe.quedan) return;
+  console.log(
+    `WEË TOMAS SIN TRABAJO · miradas=${informe.miradas} candidatas=${informe.candidatas} con_trabajo=${informe.conTrabajo}`
+    + ` a_tiempo=${informe.aTiempo} devueltas=${informe.devueltas} ya_estaban=${informe.yaEstaban} errores=${informe.errores}`
+    + `${informe.quedan ? ' · quedan páginas' : ''}`,
+  );
+};
+
+/**
  * LA TAREA PROGRAMADA. Dispara UNA pasada y se va.
  *
  * ── Los secretos que declara, y por qué ─────────────────────────────────────
@@ -112,6 +131,8 @@ export const barridoDeLiquidacion = onSchedule(
       liquidacion: barridoDeLiquidacionDeWee({ db: getFirestore(), anotar: anotarBarrido }),
       /* Se anota al terminar de preguntar, que es antes de liquidar: los registros se leen en el orden en que pasaron. */
       anotarPregunta: anotarReconciliacion,
+      /* Las reservas de tomas de Filmmaker que se quedaron sin trabajo. Qué se devuelve lo decide su módulo; cuándo, el runtime. */
+      reservasSinTrabajo: tomasSinTrabajoDeWee({ db: getFirestore(), anotar: anotarTomasSinTrabajo }),
     });
     await pasada();
   },

@@ -2351,3 +2351,28 @@ Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
 - El emulador de Storage no aplica `ifGenerationMatch: 0` (medido en `f1d.emulator.mjs`): el 412 del guardado «solo
   si no existe» se prueba en memoria; la biblioteca sí lo manda en la subida, así que en GCS real se aplica.
 - Varias unidades a la vez, montaje, voz, música, lip-sync, Elements y prompt avanzado: fases siguientes.
+
+## 25. Filmmaker Engine · La reserva que se quedó sin trabajo
+
+`generateVideo` reserva los Credits de una toma y después crea su trabajo. Si el proceso muere entre las dos cosas —o
+el Core lanza antes de crear el trabajo—, la reserva queda `AUTHORIZED` sin trabajo, y la liquidación, que solo sabe
+de trabajos, no la ve. Decisión del usuario (2026-09-28): esas reservas se devuelven solas; el POST que salió y no
+volvió (`reconciliar`, desenlace desconocido) **sigue retenido** para que lo revise una persona.
+
+- **La pasada** (`mantenimientoDeWee`) gana un paso opcional, `reservasSinTrabajo`, que corre DESPUÉS de liquidar y
+  dentro de su propio `try`: si revienta, lo liquidado no se deshace y se dice (`falloEnReservas`). Sin el paso, la
+  pasada es exactamente la de antes. El runtime no sabe de qué producto es una reserva ni cuándo se da por perdida:
+  solo decide cuándo corre el paso.
+- **El paso de Filmmaker** (`creator/recuperacionDeTomas.ts`) lee las reservas autorizadas por su identificador
+  (`usage_fm.…`, `status == AUTHORIZED` + `orderBy(documentId)`, el mismo patrón que el almacén de trabajos) y solo
+  acepta las que son de verdad de una toma: el `requestId` con su forma y la meta —cuenta, producción, unidad y
+  número— dando ESA huella. Devuelve una cuando no tiene trabajo y ya pasó la vida de la llamada (`PLAZO_DE_VIDEO_MS`,
+  el mismo número) más 5 minutos: la regla la da el estado de la toma (`failed` / `abandoned`), no una copia.
+- **El dinero** va por el puerto de liquidación de siempre (`liquidacionDeWee().reembolsar`, motivo `no_salio`), que
+  llama al `refundCredits` idempotente. El paso no importa el Credit Engine, y en `runtime/` sigue habiendo un solo
+  sitio que mueve dinero.
+- **Nunca devuelve** una reserva con trabajo —su dinero es de su liquidación—, una sin fecha, una que no cuadra, ni
+  nada si no puede leer si hay trabajo: un error es no hacer nada.
+- **El programador** (`settlement/programado.ts`) solo lo compone; se despliega con la próxima autorización.
+
+Pruebas: la sección F de `functions/test/filmmaker-toma-estado.test.mjs`.

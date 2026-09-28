@@ -800,6 +800,16 @@ si puede empezar y con qué material.
 
 Pruebas: la sección E de `functions/test/filmmaker-toma-estado.test.mjs`.
 
+### Fase 4 · La reserva que se quedó sin trabajo
+
+Si el proceso muere entre reservar los Credits de una toma y crear su trabajo, la reserva se quedaba retenida para
+siempre: la app la enseñaba «en proceso» y ese plano no dejaba pedir otra toma. Ahora el barrido la devuelve cuando ya
+pasó la vida de la llamada que tenía que crear el trabajo (más 5 minutos), exacta y una vez, por el puerto de
+liquidación del runtime; la toma pasa a `refunded` y el plano se puede volver a pedir. Solo eso, por decisión del
+usuario (2026-09-28): el POST que salió y no volvió sigue retenido, para una persona. Detalle en `docs/RUNTIME.md` § 25.
+
+Pruebas: la sección F de `functions/test/filmmaker-toma-estado.test.mjs`.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
