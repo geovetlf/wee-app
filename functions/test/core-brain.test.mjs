@@ -632,11 +632,17 @@ console.log('\n── M · Lo que no se ha tocado ──');
     && /creditsEstimated: creditsDelMensaje/.test(callable));
   check('99) el Credit Engine se sigue usando desde el callable, no desde Brain',
     /creditEngine\.spendCredits\(/.test(callable) && !/creditEngine/.test(codigoCore + codigoComp));
+  /*
+   * Reanclada en la Fase 9 del Filmmaker Engine (decisión del usuario, 2026-09-28: Weë Brain con la producción
+   * abierta como contexto): la cotización y el envío llevan, las dos, la producción —si la hay— como quinto
+   * argumento, y el prompt de siempre gana, SOLO con ella, la producción contada detrás del idioma.
+   */
   check('100) la cotización sigue saliendo del mismo sitio y con el mismo input',
-    /brainInput\(message, history, files, data\.locale\)/.test(callable)
-    && /brainInput\(message, history, \{ imageUrl, documentUrl, audioUrl \}, data\.locale\)/.test(callable));
+    /brainInput\(message, history, files, data\.locale, produccion\)/.test(callable)
+    && /brainInput\(message, history, \{ imageUrl, documentUrl, audioUrl \}, data\.locale, produccion\)/.test(callable));
   check('101) el prompt de siempre y el idioma siguen armándose donde estaban',
-    /system: `\$\{BRAIN_CHAT_SYSTEM\} \$\{instruccionDeIdioma\(locale\)\}`/.test(callable));
+    /: `\$\{BRAIN_CHAT_SYSTEM\} \$\{instruccionDeIdioma\(locale\)\}`,/.test(callable)
+    && /`\$\{BRAIN_CHAT_SYSTEM\} \$\{instruccionDeIdioma\(locale\)\}\\n\\n\$\{instruccionDeProduccion\(produccion\.resumen\)\}`/.test(callable));
   check('102) los adjuntos siguen comprobándose contra la carpeta de la propia persona',
     /assertInputImageUrl\(data\.imageUrl, uid\)/.test(callable) && /assertAttachmentUrl\(data\.documentUrl, uid, 'document'\)/.test(callable));
   check('103) Brain no comprueba propiedad de material: eso es del callable y del Asset Engine',

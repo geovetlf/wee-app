@@ -954,6 +954,11 @@ seccion('G', () => {
    * calcula el requisito de cada plano de la producción guardada en vez de fiarse del de la app. Entra `requisitos`,
    * y lo hace por UNA puerta más, con nombre: `creator/requisitoDelServidor`. `recomendaciones` sigue fuera, y fuera
    * de esas dos puertas el dominio no se alcanza.
+   *
+   * AMPLIADA otra vez en la Fase 9 (F2; decisión del usuario, 2026-09-28: Weë Brain con la producción abierta como
+   * contexto): la producción se le cuenta a Weë Brain con sus recomendaciones, y lo que propone se comprueba con
+   * `operaciones` en memoria. Entra `recomendaciones`, y lo hace por UNA tercera puerta con nombre:
+   * `creator/produccionEnBrain`. Fuera de esas tres puertas el dominio sigue sin alcanzarse.
    */
   const LIB = path.resolve(RAIZ, 'functions/lib');
   const requiresDe = (abs) => [...sinComentarios(fs.readFileSync(abs, 'utf8')).matchAll(/require\(["'](\.{1,2}\/[^"']+)["']\)/g)]
@@ -970,15 +975,18 @@ seccion('G', () => {
   };
   const deFilmmaker = (xs) => xs.filter((r) => r.startsWith('filmmaker/')).sort();
   const cargados = deFilmmaker(alcanzables());
-  const PUERTAS_DEL_DOMINIO = [path.join(LIB, 'productions/puerta.js'), path.join(LIB, 'creator/requisitoDelServidor.js')];
+  const PUERTAS_DEL_DOMINIO = [path.join(LIB, 'productions/puerta.js'), path.join(LIB, 'creator/requisitoDelServidor.js'), path.join(LIB, 'creator/produccionEnBrain.js')];
   const sinSusPuertas = deFilmmaker(alcanzables(...PUERTAS_DEL_DOMINIO));
-  const soloPorProductions = deFilmmaker(alcanzables(PUERTAS_DEL_DOMINIO[1]));
-  check('G12) el compilado que se despliega carga el dominio SOLO por sus dos puertas —`productions` y el requisito del servidor—, y solo `modelo`, `validacion`, `operaciones` y `requisitos`: ni `recomendaciones`, ni ninguna otra Function lo alcanza, y `lib/index.js` no lo nombra',
-    iguales(cargados, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/requisitos.js', 'filmmaker/validacion.js'])
+  const soloPorProductions = deFilmmaker(alcanzables(PUERTAS_DEL_DOMINIO[1], PUERTAS_DEL_DOMINIO[2]));
+  const sinElDeBrain = deFilmmaker(alcanzables(PUERTAS_DEL_DOMINIO[2]));
+  check('G12) el compilado que se despliega carga el dominio SOLO por sus tres puertas —`productions`, el requisito del servidor y Weë Brain con la producción—, y solo `modelo`, `validacion`, `operaciones`, `requisitos` y `recomendaciones`: ninguna otra Function lo alcanza, y `lib/index.js` no lo nombra',
+    iguales(cargados, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/recomendaciones.js', 'filmmaker/requisitos.js', 'filmmaker/validacion.js'])
     && sinSusPuertas.length === 0 && !/filmmaker/.test(leer('functions/lib/index.js')),
     `carga [${cargados.join(', ')}] · sin sus puertas [${sinSusPuertas.join(', ') || 'nada'}]`);
   check('G12b) y `requisitos` entra SOLO por el requisito del servidor: por `productions` sigue entrando lo de siempre',
     iguales(soloPorProductions, ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/validacion.js']), soloPorProductions.join(', '));
+  check('G12c) y `recomendaciones` entra SOLO por Weë Brain con la producción: sin esa puerta, nadie la carga',
+    !sinElDeBrain.includes('filmmaker/recomendaciones.js') && cargados.includes('filmmaker/recomendaciones.js'), sinElDeBrain.join(', '));
   check('G13) el contrato del Algorithm Engine sigue en 1.12, y los del Core, donde estaban',
     contratos.ALGORITHM_CONTRACT_VERSION === '1.12' && contratos.SHOT_CONTRACT_VERSION === '1.0' && contratos.CONTINUITY_CONTRACT_VERSION === '1.0'
     && contratos.CREATIVE_PARAMETERS_VERSION === 1 && contratos.ELEMENT_CONTRACT_VERSION === '1.0');

@@ -144,11 +144,13 @@ console.log('\n── F · Weë Brain contesta en el idioma de Weë ──');
   check('38) y uno legítimo sí pasa', localeDeBrain('ja') === 'ja' && localeDeBrain('pt-BR') === 'pt-BR');
   check('39) sin idioma —cliente viejo— sigue contestando en español, como antes', /código es/.test(instruccionDeIdioma(undefined)));
 
+  /* Reanclada en la Fase 9 del Filmmaker Engine (2026-09-28): la producción abierta viaja detrás del idioma, en las dos. */
   check('40) Brain recibe el idioma en la cotización Y en el envío',
-    /brainInput\(message, history, files, data\.locale\)/.test(brainSrc)
-    && /brainInput\(message, history, \{ imageUrl, documentUrl, audioUrl \}, data\.locale\)/.test(brainSrc));
+    /brainInput\(message, history, files, data\.locale, produccion\)/.test(brainSrc)
+    && /brainInput\(message, history, \{ imageUrl, documentUrl, audioUrl \}, data\.locale, produccion\)/.test(brainSrc));
   check('41) y se suma al prompt de siempre, sin sustituirlo',
-    /system: `\$\{BRAIN_CHAT_SYSTEM\} \$\{instruccionDeIdioma\(locale\)\}`/.test(brainSrc));
+    /: `\$\{BRAIN_CHAT_SYSTEM\} \$\{instruccionDeIdioma\(locale\)\}`,/.test(brainSrc)
+    && /`\$\{BRAIN_CHAT_SYSTEM\} \$\{instruccionDeIdioma\(locale\)\}\\n\\n\$\{instruccionDeProduccion\(produccion\.resumen\)\}`/.test(brainSrc));
   check('42) el cliente lo saca del i18n que ya existe, no lo detecta',
     /const \{ locale \} = useIdioma\(\);/.test(leer('hooks/useBrainChat.ts'))
     && /locale,?\s*\}\);/.test(leer('hooks/useBrainChat.ts')));

@@ -18,7 +18,8 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
-import { BRAIN_CHAT_SYSTEM, entradaDeEntender, instruccionDeIdioma, localeDeBrain } from './prompts';
+import { BRAIN_CHAT_SYSTEM, entradaDeEntender, instruccionDeIdioma, instruccionDeProduccion, localeDeBrain } from './prompts';
+import { LecturaDeLaPropuesta, ProduccionParaBrain, leerProduccionParaBrain, leerPropuesta, separarPropuesta } from './produccionEnBrain';
 import { EXPERIENCIAS_PARA_DERIVAR } from './experiencias';
 import { AI_SECRETS } from '../secrets';
 import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, ThoughtRequest, contextoDeIdioma, interpretarMarca } from '../core';
@@ -166,6 +167,13 @@ export interface BrainChatInput {
    * contesta en español, que es lo que hacía antes de esto.
    */
   locale?: string;
+  /**
+   * LA PRODUCCIÓN ABIERTA, cuando se habla desde su editor (Filmmaker Engine, Fase 9;
+   * decisión del usuario, 2026-09-28). Del cliente llega SOLO cuál: la producción se
+   * lee del servidor, de la cuenta de la sesión, y la revisión que manda la app no
+   * decide nada —la propuesta dice sobre cuál se comprobó—.
+   */
+  produccion?: { productionId?: unknown; revision?: unknown };
 }
 
 /**
@@ -216,10 +224,22 @@ async function readHistory(messages: FirebaseFirestore.CollectionReference): Pro
  * (brainQuote) y el cobro real (brainChat): así el precio que ve la persona
  * y el que se le cobra salen del mismo sitio.
  */
-function brainInput(message: string, history: { role: string; text: string }[], files: { imageUrl?: string; documentUrl?: string; audioUrl?: string }, locale?: string): Record<string, unknown> {
+function brainInput(
+  message: string,
+  history: { role: string; text: string }[],
+  files: { imageUrl?: string; documentUrl?: string; audioUrl?: string },
+  locale?: string,
+  produccion?: ProduccionParaBrain,
+): Record<string, unknown> {
   return {
-    /* El prompt de siempre, más en qué idioma toca contestar hoy. */
-    system: `${BRAIN_CHAT_SYSTEM} ${instruccionDeIdioma(locale)}`,
+    /*
+     * El prompt de siempre, más en qué idioma toca contestar hoy. Con una producción
+     * abierta, además, la producción contada y cómo proponer cambios: va en la misma
+     * entrada que se cotiza, así que lo que cuesta contarla está dentro del precio.
+     */
+    system: produccion
+      ? `${BRAIN_CHAT_SYSTEM} ${instruccionDeIdioma(locale)}\n\n${instruccionDeProduccion(produccion.resumen)}`
+      : `${BRAIN_CHAT_SYSTEM} ${instruccionDeIdioma(locale)}`,
     prompt: message,
     history,
     imageUrl: files.imageUrl,
@@ -260,6 +280,18 @@ async function priceBrainMessage(input: Record<string, unknown>, webSearch: bool
 }
 
 /**
+ * LA PRODUCCIÓN ABIERTA DEL MENSAJE, si la trae. Leída del servidor y de la cuenta
+ * de la sesión; una que no existe o no es de esta cuenta para el mensaje ANTES de
+ * reservar cupo o Credits, con la misma frase para las dos cosas.
+ */
+const produccionPedida = async (db: FirebaseFirestore.Firestore, uid: string, dato: unknown): Promise<ProduccionParaBrain | undefined> => {
+  if (dato === undefined || dato === null) return undefined;
+  const p = await leerProduccionParaBrain(db, uid, (dato as { productionId?: unknown })?.productionId);
+  if (!p) throw new EngineError('INVALID_REQUEST', 'No encontramos esta producción.');
+  return p;
+};
+
+/**
  * Cuánto costaría el siguiente mensaje, antes de enviarlo. La app lo llama para
  * enseñar el precio junto al botón de enviar; no cobra ni escribe nada.
  */
@@ -284,8 +316,10 @@ export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, me
       history = await readHistory(chatRef.collection('messages'));
     }
 
+    /* La producción abierta, igual: se cuenta en el prompt, y lo que cuesta contarla cuenta en el precio. */
+    const produccion = await produccionPedida(getFirestore(), uid, data.produccion);
     /* El idioma entra ya en la cotización: la instrucción va en el prompt y cuenta tokens. */
-    const { price, settings, service } = await priceBrainMessage(brainInput(message, history, files, data.locale), webSearch);
+    const { price, settings, service } = await priceBrainMessage(brainInput(message, history, files, data.locale, produccion), webSearch);
     /*
      * Lo que va a costar ESTE mensaje, que en la conversación ya no es siempre lo
      * mismo: once de cada doce respuestas no cobran nada, y la duodécima cobra el
@@ -339,8 +373,15 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     const existing = await messages.doc(`${messageId}_wee`).get();
     if (existing.exists) {
       const prev = existing.data() || {};
-      return { chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid) };
+      return {
+        chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid),
+        /* La propuesta que ya se dio, si la hubo: repetir el mensaje no la pierde ni la vuelve a pedir. */
+        ...(prev.proposal || prev.proposalIssue ? { proposal: prev.proposal ?? null, proposalIssue: prev.proposalIssue ?? null } : {}),
+      };
     }
+
+    /* La producción abierta, si la hay. ANTES del cupo y de los Credits: una que no es de esta cuenta no gasta nada. */
+    const produccion = await produccionPedida(db, uid, data.produccion);
 
     // Límites y Credits antes de llamar a la IA
     const { settings } = await loadConfig();
@@ -353,7 +394,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     // El historial se lee ANTES de cobrar: encarece la petición y tiene que
     // estar dentro del precio, igual que las fotos y los documentos adjuntos.
     const history = await readHistory(messages);
-    const engineInput = brainInput(message, history, { imageUrl, documentUrl, audioUrl }, data.locale);
+    const engineInput = brainInput(message, history, { imageUrl, documentUrl, audioUrl }, data.locale, produccion);
     const { price } = await priceBrainMessage(engineInput, webSearch);
 
     /*
@@ -414,7 +455,11 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     }
 
     if (isNew) await chatRef.set({ userId: uid, title: message.slice(0, 60), messageCount: 0, createdAt: now(), updatedAt: now() });
-    await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
+    await messages.doc(messageId).set(stripUndefined({
+      role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now(),
+      /* Desde qué producción se habló: su id y la revisión que se le contó a Weë Brain. Nunca la producción entera. */
+      produccion: produccion ? { productionId: produccion.productionId, revision: produccion.revision } : undefined,
+    }));
 
     /*
      * ── ¿POR EL CORE, O POR DONDE SIEMPRE? ───────────────────────────────────
@@ -433,7 +478,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
      */
     const capacidad: CapabilityId = webSearch ? 'text.search' : 'text.generate';
     const puerta = decidirRuntime(await configuracionDeLaPuerta(db), { capability: capacidad, userId: uid, experienceId: EXPERIENCIA_DE_BRAIN });
-    const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY;
+    /*
+     * Un mensaje con una producción abierta va SIEMPRE por el camino de siempre
+     * (decisión del usuario, 2026-09-28): el canary del conductor atiende la
+     * conversación de Weë Brain y nada más, y contar una producción no lo amplía.
+     */
+    const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY && !produccion;
 
     try {
       /*
@@ -682,7 +732,20 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         throw new EngineError(pensado.error?.code === 'INVALID_REQUEST' ? 'INVALID_REQUEST' : 'GENERATION_FAILED');
       }
       const parsed = { text: pensado.reply.text, suggestedExperience: pensado.reply.suggestedExperience };
-      const suggestedExperience = parsed.suggestedExperience || guessExperience(message);
+      /*
+       * ── LA PROPUESTA, FUERA DEL TEXTO ────────────────────────────────────────
+       *
+       * Con una producción abierta, lo que la persona lee es el texto SIN el bloque,
+       * esté bien o mal; el bloque se comprueba con F1-A en memoria y viaja aparte.
+       * Nada se aplica aquí. Y no se deriva a ningún especialista: ya está en el
+       * editor de su producción.
+       */
+      const separada = produccion ? separarPropuesta(parsed.text) : undefined;
+      const propuesta: LecturaDeLaPropuesta | undefined = !produccion || !separada ? undefined
+        : separada.bloque !== undefined ? leerPropuesta(separada.bloque, produccion)
+          : separada.cortado ? { ok: false, motivo: 'unreadable' } : undefined;
+      if (separada) parsed.text = separada.texto;
+      const suggestedExperience = produccion ? undefined : parsed.suggestedExperience || guessExperience(message);
       const sources: SourceRef[] = salida.sources;
 
       /*
@@ -719,7 +782,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       }
       const credits = !spend || spend.duplicate ? 0 : spend.amount;
       await messages.doc(`${messageId}_wee`).set(
-        stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now() })
+        stripUndefined({
+          role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now(),
+          /* La propuesta comprobada, o por qué no la hubo: así la vuelve a ver quien repite el mensaje o reabre la conversación. */
+          proposal: propuesta?.ok ? propuesta.propuesta : undefined,
+          proposalIssue: propuesta && !propuesta.ok ? propuesta.motivo : undefined,
+        })
       );
       await chatRef.set(
         { updatedAt: now(), messageCount: FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120), ...(history.length === 0 ? { title: message.slice(0, 60) } : {}) },
@@ -735,7 +803,15 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       }
       /* Por dónde pasó, para quien lea los registros. NO va en la respuesta: a la persona el camino no le cambia nada. */
       console.log(`WEË BRAIN · ruta=${porElCore ? 'CORE' : 'LEGACY'} motivo=${puerta.motivo} capacidad=${capacidad} requestId=${requestId} chat=${chatRef.id} generacion=${salida.generationId ?? '-'} credits=${credits}`);
-      return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: await bloqueDe(uid) };
+      return {
+        chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: await bloqueDe(uid),
+        /* Solo con una producción abierta: la propuesta comprobada, o por qué no la hubo. */
+        ...(produccion ? {
+          proposal: propuesta?.ok ? propuesta.propuesta : null,
+          proposalIssue: propuesta && !propuesta.ok ? propuesta.motivo : null,
+          ...(propuesta && !propuesta.ok && propuesta.problemas?.length ? { proposalProblems: propuesta.problemas } : {}),
+        } : {}),
+      };
     } catch (error) {
       /*
        * Solo se reembolsa lo que se llegó a cobrar. En la conversación por bloques

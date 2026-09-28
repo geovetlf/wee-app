@@ -636,3 +636,94 @@ export const narrationFrom = (previous: string[], goal: string): string => {
   const text = previous.find((p) => p.trim().length > 0) || goal;
   return text.replace(/\s+/g, ' ').slice(0, 400);
 };
+
+/* ═══ FILMMAKER ENGINE · FASE 9 (F2) — WEË BRAIN CON UNA PRODUCCIÓN ABIERTA ═══
+ *
+ * Decisión del usuario (2026-09-28): la caja del editor de una producción es
+ * Weë Brain —el mismo, por `brainChat`— con la producción como contexto. Contesta
+ * como siempre y, si la persona pide cambios, los PROPONE en el lenguaje cerrado
+ * de F1-A (`filmmaker/operaciones.ts`), dentro de un bloque marcado que el
+ * servidor quita del texto, lee y comprueba antes de enseñarlo. Nada se aplica
+ * sin que la persona lo confirme: eso lo hace la app, por `productions`, con la
+ * revisión en la que se basa la propuesta.
+ */
+
+/** Dónde empieza y acaba la propuesta dentro de una respuesta. La persona nunca la lee: el servidor la quita. */
+export const MARCA_DE_CAMBIOS = Object.freeze({ abre: '[[WEE-CAMBIOS]]', cierra: '[[/WEE-CAMBIOS]]' });
+
+/** Cuántas operaciones caben en una propuesta. Lo que pide más es un plan, no un cambio: se dice y se parte. */
+export const MAX_OPERACIONES_POR_PROPUESTA = 12;
+
+/**
+ * LOS VALORES QUE WEË BRAIN PUEDE ESCRIBIR. Son los del Core (`core/creative.ts`)
+ * y los de F1-A (`filmmaker/modelo.ts`), copiados aquí porque los prompts viven
+ * aquí y este archivo no carga el dominio de Filmmaker. No hay una segunda
+ * verdad: `filmmaker-brain.test.mjs` los compara con los del código, y si uno
+ * cambia sin el otro, la cadena falla.
+ */
+export const VOCABULARIO_DE_PRODUCCION = Object.freeze({
+  plano: Object.freeze(['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero']),
+  camara: Object.freeze(['aerial', 'ground', 'handheld', 'pov', 'macro', 'overhead', 'underwater']),
+  perspectiva: Object.freeze(['eye_level', 'low_angle', 'high_angle', 'aerial']),
+  optica: Object.freeze(['wide', 'standard', 'telephoto', 'macro', 'fisheye']),
+  composicion: Object.freeze(['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth']),
+  movimiento: Object.freeze(['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow']),
+  velocidad: Object.freeze(['slow', 'normal', 'fast']),
+  suavidad: Object.freeze(['smooth', 'natural', 'dynamic']),
+  luz: Object.freeze(['natural', 'golden_hour', 'blue_hour', 'studio', 'dramatic', 'soft', 'high_contrast', 'night']),
+  transicion: Object.freeze(['cut', 'dissolve', 'fade', 'match_cut', 'whip', 'seamless']),
+  clima: Object.freeze(['clear', 'cloudy', 'overcast', 'rain', 'storm', 'snow', 'fog', 'wind']),
+  momento: Object.freeze(['dawn', 'morning', 'midday', 'afternoon', 'dusk', 'night']),
+  enfoque: Object.freeze(['face', 'eyes', 'hands', 'upper_body', 'full_body', 'group', 'object', 'detail', 'environment']),
+  linea: Object.freeze(['dialogue', 'voiceover', 'narration']),
+});
+
+/**
+ * LAS OPERACIONES QUE SE LE ENSEÑAN. Las del día a día de quien dirige —texto,
+ * cámara, luz, tiempo, planos, escenas, diálogo, vestuario—, escritas como JSON
+ * de F1-A. El servidor acepta cualquier operación válida del lenguaje: esto es lo
+ * que se enseña, no lo que se permite.
+ */
+const OPERACIONES_PARA_BRAIN: readonly string[] = [
+  '{"op":"edit_text","target":{"sceneId":"…"} o {"shotId":"…"},"title":"…","description":"…"}',
+  '{"op":"change_weather","sceneId":"…","weather":clima}',
+  '{"op":"change_time_of_day","sceneId":"…","timeOfDay":momento}',
+  '{"op":"change_camera","target":ámbito,"shotType":plano,"cameraType":camara,"perspective":perspectiva,"lens":optica,"composition":composicion} (pon solo los que cambian)',
+  '{"op":"change_movement","target":ámbito,"movement":movimiento,"speed":velocidad,"smoothness":suavidad} (pon solo los que cambian)',
+  '{"op":"change_lighting","target":ámbito,"lighting":luz}',
+  '{"op":"change_transition","target":ámbito,"transition":transicion} (cómo pasa al plano siguiente)',
+  '{"op":"change_mood","target":ámbito,"mood":"…"}',
+  '{"op":"change_style","target":ámbito,"style":"…"}',
+  '{"op":"change_subject","target":{"sceneId":"…"} o {"shotId":"…"},"subject":{"focus":enfoque,"characterId":"…","description":"…"}}',
+  '{"op":"add_shot","sceneId":"…","shot":{"durationSec":n,"description":"…"},"atOrder":n}',
+  '{"op":"add_scene","scene":{"title":"…","description":"…","shots":[{"durationSec":n,"description":"…"}]},"atOrder":n}',
+  '{"op":"remove_shot","shotId":"…"} · {"op":"remove_scene","sceneId":"…"}',
+  '{"op":"reorder_shot","shotId":"…","toOrder":n} · {"op":"reorder_scene","sceneId":"…","toOrder":n}',
+  '{"op":"duplicate_shot","shotId":"…"} · {"op":"move_shot","shotId":"…","toSceneId":"…"}',
+  '{"op":"extend_duration","target":{"sceneId":"…"} o {"shotId":"…"},"bySec":n} · igual con "shorten_duration"',
+  '{"op":"add_dialogue","target":{"sceneId":"…"} o {"shotId":"…"},"line":{"kind":linea,"text":"…","characterId":"…"}}',
+  '{"op":"change_dialogue","lineId":"…","changes":{"text":"…"}} · {"op":"remove_dialogue","lineId":"…"}',
+  '{"op":"set_character_state","target":{"sceneId":"…"} o {"shotId":"…"},"characterId":"…","wardrobe":"…"}',
+  '{"op":"rename_production","title":"…"}',
+];
+
+/**
+ * LO QUE SE AÑADE AL PROMPT DE WEË BRAIN CUANDO HAY UNA PRODUCCIÓN ABIERTA.
+ * `resumen` es la producción ya contada por el servidor (`creator/produccionEnBrain.ts`),
+ * con sus identificadores entre corchetes y sin nada que pueda parecer una marca.
+ */
+export const instruccionDeProduccion = (resumen: string): string => {
+  const v = VOCABULARIO_DE_PRODUCCION;
+  return [
+    'Ahora la persona te habla desde el editor de una de sus producciones de video, con varias escenas y planos. Abajo tienes cómo está guardada; los identificadores van entre corchetes.',
+    'Puedes comentarla, explicar sus recomendaciones y proponer ideas. No hables de derivar a otro especialista: ya está donde tiene que estar.',
+    `Si te pide cambiar algo de la producción, contesta como siempre —corto y sin tecnicismos— diciendo que se lo PROPONES (no que ya está hecho: lo aplica la persona), y termina el mensaje con un bloque exactamente así, sin nada después: ${MARCA_DE_CAMBIOS.abre}{"operations":[…]}${MARCA_DE_CAMBIOS.cierra}`,
+    `Reglas del bloque: JSON válido; como mucho ${MAX_OPERACIONES_POR_PROPUESTA} operaciones; solo operaciones de la lista; usa los identificadores tal como aparecen abajo y nunca inventes uno; para algo nuevo no pongas id; cambia solo lo que te piden; un plano dura de 4 a 15 segundos. Si no te pide cambios, no escribas el bloque.`,
+    'Operaciones:',
+    ...OPERACIONES_PARA_BRAIN.map((o) => `• ${o}`),
+    'ámbito = {"scope":"production"} o {"scope":"scene","sceneId":"…"} o {"scope":"shot","shotId":"…"}.',
+    `Valores: plano ${v.plano.join('|')}; camara ${v.camara.join('|')}; perspectiva ${v.perspectiva.join('|')}; optica ${v.optica.join('|')}; composicion ${v.composicion.join('|')}; movimiento ${v.movimiento.join('|')}; velocidad ${v.velocidad.join('|')}; suavidad ${v.suavidad.join('|')}; luz ${v.luz.join('|')}; transicion ${v.transicion.join('|')}; clima ${v.clima.join('|')}; momento ${v.momento.join('|')}; enfoque ${v.enfoque.join('|')}; linea ${v.linea.join('|')}.`,
+    'LA PRODUCCIÓN:',
+    resumen,
+  ].join('\n');
+};

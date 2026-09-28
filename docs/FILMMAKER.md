@@ -381,7 +381,7 @@ siguen **pendientes**:
 | D3 | Entrada en Weë Studio | **decidida** en F1-C: dentro de Videos, «Varias escenas» abre la producción desde la caja del Studio; un solo clip sigue yendo a CreatorFlow |
 | D4 | Ejecución por plano | **decidida** en F1-D: una toma de UNA unidad —un plano, o una escena sin planos— por `generateVideo` con el plano, hacia el Core; sin lotes |
 | D5 | Vídeo asíncrono | **decidida** en F1-D: el camino asíncrono del Core (PRE-F1-D), un intento, los plazos de `plazos.ts`; la app escucha la reserva de Credits de la toma |
-| D6 | Weë Brain para intención y cambios | pendiente: el idioma de las operaciones ya existe |
+| D6 | Weë Brain para intención y cambios | **decidida** en la Fase 9 del motor (2026-09-28): `brainChat` con la producción abierta como contexto; propone operaciones de F1-A comprobadas en memoria y la persona las aplica por `productions`; mismo precio, camino de siempre |
 | D7 | Montaje y render | **decidida** en la Fase 8 del motor (2026-09-28): FFmpeg propio (`ffmpeg-static`) como tarea general del Job Engine; el resultado, material `asset_` de la cuenta más un registro en la producción; gratis con cinco al día; exportar o publicar el montaje, pendiente (D8) |
 | D8 | Duración y publicación (Weëls ≤ 15 s) | **en parte**: una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; publicar, pendiente |
 | D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); al generar, un plano con prompt avanzado se rechaza (F1-D); enseñarlo y usarlo, pendiente (F6) |
@@ -935,6 +935,43 @@ ganan `productionRenders`. Nada se despliega en esta fase.
 Pruebas: `functions/test/filmmaker-render.test.mjs` (en la cadena), con FFmpeg de verdad sobre vídeos mp4 generados en
 la propia prueba.
 
+### Fase 9 · Weë Brain con la producción abierta (F2)
+
+Decisión del usuario (2026-09-28): la caja del editor de una producción es **Weë Brain** —el mismo, por `brainChat`— y
+lo único que cambia es el contexto (CLAUDE.md §10). Contesta como siempre y, si la persona pide cambios, los **propone** en
+el lenguaje de F1-A; **nada se aplica sin que la persona lo confirme**.
+
+- **Entra** (`BrainChatInput.produccion`): del cliente llega solo `productionId`. La producción se lee del servidor, de la
+  cuenta de la sesión, ANTES del cupo y de los Credits: una que no existe o no es de la cuenta para el mensaje sin gastar
+  nada (`invalid-argument`). La revisión que manda la app no decide nada: la propuesta dice sobre cuál se comprobó.
+- **Se cuenta** (`creator/produccionEnBrain.ts`): un resumen con los identificadores entre corchetes —escenas, planos,
+  duraciones, cámara, luz, movimiento, transición, diálogo, personajes, lugares— y las **recomendaciones de F1-A**
+  (`recomendar`), hasta 12 000 caracteres (lo que no cabe se dice). Lo que escribió la persona entra en una línea,
+  acotado y **sin corchetes dobles**, para que no pueda hacerse pasar por una marca de Weë Brain.
+- **Se le enseña** (`creator/prompts.ts`): cómo proponer —un bloque `[[WEE-CAMBIOS]]{"operations":[…]}[[/WEE-CAMBIOS]]` al
+  final, doce operaciones como mucho, ids tal cual, nada inventado—, las operaciones del día a día y sus valores. El
+  vocabulario es el del Core y el de F1-A: la suite lo compara con el código.
+- **Se cobra igual**: la producción va en la MISMA entrada que se cotiza (`brainQuote`) y se envía, con el mismo servicio
+  (`ai_brain`) y el mismo bloque de doce respuestas. Contarla cuenta en el precio como cualquier mensaje largo.
+- **Por el camino de siempre**: un mensaje con producción no pasa por el conductor aunque el canary de Weë Brain esté
+  abierto (`porElCore … && !produccion`); el canary no se amplía.
+- **La respuesta**: el texto SIN el bloque —esté bien o mal— y, aparte, `proposal` (la producción, su revisión base, las
+  operaciones, cuántas cambian algo, lo que quedaría pendiente de rehacer y si cambia el montaje) o `proposalIssue`:
+  `invalid` (con los códigos de F1-A en `proposalProblems`), `unreadable` (JSON roto o respuesta cortada),
+  `too_many` o `no_changes`. Con dos bloques cuenta el último. Se comprueba aplicándola **en memoria** con
+  `aplicarOperaciones`: si una falla, no se propone ninguna.
+- **Se guarda** en la conversación: desde qué producción y revisión se habló (nunca la producción) y la propuesta; repetir
+  el mensaje devuelve la misma sin volver a preguntar.
+- **Se aplica** por `productions` (`op: apply`) con la revisión base: si la producción cambió entre medias, el CAS lo dice.
+  Sin derivar a otro especialista: ya está donde tiene que estar.
+
+Vallas reancladas por nombre con esta autorización: `core-brain` 100–101 y `brain-deepseek` 40–41 (la producción como
+quinto argumento de `brainInput`), `runtime-map` 97d (siete módulos: entra `recomendaciones`) y `filmmaker-modelo`
+G12–G12c (una tercera puerta al dominio, con nombre: `creator/produccionEnBrain`). La interfaz —enseñar la propuesta y
+el botón de aplicarla— es del pase de UX.
+
+Pruebas: `functions/test/filmmaker-brain.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -942,7 +979,7 @@ la propia prueba.
 | F1-B | **Hecha**: guarda la producción (D2), aplica operaciones en el servidor con CAS y registro (D12); conectada (35 Functions) y sin desplegar |
 | F1-C | **Hecha**: la producción en la app —«Varias escenas» dentro de Weë Studio—, con el storyboard, el panel Director, el estado optimista con CAS y los `messageKey` (`filmmaker.*`) en once idiomas; sin generar ni cobrar |
 | F1-D | **Hecha** (local, sin desplegar): una toma de un plano a partir de su requisito (D4), asíncrona por el Core (D5), cotizada y enlazada a su `ShotNode` con verificación en el servidor |
-| F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
+| F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones. **Hecha en el servidor** (Filmmaker Engine, Fase 9; local, sin desplegar): la propuesta y su comprobación; enseñarla en la app, en el pase de UX |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; exportar o publicar el montaje, aparte |

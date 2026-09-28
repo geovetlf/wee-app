@@ -486,9 +486,13 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
    * Y desde la Fase 5 del Filmmaker Engine (decisión del usuario, 2026-09-28), `requisitos` también: el servidor
    * calcula el requisito de cada plano de la producción guardada (`creator/requisitoDelServidor.ts`) en vez de fiarse
    * del de la app. `recomendaciones` sigue fuera.
+   *
+   * Y desde la Fase 9 (F2; decisión del usuario, 2026-09-28: Weë Brain con la producción abierta como contexto),
+   * `recomendaciones` también: la producción se le cuenta a Weë Brain con sus recomendaciones
+   * (`creator/produccionEnBrain.ts`). Siete módulos.
    */
-  check(`${n - 1}d) productions: y lo que carga son seis módulos —la puerta, el almacén y \`modelo\`, \`validacion\`, \`operaciones\` y \`requisitos\` de F1-A—`,
-    igual([...VIVOS].filter(deFilmmaker), ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/requisitos.js', 'filmmaker/validacion.js', 'productions/index.js', 'productions/puerta.js']),
+  check(`${n - 1}d) productions: y lo que carga son siete módulos —la puerta, el almacén y \`modelo\`, \`validacion\`, \`operaciones\`, \`requisitos\` y \`recomendaciones\` de F1-A—`,
+    igual([...VIVOS].filter(deFilmmaker), ['filmmaker/modelo.js', 'filmmaker/operaciones.js', 'filmmaker/recomendaciones.js', 'filmmaker/requisitos.js', 'filmmaker/validacion.js', 'productions/index.js', 'productions/puerta.js']),
     [...VIVOS].filter(deFilmmaker).join(', '));
   const declarados = new Set([...MAPA.flatMap((c) => c.canonico), ...Object.keys(OTROS_DEL_CORE)]);
   const sinDeclarar = [...nombrados.keys()].filter((m) => !declarados.has(m));

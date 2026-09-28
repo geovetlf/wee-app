@@ -2408,3 +2408,18 @@ general del Job Engine**, su resultado es un material `asset_` de la cuenta con 
 
 Pruebas: `functions/test/filmmaker-render.test.mjs` (en la cadena, con FFmpeg de verdad) y
 `functions/test/render.emulator.mjs` (fuera de ella, contra Firestore y Storage de los emuladores).
+
+## 27. Filmmaker Engine · Weë Brain con una producción abierta, por el camino de siempre
+
+Decisión del usuario (2026-09-28): la caja del editor de una producción es Weë Brain (`brainChat`) con la producción
+como contexto (`docs/FILMMAKER.md` § Fase 9). Lo que importa aquí es lo que NO cambia:
+
+- **El canary no se amplía.** `porElCore` gana `&& !produccion`: un mensaje con producción va por el camino de
+  siempre aunque `aiSettings/runtime` tenga abierto `text.generate` para la cuenta. El conductor sigue atendiendo
+  exactamente las dos capacidades declaradas, y ninguna con producción.
+- **El dinero, igual.** La producción se cuenta en la MISMA entrada que se cotiza y se envía, con el servicio `ai_brain`
+  y el bloque de doce respuestas; y se lee ANTES del cupo y de los Credits, así que una producción ajena no gasta nada.
+- **Nada se aplica.** Weë Brain propone operaciones de F1-A, el servidor las comprueba en memoria y la app las aplica por
+  `productions` con su revisión (CAS). Ni el conductor, ni el Job Engine, ni ningún trabajo intervienen.
+
+Pruebas: `functions/test/filmmaker-brain.test.mjs` (S3: con el canary abierto, ningún trabajo).

@@ -63,6 +63,16 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
   'functions/src/creator/renderizador.ts',
   'functions/src/creator/renders.ts',
   'functions/src/index.ts',
+  /*
+   * Fase 9 (F2 del roadmap) · Weë Brain con la producción abierta (decisión del usuario, 2026-09-28): la caja del
+   * editor es el mismo Weë Brain y solo cambia el contexto. Un módulo nuevo que lee la producción, la cuenta para el
+   * prompt y comprueba lo que propone con F1-A EN MEMORIA; `prompts.ts` gana el vocabulario y la instrucción; y la
+   * puerta de Weë Brain (`brain.ts`) la cuenta en la MISMA entrada que se cotiza —mismo servicio, mismo bloque de
+   * doce, sin tocar cómo se cobra— y deja fuera del conductor los mensajes con producción. Nada se aplica solo.
+   */
+  'functions/src/creator/brain.ts',
+  'functions/src/creator/prompts.ts',
+  'functions/src/creator/produccionEnBrain.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */
