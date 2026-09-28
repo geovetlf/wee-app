@@ -53,6 +53,10 @@ import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { crear } from './crear';
+import { inspira } from './inspira';
+import { workspace } from './workspace';
+import { cuenta } from './cuenta';
 import { FormaDelDiccionario } from '../es';
 
 export const it: FormaDelDiccionario = {
@@ -93,4 +97,8 @@ export const it: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  crear,
+  inspira,
+  workspace,
+  cuenta,
 };

@@ -26,4 +26,7 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Weë AI 화면으로 이동',
   weeAiQuestion: '오늘은 무엇을 만들어 볼까요?',
   weeAiPitch: '원하는 것을 Weë에 말해 주세요. AI는 Weë가 알아서 해요.',
+  inspire: '영감',
+  projects: '프로젝트',
+  profile: '프로필',
 };

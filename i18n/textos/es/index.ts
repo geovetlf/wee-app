@@ -48,6 +48,10 @@ import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { crear } from './crear';
+import { inspira } from './inspira';
+import { workspace } from './workspace';
+import { cuenta } from './cuenta';
 export const es = {
   common,
   help,
@@ -86,6 +90,10 @@ export const es = {
   brain,
   moderation,
   filmmaker,
+  crear,
+  inspira,
+  workspace,
+  cuenta,
 };
 
 /**

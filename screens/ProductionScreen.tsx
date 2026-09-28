@@ -1,18 +1,19 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro, useEnCreator } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano } from '../hooks/useProduccion';
+import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea } from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import CreatorShell from '../components/creator/CreatorShell';
-import ProductionHeader from '../components/studio/produccion/ProductionHeader';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
-import ProductionStoryboard, { Seleccion } from '../components/studio/produccion/ProductionStoryboard';
-import ProductionTimelinePreview from '../components/studio/produccion/ProductionTimelinePreview';
-import ProductionDirectorPanel from '../components/studio/produccion/ProductionDirectorPanel';
+import type { Seleccion } from '../components/studio/produccion/ProductionStoryboard';
+import ProductionWorkspace from '../components/studio/produccion/ProductionWorkspace';
+import ProductionMobileEditor from '../components/studio/produccion/ProductionMobileEditor';
+import type { EspacioDeFilmmaker } from '../components/studio/produccion/espacio';
+import { useAccionDeCabecera } from '../components/workspace/accionDeCabecera';
 import ProductionEmptyState from '../components/studio/produccion/ProductionEmptyState';
 import ProductionList from '../components/studio/produccion/ProductionList';
 import ProductionNewCard from '../components/studio/produccion/ProductionNewCard';
@@ -23,19 +24,24 @@ import { esEditable, hayCambiosSinGuardar } from '../utils/produccionOptimista';
 import { estadosDeLaProduccion, tituloDesdeLaIdea } from '../utils/presentacionDeProduccion';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import { notify } from '../utils/notify';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../constants/design';
 
 type Ruta = RouteProp<MainStackParamList, 'Production'>;
 
 /**
- * «VARIAS ESCENAS» — LA PRODUCCIÓN DE WEË FILMMAKER, DENTRO DE WEË STUDIO (F1-C).
+ * «VARIAS ESCENAS» — LA PRODUCCIÓN DE WEË FILMMAKER, EL WORKSPACE PROFESIONAL.
  *
  * Dos caras en una ruta:
  *
- *   · con `productionId`, la producción abierta: su cabecera, el storyboard
- *     —escenas y planos—, la línea de tiempo y el panel Director;
+ *   · con `productionId`, la producción abierta: en escritorio, el workspace
+ *     —proyecto, visor, Weë AI Director, línea de tiempo por pistas y
+ *     propiedades del plano—; en el teléfono, el editor táctil;
  *   · sin él, lo que se escribió en Weë Studio a punto de convertirse en
  *     producción (si se escribió algo) y tus producciones de verdad.
+ *
+ * Filmmaker vive en Weë Creator (decisión del usuario, 2026-09-27): si se llega
+ * desde Weë —el «Varias escenas» de Weë Studio, un enlace—, la misma ruta se
+ * abre dentro del taller, con los mismos parámetros.
  *
  * Todo pasa por el servicio (`services/filmmakerService.ts`) y el estado
  * optimista (`utils/produccionOptimista.ts`); aquí no hay reglas de producción
@@ -45,7 +51,15 @@ type Ruta = RouteProp<MainStackParamList, 'Production'>;
  */
 const ProductionScreen: React.FC = () => {
   const route = useRoute<Ruta>();
+  const navigation = useNavigation<any>();
+  const enCreator = useEnCreator();
   const productionId = route.params?.productionId;
+  /* Fuera de Weë Creator, Filmmaker se abre dentro: la misma pantalla, en su taller. */
+  useEffect(() => {
+    if (!enCreator && typeof navigation.replace === 'function') navigation.replace('Creator', { screen: 'Production', params: route.params });
+    // Solo al llegar: una vez dentro, ya no hay nada que mover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   if (productionId) return <ProduccionAbierta key={productionId} productionId={productionId} />;
   return <InicioDeProducciones idea={route.params?.intencion} creativo={route.params?.creativo} />;
 };
@@ -88,8 +102,10 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const { controlador, carga, falloDeCarga, estado, derivado, duplicar } = useProduccion(productionId);
   const [seleccion, setSeleccion] = useState<Seleccion>(null);
   const [rechazadas, setRechazadas] = useState<ReadonlySet<string>>(new Set());
-  const [vistaMovil, setVistaMovil] = useState<'storyboard' | 'director'>('storyboard');
+  const [exportando, setExportando] = useState(false);
   const ids = useMemo(() => ({ escena: nuevoIdDeEscena, plano: nuevoIdDePlano }), []);
+  /* Los ids de un sonido y de una línea nuevos, como los de una escena o un plano: los pone el cliente, una vez. */
+  const idsDelMontaje = useMemo(() => ({ sonido: nuevoIdDeSonido, linea: nuevoIdDeLinea }), []);
 
   const vista = estado.vista;
   const editable = esEditable(estado);
@@ -124,6 +140,10 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
     notify(r.motivo === 'cambios_sin_guardar' ? t('filmmaker.saveFirst') : t('filmmaker.saveError'), r.motivo === 'fallo' && r.fallo ? fraseDelFallo(r.fallo, t) : undefined);
   }, [controlador, t]);
 
+  /* «Exportar», arriba a la derecha de Weë Creator, mientras la producción está abierta y cargada. */
+  const accion = useMemo(() => (vista ? { etiqueta: t('filmmaker.wsExport'), icono: 'share-outline', onPress: () => setExportando(true) } : null), [vista, t]);
+  useAccionDeCabecera(accion);
+
   const titulo = vista?.title ?? t('filmmaker.sectionName');
 
   let contenido: React.ReactNode;
@@ -131,99 +151,62 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
     contenido = <ActivityIndicator color={theme.colors.accent} accessibilityLabel={t('common.loading')} />;
   } else if (carga === 'error' || !vista) {
     contenido = (
-      <ProductionEmptyState
-        icono="alert-circle-outline"
-        tono="error"
-        titulo={t('filmmaker.loadError')}
-        texto={falloDeCarga ? fraseDelFallo(falloDeCarga, t) : undefined}
-        accion={{ etiqueta: t('common.retry'), icono: 'refresh', onPress: () => { void controlador.cargar(); } }}
-      />
-    );
-  } else {
-    const storyboard = (
-      <View style={styles.columna}>
-        <ProductionTimelinePreview
-          produccion={vista}
-          linea={derivado?.linea}
-          seleccion={seleccion}
-          porRehacer={estado.porRehacer.shots}
-          onSeleccionar={setSeleccion}
-        />
-        <ProductionStoryboard
-          produccion={vista}
-          tarjetas={derivado?.tarjetas ?? []}
-          seleccion={seleccion}
-          porRehacer={[...estado.porRehacer.shots, ...estado.porRehacer.scenes]}
-          editable={editable}
-          ids={ids}
-          videos={videos}
-          onSeleccionar={(s) => { setSeleccion(s); }}
-          onGesto={gesto}
+      <View style={styles.centrado}>
+        <ProductionEmptyState
+          icono="alert-circle-outline"
+          tono="error"
+          titulo={t('filmmaker.loadError')}
+          texto={falloDeCarga ? fraseDelFallo(falloDeCarga, t) : undefined}
+          accion={{ etiqueta: t('common.retry'), icono: 'refresh', onPress: () => { void controlador.cargar(); } }}
         />
       </View>
     );
-    const director = (
-      <ProductionDirectorPanel
-        produccion={vista}
-        seleccion={seleccion}
-        recomendaciones={derivado?.recomendaciones ?? []}
-        lista={derivado?.lista}
-        porRehacer={estado.porRehacer}
-        rechazadas={rechazadas}
-        editable={editable}
-        onGesto={gesto}
-        onRechazar={(clave) => setRechazadas((antes) => new Set([...antes, clave]))}
-        toma={toma}
-      />
-    );
+  } else {
+    /*
+     * Todo lo que los paneles necesitan, junto una vez. Ningún panel habla con el
+     * servidor: un gesto es una operación de F1-A y la guarda el controlador.
+     */
+    const espacio: EspacioDeFilmmaker = {
+      produccion: vista,
+      tarjetas: derivado?.tarjetas ?? [],
+      linea: derivado?.linea,
+      lista: derivado?.lista,
+      recomendaciones: derivado?.recomendaciones ?? [],
+      porRehacer: estado.porRehacer,
+      estados,
+      guardado: estado.guardado,
+      fallo: estado.fallo,
+      hayCambios,
+      editable,
+      ids,
+      videos,
+      toma,
+      seleccion,
+      rechazadas,
+      onSeleccionar: setSeleccion,
+      onGesto: gesto,
+      onRechazar: (clave) => setRechazadas((antes) => new Set([...antes, clave])),
+      onGuardarAhora: controlador.guardarAhora,
+      onReintentar: controlador.reintentar,
+      onDuplicar: () => { void alDuplicar(); },
+      onArchivar: (archivar) => { void alArchivar(archivar); },
+      onLista: aLaLista,
+      onExportar: () => setExportando(true),
+    };
     contenido = (
-      <View style={styles.columna}>
-        <ProductionHeader
-          titulo={vista.title}
-          estados={estados}
-          guardado={estado.guardado}
-          fallo={estado.fallo}
-          hayCambios={hayCambios}
-          onGuardarAhora={controlador.guardarAhora}
-          onReintentar={controlador.reintentar}
-          onDuplicar={() => { void alDuplicar(); }}
-          onArchivar={() => { void alArchivar(true); }}
-          onDesarchivar={() => { void alArchivar(false); }}
-          onLista={aLaLista}
-        />
-        <ProductionAvisos estado={estado} onVistos={controlador.vistos} onDesarchivar={() => { void alArchivar(false); }} />
-        {isDesktop ? (
-          <View style={styles.dosColumnas}>
-            <View style={styles.principal}>{storyboard}</View>
-            <View style={[styles.lateral, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>{director}</View>
-          </View>
-        ) : (
-          <>
-            <View style={styles.pestanas} accessibilityRole="tablist">
-              {(['storyboard', 'director'] as const).map((v) => (
-                <TouchableOpacity
-                  key={v}
-                  onPress={() => setVistaMovil(v)}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: vistaMovil === v }}
-                  accessibilityLabel={v === 'storyboard' ? t('filmmaker.storyboard') : t('filmmaker.director')}
-                  style={[styles.pestana, { backgroundColor: vistaMovil === v ? theme.colors.accent : theme.colors.card, borderColor: vistaMovil === v ? theme.colors.accent : theme.colors.border }]}
-                >
-                  <Text style={[styles.pestanaTexto, { color: vistaMovil === v ? '#1F2937' : theme.colors.text }]}>
-                    {v === 'storyboard' ? t('filmmaker.storyboard') : t('filmmaker.director')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {vistaMovil === 'storyboard' ? storyboard : director}
-          </>
-        )}
+      <View style={styles.espacio}>
+        <View style={styles.avisos}>
+          <ProductionAvisos estado={estado} onVistos={controlador.vistos} onDesarchivar={() => { void alArchivar(false); }} />
+        </View>
+        {isDesktop
+          ? <ProductionWorkspace espacio={espacio} exportando={exportando} onCerrarExportar={() => setExportando(false)} ids={idsDelMontaje} />
+          : <ProductionMobileEditor espacio={espacio} exportando={exportando} onCerrarExportar={() => setExportando(false)} ids={idsDelMontaje} />}
       </View>
     );
   }
 
   return (
-    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={titulo} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={titulo} breadcrumb="Weë Studio" onBack={volver} espacioDeTrabajo>
       {contenido}
     </CreatorShell>
   );
@@ -232,12 +215,10 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
 const styles = StyleSheet.create({
   columna: { gap: SPACING.lg },
   subtitulo: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any },
-  dosColumnas: { flexDirection: 'row', gap: SPACING.xl, alignItems: 'flex-start' },
-  principal: { flex: 1, minWidth: 0 },
-  lateral: { width: 380, borderWidth: 1, borderRadius: BORDER_RADIUS.lg, padding: SPACING.lg },
-  pestanas: { flexDirection: 'row', gap: SPACING.sm },
-  pestana: { flex: 1, minHeight: 40, borderRadius: BORDER_RADIUS.full, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  pestanaTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any },
+  /* La producción abierta ocupa todo el sitio que le da el marco: los paneles se reparten dentro. */
+  espacio: { flex: 1, minHeight: 0 },
+  avisos: { paddingHorizontal: SPACING.lg },
+  centrado: { padding: SPACING.xl },
 });
 
 export default enTemaClaro(ProductionScreen);

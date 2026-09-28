@@ -11,11 +11,18 @@ import { scale } from '../utils/scale';
 /**
  * LA NAVEGACIÓN DE WEË. UNA SOLA, PARA TODA LA APLICACIÓN.
  *
- * Cinco destinos y ni uno más: Inicio, Buscar, Crear, WeeTalk y Notificaciones.
- * Los mismos de siempre, con las mismas rutas; lo que cambia es que ahora existe
- * UNA instancia para toda la experiencia —el Home, las experiencias de Weë, los
- * perfiles, las búsquedas— en vez de una barra que solo vivía dentro de las
- * pestañas y desaparecía en cuanto entrabas en Weë Travel o en una publicación.
+ * Cuatro pestañas y ni una más: Crear, Inspira, Proyectos y Perfil (decisión
+ * del usuario, 2026-09-27). Weë en el teléfono es social y creativo a la vez:
+ * Inspira es la comunidad —sus muros, sus Weëls— y las ideas para crear; Crear,
+ * todo lo que se puede hacer; Proyectos, donde se trabaja; Perfil, tus dos caras
+ * y tu cuenta. Buscar, WeeTalk y Notificaciones no se han ido: están arriba, en
+ * el mismo sitio en las cuatro pestañas (`AccesosDeLaApp`).
+ *
+ * Existe UNA instancia para toda la experiencia —el Home, las experiencias de
+ * Weë, los perfiles, las búsquedas— en vez de una barra que solo vivía dentro de
+ * las pestañas y desaparecía en cuanto entrabas en Weë Travel o en una
+ * publicación. Y no entra en Weë Creator: el taller profesional tiene su propia
+ * navegación, y las dos no se mezclan.
  *
  * Este componente NO navega. Recibe cuál está puesto y avisa de lo que se toca;
  * quien decide a dónde se va es quien lo monta, que es quien conoce el árbol de
@@ -40,7 +47,7 @@ import { scale } from '../utils/scale';
  * mismo que antes aunque el dibujo mida dos puntos menos.
  */
 
-export type DestinoId = 'Home' | 'Search' | 'Create' | 'Inbox' | 'Notifications';
+export type DestinoId = 'Crear' | 'Home' | 'Proyectos' | 'Profile';
 
 interface Destino {
   id: DestinoId;
@@ -53,35 +60,30 @@ interface Destino {
 }
 
 /**
- * El orden es el de la barra y no cambia.
+ * El orden es el de la barra y no cambia: Crear, Inspira, Proyectos, Perfil.
  *
- * El quinto dejó de ser Perfil y pasó a ser Notificaciones (fase 2E-77): la
- * campana estaba arriba, en el encabezado, y bajó aquí. El Perfil no se ha ido
- * a ninguna parte —su pantalla, su pila y sus rutas están intactas— y se sigue
- * abriendo desde donde vive tu cuenta: el menú ☰ y la barra lateral, que ya
- * ofrecían los dos perfiles.
+ * Inspira es la pestaña `Home` de siempre —la portada, la comunidad— y por eso
+ * sigue siendo donde se entra. El Perfil vuelve a la barra: con cuatro pestañas
+ * hay sitio para tu cuenta, que es donde se cambia de cara. Notificaciones y
+ * WeeTalk, que estaban aquí, están ahora arriba, en cada pestaña.
  */
 export const DESTINOS: Destino[] = [
-  { id: 'Home', etiqueta: 'Inicio', clave: 'nav.home', icono: 'home-outline', iconoPuesto: 'home' },
-  { id: 'Search', etiqueta: 'Buscar', clave: 'nav.search', icono: 'search-outline', iconoPuesto: 'search' },
-  { id: 'Create', etiqueta: 'Crear', clave: 'nav.create', icono: 'add-circle-outline', iconoPuesto: 'add-circle' },
-  /* WeeTalk no se traduce: es el nombre del producto, como Instagram o WhatsApp. */
-  { id: 'Inbox', etiqueta: 'WeeTalk', clave: 'nav.talk', icono: 'chatbubble-outline', iconoPuesto: 'chatbubble' },
-  { id: 'Notifications', etiqueta: 'Notificaciones', clave: 'nav.notifications', icono: 'notifications-outline', iconoPuesto: 'notifications' },
+  { id: 'Crear', etiqueta: 'Crear', clave: 'nav.create', icono: 'add-circle-outline', iconoPuesto: 'add-circle' },
+  { id: 'Home', etiqueta: 'Inspira', clave: 'nav.inspire', icono: 'compass-outline', iconoPuesto: 'compass' },
+  { id: 'Proyectos', etiqueta: 'Proyectos', clave: 'nav.projects', icono: 'folder-outline', iconoPuesto: 'folder' },
+  { id: 'Profile', etiqueta: 'Perfil', clave: 'nav.profile', icono: 'person-circle-outline', iconoPuesto: 'person-circle' },
 ];
 
 /** Lo que ocupa la barra por encima de la zona segura. Lo necesita quien reserve sitio. */
 export const ALTO_BARRA = scale(52);
 
 interface BarraInferiorProps {
-  /** Cuál de los cinco está puesto. `null` si ninguno —una pantalla suelta—. */
+  /** Cuál de los cuatro está puesto. `null` si ninguno —una pantalla suelta—. */
   puesto: DestinoId | null;
   onSelect: (destino: DestinoId) => void;
-  /** Mensajes sin leer de WeeTalk. 0 o menos, no se dibuja nada. */
-  sinLeer?: number;
 }
 
-const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer = 0 }) => {
+const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect }) => {
   const t = useT();
   const { theme } = useTheme();
   const { scrollProgress, isTransparent } = useTabBar();
@@ -141,20 +143,11 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
           >
             <View style={styles.icono}>
               {/*
-                Los cinco, con el mismo dibujo: contorno en reposo y relleno
-                cuando es el puesto. Aquí vivía el avatar del Perfil, que
-                enseñaba tu cara en vez de un icono; se fue con él cuando el
-                quinto destino pasó a ser Notificaciones.
+                Los cuatro, con el mismo dibujo: contorno en reposo y relleno
+                cuando es el puesto. Un icono y no tu cara: la barra es de
+                lugares, no de personas.
               */}
               <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(26)} color={color} />
-
-              {destino.id === 'Inbox' && sinLeer > 0 && (
-                <View style={[styles.aviso, { backgroundColor: theme.colors.accent }]}>
-                  <Text style={styles.avisoTexto} numberOfLines={1}>
-                    {sinLeer > 99 ? '99+' : sinLeer}
-                  </Text>
-                </View>
-              )}
             </View>
             <Text style={[styles.etiqueta, { color }]} numberOfLines={1}>
               {t(destino.clave)}
@@ -176,7 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
   },
-  /* Cada destino, su quinto de pantalla. El alto mínimo es el del dedo. */
+  /* Cada destino, su cuarto de pantalla. El alto mínimo es el del dedo. */
   destino: {
     flex: 1,
     minHeight: 44,
@@ -192,22 +185,6 @@ const styles = StyleSheet.create({
   etiqueta: {
     fontSize: scale(10),
     fontWeight: FONT_WEIGHT.medium,
-  },
-  aviso: {
-    position: 'absolute',
-    top: -scale(4),
-    right: -scale(10),
-    minWidth: scale(17),
-    height: scale(17),
-    borderRadius: scale(9),
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: scale(4),
-  },
-  avisoTexto: {
-    color: '#1F2937',
-    fontSize: scale(10),
-    fontWeight: FONT_WEIGHT.semibold,
   },
 });
 

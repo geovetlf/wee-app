@@ -2100,10 +2100,17 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
     !menu.MENU_ORDER.includes('notifications') && !menu.MENU_ITEM.notifications, menu.MENU_ORDER.join(','));
   check('M3b) ni el cajón ni la barra la pintan',
     !/'notifications'|"notifications"/.test(limpio(cajon)) && !/'notifications'|"notifications"/.test(limpio(barra)));
+  /*
+   * Desde las cuatro pestañas de Weë (2026-09-27) la campana no está en la barra
+   * inferior: está arriba, en los accesos de cada pestaña, y en escritorio en la
+   * barra lateral, junto a Buscar. Sigue sin ser una opción del menú ☰, que es lo
+   * que esta guarda protege.
+   */
   check('M3b) control: la pantalla, la ruta y el servicio de notificaciones siguen enteros',
     fs3.existsSync(new URL('../../screens/NotificationsScreen.tsx', import.meta.url))
     && /name="Notifications"/.test(leer3('navigation/HomeStackNavigator.tsx'))
-    && /\{ id: 'Notifications', etiqueta: 'Notificaciones'/.test(leer3('components/BarraInferior.tsx')));
+    && /ir\('Main', \{ screen: 'Home', params: \{ screen: 'Notifications' \} \}\)/.test(leer3('components/AccesosDeLaApp.tsx'))
+    && /goHome\('Notifications'\)/.test(barra));
 
   /*
    * 3c) SIN RESALTADO AMARILLO EN LAS OPCIONES.
@@ -2186,10 +2193,12 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   check('M7) la barra sigue navegando directamente', /navigation\.navigate\('CreditStore'\)/.test(barra));
   check('M7) y las dos llevan a la misma pantalla de Credits', /CreditStore/.test(cajon) && /CreditStore/.test(barra));
 
-  // 8) Inicio y Buscar son la única diferencia, y está explicada.
-  check('M8) solo la barra tiene Inicio y Buscar',
-    /label=\{t\('nav\.home'\)\}/.test(barra) && /home: 'Inicio'/.test(leer3('i18n/textos/es/nav.ts'))
-    && !/'Inicio'/.test(limpio(cajon)) && !/nav\.home/.test(limpio(cajon)));
+  // 8) Las áreas de Weë y Buscar son la única diferencia, y está explicada.
+  /* Desde el 2026-09-27 la primera área es Inspira —el Home de siempre, con sus ideas—, no «Inicio». */
+  check('M8) solo la barra tiene Inspira y Buscar',
+    /label=\{t\('nav\.inspire'\)\}/.test(barra) && /inspire: 'Inspira'/.test(leer3('i18n/textos/es/nav.ts'))
+    && /label=\{t\('nav\.search'\)\}/.test(barra)
+    && !/'Inspira'/.test(limpio(cajon)) && !/nav\.inspire/.test(limpio(cajon)));
   check('M8) porque en el móvil los da la barra inferior', /barra inferior/.test(barra));
 }
 

@@ -19,6 +19,10 @@
  * nombre que le dan al perfil de una persona `menu`, `profile` y `weeai`.
  *
  * Entre hanzi y alfabeto latino o cifras va UN espacio: «Weë AI», «15 秒».
+ *
+ * Desde el 2026-09-27 las pestañas de Weë son cuatro: 建立 (`create`), 靈感
+ * (`inspire`), 專案 (`projects`, no 項目) y 個人檔案 (`profile`), las mismas
+ * palabras que usan `menu`, `projects` y `workspace`.
  */
 export const nav: typeof import('../es/nav').nav = {
   home: '首頁',
@@ -35,4 +39,7 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: '前往 Weë AI',
   weeAiQuestion: '今天想創作什麼？',
   weeAiPitch: '告訴 Weë 你想要什麼，AI 的事交給 Weë。',
+  inspire: '靈感',
+  projects: '專案',
+  profile: '個人檔案',
 };

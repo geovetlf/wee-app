@@ -66,7 +66,8 @@ const Campo = (props) => {
 };
 const reactNative = {
   View: Caja, Text: Texto, TouchableOpacity: Toque, ScrollView: Caja, ActivityIndicator: ({ accessibilityLabel }) => h('progress', { 'aria-label': accessibilityLabel }),
-  TextInput: Campo, StyleSheet: { create: (s) => s, flatten: (s) => s }, Platform: { OS: 'web', select: (o) => o.web ?? o.default },
+  TextInput: Campo, StyleSheet: { create: (s) => s, flatten: (s) => s, hairlineWidth: 1, absoluteFill: {}, absoluteFillObject: {} }, Platform: { OS: 'web', select: (o) => o.web ?? o.default },
+  Modal: Caja,
   Dimensions: { get: () => ({ width: 1280, height: 800 }), addEventListener: () => ({ remove() {} }) },
 };
 const colores = new Proxy({}, { get: () => '#000000' });
@@ -98,9 +99,13 @@ const dobles = {
   'react-native': reactNative,
   '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
   '@react-navigation/native': { useRoute: () => ruta, useNavigation: () => navegacion },
-  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
-  '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
-  '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
+  /* Weë Creator (2026-09-27): la pantalla pregunta si está dentro del taller. Aquí, fuera: el marco de siempre. */
+  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnCreator: () => false },
+  '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnCreator: () => false },
+  '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnCreator: () => false },
+  /* El workspace trae sus hojas (exportar, estructura) y la descarga de los vídeos de los planos: dobles quietos. */
+  'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }), SafeAreaView: Caja },
+  '../../../services/assetDownload': { descargarCreacion: async () => 'guardado' },
   '../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
   '../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
   '../../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
@@ -469,8 +474,10 @@ await seccion('V', async () => {
     /<video[^>]*aria-label="Vídeo de Plano 1"/.test(con.html) && !/Sin vista previa/.test(con.texto), con.html.slice(0, 240));
   check('V3) un material sin dirección que entregar no se pinta como si la tuviera', /Sin vista previa/.test(sinUrl.texto) && !/<video/.test(sinUrl.html));
   const pantalla = leer('screens/ProductionScreen.tsx');
+  /* Desde el workspace (2026-09-27) los vídeos viajan dentro del espacio que comparten los paneles; el storyboard los recibe de ahí. */
   check('V4) la pantalla le da a cada tarjeta el vídeo que el servidor dice que tiene su plano',
-    /useVideosDeLaProduccion\(estado\.confirmada\?\.productionId/.test(pantalla) && /videos=\{videos\}/.test(pantalla));
+    /useVideosDeLaProduccion\(estado\.confirmada\?\.productionId/.test(pantalla) && /\n\s+videos,\n/.test(pantalla)
+    && /videos=\{espacio\.videos\}/.test(leer('components/studio/produccion/ProductionWorkspace.tsx')));
 });
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\n✔ Filmmaker F1-C: la pantalla de producción, dibujada de verdad (${n} comprobaciones)`);

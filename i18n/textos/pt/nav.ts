@@ -22,4 +22,7 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Ir para Weë AI',
   weeAiQuestion: 'O que você quer criar hoje?',
   weeAiPitch: 'Diga ao Weë o que você quer. O Weë cuida da IA.',
+  inspire: 'Inspiração',
+  projects: 'Projetos',
+  profile: 'Perfil',
 };

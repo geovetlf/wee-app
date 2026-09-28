@@ -68,3 +68,15 @@ export const crearProduccion = (p: NuevaProduccion) => filmmakerService.createPr
 
 /** El id de una producción nueva: se decide una vez, antes de crearla, para que repetir no cree dos. */
 export { nuevoIdDeProduccion } from '../services/filmmakerService';
+
+/**
+ * DESDE LA LISTA DE PROYECTOS, sin abrirla: duplicar —con el título que pone
+ * quien pinta, en el idioma de quien mira— y archivar o volver a traer. Son las
+ * mismas operaciones del servidor que usa la producción abierta; aquí no se
+ * decide nada, solo se piden.
+ */
+export const duplicarProduccion = (productionId: string, title: string) =>
+  filmmakerService.duplicateProduction({ productionId, title });
+
+export const archivarProduccion = (productionId: string, archivar: boolean) =>
+  (archivar ? filmmakerService.archiveProduction(productionId) : filmmakerService.unarchiveProduction(productionId));

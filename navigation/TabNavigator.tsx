@@ -26,6 +26,8 @@ import HomeStackNavigator from './HomeStackNavigator';
 import InboxStackNavigator from './InboxStackNavigator';
 import ProfileStackNavigator from './ProfileStackNavigator';
 import SearchScreen from '../screens/SearchScreen';
+import CrearScreen from '../screens/CrearScreen';
+import ProyectosScreen from '../screens/ProyectosScreen';
 import { MainStackParamList } from './MainStackNavigator';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { useAuth } from '../contexts/AuthContext';
@@ -129,6 +131,13 @@ const TabNavigator: React.FC = () => {
        *
        * Las cinco rutas, sus guardas de sesión y el subir-al-principio de Inicio
        * siguen intactas: lo único que se va es el dibujo.
+       *
+       * Y desde el 2026-09-27 (decisión del usuario) la barra de Weë son cuatro
+       * pestañas —Crear, Inspira, Proyectos y Perfil—: «Crear» y «Proyectos» son
+       * pestañas de verdad aquí, con su pantalla. Inspira es la de siempre
+       * (`Home`), y por eso sigue siendo la inicial y la portada pública. Buscar
+       * y WeeTalk siguen existiendo como pestañas —sus enlaces y sus pantallas no
+       * se tocan—; ya no están en la barra: se abren desde arriba.
        */
       tabBar={() => null}
       screenOptions={({ route }) => ({
@@ -243,6 +252,25 @@ const TabNavigator: React.FC = () => {
             const state = navigation.getState();
             if (state.index === 0) {
               triggerScrollToTop();
+            }
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Crear"
+        component={CrearScreen}
+        options={{ tabBarLabel: 'Crear' }}
+      />
+      <Tab.Screen
+        name="Proyectos"
+        component={ProyectosScreen}
+        options={{ tabBarLabel: 'Proyectos' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (!user) {
+              e.preventDefault();
+              const parentNav = navigation.getParent();
+              if (parentNav) (parentNav as any).navigate('Register');
             }
           },
         })}

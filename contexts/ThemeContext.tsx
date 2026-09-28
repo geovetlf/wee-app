@@ -74,6 +74,39 @@ const darkTheme: Theme = {
   },
 };
 
+/*
+ * WEË CREATOR: EL TALLER PROFESIONAL, OSCURO SIEMPRE.
+ *
+ * No es el oscuro del Perfil Weë —ese quiere decir «estás participando con tu
+ * otra cara»—: es el de las herramientas profesionales de creación, donde la
+ * imagen y el vídeo mandan y la interfaz se retira (decisión del usuario,
+ * 2026-09-27). Por eso es OTRA paleta, carbón con un punto frío, y no el negro
+ * del Perfil Weë: quien entra en Weë Creator sabe que ha cambiado de sitio, no
+ * de identidad. El dorado de Weë sigue siendo lo que se toca: crear, lo elegido,
+ * los Credits, el progreso.
+ */
+const creatorTheme: Theme = {
+  dark: true,
+  colors: {
+    primary: '#F5B731',
+    background: '#0B0C10',
+    surface: '#14161C',
+    card: '#1A1D24',
+    text: '#F4F5F7',
+    textSecondary: '#9AA0AC',
+    border: '#272B34',
+    accent: '#F5B731',
+    accentLight: '#FFC94D',
+    accentDark: '#E5A020',
+    like: '#FF6B6B',
+    error: '#FF6B6B',
+    glow: 'rgba(245, 183, 49, 0.18)',
+    backdrop: 'rgba(0, 0, 0, 0.72)',
+    success: '#22C55E',
+    warning: '#F59E0B',
+  },
+};
+
 interface ThemeContextType {
   theme: Theme;
   themeMode: ThemeMode;
@@ -81,6 +114,18 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+/**
+ * ¿Esto se está pintando DENTRO de Weë Creator?
+ *
+ * Lo pone una sola vez el navegador de Weë Creator (`navigation/CreatorNavigator`)
+ * alrededor de su pila. Las pantallas de Weë AI que viven a la vez en la App y en
+ * el taller —un especialista, CreatorFlow, Mis creaciones, Filmmaker— lo leen
+ * para saber qué marco poner: dentro, el de Weë Creator lo pinta el navegador y
+ * ellas solo ponen su contenido; fuera, el suyo de siempre.
+ */
+const EspacioCreatorContext = createContext(false);
+export const useEnCreator = (): boolean => useContext(EspacioCreatorContext);
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -222,10 +267,33 @@ export const useTheme = (): ThemeContextType => {
  */
 export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { themeMode, setThemeMode } = useTheme();
+  /*
+   * Dentro de Weë Creator manda Weë Creator: la misma pantalla de Weë AI que en
+   * la App se ve clara, en el taller profesional se ve con su tema. No es una
+   * excepción a lo de arriba —el oscuro de Creator no habla de identidades—.
+   */
+  const enCreator = useContext(EspacioCreatorContext);
   return (
-    <ThemeContext.Provider value={{ theme: lightTheme, themeMode, setThemeMode }}>
+    <ThemeContext.Provider value={{ theme: enCreator ? creatorTheme : lightTheme, themeMode, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
+  );
+};
+
+/**
+ * TODO LO QUE VA DENTRO, EN WEË CREATOR: su tema y la marca de que se está
+ * dentro. Lo monta el navegador de Weë Creator y nadie más. Cambia el COLOR y
+ * dice DÓNDE; `themeMode` y `setThemeMode` siguen siendo los de arriba, así que
+ * cambiar de identidad desde dentro sigue funcionando igual.
+ */
+export const TemaCreator: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { themeMode, setThemeMode } = useTheme();
+  return (
+    <EspacioCreatorContext.Provider value>
+      <ThemeContext.Provider value={{ theme: creatorTheme, themeMode, setThemeMode }}>
+        {children}
+      </ThemeContext.Provider>
+    </EspacioCreatorContext.Provider>
   );
 };
 

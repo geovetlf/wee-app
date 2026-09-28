@@ -534,8 +534,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * mientras el reembolso no se confirma), qué calidades no están, los tres
    * números de Credits y la vista previa del plano— en los once diccionarios a la
    * vez. No sale ninguna.
+   * 2 750 → 3 141 con las cuatro áreas de Weë y Weë Creator (2026-09-27): 391
+   * claves en los once diccionarios a la vez —los módulos nuevos crear (73),
+   * inspira (73), workspace (90) y cuenta (10), tres destinos de nav (Inspira,
+   * Proyectos, Perfil) y 142 filmmaker.ws* del workspace de Filmmaker—. No sale
+   * ninguna.
    */
-  const CLAVES_PT = 2750;
+  const CLAVES_PT = 3141;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

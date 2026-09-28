@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { ActivityIndicator, Animated, View, StyleSheet, Platform } from 'react-native';
@@ -44,6 +45,9 @@ import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
 import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
 import WeeBizRegisterScreen from '../screens/WeeBizRegisterScreen';
 import WeeBizProductsScreen from '../screens/WeeBizProductsScreen';
+import CrearVideoScreen from '../screens/CrearVideoScreen';
+import CreatorNavigator, { CreatorStackParamList } from './CreatorNavigator';
+import type { ParamsDeCrearVideo } from '../hooks/useCaminosDeCreacion';
 import AuthStackNavigator from './AuthStackNavigator';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
@@ -103,6 +107,14 @@ export type MainStackParamList = {
   Project: { id: string };
   /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
   MisCreaciones: undefined;
+  /**
+   * Weë Creator: el taller profesional, con su propia pila y su propio marco
+   * (`navigation/CreatorNavigator.tsx`). Se entra con la pantalla a la que se va:
+   * `{ screen: 'Production', params: { productionId } }`.
+   */
+  Creator: NavigatorScreenParams<CreatorStackParamList> | undefined;
+  /* Crear video, dentro de la pestaña Crear de Weë: una idea y sus ajustes, ya puestos si vienen de Inspira. */
+  CrearVideo: ParamsDeCrearVideo | undefined;
   PostDetail: {
     post: Post;
   };
@@ -345,6 +357,13 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="MisCreaciones" component={MisCreacionesScreen} />
+      {/*
+        WEË CREATOR, EL TALLER PROFESIONAL: una sola ruta que lleva dentro su
+        pila, su cabecera y su barra lateral. Weë y Weë Creator no mezclan su
+        navegación: aquí no llega la barra de abajo de la App (`SIN_BARRA`).
+      */}
+      <Stack.Screen name="Creator" component={CreatorNavigator} />
+      <Stack.Screen name="CrearVideo" component={CrearVideoScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />

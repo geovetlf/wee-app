@@ -127,6 +127,9 @@ export const nuevoIdDeOperacion = (): string => `op_${alAzar(16)}`;
 /** El id de una escena o un plano nuevo, dentro de la producción: la forma de los ids del Core. */
 export const nuevoIdDeEscena = (): string => `sc_${alAzar(12)}`;
 export const nuevoIdDePlano = (): string => `sh_${alAzar(12)}`;
+/** El de un sonido del plan de audio y el de una línea de diálogo: la misma forma, otro prefijo. */
+export const nuevoIdDeSonido = (): string => `sd_${alAzar(12)}`;
+export const nuevoIdDeLinea = (): string => `ln_${alAzar(12)}`;
 
 /* ── Lo que vuelve, leído con cuidado ─────────────────────────────────────── */
 

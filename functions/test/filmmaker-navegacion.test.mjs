@@ -46,7 +46,10 @@ check('A4) al lado de Studio, que sigue igual', /Studio: 'studio',/.test(app) &&
 const global = leer('navigation/NavegacionGlobal.tsx');
 check('A5) la barra de abajo se queda como en el Studio: no se esconde ni se inventa un destino para ella',
   !/'Production'/.test(global));
-check('A6) la navegación sigue siendo la misma: ni un navegador ni un archivo más', fs.readdirSync(path.resolve(RAIZ, 'navigation')).filter((f) => f.endsWith('.tsx')).length === 7);
+/* El único archivo nuevo es la pila de Weë Creator (2026-09-27), donde Filmmaker abre su workspace. */
+check('A6) la navegación sigue siendo la misma: ni un navegador ni un archivo más que los de Weë Creator',
+  fs.readdirSync(path.resolve(RAIZ, 'navigation')).filter((f) => f.endsWith('.tsx')).length === 8
+  && fs.existsSync(path.resolve(RAIZ, 'navigation/CreatorNavigator.tsx')));
 
 /* ═══ B · LAS CUATRO PUERTAS ═══════════════════════════════════════════════ */
 console.log('\n── B · Las cuatro puertas, intactas, y ninguna quinta ──');

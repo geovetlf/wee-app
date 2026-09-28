@@ -28,9 +28,10 @@ interface SidebarItemProps {
   /**
    * El emoji de antes, solo para lo que todavía no tiene dibujo propio.
    *
-   * Hoy es una sola fila —Buscar, que además solo existe en escritorio porque
-   * en el móvil la da la barra inferior—: `trazosDeWee` no tiene lupa y aquí
-   * no se inventa ninguna. El día que la tenga, este campo se va.
+   * Hoy son tres filas —Crear, Buscar y Notificaciones, que en el teléfono dan
+   * la barra inferior (Crear) y los accesos de arriba de cada pestaña (las otras
+   * dos)—: `trazosDeWee` no tiene ni «más», ni lupa, ni campana, y aquí no se
+   * inventa ninguno. El día que los tenga, este campo se va.
    */
   emoji?: string;
   label: string;
@@ -134,10 +135,13 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
 
 /**
  * Barra lateral de escritorio: el mismo menú único de docs/UX.md que el ☰ en móvil.
- * Inicio · Buscar · Comunidades · Weëls · WeeTalk · Weë Creator (10 especialistas + Mis proyectos)
- * · Credits · Guardados · Configuración · Ayuda.
+ * Crear · Inspira · Proyectos · Buscar · Notificaciones · PERFIL · EXPLORA (Comunidades,
+ * Weëls, WeeTalk…) · Weë AI · Weë Creator · Credits · Guardados · Configuración · Ayuda.
  *
- * Notificaciones no está: vive en la barra inferior, que se ve siempre.
+ * Las cuatro áreas de Weë van arriba (decisión del usuario, 2026-09-27): en el
+ * teléfono las da la barra inferior; el escritorio no la tiene. Notificaciones
+ * no es una opción del menú ☰: en el teléfono está arriba, en cada pestaña, y
+ * aquí, junto a Buscar.
  */
 const Sidebar: React.FC = () => {
   const { formato } = useIdioma();
@@ -237,12 +241,17 @@ const Sidebar: React.FC = () => {
         {/* Menú: mismo orden y mismos grupos que el cajón */}
         <View style={styles.nav}>
           {/*
-            Inicio y Buscar solo existen aquí, y no es una discrepancia: en el
-            móvil los da la barra inferior. Son la única diferencia real entre
-            las dos plataformas, y viene de que el escritorio no tiene esa barra.
+            LAS CUATRO ÁREAS DE WEË, LAS MISMAS QUE EN EL TELÉFONO (decisión del
+            usuario, 2026-09-27): Crear, Inspira y Proyectos arriba —Perfil es el
+            grupo de justo debajo—. En el móvil las da la barra de abajo; el
+            escritorio no la tiene, así que están aquí. Buscar y Notificaciones
+            también: en el teléfono van arriba, en cada pestaña.
           */}
-          <SidebarItem icono="casa" label={t('nav.home')} active={isActive('Home')} onPress={() => goHome('Landing')} />
+          <SidebarItem emoji="➕" label={t('nav.create')} active={isActive('Crear')} onPress={() => goTab('Crear')} />
+          <SidebarItem icono="casa" label={t('nav.inspire')} active={isActive('Home')} onPress={() => goHome('Landing')} />
+          <SidebarItem icono="carpeta" label={t('nav.projects')} active={isActive('Proyectos')} onPress={() => (user ? goTab('Proyectos') : requireLogin())} />
           <SidebarItem emoji="🔍" label={t('nav.search')} active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
+          <SidebarItem emoji="🔔" label={t('nav.notifications')} onPress={() => (user ? goHome('Notifications') : requireLogin())} />
 
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('menu.sectionProfile')}</Text>
           <Opcion id="realProfile" active={!!user && activeProfileType === 'real'} onPress={() => (user ? goTab('Profile') : requireLogin())} />
@@ -298,8 +307,12 @@ const Sidebar: React.FC = () => {
               <Opcion id="creations" nested active={isActive('MisCreaciones')} onPress={() => (user ? navigation.navigate('MisCreaciones') : requireLogin())} />
             </View>
           )}
+          {/*
+            Weë Creator: el taller profesional, con su propia interfaz. Se entra
+            desde aquí y desde Crear; dentro, la salida vuelve a Weë.
+          */}
+          <SidebarItem icono="claqueta" label={t('workspace.name')} active={isActive('Creator')} onPress={() => (user ? navigation.navigate('Creator') : requireLogin())} />
           {/* "Perfil" a secas se fue: arriba ya están Perfil Real y Perfil Weë. */}
-          {/* Notificaciones tampoco está: es el quinto destino de la barra inferior. */}
           <Opcion id="saved" active={isActive('SavedPosts')} onPress={() => (user ? navigation.navigate('SavedPosts') : requireLogin())} />
           <Opcion id="settings" active={isActive('Settings')} onPress={() => navigation.navigate('Settings')} />
           <Opcion id="help" active={isActive('Help')} onPress={() => navigation.navigate('Help')} />

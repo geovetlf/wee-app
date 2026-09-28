@@ -13,6 +13,10 @@
  * falta—. Se resuelve con dos puntos de ancho completo, que separan solos.
  *
  * Entre hanzi y alfabeto latino o cifras va UN espacio: «Weë AI», «15 秒».
+ *
+ * Desde el 2026-09-27 la barra son cuatro pestañas —创建, 灵感, 项目, 主页—, también
+ * de dos caracteres. «Perfil» es 主页, la misma palabra de 真实主页 y Weë 主页, e
+ * «Inspira» es 灵感.
  */
 export const nav: typeof import('../es/nav').nav = {
   home: '首页',
@@ -29,4 +33,7 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: '前往 Weë AI',
   weeAiQuestion: '今天想创建点什么？',
   weeAiPitch: '告诉 Weë 你想要什么，AI 的事交给 Weë。',
+  inspire: '灵感',
+  projects: '项目',
+  profile: '主页',
 };

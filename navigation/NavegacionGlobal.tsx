@@ -1,15 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Platform } from 'react-native';
+import { Animated, Easing, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { refNavegacion } from './refNavegacion';
 import BarraInferior, { ALTO_BARRA, DestinoId } from '../components/BarraInferior';
-import CreateSheet, { CreateKind } from '../components/CreateSheet';
 import { useAuth } from '../contexts/AuthContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { useSinLeer } from '../hooks/useConversaciones';
-
-const isWeb = Platform.OS === 'web';
 
 /**
  * LA BARRA, PUESTA UNA SOLA VEZ, ENCIMA DE TODO.
@@ -25,7 +21,12 @@ const isWeb = Platform.OS === 'web';
  * navegación. La barra en sí no sabe nada de esto.
  */
 
-/* Dónde la barra estorba: pantalla completa, modales y autenticación. */
+/*
+ * Dónde la barra estorba: pantalla completa, modales y autenticación. Y Weë
+ * Creator, que no es una pantalla de Weë sino el taller profesional, con su
+ * propia cabecera y su propia barra lateral: las dos navegaciones no se mezclan
+ * (decisión del usuario, 2026-09-27).
+ */
 const SIN_BARRA = new Set([
   'Login',
   'Register',
@@ -34,15 +35,19 @@ const SIN_BARRA = new Set([
   'Settings',
   'WeeProfileCreation',
   'AiAvatar',
+  'Creator',
 ]);
 
 /* Y una pantalla anidada: una conversación abierta ocupa todo (ya era así antes). */
 const ANIDADAS_SIN_BARRA = new Set(['Conversation']);
 
-/** Qué destino corresponde a cada ruta suelta de la pila. */
+/** Qué destino corresponde a cada ruta suelta de la pila: crear un vídeo es parte de Crear. */
 const DESTINO_DE_RUTA: Record<string, DestinoId> = {
-  Search: 'Search',
+  CrearVideo: 'Crear',
 };
+
+/** Las pestañas que están en la barra. Buscar y WeeTalk son pestañas, pero se abren desde arriba. */
+const EN_LA_BARRA: ReadonlySet<string> = new Set<DestinoId>(['Crear', 'Home', 'Proyectos', 'Profile']);
 
 /** El nombre de la ruta más profunda, sea cual sea la anidación. */
 const rutaHonda = (estado: any): string | null => {
@@ -53,12 +58,12 @@ const rutaHonda = (estado: any): string | null => {
 };
 
 /** El nombre de la pestaña puesta, si es que estamos dentro de las pestañas. */
-const pestanaPuesta = (estado: any): DestinoId | null => {
+const pestanaPuesta = (estado: any): string | null => {
   const principal = estado?.routes?.[estado.index];
   if (!principal || principal.name !== 'Main') return null;
   const pestanas = principal.state;
   const nombre = pestanas?.routes?.[pestanas.index]?.name;
-  return (nombre as DestinoId) || 'Home';
+  return nombre || 'Home';
 };
 
 /**
@@ -138,7 +143,6 @@ const NavegacionGlobal: React.FC = () => {
   const { user } = useAuth();
   const { triggerScrollToTop, isScrollingDown } = useScroll();
   const insets = useSafeAreaInsets();
-  const [hoja, setHoja] = useState(false);
   const { estado, visible } = useBarraInferior();
 
   const rutaRaiz = estado?.routes?.[estado.index]?.name;
@@ -182,17 +186,13 @@ const NavegacionGlobal: React.FC = () => {
   }, [rutaRaiz]);
 
   /*
-   * Los no leídos de WeeTalk salen de la MISMA suscripción que la bandeja
-   * (Fase 11.x-6). Antes había dos oyentes sobre la misma consulta, y además
-   * miraban identidades distintas: este contaba las de la cuenta y la bandeja
-   * enseñaba las de la cara activa, así que con el Perfil Weë puesto el número
-   * no correspondía con la lista. Una conversación es de la cara con la que se
-   * habla, y ahora las dos miran lo mismo.
+   * Los no leídos de WeeTalk se enseñan arriba, junto a su icono
+   * (`components/AccesosDeLaApp`), con la MISMA suscripción de la bandeja
+   * (Fase 11.x-6): WeeTalk ya no está en la barra.
    */
-  const sinLeer = useSinLeer();
 
   /*
-   * En escritorio manda la barra lateral: repetir los mismos cinco destinos
+   * En escritorio manda la barra lateral: repetir los mismos cuatro destinos
    * abajo sería decir dos veces lo mismo. Es lo que ya hacía el navegador de
    * pestañas y no se cambia. Y en modales, autenticación y pantalla completa
    * la barra estorba: `useBarraInferior` ya lo ha decidido.
@@ -200,56 +200,32 @@ const NavegacionGlobal: React.FC = () => {
   if (!visible) return null;
 
   /*
-   * Qué va encendido. Dentro de las pestañas, la pestaña. Fuera, la ruta si la
-   * conocemos y si no Inicio, porque todo lo demás —una publicación, una
-   * comunidad, una experiencia de Weë— se alcanza desde ahí.
+   * Qué va encendido. Dentro de las pestañas, la pestaña —si está en la barra;
+   * Buscar y WeeTalk son pestañas que se abren desde arriba y no encienden
+   * ninguna—. Fuera, la ruta si la conocemos y si no Inspira, porque todo lo
+   * demás —una publicación, una comunidad, una experiencia de Weë— se alcanza
+   * desde ahí.
    */
-  /*
-   * Notificaciones no es una pestaña: es una pantalla DENTRO de la pila del
-   * Home, así que la pestaña puesta ahí sigue siendo Inicio. Por eso se mira
-   * primero la ruta más honda: si estás en Notificaciones, es Notificaciones lo
-   * que va encendido, no Inicio.
-   */
-  const enNotificaciones = rutaHonda(estado) === 'Notifications';
-  const puesto: DestinoId | null = enNotificaciones
-    ? 'Notifications'
-    : pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
+  const pestana = pestanaPuesta(estado);
+  const puesto: DestinoId | null = pestana
+    ? (EN_LA_BARRA.has(pestana) ? (pestana as DestinoId) : null)
+    : DESTINO_DE_RUTA[rutaRaiz] || 'Home';
 
   const irARaiz = (pantalla: string, params?: object) => {
     if (refNavegacion.isReady()) (refNavegacion as any).navigate(pantalla, params);
   };
 
   const elegir = (destino: DestinoId) => {
-    /* Crear no es una pantalla: abre la hoja de siempre. */
-    if (destino === 'Create') {
-      if (!user) return irARaiz('Register');
-      return setHoja(true);
-    }
+    /* Proyectos y Perfil son tuyos: piden sesión, como hasta ahora. Crear e Inspira se miran sin ella. */
+    if ((destino === 'Proyectos' || destino === 'Profile') && !user) return irARaiz('Register');
 
-    /* Buscar, WeeTalk y Notificaciones piden sesión, como hasta ahora. */
-    if (destino !== 'Home' && !user) return irARaiz('Register');
-
-    /* Tocar Inicio estando ya en Inicio sube al principio, como siempre. */
+    /* Tocar Inspira estando ya en Inspira sube al principio, como siempre. */
     if (destino === 'Home' && puesto === 'Home' && rutaRaiz === 'Main') {
       triggerScrollToTop();
       return;
     }
 
-    /*
-     * Notificaciones vive dentro de la pila del Home, no es una pestaña: se
-     * abre la pantalla QUE YA EXISTÍA, por el mismo camino que usan el menú ☰ y
-     * la barra lateral. Ni ruta nueva, ni pantalla nueva.
-     */
-    if (destino === 'Notifications') {
-      return irARaiz('Main', { screen: 'Home', params: { screen: 'Notifications' } });
-    }
-
     irARaiz('Main', { screen: destino });
-  };
-
-  const crear = (kind: CreateKind) => {
-    setHoja(false);
-    setTimeout(() => irARaiz('Create', { kind }), isWeb ? 0 : 150);
   };
 
   return (
@@ -261,17 +237,8 @@ const NavegacionGlobal: React.FC = () => {
         ]}
         pointerEvents="box-none"
       >
-        <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} />
+        <BarraInferior puesto={puesto} onSelect={elegir} />
       </Animated.View>
-      <CreateSheet
-        visible={hoja}
-        onClose={() => setHoja(false)}
-        onSelect={crear}
-        onOpenCreator={() => {
-          setHoja(false);
-          setTimeout(() => irARaiz('WeeCreator'), isWeb ? 0 : 150);
-        }}
-      />
     </>
   );
 };

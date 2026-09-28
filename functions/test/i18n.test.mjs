@@ -446,8 +446,10 @@ console.log('\n── I · Enchufado en Weë ──');
     /nombreNativo/.test(pantalla) && !/nombreEnEspanol|traducirNombre/.test(pantalla));
 
   const barra = leer('components/BarraInferior.tsx');
-  check('51) la barra inferior ya traduce sus cinco destinos',
-    /\{t\(destino\.clave\)\}/.test(barra) && /clave: 'nav\.home'/.test(barra));
+  /* Cuatro desde el 2026-09-27 —Crear, Inspira, Proyectos y Perfil—, todos por su clave. */
+  check('51) la barra inferior ya traduce sus cuatro destinos',
+    /\{t\(destino\.clave\)\}/.test(barra) && /clave: 'nav\.inspire'/.test(barra)
+    && (barra.match(/clave: 'nav\.\w+'/g) || []).length === 4);
 
   /* CONTROL: no se ha duplicado ninguna pantalla por idioma. */
   const duplicadas = fs.readdirSync(path.resolve(raiz, 'screens'))

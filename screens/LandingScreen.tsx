@@ -39,6 +39,9 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import WeelsRow from '../components/WeelsRow';
 import HomeGreeting from '../components/HomeGreeting';
+import BarraDeInspira, { VistaDeInspira } from '../components/inspira/BarraDeInspira';
+import BibliotecaDeInspiracion from '../components/inspira/BibliotecaDeInspiracion';
+import { useCaminosDeCreacion } from '../hooks/useCaminosDeCreacion';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
 import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
@@ -59,6 +62,12 @@ const LandingScreen: React.FC = () => {
   const navigation = useNavigation<LandingScreenNavigationProp>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
+  /* INSPIRA: la comunidad o las ideas. Se entra por la comunidad, salvo que quien trae aquí pida las ideas. */
+  const [vista, setVista] = useState<VistaDeInspira>(route.params?.vista === 'ideas' ? 'ideas' : 'comunidad');
+  useEffect(() => {
+    if (route.params?.vista) setVista(route.params.vista === 'ideas' ? 'ideas' : 'comunidad');
+  }, [route.params?.vista]);
+  const { usarReceta } = useCaminosDeCreacion();
   const flatListRef = useRef<FlatList>(null);
 
   // "Explora → Weëls" del menú llega aquí con `openWeels`: abre WeëlsScreen.
@@ -784,6 +793,8 @@ const LandingScreen: React.FC = () => {
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
         <Header onMenuPress={() => setDrawerVisible(true)} conMarca />
+        {/* Inspira: la comunidad —el muro de siempre— o las ideas para crear. */}
+        <BarraDeInspira vista={vista} onVista={setVista} />
       </View>
       {/* StatusBar — after Headers so it takes precedence */}
       <StatusBar
@@ -797,7 +808,11 @@ const LandingScreen: React.FC = () => {
         style={styles.contentWrapper}
         onLayout={(e) => setAltoDelArea(e.nativeEvent.layout.height)}
       >
-      {isWeb ? (
+      {vista === 'ideas' ? (
+        <ScrollView contentContainerStyle={{ paddingTop: headerHeight + SPACING.lg, paddingHorizontal: SPACING.lg, paddingBottom: insets.bottom + 120 }}>
+          <BibliotecaDeInspiracion onUsar={usarReceta} />
+        </ScrollView>
+      ) : isWeb ? (
         // Web: Use native div scrolling for mobile browser compatibility
         <div
           style={{
