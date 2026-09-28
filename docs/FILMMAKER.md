@@ -383,7 +383,7 @@ siguen **pendientes**:
 | D5 | Vídeo asíncrono | **decidida** en F1-D: el camino asíncrono del Core (PRE-F1-D), un intento, los plazos de `plazos.ts`; la app escucha la reserva de Credits de la toma |
 | D6 | Weë Brain para intención y cambios | **decidida** en la Fase 9 del motor (2026-09-28): `brainChat` con la producción abierta como contexto; propone operaciones de F1-A comprobadas en memoria y la persona las aplica por `productions`; mismo precio, camino de siempre |
 | D7 | Montaje y render | **decidida** en la Fase 8 del motor (2026-09-28): FFmpeg propio (`ffmpeg-static`) como tarea general del Job Engine; el resultado, material `asset_` de la cuenta más un registro en la producción; gratis con cinco al día; exportar o publicar el montaje, pendiente (D8) |
-| D8 | Duración y publicación (Weëls ≤ 15 s) | **en parte**: una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; publicar, pendiente |
+| D8 | Duración y publicación (Weëls ≤ 15 s) | **decidida** en la Fase 14 del motor (2026-09-28): una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; el montaje final se publica SOLO con un gesto de la persona, como Weël (hasta 15 s, con la tolerancia del renderizador) o en el Wäll, comprobado por el servidor (`renders`, `render.publish`) y con la forma de publicación del compositor |
 | D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); **usarlo al generar, decidido en la Fase 13 del motor** (2026-09-28): se AÑADE detrás del texto de Weë, que no cambia, en un bloque fijo en la última línea, entero, sin enlaces ni órdenes de proveedor (plantilla `fm-plano-2`); enseñarlo (un modo avanzado oculto) y editarlo (`update_shot` sigue con `not_editable_yet`), pendientes |
 | D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
 | D11 | Precios, límites y cancelación | **en parte**: el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); cancelar, pendiente |
@@ -1126,6 +1126,42 @@ no) y O (el prompt avanzado ya no bloquea), `f1d-cliente` M1 (12 motivos del pla
 `i18n-preferencia-usuario` 57–58 (`CLAVES_PT` 3103 → 3104). Nada se despliega en esta fase.
 
 Pruebas: `functions/test/filmmaker-prompt-avanzado.test.mjs` (en la cadena).
+
+### Fase 14 · Publicar el montaje (D8)
+
+Encargo del usuario (2026-09-28, «CERRAR EL FILMMAKER ENGINE»): llevar el montaje final a Weëls o al Home, con
+permisos y dueño, **nunca solo** —siempre con una acción explícita—, validando duración, estado y existencia del render
+antes, y reutilizando lo que ya hay.
+
+- **Dónde**: una operación más de la puerta `renders`, `render.publish` (ninguna Function nueva), que llama a
+  `creator/publicacion.ts`. Del cliente llegan la producción, el montaje (su huella), el destino (`weels` o `home`), la
+  cara y un texto opcional (≤ 500); todo lo demás lo comprueba el servidor.
+- **Qué comprueba, en orden**: (1) la cara es una de las de la cuenta —la real o la Weë—, como exige la regla de
+  `posts`; (2) el render existe, es de la cuenta y está **hecho** (el estado de la Fase 8, que ya mira trabajo y
+  material); (3) el material es un vídeo listo, de la cuenta, del Storage de Weë, en su carpeta, y es EL de ese montaje
+  de esa producción (`metadata.productionId`/`montage`); (4) el archivo está en su sitio con la marca de ese material y
+  su token; (5) la duración: un Weël dura como mucho 15 s —la del montaje, y la medida del archivo con la tolerancia del
+  renderizador (0,25 s)—; el Home, lo que puede durar un render.
+- **Qué escribe**: un documento de `posts` con **exactamente** la forma del compositor (`screens/CreateScreen.tsx`):
+  el vídeo por su material (`videoAssetId`) y su dirección con token, `isWeel` si es un Weël, el Wäll general,
+  `sourceSection: 'studio'`, «Weë Studio» en «Cómo lo hice», los contadores a cero y público. Ni una colección nueva,
+  ni un estado `published` en el material (el Content Core no lo tiene a propósito), ni el modelo `Publication`, que
+  sigue sin conectar. Las reglas de `posts`, sin tocar.
+- **Idempotente**: el id del documento sale de cuenta, material, destino y cara: dos toques, dos pestañas o un reintento
+  publican una vez y el segundo contesta «ya estaba»; un documento ajeno en su sitio no se da por publicado ni se pisa;
+  borrada por la persona, se puede volver a publicar. Sin Credits, sin trabajos, sin cupo, sin proveedores.
+- **En la app**: `tomaService` gana `pedirMontaje`, `montajesDeLaProduccion`, `estadoDelMontaje` y `publicarMontaje`;
+  `hooks/useMontajeFinal.ts` lleva el montaje de la revisión guardada —pregunta cada 5 s SOLO mientras está en marcha—
+  y publica con la cara activa, como el compositor; el panel de exportar lo enseña: pedirlo, verlo avanzar, verlo y
+  publicarlo como Weël (si cabe) o en el Wäll, siempre con una confirmación. Con la puerta del render cerrada
+  (`aiSettings/render`), el aviso de siempre. Veinte claves en los once diccionarios (`filmmaker.wsFinalCut*`,
+  `wsPublish*`).
+- **Lo que queda dicho**: la marca de agua de los Weëls no existe todavía en ninguna parte de Weë (tampoco aquí); el
+  muro no tiene miniatura para un vídeo que no es de Cloudinary; retirar el material del montaje desde Mis creaciones
+  deja la publicación sin vídeo (`deleteAsset` no mira quién lo usa). Las tres son de toda la app, no de esta fase.
+
+Pruebas: `functions/test/filmmaker-publicar.test.mjs` (en la cadena): el render de verdad con FFmpeg, la puerta, cada
+comprobación, la idempotencia, los efectos que no hay, el servicio, el hook y el panel.
 
 ## Próximas fases
 

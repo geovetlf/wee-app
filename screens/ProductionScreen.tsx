@@ -7,6 +7,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea } from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
+import { useMontajeFinal } from '../hooks/useMontajeFinal';
 import CreatorShell from '../components/creator/CreatorShell';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
 import type { Seleccion } from '../components/studio/produccion/ProductionStoryboard';
@@ -120,6 +121,8 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
     conElElegido.set(seleccion.id, toma.enElPlano);
     return conElElegido;
   }, [delStoryboard, seleccion, toma.enElPlano]);
+  /* El montaje final de lo GUARDADO y su publicación (Fase 14 del motor). */
+  const montaje = useMontajeFinal(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Production')), [navigation]);
@@ -185,6 +188,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       ids,
       videos,
       toma,
+      montaje,
       seleccion,
       rechazadas,
       onSeleccionar: setSeleccion,

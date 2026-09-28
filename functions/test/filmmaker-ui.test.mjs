@@ -125,6 +125,10 @@ const dobles = {
   /* F1-D: la pantalla compone la toma del plano elegido. Aquí, quieta: lo que pinta se prueba en f1d-cliente. */
   /* Tras el canary real: el vídeo de cada plano del storyboard, y el reproductor con que se enseña. */
   '../hooks/useVideosDeLaProduccion': { useVideosDeLaProduccion: () => new Map() },
+  /* Fase 14 del motor: el montaje final y su publicación. Quieto: lo que pinta se prueba en filmmaker-publicar. */
+  '../hooks/useMontajeFinal': {
+    useMontajeFinal: () => ({ fase: 'sin_montaje', montaje: null, url: null, poster: null, motivo: null, limite: null, cabeEnUnWeel: false, publicacion: { fase: 'nada' }, pedir: () => {}, publicar: () => {} }),
+  },
   'expo-av': { Video: ({ accessibilityLabel }) => h('video', { 'aria-label': accessibilityLabel }), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
   '../hooks/useTomaDePlano': { useTomaDePlano: () => ({ fase: { fase: 'sin_unidad', porque: 'nada' }, calidad: null, enElPlano: null, ultima: null, aviso: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} }) },
   '../hooks/useProduccion': { useProduccion: () => usoDeProduccion, nuevoIdDeEscena: () => 'sc_nueva0001', nuevoIdDePlano: () => 'sh_nuevo0001' },

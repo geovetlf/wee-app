@@ -10,6 +10,7 @@ import { atenderEntrega } from '../job/worker';
 import { almacenDeTrabajos } from '../runtime/almacen';
 import { colaDeInvocacion } from '../runtime/cola';
 import { POLITICA_DEL_POSTER, TAREA_DE_POSTER, estadoDeLosPosters, leerPaqueteDePoster, pedirPosters, posterDelMaterial } from './poster';
+import { publicarMontaje } from './publicacion';
 import { POLITICA_DEL_RENDER, TAREA_DE_RENDER, estadoDelRender, materialDelRender, pedirRender, rendersDeLaProduccion } from './render';
 import { almacenDelRenderDeWee, crearEjecutorDePoster, crearEjecutorDeRender } from './renderizador';
 
@@ -340,6 +341,26 @@ export const renders = onCall({ region: REGION, timeoutSeconds: 60, memory: '512
     return { render: await estadoDelRender(db, quien, { productionId: productionId as string, huella: huella as string }) };
   }
   if (op === 'render.list') return { renders: await rendersDeLaProduccion(db, quien, productionId as string) };
+
+  /*
+   * FASE 14 (D8) · PUBLICAR EL MONTAJE. Solo con un gesto de la persona: el
+   * montaje de un render HECHO, de la cuenta, con su archivo en su sitio y la
+   * duración de su destino, como Weël o como vídeo del Home. Del cliente llegan
+   * el montaje, el destino, la cara y el texto; lo demás lo comprueba el servidor.
+   */
+  if (op === 'render.publish') {
+    const huella = typeof data.montage === 'string' && /^[0-9a-f]{64}$/.test(data.montage) ? data.montage : undefined;
+    if (!huella) noVale();
+    const r = await publicarMontaje(
+      db,
+      quien,
+      { productionId: productionId as string, huella: huella as string, destino: data.destination, cara: data.face, texto: data.text },
+      { almacen: almacenDelRenderDeWee() },
+    );
+    return r.ok
+      ? { published: { postId: r.postId, destination: r.destino, alreadyPublished: r.yaEstaba } }
+      : { refused: { reason: r.motivo, ...(r.estado ? { state: r.estado } : {}) } };
+  }
 
   /*
    * FASE 11 · LOS PÓSTERS DE UNA PRODUCCIÓN: de los vídeos de sus planos y de sus

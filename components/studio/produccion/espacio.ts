@@ -9,6 +9,7 @@ import type { FalloDeProducciones } from '../../../services/filmmakerService';
 import type { ResultadoDeGesto } from '../../../utils/controladorDeProduccion';
 import type { CalidadesDeToma, VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
+import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
 import type { Seleccion } from './ProductionStoryboard';
 import type { IdsNuevos } from './ProductionShotCard';
 
@@ -36,6 +37,8 @@ export interface EspacioDeFilmmaker {
   readonly ids: IdsNuevos;
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
+  /** El montaje final de la revisión guardada y su publicación (Fase 14 del motor). */
+  readonly montaje: MontajeDeLaProduccion;
   readonly seleccion: Seleccion;
   readonly rechazadas: ReadonlySet<string>;
   readonly onSeleccionar: (s: Seleccion) => void;

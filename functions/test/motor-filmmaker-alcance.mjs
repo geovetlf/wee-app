@@ -98,6 +98,12 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * texto—, que no entran aquí porque las vallas de F1-D ya los nombran uno a uno. En la app,
    * `utils/mensajesDeFilmmaker.ts` y una clave en los once diccionarios. F1-A, el dinero y el Job Engine, sin tocar.
    */
+  /*
+   * Fase 14 · publicar el montaje (D8; encargo del usuario del 2026-09-28, «CERRAR EL FILMMAKER ENGINE»): un módulo
+   * NUEVO que comprueba —cara, render hecho, material, archivo, duración— y escribe la publicación con la forma del
+   * compositor; la puerta `renders` (ya en la lista) gana `render.publish`. Ni Credits, ni proveedores, ni reglas.
+   */
+  'functions/src/creator/publicacion.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

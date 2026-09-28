@@ -24,7 +24,11 @@ import type { EstadoDeReserva, RechazoDeToma, ResultadoDeToma, ResultadoDelEnlac
  *     (`shots`, `shot.videos`), para que cada tarjeta del storyboard enseñe el suyo;
  *   · y, desde la Fase 11 del motor, los PÓSTERS de esos vídeos (`renders`,
  *     `poster.request`): una imagen fija de cada uno, con la dirección que calcula
- *     el servidor. Pedirlos no cuesta Credits y es idempotente.
+ *     el servidor. Pedirlos no cuesta Credits y es idempotente;
+ *   · y, desde la Fase 14, el MONTAJE FINAL (`renders`, `render.request`,
+ *     `render.status`, `render.list`) y su PUBLICACIÓN (`render.publish`): qué se
+ *     monta, cómo va y si se publica lo decide y lo comprueba el servidor; la app
+ *     dice qué producción, qué revisión, qué montaje, a dónde y con qué cara.
  */
 
 /** El nombre de la reserva de una operación en el Credit Engine: una por requestId. */
@@ -45,6 +49,54 @@ export interface TomaDeUnPlano {
   unitId: string;
   take: number;
 }
+
+/* ── El montaje final (Fase 14 del motor) ─────────────────────────────────── */
+
+/** Los estados de un render, los de la Fase 2 que le tocan. */
+export type EstadoDelMontaje = 'queued' | 'processing' | 'reconciling' | 'completed' | 'failed';
+
+export interface MontajeFinal {
+  /** La huella del montaje: su nombre. */
+  readonly huella: string;
+  readonly revision: number;
+  readonly state: EstadoDelMontaje;
+  /** Solo cuando está hecho. */
+  readonly assetId?: string;
+  /** Solo cuando falló: un código. */
+  readonly failure?: string;
+  readonly durationSec: number;
+  readonly shots: number;
+}
+
+/** A dónde se publica: un Weël o el muro del Home. */
+export type DestinoDelMontaje = 'weels' | 'home';
+
+export type RespuestaDelMontaje =
+  | { readonly ok: true; readonly montaje: MontajeFinal }
+  /** `motivo`: el código del servidor (`render_not_enabled`, `not_ready`, `daily_limit`…) o de la red. */
+  | { readonly ok: false; readonly motivo: string; readonly limite?: number };
+
+export type RespuestaDeLaPublicacion =
+  | { readonly ok: true; readonly postId: string; readonly yaEstaba: boolean }
+  | { readonly ok: false; readonly motivo: string };
+
+const ESTADOS_DEL_MONTAJE: ReadonlySet<string> = new Set(['queued', 'processing', 'reconciling', 'completed', 'failed']);
+
+/** Lo que llega del servidor, leído con desconfianza: si no tiene forma, no es un montaje. */
+export const montajeDe = (v: unknown): MontajeFinal | null => {
+  const r = v as Record<string, unknown> | null | undefined;
+  if (!r || typeof r.huella !== 'string' || !/^[0-9a-f]{64}$/.test(r.huella) || typeof r.state !== 'string' || !ESTADOS_DEL_MONTAJE.has(r.state)) return null;
+  const numero = (x: unknown): number => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+  return {
+    huella: r.huella,
+    revision: numero(r.revision),
+    state: r.state as EstadoDelMontaje,
+    ...(r.state === 'completed' && typeof r.assetId === 'string' ? { assetId: r.assetId } : {}),
+    ...(typeof r.failure === 'string' ? { failure: r.failure } : {}),
+    durationSec: numero(r.durationSec),
+    shots: numero(r.shots),
+  };
+};
 
 export const tomaService = {
   /**
@@ -120,6 +172,63 @@ export const tomaService = {
         .map((p) => [p.assetId, p.url] as const));
     } catch {
       return new Map();
+    }
+  },
+
+  /**
+   * PEDIR EL MONTAJE FINAL de la producción, en la revisión guardada. El servidor
+   * compone qué se monta desde lo guardado; un montaje ya pedido se devuelve tal
+   * cual. Sin Credits: el render tiene su tope diario.
+   */
+  pedirMontaje: async (productionId: string, revision: number): Promise<RespuestaDelMontaje> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { render?: unknown; refused?: { reason?: unknown; limit?: unknown } }>(functions, 'renders', { timeout: 60_000 });
+      const r = await fn({ op: 'render.request', productionId, revision });
+      const montaje = montajeDe(r.data.render);
+      if (montaje) return { ok: true, montaje };
+      const motivo = typeof r.data.refused?.reason === 'string' ? r.data.refused.reason : 'unknown';
+      return { ok: false, motivo, ...(typeof r.data.refused?.limit === 'number' ? { limite: r.data.refused.limit } : {}) };
+    } catch (error) {
+      return { ok: false, motivo: rechazoDe(error).motivo };
+    }
+  },
+
+  /** Los montajes de la producción, del más reciente al más antiguo. `null`: no se pudo preguntar. */
+  montajesDeLaProduccion: async (productionId: string): Promise<readonly MontajeFinal[] | null> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { renders?: unknown[] }>(functions, 'renders', { timeout: 60_000 });
+      const r = await fn({ op: 'render.list', productionId });
+      return (r.data.renders ?? []).map(montajeDe).filter((m): m is MontajeFinal => !!m);
+    } catch {
+      return null;
+    }
+  },
+
+  /** Cómo va un montaje. `null`: no existe, no es de la cuenta, o no se pudo preguntar. */
+  estadoDelMontaje: async (productionId: string, huella: string): Promise<MontajeFinal | null> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { render?: unknown }>(functions, 'renders', { timeout: 60_000 });
+      const r = await fn({ op: 'render.status', productionId, montage: huella });
+      return montajeDe(r.data.render);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * PUBLICAR EL MONTAJE en Weë: como Weël o en el Home, con la cara que se dice.
+   * Solo con un gesto de la persona. El servidor comprueba que el montaje está
+   * hecho, es de la cuenta, su archivo está y cabe en el destino.
+   */
+  publicarMontaje: async (productionId: string, huella: string, destino: DestinoDelMontaje, cara: string): Promise<RespuestaDeLaPublicacion> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { published?: { postId?: unknown; alreadyPublished?: unknown }; refused?: { reason?: unknown } }>(functions, 'renders', { timeout: 60_000 });
+      const r = await fn({ op: 'render.publish', productionId, montage: huella, destination: destino, face: cara });
+      const p = r.data.published;
+      if (p && typeof p.postId === 'string') return { ok: true, postId: p.postId, yaEstaba: p.alreadyPublished === true };
+      return { ok: false, motivo: typeof r.data.refused?.reason === 'string' ? r.data.refused.reason : 'unknown' };
+    } catch (error) {
+      return { ok: false, motivo: rechazoDe(error).motivo };
     }
   },
 };

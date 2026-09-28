@@ -261,3 +261,54 @@ export const fraseDelRechazoDeToma = (rechazo: RechazoDeToma, t: Traductor, form
       return t(clave);
   }
 };
+
+/* ── El montaje final y su publicación (Fase 14 del motor) ─────────────────── */
+
+/**
+ * POR QUÉ NO SE PUDO PEDIR EL MONTAJE, en una frase. Los códigos son los del
+ * servidor (`render.request`) y los de la red; lo que no tiene frase propia dice
+ * lo genérico. La puerta cerrada no pasa por aquí: tiene su propio aviso.
+ */
+export const fraseDelMontajeRechazado = (motivo: string | null, limite: number | null, t: Traductor, formato: Pick<FormatoDeToma, 'numero'>): string => {
+  switch (motivo) {
+    case 'not_ready':
+    case 'nothing_to_assemble':
+      return t('filmmaker.wsFinalCutNotReady');
+    case 'resolution_required':
+    case 'resolution_not_supported':
+      return t('filmmaker.wsFinalCutNeedsResolution');
+    case 'aspect_ratio_not_supported':
+      return t('filmmaker.wsFinalCutFormat');
+    case 'daily_limit':
+      return t('filmmaker.wsFinalCutDailyLimit', { limite: formato.numero(Number(limite ?? 0)) });
+    case 'too_long':
+    case 'too_many_shots':
+      return t('filmmaker.wsFinalCutTooBig');
+    case 'production_changed':
+      return t('filmmaker.wsFinalCutChanged');
+    default:
+      return t('filmmaker.wsFinalCutFailed');
+  }
+};
+
+/** CÓMO QUEDÓ LA PUBLICACIÓN DEL MONTAJE, o `null` si todavía no hay nada que decir. */
+export const fraseDeLaPublicacion = (p: { readonly fase: string; readonly motivo?: string }, t: Traductor): string | null => {
+  if (p.fase === 'publicada') return t('filmmaker.wsPublished');
+  if (p.fase === 'ya_estaba') return t('filmmaker.wsPublishedAlready');
+  if (p.fase !== 'rechazada') return null;
+  switch (p.motivo) {
+    case 'too_long_for_weels':
+      return t('filmmaker.wsPublishTooLongWeel');
+    case 'render_not_found':
+    case 'render_not_completed':
+    case 'material_not_found':
+    case 'material_not_video':
+    case 'material_not_ready':
+    case 'material_not_supported':
+    case 'material_mismatch':
+    case 'file_missing':
+      return t('filmmaker.wsPublishNotReady');
+    default:
+      return t('filmmaker.wsPublishFailed');
+  }
+};
