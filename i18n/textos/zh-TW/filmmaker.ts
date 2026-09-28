@@ -271,7 +271,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perOperationsInvalid: '有一項變更無法套用。',
   perOperationsEmpty: '沒有需要修改的內容。',
   perOperationsTooMany: '一次變更太多了。',
-  perElementBindingNotSupported: 'Weë 目前還不能在這裡連結元素。',
+  perElementBindingRejected: '有一個連結的元素無法使用。',
   perReferenceRejected: '有一個參考素材無法使用。',
   perIdNotStorable: '有一個識別碼無法儲存。',
   perDocumentTooLarge: '有一個場景太大，無法儲存。',

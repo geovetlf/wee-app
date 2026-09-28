@@ -258,7 +258,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perOperationsInvalid: 'L’une des modifications n’a pas pu être appliquée.',
   perOperationsEmpty: 'Il n’y avait rien à modifier.',
   perOperationsTooMany: 'Trop de modifications à la fois.',
-  perElementBindingNotSupported: 'Weë ne peut pas encore lier des éléments ici.',
+  perElementBindingRejected: 'Un élément lié ne peut pas être utilisé.',
   perReferenceRejected: 'Une référence ne peut pas être utilisée.',
   perIdNotStorable: 'Un identifiant ne peut pas être enregistré.',
   perDocumentTooLarge: 'Une scène est trop volumineuse pour être enregistrée.',

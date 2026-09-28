@@ -2,8 +2,9 @@ import { createHash } from 'crypto';
 import { DocumentReference, DocumentSnapshot, Firestore, Transaction, getFirestore } from 'firebase-admin/firestore';
 import type { AspectRatio } from '../core/creative';
 import { puedeReferenciar } from '../core/element';
-import type { FichaDeMaterial, MotivoDeNoReferenciar } from '../core/element';
+import type { ElementStatus, ElementType, FichaDeMaterial, MotivoDeNoReferenciar } from '../core/element';
 import { leerMaterial } from '../content';
+import { leerElemento } from '../elements';
 import {
   FILMMAKER_MODEL_VERSION, FORMA_DE_ID, FilmmakerProduction, FormatPresetId, LIMITES, PRESETS, ProductionScene,
   ResolutionTarget, canonico, configuracionDePreset, produccionVacia,
@@ -39,8 +40,9 @@ import { FilmmakerOperation, PendingRegeneration, aplicarOperaciones } from '../
  * Ni una regla del dominio. Lo que entra y lo que sale se comprueba con
  * `integridad()` de F1-A, y los cambios son `aplicarOperaciones()`, tal cual.
  * Este archivo solo añade lo que es de GUARDAR: la cuenta, la revisión con
- * CAS, el registro, los tamaños que Firestore admite y las dos cosas que F1-B
- * aún no deja pasar (un Element de verdad, y un material que no sea tuyo).
+ * CAS, el registro, los tamaños que Firestore admite y lo que entra de fuera de
+ * la producción: un vínculo a un Element que no es tuyo, está archivado o no
+ * encaja (F3), y un material que no es tuyo.
  *
  * ── De quién es ─────────────────────────────────────────────────────────────
  *
@@ -145,7 +147,7 @@ export type CodigoDePersistencia =
   | 'operations_invalid'
   | 'operations_empty'
   | 'operations_too_many'
-  | 'element_binding_not_supported'
+  | 'element_binding_rejected'
   | 'reference_rejected'
   | 'id_not_storable'
   | 'document_too_large'
@@ -224,9 +226,20 @@ export interface LectorDeMateriales {
   (assetId: string): Promise<FichaDeMaterial | null>;
 }
 
+/** Lo que se necesita saber de un Element para vincularlo: nada de sus materiales ni de su nombre. */
+export interface ElementoParaVincular {
+  readonly elementId: string;
+  readonly type: ElementType;
+  readonly version: number;
+  readonly status: ElementStatus;
+}
+/** Un Element DE ESTA CUENTA, o `null` si no existe o es de otra: las dos cosas contestan igual. */
+export type LectorDeElementos = (accountId: string, elementId: string) => Promise<ElementoParaVincular | null>;
+
 export interface DepsDeProducciones {
   db?: Firestore;
   material?: LectorDeMateriales;
+  elementos?: LectorDeElementos;
 }
 
 const laBase = (deps: DepsDeProducciones = {}): Firestore => deps.db ?? getFirestore();
@@ -235,6 +248,12 @@ const laBase = (deps: DepsDeProducciones = {}): Firestore => deps.db ?? getFires
 const materialPorDefecto: LectorDeMateriales = async (assetId) => {
   const ficha = await leerMaterial(assetId);
   return ficha ? { assetId: ficha.assetId, ownerAccountId: ficha.ownerAccountId, kind: ficha.kind, status: ficha.status } : null;
+};
+
+/** Por defecto, el runtime de Elements (S4): la misma lectura, que ya valida la fila y ya mira de quién es. */
+const elementosPorDefecto = (deps: DepsDeProducciones): LectorDeElementos => async (accountId, elementId) => {
+  const e = await leerElemento(accountId, elementId, { db: laBase(deps) });
+  return e ? { elementId: e.elementId, type: e.type, version: e.version, status: e.status } : null;
 };
 
 const raizRef = (db: Firestore, productionId: string): DocumentReference => db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId);
@@ -444,13 +463,41 @@ const leerEnTransaccion = async (tx: Transaction, db: Firestore, productionId: s
   return reunir(productionId, accountId, snap.data(), escenas.docs.map((d) => ({ id: d.id, data: d.data() })));
 };
 
-/* ── Lo que F1-B todavía no deja pasar ───────────────────────────────────── */
+/* ── F3 · Los vínculos a Elements, verificados ───────────────────────────── */
 
 /**
- * UN ELEMENT DE VERDAD, NO. El dominio admite `ElementBinding` en personajes,
- * lugares, objetos y referencias; guardarlo exige comprobar que el Element es de
- * la cuenta, está activo y existe en esa versión, y eso es F3. Hasta entonces se
- * rechaza cualquier objeto con `elementId`, esté donde esté.
+ * QUÉ CLASES DE ELEMENT PUEDE TENER CADA FICHA (Filmmaker Engine, Fase 10 = F3;
+ * decisión del usuario, 2026-09-28: «vínculo verificado»).
+ *
+ * Un personaje, a un personaje. Un lugar, a un lugar o a una escena guardada. Un
+ * objeto, a un objeto, un producto o una marca. Una referencia, a cualquiera: es
+ * «esto es lo que tiene que parecer». Las clases son las del Core
+ * (`TIPOS_DE_ELEMENTO`), escritas aquí como texto para que guardar no nombre un
+ * símbolo más del Core; la prueba las compara con las de verdad.
+ */
+export const CLASES_DE_ELEMENTO_POR_FICHA: Readonly<Record<'characters' | 'locations' | 'objects' | 'references', readonly ElementType[]>> = Object.freeze({
+  characters: Object.freeze(['character'] as ElementType[]),
+  locations: Object.freeze(['place', 'scene'] as ElementType[]),
+  objects: Object.freeze(['object', 'product', 'brand'] as ElementType[]),
+  references: Object.freeze(['character', 'product', 'brand', 'place', 'object', 'scene'] as ElementType[]),
+});
+type FichaVinculable = keyof typeof CLASES_DE_ELEMENTO_POR_FICHA;
+const FICHAS_VINCULABLES: readonly FichaVinculable[] = ['characters', 'locations', 'objects', 'references'];
+
+export type MotivoDeVinculoRechazado = 'not_found' | 'archived' | 'wrong_kind' | 'version_mismatch' | 'not_allowed_here';
+
+interface Vinculo { readonly ficha: FichaVinculable; readonly elementId: string; readonly version: number; readonly ruta: string }
+
+/** Los vínculos de las fichas, cada uno con la ruta con la que se dice dónde está. */
+const vinculosDeLasFichas = (prod: FilmmakerProduction | undefined): Vinculo[] =>
+  !prod ? [] : FICHAS_VINCULABLES.flatMap((ficha) =>
+    (prod[ficha] as readonly { readonly id: string; readonly element?: { readonly elementId: string; readonly version: number } }[])
+      .filter((f) => f.element !== undefined)
+      .map((f) => ({ ficha, elementId: f.element!.elementId, version: f.element!.version, ruta: `${ficha}.${f.id}.element` })));
+
+/**
+ * CUALQUIER `elementId`, esté donde esté. El dominio solo admite un vínculo en una
+ * ficha; lo que aparezca en otro sitio se rechaza al guardar, como antes de F3.
  */
 const vinculosDeElementos = (prod: FilmmakerProduction): string[] => {
   const rutas: string[] = [];
@@ -468,11 +515,16 @@ const vinculosDeElementos = (prod: FilmmakerProduction): string[] => {
  * LO QUE NO ESTÁ EN EL DOMINIO Y SÍ EN GUARDAR. Tres comprobaciones, y ninguna
  * repite una regla de F1-A:
  *
- *   1 · ningún `ElementBinding` (F3);
+ *   1 · cada vínculo NUEVO o CAMBIADO a un Element (F3) apunta a uno de la cuenta,
+ *       activo, de una clase que encaja con su ficha y en su versión de ahora; y
+ *       ninguno está fuera de una ficha;
  *   2 · cada escena es un documento, así que su id no puede ser uno reservado;
  *   3 · cada material NUEVO —el que no estaba antes— es de la cuenta, está listo
  *       y es de la clase que la referencia dice, con `puedeReferenciar` del Core.
- *       Lo que ya estaba no se vuelve a leer: se comprobó cuando entró.
+ *
+ * Lo que ya estaba no se vuelve a leer: se comprobó cuando entró. Y eso es lo que
+ * hace que archivar un Element DESPUÉS no bloquee nada: la ficha sigue valiendo por
+ * lo que tiene escrito, y el resto de la producción se sigue pudiendo editar.
  */
 const politica = async (
   antes: FilmmakerProduction | undefined,
@@ -480,9 +532,30 @@ const politica = async (
   accountId: string,
   deps: DepsDeProducciones,
 ): Promise<Rechazo | null> => {
-  const vinculos = vinculosDeElementos(despues);
-  if (vinculos.length) {
-    return rechazo('element_binding_not_supported', vinculos.map((r) => problema('element_binding_not_supported', r, { until: 'F3' })));
+  const deLasFichas = vinculosDeLasFichas(despues);
+  const enSuSitio = new Set(deLasFichas.map((v) => v.ruta));
+  const fuera = vinculosDeElementos(despues).filter((r) => !enSuSitio.has(r));
+  if (fuera.length) {
+    return rechazo('element_binding_rejected', fuera.map((r) => problema('element_binding_rejected', r, { reason: 'not_allowed_here' })));
+  }
+  const yaEstaban = new Set(vinculosDeLasFichas(antes).map((v) => `${v.ruta}|${v.elementId}|${v.version}`));
+  const nuevosVinculos = deLasFichas.filter((v) => !yaEstaban.has(`${v.ruta}|${v.elementId}|${v.version}`));
+  if (nuevosVinculos.length) {
+    const leerElementoDeLaCuenta = deps.elementos ?? elementosPorDefecto(deps);
+    /* Un mismo Element en varias fichas se lee una vez. */
+    const vistos = new Map<string, ElementoParaVincular | null>();
+    const rechazados: ProblemaDePersistencia[] = [];
+    for (const v of nuevosVinculos) {
+      if (!vistos.has(v.elementId)) vistos.set(v.elementId, await leerElementoDeLaCuenta(accountId, v.elementId));
+      const e = vistos.get(v.elementId);
+      const motivo: MotivoDeVinculoRechazado | undefined = !e ? 'not_found'
+        : e.status !== 'active' ? 'archived'
+          : !CLASES_DE_ELEMENTO_POR_FICHA[v.ficha].includes(e.type) ? 'wrong_kind'
+            : e.version !== v.version ? 'version_mismatch'
+              : undefined;
+      if (motivo) rechazados.push(problema('element_binding_rejected', v.ruta, { reason: motivo }));
+    }
+    if (rechazados.length) return rechazo('element_binding_rejected', rechazados);
   }
   const reservados = despues.scenes.filter((s) => reservado(s.id));
   if (reservados.length) return rechazo('id_not_storable', reservados.map((s) => problema('id_not_storable', `scenes.${s.id}`)));

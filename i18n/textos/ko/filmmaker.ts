@@ -258,7 +258,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perOperationsInvalid: '변경 사항 중 하나를 적용하지 못했어요.',
   perOperationsEmpty: '변경할 내용이 없었어요.',
   perOperationsTooMany: '한 번에 변경 사항이 너무 많아요.',
-  perElementBindingNotSupported: 'Weë는 아직 여기서 요소를 연결할 수 없어요.',
+  perElementBindingRejected: '사용할 수 없는 연결 요소가 있어요.',
   perReferenceRejected: '사용할 수 없는 레퍼런스가 있어요.',
   perIdNotStorable: '저장할 수 없는 ID가 있어요.',
   perDocumentTooLarge: '저장하기에 너무 큰 장면이 있어요.',

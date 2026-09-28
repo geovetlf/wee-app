@@ -73,6 +73,13 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
   'functions/src/creator/brain.ts',
   'functions/src/creator/prompts.ts',
   'functions/src/creator/produccionEnBrain.ts',
+  /*
+   * Fase 10 (F3 del roadmap) · los vínculos a Elements, verificados (decisión del usuario, 2026-09-28: «vínculo
+   * verificado»). Guardar deja de rechazar todo vínculo «hasta F3» y comprueba los NUEVOS: un Element de la cuenta,
+   * activo, de la clase que toca y en su versión de ahora. La puerta traduce el código nuevo. Generar no cambia.
+   */
+  'functions/src/productions/index.ts',
+  'functions/src/productions/puerta.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

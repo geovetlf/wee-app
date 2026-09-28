@@ -137,7 +137,8 @@ const CASOS = [
   ['invalid-argument', 'operations_invalid', 'rechazada'],
   ['already-exists', 'production_id_taken', 'rechazada'],
   ['data-loss', 'production_corrupted', 'rechazada'],
-  ['failed-precondition', 'element_binding_not_supported', 'rechazada'],
+  /* F3 (Fase 10 del Filmmaker Engine): un vínculo que no se puede usar llega como algo mal pedido. */
+  ['invalid-argument', 'element_binding_rejected', 'rechazada'],
   ['unauthenticated', 'session_required', 'sin_sesion'],
   ['permission-denied', 'account_not_found', 'sin_cuenta'],
   ['invalid-argument', 'operation_unknown', 'rechazada'],

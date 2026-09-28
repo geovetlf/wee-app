@@ -257,7 +257,7 @@ export const filmmaker = {
   perOperationsInvalid: 'Uno de los cambios no se pudo aplicar.',
   perOperationsEmpty: 'No había nada que cambiar.',
   perOperationsTooMany: 'Demasiados cambios a la vez.',
-  perElementBindingNotSupported: 'Weë todavía no puede vincular elementos aquí.',
+  perElementBindingRejected: 'Un elemento vinculado no se puede usar.',
   perReferenceRejected: 'Una referencia no se puede usar.',
   perIdNotStorable: 'Un identificador no se puede guardar.',
   perDocumentTooLarge: 'Una escena es demasiado grande para guardarla.',

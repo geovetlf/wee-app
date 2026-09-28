@@ -62,7 +62,7 @@ export const CODIGO_DE_CALLABLE: Readonly<Record<CodigoDePersistencia, Functions
   operations_invalid: 'invalid-argument',
   operations_empty: 'invalid-argument',
   operations_too_many: 'invalid-argument',
-  element_binding_not_supported: 'failed-precondition',
+  element_binding_rejected: 'invalid-argument',
   reference_rejected: 'invalid-argument',
   id_not_storable: 'invalid-argument',
   document_too_large: 'invalid-argument',

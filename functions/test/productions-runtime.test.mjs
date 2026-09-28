@@ -1025,14 +1025,20 @@ await seccion('X', async () => {
   const enObjeto = rica(); enObjeto.objects[0].element = binding;
   const enReferencia = rica(); enReferencia.references.push({ id: 'ref-el', kind: 'image', element: binding });
   const rs = await Promise.all([enPersonaje, enLugar, enObjeto, enReferencia].map((p, i) => P.crearProduccion({ accountId: A, productionId: pid(40 + i), production: p, at: HOY }, m.deps)));
-  check('X1) un vínculo a un Element de verdad se rechaza con su código y su ruta, esté donde esté: eso es F3',
-    rs.every((x) => codigoDe(x) === 'element_binding_not_supported')
+  /*
+   * Reanclada en la Fase 10 del Filmmaker Engine (F3; decisión del usuario, 2026-09-28: «vínculo verificado»): un
+   * vínculo ya no se rechaza por ser un vínculo, sino si su Element no es de la cuenta, está archivado, no encaja con
+   * la ficha o no está en esa versión. Estos cuatro apuntan a uno que no existe: `not_found`, con su código y su ruta.
+   */
+  check('X1) un vínculo a un Element que no es de la cuenta se rechaza con su código, su ruta y su motivo, esté en la ficha que esté',
+    rs.every((x) => codigoDe(x) === 'element_binding_rejected')
     && iguales(rs.map((x) => x.problems[0].path), ['characters.char-luna.element', 'locations.loc-city.element', 'objects.obj-shoe.element', 'references.ref-el.element'])
-    && rs.every((x) => x.problems[0].parameters.until === 'F3'));
+    && rs.every((x) => x.problems[0].parameters.reason === 'not_found'));
   check('X2) y no se escribe nada', m.db.docs.size === 0);
   const codigo = ['index.ts', 'puerta.ts'].map((f) => sinComentarios(leer(`functions/src/productions/${f}`))).join('\n');
-  check('X3) este módulo no importa `elements` ni `shots`, y `shots` no exporta nada nuevo',
-    !/from '\.\.\/(elements|shots)/.test(codigo) && !/export (const|function|async function) revisarElementos/.test(leer('functions/src/shots/index.ts')));
+  check('X3) de `elements` solo LEE —`leerElemento`— y no importa `shots`; y `shots` no exporta nada nuevo',
+    (codigo.match(/from '\.\.\/elements'/g) ?? []).length === 1 && /import \{ leerElemento \} from '\.\.\/elements';/.test(codigo)
+    && !/from '\.\.\/shots/.test(codigo) && !/export (const|function|async function) revisarElementos/.test(leer('functions/src/shots/index.ts')));
 });
 
 /* ═══ Y · SIN TOCAR EL CORE ════════════════════════════════════════════════ */
@@ -1045,9 +1051,10 @@ await seccion('Y', async () => {
     shotCore.validarPlano({ contract: '1.0', shotId: 'sh-0001', projectId: 'proj-0001', version: 1, order: 0, state: 'draft', ownerAccountId: 'a', createdAt: 0, updatedAt: 0, prompt: 'x' })
       .some((x) => x.field === 'prompt' && x.reason === 'forbidden_key'));
   const imports = ['index.ts', 'puerta.ts'].flatMap((f) => [...sinComentarios(leer(`functions/src/productions/${f}`)).matchAll(/from '([^']+)'/g)].map((x) => x[1]));
+  /* Desde F3 (Fase 10 del Filmmaker Engine), también el runtime de Elements: para LEER el Element de un vínculo nuevo. */
   const PERMITIDOS = ['crypto', 'firebase-admin/firestore', 'firebase-functions/v2/https', '../core/creative', '../core/element', '../content',
-    '../filmmaker/modelo', '../filmmaker/validacion', '../filmmaker/operaciones', '../identity/cuentas', './index'];
-  check('Y3) importa solo lo que necesita: Firestore, la puerta, dos piezas del Core, el Content Core, la cuenta y el dominio de F1-A',
+    '../elements', '../filmmaker/modelo', '../filmmaker/validacion', '../filmmaker/operaciones', '../identity/cuentas', './index'];
+  check('Y3) importa solo lo que necesita: Firestore, la puerta, dos piezas del Core, el Content Core, Elements, la cuenta y el dominio de F1-A',
     imports.every((x) => PERMITIDOS.includes(x)), imports.filter((x) => !PERMITIDOS.includes(x)).join(', '));
   const codigo = sinComentarios(leer('functions/src/productions/index.ts'));
   check('Y4) sus colecciones son las suyas: ni `scenes`, ni `shots`, ni consultas de grupo',
@@ -1128,9 +1135,10 @@ await seccion('Z', async () => {
   const e5 = await lanza(() => hacer({ op: 'create', productionId: pid(4), production: conEl }));
   const e6 = await lanza(() => hacer({ op: 'create', productionId: pid(1), title: 'otra', aspectRatio: '1:1' }));
   const e7 = await lanza(() => hacer({ op: 'borrar' }));
+  /* F3: un vínculo que no se puede usar es, como una referencia que no se puede usar, algo mal pedido: `invalid-argument`. */
   check('Z7) cada rechazo sale con el código estándar de una callable: no encontrado, conflicto, archivada, inválida, Element, ocupado, operación desconocida',
     e1?.code === 'not-found' && e2?.code === 'aborted' && e2?.details?.currentRevision === 1 && e3?.code === 'failed-precondition'
-    && e4?.code === 'invalid-argument' && e5?.code === 'failed-precondition' && e6?.code === 'already-exists' && e7?.code === 'invalid-argument');
+    && e4?.code === 'invalid-argument' && e5?.code === 'invalid-argument' && e5?.details?.code === 'element_binding_rejected' && e6?.code === 'already-exists' && e7?.code === 'invalid-argument');
   const errores = [e1, e2, e3, e4, e5, e6, e7];
   check('Z8) y sin frases: el mensaje es el código y `details` trae su `messageKey`; los del dominio, las suyas',
     errores.every((e) => /^[a-z_]+$/.test(e.message) && e.details.code === e.message && e.details.messageKey === `filmmaker.persistence.${e.message}`)

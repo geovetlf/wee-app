@@ -259,7 +259,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perOperationsInvalid: 'Non è stato possibile applicare una delle modifiche.',
   perOperationsEmpty: 'Non c’era niente da modificare.',
   perOperationsTooMany: 'Troppe modifiche in una volta.',
-  perElementBindingNotSupported: 'Weë non può ancora collegare elementi qui.',
+  perElementBindingRejected: 'Un elemento collegato non si può usare.',
   perReferenceRejected: 'Un riferimento non si può usare.',
   perIdNotStorable: 'Un identificatore non si può salvare.',
   perDocumentTooLarge: 'Una scena è troppo grande per essere salvata.',

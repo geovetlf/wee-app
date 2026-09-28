@@ -834,7 +834,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
 {
   /* Salvo lo que el Filmmaker Engine tiene dicho, por nombre, que toca (motor-filmmaker-alcance.mjs, 2026-09-28). */
   check('AG) F1-A intacto', fueraDelMotor(git(`diff --name-only ${PUENTE} -- functions/src/filmmaker`).trim().split('\n').filter(Boolean)).length === 0);
-  check('AH) productions intacto', git(`diff --name-only ${PUENTE} -- functions/src/productions`).trim() === '');
+  /* Desde la Fase 10 (F3), `productions` tiene lo que el motor dice por nombre: guardar verifica los vínculos a Elements. */
+  check('AH) productions intacto', fueraDelMotor(git(`diff --name-only ${PUENTE} -- functions/src/productions`).trim().split('\n').filter(Boolean)).length === 0);
   check('AI) Credits intactos: el Credit Engine, creditCosts, credits/index, el Financial Core y el Router',
     git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };

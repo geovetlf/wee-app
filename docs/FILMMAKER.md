@@ -385,7 +385,7 @@ siguen **pendientes**:
 | D7 | Montaje y render | **decidida** en la Fase 8 del motor (2026-09-28): FFmpeg propio (`ffmpeg-static`) como tarea general del Job Engine; el resultado, material `asset_` de la cuenta más un registro en la producción; gratis con cinco al día; exportar o publicar el montaje, pendiente (D8) |
 | D8 | Duración y publicación (Weëls ≤ 15 s) | **en parte**: una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; publicar, pendiente |
 | D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); al generar, un plano con prompt avanzado se rechaza (F1-D); enseñarlo y usarlo, pendiente (F6) |
-| D10 | Identidad de personajes | pendiente: sin biometría ni embeddings |
+| D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
 | D11 | Precios, límites y cancelación | **en parte**: el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); cancelar, pendiente |
 | D12 | Versiones y «restaurar» | **decidida** en su parte mínima (ADR-FM-006 y 007): revisión con CAS y registro; «restaurar», pendiente (F6) |
 | D13 | Reproductor | pendiente: «Ver vídeo» abre la dirección del material |
@@ -396,8 +396,8 @@ siguen **pendientes**:
 F1-A no tenía cómo añadir, editar o quitar personajes, lugares, objetos y referencias, cambiar la dirección creativa
 de la producción, cambiar una transición ni mover un plano a otra escena. Lo tiene desde la fase 1 del Filmmaker
 Engine (abajo). Queda fuera, a propósito: **cambiar el prompt avanzado** (se guarda desde F1-B, ADR-FM-008; editarlo
-es de F6 y `update_shot` lo rechaza con `not_editable_yet`) y **vincular una ficha a un Element de la cuenta**: el
-dominio acepta `element`, pero `productions` sigue respondiendo `element_binding_not_supported` hasta F3.
+es de F6 y `update_shot` lo rechaza con `not_editable_yet`). **Vincular una ficha a un Element de la cuenta** se puede
+desde la fase 10 del Filmmaker Engine (F3, abajo): guardar comprueba el Element.
 
 ## F1-B · La producción, guardada
 
@@ -438,10 +438,10 @@ existe. Los errores no llevan frases: `message` es el código y `details` trae `
 |---|---|
 | `production_not_found` | `not-found` |
 | `revision_conflict` (con `currentRevision`) | `aborted` |
-| `production_archived`, `element_binding_not_supported`, `history_too_long` | `failed-precondition` |
+| `production_archived`, `history_too_long` | `failed-precondition` |
 | `production_id_taken`, `operation_id_reused` | `already-exists` |
 | `production_corrupted`, `history_broken` | `data-loss` |
-| el resto (`production_invalid`, `operations_invalid`, `reference_rejected`, tamaños, ids…) | `invalid-argument` |
+| el resto (`production_invalid`, `operations_invalid`, `reference_rejected`, `element_binding_rejected` desde F3, tamaños, ids…) | `invalid-argument` |
 
 ### Revisión, CAS y registro
 
@@ -468,8 +468,8 @@ parte en silencio**. Los límites del dominio (200 escenas, 100 planos por escen
 
 ### Lo que F1-B todavía no deja pasar
 
-- **Un Element de verdad**: cualquier `ElementBinding` —en un personaje, un lugar, un objeto o una referencia— es
-  `element_binding_not_supported`. Comprobarlo es F3; `shots` no se toca para ello.
+- **Un Element de verdad**: hasta F3, cualquier `ElementBinding` era `element_binding_not_supported`. Desde la fase 10
+  del Filmmaker Engine se comprueba (abajo); `shots` sigue sin tocarse para ello.
 - **Un material que no sea tuyo**: cada `assetId` nuevo se comprueba con `leerMaterial` y `puedeReferenciar` del
   Core: `not_found` (no existe o es de otra cuenta, la misma respuesta), `not_usable` o `kind_mismatch`. Solo se
   guarda el id: ni URL, ni bytes, ni la ficha.
@@ -739,7 +739,7 @@ cerrada, todas o ninguna, integridad comprobada después de cada una y lo pendie
   líneas; el montaje (pistas, subtítulos, marcas) no deja nada pendiente porque no cambia lo que se genera.
 - **Sin códigos nuevos**: los problemas usan los de F1-A, así que no hay frases nuevas en los once diccionarios.
 - La persistencia no cambió: `productions` ya comprobaba cada material NUEVO de una referencia (dueño, `ready`,
-  clase) comparando antes y después, y sigue rechazando los vínculos a Elements hasta F3. El espejo de la app se
+  clase) comparando antes y después, y rechazaba los vínculos a Elements hasta F3 (fase 10). El espejo de la app se
   regeneró (`scripts/espejo-filmmaker.mjs`).
 
 Pruebas: `functions/test/filmmaker-lenguaje.test.mjs` (en la cadena), con una batería de sabotajes sobre el compilado
@@ -972,6 +972,33 @@ el botón de aplicarla— es del pase de UX.
 
 Pruebas: `functions/test/filmmaker-brain.test.mjs` (en la cadena).
 
+### Fase 10 · Los vínculos a Elements, verificados (F3)
+
+Decisión del usuario (2026-09-28): **vínculo verificado, todavía sin imágenes**. Un personaje, un lugar, un objeto o una
+referencia de la producción puede vincularse a un Element guardado de la cuenta (`ElementBinding` = `{ elementId, version }`),
+y guardar deja de rechazarlo «hasta F3»: lo comprueba.
+
+- **Qué se comprueba** (`productions/index.ts`, en la misma política que ya comprobaba los materiales): cada vínculo NUEVO
+  o CAMBIADO —el que no estaba igual antes— apunta a un Element **de la cuenta** (lo ajeno contesta lo mismo que lo que no
+  existe), **activo**, de una **clase que encaja** con su ficha y en su **versión de ahora**. Si no, `element_binding_rejected`
+  (`invalid-argument`) con la ruta de la ficha y su motivo: `not_found`, `archived`, `wrong_kind`,
+  `version_mismatch`, o `not_allowed_here` para un `elementId` fuera de una ficha. No se escribe nada.
+- **Qué encaja** (`CLASES_DE_ELEMENTO_POR_FICHA`): personaje → personaje; lugar → lugar o escena guardada; objeto → objeto,
+  producto o marca; referencia → cualquiera. Las clases son las del Core; la suite lo comprueba.
+- **Lo que ya estaba no se vuelve a mirar**: archivar un Element después NO bloquea la producción —la ficha sigue valiendo
+  por lo que tiene escrito y el resto se sigue editando—; cambiar el vínculo sí se comprueba otra vez, y quitarlo siempre se
+  puede. Un mismo Element en varias fichas se lee una vez.
+- **Cómo se lee**: por el runtime de Elements (`leerElemento`, S4), que ya valida la fila y mira de quién es. Guardar solo
+  LEE Elements: ni los escribe ni los cambia.
+- **Generar no cambia**: un vínculo no es una imagen de referencia, así que el plano sigue siendo `video.generate` y su
+  prompt (`fm-plano-1`) sale de lo escrito en la ficha —nombre, descripción, rasgos, vestuario—, sin nombrar el Element.
+  Usar las imágenes del Element al generar es una capacidad sin validar (vídeo con referencias) y llegará con su canary.
+
+Vallas reancladas por nombre con esta autorización: `productions-runtime` X1, X3, Y3 y Z7 (el rechazo «hasta F3», el import
+de `elements` y el código de la callable) y `f1d-generacion` AH (`productions` por la lista del motor).
+
+Pruebas: `functions/test/filmmaker-elementos.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -980,7 +1007,7 @@ Pruebas: `functions/test/filmmaker-brain.test.mjs` (en la cadena).
 | F1-C | **Hecha**: la producción en la app —«Varias escenas» dentro de Weë Studio—, con el storyboard, el panel Director, el estado optimista con CAS y los `messageKey` (`filmmaker.*`) en once idiomas; sin generar ni cobrar |
 | F1-D | **Hecha** (local, sin desplegar): una toma de un plano a partir de su requisito (D4), asíncrona por el Core (D5), cotizada y enlazada a su `ShotNode` con verificación en el servidor |
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones. **Hecha en el servidor** (Filmmaker Engine, Fase 9; local, sin desplegar): la propuesta y su comprobación; enseñarla en la app, en el pase de UX |
-| F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
+| F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados; usar sus imágenes al generar, pendiente de validar |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; exportar o publicar el montaje, aparte |
 | F6 | Director avanzado: prompt avanzado (D9), versiones (D12) |

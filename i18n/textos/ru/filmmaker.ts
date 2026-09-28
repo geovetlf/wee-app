@@ -273,7 +273,7 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   perOperationsInvalid: 'Одно из изменений не удалось применить.',
   perOperationsEmpty: 'Менять было нечего.',
   perOperationsTooMany: 'Слишком много изменений сразу.',
-  perElementBindingNotSupported: 'Здесь Weë пока не умеет связывать элементы.',
+  perElementBindingRejected: 'Один из связанных элементов нельзя использовать.',
   perReferenceRejected: 'Один из референсов нельзя использовать.',
   perIdNotStorable: 'Один из идентификаторов нельзя сохранить.',
   perDocumentTooLarge: 'Одна из сцен слишком большая, чтобы её сохранить.',
