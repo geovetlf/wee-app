@@ -832,6 +832,27 @@ Ese es el que usa `generateVideo` para todo; el de la app se lee con la misma fu
 
 Pruebas: `functions/test/filmmaker-requisito-servidor.test.mjs` (en la cadena), y G12 en `filmmaker-modelo.test.mjs`.
 
+### Fase 6 · Varios planos a la vez (F4)
+
+`generateVideo` gana el modo `produccion` (`productionId`, `revision`, `quality` y, si se quiere, `units`): con
+`cotizar`, el presupuesto del lote; sin él, el lote por `creditosCotizados` —el total—. Lo hace
+`creator/lotes.ts`, y no decide nada de lo que ya decide la puerta: cada unidad vuelve a entrar por ELLA MISMA como
+una toma, con el requisito que calcula el servidor (Fase 5), y su cotización, su cupo, su reserva y su trabajo son
+los de siempre. No hay un cobro del lote —sería otro Credit Engine—: el total es la suma de las tomas, y cada una se
+cobra o se devuelve por su cuenta.
+
+- **El presupuesto** dice, en el orden de la línea de tiempo, qué pasa con cada unidad: `generate` (su toma y su
+  precio, el mismo que su cotización suelta), `done` (su plano ya tiene su vídeo), `in_flight` (tiene una toma en
+  marcha) o `blocked` (con el porqué de la puerta: una duración, un diálogo, la puerta del Core cerrada…). Y el
+  total, lo que se salta, el resumen por capacidad de F1-A y si hay saldo. No toca nada.
+- **Generar** vuelve a presupuestar y solo sigue por el total que se enseñó (`price_changed` si no). Sin Credits para
+  el total no empieza ninguna (`insufficient_credits`). Después, una a una y en orden, y al primer fallo se para
+  (`stoppedAt`): lo que falla en un lote —el cupo del día, el saldo, la puerta— haría fallar las siguientes igual. Lo
+  que ya empezó sigue en marcha, y la toma que falló se devuelve como cualquier toma.
+- Como mucho 12 unidades por lote, las del cupo diario de vídeo (`batch_too_large`).
+
+Pruebas: `functions/test/filmmaker-lotes.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -841,7 +862,7 @@ Pruebas: `functions/test/filmmaker-requisito-servidor.test.mjs` (en la cadena), 
 | F1-D | **Hecha** (local, sin desplegar): una toma de un plano a partir de su requisito (D4), asíncrona por el Core (D5), cotizada y enlazada a su `ShotNode` con verificación en el servidor |
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia |
-| F4 | Generación de varios planos, con los requisitos y el resumen por capacidad para cotizar |
+| F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado |
 | F6 | Director avanzado: prompt avanzado (D9), versiones (D12) |
 

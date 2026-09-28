@@ -52,16 +52,53 @@ export const requisitoDelServidor = async (
   accountId: string,
   u: { productionId: string; sceneId: string; unitId: string; revision: number },
 ): Promise<RequisitoCalculado> => {
+  const todos = await requisitosDelServidor(db, accountId, u);
+  if (!todos.ok) return todos;
+  const deLaUnidad = todos.unidades.find((s) => s.unitId === u.unitId && s.sceneId === u.sceneId)?.crudo;
+  if (!deLaUnidad) return { ok: false, motivo: 'unit_not_found' };
+  /* Por JSON, como llega el de la app: la misma forma, leída por la misma función. */
+  const requisito = leerRequisitoDePlano(JSON.parse(JSON.stringify(deLaUnidad)));
+  return requisito ? { ok: true, requisito } : { ok: false, motivo: 'shot_invalid' };
+};
+
+/** Una unidad, con su requisito de F1-A tal cual —en JSON—: lo que la puerta del vídeo recibe como `requirement`. */
+export interface UnidadDelServidor {
+  readonly sceneId: string;
+  readonly unitId: string;
+  readonly crudo: unknown;
+}
+
+/** El resumen por capacidad de F1-A: qué haría falta para la producción entera, y cuánto. */
+export interface CapacidadDeLaProduccion {
+  readonly capability: string;
+  readonly count: number;
+  readonly totalSec?: number;
+}
+
+/**
+ * TODOS LOS REQUISITOS DE LA PRODUCCIÓN GUARDADA en esa revisión, y su resumen
+ * por capacidad. La MISMA lectura y el MISMO cálculo que el de una unidad —que sale
+ * de aquí—; lo usa la generación de varios planos (F4) para no fiarse de nada que
+ * mande la app.
+ */
+export const requisitosDelServidor = async (
+  db: Firestore,
+  accountId: string,
+  u: { productionId: string; revision: number },
+): Promise<
+  | { readonly ok: true; readonly unidades: readonly UnidadDelServidor[]; readonly capacidades: readonly CapacidadDeLaProduccion[] }
+  | { readonly ok: false; readonly motivo: MotivoDelRequisito; readonly causa?: 'requirements_failed' }
+> => {
   const leida = await leerProduccion(accountId, u.productionId, { db });
   if (!leida.ok) return { ok: false, motivo: 'production_not_found' };
   if (leida.view.revision !== u.revision) return { ok: false, motivo: 'production_changed' };
   const calculados = requisitosDeProduccion(leida.view.production);
   if (!calculados.ok) return { ok: false, motivo: 'production_changed', causa: 'requirements_failed' };
-  const deLaUnidad = calculados.requirements.shots.find((s) => s.unitId === u.unitId && s.sceneId === u.sceneId);
-  if (!deLaUnidad) return { ok: false, motivo: 'unit_not_found' };
-  /* Por JSON, como llega el de la app: la misma forma, leída por la misma función. */
-  const requisito = leerRequisitoDePlano(JSON.parse(JSON.stringify(deLaUnidad)));
-  return requisito ? { ok: true, requisito } : { ok: false, motivo: 'shot_invalid' };
+  return {
+    ok: true,
+    unidades: calculados.requirements.shots.map((s) => ({ sceneId: s.sceneId, unitId: s.unitId, crudo: JSON.parse(JSON.stringify(s)) })),
+    capacidades: calculados.requirements.capabilities.map((c) => ({ capability: c.capability, count: c.count, ...(c.totalSec !== undefined ? { totalSec: c.totalSec } : {}) })),
+  };
 };
 
 const canonico = (v: unknown): unknown => {

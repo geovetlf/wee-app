@@ -40,6 +40,12 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * requisito de la app, que solo se compara.
    */
   'functions/src/creator/requisitoDelServidor.ts',
+  /*
+   * Fase 6 (F4 del roadmap) · varios planos a la vez. Un módulo nuevo que ORQUESTA: presupuesta y genera las unidades
+   * de una producción pidiéndole cada una a la puerta del vídeo —`creator/video.ts` gana el modo `produccion`—, con
+   * el requisito del servidor. No cobra, no pone precio y no llama al conductor: eso lo sigue haciendo cada toma.
+   */
+  'functions/src/creator/lotes.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

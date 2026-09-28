@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { CallableRequest, onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
@@ -21,6 +21,7 @@ import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
 import { categoriaDelFallo } from './fallos';
 import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
+import { generarLote, presupuestarLote } from './lotes';
 import { SEEDANCE_MODEL_IDS, resolveResolution } from '../engine/providers/seedance';
 import {
   MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
@@ -175,6 +176,13 @@ interface GenerateVideoInput {
   cotizar?: boolean;
   /** Lo que se le enseñó a la persona. Si el precio cambió desde entonces, no se genera. */
   creditosCotizados?: number;
+  /**
+   * FILMMAKER ENGINE · F4 · VARIAS UNIDADES DE UNA PRODUCCIÓN. Lleva `productionId`,
+   * `revision`, `quality` y, si se quiere, `units` (las que se piden). Con
+   * `cotizar`, el presupuesto del lote; sin él, el lote por `creditosCotizados`
+   * —el total—. Cada unidad vuelve a entrar por esta misma puerta (`creator/lotes.ts`).
+   */
+  produccion?: unknown;
 }
 
 /**
@@ -410,12 +418,33 @@ const huellaDelVideo = (peticion: VideoRequest): string => {
   return createHash('sha256').update(JSON.stringify(canonico({ operacion: 'video', peticion }))).digest('hex');
 };
 
-export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
+/**
+ * LA PUERTA DEL VÍDEO, POR DENTRO. Es una función con nombre para que el lote
+ * (F4) le pida cada unidad a ELLA MISMA —la misma sesión, los mismos datos que
+ * mandaría la app— sin volver a pasar por la red ni por otra Function. Sin ella,
+ * el lote tendría que copiar lo que aquí se decide.
+ */
+const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown> => {
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
+    /*
+     * ── F4 · VARIOS PLANOS: EL LOTE PASA POR ESTA MISMA PUERTA ──────────────
+     *
+     * Cada unidad vuelve a entrar aquí como una toma, con el requisito que
+     * calcula el servidor: su cotización, su cupo y su reserva son los de
+     * siempre. El lote no cobra, no pone precio y no decide nada de lo que ya
+     * decide esta puerta (`creator/lotes.ts`).
+     */
+    if (data.produccion !== undefined) {
+      const porUnidad = (datos: Record<string, unknown>): Promise<unknown> => atenderVideo({ ...request, data: datos });
+      const lote = { db: getFirestore(), at: Date.now(), vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS, porUnidad };
+      return data.cotizar === true
+        ? await presupuestarLote(uid, data.produccion, lote)
+        : await generarLote(uid, data.produccion, data.creditosCotizados, lote);
+    }
     /*
      * ── F1-D · UNA TOMA DE UN PLANO ─────────────────────────────────────────
      *
@@ -819,4 +848,6 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
   } catch (error) {
     throw toEngineHttpsError(error);
   }
-});
+};
+
+export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, atenderVideo);
