@@ -2321,9 +2321,30 @@ Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
   motor de vídeo solo en la rama legacy y en `creatorRun`, ModelArk solo en los adaptadores, las cargas dinámicas
   fijadas una a una, y `productions` y `filmmaker/` sin generar.
 
+### 24.6b Tras el canary real (2026-09-28): el coste, el porqué y las vallas
+
+- **El ejecutor** le pasa al Gateway un gancho de avance (observación, no ejecución) y guarda lo que el adaptador
+  cuenta al aceptar —estimación y tarifa—; con `accepted`, o con un POST sin respuesta, **el libro no cierra la
+  fila**: la deja `PROCESSING`. Antes la cerraba en `COMPLETED` con 0 USD.
+- **La atención** (`atencion.ts`) cierra la fila del libro DESPUÉS de que el motor aplica un final —bueno o malo—,
+  con lo que el proveedor declaró consumir (`aviso.ts`, `tokensDeclarados`). No decide nada ni lanza; si falla, lo
+  vuelve a intentar el siguiente aviso, o **la liquidación** (`barrendero.ts` → `liquidacion.ts`,
+  `costeDeLaOperacion`), que lee del trabajo guardado la referencia y el consumo. `closeOperation` es idempotente.
+- **`creator/fallos.ts`** da la categoría de un fallo a partir del `WeeError` que ya guardan el trabajo y el
+  resultado; no cambia reintentos, dinero ni estados.
+- **Vallas re-ancladas, con autorización** (encargo post-canary): `video-asincrono` H2 y `puente-pre-f1d` E4 —el
+  motor cambia en cuatro archivos nominales y de tamaño fijo: `ledger.ts` +174 −11, `limits.ts` +15 −3,
+  `providers/seedance.ts` +39 −4 (los 10 de F1-D y 29 más), `types.ts` +42 −1—; `puente-pre-f1d` F1 —la lista
+  nominal gana `creator/fallos.ts`, `engine/ledger.ts`, `engine/types.ts` y `runtime/atencion.ts`, `aviso.ts`,
+  `barrendero.ts`, `liquidacion.ts`—; `core-provider-verification` 17 —`cerrar` recibe también `avance` y
+  `desconocido`—; `i18n-preferencia-usuario` 57–58 —2 732 → 2 750 claves—; `f1d-cliente` M1/M5 —los motivos y las
+  claves nuevas—; `f1d-generacion` —el arnés genera en «Estándar» a 720p, y las comprobaciones de «Alta» y «Máxima»
+  dicen ahora que no están disponibles—. El Credit Engine, el Financial Core y el Router, sin tocar (AI, F2).
+
 ### 24.7 Lo que queda pendiente, dicho
 
-- La puerta `aiSettings/runtime` sigue cerrada por defecto; nada de F1-D está desplegado.
+- La puerta `aiSettings/runtime` sigue cerrada por defecto. Del canary real (2026-09-28) quedan desplegadas
+  `generateVideo`, `barridoDeLiquidacion`, `shots` y `productions` desde `96b3f7a`; lo de después, sin desplegar.
 - El requisito lo calcula la app (espejo de F1-A); el servidor verifica identidad, revisión, firma y procedencia,
   pero no recalcula F1-A.
 - «Aceptado» y «trabajando» se ven igual en la app: solo la reserva es legible por el cliente.

@@ -78,6 +78,34 @@ createdAt · updatedAt · completedAt
 
 `providerCost` (lo que cobra el proveedor, en USD) nunca se mezcla con `creditsCharged` (lo que pagó la persona): con ambos se calculan consumo, margen y el precio adecuado de cada Credit más adelante.
 
+**El coste separado (filas del Core, tras el canary real de F1-D, 2026-09-28).** El canary dejó una fila en
+`COMPLETED` con `providerCost: 0` un segundo después de que ModelArk aceptara la tarea: el cierre del intento
+no tenía respuesta y caía a 0, y nadie la reabría cuando el vídeo terminaba. Las filas que abre el conductor
+(`runtime/index.ts`, `libroDelMotor`) llevan ahora tres campos que no se mezclan:
+
+```
+estimatedProviderCost   USD · lo estimado: el del catálogo al salir; el del adaptador al aceptar
+actualProviderCost      USD · lo real, o null — nunca 0 por defecto
+providerCostStatus      estimated | actual | unavailable
+providerCostSource      provider_usage | adapter_measure | not_dispatched
+providerUsageTokens     lo que el proveedor DECLARÓ haber consumido (nunca una estimación)
+providerRateUsdPerMillionTokens   la tarifa oficial que el adaptador declaró al salir
+```
+
+- **La fuente de verdad del coste real de ModelArk** es su `usage.completion_tokens` al terminar la tarea
+  (ModelArk no devuelve dinero por tarea: factura esos tokens a la tarifa del modelo). Lo real es ese consumo por
+  la tarifa oficial que declaró el adaptador —precio de lista: la factura de BytePlus puede aplicar cuota
+  gratuita o descuentos, y esa sigue siendo la cifra de la consola—.
+- Al aceptar, la fila **no se cierra**: queda `PROCESSING` con la tarea, la estimación del adaptador y su tarifa.
+  La cierra `closeOperation` cuando el proveedor dice cómo acabó —la atención del aviso o de la pregunta, y, si
+  eso falla, la liquidación con lo que guardó el trabajo—, en una transacción e **idempotente**: la segunda vez
+  no cambia nada ni suma otra vez al día.
+- Sin consumo declarado, `actualProviderCost: null` y `unavailable`; `providerCost` no se escribe (ausente es «no
+  se sabe», no 0) y el día lo cuenta en `unpricedCalls`. Cero tokens declarados es un coste real de 0.
+- Lo que el Gateway paró antes de llamar a nadie costó 0 y se sabe (`not_dispatched`); un POST que no volvió no se
+  cierra (el desenlace es desconocido).
+- Las filas del camino de siempre (el Router del motor) no cambian: siguen con su `providerCost` como antes.
+
 - **Modo prueba** (`pricingMode: simulated`, el actual): Credits = catálogo placeholder del Credit Engine (`functions/src/credits/creditCosts.ts`, sobreescribible en `creditCosts/{servicio}`), etiquetado en la app como "precio de prueba". Nunca se inventan precios reales.
 - **Modo real** (`pricingMode: real`): Credits = USD medido por el adaptador × `creditsPerUsd` × (1 + `margin`). Antes de crear, Weë muestra la estimación del mejor candidato; al terminar nunca cobra más de lo mostrado.
 - El cobro lo hace el Credit Engine (docs/CREDITS.md): `creatorRun` autoriza `usage_<jobId>` antes de ejecutar, completa al terminar y reembolsa entero si algo falla; `brainChat` cobra `brain_<mensaje>` por respuesta. Repetir la misma operación no cobra dos veces.

@@ -660,10 +660,44 @@ El «Generar» de la producción entera sigue sin estar.
 
 No genera varias unidades a la vez, ni monta, renderiza o exporta; no hay voz, música, efectos, lip-sync,
 personajes/Elements, transformación de vídeo ni prompt avanzado. La puerta `aiSettings/runtime` sigue cerrada por
-defecto y nada está desplegado. Límites conocidos: el requisito lo calcula el espejo de F1-A en la app y el servidor
+defecto. Para el canary real (2026-09-28) se desplegaron `generateVideo`, `barridoDeLiquidacion`, `shots` y
+`productions` desde `96b3f7a`; lo de después del canary está sin desplegar. Límites conocidos: el requisito lo calcula el espejo de F1-A en la app y el servidor
 no lo recalcula (no carga el dominio), aunque sí comprueba la cuenta, la producción, la revisión, la firma y la
 procedencia del material; «aceptado» y «trabajando» se ven igual, «en proceso», porque la app solo puede leer la
 reserva; que el material sea `video` depende del tipo que devuelve la descarga; y la cuenta es el uid.
+
+### F1-D tras el canary real (2026-09-28)
+
+El canary en producción validó la cadena entera con **Seedance 2.0 fast** («Estándar»: 75 Credits reservados y
+cobrados exactos, `asset_…`, `producedAssetId`, sin doble cobro) y la devolución exacta de un **404 de ModelArk**
+(Seedance 2.0 sin activar en la cuenta: «Alta»). Lo que enseñó, cerrado sin cambiar ese comportamiento:
+
+- **Coste real del proveedor** (fase 1): la fila del libro ya no se cierra al aceptar; el coste va separado en
+  estimado, real y estado, y lo real sale de los tokens que ModelArk declara al terminar (ver `docs/AI-ENGINE.md`
+  § Credits). Nunca 0 por defecto.
+- **Por qué no salió** (fase 2): `functions/src/creator/fallos.ts` convierte el error del Core en una de cinco
+  categorías —`MODEL_UNAVAILABLE`, `PROVIDER_TEMPORARY_ERROR`, `PROVIDER_REJECTED`, `TIMEOUT`,
+  `UNKNOWN_PROVIDER_ERROR`— y es lo único que llega a la app (con `refunded` si el reembolso está confirmado); nada de
+  dentro: ni el HTTP, ni el adaptador, ni ids. La consulta de una unidad dice además cómo acabó el TRABAJO de su
+  última toma (`outcome`, `failure`), para no enseñar «en proceso» de algo que ya terminó.
+- **Qué calidades hay** (fase 3): `MODELOS_VALIDADOS_PARA_TOMAS` en `creator/video.ts` —hoy, solo Seedance 2.0
+  fast—. «Alta» (Seedance 2.0), «Máxima» (Seedance 2.5) y cualquier 4K se rechazan con `model_unavailable` antes de
+  tocar cupo o Credits, y la consulta devuelve `qualities` con lo que de verdad se puede pedir para ESE plano
+  (modelo validado y resolución a la que llega). Una calidad no se desvía a otro modelo para poder ofrecerla.
+- **Dinero** (fase 4): cotización = reserva; el cobro es lo que el trabajo guarda de su reserva y el Credit Engine
+  nunca captura más de lo autorizado; fallo, vencimiento y rechazo devuelven exacto, una vez.
+- **El vídeo en su plano** (fase 5): `enlazarToma` no deja que una toma más vieja pise el vídeo de una posterior ya
+  cobrada (`take_superseded`).
+- **Vista previa** (fase 6): la tarjeta decía «Sin vista previa» porque pintaba la producción de F1-A y el resultado
+  vive en el `ShotNode` del Core, cuyo nombre solo calcula el servidor. `shots` gana `shot.videos` (qué unidad tiene
+  puesto qué material, solo lectura) y la tarjeta enseña ese vídeo, quieto y sin sonido; sin él, sigue diciendo que
+  no hay vista previa. No hay miniatura generada (el materializador no hace pósters): es el propio vídeo.
+- **En la app**: calidades apagadas con su porqué, la frase de cada categoría —«reembolsados» solo cuando es
+  verdad—, los tres números de la toma (reservados, cobrados, reembolsados) y la fase «cerrando» cuando el trabajo
+  ya falló y la devolución no ha llegado. 18 claves `filmmaker.take*` nuevas en los once diccionarios.
+
+Pruebas: `functions/test/f1d-postcanary.test.mjs` (en la cadena); `f1d-cliente` (sección PC) y `filmmaker-ui`
+(sección V). Nada desplegado; la puerta, cerrada.
 
 ## Próximas fases
 
