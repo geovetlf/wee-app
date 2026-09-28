@@ -51,6 +51,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: '邮箱格式不正确',
   errUserDisabled: '这个账号已被停用',
   googleFailed: '无法使用 Google 登录。请再试一次。',
+  googleNotConfigured: '此版本尚未配置 Google 登录。请使用邮箱登录或以访客身份进入。',
   anonymousFailed: '无法以访客身份进入。请再试一次。',
   emailRequiredTitle: '需要填写邮箱',
   emailRequired: '请输入你的邮箱，我们会发送重置密码的邮件',

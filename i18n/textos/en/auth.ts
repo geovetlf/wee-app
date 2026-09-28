@@ -29,6 +29,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'Invalid email',
   errUserDisabled: 'This account has been disabled',
   googleFailed: 'We could not sign you in with Google. Please try again.',
+  googleNotConfigured: 'Signing in with Google is not set up in this version yet. Continue with your email or as a guest.',
   anonymousFailed: 'We could not sign you in as a guest. Please try again.',
   emailRequiredTitle: 'Email required',
   emailRequired: 'Please enter your email to reset your password',

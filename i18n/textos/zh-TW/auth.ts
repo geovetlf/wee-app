@@ -56,6 +56,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: '電子郵件格式不正確',
   errUserDisabled: '這個帳號已經停用',
   googleFailed: '無法使用 Google 登入。請再試一次。',
+  googleNotConfigured: '此版本尚未設定 Google 登入。請使用電子郵件登入或以訪客身分進入。',
   anonymousFailed: '無法以訪客身分進入。請再試一次。',
   emailRequiredTitle: '需要填寫電子郵件',
   emailRequired: '請輸入你的電子郵件，我們會寄一封重設密碼的信給你',

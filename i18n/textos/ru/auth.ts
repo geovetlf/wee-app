@@ -45,6 +45,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'Неверный адрес почты',
   errUserDisabled: 'Этот аккаунт отключён',
   googleFailed: 'Не удалось войти через Google. Попробуйте ещё раз.',
+  googleNotConfigured: 'Вход через Google в этой версии ещё не настроен. Войдите по электронной почте или как гость.',
   anonymousFailed: 'Не удалось войти как гость. Попробуйте ещё раз.',
   emailRequiredTitle: 'Нужен адрес почты',
   emailRequired: 'Введите почту, чтобы сбросить пароль',

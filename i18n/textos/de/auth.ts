@@ -31,6 +31,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'Ungültige E-Mail-Adresse',
   errUserDisabled: 'Dieses Konto wurde deaktiviert',
   googleFailed: 'Die Anmeldung mit Google hat nicht geklappt. Versuch es noch einmal.',
+  googleNotConfigured: 'Die Anmeldung mit Google ist in dieser Version noch nicht eingerichtet. Melde dich mit deiner E-Mail an oder fahre als Gast fort.',
   anonymousFailed: 'Der Zugang als Gast hat nicht geklappt. Versuch es noch einmal.',
   emailRequiredTitle: 'E-Mail erforderlich',
   emailRequired: 'Bitte gib deine E-Mail-Adresse ein, um dein Passwort zurückzusetzen',
