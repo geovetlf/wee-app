@@ -555,8 +555,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * veinte claves del montaje final y de su publicación (`filmmaker.wsFinalCut*` y
    * `filmmaker.wsPublish*`/`wsPublished*`), en los once diccionarios a la vez. No
    * sale ninguna.
+   * 3 125 → 3 136 con la Fase 15 (D11, cancelar una toma): entran las once claves
+   * de detener la toma (`filmmaker.takeStop*`/`takeStopped`/`takeStopping`), en los
+   * once diccionarios a la vez. No sale ninguna.
    */
-  const CLAVES_PT = 3125;
+  const CLAVES_PT = 3136;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

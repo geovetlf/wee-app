@@ -837,8 +837,10 @@ console.log('\n── D · Solo lectura, la liquidación de siempre, el plazo de
   const PROG = sinComentarios(leer('functions/src/settlement/programado.ts'));
   const REC = sinComentarios(leer('functions/src/creator/recuperacionDeTomas.ts'));
   const RT = sinComentarios(leer('functions/src/runtime/index.ts'));
-  check('D13) el programador solo compone el paso de las tomas: no devuelve, no cobra y no decide',
-    /reservasSinTrabajo: tomasSinTrabajoDeWee\(/.test(PROG) && !/refundCredits|completeCredits|decidirLiquidacion|decidirEstadoDeLaToma|reembolsar\(/.test(PROG));
+  /* Desde la Fase 15 (D11) compone DOS pasos de las tomas: las reservas sin trabajo y las cancelaciones pendientes. Sigue sin decidir ni mover dinero. */
+  check('D13) el programador solo compone los pasos de las tomas: no devuelve, no cobra y no decide',
+    /reservasSinTrabajo: pasoDeFilmmaker\(\{\s*reservas: tomasSinTrabajoDeWee\(/.test(PROG) && /cancelaciones: cancelacionesPendientesDeWee\(/.test(PROG)
+    && !/refundCredits|completeCredits|decidirLiquidacion|decidirEstadoDeLaToma|reembolsar\(/.test(PROG));
   check('D14) la recuperación mueve dinero SOLO por el puerto de liquidación del runtime, y nunca cobra',
     /puerto\.reembolsar\(/.test(REC) && !/creditEngine|refundCredits|completeCredits|spendCredits|\.settle\(|liquidar\(/.test(REC));
   check('D15) decide con la regla de la Fase 2 y no toca nada que tenga trabajo',

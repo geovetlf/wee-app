@@ -104,6 +104,18 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * compositor; la puerta `renders` (ya en la lista) gana `render.publish`. Ni Credits, ni proveedores, ni reglas.
    */
   'functions/src/creator/publicacion.ts',
+  /*
+   * Fase 15 · cancelar una toma (D11; mismo encargo): un módulo NUEVO que decide y ejecuta la cancelación con lo que
+   * ya existe —`JobEngine.cancelar`/`evaluar`, `decidirLiquidacion`, el puerto `liquidacionDeWee().reembolsar` y el
+   * compare-and-set del almacén— y la consuma después desde la pasada programada (`settlement/programado.ts`, ya en la
+   * lista); `creator/video.ts` (nombrado por las vallas de F1-D) gana el modo `cancelar` y `creator/estadoDeToma.ts`
+   * dos motivos. El adaptador de Seedance gana `pararTareaDeSeedance` —PREGUNTA antes y solo borra lo que está en
+   * cola—, que solo llama la cancelación y solo con su puerta abierta (`aiSettings/cancelacion`, cerrada por defecto).
+   * El adaptador NO entra en esta lista: su tamaño lo fijan por nombre video-asincrono H2 y puente-pre-f1d E4, que se
+   * reanclan con esta fase, y la suite de la fase comprueba que su cambio es solo esa función añadida.
+   * Ni el Credit Engine, ni el Job Engine, ni el runtime cambian.
+   */
+  'functions/src/creator/cancelacionDeToma.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

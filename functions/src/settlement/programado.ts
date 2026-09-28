@@ -3,6 +3,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { CADA_CUANTO_POR_DEFECTO_MIN, InformeDeBarrido, InformeDelReconciliador, barridoDeLiquidacionDeWee, mantenimientoDeWee } from '../runtime';
 import { RECONCILIATION_SECRETS } from '../secrets';
 import { InformeDeTomasSinTrabajo, tomasSinTrabajoDeWee } from '../creator/recuperacionDeTomas';
+import { InformeDeCancelacionesPendientes, cancelacionesPendientesDeWee } from '../creator/cancelacionDeToma';
 
 /**
  * WEË — QUIÉN LE PIDE AL BARRENDERO QUE PASE.
@@ -95,6 +96,31 @@ export const anotarTomasSinTrabajo = (informe: InformeDeTomasSinTrabajo): void =
   );
 };
 
+export const anotarCancelacionesPendientes = (informe: InformeDeCancelacionesPendientes): void => {
+  if (!informe.pendientes && !informe.errores && !informe.quedan) return;
+  console.log(
+    `WEË CANCELACIONES PENDIENTES · miradas=${informe.miradas} pendientes=${informe.pendientes} consumadas=${informe.consumadas}`
+    + ` devueltas=${informe.devueltas} errores=${informe.errores}${informe.quedan ? ' · quedan páginas' : ''}`,
+  );
+};
+
+/**
+ * LAS DOS COSAS DE FILMMAKER QUE HACE LA PASADA, en el hueco que el runtime le deja:
+ * las reservas de tomas que se quedaron sin trabajo (Fase 4) y, desde la Fase 15
+ * (D11), las cancelaciones pedidas que todavía no se consumaron. Una que falle no
+ * impide la otra; el informe que el runtime espera es el de las reservas.
+ */
+export const pasoDeFilmmaker = (deps: {
+  reservas: () => Promise<InformeDeTomasSinTrabajo>;
+  cancelaciones: () => Promise<InformeDeCancelacionesPendientes>;
+}) => async (): Promise<InformeDeTomasSinTrabajo> => {
+  try {
+    return await deps.reservas();
+  } finally {
+    await deps.cancelaciones().catch(() => undefined);
+  }
+};
+
 /**
  * LA TAREA PROGRAMADA. Dispara UNA pasada y se va.
  *
@@ -132,7 +158,11 @@ export const barridoDeLiquidacion = onSchedule(
       /* Se anota al terminar de preguntar, que es antes de liquidar: los registros se leen en el orden en que pasaron. */
       anotarPregunta: anotarReconciliacion,
       /* Las reservas de tomas de Filmmaker que se quedaron sin trabajo. Qué se devuelve lo decide su módulo; cuándo, el runtime. */
-      reservasSinTrabajo: tomasSinTrabajoDeWee({ db: getFirestore(), anotar: anotarTomasSinTrabajo }),
+      reservasSinTrabajo: pasoDeFilmmaker({
+        reservas: tomasSinTrabajoDeWee({ db: getFirestore(), anotar: anotarTomasSinTrabajo }),
+        /* Fase 15 (D11): las tomas pedidas parar que el Job Engine todavía no dio por paradas. */
+        cancelaciones: cancelacionesPendientesDeWee({ db: getFirestore(), anotar: anotarCancelacionesPendientes }),
+      }),
     });
     await pasada();
   },

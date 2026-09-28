@@ -7,8 +7,9 @@ import { BotonPequeno, Seccion } from './ProductionPiezas';
 import { CALIDADES_DE_TOMA, calidadDisponible } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import {
-  CLAVE_DE_CALIDAD, claveDelFalloDeToma, fraseDelRechazoDeToma, frasesDeLaEconomia, frasesDeLasCalidades, resolucionVisible,
+  CLAVE_DE_CALIDAD, claveDelFalloDeToma, fraseDeLaCancelacion, fraseDelRechazoDeToma, frasesDeLaEconomia, frasesDeLasCalidades, resolucionVisible,
 } from '../../../utils/mensajesDeFilmmaker';
+import { confirmAction } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -73,8 +74,11 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
           )}
         </View>
       )}
-      {ultima?.estado === 'fallida' && nota(t(claveDelFalloDeToma(ultima.categoria, ultima.pendiente === true), { numero: ultima.toma }), 'error')}
-      {ultima?.estado === 'fallida' && ultima.categoria === 'MODEL_UNAVAILABLE' && hayAlgunaCalidad && nota(t('filmmaker.takeFailTryOtherQuality'))}
+      {ultima?.estado === 'fallida' && (ultima.cancelada
+        /* La detuvo la persona (Fase 15): no es un fallo, y se dice así. */
+        ? nota(t('filmmaker.takeStopped'))
+        : nota(t(claveDelFalloDeToma(ultima.categoria, ultima.pendiente === true), { numero: ultima.toma }), 'error'))}
+      {ultima?.estado === 'fallida' && !ultima.cancelada && ultima.categoria === 'MODEL_UNAVAILABLE' && hayAlgunaCalidad && nota(t('filmmaker.takeFailTryOtherQuality'))}
       {ultima?.estado === 'sin_enlazar' && nota(t(
         ultima.motivo === 'production_changed' ? 'filmmaker.takeStale' : ultima.motivo === 'take_superseded' ? 'filmmaker.takeReasonSuperseded' : 'filmmaker.takeNotLinked',
         { numero: ultima.toma },
@@ -86,6 +90,15 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
   if (fase.fase === 'consultando') return <Seccion titulo={titulo}>{nota(t('filmmaker.takeChecking'))}</Seccion>;
   if (fase.fase === 'en_proceso' || fase.fase === 'terminando' || fase.fase === 'cerrando') {
     const texto = fase.fase === 'en_proceso' ? t('filmmaker.takeWorking') : fase.fase === 'terminando' ? t('filmmaker.takeLinking') : t('filmmaker.takeClosing');
+    const { cancelacion } = toma;
+    /*
+     * «DETENER LA TOMA» (Fase 15 del motor): solo mientras está en proceso, con una
+     * confirmación que dice la regla del dinero ANTES de pedirlo, y una vez a la vez.
+     */
+    const puedeDetener = fase.fase === 'en_proceso' && cancelacion?.estado !== 'pidiendo' && cancelacion?.estado !== 'hecha';
+    const detener = async () => {
+      if (await confirmAction(t('filmmaker.takeStopConfirmTitle'), t('filmmaker.takeStopConfirmText'), t('filmmaker.takeStop'), true, t)) toma.cancelar();
+    };
     return (
       <Seccion titulo={titulo}>
         {loQueHay}
@@ -93,6 +106,12 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
           <Ionicons name={fase.fase === 'cerrando' ? 'return-down-back-outline' : 'hourglass-outline'} size={scale(16)} color={theme.colors.accentDark} />
           <Text style={[styles.texto, styles.estira, { color: theme.colors.text }]}>{texto}</Text>
         </View>
+        {fase.fase === 'en_proceso' && !!cancelacion && nota(fraseDeLaCancelacion(cancelacion, t), cancelacion.estado === 'rechazada' ? 'error' : 'normal')}
+        {puedeDetener && (
+          <View style={styles.acciones}>
+            <BotonPequeno icono="stop-circle-outline" etiqueta={t('filmmaker.takeStop')} onPress={() => { void detener(); }} conTexto />
+          </View>
+        )}
       </Seccion>
     );
   }

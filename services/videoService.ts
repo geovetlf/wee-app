@@ -2,7 +2,7 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import { newRequestId } from './creditsService';
 import type {
-  CalidadDeToma, CotizacionDeToma, RechazoDeToma, RespuestaDeGeneracion, ResultadoDeToma, UnidadDeToma,
+  CalidadDeToma, CotizacionDeToma, RechazoDeToma, RespuestaDeCancelacion, RespuestaDeGeneracion, ResultadoDeToma, UnidadDeToma,
 } from '../utils/controladorDeToma';
 
 /**
@@ -126,4 +126,15 @@ export const videoService = {
   /** Generar ESA toma por el precio que se enseñó. Si el precio cambió, el servidor no la genera y lo dice. */
   generateTake: (plano: PlanoDeToma & { take: number }, creditosCotizados: number): Promise<ResultadoDeToma<RespuestaDeGeneracion>> =>
     llamarPorLaToma<RespuestaDeGeneracion>({ plano, creditosCotizados }, 120_000),
+
+  /**
+   * DETENER ESA TOMA (Filmmaker Engine, Fase 15 · D11). Solo dice cuál: la
+   * producción, la escena, la unidad y el número de toma. Si todavía se puede
+   * parar y cuánto se devuelve lo decide el servidor.
+   */
+  cancelTake: (toma: { productionId: string; sceneId: string; unitId: string; take: number }): Promise<ResultadoDeToma<RespuestaDeCancelacion>> =>
+    llamarPorLaToma<RespuestaDeCancelacion>({
+      plano: { productionId: toma.productionId, sceneId: toma.sceneId, unitId: toma.unitId, take: toma.take },
+      cancelar: true,
+    }, 60_000),
 };

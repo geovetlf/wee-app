@@ -23,6 +23,8 @@ const SERVICIO: ServicioDeTomas = {
   cotizar: (unidad, calidad) => videoService.quoteTake({ ...unidad, ...(calidad ? { quality: calidad } : {}) }),
   generar: (unidad, calidad, toma, creditos) => videoService.generateTake({ ...unidad, quality: calidad, take: toma }, creditos),
   enlazar: (unidad, toma) => tomaService.enlazar({ productionId: unidad.productionId, sceneId: unidad.sceneId, unitId: unidad.unitId, take: toma }),
+  /* Fase 15 del motor (D11): detenerla entra por la misma puerta que la generó. */
+  cancelar: (unidad, toma) => videoService.cancelTake({ productionId: unidad.productionId, sceneId: unidad.sceneId, unitId: unidad.unitId, take: toma }),
   observarReserva: tomaService.observarReserva,
   urlDelMaterial: tomaService.urlDelMaterial,
 };
@@ -30,6 +32,8 @@ const SERVICIO: ServicioDeTomas = {
 export interface TomaDelPlano extends InstantaneaDeToma {
   readonly elegirCalidad: (calidad: CalidadDeToma) => void;
   readonly generar: () => void;
+  /** Detener la toma en proceso (Fase 15 del motor). */
+  readonly cancelar: () => void;
   readonly reintentar: () => void;
 }
 
@@ -48,6 +52,7 @@ export const useTomaDePlano = (guardada: ProduccionGuardada | null, hayCambios: 
     ...instantanea,
     elegirCalidad: controlador.elegirCalidad,
     generar: controlador.generar,
+    cancelar: controlador.cancelar,
     reintentar: controlador.reintentar,
   }), [instantanea, controlador]);
 };

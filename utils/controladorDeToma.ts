@@ -118,6 +118,8 @@ export interface TomasDelPlano {
     readonly outcome?: 'in_progress' | 'succeeded' | 'failed';
     /** Si falló, su categoría. Nada más de dentro. */
     readonly failure?: string;
+    /** La paró la persona (Fase 15 del motor): no es un fallo de nadie. */
+    readonly cancelled?: boolean;
   } | null;
   readonly next: { readonly take: number; readonly requestId: string } | null;
   readonly node: { readonly shotNodeId: string; readonly producedAssetId?: string; readonly version: number } | null;
@@ -145,6 +147,22 @@ export interface RespuestaDeGeneracion {
   readonly assetId?: string | null;
 }
 
+/**
+ * LO QUE CONTESTA EL SERVIDOR AL DETENER UNA TOMA (Fase 15 del motor, D11).
+ * `state`: `cancelada` (se paró y se devolvió), `devuelta` (no había nada que
+ * parar y se devolvió), `cancelando` (pedida; se consuma sola) o `ya_devuelta`.
+ * `reason`, cuando no se detuvo: un código que la pantalla traduce.
+ */
+export type RespuestaDeCancelacion =
+  | { readonly status: 'CANCELLED'; readonly state: 'cancelada' | 'devuelta' | 'cancelando' | 'ya_devuelta'; readonly refund?: string }
+  | { readonly status: 'NOT_CANCELLED'; readonly reason: string };
+
+/** Cómo va la detención que pidió la persona, para decirlo. */
+export type CancelacionDeToma =
+  | { readonly estado: 'pidiendo' }
+  | { readonly estado: 'hecha'; readonly como: 'cancelada' | 'devuelta' | 'cancelando' | 'ya_devuelta' }
+  | { readonly estado: 'rechazada'; readonly motivo: string };
+
 export type ResultadoDelEnlace =
   | { readonly status: 'linked' | 'already'; readonly shotNodeId: string; readonly assetId: string; readonly version: number }
   | { readonly status: 'not_ready' | 'failed' | 'stale' | 'not_found' | 'conflict'; readonly motivo?: string };
@@ -162,6 +180,8 @@ export interface ServicioDeTomas {
   cotizar(unidad: UnidadDeToma, calidad?: CalidadDeToma): Promise<ResultadoDeToma<CotizacionDeToma>>;
   generar(unidad: UnidadDeToma, calidad: CalidadDeToma, toma: number, creditos: number): Promise<ResultadoDeToma<RespuestaDeGeneracion>>;
   enlazar(unidad: UnidadDeToma, toma: number): Promise<ResultadoDeToma<ResultadoDelEnlace>>;
+  /** Detener ESA toma (Fase 15): el servidor decide si se puede y mueve el dinero que toque. */
+  cancelar(unidad: UnidadDeToma, toma: number): Promise<ResultadoDeToma<RespuestaDeCancelacion>>;
   /**
    * Escuchar la reserva de una toma: avisa cada vez que cambia. Devuelve cómo
    * dejar de escuchar. Con el estado llega, si se tiene, el documento de la
@@ -235,8 +255,11 @@ export type FaseDeToma =
 /** La última toma que ya terminó, con lo que dejó: su vídeo en el plano, o por qué no está. */
 export type UltimaToma =
   | { readonly toma: number; readonly estado: 'lista'; readonly assetId: string; readonly url: string | null }
-  /* `categoria`: por qué no salió, si el servidor lo sabe. `pendiente`: el reembolso todavía no se ha hecho. */
-  | { readonly toma: number; readonly estado: 'fallida'; readonly categoria?: CategoriaDeFallo; readonly pendiente?: boolean }
+  /*
+   * `categoria`: por qué no salió, si el servidor lo sabe. `pendiente`: el reembolso todavía no se ha hecho.
+   * `cancelada`: la detuvo la persona (Fase 15): no es un fallo, y se dice así.
+   */
+  | { readonly toma: number; readonly estado: 'fallida'; readonly categoria?: CategoriaDeFallo; readonly pendiente?: boolean; readonly cancelada?: boolean }
   | { readonly toma: number; readonly estado: 'sin_enlazar'; readonly motivo: string };
 
 /** El vídeo que el plano del Core tiene puesto (`ShotNode.producedAssetId`): es lo que el plano ES hoy. */
@@ -258,10 +281,12 @@ export interface InstantaneaDeToma {
   readonly calidades: CalidadesDeToma | null;
   /** Reservados, cobrados y devueltos de la toma en curso o de la última. */
   readonly economia: EconomiaDeToma | null;
+  /** La detención que pidió la persona para la toma en curso, si la pidió (Fase 15). */
+  readonly cancelacion: CancelacionDeToma | null;
 }
 
 export const INSTANTANEA_INICIAL: InstantaneaDeToma = Object.freeze({
-  fase: { fase: 'sin_unidad', porque: 'nada' } as FaseDeToma, calidad: null, enElPlano: null, ultima: null, aviso: null, calidades: null, economia: null,
+  fase: { fase: 'sin_unidad', porque: 'nada' } as FaseDeToma, calidad: null, enElPlano: null, ultima: null, aviso: null, calidades: null, economia: null, cancelacion: null,
 });
 
 /** ¿Se puede elegir esta calidad? Sin respuesta del servidor todavía, sí: él lo dirá al cotizar. */
@@ -357,7 +382,12 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
         if (DEVUELTAS.has(estado)) {
           /* Se dice al momento que no salió y que volvieron sus Credits; el porqué lo trae la consulta, del trabajo guardado. */
           const previa = instantanea.ultima?.toma === toma && instantanea.ultima.estado === 'fallida' ? instantanea.ultima.categoria : undefined;
-          poner({ ultima: { toma, estado: 'fallida', ...(previa ? { categoria: previa } : {}) } });
+          /*
+           * Si la persona pidió detenerla y el servidor no lo rechazó, se dice eso y no que falló. La devolución
+           * puede llegar por aquí ANTES que la respuesta de la llamada: basta con que se pidiera y no se rechazara.
+           */
+          const detenida = !!instantanea.cancelacion && instantanea.cancelacion.estado !== 'rechazada';
+          poner({ ultima: { toma, estado: 'fallida', ...(previa && !detenida ? { categoria: previa } : {}), ...(detenida ? { cancelada: true } : {}) } });
           void consultar(v);
           return;
         }
@@ -381,8 +411,8 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
    */
   const seguirLaViva = (v: number, actual: NonNullable<TomasDelPlano['current']>): void => {
     if (actual.outcome === 'failed') {
-      const categoria = esCategoriaDeFallo(actual.failure) ? actual.failure : undefined;
-      poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria ? { categoria } : {}), pendiente: true } });
+      const categoria = !actual.cancelled && esCategoriaDeFallo(actual.failure) ? actual.failure : undefined;
+      poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria ? { categoria } : {}), ...(actual.cancelled ? { cancelada: true } : {}), pendiente: true } });
       escuchar(v, actual.take, actual.requestId, 'cerrando');
       return;
     }
@@ -430,7 +460,10 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
       /* El porqué lo dice el servidor desde el trabajo; si no lo sabe, se conserva el que trajo el error de la generación. */
       const previa = instantanea.ultima?.toma === actual.take && instantanea.ultima.estado === 'fallida' ? instantanea.ultima.categoria : undefined;
       const categoria = esCategoriaDeFallo(actual.failure) ? actual.failure : previa;
-      poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria ? { categoria } : {}) } });
+      /* La detuvo la persona (Fase 15): lo dice el trabajo guardado, o lo dijo el servidor al detenerla. */
+      const detenida = actual.cancelled === true
+        || (instantanea.ultima?.toma === actual.take && instantanea.ultima.estado === 'fallida' && instantanea.ultima.cancelada === true);
+      poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria && !detenida ? { categoria } : {}), ...(detenida ? { cancelada: true } : {}) } });
       escuchar(v, actual.take, actual.requestId, 'solo_numeros');
     }
     aplicar(v, r.valor, false);
@@ -461,7 +494,7 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
     const v = vuelta;
     const p = ++pedido;
     const laUnidad = unidad;
-    poner({ fase: { fase: 'pidiendo' }, aviso: null });
+    poner({ fase: { fase: 'pidiendo' }, aviso: null, cancelacion: null });
     void (async () => {
       const r = await servicio.generar(laUnidad, calidad, f.toma, f.creditos);
       if (!vigente(v, p)) return;
@@ -484,6 +517,28 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
         return;
       }
       poner({ fase: { fase: r.rechazo.motivo === 'network' ? 'error' : 'rechazada', rechazo: r.rechazo } as FaseDeToma });
+    })();
+  };
+
+  /**
+   * «DETENER LA TOMA» (Fase 15 del motor, D11). Solo con una toma en proceso, y
+   * una vez a la vez. El servidor decide si todavía se puede —si el proveedor no
+   * la aceptó, se para y se devuelve entera; si ya la tiene, termina y se cobra— y
+   * mueve el dinero que toque; aquí solo se dice lo que contestó. La reserva que ya
+   * se escucha trae la devolución cuando llega; nunca se suma ni se resta nada aquí.
+   */
+  const cancelar = (): void => {
+    const f = instantanea.fase;
+    if (!unidad || f.fase !== 'en_proceso' || instantanea.cancelacion?.estado === 'pidiendo') return;
+    const v = vuelta;
+    const laUnidad = unidad;
+    poner({ cancelacion: { estado: 'pidiendo' } });
+    void (async () => {
+      const r = await servicio.cancelar(laUnidad, f.toma);
+      if (!vigente(v)) return;
+      if (!r.ok) { poner({ cancelacion: { estado: 'rechazada', motivo: r.rechazo.motivo } }); return; }
+      if (r.valor.status === 'CANCELLED') { poner({ cancelacion: { estado: 'hecha', como: r.valor.state } }); return; }
+      poner({ cancelacion: { estado: 'rechazada', motivo: r.valor.reason } });
     })();
   };
 
@@ -520,6 +575,7 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
     abrir,
     elegirCalidad,
     generar,
+    cancelar,
     reintentar,
     cerrar,
   };

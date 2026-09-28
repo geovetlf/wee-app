@@ -582,11 +582,17 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * (`types.ts`) y el adaptador de Seedance, que ahora declara la tarifa y el
    * consumo que ModelArk DIJO (`seedance.ts`: los 10 de F1-D y 29 más, 4 fuera).
    * Por nombre y por tamaño, igual que antes.
+   *
+   * Filmmaker Engine, Fase 15 (D11, 2026-09-28): el adaptador gana `pararTareaDeSeedance`
+   * —33 líneas añadidas, ninguna quitada—, la parada de una tarea que ModelArk
+   * todavía tiene en cola, que solo usa la cancelación de una toma con su puerta
+   * abierta. 39 → 72 añadidas; las quitadas, las mismas 4. La suite de la fase
+   * (`filmmaker-cancelar`) comprueba que el cambio es solo esa función.
    */
   const MOTOR_F1D = {
     'functions/src/engine/ledger.ts': '174\t11',
     'functions/src/engine/limits.ts': '15\t3',
-    'functions/src/engine/providers/seedance.ts': '39\t4',
+    'functions/src/engine/providers/seedance.ts': '72\t4',
     'functions/src/engine/types.ts': '42\t1',
   };
   const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)

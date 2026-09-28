@@ -14,7 +14,8 @@ import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
 import { CapabilityId, POLITICA_DE_TRABAJO, esTrabajoTerminal, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { almacenDeTrabajos } from '../runtime/almacen';
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
@@ -22,9 +23,10 @@ import { LIMITES_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresen
 import { categoriaDelFallo } from './fallos';
 import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
-import { SEEDANCE_MODEL_IDS, resolveResolution } from '../engine/providers/seedance';
+import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance, resolveResolution } from '../engine/providers/seedance';
+import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
 import {
-  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
+  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerIdentidadDeToma, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
 } from './toma';
 
 /**
@@ -183,6 +185,13 @@ interface GenerateVideoInput {
    * —el total—. Cada unidad vuelve a entrar por esta misma puerta (`creator/lotes.ts`).
    */
   produccion?: unknown;
+  /**
+   * FILMMAKER ENGINE · FASE 15 (D11) · CANCELAR LA TOMA que dice `plano`
+   * (`productionId`, `sceneId`, `unitId`, `take`). Con esto no se genera nada:
+   * se para lo que todavía se puede parar y se devuelve lo que toca
+   * (`creator/cancelacionDeToma.ts`).
+   */
+  cancelar?: boolean;
 }
 
 /**
@@ -363,11 +372,13 @@ const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detal
  *
  * Solo lectura, y solo tres palabras y una categoría: nada del trabajo por dentro.
  */
-const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<{ outcome?: 'in_progress' | 'succeeded' | 'failed'; failure?: string }> => {
+const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<{ outcome?: 'in_progress' | 'succeeded' | 'failed'; failure?: string; cancelled?: true }> => {
   const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId).catch(() => undefined);
   if (!job) return {};
   if (job.state === 'completed') return { outcome: 'succeeded' };
   if (!esTrabajoTerminal(job.state)) return { outcome: 'in_progress' };
+  /* Fase 15 (D11): la paró la persona. No es un fallo de nadie, y así se dice. */
+  if (canceladaPorLaPersona(job)) return { outcome: 'failed', cancelled: true };
   const intento = job.attempts[job.attempts.length - 1];
   return { outcome: 'failed', failure: job.state === 'timed_out' && !intento?.error ? 'TIMEOUT' : categoriaDelFallo(intento?.error) };
 };
@@ -444,6 +455,32 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
       return data.cotizar === true
         ? await presupuestarLote(uid, data.produccion, lote)
         : await generarLote(uid, data.produccion, data.creditosCotizados, lote);
+    }
+    /*
+     * ── D11 · CANCELAR UNA TOMA (Filmmaker Engine, Fase 15) ─────────────────
+     *
+     * Por esta misma puerta porque es la de la toma y es la que tiene la clave del
+     * proveedor, la única forma de parar algo que ModelArk ya aceptó —y eso solo
+     * con su puerta abierta—. Nada de aquí genera, reserva ni cobra: se para lo que
+     * todavía se puede y el dinero se mueve por el puerto de siempre.
+     */
+    if (data.cancelar === true) {
+      const identidad = leerIdentidadDeToma(data.plano);
+      if (!identidad) throw new EngineError('INVALID_REQUEST', 'Faltan datos de la toma o no tienen forma válida.');
+      const cuenta = await cuentaDelPrincipalEnWee(getFirestore(), uid);
+      if (!cuenta) throw new EngineError('UNAUTHORIZED');
+      const db = getFirestore();
+      const r = await cancelarToma(db, { accountId: cuenta.accountId }, identidad, {
+        at: Date.now(),
+        vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS,
+        parar: (operacion) => pararTareaDeSeedance(operacion),
+        reconciliar: (job) => reconciliarUno({
+          ...atencionDeWee({ db }), trabajos: almacenDeTrabajos(db), resolutores: { seedance: resolutorDeSeedance }, plazos: PLAZOS_DE_VIDEO,
+        }, job),
+      });
+      return r.ok
+        ? { status: 'CANCELLED', state: r.estado, ...(r.reembolso ? { refund: r.reembolso } : {}) }
+        : { status: 'NOT_CANCELLED', reason: r.motivo };
     }
     /*
      * ── F1-D · UNA TOMA DE UN PLANO ─────────────────────────────────────────

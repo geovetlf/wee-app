@@ -539,3 +539,36 @@ export const resolutorDeSeedance: ResolutorDeEstadoDeProveedor = {
     }
   },
 };
+
+/**
+ * PARAR UNA TAREA QUE MODELARK TODAVÍA TIENE EN COLA (Filmmaker Engine, Fase 15 · D11).
+ *
+ * La API oficial (DELETE …/contents/generations/tasks/{id}) cancela una tarea
+ * `queued`; una `running` NO se puede parar; y sobre una terminada —`succeeded`,
+ * `failed`, `expired`— el DELETE BORRA su registro, así que su resultado ya no se
+ * podría consultar. Por eso primero se PREGUNTA y solo se borra lo que está en
+ * cola; después se vuelve a preguntar para saber qué quedó. Ningún otro camino
+ * llama a esto: solo la cancelación de una toma, y solo con su puerta abierta
+ * (`aiSettings/cancelacion`, cerrada por defecto).
+ */
+export type ParadaDeSeedance = 'parada' | 'en_proceso' | 'terminada' | 'desconocida';
+
+export const pararTareaDeSeedance = async (ref: { providerId?: string; operationId?: string }): Promise<ParadaDeSeedance> => {
+  if (ref.providerId !== 'seedance' || !isArkConfigured()) return 'desconocida';
+  const operationId = String(ref.operationId ?? '').trim();
+  if (!operationId || !/^[A-Za-z0-9_.:-]{1,256}$/.test(operationId)) return 'desconocida';
+  const url = `${arkBase()}/contents/generations/tasks/${encodeURIComponent(operationId)}`;
+  const leer = async (): Promise<string> => String((await fetchJson<any>(url, { provider: 'seedance', headers: arkHeaders('seedance'), timeoutMs: 30_000 }))?.status ?? '');
+  try {
+    const antes = await leer();
+    if (antes === 'running') return 'en_proceso';
+    if (antes !== 'queued') return antes ? 'terminada' : 'desconocida';
+    await fetchJson<any>(url, { provider: 'seedance', method: 'DELETE', headers: arkHeaders('seedance'), timeoutMs: 30_000 });
+    const despues = await leer();
+    if (despues === 'cancelled') return 'parada';
+    if (despues === 'running') return 'en_proceso';
+    return despues ? 'terminada' : 'desconocida';
+  } catch {
+    return 'desconocida';
+  }
+};

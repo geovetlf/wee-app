@@ -375,8 +375,10 @@ await seccion('R', async () => {
   const calidadMal = ver({ fase: { fase: 'rechazada', rechazo: { motivo: 'quality_not_representable', detalle: { quality: 'max', resolution: '4k', reachable: '1080p' } } }, calidad: 'max' });
   check('R12) una calidad que no llega: hasta dónde llega, sin rebajar nada', /La calidad Máxima llega hasta 1080p y la producción es 4K: elige otra calidad\./.test(calidadMal.texto));
   const proceso = ver({ fase: { fase: 'en_proceso', toma: 1 } });
-  check('R13) en proceso: se dice, sin porcentajes, sin «generando», sin barra y sin botones',
-    /En proceso\. El vídeo aparecerá aquí y en «Mis creaciones» cuando esté listo/.test(proceso.texto) && !/\d\s*%|[Gg]enerando|<progress/.test(proceso.html) && proceso.botones.length === 0);
+  /* Desde la Fase 15 del motor (D11) hay UN botón en proceso, y solo uno: «Detener la toma». */
+  check('R13) en proceso: se dice, sin porcentajes, sin «generando», sin barra, y con un solo botón: detenerla',
+    /En proceso\. El vídeo aparecerá aquí y en «Mis creaciones» cuando esté listo/.test(proceso.texto) && !/\d\s*%|[Gg]enerando|<progress/.test(proceso.html)
+    && JSON.stringify(proceso.botones.map((b) => b.etiqueta)) === JSON.stringify(['Detener la toma']));
   const lista = ver({ fase: { fase: 'elige_calidad' }, ultima: { toma: 1, estado: 'lista', assetId: 'asset_b', url: 'https://cdn.invalid/b.mp4' }, enElPlano: { assetId: 'asset_b', url: 'https://cdn.invalid/b.mp4' } });
   boton(lista, 'Ver vídeo').tocar();
   check('R14) lista: «Toma 1 lista.» y «Ver vídeo» abre SU vídeo', /Toma 1 lista\./.test(lista.texto) && abiertos.at(-1) === 'https://cdn.invalid/b.mp4');
@@ -437,8 +439,12 @@ await seccion('M', async () => {
   const sinFrase = IDIOMAS.flatMap((l) => { const c = claves(l); return TODOS.map((m) => MSJ.claveDelMotivoDeToma(m).replace('filmmaker.', '')).filter((k) => !c.has(k)).map((k) => `${l}:${k}`); });
   check('M4) y esa frase existe en los once diccionarios', sinFrase.length === 0, sinFrase.slice(0, 6).join(', '));
   const nuevas = [...leer('i18n/textos/es/filmmaker.ts').matchAll(/^ {2}(take[A-Za-z]+): '/gm)].map((m) => m[1]);
-  /* 50 de F1-D, 18 de después del canary real (por qué no salió, qué calidades hay, los tres números, la vista previa) y 1 de la Fase 13 del motor (el prompt avanzado que no cabe). */
-  check('M5) las claves de la toma son 69, y ninguna pide un plural', nuevas.length === 69 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
+  /*
+   * 50 de F1-D, 18 de después del canary real (por qué no salió, qué calidades hay, los tres números, la vista previa),
+   * 1 de la Fase 13 del motor (el prompt avanzado que no cabe) y 11 de la Fase 15 (D11: detener la toma, su
+   * confirmación y cómo acabó —detenida, pendiente, demasiado pronto, demasiado tarde, terminada, sin saber, no se pudo—).
+   */
+  check('M5) las claves de la toma son 80, y ninguna pide un plural', nuevas.length === 80 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
   const precio = IDIOMAS.filter((l) => !/^ {2}takePrice: '\{\{credits\}\} Credits',$/m.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
   check('M6) el precio dice «Credits» en los once, sin traducir', precio.length === 0, precio.join(', '));
 });

@@ -1,7 +1,7 @@
 import type { FilmmakerIssue, FilmmakerOperation, FilmmakerProduction } from '../services/filmmaker/dominio';
 import type { FalloDeProducciones } from '../services/filmmakerService';
 import type { Traductor } from '../i18n/traducir';
-import type { CalidadDeToma, RechazoDeToma } from './controladorDeToma';
+import type { CalidadDeToma, CancelacionDeToma, RechazoDeToma } from './controladorDeToma';
 
 /**
  * WEË FILMMAKER · DE LOS CÓDIGOS DEL DOMINIO A LO QUE SE LEE (F1-C).
@@ -259,6 +259,35 @@ export const fraseDelRechazoDeToma = (rechazo: RechazoDeToma, t: Traductor, form
     }
     default:
       return t(clave);
+  }
+};
+
+/* ── Detener una toma (Fase 15 del motor, D11) ────────────────────────────── */
+
+/**
+ * CÓMO VA LA DETENCIÓN QUE PIDIÓ LA PERSONA, en una frase. Los motivos son los
+ * del servidor (`creator/cancelacionDeToma.ts`) y los de la red; cada uno dice lo
+ * que pasa con el dinero sin inventarlo: antes de que el proveedor la acepte se
+ * devuelve entera; si ya la tiene, termina y se cobra.
+ */
+export const fraseDeLaCancelacion = (c: CancelacionDeToma, t: Traductor): string => {
+  if (c.estado === 'pidiendo') return t('filmmaker.takeStopping');
+  if (c.estado === 'hecha') return c.como === 'cancelando' ? t('filmmaker.takeStopPending') : t('filmmaker.takeStopped');
+  switch (c.motivo) {
+    case 'take_starting':
+    case 'take_sending':
+      return t('filmmaker.takeStopRetrySoon');
+    case 'take_accepted':
+    case 'take_processing':
+      return t('filmmaker.takeStopTooLate');
+    case 'take_finished':
+      return t('filmmaker.takeStopFinished');
+    case 'take_reconciling':
+    case 'take_cancel_pending':
+    case 'provider_unknown':
+      return t('filmmaker.takeStopUnknown');
+    default:
+      return t('filmmaker.takeStopFailed');
   }
 };
 

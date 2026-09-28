@@ -2,6 +2,7 @@ import { Firestore } from 'firebase-admin/firestore';
 import { Job, JobState } from '../core';
 import { decidirLiquidacion, trabajoDelMedioDeWee } from '../runtime';
 import { usageTransactionId } from '../credits/creditTransactions';
+import { canceladaPorLaPersona } from './cancelacionDeToma';
 import { CategoriaDeFallo, categoriaDelFallo } from './fallos';
 import { MAX_TOMAS, MAX_UNIDADES_CON_VIDEO, UnidadGuardada, leerUnidadEnLaProduccion, nodoDeLaUnidad, requestIdDeToma, unidadesGuardadas } from './toma';
 
@@ -89,7 +90,11 @@ export type MotivoDelEstado =
   /* reconciling: salió y no se sabe cómo acabó. */
   | 'unknown_outcome'
   /* reconciling: la reserva y el trabajo se contradicen. */
-  | 'evidence_mismatch';
+  | 'evidence_mismatch'
+  /* preparing: la persona la canceló y la parada se consuma sola (Fase 15, D11). */
+  | 'cancel_pending'
+  /* refunded: la canceló la persona y sus Credits volvieron (Fase 15, D11). */
+  | 'cancelled';
 
 /** La reserva de la toma, como la guardó el Credit Engine. */
 export interface ReservaDeLaToma {
@@ -129,7 +134,7 @@ export const decidirEstadoDeLaToma = (e: EvidenciaDeToma, at: number, vidaDeLaLl
   const job = e.trabajo;
 
   /* El dinero ya se movió: la reserva es la verdad, y el trabajo tiene que decir lo mismo. */
-  if (r.estado === 'REFUNDED') return job?.state === 'completed' ? CONTRADICCION : decidido('refunded', 'refunded');
+  if (r.estado === 'REFUNDED') return job?.state === 'completed' ? CONTRADICCION : decidido('refunded', canceladaPorLaPersona(job) ? 'cancelled' : 'refunded');
   if (r.estado === 'COMPLETED') return job?.state === 'completed' ? decidido('completed', 'charged') : CONTRADICCION;
   /* Una toma se reserva autorizada, y de ahí solo sale cobrada o devuelta. Lo demás no es de una toma. */
   if (r.estado !== 'AUTHORIZED' && r.estado !== 'PENDING') return CONTRADICCION;
@@ -139,6 +144,8 @@ export const decidirEstadoDeLaToma = (e: EvidenciaDeToma, at: number, vidaDeLaLl
     const vence = r.autorizadaEn !== undefined ? r.autorizadaEn + vidaDeLaLlamadaMs : undefined;
     return vence !== undefined && at >= vence ? decidido('failed', 'abandoned') : decidido('queued', 'starting');
   }
+  /* Pedida parar y todavía sin consumar: el Job Engine espera a que no quede nadie en vuelo. */
+  if (job.state === 'cancel_requested') return decidido('preparing', 'cancel_pending');
   const liquidacion = decidirLiquidacion(job, at);
   switch (liquidacion.tipo) {
     /* El trabajo de una toma lleva siempre su reserva dentro: si no la lleva, no es de esta toma. */
@@ -279,6 +286,8 @@ export interface TrazaDeToma {
  */
 export const falloDeLaToma = (estado: EstadoDeToma, job: Job | null): CategoriaDeFallo | null => {
   if (!job || !['failed', 'refunded', 'reconciling'].includes(estado)) return null;
+  /* Cancelarla no es un fallo de nadie: no lleva categoría (antes salía como PROVIDER_REJECTED). */
+  if (canceladaPorLaPersona(job)) return null;
   if (!['failed', 'timed_out', 'cancelled'].includes(job.state)) return null;
   const intento = job.attempts[job.attempts.length - 1];
   return job.state === 'timed_out' && !intento?.error ? 'TIMEOUT' : categoriaDelFallo(intento?.error ?? job.error);

@@ -509,7 +509,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* Tras el canary real: el libro y sus tipos (el coste separado) y el adaptador (tarifa y consumo declarado). Ver video-asincrono H2. */
-      === '174\t11\tfunctions/src/engine/ledger.ts|15\t3\tfunctions/src/engine/limits.ts|39\t4\tfunctions/src/engine/providers/seedance.ts|42\t1\tfunctions/src/engine/types.ts');
+      /* Y la Fase 15 del Filmmaker Engine (D11): la parada de una tarea en cola, 33 líneas añadidas al adaptador (39 → 72). */
+      === '174\t11\tfunctions/src/engine/ledger.ts|15\t3\tfunctions/src/engine/limits.ts|72\t4\tfunctions/src/engine/providers/seedance.ts|42\t1\tfunctions/src/engine/types.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */

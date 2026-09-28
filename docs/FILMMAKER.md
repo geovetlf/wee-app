@@ -386,7 +386,7 @@ siguen **pendientes**:
 | D8 | Duración y publicación (Weëls ≤ 15 s) | **decidida** en la Fase 14 del motor (2026-09-28): una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; el montaje final se publica SOLO con un gesto de la persona, como Weël (hasta 15 s, con la tolerancia del renderizador) o en el Wäll, comprobado por el servidor (`renders`, `render.publish`) y con la forma de publicación del compositor |
 | D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); **usarlo al generar, decidido en la Fase 13 del motor** (2026-09-28): se AÑADE detrás del texto de Weë, que no cambia, en un bloque fijo en la última línea, entero, sin enlaces ni órdenes de proveedor (plantilla `fm-plano-2`); enseñarlo (un modo avanzado oculto) y editarlo (`update_shot` sigue con `not_editable_yet`), pendientes |
 | D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
-| D11 | Precios, límites y cancelación | **en parte**: el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); cancelar, pendiente |
+| D11 | Precios, límites y cancelación | **decidida** en la Fase 15 del motor (2026-09-28): el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); **detener una toma**: si el proveedor todavía no la aceptó, se para y se devuelve ENTERA; si ya la tiene, termina y se cobra (parada en el proveedor solo tras su puerta, cerrada); idempotente, sin doble devolución y sin mover dinero con un desenlace ambiguo |
 | D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; enseñarlo en la app, en el pase de UX |
 | D13 | Reproductor | pendiente: «Ver vídeo» abre la dirección del material |
 | D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | pendiente: se usa el vocabulario actual del Core |
@@ -1162,6 +1162,46 @@ antes, y reutilizando lo que ya hay.
 
 Pruebas: `functions/test/filmmaker-publicar.test.mjs` (en la cadena): el render de verdad con FFmpeg, la puerta, cada
 comprobación, la idempotencia, los efectos que no hay, el servicio, el hook y el panel.
+
+### Fase 15 · Detener una toma (D11)
+
+Encargo del usuario (2026-09-28): cerrar la regla económica de cancelar. Si el proveedor todavía NO aceptó la toma, se
+cancela y se devuelven íntegros sus Credits; si ya la aceptó y hay coste real, no se devuelve el coste incurrido; se para
+el trabajo cuando todavía se puede; idempotente; nunca dos devoluciones; y nunca una operación de dinero ambigua.
+
+- **Nada nuevo en el dinero ni en el motor**: `creator/cancelacionDeToma.ts` DECIDE (pura, `decidirCancelacion`) y
+  EJECUTA con lo que ya existe —`JobEngine.cancelar`/`evaluar` (F8: `queued` se para en el acto; lo que corre se PIDE
+  parar y se consuma cuando no queda nada en vuelo), `decidirLiquidacion`, el puerto `liquidacionDeWee().reembolsar`
+  del barrido (idempotente por la petición en el Credit Engine) y el compare-and-set del almacén, con tres vueltas si
+  otro mueve el trabajo entre medias—. Ni un estado del Job Engine, ni una llamada directa al Credit Engine.
+- **Los casos**: sin reserva o ajena → no hay toma; cobrada → ya terminó; devuelta → «ya estaba»; reservada sin trabajo
+  dentro de la vida de la llamada → otra vez en un momento (devolverla regalaría el vídeo que la llamada está creando);
+  abandonada → devuelta entera (como la Fase 4); en cola en casa, o corriendo sin haber salido → se cancela y se
+  devuelve entera (`no_salio`); el POST en vuelo → otra vez en unos segundos (cancelar ahí perdería el vídeo con el
+  dinero retenido); **aceptada por el proveedor** → sin la puerta de parada, termina y se cobra (`take_accepted`); con
+  ella, se le PREGUNTA a ModelArk y solo si la tiene en cola se la borra (`DELETE`, API oficial), y su desenlace entra
+  por la reconciliación de siempre (cancelada → fallida → devuelta entera: no se procesó); en marcha allí → no se puede
+  parar; ya terminada allí → nunca se borra (borrarla perdería su resultado): se reconcilia y se cobra; sin respuesta →
+  no se toca nada. Desenlace desconocido → se reconcilia; nadie adivina.
+- **La puerta de la parada en el proveedor**: `aiSettings/cancelacion` `{ paradaEnElProveedor: true, cuentas | todas }`,
+  CERRADA por defecto, como la del render. No se ha validado contra ModelArk real ni su `DELETE` ni si cobra una tarea
+  cancelada en cola: abrirla es un canary aparte. El adaptador solo GANA `pararTareaDeSeedance` (33 líneas, ninguna
+  quitada), y solo la llama la puerta de la toma.
+- **La entrada**: `generateVideo` con `{ plano, cancelar: true }`, la puerta de la toma —la que tiene la clave del
+  proveedor—. Ninguna Function nueva. La pasada programada (`settlement/programado.ts`) consuma las pedidas parar
+  cuando caduca su concesión y las devuelve (`terminarCancelacionesPendientes`), junto a las reservas sin trabajo.
+- **Lo que se ve**: la toma detenida ya no sale como fallo del proveedor (`PROVIDER_REJECTED`): motivo `cancelled`,
+  sin categoría; pedida parar, `cancel_pending`. En la app, «Detener la toma» mientras está en proceso, con una
+  confirmación que dice la regla del dinero ANTES, una vez a la vez; y una frase por desenlace. Once claves
+  (`filmmaker.takeStop*`) en los once diccionarios.
+- **Lo que queda dicho**: el cupo diario de vídeo no se libera al detener (el limitador no tiene «devolver»); abrir la
+  parada en el proveedor pide un canary real (DELETE y facturación de una tarea cancelada).
+
+Vallas reancladas por nombre: `video-asincrono` H2 y `puente-pre-f1d` E4 (el tamaño del adaptador, 39 → 72
+añadidas), `filmmaker-toma-estado` D13 (el programador compone dos pasos), `f1d-cliente` R13 (en proceso, un solo
+botón: detenerla) y M5 (69 → 80 claves de la toma), `i18n-preferencia-usuario` 57–58 (`CLAVES_PT` 3125 → 3136).
+
+Pruebas: `functions/test/filmmaker-cancelar.test.mjs` (en la cadena).
 
 ## Próximas fases
 
