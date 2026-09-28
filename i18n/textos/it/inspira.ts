@@ -1,6 +1,6 @@
 /*
- * ITALIANO — Inspira, que en italiano se llama «Ispirazione»: la comunidad y las
- * ideas listas para usar (2026-09-27).
+ * ITALIANO — Inspira, que en italiano se llama «Ispirazione»: las ideas listas para
+ * usar de Weë Studio (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tratamiento informal (tu) y apóstrofo tipográfico ’ siempre. Las recetas son de
@@ -10,8 +10,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: 'Ispirazione',
   subtitle: 'Prompt, ricette e idee pronte all’uso. Aprile, personalizzale e creale.',
-  tabCommunity: 'Community',
-  tabIdeas: 'Idee',
   catAll: 'Tutti',
   catCinematic: 'Cinematografico',
   catCommercial: 'Commerciale',
@@ -23,7 +21,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: 'Video',
   destFilmmaker: 'Filmmaker',
   destImage: 'Immagine',
-  destDesign: 'Design',
   destWriting: 'Testo',
   popularTitle: 'Idee popolari',
   recipesTitle: 'Prompt e ricette',
@@ -66,9 +63,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: 'La storia della tua attività',
   rBusinessDesc: 'Tre scene che raccontano com’è iniziata.',
   rBusinessPrompt: 'Tre scene che raccontano la storia di un’attività: il primo giorno con la saracinesca mezza alzata, il lavoro di tutti i giorni e un cliente che torna soddisfatto.',
-  rPosterTitle: 'Locandina per un evento',
-  rPosterDesc: 'Una locandina con caratteri grandi e colori caldi.',
-  rPosterPrompt: 'Locandina per un concerto all’aperto con caratteri grandi, colori caldi e spazio per la data e il luogo.',
   rSheetTitle: 'Scheda del personaggio',
   rSheetDesc: 'Lo stesso personaggio di fronte, di profilo e di spalle.',
   rSheetPrompt: 'Scheda del personaggio: lo stesso personaggio di fronte, di profilo e di spalle, su uno sfondo neutro.',

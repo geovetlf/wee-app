@@ -29,7 +29,7 @@ export const normalizar = (texto: string): string =>
 const POR_GRUPO = 5;
 
 /**
- * BUSCAR EN WEË CREATOR: tus proyectos, tus producciones, tus creaciones y las
+ * BUSCAR EN WEË STUDIO: tus proyectos, tus producciones, tus creaciones y las
  * ideas de Inspira.
  *
  * No hay un buscador en el servidor para esto y no se inventa: se piden UNA vez,
@@ -38,7 +38,7 @@ const POR_GRUPO = 5;
  * sin un Credit. Lo que no está en la primera página de creaciones no sale, y es
  * lo que se espera de una búsqueda rápida: para lo demás está Mis creaciones.
  */
-export const useBusquedaDeCreator = (t: Traductor) => {
+export const useBusquedaDeStudio = (t: Traductor) => {
   const { user } = useAuth();
   const [fuentes, setFuentes] = useState<{
     producciones: readonly ResumenDeProduccion[];

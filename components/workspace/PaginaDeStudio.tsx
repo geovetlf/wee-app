@@ -9,14 +9,14 @@ import { scale } from '../../utils/scale';
 /**
  * UNA PÁGINA DEL TALLER: título, una línea que dice para qué sirve, y lo suyo.
  *
- * El marco de Weë Creator ya puso la cabecera y la barra; esto es lo de dentro,
+ * El marco de Weë Studio ya puso la cabecera y la barra; esto es lo de dentro,
  * con el ancho que se lee bien en una pantalla grande y todo el ancho en el
  * teléfono. Inicio, Inspira y Proyectos son páginas así.
  *
  * La página es `PaginaDeCajas`: donde hay una caja de Weë AI —la de Inicio—
  * crece con lo escrito sin perder sus botones de vista (CLAUDE.md §9).
  */
-const PaginaDeCreator: React.FC<{
+const PaginaDeStudio: React.FC<{
   titulo: string;
   subtitulo?: string;
   /** Lo que va a la derecha del título: un botón, un filtro. */
@@ -54,4 +54,4 @@ const styles = StyleSheet.create({
   subtitulo: { fontSize: FONT_SIZE.base, lineHeight: FONT_SIZE.base * 1.45 },
 });
 
-export default PaginaDeCreator;
+export default PaginaDeStudio;

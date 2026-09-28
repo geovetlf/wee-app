@@ -1,13 +1,13 @@
 /*
- * Weë Creator: the professional workspace of Weë AI, with its own interface
- * (user decision, 2026-09-27). "Weë Creator", "Weë AI", "Weë" and "Credits" are
- * brand and are not translated; `wordmark` is part of the name.
+ * The Weë Studio workspace: its own interface inside Weë AI (user decision,
+ * 2026-09-27, corrected 2026-09-28). "Weë Studio", "Weë AI", "Weë" and
+ * "Credits" are brand and are not translated; `wordmark` is part of the name.
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: 'Back to Weë',
-  navLabel: 'Weë Creator navigation',
+  navLabel: 'Weë Studio navigation',
   navHome: 'Home',
   navInspire: 'Inspire',
   navProjects: 'Projects',
@@ -15,8 +15,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: 'Tools',
   toolFilmmaker: 'Filmmaker',
   toolVideo: 'Video',
-  menuSubtitle: 'Your whole workspace: tools, projects and creations.',
-  openMenu: 'Open the Weë Creator menu',
   notifications: 'Notifications',
   myProfile: 'My profile',
   searchTitle: 'Search',
@@ -31,16 +29,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: 'Ideas',
   searchProductionDetail: 'Production · {{formato}}',
   searchProjectDetail: 'Weë AI project',
-  homeTitle: 'Your creative workspace',
-  homeSubtitle: 'Filmmaker, video, image and more, with Weë AI. Everything you create stays in your projects.',
-  filmmakerPitch: 'From idea to video: scenes, shots, timeline and Weë AI Director.',
-  openFilmmaker: 'Open Filmmaker',
-  ideasTitle: 'Ideas to get started',
-  seeAllIdeas: 'See all',
-  recentCreations: 'Your recent creations',
   seeAllCreations: 'See all',
-  recentProjects: 'Pick up where you left off',
-  seeAllProjects: 'See all',
   projectsTitle: 'Projects',
   projectsSubtitle: 'Your Filmmaker productions and your Weë AI projects, together.',
   projectsFilterAll: 'All',

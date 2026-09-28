@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp, LayoutC
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme, useEnCreator } from '../../contexts/ThemeContext';
+import { useTheme, useEnStudio } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
@@ -77,12 +77,12 @@ interface CreatorShellProps {
    */
   seguirAlFinal?: unknown;
   /**
-   * UN ESPACIO DE TRABAJO A TODO LO ANCHO, SOLO DENTRO DE WEË CREATOR.
+   * UN ESPACIO DE TRABAJO A TODO LO ANCHO, SOLO DENTRO DE WEË STUDIO.
    *
    * Filmmaker no es una página que se lee de arriba abajo: son paneles —el
    * proyecto, el visor, el Director, la línea de tiempo— y cada uno se desplaza
    * por su cuenta. Con esto el marco no pone página ni márgenes: entrega el sitio
-   * entero y la pantalla lo reparte. Fuera de Weë Creator no cambia nada.
+   * entero y la pantalla lo reparte. Fuera de Weë Studio no cambia nada.
    */
   espacioDeTrabajo?: boolean;
 }
@@ -117,14 +117,14 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   const { theme } = useTheme();
   const t = useT();
   /*
-   * DENTRO DE WEË CREATOR, EL MARCO YA ESTÁ PUESTO.
+   * DENTRO DEL WORKSPACE DE WEË STUDIO, EL MARCO YA ESTÁ PUESTO.
    *
    * La cabecera, la barra lateral, los Credits y la salida los pinta una sola vez
-   * el marco de Weë Creator (`components/workspace/ChromeDeCreator`). Aquí solo
+   * el marco de Weë Studio (`components/workspace/MarcoDeStudio`). Aquí solo
    * queda el contenido: sin la barra lateral de Weë AI, sin su barra de arriba y
-   * sin el hueco de la barra de abajo de la App, que en el taller no existe.
+   * sin el hueco de la barra de abajo de la App, que en Weë Studio no existe.
    */
-  const enCreator = useEnCreator();
+  const enStudio = useEnStudio();
   /* Solo hace falta con pie anclado: cuánto mide la zona donde se escribe. */
   const [altoDeEscritura, setAltoDeEscritura] = useState(0);
   /*
@@ -203,14 +203,14 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   const goNotifications = () => navigation.navigate('Main', { screen: 'Home', params: { screen: 'Notifications' } });
   const goProfile = () => navigation.navigate(user ? 'Main' : 'Login', user ? { screen: 'Profile' } : undefined);
 
-  /* Filmmaker dentro de Weë Creator: el sitio entero, sin página ni márgenes. La pantalla reparte sus paneles. */
-  if (enCreator && espacioDeTrabajo) {
+  /* Filmmaker dentro de Weë Studio: el sitio entero, sin página ni márgenes. La pantalla reparte sus paneles. */
+  if (enStudio && espacioDeTrabajo) {
     return <View style={[styles.fill, { backgroundColor: theme.colors.background }]}>{children}</View>;
   }
 
   if (!isDesktop) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={enCreator ? [] : ['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={enStudio ? [] : ['top']}>
         {!sinFranjaSuperior && (
         <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
@@ -229,10 +229,10 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             quitó porque entonces estas pantallas empezaban por el muro y el
             número le restaba aire; ahora empiezan por lo que se crea.
 
-            Dentro de Weë Creator ya lo enseña su cabecera, justo encima: dos
+            Dentro de Weë Studio ya lo enseña su cabecera, justo encima: dos
             veces el mismo número en dos dedos de pantalla sería ruido.
           */}
-          {!enCreator && <CreditsPill compact />}
+          {!enStudio && <CreditsPill compact />}
         </View>
         )}
         {/*
@@ -262,7 +262,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           que cambiaba con el teclado, y dejaba 60 puntos de franja muerta entre
           la caja y el teclado —medido en el teléfono—.
         */}
-        <EspacioDeEscritura style={styles.fill} descuento={enCreator ? 0 : ALTO_BARRA}>
+        <EspacioDeEscritura style={styles.fill} descuento={enStudio ? 0 : ALTO_BARRA}>
           {pie ? (
             <View style={styles.fill} onLayout={medirEscritura}>
               <PaginaDeCajas
@@ -272,7 +272,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
                 keyboardShouldPersistTaps="handled"
                 onContentSizeChange={seguirAlFinal === undefined ? undefined : alCrecerLaPagina}
               >
-                <ConMarcoDeSeccion saldoALaVista={enCreator || !sinFranjaSuperior} aireLateral={SPACING.lg}>{children}</ConMarcoDeSeccion>
+                <ConMarcoDeSeccion saldoALaVista={enStudio || !sinFranjaSuperior} aireLateral={SPACING.lg}>{children}</ConMarcoDeSeccion>
               </PaginaDeCajas>
               {/*
                 Y aquí abajo lo que no se mueve. Con teclado se apoya en él; sin
@@ -289,9 +289,9 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
               {/*
                 Si la franja de arriba se ve, el saldo ya está ahí y la cabecera de
                 la sección —si la hay— no lo repite. Sin franja, lo enseña ella.
-                Dentro de Weë Creator lo enseña siempre su cabecera: la sección calla.
+                Dentro de Weë Studio lo enseña siempre su cabecera: la sección calla.
               */}
-              <ConMarcoDeSeccion saldoALaVista={enCreator || !sinFranjaSuperior} aireLateral={SPACING.lg}>{children}</ConMarcoDeSeccion>
+              <ConMarcoDeSeccion saldoALaVista={enStudio || !sinFranjaSuperior} aireLateral={SPACING.lg}>{children}</ConMarcoDeSeccion>
             </PaginaDeCajas>
           )}
         </EspacioDeEscritura>
@@ -300,12 +300,12 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   }
 
   return (
-    <View style={[styles.desktop, { backgroundColor: enCreator ? theme.colors.background : theme.colors.surface }]}>
-      {/* Dentro de Weë Creator, su barra lateral ya está a la izquierda: no se pinta la de Weë AI. */}
-      {!enCreator && <CreatorSidebar activeId={activeId} />}
+    <View style={[styles.desktop, { backgroundColor: enStudio ? theme.colors.background : theme.colors.surface }]}>
+      {/* Dentro de Weë Studio, su barra lateral ya está a la izquierda: no se pinta la de Weë AI. */}
+      {!enStudio && <CreatorSidebar activeId={activeId} />}
       <View style={styles.main}>
-        {enCreator ? (
-          <View style={[styles.franjaDeCreator, { borderBottomColor: theme.colors.border }]}>
+        {enStudio ? (
+          <View style={[styles.franjaDeStudio, { borderBottomColor: theme.colors.border }]}>
             <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -498,8 +498,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
   },
-  /* Dentro de Weë Creator: una franja fina con la vuelta y el nombre de la herramienta, sin nada más. */
-  franjaDeCreator: {
+  /* Dentro de Weë Studio: una franja fina con la vuelta y el nombre de la herramienta, sin nada más. */
+  franjaDeStudio: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,

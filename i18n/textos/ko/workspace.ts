@@ -1,19 +1,19 @@
 /*
- * COREANO — Weë Creator: el taller profesional de Weë AI (2026-09-27). Su marco, su
+ * COREANO — el workspace de Weë Studio, dentro de Weë AI (2026-09-27). Su marco, su
  * barra lateral, su buscador, su Inicio, Proyectos, el reproductor y los estados
  * de lo que se crea.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Registro 해요체; el taller es «작업실» y el vídeo «영상», como en `filmmaker`.
- * «Weë Creator», «Weë AI», «Weë», «Filmmaker» y «Credits» son marca y no se
- * transliteran; `wordmark` es parte del nombre y se queda en CREATOR. Los nombres
+ * «Weë Studio», «Weë AI», «Weë», «Filmmaker» y «Credits» son marca y no se
+ * transliteran; `wordmark` es parte del nombre y se queda en STUDIO. Los nombres
  * de proyectos y producciones entran por hueco entre comillas ‘ ’, sin partícula.
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: 'Weë로 돌아가기',
-  navLabel: 'Weë Creator 내비게이션',
+  navLabel: 'Weë Studio 내비게이션',
   navHome: '홈',
   navInspire: '영감',
   navProjects: '프로젝트',
@@ -21,8 +21,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: '도구',
   toolFilmmaker: 'Filmmaker',
   toolVideo: '영상',
-  menuSubtitle: '도구, 프로젝트, 창작물까지 내 작업실의 모든 것.',
-  openMenu: 'Weë Creator 메뉴 열기',
   notifications: '알림',
   myProfile: '내 프로필',
   searchTitle: '검색',
@@ -37,16 +35,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: '아이디어',
   searchProductionDetail: '프로덕션 · {{formato}}',
   searchProjectDetail: 'Weë AI 프로젝트',
-  homeTitle: '나의 창작 작업실',
-  homeSubtitle: 'Filmmaker, 영상, 이미지 등을 Weë의 AI로 만들어요. 만든 것은 모두 내 프로젝트에 남아요.',
-  filmmakerPitch: '아이디어에서 영상까지: 장면, 숏, 타임라인, Weë AI Director.',
-  openFilmmaker: 'Filmmaker 열기',
-  ideasTitle: '시작하기 좋은 아이디어',
-  seeAllIdeas: '전체 보기',
-  recentCreations: '최근 창작물',
   seeAllCreations: '전체 보기',
-  recentProjects: '이어서 작업하기',
-  seeAllProjects: '전체 보기',
   projectsTitle: '프로젝트',
   projectsSubtitle: 'Filmmaker 프로덕션과 Weë AI 프로젝트를 한곳에.',
   projectsFilterAll: '전체',

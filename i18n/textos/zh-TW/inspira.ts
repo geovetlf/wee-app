@@ -1,5 +1,5 @@
 /*
- * CHINO TRADICIONAL (TAIWÁN) — Inspira: la comunidad y las ideas listas para usar (2026-09-27).
+ * CHINO TRADICIONAL (TAIWÁN) — Inspira de Weë Studio: las ideas listas para usar (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -14,8 +14,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: '靈感',
   subtitle: '現成的提示詞、配方和點子。點開、依你的喜好調整，然後動手創作。',
-  tabCommunity: '社群',
-  tabIdeas: '點子',
   catAll: '全部',
   catCinematic: '電影感',
   catCommercial: '廣告',
@@ -27,7 +25,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: '影片',
   destFilmmaker: 'Filmmaker',
   destImage: '圖片',
-  destDesign: '設計',
   destWriting: '文字',
   popularTitle: '熱門點子',
   recipesTitle: '提示詞與配方',
@@ -70,9 +67,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: '你的創業故事',
   rBusinessDesc: '用三個場景講述它是怎麼開始的。',
   rBusinessPrompt: '用三個場景講一家店的故事：開張第一天，鐵捲門才拉起一半；每一天的日常工作；還有一位開心回頭的客人。',
-  rPosterTitle: '活動海報',
-  rPosterDesc: '大字體、暖色調的海報。',
-  rPosterPrompt: '一場戶外演唱會的海報，大字體、暖色調，並留出放日期和地點的空間。',
   rSheetTitle: '角色設定圖',
   rSheetDesc: '同一個角色的正面、側面和背面。',
   rSheetPrompt: '角色設定圖：同一個角色的正面、側面和背面，放在中性色的背景上。',

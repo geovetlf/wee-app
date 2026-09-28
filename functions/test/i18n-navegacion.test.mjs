@@ -229,12 +229,9 @@ console.log('\n── F · Nada más se movió ──');
   check('25) y el nombre se sigue pintando crudo', /\{nombre\}\s*<\/Text>/.test(C.tag) && !/t\(nombre\)/.test(C.tag));
 
   /* La barra inferior: mismos destinos, mismo orden, misma forma. */
-  /* Desde el 2026-09-27 son las cuatro áreas de Weë, en este orden (decisión del usuario, con su referencia). */
-  check('26) control: los cuatro destinos y su orden',
-    /export type DestinoId = 'Crear' \| 'Home' \| 'Proyectos' \| 'Profile';/.test(C.barra)
-    && C.barra.indexOf("id: 'Crear'") < C.barra.indexOf("id: 'Home'")
-    && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'Proyectos'")
-    && C.barra.indexOf("id: 'Proyectos'") < C.barra.indexOf("id: 'Profile'"));
+  check('26) control: los cinco destinos y su orden no cambiaron',
+    /'Home' \| 'Search' \| 'Create' \| 'Inbox' \| 'Notifications'/.test(C.barra)
+    && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'Notifications'"));
   check('26) y cada destino sigue diciendo si está puesto',
     /accessibilityLabel=\{activo \? `\$\{t\(destino\.clave\)\}, \$\{t\('nav\.current'\)\}` : t\(destino\.clave\)\}/.test(C.barra));
 

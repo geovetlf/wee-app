@@ -232,12 +232,17 @@ check('20) el acomodo del teclado sabe descontar lo que la pantalla ya reserva',
  * quedaban 60 puntos de franja muerta entre la caja y el teclado.
  */
 /*
- * Dentro de Weë Creator (2026-09-27) no hay barra inferior —el taller tiene su
+ * Dentro del workspace de Weë Studio (2026-09-27) no hay barra inferior —el taller tiene su
  * propia navegación—, así que ahí no hay nada que descontar.
  */
+/*
+ * Dentro del workspace de Weë Studio (2026-09-28) no está la barra de Weë: la pantalla Weë Studio, su inicio, no la
+ * descuenta ahí. Fuera —Weë Design y cualquier sección de Weë AI—, igual que siempre.
+ */
 check('20) y las páginas de Weë AI descuentan la barra inferior',
-  /descuento=\{enCreator \? 0 : ALTO_BARRA\}/.test(leer('components/creator/CreatorShell.tsx'))
-  && ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /descuento=\{isDesktop \? 0 : ALTO_BARRA\}/.test(leer(p))));
+  /descuento=\{enStudio \? 0 : ALTO_BARRA\}/.test(leer('components/creator/CreatorShell.tsx'))
+  && /descuento=\{enStudio \|\| isDesktop \? 0 : ALTO_BARRA\}/.test(leer('screens/StudioScreen.tsx'))
+  && /descuento=\{isDesktop \? 0 : ALTO_BARRA\}/.test(leer('screens/DesignScreen.tsx')));
 /*
  * Y el pie anclado no le guarda sitio a la barra de abajo: esa barra no flota
  * encima, ocupa el suyo, y lo que le queda a la sección termina donde empieza

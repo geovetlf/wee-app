@@ -10,7 +10,7 @@
  * 多场景, igual que en `studio.xpMultiScene`. El modo que dirige la producción
  * entera se llama 导演, y dirigir una escena o un plano es 执导.
  *
- * EL ESPACIO DE TRABAJO (`ws…`, Weë Creator): «Filmmaker» es nombre de producto
+ * EL ESPACIO DE TRABAJO (`ws…`, Weë Studio): «Filmmaker» es nombre de producto
  * y se queda en alfabeto latino; «Weë AI Director» es «Weë AI 导演», la marca
  * intacta y el panel con su nombre de siempre. Las fases son 前期制作, 中期制作 y
  * 后期制作; el visor, 预览; el cabezal, 播放头; una línea de diálogo, 台词.

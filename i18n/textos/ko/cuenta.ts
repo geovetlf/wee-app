@@ -3,7 +3,7 @@
  * la cuenta y no de una cara, a un toque.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * «Credits» y «Weë Creator» son marca y no se transliteran. Las etiquetas repiten
+ * «Credits» y «Weë Studio» son marca y no se transliteran. Las etiquetas repiten
  * las palabras que ya usan `credits`, `menu` y `settings` (내역, 개인정보, 저장됨).
  */
 export const cuenta: typeof import('../es/cuenta').cuenta = {
@@ -15,6 +15,4 @@ export const cuenta: typeof import('../es/cuenta').cuenta = {
   settings: '계정 설정',
   privacy: '개인정보',
   help: '도움말 센터',
-  saved: '저장됨',
-  creator: 'Weë Creator',
 };

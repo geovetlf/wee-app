@@ -104,8 +104,7 @@ console.log('\n── B · Los otros textos de la barra ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const pares = [
-    /* La primera área de Weë es Inspira desde el 2026-09-27 (antes, «Inicio»). */
-    ['7) Inspira', 'nav.inspire', 'Inspira', /label=\{t\('nav\.inspire'\)\}/],
+    ['7) Inicio', 'nav.home', 'Inicio', /label=\{t\('nav\.home'\)\}/],
     ['8) Buscar', 'nav.search', 'Buscar', /label=\{t\('nav\.search'\)\}/],
     ['9) PERFIL', 'menu.sectionProfile', 'PERFIL', /\{t\('menu\.sectionProfile'\)\}/],
     ['10) EXPLORA', 'menu.sectionExplore', 'EXPLORA', /\{t\('menu\.sectionExplore'\)\}/],

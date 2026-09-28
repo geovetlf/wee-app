@@ -12,8 +12,7 @@ import CommunitiesManagementScreen from '../screens/CommunitiesManagementScreen'
 const LandingComponent = Platform.OS === 'web' ? WebLandingScreen : LandingScreen;
 
 export type HomeStackParamList = {
-  /* `vista`: en Inspira, entrar por la comunidad (lo de siempre) o por las ideas (desde Crear). */
-  Landing: { openWeels?: boolean; weelsCommunitySlug?: string; initialPostId?: string; vista?: 'comunidad' | 'ideas' } | undefined;
+  Landing: { openWeels?: boolean; weelsCommunitySlug?: string; initialPostId?: string } | undefined;
   Feed: { communityId?: string | null; communitySlug?: string | null } | undefined;
   HomeFeed: undefined;
   Notifications: undefined;

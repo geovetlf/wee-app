@@ -1,29 +1,10 @@
 /*
- * The Create tab of Weë and the Create video screen (2026-09-27). Weë names
- * —Weë, Weë AI, Weë Creator, Weë Brain, Credits— are brand and are not
+ * The Create video screen of Weë Studio (2026-09-27). Weë names
+ * —Weë, Weë AI, Weë Studio, Weë Brain, Credits— are brand and are not
  * translated. The style "words" (`style…Words`) travel inside the person's idea
  * to the video experience: written as they would say them.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'Whatever you imagine, with Weë AI or with your own photos and videos.',
-  heroTitle: 'Turn your ideas into amazing videos',
-  heroText: 'Tell Weë what you want to see: the AI takes care of the script, the image and the voice.',
-  heroCta: 'Create video',
-  createCta: 'Create',
-  ideaPlaceholder: 'Describe what you want to create…',
-  capabilitiesTitle: 'What do you want to create',
-  capVideo: 'Video',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'More',
-  shareTitle: 'Share on Weë',
-  creatorTitle: 'Create like a pro',
-  creatorText: 'Weë Creator: Filmmaker, timeline, Weë AI Director and all your material in a professional workspace.',
-  creatorCta: 'Open Weë Creator',
-  noDestinationTitle: 'What do you want to do with your idea?',
-  noDestinationText: 'Choose where to start. If you are not sure, Weë Brain helps you decide.',
-  suggestImage: 'An image',
-  suggestText: 'A text',
-  suggestBrain: 'Ask Weë Brain',
   videoTitle: 'Create video',
   videoPlaceholder: 'Describe your video: who is in it, where, what happens and how it feels…',
   improvePrompt: 'Improve prompt',
@@ -74,7 +55,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Before creating you will see the plan and its price in Credits. Nothing is charged until you confirm.',
   proTitle: 'Create like a pro',
   proInCreator: 'Take it to Filmmaker',
-  proText: 'Several scenes, shots, a timeline and Weë AI Director, in Weë Creator.',
+  proText: 'Several scenes, shots, a timeline and Weë AI Director, in Weë Studio.',
   recentVideos: 'Your recent videos',
   noVideosYet: 'You have not created any videos yet. The first one will show up here.',
   seeCreations: 'See my creations',

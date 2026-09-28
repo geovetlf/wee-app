@@ -3,31 +3,29 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
-import { getExperienceById } from '../../constants/weeExperiences';
-import { EntradaDeCreator, HERRAMIENTAS_DE_CREATOR, SECCIONES_DE_CREATOR } from '../../constants/creatorWorkspace';
+import { EntradaDelMarco, HERRAMIENTAS_DEL_STUDIO, SECCIONES_DEL_STUDIO } from '../../constants/studioWorkspace';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
-/** El nombre de una entrada: su clave, o la marca de la experiencia que abre (que no se traduce). */
-export const nombreDeEntrada = (e: EntradaDeCreator, t: (clave: string) => string): string =>
-  e.clave ? t(e.clave) : getExperienceById(e.experienceId ?? '')?.name ?? e.id;
+/** El nombre de una entrada, por su clave. */
+export const nombreDeEntrada = (e: EntradaDelMarco, t: (clave: string) => string): string => t(e.clave);
 
 /**
- * LA BARRA LATERAL DE WEË CREATOR.
+ * LA BARRA LATERAL DE WEË STUDIO.
  *
- * Arriba lo que es de todo el taller —Inicio, Inspira, Proyectos, Creaciones—, y
- * debajo las herramientas, con Filmmaker primero. Abajo del todo, la salida:
- * volver a Weë, que es donde están la comunidad, los muros y los Weëls. Aquí no
- * hay nada de eso a propósito: Weë Creator es para crear.
+ * Arriba lo que es de todo el Studio —Inicio, Inspira, Proyectos, Creaciones—, y
+ * debajo sus herramientas: Filmmaker, Vídeo y sus puertas de siempre (Imágenes,
+ * Texto, Voz). Abajo del todo, la salida: volver a Weë, donde están la
+ * comunidad, el muro y los Weëls. Nada de otros módulos de Weë AI.
  *
  * `compacta` es la de tableta: solo iconos, con su nombre para quien no ve. En el
- * teléfono no hay barra: la misma lista se abre en una hoja (`lista`).
+ * teléfono no hay barra lateral: el Studio va en sus cuatro pestañas.
  */
-const BarraLateralDeCreator: React.FC<{
+const BarraLateralDeStudio: React.FC<{
   encendida: string;
-  onAbrir: (entrada: EntradaDeCreator) => void;
+  onAbrir: (entrada: EntradaDelMarco) => void;
   onVolverAWee: () => void;
   forma?: 'completa' | 'compacta' | 'lista';
 }> = ({ encendida, onAbrir, onVolverAWee, forma = 'completa' }) => {
@@ -35,7 +33,7 @@ const BarraLateralDeCreator: React.FC<{
   const t = useT();
   const compacta = forma === 'compacta';
 
-  const fila = (e: EntradaDeCreator) => {
+  const fila = (e: EntradaDelMarco) => {
     const activa = e.id === encendida;
     const nombre = nombreDeEntrada(e, t);
     return (
@@ -72,9 +70,9 @@ const BarraLateralDeCreator: React.FC<{
 
   const contenido = (
     <>
-      <View style={styles.bloque}>{SECCIONES_DE_CREATOR.map(fila)}</View>
+      <View style={styles.bloque}>{SECCIONES_DEL_STUDIO.map(fila)}</View>
       {titulo(t('workspace.navTools'))}
-      <View style={styles.bloque}>{HERRAMIENTAS_DE_CREATOR.map(fila)}</View>
+      <View style={styles.bloque}>{HERRAMIENTAS_DEL_STUDIO.map(fila)}</View>
     </>
   );
 
@@ -137,4 +135,4 @@ const styles = StyleSheet.create({
   salida: { borderWidth: StyleSheet.hairlineWidth },
 });
 
-export default BarraLateralDeCreator;
+export default BarraLateralDeStudio;

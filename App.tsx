@@ -163,9 +163,6 @@ const linking: any = {
             },
           },
           Create: 'create',
-          /* Las pestañas de Weë desde el 2026-09-27: Crear y Proyectos (Inspira es `home`, Perfil es `profile`). */
-          Crear: 'crear',
-          Proyectos: 'proyectos',
           Inbox: {
             path: 'inbox',
             screens: {
@@ -182,42 +179,22 @@ const linking: any = {
       },
       Search: 'search',
       Settings: 'settings',
-      Studio: 'studio',
-      Production: {
-        path: 'studio/produccion/:productionId?',
-        parse: {
-          productionId: (productionId: string) => productionId,
-          /* Los controles elegidos en «Varias escenas» viajan como JSON; si al recargar no se pueden leer, no viajan. */
-          creativo: (creativo: string) => {
-            try {
-              const valor = JSON.parse(creativo);
-              return valor && typeof valor === 'object' && !Array.isArray(valor) ? valor : undefined;
-            } catch {
-              return undefined;
-            }
-          },
-        },
-        stringify: {
-          creativo: (creativo: unknown) => JSON.stringify(creativo ?? {}),
-        },
-      },
       Design: 'design',
-      CrearVideo: 'crear/video',
       /*
-       * WEË CREATOR, el taller profesional, con su propia pila: sus direcciones
-       * cuelgan de `/creator`. Filmmaker vive aquí; si alguien llega por la
-       * dirección de siempre (`studio/produccion/…`), la pantalla lo trae dentro.
+       * WEË STUDIO, el workspace, con su propia pila: sus direcciones cuelgan de
+       * `/studio`, la de siempre, y Filmmaker sigue en `studio/produccion/…`.
        */
-      Creator: {
-        path: 'creator',
+      Studio: {
+        path: 'studio',
         screens: {
-          CreatorInicio: '',
-          CreatorInspira: 'inspira',
-          CreatorProyectos: 'proyectos',
-          CreatorVideo: 'video',
+          StudioInicio: '',
+          StudioInspira: 'inspira',
+          StudioProyectos: 'proyectos',
+          StudioPerfil: 'perfil',
+          StudioVideo: 'video',
           MisCreaciones: 'creaciones',
           Production: {
-            path: 'filmmaker/:productionId?',
+            path: 'produccion/:productionId?',
             parse: {
               productionId: (productionId: string) => productionId,
               /* Igual que en la dirección de siempre: los controles elegidos viajan como JSON, y si no se leen, no viajan. */
@@ -234,7 +211,6 @@ const linking: any = {
               creativo: (creativo: unknown) => JSON.stringify(creativo ?? {}),
             },
           },
-          Specialist: 'herramienta/:id',
           Project: 'proyecto/:id',
         },
       },

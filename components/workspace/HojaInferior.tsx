@@ -14,7 +14,7 @@ const isWeb = Platform.OS === 'web';
  * UNA HOJA QUE SUBE DESDE ABAJO — y, en escritorio, un panel centrado.
  *
  * La usan las herramientas del editor (Dividir, Velocidad, Audio…), la
- * exportación y el menú de Weë Creator en el teléfono. Es la misma pieza para
+ * exportación y el menú de Weë Studio en el teléfono. Es la misma pieza para
  * todas: el asa, el título, la X y lo que cada una pone dentro. En el teléfono
  * se toca con el pulgar y se cierra tocando fuera; en escritorio no tiene
  * sentido que algo suba desde el borde de una pantalla de 27 pulgadas, así que

@@ -1,13 +1,11 @@
 /*
- * Inspire: the community and ready-to-use ideas (2026-09-27). The recipes are
+ * Weë Studio's Inspire: ready-to-use ideas (2026-09-27). The recipes are
  * Weë's, not people's: they are translated, and their idea (`…Prompt`) is what
  * lands in the box when used, written the way the person would write it.
  */
 export const inspira: typeof import('../es/inspira').inspira = {
   title: 'Inspire',
   subtitle: 'Prompts, recipes and ideas ready to use. Open them, make them yours and create them.',
-  tabCommunity: 'Community',
-  tabIdeas: 'Ideas',
   catAll: 'All',
   catCinematic: 'Cinematic',
   catCommercial: 'Commercial',
@@ -19,7 +17,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: 'Video',
   destFilmmaker: 'Filmmaker',
   destImage: 'Image',
-  destDesign: 'Design',
   destWriting: 'Text',
   popularTitle: 'Popular ideas',
   recipesTitle: 'Prompts and recipes',
@@ -62,9 +59,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: 'The story of your business',
   rBusinessDesc: 'Three scenes that tell how it started.',
   rBusinessPrompt: 'Three scenes that tell the story of a business: the first day with the shutter half raised, the daily work and a customer who comes back happy.',
-  rPosterTitle: 'Event poster',
-  rPosterDesc: 'A poster with big type and warm colors.',
-  rPosterPrompt: 'Poster for an open-air concert with big type, warm colors and space for the date and the venue.',
   rSheetTitle: 'Character sheet',
   rSheetDesc: 'The same character from the front, the side and the back.',
   rSheetPrompt: 'Character sheet with the same character from the front, in profile and from the back, on a neutral background.',

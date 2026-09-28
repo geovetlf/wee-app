@@ -23,7 +23,7 @@ interface CreateSheetProps {
  * puesta aquí se quedaría con el idioma del arranque. El `kind` es el
  * identificador y no cambia nunca: con él viaja lo que se va a crear.
  */
-export const OPTIONS: readonly { kind: CreateKind; emoji: string; clave: string }[] = [
+const OPTIONS: { kind: CreateKind; emoji: string; clave: string }[] = [
   { kind: 'post', emoji: '📝', clave: 'composer.kindPost' },
   { kind: 'weel', emoji: '📹', clave: 'composer.kindWeel' },
   { kind: 'image', emoji: '🖼️', clave: 'composer.kindImage' },

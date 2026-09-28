@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 /**
  * EL BOTÓN DE LA CABECERA QUE DEPENDE DE DÓNDE ESTÁS.
  *
- * La cabecera de Weë Creator es una sola y no se vuelve a montar al cambiar de
+ * La cabecera de Weë Studio es una sola y no se vuelve a montar al cambiar de
  * pantalla; pero hay pantallas que tienen algo que decir arriba a la derecha:
  * Filmmaker, «Exportar». Esto es el hilo por el que una pantalla le pasa su
  * botón a la cabecera mientras está a la vista, y se lo quita al irse.
@@ -20,7 +20,7 @@ export const AccionDeCabeceraContext = createContext<{ poner: (accion: AccionDeC
 });
 
 /**
- * Pone el botón mientras la pantalla está enfocada. Fuera de Weë Creator no hay
+ * Pone el botón mientras la pantalla está enfocada. Fuera de Weë Studio no hay
  * quien lo pinte y no pasa nada: el contexto por defecto no hace nada.
  */
 export const useAccionDeCabecera = (accion: AccionDeCabecera | null): void => {

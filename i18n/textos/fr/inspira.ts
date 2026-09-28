@@ -1,5 +1,5 @@
 /*
- * FRANCÉS — Inspira: la comunidad y las ideas listas para usar (2026-09-27).
+ * FRANCÉS — Inspira de Weë Studio: las ideas listas para usar (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo (tu), apóstrofo tipográfico ’ y espacio antes de ? ! y :. La sección se
@@ -12,8 +12,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: 'Inspiration',
   subtitle: 'Des prompts, des recettes et des idées prêtes à l’emploi. Ouvre-les, personnalise-les et crée-les.',
-  tabCommunity: 'Communauté',
-  tabIdeas: 'Idées',
   catAll: 'Tout',
   catCinematic: 'Cinéma',
   catCommercial: 'Publicité',
@@ -25,7 +23,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: 'Vidéo',
   destFilmmaker: 'Filmmaker',
   destImage: 'Image',
-  destDesign: 'Design',
   destWriting: 'Texte',
   popularTitle: 'Idées populaires',
   recipesTitle: 'Prompts et recettes',
@@ -68,9 +65,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: 'L’histoire de ton entreprise',
   rBusinessDesc: 'Trois scènes qui racontent ses débuts.',
   rBusinessPrompt: 'Trois scènes qui racontent l’histoire d’une petite entreprise : le premier jour, le rideau de fer à moitié levé, le travail de tous les jours et un client qui revient content.',
-  rPosterTitle: 'Affiche d’événement',
-  rPosterDesc: 'Une affiche avec une grande typographie et des couleurs chaudes.',
-  rPosterPrompt: 'Affiche pour un concert en plein air avec une grande typographie, des couleurs chaudes et de la place pour la date et le lieu.',
   rSheetTitle: 'Fiche personnage',
   rSheetDesc: 'Le même personnage de face, de profil et de dos.',
   rSheetPrompt: 'Planche de personnage avec le même personnage de face, de profil et de dos, sur un fond neutre.',

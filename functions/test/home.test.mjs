@@ -1661,25 +1661,17 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
   const pila = leer('navigation/MainStackNavigator.tsx');
   const pestanas = leer('navigation/TabNavigator.tsx');
 
+  /* Cinco destinos, los de siempre, en el mismo orden. */
   const ids = [...barra.matchAll(/\{ id: '(\w+)', etiqueta: '([^']+)'/g)].map((m) => [m[1], m[2]]);
+  check('132) son exactamente cinco destinos', ids.length === 5, ids.map(([, e]) => e).join(' · '));
   /*
    * El quinto dejó de ser Perfil y pasó a ser Notificaciones (fase 2E-77): la
    * campana estaba en el encabezado y bajó aquí.
-   *
-   * Y el 2026-09-27 la barra pasó a ser la de las CUATRO áreas de Weë —Crear,
-   * Inspira, Proyectos y Perfil—, la misma en la web y en el teléfono (encargo
-   * del usuario «WEE Studio — experiencia UX/UI definitiva», con su referencia
-   * móvil y dos aclaraciones). Inspira es la pestaña de siempre del Home
-   * ('Home'), con sus comunidades, sus Weëls y ahora sus ideas; Buscar, WeeTalk
-   * y Notificaciones subieron arriba, a los accesos de cada pestaña.
    */
-  check('132) son exactamente cuatro destinos', ids.length === 4, ids.map(([, e]) => e).join(' · '));
-  check('133) con sus rutas: la pestaña del Home es Inspira',
-    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Crear', 'Home', 'Proyectos', 'Profile']));
-  check('134) y sus nombres',
-    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['Crear', 'Inspira', 'Proyectos', 'Perfil']));
-  check('134) Crear y Proyectos son pestañas de verdad, no pantallas sueltas',
-    /<Tab\.Screen\s+name="Crear"/.test(pestanas) && /<Tab\.Screen\s+name="Proyectos"/.test(pestanas));
+  check('133) con las rutas de siempre',
+    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'Search', 'Create', 'Inbox', 'Notifications']));
+  check('134) y los nombres de siempre',
+    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['Inicio', 'Buscar', 'Crear', 'WeeTalk', 'Notificaciones']));
   /*
    * Control: las cuatro que son pestañas siguen declaradas como pestañas, y la
    * de Perfil TAMBIÉN, aunque ya no esté en la barra: su pantalla y su pila no
@@ -1717,52 +1709,43 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
    * QUÉ VA ENCENDIDO. Dentro de las pestañas, la pestaña; fuera, la ruta si se
    * conoce y si no Inicio, porque todo lo demás se alcanza desde ahí.
    */
-  /*
-   * Con cuatro destinos, estar en una pestaña que NO está en la barra —Buscar o
-   * WeeTalk, que se abren desde arriba— no enciende ninguno: encender Inspira
-   * estando en WeeTalk sería decir mal dónde estás.
-   */
-  check('139) el activo sale de dónde estás',
-    /const pestana = pestanaPuesta\(estado\);/.test(global)
-    && /pestana\s*\?\s*\(EN_LA_BARRA\.has\(pestana\) \? \(pestana as DestinoId\) : null\)\s*:\s*DESTINO_DE_RUTA\[rutaRaiz\] \|\| 'Home'/.test(global)
-    && /EN_LA_BARRA: ReadonlySet<string> = new Set<DestinoId>\(\['Crear', 'Home', 'Proyectos', 'Profile'\]\)/.test(global));
+  check('139) el activo sale de dónde estás', /pestanaPuesta\(estado\) \|\| DESTINO_DE_RUTA\[rutaRaiz\] \|\| 'Home'/.test(global));
   check('140) y se anuncia como tal', /accessibilityState=\{\{ selected: activo \}\}/.test(barra) && /aria-selected=\{activo\}/.test(barra));
 
   /*
    * ─── LA CAMPANA BAJÓ A LA BARRA (fase 2E-77) ────────────────────────────────
    *
-   * Notificaciones fue el quinto destino y Perfil salió de la barra.
-   *
-   * ─── Y VOLVIÓ ARRIBA CON LAS CUATRO ÁREAS (2026-09-27) ──────────────────────
-   *
-   * Con la barra de Crear · Inspira · Proyectos · Perfil, la campana está arriba,
-   * junto a Buscar y WeeTalk, en los accesos de las cuatro pestañas
-   * (AccesosDeLaApp), y en escritorio en la barra lateral. Sigue sin ser una
-   * pestaña: es la MISMA pantalla dentro de la pila del Home, por el mismo camino.
+   * Notificaciones es el quinto destino y Perfil salió de la barra. No es una
+   * pestaña: es una pantalla DENTRO de la pila del Home, así que se abre por el
+   * mismo camino que ya usaban el menú ☰ y la barra lateral, y por eso lo que
+   * enciende el destino es la ruta más honda y no la pestaña —estando en
+   * Notificaciones, la pestaña sigue siendo Inicio—.
    */
-  const accesos = leer('components/AccesosDeLaApp.tsx');
-  check('141) Notificaciones está arriba, con el icono de la familia',
-    /boton\('notifications-outline', t\('nav\.notifications'\)/.test(accesos));
+  check('141) Notificaciones es el quinto, con el icono de la familia',
+    /*
+     * Entre la etiqueta y el icono puede haber más campos —hoy la clave de
+     * traducción—. Lo que se exige es que el quinto destino siga siendo
+     * Notifications y siga llevando el icono de la familia.
+     */
+    /\{ id: 'Notifications', etiqueta: 'Notificaciones',[^}]*icono: 'notifications-outline', iconoPuesto: 'notifications' \}/.test(barra)
+    && ids[4][0] === 'Notifications');
   check('141) y abre la pantalla que ya existía, sin ruta nueva',
-    /ir\('Main', \{ screen: 'Home', params: \{ screen: 'Notifications' \} \}\)/.test(accesos)
+    /if \(destino === 'Notifications'\) \{\s*return irARaiz\('Main', \{ screen: 'Home', params: \{ screen: 'Notifications' \} \}\);/.test(global)
     && /name="Notifications"/.test(leer('navigation/HomeStackNavigator.tsx'))
     && (leer('navigation/HomeStackNavigator.tsx').match(/name="Notifications"/g) || []).length === 1);
-  check('141) los accesos están en las cuatro pestañas: Crear y Proyectos, Inspira y Perfil',
-    /<AccesosDeLaApp \/>/.test(leer('components/PestanaDeLaApp.tsx'))
-    && /<AccesosDeLaApp \/>/.test(leer('components/inspira/BarraDeInspira.tsx'))
-    && /<AccesosDeLaApp sobreImagen \/>/.test(leer('screens/ProfileScreen.tsx')));
-  /* Perfil vuelve a la BARRA como una de las cuatro áreas, con un icono y no con tu cara. */
-  check('142) Perfil vuelve a la barra',
-    /\{ id: 'Profile', etiqueta: 'Perfil', clave: 'nav\.profile', icono: 'person-circle-outline', iconoPuesto: 'person-circle' \}/.test(barra));
+  check('141) se enciende estando en ella, aunque la pestaña sea Inicio',
+    /const enNotificaciones = rutaHonda\(estado\) === 'Notifications';/.test(global)
+    && /enNotificaciones\s*\n?\s*\? 'Notifications'/.test(global));
+  /* Perfil sale de la BARRA, no de la aplicación: su pantalla y sus puertas siguen. */
+  check('142) Perfil ya no está en la barra', !/'Profile'/.test(barra) && !/etiqueta: 'Perfil'/.test(barra));
   check('142) pero su pantalla y su pila siguen enteras',
     /<Tab\.Screen\s+name="Profile"/.test(pestanas) && /ProfileStackNavigator/.test(pestanas));
   check('142) y se sigue abriendo desde el menú ☰ y la barra lateral',
     /navigateTab\('Profile'\)/.test(leer('components/DrawerMenu.tsx')) && /goTab\('Profile'\)/.test(leer('components/Sidebar.tsx')));
-  /* Control: la cabecera no tiene campana propia, la barra no tiene campana, y Perfil está una sola vez. */
-  check('142) control: ni campana en la cabecera ni en la barra, y Perfil una sola vez',
+  /* Control: una sola puerta a Notificaciones desde la barra, y ninguna campana arriba. */
+  check('142) control: ni campana arriba ni Perfil duplicado abajo',
     !/notifications/i.test(leer('components/Header.tsx'))
-    && !/Notifications/.test(barra)
-    && (barra.match(/\{ id: 'Profile'/g) || []).length === 1
+    && (barra.match(/\{ id: 'Notifications'/g) || []).length === 1
     && !/person-outline|AvatarDisplay|person'/.test(barra));
 
   /* Las pantallas que de verdad piden pantalla completa se quedan sin barra. */

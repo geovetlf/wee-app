@@ -34,9 +34,9 @@ export const CATEGORIAS_DE_INSPIRACION: readonly { readonly id: CategoriaDeInspi
  * A dónde lleva una receta al usarla:
  *   video      la creación de vídeo de un solo clip (Weë Studio);
  *   filmmaker  una producción nueva de Filmmaker, con la idea como intención;
- *   imagen     Weë Photo;  design  Weë Design;  escribir  Weë Writer.
+ *   imagen     las imágenes del Studio;  escribir  el texto del Studio.
  */
-export type DestinoDeReceta = 'video' | 'filmmaker' | 'imagen' | 'design' | 'escribir';
+export type DestinoDeReceta = 'video' | 'filmmaker' | 'imagen' | 'escribir';
 
 /** Los tipos de «para qué» que entiende la plantilla de vídeo del servidor (su pregunta `type`). */
 export type TipoDeVideo = 'promo' | 'social' | 'story';
@@ -113,10 +113,6 @@ export const RECETAS: readonly Receta[] = Object.freeze([
     clave: 'inspira.rBusinessTitle', claveDescripcion: 'inspira.rBusinessDesc', clavePrompt: 'inspira.rBusinessPrompt',
   },
   {
-    id: 'cartel-de-evento', categoria: 'marketing', destino: 'design', icono: 'easel-outline',
-    clave: 'inspira.rPosterTitle', claveDescripcion: 'inspira.rPosterDesc', clavePrompt: 'inspira.rPosterPrompt',
-  },
-  {
     id: 'ficha-de-personaje', categoria: 'personajes', destino: 'imagen', icono: 'people-outline',
     clave: 'inspira.rSheetTitle', claveDescripcion: 'inspira.rSheetDesc', clavePrompt: 'inspira.rSheetPrompt',
   },
@@ -140,14 +136,12 @@ export const CLAVE_DEL_DESTINO: Readonly<Record<DestinoDeReceta, string>> = Obje
   video: 'inspira.destVideo',
   filmmaker: 'inspira.destFilmmaker',
   imagen: 'inspira.destImage',
-  design: 'inspira.destDesign',
   escribir: 'inspira.destWriting',
 });
 
 /** El experienceId de Weë AI al que va cada destino que se crea con la conversación guiada. */
 export const EXPERIENCIA_DEL_DESTINO: Readonly<Partial<Record<DestinoDeReceta, string>>> = Object.freeze({
   imagen: 'photo',
-  design: 'design',
   escribir: 'writer',
 });
 

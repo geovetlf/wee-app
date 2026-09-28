@@ -1,33 +1,14 @@
 /*
- * COREANO — la pestaña Crear de Weë y la pantalla Crear video (2026-09-27).
+ * COREANO — la pantalla Crear video de Weë Studio (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Registro 해요체 y botones en forma nominal corta (만들기, 영상 생성). Weë, Weë AI,
- * Weë Creator, Weë Brain, Filmmaker y Credits son marca: en alfabeto latino, sin
+ * Weë Studio, Weë Brain, Filmmaker y Credits son marca: en alfabeto latino, sin
  * transliterar. El vídeo es «영상», como en `filmmaker`. Las «palabras» de cada
  * estilo (`style…Words`) viajan dentro de la idea hacia el vídeo, así que van como
  * las escribiría una persona coreana. Ninguna partícula variable va pegada a un {{hueco}}.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: '상상하는 무엇이든, Weë의 AI로 또는 내 사진과 영상으로.',
-  heroTitle: '아이디어를 멋진 영상으로 만들어 보세요',
-  heroText: '보고 싶은 것을 Weë에 말해 주세요. 대본, 이미지, 목소리는 AI가 맡아요.',
-  heroCta: '영상 만들기',
-  createCta: '만들기',
-  ideaPlaceholder: '만들고 싶은 것을 설명해 주세요…',
-  capabilitiesTitle: '무엇을 만들까요',
-  capVideo: '영상',
-  capFilmmaker: 'Filmmaker',
-  capMore: '더 보기',
-  shareTitle: 'Weë에 공유하기',
-  creatorTitle: '프로처럼 만들기',
-  creatorText: 'Weë Creator: Filmmaker, 타임라인, Weë AI Director, 내 모든 자료를 한곳에 모은 전문 작업실.',
-  creatorCta: 'Weë Creator 열기',
-  noDestinationTitle: '이 아이디어로 무엇을 할까요?',
-  noDestinationText: '어디서 시작할지 골라 주세요. 잘 모르겠다면 Weë Brain이 결정을 도와드려요.',
-  suggestImage: '이미지',
-  suggestText: '텍스트',
-  suggestBrain: 'Weë Brain에게 물어보기',
   videoTitle: '영상 만들기',
   videoPlaceholder: '어떤 영상인가요? 누가 나오고, 어디서 무슨 일이 일어나고, 어떤 느낌인지 설명해 주세요…',
   improvePrompt: '프롬프트 다듬기',
@@ -78,7 +59,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: '만들기 전에 계획과 가격을 Credits로 보여 드려요. 확정하기 전에는 아무것도 차감되지 않아요.',
   proTitle: '프로처럼 만들기',
   proInCreator: 'Filmmaker로 가져가기',
-  proText: '여러 장면, 숏, 타임라인, Weë AI Director까지 Weë Creator에서.',
+  proText: '여러 장면, 숏, 타임라인, Weë AI Director까지 Weë Studio에서.',
   recentVideos: '최근 만든 영상',
   noVideosYet: '아직 만든 영상이 없어요. 첫 영상이 여기에 나타나요.',
   seeCreations: '내 창작물 보기',

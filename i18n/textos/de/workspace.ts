@@ -1,17 +1,17 @@
 /*
- * ALEMÁN — Weë Creator: el taller profesional de Weë AI, con su marco, su barra
+ * ALEMÁN — el workspace de Weë Studio, dentro de Weë AI: su marco, su barra
  * lateral, su buscador, su Inicio, Proyectos, el reproductor y los estados.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tratamiento informal (du). «Weë Creator», «Weë AI», «Weë AI Director»,
+ * Tratamiento informal (du). «Weë Studio», «Weë AI», «Weë AI Director»,
  * «Filmmaker», «Weë» y «Credits» son marca y no se traducen; `wordmark`
- * (CREATOR) forma parte del nombre y se queda igual.
+ * (STUDIO) forma parte del nombre y se queda igual.
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: 'Zurück zu Weë',
-  navLabel: 'Navigation von Weë Creator',
+  navLabel: 'Navigation von Weë Studio',
   navHome: 'Start',
   navInspire: 'Inspiration',
   navProjects: 'Projekte',
@@ -19,8 +19,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: 'Tools',
   toolFilmmaker: 'Filmmaker',
   toolVideo: 'Video',
-  menuSubtitle: 'Deine ganze Werkstatt: Tools, Projekte und Kreationen.',
-  openMenu: 'Menü von Weë Creator öffnen',
   notifications: 'Mitteilungen',
   myProfile: 'Mein Profil',
   searchTitle: 'Suchen',
@@ -35,16 +33,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: 'Ideen',
   searchProductionDetail: 'Produktion · {{formato}}',
   searchProjectDetail: 'Projekt in Weë AI',
-  homeTitle: 'Deine Kreativwerkstatt',
-  homeSubtitle: 'Filmmaker, Video, Bild und mehr – mit der KI von Weë. Alles, was du erstellst, bleibt in deinen Projekten.',
-  filmmakerPitch: 'Von der Idee zum Video: Szenen, Einstellungen, Zeitleiste und Weë AI Director.',
-  openFilmmaker: 'Filmmaker öffnen',
-  ideasTitle: 'Ideen zum Loslegen',
-  seeAllIdeas: 'Alle ansehen',
-  recentCreations: 'Deine neuesten Kreationen',
   seeAllCreations: 'Alle ansehen',
-  recentProjects: 'Mach weiter, wo du aufgehört hast',
-  seeAllProjects: 'Alle ansehen',
   projectsTitle: 'Projekte',
   projectsSubtitle: 'Deine Produktionen in Filmmaker und deine Projekte in Weë AI, an einem Ort.',
   projectsFilterAll: 'Alle',

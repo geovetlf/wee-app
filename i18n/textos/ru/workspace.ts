@@ -1,18 +1,18 @@
 /*
- * RUSO — Weë Creator, el taller profesional de Weë AI (2026-09-27): su marco,
+ * RUSO — el workspace de Weë Studio, dentro de Weë AI (2026-09-27): su marco,
  * su barra lateral, su buscador, su Inicio, Proyectos, el reproductor y los
  * estados de lo que se crea.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Trato de «вы». Weë Creator, Weë AI, Weë, Filmmaker y Credits son marca: en
- * latino y sin declinar; `wordmark` («CREATOR») es parte del nombre. Como en
+ * Trato de «вы». Weë Studio, Weë AI, Weë, Filmmaker y Credits son marca: en
+ * latino y sin declinar; `wordmark` («STUDIO») es parte del nombre. Como en
  * `filmmaker`, la producción es «постановка» y las creaciones, «творения».
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: 'Вернуться в Weë',
-  navLabel: 'Навигация Weë Creator',
+  navLabel: 'Навигация Weë Studio',
   navHome: 'Главная',
   navInspire: 'Вдохновение',
   navProjects: 'Проекты',
@@ -20,8 +20,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: 'Инструменты',
   toolFilmmaker: 'Filmmaker',
   toolVideo: 'Видео',
-  menuSubtitle: 'Вся ваша мастерская: инструменты, проекты и творения.',
-  openMenu: 'Открыть меню Weë Creator',
   notifications: 'Уведомления',
   myProfile: 'Мой профиль',
   searchTitle: 'Поиск',
@@ -36,16 +34,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: 'Идеи',
   searchProductionDetail: 'Постановка · {{formato}}',
   searchProjectDetail: 'Проект Weë AI',
-  homeTitle: 'Ваша творческая мастерская',
-  homeSubtitle: 'Filmmaker, видео, изображения и не только — с ИИ Weë. Всё, что вы создаёте, остаётся в ваших проектах.',
-  filmmakerPitch: 'От идеи до видео: сцены, планы, таймлайн и Weë AI Director.',
-  openFilmmaker: 'Открыть Filmmaker',
-  ideasTitle: 'Идеи для начала',
-  seeAllIdeas: 'Смотреть все',
-  recentCreations: 'Ваши недавние творения',
   seeAllCreations: 'Смотреть все',
-  recentProjects: 'Продолжите с того места, где остановились',
-  seeAllProjects: 'Смотреть все',
   projectsTitle: 'Проекты',
   projectsSubtitle: 'Ваши постановки в Filmmaker и проекты Weë AI — вместе.',
   projectsFilterAll: 'Всё',

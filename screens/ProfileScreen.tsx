@@ -32,8 +32,6 @@ import { voteService } from '../services/voteService';
 import { formatNumber } from '../data/mockData';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import DrawerMenu from '../components/DrawerMenu';
-import AccesosDeLaApp from '../components/AccesosDeLaApp';
-import PanelDeCuenta from '../components/PanelDeCuenta';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import PostCard from '../components/PostCard';
@@ -714,8 +712,6 @@ const ProfileScreen: React.FC = () => {
               <Ionicons name="menu" size={22} color="#fff" />
             </TouchableOpacity>
             <View style={styles.floatingHeaderRight}>
-              {/* Buscar, WeeTalk y Notificaciones: el mismo sitio en las cuatro pestañas de Weë. */}
-              <AccesosDeLaApp sobreImagen />
               <TouchableOpacity
                 style={[styles.floatingHeaderBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
                 onPress={handleSettingsPress}
@@ -861,9 +857,6 @@ const ProfileScreen: React.FC = () => {
               <Ionicons name="settings-outline" size={20} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
-
-          {/* Tu cuenta: los Credits, el idioma, la configuración, la privacidad y la puerta a Weë Creator. */}
-          <PanelDeCuenta />
 
           {/* Botón Crear perfil Weë - solo si no existe */}
           {!hasWeeProfile && activeProfileType === 'real' && (

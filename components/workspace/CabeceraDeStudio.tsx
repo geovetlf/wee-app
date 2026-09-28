@@ -8,34 +8,34 @@ import { useT } from '../../contexts/IdiomaContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import AvatarDisplay from '../avatars/AvatarDisplay';
 import CreditsPill from '../CreditsPill';
-import BuscadorDeCreator from './BuscadorDeCreator';
+import BuscadorDeStudio from './BuscadorDeStudio';
 import type { AccionDeCabecera } from './accionDeCabecera';
-import type { ResultadoDeBusqueda } from '../../hooks/useBusquedaDeCreator';
+import type { ResultadoDeBusqueda } from '../../hooks/useBusquedaDeStudio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
 /**
- * LA CABECERA DE WEË CREATOR.
+ * LA CABECERA DE WEË STUDIO.
  *
  * Escritorio: la salida a Weë y la marca a la izquierda; el buscador en medio; a
  * la derecha los Credits —siempre a la vista, porque aquí todo cuesta—, las
  * notificaciones, tu perfil y, si la pantalla tiene algo que decir arriba, su
- * botón (Filmmaker: «Exportar»). Teléfono: la salida, la marca, la lupa, los
- * Credits y el menú del taller.
+ * botón (Filmmaker: «Exportar»). Teléfono, como en su referencia: la salida, la
+ * marca, la lupa, los Credits, las notificaciones y tu avatar; las secciones van
+ * abajo, en las cuatro pestañas del Studio.
  *
- * No navega: avisa, y quien la monta —el marco de Weë Creator— decide.
+ * No navega: avisa, y quien la monta —el marco de Weë Studio— decide.
  */
-const CabeceraDeCreator: React.FC<{
+const CabeceraDeStudio: React.FC<{
   forma: 'escritorio' | 'movil';
   accion: AccionDeCabecera | null;
   onVolverAWee: () => void;
-  onMenu?: () => void;
   onNotificaciones: () => void;
   onPerfil: () => void;
   onResultado: (r: ResultadoDeBusqueda) => void;
-}> = ({ forma, accion, onVolverAWee, onMenu, onNotificaciones, onPerfil, onResultado }) => {
+}> = ({ forma, accion, onVolverAWee, onNotificaciones, onPerfil, onResultado }) => {
   const { theme } = useTheme();
   const t = useT();
   const { userProfile } = useUserProfile();
@@ -74,34 +74,32 @@ const CabeceraDeCreator: React.FC<{
 
         {!movil && (
           <View style={styles.centro}>
-            <BuscadorDeCreator forma="caja" onAbrir={onResultado} />
+            <BuscadorDeStudio forma="caja" onAbrir={onResultado} />
           </View>
         )}
         {movil && <View style={styles.empuje} />}
 
         <View style={styles.acciones}>
-          {movil && <BuscadorDeCreator forma="icono" onAbrir={onResultado} />}
+          {movil && <BuscadorDeStudio forma="icono" onAbrir={onResultado} />}
           <CreditsPill compact={movil} />
-          {!movil && icono('notifications-outline', t('workspace.notifications'), onNotificaciones)}
-          {!movil && (
-            <TouchableOpacity onPress={onPerfil} accessibilityRole="button" accessibilityLabel={t('workspace.myProfile')}>
-              {userProfile ? (
-                <AvatarDisplay
-                  size={scale(34)}
-                  avatarType={userProfile.avatarType || 'predefined'}
-                  avatarId={userProfile.avatarId || 'male'}
-                  photoURL={userProfile.photoURL}
-                  photoURLThumbnail={userProfile.photoURLThumbnail}
-                  backgroundColor={theme.colors.accent}
-                  showBorder={false}
-                />
-              ) : (
-                <View style={[styles.boton, { borderColor: theme.colors.border }]}>
-                  <Ionicons name="person-outline" size={scale(18)} color={theme.colors.text} />
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
+          {icono('notifications-outline', t('workspace.notifications'), onNotificaciones)}
+          <TouchableOpacity onPress={onPerfil} accessibilityRole="button" accessibilityLabel={t('workspace.myProfile')}>
+            {userProfile ? (
+              <AvatarDisplay
+                size={scale(movil ? 30 : 34)}
+                avatarType={userProfile.avatarType || 'predefined'}
+                avatarId={userProfile.avatarId || 'male'}
+                photoURL={userProfile.photoURL}
+                photoURLThumbnail={userProfile.photoURLThumbnail}
+                backgroundColor={theme.colors.accent}
+                showBorder={false}
+              />
+            ) : (
+              <View style={[styles.boton, { borderColor: theme.colors.border }]}>
+                <Ionicons name="person-outline" size={scale(18)} color={theme.colors.text} />
+              </View>
+            )}
+          </TouchableOpacity>
           {!!accion && !movil && (
             <TouchableOpacity
               onPress={accion.onPress}
@@ -113,7 +111,6 @@ const CabeceraDeCreator: React.FC<{
               <Text style={styles.principalTexto}>{accion.etiqueta}</Text>
             </TouchableOpacity>
           )}
-          {movil && !!onMenu && icono('menu-outline', t('workspace.openMenu'), onMenu)}
         </View>
       </View>
     </SafeAreaView>
@@ -142,4 +139,4 @@ const styles = StyleSheet.create({
   principalTexto: { color: '#1F2937', fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.bold as any },
 });
 
-export default CabeceraDeCreator;
+export default CabeceraDeStudio;

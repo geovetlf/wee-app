@@ -1,32 +1,13 @@
 /*
- * ITALIANO — la pestaña Crear de Weë y la pantalla Crear video (2026-09-27).
+ * ITALIANO — la pantalla Crear video de Weë Studio (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tratamiento informal (tu) y apóstrofo tipográfico ’ siempre. Weë, Weë AI,
- * Weë Creator, Weë Brain, Filmmaker y Credits son marca y no se traducen. Las
+ * Weë Studio, Weë Brain, Filmmaker y Credits son marca y no se traducen. Las
  * «palabras» de cada estilo (`style…Words`) viajan dentro de la idea hacia el
  * vídeo: van como las diría un italiano («stile cinematografico»).
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'Quello che immagini, con l’IA di Weë o con le tue foto e i tuoi video.',
-  heroTitle: 'Trasforma le tue idee in video incredibili',
-  heroText: 'Racconta a Weë cosa vuoi vedere: alla sceneggiatura, alle immagini e alla voce ci pensa l’IA.',
-  heroCta: 'Crea un video',
-  createCta: 'Crea',
-  ideaPlaceholder: 'Descrivi cosa vuoi creare…',
-  capabilitiesTitle: 'Cosa vuoi creare',
-  capVideo: 'Video',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Altro',
-  shareTitle: 'Condividi su Weë',
-  creatorTitle: 'Crea da professionista',
-  creatorText: 'Weë Creator: Filmmaker, timeline, Weë AI Director e tutto il tuo materiale in un laboratorio professionale.',
-  creatorCta: 'Apri Weë Creator',
-  noDestinationTitle: 'Cosa vuoi fare con la tua idea?',
-  noDestinationText: 'Scegli da dove iniziare. Se non hai le idee chiare, Weë Brain ti aiuta a decidere.',
-  suggestImage: 'Un’immagine',
-  suggestText: 'Un testo',
-  suggestBrain: 'Chiedi a Weë Brain',
   videoTitle: 'Crea un video',
   videoPlaceholder: 'Descrivi il tuo video: chi compare, dove, cosa succede e che atmosfera ha…',
   improvePrompt: 'Migliora il prompt',
@@ -77,7 +58,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Prima di creare vedrai il piano e il suo prezzo in Credits. Non ti viene addebitato nulla finché non confermi.',
   proTitle: 'Crea da professionista',
   proInCreator: 'Portalo in Filmmaker',
-  proText: 'Più scene, inquadrature, timeline e Weë AI Director, in Weë Creator.',
+  proText: 'Più scene, inquadrature, timeline e Weë AI Director, in Weë Studio.',
   recentVideos: 'I tuoi video recenti',
   noVideosYet: 'Non hai ancora creato video. Il primo comparirà qui.',
   seeCreations: 'Vedi le mie creazioni',

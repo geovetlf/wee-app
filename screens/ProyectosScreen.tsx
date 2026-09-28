@@ -1,33 +1,22 @@
 import React from 'react';
-import { useEnCreator } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
-import PaginaDeCreator from '../components/workspace/PaginaDeCreator';
-import PestanaDeLaApp from '../components/PestanaDeLaApp';
+import PaginaDeStudio from '../components/workspace/PaginaDeStudio';
 import ListaDeProyectos from '../components/proyectos/ListaDeProyectos';
 
 /**
- * PROYECTOS — la misma lista en Weë y en Weë Creator.
+ * PROYECTOS — una página de Weë Studio, dentro de Weë Studio.
  *
- * En Weë es la tercera pestaña, con su encabezado y la barra de abajo; en Weë
- * Creator es una página del taller, dentro de su marco. Lo de dentro es lo mismo
- * (`components/proyectos/ListaDeProyectos`): tus producciones, tus proyectos de
- * Weë AI y un vistazo a tus creaciones. Abrir una producción lleva a Filmmaker,
- * que vive en Weë Creator.
+ * Tus producciones de Filmmaker, tus proyectos de Weë AI y un vistazo a tus
+ * creaciones (`components/proyectos/ListaDeProyectos`). En el teléfono es la
+ * tercera pestaña del Studio. Abrir una producción lleva a Filmmaker, en el mismo
+ * taller. Los proyectos de Weë —la App— siguen donde estaban.
  */
 const ProyectosScreen: React.FC = () => {
   const t = useT();
-  const enCreator = useEnCreator();
-  if (enCreator) {
-    return (
-      <PaginaDeCreator titulo={t('workspace.projectsTitle')} subtitulo={t('workspace.projectsSubtitle')}>
-        <ListaDeProyectos />
-      </PaginaDeCreator>
-    );
-  }
   return (
-    <PestanaDeLaApp titulo={t('nav.projects')} subtitulo={t('workspace.projectsSubtitle')}>
+    <PaginaDeStudio titulo={t('workspace.projectsTitle')} subtitulo={t('workspace.projectsSubtitle')}>
       <ListaDeProyectos />
-    </PestanaDeLaApp>
+    </PaginaDeStudio>
   );
 };
 

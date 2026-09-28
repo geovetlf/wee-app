@@ -1,5 +1,5 @@
 /*
- * RUSO — Inspira: la comunidad y las ideas listas para usar (2026-09-27).
+ * RUSO — Inspira de Weë Studio: las ideas listas para usar (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Trato de «вы». Las recetas son de Weë y se traducen; su idea (`…Prompt`)
@@ -9,8 +9,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: 'Вдохновение',
   subtitle: 'Промпты, рецепты и готовые идеи. Открывайте, настраивайте под себя и создавайте.',
-  tabCommunity: 'Сообщество',
-  tabIdeas: 'Идеи',
   catAll: 'Все',
   catCinematic: 'Кино',
   catCommercial: 'Реклама',
@@ -22,7 +20,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: 'Видео',
   destFilmmaker: 'Filmmaker',
   destImage: 'Изображение',
-  destDesign: 'Дизайн',
   destWriting: 'Текст',
   popularTitle: 'Популярные идеи',
   recipesTitle: 'Промпты и рецепты',
@@ -65,9 +62,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: 'История вашего бизнеса',
   rBusinessDesc: 'Три сцены о том, как всё начиналось.',
   rBusinessPrompt: 'Три сцены, которые рассказывают историю бизнеса: первый день с наполовину поднятыми рольставнями, повседневная работа и довольный клиент, который приходит снова.',
-  rPosterTitle: 'Афиша мероприятия',
-  rPosterDesc: 'Афиша с крупной типографикой и тёплыми цветами.',
-  rPosterPrompt: 'Афиша концерта под открытым небом: крупная типографика, тёплые цвета и место для даты и площадки.',
   rSheetTitle: 'Лист персонажа',
   rSheetDesc: 'Один и тот же персонаж анфас, в профиль и со спины.',
   rSheetPrompt: 'Лист персонажа: один и тот же персонаж анфас, в профиль и со спины, на нейтральном фоне.',

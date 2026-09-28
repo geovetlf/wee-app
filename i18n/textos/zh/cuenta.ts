@@ -5,7 +5,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Credits» y «Weë Creator» son marca y se quedan en alfabeto latino. Las demás
+ * «Credits» y «Weë Studio» son marca y se quedan en alfabeto latino. Las demás
  * etiquetas repiten las palabras que el chino ya usa para lo mismo: 记录
  * (`credits.history`), 语言, 隐私, 收藏 (`saved`), 账号 y 主页 para cada perfil.
  */
@@ -18,6 +18,4 @@ export const cuenta: typeof import('../es/cuenta').cuenta = {
   settings: '账号设置',
   privacy: '隐私',
   help: '帮助中心',
-  saved: '收藏',
-  creator: 'Weë Creator',
 };

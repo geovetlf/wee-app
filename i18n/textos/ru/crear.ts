@@ -1,32 +1,13 @@
 /*
- * RUSO — la pestaña Crear de Weë y la pantalla Crear video (2026-09-27).
+ * RUSO — la pantalla Crear video de Weë Studio (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Trato de «вы». Weë, Weë AI, Weë Creator, Weë Brain, Weë AI Director,
+ * Trato de «вы». Weë, Weë AI, Weë Studio, Weë Brain, Weë AI Director,
  * Filmmaker y Credits son marca: en alfabeto latino y sin declinar. Las
  * `style…Words` viajan dentro de la idea hacia el vídeo y se escriben como las
  * diría un ruso; los segundos van en «с», como en el resto del ruso.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'Всё, что вы задумаете, — с ИИ Weë или с вашими фото и видео.',
-  heroTitle: 'Превращайте свои идеи в потрясающие видео',
-  heroText: 'Расскажите Weë, что хотите увидеть: сценарий, изображение и голос возьмёт на себя ИИ.',
-  heroCta: 'Создать видео',
-  createCta: 'Создать',
-  ideaPlaceholder: 'Опишите, что хотите создать…',
-  capabilitiesTitle: 'Что хотите создать',
-  capVideo: 'Видео',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Ещё',
-  shareTitle: 'Поделиться в Weë',
-  creatorTitle: 'Создавайте профессионально',
-  creatorText: 'Weë Creator: Filmmaker, таймлайн, Weë AI Director и все ваши материалы в профессиональной мастерской.',
-  creatorCta: 'Открыть Weë Creator',
-  noDestinationTitle: 'Что вы хотите сделать со своей идеей?',
-  noDestinationText: 'Выберите, с чего начать. Если не уверены, Weë Brain поможет решить.',
-  suggestImage: 'Изображение',
-  suggestText: 'Текст',
-  suggestBrain: 'Спросите Weë Brain',
   videoTitle: 'Создать видео',
   videoPlaceholder: 'Опишите видео: кто в кадре, где, что происходит и какое настроение…',
   improvePrompt: 'Улучшить промпт',
@@ -77,7 +58,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Перед созданием вы увидите, что именно будет сделано, и цену в Credits. Ничего не списывается, пока вы не подтвердите.',
   proTitle: 'Создавайте профессионально',
   proInCreator: 'Перенести в Filmmaker',
-  proText: 'Несколько сцен, планы, таймлайн и Weë AI Director — в Weë Creator.',
+  proText: 'Несколько сцен, планы, таймлайн и Weë AI Director — в Weë Studio.',
   recentVideos: 'Ваши недавние видео',
   noVideosYet: 'Вы ещё не создали ни одного видео. Первое появится здесь.',
   seeCreations: 'Смотреть мои творения',

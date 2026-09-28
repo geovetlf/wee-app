@@ -117,13 +117,13 @@ const conPildora = fs.readdirSync(path.resolve(RAIZ, 'components'), { recursive:
  * cuenta, que es lo que protege el grupo A.
  */
 /*
- * Y una cuarta desde el 2026-09-27: la cabecera de Weë Creator, el taller
+ * Y una cuarta desde el 2026-09-27: la cabecera de Weë Studio, el taller
  * profesional, que enseña el saldo arriba como su referencia de escritorio.
  * Sigue siendo UNA por pantalla: dentro del taller, el marco de Weë AI y las
  * cabeceras de sección se callan (grupo D).
  */
-check('11) solo las cabeceras la dibujan: el marco de Weë AI, las dos de sección y la de Weë Creator',
-  conPildora.length === 4 && conPildora.every((f) => /CreatorShell|CabeceraDeSeccion|CabeceraDeWeeBrain|CabeceraDeCreator/.test(f)),
+check('11) solo las cabeceras la dibujan: el marco de Weë AI, las dos de sección y la de Weë Studio',
+  conPildora.length === 4 && conPildora.every((f) => /CreatorShell|CabeceraDeSeccion|CabeceraDeWeeBrain|CabeceraDeStudio/.test(f)),
   conPildora.join(' · '));
 /* Y ninguna pantalla se pone dos: la de Weë Brain sustituye a la común, no se suma. */
 const brain = leer('screens/BrainChatScreen.tsx');
@@ -184,12 +184,12 @@ console.log('\n─── D. Una sola vez por pantalla ───');
 const contexto = leer('components/creator/MarcoDeSeccion.tsx');
 check('15) el marco dice si ya lo está enseñando', /<ConMarcoDeSeccion/.test(marco));
 check('16) con franja arriba, la enseña él; sin franja, la cabecera',
-  /<ConMarcoDeSeccion saldoALaVista=\{enCreator \|\| !sinFranjaSuperior\}/.test(marco));
-/* Dentro de Weë Creator lo enseña su cabecera: ni el marco ni las secciones lo repiten. */
-check('16b) dentro de Weë Creator el marco de Weë AI no lo repite',
-  /\{!enCreator && <CreditsPill compact \/>\}/.test(marco));
+  /<ConMarcoDeSeccion saldoALaVista=\{enStudio \|\| !sinFranjaSuperior\}/.test(marco));
+/* Dentro de Weë Studio lo enseña su cabecera: ni el marco ni las secciones lo repiten. */
+check('16b) dentro de Weë Studio el marco de Weë AI no lo repite',
+  /\{!enStudio && <CreditsPill compact \/>\}/.test(marco));
 check('16c) y las cabeceras de sección que viven en el taller tampoco',
-  /<ConMarcoDeSeccion saldoALaVista aireLateral=\{0\}>\{children\}<\/ConMarcoDeSeccion>/.test(leer('components/workspace/ChromeDeCreator.tsx')));
+  /<ConMarcoDeSeccion saldoALaVista aireLateral=\{0\}>\{children\}<\/ConMarcoDeSeccion>/.test(leer('components/workspace/MarcoDeStudio.tsx')));
 check('17) en escritorio lo enseña la barra lateral, así que la cabecera se calla',
   /<ConMarcoDeSeccion saldoALaVista aireLateral/.test(marco));
 check('18) y la cabecera de sección obedece',

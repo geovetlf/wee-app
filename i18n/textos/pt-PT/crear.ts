@@ -1,35 +1,16 @@
 /*
- * PORTUGUÉS DE PORTUGAL (pt-PT) — la pestaña Crear de Weë y la pantalla Crear vídeo.
+ * PORTUGUÉS DE PORTUGAL (pt-PT) — la pantalla Crear vídeo de Weë Studio.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * NORMA EUROPEA: se tutea con «tu» —«as tuas fotos», «se animares uma foto»—,
  * el guion es el «guião», la cámara la «câmara» y la línea de tiempo la «linha
- * temporal», como en `filmmaker`. Weë, Weë AI, Weë Creator, Weë Brain, Weë AI
+ * temporal», como en `filmmaker`. Weë, Weë AI, Weë Studio, Weë Brain, Weë AI
  * Director, Filmmaker y Credits son marca y no se traducen. Las palabras de cada
  * estilo (`style…Words`) viajan dentro de la idea: van como las diría alguien de
  * Portugal.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'O que imaginares, com a IA do Weë ou com as tuas fotos e vídeos.',
-  heroTitle: 'Transforma as tuas ideias em vídeos incríveis',
-  heroText: 'Conta ao Weë o que queres ver: o guião, a imagem e a voz ficam por conta da IA.',
-  heroCta: 'Criar vídeo',
-  createCta: 'Criar',
-  ideaPlaceholder: 'Descreve o que queres criar…',
-  capabilitiesTitle: 'O que queres criar',
-  capVideo: 'Vídeo',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Mais',
-  shareTitle: 'Partilhar no Weë',
-  creatorTitle: 'Criar como um profissional',
-  creatorText: 'Weë Creator: Filmmaker, linha temporal, Weë AI Director e todo o teu material num espaço de trabalho profissional.',
-  creatorCta: 'Abrir o Weë Creator',
-  noDestinationTitle: 'O que queres fazer com a tua ideia?',
-  noDestinationText: 'Escolhe por onde começar. Se não tiveres a certeza, o Weë Brain ajuda-te a decidir.',
-  suggestImage: 'Uma imagem',
-  suggestText: 'Um texto',
-  suggestBrain: 'Pergunta ao Weë Brain',
   videoTitle: 'Criar vídeo',
   videoPlaceholder: 'Descreve o teu vídeo: quem aparece, onde, o que acontece e que sensação transmite…',
   improvePrompt: 'Melhorar o prompt',
@@ -80,7 +61,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Antes de criares, vais ver o plano e o preço em Credits. Nada é cobrado até confirmares.',
   proTitle: 'Criar como um profissional',
   proInCreator: 'Levar para o Filmmaker',
-  proText: 'Várias cenas, planos, linha temporal e Weë AI Director, no Weë Creator.',
+  proText: 'Várias cenas, planos, linha temporal e Weë AI Director, no Weë Studio.',
   recentVideos: 'Os teus vídeos recentes',
   noVideosYet: 'Ainda não criaste vídeos. O primeiro vai aparecer aqui.',
   seeCreations: 'Ver as minhas criações',

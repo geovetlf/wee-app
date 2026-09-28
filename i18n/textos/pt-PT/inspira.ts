@@ -1,5 +1,5 @@
 /*
- * PORTUGUÉS DE PORTUGAL (pt-PT) — Inspira: la comunidad y las ideas listas para usar.
+ * PORTUGUÉS DE PORTUGAL (pt-PT) — Inspira de Weë Studio: las ideas listas para usar.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -13,8 +13,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: 'Inspira',
   subtitle: 'Prompts, receitas e ideias prontas a usar. Abre-as, personaliza-as e cria-as.',
-  tabCommunity: 'Comunidade',
-  tabIdeas: 'Ideias',
   catAll: 'Todas',
   catCinematic: 'Cinematográfico',
   catCommercial: 'Comercial',
@@ -26,7 +24,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: 'Vídeo',
   destFilmmaker: 'Filmmaker',
   destImage: 'Imagem',
-  destDesign: 'Design',
   destWriting: 'Texto',
   popularTitle: 'Ideias populares',
   recipesTitle: 'Prompts e receitas',
@@ -69,9 +66,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: 'A história do teu negócio',
   rBusinessDesc: 'Três cenas que contam como tudo começou.',
   rBusinessPrompt: 'Três cenas que contam a história de um negócio: o primeiro dia com a persiana meio levantada, o trabalho do dia a dia e um cliente que volta satisfeito.',
-  rPosterTitle: 'Cartaz de evento',
-  rPosterDesc: 'Um cartaz com tipografia grande e cores quentes.',
-  rPosterPrompt: 'Cartaz para um concerto ao ar livre com tipografia grande, cores quentes e espaço para a data e o local.',
   rSheetTitle: 'Ficha de personagem',
   rSheetDesc: 'A mesma personagem de frente, de perfil e de costas.',
   rSheetPrompt: 'Ficha de personagem com a mesma personagem de frente, de perfil e de costas, sobre um fundo neutro.',

@@ -4,7 +4,7 @@
  * privacidad— a un toque.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo (tu) y apóstrofo tipográfico ’. «Credits» y «Weë Creator» son marca y no
+ * Tuteo (tu) y apóstrofo tipográfico ’. «Credits» y «Weë Studio» son marca y no
  * se traducen; Configuración es «Réglages» y lo guardado «Enregistrés», como en
  * el menú ☰.
  */
@@ -17,6 +17,4 @@ export const cuenta: typeof import('../es/cuenta').cuenta = {
   settings: 'Réglages du compte',
   privacy: 'Confidentialité',
   help: 'Centre d’aide',
-  saved: 'Enregistrés',
-  creator: 'Weë Creator',
 };

@@ -12,13 +12,13 @@ import { scale } from '../utils/scale';
 const isWeb = Platform.OS === 'web';
 
 /**
- * TU CUENTA, EN TU PERFIL.
+ * TU CUENTA, EN EL PERFIL DE WEË STUDIO.
  *
- * Con Perfil de vuelta en la barra (decisión del usuario, 2026-09-27), aquí se
- * junta lo que es de la CUENTA y no de una cara: los Credits —el saldo, su
- * historial y comprar más—, el idioma, la configuración, la privacidad, la
- * ayuda, lo guardado y la puerta a Weë Creator. No es un panel de
- * administración: son atajos a las pantallas de siempre, ninguna nueva.
+ * La cuarta pestaña del Studio en el teléfono (`screens/StudioPerfilScreen`):
+ * lo que es de la CUENTA y no de una cara —los Credits, su historial y comprar
+ * más—, el idioma, la configuración, la privacidad y la ayuda. Solo vive dentro
+ * de Weë Studio: el Perfil de Weë no cambia. No es un panel de administración:
+ * son atajos a las pantallas de siempre, ninguna nueva.
  *
  * El saldo es de la cuenta: sale de `useWallet()` sin uid, igual que en la
  * píldora de Weë AI, así que cambiar de cara no lo cambia.
@@ -34,8 +34,6 @@ const PanelDeCuenta: React.FC = () => {
     { id: 'ajustes', clave: 'cuenta.settings', icono: 'settings-outline', ir: () => navigation.navigate('Settings') },
     { id: 'privacidad', clave: 'cuenta.privacy', icono: 'shield-checkmark-outline', ir: () => navigation.navigate('Help', { section: 'legal' }) },
     { id: 'ayuda', clave: 'cuenta.help', icono: 'help-circle-outline', ir: () => navigation.navigate('Help') },
-    { id: 'guardados', clave: 'cuenta.saved', icono: 'bookmark-outline', ir: () => navigation.navigate('SavedPosts') },
-    { id: 'creator', clave: 'cuenta.creator', icono: 'aperture-outline', ir: () => navigation.navigate('Creator', { screen: 'CreatorInicio' }) },
   ];
 
   return (
@@ -75,7 +73,7 @@ const PanelDeCuenta: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={t(a.clave)}
           >
-            <Ionicons name={a.icono as any} size={scale(18)} color={a.id === 'creator' ? theme.colors.accent : theme.colors.text} />
+            <Ionicons name={a.icono as any} size={scale(18)} color={theme.colors.text} />
             <Text style={[styles.atajoTexto, { color: theme.colors.text }]} numberOfLines={1}>{t(a.clave)}</Text>
           </TouchableOpacity>
         ))}

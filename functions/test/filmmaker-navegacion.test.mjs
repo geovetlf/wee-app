@@ -32,24 +32,32 @@ check('A1) está registrada en la pila principal con su pantalla', /import Produ
   && /<Stack\.Screen name="Production" component=\{ProductionScreen\} \/>/.test(pila));
 check('A2) con sus parámetros: la producción abierta, o la idea y los controles que trae el Studio',
   /Production: \{ productionId\?: string; intencion\?: string; creativo\?: Record<string, string> \} \| undefined;/.test(pila));
-check('A3) y su dirección en la web: studio/produccion, con la producción opcional', /Production: \{\s*path: 'studio\/produccion\/:productionId\?',/.test(app));
+/*
+ * Desde el 2026-09-28 Filmmaker vive dentro del workspace de Weë Studio (la ruta `Studio`, en `/studio`): su dirección
+ * es la misma de siempre, studio/produccion, ahora declarada dentro de la de Studio.
+ */
+check('A3) y su dirección en la web: studio/produccion, con la producción opcional',
+  /Studio: \{\s*path: 'studio',[\s\S]*?Production: \{\s*path: 'produccion\/:productionId\?',/.test(app));
 /*
  * En la web los parámetros viajan en la dirección. Los controles elegidos —un objeto— viajan como JSON y, al recargar,
  * se vuelven a leer; si no se pueden leer, no viajan. Visto en el navegador: sin esto, la dirección decía
  * «[object Object]» y la luz elegida se perdía al recargar.
  */
-const bloqueDeLaRuta = app.slice(app.indexOf('      Production: {'), app.indexOf('      Design:'));
+const bloqueDeLaRuta = app.slice(app.indexOf('          Production: {'), app.indexOf("          Project: 'proyecto/:id',"));
 check('A3b) y los controles elegidos viajan en la dirección como JSON, y se releen con cuidado',
   /stringify: \{\s*creativo: \(creativo: unknown\) => JSON\.stringify\(creativo \?\? \{\}\),/.test(bloqueDeLaRuta)
   && /creativo: \(creativo: string\) => \{\s*try \{\s*const valor = JSON\.parse\(creativo\);/.test(bloqueDeLaRuta) && /catch \{\s*return undefined;/.test(bloqueDeLaRuta));
-check('A4) al lado de Studio, que sigue igual', /Studio: 'studio',/.test(app) && /<Stack\.Screen name="Studio" component=\{StudioScreen\} \/>/.test(pila));
+/* Weë Studio es ahora su workspace: la ruta `Studio` lleva su pila, y su inicio es la misma pantalla Weë Studio. */
+check('A4) al lado de Studio, que sigue igual',
+  /Studio: \{\s*path: 'studio',/.test(app) && /<Stack\.Screen name="Studio" component=\{StudioNavigator\} \/>/.test(pila)
+  && /<Pila\.Screen name="StudioInicio" component=\{StudioScreen\} \/>/.test(leer('navigation/StudioNavigator.tsx')));
 const global = leer('navigation/NavegacionGlobal.tsx');
 check('A5) la barra de abajo se queda como en el Studio: no se esconde ni se inventa un destino para ella',
   !/'Production'/.test(global));
-/* El único archivo nuevo es la pila de Weë Creator (2026-09-27), donde Filmmaker abre su workspace. */
-check('A6) la navegación sigue siendo la misma: ni un navegador ni un archivo más que los de Weë Creator',
+/* El único archivo nuevo es la pila de Weë Studio (2026-09-27), donde Filmmaker abre su workspace. */
+check('A6) la navegación sigue siendo la misma: ni un navegador ni un archivo más que los de Weë Studio',
   fs.readdirSync(path.resolve(RAIZ, 'navigation')).filter((f) => f.endsWith('.tsx')).length === 8
-  && fs.existsSync(path.resolve(RAIZ, 'navigation/CreatorNavigator.tsx')));
+  && fs.existsSync(path.resolve(RAIZ, 'navigation/StudioNavigator.tsx')));
 
 /* ═══ B · LAS CUATRO PUERTAS ═══════════════════════════════════════════════ */
 console.log('\n── B · Las cuatro puertas, intactas, y ninguna quinta ──');

@@ -8,7 +8,7 @@
  * NORMA EUROPEA: trato de «tu» y artículo con el posesivo («A tua conta»). La
  * configuración son las «Definições», el historial es el «Histórico», como en
  * `credits`, y lo guardado son los «Guardados», como en el menú ☰. «Credits» y
- * «Weë Creator» son marca y no se traducen.
+ * «Weë Studio» son marca y no se traducen.
  */
 export const cuenta: typeof import('../es/cuenta').cuenta = {
   title: 'A tua conta',
@@ -19,6 +19,4 @@ export const cuenta: typeof import('../es/cuenta').cuenta = {
   settings: 'Definições da conta',
   privacy: 'Privacidade',
   help: 'Centro de ajuda',
-  saved: 'Guardados',
-  creator: 'Weë Creator',
 };

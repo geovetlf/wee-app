@@ -99,10 +99,10 @@ const dobles = {
   'react-native': reactNative,
   '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
   '@react-navigation/native': { useRoute: () => ruta, useNavigation: () => navegacion },
-  /* Weë Creator (2026-09-27): la pantalla pregunta si está dentro del taller. Aquí, fuera: el marco de siempre. */
-  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnCreator: () => false },
-  '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnCreator: () => false },
-  '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnCreator: () => false },
+  /* Weë Studio (2026-09-27): la pantalla pregunta si está dentro de su workspace. Aquí, fuera: el marco de siempre. */
+  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnStudio: () => false },
+  '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnStudio: () => false },
+  '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, useEnStudio: () => false },
   /* El workspace trae sus hojas (exportar, estructura) y la descarga de los vídeos de los planos: dobles quietos. */
   'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }), SafeAreaView: Caja },
   '../../../services/assetDownload': { descargarCreacion: async () => 'guardado' },

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme, useEnStudio } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import CreditsPill from '../CreditsPill';
 import { useMarcoDeSeccion } from './MarcoDeSeccion';
@@ -118,6 +118,14 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
    * repetirlo— y cuánto aire mete por los lados —para devolverlo—.
    */
   const marco = useMarcoDeSeccion();
+  /*
+   * DENTRO DEL WORKSPACE DE WEË STUDIO, LA IDENTIDAD YA ESTÁ ARRIBA.
+   * La salida, la W, el nombre y el saldo los pinta una sola vez la cabecera
+   * del workspace (`components/workspace/CabeceraDeStudio`): repetirlos aquí
+   * sería decir dos veces dónde estás. Queda la presentación. Fuera de Weë
+   * Studio no cambia nada.
+   */
+  const enStudio = useEnStudio();
   const tamano = scale(TAMANO_DEL_NOMBRE);
   const tamanoLema = scale(tamanoDelLema(lema));
 
@@ -197,7 +205,7 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
       tendría 32 puntos menos de ancho dentro del marco que fuera de él.
     */
     <View style={[styles.bloque, marco.aireLateral ? { marginHorizontal: -marco.aireLateral } : null]}>
-      {filaDeIdentidad}
+      {!enStudio && filaDeIdentidad}
 
       {/*
         LA PRESENTACIÓN, CENTRADA (decisión del usuario, 2026-09-15).

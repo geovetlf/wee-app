@@ -1,12 +1,12 @@
 /*
- * CHINO TRADICIONAL (TAIWÁN) — Weë Creator, el taller profesional de Weë AI (2026-09-27):
+ * CHINO TRADICIONAL (TAIWÁN) — el workspace de Weë Studio, dentro de Weë AI (2026-09-27):
  * su marco, su barra lateral, su buscador, su Inicio, Proyectos, el reproductor y los
  * estados de lo que se crea.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Creator», «Weë AI», «Filmmaker», «Weë» y «Credits» son marca y no pasan a
- * hanzi; `wordmark` («CREATOR») forma parte del nombre y se deja igual. «Weë AI
+ * «Weë Studio», «Weë AI», «Filmmaker», «Weë» y «Credits» son marca y no pasan a
+ * hanzi; `wordmark` («STUDIO») forma parte del nombre y se deja igual. «Weë AI
  * Director» es «Weë AI 導演», con el 導演 del panel Director de `filmmaker`.
  * El taller es 創作空間 y no 工作室, que se confundiría con Weë Studio. Mismo
  * vocabulario que `filmmaker` y `projects`: la producción es 製作, el proyecto 專案 (no
@@ -14,10 +14,10 @@
  * comillas son 「」, y reembolsar es 退還, como en el resto de los Credits.
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: '回到 Weë',
-  navLabel: 'Weë Creator 導覽',
+  navLabel: 'Weë Studio 導覽',
   navHome: '首頁',
   navInspire: '靈感',
   navProjects: '專案',
@@ -25,8 +25,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: '工具',
   toolFilmmaker: 'Filmmaker',
   toolVideo: '影片',
-  menuSubtitle: '你的整個創作空間：工具、專案和作品。',
-  openMenu: '開啟 Weë Creator 選單',
   notifications: '通知',
   myProfile: '我的個人檔案',
   searchTitle: '搜尋',
@@ -41,16 +39,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: '點子',
   searchProductionDetail: '製作 · {{formato}}',
   searchProjectDetail: 'Weë AI 專案',
-  homeTitle: '你的創作空間',
-  homeSubtitle: 'Filmmaker、影片、圖片等等，都用 Weë 的 AI 完成。你創作的一切都會留在你的專案裡。',
-  filmmakerPitch: '從想法到影片：場景、鏡頭、時間軸和 Weë AI 導演。',
-  openFilmmaker: '開啟 Filmmaker',
-  ideasTitle: '從這些點子開始',
-  seeAllIdeas: '查看全部',
-  recentCreations: '你最近的作品',
   seeAllCreations: '查看全部',
-  recentProjects: '從上次停下的地方繼續',
-  seeAllProjects: '查看全部',
   projectsTitle: '專案',
   projectsSubtitle: '你的 Filmmaker 製作和 Weë AI 專案，都在這裡。',
   projectsFilterAll: '全部',

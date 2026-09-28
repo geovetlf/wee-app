@@ -5,7 +5,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tratamiento informal (tu) y apóstrofo tipográfico ’ siempre. «Credits» y
- * «Weë Creator» son marca y no se traducen; las etiquetas usan las mismas
+ * «Weë Studio» son marca y no se traducen; las etiquetas usan las mismas
  * palabras que el menú ☰ y Configuración (Impostazioni, Privacy, Salvati).
  */
 export const cuenta: typeof import('../es/cuenta').cuenta = {
@@ -17,6 +17,4 @@ export const cuenta: typeof import('../es/cuenta').cuenta = {
   settings: 'Impostazioni dell’account',
   privacy: 'Privacy',
   help: 'Centro assistenza',
-  saved: 'Salvati',
-  creator: 'Weë Creator',
 };

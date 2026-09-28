@@ -1,10 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro, useEnStudio } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
@@ -85,6 +85,9 @@ const StudioScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  /* Dentro de su workspace, la cabecera y la navegación las pone el workspace. */
+  const enStudio = useEnStudio();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
 
@@ -96,6 +99,11 @@ const StudioScreen: React.FC = () => {
    */
   const [area, setArea] = useState<AreaDeStudio | null>(null);
   const [panel, setPanel] = useState<EntradaDeStudio | null>(null);
+  /* La barra lateral del workspace entra por una puerta (Imágenes, Texto, Voz…): se abre al llegar, como si se tocara. */
+  const puertaPedida: EntradaDeStudio | undefined = route.params?.puerta;
+  useEffect(() => {
+    if (puertaPedida && entradaPorId(puertaPedida)) setPanel(puertaPedida);
+  }, [puertaPedida]);
   /*
    * La experiencia que se eligió dentro de una puerta, y sus controles. No es
    * lo mismo que el área: el área dice de qué medio hablamos —y con eso se
@@ -357,7 +365,7 @@ const StudioScreen: React.FC = () => {
   /* ── Un panel abierto se come la pantalla entera ───────────────────────── */
   if (panel) {
     return (
-      <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
+      <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={enStudio ? [] : ['top']}>
         <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
           <StudioPanel
             entrada={panel}
@@ -371,7 +379,7 @@ const StudioScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={enStudio ? [] : ['top']}>
       {/*
         La caja crece con lo escrito hasta llenar lo que se ve, y su fila de
         botones no puede salirse de la vista: es la regla de toda caja de Weë
@@ -379,7 +387,7 @@ const StudioScreen: React.FC = () => {
         `EspacioDeEscritura` para que, con el teclado abierto, "lo que se ve"
         ya lo descuente.
       */}
-      <EspacioDeEscritura style={styles.scroll} descuento={isDesktop ? 0 : ALTO_BARRA}>
+      <EspacioDeEscritura style={styles.scroll} descuento={enStudio || isDesktop ? 0 : ALTO_BARRA}>
         <PaginaDeCajas
           style={styles.scroll}
           contentContainerStyle={styles.dentro}
@@ -517,4 +525,22 @@ const styles = StyleSheet.create({
  * Weë Studio es de la CUENTA, como el resto del taller: se ve claro lleves
  * puesto el Perfil Real o el Perfil Weë.
  */
-export default enTemaClaro(StudioScreen);
+const StudioConSuTema = enTemaClaro(StudioScreen);
+
+/**
+ * WEË STUDIO SE ABRE EN SU WORKSPACE. La App lo enseña donde siempre —el ☰, la
+ * barra lateral, Weë AI— y al abrirlo se entra en el workspace, como Filmmaker;
+ * dentro, es esta misma pantalla, su inicio. La navegación de Weë no cambia.
+ */
+const StudioEnSuWorkspace: React.FC = () => {
+  const enStudio = useEnStudio();
+  const navigation = useNavigation<any>();
+  useEffect(() => {
+    if (!enStudio && typeof navigation.replace === 'function') navigation.replace('Studio');
+    // Solo al llegar: una vez dentro, ya no hay nada que mover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return enStudio ? <StudioConSuTema /> : null;
+};
+
+export default StudioEnSuWorkspace;

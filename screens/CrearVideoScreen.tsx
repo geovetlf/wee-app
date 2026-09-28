@@ -50,7 +50,7 @@ const DONDE: Readonly<Record<FormatoDeVideo, string>> = { '16:9': 'horizontal', 
  * La idea, grande; «Mejorar prompt» con la cámara, la luz y el movimiento de la
  * biblioteca de Weë Studio; una foto si se quiere animar; el estilo, la
  * duración, el formato y la calidad; y un botón para generar. Vive en la pestaña
- * Crear de Weë y, con el marco profesional, en Weë Creator.
+ * Crear de Weë y, con el marco profesional, en Weë Studio.
  *
  * ── Lo que NO hace esta pantalla ────────────────────────────────────────────
  *
@@ -74,7 +74,7 @@ const CrearVideoScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const params: ParamsDeCrearVideo = route.params ?? {};
-  const { enCreator, conSesion, aCreator } = useCaminosDeCreacion();
+  const { enStudio, conSesion, aStudio } = useCaminosDeCreacion();
   const { isDesktop, isMobile } = useResponsive();
 
   const [prompt, setPrompt] = useState(params.prompt ?? '');
@@ -181,8 +181,8 @@ const CrearVideoScreen: React.FC = () => {
   }, [conSesion, controles, estilo, foto, formato, navigation, prompt, t, tipo]);
 
   const profesional = useCallback(() => {
-    conSesion(() => aCreator('Production', prompt.trim() ? { intencion: prompt.trim() } : undefined));
-  }, [aCreator, conSesion, prompt]);
+    conSesion(() => aStudio('Production', prompt.trim() ? { intencion: prompt.trim() } : undefined));
+  }, [aStudio, conSesion, prompt]);
 
   const nombreCalidad = opcionesDeCalidad.find((o) => o.id === calidad)?.etiqueta ?? '';
 
@@ -341,13 +341,13 @@ const CrearVideoScreen: React.FC = () => {
         activeOpacity={0.88}
         style={[styles.pro, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
         accessibilityRole="button"
-        accessibilityLabel={enCreator ? t('crear.proInCreator') : t('crear.proTitle')}
+        accessibilityLabel={enStudio ? t('crear.proInCreator') : t('crear.proTitle')}
       >
         <View style={[styles.proIcono, { backgroundColor: theme.colors.glow }]}>
           <Ionicons name="film" size={scale(22)} color={theme.colors.accent} />
         </View>
         <View style={styles.proTextos}>
-          <Text style={[styles.proTitulo, { color: theme.colors.text }]}>{enCreator ? t('crear.proInCreator') : t('crear.proTitle')}</Text>
+          <Text style={[styles.proTitulo, { color: theme.colors.text }]}>{enStudio ? t('crear.proInCreator') : t('crear.proTitle')}</Text>
           <Text style={[styles.proTexto, { color: theme.colors.textSecondary }]}>{t('crear.proText')}</Text>
         </View>
         <Ionicons name="arrow-forward" size={scale(18)} color={theme.colors.accent} />
@@ -370,10 +370,10 @@ const CrearVideoScreen: React.FC = () => {
   );
 
   const cabecera = (
-    <View style={[styles.cabecera, !enCreator && { borderBottomColor: theme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
-      {!enCreator && (
+    <View style={[styles.cabecera, !enStudio && { borderBottomColor: theme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
+      {!enStudio && (
         <TouchableOpacity
-          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main', { screen: 'Crear' }))}
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Studio'))}
           style={styles.volver}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
@@ -387,7 +387,7 @@ const CrearVideoScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.raiz, { backgroundColor: theme.colors.background }]} edges={enCreator ? [] : ['top']}>
+    <SafeAreaView style={[styles.raiz, { backgroundColor: theme.colors.background }]} edges={enStudio ? [] : ['top']}>
       {cabecera}
       <EspacioDeEscritura style={styles.raiz} descuento={0}>
         <PaginaDeCajas contentContainerStyle={[styles.pagina, isDesktop && styles.paginaAncha]} keyboardShouldPersistTaps="handled">

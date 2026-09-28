@@ -261,14 +261,14 @@ console.log('\n── E · La ruta que faltaba ──');
     .map((f) => (leer('navigation/' + f).match(/create(?:Stack|BottomTab|MaterialTopTab)Navigator[<(]/g) || []).length)
     .reduce((a, b) => a + b, 0);
   /*
-   * Y uno más desde el 2026-09-27, el único: la pila de Weë Creator, el taller
+   * Y uno más desde el 2026-09-27, el único: la pila de Weë Studio, el taller
    * profesional con su propia navegación, que el usuario pidió expresamente que
    * no se mezclara con la de Weë.
    */
-  check('32) ningún navegador nuevo más que la pila de Weë Creator',
-    fabricas === 7 && /createStackNavigator<CreatorStackParamList>\(\)/.test(leer('navigation/CreatorNavigator.tsx')), fabricas + ' navegadores');
+  check('32) ningún navegador nuevo más que la pila de Weë Studio',
+    fabricas === 7 && /createStackNavigator<StudioStackParamList>\(\)/.test(leer('navigation/StudioNavigator.tsx')), fabricas + ' navegadores');
   check('32) ni ningún archivo de navegación nuevo más que el suyo',
-    navegadores.length === 8 && navegadores.includes('CreatorNavigator.tsx'), navegadores.join(' · '));
+    navegadores.length === 8 && navegadores.includes('StudioNavigator.tsx'), navegadores.join(' · '));
 
   /*
    * 33 · Y NADIE ABRIÓ UN DEEP LINK. El mapa de enlaces de App.tsx no menciona

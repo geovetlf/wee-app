@@ -1,5 +1,5 @@
 /*
- * ALEMÁN — Inspira: la comunidad y las ideas listas para usar.
+ * ALEMÁN — Inspira de Weë Studio: las ideas listas para usar.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tratamiento informal (du). Las recetas son de Weë y se traducen; su idea
@@ -9,8 +9,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: 'Inspiration',
   subtitle: 'Prompts, Vorlagen und Ideen, sofort einsatzbereit. Öffne sie, pass sie an und setz sie um.',
-  tabCommunity: 'Community',
-  tabIdeas: 'Ideen',
   catAll: 'Alle',
   catCinematic: 'Filmisch',
   catCommercial: 'Werbung',
@@ -22,7 +20,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: 'Video',
   destFilmmaker: 'Filmmaker',
   destImage: 'Bild',
-  destDesign: 'Design',
   destWriting: 'Text',
   popularTitle: 'Beliebte Ideen',
   recipesTitle: 'Prompts und Vorlagen',
@@ -65,9 +62,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: 'Die Geschichte deines Geschäfts',
   rBusinessDesc: 'Drei Szenen, die erzählen, wie alles begann.',
   rBusinessPrompt: 'Drei Szenen, die die Geschichte eines Geschäfts erzählen: der erste Tag mit halb hochgezogenem Rollladen, die tägliche Arbeit und ein Kunde, der zufrieden wiederkommt.',
-  rPosterTitle: 'Event-Poster',
-  rPosterDesc: 'Ein Poster mit großer Typografie und warmen Farben.',
-  rPosterPrompt: 'Poster für ein Open-Air-Konzert mit großer Typografie, warmen Farben und Platz für Datum und Ort.',
   rSheetTitle: 'Charakterblatt',
   rSheetDesc: 'Dieselbe Figur von vorne, im Profil und von hinten.',
   rSheetPrompt: 'Charakterblatt mit derselben Figur von vorne, im Profil und von hinten, auf neutralem Hintergrund.',

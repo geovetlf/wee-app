@@ -3,7 +3,7 @@
  * una cara —los Credits, el idioma, la configuración, la privacidad—.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tratamiento informal (du). «Credits» y «Weë Creator» son marca y no se traducen.
+ * Tratamiento informal (du). «Credits» y «Weë Studio» son marca y no se traducen.
  */
 export const cuenta: typeof import('../es/cuenta').cuenta = {
   title: 'Dein Konto',
@@ -14,6 +14,4 @@ export const cuenta: typeof import('../es/cuenta').cuenta = {
   settings: 'Kontoeinstellungen',
   privacy: 'Datenschutz',
   help: 'Hilfecenter',
-  saved: 'Gespeichert',
-  creator: 'Weë Creator',
 };

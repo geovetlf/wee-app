@@ -23,9 +23,6 @@ import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
 import HomeGreeting from '../components/HomeGreeting';
-import BarraDeInspira, { VistaDeInspira } from '../components/inspira/BarraDeInspira';
-import BibliotecaDeInspiracion from '../components/inspira/BibliotecaDeInspiracion';
-import { useCaminosDeCreacion } from '../hooks/useCaminosDeCreacion';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
 import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -40,15 +37,6 @@ const WebLandingScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { onScroll: reportarScroll } = useScrollDeBarra();
   const route = useRoute<any>();
-  /*
-   * INSPIRA: la comunidad o las ideas. Se entra por la comunidad —es la portada
-   * de Weë— salvo que quien trae aquí pida las ideas (desde Crear).
-   */
-  const [vista, setVista] = useState<VistaDeInspira>(route.params?.vista === 'ideas' ? 'ideas' : 'comunidad');
-  useEffect(() => {
-    if (route.params?.vista) setVista(route.params.vista === 'ideas' ? 'ideas' : 'comunidad');
-  }, [route.params?.vista]);
-  const { usarReceta } = useCaminosDeCreacion();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [weels, setWeels] = useState<Post[]>([]);
@@ -202,17 +190,10 @@ const WebLandingScreen: React.FC = () => {
       {/* Header fijo: ☰ · Weë · Real/Weë. Los Credits viven en el ☰ y las notificaciones, en la barra inferior. */}
       <div style={{ flexShrink: 0, zIndex: 100 }}>
         <Header onMenuPress={() => setDrawerVisible(true)} conMarca />
-        <BarraDeInspira vista={vista} onVista={setVista} />
       </div>
 
-      {vista === 'ideas' && (
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '16px 16px 120px' }}>
-          <BibliotecaDeInspiracion onUsar={usarReceta} />
-        </div>
-      )}
-
       {/* Al bajar, la barra de navegación se aparta; al subir, vuelve. */}
-      <div onScroll={reportarScroll} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', display: vista === 'comunidad' ? 'block' : 'none' }}>
+      <div onScroll={reportarScroll} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
         {/* Quién eres y dónde buscar. Poco alto: el muro empieza enseguida. */}
         <HomeGreeting onSearch={() => navigation.navigate('Search')} />
 

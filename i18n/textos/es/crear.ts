@@ -1,7 +1,7 @@
 /*
- * La pestaña Crear de Weë y la pantalla Crear video (2026-09-27).
+ * La pantalla Crear video de Weë Studio (2026-09-27).
  *
- * Los nombres de Weë —Weë, Weë AI, Weë Creator, Weë Brain, Credits— son marca
+ * Los nombres de Weë —Weë, Weë AI, Weë Studio, Weë Brain, Credits— son marca
  * y no se traducen. Las «palabras» de cada estilo (`style…Words`) viajan dentro
  * de la idea de la persona hacia la experiencia de vídeo: se escriben como ella
  * las diría.
@@ -10,25 +10,6 @@
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  */
 export const crear = {
-  hubSubtitle: 'Lo que imagines, con la IA de Weë o con tus fotos y vídeos.',
-  heroTitle: 'Convierte tus ideas en vídeos increíbles',
-  heroText: 'Cuéntale a Weë qué quieres ver: el guion, la imagen y la voz los pone la IA.',
-  heroCta: 'Crear video',
-  createCta: 'Crear',
-  ideaPlaceholder: 'Describe lo que quieres crear…',
-  capabilitiesTitle: 'Qué quieres crear',
-  capVideo: 'Video',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Más',
-  shareTitle: 'Compartir en Weë',
-  creatorTitle: 'Crear profesionalmente',
-  creatorText: 'Weë Creator: Filmmaker, línea de tiempo, Weë AI Director y todo tu material en un taller profesional.',
-  creatorCta: 'Abrir Weë Creator',
-  noDestinationTitle: '¿Qué quieres hacer con tu idea?',
-  noDestinationText: 'Elige por dónde empezar. Si no lo tienes claro, Weë Brain te ayuda a decidir.',
-  suggestImage: 'Una imagen',
-  suggestText: 'Un texto',
-  suggestBrain: 'Pregúntale a Weë Brain',
   videoTitle: 'Crear video',
   videoPlaceholder: 'Describe tu vídeo: quién sale, dónde, qué pasa y cómo se siente…',
   improvePrompt: 'Mejorar prompt',
@@ -79,7 +60,7 @@ export const crear = {
   priceNote: 'Antes de crear verás el plan y su precio en Credits. No se cobra nada hasta que confirmes.',
   proTitle: 'Crear profesionalmente',
   proInCreator: 'Llevarlo a Filmmaker',
-  proText: 'Varias escenas, planos, línea de tiempo y Weë AI Director, en Weë Creator.',
+  proText: 'Varias escenas, planos, línea de tiempo y Weë AI Director, en Weë Studio.',
   recentVideos: 'Tus vídeos recientes',
   noVideosYet: 'Todavía no has creado vídeos. El primero aparecerá aquí.',
   seeCreations: 'Ver mis creaciones',

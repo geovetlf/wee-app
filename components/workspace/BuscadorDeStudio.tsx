@@ -5,7 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useAlturaDelTeclado } from '../EspacioDeEscritura';
 import HojaInferior from './HojaInferior';
-import { ResultadoDeBusqueda, TipoDeResultado, useBusquedaDeCreator } from '../../hooks/useBusquedaDeCreator';
+import { ResultadoDeBusqueda, TipoDeResultado, useBusquedaDeStudio } from '../../hooks/useBusquedaDeStudio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -66,7 +66,7 @@ const Resultados: React.FC<{
 };
 
 /**
- * EL BUSCADOR DE WEË CREATOR.
+ * EL BUSCADOR DE WEË STUDIO.
  *
  * En escritorio es una caja en la cabecera y los resultados caen debajo; Ctrl/⌘+K
  * la enfoca, como en cualquier herramienta profesional. En el teléfono es una
@@ -74,13 +74,13 @@ const Resultados: React.FC<{
  * creaciones— y en las ideas de Inspira; al elegir, quien lo monta decide a
  * dónde ir.
  */
-const BuscadorDeCreator: React.FC<{
+const BuscadorDeStudio: React.FC<{
   forma: 'caja' | 'icono';
   onAbrir: (r: ResultadoDeBusqueda) => void;
 }> = ({ forma, onAbrir }) => {
   const { theme } = useTheme();
   const t = useT();
-  const { preparar, buscar, cargando } = useBusquedaDeCreator(t);
+  const { preparar, buscar, cargando } = useBusquedaDeStudio(t);
   const [texto, setTexto] = useState('');
   const [abierto, setAbierto] = useState(false);
   const campo = useRef<TextInput>(null);
@@ -188,4 +188,4 @@ const styles = StyleSheet.create({
   detalle: { fontSize: FONT_SIZE.xs },
 });
 
-export default BuscadorDeCreator;
+export default BuscadorDeStudio;

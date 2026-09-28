@@ -1,5 +1,5 @@
 /*
- * CHINO SIMPLIFICADO — Inspira (灵感): la comunidad y las ideas listas para usar.
+ * CHINO SIMPLIFICADO — Inspira (灵感) de Weë Studio: las ideas listas para usar.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -15,8 +15,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: '灵感',
   subtitle: '现成的提示词、模板和创意。打开它们，按你的想法调整，然后开始创作。',
-  tabCommunity: '社区',
-  tabIdeas: '创意',
   catAll: '全部',
   catCinematic: '电影感',
   catCommercial: '广告',
@@ -28,7 +26,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: '视频',
   destFilmmaker: 'Filmmaker',
   destImage: '图片',
-  destDesign: '设计',
   destWriting: '文字',
   popularTitle: '热门创意',
   recipesTitle: '提示词与模板',
@@ -71,9 +68,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: '你的创业故事',
   rBusinessDesc: '用三个场景讲述它是怎么开始的。',
   rBusinessPrompt: '用三个场景讲述一家店的故事：开业第一天，卷帘门才拉起一半；每天的日常忙碌；还有一位开开心心再次光临的顾客。',
-  rPosterTitle: '活动海报',
-  rPosterDesc: '大字排版、暖色调的海报。',
-  rPosterPrompt: '一张户外音乐会海报，大字排版，暖色调，留出写日期和地点的空间。',
   rSheetTitle: '角色设定图',
   rSheetDesc: '同一个角色的正面、侧面和背面。',
   rSheetPrompt: '角色三视图：同一个角色的正面、侧面和背面，中性背景。',

@@ -36,7 +36,7 @@ const HERRAMIENTA_DE_LA_PESTANA: Readonly<Record<Exclude<PestanaDelMontaje, 'lin
  * el controlador de siempre; el vídeo de cada plano es su toma de F1-D, con su
  * precio y sus Credits. En tableta el proyecto se esconde y el visor gana sitio.
  *
- * El «Exportar» de la cabecera de Weë Creator abre aquí su panel.
+ * El «Exportar» de la cabecera de Weë Studio abre aquí su panel.
  */
 const ProductionWorkspace: React.FC<{
   espacio: EspacioDeFilmmaker;

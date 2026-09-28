@@ -15,7 +15,7 @@ import { scale } from '../../utils/scale';
 const isWeb = Platform.OS === 'web';
 
 /** Los filtros de «Prompts y recetas»: a dónde lleva cada idea. */
-const DESTINOS_FILTRABLES: readonly DestinoDeReceta[] = ['video', 'imagen', 'filmmaker', 'design', 'escribir'];
+const DESTINOS_FILTRABLES: readonly DestinoDeReceta[] = ['video', 'imagen', 'filmmaker', 'escribir'];
 
 const CATEGORIA_DE: Readonly<Record<CategoriaDeInspiracion, string>> = Object.freeze(
   Object.fromEntries(CATEGORIAS_DE_INSPIRACION.map((c) => [c.id, c.clave])) as Record<CategoriaDeInspiracion, string>,
@@ -47,12 +47,12 @@ const Pildora: React.FC<{ texto: string; activa: boolean; onPress: () => void }>
  * puestos a donde se crea, y ahí se personaliza antes de pedir nada. Mirar no
  * cuesta un Credit; crear lo dirá con su precio en su momento.
  *
- * La misma pieza vale en Weë (la pestaña Inspira) y en Weë Creator: quien la
+ * La misma pieza vale en Weë (la pestaña Inspira) y en Weë Studio: quien la
  * monta dice qué hace «Usar».
  */
 const BibliotecaDeInspiracion: React.FC<{
   onUsar: (receta: Receta) => void;
-  /** Abre esta idea al llegar (el buscador de Weë Creator). */
+  /** Abre esta idea al llegar (el buscador de Weë Studio). */
   recetaInicial?: string;
 }> = ({ onUsar, recetaInicial }) => {
   const { theme } = useTheme();

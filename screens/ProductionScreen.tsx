@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { useTheme, enTemaClaro, useEnCreator } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro, useEnStudio } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea } from '../hooks/useProduccion';
@@ -39,7 +39,7 @@ type Ruta = RouteProp<MainStackParamList, 'Production'>;
  *   · sin él, lo que se escribió en Weë Studio a punto de convertirse en
  *     producción (si se escribió algo) y tus producciones de verdad.
  *
- * Filmmaker vive en Weë Creator (decisión del usuario, 2026-09-27): si se llega
+ * Filmmaker vive en Weë Studio (decisión del usuario, 2026-09-27): si se llega
  * desde Weë —el «Varias escenas» de Weë Studio, un enlace—, la misma ruta se
  * abre dentro del taller, con los mismos parámetros.
  *
@@ -52,11 +52,11 @@ type Ruta = RouteProp<MainStackParamList, 'Production'>;
 const ProductionScreen: React.FC = () => {
   const route = useRoute<Ruta>();
   const navigation = useNavigation<any>();
-  const enCreator = useEnCreator();
+  const enStudio = useEnStudio();
   const productionId = route.params?.productionId;
-  /* Fuera de Weë Creator, Filmmaker se abre dentro: la misma pantalla, en su taller. */
+  /* Fuera de Weë Studio, Filmmaker se abre dentro: la misma pantalla, en su taller. */
   useEffect(() => {
-    if (!enCreator && typeof navigation.replace === 'function') navigation.replace('Creator', { screen: 'Production', params: route.params });
+    if (!enStudio && typeof navigation.replace === 'function') navigation.replace('Studio', { screen: 'Production', params: route.params });
     // Solo al llegar: una vez dentro, ya no hay nada que mover.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -140,8 +140,12 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
     notify(r.motivo === 'cambios_sin_guardar' ? t('filmmaker.saveFirst') : t('filmmaker.saveError'), r.motivo === 'fallo' && r.fallo ? fraseDelFallo(r.fallo, t) : undefined);
   }, [controlador, t]);
 
-  /* «Exportar», arriba a la derecha de Weë Creator, mientras la producción está abierta y cargada. */
-  const accion = useMemo(() => (vista ? { etiqueta: t('filmmaker.wsExport'), icono: 'share-outline', onPress: () => setExportando(true) } : null), [vista, t]);
+  /*
+   * «Exportar», arriba a la derecha de Weë Studio, mientras la producción está abierta y cargada. Solo con el
+   * workspace de escritorio: el editor de tableta y teléfono lleva su propio «Exportar» junto al título, y en la
+   * tableta la cabecera también lo enseñaría —dos botones para lo mismo—.
+   */
+  const accion = useMemo(() => (vista && isDesktop ? { etiqueta: t('filmmaker.wsExport'), icono: 'share-outline', onPress: () => setExportando(true) } : null), [vista, isDesktop, t]);
   useAccionDeCabecera(accion);
 
   const titulo = vista?.title ?? t('filmmaker.sectionName');

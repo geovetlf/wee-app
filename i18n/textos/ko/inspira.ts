@@ -1,5 +1,5 @@
 /*
- * COREANO — Inspira (영감): la comunidad y las ideas listas para usar (2026-09-27).
+ * COREANO — Inspira (영감) de Weë Studio: las ideas listas para usar (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Registro 해요체. Las recetas (`r…Title`, `r…Desc`, `r…Prompt`) son de Weë y se
@@ -11,8 +11,6 @@
 export const inspira: typeof import('../es/inspira').inspira = {
   title: '영감',
   subtitle: '바로 쓸 수 있는 프롬프트, 레시피, 아이디어. 열어 보고, 원하는 대로 바꾸고, 만들어 보세요.',
-  tabCommunity: '커뮤니티',
-  tabIdeas: '아이디어',
   catAll: '전체',
   catCinematic: '시네마틱',
   catCommercial: '광고',
@@ -24,7 +22,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   destVideo: '영상',
   destFilmmaker: 'Filmmaker',
   destImage: '이미지',
-  destDesign: '디자인',
   destWriting: '텍스트',
   popularTitle: '인기 아이디어',
   recipesTitle: '프롬프트와 레시피',
@@ -67,9 +64,6 @@ export const inspira: typeof import('../es/inspira').inspira = {
   rBusinessTitle: '우리 가게 이야기',
   rBusinessDesc: '어떻게 시작했는지 들려주는 세 장면.',
   rBusinessPrompt: '한 가게의 이야기를 들려주는 세 장면: 셔터를 반쯤 올린 첫날, 매일의 일상, 기분 좋게 다시 찾아온 손님.',
-  rPosterTitle: '행사 포스터',
-  rPosterDesc: '큰 타이포그래피와 따뜻한 색감의 포스터.',
-  rPosterPrompt: '큰 타이포그래피와 따뜻한 색감, 날짜와 장소를 넣을 공간이 있는 야외 콘서트 포스터.',
   rSheetTitle: '캐릭터 시트',
   rSheetDesc: '앞모습, 옆모습, 뒷모습으로 본 같은 캐릭터.',
   rSheetPrompt: '같은 캐릭터의 앞모습, 옆모습, 뒷모습을 담은 캐릭터 시트, 무채색 배경.',

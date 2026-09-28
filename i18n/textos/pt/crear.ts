@@ -1,31 +1,12 @@
 /*
- * PORTUGUÉS (pt-BR) — la pestaña Crear de Weë y la pantalla Crear video.
+ * PORTUGUÉS (pt-BR) — la pantalla Crear video de Weë Studio.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Trato de «você». Weë, Weë AI, Weë Creator, Weë Brain, Credits y Filmmaker son
+ * Trato de «você». Weë, Weë AI, Weë Studio, Weë Brain, Credits y Filmmaker son
  * marca y no se traducen. Las palabras de cada estilo (`style…Words`) viajan
  * dentro de la idea hacia el vídeo: van como las escribiría alguien de Brasil.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'Tudo o que você imaginar, com a IA do Weë ou com suas fotos e vídeos.',
-  heroTitle: 'Transforme suas ideias em vídeos incríveis',
-  heroText: 'Conte ao Weë o que você quer ver: o roteiro, a imagem e a voz ficam por conta da IA.',
-  heroCta: 'Criar vídeo',
-  createCta: 'Criar',
-  ideaPlaceholder: 'Descreva o que você quer criar…',
-  capabilitiesTitle: 'O que você quer criar',
-  capVideo: 'Vídeo',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Mais',
-  shareTitle: 'Compartilhar no Weë',
-  creatorTitle: 'Criar como profissional',
-  creatorText: 'Weë Creator: Filmmaker, linha do tempo, Weë AI Director e todo o seu material em um espaço de trabalho profissional.',
-  creatorCta: 'Abrir Weë Creator',
-  noDestinationTitle: 'O que você quer fazer com a sua ideia?',
-  noDestinationText: 'Escolha por onde começar. Se não tiver certeza, o Weë Brain ajuda você a decidir.',
-  suggestImage: 'Uma imagem',
-  suggestText: 'Um texto',
-  suggestBrain: 'Pergunte ao Weë Brain',
   videoTitle: 'Criar vídeo',
   videoPlaceholder: 'Descreva seu vídeo: quem aparece, onde, o que acontece e que sensação ele passa…',
   improvePrompt: 'Melhorar prompt',
@@ -76,7 +57,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Antes de criar, você vê o plano e o preço dele em Credits. Nada é cobrado até você confirmar.',
   proTitle: 'Criar como profissional',
   proInCreator: 'Levar para o Filmmaker',
-  proText: 'Várias cenas, planos, linha do tempo e Weë AI Director, no Weë Creator.',
+  proText: 'Várias cenas, planos, linha do tempo e Weë AI Director, no Weë Studio.',
   recentVideos: 'Seus vídeos recentes',
   noVideosYet: 'Você ainda não criou vídeos. O primeiro vai aparecer aqui.',
   seeCreations: 'Ver minhas criações',

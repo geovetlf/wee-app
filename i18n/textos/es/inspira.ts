@@ -1,5 +1,5 @@
 /*
- * Inspira: la comunidad y las ideas listas para usar (2026-09-27).
+ * Inspira de Weë Studio: las ideas listas para usar (2026-09-27).
  *
  * Las recetas (`r…Title`, `r…Desc`, `r…Prompt`) son de Weë, no de la gente: se
  * traducen, y su idea (`…Prompt`) es lo que llega a la caja al usarla, así que
@@ -11,8 +11,6 @@
 export const inspira = {
   title: 'Inspira',
   subtitle: 'Prompts, recetas e ideas listas para usar. Ábrelas, personalízalas y créalas.',
-  tabCommunity: 'Comunidad',
-  tabIdeas: 'Ideas',
   catAll: 'Todos',
   catCinematic: 'Cinemático',
   catCommercial: 'Comercial',
@@ -24,7 +22,6 @@ export const inspira = {
   destVideo: 'Video',
   destFilmmaker: 'Filmmaker',
   destImage: 'Imagen',
-  destDesign: 'Diseño',
   destWriting: 'Texto',
   popularTitle: 'Ideas populares',
   recipesTitle: 'Prompts y recetas',
@@ -67,9 +64,6 @@ export const inspira = {
   rBusinessTitle: 'La historia de tu negocio',
   rBusinessDesc: 'Tres escenas que cuentan cómo empezó.',
   rBusinessPrompt: 'Tres escenas que cuentan la historia de un negocio: el primer día con la persiana a medio subir, el trabajo de cada día y un cliente que vuelve contento.',
-  rPosterTitle: 'Cartel de evento',
-  rPosterDesc: 'Un cartel con tipografía grande y colores cálidos.',
-  rPosterPrompt: 'Cartel para un concierto al aire libre con tipografía grande, colores cálidos y espacio para la fecha y el lugar.',
   rSheetTitle: 'Ficha de personaje',
   rSheetDesc: 'El mismo personaje de frente, de perfil y de espaldas.',
   rSheetPrompt: 'Hoja de personaje con el mismo personaje de frente, de perfil y de espaldas, sobre un fondo neutro.',

@@ -69,7 +69,7 @@ const ListaDeProyectos: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
-  const { aCreator } = useCaminosDeCreacion();
+  const { aStudio } = useCaminosDeCreacion();
   const [filtro, setFiltro] = useState<Filtro>('todo');
   const [archivadas, setArchivadas] = useState(false);
   const producciones = useProducciones(archivadas ? 'archived' : 'active', !!user);
@@ -88,7 +88,7 @@ const ListaDeProyectos: React.FC = () => {
     return () => { vivo = false; };
   }, [user, isDesktop]);
 
-  const abrirProduccion = useCallback((id: string) => aCreator('Production', { productionId: id }), [aCreator]);
+  const abrirProduccion = useCallback((id: string) => aStudio('Production', { productionId: id }), [aStudio]);
 
   const duplicar = useCallback(async (p: ResumenDeProduccion) => {
     setOpcionesDe(null);
@@ -322,7 +322,7 @@ const ListaDeProyectos: React.FC = () => {
         )}
       </HojaInferior>
 
-      <NuevaProduccion visible={nueva} onCerrar={() => setNueva(false)} onIdea={(idea) => { setNueva(false); aCreator('Production', { intencion: idea }); }} />
+      <NuevaProduccion visible={nueva} onCerrar={() => setNueva(false)} onIdea={(idea) => { setNueva(false); aStudio('Production', { intencion: idea }); }} />
     </View>
   );
 };

@@ -10,7 +10,7 @@
  *
  * PLURALES: el chino tiene una sola categoría (`other`), así que `_one` lleva el mismo texto.
  *
- * LAS CLAVES `ws…` (Weë Creator, 2026-09-27): Weë AI y Filmmaker son marca y se quedan en
+ * LAS CLAVES `ws…` (workspace de Weë Studio, 2026-09-27): Weë AI y Filmmaker son marca y se quedan en
  * alfabeto latino; «Weë AI Director» es «Weë AI 導演», con el 導演 de siempre para el
  * panel Director. Exportar es 匯出 (el botón de cualquier editor en Taiwán); la
  * entrega sigue siendo 輸出. Montaje 剪輯, cabezal 播放頭, visor 預覽畫面, transiciones 轉場,

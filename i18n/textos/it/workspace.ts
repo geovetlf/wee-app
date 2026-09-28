@@ -1,19 +1,19 @@
 /*
- * ITALIANO — Weë Creator: el taller profesional de Weë AI, con su propia interfaz
+ * ITALIANO — el workspace de Weë Studio, dentro de Weë AI, con su propia interfaz
  * (2026-09-27). Su marco, su barra lateral, su buscador, su Inicio, Proyectos, el
  * reproductor y los estados de lo que se crea.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tratamiento informal (tu) y apóstrofo tipográfico ’ siempre. «Weë Creator»,
+ * Tratamiento informal (tu) y apóstrofo tipográfico ’ siempre. «Weë Studio»,
  * «Weë AI», «Weë», «Filmmaker» y «Credits» son marca y no se traducen, y
- * `wordmark` (CREATOR) forma parte del nombre. El «taller» es el «laboratorio» e
+ * `wordmark` (STUDIO) forma parte del nombre. El «taller» es el «laboratorio» e
  * Inspira es «Ispirazione», igual que en la barra inferior (`nav.inspire`).
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: 'Torna a Weë',
-  navLabel: 'Navigazione di Weë Creator',
+  navLabel: 'Navigazione di Weë Studio',
   navHome: 'Home',
   navInspire: 'Ispirazione',
   navProjects: 'Progetti',
@@ -21,8 +21,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: 'Strumenti',
   toolFilmmaker: 'Filmmaker',
   toolVideo: 'Video',
-  menuSubtitle: 'Tutto il tuo laboratorio: strumenti, progetti e creazioni.',
-  openMenu: 'Apri il menu di Weë Creator',
   notifications: 'Notifiche',
   myProfile: 'Il mio profilo',
   searchTitle: 'Cerca',
@@ -37,16 +35,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: 'Idee',
   searchProductionDetail: 'Produzione · {{formato}}',
   searchProjectDetail: 'Progetto di Weë AI',
-  homeTitle: 'Il tuo laboratorio creativo',
-  homeSubtitle: 'Filmmaker, video, immagini e altro ancora, con l’IA di Weë. Tutto quello che crei resta nei tuoi progetti.',
-  filmmakerPitch: 'Dall’idea al video: scene, inquadrature, timeline e Weë AI Director.',
-  openFilmmaker: 'Apri Filmmaker',
-  ideasTitle: 'Idee per iniziare',
-  seeAllIdeas: 'Vedi tutte',
-  recentCreations: 'Le tue creazioni recenti',
   seeAllCreations: 'Vedi tutte',
-  recentProjects: 'Riprendi da dove avevi lasciato',
-  seeAllProjects: 'Vedi tutti',
   projectsTitle: 'Progetti',
   projectsSubtitle: 'Le tue produzioni di Filmmaker e i tuoi progetti di Weë AI, insieme.',
   projectsFilterAll: 'Tutto',

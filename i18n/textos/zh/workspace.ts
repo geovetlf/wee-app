@@ -1,22 +1,22 @@
 /*
- * CHINO SIMPLIFICADO — Weë Creator, el taller profesional de Weë AI: su marco,
+ * CHINO SIMPLIFICADO — el workspace de Weë Studio, dentro de Weë AI: su marco,
  * su barra lateral, su buscador, su Inicio, Proyectos, el reproductor y los
  * estados de lo que se crea.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Creator», «Weë AI», «Weë», «Filmmaker» y «Credits» son marca y se quedan
- * en alfabeto latino; `wordmark` («CREATOR») forma parte del nombre y tampoco
+ * «Weë Studio», «Weë AI», «Weë», «Filmmaker» y «Credits» son marca y se quedan
+ * en alfabeto latino; `wordmark` («STUDIO») forma parte del nombre y tampoco
  * se toca. El taller es un 工作台 —no 工作室, que se confundiría con Weë
  * Studio—; una producción es un 影片, como en `filmmaker`, y una creación, un
  * 作品, como en «我的作品». Dinero: devolver es «退还» y ningún fallo deja
  * dudas de que no se cobró nada.
  */
 export const workspace: typeof import('../es/workspace').workspace = {
-  name: 'Weë Creator',
-  wordmark: 'CREATOR',
+  name: 'Weë Studio',
+  wordmark: 'STUDIO',
   backToWee: '返回 Weë',
-  navLabel: 'Weë Creator 导航',
+  navLabel: 'Weë Studio 导航',
   navHome: '首页',
   navInspire: '灵感',
   navProjects: '项目',
@@ -24,8 +24,6 @@ export const workspace: typeof import('../es/workspace').workspace = {
   navTools: '工具',
   toolFilmmaker: 'Filmmaker',
   toolVideo: '视频',
-  menuSubtitle: '你的整个工作台：工具、项目和作品。',
-  openMenu: '打开 Weë Creator 菜单',
   notifications: '通知',
   myProfile: '我的主页',
   searchTitle: '搜索',
@@ -40,16 +38,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   searchGroupIdeas: '创意',
   searchProductionDetail: '影片 · {{formato}}',
   searchProjectDetail: 'Weë AI 项目',
-  homeTitle: '你的创作工作台',
-  homeSubtitle: 'Filmmaker、视频、图片等等，都能用 Weë AI 完成。你创作的一切都会留在你的项目里。',
-  filmmakerPitch: '从想法到视频：场景、镜头、时间线和 Weë AI 导演。',
-  openFilmmaker: '打开 Filmmaker',
-  ideasTitle: '从这些创意开始',
-  seeAllIdeas: '查看全部',
-  recentCreations: '你最近的作品',
   seeAllCreations: '查看全部',
-  recentProjects: '从上次停下的地方继续',
-  seeAllProjects: '查看全部',
   projectsTitle: '项目',
   projectsSubtitle: '你在 Filmmaker 里的影片和 Weë AI 项目，都在这里。',
   projectsFilterAll: '全部',

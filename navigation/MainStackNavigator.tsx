@@ -33,7 +33,6 @@ import SavedPostsScreen from '../screens/SavedPostsScreen';
 import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
-import StudioScreen from '../screens/StudioScreen';
 import ProductionScreen from '../screens/ProductionScreen';
 import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
@@ -45,9 +44,7 @@ import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
 import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
 import WeeBizRegisterScreen from '../screens/WeeBizRegisterScreen';
 import WeeBizProductsScreen from '../screens/WeeBizProductsScreen';
-import CrearVideoScreen from '../screens/CrearVideoScreen';
-import CreatorNavigator, { CreatorStackParamList } from './CreatorNavigator';
-import type { ParamsDeCrearVideo } from '../hooks/useCaminosDeCreacion';
+import StudioNavigator, { StudioStackParamList } from './StudioNavigator';
 import AuthStackNavigator from './AuthStackNavigator';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
@@ -92,8 +89,6 @@ export type MainStackParamList = {
    */
   CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; presets?: { questionId: string; optionId: string }[]; imageUri?: string };
   Specialist: { id: string };
-  /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
-  Studio: undefined;
   /**
    * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
    * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
@@ -108,13 +103,11 @@ export type MainStackParamList = {
   /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
   MisCreaciones: undefined;
   /**
-   * Weë Creator: el taller profesional, con su propia pila y su propio marco
-   * (`navigation/CreatorNavigator.tsx`). Se entra con la pantalla a la que se va:
-   * `{ screen: 'Production', params: { productionId } }`.
+   * Weë Studio: un workspace con su propia pila y su propio marco
+   * (`navigation/StudioNavigator.tsx`), con Filmmaker dentro. Se entra con la
+   * pantalla a la que se va: `{ screen: 'Production', params: { productionId } }`.
    */
-  Creator: NavigatorScreenParams<CreatorStackParamList> | undefined;
-  /* Crear video, dentro de la pestaña Crear de Weë: una idea y sus ajustes, ya puestos si vienen de Inspira. */
-  CrearVideo: ParamsDeCrearVideo | undefined;
+  Studio: NavigatorScreenParams<StudioStackParamList> | undefined;
   PostDetail: {
     post: Post;
   };
@@ -351,19 +344,16 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="EContact" component={EContactScreen} />
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
-      <Stack.Screen name="Studio" component={StudioScreen} />
       <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="MisCreaciones" component={MisCreacionesScreen} />
       {/*
-        WEË CREATOR, EL TALLER PROFESIONAL: una sola ruta que lleva dentro su
-        pila, su cabecera y su barra lateral. Weë y Weë Creator no mezclan su
-        navegación: aquí no llega la barra de abajo de la App (`SIN_BARRA`).
+        WEË STUDIO, EL WORKSPACE: una sola ruta que lleva dentro su pila, su
+        cabecera y su navegación. La barra de Weë no llega aquí (`SIN_BARRA`).
       */}
-      <Stack.Screen name="Creator" component={CreatorNavigator} />
-      <Stack.Screen name="CrearVideo" component={CrearVideoScreen} />
+      <Stack.Screen name="Studio" component={StudioNavigator} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />

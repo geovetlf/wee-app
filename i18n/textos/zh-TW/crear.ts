@@ -1,9 +1,9 @@
 /*
- * CHINO TRADICIONAL (TAIWÁN) — la pestaña Crear y la pantalla Crear video (2026-09-27).
+ * CHINO TRADICIONAL (TAIWÁN) — la pantalla Crear video de Weë Studio (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * Weë, Weë AI, Weë Creator, Weë Brain, Filmmaker y Credits son marca: se quedan en
+ * Weë, Weë AI, Weë Studio, Weë Brain, Filmmaker y Credits son marca: se quedan en
  * alfabeto latino dentro del hanzi, con un espacio a cada lado. «Weë AI Director» es
  * «Weë AI 導演»: la marca intacta y el panel Director con la palabra de `filmmaker`.
  * Vocabulario de Taiwán, el mismo que `studio` y `filmmaker`: 影片 (no 視頻), 建立
@@ -15,25 +15,6 @@
  * `seconds` conserva «{{segundos}} s», la cifra técnica que el encargo deja igual.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: '你想像的一切，都能用 Weë 的 AI 或你自己的照片和影片實現。',
-  heroTitle: '把你的想法變成精彩的影片',
-  heroText: '告訴 Weë 你想看到什麼：腳本、畫面和配音都交給 AI。',
-  heroCta: '建立影片',
-  createCta: '開始創作',
-  ideaPlaceholder: '描述你想創作的內容…',
-  capabilitiesTitle: '你想創作什麼',
-  capVideo: '影片',
-  capFilmmaker: 'Filmmaker',
-  capMore: '更多',
-  shareTitle: '在 Weë 上分享',
-  creatorTitle: '專業創作',
-  creatorText: 'Weë Creator：Filmmaker、時間軸、Weë AI 導演，還有你所有的素材，都在同一個專業的創作空間裡。',
-  creatorCta: '開啟 Weë Creator',
-  noDestinationTitle: '你想用這個想法做什麼？',
-  noDestinationText: '選一個開始的地方。還沒想好的話，Weë Brain 會幫你決定。',
-  suggestImage: '一張圖片',
-  suggestText: '一段文字',
-  suggestBrain: '問問 Weë Brain',
   videoTitle: '建立影片',
   videoPlaceholder: '描述你的影片：誰會出現、在哪裡、發生什麼事、給人什麼感覺…',
   improvePrompt: '優化提示詞',
@@ -84,7 +65,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: '開始創作前，你會先看到方案和它的 Credits 價格。在你確認之前，不會扣款。',
   proTitle: '專業創作',
   proInCreator: '帶到 Filmmaker 繼續',
-  proText: '多個場景、鏡頭、時間軸和 Weë AI 導演，都在 Weë Creator 裡。',
+  proText: '多個場景、鏡頭、時間軸和 Weë AI 導演，都在 Weë Studio 裡。',
   recentVideos: '你最近的影片',
   noVideosYet: '你還沒有建立過影片。第一支會出現在這裡。',
   seeCreations: '查看我的作品',

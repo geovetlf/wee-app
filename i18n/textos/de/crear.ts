@@ -1,31 +1,12 @@
 /*
- * ALEMÁN — la pestaña Crear de Weë y la pantalla Crear video.
+ * ALEMÁN — la pantalla Crear video de Weë Studio.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tratamiento informal (du). Weë, Weë AI, Weë Creator, Weë Brain, Filmmaker y
+ * Tratamiento informal (du). Weë, Weë AI, Weë Studio, Weë Brain, Filmmaker y
  * Credits son marca y no se traducen. Las palabras de cada estilo
  * (`style…Words`) viajan dentro de la idea: van como las escribiría quien la usa.
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'Alles, was du dir vorstellst – mit der KI von Weë oder mit deinen Fotos und Videos.',
-  heroTitle: 'Verwandle deine Ideen in beeindruckende Videos',
-  heroText: 'Sag Weë, was du sehen willst: Drehbuch, Bild und Stimme übernimmt die KI.',
-  heroCta: 'Video erstellen',
-  createCta: 'Erstellen',
-  ideaPlaceholder: 'Beschreibe, was du erstellen willst…',
-  capabilitiesTitle: 'Was möchtest du erstellen',
-  capVideo: 'Video',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Mehr',
-  shareTitle: 'Auf Weë teilen',
-  creatorTitle: 'Professionell erstellen',
-  creatorText: 'Weë Creator: Filmmaker, Zeitleiste, Weë AI Director und dein ganzes Material in einer professionellen Werkstatt.',
-  creatorCta: 'Weë Creator öffnen',
-  noDestinationTitle: 'Was möchtest du mit deiner Idee machen?',
-  noDestinationText: 'Wähle, womit du anfangen willst. Wenn du unsicher bist, hilft dir Weë Brain bei der Entscheidung.',
-  suggestImage: 'Ein Bild',
-  suggestText: 'Ein Text',
-  suggestBrain: 'Frag Weë Brain',
   videoTitle: 'Video erstellen',
   videoPlaceholder: 'Beschreibe dein Video: wer zu sehen ist, wo, was passiert und wie es sich anfühlt…',
   improvePrompt: 'Prompt verbessern',
@@ -76,7 +57,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Vor dem Erstellen siehst du den Plan und seinen Preis in Credits. Bis du bestätigst, wird nichts berechnet.',
   proTitle: 'Professionell erstellen',
   proInCreator: 'In Filmmaker öffnen',
-  proText: 'Mehrere Szenen, Einstellungen, Zeitleiste und Weë AI Director, in Weë Creator.',
+  proText: 'Mehrere Szenen, Einstellungen, Zeitleiste und Weë AI Director, in Weë Studio.',
   recentVideos: 'Deine neuesten Videos',
   noVideosYet: 'Du hast noch keine Videos erstellt. Das erste erscheint hier.',
   seeCreations: 'Meine Kreationen ansehen',

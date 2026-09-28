@@ -1,33 +1,14 @@
 /*
- * FRANCÉS — la pestaña Crear de Weë y la pantalla Crear video (2026-09-27).
+ * FRANCÉS — la pantalla Crear video de Weë Studio (2026-09-27).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo (tu), apóstrofo tipográfico ’ y espacio antes de ? ! y :. Weë, Weë AI,
- * Weë Creator, Weë Brain, Weë AI Director, Filmmaker y Credits son marca y no
+ * Weë Studio, Weë Brain, Weë AI Director, Filmmaker y Credits son marca y no
  * se traducen. Las «palabras» de cada estilo (`style…Words`) viajan dentro de
  * la idea hacia el vídeo: van como las escribiría quien habla francés. En la
  * tarjeta del estilo cabe una sola línea, por eso «Cinemático» es «Cinéma».
  */
 export const crear: typeof import('../es/crear').crear = {
-  hubSubtitle: 'Tout ce que tu imagines, avec l’IA de Weë ou avec tes photos et vidéos.',
-  heroTitle: 'Transforme tes idées en vidéos incroyables',
-  heroText: 'Dis à Weë ce que tu veux voir : le scénario, l’image et la voix, c’est l’IA qui s’en charge.',
-  heroCta: 'Créer une vidéo',
-  createCta: 'Créer',
-  ideaPlaceholder: 'Décris ce que tu veux créer…',
-  capabilitiesTitle: 'Ce que tu veux créer',
-  capVideo: 'Vidéo',
-  capFilmmaker: 'Filmmaker',
-  capMore: 'Plus',
-  shareTitle: 'Partager sur Weë',
-  creatorTitle: 'Créer comme un pro',
-  creatorText: 'Weë Creator : Filmmaker, chronologie, Weë AI Director et toutes tes ressources dans un atelier professionnel.',
-  creatorCta: 'Ouvrir Weë Creator',
-  noDestinationTitle: 'Que veux-tu faire de ton idée ?',
-  noDestinationText: 'Choisis par où commencer. Si tu hésites, Weë Brain t’aide à décider.',
-  suggestImage: 'Une image',
-  suggestText: 'Un texte',
-  suggestBrain: 'Demande à Weë Brain',
   videoTitle: 'Créer une vidéo',
   videoPlaceholder: 'Décris ta vidéo : qui apparaît, où, ce qui se passe et quelle ambiance s’en dégage…',
   improvePrompt: 'Améliorer le prompt',
@@ -78,7 +59,7 @@ export const crear: typeof import('../es/crear').crear = {
   priceNote: 'Avant de créer, tu verras le plan et son prix en Credits. Rien n’est facturé tant que tu n’as pas confirmé.',
   proTitle: 'Créer comme un pro',
   proInCreator: 'Poursuivre dans Filmmaker',
-  proText: 'Plusieurs scènes, des plans, une chronologie et Weë AI Director, dans Weë Creator.',
+  proText: 'Plusieurs scènes, des plans, une chronologie et Weë AI Director, dans Weë Studio.',
   recentVideos: 'Tes vidéos récentes',
   noVideosYet: 'Tu n’as pas encore créé de vidéos. La première apparaîtra ici.',
   seeCreations: 'Voir mes créations',
