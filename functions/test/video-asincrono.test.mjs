@@ -34,6 +34,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { fueraDelMotor } from './motor-filmmaker-alcance.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -592,7 +593,8 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);
   check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D, del tamaño exacto',
     JSON.stringify(Object.fromEntries(movidos)) === JSON.stringify(MOTOR_F1D), JSON.stringify(Object.fromEntries(movidos)));
-  check('H3) F1-A y productions, sin tocar', git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions functions/src/core`).trim() === '');
+  /* Salvo lo que el Filmmaker Engine tiene dicho, por nombre, que toca (motor-filmmaker-alcance.mjs, 2026-09-28). */
+  check('H3) F1-A y productions, sin tocar', fueraDelMotor(git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions functions/src/core`).trim().split('\n').filter(Boolean)).length === 0);
 }
 
 console.log('\n── I · El cliente: ACCEPTED, con claves que ya existen ──');

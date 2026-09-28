@@ -31,6 +31,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { fueraDelMotor } from './motor-filmmaker-alcance.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -522,7 +523,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * esto falla. Los nuevos cuentan aunque todavía no estén en un commit.
    */
   const nuevos = git('ls-files --others --exclude-standard functions/src').trim().split('\n').filter(Boolean);
-  const tocados = [...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos].sort();
+  /* Lo que el Filmmaker Engine tiene dicho, por nombre, que toca no es de este encargo (motor-filmmaker-alcance.mjs, 2026-09-28). */
+  const tocados = fueraDelMotor([...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos]).sort();
   /* …y, tras el canary real, los de su encargo: el coste separado (libro, tipos, atención, aviso, barrendero, liquidación) y la clasificación de fallos. */
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D y de su post-canary',
     JSON.stringify(tocados) === JSON.stringify([
@@ -537,7 +539,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
   check('F3) ni el Core, ni F1-A, ni productions; del contenido, solo la adopción de F1-D',
-    git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim() === ''
+    fueraDelMotor(git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim().split('\n').filter(Boolean)).length === 0
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '62\t2\tfunctions/src/content/materializador.ts');
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');

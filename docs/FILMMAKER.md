@@ -390,11 +390,11 @@ siguen **pendientes**:
 
 ## Lo que el lenguaje aún no tiene
 
-Añadir, editar o quitar personajes, lugares, objetos y referencias; cambiar la dirección creativa de la producción
-(salvo estilo, cámara, movimiento y luz); cambiar una transición; mover un plano a otra escena. No los pide F1-A y
-entrarán cuando una fase los necesite (F2 y siguientes); F1-C los enseña y no los edita. Con F1-B, eso significa que las fichas y las referencias de una
-producción guardada se fijan al crearla (`create` con una producción entera) y no cambian después hasta que el
-lenguaje las tenga.
+F1-A no tenía cómo añadir, editar o quitar personajes, lugares, objetos y referencias, cambiar la dirección creativa
+de la producción, cambiar una transición ni mover un plano a otra escena. Lo tiene desde la fase 1 del Filmmaker
+Engine (abajo). Queda fuera, a propósito: **cambiar el prompt avanzado** (se guarda desde F1-B, ADR-FM-008; editarlo
+es de F6 y `update_shot` lo rechaza con `not_editable_yet`) y **vincular una ficha a un Element de la cuenta**: el
+dominio acepta `element`, pero `productions` sigue respondiendo `element_binding_not_supported` hasta F3.
 
 ## F1-B · La producción, guardada
 
@@ -698,6 +698,47 @@ cobrados exactos, `asset_…`, `producedAssetId`, sin doble cobro) y la devoluci
 
 Pruebas: `functions/test/f1d-postcanary.test.mjs` (en la cadena); `f1d-cliente` (sección PC) y `filmmaker-ui`
 (sección V). Nada desplegado; la puerta, cerrada.
+
+## Filmmaker Engine
+
+Encargo del usuario del 2026-09-28: seguir el roadmap de abajo hasta dejar el motor terminado, sin romper los
+contratos cerrados del vídeo (asíncrono, un conductor, una toma = una reserva y un trabajo, `asset_`,
+`producedAssetId`), del dinero (reserva, cobro y reembolso exactos, `NOT_REFUNDABLE`, el POST sin respuesta como
+desconocido) ni la validación en el servidor. Las vallas de las fases anteriores que fijaban «F1-A, productions y el
+Core, sin tocar» dejan pasar SOLO la lista nominal de `functions/test/motor-filmmaker-alcance.mjs`, donde cada fase
+dice qué archivo toca y por qué; el dinero no puede estar en ella.
+
+### Fase 1 · El lenguaje completo
+
+23 operaciones nuevas, detrás de las 33 de F1-A y sin mover ninguna (56 en total), con el mismo contrato: forma
+cerrada, todas o ninguna, integridad comprobada después de cada una y lo pendiente calculado por firmas.
+
+| Grupo | Operaciones |
+|---|---|
+| Fichas | `add_character`, `update_character`, `remove_character` · `add_location`, `update_location`, `remove_location` · `add_object`, `update_object`, `remove_object` · `add_reference`, `update_reference`, `remove_reference` |
+| Producción | `rename_production`, `change_intent`, `change_direction`, `change_mood`, `change_transition`, `change_continuity`, `change_generation` |
+| Escenas y planos | `update_scene`, `update_shot`, `move_shot` |
+| Montaje | `change_edit_plan` (`set_track`, `remove_track`, `set_subtitles`, `upsert_marker`, `remove_marker`) |
+
+- **Campo a campo.** `update_*`, `change_intent` y `change_direction` cambian solo los campos que traen (`null`
+  quita); cada campo se sustituye entero. El id y la posición no se cambian (`not_editable`), y lo que ya tiene su
+  operación lo dice (`use_dedicated_operation`: el título y la descripción son `edit_text`, el estilo `change_style`,
+  el ánimo `change_mood`, la cámara, el movimiento, la luz y la transición las suyas…): dos maneras de cambiar lo
+  mismo acabarían diciendo cosas distintas.
+- **Quitar una ficha.** Si nadie la señala, se va. Si alguien la señala, se para con `operation_blocked`, `reason:
+  in_use` y las rutas; con `cascade` se sueltan todas sus señales —listas de ids, campos, anclajes de continuidad— y
+  se van los registros que solo existían por ella: su estado en una escena, sus relaciones, las restricciones que la
+  nombran y **las líneas que decía**. Como los ids son únicos en toda la producción, basta el nombre de la clave. Un
+  sujeto o una voz que se quedan vacíos se quitan.
+- **Lo pendiente sale solo**: cambiar la ropa de un personaje deja pendientes justo sus planos; su voz, solo sus
+  líneas; el montaje (pistas, subtítulos, marcas) no deja nada pendiente porque no cambia lo que se genera.
+- **Sin códigos nuevos**: los problemas usan los de F1-A, así que no hay frases nuevas en los once diccionarios.
+- La persistencia no cambió: `productions` ya comprobaba cada material NUEVO de una referencia (dueño, `ready`,
+  clase) comparando antes y después, y sigue rechazando los vínculos a Elements hasta F3. El espejo de la app se
+  regeneró (`scripts/espejo-filmmaker.mjs`).
+
+Pruebas: `functions/test/filmmaker-lenguaje.test.mjs` (en la cadena), con una batería de sabotajes sobre el compilado
+(9/9) fuera del repositorio.
 
 ## Próximas fases
 

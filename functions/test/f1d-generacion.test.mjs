@@ -24,6 +24,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { fueraDelMotor } from './motor-filmmaker-alcance.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -822,7 +823,8 @@ const quienes = (re) => TODAS.filter((f) => re.test(src(f)));
 /* ═══ AG–AI · LO QUE NO SE TOCÓ ═════════════════════════════════════════ */
 console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
 {
-  check('AG) F1-A intacto', git(`diff --name-only ${PUENTE} -- functions/src/filmmaker`).trim() === '');
+  /* Salvo lo que el Filmmaker Engine tiene dicho, por nombre, que toca (motor-filmmaker-alcance.mjs, 2026-09-28). */
+  check('AG) F1-A intacto', fueraDelMotor(git(`diff --name-only ${PUENTE} -- functions/src/filmmaker`).trim().split('\n').filter(Boolean)).length === 0);
   check('AH) productions intacto', git(`diff --name-only ${PUENTE} -- functions/src/productions`).trim() === '');
   check('AI) Credits intactos: el Credit Engine, creditCosts, credits/index, el Financial Core y el Router',
     git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
