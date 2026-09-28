@@ -117,7 +117,9 @@ export type MotivoDeToma =
   | 'unit_not_found'
   | 'take_in_flight'
   | 'take_out_of_order'
-  | 'take_limit';
+  | 'take_limit'
+  /* Hay una toma POSTERIOR ya cobrada: el vídeo de esta no pisa el suyo. */
+  | 'take_superseded';
 
 export interface UnidadEnLaProduccion {
   readonly revision: number;
@@ -304,7 +306,11 @@ const materialDeLaOperacion = async (db: Firestore, uid: string, requestId: stri
  *       y el vídeo se queda en las creaciones, sin enlazar y sin cobrar otra vez;
  *   5 · el material nació de esa operación, es de la cuenta, está listo y es un vídeo;
  *   6 · la escena y el plano del Core existen —se crean si no—, y el resultado se
- *       fija en una transacción, con la versión que la app vio si la manda.
+ *       fija en una transacción, con la versión que la app vio si la manda;
+ *   7 · y NO hay una toma posterior ya cobrada: el plano lleva el vídeo de la
+ *       última toma que salió bien, y una anterior no lo pisa aunque se pida su
+ *       enlace después (tras el canary real: el enlace se pedía solo para la
+ *       última, pero nada lo impedía para las demás).
  */
 export const enlazarToma = async (
   db: Firestore,
@@ -320,6 +326,9 @@ export const enlazarToma = async (
   if (reserva.productionId !== t.productionId || reserva.unitId !== t.unitId || reserva.toma !== t.toma || !reserva.firma) {
     return { status: 'not_found' };
   }
+  /* 7 · Una toma posterior ya cobrada manda: esta no le quita su sitio. */
+  const tomas = await tomasDeLaUnidad(db, quien.uid, quien.accountId, t);
+  if (tomas.some((x) => x.toma > t.toma && x.estado === 'COMPLETED')) return { status: 'stale', motivo: 'take_superseded' };
 
   const leida = await leerUnidadEnLaProduccion(db, quien.accountId, t);
   if (!leida.ok) return { status: leida.motivo === 'production_not_found' ? 'not_found' : 'stale', motivo: leida.motivo };
@@ -352,6 +361,52 @@ export const enlazarToma = async (
   /* Otra escritura se adelantó a la versión que vio la app: que vuelva a mirar. */
   if (fijado.status === 'version_distinta') return { status: 'conflict', motivo: 'version_changed' };
   return { status: 'stale', motivo: 'node_rejected' };
+};
+
+/** Cuántas unidades se miran como mucho al pedir los vídeos de una producción. Un tope, no una promesa. */
+export const MAX_UNIDADES_CON_VIDEO = 400;
+
+export interface VideoDeUnidad {
+  readonly unitId: string;
+  readonly producedAssetId: string;
+  readonly version: number;
+}
+
+/**
+ * LOS VÍDEOS QUE TIENEN PUESTOS LOS PLANOS DE UNA PRODUCCIÓN. Solo lectura.
+ *
+ * Tras el canary real, la tarjeta del plano seguía diciendo «Sin vista previa»
+ * aunque su vídeo estaba listo: el resultado vive en el `ShotNode` del Core
+ * (`fm_<huella>`), la tarjeta pinta la producción de F1-A, y lo que une una cosa
+ * con la otra —la huella de la cuenta, la producción y la unidad— solo lo sabe
+ * calcular el servidor. Esto lo calcula para todas las unidades de la producción
+ * guardada y contesta qué unidad tiene puesto qué material.
+ *
+ * Lo ajeno y lo inexistente contestan igual: nada. Se lee lo guardado —las
+ * escenas y sus planos— y el `ShotNode` de cada unidad; no se escribe nada.
+ */
+export const videosDeLaProduccion = async (db: Firestore, accountId: string, productionId: string): Promise<readonly VideoDeUnidad[]> => {
+  if (!FORMA_DE_PRODUCCION.test(productionId)) return [];
+  const raizSnap = await db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId).get();
+  const raiz = raizSnap.exists ? raizSnap.data() : undefined;
+  if (!esObj(raiz) || raiz.ownerAccountId !== accountId) return [];
+  const escenas = await db.collection(COLECCION_DE_PRODUCCIONES).doc(productionId).collection(COLECCION_DE_ESCENAS_DE_PRODUCCION).get();
+  const unidades: string[] = [];
+  for (const d of escenas.docs) {
+    const e = d.data();
+    if (!esObj(e) || e.ownerAccountId !== accountId || e.productionId !== productionId) continue;
+    /* La misma regla que al generar: la escena sin planos es una unidad; si tiene planos, lo son ellos. */
+    const planos = Array.isArray(e.shots) ? e.shots.filter(esObj) : [];
+    const ids = planos.length ? planos.map((p) => p.id) : [e.id];
+    for (const id of ids) if (typeof id === 'string' && FORMA_DE_ID.test(id)) unidades.push(id);
+  }
+  const nodos = await Promise.all(unidades.slice(0, MAX_UNIDADES_CON_VIDEO).map(async (unitId) => ({
+    unitId,
+    nodo: await nodoDeLaUnidad(db, accountId, { productionId, unitId }),
+  })));
+  return Object.freeze(nodos
+    .filter((x) => !!x.nodo?.producedAssetId)
+    .map((x) => ({ unitId: x.unitId, producedAssetId: x.nodo?.producedAssetId as string, version: x.nodo?.version as number })));
 };
 
 /** El plano de Filmmaker de una unidad, si existe y es de la cuenta: su resultado y su versión. */

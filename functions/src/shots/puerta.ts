@@ -22,7 +22,7 @@ import {
   planosDeLaEscena,
 } from './index';
 import { revisarPlanoGuardado } from './validacion';
-import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma } from '../creator/toma';
+import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma, videosDeLaProduccion } from '../creator/toma';
 
 /**
  * WEË SCENES & SHOTS — LA PUERTA. Y solo eso.
@@ -249,6 +249,17 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
     const vista = entero(data.expectedVersion);
     const r = await enlazarToma(db, { uid: request.auth.uid, accountId }, toma as NonNullable<typeof toma>, { at, ...(vista !== undefined ? { expectedVersion: vista } : {}) });
     return { result: r };
+  }
+
+  /*
+   * F1-D · LOS VÍDEOS DE UNA PRODUCCIÓN: qué plano tiene puesto qué material,
+   * para que cada tarjeta del storyboard enseñe el suyo. Solo lectura, y de una
+   * producción ajena o inexistente la respuesta es la misma: ninguno.
+   */
+  if (op === 'shot.videos') {
+    const productionId = texto(data.productionId, 128);
+    if (!productionId) noVale();
+    return { videos: await videosDeLaProduccion(db, accountId, productionId as string) };
   }
 
   if (op === 'shot.stale') {

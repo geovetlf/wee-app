@@ -13,12 +13,14 @@ import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
-import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
+import { CapabilityId, POLITICA_DE_TRABAJO, esTrabajoTerminal, operacionAbandonada } from '../core';
 import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
-import { PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
+import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
+import { categoriaDelFallo } from './fallos';
+import { SEEDANCE_MODEL_IDS, resolveResolution } from '../engine/providers/seedance';
 import {
   MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
 } from './toma';
@@ -181,6 +183,8 @@ interface GenerateVideoInput {
  * la generación lo pueda rechazar.
  */
 interface TomaPreparada {
+  /** Quien la pide: con su uid se leen sus reservas y su trabajo. */
+  readonly uid: string;
   readonly accountId: string;
   readonly productionId: string;
   readonly sceneId: string;
@@ -191,11 +195,75 @@ interface TomaPreparada {
   readonly requestId: string | null;
   readonly tomas: readonly TomaExistente[];
   readonly unidad: UnidadEnLaProduccion | null;
+  /** El requisito del plano, ya leído: de él sale qué modelo pediría cada calidad. */
+  readonly requisito: RequisitoDePlano;
   readonly evaluacion: PlanoRepresentable | null;
   readonly peticion: VideoRequest | null;
   readonly motivo?: string;
   readonly detalle?: Readonly<Record<string, unknown>>;
 }
+
+/**
+ * ── F1-D · QUÉ MODELOS PUEDE PEDIR UNA TOMA HOY ─────────────────────────────
+ *
+ * Solo los que ya generaron DE VERDAD en producción. Tras el canary real
+ * (2026-09-28):
+ *
+ *   · Seedance 2.0 fast («Estándar»): generó, se cobró exactamente lo reservado
+ *     y el vídeo llegó a su plano. Disponible.
+ *   · Seedance 2.0 («Alta», y cualquier 4K): ModelArk contestó 404 ModelNotOpen
+ *     —el modelo no está activado en la cuenta—. NO disponible hasta que el
+ *     proveedor lo tenga activado y se valide.
+ *   · Seedance 2.5 («Máxima»): nunca se ha probado de verdad. NO disponible.
+ *
+ * Una calidad no se desvía a otro modelo para poder ofrecerla: si el modelo de
+ * esa calidad no está, la calidad no está. Que «Alta» use el modelo rápido sería
+ * una decisión de producto, y no se toma aquí. Ampliar esta lista es una
+ * decisión explícita, con su canary, y se hace en esta línea.
+ */
+const MODELOS_VALIDADOS_PARA_TOMAS: ReadonlySet<string> = new Set([SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST]);
+
+type CalidadDeToma = typeof LIMITES_DE_PLANO.calidades[number];
+type DisponibilidadDeCalidad =
+  | { readonly available: true }
+  | { readonly available: false; readonly reason: 'model_unavailable' }
+  | { readonly available: false; readonly reason: 'quality_not_representable'; readonly reachable: string; readonly resolution: string };
+type AjustesDeVideo = Parameters<typeof chooseSeedanceModel>[1];
+
+/** El modelo que pediría una calidad para este plano, con o sin su resolución: la MISMA función que elige al generar. */
+const modeloParaLaCalidad = (r: RequisitoDePlano, calidad: CalidadDeToma, conResolucion: boolean, settings?: AjustesDeVideo): string =>
+  chooseSeedanceModel({
+    prompt: 'plano',
+    durationSec: Math.max(LIMITES_DE_PLANO.duracionMinimaSec, Math.ceil(r.duracionSec)),
+    aspectRatio: r.proporcion,
+    ...(conResolucion && r.resolucion ? { resolution: r.resolucion } : {}),
+    quality: calidad,
+    model: 'auto',
+  }, settings);
+
+/**
+ * QUÉ CALIDADES SE PUEDEN PEDIR PARA ESTE PLANO, calculado con las MISMAS reglas
+ * que después deciden al generar —el modelo de cada calidad, la resolución a la
+ * que llega (`calidadRepresentable`) y si ese modelo está validado—. Así la app no
+ * ofrece como disponible lo que el servidor rechazaría.
+ */
+const calidadesDeLaToma = (t: TomaPreparada, settings?: AjustesDeVideo): Readonly<Record<CalidadDeToma, DisponibilidadDeCalidad>> =>
+  Object.fromEntries(LIMITES_DE_PLANO.calidades.map((q): [CalidadDeToma, DisponibilidadDeCalidad] => {
+    const efectivo = modeloParaLaCalidad(t.requisito, q, true, settings);
+    const evaluacion = evaluarPlano(t.requisito, q);
+    if (evaluacion.ok) {
+      const propio = modeloParaLaCalidad(t.requisito, q, false, settings);
+      const degradada = calidadRepresentable(
+        evaluacion,
+        { modelo: propio, resolucion: resolveResolution(propio, t.requisito.resolucion, q) },
+        { modelo: efectivo, resolucion: resolveResolution(efectivo, t.requisito.resolucion, q) },
+      );
+      if (degradada) {
+        return [q, { available: false, reason: 'quality_not_representable', reachable: String(degradada.detalle?.reachable ?? ''), resolution: String(degradada.detalle?.resolution ?? '') }];
+      }
+    }
+    return [q, MODELOS_VALIDADOS_PARA_TOMAS.has(efectivo) ? { available: true } : { available: false, reason: 'model_unavailable' }];
+  })) as Record<CalidadDeToma, DisponibilidadDeCalidad>;
 
 const texto128 = (v: unknown): string | undefined => (typeof v === 'string' && /^[A-Za-z0-9_-]{4,128}$/.test(v) ? v : undefined);
 const enteroNoNegativo = (v: unknown): number | undefined => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : undefined);
@@ -218,7 +286,7 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   const cuenta = await cuentaDelPrincipalEnWee(db, uid);
   if (!cuenta) throw new EngineError('INVALID_REQUEST', 'No encontramos esa producción.', { reason: 'production_not_found' });
   const accountId = cuenta.accountId;
-  const base = { accountId, productionId, sceneId, unitId, revision };
+  const base = { uid, accountId, productionId, sceneId, unitId, revision, requisito };
 
   const leida = await leerUnidadEnLaProduccion(db, accountId, { productionId, sceneId, unitId, revision });
   const tomas = await tomasDeLaUnidad(db, uid, accountId, { productionId, unitId });
@@ -257,11 +325,27 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
 const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detalle = t.detalle): EngineError =>
   new EngineError('INVALID_REQUEST', 'Esa toma no se puede generar así.', { reason: motivo, ...(detalle ?? {}) });
 
+/**
+ * CÓMO ACABÓ EL TRABAJO DE UNA TOMA, que puede ir por delante de su reserva: el
+ * trabajo ya terminó y la liquidación todavía no ha pasado. Sin esto la app
+ * seguiría diciendo «en proceso» de algo que ya no se está haciendo.
+ *
+ * Solo lectura, y solo tres palabras y una categoría: nada del trabajo por dentro.
+ */
+const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<{ outcome?: 'in_progress' | 'succeeded' | 'failed'; failure?: string }> => {
+  const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId).catch(() => undefined);
+  if (!job) return {};
+  if (job.state === 'completed') return { outcome: 'succeeded' };
+  if (!esTrabajoTerminal(job.state)) return { outcome: 'in_progress' };
+  const intento = job.attempts[job.attempts.length - 1];
+  return { outcome: 'failed', failure: job.state === 'timed_out' && !intento?.error ? 'TIMEOUT' : categoriaDelFallo(intento?.error) };
+};
+
 /** Lo que la cotización cuenta de las tomas que ya existen y del plano del Core. */
 const estadoDeLaToma = async (t: TomaPreparada) => {
   const ultima = t.tomas[t.tomas.length - 1];
   return {
-    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado } : null,
+    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado, ...(await desenlaceDeLaToma(t.uid, ultima.requestId)) } : null,
     next: t.toma !== null && t.requestId !== null ? { take: t.toma, requestId: t.requestId } : null,
     node: await nodoDeLaUnidad(getFirestore(), t.accountId, { productionId: t.productionId, unitId: t.unitId }),
   };
@@ -321,7 +405,8 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     const deToma = data.plano !== undefined ? await prepararToma(uid, data.plano, cotizar) : undefined;
     if (deToma?.motivo) {
       if (!cotizar) throw noSeGenera(deToma);
-      return { status: 'QUOTED', allowed: false, reason: deToma.motivo, ...(deToma.detalle ? { detail: deToma.detalle } : {}), takes: await estadoDeLaToma(deToma) };
+      /* Con la calidad sin elegir (la primera consulta) esto es lo normal: y es cuando la app necesita saber qué calidades hay. */
+      return { status: 'QUOTED', allowed: false, reason: deToma.motivo, ...(deToma.detalle ? { detail: deToma.detalle } : {}), qualities: calidadesDeLaToma(deToma), takes: await estadoDeLaToma(deToma) };
     }
     if (deToma && !deToma.peticion) throw noSeGenera(deToma);
     const prompt = deToma?.peticion ? deToma.peticion.prompt : assertText(data.prompt, 'la descripción del video', 3000);
@@ -373,7 +458,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     /* Una toma sin el Core no se desvía al camino de siempre: se rechaza, diciendo por qué. */
     if (deToma && !porElCore) {
       if (!cotizar) throw noSeGenera(deToma, 'route_unavailable');
-      return { status: 'QUOTED', allowed: false, reason: 'route_unavailable', takes: await estadoDeLaToma(deToma) };
+      return { status: 'QUOTED', allowed: false, reason: 'route_unavailable', qualities: calidadesDeLaToma(deToma, settings), takes: await estadoDeLaToma(deToma) };
     }
 
     /*
@@ -412,9 +497,19 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         { modelo: modeloDeLaCalidad, resolucion: String(deLaCalidad.detail.resolution) },
         { modelo: price.model, resolucion: String(price.detail.resolution) },
       );
+      const calidades = calidadesDeLaToma(deToma, settings);
       if (degradada) {
         if (!cotizar) throw noSeGenera(deToma, degradada.motivo, degradada.detalle);
-        return { status: 'QUOTED', allowed: false, reason: degradada.motivo, detail: degradada.detalle, takes: await estadoDeLaToma(deToma) };
+        return { status: 'QUOTED', allowed: false, reason: degradada.motivo, detail: degradada.detalle, qualities: calidades, takes: await estadoDeLaToma(deToma) };
+      }
+      /*
+       * EL MODELO QUE DE VERDAD SE USARÍA TIENE QUE ESTAR VALIDADO. Si no, esta
+       * calidad no está disponible: se dice ANTES de tocar el cupo o los Credits,
+       * y no se desvía a otro modelo para poder ofrecerla.
+       */
+      if (!MODELOS_VALIDADOS_PARA_TOMAS.has(price.model)) {
+        if (!cotizar) throw noSeGenera(deToma, 'model_unavailable');
+        return { status: 'QUOTED', allowed: false, reason: 'model_unavailable', qualities: calidades, takes: await estadoDeLaToma(deToma) };
       }
       if (cotizar) {
         return {
@@ -429,6 +524,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
             quality: deToma.evaluacion.calidad,
             withSound: deToma.evaluacion.conSonido,
           },
+          qualities: calidades,
           takes: await estadoDeLaToma(deToma),
         };
       }
@@ -607,15 +703,21 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       }
       if (desenlace.estado === 'fallado') {
         /* Terminal y mal. Solo se devuelve si devolver es seguro; si no, lo resuelve la liquidación. */
+        let devuelto = false;
         if (desenlace.reembolsoSeguro) {
-          await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' })
-            .catch((e) => console.error('Weë Studio canary: no se pudo reembolsar', requestId, e));
+          devuelto = await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' })
+            .then(() => true, (e) => { console.error('Weë Studio canary: no se pudo reembolsar', requestId, e); return false; });
           await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
             .catch((e) => console.error('Weë Studio canary: no se pudo liquidar el libro', requestId, e));
         } else {
           console.warn(`WEË STUDIO CANARY · fallo sin reembolso seguro · job=${desenlace.jobId ?? '?'}: lo cierra la liquidación`);
         }
-        throw new EngineError('PROVIDER_ERROR');
+        /*
+         * QUÉ PASÓ, EN UNA CATEGORÍA, y si los Credits ya volvieron. Nada de
+         * dentro: ni el código del proveedor, ni el adaptador, ni el trabajo. La
+         * frase la pone la app; «reembolsados» solo se dice si es verdad.
+         */
+        throw new EngineError('PROVIDER_ERROR', undefined, { reason: categoriaDelFallo(desenlace.error), refunded: devuelto });
       }
       /*
        * TERMINÓ DENTRO DE LA LLAMADA. No es lo que este camino busca —para eso
