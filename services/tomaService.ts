@@ -21,7 +21,10 @@ import type { EstadoDeReserva, RechazoDeToma, ResultadoDeToma, ResultadoDelEnlac
  *   · leer la dirección del vídeo con la regla de siempre de Mis creaciones
  *     (`assetsService.urlDeEntrega`);
  *   · preguntarle al servidor qué plano de la producción tiene puesto qué vídeo
- *     (`shots`, `shot.videos`), para que cada tarjeta del storyboard enseñe el suyo.
+ *     (`shots`, `shot.videos`), para que cada tarjeta del storyboard enseñe el suyo;
+ *   · y, desde la Fase 11 del motor, los PÓSTERS de esos vídeos (`renders`,
+ *     `poster.request`): una imagen fija de cada uno, con la dirección que calcula
+ *     el servidor. Pedirlos no cuesta Credits y es idempotente.
  */
 
 /** El nombre de la reserva de una operación en el Credit Engine: una por requestId. */
@@ -99,6 +102,24 @@ export const tomaService = {
       return snap.exists() ? assetsService.urlDeEntrega(snap.data() as AssetDoc) : null;
     } catch {
       return null;
+    }
+  },
+
+  /**
+   * LOS PÓSTERS DE LOS VÍDEOS DE UNA PRODUCCIÓN: de cada material, la dirección de
+   * su imagen fija, si ya la tiene. Le pide al servidor los que falten —él decide
+   * cuáles, de qué vídeos y si puede— y se queda solo con los que están y traen
+   * dirección. Si no se puede preguntar, ninguno: la tarjeta enseña el vídeo como antes.
+   */
+  postersDeLaProduccion: async (productionId: string): Promise<ReadonlyMap<string, string>> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { posters?: { assetId?: unknown; state?: unknown; url?: unknown }[] }>(functions, 'renders', { timeout: 60_000 });
+      const r = await fn({ op: 'poster.request', productionId });
+      return new Map((r.data.posters ?? [])
+        .filter((p): p is { assetId: string; state: 'ready'; url: string } => typeof p?.assetId === 'string' && p?.state === 'ready' && typeof p?.url === 'string' && /^https?:\/\//.test(p.url))
+        .map((p) => [p.assetId, p.url] as const));
+    } catch {
+      return new Map();
     }
   },
 };

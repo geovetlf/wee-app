@@ -707,9 +707,20 @@ console.log('\n── X · El ejecutor ante lo que el render de verdad no enseñ
   check('X1) si el material ya está, termina sin montar: el mismo material, ningún FFmpeg',
     hecho.outcome === 'succeeded' && hecho.result.outputRefs[0] === R.materialDelRender(v1.requestId) && montajes === antesX);
 
-  const perdida = await ejecutorDePrueba({ lanzar: conMontaje(colgado), renovarCadaMs: 30 }).ejecutar(despacho(), { renovar: async () => false });
+  /*
+   * Fase 11: el latido cubre TODO el intento, no solo el montaje. Para probar la pérdida A MITAD DE MONTAJE, la
+   * concesión se sostiene mientras se bajan y sondean los planos y se pierde en cuanto FFmpeg empieza a montar.
+   */
+  let montando = false;
+  const perdida = await ejecutorDePrueba({ lanzar: conMontaje(() => { montando = true; return colgado(); }), renovarCadaMs: 30 })
+    .ejecutar(despacho(), { renovar: async () => !montando });
   check('X2) si la concesión deja de ser suya a mitad de montaje, para FFmpeg y lo dice: `lease_lost`, sin material',
     perdida.outcome === 'failed' && perdida.error.details.reason === 'lease_lost' && muertos === 1 && await sinMaterial());
+  const antesDeBajar = montajes;
+  const perdidaAlBajar = await ejecutorDePrueba({ lanzar: conMontaje(colgado), renovarCadaMs: 1 }).ejecutar(despacho(), { renovar: async () => false });
+  check('X2b) y si se pierde mientras se bajan y sondean los planos (Fase 11), ni se empieza a montar: `lease_lost`, sin material',
+    perdidaAlBajar.outcome === 'failed' && perdidaAlBajar.error.details.reason === 'lease_lost' && muertos === 1 && montajes === antesDeBajar && await sinMaterial(),
+    `${perdidaAlBajar.error?.details?.reason} ${muertos}`);
 
   const vencido = await ejecutorDePrueba({ lanzar: conMontaje(colgado), renovarCadaMs: 60_000 }).ejecutar(despacho({ timeoutMs: 60_000 + 150 }), { renovar: async () => true });
   check('X3) si se acaba el tiempo del intento, para FFmpeg: `render_timeout` —reintentable—, sin material',
@@ -777,8 +788,10 @@ console.log('\n── G · Lo que el render no hace ──');
   check('G4) ni `.run(` —la autoridad del Gateway no se toca— ni cargas perezosas: el binario se importa arriba, como cualquier dependencia',
     !/\.run\(/.test(todo) && !/\brequire\s*\(|\bimport\s*\(/.test(todo) && /import \* as binarioDeFfmpeg from 'ffmpeg-static';/.test(src('renderizador.ts')));
   const pasadaSrc = src('renders.ts');
-  check('G5) la pasada descarta lo que no es un render ANTES de evaluar nada',
-    pasadaSrc.indexOf('if (!esTrabajoDeRender(job)) continue;') > 0 && pasadaSrc.indexOf('if (!esTrabajoDeRender(job)) continue;') < pasadaSrc.indexOf('motor.evaluar('));
+  /* Fase 11: la pasada atiende también los pósters —otra tarea del mismo trabajador—, y sigue descartando lo demás primero. */
+  check('G5) la pasada descarta lo que no es suyo (un render o, desde la Fase 11, un póster) ANTES de evaluar nada',
+    pasadaSrc.indexOf('if (!esTrabajoDelTrabajador(job)) continue;') > 0 && pasadaSrc.indexOf('if (!esTrabajoDelTrabajador(job)) continue;') < pasadaSrc.indexOf('motor.evaluar(')
+    && /export const esTrabajoDelTrabajador = \(job: Job\): boolean => esTrabajoDeRender\(job\) \|\| esTrabajoDePoster\(job\);/.test(pasadaSrc));
   check('G6) la tarea tiene la forma de F8 y NO es una capacidad de IA',
     core.FORMA_DE_TAREA.test(R.TAREA_DE_RENDER) && !core.CAPABILITY_CATALOG.some((c) => c.id === R.TAREA_DE_RENDER));
   check('G7) los módulos nuevos y la puerta están en la lista del motor, y el dinero no',

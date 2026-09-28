@@ -80,6 +80,13 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    */
   'functions/src/productions/index.ts',
   'functions/src/productions/puerta.ts',
+  /*
+   * Fase 11 · los pósters (decisión del usuario, 2026-09-28: «pósters de las tomas»). Un módulo NUEVO —qué póster, de
+   * qué vídeo, el trabajo y su lectura—; el renderizador gana el ejecutor del póster, el del montaje en el momento y
+   * el latido de todo el intento; el trabajador, la tarea nueva y sus dos operaciones. La variante se escribe con
+   * `anotarVariante` del Content Core, tal cual: el Content Core no se toca. Ni Credits, ni proveedores.
+   */
+  'functions/src/creator/poster.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

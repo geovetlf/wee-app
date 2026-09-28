@@ -243,6 +243,8 @@ export type UltimaToma =
 export interface VideoDelPlano {
   readonly assetId: string;
   readonly url: string | null;
+  /** Su póster (Fase 11 del motor): una imagen fija del vídeo, si ya la tiene. La tarjeta pinta esto en vez de cargar el vídeo. */
+  readonly poster?: string | null;
 }
 
 export interface InstantaneaDeToma {

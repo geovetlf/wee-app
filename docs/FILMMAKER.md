@@ -903,8 +903,8 @@ cinco al día por cuenta**, hasta medir el coste real. Sus Functions se desplieg
   el mismo trabajo; la serie solo sube cuando el anterior terminó sin vídeo— y el material
   `asset_<32 hex de la petición>`, el mismo para todos los intentos de un trabajo.
 - **El trabajo**: tarea `media.render` (sin capacidad, sin proveedor), con su política —dos intentos, 20 min por
-  intento, concesión de 60 s renovada mientras FFmpeg trabaja, 90 min de vida— y un paquete que lleva referencias y el
-  manifiesto, nunca bytes ni una URL.
+  intento, concesión de 60 s renovada durante todo el intento (desde la Fase 11; antes, solo mientras FFmpeg montaba),
+  90 min de vida— y un paquete que lleva referencias y el manifiesto, nunca bytes ni una URL.
 - **El registro**: `productions/{id}/productionRenders/{huella}` —montaje, revisión, serie, trabajo, material, formato,
   duración—, sin estado: el estado sale del material y del trabajo. Lo escribe solo el servidor; la cuenta dueña lo lee.
 - **Ejecutar** (`creator/renderizador.ts`): la tercera implementación del único puerto del trabajador, `JobExecutor`.
@@ -918,8 +918,8 @@ cinco al día por cuenta**, hasta medir el coste real. Sus Functions se desplieg
 - **El trabajador** (`creator/renders.ts`, `renderWorker`, cada minuto, 30 min, 4 GiB, 2 vCPU, una petición por
   instancia): una composición como la del canary de medios —el almacén de siempre, la cola de invocación, el motor con
   la política del render, `atenderEntrega` y este ejecutor—. Cada pasada busca en el almacén los trabajos sin terminar,
-  **descarta lo que no es un render antes de evaluar nada**, recupera las concesiones caducadas, reconcilia y avisa lo
-  que toca; no empieza un montaje que no quepa entero en lo que le queda de invocación.
+  **descarta lo que no es un render —ni, desde la Fase 11, un póster— antes de evaluar nada**, recupera las concesiones
+  caducadas, reconcilia y avisa lo que toca; no empieza un montaje que no quepa entero en lo que le queda de invocación.
 - **Reconciliar**: si un trabajador muere a mitad, el Job Engine deja el trabajo esperando —salió y no se sabe—. Para
   un render la respuesta es el material: si está, `succeeded`; si no está pasados dos minutos, `failed`
   (`render_lost`), y el Job Engine decide si hay otro intento. Es `recibirEvento`, el mismo camino que un aviso de
@@ -999,6 +999,60 @@ de `elements` y el código de la callable) y `f1d-generacion` AH (`productions` 
 
 Pruebas: `functions/test/filmmaker-elementos.test.mjs` (en la cadena).
 
+### Fase 11 · Los pósters: una imagen fija de cada vídeo
+
+Decisión del usuario (2026-09-28): **pósters de las tomas**. Una imagen fija del vídeo de cada plano y del montaje
+final, sacada con nuestro FFmpeg y guardada como **variante** del material. Sin IA, sin Credits, sin proveedores. Hasta
+ahora cada tarjeta del storyboard cargaba el vídeo entero de su plano para enseñar un fotograma quieto.
+
+- **Qué es** (`creator/poster.ts`): una `AssetVariant` con `kind: 'poster'` en el material del vídeo —el contrato del
+  Content Core, sin cambiarlo—, escrita con `anotarVariante` tal cual. Un JPEG con el lado mayor de 640 px (el otro, en
+  proporción), del segundo 1, o de la mitad de un vídeo que dure menos de dos.
+- **Dónde**: junto a su vídeo, en la carpeta de la cuenta, `users/{cuenta}/ai-generations/{material}~poster.jpg`, con la
+  marca `{material}:poster`. La virgulilla no cabe en un identificador de material, así que ese nombre no puede ser el
+  de ningún material, y queda fuera del prefijo `{material}.` con el que el materializador adopta objetos. Las reglas no
+  cambian (la del Storage ya cubre esa carpeta), y al retirar el vídeo su póster se borra con él.
+- **Pedirlos** (callable `renders`, `op: 'poster.request'`; del cliente solo llega la producción): el servidor calcula de
+  qué vídeos —los que tienen puestos sus planos (F1-D) y los montajes terminados (Fase 8)— y, por cada uno sin póster,
+  crea un **trabajo** del Job Engine: tarea `media.video_poster` (`media.poster` ya es de Media Cloud), sin capacidad ni
+  proveedor, con su política —dos intentos, 5 min por intento, concesión de 60 s, una hora de vida—. Idempotente: la
+  petición es `fmp.<32 hex de cuenta|material>.<serie>`; la serie solo sube cuando el anterior terminó sin póster, y
+  como mucho hasta tres. Cupo técnico en el limitador de siempre (clave `poster`, 400 al día) y 60 trabajos nuevos por
+  llamada; los demás, en la siguiente. La **puerta es la del render** (`aiSettings/render`), cerrada por defecto:
+  cerrada, se contesta lo que hay y no se pide nada. `op: 'poster.list'` solo contesta.
+- **Lo que contesta**, por vídeo: `ready` (con su tamaño y su **dirección**), `pending`, `failed` (con un código),
+  `missing`, o `not_supported` (no es un vídeo listo del Storage de Weë, o ya tiene el póster de otro —Media Cloud—,
+  que no se pisa). La dirección la calcula el servidor al leer —la ruta más el token que está en el propio objeto, como
+  la de cualquier material del Storage de Weë— y **no se guarda en ningún sitio**; la app nunca convierte una
+  referencia de almacén en una URL.
+- **Hacerlos** (`creator/renderizador.ts`, `crearEjecutorDePoster`): la cuarta implementación del puerto `JobExecutor`.
+  Lee el paquete recalculando su identidad (uno tocado, o con el vídeo de otra cuenta, no se hace) y comprueba el vídeo
+  —de la cuenta, listo, del Storage de Weë—. Si ya tiene su póster, termina; si su objeto está sin anotar y lleva su
+  marca, lo comprueba y lo **anota** sin sacarlo otra vez; si no, baja el vídeo por su referencia, lo sondea, saca
+  **un** fotograma con `spawn` sin shell, comprueba que es un JPEG del tamaño pedido, lo guarda **solo si no existe** y
+  anota la variante.
+- **El póster del montaje**, en el momento: el render (Fase 8) lo saca al terminar, del archivo que ya está en disco,
+  sin bajarlo otra vez. Es el último paso y no cambia su desenlace: si no sale, el render está hecho igual y el póster
+  se pide después como el de cualquier otro vídeo (su objeto, si llegó a guardarse, se adopta).
+- **El trabajador** es el del render (`renderWorker`): la pasada atiende las dos tareas —y sigue descartando todo lo
+  demás antes de evaluar—, pone los pósters **delante** en la cola y empieza cada trabajo solo si le cabe **su** intento
+  entero; un montaje que ya no cabe sigue en la cola del almacén para la siguiente pasada. Reconciliar un póster es como
+  reconciliar un render, con su propia verdad: la variante anotada (`poster_lost` si pasados dos minutos no está).
+- **El latido, arreglado de paso**: el render solo renovaba la concesión mientras FFmpeg montaba, y bajar muchos planos
+  también se la comía. Ahora cubre todo el intento —bajar, sondear, montar, guardar—, en el render y en el póster, y si
+  el trabajo deja de ser suyo se para lo que haya en marcha (`lease_lost`).
+- **En la app**, sin rediseñar nada y sin un texto nuevo: `tomaService.postersDeLaProduccion` pide los pósters por
+  `renders` y se queda con los que están y traen dirección; `useVideosDeLaProduccion` pone a cada vídeo el suyo
+  (`VideoDelPlano.poster`), y la tarjeta del plano pinta la **imagen** en vez de cargar el vídeo. Sin póster, o si no se
+  puede preguntar, la tarjeta enseña el vídeo como antes.
+
+Vallas reancladas por nombre con esta autorización, las dos de la Fase 8 (`filmmaker-render`): X2 (la concesión se
+pierde a mitad de montaje; ahora el latido cubre todo el intento, y X2b nueva prueba perderla mientras se bajan los
+planos) y G5 (la pasada descarta lo que no es un render ni un póster). Nada se despliega en esta fase.
+
+Pruebas: `functions/test/filmmaker-poster.test.mjs` (en la cadena, con FFmpeg de verdad); en la app, `f1d-cliente`
+(el servicio de los pósters) y `filmmaker-ui` (la tarjeta con su imagen).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -1009,7 +1063,7 @@ Pruebas: `functions/test/filmmaker-elementos.test.mjs` (en la cadena).
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones. **Hecha en el servidor** (Filmmaker Engine, Fase 9; local, sin desplegar): la propuesta y su comprobación; enseñarla en la app, en el pase de UX |
 | F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados; usar sus imágenes al generar, pendiente de validar |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
-| F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; exportar o publicar el montaje, aparte |
+| F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; y el póster de cada vídeo y del montaje (Fase 11); exportar o publicar el montaje, aparte |
 | F6 | Director avanzado: prompt avanzado (D9), versiones (D12) |
 
 ## Pruebas

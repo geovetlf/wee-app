@@ -14,6 +14,10 @@ import type { VideoDelPlano } from '../utils/controladorDeToma';
  * Se vuelve a preguntar cuando cambia la producción o cuando `refresco` cambia
  * —el vídeo que acaba de ponerse en el plano elegido—. Sin relojes. Si no se
  * puede preguntar, no hay vídeos: la tarjeta sigue diciendo que no tiene vista previa.
+ *
+ * Fase 11 del motor: a la vez se piden los PÓSTERS (`tomaService.postersDeLaProduccion`),
+ * y cada vídeo lleva el suyo si ya lo tiene. Uno que se acaba de pedir aparece la
+ * próxima vez que se pregunte; mientras tanto, la tarjeta enseña el vídeo como antes.
  */
 export const useVideosDeLaProduccion = (productionId: string | null, refresco: string | null): ReadonlyMap<string, VideoDelPlano> => {
   const [videos, setVideos] = useState<ReadonlyMap<string, VideoDelPlano>>(() => new Map());
@@ -24,8 +28,12 @@ export const useVideosDeLaProduccion = (productionId: string | null, refresco: s
       return () => { vigente = false; };
     }
     void (async () => {
-      const lista = await tomaService.videosDeLaProduccion(productionId);
-      const conDireccion = await Promise.all(lista.map(async (v) => [v.unitId, { assetId: v.producedAssetId, url: await tomaService.urlDelMaterial(v.producedAssetId) }] as const));
+      const [lista, posters] = await Promise.all([tomaService.videosDeLaProduccion(productionId), tomaService.postersDeLaProduccion(productionId)]);
+      const conDireccion = await Promise.all(lista.map(async (v) => [v.unitId, {
+        assetId: v.producedAssetId,
+        url: await tomaService.urlDelMaterial(v.producedAssetId),
+        poster: posters.get(v.producedAssetId) ?? null,
+      }] as const));
       if (vigente) setVideos(new Map(conDireccion));
     })();
     return () => { vigente = false; };

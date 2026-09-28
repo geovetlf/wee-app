@@ -9,8 +9,9 @@ import { crearMotorDeTrabajosDeWee } from '../job';
 import { atenderEntrega } from '../job/worker';
 import { almacenDeTrabajos } from '../runtime/almacen';
 import { colaDeInvocacion } from '../runtime/cola';
+import { POLITICA_DEL_POSTER, TAREA_DE_POSTER, estadoDeLosPosters, leerPaqueteDePoster, pedirPosters, posterDelMaterial } from './poster';
 import { POLITICA_DEL_RENDER, TAREA_DE_RENDER, estadoDelRender, materialDelRender, pedirRender, rendersDeLaProduccion } from './render';
-import { crearEjecutorDeRender } from './renderizador';
+import { almacenDelRenderDeWee, crearEjecutorDePoster, crearEjecutorDeRender } from './renderizador';
 
 /**
  * WEË FILMMAKER ENGINE · FASE 8 — EL TRABAJADOR DEL RENDER Y SUS DOS PUERTAS.
@@ -36,10 +37,17 @@ import { crearEjecutorDeRender } from './renderizador';
  *
  * ── Lo que esta pasada NO toca ──────────────────────────────────────────────
  *
- * Nada que no sea un render. Mira los trabajos sin terminar de todo Weë —así los
- * sirve el almacén— y a los que no son `media.render` no les hace NADA: ni los
- * evalúa, ni los recupera, ni los avisa. Esos son del conductor, de su
- * reconciliador y de su barrido.
+ * Nada que no sea suyo. Mira los trabajos sin terminar de todo Weë —así los
+ * sirve el almacén— y a los que no son `media.render` ni, desde la Fase 11,
+ * `media.video_poster` no les hace NADA: ni los evalúa, ni los recupera, ni los
+ * avisa. Esos son del conductor, de su reconciliador y de su barrido.
+ *
+ * ── Los pósters (Fase 11) ───────────────────────────────────────────────────
+ *
+ * El póster de un vídeo es otra tarea del MISMO trabajador: el mismo FFmpeg, el
+ * mismo almacén, la misma cola de la invocación y el mismo Job Engine, con su
+ * propia política. Van delante en la cola —un póster es un fotograma; un render,
+ * minutos— y cada trabajo se empieza solo si le cabe SU intento entero.
  */
 
 /**
@@ -57,10 +65,47 @@ const POR_PAGINA = 100;
 const MAX_PAGINAS = 10;
 
 export const esTrabajoDeRender = (job: Job): boolean => job.task?.name === TAREA_DE_RENDER && job.capability === undefined;
+export const esTrabajoDePoster = (job: Job): boolean => job.task?.name === TAREA_DE_POSTER && job.capability === undefined;
+/** Lo que atiende este trabajador: renders y pósters. Nada más. */
+export const esTrabajoDelTrabajador = (job: Job): boolean => esTrabajoDeRender(job) || esTrabajoDePoster(job);
 
 const hex16 = (s: string): string => createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 16);
 
 export type DesenlaceDeLaReconciliacionDeRender = 'nada' | 'hecho' | 'perdido' | 'esperar';
+
+/** El intento que se quedó sin saber, si lo hay y su concesión ya caducó. */
+const intentoSinSaber = (job: Job, at: number) => {
+  const intento = job.attempts[job.attempts.length - 1];
+  if (job.state !== 'waiting' || !intento || intento.outcome !== 'unknown') return undefined;
+  if (intento.lease && intento.lease.until > at) return undefined;
+  return intento;
+};
+
+/**
+ * CERRAR UN INTENTO SIN SABER CON LA VERDAD DE SU TAREA. Por `recibirEvento`,
+ * como un aviso de proveedor: la misma tabla, el mismo reintento, el mismo plazo.
+ */
+const cerrarConSuVerdad = async (
+  store: Pick<JobStore, 'aplicar'>,
+  motor: Pick<JobEngine, 'recibirEvento'>,
+  job: Job,
+  at: number,
+  verdad: { hecho: boolean; outputRefs: string[]; tarea: 'render' | 'poster' },
+): Promise<DesenlaceDeLaReconciliacionDeRender> => {
+  const intento = intentoSinSaber(job, at);
+  if (!intento) return 'nada';
+  if (!verdad.hecho && at - (intento.endedAt ?? intento.startedAt) < GRACIA_DE_UN_INTENTO_PERDIDO_MS) return 'esperar';
+  const aviso: ProviderEvent = verdad.hecho
+    ? { eventId: `${verdad.tarea}.ok.${hex16(intento.attemptId)}`, jobId: job.jobId, attemptId: intento.attemptId, kind: 'succeeded', at, outputRefs: verdad.outputRefs }
+    : {
+      eventId: `${verdad.tarea}.lost.${hex16(intento.attemptId)}`, jobId: job.jobId, attemptId: intento.attemptId, kind: 'failed', at,
+      error: errorDelCore('PROVIDER_ERROR', verdad.tarea, { details: { reason: `${verdad.tarea}_lost` } }),
+    };
+  const d = motor.recibirEvento(job, aviso, at);
+  if (d.status !== 'transition' || !d.transition) return 'nada';
+  const r = await store.aplicar(d.transition);
+  return r.applied ? (verdad.hecho ? 'hecho' : 'perdido') : 'nada';
+};
 
 /**
  * RECONCILIAR UN RENDER CON SU PROPIA VERDAD: EL MATERIAL.
@@ -76,30 +121,40 @@ export const reconciliarRender = async (
   at: number,
   leer: (assetId: string) => Promise<AssetDoc | null>,
 ): Promise<DesenlaceDeLaReconciliacionDeRender> => {
-  const intento = job.attempts[job.attempts.length - 1];
-  if (job.state !== 'waiting' || !intento || intento.outcome !== 'unknown') return 'nada';
-  if (intento.lease && intento.lease.until > at) return 'nada';
+  if (!intentoSinSaber(job, at)) return 'nada';
   const assetId = materialDelRender(job.trace.requestId);
   const m = await leer(assetId);
-  const listo = !!m && m.ownerAccountId === job.owner.userId && m.status === 'ready' && m.kind === 'video';
-  if (!listo && at - (intento.endedAt ?? intento.startedAt) < GRACIA_DE_UN_INTENTO_PERDIDO_MS) return 'esperar';
-  const aviso: ProviderEvent = listo
-    ? { eventId: `render.ok.${hex16(intento.attemptId)}`, jobId: job.jobId, attemptId: intento.attemptId, kind: 'succeeded', at, outputRefs: [assetId] }
-    : {
-      eventId: `render.lost.${hex16(intento.attemptId)}`, jobId: job.jobId, attemptId: intento.attemptId, kind: 'failed', at,
-      error: errorDelCore('PROVIDER_ERROR', 'render', { details: { reason: 'render_lost' } }),
-    };
-  const d = motor.recibirEvento(job, aviso, at);
-  if (d.status !== 'transition' || !d.transition) return 'nada';
-  const r = await store.aplicar(d.transition);
-  return r.applied ? (listo ? 'hecho' : 'perdido') : 'nada';
+  const hecho = !!m && m.ownerAccountId === job.owner.userId && m.status === 'ready' && m.kind === 'video';
+  return cerrarConSuVerdad(store, motor, job, at, { hecho, outputRefs: [assetId], tarea: 'render' });
+};
+
+/**
+ * RECONCILIAR UN PÓSTER CON SU VERDAD: LA VARIANTE ANOTADA EN SU VÍDEO. Si está,
+ * el póster está hecho, diga lo que diga el trabajo; si no, pasada la gracia, ese
+ * intento se da por perdido y el Job Engine decide si queda otro.
+ */
+export const reconciliarPoster = async (
+  store: Pick<JobStore, 'aplicar'>,
+  motor: Pick<JobEngine, 'recibirEvento'>,
+  job: Job,
+  at: number,
+  leer: (assetId: string) => Promise<AssetDoc | null>,
+): Promise<DesenlaceDeLaReconciliacionDeRender> => {
+  if (!intentoSinSaber(job, at)) return 'nada';
+  const leido = leerPaqueteDePoster(job.input, job.owner.userId);
+  const assetId = leido.ok ? leido.paquete.assetId : undefined;
+  const m = assetId ? await leer(assetId) : null;
+  const hecho = !!assetId && !!m && m.ownerAccountId === job.owner.userId && !!posterDelMaterial(m, job.owner.userId);
+  return cerrarConSuVerdad(store, motor, job, at, { hecho, outputRefs: assetId ? [assetId] : [], tarea: 'poster' });
 };
 
 export interface InformeDeLaPasadaDeRender {
   /** Trabajos sin terminar vistos, de cualquier clase. */
   mirados: number;
-  /** De ellos, renders. A los demás no se les hizo nada. */
+  /** De ellos, renders. */
   deRender: number;
+  /** Y pósters (Fase 11). A los demás no se les hizo nada. */
+  dePoster: number;
   recuperados: number;
   reconciliados: number;
   encolados: number;
@@ -107,6 +162,8 @@ export interface InformeDeLaPasadaDeRender {
   completados: number;
   fallidos: number;
   errores: number;
+  /** Avisados que no cabían en lo que quedaba de invocación: siguen en cola para la siguiente pasada. */
+  aplazados: number;
   /** Quedaron páginas sin mirar: las mira la siguiente pasada. */
   quedan: boolean;
 }
@@ -116,43 +173,53 @@ export interface DepsDeLaPasadaDeRender {
   /** Cuánto puede durar la pasada entera: la vida de la invocación menos un margen. */
   presupuestoMs: number;
   ahora?: () => number;
+  /** El ejecutor de los renders. */
   ejecutor?: JobExecutor;
+  /** El de los pósters (Fase 11). */
+  ejecutorDePoster?: JobExecutor;
   leer?: (assetId: string) => Promise<AssetDoc | null>;
   worker?: string;
 }
 
 /**
- * UNA PASADA DEL TRABAJADOR DEL RENDER.
+ * UNA PASADA DEL TRABAJADOR DEL RENDER (Y, DESDE LA FASE 11, DE LOS PÓSTERS).
  *
- *   1. buscar      los trabajos sin terminar, página a página; solo los renders
+ *   1. buscar      los trabajos sin terminar, página a página; solo los suyos
  *   2. recuperar   `evaluar`: la concesión caducada, el plazo vencido
- *   3. reconciliar lo que se quedó sin saber, con el material
- *   4. avisar      lo que toca ya, a la cola de esta invocación
- *   5. atender     con el trabajador de siempre, mientras quepa un intento entero
+ *   3. reconciliar lo que se quedó sin saber, con su verdad: el material o la variante
+ *   4. avisar      lo que toca ya, a la cola de esta invocación, los pósters delante
+ *   5. atender     con el trabajador de siempre, cada uno si le cabe su intento entero
  *
  * No empieza un montaje que no pueda terminar dentro de la invocación: un
- * intento puede durar veinte minutos, y si no quedan, lo coge la siguiente.
+ * intento puede durar veinte minutos, y si no quedan, lo coge la siguiente. Un
+ * póster necesita cinco, y puede caber donde un montaje ya no cabe.
  */
 export const pasadaDeRender = async (deps: DepsDeLaPasadaDeRender): Promise<InformeDeLaPasadaDeRender> => {
   const ahora = deps.ahora ?? (() => Date.now());
   const empezo = ahora();
   const fin = empezo + deps.presupuestoMs;
   const store = almacenDeTrabajos(deps.db);
+  /* Un solo motor: cada trabajo lleva SU política guardada, y el Job Engine usa esa. */
   const { motor } = crearMotorDeTrabajosDeWee(POLITICA_DEL_RENDER);
   const cola = colaDeInvocacion(ahora);
   const leer = deps.leer ?? ((assetId: string) => leerMaterial(assetId).catch(() => null));
   const worker = deps.worker ?? `render-${randomUUID().slice(0, 8)}`;
   const informe: InformeDeLaPasadaDeRender = {
-    mirados: 0, deRender: 0, recuperados: 0, reconciliados: 0, encolados: 0, atendidos: 0, completados: 0, fallidos: 0, errores: 0, quedan: false,
+    mirados: 0, deRender: 0, dePoster: 0, recuperados: 0, reconciliados: 0, encolados: 0, atendidos: 0, completados: 0, fallidos: 0, errores: 0, aplazados: 0, quedan: false,
   };
+  /* Lo que se avisará, y cuánto necesita cada uno: el intento de SU política. */
+  const avisar: Job[] = [];
+  const necesita = new Map<string, number>();
 
   let cursor: string | undefined;
   for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
     const { jobs, cursor: siguiente } = await store.recuperables({ before: ahora(), limit: POR_PAGINA, ...(cursor ? { cursor } : {}) });
     for (const job of jobs) {
       informe.mirados++;
-      if (!esTrabajoDeRender(job)) continue;
-      informe.deRender++;
+      if (!esTrabajoDelTrabajador(job)) continue;
+      const esPoster = esTrabajoDePoster(job);
+      if (esPoster) informe.dePoster++;
+      else informe.deRender++;
       try {
         let actual = job;
         const d = motor.evaluar(actual, ahora());
@@ -162,14 +229,14 @@ export const pasadaDeRender = async (deps: DepsDeLaPasadaDeRender): Promise<Info
           actual = r.job;
           informe.recuperados++;
         }
-        const rec = await reconciliarRender(store, motor, actual, ahora(), leer);
+        const rec = await (esPoster ? reconciliarPoster : reconciliarRender)(store, motor, actual, ahora(), leer);
         if (rec === 'hecho' || rec === 'perdido') {
           informe.reconciliados++;
           actual = (await store.obtener(actual.jobId)) ?? actual;
         }
         if (!esTrabajoTerminal(actual.state) && actual.state === 'queued' && actual.availableAt <= ahora()) {
-          await cola.enqueue(mensajeDeCola(actual, ahora(), 'requeued'));
-          informe.encolados++;
+          avisar.push(actual);
+          necesita.set(actual.jobId, actual.policy.attemptTimeoutMs);
         }
       } catch {
         /* Un trabajo que no se pudo mirar no para la pasada: lo mira la siguiente. */
@@ -181,11 +248,38 @@ export const pasadaDeRender = async (deps: DepsDeLaPasadaDeRender): Promise<Info
   }
   informe.quedan = !!cursor;
 
-  const ejecutor = deps.ejecutor ?? crearEjecutorDeRender({ ahora, limite: () => fin });
+  /* Los pósters delante: un fotograma no espera detrás de un montaje de veinte minutos. */
+  for (const job of [...avisar.filter(esTrabajoDePoster), ...avisar.filter((j) => !esTrabajoDePoster(j))]) {
+    try {
+      await cola.enqueue(mensajeDeCola(job, ahora(), 'requeued'));
+      informe.encolados++;
+    } catch {
+      informe.errores++;
+    }
+  }
+
+  const deRender = deps.ejecutor ?? crearEjecutorDeRender({ ahora, limite: () => fin });
+  const dePoster = deps.ejecutorDePoster ?? crearEjecutorDePoster({ ahora, limite: () => fin });
+  /* Un solo puerto, dos ejecutores: cada despacho va al de su tarea. */
+  const ejecutor: JobExecutor = {
+    ejecutar: (dispatch, control) => (dispatch.task?.name === TAREA_DE_POSTER ? dePoster : deRender).ejecutar(dispatch, control),
+  };
   const config = { worker, visibilityMs: POLITICA_DEL_RENDER.leaseMs, backpressureDelayMs: 30_000 };
-  while (ahora() + POLITICA_DEL_RENDER.attemptTimeoutMs <= fin) {
+  const elMasCorto = Math.min(POLITICA_DEL_POSTER.attemptTimeoutMs, POLITICA_DEL_RENDER.attemptTimeoutMs);
+  while (ahora() + elMasCorto <= fin) {
     const entrega = await cola.claim({ worker, at: ahora(), visibilityMs: POLITICA_DEL_RENDER.leaseMs });
     if (!entrega) break;
+    /*
+     * ¿Le cabe SU intento entero? Si no, no se empieza: el aviso se da por visto
+     * en esta cola —que se acaba con la invocación— y el trabajo sigue en cola en
+     * el almacén, que es la verdad. La siguiente pasada lo encuentra.
+     */
+    const jobId = String((entrega.message as { jobId?: unknown } | undefined)?.jobId ?? '');
+    if (ahora() + (necesita.get(jobId) ?? POLITICA_DEL_RENDER.attemptTimeoutMs) > fin) {
+      await cola.ack(entrega.deliveryId);
+      informe.aplazados++;
+      continue;
+    }
     try {
       const r = await atenderEntrega({ store, queue: cola, engine: motor, executor: ejecutor, config, now: ahora }, entrega);
       informe.atendidos++;
@@ -199,10 +293,10 @@ export const pasadaDeRender = async (deps: DepsDeLaPasadaDeRender): Promise<Info
 };
 
 export const anotarPasadaDeRender = (i: InformeDeLaPasadaDeRender): void => {
-  if (!i.deRender && !i.errores) return;
+  if (!i.deRender && !i.dePoster && !i.errores) return;
   console.log(
-    `WEË RENDER · mirados=${i.mirados} renders=${i.deRender} recuperados=${i.recuperados} reconciliados=${i.reconciliados}`
-    + ` encolados=${i.encolados} atendidos=${i.atendidos} completados=${i.completados} fallidos=${i.fallidos} errores=${i.errores}`
+    `WEË RENDER · mirados=${i.mirados} renders=${i.deRender} posters=${i.dePoster} recuperados=${i.recuperados} reconciliados=${i.reconciliados}`
+    + ` encolados=${i.encolados} atendidos=${i.atendidos} completados=${i.completados} fallidos=${i.fallidos} aplazados=${i.aplazados} errores=${i.errores}`
     + `${i.quedan ? ' · quedan páginas' : ''}`,
   );
 };
@@ -246,6 +340,21 @@ export const renders = onCall({ region: REGION, timeoutSeconds: 60, memory: '512
     return { render: await estadoDelRender(db, quien, { productionId: productionId as string, huella: huella as string }) };
   }
   if (op === 'render.list') return { renders: await rendersDeLaProduccion(db, quien, productionId as string) };
+
+  /*
+   * FASE 11 · LOS PÓSTERS DE UNA PRODUCCIÓN: de los vídeos de sus planos y de sus
+   * montajes. `poster.request` pide los que faltan —idempotente, con la puerta
+   * del render— y contesta cómo va cada uno; `poster.list` solo contesta. Los que
+   * están salen con su dirección, calculada aquí al leer y guardada en ningún
+   * sitio. Del cliente solo llega la producción.
+   */
+  if (op === 'poster.request') {
+    const r = await pedirPosters(db, quien, productionId as string, { at: Date.now(), almacen: almacenDelRenderDeWee() });
+    return { posters: r.posters, requested: r.requested, ...(r.refused ? { refused: { reason: r.refused } } : {}) };
+  }
+  if (op === 'poster.list') {
+    return { posters: await estadoDeLosPosters(db, quien, productionId as string, { at: Date.now(), almacen: almacenDelRenderDeWee() }) };
+  }
   return noVale();
 });
 

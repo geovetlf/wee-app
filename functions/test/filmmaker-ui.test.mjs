@@ -69,6 +69,8 @@ const reactNative = {
   TextInput: Campo, StyleSheet: { create: (s) => s, flatten: (s) => s, hairlineWidth: 1, absoluteFill: {}, absoluteFillObject: {} }, Platform: { OS: 'web', select: (o) => o.web ?? o.default },
   Modal: Caja,
   Dimensions: { get: () => ({ width: 1280, height: 800 }), addEventListener: () => ({ remove() {} }) },
+  /* Fase 11 del motor: la tarjeta del plano pinta el póster de su vídeo como una imagen. */
+  Image: ({ source, accessibilityLabel }) => h('img', { src: source?.uri, 'aria-label': accessibilityLabel }),
 };
 const colores = new Proxy({}, { get: () => '#000000' });
 
@@ -473,6 +475,10 @@ await seccion('V', async () => {
   check('V2) con su vídeo: el vídeo de ESE plano, y ya no dice «Sin vista previa»',
     /<video[^>]*aria-label="Vídeo de Plano 1"/.test(con.html) && !/Sin vista previa/.test(con.texto), con.html.slice(0, 240));
   check('V3) un material sin dirección que entregar no se pinta como si la tuviera', /Sin vista previa/.test(sinUrl.texto) && !/<video/.test(sinUrl.html));
+  const conPoster = dibujar(h(Tarjeta, { ...props, video: { assetId: material, url: 'https://cdn.invalid/b.mp4', poster: 'https://cdn.invalid/b.jpg' } }));
+  check('V5) con su póster (Fase 11 del motor): su imagen fija, con la misma etiqueta, y ya no carga el vídeo',
+    /<img[^>]*src="https:\/\/cdn\.invalid\/b\.jpg"[^>]*aria-label="Vídeo de Plano 1"/.test(conPoster.html) && !/<video/.test(conPoster.html) && !/Sin vista previa/.test(conPoster.texto),
+    conPoster.html.slice(0, 240));
   const pantalla = leer('screens/ProductionScreen.tsx');
   /* Desde el workspace (2026-09-27) los vídeos viajan dentro del espacio que comparten los paneles; el storyboard los recibe de ahí. */
   check('V4) la pantalla le da a cada tarjeta el vídeo que el servidor dice que tiene su plano',

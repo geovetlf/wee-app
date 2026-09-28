@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -101,14 +101,24 @@ const ProductionShotCard: React.FC<{
       >
         {video?.url ? (
           <View style={[styles.miniatura, styles.conVideo, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <Video
-              source={{ uri: video.url }}
-              style={StyleSheet.absoluteFill}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={false}
-              isMuted
-              accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })}
-            />
+            {/* Con póster (Fase 11 del motor), su imagen fija: la tarjeta ya no carga el vídeo entero para enseñar un fotograma. */}
+            {video.poster ? (
+              <Image
+                source={{ uri: video.poster }}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+                accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })}
+              />
+            ) : (
+              <Video
+                source={{ uri: video.url }}
+                style={StyleSheet.absoluteFill}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay={false}
+                isMuted
+                accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })}
+              />
+            )}
             <View style={styles.play} pointerEvents="none">
               <Ionicons name="play" size={scale(12)} color="#FFFFFF" />
             </View>

@@ -605,6 +605,28 @@ await seccion('PC', async () => {
       pedida?.datos.op === 'shot.videos' && pedida?.datos.productionId === PID && JSON.stringify(lista) === JSON.stringify([{ unitId: 'sh-0101', producedAssetId: `asset_${'b'.repeat(32)}`, version: 2 }]));
     respuestaCallable = async () => { throw Object.assign(new Error('x'), { code: 'functions/unavailable' }); };
     check('PC34) si no se puede preguntar, ningún vídeo (y la tarjeta sigue diciendo que no tiene vista previa)', (await tomaService.videosDeLaProduccion(PID)).length === 0);
+
+    /* Fase 11 del motor · los pósters: por `renders`, solo con la producción, y solo los que están y traen dirección. */
+    respuestaCallable = async (nombre, datos) => ({ data: nombre === 'renders' && datos.op === 'poster.request'
+      ? {
+        posters: [
+          { assetId: `asset_${'b'.repeat(32)}`, state: 'ready', url: 'https://cdn.invalid/b.jpg' },
+          { assetId: `asset_${'c'.repeat(32)}`, state: 'pending' },
+          { assetId: `asset_${'d'.repeat(32)}`, state: 'ready' },
+          { assetId: `asset_${'e'.repeat(32)}`, state: 'ready', url: 'javascript:alert(1)' },
+          { state: 'ready', url: 'https://cdn.invalid/x.jpg' },
+        ],
+        requested: 1,
+      }
+      : {} });
+    const antesDePedir = llamadas.length;
+    const pos = await tomaService.postersDeLaProduccion(PID);
+    const pedidaP = llamadas.slice(antesDePedir).find((l) => l.nombre === 'renders');
+    check('PC35) los pósters se piden al servidor (`renders`, `poster.request`) con la producción y nada más, y solo se queda lo que está y trae dirección',
+      pedidaP?.datos.op === 'poster.request' && pedidaP?.datos.productionId === PID && Object.keys(pedidaP.datos).length === 2
+      && JSON.stringify([...pos]) === JSON.stringify([[`asset_${'b'.repeat(32)}`, 'https://cdn.invalid/b.jpg']]), JSON.stringify([...pos]));
+    respuestaCallable = async () => { throw Object.assign(new Error('x'), { code: 'functions/unavailable' }); };
+    check('PC36) si no se puede preguntar, ningún póster: la tarjeta enseña el vídeo como antes', (await tomaService.postersDeLaProduccion(PID)).size === 0);
   }
 });
 

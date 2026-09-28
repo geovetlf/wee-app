@@ -2393,9 +2393,9 @@ general del Job Engine**, su resultado es un material `asset_` de la cuenta con 
   `creator/renderizador.ts`. La valla `job-queue` #65 pasa de dos composiciones a tres, por nombre.
 - **La cola sigue sin ser durable, y no hace falta**: cada pasada del trabajador programado (`renderWorker`, cada
   minuto, 30 min de vida) busca en el almacén los trabajos sin terminar —`recuperables`, sin índice nuevo—,
-  **descarta todo lo que no sea un render antes de evaluar nada** (los trabajos de IA son del conductor, de su
-  reconciliador y de su barrido, y esta pasada no los toca), recupera, reconcilia y avisa a la cola de su invocación.
-  No empieza un intento que no quepa entero en lo que le queda.
+  **descarta todo lo que no sea un render —ni, desde el § 28, un póster— antes de evaluar nada** (los trabajos de IA
+  son del conductor, de su reconciliador y de su barrido, y esta pasada no los toca), recupera, reconcilia y avisa a la
+  cola de su invocación. No empieza un intento que no quepa entero en lo que le queda.
 - **Reconciliar sin proveedor.** Si el trabajador muere montando, el Job Engine deja el trabajo esperando (salió y no
   se sabe). La respuesta de un render es su material: si está, `recibirEvento` con `succeeded`; si pasados dos
   minutos no está, `failed` (`render_lost`), y el Job Engine decide el siguiente intento. Mismo camino que un aviso de
@@ -2423,3 +2423,26 @@ como contexto (`docs/FILMMAKER.md` § Fase 9). Lo que importa aquí es lo que NO
   `productions` con su revisión (CAS). Ni el conductor, ni el Job Engine, ni ningún trabajo intervienen.
 
 Pruebas: `functions/test/filmmaker-brain.test.mjs` (S3: con el canary abierto, ningún trabajo).
+
+## 28. Filmmaker Engine · Los pósters, otra tarea general del mismo trabajador
+
+Decisión del usuario (2026-09-28): una imagen fija de cada vídeo de una producción y de su montaje
+(`docs/FILMMAKER.md` § Fase 11). Para el runtime:
+
+- **Una tarea más, el mismo trabajador.** `media.video_poster` es otro `Job` de F8 con tarea general —sin capacidad,
+  implementación ni proveedor—, en el almacén de siempre y con su política por trabajo (dos intentos, 5 min, concesión
+  de 60 s, una hora de vida). La pasada de `renderWorker` la atiende con un cuarto `JobExecutor`
+  (`crearEjecutorDePoster`) detrás del mismo puerto: cada despacho va al ejecutor de su tarea. `atenderEntrega`, sin
+  cambiar una línea, y un solo motor, porque cada trabajo lleva su política guardada y el Job Engine usa esa.
+- **Cada trabajo, si le cabe el suyo.** Los pósters van delante en la cola de la invocación, y un trabajo solo se
+  empieza si le cabe SU intento entero; el que no, se da por visto en esa cola y sigue en cola en el almacén, que es la
+  verdad.
+- **Reconciliar con su verdad**: la variante anotada en el vídeo. El mismo `recibirEvento` y la misma gracia de dos
+  minutos que un render (`poster_lost`).
+- **El latido cubre el intento entero**, en el render y en el póster: la concesión se renueva desde el primer byte que
+  se baja, no solo mientras FFmpeg trabaja.
+- **Nada de dinero ni de IA, y nada nuevo que desplegar.** Ni una Function nueva (`renders` gana `poster.request` y
+  `poster.list`), ni una colección, ni una regla, ni un índice. La puerta es `aiSettings/render`, cerrada. El Content
+  Core no cambia: la variante se escribe con `anotarVariante` y su dirección se calcula al leer.
+
+Pruebas: `functions/test/filmmaker-poster.test.mjs` (en la cadena, con FFmpeg de verdad).
