@@ -246,7 +246,8 @@ const motivo = (r) => (r.ok ? r.valor?.reason : r.error?.details?.reason);
 const clon = (x) => JSON.parse(JSON.stringify(x));
 const pid = (k) => `prodfaro${String(k).padStart(16, '0')}`;
 const conFaro = (extra = {}) => clon({
-  ...M.produccionVacia({ title: 'El faro', aspectRatio: '16:9', resolution: '1080p' }),
+  /* 720p: a donde llega «Estándar», la única calidad con modelo validado tras el canary real. */
+  ...M.produccionVacia({ title: 'El faro', aspectRatio: '16:9', resolution: '720p' }),
   intent: { objective: 'Un faro al amanecer' },
   creativeDirection: { visualStyle: 'cinematográfico', mood: 'sereno', cinematography: { version: 1, lighting: { type: 'golden_hour' }, shot: { type: 'wide' } } },
   characters: [{ id: 'char-mar', name: 'Marina', identityDescription: 'farera de sesenta años', appearance: { wardrobe: { description: 'impermeable azul' } } }],
@@ -285,7 +286,7 @@ const produccionDe = (pl) => planes.get(pl);
 const plan = async (uid, k, unitId, extra = {}) => {
   const v = await vista(uid, k);
   const req = requisito(v.view.production, unitId);
-  const pl = { productionId: pid(k), sceneId: req.sceneId, unitId, revision: v.view.revision, quality: 'high', requirement: req, ...extra };
+  const pl = { productionId: pid(k), sceneId: req.sceneId, unitId, revision: v.view.revision, quality: 'standard', requirement: req, ...extra };
   planes.set(pl, v.view.production);
   return pl;
 };
@@ -314,6 +315,7 @@ await crear(A, 5, conFaro());
 await crear(A, 6, conFaro());
 await crear(A, 7, conFaro());
 await crear(A, 12, conFaro());
+await crear(A, 21, conFaro({ format: { aspectRatio: '16:9', resolution: '1080p' } }));
 
 /* ═══ A–B · EL requestId DE UNA TOMA ════════════════════════════════════ */
 console.log('\n── A–B · El requestId lo calcula el servidor, de la cuenta, la producción, la unidad y la toma ──');
@@ -402,12 +404,20 @@ console.log('\n── E–F · Otra cuenta no llega; la misma toma con otra cosa
   check('E) otra cuenta con la producción ajena: production_not_found, sin tocar nada', !deB.ok && motivo(deB) === 'production_not_found' && saldo(B) === SALDO, codigo(deB));
   const enlaceDeB = await enlazar(B, { productionId: pid(1), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 });
   check('E) y tampoco puede enlazar la toma ajena', enlaceDeB.ok && enlaceDeB.valor.result.status === 'not_found', JSON.stringify(enlaceDeB.valor?.result));
-  /* El precio de la otra calidad, cotizado en un plano idéntico de otra producción: así se pide por lo que costaría. */
-  const deMaxima = await cotizar(A, await plan(A, 6, 'sh-0101', { quality: 'max' }));
+  /*
+   * Tras el canary real solo hay una calidad con modelo, así que «la misma toma
+   * con otra cosa» ya no puede ser otra calidad: es otro texto —otro requisito—,
+   * por el mismo precio. Y pedirla en «Máxima» se para antes de tocar nada.
+   */
+  const plUno = await plan(A, 1, 'sh-0101');
   const posts0 = posts.length; const saldo0 = saldo(A); const cupo0 = cupoDeVideo(A);
-  const otra = await generar(A, { ...(await plan(A, 1, 'sh-0101')), take: 1, quality: 'max' }, deMaxima.valor?.credits);
-  check('F) la misma toma con OTRA calidad —otra operación—: idempotency_conflict, sin POST, sin cobro, sin cupo',
-    deMaxima.ok && deMaxima.valor.allowed && !otra.ok && motivo(otra) === 'idempotency_conflict' && posts.length === posts0 && saldo(A) === saldo0 && cupoDeVideo(A) === cupo0, codigo(otra));
+  const cambiado = { ...plUno, take: 1, requirement: { ...plUno.requirement, input: { ...plUno.requirement.input, description: 'Marina baja la escalera del faro' } } };
+  const otra = await generar(A, cambiado, tomaUno.credits);
+  check('F) la misma toma con OTRO texto —otra operación—: idempotency_conflict, sin POST, sin cobro, sin cupo',
+    !otra.ok && motivo(otra) === 'idempotency_conflict' && posts.length === posts0 && saldo(A) === saldo0 && cupoDeVideo(A) === cupo0, codigo(otra));
+  const enMaxima = await generar(A, { ...plUno, take: 1, quality: 'max' }, tomaUno.credits);
+  check('F) y en «Máxima», que no tiene su modelo validado: model_unavailable, sin POST, sin cobro, sin cupo',
+    !enMaxima.ok && motivo(enMaxima) === 'model_unavailable' && posts.length === posts0 && saldo(A) === saldo0 && cupoDeVideo(A) === cupo0, codigo(enMaxima));
 }
 
 /* ═══ G–H · EL TEXTO ════════════════════════════════════════════════════ */
@@ -456,7 +466,7 @@ console.log('\n── I–P · Duración, formato, calidad, sonido, prompt avanz
   const cuatroCinco = await cotizar(A, await plan(A, 2, 'sh-0101'));
   check('L) 4:5 no se convierte: rechazado, y se proponen los formatos que sí',
     cuatroCinco.ok && cuatroCinco.valor.reason === 'aspect_ratio_not_supported' && cuatroCinco.valor.detail.suggestions.includes('9:16'), JSON.stringify(cuatroCinco.valor));
-  const estandar = await cotizar(A, await plan(A, 6, 'sh-0101', { quality: 'standard' }));
+  const estandar = await cotizar(A, await plan(A, 21, 'sh-0101', { quality: 'standard' }));
   check('M) «estándar» no llega a 1080p: rechazado, diciendo hasta dónde llega, sin bajarlo en silencio',
     estandar.ok && estandar.valor.allowed === false && estandar.valor.reason === 'quality_not_representable' && estandar.valor.detail.resolution === '1080p' && ['480p', '720p'].includes(estandar.valor.detail.reachable), JSON.stringify(estandar.valor?.detail));
   const cuatroK = conFaro({ format: { aspectRatio: '16:9', resolution: '4k' } });
@@ -464,7 +474,9 @@ console.log('\n── I–P · Duración, formato, calidad, sonido, prompt avanz
   const maxima = await cotizar(A, await plan(A, 8, 'sh-0101', { quality: 'max' }));
   check('M) «máxima» en 4K obligaría a otro modelo: rechazado, y «máxima» llega hasta 1080p', maxima.ok && maxima.valor.reason === 'quality_not_representable' && maxima.valor.detail.reachable === '1080p', JSON.stringify(maxima.valor?.detail));
   const alta4k = await cotizar(A, await plan(A, 8, 'sh-0101', { quality: 'high' }));
-  check('M) CONTROL · «alta» sí llega a 4K: se cotiza en 4K', alta4k.ok && alta4k.valor.allowed === true && alta4k.valor.effective.resolution === '4k', JSON.stringify(alta4k.valor?.effective ?? alta4k.valor));
+  check('M) CONTROL · «alta» sí llegaría a 4K —su modelo la representa—, pero ese modelo no está validado: model_unavailable, sin precio',
+    alta4k.ok && alta4k.valor.allowed === false && alta4k.valor.reason === 'model_unavailable' && alta4k.valor.credits === undefined
+    && alta4k.valor.qualities?.high?.reason === 'model_unavailable', JSON.stringify(alta4k.valor));
   const sinCalidad = await cotizar(A, await plan(A, 6, 'sh-0101', { quality: undefined }));
   const inventada = await cotizar(A, await plan(A, 6, 'sh-0101', { quality: 'ultra' }));
   check('M) y sin calidad elegida —o con una que no existe— no hay generación: quality_required',

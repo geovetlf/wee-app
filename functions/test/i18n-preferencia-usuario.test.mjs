@@ -529,8 +529,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * proceso», el vídeo en su plano y una frase por cada motivo por el que no se
    * puede— en los once diccionarios a la vez. No sale ninguna: «Generar» de la
    * producción entera sigue sin estar, y dice lo mismo.
+   * 2 732 → 2 750 tras el canary real de F1-D: 18 claves `filmmaker.take*` —por
+   * qué no salió una toma en sus cinco categorías (y «se están devolviendo»
+   * mientras el reembolso no se confirma), qué calidades no están, los tres
+   * números de Credits y la vista previa del plano— en los once diccionarios a la
+   * vez. No sale ninguna.
    */
-  const CLAVES_PT = 2732;
+  const CLAVES_PT = 2750;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

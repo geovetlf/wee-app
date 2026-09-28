@@ -574,7 +574,20 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * (`providers/seedance.ts`, ficha 6). Se fijan por nombre y por tamaño: una
    * línea más en cualquiera de las dos, o un archivo más, y esto falla.
    */
-  const MOTOR_F1D = { 'functions/src/engine/limits.ts': '15\t3', 'functions/src/engine/providers/seedance.ts': '10\t0' };
+  /*
+   * Y, tras el canary real (2026-09-28), el coste del proveedor separado —fase 1
+   * del encargo post-canary, autorizada—: el libro (`ledger.ts`: estimado, real y
+   * estado, y el cierre idempotente de una operación asíncrona), sus tipos
+   * (`types.ts`) y el adaptador de Seedance, que ahora declara la tarifa y el
+   * consumo que ModelArk DIJO (`seedance.ts`: los 10 de F1-D y 29 más, 4 fuera).
+   * Por nombre y por tamaño, igual que antes.
+   */
+  const MOTOR_F1D = {
+    'functions/src/engine/ledger.ts': '174\t11',
+    'functions/src/engine/limits.ts': '15\t3',
+    'functions/src/engine/providers/seedance.ts': '39\t4',
+    'functions/src/engine/types.ts': '42\t1',
+  };
   const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)
     .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);
   check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D, del tamaño exacto',

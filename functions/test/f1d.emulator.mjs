@@ -9,8 +9,10 @@
  * local que acepta, contesta estados y sirve el vídeo.
  *
  *   cotizar · dos pestañas a la vez (cupo y reserva con transacciones de verdad)
- *   · el cuerpo que de verdad sale hacia ModelArk (texto compuesto, 1080p sin
- *   rebajar, sonido, plazo de plazos.ts) · SUCCEEDED → material marcado en
+ *   · el cuerpo que de verdad sale hacia ModelArk (texto compuesto, 720p sin
+ *   rebajar, sonido, plazo de plazos.ts) · «Alta» rechazada sin salir (tras el
+ *   canary real, su modelo no está validado) · el coste REAL en el libro, con lo
+ *   que ModelArk declara y la tarifa que declaró el adaptador · SUCCEEDED → material marcado en
  *   Storage · el enlace verificado por la callable `shots` · un vídeo en Storage
  *   sin ficha, adoptado sin volver a descargarlo, y uno con la marca de otro,
  *   no · `expired` → reembolso exacto, una vez.
@@ -36,6 +38,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULAT
 /* ── ModelArk, de mentira y en esta máquina ─────────────────────────────── */
 const tareas = new Map();
 const cuerpos = [];
+const TOKENS_DECLARADOS = 64_512;
 const cuenta = { post: 0, video: 0 };
 let serie = 0;
 const BYTES = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(4096, 5)]);
@@ -60,7 +63,8 @@ const servidor = http.createServer((req, res) => {
     const puerto = servidor.address().port;
     return enviar(200, {
       id: t[1], status: tarea.status, updated_at: Math.floor(Date.now() / 1000) + tarea.version,
-      ...(tarea.status === 'succeeded' ? { content: { video_url: `http://127.0.0.1:${puerto}/videos/${t[1]}.mp4` } } : {}),
+      /* Como ModelArk: al terminar bien, dice lo que consumió. */
+      ...(tarea.status === 'succeeded' ? { content: { video_url: `http://127.0.0.1:${puerto}/videos/${t[1]}.mp4` }, usage: { completion_tokens: TOKENS_DECLARADOS, total_tokens: TOKENS_DECLARADOS } } : {}),
       ...(tarea.status === 'expired' ? { error: { code: 'TaskExpired', message: 'the task expired' } } : {}),
     });
   }
@@ -119,7 +123,8 @@ const pasada = () => rt.mantenimientoDeWee({
 
 const clon = (x) => JSON.parse(JSON.stringify(x));
 const faro = () => clon({
-  ...M.produccionVacia({ title: 'El faro', aspectRatio: '16:9', resolution: '1080p' }),
+  /* 720p: a donde llega «Estándar», la única calidad con modelo validado tras el canary real. */
+  ...M.produccionVacia({ title: 'El faro', aspectRatio: '16:9', resolution: '720p' }),
   intent: { objective: 'Un faro al amanecer' },
   creativeDirection: { visualStyle: 'cinematográfico', cinematography: { version: 1, lighting: { type: 'golden_hour' }, shot: { type: 'wide' } } },
   characters: [{ id: 'char-mar', name: 'Marina', identityDescription: 'farera de sesenta años' }],
@@ -136,7 +141,7 @@ const crear = async (k) => {
 const plan = async (k, extra = {}) => {
   const v = (await producciones.leerProduccion(A, pid(k), { db })).view;
   const req = Rq.requisitosDeProduccion(v.production).requirements.shots.find((s) => s.unitId === 'sh-0101');
-  return { productionId: pid(k), sceneId: 'sc-0001', unitId: 'sh-0101', revision: v.revision, quality: 'high', requirement: req, ...extra };
+  return { productionId: pid(k), sceneId: 'sc-0001', unitId: 'sh-0101', revision: v.revision, quality: 'standard', requirement: req, ...extra };
 };
 const llamar = (data) => intento(() => video.generateVideo.run({ auth: { uid: A }, data }));
 
@@ -148,8 +153,10 @@ const sinCalidad = await llamar({ plano: { ...pl, quality: undefined }, cotizar:
 check('consultar sin calidad: quality_required, con las tomas del plano, y nada reservado',
   sinCalidad.ok && sinCalidad.valor.reason === 'quality_required' && sinCalidad.valor.takes?.next?.take === 1 && cuenta.post === 0, codigo(sinCalidad));
 const q = await llamar({ plano: pl, cotizar: true });
-check('cotizar con «alta»: el precio y lo que se genera —5 s, 16:9, 1080p, con sonido—', q.ok && q.valor.allowed && q.valor.credits > 0
-  && q.valor.effective.durationSec === 5 && q.valor.effective.resolution === '1080p' && q.valor.effective.withSound === true, JSON.stringify(q.valor?.effective));
+check('cotizar con «estándar»: el precio y lo que se genera —5 s, 16:9, 720p, con sonido—', q.ok && q.valor.allowed && q.valor.credits > 0
+  && q.valor.effective.durationSec === 5 && q.valor.effective.resolution === '720p' && q.valor.effective.withSound === true, JSON.stringify(q.valor?.effective));
+const enAlta = await llamar({ plano: { ...pl, quality: 'high', take: 1 }, creditosCotizados: q.valor.credits });
+check('y en «alta» (Seedance 2.0, sin validar): model_unavailable, sin salir hacia ModelArk ni reservar', !enAlta.ok && enAlta.error.details?.reason === 'model_unavailable' && cuenta.post === 0 && !(await uso(toma.requestIdDeToma(A, pid(1), 'sh-0101', 1))), codigo(enAlta));
 const rid = toma.requestIdDeToma(A, pid(1), 'sh-0101', 1);
 const dos = await Promise.all([llamar({ plano: { ...pl, take: 1 }, creditosCotizados: q.valor.credits }), llamar({ plano: { ...pl, take: 1 }, creditosCotizados: q.valor.credits })]);
 const cupo = (await db.collection('aiRateLimits').where('userId', '==', A).get()).docs.map((d) => d.data());
@@ -158,16 +165,27 @@ check('dos pestañas a la vez: una ACCEPTED y otra duplicado, UN POST, UNA reser
   && (await saldo()) === SALDO - q.valor.credits, dos.map(codigo).join(' / '));
 check('y el cupo, con la transacción de verdad, la cuenta UNA vez', cupo.length === 1 && cupo[0].video === 1 && Object.keys(cupo[0].operaciones ?? {}).length === 1, JSON.stringify(cupo.map((c) => c.video)));
 const cuerpo = cuerpos[0];
-check('lo que sale hacia ModelArk: el texto compuesto en el servidor, 5 s, 16:9 y 1080p sin rebajar, con sonido',
-  /Marina sube la escalera del faro/.test(cuerpo?.content?.[0]?.text ?? '') && cuerpo.duration === 5 && cuerpo.ratio === '16:9' && cuerpo.resolution === '1080p' && cuerpo.generate_audio === true,
+check('lo que sale hacia ModelArk: el texto compuesto en el servidor, 5 s, 16:9 y 720p sin rebajar, con sonido',
+  /Marina sube la escalera del faro/.test(cuerpo?.content?.[0]?.text ?? '') && cuerpo.duration === 5 && cuerpo.ratio === '16:9' && cuerpo.resolution === '720p' && cuerpo.generate_audio === true,
   JSON.stringify({ duration: cuerpo?.duration, ratio: cuerpo?.ratio, resolution: cuerpo?.resolution, audio: cuerpo?.generate_audio }));
 check('y el plazo de plazos.ts, en segundos: la tarea no vive en ModelArk más que el trabajo aquí', cuerpo?.execution_expires_after === 7200 && cuerpo.execution_expires_after * 1000 <= rt.PLAZOS_DE_VIDEO.vidaDelTrabajoMs);
 
 /* ═══ 2 · TERMINA: MATERIAL MARCADO Y ENLACE VERIFICADO ══════════════════ */
 console.log('\n── SUCCEEDED: el material, marcado en Storage, y el plano del Core, por `shots` ──');
 const job = await rt.trabajoDelMedioDeWee(db, A, rid);
+const filaDe = async (r) => (await db.collection('aiGenerations').where('jobId', '==', `run_${r}`).get()).docs.map((d) => d.data());
+const [abierta] = await filaDe(rid);
+check('aceptada: la fila del libro queda PROCESSING, con la estimación y la tarifa que declaró el adaptador de verdad, y sin coste real',
+  abierta?.status === 'PROCESSING' && abierta.providerCostStatus === 'estimated' && abierta.actualProviderCost === null && !('providerCost' in abierta)
+  && abierta.providerRateUsdPerMillionTokens > 0 && abierta.estimatedProviderCost > 0 && abierta.providerTaskId === job.attempts[0].providerRef.operationId,
+  JSON.stringify({ status: abierta?.status, rate: abierta?.providerRateUsdPerMillionTokens, estimado: abierta?.estimatedProviderCost }));
 pasar(job.attempts[0].providerRef.operationId, 'succeeded');
 await pasada();
+const [cerrada] = await filaDe(rid);
+check('terminada: el coste REAL es lo que ModelArk declaró, a la tarifa del adaptador —con transacciones de verdad—',
+  cerrada?.status === 'COMPLETED' && cerrada.providerCostStatus === 'actual' && cerrada.providerUsageTokens === TOKENS_DECLARADOS
+  && Math.abs(cerrada.actualProviderCost - (TOKENS_DECLARADOS * cerrada.providerRateUsdPerMillionTokens) / 1e6) < 1e-12 && cerrada.providerCost === cerrada.actualProviderCost,
+  JSON.stringify({ status: cerrada?.status, real: cerrada?.actualProviderCost, tokens: cerrada?.providerUsageTokens }));
 const hecho = await rt.trabajoDelMedioDeWee(db, A, rid);
 const assetId = hecho?.result?.outputRefs?.[0];
 const ficha = assetId ? (await db.collection('assets').doc(assetId).get()).data() : undefined;

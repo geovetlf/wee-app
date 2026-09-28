@@ -416,10 +416,16 @@ await seccion('M', async () => {
   const union = (archivo, tipo) => { const s = leer(archivo); const i = s.indexOf(`export type ${tipo}`); return [...s.slice(i, s.indexOf(';', i)).matchAll(/'([a-z_]+)'/g)].map((m) => m[1]); };
   const DEL_PLANO = union('functions/src/creator/plano.ts', 'MotivoDePlano');
   const DE_LA_TOMA = union('functions/src/creator/toma.ts', 'MotivoDeToma');
-  const DE_LA_PUERTA = ['route_unavailable', 'price_changed', 'result_not_available'];
+  /* Tras el canary real: la puerta dice además `model_unavailable`, la toma `take_superseded`, y un fallo del proveedor llega en una de cinco categorías. */
+  const DE_LA_PUERTA = ['route_unavailable', 'price_changed', 'result_not_available', 'model_unavailable'];
   const DE_FUERA = ['idempotency_conflict', 'INSUFFICIENT_CREDITS', 'RATE_LIMITED', 'DUPLICATE_REQUEST', 'UNAUTHORIZED', 'network', 'session_required', 'unknown'];
-  const TODOS = [...DEL_PLANO, ...DE_LA_TOMA, ...DE_LA_PUERTA, ...DE_FUERA];
-  check('M1) los motivos, contados de su fuente: 11 del plano, 8 de la toma, 3 de la puerta y 8 de fuera', DEL_PLANO.length === 11 && DE_LA_TOMA.length === 8 && TODOS.length === 30, `${DEL_PLANO.length}+${DE_LA_TOMA.length}+${DE_LA_PUERTA.length}+${DE_FUERA.length}`);
+  const fallos = leer('functions/src/creator/fallos.ts');
+  const DE_LOS_FALLOS = [...fallos.slice(fallos.indexOf('export type CategoriaDeFallo'), fallos.indexOf(';', fallos.indexOf('export type CategoriaDeFallo'))).matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]);
+  const TODOS = [...DEL_PLANO, ...DE_LA_TOMA, ...DE_LA_PUERTA, ...DE_FUERA, ...DE_LOS_FALLOS];
+  check('M1) los motivos, contados de su fuente: 11 del plano, 9 de la toma, 4 de la puerta, 8 de fuera y 5 categorías de fallo',
+    DEL_PLANO.length === 11 && DE_LA_TOMA.length === 9 && DE_LA_PUERTA.length === 4 && DE_LOS_FALLOS.length === 5 && TODOS.length === 37,
+    `${DEL_PLANO.length}+${DE_LA_TOMA.length}+${DE_LA_PUERTA.length}+${DE_FUERA.length}+${DE_LOS_FALLOS.length}`);
+  check('M1b) y las categorías de la app son exactamente las del servidor', JSON.stringify(DE_LOS_FALLOS) === JSON.stringify([...K.CATEGORIAS_DE_FALLO]), DE_LOS_FALLOS.join(', '));
   const video = leer('functions/src/creator/video.ts');
   check('M2) y los de la puerta son los que la puerta dice', DE_LA_PUERTA.every((m) => video.includes(`'${m}'`)));
   const tabla = leer('utils/mensajesDeFilmmaker.ts');
@@ -430,9 +436,176 @@ await seccion('M', async () => {
   const sinFrase = IDIOMAS.flatMap((l) => { const c = claves(l); return TODOS.map((m) => MSJ.claveDelMotivoDeToma(m).replace('filmmaker.', '')).filter((k) => !c.has(k)).map((k) => `${l}:${k}`); });
   check('M4) y esa frase existe en los once diccionarios', sinFrase.length === 0, sinFrase.slice(0, 6).join(', '));
   const nuevas = [...leer('i18n/textos/es/filmmaker.ts').matchAll(/^ {2}(take[A-Za-z]+): '/gm)].map((m) => m[1]);
-  check('M5) las claves de la toma son 50, y ninguna pide un plural', nuevas.length === 50 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
+  /* 50 de F1-D y 18 de después del canary real (por qué no salió, qué calidades hay, los tres números, la vista previa). */
+  check('M5) las claves de la toma son 68, y ninguna pide un plural', nuevas.length === 68 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
   const precio = IDIOMAS.filter((l) => !/^ {2}takePrice: '\{\{credits\}\} Credits',$/m.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
   check('M6) el precio dice «Credits» en los once, sin traducir', precio.length === 0, precio.join(', '));
+});
+
+/* ═══ PC · TRAS EL CANARY REAL ═══════════════════════════════════════════ */
+console.log('\n── PC · Tras el canary real: qué calidades hay, por qué no salió, los tres números y nunca «en proceso» de lo que ya terminó ──');
+await seccion('PC', async () => {
+  const SIN_MODELO = { available: false, reason: 'model_unavailable' };
+  const CALIDADES = { standard: { available: true }, high: SIN_MODELO, max: SIN_MODELO };
+  const conCalidades = (f, takes = () => tomas()) => {
+    f.alCotizar = async (_u, c) => (c
+      ? { ok: true, valor: { status: 'QUOTED', allowed: true, credits: 75, effective: { ...EFECTIVA, quality: c, resolution: '480p' }, takes: takes(), qualities: CALIDADES } }
+      : { ok: true, valor: { status: 'QUOTED', allowed: false, reason: 'quality_required', takes: takes(), qualities: CALIDADES } });
+    return f;
+  };
+
+  /* 1 · Lo que el servidor no puede generar no se pide. */
+  {
+    const f = conCalidades(falso());
+    const c = K.crearControladorDeToma(f);
+    c.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma();
+    check('PC1) la consulta trae qué calidades hay, y quedan en la instantánea', JSON.stringify(c.leer().calidades) === JSON.stringify(CALIDADES));
+    const antes = que(f, 'cotizar').length;
+    c.elegirCalidad('high'); c.elegirCalidad('max'); await calma();
+    check('PC2) «Alta» y «Máxima» sin su modelo: tocarlas no pide precio ni cambia nada', que(f, 'cotizar').length === antes && c.leer().fase.fase === 'elige_calidad' && c.leer().calidad === null);
+    c.elegirCalidad('standard'); await calma();
+    check('PC3) «Estándar» sí: se cotiza', que(f, 'cotizar').length === antes + 1 && c.leer().fase.fase === 'cotizada' && c.leer().fase.creditos === 75);
+    check('PC4) sin respuesta del servidor todavía, ninguna se da por apagada; con ella, lo que él diga',
+      K.calidadDisponible(null, 'high') === true && K.calidadDisponible(CALIDADES, 'high') === false && K.calidadDisponible(CALIDADES, 'standard') === true);
+  }
+
+  /* 2 · Los tres números, desde la reserva que escribe el Credit Engine. */
+  {
+    const e = K.economiaDeLaReserva;
+    check('PC5) reservada: 75 reservados, 0 cobrados, 0 devueltos',
+      JSON.stringify(e(2, { status: 'AUTHORIZED', amount: -75 })) === JSON.stringify({ toma: 2, estado: 'AUTHORIZED', reservados: 75, cobrados: 0, reembolsados: 0 }));
+    check('PC6) cobrada exacta: 75 · 75 · 0',
+      JSON.stringify(e(2, { status: 'COMPLETED', amount: -75, finalAmount: 75 })) === JSON.stringify({ toma: 2, estado: 'COMPLETED', reservados: 75, cobrados: 75, reembolsados: 0 }));
+    check('PC7) devuelta: 200 · 0 · 200',
+      JSON.stringify(e(1, { status: 'REFUNDED', amount: -200 })) === JSON.stringify({ toma: 1, estado: 'REFUNDED', reservados: 200, cobrados: 0, reembolsados: 200 }));
+    check('PC8) cobrada en parte: lo que sobra cuenta como devuelto; y nunca se enseña cobrado más de lo reservado',
+      e(1, { status: 'COMPLETED', amount: -75, finalAmount: 50 }).reembolsados === 25 && e(1, { status: 'COMPLETED', amount: -75, finalAmount: 500 }).cobrados === 75);
+    check('PC9) sin reserva, o una que no llegó a hacerse: nada inventado',
+      e(1, null) === null && JSON.stringify(e(1, { status: 'FAILED', amount: -75 })) === JSON.stringify({ toma: 1, estado: 'FAILED', reservados: 0, cobrados: 0, reembolsados: 0 }));
+    const f = conCalidades(falso());
+    const c = K.crearControladorDeToma(f);
+    c.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma(); c.elegirCalidad('standard'); await calma(); c.generar(); await calma();
+    const escucha = f.escuchas.get(RID(1));
+    escucha.alCambiar('AUTHORIZED', { status: 'AUTHORIZED', amount: -75 }); await calma();
+    check('PC10) en proceso, con sus números: 75 reservados, 0 cobrados', c.leer().fase.fase === 'en_proceso' && c.leer().economia?.reservados === 75 && c.leer().economia?.cobrados === 0);
+    escucha.alCambiar('COMPLETED', { status: 'COMPLETED', amount: -75, finalAmount: 75 }); await calma();
+    check('PC11) terminada: 75 cobrados, 0 devueltos, y el vídeo en su plano',
+      c.leer().economia?.cobrados === 75 && c.leer().economia?.reembolsados === 0 && c.leer().ultima?.estado === 'lista');
+  }
+
+  /* 3 · Un fallo del proveedor: su categoría, y la consulta cuenta los Credits. */
+  {
+    let despues = false;
+    const f = conCalidades(falso(), () => (despues
+      ? tomas({ take: 1, requestId: RID(1), status: 'REFUNDED', outcome: 'failed', failure: 'MODEL_UNAVAILABLE' }, { take: 2, requestId: RID(2) })
+      : tomas()));
+    f.alGenerar = async () => { despues = true; return { ok: false, rechazo: { motivo: 'MODEL_UNAVAILABLE', detalle: { refunded: true } } }; };
+    const c = K.crearControladorDeToma(f);
+    c.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma(); c.elegirCalidad('standard'); await calma();
+    const cotizaciones = que(f, 'cotizar').length;
+    c.generar(); await calma();
+    const i = c.leer();
+    check('PC12) el proveedor no tenía el modelo: la toma queda MODEL_UNAVAILABLE, devuelta, y se vuelve a consultar',
+      i.ultima?.estado === 'fallida' && i.ultima.categoria === 'MODEL_UNAVAILABLE' && !i.ultima.pendiente && que(f, 'cotizar').length === cotizaciones + 1, JSON.stringify(i.ultima));
+    check('PC13) y después de un fallo nunca se queda en «en proceso»', i.fase.fase === 'elige_calidad', i.fase.fase);
+    check('PC14) la consulta escucha la reserva devuelta, para enseñar sus números', que(f, 'escuchar').some((x) => x[1] === RID(1)));
+    const g = conCalidades(falso());
+    g.alGenerar = async () => ({ ok: false, rechazo: { motivo: 'UNKNOWN_PROVIDER_ERROR', detalle: { refunded: false } } });
+    const c2 = K.crearControladorDeToma(g);
+    c2.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma(); c2.elegirCalidad('standard'); await calma();
+    /* La consulta de después no llega: queda lo que dijo el error, y nada más. */
+    g.alCotizar = async (_u, q) => (q
+      ? { ok: true, valor: { status: 'QUOTED', allowed: true, credits: 75, effective: EFECTIVA, takes: tomas(), qualities: CALIDADES } }
+      : { ok: false, rechazo: { motivo: 'network' } });
+    c2.generar(); await calma();
+    check('PC15) si el servidor no confirmó el reembolso, la toma queda con la devolución PENDIENTE',
+      c2.leer().ultima?.estado === 'fallida' && c2.leer().ultima.pendiente === true && c2.leer().ultima.categoria === 'UNKNOWN_PROVIDER_ERROR' && c2.leer().fase.fase === 'error',
+      JSON.stringify(c2.leer().ultima));
+  }
+
+  /* 4 · El trabajo ya terminó y la reserva todavía no se ha cerrado. */
+  {
+    let actual = { take: 1, requestId: RID(1), status: 'AUTHORIZED', outcome: 'failed', failure: 'TIMEOUT' };
+    const f = falso();
+    f.alCotizar = async () => ({ ok: true, valor: { status: 'QUOTED', allowed: false, reason: 'take_in_flight', qualities: CALIDADES, takes: tomas(actual, null) } });
+    const c = K.crearControladorDeToma(f);
+    c.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma();
+    check('PC16) trabajo fallido con la reserva abierta: «cerrando», no «en proceso», con la devolución pendiente',
+      c.leer().fase.fase === 'cerrando' && c.leer().ultima?.estado === 'fallida' && c.leer().ultima.pendiente === true && c.leer().ultima.categoria === 'TIMEOUT', JSON.stringify(c.leer().fase));
+    actual = { take: 1, requestId: RID(1), status: 'REFUNDED', outcome: 'failed', failure: 'TIMEOUT' };
+    f.alCotizar = async () => ({ ok: true, valor: { status: 'QUOTED', allowed: false, reason: 'quality_required', qualities: CALIDADES, takes: tomas(actual, { take: 2, requestId: RID(2) }) } });
+    f.emitir(RID(1), 'REFUNDED'); await calma();
+    check('PC17) al devolverse: fallida por TIMEOUT, ya no pendiente, y a elegir otra', c.leer().ultima?.categoria === 'TIMEOUT' && !c.leer().ultima.pendiente && c.leer().fase.fase === 'elige_calidad', JSON.stringify(c.leer().ultima));
+    const g = falso();
+    g.alCotizar = async () => ({ ok: true, valor: { status: 'QUOTED', allowed: false, reason: 'take_in_flight', qualities: CALIDADES, takes: tomas({ take: 1, requestId: RID(1), status: 'AUTHORIZED', outcome: 'succeeded' }, null) } });
+    const c2 = K.crearControladorDeToma(g);
+    c2.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma();
+    check('PC18) trabajo terminado bien con la reserva abierta: «terminando», no «en proceso»', c2.leer().fase.fase === 'terminando');
+    g.emitir(RID(1), 'COMPLETED'); await calma();
+    check('PC19) y al cobrarse, a su plano', que(g, 'enlazar').length === 1 && c2.leer().ultima?.estado === 'lista');
+    const h2 = falso();
+    h2.alCotizar = async () => ({ ok: true, valor: { status: 'QUOTED', allowed: false, reason: 'take_in_flight', qualities: CALIDADES, takes: tomas({ take: 1, requestId: RID(1), status: 'AUTHORIZED', outcome: 'in_progress' }, null) } });
+    const c3 = K.crearControladorDeToma(h2);
+    c3.abrir({ tipo: 'unidad', unidad: UNIDAD }); await calma();
+    check('PC20) CONTROL · el trabajo sigue: entonces sí, «en proceso»', c3.leer().fase.fase === 'en_proceso');
+  }
+
+  /* 5 · Lo que se ve, con el español de verdad. */
+  {
+    const Toma = cargar('components/studio/produccion/ProductionShotGeneration.tsx').default;
+    const base = { fase: { fase: 'elige_calidad' }, calidad: null, enElPlano: null, ultima: null, aviso: null, calidades: CALIDADES, economia: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} };
+    const ver = (i) => dibujar(h(Toma, { toma: { ...base, ...i }, tipo: 'plano' }));
+    const elegir = ver({});
+    check('PC21) «Alta» y «Máxima» se ven apagadas; «Estándar», no', boton(elegir, 'Alta')?.apagado === true && boton(elegir, 'Máxima')?.apagado === true && boton(elegir, 'Estándar')?.apagado === false);
+    check('PC22) y se dice cuáles no están', /No disponible por ahora: Alta y Máxima\./.test(elegir.texto), elegir.texto);
+    const ninguna = ver({ calidades: { standard: { available: false, reason: 'quality_not_representable', reachable: '720p', resolution: '1080p' }, high: SIN_MODELO, max: SIN_MODELO } });
+    check('PC23) si no queda ninguna: que ahora no se puede generar, sin invitar a elegir',
+      /Ahora mismo ninguna calidad está disponible para generar este plano\./.test(ninguna.texto) && !/Elige una calidad para ver el precio/.test(ninguna.texto));
+    const noLlega = ver({ calidades: { standard: { available: false, reason: 'quality_not_representable', reachable: '720p', resolution: '1080p' }, high: { available: true }, max: SIN_MODELO } });
+    check('PC24) la que no llega a la resolución, con hasta dónde llega', /La calidad Estándar llega hasta 720p y esta producción es 1080p\./.test(noLlega.texto) && /No disponible por ahora: Máxima\./.test(noLlega.texto));
+    const frases = {
+      MODEL_UNAVAILABLE: 'Este modelo de vídeo no está disponible en este momento.',
+      PROVIDER_TEMPORARY_ERROR: 'El servicio de vídeo no está disponible temporalmente.',
+      PROVIDER_REJECTED: 'No se pudo iniciar esta generación.',
+      TIMEOUT: 'La generación tardó demasiado y los Credits fueron reembolsados.',
+      UNKNOWN_PROVIDER_ERROR: 'No se pudo completar la generación. Tus Credits fueron reembolsados.',
+    };
+    const malas = Object.entries(frases).filter(([cat, frase]) => !ver({ ultima: { toma: 1, estado: 'fallida', categoria: cat } }).texto.includes(frase)).map(([cat]) => cat);
+    check('PC25) cada categoría, con su frase exacta', malas.length === 0, malas.join(', '));
+    const afirman = ['TIMEOUT', 'UNKNOWN_PROVIDER_ERROR'].filter((cat) => /reembolsados/.test(ver({ ultima: { toma: 1, estado: 'fallida', categoria: cat, pendiente: true } }).texto));
+    check('PC26) «reembolsados» solo cuando es verdad: con la devolución pendiente se dice que se están devolviendo',
+      afirman.length === 0 && /Tus Credits se están devolviendo\./.test(ver({ ultima: { toma: 1, estado: 'fallida', categoria: 'TIMEOUT', pendiente: true } }).texto));
+    check('PC27) sin modelo, y con otra calidad a mano: «Puedes probar con otra calidad.»; sin ninguna, no se dice',
+      /Puedes probar con otra calidad\./.test(ver({ ultima: { toma: 1, estado: 'fallida', categoria: 'MODEL_UNAVAILABLE' } }).texto)
+      && !/Puedes probar con otra calidad\./.test(ver({ ultima: { toma: 1, estado: 'fallida', categoria: 'MODEL_UNAVAILABLE' }, calidades: { standard: SIN_MODELO, high: SIN_MODELO, max: SIN_MODELO } }).texto));
+    const cuentas = ver({ ultima: { toma: 1, estado: 'fallida', categoria: 'MODEL_UNAVAILABLE' }, economia: { toma: 1, estado: 'REFUNDED', reservados: 200, cobrados: 0, reembolsados: 200 } });
+    check('PC28) siempre los tres números: reservados, cobrados y reembolsados',
+      /Reservados: 200 Credits/.test(cuentas.texto) && /Cobrados: 0 Credits/.test(cuentas.texto) && /Reembolsados: 200 Credits/.test(cuentas.texto), cuentas.texto);
+    const cerrando = ver({ fase: { fase: 'cerrando', toma: 1 }, ultima: { toma: 1, estado: 'fallida', categoria: 'TIMEOUT', pendiente: true }, economia: { toma: 1, estado: 'AUTHORIZED', reservados: 200, cobrados: 0, reembolsados: 0 } });
+    check('PC29) cerrando: ni «en proceso» ni «generando», que se están devolviendo, y sin botones',
+      /Estamos devolviendo sus Credits/.test(cerrando.texto) && !/En proceso|[Gg]enerando/.test(cerrando.texto) && cerrando.botones.length === 0);
+    const sinModelo = ver({ fase: { fase: 'rechazada', rechazo: { motivo: 'model_unavailable' } }, calidad: 'high' });
+    check('PC30) al cotizar una calidad sin modelo: la frase de su categoría y la otra calidad',
+      /Este modelo de vídeo no está disponible en este momento\./.test(sinModelo.texto) && /Puedes probar con otra calidad\./.test(sinModelo.texto));
+    const todo = [elegir, ninguna, noLlega, cuentas, cerrando, sinModelo, ...Object.keys(frases).map((cat) => ver({ ultima: { toma: 1, estado: 'fallida', categoria: cat } }))].map((d) => d.texto).join(' ');
+    check('PC31) nada de dentro en pantalla: ni códigos HTTP, ni adaptadores, ni proveedores, ni códigos, ni ids',
+      !/\b404\b|\b50\d\b|seedance|modelark|adapter|requestId|jobId|fm\.[0-9a-f]|ModelNotOpen|PROVIDER_|MODEL_UNAVAILABLE|UNKNOWN_|TIMEOUT/i.test(todo), todo.match(/\b404\b|seedance|modelark|adapter|PROVIDER_|TIMEOUT/i)?.[0] ?? '');
+    check('PC32) ninguna clave sin texto', faltan.size === 0, [...faltan].join(', '));
+  }
+
+  /* 6 · Los vídeos de la producción: qué plano tiene cuál. */
+  {
+    const { tomaService } = cargar('services/tomaService.ts');
+    respuestaCallable = async (nombre, datos) => ({ data: nombre === 'shots' && datos.op === 'shot.videos'
+      ? { videos: [{ unitId: 'sh-0101', producedAssetId: `asset_${'b'.repeat(32)}`, version: 2 }, { unitId: 5 }, { producedAssetId: 'x' }] } : {} });
+    const antes = llamadas.length;
+    const lista = await tomaService.videosDeLaProduccion(PID);
+    const pedida = llamadas.slice(antes).find((l) => l.nombre === 'shots');
+    check('PC33) se le pregunta al servidor (`shots`, `shot.videos`) con la producción, y solo se queda lo que tiene forma',
+      pedida?.datos.op === 'shot.videos' && pedida?.datos.productionId === PID && JSON.stringify(lista) === JSON.stringify([{ unitId: 'sh-0101', producedAssetId: `asset_${'b'.repeat(32)}`, version: 2 }]));
+    respuestaCallable = async () => { throw Object.assign(new Error('x'), { code: 'functions/unavailable' }); };
+    check('PC34) si no se puede preguntar, ningún vídeo (y la tarjeta sigue diciendo que no tiene vista previa)', (await tomaService.videosDeLaProduccion(PID)).length === 0);
+  }
 });
 
 /* ═══ G · NADIE MÁS LLAMA, NADIE COBRA NI COMPONE NADA ═══════════════════ */
@@ -446,7 +619,7 @@ await seccion('G', async () => {
   const PIEZAS = ['components/studio/produccion/ProductionShotGeneration.tsx', 'components/studio/produccion/ProductionDirectorPanel.tsx', 'screens/ProductionScreen.tsx'];
   const malas = PIEZAS.filter((f) => /httpsCallable|firebase\/|setTimeout|setInterval|newRequestId|requestId|Math\.random|Date\.now|priceVideo|usdToCredits|creditCosts|spendCredits|creditsService/.test(sinComentarios(leer(f))));
   check('G3) la pantalla y sus piezas no llaman, no cuentan tiempo, no inventan ids y no ponen precio', malas.length === 0, malas.join(', '));
-  const CAPA = ['hooks/useTomaDePlano.ts', 'utils/controladorDeToma.ts', 'services/tomaService.ts'];
+  const CAPA = ['hooks/useTomaDePlano.ts', 'utils/controladorDeToma.ts', 'services/tomaService.ts', 'hooks/useVideosDeLaProduccion.ts'];
   const componen = CAPA.filter((f) => /prompt|newRequestId|Math\.random|Date\.now|setTimeout|setInterval|`fm\.|'fm\./.test(sinComentarios(leer(f))));
   check('G4) ni el hook, ni el controlador, ni el servicio de la toma componen un texto o un id, ni cuentan tiempo', componen.length === 0, componen.join(', '));
   const escriben = app.filter((a) => /(setDoc|updateDoc|addDoc|deleteDoc|writeBatch)\s*\(/.test(a.s) && /['"](creditTransactions|shots|assets|productions)['"]/.test(a.s)).map((a) => a.r);

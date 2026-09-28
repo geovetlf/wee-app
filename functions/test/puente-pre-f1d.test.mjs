@@ -507,7 +507,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
   check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      === '15\t3\tfunctions/src/engine/limits.ts|10\t0\tfunctions/src/engine/providers/seedance.ts');
+      /* Tras el canary real: el libro y sus tipos (el coste separado) y el adaptador (tarifa y consumo declarado). Ver video-asincrono H2. */
+      === '174\t11\tfunctions/src/engine/ledger.ts|15\t3\tfunctions/src/engine/limits.ts|39\t4\tfunctions/src/engine/providers/seedance.ts|42\t1\tfunctions/src/engine/types.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -522,11 +523,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    */
   const nuevos = git('ls-files --others --exclude-standard functions/src').trim().split('\n').filter(Boolean);
   const tocados = [...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos].sort();
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D',
+  /* …y, tras el canary real, los de su encargo: el coste separado (libro, tipos, atención, aviso, barrendero, liquidación) y la clasificación de fallos. */
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D y de su post-canary',
     JSON.stringify(tocados) === JSON.stringify([
-      'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
-      'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
-      'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
+      'functions/src/content/materializador.ts', 'functions/src/creator/fallos.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
+      'functions/src/engine/ledger.ts', 'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts', 'functions/src/engine/types.ts',
+      'functions/src/runtime/atencion.ts', 'functions/src/runtime/aviso.ts', 'functions/src/runtime/barrendero.ts',
+      'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/liquidacion.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
     ]),
     tocados.join(', '));

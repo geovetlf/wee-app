@@ -116,6 +116,9 @@ const dobles = {
   },
   '../hooks/useResponsive': { useResponsive: () => ({ isDesktop: true, isMobile: false, isTablet: false }) },
   /* F1-D: la pantalla compone la toma del plano elegido. Aquí, quieta: lo que pinta se prueba en f1d-cliente. */
+  /* Tras el canary real: el vídeo de cada plano del storyboard, y el reproductor con que se enseña. */
+  '../hooks/useVideosDeLaProduccion': { useVideosDeLaProduccion: () => new Map() },
+  'expo-av': { Video: ({ accessibilityLabel }) => h('video', { 'aria-label': accessibilityLabel }), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
   '../hooks/useTomaDePlano': { useTomaDePlano: () => ({ fase: { fase: 'sin_unidad', porque: 'nada' }, calidad: null, enElPlano: null, ultima: null, aviso: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} }) },
   '../hooks/useProduccion': { useProduccion: () => usoDeProduccion, nuevoIdDeEscena: () => 'sc_nueva0001', nuevoIdDePlano: () => 'sh_nuevo0001' },
   '../components/creator/CreatorShell': { __esModule: true, default: ({ title, overline, breadcrumb, children }) => { shell.push({ title, overline, breadcrumb }); return h('main', { 'aria-label': title }, children); } },
@@ -445,6 +448,29 @@ await seccion('I', async () => {
   check('I6) ninguna pieza usa temporizadores ni simula progreso', fuentes.every((s) => !/setTimeout|setInterval|progress|progreso/.test(s.replace(/\/\*[\s\S]*?\*\//g, ''))));
   check('I7) en todo lo dibujado no faltó ni una clave', faltan.size === 0, [...faltan].join(', '));
   check('I8) esta suite está en la cadena de `npm test`', /filmmaker-ui\.test\.mjs/.test(leer('functions/package.json')));
+});
+
+/* ═══ V · LA VISTA PREVIA DEL PLANO (F1-D, tras el canary real) ══════════ */
+console.log('\n── V · La tarjeta del plano enseña SU vídeo, o dice que no lo tiene ──');
+await seccion('V', async () => {
+  const Tarjeta = cargar('components/studio/produccion/ProductionShotCard.tsx').default;
+  const p = produccion();
+  const escena = p.scenes[1];
+  const props = {
+    produccion: p, escena, plano: escena.shots[0], tarjeta: undefined, seleccionado: false, porRehacer: false, editable: false,
+    ids: { escena: () => 'x', plano: () => 'y' }, onSeleccionar: () => {}, onGesto: () => ({ ok: true }), onQuitar: () => {},
+  };
+  const material = `asset_${'b'.repeat(32)}`;
+  const sin = dibujar(h(Tarjeta, props));
+  const con = dibujar(h(Tarjeta, { ...props, video: { assetId: material, url: 'https://cdn.invalid/b.mp4' } }));
+  const sinUrl = dibujar(h(Tarjeta, { ...props, video: { assetId: material, url: null } }));
+  check('V1) sin vídeo: «Sin vista previa», y ningún reproductor', /Sin vista previa/.test(sin.texto) && !/<video/.test(sin.html));
+  check('V2) con su vídeo: el vídeo de ESE plano, y ya no dice «Sin vista previa»',
+    /<video[^>]*aria-label="Vídeo de Plano 1"/.test(con.html) && !/Sin vista previa/.test(con.texto), con.html.slice(0, 240));
+  check('V3) un material sin dirección que entregar no se pinta como si la tuviera', /Sin vista previa/.test(sinUrl.texto) && !/<video/.test(sinUrl.html));
+  const pantalla = leer('screens/ProductionScreen.tsx');
+  check('V4) la pantalla le da a cada tarjeta el vídeo que el servidor dice que tiene su plano',
+    /useVideosDeLaProduccion\(estado\.confirmada\?\.productionId/.test(pantalla) && /videos=\{videos\}/.test(pantalla));
 });
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\n✔ Filmmaker F1-C: la pantalla de producción, dibujada de verdad (${n} comprobaciones)`);

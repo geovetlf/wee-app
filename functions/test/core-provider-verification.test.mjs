@@ -91,8 +91,9 @@ console.log('\n─── C. El conductor registra, y en el sitio correcto ──
  */
 check('el seam importa el registro y el predicado',
   /import \{ esExitoRealDeProveedor, recordRealSuccess \} from '\.\.\/engine\/verification';/.test(seam));
+/* Tras el canary real `cerrar` recibe además lo que el adaptador contó al aceptar (`avance`) y si el POST no volvió (`desconocido`). */
 check('y lo llama dentro de `cerrar`',
-  /async cerrar\(fila, \{ dispatch, resultado, durationMs \}\)[\s\S]{0,2600}?void recordRealSuccess\(/.test(seam));
+  /async cerrar\(fila, \{ dispatch, resultado, durationMs(?:, avance, desconocido)? \}\)[\s\S]{0,2600}?void recordRealSuccess\(/.test(seam));
 check('decidiendo con el predicado compartido',
   /if \(esExitoRealDeProveedor\(resultado\.status, resultado\.warnings, quien\?\.providerId\)\)/.test(seam));
 /* Antes de cerrar la fila: si anotar fallara, lo que ya se pagó no pierde constancia. */
