@@ -707,7 +707,10 @@ Functions —el mismo `lib/index.js` que se desplegaría— con sus guardas
 liquidación, el materializador, productions, F1-A, `shots` y el Credit Engine de verdad sobre un Firestore en
 memoria—, cada rechazo, el precio, el cupo, el plazo, el enlace verificado, la adopción y las guardas de toda la
 carpeta `functions/src`. `functions/test/f1d-cliente.test.mjs`: el controlador, los servicios con Firebase doblado, lo
-que se ve con el español de verdad y una frase por motivo en los once idiomas.
+que se ve con el español de verdad y una frase por motivo en los once idiomas. `functions/test/f1d.emulator.mjs`, fuera
+de la cadena: la toma contra Firestore y Storage emulados y un ModelArk falso local —el cuerpo real del adaptador,
+el cupo con transacciones de verdad, el enlace por la callable, la adopción y `expired`—
+(`firebase emulators:exec --only firestore,storage --project demo-wee-filmmaker "node functions/test/f1d.emulator.mjs"`).
 
 Las baterías de sabotajes de F1-A y F1-B se ejecutan como las de S2, con el mismo corredor externo; llevar las
 baterías al repositorio es una decisión aparte, todavía abierta.

@@ -2315,6 +2315,8 @@ Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
 ### 24.6 Pruebas
 
 - `f1d-generacion.test.mjs` y `f1d-cliente.test.mjs`, en la cadena detrás de `puente-pre-f1d`.
+- `f1d.emulator.mjs` (fuera de la cadena): la toma contra Firestore y Storage emulados, con el cuerpo real del
+  adaptador de Seedance hacia un ModelArk falso local.
 - Guardas sobre todo `functions/src`: un conductor y ningún alias, dos puertas, un Credit Engine, un Job Engine, el
   motor de vídeo solo en la rama legacy y en `creatorRun`, ModelArk solo en los adaptadores, las cargas dinámicas
   fijadas una a una, y `productions` y `filmmaker/` sin generar.
@@ -2325,4 +2327,6 @@ Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
 - El requisito lo calcula la app (espejo de F1-A); el servidor verifica identidad, revisión, firma y procedencia,
   pero no recalcula F1-A.
 - «Aceptado» y «trabajando» se ven igual en la app: solo la reserva es legible por el cliente.
+- El emulador de Storage no aplica `ifGenerationMatch: 0` (medido en `f1d.emulator.mjs`): el 412 del guardado «solo
+  si no existe» se prueba en memoria; la biblioteca sí lo manda en la subida, así que en GCS real se aplica.
 - Varias unidades a la vez, montaje, voz, música, lip-sync, Elements y prompt avanzado: fases siguientes.

@@ -148,6 +148,7 @@ fa.getFirestore = () => base;
 
 /* ═══ El almacén de objetos y los bytes, de mentira ═══════════════════════ */
 const http = lib('engine/http.js');
+const { ProviderError } = http;
 const objetos = new Map();
 let descargas = 0;
 const archivo = (ruta) => ({
@@ -223,15 +224,17 @@ const pasada = () => rt.mantenimientoDeWee({
 const A = 'fmUsuarioA001'; const B = 'fmUsuarioB001'; const C = 'fmUsuarioC001'; const SIN = 'fmUsuarioZ001';
 /* Un uid del tamaño de los de Firebase Auth: 28 caracteres. Es con el que se mide el tope del Core. */
 const L = 'fmUsuarioLargo0000000000001x';
+const POBRE = 'fmUsuarioP001';
 const SALDO = 5000;
-for (const uid of [A, B, C, SIN, L]) {
+for (const uid of [A, B, C, SIN, L, POBRE]) {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
 }
 /* `SIN` no está en la puerta: para él, el camino Core no existe. */
-base.docs.set('aiSettings/runtime', { habilitado: true, capacidades: ['video.generate'], cuentas: [A, B, C, L], experiencias: ['studio'] });
+base.docs.set('aiSettings/runtime', { habilitado: true, capacidades: ['video.generate'], cuentas: [A, B, C, L, POBRE], experiencias: ['studio'] });
 olvidarLaPuerta();
+base.docs.get(`users/doc_${POBRE}`).creditsBalance = 1;
 const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
 const uso = (requestId) => base.leer(`creditTransactions/usage_${requestId}`);
 const reembolsos = (requestId) => base.de('creditTransactions').filter((t) => t.requestId === requestId && t.type === 'refund');
@@ -535,6 +538,7 @@ let nodoUno;
     /^asset_[0-9a-f]{32}$/.test(nodo?.producedAssetId ?? '') && material?.kind === 'video' && material?.status === 'ready' && material?.ownerAccountId === A
     && material?.provenance?.traceId === tomaUno.requestId && material?.provenance?.jobId === job.jobId);
   check('T) y es el que dice la identidad del Core para ese trabajo e intento', nodo?.producedAssetId === identidadDelMaterial(job.jobId, job.attempts[0].attemptId));
+  check('T) el plano guarda el material por su id: ni una URL del proveedor ni de Storage', !/https?:\/\//.test(JSON.stringify(nodo)));
   const otroNodo = base.leer(`shots/${toma.idDeNodoDePlano(A, pid(1), 'sh-0102')}`);
   check('V) solo ESE plano: los demás siguen sin resultado', !otroNodo);
   const otraVez = await enlazar(A, { productionId: pid(1), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 });
@@ -543,6 +547,13 @@ let nodoUno;
   check('V) con la versión que vio la app, si otra escritura se adelantó: conflicto', conflicto.ok && conflicto.valor.result.status === 'conflict' && conflicto.valor.result.motivo === 'version_changed', JSON.stringify(conflicto.valor?.result));
   const repetir = await generar(A, { ...(await plan(A, 1, 'sh-0101')), take: 1 }, tomaUno.credits);
   check('R) y repetir la toma terminada devuelve SU material, sin generar ni cobrar', repetir.ok && repetir.valor.status === 'COMPLETED' && repetir.valor.assetId === nodo.producedAssetId && repetir.valor.credits === 0, codigo(repetir));
+  /*
+   * AL DÍA SIGUIENTE. El cupo es un documento por día: el de hoy no sabe de las operaciones de ayer. Se simula
+   * vaciando los de la cuenta. Repetir una toma que ya tiene su reserva no es una generación nueva y no gasta cupo.
+   */
+  for (const d of base.de('aiRateLimits').filter((x) => x.userId === A)) base.docs.delete(`aiRateLimits/${d.id}`);
+  const manana = await generar(A, { ...(await plan(A, 1, 'sh-0101')), take: 1 }, tomaUno.credits);
+  check('AA) y al día siguiente, repetir una toma ya reservada tampoco gasta cupo', manana.ok && manana.valor.status === 'COMPLETED' && cupoDeVideo(A) === 0, `${codigo(manana)} · cupo ${cupoDeVideo(A)}`);
   const q = await cotizar(A, await plan(A, 1, 'sh-0101'));
   check('R) la cotización cuenta la toma cobrada, el plano enlazado, y ofrece la siguiente (un cobro nuevo, a propósito)',
     q.ok && q.valor.takes.current?.take === 1 && q.valor.takes.current?.status === 'COMPLETED' && q.valor.takes.node?.producedAssetId === nodo.producedAssetId && q.valor.takes.next?.take === 2);
@@ -666,6 +677,36 @@ console.log('\n── U · El vídeo quedó en Storage sin su ficha: se adopta, 
   const nuevo = identidadDelMaterial('job-marca', 'job-marca#1');
   await materializadorDeWee.guardar({ assetId: nuevo, userId: A, kind: 'video', recurso: 'https://modelark.invalid/c.mp4', provenance: { createdAt: HOY, jobId: 'job-marca' } });
   check('U) y todo objeto que se guarda lleva la marca de su material', objetos.get(`users/${A}/ai-generations/${nuevo}.mp4`)?.metadata?.[MARCA_DE_MATERIAL] === nuevo);
+}
+
+/* ═══ LOS ERRORES: CREDITS QUE NO LLEGAN, Y UN RECHAZO ANTES DE ACEPTAR ═══ */
+console.log('\n── Si los Credits no llegan no se genera; si ModelArk rechaza, se devuelve exacto ──');
+{
+  await crear(POBRE, 13, conFaro());
+  const pl = await plan(POBRE, 13, 'sh-0101');
+  const q = await cotizar(POBRE, pl);
+  const posts0 = posts.length;
+  const r = await generar(POBRE, { ...pl, take: 1 }, q.valor.credits);
+  const rid = toma.requestIdDeToma(POBRE, pid(13), 'sh-0101', 1);
+  check('Credits insuficientes: el Credit Engine lo rechaza y no se genera nada —ni POST, ni trabajo, ni reserva—',
+    !r.ok && r.error.details?.code === 'INSUFFICIENT_CREDITS' && posts.length === posts0 && !uso(rid) && saldo(POBRE) === 1
+    && !base.de('jobs').some((j) => (j.json ?? '').includes(rid)), codigo(r));
+  await crear(C, 14, conFaro());
+  const plC = await plan(C, 14, 'sh-0101');
+  const qC = await cotizar(C, plC);
+  const saldoC = saldo(C);
+  const correr = seedance.run;
+  seedance.run = async (req) => { posts.push({ acceptAsync: req.acceptAsync, input: { ...req.input } }); throw new ProviderError('seedance respondió 400: inválido', 'seedance', 400, false); };
+  const rechazo = await generar(C, { ...plC, take: 1 }, qC.valor.credits);
+  seedance.run = correr;
+  const ridC = toma.requestIdDeToma(C, pid(14), 'sh-0101', 1);
+  const jobC = base.de('jobs').map((j) => JSON.parse(j.json)).find((j) => j.trace.traceId === ridC);
+  await pasada();
+  check('ModelArk rechaza el POST antes de aceptar: el trabajo falla y la reserva vuelve EXACTA, una vez',
+    !rechazo.ok && jobC?.state === 'failed' && uso(ridC)?.status === 'REFUNDED' && reembolsos(ridC).length === 1 && reembolsos(ridC)[0].amount === qC.valor.credits && saldo(C) === saldoC,
+    `${codigo(rechazo)} · ${jobC?.state}`);
+  const qC2 = await cotizar(C, plC);
+  check('y la siguiente toma se puede pedir: la anterior terminó sin cobro', qC2.ok && qC2.valor.allowed && qC2.valor.takes.next.take === 2 && qC2.valor.takes.current.status === 'REFUNDED');
 }
 
 /* ═══ LO QUE EL CLIENTE NO PUEDE COLAR ══════════════════════════════════ */
