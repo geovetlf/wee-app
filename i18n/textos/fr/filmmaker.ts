@@ -1020,4 +1020,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsRoleStoryboardClosed: 'Case du storyboard : pas encore disponible',
   wsRoleStoryboardSoon: 'Utiliser une image comme case du storyboard arrivera quand la production aura ce rôle (un changement de contrat) : il n’existe pas aujourd’hui.',
   wsRefRealFaceNote: 'S’il s’agit du visage d’une personne réelle, quand les références arriveront dans la vidéo, il faudra son autorisation pour l’utiliser.',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: 'Durée de « {{sonido}} »',
+  wsCueDurationDefault: 'Si tu ne choisis pas, il dure autant que le passage où il joue.',
+  wsCueFadeIn: 'Fondu d’entrée',
+  wsCueFadeOut: 'Fondu de sortie',
+  wsCueStartsAt: 'Commence à…',
+  wsCueMute: 'Couper le son',
+  wsCueSettingSoon: '{{ajuste}} : pas encore disponible',
+  wsCueMixSoon: 'Les fondus, le moment où chaque son commence et le couper sans le retirer arriveront avec le mixage du montage (un changement de contrat) : aujourd’hui, les sons décrits sont enregistrés, mais ne se font pas encore entendre.',
+  wsGenerateInDirector: 'La vidéo de ce plan se génère dans l’onglet « Weë AI Director ».',
 };

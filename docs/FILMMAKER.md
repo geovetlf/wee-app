@@ -1892,6 +1892,21 @@ papeles que el motor todavía no usa se ven cerrados, con su porqué.
 
 Pruebas: `functions/test/filmmaker-referencias-completas.test.mjs` (en la cadena).
 
+### Fase 37 · Audio y línea de tiempo
+
+Encargo del usuario (2026-09-29, puntos 2 y 10): el workplace del audio, sin conectar música ni efectos.
+
+- **La duración de un sonido** descrito (`AudioCue.durationSec`, que F1-A ya tenía y nadie tocaba), con la operación
+  de siempre; sin elegir, dura lo de su tramo.
+- **Lo que F1-A no tiene** —fundido de entrada y de salida, en qué momento empieza, silenciar sin quitar— se ve en
+  cada sonido, cerrado y con su porqué (contrato de `AudioCue` y la mezcla del montaje; N17).
+- **La pista de diálogo** también en el teléfono.
+- **«Generar» en las propiedades del plano**: la misma toma (`ProductionShotGeneration`), con su precio y su
+  confirmación. En escritorio hay exactamente una a la vista: con la pestaña «Weë AI Director» abierta, las
+  propiedades dicen dónde está en vez de repetirla (la demo local la enseñaba dos veces).
+
+Pruebas: `functions/test/filmmaker-audio-linea.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

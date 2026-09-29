@@ -231,7 +231,8 @@ const faltan = [
   ['I01', '… ni «Cobertura de este plano»', () => !/clave: 'filmmaker\.wsBrainQuickCoverage'/.test(app('utils/atajosDelDirector.ts'))],
   ['I05', '… ni «Convertir mi guion en escenas»', () => !/clave: 'filmmaker\.wsBrainQuickScript'/.test(app('utils/atajosDelDirector.ts'))],
   ['N14', 'la ficha de una referencia no enseña su miniatura', () => !/\bImage\b|Miniatura|uri:/.test(app('components/studio/produccion/ProductionReferencias.tsx'))],
-  ['N16', 'la duración de un sonido no tiene control', () => !/durationSec/.test(app('components/studio/produccion/ProductionAudio.tsx'))],
+  /* Reanclada en la Fase 37: los sonidos se editan en la herramienta «Audio» (ProductionTools), no en su resumen. */
+  ['N16', 'la duración de un sonido no tiene control', () => !/wsCueDurationOf/.test(app('components/studio/produccion/ProductionTools.tsx'))],
   ['N02', 'los montajes anteriores se cargan y no se guardan para enseñarlos', () => /montajesDeLaProduccion/.test(app('hooks/useMontajeFinal.ts')) && !/anteriores|setMontajes|montajesAnteriores/.test(app('hooks/useMontajeFinal.ts'))],
 ];
 for (const [id, que, sigueFaltando] of faltan) {

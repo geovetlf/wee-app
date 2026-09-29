@@ -635,8 +635,12 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * `wsGoToScene`) y la continuidad plano a plano (`wsFlow*`)—, en los once a la vez.
    * Fase 36 del motor, 2026-09-29 (referencias completas): +13 —de dónde viene cada referencia, cómo está su
    * material, el papel «storyboard» cerrado con su porqué y el aviso de las caras reales en la serie 2.x—, en los once.
+   * Fase 37 del motor, 2026-09-29 (audio y línea de tiempo): +9 —la duración de un sonido (`wsCueDuration*`), lo que un
+   * sonido todavía no tiene en F1-A (`wsCueFadeIn`, `wsCueFadeOut`, `wsCueStartsAt`, `wsCueMute`, `wsCueSettingSoon`) y la
+   * mezcla (`wsCueMixSoon`) y, en escritorio, dónde se genera el plano si ya está a la vista (`wsGenerateInDirector`)—,
+   * en los once.
    */
-  const CLAVES_PT = 3628;
+  const CLAVES_PT = 3637;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

@@ -298,6 +298,16 @@ export const CLAVE_DE_CAPACIDAD: Readonly<Record<string, string>> = Object.freez
 
 /* ── Fase 25 del motor · el sonido: los niveles que se ofrecen para un sonido en la mezcla (F1-A admite de 0 a 1) ─── */
 export const NIVELES_DE_SONIDO: readonly number[] = Object.freeze([0.25, 0.5, 0.75, 1]);
+/** Fase 37 del motor: cuánto dura un sonido descrito (`AudioCue.durationSec`); sin elegir, lo que dure su tramo. */
+export const DURACIONES_DE_SONIDO: readonly number[] = Object.freeze([2, 5, 10, 15, 30, 60]);
+/**
+ * Fase 37 · lo que un sonido todavía NO tiene en F1-A —fundido de entrada y de salida, en qué momento de su tramo
+ * empieza, y silenciarlo sin quitarlo—: se enseña cerrado, con su porqué (contrato de `AudioCue` y la mezcla del
+ * montaje). Solo claves: aquí no se decide nada.
+ */
+export const AJUSTES_DE_SONIDO_CERRADOS: readonly string[] = Object.freeze([
+  'filmmaker.wsCueFadeIn', 'filmmaker.wsCueFadeOut', 'filmmaker.wsCueStartsAt', 'filmmaker.wsCueMute',
+]);
 
 /* ── Fase 24 del motor · la historia, la continuidad y las tomas: las claves de lo que se lee ─── */
 

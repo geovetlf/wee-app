@@ -8,7 +8,7 @@ import ProductionShotGeneration from './ProductionShotGeneration';
 import ProductionRecommendations from './ProductionRecommendations';
 import { BotonPequeno, Seccion } from './ProductionPiezas';
 import { claveDelValor, FAMILIAS_DE_CAMARA } from '../../../constants/camaraCinematica';
-import { CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, NIVELES_DE_SONIDO, PASO_DE_DURACION_SEC, TIPOS_DE_LINEA } from '../../../constants/filmmaker';
+import { AJUSTES_DE_SONIDO_CERRADOS, CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, DURACIONES_DE_SONIDO, NIVELES_DE_SONIDO, PASO_DE_DURACION_SEC, TIPOS_DE_LINEA } from '../../../constants/filmmaker';
 import { CLIMAS, LIMITES, MOMENTOS_DEL_DIA, valorCreativo } from '../../../services/filmmaker/dominio';
 import type { AudioCue, AudioTarget, CreativeParameterPath, DialogueLine, FilmmakerOperation, LightingType, MotionSpeed, TimeOfDay, TransitionType, Weather } from '../../../services/filmmaker/dominio';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
@@ -203,6 +203,12 @@ const ProductionTools: React.FC<{
         void _antes;
         onGesto([{ op: 'modify_audio', change: { action: 'upsert', cue: v === null ? sinNivel : { ...c, volume: v } } }]);
       };
+      /* Fase 37: cuánto dura (`durationSec`, de F1-A); sin elegir, lo que dure su tramo. */
+      const duracionDelSonido = (c: AudioCue, v: number | null) => {
+        const { durationSec: _antes, ...sinDuracion } = c;
+        void _antes;
+        onGesto([{ op: 'modify_audio', change: { action: 'upsert', cue: v === null ? sinDuracion : { ...c, durationSec: v } } }]);
+      };
       const numeroDeEscena = (id: string) => produccion.scenes.findIndex((s) => s.id === id) + 1;
       const numeroDePlano = (id: string) => {
         for (const s of produccion.scenes) { const j = s.shots.findIndex((p) => p.id === id); if (j >= 0) return j + 1; }
@@ -268,8 +274,25 @@ const ProductionTools: React.FC<{
                 editable={editable}
                 onElegir={(v) => nivel(c, v === null ? null : Number(v))}
               />
+              <Opciones
+                grupo={t('filmmaker.wsCueDurationOf', { sonido: c.description })}
+                opciones={DURACIONES_DE_SONIDO.map((v) => ({ valor: String(v), texto: t('filmmaker.wsSecondsShort', { segundos: formato.numero(v) }) }))}
+                elegida={c.durationSec !== undefined ? String(c.durationSec) : null}
+                editable={editable}
+                onElegir={(v) => duracionDelSonido(c, v === null ? null : Number(v))}
+              />
+              {c.durationSec === undefined && nota(t('filmmaker.wsCueDurationDefault'))}
+              {/* Fase 37: lo que F1-A todavía no tiene, visible y cerrado, con su porqué. */}
+              <View style={styles.cerrados}>
+                {AJUSTES_DE_SONIDO_CERRADOS.map((clave) => (
+                  <View key={clave} style={[styles.cerrado, { borderColor: theme.colors.border }]} accessibilityRole="text" accessibilityLabel={t('filmmaker.wsCueSettingSoon', { ajuste: t(clave) })}>
+                    <Text style={[styles.cerradoTexto, { color: theme.colors.textSecondary }]}>{t(clave)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           ))}
+          {suyos.length > 0 && nota(t('filmmaker.wsCueMixSoon'))}
           {editable && (
             <Seccion titulo={t('filmmaker.wsAddCue')}>
               <Opciones opciones={TIPOS_DE_SONIDO.map((s) => ({ valor: s.kind, texto: t(s.clave) }))} elegida={tipoDeSonido} editable onElegir={(v) => { if (v) setTipoDeSonido(v as AudioCue['kind']); }} sinQuitar />
@@ -500,6 +523,9 @@ const ProductionTools: React.FC<{
 
 const styles = StyleSheet.create({
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, alignItems: 'center' },
+  cerrados: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
+  cerrado: { minHeight: 28, paddingHorizontal: SPACING.sm, borderWidth: 1, borderStyle: 'dashed', borderRadius: 999, justifyContent: 'center', opacity: 0.6 },
+  cerradoTexto: { fontSize: FONT_SIZE.xs },
   bloque: { gap: SPACING.md },
   nota: { fontSize: FONT_SIZE.xs, lineHeight: FONT_SIZE.xs * 1.5 },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },

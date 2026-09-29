@@ -1018,4 +1018,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsRoleStoryboardClosed: 'Storyboard panel: not available yet',
   wsRoleStoryboardSoon: 'Using an image as a storyboard panel will come when the production has that role (a contract change): it doesn’t exist today.',
   wsRefRealFaceNote: 'If it’s a real person’s face, once references reach the video you’ll need their authorization to use it.',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: 'Length of “{{sonido}}”',
+  wsCueDurationDefault: 'If you don’t choose, it lasts as long as the part where it plays.',
+  wsCueFadeIn: 'Fade in',
+  wsCueFadeOut: 'Fade out',
+  wsCueStartsAt: 'Starts at…',
+  wsCueMute: 'Mute',
+  wsCueSettingSoon: '{{ajuste}}: not available yet',
+  wsCueMixSoon: 'Fades, when each sound starts and muting it without removing it will come with the montage mix (a contract change): today described sounds are saved, but they don’t play yet.',
+  wsGenerateInDirector: 'The video of this shot is generated in the “Weë AI Director” tab.',
 };

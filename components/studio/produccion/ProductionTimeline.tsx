@@ -43,7 +43,8 @@ const PISTAS: readonly { id: keyof Pick<Montaje, 'video' | 'transiciones' | 'per
 const ALTO_DE_PISTA = scale(30);
 /** En el teléfono, cada pista a la medida del dedo. */
 const ALTO_DE_PISTA_TACTIL = 40;
-const PISTAS_DEL_TELEFONO: readonly string[] = ['video', 'transiciones', 'ambiente', 'efectos', 'voz', 'musica'];
+/* Fase 37 del motor: la pista de diálogo (`personajes`) también en el teléfono. */
+const PISTAS_DEL_TELEFONO: readonly string[] = ['video', 'transiciones', 'personajes', 'ambiente', 'efectos', 'voz', 'musica'];
 const ANCHO_DE_ETIQUETAS = scale(116);
 const ZOOMS: readonly number[] = [12, 20, 32, 48, 72, 110];
 

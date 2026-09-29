@@ -155,7 +155,8 @@ const ProductionWorkspace: React.FC<{
         />
         <View style={[styles.lado, { width: anchoLateral, borderLeftColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
           {pestanaMontaje === 'linea'
-            ? <ProductionShotProperties espacio={espacio} />
+            /* Fase 37 del motor: con la pestaña «Weë AI Director» abierta, la generación del plano ya está a la vista allí. */
+            ? <ProductionShotProperties espacio={espacio} generarAqui={pestanaDirector !== 'director'} />
             : (
               <ScrollView contentContainerStyle={styles.herramienta}>
                 <ProductionTools herramienta={HERRAMIENTA_DE_LA_PESTANA[pestanaMontaje]} espacio={espacio} montaje={montaje} cabezal={cabezal} ids={ids} />

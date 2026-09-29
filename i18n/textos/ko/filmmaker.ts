@@ -1020,4 +1020,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsRoleStoryboardClosed: '스토리보드 컷: 아직 사용할 수 없음',
   wsRoleStoryboardSoon: '이미지를 스토리보드 컷으로 쓰는 기능은 프로덕션에 그 역할이 생기면(계약 변경) 제공돼요. 지금은 없어요.',
   wsRefRealFaceNote: '실제 인물의 얼굴이라면, 레퍼런스가 영상에 반영될 때 그 사람의 동의가 있어야 사용할 수 있어요.',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: '"{{sonido}}" 길이',
+  wsCueDurationDefault: '선택하지 않으면 재생되는 구간만큼 이어져요.',
+  wsCueFadeIn: '페이드 인',
+  wsCueFadeOut: '페이드 아웃',
+  wsCueStartsAt: '시작 시점…',
+  wsCueMute: '음소거',
+  wsCueSettingSoon: '{{ajuste}}: 아직 사용할 수 없음',
+  wsCueMixSoon: '페이드, 각 사운드가 시작되는 시점, 삭제하지 않고 음소거하는 기능은 편집본 믹싱(계약 변경)과 함께 제공돼요. 지금은 설명한 사운드가 저장되지만 아직 재생되지는 않아요.',
+  wsGenerateInDirector: '이 숏의 영상은 "Weë AI Director" 탭에서 생성해요.',
 };

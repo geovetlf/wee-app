@@ -1033,4 +1033,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsRoleStoryboardClosed: '分鏡格：暫不可用',
   wsRoleStoryboardSoon: '把圖片用作分鏡格，要等製作支援這個用途（需要變更合約）：目前還沒有。',
   wsRefRealFaceNote: '如果是真實人物的臉，等參考能用於影片時，需要本人授權才能使用。',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: '「{{sonido}}」的長度',
+  wsCueDurationDefault: '不選擇時，長度與它所在的段落相同。',
+  wsCueFadeIn: '淡入',
+  wsCueFadeOut: '淡出',
+  wsCueStartsAt: '開始於…',
+  wsCueMute: '靜音',
+  wsCueSettingSoon: '{{ajuste}}：暫不可用',
+  wsCueMixSoon: '淡入淡出、每個聲音從何時開始，以及不刪除而靜音，會隨剪輯混音一起推出（需要變更合約）：目前描述的聲音會被儲存，但還不會播放。',
+  wsGenerateInDirector: '這個鏡頭的影片在「Weë AI Director」分頁中生成。',
 };

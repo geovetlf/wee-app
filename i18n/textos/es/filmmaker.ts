@@ -1019,4 +1019,14 @@ export const filmmaker = {
   wsRoleStoryboardClosed: 'Viñeta del storyboard: todavía no disponible',
   wsRoleStoryboardSoon: 'Usar una imagen como viñeta del storyboard llegará cuando la producción tenga ese papel (un cambio de contrato): hoy no existe.',
   wsRefRealFaceNote: 'Si es la cara de una persona real, cuando las referencias lleguen al vídeo hará falta su autorización para poder usarla.',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: 'Duración de «{{sonido}}»',
+  wsCueDurationDefault: 'Sin elegir, dura lo que dure donde suena.',
+  wsCueFadeIn: 'Entrada suave',
+  wsCueFadeOut: 'Salida suave',
+  wsCueStartsAt: 'Empieza en…',
+  wsCueMute: 'Silenciar',
+  wsCueSettingSoon: '{{ajuste}}: todavía no disponible',
+  wsCueMixSoon: 'El fundido, en qué momento empieza cada sonido y silenciarlo sin quitarlo llegarán con la mezcla del montaje (un cambio de contrato): hoy los sonidos descritos se guardan, pero todavía no suenan.',
+  wsGenerateInDirector: 'El vídeo de este plano se genera en la pestaña «Weë AI Director».',
 };

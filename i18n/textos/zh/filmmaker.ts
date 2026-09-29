@@ -1038,4 +1038,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsRoleStoryboardClosed: '故事板画格：暂不可用',
   wsRoleStoryboardSoon: '把图片用作故事板画格，要等影片支持这个用途（需要变更合约）：目前还没有。',
   wsRefRealFaceNote: '如果是真实人物的脸，等参考能用于视频时，需要本人授权才能使用。',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: '“{{sonido}}”的时长',
+  wsCueDurationDefault: '不选择时，时长与它所在的段落相同。',
+  wsCueFadeIn: '淡入',
+  wsCueFadeOut: '淡出',
+  wsCueStartsAt: '开始于…',
+  wsCueMute: '静音',
+  wsCueSettingSoon: '{{ajuste}}：暂不可用',
+  wsCueMixSoon: '淡入淡出、每个声音从何时开始，以及不删除而静音，会随剪辑混音一起推出（需要变更合约）：目前描述的声音会被保存，但还不会播放。',
+  wsGenerateInDirector: '这个镜头的视频在“Weë AI Director”标签页中生成。',
 };

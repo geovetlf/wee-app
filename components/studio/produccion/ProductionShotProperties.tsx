@@ -6,6 +6,7 @@ import ProductionInspector from './ProductionInspector';
 import ProductionEnElPlano from './ProductionEnElPlano';
 import ProductionContinuidad from './ProductionContinuidad';
 import { ProductionAspectoDelNivel, ProductionMoverPlano, ProductionQuePasa, ProductionSujeto } from './ProductionDireccionDelPlano';
+import ProductionShotGeneration from './ProductionShotGeneration';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import { useSegundos } from './ProductionDurationSummary';
 import { claveDelValor } from '../../../constants/camaraCinematica';
@@ -60,7 +61,12 @@ const PromptAvanzado: React.FC<{ texto: string }> = ({ texto }) => {
  * se ve»; el estilo y el ánimo de este plano o de esta escena, detrás de la luz; y mover el plano a otra escena, en la
  * cabecera—. Y las referencias del plano, por papel (`ProductionEnElPlano`).
  */
-const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?: boolean }> = ({ espacio, enHoja }) => {
+/**
+ * `generarAqui` (Fase 37 del motor): en escritorio, si la pestaña «Weë AI Director» ya enseña la generación de este
+ * plano, aquí no se repite —el mismo control de pago dos veces en la misma pantalla—: se dice dónde está. Sin decir
+ * nada (el teléfono, en su hoja), se pinta.
+ */
+const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?: boolean; generarAqui?: boolean }> = ({ espacio, enHoja, generarAqui }) => {
   const { theme } = useTheme();
   const { t } = useIdioma();
   const segundos = useSegundos();
@@ -125,6 +131,18 @@ const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?:
       {/* Fase 24 del motor: qué tiene que seguir igual aquí, y con cuánta fuerza. */}
       <ProductionContinuidad espacio={espacio} />
       {!!plano?.advanced?.prompt && <PromptAvanzado texto={plano.advanced.prompt} />}
+      {/* Fase 37 del motor: generar ESTE plano, aquí también —la misma toma, con su precio y su confirmación—. */}
+      {generarAqui === false
+        ? <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsGenerateInDirector')}</Text>
+        : (
+          <ProductionShotGeneration
+            toma={espacio.toma}
+            historial={espacio.historialDeTomas}
+            tipo={plano ? 'plano' : 'escena'}
+            video={espacio.videos.get(elegido.unitId) ?? null}
+            formato={produccion.format.aspectRatio}
+          />
+        )}
     </Marco>
   );
 };

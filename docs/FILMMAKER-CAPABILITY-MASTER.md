@@ -111,7 +111,7 @@ código: si el código cambia y la tabla no, falla.
 | R8 | contrato | Techo de 1 000 revisiones por producción (F1-B) |
 | R9 | decisión | Wäll hasta 600 s frente a Weëls de 15 s: decisión de producto |
 | R15 | cerrado (Fase 33) | La toma decía «se están devolviendo» con el dinero en reconciliación; ahora dice que se está comprobando, con la misma decisión que su estado y su liquidación |
-| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial |
+| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial (en producción hasta que se despliegue, como R22) |
 | R19 | cerrado (Fase 33) | Editar y extender en Seedance 2.5 exigen `adaptive` y el engine no la mandaba; el tipo de tarea iba a modelos que no lo tienen |
 | R20 | cerrado (Fase 33) | Vídeo y audio de referencia compartían un cupo; en 2.0 se dejaba pasar solo audio |
 | R21 | se queda | Semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño y no se prometen |
@@ -420,8 +420,8 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 <!-- MATRIZ:INICIO -->
 | Estado | Filas |
 |---|---|
-| A — usable | 71 |
-| B — UX | 4 |
+| A — usable | 74 |
+| B — UX | 1 |
 | C — no effect | 2 |
 | D — adapter | 8 |
 | E — canary | 3 |
@@ -539,12 +539,12 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | N09 | Revisar la continuidad | ✔ Weë Brain + recomendaciones de F1-A | — | ✔ | ✔ brainChat | ✔ | Weë AI Director › Analizar | A | no | no | Gemini (texto) | sí (la respuesta de Weë Brain) | filmmaker-director | sab-fase34 | ✔ 360/390 | Fase 34: «Revisar la continuidad», con dos unidades o más |
 | N10 | Vista de escenas (propósito, lugar, hora, clima, reparto, duración, planos) | ✔ F1-A | — | ✔ | — | ✔ | Historia › Escenas (escritorio: Estructura, en su hoja; teléfono: Historia) | A | no | no | — | no | filmmaker-historia-vistas | sab-fase35 | ✔ 360/390 | Fase 35: solo lectura; se va a la escena |
 | N11 | Continuidad plano a plano (cómo está cada personaje, qué objetos, qué lugar) | ✔ F1-A (estado efectivo y reparto de cada plano) | — | ✔ | — | ✔ | Historia › Continuidad (escritorio: Estructura, en su hoja; teléfono: Historia) | A | no | no | — | no | filmmaker-historia-vistas | sab-fase35 | ✔ 360/390 | Fase 35: estado efectivo de F1-A, entradas y salidas, qué cambia; el estado estructurado sigue siendo el contrato 5 |
-| N12 | La pista de diálogo en el teléfono | ✔ línea de tiempo de F1-A | — | ✔ | — | parcial (solo en escritorio) | Línea de tiempo › Diálogo | B | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fase 37 |
-| N13 | «Generar» desde el panel del plano | ✔ F1-D | — | — | ✔ generateVideo | parcial (en el Director) | Plano › Generar | B | hecho (2026-09-28) | no | BytePlus ModelArk (Seedance) | sí (Credits por toma) | filmmaker-capability-master | sab-fase32 | — | Fase 37 |
+| N12 | La pista de diálogo en el teléfono | ✔ línea de tiempo de F1-A | — | ✔ | — | ✔ | Línea de tiempo › Diálogo | A | no | no | — | no | filmmaker-audio-linea | sab-fase37 | ✔ 360/390 | Fase 37: la pista de diálogo (`personajes`) también en el teléfono |
+| N13 | «Generar» desde el panel del plano | ✔ F1-D | — | — | ✔ generateVideo | ✔ | Plano › Generar | A | hecho (2026-09-28) | no | BytePlus ModelArk (Seedance) | sí (Credits por toma) | filmmaker-audio-linea | sab-fase37 | ✔ 360/390 | Fase 37: la misma toma (ProductionShotGeneration) en las propiedades del plano; en escritorio, exactamente una a la vista (con la pestaña del Director abierta, las propiedades dicen dónde está) |
 | N14 | Vista previa, origen y estado de cada referencia | ✔ Content Core (`assets`) y Elements | — | — | ✔ lectura de la propia cuenta | ✔ | Proyecto › Referencias · Plano › Referencias | A | no | no | — | no | filmmaker-referencias-completas | sab-fase36 | ✔ 360/390 | Fase 36: miniatura (la de Mis creaciones: la entrega directa del original; con entrega firmada, su icono, como allí), origen y estado (listo, retirado, sin saberse), leídos una vez de la ficha del material |
 | N15 | Papel «storyboard» de una referencia | ✘ (`ReferenceRole` no lo tiene) | — | — | — | cerrado, con su porqué | Proyecto › Referencias | F | no | sí: F1-A `ReferenceRole` + espejo + requisitos | — | no | filmmaker-referencias-completas | sab-fase36 | — | Se enseña el papel cerrado, con su porqué (Fase 36) · Fase 36: se ve cerrado en cada referencia de imagen (una viñeta es una imagen) |
-| N16 | La duración de un sonido | ✔ F1-A `AudioCue.durationSec` | — | ✔ | — | ✘ | Línea de tiempo › Audio | B | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fase 37. Se guarda como la descripción y el nivel; nada suena todavía (sin mezcla) |
-| N17 | Fundido, inicio dentro del tramo y «activo» de un sonido | ✘ (`AudioCue` no los tiene) | — | — | — | ✘ | Línea de tiempo › Audio | F | no | sí: F1-A `AudioCue` (fadeInSec, fadeOutSec, offsetSec, enabled) + mezcla en el render | — | no | filmmaker-capability-master | sab-fase32 | — | Se enseñan cerrados, con su porqué (Fase 37) |
+| N16 | La duración de un sonido | ✔ F1-A `AudioCue.durationSec` | — | ✔ | — | ✔ | Línea de tiempo › Audio | A | no | no | — | no | filmmaker-audio-linea | sab-fase37 | ✔ 360/390 | Fase 37: duraciones de un catálogo; sin elegir, lo de su tramo; nada suena todavía (sin mezcla) |
+| N17 | Fundido, inicio dentro del tramo y «activo» de un sonido | ✘ (`AudioCue` no los tiene) | — | — | — | cerrado, con su porqué | Línea de tiempo › Audio | F | no | sí: F1-A `AudioCue` (fadeInSec, fadeOutSec, offsetSec, enabled) + mezcla en el render | — | no | filmmaker-audio-linea | sab-fase37 | — | Se enseñan cerrados, con su porqué (Fase 37) · Fase 37: fundidos, inicio y silenciar, visibles y cerrados en cada sonido |
 | N18 | Semilla: repetir una toma de forma reproducible | ✘ en Filmmaker | cableado (`seed`), pero la API solo lo documenta para Seedance 1.x | — | — | ✘ | — | G | no | no | BytePlus ModelArk (Seedance) | no | filmmaker-capability-master | sab-fase32 | — | En la serie 2.x la reproducibilidad existe solo entre un borrador de 2.5 y su final (N23). R21 |
 | N19 | Cámara fija | ✔ el movimiento «Quieta» va en el texto de la toma | `camera_fixed` solo documentado para 1.x | ✔ | ✔ | ✔ | Plano › Movimiento | A | no | no | — | no | filmmaker-camara-v2 | sab-fase17 | ✔ 360/390 | En 2.x la cámara fija se escribe en el texto, que es lo que Filmmaker hace. R21 |
 | N20 | Proporción 3:4 | ✘ (F1-A no la tiene) | ✔ `RATIOS` incluye 3:4 (todos los modelos) | — | — | ✘ | Proyecto › Formato | D | no | sí: F1-A `PROPORCIONES`, lenguaje creativo del Core y `LIMITES_DE_PLANO` | BytePlus ModelArk (Seedance) | no | filmmaker-capability-master | sab-fase32 | — | Con 3:4 un anuncio vertical se generaría; el 4:5 no lo genera ningún modelo (C66) |
@@ -592,7 +592,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 | 34 | Weë AI Director con propuestas estructuradas | Qué planos afecta cada propuesta (N03), el resumen de lo que quedaría calculado con el F1-A del espejo (N04), «Proponer planos» (N06), «Explicar» (N07), «Cobertura de este plano» (I01), «Convertir mi guion en escenas» (I05), «Generar esta escena» (N01), y el camino aplicar → precio → confirmar → generar; en una producción vacía, empezar por la propuesta de escenas. **Hecha** |
 | 35 | Historia: Escenas y Continuidad | La vista de escenas (N10) y la de continuidad plano a plano, con lo heredado dicho (N11). **Hecha** |
 | 36 | Referencias completas | Vista previa, origen y estado de cada material (N14); el papel «storyboard» cerrado con su porqué (N15); el aviso de que la serie 2.x rechaza caras reales sin autorización (N27). **Hecha** |
-| 37 | Audio y línea de tiempo | La duración de cada sonido (N16); fundido, inicio y «activo» visibles y cerrados (N17); la pista de diálogo en el teléfono (N12); «Generar» en las propiedades del plano (N13) |
+| 37 | Audio y línea de tiempo | La duración de cada sonido (N16); fundido, inicio y «activo» visibles y cerrados (N17); la pista de diálogo en el teléfono (N12); «Generar» en las propiedades del plano (N13). **Hecha** |
 | 38 | Montaje, exportación y publicación | Los montajes anteriores con su fecha, duración y descarga (N02); Weël ≤15 s y Wäll separados y dichos (R9 sigue siendo decisión); cerrados con su porqué: póster elegido (N24), máster para etalonar (N26), escalado (N25) |
 | 39 | Contratos y canaries preparados | Los seis contratos y los cambios menores (R5, R8, N05, N15, N17, N20, N21, N22, N23, I19) con su cambio mínimo exacto, campos, consumidores, pruebas y compatibilidad; cada canary con su objetivo, modelo, entrada, salida, coste estimado, riesgo y la puerta que abre; todo cerrado |
 | 40 | Cierre de la ronda | La matriz al día, el repaso móvil completo y el informe ejecutivo |
@@ -602,6 +602,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 | Qué | Por qué no se hace solo | Filas |
 |---|---|---|
 | Los seis contratos: fotogramas y referencias; editar y extender; restaurar una toma anterior; voz del personaje; estado estructurado; labios sincronizados | Cambian contratos cerrados (F1-A / F1-D / voz) | C50, X18, C51, C52, N31, C59, C60, C28, C30, N11 |
+| R22: desplegar el arreglo del precio de `generateVideo` | Es un deploy: el `generateVideo` de producción (el del canary, `96b3f7a`) cotiza `durationSec: -1` como 5 s y se fía de los segundos de vídeo de referencia que declare quien llama; la app no manda ninguna de las dos cosas, pero una llamada hecha a mano pagaría menos de lo que factura el proveedor. Arreglado en la rama (Fase 33) | — |
 | R3 (trabajos de toma huérfanos) y R4 (inanición de la reconciliación) | Tocan el runtime cerrado de la Fase 12-D y el barrido desplegado | — |
 | R5 (firma de la toma) y R8 (techo de 1 000 revisiones) | Contratos F1-D y F1-B | — |
 | R9: cuánto dura un vídeo en el Wäll | Decisión de producto (hoy 600 s; los Weëls, 15 s) | C64 |

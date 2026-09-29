@@ -1021,4 +1021,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsRoleStoryboardClosed: 'Riquadro dello storyboard: non ancora disponibile',
   wsRoleStoryboardSoon: 'Usare un’immagine come riquadro dello storyboard arriverà quando la produzione avrà quel ruolo (una modifica di contratto): oggi non esiste.',
   wsRefRealFaceNote: 'Se è il volto di una persona reale, quando i riferimenti arriveranno al video servirà la sua autorizzazione per usarlo.',
+  /* ── Fase 37 del motor: audio y línea de tiempo ── */
+  wsCueDurationOf: 'Durata di «{{sonido}}»',
+  wsCueDurationDefault: 'Se non scegli, dura quanto il tratto in cui suona.',
+  wsCueFadeIn: 'Dissolvenza in entrata',
+  wsCueFadeOut: 'Dissolvenza in uscita',
+  wsCueStartsAt: 'Inizia a…',
+  wsCueMute: 'Silenzia',
+  wsCueSettingSoon: '{{ajuste}}: non ancora disponibile',
+  wsCueMixSoon: 'Le dissolvenze, il momento in cui inizia ogni suono e silenziarlo senza toglierlo arriveranno con il mix del montaggio (una modifica di contratto): oggi i suoni descritti si salvano, ma non suonano ancora.',
+  wsGenerateInDirector: 'Il video di questa inquadratura si genera nella scheda «Weë AI Director».',
 };
