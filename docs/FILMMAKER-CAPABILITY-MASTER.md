@@ -115,7 +115,7 @@ código: si el código cambia y la tabla no, falla.
 | R19 | cerrado (Fase 33) | Editar y extender en Seedance 2.5 exigen `adaptive` y el engine no la mandaba; el tipo de tarea iba a modelos que no lo tienen |
 | R20 | cerrado (Fase 33) | Vídeo y audio de referencia compartían un cupo; en 2.0 se dejaba pasar solo audio |
 | R21 | se queda | Semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño y no se prometen |
-| R22 | cerrado (Fase 33) | El precio de un vídeo lo abarataba quien llamaba: `-1` se cotizaba como 5 s y los segundos de vídeo de entrada los declaraba el cliente. Ahora, el máximo del modelo (encontrado en la Fase 33; en producción hasta que se despliegue) |
+| R22 | cerrado (Fase 33) | El precio de un vídeo lo abarataba quien llamaba: `-1` se cotizaba como 5 s y los segundos de vídeo de entrada los declaraba el cliente. Ahora, el máximo del modelo (encontrado en la Fase 33; en producción hasta que se despliegue: el arreglo mínimo sobre lo desplegado, preparado y comprobado, está en `docs/FILMMAKER-R22-GENERATEVIDEO.md`) |
 
 #### R3 · Los trabajos de toma que se quedan sin nadie
 
@@ -602,7 +602,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 | Qué | Por qué no se hace solo | Filas |
 |---|---|---|
 | Los seis contratos: fotogramas y referencias; editar y extender; restaurar una toma anterior; voz del personaje; estado estructurado; labios sincronizados | Cambian contratos cerrados (F1-A / F1-D / voz) | C50, X18, C51, C52, N31, C59, C60, C28, C30, N11 |
-| R22: desplegar el arreglo del precio de `generateVideo` | Es un deploy: el `generateVideo` de producción (el del canary, `96b3f7a`) cotiza `durationSec: -1` como 5 s y se fía de los segundos de vídeo de referencia que declare quien llama; la app no manda ninguna de las dos cosas, pero una llamada hecha a mano pagaría menos de lo que factura el proveedor. Arreglado en la rama (Fase 33) | — |
+| R22: desplegar el arreglo del precio de `generateVideo` | Es un deploy: el `generateVideo` de producción (el del canary, `96b3f7a`) cotiza `durationSec: -1` como 5 s y se fía de los segundos de vídeo de referencia que declare quien llama; la app no manda ninguna de las dos cosas, pero una llamada hecha a mano pagaría menos de lo que factura el proveedor. Arreglado en la rama (Fase 33); el arreglo mínimo sobre lo desplegado, preparado y comprobado, con lo que cambia, el contrato y el riesgo: `docs/FILMMAKER-R22-GENERATEVIDEO.md` | — |
 | R3 (trabajos de toma huérfanos) y R4 (inanición de la reconciliación) | Tocan el runtime cerrado de la Fase 12-D y el barrido desplegado | — |
 | R5 (firma de la toma) y R8 (techo de 1 000 revisiones) | Contratos F1-D y F1-B | — |
 | R9: cuánto dura un vídeo en el Wäll | Decisión de producto (hoy 600 s; los Weëls, 15 s) | C64 |
