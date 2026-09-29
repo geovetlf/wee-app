@@ -1,6 +1,6 @@
 # Filmmaker Engine × Weë Studio: matriz maestra de capacidades
 
-> Fase 32 del motor, 2026-09-29. Trabajo local en `filmmaker/core`. No se hizo push, merge ni deploy, no se gastó dinero, no se ejecutó ningún canary y no se abrió ninguna puerta. No se tocó ningún contrato cerrado. En esta fase no cambia el código de la app ni el de `functions/src`: solo este documento y su suite (`functions/test/filmmaker-capability-master.test.mjs`).
+> Fase 32 del motor, 2026-09-29. Trabajo local en `filmmaker/core`. No se hizo push, merge ni deploy, no se gastó dinero, no se ejecutó ningún canary y no se abrió ninguna puerta. No se tocó ningún contrato cerrado. **Única excepción de la ronda, autorizada por el dueño:** el 2026-09-29 se desplegó el arreglo de R22 (solo `generateVideo`, revisión `generatevideo-00010-qes`, el arreglo `7f11d51` sobre `96b3f7a`; ver R22 en § 2 y `docs/FILMMAKER-R22-GENERATEVIDEO.md`). En esta fase no cambia el código de la app ni el de `functions/src`: solo este documento y su suite (`functions/test/filmmaker-capability-master.test.mjs`).
 
 **La regla de esta ronda.** Si una capacidad existe en el engine o en un adaptador, la persona tiene que tener un camino
 real para usarla en Weë Studio. Si todavía no puede usarse, aparece en su sitio natural del workplace, cerrada, con el
@@ -94,8 +94,9 @@ El adaptador (`functions/src/engine/providers/seedance.ts`) ya sabe más de lo q
   con lo que declaraba el cliente: una duración `-1` («que la decida el modelo», hasta 15 s o 30 s) se cotizaba como
   5 s, y los segundos de un vídeo de referencia (que puede ser uno ya generado de la propia cuenta) los decía quien
   llamaba. La app nunca manda ninguna de las dos cosas, pero una llamada hecha a mano podía pagar menos de lo que
-  factura el proveedor. Cerrado en `filmmaker/core`: se cotiza el máximo del modelo. **En producción sigue abierto
-  hasta que se despliegue.**
+  factura el proveedor. Cerrado en `filmmaker/core`: se cotiza el máximo del modelo. **Desplegado el 2026-09-29**
+  con autorización del dueño: solo `generateVideo`, revisión `generatevideo-00010-qes`, el arreglo `7f11d51` sobre `96b3f7a`, sin tocar nada más; comprobado sin gastar (`docs/FILMMAKER-R22-GENERATEVIDEO.md`,
+  § 8).
 - **Fase 33**: R2, R15, R18, R19, R20 y R22, cerrados sin gastar y sin tocar contratos cerrados; R3 y R4, preparados
   (abajo).
 
@@ -111,11 +112,11 @@ código: si el código cambia y la tabla no, falla.
 | R8 | contrato | Techo de 1 000 revisiones por producción (F1-B) |
 | R9 | decisión | Wäll hasta 600 s frente a Weëls de 15 s: decisión de producto |
 | R15 | cerrado (Fase 33) | La toma decía «se están devolviendo» con el dinero en reconciliación; ahora dice que se está comprobando, con la misma decisión que su estado y su liquidación |
-| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial (en producción hasta que se despliegue, como R22) |
+| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial (en producción sigue la tabla de antes: su parche, aislado, espera autorización) |
 | R19 | cerrado (Fase 33) | Editar y extender en Seedance 2.5 exigen `adaptive` y el engine no la mandaba; el tipo de tarea iba a modelos que no lo tienen |
 | R20 | cerrado (Fase 33) | Vídeo y audio de referencia compartían un cupo; en 2.0 se dejaba pasar solo audio |
 | R21 | se queda | Semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño y no se prometen |
-| R22 | cerrado (Fase 33) | El precio de un vídeo lo abarataba quien llamaba: `-1` se cotizaba como 5 s y los segundos de vídeo de entrada los declaraba el cliente. Ahora, el máximo del modelo (encontrado en la Fase 33; en producción hasta que se despliegue: el arreglo mínimo sobre lo desplegado, preparado y comprobado, está en `docs/FILMMAKER-R22-GENERATEVIDEO.md`) |
+| R22 | cerrado (Fase 33) | El precio de un vídeo lo abarataba quien llamaba: `-1` se cotizaba como 5 s y los segundos de vídeo de entrada los declaraba el cliente. Ahora, el máximo del modelo (encontrado en la Fase 33). En producción desde el 2026-09-29: solo `generateVideo`, revisión `generatevideo-00010-qes`, el arreglo `7f11d51` sobre `96b3f7a`; ver `docs/FILMMAKER-R22-GENERATEVIDEO.md` |
 
 #### R3 · Los trabajos de toma que se quedan sin nadie
 
@@ -602,7 +603,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 | Qué | Por qué no se hace solo | Filas |
 |---|---|---|
 | Los seis contratos: fotogramas y referencias; editar y extender; restaurar una toma anterior; voz del personaje; estado estructurado; labios sincronizados | Cambian contratos cerrados (F1-A / F1-D / voz) | C50, X18, C51, C52, N31, C59, C60, C28, C30, N11 |
-| R22: desplegar el arreglo del precio de `generateVideo` | Es un deploy: el `generateVideo` de producción (el del canary, `96b3f7a`) cotiza `durationSec: -1` como 5 s y se fía de los segundos de vídeo de referencia que declare quien llama; la app no manda ninguna de las dos cosas, pero una llamada hecha a mano pagaría menos de lo que factura el proveedor. Arreglado en la rama (Fase 33); el arreglo mínimo sobre lo desplegado, preparado y comprobado, con lo que cambia, el contrato y el riesgo: `docs/FILMMAKER-R22-GENERATEVIDEO.md` | — |
+| R22: desplegar el arreglo del precio de `generateVideo` | **Hecho el 2026-09-29, autorizado (opción A):** solo `generateVideo`, revisión `generatevideo-00010-qes`, el arreglo `7f11d51` sobre `96b3f7a` (`docs/FILMMAKER-R22-GENERATEVIDEO.md`, § 8). Era un deploy: el `generateVideo` de producción (el del canary, `96b3f7a`) cotiza `durationSec: -1` como 5 s y se fía de los segundos de vídeo de referencia que declare quien llama; la app no manda ninguna de las dos cosas, pero una llamada hecha a mano pagaría menos de lo que factura el proveedor. Arreglado en la rama (Fase 33); el arreglo mínimo sobre lo desplegado, preparado y comprobado, con lo que cambia, el contrato y el riesgo: `docs/FILMMAKER-R22-GENERATEVIDEO.md` | — |
 | R3 (trabajos de toma huérfanos) y R4 (inanición de la reconciliación) | Tocan el runtime cerrado de la Fase 12-D y el barrido desplegado | — |
 | R5 (firma de la toma) y R8 (techo de 1 000 revisiones) | Contratos F1-D y F1-B | — |
 | R9: cuánto dura un vídeo en el Wäll | Decisión de producto (hoy 600 s; los Weëls, 15 s) | C64 |

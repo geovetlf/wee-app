@@ -1,12 +1,12 @@
-# R22 · El precio de `generateVideo` en producción: preparado, sin desplegar
+# R22 · El precio de `generateVideo` en producción: desplegado
 
-> 2026-09-29, rama `filmmaker/core`. **Nada de esto está desplegado.** Es el arreglo preparado y documentado para que
-> se pueda autorizar —o no— por separado. No se hizo push, merge ni deploy, no se gastó dinero y no se abrió ninguna
-> puerta.
+> 2026-09-29, rama `filmmaker/core`. Preparado, autorizado por el dueño y **desplegado el 2026-09-29** con la opción A:
+> solo `generateVideo`, sobre la versión que ya corría. El estado exacto está en § 8. No se hizo merge ni push, no se
+> gastó dinero (ningún canary, ninguna llamada real) y no se abrió ninguna puerta.
 
-## 1. Lo que pasa hoy en producción
+## 1. Lo que pasaba en producción (hasta el 2026-09-29)
 
-En producción corre el `generateVideo` del canary del 2026-09-28 (`96b3f7a`, desplegado junto a `shots`,
+En producción corría el `generateVideo` del canary del 2026-09-28 (`96b3f7a`, desplegado junto a `shots`,
 `productions` y `barridoDeLiquidacion`). Acepta dos entradas que la app **no manda nunca**, pero que cualquier cuenta
 autenticada puede mandar llamando a la función a mano (no pide App Check: basta una sesión con Credits):
 
@@ -135,7 +135,7 @@ mismo; `-1` se cotiza con el máximo en 2.0 fast, 2.0 y 2.5; los vídeos de refe
 declarado; los techos son los oficiales; el adaptador estima igual; al proveedor le llega el mismo cuerpo; la puerta
 ya no lee `videoSeconds`. Resultado: 11/11.
 
-## 6. Cómo se desplegaría (no se ha hecho)
+## 6. Cómo se podía desplegar (se eligió la A)
 
 - **A · Recomendada: el arreglo solo.** Una rama desde `96b3f7a` con estos dos archivos, sus pruebas y
   `firebase deploy --only functions:generateVideo --project prod`. Las otras tres funciones del canary se quedan
@@ -151,7 +151,35 @@ canary) y no se hace sin autorización.
 
 - **R18 · la tabla de píxeles del precio.** También está en producción: 1:1 se cotiza un 44 % por debajo de lo que
   factura el proveedor, 4:3 y 3:4 un 25 % por debajo y 21:9 un 31 % por encima. Arreglado en la rama (Fase 33); no va
-  en el parche de arriba. Se puede preparar igual, como un segundo parche sobre `96b3f7a`.
+  en el parche de arriba. Se prepara aparte, como segundo parche aislado, y **no se despliega** sin autorización.
 - **R2 · órdenes dentro del texto** (`--dur`, `--rs`…). La documentación oficial dice que todos los modelos las
   aceptan con validación débil y no dice cuál manda si chocan con las del cuerpo: es un riesgo posible, no
   comprobado. En producción solo se quitan del prompt avanzado de Filmmaker; en la rama, de todo texto (Fase 33).
+
+## 8. Estado del despliegue
+
+Autorizado por el dueño el 2026-09-29 (opción A) y hecho el mismo día.
+
+| | Antes | Después |
+|---|---|---|
+| Código | `96b3f7a` (el del canary del 2026-09-28) | `7f11d51` = `96b3f7a` + este parche, en la rama local `hotfix/r22-generatevideo` (sin push ni merge) |
+| Revisión de `generateVideo` | `generatevideo-00009-vez` (2026-09-28 00:56 UTC) | `generatevideo-00010-qes` (2026-09-29 22:24 UTC), 100 % del tráfico |
+| Paquete del código | — | `gs://gcf-v2-sources-546769059837-us-central1/generateVideo/function-source.zip`, generación `1790720590305877` |
+
+- **Solo `generateVideo`**: `firebase deploy --only functions:generateVideo --project prod` (firebase-tools 15.29.0),
+  desde un worktree en `7f11d51` con el mismo `functions/.env.get-wee` que el canary, copiado solo para el deploy y
+  borrado después. `shots` (`shots-00001-meq`), `productions` (`productions-00001-vuv`) y
+  `barridoDeLiquidacion` (`barridodeliquidacion-00003-tux`) siguen en sus revisiones del 2026-09-28.
+- **La misma configuración**: las mismas variables de entorno y los mismos secretos (comparados por nombre, antes y
+  después), 1024 Mi, 1500 s, nodejs24.
+- **Antes de desplegar**: las 11 comprobaciones (§ 5) contra el código compilado que se iba a subir: 11/11.
+- **Después**: el código desplegado, descargado de su paquete, es idéntico byte a byte al compilado (248 archivos .js;
+  sha256 del conjunto `35a14e6d…`; los dos archivos del parche, iguales a `7f11d51`). Las 11 comprobaciones contra el
+  código desplegado: 11/11. Es decir: una petición normal (duración explícita, sin vídeo de referencia) cuesta
+  exactamente lo mismo que antes, y `-1` y los vídeos de referencia ya no pueden cotizar por debajo del máximo que
+  factura el proveedor. La revisión arrancó a la primera y su registro no tiene avisos ni errores.
+- **Sin gasto y sin puertas**: ningún canary, ninguna llamada real; runtime, render, cancelación, referencias y voces
+  siguen cerradas. Sin merge de `filmmaker/core`; `main` sin tocar.
+
+Volver atrás, si hiciera falta, es otro deploy (y se autoriza aparte): `generateVideo` otra vez desde `96b3f7a`, con el
+mismo procedimiento.
