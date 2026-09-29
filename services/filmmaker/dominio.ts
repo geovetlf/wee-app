@@ -22,3 +22,7 @@ export type {
   MotionSmoothness, MotionSpeed, MovementType, PerspectiveType, ShotType, TransitionType,
 } from './espejo/core/creative';
 export { PROPORCIONES, valorCreativo } from './espejo/core/creative';
+
+/* Fase 24 del motor: los aspectos y las fuerzas de la continuidad, los del Core tal cual. */
+export type { ContinuityAspect, ContinuityStrength } from './espejo/core/continuity';
+export { ASPECTOS_DE_CONTINUIDAD, FUERZAS_DE_CONTINUIDAD } from './espejo/core/continuity';

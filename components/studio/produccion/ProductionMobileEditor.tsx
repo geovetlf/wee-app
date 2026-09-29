@@ -14,6 +14,7 @@ import ProductionBrainBox from './ProductionBrainBox';
 import ProductionExportPanel from './ProductionExportPanel';
 import ProductionSaveState from './ProductionSaveState';
 import ProductionProyecto from './ProductionProyecto';
+import ProductionGuion from './ProductionGuion';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
 import { montajeDe, tramoEn } from '../../../utils/montajeDeProduccion';
@@ -48,6 +49,8 @@ const ProductionMobileEditor: React.FC<{
   const [vista, setVista] = useState<Vista>('montaje');
   const [herramienta, setHerramienta] = useState<Herramienta | null>(null);
   const [cabezal, setCabezal] = useState(0);
+  /* Fase 24 del motor: la historia se ve como storyboard o como guion. */
+  const [historia, setHistoria] = useState<'storyboard' | 'guion'>('storyboard');
   const { produccion, linea, seleccion, onSeleccionar } = espacio;
 
   const montaje = useMemo(() => montajeDe(produccion, linea, {
@@ -73,7 +76,7 @@ const ProductionMobileEditor: React.FC<{
 
   const vistas: readonly { id: Vista; clave: string }[] = [
     { id: 'montaje', clave: 'filmmaker.wsMontage' },
-    { id: 'storyboard', clave: 'filmmaker.storyboard' },
+    { id: 'storyboard', clave: 'filmmaker.wsStory' },
     { id: 'director', clave: 'filmmaker.director' },
     /* Fase 23 del motor: el proyecto, editable, y sus versiones —que en el teléfono no había dónde verlas—. */
     { id: 'proyecto', clave: 'filmmaker.wsProjectTab' },
@@ -145,6 +148,23 @@ const ProductionMobileEditor: React.FC<{
         )}
 
         {vista === 'storyboard' && (
+          <View style={[styles.vistas, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityRole="tablist">
+            {(['storyboard', 'guion'] as const).map((h) => (
+              <TouchableOpacity
+                key={h}
+                onPress={() => setHistoria(h)}
+                style={[styles.vista, historia === h && { backgroundColor: theme.colors.accent }]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: historia === h }}
+                accessibilityLabel={t(h === 'guion' ? 'filmmaker.wsScript' : 'filmmaker.storyboard')}
+              >
+                <Text style={[styles.vistaTexto, { color: historia === h ? '#1F2937' : theme.colors.textSecondary }]}>{t(h === 'guion' ? 'filmmaker.wsScript' : 'filmmaker.storyboard')}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        {vista === 'storyboard' && historia === 'guion' && <ProductionGuion espacio={espacio} />}
+        {vista === 'storyboard' && historia === 'storyboard' && (
           <ProductionStoryboard
             produccion={produccion}
             tarjetas={espacio.tarjetas}
@@ -170,6 +190,7 @@ const ProductionMobileEditor: React.FC<{
             onGesto={espacio.onGesto}
             onRechazar={espacio.onRechazar}
             toma={espacio.toma}
+            historial={espacio.historialDeTomas}
             video={elegido ? espacio.videos.get(elegido.unitId) ?? null : null}
           />
         )}

@@ -2,7 +2,8 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 import { assetsService, type AssetDoc } from './assetsService';
-import type { EstadoDeReserva, RechazoDeToma, ResultadoDeToma, ResultadoDelEnlace } from '../utils/controladorDeToma';
+import { tomaVista } from '../utils/controladorDeToma';
+import type { EstadoDeReserva, RechazoDeToma, ResultadoDeToma, ResultadoDelEnlace, TomaVista } from '../utils/controladorDeToma';
 
 /**
  * WEË FILMMAKER · LO QUE PASA CON UNA TOMA DESPUÉS DE PEDIRLA (F1-D).
@@ -128,6 +129,22 @@ export const tomaService = {
       return { ok: true, valor: r.data.result };
     } catch (error) {
       return { ok: false, rechazo: rechazoDe(error) };
+    }
+  },
+
+  /**
+   * LAS TOMAS DE UNA UNIDAD (Fase 24 del motor): su número, en qué están, sus Credits reservados, cobrados y
+   * devueltos, su vídeo si es suyo y está listo, y si es la que está en el plano. Lo cuenta el servidor de lo guardado
+   * (`shots`, `shot.takes`); de una unidad ajena o inexistente, ninguna. Solo lectura. Si no se puede preguntar, `null`.
+   */
+  tomasDeLaUnidad: async (u: { productionId: string; sceneId: string; unitId: string }): Promise<readonly TomaVista[] | null> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { takes?: unknown }>(functions, 'shots', { timeout: 60_000 });
+      const r = await fn({ op: 'shot.takes', productionId: u.productionId, sceneId: u.sceneId, unitId: u.unitId });
+      const lista = Array.isArray(r.data?.takes) ? r.data.takes : [];
+      return lista.map(tomaVista).filter((x): x is TomaVista => x !== null);
+    } catch {
+      return null;
     }
   },
 

@@ -159,7 +159,7 @@ const ProductionWorkspace: React.FC<{
         </View>
       </View>
 
-      {!!hoja && <ProductionStructureSheet produccion={produccion} que={hoja} onCerrar={() => setHoja(null)} />}
+      {!!hoja && <ProductionStructureSheet espacio={espacio} que={hoja} onCerrar={() => setHoja(null)} />}
       {!!proyecto && (
         <HojaInferior visible titulo={t('filmmaker.wsProjectTab')} onCerrar={() => setProyecto(null)}>
           <ProductionProyecto key={proyecto} espacio={espacio} inicial={proyecto} sinDesplazamiento />

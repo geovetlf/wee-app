@@ -4,6 +4,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import { Seccion } from './ProductionPiezas';
+import ProductionContinuidad from './ProductionContinuidad';
 import type { EspacioDeFilmmaker } from './espacio';
 import { LIMITES, RITMOS, TIPOS_DE_PRODUCCION } from '../../../services/filmmaker/dominio';
 import type { FilmmakerOperation } from '../../../services/filmmaker/dominio';
@@ -160,6 +161,8 @@ export const ProductionDireccion: React.FC<{ espacio: EspacioDeFilmmaker }> = ({
         </View>
       )}
       <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsDirectionNote')}</Text>
+      {/* Fase 24 del motor: lo que tiene que seguir igual en toda la producción. */}
+      <ProductionContinuidad espacio={espacio} nivel="produccion" />
     </View>
   );
 };

@@ -8,6 +8,7 @@ import {
   useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea, nuevoIdDePersonaje, nuevoIdDeLugar, nuevoIdDeObjeto,
 } from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
+import { useTomasDelPlano } from '../hooks/useTomasDelPlano';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import { useMontajeFinal } from '../hooks/useMontajeFinal';
 import { useHistorialDeProduccion } from '../hooks/useHistorialDeProduccion';
@@ -120,6 +121,10 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const editable = esEditable(estado) && !ocupado;
   const hayCambios = hayCambiosSinGuardar(estado);
   const toma = useTomaDePlano(estado.confirmada, hayCambios || !!ocupado, seleccion);
+  /* Fase 24 del motor: las tomas de la unidad elegida. Se vuelven a preguntar cuando la toma en curso cambia de fase. */
+  const faseDeLaToma = toma.fase;
+  const refrescoDeTomas = `${faseDeLaToma.fase}|${'toma' in faseDeLaToma ? faseDeLaToma.toma : ''}|${toma.ultima?.toma ?? ''}|${toma.ultima?.estado ?? ''}`;
+  const historialDeTomas = useTomasDelPlano(estado.confirmada, seleccion, refrescoDeTomas);
   /* El vídeo de cada plano, para su tarjeta. Se vuelve a preguntar cuando la toma del elegido pone uno nuevo. */
   const delStoryboard = useVideosDeLaProduccion(estado.confirmada?.productionId ?? null, toma.enElPlano?.assetId ?? null);
   /*
@@ -216,6 +221,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       idsDeFichas,
       videos,
       toma,
+      historialDeTomas,
       montaje,
       revision: estado.confirmada?.revision ?? null,
       historial,

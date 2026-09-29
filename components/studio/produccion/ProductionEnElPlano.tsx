@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
-import { Chip, Seccion } from './ProductionPiezas';
+import { Aviso, Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { LIMITES, estadoEfectivo, repartoDelPlano } from '../../../services/filmmaker/dominio';
 import type { FilmmakerOperation } from '../../../services/filmmaker/dominio';
@@ -167,7 +167,7 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
                 onCambiar={(id, si) => cambiarLista('referenceIds', referencias, id, si)}
               />
             )}
-          {referencias.size > 0 && <Chip texto={t('filmmaker.wsReferencesBlockTake')} icono="alert-circle-outline" tono="aviso" />}
+          {referencias.size > 0 && <Aviso texto={t('filmmaker.wsReferencesBlockTake')} />}
         </Seccion>
       )}
     </View>

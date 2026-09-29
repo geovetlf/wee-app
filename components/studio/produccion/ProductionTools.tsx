@@ -8,7 +8,7 @@ import ProductionShotGeneration from './ProductionShotGeneration';
 import ProductionRecommendations from './ProductionRecommendations';
 import { BotonPequeno, Seccion } from './ProductionPiezas';
 import { claveDelValor, FAMILIAS_DE_CAMARA } from '../../../constants/camaraCinematica';
-import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, PASO_DE_DURACION_SEC } from '../../../constants/filmmaker';
+import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, PASO_DE_DURACION_SEC, TIPOS_DE_LINEA } from '../../../constants/filmmaker';
 import { CLIMAS, LIMITES, MOMENTOS_DEL_DIA, valorCreativo } from '../../../services/filmmaker/dominio';
 import type { AudioCue, CreativeParameterPath, DialogueLine, FilmmakerOperation, LightingType, MotionSpeed, TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
@@ -39,11 +39,6 @@ const TIPOS_DE_SONIDO: readonly { kind: AudioCue['kind']; clave: string }[] = [
   { kind: 'ambience', clave: 'filmmaker.audioAmbience' },
   { kind: 'music', clave: 'filmmaker.audioMusic' },
   { kind: 'sfx', clave: 'filmmaker.audioSfx' },
-];
-const TIPOS_DE_LINEA: readonly { kind: DialogueLine['kind']; clave: string }[] = [
-  { kind: 'dialogue', clave: 'filmmaker.audioDialogue' },
-  { kind: 'voiceover', clave: 'filmmaker.wsLineVoiceover' },
-  { kind: 'narration', clave: 'filmmaker.audioNarrator' },
 ];
 const MODOS_DE_SUBTITULO: readonly { modo: 'none' | 'burned' | 'sidecar'; clave: string }[] = [
   { modo: 'none', clave: 'filmmaker.wsSubtitlesNone' },
@@ -361,6 +356,7 @@ const ProductionTools: React.FC<{
           {plano || elegido ? (
             <ProductionShotGeneration
               toma={toma}
+              historial={espacio.historialDeTomas}
               tipo={plano ? 'plano' : 'escena'}
               video={elegido ? espacio.videos.get(elegido.unitId) ?? null : null}
               formato={produccion.format.aspectRatio}

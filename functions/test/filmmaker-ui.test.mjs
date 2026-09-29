@@ -138,6 +138,8 @@ const dobles = {
   },
   'expo-av': { Video: ({ accessibilityLabel }) => h('video', { 'aria-label': accessibilityLabel }), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
   '../hooks/useTomaDePlano': { useTomaDePlano: () => ({ fase: { fase: 'sin_unidad', porque: 'nada' }, calidad: null, enElPlano: null, ultima: null, aviso: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} }) },
+  /* Fase 24 del motor: las tomas de la unidad elegida. Sin unidad elegida, nada que preguntar. */
+  '../hooks/useTomasDelPlano': { useTomasDelPlano: () => null },
   '../hooks/useProduccion': { useProduccion: () => usoDeProduccion, nuevoIdDeEscena: () => 'sc_nueva0001', nuevoIdDePlano: () => 'sh_nuevo0001' },
   '../components/creator/CreatorShell': { __esModule: true, default: ({ title, overline, breadcrumb, children }) => { shell.push({ title, overline, breadcrumb }); return h('main', { 'aria-label': title }, children); } },
 };

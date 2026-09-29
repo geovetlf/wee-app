@@ -9,6 +9,8 @@ import ReproductorDeVideo from '../../workspace/ReproductorDeVideo';
 import { CALIDADES_DE_TOMA, calidadDisponible } from '../../../utils/controladorDeToma';
 import type { VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
+import type { HistorialDeTomas } from '../../../hooks/useTomasDelPlano';
+import ProductionTomas from './ProductionTomas';
 import {
   CLAVE_DE_CALIDAD, claveDelFalloDeToma, fraseDeLaCancelacion, fraseDelRechazoDeToma, frasesDeLaEconomia, frasesDeLasCalidades, resolucionVisible,
 } from '../../../utils/mensajesDeFilmmaker';
@@ -56,7 +58,7 @@ export const VerVideoDelPlano: React.FC<{ url: string; poster?: string | null; f
  * El «Generar» de la producción entera, en Acciones, sigue sin estar: esto es
  * una toma de UNA unidad; juntar varias en un vídeo no se hace todavía.
  */
-const ProductionShotGeneration: React.FC<{
+const Generacion: React.FC<{
   toma: TomaDelPlano;
   tipo: 'plano' | 'escena';
   /** El vídeo de la unidad tal como lo tiene el storyboard: de ahí sale su póster, si es el mismo material. */
@@ -270,5 +272,16 @@ const styles = StyleSheet.create({
   cuentas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   cuenta: { fontSize: FONT_SIZE.xs, borderWidth: 1, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 2 },
 });
+
+/**
+ * La toma de la unidad y, debajo, las que ya se hicieron (Fase 24 del motor): lo que se genera ahora y lo que ya se
+ * generó, juntos, en los tres sitios donde se genera —el Director, sus pestañas y «Herramientas IA»—.
+ */
+const ProductionShotGeneration: React.FC<React.ComponentProps<typeof Generacion> & { historial?: HistorialDeTomas | null }> = ({ historial, ...props }) => (
+  <>
+    <Generacion {...props} />
+    <ProductionTomas historial={historial} tipo={props.tipo} formato={props.formato} />
+  </>
+);
 
 export default ProductionShotGeneration;

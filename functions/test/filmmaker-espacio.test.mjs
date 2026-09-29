@@ -685,7 +685,8 @@ console.log('\n── V · El proyecto y lo que hay en el plano, en el escritori
     /const idsDeFichas = useMemo\(\(\) => \(\{ personaje: nuevoIdDePersonaje, lugar: nuevoIdDeLugar, objeto: nuevoIdDeObjeto \}\), \[\]\);/.test(PS) && /\n\s+idsDeFichas,\n/.test(PS)
     && prefijos.every(([n, p]) => new RegExp(`export const nuevoIdDe${n} = \\(\\): string => \`${p}_\\$\\{alAzar\\(12\\)\\}\`;`).test(SV) && M.esId(`${p}_Zx09AbCdEfGh`)));
   const Hoja = cargar('components/studio/produccion/ProductionStructureSheet.tsx').default;
-  const h0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'guion', onCerrar() {} }));
+  /* Reanclada en la Fase 24 del motor: la hoja recibe el espacio, porque el guion ya se edita (`ProductionGuion`). */
+  const h0 = dibujar(hc(Hoja, { espacio: espacioCon(), que: 'guion', onCerrar() {} }));
   check('V6) la hoja de la estructura es ya solo el guion: cada escena, su descripción y sus líneas, con quién las dice', /Ya amanece\./.test(h0.texto) && /Luna/.test(h0.texto) && h0.hojas[0]?.titulo === t('filmmaker.wsScript'));
 }
 

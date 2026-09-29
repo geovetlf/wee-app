@@ -1406,19 +1406,20 @@ por «conectado en la app» lo que solo está en el servidor, o lo que en la app
 
 **En la app y utilizable** (con la puerta abierta para la cuenta, ver abajo): la toma de UN plano —su precio, sus
 calidades, su estado, detenerla y verla en el reproductor—; las versiones y volver a una; Weë Brain dentro del editor;
-el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **46 de las 56 operaciones** de F1-A con un
+el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **48 de las 56 operaciones** de F1-A con un
 control propio: la estructura de escenas y planos, la duración, la cámara entera, el movimiento, la luz, el estilo, el
-clima, el momento del día, el texto, añadir y quitar diálogo, el sonido, el formato y la entrega; y, desde la Fase 23,
-el brief (la intención), la dirección creativa y el ánimo, la transición al plano siguiente, crear, describir, vincular
-y quitar personajes, lugares y objetos, describir y quitar referencias, y en cada plano o escena quién sale, cómo está
-cada uno, qué hay y dónde (`update_scene`, `update_shot`, `set_character_state`, `change_location`).
+clima, el momento del día, el texto, añadir y quitar diálogo, el sonido, el formato y la entrega; desde la Fase 23, el
+brief (la intención), la dirección creativa y el ánimo, la transición al plano siguiente, crear, describir, vincular y
+quitar personajes, lugares y objetos, describir y quitar referencias, y en cada plano o escena quién sale, cómo está
+cada uno, qué hay y dónde (`update_scene`, `update_shot`, `set_character_state`, `change_location`); y desde la Fase
+24, el guion —corregir una línea o cambiar cómo se dice (`change_dialogue`) y para qué sirve cada escena— y la
+continuidad en sus tres niveles (`change_continuity`). Las tomas de cada plano se ven una debajo de otra (Fase 24).
 
 **Hecho en el servidor y todavía sin UX**: varios planos a la vez (Fase 6); la traza de cada toma (Fase 2); y las
-**10 operaciones sin control propio** —añadir una referencia (`add_reference`), sustituir un personaje o una
-referencia (`replace_character`, `replace_reference`), cambiar una línea ya escrita (`change_dialogue`), la
-continuidad (`change_continuity`), el sujeto (`change_subject`), mover un plano a otra escena (`move_shot`), la calidad
-de generación (`change_generation`), el plan de montaje (`change_edit_plan`) y renombrar la producción
-(`rename_production`)—: llegan solo si Weë Brain las propone o aceptando una recomendación.
+**8 operaciones sin control propio** —añadir una referencia (`add_reference`), sustituir un personaje o una
+referencia (`replace_character`, `replace_reference`), el sujeto (`change_subject`), mover un plano a otra escena
+(`move_shot`), la calidad de generación (`change_generation`), el plan de montaje (`change_edit_plan`) y renombrar la
+producción (`rename_production`)—: llegan solo si Weë Brain las propone o aceptando una recomendación.
 
 **Hecho, conectado y detrás de una puerta CERRADA por defecto** (se abre por cuenta en `aiSettings`; en producción
 no hay ninguna abierta): la toma (`aiSettings/runtime`); y el render del montaje con FFmpeg propio, los pósters y
@@ -1550,6 +1551,48 @@ miraba una ficha ya vinculada, y ahora mira también la que no lo está. La guar
 omite desde que esa fase está commiteada: lo que protege ya está en la historia. `i18n-preferencia-usuario`: 3 270 →
 3 355 claves en pt, con su porqué.
 
+### Fase 24 · La historia: el guion editable, la continuidad por niveles y las tomas de cada plano
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fase F): historia → escenas → planos → tomas, y la
+continuidad como un sistema de estado. Nada nuevo por detrás: operaciones de F1-A que ya existían y una lectura que el
+servidor ya daba (`shot.takes`, Fase 2). Ni una Function, ni una regla, ni F1-A tocados.
+
+- **El guion** (`ProductionGuion`, en la hoja «Guion» del escritorio y en «Historia» del teléfono, que ahora trae el
+  storyboard y el guion): para qué sirve cada escena en el relato (`update_scene`, `narrativePurpose`: gancho,
+  planteamiento, desarrollo, giro, clímax, desenlace, revelación, transición, llamada a la acción) y sus líneas —qué
+  dicen, quién y cómo: a cámara, en off o narradas—, que se corrigen, cambian de forma o se quitan (`change_dialogue`,
+  `remove_dialogue`); pasarla a narración quita quién la dice, como exige F1-A, y de la narración a una voz no se pasa
+  aquí porque hace falta elegir quién (eso se hace en «Texto»). Ir al plano de una línea lo elige.
+- **La verdad sobre generar**: una línea A CÁMARA impide hoy generar su plano (F1-D, `dialogue_not_supported`: el
+  vídeo todavía no sincroniza voces; requiere validación). Se avisa en la línea, antes de generar, y pasarla a voz en
+  off lo deja generar; la suite lo comprueba contra `evaluarPlano` de F1-D, no contra un texto.
+  Ese aviso, como el de las referencias en un plano (Fase 23), se lee ENTERO: es un `Aviso` que se parte en líneas, no
+  una etiqueta cortada a una (en una pantalla estrecha, el aviso cortado no avisaba).
+- **La continuidad** (`ProductionContinuidad` + `utils/continuidadEditable.ts`): qué tiene que seguir igual —diez
+  aspectos del Core en palabras de todos los días: la cara, el peinado, la ropa, dónde está cada uno, cómo están los
+  objetos, el lugar, la luz, la hora del día, el estilo y seguir del plano anterior— y con cuánta fuerza, en la
+  producción (en «Dirección»), en una escena o en un plano (en sus propiedades y en «Ajustes»). Manda el nivel más
+  cercano, aspecto por aspecto, como en `continuidadEfectiva`: lo heredado se ve marcado y se dice «heredado»; dejar
+  que algo heredado cambie aquí se escribe como `mayChange` (el silencio no es permiso); el Core exige conservar al
+  menos una cosa, y si un gesto lo rompería se dice y no se manda nada; «Usar lo de la escena / de la producción»
+  vuelve a heredar; los anclajes, las relaciones y la fuerza que una regla ya traía se conservan; y lo que se conserva
+  y no se ofrece aquí se cuenta. Lo que se conserva viaja a cada toma: F1-D lo pone en el texto del plano.
+- **Las tomas de cada plano** (`ProductionTomas` + `hooks/useTomasDelPlano.ts` + `tomaService.tomasDeLaUnidad`),
+  debajo de la toma en los tres sitios donde se genera: cuántas, en qué están, lo cobrado y lo devuelto, cuál está en
+  el plano, y su vídeo dentro de Weë. Se preguntan al elegir la unidad y cuando la toma en curso cambia de fase, nunca
+  cada tanto. Solo lectura.
+
+**Bloqueado por contrato (no se hace, se dice):** volver a una toma anterior. `enlazarToma` (F1-D) no pone una toma
+si ya hay otra más nueva lista (`take_superseded`); la app lo dice («el plano usa siempre su última toma lista; las
+anteriores siguen en Mis creaciones»). Cambiarlo es cambiar ese contrato, y queda pedido en el informe de la auditoría.
+El estado de un personaje por plano sigue siendo vestuario y apariencia en palabras (F1-A no tiene emoción ni posición
+estructuradas), y la de un objeto o un lugar por plano no existe en F1-A: se describe con acciones.
+
+Vallas reancladas: `filmmaker-espacio` V6 (la hoja del guion recibe el espacio) y, por nombre, `filmmaker-arreglos` X6
+(que ya CALCULA el recuento de operaciones con control: 48 de 56).
+
+Pruebas: `functions/test/filmmaker-historia.test.mjs` (en la cadena), que aplica cada gesto con F1-A de verdad sobre
+una producción viva y pregunta a F1-D lo que diría de generar.
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

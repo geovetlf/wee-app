@@ -44,6 +44,26 @@ export const Chip: React.FC<{ texto: string; icono?: string; tono?: Tono }> = ({
   );
 };
 
+/**
+ * UN AVISO QUE SE LEE ENTERO (Fase 24 del motor). Lo que hoy impide generar algo —un diálogo a cámara, una
+ * referencia en el plano— se dice completo, en las líneas que haga falta: una etiqueta (`Chip`) corta a una línea, y
+ * un aviso cortado a la mitad no avisa.
+ */
+export const Aviso: React.FC<{ texto: string; icono?: string; tono?: Tono }> = ({ texto, icono = 'alert-circle-outline', tono = 'aviso' }) => {
+  const { theme } = useTheme();
+  const color = tono === 'error' ? theme.colors.error
+    : tono === 'ok' ? theme.colors.success
+      : tono === 'acento' ? theme.colors.accentDark
+        : tono === 'neutro' ? theme.colors.textSecondary
+          : theme.colors.warning;
+  return (
+    <View style={[styles.aviso, { borderColor: color, backgroundColor: theme.colors.surface }]}>
+      <Ionicons name={icono as any} size={scale(14)} color={color} style={styles.avisoIcono} />
+      <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{texto}</Text>
+    </View>
+  );
+};
+
 export const BotonPequeno: React.FC<{
   icono: string;
   etiqueta: string;
@@ -86,6 +106,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm, paddingVertical: scale(3), alignSelf: 'flex-start', maxWidth: '100%',
   },
   chipTexto: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any, flexShrink: 1 },
+  aviso: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.xs, borderWidth: 1, borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, alignSelf: 'stretch',
+  },
+  avisoIcono: { marginTop: 1 },
+  avisoTexto: { flex: 1, fontSize: FONT_SIZE.xs, lineHeight: FONT_SIZE.xs * 1.45, fontWeight: FONT_WEIGHT.medium as any },
   boton: {
     minWidth: 36, minHeight: 36, borderRadius: BORDER_RADIUS.full, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     flexDirection: 'row', gap: SPACING.xs,

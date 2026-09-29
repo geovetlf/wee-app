@@ -1,4 +1,8 @@
-import type { FormatPresetId, ObjectKind, OperationName, Pacing, ProductionType, ReferenceRole, SubjectFocus, TimeOfDay, TransitionType, Weather } from '../services/filmmaker/dominio';
+import type {
+  ContinuityAspect, ContinuityStrength, DialogueLine, FormatPresetId, NarrativePurpose, ObjectKind, OperationName, Pacing, ProductionType, ReferenceRole,
+  SubjectFocus, TimeOfDay, TransitionType, Weather,
+} from '../services/filmmaker/dominio';
+import type { EnlaceDeTomaVista, EstadoDeTomaVista } from '../utils/controladorDeToma';
 
 /**
  * WEË FILMMAKER · LO QUE LA PANTALLA DE PRODUCCIÓN ENSEÑA, COMO CLAVES (F1-C).
@@ -279,4 +283,72 @@ export const CLAVE_DE_TRANSICION: Readonly<Record<TransitionType, string>> = Obj
   match_cut: 'filmmaker.transitionMatchCut',
   whip: 'filmmaker.transitionWhip',
   seamless: 'filmmaker.transitionSeamless',
+});
+
+/* ── Fase 24 del motor · la historia, la continuidad y las tomas: las claves de lo que se lee ─── */
+
+/** Para qué sirve cada escena en el relato (`narrativePurpose` de F1-A). */
+export const CLAVE_DEL_PROPOSITO: Readonly<Record<NarrativePurpose, string>> = Object.freeze({
+  hook: 'filmmaker.purposeHook',
+  setup: 'filmmaker.purposeSetup',
+  development: 'filmmaker.purposeDevelopment',
+  turning_point: 'filmmaker.purposeTurningPoint',
+  climax: 'filmmaker.purposeClimax',
+  resolution: 'filmmaker.purposeResolution',
+  reveal: 'filmmaker.purposeReveal',
+  transition: 'filmmaker.purposeTransition',
+  call_to_action: 'filmmaker.purposeCallToAction',
+});
+
+/** Cómo se dice una línea —a cámara, en off o narrada—, con la clave de su nombre. Los valores son los de F1-A. */
+export const TIPOS_DE_LINEA: readonly { kind: DialogueLine['kind']; clave: string }[] = Object.freeze([
+  { kind: 'dialogue', clave: 'filmmaker.audioDialogue' },
+  { kind: 'voiceover', clave: 'filmmaker.wsLineVoiceover' },
+  { kind: 'narration', clave: 'filmmaker.audioNarrator' },
+]);
+
+/**
+ * LO QUE SE PUEDE PEDIR QUE SIGA IGUAL, en palabras de todos los días: diez aspectos del Core de los ochenta y tantos
+ * que tiene, elegidos porque se entienden sin aprender nada. Los valores son los del Core y viajan tal cual; los que
+ * no están aquí se respetan si una regla ya los trae (se dice que hay más), pero no se ofrecen.
+ */
+export const ASPECTOS_DE_CONTINUIDAD_VISIBLES: readonly { aspecto: ContinuityAspect; clave: string }[] = Object.freeze([
+  { aspecto: 'identity.face', clave: 'filmmaker.contFace' },
+  { aspecto: 'appearance.hairstyle', clave: 'filmmaker.contHair' },
+  { aspecto: 'outfit.complete', clave: 'filmmaker.contOutfit' },
+  { aspecto: 'pose.position', clave: 'filmmaker.contPosition' },
+  { aspecto: 'object.state', clave: 'filmmaker.contObjects' },
+  { aspecto: 'environment.location', clave: 'filmmaker.contPlace' },
+  { aspecto: 'lighting.type', clave: 'filmmaker.contLight' },
+  { aspecto: 'lighting.timeOfDay', clave: 'filmmaker.contTimeOfDay' },
+  { aspecto: 'style.visual', clave: 'filmmaker.contStyle' },
+  { aspecto: 'temporal.previousShot', clave: 'filmmaker.contPreviousShot' },
+]);
+
+/** Las tres fuerzas del Core, de la más suelta a la más estricta. */
+export const FUERZAS_VISIBLES: readonly { fuerza: ContinuityStrength; clave: string }[] = Object.freeze([
+  { fuerza: 'relaxed', clave: 'filmmaker.contRelaxed' },
+  { fuerza: 'standard', clave: 'filmmaker.contStandard' },
+  { fuerza: 'strict', clave: 'filmmaker.contStrict' },
+]);
+
+/** En qué está una toma, en palabras (`shot.takes`). */
+export const CLAVE_DEL_ESTADO_DE_TOMA: Readonly<Record<EstadoDeTomaVista, string>> = Object.freeze({
+  queued: 'filmmaker.wsTakeStateQueued',
+  preparing: 'filmmaker.wsTakeStatePreparing',
+  accepted: 'filmmaker.wsTakeStateAccepted',
+  processing: 'filmmaker.wsTakeStateProcessing',
+  completed: 'filmmaker.wsTakeStateCompleted',
+  failed: 'filmmaker.wsTakeStateFailed',
+  refunded: 'filmmaker.wsTakeStateRefunded',
+  reconciling: 'filmmaker.wsTakeStateReconciling',
+});
+
+/** Dónde está una toma respecto a su plano. Sin nada que decir (`none`), no se dice nada. */
+export const CLAVE_DEL_ENLACE_DE_TOMA: Readonly<Record<EnlaceDeTomaVista, string | null>> = Object.freeze({
+  linked: 'filmmaker.wsTakeLinkLinked',
+  pending: 'filmmaker.wsTakeLinkPending',
+  superseded: 'filmmaker.wsTakeLinkSuperseded',
+  stale: 'filmmaker.wsTakeLinkStale',
+  none: null,
 });

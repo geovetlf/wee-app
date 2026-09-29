@@ -42,6 +42,46 @@ export const CALIDADES_DE_TOMA: readonly CalidadDeToma[] = Object.freeze(['stand
 /** El estado de la reserva de Credits de una toma, tal como la escribe el Credit Engine. */
 export type EstadoDeReserva = 'PENDING' | 'AUTHORIZED' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 
+/* ── Las tomas de una unidad, como las cuenta el servidor (Fase 24 del motor; `shots`, `shot.takes`) ─── */
+
+/** En qué está una toma: los estados de la Fase 2, tal cual. */
+export const ESTADOS_DE_TOMA_VISTA = Object.freeze(['queued', 'preparing', 'accepted', 'processing', 'completed', 'failed', 'refunded', 'reconciling'] as const);
+export type EstadoDeTomaVista = typeof ESTADOS_DE_TOMA_VISTA[number];
+/** Si es la que está en su plano, la que la sustituyó otra más nueva, la de un plano que cambió… */
+export const ENLACES_DE_TOMA_VISTA = Object.freeze(['linked', 'pending', 'superseded', 'stale', 'none'] as const);
+export type EnlaceDeTomaVista = typeof ENLACES_DE_TOMA_VISTA[number];
+
+export interface TomaVista {
+  readonly take: number;
+  readonly requestId: string;
+  readonly state: EstadoDeTomaVista;
+  readonly credits: { readonly reserved: number; readonly charged: number; readonly refunded: number };
+  /** Su vídeo, si es suyo y está listo. */
+  readonly assetId?: string;
+  readonly link: EnlaceDeTomaVista;
+}
+
+const numeroNoNegativo = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
+
+/** Lo que se acepta de una toma que cuenta el servidor. Con un estado o un enlace que no se conoce, no se enseña. */
+export const tomaVista = (x: unknown): TomaVista | null => {
+  if (typeof x !== 'object' || x === null) return null;
+  const o = x as Record<string, unknown>;
+  if (typeof o.take !== 'number' || !Number.isInteger(o.take) || o.take < 1) return null;
+  if (typeof o.requestId !== 'string' || !o.requestId) return null;
+  if (!(ESTADOS_DE_TOMA_VISTA as readonly unknown[]).includes(o.state)) return null;
+  if (!(ENLACES_DE_TOMA_VISTA as readonly unknown[]).includes(o.link)) return null;
+  const c = (typeof o.credits === 'object' && o.credits !== null ? o.credits : {}) as Record<string, unknown>;
+  return {
+    take: o.take,
+    requestId: o.requestId,
+    state: o.state as EstadoDeTomaVista,
+    credits: { reserved: numeroNoNegativo(c.reserved), charged: numeroNoNegativo(c.charged), refunded: numeroNoNegativo(c.refunded) },
+    ...(typeof o.assetId === 'string' && o.assetId ? { assetId: o.assetId } : {}),
+    link: o.link as EnlaceDeTomaVista,
+  };
+};
+
 /**
  * LO QUE LA TOMA HA MOVIDO DE CREDITS, en los tres números que la persona tiene
  * que poder leer siempre: cuánto se reservó, cuánto se cobró y cuánto se devolvió.

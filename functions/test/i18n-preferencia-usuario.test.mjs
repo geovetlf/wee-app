@@ -586,8 +586,14 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * nadie usaba (`notEditableYet`, `wsStructureLinkable`, `wsIdea`, `wsReferencesTab`,
    * `wsNoCharactersInShot`, `wsNoLocation`, `wsNoLocations`, `wsReferencesReadOnly`), en los once
    * diccionarios a la vez.
+   * 3 355 → 3 425 con la Fase 24 (la historia: el guion editable, la continuidad por niveles y
+   * las tomas de cada plano): entran setenta y una claves —para qué sirve cada escena
+   * (`wsScenePurpose`, `purpose*`), las líneas del guion (`wsLine*`, `wsEditLine`, `wsGoToShot`,
+   * `wsScriptAddHint`, `wsSceneNoLines`), la continuidad (`wsContinuity*`, `cont*`), las tomas de
+   * cada plano (`wsTakes*`, `wsTake*`) y la vista «Historia» (`wsStory`)— y sale una que ya nadie
+   * usaba (`wsScriptReadHint`), en los once diccionarios a la vez.
    */
-  const CLAVES_PT = 3355;
+  const CLAVES_PT = 3425;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

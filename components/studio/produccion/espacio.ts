@@ -9,6 +9,7 @@ import type { FalloDeProducciones } from '../../../services/filmmakerService';
 import type { Ocupado, ResultadoDeGesto, ResultadoDePropuesta } from '../../../utils/controladorDeProduccion';
 import type { CalidadesDeToma, VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
+import type { HistorialDeTomas } from '../../../hooks/useTomasDelPlano';
 import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
 import type { HistorialDeProduccion } from '../../../hooks/useHistorialDeProduccion';
 import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
@@ -44,6 +45,8 @@ export interface EspacioDeFilmmaker {
   readonly idsDeFichas?: { readonly personaje: () => string; readonly lugar: () => string; readonly objeto: () => string };
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
+  /** Fase 24 · las tomas de la unidad elegida, como las cuenta el servidor. Solo lectura. */
+  readonly historialDeTomas?: HistorialDeTomas | null;
   /** El montaje final de la revisión guardada y su publicación (Fase 14 del motor). */
   readonly montaje: MontajeDeLaProduccion;
   /** Fase 20 · la revisión GUARDADA: con ella se sabe si una propuesta de Weë Brain sigue valiendo. */

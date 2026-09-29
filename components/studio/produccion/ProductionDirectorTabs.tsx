@@ -123,6 +123,7 @@ const ProductionDirectorTabs: React.FC<{
       {!!elegido && (
         <ProductionShotGeneration
           toma={toma}
+          historial={espacio.historialDeTomas}
           tipo={seleccion?.tipo === 'escena' ? 'escena' : 'plano'}
           video={espacio.videos.get(elegido.unitId) ?? null}
           formato={produccion.format.aspectRatio}

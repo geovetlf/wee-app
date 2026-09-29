@@ -4,6 +4,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import ProductionInspector from './ProductionInspector';
 import ProductionEnElPlano from './ProductionEnElPlano';
+import ProductionContinuidad from './ProductionContinuidad';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import { useSegundos } from './ProductionDurationSummary';
 import { claveDelValor } from '../../../constants/camaraCinematica';
@@ -108,6 +109,8 @@ const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?:
       <ProductionInspector produccion={produccion} seleccion={seleccion} editable={editable} onGesto={onGesto} />
       {/* Fase 23 del motor: quién sale, cómo está, qué hay, dónde y con qué referencias, editable. */}
       <ProductionEnElPlano espacio={espacio} />
+      {/* Fase 24 del motor: qué tiene que seguir igual aquí, y con cuánta fuerza. */}
+      <ProductionContinuidad espacio={espacio} />
       {!!plano?.advanced?.prompt && <PromptAvanzado texto={plano.advanced.prompt} />}
     </Marco>
   );
