@@ -151,7 +151,8 @@ canary) y no se hace sin autorización.
 
 - **R18 · la tabla de píxeles del precio.** También está en producción: 1:1 se cotiza un 44 % por debajo de lo que
   factura el proveedor, 4:3 y 3:4 un 25 % por debajo y 21:9 un 31 % por encima. Arreglado en la rama (Fase 33); no va
-  en el parche de arriba. Se prepara aparte, como segundo parche aislado, y **no se despliega** sin autorización.
+  en el parche de arriba. Preparado aparte, como segundo parche aislado, y **sin desplegar** hasta que se autorice:
+  `docs/FILMMAKER-R18-TABLA-DE-PIXELES.md`.
 - **R2 · órdenes dentro del texto** (`--dur`, `--rs`…). La documentación oficial dice que todos los modelos las
   aceptan con validación débil y no dice cuál manda si chocan con las del cuerpo: es un riesgo posible, no
   comprobado. En producción solo se quitan del prompt avanzado de Filmmaker; en la rama, de todo texto (Fase 33).

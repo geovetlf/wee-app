@@ -112,7 +112,7 @@ código: si el código cambia y la tabla no, falla.
 | R8 | contrato | Techo de 1 000 revisiones por producción (F1-B) |
 | R9 | decisión | Wäll hasta 600 s frente a Weëls de 15 s: decisión de producto |
 | R15 | cerrado (Fase 33) | La toma decía «se están devolviendo» con el dinero en reconciliación; ahora dice que se está comprobando, con la misma decisión que su estado y su liquidación |
-| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial (en producción sigue la tabla de antes: su parche, aislado, espera autorización) |
+| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial (en producción sigue la tabla de antes: su parche aislado, preparado y comprobado, espera autorización: `docs/FILMMAKER-R18-TABLA-DE-PIXELES.md`) |
 | R19 | cerrado (Fase 33) | Editar y extender en Seedance 2.5 exigen `adaptive` y el engine no la mandaba; el tipo de tarea iba a modelos que no lo tienen |
 | R20 | cerrado (Fase 33) | Vídeo y audio de referencia compartían un cupo; en 2.0 se dejaba pasar solo audio |
 | R21 | se queda | Semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño y no se prometen |
@@ -604,6 +604,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 |---|---|---|
 | Los seis contratos: fotogramas y referencias; editar y extender; restaurar una toma anterior; voz del personaje; estado estructurado; labios sincronizados | Cambian contratos cerrados (F1-A / F1-D / voz) | C50, X18, C51, C52, N31, C59, C60, C28, C30, N11 |
 | R22: desplegar el arreglo del precio de `generateVideo` | **Hecho el 2026-09-29, autorizado (opción A):** solo `generateVideo`, revisión `generatevideo-00010-qes`, el arreglo `7f11d51` sobre `96b3f7a` (`docs/FILMMAKER-R22-GENERATEVIDEO.md`, § 8). Era un deploy: el `generateVideo` de producción (el del canary, `96b3f7a`) cotiza `durationSec: -1` como 5 s y se fía de los segundos de vídeo de referencia que declare quien llama; la app no manda ninguna de las dos cosas, pero una llamada hecha a mano pagaría menos de lo que factura el proveedor. Arreglado en la rama (Fase 33); el arreglo mínimo sobre lo desplegado, preparado y comprobado, con lo que cambia, el contrato y el riesgo: `docs/FILMMAKER-R22-GENERATEVIDEO.md` | — |
+| R18: desplegar el parche de la tabla de píxeles del precio de `generateVideo` | Es un deploy: en producción, 1:1 se cotiza un 43,75 % por debajo de lo que factura el proveedor, 4:3 y 3:4 un 25-27 %, la serie 2.0 a 480p un 4,35 %, y 21:9 un 25-31 % por encima. Parche aislado (sin R22), preparado y comprobado: `docs/FILMMAKER-R18-TABLA-DE-PIXELES.md` | — |
 | R3 (trabajos de toma huérfanos) y R4 (inanición de la reconciliación) | Tocan el runtime cerrado de la Fase 12-D y el barrido desplegado | — |
 | R5 (firma de la toma) y R8 (techo de 1 000 revisiones) | Contratos F1-D y F1-B | — |
 | R9: cuánto dura un vídeo en el Wäll | Decisión de producto (hoy 600 s; los Weëls, 15 s) | C64 |
