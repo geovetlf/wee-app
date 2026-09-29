@@ -1776,6 +1776,35 @@ cada control nuevo aplicado con el F1-A del servidor hasta el texto de la toma, 
 ni una llamada por fuera, y las guardas. Reancladas: `filmmaker-arreglos` X6 (el recuento de operaciones con control, 54
 de 56, calculado del código) e `i18n-preferencia-usuario` (el recuento del portugués).
 
+### Fase 32 · La matriz maestra de capacidades
+
+Encargo del usuario (2026-09-29, «Continuación oficial — Filmmaker Engine / Weë Studio, Fase 32 en adelante»): cerrar
+el motor y convertir Weë Studio en el workplace audiovisual completo, con una regla —si una capacidad existe en el engine
+o en un adaptador, la persona tiene un camino real para usarla; si todavía no puede, aparece en su sitio natural,
+cerrada y con el porqué— y sin gastar, sin canaries, sin abrir puertas y sin tocar contratos cerrados. Esta fase es el
+análisis y la matriz: [FILMMAKER-CAPABILITY-MASTER.md](FILMMAKER-CAPABILITY-MASTER.md), la fuente única de las fases 32 a
+40. No cambia código de la app ni de `functions/src`.
+
+- **Tres pasadas**: la matriz de 96 de la Fase 31, una segunda lectura capa a capa (la plantilla del texto de la toma,
+  el requisito de F1-A, el adaptador de Seedance, el montaje y la publicación) y una investigación externa de solo
+  capacidades —la documentación oficial de Seedance en BytePlus ModelArk, Higgsfield, OiiOii y los demás motores—, cada
+  hallazgo con su clase, su WORKPLACE y su CONTROL.
+- **147 filas** en ocho estados (A usable 59 · B UX 16 · C sin efecto 2 · D adaptador 8 · E canary 3 · F contrato 26 · G
+  no existe 23 · H excluida a propósito 10); el mapa del workplace pedido, sitio a sitio; y el plan de las fases 33–40.
+- **Contra la documentación oficial de Seedance** salen cuatro riesgos nuevos: **R18** (la tabla de píxeles del precio
+  solo acierta en 16:9 y 9:16: 1:1 se estima un 44 % por debajo del coste, 4:3 y 3:4 un 25 % y 21:9 un 31 % por encima),
+  **R19** (editar y extender en 2.5 exigen `adaptive`, que el engine no manda), **R20** (cupos de referencias de vídeo y
+  audio mezclados) y **R21** (semilla y cámara fija, que la API solo documenta en 1.x). Y dos capacidades que el
+  adaptador no pide: el último fotograma de la toma (`return_last_frame`, para continuar el plano siguiente) y el
+  borrador de 2.5 (`draft`).
+- **El documento no puede mentir**: la tabla de riesgos y cada B que dice «falta» se comprueban contra el código; si
+  alguien arregla un riesgo o construye un sitio sin cambiar la matriz, la suite cae.
+
+Pruebas: `functions/test/filmmaker-capability-master.test.mjs` (en la cadena): la matriz (columnas, ids, estados,
+resumen, reglas de cada estado, las 96 de la Fase 31 con su categoría, ningún proveedor fuera de Weë), los riesgos
+contra el adaptador compilado y sin red, lo que se dice de Seedance y de F1-A, el workplace, la investigación y las
+guardas.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
