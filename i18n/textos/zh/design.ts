@@ -96,10 +96,4 @@ export const design: typeof import('../es/design').design = {
   valWarm: '暖光',
   /* «De estudio» es la luz de un plató, no Weë Studio: por eso 影棚光, sin la marca. */
   valStudioLight: '影棚光',
-
-  /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
-  kindInterior: '室内',
-  kindArchitecture: '建筑',
-  kindBoat: '船',
-  kindFurniture: '家具',
 };

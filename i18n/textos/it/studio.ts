@@ -208,16 +208,8 @@ export const studio: typeof import('../es/studio').studio = {
   creationsTitle: 'Le mie creazioni',
   seeAll: 'Vedi tutte',
   creationsEmpty: 'Quello che crei apparirà qui',
-  kindImage: 'Immagine',
-  kindVideo: 'Video',
-  kindAudio: 'Audio',
-  kindDocument: 'Documento',
-  creationOptions: 'Opzioni di questa creazione',
 
   /* ── El estado de una creación ────────────────────────────────────────── */
-  creating: 'Creazione in corso...',
-  ready: 'Creazione pronta',
-  readyHint: 'Questa è una dimostrazione: non è ancora stato generato nulla davvero.',
   dismiss: 'Ho capito',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
@@ -348,4 +340,7 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë non compone ancora musica. Manca quello, non il video.",
   pendCompose: "Weë non sa ancora unire più scene in un solo video.",
   pendTwoRefs: "Oggi Weë porta una sola immagine di riferimento, e qui ne servono due.",
+
+  /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
+  settingInWords: '{{ajuste}}: {{valor}}',
 };

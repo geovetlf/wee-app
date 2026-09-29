@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -132,7 +132,19 @@ const BrainChatScreen: React.FC = () => {
   const chat = useBrainChat();
 
   const wallet = useWallet();
-  const [draft, setDraft] = useState('');
+  /*
+   * LO QUE OTRA CAJA NO SUPO A DÓNDE LLEVAR (Fase 28 del motor, §25). Weë Studio
+   * manda aquí lo que no encaja en ninguna de sus puertas: llega ESCRITO en la
+   * caja y no se envía solo —enviar es de la persona, con el precio a la vista—.
+   * Si ya se estaba aquí, lo nuevo sustituye al borrador.
+   */
+  const route = useRoute<any>();
+  const borrador: string | undefined =
+    typeof route.params?.borrador === 'string' && route.params.borrador.trim() ? route.params.borrador : undefined;
+  const [draft, setDraft] = useState(borrador ?? '');
+  useEffect(() => {
+    if (borrador) setDraft(borrador);
+  }, [borrador]);
   const [attachment, setAttachment] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);

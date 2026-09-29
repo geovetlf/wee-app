@@ -93,10 +93,4 @@ export const design = {
   valNatural: 'Natural',
   valWarm: 'Cálida',
   valStudioLight: 'De estudio',
-
-  /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
-  kindInterior: 'Interior',
-  kindArchitecture: 'Arquitectura',
-  kindBoat: 'Barco',
-  kindFurniture: 'Mobiliario',
 };

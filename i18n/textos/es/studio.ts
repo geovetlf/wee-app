@@ -213,16 +213,8 @@ export const studio = {
   creationsTitle: 'Mis creaciones',
   seeAll: 'Ver todas',
   creationsEmpty: 'Lo que crees aparecerá aquí',
-  kindImage: 'Imagen',
-  kindVideo: 'Video',
-  kindAudio: 'Audio',
-  kindDocument: 'Documento',
-  creationOptions: 'Opciones de esta creación',
 
   /* ── El estado de una creación ────────────────────────────────────────── */
-  creating: 'Creando...',
-  ready: 'Creación lista',
-  readyHint: 'Esto es una demostración: todavía no hay nada generado de verdad.',
   dismiss: 'Entendido',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
@@ -353,4 +345,7 @@ export const studio = {
   pendMusic: "Weë todavía no compone música. Falta esa pieza, no el vídeo.",
   pendCompose: "Weë todavía no sabe unir varias escenas en un solo vídeo.",
   pendTwoRefs: "Hoy Weë solo puede llevar una imagen de referencia, y esto necesita dos.",
+
+  /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
+  settingInWords: '{{ajuste}}: {{valor}}',
 };

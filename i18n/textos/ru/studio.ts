@@ -226,16 +226,8 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   creationsTitle: 'Мои работы',
   seeAll: 'Показать все',
   creationsEmpty: 'Здесь появится всё, что вы создадите',
-  kindImage: 'Изображение',
-  kindVideo: 'Видео',
-  kindAudio: 'Аудио',
-  kindDocument: 'Документ',
-  creationOptions: 'Действия с этой работой',
 
   /* ── El estado de una creación ────────────────────────────────────────── */
-  creating: 'Создаём...',
-  ready: 'Работа готова',
-  readyHint: 'Это демонстрация: пока ничего не создаётся по-настоящему.',
   dismiss: 'Понятно',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
@@ -366,4 +358,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   pendMusic: "Weë пока не сочиняет музыку. Не хватает именно её, а не видео.",
   pendCompose: "Weë пока не умеет соединять несколько сцен в одно видео.",
   pendTwoRefs: "Сейчас Weë переносит только один референс, а здесь нужны два.",
+
+  /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
+  settingInWords: '{{ajuste}}: {{valor}}',
 };

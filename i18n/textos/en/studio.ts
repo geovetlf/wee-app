@@ -206,16 +206,8 @@ export const studio: typeof import('../es/studio').studio = {
   creationsTitle: 'My creations',
   seeAll: 'See all',
   creationsEmpty: 'What you make will show up here',
-  kindImage: 'Image',
-  kindVideo: 'Video',
-  kindAudio: 'Audio',
-  kindDocument: 'Document',
-  creationOptions: 'Options for this creation',
 
   /* ── El estado de una creación ────────────────────────────────────────── */
-  creating: 'Creating...',
-  ready: 'Your creation is ready',
-  readyHint: 'This is a demo: nothing has actually been generated yet.',
   dismiss: 'Got it',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
@@ -346,4 +338,7 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë can’t compose music yet. That’s the missing piece, not the video.",
   pendCompose: "Weë can’t stitch several scenes into one video yet.",
   pendTwoRefs: "Weë can carry only one reference image today, and this needs two.",
+
+  /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
+  settingInWords: '{{ajuste}}: {{valor}}',
 };

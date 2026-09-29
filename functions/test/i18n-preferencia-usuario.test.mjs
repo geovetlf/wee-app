@@ -608,8 +608,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * `cap*`), editar y extender un vídeo y la voz de Weë, cerrados y dichos (`wsEditVideo`,
    * `wsExtendVideo`, `wsEditExtendClosed`, `wsVoiceChoose`, `wsVoiceCatalogClosed`) y que el último
    * plano no da paso a ninguno (`wsTransitionLastShot`)—, en los once a la vez.
+   * 3 464 → 3 453 con la Fase 28 (Weë Studio y Weë Design, sin simulacros): entra una —lo
+   * elegido en los ajustes, dicho con palabras (`studio.settingInWords`)— y salen doce que solo
+   * describían lo simulado: el aviso de la creación de mentira (`studio.creating`, `studio.ready`,
+   * `studio.readyHint`), las etiquetas y el ⋯ de las creaciones de muestra (`studio.kind*`,
+   * `studio.creationOptions`) y las clases de los diseños de muestra (`design.kind*`), en los once.
    */
-  const CLAVES_PT = 3464;
+  const CLAVES_PT = 3453;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

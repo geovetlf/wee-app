@@ -149,8 +149,9 @@ console.log('\n─── D. El texto de la persona no se destruye ───');
  * TAL CUAL, y detrás con qué. Lo suyo no se recorta, no se reescribe y no se
  * mete dentro de otra cosa.
  */
+/* Reanclada en la Fase 28 del motor: detrás van también los ajustes elegidos, dichos con palabras (`conAjustes`). */
 check('lo escrito viaja entero, en medio de lo demás',
-  /\[nombre \? `\$\{nombre\}:` : '', texto, conPalabras \? `· \$\{conPalabras\}` : ''\]/.test(studio));
+  /\[nombre \? `\$\{nombre\}:` : '', texto, conPalabras \? `· \$\{conPalabras\}` : '', conAjustes \? `· \$\{conAjustes\}` : ''\]/.test(studio));
 check('y el texto sale de lo que hay en la caja, sin tocarlo',
   /const texto = prompt\.trim\(\);/.test(studio) && !/prompt\.replace|prompt\.slice|prompt\.substring/.test(studio));
 /*

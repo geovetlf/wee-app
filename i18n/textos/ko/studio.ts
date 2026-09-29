@@ -228,16 +228,8 @@ export const studio: typeof import('../es/studio').studio = {
   creationsTitle: '내 작업물',
   seeAll: '전체 보기',
   creationsEmpty: '만든 것이 여기에 나타나요',
-  kindImage: '이미지',
-  kindVideo: '비디오',
-  kindAudio: '오디오',
-  kindDocument: '문서',
-  creationOptions: '이 작업물의 옵션',
 
   /* ── El estado de una creación ────────────────────────────────────────── */
-  creating: '만드는 중...',
-  ready: '만들기 완료',
-  readyHint: '지금은 데모예요. 아직 실제로 생성된 결과는 없어요.',
   dismiss: '확인',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
@@ -368,4 +360,7 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë는 아직 음악을 만들지 못해요. 영상이 아니라 음악이 빠져 있어요.",
   pendCompose: "Weë는 아직 여러 장면을 하나의 영상으로 잇지 못해요.",
   pendTwoRefs: "지금 Weë는 레퍼런스 이미지를 하나만 가져갈 수 있는데, 여기엔 두 장이 필요해요.",
+
+  /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
+  settingInWords: '{{ajuste}}: {{valor}}',
 };

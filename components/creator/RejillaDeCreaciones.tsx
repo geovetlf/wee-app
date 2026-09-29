@@ -35,7 +35,8 @@ import { scale } from '../../utils/scale';
  * «procesando», y punto: no hay una fuente real de progreso y no se simula.
  */
 
-const ICONO_POR_TIPO: Record<AssetDoc['kind'], keyof typeof Ionicons.glyphMap> = {
+/** El icono de cada clase de material. Lo usa también la fila de «Mis creaciones» (Fase 28 del motor). */
+export const ICONO_POR_TIPO: Record<AssetDoc['kind'], keyof typeof Ionicons.glyphMap> = {
   image: 'image-outline',
   video: 'videocam-outline',
   audio: 'musical-notes-outline',

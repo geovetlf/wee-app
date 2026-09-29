@@ -88,10 +88,4 @@ export const design: typeof import('../es/design').design = {
   valNatural: 'Naturel',
   valWarm: 'Chaud',
   valStudioLight: 'De studio',
-
-  /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
-  kindInterior: 'Intérieur',
-  kindArchitecture: 'Architecture',
-  kindBoat: 'Bateau',
-  kindFurniture: 'Mobilier',
 };

@@ -237,16 +237,8 @@ export const studio: typeof import('../es/studio').studio = {
   creationsTitle: '我的创作',
   seeAll: '查看全部',
   creationsEmpty: '你创作的内容会出现在这里',
-  kindImage: '图片',
-  kindVideo: '视频',
-  kindAudio: '音频',
-  kindDocument: '文档',
-  creationOptions: '这个创作的选项',
 
   /* ── El estado de una creación ────────────────────────────────────────── */
-  creating: '正在生成…',
-  ready: '创作完成',
-  readyHint: '这是演示：还没有真正生成任何内容。',
   dismiss: '知道了',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
@@ -377,4 +369,7 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë 还不会作曲。缺的是音乐，不是视频。",
   pendCompose: "Weë 还不会把多个场景连成一支视频。",
   pendTwoRefs: "Weë 目前只能带一张参考图，而这里需要两张。",
+
+  /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
+  settingInWords: '{{ajuste}}：{{valor}}',
 };

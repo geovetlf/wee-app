@@ -178,8 +178,13 @@ check('24) y con SU pista: aquí los ajustes no cambian con lo escrito',
   /pista=\{t\('design\.settingsHint'\)\}/.test(design));
 check('24) y ya no se disfraza de área del Studio',
   !/area="images"/.test(design), 'Weë Design no es un área de Weë Studio');
+/*
+ * Reanclada en la Fase 28 del motor: las referencias de Design dejaron de ser
+ * nombres inventados y son, como en el Studio, los `adjuntos` que viajan; el
+ * panel cuenta esa MISMA lista.
+ */
 check('24) y dice cuántas referencias van, como el Studio',
-  /referencias=\{referencias\.length\}/.test(design));
+  /referencias=\{adjuntos\.length\}/.test(design) && /adjuntos\.length \? \{ adjuntos \} : \{\}/.test(design));
 
 /* CONTROL: si Design volviera a heredar el catálogo del Studio, se vería. */
 check('CONTROL: Design con el catálogo del Studio sería detectado',

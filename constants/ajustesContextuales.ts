@@ -144,6 +144,34 @@ export const ajustesDe = (
 ): GrupoDeAjustes[] => grupos.filter((grupo) => grupo.contextos.includes(contexto));
 
 /**
+ * LO ELEGIDO EN LOS AJUSTES, DICHO CON PALABRAS (Fase 28 del motor, §25).
+ *
+ * Hasta entonces la hoja guardaba lo elegido y nadie lo mandaba: se elegía y se
+ * tiraba. Ahora viaja dentro del objetivo, como los controles de cámara
+ * (`creativoEnPalabras`), porque el plan de hoy entiende frases: «Formato:
+ * Vertical». Solo los grupos que se preguntan en ESE contexto —lo elegido para
+ * un vídeo no viaja si ahora se crea una imagen— y nunca «Automático», que es no
+ * haber elegido.
+ *
+ * No viaja además como estructura (`creative`), y a propósito: «Vertical» o
+ * «Alta» son palabras de la persona, no un valor exacto del lenguaje creativo
+ * —vertical puede ser 9:16 o 4:5—, y aproximarlo sería decidir por ella
+ * (`filtrarCreativo` deja fuera lo que no es exacto). Devuelve cada ajuste por
+ * separado; quien pinta los junta con `formato.lista`, en su idioma.
+ */
+export const ajustesEnPalabras = (
+  elegido: Readonly<Record<string, string>>,
+  contexto: ContextoDeCreacion,
+  t: (clave: string, valores?: Record<string, string>) => string,
+  grupos: GrupoDeAjustes[] = GRUPOS_DE_AJUSTES
+): string[] =>
+  ajustesDe(contexto, grupos).flatMap((grupo) => {
+    const id = elegido[grupo.id];
+    const opcion = id && id !== AUTO.id ? grupo.opciones.find((x) => x.id === id) : undefined;
+    return opcion ? [t('studio.settingInWords', { ajuste: t(grupo.clave), valor: t(opcion.clave) })] : [];
+  });
+
+/**
  * UN CATÁLOGO QUE NO CAMBIA CON EL CONTEXTO, PUESTO EN ESTA FORMA.
  *
  * Weë Design pregunta siempre lo mismo —estilo, materiales, iluminación,

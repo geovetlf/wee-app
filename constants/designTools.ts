@@ -102,27 +102,3 @@ export const AJUSTES_DE_DESIGN: AjusteDeStudio[] = [
     opciones: [o('standard', 'studio.valStandard'), o('high', 'studio.valHigh')],
   },
 ];
-
-/*
- * CREACIONES DE MUESTRA.
- *
- * Mentira, y a propósito, como las del Studio: Weë Design todavía no genera
- * nada. Cuatro piezas —un interior, una casa, un barco, una silla— para poder
- * juzgar si la galería se entiende. Sin fotos: sin conexión no hay nada que
- * descargar, y una foto de archivo haría pasar por creación algo que no lo es.
- * El título es contenido de quien la creó y no pasa por el traductor.
- */
-export interface CreacionDeDesign {
-  id: string;
-  claveTipo: string;
-  icono: string;
-  titulo: string;
-  tono: string;
-}
-
-export const CREACIONES_DE_DESIGN: CreacionDeDesign[] = [
-  { id: 'd1', claveTipo: 'design.kindInterior', icono: 'home-outline', titulo: 'Salon luminoso', tono: '#EFE9E1' },
-  { id: 'd2', claveTipo: 'design.kindArchitecture', icono: 'business-outline', titulo: 'Casa entre pinos', tono: '#E3E8E2' },
-  { id: 'd3', claveTipo: 'design.kindBoat', icono: 'boat-outline', titulo: 'Yate de 15 metros', tono: '#DDE6EE' },
-  { id: 'd4', claveTipo: 'design.kindFurniture', icono: 'bed-outline', titulo: 'Butaca de madera', tono: '#ECEBE8' },
-];

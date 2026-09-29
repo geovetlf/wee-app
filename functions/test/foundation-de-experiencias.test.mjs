@@ -118,6 +118,12 @@ const RETIRADAS = {
   'components/studio/PromptSettings.tsx': 'components/creator/AjustesContextuales.tsx',
   'components/studio/StudioCreations.tsx': FILA,
   'components/design/DesignCreations.tsx': FILA,
+  /*
+   * Fase 28 del motor (§25): el aviso «Creando…/Creación lista» contaba una
+   * creación que no existía. El progreso de verdad es el de la experiencia
+   * común, a la que Crear lleva ahora.
+   */
+  [AVISO]: 'screens/CreatorFlowScreen.tsx',
 };
 for (const [ida, quedo] of Object.entries(RETIRADAS)) {
   check(`14) ${ida.split('/').pop()} se fue`, !existe(ida));
@@ -148,8 +154,9 @@ const conAvisoPropio = fuentes.filter((rel) => {
   const src = leer(rel);
   return rel !== AVISO && /t\('studio\.creating'\)/.test(src) && /t\('studio\.ready'\)/.test(src);
 });
-check('16) el aviso de la creación está escrito una sola vez', conAvisoPropio.length === 0,
-  conAvisoPropio.join(', ') || 'solo en AvisoDeCreacion');
+/* Reanclada en la Fase 28 del motor: el aviso se retiró (arriba, 14), así que ya no está escrito en ningún sitio. */
+check('16) el aviso de una creación de mentira no vuelve a escribirse en ningún sitio', conAvisoPropio.length === 0,
+  conAvisoPropio.join(', ') || 'en ninguno');
 
 /* Igual la fila de creaciones: una cabecera con "Ver todas →" y una sola. */
 const conFilaPropia = fuentes.filter((rel) => {
@@ -245,10 +252,17 @@ console.log('\n─── G. El frontend no decide proveedor, modelo, ruta ni din
  * con qué se hace algo ni cuánto cuesta.
  */
 const PROHIBIDO = /\b(gemini|seedance|seedream|elevenlabs|flux|deepseek|nano.?banana|providerId|adapters?\b|modelId)\b/i;
-for (const rel of [CONTRATO, DESTINO, AVISO, FILA]) {
+/*
+ * Reanclada en la Fase 28 del motor (§25): el aviso de la creación de mentira se
+ * retiró, y la fila de «Mis creaciones» se alimenta ahora de lo de verdad
+ * (`hooks/useCreacionesRecientes.ts`), que tampoco nombra proveedor ni decide
+ * dinero: es la consulta de Mis creaciones de siempre.
+ */
+const RECIENTES = 'hooks/useCreacionesRecientes.ts';
+for (const rel of [CONTRATO, DESTINO, RECIENTES, FILA]) {
   check(`28) ${rel.split('/').pop()} no nombra proveedor ni modelo`, !PROHIBIDO.test(leer(rel)));
 }
-check('29) ni decide Credits', ![CONTRATO, DESTINO, AVISO, FILA].some((rel) => /spendCredits|creditsBalance|creditCost/.test(leer(rel))));
+check('29) ni decide Credits', ![CONTRATO, DESTINO, RECIENTES, FILA].some((rel) => /spendCredits|creditsBalance|creditCost/.test(leer(rel))));
 
 /* CONTROL: un proveedor colado en la base tendría que verse. */
 check('CONTROL: un proveedor nombrado en la base sería detectado',
@@ -257,7 +271,8 @@ check('CONTROL: un proveedor nombrado en la base sería detectado',
 
 console.log('\n─── H. El sistema de diseño sigue siendo uno ───');
 
-for (const rel of [AVISO, FILA]) {
+/* Reanclada en la Fase 28 del motor: de las dos piezas comunes queda la fila; el aviso se retiró (14). */
+for (const rel of [FILA]) {
   const src = leer(rel);
   check(`30) ${rel.split('/').pop()} usa el sistema de Weë`, /from '\.\.\/\.\.\/constants\/design'/.test(src) && /from '\.\.\/\.\.\/utils\/scale'/.test(src));
   /* Ni espaciados a mano ni colores sueltos: los que hay son los de la lámina. */

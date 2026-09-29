@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -27,8 +28,8 @@ export interface CreacionEnLaFila {
   icono: string;
   /** Lo que escribió quien la creó. Contenido, no interfaz: no se traduce. */
   titulo: string;
-  /** El color de la lámina mientras no haya un medio real que enseñar. */
-  tono: string;
+  /** La miniatura, si la creación tiene imagen que enseñar (una imagen o un vídeo). Sin ella, el icono de su clase. */
+  miniatura?: string;
   /** Solo lo que dura algo: un video. Ya formateado. */
   duracion?: string;
 }
@@ -37,11 +38,15 @@ interface Props {
   creaciones: readonly CreacionEnLaFila[];
   onVerTodas: () => void;
   /**
-   * El botón de las opciones de una pieza. Sin él no se pinta: una galería que
-   * todavía no puede hacer nada con una pieza no enseña un botón que no hace
-   * nada.
+   * Tocar una pieza. Hoy abre la biblioteca entera, que es donde una creación se
+   * ve, se descarga y se usa. Sin él, la pieza no se toca.
    */
-  onOpciones?: (id: string) => void;
+  onAbrir?: (id: string) => void;
+  /**
+   * Lo que se dice cuando no hay ninguna: que todavía no hay creaciones, o que no
+   * se pudieron cargar. Sin él —mientras se cargan— solo se ve la cabecera.
+   */
+  vacia?: string;
   /** Lo que mide una pieza. Cada sitio tiene su proporción y se respeta. */
   ancho?: number;
   alto?: number;
@@ -65,15 +70,16 @@ interface Props {
  * eran cuatro números y un botón. Cuatro números y un botón no justifican dos
  * componentes: justifican cuatro props.
  *
- * ── Y las láminas siguen lisas ──────────────────────────────────────────────
+ * ── Y las láminas enseñan lo que hay ────────────────────────────────────────
  *
- * Un color plano con el icono de su clase, porque todavía no hay nada generado
- * de verdad. Tienen la forma exacta que tendrán con contenido dentro, que es lo
- * que hace falta para juzgar si la galería funciona, sin fingir que una foto de
- * archivo es algo que alguien creó.
+ * Hasta la Fase 28 del motor eran láminas lisas de colores con cuatro
+ * creaciones de muestra y un ⋯ que no hacía nada (§25). Ahora la fila es de
+ * verdad —lo último de la cuenta, `hooks/useCreacionesRecientes.ts`—: una
+ * imagen o un vídeo enseñan su miniatura, y lo que no tiene imagen, el icono de
+ * su clase. Tocar una pieza, o «Ver todas», abre la biblioteca.
  */
 const FilaDeCreaciones: React.FC<Props> = ({
-  creaciones, onVerTodas, onOpciones, ancho = scale(132), alto = scale(150),
+  creaciones, onVerTodas, onAbrir, vacia, ancho = scale(132), alto = scale(150),
 }) => {
   const { theme } = useTheme();
   const t = useT();
@@ -87,17 +93,41 @@ const FilaDeCreaciones: React.FC<Props> = ({
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
+          accessibilityLabel={t('studio.seeAll')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
           <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} →</Text>
         </TouchableOpacity>
       </View>
 
+      {creaciones.length === 0 && !!vacia && (
+        <Text style={[styles.vacia, { color: theme.colors.textSecondary }]}>{vacia}</Text>
+      )}
+      {creaciones.length > 0 && (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fila}>
         {creaciones.map((c) => (
-          <View key={c.id} style={[styles.pieza, { width: ancho }]}>
-            <View style={[styles.lamina, { height: alto, backgroundColor: c.tono }]}>
-              <Ionicons name={c.icono as any} size={scale(30)} color="rgba(31, 41, 55, 0.35)" />
+          <TouchableOpacity
+            key={c.id}
+            style={[styles.pieza, { width: ancho }, isWeb && onAbrir ? ({ cursor: 'pointer' } as any) : null]}
+            onPress={onAbrir ? () => onAbrir(c.id) : undefined}
+            disabled={!onAbrir}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('creaciones.openCreation', { nombre: c.titulo })}
+          >
+            <View style={[styles.lamina, { height: alto, backgroundColor: theme.colors.surface }]}>
+              {c.miniatura ? (
+                <Image
+                  source={{ uri: c.miniatura }}
+                  style={styles.miniatura}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  recyclingKey={c.id}
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <Ionicons name={c.icono as any} size={scale(30)} color="rgba(31, 41, 55, 0.35)" />
+              )}
 
               {/* Los videos dicen cuánto duran. Lo demás no tiene duración que decir. */}
               {!!c.duracion && (
@@ -110,24 +140,14 @@ const FilaDeCreaciones: React.FC<Props> = ({
                 <View style={styles.etiqueta}>
                   <Text style={styles.etiquetaTexto}>{t(c.claveTipo)}</Text>
                 </View>
-                {!!onOpciones && (
-                  <TouchableOpacity
-                    style={styles.opciones}
-                    onPress={() => onOpciones(c.id)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('studio.creationOptions')}
-                  >
-                    <Ionicons name="ellipsis-horizontal" size={scale(15)} color="#1F2937" />
-                  </TouchableOpacity>
-                )}
               </View>
             </View>
             {/* El título es de quien lo creó: contenido, no interfaz. */}
             <Text style={[styles.titulo, { color: theme.colors.textSecondary }]} numberOfLines={1}>{c.titulo}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
+      )}
     </View>
   );
 };
@@ -167,14 +187,8 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   etiquetaTexto: { fontSize: scale(11), fontWeight: FONT_WEIGHT.medium, color: '#1F2937' },
-  opciones: {
-    width: scale(24),
-    height: scale(24),
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  miniatura: { ...StyleSheet.absoluteFillObject },
+  vacia: { fontSize: FONT_SIZE.sm, paddingHorizontal: SPACING.xl },
   duracion: {
     position: 'absolute',
     right: SPACING.sm,

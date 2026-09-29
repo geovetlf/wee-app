@@ -273,24 +273,21 @@ check('22) la cabecera de sección lleva su volver, con la clave de siempre',
 check('22) y no deja a nadie encerrado si no hay atrás',
   /navigation\.canGoBack\(\) \? navigation\.goBack\(\) : navigation\.navigate\('Main'\)/.test(cabecera));
 
-/* El estado de la creación se ve siempre: sube con el teclado, que además se va al enviar. */
-for (const [rel, src] of [['screens/StudioScreen.tsx', studio], ['screens/DesignScreen.tsx', design]]) {
-  check(`23) ${rel} sube el aviso con el teclado`,
-    /<AvisoDeCreacion[\s\S]{0,120}bottom=\{SITIO_DE_LA_BARRA \+ alturaTeclado\}/.test(src) && /useAlturaDelTeclado/.test(src));
-}
 /*
- * El aviso también es UNO desde B3.10 (`components/creator/AvisoDeCreacion.tsx`):
- * antes estaba copiado renglón por renglón en las dos pantallas. Así que la
- * comprobación se parte en dos mitades, que juntas dicen lo mismo que antes
- * decía una: que cada pantalla le pasa la altura con el teclado sumado, y que
- * el aviso de verdad flota encima en lugar de ir dentro de la lista.
+ * 23 · YA NO HAY UN AVISO QUE FLOTE (reanclada en la Fase 28 del motor, §25).
+ *
+ * Aquí se vigilaba que el aviso «Creando…/Creación lista» subiera con el
+ * teclado. Ese aviso contaba una creación que no existía —un temporizador— y
+ * se retiró: Crear lleva ahora a donde se crea (`CreatorFlow`, o Weë Brain si
+ * nada encaja), y el progreso de verdad lo enseña esa pantalla. De la regla
+ * queda lo que la sostenía: que al enviar nada se esconda detrás del teclado,
+ * porque el teclado se retira solo.
  */
-const aviso = leer('components/creator/AvisoDeCreacion.tsx');
-check('23) y el aviso flota encima, a la altura que le dan',
-  /position: 'absolute'/.test(aviso) && /borderColor: theme\.colors\.border, bottom \}/.test(aviso));
-/* Y no deja de decir que todavía no hay nada generado de verdad. */
-check('23) y sigue avisando de que es una demostración',
-  /clavePista = 'studio\.readyHint'/.test(aviso));
+for (const [rel, src] of [['screens/StudioScreen.tsx', studio], ['screens/DesignScreen.tsx', design]]) {
+  check(`23) ${rel} ya no finge una creación: ni aviso que flote, ni temporizador; Crear se va a crear`,
+    !/AvisoDeCreacion|setTimeout/.test(src) && /navigation\.navigate\('CreatorFlow', contexto\);/.test(src));
+}
+check('23) y el aviso de demostración se retiró', !existe('components/creator/AvisoDeCreacion.tsx'));
 check('23) y al enviar el teclado se retira', /Keyboard\.dismiss\(\);\s*\n\s*onEnviar\(\);/.test(leer('components/creator/CajaDePrompt.tsx')));
 
 /* CONTROL: sin el `return true`, atrás volvería a llevarse la sección. */

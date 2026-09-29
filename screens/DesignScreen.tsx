@@ -1,29 +1,29 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
-import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
 import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
-import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
 import DesignPanel from '../components/design/DesignPanel';
-import { siempreSePregunta } from '../constants/ajustesContextuales';
-import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
+import { ajustesEnPalabras, siempreSePregunta } from '../constants/ajustesContextuales';
+import { AJUSTES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
+import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { useCreacionesRecientes } from '../hooks/useCreacionesRecientes';
+import { notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-
-/** Cuánto tarda la creación de mentira. Lo justo para ver el estado. */
-const LO_QUE_TARDA_LA_DEMO = 1600;
 
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
@@ -55,17 +55,21 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así Weë Design
  * puede crecer hacia donde necesite sin arrastrar la estructura del Studio.
  *
- * ── Lo que todavía no hay ────────────────────────────────────────────────────
+ * ── Crear es irse a crear (Fase 28 del motor, §25) ───────────────────────────
  *
- * No hay IA. Crear enseña "Creando..." y luego "Creación lista", nada más. El
- * punto por donde entrará Weë Brain es `alCrear`.
+ * Hasta entonces Crear enseñaba "Creando..." y "Creación lista" con un
+ * temporizador, sin crear nada, y las referencias eran nombres inventados.
+ * Ahora, como en Weë Studio, Crear lleva a la experiencia común —`CreatorFlow`,
+ * con `experienceId: 'design'`, lo escrito, los ajustes dichos con palabras y
+ * las referencias de verdad—, que es donde están las preguntas, el plan, el
+ * precio y el resultado. Weë Design no genera por su cuenta: es una puerta.
  */
 const DesignScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
+  const { formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
-  const alturaTeclado = useAlturaDelTeclado();
 
   const [prompt, setPrompt] = useState('');
   /*
@@ -82,12 +86,10 @@ const DesignScreen: React.FC = () => {
   const volver = useCallback(() => setCamino((antes) => antes.slice(0, -1)), []);
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
-  const [referencias, setReferencias] = useState<string[]>([]);
-  const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /* Un temporizador pendiente no puede sobrevivir a la pantalla. */
-  useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
+  /* Las referencias, de verdad y con su clase: el mismo `Adjunto` que viaja desde Weë Studio (Fase 28 del motor). */
+  const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
+  /* Lo último que hizo la cuenta —antes, cuatro diseños de muestra—. */
+  const recientes = useCreacionesRecientes(8);
 
   /*
    * Tres por fila cuando hay sitio, dos en el teléfono. Con tarjetas compactas
@@ -97,19 +99,30 @@ const DesignScreen: React.FC = () => {
   const porFila = isMobile ? 2 : 3;
   const anchoMaximo = isMobile ? undefined : scale(720);
 
+  /**
+   * CREAR EN WEË DESIGN ES IRSE A CREAR (Fase 28 del motor, §25).
+   *
+   * Lo mismo que Weë Studio y por el mismo camino: `CreatorFlow`, la experiencia
+   * común, con `experienceId: 'design'`. Allí están las preguntas, el plan, el
+   * precio y el resultado, y nada se cobra por llegar: el dinero no se mueve
+   * hasta que la persona ve el plan con su precio y pulsa Crear. Lo escrito
+   * viaja entero y delante; detrás, los ajustes elegidos, dichos con palabras.
+   * Las referencias van con su clase, y la primera además por donde siempre
+   * entraron las fotos (`imageUri` → `creatorUploads` → Storage de Weë).
+   */
   const alCrear = useCallback(() => {
-    if (!prompt.trim()) return;
-    setEstado('creando');
-    /*
-     * AQUÍ ENTRA WEË BRAIN EL DÍA QUE SE CONECTE.
-     *
-     * Lo que hoy es un temporizador será mandar `prompt`, `ajustes` y
-     * `referencias` a Brain, que decide el plan, y de ahí al WEE AI Gateway y al
-     * modelo. La pantalla ya tiene esos datos reunidos y un estado que enseñar
-     * mientras tanto.
-     */
-    temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt]);
+    const texto = prompt.trim();
+    if (!texto) return;
+    const conAjustes = formato.lista(ajustesEnPalabras(ajustes, 'imagen', t, AJUSTES));
+    const contexto: ContextoDeExperiencia = {
+      experienceId: 'design',
+      workspace: 'design',
+      goal: [texto, conAjustes ? `· ${conAjustes}` : ''].filter(Boolean).join(' '),
+      ...(adjuntos.length ? { adjuntos } : {}),
+      ...(adjuntos[0] ? { imageUri: adjuntos[0].uri } : {}),
+    };
+    navigation.navigate('CreatorFlow', contexto);
+  }, [prompt, ajustes, adjuntos, formato, navigation, t]);
 
   const alElegirPunto = useCallback((punto: PuntoDePartida) => {
     /* La idea queda empezada, para terminarla con palabras propias. */
@@ -117,10 +130,18 @@ const DesignScreen: React.FC = () => {
     setPrompt((antes) => (antes.trim() ? antes : `${t(punto.clave)} `));
   }, [t]);
 
-  const alAnadirReferencia = useCallback(() => {
-    /* Sin selector de archivos todavía: una de muestra, para ver la forma. */
-    setReferencias((antes) => [...antes, `referencia-${antes.length + 1}.png`]);
+  /* Una referencia de verdad, con el selector de siempre (el de Weë Studio, Weë Brain y Weë Chef). */
+  const alAnadirReferencia = useCallback(async () => {
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) return;
+    const elegido = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    const foto = elegido.canceled ? null : elegido.assets?.[0];
+    if (!foto?.uri) return;
+    setAdjuntos((antes) => [...antes, { clase: 'referencia', uri: foto.uri, nombre: foto.fileName ?? undefined }]);
   }, []);
+
+  /* Dictar, todavía no: se dice, con las mismas palabras que el micrófono de Weë Brain (Fase 28 del motor, §25). */
+  const alDictar = useCallback(() => notify(t('weeai.comingVerySoon'), t('weeai.speakComingSoon')), [t]);
 
   /*
    * ATRÁS DESHACE UN PASO, NO LA SECCIÓN.
@@ -191,17 +212,22 @@ const DesignScreen: React.FC = () => {
                 onCambiar={setPrompt}
                 onAjustes={() => setAjustesAbiertos(true)}
                 onReferencia={alAnadirReferencia}
-                onVoz={alAnadirReferencia}
+                onVoz={alDictar}
                 onCrear={alCrear}
-                ocupado={estado === 'creando'}
               />
             </View>
 
 {/* La misma ficha que en Weë Studio: lo que ya se sabe, a la vista. */}
-            {referencias.length > 0 && (
+            {adjuntos.length > 0 && (
               <View style={styles.referencias}>
-                {referencias.map((r, i) => (
-                  <FichaDeContexto key={`${r}-${i}`} icono="image-outline" texto={r} />
+                {adjuntos.map((a, i) => (
+                  <FichaDeContexto
+                    key={`${a.uri}-${i}`}
+                    icono="image-outline"
+                    texto={a.nombre ?? t('studio.reference')}
+                    onQuitar={() => setAdjuntos((antes) => antes.filter((_, j) => j !== i))}
+                    etiquetaQuitar={t('studio.removeContext')}
+                  />
                 ))}
               </View>
             )}
@@ -209,30 +235,25 @@ const DesignScreen: React.FC = () => {
             <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
 
             {/*
-              La misma fila que la de Weë Studio —es la misma fila— con lo que
-              se hace aquí: un interior, una casa, un barco, una silla. La
-              etiqueta dice qué CLASE de diseño es, que es por lo que se busca en
-              esta galería, no si es imagen o video.
+              La misma fila que la de Weë Studio —es la misma fila—, con lo
+              último de la cuenta (Fase 28 del motor, §25: antes eran cuatro
+              diseños de muestra). Mis creaciones son de la cuenta, así que aquí
+              se ven las mismas que en el Studio; tocar una abre la biblioteca.
 
               Un poco más ancha y más baja que la del Studio, porque un diseño se
               reconoce por lo ancho y un video por lo alto.
             */}
             <FilaDeCreaciones
-              creaciones={CREACIONES_DE_DESIGN}
+              creaciones={recientes.items}
               ancho={scale(140)}
               alto={scale(120)}
-              onVerTodas={() => navigation.navigate('Projects')}
+              vacia={recientes.carga === 'error' ? t('creaciones.loadFailed') : recientes.carga === 'listas' ? t('studio.creationsEmpty') : undefined}
+              onVerTodas={() => navigation.navigate('MisCreaciones')}
+              onAbrir={() => navigation.navigate('MisCreaciones')}
             />
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
-
-      {/* Como en el Studio: el aviso sube con el teclado y nunca se queda detrás. */}
-      <AvisoDeCreacion
-        estado={estado}
-        bottom={SITIO_DE_LA_BARRA + alturaTeclado}
-        onCerrar={() => setEstado('quieto')}
-      />
 
       {/*
         El panel de ajustes es el común de Weë AI, con el catálogo de Weë Design
@@ -248,7 +269,7 @@ const DesignScreen: React.FC = () => {
         contexto="imagen"
         grupos={AJUSTES}
         pista={t('design.settingsHint')}
-        referencias={referencias.length}
+        referencias={adjuntos.length}
         elegido={ajustes}
         onElegir={(grupo, opcion) => setAjustes((antes) => ({ ...antes, [grupo]: opcion }))}
         onCerrar={() => setAjustesAbiertos(false)}

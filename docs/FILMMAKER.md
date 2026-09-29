@@ -1594,6 +1594,7 @@ Vallas reancladas: `filmmaker-espacio` V6 (la hoja del guion recibe el espacio) 
 
 Pruebas: `functions/test/filmmaker-historia.test.mjs` (en la cadena), que aplica cada gesto con F1-A de verdad sobre
 una producción viva y pregunta a F1-D lo que diría de generar.
+
 ### Fase 25 · La línea de tiempo y el sonido: las transiciones y el sonido del plano, de la escena y de la producción
 
 Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fase G): las pistas de la línea de tiempo —vídeo, audio,
@@ -1620,6 +1621,7 @@ Antes la herramienta decía solo «Todavía no disponible»; ahora dice qué no 
 
 Pruebas: `functions/test/filmmaker-sonido.test.mjs` (en la cadena), que aplica cada gesto con F1-A de verdad y comprueba
 que el sonido propio llega al requisito de la toma y que el montaje final lo lee.
+
 ### Fase 26 · Exportar diciendo la verdad: el montaje de hoy, descargarlo y los subtítulos
 
 Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fase H): descargar el plano y el montaje, elegir el montaje
@@ -1646,6 +1648,7 @@ que el usuario lo decida.
 
 Pruebas: `functions/test/filmmaker-exportar.test.mjs` (en la cadena). Reanclada: `filmmaker-publicar` C23 (la llamada
 al hook lleva ahora la firma de los vídeos).
+
 ### Fase 27 · Las referencias, de verdad; y lo preparado y cerrado, dicho
 
 Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fases D y E): integrar lo que los adaptadores ya saben y
@@ -1676,6 +1679,36 @@ la puerta del Core tocados; ningún switch abierto; nada que cueste dinero.
 
 Pruebas: `functions/test/filmmaker-materiales.test.mjs` (en la cadena). Reanclada: `filmmaker-espacio` V7 (la línea de
 los ids de las fichas gana el de una referencia).
+
+### Fase 28 · Weë Studio y Weë Design, sin simulacros
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», §25): fuera la UX falsa; lo que está bloqueado dice
+«Disponible próximamente» o «Requiere validación». Ni una Function, ni una regla, ni un índice, ni un proveedor: todo
+por los caminos que ya existían.
+
+- **Dictar.** El micrófono de Weë Studio y el de Weë Design abrían el selector de imágenes. Ahora dicen, con las
+  palabras del micrófono de Weë Brain, que hablar con Weë llega en una próxima versión.
+- **Ajustes.** Lo elegido en la hoja se guardaba y nadie lo mandaba. Ahora viaja dicho con palabras detrás de lo
+  escrito (`ajustesEnPalabras`, con la puntuación de cada idioma: `studio.settingInWords`), solo lo que se pregunta en
+  ese contexto y nunca «Automático». No viaja además como estructura: «Vertical» no es un valor exacto del lenguaje
+  creativo (9:16 o 4:5) y aproximarlo sería decidir por la persona.
+- **Mis creaciones.** La fila de las dos portadas enseñaba cuatro creaciones inventadas y un ⋯ que no hacía nada.
+  Ahora es lo último de la cuenta (`hooks/useCreacionesRecientes.ts`, la consulta de Mis creaciones de siempre, con
+  su índice), con la miniatura de lo que tiene imagen y lo que dura cada vídeo; tocar una, o «Ver todas», abre la
+  biblioteca; vacía, o sin poder cargarse, se dice.
+- **Crear.** En Weë Studio, lo que no encajaba en ninguna puerta encendía un temporizador —«Creando…», «Creación
+  lista»— sin crear nada; ahora va a Weë Brain, escrito en su caja y sin enviar: el mismo cerebro de todas las cajas,
+  y nada se gasta por llegar. En Weë Design, Crear era siempre ese temporizador y las referencias, nombres inventados
+  («referencia-1.png»); ahora lleva a `CreatorFlow` con `experienceId: 'design'`, sus ajustes dichos con palabras y
+  las referencias de verdad, con el selector de siempre.
+- Se retiran `constants/studioMocks.ts`, `CREACIONES_DE_DESIGN` y `components/creator/AvisoDeCreacion.tsx`, y doce
+  claves que solo describían lo simulado, en los once idiomas.
+
+Pruebas: `functions/test/weeai-sin-simulacros.test.mjs` (en la cadena). Reancladas: `cajas-weeai` (23: ya no hay un
+aviso que flote; Crear se va a crear), `foundation-de-experiencias` (14, 16 y 28–30: el aviso se retiró y la fila se alimenta de `hooks/useCreacionesRecientes.ts`), `ajustes-weeai`
+(24: Design cuenta las referencias que viajan), `puente-studio` (D: detrás de lo escrito van también los ajustes) e
+`i18n-preferencia-usuario` (el recuento del portugués).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

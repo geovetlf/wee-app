@@ -88,7 +88,8 @@ export type MainStackParamList = {
    * preguntar (fase 2E-60). `preset` sigue igual para quien solo lleva una.
    */
   CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; presets?: { questionId: string; optionId: string }[]; imageUri?: string };
-  Specialist: { id: string };
+  /** `borrador` (Fase 28 del motor): lo que otra caja no supo a dónde llevar; en Weë Brain llega escrito, sin enviar. */
+  Specialist: { id: string; borrador?: string };
   /**
    * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
    * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
