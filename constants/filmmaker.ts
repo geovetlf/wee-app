@@ -1,4 +1,4 @@
-import type { FormatPresetId, OperationName, SubjectFocus, TimeOfDay, TransitionType, Weather } from '../services/filmmaker/dominio';
+import type { FormatPresetId, ObjectKind, OperationName, Pacing, ProductionType, ReferenceRole, SubjectFocus, TimeOfDay, TransitionType, Weather } from '../services/filmmaker/dominio';
 
 /**
  * WEË FILMMAKER · LO QUE LA PANTALLA DE PRODUCCIÓN ENSEÑA, COMO CLAVES (F1-C).
@@ -79,8 +79,15 @@ export const OPERACION_DE_LA_RUTA: Readonly<Record<string, { readonly op: 'chang
   'lighting.type': { op: 'change_lighting', campo: 'lighting' },
 });
 
-/** Las familias de la biblioteca de cámara que el panel Director ofrece para un plano o una escena. */
-export const FAMILIAS_DEL_DIRECTOR: readonly string[] = Object.freeze(['shot', 'camera', 'movement', 'lighting']);
+/**
+ * Las familias de la biblioteca de cámara que el panel Director ofrece para un plano o una escena. Desde la Fase 23
+ * del motor, TODAS las que el Core sabe decir: encuadre, cámara, perspectiva, óptica, movimiento, velocidad (y su
+ * suavidad), composición y luz. Solo cambia lo que se puede elegir; lo que ya estaba guardado se escribe igual.
+ */
+export const FAMILIAS_DEL_DIRECTOR: readonly string[] = Object.freeze(['shot', 'camera', 'perspective', 'lens', 'movement', 'speed', 'composition', 'lighting']);
+
+/** Las focales que se ofrecen (Fase 23 del motor): el Core acepta de 4 a 1200 mm; estas son las de siempre. */
+export const FOCALES_MM: readonly number[] = Object.freeze([14, 24, 35, 50, 85, 135, 200]);
 
 /** Lo que alarga o acorta un toque. Una decisión de pantalla, no del dominio: F1-A acepta cualquier paso. */
 export const PASO_DE_DURACION_SEC = 0.5;
@@ -94,10 +101,69 @@ export const PASO_DEL_OBJETIVO_SEC = 5;
  * servidor al guardar (`CLASES_DE_ELEMENTO_POR_FICHA`, Fase 10). Un personaje, con personajes; un lugar, con lugares
  * y escenas guardadas.
  */
-export const CLASES_POR_FICHA: Readonly<Record<'personaje' | 'lugar', readonly string[]>> = Object.freeze({
+export const CLASES_POR_FICHA: Readonly<Record<'personaje' | 'lugar' | 'objeto', readonly string[]>> = Object.freeze({
   personaje: Object.freeze(['character']),
   lugar: Object.freeze(['place', 'scene']),
+  /* Fase 23 del motor: los objetos también se vinculan, con las clases que el servidor admite para ellos. */
+  objeto: Object.freeze(['object', 'product', 'brand']),
 });
+
+/* ── Fase 23 del motor · el proyecto, editable: las claves de sus vocabularios, los de F1-A tal cual ─── */
+
+/** Interior o exterior (`AMBIENTES` de F1-A). */
+export const CLAVE_DEL_AMBIENTE: Readonly<Record<'interior' | 'exterior', string>> = Object.freeze({
+  interior: 'filmmaker.settingInterior',
+  exterior: 'filmmaker.settingExterior',
+});
+
+/** Las cinco clases de objeto de F1-A (`TIPOS_DE_OBJETO`). */
+export const CLAVE_DEL_TIPO_DE_OBJETO: Readonly<Record<ObjectKind, string>> = Object.freeze({
+  prop: 'filmmaker.objectKindProp',
+  product: 'filmmaker.objectKindProduct',
+  vehicle: 'filmmaker.objectKindVehicle',
+  brand: 'filmmaker.objectKindBrand',
+  other: 'filmmaker.objectKindOther',
+});
+
+/** Los diez tipos de pieza de F1-A (`TIPOS_DE_PRODUCCION`). */
+export const CLAVE_DEL_TIPO_DE_PRODUCCION: Readonly<Record<ProductionType, string>> = Object.freeze({
+  video: 'filmmaker.typeVideo',
+  short_film: 'filmmaker.typeShortFilm',
+  ad: 'filmmaker.typeAd',
+  trailer: 'filmmaker.typeTrailer',
+  music_video: 'filmmaker.typeMusicVideo',
+  story: 'filmmaker.typeStory',
+  product: 'filmmaker.typeProduct',
+  presentation: 'filmmaker.typePresentation',
+  cinematic: 'filmmaker.typeCinematic',
+  social: 'filmmaker.typeSocial',
+});
+
+/** Los tres ritmos de F1-A (`RITMOS`). */
+export const CLAVE_DEL_RITMO: Readonly<Record<Pacing, string>> = Object.freeze({
+  slow: 'filmmaker.pacingSlow',
+  moderate: 'filmmaker.pacingModerate',
+  fast: 'filmmaker.pacingFast',
+});
+
+/** Los nueve papeles de una referencia (`PAPELES_DE_REFERENCIA`). */
+export const CLAVE_DEL_PAPEL_DE_REFERENCIA: Readonly<Record<ReferenceRole, string>> = Object.freeze({
+  style: 'filmmaker.refRoleStyle',
+  character: 'filmmaker.refRoleCharacter',
+  location: 'filmmaker.refRoleLocation',
+  object: 'filmmaker.refRoleObject',
+  first_frame: 'filmmaker.refRoleFirstFrame',
+  last_frame: 'filmmaker.refRoleLastFrame',
+  motion: 'filmmaker.refRoleMotion',
+  audio: 'filmmaker.refRoleAudio',
+  general: 'filmmaker.refRoleGeneral',
+});
+
+/**
+ * Lo que se ofrece como duración pedida en el brief. Una decisión de pantalla, no del dominio: F1-A acepta cualquier
+ * duración dentro de su límite, y la de verdad es la suma de los planos.
+ */
+export const DURACIONES_PEDIDAS_SEC: readonly number[] = Object.freeze([15, 30, 60, 90, 120, 180]);
 
 /**
  * LOS ESTILOS QUE SE OFRECEN, COMO TOKENS (Fase 22 del motor, arreglo R13 de la auditoría). Antes se guardaba el

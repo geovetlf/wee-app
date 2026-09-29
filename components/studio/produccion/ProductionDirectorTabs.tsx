@@ -8,6 +8,7 @@ import ProductionShotGeneration from './ProductionShotGeneration';
 import ProductionRecommendations from './ProductionRecommendations';
 import ProductionDirectorPanel from './ProductionDirectorPanel';
 import ProductionBrainBox from './ProductionBrainBox';
+import ProductionProyecto from './ProductionProyecto';
 import { Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { LIMITES } from '../../../services/filmmaker/dominio';
@@ -17,7 +18,7 @@ import { scale } from '../../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
-export type PestanaDelDirector = 'director' | 'referencias' | 'produccion';
+export type PestanaDelDirector = 'director' | 'proyecto' | 'produccion';
 
 /**
  * LOS TOQUES RÁPIDOS: cada uno es UNA operación de F1-A sobre lo elegido. El
@@ -61,7 +62,7 @@ const ProductionDirectorTabs: React.FC<{
 
   const pestanas: readonly { id: PestanaDelDirector; clave: string }[] = [
     { id: 'director', clave: 'filmmaker.wsDirectorTab' },
-    { id: 'referencias', clave: 'filmmaker.wsReferencesTab' },
+    { id: 'proyecto', clave: 'filmmaker.wsProjectTab' },
     { id: 'produccion', clave: 'filmmaker.wsProductionTab' },
   ];
 
@@ -145,50 +146,6 @@ const ProductionDirectorTabs: React.FC<{
     </View>
   );
 
-  const referencias = (() => {
-    if (!elegido) return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsDirectorNoSelection')}</Text>;
-    const ids = new Set([...(elegido.plano?.characterIds ?? []), ...(elegido.plano?.subject?.characterId ? [elegido.plano.subject.characterId] : []), ...(elegido.escena.characterIds ?? [])]);
-    const quien = produccion.characters.filter((c) => ids.has(c.id));
-    const lugar = elegido.escena.locationId ? produccion.locations.find((l) => l.id === elegido.escena.locationId) : undefined;
-    const refs = produccion.references.filter((r) => (elegido.plano?.referenceIds ?? []).includes(r.id));
-    return (
-      <View style={styles.cuerpo}>
-        <Seccion titulo={t('filmmaker.wsCharactersInShot')}>
-          {quien.length === 0
-            ? <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsNoCharactersInShot')}</Text>
-            : quien.map((c) => (
-              <View key={c.id} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                <Ionicons name="person-outline" size={scale(16)} color={theme.colors.accent} />
-                <View style={styles.fichaTextos}>
-                  <Text style={[styles.fichaNombre, { color: theme.colors.text }]}>{c.name}</Text>
-                  {!!c.identityDescription && <Text style={[styles.nota, { color: theme.colors.textSecondary }]} numberOfLines={3}>{c.identityDescription}</Text>}
-                </View>
-              </View>
-            ))}
-        </Seccion>
-        <Seccion titulo={t('filmmaker.wsLocationOfScene')}>
-          {lugar
-            ? (
-              <View style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                <Ionicons name="location-outline" size={scale(16)} color={theme.colors.accent} />
-                <View style={styles.fichaTextos}>
-                  <Text style={[styles.fichaNombre, { color: theme.colors.text }]}>{lugar.name}</Text>
-                  {!!lugar.description && <Text style={[styles.nota, { color: theme.colors.textSecondary }]} numberOfLines={3}>{lugar.description}</Text>}
-                </View>
-              </View>
-            )
-            : <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsNoLocation')}</Text>}
-        </Seccion>
-        <Seccion titulo={t('filmmaker.wsReferencesList')}>
-          <Text style={[styles.nota, { color: refs.length ? theme.colors.text : theme.colors.textSecondary }]}>
-            {refs.length ? formato.lista(refs.map((r) => r.description ?? r.id)) : t('filmmaker.wsNoReferences')}
-          </Text>
-        </Seccion>
-        <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsReferencesReadOnly')}</Text>
-      </View>
-    );
-  })();
-
   return (
     <View style={styles.panel}>
       <View style={[styles.pestanas, { borderBottomColor: theme.colors.border }]} accessibilityRole="tablist">
@@ -210,7 +167,8 @@ const ProductionDirectorTabs: React.FC<{
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.dentro}>
         {pestana === 'director' && director}
-        {pestana === 'referencias' && referencias}
+        {/* Fase 23 del motor: el proyecto, editable —brief, dirección, reparto, lugares, objetos, referencias, versiones—. */}
+        {pestana === 'proyecto' && <ProductionProyecto espacio={espacio} sinDesplazamiento />}
         {pestana === 'produccion' && (
           <ProductionDirectorPanel
             produccion={produccion}

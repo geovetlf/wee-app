@@ -12,6 +12,8 @@ import ProductionTools, { IdDeHerramienta } from './ProductionTools';
 import ProductionStoryboard from './ProductionStoryboard';
 import ProductionStructureSheet from './ProductionStructureSheet';
 import ProductionExportPanel from './ProductionExportPanel';
+import ProductionProyecto, { SeccionDelProyecto } from './ProductionProyecto';
+import HojaInferior from '../../workspace/HojaInferior';
 import { BotonPequeno } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
@@ -21,6 +23,11 @@ import { SPACING } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
 /** Qué herramienta abre cada pestaña del montaje a su lado. «Línea de tiempo» abre las propiedades del plano. */
+/** Fase 23 del motor: qué sección del proyecto abre cada fila de la estructura. El guion y el storyboard, lo suyo. */
+const SECCION_DE_LA_ESTRUCTURA: Readonly<Partial<Record<Estructura, SeccionDelProyecto>>> = {
+  idea: 'brief', direccion: 'direccion', personajes: 'reparto', lugares: 'lugares', objetos: 'objetos', moodboard: 'referencias',
+};
+
 const HERRAMIENTA_DE_LA_PESTANA: Readonly<Record<Exclude<PestanaDelMontaje, 'linea'>, IdDeHerramienta>> = {
   audio: 'audio', texto: 'texto', transiciones: 'transiciones', efectos: 'efectos', color: 'color', subtitulos: 'subtitulos', ia: 'ia',
 };
@@ -50,7 +57,8 @@ const ProductionWorkspace: React.FC<{
   const [pestanaDirector, setPestanaDirector] = useState<PestanaDelDirector>('director');
   const [pestanaMontaje, setPestanaMontaje] = useState<PestanaDelMontaje>('linea');
   const [centro, setCentro] = useState<'visor' | 'storyboard'>('visor');
-  const [hoja, setHoja] = useState<Exclude<Estructura, 'storyboard' | 'planos'> | null>(null);
+  const [hoja, setHoja] = useState<'guion' | null>(null);
+  const [proyecto, setProyecto] = useState<SeccionDelProyecto | null>(null);
   const [cabezal, setCabezal] = useState(0);
   const { produccion, linea, seleccion, onSeleccionar } = espacio;
 
@@ -74,7 +82,9 @@ const ProductionWorkspace: React.FC<{
   const abrirEstructura = useCallback((e: Estructura) => {
     if (e === 'storyboard') { setCentro('storyboard'); return; }
     if (e === 'planos') { setCentro('visor'); return; }
-    setHoja(e);
+    const seccion = SECCION_DE_LA_ESTRUCTURA[e];
+    if (seccion) { setProyecto(seccion); return; }
+    setHoja('guion');
   }, []);
 
   /* Con la pantalla justa, el panel del proyecto se esconde: el visor y el Director mandan. */
@@ -149,13 +159,11 @@ const ProductionWorkspace: React.FC<{
         </View>
       </View>
 
-      {!!hoja && (
-        <ProductionStructureSheet
-          produccion={produccion}
-          que={hoja}
-          onCerrar={() => setHoja(null)}
-          vinculos={espacio.elementos ? { editable: espacio.editable, onGesto: espacio.onGesto, elementos: espacio.elementos } : undefined}
-        />
+      {!!hoja && <ProductionStructureSheet produccion={produccion} que={hoja} onCerrar={() => setHoja(null)} />}
+      {!!proyecto && (
+        <HojaInferior visible titulo={t('filmmaker.wsProjectTab')} onCerrar={() => setProyecto(null)}>
+          <ProductionProyecto key={proyecto} espacio={espacio} inicial={proyecto} sinDesplazamiento />
+        </HojaInferior>
       )}
       {exportando && <ProductionExportPanel espacio={espacio} onCerrar={onCerrarExportar} />}
     </View>

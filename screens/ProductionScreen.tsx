@@ -4,7 +4,9 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme, enTemaClaro, useEnStudio } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea } from '../hooks/useProduccion';
+import {
+  useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea, nuevoIdDePersonaje, nuevoIdDeLugar, nuevoIdDeObjeto,
+} from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import { useMontajeFinal } from '../hooks/useMontajeFinal';
@@ -110,6 +112,8 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const ids = useMemo(() => ({ escena: nuevoIdDeEscena, plano: nuevoIdDePlano }), []);
   /* Los ids de un sonido y de una línea nuevos, como los de una escena o un plano: los pone el cliente, una vez. */
   const idsDelMontaje = useMemo(() => ({ sonido: nuevoIdDeSonido, linea: nuevoIdDeLinea }), []);
+  /* Fase 23 del motor: y los de las fichas del proyecto. */
+  const idsDeFichas = useMemo(() => ({ personaje: nuevoIdDePersonaje, lugar: nuevoIdDeLugar, objeto: nuevoIdDeObjeto }), []);
 
   const vista = estado.vista;
   /* Volviendo a una versión o aplicando una propuesta, nada se edita (Fase 22 del motor, arreglo R6). */
@@ -209,6 +213,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       editable,
       ocupado,
       ids,
+      idsDeFichas,
       videos,
       toma,
       montaje,

@@ -267,21 +267,30 @@ await seccion('C', async () => {
   const dp = director(c, seleccion);
   check('C3) el Director dirige lo elegido: su nombre y su descripción, editable', /Escena 1 · Plano 2/.test(dp.texto)
     && dp.campos.some((f) => f.etiqueta === 'Descripción' && f.valor === 'La masa entra al horno'));
-  check('C4) con la cámara, el movimiento y la luz de la biblioteca de Weë Studio', !!boton(dp, 'Primer plano') && !!boton(dp, 'Acercarse') && !!boton(dp, 'Hora dorada'));
+  /*
+   * C4, C9 y C11, reancladas por nombre en la Fase 23 del motor: cada opción del inspector se anuncia con su grupo
+   * («Encuadre: Primer plano»), porque hay valores que se escriben igual en familias distintas.
+   */
+  check('C4) con la cámara, el movimiento y la luz de la biblioteca de Weë Studio', !!boton(dp, 'Encuadre: Primer plano') && !!boton(dp, 'Movimiento: Acercarse') && !!boton(dp, 'Luz: Hora dorada'));
   check('C5) el panel entero: intención, dirección creativa, formato, duración, resumen, recomendaciones, advertencias, por rehacer, personajes, audio y acciones',
     ['Director', 'Intención', 'Dirección creativa', 'Formato', 'Duración', 'Resumen', 'Recomendaciones', 'Advertencias', 'Por rehacer', 'Personajes', 'Audio', 'Acciones'].every((x) => dp.texto.includes(x)));
   check('C6) la intención, tal como se escribió', /El día de una panadería, de madrugada al cierre/.test(dp.texto));
   check('C7) la dirección creativa, en palabras', /Hora dorada/.test(dp.texto));
-  check('C8) los personajes se ven, no se editan', /Ana: la panadera/.test(dp.texto) && /todavía no se editan aquí/.test(dp.texto));
-  boton(dp, 'Acercarse').tocar();
+  /*
+   * Reanclada por nombre en la Fase 23 del motor (el espacio de trabajo, encargo del 2026-09-28: «crear y editar
+   * personajes, lugares y objetos»): los personajes se siguen viendo aquí, y el aviso de que «todavía no se editan»
+   * se va, porque ya se editan en el proyecto (`ProductionFichas`).
+   */
+  check('C8) los personajes se ven, y ya no se dice que no se editan: se editan en el proyecto', /Ana: la panadera/.test(dp.texto) && !/todavía no se editan aquí/.test(dp.texto));
+  boton(dp, 'Movimiento: Acercarse').tocar();
   const e = c.leer().estado;
   check('C9) elegir un movimiento es `change_movement` sobre ESE plano', e.pendientes.at(-1).operaciones[0].op === 'change_movement'
     && e.pendientes.at(-1).operaciones[0].target.shotId === 'sh-0102' && D.valorCreativo(D.buscarPlano(e.vista, 'sh-0102').shot.visual.creative, 'movement.type') === 'push_in');
   const campo = director(c, seleccion).campos.find((f) => f.etiqueta === 'Descripción');
   check('C10) la descripción cabe lo que F1-A deja', campo.maximo === D.LIMITES.texto);
   const escena = director(c, { tipo: 'escena', id: 'sc-0002' });
-  boton(escena, 'Lluvia').tocar();
-  boton(escena, 'Noche').tocar();
+  boton(escena, 'Clima: Lluvia').tocar();
+  boton(escena, 'Momento del día: Noche').tocar();
   check('C11) en una escena, el clima y el momento del día son sus operaciones', c.leer().estado.vista.scenes[1].weather === 'rain' && c.leer().estado.vista.scenes[1].timeOfDay === 'night'
     && c.leer().estado.pendientes.slice(-2).map((g) => g.operaciones[0].op).join() === 'change_weather,change_time_of_day');
   check('C12) sin nada elegido, dice cómo elegir', /Toca una escena o un plano para dirigirlo/.test(director(c, null).texto));

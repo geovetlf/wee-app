@@ -40,6 +40,8 @@ export interface EspacioDeFilmmaker {
   /** Fase 22 · volviendo a una versión o aplicando una propuesta: mientras tanto, nada se edita. */
   readonly ocupado?: Ocupado | null;
   readonly ids: IdsNuevos;
+  /** Fase 23 · los ids de las fichas nuevas (personaje, lugar, objeto): los pone el cliente, una vez, como los demás. */
+  readonly idsDeFichas?: { readonly personaje: () => string; readonly lugar: () => string; readonly objeto: () => string };
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
   /** El montaje final de la revisión guardada y su publicación (Fase 14 del motor). */

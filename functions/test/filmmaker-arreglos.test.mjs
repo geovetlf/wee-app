@@ -842,27 +842,28 @@ const sembrar = (e) => { if (!nucleo.elementoValido(e)) throw new Error(`Element
   const { coincideConLaBusqueda } = cargar('utils/buscarPorNombre.ts');
   check('L13) buscar: sin mayúsculas ni acentos, por cualquier parte; vacío, todo', coincideConLaBusqueda('Álvaro', 'alv') && coincideConLaBusqueda('La Bahía', 'BAHIA') && !coincideConLaBusqueda('Zoco', 'mar') && coincideConLaBusqueda('Zoco', '  '));
 
-  /* La hoja. */
-  const Hoja = cargar('components/studio/produccion/ProductionStructureSheet.tsx').default;
+  /*
+   * El selector. Reancladas por nombre en la Fase 23 del motor (el espacio de trabajo): el filtro y «Cargar más» viven
+   * en el selector común (`ProductionSelectorDeGuardados`), que abren las fichas del proyecto; la hoja de la
+   * estructura quedó para el guion. Las reglas, las de la Fase 22.
+   */
+  const Selector = cargar('components/studio/produccion/ProductionSelectorDeGuardados.tsx').default;
   let masPedidas = 0;
   const elementos = (extra = {}) => ({ carga: 'listos', lista: [EL('el_luna', 'character', 'Luna'), EL('el_lucia', 'character', 'Lucía'), EL('el_mar', 'character', 'Mar')], hayMas: true, cargandoMas: false, cargar() {}, cargarMas: () => { masPedidas++; }, ...extra });
-  const vinculos = (el) => ({ editable: true, onGesto: (o) => gestos.push(o), elementos: el });
+  const elegidos = [];
+  const selector = (el) => dibujar(hc(Selector, { elementos: el, onElegir: (e) => elegidos.push(e.elementId), onVolver() {} }));
   recordar(true);
-  correrEfectos = true;
-  const h0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos()) }));
-  h0.botones.find((b) => b.etiqueta === 'Vincular con uno guardado').tocar();
-  const h1 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos()) }));
+  const h1 = selector(elementos());
   h1.buscadores[0].onCambiar('lu');
-  const h2 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos()) }));
+  const h2 = selector(elementos());
   check('L14) la lista de lo guardado se filtra por nombre, y dice que busca en lo ya cargado',
     !!h1.buscadores[0] && boton(h2, 'Luna') && boton(h2, 'Lucía') && !boton(h2, 'Mar') && /Busca entre lo que ya se ha cargado: puede haber más\./.test(h2.texto));
   h2.buscadores[0].onCambiar('zzz');
-  const h3 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos()) }));
+  const h3 = selector(elementos());
   check('L15) si nada de lo cargado se llama así, se dice', /Nada de lo cargado se llama así\./.test(h3.texto));
   boton(h3, 'Cargar más').tocar();
-  const h4 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos({ hayMas: false })) }));
+  const h4 = selector(elementos({ hayMas: false }));
   check('L16) «Cargar más» mientras queda algo, y pide más; cuando no queda, no está', masPedidas === 1 && !boton(h4, 'Cargar más'));
-  correrEfectos = false;
   recordar(false);
 }
 
@@ -979,9 +980,18 @@ console.log('\n── X · R14, R16 y R17 ──');
     /const teclado = useAlturaDelTeclado\(\);/.test(hoja) && /paddingBottom: Math\.max\(insets\.bottom, SPACING\.lg\) \+ teclado/.test(hoja)
     && /'components\/workspace\/CampoDeBusqueda\.tsx': 'filtro de una línea ARRIBA/.test(leer('functions/test/teclado.test.mjs')));
   const doc = leer('docs/FILMMAKER.md');
+  /*
+   * Cuántas operaciones de F1-A tienen un control propio en la app, calculado del código: las del lenguaje de F1-A que
+   * alguna pieza del editor manda con su nombre. Reanclada en la Fase 23 del motor: el recuento ya no se fija a mano, y
+   * cualquier fase que dé un control nuevo tiene que decirlo en el documento (decía 29 cuando ya eran más).
+   */
+  const lenguaje = [...new Set([...leer('functions/src/filmmaker/operaciones.ts').matchAll(/readonly op: '([a-z_]+)'/g)].map((m) => m[1]))];
+  const delEditor = fs.readdirSync(path.resolve(RAIZ, 'components/studio/produccion')).map((f) => leer(`components/studio/produccion/${f}`)).join('\n');
+  const conControl = lenguaje.filter((o) => delEditor.includes(`op: '${o}'`)).length;
   check('X6) R14: el documento ya no da por conectado lo que solo está en el servidor, y dice qué está cerrado y por qué puerta',
-    !/\*\*Hecho, y conectado en la app\*\*: el lenguaje completo/.test(doc) && /Corregido en la Fase 22 \(arreglo R14/.test(doc) && /\*\*29 de las 56 operaciones\*\*/.test(doc)
-    && /\*\*27 operaciones sin control propio\*\*/.test(doc) && /`aiSettings\/render`/.test(doc) && /### Fase 22 · /.test(doc));
+    !/\*\*Hecho, y conectado en la app\*\*: el lenguaje completo/.test(doc) && /Corregido en la Fase 22 \(arreglo R14/.test(doc)
+    && doc.includes(`**${conControl} de las ${lenguaje.length} operaciones**`) && doc.includes(`**${lenguaje.length - conControl} operaciones sin control propio**`)
+    && /`aiSettings\/render`/.test(doc) && /### Fase 22 · /.test(doc), `${conControl} de ${lenguaje.length}`);
 }
 
 /* ═══ G · LAS GUARDAS ═════════════════════════════════════════════════════ */

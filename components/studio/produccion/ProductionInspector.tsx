@@ -5,22 +5,28 @@ import { useT } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import { Seccion } from './ProductionPiezas';
 import { FAMILIAS_DE_CAMARA } from '../../../constants/camaraCinematica';
-import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, FAMILIAS_DEL_DIRECTOR, OPERACION_DE_LA_RUTA } from '../../../constants/filmmaker';
+import { CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, FAMILIAS_DEL_DIRECTOR, FOCALES_MM, OPERACION_DE_LA_RUTA } from '../../../constants/filmmaker';
 import { CLIMAS, LIMITES, MOMENTOS_DEL_DIA, buscarEscena, buscarPlano, valorCreativo } from '../../../services/filmmaker/dominio';
-import type { CreativeParameterPath, FilmmakerOperation, FilmmakerProduction, ProductionScene, ProductionShot, TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
+import type { CreativeParameterPath, FilmmakerOperation, FilmmakerProduction, ProductionScene, ProductionShot, TimeOfDay, TransitionType, Weather } from '../../../services/filmmaker/dominio';
 import type { Seleccion } from './ProductionStoryboard';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 
 const isWeb = Platform.OS === 'web';
 
-/** Una fila de opciones de las que se elige una; tocar la elegida la quita. */
+/**
+ * Una fila de opciones de las que se elige una; tocar la elegida la quita. Cada una se anuncia con su grupo («Luz:
+ * Suave», «Ritmo: Suave»): el inspector tiene valores que se escriben igual en familias distintas —la luz suave y el
+ * movimiento suave, la cámara macro y la óptica macro—, y quien no ve la sección los confundiría (Fase 23 del motor).
+ */
 const Opciones: React.FC<{
   opciones: readonly { valor: string; texto: string }[];
   elegida?: string;
   editable: boolean;
   onElegir: (valor: string | null) => void;
-}> = ({ opciones, elegida, editable, onElegir }) => {
+  grupo: string;
+}> = ({ opciones, elegida, editable, onElegir, grupo }) => {
   const { theme } = useTheme();
+  const t = useT();
   return (
     <View style={styles.opciones}>
       {opciones.map((o) => {
@@ -32,7 +38,7 @@ const Opciones: React.FC<{
             disabled={!editable}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel={o.texto}
+            accessibilityLabel={t('filmmaker.wsSettingIs', { ajuste: grupo, valor: o.texto })}
             accessibilityState={{ selected: esta, disabled: !editable }}
             style={[
               styles.opcion,
@@ -56,9 +62,12 @@ const Opciones: React.FC<{
  * (`edit_text`), el clima y el momento del día de una escena
  * (`change_weather`, `change_time_of_day`) y la cámara, el encuadre, el
  * movimiento y la luz (`change_camera`, `change_movement`, `change_lighting`)
- * con el vocabulario de la biblioteca de Weë Studio. Personajes, lugares,
- * referencias y la intención se ven, pero no se editan aquí: F1-A todavía no
- * tiene operaciones para ellos, y no se inventan.
+ * con el vocabulario de la biblioteca de Weë Studio.
+ *
+ * Fase 23 del motor (el espacio de trabajo): TODA la cámara que el Core sabe decir, no solo cuatro familias —la
+ * perspectiva, la óptica y su focal, la composición, la velocidad y la suavidad del movimiento—, cada ruta en su propia
+ * fila (antes, una familia con dos rutas solo dejaba elegir una); y la transición al plano siguiente
+ * (`change_transition`). Nada de esto cambia el texto de lo que ya estaba guardado: solo deja elegirlo.
  */
 const ProductionInspector: React.FC<{
   produccion: FilmmakerProduction;
@@ -86,6 +95,8 @@ const ProductionInspector: React.FC<{
     if (!destino) return;
     onGesto([{ op: destino.op, target: objetivo, [destino.campo]: valor } as unknown as FilmmakerOperation]);
   };
+  const focal = valorCreativo(creativo, 'lens.focalLengthMm' as CreativeParameterPath);
+  const transicion = valorCreativo(creativo, 'transition.type' as CreativeParameterPath);
 
   return (
     <View style={styles.bloque}>
@@ -113,6 +124,7 @@ const ProductionInspector: React.FC<{
         <>
           <Seccion titulo={t('filmmaker.timeOfDay')}>
             <Opciones
+              grupo={t('filmmaker.timeOfDay')}
               opciones={MOMENTOS_DEL_DIA.map((m) => ({ valor: m, texto: t(CLAVE_DEL_MOMENTO[m]) }))}
               elegida={escena.timeOfDay}
               editable={editable}
@@ -121,6 +133,7 @@ const ProductionInspector: React.FC<{
           </Seccion>
           <Seccion titulo={t('filmmaker.weather')}>
             <Opciones
+              grupo={t('filmmaker.weather')}
               opciones={CLIMAS.map((c) => ({ valor: c, texto: t(CLAVE_DEL_CLIMA[c]) }))}
               elegida={escena.weather}
               editable={editable}
@@ -130,21 +143,47 @@ const ProductionInspector: React.FC<{
         </>
       )}
 
-      {FAMILIAS_DE_CAMARA.filter((f) => FAMILIAS_DEL_DIRECTOR.includes(f.id)).map((familia) => (
-        <Seccion key={familia.id} titulo={t(familia.clave)}>
-          <Opciones
-            opciones={familia.comandos.filter((c) => !!OPERACION_DE_LA_RUTA[c.ruta]).map((c) => ({ valor: `${c.ruta}=${c.valor}`, texto: t(c.clave) }))}
-            elegida={familia.comandos.map((c) => `${c.ruta}=${valorCreativo(creativo, c.ruta as CreativeParameterPath)}`).find((k) => familia.comandos.some((c) => `${c.ruta}=${c.valor}` === k))}
-            editable={editable}
-            onElegir={(v) => {
-              const ruta = (v ?? '').split('=')[0] || familia.comandos[0]?.ruta;
-              if (ruta) cambiarRuta(ruta, v ? v.split('=')[1] : null);
-            }}
-          />
-        </Seccion>
-      ))}
+      {FAMILIAS_DE_CAMARA.filter((f) => FAMILIAS_DEL_DIRECTOR.includes(f.id)).map((familia) => {
+        /* Una fila por ruta: una familia con dos (velocidad y suavidad) deja elegir las dos. */
+        const rutas = [...new Set(familia.comandos.map((c) => c.ruta))].filter((r) => !!OPERACION_DE_LA_RUTA[r]);
+        return (
+          <Seccion key={familia.id} titulo={t(familia.clave)}>
+            {rutas.map((ruta) => {
+              const actual = valorCreativo(creativo, ruta as CreativeParameterPath);
+              return (
+                <Opciones
+                  key={ruta}
+                  grupo={t(familia.clave)}
+                  opciones={familia.comandos.filter((c) => c.ruta === ruta).map((c) => ({ valor: c.valor, texto: t(c.clave) }))}
+                  elegida={typeof actual === 'string' ? actual : undefined}
+                  editable={editable}
+                  onElegir={(v) => cambiarRuta(ruta, v)}
+                />
+              );
+            })}
+            {familia.id === 'lens' && (
+              <Opciones
+                grupo={t(familia.clave)}
+                opciones={FOCALES_MM.map((mm) => ({ valor: String(mm), texto: t('filmmaker.wsFocalMm', { mm }) }))}
+                elegida={typeof focal === 'number' ? String(focal) : undefined}
+                editable={editable}
+                onElegir={(v) => onGesto([{ op: 'change_camera', target: objetivo, focalLengthMm: v === null ? null : Number(v) }])}
+              />
+            )}
+          </Seccion>
+        );
+      })}
 
-      <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.notEditableYet')}</Text>
+      <Seccion titulo={t('filmmaker.wsTransitionToNext')}>
+        <Opciones
+          grupo={t('filmmaker.wsTransitionToNext')}
+          opciones={(Object.keys(CLAVE_DE_TRANSICION) as TransitionType[]).map((v) => ({ valor: v, texto: t(CLAVE_DE_TRANSICION[v]) }))}
+          elegida={typeof transicion === 'string' ? transicion : undefined}
+          editable={editable}
+          onElegir={(v) => onGesto([{ op: 'change_transition', target: objetivo, transition: v as TransitionType | null }])}
+        />
+        <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsTransitionNote')}</Text>
+      </Seccion>
     </View>
   );
 };

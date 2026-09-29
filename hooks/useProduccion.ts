@@ -47,4 +47,6 @@ export const useProduccion = (productionId: string) => {
 };
 
 /** Los ids de las escenas y los planos nuevos se ponen en el cliente: así un gesto repetido tras un conflicto es el mismo. */
-export { nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea } from '../services/filmmakerService';
+export {
+  nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea, nuevoIdDePersonaje, nuevoIdDeLugar, nuevoIdDeObjeto, nuevoIdDeReferencia,
+} from '../services/filmmakerService';

@@ -150,6 +150,11 @@ export const nuevoIdDePlano = (): string => `sh_${alAzar(12)}`;
 /** El de un sonido del plan de audio y el de una línea de diálogo: la misma forma, otro prefijo. */
 export const nuevoIdDeSonido = (): string => `sd_${alAzar(12)}`;
 export const nuevoIdDeLinea = (): string => `ln_${alAzar(12)}`;
+/* Fase 23 del motor: los de las fichas y las referencias nuevas, con los mismos prefijos que usa el servidor. */
+export const nuevoIdDePersonaje = (): string => `ch_${alAzar(12)}`;
+export const nuevoIdDeLugar = (): string => `lc_${alAzar(12)}`;
+export const nuevoIdDeObjeto = (): string => `ob_${alAzar(12)}`;
+export const nuevoIdDeReferencia = (): string => `rf_${alAzar(12)}`;
 
 /* ── Lo que vuelve, leído con cuidado ─────────────────────────────────────── */
 

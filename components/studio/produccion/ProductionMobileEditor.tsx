@@ -13,6 +13,7 @@ import ProductionDirectorPanel from './ProductionDirectorPanel';
 import ProductionBrainBox from './ProductionBrainBox';
 import ProductionExportPanel from './ProductionExportPanel';
 import ProductionSaveState from './ProductionSaveState';
+import ProductionProyecto from './ProductionProyecto';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
 import { montajeDe, tramoEn } from '../../../utils/montajeDeProduccion';
@@ -20,7 +21,7 @@ import type { TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
-type Vista = 'montaje' | 'storyboard' | 'director';
+type Vista = 'montaje' | 'storyboard' | 'director' | 'proyecto';
 /** Las herramientas del teléfono: las del montaje y «Ajustes», que son las propiedades del plano. */
 type Herramienta = IdDeHerramienta | 'ajustes';
 
@@ -74,6 +75,8 @@ const ProductionMobileEditor: React.FC<{
     { id: 'montaje', clave: 'filmmaker.wsMontage' },
     { id: 'storyboard', clave: 'filmmaker.storyboard' },
     { id: 'director', clave: 'filmmaker.director' },
+    /* Fase 23 del motor: el proyecto, editable, y sus versiones —que en el teléfono no había dónde verlas—. */
+    { id: 'proyecto', clave: 'filmmaker.wsProjectTab' },
   ];
 
   return (
@@ -173,6 +176,7 @@ const ProductionMobileEditor: React.FC<{
         {vista === 'director' && (
           <ProductionBrainBox espacio={espacio} />
         )}
+        {vista === 'proyecto' && <ProductionProyecto espacio={espacio} sinDesplazamiento />}
       </ScrollView>
 
       {!!abierta && (

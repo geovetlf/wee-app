@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import MiniaturaDeVideo from './MiniaturaDeVideo';
+import ProductionVersiones from './ProductionVersiones';
 import ProductionStatus from './ProductionStatus';
 import ProductionSaveState from './ProductionSaveState';
 import { BotonPequeno, Chip, Seccion } from './ProductionPiezas';
@@ -17,43 +18,7 @@ const isWeb = Platform.OS === 'web';
 
 export type Etapa = 'pre' | 'produccion' | 'post';
 /** Lo que se abre desde «Estructura»: cada cosa, o el storyboard en el centro. */
-export type Estructura = 'idea' | 'guion' | 'personajes' | 'lugares' | 'storyboard' | 'planos' | 'moodboard';
-
-/**
- * LAS VERSIONES DE LA PRODUCCIÓN (Fase 20 del motor; volver a una, Fase 12): las más recientes primero, con cuándo y,
- * si una es una vuelta, a cuál. Volver a una pide confirmación, se guarda como una versión NUEVA y ninguna se pierde;
- * con cambios sin guardar, o archivada, no se puede.
- */
-const Versiones: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
-  const { theme } = useTheme();
-  const { t, formato } = useIdioma();
-  const { historial, revision, editable, hayCambios, onRestaurar } = espacio;
-  if (!historial) return null;
-  if (historial.carga === 'error') return <Text style={[styles.nota, { color: theme.colors.error }]}>{t('filmmaker.wsVersionsError')}</Text>;
-  if (historial.carga === 'cargando') return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('common.loading')}</Text>;
-  const volver = async (numero: number) => {
-    if (!onRestaurar) return;
-    const si = await confirmAction(t('filmmaker.wsVersionConfirmTitle', { numero }), t('filmmaker.wsVersionConfirmText'), t('filmmaker.wsVersionRestore'), false, t);
-    if (si) onRestaurar(numero);
-  };
-  return (
-    <View style={styles.versiones}>
-      {historial.versiones.map((v) => (
-        <View key={v.revision} style={[styles.version, { borderColor: theme.colors.border }]}>
-          <View style={styles.versionTextos}>
-            <Text style={[styles.filaTexto, { color: theme.colors.text }]}>{t('filmmaker.wsVersionLine', { numero: v.revision, cuando: formato.tiempoRelativo(v.createdAt) })}</Text>
-            {v.restoredFrom !== undefined && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsVersionWasRestore', { numero: v.restoredFrom })}</Text>}
-          </View>
-          {v.revision === revision
-            ? <Chip texto={t('filmmaker.wsVersionCurrent')} tono="acento" />
-            : !!onRestaurar && (
-              <BotonPequeno icono="arrow-undo-outline" etiqueta={t('filmmaker.wsVersionRestore')} onPress={() => { void volver(v.revision); }} disabled={!editable || hayCambios} conTexto />
-            )}
-        </View>
-      ))}
-    </View>
-  );
-};
+export type Estructura = 'idea' | 'guion' | 'direccion' | 'personajes' | 'lugares' | 'objetos' | 'storyboard' | 'planos' | 'moodboard';
 
 /**
  * EL PANEL DEL PROYECTO, A LA IZQUIERDA.
@@ -87,10 +52,12 @@ const ProductionProjectPanel: React.FC<{
   ];
 
   const estructura: readonly { id: Estructura; clave: string; icono: string; cuenta?: number }[] = [
-    { id: 'idea', clave: 'filmmaker.wsIdea', icono: 'bulb-outline' },
+    { id: 'idea', clave: 'filmmaker.wsBrief', icono: 'bulb-outline' },
     { id: 'guion', clave: 'filmmaker.wsScript', icono: 'document-text-outline', cuenta: lineas || undefined },
+    { id: 'direccion', clave: 'filmmaker.wsDirection', icono: 'color-wand-outline' },
     { id: 'personajes', clave: 'filmmaker.characters', icono: 'people-outline', cuenta: produccion.characters.length },
     { id: 'lugares', clave: 'filmmaker.wsLocations', icono: 'location-outline', cuenta: produccion.locations.length },
+    { id: 'objetos', clave: 'filmmaker.wsObjects', icono: 'cube-outline', cuenta: produccion.objects.length },
     { id: 'storyboard', clave: 'filmmaker.storyboard', icono: 'grid-outline', cuenta: produccion.scenes.length },
     { id: 'planos', clave: 'filmmaker.wsShotList', icono: 'list-outline', cuenta: planos },
     { id: 'moodboard', clave: 'filmmaker.wsMoodboard', icono: 'color-palette-outline', cuenta: produccion.references.length },
@@ -282,7 +249,7 @@ const ProductionProjectPanel: React.FC<{
 
       {!!espacio.historial && (
         <Seccion titulo={t('filmmaker.wsVersions')}>
-          <Versiones espacio={espacio} />
+          <ProductionVersiones espacio={espacio} />
         </Seccion>
       )}
     </ScrollView>

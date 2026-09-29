@@ -743,51 +743,71 @@ console.log('\n── U · En pantalla: el prompt avanzado, las versiones, los v
   check('U6) sin poder cargarlas, se dice; y sin historial, la sección no está', /No se pudieron cargar las versiones\./.test(p3.texto)
     && !p4.texto.includes('Versiones') && !boton(p4, 'Volver a esta versión'));
 
-  /* Los vínculos de la hoja de la estructura. */
-  const Hoja = cargar('components/studio/produccion/ProductionStructureSheet.tsx').default;
+  /*
+   * Los vínculos a lo guardado. Reancladas por nombre en la Fase 23 del motor (el espacio de trabajo, encargo del
+   * 2026-09-28): el reparto y los lugares ya no se leen en la hoja de la estructura —que queda para el guion—, sino que
+   * se EDITAN en el proyecto (`ProductionFichas`), y vincular vive allí, con el selector común. Las reglas son las de
+   * la Fase 20: el nombre de lo vinculado, quitarlo con `element: null`, «Volver» y no «Cancelar», la versión elegida,
+   * las clases de cada ficha, los errores y la producción archivada.
+   */
+  const cargarFichas = crearCargador({ dobles: { ...dobles, '../../creator/CampoQueCrece': { __esModule: true, default: () => null } } });
+  const Fichas = cargarFichas('components/studio/produccion/ProductionFichas.tsx').default;
   const pedidasDeElementos = [];
-  const elementos = (carga, lista) => ({ carga, lista, cargar: (tipos) => pedidasDeElementos.push(tipos) });
+  const elementos = (carga, lista) => ({ carga, lista, hayMas: false, cargandoMas: false, cargar: (tipos) => pedidasDeElementos.push(tipos), cargarMas() {} });
   const LISTA = [{ elementId: 'el_luna_0001', type: 'character', name: 'Luna', version: 3 }, { elementId: 'el_mar_0001', type: 'character', name: 'Mar', version: 2 }];
-  const vinculos = (el, editable = true) => ({ editable, onGesto: (o) => { gestos.push(o); return { ok: true }; }, elementos: el });
+  const fichas = (clase, el, editable = true) => dibujar(hc(Fichas, { clase, espacio: espacioCon({ elementos: el, editable }), nuevoId: () => 'ch_n' }));
+  const abrir = (d, nombre) => d.botones.find((b) => b.etiqueta === `Abrir ${nombre}`).tocar();
   gestos.length = 0;
   correrEfectos = true;
   recordar(true);
-  const h0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('listos', LISTA)) }));
+  const h0 = fichas('personaje', elementos('listos', LISTA));
+  abrir(h0, 'Luna');
+  const h0b = fichas('personaje', elementos('listos', LISTA));
   check('U7) el reparto: quien está vinculado lo dice con su nombre y puede dejar de estarlo; quien no, se puede vincular',
-    /Vinculado a «Luna»/.test(h0.texto) && !!boton(h0, 'Quitar el vínculo') && h0.botones.filter((b) => b.etiqueta === 'Vincular con uno guardado').length === 1
-    && h0.hojas[0]?.subtitulo?.startsWith('Aquí se ve lo que la producción ya sabe. Cada ficha se puede vincular'));
-  boton(h0, 'Quitar el vínculo').tocar();
+    /Vinculado a «Luna»/.test(h0.texto) && !!boton(h0b, 'Quitar el vínculo') && !boton(h0b, 'Vincular con uno guardado'));
+  boton(h0b, 'Quitar el vínculo').tocar();
   check('U8) quitar el vínculo es la operación de F1-A de siempre, con `element: null`', JSON.stringify(gestos.at(-1)) === JSON.stringify([{ op: 'update_character', characterId: 'char-luna', changes: { element: null } }]));
-  boton(h0, 'Vincular con uno guardado').tocar();
-  const h1 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('listos', LISTA)) }));
+  recordar(true);
+  abrir(fichas('personaje', elementos('listos', LISTA)), 'Mar');
+  boton(fichas('personaje', elementos('listos', LISTA)), 'Vincular con uno guardado').tocar();
+  const h1 = fichas('personaje', elementos('listos', LISTA));
   check('U9) vincular abre la lista de lo guardado —con su nombre— y se puede volver sin elegir («Volver», no «Cancelar»: vuelve a las fichas)', /Elige uno de los que tienes guardados/.test(h1.texto) && !!boton(h1, 'Luna') && !!boton(h1, 'Mar') && !!boton(h1, 'Volver') && !boton(h1, 'Cancelar'));
   boton(h1, 'Mar').tocar();
   check('U10) elegir uno lo vincula en SU versión, con la operación de siempre', JSON.stringify(gestos.at(-1)) === JSON.stringify([{ op: 'update_character', characterId: 'char-mar', changes: { element: { elementId: 'el_mar_0001', version: 2 } } }]));
   recordar(true);
-  const l0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'lugares', onCerrar() {}, vinculos: vinculos(elementos('listos', [{ elementId: 'el_faro_0001', type: 'place', name: 'El faro', version: 1 }])) }));
-  boton(l0, 'Vincular con uno guardado').tocar();
-  const l1 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'lugares', onCerrar() {}, vinculos: vinculos(elementos('listos', [{ elementId: 'el_faro_0001', type: 'place', name: 'El faro', version: 1 }])) }));
-  boton(l1, 'El faro').tocar();
-  check('U11) un lugar, con `update_location`; y al abrir cada hoja se pide lo que encaja con ella —personajes; lugares y escenas—',
+  const FARO = [{ elementId: 'el_faro_0001', type: 'place', name: 'El faro', version: 1 }];
+  abrir(fichas('lugar', elementos('listos', FARO)), 'El faro');
+  boton(fichas('lugar', elementos('listos', FARO)), 'Vincular con uno guardado').tocar();
+  boton(fichas('lugar', elementos('listos', FARO)), 'El faro').tocar();
+  check('U11) un lugar, con `update_location`; y al abrir cada selector se pide lo que encaja con esa ficha —personajes; lugares y escenas—',
     JSON.stringify(gestos.at(-1)) === JSON.stringify([{ op: 'update_location', locationId: 'loc-faro', changes: { element: { elementId: 'el_faro_0001', version: 1 } } }])
     && pedidasDeElementos.some((p) => JSON.stringify(p) === '["character"]') && pedidasDeElementos.some((p) => JSON.stringify(p) === '["place","scene"]'));
   recordar(true);
-  const e0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('error', [])) }));
-  boton(e0, 'Vincular con uno guardado').tocar();
-  const e1 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('error', [])) }));
+  abrir(fichas('personaje', elementos('error', [])), 'Mar');
+  boton(fichas('personaje', elementos('error', [])), 'Vincular con uno guardado').tocar();
+  const e1 = fichas('personaje', elementos('error', []));
   recordar(true);
-  const v0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('listos', [])) }));
-  boton(v0, 'Vincular con uno guardado').tocar();
-  const v1 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('listos', [])) }));
+  const v0 = fichas('personaje', elementos('listos', []));
+  abrir(v0, 'Mar');
+  boton(fichas('personaje', elementos('listos', [])), 'Vincular con uno guardado').tocar();
+  const v1 = fichas('personaje', elementos('listos', []));
   check('U12) sin poder cargar lo guardado, se dice; sin nada guardado de esa clase, también; y un vínculo a algo que no llegó, sin nombre',
     /No se pudieron cargar los que tienes guardados\./.test(e1.texto) && /Todavía no tienes ninguno guardado de esta clase\./.test(v1.texto) && /Vinculado a uno de los que tienes guardados/.test(v0.texto));
-  recordar(false);
-  const s0 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {} }));
-  const s1 = dibujar(hc(Hoja, { produccion: produccionUI(), que: 'personajes', onCerrar() {}, vinculos: vinculos(elementos('listos', LISTA), false) }));
-  check('U13) sin cómo vincular, la hoja es la de antes —solo se lee—; archivada, los botones están apagados',
-    !boton(s0, 'Vincular con uno guardado') && !/Vinculado a/.test(s0.texto) && s0.hojas[0]?.subtitulo?.includes('todavía no se editan desde Filmmaker')
-    && s1.botones.filter((b) => b.etiqueta === 'Vincular con uno guardado' || b.etiqueta === 'Quitar el vínculo').every((b) => b.apagado));
+  recordar(true);
+  abrir(dibujar(hc(Fichas, { clase: 'personaje', espacio: espacioCon(), nuevoId: () => 'ch_n' })), 'Mar');
+  const s0 = dibujar(hc(Fichas, { clase: 'personaje', espacio: espacioCon(), nuevoId: () => 'ch_n' }));
+  recordar(true);
+  abrir(fichas('personaje', elementos('listos', LISTA), false), 'Luna');
+  const s1 = fichas('personaje', elementos('listos', LISTA), false);
+  /* Y la ficha SIN vincular: su «Vincular» también (antes solo se miraba la vinculada, y un «Vincular» encendido pasaba). */
+  recordar(true);
+  abrir(fichas('personaje', elementos('listos', LISTA), false), 'Mar');
+  const s2 = fichas('personaje', elementos('listos', LISTA), false);
+  check('U13) sin cómo vincular, no se ofrece vincular; archivada, los botones están apagados —vincular y quitar el vínculo—',
+    !boton(s0, 'Vincular con uno guardado') && !boton(s0, 'Quitar el vínculo')
+    && boton(s1, 'Quitar el vínculo')?.apagado === true && boton(s2, 'Vincular con uno guardado')?.apagado === true);
   correrEfectos = false;
+  recordar(false);
 
   /* Weë Brain en el editor. */
   const Caja = cargar('components/studio/produccion/ProductionBrainBox.tsx').default;
@@ -877,16 +897,20 @@ console.log('\n── G · Los paneles no hablan con el servidor; el servidor so
     git(`diff --name-only ${tramo} -- functions/src/index.ts functions/src/credits functions/src/core functions/src/filmmaker functions/src/engine firestore.rules firestore.indexes.json storage.rules`).trim() === '');
   const CLAVES = ['wsAdvancedShow', 'wsAdvancedHide', 'wsAdvancedNote', 'wsVersions', 'wsVersionLine', 'wsVersionWasRestore', 'wsVersionCurrent', 'wsVersionRestore', 'wsVersionConfirmTitle',
     'wsVersionConfirmText', 'wsVersionRestored', 'wsVersionsError', 'wsElementLink', 'wsElementUnlink', 'wsElementLinked', 'wsElementPickTitle', 'wsElementPickEmpty', 'wsElementPickError',
-    'wsElementLinkedUnknown', 'wsStructureLinkable', 'wsBrainTitle', 'wsBrainPlaceholder', 'wsBrainSend', 'wsBrainThinking', 'wsBrainProposalCount', 'wsBrainApply', 'wsBrainDiscard',
+    'wsElementLinkedUnknown', 'wsBrainTitle', 'wsBrainPlaceholder', 'wsBrainSend', 'wsBrainThinking', 'wsBrainProposalCount', 'wsBrainApply', 'wsBrainDiscard',
     'wsBrainApplied', 'wsBrainStale', 'wsBrainNoProposal', 'wsBrainError'];
   const IDIOMAS = ['es', 'en', 'pt', 'pt-PT', 'fr', 'de', 'it', 'ko', 'ru', 'zh', 'zh-TW'];
   const sinTexto = IDIOMAS.flatMap((l) => { const s = sinCR(leer(`i18n/textos/${l}/filmmaker.ts`)); return CLAVES.filter((k) => !new RegExp(`\\n {2}${k}: '[^'\\n]+',\\n`).test(s)).map((k) => `${l}.${k}`); });
-  check('G4) las treinta y una claves, en los once idiomas; Weë y Weë Brain, sin traducir', CLAVES.length === 31 && sinTexto.length === 0
+  /*
+   * Reanclada por nombre en la Fase 23 del motor: `wsStructureLinkable` —el subtítulo de la hoja que solo se leía y
+   * dejaba vincular— se fue con ella; vincular vive en el proyecto. Quedan treinta.
+   */
+  check('G4) las treinta claves que siguen, en los once idiomas; Weë y Weë Brain, sin traducir', CLAVES.length === 30 && sinTexto.length === 0
     && IDIOMAS.every((l) => /wsBrainTitle: '[^'\n]*Weë Brain/.test(sinCR(leer(`i18n/textos/${l}/filmmaker.ts`)))), sinTexto.join(', '));
   /* En chino, «项目 / 項目» es «proyecto» en Weë (`nav.projects`): lo guardado no puede llamarse igual. */
   const guardadoEnChino = ['zh', 'zh-TW'].flatMap((l) => {
     const s = sinCR(leer(`i18n/textos/${l}/filmmaker.ts`));
-    return CLAVES.filter((k) => k.startsWith('wsElement') || k === 'wsStructureLinkable')
+    return CLAVES.filter((k) => k.startsWith('wsElement'))
       .filter((k) => { const m = s.match(new RegExp(`\\n {2}${k}: '([^'\\n]+)',`)); return !m || /项目|項目/.test(m[1]); }).map((k) => `${l}.${k}`);
   });
   check('G4b) en chino, lo guardado no se llama como los proyectos', guardadoEnChino.length === 0, guardadoEnChino.join(', '));

@@ -577,8 +577,17 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * `wsSpeakerNotInShot`), lo guardado por páginas (`wsElementLoadMore`, `wsElementSearch*`),
    * la miniatura sin póster (`videoReadyNoPoster`) y la duración redondeada
    * (`takeDurationRounded`), en los once diccionarios a la vez. No sale ninguna.
+   * 3 270 → 3 355 con la Fase 23 (el espacio de trabajo: el proyecto, editable, y lo que hay en
+   * cada plano): entran noventa y tres claves —el brief y la dirección (`wsBrief*`, `wsDirection*`,
+   * `type*`, `pacing*`), las fichas (`wsCast*`, `wsPlace*`, `wsObject*`, `setting*`, `objectKind*`),
+   * las referencias (`wsReference*`, `refRole*`), lo que hay en el plano (`wsCharacterState*`,
+   * `wsWardrobe`, `wsHowTheyAre*`, `wsObjectsIn*`), el inspector entero (`wsFocalMm`,
+   * `wsTransition*`, `wsSettingIs`) y la pestaña «Proyecto» (`wsProjectTab`)— y salen ocho que ya
+   * nadie usaba (`notEditableYet`, `wsStructureLinkable`, `wsIdea`, `wsReferencesTab`,
+   * `wsNoCharactersInShot`, `wsNoLocation`, `wsNoLocations`, `wsReferencesReadOnly`), en los once
+   * diccionarios a la vez.
    */
-  const CLAVES_PT = 3270;
+  const CLAVES_PT = 3355;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
