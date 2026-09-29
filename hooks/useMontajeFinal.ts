@@ -19,7 +19,8 @@ import { tomaService, type DestinoDelMontaje, type MontajeFinal } from '../servi
  * y solo entonces: un montaje hecho, fallido o sin pedir no pregunta nada.
  */
 
-export type FaseDelMontaje = 'cargando' | 'sin_montaje' | 'pidiendo' | 'en_marcha' | 'hecho' | 'fallido' | 'no_disponible' | 'rechazado';
+/** `desfasado` (Fase 26 del motor, R11): hay un montaje de esta revisión, pero se hizo con otras tomas de las que los planos tienen hoy. */
+export type FaseDelMontaje = 'cargando' | 'sin_montaje' | 'pidiendo' | 'en_marcha' | 'hecho' | 'fallido' | 'no_disponible' | 'rechazado' | 'desfasado';
 export type FaseDeLaPublicacion = 'nada' | 'publicando' | 'publicada' | 'ya_estaba' | 'rechazada';
 
 export interface PublicacionDelMontaje {
@@ -59,7 +60,11 @@ export const faseDe = (m: MontajeFinal | null): FaseDelMontaje => {
   return 'en_marcha';
 };
 
-export const useMontajeFinal = (productionId: string | null, revision: number | null): MontajeDeLaProduccion => {
+/**
+ * `refresco` (Fase 26 del motor): lo que distingue los vídeos que tienen puestos los planos. Enlazar otra toma no
+ * cambia la revisión, pero sí el montaje que toca: cuando cambia, se vuelve a mirar.
+ */
+export const useMontajeFinal = (productionId: string | null, revision: number | null, refresco = ''): MontajeDeLaProduccion => {
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const cara = userProfile?.uid || user?.uid || null;
@@ -101,11 +106,31 @@ export const useMontajeFinal = (productionId: string | null, revision: number | 
     }
     setFase('cargando');
     void (async () => {
-      const lista = await tomaService.montajesDeLaProduccion(productionId);
+      const [lista, vigente] = await Promise.all([
+        tomaService.montajesDeLaProduccion(productionId),
+        tomaService.huellaDelMontajeVigente(productionId, revision),
+      ]);
       if (gen !== generacion.current) return;
-      await ponerMontaje(lista?.find((m) => m.revision === revision) ?? null, gen);
+      const deLaRevision = lista?.find((m) => m.revision === revision) ?? null;
+      /* Sin poder preguntar la huella de hoy, se sigue eligiendo por revisión, como antes: no se esconde lo que hay. */
+      if (vigente === null) { await ponerMontaje(deLaRevision, gen); return; }
+      /*
+       * R11: el montaje que vale es el de la huella de HOY. Si el de esta revisión se hizo con otras tomas, está
+       * desfasado: se dice, no se ofrece publicarlo y se ofrece montarlo otra vez.
+       */
+      const deHoy = vigente.lista ? lista?.find((m) => m.huella === vigente.huella) ?? null : null;
+      if (!deHoy && deLaRevision) {
+        setMontaje(null);
+        setUrl(null);
+        setPoster(null);
+        setFase('desfasado');
+        return;
+      }
+      await ponerMontaje(deHoy, gen);
     })();
-  }, [productionId, revision, ponerMontaje]);
+    // `refresco` no se lee: basta con que cambie para volver a mirar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productionId, revision, refresco, ponerMontaje]);
 
   /* Mientras está en marcha, y solo entonces, se vuelve a preguntar. */
   useEffect(() => {

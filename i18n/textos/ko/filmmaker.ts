@@ -817,4 +817,9 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueVolumeOf: '‘{{sonido}}’의 믹스 음량',
   wsCuesNotMixed: '설명한 사운드는 저장되지만, 아직 최종 편집본에 믹싱되지는 않아요. 음악과 효과음 생성은 라이선스와 비용을 검토할 때까지 열리지 않아요.',
   wsReferenceRoleNeedsKind: '‘시작 프레임’과 ‘끝 프레임’은 이미지, ‘움직임’은 영상, ‘오디오’는 사운드여야 해요.',
+  /* ── Fase 26 del motor: exportar diciendo la verdad —el montaje de hoy, descargarlo y los subtítulos— ── */
+  wsFinalCutStale: '이 최종 편집본은 지금 숏에 들어 있는 테이크와 다른 테이크로 만들어졌어요. 지금 버전을 게시하려면 다시 만들어 주세요.',
+  wsFinalCutCreateAgain: '다시 만들기',
+  wsDownloadFinalCut: '최종 편집본 다운로드',
+  wsSubtitlesNotInCut: '지금의 최종 편집본은 아직 자막을 영상에 넣거나 자막 파일을 만들지 않아요. 원하는 방식은 가능해질 때를 위해 저장돼요 (검증 필요).',
 };

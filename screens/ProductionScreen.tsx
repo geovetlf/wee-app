@@ -142,7 +142,9 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
     return conElElegido;
   }, [delStoryboard, seleccion, toma.enElPlano]);
   /* El montaje final de lo GUARDADO y su publicación (Fase 14 del motor). */
-  const montaje = useMontajeFinal(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
+  /* Fase 26 del motor (R11): qué vídeo tiene puesto cada plano; si cambia —se enlazó otra toma—, el montaje de antes ya no vale. */
+  const firmaDeLosVideos = useMemo(() => [...videos.entries()].map(([u, v]) => `${u}:${v.assetId}`).sort().join('|'), [videos]);
+  const montaje = useMontajeFinal(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null, firmaDeLosVideos);
   /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain dentro del editor, sobre lo GUARDADO. */
   const historial = useHistorialDeProduccion(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const elementos = useElementosParaVincular();

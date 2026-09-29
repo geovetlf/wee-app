@@ -786,7 +786,7 @@ console.log('\n── C · En la app: el servicio, el hook y el panel ──');
     /const cara = userProfile\?\.uid \|\| user\?\.uid \|\| null;/.test(hook) && /r\.motivo === 'render_not_enabled' \? 'no_disponible' : 'rechazado'/.test(hook));
   check('C23) la app no llama a `renders` desde el panel ni la pantalla: solo el servicio',
     !/httpsCallable|firebase\//.test(sinComentarios(leer('components/studio/produccion/ProductionExportPanel.tsx'))) && !/httpsCallable|firebase\//.test(hook)
-    && /montaje = useMontajeFinal\(estado\.confirmada\?\.productionId \?\? null, estado\.confirmada\?\.revision \?\? null\)/.test(leer('screens/ProductionScreen.tsx')));
+    && /montaje = useMontajeFinal\(estado\.confirmada\?\.productionId \?\? null, estado\.confirmada\?\.revision \?\? null(, firmaDeLosVideos)?\)/.test(leer('screens/ProductionScreen.tsx')));
 }
 
 fs.rmSync(TMP, { recursive: true, force: true });

@@ -816,4 +816,9 @@ export const filmmaker = {
   wsCueVolumeOf: 'Nivel de «{{sonido}}» en la mezcla',
   wsCuesNotMixed: 'Los sonidos descritos se guardan, pero todavía no se mezclan en el montaje: generar música y efectos sigue cerrado hasta revisar su licencia y su coste.',
   wsReferenceRoleNeedsKind: 'Un fotograma tiene que ser una imagen; un movimiento, un vídeo; y un audio, un sonido.',
+  /* ── Fase 26 del motor: exportar diciendo la verdad —el montaje de hoy, descargarlo y los subtítulos— ── */
+  wsFinalCutStale: 'Este montaje se hizo con otras tomas de las que tus planos tienen hoy. Móntalo otra vez para publicar el de ahora.',
+  wsFinalCutCreateAgain: 'Montarlo otra vez',
+  wsDownloadFinalCut: 'Descargar el montaje',
+  wsSubtitlesNotInCut: 'El montaje de hoy todavía no incrusta los subtítulos ni crea su archivo: se guarda cómo los quieres para cuando se pueda (requiere validación).',
 };

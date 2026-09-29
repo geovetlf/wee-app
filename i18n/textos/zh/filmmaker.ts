@@ -835,4 +835,9 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueVolumeOf: '“{{sonido}}”在混音中的音量',
   wsCuesNotMixed: '用文字描述的声音会保存下来，但还不会混入最终成片：音乐和音效的生成在授权和成本审核完成前仍未开放。',
   wsReferenceRoleNeedsKind: '“起始帧”和“结束帧”必须是图片，“动态”必须是视频，“音频”必须是声音。',
+  /* ── Fase 26 del motor: exportar diciendo la verdad —el montaje de hoy, descargarlo y los subtítulos— ── */
+  wsFinalCutStale: '这个最终成片是用其他几条生成的，和你的镜头现在用的不一样。重新生成后才能发布当前版本。',
+  wsFinalCutCreateAgain: '重新生成',
+  wsDownloadFinalCut: '下载最终成片',
+  wsSubtitlesNotInCut: '目前的最终成片还不会把字幕压进视频，也不会生成字幕文件：你想要的方式会先保存下来，等可以时再用（需要验证）。',
 };

@@ -816,4 +816,9 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueVolumeOf: 'Lautstärke von „{{sonido}}“ im Mix',
   wsCuesNotMixed: 'Die beschriebenen Sounds werden gespeichert, aber noch nicht in den Endschnitt gemischt: Das Generieren von Musik und Effekten bleibt gesperrt, bis Lizenz und Kosten geprüft sind.',
   wsReferenceRoleNeedsKind: '„Startbild“ und „Endbild“ brauchen ein Bild, „Bewegung“ ein Video und „Audio“ einen Sound.',
+  /* ── Fase 26 del motor: exportar diciendo la verdad —el montaje de hoy, descargarlo y los subtítulos— ── */
+  wsFinalCutStale: 'Dieser Endschnitt entstand mit anderen Takes als denen, die deine Einstellungen jetzt haben. Erstelle ihn neu, um den aktuellen zu veröffentlichen.',
+  wsFinalCutCreateAgain: 'Endschnitt neu erstellen',
+  wsDownloadFinalCut: 'Endschnitt herunterladen',
+  wsSubtitlesNotInCut: 'Der heutige Endschnitt brennt die Untertitel noch nicht ein und erstellt auch keine eigene Datei: Wie du sie willst, wird gespeichert, bis es möglich ist (Validierung ausstehend).',
 };

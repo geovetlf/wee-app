@@ -816,4 +816,9 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueVolumeOf: 'Nível de “{{sonido}}” na mixagem',
   wsCuesNotMixed: 'Os sons descritos ficam salvos, mas ainda não são mixados na montagem: a geração de música e de efeitos continua fechada até que a licença e o custo sejam revisados.',
   wsReferenceRoleNeedsKind: 'O primeiro e o último quadro precisam ser imagens; o movimento, um vídeo; e o áudio, um som.',
+  /* ── Fase 26 del motor: exportar diciendo la verdad —el montaje de hoy, descargarlo y los subtítulos— ── */
+  wsFinalCutStale: 'Esta montagem foi feita com tomadas diferentes das que seus planos têm agora. Faça a montagem de novo para publicar a atual.',
+  wsFinalCutCreateAgain: 'Fazer a montagem de novo',
+  wsDownloadFinalCut: 'Baixar a montagem',
+  wsSubtitlesNotInCut: 'A montagem de hoje ainda não grava as legendas no vídeo nem cria o arquivo delas: o jeito como você quer fica salvo para quando der (requer validação).',
 };

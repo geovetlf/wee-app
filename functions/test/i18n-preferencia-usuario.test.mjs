@@ -599,8 +599,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * mezclan (`wsCuesNotMixed`) y que el papel de una referencia tiene que encajar con su material
    * (`wsReferenceRoleNeedsKind`)— y salen cuatro que decían lo que ya no es verdad (`wsTransitionsSoon`,
    * `wsCueForShot`, `wsCueForProduction`, `audioUnavailable`), en los once diccionarios a la vez.
+   * 3 442 → 3 446 con la Fase 26 (exportar diciendo la verdad): entran cuatro —el montaje hecho con
+   * otras tomas (`wsFinalCutStale`, `wsFinalCutCreateAgain`), descargarlo (`wsDownloadFinalCut`) y que
+   * el montaje de hoy todavía no incluye los subtítulos (`wsSubtitlesNotInCut`)—, en los once a la vez.
    */
-  const CLAVES_PT = 3442;
+  const CLAVES_PT = 3446;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

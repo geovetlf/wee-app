@@ -840,4 +840,9 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   wsCueVolumeOf: 'Громкость в миксе: «{{sonido}}»',
   wsCuesNotMixed: 'Описанные звуки сохраняются, но пока не микшируются в финальный монтаж: генерация музыки и эффектов остаётся закрытой до проверки лицензии и стоимости.',
   wsReferenceRoleNeedsKind: 'Для начального и конечного кадра нужно изображение, для движения — видео, для аудио — звук.',
+  /* ── Fase 26 del motor: exportar diciendo la verdad —el montaje de hoy, descargarlo y los subtítulos— ── */
+  wsFinalCutStale: 'Этот монтаж сделан с другими дублями, чем те, что сейчас стоят в ваших планах. Смонтируйте заново, чтобы опубликовать актуальный.',
+  wsFinalCutCreateAgain: 'Смонтировать заново',
+  wsDownloadFinalCut: 'Скачать монтаж',
+  wsSubtitlesNotInCut: 'Сегодняшний монтаж пока не вшивает субтитры и не создаёт для них файл: выбранный вами вариант сохраняется до тех пор, пока это не станет возможно (нужна проверка).',
 };

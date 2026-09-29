@@ -815,4 +815,9 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueVolumeOf: 'Level of “{{sonido}}” in the mix',
   wsCuesNotMixed: 'Described sounds are saved, but not mixed into the final edit yet: generating music and effects stays closed until their license and cost are reviewed.',
   wsReferenceRoleNeedsKind: 'A frame has to be an image; motion, a video; and audio, a sound.',
+  /* ── Engine phase 26: exporting truthfully —today’s final cut, downloading it and subtitles— ── */
+  wsFinalCutStale: 'This final cut was made with different takes from the ones your shots have now. Make it again to publish the current one.',
+  wsFinalCutCreateAgain: 'Make it again',
+  wsDownloadFinalCut: 'Download the final cut',
+  wsSubtitlesNotInCut: 'Today’s final cut doesn’t burn in subtitles or create their file yet: how you want them is saved for when it can (needs validation).',
 };

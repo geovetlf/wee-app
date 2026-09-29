@@ -8,7 +8,7 @@ import HojaInferior from '../../workspace/HojaInferior';
 import SelectorDeOpciones, { OpcionElegible } from '../../workspace/SelectorDeOpciones';
 import ReproductorDeVideo from '../../workspace/ReproductorDeVideo';
 import MensajeDeEstado from '../../workspace/MensajeDeEstado';
-import { BotonPequeno, Seccion } from './ProductionPiezas';
+import { Aviso, BotonPequeno, Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker } from './espacio';
 import { fraseDeLaPublicacion, fraseDelMontajeRechazado, resolucionVisible } from '../../../utils/mensajesDeFilmmaker';
 import { descargarCreacion } from '../../../services/assetDownload';
@@ -53,6 +53,11 @@ export const BloqueDelMontaje: React.FC<{ espacio: Pick<EspacioDeFilmmaker, 'mon
     );
     if (si) montaje.publicar(destino);
   };
+  /* Fase 26 del motor: el montaje hecho también se descarga, con la regla de siempre de Mis creaciones. */
+  const descargarMontaje = async (url: string) => {
+    const r = await descargarCreacion(url, 'video');
+    if (r === 'error' || r === 'sin_permiso') notify(t('filmmaker.wsDownloadFailed'));
+  };
 
   if (fase === 'cargando') return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('common.loading')}</Text>;
   if (fase === 'no_disponible') {
@@ -77,6 +82,9 @@ export const BloqueDelMontaje: React.FC<{ espacio: Pick<EspacioDeFilmmaker, 'mon
             <BotonPequeno icono="film-outline" etiqueta={t('filmmaker.wsPublishAsWeel')} conTexto principal disabled={publicando} onPress={() => { void publicar('weels'); }} />
           )}
           <BotonPequeno icono="paper-plane-outline" etiqueta={t('filmmaker.wsPublishInWee')} conTexto disabled={publicando} onPress={() => { void publicar('home'); }} />
+          {!!montaje.url && (
+            <BotonPequeno icono="download-outline" etiqueta={t('filmmaker.wsDownloadFinalCut')} conTexto disabled={publicando} onPress={() => { void descargarMontaje(montaje.url as string); }} />
+          )}
         </View>
         {publicando && <MensajeDeEstado estado="preparando" compacto />}
         {resultado && <Text style={[styles.nota, { color: publicacion.fase === 'rechazada' ? theme.colors.error : theme.colors.textSecondary }]}>{resultado}</Text>}
@@ -89,11 +97,12 @@ export const BloqueDelMontaje: React.FC<{ espacio: Pick<EspacioDeFilmmaker, 'mon
       {fase === 'fallido' && <MensajeDeEstado estado="fallido" />}
       {fase === 'rechazado' && <Text style={[styles.nota, { color: theme.colors.error }]}>{fraseDelMontajeRechazado(montaje.motivo, montaje.limite, t, formato)}</Text>}
       {fase === 'sin_montaje' && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsFinalCutWhat')}</Text>}
+      {fase === 'desfasado' && <Aviso texto={t('filmmaker.wsFinalCutStale')} />}
       {hayCambios && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.saveFirst')}</Text>}
       <View style={styles.acciones}>
         <BotonPequeno
           icono={fase === 'sin_montaje' ? 'film-outline' : 'refresh'}
-          etiqueta={fase === 'sin_montaje' ? t('filmmaker.wsFinalCutCreate') : t('common.retry')}
+          etiqueta={fase === 'sin_montaje' ? t('filmmaker.wsFinalCutCreate') : fase === 'desfasado' ? t('filmmaker.wsFinalCutCreateAgain') : t('common.retry')}
           conTexto
           principal
           disabled={hayCambios}
@@ -203,6 +212,8 @@ const ProductionExportPanel: React.FC<{ espacio: EspacioDeFilmmaker; onCerrar: (
       </Seccion>
       <Seccion titulo={t('filmmaker.wsToolSubtitles')}>
         <SelectorDeOpciones etiqueta={t('filmmaker.wsToolSubtitles')} opciones={subs} elegida={subtitulos} onElegir={setSubtitulos} />
+        {/* Fase 26 del motor: se guarda cómo se quieren; el montaje de hoy todavía no los incluye, y se dice. */}
+        <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsSubtitlesNotInCut')}</Text>
       </Seccion>
       <Seccion titulo={t('filmmaker.wsExportAi')}>
         <SelectorDeOpciones etiqueta={t('filmmaker.wsExportAi')} opciones={mejoras} elegida={null} onElegir={() => undefined} />

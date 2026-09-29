@@ -1619,6 +1619,32 @@ Antes la herramienta decía solo «Todavía no disponible»; ahora dice qué no 
 
 Pruebas: `functions/test/filmmaker-sonido.test.mjs` (en la cadena), que aplica cada gesto con F1-A de verdad y comprueba
 que el sonido propio llega al requisito de la toma y que el montaje final lo lee.
+### Fase 26 · Exportar diciendo la verdad: el montaje de hoy, descargarlo y los subtítulos
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fase H): descargar el plano y el montaje, elegir el montaje
+por la huella de su manifiesto (arreglo R11 de la auditoría), subtítulos y color preparados, y Weël ≤15 s frente al
+Wäll sin cambiar la regla en silencio. Ni una Function, ni la publicación, ni el render tocados.
+
+- **El montaje que vale es el de la huella de HOY** (`useMontajeFinal`, `tomaService.huellaDelMontajeVigente`): el servidor
+  ya componía el manifiesto de lo guardado —qué vídeo tiene puesto cada plano ahora— y le ponía su huella (`shots`,
+  `shot.montage`, solo lectura). Antes se elegía el montaje por revisión, y enlazar otra toma —que no cambia la
+  revisión— dejaba el panel diciendo «listo» y ofreciendo publicar el viejo. Ahora, si el de esta revisión se hizo con
+  otras tomas, está **desfasado**: se dice, no se ofrece publicarlo y se ofrece montarlo otra vez. Se vuelve a mirar
+  cuando cambian los vídeos puestos (la pantalla le da su firma), no cada tanto; sin poder preguntar la huella, se
+  elige por revisión, como antes.
+- **Descargar el montaje**, con la regla de siempre de Mis creaciones, como ya se descargaba cada plano.
+- **Los subtítulos dicen la verdad**: se guarda cómo se quieren (`change_export`), y el montaje de hoy todavía no los
+  incrusta ni crea su archivo (requiere validación). El color, la estabilización y el audio con IA siguen apagados
+  con su porqué.
+- **Un Weël, solo si cabe** (15 s, la regla de siempre); más largo, solo «Publicar en Weë».
+
+**Pendiente de decidir (no es de contrato: es de producto, R9):** «Publicar en Weë» admite hasta 600 s y la fila de
+Weëls enseña cualquier publicación con vídeo, así que un montaje de dos minutos publicado en el Wäll sale entre los
+Weëls. O el Wäll se limita a 15 s, o los Weëls filtran por `isWeel` (esto último toca toda la app). No se cambia sin
+que el usuario lo decida.
+
+Pruebas: `functions/test/filmmaker-exportar.test.mjs` (en la cadena). Reanclada: `filmmaker-publicar` C23 (la llamada
+al hook lleva ahora la firma de los vídeos).
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

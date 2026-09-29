@@ -221,6 +221,24 @@ export const tomaService = {
     }
   },
 
+  /**
+   * LA HUELLA DEL MONTAJE QUE TOCA HOY (Fase 26 del motor, arreglo R11 de la auditoría). El servidor compone el
+   * manifiesto de lo guardado —qué vídeo tiene puesto cada plano AHORA— (`shots`, `shot.montage`, solo lectura: no
+   * renderiza nada) y trae su huella. Con ella se sabe si un montaje hecho es el de hoy o el de antes de enlazar otra
+   * toma. `{ lista: false }`: todavía no se puede montar. `null`: no se pudo preguntar.
+   */
+  huellaDelMontajeVigente: async (productionId: string, revision: number): Promise<{ readonly lista: true; readonly huella: string } | { readonly lista: false } | null> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, { montage?: { ready?: unknown; manifest?: { huella?: unknown } } }>(functions, 'shots', { timeout: 60_000 });
+      const r = await fn({ op: 'shot.montage', productionId, revision });
+      const m = r.data?.montage;
+      if (m?.ready === true && typeof m.manifest?.huella === 'string' && m.manifest.huella) return { lista: true, huella: m.manifest.huella };
+      return m?.ready === false ? { lista: false } : null;
+    } catch {
+      return null;
+    }
+  },
+
   /** Cómo va un montaje. `null`: no existe, no es de la cuenta, o no se pudo preguntar. */
   estadoDelMontaje: async (productionId: string, huella: string): Promise<MontajeFinal | null> => {
     try {
