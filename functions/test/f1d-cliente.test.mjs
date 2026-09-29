@@ -89,6 +89,12 @@ const dobles = {
   '../../utils/scale': { scale: (x) => x },
   '../../../utils/scale': { scale: (x) => x },
   '../../../utils/notify': { notify: () => {}, confirmAction: async () => true },
+  /*
+   * Fase 16 del motor (D13): «Ver vídeo» abre el vídeo DENTRO de Weë, en el reproductor y en una hoja, así que la
+   * toma los importa. Aquí, quietos: lo que hacen se prueba en `filmmaker-reproductor`.
+   */
+  '../../workspace/HojaInferior': { __esModule: true, default: ({ visible, titulo, children }) => (visible ? h('section', { 'aria-label': titulo }, children) : null) },
+  '../../workspace/ReproductorDeVideo': { __esModule: true, default: ({ nombre }) => h('video', { 'aria-label': nombre }) },
 };
 const cargar = crearCargador({ dobles });
 const K = cargar('utils/controladorDeToma.ts');
@@ -380,8 +386,14 @@ await seccion('R', async () => {
     /En proceso\. El vídeo aparecerá aquí y en «Mis creaciones» cuando esté listo/.test(proceso.texto) && !/\d\s*%|[Gg]enerando|<progress/.test(proceso.html)
     && JSON.stringify(proceso.botones.map((b) => b.etiqueta)) === JSON.stringify(['Detener la toma']));
   const lista = ver({ fase: { fase: 'elige_calidad' }, ultima: { toma: 1, estado: 'lista', assetId: 'asset_b', url: 'https://cdn.invalid/b.mp4' }, enElPlano: { assetId: 'asset_b', url: 'https://cdn.invalid/b.mp4' } });
+  const abiertosAntes = abiertos.length;
   boton(lista, 'Ver vídeo').tocar();
-  check('R14) lista: «Toma 1 lista.» y «Ver vídeo» abre SU vídeo', /Toma 1 lista\./.test(lista.texto) && abiertos.at(-1) === 'https://cdn.invalid/b.mp4');
+  /*
+   * Reanclada por nombre en la Fase 16 del motor (D13, 2026-09-28): «Ver vídeo» ya no abre la dirección del material
+   * fuera de Weë, sino SU vídeo dentro, en el reproductor y en una hoja; eso lo prueba `filmmaker-reproductor` (S1–S8).
+   */
+  check('R14) lista: «Toma 1 lista.» y «Ver vídeo», que ya no abre nada fuera de Weë (lo abre dentro: Fase 16 del motor)',
+    /Toma 1 lista\./.test(lista.texto) && !!boton(lista, 'Ver vídeo') && abiertos.length === abiertosAntes);
   const otra = ver({ fase: { fase: 'cotizada', creditos: 10, efectiva: EFECTIVA, toma: 2 }, calidad: 'high', enElPlano: { assetId: 'asset_b', url: null } });
   check('R15) con vídeo ya puesto, la siguiente es «otra toma», y se dice que se cobra aparte',
     !!boton(otra, 'Generar otra toma') && /Cada toma nueva se genera y se cobra aparte\./.test(otra.texto) && /Ya tiene su vídeo\./.test(otra.texto) && !boton(otra, 'Ver vídeo'));

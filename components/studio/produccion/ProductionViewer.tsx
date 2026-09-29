@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -82,6 +82,14 @@ const ProductionViewer: React.FC<{
   const estilo = produccion.creativeDirection.visualStyle;
   const resolucion = produccion.format.resolution;
   const alcance = alcanceDeResolucion(toma.calidades, resolucion);
+  /*
+   * Fase 16 del motor (D13): mientras se hace el vídeo de un plano que todavía no
+   * tiene ninguno, el lienzo lo dice —con la rueda— en lugar de «todavía no tiene
+   * vídeo»; y entonces el aviso de debajo no lo repite.
+   */
+  const fase = toma.fase.fase;
+  const haciendose = !!elegido && !video?.url && (fase === 'pidiendo' || fase === 'en_proceso' || fase === 'terminando');
+  const procesando = haciendose ? t(fase === 'pidiendo' ? 'workspace.statusPreparing' : 'workspace.statusGenerating') : null;
 
   const miga = elegido
     ? [
@@ -212,6 +220,8 @@ const ProductionViewer: React.FC<{
 
       <ReproductorDeVideo
         url={video?.url ?? null}
+        poster={video?.poster ?? null}
+        procesando={procesando}
         formato={produccion.format.aspectRatio}
         nombre={t('filmmaker.takePreviewOf', { nombre: miga[miga.length - 1] })}
         altoMaximo={altoMaximo}
@@ -251,7 +261,7 @@ const ProductionViewer: React.FC<{
 
       {!!elegido && (() => {
         const e = estadoDeLaToma(toma);
-        if (!e) return null;
+        if (!e || (haciendose && (e.estado === 'preparando' || e.estado === 'generando'))) return null;
         const detalle = e.estado === 'reembolsado' && e.reembolsados
           ? t('workspace.statusRefundedDetail', { credits: formato.numero(e.reembolsados) })
           : e.estado === 'fallido' && toma.economia && toma.economia.cobrados === 0 ? t('workspace.statusFailedDetail') : undefined;
@@ -285,7 +295,10 @@ const ProductionViewer: React.FC<{
                       style={[styles.plano, { borderColor: activo ? theme.colors.accent : theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as object)]}
                     >
                       <View style={[styles.miniatura, { backgroundColor: theme.colors.surface }]}>
-                        {suVideo?.url ? (
+                        {/* Con póster, su imagen fija (Fase 16 del motor): la tira ya no carga un vídeo por plano. */}
+                        {suVideo?.poster ? (
+                          <Image source={{ uri: suVideo.poster }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })} />
+                        ) : suVideo?.url ? (
                           <Video source={{ uri: suVideo.url }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })} />
                         ) : (
                           <Ionicons name="film-outline" size={scale(18)} color={theme.colors.textSecondary} />

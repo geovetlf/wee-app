@@ -84,6 +84,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: '全螢幕',
   seek: '跳到影片的某個時間點',
   timeOf: '{{posicion}}，共 {{total}}',
+  videoLoading: '正在載入影片…',
+  videoError: '影片沒能載入。請檢查網路連線後再試一次。',
   statusPreparing: '正在準備你的影片…',
   statusQueued: '排隊中：一輪到就會開始。',
   statusGenerating: '你的影片正在生成。',

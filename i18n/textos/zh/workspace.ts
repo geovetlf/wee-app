@@ -83,6 +83,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: '全屏',
   seek: '跳转到视频的某个时间点',
   timeOf: '{{posicion}}，共 {{total}}',
+  videoLoading: '正在加载视频…',
+  videoError: '视频没能加载。请检查网络连接后再试一次。',
   statusPreparing: '正在准备你的视频…',
   statusQueued: '排队中：一轮到就会开始。',
   statusGenerating: '你的视频正在生成。',

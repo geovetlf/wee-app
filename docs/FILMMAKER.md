@@ -388,7 +388,7 @@ siguen **pendientes**:
 | D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
 | D11 | Precios, límites y cancelación | **decidida** en la Fase 15 del motor (2026-09-28): el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); **detener una toma**: si el proveedor todavía no la aceptó, se para y se devuelve ENTERA; si ya la tiene, termina y se cobra (parada en el proveedor solo tras su puerta, cerrada); idempotente, sin doble devolución y sin mover dinero con un desenlace ambiguo |
 | D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; enseñarlo en la app, en el pase de UX |
-| D13 | Reproductor | pendiente: «Ver vídeo» abre la dirección del material |
+| D13 | Reproductor | **decidida** en la Fase 16 del motor (2026-09-28): UNO solo, el de siempre (`components/workspace/ReproductorDeVideo.tsx`), para la toma, el montaje y la exportación, en el teléfono y en el escritorio: su póster antes de reproducir, la rueda mientras carga, el error con «Inténtalo de nuevo», y el «se está haciendo» en el lienzo cuando el vídeo ya se pidió; «Ver vídeo» lo abre DENTRO de Weë, en una hoja; la tira, la línea de tiempo y la rejilla pintan la imagen fija en vez de cargar un vídeo por plano |
 | D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | pendiente: se usa el vocabulario actual del Core |
 
 ## Lo que el lenguaje aún no tiene
@@ -1202,6 +1202,42 @@ añadidas), `filmmaker-toma-estado` D13 (el programador compone dos pasos), `f1d
 botón: detenerla) y M5 (69 → 80 claves de la toma), `i18n-preferencia-usuario` 57–58 (`CLAVES_PT` 3125 → 3136).
 
 Pruebas: `functions/test/filmmaker-cancelar.test.mjs` (en la cadena).
+
+### Fase 16 · El reproductor (D13)
+
+Encargo del usuario (2026-09-28): el reproductor de Filmmaker para la toma, el montaje y el render final, con póster,
+carga, error y «se está haciendo», desde la interfaz de Filmmaker, en el teléfono y en el escritorio, reutilizando lo que
+existe y sin un reproductor paralelo.
+
+- **Uno solo, el de siempre**: `components/workspace/ReproductorDeVideo.tsx`, el mismo que ya usaban el visor, la
+  exportación y Crear vídeo. Qué se ve en su lienzo lo decide una función pura (`vistaDelLienzo`):
+  - sin vídeo, lo que pase quien lo monta;
+  - si el vídeo ya se pidió y todavía no existe (`procesando`), la rueda y la frase;
+  - un vídeo que no se pudo cargar, el error con «Inténtalo de nuevo», que vuelve a montar el vídeo: cada intento es su
+    clave, así que se pide otra vez de verdad;
+  - mientras carga, la rueda sobre el póster;
+  - listo y quieto al principio, el póster (la imagen fija de la Fase 11) y el botón grande;
+  - reproduciéndose, el vídeo, y la rueda solo si se para a cargar.
+  El póster es lo que se ve ANTES de reproducir, nunca en su lugar. En la web, expo-av da el vídeo por cargado nada más
+  montarse, así que allí el botón está desde el principio, como antes; en el teléfono, la rueda hasta que carga.
+- **El visor**: el póster del plano elegido; mientras se hace el vídeo de un plano que todavía no tiene ninguno, el lienzo
+  dice «Preparando tu vídeo…» o «Tu vídeo se está generando.» —en lugar de «Este plano aún no tiene vídeo»— y el aviso
+  de debajo no lo repite. Con vídeo, se sigue viendo el que hay.
+- **«Ver vídeo»** ya no abre la dirección del material fuera de Weë: abre el vídeo del plano en su reproductor, en una
+  hoja (`HojaInferior`), con su póster —solo si es el del MISMO material— y en la proporción de la producción. La hoja
+  solo existe mientras está abierta.
+- **Imágenes fijas donde había un vídeo por plano**: la tira del visor, la línea de tiempo y la rejilla del proyecto
+  pintan el póster si lo hay; sin él, el vídeo quieto como antes. La exportación lleva el póster del montaje hecho, o el
+  del primer plano con vídeo.
+- Nada del servidor, ni una Function, ni Credits: el póster ya lo traían `useVideosDeLaProduccion` y `useMontajeFinal`.
+  Dos claves nuevas del reproductor (`workspace.videoLoading`, `workspace.videoError`) en los once diccionarios; el
+  botón del error usa la de siempre (`common.retry`).
+
+Vallas reancladas por nombre: `f1d-cliente` R14 («Ver vídeo» ya no abre nada fuera: lo abre dentro, y eso lo prueba
+esta fase) y los dobles de la toma en `f1d-cliente` y `filmmaker-cancelar` (la toma importa ahora la hoja y el
+reproductor); `i18n-preferencia-usuario` (`CLAVES_PT` 3136 → 3138).
+
+Pruebas: `functions/test/filmmaker-reproductor.test.mjs` (en la cadena).
 
 ## Próximas fases
 

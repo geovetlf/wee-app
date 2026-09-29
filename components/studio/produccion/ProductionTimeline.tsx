@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, GestureResponderEvent } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, GestureResponderEvent, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -126,7 +126,10 @@ const ProductionTimeline: React.FC<{
           isWeb && ({ cursor: 'pointer' } as object),
         ]}
       >
-        {!!video?.url && (
+        {/* Con póster, su imagen fija (Fase 16 del motor); sin él, el vídeo quieto como antes. */}
+        {video?.poster ? (
+          <Image source={{ uri: video.poster }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={t('filmmaker.takePreviewOf', { nombre: tramo.texto ?? '' })} />
+        ) : !!video?.url && (
           <Video source={{ uri: video.url }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted accessibilityLabel={t('filmmaker.takePreviewOf', { nombre: tramo.texto ?? '' })} />
         )}
         <Text style={[styles.tramoTexto, !!video?.url && styles.tramoTextoSobreVideo]} numberOfLines={1}>{tramo.texto ?? ''}</Text>

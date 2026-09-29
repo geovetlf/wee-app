@@ -1,10 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import { BotonPequeno, Seccion } from './ProductionPiezas';
+import HojaInferior from '../../workspace/HojaInferior';
+import ReproductorDeVideo from '../../workspace/ReproductorDeVideo';
 import { CALIDADES_DE_TOMA, calidadDisponible } from '../../../utils/controladorDeToma';
+import type { VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import {
   CLAVE_DE_CALIDAD, claveDelFalloDeToma, fraseDeLaCancelacion, fraseDelRechazoDeToma, frasesDeLaEconomia, frasesDeLasCalidades, resolucionVisible,
@@ -14,6 +17,27 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../.
 import { scale } from '../../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
+
+/**
+ * «VER VÍDEO» (Fase 16 del motor, D13): el vídeo del plano se ve DENTRO de Weë,
+ * en su reproductor —con su póster si lo tiene y su formato—, en una hoja que se
+ * cierra y deja todo como estaba. Antes abría la dirección del material fuera de
+ * la app. La hoja solo existe mientras está abierta.
+ */
+export const VerVideoDelPlano: React.FC<{ url: string; poster?: string | null; formato?: string; titulo: string }> = ({ url, poster, formato, titulo }) => {
+  const { t } = useIdioma();
+  const [abierta, setAbierta] = useState(false);
+  return (
+    <>
+      <BotonPequeno icono="play-circle-outline" etiqueta={t('filmmaker.takeOpen')} onPress={() => setAbierta(true)} conTexto />
+      {abierta && (
+        <HojaInferior visible titulo={titulo} onCerrar={() => setAbierta(false)}>
+          <ReproductorDeVideo url={url} poster={poster} formato={formato} nombre={titulo} altoMaximo={scale(420)} />
+        </HojaInferior>
+      )}
+    </>
+  );
+};
 
 /**
  * EL VÍDEO DE LA UNIDAD ELEGIDA (F1-D): un plano, o una escena sin planos.
@@ -32,7 +56,14 @@ const isWeb = Platform.OS === 'web';
  * El «Generar» de la producción entera, en Acciones, sigue sin estar: esto es
  * una toma de UNA unidad; juntar varias en un vídeo no se hace todavía.
  */
-const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | 'escena' }> = ({ toma, tipo }) => {
+const ProductionShotGeneration: React.FC<{
+  toma: TomaDelPlano;
+  tipo: 'plano' | 'escena';
+  /** El vídeo de la unidad tal como lo tiene el storyboard: de ahí sale su póster, si es el mismo material. */
+  video?: VideoDelPlano | null;
+  /** El formato de la producción, para verlo en su proporción. */
+  formato?: string;
+}> = ({ toma, tipo, video, formato: proporcion }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const { fase, calidad, enElPlano, ultima, aviso, calidades, economia } = toma;
@@ -70,7 +101,13 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
             {ultima?.estado === 'lista' && ultima.assetId === enElPlano.assetId ? t('filmmaker.takeReady', { numero: ultima.toma }) : t('filmmaker.takeHasVideo')}
           </Text>
           {!!enElPlano.url && (
-            <BotonPequeno icono="play-circle-outline" etiqueta={t('filmmaker.takeOpen')} onPress={() => { void Linking.openURL(enElPlano.url as string); }} conTexto />
+            /* El póster solo si es el del MISMO material: uno de una toma anterior no se enseña como si fuera este. */
+            <VerVideoDelPlano
+              url={enElPlano.url}
+              poster={video && video.assetId === enElPlano.assetId ? video.poster : null}
+              formato={proporcion}
+              titulo={titulo}
+            />
           )}
         </View>
       )}

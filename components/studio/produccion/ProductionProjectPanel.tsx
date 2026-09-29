@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -224,7 +224,10 @@ const ProductionProjectPanel: React.FC<{
                     accessibilityRole="button"
                     accessibilityLabel={t('filmmaker.takePreviewOf', { nombre: t('filmmaker.whereShot', { escena: i + 1, plano: j + 1 }) })}
                   >
-                    <Video source={{ uri: v?.url as string }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted />
+                    {/* Con póster, su imagen fija (Fase 16 del motor): la rejilla no carga un vídeo por plano. */}
+                    {v?.poster
+                      ? <Image source={{ uri: v.poster }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                      : <Video source={{ uri: v?.url as string }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted />}
                   </TouchableOpacity>
                 ))}
               </View>

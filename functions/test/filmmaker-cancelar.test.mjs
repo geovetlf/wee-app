@@ -728,6 +728,9 @@ console.log('\n── C · En la app: el servicio, el controlador y el botón �
     '../../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
     '../../../utils/scale': { scale: (x) => x },
     '../../../utils/notify': { notify: () => {}, confirmAction: async () => confirmar },
+    /* Fase 16 del motor: la toma importa la hoja y el reproductor de «Ver vídeo». Aquí, quietos. */
+    '../../workspace/HojaInferior': { __esModule: true, default: () => null },
+    '../../workspace/ReproductorDeVideo': { __esModule: true, default: () => null },
   };
   const cargar = crearCargador({ dobles });
   const { videoService } = cargar('services/videoService.ts');

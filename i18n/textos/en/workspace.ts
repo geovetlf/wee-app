@@ -74,6 +74,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: 'Full screen',
   seek: 'Go to a moment in the video',
   timeOf: '{{posicion}} of {{total}}',
+  videoLoading: 'Loading the video…',
+  videoError: 'The video could not be loaded. Check your connection and try again.',
   statusPreparing: 'Getting your video ready…',
   statusQueued: 'Queued: it starts as soon as there is a slot.',
   statusGenerating: 'Your video is being generated.',

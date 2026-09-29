@@ -81,6 +81,8 @@ export const workspace = {
   fullscreen: 'Pantalla completa',
   seek: 'Ir a un momento del vídeo',
   timeOf: '{{posicion}} de {{total}}',
+  videoLoading: 'Cargando el vídeo…',
+  videoError: 'No se pudo cargar el vídeo. Comprueba tu conexión e inténtalo de nuevo.',
   statusPreparing: 'Preparando tu vídeo…',
   statusQueued: 'En cola: empieza en cuanto haya turno.',
   statusGenerating: 'Tu vídeo se está generando.',

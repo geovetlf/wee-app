@@ -558,8 +558,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * 3 125 → 3 136 con la Fase 15 (D11, cancelar una toma): entran las once claves
    * de detener la toma (`filmmaker.takeStop*`/`takeStopped`/`takeStopping`), en los
    * once diccionarios a la vez. No sale ninguna.
+   * 3 136 → 3 138 con la Fase 16 (D13, el reproductor): entran `workspace.videoLoading`
+   * y `workspace.videoError`, lo que dice el reproductor mientras carga y si no pudo
+   * cargar, en los once diccionarios a la vez. No sale ninguna.
    */
-  const CLAVES_PT = 3136;
+  const CLAVES_PT = 3138;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

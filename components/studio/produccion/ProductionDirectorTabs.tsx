@@ -116,7 +116,14 @@ const ProductionDirectorTabs: React.FC<{
         </Seccion>
       )}
 
-      {!!elegido && <ProductionShotGeneration toma={toma} tipo={seleccion?.tipo === 'escena' ? 'escena' : 'plano'} />}
+      {!!elegido && (
+        <ProductionShotGeneration
+          toma={toma}
+          tipo={seleccion?.tipo === 'escena' ? 'escena' : 'plano'}
+          video={espacio.videos.get(elegido.unitId) ?? null}
+          formato={produccion.format.aspectRatio}
+        />
+      )}
 
       <Seccion titulo={t('filmmaker.wsSuggestions')}>
         <ProductionRecommendations

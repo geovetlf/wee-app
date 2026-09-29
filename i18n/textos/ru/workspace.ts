@@ -79,6 +79,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: 'Во весь экран',
   seek: 'Перейти к моменту видео',
   timeOf: '{{posicion}} из {{total}}',
+  videoLoading: 'Загружаем видео…',
+  videoError: 'Не удалось загрузить видео. Проверьте подключение и попробуйте ещё раз.',
   statusPreparing: 'Готовим ваше видео…',
   statusQueued: 'В очереди: работа начнётся, как только освободится место.',
   statusGenerating: 'Ваше видео генерируется.',

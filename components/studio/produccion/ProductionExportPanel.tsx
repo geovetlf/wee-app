@@ -118,7 +118,7 @@ const ProductionExportPanel: React.FC<{ espacio: EspacioDeFilmmaker; onCerrar: (
 
   /* Los planos que ya tienen vídeo, en orden. */
   const conVideo = useMemo(() => produccion.scenes.flatMap((s, i) => s.shots.map((p, j) => ({
-    id: p.id, url: videos.get(p.id)?.url ?? null, assetId: videos.get(p.id)?.assetId,
+    id: p.id, url: videos.get(p.id)?.url ?? null, assetId: videos.get(p.id)?.assetId, poster: videos.get(p.id)?.poster ?? null,
     nombre: t('filmmaker.whereShot', { escena: i + 1, plano: j + 1 }),
   }))).filter((x) => !!x.url), [produccion.scenes, videos, t]);
 
@@ -186,6 +186,7 @@ const ProductionExportPanel: React.FC<{ espacio: EspacioDeFilmmaker; onCerrar: (
       <SelectorDeOpciones etiqueta={t('filmmaker.wsExportType')} opciones={tipos} elegida={tipo} onElegir={setTipo} />
       <ReproductorDeVideo
         url={montajeHecho ? montaje.url : conVideo[0]?.url ?? null}
+        poster={montajeHecho ? montaje.poster : conVideo[0]?.poster ?? null}
         formato={formato}
         nombre={montajeHecho ? t('filmmaker.wsFinalCut') : conVideo[0]?.nombre ?? produccion.title}
         altoMaximo={scale(220)}

@@ -80,6 +80,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: 'Plein écran',
   seek: 'Aller à un moment de la vidéo',
   timeOf: '{{posicion}} sur {{total}}',
+  videoLoading: 'Chargement de la vidéo…',
+  videoError: 'Impossible de charger la vidéo. Vérifie ta connexion et réessaie.',
   statusPreparing: 'Préparation de ta vidéo…',
   statusQueued: 'En file d’attente : elle démarre dès que c’est son tour.',
   statusGenerating: 'Ta vidéo est en cours de génération.',

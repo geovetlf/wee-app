@@ -166,6 +166,7 @@ const ProductionMobileEditor: React.FC<{
             onGesto={espacio.onGesto}
             onRechazar={espacio.onRechazar}
             toma={espacio.toma}
+            video={elegido ? espacio.videos.get(elegido.unitId) ?? null : null}
           />
         )}
       </ScrollView>

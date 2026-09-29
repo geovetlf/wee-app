@@ -80,6 +80,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: '전체 화면',
   seek: '영상에서 원하는 지점으로 이동',
   timeOf: '{{total}} 중 {{posicion}}',
+  videoLoading: '영상을 불러오는 중이에요…',
+  videoError: '영상을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.',
   statusPreparing: '영상을 준비하는 중…',
   statusQueued: '대기 중이에요. 차례가 되면 바로 시작해요.',
   statusGenerating: '영상을 생성하고 있어요.',

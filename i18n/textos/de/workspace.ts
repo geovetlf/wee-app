@@ -78,6 +78,8 @@ export const workspace: typeof import('../es/workspace').workspace = {
   fullscreen: 'Vollbild',
   seek: 'Zu einer Stelle im Video springen',
   timeOf: '{{posicion}} von {{total}}',
+  videoLoading: 'Video wird geladen…',
+  videoError: 'Das Video konnte nicht geladen werden. Prüf deine Verbindung und versuch es noch einmal.',
   statusPreparing: 'Dein Video wird vorbereitet…',
   statusQueued: 'In der Warteschlange: Es geht los, sobald du an der Reihe bist.',
   statusGenerating: 'Dein Video wird gerade generiert.',

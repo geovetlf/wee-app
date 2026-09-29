@@ -12,6 +12,7 @@ import ProductionAudio from './ProductionAudio';
 import ProductionShotGeneration from './ProductionShotGeneration';
 import type { Seleccion } from './ProductionStoryboard';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
+import type { VideoDelPlano } from '../../../utils/controladorDeToma';
 import { RUTAS_CREATIVAS, claveDelValor } from '../../../constants/camaraCinematica';
 import { buscarEscena, buscarPlano, valorCreativo } from '../../../services/filmmaker/dominio';
 import type {
@@ -50,7 +51,9 @@ const ProductionDirectorPanel: React.FC<{
   onRechazar: (clave: string) => void;
   /** La toma de la unidad elegida (F1-D). Sin ella, esta sección no se pinta. */
   toma?: TomaDelPlano;
-}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma }) => {
+  /** El vídeo de la unidad elegida, del storyboard: su póster se ve en «Ver vídeo» (Fase 16 del motor). */
+  video?: VideoDelPlano | null;
+}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma, video }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const direccion = produccion.creativeDirection;
@@ -115,7 +118,7 @@ const ProductionDirectorPanel: React.FC<{
         <ProductionInspector produccion={produccion} seleccion={seleccion} editable={editable} onGesto={onGesto} />
       </Seccion>
 
-      {!!toma && !!seleccion && <ProductionShotGeneration toma={toma} tipo={seleccion.tipo} />}
+      {!!toma && !!seleccion && <ProductionShotGeneration toma={toma} tipo={seleccion.tipo} video={video} formato={produccion.format.aspectRatio} />}
 
       <Seccion titulo={t('filmmaker.recommendations')}>
         <ProductionRecommendations

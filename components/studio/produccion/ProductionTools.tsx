@@ -321,7 +321,14 @@ const ProductionTools: React.FC<{
     case 'ia':
       return (
         <View style={styles.bloque}>
-          {plano || elegido ? <ProductionShotGeneration toma={toma} tipo={plano ? 'plano' : 'escena'} /> : sinPlano}
+          {plano || elegido ? (
+            <ProductionShotGeneration
+              toma={toma}
+              tipo={plano ? 'plano' : 'escena'}
+              video={elegido ? espacio.videos.get(elegido.unitId) ?? null : null}
+              formato={produccion.format.aspectRatio}
+            />
+          ) : sinPlano}
           <Seccion titulo={t('filmmaker.wsSuggestions')}>
             <ProductionRecommendations recomendaciones={recomendaciones} produccion={produccion} rechazadas={rechazadas} editable={editable} onAceptar={onGesto} onRechazar={onRechazar} />
           </Seccion>
