@@ -1311,6 +1311,48 @@ lo que ese canary necesita, sin hacerlo (`creator/referenciasDeElementos.ts`):
 
 Pruebas: `functions/test/filmmaker-referencias.test.mjs` (en la cadena).
 
+### Fase 19 · Las voces del diálogo: el catálogo, la asignación y su comprobación, cerrados
+
+Encargo del usuario (2026-09-28): voces de diálogo, como canary y sin gastar dinero real. F1-A ya sabe qué se dice y
+quién lo dice: cada línea de diálogo, voz en off o narración, con su personaje y su idioma, es un requisito de audio
+`voice.tts`. Y describe una voz SIN nombrar a nadie (`VoiceReference`: una descripción, un audio de referencia de la
+producción, un idioma). Con qué voces se diría no es de F1-A: es un catálogo de Weë (`creator/vocesDeDialogo.ts`).
+
+- **El catálogo** (`CATALOGO_DE_VOCES`): las voces de Weë para Filmmaker, cada una con su identificador de Weë
+  (`wv_…`, el único que viajaría), sus idiomas y sus usos (diálogo, voz en off, narración). **VACÍO**: ninguna se ha
+  comprobado con un canary real —cómo suena, su licencia, lo que cobra el proveedor—. Está en el código: la
+  configuración puede cerrar, pero nunca ampliar. El proveedor y su voz no aparecen: son del adaptador.
+- **La asignación, comprobada** (`comprobarAsignacion`, pura). Se dice a quién —un personaje de la producción, o el
+  narrador— y qué voz. Cada motivo tiene su orden:
+  - la puerta de la cuenta (`aiSettings/voces`, `{ vocesDeDialogo: true, cuentas | todas }`, cerrada; una lista vacía
+    no abre);
+  - el catálogo;
+  - la forma de la voz, y que exista;
+  - que quien habla exista y tenga líneas;
+  - que la voz sirva para ESOS usos y en ESOS idiomas (por su raíz: «es-MX» es «es»).
+- **El plan, solo leído** (`renders`, `op: 'voice.plan'`, con la producción y su revisión): qué líneas de la producción
+  GUARDADA necesitarían voz, de quién son, en qué idiomas, cuántas tienen voz (ninguna) y por qué: `no_lines`,
+  `gate_closed` o `catalog_empty`. Con `assign` ({ quien: voz }, 32 como mucho) comprueba cada asignación **sin guardar
+  nada**. Lo ajeno contesta como lo que no existe, y otra revisión, `production_changed`.
+- Ni se guarda una asignación, ni se sintetiza, ni se cobra, ni se llama a un proveedor. F1-A no cambia.
+- **Por la puerta de siempre**: el dominio de Filmmaker solo entra en lo que se despliega por sus tres puertas
+  (`filmmaker-modelo` G12). Así que el plan lee por `requisitosDelServidor`, que solo GANA dos campos: los requisitos de
+  audio en JSON y los identificadores de los personajes.
+
+**Lo que falta para usarlas de verdad, y requiere al usuario**:
+- **El catálogo necesita su canary con gasto**: elegir y comprobar las voces con ElevenLabs (cómo suenan en cada idioma,
+  su licencia y su coste) y ponerlas en el código.
+- **GUARDAR una voz del catálogo en un personaje necesita un sitio.** `VoiceReference` de F1-A no tiene un campo para
+  ella: dárselo es cambiar un contrato cerrado, y eso pide autorización. Mientras tanto, con voces y la puerta abierta,
+  el plan diría `not_stored`.
+- El diálogo A CÁMARA sigue sin generarse en una toma (`dialogue_not_supported`): pedirle al vídeo que mueva los labios
+  con una voz es otra capacidad, sin validar.
+
+Vallas reancladas por nombre: `filmmaker-publicar` G2 (la puerta `renders` pasa de seis a siete operaciones, con
+`voice.plan`); `motor-filmmaker-alcance` gana el módulo nuevo con su motivo.
+
+Pruebas: `functions/test/filmmaker-voces.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

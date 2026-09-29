@@ -11,6 +11,7 @@ import { almacenDeTrabajos } from '../runtime/almacen';
 import { colaDeInvocacion } from '../runtime/cola';
 import { POLITICA_DEL_POSTER, TAREA_DE_POSTER, estadoDeLosPosters, leerPaqueteDePoster, pedirPosters, posterDelMaterial } from './poster';
 import { publicarMontaje } from './publicacion';
+import { planDeVoces } from './vocesDeDialogo';
 import { POLITICA_DEL_RENDER, TAREA_DE_RENDER, estadoDelRender, materialDelRender, pedirRender, rendersDeLaProduccion } from './render';
 import { almacenDelRenderDeWee, crearEjecutorDePoster, crearEjecutorDeRender } from './renderizador';
 
@@ -375,6 +376,19 @@ export const renders = onCall({ region: REGION, timeoutSeconds: 60, memory: '512
   }
   if (op === 'poster.list') {
     return { posters: await estadoDeLosPosters(db, quien, productionId as string, { at: Date.now(), almacen: almacenDelRenderDeWee() }) };
+  }
+
+  /*
+   * FASE 19 · LAS VOCES DEL DIÁLOGO, SOLO MIRADAS: qué líneas de la producción
+   * guardada necesitarían voz, de quién son y en qué idiomas, cuántas tienen voz
+   * (ninguna) y por qué. Con `assign` ({ quien: voz }), comprueba cada asignación
+   * sin guardar nada. Ni se sintetiza, ni se cobra, ni se llama a un proveedor.
+   */
+  if (op === 'voice.plan') {
+    const revision = entero(data.revision);
+    if (revision === undefined || revision < 0) noVale();
+    const r = await planDeVoces(db, quien, { productionId: productionId as string, revision: revision as number, asignar: data.assign });
+    return r.ok ? { voices: r.plan } : { refused: { reason: r.motivo } };
   }
   return noVale();
 });

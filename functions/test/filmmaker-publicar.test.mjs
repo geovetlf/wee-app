@@ -609,8 +609,12 @@ console.log('\n── G · Las guardas: lo que importa, las operaciones, las reg
     && !/credits\/|spendCredits|creditEngine|engine\/providers|seedance|gateway|core\/content\/publication|crearTrabajo|conductor|fetchJson/i.test(src), imports.join(','));
   const puertaSrc = sinComentarios(leer('functions/src/creator/renders.ts'));
   const ops = [...puertaSrc.matchAll(/op === '([a-z.]+)'/g)].map((m) => m[1]);
-  check('G2) la puerta `renders`: seis operaciones, y la nueva solo lleva montaje, destino, cara y texto',
-    JSON.stringify(ops) === JSON.stringify(['render.request', 'render.status', 'render.list', 'render.publish', 'poster.request', 'poster.list'])
+  /*
+   * Reanclada por nombre en la Fase 19 del motor (las voces del diálogo; encargo del 2026-09-28): la puerta gana una
+   * séptima operación, `voice.plan`, que solo LEE el plan de voces de una producción guardada. La de publicar no cambia.
+   */
+  check('G2) la puerta `renders`: siete operaciones —la de publicar solo lleva montaje, destino, cara y texto—',
+    JSON.stringify(ops) === JSON.stringify(['render.request', 'render.status', 'render.list', 'render.publish', 'poster.request', 'poster.list', 'voice.plan'])
     && /publicarMontaje\(\s*db,\s*quien,\s*\{ productionId: productionId as string, huella: huella as string, destino: data\.destination, cara: data\.face, texto: data\.text \},/.test(puertaSrc));
   const tramo = HASTA ? `${ANTES} ${HASTA}` : ANTES;
   check('G3) las reglas de `posts`, los índices y las del Storage no se tocan', git(`diff --name-only ${tramo} -- firestore.rules firestore.indexes.json storage.rules`).trim() === '');

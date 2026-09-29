@@ -113,6 +113,10 @@ export const requisitosDelServidor = async (
     readonly capacidades: readonly CapacidadDeLaProduccion[];
     readonly lineaDeTiempo: LineaDeTiempoDelServidor | null;
     readonly formato: FormatoDelMontaje;
+    /** Fase 19 del motor: los requisitos de audio de F1-A tal cual —en JSON—, para el plan de voces (solo lectura). */
+    readonly audio: readonly unknown[];
+    /** Y quién sale en la producción: los identificadores de sus personajes. */
+    readonly personajes: readonly string[];
   }
   | { readonly ok: false; readonly motivo: MotivoDelRequisito; readonly causa?: 'requirements_failed' }
 > => {
@@ -142,6 +146,8 @@ export const requisitosDelServidor = async (
       }
       : null,
     formato,
+    audio: r.audio.map((a) => JSON.parse(JSON.stringify(a))),
+    personajes: leida.view.production.characters.map((c) => c.id),
   };
 };
 

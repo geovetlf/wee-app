@@ -136,6 +136,14 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * nueva al Core, ni un proveedor, ni Credits: la toma sigue siendo `video.generate` con el texto de siempre.
    */
   'functions/src/creator/referenciasDeElementos.ts',
+  /*
+   * Fase 19 · las voces del diálogo (mismo encargo: «voces de diálogo, canary, sin gasto real»): un módulo NUEVO con el
+   * catálogo de voces de Weë para Filmmaker —VACÍO, en el código—, la comprobación pura de una asignación (quien habla
+   * → voz del catálogo, para sus usos y sus idiomas) detrás de su puerta (`aiSettings/voces`, cerrada), y el plan de
+   * voces de una producción guardada, solo LEÍDO. La puerta `renders` (ya en la lista) gana `voice.plan`. Ni se guarda
+   * una asignación, ni se sintetiza, ni se cobra, ni se llama a un proveedor; F1-A, sin tocar.
+   */
+  'functions/src/creator/vocesDeDialogo.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */
