@@ -10,6 +10,9 @@ import type { ResultadoDeGesto } from '../../../utils/controladorDeProduccion';
 import type { CalidadesDeToma, VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
+import type { HistorialDeProduccion } from '../../../hooks/useHistorialDeProduccion';
+import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
+import type { WeeBrainDelEditor } from '../../../hooks/useWeeBrainDelEditor';
 import type { Seleccion } from './ProductionStoryboard';
 import type { IdsNuevos } from './ProductionShotCard';
 
@@ -39,6 +42,15 @@ export interface EspacioDeFilmmaker {
   readonly toma: TomaDelPlano;
   /** El montaje final de la revisión guardada y su publicación (Fase 14 del motor). */
   readonly montaje: MontajeDeLaProduccion;
+  /** Fase 20 · la revisión GUARDADA: con ella se sabe si una propuesta de Weë Brain sigue valiendo. */
+  readonly revision?: number | null;
+  /** Fase 20 · sus versiones, para volver a una. */
+  readonly historial?: HistorialDeProduccion;
+  readonly onRestaurar?: (revision: number) => void;
+  /** Fase 20 · lo guardado de la cuenta, para vincularlo a una ficha. */
+  readonly elementos?: ElementosParaVincular;
+  /** Fase 20 · Weë Brain dentro del editor. */
+  readonly brain?: WeeBrainDelEditor;
   readonly seleccion: Seleccion;
   readonly rechazadas: ReadonlySet<string>;
   readonly onSeleccionar: (s: Seleccion) => void;

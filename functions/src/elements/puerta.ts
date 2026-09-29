@@ -14,6 +14,7 @@ import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 import {
   actualizarElemento,
   archivarElemento,
+  candidatosDeLaCuenta,
   crearElemento,
   leerElemento,
   mundoDeContextoDeWee,
@@ -164,6 +165,18 @@ export const elements = onCall({ region: REGION, timeoutSeconds: 30, memory: '25
     const r = await archivarElemento(accountId, elementId, at, { db });
     if (r.status !== 'ok') throw new HttpsError('not-found', 'No encontramos eso.');
     return { element: r.element };
+  }
+
+  /*
+   * FILMMAKER ENGINE · FASE 20 · LOS DE UNA CLASE, PARA VINCULARLOS a una ficha de una producción: los vivos de la
+   * cuenta, de ese tipo y con tope, por el runtime de siempre (`candidatosDeLaCuenta`), y de cada uno solo su nombre,
+   * su clase y su versión —ni sus materiales—. El vínculo lo vuelve a comprobar `productions` al guardarlo.
+   */
+  if (op === 'list') {
+    const type = data.type;
+    if (!esTipoDeElemento(type)) throw new HttpsError('invalid-argument', 'Falta la clase.');
+    const lista = await candidatosDeLaCuenta({ accountId, type: type as ElementType }, { db });
+    return { elements: lista.map((e) => ({ elementId: e.elementId, type: e.type, name: e.name, version: e.version })) };
   }
 
   if (op === 'context') {

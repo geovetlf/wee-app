@@ -10,6 +10,7 @@ import ProductionTools, { HERRAMIENTAS, IdDeHerramienta } from './ProductionTool
 import ProductionShotProperties from './ProductionShotProperties';
 import ProductionStoryboard from './ProductionStoryboard';
 import ProductionDirectorPanel from './ProductionDirectorPanel';
+import ProductionBrainBox from './ProductionBrainBox';
 import ProductionExportPanel from './ProductionExportPanel';
 import ProductionSaveState from './ProductionSaveState';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
@@ -168,6 +169,9 @@ const ProductionMobileEditor: React.FC<{
             toma={espacio.toma}
             video={elegido ? espacio.videos.get(elegido.unitId) ?? null : null}
           />
+        )}
+        {vista === 'director' && (
+          <ProductionBrainBox espacio={espacio} />
         )}
       </ScrollView>
 

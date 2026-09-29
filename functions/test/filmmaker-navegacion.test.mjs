@@ -102,9 +102,18 @@ check('D2) la regla la da el catálogo: solo «Varias escenas» abre la producci
 const rama = alCrear.search(/if \(abreLaProduccion\(experiencia\?\.id\)\) \{\s*navigation\.navigate\('Production', \{ intencion: texto, creativo: filtrarCreativo\(controles\) \}\);\s*return;\s*\}/);
 check('D3) el Studio la abre con lo escrito y los controles elegidos, y no sigue', rama >= 0);
 check('D4) antes de decidir ningún destino de un solo clip', rama >= 0 && rama < alCrear.indexOf('destinoDeIntencion(texto') && rama < alCrear.indexOf("navigation.navigate('CreatorFlow'"));
-check('D5) la caja sigue siendo la del Studio: la producción no trae la suya',
+/*
+ * Reanclada por nombre en la Fase 20 del Filmmaker Engine (encargo del usuario del 2026-09-28, «CERRAR EL FILMMAKER
+ * ENGINE»: conectar en la app lo que el motor ya hace). La IDEA sigue entrando solo por la caja del Studio: ni la
+ * pantalla ni ningún panel trae una caja para escribirla. Dentro de la producción hay UNA caja, y es la de Weë Brain
+ * (`ProductionBrainBox`, la común de Weë AI, `CajaDePrompt`), que habla de CAMBIOS con la producción abierta (D6), no
+ * de la idea; un `<TextInput>` suelto sigue sin estar en ninguno.
+ */
+check('D5) la caja de la idea sigue siendo la del Studio: la producción no trae la suya, y dentro solo está la de Weë Brain, la común',
   !/<TextInput|CajaDePrompt|StudioPromptComposer/.test(leer('screens/ProductionScreen.tsx'))
-  && fs.readdirSync(path.resolve(RAIZ, 'components/studio/produccion')).every((f) => !/<TextInput|CajaDePrompt/.test(leer(`components/studio/produccion/${f}`))));
+  && fs.readdirSync(path.resolve(RAIZ, 'components/studio/produccion')).every((f) => (f === 'ProductionBrainBox.tsx'
+    ? !/<TextInput|StudioPromptComposer/.test(leer(`components/studio/produccion/${f}`)) && /<CajaDePrompt\b/.test(leer(`components/studio/produccion/${f}`))
+    : !/<TextInput|CajaDePrompt/.test(leer(`components/studio/produccion/${f}`)))));
 const pantalla = leer('screens/ProductionScreen.tsx');
 check('D6) la pantalla recibe la idea y crea una producción de verdad, con la callable, y abre ESA producción',
   /return <InicioDeProducciones idea=\{route\.params\?\.intencion\} creativo=\{route\.params\?\.creativo\} \/>/.test(pantalla)

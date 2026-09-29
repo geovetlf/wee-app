@@ -144,6 +144,13 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * una asignación, ni se sintetiza, ni se cobra, ni se llama a un proveedor; F1-A, sin tocar.
    */
   'functions/src/creator/vocesDeDialogo.ts',
+  /*
+   * Fase 20 · conectar en la app lo que el motor ya hace (encargo del usuario del 2026-09-28, «CERRAR EL FILMMAKER
+   * ENGINE»): la puerta `elements` gana `list` —los vivos de la cuenta, de una clase, sin sus materiales, por el
+   * `candidatosDeLaCuenta` de siempre— para vincular las fichas de una producción. `productions` (ya en la lista) gana
+   * `history`, que solo LEE las versiones. Ni se escribe nada nuevo, ni Credits, ni proveedores, ni una Function nueva.
+   */
+  'functions/src/elements/puerta.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

@@ -1,6 +1,7 @@
 import { httpsCallable } from 'firebase/functions';
 import { collection, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db, functions } from '../config/firebase';
+import type { FilmmakerOperation } from './filmmaker/dominio';
 
 /**
  * Weë Brain en la app: envía mensajes (brainChat) y escucha la conversación en
@@ -50,6 +51,19 @@ export interface BrainBlock {
   restantes: number;
 }
 
+/**
+ * LO QUE WEË BRAIN PROPONE CAMBIAR en una producción abierta (Filmmaker Engine, Fase 9): operaciones de F1-A que el
+ * servidor ya comprobó en memoria sobre la revisión `baseRevision`. Una propuesta, no una orden: aplicarlas lo decide
+ * la persona.
+ */
+export interface PropuestaDeWeeBrain {
+  productionId: string;
+  baseRevision: number;
+  operations: FilmmakerOperation[];
+  applied: number;
+  timelineChanged: boolean;
+}
+
 export interface BrainReply {
   chatId: string;
   messageId: string;
@@ -60,6 +74,10 @@ export interface BrainReply {
   demo: boolean;
   duplicate: boolean;
   bloque?: BrainBlock;
+  /** Solo con una producción abierta: la propuesta comprobada, o `null`. */
+  proposal?: PropuestaDeWeeBrain | null;
+  /** Y si intentó proponer y no salió nada aplicable, por qué. */
+  proposalIssue?: string | null;
 }
 
 /** Id único por mensaje: idempotencia del cobro (reenviar no cobra dos veces). */
@@ -92,7 +110,11 @@ export const brainService = {
    * puede cambiar en mitad de una conversación: se cambia el idioma en Ajustes y
    * la siguiente respuesta ya sale en el nuevo, sin reiniciar nada.
    */
-  send: async (input: { chatId?: string; message: string; messageId: string; imageUrl?: string; webSearch?: boolean; locale?: string }): Promise<BrainReply> => {
+  send: async (input: {
+    chatId?: string; message: string; messageId: string; imageUrl?: string; webSearch?: boolean; locale?: string;
+    /** Filmmaker Engine, Fase 20: la producción abierta, para que Weë Brain la tenga delante y pueda proponer cambios. */
+    produccion?: { productionId: string; revision: number };
+  }): Promise<BrainReply> => {
     const fn = httpsCallable<typeof input, BrainReply>(functions, 'brainChat', { timeout: 120_000 });
     const result = await fn(input);
     return result.data;

@@ -149,7 +149,14 @@ const ProductionWorkspace: React.FC<{
         </View>
       </View>
 
-      {!!hoja && <ProductionStructureSheet produccion={produccion} que={hoja} onCerrar={() => setHoja(null)} />}
+      {!!hoja && (
+        <ProductionStructureSheet
+          produccion={produccion}
+          que={hoja}
+          onCerrar={() => setHoja(null)}
+          vinculos={espacio.elementos ? { editable: espacio.editable, onGesto: espacio.onGesto, elementos: espacio.elementos } : undefined}
+        />
+      )}
       {exportando && <ProductionExportPanel espacio={espacio} onCerrar={onCerrarExportar} />}
     </View>
   );

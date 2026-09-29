@@ -1005,6 +1005,47 @@ export const leerRegistro = async (accountId: string, productionId: unknown, dep
 };
 
 /**
+ * LAS VERSIONES DE UNA PRODUCCIÓN, PARA ENSEÑARLAS (Filmmaker Engine, Fase 20): las más recientes primero y con
+ * tope, cada una con qué es —cómo nació, un lote, una vuelta a otra— y cuándo. Ni su foto ni sus operaciones: lo que
+ * se enseña se lee aquí, y lo que se restaura lo reconstruye `restaurarRevision` desde el registro entero. Lo ajeno
+ * contesta como lo que no existe.
+ */
+export interface VersionDeProduccion {
+  revision: number;
+  kind: TipoDeRevision;
+  createdAt: number;
+  /** En una vuelta, a qué revisión se volvió. */
+  restoredFrom?: number;
+  scenes: number;
+  shots: number;
+}
+
+export const MAX_VERSIONES_EN_EL_HISTORIAL = 30;
+
+export const historialDeProduccion = async (
+  accountId: string,
+  productionId: unknown,
+  deps: DepsDeProducciones = {},
+): Promise<{ readonly ok: true; readonly versions: readonly VersionDeProduccion[] } | Rechazo> => {
+  if (!esIdDeProduccion(productionId) || typeof accountId !== 'string' || !accountId) return noEsta();
+  const ref = raizRef(laBase(deps), productionId);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()?.ownerAccountId !== accountId) return noEsta();
+  const filas = await ref.collection(COLECCION_DE_REVISIONES).orderBy('revision', 'desc').limit(MAX_VERSIONES_EN_EL_HISTORIAL).get();
+  return {
+    ok: true,
+    versions: filas.docs.map((d) => d.data() as RevisionGuardada).map((e) => ({
+      revision: e.revision,
+      kind: e.kind,
+      createdAt: e.createdAt,
+      ...(e.kind === 'restore' && e.source ? { restoredFrom: e.source.revision } : {}),
+      scenes: e.result.scenes,
+      shots: e.result.shots,
+    })),
+  };
+};
+
+/**
  * RECONSTRUIR UNA REVISIÓN desde el registro: la foto de la revisión 0 y, uno a
  * uno, los lotes, con las operaciones de F1-A. Puro: no lee ni escribe. Cada paso
  * se compara con la huella que se guardó; si algo no cuadra, el historial está

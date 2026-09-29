@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
@@ -15,6 +15,32 @@ const CLAVE_DE_LA_FUERZA: Readonly<Record<string, string>> = {
   relaxed: 'filmmaker.wsContinuityRelaxed',
   standard: 'filmmaker.wsContinuityStandard',
   strict: 'filmmaker.wsContinuityStrict',
+};
+
+/**
+ * EL PROMPT AVANZADO DEL PLANO, VISTO (Fase 20 del motor; se usa al generar desde la Fase 13): oculto hasta que se
+ * pide —el modo avanzado nunca está a la vista por defecto— y solo para leerlo. Es el texto de la persona: tal cual.
+ */
+const PromptAvanzado: React.FC<{ texto: string }> = ({ texto }) => {
+  const { theme } = useTheme();
+  const { t } = useIdioma();
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={styles.avanzado}>
+      <BotonPequeno
+        icono={visible ? 'eye-off-outline' : 'code-slash-outline'}
+        etiqueta={t(visible ? 'filmmaker.wsAdvancedHide' : 'filmmaker.wsAdvancedShow')}
+        onPress={() => setVisible((v) => !v)}
+        conTexto
+      />
+      {visible && (
+        <>
+          <Text selectable style={[styles.textoAvanzado, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>{texto}</Text>
+          <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsAdvancedNote')}</Text>
+        </>
+      )}
+    </View>
+  );
 };
 
 /**
@@ -79,6 +105,7 @@ const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?:
         </View>
       </View>
       <ProductionInspector produccion={produccion} seleccion={seleccion} editable={editable} onGesto={onGesto} />
+      {!!plano?.advanced?.prompt && <PromptAvanzado texto={plano.advanced.prompt} />}
     </Marco>
   );
 };
@@ -96,6 +123,8 @@ const styles = StyleSheet.create({
   valor: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any, fontVariant: ['tabular-nums'], flex: 1 },
   botones: { flexDirection: 'row', gap: SPACING.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
+  avanzado: { gap: SPACING.sm },
+  textoAvanzado: { fontSize: FONT_SIZE.sm, lineHeight: FONT_SIZE.sm * 1.5, borderWidth: 1, borderRadius: 10, padding: SPACING.md },
 });
 
 export default ProductionShotProperties;

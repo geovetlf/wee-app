@@ -7,6 +7,7 @@ import CampoQueCrece from '../../creator/CampoQueCrece';
 import ProductionShotGeneration from './ProductionShotGeneration';
 import ProductionRecommendations from './ProductionRecommendations';
 import ProductionDirectorPanel from './ProductionDirectorPanel';
+import ProductionBrainBox from './ProductionBrainBox';
 import { Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { LIMITES } from '../../../services/filmmaker/dominio';
@@ -136,6 +137,9 @@ const ProductionDirectorTabs: React.FC<{
         />
         <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsSuggestionsNote')}</Text>
       </Seccion>
+
+      {/* Fase 20 del motor: Weë Brain con la producción delante; lo que proponga, lo aplica la persona. */}
+      <ProductionBrainBox espacio={espacio} />
     </View>
   );
 

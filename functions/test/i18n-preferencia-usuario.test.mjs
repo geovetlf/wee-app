@@ -565,8 +565,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * nombres de sus nueve valores (`studio.shtExtremeWide`, `shtFull`,
    * `shtMediumCloseUp`, `shtOverShoulder`, `shtInsert`, `mvZoomIn`, `mvZoomOut`,
    * `mvRackFocus` y `cmpLeadingLines`), en los once diccionarios a la vez. No sale ninguna.
+   * 3 147 → 3 178 con la Fase 20 (conectar en la app lo que el motor ya hace): entran las
+   * treinta y una claves del prompt avanzado visto, las versiones, los vínculos a lo
+   * guardado y Weë Brain en el editor (`filmmaker.wsAdvanced*`, `wsVersion*`,
+   * `wsElement*`, `wsStructureLinkable`, `wsBrain*`), en los once diccionarios a la vez.
+   * No sale ninguna.
    */
-  const CLAVES_PT = 3147;
+  const CLAVES_PT = 3178;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

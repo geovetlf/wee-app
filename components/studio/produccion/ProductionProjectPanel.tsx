@@ -6,9 +6,10 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import ProductionStatus from './ProductionStatus';
 import ProductionSaveState from './ProductionSaveState';
-import { BotonPequeno, Seccion } from './ProductionPiezas';
+import { BotonPequeno, Chip, Seccion } from './ProductionPiezas';
 import { useSegundos } from './ProductionDurationSummary';
 import { EspacioDeFilmmaker } from './espacio';
+import { confirmAction } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -17,6 +18,42 @@ const isWeb = Platform.OS === 'web';
 export type Etapa = 'pre' | 'produccion' | 'post';
 /** Lo que se abre desde «Estructura»: cada cosa, o el storyboard en el centro. */
 export type Estructura = 'idea' | 'guion' | 'personajes' | 'lugares' | 'storyboard' | 'planos' | 'moodboard';
+
+/**
+ * LAS VERSIONES DE LA PRODUCCIÓN (Fase 20 del motor; volver a una, Fase 12): las más recientes primero, con cuándo y,
+ * si una es una vuelta, a cuál. Volver a una pide confirmación, se guarda como una versión NUEVA y ninguna se pierde;
+ * con cambios sin guardar, o archivada, no se puede.
+ */
+const Versiones: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
+  const { theme } = useTheme();
+  const { t, formato } = useIdioma();
+  const { historial, revision, editable, hayCambios, onRestaurar } = espacio;
+  if (!historial) return null;
+  if (historial.carga === 'error') return <Text style={[styles.nota, { color: theme.colors.error }]}>{t('filmmaker.wsVersionsError')}</Text>;
+  if (historial.carga === 'cargando') return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('common.loading')}</Text>;
+  const volver = async (numero: number) => {
+    if (!onRestaurar) return;
+    const si = await confirmAction(t('filmmaker.wsVersionConfirmTitle', { numero }), t('filmmaker.wsVersionConfirmText'), t('filmmaker.wsVersionRestore'), false, t);
+    if (si) onRestaurar(numero);
+  };
+  return (
+    <View style={styles.versiones}>
+      {historial.versiones.map((v) => (
+        <View key={v.revision} style={[styles.version, { borderColor: theme.colors.border }]}>
+          <View style={styles.versionTextos}>
+            <Text style={[styles.filaTexto, { color: theme.colors.text }]}>{t('filmmaker.wsVersionLine', { numero: v.revision, cuando: formato.tiempoRelativo(v.createdAt) })}</Text>
+            {v.restoredFrom !== undefined && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsVersionWasRestore', { numero: v.restoredFrom })}</Text>}
+          </View>
+          {v.revision === revision
+            ? <Chip texto={t('filmmaker.wsVersionCurrent')} tono="acento" />
+            : !!onRestaurar && (
+              <BotonPequeno icono="arrow-undo-outline" etiqueta={t('filmmaker.wsVersionRestore')} onPress={() => { void volver(v.revision); }} disabled={!editable || hayCambios} conTexto />
+            )}
+        </View>
+      ))}
+    </View>
+  );
+};
 
 /**
  * EL PANEL DEL PROYECTO, A LA IZQUIERDA.
@@ -244,6 +281,12 @@ const ProductionProjectPanel: React.FC<{
           </Text>
         )}
       </Seccion>
+
+      {!!espacio.historial && (
+        <Seccion titulo={t('filmmaker.wsVersions')}>
+          <Versiones espacio={espacio} />
+        </Seccion>
+      )}
     </ScrollView>
   );
 };
@@ -256,6 +299,9 @@ const styles = StyleSheet.create({
   marcaTextos: { flex: 1, gap: 1 },
   marcaNombre: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold as any },
   nota: { fontSize: FONT_SIZE.xs, lineHeight: FONT_SIZE.xs * 1.45 },
+  versiones: { gap: SPACING.xs },
+  version: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, borderBottomWidth: 1, paddingVertical: SPACING.xs },
+  versionTextos: { flex: 1, gap: 2 },
   /* Dos líneas si hace falta: «Pre-producción» no cabe entera en un tercio del panel, y cortarla en «Pre-produ…» no se lee. */
   etapas: { flexDirection: 'row', borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: 3, gap: 2 },
   etapa: { flex: 1, minHeight: 36, borderRadius: BORDER_RADIUS.sm, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 3 },

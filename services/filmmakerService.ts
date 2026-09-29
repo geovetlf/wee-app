@@ -72,6 +72,24 @@ export interface LoteConfirmado {
   readonly alreadyApplied: boolean;
 }
 
+/** Una versión de la producción, para enseñarla (Fase 20 del motor): qué es, cuándo y, si es una vuelta, a cuál. */
+export interface VersionDeProduccion {
+  readonly revision: number;
+  readonly kind: 'create' | 'duplicate' | 'apply' | 'restore';
+  readonly createdAt: number;
+  readonly restoredFrom?: number;
+  readonly scenes: number;
+  readonly shots: number;
+}
+
+/** Una vuelta a una versión anterior que el servidor aceptó (Fase 12 del motor): la producción, ya en su revisión NUEVA. */
+export interface RestauracionConfirmada {
+  readonly produccion: ProduccionGuardada;
+  readonly restoredFrom: number;
+  readonly changed: boolean;
+  readonly alreadyApplied: boolean;
+}
+
 /**
  * POR QUÉ NO SALIÓ, en las pocas formas que la pantalla sabe tratar:
  *
@@ -356,7 +374,34 @@ export const crearFilmmakerService = (llamar: LlamadaAProducciones) => ({
       if (!esObj(r) || !esObj(r.source) || typeof r.source.productionId !== 'string' || !esEntero(r.source.revision)) throw new RespuestaInvalida('duplicate');
       return { created: r.created === true, produccion: aProduccion(r), source: { productionId: r.source.productionId, revision: r.source.revision } };
     }),
+
+  /** Sus versiones, las más recientes primero (Fase 20 del motor). Una entrada sin forma no se enseña. */
+  historyOfProduction: (productionId: string): Promise<Resultado<readonly VersionDeProduccion[]>> =>
+    intentar(async () => {
+      const r = await llamar({ op: 'history', productionId });
+      if (!esObj(r) || !Array.isArray(r.versions)) throw new RespuestaInvalida('history');
+      return r.versions.map(aVersion).filter((v): v is VersionDeProduccion => v !== null);
+    }),
+
+  /** Volver a una revisión anterior, como una NUEVA encima de la de ahora (Fase 12 del motor), con CAS. */
+  restoreProduction: (d: { readonly productionId: string; readonly expectedRevision: number; readonly revision: number; readonly operationId: string }):
+    Promise<Resultado<RestauracionConfirmada>> =>
+    intentar(async () => {
+      const r = await llamar({ op: 'restore', productionId: d.productionId, expectedRevision: d.expectedRevision, revision: d.revision, operationId: d.operationId });
+      if (!esObj(r) || !esEntero(r.restoredFrom)) throw new RespuestaInvalida('restore');
+      return { produccion: aProduccion(r), restoredFrom: r.restoredFrom, changed: r.changed === true, alreadyApplied: r.alreadyApplied === true };
+    }),
 });
+
+const TIPOS_DE_VERSION: readonly string[] = ['create', 'duplicate', 'apply', 'restore'];
+const aVersion = (v: unknown): VersionDeProduccion | null => {
+  if (!esObj(v) || !esEntero(v.revision) || typeof v.kind !== 'string' || !TIPOS_DE_VERSION.includes(v.kind)
+    || typeof v.createdAt !== 'number' || !esEntero(v.scenes) || !esEntero(v.shots)) return null;
+  return {
+    revision: v.revision, kind: v.kind as VersionDeProduccion['kind'], createdAt: v.createdAt, scenes: v.scenes, shots: v.shots,
+    ...(esEntero(v.restoredFrom) ? { restoredFrom: v.restoredFrom } : {}),
+  };
+};
 
 export type FilmmakerService = ReturnType<typeof crearFilmmakerService>;
 

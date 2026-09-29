@@ -14,6 +14,7 @@ import {
   leerProduccion,
   listarProducciones,
   restaurarRevision,
+  historialDeProduccion,
 } from './index';
 
 /**
@@ -46,10 +47,11 @@ import {
 const REGION = 'us-central1';
 
 /**
- * Las ocho operaciones. Lo que no está aquí no existe. La octava, `restore`, es de
- * la Fase 12 del Filmmaker Engine: volver a una revisión anterior, como una nueva.
+ * Las nueve operaciones. Lo que no está aquí no existe. La octava, `restore`, es de
+ * la Fase 12 del Filmmaker Engine: volver a una revisión anterior, como una nueva; la
+ * novena, `history`, de su Fase 20: solo LEE las versiones, para enseñarlas.
  */
-export const OPERACIONES_DE_PRODUCCION = Object.freeze(['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate', 'restore'] as const);
+export const OPERACIONES_DE_PRODUCCION = Object.freeze(['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate', 'restore', 'history'] as const);
 
 /** De cada rechazo, el código estándar de una callable. */
 export const CODIGO_DE_CALLABLE: Readonly<Record<CodigoDePersistencia, FunctionsErrorCode>> = Object.freeze({
@@ -161,6 +163,12 @@ export const atenderProducciones = async (accountId: string, datos: unknown, ctx
         ...r.view, restoredFrom: r.restoredFrom, changed: r.changed, pending: r.pending, timelineChanged: r.timelineChanged,
         operationId: r.operationId, alreadyApplied: r.alreadyApplied,
       };
+    }
+    case 'history': {
+      /* Filmmaker Engine, Fase 20: las versiones, para enseñarlas y volver a una. Solo se leen. */
+      const r = await historialDeProduccion(accountId, data.productionId, deps);
+      if (!r.ok) return fallar(r);
+      return { versions: r.versions };
     }
     default:
       throw error('invalid-argument', 'operation_unknown');

@@ -545,8 +545,9 @@ console.log('\n── G · Lo que restaurar no hace ──');
     git(`diff --name-only ${ANTES} ${HASTA} -- services components screens hooks utils firestore.rules firestore.indexes.json storage.rules`).trim() === '');
   check('G6) productions ya estaba en la lista del motor, y el dinero no',
     ['functions/src/productions/index.ts', 'functions/src/productions/puerta.ts'].every((f) => TOCADOS_POR_EL_MOTOR.includes(f)) && TOCADOS_POR_EL_MOTOR.every((f) => !DINERO.some((re) => re.test(f))));
-  check('G7) la puerta: ocho operaciones, y `restore` solo lleva la revisión que se ve y a cuál se vuelve',
-    JSON.stringify([...puertaProd.OPERACIONES_DE_PRODUCCION]) === JSON.stringify(['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate', 'restore'])
+  /* Reanclada por nombre en la Fase 20 del motor: la puerta gana `history`, que solo lee las versiones para enseñarlas. */
+  check('G7) la puerta: nueve operaciones —la novena, `history`, solo lee—, y `restore` solo lleva la revisión que se ve y a cuál se vuelve',
+    JSON.stringify([...puertaProd.OPERACIONES_DE_PRODUCCION]) === JSON.stringify(['create', 'get', 'list', 'apply', 'archive', 'unarchive', 'duplicate', 'restore', 'history'])
     && /case 'restore': \{[\s\S]*?restaurarRevision\(\{\s*accountId, productionId: data\.productionId, expectedRevision: data\.expectedRevision,\s*revision: data\.revision, operationId: data\.operationId, at,\s*\}, deps\)/.test(src('puerta.ts')));
   check('G8) documentado', /### Fase 12 · /.test(leer('docs/FILMMAKER.md')) && /\| D12 \| [^\n]*\*\*decidida\*\* en la Fase 12/.test(leer('docs/FILMMAKER.md')));
   check('G9) esta suite está en la cadena de `npm test`', /filmmaker-restaurar\.test\.mjs/.test(leer('functions/package.json')));

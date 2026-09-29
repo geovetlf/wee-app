@@ -30,7 +30,7 @@ import type { FalloDeProducciones, FilmmakerService } from '../services/filmmake
 export type Programador = (fn: () => void, ms: number) => () => void;
 
 export interface DependenciasDelControlador {
-  readonly servicio: Pick<FilmmakerService, 'getProduction' | 'applyProductionOperations' | 'archiveProduction' | 'unarchiveProduction'>;
+  readonly servicio: Pick<FilmmakerService, 'getProduction' | 'applyProductionOperations' | 'archiveProduction' | 'unarchiveProduction' | 'restoreProduction'>;
   readonly nuevoIdDeOperacion: () => string;
   readonly nuevoIdDeGesto?: () => string;
   readonly programar?: Programador;
@@ -178,6 +178,20 @@ export const crearControladorDeProduccion = (productionId: string, deps: Depende
       despachar({ tipo: 'estado', resumen: r.valor.resumen });
       if (!archivar) void enviar();
       return { ok: true as const };
+    },
+
+    /**
+     * VOLVER A UNA VERSIÓN (Fase 20; en el servidor, Fase 12): como una revisión NUEVA encima de la de ahora, con CAS.
+     * Con cambios sin guardar no se hace —primero se guardan—, y lo que vuelve se carga entero.
+     */
+    restaurar: async (revision: number) => {
+      if (hayCambiosSinGuardar(estado) || !estado.confirmada) return { ok: false as const, motivo: 'cambios_sin_guardar' as const };
+      const r = await deps.servicio.restoreProduction({
+        productionId, expectedRevision: estado.confirmada.revision, revision, operationId: deps.nuevoIdDeOperacion(),
+      });
+      if (!r.ok) return { ok: false as const, motivo: 'fallo' as const, fallo: r.fallo };
+      despachar({ tipo: 'cargada', produccion: r.valor.produccion });
+      return { ok: true as const, restauradaDesde: r.valor.restoredFrom, cambio: r.valor.changed };
     },
 
     /** Que la persona ya leyó los avisos de conflicto y de rechazo. */

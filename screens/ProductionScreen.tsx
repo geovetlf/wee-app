@@ -8,6 +8,9 @@ import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoI
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import { useMontajeFinal } from '../hooks/useMontajeFinal';
+import { useHistorialDeProduccion } from '../hooks/useHistorialDeProduccion';
+import { useElementosParaVincular } from '../hooks/useElementosParaVincular';
+import { useWeeBrainDelEditor } from '../hooks/useWeeBrainDelEditor';
 import CreatorShell from '../components/creator/CreatorShell';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
 import type { Seleccion } from '../components/studio/produccion/ProductionStoryboard';
@@ -123,6 +126,10 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   }, [delStoryboard, seleccion, toma.enElPlano]);
   /* El montaje final de lo GUARDADO y su publicación (Fase 14 del motor). */
   const montaje = useMontajeFinal(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
+  /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain dentro del editor, sobre lo GUARDADO. */
+  const historial = useHistorialDeProduccion(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
+  const elementos = useElementosParaVincular();
+  const brain = useWeeBrainDelEditor(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Production')), [navigation]);
@@ -136,6 +143,12 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
     notify(t('filmmaker.duplicatedDone'));
     navigation.push('Production', { productionId: r.valor.produccion.productionId });
   }, [vista, duplicar, t, navigation]);
+
+  const alRestaurar = useCallback(async (revision: number) => {
+    const r = await controlador.restaurar(revision);
+    if (r.ok) { notify(t('filmmaker.wsVersionRestored', { numero: revision })); return; }
+    notify(r.motivo === 'cambios_sin_guardar' ? t('filmmaker.saveFirst') : t('filmmaker.saveError'), r.motivo === 'fallo' && r.fallo ? fraseDelFallo(r.fallo, t) : undefined);
+  }, [controlador, t]);
 
   const alArchivar = useCallback(async (archivar: boolean) => {
     const r = await controlador.archivar(archivar);
@@ -189,6 +202,11 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       videos,
       toma,
       montaje,
+      revision: estado.confirmada?.revision ?? null,
+      historial,
+      onRestaurar: (revision) => { void alRestaurar(revision); },
+      elementos,
+      brain,
       seleccion,
       rechazadas,
       onSeleccionar: setSeleccion,

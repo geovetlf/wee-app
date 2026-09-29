@@ -129,6 +129,12 @@ const dobles = {
   '../hooks/useMontajeFinal': {
     useMontajeFinal: () => ({ fase: 'sin_montaje', montaje: null, url: null, poster: null, motivo: null, limite: null, cabeEnUnWeel: false, publicacion: { fase: 'nada' }, pedir: () => {}, publicar: () => {} }),
   },
+  /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain en el editor. Quietos: se prueban en filmmaker-conectar. */
+  '../hooks/useHistorialDeProduccion': { useHistorialDeProduccion: () => ({ carga: 'listo', versiones: [] }) },
+  '../hooks/useElementosParaVincular': { useElementosParaVincular: () => ({ carga: 'sin_pedir', lista: [], cargar: () => {} }) },
+  '../hooks/useWeeBrainDelEditor': {
+    useWeeBrainDelEditor: () => ({ fase: 'quieto', texto: null, propuesta: null, sinPropuesta: false, bloque: null, enviar: () => {}, descartar: () => {} }),
+  },
   'expo-av': { Video: ({ accessibilityLabel }) => h('video', { 'aria-label': accessibilityLabel }), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
   '../hooks/useTomaDePlano': { useTomaDePlano: () => ({ fase: { fase: 'sin_unidad', porque: 'nada' }, calidad: null, enElPlano: null, ultima: null, aviso: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} }) },
   '../hooks/useProduccion': { useProduccion: () => usoDeProduccion, nuevoIdDeEscena: () => 'sc_nueva0001', nuevoIdDePlano: () => 'sh_nuevo0001' },

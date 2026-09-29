@@ -88,3 +88,13 @@ export const PASO_DE_DURACION_SEC = 0.5;
 export const DURACION_DE_UN_PLANO_NUEVO_SEC = 3;
 /** Lo que cambia un toque en la duración objetivo. */
 export const PASO_DEL_OBJETIVO_SEC = 5;
+
+/**
+ * QUÉ CLASES DE LO GUARDADO ENCAJAN CON CADA FICHA, para vincularla (Fase 20 del motor): las mismas que comprueba el
+ * servidor al guardar (`CLASES_DE_ELEMENTO_POR_FICHA`, Fase 10). Un personaje, con personajes; un lugar, con lugares
+ * y escenas guardadas.
+ */
+export const CLASES_POR_FICHA: Readonly<Record<'personaje' | 'lugar', readonly string[]>> = Object.freeze({
+  personaje: Object.freeze(['character']),
+  lugar: Object.freeze(['place', 'scene']),
+});

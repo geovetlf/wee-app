@@ -381,13 +381,13 @@ siguen **pendientes**:
 | D3 | Entrada en Weë Studio | **decidida** en F1-C: dentro de Videos, «Varias escenas» abre la producción desde la caja del Studio; un solo clip sigue yendo a CreatorFlow |
 | D4 | Ejecución por plano | **decidida** en F1-D: una toma de UNA unidad —un plano, o una escena sin planos— por `generateVideo` con el plano, hacia el Core; sin lotes |
 | D5 | Vídeo asíncrono | **decidida** en F1-D: el camino asíncrono del Core (PRE-F1-D), un intento, los plazos de `plazos.ts`; la app escucha la reserva de Credits de la toma |
-| D6 | Weë Brain para intención y cambios | **decidida** en la Fase 9 del motor (2026-09-28): `brainChat` con la producción abierta como contexto; propone operaciones de F1-A comprobadas en memoria y la persona las aplica por `productions`; mismo precio, camino de siempre |
+| D6 | Weë Brain para intención y cambios | **decidida** en la Fase 9 del motor (2026-09-28): `brainChat` con la producción abierta como contexto; propone operaciones de F1-A comprobadas en memoria y la persona las aplica por `productions`; mismo precio, camino de siempre; **enseñada en la app en la Fase 20**: «Pídeselo a Weë Brain» en Weë AI Director, con «Aplicar los cambios» solo si la propuesta sigue valiendo, y «Descartar» |
 | D7 | Montaje y render | **decidida** en la Fase 8 del motor (2026-09-28): FFmpeg propio (`ffmpeg-static`) como tarea general del Job Engine; el resultado, material `asset_` de la cuenta más un registro en la producción; gratis con cinco al día; exportar o publicar el montaje, pendiente (D8) |
 | D8 | Duración y publicación (Weëls ≤ 15 s) | **decidida** en la Fase 14 del motor (2026-09-28): una toma dura de 4 a 15 s —lo pedido se enseña junto a lo generado, y más de 15 s se rechaza proponiendo dividir—; el montaje final se publica SOLO con un gesto de la persona, como Weël (hasta 15 s, con la tolerancia del renderizador) o en el Wäll, comprobado por el servidor (`renders`, `render.publish`) y con la forma de publicación del compositor |
-| D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); **usarlo al generar, decidido en la Fase 13 del motor** (2026-09-28): se AÑADE detrás del texto de Weë, que no cambia, en un bloque fijo en la última línea, entero, sin enlaces ni órdenes de proveedor (plantilla `fm-plano-2`); enseñarlo (un modo avanzado oculto) y editarlo (`update_shot` sigue con `not_editable_yet`), pendientes |
-| D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings |
+| D9 | Prompt avanzado: guardarlo, enseñarlo y usarlo | **en parte**: guardarlo, decidido (ADR-FM-008); **usarlo al generar, decidido en la Fase 13 del motor** (2026-09-28): se AÑADE detrás del texto de Weë, que no cambia, en un bloque fijo en la última línea, entero, sin enlaces ni órdenes de proveedor (plantilla `fm-plano-2`); **enseñarlo, hecho en la Fase 20** (oculto hasta que se pide, en las propiedades del plano, solo para leerlo); editarlo sigue pendiente (`update_shot` con `not_editable_yet`) |
+| D10 | Identidad de personajes | **decidida** en la Fase 10 del motor (2026-09-28): vínculo verificado a un Element de la cuenta; la identidad al generar sigue siendo lo escrito en la ficha; imágenes de referencia, más adelante con su canary; sin biometría ni embeddings; **vincular desde la app en la Fase 20**: la hoja de personajes y lugares vincula con lo guardado y quita el vínculo |
 | D11 | Precios, límites y cancelación | **decidida** en la Fase 15 del motor (2026-09-28): el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); **detener una toma**: si el proveedor todavía no la aceptó, se para y se devuelve ENTERA; si ya la tiene, termina y se cobra (parada en el proveedor solo tras su puerta, cerrada); idempotente, sin doble devolución y sin mover dinero con un desenlace ambiguo |
-| D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; enseñarlo en la app, en el pase de UX |
+| D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; **enseñado en la app en la Fase 20**: «Versiones» en el panel del proyecto, con «Volver a esta versión» y su confirmación |
 | D13 | Reproductor | **decidida** en la Fase 16 del motor (2026-09-28): UNO solo, el de siempre (`components/workspace/ReproductorDeVideo.tsx`), para la toma, el montaje y la exportación, en el teléfono y en el escritorio: su póster antes de reproducir, la rueda mientras carga, el error con «Inténtalo de nuevo», y el «se está haciendo» en el lienzo cuando el vídeo ya se pidió; «Ver vídeo» lo abre DENTRO de Weë, en una hoja; la tira, la línea de tiempo y la rejilla pintan la imagen fija en vez de cargar un vídeo por plano |
 | D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | **decidida** en la Fase 17 del motor (2026-09-28): los nueve, en el Core, como VERSIÓN 2 del lenguaje creativo —aditiva, al final de sus listas, y con `version: 1` no existen—; F1-A escribe la 2 solo cuando hace falta, el texto del plano no cambia y lo de la 1 da el mismo prompt que antes, byte a byte |
 
@@ -1353,6 +1353,49 @@ Vallas reancladas por nombre: `filmmaker-publicar` G2 (la puerta `renders` pasa 
 
 Pruebas: `functions/test/filmmaker-voces.test.mjs` (en la cadena).
 
+### Fase 20 · Conectar en la app lo que el motor ya hace
+
+Encargo del usuario (2026-09-28, «CERRAR EL FILMMAKER ENGINE»): llevar al producto lo que las fases 9, 10, 12 y 13
+dejaron hechas en el servidor. Nada nuevo por detrás: la app lo enseña y lo usa por las puertas de siempre.
+
+- **El prompt avanzado, visto** (D9). En las propiedades del plano, oculto hasta que se pide («Ver el prompt
+  avanzado») y solo para leerlo: es el texto de la persona, tal cual, con una nota de cómo se usa al generar (Fase 13).
+  Editarlo sigue pendiente: `update_shot` contesta `not_editable_yet`.
+- **Las versiones** (D12). `productions` gana `history`, que solo LEE el registro: las treinta más recientes, de la
+  última a la primera, con qué es cada una —cómo nació, un lote, una vuelta a otra y a cuál—, cuándo, y cuántas escenas
+  y planos tenía; ni su foto ni sus operaciones. Lo ajeno contesta como lo que no existe. En el panel del proyecto,
+  «Versiones»: la de ahora, marcada, y en cada anterior «Volver a esta versión», con su confirmación. Vuelve por
+  `restore` (Fase 12) con la revisión guardada como CAS; con cambios sin guardar, o archivada, no se puede. El
+  controlador de la app gana `restaurar`.
+- **Los vínculos a lo guardado** (D10). `elements` gana `list`: los vivos de la cuenta, de UNA clase y con tope, por
+  el `candidatosDeLaCuenta` de siempre y con su índice de siempre; de cada uno, solo su nombre, su clase y su versión.
+  La hoja de personajes y lugares pide al abrirse lo que encaja con ella (`CLASES_POR_FICHA`: un personaje, con
+  personajes; un lugar, con lugares y escenas guardadas), dice con quién está vinculada cada ficha y deja vincularla o
+  quitar el vínculo con `update_character` / `update_location`, las operaciones de F1-A de siempre. El servidor lo
+  vuelve a comprobar al guardar (Fase 10).
+- **Weë Brain dentro del editor** (D6). La caja común de Weë AI (`CajaDePrompt`), en Weë AI Director del escritorio y
+  en el editor del teléfono: la misma puerta, `brainChat`, con la producción GUARDADA como contexto
+  (`produccion: { productionId, revision }`). Lo que contesta se enseña tal cual. Si propone cambios, se dice cuántos, y
+  «Aplicar los cambios» los aplica como UN gesto, por el controlador de siempre, SOLO si la producción sigue en la
+  revisión en la que se comprobaron y no hay nada sin guardar; si cambió, se dice y se pide otra vez. «Descartar» los
+  quita. Nada se aplica solo, y lo que queda del bloque de respuestas se dice como en el resto de Weë Brain.
+- Los paneles no hablan con el servidor: lo hacen tres hooks (`useHistorialDeProduccion`, `useElementosParaVincular`,
+  `useWeeBrainDelEditor`) y `ProductionScreen` los junta en el espacio del editor, que gana cinco campos opcionales
+  (`revision`, `historial`, `onRestaurar`, `elementos`, `brain`). Treinta y una claves nuevas (`filmmaker.wsAdvanced*`,
+  `wsVersion*`, `wsElement*`, `wsStructureLinkable`, `wsBrain*`), en los once idiomas y con el portugués de Brasil. En
+  chino, lo guardado se dice «内容 / 內容»: «项目 / 項目» es «proyecto» en Weë.
+- En el selector de lo guardado, el botón que vuelve a las fichas sin elegir dice «Volver» (`common.back`), no
+  «Cancelar»: en Weë, Cancelar solo cancela.
+- Ni Credits, ni proveedores, ni una Function nueva, ni reglas, ni índices. F1-A y el Core, sin tocar.
+
+Vallas reancladas por nombre: `productions-runtime` Z6 y `filmmaker-restaurar` G7 (la puerta pasa de ocho a nueve
+operaciones, con `history`); `filmmaker-ui` gana los dobles de los tres hooks; `i18n-preferencia-usuario` pasa de
+3 147 a 3 178 claves; `motor-filmmaker-alcance` gana `elements/puerta.ts` con su motivo; y `filmmaker-navegacion` D5
+(de F1-C): la IDEA sigue entrando solo por la caja del Studio, y dentro de la producción la única caja es la de Weë
+Brain, la común, que habla de cambios y no de la idea.
+
+Pruebas: `functions/test/filmmaker-conectar.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -1360,11 +1403,11 @@ Pruebas: `functions/test/filmmaker-voces.test.mjs` (en la cadena).
 | F1-B | **Hecha**: guarda la producción (D2), aplica operaciones en el servidor con CAS y registro (D12); conectada (35 Functions) y sin desplegar |
 | F1-C | **Hecha**: la producción en la app —«Varias escenas» dentro de Weë Studio—, con el storyboard, el panel Director, el estado optimista con CAS y los `messageKey` (`filmmaker.*`) en once idiomas; sin generar ni cobrar |
 | F1-D | **Hecha** (local, sin desplegar): una toma de un plano a partir de su requisito (D4), asíncrona por el Core (D5), cotizada y enlazada a su `ShotNode` con verificación en el servidor |
-| F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones. **Hecha en el servidor** (Filmmaker Engine, Fase 9; local, sin desplegar): la propuesta y su comprobación; enseñarla en la app, en el pase de UX |
-| F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados; usar sus imágenes al generar, pendiente de validar |
+| F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones. **Hecha** (Filmmaker Engine, Fase 9 en el servidor y Fase 20 en la app; local, sin desplegar): la propuesta, su comprobación, y aplicarla o descartarla desde el editor |
+| F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados, y vincular desde la app (Fase 20); usar sus imágenes al generar, pendiente de validar |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; y el póster de cada vídeo y del montaje (Fase 11); exportar o publicar el montaje, aparte |
-| F6 | Director avanzado: prompt avanzado (D9), versiones (D12). **Hechos «restaurar»** (Filmmaker Engine, Fase 12) **y usar el prompt avanzado al generar** (Fase 13), locales y sin desplegar; enseñarlo y editarlo, pendientes (pase de UX y lenguaje de F1-A) |
+| F6 | Director avanzado: prompt avanzado (D9), versiones (D12). **Hechos «restaurar»** (Filmmaker Engine, Fase 12) **y usar el prompt avanzado al generar** (Fase 13), locales y sin desplegar; **enseñados en la app** (Fase 20); editar el prompt avanzado, pendiente (lenguaje de F1-A) |
 
 ## Pruebas
 
