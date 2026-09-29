@@ -285,6 +285,9 @@ export const CLAVE_DE_TRANSICION: Readonly<Record<TransitionType, string>> = Obj
   seamless: 'filmmaker.transitionSeamless',
 });
 
+/* ── Fase 25 del motor · el sonido: los niveles que se ofrecen para un sonido en la mezcla (F1-A admite de 0 a 1) ─── */
+export const NIVELES_DE_SONIDO: readonly number[] = Object.freeze([0.25, 0.5, 0.75, 1]);
+
 /* ── Fase 24 del motor · la historia, la continuidad y las tomas: las claves de lo que se lee ─── */
 
 /** Para qué sirve cada escena en el relato (`narrativePurpose` de F1-A). */

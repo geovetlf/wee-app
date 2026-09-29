@@ -6,8 +6,8 @@ import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import type { EspacioDeFilmmaker } from './espacio';
-import { LIMITES, PAPELES_DE_REFERENCIA } from '../../../services/filmmaker/dominio';
-import type { ProductionReference } from '../../../services/filmmaker/dominio';
+import { LIMITES, PAPELES_DE_REFERENCIA, aplicarOperaciones, validarProduccion } from '../../../services/filmmaker/dominio';
+import type { FilmmakerProduction, ProductionReference, ReferenceRole } from '../../../services/filmmaker/dominio';
 import { CLAVE_DEL_PAPEL_DE_REFERENCIA } from '../../../constants/filmmaker';
 import { confirmAction } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
@@ -33,6 +33,19 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
   const [abierta, setAbierta] = useState<string | null>(null);
   const refs = produccion.references;
   const nombre = (r: ProductionReference) => r.description || t(CLAVE_DEL_PAPEL_DE_REFERENCIA[r.role ?? 'general']);
+  /*
+   * ¿Encaja este papel con esta referencia? La regla es de F1-A y se le pregunta a él: la operación se acepta siempre,
+   * pero un papel que no va con el material —un fotograma que no es una imagen— deja la producción con un error y ya
+   * no se podría generar. Así que encaja si, aplicado en local, no añade ningún error a los que ya había.
+   */
+  let erroresDeAhora: number | undefined;
+  const errores = (p: FilmmakerProduction) => validarProduccion(p, { stage: 'draft' }).problems.filter((x) => x.severity === 'error').length;
+  const admite = (r: ProductionReference, p: ReferenceRole) => {
+    const tras = aplicarOperaciones(produccion, [{ op: 'update_reference', referenceId: r.id, changes: { role: p } }]);
+    if (!tras.ok) return false;
+    erroresDeAhora ??= errores(produccion);
+    return errores(tras.production) <= erroresDeAhora;
+  };
   const quitar = async (r: ProductionReference) => {
     if (!(await confirmAction(t('filmmaker.wsReferenceRemoveConfirm', { nombre: nombre(r) }), '', t('filmmaker.remove'), true, t))) return;
     const res = onGesto([{ op: 'remove_reference', referenceId: r.id }]);
@@ -76,22 +89,26 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
                 <View style={styles.opciones}>
                   {PAPELES_DE_REFERENCIA.map((p) => {
                     const elegida = r.role === p;
+                    const encaja = elegida || admite(r, p);
                     return (
                       <TouchableOpacity
                         key={p}
                         onPress={() => onGesto([{ op: 'update_reference', referenceId: r.id, changes: { role: elegida ? null : p } }])}
-                        disabled={!editable}
+                        disabled={!editable || !encaja}
                         accessibilityRole="button"
                         accessibilityLabel={t(CLAVE_DEL_PAPEL_DE_REFERENCIA[p])}
-                        accessibilityState={{ selected: elegida, disabled: !editable }}
+                        accessibilityState={{ selected: elegida, disabled: !editable || !encaja }}
                         style={[styles.opcion, { backgroundColor: elegida ? theme.colors.accent : theme.colors.surface, borderColor: elegida ? theme.colors.accent : theme.colors.border },
-                          !editable && { opacity: OPACITY.disabled }]}
+                          (!editable || !encaja) && { opacity: OPACITY.disabled }]}
                       >
                         <Text style={[styles.opcionTexto, { color: elegida ? '#1F2937' : theme.colors.text }]}>{t(CLAVE_DEL_PAPEL_DE_REFERENCIA[p])}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
+                {PAPELES_DE_REFERENCIA.some((p) => r.role !== p && !admite(r, p)) && (
+                  <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsReferenceRoleNeedsKind')}</Text>
+                )}
                 <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.remove')} onPress={() => { void quitar(r); }} disabled={!editable} conTexto />
               </View>
             )}

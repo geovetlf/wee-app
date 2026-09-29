@@ -469,7 +469,8 @@ await seccion('I', async () => {
   const dp = director(c);
   check('I1) «Generar» se ve como lo que es: todavía no disponible', boton(dp, 'Generar')?.apagado === true && /Todavía no disponible: Weë aún no genera varias escenas en un solo vídeo/.test(dp.texto));
   check('I2) el coste, pendiente de cotización: ni un precio', /Pendiente de cotización/.test(dp.texto) && !/Credits|\d+\s*(€|\$|USD)/.test(dp.texto));
-  check('I3) el audio es estructura: lo que hay, y que hacerlo no está disponible', /Efectos 1 sonido/.test(dp.texto) && /Música Nada todavía/.test(dp.texto) && /Todavía no disponible/.test(dp.texto));
+  /* Reanclada en la Fase 25 del motor: el aviso ya no es «Todavía no disponible», sino qué no se hace y por qué. */
+  check('I3) el audio es estructura: lo que hay, y que los sonidos descritos todavía no se mezclan', /Efectos 1 sonido/.test(dp.texto) && /Música Nada todavía/.test(dp.texto) && /todavía no se mezclan en el montaje/.test(dp.texto));
   const todo = [dp.html, storyboard(c).html].join('');
   check('I4) ni un porcentaje, ni un «generando», ni una barra de progreso', !/\d\s*%|[Gg]enerando|<progress/.test(todo));
   const fuentes = fs.readdirSync(path.resolve(RAIZ, 'components/studio/produccion')).map((f) => leer(`components/studio/produccion/${f}`)).concat(leer('screens/ProductionScreen.tsx'));

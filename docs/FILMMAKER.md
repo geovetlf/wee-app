@@ -1593,6 +1593,32 @@ Vallas reancladas: `filmmaker-espacio` V6 (la hoja del guion recibe el espacio) 
 
 Pruebas: `functions/test/filmmaker-historia.test.mjs` (en la cadena), que aplica cada gesto con F1-A de verdad sobre
 una producción viva y pregunta a F1-D lo que diría de generar.
+### Fase 25 · La línea de tiempo y el sonido: las transiciones y el sonido del plano, de la escena y de la producción
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fase G): las pistas de la línea de tiempo —vídeo, audio,
+diálogo, música, efectos y transiciones—, las transiciones editables y el sonido por plano, por escena y del montaje.
+Nada nuevo por detrás: `change_transition`, `update_shot`/`update_scene` con `audio` y `modify_audio`, las de F1-A.
+
+- **La pista de las transiciones** (`utils/montajeDeProduccion.ts`, `ProductionTimeline`): la transición que F1-A resuelve
+  para cada plano (`transitionOut` de la línea de tiempo), en su corte y con su nombre, en el escritorio y en el
+  teléfono; tocarla elige su plano. La del último plano no se ve (no da paso a nada) y, sin línea de tiempo exacta,
+  no se inventa dónde cae ningún corte. Son nueve pistas: vídeo, transiciones, personajes, ambiente, efectos, sonido,
+  música, voz (en off y narración) y texto (el diálogo).
+- **«Transiciones», de verdad**: la herramienta decía que «llegarían» y F1-A ya las guardaba (y el montaje final ya
+  las usaba). Ahora se elige la del plano —y, sin la suya, se dice cuál vale— y la de toda la producción; y está también
+  en el teléfono. Cambiarla no rehace ningún plano: el montaje se vuelve a crear.
+- **El sonido** (herramienta «Audio»): del plano o de la escena elegida, su sonido PROPIO —el que el vídeo trae generado
+  con la imagen (`audio.withSound`): con él se cotiza la toma y suena en el montaje final— y lo que tiene que sonar
+  (`audio.notes`), con lo heredado de la escena dicho; y los sonidos descritos del plan —ambiente, música, efectos—,
+  cada uno donde suena (el plano, la escena o toda la producción) y con su nivel en la mezcla (`volume`: 25, 50, 75 o
+  100 %). Cada opción se anuncia con su grupo («Nivel de “Olas” en la mezcla: 50 %»).
+
+**Preparado y cerrado (se dice):** los sonidos descritos se guardan, pero el montaje de hoy no los mezcla: generar
+música y efectos sigue cerrado hasta revisar su licencia y su coste, y la voz generada (ElevenLabs) sigue sin canary.
+Antes la herramienta decía solo «Todavía no disponible»; ahora dice qué no está y por qué.
+
+Pruebas: `functions/test/filmmaker-sonido.test.mjs` (en la cadena), que aplica cada gesto con F1-A de verdad y comprueba
+que el sonido propio llega al requisito de la toma y que el montaje final lo lee.
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

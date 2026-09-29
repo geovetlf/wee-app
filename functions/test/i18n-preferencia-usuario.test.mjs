@@ -592,8 +592,15 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * `wsScriptAddHint`, `wsSceneNoLines`), la continuidad (`wsContinuity*`, `cont*`), las tomas de
    * cada plano (`wsTakes*`, `wsTake*`) y la vista «Historia» (`wsStory`)— y sale una que ya nadie
    * usaba (`wsScriptReadHint`), en los once diccionarios a la vez.
+   * 3 425 → 3 442 con la Fase 25 (la línea de tiempo y el sonido): entran veintiuna claves —la
+   * transición de un plano y la de toda la producción (`wsTransitionOfShot`, `wsTransitionInherited`,
+   * `wsTransitionForAll`), el sonido propio y lo que tiene que sonar (`wsSoundOf*`, `wsNativeSound*`,
+   * `wsSoundNotes*`), dónde suena cada sonido y su nivel (`wsCue*`), que los descritos todavía no se
+   * mezclan (`wsCuesNotMixed`) y que el papel de una referencia tiene que encajar con su material
+   * (`wsReferenceRoleNeedsKind`)— y salen cuatro que decían lo que ya no es verdad (`wsTransitionsSoon`,
+   * `wsCueForShot`, `wsCueForProduction`, `audioUnavailable`), en los once diccionarios a la vez.
    */
-  const CLAVES_PT = 3425;
+  const CLAVES_PT = 3442;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

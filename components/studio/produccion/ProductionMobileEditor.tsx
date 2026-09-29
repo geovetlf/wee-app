@@ -16,9 +16,9 @@ import ProductionSaveState from './ProductionSaveState';
 import ProductionProyecto from './ProductionProyecto';
 import ProductionGuion from './ProductionGuion';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
-import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
+import { CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
 import { montajeDe, tramoEn } from '../../../utils/montajeDeProduccion';
-import type { TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
+import type { TimeOfDay, TransitionType, Weather } from '../../../services/filmmaker/dominio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -56,6 +56,7 @@ const ProductionMobileEditor: React.FC<{
   const montaje = useMemo(() => montajeDe(produccion, linea, {
     clima: (w) => t(CLAVE_DEL_CLIMA[w as Weather]),
     momento: (m) => t(CLAVE_DEL_MOMENTO[m as TimeOfDay]),
+    transicion: (v) => t(CLAVE_DE_TRANSICION[v as TransitionType]),
   }), [produccion, linea, t]);
   const elegido = elegidoDe(produccion, seleccion);
   const inicioDelElegido = elegido ? montaje.video.find((v) => v.unitId === elegido.unitId)?.inicio ?? 0 : 0;
@@ -69,7 +70,7 @@ const ProductionMobileEditor: React.FC<{
   }, [montaje.video, elegido?.unitId, onSeleccionar]);
 
   const herramientas: readonly { id: Herramienta; clave: string; icono: string }[] = [
-    ...HERRAMIENTAS.filter((h) => h.id !== 'transiciones'),
+    ...HERRAMIENTAS,
     { id: 'ajustes', clave: 'filmmaker.wsProperties', icono: 'options-outline' },
   ];
   const abierta = herramientas.find((h) => h.id === herramienta);

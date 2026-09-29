@@ -16,9 +16,9 @@ import ProductionProyecto, { SeccionDelProyecto } from './ProductionProyecto';
 import HojaInferior from '../../workspace/HojaInferior';
 import { BotonPequeno } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
-import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
+import { CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
 import { montajeDe, tramoEn } from '../../../utils/montajeDeProduccion';
-import type { TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
+import type { TimeOfDay, TransitionType, Weather } from '../../../services/filmmaker/dominio';
 import { SPACING } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -65,6 +65,7 @@ const ProductionWorkspace: React.FC<{
   const montaje = useMemo(() => montajeDe(produccion, linea, {
     clima: (w) => t(CLAVE_DEL_CLIMA[w as Weather]),
     momento: (m) => t(CLAVE_DEL_MOMENTO[m as TimeOfDay]),
+    transicion: (v) => t(CLAVE_DE_TRANSICION[v as TransitionType]),
   }), [produccion, linea, t]);
 
   const elegido = elegidoDe(produccion, seleccion);

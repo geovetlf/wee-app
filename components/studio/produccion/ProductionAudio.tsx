@@ -11,7 +11,8 @@ import { scale } from '../../../utils/scale';
  * LO QUE VA A SONAR, COMO ESTRUCTURA: voz, diálogo, música, efectos y ambiente.
  *
  * Se enseña lo que la producción pide —cuántas líneas, cuántos sonidos, si hay
- * narrador— y, al lado, que hacerlo todavía no está disponible. Ni voz, ni
+ * narrador— y, al lado, qué no se hace todavía y por qué (Fase 25 del motor: antes
+ * decía solo «Todavía no disponible»). Ni voz, ni
  * música, ni efectos se piden a nadie en esta fase: una producción sin pista de
  * música dice «nada todavía», no finge tenerla.
  */
@@ -38,7 +39,7 @@ const ProductionAudio: React.FC<{ produccion: FilmmakerProduction }> = ({ produc
           </Text>
         </View>
       ))}
-      <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.audioUnavailable')}</Text>
+      <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsCuesNotMixed')}</Text>
     </View>
   );
 };

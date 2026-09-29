@@ -27,8 +27,10 @@ export const PESTANAS_DEL_MONTAJE: readonly { id: PestanaDelMontaje; clave: stri
 ];
 
 /** Las pistas, en el orden de la referencia: lo que se ve arriba, lo que suena y se lee abajo. */
-const PISTAS: readonly { id: keyof Pick<Montaje, 'video' | 'personajes' | 'ambiente' | 'efectos' | 'sonido' | 'musica' | 'voz' | 'texto'>; clave: string; icono: string; tono: string }[] = [
+const PISTAS: readonly { id: keyof Pick<Montaje, 'video' | 'transiciones' | 'personajes' | 'ambiente' | 'efectos' | 'sonido' | 'musica' | 'voz' | 'texto'>; clave: string; icono: string; tono: string }[] = [
   { id: 'video', clave: 'filmmaker.wsTrackVideo', icono: 'film-outline', tono: '#2A3550' },
+  /* Fase 25 del motor: cómo pasa cada plano al siguiente, en su corte. */
+  { id: 'transiciones', clave: 'filmmaker.wsToolTransitions', icono: 'git-compare-outline', tono: '#6A5220' },
   { id: 'personajes', clave: 'filmmaker.wsTrackCharacter', icono: 'person-outline', tono: '#1F4E8C' },
   { id: 'ambiente', clave: 'filmmaker.wsTrackAmbience', icono: 'location-outline', tono: '#24507A' },
   { id: 'efectos', clave: 'filmmaker.wsToolEffects', icono: 'sparkles-outline', tono: '#6B2F7A' },
@@ -41,14 +43,14 @@ const PISTAS: readonly { id: keyof Pick<Montaje, 'video' | 'personajes' | 'ambie
 const ALTO_DE_PISTA = scale(30);
 /** En el teléfono, cada pista a la medida del dedo. */
 const ALTO_DE_PISTA_TACTIL = 40;
-const PISTAS_DEL_TELEFONO: readonly string[] = ['video', 'ambiente', 'efectos', 'voz', 'musica'];
+const PISTAS_DEL_TELEFONO: readonly string[] = ['video', 'transiciones', 'ambiente', 'efectos', 'voz', 'musica'];
 const ANCHO_DE_ETIQUETAS = scale(116);
 const ZOOMS: readonly number[] = [12, 20, 32, 48, 72, 110];
 
 /**
  * LA LÍNEA DE TIEMPO DEL MONTAJE, POR PISTAS.
  *
- * Una regla en segundos, el cabezal, y ocho pistas con lo que la producción ya
+ * Una regla en segundos, el cabezal, y nueve pistas con lo que la producción ya
  * dice: los planos con su vídeo si lo tienen, quién sale, dónde y cuándo, el
  * clima que se ve, los sonidos, la música, la voz y lo que se dice. Tocar un
  * tramo elige su plano y lleva el cabezal allí; tocar la regla mueve el cabezal.

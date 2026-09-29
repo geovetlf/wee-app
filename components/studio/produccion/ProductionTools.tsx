@@ -8,9 +8,9 @@ import ProductionShotGeneration from './ProductionShotGeneration';
 import ProductionRecommendations from './ProductionRecommendations';
 import { BotonPequeno, Seccion } from './ProductionPiezas';
 import { claveDelValor, FAMILIAS_DE_CAMARA } from '../../../constants/camaraCinematica';
-import { CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, PASO_DE_DURACION_SEC, TIPOS_DE_LINEA } from '../../../constants/filmmaker';
+import { CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO, NIVELES_DE_SONIDO, PASO_DE_DURACION_SEC, TIPOS_DE_LINEA } from '../../../constants/filmmaker';
 import { CLIMAS, LIMITES, MOMENTOS_DEL_DIA, valorCreativo } from '../../../services/filmmaker/dominio';
-import type { AudioCue, CreativeParameterPath, DialogueLine, FilmmakerOperation, LightingType, MotionSpeed, TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
+import type { AudioCue, AudioTarget, CreativeParameterPath, DialogueLine, FilmmakerOperation, LightingType, MotionSpeed, TimeOfDay, TransitionType, Weather } from '../../../services/filmmaker/dominio';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import type { Montaje } from '../../../utils/montajeDeProduccion';
 import { confirmAction } from '../../../utils/notify';
@@ -53,8 +53,11 @@ const Opciones: React.FC<{
   editable: boolean;
   onElegir: (valor: string | null) => void;
   sinQuitar?: boolean;
-}> = ({ opciones, elegida, editable, onElegir, sinQuitar }) => {
+  /** Fase 25 del motor: el grupo con el que se anuncia cada opción, cuando hay varias filas iguales. */
+  grupo?: string;
+}> = ({ opciones, elegida, editable, onElegir, sinQuitar, grupo }) => {
   const { theme } = useTheme();
+  const { t } = useIdioma();
   return (
     <View style={styles.opciones}>
       {opciones.map((o) => {
@@ -65,7 +68,7 @@ const Opciones: React.FC<{
             onPress={() => onElegir(esta && !sinQuitar ? null : o.valor)}
             disabled={!editable}
             accessibilityRole="button"
-            accessibilityLabel={o.texto}
+            accessibilityLabel={grupo ? t('filmmaker.wsSettingIs', { ajuste: grupo, valor: o.texto }) : o.texto}
             accessibilityState={{ selected: esta, disabled: !editable }}
             style={[
               styles.opcion,
@@ -88,8 +91,9 @@ const Opciones: React.FC<{
  * Cada una es una o varias operaciones de F1-A sobre lo elegido —dividir en el
  * cabezal, alargar, la velocidad del movimiento de cámara, un sonido, una línea,
  * el clima de la escena, la luz, los subtítulos de la entrega— y se guarda como
- * cualquier otro gesto. Lo que F1-A todavía no sabe hacer —las transiciones— se
- * enseña y se dice que llegará: nada de botones que no hacen nada.
+ * cualquier otro gesto. Las transiciones también, desde la Fase 25 del motor: F1-A
+ * ya las guardaba (`change_transition`) y el montaje final ya las usaba, y aquí
+ * se decía que «llegarían». Nada de botones que no hacen nada.
  *
  * Nada de esto renderiza vídeo: es la dirección del montaje. El vídeo de cada
  * plano lo genera su toma.
@@ -103,7 +107,7 @@ const ProductionTools: React.FC<{
   ids: { sonido: () => string; linea: () => string };
 }> = ({ herramienta, espacio, montaje, cabezal, ids }) => {
   const { theme } = useTheme();
-  const { t } = useIdioma();
+  const { t, formato } = useIdioma();
   const { produccion, seleccion, editable, onGesto, onSeleccionar, toma, recomendaciones, rechazadas, onRechazar } = espacio;
   const elegido = elegidoDe(produccion, seleccion);
   const plano = elegido?.plano;
@@ -113,6 +117,8 @@ const ProductionTools: React.FC<{
   const [hablante, setHablante] = useState<string | null>(null);
   /* Tras añadir, el campo vuelve a empezar vacío: se monta de nuevo. */
   const [vuelta, setVuelta] = useState(0);
+  /* Fase 25 del motor: dónde suena el sonido nuevo. Sin elegir, en el plano elegido o, sin plano, en toda la producción. */
+  const [alcance, setAlcance] = useState<'plano' | 'escena' | 'produccion' | null>(null);
 
   const nota = (texto: string) => <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{texto}</Text>;
   const sinPlano = nota(t('filmmaker.wsPickShotFirst'));
@@ -172,22 +178,102 @@ const ProductionTools: React.FC<{
     }
 
     case 'audio': {
+      /*
+       * EL SONIDO, POR NIVELES (Fase 25 del motor). Del plano o de la escena elegida, su sonido PROPIO —el que el vídeo
+       * trae generado con la imagen (`audio.withSound`)— y lo que tiene que sonar (`audio.notes`); y los sonidos descritos
+       * del plan —ambiente, música, efectos—, cada uno donde suena (el plano, la escena o toda la producción) y con su
+       * nivel en la mezcla (`volume`, de 0 a 1). Y la verdad: el sonido propio llega a la toma —se cotiza con él— y al
+       * montaje; los descritos se guardan, pero todavía no se mezclan, porque generar música y efectos sigue cerrado.
+       */
       const suyos = produccion.audio.cues;
+      const escena = elegido?.escena;
+      const audioAqui = plano ? plano.audio : escena?.audio;
+      const deLaEscena = plano && plano.audio?.withSound === undefined ? escena?.audio?.withSound : undefined;
+      const cambiarAudio = (cambios: { withSound?: boolean | null; notes?: string | null }) => {
+        if (!escena) return;
+        const nuevo: Record<string, unknown> = { ...(audioAqui ?? {}) };
+        for (const [k, v] of Object.entries(cambios)) { if (v === null) delete nuevo[k]; else if (v !== undefined) nuevo[k] = v; }
+        const audio = Object.keys(nuevo).length ? nuevo : null;
+        onGesto([plano
+          ? { op: 'update_shot', shotId: plano.id, changes: { audio } } as FilmmakerOperation
+          : { op: 'update_scene', sceneId: escena.id, changes: { audio } } as FilmmakerOperation]);
+      };
+      const nivel = (c: AudioCue, v: number | null) => {
+        const { volume: _antes, ...sinNivel } = c;
+        void _antes;
+        onGesto([{ op: 'modify_audio', change: { action: 'upsert', cue: v === null ? sinNivel : { ...c, volume: v } } }]);
+      };
+      const numeroDeEscena = (id: string) => produccion.scenes.findIndex((s) => s.id === id) + 1;
+      const numeroDePlano = (id: string) => {
+        for (const s of produccion.scenes) { const j = s.shots.findIndex((p) => p.id === id); if (j >= 0) return j + 1; }
+        return 0;
+      };
+      const dondeSuena = (c: AudioCue) => (c.target.scope === 'shot'
+        ? t('filmmaker.wsCueScopeShot', { numero: numeroDePlano(c.target.shotId) })
+        : c.target.scope === 'scenes'
+          ? (c.target.sceneIds.length === 1
+            ? t('filmmaker.wsCueScopeScene', { numero: numeroDeEscena(c.target.sceneIds[0]) })
+            : t('filmmaker.wsCueScopeScenes', { lista: formato.lista(c.target.sceneIds.map((id) => String(numeroDeEscena(id)))) }))
+          : t('filmmaker.wsCueScopeProduction'));
+      const alcanceElegido = alcance && (alcance !== 'plano' || plano) && (alcance !== 'escena' || escena) ? alcance : plano ? 'plano' : 'produccion';
+      const objetivo: AudioTarget = alcanceElegido === 'plano' && plano ? { scope: 'shot', shotId: plano.id }
+        : alcanceElegido === 'escena' && escena ? { scope: 'scenes', sceneIds: [escena.id] }
+          : { scope: 'production' };
+      const alcances = [
+        ...(plano ? [{ valor: 'plano', texto: t('filmmaker.wsCueInShot') }] : []),
+        ...(escena ? [{ valor: 'escena', texto: t('filmmaker.wsCueInScene') }] : []),
+        { valor: 'produccion', texto: t('filmmaker.wsCueInProduction') },
+      ];
       return (
         <View style={styles.bloque}>
+          {!!escena && (
+            <Seccion titulo={t(plano ? 'filmmaker.wsSoundOfShot' : 'filmmaker.wsSoundOfScene')}>
+              <Opciones
+                grupo={t('filmmaker.wsNativeSound')}
+                opciones={[{ valor: 'si', texto: t('filmmaker.takeWithSound') }, { valor: 'no', texto: t('filmmaker.takeWithoutSound') }]}
+                elegida={audioAqui?.withSound === true ? 'si' : audioAqui?.withSound === false ? 'no' : null}
+                editable={editable}
+                onElegir={(v) => cambiarAudio({ withSound: v === null ? null : v === 'si' })}
+              />
+              {deLaEscena !== undefined && nota(t('filmmaker.wsNativeSoundInherited', { valor: t(deLaEscena ? 'filmmaker.takeWithSound' : 'filmmaker.takeWithoutSound') }))}
+              {nota(t('filmmaker.wsNativeSoundNote'))}
+              <CampoQueCrece
+                etiqueta={t('filmmaker.wsSoundNotes')}
+                valor={audioAqui?.notes ?? ''}
+                placeholder={t('filmmaker.wsSoundNotesHint')}
+                maximo={LIMITES.frase}
+                etiquetaGuardar={t('common.save')}
+                editable={editable}
+                onGuardar={(texto) => cambiarAudio({ notes: texto.trim() || null })}
+              />
+            </Seccion>
+          )}
           {suyos.length === 0 && nota(t('filmmaker.wsNoCues'))}
           {suyos.map((c) => (
-            <View key={c.id} style={[styles.elemento, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-              <Ionicons name={c.kind === 'music' ? 'musical-notes-outline' : c.kind === 'sfx' ? 'flash-outline' : 'leaf-outline'} size={scale(15)} color={theme.colors.accent} />
-              <Text style={[styles.elementoTexto, { color: theme.colors.text }]} numberOfLines={2}>{c.description}</Text>
-              {editable && (
-                <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.wsRemoveCue', { sonido: c.description })} onPress={() => onGesto([{ op: 'modify_audio', change: { action: 'remove', cueId: c.id } }])} />
-              )}
+            <View key={c.id} style={[styles.elementoColumna, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+              <View style={styles.elementoFila}>
+                <Ionicons name={c.kind === 'music' ? 'musical-notes-outline' : c.kind === 'sfx' ? 'flash-outline' : 'leaf-outline'} size={scale(15)} color={theme.colors.accent} />
+                <View style={styles.lineaTextos}>
+                  <Text style={[styles.elementoTexto, { color: theme.colors.text }]} numberOfLines={2}>{c.description}</Text>
+                  <Text style={[styles.hablante, { color: theme.colors.textSecondary }]} numberOfLines={1}>{dondeSuena(c)}</Text>
+                </View>
+                {editable && (
+                  <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.wsRemoveCue', { sonido: c.description })} onPress={() => onGesto([{ op: 'modify_audio', change: { action: 'remove', cueId: c.id } }])} />
+                )}
+              </View>
+              <Opciones
+                grupo={t('filmmaker.wsCueVolumeOf', { sonido: c.description })}
+                opciones={NIVELES_DE_SONIDO.map((v) => ({ valor: String(v), texto: formato.numero(v, { style: 'percent' }) }))}
+                elegida={c.volume !== undefined ? String(c.volume) : null}
+                editable={editable}
+                onElegir={(v) => nivel(c, v === null ? null : Number(v))}
+              />
             </View>
           ))}
           {editable && (
             <Seccion titulo={t('filmmaker.wsAddCue')}>
               <Opciones opciones={TIPOS_DE_SONIDO.map((s) => ({ valor: s.kind, texto: t(s.clave) }))} elegida={tipoDeSonido} editable onElegir={(v) => { if (v) setTipoDeSonido(v as AudioCue['kind']); }} sinQuitar />
+              <Opciones grupo={t('filmmaker.wsCueWhere')} opciones={alcances} elegida={alcanceElegido} editable onElegir={(v) => { if (v) setAlcance(v as 'plano' | 'escena' | 'produccion'); }} sinQuitar />
               <CampoQueCrece
                 key={`sonido-${vuelta}`}
                 etiqueta={t('filmmaker.wsCueDescription')}
@@ -198,16 +284,14 @@ const ProductionTools: React.FC<{
                 onGuardar={(texto) => {
                   if (!texto.trim()) return;
                   onGesto([{ op: 'modify_audio', change: { action: 'upsert', cue: {
-                    id: ids.sonido(), kind: tipoDeSonido, description: texto.trim(),
-                    target: plano ? { scope: 'shot', shotId: plano.id } : { scope: 'production' },
+                    id: ids.sonido(), kind: tipoDeSonido, description: texto.trim(), target: objetivo,
                   } } }]);
                   setVuelta((v) => v + 1);
                 }}
               />
-              {nota(plano ? t('filmmaker.wsCueForShot', { numero: elegido?.numeroDePlano ?? 1 }) : t('filmmaker.wsCueForProduction'))}
             </Seccion>
           )}
-          {nota(t('filmmaker.audioUnavailable'))}
+          {nota(t('filmmaker.wsCuesNotMixed'))}
         </View>
       );
     }
@@ -327,8 +411,46 @@ const ProductionTools: React.FC<{
       );
     }
 
-    case 'transiciones':
-      return nota(t('filmmaker.wsTransitionsSoon'));
+    case 'transiciones': {
+      /*
+       * LAS TRANSICIONES, DE VERDAD (Fase 25 del motor). Antes aquí se decía que «llegarían», y F1-A ya las guardaba
+       * (`change_transition`, en la producción, la escena o el plano) y el montaje final ya las usaba. La de un plano
+       * es cómo da paso al siguiente; sin la suya vale la de su escena o la de la producción, y se dice cuál. No rehace
+       * ningún plano: cambia el montaje, que se vuelve a crear.
+       */
+      const opciones = (Object.keys(CLAVE_DE_TRANSICION) as TransitionType[]).map((v) => ({ valor: v, texto: t(CLAVE_DE_TRANSICION[v]) }));
+      const segmento = plano ? espacio.linea?.segments.find((s) => s.shotId === plano.id) : undefined;
+      const propia = plano ? valorCreativo(plano.visual?.creative, 'transition.type' as CreativeParameterPath) : undefined;
+      const deTodas = valorCreativo(produccion.creativeDirection.cinematography, 'transition.type' as CreativeParameterPath);
+      return (
+        <View style={styles.bloque}>
+          {plano && elegido
+            ? (
+              <Seccion titulo={t('filmmaker.wsTransitionOfShot', { numero: elegido.numeroDePlano ?? 1 })}>
+                <Opciones
+                  grupo={t('filmmaker.wsTransitionOfShot', { numero: elegido.numeroDePlano ?? 1 })}
+                  opciones={opciones}
+                  elegida={typeof propia === 'string' ? propia : null}
+                  editable={editable}
+                  onElegir={(v) => onGesto([{ op: 'change_transition', target: { scope: 'shot', shotId: plano.id }, transition: v as TransitionType | null }])}
+                />
+                {typeof propia !== 'string' && nota(t('filmmaker.wsTransitionInherited', { transicion: t(CLAVE_DE_TRANSICION[segmento?.transitionOut ?? 'cut']) }))}
+              </Seccion>
+            )
+            : sinPlano}
+          <Seccion titulo={t('filmmaker.wsTransitionForAll')}>
+            <Opciones
+              grupo={t('filmmaker.wsTransitionForAll')}
+              opciones={opciones}
+              elegida={typeof deTodas === 'string' ? deTodas : null}
+              editable={editable}
+              onElegir={(v) => onGesto([{ op: 'change_transition', target: { scope: 'production' }, transition: v as TransitionType | null }])}
+            />
+          </Seccion>
+          {nota(t('filmmaker.wsTransitionNote'))}
+        </View>
+      );
+    }
 
     case 'subtitulos': {
       const destino = produccion.exportPlan.targets[0];
@@ -381,6 +503,9 @@ const styles = StyleSheet.create({
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   opcion: { minHeight: 34, paddingHorizontal: SPACING.md, borderWidth: 1, borderRadius: BORDER_RADIUS.full, justifyContent: 'center' },
   opcionTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },
+  /* Fase 25 del motor: un sonido con su nivel debajo. */
+  elementoColumna: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, gap: SPACING.xs },
+  elementoFila: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   elemento: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm },
   elementoTexto: { flex: 1, fontSize: FONT_SIZE.sm },
   lineaTextos: { flex: 1, gap: 2 },

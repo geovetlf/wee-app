@@ -4,8 +4,8 @@ import type { AudioCue, FilmmakerProduction, Timeline, Unidad } from '../service
 /**
  * WEË FILMMAKER · LA LÍNEA DE TIEMPO POR PISTAS, COMO DATOS.
  *
- * Lo que pinta el montaje del workspace —vídeo, personajes, ambiente, efectos,
- * sonido, música, voz y texto— sale de la producción tal cual está guardada:
+ * Lo que pinta el montaje del workspace —vídeo, transiciones, personajes, ambiente,
+ * efectos, sonido, música, voz y texto— sale de la producción tal cual está guardada:
  * cada plano ocupa lo que dura, cada escena agrupa los suyos, y lo que suena o se
  * dice cae donde su objetivo dice (la producción, unas escenas, un plano). Aquí
  * no se inventa nada ni se decide nada: es puro, se calcula de nuevo en cada
@@ -38,6 +38,8 @@ export interface Montaje {
   /** ¿Es exacta? Solo si todos los planos tienen duración. */
   readonly exacto: boolean;
   readonly video: readonly Tramo[];
+  /** Fase 25 del motor: cómo da paso cada plano al siguiente, en su corte. */
+  readonly transiciones: readonly Tramo[];
   readonly escenas: readonly Tramo[];
   readonly personajes: readonly Tramo[];
   readonly ambiente: readonly Tramo[];
@@ -47,6 +49,9 @@ export interface Montaje {
   readonly voz: readonly Tramo[];
   readonly texto: readonly Tramo[];
 }
+
+/** Lo que mide la marca de una transición en su corte, en segundos, repartida a los dos lados. */
+const TRANSICION_SEC = 0.6;
 
 /** Los climas que se VEN como efecto en la imagen. Despejado o nublado no son un efecto. */
 const CLIMAS_CON_EFECTO: ReadonlySet<string> = new Set(['rain', 'storm', 'snow', 'fog', 'wind']);
@@ -60,7 +65,7 @@ const CLIMAS_CON_EFECTO: ReadonlySet<string> = new Set(['rain', 'storm', 'snow',
 export const montajeDe = (
   prod: FilmmakerProduction,
   linea: Timeline | undefined,
-  nombres: { clima: (w: string) => string; momento: (m: string) => string },
+  nombres: { clima: (w: string) => string; momento: (m: string) => string; transicion?: (t: string) => string },
 ): Montaje => {
   const lista: readonly Unidad[] = unidades(prod);
   const video: Tramo[] = [];
@@ -77,6 +82,23 @@ export const montajeDe = (
     t = fin;
   }
   const total = linea?.totalSec ?? t;
+
+  /*
+   * Cómo da paso cada plano al siguiente (Fase 25 del motor): la transición que F1-A resuelve para él
+   * (`transitionOut`), en su corte. La del último no se ve —no da paso a nada—, y sin línea de tiempo exacta no se
+   * inventa dónde cae ningún corte.
+   */
+  const transiciones: Tramo[] = [];
+  const segmentos = linea?.segments ?? [];
+  segmentos.forEach((s, i) => {
+    if (i === segmentos.length - 1 || !s.transitionOut) return;
+    const media = Math.min(TRANSICION_SEC / 2, (s.endSec - s.startSec) / 2);
+    transiciones.push({
+      id: `t-${s.unitId}`, inicio: s.endSec - media, fin: s.endSec + media,
+      texto: nombres.transicion ? nombres.transicion(s.transitionOut) : s.transitionOut,
+      unitId: s.unitId, sceneId: s.sceneId, ...(s.shotId ? { shotId: s.shotId } : {}),
+    });
+  });
 
   /* Cada escena, de su primer tramo a su último. */
   const escenas: Tramo[] = prod.scenes.map((s) => {
@@ -141,7 +163,7 @@ export const montajeDe = (
   }
 
   return {
-    total, exacto: !!linea, video, escenas, personajes, ambiente, efectos,
+    total, exacto: !!linea, video, transiciones, escenas, personajes, ambiente, efectos,
     sonido: deSonido('ambience'), musica: deSonido('music'), voz, texto,
   };
 };
