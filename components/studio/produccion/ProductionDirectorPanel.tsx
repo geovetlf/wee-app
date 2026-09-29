@@ -3,7 +3,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
-import { BotonPequeno, Seccion } from './ProductionPiezas';
+import { Seccion } from './ProductionPiezas';
+import ProductionLote from './ProductionLote';
+import type { LoteDeTomas } from '../../../hooks/useLoteDeTomas';
 import ProductionFormatSelector from './ProductionFormatSelector';
 import ProductionDurationSummary from './ProductionDurationSummary';
 import ProductionRecommendations from './ProductionRecommendations';
@@ -21,7 +23,7 @@ import type {
 } from '../../../services/filmmaker/dominio';
 import { fraseDelProblema } from '../../../utils/mensajesDeFilmmaker';
 import { nombreDelEstilo } from '../../../constants/filmmaker';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
+import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
 /**
@@ -34,12 +36,13 @@ import { scale } from '../../../utils/scale';
  *
  * No hay conversación con Weë Brain: las recomendaciones son las reglas
  * deterministas de F1-A, y convertir «20 s, vertical, 5 planos» en operaciones
- * llega en otra fase. La producción ENTERA no se genera: su «Generar», en
- * Acciones, se enseña como lo que es hoy —todavía no disponible— y su coste,
- * pendiente de cotización. Lo que sí se genera (F1-D) es la toma de UNA unidad
- * elegida —un plano, o una escena sin planos—, en su propia sección, con su
- * precio y su estado: `ProductionShotGeneration`, que solo pinta lo que le da
- * la pantalla.
+ * llega en otra fase. La toma de UNA unidad elegida —un plano, o una escena sin
+ * planos— va en su propia sección, con su precio y su estado:
+ * `ProductionShotGeneration`, que solo pinta lo que le da la pantalla. Y desde
+ * la Fase 29 del motor, la producción ENTERA también se genera
+ * (`ProductionLote`, el lote de la Fase 6): antes de empezar se mira qué pasaría
+ * con cada unidad y cuánto cuesta todo. Antes aquí había un «Generar» apagado y
+ * un coste «pendiente».
  */
 const ProductionDirectorPanel: React.FC<{
   produccion: FilmmakerProduction;
@@ -57,7 +60,9 @@ const ProductionDirectorPanel: React.FC<{
   historial?: HistorialDeTomas | null;
   /** El vídeo de la unidad elegida, del storyboard: su póster se ve en «Ver vídeo» (Fase 16 del motor). */
   video?: VideoDelPlano | null;
-}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma, historial, video }) => {
+  /** Fase 29 · la producción entera (el lote de la Fase 6). Sin él, esta sección no se pinta. */
+  lote?: LoteDeTomas;
+}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma, historial, video, lote }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const direccion = produccion.creativeDirection;
@@ -165,16 +170,11 @@ const ProductionDirectorPanel: React.FC<{
         <ProductionAudio produccion={produccion} />
       </Seccion>
 
-      <Seccion titulo={t('filmmaker.actions')}>
-        <View style={[styles.accion, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-          <BotonPequeno icono="play-outline" etiqueta={t('filmmaker.generate')} onPress={() => undefined} disabled conTexto />
-          <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.generateUnavailable')}</Text>
-        </View>
-        <View style={styles.coste}>
-          <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{t('filmmaker.cost')}</Text>
-          <Text style={[styles.texto, { color: theme.colors.text }]}>{t('filmmaker.costPending')}</Text>
-        </View>
-      </Seccion>
+      {!!lote && (
+        <Seccion titulo={t('filmmaker.wsBatchTitle')}>
+          <ProductionLote lote={lote} produccion={produccion} editable={editable} />
+        </Seccion>
+      )}
     </View>
   );
 };
@@ -186,9 +186,6 @@ const styles = StyleSheet.create({
   texto: { fontSize: FONT_SIZE.sm, lineHeight: FONT_SIZE.sm * 1.5 },
   punto: { fontSize: FONT_SIZE.sm, lineHeight: FONT_SIZE.sm * 1.5 },
   nota: { fontSize: FONT_SIZE.xs, lineHeight: FONT_SIZE.xs * 1.5 },
-  etiqueta: { fontSize: FONT_SIZE.xs },
-  accion: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, gap: SPACING.sm },
-  coste: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });
 
 export default ProductionDirectorPanel;

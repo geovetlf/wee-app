@@ -181,6 +181,7 @@ const ProductionDirectorTabs: React.FC<{
             editable={editable}
             onGesto={onGesto}
             onRechazar={onRechazar}
+            lote={espacio.lote}
           />
         )}
       </ScrollView>

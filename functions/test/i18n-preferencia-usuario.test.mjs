@@ -613,8 +613,12 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * describían lo simulado: el aviso de la creación de mentira (`studio.creating`, `studio.ready`,
    * `studio.readyHint`), las etiquetas y el ⋯ de las creaciones de muestra (`studio.kind*`,
    * `studio.creationOptions`) y las clases de los diseños de muestra (`design.kind*`), en los once.
+   * 3 453 → 3 473 con la Fase 29 (generar la producción entera, el lote de la Fase 6): entran
+   * veinticuatro —la sección y lo que dice de cada plano, el total, el saldo, la pregunta y lo que
+   * empezó (`wsBatch*`)— y salen cuatro del «Generar» apagado (`actions`, `generate`,
+   * `generateUnavailable`, `costPending`), en los once a la vez.
    */
-  const CLAVES_PT = 3453;
+  const CLAVES_PT = 3473;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

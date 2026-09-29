@@ -1414,9 +1414,10 @@ quitar personajes, lugares y objetos, describir y quitar referencias, y en cada 
 cada uno, qué hay y dónde (`update_scene`, `update_shot`, `set_character_state`, `change_location`); y desde la Fase
 24, el guion —corregir una línea o cambiar cómo se dice (`change_dialogue`) y para qué sirve cada escena— y la
 continuidad en sus tres niveles (`change_continuity`). Las tomas de cada plano se ven una debajo de otra (Fase 24).
-Y desde la Fase 27, añadir una referencia (`add_reference`) desde Mis creaciones o desde lo guardado.
+Y desde la Fase 27, añadir una referencia (`add_reference`) desde Mis creaciones o desde lo guardado; y desde la
+Fase 29, generar la producción entera (el lote de la Fase 6), mirando antes qué pasaría y cuánto cuesta.
 
-**Hecho en el servidor y todavía sin UX**: varios planos a la vez (Fase 6); la traza de cada toma (Fase 2); y las
+**Hecho en el servidor y todavía sin UX**: la traza de cada toma (Fase 2); y las
 **7 operaciones sin control propio** —sustituir un personaje o una
 referencia (`replace_character`, `replace_reference`), el sujeto (`change_subject`), mover un plano a otra escena
 (`move_shot`), la calidad de generación (`change_generation`), el plan de montaje (`change_edit_plan`) y renombrar la
@@ -1707,6 +1708,36 @@ por los caminos que ya existían.
 Pruebas: `functions/test/weeai-sin-simulacros.test.mjs` (en la cadena). Reancladas: `cajas-weeai` (23: ya no hay un
 aviso que flote; Crear se va a crear), `foundation-de-experiencias` (14, 16 y 28–30: el aviso se retiró y la fila se alimenta de `hooks/useCreacionesRecientes.ts`), `ajustes-weeai`
 (24: Design cuenta las referencias que viajan), `puente-studio` (D: detrás de lo escrito van también los ajustes) e
+`i18n-preferencia-usuario` (el recuento del portugués).
+
+### Fase 29 · Generar la producción entera: el lote de la Fase 6, en Weë AI Director
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT»: fase C, exponer lo que el motor ya sabe; y §25, nada de
+botones muertos). En el Director había un «Generar» apagado —«todavía no disponible»— y un coste «pendiente de
+cotización», y el servidor sabía generar varias unidades a la vez desde la Fase 6. Ni una Function, ni F1-A, ni F1-D,
+ni la puerta del Core, ni el Credit Engine tocados: es la callable `generateVideo` con `produccion`, tal cual.
+
+- **Mirar antes** (`hooks/useLoteDeTomas.ts`, `videoService.quoteBatch`): con la calidad de todas, el presupuesto del
+  lote dice de cada unidad, en el orden de la línea de tiempo, si se genera y por cuánto, si ya tiene su vídeo, si tiene
+  una toma en marcha o si no se puede y por qué (la frase de la toma suelta); y el total contra el saldo. No toca nada.
+- **Generar por lo mirado** (`videoService.generateBatch`, `ProductionLote`): preguntando antes, con el total delante.
+  El servidor vuelve a presupuestar y, si el total cambió, no empieza ninguna (`price_changed`): se vuelve a mirar y se
+  dice. Una a una y en orden; al primer fallo se para, y se dice dónde y por qué. Lo que empezó se sigue en su plano.
+- Lo mirado caduca con otra revisión, otra calidad u otras unidades; con cambios sin guardar, o mientras se vuelve a una
+  versión o se aplica una propuesta, no se mira ni se genera. Si no caben todas las unidades en un lote (12, el cupo
+  diario de vídeo: `MAX_UNIDADES_POR_LOTE`), van las primeras que no tienen vídeo, y se dice.
+- Sin saldo para todo, se dice cuánto falta y no se ofrece; si el servidor no pudo leer el saldo, no se inventa: decide
+  el Credit Engine. La puerta de la toma sigue mandando: cerrada (`aiSettings/runtime`), cada unidad sale «no se puede»
+  con su porqué.
+- Salen cuatro claves que decían lo que ya no es verdad (`actions`, `generate`, `generateUnavailable`, `costPending`) y
+  entran veinticuatro (`wsBatch*`), en los once diccionarios.
+
+**Valla reanclada, y se dice** (no es un contrato del servidor): `generateVideo` tenía UN consumidor nominal en la app,
+la toma de un plano; ahora tiene DOS, los dos hooks de Filmmaker —la toma de un plano y la producción entera—, y sigue
+sin importarlo ninguna pantalla (`runtime-map` y `f1d-cliente` G1; G3 y G4 miran también las piezas nuevas).
+
+Pruebas: `functions/test/filmmaker-produccion-entera.test.mjs` (en la cadena). Reancladas: `f1d-cliente` R2c, G1, G3
+y G4; `runtime-map` (dos consumidores); `filmmaker-ui` C5, I1 e I2, y el doble del hook nuevo; e
 `i18n-preferencia-usuario` (el recuento del portugués).
 
 ## Próximas fases

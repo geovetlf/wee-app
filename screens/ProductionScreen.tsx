@@ -9,6 +9,7 @@ import {
 } from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import { useTomasDelPlano } from '../hooks/useTomasDelPlano';
+import { useLoteDeTomas } from '../hooks/useLoteDeTomas';
 import { useCreacionesParaReferencia } from '../hooks/useCreacionesParaReferencia';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import { useMontajeFinal } from '../hooks/useMontajeFinal';
@@ -27,7 +28,8 @@ import ProductionList from '../components/studio/produccion/ProductionList';
 import ProductionNewCard from '../components/studio/produccion/ProductionNewCard';
 import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import type { FilmmakerOperation } from '../services/filmmaker/dominio';
-import { LIMITES } from '../services/filmmaker/dominio';
+import { LIMITES, unidades } from '../services/filmmaker/dominio';
+import { MAX_UNIDADES_POR_LOTE } from '../utils/controladorDeToma';
 import { esEditable, hayCambiosSinGuardar } from '../utils/produccionOptimista';
 import { estadosDeLaProduccion, tituloDesdeLaIdea } from '../utils/presentacionDeProduccion';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
@@ -146,6 +148,16 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   /* Fase 26 del motor (R11): qué vídeo tiene puesto cada plano; si cambia —se enlazó otra toma—, el montaje de antes ya no vale. */
   const firmaDeLosVideos = useMemo(() => [...videos.entries()].map(([u, v]) => `${u}:${v.assetId}`).sort().join('|'), [videos]);
   const montaje = useMontajeFinal(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null, firmaDeLosVideos);
+  /*
+   * Fase 29 del motor: la producción entera (el lote de la Fase 6). Si caben todas sus unidades en un lote, van todas
+   * y el servidor dice de cada una qué pasaría; si no, las primeras que todavía no tienen vídeo, en su orden.
+   */
+  const delLote = useMemo(() => {
+    const todas = vista ? unidades(vista).map((u) => u.unitId) : [];
+    if (todas.length <= MAX_UNIDADES_POR_LOTE) return { unidades: undefined, recortado: null };
+    return { unidades: todas.filter((id) => !videos.has(id)).slice(0, MAX_UNIDADES_POR_LOTE), recortado: MAX_UNIDADES_POR_LOTE };
+  }, [vista, videos]);
+  const lote = useLoteDeTomas(estado.confirmada, hayCambios || !!ocupado, delLote.unidades, delLote.recortado);
   /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain dentro del editor, sobre lo GUARDADO. */
   const historial = useHistorialDeProduccion(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const elementos = useElementosParaVincular();
@@ -228,6 +240,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       toma,
       historialDeTomas,
       montaje,
+      lote,
       revision: estado.confirmada?.revision ?? null,
       historial,
       onRestaurar: (revision) => { void alRestaurar(revision); },

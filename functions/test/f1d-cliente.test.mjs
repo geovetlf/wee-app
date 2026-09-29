@@ -421,7 +421,11 @@ await seccion('R2', async () => {
   const nada = dibujar(h(Director, { ...props, seleccion: null, toma }));
   check('R2a) con un plano elegido y su toma: la sección «Vídeo de este plano»', /Vídeo de este plano/.test(con.texto) && !!boton(con, 'Alta'));
   check('R2b) sin toma, o sin nada elegido: no está', !/Vídeo de este plano/.test(sin.texto) && !/Vídeo de este plano/.test(nada.texto));
-  check('R2c) y el «Generar» de la producción entera sigue sin estar', boton(con, 'Generar')?.apagado === true && /Todavía no disponible: Weë aún no genera varias escenas en un solo vídeo/.test(con.texto));
+  /*
+   * Reanclada en la Fase 29 del motor: la producción entera ya se genera (el lote de la Fase 6), en su propia sección
+   * y solo con su lote (`filmmaker-produccion-entera`). Sin él no se pinta: ni un «Generar» apagado ni un «todavía no».
+   */
+  check('R2c) y la producción entera va en su sección: sin su lote no se pinta, y no queda un «Generar» apagado', !boton(con, 'Generar') && !/Todavía no disponible/.test(con.texto));
 });
 
 /* ═══ M · CADA MOTIVO, SU FRASE ══════════════════════════════════════════ */
@@ -656,13 +660,14 @@ console.log('\n── G · La frontera en la app ──');
 await seccion('G', async () => {
   const app = archivosDeLaApp().map((r) => ({ r, s: leer(r) }));
   const importan = app.filter((a) => a.r !== 'services/videoService.ts' && /\/videoService['"]/.test(a.s)).map((a) => a.r);
-  check('G1) `videoService` tiene UN consumidor: el hook de la toma', JSON.stringify(importan) === JSON.stringify(['hooks/useTomaDePlano.ts']), importan.join(', '));
+  /* Reanclada en la Fase 29 del motor: dos consumidores nominales, los dos hooks de Filmmaker —la toma de un plano y la producción entera—. */
+  check('G1) `videoService` tiene DOS consumidores: el hook de la toma y el del lote', JSON.stringify([...importan].sort()) === JSON.stringify(['hooks/useLoteDeTomas.ts', 'hooks/useTomaDePlano.ts']), importan.join(', '));
   const nombran = app.filter((a) => /['"]generateVideo['"]/.test(a.s)).map((a) => a.r);
   check('G2) y la callable del vídeo solo la nombra su servicio', JSON.stringify(nombran) === JSON.stringify(['services/videoService.ts']), nombran.join(', '));
-  const PIEZAS = ['components/studio/produccion/ProductionShotGeneration.tsx', 'components/studio/produccion/ProductionDirectorPanel.tsx', 'screens/ProductionScreen.tsx'];
+  const PIEZAS = ['components/studio/produccion/ProductionShotGeneration.tsx', 'components/studio/produccion/ProductionDirectorPanel.tsx', 'components/studio/produccion/ProductionLote.tsx', 'screens/ProductionScreen.tsx'];
   const malas = PIEZAS.filter((f) => /httpsCallable|firebase\/|setTimeout|setInterval|newRequestId|requestId|Math\.random|Date\.now|priceVideo|usdToCredits|creditCosts|spendCredits|creditsService/.test(sinComentarios(leer(f))));
   check('G3) la pantalla y sus piezas no llaman, no cuentan tiempo, no inventan ids y no ponen precio', malas.length === 0, malas.join(', '));
-  const CAPA = ['hooks/useTomaDePlano.ts', 'utils/controladorDeToma.ts', 'services/tomaService.ts', 'hooks/useVideosDeLaProduccion.ts'];
+  const CAPA = ['hooks/useTomaDePlano.ts', 'hooks/useLoteDeTomas.ts', 'utils/controladorDeToma.ts', 'services/tomaService.ts', 'hooks/useVideosDeLaProduccion.ts'];
   const componen = CAPA.filter((f) => /prompt|newRequestId|Math\.random|Date\.now|setTimeout|setInterval|`fm\.|'fm\./.test(sinComentarios(leer(f))));
   check('G4) ni el hook, ni el controlador, ni el servicio de la toma componen un texto o un id, ni cuentan tiempo', componen.length === 0, componen.join(', '));
   const escriben = app.filter((a) => /(setDoc|updateDoc|addDoc|deleteDoc|writeBatch)\s*\(/.test(a.s) && /['"](creditTransactions|shots|assets|productions)['"]/.test(a.s)).map((a) => a.r);

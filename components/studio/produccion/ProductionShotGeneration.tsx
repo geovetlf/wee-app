@@ -55,8 +55,8 @@ export const VerVideoDelPlano: React.FC<{ url: string; poster?: string | null; f
  * nada de dentro; y los Credits de la toma —reservados, cobrados, devueltos— se
  * enseñan siempre que haya una.
  *
- * El «Generar» de la producción entera, en Acciones, sigue sin estar: esto es
- * una toma de UNA unidad; juntar varias en un vídeo no se hace todavía.
+ * Esto es la toma de UNA unidad. La producción entera se genera en su propia
+ * sección del Director (Fase 29 del motor, `ProductionLote`, el lote de la Fase 6).
  */
 const Generacion: React.FC<{
   toma: TomaDelPlano;

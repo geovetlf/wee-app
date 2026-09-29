@@ -12,6 +12,7 @@ import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import type { HistorialDeTomas } from '../../../hooks/useTomasDelPlano';
 import type { CreacionesParaReferencia } from '../../../hooks/useCreacionesParaReferencia';
 import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
+import type { LoteDeTomas } from '../../../hooks/useLoteDeTomas';
 import type { HistorialDeProduccion } from '../../../hooks/useHistorialDeProduccion';
 import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
 import type { WeeBrainDelEditor } from '../../../hooks/useWeeBrainDelEditor';
@@ -52,6 +53,8 @@ export interface EspacioDeFilmmaker {
   readonly historialDeTomas?: HistorialDeTomas | null;
   /** El montaje final de la revisión guardada y su publicación (Fase 14 del motor). */
   readonly montaje: MontajeDeLaProduccion;
+  /** Fase 29 · la producción entera: el lote de la Fase 6 (mirar qué pasaría y cuánto cuesta, y generar). */
+  readonly lote?: LoteDeTomas;
   /** Fase 20 · la revisión GUARDADA: con ella se sabe si una propuesta de Weë Brain sigue valiendo. */
   readonly revision?: number | null;
   /** Fase 20 · sus versiones, para volver a una. */

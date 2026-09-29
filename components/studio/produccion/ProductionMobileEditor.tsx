@@ -193,6 +193,7 @@ const ProductionMobileEditor: React.FC<{
             toma={espacio.toma}
             historial={espacio.historialDeTomas}
             video={elegido ? espacio.videos.get(elegido.unitId) ?? null : null}
+            lote={espacio.lote}
           />
         )}
         {vista === 'director' && (

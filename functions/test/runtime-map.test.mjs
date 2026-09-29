@@ -602,8 +602,12 @@ console.log('\n── E · Quién llama desde la app ──');
    * Desplegada y protegida por pruebas; el vídeo de Weë Studio entra por `creatorRun`. Desde F1-D la usa
    * UN consumidor nominal: la toma de un plano de Weë Filmmaker (`hooks/useTomaDePlano.ts`), que le manda
    * el plano y nunca un texto. Ninguna pantalla ni componente la importa directamente.
+   *
+   * Reanclada en la Filmmaker Engine, Fase 29: DOS consumidores nominales, los dos hooks de Weë Filmmaker —la
+   * toma de un plano y la producción entera (`hooks/useLoteDeTomas.ts`, el lote de la Fase 6, que le manda la
+   * producción guardada y nunca un texto)—. Sigue sin importarla ninguna pantalla ni componente.
    */
-  check(`${n++}) \`generateVideo\` tiene UN consumidor nominal, la toma de un plano: ninguna pantalla importa su servicio`, igual(importadores('videoService'), ['hooks/useTomaDePlano.ts']), importadores('videoService').join(', '));
+  check(`${n++}) \`generateVideo\` tiene DOS consumidores nominales, la toma de un plano y la producción entera: ninguna pantalla importa su servicio`, igual([...importadores('videoService')].sort(), ['hooks/useLoteDeTomas.ts', 'hooks/useTomaDePlano.ts']), importadores('videoService').join(', '));
   check(`${n++}) los proyectos los escribe el cliente directamente: no hay callable de Project`, /collection\(db, 'creatorProjects'\)|doc\(db, 'creatorProjects'/.test(leer('services/projectsService.ts')) && !Object.values(FUNCTIONS).flat().some((f) => /project/i.test(f)));
   check(`${n++}) y las publicaciones también: \`posts\` no pasa por el modelo de Publication del Core`, /'posts'/.test(leer('services/firestoreService.ts')) && (nombrados.get('core/content/publication.js') || new Set()).size === 0);
 }

@@ -215,6 +215,59 @@ export interface RechazoDeToma {
 
 export type ResultadoDeToma<T> = { readonly ok: true; readonly valor: T } | { readonly ok: false; readonly rechazo: RechazoDeToma };
 
+/* ── Filmmaker Engine, Fase 29 · la producción entera: el lote de la Fase 6 ── */
+
+/** Qué pasaría con una unidad en el lote: se genera, ya tiene su vídeo, tiene una toma en marcha o no se puede. */
+export type AccionDelLote = 'generate' | 'done' | 'in_flight' | 'blocked';
+
+export interface UnidadDelLote {
+  readonly sceneId: string;
+  readonly unitId: string;
+  readonly action: AccionDelLote;
+  /** Por qué no se puede: el motivo de la toma suelta, que la pantalla dice con sus palabras. */
+  readonly reason?: string;
+  readonly detail?: Readonly<Record<string, unknown>>;
+  readonly take?: number;
+  readonly credits?: number;
+}
+
+/** El presupuesto del lote: cada unidad, el total y el saldo. Ni reserva ni cupo: no toca nada. */
+export interface PresupuestoDelLote {
+  readonly status: 'QUOTED_BATCH';
+  readonly productionId: string;
+  readonly revision: number;
+  readonly quality: string;
+  readonly units: readonly UnidadDelLote[];
+  readonly total: { readonly credits: number; readonly units: number };
+  readonly skipped: { readonly done: number; readonly inFlight: number; readonly blocked: number };
+  /** El saldo de la cuenta; `null` si el servidor no pudo leerlo (entonces el que manda es el Credit Engine). */
+  readonly balance: number | null;
+  readonly enough: boolean;
+}
+
+/** Lo que empezó el lote: una toma por unidad, en orden, y dónde se paró si algo no pudo empezar. */
+export interface ResultadoDelLote {
+  readonly status: 'STARTED_BATCH' | 'NOTHING_TO_GENERATE';
+  readonly units: readonly { readonly sceneId: string; readonly unitId: string; readonly take: number; readonly status: string; readonly reason?: string }[];
+  readonly started: number;
+  readonly stoppedAt?: string;
+}
+
+/** Qué se pide: la producción GUARDADA en su revisión, la calidad de todas y, si no caben todas, cuáles (`units`). */
+export interface PeticionDeLote {
+  readonly productionId: string;
+  readonly revision: number;
+  readonly quality: CalidadDeToma;
+  readonly units?: readonly string[];
+}
+
+/**
+ * Las unidades que caben en un lote: las del cupo diario de vídeo. Es el tope del servidor
+ * (`MAX_UNIDADES_POR_LOTE` de `creator/lotes.ts`), que contesta `batch_too_large` si se pasa; aquí solo sirve para
+ * elegir, si no caben todas, las primeras que faltan.
+ */
+export const MAX_UNIDADES_POR_LOTE = 12;
+
 /** Lo único que esto necesita de fuera. Ninguna de estas cosas genera ni cobra por su cuenta: lo decide el servidor. */
 export interface ServicioDeTomas {
   cotizar(unidad: UnidadDeToma, calidad?: CalidadDeToma): Promise<ResultadoDeToma<CotizacionDeToma>>;

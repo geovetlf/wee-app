@@ -144,6 +144,10 @@ const dobles = {
   '../hooks/useCreacionesParaReferencia': {
     useCreacionesParaReferencia: () => ({ carga: 'sin_pedir', clase: null, lista: [], hayMas: false, cargandoMas: false, cargar: () => {}, cargarMas: () => {} }),
   },
+  /* Fase 29 del motor: la producción entera, sin mirar todavía. Se prueba en filmmaker-produccion-entera. */
+  '../hooks/useLoteDeTomas': {
+    useLoteDeTomas: () => ({ fase: { fase: 'quieto' }, calidad: 'standard', disponible: true, recortado: null, elegirCalidad: () => {}, presupuestar: () => {}, generar: () => {} }),
+  },
   '../hooks/useProduccion': { useProduccion: () => usoDeProduccion, nuevoIdDeEscena: () => 'sc_nueva0001', nuevoIdDePlano: () => 'sh_nuevo0001' },
   '../components/creator/CreatorShell': { __esModule: true, default: ({ title, overline, breadcrumb, children }) => { shell.push({ title, overline, breadcrumb }); return h('main', { 'aria-label': title }, children); } },
 };
@@ -278,8 +282,12 @@ await seccion('C', async () => {
    * («Encuadre: Primer plano»), porque hay valores que se escriben igual en familias distintas.
    */
   check('C4) con la cámara, el movimiento y la luz de la biblioteca de Weë Studio', !!boton(dp, 'Encuadre: Primer plano') && !!boton(dp, 'Movimiento: Acercarse') && !!boton(dp, 'Luz: Hora dorada'));
-  check('C5) el panel entero: intención, dirección creativa, formato, duración, resumen, recomendaciones, advertencias, por rehacer, personajes, audio y acciones',
-    ['Director', 'Intención', 'Dirección creativa', 'Formato', 'Duración', 'Resumen', 'Recomendaciones', 'Advertencias', 'Por rehacer', 'Personajes', 'Audio', 'Acciones'].every((x) => dp.texto.includes(x)));
+  /*
+   * Reanclada en la Fase 29 del motor: «Acciones», con su «Generar» apagado, es ahora «Generar la producción», de
+   * verdad, y solo se pinta con su lote —aquí el panel se dibuja sin él; con él, en filmmaker-produccion-entera D1—.
+   */
+  check('C5) el panel entero: intención, dirección creativa, formato, duración, resumen, recomendaciones, advertencias, por rehacer, personajes y audio',
+    ['Director', 'Intención', 'Dirección creativa', 'Formato', 'Duración', 'Resumen', 'Recomendaciones', 'Advertencias', 'Por rehacer', 'Personajes', 'Audio'].every((x) => dp.texto.includes(x)));
   check('C6) la intención, tal como se escribió', /El día de una panadería, de madrugada al cierre/.test(dp.texto));
   check('C7) la dirección creativa, en palabras', /Hora dorada/.test(dp.texto));
   /*
@@ -471,8 +479,13 @@ console.log('\n── I · Ni progreso, ni precio, ni generación, ni claves sin
 await seccion('I', async () => {
   const { c } = await abrir();
   const dp = director(c);
-  check('I1) «Generar» se ve como lo que es: todavía no disponible', boton(dp, 'Generar')?.apagado === true && /Todavía no disponible: Weë aún no genera varias escenas en un solo vídeo/.test(dp.texto));
-  check('I2) el coste, pendiente de cotización: ni un precio', /Pendiente de cotización/.test(dp.texto) && !/Credits|\d+\s*(€|\$|USD)/.test(dp.texto));
+  /*
+   * I1 e I2, reancladas en la Fase 29 del motor: la producción entera ya se genera (el lote de la Fase 6), en su
+   * sección y con su lote (filmmaker-produccion-entera). Lo que no hay sigue sin haberlo: ni un «Generar» apagado, ni
+   * un «todavía no», ni un precio.
+   */
+  check('I1) la producción entera: ni un «Generar» apagado ni un «todavía no»', !boton(dp, 'Generar') && !/Todavía no disponible/.test(dp.texto));
+  check('I2) y ni un precio hasta que se mira', !/Credits|\d+\s*(€|\$|USD)/.test(dp.texto));
   /* Reanclada en la Fase 25 del motor: el aviso ya no es «Todavía no disponible», sino qué no se hace y por qué. */
   check('I3) el audio es estructura: lo que hay, y que los sonidos descritos todavía no se mezclan', /Efectos 1 sonido/.test(dp.texto) && /Música Nada todavía/.test(dp.texto) && /todavía no se mezclan en el montaje/.test(dp.texto));
   const todo = [dp.html, storyboard(c).html].join('');

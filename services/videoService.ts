@@ -2,7 +2,8 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import { newRequestId } from './creditsService';
 import type {
-  CalidadDeToma, CotizacionDeToma, RechazoDeToma, RespuestaDeCancelacion, RespuestaDeGeneracion, ResultadoDeToma, UnidadDeToma,
+  CalidadDeToma, CotizacionDeToma, PeticionDeLote, PresupuestoDelLote, RechazoDeToma, RespuestaDeCancelacion, RespuestaDeGeneracion,
+  ResultadoDeToma, ResultadoDelLote, UnidadDeToma,
 } from '../utils/controladorDeToma';
 
 /**
@@ -137,4 +138,17 @@ export const videoService = {
       plano: { productionId: toma.productionId, sceneId: toma.sceneId, unitId: toma.unitId, take: toma.take },
       cancelar: true,
     }, 60_000),
+
+  /*
+   * LA PRODUCCIÓN ENTERA (Filmmaker Engine, Fase 29: el lote de la Fase 6). La misma callable, con `produccion`:
+   * primero el presupuesto —qué pasaría con cada unidad y el total; ni reserva ni cupo— y después el lote, por el
+   * total que se enseñó. En el servidor, cada unidad vuelve a entrar por la puerta de la toma suelta, con su precio,
+   * su cupo y su reserva: aquí no se suma, no se cobra y no se pone ningún id.
+   */
+  quoteBatch: (lote: PeticionDeLote): Promise<ResultadoDeToma<PresupuestoDelLote>> =>
+    llamarPorLaToma<PresupuestoDelLote>({ produccion: lote, cotizar: true }, 120_000),
+
+  /** Generar el lote por el total que se enseñó. Si cambió, el servidor no empieza ninguna y lo dice (`price_changed`). */
+  generateBatch: (lote: PeticionDeLote, creditosCotizados: number): Promise<ResultadoDeToma<ResultadoDelLote>> =>
+    llamarPorLaToma<ResultadoDelLote>({ produccion: lote, creditosCotizados }, 25 * 60 * 1000),
 };
