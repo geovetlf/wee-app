@@ -1029,4 +1029,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueSettingSoon: '{{ajuste}}: noch nicht verfügbar',
   wsCueMixSoon: 'Blenden, wann jeder Ton beginnt und ihn stummzuschalten, ohne ihn zu entfernen, kommen mit der Mischung des Schnitts (eine Vertragsänderung): Heute werden beschriebene Töne gespeichert, sind aber noch nicht zu hören.',
   wsGenerateInDirector: 'Das Video dieser Einstellung wird im Tab „Weë AI Director“ generiert.',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: 'Endfassungen',
+  wsFinalVersionsNone: 'Es gibt noch keine früheren Schnitte.',
+  wsFinalVersionOf: 'Schnitt vom {{fecha}}',
+  wsFinalVersion: 'Früherer Schnitt',
+  wsFinalVersionsNote: 'Du kannst sie herunterladen; veröffentlichen lässt sich nur der von heute, denn er hat die Videos, die jede Einstellung heute hat.',
+  wsPublishBoth: 'Er passt in einen Weël (bis zu 15 s) und kann auch vollständig im Wäll veröffentlicht werden.',
+  wsExportDeliveries: 'Auslieferungen',
+  wsExportPosterPick: 'Posterbild wählen',
+  wsExportPosterPickSoon: 'Heute wird das Poster automatisch aus dem Schnitt gewählt; das Bild selbst zu wählen kommt mit einer Änderung am Rendern.',
+  wsExportMaster: 'Master für die Farbkorrektur',
+  wsExportMasterSoon: 'Ein Master in Studioqualität kommt, wenn sich das Video so anfordern lässt und der Schnitt es beibehält.',
+  wsExportUpscale: 'Auflösung erhöhen',
+  wsExportUpscaleSoon: 'Keiner der Videoanbieter von Weë skaliert heute ein Video hoch: Das gibt es noch nicht.',
 };

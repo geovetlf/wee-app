@@ -1030,4 +1030,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueSettingSoon: '{{ajuste}}: 아직 사용할 수 없음',
   wsCueMixSoon: '페이드, 각 사운드가 시작되는 시점, 삭제하지 않고 음소거하는 기능은 편집본 믹싱(계약 변경)과 함께 제공돼요. 지금은 설명한 사운드가 저장되지만 아직 재생되지는 않아요.',
   wsGenerateInDirector: '이 숏의 영상은 "Weë AI Director" 탭에서 생성해요.',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: '최종 버전',
+  wsFinalVersionsNone: '아직 이전 편집본이 없어요.',
+  wsFinalVersionOf: '{{fecha}} 편집본',
+  wsFinalVersion: '이전 편집본',
+  wsFinalVersionsNote: '다운로드할 수 있어요. 게시는 오늘 편집본만 가능해요. 각 숏의 현재 영상이 들어 있기 때문이에요.',
+  wsPublishBoth: 'Weël(최대 15초)에 들어가고, Wäll에는 전체를 게시할 수도 있어요.',
+  wsExportDeliveries: '납품',
+  wsExportPosterPick: '포스터 프레임 고르기',
+  wsExportPosterPickSoon: '지금은 편집본에서 포스터가 자동으로 정해져요. 프레임을 고르는 기능은 렌더 변경과 함께 제공돼요.',
+  wsExportMaster: '색 보정용 마스터',
+  wsExportMasterSoon: '스튜디오 품질 마스터는 영상을 그렇게 요청할 수 있고 편집본이 그 품질을 유지할 수 있게 되면 제공돼요.',
+  wsExportUpscale: '해상도 높이기',
+  wsExportUpscaleSoon: '현재 Weë의 영상 제공업체 중 영상 해상도를 높여 주는 곳은 없어요. 아직 지원하지 않아요.',
 };

@@ -12,6 +12,7 @@ import { Aviso, BotonPequeno, Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker } from './espacio';
 import { fraseDeLaPublicacion, fraseDelMontajeRechazado, resolucionVisible } from '../../../utils/mensajesDeFilmmaker';
 import { descargarCreacion } from '../../../services/assetDownload';
+import type { DireccionDeMontaje, MontajeFinal } from '../../../hooks/useMontajeFinal';
 import { confirmAction, notify } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
@@ -35,6 +36,49 @@ type Subtitulos = 'none' | 'burned' | 'sidecar';
  * Exportar no cuesta Credits hoy, porque no hay nada que cobrar: no se enseña
  * ningún precio.
  */
+
+/**
+ * LAS VERSIONES FINALES (Fase 38 del motor): los montajes hechos antes que el de hoy, con su fecha, su duración y su
+ * resolución, para descargarlos. Publicar, solo el de hoy: es el que tiene los vídeos que hoy tiene cada plano.
+ */
+/** `direccionDe` la da el hook (useMontajeFinal): las piezas no hablan con el servidor (regla de la Fase 24). */
+export const VersionesFinales: React.FC<{ anteriores: readonly MontajeFinal[]; direccionDe?: DireccionDeMontaje }> = ({ anteriores, direccionDe }) => {
+  const { theme } = useTheme();
+  const { t, formato } = useIdioma();
+  const [bajando, setBajando] = useState<string | null>(null);
+  if (!anteriores.length) return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsFinalVersionsNone')}</Text>;
+  const descargar = async (m: MontajeFinal) => {
+    if (!m.assetId || bajando || !direccionDe) return;
+    setBajando(m.huella);
+    try {
+      const url = await direccionDe(m);
+      const r = url ? await descargarCreacion(url, 'video') : 'error';
+      if (r === 'error' || r === 'sin_permiso') notify(t('filmmaker.wsDownloadFailed'));
+    } finally {
+      setBajando(null);
+    }
+  };
+  return (
+    <View style={styles.bloque}>
+      {anteriores.map((m) => (
+        <View key={m.huella} style={[styles.version, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.versionTexto, { color: theme.colors.text }]}>
+            {m.requestedAt ? t('filmmaker.wsFinalVersionOf', { fecha: formato.fecha(new Date(m.requestedAt), { dateStyle: 'medium', timeStyle: 'short' }) }) : t('filmmaker.wsFinalVersion')}
+          </Text>
+          <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>
+            {formato.lista([
+              t('filmmaker.wsSecondsShort', { segundos: formato.numero(m.durationSec, { maximumFractionDigits: 1 }) }),
+              t('filmmaker.shots', { contador: m.shots }),
+              ...(m.resolution ? [m.resolution] : []),
+            ])}
+          </Text>
+          <BotonPequeno icono="download-outline" etiqueta={t('filmmaker.wsDownload')} conTexto disabled={!!bajando || !direccionDe} onPress={() => { void descargar(m); }} />
+        </View>
+      ))}
+      <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsFinalVersionsNote')}</Text>
+    </View>
+  );
+};
 
 /** EL MONTAJE FINAL: pedirlo, verlo avanzar y publicarlo. Todo lo decide el servidor; aquí se dice. */
 export const BloqueDelMontaje: React.FC<{ espacio: Pick<EspacioDeFilmmaker, 'montaje' | 'hayCambios'> }> = ({ espacio }) => {
@@ -86,6 +130,8 @@ export const BloqueDelMontaje: React.FC<{ espacio: Pick<EspacioDeFilmmaker, 'mon
             <BotonPequeno icono="download-outline" etiqueta={t('filmmaker.wsDownloadFinalCut')} conTexto disabled={publicando} onPress={() => { void descargarMontaje(montaje.url as string); }} />
           )}
         </View>
+        {/* Fase 38 del motor: dónde cabe, dicho antes de publicar. */}
+        <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t(montaje.cabeEnUnWeel ? 'filmmaker.wsPublishBoth' : 'filmmaker.wsPublishTooLongWeel')}</Text>
         {publicando && <MensajeDeEstado estado="preparando" compacto />}
         {resultado && <Text style={[styles.nota, { color: publicacion.fase === 'rechazada' ? theme.colors.error : theme.colors.textSecondary }]}>{resultado}</Text>}
       </View>
@@ -152,6 +198,12 @@ const ProductionExportPanel: React.FC<{ espacio: EspacioDeFilmmaker; onCerrar: (
     { id: 'burned', etiqueta: t('filmmaker.wsSubtitlesBurned'), disponible: true },
     { id: 'sidecar', etiqueta: t('filmmaker.wsSubtitlesSidecar'), disponible: true },
   ];
+  /* Fase 38 del motor: las entregas que todavía no existen, vistas y cerradas con su porqué. */
+  const entregas: readonly OpcionElegible<string>[] = [
+    { id: 'poster', etiqueta: t('filmmaker.wsExportPosterPick'), icono: 'image-outline', disponible: false, porque: t('filmmaker.wsExportPosterPickSoon') },
+    { id: 'master', etiqueta: t('filmmaker.wsExportMaster'), icono: 'color-palette-outline', disponible: false, porque: t('filmmaker.wsExportMasterSoon') },
+    { id: 'escalar', etiqueta: t('filmmaker.wsExportUpscale'), icono: 'resize-outline', disponible: false, porque: t('filmmaker.wsExportUpscaleSoon') },
+  ];
   const mejoras: readonly OpcionElegible<string>[] = [
     { id: 'color', etiqueta: t('filmmaker.wsExportColor'), icono: 'color-filter-outline', disponible: false, porque: t('filmmaker.wsExportAiSoon') },
     { id: 'estabilizar', etiqueta: t('filmmaker.wsExportStabilize'), icono: 'scan-outline', disponible: false, porque: t('filmmaker.wsExportAiSoon') },
@@ -204,6 +256,10 @@ const ProductionExportPanel: React.FC<{ espacio: EspacioDeFilmmaker; onCerrar: (
       <Seccion titulo={t('filmmaker.wsFinalCut')}>
         <BloqueDelMontaje espacio={espacio} />
       </Seccion>
+      {/* Fase 38 del motor: los montajes de antes, para descargarlos. */}
+      <Seccion titulo={t('filmmaker.wsFinalVersions')}>
+        <VersionesFinales anteriores={montaje.anteriores ?? []} direccionDe={montaje.direccionDe} />
+      </Seccion>
       <Seccion titulo={t('filmmaker.wsResolution')}>
         <SelectorDeOpciones etiqueta={t('filmmaker.wsResolution')} forma="tarjetas" opciones={resoluciones} elegida={resolucion ?? null} onElegir={() => undefined} />
       </Seccion>
@@ -214,6 +270,9 @@ const ProductionExportPanel: React.FC<{ espacio: EspacioDeFilmmaker; onCerrar: (
         <SelectorDeOpciones etiqueta={t('filmmaker.wsToolSubtitles')} opciones={subs} elegida={subtitulos} onElegir={setSubtitulos} />
         {/* Fase 26 del motor: se guarda cómo se quieren; el montaje de hoy todavía no los incluye, y se dice. */}
         <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsSubtitlesNotInCut')}</Text>
+      </Seccion>
+      <Seccion titulo={t('filmmaker.wsExportDeliveries')}>
+        <SelectorDeOpciones etiqueta={t('filmmaker.wsExportDeliveries')} opciones={entregas} elegida={null} onElegir={() => undefined} />
       </Seccion>
       <Seccion titulo={t('filmmaker.wsExportAi')}>
         <SelectorDeOpciones etiqueta={t('filmmaker.wsExportAi')} opciones={mejoras} elegida={null} onElegir={() => undefined} />
@@ -252,6 +311,8 @@ const styles = StyleSheet.create({
   acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   fila: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm },
   filaTexto: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },
+  version: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, gap: SPACING.xs, alignItems: 'flex-start' },
+  versionTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },
 });
 
 export default ProductionExportPanel;

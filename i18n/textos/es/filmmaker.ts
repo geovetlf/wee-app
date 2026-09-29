@@ -1029,4 +1029,18 @@ export const filmmaker = {
   wsCueSettingSoon: '{{ajuste}}: todavía no disponible',
   wsCueMixSoon: 'El fundido, en qué momento empieza cada sonido y silenciarlo sin quitarlo llegarán con la mezcla del montaje (un cambio de contrato): hoy los sonidos descritos se guardan, pero todavía no suenan.',
   wsGenerateInDirector: 'El vídeo de este plano se genera en la pestaña «Weë AI Director».',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: 'Versiones finales',
+  wsFinalVersionsNone: 'Todavía no hay montajes anteriores.',
+  wsFinalVersionOf: 'Montaje del {{fecha}}',
+  wsFinalVersion: 'Montaje anterior',
+  wsFinalVersionsNote: 'Se pueden descargar; publicar, solo el de hoy, que es el que tiene los vídeos que hoy tiene cada plano.',
+  wsPublishBoth: 'Cabe en un Weël (hasta 15 s), y también se puede publicar entero en el Wäll.',
+  wsExportDeliveries: 'Entregas',
+  wsExportPosterPick: 'Elegir el fotograma del póster',
+  wsExportPosterPickSoon: 'Hoy el póster sale solo del montaje; elegir el fotograma llegará con un cambio del render.',
+  wsExportMaster: 'Máster para etalonar',
+  wsExportMasterSoon: 'Un máster en calidad de estudio llegará cuando el vídeo pueda pedirse así y el montaje lo conserve.',
+  wsExportUpscale: 'Escalar a más resolución',
+  wsExportUpscaleSoon: 'Ninguno de los proveedores de vídeo de Weë escala hoy un vídeo: todavía no existe.',
 };

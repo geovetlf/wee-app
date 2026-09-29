@@ -639,8 +639,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * sonido todavía no tiene en F1-A (`wsCueFadeIn`, `wsCueFadeOut`, `wsCueStartsAt`, `wsCueMute`, `wsCueSettingSoon`) y la
    * mezcla (`wsCueMixSoon`) y, en escritorio, dónde se genera el plano si ya está a la vista (`wsGenerateInDirector`)—,
    * en los once.
+   * Fase 38 del motor, 2026-09-29 (versiones finales y entregas): +13 —las versiones anteriores (`wsFinalVersion*`),
+   * que un montaje corto también va entero al Wäll (`wsPublishBoth`) y las entregas cerradas con su porqué
+   * (`wsExportDeliveries`, `wsExportPosterPick*`, `wsExportMaster*`, `wsExportUpscale*`)—, en los once.
    */
-  const CLAVES_PT = 3637;
+  const CLAVES_PT = 3650;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

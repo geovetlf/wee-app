@@ -1028,4 +1028,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueSettingSoon: '{{ajuste}}: not available yet',
   wsCueMixSoon: 'Fades, when each sound starts and muting it without removing it will come with the montage mix (a contract change): today described sounds are saved, but they don’t play yet.',
   wsGenerateInDirector: 'The video of this shot is generated in the “Weë AI Director” tab.',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: 'Final versions',
+  wsFinalVersionsNone: 'There are no earlier montages yet.',
+  wsFinalVersionOf: 'Montage from {{fecha}}',
+  wsFinalVersion: 'Earlier montage',
+  wsFinalVersionsNote: 'You can download them; only today’s can be published, since it has the videos each shot has today.',
+  wsPublishBoth: 'It fits in a Weël (up to 15 s), and it can also be published in full on the Wäll.',
+  wsExportDeliveries: 'Deliveries',
+  wsExportPosterPick: 'Choose the poster frame',
+  wsExportPosterPickSoon: 'Today the poster is picked automatically from the montage; choosing the frame will come with a render change.',
+  wsExportMaster: 'Grading master',
+  wsExportMasterSoon: 'A studio-quality master will come when the video can be requested that way and the montage keeps it.',
+  wsExportUpscale: 'Upscale to a higher resolution',
+  wsExportUpscaleSoon: 'None of Weë’s video providers upscales a video today: it doesn’t exist yet.',
 };

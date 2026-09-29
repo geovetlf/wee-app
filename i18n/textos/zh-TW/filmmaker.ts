@@ -1043,4 +1043,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueSettingSoon: '{{ajuste}}：暫不可用',
   wsCueMixSoon: '淡入淡出、每個聲音從何時開始，以及不刪除而靜音，會隨剪輯混音一起推出（需要變更合約）：目前描述的聲音會被儲存，但還不會播放。',
   wsGenerateInDirector: '這個鏡頭的影片在「Weë AI Director」分頁中生成。',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: '最終版本',
+  wsFinalVersionsNone: '還沒有以前的成片。',
+  wsFinalVersionOf: '{{fecha}} 的成片',
+  wsFinalVersion: '以前的成片',
+  wsFinalVersionsNote: '可以下載；只有今天的成片可以發布，因為它包含每個鏡頭現在的影片。',
+  wsPublishBoth: '可以作為 Weël 發布（最長 15 秒），也可以完整發布到 Wäll。',
+  wsExportDeliveries: '交付',
+  wsExportPosterPick: '選擇海報畫面',
+  wsExportPosterPickSoon: '目前海報會自動從成片中選取；選擇畫面的功能會隨算繪的更新一起推出。',
+  wsExportMaster: '調色母版',
+  wsExportMasterSoon: '等影片可以依這種品質生成、而且成片能保留它時，才會提供專業級母版。',
+  wsExportUpscale: '提高解析度',
+  wsExportUpscaleSoon: '目前 Weë 的影片服務商都不提供影片放大：這項功能還不存在。',
 };

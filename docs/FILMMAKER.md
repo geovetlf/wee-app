@@ -1907,6 +1907,20 @@ Encargo del usuario (2026-09-29, puntos 2 y 10): el workplace del audio, sin con
 
 Pruebas: `functions/test/filmmaker-audio-linea.test.mjs` (en la cadena).
 
+### Fase 38 · Versiones finales y entregas
+
+Encargo del usuario (2026-09-29, punto 11): el montaje, la descarga, el Weël y el Wäll, y las entregas, dichos.
+
+- **Versiones finales**: los montajes hechos antes que el de hoy, con su fecha, su duración, sus planos y su
+  resolución —el servidor ya los daba (`render.list`) y la app los tiraba—, para descargarlos. Publicar,
+  solo el de hoy.
+- **Weël y Wäll**: antes de publicar se dice si cabe en un Weël (hasta 15 s) o solo en el Wäll. Cuánto admite el
+  Wäll sigue siendo una decisión de producto (R9).
+- **Entregas que todavía no existen**, vistas y cerradas con su porqué: elegir el fotograma del póster (N24), el
+  máster para etalonar (N26) y el escalado (N25).
+
+Pruebas: `functions/test/filmmaker-versiones-finales.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

@@ -1069,4 +1069,18 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   wsCueSettingSoon: '{{ajuste}}: пока недоступно',
   wsCueMixSoon: 'Плавные переходы, момент начала каждого звука и отключение без удаления появятся вместе со сведением монтажа (изменение контракта): сейчас описанные звуки сохраняются, но ещё не звучат.',
   wsGenerateInDirector: 'Видео этого плана генерируется на вкладке «Weë AI Director».',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: 'Финальные версии',
+  wsFinalVersionsNone: 'Предыдущих монтажей пока нет.',
+  wsFinalVersionOf: 'Монтаж от {{fecha}}',
+  wsFinalVersion: 'Предыдущий монтаж',
+  wsFinalVersionsNote: 'Их можно скачать; опубликовать можно только сегодняшний — в нём те видео, что у каждого плана сегодня.',
+  wsPublishBoth: 'Помещается в Weël (до 15 с), а целиком его можно опубликовать в Wäll.',
+  wsExportDeliveries: 'Выдача',
+  wsExportPosterPick: 'Выбрать кадр для постера',
+  wsExportPosterPickSoon: 'Сейчас постер выбирается из монтажа автоматически; выбор кадра появится вместе с изменением рендера.',
+  wsExportMaster: 'Мастер для цветокоррекции',
+  wsExportMasterSoon: 'Мастер студийного качества появится, когда видео можно будет запросить в таком виде, а монтаж будет его сохранять.',
+  wsExportUpscale: 'Повысить разрешение',
+  wsExportUpscaleSoon: 'Сейчас ни один из видеопровайдеров Weë не повышает разрешение видео: этой возможности пока нет.',
 };

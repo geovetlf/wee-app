@@ -67,6 +67,9 @@ export interface MontajeFinal {
   readonly failure?: string;
   readonly durationSec: number;
   readonly shots: number;
+  /** Fase 38 del motor: cuándo se pidió (ms) y en qué resolución salió, tal como los da `render.list`. */
+  readonly requestedAt?: number;
+  readonly resolution?: string;
 }
 
 /** A dónde se publica: un Weël o el muro del Home. */
@@ -96,6 +99,8 @@ export const montajeDe = (v: unknown): MontajeFinal | null => {
     ...(typeof r.failure === 'string' ? { failure: r.failure } : {}),
     durationSec: numero(r.durationSec),
     shots: numero(r.shots),
+    ...(typeof r.requestedAt === 'number' && Number.isFinite(r.requestedAt) ? { requestedAt: r.requestedAt } : {}),
+    ...(typeof (r.format as Record<string, unknown> | undefined)?.resolution === 'string' ? { resolution: (r.format as Record<string, string>).resolution } : {}),
   };
 };
 

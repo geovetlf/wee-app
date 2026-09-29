@@ -1048,4 +1048,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueSettingSoon: '{{ajuste}}：暂不可用',
   wsCueMixSoon: '淡入淡出、每个声音从何时开始，以及不删除而静音，会随剪辑混音一起推出（需要变更合约）：目前描述的声音会被保存，但还不会播放。',
   wsGenerateInDirector: '这个镜头的视频在“Weë AI Director”标签页中生成。',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: '最终版本',
+  wsFinalVersionsNone: '还没有以前的成片。',
+  wsFinalVersionOf: '{{fecha}} 的成片',
+  wsFinalVersion: '以前的成片',
+  wsFinalVersionsNote: '可以下载；只有今天的成片可以发布，因为它包含每个镜头现在的视频。',
+  wsPublishBoth: '可以作为 Weël 发布（最长 15 秒），也可以完整发布到 Wäll。',
+  wsExportDeliveries: '交付',
+  wsExportPosterPick: '选择海报画面',
+  wsExportPosterPickSoon: '目前海报会自动从成片中选取；选择画面的功能会随渲染的更新一起推出。',
+  wsExportMaster: '调色母版',
+  wsExportMasterSoon: '等视频可以按这种质量生成、并且成片能保留它时，才会提供专业级母版。',
+  wsExportUpscale: '提高分辨率',
+  wsExportUpscaleSoon: '目前 Weë 的视频服务商都不提供视频放大：这项功能还不存在。',
 };

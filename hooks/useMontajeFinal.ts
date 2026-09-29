@@ -3,6 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { tomaService, type DestinoDelMontaje, type MontajeFinal } from '../services/tomaService';
 
+/** Fase 38 del motor: las piezas leen el tipo de aquí (no hablan con los servicios: regla de la Fase 24). */
+export type { MontajeFinal } from '../services/tomaService';
+/** La dirección de una versión final, pedida en el momento (la de su material). */
+export type DireccionDeMontaje = (m: MontajeFinal) => Promise<string | null>;
+
 /**
  * WEË FILMMAKER · EL MONTAJE FINAL DE UNA PRODUCCIÓN Y SU PUBLICACIÓN (Fase 14 del motor).
  *
@@ -42,6 +47,13 @@ export interface MontajeDeLaProduccion {
   /** Si el montaje hecho cabe en un Weël. El servidor lo vuelve a comprobar al publicar. */
   readonly cabeEnUnWeel: boolean;
   readonly publicacion: PublicacionDelMontaje;
+  /**
+   * Fase 38 del motor · LAS VERSIONES FINALES: los montajes hechos de esta producción que no son el de hoy, de más
+   * nuevo a más viejo. Se pueden ver y descargar; publicar, solo el de hoy.
+   */
+  readonly anteriores: readonly MontajeFinal[];
+  /** Fase 38 del motor: la dirección de una versión final, en el momento (la de su material). */
+  readonly direccionDe: DireccionDeMontaje;
   readonly pedir: () => void;
   readonly publicar: (destino: DestinoDelMontaje) => void;
 }
@@ -75,6 +87,7 @@ export const useMontajeFinal = (productionId: string | null, revision: number | 
   const [motivo, setMotivo] = useState<string | null>(null);
   const [limite, setLimite] = useState<number | null>(null);
   const [publicacion, setPublicacion] = useState<PublicacionDelMontaje>({ fase: 'nada' });
+  const [todos, setTodos] = useState<readonly MontajeFinal[]>([]);
   /* Cada producción y revisión abre una generación nueva: lo que llega tarde de la anterior no se pinta. */
   const generacion = useRef(0);
 
@@ -111,6 +124,7 @@ export const useMontajeFinal = (productionId: string | null, revision: number | 
         tomaService.huellaDelMontajeVigente(productionId, revision),
       ]);
       if (gen !== generacion.current) return;
+      setTodos(lista ?? []);
       const deLaRevision = lista?.find((m) => m.revision === revision) ?? null;
       /* Sin poder preguntar la huella de hoy, se sigue eligiendo por revisión, como antes: no se esconde lo que hay. */
       if (vigente === null) { await ponerMontaje(deLaRevision, gen); return; }
@@ -177,5 +191,8 @@ export const useMontajeFinal = (productionId: string | null, revision: number | 
   }, [productionId, montaje, cara, publicacion.fase]);
 
   const cabeEnUnWeel = !!montaje && montaje.state === 'completed' && montaje.durationSec > 0 && montaje.durationSec <= MAX_SEGUNDOS_DE_UN_WEEL;
-  return { fase, montaje, url, poster, motivo, limite, cabeEnUnWeel, publicacion, pedir, publicar };
+  /* Fase 38: los hechos que no son el de hoy, de más nuevo a más viejo (el servidor ya los manda así). */
+  const anteriores = todos.filter((m) => m.state === 'completed' && !!m.assetId && m.huella !== montaje?.huella);
+  const direccionDe = useCallback((m: MontajeFinal) => (m.assetId ? tomaService.urlDelMaterial(m.assetId) : Promise.resolve(null)), []);
+  return { fase, montaje, url, poster, motivo, limite, cabeEnUnWeel, publicacion, anteriores, direccionDe, pedir, publicar };
 };

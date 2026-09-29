@@ -1031,4 +1031,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsCueSettingSoon: '{{ajuste}}: non ancora disponibile',
   wsCueMixSoon: 'Le dissolvenze, il momento in cui inizia ogni suono e silenziarlo senza toglierlo arriveranno con il mix del montaggio (una modifica di contratto): oggi i suoni descritti si salvano, ma non suonano ancora.',
   wsGenerateInDirector: 'Il video di questa inquadratura si genera nella scheda «Weë AI Director».',
+  /* ── Fase 38 del motor: versiones finales y entregas ── */
+  wsFinalVersions: 'Versioni finali',
+  wsFinalVersionsNone: 'Non ci sono ancora montaggi precedenti.',
+  wsFinalVersionOf: 'Montaggio del {{fecha}}',
+  wsFinalVersion: 'Montaggio precedente',
+  wsFinalVersionsNote: 'Si possono scaricare; pubblicare, solo quello di oggi, che ha i video che ogni inquadratura ha oggi.',
+  wsPublishBoth: 'Sta in un Weël (fino a 15 s), e si può anche pubblicare intero nel Wäll.',
+  wsExportDeliveries: 'Consegne',
+  wsExportPosterPick: 'Scegli il fotogramma della locandina',
+  wsExportPosterPickSoon: 'Oggi la locandina si ricava da sola dal montaggio; scegliere il fotogramma arriverà con una modifica del render.',
+  wsExportMaster: 'Master per la color correction',
+  wsExportMasterSoon: 'Un master in qualità da studio arriverà quando il video potrà essere richiesto così e il montaggio lo conserverà.',
+  wsExportUpscale: 'Aumenta la risoluzione',
+  wsExportUpscaleSoon: 'Nessuno dei fornitori video di Weë oggi aumenta la risoluzione di un video: non esiste ancora.',
 };
