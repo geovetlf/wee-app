@@ -652,8 +652,18 @@ console.log('\n── W · R1: el precio antes de enviar, los atajos que solo re
   const conProp = (extra = {}) => espacioCon({ brain: brain({ fase: 'contesto', texto: 'Te propongo niebla.', propuesta: PROPUESTA, idDeLaPropuesta: 'wb_m_7', descartar: () => { descartes++; } }), revision: 3, onAplicarPropuesta: alAplicar, ...extra });
   const p0 = dibujar(hc(Caja2, { espacio: conProp() }));
   check('W14) cada cambio, en una frase: qué, dónde y el porqué de Weë Brain', /Cambiar el clima/.test(p0.texto) && /Escena 1/.test(p0.texto) && /Por qué: Más misterio\./.test(p0.texto) && /Alargar 1 s/.test(p0.texto));
+  /*
+   * Fase 34 del motor: con «así quedaría» a la vista (la propuesta está vigente y la app la reproduce), lo que deja por
+   * rehacer lo dice el resumen —cuántos planos, cuáles, y que se cotizan antes de generarlos— y no se repite con la
+   * frase de siempre; sin resumen (W15b), sigue la frase de siempre.
+   */
   check('W15) lo que cuesta aplicarla —nada— y lo que deja por rehacer, que se cotiza antes de generarlo',
-    /Aplicar estos cambios no cuesta Credits\./.test(p0.texto) && /volver a generar 2 planos; cada uno se cotiza antes de generarlo/.test(p0.texto));
+    /Aplicar estos cambios no cuesta Credits\./.test(p0.texto) && /Habría que generar 2 planos:/.test(p0.texto)
+    && /allí se cotiza cada plano antes de generar nada/.test(p0.texto) && !/volver a generar 2 planos/.test(p0.texto));
+  const sinResumen = dibujar(hc(Caja2, { espacio: conProp({ hayCambios: true }) }));
+  check('W15b) y sin «así quedaría» (hay cambios sin guardar), lo que deja por rehacer con la frase de siempre',
+    /Aplicar estos cambios no cuesta Credits\./.test(sinResumen.texto) && /volver a generar 2 planos; cada uno se cotiza antes de generarlo/.test(sinResumen.texto)
+    && !/Habría que generar 2 planos:/.test(sinResumen.texto));
   avisos.length = 0;
   boton(p0, 'Aplicar los cambios').tocar();
   await calma();

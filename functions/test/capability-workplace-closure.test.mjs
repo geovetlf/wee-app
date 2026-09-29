@@ -1073,7 +1073,10 @@ console.log('\n── X · Ni servidor, ni contratos, ni puertas; los once idiom
     }
   }
   check('X5) cada frase recibe exactamente sus huecos (un `{{numero}}` con `numero`, un plural con `contador`)', descuadres.length === 0, descuadres.slice(0, 5).join(' · '));
-  const bloque = ES_FM.slice(ES_FM.indexOf('/* ── Fase 31 del motor: cada capacidad, en su sitio ── */'));
+  /* Fase 34 del motor: el bloque de la Fase 31 acaba donde empieza el de la fase siguiente, si lo hay. */
+  const inicio31 = ES_FM.indexOf('/* ── Fase 31 del motor: cada capacidad, en su sitio ── */');
+  const siguiente = ES_FM.indexOf('/* ── Fase ', inicio31 + 1);
+  const bloque = ES_FM.slice(inicio31, siguiente < 0 ? undefined : siguiente);
   const nuevas = [...bloque.matchAll(/^ {2}([A-Za-z][A-Za-z0-9_]*): '/gm)].map((m) => m[1]);
   const IDIOMAS = ['es', 'en', 'de', 'fr', 'it', 'pt', 'pt-PT', 'ru', 'ko', 'zh', 'zh-TW'];
   const faltanEn = IDIOMAS.flatMap((l) => {

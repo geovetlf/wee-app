@@ -622,9 +622,19 @@ console.log('\n── D · En el Director: la sección, donde estaba el «Genera
   const PS = sinComentarios(leer('screens/ProductionScreen.tsx'));
   check('D3) la pantalla da el lote al espacio, sobre lo GUARDADO y parado mientras hay cambios o algo en curso',
     /const lote = useLoteDeTomas\(estado\.confirmada, hayCambios \|\| !!ocupado, delLote\.unidades, delLote\.recortado\);/.test(PS) && /\n\s+lote,\n/.test(PS));
+  /*
+   * Fase 34 del motor: la regla vive en `utils/unidadesDelLote.ts` (que también sabe pedir una sola escena), así que se
+   * comprueba haciéndola funcionar —la producción entera, sin escena—, y que la pantalla la usa.
+   */
+  const { unidadesDelLote } = cargar('utils/unidadesDelLote.ts');
+  const MAX = cargar('utils/controladorDeToma.ts').MAX_UNIDADES_POR_LOTE;
+  const muchos = Array.from({ length: MAX + 3 }, (_, i) => ({ id: `sh-9${String(i).padStart(3, '0')}`, order: i, durationSec: 4 }));
+  const grande = produccionUI({ scenes: [{ id: 'sc-0009', order: 0, title: 'Larga', shots: muchos }] });
+  const recorte = unidadesDelLote(grande, new Map([[muchos[0].id, {}], [muchos[1].id, {}]]));
   check('D4) si no caben todas las unidades, van las primeras que no tienen vídeo, en su orden',
-    /if \(todas\.length <= MAX_UNIDADES_POR_LOTE\) return \{ unidades: undefined, recortado: null \};/.test(PS)
-    && /todas\.filter\(\(id\) => !videos\.has\(id\)\)\.slice\(0, MAX_UNIDADES_POR_LOTE\)/.test(PS));
+    recorte.recortado === MAX && recorte.unidades.length === MAX && recorte.unidades[0] === muchos[2].id && !recorte.unidades.includes(muchos[0].id)
+    && JSON.stringify(unidadesDelLote(produccionUI(), new Map())) === JSON.stringify({ unidades: undefined, recortado: null })
+    && /unidadesDelLote\(vista, videos, escenaVigente\)/.test(PS), JSON.stringify(recorte).slice(0, 200));
   const TABS = sinComentarios(leer('components/studio/produccion/ProductionDirectorTabs.tsx'));
   const MOVIL = sinComentarios(leer('components/studio/produccion/ProductionMobileEditor.tsx'));
   check('D5) en el escritorio y en el teléfono', /lote=\{espacio\.lote\}/.test(TABS) && /lote=\{espacio\.lote\}/.test(MOVIL));

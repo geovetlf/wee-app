@@ -628,8 +628,11 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * escenas» (`studio.refsNotInProduction`)—, en los once a la vez.
    * Fase 33 del motor, 2026-09-29 (R15): +2 —la toma que se está comprobando (`takeReconciling`) y su estado en el
    * visor (`workspace.statusChecking`)—, en los once a la vez.
+   * Fase 34 del motor, 2026-09-29 (Weë AI Director con propuestas estructuradas): +36 —las puertas rápidas
+   * (`wsBrainQuick*`), empezar (`wsBrainStart*`), «así quedaría» (`wsBrainSummary*`), tras aplicar
+   * (`wsBrainAppliedNext`, `wsBrainSeePrice`) y el lote de una escena (`wsBatchScope*`)—, en los once a la vez.
    */
-  const CLAVES_PT = 3559;
+  const CLAVES_PT = 3595;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

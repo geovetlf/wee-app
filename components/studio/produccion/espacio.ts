@@ -55,6 +55,13 @@ export interface EspacioDeFilmmaker {
   readonly montaje: MontajeDeLaProduccion;
   /** Fase 29 · la producción entera: el lote de la Fase 6 (mirar qué pasaría y cuánto cuesta, y generar). */
   readonly lote?: LoteDeTomas;
+  /**
+   * Fase 34 · qué entra en el lote: la producción entera (`null`) o solo una escena («Generar esta escena»). Es el
+   * mismo lote por la misma puerta; cambia qué unidades se le piden.
+   */
+  readonly alcanceDelLote?: { readonly escena: string | null; readonly elegir: (escena: string | null) => void };
+  /** Fase 34 · llevar a «Generar la producción», donde está el precio de lo que hay que generar (tras aplicar una propuesta). */
+  readonly onIrAGenerar?: () => void;
   /** Fase 20 · la revisión GUARDADA: con ella se sabe si una propuesta de Weë Brain sigue valiendo. */
   readonly revision?: number | null;
   /** Fase 20 · sus versiones, para volver a una. */
@@ -97,6 +104,13 @@ export const elegidoDe = (prod: FilmmakerProduction, seleccion: Seleccion): Eleg
   }
   const e = buscarEscena(prod, seleccion.id);
   return e ? { escena: e.scene, numeroDeEscena: e.index + 1, unitId: e.scene.id } : null;
+};
+
+/** La escena de lo elegido: la del plano, o ella misma (Fase 34, «Generar esta escena»). */
+export const escenaDeLaSeleccion = (prod: FilmmakerProduction, seleccion: Seleccion): string | null => {
+  if (!seleccion) return null;
+  if (seleccion.tipo === 'escena') return buscarEscena(prod, seleccion.id) ? seleccion.id : null;
+  return buscarPlano(prod, seleccion.id)?.scene.id ?? null;
 };
 
 /** La selección de una unidad de la línea de tiempo: un plano, o la escena si no tiene planos. */

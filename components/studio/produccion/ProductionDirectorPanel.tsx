@@ -13,6 +13,8 @@ import ProductionInspector from './ProductionInspector';
 import ProductionAudio from './ProductionAudio';
 import ProductionShotGeneration from './ProductionShotGeneration';
 import type { Seleccion } from './ProductionStoryboard';
+import { escenaDeLaSeleccion } from './espacio';
+import type { EspacioDeFilmmaker } from './espacio';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import type { HistorialDeTomas } from '../../../hooks/useTomasDelPlano';
 import type { VideoDelPlano } from '../../../utils/controladorDeToma';
@@ -62,7 +64,9 @@ const ProductionDirectorPanel: React.FC<{
   video?: VideoDelPlano | null;
   /** Fase 29 · la producción entera (el lote de la Fase 6). Sin él, esta sección no se pinta. */
   lote?: LoteDeTomas;
-}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma, historial, video, lote }) => {
+  /** Fase 34 · la producción entera o solo la escena elegida. */
+  alcanceDelLote?: EspacioDeFilmmaker['alcanceDelLote'];
+}> = ({ produccion, seleccion, recomendaciones, lista, porRehacer, rechazadas, editable, onGesto, onRechazar, toma, historial, video, lote, alcanceDelLote }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const direccion = produccion.creativeDirection;
@@ -172,7 +176,12 @@ const ProductionDirectorPanel: React.FC<{
 
       {!!lote && (
         <Seccion titulo={t('filmmaker.wsBatchTitle')}>
-          <ProductionLote lote={lote} produccion={produccion} editable={editable} />
+          <ProductionLote
+            lote={lote}
+            produccion={produccion}
+            editable={editable}
+            alcance={alcanceDelLote ? { elegida: escenaDeLaSeleccion(produccion, seleccion), escena: alcanceDelLote.escena, elegir: alcanceDelLote.elegir } : undefined}
+          />
         </Seccion>
       )}
     </View>

@@ -1834,6 +1834,28 @@ Pruebas: `functions/test/filmmaker-riesgos.test.mjs` (en la cadena): cada riesgo
 la toma que se comprueba en el servidor y en la app, y las guardas. La matriz maestra dice cada uno cerrado, y su suite
 compara la tabla de riesgos con el código.
 
+### Fase 34 · Weë AI Director con propuestas estructuradas
+
+Encargo del usuario (2026-09-29, «Fase 32 en adelante», punto 6): una propuesta de Weë Brain tiene que decir qué
+cambia, por qué, qué planos afecta, qué habría que generar y dónde está su precio, y seguir el camino propuesta →
+cómo quedaría → aplicar → precio → confirmar → generar; y una producción vacía empieza por la propuesta de escenas.
+Sin tocar el servidor, ni F1-A, ni la puerta de Weë Brain (regla 10: el mismo Weë Brain, otras puertas).
+
+- **Así quedaría** (`utils/resumenDePropuesta.ts`): la propuesta se aplica EN MEMORIA con el F1-A del espejo —ni se
+  guarda, ni se cobra— y la tarjeta enseña escenas, planos y duración antes y después, y qué planos habría que
+  generar, por su nombre, con sus segundos, si es nuevo, si lleva diálogo y cuántas referencias. Si la producción ya
+  no está en la revisión en que se comprobó, no se enseña. El precio no se calcula en la app: se ve después de
+  aplicar, en «Generar la producción» (el coste antes de aplicar es un contrato: N05).
+- **Las puertas rápidas** (`utils/atajosDelDirector.ts`): proponer escenas, proponer planos (de la escena elegida),
+  revisar, explicar, la continuidad, mejorar el plano elegido, su cobertura y convertir un guion. Cada una RELLENA la
+  caja; enviar sigue siendo de la persona, con su precio. En una producción vacía, «Empieza por aquí».
+- **Ver el precio**: tras aplicar, la caja dice dónde está el precio de lo que hay que generar; en escritorio, un
+  botón lleva a la pestaña «Producción».
+- **Generar esta escena** (`utils/unidadesDelLote.ts`): el lote de la Fase 29 puede pedir solo las unidades de la
+  escena elegida —el servidor ya lo sabía (`units`)—, con el mismo precio y la misma confirmación.
+
+Pruebas: `functions/test/filmmaker-director.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

@@ -28,8 +28,8 @@ import ProductionList from '../components/studio/produccion/ProductionList';
 import ProductionNewCard from '../components/studio/produccion/ProductionNewCard';
 import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import type { FilmmakerOperation } from '../services/filmmaker/dominio';
-import { LIMITES, unidades } from '../services/filmmaker/dominio';
-import { MAX_UNIDADES_POR_LOTE } from '../utils/controladorDeToma';
+import { LIMITES } from '../services/filmmaker/dominio';
+import { unidadesDelLote } from '../utils/unidadesDelLote';
 import { esEditable, hayCambiosSinGuardar } from '../utils/produccionOptimista';
 import { estadosDeLaProduccion, tituloDesdeLaIdea } from '../utils/presentacionDeProduccion';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
@@ -113,6 +113,8 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const [seleccion, setSeleccion] = useState<Seleccion>(null);
   const [rechazadas, setRechazadas] = useState<ReadonlySet<string>>(new Set());
   const [exportando, setExportando] = useState(false);
+  /* Fase 34 del motor: el lote de la producción entera (`null`) o el de una escena. */
+  const [escenaDelLote, setEscenaDelLote] = useState<string | null>(null);
   const ids = useMemo(() => ({ escena: nuevoIdDeEscena, plano: nuevoIdDePlano }), []);
   /* Los ids de un sonido y de una línea nuevos, como los de una escena o un plano: los pone el cliente, una vez. */
   const idsDelMontaje = useMemo(() => ({ sonido: nuevoIdDeSonido, linea: nuevoIdDeLinea }), []);
@@ -152,11 +154,9 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
    * Fase 29 del motor: la producción entera (el lote de la Fase 6). Si caben todas sus unidades en un lote, van todas
    * y el servidor dice de cada una qué pasaría; si no, las primeras que todavía no tienen vídeo, en su orden.
    */
-  const delLote = useMemo(() => {
-    const todas = vista ? unidades(vista).map((u) => u.unitId) : [];
-    if (todas.length <= MAX_UNIDADES_POR_LOTE) return { unidades: undefined, recortado: null };
-    return { unidades: todas.filter((id) => !videos.has(id)).slice(0, MAX_UNIDADES_POR_LOTE), recortado: MAX_UNIDADES_POR_LOTE };
-  }, [vista, videos]);
+  /* Fase 34: y, si se elige, solo las de una escena («Generar esta escena»). Una escena que ya no existe vuelve a «toda». */
+  const escenaVigente = escenaDelLote && vista?.scenes.some((s) => s.id === escenaDelLote) ? escenaDelLote : null;
+  const delLote = useMemo(() => unidadesDelLote(vista, videos, escenaVigente), [vista, videos, escenaVigente]);
   const lote = useLoteDeTomas(estado.confirmada, hayCambios || !!ocupado, delLote.unidades, delLote.recortado);
   /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain dentro del editor, sobre lo GUARDADO. */
   const historial = useHistorialDeProduccion(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
@@ -241,6 +241,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       historialDeTomas,
       montaje,
       lote,
+      alcanceDelLote: { escena: escenaVigente, elegir: setEscenaDelLote },
       revision: estado.confirmada?.revision ?? null,
       historial,
       onRestaurar: (revision) => { void alRestaurar(revision); },

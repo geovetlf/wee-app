@@ -55,6 +55,8 @@ const ProductionWorkspace: React.FC<{
   const { t } = useIdioma();
   const { isDesktop, width } = useResponsive();
   const [pestanaDirector, setPestanaDirector] = useState<PestanaDelDirector>('director');
+  /* Fase 34 del motor: tras aplicar una propuesta de Weë Brain, «Ver el precio» lleva a «Generar la producción». */
+  const espacioDelDirector = useMemo(() => ({ ...espacio, onIrAGenerar: () => setPestanaDirector('produccion') }), [espacio]);
   const [pestanaMontaje, setPestanaMontaje] = useState<PestanaDelMontaje>('linea');
   const [centro, setCentro] = useState<'visor' | 'storyboard'>('visor');
   const [hoja, setHoja] = useState<'guion' | null>(null);
@@ -132,7 +134,7 @@ const ProductionWorkspace: React.FC<{
           {centroVisible}
         </ScrollView>
         <View style={[styles.director, { width: anchoLateral, borderLeftColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-          <ProductionDirectorTabs espacio={espacio} pestana={pestanaDirector} onPestana={setPestanaDirector} />
+          <ProductionDirectorTabs espacio={espacioDelDirector} pestana={pestanaDirector} onPestana={setPestanaDirector} />
         </View>
       </View>
       <View style={[styles.abajo, { borderTopColor: theme.colors.border }]}>

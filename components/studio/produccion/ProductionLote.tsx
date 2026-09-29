@@ -23,7 +23,19 @@ const isWeb = Platform.OS === 'web';
  * contra el saldo; y solo entonces se genera, preguntando antes con el total delante. Solo pinta lo que dice el lote
  * (`hooks/useLoteDeTomas.ts`): aquí no se suma, no se cobra y no se llama a nadie.
  */
-const ProductionLote: React.FC<{ lote: LoteDeTomas; produccion: FilmmakerProduction; editable: boolean }> = ({ lote, produccion, editable }) => {
+/**
+ * Fase 34 del motor, «Generar esta escena»: con una escena elegida se puede pedir solo la suya. Es el mismo lote por la
+ * misma puerta (`units`), con su precio y su confirmación; solo cambia qué unidades se piden.
+ */
+export interface AlcanceDelLote {
+  /** La escena de lo elegido en el editor; sin ella, y sin una escena ya puesta, no hay nada que elegir. */
+  readonly elegida: string | null;
+  /** La del lote ahora: `null` es la producción entera. */
+  readonly escena: string | null;
+  readonly elegir: (escena: string | null) => void;
+}
+
+const ProductionLote: React.FC<{ lote: LoteDeTomas; produccion: FilmmakerProduction; editable: boolean; alcance?: AlcanceDelLote }> = ({ lote, produccion, editable, alcance }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const { fase, calidad } = lote;
@@ -55,6 +67,15 @@ const ProductionLote: React.FC<{ lote: LoteDeTomas; produccion: FilmmakerProduct
     }
   };
   const sinSaldo = !!presupuesto && presupuesto.balance !== null && !presupuesto.enough;
+  /* Toda la producción, la escena del lote si ya se eligió una, y la de lo elegido ahora: sin repetir. */
+  const opcionesDeAlcance = alcance
+    ? [
+      { id: null as string | null, etiqueta: t('filmmaker.wsBatchScopeAll') },
+      ...[alcance.escena, alcance.elegida]
+        .filter((x, i, xs): x is string => !!x && xs.indexOf(x) === i && !!buscarEscena(produccion, x))
+        .map((id) => ({ id: id as string | null, etiqueta: t('filmmaker.wsBatchScopeScene', { escena: (buscarEscena(produccion, id)?.index ?? 0) + 1 }) })),
+    ]
+    : [];
 
   const alGenerar = async () => {
     if (fase.fase !== 'presupuesto') return;
@@ -76,6 +97,35 @@ const ProductionLote: React.FC<{ lote: LoteDeTomas; produccion: FilmmakerProduct
   return (
     <View style={styles.bloque}>
       {nota(t('filmmaker.wsBatchIntro'))}
+      {!!alcance && opcionesDeAlcance.length > 1 && (
+        <>
+          <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBatchScopeNote')}</Text>
+          <View style={styles.opciones}>
+            {opcionesDeAlcance.map((o) => {
+              const esta = alcance.escena === o.id;
+              return (
+                <TouchableOpacity
+                  key={o.id ?? 'toda'}
+                  onPress={() => alcance.elegir(o.id)}
+                  disabled={pidiendo}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={o.etiqueta}
+                  accessibilityState={{ selected: esta, disabled: pidiendo }}
+                  style={[
+                    styles.opcion,
+                    { backgroundColor: esta ? theme.colors.accent : theme.colors.card, borderColor: esta ? theme.colors.accent : theme.colors.border },
+                    pidiendo && { opacity: OPACITY.disabled },
+                    isWeb && ({ cursor: pidiendo ? 'default' : 'pointer' } as any),
+                  ]}
+                >
+                  <Text style={[styles.opcionTexto, { color: esta ? '#1F2937' : theme.colors.text }]} numberOfLines={1}>{o.etiqueta}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
       <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{t('filmmaker.takeQuality')}</Text>
       <View style={styles.opciones}>
         {CALIDADES_DE_TOMA.map((c) => {

@@ -5,21 +5,21 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import CajaDePrompt from '../../creator/CajaDePrompt';
 import { BotonPequeno, Seccion } from './ProductionPiezas';
+import { elegidoDe } from './espacio';
 import type { EspacioDeFilmmaker } from './espacio';
+import { atajosDelDirector } from '../../../utils/atajosDelDirector';
+import { resumirPropuesta } from '../../../utils/resumenDePropuesta';
 import { describirPropuesta } from '../../../utils/describirOperacion';
 import { fraseDelFallo, fraseDelProblema } from '../../../utils/mensajesDeFilmmaker';
 import { notify } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
-/**
- * Los atajos: RELLENAN la caja con una petición, y nada más. Enviarla sigue siendo de la persona, con su precio a la
- * vista (Fase 22 del motor): Weë Brain nunca hace nada que cueste sin que se lo pidan.
+/*
+ * Los atajos (`utils/atajosDelDirector.ts`, Fase 34): RELLENAN la caja con una petición, y nada más. Enviarla sigue
+ * siendo de la persona, con su precio a la vista (Fase 22 del motor): Weë Brain nunca hace nada que cueste sin que se
+ * lo pidan. Cuáles se enseñan depende de la producción y de lo elegido.
  */
-const ATAJOS: readonly { clave: string; texto: string; icono: string }[] = [
-  { clave: 'filmmaker.wsBrainQuickScenes', texto: 'filmmaker.wsBrainQuickScenesText', icono: 'albums-outline' },
-  { clave: 'filmmaker.wsBrainQuickReview', texto: 'filmmaker.wsBrainQuickReviewText', icono: 'search-outline' },
-];
 
 /**
  * «PÍDESELO A WEË BRAIN», dentro del editor (Filmmaker Engine, Fase 20; la propuesta es la de la Fase 9).
@@ -45,8 +45,17 @@ const ProductionBrainBox: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const [texto, setTexto] = useState('');
-  const { brain, editable, hayCambios, revision, produccion, onAplicarPropuesta, ocupado } = espacio;
+  const { brain, editable, hayCambios, revision, produccion, onAplicarPropuesta, ocupado, seleccion, onIrAGenerar } = espacio;
   const cotizar = brain?.cotizar;
+  /* Fase 34: tras aplicar, dónde está el precio de lo que hay que generar. Se olvida al escribir o al llegar otra propuesta. */
+  const [aplicada, setAplicada] = useState(false);
+  const elegido = elegidoDe(produccion, seleccion);
+  const numeroDeEscena = elegido?.numeroDeEscena;
+  const numeroDePlano = elegido?.numeroDePlano;
+  const atajos = useMemo(
+    () => atajosDelDirector(produccion, numeroDeEscena ? { escena: numeroDeEscena, ...(numeroDePlano ? { plano: numeroDePlano } : {}) } : null),
+    [produccion, numeroDeEscena, numeroDePlano],
+  );
 
   /* El precio de lo que hay escrito: el hook espera a que se pare de escribir y lo pregunta. */
   useEffect(() => {
@@ -58,6 +67,11 @@ const ProductionBrainBox: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio
     () => (propuesta ? describirPropuesta(propuesta.operations, propuesta.reasons, produccion, t, formato) : []),
     [propuesta, produccion, t, formato],
   );
+  /* Fase 34: cómo quedaría, con el F1-A del espejo y en memoria: ni se guarda, ni se cobra, ni lo ve nadie más. */
+  const resumen = useMemo(() => (propuesta ? resumirPropuesta(produccion, propuesta) : null), [propuesta, produccion]);
+  useEffect(() => {
+    if (propuesta || texto) setAplicada(false);
+  }, [propuesta, texto]);
   if (!brain) return null;
   const vigente = !!propuesta && revision === propuesta.baseRevision && !hayCambios;
   const pensando = brain.fase === 'pensando';
@@ -78,6 +92,7 @@ const ProductionBrainBox: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio
     if (r.ok) {
       notify(t('filmmaker.wsBrainApplied'));
       brain.descartar();
+      setAplicada(true);
       return;
     }
     if (r.motivo === 'cambio') { notify(t('filmmaker.wsBrainStale')); return; }
@@ -108,10 +123,16 @@ const ProductionBrainBox: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio
 
   return (
     <Seccion titulo={t('filmmaker.wsBrainTitle')}>
+      {!produccion.scenes.length && (
+        <View style={[styles.inicio, { borderColor: theme.colors.accent, backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.titulo, { color: theme.colors.text }]}>{t('filmmaker.wsBrainStartTitle')}</Text>
+          <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainStartText')}</Text>
+        </View>
+      )}
       {editable && (
         <View style={styles.atajos}>
-          {ATAJOS.map((a) => (
-            <BotonPequeno key={a.clave} icono={a.icono} etiqueta={t(a.clave)} onPress={() => setTexto(t(a.texto))} conTexto />
+          {atajos.map((a) => (
+            <BotonPequeno key={a.id} icono={a.icono} etiqueta={t(a.clave)} onPress={() => setTexto(t(a.texto, a.valores))} conTexto principal={a.principal} />
           ))}
         </View>
       )}
@@ -146,14 +167,62 @@ const ProductionBrainBox: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio
               </View>
             </View>
           ))}
+          {vigente && !!resumen && (
+            <View style={[styles.resumen, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.accion, { color: theme.colors.text }]}>{t('filmmaker.wsBrainSummaryTitle')}</Text>
+              <Text style={[styles.nota, { color: theme.colors.text }]}>
+                {formato.lista([
+                  t('filmmaker.wsBrainSummaryScenes', { antes: formato.numero(resumen.antes.escenas), despues: formato.numero(resumen.despues.escenas) }),
+                  t('filmmaker.wsBrainSummaryShots', { antes: formato.numero(resumen.antes.planos), despues: formato.numero(resumen.despues.planos) }),
+                  t('filmmaker.wsBrainSummaryDuration', {
+                    antes: t('filmmaker.wsSecondsShort', { segundos: formato.numero(resumen.antes.segundos) }),
+                    despues: t('filmmaker.wsSecondsShort', { segundos: formato.numero(resumen.despues.segundos) }),
+                  }),
+                ])}
+              </Text>
+              {resumen.afectados.length > 0 && (
+                <Text style={[styles.nota, { color: theme.colors.text }]}>{t('filmmaker.wsBrainSummaryToGenerate', { contador: resumen.afectados.length })}</Text>
+              )}
+              {resumen.afectados.map((a) => {
+                const plano = a.plano !== undefined ? t('filmmaker.whereShot', { escena: a.escena, plano: a.plano }) : t('filmmaker.whereScene', { escena: a.escena });
+                const segundos = t('filmmaker.wsSecondsShort', { segundos: formato.numero(a.segundos) });
+                const detalles = [
+                  ...(a.nuevo ? [t('filmmaker.wsBrainSummaryNew')] : []),
+                  ...(a.conSonido ? [t('filmmaker.wsBrainSummaryWithSound')] : []),
+                  ...(a.lineas > 0 ? [t('filmmaker.dialogueLines', { contador: a.lineas })] : []),
+                  ...(a.referencias > 0 ? [t('filmmaker.wsBrainSummaryRefs', { contador: a.referencias })] : []),
+                ];
+                return (
+                  <Text key={a.unitId} style={[styles.nota, { color: theme.colors.textSecondary }]}>
+                    {'• '}{detalles.length
+                      ? t('filmmaker.wsBrainSummaryShotWith', { plano, segundos, detalles: formato.lista(detalles) })
+                      : t('filmmaker.wsBrainSummaryShot', { plano, segundos })}
+                  </Text>
+                );
+              })}
+              {resumen.quitados > 0 && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainSummaryRemoved', { contador: resumen.quitados })}</Text>}
+              <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainSummaryPrice')}</Text>
+            </View>
+          )}
+          {vigente && !resumen && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainSummaryUnavailable')}</Text>}
           <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainApplyFree')}</Text>
-          {porRehacer > 0 && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainRedo', { contador: porRehacer })}</Text>}
+          {porRehacer > 0 && !(vigente && resumen) && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsBrainRedo', { contador: porRehacer })}</Text>}
           {!vigente && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{hayCambios ? t('filmmaker.saveFirst') : t('filmmaker.wsBrainStale')}</Text>}
           {aplicando && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.busyApplying')}</Text>}
           <View style={styles.acciones}>
             <BotonPequeno icono="checkmark" etiqueta={t('filmmaker.wsBrainApply')} onPress={() => { void aplicar(); }} disabled={!vigente || !editable || aplicando} conTexto principal />
             <BotonPequeno icono="close" etiqueta={t('filmmaker.wsBrainDiscard')} onPress={brain.descartar} disabled={aplicando} conTexto />
           </View>
+        </View>
+      )}
+      {aplicada && !propuesta && (
+        <View style={[styles.propuesta, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.nota, { color: theme.colors.text }]}>{t('filmmaker.wsBrainAppliedNext')}</Text>
+          {!!onIrAGenerar && (
+            <View style={styles.acciones}>
+              <BotonPequeno icono="calculator-outline" etiqueta={t('filmmaker.wsBrainSeePrice')} onPress={onIrAGenerar} conTexto />
+            </View>
+          )}
         </View>
       )}
       {brain.fase === 'contesto' && brain.sinPropuesta && (
@@ -180,6 +249,8 @@ const styles = StyleSheet.create({
   detalle: { fontSize: FONT_SIZE.sm },
   acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   atajos: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  inicio: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, gap: SPACING.xs },
+  resumen: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: SPACING.sm, gap: 2 },
   precio: { flexDirection: 'row', flexWrap: 'wrap', columnGap: SPACING.sm, rowGap: 2 },
   fuerte: { fontWeight: FONT_WEIGHT.semibold as any },
 });

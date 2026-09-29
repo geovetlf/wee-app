@@ -182,6 +182,7 @@ const ProductionDirectorTabs: React.FC<{
             onGesto={onGesto}
             onRechazar={onRechazar}
             lote={espacio.lote}
+            alcanceDelLote={espacio.alcanceDelLote}
           />
         )}
       </ScrollView>

@@ -106,6 +106,8 @@ const CODIGO = [
   'utils/mensajesDeFilmmaker.ts', 'utils/presentacionDeProduccion.ts', 'utils/borradorDeProduccion.ts',
   /* Fase 22 del motor (auditoría final del 2026-09-28, R1): lo que propone Weë Brain, dicho en frases, también pide claves. */
   'utils/describirOperacion.ts',
+  /* Fase 34 del motor: las puertas rápidas de Weë AI Director, que eligen según la producción y lo elegido. */
+  'utils/atajosDelDirector.ts',
 ];
 const pedidas = [...new Set(CODIGO.flatMap((f) => [...leer(f).matchAll(/'filmmaker\.([A-Za-z][A-Za-z0-9_]*)'/g)].map((m) => m[1])))];
 const sinTexto = pedidas.filter((k) => !ES.has(k) && !ES.has(`${k}_one`));
