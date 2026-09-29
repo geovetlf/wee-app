@@ -127,6 +127,15 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * Weë Brain en el editor de producciones. El texto del plano (`creator/plano.ts`) no cambia ni una coma.
    */
   'functions/src/core/creative.ts',
+  /*
+   * Fase 18 · las referencias de los Elements, preparadas y cerradas (mismo encargo: «referencias de Elements, canary,
+   * sin gasto real»): un módulo NUEVO que saca los vínculos del plano del requisito del SERVIDOR, lee cada Element por
+   * su runtime y sus materiales de imagen por el Content Core, y decide —puro— si se usarían: hace falta la puerta de
+   * la cuenta abierta (`aiSettings/referencias`, cerrada) Y un modelo validado (la lista está VACÍA, en el código). La
+   * puerta del vídeo (`creator/video.ts`, nombrada por las vallas de F1-D) solo lo CUENTA al cotizar. Ni una capacidad
+   * nueva al Core, ni un proveedor, ni Credits: la toma sigue siendo `video.generate` con el texto de siempre.
+   */
+  'functions/src/creator/referenciasDeElementos.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

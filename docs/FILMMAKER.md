@@ -1279,6 +1279,38 @@ del Core: `versionCreativaNecesaria`) e `i18n-preferencia-usuario` (`CLAVES_PT` 
 
 Pruebas: `functions/test/filmmaker-camara-v2.test.mjs` (en la cadena).
 
+### Fase 18 · Las referencias de los Elements: preparadas, y cerradas
+
+Encargo del usuario (2026-09-28): referencias de Elements, como canary y sin gastar dinero real. La Fase 10 dejó los
+vínculos verificados y dijo que usar las imágenes de un Element al generar era una capacidad sin validar. Esto es todo
+lo que ese canary necesita, sin hacerlo (`creator/referenciasDeElementos.ts`):
+
+- **Qué se usaría**: los vínculos del plano, sacados del requisito que calcula el SERVIDOR desde la producción guardada
+  (`requisitosDelServidor`), nunca del que manda la app. Van en su orden —el sujeto primero, luego los personajes, el
+  lugar y los objetos—, sin repetir un Element y con un tope de ocho.
+- **Con qué imágenes**: cada Element se lee por su runtime (`leerElemento`: de la cuenta o nada). Uno archivado, en otra
+  versión que la del vínculo o borrado se descarta, y se dice por qué. De cada uno, solo materiales de IMAGEN, listos y
+  de la cuenta (por el Content Core), la principal primero y luego las de referencia; las de apoyo, no. Cuatro por toma
+  como mucho, repartidas en el orden de los vínculos, y el mismo material cuenta una vez.
+- **Si se usarían**: una decisión pura. Hace falta la puerta de la cuenta ABIERTA (`aiSettings/referencias`,
+  `{ referenciasDeElementos: true, cuentas | todas }`, cerrada por defecto; una lista vacía no abre) Y que el modelo de
+  la toma esté en `MODELOS_VALIDADOS_CON_REFERENCIAS`, que está **VACÍA** y en el código: la configuración puede cerrar
+  la puerta, pero nunca ampliar esa lista.
+- **Dónde se ve**: la puerta del vídeo lo CUENTA al cotizar (`elementReferences: { bound, images, used, reason }`),
+  solo si el plano tiene vínculos; sin ellos, la cotización no gana ni un campo. Hoy dice `gate_closed`, o
+  `model_not_validated` con la puerta abierta, o `no_images`. Generar no cambia nada: la toma sigue siendo
+  `video.generate`, con el texto de siempre, el mismo precio y ni una imagen de referencia.
+
+**Lo que falta para usarlas de verdad, y requiere al usuario**:
+- **Una capacidad más para el Core.** La puerta del vídeo declara UNA capacidad para el Core (`CAPACIDAD_DEL_CANARY =
+  'video.generate'`), y un vídeo con imágenes de referencia es otra (`video.reference`, que el adaptador de Seedance ya
+  sabe pedir para Weë Studio). Ampliar lo que esa puerta manda al Core pide una autorización explícita (CLAUDE.md,
+  regla 10).
+- **Un canary real con gasto.** Hay que comprobar el vídeo que sale y lo que cobra ModelArk con referencias, y entonces
+  poner ese modelo en la lista (un cambio de código).
+
+Pruebas: `functions/test/filmmaker-referencias.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

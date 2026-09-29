@@ -25,6 +25,7 @@ import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
 import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance, resolveResolution } from '../engine/providers/seedance';
 import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
+import { referenciasDeLaToma } from './referenciasDeElementos';
 import {
   MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerIdentidadDeToma, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
 } from './toma';
@@ -601,6 +602,14 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
         return { status: 'QUOTED', allowed: false, reason: 'model_unavailable', qualities: calidades, takes: await estadoDeLaToma(deToma) };
       }
       if (cotizar) {
+        /*
+         * FASE 18 DEL MOTOR · LAS REFERENCIAS DE LOS ELEMENTS, SOLO CONTADAS: si el plano tiene vínculos a Elements,
+         * cuántos, cuántas imágenes se usarían y por qué no se usan (la puerta cerrada, o el modelo sin validar). No
+         * cambia nada de la toma: sigue siendo `video.generate` con el texto de siempre. Sin vínculos, ni el campo.
+         */
+        const referencias = await referenciasDeLaToma(getFirestore(), deToma.accountId, {
+          productionId: deToma.productionId, sceneId: deToma.sceneId, unitId: deToma.unitId, revision: deToma.revision,
+        }, { modelo: price.model }).catch(() => null);
         return {
           status: 'QUOTED',
           allowed: true,
@@ -615,6 +624,7 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
           },
           qualities: calidades,
           takes: await estadoDeLaToma(deToma),
+          ...(referencias ? { elementReferences: referencias } : {}),
         };
       }
       /* Se genera por lo que se enseñó: si el precio cambió, no se reserva y se vuelve a cotizar. */
