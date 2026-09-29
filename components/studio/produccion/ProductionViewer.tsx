@@ -33,7 +33,7 @@ interface ElementoDeTira {
 /**
  * EN QUÉ ESTÁ EL VÍDEO DEL PLANO ELEGIDO, dicho como lo vive la persona: se está
  * preparando, se está haciendo, está listo, no salió —y sus Credits volvieron—
- * o se están devolviendo. Sale de la toma de F1-D tal cual; aquí no se decide
+ * o se están devolviendo, o se está comprobando cómo acabó. Sale de la toma de F1-D tal cual; aquí no se decide
  * nada. Sin nada que contar, no se pinta.
  */
 const estadoDeLaToma = (toma: TomaDelPlano): { estado: EstadoVisible; reembolsados?: number } | null => {
@@ -41,6 +41,8 @@ const estadoDeLaToma = (toma: TomaDelPlano): { estado: EstadoVisible; reembolsad
   if (f === 'pidiendo') return { estado: 'preparando' };
   if (f === 'en_proceso' || f === 'terminando') return { estado: 'generando' };
   if (f === 'cerrando') return { estado: 'devolviendo' };
+  /* R15 (Fase 33): no se sabe cómo acabó; sus Credits siguen apartados. */
+  if (f === 'comprobando') return { estado: 'comprobando' };
   if (toma.ultima?.estado === 'fallida') {
     const devueltos = toma.economia?.reembolsados ?? 0;
     return toma.ultima.pendiente ? { estado: 'devolviendo' } : { estado: devueltos > 0 ? 'reembolsado' : 'fallido', reembolsados: devueltos };

@@ -92,4 +92,5 @@ export const workspace = {
   statusRefunded: 'No pudimos generar este vídeo, y tus Credits volvieron.',
   statusRefundedDetail: 'Los {{credits}} Credits reservados fueron reembolsados.',
   statusRefunding: 'Estamos terminando de devolver tus Credits.',
+  statusChecking: 'Estamos comprobando cómo acabó este vídeo. Tus Credits siguen apartados hasta saberlo.',
 };

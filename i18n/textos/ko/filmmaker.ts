@@ -330,6 +330,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeFailUnknown: '생성을 완료할 수 없었어요. Credits를 환불했어요.',
   takeFailUnknownPending: '생성을 완료할 수 없었어요. Credits를 환불하는 중이에요.',
   takeClosing: '이 테이크는 실패했어요. 해당 Credits를 환불하는 중이며, 몇 분 정도 걸려요.',
+  takeReconciling: '이 테이크가 어떻게 끝났는지 아직 몰라요. 제공업체에 확인하는 중이에요. 확인될 때까지 Credits는 따로 보관되고, 성공했다면 숏에 나타나고 아니라면 Credits가 돌아와요.',
   takeStop: '테이크 중지',
   takeStopConfirmTitle: '이 테이크를 중지할까요?',
   takeStopConfirmText: '제공업체가 아직 시작하지 않았다면 중지되고 예약된 Credits가 돌아와요. 이미 작업 중이라면 끝까지 진행되고 평소처럼 청구돼요.',

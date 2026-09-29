@@ -155,7 +155,12 @@ export interface TomasDelPlano {
      * terminó y la liquidación todavía no pasó. Con esto no se dice «en proceso»
      * de algo que ya no se está haciendo.
      */
-    readonly outcome?: 'in_progress' | 'succeeded' | 'failed';
+    readonly outcome?: 'in_progress' | 'succeeded' | 'failed' | 'reconciling';
+    /*
+     * `reconciling` (Fase 33, R15): salió hacia el proveedor y no se sabe cómo
+     * acabó. Sus Credits siguen apartados hasta saberlo: ni se dice que falló ni
+     * que se están devolviendo.
+     */
     /** Si falló, su categoría. Nada más de dentro. */
     readonly failure?: string;
     /** La paró la persona (Fase 15 del motor): no es un fallo de nadie. */
@@ -343,6 +348,12 @@ export type FaseDeToma =
    * tampoco se puede pedir otra toma hasta que vuelvan los Credits.
    */
   | { readonly fase: 'cerrando'; readonly toma: number }
+  /*
+   * R15 (Fase 33): salió hacia el proveedor y no se sabe cómo acabó. Se está
+   * comprobando: si salió, se pondrá en su plano; si no, sus Credits volverán.
+   * Mientras, no se puede pedir otra toma, porque su dinero sigue apartado.
+   */
+  | { readonly fase: 'comprobando'; readonly toma: number }
   | { readonly fase: 'error'; readonly rechazo: RechazoDeToma };
 
 /** La última toma que ya terminó, con lo que dejó: su vídeo en el plano, o por qué no está. */
@@ -391,7 +402,7 @@ const DEVUELTAS: ReadonlySet<string> = new Set(['FAILED', 'REFUNDED']);
 /** Lo que dice que la toma ya existe: no se reintenta, se consulta y se sigue la que hay. */
 const YA_PEDIDA: ReadonlySet<string> = new Set(['take_in_flight', 'DUPLICATE_REQUEST']);
 /** Mientras pasa esto, elegir otra calidad no hace nada: hay una respuesta en camino o una toma en marcha. */
-const OCUPADA: ReadonlySet<FaseDeToma['fase']> = new Set(['consultando', 'pidiendo', 'en_proceso', 'terminando', 'cerrando', 'sin_unidad', 'no_disponible']);
+const OCUPADA: ReadonlySet<FaseDeToma['fase']> = new Set(['consultando', 'pidiendo', 'en_proceso', 'terminando', 'cerrando', 'comprobando', 'sin_unidad', 'no_disponible']);
 
 export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
   let entrada: EntradaDeToma = { tipo: 'sin_unidad', porque: 'nada' };
@@ -456,7 +467,7 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
    * Cada escucha tiene su número: la que llegue de una escucha anterior no cuenta,
    * aunque llegue en el mismo instante en que se abre la siguiente.
    */
-  const escuchar = (v: number, toma: number, requestId: string, modo: 'en_proceso' | 'cerrando' | 'terminando' | 'solo_numeros'): void => {
+  const escuchar = (v: number, toma: number, requestId: string, modo: 'en_proceso' | 'cerrando' | 'comprobando' | 'terminando' | 'solo_numeros'): void => {
     callar();
     const mia = escucha;
     if (modo !== 'solo_numeros') poner({ fase: { fase: modo, toma } });
@@ -503,6 +514,8 @@ export const crearControladorDeToma = (servicio: ServicioDeTomas) => {
    * se están devolviendo; si salió bien, que se está poniendo en su sitio.
    */
   const seguirLaViva = (v: number, actual: NonNullable<TomasDelPlano['current']>): void => {
+    /* R15: no se sabe cómo acabó. Ni «falló» ni «se están devolviendo»: se comprueba, y la reserva dirá el final. */
+    if (actual.outcome === 'reconciling') { escuchar(v, actual.take, actual.requestId, 'comprobando'); return; }
     if (actual.outcome === 'failed') {
       const categoria = !actual.cancelled && esCategoriaDeFallo(actual.failure) ? actual.failure : undefined;
       poner({ ultima: { toma: actual.take, estado: 'fallida', ...(categoria ? { categoria } : {}), ...(actual.cancelled ? { cancelada: true } : {}), pendiente: true } });

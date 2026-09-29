@@ -331,6 +331,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeFailUnknown: 'Non è stato possibile completare la generazione. I tuoi Credits sono stati rimborsati.',
   takeFailUnknownPending: 'Non è stato possibile completare la generazione. I tuoi Credits sono in fase di rimborso.',
   takeClosing: 'Questa ripresa non è riuscita. Stiamo rimborsando i suoi Credits; ci vuole qualche minuto.',
+  takeReconciling: 'Non sappiamo ancora com’è finita questa ripresa: stiamo verificando con il fornitore. I suoi Credits restano da parte finché non lo sappiamo; se è riuscita comparirà nell’inquadratura, altrimenti torneranno a te.',
   takeStop: 'Ferma la ripresa',
   takeStopConfirmTitle: 'Fermare questa ripresa?',
   takeStopConfirmText: 'Se il fornitore non l’ha ancora iniziata, si ferma e ti vengono restituiti i Credits riservati. Se ce l’ha già, finirà e verrà addebitata come sempre.',

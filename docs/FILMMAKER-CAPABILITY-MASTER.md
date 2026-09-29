@@ -59,8 +59,8 @@ El adaptador (`functions/src/engine/providers/seedance.ts`) ya sabe más de lo q
 |---|---|---|---|
 | Texto a vídeo | `video.generate` | La toma de un plano (A) | — |
 | Primer y último fotograma | `video.image_to_video`, `first_frame` / `last_frame`, `ratio: adaptive` | F1-A calcula la capacidad; F1-D la rechaza (`capability_not_supported`); la UX tiene los huecos del plano | Contrato 1 + canary |
-| Referencias de imagen, vídeo y audio | `video.reference`, `reference_image` / `reference_video` / `reference_audio`; la API da cupos separados (2.0: 9 imágenes, 3 vídeos y 3 audios, 15 s en total; 2.5: 30, 10 y 10, 30 s) | F1-D rechaza (`references_not_supported`); la UX guarda y asigna papeles | Contrato 1 + canary; antes, R20 |
-| Editar y extender (solo 2.5) | `omni_reference_task_type: edit / extend` dentro de `video.reference` | No hay operación ni requisito | Contrato 2 + canary; antes, R19 (hoy la API lo rechazaría) |
+| Referencias de imagen, vídeo y audio | `video.reference`, `reference_image` / `reference_video` / `reference_audio`; la API da cupos separados (2.0: 9 imágenes, 3 vídeos y 3 audios, 15 s en total; 2.5: 30, 10 y 10, 30 s) | F1-D rechaza (`references_not_supported`); la UX guarda y asigna papeles | Contrato 1 + canary (R20, los cupos, cerrado en la Fase 33) |
+| Editar y extender (solo 2.5) | `omni_reference_task_type: edit / extend` dentro de `video.reference` | No hay operación ni requisito | Contrato 2 + canary (R19, `adaptive` y el tipo de tarea, cerrado en la Fase 33) |
 | Sonido nativo | `generate_audio` (por defecto `true` si no se dice) | `audio.withSound` del plano o de la escena llega al requisito y al precio (A) | Canary de una toma con sonido |
 | Semilla | `seed` (cableada) | No se manda | Nada que prometer: la API la documenta solo para Seedance 1.x (R21) |
 | Cámara fija | `camera_fixed` (cableada) | El movimiento «Quieta» va en el texto de la toma (A) | Nada: en 2.x la cámara fija se escribe en el texto (R21) |
@@ -71,7 +71,7 @@ El adaptador (`functions/src/engine/providers/seedance.ts`) ya sabe más de lo q
 | Último fotograma de la toma | la API (`return_last_frame`, todos los modelos); el adaptador no lo pide ni lo lee | — | Adaptador + contrato 1 + canary (N22) |
 | Borrador a 480p y final a 1080p | la API (`draft`, solo 2.5); el adaptador no | — | Adaptador + F1-D + canary (N23) |
 | Diálogo con labios sincronizados | la API, desde el texto (entre comillas) con el sonido nativo; timbre por `reference_audio` | F1-D rechaza el diálogo a cámara (`dialogue_not_supported`) | Contrato 6 + canary |
-| Precio | fórmula oficial por tokens (`seedanceCostUsd`) | El precio antes de confirmar (A) | R18: la tabla de píxeles solo acierta en 16:9 y 9:16 |
+| Precio | fórmula oficial por tokens (`seedanceCostUsd`) | El precio antes de confirmar (A) | R18 y R22, cerrados en la Fase 33: la tabla oficial de píxeles y el techo de `-1` y de la entrada |
 
 ### 2.2 Filmmaker (F1-A / F1-B / F1-C / F1-D)
 
@@ -86,27 +86,67 @@ El adaptador (`functions/src/engine/providers/seedance.ts`) ya sabe más de lo q
   producto) y **R15** (la toma dice «se están devolviendo» con el dinero en reconciliación). R1, R6, R7, R10, R12, R13,
   R14, R16 y R17 se cerraron en la Fase 22; R11, en la 26.
 - Riesgos nuevos, de contrastar el adaptador con la documentación oficial (sección 3.1): **R18** (la tabla de
-  píxeles del precio solo acierta en 16:9 y 9:16: 1:1 un 44 % por debajo, 4:3 y 3:4 un 25 % por debajo, 21:9 un 31 %
-  por encima), **R19** (editar y extender en 2.5 exigen `adaptive`, que el engine no manda, y el tipo de tarea se
-  manda a modelos que no lo tienen), **R20** (cupos de referencias de vídeo y audio mezclados y sin totales) y **R21**
-  (semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño, no se prometen).
+  píxeles del precio solo acertaba en 16:9 y 9:16: 1:1 un 44 % por debajo, 4:3 y 3:4 un 25 % por debajo, 21:9 un 31 %
+  por encima), **R19** (editar y extender en 2.5 exigen `adaptive`, que el engine no mandaba, y el tipo de tarea iba
+  a modelos que no lo tienen), **R20** (cupos de referencias de vídeo y audio mezclados) y **R21** (semilla y cámara
+  fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño, no se prometen).
+- Y uno más, encontrado al arreglarlos (Fase 33): **R22**. La puerta `generateVideo` de siempre —desplegada— cotizaba
+  con lo que declaraba el cliente: una duración `-1` («que la decida el modelo», hasta 15 s o 30 s) se cotizaba como
+  5 s, y los segundos de un vídeo de referencia (que puede ser uno ya generado de la propia cuenta) los decía quien
+  llamaba. La app nunca manda ninguna de las dos cosas, pero una llamada hecha a mano podía pagar menos de lo que
+  factura el proveedor. Cerrado en `filmmaker/core`: se cotiza el máximo del modelo. **En producción sigue abierto
+  hasta que se despliegue.**
+- **Fase 33**: R2, R15, R18, R19, R20 y R22, cerrados sin gastar y sin tocar contratos cerrados; R3 y R4, preparados
+  (abajo).
 
 **Estado de los riesgos.** La suite `filmmaker-capability-master` comprueba cada «abierto» y cada «cerrado» contra el
 código: si el código cambia y la tabla no, falla.
 
 | Riesgo | Estado | Qué |
 |---|---|---|
-| R2 | abierto | Las órdenes del proveedor (`--dur`, `--rs`…) solo se quitan del prompt avanzado; el resto del texto llega tal cual a Seedance |
-| R3 | decisión | Trabajos de toma huérfanos: el barrido que los recogería vive en el runtime cerrado (Fase 12-D) |
-| R4 | decisión | Inanición de la reconciliación (12 preguntas por pasada, sin cursor): runtime cerrado y barrido desplegado |
+| R2 | cerrado (Fase 33) | Las órdenes del proveedor (`--dur`, `--rs`…) solo se quitaban del prompt avanzado; ahora el adaptador se las quita a cualquier texto que llegue a Seedance |
+| R3 | decisión | Trabajos de toma huérfanos: el barrido que los recogería vive en el runtime cerrado (Fase 12-D). Preparado abajo |
+| R4 | decisión | Inanición de la reconciliación (12 preguntas por pasada, siempre desde el principio): runtime cerrado y barrido desplegado. Preparado abajo |
 | R5 | contrato | La firma de la toma es demasiado ancha (F1-D) |
 | R8 | contrato | Techo de 1 000 revisiones por producción (F1-B) |
 | R9 | decisión | Wäll hasta 600 s frente a Weëls de 15 s: decisión de producto |
-| R15 | abierto | La toma dice «se están devolviendo» cuando el dinero está en reconciliación |
-| R18 | abierto | La tabla de píxeles del precio solo acierta en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima) |
-| R19 | abierto | Editar y extender en Seedance 2.5 exigen `adaptive` y el engine no la manda; el tipo de tarea se manda a modelos que no lo tienen |
-| R20 | abierto | Vídeo y audio de referencia comparten un cupo y no se miran los totales de 15 s / 30 s; en 2.0 se deja pasar solo audio |
+| R15 | cerrado (Fase 33) | La toma decía «se están devolviendo» con el dinero en reconciliación; ahora dice que se está comprobando, con la misma decisión que su estado y su liquidación |
+| R18 | cerrado (Fase 33) | La tabla de píxeles del precio solo acertaba en 16:9 y 9:16 (1:1 un 44 % por debajo, 4:3 y 3:4 un 25 %, 21:9 un 31 % por encima); ahora es la oficial |
+| R19 | cerrado (Fase 33) | Editar y extender en Seedance 2.5 exigen `adaptive` y el engine no la mandaba; el tipo de tarea iba a modelos que no lo tienen |
+| R20 | cerrado (Fase 33) | Vídeo y audio de referencia compartían un cupo; en 2.0 se dejaba pasar solo audio |
 | R21 | se queda | Semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño y no se prometen |
+| R22 | cerrado (Fase 33) | El precio de un vídeo lo abarataba quien llamaba: `-1` se cotizaba como 5 s y los segundos de vídeo de entrada los declaraba el cliente. Ahora, el máximo del modelo (encontrado en la Fase 33; en producción hasta que se despliegue) |
+
+#### R3 · Los trabajos de toma que se quedan sin nadie
+
+- **Hoy.** Si el proceso que tiene una toma muere ANTES de mandarla al proveedor (la concesión caduca y el intento
+  sigue con `dispatched: false`), el trabajo se queda sin terminar y la liquidación lo deja «recuperable»: nadie lo
+  mueve, la toma dice «en cola» y sus Credits siguen apartados. `recuperacionDeTomas` (Fase 4) solo mira reservas SIN
+  trabajo. Lo que lo movería —`barrerRecuperables` (`functions/src/job/worker.ts`)— existe y no lo programa nadie.
+- **El cambio mínimo.** Que la pasada programada (`functions/src/settlement/programado.ts`, desplegada) llame a
+  `barrerRecuperables` antes de liquidar, con su página y su cursor. El Job Engine (`engine.evaluar`) decide con su
+  política si el trabajo se reintenta o se da por fallido, y la liquidación de siempre devuelve lo que no salió.
+- **Por qué no se hace solo.** Toca el runtime cerrado de la Fase 12-D y la tarea programada de producción. Y hay
+  que decidir antes qué es un trabajo recuperado: re-encolarlo solo sirve si alguien consume la cola, y hoy la toma
+  la ejecuta la propia llamada; darlo por fallido devuelve el dinero y la persona pide otra toma.
+- **Pruebas que llevaría.** Un trabajo con la concesión caducada y sin salir: tras la pasada, fallido (o re-encolado,
+  según lo decidido) y su reserva devuelta una sola vez. Uno que salió (`dispatched`): no se toca, es de la
+  reconciliación. Dos pasadas a la vez: una sola transición. **Sabotajes:** quitar la llamada, liquidar antes de
+  barrer, barrer lo que ya salió.
+
+#### R4 · La reconciliación que siempre empieza por el mismo sitio
+
+- **Hoy.** `reconciliarTrabajos` (`functions/src/runtime/reconciliador.ts`) recorre `recuperables` por orden de
+  identificador, desde el principio en cada pasada, y se para a las doce preguntas (`MAX_PREGUNTAS`). Si hay más de
+  doce trabajos que necesitan pregunta y los primeros no se resuelven —el proveedor no contesta o siguen en marcha—,
+  los de detrás no se preguntan nunca.
+- **El cambio mínimo.** Que cada pasada empiece donde se quedó la anterior: `reconciliarTrabajos` acepta un cursor
+  de partida, la tarea programada guarda el `cursor` del informe cuando `agotadas` es verdad (un documento pequeño
+  de estado del barrido) y, al llegar al final, se vuelve a empezar.
+- **Por qué no se hace solo.** Runtime cerrado y barrido desplegado.
+- **Pruebas que llevaría.** Treinta trabajos que el proveedor nunca contesta: en tres pasadas se ha preguntado por
+  todos. El cursor vuelve al principio al llegar al final. Un cursor de un trabajo que ya no existe no rompe nada.
+  **Sabotajes:** no guardar el cursor, no volver a empezar.
 
 ### 2.3 Weë Studio
 
@@ -228,12 +268,12 @@ los precios de docs.byteplus.com (ModelArk). Modelos oficiales: 2.5 `dreamina-se
 | Hallazgo | Clase | WORKPLACE | CONTROL | Qué falta | Fila |
 |---|---|---|---|---|---|
 | Texto a vídeo | A | Plano › Generar | «Generar este plano» | — | C45 |
-| Órdenes dentro del texto (`--rs --dur --seed --cf`) | G | — | — | Que ninguna llegue: el adaptador debe quitarlas de TODO texto, no solo del prompt avanzado (R2) | C43 |
+| Órdenes dentro del texto (`--rs --dur --seed --cf`) | G | — | — | Ninguna llega: desde la Fase 33 el adaptador las quita de TODO texto (R2) | C43 |
 | Primer y último fotograma | C | Plano › Referencias | Huecos «Primer fotograma» y «Último fotograma» (cerrados) | Contrato 1 + canary. En 2.5 el formato es obligatoriamente `adaptive`; no se combinan con referencias | C50 |
 | Referencias de imagen (2.5: 30; 2.0: 9) | C | Plano › Referencias | Papel «Referencia» de cada material | Contrato 1 + canary | X18, N14 |
-| Referencias de vídeo y de audio (2.5: 10 + 10, hasta 30 s en total; 2.0: 3 + 3, 15 s) | C | Plano › Referencias | Papeles «Movimiento» y «Sonido» | Contrato 1 + canary. El adaptador mete vídeo y audio en un solo cupo y no mira los totales (R20) | X18 |
-| Editar un vídeo (`edit`, solo 2.5) | C | Plano › Toma | «Editar esta toma» (cerrado) | Contrato 2 + canary. Hoy fallaría: 2.5 exige `adaptive` y el engine no lo manda (R19) | C52 |
-| Extender hacia delante o hacia atrás (`extend`, solo 2.5) | C | Plano › Toma | «Extender esta toma» (cerrado) | Contrato 2 + canary; mismo fallo (R19) | C51 |
+| Referencias de vídeo y de audio (2.5: 10 + 10, hasta 30 s en total; 2.0: 3 + 3, 15 s) | C | Plano › Referencias | Papeles «Movimiento» y «Sonido» | Contrato 1 + canary. Cupos separados desde la Fase 33 (R20); el total lo cotiza el techo del modelo (R22) | X18 |
+| Editar un vídeo (`edit`, solo 2.5) | C | Plano › Toma | «Editar esta toma» (cerrado) | Contrato 2 + canary. Desde la Fase 33 el engine pide `adaptive` y el tipo de tarea solo va a 2.5 (R19) | C52 |
+| Extender hacia delante o hacia atrás (`extend`, solo 2.5) | C | Plano › Toma | «Extender esta toma» (cerrado) | Contrato 2 + canary (R19 cerrado en la Fase 33) | C51 |
 | Sonido nativo (voces, efectos, música, en mono) | A | Plano › Audio | «Con sonido» | Canary de una toma con sonido | C53 |
 | Diálogo con labios sincronizados desde el texto (entre comillas) y timbre por referencia de audio | E | Story › Guion y Proyecto › Reparto › Voz | «Que lo diga a cámara» (cerrado) | Contrato 6: F1-D rechaza hoy el diálogo a cámara (`dialogue_not_supported`) + canary | C60 |
 | Último fotograma de la toma (`return_last_frame`, todos los modelos) | E | Plano › Referencias | «Empezar donde acabó el plano anterior» (cerrado) | El adaptador no lo pide ni lo lee; contrato 1 (primer fotograma) + canary. Es también el póster exacto y el único fotograma «de confianza» de un vídeo con cara | N22 |
@@ -247,19 +287,20 @@ los precios de docs.byteplus.com (ModelArk). Modelos oficiales: 2.5 `dreamina-se
 | Personajes reales autorizados (`asset://`) y material propio «de confianza» 30 días | E | Proyecto › Reparto | «Persona real autorizada» (cerrado) | Contrato 1 + el proceso de autorización de BytePlus + decisión de privacidad. Sin esto, 2.x rechaza referencias con caras reales | N27 |
 | Prioridad en la cola (`priority`) | G | — | — (interno) | No es un control de la persona; sí una mejora interna (tomas interactivas por delante del lote) | N29 |
 | Identificador de seguridad (`safety_identifier`) | G | — | — (interno) | Decisión de privacidad: mandar un identificador por persona al proveedor | N30 |
-| Precio por tokens (fórmula oficial) | A | Plano › Generar | El precio antes de confirmar | La tabla de píxeles del adaptador solo acierta en 16:9 y 9:16 (R18) | X19 |
+| Precio por tokens (fórmula oficial) | A | Plano › Generar | El precio antes de confirmar | La tabla oficial de píxeles desde la Fase 33 (R18) | X19 |
 
-**Dónde el código contradice a la documentación** (cuatro riesgos nuevos, sección 2.2):
+**Dónde el código contradecía a la documentación** (cuatro riesgos nuevos, sección 2.2; R18, R19 y R20 cerrados en la Fase 33, y R21 se queda):
 
-- **R18 · precio.** `PIXELS` supone que «720p» es el lado corto; la tabla oficial da casi los mismos píxeles a todas
-  las proporciones. A 720p, 1:1 es 960×960 (Weë estima 720×720: un 44 % por debajo), 4:3 es 1112×834 (un 25 % por
+- **R18 · precio.** `PIXELS` suponía que «720p» es el lado corto; la tabla oficial da casi los mismos píxeles a todas
+  las proporciones. A 720p, 1:1 es 960×960 (Weë estimaba 720×720: un 44 % por debajo), 4:3 es 1112×834 (un 25 % por
   debajo), 21:9 es 1470×630 (un 31 % por encima), y a 480p la serie 2.0 entrega 864×496. Con el suelo «nunca por
-  debajo del coste», un vídeo 1:1 puede venderse por debajo de lo que cuesta.
+  debajo del coste», un vídeo 1:1 podía venderse por debajo de lo que cuesta. **Cerrado en la Fase 33.**
 - **R19 · editar y extender.** Con `edit` o `extend` explícitos, 2.5 exige `ratio: adaptive`; `engine/video.ts` no la
-  admite (`ASPECTS`) y cae a 16:9, y la API rechaza la tarea al crearla. Además `omni_reference_task_type` solo existe
-  en 2.5 y el adaptador lo manda a cualquier modelo.
+  admitía (`ASPECTS`) y caía a 16:9, y la API rechazaba la tarea al crearla. Además `omni_reference_task_type` solo
+  existe en 2.5 y el adaptador lo mandaba a cualquier modelo. **Cerrado en la Fase 33.**
 - **R20 · cupos de referencias.** Vídeo y audio tienen cupos separados (3 + 3 en 2.0, 10 + 10 en 2.5) y un total de
-  15 s o 30 s; en 2.0 no se admite solo audio. El adaptador los mezcla en un cupo y no mira los totales.
+  15 s o 30 s; en 2.0 no se admite solo audio. El adaptador los mezclaba en un cupo y dejaba pasar el audio solo.
+  **Cerrado en la Fase 33** (los totales los cubre el techo de R22).
 - **R21 · semilla y cámara fija.** El adaptador las cablea, pero la API solo las documenta para 1.x y nadie las
   pone. No hacen daño; no se prometen.
 
@@ -366,8 +407,8 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | Cámara | Tipo, perspectiva, encuadre, óptica, focal, movimiento, velocidad | Plano › Cámara, Lente, Movimiento | Lo de arriba |
 | Varios planos | Lote de la producción entera | Weë AI Director › Generar producción | Generar una sola escena (Fase 34); varios planos en una toma (contrato, no se propone) |
 | Continuidad de escena | Estado por escena y plano, reglas por nivel | Plano › Estado y Continuidad | Verla plano a plano (Fase 35); estado estructurado (contrato 5) |
-| Editar | — | Plano › Toma | Contrato 2 + canary; R19 antes |
-| Extender | — | Plano › Toma | Contrato 2 + canary; R19 antes |
+| Editar | — | Plano › Toma | Contrato 2 + canary (R19 ya cerrado) |
+| Extender | — | Plano › Toma | Contrato 2 + canary (R19 ya cerrado) |
 | Primer y último fotograma | Los huecos del plano | Plano › Referencias | Contrato 1 + canary; continuar desde el último fotograma (N22) |
 | Sonido nativo | «Con sonido» por plano y escena | Plano › Audio | Canary |
 | Labios sincronizados | Guion con diálogo | Story › Guion | Contrato 6; Seedance lo hace desde el texto |
@@ -433,16 +474,16 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | C40 | Reglas de continuidad | ✔ `change_continuity` | — | ✔ | ✔ | ✔ | Plano › Continuidad y Proyecto › Dirección | A | no | no | — | no | filmmaker-historia · filmmaker-arreglos · filmmaker-ui | sab-fase22 · sab-fase24 | ✔ 360/390 | Pendiente: Anclajes, disposición y «puede cambiar»: X17 |
 | C41 | AI Director (reglas) | ✔ | — | ✔ | ✔ | ✔ | Weë AI Director › Propuestas | A | no | no | — | no | filmmaker-arreglos · filmmaker-brain · filmmaker-prompt-avanzado | sab-fase9 · sab-fase13 · sab-fase22 | ✔ 360/390 | — |
 | C42 | Weë Brain propone cambios | ✔ | — | — | ✔ brainChat | ✔ | Weë AI Director › Weë Brain | A | no | no | Gemini (texto) | sí | filmmaker-arreglos · filmmaker-brain · filmmaker-prompt-avanzado | sab-fase9 · sab-fase13 · sab-fase22 | ✔ 360/390 | — |
-| C43 | Prompt avanzado | ✔ | — | ✔ | ✔ | parcial (se ve, oculto por defecto) | Plano › Prompt avanzado | F | no | sí: F1-A (`update_shot` no admite `advanced`, ADR-FM-008) | — | no | filmmaker-arreglos · filmmaker-brain · filmmaker-prompt-avanzado | sab-fase9 · sab-fase13 · sab-fase22 | ✔ 360/390 | Pendiente: Permitir editarlo en F1-A · R2: las órdenes del proveedor solo se quitan del prompt avanzado; el resto del texto llega tal cual (Fase 33) |
+| C43 | Prompt avanzado | ✔ | — | ✔ | ✔ | parcial (se ve, oculto por defecto) | Plano › Prompt avanzado | F | no | sí: F1-A (`update_shot` no admite `advanced`, ADR-FM-008) | — | no | filmmaker-arreglos · filmmaker-brain · filmmaker-prompt-avanzado | sab-fase9 · sab-fase13 · sab-fase22 | ✔ 360/390 | Pendiente: Permitir editarlo en F1-A · R2 cerrado en la Fase 33: el adaptador quita las órdenes del proveedor de cualquier texto |
 | C44 | Ver el prompt interno | ✔ | — | — | ✔ | ✘ | — | H | no | sí: la regla de producto que lo oculta | — | no | filmmaker-arreglos · filmmaker-brain · filmmaker-prompt-avanzado | sab-fase9 · sab-fase13 · sab-fase22 | — | Pendiente: Solo si se decide un modo avanzado explícito |
-| C45 | Toma de un plano | ✔ F1-D | ✔ Seedance | — | ✔ generateVideo | ✔ | Plano › Toma | A | hecho (2026-09-28) | no | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | R18: el precio sale de una tabla de píxeles que solo acierta en 16:9 y 9:16 (Fase 33) |
+| C45 | Toma de un plano | ✔ F1-D | ✔ Seedance | — | ✔ generateVideo | ✔ | Plano › Toma | A | hecho (2026-09-28) | no | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | R18 y R22 cerrados en la Fase 33: la tabla oficial de píxeles y el techo de `-1` y de la entrada; R15: «se está comprobando» |
 | C46 | Varios planos a la vez (lote) | ✔ Fase 6 | ✔ Seedance | — | ✔ generateVideo (lote) | ✔ | Weë AI Director › Generar producción | A | pendiente (el lote) | no | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Canary del lote |
 | C47 | Estado y traza de la toma | ✔ `shot.takes`; `trazasDeLaUnidad` en el servidor | — | — | parcial | ✔ historial | Plano › Toma | A | no | no (la traza entera: sí, F1-D) | — | no | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Exponer la traza entera pide cambiar F1-D (`shot.takes` devuelve la vista) |
 | C48 | Detener | ✔ | ✔ (DELETE de ModelArk, cerrado) | — | ✔ | ✔ | Plano › Toma | A | pendiente (parar en el proveedor) | no | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Canary de la cancelación en el proveedor |
 | C49 | Calidades Alta y Máxima | ✔ | ✔ | — | ✔ (`model_unavailable`) | cerrado | Plano › Toma | E | sí | no | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Activar los modelos, medir el coste y probarlos |
 | C50 | Primer y último fotograma | ✔ el requisito (`video.image_to_video`) | ✔ Seedance (`first_frame`, `last_frame`) | — | ✘ F1-D rechaza (`references_not_supported`) | ✔ hueco en el plano, con su porqué | Plano › Referencias | D | sí | sí: contrato 1 (F1-D `evaluarPlano` y la puerta del vídeo) | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Huecos por papel en el plano, con el porqué · Pendiente: Contrato 1, precio y canary |
-| C51 | Extender una toma | ✘ en Filmmaker | ✔ Seedance (`omni_reference_task_type: extend`) | ✔ | ✘ | cerrado | Plano › Toma | D | sí | sí: contrato 2 (operación en F1-A, requisito en F1-D, precio, puerta) | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Contrato 2, precio y canary · R19: con `extend`, Seedance 2.5 exige `adaptive` y el engine no la manda; se arregla antes del contrato 2 (Fase 33) |
-| C52 | Editar un vídeo | ✘ en Filmmaker | ✔ Seedance (`edit`) | — | ✘ | cerrado | Plano › Toma | D | sí | sí: contrato 2 | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Contrato 2, precio y canary · R19: con `edit`, Seedance 2.5 exige `adaptive` y duración -1; el engine no manda `adaptive` (Fase 33) |
+| C51 | Extender una toma | ✘ en Filmmaker | ✔ Seedance (`omni_reference_task_type: extend`) | ✔ | ✘ | cerrado | Plano › Toma | D | sí | sí: contrato 2 (operación en F1-A, requisito en F1-D, precio, puerta) | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Contrato 2, precio y canary · R19 cerrado en la Fase 33: `adaptive` y el tipo de tarea solo a Seedance 2.5 |
+| C52 | Editar un vídeo | ✘ en Filmmaker | ✔ Seedance (`edit`) | — | ✘ | cerrado | Plano › Toma | D | sí | sí: contrato 2 | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Contrato 2, precio y canary · R19 cerrado en la Fase 33: `adaptive`, duración -1 y el tipo de tarea solo a Seedance 2.5 |
 | C53 | Audio nativo del plano | ✔ `audio.withSound` | ✔ Seedance (`generate_audio`) | ✔ | ✔ (requisito y precio) | ✔ | Plano › Audio | A | pendiente (toma con sonido) | no | BytePlus ModelArk | sí | f1d-generacion · f1d-cliente · filmmaker-produccion-entera · filmmaker-cancelar · filmmaker-sonido · filmmaker-materiales | sab-fase15 · sab-fase25 · sab-fase27 · sab-fase29 | ✔ 360/390 | Pendiente: Canary de una toma con sonido |
 | C54 | Montaje final | ✔ manifiesto + FFmpeg | — | — | ✔ tras `aiSettings/render` | ✔ | Exportar / Publicar › Montaje | A | pendiente (render en la nube) | no | — (render propio) | no | filmmaker-render · filmmaker-exportar · filmmaker-publicar · filmmaker-sonido · filmmaker-voces | sab-fase8 · sab-fase14 · sab-fase19 · sab-fase25 · sab-fase26 | ✔ 360/390 | Pendiente: Desplegar y probar el render en la nube |
 | C55 | Transiciones | ✔ `change_transition` | — | ✔ | ✔ | ✔ | Línea de tiempo › Transiciones | A | no | no | — | no | filmmaker-render · filmmaker-exportar · filmmaker-publicar · filmmaker-sonido · filmmaker-voces | sab-fase8 · sab-fase14 · sab-fase19 · sab-fase25 · sab-fase26 | ✔ 360/390 | — |
@@ -484,8 +525,8 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | X15 | Emoción e idioma de una línea de guion | ✔ se guardan | ✔ ElevenLabs (sin verificar) | ✔ | ✘ solo los usarían la voz y el lip-sync | ✘ | Story › Guion | F | sí | sí: contratos 4 (voces) y 6 (lip-sync) | ElevenLabs | sí | capability-workplace-closure | sab-fase31 | — | No se conectan hasta que haya voz o lip-sync · Pendiente: Contratos 4 y 6 |
 | X16 | Prioridades del brief | ✔ se guardan | — | — | ✘ ni el router ni las recomendaciones las leen | ✘ | Proyecto › Brief | F | no | sí: que el router o las recomendaciones las lean | — | no | capability-workplace-closure | sab-fase31 | — | No se conectan (serían decorativas) · Pendiente: Contrato del router |
 | X17 | Continuidad fina | ✔ se guardan | — | — | ✘ a la toma solo llegan «conservar» y la fuerza | ✘ | Plano › Continuidad | F | no | sí: plantilla `fm-plano-3` | — | no | capability-workplace-closure | sab-fase31 | — | No se conectan · Pendiente: Plantilla `fm-plano-3` |
-| X18 | Referencias de una ficha, de un rasgo o de una voz | ✔ | ✔ Seedance (`reference_image`, `reference_audio`) | — | ✘ F1-D rechaza el plano | ✘ | Proyecto › Reparto (junto a la apariencia) | D | sí | sí: contrato 1 | BytePlus ModelArk | sí | capability-workplace-closure | sab-fase31 | — | No se conectan: ponerlas dejaría sin generar todos los planos de esa ficha · Pendiente: Contrato 1 y canary; entonces, un botón en la apariencia · R20: vídeo y audio tienen cupos separados y totales de 15 s / 30 s; el adaptador los mezcla (Fase 33) |
-| X19 | Cotización y confirmación antes de gastar | ✔ | — | — | ✔ quote + precio que cambió | ✔ | Plano › Toma y Director › Generar producción | A | no | no | — | sí | capability-workplace-closure | sab-fase31 | ✔ 360/390 | R18: la cotización hereda la tabla de píxeles equivocada fuera de 16:9 y 9:16 (Fase 33) |
+| X18 | Referencias de una ficha, de un rasgo o de una voz | ✔ | ✔ Seedance (`reference_image`, `reference_audio`) | — | ✘ F1-D rechaza el plano | ✘ | Proyecto › Reparto (junto a la apariencia) | D | sí | sí: contrato 1 | BytePlus ModelArk | sí | capability-workplace-closure | sab-fase31 | — | No se conectan: ponerlas dejaría sin generar todos los planos de esa ficha · Pendiente: Contrato 1 y canary; entonces, un botón en la apariencia · R20 cerrado en la Fase 33: vídeo y audio con cupos separados; sonido solo, rechazado en la serie 2.0 |
+| X19 | Cotización y confirmación antes de gastar | ✔ | — | — | ✔ quote + precio que cambió | ✔ | Plano › Toma y Director › Generar producción | A | no | no | — | sí | capability-workplace-closure | sab-fase31 | ✔ 360/390 | R18 y R22 cerrados en la Fase 33: la cotización usa la tabla oficial y nunca se abarata con lo que declara quien llama |
 | X20 | Qué no sirve como referencia | ✔ F1-A (clases de material) | — | ✔ | ✔ | ✔ | Proyecto › Referencias | A | no | no | — | no | capability-workplace-closure | sab-fase31 | ✔ 360/390 | Dicho en el selector |
 | N01 | Generar solo una escena | ✔ lote de la Fase 6 (`units`) | ✔ Seedance | — | ✔ generateVideo `produccion.units` | ✘ (la app manda siempre la producción) | Weë AI Director › Generar producción · Historia › Escenas | B | pendiente (el lote) | no | BytePlus ModelArk (Seedance) | sí (Credits por toma) | filmmaker-capability-master | sab-fase32 | — | El servidor ya genera las unidades que se le pidan; falta elegir la escena (Fase 34) |
 | N02 | Montajes anteriores (versiones finales) | ✔ render (Fase 8) | — | — | ✔ `montajesDeLaProduccion` | ✘ (la app los carga y solo enseña el de hoy) | Exportar / Publicar › Versiones finales | B | pendiente (render en la nube) | no | — (FFmpeg propio) | no | filmmaker-capability-master | sab-fase32 | — | Fecha, duración y descarga de cada montaje hecho (Fase 38) |
@@ -547,7 +588,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 
 | Fase | Objetivo | Qué entra |
 |---|---|---|
-| 33 | Riesgos que se pueden cerrar sin contrato | R2 (quitar las órdenes del proveedor de todo texto que llegue a Seedance, en el adaptador), R15 (la toma dice «comprobando» cuando el dinero está en reconciliación, no «se están devolviendo»), R18 (la tabla oficial de píxeles en el precio), R19 (`adaptive` al editar y extender, y el tipo de tarea solo a 2.5), R20 (cupos separados y totales de las referencias); R3 y R4 estudiados: lo que tocaría el runtime cerrado queda preparado |
+| 33 | Riesgos que se pueden cerrar sin contrato | R2 (quitar las órdenes del proveedor de todo texto que llegue a Seedance, en el adaptador), R15 (la toma dice «comprobando» cuando el dinero está en reconciliación, no «se están devolviendo»), R18 (la tabla oficial de píxeles en el precio), R19 (`adaptive` al editar y extender, y el tipo de tarea solo a 2.5), R20 (cupos separados y totales de las referencias); R3 y R4 estudiados: lo que tocaría el runtime cerrado queda preparado. **Hecha**, con R22 (encontrado aquí) |
 | 34 | Weë AI Director con propuestas estructuradas | Qué planos afecta cada propuesta (N03), el resumen de lo que quedaría calculado con el F1-A del espejo (N04), «Proponer planos» (N06), «Explicar» (N07), «Cobertura de este plano» (I01), «Convertir mi guion en escenas» (I05), «Generar esta escena» (N01), y el camino aplicar → precio → confirmar → generar; en una producción vacía, empezar por la propuesta de escenas |
 | 35 | Historia: Escenas y Continuidad | La vista de escenas (N10) y la de continuidad plano a plano, con lo heredado dicho (N11) |
 | 36 | Referencias completas | Vista previa, origen y estado de cada material (N14); el papel «storyboard» cerrado con su porqué (N15); el aviso de que la serie 2.x rechaza caras reales sin autorización (N27) |

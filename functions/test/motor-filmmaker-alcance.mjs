@@ -160,6 +160,15 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * aplicable (R1). Ni se escribe nada nuevo, ni Credits, ni proveedores, ni una Function nueva.
    */
   'functions/src/elements/index.ts',
+  /*
+   * Fase 33 · los riesgos del motor que se cierran sin gastar (encargo del usuario del 2026-09-29, «Fase 32 en
+   * adelante»): el Weë Video Engine pide `adaptive` al editar y extender un vídeo —Seedance 2.5 la exige— (R19) y
+   * deja de reenviar al adaptador los segundos de vídeo de entrada que declara quien llama (R22). No es dinero: el
+   * precio lo sigue calculando `credits/aiPricing.ts`, sin tocar; aquí solo se deja de pasar un dato del cliente. El
+   * adaptador de Seedance NO entra en esta lista: su tamaño lo fijan por nombre video-asincrono H2 y puente-pre-f1d
+   * E4, reancladas con esta fase, igual que en la Fase 15.
+   */
+  'functions/src/engine/video.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

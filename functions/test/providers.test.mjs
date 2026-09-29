@@ -82,7 +82,11 @@ const runWith = (adapter, capability, input, prefs = {}, modelId, extra = {}) =>
   ]);
   const ref = await runWith(seedanceAdapter, 'video.reference', { prompt: 'un anuncio con este producto como @Image1', referenceImages: ['https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fu1%2Fcreator-inputs%2Fp.png?alt=media'], referenceVideos: ['https://cdn/ref.mp4'], referenceVideoSec: 5, durationSec: 5 }, {}, SEEDANCE_MODEL_IDS.SEEDANCE_2_0);
   const rb = calls[0].body;
-  check('seedance referencia: reference_image en línea, reference_video por URL y omni_reference_task_type=reference', rb.content[1].role === 'reference_image' && rb.content[2].type === 'video_url' && rb.content[2].role === 'reference_video' && rb.omni_reference_task_type === 'reference', JSON.stringify(rb.content.map((c) => c.role || c.type)));
+  /*
+   * Reanclada por nombre en la Fase 33 del Filmmaker Engine (R19): `omni_reference_task_type` solo existe en
+   * Seedance 2.5 (documentación oficial de ModelArk); esta referencia va a Seedance 2.0 y ya no lo lleva.
+   */
+  check('seedance referencia: reference_image en línea, reference_video por URL y, en la serie 2.0, sin omni_reference_task_type (solo existe en 2.5)', rb.content[1].role === 'reference_image' && rb.content[2].type === 'video_url' && rb.content[2].role === 'reference_video' && rb.omni_reference_task_type === undefined, JSON.stringify(rb.content.map((c) => c.role || c.type)));
   check('seedance referencia: con video de entrada se usa la tarifa "con video" (4.3 USD/M en 2.0)', Math.abs(ref.costUSD - (150000 * 4.3) / 1e6) < 1e-9 && ref.meta.withVideoInput === true, `$${ref.costUSD}`);
 
   // Fallos: tarea fallida, rostro rechazado, 4xx al crear

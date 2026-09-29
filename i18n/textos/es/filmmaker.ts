@@ -329,6 +329,7 @@ export const filmmaker = {
   takeFailUnknown: 'No se pudo completar la generación. Tus Credits fueron reembolsados.',
   takeFailUnknownPending: 'No se pudo completar la generación. Tus Credits se están devolviendo.',
   takeClosing: 'Esta toma no salió. Estamos devolviendo sus Credits; tarda unos minutos.',
+  takeReconciling: 'Todavía no sabemos cómo acabó esta toma: lo estamos comprobando con el proveedor. Sus Credits siguen apartados hasta saberlo; si salió, aparecerá en el plano, y si no, volverán.',
   takeStop: 'Detener la toma',
   takeStopConfirmTitle: '¿Detener esta toma?',
   takeStopConfirmText: 'Si el proveedor todavía no la ha empezado, se detiene y se te devuelven los Credits reservados. Si ya la tiene, terminará y se cobrará como siempre.',

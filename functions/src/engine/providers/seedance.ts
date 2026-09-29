@@ -16,7 +16,7 @@ import type { ResolutorDeEstadoDeProveedor } from '../../runtime/reconciliacion'
  *   Cabecera: Authorization: Bearer ARK_API_KEY. Base por defecto https://ark.ap-southeast.bytepluses.com/api/v3.
  *
  * Modelos (docs.byteplus.com/en/docs/ModelArk, septiembre 2026):
- *   dreamina-seedance-2-5-260628      Seedance 2.5  — 480p/720p/1080p, 4–30 s, hasta 30 imágenes y 10 videos/audios de referencia, mp4/mov
+ *   dreamina-seedance-2-5-260628      Seedance 2.5  — 480p/720p/1080p, 4–30 s, hasta 30 imágenes, 10 videos y 10 audios de referencia (30 s de cada), mp4/mov
  *   dreamina-seedance-2-0-260128      Seedance 2.0  — 480p/720p/1080p/4K, 4–15 s, hasta 9 imágenes, 3 videos y 3 audios de referencia
  *   dreamina-seedance-2-0-fast-260128 Seedance 2.0 fast — 480p/720p, 4–15 s
  *   dreamina-seedance-2-0-mini-260615 Seedance 2.0 mini — 480p/720p, 4–15 s
@@ -43,7 +43,12 @@ export interface SeedanceSpec {
   minDurationSec: number;
   maxDurationSec: number;
   maxReferenceImages: number;
+  /** Cuántos videos de referencia, y cuántos audios: la API les da un cupo a CADA uno (R20). */
   maxReferenceClips: number;
+  /** Segundos de video de referencia que admite en total (y lo mismo de audio). También es el techo para cotizar (R22). */
+  maxReferenceTotalSec: number;
+  /** Si admite sonido de referencia sin ninguna imagen ni video con él. Solo Seedance 2.5 (R20). */
+  audioSinImagenNiVideo: boolean;
   /** USD por millón de tokens (precio de lista oficial): sin video de entrada / con video de entrada. */
   rates: Partial<Record<SeedanceResolution, { text: number; video: number }>>;
 }
@@ -56,6 +61,8 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 30,
     maxReferenceImages: 30,
     maxReferenceClips: 10,
+    maxReferenceTotalSec: 30,
+    audioSinImagenNiVideo: true,
     rates: { '480p': { text: 10.7, video: 6.4 }, '720p': { text: 10.7, video: 6.4 }, '1080p': { text: 11.7, video: 7.0 } },
   },
   [SEEDANCE_MODEL_IDS.SEEDANCE_2_0]: {
@@ -65,6 +72,8 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 15,
     maxReferenceImages: 9,
     maxReferenceClips: 3,
+    maxReferenceTotalSec: 15,
+    audioSinImagenNiVideo: false,
     rates: { '480p': { text: 7.0, video: 4.3 }, '720p': { text: 7.0, video: 4.3 }, '1080p': { text: 7.7, video: 4.7 }, '4k': { text: 4.0, video: 2.4 } },
   },
   [SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST]: {
@@ -74,6 +83,8 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 15,
     maxReferenceImages: 9,
     maxReferenceClips: 3,
+    maxReferenceTotalSec: 15,
+    audioSinImagenNiVideo: false,
     rates: { '480p': { text: 5.6, video: 3.3 }, '720p': { text: 5.6, video: 3.3 } },
   },
   [SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI]: {
@@ -83,6 +94,8 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 15,
     maxReferenceImages: 9,
     maxReferenceClips: 3,
+    maxReferenceTotalSec: 15,
+    audioSinImagenNiVideo: false,
     rates: { '480p': { text: 3.5, video: 2.1 }, '720p': { text: 3.5, video: 2.1 } },
   },
 };
@@ -102,26 +115,74 @@ export const specOf = (modelId: string): SeedanceSpec => SEEDANCE_SPECS[modelId]
 const RATIOS = new Set(['21:9', '16:9', '4:3', '1:1', '3:4', '9:16', 'adaptive']);
 
 /**
- * Píxeles por resolución y ratio. Estos valores reproducen exactamente los
- * ejemplos de precio publicados por BytePlus para la serie Seedance 2.x
- * (docs.byteplus.com/en/docs/ModelArk/1544106): 720p 16:9 de 5 s en Seedance 2.5
- * = 108 000 tokens = USD 1.156, y en Seedance 2.0 = USD 0.756.
+ * PÍXELES DE SALIDA, de la tabla oficial de BytePlus para la serie Seedance 2.x
+ * (create-video-generation-task-api, «Width and height pixel values
+ * corresponding to different aspect ratios», leída el 2026-09-29). Con ellos,
+ * 720p 16:9 de 5 s en Seedance 2.5 sigue dando los 108 000 tokens de su ejemplo
+ * de precio (docs.byteplus.com/en/docs/ModelArk/1544106).
+ *
+ * R18 (Fase 33): una resolución es un PRESUPUESTO de píxeles, no un lado corto.
+ * A 720p, 16:9 sale a 1280×720 y 1:1 a 960×960 —casi los mismos píxeles—. La
+ * tabla de antes suponía el lado corto (1:1 a 720×720, 4:3 a 960×720, 21:9 a
+ * 1680×720), y un video cuadrado se cotizaba un 44 % por debajo de lo que
+ * factura el proveedor, uno 4:3 un 25 % por debajo y uno 21:9 un 31 % por
+ * encima. 9:16 y 3:4 son 16:9 y 4:3 girados: los mismos píxeles.
  */
 const PIXELS: Record<SeedanceResolution, Record<string, [number, number]>> = {
-  '480p': { '16:9': [854, 480], '4:3': [640, 480], '1:1': [480, 480], '21:9': [1120, 480] },
-  '720p': { '16:9': [1280, 720], '4:3': [960, 720], '1:1': [720, 720], '21:9': [1680, 720] },
-  '1080p': { '16:9': [1920, 1080], '4:3': [1440, 1080], '1:1': [1080, 1080], '21:9': [2520, 1080] },
-  '4k': { '16:9': [3840, 2160], '4:3': [2880, 2160], '1:1': [2160, 2160], '21:9': [5040, 2160] },
+  '480p': { '16:9': [854, 480], '4:3': [752, 560], '1:1': [640, 640], '21:9': [992, 432] },
+  '720p': { '16:9': [1280, 720], '4:3': [1112, 834], '1:1': [960, 960], '21:9': [1470, 630] },
+  '1080p': { '16:9': [1920, 1080], '4:3': [1664, 1248], '1:1': [1440, 1440], '21:9': [2206, 946] },
+  '4k': { '16:9': [3840, 2160], '4:3': [3326, 2494], '1:1': [2880, 2880], '21:9': [4398, 1886] },
 };
+/** La serie 2.0 (2.0, fast y mini) entrega 864×496 a 480p en 16:9 —y 496×864 en 9:16—; Seedance 2.5, 854×480. */
+const PIXELS_480P_16_9_SERIE_2_0: [number, number] = [864, 496];
 const FPS = 24;
 
-const canonicalRatio = (ratio: string): string => (ratio === '9:16' ? '16:9' : ratio === '3:4' ? '4:3' : ratio === 'adaptive' ? '16:9' : ratio);
+const canonicalRatio = (ratio: string): string => (ratio === '9:16' ? '16:9' : ratio === '3:4' ? '4:3' : ratio);
+
+/**
+ * Los píxeles de salida de una resolución y una proporción, para el modelo que
+ * se diga. Sin modelo, o con uno de la serie 2.0, a 480p 16:9 manda la medida
+ * mayor. `adaptive` —la proporción la pone la entrada— y cualquier proporción
+ * que la tabla no tenga se cotizan con la mayor de esa resolución: un techo,
+ * nunca un promedio.
+ */
+const pixelesDeSalida = (resolution: SeedanceResolution, ratio: string, modelId?: string): number => {
+  const fila = PIXELS[resolution] || PIXELS['720p'];
+  const de = (r: string): number | undefined => {
+    const medida = resolution === '480p' && r === '16:9' && (!modelId || specOf(modelId).key !== 'SEEDANCE_2_5') ? PIXELS_480P_16_9_SERIE_2_0 : fila[r];
+    return medida ? medida[0] * medida[1] : undefined;
+  };
+  const mayor = Math.max(...Object.keys(fila).map((r) => de(r) as number));
+  return ratio === 'adaptive' ? mayor : de(canonicalRatio(ratio)) ?? mayor;
+};
 
 /** Tokens estimados = (entrada + salida en segundos) × ancho × alto × fps / 1024. */
-export function seedanceTokens(resolution: SeedanceResolution, ratio: string, outputSec: number, inputVideoSec = 0): number {
-  const [w, h] = PIXELS[resolution][canonicalRatio(ratio)] || PIXELS[resolution]['16:9'];
-  return Math.round(((inputVideoSec + outputSec) * w * h * FPS) / 1024);
+export function seedanceTokens(resolution: SeedanceResolution, ratio: string, outputSec: number, inputVideoSec = 0, modelId?: string): number {
+  return Math.round(((inputVideoSec + outputSec) * pixelesDeSalida(resolution, ratio, modelId) * FPS) / 1024);
 }
+
+/**
+ * R22 (Fase 33) · LOS SEGUNDOS DE VIDEO DE ENTRADA NO LOS DICE NADIE DE FUERA.
+ * Encarecen la generación, y antes se cotizaban con los que declaraba el
+ * cliente: bastaba con decir 1 s de un video de 15 s para pagar menos de lo que
+ * factura el proveedor. Se cotiza el máximo que admite el modelo en total.
+ */
+export const techoDeVideoDeEntrada = (modelId: string): number => specOf(modelId).maxReferenceTotalSec;
+
+/**
+ * R2 (Fase 33) · LAS ÓRDENES DEL PROVEEDOR NO VIAJAN EN EL TEXTO.
+ *
+ * ModelArk todavía entiende órdenes dentro del prompt (`--rs 1080p`,
+ * `--dur 12`, `--seed 3`, `--cf`, `--wm`…: el método antiguo, que la API
+ * valida poco) y podrían pisar lo que Weë cotizó —otra duración, otra
+ * resolución—. Antes solo se quitaban del prompt avanzado de un plano; ahora de
+ * CUALQUIER texto que llegue a Seedance: el de un plano, el de Weë Studio o el
+ * de un paso de Weë Creator. Solo se quitan los guiones de delante: los saltos
+ * de línea, los espacios y un guion suelto («esto -- aquello»,
+ * «semi--automático») se quedan como estaban.
+ */
+export const sinOrdenesDeSeedance = (texto: string): string => texto.replace(/(^|\s)-{2,}(?=[^\s-])/g, '$1');
 
 /** USD de lista por millón de tokens para un modelo, resolución y tipo de entrada. */
 export function seedanceRate(modelId: string, resolution: SeedanceResolution, withVideoInput: boolean): number {
@@ -151,9 +212,14 @@ export const consumoDeclarado = (usage: unknown): number | undefined => {
  * antes de generar; el coste real que se registra sale de usage.completion_tokens.
  */
 export function seedanceCostUsd(input: { modelId: string; resolution: SeedanceResolution; durationSec: number; ratio?: string; inputVideoSec?: number }): { usd: number; tokens: number; ratePerMillion: number } {
-  const outputSec = input.durationSec === -1 ? 5 : Math.max(1, input.durationSec);
+  /*
+   * R22 (Fase 33): `-1` es «la duración la decide el modelo» —o, al editar, «la
+   * del video de entrada»—, y puede llegar a su máximo. Antes se cotizaba como
+   * 5 s; ahora, como el máximo del modelo: un techo, nunca un promedio.
+   */
+  const outputSec = input.durationSec === -1 ? specOf(input.modelId).maxDurationSec : Math.max(1, input.durationSec);
   const inputVideoSec = Math.max(0, Number(input.inputVideoSec ?? 0));
-  const tokens = seedanceTokens(input.resolution, input.ratio || '16:9', outputSec, inputVideoSec);
+  const tokens = seedanceTokens(input.resolution, input.ratio || '16:9', outputSec, inputVideoSec, input.modelId);
   const ratePerMillion = seedanceRate(input.modelId, input.resolution, inputVideoSec > 0);
   return { usd: seedanceUsd(tokens, ratePerMillion), tokens, ratePerMillion };
 }
@@ -224,7 +290,7 @@ const mecanismoDeContinuidad = (capability: CapabilityId, modelId: string): Meca
 /** Traduce el input abstracto de Weë al cuerpo oficial de ModelArk (función pura salvo la lectura de imágenes). */
 export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ body: SeedanceRequestBody; estimatedTokens: number; rate: number; withVideoInput: boolean }> {
   const { capability, input, model, prefs } = request;
-  const prompt = String(input.prompt ?? input.purpose ?? '').slice(0, 3000);
+  const prompt = sinOrdenesDeSeedance(String(input.prompt ?? input.purpose ?? '')).slice(0, 3000);
   if (!prompt) throw new ProviderError('seedance: falta la descripción del video', 'seedance', undefined, false);
   const spec = specOf(model.id);
   const quality = typeof prefs.quality === 'string' && prefs.quality !== 'auto' ? prefs.quality : String(input.quality ?? '');
@@ -247,15 +313,32 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
     ratio = 'adaptive';
   } else if (capability === 'video.reference') {
     const images = asList(input.referenceImages).slice(0, spec.maxReferenceImages);
+    /* R20 (Fase 33): videos y audios tienen cupos SEPARADOS en la API (2.0: 3 + 3; 2.5: 10 + 10). Antes compartían uno. */
     const videos = asList(input.referenceVideos).slice(0, spec.maxReferenceClips);
-    const audios = asList(input.referenceAudios).slice(0, Math.max(0, spec.maxReferenceClips - videos.length));
+    const audios = asList(input.referenceAudios).slice(0, spec.maxReferenceClips);
     if (!images.length && !videos.length && !audios.length) throw new ProviderError('seedance: faltan las referencias del video', 'seedance', undefined, false);
+    /* R20: en la serie 2.0, un sonido de referencia necesita una imagen o un video con él; la API lo rechazaría. Se dice antes. */
+    if (audios.length && !images.length && !videos.length && !spec.audioSinImagenNiVideo) {
+      throw new ProviderError('seedance: este modelo necesita una imagen o un video junto al sonido de referencia', 'seedance', undefined, false);
+    }
     for (const url of images) content.push(await imageContent(url, 'reference_image'));
     for (const url of videos) content.push({ type: 'video_url', video_url: { url }, role: 'reference_video' });
     for (const url of audios) content.push({ type: 'audio_url', audio_url: { url }, role: 'reference_audio' });
     withVideoInput = videos.length > 0;
-    inputVideoSec = withVideoInput ? Number(input.referenceVideoSec ?? 5) : 0;
-    taskType = (input.taskType as SeedanceRequestBody['omni_reference_task_type']) || 'reference';
+    /* R22: los segundos de entrada, el máximo del modelo; lo que declare quien llama no cuenta para el dinero. */
+    inputVideoSec = withVideoInput ? spec.maxReferenceTotalSec : 0;
+    /*
+     * R19 (Fase 33): el tipo de tarea (`omni_reference_task_type`) SOLO existe en
+     * Seedance 2.5; en la serie 2.0, editar o extender lo dice el texto y el
+     * parámetro no se manda. Y en 2.5, editar y extender conservan la proporción
+     * del video de entrada: `ratio` tiene que ser `adaptive` o la API rechaza la
+     * tarea al crearla.
+     */
+    const pedido = (input.taskType as SeedanceRequestBody['omni_reference_task_type']) || 'reference';
+    if (spec.key === 'SEEDANCE_2_5') {
+      taskType = pedido;
+      if (pedido === 'edit' || pedido === 'extend') ratio = 'adaptive';
+    }
   }
 
   const body: SeedanceRequestBody = {
@@ -281,8 +364,9 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
   const callback = env('SEEDANCE_CALLBACK_URL');
   if (callback) body.callback_url = env('SEEDANCE_CALLBACK_TOKEN') ? `${callback}${callback.includes('?') ? '&' : '?'}token=${encodeURIComponent(env('SEEDANCE_CALLBACK_TOKEN') as string)}` : callback;
 
-  const outputSec = duration === -1 ? 5 : duration;
-  const estimatedTokens = seedanceTokens(resolution, ratio, outputSec, inputVideoSec);
+  /* R22: `-1` se estima con el máximo del modelo, igual que al cotizar. */
+  const outputSec = duration === -1 ? spec.maxDurationSec : duration;
+  const estimatedTokens = seedanceTokens(resolution, ratio, outputSec, inputVideoSec, model.id);
   const rate = seedanceRate(model.id, resolution, withVideoInput);
   return { body, estimatedTokens, rate, withVideoInput };
 }

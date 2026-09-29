@@ -86,11 +86,18 @@ export function normalizeVideoRequest(request: VideoRequest, settings?: Pick<Eng
   const spec = specOf(modelId);
   const wanted = Number(request.durationSec ?? 5);
   const durationSec = wanted === -1 ? -1 : Math.min(spec.maxDurationSec, Math.max(spec.minDurationSec, Number.isFinite(wanted) ? Math.round(wanted) : 5));
-  const aspectRatio = request.aspectRatio && ASPECTS.has(request.aspectRatio) ? request.aspectRatio : '16:9';
   const refs = request.references;
   const hasRefs = !!(refs && ((refs.images && refs.images.length) || (refs.videos && refs.videos.length) || (refs.audios && refs.audios.length)));
 
   const capability: CapabilityId = request.inputImage ? 'video.image_to_video' : hasRefs ? 'video.reference' : 'video.generate';
+  /*
+   * R19 (Fase 33): editar o extender un video conserva la proporción del video
+   * de entrada. En Seedance 2.5 es obligatorio —`adaptive`, o la API rechaza la
+   * tarea— y en la serie 2.0 es lo natural. Antes se pedía la de la persona (o
+   * 16:9), y en 2.5 la tarea no llegaba ni a crearse.
+   */
+  const conservaLaDelVideo = capability === 'video.reference' && (request.mode === 'edit' || request.mode === 'extend');
+  const aspectRatio = conservaLaDelVideo ? 'adaptive' : request.aspectRatio && ASPECTS.has(request.aspectRatio) ? request.aspectRatio : '16:9';
   const input: Record<string, unknown> = {
     prompt,
     durationSec,
@@ -108,7 +115,7 @@ export function normalizeVideoRequest(request: VideoRequest, settings?: Pick<Eng
     if (refs.images?.length) input.referenceImages = refs.images.slice(0, spec.maxReferenceImages);
     if (refs.videos?.length) input.referenceVideos = refs.videos.slice(0, spec.maxReferenceClips);
     if (refs.audios?.length) input.referenceAudios = refs.audios.slice(0, spec.maxReferenceClips);
-    if (refs.videoSeconds) input.referenceVideoSec = refs.videoSeconds;
+    /* R22 (Fase 33): los segundos que declare quien llama (`refs.videoSeconds`) no viajan: el dinero sale del máximo del modelo. */
     if (request.mode) input.taskType = request.mode;
     // Editar un video conserva la duración del original: Seedance lo indica con -1
     if (request.mode === 'edit') input.durationSec = -1;

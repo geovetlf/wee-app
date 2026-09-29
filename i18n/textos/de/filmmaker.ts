@@ -329,6 +329,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeFailUnknown: 'Die Generierung konnte nicht abgeschlossen werden. Deine Credits wurden erstattet.',
   takeFailUnknownPending: 'Die Generierung konnte nicht abgeschlossen werden. Deine Credits werden gerade erstattet.',
   takeClosing: 'Dieser Take hat nicht geklappt. Wir erstatten seine Credits; das dauert ein paar Minuten.',
+  takeReconciling: 'Wir wissen noch nicht, wie dieser Take ausgegangen ist: Wir prüfen es beim Anbieter. Seine Credits bleiben bis dahin zurückgelegt; hat er geklappt, erscheint er in der Einstellung, sonst kommen sie zurück.',
   takeStop: 'Take stoppen',
   takeStopConfirmTitle: 'Diesen Take stoppen?',
   takeStopConfirmText: 'Wenn der Anbieter ihn noch nicht begonnen hat, wird er gestoppt und du bekommst die reservierten Credits zurück. Hat der Anbieter ihn schon, wird er fertiggestellt und wie immer berechnet.',

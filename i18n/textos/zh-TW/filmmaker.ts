@@ -343,6 +343,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeFailUnknown: '無法完成生成。你的 Credits 已退還。',
   takeFailUnknownPending: '無法完成生成。你的 Credits 正在退還。',
   takeClosing: '這一條沒有成功。我們正在退還它的 Credits，需要幾分鐘。',
+  takeReconciling: '我們還不知道這一條的結果，正在向服務商確認。在弄清楚之前，它的 Credits 會一直保留；如果成功，它會出現在鏡頭裡，否則 Credits 會退還。',
   takeStop: '停止這一條',
   takeStopConfirmTitle: '要停止這一條嗎？',
   takeStopConfirmText: '如果服務商還沒開始，它會停止，預留的 Credits 會退還給你。如果服務商已經接手，它會完成並照常扣款。',

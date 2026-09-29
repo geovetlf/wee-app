@@ -13,8 +13,8 @@ import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
-import { CapabilityId, POLITICA_DE_TRABAJO, esTrabajoTerminal, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { CapabilityId, Job, POLITICA_DE_TRABAJO, esTrabajoTerminal, operacionAbandonada } from '../core';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirLiquidacion, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
 import { almacenDeTrabajos } from '../runtime/almacen';
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
@@ -23,7 +23,7 @@ import { LIMITES_DE_PLANO, PlanoRepresentable, RequisitoDePlano, calidadRepresen
 import { categoriaDelFallo } from './fallos';
 import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
-import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance, resolveResolution } from '../engine/providers/seedance';
+import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance, resolveResolution, techoDeVideoDeEntrada } from '../engine/providers/seedance';
 import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
 import { referenciasDeLaToma } from './referenciasDeElementos';
 import {
@@ -373,15 +373,35 @@ const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detal
  *
  * Solo lectura, y solo tres palabras y una categoría: nada del trabajo por dentro.
  */
-const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<{ outcome?: 'in_progress' | 'succeeded' | 'failed'; failure?: string; cancelled?: true }> => {
-  const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId).catch(() => undefined);
-  if (!job) return {};
+export interface DesenlaceDeLaToma {
+  outcome?: 'in_progress' | 'succeeded' | 'failed' | 'reconciling';
+  failure?: string;
+  cancelled?: true;
+}
+
+/**
+ * El desenlace, de un trabajo ya leído. Pura: el mismo trabajo y el mismo `at`
+ * dan lo mismo.
+ *
+ * R15 (Fase 33): «salió hacia el proveedor y no se sabe cómo acabó» no es
+ * «falló». Su dinero no vuelve solo: se comprueba —`reconciliar` en la
+ * liquidación, `reconciling` en el estado de la toma (`estadoDeToma.ts`), la
+ * misma decisión—. Antes se decía `failed` y la app contaba que los Credits se
+ * estaban devolviendo, prometiendo un reembolso que puede no llegar.
+ */
+export const desenlaceDeUnTrabajo = (job: Job, at: number): DesenlaceDeLaToma => {
   if (job.state === 'completed') return { outcome: 'succeeded' };
+  if (decidirLiquidacion(job, at).tipo === 'reconciliar') return { outcome: 'reconciling' };
   if (!esTrabajoTerminal(job.state)) return { outcome: 'in_progress' };
   /* Fase 15 (D11): la paró la persona. No es un fallo de nadie, y así se dice. */
   if (canceladaPorLaPersona(job)) return { outcome: 'failed', cancelled: true };
   const intento = job.attempts[job.attempts.length - 1];
   return { outcome: 'failed', failure: job.state === 'timed_out' && !intento?.error ? 'TIMEOUT' : categoriaDelFallo(intento?.error) };
+};
+
+const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<DesenlaceDeLaToma> => {
+  const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId).catch(() => undefined);
+  return job ? desenlaceDeUnTrabajo(job, Date.now()) : {};
 };
 
 /** Lo que la cotización cuenta de las tomas que ya existen y del plano del Core. */
@@ -503,7 +523,8 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
     const requestId = deToma?.requestId ? deToma.requestId : assertRequestId(data.requestId);
     const inputImage = deToma ? undefined : data.inputImage || data.inputImageUrl;
     const references = !deToma && data.references
-      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid), videoSeconds: data.references.videoSeconds ? Number(data.references.videoSeconds) : undefined }
+      /* R22 (Fase 33): `videoSeconds` lo declaraba el cliente y abarataba el precio; ya no pasa de aquí. */
+      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid) }
       : undefined;
     const videoRequest: VideoRequest = deToma?.peticion ? deToma.peticion : {
       prompt,
@@ -559,14 +580,17 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
      * Firestore, y la misma petición cambiaba de importe —y de identidad—.
      */
     await loadCostOverrides();
+    const modeloDelPrecio = chooseSeedanceModel(videoRequest, settings);
     const price = priceVideo(
       {
-        modelId: chooseSeedanceModel(videoRequest, settings),
+        modelId: modeloDelPrecio,
         durationSec: videoRequest.durationSec,
-        aspectRatio: videoRequest.aspectRatio,
+        /* La proporción que de verdad se pedirá (R19: `adaptive` al editar o extender, que se cotiza como techo). */
+        aspectRatio: String(normalizado.input.aspectRatio ?? videoRequest.aspectRatio ?? ''),
         resolution: videoRequest.resolution,
         quality: videoRequest.quality,
-        inputVideoSec: videoRequest.references?.videoSeconds,
+        /* R22 (Fase 33): con videos de referencia, el máximo de entrada del modelo; nunca lo que declare el cliente. */
+        inputVideoSec: videoRequest.references?.videos?.length ? techoDeVideoDeEntrada(modeloDelPrecio) : undefined,
       },
       settings,
     );

@@ -589,11 +589,21 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * abierta. 39 → 72 añadidas; las quitadas, las mismas 4. La suite de la fase
    * (`filmmaker-cancelar`) comprueba que el cambio es solo esa función.
    */
+  /*
+   * Filmmaker Engine, Fase 33 (los riesgos del motor, 2026-09-29; sin gasto y sin contratos cerrados): el adaptador
+   * quita las órdenes del proveedor de cualquier texto (R2), cotiza con la tabla OFICIAL de píxeles (R18), manda el
+   * tipo de tarea solo a Seedance 2.5 con `adaptive` al editar y extender (R19), separa los cupos de videos y audios
+   * (R20) y estima `-1` y la entrada con el máximo del modelo (R22): 72 → 177 añadidas, 4 → 25 quitadas. Y el Weë
+   * Video Engine (`engine/video.ts`) entra por nombre: pide `adaptive` al editar y extender y deja de reenviar los
+   * segundos que declara quien llama (9 añadidas, 2 quitadas). La suite de la fase (`filmmaker-riesgos`) prueba cada
+   * cambio con el adaptador compilado y sin red.
+   */
   const MOTOR_F1D = {
     'functions/src/engine/ledger.ts': '174\t11',
     'functions/src/engine/limits.ts': '15\t3',
-    'functions/src/engine/providers/seedance.ts': '72\t4',
+    'functions/src/engine/providers/seedance.ts': '177\t25',
     'functions/src/engine/types.ts': '42\t1',
+    'functions/src/engine/video.ts': '9\t2',
   };
   const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)
     .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);

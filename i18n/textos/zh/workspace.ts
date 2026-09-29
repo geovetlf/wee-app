@@ -94,4 +94,5 @@ export const workspace: typeof import('../es/workspace').workspace = {
   statusRefunded: '我们没能生成这个视频，你的 Credits 已退还。',
   statusRefundedDetail: '预留的 {{credits}} Credits 已退还。',
   statusRefunding: '你的 Credits 正在退还，马上就好。',
+  statusChecking: '我们正在核实这个视频的结果。在弄清之前，你的 Credits 会一直保留。',
 };

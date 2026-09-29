@@ -461,8 +461,9 @@ await seccion('M', async () => {
    * confirmación y cómo acabó —detenida, pendiente, demasiado pronto, demasiado tarde, terminada, sin saber, no se pudo—).
    * Reanclada por nombre en la Fase 22 del motor (auditoría final del 2026-09-28, arreglo R16): +1, `takeDurationRounded`,
    * porque redondear la duración a segundos enteros no es «el vídeo más corto que se puede generar».
+   * Y en la Fase 33 (R15): +1, `takeReconciling`, porque «salió y no se sabe cómo acabó» no es «se están devolviendo».
    */
-  check('M5) las claves de la toma son 81, y ninguna pide un plural', nuevas.length === 81 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
+  check('M5) las claves de la toma son 82, y ninguna pide un plural', nuevas.length === 82 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
   const precio = IDIOMAS.filter((l) => !/^ {2}takePrice: '\{\{credits\}\} Credits',$/m.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
   check('M6) el precio dice «Credits» en los once, sin traducir', precio.length === 0, precio.join(', '));
 });

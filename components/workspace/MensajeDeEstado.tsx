@@ -10,9 +10,10 @@ import { scale } from '../../utils/scale';
  * Los estados de una creación, tal como los vive la persona. No son los del
  * servidor —`AUTHORIZED`, `PROCESSING`, `REFUNDED`— sino lo que significan:
  * se está preparando, está esperando turno, se está haciendo, está lista, no
- * salió, y el dinero se devolvió (o se está devolviendo).
+ * salió, y el dinero se devolvió (o se está devolviendo), o todavía se está
+ * comprobando cómo acabó —y el dinero sigue apartado hasta saberlo—.
  */
-export type EstadoVisible = 'preparando' | 'en_cola' | 'generando' | 'completado' | 'fallido' | 'reembolsado' | 'devolviendo';
+export type EstadoVisible = 'preparando' | 'en_cola' | 'generando' | 'completado' | 'fallido' | 'reembolsado' | 'devolviendo' | 'comprobando';
 
 const ASPECTO: Record<EstadoVisible, { icono: string; clave: string; tono: 'trabajo' | 'ok' | 'error' | 'dinero' }> = {
   preparando: { icono: 'construct-outline', clave: 'workspace.statusPreparing', tono: 'trabajo' },
@@ -22,6 +23,7 @@ const ASPECTO: Record<EstadoVisible, { icono: string; clave: string; tono: 'trab
   fallido: { icono: 'alert-circle-outline', clave: 'workspace.statusFailed', tono: 'error' },
   reembolsado: { icono: 'return-down-back-outline', clave: 'workspace.statusRefunded', tono: 'dinero' },
   devolviendo: { icono: 'hourglass-outline', clave: 'workspace.statusRefunding', tono: 'dinero' },
+  comprobando: { icono: 'search-outline', clave: 'workspace.statusChecking', tono: 'dinero' },
 };
 
 /**
@@ -36,7 +38,7 @@ const MensajeDeEstado: React.FC<{ estado: EstadoVisible; detalle?: string; compa
   const t = useT();
   const a = ASPECTO[estado];
   const color = a.tono === 'ok' ? theme.colors.success : a.tono === 'error' ? theme.colors.error : theme.colors.accent;
-  const trabajando = a.tono === 'trabajo' || estado === 'devolviendo';
+  const trabajando = a.tono === 'trabajo' || estado === 'devolviendo' || estado === 'comprobando';
 
   return (
     <View

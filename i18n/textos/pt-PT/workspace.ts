@@ -93,4 +93,5 @@ export const workspace: typeof import('../es/workspace').workspace = {
   statusRefunded: 'Não conseguimos gerar este vídeo, e os teus Credits foram devolvidos.',
   statusRefundedDetail: 'Os {{credits}} Credits reservados foram reembolsados.',
   statusRefunding: 'Estamos a acabar de devolver os teus Credits.',
+  statusChecking: 'Estamos a verificar como este vídeo acabou. Os teus Credits continuam reservados até sabermos.',
 };

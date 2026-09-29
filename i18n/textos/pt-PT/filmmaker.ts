@@ -335,6 +335,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeFailUnknown: 'Não foi possível concluir a geração. Os teus Credits foram reembolsados.',
   takeFailUnknownPending: 'Não foi possível concluir a geração. Os teus Credits estão a ser devolvidos.',
   takeClosing: 'Este take não correu bem. Estamos a devolver os Credits dele; demora alguns minutos.',
+  takeReconciling: 'Ainda não sabemos como este take acabou: estamos a verificar com o fornecedor. Os Credits dele continuam reservados até sabermos; se correu bem, aparece no plano, e se não, voltam.',
   takeStop: 'Parar o take',
   takeStopConfirmTitle: 'Parar este take?',
   takeStopConfirmText: 'Se o fornecedor ainda não o começou, para e os Credits reservados voltam para ti. Se já o tem, vai terminar e ser cobrado como sempre.',

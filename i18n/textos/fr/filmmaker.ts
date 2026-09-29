@@ -330,6 +330,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeFailUnknown: 'La génération n’a pas pu aboutir. Tes Credits ont été remboursés.',
   takeFailUnknownPending: 'La génération n’a pas pu aboutir. Tes Credits sont en cours de remboursement.',
   takeClosing: 'Cette prise n’a pas abouti. Nous remboursons ses Credits ; cela prend quelques minutes.',
+  takeReconciling: 'Nous ne savons pas encore comment cette prise s’est terminée : nous vérifions auprès du fournisseur. Ses Credits restent mis de côté jusque-là ; si elle a abouti, elle apparaîtra dans le plan, sinon ils te seront rendus.',
   takeStop: 'Arrêter la prise',
   takeStopConfirmTitle: 'Arrêter cette prise ?',
   takeStopConfirmText: 'Si le fournisseur ne l’a pas encore commencée, elle s’arrête et les Credits réservés te sont rendus. S’il l’a déjà, elle se terminera et sera facturée comme d’habitude.',

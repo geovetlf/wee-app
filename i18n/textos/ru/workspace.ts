@@ -90,4 +90,5 @@ export const workspace: typeof import('../es/workspace').workspace = {
   statusRefunded: 'Не удалось сгенерировать это видео, и ваши Credits вернулись.',
   statusRefundedDetail: 'Зарезервированные Credits возвращены: {{credits}}.',
   statusRefunding: 'Завершаем возврат ваших Credits.',
+  statusChecking: 'Проверяем, чем закончилось это видео. Ваши Credits остаются зарезервированными до выяснения.',
 };

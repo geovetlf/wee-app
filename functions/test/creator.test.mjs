@@ -172,7 +172,12 @@ check('texto → video.generate con familia y modelo fijados en las preferencias
 const i2v = normalizeVideoRequest({ prompt: 'anima', inputImage: 'https://x/a.png', durationSec: 40 });
 check('imagen → video.image_to_video y la duración se recorta al máximo del modelo (2.5 por > 15 s → 30)', i2v.capability === 'video.image_to_video' && i2v.input.imageUrl === 'https://x/a.png' && i2v.modelId === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 && i2v.input.durationSec === 30);
 const vExtend = normalizeVideoRequest({ prompt: 'continua este clip', references: { videos: ['https://x/c.mp4'], videoSeconds: 6 }, mode: 'extend', durationSec: 10 });
-check('continuar un clip: video.reference con taskType extend y los segundos de entrada', vExtend.capability === 'video.reference' && vExtend.input.taskType === 'extend' && vExtend.input.referenceVideoSec === 6 && vExtend.input.durationSec === 10);
+/*
+ * Reanclada por nombre en la Fase 33 del Filmmaker Engine: extender conserva la proporción del vídeo de entrada
+ * (`adaptive`, R19) y los segundos de entrada que declara quien llama ya no viajan: el precio usa el máximo del
+ * modelo (R22).
+ */
+check('continuar un clip: video.reference con taskType extend y `adaptive`; los segundos declarados no viajan', vExtend.capability === 'video.reference' && vExtend.input.taskType === 'extend' && vExtend.input.aspectRatio === 'adaptive' && vExtend.input.referenceVideoSec === undefined && vExtend.input.durationSec === 10);
 const vEdit = normalizeVideoRequest({ prompt: 'cambia el cielo', references: { videos: ['https://x/c.mp4'] }, mode: 'edit', durationSec: 10 });
 check('editar un video usa duración -1, como pide Seedance', vEdit.input.taskType === 'edit' && vEdit.input.durationSec === -1);
 check('el modo viaja de vuelta al convertir un paso del plan', videoRequestFromStep('video.reference', { prompt: 'p', referenceVideos: ['https://x/c.mp4'], taskType: 'extend' }).mode === 'extend');

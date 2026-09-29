@@ -141,8 +141,8 @@ const Generacion: React.FC<{
   );
 
   if (fase.fase === 'consultando') return <Seccion titulo={titulo}>{nota(t('filmmaker.takeChecking'))}</Seccion>;
-  if (fase.fase === 'en_proceso' || fase.fase === 'terminando' || fase.fase === 'cerrando') {
-    const texto = fase.fase === 'en_proceso' ? t('filmmaker.takeWorking') : fase.fase === 'terminando' ? t('filmmaker.takeLinking') : t('filmmaker.takeClosing');
+  if (fase.fase === 'en_proceso' || fase.fase === 'terminando' || fase.fase === 'cerrando' || fase.fase === 'comprobando') {
+    const texto = fase.fase === 'en_proceso' ? t('filmmaker.takeWorking') : fase.fase === 'terminando' ? t('filmmaker.takeLinking') : fase.fase === 'comprobando' ? t('filmmaker.takeReconciling') : t('filmmaker.takeClosing');
     const { cancelacion } = toma;
     /*
      * «DETENER LA TOMA» (Fase 15 del motor): solo mientras está en proceso, con una
@@ -156,7 +156,7 @@ const Generacion: React.FC<{
       <Seccion titulo={titulo}>
         {loQueHay}
         <View style={[styles.fila, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-          <Ionicons name={fase.fase === 'cerrando' ? 'return-down-back-outline' : 'hourglass-outline'} size={scale(16)} color={theme.colors.accentDark} />
+          <Ionicons name={fase.fase === 'cerrando' ? 'return-down-back-outline' : fase.fase === 'comprobando' ? 'search-outline' : 'hourglass-outline'} size={scale(16)} color={theme.colors.accentDark} />
           <Text style={[styles.texto, styles.estira, { color: theme.colors.text }]}>{texto}</Text>
         </View>
         {fase.fase === 'en_proceso' && !!cancelacion && nota(fraseDeLaCancelacion(cancelacion, t), cancelacion.estado === 'rechazada' ? 'error' : 'normal')}

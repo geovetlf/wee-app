@@ -91,4 +91,5 @@ export const workspace: typeof import('../es/workspace').workspace = {
   statusRefunded: '이 영상을 생성하지 못해서 Credits를 돌려드렸어요.',
   statusRefundedDetail: '예약해 둔 {{credits}} Credits를 환불했어요.',
   statusRefunding: 'Credits 환불을 마무리하고 있어요.',
+  statusChecking: '이 동영상이 어떻게 끝났는지 확인하는 중이에요. 확인될 때까지 Credits는 따로 보관돼요.',
 };

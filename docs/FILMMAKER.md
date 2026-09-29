@@ -1805,6 +1805,35 @@ resumen, reglas de cada estado, las 96 de la Fase 31 con su categoría, ningún 
 contra el adaptador compilado y sin red, lo que se dice de Seedance y de F1-A, el workplace, la investigación y las
 guardas.
 
+### Fase 33 · Los riesgos del motor que se cierran sin gastar
+
+Encargo del usuario (2026-09-29, Fase 33 del plan de la matriz maestra): cerrar los riesgos que no piden dinero ni un
+contrato cerrado, cada uno con su prueba y su sabotaje, sin llamar a proveedores y sin tocar F1-A/B/C/D, el runtime,
+el Credit Engine ni la huella de la toma. Se cierran seis; R3 y R4 quedan preparados porque viven en el runtime
+cerrado de la Fase 12-D y en el barrido desplegado.
+
+- **R2** · las órdenes del proveedor (`--dur 30`, `--rs 1080p`…) ya no llegan a Seedance desde ningún texto: el
+  adaptador les quita los guiones (`sinOrdenesDeSeedance`) en el único sitio por el que sale un texto hacia ModelArk.
+  Antes solo se limpiaba el prompt avanzado de un plano.
+- **R18** · el precio sale de la tabla oficial de píxeles: una resolución es un presupuesto de píxeles, no un lado
+  corto. Un vídeo 1:1 se cotizaba un 44 % por debajo de lo que factura el proveedor, uno 4:3 un 25 % y uno 21:9 un
+  31 % por encima; 480p en la serie 2.0 es 864×496. `adaptive` se cotiza con la mayor: un techo.
+- **R19** · editar y extender piden `adaptive` (obligatorio en Seedance 2.5) y el tipo de tarea solo va a 2.5.
+- **R20** · vídeos y audios de referencia con cupos separados (3 + 3 en la serie 2.0, 10 + 10 en 2.5), y el sonido
+  solo, rechazado en la serie 2.0 antes de salir.
+- **R22** (nuevo, encontrado aquí) · la puerta `generateVideo` de siempre cotizaba con lo que declaraba el cliente:
+  `-1` («que la duración la decida el modelo») como 5 s, y los segundos de un vídeo de referencia. Ahora, el máximo
+  del modelo. La app no manda ninguna de las dos cosas; una llamada hecha a mano sí podía. **En producción sigue
+  abierto hasta que se despliegue.**
+- **R15** · una toma que salió y no se sabe cómo acabó ya no dice «se están devolviendo»: dice que se está
+  comprobando y que sus Credits siguen apartados (`desenlaceDeUnTrabajo`, con la misma decisión que el estado de la
+  toma y la liquidación; fase `comprobando` en la app, en el panel del plano y en el visor; dos frases en los once
+  idiomas).
+
+Pruebas: `functions/test/filmmaker-riesgos.test.mjs` (en la cadena): cada riesgo con el adaptador compilado y sin red,
+la toma que se comprueba en el servidor y en la app, y las guardas. La matriz maestra dice cada uno cerrado, y su suite
+compara la tabla de riesgos con el código.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

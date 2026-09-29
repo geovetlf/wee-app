@@ -626,8 +626,10 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * (`wsShotReferences*`, `wsShotRole*`, `wsReferenceNumbered`), qué no sirve como referencia
    * (`wsRefKindsNote`), el formato que no se genera (`formatNotGenerable`) y lo que no pasa a «Varias
    * escenas» (`studio.refsNotInProduction`)—, en los once a la vez.
+   * Fase 33 del motor, 2026-09-29 (R15): +2 —la toma que se está comprobando (`takeReconciling`) y su estado en el
+   * visor (`workspace.statusChecking`)—, en los once a la vez.
    */
-  const CLAVES_PT = 3557;
+  const CLAVES_PT = 3559;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

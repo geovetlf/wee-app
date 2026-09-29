@@ -125,8 +125,8 @@ const intento = async (fn) => { try { return { ok: true, valor: await fn() } } c
 
 const RIESGOS = new Map(tabla(seccion('**Estado de los riesgos.**', '### 2.3'), 'Riesgo').filas.map(([id, estado, que]) => [id, { estado, que }]));
 const ESTADOS_DE_RIESGO = /^(abierto|cerrado \(Fase \d+\)|contrato|decisión|se queda)$/;
-check('R1 la tabla de riesgos tiene R2, R3, R4, R5, R8, R9, R15 y R18–R21, cada uno con un estado válido',
-  ['R2', 'R3', 'R4', 'R5', 'R8', 'R9', 'R15', 'R18', 'R19', 'R20', 'R21'].every((r) => RIESGOS.has(r) && ESTADOS_DE_RIESGO.test(RIESGOS.get(r).estado)),
+check('R1 la tabla de riesgos tiene R2, R3, R4, R5, R8, R9, R15 y R18–R22, cada uno con un estado válido',
+  ['R2', 'R3', 'R4', 'R5', 'R8', 'R9', 'R15', 'R18', 'R19', 'R20', 'R21', 'R22'].every((r) => RIESGOS.has(r) && ESTADOS_DE_RIESGO.test(RIESGOS.get(r).estado)),
   [...RIESGOS].map(([id, r]) => `${id}:${r.estado}`).join(','));
 
 /* Cada sonda dice si el defecto SIGUE en el código. «abierto» ⇔ sigue; «cerrado (Fase N)» ⇔ ya no. */
@@ -144,6 +144,12 @@ const conDefecto = {
     const seis = await cuerpo(M.SEEDANCE_2_0, { prompt: 'Un faro', referenceVideos: ['https://x/a.mp4', 'https://x/b.mp4', 'https://x/c.mp4'], referenceAudios: ['https://x/1.mp3', 'https://x/2.mp3', 'https://x/3.mp3'] });
     const soloAudio = await intento(() => cuerpo(M.SEEDANCE_2_0, { prompt: 'Solo sonido', referenceAudios: ['https://x/1.mp3'] }));
     return seis.content.filter((c) => c.role === 'reference_audio').length !== 3 || soloAudio.ok;
+  },
+  /* R22 (Fase 33): `-1` se cotizaba como 5 s y los segundos de entrada los declaraba el cliente. */
+  R22: async () => {
+    const menos1 = seedance.seedanceCostUsd({ modelId: M.SEEDANCE_2_0, resolution: '720p', durationSec: -1, ratio: '16:9' }).tokens;
+    const maximo = seedance.seedanceCostUsd({ modelId: M.SEEDANCE_2_0, resolution: '720p', durationSec: 15, ratio: '16:9' }).tokens;
+    return menos1 !== maximo || /videoSeconds:/.test(sinComentarios(leer('functions/src/creator/video.ts')));
   },
 };
 for (const [id, sonda] of Object.entries(conDefecto)) {
