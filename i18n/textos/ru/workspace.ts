@@ -60,7 +60,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   actionArchive: 'Архивировать',
   actionUnarchive: 'Вернуть из архива',
   actionRename: 'Переименовать',
-  productionRenameNote: 'Название постановки задаётся, когда её создают или дублируют.',
+  productionRenameNote: 'Название постановки меняется внутри неё, в разделе «Проект» › «Бриф».',
   projectName: 'Название проекта',
   projectDeleteTitle: 'Удалить «{{nombre}}»?',
   projectDeleteText: 'Проект будет удалён. Ваши творения останутся: они по-прежнему в «Моих творениях».',

@@ -348,4 +348,6 @@ export const studio = {
 
   /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
   settingInWords: '{{ajuste}}: {{valor}}',
+  /* ── Fase 31 del motor: lo que no pasa a «Varias escenas», dicho ── */
+  refsNotInProduction: 'En «Varias escenas» estas referencias no pasan a la producción. Dentro, añádelas desde Mis creaciones en Proyecto › Referencias.',
 };

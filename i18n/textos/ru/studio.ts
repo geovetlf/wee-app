@@ -361,4 +361,6 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
 
   /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
   settingInWords: '{{ajuste}}: {{valor}}',
+  /* ── Fase 31 del motor: lo que no pasa a «Varias escenas», dicho ── */
+  refsNotInProduction: 'В режиме «Несколько сцен» эти референсы не переходят в постановку. Внутри неё добавьте их из «Моих творений» в разделе «Проект» › «Референсы».',
 };

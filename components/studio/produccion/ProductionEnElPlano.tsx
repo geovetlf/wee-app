@@ -6,14 +6,15 @@ import CampoQueCrece from '../../creator/CampoQueCrece';
 import { Aviso, Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { LIMITES, estadoEfectivo, repartoDelPlano, requisitosDeProduccion } from '../../../services/filmmaker/dominio';
-import { CLAVE_DE_CAPACIDAD } from '../../../constants/filmmaker';
-import type { FilmmakerOperation } from '../../../services/filmmaker/dominio';
+import { CLAVE_DE_CAPACIDAD, CLAVE_DEL_PAPEL_DE_REFERENCIA, PAPELES_DEL_PLANO } from '../../../constants/filmmaker';
+import type { FilmmakerOperation, ProductionReference } from '../../../services/filmmaker/dominio';
+import { conLaDelPapel } from '../../../utils/produccionEditable';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 
 const isWeb = Platform.OS === 'web';
 
-/** Unas pastillas que se encienden y se apagan: varias a la vez. */
-const Varias: React.FC<{ opciones: readonly { valor: string; texto: string }[]; elegidas: ReadonlySet<string>; editable: boolean; onCambiar: (v: string, encendida: boolean) => void }> = ({ opciones, elegidas, editable, onCambiar }) => {
+/** Unas pastillas que se encienden y se apagan: varias a la vez (o una sola, con `unica`: la de un fotograma). */
+const Varias: React.FC<{ opciones: readonly { valor: string; texto: string }[]; elegidas: ReadonlySet<string>; editable: boolean; onCambiar: (v: string, encendida: boolean) => void; unica?: boolean }> = ({ opciones, elegidas, editable, onCambiar, unica }) => {
   const { theme } = useTheme();
   return (
     <View style={styles.opciones}>
@@ -24,7 +25,7 @@ const Varias: React.FC<{ opciones: readonly { valor: string; texto: string }[]; 
             key={o.valor}
             onPress={() => onCambiar(o.valor, !esta)}
             disabled={!editable}
-            accessibilityRole="checkbox"
+            accessibilityRole={unica ? 'radio' : 'checkbox'}
             accessibilityLabel={o.texto}
             accessibilityState={{ checked: esta, disabled: !editable }}
             style={[styles.opcion, { backgroundColor: esta ? theme.colors.accent : theme.colors.surface, borderColor: esta ? theme.colors.accent : theme.colors.border },
@@ -51,6 +52,11 @@ const Varias: React.FC<{ opciones: readonly { valor: string; texto: string }[]; 
  *
  * Y las referencias, con la verdad: ponerlas en un plano hoy impide generarlo, hasta que se valide un modelo que las
  * use (Fase 18). Se avisa antes, no después.
+ *
+ * Fase 31 del motor: las referencias del plano, POR PAPEL —primer fotograma, último fotograma, movimiento y audio, que
+ * son las entradas que Seedance ya sabe recibir, y «otras»—, cada papel con su hueco aunque esté vacío: quien busca
+ * «el fotograma inicial» lo encuentra en el plano, y lee ahí mismo que generar con él llegará cuando se valide su
+ * modelo (el contrato 1, su precio y su prueba real). Un fotograma es uno como mucho: elegir otro sustituye al primero.
  */
 const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
   const { theme } = useTheme();
@@ -64,6 +70,10 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
   const heredado = !!plano && plano.characterIds === undefined && (escena.characterIds?.length ?? 0) > 0;
   const objetos = new Set((plano ? plano.objectIds : escena.objectIds) ?? []);
   const referencias = new Set(plano?.referenceIds ?? []);
+  /* Cómo se llama una referencia aquí: su descripción o su número en Proyecto › Referencias (el papel ya es el hueco). */
+  const nombreDeReferencia = (r: ProductionReference) => r.description || t('filmmaker.wsReferenceNumbered', { numero: produccion.references.indexOf(r) + 1 });
+  const papelesConHueco = new Set<string>(PAPELES_DEL_PLANO.map((x) => x.papel));
+  const otras = produccion.references.filter((r) => !r.role || !papelesConHueco.has(r.role));
   const cambiarLista = (campo: 'characterIds' | 'objectIds' | 'referenceIds', actual: ReadonlySet<string>, id: string, encendida: boolean) => {
     const nueva = encendida ? [...actual, id] : [...actual].filter((x) => x !== id);
     const op: FilmmakerOperation = plano
@@ -164,17 +174,42 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
       </Seccion>
 
       {!!plano && (
-        <Seccion titulo={t('filmmaker.wsReferencesList')}>
-          {produccion.references.length === 0
-            ? <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsNoReferences')}</Text>
-            : (
-              <Varias
-                opciones={produccion.references.map((r) => ({ valor: r.id, texto: r.description || r.id }))}
-                elegidas={referencias}
-                editable={editable}
-                onCambiar={(id, si) => cambiarLista('referenceIds', referencias, id, si)}
-              />
-            )}
+        <Seccion titulo={t('filmmaker.wsShotReferences')}>
+          <Aviso texto={t('filmmaker.wsShotReferencesSoon')} icono="time-outline" tono="neutro" />
+          {PAPELES_DEL_PLANO.map(({ papel, uno }) => {
+            const delPapel = produccion.references.filter((r) => r.role === papel);
+            return (
+              <View key={papel} style={styles.hueco}>
+                <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{t(CLAVE_DEL_PAPEL_DE_REFERENCIA[papel])}</Text>
+                {delPapel.length === 0
+                  ? <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsShotRoleEmpty')}</Text>
+                  : (
+                    <Varias
+                      unica={uno}
+                      opciones={delPapel.map((r) => ({ valor: r.id, texto: nombreDeReferencia(r) }))}
+                      elegidas={referencias}
+                      editable={editable}
+                      onCambiar={(id, si) => (uno
+                        ? onGesto([{ op: 'update_shot', shotId: plano.id, changes: { referenceIds: conLaDelPapel(plano.referenceIds, produccion.references, papel, id, si) } }])
+                        : cambiarLista('referenceIds', referencias, id, si))}
+                    />
+                  )}
+              </View>
+            );
+          })}
+          <View style={styles.hueco}>
+            <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsShotRoleOthers')}</Text>
+            {otras.length === 0
+              ? <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t(produccion.references.length ? 'filmmaker.wsShotRoleOthersNone' : 'filmmaker.wsNoReferences')}</Text>
+              : (
+                <Varias
+                  opciones={otras.map((r) => ({ valor: r.id, texto: nombreDeReferencia(r) }))}
+                  elegidas={referencias}
+                  editable={editable}
+                  onCambiar={(id, si) => cambiarLista('referenceIds', referencias, id, si)}
+                />
+              )}
+          </View>
           {referencias.size > 0 && <Aviso texto={t('filmmaker.wsReferencesBlockTake')} />}
           {/* Fase 27 del motor: lo que haría falta, dicho con la capacidad que F1-A calcula para este plano. */}
           {!!capacidad && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsShotWouldNeed', { capacidad: t(capacidad) })}</Text>}
@@ -187,6 +222,8 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
 const styles = StyleSheet.create({
   bloque: { gap: SPACING.lg },
   nota: { fontSize: FONT_SIZE.xs, lineHeight: FONT_SIZE.xs * 1.5 },
+  etiqueta: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any },
+  hueco: { gap: SPACING.xs },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   opcion: { minHeight: 34, paddingHorizontal: SPACING.md, borderWidth: 1, borderRadius: BORDER_RADIUS.full, justifyContent: 'center' },
   opcionTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },

@@ -26,6 +26,10 @@ const isWeb = Platform.OS === 'web';
  *
  * Y se dice la verdad sobre generar: hoy un plano con referencias no se puede generar (`references_not_supported`
  * hasta que se valide un modelo; Fase 18). Tenerlas en la producción no bloquea nada; ponerlas en un plano, sí.
+ *
+ * Fase 31 del motor: SUSTITUIR una referencia por otra de la misma clase (`replace_reference`, que existía y nadie
+ * usaba): donde se usaba la primera —en planos, fichas, rasgos, voces— pasa a usarse la otra. F1-A no admite cambiar una
+ * imagen por un vídeo, y se dice en vez de ofrecerlo.
  */
 const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
   const { theme } = useTheme();
@@ -34,6 +38,8 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
   const [abierta, setAbierta] = useState<string | null>(null);
   /* Fase 27 del motor: añadiendo una referencia, de Mis creaciones o de lo guardado. */
   const [anadiendo, setAnadiendo] = useState(false);
+  /* Fase 31: a cuál se está buscando sustituta. */
+  const [sustituyendo, setSustituyendo] = useState<string | null>(null);
   const nuevoId = espacio.idsDeFichas?.referencia;
   const refs = produccion.references;
   const nombre = (r: ProductionReference) => r.description || t(CLAVE_DEL_PAPEL_DE_REFERENCIA[r.role ?? 'general']);
@@ -58,6 +64,16 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
         onGesto([{ op: 'remove_reference', referenceId: r.id, cascade: true }]);
       }
     }
+  };
+  const sustituir = async (de: ProductionReference, a: ProductionReference) => {
+    if (!(await confirmAction(
+      t('filmmaker.wsReferenceReplaceConfirm', { de: nombre(de), a: nombre(a) }),
+      t('filmmaker.wsReferenceReplaceDetail', { de: nombre(de), a: nombre(a) }),
+      t('filmmaker.wsReferenceReplace'),
+      false,
+      t,
+    ))) return;
+    if (onGesto([{ op: 'replace_reference', fromReferenceId: de.id, toReferenceId: a.id }]).ok) setSustituyendo(null);
   };
   /* Añadir es la operación de F1-A de siempre (`add_reference`); luego se abre su ficha para decir para qué sirve. */
   const anadir = (referencia: ProductionReference) => {
@@ -129,6 +145,39 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
                 {PAPELES_DE_REFERENCIA.some((p) => r.role !== p && !admite(r, p)) && (
                   <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsReferenceRoleNeedsKind')}</Text>
                 )}
+                {refs.length > 1 && (() => {
+                  /* Solo por otra de su clase: F1-A no cambia una imagen por un vídeo (`kind_mismatch`), y se dice. */
+                  const mismas = refs.filter((o) => o.id !== r.id && o.kind === r.kind);
+                  if (!mismas.length) return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsReferenceReplaceNone')}</Text>;
+                  return (
+                    <View style={styles.sustituir}>
+                      <BotonPequeno
+                        icono={sustituyendo === r.id ? 'close' : 'swap-horizontal-outline'}
+                        etiqueta={t(sustituyendo === r.id ? 'filmmaker.wsReferenceReplaceCancel' : 'filmmaker.wsReferenceReplaceStart')}
+                        onPress={() => setSustituyendo(sustituyendo === r.id ? null : r.id)}
+                        disabled={!editable}
+                        conTexto
+                      />
+                      {sustituyendo === r.id && (
+                        <View style={styles.opciones}>
+                          {mismas.map((o) => (
+                            <TouchableOpacity
+                              key={o.id}
+                              onPress={() => { void sustituir(r, o); }}
+                              disabled={!editable}
+                              accessibilityRole="button"
+                              accessibilityLabel={t('filmmaker.wsReferenceReplaceWith', { nombre: nombre(o) })}
+                              accessibilityState={{ disabled: !editable }}
+                              style={[styles.opcion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, !editable && { opacity: OPACITY.disabled }]}
+                            >
+                              <Text style={[styles.opcionTexto, { color: theme.colors.text }]} numberOfLines={1}>{nombre(o)}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })()}
                 <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.remove')} onPress={() => { void quitar(r); }} disabled={!editable} conTexto />
               </View>
             )}
@@ -153,6 +202,7 @@ const styles = StyleSheet.create({
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   opcion: { minHeight: 32, paddingHorizontal: SPACING.sm, borderWidth: 1, borderRadius: BORDER_RADIUS.full, justifyContent: 'center' },
   opcionTexto: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium as any },
+  sustituir: { gap: SPACING.xs, alignItems: 'flex-start' },
 });
 
 export default ProductionReferencias;

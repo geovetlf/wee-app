@@ -61,7 +61,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   actionArchive: '보관',
   actionUnarchive: '보관 해제',
   actionRename: '이름 변경',
-  productionRenameNote: '프로덕션 이름은 만들거나 복제할 때 정해요.',
+  productionRenameNote: '프로덕션 이름은 프로덕션 안의 프로젝트 › 기획에서 바꿔요.',
   projectName: '프로젝트 이름',
   projectDeleteTitle: '‘{{nombre}}’ 프로젝트를 삭제할까요?',
   projectDeleteText: '프로젝트만 삭제돼요. 창작물은 지워지지 않고 ‘내 창작물’에 그대로 남아요.',

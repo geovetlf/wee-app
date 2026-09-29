@@ -63,7 +63,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   actionArchive: 'Arquivar',
   actionUnarchive: 'Desarquivar',
   actionRename: 'Mudar o nome',
-  productionRenameNote: 'O nome de uma produção é escolhido ao criá-la ou ao duplicá-la.',
+  productionRenameNote: 'O nome de uma produção muda-se dentro dela, em Projeto › Brief.',
   projectName: 'Nome do projeto',
   projectDeleteTitle: 'Eliminar «{{nombre}}»?',
   projectDeleteText: 'O projeto é eliminado. As tuas criações não são apagadas: continuam em «As minhas criações».',

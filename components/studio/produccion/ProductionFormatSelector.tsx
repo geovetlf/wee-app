@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { useT } from '../../../contexts/IdiomaContext';
-import { PRESETS_VISIBLES } from '../../../constants/filmmaker';
+import { useIdioma } from '../../../contexts/IdiomaContext';
+import { Aviso } from './ProductionPiezas';
+import { PRESETS_VISIBLES, PROPORCIONES_QUE_SE_GENERAN, PROPORCIONES_SUGERIDAS } from '../../../constants/filmmaker';
 import { PRESETS_DE_FORMATO, PROPORCIONES } from '../../../services/filmmaker/dominio';
 import type { AspectRatio, FormatPresetId } from '../../../services/filmmaker/dominio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
@@ -18,6 +19,10 @@ const isWeb = Platform.OS === 'web';
  * recomendada—, no un producto ni una red: se elige y ya. La proporción que
  * se enseña es la de la producción TAL CUAL: un 4:5 se queda en 4:5 y nadie la
  * convierte a otra por el camino.
+ *
+ * Fase 31 del motor: y si la toma no sabe generar ese formato (hoy, el 4:5 del preset «Anuncios»), se dice AL
+ * ELEGIRLO, con los que propone en su lugar, en vez de descubrirlo al ir a generar. No se quita ni se convierte: que
+ * se componga en el montaje o se deje de ofrecer es una decisión pendiente.
  */
 const ProductionFormatSelector: React.FC<{
   aspectRatio: string;
@@ -27,7 +32,7 @@ const ProductionFormatSelector: React.FC<{
   onProporcion: (proporcion: AspectRatio) => void;
 }> = ({ aspectRatio, preset, editable, onPreset, onProporcion }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, formato } = useIdioma();
   const recomendada = preset && (PRESETS_DE_FORMATO as Record<string, { recommendedDurationSec: number } | undefined>)[preset]?.recommendedDurationSec;
 
   return (
@@ -84,6 +89,9 @@ const ProductionFormatSelector: React.FC<{
         })}
       </View>
       {!!recomendada && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.presetRecommends', { segundos: recomendada })}</Text>}
+      {!PROPORCIONES_QUE_SE_GENERAN.includes(aspectRatio) && (
+        <Aviso texto={t('filmmaker.formatNotGenerable', { formato: aspectRatio, lista: formato.lista(PROPORCIONES_SUGERIDAS) })} />
+      )}
     </View>
   );
 };

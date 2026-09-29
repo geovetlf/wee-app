@@ -363,4 +363,6 @@ export const studio: typeof import('../es/studio').studio = {
 
   /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
   settingInWords: '{{ajuste}}: {{valor}}',
+  /* ── Fase 31 del motor: lo que no pasa a «Varias escenas», dicho ── */
+  refsNotInProduction: '‘여러 장면’에서는 이 레퍼런스가 프로덕션으로 넘어가지 않아요. 프로덕션 안의 프로젝트 › 레퍼런스에서 내 창작물을 추가해 주세요.',
 };

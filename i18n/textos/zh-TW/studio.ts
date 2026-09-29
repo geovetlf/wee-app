@@ -398,4 +398,6 @@ export const studio: typeof import('../es/studio').studio = {
 
   /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
   settingInWords: '{{ajuste}}：{{valor}}',
+  /* ── Fase 31 del motor: lo que no pasa a «Varias escenas», dicho ── */
+  refsNotInProduction: '在「多場景」中，這些參考素材不會帶進製作。進入製作後，請在「製作資料 › 參考素材」裡從「我的作品」新增。',
 };

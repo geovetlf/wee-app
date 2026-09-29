@@ -68,13 +68,17 @@ const Opciones: React.FC<{
  * perspectiva, la óptica y su focal, la composición, la velocidad y la suavidad del movimiento—, cada ruta en su propia
  * fila (antes, una familia con dos rutas solo dejaba elegir una); y la transición al plano siguiente
  * (`change_transition`). Nada de esto cambia el texto de lo que ya estaba guardado: solo deja elegirlo.
+ *
+ * Fase 31 del motor: `trasLaDescripcion` es el hueco justo detrás de «Qué se ve», donde el panel del Plano pone lo
+ * que pasa y el sujeto (van a la toma en ese orden). Quien no lo pasa —el panel del Director— se queda como estaba.
  */
 const ProductionInspector: React.FC<{
   produccion: FilmmakerProduction;
   seleccion: Seleccion;
   editable: boolean;
   onGesto: (ops: readonly FilmmakerOperation[]) => void;
-}> = ({ produccion, seleccion, editable, onGesto }) => {
+  trasLaDescripcion?: React.ReactNode;
+}> = ({ produccion, seleccion, editable, onGesto, trasLaDescripcion }) => {
   const { theme } = useTheme();
   const t = useT();
   const escena: ProductionScene | undefined = seleccion?.tipo === 'escena' ? buscarEscena(produccion, seleccion.id)?.scene : undefined;
@@ -119,6 +123,7 @@ const ProductionInspector: React.FC<{
         editable={editable}
         onGuardar={(texto) => onGesto([{ op: 'edit_text', target: plano ? { shotId: plano.id } : { sceneId: (escena as ProductionScene).id }, description: texto || null }])}
       />
+      {trasLaDescripcion}
 
       {escena && (
         <>

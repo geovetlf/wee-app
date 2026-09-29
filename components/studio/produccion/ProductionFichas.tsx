@@ -7,9 +7,10 @@ import CampoQueCrece from '../../creator/CampoQueCrece';
 import ProductionSelectorDeGuardados from './ProductionSelectorDeGuardados';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import type { EspacioDeFilmmaker } from './espacio';
-import { AMBIENTES, LIMITES, TIPOS_DE_OBJETO } from '../../../services/filmmaker/dominio';
-import type { FilmmakerOperation, ProductionCharacter, ProductionLocation, ProductionObject } from '../../../services/filmmaker/dominio';
-import { CLASES_POR_FICHA, CLAVE_DEL_AMBIENTE, CLAVE_DEL_TIPO_DE_OBJETO } from '../../../constants/filmmaker';
+import { AMBIENTES, LIMITES, RASGOS, TIPOS_DE_OBJETO } from '../../../services/filmmaker/dominio';
+import type { AppearanceProfile, AppearanceTraitKey, FilmmakerOperation, ProductionCharacter, ProductionLocation, ProductionObject } from '../../../services/filmmaker/dominio';
+import { CLASES_POR_FICHA, CLAVE_DEL_AMBIENTE, CLAVE_DEL_RASGO, CLAVE_DEL_TIPO_DE_OBJETO, RASGOS_POR_FICHA } from '../../../constants/filmmaker';
+import { conRasgo } from '../../../utils/produccionEditable';
 import { confirmAction } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
@@ -36,6 +37,19 @@ const TEXTOS: Readonly<Record<ClaseDeFicha, { anadir: string; nombre: string; de
 };
 
 type Ficha = ProductionCharacter | ProductionLocation | ProductionObject;
+
+/** Lo que dice un rasgo de la apariencia, en palabras (`undefined` si no dice nada). */
+const descripcionDelRasgo = (ap: AppearanceProfile | undefined, r: AppearanceTraitKey): string | undefined =>
+  (ap?.[r] as { description?: string } | undefined)?.description;
+
+/**
+ * Los rasgos que se enseñan en una ficha: los que F1-A pensó para su clase y, además, cualquier otro que ya diga algo
+ * (lo pudo escribir Weë Brain): lo que llega al vídeo se ve y se puede quitar.
+ */
+const rasgosVisibles = (clase: ClaseDeFicha, ap: AppearanceProfile | undefined): readonly AppearanceTraitKey[] => [
+  ...RASGOS_POR_FICHA[clase],
+  ...RASGOS.filter((r) => !RASGOS_POR_FICHA[clase].includes(r) && !!descripcionDelRasgo(ap, r)),
+];
 
 /* ── Las operaciones de F1-A de cada clase: las de siempre, ni una nueva ─── */
 const anadir = (clase: ClaseDeFicha, id: string, name: string): FilmmakerOperation =>
@@ -88,6 +102,12 @@ const Opciones: React.FC<{ opciones: readonly { valor: string; texto: string }[]
  *
  * No es un segundo grafo: las fichas son las de la producción, con sus ids, y quien sale en cada escena o plano sigue
  * siendo `characterIds`/`objectIds` de F1-A (se eligen en el plano). Nada de esto genera ni cobra.
+ *
+ * Fase 31 del motor: la APARIENCIA, rasgo a rasgo —rostro, pelo, cuerpo, vestuario, accesorios y maquillaje de un
+ * personaje; entorno, luz y colores de un lugar; materiales y colores de un objeto—. Cada rasgo descrito llega a la toma
+ * junto al nombre (es lo que más ayuda a que alguien sea el mismo de un plano a otro) y no se podía escribir en ningún
+ * sitio. Y SUSTITUIR a un personaje por otro en toda la producción (`replace_character`): donde salía, en sus líneas y
+ * en su continuidad, pasa a salir el otro; el primero sigue en el reparto.
  */
 const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmmaker; nuevoId?: () => string }> = ({ clase, espacio, nuevoId }) => {
   const { theme } = useTheme();
@@ -96,6 +116,9 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
   const [abierta, setAbierta] = useState<string | null>(null);
   const [eligiendo, setEligiendo] = useState<string | null>(null);
   const [vuelta, setVuelta] = useState(0);
+  /* Fase 31: la apariencia de qué ficha está desplegada, y a quién se está sustituyendo. */
+  const [apariencia, setApariencia] = useState<string | null>(null);
+  const [sustituyendo, setSustituyendo] = useState<string | null>(null);
   const textos = TEXTOS[clase];
   const lista: readonly Ficha[] = clase === 'personaje' ? produccion.characters : clase === 'lugar' ? produccion.locations : produccion.objects;
   const cargar = elementos?.cargar;
@@ -121,6 +144,17 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
   };
 
   const nombreGuardado = (v: Vinculo | undefined) => (v ? elementos?.lista.find((e) => e.elementId === v.elementId)?.name : undefined);
+
+  const sustituir = async (de: ProductionCharacter, a: ProductionCharacter) => {
+    if (!(await confirmAction(
+      t('filmmaker.wsCastReplaceConfirm', { de: de.name, a: a.name }),
+      t('filmmaker.wsCastReplaceDetail', { de: de.name, a: a.name }),
+      t('filmmaker.wsCastReplace'),
+      false,
+      t,
+    ))) return;
+    if (onGesto([{ op: 'replace_character', fromCharacterId: de.id, toCharacterId: a.id }]).ok) setSustituyendo(null);
+  };
 
   return (
     <View style={styles.bloque}>
@@ -190,6 +224,53 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
                     <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsVoiceCatalogClosed')}</Text>
                   </View>
                 )}
+                {/* Fase 31 del motor: la apariencia, plegada para que la ficha no se haga eterna; se dice cuántos rasgos hay. */}
+                <BotonPequeno
+                  icono={apariencia === f.id ? 'chevron-up' : 'color-wand-outline'}
+                  etiqueta={t('filmmaker.wsAppearance', { numero: rasgosVisibles(clase, f.appearance).filter((r) => !!descripcionDelRasgo(f.appearance, r)).length })}
+                  onPress={() => setApariencia(apariencia === f.id ? null : f.id)}
+                  conTexto
+                />
+                {apariencia === f.id && (
+                  <View style={styles.apariencia}>
+                    <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsAppearanceNote')}</Text>
+                    {rasgosVisibles(clase, f.appearance).map((r) => (
+                      <CampoQueCrece
+                        key={r}
+                        etiqueta={t(CLAVE_DEL_RASGO[r])}
+                        valor={descripcionDelRasgo(f.appearance, r) ?? ''}
+                        maximo={LIMITES.frase}
+                        etiquetaGuardar={t('common.save')}
+                        editable={editable}
+                        onGuardar={(texto) => onGesto([cambiar(clase, f.id, { appearance: conRasgo(f.appearance, r, texto) })])}
+                      />
+                    ))}
+                  </View>
+                )}
+                {clase === 'personaje' && lista.length > 1 && (
+                  <View style={styles.sustituir}>
+                    <BotonPequeno
+                      icono={sustituyendo === f.id ? 'close' : 'swap-horizontal-outline'}
+                      etiqueta={t(sustituyendo === f.id ? 'filmmaker.wsCastReplaceCancel' : 'filmmaker.wsCastReplaceStart')}
+                      onPress={() => setSustituyendo(sustituyendo === f.id ? null : f.id)}
+                      disabled={!editable}
+                      conTexto
+                    />
+                    {sustituyendo === f.id && (
+                      <>
+                        <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsCastReplaceBy', { nombre: f.name })}</Text>
+                        <Opciones
+                          opciones={lista.filter((o) => o.id !== f.id).map((o) => ({ valor: o.id, texto: o.name }))}
+                          editable={editable}
+                          onElegir={(v) => {
+                            const otro = lista.find((o) => o.id === v);
+                            if (otro) void sustituir(f as ProductionCharacter, otro as ProductionCharacter);
+                          }}
+                        />
+                      </>
+                    )}
+                  </View>
+                )}
                 {clase === 'lugar' && (
                   <Opciones
                     opciones={AMBIENTES.map((a) => ({ valor: a, texto: t(CLAVE_DEL_AMBIENTE[a]) }))}
@@ -246,6 +327,8 @@ const styles = StyleSheet.create({
   nombre: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any },
   dentro: { padding: SPACING.md, paddingTop: 0, gap: SPACING.sm },
   acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  apariencia: { gap: SPACING.sm },
+  sustituir: { gap: SPACING.xs, alignItems: 'flex-start' },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
   opcion: { minHeight: 34, paddingHorizontal: SPACING.md, borderWidth: 1, borderRadius: BORDER_RADIUS.full, justifyContent: 'center' },
   opcionTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },

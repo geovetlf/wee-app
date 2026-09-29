@@ -62,7 +62,7 @@ export const workspace = {
   actionArchive: 'Archivar',
   actionUnarchive: 'Desarchivar',
   actionRename: 'Renombrar',
-  productionRenameNote: 'El nombre de una producción se elige al crearla o al duplicarla.',
+  productionRenameNote: 'El nombre de una producción se cambia dentro de ella, en Proyecto › Brief.',
   projectName: 'Nombre del proyecto',
   projectDeleteTitle: '¿Eliminar «{{nombre}}»?',
   projectDeleteText: 'Se elimina el proyecto. Tus creaciones no se borran: siguen en Mis creaciones.',

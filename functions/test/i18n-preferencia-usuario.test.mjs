@@ -617,8 +617,17 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * veinticuatro —la sección y lo que dice de cada plano, el total, el saldo, la pregunta y lo que
    * empezó (`wsBatch*`)— y salen cuatro del «Generar» apagado (`actions`, `generate`,
    * `generateUnavailable`, `costPending`), en los once a la vez.
+   * 3 473 → 3 557 con la Fase 31 (cada capacidad, en su sitio): entran ochenta y cuatro —el nombre
+   * de la producción y las reglas de la pieza (`wsProductionName`, `wsRules*`, `rule*`), la paleta
+   * (`wsPalette*`), pisar lo propio de dentro (`wsOverride*`), la apariencia rasgo a rasgo
+   * (`wsAppearance*`, `trait*`), sustituir un personaje o una referencia (`wsCastReplace*`,
+   * `wsReferenceReplace*`), qué pasa y el sujeto (`wsAction*`, `wsSubject*`), el estilo y el ánimo por
+   * nivel (`wsLook*`), mover un plano (`wsMoveShot*`), las referencias del plano por papel
+   * (`wsShotReferences*`, `wsShotRole*`, `wsReferenceNumbered`), qué no sirve como referencia
+   * (`wsRefKindsNote`), el formato que no se genera (`formatNotGenerable`) y lo que no pasa a «Varias
+   * escenas» (`studio.refsNotInProduction`)—, en los once a la vez.
    */
-  const CLAVES_PT = 3473;
+  const CLAVES_PT = 3557;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

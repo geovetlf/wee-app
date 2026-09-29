@@ -1406,7 +1406,7 @@ por «conectado en la app» lo que solo está en el servidor, o lo que en la app
 
 **En la app y utilizable** (con la puerta abierta para la cuenta, ver abajo): la toma de UN plano —su precio, sus
 calidades, su estado, detenerla y verla en el reproductor—; las versiones y volver a una; Weë Brain dentro del editor;
-el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **49 de las 56 operaciones** de F1-A con un
+el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **54 de las 56 operaciones** de F1-A con un
 control propio: la estructura de escenas y planos, la duración, la cámara entera, el movimiento, la luz, el estilo, el
 clima, el momento del día, el texto, añadir y quitar diálogo, el sonido, el formato y la entrega; desde la Fase 23, el
 brief (la intención), la dirección creativa y el ánimo, la transición al plano siguiente, crear, describir, vincular y
@@ -1415,13 +1415,17 @@ cada uno, qué hay y dónde (`update_scene`, `update_shot`, `set_character_state
 24, el guion —corregir una línea o cambiar cómo se dice (`change_dialogue`) y para qué sirve cada escena— y la
 continuidad en sus tres niveles (`change_continuity`). Las tomas de cada plano se ven una debajo de otra (Fase 24).
 Y desde la Fase 27, añadir una referencia (`add_reference`) desde Mis creaciones o desde lo guardado; y desde la
-Fase 29, generar la producción entera (el lote de la Fase 6), mirando antes qué pasaría y cuánto cuesta.
+Fase 29, generar la producción entera (el lote de la Fase 6), mirando antes qué pasaría y cuánto cuesta. Y desde la
+Fase 31, renombrar la producción (`rename_production`), el sujeto del plano (`change_subject`), mover un plano a otra
+escena (`move_shot`) y sustituir un personaje o una referencia (`replace_character`, `replace_reference`), además de
+las acciones, la apariencia, las reglas del brief, la paleta y el estilo y el ánimo de cada escena y plano
+([CAPABILITY-WORKPLACE-CLOSURE.md](CAPABILITY-WORKPLACE-CLOSURE.md)).
 
 **Hecho en el servidor y todavía sin UX**: la traza de cada toma (Fase 2); y las
-**7 operaciones sin control propio** —sustituir un personaje o una
-referencia (`replace_character`, `replace_reference`), el sujeto (`change_subject`), mover un plano a otra escena
-(`move_shot`), la calidad de generación (`change_generation`), el plan de montaje (`change_edit_plan`) y renombrar la
-producción (`rename_production`)—: llegan solo si Weë Brain las propone o aceptando una recomendación.
+**2 operaciones sin control propio** —la calidad de generación (`change_generation`) y el plan de montaje
+(`change_edit_plan`)—: ninguna tiene hoy efecto en lo que se genera o se monta (la toma usa la calidad que se elige al
+generar; el montaje no lee las pistas ni las marcas), así que un control suyo sería decorativo. Llegan solo si Weë
+Brain las propone; qué haría falta para que cuenten está en CAPABILITY-WORKPLACE-CLOSURE.md (X10–X13).
 
 **Hecho, conectado y detrás de una puerta CERRADA por defecto** (se abre por cuenta en `aiSettings`; en producción
 no hay ninguna abierta): la toma (`aiSettings/runtime`); y el render del montaje con FFmpeg propio, los pósters y
@@ -1739,6 +1743,38 @@ sin importarlo ninguna pantalla (`runtime-map` y `f1d-cliente` G1; G3 y G4 miran
 Pruebas: `functions/test/filmmaker-produccion-entera.test.mjs` (en la cadena). Reancladas: `f1d-cliente` R2c, G1, G3
 y G4; `runtime-map` (dos consumidores); `filmmaker-ui` C5, I1 e I2, y el doble del hook nuevo; e
 `i18n-preferencia-usuario` (el recuento del portugués).
+
+### Fase 31 · Cada capacidad, en su sitio: el cierre de acceso de Weë Studio
+
+Encargo del usuario (2026-09-29, «Fase 31 — capability-to-workplace closure»): que ninguna capacidad del motor que ya
+funciona por dentro se quede sin un sitio en Weë Studio donde descubrirla, configurarla y usarla. Lo que pide canary,
+contrato o dinero, no se abre: se dice en su sitio, con su porqué. Ni una Function, ni F1-A, ni F1-D, ni el espejo, ni
+reglas, ni la puerta del Core, ni el Credit Engine tocados: todo son operaciones y campos de F1-A que ya existían, por el
+controlador de siempre. La matriz entera —las 76 de la auditoría y las 20 del repaso, con su categoría A–G, su contrato,
+su canary y su anclaje— está en [CAPABILITY-WORKPLACE-CLOSURE.md](CAPABILITY-WORKPLACE-CLOSURE.md).
+
+- **Se buscó dos veces**: operación a operación (las 7 de F1-A sin control: se conectan 5) y campo a campo contra la
+  plantilla del texto de la toma (`componerTextoDeWee`): así salieron las acciones, la apariencia, el sujeto, el estilo
+  y el ánimo por nivel, la paleta y las reglas del brief, que llegaban a la toma y no se podían tocar.
+- **Proyecto**: el nombre de la producción (`rename_production`) y las reglas de la pieza (restricciones de F1-A: sin
+  diálogo, sin música, sin narración, quién tiene que salir, como mucho y como poco; las demás se ven y se quitan) en el
+  Brief; la paleta en la Dirección, y preguntar antes de pisar el estilo o el ánimo propio de escenas y planos; la
+  apariencia rasgo a rasgo en Reparto, Lugares y Objetos; sustituir a un personaje (`replace_character`) o una
+  referencia por otra de su clase (`replace_reference`).
+- **Plano**: qué pasa (las acciones, detrás de «Qué se ve»), el sujeto (`change_subject`), el estilo y el ánimo de ese
+  plano o esa escena, mover el plano a otra escena (`move_shot`), y las referencias por papel —primer y último
+  fotograma, movimiento, audio y otras—, cada hueco visible aunque esté vacío y con su porqué (contrato 1 + canary).
+- **Dicho donde hace falta**: el formato que la toma no genera (4:5), al elegirlo; qué no sirve como referencia, en el
+  selector de Mis creaciones; y que las referencias de la caja de Weë Studio no pasan a «Varias escenas» (subirlas es la
+  prueba real de la subida a Mis creaciones), antes de crear.
+- **No se conectan, a propósito y dicho**: `change_generation` y `change_edit_plan` (hoy no cambian nada de lo que se
+  genera o se monta: un control suyo sería decorativo), y los campos que ninguna plantilla lee (X10–X17 de la matriz).
+- Entran ochenta y tres claves de `filmmaker` y una de `studio`, y cambia una de `workspace`, en los once diccionarios.
+
+Pruebas: `functions/test/capability-workplace-closure.test.mjs` (en la cadena): la matriz y sus reglas, las operaciones,
+cada control nuevo aplicado con el F1-A del servidor hasta el texto de la toma, dónde está cada uno, ni un botón muerto,
+ni una llamada por fuera, y las guardas. Reancladas: `filmmaker-arreglos` X6 (el recuento de operaciones con control, 54
+de 56, calculado del código) e `i18n-preferencia-usuario` (el recuento del portugués).
 
 ## Próximas fases
 

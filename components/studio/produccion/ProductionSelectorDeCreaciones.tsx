@@ -79,6 +79,8 @@ const ProductionSelectorDeCreaciones: React.FC<{
         {CLASES.map((c) => pastilla(c, clase === c, () => { setBusqueda(''); cargar(c); }, t(CLAVE_DE_TIPO[c])))}
       </View>
       {carga === 'sin_pedir' && nota(t('filmmaker.wsRefPickKind'))}
+      {/* Fase 31 del motor: lo que no aparece, y por qué. Un texto o un documento de Mis creaciones no es una referencia de F1-A. */}
+      {nota(t('filmmaker.wsRefKindsNote'))}
       {carga === 'listas' && lista.length > 0 && (
         <>
           <CampoDeBusqueda valor={busqueda} onCambiar={setBusqueda} placeholder={t('filmmaker.wsRefSearch')} />

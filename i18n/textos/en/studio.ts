@@ -341,4 +341,6 @@ export const studio: typeof import('../es/studio').studio = {
 
   /* ── Fase 28 del motor: lo elegido en los ajustes, dicho con palabras ── */
   settingInWords: '{{ajuste}}: {{valor}}',
+  /* ── Fase 31 del motor: lo que no pasa a «Varias escenas», dicho ── */
+  refsNotInProduction: 'In “Multi-scene” these references don’t carry over to the production. Inside it, add them from My creations in Project › References.',
 };

@@ -55,7 +55,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   actionArchive: 'Archive',
   actionUnarchive: 'Unarchive',
   actionRename: 'Rename',
-  productionRenameNote: 'A production gets its name when it is created or duplicated.',
+  productionRenameNote: 'A production’s name is changed inside it, in Project › Brief.',
   projectName: 'Project name',
   projectDeleteTitle: 'Delete "{{nombre}}"?',
   projectDeleteText: 'The project is deleted. Your creations are not: they stay in My creations.',

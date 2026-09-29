@@ -5,6 +5,7 @@ import { useIdioma } from '../../../contexts/IdiomaContext';
 import ProductionInspector from './ProductionInspector';
 import ProductionEnElPlano from './ProductionEnElPlano';
 import ProductionContinuidad from './ProductionContinuidad';
+import { ProductionAspectoDelNivel, ProductionMoverPlano, ProductionQuePasa, ProductionSujeto } from './ProductionDireccionDelPlano';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import { useSegundos } from './ProductionDurationSummary';
 import { claveDelValor } from '../../../constants/camaraCinematica';
@@ -54,6 +55,10 @@ const PromptAvanzado: React.FC<{ texto: string }> = ({ texto }) => {
  * del día y su clima. Lo que F1-A todavía no sabe cambiar —la posición, la escala
  * o la rotación de la imagen— no se pinta: un control que no hace nada es peor
  * que no tenerlo.
+ *
+ * Fase 31 del motor: lo que ya llegaba a la toma y no tenía sitio lo tiene aquí —qué pasa y el sujeto, detrás de «Qué
+ * se ve»; el estilo y el ánimo de este plano o de esta escena, detrás de la luz; y mover el plano a otra escena, en la
+ * cabecera—. Y las referencias del plano, por papel (`ProductionEnElPlano`).
  */
 const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?: boolean }> = ({ espacio, enHoja }) => {
   const { theme } = useTheme();
@@ -105,8 +110,16 @@ const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?:
           <Chip texto={estilo ? t('filmmaker.wsStyleIs', { estilo: nombreDelEstilo(estilo, t) }) : t('filmmaker.wsStyleNone')} icono="color-palette-outline" />
           {!!fuerza && !!CLAVE_DE_LA_FUERZA[fuerza] && <Chip texto={t('filmmaker.wsContinuityIs', { fuerza: t(CLAVE_DE_LA_FUERZA[fuerza]) })} icono="link-outline" tono="acento" />}
         </View>
+        <ProductionMoverPlano espacio={espacio} />
       </View>
-      <ProductionInspector produccion={produccion} seleccion={seleccion} editable={editable} onGesto={onGesto} />
+      <ProductionInspector
+        produccion={produccion}
+        seleccion={seleccion}
+        editable={editable}
+        onGesto={onGesto}
+        trasLaDescripcion={<><ProductionQuePasa espacio={espacio} /><ProductionSujeto espacio={espacio} /></>}
+      />
+      <ProductionAspectoDelNivel espacio={espacio} />
       {/* Fase 23 del motor: quién sale, cómo está, qué hay, dónde y con qué referencias, editable. */}
       <ProductionEnElPlano espacio={espacio} />
       {/* Fase 24 del motor: qué tiene que seguir igual aquí, y con cuánta fuerza. */}

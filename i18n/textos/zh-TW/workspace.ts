@@ -65,7 +65,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   actionArchive: '封存',
   actionUnarchive: '取消封存',
   actionRename: '重新命名',
-  productionRenameNote: '製作的名稱要在建立或複製時決定。',
+  productionRenameNote: '製作的名稱在製作內部的「製作資料 › 企劃」裡修改。',
   projectName: '專案名稱',
   projectDeleteTitle: '要刪除「{{nombre}}」嗎？',
   projectDeleteText: '專案會被刪除，但你的作品不會：它們仍然在「我的作品」裡。',

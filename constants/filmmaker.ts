@@ -1,5 +1,5 @@
 import type {
-  ContinuityAspect, ContinuityStrength, DialogueLine, FormatPresetId, NarrativePurpose, ObjectKind, OperationName, Pacing, ProductionType, ReferenceRole,
+  AppearanceTraitKey, ContinuityAspect, ContinuityStrength, DialogueLine, FormatPresetId, NarrativePurpose, ObjectKind, OperationName, Pacing, ProductionType, ReferenceRole,
   SubjectFocus, TimeOfDay, TransitionType, Weather,
 } from '../services/filmmaker/dominio';
 import type { EnlaceDeTomaVista, EstadoDeTomaVista } from '../utils/controladorDeToma';
@@ -366,3 +366,64 @@ export const CLAVE_DEL_ENLACE_DE_TOMA: Readonly<Record<EnlaceDeTomaVista, string
   stale: 'filmmaker.wsTakeLinkStale',
   none: null,
 });
+
+/* ── Fase 31 del motor · cada capacidad, en su sitio ─── */
+
+/**
+ * LOS FORMATOS QUE LA TOMA SABE GENERAR HOY, y los que propone en su lugar. Espejo de `LIMITES_DE_PLANO.proporciones` y
+ * `.proporcionesSugeridas` (F1-D, `functions/src/creator/plano.ts`), que la app no importa: se copian, y
+ * `capability-workplace-closure` comprueba que siguen siendo iguales. F1-A admite 4:5 (el formato «Anuncios»); la toma,
+ * no. Sirven para decirlo al elegir el formato, no al generar.
+ */
+export const PROPORCIONES_QUE_SE_GENERAN: readonly string[] = Object.freeze(['16:9', '9:16', '1:1', '4:3', '21:9']);
+export const PROPORCIONES_SUGERIDAS: readonly string[] = Object.freeze(['9:16', '1:1']);
+
+/**
+ * LA APARIENCIA, RASGO A RASGO: el nombre de cada uno de los once rasgos de F1-A, y los que se ofrecen en cada ficha
+ * (los de la propia F1-A: rostro, pelo, cuerpo, vestuario, accesorios y maquillaje para un personaje; entorno, luz y
+ * colores para un lugar; materiales y colores para un objeto). Todos llegan a la toma con su descripción. Un rasgo que
+ * no se ofrece en esa ficha pero ya tiene descripción —porque la puso Weë Brain— se enseña igual: lo que llega al vídeo
+ * se ve y se puede quitar.
+ */
+export const CLAVE_DEL_RASGO: Readonly<Record<AppearanceTraitKey, string>> = Object.freeze({
+  face: 'filmmaker.traitFace',
+  hair: 'filmmaker.traitHair',
+  body: 'filmmaker.traitBody',
+  wardrobe: 'filmmaker.traitWardrobe',
+  accessories: 'filmmaker.traitAccessories',
+  makeup: 'filmmaker.traitMakeup',
+  materials: 'filmmaker.traitMaterials',
+  colors: 'filmmaker.traitColors',
+  lighting: 'filmmaker.traitLighting',
+  visualStyle: 'filmmaker.traitVisualStyle',
+  environment: 'filmmaker.traitEnvironment',
+});
+export const RASGOS_POR_FICHA: Readonly<Record<'personaje' | 'lugar' | 'objeto', readonly AppearanceTraitKey[]>> = Object.freeze({
+  personaje: Object.freeze(['face', 'hair', 'body', 'wardrobe', 'accessories', 'makeup'] as AppearanceTraitKey[]),
+  lugar: Object.freeze(['environment', 'lighting', 'colors'] as AppearanceTraitKey[]),
+  objeto: Object.freeze(['materials', 'colors'] as AppearanceTraitKey[]),
+});
+
+/** Las reglas del brief que se pueden comprobar y se ofrecen como interruptor. */
+export const CLAVE_DE_LA_PROHIBICION: Readonly<Record<'no_dialogue' | 'no_music' | 'no_narration', string>> = Object.freeze({
+  no_dialogue: 'filmmaker.ruleNoDialogue',
+  no_music: 'filmmaker.ruleNoMusic',
+  no_narration: 'filmmaker.ruleNoNarration',
+});
+
+/**
+ * LOS PAPELES QUE UNA REFERENCIA PUEDE TENER DENTRO DE UN PLANO, cada uno con su hueco en «Referencias del plano»:
+ * primer y último fotograma (uno como mucho de cada, regla de F1-A), movimiento y audio. Las demás van juntas en
+ * «Otras». Son las entradas que Seedance ya sabe recibir; generar con ellas espera al contrato 1 y a su prueba real.
+ */
+export const PAPELES_DEL_PLANO: readonly { readonly papel: ReferenceRole; readonly uno: boolean }[] = Object.freeze([
+  Object.freeze({ papel: 'first_frame' as ReferenceRole, uno: true }),
+  Object.freeze({ papel: 'last_frame' as ReferenceRole, uno: true }),
+  Object.freeze({ papel: 'motion' as ReferenceRole, uno: false }),
+  Object.freeze({ papel: 'audio' as ReferenceRole, uno: false }),
+]);
+
+/** Los colores que se ofrecen para la paleta de la dirección (F1-A guarda `#RRGGBB`; es un valor, no un texto). */
+export const COLORES_DE_PALETA: readonly string[] = Object.freeze([
+  '#F5B731', '#E4572E', '#C0392B', '#8E44AD', '#2E86AB', '#1B998B', '#3BB273', '#F2E8CF', '#BC6C25', '#6C757D', '#1F2937', '#FFFFFF',
+]);

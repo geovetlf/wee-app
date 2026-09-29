@@ -64,7 +64,7 @@ export const workspace: typeof import('../es/workspace').workspace = {
   actionArchive: '归档',
   actionUnarchive: '取消归档',
   actionRename: '重命名',
-  productionRenameNote: '影片的名称在创建或复制时设定。',
+  productionRenameNote: '影片名称在影片内部的“影片资料 › 策划”里修改。',
   projectName: '项目名称',
   projectDeleteTitle: '要删除“{{nombre}}”吗？',
   projectDeleteText: '项目会被删除，但你的作品不会：它们仍在“我的作品”里。',

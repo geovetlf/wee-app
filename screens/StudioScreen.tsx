@@ -486,6 +486,16 @@ const StudioScreen: React.FC = () => {
                     etiquetaQuitar={t('studio.removeContext')}
                   />
                 ))}
+                {/*
+                  LAS REFERENCIAS NO PASAN A «VARIAS ESCENAS» (Fase 31 del motor), Y SE DICE ANTES.
+
+                  Una producción solo guarda referencias que ya son material de la cuenta (Mis creaciones o lo
+                  guardado); un archivo del dispositivo tendría que subirse antes a Mis creaciones, y esa subida vive
+                  detrás de su propia prueba real. Así que no se pierden en silencio: se dice aquí, y dónde añadirlas.
+                */}
+                {abreLaProduccion(experiencia?.id) && adjuntos.length > 0 && (
+                  <Text style={[styles.notaDeContexto, { color: theme.colors.textSecondary }]}>{t('studio.refsNotInProduction')}</Text>
+                )}
               </View>
             )}
 
@@ -527,6 +537,8 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /* Sube la caja 26 de los 44 que la separaban de la cabecera. Deja unos 18. */
   cajaArriba: { marginTop: -scale(26) },
+  /* Lo que no viaja, dicho debajo de lo que Weë ya sabe. */
+  notaDeContexto: { width: '100%', fontSize: FONT_SIZE.xs, lineHeight: FONT_SIZE.xs * 1.5 },
   /* Lo que Weë ya sabe, justo debajo de donde se escribe. */
   contexto: {
     flexDirection: 'row',
