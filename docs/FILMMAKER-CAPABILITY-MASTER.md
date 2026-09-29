@@ -420,8 +420,8 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 <!-- MATRIZ:INICIO -->
 | Estado | Filas |
 |---|---|
-| A — usable | 68 |
-| B — UX | 7 |
+| A — usable | 70 |
+| B — UX | 5 |
 | C — no effect | 2 |
 | D — adapter | 8 |
 | E — canary | 3 |
@@ -537,8 +537,8 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | N07 | Explicar (qué hace falta, por qué no se genera, cómo mejorar) | ✔ Weë Brain | — | — | ✔ brainChat | ✔ | Weë AI Director › Explicar | A | no | no | Gemini (texto) | sí (la respuesta de Weë Brain) | filmmaker-director | sab-fase34 | ✔ 360/390 | Fase 34: puerta rápida que rellena la caja |
 | N08 | Mejorar la descripción de un plano | ✔ Weë Brain propone `edit_text` | — | ✔ | ✔ brainChat | ✔ | Weë AI Director (desde el plano elegido) | A | no | no | Gemini (texto) | sí (la respuesta de Weë Brain) | filmmaker-director | sab-fase34 | ✔ 360/390 | Fase 34: «Mejorar este plano», con el plano elegido |
 | N09 | Revisar la continuidad | ✔ Weë Brain + recomendaciones de F1-A | — | ✔ | ✔ brainChat | ✔ | Weë AI Director › Analizar | A | no | no | Gemini (texto) | sí (la respuesta de Weë Brain) | filmmaker-director | sab-fase34 | ✔ 360/390 | Fase 34: «Revisar la continuidad», con dos unidades o más |
-| N10 | Vista de escenas (propósito, lugar, hora, clima, reparto, duración, planos) | ✔ F1-A | — | ✔ | — | ✘ | Historia › Escenas | B | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fase 35 |
-| N11 | Continuidad plano a plano (cómo está cada personaje, qué objetos, qué lugar) | ✔ F1-A (estado efectivo y reparto de cada plano) | — | ✔ | — | ✘ | Historia › Continuidad | B | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fase 35. El estado estructurado (postura, emoción, posición) es el contrato 5 |
+| N10 | Vista de escenas (propósito, lugar, hora, clima, reparto, duración, planos) | ✔ F1-A | — | ✔ | — | ✔ | Historia › Escenas (escritorio: Estructura, en su hoja; teléfono: Historia) | A | no | no | — | no | filmmaker-historia-vistas | sab-fase35 | ✔ 360/390 | Fase 35: solo lectura; se va a la escena |
+| N11 | Continuidad plano a plano (cómo está cada personaje, qué objetos, qué lugar) | ✔ F1-A (estado efectivo y reparto de cada plano) | — | ✔ | — | ✔ | Historia › Continuidad (escritorio: Estructura, en su hoja; teléfono: Historia) | A | no | no | — | no | filmmaker-historia-vistas | sab-fase35 | ✔ 360/390 | Fase 35: estado efectivo de F1-A, entradas y salidas, qué cambia; el estado estructurado sigue siendo el contrato 5 |
 | N12 | La pista de diálogo en el teléfono | ✔ línea de tiempo de F1-A | — | ✔ | — | parcial (solo en escritorio) | Línea de tiempo › Diálogo | B | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fase 37 |
 | N13 | «Generar» desde el panel del plano | ✔ F1-D | — | — | ✔ generateVideo | parcial (en el Director) | Plano › Generar | B | hecho (2026-09-28) | no | BytePlus ModelArk (Seedance) | sí (Credits por toma) | filmmaker-capability-master | sab-fase32 | — | Fase 37 |
 | N14 | Vista previa, origen y estado de cada referencia | ✔ Content Core (`assets`) y Elements | — | — | ✔ lectura de la propia cuenta | parcial (nombre y papel) | Proyecto › Referencias · Plano › Referencias | B | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fase 36 |
@@ -590,7 +590,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 |---|---|---|
 | 33 | Riesgos que se pueden cerrar sin contrato | R2 (quitar las órdenes del proveedor de todo texto que llegue a Seedance, en el adaptador), R15 (la toma dice «comprobando» cuando el dinero está en reconciliación, no «se están devolviendo»), R18 (la tabla oficial de píxeles en el precio), R19 (`adaptive` al editar y extender, y el tipo de tarea solo a 2.5), R20 (cupos separados y totales de las referencias); R3 y R4 estudiados: lo que tocaría el runtime cerrado queda preparado. **Hecha**, con R22 (encontrado aquí) |
 | 34 | Weë AI Director con propuestas estructuradas | Qué planos afecta cada propuesta (N03), el resumen de lo que quedaría calculado con el F1-A del espejo (N04), «Proponer planos» (N06), «Explicar» (N07), «Cobertura de este plano» (I01), «Convertir mi guion en escenas» (I05), «Generar esta escena» (N01), y el camino aplicar → precio → confirmar → generar; en una producción vacía, empezar por la propuesta de escenas. **Hecha** |
-| 35 | Historia: Escenas y Continuidad | La vista de escenas (N10) y la de continuidad plano a plano, con lo heredado dicho (N11) |
+| 35 | Historia: Escenas y Continuidad | La vista de escenas (N10) y la de continuidad plano a plano, con lo heredado dicho (N11). **Hecha** |
 | 36 | Referencias completas | Vista previa, origen y estado de cada material (N14); el papel «storyboard» cerrado con su porqué (N15); el aviso de que la serie 2.x rechaza caras reales sin autorización (N27) |
 | 37 | Audio y línea de tiempo | La duración de cada sonido (N16); fundido, inicio y «activo» visibles y cerrados (N17); la pista de diálogo en el teléfono (N12); «Generar» en las propiedades del plano (N13) |
 | 38 | Montaje, exportación y publicación | Los montajes anteriores con su fecha, duración y descarga (N02); Weël ≤15 s y Wäll separados y dichos (R9 sigue siendo decisión); cerrados con su porqué: póster elegido (N24), máster para etalonar (N26), escalado (N25) |

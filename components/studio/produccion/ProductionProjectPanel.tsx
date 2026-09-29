@@ -18,7 +18,7 @@ const isWeb = Platform.OS === 'web';
 
 export type Etapa = 'pre' | 'produccion' | 'post';
 /** Lo que se abre desde «Estructura»: cada cosa, o el storyboard en el centro. */
-export type Estructura = 'idea' | 'guion' | 'direccion' | 'personajes' | 'lugares' | 'objetos' | 'storyboard' | 'planos' | 'moodboard';
+export type Estructura = 'idea' | 'guion' | 'escenas' | 'continuidad' | 'direccion' | 'personajes' | 'lugares' | 'objetos' | 'storyboard' | 'planos' | 'moodboard';
 
 /**
  * EL PANEL DEL PROYECTO, A LA IZQUIERDA.
@@ -54,6 +54,9 @@ const ProductionProjectPanel: React.FC<{
   const estructura: readonly { id: Estructura; clave: string; icono: string; cuenta?: number }[] = [
     { id: 'idea', clave: 'filmmaker.wsBrief', icono: 'bulb-outline' },
     { id: 'guion', clave: 'filmmaker.wsScript', icono: 'document-text-outline', cuenta: lineas || undefined },
+    /* Fase 35 del motor: la historia, escena a escena y plano a plano. */
+    { id: 'escenas', clave: 'filmmaker.wsScenesTab', icono: 'albums-outline', cuenta: produccion.scenes.length },
+    { id: 'continuidad', clave: 'filmmaker.wsContinuityTitle', icono: 'git-merge-outline' },
     { id: 'direccion', clave: 'filmmaker.wsDirection', icono: 'color-wand-outline' },
     { id: 'personajes', clave: 'filmmaker.characters', icono: 'people-outline', cuenta: produccion.characters.length },
     { id: 'lugares', clave: 'filmmaker.wsLocations', icono: 'location-outline', cuenta: produccion.locations.length },

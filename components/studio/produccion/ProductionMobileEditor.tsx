@@ -15,6 +15,8 @@ import ProductionExportPanel from './ProductionExportPanel';
 import ProductionSaveState from './ProductionSaveState';
 import ProductionProyecto from './ProductionProyecto';
 import ProductionGuion from './ProductionGuion';
+import ProductionEscenas from './ProductionEscenas';
+import ProductionContinuidadPlanoAPlano from './ProductionContinuidadPlanoAPlano';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { CLAVE_DE_TRANSICION, CLAVE_DEL_CLIMA, CLAVE_DEL_MOMENTO } from '../../../constants/filmmaker';
 import { montajeDe, tramoEn } from '../../../utils/montajeDeProduccion';
@@ -50,7 +52,9 @@ const ProductionMobileEditor: React.FC<{
   const [herramienta, setHerramienta] = useState<Herramienta | null>(null);
   const [cabezal, setCabezal] = useState(0);
   /* Fase 24 del motor: la historia se ve como storyboard o como guion. */
-  const [historia, setHistoria] = useState<'storyboard' | 'guion'>('storyboard');
+  /* Fase 35 del motor: la historia también escena a escena y plano a plano. */
+  const [historia, setHistoria] = useState<'storyboard' | 'guion' | 'escenas' | 'continuidad'>('storyboard');
+  const CLAVE_DE_LA_HISTORIA = { storyboard: 'filmmaker.storyboard', guion: 'filmmaker.wsScript', escenas: 'filmmaker.wsScenesTab', continuidad: 'filmmaker.wsContinuityTitle' } as const;
   const { produccion, linea, seleccion, onSeleccionar } = espacio;
 
   const montaje = useMemo(() => montajeDe(produccion, linea, {
@@ -150,21 +154,23 @@ const ProductionMobileEditor: React.FC<{
 
         {vista === 'storyboard' && (
           <View style={[styles.vistas, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityRole="tablist">
-            {(['storyboard', 'guion'] as const).map((h) => (
+            {(['storyboard', 'guion', 'escenas', 'continuidad'] as const).map((h) => (
               <TouchableOpacity
                 key={h}
                 onPress={() => setHistoria(h)}
-                style={[styles.vista, historia === h && { backgroundColor: theme.colors.accent }]}
+                style={[styles.vista, styles.vistaDeHistoria, historia === h && { backgroundColor: theme.colors.accent }]}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: historia === h }}
-                accessibilityLabel={t(h === 'guion' ? 'filmmaker.wsScript' : 'filmmaker.storyboard')}
+                accessibilityLabel={t(CLAVE_DE_LA_HISTORIA[h])}
               >
-                <Text style={[styles.vistaTexto, { color: historia === h ? '#1F2937' : theme.colors.textSecondary }]}>{t(h === 'guion' ? 'filmmaker.wsScript' : 'filmmaker.storyboard')}</Text>
+                <Text style={[styles.vistaTexto, { color: historia === h ? '#1F2937' : theme.colors.textSecondary }]} numberOfLines={1}>{t(CLAVE_DE_LA_HISTORIA[h])}</Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
         {vista === 'storyboard' && historia === 'guion' && <ProductionGuion espacio={espacio} />}
+        {vista === 'storyboard' && historia === 'escenas' && <ProductionEscenas espacio={espacio} onIrALaEscena={() => setHistoria('storyboard')} />}
+        {vista === 'storyboard' && historia === 'continuidad' && <ProductionContinuidadPlanoAPlano espacio={espacio} onIrAlPlano={() => setHistoria('storyboard')} />}
         {vista === 'storyboard' && historia === 'storyboard' && (
           <ProductionStoryboard
             produccion={produccion}
@@ -226,6 +232,11 @@ const styles = StyleSheet.create({
   vistas: { flexDirection: 'row', borderWidth: 1, borderRadius: BORDER_RADIUS.full, padding: 3, gap: 2 },
   vista: { flex: 1, minHeight: 36, borderRadius: BORDER_RADIUS.full, alignItems: 'center', justifyContent: 'center' },
   vistaTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any },
+  /*
+   * Fase 35 del motor: cuatro vistas de la historia. Cada una ocupa lo que mide su nombre y se reparten el resto, en vez
+   * de cuatro partes iguales: a 360 px, «Sceneggiatura» o «Непрерывность» no caben en una cuarta parte y se cortarían.
+   */
+  vistaDeHistoria: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', paddingHorizontal: 6 },
   linea: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, overflow: 'hidden' },
   herramientas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   herramienta: { width: scale(76), minHeight: scale(72), borderWidth: 1, borderRadius: BORDER_RADIUS.md, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 4, flexGrow: 1 },

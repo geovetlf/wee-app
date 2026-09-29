@@ -1856,6 +1856,25 @@ Sin tocar el servidor, ni F1-A, ni la puerta de Weë Brain (regla 10: el mismo W
 
 Pruebas: `functions/test/filmmaker-director.test.mjs` (en la cadena).
 
+### Fase 35 · Historia: Escenas y Continuidad plano a plano
+
+Encargo del usuario (2026-09-29, puntos 2 y 8): la historia también escena a escena y plano a plano, sin rehacer
+F1-A. Dos vistas de solo lectura, en «Estructura» (escritorio, en su hoja como el guion) y en «Historia» (teléfono):
+
+- **Escenas** (`ProductionEscenas`): para qué sirve cada una, dónde y cuándo pasa, con qué clima, quién sale, cuánto
+  dura y cuántos planos tiene; desde aquí se va a ella. La duración es la de cada escena según sus unidades de F1-A:
+  sin todas las duraciones F1-A no hace línea de tiempo, pero una escena sin la suya dice «Sin duración» y no deja a
+  las demás en «0 s» (lo encontró la demo local).
+- **Continuidad** (`ProductionContinuidadPlanoAPlano`, sobre `utils/continuidadPlanoAPlano.ts`): plano a plano, quién
+  sale y cómo está —el estado efectivo de F1-A, el mismo que llega a la toma, diciendo lo que viene de la escena—,
+  quién entra y quién sale, en quién cambia algo, los objetos, el lugar, el momento y el clima. La postura, la
+  emoción o la posición como datos, y el estado de un lugar o un objeto, no existen en F1-A (contrato 5): se dice.
+
+En el teléfono, las cuatro pestañas de «Historia» miden su nombre y se reparten el resto, no cuartos iguales: a 360 px
+«Sceneggiatura» o «Непрерывность» no caben en una cuarta parte y se cortaban.
+
+Pruebas: `functions/test/filmmaker-historia-vistas.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

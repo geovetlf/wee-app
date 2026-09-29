@@ -59,7 +59,7 @@ const ProductionWorkspace: React.FC<{
   const espacioDelDirector = useMemo(() => ({ ...espacio, onIrAGenerar: () => setPestanaDirector('produccion') }), [espacio]);
   const [pestanaMontaje, setPestanaMontaje] = useState<PestanaDelMontaje>('linea');
   const [centro, setCentro] = useState<'visor' | 'storyboard'>('visor');
-  const [hoja, setHoja] = useState<'guion' | null>(null);
+  const [hoja, setHoja] = useState<'guion' | 'escenas' | 'continuidad' | null>(null);
   const [proyecto, setProyecto] = useState<SeccionDelProyecto | null>(null);
   const [cabezal, setCabezal] = useState(0);
   const { produccion, linea, seleccion, onSeleccionar } = espacio;
@@ -87,6 +87,8 @@ const ProductionWorkspace: React.FC<{
     if (e === 'planos') { setCentro('visor'); return; }
     const seccion = SECCION_DE_LA_ESTRUCTURA[e];
     if (seccion) { setProyecto(seccion); return; }
+    /* Fase 35 del motor: las escenas y la continuidad plano a plano, en su hoja como el guion. */
+    if (e === 'escenas' || e === 'continuidad') { setHoja(e); return; }
     setHoja('guion');
   }, []);
 
