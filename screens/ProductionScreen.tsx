@@ -103,7 +103,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const t = useT();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
-  const { controlador, carga, falloDeCarga, estado, derivado, duplicar } = useProduccion(productionId);
+  const { controlador, carga, falloDeCarga, estado, ocupado, derivado, duplicar } = useProduccion(productionId);
   const [seleccion, setSeleccion] = useState<Seleccion>(null);
   const [rechazadas, setRechazadas] = useState<ReadonlySet<string>>(new Set());
   const [exportando, setExportando] = useState(false);
@@ -112,16 +112,24 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const idsDelMontaje = useMemo(() => ({ sonido: nuevoIdDeSonido, linea: nuevoIdDeLinea }), []);
 
   const vista = estado.vista;
-  const editable = esEditable(estado);
+  /* Volviendo a una versión o aplicando una propuesta, nada se edita (Fase 22 del motor, arreglo R6). */
+  const editable = esEditable(estado) && !ocupado;
   const hayCambios = hayCambiosSinGuardar(estado);
-  const toma = useTomaDePlano(estado.confirmada, hayCambios, seleccion);
+  const toma = useTomaDePlano(estado.confirmada, hayCambios || !!ocupado, seleccion);
   /* El vídeo de cada plano, para su tarjeta. Se vuelve a preguntar cuando la toma del elegido pone uno nuevo. */
   const delStoryboard = useVideosDeLaProduccion(estado.confirmada?.productionId ?? null, toma.enElPlano?.assetId ?? null);
-  /* Del plano elegido lo sabe también su toma, y más al día: lo que ella dice gana. */
+  /*
+   * Del plano elegido lo sabe también su toma, y más al día: lo que ella dice gana. Pero la toma no trae el póster
+   * (Fase 22 del motor, arreglo R10): si es el MISMO material que ya se conocía, conserva el póster —y la dirección,
+   * si la toma no la tiene—; si es otro vídeo, el póster del de antes ya no es suyo y no se le pone.
+   */
   const videos = useMemo(() => {
     if (!seleccion || !toma.enElPlano) return delStoryboard;
+    const conocido = delStoryboard.get(seleccion.id);
     const conElElegido = new Map(delStoryboard);
-    conElElegido.set(seleccion.id, toma.enElPlano);
+    conElElegido.set(seleccion.id, conocido && conocido.assetId === toma.enElPlano.assetId
+      ? { ...toma.enElPlano, url: toma.enElPlano.url ?? conocido.url, poster: toma.enElPlano.poster ?? conocido.poster ?? null }
+      : toma.enElPlano);
     return conElElegido;
   }, [delStoryboard, seleccion, toma.enElPlano]);
   /* El montaje final de lo GUARDADO y su publicación (Fase 14 del motor). */
@@ -147,6 +155,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const alRestaurar = useCallback(async (revision: number) => {
     const r = await controlador.restaurar(revision);
     if (r.ok) { notify(t('filmmaker.wsVersionRestored', { numero: revision })); return; }
+    if (r.motivo === 'ocupado') { notify(t('filmmaker.wsBusy')); return; }
     notify(r.motivo === 'cambios_sin_guardar' ? t('filmmaker.saveFirst') : t('filmmaker.saveError'), r.motivo === 'fallo' && r.fallo ? fraseDelFallo(r.fallo, t) : undefined);
   }, [controlador, t]);
 
@@ -198,6 +207,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       fallo: estado.fallo,
       hayCambios,
       editable,
+      ocupado,
       ids,
       videos,
       toma,
@@ -207,6 +217,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       onRestaurar: (revision) => { void alRestaurar(revision); },
       elementos,
       brain,
+      onAplicarPropuesta: controlador.aplicarPropuesta,
       seleccion,
       rechazadas,
       onSeleccionar: setSeleccion,

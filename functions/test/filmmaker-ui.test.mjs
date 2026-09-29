@@ -131,9 +131,10 @@ const dobles = {
   },
   /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain en el editor. Quietos: se prueban en filmmaker-conectar. */
   '../hooks/useHistorialDeProduccion': { useHistorialDeProduccion: () => ({ carga: 'listo', versiones: [] }) },
-  '../hooks/useElementosParaVincular': { useElementosParaVincular: () => ({ carga: 'sin_pedir', lista: [], cargar: () => {} }) },
+  /* Fase 22 del motor (R1, R7): con la forma de ahora —lo guardado por páginas; Weë Brain con su precio y el id de su propuesta—. */
+  '../hooks/useElementosParaVincular': { useElementosParaVincular: () => ({ carga: 'sin_pedir', lista: [], hayMas: false, cargandoMas: false, cargar: () => {}, cargarMas: () => {} }) },
   '../hooks/useWeeBrainDelEditor': {
-    useWeeBrainDelEditor: () => ({ fase: 'quieto', texto: null, propuesta: null, sinPropuesta: false, bloque: null, enviar: () => {}, descartar: () => {} }),
+    useWeeBrainDelEditor: () => ({ fase: 'quieto', texto: null, propuesta: null, idDeLaPropuesta: null, sinPropuesta: false, bloque: null, cotizacion: { estado: 'nada' }, faltan: null, cotizar: () => {}, enviar: () => {}, descartar: () => {} }),
   },
   'expo-av': { Video: ({ accessibilityLabel }) => h('video', { 'aria-label': accessibilityLabel }), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
   '../hooks/useTomaDePlano': { useTomaDePlano: () => ({ fase: { fase: 'sin_unidad', porque: 'nada' }, calidad: null, enElPlano: null, ultima: null, aviso: null, elegirCalidad: () => {}, generar: () => {}, reintentar: () => {} }) },
@@ -482,8 +483,12 @@ await seccion('V', async () => {
   const con = dibujar(h(Tarjeta, { ...props, video: { assetId: material, url: 'https://cdn.invalid/b.mp4' } }));
   const sinUrl = dibujar(h(Tarjeta, { ...props, video: { assetId: material, url: null } }));
   check('V1) sin vídeo: «Sin vista previa», y ningún reproductor', /Sin vista previa/.test(sin.texto) && !/<video/.test(sin.html));
-  check('V2) con su vídeo: el vídeo de ESE plano, y ya no dice «Sin vista previa»',
-    /<video[^>]*aria-label="Vídeo de Plano 1"/.test(con.html) && !/Sin vista previa/.test(con.texto), con.html.slice(0, 240));
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (auditoría final del 2026-09-28, arreglo R10): sin póster, la tarjeta
+   * ya no carga el vídeo entero para enseñar un fotograma, sino el aviso quieto de que ESE plano ya tiene vídeo.
+   */
+  check('V2) con su vídeo: el aviso de que ESE plano ya lo tiene, sin cargarlo, y ya no dice «Sin vista previa»',
+    /aria-label="Vídeo listo de Plano 1"/.test(con.html) && !/<video/.test(con.html) && !/Sin vista previa/.test(con.texto), con.html.slice(0, 240));
   check('V3) un material sin dirección que entregar no se pinta como si la tuviera', /Sin vista previa/.test(sinUrl.texto) && !/<video/.test(sinUrl.html));
   const conPoster = dibujar(h(Tarjeta, { ...props, video: { assetId: material, url: 'https://cdn.invalid/b.mp4', poster: 'https://cdn.invalid/b.jpg' } }));
   check('V5) con su póster (Fase 11 del motor): su imagen fija, con la misma etiqueta, y ya no carga el vídeo',

@@ -678,6 +678,11 @@ export const VOCABULARIO_DE_PRODUCCION = Object.freeze({
   momento: Object.freeze(['dawn', 'morning', 'midday', 'afternoon', 'dusk', 'night']),
   enfoque: Object.freeze(['face', 'eyes', 'hands', 'upper_body', 'full_body', 'group', 'object', 'detail', 'environment']),
   linea: Object.freeze(['dialogue', 'voiceover', 'narration']),
+  /* Fase 22 del motor (arreglo R1): lo que hace falta para contar el mundo de la producción. Los de F1-A, tal cual. */
+  ritmo: Object.freeze(['slow', 'moderate', 'fast']),
+  ambiente: Object.freeze(['interior', 'exterior']),
+  sonido: Object.freeze(['music', 'sfx', 'ambience']),
+  objeto: Object.freeze(['prop', 'product', 'vehicle', 'brand', 'other']),
 });
 
 /**
@@ -698,15 +703,28 @@ const OPERACIONES_PARA_BRAIN: readonly string[] = [
   '{"op":"change_style","target":ámbito,"style":"…"}',
   '{"op":"change_subject","target":{"sceneId":"…"} o {"shotId":"…"},"subject":{"focus":enfoque,"characterId":"…","description":"…"}}',
   '{"op":"add_shot","sceneId":"…","shot":{"durationSec":n,"description":"…"},"atOrder":n}',
-  '{"op":"add_scene","scene":{"title":"…","description":"…","shots":[{"durationSec":n,"description":"…"}]},"atOrder":n}',
+  '{"op":"add_scene","scene":{"id":"@escena1","title":"…","description":"…","shots":[{"durationSec":n,"description":"…"}]},"atOrder":n} (con sus planos dentro)',
   '{"op":"remove_shot","shotId":"…"} · {"op":"remove_scene","sceneId":"…"}',
   '{"op":"reorder_shot","shotId":"…","toOrder":n} · {"op":"reorder_scene","sceneId":"…","toOrder":n}',
   '{"op":"duplicate_shot","shotId":"…"} · {"op":"move_shot","shotId":"…","toSceneId":"…"}',
   '{"op":"extend_duration","target":{"sceneId":"…"} o {"shotId":"…"},"bySec":n} · igual con "shorten_duration"',
   '{"op":"add_dialogue","target":{"sceneId":"…"} o {"shotId":"…"},"line":{"kind":linea,"text":"…","characterId":"…"}}',
   '{"op":"change_dialogue","lineId":"…","changes":{"text":"…"}} · {"op":"remove_dialogue","lineId":"…"}',
-  '{"op":"set_character_state","target":{"sceneId":"…"} o {"shotId":"…"},"characterId":"…","wardrobe":"…"}',
+  '{"op":"set_character_state","target":{"sceneId":"…"} o {"shotId":"…"},"characterId":"…","wardrobe":"…","appearanceNotes":"…"} (postura, gesto o emoción, en appearanceNotes)',
   '{"op":"rename_production","title":"…"}',
+  /* Fase 22 del motor (arreglo R1): el mundo de la producción —quién sale, dónde, con qué— y su dirección. */
+  '{"op":"add_character","character":{"id":"@luna","name":"…","identityDescription":"…"}}',
+  '{"op":"update_character","characterId":"…","changes":{"name":"…","identityDescription":"…"}}',
+  '{"op":"add_location","location":{"id":"@faro","name":"…","description":"…","setting":ambiente}}',
+  '{"op":"update_location","locationId":"…","changes":{"description":"…","setting":ambiente}}',
+  '{"op":"change_location","sceneId":"…","locationId":"…"} (el lugar de una escena)',
+  '{"op":"add_object","object":{"id":"@lampara","name":"…","kind":objeto,"description":"…"}}',
+  '{"op":"update_object","objectId":"…","changes":{"description":"…"}}',
+  '{"op":"update_scene","sceneId":"…","changes":{"characterIds":["…"],"objectIds":["…"],"actions":["…"]}} (quién sale y qué hay en la escena)',
+  '{"op":"update_shot","shotId":"…","changes":{"characterIds":["…"],"objectIds":["…"],"actions":["…"]}} (quién sale y qué hay en el plano)',
+  '{"op":"change_direction","changes":{"mood":"…","tone":"…","pacing":ritmo}}',
+  '{"op":"change_intent","changes":{"objective":"…","audience":"…","narrative":"…"}}',
+  '{"op":"modify_audio","change":{"action":"upsert","cue":{"kind":sonido,"description":"…","target":{"scope":"shot","shotId":"…"} o {"scope":"scenes","sceneIds":["…"]} o {"scope":"production"}}}}',
 ];
 
 /**
@@ -720,11 +738,11 @@ export const instruccionDeProduccion = (resumen: string): string => {
     'Ahora la persona te habla desde el editor de una de sus producciones de video, con varias escenas y planos. Abajo tienes cómo está guardada; los identificadores van entre corchetes.',
     'Puedes comentarla, explicar sus recomendaciones y proponer ideas. No hables de derivar a otro especialista: ya está donde tiene que estar.',
     `Si te pide cambiar algo de la producción, contesta como siempre —corto y sin tecnicismos— diciendo que se lo PROPONES (no que ya está hecho: lo aplica la persona), y termina el mensaje con un bloque exactamente así, sin nada después: ${MARCA_DE_CAMBIOS.abre}{"operations":[…]}${MARCA_DE_CAMBIOS.cierra}`,
-    `Reglas del bloque: JSON válido; como mucho ${MAX_OPERACIONES_POR_PROPUESTA} operaciones; solo operaciones de la lista; usa los identificadores tal como aparecen abajo y nunca inventes uno; para algo nuevo no pongas id; cambia solo lo que te piden; un plano dura de 4 a 15 segundos. Si no te pide cambios, no escribas el bloque.`,
+    `Reglas del bloque: JSON válido; como mucho ${MAX_OPERACIONES_POR_PROPUESTA} operaciones; solo operaciones de la lista; para lo que YA existe usa los identificadores tal como aparecen abajo y nunca inventes uno; para algo NUEVO no pongas id, o pon un marcador como "@escena1" si otra operación del mismo bloque tiene que referirse a ello (por ejemplo, un personaje nuevo que sale en un plano); cada operación lleva "why" con el porqué en una frase corta; cambia solo lo que te piden; un plano dura de 4 a 15 segundos; no vincules nada guardado ni material, y no escribas el prompt avanzado: eso lo elige la persona. Si no te pide cambios, no escribas el bloque.`,
     'Operaciones:',
     ...OPERACIONES_PARA_BRAIN.map((o) => `• ${o}`),
     'ámbito = {"scope":"production"} o {"scope":"scene","sceneId":"…"} o {"scope":"shot","shotId":"…"}.',
-    `Valores: plano ${v.plano.join('|')}; camara ${v.camara.join('|')}; perspectiva ${v.perspectiva.join('|')}; optica ${v.optica.join('|')}; composicion ${v.composicion.join('|')}; movimiento ${v.movimiento.join('|')}; velocidad ${v.velocidad.join('|')}; suavidad ${v.suavidad.join('|')}; luz ${v.luz.join('|')}; transicion ${v.transicion.join('|')}; clima ${v.clima.join('|')}; momento ${v.momento.join('|')}; enfoque ${v.enfoque.join('|')}; linea ${v.linea.join('|')}.`,
+    `Valores: plano ${v.plano.join('|')}; camara ${v.camara.join('|')}; perspectiva ${v.perspectiva.join('|')}; optica ${v.optica.join('|')}; composicion ${v.composicion.join('|')}; movimiento ${v.movimiento.join('|')}; velocidad ${v.velocidad.join('|')}; suavidad ${v.suavidad.join('|')}; luz ${v.luz.join('|')}; transicion ${v.transicion.join('|')}; clima ${v.clima.join('|')}; momento ${v.momento.join('|')}; enfoque ${v.enfoque.join('|')}; linea ${v.linea.join('|')}; ritmo ${v.ritmo.join('|')}; ambiente ${v.ambiente.join('|')}; sonido ${v.sonido.join('|')}; objeto ${v.objeto.join('|')}.`,
     'LA PRODUCCIÓN:',
     resumen,
   ].join('\n');

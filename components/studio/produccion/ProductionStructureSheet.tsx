@@ -3,10 +3,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import HojaInferior from '../../workspace/HojaInferior';
+import CampoDeBusqueda from '../../workspace/CampoDeBusqueda';
 import { BotonPequeno, Chip, Seccion } from './ProductionPiezas';
 import type { FilmmakerOperation, FilmmakerProduction } from '../../../services/filmmaker/dominio';
 import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
-import { CLASES_POR_FICHA } from '../../../constants/filmmaker';
+import { coincideConLaBusqueda } from '../../../utils/buscarPorNombre';
+import { CLASES_POR_FICHA, nombreDelEstilo } from '../../../constants/filmmaker';
 import type { Estructura } from './ProductionProjectPanel';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 
@@ -49,6 +51,8 @@ const ProductionStructureSheet: React.FC<{
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const [eligiendo, setEligiendo] = useState<{ ficha: FichaVinculable; id: string } | null>(null);
+  /* Lo que se busca entre lo guardado ya cargado (Fase 22 del motor, arreglo R7). */
+  const [busqueda, setBusqueda] = useState('');
   const fichaDeLaHoja: FichaVinculable | null = que === 'personajes' ? 'personaje' : que === 'lugares' ? 'lugar' : null;
   const cargar = vinculos?.elementos.cargar;
   /* Lo guardado se pide al abrir el reparto o los lugares, por las clases que encajan con esa ficha. */
@@ -85,7 +89,7 @@ const ProductionStructureSheet: React.FC<{
       <>
         <Seccion titulo={t('filmmaker.intent')}>{texto(produccion.intent.freeText ?? produccion.intent.objective, t('filmmaker.wsNothingYet'))}</Seccion>
         <Seccion titulo={t('filmmaker.creativeDirection')}>
-          {texto(formato.lista([direccion.visualStyle, direccion.mood, direccion.tone].filter((x): x is string => !!x)), t('filmmaker.noCreativeDirection'))}
+          {texto(formato.lista([direccion.visualStyle ? nombreDelEstilo(direccion.visualStyle, t) : undefined, direccion.mood, direccion.tone].filter((x): x is string => !!x)), t('filmmaker.noCreativeDirection'))}
         </Seccion>
       </>
     );
@@ -116,7 +120,7 @@ const ProductionStructureSheet: React.FC<{
     cuerpo = (
       <>
         <Seccion titulo={t('filmmaker.creativeDirection')}>
-          {texto(formato.lista([direccion.visualStyle, direccion.mood, direccion.color?.grading].filter((x): x is string => !!x)), t('filmmaker.noCreativeDirection'))}
+          {texto(formato.lista([direccion.visualStyle ? nombreDelEstilo(direccion.visualStyle, t) : undefined, direccion.mood, direccion.color?.grading].filter((x): x is string => !!x)), t('filmmaker.noCreativeDirection'))}
           {paleta.length > 0 && (
             <View style={styles.paleta}>
               {paleta.map((c) => <View key={c} style={[styles.color, { backgroundColor: c, borderColor: theme.colors.border }]} />)}
@@ -134,21 +138,38 @@ const ProductionStructureSheet: React.FC<{
 
   /* Eligiendo con qué vincular una ficha: la lista de lo guardado, en lugar de la hoja. */
   if (eligiendo && vinculos) {
-    const { carga, lista } = vinculos.elementos;
+    const { carga, lista, hayMas, cargandoMas, cargarMas } = vinculos.elementos;
     const elegir = (e: { elementId: string; version: number }) => {
       vinculos.onGesto([operacionDelVinculo(eligiendo.ficha, eligiendo.id, { elementId: e.elementId, version: e.version })]);
       setEligiendo(null);
+      setBusqueda('');
     };
+    /*
+     * Fase 22 del motor (arreglo R7): por páginas y en su orden —lo que llega se pone detrás—, con «Cargar más»
+     * mientras quede algo, y un filtro por nombre sobre lo ya cargado, que dice que es sobre lo cargado.
+     */
+    const visibles = lista.filter((e) => coincideConLaBusqueda(e.name, busqueda));
     cuerpo = (
       <Seccion titulo={t('filmmaker.wsElementPickTitle')}>
+        {carga === 'listos' && lista.length > 0 && (
+          <>
+            <CampoDeBusqueda valor={busqueda} onCambiar={setBusqueda} placeholder={t('filmmaker.wsElementSearch')} />
+            {!!busqueda.trim() && hayMas && texto(undefined, t('filmmaker.wsElementSearchLoaded'))}
+          </>
+        )}
         {carga === 'error'
           ? <Text style={[styles.texto, { color: theme.colors.error }]}>{t('filmmaker.wsElementPickError')}</Text>
           : carga !== 'listos'
             ? texto(undefined, t('common.loading'))
             : lista.length === 0
               ? texto(undefined, t('filmmaker.wsElementPickEmpty'))
-              : lista.map((e) => <BotonPequeno key={e.elementId} icono="link-outline" etiqueta={e.name} onPress={() => elegir(e)} conTexto />)}
-        <BotonPequeno icono="arrow-back" etiqueta={t('common.back')} onPress={() => setEligiendo(null)} conTexto />
+              : visibles.length === 0
+                ? texto(undefined, t('filmmaker.wsElementSearchNone'))
+                : visibles.map((e) => <BotonPequeno key={e.elementId} icono="link-outline" etiqueta={e.name} onPress={() => elegir(e)} conTexto />)}
+        {carga === 'listos' && hayMas && (
+          <BotonPequeno icono="chevron-down" etiqueta={cargandoMas ? t('common.loading') : t('filmmaker.wsElementLoadMore')} onPress={cargarMas} disabled={cargandoMas} conTexto />
+        )}
+        <BotonPequeno icono="arrow-back" etiqueta={t('common.back')} onPress={() => { setEligiendo(null); setBusqueda(''); }} conTexto />
       </Seccion>
     );
   }

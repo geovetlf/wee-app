@@ -27,6 +27,10 @@
  *   reconstruir      tras un conflicto: la versión de ahora, y encima todo lo
  *                    tuyo sin confirmar, gesto a gesto; lo que ya no cabe se
  *                    descarta Y SE DICE, nunca en silencio
+ *   externa          una revisión que no salió de los gestos —volver a una
+ *                    versión, aplicar una propuesta de Weë Brain—: manda, lo
+ *                    tuyo sin confirmar va encima y lo que hay que rehacer se
+ *                    SUMA (Fase 22 del motor, arreglo R6)
  *
  * Todo es puro: la misma entrada da la misma salida. Quien llama al servidor, y
  * cuándo, es `utils/controladorDeProduccion.ts`.
@@ -86,6 +90,7 @@ export type AccionOptimista =
   | { readonly tipo: 'fallido'; readonly fallo: FalloDeProducciones }
   | { readonly tipo: 'reintentar' }
   | { readonly tipo: 'reconstruir'; readonly produccion: ProduccionGuardada }
+  | { readonly tipo: 'externa'; readonly produccion: ProduccionGuardada; readonly pending: PendingRegeneration }
   | { readonly tipo: 'estado'; readonly resumen: ResumenDeProduccion }
   | { readonly tipo: 'vistos' };
 
@@ -279,6 +284,33 @@ export const reducirProduccion = (e: EstadoOptimista, a: AccionOptimista): Estad
         porRehacer: sumarPorRehacer(e.porRehacer, r.porRehacer),
         guardado: r.quedan.length ? 'pendiente' : 'guardado',
         fallo: null,
+      };
+    }
+
+    case 'externa': {
+      /*
+       * UNA REVISIÓN QUE NO SALIÓ DE LOS GESTOS (Fase 22 del motor, arreglo R6 de la auditoría): volver a una versión,
+       * o aplicar una propuesta de Weë Brain. Antes se «cargaba» entera y se perdía lo que hubiera: lo que viajaba, lo
+       * que esperaba y lo que F1-A decía que había que rehacer. Ahora la revisión nueva manda, lo tuyo que el servidor
+       * no tenía va encima gesto a gesto —como tras un conflicto, y lo que ya no cabe se aparta Y SE DICE— y lo que hay
+       * que rehacer se SUMA a lo de antes, como con cualquier lote confirmado. De otra producción, nada.
+       */
+      if (!e.confirmada || a.produccion.productionId !== e.confirmada.productionId) return e;
+      const gestos = [...(e.enVuelo?.gestos ?? []), ...e.pendientes];
+      const r = reaplicar(a.produccion.production, gestos);
+      return {
+        ...e,
+        confirmada: a.produccion,
+        enVuelo: null,
+        vista: r.vista,
+        pendientes: r.quedan,
+        descartados: [...e.descartados, ...r.descartados],
+        conflicto: e.conflicto || r.descartados.length > 0,
+        /* Sin `pending` (un servidor anterior, o un doble), no se suma nada: nunca se inventa. */
+        porRehacer: sumarPorRehacer(sumarPorRehacer(e.porRehacer, a.pending ?? NADA_POR_REHACER), r.porRehacer),
+        guardado: r.quedan.length ? 'pendiente' : 'guardado',
+        fallo: null,
+        rechazo: null,
       };
     }
 

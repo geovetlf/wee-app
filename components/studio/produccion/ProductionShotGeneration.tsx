@@ -225,10 +225,20 @@ const ProductionShotGeneration: React.FC<{
             resolucion: resolucionVisible(fase.efectiva.resolution),
           }))}
           {nota(fase.efectiva.withSound ? t('filmmaker.takeWithSound') : t('filmmaker.takeWithoutSound'))}
-          {fase.efectiva.durationSec !== fase.efectiva.requestedDurationSec && nota(t('filmmaker.takeDurationAdjusted', {
-            segundos: formato.numero(fase.efectiva.requestedDurationSec),
-            minimo: formato.numero(fase.efectiva.durationSec),
-          }))}
+          {/*
+            Fase 22 del motor (arreglo R16 de la auditoría): el servidor genera por SEGUNDOS ENTEROS y con un mínimo
+            (\`max(mínimo, ceil(pedida))\`). Si subió hasta el mínimo, se dice que es el mínimo; si solo se redondeó, se
+            dice que se redondea —antes todo se llamaba «el más corto que se puede generar», y un 5,5 → 6 no lo es—.
+          */}
+          {fase.efectiva.durationSec !== fase.efectiva.requestedDurationSec && nota(Math.ceil(fase.efectiva.requestedDurationSec) < fase.efectiva.durationSec
+            ? t('filmmaker.takeDurationAdjusted', {
+              segundos: formato.numero(fase.efectiva.requestedDurationSec),
+              minimo: formato.numero(fase.efectiva.durationSec),
+            })
+            : t('filmmaker.takeDurationRounded', {
+              segundos: formato.numero(fase.efectiva.requestedDurationSec),
+              redondeado: formato.numero(fase.efectiva.durationSec),
+            }))}
         </View>
       )}
       {pidiendo && nota(t('filmmaker.takeSending'))}

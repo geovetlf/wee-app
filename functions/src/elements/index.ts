@@ -1,4 +1,4 @@
-import { Firestore, getFirestore } from 'firebase-admin/firestore';
+import { FieldPath, Firestore, getFirestore } from 'firebase-admin/firestore';
 import {
   Element,
   ElementAssetRef,
@@ -279,6 +279,47 @@ export const candidatosDeLaCuenta = async (
   if (consulta.createdBefore !== undefined) q = q.where('createdAt', '<=', consulta.createdBefore);
   const snap = await q.orderBy('createdAt').limit(tope).get();
   return snap.docs.map((d) => d.data()).filter(elementoValido);
+};
+
+/* ── Lo guardado, por páginas (Filmmaker Engine, Fase 22: arreglo R7 de la auditoría) ── */
+
+/** Cuántos por página, como mucho, y cuántos si no se dice. */
+export const MAX_POR_PAGINA_DE_ELEMENTOS = 50;
+export const POR_PAGINA_DE_ELEMENTOS = 20;
+
+export interface PaginaDeElementos {
+  readonly elementos: readonly Element[];
+  /** El cursor de la página siguiente (el id del último), o ausente si no hay más. */
+  readonly siguiente?: string;
+}
+
+/**
+ * LOS DE UNA CLASE, POR PÁGINAS, PARA ELEGIR UNO. `candidatosDeLaCuenta` es otra cosa —los candidatos del contexto
+ * visual de Weë Brain, con su tope de 8 (S5)— y no se toca: esto es la lista que ve la persona al vincular o
+ * referenciar, sin tope fijo y en un ORDEN ESTABLE, el del identificador del documento (que no cambia al editar un
+ * Element, al contrario que su nombre o su fecha). Con igualdades solamente y el orden por defecto, Firestore no
+ * necesita un índice compuesto nuevo.
+ *
+ * El cursor es el id del último que se vio; un cursor que no es un id válido se ignora (se empieza por el principio)
+ * y nunca abre nada de otra cuenta: la consulta sigue filtrando por la dueña.
+ */
+export const paginaDeElementosDeLaCuenta = async (
+  consulta: { readonly accountId: string; readonly type: ElementType; readonly limit?: number; readonly after?: string },
+  deps: DepsDeElementos = {},
+): Promise<PaginaDeElementos> => {
+  if (typeof consulta.accountId !== 'string' || !consulta.accountId) return { elementos: [] };
+  const tope = Math.max(1, Math.min(Math.floor(consulta.limit ?? POR_PAGINA_DE_ELEMENTOS), MAX_POR_PAGINA_DE_ELEMENTOS));
+  let q = elementos(deps)
+    .where('ownerAccountId', '==', consulta.accountId)
+    .where('status', '==', 'active')
+    .where('type', '==', consulta.type)
+    .orderBy(FieldPath.documentId());
+  if (typeof consulta.after === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(consulta.after)) q = q.startAfter(consulta.after);
+  /* Uno más de los que se piden: si llega, hay página siguiente. */
+  const snap = await q.limit(tope + 1).get();
+  const docs = snap.docs.slice(0, tope);
+  const lista = docs.map((d) => d.data()).filter(elementoValido);
+  return { elementos: lista, ...(snap.docs.length > tope && docs.length ? { siguiente: docs[docs.length - 1].id } : {}) };
 };
 
 /* ── Actualizar y archivar ────────────────────────────────────────────────── */

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
+import MiniaturaDeVideo from './MiniaturaDeVideo';
 import ProductionStatus from './ProductionStatus';
 import ProductionSaveState from './ProductionSaveState';
 import { BotonPequeno, Chip, Seccion } from './ProductionPiezas';
@@ -154,7 +154,7 @@ const ProductionProjectPanel: React.FC<{
             {formato.lista([produccion.format.aspectRatio, t('filmmaker.scenes', { contador: produccion.scenes.length }), t('filmmaker.shots', { contador: planos })])}
           </Text>
           <ProductionStatus estados={estados} />
-          <ProductionSaveState guardado={guardado} fallo={fallo} onGuardarAhora={espacio.onGuardarAhora} onReintentar={espacio.onReintentar} />
+          <ProductionSaveState guardado={guardado} fallo={fallo} onGuardarAhora={espacio.onGuardarAhora} onReintentar={espacio.onReintentar} ocupado={espacio.ocupado} />
           <View style={styles.acciones}>
             <BotonPequeno icono="list-outline" etiqueta={t('filmmaker.backToList')} onPress={espacio.onLista} />
             <BotonPequeno icono="copy-outline" etiqueta={t('filmmaker.duplicate')} onPress={espacio.onDuplicar} disabled={hayCambios} />
@@ -261,10 +261,8 @@ const ProductionProjectPanel: React.FC<{
                     accessibilityRole="button"
                     accessibilityLabel={t('filmmaker.takePreviewOf', { nombre: t('filmmaker.whereShot', { escena: i + 1, plano: j + 1 }) })}
                   >
-                    {/* Con póster, su imagen fija (Fase 16 del motor): la rejilla no carga un vídeo por plano. */}
-                    {v?.poster
-                      ? <Image source={{ uri: v.poster }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                      : <Video source={{ uri: v?.url as string }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted />}
+                    {/* Con póster, su imagen fija (Fase 16 del motor); sin él, el aviso de que ya tiene vídeo, sin cargarlo (Fase 22, R10). */}
+                    <MiniaturaDeVideo video={v} nombre={t('filmmaker.whereShot', { escena: i + 1, plano: j + 1 })} />
                   </TouchableOpacity>
                 ))}
               </View>

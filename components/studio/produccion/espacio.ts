@@ -6,7 +6,7 @@ import type {
 import type { EstadosDeLaProduccion } from '../../../utils/presentacionDeProduccion';
 import type { EstadoDeGuardado } from '../../../utils/produccionOptimista';
 import type { FalloDeProducciones } from '../../../services/filmmakerService';
-import type { ResultadoDeGesto } from '../../../utils/controladorDeProduccion';
+import type { Ocupado, ResultadoDeGesto, ResultadoDePropuesta } from '../../../utils/controladorDeProduccion';
 import type { CalidadesDeToma, VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
@@ -37,6 +37,8 @@ export interface EspacioDeFilmmaker {
   readonly fallo: FalloDeProducciones | null;
   readonly hayCambios: boolean;
   readonly editable: boolean;
+  /** Fase 22 · volviendo a una versión o aplicando una propuesta: mientras tanto, nada se edita. */
+  readonly ocupado?: Ocupado | null;
   readonly ids: IdsNuevos;
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
@@ -51,6 +53,8 @@ export interface EspacioDeFilmmaker {
   readonly elementos?: ElementosParaVincular;
   /** Fase 20 · Weë Brain dentro del editor. */
   readonly brain?: WeeBrainDelEditor;
+  /** Fase 22 · aplicar una propuesta de Weë Brain sobre la revisión en que se comprobó, con su id (nunca como gesto). */
+  readonly onAplicarPropuesta?: (ops: readonly FilmmakerOperation[], baseRevision: number, operationId: string) => Promise<ResultadoDePropuesta>;
   readonly seleccion: Seleccion;
   readonly rechazadas: ReadonlySet<string>;
   readonly onSeleccionar: (s: Seleccion) => void;

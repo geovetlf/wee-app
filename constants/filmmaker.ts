@@ -1,4 +1,4 @@
-import type { FormatPresetId, SubjectFocus, TimeOfDay, Weather } from '../services/filmmaker/dominio';
+import type { FormatPresetId, OperationName, SubjectFocus, TimeOfDay, TransitionType, Weather } from '../services/filmmaker/dominio';
 
 /**
  * WEË FILMMAKER · LO QUE LA PANTALLA DE PRODUCCIÓN ENSEÑA, COMO CLAVES (F1-C).
@@ -97,4 +97,120 @@ export const PASO_DEL_OBJETIVO_SEC = 5;
 export const CLASES_POR_FICHA: Readonly<Record<'personaje' | 'lugar', readonly string[]>> = Object.freeze({
   personaje: Object.freeze(['character']),
   lugar: Object.freeze(['place', 'scene']),
+});
+
+/**
+ * LOS ESTILOS QUE SE OFRECEN, COMO TOKENS (Fase 22 del motor, arreglo R13 de la auditoría). Antes se guardaba el
+ * NOMBRE traducido («Cinemático»): al cambiar de idioma la producción seguía en el de antes, el chip dejaba de
+ * reconocerlo y el prompt recibía una palabra de la interfaz. Ahora se guarda el TOKEN —`cinematic`, en inglés, que es
+ * lo que lee el modelo de vídeo— y el nombre sale al pintar, en el idioma de ese momento. Lo que ya estaba guardado
+ * con su nombre se enseña tal cual: es lo que la persona eligió, y su prompt sigue siendo el mismo, byte a byte.
+ */
+export const ESTILOS_CANONICOS: readonly { readonly token: string; readonly clave: string; readonly icono: string }[] = Object.freeze([
+  Object.freeze({ token: 'cinematic', clave: 'filmmaker.wsChipCinematic', icono: 'film-outline' }),
+  Object.freeze({ token: 'realistic', clave: 'filmmaker.wsChipRealistic', icono: 'camera-outline' }),
+  Object.freeze({ token: 'anime', clave: 'filmmaker.wsChipAnime', icono: 'sparkles-outline' }),
+  Object.freeze({ token: '3d', clave: 'filmmaker.wsChip3d', icono: 'cube-outline' }),
+]);
+
+/** La clave del nombre de un estilo guardado si es uno de los tokens; si no, `null`: lo escribió alguien y se enseña tal cual. */
+export const claveDelEstilo = (valor: string | null | undefined): string | null =>
+  ESTILOS_CANONICOS.find((e) => e.token === valor)?.clave ?? null;
+
+/** Cómo se enseña un estilo guardado: el nombre del token en el idioma de ahora, o el texto tal cual. */
+export const nombreDelEstilo = (valor: string, t: (clave: string) => string): string => {
+  const clave = claveDelEstilo(valor);
+  return clave ? t(clave) : valor;
+};
+
+/**
+ * ¿Lo guardado es este estilo? Lo es su token y, para lo de antes de la Fase 22, también el nombre que entonces se
+ * guardaba, en el idioma de ahora: así el chip lo reconoce y un toque lo quita o lo cambia por el token.
+ */
+export const esElEstilo = (valor: string | null | undefined, token: string, t: (clave: string) => string): boolean => {
+  if (!valor) return false;
+  const clave = claveDelEstilo(token);
+  return valor === token || (!!clave && valor === t(clave));
+};
+
+/**
+ * CÓMO SE DICE CADA OPERACIÓN DE F1-A (Fase 22 del motor, arreglo R1 de la auditoría): una propuesta de Weë Brain son
+ * operaciones, y la persona decide leyendo frases, no JSON. Una clave por operación —las 56, ni una más—, y tres para
+ * el sonido, que según su acción añade, quita o cambia el narrador. Quien pinta resuelve (`utils/describirOperacion.ts`).
+ */
+export const CLAVE_DE_OPERACION: Readonly<Record<OperationName, string>> = Object.freeze({
+  add_scene: 'filmmaker.opAddScene',
+  remove_scene: 'filmmaker.opRemoveScene',
+  reorder_scene: 'filmmaker.opReorderScene',
+  duplicate_scene: 'filmmaker.opDuplicateScene',
+  split_scene: 'filmmaker.opSplitScene',
+  merge_scenes: 'filmmaker.opMergeScenes',
+  add_shot: 'filmmaker.opAddShot',
+  remove_shot: 'filmmaker.opRemoveShot',
+  reorder_shot: 'filmmaker.opReorderShot',
+  duplicate_shot: 'filmmaker.opDuplicateShot',
+  split_shot: 'filmmaker.opSplitShot',
+  merge_shots: 'filmmaker.opMergeShots',
+  extend_duration: 'filmmaker.opExtendDuration',
+  shorten_duration: 'filmmaker.opShortenDuration',
+  change_target_duration: 'filmmaker.opChangeTargetDuration',
+  change_camera: 'filmmaker.opChangeCamera',
+  change_movement: 'filmmaker.opChangeMovement',
+  change_lighting: 'filmmaker.opChangeLighting',
+  change_style: 'filmmaker.opChangeStyle',
+  change_weather: 'filmmaker.opChangeWeather',
+  change_time_of_day: 'filmmaker.opChangeTimeOfDay',
+  change_location: 'filmmaker.opChangeLocation',
+  change_subject: 'filmmaker.opChangeSubject',
+  edit_text: 'filmmaker.opEditText',
+  replace_character: 'filmmaker.opReplaceCharacter',
+  set_character_state: 'filmmaker.opSetCharacterState',
+  replace_reference: 'filmmaker.opReplaceReference',
+  add_dialogue: 'filmmaker.opAddDialogue',
+  change_dialogue: 'filmmaker.opChangeDialogue',
+  remove_dialogue: 'filmmaker.opRemoveDialogue',
+  modify_audio: 'filmmaker.opModifyAudioUpsert',
+  change_format: 'filmmaker.opChangeFormat',
+  change_export: 'filmmaker.opChangeExport',
+  add_character: 'filmmaker.opAddCharacter',
+  update_character: 'filmmaker.opUpdateCharacter',
+  remove_character: 'filmmaker.opRemoveCharacter',
+  add_location: 'filmmaker.opAddLocation',
+  update_location: 'filmmaker.opUpdateLocation',
+  remove_location: 'filmmaker.opRemoveLocation',
+  add_object: 'filmmaker.opAddObject',
+  update_object: 'filmmaker.opUpdateObject',
+  remove_object: 'filmmaker.opRemoveObject',
+  add_reference: 'filmmaker.opAddReference',
+  update_reference: 'filmmaker.opUpdateReference',
+  remove_reference: 'filmmaker.opRemoveReference',
+  rename_production: 'filmmaker.opRenameProduction',
+  change_intent: 'filmmaker.opChangeIntent',
+  change_direction: 'filmmaker.opChangeDirection',
+  change_mood: 'filmmaker.opChangeMood',
+  change_transition: 'filmmaker.opChangeTransition',
+  change_continuity: 'filmmaker.opChangeContinuity',
+  change_generation: 'filmmaker.opChangeGeneration',
+  update_scene: 'filmmaker.opUpdateScene',
+  update_shot: 'filmmaker.opUpdateShot',
+  move_shot: 'filmmaker.opMoveShot',
+  change_edit_plan: 'filmmaker.opChangeEditPlan',
+});
+/** El sonido, según su acción: `upsert` es la de la tabla; quitar y cambiar el narrador tienen la suya. */
+export const CLAVE_DE_SONIDO_QUITADO = 'filmmaker.opModifyAudioRemove';
+export const CLAVE_DEL_NARRADOR = 'filmmaker.opModifyAudioNarrator';
+/** Sin duración objetivo: se quita, y se dice así. */
+export const CLAVE_SIN_DURACION_OBJETIVO = 'filmmaker.opClearTargetDuration';
+
+/**
+ * LAS SEIS TRANSICIONES DEL LENGUAJE CREATIVO, con la clave de su nombre (Fase 22 del motor). Los valores son los del
+ * Core (`transition.type`) y viajan al servidor tal cual; solo se traduce su nombre.
+ */
+export const CLAVE_DE_TRANSICION: Readonly<Record<TransitionType, string>> = Object.freeze({
+  cut: 'filmmaker.transitionCut',
+  dissolve: 'filmmaker.transitionDissolve',
+  fade: 'filmmaker.transitionFade',
+  match_cut: 'filmmaker.transitionMatchCut',
+  whip: 'filmmaker.transitionWhip',
+  seamless: 'filmmaker.transitionSeamless',
 });

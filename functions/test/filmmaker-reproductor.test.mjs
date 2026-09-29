@@ -264,9 +264,14 @@ console.log('\n── V · El visor: el póster, el lienzo mientras se hace, la 
   const lienzo = v1.reproductores[0];
   check('V1) el lienzo: el vídeo del plano elegido, SU póster y el formato de la producción; nada «haciéndose»',
     lienzo?.url === 'https://cdn.invalid/a.mp4' && lienzo.poster === POSTER_A && lienzo.formato === prod.format.aspectRatio && !lienzo.procesando, JSON.stringify(lienzo && { url: lienzo.url, poster: lienzo.poster, formato: lienzo.formato }));
-  check('V2) la tira: con póster, su imagen fija; sin póster, el vídeo quieto como antes; sin vídeo, el icono',
-    v1.imagenes.some((i) => i.src === POSTER_A) && v1.videos.some((v) => v.source?.uri === 'https://cdn.invalid/b.mp4')
-    && !v1.videos.some((v) => v.source?.uri === 'https://cdn.invalid/a.mp4') && v1.videos.length === 1, `${v1.imagenes.length} imágenes · ${v1.videos.length} vídeos`);
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (auditoría final del 2026-09-28, arreglo R10): sin póster, la tira ya
+   * no monta el vídeo para enseñar un fotograma —la tira, la línea de tiempo y la rejilla lo cargaban a la vez—, sino
+   * el aviso quieto de que el plano ya tiene vídeo. El único que carga el vídeo es el lienzo.
+   */
+  check('V2) la tira: con póster, su imagen fija; sin póster, el aviso de que ya tiene vídeo, sin cargarlo; sin vídeo, el icono',
+    v1.imagenes.some((i) => i.src === POSTER_A) && v1.videos.length === 0 && /aria-label="Vídeo listo de /.test(v1.html),
+    `${v1.imagenes.length} imágenes · ${v1.videos.length} vídeos`);
   const enProceso = { ...tomaQuieta, fase: { fase: 'en_proceso', toma: 1 } };
   const v3 = verVisor({ toma: enProceso });
   check('V3) sin vídeo y con su toma haciéndose: el lienzo lo dice —«Tu vídeo se está generando.»— y el aviso de debajo no lo repite',
@@ -293,15 +298,16 @@ console.log('\n── L · La línea de tiempo y la rejilla del proyecto, con im
   const M = cargar('utils/montajeDeProduccion.ts');
   const montaje = M.montajeDe(prod, undefined, { clima: (w) => w, momento: (m) => m });
   const l1 = dibujar(h(Linea, { espacio: espacioCon({ videos: conVideos() }), montaje, pestana: 'linea', onPestana() {}, cabezal: 0, onCabezal() {} }));
-  check('L1) la línea de tiempo: con póster, su imagen fija; sin póster, el vídeo quieto como antes',
-    l1.imagenes.some((i) => i.src === POSTER_A) && l1.videos.some((v) => v.source?.uri === 'https://cdn.invalid/b.mp4') && !l1.videos.some((v) => v.source?.uri === 'https://cdn.invalid/a.mp4'),
+  /* L1 y L3, reancladas por nombre en la Fase 22 del motor (R10): sin póster, el aviso; nunca el vídeo. */
+  check('L1) la línea de tiempo: con póster, su imagen fija; sin póster, el aviso de que ya tiene vídeo, sin cargarlo',
+    l1.imagenes.some((i) => i.src === POSTER_A) && l1.videos.length === 0 && /aria-label="Vídeo listo de /.test(l1.html),
     `${l1.imagenes.length} imágenes · ${l1.videos.length} vídeos`);
   const l2 = dibujar(h(Linea, { espacio: espacioCon({ videos: new Map() }), montaje, pestana: 'linea', onPestana() {}, cabezal: 0, onCabezal() {} }));
   check('L2) sin vídeos, ni imágenes ni vídeos en las pistas', l2.imagenes.length === 0 && l2.videos.length === 0);
   const Proyecto = cargar('components/studio/produccion/ProductionProjectPanel.tsx').default;
   const g1 = dibujar(h(Proyecto, { espacio: espacioCon({ videos: conVideos() }), onEstructura() {} }));
-  check('L3) la rejilla del proyecto: con póster, su imagen fija; sin póster, el vídeo quieto como antes',
-    g1.imagenes.some((i) => i.src === POSTER_A) && g1.videos.some((v) => v.source?.uri === 'https://cdn.invalid/b.mp4') && !g1.videos.some((v) => v.source?.uri === 'https://cdn.invalid/a.mp4'),
+  check('L3) la rejilla del proyecto: con póster, su imagen fija; sin póster, el aviso de que ya tiene vídeo, sin cargarlo',
+    g1.imagenes.some((i) => i.src === POSTER_A) && g1.videos.length === 0 && /aria-label="Vídeo listo de /.test(g1.html),
     `${g1.imagenes.length} imágenes · ${g1.videos.length} vídeos`);
 }
 
@@ -396,8 +402,16 @@ console.log('\n── G · Un solo reproductor, nada del servidor, los once idio
   const lista = (s, quitar = '') => s.trim().split('\n').filter(Boolean).map((l) => l.replace(quitar, '')).sort();
   const expoAntes = lista(git(`grep -l "from 'expo-av'" ${ANTES} -- ${CARPETAS}`), `${ANTES}:`);
   const expoAhora = lista(git(`grep -l --untracked "from 'expo-av'" -- ${CARPETAS}`));
-  check('G1) un solo reproductor: nadie más usa el vídeo de expo-av que antes de esta fase', JSON.stringify(expoAntes) === JSON.stringify(expoAhora) && expoAhora.includes('components/workspace/ReproductorDeVideo.tsx'),
-    expoAhora.join(' · '));
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (R10): nadie EMPIEZA a usar el vídeo de expo-av, y los únicos que
+   * dejaron de usarlo son las cuatro miniaturas de la producción, que ya no cargan el vídeo para enseñar un fotograma.
+   */
+  const dejaron = expoAntes.filter((f) => !expoAhora.includes(f));
+  check('G1) un solo reproductor: nadie más usa el vídeo de expo-av que antes de esta fase, y las miniaturas ya no',
+    expoAhora.every((f) => expoAntes.includes(f)) && expoAhora.includes('components/workspace/ReproductorDeVideo.tsx')
+    && JSON.stringify(dejaron) === JSON.stringify(['components/studio/produccion/ProductionProjectPanel.tsx', 'components/studio/produccion/ProductionShotCard.tsx',
+      'components/studio/produccion/ProductionTimeline.tsx', 'components/studio/produccion/ProductionViewer.tsx']),
+    `${expoAhora.join(' · ')} — dejaron: ${dejaron.join(' · ')}`);
   const nuevos = git(`diff --name-only --diff-filter=A ${tramo} -- components screens hooks`).trim();
   check('G2) ni un componente nuevo: el reproductor de siempre, reutilizado', nuevos === '', nuevos);
   const delServidor = git(`diff --name-only ${tramo} -- functions/src firestore.rules storage.rules firestore.indexes.json`).trim();

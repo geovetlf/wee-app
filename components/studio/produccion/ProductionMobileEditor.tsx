@@ -82,7 +82,7 @@ const ProductionMobileEditor: React.FC<{
         <View style={styles.cabecera}>
           <View style={styles.cabeceraTextos}>
             <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1} accessibilityRole="header">{produccion.title}</Text>
-            <ProductionSaveState guardado={espacio.guardado} fallo={espacio.fallo} onGuardarAhora={espacio.onGuardarAhora} onReintentar={espacio.onReintentar} />
+            <ProductionSaveState guardado={espacio.guardado} fallo={espacio.fallo} onGuardarAhora={espacio.onGuardarAhora} onReintentar={espacio.onReintentar} ocupado={espacio.ocupado} />
           </View>
           <TouchableOpacity
             onPress={espacio.onExportar}

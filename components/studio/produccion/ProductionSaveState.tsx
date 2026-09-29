@@ -15,15 +15,27 @@ import { scale } from '../../../utils/scale';
  * (el servidor lo tiene), cambios sin guardar (esperando a que pares), guardando
  * (viajando ahora) y no se pudo guardar (con el porqué y cómo repetirlo). Sin
  * barras ni porcentajes: guardar no tiene progreso que enseñar.
+ *
+ * Fase 22 del motor (arreglo R6): y un quinto, mientras está OCUPADA —volviendo a una versión o aplicando lo que
+ * propuso Weë Brain—: entonces no se edita, y se dice por qué.
  */
 const ProductionSaveState: React.FC<{
   guardado: EstadoDeGuardado;
   fallo: FalloDeProducciones | null;
   onGuardarAhora: () => void;
   onReintentar: () => void;
-}> = ({ guardado, fallo, onGuardarAhora, onReintentar }) => {
+  ocupado?: 'restaurando' | 'aplicando' | null;
+}> = ({ guardado, fallo, onGuardarAhora, onReintentar, ocupado }) => {
   const { theme } = useTheme();
   const t = useT();
+  if (ocupado) {
+    return (
+      <View style={styles.fila} accessibilityLiveRegion="polite">
+        <Ionicons name="sync-outline" size={scale(16)} color={theme.colors.textSecondary} />
+        <Text style={[styles.estado, { color: theme.colors.textSecondary }]}>{t(ocupado === 'restaurando' ? 'filmmaker.busyRestoring' : 'filmmaker.busyApplying')}</Text>
+      </View>
+    );
+  }
   const icono = guardado === 'guardado' ? 'cloud-done-outline' : guardado === 'guardando' ? 'cloud-upload-outline' : guardado === 'error' ? 'cloud-offline-outline' : 'ellipse-outline';
   const color = guardado === 'error' ? theme.colors.error : guardado === 'guardado' ? theme.colors.success : theme.colors.textSecondary;
   const texto = guardado === 'guardado' ? t('filmmaker.saveSaved')

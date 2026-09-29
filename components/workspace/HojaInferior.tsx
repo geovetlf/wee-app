@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useAlturaDelTeclado } from '../EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -21,6 +22,10 @@ const isWeb = Platform.OS === 'web';
  * se centra.
  *
  * No sabe nada de lo que lleva: ni navega, ni guarda, ni cobra.
+ *
+ * Y el teclado no tapa lo que se escribe dentro (Filmmaker Engine, Fase 22): una hoja es un `Modal`, y ahí no llega
+ * el acomodo de la pantalla de debajo. En el teléfono, la hoja sube lo que mide el teclado (`useAlturaDelTeclado`, la
+ * misma medida que usa el buscador de Weë Studio); en escritorio y en la web no hay teclado que esquivar.
  */
 const HojaInferior: React.FC<{
   visible: boolean;
@@ -36,6 +41,7 @@ const HojaInferior: React.FC<{
   const t = useT();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
+  const teclado = useAlturaDelTeclado();
 
   return (
     <Modal visible={visible} transparent animationType={isWeb ? 'none' : 'slide'} onRequestClose={onCerrar}>
@@ -50,7 +56,7 @@ const HojaInferior: React.FC<{
         <View
           style={[
             styles.hoja,
-            isDesktop ? styles.hojaCentrada : { paddingBottom: Math.max(insets.bottom, SPACING.lg) },
+            isDesktop ? styles.hojaCentrada : { paddingBottom: Math.max(insets.bottom, SPACING.lg) + teclado },
             { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
           ]}
           accessibilityViewIsModal

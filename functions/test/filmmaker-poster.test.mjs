@@ -913,9 +913,16 @@ console.log('\n── G · Lo que el póster no hace ──');
     git(`diff --name-only ${ANTES} ${HASTA} -- firestore.rules storage.rules`).trim() === '' && /match \/users\/\{userId\}\/ai-generations\/\{fileName\}/.test(leer('storage.rules')));
   const servicio = sinComentarios(leer('services/tomaService.ts'));
   const tarjeta = sinComentarios(leer('components/studio/produccion/ProductionShotCard.tsx'));
-  check('G9) la app pide los pósters por la puerta y pinta su imagen; sin póster, el vídeo, como antes',
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (auditoría final del 2026-09-28, arreglo R10): la tarjeta pinta la
+   * miniatura común (`MiniaturaDeVideo`): con póster, su imagen fija; sin él, el aviso de que ya tiene vídeo, y nunca
+   * el vídeo entero —cuatro paneles lo cargaban a la vez para enseñar un fotograma—.
+   */
+  const miniatura = sinComentarios(leer('components/studio/produccion/MiniaturaDeVideo.tsx'));
+  check('G9) la app pide los pósters por la puerta y pinta su imagen; sin póster, el aviso de que ya tiene vídeo, sin cargarlo',
     /\(functions, 'renders', \{ timeout: 60_000 \}\)/.test(servicio) && /op: 'poster\.request', productionId/.test(servicio)
-    && /video\.poster \? \(\s*<Image\s+source=\{\{ uri: video\.poster \}\}/.test(tarjeta) && /<Video\s+source=\{\{ uri: video\.url \}\}/.test(tarjeta)
+    && /<MiniaturaDeVideo video=\{video\}/.test(tarjeta) && !/<Video\b/.test(tarjeta)
+    && /if \(video\?\.poster\) \{\s*return <Image source=\{\{ uri: video\.poster \}\}/.test(miniatura) && !/<Video\b|expo-av/.test(miniatura)
     && /tomaService\.postersDeLaProduccion\(productionId\)/.test(leer('hooks/useVideosDeLaProduccion.ts')));
   check('G10) documentado', /### Fase 11 · /.test(leer('docs/FILMMAKER.md')) && /media\.video_poster/.test(leer('docs/FILMMAKER.md')) && /~poster\.jpg/.test(leer('docs/FILMMAKER.md')));
   check('G11) esta suite está en la cadena de `npm test`', /filmmaker-poster\.test\.mjs/.test(leer('functions/package.json')));

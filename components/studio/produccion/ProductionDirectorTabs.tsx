@@ -23,10 +23,12 @@ export type PestanaDelDirector = 'director' | 'referencias' | 'produccion';
  * LOS TOQUES RÁPIDOS: cada uno es UNA operación de F1-A sobre lo elegido. El
  * estilo va al plano; la lluvia, la noche y la niebla, a su escena; el encuadre,
  * a la cámara del plano. Ninguno pide nada al servidor ni gasta un Credit: dirigen.
+ *
+ * El estilo se guarda como su TOKEN (`cinematic`), no como su nombre (Fase 22 del motor, arreglo R13).
  */
-const TOQUES: readonly { clave: string; icono: string; op: (plano: string | undefined, escena: string, estilo: string) => FilmmakerOperation | null }[] = [
-  { clave: 'filmmaker.wsChipCinematic', icono: 'film-outline', op: (p, _e, estilo) => (p ? { op: 'change_style', target: { scope: 'shot', shotId: p }, style: estilo } : null) },
-  { clave: 'filmmaker.wsChipRealistic', icono: 'camera-outline', op: (p, _e, estilo) => (p ? { op: 'change_style', target: { scope: 'shot', shotId: p }, style: estilo } : null) },
+const TOQUES: readonly { clave: string; icono: string; op: (plano: string | undefined, escena: string) => FilmmakerOperation | null }[] = [
+  { clave: 'filmmaker.wsChipCinematic', icono: 'film-outline', op: (p) => (p ? { op: 'change_style', target: { scope: 'shot', shotId: p }, style: 'cinematic' } : null) },
+  { clave: 'filmmaker.wsChipRealistic', icono: 'camera-outline', op: (p) => (p ? { op: 'change_style', target: { scope: 'shot', shotId: p }, style: 'realistic' } : null) },
   { clave: 'filmmaker.wsChipRain', icono: 'rainy-outline', op: (_p, e) => ({ op: 'change_weather', sceneId: e, weather: 'rain' }) },
   { clave: 'filmmaker.wsChipNight', icono: 'moon-outline', op: (_p, e) => ({ op: 'change_time_of_day', sceneId: e, timeOfDay: 'night' }) },
   { clave: 'filmmaker.wsChipFog', icono: 'cloudy-outline', op: (_p, e) => ({ op: 'change_weather', sceneId: e, weather: 'fog' }) },
@@ -96,7 +98,7 @@ const ProductionDirectorTabs: React.FC<{
           <View style={styles.toques}>
             {TOQUES.map((toque) => {
               const nombre = t(toque.clave);
-              const op = toque.op(elegido.plano?.id, elegido.escena.id, nombre);
+              const op = toque.op(elegido.plano?.id, elegido.escena.id);
               if (!op) return null;
               return (
                 <TouchableOpacity

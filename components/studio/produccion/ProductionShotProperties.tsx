@@ -6,7 +6,7 @@ import ProductionInspector from './ProductionInspector';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import { useSegundos } from './ProductionDurationSummary';
 import { claveDelValor } from '../../../constants/camaraCinematica';
-import { PASO_DE_DURACION_SEC } from '../../../constants/filmmaker';
+import { PASO_DE_DURACION_SEC, nombreDelEstilo } from '../../../constants/filmmaker';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../../constants/design';
 
@@ -100,7 +100,7 @@ const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?:
           )}
         </View>
         <View style={styles.chips}>
-          <Chip texto={estilo ? t('filmmaker.wsStyleIs', { estilo }) : t('filmmaker.wsStyleNone')} icono="color-palette-outline" />
+          <Chip texto={estilo ? t('filmmaker.wsStyleIs', { estilo: nombreDelEstilo(estilo, t) }) : t('filmmaker.wsStyleNone')} icono="color-palette-outline" />
           {!!fuerza && !!CLAVE_DE_LA_FUERZA[fuerza] && <Chip texto={t('filmmaker.wsContinuityIs', { fuerza: t(CLAVE_DE_LA_FUERZA[fuerza]) })} icono="link-outline" tono="acento" />}
         </View>
       </View>

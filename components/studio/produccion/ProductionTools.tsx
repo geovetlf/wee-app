@@ -114,6 +114,8 @@ const ProductionTools: React.FC<{
   const plano = elegido?.plano;
   const [tipoDeSonido, setTipoDeSonido] = useState<AudioCue['kind']>('ambience');
   const [tipoDeLinea, setTipoDeLinea] = useState<DialogueLine['kind']>('dialogue');
+  /* Quién dice la línea nueva (Fase 22 del motor, arreglo R12): lo elige la persona, nunca se supone. */
+  const [hablante, setHablante] = useState<string | null>(null);
   /* Tras añadir, el campo vuelve a empezar vacío: se monta de nuevo. */
   const [vuelta, setVuelta] = useState(0);
 
@@ -216,21 +218,53 @@ const ProductionTools: React.FC<{
     }
 
     case 'texto': {
-      if (!plano) return sinPlano;
+      if (!plano || !elegido) return sinPlano;
       const lineas = plano.dialogue ?? [];
+      /*
+       * QUIÉN LO DICE (Fase 22 del motor, arreglo R12 de la auditoría). F1-A exige quién habla en un diálogo y en una
+       * voz en off, y lo prohíbe en la narración. Antes la línea salía sin nadie y el guardado la rechazaba: ahora se
+       * elige entre los personajes de la producción —primero los que salen en el plano— y, si no hay ninguno, se dice
+       * y solo queda la narración. Nada se supone: sin elegir a alguien, no se puede añadir.
+       */
+      const enElPlano = new Set(plano.characterIds ?? elegido.escena.characterIds ?? []);
+      const personajes = [...produccion.characters].sort((a, b) => Number(enElPlano.has(b.id)) - Number(enElPlano.has(a.id)));
+      const pideHablante = tipoDeLinea !== 'narration';
+      const quien = hablante && personajes.some((p) => p.id === hablante) ? hablante : null;
+      const nombreDe = (id: string | undefined) => (id ? produccion.characters.find((p) => p.id === id)?.name : undefined);
+      const puedeAnadir = !pideHablante || !!quien;
       return (
         <View style={styles.bloque}>
           {lineas.length === 0 && nota(t('filmmaker.wsNoLines'))}
-          {lineas.map((l) => (
-            <View key={l.id} style={[styles.elemento, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-              <Ionicons name={l.kind === 'dialogue' ? 'chatbubble-outline' : 'mic-outline'} size={scale(15)} color={theme.colors.accent} />
-              <Text style={[styles.elementoTexto, { color: theme.colors.text }]} numberOfLines={3}>{l.text}</Text>
-              {editable && <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.wsRemoveLine')} onPress={() => onGesto([{ op: 'remove_dialogue', lineId: l.id }])} />}
-            </View>
-          ))}
+          {lineas.map((l) => {
+            const suNombre = l.kind === 'narration' ? t('filmmaker.audioNarrator') : nombreDe(l.characterId);
+            return (
+              <View key={l.id} style={[styles.elemento, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+                <Ionicons name={l.kind === 'dialogue' ? 'chatbubble-outline' : 'mic-outline'} size={scale(15)} color={theme.colors.accent} />
+                <View style={styles.lineaTextos}>
+                  {!!suNombre && <Text style={[styles.hablante, { color: theme.colors.textSecondary }]} numberOfLines={1}>{suNombre}</Text>}
+                  <Text style={[styles.elementoTexto, { color: theme.colors.text }]} numberOfLines={3}>{l.text}</Text>
+                </View>
+                {editable && <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.wsRemoveLine')} onPress={() => onGesto([{ op: 'remove_dialogue', lineId: l.id }])} />}
+              </View>
+            );
+          })}
           {editable && (
             <Seccion titulo={t('filmmaker.wsAddLine')}>
               <Opciones opciones={TIPOS_DE_LINEA.map((k) => ({ valor: k.kind, texto: t(k.clave) }))} elegida={tipoDeLinea} editable onElegir={(v) => { if (v) setTipoDeLinea(v as DialogueLine['kind']); }} sinQuitar />
+              {pideHablante && (personajes.length === 0
+                ? nota(t('filmmaker.wsNoSpeakers'))
+                : (
+                  <Seccion titulo={t('filmmaker.wsWhoSaysIt')}>
+                    <Opciones
+                      opciones={personajes.map((p) => ({ valor: p.id, texto: p.name }))}
+                      elegida={quien}
+                      editable
+                      onElegir={(v) => setHablante(v)}
+                    />
+                    {!quien && nota(t('filmmaker.wsPickSpeaker'))}
+                    {!!quien && tipoDeLinea === 'dialogue' && !enElPlano.has(quien) && nota(t('filmmaker.wsSpeakerNotInShot', { nombre: nombreDe(quien) ?? '' }))}
+                  </Seccion>
+                ))}
               <CampoQueCrece
                 key={`linea-${vuelta}`}
                 etiqueta={t('filmmaker.wsLineText')}
@@ -238,9 +272,12 @@ const ProductionTools: React.FC<{
                 placeholder={t('filmmaker.wsLinePlaceholder')}
                 maximo={LIMITES.linea}
                 etiquetaGuardar={t('filmmaker.wsAddLine')}
+                editable={puedeAnadir}
                 onGuardar={(texto) => {
-                  if (!texto.trim()) return;
-                  onGesto([{ op: 'add_dialogue', target: { shotId: plano.id }, line: { id: ids.linea(), kind: tipoDeLinea, text: texto.trim() } }]);
+                  if (!texto.trim() || !puedeAnadir) return;
+                  onGesto([{ op: 'add_dialogue', target: { shotId: plano.id }, line: {
+                    id: ids.linea(), kind: tipoDeLinea, text: texto.trim(), ...(pideHablante && quien ? { characterId: quien } : {}),
+                  } }]);
                   setVuelta((v) => v + 1);
                 }}
               />
@@ -350,6 +387,8 @@ const styles = StyleSheet.create({
   opcionTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium as any },
   elemento: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm },
   elementoTexto: { flex: 1, fontSize: FONT_SIZE.sm },
+  lineaTextos: { flex: 1, gap: 2 },
+  hablante: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any },
 });
 
 export default ProductionTools;

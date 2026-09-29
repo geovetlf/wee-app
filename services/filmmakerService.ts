@@ -88,6 +88,8 @@ export interface RestauracionConfirmada {
   readonly restoredFrom: number;
   readonly changed: boolean;
   readonly alreadyApplied: boolean;
+  /** Lo que F1-A dice que hay que rehacer tras volver (Fase 22 del motor, arreglo R6): el servidor ya lo mandaba. */
+  readonly pending: PendingRegeneration;
 }
 
 /**
@@ -389,7 +391,10 @@ export const crearFilmmakerService = (llamar: LlamadaAProducciones) => ({
     intentar(async () => {
       const r = await llamar({ op: 'restore', productionId: d.productionId, expectedRevision: d.expectedRevision, revision: d.revision, operationId: d.operationId });
       if (!esObj(r) || !esEntero(r.restoredFrom)) throw new RespuestaInvalida('restore');
-      return { produccion: aProduccion(r), restoredFrom: r.restoredFrom, changed: r.changed === true, alreadyApplied: r.alreadyApplied === true };
+      return {
+        produccion: aProduccion(r), restoredFrom: r.restoredFrom, changed: r.changed === true, alreadyApplied: r.alreadyApplied === true,
+        pending: aPendiente(r.pending),
+      };
     }),
 });
 

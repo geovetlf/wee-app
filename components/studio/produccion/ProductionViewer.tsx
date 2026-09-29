@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import ReproductorDeVideo from '../../workspace/ReproductorDeVideo';
@@ -10,7 +9,8 @@ import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import ProductionFormatSelector from './ProductionFormatSelector';
 import { BotonPequeno } from './ProductionPiezas';
 import { claveDelValor } from '../../../constants/camaraCinematica';
-import { DURACION_DE_UN_PLANO_NUEVO_SEC } from '../../../constants/filmmaker';
+import { DURACION_DE_UN_PLANO_NUEVO_SEC, ESTILOS_CANONICOS, esElEstilo, nombreDelEstilo } from '../../../constants/filmmaker';
+import MiniaturaDeVideo from './MiniaturaDeVideo';
 import { ORDEN_DE_RESOLUCIONES, EspacioDeFilmmaker, alcanceDeResolucion, elegidoDe, vecinos } from './espacio';
 import { resolucionVisible } from '../../../utils/mensajesDeFilmmaker';
 import type { ProductionScene, ProductionShot, ResolutionTarget } from '../../../services/filmmaker/dominio';
@@ -18,11 +18,6 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../.
 import { scale } from '../../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
-
-/** Los estilos que se ofrecen para la producción entera: se guardan como su nombre, que es dirección creativa. */
-export const ESTILOS_DE_PRODUCCION: readonly string[] = [
-  'filmmaker.wsChipCinematic', 'filmmaker.wsChipRealistic', 'filmmaker.wsChipAnime', 'filmmaker.wsChip3d',
-];
 
 type Desplegable = 'estilo' | 'formato' | 'resolucion' | null;
 
@@ -143,7 +138,7 @@ const ProductionViewer: React.FC<{
           <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.empuje} />
-        {pildora('estilo', 'color-palette-outline', estilo ?? t('filmmaker.wsStyleNone'), t('filmmaker.wsStyle'))}
+        {pildora('estilo', 'color-palette-outline', estilo ? nombreDelEstilo(estilo, t) : t('filmmaker.wsStyleNone'), t('filmmaker.wsStyle'))}
         {pildora('formato', 'crop-outline', produccion.format.aspectRatio, t('filmmaker.format'))}
         {pildora('resolucion', 'diamond-outline', resolucion ? resolucionVisible(resolucion) : t('filmmaker.wsResolutionAuto'), t('filmmaker.wsResolution'))}
       </View>
@@ -152,14 +147,15 @@ const ProductionViewer: React.FC<{
         <View style={[styles.desplegable, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsStyleText')}</Text>
           <View style={styles.opciones}>
-            {ESTILOS_DE_PRODUCCION.map((clave) => {
+            {/* Se guarda el TOKEN, no el nombre (Fase 22 del motor, arreglo R13): el nombre sale al pintar. */}
+            {ESTILOS_CANONICOS.map(({ token, clave }) => {
               const nombre = t(clave);
-              const esta = estilo === nombre;
+              const esta = esElEstilo(estilo, token, t);
               return (
                 <TouchableOpacity
-                  key={clave}
+                  key={token}
                   disabled={!editable}
-                  onPress={() => { onGesto([{ op: 'change_style', target: { scope: 'production' }, style: esta ? null : nombre }]); setAbierto(null); }}
+                  onPress={() => { onGesto([{ op: 'change_style', target: { scope: 'production' }, style: esta ? null : token }]); setAbierto(null); }}
                   style={[styles.opcion, { backgroundColor: esta ? theme.colors.accent : theme.colors.surface, borderColor: esta ? theme.colors.accent : theme.colors.border }]}
                   accessibilityRole="button"
                   accessibilityState={{ selected: esta, disabled: !editable }}
@@ -295,11 +291,9 @@ const ProductionViewer: React.FC<{
                       style={[styles.plano, { borderColor: activo ? theme.colors.accent : theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as object)]}
                     >
                       <View style={[styles.miniatura, { backgroundColor: theme.colors.surface }]}>
-                        {/* Con póster, su imagen fija (Fase 16 del motor): la tira ya no carga un vídeo por plano. */}
-                        {suVideo?.poster ? (
-                          <Image source={{ uri: suVideo.poster }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })} />
-                        ) : suVideo?.url ? (
-                          <Video source={{ uri: suVideo.url }} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted accessibilityLabel={t('filmmaker.takePreviewOf', { nombre })} />
+                        {/* Con póster, su imagen fija (Fase 16); sin él, el aviso de que ya tiene vídeo, sin cargarlo (Fase 22, R10). */}
+                        {suVideo?.poster || suVideo?.url ? (
+                          <MiniaturaDeVideo video={suVideo} nombre={nombre} />
                         ) : (
                           <Ionicons name="film-outline" size={scale(18)} color={theme.colors.textSecondary} />
                         )}

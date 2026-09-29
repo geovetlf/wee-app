@@ -190,6 +190,8 @@ const ARRIBA_DEL_TECLADO = {
   'screens/SearchScreen.tsx': 'buscador en la cabecera',
   'screens/WeeBizScreen.tsx': 'buscador en la cabecera de Weë Biz',
   'screens/ChatScreen.tsx': 'pantalla sin ruta: no está enlazada en la navegación',
+  /* Fase 22 del Filmmaker Engine (2026-09-28): el filtro por nombre de lo guardado. */
+  'components/workspace/CampoDeBusqueda.tsx': 'filtro de una línea ARRIBA de la lista de lo guardado, dentro de una HojaInferior, que sube lo que mide el teclado',
 };
 
 /*

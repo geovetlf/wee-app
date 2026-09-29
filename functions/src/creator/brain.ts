@@ -741,8 +741,9 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * editor de su producción.
        */
       const separada = produccion ? separarPropuesta(parsed.text) : undefined;
+      /* La semilla de los ids de lo nuevo es el mensaje: repetirlo da la misma propuesta, con los mismos ids (Fase 22). */
       const propuesta: LecturaDeLaPropuesta | undefined = !produccion || !separada ? undefined
-        : separada.bloque !== undefined ? leerPropuesta(separada.bloque, produccion)
+        : separada.bloque !== undefined ? leerPropuesta(separada.bloque, produccion, messageId)
           : separada.cortado ? { ok: false, motivo: 'unreadable' } : undefined;
       if (separada) parsed.text = separada.texto;
       const suggestedExperience = produccion ? undefined : parsed.suggestedExperience || guessExperience(message);
@@ -756,7 +757,13 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * se decidió entonces y no mueve el bloque. Y `spendCredits` lo es por
        * `requestId`, que es el mismo mensaje. Las dos puertas cierran el doble cobro.
        */
-      if (!webSearch) {
+      /*
+       * FASE 22 DEL MOTOR (arreglo R1 de la auditoría, decisión del usuario del 2026-09-28): una respuesta que intentó
+       * proponer cambios y no dejó nada aplicable NO cuenta en el bloque —y, por tanto, nunca lo cierra ni se cobra—.
+       * La persona pidió un cambio y no lo tiene: no se le cobra por eso. Solo con una producción abierta.
+       */
+      const sinPropuestaAplicable = !!produccion && !!propuesta && !propuesta.ok;
+      if (!webSearch && !sinPropuestaAplicable) {
         const consumo = await contarRespuesta(uid, messageId);
         if (consumo.cobrada) {
           try {

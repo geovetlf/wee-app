@@ -14,10 +14,10 @@ import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 import {
   actualizarElemento,
   archivarElemento,
-  candidatosDeLaCuenta,
   crearElemento,
   leerElemento,
   mundoDeContextoDeWee,
+  paginaDeElementosDeLaCuenta,
 } from './index';
 
 /**
@@ -169,14 +169,24 @@ export const elements = onCall({ region: REGION, timeoutSeconds: 30, memory: '25
 
   /*
    * FILMMAKER ENGINE · FASE 20 · LOS DE UNA CLASE, PARA VINCULARLOS a una ficha de una producción: los vivos de la
-   * cuenta, de ese tipo y con tope, por el runtime de siempre (`candidatosDeLaCuenta`), y de cada uno solo su nombre,
+   * cuenta, de ese tipo, por páginas (Fase 22: `paginaDeElementosDeLaCuenta`), y de cada uno solo su nombre,
    * su clase y su versión —ni sus materiales—. El vínculo lo vuelve a comprobar `productions` al guardarlo.
    */
   if (op === 'list') {
     const type = data.type;
     if (!esTipoDeElemento(type)) throw new HttpsError('invalid-argument', 'Falta la clase.');
-    const lista = await candidatosDeLaCuenta({ accountId, type: type as ElementType }, { db });
-    return { elements: lista.map((e) => ({ elementId: e.elementId, type: e.type, name: e.name, version: e.version })) };
+    /*
+     * Fase 22 (arreglo R7 de la auditoría): por páginas y en orden estable, sin el tope de 8 del contexto visual de
+     * Weë Brain (`candidatosDeLaCuenta`, que sigue igual para lo suyo). `limit` hasta 50; `after`, el cursor que
+     * devolvió la página anterior.
+     */
+    const limit = typeof data.limit === 'number' && Number.isFinite(data.limit) ? data.limit : undefined;
+    const after = typeof data.after === 'string' ? data.after : undefined;
+    const pagina = await paginaDeElementosDeLaCuenta({ accountId, type: type as ElementType, ...(limit !== undefined ? { limit } : {}), ...(after ? { after } : {}) }, { db });
+    return {
+      elements: pagina.elementos.map((e) => ({ elementId: e.elementId, type: e.type, name: e.name, version: e.version })),
+      ...(pagina.siguiente ? { next: pagina.siguiente } : {}),
+    };
   }
 
   if (op === 'context') {

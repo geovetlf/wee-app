@@ -1,6 +1,7 @@
 import { Firestore } from 'firebase-admin/firestore';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 import type { FilmmakerProduction, ProductionScene, ProductionShot, DialogueLine } from '../filmmaker/modelo';
+import { derivarId, idsDeLaProduccion } from '../filmmaker/modelo';
 import { FilmmakerOperation, OPERACIONES, PendingRegeneration, aplicarOperaciones } from '../filmmaker/operaciones';
 import { recomendar } from '../filmmaker/recomendaciones';
 import { leerProduccion } from '../productions/index';
@@ -183,6 +184,11 @@ export interface PropuestaDeCambios {
   /** La revisión sobre la que se comprobó. La app la aplica con esta: si cambió, el CAS lo dice. */
   readonly baseRevision: number;
   readonly operations: readonly FilmmakerOperation[];
+  /**
+   * El porqué de cada operación, en su mismo orden, tal como lo dijo Weë Brain (una frase, limpia y acotada), o
+   * `null` si no lo dijo. Es su texto: la app lo enseña tal cual junto a cada cambio (Fase 22, arreglo R1).
+   */
+  readonly reasons: readonly (string | null)[];
   /** Cuántas cambian algo. */
   readonly applied: number;
   /** Lo que quedaría pendiente de rehacer. Un cálculo, no una orden. */
@@ -196,14 +202,129 @@ export type LecturaDeLaPropuesta =
 
 const esPlano = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
+/* ── Lo nuevo, con su id (Fase 22 del motor, arreglo R1 de la auditoría) ─────── */
+
+/**
+ * LO QUE UNA PROPUESTA NO PUEDE TOCAR: los vínculos a lo que la cuenta tiene guardado (`element`) y el material
+ * (`assetId`). Los elige la persona, desde la app, y el servidor los vuelve a comprobar al guardar; que los
+ * escriba un modelo sería dejarle nombrar cosas que no ha visto.
+ */
+const CAMPOS_VEDADOS: readonly string[] = ['element', 'assetId'];
+/** Lo más que se guarda del porqué de un cambio. */
+const MAX_RAZON = 200;
+/** Cómo empieza el id de cada cosa nueva: los mismos prefijos que usa la app al crearlas. */
+const PREFIJOS = Object.freeze({
+  scene: 'sc', shot: 'sh', line: 'ln', character: 'ch', location: 'lc', object: 'ob', reference: 'rf', cue: 'sd',
+});
+type ClaseNueva = keyof typeof PREFIJOS;
+
+/**
+ * UNA HUELLA CORTA Y DETERMINISTA DE LA SEMILLA (FNV-1a de 32 bits, dos pasadas con bases distintas). No es
+ * criptografía ni lo necesita: solo da a lo nuevo un nombre estable —la misma semilla, la misma raíz—, y si dos
+ * raíces coincidieran, `derivarId` ya evita el choque con lo que existe.
+ */
+const raizDe = (semilla: string): string => {
+  const pasada = (base: number): string => {
+    let h = base >>> 0;
+    for (let i = 0; i < semilla.length; i++) {
+      h ^= semilla.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  };
+  return (pasada(0x811c9dc5) + pasada(0x050c5d1f)).slice(0, 10);
+};
+
+/** Un marcador para referirse a algo nuevo dentro del mismo bloque: `@escena1`. Nunca es un id válido de F1-A. */
+export const esMarcador = (v: unknown): v is string => typeof v === 'string' && /^@[A-Za-z0-9_-]{1,40}$/.test(v);
+
+/** ¿Lleva, a cualquier profundidad, alguno de los campos vedados? */
+const llevaVedados = (v: unknown): boolean => {
+  if (Array.isArray(v)) return v.some(llevaVedados);
+  if (!esPlano(v)) return false;
+  return Object.entries(v).some(([k, x]) => CAMPOS_VEDADOS.includes(k) || llevaVedados(x));
+};
+
+/** Quita el prompt avanzado de los planos nuevos: es el texto de la persona y no lo escribe Weë Brain. */
+const sinAvanzado = (plano: unknown): void => {
+  if (esPlano(plano)) delete plano.advanced;
+};
+
+/** Sustituye, a cualquier profundidad, cada marcador conocido por su id. */
+const sustituir = (v: unknown, marcadores: Readonly<Record<string, string>>): unknown => {
+  if (typeof v === 'string') return esMarcador(v) ? marcadores[v] ?? v : v;
+  if (Array.isArray(v)) return v.map((x) => sustituir(x, marcadores));
+  if (esPlano(v)) return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, sustituir(x, marcadores)]));
+  return v;
+};
+
+/**
+ * LOS IDS DE LO NUEVO, PUESTOS POR EL SERVIDOR. F1-A exige un id en cada escena, plano, línea, ficha, referencia y
+ * sonido, y Weë Brain no puede inventarlos sin chocar con los que ya hay. Lo nuevo llega sin id, o con un marcador
+ * (`@nombre`) que otras operaciones del mismo bloque usan para referirse a ello. Aquí cada cosa nueva recibe un id
+ * DERIVADO —de la semilla (el mensaje) y de su posición, sin azar ni reloj, así que repetir el mensaje da los
+ * mismos—, que no choca con ninguno de la producción ni de la propia propuesta; y cada marcador se sustituye por el
+ * suyo en todo el bloque. Un id que ya venía escrito se respeta tal cual: si choca, F1-A lo dirá.
+ */
+export const ponerIdsNuevos = (operaciones: readonly Record<string, unknown>[], prod: FilmmakerProduction, semilla: string): Record<string, unknown>[] => {
+  const ocupados = idsDeLaProduccion(prod);
+  /* Un marcador empieza por @: nunca coincide con nada heredado de un objeto. */
+  const marcadores: Record<string, string> = {};
+  const raiz = raizDe(semilla);
+  let n = 0;
+  const idPara = (clase: ClaseNueva, actual: unknown): unknown => {
+    if (actual !== undefined && !esMarcador(actual)) return actual;
+    const candidato = `${PREFIJOS[clase]}_${raiz}_${++n}`;
+    const id = ocupados.has(candidato) ? derivarId(candidato, ocupados) : candidato;
+    ocupados.add(id);
+    if (esMarcador(actual) && !(actual in marcadores)) marcadores[actual] = id;
+    return id;
+  };
+  const conId = (clase: ClaseNueva, cosa: unknown): void => {
+    if (esPlano(cosa)) cosa.id = idPara(clase, cosa.id);
+  };
+  const lineas = (dueño: unknown): void => {
+    if (esPlano(dueño) && Array.isArray(dueño.dialogue)) dueño.dialogue.forEach((l) => conId('line', l));
+  };
+  const plano = (p: unknown): void => { sinAvanzado(p); conId('shot', p); lineas(p); };
+
+  const copia = operaciones.map((o) => JSON.parse(JSON.stringify(o)) as Record<string, unknown>);
+  for (const op of copia) {
+    switch (op.op) {
+      case 'add_scene':
+        if (esPlano(op.scene)) {
+          conId('scene', op.scene);
+          lineas(op.scene);
+          if (Array.isArray(op.scene.shots)) op.scene.shots.forEach(plano);
+        }
+        break;
+      case 'add_shot': plano(op.shot); break;
+      case 'add_dialogue': conId('line', op.line); break;
+      case 'add_character': conId('character', op.character); break;
+      case 'add_location': conId('location', op.location); break;
+      case 'add_object': conId('object', op.object); break;
+      case 'add_reference': conId('reference', op.reference); break;
+      case 'modify_audio':
+        if (esPlano(op.change) && op.change.action === 'upsert') conId('cue', op.change.cue);
+        break;
+      default: break;
+    }
+  }
+  return copia.map((o) => sustituir(o, marcadores) as Record<string, unknown>);
+};
+
 /**
  * COMPROBAR LO QUE PROPONE WEË BRAIN. Lo que escribe un modelo es de fuera y se
  * trata así: JSON o nada, doce como mucho, cada una con un nombre del lenguaje, y
  * todas juntas aplicadas EN MEMORIA sobre la producción guardada con la misma
  * función que usará `productions` al aplicarlas de verdad. Si una falla, no se
  * propone ninguna: una propuesta a medias sería decir algo que no se va a hacer.
+ *
+ * Desde la Fase 22 (arreglo R1 de la auditoría): cada operación puede traer su porqué (`why`), que se separa y se
+ * devuelve aparte; lo nuevo recibe su id aquí (`ponerIdsNuevos`, con la `semilla` del mensaje); y una propuesta que
+ * toque vínculos a lo guardado o material no se da por buena.
  */
-export const leerPropuesta = (bloque: string, p: ProduccionParaBrain): LecturaDeLaPropuesta => {
+export const leerPropuesta = (bloque: string, p: ProduccionParaBrain, semilla = `${p.productionId}:${p.revision}`): LecturaDeLaPropuesta => {
   if (bloque.length > MAX_BLOQUE) return { ok: false, motivo: 'unreadable' };
   let crudo: unknown;
   try {
@@ -219,7 +340,16 @@ export const leerPropuesta = (bloque: string, p: ProduccionParaBrain): LecturaDe
     return { ok: false, motivo: 'invalid', problemas: ['operation_invalid'] };
   }
   /* Una copia limpia: lo que se comprueba es lo que se devuelve, y nada de lo que traía el texto queda colgando. */
-  const operaciones = JSON.parse(JSON.stringify(lista)) as FilmmakerOperation[];
+  const crudas = JSON.parse(JSON.stringify(lista)) as Record<string, unknown>[];
+  /* El porqué de cada una, aparte: F1-A no lo conoce y no viaja en la operación. */
+  const reasons = crudas.map((o) => {
+    const razon = typeof o.why === 'string' ? limpio(o.why, MAX_RAZON) : typeof o.reason === 'string' ? limpio(o.reason, MAX_RAZON) : '';
+    delete o.why;
+    delete o.reason;
+    return razon || null;
+  });
+  if (llevaVedados(crudas)) return { ok: false, motivo: 'invalid', problemas: ['field_not_allowed'] };
+  const operaciones = ponerIdsNuevos(crudas, p.production, semilla) as unknown as FilmmakerOperation[];
   const r = aplicarOperaciones(p.production, operaciones);
   if (!r.ok) return { ok: false, motivo: 'invalid', problemas: [...new Set(r.problems.map((x) => x.code))].slice(0, 5) };
   if (r.applied === 0) return { ok: false, motivo: 'no_changes' };
@@ -229,6 +359,7 @@ export const leerPropuesta = (bloque: string, p: ProduccionParaBrain): LecturaDe
       productionId: p.productionId,
       baseRevision: p.revision,
       operations: operaciones,
+      reasons,
       applied: r.applied,
       pending: r.pending,
       timelineChanged: r.timelineChanged,

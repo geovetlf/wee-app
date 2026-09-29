@@ -570,8 +570,15 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * guardado y Weë Brain en el editor (`filmmaker.wsAdvanced*`, `wsVersion*`,
    * `wsElement*`, `wsStructureLinkable`, `wsBrain*`), en los once diccionarios a la vez.
    * No sale ninguna.
+   * 3 178 → 3 270 con la Fase 22 (los arreglos de la auditoría final, 2026-09-28): entran las
+   * noventa y dos claves de lo que propone Weë Brain dicho en frases (`filmmaker.op*` y
+   * `transition*`), su precio y su porqué (`wsBrain*`), la producción ocupada (`busy*`,
+   * `wsBusy`), quién dice una línea (`wsWhoSaysIt`, `wsPickSpeaker`, `wsNoSpeakers`,
+   * `wsSpeakerNotInShot`), lo guardado por páginas (`wsElementLoadMore`, `wsElementSearch*`),
+   * la miniatura sin póster (`videoReadyNoPoster`) y la duración redondeada
+   * (`takeDurationRounded`), en los once diccionarios a la vez. No sale ninguna.
    */
-  const CLAVES_PT = 3178;
+  const CLAVES_PT = 3270;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

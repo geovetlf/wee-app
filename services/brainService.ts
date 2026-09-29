@@ -1,7 +1,7 @@
 import { httpsCallable } from 'firebase/functions';
 import { collection, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db, functions } from '../config/firebase';
-import type { FilmmakerOperation } from './filmmaker/dominio';
+import type { FilmmakerOperation, PendingRegeneration } from './filmmaker/dominio';
 
 /**
  * Weë Brain en la app: envía mensajes (brainChat) y escucha la conversación en
@@ -60,7 +60,11 @@ export interface PropuestaDeWeeBrain {
   productionId: string;
   baseRevision: number;
   operations: FilmmakerOperation[];
+  /** El porqué de cada operación, en su orden, con las palabras de Weë Brain; `null` si no lo dijo (Fase 22). */
+  reasons?: (string | null)[];
   applied: number;
+  /** Lo que quedaría por rehacer si se aplica: un cálculo del servidor, no una orden (Fase 22 lo enseña). */
+  pending?: PendingRegeneration;
   timelineChanged: boolean;
 }
 
@@ -78,6 +82,8 @@ export interface BrainReply {
   proposal?: PropuestaDeWeeBrain | null;
   /** Y si intentó proponer y no salió nada aplicable, por qué. */
   proposalIssue?: string | null;
+  /** Los códigos de F1-A de por qué no era aplicable, si los hubo (una respuesta así no cuenta en el bloque). */
+  proposalProblems?: string[];
 }
 
 /** Id único por mensaje: idempotencia del cobro (reenviar no cobra dos veces). */
@@ -99,7 +105,11 @@ export interface BrainQuote {
 
 export const brainService = {
   /** Precio del próximo mensaje, antes de enviarlo. No cobra ni escribe nada. */
-  quote: async (input: { chatId?: string; message: string; imageUrl?: string; webSearch?: boolean; locale?: string }): Promise<BrainQuote> => {
+  quote: async (input: {
+    chatId?: string; message: string; imageUrl?: string; webSearch?: boolean; locale?: string;
+    /** Filmmaker Engine, Fase 22: con la producción abierta, contarla también cuenta en el precio (el servidor ya la leía). */
+    produccion?: { productionId: string; revision: number };
+  }): Promise<BrainQuote> => {
     const fn = httpsCallable<typeof input, BrainQuote>(functions, 'brainQuote', { timeout: 30_000 });
     const result = await fn(input);
     return result.data;

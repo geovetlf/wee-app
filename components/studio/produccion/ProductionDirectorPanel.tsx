@@ -19,6 +19,7 @@ import type {
   CreativeParameterPath, FilmmakerOperation, FilmmakerProduction, PendingRegeneration, Recommendation, ValidationResult,
 } from '../../../services/filmmaker/dominio';
 import { fraseDelProblema } from '../../../utils/mensajesDeFilmmaker';
+import { nombreDelEstilo } from '../../../constants/filmmaker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -64,7 +65,8 @@ const ProductionDirectorPanel: React.FC<{
       return clave ? t(clave) : null;
     })
     .filter((x): x is string => !!x);
-  const enPalabras = [direccion.visualStyle, direccion.mood, direccion.tone].filter((x): x is string => !!x);
+  /* El estilo, con su nombre si es un token (Fase 22 del motor, arreglo R13); lo escrito por alguien, tal cual. */
+  const enPalabras = [direccion.visualStyle ? nombreDelEstilo(direccion.visualStyle, t) : undefined, direccion.mood, direccion.tone].filter((x): x is string => !!x);
   const planos = produccion.scenes.reduce((n, s) => n + s.shots.length, 0);
   const problemas = (lista?.problems ?? []).filter((p) => p.severity !== 'info');
   const nombreDe = (id: string): string | null => {

@@ -23,7 +23,7 @@ export const useProduccion = (productionId: string) => {
     void controlador.cargar();
     return () => controlador.cerrar();
   }, [controlador]);
-  const { carga, falloDeCarga, estado } = useSyncExternalStore(controlador.suscribir, controlador.leer, controlador.leer);
+  const { carga, falloDeCarga, estado, ocupado } = useSyncExternalStore(controlador.suscribir, controlador.leer, controlador.leer);
   const vista = estado.vista;
   const derivado = useMemo(() => (vista
     ? {
@@ -40,10 +40,10 @@ export const useProduccion = (productionId: string) => {
    * que el servidor tiene, no de lo que se ve.
    */
   const duplicar = useCallback(async (title: string) => {
-    if (estado.enVuelo || estado.pendientes.length) return null;
+    if (estado.enVuelo || estado.pendientes.length || ocupado) return null;
     return filmmakerService.duplicateProduction({ productionId, title });
-  }, [estado.enVuelo, estado.pendientes.length, productionId]);
-  return { controlador, carga, falloDeCarga, estado, derivado, duplicar };
+  }, [estado.enVuelo, estado.pendientes.length, ocupado, productionId]);
+  return { controlador, carga, falloDeCarga, estado, ocupado, derivado, duplicar };
 };
 
 /** Los ids de las escenas y los planos nuevos se ponen en el cliente: así un gesto repetido tras un conflicto es el mismo. */

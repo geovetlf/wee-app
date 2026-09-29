@@ -471,8 +471,12 @@ const FS = cargar('services/filmmakerService.ts');
   const { elementsService } = cargar('services/elementsService.ts');
   respuestaDe = async (nombre, datos) => ({ data: nombre === 'elements' && datos.op === 'list' ? { elements: [{ elementId: 'el_luna_0001', type: 'character', name: 'Luna', version: 3 }, { elementId: 'mal', type: 'character' }] } : {} });
   const e = await elementsService.listar('character');
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (auditoría final del 2026-09-28, arreglo R7): la lista va por páginas,
+   * así que la petición lleva también cuántos quiere (`limit`, 20). Lo demás, igual.
+   */
   check('S3) lo guardado de una clase, por `elements`: lo que no tiene forma no llega', e.ok && e.elementos.length === 1 && e.elementos[0].name === 'Luna'
-    && llamadas.at(-1).nombre === 'elements' && JSON.stringify(llamadas.at(-1).datos) === JSON.stringify({ op: 'list', type: 'character' }));
+    && llamadas.at(-1).nombre === 'elements' && JSON.stringify(llamadas.at(-1).datos) === JSON.stringify({ op: 'list', type: 'character', limit: 20 }));
   respuestaDe = async () => { throw new Error('sin red'); };
   check('S4) sin red, no hay ninguno: quien pinta lo dice', (await elementsService.listar('character')).ok === false);
   const { brainService } = cargar('services/brainService.ts');
@@ -541,8 +545,10 @@ const RESP = (extra = {}) => ({ chatId: 'chat_1', messageId: 'm', text: 'Hecho.'
 {
   const m = miniReact();
   const alBrain = []; let contestar = null;
+  /* Fase 22 del motor (R1): el hook dice también cuánto falta si no alcanzan los Credits, con la regla de siempre. */
   const cargarH = crearCargador({ dobles: {
     react: m.react, '../contexts/IdiomaContext': idioma,
+    '../services/creditsService': { creditsShortfall: () => null },
     '../services/brainService': {
       brainService: { send: (d) => { alBrain.push(d); return new Promise((res, rej) => { contestar = { res, rej }; }); } },
       newMessageId: () => `m_prueba_${alBrain.length + 1}`,
@@ -597,7 +603,7 @@ const RESP = (extra = {}) => ({ chatId: 'chat_1', messageId: 'm', text: 'Hecho.'
   check('H10) y empieza otra conversación, con la revisión 0 como cualquier otra', !('chatId' in alBrain.at(-1)) && JSON.stringify(alBrain.at(-1).produccion) === JSON.stringify({ productionId: pid(2), revision: 0 }));
   const cuantos = alBrain.length;
   const m2 = miniReact();
-  const cargarH2 = crearCargador({ dobles: { react: m2.react, '../contexts/IdiomaContext': idioma, '../services/brainService': { brainService: { send: (d) => { alBrain.push(d); return new Promise(() => {}); } }, newMessageId: () => 'm_x' } } });
+  const cargarH2 = crearCargador({ dobles: { react: m2.react, '../contexts/IdiomaContext': idioma, '../services/creditsService': { creditsShortfall: () => null }, '../services/brainService': { brainService: { send: (d) => { alBrain.push(d); return new Promise(() => {}); } }, newMessageId: () => 'm_x' } } });
   const H2 = cargarH2('hooks/useWeeBrainDelEditor.ts').useWeeBrainDelEditor;
   m2.pasar(H2, null, null).enviar('Hola');
   m2.pasar(H2, pid(1), null).enviar('Hola');
@@ -635,7 +641,8 @@ const RESP = (extra = {}) => ({ chatId: 'chat_1', messageId: 'm', text: 'Hecho.'
 {
   const m = miniReact();
   const pedidos = []; const pendientes = [];
-  const cargarH = crearCargador({ dobles: { react: m.react, '../services/elementsService': { elementsService: { listar: (tipo) => { pedidos.push(tipo); return new Promise((res) => pendientes.push(res)); } } } } });
+  /* Fase 22 del motor (R7): el hook pide por páginas (`pagina`); la primera de cada clase, a la vez, como antes. */
+  const cargarH = crearCargador({ dobles: { react: m.react, '../services/elementsService': { elementsService: { pagina: (tipo) => { pedidos.push(tipo); return new Promise((res) => pendientes.push(res)); } } } } });
   const { useElementosParaVincular } = cargarH('hooks/useElementosParaVincular.ts');
   const EL = (elementId, type, name, version = 1) => ({ elementId, type, name, version });
   let e = m.pasar(useElementosParaVincular);
@@ -647,7 +654,12 @@ const RESP = (extra = {}) => ({ chatId: 'chat_1', messageId: 'm', text: 'Hecho.'
   pendientes[1]({ ok: true, elementos: [EL('el_azotea_0001', 'scene', 'Azotea', 2)] });
   await calma();
   e = m.pasar(useElementosParaVincular);
-  check('H18) las clases, juntas y en orden de nombre', e.carga === 'listos' && e.lista.map((x) => x.name).join() === 'Azotea,Zoco');
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (auditoría final del 2026-09-28, arreglo R7): el orden es ESTABLE
+   * —clase a clase, en el orden en que se piden, y dentro de cada una el del servidor— y ya no se reordena por nombre,
+   * porque con páginas lo que llega después saltaría al medio de la lista.
+   */
+  check('H18) las clases, juntas, clase a clase y en el orden del servidor', e.carga === 'listos' && e.lista.map((x) => x.name).join() === 'Zoco,Azotea' && e.hayMas === false);
   e.cargar(['character']);
   const vieja = pendientes.at(-1);
   e.cargar(['place']);
@@ -780,7 +792,20 @@ console.log('\n── U · En pantalla: el prompt avanzado, las versiones, los v
   /* Weë Brain en el editor. */
   const Caja = cargar('components/studio/produccion/ProductionBrainBox.tsx').default;
   const enviados = []; let descartes = 0;
-  const brain = (extra) => ({ fase: 'quieto', texto: null, propuesta: null, sinPropuesta: false, bloque: null, enviar: (m) => enviados.push(m), descartar: () => { descartes++; }, ...extra });
+  /*
+   * Fase 22 del motor (auditoría final del 2026-09-28, arreglo R1): Weë Brain en el editor lleva también el precio del
+   * próximo mensaje (sin él no se envía), lo que falta si no alcanzan los Credits y el id con que se aplica su
+   * propuesta. Aquí, un precio ya calculado —el de una respuesta que no cobra— para que la caja se pueda usar.
+   */
+  const PRECIO = { service: 'ai_brain', label: 'Respuesta de Weë Brain', credits: 0, usd: 0.0004, creditsPerUsd: 100 };
+  const brain = (extra) => ({
+    fase: 'quieto', texto: null, propuesta: null, idDeLaPropuesta: 'wb_m_prueba_1', sinPropuesta: false, bloque: null,
+    cotizacion: { estado: 'lista', precio: PRECIO }, faltan: null, cotizar() {},
+    enviar: (m) => enviados.push(m), descartar: () => { descartes++; }, ...extra,
+  });
+  /* Aplicar ya no es un gesto (R1): va por `onAplicarPropuesta`, y aquí se anota cada llamada. */
+  const aplicadas = [];
+  const alAplicar = async (ops, baseRevision, operationId) => { aplicadas.push({ ops, baseRevision, operationId }); return { ok: true, applied: ops.length, alreadyApplied: false }; };
   const PROPUESTA = { productionId: pid(1), baseRevision: 3, operations: [{ op: 'rename_production', title: 'Otra' }, { op: 'change_weather', sceneId: 'sc-0001', weather: 'fog' }], applied: 2, timelineChanged: false };
   recordar(true);
   const b0 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain(), revision: 3 }) }));
@@ -795,22 +820,31 @@ console.log('\n── U · En pantalla: el prompt avanzado, las versiones, los v
   const b2 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'error' }), revision: 3 }) }));
   check('U15) mientras piensa se dice —y la caja espera—; si no se pudo, también', /Weë Brain está pensando…/.test(b1.texto) && b1.cajas[0].ocupado === true && /No se pudo hablar con Weë Brain/.test(b2.texto));
   gestos.length = 0; avisos.length = 0;
-  const b3 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', texto: 'Te propongo niebla y otro título.', propuesta: PROPUESTA, bloque: { usadas: 1, total: 12, restantes: 11 } }), revision: 3 }) }));
+  const b3 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', texto: 'Te propongo niebla y otro título.', propuesta: PROPUESTA, bloque: { usadas: 1, total: 12, restantes: 11 } }), revision: 3, onAplicarPropuesta: alAplicar }) }));
   check('U16) su respuesta, tal cual; cuántos cambios propone; y lo que queda del bloque, con la frase de siempre',
     /Te propongo niebla y otro título\./.test(b3.texto) && /Cambios que propone: 2/.test(b3.texto) && /Te quedan 11 de 12 respuestas/.test(b3.texto) && !boton(b3, 'Aplicar los cambios').apagado);
   boton(b3, 'Aplicar los cambios').tocar();
-  check('U17) aplicarlos es UN gesto con sus operaciones, por el controlador de siempre; se dice y la propuesta se va',
-    gestos.length === 1 && JSON.stringify(gestos[0]) === JSON.stringify(PROPUESTA.operations) && avisos.at(-1)?.[0] === 'Cambios aplicados.' && descartes === 1);
-  const b4 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', propuesta: PROPUESTA }), revision: 4 }) }));
-  const b5 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', propuesta: PROPUESTA }), revision: 3, hayCambios: true }) }));
+  await calma();
+  /*
+   * Reanclada por nombre en la Fase 22 del motor (arreglo R1): aplicar una propuesta ya NO es un gesto —un gesto se
+   * agrupa y, tras un conflicto, se vuelve a aplicar encima de otra revisión—. Va sola por `onAplicarPropuesta`, con
+   * sus operaciones, la revisión en que Weë Brain las comprobó y el id de la propuesta; se dice y la propuesta se va.
+   */
+  check('U17) aplicarlos va por su propio camino, con sus operaciones, su revisión y su id —no como un gesto—; se dice y la propuesta se va',
+    gestos.length === 0 && aplicadas.length === 1 && JSON.stringify(aplicadas[0]) === JSON.stringify({ ops: PROPUESTA.operations, baseRevision: 3, operationId: 'wb_m_prueba_1' })
+    && avisos.at(-1)?.[0] === 'Cambios aplicados.' && descartes === 1);
+  const b4 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', propuesta: PROPUESTA }), revision: 4, onAplicarPropuesta: alAplicar }) }));
+  const b5 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', propuesta: PROPUESTA }), revision: 3, hayCambios: true, onAplicarPropuesta: alAplicar }) }));
   const antesDeTocar = gestos.length;
+  const aplicadasAntes = aplicadas.length;
   boton(b4, 'Aplicar los cambios').tocar();
+  await calma();
   check('U18) si la producción cambió desde que la propuso, no se aplica: se dice y se pide otra vez; con cambios sin guardar, primero se guardan',
-    boton(b4, 'Aplicar los cambios').apagado && /La producción cambió desde que Weë Brain lo propuso/.test(b4.texto) && gestos.length === antesDeTocar
+    boton(b4, 'Aplicar los cambios').apagado && /La producción cambió desde que Weë Brain lo propuso/.test(b4.texto) && gestos.length === antesDeTocar && aplicadas.length === aplicadasAntes
     && boton(b5, 'Aplicar los cambios').apagado && /Espera a que se guarden tus cambios\./.test(b5.texto));
   boton(b3, 'Descartar').tocar();
   const b6 = dibujar(hc(Caja, { espacio: espacioCon({ brain: brain({ fase: 'contesto', texto: 'No sé cómo hacer eso.', sinPropuesta: true }), revision: 3 }) }));
-  check('U19) descartar la quita sin tocar nada; y si intentó proponer y no salió nada aplicable, se dice', descartes === 2 && gestos.length === antesDeTocar && /Esta vez Weë Brain no propuso cambios que se puedan aplicar\./.test(b6.texto));
+  check('U19) descartar la quita sin tocar nada; y si intentó proponer y no salió nada aplicable, se dice', descartes === 2 && gestos.length === antesDeTocar && aplicadas.length === aplicadasAntes && /Esta vez Weë Brain no propuso cambios que se puedan aplicar\./.test(b6.texto));
   const b7 = dibujar(hc(Caja, { espacio: espacioCon() }));
   check('U20) sin Weë Brain en el editor, la caja no está', b7.html === '');
   const TABS = sinComentarios(leer('components/studio/produccion/ProductionDirectorTabs.tsx'));

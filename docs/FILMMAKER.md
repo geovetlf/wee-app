@@ -1401,13 +1401,31 @@ Pruebas: `functions/test/filmmaker-conectar.test.mjs` (en la cadena).
 Estado al cierre (2026-09-28): todo en local, en la rama `filmmaker/core`, sin push, sin merge y sin desplegar;
 `main`, sin tocar.
 
-**Hecho, y conectado en la app**: el lenguaje completo (56 operaciones); el estado y la traza de cada toma y de la
-producción entera; la reserva de una toma que se quedó sin trabajo, devuelta; el requisito de cada plano, calculado
-por el servidor; varios planos a la vez; el montaje como manifiesto y su render con FFmpeg propio (gratis, cinco al
-día por cuenta); los pósters; Weë Brain con la producción abierta, dentro del editor; los vínculos a Elements,
-verificados y elegibles desde la hoja de personajes y lugares; las versiones y volver a una; el prompt avanzado, usado
-al generar y visible a petición; publicar el montaje como Weël o en el Wäll; detener una toma; un solo reproductor; y
-el vocabulario de cámara v2.
+*Corregido en la Fase 22 (arreglo R14 de la auditoría final, 2026-09-28): la versión anterior de este párrafo daba
+por «conectado en la app» lo que solo está en el servidor, o lo que en la app no se alcanza. Lo exacto es esto.*
+
+**En la app y utilizable** (con la puerta abierta para la cuenta, ver abajo): la toma de UN plano —su precio, sus
+calidades, su estado, detenerla y verla en el reproductor—; las versiones y volver a una; Weë Brain dentro del editor;
+el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **29 de las 56 operaciones** de F1-A con un
+control propio: la estructura de escenas y planos, la duración, la cámara, el movimiento, la luz, el estilo, el clima,
+el momento del día, el texto, añadir y quitar diálogo, el sonido, el formato y la entrega. Vincular una ficha a lo
+guardado también está, pero solo sirve si la producción YA tiene fichas, y la app todavía no deja crearlas.
+
+**Hecho en el servidor y todavía sin UX**: varios planos a la vez (Fase 6); la traza de cada toma (Fase 2); y las
+**27 operaciones sin control propio** —crear, editar y quitar personajes, lugares, objetos y referencias; la
+intención; la dirección creativa; el ánimo; las transiciones; la continuidad; el estado de un personaje; el sujeto;
+el lugar de una escena; `update_scene`, `update_shot`, `move_shot`, `change_dialogue`, `change_generation`,
+`change_edit_plan`, `rename_production`, `replace_character` y `replace_reference`—. De ellas, `change_location` y
+`set_character_state` solo llegan aceptando una recomendación, y el resto, solo si Weë Brain las propone.
+
+**Hecho, conectado y detrás de una puerta CERRADA por defecto** (se abre por cuenta en `aiSettings`; en producción
+no hay ninguna abierta): la toma (`aiSettings/runtime`); y el render del montaje con FFmpeg propio, los pósters y
+publicar el montaje como Weël o en el Wäll (`aiSettings/render`).
+
+**Del motor, sin interfaz propia porque no la necesita**: la reserva de una toma que se quedó sin trabajo, devuelta;
+el requisito de cada plano, calculado por el servidor; los vínculos a Elements, verificados al guardar; el prompt
+avanzado, usado al generar; y el vocabulario de cámara v2 (sus encuadres y movimientos ya se eligen; la óptica y la
+composición todavía no tienen control).
 
 **Preparado y CERRADO a propósito**, cada uno detrás de su puerta en `aiSettings`, cerrada por defecto y que se abre
 por cuenta:
@@ -1428,6 +1446,65 @@ por cuenta:
 | Editar el prompt avanzado | autorizar el cambio en el lenguaje de F1-A: `update_shot` contesta `not_editable_yet` |
 | Desplegar | la orden del usuario: Functions, reglas, índices y la web. Nada de esto está en producción |
 
+### Fase 22 · Los arreglos de la auditoría final (fase A del encargo del 2026-09-28)
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fase A): R1, R6, R7, R10, R12, R13, R14, R16 y R17 de la
+auditoría final, antes de construir nada nuevo. Todo en local, sin push, sin merge y sin desplegar.
+
+- **R1 · Las propuestas de Weë Brain, aplicables y dichas.** El servidor pone el id de lo NUEVO que propone Weë Brain
+  (`ponerIdsNuevos` en `creator/produccionEnBrain.ts`): derivado de la semilla —el mensaje— y de su posición, con el
+  prefijo de su clase (`sc_`, `sh_`, `ln_`, `ch_`, `lc_`, `ob_`, `rf_`, `sd_`), sin chocar con nada (`derivarId`); lo
+  nuevo que otra operación del mismo bloque necesita nombrar lleva un marcador (`@escena1`) que se sustituye en todo el
+  bloque. Cada operación puede traer su porqué (`why`), que viaja aparte (`reasons`) y F1-A nunca ve. Una propuesta que
+  toque vínculos (`element`) o material (`assetId`) no se da por buena, y el prompt avanzado de un plano nuevo se quita:
+  eso lo elige la persona. **Una respuesta cuya propuesta no se puede aplicar no cuenta en el bloque de doce**, así que
+  nunca se cobra (decisión del encargo: «no cobrar por una propuesta que no sea aplicable»). Weë Brain aprende a crear
+  el mundo de la producción —personajes, lugares, objetos, quién sale en cada escena y plano, la dirección y la
+  intención—, siempre con operaciones de F1-A. En la app, la caja enseña el PRECIO antes de enviar (el de siempre de Weë
+  Brain, con la producción contada; sin precio no se envía), dos atajos que solo RELLENAN la caja («Proponer escenas»,
+  «Revisar la producción»), cada cambio en una frase —qué, dónde, lo que trae y por qué— (`utils/describirOperacion.ts`,
+  una clave por operación en `CLAVE_DE_OPERACION`), que aplicarla no cuesta Credits y cuántos planos dejaría por
+  rehacer. Aplicar ya NO es un gesto: `controlador.aplicarPropuesta` la manda sola, con la revisión en que se comprobó
+  (CAS) y el id de la propuesta —el mismo en cada intento—; si la producción cambió, se dice y no se aplica.
+- **R6 · Volver a una versión sin perder nada.** Mientras vuelve —y mientras se aplica una propuesta— la producción está
+  OCUPADA (`ocupado` en la instantánea del controlador): no se edita, no se manda nada, no se archiva ni se recarga, y
+  el estado de guardado lo dice. Lo que vuelve se pone con la acción nueva `externa` del reductor: manda la revisión
+  nueva, lo tuyo sin confirmar va encima y lo que hay que rehacer se SUMA (antes se «cargaba» entero y se olvidaba). Si
+  no se sabe si llegó, la misma vuelta se repite con el MISMO id; lo rechazado ya no se repite. El servicio lee el
+  `pending` que el servidor ya mandaba.
+- **R7 · Lo guardado, por páginas.** `elements` gana `paginaDeElementosDeLaCuenta` —tres igualdades y orden por el id del
+  documento, con cursor (`after`) y `next`, 20 por defecto y 50 como mucho—, y `list` la usa: se acabó el tope de ocho.
+  `candidatosDeLaCuenta`, que usa el contexto visual de Weë Brain, no cambia ni una coma. La consulta no necesita un
+  índice compuesto nuevo (Firestore la sirve fusionando los simples); **se comprueba al desplegar**, porque el emulador
+  no exige índices. En la app, la primera página de cada clase a la vez, clase a clase y en el orden del servidor;
+  «Cargar más» pide la siguiente de cada clase que tenga, y la pone detrás; y un filtro por nombre sobre lo cargado
+  (`utils/buscarPorNombre.ts`, `components/workspace/CampoDeBusqueda.tsx`), que dice que busca en lo cargado. Y la
+  hoja que sube desde abajo (`HojaInferior`, un `Modal` donde no llega el acomodo de la pantalla) sube, en el teléfono,
+  lo que mide el teclado: el filtro y cualquier campo de una hoja quedan a la vista.
+- **R10 · Las miniaturas.** El vídeo del elegido que trae su toma conserva el póster —y la dirección— si es el MISMO
+  material. La tira, la línea de tiempo, la rejilla y la tarjeta pintan `MiniaturaDeVideo`: con póster, su imagen;
+  sin él, un aviso quieto de que el plano ya tiene vídeo. Ninguna carga el vídeo: solo el visor.
+- **R12 · Quién lo dice.** La herramienta «Texto» pide el personaje de un diálogo o una voz en off —primero los que salen
+  en el plano—, avisa si no sale en él, y sin personajes lo dice; la narración no lleva a nadie. Nada se supone.
+- **R13 · El estilo como token.** Se guarda `cinematic`, `realistic`, `anime` o `3d` (`ESTILOS_CANONICOS`) y el nombre
+  sale al pintarlo (`nombreDelEstilo`); lo guardado antes con su nombre traducido se sigue reconociendo (`esElEstilo`)
+  y lo escrito por alguien se enseña tal cual. El texto del plano no cambia: el token llega al modelo como cualquier
+  otro estilo.
+- **R14 · Este documento**: el cierre de la Fase 21 ya no da por conectado lo que solo está en el servidor.
+- **R16**: redondear la duración a segundos enteros se dice como redondeo (`takeDurationRounded`), no como «el vídeo más
+  corto que se puede generar», que queda para cuando sube hasta el mínimo.
+- **R17**: en coreano, ninguna partícula pegada a un hueco (`{{numero}}번 버전으로`); en chino una producción es 影片 y en
+  Taiwán 製作 —作品 es «我的作品»—; y en Taiwán la voz en off pasa a ser 畫外音, que era 旁白 como el narrador.
+
+Noventa y dos claves nuevas en los once idiomas. Vallas reancladas por nombre: `filmmaker-conectar` S3, H17–H20 y
+U14–U19 (la lista por páginas; aplicar por su camino); `filmmaker-reproductor` V2, L1, L3 y G1 y `filmmaker-poster` G9
+(las miniaturas); `filmmaker-ui` V2 y los dobles de los hooks; `f1d-cliente` M5 (81 claves de la toma);
+`filmmaker-i18n` lee también `utils/describirOperacion.ts`; `teclado` gana el filtro de lo guardado en su lista, con
+su motivo; e `i18n-preferencia-usuario` pasa de 3 178 a 3 270 claves; y `motor-filmmaker-alcance` gana
+`elements/index.ts` con su motivo. Ni Credits, ni una Function nueva, ni reglas, ni índices, ni F1-A, ni el texto del plano.
+
+Pruebas: `functions/test/filmmaker-arreglos.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
@@ -1436,7 +1513,7 @@ por cuenta:
 | F1-C | **Hecha**: la producción en la app —«Varias escenas» dentro de Weë Studio—, con el storyboard, el panel Director, el estado optimista con CAS y los `messageKey` (`filmmaker.*`) en once idiomas; sin generar ni cobrar |
 | F1-D | **Hecha** (local, sin desplegar): una toma de un plano a partir de su requisito (D4), asíncrona por el Core (D5), cotizada y enlazada a su `ShotNode` con verificación en el servidor |
 | F2 | Weë Brain convierte lo que se dice en operaciones y enseña las recomendaciones. **Hecha** (Filmmaker Engine, Fase 9 en el servidor y Fase 20 en la app; local, sin desplegar): la propuesta, su comprobación, y aplicarla o descartarla desde el editor |
-| F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados, y vincular desde la app (Fase 20); usar sus imágenes al generar, pendiente de validar |
+| F3 | Personajes y continuidad: fichas, `ElementBinding` y apariencia. **Hecha la parte de vincular** (Filmmaker Engine, Fase 10; local, sin desplegar): vínculos verificados, y vincular desde la app (Fase 20) —solo fichas que ya existan: la app todavía no deja crearlas (corregido en la Fase 22, R14)—; usar sus imágenes al generar, pendiente de validar |
 | F4 | **Hecha** (Filmmaker Engine, Fase 6; local, sin desplegar): generación de varios planos por la misma puerta, con los requisitos del servidor y el resumen por capacidad para cotizar |
 | F5 | Línea de tiempo, audio y montaje sobre los requisitos de ensamblado. **Hecha** (Filmmaker Engine, Fases 7 y 8; local, sin desplegar): el manifiesto del montaje, sus argumentos de FFmpeg y el render como tarea del Job Engine, con su material y su registro; y el póster de cada vídeo y del montaje (Fase 11); exportar o publicar el montaje, aparte |
 | F6 | Director avanzado: prompt avanzado (D9), versiones (D12). **Hechos «restaurar»** (Filmmaker Engine, Fase 12) **y usar el prompt avanzado al generar** (Fase 13), locales y sin desplegar; **enseñados en la app** (Fase 20); editar el prompt avanzado, pendiente (lenguaje de F1-A) |

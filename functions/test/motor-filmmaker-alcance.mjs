@@ -151,6 +151,15 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * `history`, que solo LEE las versiones. Ni se escribe nada nuevo, ni Credits, ni proveedores, ni una Function nueva.
    */
   'functions/src/elements/puerta.ts',
+  /*
+   * Fase 22 · los arreglos de la auditoría final (encargo del usuario del 2026-09-28, «MASTER EXECUTION PROMPT», fase A):
+   * `elements/index.ts` gana `paginaDeElementosDeLaCuenta` —los de una clase, por páginas y en orden estable por su
+   * id, con cursor— para que `list` deje de tener el tope de ocho (R7). `candidatosDeLaCuenta`, que usa el contexto
+   * visual de Weë Brain, no cambia ni una coma. `creator/produccionEnBrain.ts`, `brain.ts` y `prompts.ts` (ya en la
+   * lista) ponen el id de lo nuevo que propone Weë Brain, su porqué, y dejan de contar una respuesta sin propuesta
+   * aplicable (R1). Ni se escribe nada nuevo, ni Credits, ni proveedores, ni una Function nueva.
+   */
+  'functions/src/elements/index.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */
