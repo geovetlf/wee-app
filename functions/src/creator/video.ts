@@ -8,6 +8,7 @@ import { chooseSeedanceModel, normalizeVideoRequest, videoEngine, VideoModelPref
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
 import { priceVideo } from '../credits/aiPricing';
+import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
@@ -328,7 +329,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     const requestId = deToma?.requestId ? deToma.requestId : assertRequestId(data.requestId);
     const inputImage = deToma ? undefined : data.inputImage || data.inputImageUrl;
     const references = !deToma && data.references
-      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid), videoSeconds: data.references.videoSeconds ? Number(data.references.videoSeconds) : undefined }
+      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid) }
       : undefined;
     const videoRequest: VideoRequest = deToma?.peticion ? deToma.peticion : {
       prompt,
@@ -384,14 +385,16 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
      * Firestore, y la misma petición cambiaba de importe —y de identidad—.
      */
     await loadCostOverrides();
+    /* R22 · con vídeos de referencia, su entrada se cotiza con el techo del modelo, no con lo que declare quien llama. */
+    const modeloDelPrecio = chooseSeedanceModel(videoRequest, settings);
     const price = priceVideo(
       {
-        modelId: chooseSeedanceModel(videoRequest, settings),
+        modelId: modeloDelPrecio,
         durationSec: videoRequest.durationSec,
         aspectRatio: videoRequest.aspectRatio,
         resolution: videoRequest.resolution,
         quality: videoRequest.quality,
-        inputVideoSec: videoRequest.references?.videoSeconds,
+        inputVideoSec: videoRequest.references?.videos?.length ? techoDeVideoDeEntrada(modeloDelPrecio) : undefined,
       },
       settings,
     );
