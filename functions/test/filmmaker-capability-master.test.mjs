@@ -222,12 +222,14 @@ const app = (p) => sinComentarios(leer(p));
 const faltan = [
   ['N12', 'la pista de diálogo sigue fuera del teléfono', () => /PISTAS_DEL_TELEFONO[^=]*=\s*\[[^\]]*\]/.test(app('components/studio/produccion/ProductionTimeline.tsx')) && !/PISTAS_DEL_TELEFONO[^=]*=\s*\[[^\]]*'personajes'/.test(app('components/studio/produccion/ProductionTimeline.tsx'))],
   ['N13', '«Propiedades del plano» todavía no tiene su «Generar»', () => !app('components/studio/produccion/ProductionShotProperties.tsx').includes('ProductionShotGeneration')],
-  ['N10', 'Historia solo tiene Storyboard y Guion', () => /useState<'storyboard' \| 'guion'>/.test(app('components/studio/produccion/ProductionMobileEditor.tsx'))],
-  ['N11', 'la continuidad plano a plano no es todavía una vista de Historia', () => /useState<'storyboard' \| 'guion'>/.test(app('components/studio/produccion/ProductionMobileEditor.tsx'))],
-  ['N06', 'Weë AI Director tiene dos puertas rápidas (escenas y revisar), sin «Proponer planos»', () => (app('components/studio/produccion/ProductionBrainBox.tsx').match(/clave: 'filmmaker\.wsBrainQuick/g) ?? []).length === 2],
-  ['N07', '… ni «Explicar»', () => (app('components/studio/produccion/ProductionBrainBox.tsx').match(/clave: 'filmmaker\.wsBrainQuick/g) ?? []).length === 2],
-  ['I01', '… ni «Cobertura de este plano»', () => (app('components/studio/produccion/ProductionBrainBox.tsx').match(/clave: 'filmmaker\.wsBrainQuick/g) ?? []).length === 2],
-  ['I05', '… ni «Convertir mi guion en escenas»', () => (app('components/studio/produccion/ProductionBrainBox.tsx').match(/clave: 'filmmaker\.wsBrainQuick/g) ?? []).length === 2],
+  /* Fase 35 del motor: las vistas de Historia en el teléfono; se mira que cada una esté (si no, «ya existe» sería gratis). */
+  ['N10', 'Historia no tiene la vista de escenas', () => !/historia === 'escenas' && <ProductionEscenas/.test(app('components/studio/produccion/ProductionMobileEditor.tsx'))],
+  ['N11', 'la continuidad plano a plano no es todavía una vista de Historia', () => !/historia === 'continuidad' && <ProductionContinuidadPlanoAPlano/.test(app('components/studio/produccion/ProductionMobileEditor.tsx'))],
+  /* Fase 34 del motor: las puertas rápidas viven en utils/atajosDelDirector.ts; se mira que cada una esté allí. */
+  ['N06', 'Weë AI Director no tiene «Proponer planos»', () => !/clave: 'filmmaker\.wsBrainQuickShots'/.test(app('utils/atajosDelDirector.ts'))],
+  ['N07', '… ni «Explicar»', () => !/clave: 'filmmaker\.wsBrainQuickExplain'/.test(app('utils/atajosDelDirector.ts'))],
+  ['I01', '… ni «Cobertura de este plano»', () => !/clave: 'filmmaker\.wsBrainQuickCoverage'/.test(app('utils/atajosDelDirector.ts'))],
+  ['I05', '… ni «Convertir mi guion en escenas»', () => !/clave: 'filmmaker\.wsBrainQuickScript'/.test(app('utils/atajosDelDirector.ts'))],
   ['N14', 'la ficha de una referencia no enseña su miniatura', () => !/\bImage\b|Miniatura|uri:/.test(app('components/studio/produccion/ProductionReferencias.tsx'))],
   ['N16', 'la duración de un sonido no tiene control', () => !/durationSec/.test(app('components/studio/produccion/ProductionAudio.tsx'))],
   ['N02', 'los montajes anteriores se cargan y no se guardan para enseñarlos', () => /montajesDeLaProduccion/.test(app('hooks/useMontajeFinal.ts')) && !/anteriores|setMontajes|montajesAnteriores/.test(app('hooks/useMontajeFinal.ts'))],

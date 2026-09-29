@@ -1005,4 +1005,18 @@ export const filmmaker = {
   wsFlowObjects: 'Objetos: {{lista}}',
   wsFlowGoTo: 'Ir a {{nombre}}',
   wsFlowStructuredSoon: 'La postura, la emoción o la posición como datos, y el estado de un lugar o de un objeto, todavía no existen: hoy se dicen con palabras en cada plano.',
+  /* ── Fase 36 del motor: referencias completas ── */
+  wsRefOriginCreations: 'De Mis creaciones',
+  wsRefOriginSaved: 'De lo guardado',
+  wsRefStateReady: 'Material listo',
+  wsRefStateChecking: 'Comprobando el material…',
+  wsRefStateRemoved: 'Material retirado',
+  wsRefStateRemovedShort: 'Retirado',
+  wsRefStateRemovedNote: 'Su material ya no está en Mis creaciones: la referencia sigue en la producción, pero sin nada detrás. Sustitúyela por otra o quítala.',
+  wsRefStateUnknown: 'No se pudo comprobar el material',
+  wsRefThumbnail: 'Miniatura de {{nombre}}',
+  wsRoleStoryboard: 'Viñeta del storyboard',
+  wsRoleStoryboardClosed: 'Viñeta del storyboard: todavía no disponible',
+  wsRoleStoryboardSoon: 'Usar una imagen como viñeta del storyboard llegará cuando la producción tenga ese papel (un cambio de contrato): hoy no existe.',
+  wsRefRealFaceNote: 'Si es la cara de una persona real, cuando las referencias lleguen al vídeo hará falta su autorización para poder usarla.',
 };

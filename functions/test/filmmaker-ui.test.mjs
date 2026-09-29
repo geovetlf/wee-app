@@ -144,6 +144,8 @@ const dobles = {
   '../hooks/useCreacionesParaReferencia': {
     useCreacionesParaReferencia: () => ({ carga: 'sin_pedir', clase: null, lista: [], hayMas: false, cargandoMas: false, cargar: () => {}, cargarMas: () => {} }),
   },
+  /* Fase 36 del motor: cómo está el material de cada referencia. Sin preguntar a nadie: se prueba en filmmaker-referencias-completas. */
+  '../services/assetsService': { assetsService: { vistaDelMaterial: async () => ({ estado: 'desconocido' }) } },
   /* Fase 29 del motor: la producción entera, sin mirar todavía. Se prueba en filmmaker-produccion-entera. */
   '../hooks/useLoteDeTomas': {
     useLoteDeTomas: () => ({ fase: { fase: 'quieto' }, calidad: 'standard', disponible: true, recortado: null, elegirCalidad: () => {}, presupuestar: () => {}, generar: () => {} }),

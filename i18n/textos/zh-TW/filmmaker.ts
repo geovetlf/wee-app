@@ -1019,4 +1019,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsFlowObjects: '道具：{{lista}}',
   wsFlowGoTo: '前往 {{nombre}}',
   wsFlowStructuredSoon: '把姿勢、情緒或位置作為資料，以及地點或道具的狀態，目前還不支援：暫時在每個鏡頭裡用文字描述。',
+  /* ── Fase 36 del motor: referencias completas ── */
+  wsRefOriginCreations: '來自「我的作品」',
+  wsRefOriginSaved: '來自你儲存的內容',
+  wsRefStateReady: '素材可用',
+  wsRefStateChecking: '正在檢查素材…',
+  wsRefStateRemoved: '素材已移除',
+  wsRefStateRemovedShort: '已移除',
+  wsRefStateRemovedNote: '它的素材已不在「我的作品」中：參考仍留在製作裡，但背後沒有素材了。請換成別的參考或將其移除。',
+  wsRefStateUnknown: '無法檢查素材',
+  wsRefThumbnail: '{{nombre}} 的縮圖',
+  wsRoleStoryboard: '分鏡格',
+  wsRoleStoryboardClosed: '分鏡格：暫不可用',
+  wsRoleStoryboardSoon: '把圖片用作分鏡格，要等製作支援這個用途（需要變更合約）：目前還沒有。',
+  wsRefRealFaceNote: '如果是真實人物的臉，等參考能用於影片時，需要本人授權才能使用。',
 };

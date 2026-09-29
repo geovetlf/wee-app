@@ -1005,4 +1005,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsFlowObjects: 'Objekte: {{lista}}',
   wsFlowGoTo: 'Zu {{nombre}}',
   wsFlowStructuredSoon: 'Haltung, Emotion oder Position als Daten und der Zustand eines Orts oder Objekts gibt es noch nicht: Vorerst beschreibt man sie in jeder Einstellung mit Worten.',
+  /* ── Fase 36 del motor: referencias completas ── */
+  wsRefOriginCreations: 'Aus Meine Kreationen',
+  wsRefOriginSaved: 'Aus deinen Gespeicherten',
+  wsRefStateReady: 'Material bereit',
+  wsRefStateChecking: 'Material wird geprüft…',
+  wsRefStateRemoved: 'Material entfernt',
+  wsRefStateRemovedShort: 'Entfernt',
+  wsRefStateRemovedNote: 'Das Material ist nicht mehr in Meine Kreationen: Die Referenz bleibt in der Produktion, aber ohne etwas dahinter. Ersetze sie durch eine andere oder entferne sie.',
+  wsRefStateUnknown: 'Das Material konnte nicht geprüft werden',
+  wsRefThumbnail: 'Vorschaubild von {{nombre}}',
+  wsRoleStoryboard: 'Storyboard-Bild',
+  wsRoleStoryboardClosed: 'Storyboard-Bild: noch nicht verfügbar',
+  wsRoleStoryboardSoon: 'Ein Bild als Storyboard-Bild zu nutzen kommt, wenn die Produktion diese Rolle hat (eine Vertragsänderung): Heute gibt es sie nicht.',
+  wsRefRealFaceNote: 'Ist es das Gesicht einer realen Person, braucht es ihre Erlaubnis, sobald Referenzen ins Video gelangen.',
 };

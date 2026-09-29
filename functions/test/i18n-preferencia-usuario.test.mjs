@@ -633,8 +633,10 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * (`wsBrainAppliedNext`, `wsBrainSeePrice`) y el lote de una escena (`wsBatchScope*`)—, en los once a la vez.
    * Fase 35 del motor, 2026-09-29 (Historia: Escenas y Continuidad): +20 —las escenas (`wsScenes*`, `wsScene*`,
    * `wsGoToScene`) y la continuidad plano a plano (`wsFlow*`)—, en los once a la vez.
+   * Fase 36 del motor, 2026-09-29 (referencias completas): +13 —de dónde viene cada referencia, cómo está su
+   * material, el papel «storyboard» cerrado con su porqué y el aviso de las caras reales en la serie 2.x—, en los once.
    */
-  const CLAVES_PT = 3615;
+  const CLAVES_PT = 3628;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

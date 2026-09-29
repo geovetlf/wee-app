@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
@@ -11,6 +11,8 @@ import { LIMITES, PAPELES_DE_REFERENCIA, aplicarOperaciones, validarProduccion }
 import type { FilmmakerProduction, ProductionReference, ReferenceRole } from '../../../services/filmmaker/dominio';
 import { CLAVE_DEL_PAPEL_DE_REFERENCIA } from '../../../constants/filmmaker';
 import { confirmAction } from '../../../utils/notify';
+import { origenDeReferencia, useMaterialesDeReferencias } from '../../../hooks/useMaterialesDeReferencias';
+import type { EstadoDelMaterial } from '../../../hooks/useMaterialesDeReferencias';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -30,7 +32,18 @@ const isWeb = Platform.OS === 'web';
  * Fase 31 del motor: SUSTITUIR una referencia por otra de la misma clase (`replace_reference`, que existía y nadie
  * usaba): donde se usaba la primera —en planos, fichas, rasgos, voces— pasa a usarse la otra. F1-A no admite cambiar una
  * imagen por un vídeo, y se dice en vez de ofrecerlo.
+ *
+ * Fase 36 del motor: cada una enseña su MATERIAL —su miniatura, de dónde viene (Mis creaciones o lo guardado) y cómo
+ * está: listo, retirado o sin saberse—; el papel «storyboard» se ve cerrado, con su porqué (no existe en F1-A: es un
+ * contrato); y una referencia de personaje dice lo que pasará con las caras reales cuando las referencias lleguen al
+ * vídeo (la serie 2.x de Seedance las rechaza sin autorización).
  */
+const CLAVE_DEL_ESTADO_DEL_MATERIAL: Readonly<Record<EstadoDelMaterial['estado'], string>> = {
+  cargando: 'filmmaker.wsRefStateChecking',
+  listo: 'filmmaker.wsRefStateReady',
+  retirado: 'filmmaker.wsRefStateRemoved',
+  desconocido: 'filmmaker.wsRefStateUnknown',
+};
 const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
   const { theme } = useTheme();
   const { t } = useIdioma();
@@ -42,6 +55,8 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
   const [sustituyendo, setSustituyendo] = useState<string | null>(null);
   const nuevoId = espacio.idsDeFichas?.referencia;
   const refs = produccion.references;
+  /* Fase 36: el material de cada una, preguntado una vez. */
+  const materiales = useMaterialesDeReferencias(refs);
   const nombre = (r: ProductionReference) => r.description || t(CLAVE_DEL_PAPEL_DE_REFERENCIA[r.role ?? 'general']);
   /*
    * ¿Encaja este papel con esta referencia? La regla es de F1-A y se le pregunta a él: la operación se acepta siempre,
@@ -97,6 +112,9 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
       {refs.length === 0 && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsNoReferences')}</Text>}
       {refs.map((r) => {
         const esta = abierta === r.id;
+        const origen = origenDeReferencia(r);
+        const material = r.assetId ? materiales.get(r.assetId) ?? { estado: 'cargando' as const } : null;
+        const miniatura = material?.estado === 'listo' && r.kind !== 'audio' ? material.miniatura : null;
         return (
           <View key={r.id} style={[styles.ficha, { backgroundColor: theme.colors.card, borderColor: esta ? theme.colors.accent : theme.colors.border }]}>
             <TouchableOpacity
@@ -106,13 +124,22 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
               accessibilityState={{ expanded: esta }}
               accessibilityLabel={t(esta ? 'filmmaker.wsCardClose' : 'filmmaker.wsCardOpen', { nombre: nombre(r) })}
             >
-              <Ionicons name={r.kind === 'video' ? 'videocam-outline' : r.kind === 'audio' ? 'musical-note-outline' : 'image-outline'} size={scale(16)} color={theme.colors.accent} />
+              {miniatura
+                ? <Image source={{ uri: miniatura }} style={[styles.miniatura, { borderColor: theme.colors.border }]} accessibilityLabel={t('filmmaker.wsRefThumbnail', { nombre: nombre(r) })} />
+                : <Ionicons name={r.kind === 'video' ? 'videocam-outline' : r.kind === 'audio' ? 'musical-note-outline' : 'image-outline'} size={scale(16)} color={theme.colors.accent} />}
               <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>{nombre(r)}</Text>
+              {material?.estado === 'retirado' && <Chip texto={t('filmmaker.wsRefStateRemovedShort')} icono="alert-outline" tono="aviso" />}
               {!!r.role && <Chip texto={t(CLAVE_DEL_PAPEL_DE_REFERENCIA[r.role])} />}
               <Ionicons name={esta ? 'chevron-up' : 'chevron-down'} size={scale(14)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             {esta && (
               <View style={styles.dentro}>
+                {miniatura && <Image source={{ uri: miniatura }} style={[styles.vista, { borderColor: theme.colors.border }]} resizeMode="cover" accessibilityLabel={t('filmmaker.wsRefThumbnail', { nombre: nombre(r) })} />}
+                <View style={styles.datos}>
+                  {origen !== 'ninguno' && <Chip texto={t(origen === 'creaciones' ? 'filmmaker.wsRefOriginCreations' : 'filmmaker.wsRefOriginSaved')} icono={origen === 'creaciones' ? 'images-outline' : 'bookmark-outline'} />}
+                  {material && <Chip texto={t(CLAVE_DEL_ESTADO_DEL_MATERIAL[material.estado])} icono={material.estado === 'listo' ? 'checkmark-circle-outline' : material.estado === 'retirado' ? 'alert-circle-outline' : 'time-outline'} tono={material.estado === 'retirado' ? 'aviso' : material.estado === 'listo' ? 'ok' : 'neutro'} />}
+                </View>
+                {material?.estado === 'retirado' && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsRefStateRemovedNote')}</Text>}
                 <CampoQueCrece
                   etiqueta={t('filmmaker.wsReferenceDescription')}
                   valor={r.description ?? ''}
@@ -145,6 +172,22 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
                 {PAPELES_DE_REFERENCIA.some((p) => r.role !== p && !admite(r, p)) && (
                   <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsReferenceRoleNeedsKind')}</Text>
                 )}
+                {/* Fase 36: el papel que F1-A todavía no tiene, visible y cerrado, con su porqué (contrato). Es de imagen: una viñeta. */}
+                {r.kind === 'image' && (
+                  <>
+                    <View style={styles.opciones}>
+                      <View
+                        style={[styles.opcion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, opacity: OPACITY.disabled }]}
+                        accessibilityRole="text"
+                        accessibilityLabel={t('filmmaker.wsRoleStoryboardClosed')}
+                      >
+                        <Text style={[styles.opcionTexto, { color: theme.colors.text }]}>{t('filmmaker.wsRoleStoryboard')}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsRoleStoryboardSoon')}</Text>
+                  </>
+                )}
+                {r.role === 'character' && r.kind === 'image' && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsRefRealFaceNote')}</Text>}
                 {refs.length > 1 && (() => {
                   /* Solo por otra de su clase: F1-A no cambia una imagen por un vídeo (`kind_mismatch`), y se dice. */
                   const mismas = refs.filter((o) => o.id !== r.id && o.kind === r.kind);
@@ -203,6 +246,9 @@ const styles = StyleSheet.create({
   opcion: { minHeight: 32, paddingHorizontal: SPACING.sm, borderWidth: 1, borderRadius: BORDER_RADIUS.full, justifyContent: 'center' },
   opcionTexto: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium as any },
   sustituir: { gap: SPACING.xs, alignItems: 'flex-start' },
+  miniatura: { width: scale(28), height: scale(28), borderRadius: BORDER_RADIUS.sm, borderWidth: StyleSheet.hairlineWidth },
+  vista: { width: '100%', maxWidth: scale(320), aspectRatio: 16 / 9, borderRadius: BORDER_RADIUS.md, borderWidth: StyleSheet.hairlineWidth },
+  datos: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
 });
 
 export default ProductionReferencias;

@@ -9,7 +9,7 @@ import type { FilmmakerProduction, TimeOfDay, Weather } from '../services/filmma
  * anterior, qué cambia en quien sigue, qué objetos hay, y el lugar, el momento y el clima de su escena. Una escena sin
  * planos es una fila en sí misma.
  *
- * Solo lectura y pura: el estado efectivo es el de F1-A (\`estadoEfectivo\`, \`repartoDelPlano\`) —el mismo que llega
+ * Solo lectura y pura: el estado efectivo es el de F1-A (`estadoEfectivo`, `repartoDelPlano`) —el mismo que llega
  * al texto de la toma—, no otro. El estado estructurado (postura, emoción, posición, el de un lugar o un objeto) no
  * existe en F1-A: es el contrato 5, y aquí no se inventa.
  */

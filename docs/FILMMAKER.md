@@ -1875,6 +1875,23 @@ En el teléfono, las cuatro pestañas de «Historia» miden su nombre y se repar
 
 Pruebas: `functions/test/filmmaker-historia-vistas.test.mjs` (en la cadena).
 
+### Fase 36 · Referencias completas
+
+Encargo del usuario (2026-09-29, punto 9): cada referencia enseña su material, de dónde viene y cómo está, y los
+papeles que el motor todavía no usa se ven cerrados, con su porqué.
+
+- **El material** (`hooks/useMaterialesDeReferencias.ts` sobre `assetsService.vistaDelMaterial`): la miniatura, el
+  origen —Mis creaciones o lo guardado— y el estado —listo, retirado o sin saberse—, leídos una vez de la ficha del
+  material de la propia cuenta. Una referencia retirada lo avisa en la lista y dice qué hacer. La miniatura es la
+  misma que enseña Mis creaciones —la entrega directa del original—: un material de entrega firmada, como los de la
+  demo local, se enseña con su icono, igual que allí, hasta que las variantes tengan entrega propia (Content Core).
+- **El papel «storyboard»** se ve en cada referencia de imagen (una viñeta es una imagen), cerrado: no existe en F1-A
+  (contrato, N15).
+- **Las caras reales**: una referencia de personaje dice que, cuando las referencias lleguen al vídeo, la cara de una
+  persona real necesitará su autorización (la serie 2.x de Seedance las rechaza; N27).
+
+Pruebas: `functions/test/filmmaker-referencias-completas.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

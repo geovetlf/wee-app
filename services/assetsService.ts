@@ -1,5 +1,7 @@
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -55,6 +57,12 @@ export {
 } from './vistaDeAsset';
 
 export type OrdenDeCreaciones = 'recent' | 'oldest';
+
+/** Fase 36 del motor: cómo está un material de la cuenta, para enseñarlo como referencia de una producción. */
+export type MaterialComoReferencia =
+  | { readonly estado: 'listo'; readonly miniatura: string | null }
+  | { readonly estado: 'retirado' }
+  | { readonly estado: 'desconocido' };
 
 export interface FiltroDeCreaciones {
   kind?: AssetKind;
@@ -149,6 +157,23 @@ export const assetsService = {
      * `esElOriginal` pasará a `false` solo y la interfaz no cambia.
      */
     return { url, esElOriginal: true };
+  },
+
+  /**
+   * CÓMO ESTÁ UN MATERIAL (Fase 36 del motor): sigue —con su miniatura, si la
+   * hay—, se retiró, o no se pudo saber. Solo lectura de la propia cuenta; lo
+   * usan las referencias de una producción para enseñarse.
+   */
+  vistaDelMaterial: async (assetId: string): Promise<MaterialComoReferencia> => {
+    try {
+      const snap = await getDoc(doc(db, 'assets', assetId));
+      if (!snap.exists()) return { estado: 'retirado' };
+      const a = snap.data() as AssetDoc;
+      if (a.status === 'deleted') return { estado: 'retirado' };
+      return { estado: 'listo', miniatura: assetsService.miniatura(a)?.url ?? null };
+    } catch {
+      return { estado: 'desconocido' };
+    }
   },
 
   /**

@@ -1006,4 +1006,18 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsFlowObjects: '소품: {{lista}}',
   wsFlowGoTo: '이동: {{nombre}}',
   wsFlowStructuredSoon: '자세, 감정, 위치를 데이터로 다루거나 장소·소품의 상태를 기록하는 기능은 아직 없어요. 지금은 숏마다 말로 설명해요.',
+  /* ── Fase 36 del motor: referencias completas ── */
+  wsRefOriginCreations: '내 창작물에서',
+  wsRefOriginSaved: '저장한 항목에서',
+  wsRefStateReady: '자료 준비됨',
+  wsRefStateChecking: '자료를 확인하는 중…',
+  wsRefStateRemoved: '자료가 삭제됨',
+  wsRefStateRemovedShort: '삭제됨',
+  wsRefStateRemovedNote: '이 자료는 더 이상 내 창작물에 없어요. 레퍼런스는 프로덕션에 남아 있지만 연결된 자료가 없어요. 다른 레퍼런스로 바꾸거나 삭제하세요.',
+  wsRefStateUnknown: '자료를 확인할 수 없어요',
+  wsRefThumbnail: '{{nombre}} 미리보기',
+  wsRoleStoryboard: '스토리보드 컷',
+  wsRoleStoryboardClosed: '스토리보드 컷: 아직 사용할 수 없음',
+  wsRoleStoryboardSoon: '이미지를 스토리보드 컷으로 쓰는 기능은 프로덕션에 그 역할이 생기면(계약 변경) 제공돼요. 지금은 없어요.',
+  wsRefRealFaceNote: '실제 인물의 얼굴이라면, 레퍼런스가 영상에 반영될 때 그 사람의 동의가 있어야 사용할 수 있어요.',
 };

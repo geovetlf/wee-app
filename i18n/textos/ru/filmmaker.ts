@@ -1045,4 +1045,18 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   wsFlowObjects: 'Предметы: {{lista}}',
   wsFlowGoTo: 'Перейти: {{nombre}}',
   wsFlowStructuredSoon: 'Поза, эмоция или положение как данные, а также состояние места или предмета пока не поддерживаются: сейчас их описывают словами в каждом плане.',
+  /* ── Fase 36 del motor: referencias completas ── */
+  wsRefOriginCreations: 'Из «Моих творений»',
+  wsRefOriginSaved: 'Из сохранённого',
+  wsRefStateReady: 'Материал готов',
+  wsRefStateChecking: 'Проверяем материал…',
+  wsRefStateRemoved: 'Материал удалён',
+  wsRefStateRemovedShort: 'Удалён',
+  wsRefStateRemovedNote: 'Его материала больше нет в «Моих творениях»: референс остаётся в постановке, но за ним ничего нет. Замените его другим или удалите.',
+  wsRefStateUnknown: 'Не удалось проверить материал',
+  wsRefThumbnail: 'Миниатюра: {{nombre}}',
+  wsRoleStoryboard: 'Кадр раскадровки',
+  wsRoleStoryboardClosed: 'Кадр раскадровки: пока недоступно',
+  wsRoleStoryboardSoon: 'Использовать изображение как кадр раскадровки можно будет, когда у постановки появится такая роль (изменение контракта): сейчас её нет.',
+  wsRefRealFaceNote: 'Если это лицо реального человека, то, когда референсы начнут попадать в видео, для его использования понадобится разрешение этого человека.',
 };

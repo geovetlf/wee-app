@@ -39,7 +39,7 @@ import { scale } from '../../../utils/scale';
  * Fase 22 del motor (arreglo R1 de la auditoría): el PRECIO del mensaje antes de enviarlo, con las mismas palabras
  * que el resto de Weë Brain, y sin él no se envía; cada cambio propuesto dicho en una frase —qué, dónde, lo que trae
  * y POR QUÉ, con las palabras de Weë Brain—; lo que cuesta aplicarlo (nada) y lo que dejaría por rehacer; y aplicarlo
- * ya no es un gesto: va por \`onAplicarPropuesta\`, sobre la revisión en que se comprobó y con su propio id.
+ * ya no es un gesto: va por `onAplicarPropuesta`, sobre la revisión en que se comprobó y con su propio id.
  */
 const ProductionBrainBox: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
   const { theme } = useTheme();
