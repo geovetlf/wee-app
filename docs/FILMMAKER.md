@@ -1396,6 +1396,38 @@ Brain, la común, que habla de cambios y no de la idea.
 
 Pruebas: `functions/test/filmmaker-conectar.test.mjs` (en la cadena).
 
+### Fase 21 · El cierre del motor: lo hecho, lo cerrado a propósito y lo que pide al usuario
+
+Estado al cierre (2026-09-28): todo en local, en la rama `filmmaker/core`, sin push, sin merge y sin desplegar;
+`main`, sin tocar.
+
+**Hecho, y conectado en la app**: el lenguaje completo (56 operaciones); el estado y la traza de cada toma y de la
+producción entera; la reserva de una toma que se quedó sin trabajo, devuelta; el requisito de cada plano, calculado
+por el servidor; varios planos a la vez; el montaje como manifiesto y su render con FFmpeg propio (gratis, cinco al
+día por cuenta); los pósters; Weë Brain con la producción abierta, dentro del editor; los vínculos a Elements,
+verificados y elegibles desde la hoja de personajes y lugares; las versiones y volver a una; el prompt avanzado, usado
+al generar y visible a petición; publicar el montaje como Weël o en el Wäll; detener una toma; un solo reproductor; y
+el vocabulario de cámara v2.
+
+**Preparado y CERRADO a propósito**, cada uno detrás de su puerta en `aiSettings`, cerrada por defecto y que se abre
+por cuenta:
+- las referencias de los Elements al generar (Fase 18, `aiSettings/referencias`);
+- las voces del diálogo (Fase 19, `aiSettings/voces`), con el catálogo vacío en el código;
+- parar una toma en el proveedor (Fase 15, `aiSettings/cancelacion`). Sin abrirla, se detiene lo que el proveedor aún
+  no aceptó, con su reserva devuelta entera; lo que ya tiene termina y se cobra.
+
+**Lo que pide al usuario**. Nada de esto se resuelve sin su decisión, o sin gastar dinero real:
+
+| Qué | Qué falta |
+|---|---|
+| Referencias de Elements en la toma | autorizar que la puerta del vídeo declare otra capacidad (`video.reference`; CLAUDE.md, regla 10) y un canary real, con gasto, que valide un modelo: la lista de validados está vacía |
+| Voces del diálogo | un canary de ElevenLabs (cómo suena cada voz en cada idioma, su licencia y su coste) y autorizar el campo de la voz en `VoiceReference` de F1-A, que es un contrato cerrado |
+| Diálogo a cámara | decidir y validar el lip-sync: es otra capacidad, sin validar (`dialogue_not_supported`) |
+| Parar en el proveedor | un canary real del DELETE de ModelArk y de lo que cobra una tarea cancelada; y decidir si detener devuelve el cupo diario (hoy, no) |
+| Publicar el montaje | la marca de agua de los Weëls, la miniatura en el Wäll de un vídeo que no es de Cloudinary, y que `deleteAsset` mire si el material está publicado; las tres son de toda la app |
+| Editar el prompt avanzado | autorizar el cambio en el lenguaje de F1-A: `update_shot` contesta `not_editable_yet` |
+| Desplegar | la orden del usuario: Functions, reglas, índices y la web. Nada de esto está en producción |
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
