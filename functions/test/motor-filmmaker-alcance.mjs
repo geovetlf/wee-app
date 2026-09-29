@@ -116,6 +116,17 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * Ni el Credit Engine, ni el Job Engine, ni el runtime cambian.
    */
   'functions/src/creator/cancelacionDeToma.ts',
+  /*
+   * Fase 17 · el vocabulario de cámara v2 (D14; mismo encargo: «debe integrarse al Core de forma determinista…
+   * versionar el contrato si es necesario»): `core/creative.ts` gana nueve valores AL FINAL de tres listas —encuadres
+   * extreme_wide, full, medium_close_up, over_the_shoulder e insert; movimientos zoom_in, zoom_out y rack_focus;
+   * composición leading_lines—, que son de la VERSIÓN 2 del lenguaje y solo de ella: con `version: 1` no existen. Ni
+   * una ruta nueva, ni un valor de la 1 movido, y `CREATIVE_PARAMETERS_VERSION` sigue en 1 (la versión con que Weë
+   * escribe por defecto). F1-A (`filmmaker/operaciones.ts`, ya en la lista) escribe la 2 SOLO cuando hace falta, así
+   * que lo que ya existe se sigue escribiendo igual, byte a byte; `creator/prompts.ts` (en la lista) enseña los nueve a
+   * Weë Brain en el editor de producciones. El texto del plano (`creator/plano.ts`) no cambia ni una coma.
+   */
+  'functions/src/core/creative.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

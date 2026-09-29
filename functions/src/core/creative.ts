@@ -62,16 +62,19 @@ export type CameraType =
 /** A qué altura está el ojo. Distinto de la cámara: se puede volar y mirar de frente. */
 export type PerspectiveType = 'eye_level' | 'low_angle' | 'high_angle' | 'aerial';
 
-/** Cuánto entra en el encuadre. */
-export type ShotType = 'establishing' | 'wide' | 'medium' | 'close_up' | 'extreme_close_up' | 'hero';
+/** Cuánto entra en el encuadre. Desde `extreme_wide`, de la versión 2 (ver `VERSION_CREATIVA_MAS_RECIENTE`). */
+export type ShotType =
+  | 'establishing' | 'wide' | 'medium' | 'close_up' | 'extreme_close_up' | 'hero'
+  | 'extreme_wide' | 'full' | 'medium_close_up' | 'over_the_shoulder' | 'insert';
 
 /** Qué óptica. Abstracción de Weë: `wide` no es el nombre de nada de nadie. */
 export type LensType = 'wide' | 'standard' | 'telephoto' | 'macro' | 'fisheye';
 
-/** Qué hace la cámara. */
+/** Qué hace la cámara —o su óptica—. Desde `zoom_in`, de la versión 2. */
 export type MovementType =
   | 'static' | 'dolly_in' | 'dolly_out' | 'tracking' | 'orbit' | 'pan' | 'tilt'
-  | 'crane_up' | 'crane_down' | 'push_in' | 'pull_out' | 'follow';
+  | 'crane_up' | 'crane_down' | 'push_in' | 'pull_out' | 'follow'
+  | 'zoom_in' | 'zoom_out' | 'rack_focus';
 
 /** A qué ritmo. */
 export type MotionSpeed = 'slow' | 'normal' | 'fast';
@@ -83,9 +86,10 @@ export type MotionSmoothness = 'smooth' | 'natural' | 'dynamic';
 export type LightingType =
   | 'natural' | 'golden_hour' | 'blue_hour' | 'studio' | 'dramatic' | 'soft' | 'high_contrast' | 'night';
 
-/** Cómo se ordena lo que se ve. */
+/** Cómo se ordena lo que se ve. `leading_lines`, de la versión 2. */
 export type CompositionType =
-  | 'centered' | 'rule_of_thirds' | 'symmetrical' | 'negative_space' | 'foreground_depth';
+  | 'centered' | 'rule_of_thirds' | 'symmetrical' | 'negative_space' | 'foreground_depth'
+  | 'leading_lines';
 
 /** Cómo se pasa de una toma a otra. */
 export type TransitionType = 'cut' | 'dissolve' | 'fade' | 'match_cut' | 'whip' | 'seamless';
@@ -170,13 +174,13 @@ const PELIGROSAS = ['__proto__', 'constructor', 'prototype'];
 
 const CAMARAS: readonly string[] = ['aerial', 'ground', 'handheld', 'pov', 'macro', 'overhead', 'underwater'];
 const PERSPECTIVAS: readonly string[] = ['eye_level', 'low_angle', 'high_angle', 'aerial'];
-const PLANOS: readonly string[] = ['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero'];
+const PLANOS: readonly string[] = ['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero', 'extreme_wide', 'full', 'medium_close_up', 'over_the_shoulder', 'insert'];
 const OPTICAS: readonly string[] = ['wide', 'standard', 'telephoto', 'macro', 'fisheye'];
-const MOVIMIENTOS: readonly string[] = ['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow'];
+const MOVIMIENTOS: readonly string[] = ['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow', 'zoom_in', 'zoom_out', 'rack_focus'];
 const VELOCIDADES: readonly string[] = ['slow', 'normal', 'fast'];
 const SUAVIDADES: readonly string[] = ['smooth', 'natural', 'dynamic'];
 const LUCES: readonly string[] = ['natural', 'golden_hour', 'blue_hour', 'studio', 'dramatic', 'soft', 'high_contrast', 'night'];
-const COMPOSICIONES: readonly string[] = ['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth'];
+const COMPOSICIONES: readonly string[] = ['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth', 'leading_lines'];
 const TRANSICIONES: readonly string[] = ['cut', 'dissolve', 'fade', 'match_cut', 'whip', 'seamless'];
 export const PROPORCIONES: readonly string[] = ['16:9', '9:16', '1:1', '4:5', '4:3', '21:9'];
 
@@ -196,6 +200,33 @@ const GRUPOS: Readonly<Record<string, Readonly<Record<string, readonly string[] 
   transition: { type: TRANSICIONES },
   framing: { aspectRatio: PROPORCIONES },
 };
+
+/**
+ * EL VOCABULARIO DE LA VERSIÓN 2 (Filmmaker Engine, Fase 17 = D14; encargo del usuario, 2026-09-28).
+ *
+ * Nueve valores que el cine usa a diario y que la 1 no tenía, AÑADIDOS al final de sus listas: ni uno de la 1 se
+ * mueve, cambia ni desaparece, y ninguna ruta nueva.
+ *   · encuadres: `extreme_wide` (gran plano general), `full` (plano entero), `medium_close_up` (plano medio corto),
+ *     `over_the_shoulder` (sobre el hombro) e `insert` (el detalle de un objeto o de una acción);
+ *   · movimientos: `zoom_in` y `zoom_out` —se mueve la óptica, no la cámara— y `rack_focus` —el foco pasa de un
+ *     término a otro—;
+ *   · composición: `leading_lines`, las líneas que llevan la mirada.
+ *
+ * Son de la 2 y SOLO de la 2. Una intención que dice `version: 1` habla el idioma de la 1, y en ese idioma estos
+ * valores no existen (`invalid_value`): lo guardado con la 1 se sigue leyendo exactamente como la 1 —la promesa de
+ * `CREATIVE_PARAMETERS_VERSION`— y nadie escribe la 2 sin decirlo. Weë sigue escribiendo con la 1 todo lo que la 1
+ * sabe decir; solo lo que usa uno de estos lleva la 2 (`versionCreativaNecesaria`).
+ */
+export const VERSION_CREATIVA_MAS_RECIENTE = 2;
+const DE_LA_VERSION_2: Readonly<Record<string, readonly string[]>> = {
+  'shot.type': ['extreme_wide', 'full', 'medium_close_up', 'over_the_shoulder', 'insert'],
+  'movement.type': ['zoom_in', 'zoom_out', 'rack_focus'],
+  'composition.type': ['leading_lines'],
+};
+
+/** Desde qué versión del lenguaje existe el valor de una ruta: 2 para los nueve de arriba, 1 para todos los demás. */
+export const desdeQueVersion = (ruta: string, valor: string | number): number =>
+  typeof valor === 'string' && Object.prototype.hasOwnProperty.call(DE_LA_VERSION_2, ruta) && DE_LA_VERSION_2[ruta].includes(valor) ? 2 : 1;
 
 export type MotivoCreativoInvalido =
   | 'invalid_shape'
@@ -229,6 +260,8 @@ export const validarCreativos = (crudo: unknown): readonly ProblemaCreativo[] =>
   if (!esNum(crudo.version) || !Number.isInteger(crudo.version) || crudo.version < 1 || crudo.version > 99) {
     p.push(mal('creative.version', 'invalid_version'));
   }
+  /* El idioma en que habla: una versión que no vale no habla ninguno, así que ningún valor de la 2 le cabe. */
+  const idioma = esNum(crudo.version) && Number.isInteger(crudo.version) ? crudo.version : 0;
 
   for (const [clave, valor] of Object.entries(crudo)) {
     if (PELIGROSAS.includes(clave)) { p.push(mal(`creative.${clave}`, 'dangerous_key')); continue; }
@@ -247,7 +280,9 @@ export const validarCreativos = (crudo: unknown): readonly ProblemaCreativo[] =>
         if (dato < FOCAL_MIN_MM || dato > FOCAL_MAX_MM) p.push(mal(`${clave}.${campo}`, 'out_of_range'));
         continue;
       }
-      if (typeof dato !== 'string' || !admitido.includes(dato)) p.push(mal(`${clave}.${campo}`, 'invalid_value'));
+      if (typeof dato !== 'string' || !admitido.includes(dato)) { p.push(mal(`${clave}.${campo}`, 'invalid_value')); continue; }
+      /* Un valor de la 2 en una intención de la 1 no existe en SU idioma (Fase 17 del motor, D14). */
+      if (desdeQueVersion(`${clave}.${campo}`, dato) > idioma) p.push(mal(`${clave}.${campo}`, 'invalid_value'));
     }
   }
 
@@ -278,6 +313,17 @@ export const valorCreativo = (p: CreativeParameters | undefined, ruta: CreativeP
   const v = g[campo];
   return typeof v === 'string' || esNum(v) ? v : undefined;
 };
+
+/**
+ * LA VERSIÓN QUE NECESITA UNA INTENCIÓN (Fase 17 del motor, D14): la más alta de las de sus valores, y 1 si solo usa
+ * los de la 1. Es la que escribe quien la compone: lo que la 1 sabe decir se sigue escribiendo con la 1, igual que
+ * antes y byte a byte, y lo que usa un valor de la 2 lleva la 2.
+ */
+export const versionCreativaNecesaria = (p: CreativeParameters | undefined): number =>
+  RUTAS_CREATIVAS.reduce((v, r) => {
+    const x = valorCreativo(p, r);
+    return x === undefined ? v : Math.max(v, desdeQueVersion(r, x));
+  }, 1);
 
 /** Qué rutas trae de verdad. En el orden de `RUTAS_CREATIVAS`, siempre igual. */
 export const rutasDefinidas = (p: CreativeParameters | undefined): readonly CreativeParameterPath[] =>
@@ -465,5 +511,8 @@ export const compatibilidadCreativa = (
   return salida;
 };
 
-/** La versión con la que Weë escribe hoy. */
+/**
+ * La versión con la que Weë escribe POR DEFECTO: la 1. Desde la Fase 17 del motor (D14), una intención que usa un
+ * valor de la 2 se escribe con la 2 (`versionCreativaNecesaria`); todo lo demás, con la 1 de siempre.
+ */
 export const versionCreativaActual = (): number => CREATIVE_PARAMETERS_VERSION;

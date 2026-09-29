@@ -2,7 +2,7 @@ import type {
   AspectRatio, CameraType, CompositionType, CreativeParameterPath, CreativeParameters, LensType, LightingType,
   MotionSmoothness, MotionSpeed, MovementType, PerspectiveType, ShotType, TransitionType,
 } from '../core/creative';
-import { RUTAS_CREATIVAS, validarCreativos, valorCreativo, versionCreativaActual } from '../core/creative';
+import { RUTAS_CREATIVAS, validarCreativos, valorCreativo, versionCreativaActual, versionCreativaNecesaria } from '../core/creative';
 import { claveProhibidaDeNodo } from '../core/shot';
 import {
   AudioCue, CharacterState, ContinuityRule, CreativeDirection, DialogueLine, EditMarker, EditTrack, EditTrackKind,
@@ -463,7 +463,9 @@ const conRutas = (cp: CreativeParameters | undefined, cambios: readonly Cambio[]
     const [g, f] = r.split('.');
     grupos[g] = { ...(grupos[g] ?? {}), [f]: v };
   }
-  return { version: Math.max(cp?.version ?? 0, versionCreativaActual()), ...grupos } as unknown as CreativeParameters;
+  /* Con un valor de la 2 (Fase 17 del motor, D14), la 2; lo que la 1 sabe decir se escribe como siempre. */
+  const version = Math.max(cp?.version ?? 0, versionCreativaActual(), versionCreativaNecesaria({ version: 1, ...grupos } as unknown as CreativeParameters));
+  return { version, ...grupos } as unknown as CreativeParameters;
 };
 
 const conVisual = (v: VisualDirection | undefined, cambios: { creative?: CreativeParameters | null; style?: string | null }): VisualDirection | undefined => {

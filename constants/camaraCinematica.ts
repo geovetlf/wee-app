@@ -48,17 +48,24 @@ export const RUTAS_CREATIVAS = [
 
 export type RutaCreativa = typeof RUTAS_CREATIVAS[number];
 
-/** Los valores que el Core acepta en cada ruta. Ni uno más. */
+/**
+ * Los valores que el Core acepta en cada ruta. Ni uno más.
+ *
+ * Desde la Fase 17 del motor (D14) van también los nueve de la VERSIÓN 2 del lenguaje —encuadres `extreme_wide`,
+ * `full`, `medium_close_up`, `over_the_shoulder` e `insert`; movimientos `zoom_in`, `zoom_out` y
+ * `rack_focus`; composición `leading_lines`—, al final de sus listas y en el mismo orden que el Core. Quien los
+ * guarda en una producción es F1-A, que escribe la 2 solo cuando hace falta; la app no pone versiones.
+ */
 export const VALORES_CREATIVOS: Readonly<Record<string, readonly string[]>> = {
   'camera.type': ['aerial', 'ground', 'handheld', 'pov', 'macro', 'overhead', 'underwater'],
   'camera.perspective': ['eye_level', 'low_angle', 'high_angle', 'aerial'],
-  'shot.type': ['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero'],
+  'shot.type': ['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero', 'extreme_wide', 'full', 'medium_close_up', 'over_the_shoulder', 'insert'],
   'lens.type': ['wide', 'standard', 'telephoto', 'macro', 'fisheye'],
-  'movement.type': ['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow'],
+  'movement.type': ['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow', 'zoom_in', 'zoom_out', 'rack_focus'],
   'movement.speed': ['slow', 'normal', 'fast'],
   'motion.smoothness': ['smooth', 'natural', 'dynamic'],
   'lighting.type': ['natural', 'golden_hour', 'blue_hour', 'studio', 'dramatic', 'soft', 'high_contrast', 'night'],
-  'composition.type': ['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth'],
+  'composition.type': ['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth', 'leading_lines'],
   'transition.type': ['cut', 'dissolve', 'fade', 'match_cut', 'whip', 'seamless'],
   'framing.aspectRatio': ['16:9', '9:16', '1:1', '4:5', '4:3', '21:9'],
 };
@@ -119,6 +126,12 @@ export const FAMILIAS_DE_CAMARA: FamiliaDeCamara[] = [
       c('/closeup', 'studio.shtCloseUp', 'scan-outline', 'shot.type', 'close_up'),
       c('/extremecloseup', 'studio.shtExtremeCloseUp', 'ellipse-outline', 'shot.type', 'extreme_close_up'),
       c('/hero', 'studio.shtHero', 'star-outline', 'shot.type', 'hero'),
+      /* Versión 2 del lenguaje (Fase 17 del motor, D14): detrás de los de siempre, que no se mueven. */
+      c('/extremewide', 'studio.shtExtremeWide', 'earth-outline', 'shot.type', 'extreme_wide'),
+      c('/fullshot', 'studio.shtFull', 'body-outline', 'shot.type', 'full'),
+      c('/mediumcloseup', 'studio.shtMediumCloseUp', 'person-circle-outline', 'shot.type', 'medium_close_up'),
+      c('/overshoulder', 'studio.shtOverShoulder', 'people-outline', 'shot.type', 'over_the_shoulder'),
+      c('/insert', 'studio.shtInsert', 'aperture-outline', 'shot.type', 'insert'),
     ],
   },
   {
@@ -146,6 +159,10 @@ export const FAMILIAS_DE_CAMARA: FamiliaDeCamara[] = [
       c('/tilt', 'studio.mvTilt', 'arrow-up-outline', 'movement.type', 'tilt'),
       c('/craneup', 'studio.mvCraneUp', 'chevron-up-outline', 'movement.type', 'crane_up'),
       c('/cranedown', 'studio.mvCraneDown', 'chevron-down-outline', 'movement.type', 'crane_down'),
+      /* Versión 2 del lenguaje (Fase 17 del motor, D14). */
+      c('/zoomin', 'studio.mvZoomIn', 'add-circle-outline', 'movement.type', 'zoom_in'),
+      c('/zoomout', 'studio.mvZoomOut', 'remove-circle-outline', 'movement.type', 'zoom_out'),
+      c('/rackfocus', 'studio.mvRackFocus', 'git-compare-outline', 'movement.type', 'rack_focus'),
     ],
   },
   {
@@ -171,6 +188,8 @@ export const FAMILIAS_DE_CAMARA: FamiliaDeCamara[] = [
       c('/symmetrical', 'studio.cmpSymmetrical', 'copy-outline', 'composition.type', 'symmetrical'),
       c('/negativespace', 'studio.cmpNegative', 'square-outline', 'composition.type', 'negative_space'),
       c('/depth', 'studio.cmpDepth', 'layers-outline', 'composition.type', 'foreground_depth'),
+      /* Versión 2 del lenguaje (Fase 17 del motor, D14). */
+      c('/leadinglines', 'studio.cmpLeadingLines', 'analytics-outline', 'composition.type', 'leading_lines'),
     ],
   },
   {

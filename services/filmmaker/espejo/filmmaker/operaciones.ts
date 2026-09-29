@@ -1,6 +1,6 @@
 // GENERADO por scripts/espejo-filmmaker.mjs desde functions/src/filmmaker/operaciones.ts: no se edita a mano, se regenera.
 import type { AspectRatio, CameraType, CompositionType, CreativeParameterPath, CreativeParameters, LensType, LightingType, MotionSmoothness, MotionSpeed, MovementType, PerspectiveType, ShotType, TransitionType, } from '../core/creative';
-import { RUTAS_CREATIVAS, validarCreativos, valorCreativo, versionCreativaActual } from '../core/creative';
+import { RUTAS_CREATIVAS, validarCreativos, valorCreativo, versionCreativaActual, versionCreativaNecesaria } from '../core/creative';
 import { claveProhibidaDeNodo } from '../core/shot';
 import { AudioCue, CharacterState, ContinuityRule, CreativeDirection, DialogueLine, EditMarker, EditTrack, EditTrackKind, ExportTarget, FilmmakerProduction, FormatPresetId, LIMITES, PISTAS, PRESETS, PreviewPolicy, ProductionCharacter, ProductionIntent, ProductionLocation, ProductionObject, ProductionQuality, ProductionReference, ProductionScene, ProductionShot, ResolutionTarget, ShotSubject, SubtitlePlan, TimeOfDay, Unidad, VisualDirection, VoiceReference, Weather, aMs, aSec, buscarEscena, buscarPlano, canonico, configuracionDePreset, continuidadEfectiva, creativoEfectivo, derivarId, duracionDeEscenaMs, duracionDeUnidadMs, duracionTotalMs, esId, estadoEfectivo, idiomaDeLinea, idsDeLaProduccion, repartoDelPlano, unidades, vozDeLinea, } from './modelo';
 import { FilmmakerIssue, Params, ValidationCode, claveDeMensaje, integridad } from './validacion';
@@ -538,7 +538,8 @@ const conRutas = (cp: CreativeParameters | undefined, cambios: readonly Cambio[]
         const [g, f] = r.split('.');
         grupos[g] = { ...(grupos[g] ?? {}), [f]: v };
     }
-    return { version: Math.max(cp?.version ?? 0, versionCreativaActual()), ...grupos } as unknown as CreativeParameters;
+    const version = Math.max(cp?.version ?? 0, versionCreativaActual(), versionCreativaNecesaria({ version: 1, ...grupos } as unknown as CreativeParameters));
+    return { version, ...grupos } as unknown as CreativeParameters;
 };
 const conVisual = (v: VisualDirection | undefined, cambios: {
     creative?: CreativeParameters | null;

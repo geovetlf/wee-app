@@ -71,10 +71,16 @@ const diferencia = (esperado, real) => {
  * Son estos veinte, autorizados uno por uno. Las cinco listas de abajo los añaden
  * a las que ya había SIN tocarlas, y la sección C comprueba que son exactamente
  * los que solo nombra este código: uno más, o uno menos, falla por su nombre.
+ *
+ * Y uno más desde la Fase 17 del Filmmaker Engine (D14, el vocabulario de cámara
+ * v2; encargo del usuario del 2026-09-28, reanclado por nombre): F1-A escribe la
+ * versión del lenguaje creativo que HACE FALTA —la 2 solo con uno de sus nueve
+ * valores nuevos— con `versionCreativaNecesaria`, otra función pura del mismo
+ * módulo. Veintiuno.
  */
 const DE_PRODUCTIONS = {
   'core/content/asset.js': ['TIPOS_DE_MATERIAL'],
-  'core/creative.js': ['completarCreativos', 'validarCreativos', 'versionCreativaActual', 'PROPORCIONES', 'RUTAS_CREATIVAS', 'valorCreativo'],
+  'core/creative.js': ['completarCreativos', 'validarCreativos', 'versionCreativaActual', 'PROPORCIONES', 'RUTAS_CREATIVAS', 'valorCreativo', 'versionCreativaNecesaria'],
   'core/shot.js': ['claveProhibidaDeNodo', 'FORMA_DE_ID_DE_PLANO', 'MAX_NOMBRE_DE_ESCENA', 'MAX_NARRATIVA', 'MAX_ELEMENTOS_POR_NODO', 'MAX_DEPENDENCIAS_DE_PLANO'],
   'core/continuity.js': ['validarContinuidad', 'ASPECTOS_DE_CONTINUIDAD', 'FUERZAS_DE_CONTINUIDAD', 'RELACIONES_ESPACIALES', 'MAX_ANCLAJES', 'MAX_RELACIONES_ESPACIALES'],
   'core/language.js': ['normalizarEtiqueta'],
@@ -477,9 +483,9 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
   const deFilmmaker = (r) => r.startsWith('productions/') || r.startsWith('filmmaker/');
   const soloDeProductions = [...quienNombra].filter(([, quien]) => [...quien].every(deFilmmaker)).map(([s]) => s);
   const autorizados = Object.values(DE_PRODUCTIONS).flat();
-  check(`${n - 1}b) productions: la conexión pone en producción EXACTAMENTE los veinte símbolos autorizados, y ninguno más`,
-    autorizados.length === 20 && new Set(autorizados).size === 20 && igual(soloDeProductions, autorizados), diferencia(autorizados, soloDeProductions));
-  check(`${n - 1}c) productions: cada uno de los veinte es del módulo del Core en el que está autorizado`,
+  check(`${n - 1}b) productions: la conexión pone en producción EXACTAMENTE los veintiún símbolos autorizados, y ninguno más`,
+    autorizados.length === 21 && new Set(autorizados).size === 21 && igual(soloDeProductions, autorizados), diferencia(autorizados, soloDeProductions));
+  check(`${n - 1}c) productions: cada uno de los veintiuno es del módulo del Core en el que está autorizado`,
     Object.entries(DE_PRODUCTIONS).every(([modulo, simbolos]) => simbolos.every((s) => definidoEn.get(s) === modulo)),
     Object.entries(DE_PRODUCTIONS).flatMap(([modulo, simbolos]) => simbolos.filter((s) => definidoEn.get(s) !== modulo).map((s) => `${s} → ${definidoEn.get(s)}`)).join(', '));
   /*

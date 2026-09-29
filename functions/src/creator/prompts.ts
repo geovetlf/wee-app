@@ -659,15 +659,17 @@ export const MAX_OPERACIONES_POR_PROPUESTA = 12;
  * y los de F1-A (`filmmaker/modelo.ts`), copiados aquí porque los prompts viven
  * aquí y este archivo no carga el dominio de Filmmaker. No hay una segunda
  * verdad: `filmmaker-brain.test.mjs` los compara con los del código, y si uno
- * cambia sin el otro, la cadena falla.
+ * cambia sin el otro, la cadena falla. Desde la Fase 17 del motor (D14) llevan el
+ * vocabulario de cámara de la versión 2: lo que Weë Brain proponga con él, F1-A lo
+ * guarda con la 2 (`versionCreativaNecesaria`), y lo demás, con la 1 de siempre.
  */
 export const VOCABULARIO_DE_PRODUCCION = Object.freeze({
-  plano: Object.freeze(['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero']),
+  plano: Object.freeze(['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero', 'extreme_wide', 'full', 'medium_close_up', 'over_the_shoulder', 'insert']),
   camara: Object.freeze(['aerial', 'ground', 'handheld', 'pov', 'macro', 'overhead', 'underwater']),
   perspectiva: Object.freeze(['eye_level', 'low_angle', 'high_angle', 'aerial']),
   optica: Object.freeze(['wide', 'standard', 'telephoto', 'macro', 'fisheye']),
-  composicion: Object.freeze(['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth']),
-  movimiento: Object.freeze(['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow']),
+  composicion: Object.freeze(['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth', 'leading_lines']),
+  movimiento: Object.freeze(['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow', 'zoom_in', 'zoom_out', 'rack_focus']),
   velocidad: Object.freeze(['slow', 'normal', 'fast']),
   suavidad: Object.freeze(['smooth', 'natural', 'dynamic']),
   luz: Object.freeze(['natural', 'golden_hour', 'blue_hour', 'studio', 'dramatic', 'soft', 'high_contrast', 'night']),

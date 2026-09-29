@@ -561,8 +561,12 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * 3 136 → 3 138 con la Fase 16 (D13, el reproductor): entran `workspace.videoLoading`
    * y `workspace.videoError`, lo que dice el reproductor mientras carga y si no pudo
    * cargar, en los once diccionarios a la vez. No sale ninguna.
+   * 3 138 → 3 147 con la Fase 17 (D14, el vocabulario de cámara v2): entran los
+   * nombres de sus nueve valores (`studio.shtExtremeWide`, `shtFull`,
+   * `shtMediumCloseUp`, `shtOverShoulder`, `shtInsert`, `mvZoomIn`, `mvZoomOut`,
+   * `mvRackFocus` y `cmpLeadingLines`), en los once diccionarios a la vez. No sale ninguna.
    */
-  const CLAVES_PT = 3138;
+  const CLAVES_PT = 3147;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

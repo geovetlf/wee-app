@@ -2,13 +2,13 @@
 import { CREATIVE_PARAMETERS_VERSION } from './contracts';
 export type CameraType = 'aerial' | 'ground' | 'handheld' | 'pov' | 'macro' | 'overhead' | 'underwater';
 export type PerspectiveType = 'eye_level' | 'low_angle' | 'high_angle' | 'aerial';
-export type ShotType = 'establishing' | 'wide' | 'medium' | 'close_up' | 'extreme_close_up' | 'hero';
+export type ShotType = 'establishing' | 'wide' | 'medium' | 'close_up' | 'extreme_close_up' | 'hero' | 'extreme_wide' | 'full' | 'medium_close_up' | 'over_the_shoulder' | 'insert';
 export type LensType = 'wide' | 'standard' | 'telephoto' | 'macro' | 'fisheye';
-export type MovementType = 'static' | 'dolly_in' | 'dolly_out' | 'tracking' | 'orbit' | 'pan' | 'tilt' | 'crane_up' | 'crane_down' | 'push_in' | 'pull_out' | 'follow';
+export type MovementType = 'static' | 'dolly_in' | 'dolly_out' | 'tracking' | 'orbit' | 'pan' | 'tilt' | 'crane_up' | 'crane_down' | 'push_in' | 'pull_out' | 'follow' | 'zoom_in' | 'zoom_out' | 'rack_focus';
 export type MotionSpeed = 'slow' | 'normal' | 'fast';
 export type MotionSmoothness = 'smooth' | 'natural' | 'dynamic';
 export type LightingType = 'natural' | 'golden_hour' | 'blue_hour' | 'studio' | 'dramatic' | 'soft' | 'high_contrast' | 'night';
-export type CompositionType = 'centered' | 'rule_of_thirds' | 'symmetrical' | 'negative_space' | 'foreground_depth';
+export type CompositionType = 'centered' | 'rule_of_thirds' | 'symmetrical' | 'negative_space' | 'foreground_depth' | 'leading_lines';
 export type TransitionType = 'cut' | 'dissolve' | 'fade' | 'match_cut' | 'whip' | 'seamless';
 export type AspectRatio = '16:9' | '9:16' | '1:1' | '4:5' | '4:3' | '21:9';
 export interface CreativeParameters {
@@ -61,13 +61,13 @@ const esNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 const PELIGROSAS = ['__proto__', 'constructor', 'prototype'];
 const CAMARAS: readonly string[] = ['aerial', 'ground', 'handheld', 'pov', 'macro', 'overhead', 'underwater'];
 const PERSPECTIVAS: readonly string[] = ['eye_level', 'low_angle', 'high_angle', 'aerial'];
-const PLANOS: readonly string[] = ['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero'];
+const PLANOS: readonly string[] = ['establishing', 'wide', 'medium', 'close_up', 'extreme_close_up', 'hero', 'extreme_wide', 'full', 'medium_close_up', 'over_the_shoulder', 'insert'];
 const OPTICAS: readonly string[] = ['wide', 'standard', 'telephoto', 'macro', 'fisheye'];
-const MOVIMIENTOS: readonly string[] = ['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow'];
+const MOVIMIENTOS: readonly string[] = ['static', 'dolly_in', 'dolly_out', 'tracking', 'orbit', 'pan', 'tilt', 'crane_up', 'crane_down', 'push_in', 'pull_out', 'follow', 'zoom_in', 'zoom_out', 'rack_focus'];
 const VELOCIDADES: readonly string[] = ['slow', 'normal', 'fast'];
 const SUAVIDADES: readonly string[] = ['smooth', 'natural', 'dynamic'];
 const LUCES: readonly string[] = ['natural', 'golden_hour', 'blue_hour', 'studio', 'dramatic', 'soft', 'high_contrast', 'night'];
-const COMPOSICIONES: readonly string[] = ['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth'];
+const COMPOSICIONES: readonly string[] = ['centered', 'rule_of_thirds', 'symmetrical', 'negative_space', 'foreground_depth', 'leading_lines'];
 const TRANSICIONES: readonly string[] = ['cut', 'dissolve', 'fade', 'match_cut', 'whip', 'seamless'];
 export const PROPORCIONES: readonly string[] = ['16:9', '9:16', '1:1', '4:5', '4:3', '21:9'];
 export const FOCAL_MIN_MM = 4;
@@ -83,6 +83,13 @@ const GRUPOS: Readonly<Record<string, Readonly<Record<string, readonly string[] 
     transition: { type: TRANSICIONES },
     framing: { aspectRatio: PROPORCIONES },
 };
+export const VERSION_CREATIVA_MAS_RECIENTE = 2;
+const DE_LA_VERSION_2: Readonly<Record<string, readonly string[]>> = {
+    'shot.type': ['extreme_wide', 'full', 'medium_close_up', 'over_the_shoulder', 'insert'],
+    'movement.type': ['zoom_in', 'zoom_out', 'rack_focus'],
+    'composition.type': ['leading_lines'],
+};
+export const desdeQueVersion = (ruta: string, valor: string | number): number => typeof valor === 'string' && Object.prototype.hasOwnProperty.call(DE_LA_VERSION_2, ruta) && DE_LA_VERSION_2[ruta].includes(valor) ? 2 : 1;
 export type MotivoCreativoInvalido = 'invalid_shape' | 'unknown_field' | 'dangerous_key' | 'invalid_version' | 'invalid_value' | 'out_of_range' | 'incoherent';
 export interface ProblemaCreativo {
     path: string;
@@ -98,6 +105,7 @@ export const validarCreativos = (crudo: unknown): readonly ProblemaCreativo[] =>
     if (!esNum(crudo.version) || !Number.isInteger(crudo.version) || crudo.version < 1 || crudo.version > 99) {
         p.push(mal('creative.version', 'invalid_version'));
     }
+    const idioma = esNum(crudo.version) && Number.isInteger(crudo.version) ? crudo.version : 0;
     for (const [clave, valor] of Object.entries(crudo)) {
         if (PELIGROSAS.includes(clave)) {
             p.push(mal(`creative.${clave}`, 'dangerous_key'));
@@ -135,7 +143,11 @@ export const validarCreativos = (crudo: unknown): readonly ProblemaCreativo[] =>
                     p.push(mal(`${clave}.${campo}`, 'out_of_range'));
                 continue;
             }
-            if (typeof dato !== 'string' || !admitido.includes(dato))
+            if (typeof dato !== 'string' || !admitido.includes(dato)) {
+                p.push(mal(`${clave}.${campo}`, 'invalid_value'));
+                continue;
+            }
+            if (desdeQueVersion(`${clave}.${campo}`, dato) > idioma)
                 p.push(mal(`${clave}.${campo}`, 'invalid_value'));
         }
     }
@@ -155,6 +167,10 @@ export const valorCreativo = (p: CreativeParameters | undefined, ruta: CreativeP
     const v = g[campo];
     return typeof v === 'string' || esNum(v) ? v : undefined;
 };
+export const versionCreativaNecesaria = (p: CreativeParameters | undefined): number => RUTAS_CREATIVAS.reduce((v, r) => {
+    const x = valorCreativo(p, r);
+    return x === undefined ? v : Math.max(v, desdeQueVersion(r, x));
+}, 1);
 export const rutasDefinidas = (p: CreativeParameters | undefined): readonly CreativeParameterPath[] => RUTAS_CREATIVAS.filter((r) => valorCreativo(p, r) !== undefined);
 export const conflictosCreativos = (a: CreativeParameters | undefined, b: CreativeParameters | undefined): readonly CreativeParameterPath[] => RUTAS_CREATIVAS.filter((r) => {
     const x = valorCreativo(a, r);

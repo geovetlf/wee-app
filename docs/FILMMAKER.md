@@ -389,7 +389,7 @@ siguen **pendientes**:
 | D11 | Precios, límites y cancelación | **decidida** en la Fase 15 del motor (2026-09-28): el precio es una cotización del Credit Engine antes de generar, el cupo es el de Weë Studio (12 vídeos al día) y un duplicado no cobra ni gasta cupo (F1-D); **detener una toma**: si el proveedor todavía no la aceptó, se para y se devuelve ENTERA; si ya la tiene, termina y se cobra (parada en el proveedor solo tras su puerta, cerrada); idempotente, sin doble devolución y sin mover dinero con un desenlace ambiguo |
 | D12 | Versiones y «restaurar» | **decidida** en la Fase 12 del motor (2026-09-28), sobre su parte mínima (ADR-FM-006 y 007): restaurar es volver a una revisión anterior como una revisión NUEVA (`restore`), con CAS, sin perder ninguna; enseñarlo en la app, en el pase de UX |
 | D13 | Reproductor | **decidida** en la Fase 16 del motor (2026-09-28): UNO solo, el de siempre (`components/workspace/ReproductorDeVideo.tsx`), para la toma, el montaje y la exportación, en el teléfono y en el escritorio: su póster antes de reproducir, la rueda mientras carga, el error con «Inténtalo de nuevo», y el «se está haciendo» en el lienzo cuando el vídeo ya se pidió; «Ver vídeo» lo abre DENTRO de Weë, en una hoja; la tira, la línea de tiempo y la rejilla pintan la imagen fija en vez de cargar un vídeo por plano |
-| D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | pendiente: se usa el vocabulario actual del Core |
+| D14 | Vocabulario de cámara v2 (extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus, leading lines) | **decidida** en la Fase 17 del motor (2026-09-28): los nueve, en el Core, como VERSIÓN 2 del lenguaje creativo —aditiva, al final de sus listas, y con `version: 1` no existen—; F1-A escribe la 2 solo cuando hace falta, el texto del plano no cambia y lo de la 1 da el mismo prompt que antes, byte a byte |
 
 ## Lo que el lenguaje aún no tiene
 
@@ -1238,6 +1238,46 @@ esta fase) y los dobles de la toma en `f1d-cliente` y `filmmaker-cancelar` (la t
 reproductor); `i18n-preferencia-usuario` (`CLAVES_PT` 3136 → 3138).
 
 Pruebas: `functions/test/filmmaker-reproductor.test.mjs` (en la cadena).
+
+### Fase 17 · El vocabulario de cámara v2 (D14)
+
+Encargo del usuario (2026-09-28): extreme wide, full, MCU, over-the-shoulder, insert, zoom, rack focus y leading lines,
+integrados en el Core de forma determinista, sin romper los prompts que ya existen, versionando el contrato si hace falta
+y con pruebas de compatibilidad para lo antiguo.
+
+- **En el Core, aditivo y por versión** (`core/creative.ts`): nueve valores AL FINAL de tres listas —`shot.type`:
+  `extreme_wide`, `full`, `medium_close_up`, `over_the_shoulder`, `insert`; `movement.type`: `zoom_in`, `zoom_out`,
+  `rack_focus`; `composition.type`: `leading_lines`—. Ni una ruta nueva (siguen las doce), ni un valor de la 1 movido.
+  Son de la **versión 2** del lenguaje y solo de ella: con `version: 1` no existen (`invalid_value`), así que lo
+  guardado con la 1 se sigue leyendo exactamente como la 1, que es la promesa del contrato. `CREATIVE_PARAMETERS_VERSION`
+  sigue en 1 —la versión con que Weë escribe por defecto— y `contracts.ts` no cambia; `VERSION_CREATIVA_MAS_RECIENTE`
+  es 2, `desdeQueVersion(ruta, valor)` dice de qué versión es cada valor y `versionCreativaNecesaria(p)` la que
+  necesita una intención.
+- **F1-A escribe la versión que hace falta**: `conRutas` pone la 2 solo cuando la intención lleva uno de los nueve, y
+  nunca baja una versión. Todo lo que la 1 sabe decir se escribe como siempre, byte a byte. El espejo de la app se
+  regenera y aplica lo mismo que el servidor.
+- **El texto del plano no cambia ni una coma** (`creator/plano.ts`, sin tocar; plantilla `fm-plano-1`): los nueve se
+  dicen con las palabras de siempre —«extreme wide shot», «movement rack focus (slow)», «leading lines composition»—.
+  Un requisito que dice ser de la 1 y trae uno de la 2 no lleva cámara: no se inventa ni se aproxima.
+- **Weë Brain**: en el editor de producciones (Fase 9) se le enseñan los nueve, porque su vocabulario es exactamente el
+  del Core. Su prompt general —el de todas las cajas, que escribe `{"version":1,…}`— no cambia ni una letra, y si
+  escribiera uno de la 2 con la 1, se descartaría entero, como cualquier intención rota.
+- **Al proveedor se le exige lo de siempre**: un zoom o un cambio de foco piden control de cámara como cualquier
+  movimiento (`exigenciasDe`); un encuadre o una composición, nada. Ni un proveedor, ni un modelo, ni una capacidad nueva.
+- **En la app**: la biblioteca de cámara (`constants/camaraCinematica.ts`) gana nueve comandos detrás de los de su
+  familia —los de siempre no se mueven— con sus nueve nombres (`studio.sht*`, `studio.mv*`, `studio.cmpLeadingLines`)
+  en los once diccionarios. El portugués es el de Brasil.
+
+**Compatibilidad, probada con el código de ANTES**: la suite saca de git el espejo de F1-A y del Core de la Fase 16 y el
+texto del plano, y con cada uno de los 53 valores de la 1 que se escriben por operación compara producción, requisito y
+prompt entre el código de antes y el de ahora: iguales, byte a byte, también con todas las rutas a la vez en tres
+ámbitos y con el prompt avanzado (`fm-plano-2`).
+
+Vallas reancladas por nombre: `motor-filmmaker-alcance` gana `core/creative.ts` con este motivo (las vallas de F1-D que
+miran el Core lo aceptan por ahí), `runtime-map` 97b/97c (la conexión de `productions` pasa de veinte a veintiún símbolos
+del Core: `versionCreativaNecesaria`) e `i18n-preferencia-usuario` (`CLAVES_PT` 3138 → 3147).
+
+Pruebas: `functions/test/filmmaker-camara-v2.test.mjs` (en la cadena).
 
 ## Próximas fases
 
