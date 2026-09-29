@@ -285,6 +285,17 @@ export const CLAVE_DE_TRANSICION: Readonly<Record<TransitionType, string>> = Obj
   seamless: 'filmmaker.transitionSeamless',
 });
 
+/* ── Fase 27 del motor · las referencias, de verdad ─── */
+
+/** Las clases de lo guardado que pueden ser referencia de una producción: todo lo que tiene imagen. */
+export const CLASES_GUARDADAS_COMO_REFERENCIA: readonly string[] = Object.freeze(['character', 'place', 'scene', 'object', 'product', 'brand']);
+
+/** Lo que haría falta para generar un plano, en palabras: las capacidades del Core que hoy no se generan en Filmmaker. */
+export const CLAVE_DE_CAPACIDAD: Readonly<Record<string, string>> = Object.freeze({
+  'video.image_to_video': 'filmmaker.capImageToVideo',
+  'video.reference': 'filmmaker.capReference',
+});
+
 /* ── Fase 25 del motor · el sonido: los niveles que se ofrecen para un sonido en la mezcla (F1-A admite de 0 a 1) ─── */
 export const NIVELES_DE_SONIDO: readonly number[] = Object.freeze([0.25, 0.5, 0.75, 1]);
 

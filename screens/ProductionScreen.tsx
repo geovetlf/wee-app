@@ -5,10 +5,11 @@ import { useTheme, enTemaClaro, useEnStudio } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import {
-  useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea, nuevoIdDePersonaje, nuevoIdDeLugar, nuevoIdDeObjeto,
+  useProduccion, nuevoIdDeEscena, nuevoIdDePlano, nuevoIdDeSonido, nuevoIdDeLinea, nuevoIdDePersonaje, nuevoIdDeLugar, nuevoIdDeObjeto, nuevoIdDeReferencia,
 } from '../hooks/useProduccion';
 import { useTomaDePlano } from '../hooks/useTomaDePlano';
 import { useTomasDelPlano } from '../hooks/useTomasDelPlano';
+import { useCreacionesParaReferencia } from '../hooks/useCreacionesParaReferencia';
 import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import { useMontajeFinal } from '../hooks/useMontajeFinal';
 import { useHistorialDeProduccion } from '../hooks/useHistorialDeProduccion';
@@ -114,7 +115,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   /* Los ids de un sonido y de una línea nuevos, como los de una escena o un plano: los pone el cliente, una vez. */
   const idsDelMontaje = useMemo(() => ({ sonido: nuevoIdDeSonido, linea: nuevoIdDeLinea }), []);
   /* Fase 23 del motor: y los de las fichas del proyecto. */
-  const idsDeFichas = useMemo(() => ({ personaje: nuevoIdDePersonaje, lugar: nuevoIdDeLugar, objeto: nuevoIdDeObjeto }), []);
+  const idsDeFichas = useMemo(() => ({ personaje: nuevoIdDePersonaje, lugar: nuevoIdDeLugar, objeto: nuevoIdDeObjeto, referencia: nuevoIdDeReferencia }), []);
 
   const vista = estado.vista;
   /* Volviendo a una versión o aplicando una propuesta, nada se edita (Fase 22 del motor, arreglo R6). */
@@ -148,6 +149,8 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   /* Fase 20 del motor: las versiones, lo guardado para vincular y Weë Brain dentro del editor, sobre lo GUARDADO. */
   const historial = useHistorialDeProduccion(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const elementos = useElementosParaVincular();
+  /* Fase 27 del motor: Mis creaciones, para añadirlas como referencia. Se piden al abrir el selector, no antes. */
+  const creaciones = useCreacionesParaReferencia();
   const brain = useWeeBrainDelEditor(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
@@ -229,6 +232,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       historial,
       onRestaurar: (revision) => { void alRestaurar(revision); },
       elementos,
+      creaciones,
       brain,
       onAplicarPropuesta: controlador.aplicarPropuesta,
       seleccion,

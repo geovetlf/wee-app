@@ -10,6 +10,7 @@ import type { Ocupado, ResultadoDeGesto, ResultadoDePropuesta } from '../../../u
 import type { CalidadesDeToma, VideoDelPlano } from '../../../utils/controladorDeToma';
 import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import type { HistorialDeTomas } from '../../../hooks/useTomasDelPlano';
+import type { CreacionesParaReferencia } from '../../../hooks/useCreacionesParaReferencia';
 import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
 import type { HistorialDeProduccion } from '../../../hooks/useHistorialDeProduccion';
 import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
@@ -42,7 +43,9 @@ export interface EspacioDeFilmmaker {
   readonly ocupado?: Ocupado | null;
   readonly ids: IdsNuevos;
   /** Fase 23 · los ids de las fichas nuevas (personaje, lugar, objeto): los pone el cliente, una vez, como los demás. */
-  readonly idsDeFichas?: { readonly personaje: () => string; readonly lugar: () => string; readonly objeto: () => string };
+  readonly idsDeFichas?: { readonly personaje: () => string; readonly lugar: () => string; readonly objeto: () => string; readonly referencia?: () => string };
+  /** Fase 27 · Mis creaciones, para añadirlas como referencia. */
+  readonly creaciones?: CreacionesParaReferencia;
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
   /** Fase 24 · las tomas de la unidad elegida, como las cuenta el servidor. Solo lectura. */

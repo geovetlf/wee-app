@@ -602,8 +602,14 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * 3 442 → 3 446 con la Fase 26 (exportar diciendo la verdad): entran cuatro —el montaje hecho con
    * otras tomas (`wsFinalCutStale`, `wsFinalCutCreateAgain`), descargarlo (`wsDownloadFinalCut`) y que
    * el montaje de hoy todavía no incluye los subtítulos (`wsSubtitlesNotInCut`)—, en los once a la vez.
+   * 3 446 → 3 464 con la Fase 27 (las referencias, de verdad): entran dieciocho —añadir una
+   * referencia desde Mis creaciones o desde lo guardado (`wsReferenceAdd`, `wsRef*`,
+   * `wsCreationUnnamed`), la capacidad que haría falta para generar un plano (`wsShotWouldNeed`,
+   * `cap*`), editar y extender un vídeo y la voz de Weë, cerrados y dichos (`wsEditVideo`,
+   * `wsExtendVideo`, `wsEditExtendClosed`, `wsVoiceChoose`, `wsVoiceCatalogClosed`) y que el último
+   * plano no da paso a ninguno (`wsTransitionLastShot`)—, en los once a la vez.
    */
-  const CLAVES_PT = 3446;
+  const CLAVES_PT = 3464;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

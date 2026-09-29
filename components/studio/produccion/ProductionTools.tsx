@@ -435,6 +435,8 @@ const ProductionTools: React.FC<{
                   onElegir={(v) => onGesto([{ op: 'change_transition', target: { scope: 'shot', shotId: plano.id }, transition: v as TransitionType | null }])}
                 />
                 {typeof propia !== 'string' && nota(t('filmmaker.wsTransitionInherited', { transicion: t(CLAVE_DE_TRANSICION[segmento?.transitionOut ?? 'cut']) }))}
+                {/* Fase 27 del motor: la del último plano no se ve en ningún sitio, porque no da paso a nada; se dice. */}
+                {!!espacio.linea && espacio.linea.segments[espacio.linea.segments.length - 1]?.shotId === plano.id && nota(t('filmmaker.wsTransitionLastShot'))}
               </Seccion>
             )
             : sinPlano}

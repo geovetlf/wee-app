@@ -5,6 +5,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import { BotonPequeno, Chip } from './ProductionPiezas';
+import ProductionSelectorDeCreaciones from './ProductionSelectorDeCreaciones';
 import type { EspacioDeFilmmaker } from './espacio';
 import { LIMITES, PAPELES_DE_REFERENCIA, aplicarOperaciones, validarProduccion } from '../../../services/filmmaker/dominio';
 import type { FilmmakerProduction, ProductionReference, ReferenceRole } from '../../../services/filmmaker/dominio';
@@ -29,8 +30,11 @@ const isWeb = Platform.OS === 'web';
 const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espacio }) => {
   const { theme } = useTheme();
   const { t } = useIdioma();
-  const { produccion, editable, onGesto } = espacio;
+  const { produccion, editable, onGesto, creaciones, elementos } = espacio;
   const [abierta, setAbierta] = useState<string | null>(null);
+  /* Fase 27 del motor: añadiendo una referencia, de Mis creaciones o de lo guardado. */
+  const [anadiendo, setAnadiendo] = useState(false);
+  const nuevoId = espacio.idsDeFichas?.referencia;
   const refs = produccion.references;
   const nombre = (r: ProductionReference) => r.description || t(CLAVE_DEL_PAPEL_DE_REFERENCIA[r.role ?? 'general']);
   /*
@@ -55,6 +59,22 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
       }
     }
   };
+  /* Añadir es la operación de F1-A de siempre (`add_reference`); luego se abre su ficha para decir para qué sirve. */
+  const anadir = (referencia: ProductionReference) => {
+    if (onGesto([{ op: 'add_reference', reference: referencia }]).ok) setAbierta(referencia.id);
+    setAnadiendo(false);
+  };
+  if (anadiendo && creaciones && nuevoId) {
+    return (
+      <ProductionSelectorDeCreaciones
+        creaciones={creaciones}
+        elementos={elementos}
+        onElegirCreacion={(c) => anadir({ id: nuevoId(), kind: c.clase, assetId: c.assetId, ...(c.nombre ? { description: c.nombre } : {}) })}
+        onElegirGuardado={(e) => anadir({ id: nuevoId(), kind: 'image', element: { elementId: e.elementId, version: e.version }, description: e.name })}
+        onVolver={() => setAnadiendo(false)}
+      />
+    );
+  }
   return (
     <View style={styles.bloque}>
       <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsReferencesGenerateNote')}</Text>
@@ -115,6 +135,9 @@ const ProductionReferencias: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espa
           </View>
         );
       })}
+      {editable && !!creaciones && !!nuevoId && (
+        <BotonPequeno icono="add" etiqueta={t('filmmaker.wsReferenceAdd')} onPress={() => setAnadiendo(true)} conTexto />
+      )}
     </View>
   );
 };

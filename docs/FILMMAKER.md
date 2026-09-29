@@ -1406,7 +1406,7 @@ por «conectado en la app» lo que solo está en el servidor, o lo que en la app
 
 **En la app y utilizable** (con la puerta abierta para la cuenta, ver abajo): la toma de UN plano —su precio, sus
 calidades, su estado, detenerla y verla en el reproductor—; las versiones y volver a una; Weë Brain dentro del editor;
-el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **48 de las 56 operaciones** de F1-A con un
+el prompt avanzado, solo para leerlo; las recomendaciones de F1-A; y **49 de las 56 operaciones** de F1-A con un
 control propio: la estructura de escenas y planos, la duración, la cámara entera, el movimiento, la luz, el estilo, el
 clima, el momento del día, el texto, añadir y quitar diálogo, el sonido, el formato y la entrega; desde la Fase 23, el
 brief (la intención), la dirección creativa y el ánimo, la transición al plano siguiente, crear, describir, vincular y
@@ -1414,9 +1414,10 @@ quitar personajes, lugares y objetos, describir y quitar referencias, y en cada 
 cada uno, qué hay y dónde (`update_scene`, `update_shot`, `set_character_state`, `change_location`); y desde la Fase
 24, el guion —corregir una línea o cambiar cómo se dice (`change_dialogue`) y para qué sirve cada escena— y la
 continuidad en sus tres niveles (`change_continuity`). Las tomas de cada plano se ven una debajo de otra (Fase 24).
+Y desde la Fase 27, añadir una referencia (`add_reference`) desde Mis creaciones o desde lo guardado.
 
 **Hecho en el servidor y todavía sin UX**: varios planos a la vez (Fase 6); la traza de cada toma (Fase 2); y las
-**8 operaciones sin control propio** —añadir una referencia (`add_reference`), sustituir un personaje o una
+**7 operaciones sin control propio** —sustituir un personaje o una
 referencia (`replace_character`, `replace_reference`), el sujeto (`change_subject`), mover un plano a otra escena
 (`move_shot`), la calidad de generación (`change_generation`), el plan de montaje (`change_edit_plan`) y renombrar la
 producción (`rename_production`)—: llegan solo si Weë Brain las propone o aceptando una recomendación.
@@ -1645,6 +1646,36 @@ que el usuario lo decida.
 
 Pruebas: `functions/test/filmmaker-exportar.test.mjs` (en la cadena). Reanclada: `filmmaker-publicar` C23 (la llamada
 al hook lleva ahora la firma de los vídeos).
+### Fase 27 · Las referencias, de verdad; y lo preparado y cerrado, dicho
+
+Encargo del usuario (2026-09-28, «MASTER EXECUTION PROMPT», fases D y E): integrar lo que los adaptadores ya saben y
+dejar preparado —y cerrado, y dicho— lo que pide una validación o un contrato. Ni una Function, ni F1-A, ni F1-D, ni
+la puerta del Core tocados; ningún switch abierto; nada que cueste dinero.
+
+- **Añadir una referencia** (`ProductionSelectorDeCreaciones`, `hooks/useCreacionesParaReferencia.ts`), con
+  `add_reference`, la operación de F1-A que no tenía control: de **Mis creaciones** —una imagen, un vídeo o un audio de la
+  cuenta (la cuenta, no la cara), por clase y por páginas, con búsqueda sobre lo cargado y «Cargar más»— o de **lo
+  guardado** —un personaje, un lugar, una escena, un objeto, un producto o una marca, en SU versión—. Queda abierta para
+  decir para qué sirve (su papel; los que no encajan con su material, apagados: Fase 25). El servidor comprueba al
+  guardar que el material o lo guardado es de la cuenta (Fase 10).
+- **Qué haría falta para generar un plano con referencias**: la capacidad que F1-A calcula para él —«un vídeo a partir
+  de una imagen» (primer o último fotograma) o «un vídeo que use referencias»—, además del aviso de que hoy no se
+  genera.
+- **Preparado y cerrado, dicho**: editar y extender el vídeo de un plano (apagados, «disponible próximamente; requiere
+  validar su modelo, su precio y su prueba real», sin precio inventado); la voz de Weë de un personaje (apagada: el
+  catálogo está vacío hasta su prueba real, Fase 19); y el último plano dice que no da paso a ninguno.
+
+**Bloqueado por contrato (no se hace; queda pedido en el informe con su formato):**
+- *Generar con primer o último fotograma o con referencias.* El adaptador de Seedance ya sabe (`video.image_to_video`,
+  `video.reference`), pero F1-D (`evaluarPlano`) lo rechaza (`capability_not_supported`, `references_not_supported`) y la
+  puerta del Core de `generateVideo` solo admite `video.generate` (`CAPACIDAD_DEL_CANARY`, regla 10 de CLAUDE.md).
+- *Editar y extender un vídeo.* El adaptador lo sabe (`omni_reference_task_type` `edit`/`extend`), pero no hay operación
+  en F1-A, ni requisito en F1-D, ni precio en el Credit Engine, ni sitio en la puerta del Core.
+- *Guardar una voz de Weë en un personaje.* `VoiceReference` de F1-A no tiene dónde (Fase 19).
+- *Sincronizar labios (diálogo a cámara).* Otra capacidad, sin validar (`dialogue_not_supported`).
+
+Pruebas: `functions/test/filmmaker-materiales.test.mjs` (en la cadena). Reanclada: `filmmaker-espacio` V7 (la línea de
+los ids de las fichas gana el de una referencia).
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

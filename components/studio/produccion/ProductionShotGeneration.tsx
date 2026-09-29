@@ -113,6 +113,20 @@ const Generacion: React.FC<{
           )}
         </View>
       )}
+      {!!enElPlano && (
+        /*
+         * Fase 27 del motor: editar o extender este vídeo. El modelo de vídeo de Weë sabe hacerlo, pero en Filmmaker no
+         * hay todavía ni operación, ni requisito, ni precio, ni prueba real: se enseña cerrado y se dice por qué, sin
+         * un precio inventado.
+         */
+        <View style={styles.acciones}>
+          <View style={styles.opciones}>
+            <BotonPequeno icono="cut-outline" etiqueta={t('filmmaker.wsEditVideo')} onPress={() => undefined} disabled conTexto />
+            <BotonPequeno icono="play-forward-outline" etiqueta={t('filmmaker.wsExtendVideo')} onPress={() => undefined} disabled conTexto />
+          </View>
+          {nota(t('filmmaker.wsEditExtendClosed'))}
+        </View>
+      )}
       {ultima?.estado === 'fallida' && (ultima.cancelada
         /* La detuvo la persona (Fase 15): no es un fallo, y se dice así. */
         ? nota(t('filmmaker.takeStopped'))

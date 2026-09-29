@@ -5,7 +5,8 @@ import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import { Aviso, Seccion } from './ProductionPiezas';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
-import { LIMITES, estadoEfectivo, repartoDelPlano } from '../../../services/filmmaker/dominio';
+import { LIMITES, estadoEfectivo, repartoDelPlano, requisitosDeProduccion } from '../../../services/filmmaker/dominio';
+import { CLAVE_DE_CAPACIDAD } from '../../../constants/filmmaker';
 import type { FilmmakerOperation } from '../../../services/filmmaker/dominio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 
@@ -71,6 +72,13 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
     onGesto([op]);
   };
   const objetivo = plano ? { shotId: plano.id } : { sceneId: escena.id };
+  /* Con referencias, ¿qué capacidad pediría este plano? La calcula F1-A (sus requisitos); si la producción no está lista, no se dice nada. */
+  const capacidad = (() => {
+    if (!plano || !referencias.size) return undefined;
+    const r = requisitosDeProduccion(produccion);
+    const c = r.ok ? r.requirements.shots.find((s) => s.unitId === plano.id)?.capability : undefined;
+    return c ? CLAVE_DE_CAPACIDAD[c] : undefined;
+  })();
   const conEstado = estadoDe && reparto.has(estadoDe) ? estadoDe : null;
   const estado = conEstado ? estadoEfectivo(escena, plano, conEstado) : undefined;
   return (
@@ -168,6 +176,8 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
               />
             )}
           {referencias.size > 0 && <Aviso texto={t('filmmaker.wsReferencesBlockTake')} />}
+          {/* Fase 27 del motor: lo que haría falta, dicho con la capacidad que F1-A calcula para este plano. */}
+          {!!capacidad && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsShotWouldNeed', { capacidad: t(capacidad) })}</Text>}
         </Seccion>
       )}
     </View>

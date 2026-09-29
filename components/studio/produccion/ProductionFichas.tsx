@@ -182,6 +182,14 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
                     }}
                   />
                 )}
+                {clase === 'personaje' && (
+                  /* Fase 27 del motor: elegir una voz de Weë. El catálogo está vacío hasta su prueba real (Fase 19), y guardarla
+                     en el personaje pide un sitio en F1-A que no tiene: se enseña cerrado y se dice. */
+                  <View style={styles.acciones}>
+                    <BotonPequeno icono="mic-outline" etiqueta={t('filmmaker.wsVoiceChoose')} onPress={() => undefined} disabled conTexto />
+                    <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsVoiceCatalogClosed')}</Text>
+                  </View>
+                )}
                 {clase === 'lugar' && (
                   <Opciones
                     opciones={AMBIENTES.map((a) => ({ valor: a, texto: t(CLAVE_DEL_AMBIENTE[a]) }))}

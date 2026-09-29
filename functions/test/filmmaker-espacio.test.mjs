@@ -682,7 +682,8 @@ console.log('\n── V · El proyecto y lo que hay en el plano, en el escritori
   const SV = leer('services/filmmakerService.ts');
   const prefijos = [['Personaje', 'ch'], ['Lugar', 'lc'], ['Objeto', 'ob']];
   check('V7) la pantalla da los ids de las fichas nuevas —ch_, lc_, ob_—, con la forma de id de F1-A',
-    /const idsDeFichas = useMemo\(\(\) => \(\{ personaje: nuevoIdDePersonaje, lugar: nuevoIdDeLugar, objeto: nuevoIdDeObjeto \}\), \[\]\);/.test(PS) && /\n\s+idsDeFichas,\n/.test(PS)
+    /* Reanclada en la Fase 27 del motor: la misma línea gana el id de una referencia nueva. */
+    /const idsDeFichas = useMemo\(\(\) => \(\{ personaje: nuevoIdDePersonaje, lugar: nuevoIdDeLugar, objeto: nuevoIdDeObjeto(, referencia: nuevoIdDeReferencia)? \}\), \[\]\);/.test(PS) && /\n\s+idsDeFichas,\n/.test(PS)
     && prefijos.every(([n, p]) => new RegExp(`export const nuevoIdDe${n} = \\(\\): string => \`${p}_\\$\\{alAzar\\(12\\)\\}\`;`).test(SV) && M.esId(`${p}_Zx09AbCdEfGh`)));
   const Hoja = cargar('components/studio/produccion/ProductionStructureSheet.tsx').default;
   /* Reanclada en la Fase 24 del motor: la hoja recibe el espacio, porque el guion ya se edita (`ProductionGuion`). */
