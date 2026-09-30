@@ -183,6 +183,17 @@ const DEFORMES = [
   [/(?<![\p{L}])[Kk]redit(?:er|erna|en)(?![\p{L}])/u, 'Credits en sueco'],
   [/Weë (?:Musik|Resa|Resor|Kock|Företag|Hjärna|Skribent|Skönhet|Hem)(?![\p{L}])/u, 'experiencia de Weë traducida al sueco'],
   [/(?:WeeTalk|Credits|Wäll|ËContact|ẄContact)(?:en|et|s|ens|ets)(?![\p{L}])|(?<![\p{L}])Weës(?![\p{L}])/u, 'marca declinada en sueco'],
+  /*
+   * HINDI. Las marcas van en latino dentro de la frase: la tentación es
+   * transliterarlas en devanagari —«क्रेडिट्स», «वीटॉक», «वील्स», «वी»— o
+   * traducir la experiencia —«Weë संगीत», «Weë यात्रा»—. «क्रेडिट कार्ड», la
+   * tarjeta, sí es hindi corriente, y «Weë प्रोफ़ाइल» es la marca seguida de un
+   * sustantivo (como «Google खाता»), no una experiencia traducida. En devanagari
+   * una matra es parte de la palabra: por eso las fronteras miran `\p{M}`.
+   */
+  [/क्रेडिट(?! कार्ड)/u, 'Credits en devanagari'],
+  [/(?<![\p{L}\p{M}])(?:वी|वीई|वीटॉक|वी टॉक|वील|वील्स|वॉल|ईकॉन्टैक्ट|ईकॉन्टेक्ट|डब्ल्यूकॉन्टैक्ट)(?![\p{L}\p{M}])/u, 'marca de Weë en devanagari'],
+  [/Weë (?:संगीत|म्यूज़िक|यात्रा|ट्रैवल|शेफ़|रसोइया|व्यापार|व्यवसाय|बिज़नेस|फ़ोटो|लेखक|राइटर|सौंदर्य|ब्यूटी|घर|होम|दिमाग|ब्रेन|स्टूडियो|डिज़ाइन)(?![\p{L}\p{M}])/u, 'experiencia de Weë traducida al hindi'],
 ];
 for (const idioma of idiomas) {
   const hallados = [];
@@ -236,6 +247,12 @@ const TRAMPAS = [
   ['Öppna Weë Musik', 'sueco · experiencia traducida'],
   ['Skriv i WeeTalken', 'sueco · marca en forma definida'],
   ['Läs Weës villkor', 'sueco · genitivo pegado a la marca'],
+  ['आपके पास 12 क्रेडिट्स बचे हैं', 'hindi · moneda transliterada'],
+  ['वीटॉक में लिखें', 'hindi · WeeTalk transliterado'],
+  ['वील्स देखें', 'hindi · Weëls transliterado'],
+  ['वी में आपका स्वागत है', 'hindi · Weë transliterado'],
+  ['Weë संगीत खोलें', 'hindi · experiencia traducida'],
+  ['Weë यात्रा से प्लान बनाएँ', 'hindi · experiencia traducida'],
 ];
 const pillada = (texto) => DEFORMES.some(([re]) => re.test(texto));
 const escapadas = TRAMPAS.filter(([t]) => !pillada(t));
@@ -253,7 +270,10 @@ const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls',
   /* Turco: la marca con su apóstrofo, y las palabras corrientes que se le parecen. */
   '12 Credits kaldı', "Weë'de paylaş", "WeeTalk'ta yaz", 'Kredi kartıyla öde', 'Weë Studio ile oluştur', 'fotoğraf stüdyosu',
   /* Sueco: la marca con preposición o en un compuesto con guion, y la tarjeta de crédito. */
-  'Du har 12 Credits kvar', 'Öppna Weë Music', 'Skriv i WeeTalk', 'Villkor för Weë', 'ditt Weë-konto', 'Betala med kreditkort'];
+  'Du har 12 Credits kvar', 'Öppna Weë Music', 'Skriv i WeeTalk', 'Villkor för Weë', 'ditt Weë-konto', 'Betala med kreditkort',
+  /* Hindi: la marca en latino con su posposición, y las palabras corrientes que empiezan igual. */
+  'आपके पास 12 Credits बचे हैं', 'WeeTalk में लिखें', 'Weëls देखें', 'Weë में आपका स्वागत है', 'Weë Music खोलें',
+  'आपकी Weë प्रोफ़ाइल', 'क्रेडिट कार्ड से भुगतान करें', 'वीडियो देखें', 'वॉलपेपर बदलें'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));
 check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
   falsosPositivos.join(' | ') || 'ninguno');

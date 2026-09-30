@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { Post } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -66,7 +67,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
     <View style={[styles.box, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
       <View style={styles.headerRow}>
         <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: theme.colors.accentDark }]}>{t('wall.howIMadeIt')}</Text>
+        <Text style={[styles.title, { color: theme.colors.accentDark }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
       </View>
 
       {tools.length > 0 && (

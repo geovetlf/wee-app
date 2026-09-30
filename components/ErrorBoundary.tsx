@@ -29,6 +29,7 @@ const TEXTOS: Record<string, { titulo: string; mensaje: string; boton: string }>
   ja: { titulo: '問題が発生しました', mensaje: 'Weëで予期しないエラーが発生しました。もう一度お試しください。何度も起きる場合は、ヘルプからお知らせください。', boton: '再試行' },
   tr: { titulo: 'Bir sorun oluştu', mensaje: 'Weë\'de beklenmedik bir hata oluştu. Yeniden dene; sorun devam ederse Yardım bölümünden bize bildir.', boton: 'Yeniden dene' },
   sv: { titulo: 'Något gick fel', mensaje: 'Ett oväntat fel uppstod i Weë. Försök igen – om det händer igen kan du berätta det för oss via Hjälp.', boton: 'Försök igen' },
+  hi: { titulo: 'कोई गड़बड़ी हुई', mensaje: 'Weë में कोई अनचाही गड़बड़ी हुई. फिर से कोशिश करें. अगर ऐसा बार-बार हो, तो मदद में जाकर हमें बताएँ.', boton: 'फिर से कोशिश करें' },
 };
 
 /*

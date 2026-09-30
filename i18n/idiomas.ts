@@ -20,7 +20,7 @@
 
 /** Los idiomas que Weë contempla. Añadir uno es añadirlo a esta lista. */
 export type CodigoDeIdioma =
-  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv';
+  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv' | 'hi';
 
 /**
  * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
@@ -158,6 +158,18 @@ export const IDIOMAS: readonly Idioma[] = [
   { codigo: 'ru', nombreNativo: 'Русский', direccion: 'ltr', listo: true },
   { codigo: 'ar', nombreNativo: 'العربية', direccion: 'rtl', listo: false },
   /*
+   * El hindi tiene dos cosas que no se ven en ningún otro idioma de Weë. La
+   * primera: el CERO es `one` (`Intl.PluralRules('hi')` pone 0 y 1 en `one`),
+   * así que ninguna forma `_one` puede escribir «1» ni «एक» a mano. La segunda:
+   * la nukta de «फ़ोटो» o «ज़रूरी» se escribe letra + U+093C, porque las letras
+   * precompuestas (U+0958–U+095F) no sobreviven a NFC. Se trata de «आप», las
+   * marcas van en latino con la posposición separada («Weë पर») y la frase
+   * acaba en «.». El nombre del selector es el de CLDR, «हिन्दी»; en el texto
+   * corrido, «हिंदी». Todo eso está en `docs/I18N-HINDI.md` y lo vigila
+   * `functions/test/i18n-hindi.test.mjs`.
+   */
+  { codigo: 'hi', nombreNativo: 'हिन्दी', direccion: 'ltr', listo: true },
+  /*
    * El reverso del ruso: el coreano NO distingue número. `Intl.PluralRules`
    * declara una sola categoría, así que la forma `_one` no se lee nunca y las
    * dos formas de cada clave con cantidad llevan el mismo texto. Eso y las
@@ -237,6 +249,7 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'zh-CN', 'zh-TW',
   'ko-KR',
   'ru-RU',
+  'hi-IN',
   'ar-SA',
 ];
 

@@ -36,6 +36,7 @@ import { MarcaDeCredits } from './CreditsPill';
 import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
 import { NombreDeIcono } from './icons/trazosDeWee';
 import { useT } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -372,7 +373,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   ) => renderRow(MENU_ITEM[id].icono, opts.label ?? t(MENU_ITEM[id].clave), onPress, opts);
 
   const renderSectionLabel = (label: string) => (
-    <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
+    <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(label)]}>{label}</Text>
   );
 
   /*

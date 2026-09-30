@@ -13,6 +13,7 @@ import { zhTW } from './textos/zh-TW';
 import { ja } from './textos/ja';
 import { tr } from './textos/tr';
 import { sv } from './textos/sv';
+import { hi } from './textos/hi';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -91,6 +92,7 @@ export const DICCIONARIOS: Diccionarios = {
   ja,
   tr,
   sv,
+  hi,
 };
 
 /*

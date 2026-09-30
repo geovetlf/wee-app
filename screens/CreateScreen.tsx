@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -1045,7 +1046,7 @@ ${message}`);
 
   const renderDestinos = () => (
     <View style={styles.destinos}>
-      <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">
+      <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('composer.publishIn'))]} accessibilityRole="header">
         {t('composer.publishIn')}
       </Text>
       <View style={styles.destinosRejilla}>
