@@ -102,11 +102,40 @@ const crear = async (nuevo: NuevoElemento): Promise<ResultadoDeCrearElemento> =>
   }
 };
 
+/**
+ * 3D DENTRO DE FILMMAKER · ¿TIENE ESTE GUARDADO UN MODELO 3D?
+ *
+ * Lo guardado APUNTA a sus materiales (`refs`), y el modelo 3D es uno de ellos: se pregunta a la puerta de siempre
+ * (`op: 'get'`, la cuenta la pone el servidor y lo ajeno no existe) y se devuelve su material —el principal si lo es,
+ * si no el primero—. Solo el id: ver el modelo es otra pregunta, a Mis creaciones.
+ */
+export type ModeloDelGuardado =
+  | { readonly estado: 'con_modelo'; readonly assetId: string }
+  | { readonly estado: 'sin_modelo' }
+  | { readonly estado: 'sin_respuesta' };
+
+const modelo3dDe = async (elementId: string): Promise<ModeloDelGuardado> => {
+  try {
+    if (!functions) return { estado: 'sin_respuesta' };
+    const fn = httpsCallable<Record<string, unknown>, { element?: unknown }>(functions, 'elements', { timeout: 30_000 });
+    const r = await fn({ op: 'get', elementId });
+    const refs = esObj(r.data?.element) && Array.isArray(r.data.element.refs) ? r.data.element.refs.filter(esObj) : [];
+    const modelos = refs.filter((x) => x.kind === 'model3d' && typeof x.assetId === 'string');
+    const elegido = modelos.find((x) => x.role === 'primary') ?? modelos[0];
+    return elegido ? { estado: 'con_modelo', assetId: elegido.assetId as string } : { estado: 'sin_modelo' };
+  } catch (e) {
+    /* Archivado, ajeno o que ya no está: para la ficha es lo mismo que no tener modelo. */
+    return String((e as { code?: unknown })?.code ?? '').endsWith('not-found') ? { estado: 'sin_modelo' } : { estado: 'sin_respuesta' };
+  }
+};
+
 export const elementsService = {
   /** Una página de los de una clase. Si no se puede preguntar, no hay ninguno: quien pinta lo dice. */
   pagina,
   /** Guardar algo en la cuenta para reutilizarlo (3D dentro de Filmmaker). */
   crear,
+  /** ¿Tiene un modelo 3D? Su material, o que no (3D dentro de Filmmaker). */
+  modelo3dDe,
   /** La primera página de los de una clase (lo de siempre, para quien no pagina). */
   listar: async (type: string): Promise<{ readonly ok: true; readonly elementos: readonly ElementoGuardado[] } | { readonly ok: false }> => {
     const r = await pagina(type);

@@ -99,6 +99,18 @@ export type RespuestaDeModelos =
 
 export type EnvioDeModelo = 'ok' | 'fallo' | 'cancelado';
 
+/**
+ * 3D dentro de Filmmaker: con qué dirección se VE un modelo de la cuenta. La de su entrega, si la tiene (lo guardado
+ * en el almacén de Weë); si vive en Media Cloud, una llave temporal que da la puerta `models3d` —y mientras esa entrega
+ * no esté activa, `sin_entrega`—. Todavía llegando, retirado o que no se pudo saber, también se dice.
+ */
+export type DireccionDeModelo =
+  | { readonly estado: 'lista'; readonly url: string }
+  | { readonly estado: 'sin_entrega' }
+  | { readonly estado: 'llegando' }
+  | { readonly estado: 'retirado' }
+  | { readonly estado: 'desconocido' };
+
 const assets = () => collection(db, 'assets');
 
 const call = async <T,>(name: string, data: Record<string, unknown>): Promise<T> => {
@@ -211,6 +223,32 @@ export const assetsService = {
    * sale la clave de la operación, lo que pesa, el nombre y las piezas que se contaron: el tipo, el formato, el dueño
    * y dónde van los bytes los pone el servidor.
    */
+
+  /**
+   * CON QUÉ SE VE UN MODELO 3D DE LA CUENTA. Solo lectura de la propia cuenta (las reglas lo dicen). Se pide cada vez
+   * que se va a ver: una llave de Media Cloud caduca en minutos y no se guarda en ninguna parte.
+   */
+  direccionDelModelo: async (assetId: string): Promise<DireccionDeModelo> => {
+    let a: AssetDoc;
+    try {
+      const snap = await getDoc(doc(db, 'assets', assetId));
+      if (!snap.exists()) return { estado: 'retirado' };
+      a = snap.data() as AssetDoc;
+    } catch {
+      return { estado: 'desconocido' };
+    }
+    if (a.status === 'deleted') return { estado: 'retirado' };
+    if (a.kind !== 'model3d') return { estado: 'desconocido' };
+    const url = assetsService.urlDeEntrega(a);
+    if (url) return { estado: 'lista', url };
+    if (a.status !== 'ready') return { estado: 'llegando' };
+    try {
+      const r = await call<{ ok?: boolean; url?: unknown }>('models3d', { op: 'entregar', assetId });
+      return r?.ok === true && typeof r.url === 'string' ? { estado: 'lista', url: r.url } : { estado: 'sin_entrega' };
+    } catch {
+      return { estado: 'sin_entrega' };
+    }
+  },
 
   /** ¿Puede importar modelos esta cuenta? Cualquier cosa que no sea un «sí» del servidor es un no. */
   importacionDeModelosAbierta: async (): Promise<boolean> => {

@@ -1110,4 +1110,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsImport3dErrArriving: '모델이 아직 도착하는 중이에요. 잠시 후 다시 시도해 주세요.',
   wsImport3dErrNoAnswer: '응답이 없어요. 연결을 확인하고 다시 시도해 주세요.',
   wsImport3dDone: '“{{nombre}}”을(를) 가져왔어요. 내 창작물에 있고 계정에도 저장됐어요.',
+  /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
+  wsModel3dView: '3D 모델 보기',
 };

@@ -10,6 +10,10 @@ import { CLAVE_DE_ESTADO, vistaDeAsset } from '../services/vistaDeAsset';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, Chip } from '../components/creator/ui';
 import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
+import HojaInferior from '../components/workspace/HojaInferior';
+import VisorDeModelo3d from '../components/workspace/VisorDeModelo3d';
+import { CLAVE_DEL_PORQUE_DEL_MODELO } from '../components/workspace/visorDeModelo3d.comun';
+import { useModelos3d } from '../hooks/useModelos3d';
 import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -61,6 +65,8 @@ const MisCreacionesScreen: React.FC = () => {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' });
   /* Una petición que llega tarde no pisa a la que la persona pidió después. */
   const peticion = useRef(0);
+  /* 3D dentro de Filmmaker: el visor de siempre, el mismo que en la ficha de Filmmaker. */
+  const modelos3d = useModelos3d();
 
   const cargar = useCallback(async () => {
     if (!user) {
@@ -102,6 +108,14 @@ const MisCreacionesScreen: React.FC = () => {
    * —un material sin trabajo, o anterior—, se abre el archivo tal cual.
    */
   const abrir = (asset: AssetDoc) => {
+    /*
+     * Un modelo 3D se VE, en el visor, en vez de descargarse: su dirección se pide en ese momento (la de Media Cloud es
+     * temporal). Sin dirección, el visor dice por qué.
+     */
+    if (asset.kind === 'model3d' && asset.status !== 'deleted') {
+      modelos3d.ver(asset.assetId, vistaDeAsset(asset).nombre || t('creaciones.kindModel3d'));
+      return;
+    }
     const experienceId = typeof asset.metadata?.experienceId === 'string' ? asset.metadata.experienceId : undefined;
     if (asset.provenance.jobId && experienceId) {
       navigation.navigate('CreatorFlow', { experienceId, jobId: asset.provenance.jobId });
@@ -205,6 +219,16 @@ const MisCreacionesScreen: React.FC = () => {
           </>
         )}
       </View>
+      {modelos3d.vista.fase !== 'cerrada' && (
+        <HojaInferior visible titulo={t('creaciones.model3dTitle', { nombre: modelos3d.vista.nombre })} onCerrar={modelos3d.cerrar}>
+          <VisorDeModelo3d
+            url={modelos3d.vista.fase === 'lista' ? modelos3d.vista.url : null}
+            nombre={modelos3d.vista.nombre}
+            buscando={modelos3d.vista.fase === 'abriendo'}
+            porque={modelos3d.vista.fase === 'lista' || modelos3d.vista.fase === 'abriendo' ? null : t(CLAVE_DEL_PORQUE_DEL_MODELO[modelos3d.vista.fase])}
+          />
+        </HojaInferior>
+      )}
     </CreatorShell>
   );
 };

@@ -16,6 +16,7 @@ import { useMontajeFinal } from '../hooks/useMontajeFinal';
 import { useHistorialDeProduccion } from '../hooks/useHistorialDeProduccion';
 import { useElementosParaVincular } from '../hooks/useElementosParaVincular';
 import { useImportarModelo3d } from '../hooks/useImportarModelo3d';
+import { useModelos3d } from '../hooks/useModelos3d';
 import { useWeeBrainDelEditor } from '../hooks/useWeeBrainDelEditor';
 import CreatorShell from '../components/creator/CreatorShell';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
@@ -166,6 +167,8 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const creaciones = useCreacionesParaReferencia();
   /* 3D dentro de Filmmaker: importar un modelo 3D a Mis creaciones, desde Reparto, Lugares u Objetos (cerrado mientras el servidor no lo abra). */
   const importacion = useImportarModelo3d();
+  /* Y ver el modelo 3D de lo guardado, en el visor, sin salir de la ficha. */
+  const modelos3d = useModelos3d();
   const brain =useWeeBrainDelEditor(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
@@ -251,6 +254,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       elementos,
       creaciones,
       importacion,
+      modelos3d,
       brain,
       onAplicarPropuesta: controlador.aplicarPropuesta,
       seleccion,

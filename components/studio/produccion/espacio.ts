@@ -16,6 +16,7 @@ import type { LoteDeTomas } from '../../../hooks/useLoteDeTomas';
 import type { HistorialDeProduccion } from '../../../hooks/useHistorialDeProduccion';
 import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
 import type { ImportacionDeModelo } from '../../../hooks/useImportarModelo3d';
+import type { ModelosDeLaCuenta } from '../../../hooks/useModelos3d';
 import type { WeeBrainDelEditor } from '../../../hooks/useWeeBrainDelEditor';
 import type { Seleccion } from './ProductionStoryboard';
 import type { IdsNuevos } from './ProductionShotCard';
@@ -50,6 +51,8 @@ export interface EspacioDeFilmmaker {
   readonly creaciones?: CreacionesParaReferencia;
   /** 3D dentro de Filmmaker · importar un modelo 3D a Mis creaciones (la puerta del servidor decide si está abierta). */
   readonly importacion?: ImportacionDeModelo;
+  /** 3D dentro de Filmmaker · el modelo 3D de lo guardado: si lo tiene, y verlo en el visor. */
+  readonly modelos3d?: ModelosDeLaCuenta;
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
   /** Fase 24 · las tomas de la unidad elegida, como las cuenta el servidor. Solo lectura. */

@@ -1155,4 +1155,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   wsImport3dErrArriving: 'Модель ещё загружается. Попробуй ещё раз чуть позже.',
   wsImport3dErrNoAnswer: 'Нет ответа. Проверь подключение и попробуй ещё раз.',
   wsImport3dDone: '«{{nombre}}» импортирована: она в «Моих творениях» и сохранена в аккаунте.',
+  /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
+  wsModel3dView: 'Посмотреть 3D-модель',
 };

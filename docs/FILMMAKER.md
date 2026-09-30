@@ -1962,6 +1962,13 @@ contrato de F1, ni el workplace tocados. **Cerrada**: la puerta no se exporta (M
 `aiSettings/modelos3d` la abre por cuenta; cómo encenderla, en [`docs/FILMMAKER-3D.md`](FILMMAKER-3D.md) § I. Pruebas:
 `functions/test/filmmaker-3d-importar.test.mjs` (en la cadena).
 
+**Ver un modelo 3D (2026-09-30).** Un visor, como el reproductor (`components/workspace/VisorDeModelo3d`), en la hoja
+contextual de siempre: desde la ficha —«Ver el modelo 3D», solo si lo guardado tiene uno (`elements`, `get`)— y al abrir
+un modelo en Mis creaciones. Girar, acercar, desplazar, encuadrar y girar solo, con cada estado dicho. La dirección se
+pide al abrirlo: la entrega de siempre, o la llave temporal de Media Cloud (`models3d`, `entregar`, sin exportar). En la
+web, `@google/model-viewer` y `three`; en la app nativa, cerrado con su porqué. Pruebas:
+`functions/test/filmmaker-3d-visor.test.mjs` (en la cadena). Detalle en [`docs/FILMMAKER-3D.md`](FILMMAKER-3D.md) § J.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

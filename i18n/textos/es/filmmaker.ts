@@ -1109,4 +1109,6 @@ export const filmmaker = {
   wsImport3dErrArriving: 'El modelo todavía está llegando. Reinténtalo en un momento.',
   wsImport3dErrNoAnswer: 'No hubo respuesta. Revisa la conexión y vuelve a intentarlo.',
   wsImport3dDone: '«{{nombre}}» se importó: está en Mis creaciones y guardado en tu cuenta.',
+  /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
+  wsModel3dView: 'Ver el modelo 3D',
 };

@@ -133,6 +133,8 @@ const dobles = {
   '../hooks/useHistorialDeProduccion': { useHistorialDeProduccion: () => ({ carga: 'listo', versiones: [] }) },
   /* Fase 22 del motor (R1, R7): con la forma de ahora —lo guardado por páginas; Weë Brain con su precio y el id de su propuesta—. */
   '../hooks/useElementosParaVincular': { useElementosParaVincular: () => ({ carga: 'sin_pedir', lista: [], hayMas: false, cargandoMas: false, cargar: () => {}, cargarMas: () => {} }) },
+  /* 3D dentro de Filmmaker · ver el modelo 3D de lo guardado: el hook de la pantalla, quieto (su suite es filmmaker-3d-visor). */
+  '../hooks/useModelos3d': { useModelos3d: () => ({ de: () => undefined, buscar: () => {}, vista: { fase: 'cerrada' }, ver: () => {}, cerrar: () => {} }) },
   '../hooks/useWeeBrainDelEditor': {
     useWeeBrainDelEditor: () => ({ fase: 'quieto', texto: null, propuesta: null, idDeLaPropuesta: null, sinPropuesta: false, bloque: null, cotizacion: { estado: 'nada' }, faltan: null, cotizar: () => {}, enviar: () => {}, descartar: () => {} }),
   },

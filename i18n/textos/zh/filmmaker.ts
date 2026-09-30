@@ -1128,4 +1128,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsImport3dErrArriving: '模型仍在传输中。请稍后再试。',
   wsImport3dErrNoAnswer: '没有响应。请检查网络连接后重试。',
   wsImport3dDone: '已导入“{{nombre}}”：它在“我的作品”中，并已保存到你的账户。',
+  /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
+  wsModel3dView: '查看 3D 模型',
 };

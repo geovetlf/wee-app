@@ -1109,4 +1109,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsImport3dErrArriving: 'O modelo ainda está chegando. Tente de novo daqui a pouco.',
   wsImport3dErrNoAnswer: 'Sem resposta. Verifique a conexão e tente de novo.',
   wsImport3dDone: '“{{nombre}}” foi importado: está em Minhas criações e salvo na sua conta.',
+  /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
+  wsModel3dView: 'Ver o modelo 3D',
 };

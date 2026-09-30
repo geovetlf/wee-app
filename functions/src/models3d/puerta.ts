@@ -1,6 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { depsDeSubidaDeWee } from '../media';
+import { depsDeEntregaDeWee, solicitarEntrega } from '../media/entrega';
 import { MEDIA_SECRETS } from '../secrets';
 import { atenderModelos3d, leerPuertaDeModelos3d, puertaDeModelos3dAbiertaPara } from './index';
 
@@ -8,7 +9,8 @@ import { atenderModelos3d, leerPuertaDeModelos3d, puertaDeModelos3dAbiertaPara }
  * 3D DENTRO DE FILMMAKER · LA PUERTA DE LOS MODELOS 3D. Y solo eso.
  *
  * Comprueba QUIÉN llama y delega: la cuenta la resuelve la puerta de cuentas de
- * siempre, la decisión es de `atenderModelos3d` y los bytes van por MC-3. Lleva
+ * siempre, la decisión es de `atenderModelos3d`, los bytes van por MC-3 y la llave
+ * para ver un modelo, por MC-2. Lleva
  * `MEDIA_SECRETS` —los del almacén— y ninguna clave de modelo.
  *
  * PREPARADA Y SIN EXPORTAR. `functions/src/index.ts` no la exporta, así que ningún
@@ -27,6 +29,10 @@ export const models3d = onCall(
       {
         ...depsDeSubidaDeWee(db),
         puertaAbierta: async (accountId) => puertaDeModelos3dAbiertaPara(await leerPuertaDeModelos3d(db), accountId),
+        pedirEntrega: async (principalId, assetId) => {
+          const r = await solicitarEntrega(depsDeEntregaDeWee(db), { principalId, assetId });
+          return r.ok ? { ok: true, url: r.entrega.url, expiraEn: r.entrega.expiraEn } : { ok: false };
+        },
       },
       request.auth.uid,
       request.data,

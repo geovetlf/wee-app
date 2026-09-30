@@ -1,5 +1,5 @@
 import type { Firestore } from 'firebase-admin/firestore';
-import { Asset, UploadIntent } from '../core';
+import { Asset, FORMA_DE_ID_DE_MATERIAL, UploadIntent } from '../core';
 import { DepsDeSubida, TrazaDeSubida, confirmarSubida, identidadDeMaterialDeSubida, solicitarSubida } from '../media';
 
 /**
@@ -111,8 +111,8 @@ export const metadatosDelModelo = (crudo: unknown): Readonly<Record<string, stri
 
 /* ── La petición y la respuesta ────────────────────────────────────────────── */
 
-export type OperacionDeModelos3d = 'estado' | 'pedir_subida' | 'confirmar_subida';
-export const OPERACIONES_DE_MODELOS_3D: readonly OperacionDeModelos3d[] = Object.freeze(['estado', 'pedir_subida', 'confirmar_subida'] as const);
+export type OperacionDeModelos3d = 'estado' | 'pedir_subida' | 'confirmar_subida' | 'entregar';
+export const OPERACIONES_DE_MODELOS_3D: readonly OperacionDeModelos3d[] = Object.freeze(['estado', 'pedir_subida', 'confirmar_subida', 'entregar'] as const);
 
 /** La clave de la operación: la pone el cliente UNA vez por importación y de ella sale el material. */
 export const FORMA_DE_CLAVE_DE_IMPORTACION = /^[A-Za-z0-9_-]{8,128}$/;
@@ -129,14 +129,20 @@ export type RespuestaDeModelos3d =
   | { readonly ok: true; readonly op: 'estado'; readonly importar: boolean }
   | { readonly ok: true; readonly op: 'pedir_subida'; readonly subida: UploadIntent }
   | { readonly ok: true; readonly op: 'confirmar_subida'; readonly assetId: string; readonly bytes: number }
+  | { readonly ok: true; readonly op: 'entregar'; readonly url: string; readonly expiraEn: number }
   | { readonly ok: false; readonly motivo: 'cerrada' | 'no_disponible' | 'pendiente' }
-  | { readonly ok: false; readonly motivo: 'peticion_invalida'; readonly detalle: 'operacion' | 'clave' | 'tamano' | 'nombre' | 'vigencia' | 'tipo' };
+  | { readonly ok: false; readonly motivo: 'peticion_invalida'; readonly detalle: 'operacion' | 'clave' | 'tamano' | 'nombre' | 'vigencia' | 'tipo' | 'material' };
 
 export interface DepsDeModelos3d extends DepsDeSubida {
   /** ¿Está abierta para esta cuenta? Por defecto, `aiSettings/modelos3d`. */
   readonly puertaAbierta: (accountId: string) => Promise<boolean>;
   /** Una línea por operación, sin URL ni credencial. Por defecto, la consola de la Function. */
   readonly registrar?: (linea: Readonly<Record<string, unknown>>) => void;
+  /**
+   * La llave temporal para LEER un modelo (MC-2, `solicitarEntrega`): lo que necesita el visor para un modelo que vive
+   * en el almacén de Media Cloud. Sin ella, no hay entrega. La decisión de si se concede sigue siendo de MC-2.
+   */
+  readonly pedirEntrega?: (principalId: string, assetId: string) => Promise<{ ok: true; url: string; expiraEn: number } | { ok: false }>;
 }
 
 const texto = (v: unknown, max: number): string | undefined => {
@@ -177,10 +183,27 @@ export const atenderModelos3d = async (
   const abierta = await deps.puertaAbierta(accountId);
   if (op === 'estado') return { ok: true, op, importar: abierta };
   if (!abierta) return { ok: false, motivo: 'cerrada' };
+  const registrar = deps.registrar ?? ((l) => console.info('models3d', JSON.stringify(l)));
+
+  /*
+   * entregar: la llave temporal para VER un modelo de la cuenta que vive en Media Cloud. Aquí sí se nombra el material
+   * —lo conoce quien lo ve en su Element o en Mis creaciones—, y por eso se lee y se comprueba entero: tuyo, un modelo
+   * y listo. Lo ajeno y lo que no existe contestan lo mismo. Si concede o no, lo decide MC-2.
+   */
+  if (op === 'entregar') {
+    const assetId = typeof d.assetId === 'string' && FORMA_DE_ID_DE_MATERIAL.test(d.assetId) ? d.assetId : '';
+    if (!assetId) return { ok: false, motivo: 'peticion_invalida', detalle: 'material' };
+    const material = (await deps.leerMaterial(assetId)) ?? undefined;
+    if (!material || material.ownerAccountId !== accountId || material.kind !== LO_QUE_ADMITE_LA_IMPORTACION.kind || material.status !== 'ready' || !deps.pedirEntrega) {
+      return { ok: false, motivo: 'no_disponible' };
+    }
+    const e = await deps.pedirEntrega(principalId, assetId);
+    registrar({ puerta: 'models3d', op, resultado: e.ok ? 'concedida' : 'no_disponible' });
+    return e.ok ? { ok: true, op, url: e.url, expiraEn: e.expiraEn } : { ok: false, motivo: 'no_disponible' };
+  }
 
   const operationId = typeof d.operationId === 'string' ? d.operationId : '';
   if (!FORMA_DE_CLAVE_DE_IMPORTACION.test(operationId)) return { ok: false, motivo: 'peticion_invalida', detalle: 'clave' };
-  const registrar = deps.registrar ?? ((l) => console.info('models3d', JSON.stringify(l)));
 
   if (op === 'pedir_subida') {
     if (d.nombre !== undefined && !texto(d.nombre, 120)) return { ok: false, motivo: 'peticion_invalida', detalle: 'nombre' };

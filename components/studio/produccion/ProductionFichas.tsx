@@ -6,6 +6,9 @@ import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import ProductionSelectorDeGuardados from './ProductionSelectorDeGuardados';
 import ProductionCrearFicha from './ProductionCrearFicha';
+import HojaInferior from '../../workspace/HojaInferior';
+import VisorDeModelo3d from '../../workspace/VisorDeModelo3d';
+import { CLAVE_DEL_PORQUE_DEL_MODELO } from '../../workspace/visorDeModelo3d.comun';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import type { EspacioDeFilmmaker } from './espacio';
 import { AMBIENTES, LIMITES, RASGOS, TIPOS_DE_OBJETO } from '../../../services/filmmaker/dominio';
@@ -116,7 +119,7 @@ const Opciones: React.FC<{ opciones: readonly { valor: string; texto: string }[]
 const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmmaker; nuevoId?: () => string }> = ({ clase, espacio, nuevoId }) => {
   const { theme } = useTheme();
   const { t } = useIdioma();
-  const { produccion, editable, onGesto, elementos } = espacio;
+  const { produccion, editable, onGesto, elementos, modelos3d } = espacio;
   const [abierta, setAbierta] = useState<string | null>(null);
   const [eligiendo, setEligiendo] = useState<string | null>(null);
   const [vuelta, setVuelta] = useState(0);
@@ -132,6 +135,10 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
   const cargar = elementos?.cargar;
   /* Lo guardado se pide al abrir el selector, por las clases que encajan con esta ficha. */
   useEffect(() => { if (eligiendo && cargar) cargar(CLASES_POR_FICHA[clase]); }, [eligiendo, clase, cargar]);
+  /* 3D dentro de Filmmaker: al abrir una ficha vinculada, se pregunta (una vez) si lo guardado tiene un modelo 3D. */
+  const elementoAbierto = ((lista.find((f) => f.id === abierta)?.element) as Vinculo | undefined)?.elementId;
+  const buscarModelo = modelos3d?.buscar;
+  useEffect(() => { if (elementoAbierto && buscarModelo) buscarModelo(elementoAbierto); }, [elementoAbierto, buscarModelo]);
 
   /* Lo que dice cada motivo por el que no se pudo guardar en la cuenta. */
   const fraseDelMotivo = (r: ResultadoDeCrearElemento) => (r.ok ? '' : t(r.motivo === 'material' ? 'filmmaker.wsSaveFailedMaterial' : r.motivo === 'forma' ? 'filmmaker.wsSaveFailedShape' : 'filmmaker.wsSaveFailedNoAnswer'));
@@ -375,6 +382,13 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
                     <BotonPequeno icono={capacidadDeCreacion('guardar_para_reutilizar').icono} etiqueta={guardando === f.id ? t('filmmaker.wsCreateSaving') : t('filmmaker.wsSaveForReuse')}
                       onPress={() => { void guardarParaReutilizar(f); }} disabled={!editable || guardando !== null} conTexto />
                   )}
+                  {/* Su modelo 3D, si lo guardado tiene uno: se ve en el visor, en una hoja, sin salir de la ficha. */}
+                  {!!vinculo && (() => {
+                    const suModelo = modelos3d?.de(vinculo.elementId);
+                    return suModelo?.fase === 'con_modelo'
+                      ? <BotonPequeno icono="cube-outline" etiqueta={t('filmmaker.wsModel3dView')} onPress={() => modelos3d?.ver(suModelo.assetId, f.name)} principal conTexto />
+                      : null;
+                  })()}
                   {/* Su versión 3D y, en un lugar, su escena 3D: cerradas, con su porqué (ver constants/assetsDeFilmmaker.ts). */}
                   <BotonPequeno icono={capacidadDeCreacion('crear_en_3d').icono} etiqueta={t('filmmaker.wsCreateVersion3d')} onPress={() => undefined}
                     disabled porque={t(capacidadDeCreacion('crear_en_3d').porque ?? '')} conTexto />
@@ -408,6 +422,17 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
       {/* 3D dentro de Filmmaker: las otras formas de crear, en el sitio de la lista (ni una sección ni una pantalla nuevas). */}
       {editable && !!nuevoId && !!elementos && (
         <BotonPequeno icono="add-circle-outline" etiqueta={t('filmmaker.wsCreateOther')} onPress={() => { setAviso(null); setCreando(true); }} conTexto />
+      )}
+      {/* El visor 3D, en la hoja contextual de siempre: nunca una pantalla. */}
+      {!!modelos3d && modelos3d.vista.fase !== 'cerrada' && (
+        <HojaInferior visible titulo={t('creaciones.model3dTitle', { nombre: modelos3d.vista.nombre })} onCerrar={modelos3d.cerrar}>
+          <VisorDeModelo3d
+            url={modelos3d.vista.fase === 'lista' ? modelos3d.vista.url : null}
+            nombre={modelos3d.vista.nombre}
+            buscando={modelos3d.vista.fase === 'abriendo'}
+            porque={modelos3d.vista.fase === 'lista' || modelos3d.vista.fase === 'abriendo' ? null : t(CLAVE_DEL_PORQUE_DEL_MODELO[modelos3d.vista.fase])}
+          />
+        </HojaInferior>
       )}
     </View>
   );

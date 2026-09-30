@@ -842,12 +842,14 @@ console.log('\n── J · Ni un contrato de F1, ni el motor, ni un proveedor, n
     servidor.every((f) => f === 'functions/src/registry/matrices.ts'), servidor.join(', '));
   const espejo = git(`diff --name-only ${TRAMO3D} -- services/filmmaker/espejo`).trim();
   check('J2) el espejo de F1-A, idéntico', espejo === '', espejo);
-  const pk = JSON.parse(leer('package.json'));
+  /* Reanclada con el visor 3D (su dependencia llega DESPUÉS, en su propio commit): se mira el package.json de ESTE tramo. */
+  const pk = JSON.parse(HASTA3D ? git(`show ${HASTA3D}:package.json`) : leer('package.json'));
   check('J3) ni una dependencia nueva (ningún visor 3D metido a escondidas)', git(`diff ${TRAMO3D} -- package.json package-lock.json`).trim() === '' && !Object.keys({ ...pk.dependencies, ...pk.devDependencies }).some((k) => /three|model-viewer|webview/.test(k)));
   check('J4) esta suite está en la cadena de `npm test`', /test\/filmmaker-3d-assets\.test\.mjs/.test(leer('functions/package.json')));
   check('J5) en todo lo dibujado no faltó ni una clave', faltan.size === 0, [...faltan].join(', '));
   /* La matriz maestra y la documentación, al día con lo que el código hace. */
-  const MAESTRA = leer('docs/FILMMAKER-CAPABILITY-MASTER.md');
+  /* Reanclada con el visor 3D: la matriz de ESTE tramo (T08 cambia de estado después, con el visor). */
+  const MAESTRA = HASTA3D ? git(`show ${HASTA3D}:docs/FILMMAKER-CAPABILITY-MASTER.md`) : leer('docs/FILMMAKER-CAPABILITY-MASTER.md');
   const estadoEnLaMatriz = (id) => (MAESTRA.split('\n').find((l) => l.startsWith(`| ${id} |`)) ?? '').split(' | ')[8];
   const ESPERADO = { T01: 'A', T02: 'A', T03: 'A', T04: 'A', T05: 'A', T06: 'G', T07: 'E', T08: 'G', T09: 'F', T10: 'G', T11: 'G', T12: 'F', I11: 'F' };
   const distintos = Object.entries(ESPERADO).filter(([id, e]) => estadoEnLaMatriz(id) !== e);

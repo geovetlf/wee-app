@@ -88,21 +88,21 @@ Antes de cualquier canary hacen falta:
 - los precios oficiales en el catálogo de Credits;
 - pasar `3d.*` a enrutable (contrato del motor).
 
-### C.3 El visor (decisión pendiente)
+### C.3 El visor (decidido el 2026-09-30: § J)
 
 | Opción | Plataformas | Para qué basta |
 |---|---|---|
 | `<model-viewer>` (Google) en web + `react-native-webview` en el teléfono | Todas | Ver y girar un modelo (lo más simple) |
 | React Three Fiber sobre `expo-gl` | Una sola base de código para las tres | Lo que pediría el editor de escena 3D |
 
-Las dos añaden dependencias. **No se añadió ninguna.** El visor aparecerá en una hoja contextual, nunca como pantalla.
+Las dos añaden dependencias. Con la autonomía del encargo del 2026-09-30 se eligió la primera para la web (`@google/model-viewer` y `three`); en la app nativa, el visor sigue cerrado con su porqué. Aparece en una hoja contextual, nunca como pantalla (§ J).
 
 ## D. Dónde aparece cada cosa (sin secciones nuevas)
 
 | Sitio que ya existía | Qué se añadió | Estado |
 |---|---|---|
 | Proyecto › Reparto / Lugares / Objetos | Se queda «Añadir», como antes. Al lado, **«Crear de otra forma»**, que se abre en el sitio de la lista con cinco formas:<br>• Desde tus guardados<br>• Desde Mis creaciones<br>• Imagen con IA<br>• En 3D con IA<br>• Importar un modelo 3D | ✔ · ✔ · cerrada: autorización · cerrada: proveedor · construida y cerrada: activación (§ I) |
-| Cada ficha | **«Guardar para reutilizar»** · «Crear su versión 3D» | ✔ · cerrada |
+| Cada ficha | **«Guardar para reutilizar»** · «Crear su versión 3D» · **«Ver el modelo 3D»** (solo si lo guardado tiene uno) | ✔ · cerrada · ✔ en la web (§ J) |
 | Ficha de lugar | «Abrir la escena 3D» | cerrada: editor y contrato |
 | Plano › Quién sale / Qué hay / Dónde | **«Desde tus guardados»**: el MISMO ID si ya está en la producción | ✔ |
 | Plano | «Puesta en escena en 3D» | cerrada: editor y contrato |
@@ -120,6 +120,7 @@ En el teléfono (360/390) aparecen las mismas piezas en las mismas secciones del
 | `model3d` en Mis creaciones | Ya alcanzable al crear |
 | La subida de Media Cloud | Inactiva para todos; la puerta de importación (`models3d`) la compone, preparada y sin exportar (§ I) |
 | El catálogo `3d.*` | Visible y cerrado donde toca |
+| `elements.get` | Ya alcanzable: saber si lo guardado tiene un modelo 3D (§ J) |
 
 ## F. Duplicaciones evitadas
 
@@ -216,4 +217,32 @@ sin publicar otra versión de la app.
   cabecera del GLB pide leer un tramo del objeto, y el puerto de almacenamiento de Media Cloud todavía no lo tiene.
 
 **En la app nativa**: el selector de archivos (`expo-document-picker`) es una dependencia nueva y pide una build.
+
+## J. Ver un modelo 3D (2026-09-30)
+
+Uno solo, como el reproductor: `components/workspace/VisorDeModelo3d` (`.web.tsx` en la web, `.tsx` en la app nativa) y
+lo común, sin pantalla (`visorDeModelo3d.comun.ts`). Se abre en la hoja contextual de siempre (`HojaInferior`).
+
+| Dónde | Qué |
+|---|---|
+| Proyecto › Reparto / Lugares / Objetos › la ficha | Al abrir una ficha vinculada se pregunta, una vez, si lo guardado tiene un modelo (`elements`, `get`). Si lo tiene: **«Ver el modelo 3D»**. Si no, nada que ver (y su versión 3D sigue cerrada con su porqué) |
+| Mis creaciones | Un modelo 3D se abre en el visor en vez de descargarse |
+
+**Lo que hace**: girar arrastrando, acercar con la rueda o pellizcando, desplazar con dos dedos o el botón derecho,
+«Encuadrar» (el encuadre que el visor calcula para el modelo entero) y «Girar solo». Y lo que pasa se dice: buscando la
+dirección, cargando con su porcentaje, el error con «Inténtalo de nuevo», y sin dirección, por qué.
+
+**La dirección, nunca inventada ni guardada.** Un modelo en el almacén de Weë se ve con su entrega de siempre. Uno de
+Media Cloud (los importados), con una llave temporal que da la puerta `models3d` (`entregar`, MC-2 tal cual), pedida
+al abrirlo: caduca en minutos y no se guarda en ninguna parte. La puerta sigue SIN exportar, así que hoy un modelo
+importado dice que «verlo pide activar la entrega de modelos».
+
+**Dependencias**: `@google/model-viewer` (Apache-2.0) y `three` (MIT), declarada aparte porque el proyecto instala
+con `legacy-peer-deps`. Solo las importa el visor web, y la librería se pide la primera vez que se abre un modelo.
+
+**Para encenderlo del todo** (sin gasto):
+- la entrega de Media Cloud: la misma activación que importar (§ I);
+- el CORS de lectura del almacén para el origen de la app (`<model-viewer>` descarga el modelo con `fetch`).
+
+**En la app nativa**: un módulo nativo (un WebView con el mismo visor, o un contexto gráfico) y una build nueva.
 
