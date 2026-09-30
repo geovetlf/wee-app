@@ -34,6 +34,7 @@ import {
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 /**
  * AGREGAR UBICACIÓN.
@@ -293,7 +294,7 @@ const AgregarUbicacionScreen: React.FC = () => {
     onAccion,
   }) => (
     <View style={styles.seccion}>
-      <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</Text>
+      <TextoEnMayusculas style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</TextoEnMayusculas>
       {!!accion && (
         <TouchableOpacity onPress={onAccion} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={accion}>
           <Text style={[styles.seccionAccion, { color: theme.colors.accentDark }]}>{accion}</Text>
@@ -559,7 +560,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   seccionAccion: {
     fontSize: FONT_SIZE.xs,

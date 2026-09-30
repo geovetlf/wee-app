@@ -33,6 +33,7 @@ import ImageViewer from '../components/ImageViewer';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { confirmAction, notify } from '../utils/notify';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = 160;
@@ -589,7 +590,7 @@ const UserProfileScreen: React.FC = () => {
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.posts)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</Text>
+              <TextoEnMayusculas style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</TextoEnMayusculas>
             </View>
           </View>
 
@@ -815,7 +816,6 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   // Action buttons

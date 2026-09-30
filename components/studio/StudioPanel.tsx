@@ -8,6 +8,7 @@ import { EntradaDeStudio, ExperienciaDeStudio, entradaPorId, experienciasDeLaEnt
 import StudioControles, { ControlesElegidos } from './StudioControles';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const isWeb = Platform.OS === 'web';
 
@@ -97,7 +98,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         <Text style={[styles.piezaTexto, { color: theme.colors.text }]} numberOfLines={2}>{t(clave)}</Text>
         {!!pendiente && (
           <View style={[styles.sello, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.selloTexto, { color: theme.colors.textSecondary }]}>{t('studio.soon')}</Text>
+            <TextoEnMayusculas style={[styles.selloTexto, { color: theme.colors.textSecondary }]}>{t('studio.soon')}</TextoEnMayusculas>
           </View>
         )}
       </View>
@@ -174,7 +175,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
           entrada === 'more' ? (
             GRUPOS_DE_HERRAMIENTAS.map((grupo) => (
               <View key={grupo.id} style={styles.grupo}>
-                <Text style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</Text>
+                <TextoEnMayusculas style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</TextoEnMayusculas>
                 <View style={styles.rejilla}>
                   {grupo.herramientas.map((h) =>
                     tarjeta(h.clave, h.icono, grupo.id + h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
@@ -256,7 +257,6 @@ const styles = StyleSheet.create({
   grupoTitulo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.5),
     paddingHorizontal: SPACING.lg + SPACING.xs,
   },
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: scale(2),
     borderRadius: BORDER_RADIUS.full,
   },
-  selloTexto: { fontSize: scale(10), fontWeight: FONT_WEIGHT.semibold, textTransform: 'uppercase', letterSpacing: scale(0.4) },
+  selloTexto: { fontSize: scale(10), fontWeight: FONT_WEIGHT.semibold, letterSpacing: scale(0.4) },
   motivo: {
     flexDirection: 'row',
     alignItems: 'center',

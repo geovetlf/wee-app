@@ -6,6 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const isWeb = Platform.OS === 'web';
 
@@ -87,7 +88,7 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
         </Text>
 
         {!esTodas && (
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('design.startWith')}</Text>
+          <TextoEnMayusculas style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('design.startWith')}</TextoEnMayusculas>
         )}
 
         <View style={styles.lista}>
@@ -109,7 +110,6 @@ const styles = StyleSheet.create({
   grupo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.5),
     marginTop: SPACING.xxl,
   },

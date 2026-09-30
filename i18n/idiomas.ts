@@ -20,7 +20,7 @@
 
 /** Los idiomas que Weë contempla. Añadir uno es añadirlo a esta lista. */
 export type CodigoDeIdioma =
-  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar';
+  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr';
 
 /**
  * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
@@ -136,6 +136,16 @@ export const IDIOMAS: readonly Idioma[] = [
    * `textos/ru/plurales.ts`; lo comprueba `functions/test/i18n-plurales-ru.test.mjs`
    * ejecutando el traductor de verdad con los doce números que importan.
    */
+  /*
+   * Lo propio del turco no es el plural —`Intl.PluralRules('tr')` tiene `one` y
+   * `other`, y tras una cifra el sustantivo va en singular, así que las dos
+   * formas suelen decir lo mismo— sino la CAJA y los SUFIJOS: la mayúscula de
+   * «i» es «İ» y la minúscula de «I» es «ı», así que nada se pasa a mayúsculas
+   * o minúsculas sin su locale; y un sufijo no se pega a un {{hueco}}, porque
+   * su vocal depende de una palabra que no se conoce. Todo eso está en
+   * `docs/I18N-TURCO.md` y lo vigila `functions/test/i18n-turco.test.mjs`.
+   */
+  { codigo: 'tr', nombreNativo: 'Türkçe', direccion: 'ltr', listo: true },
   { codigo: 'ru', nombreNativo: 'Русский', direccion: 'ltr', listo: true },
   { codigo: 'ar', nombreNativo: 'العربية', direccion: 'rtl', listo: false },
   /*
@@ -212,6 +222,7 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'fr-FR', 'fr-CA',
   'de-DE',
   'pt-BR', 'pt-PT',
+  'tr-TR',
   'ja-JP',
   'zh-CN', 'zh-TW',
   'ko-KR',

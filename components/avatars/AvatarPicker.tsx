@@ -20,6 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { predefinedAvatars } from './AvatarSVGs';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -379,9 +380,9 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
                 {DICEBEAR_STYLES.map((style) => (
                   <View key={style.id} style={styles.dicebearStyleSection}>
-                    <Text style={[styles.dicebearStyleName, { color: theme.colors.textSecondary }]}>
+                    <TextoEnMayusculas style={[styles.dicebearStyleName, { color: theme.colors.textSecondary }]}>
                       {style.name}
-                    </Text>
+                    </TextoEnMayusculas>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -542,7 +543,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   dicebearRow: {

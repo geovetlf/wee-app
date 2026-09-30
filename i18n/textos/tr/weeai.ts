@@ -1,0 +1,255 @@
+/*
+ * TURCO — WEË AI: el armazón, la conversación guiada y Weë Brain. Los nombres
+ * de las experiencias y de los modelos son marca y no entran aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * «Tú eliges el resultado. Weë elige la IA.»: aquí no se nombra ningún modelo
+ * ni proveedor. Los especialistas son «uzman» (glosario) y «Weë uzmanları»
+ * lleva el sufijo en el sustantivo, no en la marca.
+ *
+ * Ningún sufijo detrás de un hueco (guía § 4): «Ir a {{especialista}}» es
+ * «{{especialista}} bölümüne git», «Guardado en {{proyecto}}» es
+ * «{{proyecto}} projesine kaydedildi», «Emoji {{emoji}}» es «{{emoji}} emojisi»
+ * y «Ver {{contenido}}» es «{{contenido}} bölümünü göster»: el sufijo lo lleva
+ * siempre un sustantivo fijo. Las propuestas numeradas usan el ordinal con
+ * punto de la TDK («{{numero}}. öneriyi seç»).
+ *
+ * Las marcas solo llevan las terminaciones de la tabla del § 9: Weë'de,
+ * Weë'ye, Weë'nin, Weë'yle, Weë AI'da, Weë AI'dan, Weë AI'daki, Weë Brain'e.
+ * Cualquier otro caso de «Weë AI» se reescribe («Weë AI ile bağlantı
+ * kuramadım», «Weë AI'dan yararlanmak için»); Weë Travel y Credits no llevan
+ * ninguna («Weë Travel bölümünü aç», «Credits bakiyen»).
+ *
+ * El dinero: «Tus Credits» es «Credits bakiyen» y «no tienes suficientes
+ * Credits», «Credits bakiyen yetersiz». «Costo» es «maliyet» mientras se
+ * calcula («Maliyet hesaplanıyor…»); en el aviso de que no alcanza, las dos
+ * líneas dicen «Credits bakiyen: 3» y «Gereken: 5», las mismas palabras que
+ * `aiAvatar.creditsDetail` para la misma frase española. «Recargar» es
+ * «bakiye yükle» («Yükle» a secas es subir un archivo); «precio de prueba»,
+ * «deneme fiyatı». «No te cobré» es «Senden Credits almadım». Lo que se enseña
+ * ANTES de crear nunca dice que ya se cobró; «harcadın» solo sale en
+ * `youSpent`, cuando el cargo ya se hizo.
+ *
+ * Piezas que se pegan a otras en pantalla y conservan su borde:
+ * `testPriceSuffix` va detrás de «≈ 12 Credits»; `youSpent` y `spentNothing`,
+ * detrás de `finishedGoal`; `testPriceParenthesis` entra en {{nota}}, pegado a
+ * Credits como en español («5 Credits (deneme fiyatı) harcadın.»).
+ * `creditsLeft` y `youHaveLeft` dicen «kalan bakiye» y no «kalan» a secas: en
+ * la misma línea puede estar el contador de respuestas de Weë Brain («Kalan
+ * yanıt», `brain.blockLeft`).
+ *
+ * Las fechas del viaje las escribe Intl y el turco no pone artículos ni
+ * preposiciones alrededor: «30 Eylül 2026», «12–18 Ekim 2026»,
+ * «30 Eylül 2026 – 5 Ekim 2026». Tras una cifra, singular: «11 gün · 10 gece»,
+ * «3 görsel». Los segundos, «sn.», como los abrevia Intl en turco. El % va
+ * delante («%{{descuento}} toplu alım indirimi») y el signo menos del español
+ * sobra: «indirim» ya dice que se resta.
+ *
+ * `demo` es «demo modu»: «demo» a secas sería la misma cadena que en español.
+ * «Tu espacio» (Weë Home) es «mekân», con el circunflejo de la TDK.
+ * Las palabras que sugiere `trySearchWords` son turcas; las palabras clave de
+ * las experiencias solo existen en español e inglés (docs/I18N.md), así que
+ * hoy solo «logo», «video» y «fotoğraf» encuentran algo por esa vía.
+ */
+export const weeai: typeof import('../es/weeai').weeai = {
+  searchInWee: 'Weë\'de ara…',
+  searchLabel: 'Weë\'de ara',
+  myProfile: 'Profilim',
+  notifications: 'Bildirimler',
+  goHome: 'Ana sayfaya git',
+  myProjects: 'Projelerim',
+  myCreations: 'Oluşturduklarım',
+  buyCredits: 'Credits satın al →',
+  yourCredits: 'Credits bakiyen',
+  topUp: 'Bakiye yükle',
+  theSpecialists: 'Weë uzmanları',
+  availableToday: 'Kullanıma hazır',
+  start: 'Başla',
+  whatDoYouWant: 'Restoranımı tanıtmak için güzel bir video istiyorum…',
+  describeYourIdea: 'Fikrini anlat',
+  tellWee: 'Ne istediğini Weë\'ye anlat. Yapay zekâ kısmını Weë halleder.',
+  avatarForWeeProfile: 'Weë profilin için yapay zekâ avatarı',
+  createAlterEgo: 'Dijital alter egonu ve yapay zekâ avatarını oluştur.',
+  changeAlterEgo: 'Alter egonun avatarını yapay zekâyla oluştur ya da değiştir.',
+  notYetOurs: 'Bunun için henüz bir uzmanımız yok',
+  thatIsFor: 'Tam da bunun için',
+  notifyMe: 'Hazır olunca bana haber ver',
+  notifyMeReal: 'Gerçek sürümü gelince bana haber ver',
+  stopNotifying: 'Artık haber verme',
+  couldNotSave: 'Kaydedilemedi',
+  tryAgainInAMoment: 'Birazdan yeniden dene.',
+  clear: 'Temizle',
+  comingVerySoon: 'Çok yakında',
+  oneMoment: 'Bir saniye…',
+  send: 'Gönder',
+  sendIdea: 'Fikri gönder',
+  uploadYourPhoto: 'Düzenlemek istediğin fotoğrafı yükle',
+  uploadHint: 'Galerinden ya da kamerayla',
+  uploadFormats: 'JPG, PNG veya WEBP (en fazla 10 MB)',
+  uploadingPhoto: 'Fotoğrafın yükleniyor…',
+  photoReady: 'Fotoğrafın hazır. Ne yapalım, anlat bana.',
+  photoHelps: 'Fotoğraf, mekânın gerçek yapısını korumama yardımcı olur.',
+  uploadToWork: 'Weë\'nin üzerinde çalışabilmesi için bir fotoğraf yükle.',
+  pickFromPhotos: 'Fotoğraflarımdan seç',
+  orAlso: 'Diğer seçenekler',
+  takeAPhoto: 'Fotoğraf çek',
+  changePhoto: 'Fotoğrafı değiştir',
+  removePhoto: 'Fotoğrafı kaldır',
+  photoAttached: 'Fotoğraf eklendi',
+  couldNotPickPhoto: 'Fotoğraf seçilemedi',
+  couldNotAttach: 'Eklenemedi',
+  preferWords: 'Kelimelerle anlatayım',
+  change: 'Değiştir',
+  remove: 'Kaldır',
+  tryAgain: 'Yeniden dene',
+  itDidNotWork: 'İstediğim gibi olmadı. Senden Credits almadım.',
+  notEnoughCredits: 'Credits bakiyen yetersiz',
+  getCredits: 'Credits al',
+  calculatingCost: 'Maliyet hesaplanıyor…',
+  couldNotCalculate: 'Maliyet hesaplanamadı',
+  quality: 'Kalite',
+  create: 'Oluştur',
+  changeSomething: 'Değişiklik yap',
+  noCost: 'Ücretsiz',
+  demoMode: 'Demo modu: ödeyeceğin bir şey yok.',
+  creditsNote: 'İş bitince bakiyenden düşülür. Bir sorun olursa iade edilir.',
+  brainThinking: 'Weë Brain düşünüyor…',
+  brainSearching: 'Weë Brain internette arıyor…',
+  keepTelling: 'Anlatmaya devam et…',
+  searchInternet: 'İnternette ara',
+  previewDemo: 'Önizleme · demo',
+  savedIn: '{{proyecto}} projesine kaydedildi',
+  saveToProject: 'Projeye kaydet',
+  newProject: 'Yeni proje',
+  projectName: 'Proje adı',
+  createProject: 'Proje oluştur',
+  close: 'Kapat',
+  choose: 'Seç',
+  play: 'Oynat',
+  pause: 'Duraklat',
+  playing: 'Oynatılıyor',
+  playingPreview: 'Oynatılıyor · önizleme',
+  hideChanges: 'Değişiklikleri ve alışveriş listesini gizle',
+  makeItRealistic: 'Daha gerçekçi yap',
+  changeItsColor: 'Rengini değiştir',
+  moreStriking: 'Daha çarpıcı',
+  simpler: 'Daha sade',
+  before: 'Önce',
+  after: 'Sonra',
+  couldNotLoadCreations: 'Oluşturdukların yüklenemedi',
+  couldNotLoadProjects: 'Projeler yüklenemedi',
+  couldNotCreateProject: 'Proje oluşturulamadı',
+  couldNotSaveToProject: 'Projeye kaydedemedim. Yeniden dene.',
+  seeMore: 'Daha fazla göster',
+  seeAllCreations: 'Tümünü gör',
+  demo: 'demo modu',
+  jobAsking: 'Yanıt bekliyor',
+  jobPlanned: 'Oluşturmaya hazır',
+  jobRunning: 'Oluşturuluyor…',
+  jobDone: 'Hazır',
+  jobFailed: 'Olmadı',
+  jobCancelled: 'İptal edildi',
+  brainGreeting: 'Merhaba! Ben Weë Brain. Bana soru sor, bir şey anlat ya da neye ihtiyacın varsa iste. Başka bir Weë o işi daha iyi yapıyorsa seni oraya götürürüm.',
+  brainBetterFit: '{{emoji}} {{especialista}} bu konuda sana daha iyi yardımcı olabilir. Anlattıklarınla birlikte seni oraya götürebilirim ya da burada devam edebiliriz.',
+  goToSpecialist: '{{especialista}} bölümüne git',
+  stayHere: 'Burada devam et',
+  creditsAndCost: 'Credits bakiyen: {{saldo}} · Gereken: {{costo}}',
+  sendForCredits: '{{credits}} Credits karşılığında gönder',
+  writeToKnowCost: 'Mesajını yaz, göndermeden önce ne kadar tutacağını söyleyeyim.',
+  approxUsd: 'yaklaşık {{usd}} USD',
+  creditsLeft: 'kalan bakiye: {{saldo}}',
+  attach: 'Ekle',
+  creditsAvailable: 'Credits bakiyen: {{saldo}}',
+  costLine: 'Gereken: {{coste}}',
+  youHaveLeft: 'kalan bakiye: {{saldo}}',
+  testPriceSuffix: ' · deneme fiyatı',
+  testPriceParenthesis: ' (deneme fiyatı)',
+  youSpent: ' {{credits}} Credits{{nota}} harcadın.',
+  spentNothing: ' Hiç Credits harcamadın.',
+  calculatingTheCost: 'Maliyet hesaplanıyor…',
+  costFailed: 'Maliyeti hesaplayamadık. Yeniden dene.',
+  avatarCost: 'Weë avatarı · {{credits}} Credits{{saldo}}',
+  quoteSearch: 'Kaynaklı arama',
+  quoteBrain: 'Weë Brain yanıtı',
+  speak: 'Konuş',
+  speakComingSoon: 'Weë\'yle konuşma özelliği sonraki bir sürümde gelecek. Şimdilik yazarak anlat.',
+  searchInternetOn: 'İnternette ara: açık',
+  newConversation: 'Yeni sohbet',
+  couldNotCalculateRetry: 'Maliyeti hesaplayamadık. Yeniden dene.',
+  expandSection: '{{titulo}}. {{contenido}} bölümünü göster',
+  collapseSection: '{{titulo}}. {{contenido}} bölümünü gizle',
+  openTravel_one: '{{titulo}}. Weë Travel bölümünü aç: seyahatini yazacağın alan ve bir başlangıç seçeneği',
+  openTravel_other: '{{titulo}}. Weë Travel bölümünü aç: seyahatini yazacağın alan ve {{contador}} başlangıç seçeneği',
+  closeTravel_one: '{{titulo}}. Weë Travel bölümünü gizle: seyahatini yazacağın alan ve bir başlangıç seçeneği',
+  closeTravel_other: '{{titulo}}. Weë Travel bölümünü gizle: seyahatini yazacağın alan ve {{contador}} başlangıç seçeneği',
+  tellWeeTheTrip: 'Seyahatini Weë\'ye anlat',
+  theMotto: 'Sonucu sen seçersin. Yapay zekâyı Weë seçer.',
+  trySearchWords: 'Logo, video, fotoğraf, metin, şarkı, stil, tarif, ev ya da işletme gibi kelimeler dene. Ya da Weë Brain\'e sor.',
+  whatToCreate: 'Ne oluşturmak istiyorsun?',
+  willNotifyYou: '✓ Gerçek sürümü gelince sana haber vereceğiz',
+  projectsNote: 'Oluşturduklarını tek yerde topla: logolar, fotoğraflar, videolar, müzik ve belgeler.',
+  errNotEnoughCredits: 'Bu iş için Credits bakiyen yetersiz. Credits al ve yeniden dene.',
+  errRateLimited: 'Arka arkaya çok fazla içerik oluşturdun. Biraz bekleyip yeniden dene.',
+  errTimeout: 'Çok uzun sürdü, durdurdum. Senden Credits almadım: yeniden dene.',
+  errDuplicate: 'Bu içerik zaten oluşturuluyor.',
+  errNoAccount: 'Weë AI\'dan yararlanmak için profilini oluşturmayı tamamla.',
+  errSignIn: 'Weë\'de oluşturmak için giriş yap.',
+  errOffline: 'Weë AI ile bağlantı kuramadım. Bağlantını kontrol edip yeniden dene.',
+  errGeneric: 'İstediğim gibi olmadı. Yeniden deneyelim mi? Senden Credits almadım.',
+  dayExpand: '{{titulo}}. Günü görmek için dokun',
+  dayCollapse: '{{titulo}}. Daraltmak için dokun',
+  pathRedesign: '🏠 Baştan tasarla',
+  pathColors: '🎨 Stili ve renkleri değiştir',
+  pathFurniture: '🪑 Mobilyaları düzenle',
+  sidebarTagline: 'Daha iyi bir sen,\ndaha yaratıcı\nbir dünyada',
+  youHaveCredits: 'Bakiyen: {{saldo}} Credits',
+  creditsBoxNote: 'Weë uzmanları Credits kullanır. İstediğin zaman bakiye yükle.',
+  startWith: '{{nombre}} ile başla',
+  previousMonth: 'Önceki ay',
+  nextMonth: 'Sonraki ay',
+  dontKnowYet: 'Henüz bilmiyorum',
+  confirmDates: 'Tarihleri onayla',
+  optionCredits: '{{nombre}}, {{credits}} Credits',
+  emojiLabel: '{{emoji}} emojisi',
+  chooseProposal: '{{numero}}. öneriyi seç',
+  generatedVideo: 'Oluşturulan video',
+  playVideo: 'Videoyu oynat',
+  continueVia: 'Bu yoldan devam et: {{camino}}',
+  youChooseWeeChooses: 'Sonucu sen seçersin. Yapay zekâyı Weë seçer.',
+  demoToday: 'Şu an demo modunda: Credits harcamadan nasıl çalıştığını görebilirsin.',
+  titleWithDetail: '{{titulo}}. {{detalle}}',
+  inferredAnswer: '{{respuesta}} · yazdıklarından anladım',
+  goalWithChange: '{{objetivo}} · Değişiklik: {{cambio}}',
+  uploadDishPhoto: 'Hazırladığın yemeğin fotoğrafını yükle',
+  uploadIngredientsPhoto: 'Buzdolabının ya da elindeki malzemelerin fotoğrafını yükle',
+  uploadingYourSpace: 'Mekânın yükleniyor…',
+  yourSpace: 'Mekânın',
+  finishedGoal: '{{nombre}}, “{{objetivo}}” isteğini tamamladı.',
+  chosenProposal: '✓ Seçildi · Öneri {{numero}}',
+  proposalNumber: 'Öneri {{numero}}',
+  sample: 'örnek',
+  weeVoice: 'Weë sesi',
+  weeVoiceDuration: '{{duracion}} · Weë sesi',
+  previewWithDuration: '{{duracion}} · önizleme',
+  regeneratePriceSuffix: ' · ≈ {{credits}} Credits',
+  anotherVersion: 'Başka bir sürüm oluştur{{precio}}',
+  eachChangeRecreates: 'Her değişiklikte yeniden oluşturulur{{precio}}. İş bitince bakiyenden düşülür.',
+  showChanges: 'Değişiklikleri ve alışveriş listesini göster',
+  nameThinking: '{{nombre}} düşünüyor…',
+  tapDepartureDay: 'Yola çıkacağın güne dokun.',
+  tapReturnDay: 'Şimdi döneceğin güne dokun.',
+  tripOneDay: '{{fecha}}',
+  tripSameMonth: '{{dia}}–{{diaFinal}} {{mesYAnio}}',
+  tripRange: '{{salida}} – {{regreso}}',
+  tripDays_one: '{{contador}} gün',
+  tripDays_other: '{{contador}} gün',
+  tripNights_one: '{{contador}} gece',
+  tripNights_other: '{{contador}} gece',
+  tripDuration: '{{noches}} {{dias}}',
+  tripSummary: '{{fechas}} · {{duracion}}',
+  imageCount_one: '{{contador}} görsel',
+  imageCount_other: '{{contador}} görsel',
+  durationSeconds: '{{segundos}} sn.',
+  volumeDiscount: '%{{descuento}} toplu alım indirimi',
+};

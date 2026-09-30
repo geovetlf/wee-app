@@ -357,10 +357,13 @@ console.log('\n── G · Nada funcional se movió ──');
     MOCK.BUSINESS_SHORTCUTS.map((s) => s.optionId).join(','));
   check('27) y todos llevan su clave y su meta',
     MOCK.BUSINESS_SHORTCUTS.every((s) => s.clave.startsWith('business.') && s.claveObjetivo.startsWith('business.') && s.icon.endsWith('-outline')));
+  /* Las métricas son cifras; las escribe Intl al pintarlas («125,4 B» y «%40» en turco). Los valores, los de siempre. */
   check('28) las cinco redes y las cuatro métricas siguen igual',
     MOCK.BUSINESS_NETWORKS.map((n) => n.id).join(',') === 'instagram,facebook,tiktok,youtube,whatsapp'
-    && MOCK.BUSINESS_STATS.map((s) => s.id + '=' + s.value + s.delta).join(' ')
-      === 'posts=24↑ 40% reach=125.4K↑ 60% interactions=2.8K↑ 35% messages=186↑ 70%');
+    && MOCK.BUSINESS_STATS.map((s) => s.id + '=' + s.valor + '↑' + s.subida).join(' ')
+      === 'posts=24↑0.4 reach=125400↑0.6 interactions=2800↑0.35 messages=186↑0.7'
+    && /formatearNumero\(stat\.valor, locale, \{ notation: 'compact'/.test(CODIGO['screens/BusinessScreen.tsx'] ?? leer('screens/BusinessScreen.tsx'))
+    && /formatearPorcentaje\(stat\.subida, locale\)/.test(CODIGO['screens/BusinessScreen.tsx'] ?? leer('screens/BusinessScreen.tsx')));
 
   check('29) el estado de un trabajo son seis claves y se resuelven al pintar',
     /asking: 'weeai\.jobAsking'/.test(CODIGO['services/creatorService.ts'])

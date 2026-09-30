@@ -48,6 +48,7 @@ export interface PollOption {
 import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
+import { paraBuscar } from '../i18n/caja';
 
 /*
  * Una encuesta dentro de una publicación.
@@ -1194,7 +1195,8 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
   try {
     if (!searchQuery || searchQuery.trim().length < 2) return [];
 
-    const searchLower = searchQuery.toLowerCase().trim();
+    // «ibrahim» encuentra a «İbrahim»: las íes del turco cuentan como una (i18n/caja.ts).
+    const searchLower = paraBuscar(searchQuery).trim();
 
     // Firebase no soporta búsqueda de texto completo, así que obtenemos usuarios y filtramos
     // En producción se usaría Algolia o Elasticsearch
@@ -1209,8 +1211,8 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
 
     // Filtrar por displayName que contenga el query (case insensitive)
     const filtered = users.filter(user =>
-      user.displayName?.toLowerCase().includes(searchLower) ||
-      user.bio?.toLowerCase().includes(searchLower)
+      paraBuscar(user.displayName).includes(searchLower) ||
+      paraBuscar(user.bio).includes(searchLower)
     );
 
     /*
@@ -1224,8 +1226,8 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
      * retirado.
      */
     filtered.sort((a, b) => {
-      const aExact = a.displayName?.toLowerCase().startsWith(searchLower) ? 1 : 0;
-      const bExact = b.displayName?.toLowerCase().startsWith(searchLower) ? 1 : 0;
+      const aExact = paraBuscar(a.displayName).startsWith(searchLower) ? 1 : 0;
+      const bExact = paraBuscar(b.displayName).startsWith(searchLower) ? 1 : 0;
       if (aExact !== bExact) return bExact - aExact;
       return (a.displayName || '').localeCompare(b.displayName || '', 'es');
     });
@@ -1242,7 +1244,7 @@ export const searchPosts = async (searchQuery: string, limitCount = 10): Promise
   try {
     if (!searchQuery || searchQuery.trim().length < 2) return [];
 
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = paraBuscar(searchQuery).trim();
 
     // Firebase no soporta búsqueda de texto completo
     // Obtenemos posts recientes y filtramos
@@ -1261,8 +1263,8 @@ export const searchPosts = async (searchQuery: string, limitCount = 10): Promise
 
     // Filtrar por contenido que contenga el query
     const filtered = posts.filter(post =>
-      post.content?.toLowerCase().includes(searchLower) ||
-      post.hashtags?.some(tag => tag.toLowerCase().includes(searchLower))
+      paraBuscar(post.content).includes(searchLower) ||
+      post.hashtags?.some(tag => paraBuscar(tag).includes(searchLower))
     );
 
     return filtered.slice(0, limitCount);
@@ -1351,7 +1353,7 @@ export const getPopularHashtags = async (limitCount = 10): Promise<PopularHashta
 // Buscar posts por hashtag
 export const getPostsByHashtag = async (hashtag: string, limitCount = 20): Promise<Post[]> => {
   try {
-    const normalizedTag = hashtag.toLowerCase().trim().replace('#', '');
+    const normalizedTag = paraBuscar(hashtag).trim().replace('#', '');
 
     const snapshot = await getDocs(
       query(
@@ -1368,7 +1370,7 @@ export const getPostsByHashtag = async (hashtag: string, limitCount = 20): Promi
 
     // Filtrar por hashtag
     const filtered = posts.filter(post =>
-      post.hashtags?.some(tag => tag.toLowerCase().trim() === normalizedTag)
+      post.hashtags?.some(tag => paraBuscar(tag).trim() === normalizedTag)
     );
 
     return filtered.slice(0, limitCount);

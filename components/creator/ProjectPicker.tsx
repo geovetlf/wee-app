@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useT } from '../../contexts/IdiomaContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { projectsService, WeeProject, PROJECT_EMOJIS, suggestProjectName } from '../../services/projectsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -20,7 +20,7 @@ interface ProjectPickerProps {
 /** "Guardar en proyecto": elige uno existente o crea uno nuevo con nombre sugerido. */
 const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, onPick }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const [projects, setProjects] = useState<WeeProject[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,13 +31,13 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
   useEffect(() => {
     if (!visible || !user) return;
     setLoading(true);
-    setName(suggestProjectName(goal));
+    setName(suggestProjectName(goal, locale));
     projectsService
       .list(user.uid)
       .then(setProjects)
       .catch((error) => console.warn('No se pudieron cargar los proyectos:', error))
       .finally(() => setLoading(false));
-  }, [visible, user, goal]);
+  }, [visible, user, goal, locale]);
 
   const create = async () => {
     if (!user || !name.trim() || creating) return;

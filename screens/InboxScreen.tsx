@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -81,9 +82,9 @@ const InboxScreen = () => {
     ? conversations.filter(c => {
         const otherId = c.participants.find(id => id !== activeUid);
         if (!otherId) return false;
-        const name = c.participantsData[otherId]?.displayName?.toLowerCase() || '';
-        const msg = c.lastMessage?.content?.toLowerCase() || '';
-        return name.includes(search.toLowerCase()) || msg.includes(search.toLowerCase());
+        const name = paraBuscar(c.participantsData[otherId]?.displayName);
+        const msg = paraBuscar(c.lastMessage?.content);
+        return name.includes(paraBuscar(search)) || msg.includes(paraBuscar(search));
       })
     : conversations;
 

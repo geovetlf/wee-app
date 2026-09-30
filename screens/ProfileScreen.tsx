@@ -22,7 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -46,7 +46,7 @@ const BANNER_HEIGHT = 180;
 type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileMain'>;
 
 const ProfileScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme, setThemeMode } = useTheme();
   const { user, logout } = useAuth();
   const { userProfile, loading: profileLoading, error: profileError, updateProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
@@ -778,7 +778,7 @@ const ProfileScreen: React.FC = () => {
               <Text style={[styles.handleText, {
                 color: activeProfileType === 'hidi' ? theme.colors.accent : theme.colors.textSecondary,
               }]}>
-                {userProfile.username || userProfile.displayName.toLowerCase().replace(/\s+/g, '')}
+                {userProfile.username || userProfile.displayName.toLocaleLowerCase(locale).replace(/\s+/g, '')}
               </Text>
               {userProfile.verified && (
                 <Ionicons name="checkmark-circle" size={16} color={theme.colors.accent} />

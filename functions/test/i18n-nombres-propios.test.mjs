@@ -162,6 +162,17 @@ const DEFORMES = [
   [/(?<!ファイア)ウォール(?!ペーパー)/u, 'Wäll en katakana'],
   [/Weë ?(?:スタジオ|ブレイン|デザイン|ミュージック|音楽|シェフ|料理人|ビジネス|トラベル|旅行|ライター|作家|ビューティー|美容|フォト|写真|ホーム)/u, 'experiencia de Weë traducida al japonés'],
   [/(?:スタジオ|ブレイン|デザイン|ミュージック) ?Weë/u, 'nombre de Weë reordenado en japonés'],
+  /*
+   * TURCO. Tres tentaciones. Traducir la moneda —«Kredi», «Krediniz»—, que es
+   * la palabra común; «kredi kartı», la tarjeta, sí es turco corriente. Traducir
+   * la experiencia —«Weë Stüdyo», «Weë Müzik»—, que en turco se escribe casi
+   * igual y por eso cuela. Y pegarle una terminación a la marca sin apóstrofo:
+   * el turco la escribe «Weë'de», con el apóstrofo que separa el nombre propio
+   * de su sufijo; «Weëde» ya no es la marca.
+   */
+  [/(?<![\p{L}])[Kk]redi(?:ler\p{L}*|niz|n|ni|ye|den|de)?(?![\p{L}])(?! kart)/u, 'Credits en turco'],
+  [/Weë (?:Stüdyo|Tasarım|Fotoğraf|Yazar|Müzik|Güzellik|Şef|Ev|İş|Seyahat|Gezi|Beyin|Zihin)(?![\p{L}])/u, 'experiencia de Weë traducida al turco'],
+  [/(?:Weë|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits)(?:de|da|te|ta|den|dan|ten|tan|ye|ya|yi|yı|nin|nın|in|ın|un|ün|yle|yla)(?![\p{L}])/u, 'marca con un sufijo turco pegado sin apóstrofo'],
 ];
 for (const idioma of idiomas) {
   const hallados = [];
@@ -207,6 +218,10 @@ const TRAMPAS = [
   ['查看 Weels', 'chino'],
   ['EContact 열기', 'coreano'],
   ['Bienvenue sur Wee', 'sin diéresis'],
+  ['12 Krediniz kaldı', 'turco · moneda traducida'],
+  ['Weë Stüdyo ile oluştur', 'turco · experiencia traducida'],
+  ['Weëde paylaş', 'turco · sufijo sin apóstrofo'],
+  ['WeeTalkta yaz', 'turco · sufijo sin apóstrofo'],
 ];
 const pillada = (texto) => DEFORMES.some(([re]) => re.test(texto));
 const escapadas = TRAMPAS.filter(([t]) => !pillada(t));
@@ -220,7 +235,9 @@ const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls',
   '残り 12 Credits', 'Weë へようこそ', 'Weë Studio で作成', 'Wäll に投稿', 'Weëls を見る', 'WeeTalk で話す',
   'クレジットカードで支払う', 'ウェーブヘア', '今週の予定', '写真スタジオの照明',
   /* Los dos nombres bien escritos, y uno que solo ACABA en «contact» sin serlo. */
-  'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄'];
+  'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄',
+  /* Turco: la marca con su apóstrofo, y las palabras corrientes que se le parecen. */
+  '12 Credits kaldı', "Weë'de paylaş", "WeeTalk'ta yaz", 'Kredi kartıyla öde', 'Weë Studio ile oluştur', 'fotoğraf stüdyosu'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));
 check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
   falsosPositivos.join(' | ') || 'ninguno');

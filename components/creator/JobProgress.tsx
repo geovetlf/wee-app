@@ -6,6 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 interface JobProgressProps {
   experienceName: string;
@@ -33,7 +34,7 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-      <Text style={[styles.who, { color: theme.colors.accentDark }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</Text>
+      <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</TextoEnMayusculas>
       <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText || t('creaciones.progressStarting')}</Text>
       <Text style={[styles.counter, { color: theme.colors.textSecondary }]}>
         {t('creaciones.progressSteps', { hechos: doneCount, total: job.steps.length })}
@@ -81,7 +82,6 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   title: {
     fontSize: scale(18),

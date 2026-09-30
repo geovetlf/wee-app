@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
@@ -83,7 +83,7 @@ const SITIO_DE_LA_BARRA = scale(96);
  */
 const StudioScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
@@ -215,7 +215,7 @@ const StudioScreen: React.FC = () => {
        * detrás con qué, y lo suyo queda entero en medio.
        */
       const creative = filtrarCreativo(controles);
-      const conPalabras = creativoEnPalabras(creative, t);
+      const conPalabras = creativoEnPalabras(creative, t, locale);
       const nombre = experiencia ? t(experiencia.clave) : '';
 
       const contexto: ContextoDeExperiencia = {
@@ -260,7 +260,7 @@ const StudioScreen: React.FC = () => {
 
     setEstado('creando');
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t]);
+  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale]);
 
   /**
    * LO ELEGIDO DENTRO DE UNA PUERTA VUELVE AL COMPOSITOR.

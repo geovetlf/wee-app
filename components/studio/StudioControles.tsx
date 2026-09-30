@@ -6,6 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { FAMILIAS_DE_CAMARA, ComandoDeCamara } from '../../constants/camaraCinematica';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const isWeb = Platform.OS === 'web';
 
@@ -98,7 +99,7 @@ const StudioControles: React.FC<Props> = ({ familias, elegido, onElegir, conAlia
     <View style={styles.bloque}>
       {abiertas.map((familia) => (
         <View key={familia.id} style={styles.familia}>
-          <Text style={[styles.titulo, { color: theme.colors.textSecondary }]}>{t(familia.clave)}</Text>
+          <TextoEnMayusculas style={[styles.titulo, { color: theme.colors.textSecondary }]}>{t(familia.clave)}</TextoEnMayusculas>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -119,7 +120,6 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.6),
     paddingHorizontal: SPACING.xl,
   },

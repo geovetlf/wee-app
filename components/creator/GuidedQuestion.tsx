@@ -6,6 +6,7 @@ import { Question } from '../../services/creatorService';
 import DateRangePicker from './DateRangePicker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 export interface QaHistoryItem {
   question: string;
@@ -46,7 +47,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       {history.map((item, index) => (
         <View key={`${index}-${item.question}`}>
           <View style={styles.bubbleRowLeft}>
-            <Text style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</Text>
+            <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
             <View style={[styles.bubbleWee, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{item.question}</Text>
             </View>
@@ -62,7 +63,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       {/* Pregunta actual */}
       {question ? (
         <View style={styles.current}>
-          <Text style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</Text>
+          <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
           <Text style={[styles.questionText, { color: theme.colors.text }]}>{question.text}</Text>
           {question.kind === 'dates' ? (
             /*
@@ -135,7 +136,6 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   bubbleWee: {
     alignSelf: 'flex-start',

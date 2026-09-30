@@ -6,6 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { ENTRADAS_PRINCIPALES, ENTRADAS_DE_EXPLORAR, EntradaDeStudio } from '../../constants/studioExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const isWeb = Platform.OS === 'web';
 
@@ -130,7 +131,7 @@ const StudioEntradas: React.FC<Props> = ({ onAbrir, porFila }) => {
       </View>
 
       <View style={styles.explorar}>
-        <Text style={[styles.explorarTitulo, { color: theme.colors.textSecondary }]}>{t('studio.exploreTitle')}</Text>
+        <TextoEnMayusculas style={[styles.explorarTitulo, { color: theme.colors.textSecondary }]}>{t('studio.exploreTitle')}</TextoEnMayusculas>
         <View style={styles.pildoras}>
           {ENTRADAS_DE_EXPLORAR.map((entrada) => {
             const nombre = entrada.marca ?? t(entrada.clave as string);
@@ -169,7 +170,6 @@ const styles = StyleSheet.create({
   explorarTitulo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.6),
   },
   pildoras: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },

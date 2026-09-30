@@ -450,7 +450,9 @@ check('el icono es pequeño, outline y en un círculo crema de 32', /iconoCircul
 check('el nombre manda y la región acompaña en gris', /filaNombre: \{\s*fontSize: FONT_SIZE\.base,\s*fontWeight: FONT_WEIGHT\.semibold,/.test(estilos) && /filaSub: \{\s*fontSize: FONT_SIZE\.sm,/.test(estilos) && /styles\.filaSub, \{ color: theme\.colors\.textSecondary \}/.test(codigoPantalla));
 check('la distancia medida va al final de la línea, en dorado', codigoPantalla.indexOf('styles.filaDistancia') > codigoPantalla.indexOf('styles.filaSub') && /styles\.filaDistancia, \{ color: theme\.colors\.accentDark \}/.test(codigoPantalla) && /distanciaAproximada\(km\)/.test(codigoPantalla));
 check('"Usar lo que escribiste" sigue, apenas distinta: su icono, fondo casi nulo y aire encima', /styles\.fila, styles\.filaPropia, \{ backgroundColor: theme\.colors\.accent \+ '0F' \}/.test(codigoPantalla) && /name="create-outline"/.test(codigoPantalla) && /filaPropia: \{\s*marginTop: SPACING\.md,\s*borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /onPress=\{elegirEscrito\}/.test(codigoPantalla));
-check('los rótulos son pequeños y en mayúsculas, como "PUBLICAR EN"', /seccionTitulo: \{\s*fontSize: FONT_SIZE\.xs,[\s\S]{0,80}textTransform: 'uppercase',/.test(estilos) && /<Seccion titulo="Resultados" \/>/.test(codigoPantalla));
+/* La mayúscula la pone `TextoEnMayusculas` con el locale (en iOS `textTransform` no lo conoce: «İ» en turco). */
+check('los rótulos son pequeños y en mayúsculas, como "PUBLICAR EN"', /seccionTitulo: \{\s*fontSize: FONT_SIZE\.xs,/.test(estilos)
+  && /<TextoEnMayusculas style=\{\[styles\.seccionTitulo,/.test(codigoPantalla) && /<Seccion titulo="Resultados" \/>/.test(codigoPantalla));
 check('cada fila se anuncia entera y dice qué pasa al tocarla',
   /accessibilityRole="button"\s*accessibilityLabel=\{opcion\.sublabel \? '\{\{lugar\}\}, \{\{detalle\}\}' : opcion\.label\}\s*accessibilityHint=/.test(codigoPantalla)
   && ES_C.composer.placeOption === '{{lugar}}, {{detalle}}'

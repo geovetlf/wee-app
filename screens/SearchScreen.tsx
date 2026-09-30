@@ -17,6 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -110,10 +111,11 @@ const SearchScreen: React.FC = () => {
       if (searchQuery.trim().length >= 2) {
         setSearching(true);
         try {
-          // Filtrar comunidades localmente
+          // Filtrar comunidades localmente («ibrahim» encuentra «İbrahim»: i18n/caja.ts)
+          const buscado = paraBuscar(searchQuery);
           const filtered = communities.filter(c =>
-            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.description.toLowerCase().includes(searchQuery.toLowerCase())
+            paraBuscar(c.name).includes(buscado) ||
+            paraBuscar(c.description).includes(buscado)
           );
           setFilteredCommunities(filtered);
 

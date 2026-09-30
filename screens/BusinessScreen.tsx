@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { formatearNumero, formatearPorcentaje } from '../i18n/formato';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { SpecialistAction } from '../constants/specialists';
@@ -589,9 +590,12 @@ const BusinessScreen: React.FC = () => {
           <View style={styles.stats}>
             {BUSINESS_STATS.map((stat) => (
               <View key={stat.id} style={[styles.stat, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{stat.value}</Text>
+                {/* Las cifras las escribe Intl con el locale: «125,4 B» y «%40» en turco, «125.4K» y «40%» en inglés. */}
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>
+                  {formatearNumero(stat.valor, locale, { notation: 'compact', maximumFractionDigits: 1 })}
+                </Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t(stat.clave)}</Text>
-                <Text style={styles.statDelta}>{stat.delta}</Text>
+                <Text style={styles.statDelta}>{`↑ ${formatearPorcentaje(stat.subida, locale)}`}</Text>
               </View>
             ))}
           </View>

@@ -18,6 +18,7 @@ import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 /**
  * ËCONTACT · ẄCONTACT — tu gente en Weë.
@@ -333,7 +334,7 @@ const EContactScreen: React.FC = () => {
           renderItem={renderFila}
           renderSectionHeader={({ section }) => (
             <View style={[styles.seccion, { backgroundColor: theme.colors.background }]}>
-              <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]}>{section.titulo}</Text>
+              <TextoEnMayusculas style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]}>{section.titulo}</TextoEnMayusculas>
               <Text style={[styles.seccionCuenta, { color: theme.colors.textSecondary }]}>{section.data.length}</Text>
             </View>
           )}
@@ -397,7 +398,6 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
   },
   seccionCuenta: {
     fontSize: FONT_SIZE.sm,

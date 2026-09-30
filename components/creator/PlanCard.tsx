@@ -5,6 +5,7 @@ import { useIdioma } from '../../contexts/IdiomaContext';
 import { Plan, PlanPricing, QualityChoice } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 interface PlanCardProps {
   experienceName: string;
@@ -54,7 +55,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
-      <Text style={[styles.who, { color: theme.colors.accentDark }]}>{experienceName}</Text>
+      <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{experienceName}</TextoEnMayusculas>
       <Text style={[styles.explain, { color: theme.colors.text }]}>{plan.explainToUser}</Text>
 
       <View style={styles.steps}>
@@ -84,7 +85,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
 
       {!!pricing?.options && pricing.options.length > 1 && (
         <View style={styles.quality}>
-          <Text style={[styles.qualityTitle, { color: theme.colors.textSecondary }]}>{t('weeai.quality')}</Text>
+          <TextoEnMayusculas style={[styles.qualityTitle, { color: theme.colors.textSecondary }]}>{t('weeai.quality')}</TextoEnMayusculas>
           <View style={styles.qualityRow}>
             {pricing.options.map((option) => {
               const active = (quality || pricing.options?.[0]?.quality) === option.quality;
@@ -143,7 +144,6 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   explain: {
     fontSize: FONT_SIZE.md,
@@ -183,7 +183,6 @@ const styles = StyleSheet.create({
   qualityTitle: {
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
-    textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   qualityRow: {

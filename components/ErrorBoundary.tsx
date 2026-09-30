@@ -27,6 +27,7 @@ const TEXTOS: Record<string, { titulo: string; mensaje: string; boton: string }>
   zh: { titulo: '出错了', mensaje: 'Weë 遇到了意外错误。请重试；如果一直这样，可以在帮助里告诉我们。', boton: '重试' },
   'zh-TW': { titulo: '發生錯誤', mensaje: 'Weë 遇到非預期的錯誤。請重試；如果一直發生，可以從說明告訴我們。', boton: '重試' },
   ja: { titulo: '問題が発生しました', mensaje: 'Weëで予期しないエラーが発生しました。もう一度お試しください。何度も起きる場合は、ヘルプからお知らせください。', boton: '再試行' },
+  tr: { titulo: 'Bir sorun oluştu', mensaje: 'Weë\'de beklenmedik bir hata oluştu. Yeniden dene; sorun devam ederse Yardım bölümünden bize bildir.', boton: 'Yeniden dene' },
 };
 
 /*

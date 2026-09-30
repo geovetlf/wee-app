@@ -7,6 +7,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { ajustesDe, ContextoDeCreacion, GrupoDeAjustes } from '../../constants/ajustesContextuales';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 /** Lo que mide una píldora de alto. Va sin `scale()`: un dedo no encoge en web. */
 const ALTO_DE_PILDORA = 40;
@@ -93,7 +94,7 @@ const AjustesContextuales: React.FC<Props> = ({
           <ScrollView style={styles.lista} contentContainerStyle={styles.listaDentro} showsVerticalScrollIndicator={false}>
             {preguntas.map((grupo) => (
               <View key={grupo.id} style={styles.grupo}>
-                <Text style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</Text>
+                <TextoEnMayusculas style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</TextoEnMayusculas>
 
                 {grupo.opciones.length === 0 ? (
                   /*
@@ -204,7 +205,6 @@ const styles = StyleSheet.create({
   grupoTitulo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.5),
   },
   fila: {

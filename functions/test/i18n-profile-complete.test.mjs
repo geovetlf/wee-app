@@ -80,7 +80,9 @@ console.log('\n── A · Ni una frase española suelta en toda la pantalla ─
   check('2) ni texto suelto dentro del JSX', enJsx.length === 0, [...new Set(enJsx)].join(' · '));
 
   /* 3 · La pantalla usa el sistema de Weë, y solo ese. */
-  check('3) usa el traductor de Weë', /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(PERFIL) && /const t = useT\(\);/.test(PERFIL));
+  /* useIdioma es el mismo proveedor: la pantalla lo pide para bajar el nombre a minúsculas con las reglas del idioma. */
+  check('3) usa el traductor de Weë', /import \{ (useT|useIdioma) \} from '\.\.\/contexts\/IdiomaContext';/.test(PERFIL)
+    && /const (t = useT\(\)|\{ t, locale \} = useIdioma\(\));/.test(PERFIL));
   check('3) sin diccionario propio ni ternarios de idioma',
     !/idioma === 'e[ns]'/.test(PERFIL) && !/locale === 'e[ns]'/.test(PERFIL)
     && !/i18next|react-intl|formatjs|lingui/.test(CRUDO)
@@ -260,7 +262,7 @@ console.log('\n── G · Lo que NO se traduce ──');
   /* 40 · Lo que escribe una persona se pinta crudo. */
   check('40) el nombre, el usuario y la biografía se pintan crudos',
     /\{userProfile\.displayName\}/.test(PERFIL)
-    && /\{userProfile\.username \|\| userProfile\.displayName\.toLowerCase/.test(PERFIL)
+    && /\{userProfile\.username \|\| userProfile\.displayName\.toLocaleLowerCase\(locale\)/.test(PERFIL)
     && /\{userProfile\.bio\}/.test(PERFIL));
   check('40) y ninguno entra como clave en el traductor',
     !/t\(\s*userProfile/.test(PERFIL) && !/t\(`/.test(PERFIL));

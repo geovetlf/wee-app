@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { communityService, Community } from '../services/communityService';
@@ -24,6 +25,7 @@ import { POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 const CommunitiesManagementScreen: React.FC = () => {
   const t = useT();
@@ -255,9 +257,9 @@ const CommunitiesManagementScreen: React.FC = () => {
 
   const renderSectionHeader = (title: string, count: number) => (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+      <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
         {title}
-      </Text>
+      </TextoEnMayusculas>
       <View style={[styles.countBadge, { backgroundColor: theme.colors.surface }]}>
         <Text style={[styles.countText, { color: theme.colors.textSecondary }]}>
           {count}
@@ -267,11 +269,11 @@ const CommunitiesManagementScreen: React.FC = () => {
   );
 
   // Filtrar por búsqueda
-  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const normalizedQuery = paraBuscar(searchQuery).trim();
   const filtered = normalizedQuery
     ? communities.filter(c =>
-        c.name.toLowerCase().includes(normalizedQuery) ||
-        c.description.toLowerCase().includes(normalizedQuery)
+        paraBuscar(c.name).includes(normalizedQuery) ||
+        paraBuscar(c.description).includes(normalizedQuery)
       )
     : communities;
 
@@ -598,7 +600,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   countBadge: {

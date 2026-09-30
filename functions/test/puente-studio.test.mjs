@@ -167,7 +167,7 @@ check('elegir una experiencia ya no escribe en la caja',
  * frase, aquí se vería.
  */
 check('las palabras acompañan a la estructura, no la sustituyen',
-  /creativoEnPalabras\(creative, t\)/.test(studio)
+  /creativoEnPalabras\(creative, t, locale\)/.test(studio)
   && /\.\.\.\(Object\.keys\(creative\)\.length \? \{ creative \} : \{\}\)/.test(studio));
 
 console.log('\n─── E. Las referencias van por donde iban ───');
@@ -288,9 +288,13 @@ for (const [nombre, entrada, esperado] of CASOS) {
 /* Y las palabras salen del catálogo traducido, nunca de la ruta cruda. */
 const t = (c) => ({ 'studio.shtCloseUp': 'Primer plano', 'studio.ltGolden': 'Hora dorada' }[c] ?? c);
 check('lo elegido se dice con palabras, no con rutas',
-  creativoEnPalabras({ 'shot.type': 'close_up', 'lighting.type': 'golden_hour' }, t) === 'primer plano, hora dorada');
+  creativoEnPalabras({ 'shot.type': 'close_up', 'lighting.type': 'golden_hour' }, t, 'es-PE') === 'primer plano, hora dorada');
 check('y un valor sin nombre no se dice a medias',
-  creativoEnPalabras({ 'shot.type': 'inventado' }, t) === '');
+  creativoEnPalabras({ 'shot.type': 'inventado' }, t, 'es-PE') === '');
+/* Las minúsculas, con las reglas del idioma: en turco la minúscula de «I» es «ı». */
+const tTr = (c) => ({ 'studio.shtCloseUp': 'Yakın Plan', 'studio.ltGolden': 'Altın Işık' }[c] ?? c);
+check('y en turco «Işık» baja a «ışık», no a «işık»',
+  creativoEnPalabras({ 'shot.type': 'close_up', 'lighting.type': 'golden_hour' }, tTr, 'tr-TR') === 'yakın plan, altın ışık');
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nLo que se elige en Weë Studio llega entero');
 process.exit(failures ? 1 : 0);

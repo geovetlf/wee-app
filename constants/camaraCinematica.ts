@@ -277,14 +277,17 @@ export const filtrarCreativo = (crudo: unknown): SeleccionCreativa => {
  * tanto, quitarla sería perder lo que la persona eligió.
  *
  * El traductor entra por parámetro y es OBLIGATORIO: así ninguna pantalla puede
- * olvidarse de él y acabar mandando «golden hour» en una app en francés.
+ * olvidarse de él y acabar mandando «golden hour» en una app en francés. Y el
+ * locale también: las etiquetas bajan a minúsculas con sus reglas, porque en
+ * turco la minúscula de «I» es «ı» («Işık» → «ışık», no «işık»).
  */
 export const creativoEnPalabras = (
   creative: SeleccionCreativa,
-  t: (clave: string) => string
+  t: (clave: string) => string,
+  locale: string
 ): string =>
   Object.entries(creative)
     .map(([ruta, valor]) => claveDelValor(ruta, valor))
     .filter((clave): clave is string => !!clave)
-    .map((clave) => t(clave).toLowerCase())
+    .map((clave) => t(clave).toLocaleLowerCase(locale))
     .join(', ');
