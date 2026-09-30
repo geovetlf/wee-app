@@ -17,7 +17,7 @@ import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { messagesService, Conversation } from '../services/messagesService';
+import { messagesService, Conversation, claveDeAvisoGuardado } from '../services/messagesService';
 import { useConversaciones } from '../hooks/useConversaciones';
 import { getRelativeTime } from '../data/mockData';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
@@ -97,6 +97,9 @@ const InboxScreen = () => {
 
     const last = item.lastMessage;
     const unread = last && !last.read && last.senderId !== activeUid;
+    /* Un aviso que guardó Weë se dice en el idioma de quien mira; el mensaje de una persona, tal cual. */
+    const avisoGuardado = claveDeAvisoGuardado(last?.content);
+    const ultimo = avisoGuardado ? t(avisoGuardado) : last?.content ?? '';
 
     return (
       <TouchableOpacity
@@ -145,7 +148,7 @@ const InboxScreen = () => {
               {item.ephemeral
                 ? t('weetalk.ephemeralMode')
                 : last
-                  ? (last.senderId === activeUid ? t('weetalk.youSaid', { mensaje: last.content }) : last.content)
+                  ? (last.senderId === activeUid ? t('weetalk.youSaid', { mensaje: ultimo }) : ultimo)
                   : t('weetalk.noMessagesYet')}
             </Text>
             {unread && <View style={[styles.dot, { backgroundColor: theme.colors.accent }]} />}

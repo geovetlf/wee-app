@@ -30,4 +30,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: 'agora',
   markAllRead: 'Marcar todas como lidas',
   all: 'Todas',
+  unread: 'Não lidas',
+  unreadWithCount: 'Não lidas ({{total}})',
 };

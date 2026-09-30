@@ -114,7 +114,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
                 accessibilityLabel={t('weeai.projectName')}
               />
               <TouchableOpacity onPress={create} disabled={!name.trim() || creating} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('weeai.createProject')}>
-                <Text style={styles.createText}>{creating ? '…' : 'Crear'}</Text>
+                <Text style={styles.createText}>{creating ? '…' : t('weeai.create')}</Text>
               </TouchableOpacity>
             </View>
           </View>

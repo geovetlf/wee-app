@@ -50,4 +50,13 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   recordAudio: '음성 녹음',
   viewOnceOn: '한 번만 보기',
   keepInChat: '채팅에 보관',
+  themeClassic: '클래식',
+  themeMidnight: '미드나잇',
+  themeForest: '숲',
+  themeSunset: '노을',
+  themeOcean: '바다',
+  themePurple: '보라',
+  imagePreview: '📷 사진',
+  audioPreview: '🎤 음성 메시지',
+  today: '오늘',
 };

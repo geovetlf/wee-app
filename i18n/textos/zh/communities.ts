@@ -58,4 +58,8 @@ export const communities: typeof import('../es/communities').communities = {
   beTheFirst: '成为第一个在这个社区发动态的人',
   createPost: '发布动态',
   understoodJoin: '我知道了，加入',
+  memberCount_one: '{{cantidad}} 位成员',
+  memberCount_other: '{{cantidad}} 位成员',
+  postCount_one: '{{contador}} 条动态',
+  postCount_other: '{{contador}} 条动态',
 };

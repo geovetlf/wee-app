@@ -182,17 +182,23 @@ console.log('\n── D · WEË BUSINESS SIGUE ENTERO ──');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-console.log('\n── E · Los once diccionarios, simétricos ──');
+console.log('\n── E · Todos los diccionarios, simétricos ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   /*
    * Una clave de i18n existe en TODOS los idiomas o en ninguno: el tipo no
    * compila si falta en uno. Quitar dos claves tiene que ser exactamente
    * simétrico, y aquí se comprueba de verdad, locale a locale.
+   *
+   * Los diccionarios se LEEN de la carpeta y no se cuentan a mano: el número
+   * cambia cada vez que entra un idioma, y lo que importa es que ninguno se
+   * quede sin su menú.
    */
   const RAIZ = new URL('../../i18n/textos/', import.meta.url);
   const locales = fs.readdirSync(RAIZ).filter((d) => fs.existsSync(new URL(`${d}/menu.ts`, RAIZ)));
-  check('25) hay once diccionarios', locales.length === 11, locales.join(' '));
+  const diccionarios = fs.readdirSync(RAIZ).filter((d) => fs.existsSync(new URL(`${d}/index.ts`, RAIZ)));
+  check(`25) los ${diccionarios.length} diccionarios tienen su menú`,
+    locales.length === diccionarios.length && diccionarios.length >= 2, locales.join(' '));
 
   const conBiz = locales.filter((l) => /activeBiz|bizActiveTap/.test(fs.readFileSync(new URL(`${l}/menu.ts`, RAIZ), 'utf8')));
   check('26) en ninguno queda una clave del Perfil Biz', conBiz.length === 0, conBiz.join(' '));

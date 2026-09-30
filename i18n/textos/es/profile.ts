@@ -92,4 +92,9 @@ export const profile = {
   seeFullProfile: 'Ver mi perfil completo',
   emptyCategory: 'Sin publicaciones en esta categoría',
   actionFailed: 'No se pudo completar',
+  userNotFound: 'El usuario no existe',
+  shareOtherMessage: '¡Mira el perfil de @{{nombre}} en Weë!\n\n{{bio}}',
+  shareOtherNoBio: 'Usuario de Weë',
+  joinedOn: 'Se unió en {{fecha}}',
+  tabPolls: 'Encuestas',
 };

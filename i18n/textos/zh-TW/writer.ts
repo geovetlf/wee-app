@@ -55,4 +55,5 @@ export const writer: typeof import('../es/writer').writer = {
   bodyPlaceholder: '在這裡寫。隨時可以請 Weë 潤色、校對或翻譯。',
   resultHint: 'Weë 會在你寫的內容上繼續打磨，把結果放在這裡，可以接著編輯。',
   weeWorksWithYou: 'Weë 和你一起打磨。',
+  saved: '✓ 已儲存',
 };

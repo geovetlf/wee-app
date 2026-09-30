@@ -145,6 +145,23 @@ const DEFORMES = [
   [/크레딧|크레디트/u, 'Credits en coreano'],
   [/Weë ?(?:브레인|스튜디오|디자인|뮤직|음악|셰프|요리사|비즈니스|여행|작가|뷰티)/u, 'experiencia de Weë traducida al coreano'],
   [/(?:브레인|스튜디오|디자인) Weë/u, 'nombre de Weë reordenado en coreano'],
+  /*
+   * JAPONÉS. La tentación es la misma que en coreano, y en japonés es todavía
+   * más natural: todo nombre extranjero se escribe en katakana, así que «Weë»
+   * saldría solo como ウィー y «Credits» como クレジット. Aquí la marca va en
+   * latino, tal cual, y el katakana se queda para las palabras comunes.
+   *
+   * Las excepciones no son de cortesía: son palabras japonesas corrientes que
+   * EMPIEZAN igual y que la interfaz sí usa. ウェーブ es el pelo ondulado de
+   * Weë Beauty (`hairWavy`); クレジットカード, la tarjeta de crédito; ウィーク
+   * y ウィーン, la semana y Viena. Sin ellas, esta guarda acusaría a traducciones
+   * perfectas.
+   */
+  [/クレジット(?!カード)/u, 'Credits en katakana'],
+  [/ウィー(?![クン])|ウイー|ウェー(?![ブル])/u, 'Weë (o Weëls, WeeTalk…) en katakana'],
+  [/(?<!ファイア)ウォール(?!ペーパー)/u, 'Wäll en katakana'],
+  [/Weë ?(?:スタジオ|ブレイン|デザイン|ミュージック|音楽|シェフ|料理人|ビジネス|トラベル|旅行|ライター|作家|ビューティー|美容|フォト|写真|ホーム)/u, 'experiencia de Weë traducida al japonés'],
+  [/(?:スタジオ|ブレイン|デザイン|ミュージック) ?Weë/u, 'nombre de Weë reordenado en japonés'],
 ];
 for (const idioma of idiomas) {
   const hallados = [];
@@ -180,6 +197,13 @@ const TRAMPAS = [
   ['Abre tu ëContact', 'Ë en minúscula'],
   ['Abre tu Ẅcontact', 'C en minúscula'],
   ['Wee Talk で話す', 'japonés'],
+  ['クレジットが 12 残っています', 'japonés · moneda en katakana'],
+  ['ウィーへようこそ', 'japonés · Weë en katakana'],
+  ['ウィールズを見る', 'japonés · Weëls en katakana'],
+  ['ウィートークで話す', 'japonés · WeeTalk en katakana'],
+  ['ウォールに投稿', 'japonés · Wäll en katakana'],
+  ['Weë スタジオを開く', 'japonés · experiencia en katakana'],
+  ['Weë 旅行で計画する', 'japonés · experiencia traducida'],
   ['查看 Weels', 'chino'],
   ['EContact 열기', 'coreano'],
   ['Bienvenue sur Wee', 'sin diéresis'],
@@ -192,6 +216,9 @@ check(`6) control: reconoce las ${TRAMPAS.length} deformaciones típicas`, escap
 const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls', 'Wäll', 'WeeTalk', 'Weë Brain',
   'У вас 12 Credits', 'Откройте Weë Studio', 'Weë Brain отвечает', 'фотостудия и свет',
   'Credits 12개가 남았어요', 'Weë Brain 열기', 'Weë Studio에서 만들기', '사진 스튜디오 조명',
+  /* Japonés: las marcas en latino, y las palabras corrientes que empiezan igual. */
+  '残り 12 Credits', 'Weë へようこそ', 'Weë Studio で作成', 'Wäll に投稿', 'Weëls を見る', 'WeeTalk で話す',
+  'クレジットカードで支払う', 'ウェーブヘア', '今週の予定', '写真スタジオの照明',
   /* Los dos nombres bien escritos, y uno que solo ACABA en «contact» sin serlo. */
   'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));

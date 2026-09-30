@@ -95,7 +95,7 @@ const WeeBizScreen: React.FC = () => {
   };
 
   const handleCategoryPress = (cat: WeeBizCategory) => {
-    navigation.navigate('WeeBizCategory', { categoryId: cat.id, categoryLabel: cat.label });
+    navigation.navigate('WeeBizCategory', { categoryId: cat.id, categoryLabel: t(cat.clave) });
   };
 
   const handleBusinessPress = (biz: Business) => {
@@ -122,7 +122,7 @@ const WeeBizScreen: React.FC = () => {
         <Ionicons name={cat.icon as any} size={scale(24)} color={cat.color} />
       </View>
       <Text style={[styles.categoryLabel, { color: theme.colors.text }]} numberOfLines={1}>
-        {cat.label}
+        {t(cat.clave)}
       </Text>
     </TouchableOpacity>
   );
@@ -149,7 +149,7 @@ const WeeBizScreen: React.FC = () => {
             {biz.name}
           </Text>
           <Text style={[styles.bizSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-            {biz.subcategory}{cat ? ` · ${cat.label}` : ''}
+            {biz.subcategory}{cat ? ` · ${t(cat.clave)}` : ''}
           </Text>
           {biz.location ? (
             <View style={styles.bizLocationRow}>
@@ -289,7 +289,7 @@ const WeeBizScreen: React.FC = () => {
                 Weë Biz
               </Text>
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-                El directorio de negocios de Weë.{'\n'}Pronto verás negocios aquí.
+                {t('weebiz.directoryEmpty')}
               </Text>
             </View>
           )}

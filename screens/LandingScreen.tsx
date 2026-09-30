@@ -477,8 +477,9 @@ const LandingScreen: React.FC = () => {
                 {post.content}
               </Text>
               <View style={styles.trendingStats}>
+                {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                 <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
-                  {formatNumber(post.agreementCount + post.disagreementCount)} Respuestas
+                  {t('home.answersCount', { contador: total || 0, cantidad: formatNumber(total) })}
                 </Text>
                 <Text style={[styles.trendingDot, { color: theme.colors.textSecondary }]}>•</Text>
                 <Text style={[styles.trendingStatText, { color: theme.colors.accent }]}>
@@ -579,11 +580,11 @@ const LandingScreen: React.FC = () => {
             </Text>
             <View style={styles.featuredStats}>
               <Text style={[styles.featuredStatText, { color: theme.colors.textSecondary }]}>
-                {formatNumber(post.agreementCount)} Likes
+                {t('home.likesCount', { contador: post.agreementCount || 0, cantidad: formatNumber(post.agreementCount) })}
               </Text>
               <Text style={[styles.featuredDot, { color: theme.colors.textSecondary }]}>•</Text>
               <Text style={[styles.featuredStatText, { color: theme.colors.textSecondary }]}>
-                {formatNumber(post.comments)} Comentarios
+                {t('home.commentsCount', { contador: post.comments || 0, cantidad: formatNumber(post.comments) })}
               </Text>
             </View>
           </View>

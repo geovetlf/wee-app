@@ -599,8 +599,11 @@ console.log('\n── Weë Chef · la foto va a donde la persona cree ──');
   }
 
   // 4) El texto de subida dice qué foto hace falta en cada caso.
-  check('4) al retocar se pide la foto del plato terminado', /Sube una foto de tu plato terminado/.test(flujo));
-  check('4) al cocinar se pide la del refrigerador o los ingredientes', /Sube una foto de tu refrigerador o de los ingredientes/.test(flujo));
+  /* Los títulos de subida pasaron por i18n al entrar el japonés: el texto vive en su clave y dice lo mismo. */
+  check('4) al retocar se pide la foto del plato terminado', /📸 \$\{t\('weeai\.uploadDishPhoto'\)\}/.test(flujo)
+    && /uploadDishPhoto: 'Sube una foto de tu plato terminado'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
+  check('4) al cocinar se pide la del refrigerador o los ingredientes', /📸 \$\{t\('weeai\.uploadIngredientsPhoto'\)\}/.test(flujo)
+    && /uploadIngredientsPhoto: 'Sube una foto de tu refrigerador o de los ingredientes/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
   check('4) y las demás experiencias conservan su texto de siempre',
     /t\('weeai\.uploadYourPhoto'\)/.test(flujo)
     && /uploadYourPhoto: 'Sube tu foto para trabajarla'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
@@ -993,19 +996,22 @@ console.log('\n── Weë Design · la propuesta elegida y lo que cuesta repeti
   check('8) la elegida se pinta en su propio marco grande', /chosenFrame/.test(tarjeta) && /styles\.chosenImage/.test(tarjeta));
   check('8) y las demás quedan pequeñas y pulsables', /otherRow/.test(tarjeta) && /styles\.otherVariant/.test(tarjeta));
   check('8) elegir sigue siendo elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
-  check('8) y se dice cuál es', /✓ Elegida · Propuesta/.test(tarjeta));
+  check('8) y se dice cuál es', /t\('weeai\.chosenProposal', \{ numero: elegida \+ 1 \}\)/.test(tarjeta)
+    && /chosenProposal: '✓ Elegida · Propuesta \{\{numero\}\}'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
 
   // 9) Lo que vuelve a gastar avisa antes.
   check('9) la tarjeta recibe el precio de volver a crear', /regenerateCredits\?: number;/.test(tarjeta));
   check('9) que es el mismo que se vio antes de crear', /regenerateCredits=\{pricing \? pricing\.total : job\.creditsEstimated\}/.test(pantalla));
-  check('9) "Crear otra versión" dice lo que cuesta', /`Crear otra versión\$\{precio\}`/.test(tarjeta));
+  check('9) "Crear otra versión" dice lo que cuesta', /t\('weeai\.anotherVersion', \{ precio \}\)/.test(tarjeta)
+    && /anotherVersion: 'Crear otra versión\{\{precio\}\}'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
   /*
    * Un cambio se pide con un toque —"hazlo más realista"—, no escribiéndolo: la
    * caja "¿Qué cambiamos?" y su botón "Aplicar" se retiraron (decisión del
    * usuario, 2026-09-15). Lo que cuesta lo dice el aviso de la línea siguiente.
    */
   check('9) y un cambio se pide con un toque', /onPress=\{\(\) => onEdit\(phrase\)\}/.test(tarjeta) && !/`Aplicar\$\{precio\}`/.test(tarjeta));
-  check('9) los retoques avisan de que vuelven a crear', /Cada cambio vuelve a crear\$\{precio\}/.test(tarjeta));
+  check('9) los retoques avisan de que vuelven a crear', /t\('weeai\.eachChangeRecreates', \{ precio \}\)/.test(tarjeta)
+    && /eachChangeRecreates: 'Cada cambio vuelve a crear\{\{precio\}\}\. Se descuentan al terminar\.'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
   /*
    * Desde la fase 5O la cifra la escribe el formato de Weë, con el locale
    * activo, en vez de `toLocaleString('es')`, que la escribía siempre a la
@@ -1013,7 +1019,8 @@ console.log('\n── Weë Design · la propuesta elegida y lo que cuesta repeti
    * precio conocido no se inventa ninguno— y de paso exige que ya no quede el
    * idioma clavado.
    */
-  check('9) sin precio conocido no se inventa ninguno', /regenerateCredits && regenerateCredits > 0 \? ` · ≈ \$\{formato\.numero\(regenerateCredits\)\} Credits` : ''/.test(tarjeta)
+  check('9) sin precio conocido no se inventa ninguno', /regenerateCredits && regenerateCredits > 0 \? t\('weeai\.regeneratePriceSuffix', \{ credits: formato\.numero\(regenerateCredits\) \}\) : ''/.test(tarjeta)
+    && /regeneratePriceSuffix: ' · ≈ \{\{credits\}\} Credits'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8'))
     && !/toLocaleString\('es'\)/.test(tarjeta));
 
   // 10) Nada de esto toca a las demás secciones.
@@ -1502,11 +1509,14 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
     exp.experienceLabel({ id: 'home', name: 'Weë Home' }, crEs));
   check('G) las demás conservan el suyo', exp.experienceLabel({ id: 'chef', name: 'Weë Chef' }, crEs) === 'Weë Chef' && exp.experienceLabel({ id: 'photo', name: 'Weë Photo' }, crEs) === 'Weë Photo');
   check('H) la mesa de trabajo firma con ese nombre, no con el propio', (flujo.match(/experienceName=\{nombre\}/g) || []).length === 5 && /const nombre = experienceLabel\(experience, t\)/.test(flujo));
-  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /Creado con \$\{nombre\} en Weë AI/.test(flujo));
+  /* Lo que se publica sale de su clave, en el idioma de quien publica, y dice lo mismo. */
+  check('H) y lo que se publica lleva ese nombre', /aiTools: \[nombre\],/.test(flujo) && /t\('composer\.aiProcessCreatedWith', \{ nombre \}\)/.test(flujo)
+    && /aiProcessCreatedWith: 'Creado con \{\{nombre\}\} en Weë AI'/.test(fs.readFileSync(new URL('../../i18n/textos/es/composer.ts', import.meta.url), 'utf8')));
   check('H) el nombre propio solo queda de respaldo en la cabecera',
     (flujo.match(/experience\.name/g) || []).length === 2
     && (flujo.match(/area \? t\(area\.claveEtiqueta\) : experience\.name/g) || []).length === 2);
-  check('H) la caja de subida habla de tu espacio', /experience\.id === 'home'[\s\S]{0,80}Sube una foto de tu espacio/.test(flujo));
+  check('H) la caja de subida habla de tu espacio', /experience\.id === 'home'[\s\S]{0,80}t\('catalogo\.homeUploadTitle'\)/.test(flujo)
+    && /homeUploadTitle: 'Sube una foto de tu espacio'/.test(fs.readFileSync(new URL('../../i18n/textos/es/catalogo.ts', import.meta.url), 'utf8')));
 
   // I) Weë Brain deriva por identificador y ofrece el nombre visible.
   check('I) Brain propone "Hogar & Diseño", no "Weë Home"',
@@ -1964,7 +1974,8 @@ console.log('\n── Hogar & Diseño · propuestas, comparación y la foto en g
 
   // 6 y 7) La foto, en grande y con nombre.
   check('6) la foto se ve grande y sin recortar', /aspectRatio: 4 \/ 3/.test(estilo('spaceImage', flujo)) && /style=\{styles\.spaceImage\} contentFit="contain"/.test(flujo));
-  check('7) con su nombre', /📸 Tu espacio/.test(flujo));
+  check('7) con su nombre', /📸 \{uploadingPhoto \? t\('weeai\.uploadingYourSpace'\) : t\('weeai\.yourSpace'\)\}/.test(flujo)
+    && /yourSpace: 'Tu espacio'/.test(fs.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
   check('7) y con cambiar y quitar',
   /accessibilityLabel=\{t\('weeai\.changePhoto'\)\}/.test(flujo)
   && /accessibilityLabel=\{t\('weeai\.removePhoto'\)\}/.test(flujo)

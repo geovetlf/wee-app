@@ -51,4 +51,5 @@ export const writer: ConPlurales<typeof import('../es/writer').writer> = {
   bodyPlaceholder: 'Пишите здесь. Когда захотите, попросите Weë улучшить, исправить или перевести текст.',
   resultHint: 'Weë поработает над вашим текстом и вернёт результат сюда — можно сразу продолжить правки.',
   weeWorksWithYou: 'Weë работает над ним вместе с вами.',
+  saved: '✓ Сохранено',
 };

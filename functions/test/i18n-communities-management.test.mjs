@@ -232,7 +232,8 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
    * "posts" se dice igual en los dos idiomas: es la palabra, no un olvido. La
    * lista es cerrada, así que cualquier OTRA coincidencia sigue siendo un fallo.
    */
-  const IGUALES = ['posts'];
+  /* El contador de publicaciones de la cabecera de una comunidad dice «posts» por la misma razón. */
+  const IGUALES = ['posts', 'postCount_one', 'postCount_other'];
   const iguales = CLAVES.filter((k) => esT.communities[k] === enT.communities[k]);
   check('20) ES → EN mueve todas salvo la que se dice igual',
     iguales.length === IGUALES.length && IGUALES.every((k) => iguales.includes(k)), iguales.join(' '));

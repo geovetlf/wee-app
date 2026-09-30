@@ -45,4 +45,12 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: 'Aceitar {{lista}}',
   rejectRequestLabel: 'Recusar pedido de {{lista}}',
   requestSent: 'Pedido enviado',
+  errSignIn: 'Inicia sessão para usares o ËContact.',
+  errNotYours: 'Esse perfil não é teu.',
+  errNotAPerson: 'Esse perfil não pode usar o ËContact.',
+  errOffline: 'Não foi possível estabelecer ligação com o Weë.',
+  errNoRequestToReject: 'Não tens nenhum pedido para recusar.',
+  errNoPendingRequest: 'Não tens nenhum pedido pendente com este perfil.',
+  errNotConnected: 'Não estás ligado a este perfil.',
+  errNoActiveProfile: 'Não há nenhum perfil ativo com que fazer isto.',
 };

@@ -49,6 +49,25 @@ export interface ParticipantData {
   lastSeen?: Timestamp;
 }
 
+/*
+ * LO QUE WEË GUARDA COMO ÚLTIMO MENSAJE CUANDO NO LO ESCRIBIÓ NADIE.
+ *
+ * Son marcas, no frases: se guardan así desde siempre —y la del modo efímero la
+ * exige `firestore.rules`—, así que cambiarlas sería migrar datos. Lo que sí se
+ * puede es no enseñarlas tal cual: quien las pinta las reconoce aquí y las dice
+ * con su clave, en el idioma de quien mira. Cualquier otro contenido es el
+ * mensaje de una persona y no se toca.
+ */
+const AVISOS_GUARDADOS: Record<string, string> = {
+  'Modo efímero': 'weetalk.ephemeralMode',
+  'Foto única': 'weetalk.photoOnce',
+  '📷 Imagen': 'weetalk.imagePreview',
+  '🎤 Audio': 'weetalk.audioPreview',
+};
+
+export const claveDeAvisoGuardado = (contenido?: string | null): string | undefined =>
+  contenido ? AVISOS_GUARDADOS[contenido] : undefined;
+
 export interface Conversation {
   id?: string;
   participants: string[]; // Array de user IDs

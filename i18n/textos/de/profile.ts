@@ -63,4 +63,9 @@ export const profile: typeof import('../es/profile').profile = {
   seeFullProfile: 'Mein vollständiges Profil ansehen',
   emptyCategory: 'Keine Beiträge in dieser Kategorie',
   actionFailed: 'Das konnte nicht abgeschlossen werden',
+  userNotFound: 'Dieses Konto gibt es nicht',
+  shareOtherMessage: 'Schau dir das Profil von @{{nombre}} auf Weë an!\n\n{{bio}}',
+  shareOtherNoBio: 'Mitglied bei Weë',
+  joinedOn: 'Dabei seit {{fecha}}',
+  tabPolls: 'Umfragen',
 };

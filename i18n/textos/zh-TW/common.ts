@@ -49,4 +49,6 @@ export const common: typeof import('../es/common').common = {
   /* La pareja de `yes`. Transversal como ella: aquí una vez, y nadie la repite. */
   no: '否',
   loadMore: '載入更多貼文',
+  postsCount_one: '{{cantidad}} 則貼文',
+  postsCount_other: '{{cantidad}} 則貼文',
 };

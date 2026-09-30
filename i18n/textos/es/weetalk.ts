@@ -44,4 +44,13 @@ export const weetalk = {
   recordAudio: 'Grabar audio',
   viewOnceOn: 'Ver una sola vez',
   keepInChat: 'Conservar en el chat',
+  themeClassic: 'Clásico',
+  themeMidnight: 'Medianoche',
+  themeForest: 'Bosque',
+  themeSunset: 'Atardecer',
+  themeOcean: 'Océano',
+  themePurple: 'Púrpura',
+  imagePreview: '📷 Imagen',
+  audioPreview: '🎤 Audio',
+  today: 'Hoy',
 };

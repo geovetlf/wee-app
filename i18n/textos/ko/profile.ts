@@ -74,4 +74,9 @@ export const profile: typeof import('../es/profile').profile = {
   seeFullProfile: '내 프로필 전체 보기',
   emptyCategory: '이 카테고리에는 게시물이 없어요',
   actionFailed: '완료하지 못했어요',
+  userNotFound: '존재하지 않는 사용자예요',
+  shareOtherMessage: 'Weë에서 @{{nombre}}님의 프로필을 확인해 보세요!\n\n{{bio}}',
+  shareOtherNoBio: 'Weë 사용자',
+  joinedOn: '가입일: {{fecha}}',
+  tabPolls: '투표',
 };

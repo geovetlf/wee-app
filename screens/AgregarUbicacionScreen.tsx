@@ -14,7 +14,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { nombreDeLaRegion } from '../i18n/formato';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useLocation } from '../contexts/LocationContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -82,7 +83,7 @@ type RutaProp = RouteProp<MainStackParamList, 'AgregarUbicacion'>;
 
 const AgregarUbicacionScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<NavProp>();
   const ruta = useRoute<RutaProp>();
   const { userProfile } = useUserProfile();
@@ -414,7 +415,7 @@ const AgregarUbicacionScreen: React.FC = () => {
                 de verdad. El título cuenta lo que hay, no lo que quedaría bien.
               */}
               <Seccion
-                titulo={t('composer.placesIn', { pais: userProfile?.countryName || t('composer.yourCountry') })}
+                titulo={t('composer.placesIn', { pais: (userProfile?.country ? nombreDeLaRegion(userProfile.country, locale) : '') || userProfile?.countryName || t('composer.yourCountry') })}
                 accion={t(verTodos ? 'composer.seeLess' : 'composer.seeMore')}
                 onAccion={() => setVerTodos((v) => !v)}
               />

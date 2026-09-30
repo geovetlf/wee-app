@@ -8,4 +8,5 @@ export const saved: typeof import('../es/saved').saved = {
   empty: 'Tu n’as encore rien enregistré',
   exploreHome: 'Explorer l’accueil',
   loadFailed: 'Tes publications enregistrées n’ont pas pu être chargées',
+  emptyHint: 'Touche le signet d’une publication pour enregistrer les prompts, les tutoriels et les créations que tu veux revoir.',
 };

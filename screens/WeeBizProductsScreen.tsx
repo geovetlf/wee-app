@@ -162,7 +162,7 @@ const WeeBizProductsScreen: React.FC = () => {
       loadProducts();
     } catch (e) {
       console.error('Error saving product:', e);
-      Alert.alert('Error', t('weebiz.productSaveFailed'));
+      Alert.alert(t('common.error'), t('weebiz.productSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -198,7 +198,7 @@ const WeeBizProductsScreen: React.FC = () => {
   };
 
   const formatPrice = (price: number, currency: string) => {
-    if (price <= 0) return 'Consultar';
+    if (price <= 0) return t('weebiz.priceOnRequest');
     return `${currency} ${price.toFixed(2)}`;
   };
 
@@ -308,7 +308,7 @@ const WeeBizProductsScreen: React.FC = () => {
         <View style={[styles.formModal, { backgroundColor: theme.colors.background }]}>
           <View style={styles.formHeader}>
             <Text style={[styles.formTitle, { color: theme.colors.text }]}>
-              {editingProduct ? 'Editar producto' : 'Nuevo producto'}
+              {editingProduct ? t('weebiz.editProductTitle') : t('weebiz.newProductTitle')}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={scale(24)} color={theme.colors.text} />
@@ -392,7 +392,7 @@ const WeeBizProductsScreen: React.FC = () => {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <Text style={styles.formSaveBtnText}>
-                  {editingProduct ? 'Guardar cambios' : t('weebiz.addProduct')}
+                  {editingProduct ? t('weebiz.saveChanges') : t('weebiz.addProduct')}
                 </Text>
               )}
             </TouchableOpacity>

@@ -124,8 +124,11 @@ console.log('\n── F · Weë Brain contesta en el idioma de Weë ──');
   check('29) el prompt ya no impone español', !/español/i.test(BRAIN_CHAT_SYSTEM));
   check('30) en español dice español', /Responde SIEMPRE en español \(código es\)/.test(instruccionDeIdioma('es')), instruccionDeIdioma('es').slice(0, 48));
   check('31) y en japonés dice japonés, en japonés', /日本語/.test(instruccionDeIdioma('ja')) && /código ja/.test(instruccionDeIdioma('ja')), instruccionDeIdioma('ja').slice(0, 48));
-  /* Los once del catálogo de `i18n/idiomas.ts`, resueltos de verdad. */
-  const catalogo = ['en', 'es', 'de', 'fr', 'it', 'pt', 'ru', 'ar', 'ko', 'zh', 'ja'];
+  /*
+   * Todos los del catálogo de `i18n/idiomas.ts`, resueltos de verdad. Se leen
+   * de él y no de una copia: el idioma que entre mañana ya queda comprobado.
+   */
+  const catalogo = [...leer('i18n/idiomas.ts').matchAll(/codigo: '([a-z]{2,3})'/g)].map((m) => m[1]);
   check('32) los del catálogo se nombran todos, cada uno en su idioma',
     catalogo.every((c) => nombreDelIdioma(c) && nombreDelIdioma(c) !== c), catalogo.map((c) => nombreDelIdioma(c)).join(' · '));
   /* Y uno que HOY no está: el día que entre, esto ya lo habla (regla 8). */

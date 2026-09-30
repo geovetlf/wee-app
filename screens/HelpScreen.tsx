@@ -82,7 +82,7 @@ const HelpScreen: React.FC = () => {
           {t('help.legalBody')}
         </Text>
         <Text style={[styles.answer, { color: theme.colors.text }]}>
-          Lo que publicas es visible para la comunidad; lo que creas en Weë AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.
+          {t('help.legalVisibility')}
         </Text>
         <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>
           {t('help.legalPending')}
@@ -104,7 +104,7 @@ const HelpScreen: React.FC = () => {
       <ScrollView contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
           <Text style={styles.heroEmoji}>❓</Text>
-          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>¿En qué te ayudamos?</Text>
+          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>{t('help.heroTitle')}</Text>
           <Text style={[styles.heroText, { color: theme.colors.textSecondary }]}>
             {t('help.intro')}
           </Text>
@@ -132,8 +132,9 @@ const HelpScreen: React.FC = () => {
             <Text style={[styles.answer, { color: theme.colors.text }]}>
               {t('help.contactBody')}
             </Text>
+            {/* El arranque de la pregunta lo pone Weë, en el idioma de la interfaz; lo demás lo escribe la persona. */}
             <TouchableOpacity
-              onPress={() => navigation.navigate('Create', { kind: 'question', prefill: { content: 'Una pregunta para Weë: ' } })}
+              onPress={() => navigation.navigate('Create', { kind: 'question', prefill: { content: t('help.askPrefill') } })}
               style={[styles.button, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
               accessibilityLabel={t('composer.askCommunity')}

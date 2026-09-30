@@ -529,14 +529,15 @@ const SearchScreen: React.FC = () => {
                         <Text style={[styles.communityDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
                           {community.description}
                         </Text>
+                        {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                         <View style={styles.communityStats}>
                           <Ionicons name="people" size={12} color={theme.colors.textSecondary} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(community.memberCount)} miembros
+                            {t('communities.memberCount', { contador: community.memberCount || 0, cantidad: formatNumber(community.memberCount) })}
                           </Text>
                           <Ionicons name="document-text" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(community.postCount)} publicaciones
+                            {t('common.postsCount', { contador: community.postCount || 0, cantidad: formatNumber(community.postCount) })}
                           </Text>
                         </View>
                       </View>
@@ -580,7 +581,7 @@ const SearchScreen: React.FC = () => {
             {activeCategory === 'usuarios' && searchQuery.trim() && !selectedHashtag && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  {searchQuery.trim().length >= 2 ? 'Usuarios encontrados' : 'Busca usuarios'}
+                  {searchQuery.trim().length >= 2 ? t('search.peopleFound') : t('search.searchPeople')}
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
@@ -592,8 +593,9 @@ const SearchScreen: React.FC = () => {
                 ) : searchedUsers.length === 0 ? (
                   <View style={styles.noResults}>
                     <Ionicons name="person-outline" size={48} color={theme.colors.textSecondary} />
+                    {/* Lo que la persona escribió entra por hueco, tal cual: no se traduce. */}
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      No se encontraron usuarios para "{searchQuery}"
+                      {t('search.noPeopleFor', { busqueda: searchQuery })}
                     </Text>
                   </View>
                 ) : (
@@ -615,7 +617,7 @@ const SearchScreen: React.FC = () => {
                       />
                       <View style={styles.userInfo}>
                         <Text style={[styles.userName, { color: theme.colors.text }]}>
-                          {user.displayName || 'Usuario Anónimo'}
+                          {user.displayName || t('common.anonymousUser')}
                         </Text>
                         {user.bio && (
                           <Text style={[styles.userBio, { color: theme.colors.textSecondary }]} numberOfLines={1}>
@@ -634,7 +636,7 @@ const SearchScreen: React.FC = () => {
                         */}
                         <View style={styles.userStats}>
                           <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(user.posts || 0)} publicaciones
+                            {t('common.postsCount', { contador: user.posts || 0, cantidad: formatNumber(user.posts || 0) })}
                           </Text>
                         </View>
                       </View>
@@ -649,7 +651,7 @@ const SearchScreen: React.FC = () => {
             {activeCategory === 'posts' && searchQuery.trim() && !selectedHashtag && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  {searchQuery.trim().length >= 2 ? 'Publicaciones encontradas' : 'Busca publicaciones'}
+                  {searchQuery.trim().length >= 2 ? t('search.postsFound') : t('search.searchPosts')}
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
@@ -662,7 +664,7 @@ const SearchScreen: React.FC = () => {
                   <View style={styles.noResults}>
                     <Ionicons name="document-text-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      No encontramos publicaciones para "{searchQuery}"
+                      {t('search.noPostsFor', { busqueda: searchQuery })}
                     </Text>
                   </View>
                 ) : (

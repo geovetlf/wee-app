@@ -48,4 +48,5 @@ export const writer: typeof import('../es/writer').writer = {
   bodyPlaceholder: '在这里写。随时可以让 Weë 润色、校对或者翻译。',
   resultHint: 'Weë 会在你写的内容上继续打磨，把结果放在这里，可以接着编辑。',
   weeWorksWithYou: 'Weë 和你一起打磨。',
+  saved: '✓ 已保存',
 };

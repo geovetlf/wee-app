@@ -417,7 +417,7 @@ const NotificationsScreen: React.FC = () => {
               },
             ]}
           >
-            No leídas {unreadCount > 0 && `(${unreadCount})`}
+            {unreadCount > 0 ? t('notifications.unreadWithCount', { total: unreadCount }) : t('notifications.unread')}
           </Text>
           {filter === 'unread' && (
             <View style={[styles.filterIndicator, { backgroundColor: theme.colors.accent }]} />

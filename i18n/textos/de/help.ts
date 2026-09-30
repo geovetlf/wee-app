@@ -37,4 +37,7 @@ export const help: typeof import('../es/help').help = {
   a8: 'Das ist der Chat von Weë: private Unterhaltungen mit anderen Menschen aus der Community, mit Text, Fotos und Sprachnachrichten.',
   q9: 'Was ist "So ist es entstanden"?',
   a9: 'Beim Veröffentlichen kannst du erzählen, welche Werkzeuge du benutzt hast, den Prompt und den Ablauf. So lernen andere von dir und du von ihnen, mit einem einzigen Tippen auf "Prompt kopieren".',
+  heroTitle: 'Wie können wir dir helfen?',
+  legalVisibility: 'Was du postest, ist für die Community sichtbar; was du in Weë AI erstellst, bleibt privat, bis du dich entscheidest, es zu veröffentlichen. Du kannst deine Beiträge und Projekte jederzeit löschen.',
+  askPrefill: 'Eine Frage an Weë: ',
 };

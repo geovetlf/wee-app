@@ -268,4 +268,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: '你的內容會在 Weë 裡展示給更多人。花掉任何 Credits 之前，你都會先看到要花多少。',
   promoteSoon: '在 Weë 裡推廣還沒有開放。開放之後會用你的 Credits 支付，你在這裡就能看到。',
   promoteCredits: '查看我的 Credits',
+  sampleProductName: '產品 {{numero}}',
 };

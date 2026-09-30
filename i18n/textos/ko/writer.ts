@@ -47,4 +47,5 @@ export const writer: typeof import('../es/writer').writer = {
   bodyPlaceholder: '여기에 적어 보세요. 언제든 Weë에게 다듬기, 교정, 번역을 부탁할 수 있어요.',
   resultHint: 'Weë가 적은 글을 손봐서 결과를 여기에 보여 줘요. 이어서 바로 수정할 수 있어요.',
   weeWorksWithYou: 'Weë가 함께 다듬어요.',
+  saved: '✓ 저장됨',
 };

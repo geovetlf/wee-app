@@ -219,11 +219,11 @@ const PostDetailContent: React.FC = () => {
 
   const commentInputRef = useRef<TextInput>(null);
 
-  // Compartir la publicación fuera de Weë
+  // Compartir la publicación fuera de Weë. El texto de la persona entra por hueco, tal cual.
   const handleSharePost = async () => {
     if (!post) return;
     try {
-      await Share.share({ message: `${post.content || 'Mira esta publicación en Weë'}\n\nCreado en Weë · World Encode Entity` });
+      await Share.share({ message: t('wall.shareText', { contenido: post.content || t('wall.shareTextEmpty') }) });
     } catch (error) {
       console.warn('No se pudo compartir:', error);
     }
@@ -446,7 +446,7 @@ const PostDetailContent: React.FC = () => {
             )}
             <View style={styles.authorText}>
               <Text style={[styles.authorName, { color: theme.colors.text }]}>
-                {loadingAuthor ? 'Cargando...' : postAuthor?.displayName || 'Usuario Anónimo'}
+                {loadingAuthor ? t('common.loading') : postAuthor?.displayName || t('common.anonymousUser')}
               </Text>
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
                 {getRelativeTime(getPostDate(), locale)}
@@ -583,7 +583,7 @@ const PostDetailContent: React.FC = () => {
                       params: {
                         otherUserId: post.userId,
                         otherUserData: {
-                          displayName: postAuthor.displayName || 'Usuario',
+                          displayName: postAuthor.displayName || t('common.user'),
                           avatarType: postAuthor.avatarType,
                           avatarId: postAuthor.avatarId,
                           photoURL: postAuthor.photoURL,
@@ -615,7 +615,7 @@ const PostDetailContent: React.FC = () => {
         {/* Comments section */}
         <View style={styles.commentsSection}>
           <Text style={[styles.commentsTitle, { color: theme.colors.text }]}>
-            Comentarios {comments.length > 0 && `(${comments.length})`}
+            {comments.length > 0 ? t('wall.commentsWithCount', { total: comments.length }) : t('wall.comments')}
           </Text>
 
           {loadingComments ? (

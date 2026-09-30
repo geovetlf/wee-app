@@ -57,4 +57,8 @@ export const communities: typeof import('../es/communities').communities = {
   beTheFirst: '이 커뮤니티에 첫 게시물을 올려 보세요',
   createPost: '게시물 만들기',
   understoodJoin: '확인했어요, 참여할게요',
+  memberCount_one: '멤버 {{cantidad}}명',
+  memberCount_other: '멤버 {{cantidad}}명',
+  postCount_one: '게시물 {{contador}}개',
+  postCount_other: '게시물 {{contador}}개',
 };

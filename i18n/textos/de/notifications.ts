@@ -25,4 +25,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: 'jetzt',
   markAllRead: 'Alle als gelesen markieren',
   all: 'Alle',
+  unread: 'Ungelesen',
+  unreadWithCount: 'Ungelesen ({{total}})',
 };

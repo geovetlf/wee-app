@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
-import { econtactService } from '../services/econtactService';
+import { econtactService, ErrorDeEContact } from '../services/econtactService';
+
+/* Lo que la pantalla dice cuando algo falla, en el idioma de quien la usa. Las pantallas no hablan con el servicio: lo toman de aquí. */
+export { mensajeDeEContact } from '../services/econtactService';
 import { usersService, UserProfile } from '../services/firestoreService';
 import {
   EstadoEntre,
@@ -331,7 +334,7 @@ export const useMisEContacts = (): MisEContacts => {
   );
 
   const conIdentidad = (hacer: (mia: string, otra: string) => Promise<void>) => async (otra: string) => {
-    if (!identidad) throw new Error('No hay ningún perfil activo con el que hacer esto.');
+    if (!identidad) throw new ErrorDeEContact('econtact.errNoActiveProfile', 'No hay ningún perfil activo con el que hacer esto.');
     await hacer(identidad, otra);
   };
 

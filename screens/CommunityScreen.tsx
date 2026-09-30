@@ -238,7 +238,7 @@ const CommunityScreen: React.FC = () => {
                   styles.joinButtonText,
                   { color: isUserMember ? theme.colors.text : 'white' }
                 ]}>
-                  {isUserMember ? 'Miembro' : 'Unirse'}
+                  {isUserMember ? t('search.member') : t('communities.join')}
                 </Text>
               </>
             )}
@@ -300,7 +300,7 @@ const CommunityScreen: React.FC = () => {
             />
             <View style={[styles.createInput, { backgroundColor: theme.colors.surface }]}>
               <Text style={[styles.createPlaceholder, { color: theme.colors.textSecondary }]}>
-                ¿Qué quieres compartir?
+                {t('home.composerPlaceholder')}
               </Text>
             </View>
             <View style={styles.createActions}>

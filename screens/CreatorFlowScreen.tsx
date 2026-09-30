@@ -156,7 +156,7 @@ const CreatorFlowScreen: React.FC = () => {
         setBusy(false);
       }
     },
-    [experience.id, imageUri, uploadPhoto]
+    [experience.id, imageUri, uploadPhoto, t]
   );
 
   // Foto elegida después de empezar: se sube y se adjunta al trabajo en curso
@@ -174,7 +174,7 @@ const CreatorFlowScreen: React.FC = () => {
         setError(humanizeCreatorError(e, t));
       }
     },
-    [jobId, user]
+    [jobId, user, t]
   );
 
   // Weë Writer: lo que genera queda en "Mis documentos"
@@ -239,10 +239,10 @@ const CreatorFlowScreen: React.FC = () => {
         if (!q) return null;
         const option = q.options.find((o) => o.id === answer.optionId);
         const label = option ? option.label : answer.text || '';
-        return { question: q.text, answer: answer.inferred ? `${label} · lo entendí de lo que escribiste` : label };
+        return { question: q.text, answer: answer.inferred ? t('weeai.inferredAnswer', { respuesta: label }) : label };
       })
       .filter((item): item is QaHistoryItem => !!item);
-  }, [job]);
+  }, [job, t]);
 
   const handleAnswer = async (optionId?: string, text?: string) => {
     if (!jobId || !question) return;
@@ -276,7 +276,7 @@ const CreatorFlowScreen: React.FC = () => {
         setQuoting(false);
       }
     },
-    [jobId]
+    [jobId, t]
   );
 
   const handleCreate = async () => {
@@ -335,7 +335,8 @@ const CreatorFlowScreen: React.FC = () => {
    */
   const CONSERVA_EL_CONTEXTO = experience.id === 'travel';
   const handleEdit = (instruction: string) => {
-    const goal = `${job?.goal || params.goal || nombre} · Cambio: ${instruction}`;
+    // El cambio se escribe en el idioma de quien lo pide: es lo que luego lee en la conversación
+    const goal = t('weeai.goalWithChange', { objetivo: job?.goal || params.goal || nombre, cambio: instruction });
     if (!CONSERVA_EL_CONTEXTO || !job) return start(goal);
     const contexto: Answer[] = job.answers.map((a) => ({
       questionId: a.questionId,
@@ -387,6 +388,11 @@ const CreatorFlowScreen: React.FC = () => {
       .map((r) => r.content)
       .join('\n\n')
       .slice(0, 480);
+    /*
+     * El "cómo lo hice" que queda guardado en la publicación: lo explica el plan
+     * y, si no, lo escribe Weë por la persona, en el idioma en que publica.
+     */
+    const proceso = job.plan?.explainToUser || t('composer.aiProcessCreatedWith', { nombre });
     navigation.navigate('Create', {
       kind: media ? media.type : 'post',
       /*
@@ -399,7 +405,7 @@ const CreatorFlowScreen: React.FC = () => {
       prefill: {
         content: content || job.goal,
         aiTools: [nombre],
-        aiProcess: `${job.plan?.explainToUser || `Creado con ${nombre} en Weë AI`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
+        aiProcess: job.demo ? t('composer.aiProcessDemoPreview', { proceso }) : proceso,
         ...(media ? { media: [{ type: media.type, uri: media.uri, ...(media.assetId ? { assetId: media.assetId } : {}) }] } : {}),
       },
     });
@@ -413,19 +419,21 @@ const CreatorFlowScreen: React.FC = () => {
   const subidaConfig = React.useMemo(() => {
     const hint = t('weeai.uploadFormats');
     const subtitle = t('weeai.uploadHint');
+    // El emoji no es idioma: se queda aquí y el diccionario solo lleva la frase.
     if (experience.id === 'chef' && params.preset?.optionId === 'edit') {
-      return { title: '📸 Sube una foto de tu plato terminado', subtitle, hint };
+      return { title: `📸 ${t('weeai.uploadDishPhoto')}`, subtitle, hint };
     }
     if (experience.id === 'chef') {
-      return { title: '📸 Sube una foto de tu refrigerador o de los ingredientes que tienes', subtitle, hint };
+      return { title: `📸 ${t('weeai.uploadIngredientsPhoto')}`, subtitle, hint };
     }
     // Hogar & Diseño trabaja sobre el espacio que ya tienes: conviene decirlo aquí,
-    // y decir además para qué sirve la foto (fase 2E-59).
+    // y decir además para qué sirve la foto (fase 2E-59). La frase es la misma
+    // de la caja de subida de su portada.
     if (experience.id === 'home') {
-      return { title: '🏠 Sube una foto de tu espacio', subtitle: t('weeai.photoHelps'), hint };
+      return { title: `🏠 ${t('catalogo.homeUploadTitle')}`, subtitle: t('weeai.photoHelps'), hint };
     }
     return { title: t('weeai.uploadYourPhoto'), subtitle, hint };
-  }, [experience.id, params.preset?.optionId]);
+  }, [experience.id, params.preset?.optionId, t]);
 
   const status = job?.status;
 
@@ -545,7 +553,7 @@ const CreatorFlowScreen: React.FC = () => {
             <Image source={{ uri: imageUri }} style={styles.spaceImage} contentFit="contain" transition={200} />
             <View style={styles.spaceBar}>
               <Text style={[styles.spaceTitle, { color: theme.colors.text }]}>
-                {uploadingPhoto ? '📸 Subiendo tu espacio…' : '📸 Tu espacio'}
+                📸 {uploadingPhoto ? t('weeai.uploadingYourSpace') : t('weeai.yourSpace')}
               </Text>
               {status !== 'done' && status !== 'running' && (
                 <View style={styles.spaceActions}>
@@ -675,7 +683,7 @@ const CreatorFlowScreen: React.FC = () => {
         {(!status || status === 'asking') && !error && (
           <GuidedQuestion
             experienceName={nombre}
-            goal={job?.goal || params.goal || experience.examples[0]}
+            goal={job?.goal || params.goal || t(experience.examples[0])}
             history={history}
             question={question}
             busy={busy}

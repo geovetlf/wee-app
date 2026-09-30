@@ -13,4 +13,5 @@ export const saved: typeof import('../es/saved').saved = {
   empty: '還沒有收藏任何內容',
   exploreHome: '去首頁逛逛',
   loadFailed: '無法載入你的收藏',
+  emptyHint: '點一下貼文上的書籤，就能收藏想再看的提示詞、教學和作品。',
 };

@@ -211,4 +211,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: 'Your content is shown to more people inside Weë. You will see the cost before spending anything.',
   promoteSoon: 'Promoting inside Weë is not open yet. When it is, it will be paid with your Credits and you will see it here.',
   promoteCredits: 'See my Credits',
+  sampleProductName: 'Product {{numero}}',
 };

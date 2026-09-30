@@ -55,4 +55,5 @@ export const creator = {
   areaDesignHome: 'Weë Design · Hogar & Diseño',
   areaHomeName: 'Hogar & Diseño',
   tellTheSpecialist: 'Cuéntale a {{especialista}} qué quieres lograr: te hace dos o tres preguntas sencillas y se encarga del resto. Después publicas directo en tu comunidad.',
+  exampleQuoted: '“{{ejemplo}}”',
 };

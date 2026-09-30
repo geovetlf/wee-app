@@ -36,4 +36,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: '방금',
   markAllRead: '모두 읽음으로 표시',
   all: '전체',
+  unread: '읽지 않음',
+  unreadWithCount: '읽지 않음 ({{total}})',
 };

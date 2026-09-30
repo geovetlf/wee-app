@@ -30,4 +30,10 @@ export const search: typeof import('../es/search').search = {
   member: '成員',
   typeTwoForPeople: '至少輸入 2 個字元才能搜尋使用者',
   typeTwoForPosts: '至少輸入 2 個字元才能搜尋貼文',
+  peopleFound: '找到的使用者',
+  searchPeople: '搜尋使用者',
+  noPeopleFor: '找不到與「{{busqueda}}」相關的使用者',
+  postsFound: '找到的貼文',
+  searchPosts: '搜尋貼文',
+  noPostsFor: '找不到與「{{busqueda}}」相關的貼文',
 };

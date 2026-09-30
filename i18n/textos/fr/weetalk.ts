@@ -46,4 +46,13 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   recordAudio: 'Enregistrer un audio',
   viewOnceOn: 'Voir une seule fois',
   keepInChat: 'Garder dans la discussion',
+  themeClassic: 'Classique',
+  themeMidnight: 'Minuit',
+  themeForest: 'Forêt',
+  themeSunset: 'Crépuscule',
+  themeOcean: 'Océan',
+  themePurple: 'Violet',
+  imagePreview: '📷 Photo',
+  audioPreview: '🎤 Note vocale',
+  today: 'Aujourd’hui',
 };

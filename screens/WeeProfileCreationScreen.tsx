@@ -173,11 +173,11 @@ const WeeProfileCreationScreen: React.FC = () => {
           autoCapitalize="none"
         />
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          {displayName.length}/20 - Mínimo 3 caracteres
+          {t('onboarding.weeNameCounter', { usados: displayName.length, maximo: 20, minimo: 3 })}
         </Text>
 
         {/* Bio */}
-        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>Bio (opcional)</Text>
+        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>{t('onboarding.weeBio')}</Text>
         <TextInput
           style={[styles.input, styles.bioInput, {
             backgroundColor: theme.colors.surface,
@@ -197,7 +197,7 @@ const WeeProfileCreationScreen: React.FC = () => {
           }}
         />
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          {bio.length}/100 caracteres
+          {t('profile.charCount', { usados: bio.length, maximo: 100 })}
         </Text>
 
         {/* Create Button */}

@@ -41,4 +41,6 @@ export const credits: typeof import('../es/credits').credits = {
   pkgBasic: '베이직',
   badgePopular: '인기',
   badgeBestValue: '가장 알뜰',
+  purchasesComingSoon: 'Credits 구매는 곧 가능해져요. 지금은 여기서 충전할 수 없어요.',
+  topUpFailedTitle: '앗',
 };

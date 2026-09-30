@@ -145,4 +145,6 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   askCommunity: 'Задать вопрос сообществу',
   applyingFaceSwap: 'Применяем face swap...',
   searchPlaceHint: 'Найдите город или страну, чтобы отметить публикацию.',
+  aiProcessCreatedWith: 'Создано с помощью {{nombre}} в Weë AI',
+  aiProcessDemoPreview: '{{proceso}} (предпросмотр в демо-режиме)',
 };

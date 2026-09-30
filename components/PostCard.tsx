@@ -652,7 +652,7 @@ const PostCard: React.FC<PostCardProps> = ({
      * no es lo que la persona quiso mandar.
      */
     if (postToShare.videoUrl) {
-      const compartido = await compartirFueraDeWee(postToShare.id);
+      const compartido = await compartirFueraDeWee(postToShare.id, t('common.share'));
       if (!compartido) {
         notify(t('wall.shareFailed'));
       }
@@ -728,11 +728,11 @@ const PostCard: React.FC<PostCardProps> = ({
       t('wall.deletePostConfirm'),
       [
         {
-          text: 'Cancelar',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Eliminar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -768,7 +768,7 @@ const PostCard: React.FC<PostCardProps> = ({
     if (!user) { navigateToRegister(); return; }
     if (!postAuthor) return;
     onPrivateMessage(displayPost.userId, {
-      displayName: postAuthor.displayName || 'Usuario',
+      displayName: postAuthor.displayName || t('common.user'),
       avatarType: postAuthor.avatarType,
       avatarId: postAuthor.avatarId,
       photoURL: typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined,

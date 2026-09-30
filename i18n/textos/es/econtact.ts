@@ -33,4 +33,12 @@ export const econtact = {
   acceptLabel: 'Aceptar {{lista}}',
   rejectRequestLabel: 'Rechazar solicitud de {{lista}}',
   requestSent: 'Solicitud enviada',
+  errSignIn: 'Inicia sesión para usar ËContact.',
+  errNotYours: 'Ese perfil no es tuyo.',
+  errNotAPerson: 'Ese perfil no puede usar ËContact.',
+  errOffline: 'No se pudo conectar con Weë.',
+  errNoRequestToReject: 'No hay ninguna solicitud tuya que rechazar.',
+  errNoPendingRequest: 'No tienes ninguna solicitud pendiente con este perfil.',
+  errNotConnected: 'No estás conectado con este perfil.',
+  errNoActiveProfile: 'No hay ningún perfil activo con el que hacer esto.',
 };

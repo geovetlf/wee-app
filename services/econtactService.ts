@@ -73,6 +73,23 @@ import {
 
 const COLECCION = 'econtacts';
 
+/*
+ * LOS ERRORES QUE LLEGAN A LA PANTALLA LLEVAN SU CLAVE.
+ *
+ * Este archivo es un servicio y aquí no hay traductor. El mensaje en español se
+ * queda para los registros y las pruebas; lo que ve la persona sale de la
+ * clave, en su idioma, con `mensajeDeEContact`. Lo que no sea de aquí —un
+ * error del SDK o del servidor— se enseña como llegue.
+ */
+export class ErrorDeEContact extends Error {
+  constructor(readonly clave: string, mensaje: string) {
+    super(mensaje);
+  }
+}
+
+export const mensajeDeEContact = (error: unknown, t: (clave: string) => string): string | undefined =>
+  error instanceof ErrorDeEContact ? t(error.clave) : error instanceof Error ? error.message : undefined;
+
 /** La cuenta de quien está usando Weë. null si no hay sesión. */
 const miCuenta = (): string | null => auth?.currentUser?.uid || null;
 
@@ -83,13 +100,13 @@ const misIdentidades = (): string[] => identidadesDeCuenta(miCuenta());
 const esMia = (identidad?: string | null): boolean => identidadEsDeLaCuenta(identidad, miCuenta());
 
 const exigirIdentidadPropia = (comoIdentidad: string): string => {
-  if (!miCuenta()) throw new Error('Inicia sesión para usar ËContact.');
-  if (!esMia(comoIdentidad)) throw new Error('Ese perfil no es tuyo.');
+  if (!miCuenta()) throw new ErrorDeEContact('econtact.errSignIn', 'Inicia sesión para usar ËContact.');
+  if (!esMia(comoIdentidad)) throw new ErrorDeEContact('econtact.errNotYours', 'Ese perfil no es tuyo.');
   return comoIdentidad;
 };
 
 const exigirIdentidadAjena = (otraIdentidad: string): string => {
-  if (!esIdentidadDePersona(otraIdentidad)) throw new Error('Ese perfil no puede tener ËContacts.');
+  if (!esIdentidadDePersona(otraIdentidad)) throw new ErrorDeEContact('econtact.errNotAPerson', 'Ese perfil no puede tener ËContacts.');
   return otraIdentidad;
 };
 
@@ -196,7 +213,7 @@ interface RespuestaRelacion {
 }
 
 const llamar = async (nombre: 'requestEContact' | 'acceptEContact', datos: Record<string, string>) => {
-  if (!functions) throw new Error('No se pudo conectar con Weë.');
+  if (!functions) throw new ErrorDeEContact('econtact.errOffline', 'No se pudo conectar con Weë.');
   const fn = httpsCallable<Record<string, string>, RespuestaRelacion>(functions, nombre, { timeout: 30_000 });
   const { data } = await fn(datos);
   return data;
@@ -246,7 +263,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const actual = await leerDoc(yo, otra);
-    if (!actual || !puedeAceptar(actual, yo)) throw new Error('No hay ninguna solicitud tuya que rechazar.');
+    if (!actual || !puedeAceptar(actual, yo)) throw new ErrorDeEContact('econtact.errNoRequestToReject', 'No hay ninguna solicitud tuya que rechazar.');
     await deleteDoc(refDe(yo, otra));
   },
 
@@ -255,7 +272,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const actual = await leerDoc(yo, otra);
-    if (!actual || !puedeCancelar(actual, yo)) throw new Error('No tienes ninguna solicitud pendiente con este perfil.');
+    if (!actual || !puedeCancelar(actual, yo)) throw new ErrorDeEContact('econtact.errNoPendingRequest', 'No tienes ninguna solicitud pendiente con este perfil.');
     await deleteDoc(refDe(yo, otra));
   },
 
@@ -264,7 +281,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const actual = await leerDoc(yo, otra);
-    if (!actual || !puedeEliminar(actual, yo)) throw new Error('No estáis conectados.');
+    if (!actual || !puedeEliminar(actual, yo)) throw new ErrorDeEContact('econtact.errNotConnected', 'No estáis conectados.');
     await deleteDoc(refDe(yo, otra));
   },
 

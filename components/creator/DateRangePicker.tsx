@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useT } from '../../contexts/IdiomaContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -22,10 +22,16 @@ import { scale } from '../../utils/scale';
  *
  * No se puede elegir un día pasado. Y no hay dependencia nueva: son dos bucles
  * y una rejilla.
+ *
+ * LA FRASE QUE VIAJA NO ES INTERFAZ. El lector del servidor (`leerFechas`, en
+ * creator/templates.ts) entiende los meses en español: esa frase es el idioma
+ * del encargo, no el de la pantalla, y por eso `MESES` sigue aquí y solo sirve
+ * para escribirla. Lo que se VE —el mes de arriba, las iniciales de la semana,
+ * cada día para el lector de pantalla y el resumen de abajo— sale de `Intl` con
+ * el locale activo y del diccionario.
  */
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 /** Mediodía UTC: así ningún huso horario mueve un día de sitio. */
 const dia = (anio: number, mes: number, numero: number): Date => new Date(Date.UTC(anio, mes, numero, 12));
@@ -33,6 +39,12 @@ const hoyUTC = (): Date => {
   const ahora = new Date();
   return dia(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
 };
+
+/** Los días se escriben en UTC, que es como se guardan: el mediodía no cambia de fecha. */
+const EN_UTC = { timeZone: 'UTC' } as const;
+
+/** Una semana que empieza en lunes (el 1 de enero de 2024 lo fue): de ella salen las iniciales. */
+const SEMANA = Array.from({ length: 7 }, (_, i) => dia(2024, 0, 1 + i));
 
 const escrito = (fecha: Date, conAnio = true): string =>
   `${fecha.getUTCDate()} de ${MESES[fecha.getUTCMonth()]}${conAnio ? ` de ${fecha.getUTCFullYear()}` : ''}`;
@@ -48,13 +60,6 @@ export const frasedeFechas = (salida: Date, regreso: Date): string => {
   return `del ${escrito(salida)} al ${escrito(regreso)}`;
 };
 
-/** "11 días · 10 noches", contando los dos extremos. */
-export const duracionEscrita = (salida: Date, regreso: Date): string => {
-  const noches = Math.round((regreso.getTime() - salida.getTime()) / 86400000);
-  const dias = noches + 1;
-  return `${dias} ${dias === 1 ? 'día' : 'días'} · ${noches} ${noches === 1 ? 'noche' : 'noches'}`;
-};
-
 interface DateRangePickerProps {
   /** Se llama con la frase lista para enviar: "del 12 al 22 de octubre de 2026". */
   onConfirm: (frase: string) => void;
@@ -64,7 +69,7 @@ interface DateRangePickerProps {
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, busy }) => {
-  const t = useT();
+  const { t, formato, locale } = useIdioma();
   const { theme } = useTheme();
   const hoy = useMemo(hoyUTC, []);
   const [mesVisible, setMesVisible] = useState(() => dia(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
@@ -83,6 +88,45 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
   }, [anio, mes]);
 
   const puedeRetroceder = anio > hoy.getUTCFullYear() || (anio === hoy.getUTCFullYear() && mes > hoy.getUTCMonth());
+
+  /* Lo que se lee, en el idioma de la pantalla: las iniciales de la semana y cada día entero. */
+  const iniciales = useMemo(() => SEMANA.map((d) => formato.fecha(d, { weekday: 'narrow', ...EN_UTC })), [formato]);
+  const diaEntero = (fecha: Date): string => formato.fecha(fecha, { day: 'numeric', month: 'long', year: 'numeric', ...EN_UTC });
+
+  /*
+   * El mes de arriba, entero de Intl: «Octubre de 2026», «2026年10月», «Октябрь 2026 г.».
+   * Cada locale sabe cómo se escribe un mes con su año; una plantilla en el
+   * diccionario tendría que adivinarlo. Solo la inicial va en mayúscula.
+   */
+  const mesEscrito = formato.fecha(mesVisible, { month: 'long', year: 'numeric', ...EN_UTC });
+  const cabecera = mesEscrito.charAt(0).toLocaleUpperCase(locale) + mesEscrito.slice(1);
+
+  /*
+   * Las fechas elegidas, dichas para quien mira. En español coinciden con la
+   * frase que viaja; en cada idioma su diccionario las ordena con las piezas
+   * que da `Intl`, que ya sabe cómo se escribe un día y un mes allí.
+   */
+  const fechasEscritas = (salida: Date, regreso: Date): string => {
+    if (salida.getTime() === regreso.getTime()) return t('weeai.tripOneDay', { fecha: diaEntero(salida) });
+    const mismoMes = salida.getUTCMonth() === regreso.getUTCMonth() && salida.getUTCFullYear() === regreso.getUTCFullYear();
+    if (mismoMes) {
+      return t('weeai.tripSameMonth', {
+        dia: formato.fecha(salida, { day: 'numeric', ...EN_UTC }),
+        diaFinal: formato.fecha(regreso, { day: 'numeric', ...EN_UTC }),
+        mesYAnio: formato.fecha(regreso, { month: 'long', year: 'numeric', ...EN_UTC }),
+      });
+    }
+    return t('weeai.tripRange', { salida: diaEntero(salida), regreso: diaEntero(regreso) });
+  };
+
+  /** "11 días · 10 noches", contando los dos extremos. */
+  const duracionEscrita = (salida: Date, regreso: Date): string => {
+    const noches = Math.round((regreso.getTime() - salida.getTime()) / 86400000);
+    return t('weeai.tripDuration', {
+      dias: t('weeai.tripDays', { contador: noches + 1 }),
+      noches: t('weeai.tripNights', { contador: noches }),
+    });
+  };
 
   const tocar = (fecha: Date) => {
     if (busy) return;
@@ -108,11 +152,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
     return { esSalida, esRegreso, enMedio, pasado: t < hoy.getTime() };
   };
 
+  const duracion = salida && regreso ? duracionEscrita(salida, regreso) : '';
   const ayuda = !salida
-    ? 'Toca el día que sales.'
+    ? t('weeai.tapDepartureDay')
     : !regreso
-      ? 'Ahora toca el día que vuelves.'
-      : `${frasedeFechas(salida, regreso)} · ${duracionEscrita(salida, regreso)}`;
+      ? t('weeai.tapReturnDay')
+      : t('weeai.tripSummary', { fechas: fechasEscritas(salida, regreso), duracion });
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -125,14 +170,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
         >
           <Ionicons name="chevron-back" size={scale(20)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.mes, { color: theme.colors.text }]}>{`${MESES[mes]} ${anio}`}</Text>
+        <Text style={[styles.mes, { color: theme.colors.text }]}>{cabecera}</Text>
         <TouchableOpacity onPress={() => setMesVisible(dia(anio, mes + 1, 1))} style={styles.flecha} accessibilityLabel={t('weeai.nextMonth')}>
           <Ionicons name="chevron-forward" size={scale(20)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.semana}>
-        {DIAS.map((d, i) => (
+        {iniciales.map((d, i) => (
           <Text key={`${d}-${i}`} style={[styles.diaSemana, { color: theme.colors.textSecondary }]}>{d}</Text>
         ))}
       </View>
@@ -153,7 +198,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
                   extremo && { backgroundColor: theme.colors.accent },
                   pasado && styles.pasado,
                 ]}
-                accessibilityLabel={escrito(fecha)}
+                accessibilityLabel={diaEntero(fecha)}
                 accessibilityState={{ selected: extremo }}
               >
                 <Text
@@ -177,7 +222,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
 
       <View style={styles.acciones}>
         <TouchableOpacity onPress={onSkip} disabled={busy} style={styles.saltar} activeOpacity={0.7} accessibilityLabel={t('weeai.dontKnowYet')}>
-          <Text style={[styles.saltarTexto, { color: theme.colors.textSecondary }]}>🤷 Todavía no lo sé</Text>
+          <Text style={[styles.saltarTexto, { color: theme.colors.textSecondary }]}>🤷 {t('weeai.dontKnowYet')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => salida && onConfirm(frasedeFechas(salida, regreso || salida))}
@@ -222,7 +267,6 @@ const styles = StyleSheet.create({
   mes: {
     fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.bold,
-    textTransform: 'capitalize',
   },
   semana: {
     flexDirection: 'row',

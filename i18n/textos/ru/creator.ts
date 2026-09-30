@@ -61,4 +61,5 @@ export const creator: typeof import('../es/creator').creator = {
   areaDesignHome: 'Weë Design · Дом и дизайн',
   areaHomeName: 'Дом и дизайн',
   tellTheSpecialist: 'Расскажите {{especialista}}, что вы хотите получить: он задаст два-три простых вопроса и сделает остальное. Потом сразу опубликуете результат в своём сообществе.',
+  exampleQuoted: '«{{ejemplo}}»',
 };

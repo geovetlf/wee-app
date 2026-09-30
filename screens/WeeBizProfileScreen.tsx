@@ -19,7 +19,7 @@ import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navig
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -46,7 +46,7 @@ import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const WeeBizProfileScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -165,6 +165,7 @@ const WeeBizProfileScreen: React.FC = () => {
 
     try {
       // Obtener datos del dueño del negocio para crear/abrir conversación
+      /* El nombre de respaldo NO pasa por t(): se GUARDA en `participantsData` de la conversación. Es dato. */
       const currentUserData: ParticipantData = {
         displayName: userProfile?.displayName || 'Usuario',
         avatarType: userProfile?.avatarType as any,
@@ -198,7 +199,7 @@ const WeeBizProfileScreen: React.FC = () => {
       });
     } catch (e) {
       console.error('Error opening conversation:', e);
-      Alert.alert('Error', t('weebiz.chatFailed'));
+      Alert.alert(t('common.error'), t('weebiz.chatFailed'));
     }
   };
 
@@ -207,7 +208,7 @@ const WeeBizProfileScreen: React.FC = () => {
     let url = business.externalLink;
     if (!url.startsWith('http')) url = 'https://' + url;
     Linking.openURL(url).catch(() => {
-      Alert.alert('Error', t('weebiz.linkFailed'));
+      Alert.alert(t('common.error'), t('weebiz.linkFailed'));
     });
   };
 
@@ -219,6 +220,7 @@ const WeeBizProfileScreen: React.FC = () => {
     }
     try {
       setSavingReview(true);
+      /* Ídem: el nombre de respaldo se GUARDA en la reseña (`userName`), no se pinta desde aquí. */
       await weeBizService.createReview(businessId, {
         userId: activeUid,
         userName: userProfile?.displayName || 'Usuario',
@@ -239,7 +241,7 @@ const WeeBizProfileScreen: React.FC = () => {
       setUserReview(revs.find(r => r.userId === activeUid) || null);
     } catch (e) {
       console.error('Error submitting review:', e);
-      Alert.alert('Error', t('weebiz.reviewFailed'));
+      Alert.alert(t('common.error'), t('weebiz.reviewFailed'));
     } finally {
       setSavingReview(false);
     }
@@ -288,10 +290,11 @@ const WeeBizProfileScreen: React.FC = () => {
     </View>
   );
 
+  /* La fecha de una reseña la escribe Intl con el locale de quien mira, no clavada a es-ES. */
   const fmtDate = (ts: any) => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formato.fecha(d, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   if (loading) {
@@ -361,7 +364,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <View style={[styles.categoryBadge, { backgroundColor: category.color + '20' }]}>
               <Ionicons name={category.icon as any} size={scale(14)} color={category.color} />
               <Text style={[styles.categoryBadgeText, { color: category.color }]}>
-                {category.label}
+                {t(category.clave)}
               </Text>
               {business.subcategory ? (
                 <Text style={[styles.subcategoryText, { color: category.color }]}>
@@ -443,7 +446,7 @@ const WeeBizProfileScreen: React.FC = () => {
                     styles.followBtnText,
                     { color: isFollowing ? (category?.color || theme.colors.primary) : '#FFF' },
                   ]}>
-                    {isFollowing ? 'Siguiendo' : 'Seguir'}
+                    {isFollowing ? t('weebiz.following') : t('weebiz.follow')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -495,7 +498,7 @@ const WeeBizProfileScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
-                {isOwner ? 'Administrar' : 'Ver todos'}
+                {isOwner ? t('weebiz.manageProducts') : t('weebiz.seeAllProducts')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -514,7 +517,7 @@ const WeeBizProfileScreen: React.FC = () => {
                     )}
                     <Text style={[styles.productMiniName, { color: theme.colors.text }]} numberOfLines={1}>{prod.name}</Text>
                     <Text style={[styles.productMiniPrice, { color: theme.colors.primary }]}>
-                      {prod.price > 0 ? `${prod.currency} ${prod.price.toFixed(2)}` : 'Consultar'}
+                      {prod.price > 0 ? `${prod.currency} ${prod.price.toFixed(2)}` : t('weebiz.priceOnRequest')}
                     </Text>
                   </View>
                 );
@@ -524,7 +527,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <View style={styles.placeholderSection}>
               <Ionicons name="cube-outline" size={scale(32)} color={theme.colors.textSecondary} />
               <Text style={[styles.placeholderText, { color: theme.colors.textSecondary }]}>
-                {isOwner ? 'Agrega tu primer producto' : t('weebiz.noProductsYet')}
+                {isOwner ? t('weebiz.addFirstProduct') : t('weebiz.noProductsYet')}
               </Text>
               {isOwner && (
                 <TouchableOpacity
@@ -543,7 +546,7 @@ const WeeBizProfileScreen: React.FC = () => {
         <View style={[styles.section, { borderTopColor: theme.colors.border }]}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Reseñas {reviews.length > 0 ? `(${reviews.length})` : ''}
+              {reviews.length > 0 ? t('weebiz.reviewsCount', { cantidad: reviews.length }) : t('weebiz.reviews')}
             </Text>
             {!isOwner && !userReview && activeUid && (
               <TouchableOpacity onPress={() => setReviewModalVisible(true)}>

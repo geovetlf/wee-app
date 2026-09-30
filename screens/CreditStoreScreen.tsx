@@ -71,9 +71,9 @@ const CreditStoreScreen = () => {
     } catch (e) {
       const code = String((e as any)?.details?.code || (e as any)?.code || '');
       const message = code.includes('PURCHASE_INVALID') || code.includes('unimplemented') || code.includes('NOT_IMPLEMENTED')
-        ? 'Las compras de Credits llegarán pronto. Por ahora no se pueden hacer recargas aquí.'
+        ? t('credits.purchasesComingSoon')
         : t('credits.topUpFailed');
-      notify('Ups', message);
+      notify(t('credits.topUpFailedTitle'), message);
     }
     setPurchasing(false);
   };

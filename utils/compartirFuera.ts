@@ -50,14 +50,18 @@ export const enlaceParaCompartir = (postId: string): string => generatePostUrl(p
  * completo, así que el enlace tiene que ir dentro de `message` o no viaja. En
  * iOS `url` entrega una dirección de verdad a la hoja, que es lo que hace que
  * las apps de destino la traten como enlace y no como un trozo de texto.
+ *
+ * El título de la hoja —solo lo enseña Android— lo pone quien llama, ya en el
+ * idioma de la interfaz: este archivo no tiene traductor. Sin título, Android
+ * pone el suyo, que también sale en el idioma del teléfono.
  */
-export async function compartirFueraDeWee(postId?: string): Promise<boolean> {
+export async function compartirFueraDeWee(postId?: string, titulo?: string): Promise<boolean> {
   if (!postId) return false;
   const url = enlaceParaCompartir(postId);
   try {
     await Share.share(
       Platform.OS === 'ios' ? { url } : { message: url },
-      { dialogTitle: 'Compartir' },
+      titulo ? { dialogTitle: titulo } : undefined,
     );
     return true;
   } catch (error) {

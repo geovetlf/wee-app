@@ -17,7 +17,7 @@
  *     menor con paréntesis, punto y coma o igual es código, no algo que se lea.
  *
  * Lo que queda fuera está en una lista CERRADA y explicada: la marca, lo
- * técnico, y las cuatro excepciones que el producto autorizó.
+ * técnico, y las excepciones que el producto autorizó.
  */
 import fs from 'node:fs';
 import { textosDe, traductorDe } from './i18n-ayuda.mjs';
@@ -60,14 +60,19 @@ console.log('\n── A · Ni un texto de interfaz escrito a mano ──');
 {
   /*
    * LO QUE SE QUEDA, Y POR QUÉ. Marca: se escribe igual en todos los idiomas.
-   * Técnico: un hueco numérico y un símbolo de moneda. Y las dos excepciones
-   * que el producto autorizó: `ErrorBoundary` es una clase y no puede usar
-   * hooks —se pinta cuando el árbol ya se rompió—, y `HomeGreeting` tiene
-   * cambios locales que no se tocan.
+   * Técnico: un hueco numérico y un símbolo de moneda. Y la excepción que el
+   * producto autorizó: `ErrorBoundary` es una clase y no puede usar hooks —se
+   * pinta cuando el árbol ya se rompió—; sus frases viven en ella, una fila por
+   * diccionario, y las vigila `i18n.test.mjs` (41c).
+   *
+   * `HomeGreeting` estuvo en esta lista porque tenía cambios locales que no se
+   * tocaban. Esos cambios ya están en `main` (771f4ea) y su única frase escrita
+   * a mano —la pista de accesibilidad de la lupa— pasó a `home.searchHint` al
+   * entrar el japonés, así que vuelve a estar vigilado como todos.
    */
   const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Weë Brain|Brain|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|World Encode Entity)$/;
   const TECNICO = /^(0\.00|S\/\.|https?:\/\/)/;
-  const EXCEPCIONES = ['components/ErrorBoundary.tsx', 'components/HomeGreeting.tsx'];
+  const EXCEPCIONES = ['components/ErrorBoundary.tsx'];
   const RUIDO = /^(Promise|void|string|number|boolean|T|C|any|unknown|Post|View|Text|React|null|undefined|Props|Record|Partial)$/;
 
   const sueltos = [];

@@ -113,7 +113,7 @@ const AiAvatarScreen: React.FC = () => {
   const showGenerationError = (error: unknown, fallback: string) => {
     const short = creditsShortfall(error);
     if (!short) {
-      Alert.alert('Error', fallback);
+      Alert.alert(t('common.error'), fallback);
       return;
     }
     const message = t('aiAvatar.creditsDetail', { saldo: formato.numero(short.available), coste: formato.numero(short.required) });
@@ -198,7 +198,7 @@ const AiAvatarScreen: React.FC = () => {
   const handleGenerate = async () => {
     if (!step1Complete || !step2Complete) return;
     if (!user?.uid) {
-      Alert.alert('Error', t('aiAvatar.signInFirst'));
+      Alert.alert(t('common.error'), t('aiAvatar.signInFirst'));
       return;
     }
 
@@ -229,7 +229,7 @@ const AiAvatarScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error generating avatar:', error);
-      showGenerationError(error, 'No se pudo generar el avatar. Intenta de nuevo.');
+      showGenerationError(error, t('aiAvatar.generateFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -291,7 +291,7 @@ const AiAvatarScreen: React.FC = () => {
       setShowWizard(false);
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      Alert.alert('Error', t('aiAvatar.uploadFailed'));
+      Alert.alert(t('common.error'), t('aiAvatar.uploadFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -331,7 +331,7 @@ const AiAvatarScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error regenerating avatar:', error);
-      showGenerationError(error, 'No se pudo regenerar el avatar. Intenta de nuevo.');
+      showGenerationError(error, t('aiAvatar.regenerateFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -362,7 +362,7 @@ const AiAvatarScreen: React.FC = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error('Error saving avatar:', error);
-      Alert.alert('Error', t('aiAvatar.saveAvatarFailed'));
+      Alert.alert(t('common.error'), t('aiAvatar.saveAvatarFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -412,14 +412,14 @@ const AiAvatarScreen: React.FC = () => {
     setLoadingMessage(t('aiAvatar.uploadingPhoto'));
     try {
       const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
-      setLoadingMessage('Weë está poniendo tu avatar en la foto…\n(puede tardar entre 30 y 60 segundos)');
+      setLoadingMessage(t('aiAvatar.swapping'));
       const generatedImageUrl = await performAvatarReplacement(uploadedUrl, avatarUrl);
       setLoadingMessage(t('aiAvatar.savingResult'));
       const savedUrl = await saveFaceSwapResult(user.uid, generatedImageUrl);
       setSwapResultUrl(savedUrl);
     } catch (error: any) {
       console.error('Error avatar replacement:', error);
-      showGenerationError(error, 'No se pudo reemplazar el avatar. Intenta de nuevo.');
+      showGenerationError(error, t('aiAvatar.replaceFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -455,14 +455,14 @@ const AiAvatarScreen: React.FC = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', t('aiAvatar.saveFailed'));
+      Alert.alert(t('common.error'), t('aiAvatar.saveFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
     }
   };
 
-  const STEP_LABELS = ['Base', 'Detalles'];
+  const STEP_LABELS = [t('aiAvatar.stepBase'), t('aiAvatar.stepDetails')];
 
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
@@ -603,7 +603,7 @@ const AiAvatarScreen: React.FC = () => {
                   setSwapResultUrl(null);
                   Alert.alert(t('aiAvatar.doneTitle'), t('aiAvatar.photoUpdated'));
                 } catch (e: any) {
-                  Alert.alert('Error', t('aiAvatar.photoUpdateFailed'));
+                  Alert.alert(t('common.error'), t('aiAvatar.photoUpdateFailed'));
                 } finally {
                   setLoading(false);
                   setLoadingMessage('');
@@ -639,7 +639,9 @@ const AiAvatarScreen: React.FC = () => {
       >
         <Ionicons name="refresh" size={scale(18)} color={hasReachedLimit ? theme.colors.textSecondary : theme.colors.text} />
         <Text style={[styles.secondaryButtonText, { color: hasReachedLimit ? theme.colors.textSecondary : theme.colors.text }]}>
-          {hasReachedLimit ? `Límite alcanzado (${generationCount}/${MAX_AI_AVATAR_GENERATIONS})` : 'Regenerar avatar con IA'}
+          {hasReachedLimit
+            ? t('aiAvatar.limitReachedCount', { usadas: generationCount, maximo: MAX_AI_AVATAR_GENERATIONS })
+            : t('aiAvatar.regenerateWithAi')}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -661,8 +663,8 @@ const AiAvatarScreen: React.FC = () => {
           </Text>
           <Text style={[styles.disclaimerText, { color: hasReachedLimit ? theme.colors.error : theme.colors.textSecondary, marginTop: SPACING.xs }]}>
             {hasReachedLimit
-              ? `Has usado tus ${MAX_AI_AVATAR_GENERATIONS} generaciones con IA.`
-              : `Generaciones con IA: ${generationCount}/${MAX_AI_AVATAR_GENERATIONS}`
+              ? t('aiAvatar.allGenerationsUsed', { contador: MAX_AI_AVATAR_GENERATIONS })
+              : t('aiAvatar.generationsCount', { usadas: generationCount, maximo: MAX_AI_AVATAR_GENERATIONS })
             }
           </Text>
         </View>
@@ -849,11 +851,15 @@ const AiAvatarScreen: React.FC = () => {
                 onPress={handleGenerate}
                 disabled={!canGenerate}
                 activeOpacity={0.8}
-                accessibilityLabel={avatarCost === null ? 'Calculando el costo' : `Generar Avatar por ${avatarCost} Credits`}
+                accessibilityLabel={avatarCost === null
+                  ? t('weeai.calculatingTheCost')
+                  : t('aiAvatar.generateForCredits', { credits: formato.numero(avatarCost) })}
               >
                 <Ionicons name="sparkles" size={scale(18)} color={canGenerate ? '#FFFFFF' : theme.colors.textSecondary} />
                 <Text style={[styles.primaryButtonText, { color: canGenerate ? '#FFFFFF' : theme.colors.textSecondary }]}>
-                  {avatarCost === null ? 'Calculando el costo…' : `Generar Avatar · ${avatarCost} Credits`}
+                  {avatarCost === null
+                    ? t('weeai.calculatingTheCost')
+                    : t('aiAvatar.generateButton', { credits: formato.numero(avatarCost) })}
                 </Text>
               </TouchableOpacity>
             </>

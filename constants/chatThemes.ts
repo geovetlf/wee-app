@@ -1,7 +1,11 @@
 // Chat themes with complete styling for conversation screen
 export interface ChatTheme {
   id: string;
-  name: string;
+  /**
+   * La CLAVE del nombre, no el nombre: este catálogo se evalúa fuera de React,
+   * donde no hay traductor. Lo resuelve quien lo pinta, con `t(tema.clave)`.
+   */
+  clave: string;
   // Background
   backgroundColor: string;
   backgroundImage?: string; // URL or require() path
@@ -33,7 +37,7 @@ export interface ChatTheme {
 export const CHAT_THEMES: ChatTheme[] = [
   {
     id: 'classic',
-    name: 'Clásico',
+    clave: 'weetalk.themeClassic',
     backgroundColor: '#0A0A0A',
     headerBackground: '#1A1A1A',
     headerText: '#FFFFFF',
@@ -55,7 +59,7 @@ export const CHAT_THEMES: ChatTheme[] = [
   },
   {
     id: 'midnight',
-    name: 'Medianoche',
+    clave: 'weetalk.themeMidnight',
     backgroundColor: '#0F172A',
     headerBackground: '#1E293B',
     headerText: '#F1F5F9',
@@ -77,7 +81,7 @@ export const CHAT_THEMES: ChatTheme[] = [
   },
   {
     id: 'forest',
-    name: 'Bosque',
+    clave: 'weetalk.themeForest',
     backgroundColor: '#14201A',
     headerBackground: '#1C2B23',
     headerText: '#E8F5E9',
@@ -99,7 +103,7 @@ export const CHAT_THEMES: ChatTheme[] = [
   },
   {
     id: 'sunset',
-    name: 'Atardecer',
+    clave: 'weetalk.themeSunset',
     backgroundColor: '#1A1215',
     headerBackground: '#2D1F24',
     headerText: '#FFF1F2',
@@ -121,7 +125,7 @@ export const CHAT_THEMES: ChatTheme[] = [
   },
   {
     id: 'ocean',
-    name: 'Océano',
+    clave: 'weetalk.themeOcean',
     backgroundColor: '#0C1929',
     headerBackground: '#152238',
     headerText: '#E0F2FE',
@@ -143,7 +147,7 @@ export const CHAT_THEMES: ChatTheme[] = [
   },
   {
     id: 'purple',
-    name: 'Púrpura',
+    clave: 'weetalk.themePurple',
     backgroundColor: '#1A1625',
     headerBackground: '#2D2640',
     headerText: '#F3E8FF',

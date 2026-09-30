@@ -37,4 +37,7 @@ export const help = {
   a8: 'Es el chat de Weë: conversaciones privadas con otras personas de la comunidad, con texto, fotos y notas de voz.',
   q9: '¿Qué es "Cómo lo hice"?',
   a9: 'Al publicar puedes contar qué herramientas usaste, el prompt y el proceso. Así otras personas aprenden de ti, y tú de ellas, con un solo toque en "Copiar prompt".',
+  heroTitle: '¿En qué te ayudamos?',
+  legalVisibility: 'Lo que publicas es visible para la comunidad; lo que creas en Weë AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.',
+  askPrefill: 'Una pregunta para Weë: ',
 };

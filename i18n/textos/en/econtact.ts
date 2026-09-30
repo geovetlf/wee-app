@@ -33,4 +33,12 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: 'Accept {{lista}}',
   rejectRequestLabel: 'Decline {{lista}} request',
   requestSent: 'Request sent',
+  errSignIn: 'Sign in to use ËContact.',
+  errNotYours: 'That profile isn\'t yours.',
+  errNotAPerson: 'That profile can\'t use ËContact.',
+  errOffline: 'Couldn\'t connect to Weë.',
+  errNoRequestToReject: 'There\'s no request of yours to decline.',
+  errNoPendingRequest: 'You don\'t have a pending request with this profile.',
+  errNotConnected: 'You\'re not connected with this profile.',
+  errNoActiveProfile: 'There\'s no active profile to do this with.',
 };

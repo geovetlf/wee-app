@@ -46,4 +46,8 @@ export const communities: typeof import('../es/communities').communities = {
   beTheFirst: 'Mach den ersten Beitrag in dieser Community',
   createPost: 'Beitrag erstellen',
   understoodJoin: 'Verstanden, beitreten',
+  memberCount_one: '{{cantidad}} Mitglied',
+  memberCount_other: '{{cantidad}} Mitglieder',
+  postCount_one: '{{contador}} Beitrag',
+  postCount_other: '{{contador}} Beiträge',
 };

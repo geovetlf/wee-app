@@ -226,7 +226,7 @@ const WeeCreatorScreen: React.FC = () => {
               <View style={styles.exampleRow}>
                 {selected.examples.map((example) => (
                   <View key={example} style={[styles.exampleChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>“{t(example)}”</Text>
+                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>{t('creator.exampleQuoted', { ejemplo: t(example) })}</Text>
                   </View>
                 ))}
               </View>

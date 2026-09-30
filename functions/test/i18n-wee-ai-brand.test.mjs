@@ -96,7 +96,8 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
     ['3) la barra lateral de las pantallas de IA', 'components/creator/CreatorSidebar.tsx', /'grid-outline', 'Weë AI', goCreator/],
     /* La Ayuda pasó al diccionario en la fase 6: la marca se mira donde vive. */
     ['4) la Ayuda', 'i18n/textos/es/help.ts', /¿Cómo funciona Weë AI\?/],
-    ['4) y lo que se guarda al publicar', 'screens/CreatorFlowScreen.tsx', /Creado con \$\{nombre\} en Weë AI/],
+    /* Lo que se guarda al publicar pasó al diccionario al entrar el japonés: la marca se mira donde vive. */
+    ['4) y lo que se guarda al publicar', 'i18n/textos/es/composer.ts', /aiProcessCreatedWith: 'Creado con \{\{nombre\}\} en Weë AI'/],
   ];
   for (const [nombre, archivo, patron] of pares) {
     check(`${nombre} dice "Weë AI"`, patron.test(leer(archivo)), archivo);

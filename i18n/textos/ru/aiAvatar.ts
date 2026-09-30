@@ -9,7 +9,9 @@
  * Los nombres de Weë y "Gemini AI" van en alfabeto latino dentro del cirílico:
  * son marca e identificador, no texto que se traduzca ni se translitere.
  */
-export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
+import { ConPlurales } from './plurales';
+
+export const aiAvatar: ConPlurales<typeof import('../es/aiAvatar').aiAvatar> = {
   gender: 'Пол',
   genderMale: 'Мужской',
   genderFemale: 'Женский',
@@ -101,4 +103,18 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   savingProfilePhoto: 'Сохранение фото профиля...',
   updatingProfilePhoto: 'Обновление фото профиля...',
   swapping: 'Weë переносит ваш аватар на фото…\n(это может занять от 30 до 60 секунд)',
+  generateFailed: 'Не удалось создать аватар. Попробуйте ещё раз.',
+  regenerateFailed: 'Не удалось пересоздать аватар. Попробуйте ещё раз.',
+  replaceFailed: 'Не удалось заменить аватар. Попробуйте ещё раз.',
+  stepBase: 'Основа',
+  stepDetails: 'Детали',
+  limitReachedCount: 'Лимит исчерпан ({{usadas}}/{{maximo}})',
+  regenerateWithAi: 'Пересоздать аватар с ИИ',
+  allGenerationsUsed_one: 'Вы израсходовали свою {{contador}} генерацию с ИИ.',
+  allGenerationsUsed_few: 'Вы израсходовали свои {{contador}} генерации с ИИ.',
+  allGenerationsUsed_many: 'Вы израсходовали свои {{contador}} генераций с ИИ.',
+  allGenerationsUsed_other: 'Вы израсходовали свои {{contador}} генераций с ИИ.',
+  generationsCount: 'Генерации с ИИ: {{usadas}}/{{maximo}}',
+  generateForCredits: 'Создать аватар за {{credits}} Credits',
+  generateButton: 'Создать аватар · {{credits}} Credits',
 };

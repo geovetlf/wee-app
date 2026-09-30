@@ -122,7 +122,9 @@ console.log('\n── A · El nombre visible es Weë AI ──');
       (leer('i18n/textos/' + idioma + '/weeai.ts').match(new RegExp("'[^'\n]*" + NUEVO + "[^'\n]*'", 'g')) || []).length === 2)
     && /return t\('weeai\.errNoAccount'\)/.test(leer('services/creatorService.ts'))
     && /return t\('weeai\.errOffline'\)/.test(leer('services/creatorService.ts')));
-  check('4) y lo que queda escrito al publicar una creación', new RegExp(`Creado con \\$\\{nombre\\} en ${NUEVO}`).test(leer('screens/CreatorFlowScreen.tsx')));
+  /* Sale de su clave, en el idioma de quien publica; en español sigue diciendo lo mismo. */
+  check('4) y lo que queda escrito al publicar una creación', /t\('composer\.aiProcessCreatedWith', \{ nombre \}\)/.test(leer('screens/CreatorFlowScreen.tsx'))
+    && new RegExp(`aiProcessCreatedWith: 'Creado con \\{\\{nombre\\}\\} en ${NUEVO}'`).test(leer('i18n/textos/es/composer.ts')));
 
   /*
    * EL SERVIDOR TODAVÍA ESCRIBE "WEË AI", y aquí se escribe a mano.

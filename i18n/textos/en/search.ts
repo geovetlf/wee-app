@@ -18,4 +18,10 @@ export const search: typeof import('../es/search').search = {
   member: 'Member',
   typeTwoForPeople: 'Type at least 2 characters to search for people',
   typeTwoForPosts: 'Type at least 2 letters to search for posts',
+  peopleFound: 'People found',
+  searchPeople: 'Search for people',
+  noPeopleFor: 'No people found for "{{busqueda}}"',
+  postsFound: 'Posts found',
+  searchPosts: 'Search for posts',
+  noPostsFor: 'We couldn\'t find posts for "{{busqueda}}"',
 };

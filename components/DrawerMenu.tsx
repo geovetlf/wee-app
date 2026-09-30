@@ -453,7 +453,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             Estando ya en el Home, tocarla solo cierra el cajón: navegar a donde
             ya estás recarga la pantalla y pierde el sitio del muro.
           */}
-          {renderRow('casa', 'Home', goHome, { active: enHome })}
+          {renderRow('casa', t('menu.home'), goHome, { active: enHome })}
 
           {/* PERFIL */}
           {renderSectionLabel(t('menu.sectionProfile'))}

@@ -247,4 +247,5 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   promoteHint: 'Ваш контент увидит больше людей внутри Weë. Стоимость вы увидите до того, как что-то потратите.',
   promoteSoon: 'Продвижение внутри Weë ещё не открыто. Когда откроется, оно будет оплачиваться вашими Credits и появится здесь.',
   promoteCredits: 'Посмотреть мои Credits',
+  sampleProductName: 'Продукт {{numero}}',
 };

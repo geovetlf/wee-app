@@ -38,4 +38,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: '剛剛',
   markAllRead: '全部標示為已讀',
   all: '全部',
+  unread: '未讀',
+  unreadWithCount: '未讀（{{total}}）',
 };

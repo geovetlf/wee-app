@@ -121,7 +121,8 @@ export const useUserById = (userId: string | undefined) => {
         setUserProfile(user);
       } catch (err) {
         console.error('Error loading user by ID:', err);
-        setError('Error al cargar usuario');
+        /* Un código, no una frase: quien lo pinta elige el texto en su idioma. */
+        setError('carga-fallida');
         setUserProfile(null);
       } finally {
         setLoading(false);

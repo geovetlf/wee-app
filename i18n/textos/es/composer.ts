@@ -132,4 +132,6 @@ export const composer = {
   askCommunity: 'Hacer una pregunta a la comunidad',
   applyingFaceSwap: 'Aplicando face swap...',
   searchPlaceHint: 'Busca una ciudad o un país para etiquetar tu publicación.',
+  aiProcessCreatedWith: 'Creado con {{nombre}} en Weë AI',
+  aiProcessDemoPreview: '{{proceso}} (vista previa en modo demo)',
 };

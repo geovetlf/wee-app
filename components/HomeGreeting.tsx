@@ -114,7 +114,7 @@ const HomeGreeting: React.FC<HomeGreetingProps> = ({ onSearch }) => {
         activeOpacity={0.6}
         accessibilityRole="button"
         accessibilityLabel={t('home.search')}
-        accessibilityHint="Abre la búsqueda de personas, hashtags y publicaciones"
+        accessibilityHint={t('home.searchHint')}
       >
         <Ionicons name="search" size={scale(21)} color={theme.colors.text} />
       </TouchableOpacity>

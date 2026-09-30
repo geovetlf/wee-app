@@ -18,4 +18,8 @@ export const weels = {
   open: 'Ver Weël',
   upTo15s: 'hasta 15 s',
   noneYetHint: 'Todavía no hay Weëls de la comunidad. Los ejemplos muestran cómo se verán.',
+  sampleAiScene: 'Escena con IA',
+  sampleDance: 'Baile',
+  sampleRecipe: 'Receta',
+  sampleTrip: 'Viaje',
 };

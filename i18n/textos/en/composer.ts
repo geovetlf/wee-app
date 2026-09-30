@@ -132,4 +132,6 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: 'Ask the community a question',
   applyingFaceSwap: 'Applying the face swap...',
   searchPlaceHint: 'Search for a city or a country to tag your post.',
+  aiProcessCreatedWith: 'Made with {{nombre}} in Weë AI',
+  aiProcessDemoPreview: '{{proceso}} (demo mode preview)',
 };

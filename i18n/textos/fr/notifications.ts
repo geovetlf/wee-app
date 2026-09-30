@@ -25,4 +25,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: 'maintenant',
   markAllRead: 'Tout marquer comme lu',
   all: 'Toutes',
+  unread: 'Non lues',
+  unreadWithCount: 'Non lues ({{total}})',
 };

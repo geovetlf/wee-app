@@ -758,7 +758,8 @@ check('174) ni siguiendo', !/user\.following/.test(codigoBuscar));
  * habría dado por buenos unos datos que son de otro sistema.
  */
 check('175) ni convierte el contador histórico en ËContacts', !/ËContact/.test(codigoBuscar));
-check('176) sigue mostrando lo que sí es suyo: sus publicaciones', /publicaciones/.test(buscar));
+/* El contador de publicaciones pasa por su clave (common.postsCount) desde que entró el japonés. */
+check('176) sigue mostrando lo que sí es suyo: sus publicaciones', /common\.postsCount/.test(sinComentarios(buscar)));
 check('177) y la búsqueda ya no ordena a las personas por seguidores', !/\(b\.followers \|\| 0\) - \(a\.followers \|\| 0\)/.test(read('services/firestoreService.ts')));
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -847,7 +848,8 @@ check('201) useFollow también', read('hooks/useFollow.ts').includes('followsSer
 check('203) las reglas de follows siguen en pie, ya sin la identidad Biz',
   /match \/follows\/\{followId\}/.test(reglas) && !/followerId\.matches\('biz_/.test(reglas));
 check('204) businessFollows intacto', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
-check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));
+/* Sus rótulos pasaron por i18n al entrar el japonés: weebiz.following / weebiz.follow. */
+check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? t\('weebiz\.following'\) : t\('weebiz\.follow'\)/.test(read('screens/WeeBizProfileScreen.tsx')));
 check('206) la píldora ËContact del compositor ya está viva, y sigue sin tocar relaciones', /setShowEContacts/.test(read('screens/CreateScreen.tsx')) && !/econtactService/.test(sinComentarios(read('screens/CreateScreen.tsx'))));
 check('207) ËContact no gasta Credits ni llama a IA', !/spendCredits|gemini|provider/i.test(codigoPantalla + sinComentarios(read('hooks/useEContact.ts'))));
 check('208) sin índices nuevos', !/econtact/i.test(read('firestore.indexes.json')));
@@ -1394,8 +1396,14 @@ check('351) y pregunta antes de eliminar', /preguntar\(\s*t\('econtact\.removeTi
 
 check('352) una fila enseña con qué cara está esa persona', /etiqueta: nombreDeIdentidad\(id\)/.test(codigoGancho));
 check('353) y la pantalla la pinta', /\{detalle\}/.test(codigoPantalla) && /const detalle = seccion === 'recibidas'/.test(codigoPantalla));
+/*
+ * La cara se pinta en el idioma de la interfaz: `etiqueta` es el nombre interno
+ * en español, y la pantalla dice `composer.profileWee` / `composer.profileReal`,
+ * lo mismo que `SelectorDeEContacts`.
+ */
 check('354) en las recibidas, además, qué está pidiendo',
-  /t\('econtact\.wantsToConnect', \{ lista: etiqueta \}\)/.test(pantallaEC)
+  /t\('econtact\.wantsToConnect', \{ lista: cara \}\)/.test(pantallaEC)
+  && /const cara = t\(tipo === 'wee' \? 'composer\.profileWee' : 'composer\.profileReal'\)/.test(pantallaEC)
   && /quiere conectar contigo/.test(read('i18n/textos/es/econtact.ts')));
 check('355) la etiqueta es "Perfil real" o "Perfil Weë", nunca otra cosa', nombreDeIdentidad(ANA) === 'Perfil real' && nombreDeIdentidad(WEE_ANA) === 'Perfil Weë');
 check('356) la identidad emisora de una recibida es quien la pidió', (() => {
@@ -1443,7 +1451,7 @@ check('364) la pantalla enseña un estado propio para eso',
   /t\('econtact\.noAgenda'\)/.test(pantallaEC) && /noAgenda: 'Este perfil no tiene agenda'/.test(read('i18n/textos/es/econtact.ts')));
 check('365) y no cae en la lista de la cuenta', /if \(!user\) return vacia\('sin-sesion'\);/.test(codigoGancho) && !/return user\.uid;/.test(codigoGancho.slice(codigoGancho.indexOf('perfil-sin-agenda'))));
 check('366) businessFollows no se toca desde aquí', !/businessFollows/.test(codigoPantalla + codigoGancho + codigoServicio));
-check('367) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));
+check('367) y el perfil de negocio sigue con su propio seguir', /isFollowing \? t\('weebiz\.following'\) : t\('weebiz\.follow'\)/.test(read('screens/WeeBizProfileScreen.tsx')));
 
 // ─── P · Nada de follows para estas listas ───────────────────────────────────
 
@@ -1509,8 +1517,11 @@ console.log('\n── V) "No hay relación" es una respuesta, no un error ──
   const fuenteRechazar = trozo(/ {2}rechazarSolicitud: async \([\s\S]*?\n {2}\},/);
   const fuenteCancelar = trozo(/ {2}cancelarSolicitud: async \([\s\S]*?\n {2}\},/);
   const fuenteEliminar = trozo(/ {2}eliminarContacto: async \([\s\S]*?\n {2}\},/);
+  /* Los errores que llegan a la pantalla llevan su clave de traducción: la clase viaja con las funciones que la usan. */
+  const fuenteError = trozo(/export class ErrorDeEContact[\s\S]*?\n\}/);
 
   const moduloTs = `
+${fuenteError}
 export const fabricarLeerDoc = (getDoc, refDe) => {
 ${fuenteLeerDoc}
   return leerDoc;
@@ -1651,6 +1662,16 @@ ${fuenteEliminar}
     let mensaje = '';
     try { await s.rechazarSolicitud(BETO, ANA); } catch (e) { mensaje = e.message; }
     check('404) con una identidad que no es tuya, se para antes de leer', mensaje === 'Ese perfil no es tuyo.', mensaje);
+  }
+  /* Y lo que la pantalla enseña sale de la clave, en el idioma de quien la usa. */
+  {
+    const leerDoc = real.fabricarLeerDoc(async () => { throw denegado(); }, refFalsa);
+    const s = real.fabricarAcciones(dependencias(leerDoc));
+    const claveDe = async (fn) => { try { await fn(); return '(no lanzó)'; } catch (e) { return e?.clave || ''; } };
+    check('404b) los tres errores llevan su clave de traducción',
+      (await claveDe(() => s.rechazarSolicitud(ANA, BETO))) === 'econtact.errNoRequestToReject'
+      && (await claveDe(() => s.cancelarSolicitud(ANA, BETO))) === 'econtact.errNoPendingRequest'
+      && (await claveDe(() => s.eliminarContacto(ANA, BETO))) === 'econtact.errNotConnected');
   }
 
   // ─── C y G · Las reglas no se han tocado ──────────────────────────────────

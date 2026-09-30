@@ -9,4 +9,5 @@ export const saved: typeof import('../es/saved').saved = {
   empty: 'Nothing saved yet',
   exploreHome: 'Explore Home',
   loadFailed: 'Your saved posts could not be loaded',
+  emptyHint: 'Tap the bookmark on a post to save prompts, tutorials and work you want to come back to.',
 };

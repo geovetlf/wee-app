@@ -73,8 +73,13 @@ console.log('\n── B · La línea de debajo del nombre ──');
     /t\('weetalk\.ephemeralMode'\)/.test(BANDEJA) && !/'Modo efímero'/.test(BANDEJA));
   check('5) "No hay mensajes aún", también',
     /t\('weetalk\.noMessagesYet'\)/.test(BANDEJA) && !/'No hay mensajes aún'/.test(BANDEJA));
+  /*
+   * `ultimo` es `last.content` salvo cuando lo guardó Weë (el aviso del modo
+   * efímero, la foto única, la imagen): esas marcas se dicen con su clave.
+   */
   check('6) y el "Tú:" ya no se pega a mano',
-    /t\('weetalk\.youSaid', \{ mensaje: last\.content \}\)/.test(BANDEJA)
+    /t\('weetalk\.youSaid', \{ mensaje: ultimo \}\)/.test(BANDEJA)
+    && /const ultimo = avisoGuardado \? t\(avisoGuardado\) : last\?\.content \?\? '';/.test(BANDEJA)
     && !/'Tú: '/.test(BANDEJA) && !/\$\{last\.senderId === activeUid \? 'Tú/.test(BANDEJA));
 
   /* 7 y 8 · Lo que se lee en cada idioma. */
@@ -120,7 +125,17 @@ console.log('\n── C · El mensaje es de quien lo escribió ──');
     ES('weetalk.youSaid', { mensaje: m }) !== 'Tú: ' + m || EN('weetalk.youSaid', { mensaje: m }) !== 'You: ' + m);
   check('12) el mensaje sale exactamente como entró', rotos.length === 0, rotos.join(' | '));
   check('12) y el de otra persona se pinta crudo, sin prefijo ni traductor',
-    /: last\.content\)/.test(BANDEJA) && !/t\(last\.content\)/.test(BANDEJA));
+    /: ultimo\)/.test(BANDEJA) && !/t\(last\.content\)/.test(BANDEJA) && !/t\(ultimo\)/.test(BANDEJA));
+  /*
+   * Solo las marcas que guarda Weë pasan por el traductor, y se reconocen
+   * enteras: un mensaje que se les parezca, o que las contenga, sigue siendo el
+   * mensaje de su autor.
+   */
+  const avisos = leer('services/messagesService.ts');
+  check('12b) las marcas guardadas por Weë se dicen con su clave; lo demás, tal cual',
+    /'Modo efímero': 'weetalk\.ephemeralMode'/.test(avisos) && /'Foto única': 'weetalk\.photoOnce'/.test(avisos)
+    && /'📷 Imagen': 'weetalk\.imagePreview'/.test(avisos)
+    && /contenido \? AVISOS_GUARDADOS\[contenido\] : undefined/.test(avisos));
 
   /* 13 · El nombre tampoco pasa por el traductor. */
   check('13) el nombre de quien escribe se pinta crudo',

@@ -24,7 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { uploadAudioToCloudinary } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { messagesService, Message, Conversation, ParticipantData } from '../services/messagesService';
@@ -42,7 +42,7 @@ type ConvRoute = RouteProp<InboxStackParamList, 'Conversation'>;
 
 const ConversationScreen = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const nav = useNavigation();
@@ -68,7 +68,8 @@ const ConversationScreen = () => {
   const chatTheme = getThemeById(chatThemeId);
 
   const myUid = userProfile?.uid || user?.uid;
-  const other = otherUserData || { displayName: 'Usuario', avatarType: 'predefined' as const, avatarId: 'male' };
+  /* El respaldo solo se PINTA en la cabecera (no se guarda en ningún sitio): por eso sí pasa por t(). */
+  const other = otherUserData || { displayName: t('common.user'), avatarType: 'predefined' as const, avatarId: 'male' };
 
   // ─── Subscribe to conversation metadata (ephemeral state, theme) ───
   useEffect(() => {
@@ -382,14 +383,19 @@ const ConversationScreen = () => {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  /*
+   * La píldora de fecha: «Hoy» y «Ayer» son rótulos (claves); el resto de las
+   * fechas las escribe Intl con el locale de quien mira, no clavadas a es-ES.
+   * El corte de los días es el de siempre.
+   */
   const fmtDate = (ts: any) => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
     const now = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    if (diff === 0) return 'Hoy';
-    if (diff === 1) return 'Ayer';
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    if (diff === 0) return t('weetalk.today');
+    if (diff === 1) return t('business.yesterday');
+    return formato.fecha(d, { day: 'numeric', month: 'short' });
   };
 
   const showDate = (index: number) => {
@@ -499,7 +505,7 @@ const ConversationScreen = () => {
         </View>
       </View>
     );
-  }, [messages, myUid, chatTheme]);
+  }, [messages, myUid, chatTheme, t, formato]);
 
   // ─── Loading ───
   if (loading) {
@@ -768,19 +774,19 @@ const ConversationScreen = () => {
             <Text style={[styles.colorPickerTitle, { color: chatTheme.headerText }]}>{t('weetalk.theme')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.themeScrollView}>
               <View style={styles.themeGrid}>
-                {CHAT_THEMES.map(t => (
+                {CHAT_THEMES.map((tema) => (
                   <TouchableOpacity
-                    key={t.id}
+                    key={tema.id}
                     style={[
                       styles.themeOption,
-                      { backgroundColor: t.backgroundColor, borderColor: t.accent },
-                      chatThemeId === t.id && styles.themeOptionActive,
+                      { backgroundColor: tema.backgroundColor, borderColor: tema.accent },
+                      chatThemeId === tema.id && styles.themeOptionActive,
                     ]}
-                    onPress={() => pickTheme(t.id)}
+                    onPress={() => pickTheme(tema.id)}
                   >
-                    <View style={[styles.themePreviewBubble, { backgroundColor: t.myBubble }]} />
-                    <View style={[styles.themePreviewBubbleOther, { backgroundColor: t.otherBubble }]} />
-                    <Text style={[styles.themeOptionLabel, { color: t.headerText }]}>{t.name}</Text>
+                    <View style={[styles.themePreviewBubble, { backgroundColor: tema.myBubble }]} />
+                    <View style={[styles.themePreviewBubbleOther, { backgroundColor: tema.otherBubble }]} />
+                    <Text style={[styles.themeOptionLabel, { color: tema.headerText }]}>{t(tema.clave)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

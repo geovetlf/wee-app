@@ -70,4 +70,9 @@ export const profile: typeof import('../es/profile').profile = {
   seeFullProfile: '查看我的完整主页',
   emptyCategory: '这个分类下还没有动态',
   actionFailed: '没能完成这个操作',
+  userNotFound: '这个用户不存在',
+  shareOtherMessage: '来 Weë 看看 @{{nombre}} 的主页！\n\n{{bio}}',
+  shareOtherNoBio: 'Weë 用户',
+  joinedOn: '加入时间：{{fecha}}',
+  tabPolls: '投票',
 };

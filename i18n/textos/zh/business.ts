@@ -241,4 +241,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: '你的内容会在 Weë 里展示给更多人。花掉任何 Credits 之前，你都会先看到要花多少。',
   promoteSoon: '在 Weë 里推广还没有开放。开放之后会用你的 Credits 支付，你在这里就能看到。',
   promoteCredits: '查看我的 Credits',
+  sampleProductName: '产品 {{numero}}',
 };

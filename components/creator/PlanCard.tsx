@@ -27,13 +27,18 @@ interface PlanCardProps {
  * "Voy a … (≈ X Credits)" · [Crear] · [Cambiar algo]
  * Lo único que la persona necesita saber antes de que Weë trabaje.
  */
-/** "3 imágenes · Alta calidad · 1K" — lo que se va a usar, en palabras de la persona. */
-const stepDetail = (step: { label?: string; resolution?: string; count?: number; durationSec?: number }): string => {
+type Traducir = (clave: string, valores?: Record<string, string | number>) => string;
+
+/**
+ * "3 imágenes · Alta calidad · 1K" — lo que se va a usar, en palabras de la persona.
+ * Vive fuera del componente, así que el traductor le llega por parámetro.
+ */
+const stepDetail = (step: { label?: string; resolution?: string; count?: number; durationSec?: number }, t: Traducir): string => {
   const parts: string[] = [];
-  if (step.count && step.count > 1) parts.push(`${step.count} imágenes`);
+  if (step.count && step.count > 1) parts.push(t('weeai.imageCount', { contador: step.count }));
   if (step.label) parts.push(step.label);
   if (step.resolution) parts.push(step.resolution.toUpperCase().replace('PX', ' px'));
-  if (step.durationSec && step.durationSec > 0) parts.push(`${step.durationSec} s`);
+  if (step.durationSec && step.durationSec > 0) parts.push(t('weeai.durationSeconds', { segundos: step.durationSec }));
   return parts.join(' · ');
 };
 
@@ -63,12 +68,12 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, plan, creditsEstima
               {(() => {
                 const estimate = pricing?.steps.find((s) => s.stepId === step.id);
                 if (!estimate) return null;
-                const detail = stepDetail(estimate);
+                const detail = stepDetail(estimate, t);
                 return (
                   <Text style={[styles.stepMeta, { color: theme.colors.textSecondary }]}>
                     {detail ? `${detail} · ` : ''}
                     {estimate.credits} Credits
-                    {estimate.volumeDiscount ? ` · −${estimate.volumeDiscount}% por cantidad` : ''}
+                    {estimate.volumeDiscount ? ` · ${t('weeai.volumeDiscount', { descuento: estimate.volumeDiscount })}` : ''}
                   </Text>
                 );
               })()}

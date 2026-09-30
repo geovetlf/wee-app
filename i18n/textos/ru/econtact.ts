@@ -47,4 +47,12 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: 'Принять {{lista}}',
   rejectRequestLabel: 'Отклонить заявку {{lista}}',
   requestSent: 'Заявка отправлена',
+  errSignIn: 'Войдите, чтобы пользоваться ËContact.',
+  errNotYours: 'Это не ваш профиль.',
+  errNotAPerson: 'Этот профиль не может пользоваться ËContact.',
+  errOffline: 'Не удалось связаться с Weë.',
+  errNoRequestToReject: 'У вас нет заявки, которую можно отклонить.',
+  errNoPendingRequest: 'У вас нет активной заявки к этому профилю.',
+  errNotConnected: 'Вы не связаны с этим профилем.',
+  errNoActiveProfile: 'Нет активного профиля, от имени которого можно это сделать.',
 };

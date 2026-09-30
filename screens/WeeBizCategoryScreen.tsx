@@ -35,6 +35,8 @@ const WeeBizCategoryScreen: React.FC = () => {
 
   const { categoryId, categoryLabel } = route.params;
   const category = getCategoryById(categoryId);
+  /* El nombre sale de la categoría y en el idioma de ahora; el de la ruta queda para un id que ya no exista. */
+  const nombreDeCategoria = category ? t(category.clave) : categoryLabel;
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,7 +143,7 @@ const WeeBizCategoryScreen: React.FC = () => {
           {t('weebiz.noneYet')}
         </Text>
         <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-          Sé el primero en registrar tu negocio en {categoryLabel}.
+          {t('weebiz.firstInCategory', { categoria: nombreDeCategoria })}
         </Text>
       </View>
     );
@@ -161,7 +163,7 @@ const WeeBizCategoryScreen: React.FC = () => {
             </View>
           )}
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            {categoryLabel}
+            {nombreDeCategoria}
           </Text>
         </View>
         <View style={{ width: scale(32) }} />

@@ -56,6 +56,9 @@ import { ComentariosProvider } from './contexts/ComentariosContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
 import { refNavegacion } from './navigation/refNavegacion';
 import ErrorBoundary from './components/ErrorBoundary';
+import { crearTraductor } from './i18n/traducir';
+import { DICCIONARIOS } from './i18n/diccionarios';
+import { localeDeEmergencia } from './i18n/emergencia';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
 /*
@@ -110,12 +113,17 @@ const shouldHandleUrl = (url: string) => {
  * Aquí se le añade el último escalón que le faltaba: el nombre de Weë. Lo de
  * arriba no se toca, así que una pantalla que sí traiga su propio título lo
  * sigue enseñando igual que antes.
+ *
+ * Y ese nombre se dice en la lengua de la interfaz. El formateador lo llama
+ * NavigationContainer por fuera del árbol de React, así que no puede pedir
+ * useT(): lee la lengua que IdiomaContext deja dicha —la misma que usa la
+ * pantalla de error— y traduce con el traductor de siempre.
  */
-const TITULO_DE_WEE = 'Weë - La comunidad del futuro';
+const tituloDeWee = (): string => crearTraductor(localeDeEmergencia(), DICCIONARIOS)('nav.documentTitle');
 
 const documentTitle = {
   formatter: (options?: { title?: string }, route?: { name?: string }): string =>
-    options?.title ?? route?.name ?? TITULO_DE_WEE,
+    options?.title ?? route?.name ?? tituloDeWee(),
 };
 
 // Configuración de linking para deep links y universal links

@@ -195,7 +195,11 @@ const BusinessScreen: React.FC = () => {
     if (idea) startFlow(idea);
   };
 
-  const anadirProducto = () => setProductos((antes) => [...antes, `Producto ${antes.length + 1}`]);
+  /*
+   * Sin ficha de producto todavía, el nombre de muestra lo pone Weë en el idioma
+   * de la pantalla. Una vez puesto es el nombre del producto: ya no se traduce.
+   */
+  const anadirProducto = () => setProductos((antes) => [...antes, t('business.sampleProductName', { numero: antes.length + 1 })]);
 
   /*
    * Elegir qué crear es decirle a Weë qué pieza quieres de lo que ya escribiste.

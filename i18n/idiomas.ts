@@ -174,7 +174,15 @@ export const IDIOMAS: readonly Idioma[] = [
       },
     ],
   },
-  { codigo: 'ja', nombreNativo: '日本語', direccion: 'ltr', listo: false },
+  /*
+   * Como el coreano y el chino, el japonés NO distingue número: `_one` lleva el
+   * mismo texto que `_other`. Una sola escritura, así que sin variantes; su
+   * locale es `ja-JP`. Lo propio del japonés —las marcas en latino y nunca en
+   * katakana, la puntuación de ancho completo, sin espacios entre japonés y
+   * latino— está en `docs/I18N-JAPONES.md` y lo vigila
+   * `functions/test/i18n-japones.test.mjs`.
+   */
+  { codigo: 'ja', nombreNativo: '日本語', direccion: 'ltr', listo: true },
 ];
 
 /**

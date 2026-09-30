@@ -105,7 +105,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       ) : hideThinking ? null : (
         <View style={styles.thinking}>
           <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{experienceName} está pensando…</Text>
+          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.nameThinking', { nombre: experienceName })}</Text>
         </View>
       )}
 

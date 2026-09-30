@@ -141,4 +141,6 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: '커뮤니티에 질문하기',
   applyingFaceSwap: 'face swap 적용 중...',
   searchPlaceHint: '게시물에 태그할 도시나 국가를 검색해 보세요.',
+  aiProcessCreatedWith: 'Weë AI의 {{nombre}}에서 만들었어요',
+  aiProcessDemoPreview: '{{proceso}} (데모 모드 미리보기)',
 };

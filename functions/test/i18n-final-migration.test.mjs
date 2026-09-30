@@ -326,14 +326,18 @@ console.log('\n── H · Las etiquetas de lector de pantalla ──');
    * `i18n/emergencia.ts`, que es un módulo sin dependencias con las tres frases
    * de la pantalla de error en los idiomas que Weë habla.
    */
+  /*
+   * Al entrar el japonés salieron dos más: la pista de la lupa de `HomeGreeting`
+   * pasó a `home.searchHint`, y la etiqueta de las filas de `TravelLauncher`
+   * —que pegaba título y detalle con un punto latino— a `weeai.titleWithDetail`,
+   * porque la puntuación también es de cada idioma (en japonés, 「。」).
+   */
   const PERMITIDAS = [
     'screens/AgregarUbicacionScreen.tsx → Weë',
-    'components/HomeGreeting.tsx → Abre la búsqueda de personas, hashtags y publicaciones',
-    "components/creator/TravelLauncher.tsx → ${action.title}. ${action.subtitle ?? ''}",
   ];
   const nuevas = aMano.filter((e) => !PERMITIDAS.includes(e));
   check('38) no queda ninguna etiqueta localizable escrita a mano', nuevas.length === 0, nuevas.join(' | '));
-  check('38) y las tres que quedan son las conocidas, ni una más', aMano.length === PERMITIDAS.length, String(aMano.length));
+  check('38) y la única que queda es la conocida, ni una más', aMano.length === PERMITIDAS.length, String(aMano.length));
 
   /* 39 · Las que se migraron dicen lo mismo en los dos idiomas. */
   for (const [clave, es, en] of [

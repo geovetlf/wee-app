@@ -35,7 +35,7 @@ interface CommentCardProps {
  */
 const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) => {
   const { theme } = useTheme();
-  const { locale } = useIdioma();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile: commentAuthor, loading: loadingAuthor } = useUserById(comment.userId);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -139,7 +139,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
         <View style={styles.cabecera}>
           <TouchableOpacity onPress={() => onProfilePress?.(referenciaPublicaDe(commentAuthor) ?? comment.userId)} activeOpacity={0.7}>
             <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>
-              {loadingAuthor ? '…' : commentAuthor?.displayName || 'Usuario'}
+              {loadingAuthor ? '…' : commentAuthor?.displayName || t('common.user')}
             </Text>
           </TouchableOpacity>
           <Text style={[styles.cuando, { color: theme.colors.textSecondary }]}>
@@ -158,8 +158,8 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
         )}
 
         <View style={styles.acciones}>
-          {pulgar('agree', aFavor, 'De acuerdo con este comentario')}
-          {pulgar('disagree', enContra, 'En desacuerdo con este comentario')}
+          {pulgar('agree', aFavor, t('wall.agreeWithComment'))}
+          {pulgar('disagree', enContra, t('wall.disagreeWithComment'))}
         </View>
       </View>
 

@@ -67,4 +67,12 @@ export const onboarding: typeof import('../es/onboarding').onboarding = {
   weeCreatedTitle: 'Weë 個人檔案已建立',
   weeCreated: '你的匿名身分準備好了。隨時可以在上方切換個人檔案。',
   weeCreateFailed: '無法建立 Weë 個人檔案',
+  birthDay: '日',
+  birthMonth: '月',
+  birthYear: '年',
+  stepOf: '第 {{paso}} 步，共 {{total}} 步',
+  customiseProfileHint: '選一個頭像，再加一段簡介（選填）',
+  bioLabel: '簡介（選填）',
+  weeNameCounter: '{{usados}}/{{maximo}} - 至少 {{minimo}} 個字元',
+  weeBio: '個人簡介（選填）',
 };

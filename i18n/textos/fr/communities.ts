@@ -46,4 +46,8 @@ export const communities: typeof import('../es/communities').communities = {
   beTheFirst: 'Sois le premier à publier dans cette communauté',
   createPost: 'Créer une publication',
   understoodJoin: 'J’ai compris, rejoindre',
+  memberCount_one: '{{cantidad}} membre',
+  memberCount_other: '{{cantidad}} membres',
+  postCount_one: '{{contador}} publication',
+  postCount_other: '{{contador}} publications',
 };

@@ -11,7 +11,9 @@
  * «ОК» —en cirílico, que es como se escribe en ruso— y no «Принять», que sí usa
  * `econtact`.
  */
-export const common: typeof import('../es/common').common = {
+import { ConPlurales } from './plurales';
+
+export const common: ConPlurales<typeof import('../es/common').common> = {
   cancel: 'Отмена',
   save: 'Сохранить',
   delete: 'Удалить',
@@ -37,4 +39,8 @@ export const common: typeof import('../es/common').common = {
   yes: 'Да',
   no: 'Нет',
   loadMore: 'Загрузить ещё публикации',
+  postsCount_one: '{{cantidad}} публикация',
+  postsCount_few: '{{cantidad}} публикации',
+  postsCount_many: '{{cantidad}} публикаций',
+  postsCount_other: '{{cantidad}} публикаций',
 };

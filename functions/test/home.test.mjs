@@ -699,8 +699,9 @@ console.log('\n── I · El refinamiento visual ──');
     const desde = publicacion.indexOf('if (postToShare.videoUrl) {');
     const rama = publicacion.slice(desde, publicacion.indexOf('    }', publicacion.indexOf('return;', desde)) + 5);
 
+    /* El segundo argumento es el título de la hoja en Android, ya en el idioma de la interfaz. */
     check('69) el vídeo del Wäll se comparte como enlace, por el flujo común',
-      /const compartido = await compartirFueraDeWee\(postToShare\.id\);/.test(rama)
+      /const compartido = await compartirFueraDeWee\(postToShare\.id, t\('common\.share'\)\);/.test(rama)
       && /import \{ compartirFueraDeWee \} from '\.\.\/utils\/compartirFuera';/.test(publicacion));
 
     /*
@@ -735,7 +736,7 @@ console.log('\n── I · El refinamiento visual ──');
      */
     const weels = leer('screens/ReelsScreen.tsx');
     check('69) el Weël se comparte por el mismo flujo y con su postId',
-      /onPress=\{\(\) => \{ void compartirFueraDeWee\(post\.id\); \}\}/.test(weels)
+      /onPress=\{\(\) => \{ void compartirFueraDeWee\(post\.id, t\('common\.share'\)\); \}\}/.test(weels)
       && /import \{ compartirFueraDeWee \} from '\.\.\/utils\/compartirFuera';/.test(weels));
     check('69) y ya no manda la dirección del mp4 ni arma su propio Share',
       !/post\.videoUrl \|\| ''/.test(weels) && !/Share\.share/.test(weels));

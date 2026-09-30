@@ -35,4 +35,6 @@ export const common: typeof import('../es/common').common = {
   /* La pareja de `yes`. Transversal como ella: aquí una vez, y nadie la repite. */
   no: '아니요',
   loadMore: '게시물 더 보기',
+  postsCount_one: '게시물 {{cantidad}}개',
+  postsCount_other: '게시물 {{cantidad}}개',
 };

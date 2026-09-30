@@ -96,7 +96,8 @@ console.log('\n── A · Ni una frase suelta en el Composer ──');
     Object.values(ES.composer).filter((v) => /[áéíóúñ¿¡]/.test(v)).length > 40);
 
   check('4) y las seis usan el traductor de siempre',
-    [HOJA, ENTRADA, CREAR, AGENDA, LUGAR].every((p) => /useT\(\)/.test(C[p]))
+    /* useIdioma es el mismo proveedor: la pantalla de lugar lo pide para decir el país en el idioma de ahora. */
+    [HOJA, ENTRADA, CREAR, AGENDA, LUGAR].every((p) => /useT\(\)|useIdioma\(\)/.test(C[p]))
     && !/i18next|react-intl|Localization\.locale/.test(TODO));
 }
 
@@ -128,7 +129,12 @@ console.log('\n── B · Español e inglés, completos ──');
    * 'question'`— y por eso su etiqueta vive en este módulo. Cuenta como uso;
    * no entra en la comprobación de arriba, que exige no tener frases sueltas.
    */
-  const PUERTAS = ['screens/HelpScreen.tsx'];
+  /*
+   * Y el «Cómo lo hice» que Weë deja escrito al publicar desde Weë AI
+   * (aiProcessCreatedWith, aiProcessDemoPreview) es parte de la publicación,
+   * aunque lo arme CreatorFlowScreen.
+   */
+  const PUERTAS = ['screens/HelpScreen.tsx', 'screens/CreatorFlowScreen.tsx'];
   const desdeFuera = PUERTAS.map((p) => leer(p)).join(String.fromCharCode(10));
   const pedidasFuera = [...desdeFuera.matchAll(/'(composer\.[A-Za-z0-9_]+)'/g)].map((m) => m[1]);
   const usadas = new Set([...pedidas, ...pedidasFuera].filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));

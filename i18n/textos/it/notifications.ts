@@ -26,4 +26,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: 'adesso',
   markAllRead: 'Segna tutte come lette',
   all: 'Tutte',
+  unread: 'Non lette',
+  unreadWithCount: 'Non lette ({{total}})',
 };

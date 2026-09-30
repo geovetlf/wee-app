@@ -189,10 +189,14 @@ check(
 // ═══════════════════════════════════════════════════════════════════════════
 console.log('\n─── D. Lo que la pantalla enseña, según lo que sabe ───');
 
+/*
+ * El país se dice en el idioma de la interfaz a partir de su código ISO
+ * (Intl); el nombre guardado —en español— queda de respaldo.
+ */
 check(
   'sin permiso: "Lugares en <tu país>"',
   /Lugares en \{\{pais\}\}/.test(pantalla)
-  && /pais: userProfile\?\.countryName \|\| t\('composer\.yourCountry'\)/.test(leerCrudo('screens/AgregarUbicacionScreen.tsx'))
+  && /pais: \(userProfile\?\.country \? nombreDeLaRegion\(userProfile\.country, locale\) : ''\) \|\| userProfile\?\.countryName \|\| t\('composer\.yourCountry'\)/.test(leerCrudo('screens/AgregarUbicacionScreen.tsx'))
 );
 check('con ubicación fiable: "Lugares cerca de ti"', /📍 Lugares cerca de ti/.test(pantalla));
 check(

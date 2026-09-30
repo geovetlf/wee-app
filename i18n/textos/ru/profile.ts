@@ -72,4 +72,9 @@ export const profile: typeof import('../es/profile').profile = {
   seeFullProfile: 'Посмотреть мой профиль целиком',
   emptyCategory: 'В этой категории нет публикаций',
   actionFailed: 'Не удалось выполнить',
+  userNotFound: 'Такого пользователя нет',
+  shareOtherMessage: 'Посмотрите профиль @{{nombre}} в Weë!\n\n{{bio}}',
+  shareOtherNoBio: 'Пользователь Weë',
+  joinedOn: 'Регистрация: {{fecha}}',
+  tabPolls: 'Опросы',
 };

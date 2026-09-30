@@ -41,4 +41,6 @@ export const credits: typeof import('../es/credits').credits = {
   pkgBasic: '基础',
   badgePopular: '热门',
   badgeBestValue: '最划算',
+  purchasesComingSoon: 'Credits 购买功能即将上线。目前还不能在这里充值。',
+  topUpFailedTitle: '哎呀',
 };

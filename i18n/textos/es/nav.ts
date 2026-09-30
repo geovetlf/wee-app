@@ -19,4 +19,5 @@ export const nav = {
   goToWeeAi: 'Ir a Weë AI',
   weeAiQuestion: '¿Qué quieres crear hoy?',
   weeAiPitch: 'Cuéntale a Weë lo que quieres. Weë se encarga de la IA.',
+  documentTitle: 'Weë - La comunidad del futuro',
 };

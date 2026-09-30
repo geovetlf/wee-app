@@ -231,4 +231,5 @@ export const business = {
   promoteHint: 'Tu contenido se enseña a más gente dentro de Weë. Antes de gastar nada verás cuánto cuesta.',
   promoteSoon: 'Promocionar dentro de Weë todavía no está abierto. Cuando lo esté, se pagará con tus Credits y lo verás aquí.',
   promoteCredits: 'Ver mis Credits',
+  sampleProductName: 'Producto {{numero}}',
 };

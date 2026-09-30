@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import { usersService } from '../services/firestoreService';
 import { scale } from '../utils/scale';
 import { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import { COUNTRIES, Country } from '../data/countries';
+import { nombreDeLaRegion, ordenDeLaFecha } from '../i18n/formato';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -41,7 +42,7 @@ const OnboardingScreen: React.FC = () => {
    * cuenta —eso ya está hecho, y hacerlo dos veces es como se acaba teniendo
    * dos respuestas distintas—; solo deja cambiarlo.
    */
-  const { t, idioma, locale, cambiarIdioma } = useIdioma();
+  const { t, idioma, locale, cambiarIdioma, formato } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { updateProfile, userProfile } = useUserProfile();
@@ -94,20 +95,19 @@ const OnboardingScreen: React.FC = () => {
   const maxYear = currentYear - 13;
   const minYear = currentYear - 120;
 
-  const months = [
-    { value: '01', label: 'Enero' },
-    { value: '02', label: 'Febrero' },
-    { value: '03', label: 'Marzo' },
-    { value: '04', label: 'Abril' },
-    { value: '05', label: 'Mayo' },
-    { value: '06', label: 'Junio' },
-    { value: '07', label: 'Julio' },
-    { value: '08', label: 'Agosto' },
-    { value: '09', label: 'Septiembre' },
-    { value: '10', label: 'Octubre' },
-    { value: '11', label: 'Noviembre' },
-    { value: '12', label: 'Diciembre' },
-  ];
+  /*
+   * Los nombres de los meses no se escriben aquí: los dice Intl, con el locale
+   * de quien rellena el registro. Con la inicial en mayúscula, como estaban,
+   * porque aquí van sueltos en una lista y no dentro de una fecha. El `value`
+   * ('01'…'12') no cambia: es lo que se guarda en la fecha de nacimiento.
+   */
+  const months = Array.from({ length: 12 }, (_, mes) => {
+    const nombre = formato.fecha(new Date(2000, mes, 1), { month: 'long' });
+    return {
+      value: (mes + 1).toString().padStart(2, '0'),
+      label: nombre.charAt(0).toLocaleUpperCase(locale) + nombre.slice(1),
+    };
+  });
 
   const days = Array.from({ length: 31 }, (_, i) => ({
     value: (i + 1).toString().padStart(2, '0'),
@@ -123,6 +123,9 @@ const OnboardingScreen: React.FC = () => {
     const month = months.find(m => m.value === value);
     return month ? month.label : '';
   };
+
+  /* Día, mes y año en el orden en que se escriben en el locale de ahora: 年・月・日 en japonés. */
+  const ordenDeFecha = useMemo(() => ordenDeLaFecha(locale), [locale]);
 
   const openDateModal = (type: 'day' | 'month' | 'year') => {
     setDateModalType(type);
@@ -154,19 +157,35 @@ const OnboardingScreen: React.FC = () => {
   const getDateModalTitle = () => {
     switch (dateModalType) {
       case 'day':
-        return 'Día';
+        return t('onboarding.birthDay');
       case 'month':
-        return 'Mes';
+        return t('onboarding.birthMonth');
       case 'year':
-        return 'Año';
+        return t('onboarding.birthYear');
     }
   };
 
+  /*
+   * LOS PAÍSES, EN EL IDIOMA DE LA INTERFAZ. El catálogo (`data/countries.ts`)
+   * trae el nombre en español, y ese es el que se guarda en `countryName`: es
+   * dato y lo leen otras partes. Lo que se ENSEÑA, lo que se busca y el orden
+   * salen de Intl con el locale de ahora: con Weë en japonés se busca 日本, no
+   * «Japón». Se sigue encontrando también por el nombre en español.
+   */
+  const nombreDelPais = useCallback((c: Country) => {
+    const nombre = nombreDeLaRegion(c.code, locale);
+    return nombre && nombre !== c.code ? nombre : c.name;
+  }, [locale]);
+  const paises = useMemo(() => {
+    const orden = new Intl.Collator(locale);
+    return [...COUNTRIES].sort((a, b) => orden.compare(nombreDelPais(a), nombreDelPais(b)));
+  }, [locale, nombreDelPais]);
   const filteredCountries = countrySearch.trim()
-    ? COUNTRIES.filter(c =>
-        c.name.toLowerCase().includes(countrySearch.trim().toLowerCase())
-      )
-    : COUNTRIES;
+    ? paises.filter((c) => {
+        const buscado = countrySearch.trim().toLocaleLowerCase(locale);
+        return nombreDelPais(c).toLocaleLowerCase(locale).includes(buscado) || c.name.toLowerCase().includes(buscado);
+      })
+    : paises;
 
   const getBirthDateISO = () => {
     if (birthDay && birthMonth && birthYear) {
@@ -331,7 +350,7 @@ const OnboardingScreen: React.FC = () => {
         ]} />
       </View>
       <Text style={[styles.stepText, { color: theme.colors.textSecondary }]}>
-        Paso {step} de 2
+        {t('onboarding.stepOf', { paso: step, total: 2 })}
       </Text>
     </View>
   );
@@ -386,56 +405,30 @@ const OnboardingScreen: React.FC = () => {
           {t('onboarding.birthDateHint')}
         </Text>
         <View style={styles.dateSelectorsRow}>
-          {/* Día */}
-          <TouchableOpacity
-            style={[styles.dateSelector, {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            }]}
-            onPress={() => openDateModal('day')}
-          >
-            <Text style={[
-              styles.dateSelectorText,
-              { color: birthDay ? theme.colors.text : theme.colors.textSecondary }
-            ]}>
-              {birthDay || 'Día'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-
-          {/* Mes */}
-          <TouchableOpacity
-            style={[styles.dateSelector, styles.dateSelectorMonth, {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            }]}
-            onPress={() => openDateModal('month')}
-          >
-            <Text style={[
-              styles.dateSelectorText,
-              { color: birthMonth ? theme.colors.text : theme.colors.textSecondary }
-            ]}>
-              {birthMonth ? getMonthLabel(birthMonth) : 'Mes'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-
-          {/* Año */}
-          <TouchableOpacity
-            style={[styles.dateSelector, {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            }]}
-            onPress={() => openDateModal('year')}
-          >
-            <Text style={[
-              styles.dateSelectorText,
-              { color: birthYear ? theme.colors.text : theme.colors.textSecondary }
-            ]}>
-              {birthYear || 'Año'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
+          {ordenDeFecha.map((parte) => {
+            const elegido = parte === 'day' ? birthDay : parte === 'month' ? birthMonth : birthYear;
+            const texto = parte === 'day' ? birthDay || t('onboarding.birthDay')
+              : parte === 'month' ? (birthMonth ? getMonthLabel(birthMonth) : t('onboarding.birthMonth'))
+              : birthYear || t('onboarding.birthYear');
+            return (
+              <TouchableOpacity
+                key={parte}
+                style={[styles.dateSelector, parte === 'month' && styles.dateSelectorMonth, {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                }]}
+                onPress={() => openDateModal(parte)}
+              >
+                <Text style={[
+                  styles.dateSelectorText,
+                  { color: elegido ? theme.colors.text : theme.colors.textSecondary }
+                ]}>
+                  {texto}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -533,7 +526,7 @@ const OnboardingScreen: React.FC = () => {
         >
           {selectedCountry ? (
             <Text style={[styles.countrySelectorText, { color: theme.colors.text }]}>
-              {selectedCountry.flag}  {selectedCountry.name}
+              {selectedCountry.flag}  {nombreDelPais(selectedCountry)}
             </Text>
           ) : (
             <Text style={[styles.countrySelectorText, { color: theme.colors.textSecondary }]}>
@@ -584,7 +577,7 @@ const OnboardingScreen: React.FC = () => {
           {t('onboarding.customiseProfile')}
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          Elige un avatar y agrega una descripción (opcional)
+          {t('onboarding.customiseProfileHint')}
         </Text>
       </View>
 
@@ -610,7 +603,7 @@ const OnboardingScreen: React.FC = () => {
       {/* Bio Section */}
       <View style={styles.bioSection}>
         <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>
-          Descripción (opcional)
+          {t('onboarding.bioLabel')}
         </Text>
         <TextInput
           style={[styles.bioInput, {
@@ -896,7 +889,7 @@ const OnboardingScreen: React.FC = () => {
                   }}
                 >
                   <Text style={[styles.dateModalItemText, { color: theme.colors.text }]}>
-                    {item.flag}  {item.name}
+                    {item.flag}  {nombreDelPais(item)}
                   </Text>
                   {selectedCountry?.code === item.code && (
                     <Ionicons name="checkmark" size={20} color={theme.colors.accent} />

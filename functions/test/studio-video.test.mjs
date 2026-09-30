@@ -174,11 +174,18 @@ check('las apaga y lo dice también para quien no las ve',
   /opacity: OPACITY\.disabled/.test(panel) && /accessibilityState=\{\{ disabled: !!pendiente \}\}/.test(panel));
 check('y cuenta qué pieza falta, no un «pronto» a secas',
   /t\(explicando\)/.test(panel));
-/* Los motivos dicen algo concreto, en los once idiomas. */
+/*
+ * Los motivos dicen algo concreto, en todos los idiomas. Los que haya: se leen
+ * de `i18n/textos/`, así que el que entre mañana ya queda comprobado.
+ */
+const DICCIONARIOS_ESCRITOS = fs.readdirSync(path.resolve(RAIZ, 'i18n/textos'), { withFileTypes: true })
+  .filter((e) => e.isDirectory() && fs.existsSync(path.resolve(RAIZ, 'i18n/textos', e.name, 'index.ts')))
+  .map((e) => e.name);
 for (const clave of ['pendMusic', 'pendCompose', 'pendTwoRefs']) {
-  const faltan = ['es','en','pt','pt-PT','fr','de','it','ko','ru','zh','zh-TW']
+  const faltan = DICCIONARIOS_ESCRITOS
     .filter((l) => !new RegExp(`^  ${clave}:`, 'm').test(leer(`i18n/textos/${l}/studio.ts`)));
-  check(`${clave} está en los once diccionarios`, faltan.length === 0, faltan.join(', ') || 'los once');
+  check(`${clave} está en los ${DICCIONARIOS_ESCRITOS.length} diccionarios`, faltan.length === 0,
+    faltan.join(', ') || DICCIONARIOS_ESCRITOS.join(' '));
 }
 
 /* CONTROL: desbloquear una sin arreglar lo que falta TIENE que verse. */

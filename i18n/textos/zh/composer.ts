@@ -149,4 +149,6 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: '向社区提问',
   applyingFaceSwap: '正在应用 face swap…',
   searchPlaceHint: '搜索一座城市或一个国家，给你的动态加上地点。',
+  aiProcessCreatedWith: '在 Weë AI 中用 {{nombre}} 创作而成',
+  aiProcessDemoPreview: '{{proceso}}（演示模式预览）',
 };

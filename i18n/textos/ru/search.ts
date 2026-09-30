@@ -22,4 +22,10 @@ export const search: typeof import('../es/search').search = {
   member: 'Участник',
   typeTwoForPeople: 'Введите минимум 2 символа, чтобы найти пользователей',
   typeTwoForPosts: 'Введите минимум 2 буквы, чтобы найти публикации',
+  peopleFound: 'Найденные пользователи',
+  searchPeople: 'Поиск пользователей',
+  noPeopleFor: 'По запросу «{{busqueda}}» пользователи не найдены',
+  postsFound: 'Найденные публикации',
+  searchPosts: 'Поиск публикаций',
+  noPostsFor: 'По запросу «{{busqueda}}» мы не нашли публикаций',
 };

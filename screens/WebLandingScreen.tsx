@@ -273,9 +273,9 @@ const WebLandingScreen: React.FC = () => {
           ) : filteredPosts.length === 0 && posts.length === 0 && hayMas ? null : filteredPosts.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={styles.emptyEmoji}>✨</Text>
-              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? 'Todavía no hay publicaciones' : 'Nada por aquí con esta selección'}</Text>
+              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{posts.length === 0 ? t('home.wallEmptyTitle') : t('home.wallFilteredTitle')}</Text>
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-                {posts.length === 0 ? 'Sé la primera persona en compartir algo creado con IA.' : 'Prueba con otras secciones o comparte algo tú.'}
+                {posts.length === 0 ? t('home.wallEmptyHint') : t('home.wallFilteredHint')}
               </Text>
               <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('composer.createPost')}>
                 <Text style={styles.emptyButtonText}>{t('nav.create')}</Text>

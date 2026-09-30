@@ -50,4 +50,8 @@ export const communities = {
   beTheFirst: 'Sé el primero en publicar en esta comunidad',
   createPost: 'Crear post',
   understoodJoin: 'Entiendo, unirme',
+  memberCount_one: '{{cantidad}} miembro',
+  memberCount_other: '{{cantidad}} miembros',
+  postCount_one: '{{contador}} post',
+  postCount_other: '{{contador}} posts',
 };

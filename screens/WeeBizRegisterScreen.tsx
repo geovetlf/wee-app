@@ -102,7 +102,7 @@ const WeeBizRegisterScreen: React.FC = () => {
 
   const handleSave = async () => {
     if (!activeUid) {
-      Alert.alert('Error', t('weebiz.signInFirst'));
+      Alert.alert(t('common.error'), t('weebiz.signInFirst'));
       return;
     }
     if (!name.trim()) {
@@ -135,7 +135,7 @@ const WeeBizRegisterScreen: React.FC = () => {
           externalLink: externalLink.trim(),
           logo: logoUrl || undefined,
         });
-        Alert.alert('Listo', t('weebiz.updated'), [
+        Alert.alert(t('common.done'), t('weebiz.updated'), [
           { text: t('common.accept'), onPress: () => navigation.goBack() },
         ]);
       } else {
@@ -166,7 +166,7 @@ const WeeBizRegisterScreen: React.FC = () => {
       }
     } catch (e) {
       console.error('Error saving business:', e);
-      Alert.alert('Error', t('weebiz.saveFailed'));
+      Alert.alert(t('common.error'), t('weebiz.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -195,7 +195,7 @@ const WeeBizRegisterScreen: React.FC = () => {
           styles.categoryChipText,
           { color: isSelected ? cat.color : theme.colors.text },
         ]}>
-          {cat.label}
+          {t(cat.clave)}
         </Text>
       </TouchableOpacity>
     );
@@ -211,7 +211,7 @@ const WeeBizRegisterScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          {isEditing ? 'Editar negocio' : 'Registrar negocio'}
+          {isEditing ? t('weebiz.editBusinessTitle') : t('weebiz.registerBusinessTitle')}
         </Text>
         <View style={{ width: scale(32) }} />
       </View>
@@ -273,7 +273,9 @@ const WeeBizRegisterScreen: React.FC = () => {
           style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           value={subcategory}
           onChangeText={setSubcategory}
-          placeholder={selectedCategory ? `Ej: ${getSubcategoryHint(selectedCategory)}` : 'Selecciona categoría primero'}
+          placeholder={selectedCategory
+            ? t('weebiz.specialityPlaceholder', { ejemplos: t(getSubcategoryHint(selectedCategory)) })
+            : t('weebiz.specialityNeedsCategory')}
           placeholderTextColor={theme.colors.textSecondary}
           maxLength={40}
         />
@@ -332,7 +334,7 @@ const WeeBizRegisterScreen: React.FC = () => {
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
             <Text style={styles.saveBtnText}>
-              {isEditing ? 'Guardar cambios' : 'Crear negocio'}
+              {isEditing ? t('weebiz.saveChanges') : t('weebiz.createBusiness')}
             </Text>
           )}
         </TouchableOpacity>
@@ -343,31 +345,38 @@ const WeeBizRegisterScreen: React.FC = () => {
   );
 };
 
-// Hint de subcategoría según la categoría seleccionada
+/*
+ * Hint de subcategoría según la categoría seleccionada.
+ *
+ * Devuelve la CLAVE, no la frase: esto vive fuera del componente, donde no hay
+ * traductor. La resuelve quien pinta, con `t()`, y entra por hueco en el
+ * «Ej: …» del campo. El id de la categoría se queda como está: es lo que se
+ * guarda en el negocio.
+ */
 function getSubcategoryHint(categoryId: string): string {
   const hints: Record<string, string> = {
-    'servicios-profesionales': 'Consultoría, Coaching...',
-    'tiendas': 'Ropa, Tecnología, Accesorios...',
-    'comida-restaurantes': 'Sushi, Hamburguesas, Postres...',
-    'belleza-estetica': 'Barbería, Spa, Maquillaje...',
-    'salud-bienestar': 'Nutrición, Psicología, Gym...',
-    'creadores-influencers': 'Streamer, Blogger, Educador...',
-    'hogar-inmobiliaria': 'Alquiler, Decoración, Venta...',
-    'tecnologia-digital': 'Desarrollo web, Marketing, IA...',
-    'servicios-tecnicos': 'Electricista, Gasfitero...',
-    'creativos-freelancers': 'Fotografía, Diseño, Video...',
-    'empresas-corporativo': 'Startup, Agencia, Marca...',
-    'automotriz': 'Taller, Repuestos, Lavado...',
-    'educacion': 'Cursos, Academia, Profesor...',
-    'viajes-turismo': 'Tours, Hotel, Guía...',
-    'mascotas': 'Veterinaria, Cuidado, Adopción...',
-    'eventos-entretenimiento': 'DJ, Shows, Animación...',
-    'finanzas': 'Inversiones, Seguros, Cripto...',
-    'legal': 'Asesoría legal, Estudio jurídico...',
-    'espiritualidad': 'Tarot, Meditación, Coaching...',
-    'otros': 'Describe tu negocio...',
+    'servicios-profesionales': 'weebiz.specialityHintProfessionalServices',
+    'tiendas': 'weebiz.specialityHintStores',
+    'comida-restaurantes': 'weebiz.specialityHintFood',
+    'belleza-estetica': 'weebiz.specialityHintBeauty',
+    'salud-bienestar': 'weebiz.specialityHintHealth',
+    'creadores-influencers': 'weebiz.specialityHintCreators',
+    'hogar-inmobiliaria': 'weebiz.specialityHintHome',
+    'tecnologia-digital': 'weebiz.specialityHintTech',
+    'servicios-tecnicos': 'weebiz.specialityHintTechnicalServices',
+    'creativos-freelancers': 'weebiz.specialityHintCreatives',
+    'empresas-corporativo': 'weebiz.specialityHintCompanies',
+    'automotriz': 'weebiz.specialityHintAutomotive',
+    'educacion': 'weebiz.specialityHintEducation',
+    'viajes-turismo': 'weebiz.specialityHintTravel',
+    'mascotas': 'weebiz.specialityHintPets',
+    'eventos-entretenimiento': 'weebiz.specialityHintEvents',
+    'finanzas': 'weebiz.specialityHintFinance',
+    'legal': 'weebiz.specialityHintLegal',
+    'espiritualidad': 'weebiz.specialityHintSpirituality',
+    'otros': 'weebiz.specialityHintOther',
   };
-  return hints[categoryId] || 'Describe tu especialidad...';
+  return hints[categoryId] || 'weebiz.specialityHintDefault';
 }
 
 const styles = StyleSheet.create({

@@ -72,7 +72,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
         </TouchableOpacity>
 
         <View style={styles.nav}>
-          {renderItem('home', 'home-outline', 'Home', goHome)}
+          {renderItem('home', 'home-outline', t('menu.home'), goHome)}
           {renderItem('creator', 'grid-outline', 'Weë AI', goCreator)}
           {SPECIALIST_ORDER.map((id) => {
             const exp = WEE_EXPERIENCES.find((e) => e.id === id);

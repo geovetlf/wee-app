@@ -33,4 +33,6 @@ export const common: typeof import('../es/common').common = {
   yes: 'Sim',
   no: 'Não',
   loadMore: 'Carregar mais publicações',
+  postsCount_one: '{{cantidad}} publicação',
+  postsCount_other: '{{cantidad}} publicações',
 };

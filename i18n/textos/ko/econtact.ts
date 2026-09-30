@@ -52,4 +52,12 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: '{{lista}} 수락',
   rejectRequestLabel: '{{lista}} 요청 거절',
   requestSent: '요청을 보냈어요',
+  errSignIn: 'ËContact 기능을 사용하려면 로그인해 주세요.',
+  errNotYours: '내 프로필이 아니에요.',
+  errNotAPerson: '이 프로필은 ËContact 기능을 사용할 수 없어요.',
+  errOffline: 'Weë에 연결하지 못했어요.',
+  errNoRequestToReject: '거절할 요청이 없어요.',
+  errNoPendingRequest: '이 프로필과 대기 중인 요청이 없어요.',
+  errNotConnected: '이 프로필과 연결되어 있지 않아요.',
+  errNoActiveProfile: '이 작업을 할 수 있는 활성 프로필이 없어요.',
 };

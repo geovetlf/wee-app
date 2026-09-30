@@ -257,4 +257,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: 'O teu conteúdo é mostrado a mais gente dentro do Weë. Antes de gastares alguma coisa, vês quanto custa.',
   promoteSoon: 'Divulgar dentro do Weë ainda não está disponível. Quando estiver, paga-se com os teus Credits e vais vê-lo aqui.',
   promoteCredits: 'Ver os meus Credits',
+  sampleProductName: 'Produto {{numero}}',
 };

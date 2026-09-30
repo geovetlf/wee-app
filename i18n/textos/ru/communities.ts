@@ -65,4 +65,12 @@ export const communities: ConPlurales<typeof import('../es/communities').communi
   beTheFirst: 'Опубликуйте первым в этом сообществе',
   createPost: 'Создать публикацию',
   understoodJoin: 'Понятно, вступаю',
+  memberCount_one: '{{cantidad}} участник',
+  memberCount_few: '{{cantidad}} участника',
+  memberCount_many: '{{cantidad}} участников',
+  memberCount_other: '{{cantidad}} участников',
+  postCount_one: '{{contador}} публикация',
+  postCount_few: '{{contador}} публикации',
+  postCount_many: '{{contador}} публикаций',
+  postCount_other: '{{contador}} публикаций',
 };

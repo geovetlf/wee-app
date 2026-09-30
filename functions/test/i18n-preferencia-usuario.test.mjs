@@ -494,39 +494,21 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
     return n;
   };
   /*
-   * El número baja cuando se RETIRA una clave del producto entero —los once
-   * diccionarios a la vez—, y solo entonces: 2 242 → 2 240 al eliminarse el
-   * Perfil Biz (`menu.activeBiz`, `menu.bizActiveTap`). Y sube cuando se AÑADE
-   * a los once a la vez: 2 240 → 2 299 en la Fase 11, con el módulo `creaciones`
-   * («Mis creaciones», incluidas las cuatro claves de la descarga) y las dos
-   * claves de la foto única de WeeTalk (`weetalk.photoOnce`, `weetalk.photoOpened`).
-   * 2 301 → 2 318 en la Fase 12-A/B: entra el módulo `moderation` (24 claves) y
-   * salen las siete de `wall.report*`, que daban las gracias por un reporte que no
-   * existía y prometían una revisión que nadie hacía.
-   * 2 318 → 2 319 en B3.10: `design.settingsHint`. Weë Design pasa a la hoja de
-   * ajustes común y necesita su propia línea bajo el título, porque allí los
-   * ajustes NO cambian con lo que se escribe —siempre se diseña algo que se ve—
-   * y la frase del Studio, «cambian según lo que estés creando», no sería cierta.
-   * 2 319 → 2 423 en B3.11, con las tres capas de Weë Studio: 54 claves de las
-   * entradas y las experiencias (Texto, Personajes, Beauty, Fashion, Retrato,
-   * Timelapse…) y 50 de la biblioteca de cámara y cinemática, que es el
-   * vocabulario creativo de Weë dicho en palabras de la persona —«Acercarse» en
-   * vez de `push_in`—. Las 104 entran en los once diccionarios a la vez.
-   * 2 423 → 2 424 en B3.12: `studio.reference`, el nombre corto de una
-   * referencia en su ficha. `referenceLabel` no servía: es el botón que la
-   * añade —«Añadir una imagen de referencia»—, no cómo se llama después.
-   * 2 424 → 2 427 en B3.14: los tres motivos de las experiencias de vídeo que
-   * todavía no se pueden hacer. Cada uno dice qué pieza concreta del motor
-   * falta —componer varias escenas, componer música, llevar dos referencias—
-   * en vez de un «pronto», que no ayuda a decidir qué hacer ahora.
+   * Sin cifra escrita: pt y pt-PT tienen que tener exactamente las claves del
+   * español, que es el molde. La cifra fija (la última fue 2 427) había que
+   * subirla a mano cada vez que entraba una clave en todos los diccionarios a
+   * la vez —el porqué de cada subida está en el historial de git—, y con cada
+   * idioma o módulo nuevo se rompía sin que nada estuviera mal. Lo que vigila
+   * no cambia: que el arreglo no «ayudó» tocando una traducción, ni quitando o
+   * añadiendo claves a una de las dos normas.
    */
-  const CLAVES_PT = 2427;
-  check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
-    claves('pt') === CLAVES_PT
+  const CLAVES_ES = claves('es');
+  check(`57) I · pt-BR intacto: las claves del español (${CLAVES_ES}) y sigue siendo brasileño`,
+    claves('pt') === CLAVES_ES
     && t('pt')('settings.title') === 'Configurações'
     && t('pt-BR')('settings.title') === 'Configurações', `${claves('pt')} claves`);
-  check(`58) J · pt-PT intacto: ${CLAVES_PT} claves y sigue siendo europeo`,
-    claves('pt-PT') === CLAVES_PT
+  check(`58) J · pt-PT intacto: las claves del español (${CLAVES_ES}) y sigue siendo europeo`,
+    claves('pt-PT') === CLAVES_ES
     && t('pt-PT')('settings.title') === 'Definições', `${claves('pt-PT')} claves`);
 
   /* Y el arreglo está donde dijo que estaba, y en ningún otro sitio. */

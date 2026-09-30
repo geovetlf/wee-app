@@ -10,4 +10,5 @@ export const saved: typeof import('../es/saved').saved = {
   empty: 'Ainda não guardaste nada',
   exploreHome: 'Explorar o Home',
   loadFailed: 'Não foi possível carregar os teus Guardados',
+  emptyHint: 'Toca no marcador de uma publicação para guardares prompts, tutoriais e trabalhos a que queiras voltar.',
 };

@@ -364,7 +364,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             <TouchableOpacity
               style={styles.sidebarBtn}
               accessibilityLabel={t('weels.shareWeel')}
-              onPress={() => { void compartirFueraDeWee(post.id); }}
+              onPress={() => { void compartirFueraDeWee(post.id, t('common.share')); }}
             >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>

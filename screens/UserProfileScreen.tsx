@@ -18,11 +18,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById, updateUserCache } from '../hooks/useUserById';
-import { useEContact } from '../hooks/useEContact';
+import { useEContact, mensajeDeEContact } from '../hooks/useEContact';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { likesService } from '../services/likesService';
 import { formatNumber } from '../data/mockData';
@@ -42,7 +42,7 @@ type UserProfileScreenRouteProp = RouteProp<MainStackParamList, 'UserProfile'>;
 type UserProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, 'UserProfile'>;
 
 const UserProfileScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: currentUserProfile, updateLocalProfile } = useUserProfile();
@@ -116,7 +116,8 @@ const UserProfileScreen: React.FC = () => {
         setUserLikedPosts(likedPosts);
       } catch (error) {
         console.error('Error loading user posts:', error);
-        setPostsError('Error al cargar las publicaciones');
+        /* Se guarda la clave, no la frase: se traduce al pintarla, con el idioma de ese momento. */
+        setPostsError('profile.postsFailed');
       } finally {
         setLoadingPosts(false);
       }
@@ -128,9 +129,12 @@ const UserProfileScreen: React.FC = () => {
   const handleShareProfile = async () => {
     if (!userProfile) return;
 
+    /* El nombre y la biografía los escribió esa persona: entran por hueco, tal cual. */
+    const nombre = userProfile.displayName;
+    const bio = userProfile.bio || t('profile.shareOtherNoBio');
     try {
       await Share.share({
-        message: `¡Mira el perfil de @${userProfile.displayName} en Weë!\n\n${userProfile.bio || 'Usuario de Weë'}`,
+        message: t('profile.shareOtherMessage', { nombre, bio }),
       });
     } catch (error) {
       console.error('Error sharing profile:', error);
@@ -279,7 +283,7 @@ const UserProfileScreen: React.FC = () => {
       try {
         await hacer();
       } catch (error) {
-        notify(t('profile.actionFailed'), error instanceof Error ? error.message : undefined);
+        notify(t('profile.actionFailed'), mensajeDeEContact(error, t));
       }
     }
   };
@@ -288,7 +292,7 @@ const UserProfileScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify(t('profile.actionFailed'), error instanceof Error ? error.message : undefined);
+      notify(t('profile.actionFailed'), mensajeDeEContact(error, t));
     }
   };
 
@@ -456,7 +460,7 @@ const UserProfileScreen: React.FC = () => {
             {t('profile.otherLoadFailed')}
           </Text>
           <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>
-            {profileError || 'El usuario no existe'}
+            {profileError ? t('profile.loadFailedDetail') : t('profile.userNotFound')}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -572,8 +576,9 @@ const UserProfileScreen: React.FC = () => {
             )}
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
+              {/* El mes y el año los escribe Intl con el locale activo, no un 'es-ES' fijo. */}
               <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
-                Se unió en {userProfile.createdAt.toDate().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                {t('profile.joinedOn', { fecha: formato.fecha(userProfile.createdAt.toDate(), { month: 'long', year: 'numeric' }) })}
               </Text>
             </View>
           </View>
@@ -627,10 +632,11 @@ const UserProfileScreen: React.FC = () => {
         {/* Tabs de filtros */}
         <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
           {renderTabButton('posts', 'document-text-outline', t('profile.posts'))}
-          {renderTabButton('reposts', 'repeat-outline', 'Repost')}
-          {renderTabButton('photos', 'image-outline', 'Multimedia')}
-          {renderTabButton('polls', 'stats-chart-outline', 'Encuestas')}
-          {renderTabButton('likes', 'heart-outline', 'Me gusta')}
+          {/* Las mismas pestañas que el perfil propio, con sus mismas claves; Encuestas solo existe aquí. */}
+          {renderTabButton('reposts', 'repeat-outline', t('profile.tabReposts'))}
+          {renderTabButton('photos', 'image-outline', t('profile.tabMedia'))}
+          {renderTabButton('polls', 'stats-chart-outline', t('profile.tabPolls'))}
+          {renderTabButton('likes', 'heart-outline', t('profile.tabLikes'))}
         </View>
 
         {/* Posts filtrados */}
@@ -645,7 +651,7 @@ const UserProfileScreen: React.FC = () => {
           ) : postsError ? (
             <View style={styles.errorPosts}>
               <Ionicons name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
-              <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>{postsError}</Text>
+              <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>{t(postsError)}</Text>
             </View>
           ) : getFilteredPosts().length > 0 ? (
             <FlatList

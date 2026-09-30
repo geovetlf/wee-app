@@ -156,7 +156,7 @@ const WriterEditorScreen: React.FC = () => {
               style={[styles.saveButton, { backgroundColor: text.trim() ? theme.colors.accent : theme.colors.border }]}
               accessibilityLabel={t('writer.save')}
             >
-              <Text style={styles.saveText}>{saved === 'saved' ? '✓ Guardado' : saved === 'saving' ? t('writer.saving') : 'Guardar'}</Text>
+              <Text style={styles.saveText}>{saved === 'saved' ? t('writer.saved') : saved === 'saving' ? t('writer.saving') : t('writer.save')}</Text>
             </TouchableOpacity>
           </View>
         </View>

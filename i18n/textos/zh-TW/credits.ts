@@ -45,4 +45,6 @@ export const credits: typeof import('../es/credits').credits = {
   pkgBasic: '基本',
   badgePopular: '熱門',
   badgeBestValue: '最划算',
+  purchasesComingSoon: 'Credits 購買功能即將推出。目前還不能在這裡儲值。',
+  topUpFailedTitle: '哎呀',
 };

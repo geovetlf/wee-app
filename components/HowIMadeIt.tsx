@@ -84,7 +84,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
         <View style={styles.promptBlock}>
           <TouchableOpacity style={styles.promptToggle} onPress={() => setPromptOpen((v) => !v)} activeOpacity={0.7}>
             <Text style={[styles.promptToggleText, { color: theme.colors.accentDark }]}>
-              {promptOpen ? 'Ocultar prompt' : 'Ver prompt'}
+              {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
             </Text>
             <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.accentDark} />
           </TouchableOpacity>
@@ -98,7 +98,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
                   activeOpacity={0.8}
                 >
                   <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color="white" />
-                  <Text style={styles.copyText}>{copied ? 'Copiado' : 'Copiar prompt'}</Text>
+                  <Text style={styles.copyText}>{copied ? t('wall.promptCopied') : t('wall.copyPrompt')}</Text>
                 </TouchableOpacity>
               ) : (
                 <Text style={[styles.copyHint, { color: theme.colors.textSecondary }]}>{t('wall.holdToCopy')}</Text>

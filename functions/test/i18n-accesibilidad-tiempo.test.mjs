@@ -267,8 +267,9 @@ console.log('\n── F · El idioma cambia sin reiniciar ──');
   check('23) ninguna etiqueta se congela en el estado',
     !/useState\([^)]*\bt\('/.test(C[MURO] + C[CABECERA])
     && !/useMemo\(\(\) => t\(/.test(C[MURO] + C[CABECERA]));
+  /* CommentCard pide también t: su nombre de respaldo («Usuario») pasó a common.user al entrar el japonés. */
   check('23) y la hora se recalcula al pintar, con el locale del momento',
-    /const \{ locale \} = useIdioma\(\)/.test(soloCodigo(leer('components/CommentCard.tsx')))
+    /const \{ t, locale \} = useIdioma\(\)/.test(soloCodigo(leer('components/CommentCard.tsx')))
     && /const \{ t, locale \} = useIdioma\(\)/.test(C[MURO]));
 
   /* CONTROL: no se tocó nada de lo que esta fase no toca. */
