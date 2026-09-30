@@ -80,9 +80,23 @@ export const getCreditCost = onCall(OPTS, async (request) =>
  *
  * Mientras tanto: autorizar desde el cliente no sirve para nada que Weë haga,
  * porque quien ejecuta la IA es el servidor y cobra él.
+ *
+ * ── CERRADO AL CLIENTE (2026-09-30, auditoría H0, escenario #24) ───────────
+ *
+ * Abierto, sí servía para algo: para pagar menos. Un cliente modificado podía
+ * reservar aquí 1 Credit con el `requestId` de una operación cara suya (el
+ * `jobId` de creatorRun, el de un avatar o el de una búsqueda de Brain). El
+ * servidor, al reservar después con ese mismo id, recibía «duplicado» y
+ * completaba contra lo ya reservado, así que la operación entera costaba 1.
+ * Por eso solo administración puede llamarlo, igual que `grantCredits` y
+ * `refundCredits`. Ese candado vive aquí, en el código, porque firebase-tools
+ * vuelve a poner el invocador público de Cloud Run en cada despliegue de un
+ * callable; quitarlo por IAM (hecho el 2026-09-30) es solo una segunda barrera.
+ * La prueba es `test/credits-cliente-cerrado.test.mjs`.
  */
 export const spendCredits = onCall(OPTS, async (request) =>
   run(async () => {
+    assertAdmin(request.auth as any);
     const userId = uidOf(request);
     const data = (request.data || {}) as { service?: string; requestId?: string; reason?: string; generationId?: string };
     if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', `Servicio desconocido: ${String(data.service)}`);

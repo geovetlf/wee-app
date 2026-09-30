@@ -69,6 +69,7 @@ completedAt?, refundedAt?
 ## 3. Seguridad
 
 - **Reglas** (`firestore.rules`): `users` no se puede crear con campos de Credits (`createsCreditFields()`) ni actualizar tocándolos (`touchesCreditFields()`), en ninguna de las ramas (perfil real, Perfil Weë, Biz, contadores). `creditTransactions` solo lectura del dueño, `creditStats` solo servidor, `creditCosts` lectura autenticada, `wallets` y `transactions` solo lectura del dueño. Una escritura del cliente a `creditsBalance` recibe `PERMISSION_DENIED`.
+- **`spendCredits` (callable) es solo de administración desde el 2026-09-30.** Abierto al cliente permitía pagar 1 Credit por una operación cara: se reservaba antes con el `requestId` que el servidor iba a usar (auditoría H0, escenario #24). Ninguna pantalla lo usa. El candado está en el código, porque firebase-tools vuelve a poner el invocador público en cada despliegue; lo vigila `functions/test/credits-cliente-cerrado.test.mjs`.
 - **Nunca se confía en un monto del cliente.** `spendCredits` (callable) solo acepta `service` + `requestId`; el monto sale del catálogo. El parámetro `amount` del motor existe únicamente para código de servidor de confianza (el plan de WEË AI, calculado en el servidor) y se valida igual (entero positivo ≤ 1 000 000).
 - **Solo el dueño** opera sobre sus transacciones (`FORBIDDEN` si el `requestId` pertenece a otra cuenta). Otorgar y reembolsar por callable exige administración (`assertAdmin`).
 - **Pagos separados del motor**: el motor solo acredita lo que un proveedor de pago ya verificó.
@@ -164,7 +165,7 @@ APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► C
 | `getCreditsBalance` | — | `{ userId, balance, lifetimeEarned, lifetimeSpent }` (crea/migra la cuenta si hace falta) |
 | `getCreditHistory` | `{ limit? }` | `{ items: CreditTransaction[] }` (más recientes primero) |
 | `getCreditCost` | `{ service? }` | `{ service, credits }` o `{ costs, packages }` |
-| `spendCredits` | `{ service, requestId, reason?, generationId? }` | `{ transactionId, status, amount, balanceBefore, balanceAfter, duplicate }` |
+| `spendCredits` (admin) | `{ service, requestId, reason?, generationId? }` | `{ transactionId, status, amount, balanceBefore, balanceAfter, duplicate }` |
 | `grantCredits` (admin) | `{ userId, amount, reason?, requestId? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
 | `refundCredits` (admin) | `{ userId, requestId, reason?, force? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
 | `validatePurchase` | `{ provider, packageId?, payload? }` | `{ …grant, credits, packageId }` |
