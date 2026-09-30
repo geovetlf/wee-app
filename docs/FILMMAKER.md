@@ -1941,7 +1941,10 @@ ENGINE · UN SISTEMA DE ELEMENTS · UN GRAN MOTOR · MUCHAS EXPERIENCIAS. Audito
 - **El plano**: «Desde tus guardados» en quién sale, qué hay y dónde. Si ya está en la producción, entra ESA ficha
   (su ID): la continuidad por identidad que F1-A ya tenía. La puesta en escena en 3D, cerrada.
 - **Referencias**: el modelo 3D, cerrado como referencia de una toma (Seedance no recibe 3D).
-- **Weë Brain**: «Detectar el reparto» rellena la caja; Weë Brain propone las fichas y la persona decide.
+- **Weë Brain**: «Detectar el reparto» rellena la caja; Weë Brain propone las fichas y la persona decide. Si le piden
+  un personaje, un lugar o un objeto «en 3D», propone su ficha y dice que crear el modelo 3D con IA todavía no está
+  disponible (y que, si ya tiene uno suyo, puede usarlo desde Mis creaciones); nunca dice que lo está creando
+  (2026-09-30). De paso, su ejemplo de `change_direction` ya no enseña `mood`, que F1-A rechaza ahí (tiene su operación).
 - **Sin tocar**: ni un contrato de F1, ni el motor, ni Credits, ni reglas. El registro de matrices suma las candidatas
   3D identificadas, como PENDING y sin capacidades.
 - **Pide autorización**:

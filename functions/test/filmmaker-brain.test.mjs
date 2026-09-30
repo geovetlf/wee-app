@@ -500,6 +500,19 @@ console.log('\n── V · Lo que se le enseña a Weë Brain es lo que el códig
   const nombradas = [...new Set([...instruccion.matchAll(/"op":"(\w+)"/g)].map((m) => m[1]))];
   check('V3) cada operación que se le enseña existe en el lenguaje de F1-A', nombradas.length >= 20 && nombradas.every((o) => Ops.OPERACIONES.includes(o)), nombradas.filter((o) => !Ops.OPERACIONES.includes(o)).join(', '));
   check('V4) doce operaciones por propuesta, dentro del lote de `productions`', P.MAX_OPERACIONES_POR_PROPUESTA === 12 && P.MAX_OPERACIONES_POR_PROPUESTA <= 50);
+  /*
+   * 3D dentro de Filmmaker (y el arreglo de la auditoría del workplace, Fase 38b, que se quedó apartado): el ejemplo de
+   * change_direction enseñaba «mood», que F1-A rechaza ahí; y Weë Brain aprende qué hacer cuando le piden algo en 3D.
+   */
+  const lineaDireccion = instruccion.split('\n').find((l) => l.includes('"op":"change_direction"')) ?? '';
+  const direccion = Ops.aplicarOperacion(conFaro(), { op: 'change_direction', changes: { tone: 'íntimo', pacing: 'moderate', color: { grading: 'cálido' } } });
+  const conAnimo = Ops.aplicarOperacion(conFaro(), { op: 'change_direction', changes: { mood: 'melancólico' } });
+  check('V5) el ejemplo de la dirección es uno que F1-A acepta: sin «mood» (tiene su operación), con tono, ritmo y color',
+    !/"mood"/.test(lineaDireccion) && /"tone"/.test(lineaDireccion) && /"pacing"/.test(lineaDireccion) && /"color":\{"grading"/.test(lineaDireccion) && direccion.ok && !conAnimo.ok,
+    JSON.stringify(direccion.ok ? 'ok' : direccion.problems));
+  check('V6) 3D: pedido algo en 3D, propone su ficha y dice que el modelo 3D con IA todavía no está; nunca que lo está creando',
+    /Si te pide un personaje, un lugar o un objeto en 3D: propón su ficha \(add_character, add_location o add_object\)/.test(instruccion)
+    && /todavía no está disponible en Weë/.test(instruccion) && /Nunca digas que estás creando un modelo 3D/.test(instruccion));
 }
 
 /* ═══ G · LAS GUARDAS ═════════════════════════════════════════════════════ */

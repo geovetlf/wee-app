@@ -107,7 +107,7 @@ Las dos añaden dependencias. Con la autonomía del encargo del 2026-09-30 se el
 | Plano › Quién sale / Qué hay / Dónde | **«Desde tus guardados»**: el MISMO ID si ya está en la producción | ✔ |
 | Plano | «Puesta en escena en 3D» | cerrada: editor y contrato |
 | Proyecto › Referencias | «Modelo 3D» | cerrada: ninguna toma recibe 3D |
-| Weë AI Director (caja de Weë Brain) | **«Detectar el reparto»** | ✔ propone; la persona decide |
+| Weë AI Director (caja de Weë Brain) | **«Detectar el reparto»** · y si le piden algo «en 3D», propone su ficha y dice que el modelo 3D con IA todavía no está (2026-09-30) | ✔ propone; la persona decide |
 
 En el teléfono (360/390) aparecen las mismas piezas en las mismas secciones del editor: «Proyecto» monta el proyecto y la hoja «Ajustes» monta las propiedades del plano.
 

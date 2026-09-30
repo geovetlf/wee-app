@@ -722,7 +722,12 @@ const OPERACIONES_PARA_BRAIN: readonly string[] = [
   '{"op":"update_object","objectId":"…","changes":{"description":"…"}}',
   '{"op":"update_scene","sceneId":"…","changes":{"characterIds":["…"],"objectIds":["…"],"actions":["…"]}} (quién sale y qué hay en la escena)',
   '{"op":"update_shot","shotId":"…","changes":{"characterIds":["…"],"objectIds":["…"],"actions":["…"]}} (quién sale y qué hay en el plano)',
-  '{"op":"change_direction","changes":{"mood":"…","tone":"…","pacing":ritmo}}',
+  /*
+   * El ejemplo llevaba "mood", y F1-A lo rechaza en change_direction (`use_dedicated_operation`): una propuesta que lo
+   * copiaba entera salía inválida. El ánimo tiene su operación (change_mood, arriba). Encontrado en la auditoría del
+   * workplace (Fase 38b, apartada) y cerrado aquí.
+   */
+  '{"op":"change_direction","changes":{"tone":"…","pacing":ritmo,"color":{"grading":"…"}}} (el ánimo, con change_mood)',
   '{"op":"change_intent","changes":{"objective":"…","audience":"…","narrative":"…"}}',
   '{"op":"modify_audio","change":{"action":"upsert","cue":{"kind":sonido,"description":"…","target":{"scope":"shot","shotId":"…"} o {"scope":"scenes","sceneIds":["…"]} o {"scope":"production"}}}}',
 ];
@@ -742,6 +747,12 @@ export const instruccionDeProduccion = (resumen: string): string => {
     'Operaciones:',
     ...OPERACIONES_PARA_BRAIN.map((o) => `• ${o}`),
     'ámbito = {"scope":"production"} o {"scope":"scene","sceneId":"…"} o {"scope":"shot","shotId":"…"}.',
+    /*
+     * 3D dentro de Filmmaker: «crea un personaje 3D para mi película». Lo que existe hoy es la ficha (y, si la persona
+     * ya tiene un modelo suyo, usarlo desde Mis creaciones); crear el modelo con IA todavía no. Se propone lo primero y
+     * se dice lo segundo, sin prometer nada que no pase.
+     */
+    'Si te pide un personaje, un lugar o un objeto en 3D: propón su ficha (add_character, add_location o add_object) con lo que describe, y di en una frase que crear el modelo 3D con IA todavía no está disponible en Weë, y que si ya tiene un modelo suyo puede usarlo al crear la ficha, desde Mis creaciones. Nunca digas que estás creando un modelo 3D.',
     `Valores: plano ${v.plano.join('|')}; camara ${v.camara.join('|')}; perspectiva ${v.perspectiva.join('|')}; optica ${v.optica.join('|')}; composicion ${v.composicion.join('|')}; movimiento ${v.movimiento.join('|')}; velocidad ${v.velocidad.join('|')}; suavidad ${v.suavidad.join('|')}; luz ${v.luz.join('|')}; transicion ${v.transicion.join('|')}; clima ${v.clima.join('|')}; momento ${v.momento.join('|')}; enfoque ${v.enfoque.join('|')}; linea ${v.linea.join('|')}; ritmo ${v.ritmo.join('|')}; ambiente ${v.ambiente.join('|')}; sonido ${v.sonido.join('|')}; objeto ${v.objeto.join('|')}.`,
     'LA PRODUCCIÓN:',
     resumen,
