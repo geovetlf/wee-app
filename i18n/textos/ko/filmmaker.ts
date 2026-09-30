@@ -1112,4 +1112,8 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   wsImport3dDone: '“{{nombre}}”을(를) 가져왔어요. 내 창작물에 있고 계정에도 저장됐어요.',
   /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
   wsModel3dView: '3D 모델 보기',
+  /* ── Estados: por qué un botón de duración o de dividir está apagado (cierre, 2026-09-30) ── */
+  wsWhyNoDuration: '아직 길이가 없어서 늘리거나 줄일 수 없어요.',
+  wsWhySplitNoDuration: '나누려면 먼저 길이가 있어야 해요.',
+  wsWhySplitTooShort: '나누려면 {{segundos}}초 이상이어야 해요.',
 };

@@ -2017,6 +2017,25 @@ uno cerrado, y preparar los canaries sin ejecutarlos. Todo está en
 
 Pruebas: `functions/test/filmmaker-contratos-canaries.test.mjs` (en la cadena).
 
+### Estados: un botón apagado dice por qué (cierre, 2026-09-30)
+
+El encargo del cierre pide que ninguna capacidad quede como un botón muerto. En el workplace quedaban botones apagados
+sin explicación:
+- alargar y acortar un plano o una escena que no tiene duración (F1-A no se la da, y darle una primera espera
+  autorización: contratos, § 2);
+- dividir en dos uno sin duración o demasiado corto;
+- dividir en el cabezal.
+
+Ahora, apagados, lo dicen al tocarlos, y a quien no ve, como pista, con la pieza de siempre (`BotonPequeno`,
+`porque`). Pasa en la tarjeta del plano, en la escena sin planos, en las propiedades y en «Cortar». En una producción
+archivada siguen apagados sin más, porque ya lo dice la producción entera. La disposición no cambia.
+
+Una valla impide volver atrás: ningún botón apagado del workplace sin su porqué. Las excepciones son lo que se explica
+solo (el primero no sube, «Guardando…») o lo que ya se explica al lado (el lote, el saldo, una propuesta desfasada),
+cada una con su motivo.
+
+Pruebas: `functions/test/filmmaker-estados.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

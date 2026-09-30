@@ -82,6 +82,9 @@ const ProductionShotCard: React.FC<{
   const duracion = plano.durationSec;
   const mitad = duracion !== undefined ? Math.round((duracion / 2) * 10) / 10 : undefined;
   const sePuedeDividir = mitad !== undefined && duracion !== undefined && mitad >= LIMITES.duracionMinimaSec && duracion - mitad >= LIMITES.duracionMinimaSec;
+  /* Cierre (2026-09-30): lo apagado dice por qué. Sin duración, F1-A no alarga ni acorta (`needs_duration`). */
+  const sinDuracion = duracion === undefined ? t('filmmaker.wsWhyNoDuration') : undefined;
+  const porQueNoSeDivide = duracion === undefined ? t('filmmaker.wsWhySplitNoDuration') : t('filmmaker.wsWhySplitTooShort', { segundos: formato.numero(LIMITES.duracionMinimaSec * 2) });
 
   return (
     <View
@@ -146,9 +149,9 @@ const ProductionShotCard: React.FC<{
 
       {editable && (
         <View style={styles.acciones}>
-          <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined}
+          <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined} porque={sinDuracion}
             onPress={() => onGesto([{ op: 'shorten_duration', target: { shotId: plano.id }, bySec: PASO_DE_DURACION_SEC }])} />
-          <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined}
+          <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined} porque={sinDuracion}
             onPress={() => onGesto([{ op: 'extend_duration', target: { shotId: plano.id }, bySec: PASO_DE_DURACION_SEC }])} />
           <BotonPequeno icono="arrow-up" etiqueta={t('filmmaker.moveUp')} disabled={indice === 0}
             onPress={() => onGesto([{ op: 'reorder_shot', shotId: plano.id, toOrder: indice - 1 }])} />
@@ -156,7 +159,7 @@ const ProductionShotCard: React.FC<{
             onPress={() => onGesto([{ op: 'reorder_shot', shotId: plano.id, toOrder: indice + 1 }])} />
           <BotonPequeno icono="copy-outline" etiqueta={t('filmmaker.duplicate')}
             onPress={() => onGesto([{ op: 'duplicate_shot', shotId: plano.id, newShotId: ids.plano() }])} />
-          <BotonPequeno icono="cut-outline" etiqueta={t('filmmaker.splitShot')} disabled={!sePuedeDividir}
+          <BotonPequeno icono="cut-outline" etiqueta={t('filmmaker.splitShot')} disabled={!sePuedeDividir} porque={porQueNoSeDivide}
             onPress={() => { if (mitad !== undefined) onGesto([{ op: 'split_shot', shotId: plano.id, atSec: mitad, newShotId: ids.plano() }]); }} />
           <BotonPequeno icono="git-merge-outline" etiqueta={t('filmmaker.mergeNextShot')} disabled={!siguiente}
             onPress={() => { if (siguiente) onGesto([{ op: 'merge_shots', shotId: plano.id, withShotId: siguiente.id }]); }} />

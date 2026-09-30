@@ -84,9 +84,9 @@ const ProductionSceneCard: React.FC<{
         <View style={styles.acciones}>
           {!escena.shots.length && (
             <>
-              <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={escena.durationSec === undefined}
+              <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={escena.durationSec === undefined} porque={t('filmmaker.wsWhyNoDuration')}
                 onPress={() => onGesto([{ op: 'shorten_duration', target: { sceneId: escena.id }, bySec: PASO_DE_DURACION_SEC }])} />
-              <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={escena.durationSec === undefined}
+              <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={escena.durationSec === undefined} porque={t('filmmaker.wsWhyNoDuration')}
                 onPress={() => onGesto([{ op: 'extend_duration', target: { sceneId: escena.id }, bySec: PASO_DE_DURACION_SEC }])} />
             </>
           )}

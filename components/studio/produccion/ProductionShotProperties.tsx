@@ -105,9 +105,9 @@ const ProductionShotProperties: React.FC<{ espacio: EspacioDeFilmmaker; enHoja?:
           <Text style={[styles.valor, { color: theme.colors.text }]}>{duracion === undefined ? t('filmmaker.noDuration') : segundos(duracion)}</Text>
           {editable && (
             <View style={styles.botones}>
-              <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined}
+              <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined} porque={t('filmmaker.wsWhyNoDuration')}
                 onPress={() => onGesto([{ op: 'shorten_duration', target: objetivo, bySec: PASO_DE_DURACION_SEC }])} />
-              <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined}
+              <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={duracion === undefined} porque={t('filmmaker.wsWhyNoDuration')}
                 onPress={() => onGesto([{ op: 'extend_duration', target: objetivo, bySec: PASO_DE_DURACION_SEC }])} />
             </View>
           )}

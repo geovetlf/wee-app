@@ -1111,4 +1111,8 @@ export const filmmaker = {
   wsImport3dDone: '«{{nombre}}» se importó: está en Mis creaciones y guardado en tu cuenta.',
   /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
   wsModel3dView: 'Ver el modelo 3D',
+  /* ── Estados: por qué un botón de duración o de dividir está apagado (cierre, 2026-09-30) ── */
+  wsWhyNoDuration: 'Todavía no tiene duración, así que no se puede alargar ni acortar.',
+  wsWhySplitNoDuration: 'Para dividirlo, primero tiene que tener duración.',
+  wsWhySplitTooShort: 'Para dividirlo tiene que durar al menos {{segundos}} s.',
 };

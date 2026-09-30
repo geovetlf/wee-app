@@ -642,8 +642,13 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * Fase 38 del motor, 2026-09-29 (versiones finales y entregas): +13 —las versiones anteriores (`wsFinalVersion*`),
    * que un montaje corto también va entero al Wäll (`wsPublishBoth`) y las entregas cerradas con su porqué
    * (`wsExportDeliveries`, `wsExportPosterPick*`, `wsExportMaster*`, `wsExportUpscale*`)—, en los once.
+   * 3D dentro de Filmmaker, 2026-09-29 y 2026-09-30: 3 650 → 3 687 al crear, guardar y reutilizar fichas (Crear de otra
+   * forma, Guardar para reutilizar, Desde tus guardados y lo cerrado con su porqué); → 3 714 al importar un modelo 3D
+   * (el recorrido del GLB, `wsImport3d*`); → 3 730 al verlo (`creaciones.model3d*` y `wsModel3dView`), en los once.
+   * Cierre de Filmmaker, 2026-09-30 (estados): +3 —por qué un botón de duración o de dividir está apagado
+   * (`wsWhyNoDuration`, `wsWhySplitNoDuration`, `wsWhySplitTooShort`)—, en los once.
    */
-  const CLAVES_PT = 3730;
+  const CLAVES_PT = 3733;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'

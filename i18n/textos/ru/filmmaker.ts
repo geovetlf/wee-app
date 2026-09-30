@@ -1157,4 +1157,8 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   wsImport3dDone: '«{{nombre}}» импортирована: она в «Моих творениях» и сохранена в аккаунте.',
   /* ── 3D dentro de Filmmaker · ver el modelo 3D de lo guardado ── */
   wsModel3dView: 'Посмотреть 3D-модель',
+  /* ── Estados: por qué un botón de duración o de dividir está apagado (cierre, 2026-09-30) ── */
+  wsWhyNoDuration: 'Длительности ещё нет, поэтому удлинить или укоротить нельзя.',
+  wsWhySplitNoDuration: 'Чтобы разделить, сначала нужна длительность.',
+  wsWhySplitTooShort: 'Чтобы разделить, нужно не меньше {{segundos}} с.',
 };

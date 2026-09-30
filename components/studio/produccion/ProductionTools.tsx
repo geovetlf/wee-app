@@ -131,6 +131,11 @@ const ProductionTools: React.FC<{
       const enElCabezal = tramo && duracion !== undefined ? Math.round((cabezal - tramo.inicio) * 10) / 10 : undefined;
       const cabeDentro = (s: number | undefined) => s !== undefined && duracion !== undefined && s >= LIMITES.duracionMinimaSec && duracion - s >= LIMITES.duracionMinimaSec;
       const mitad = duracion !== undefined ? Math.round((duracion / 2) * 10) / 10 : undefined;
+      /* Cierre (2026-09-30): lo apagado dice por qué (en una producción archivada, ya lo dice la producción entera). */
+      const sinDuracion = editable && duracion === undefined ? t('filmmaker.wsWhyNoDuration') : undefined;
+      const porQueNoSeDivide = !editable ? undefined : duracion === undefined ? t('filmmaker.wsWhySplitNoDuration')
+        : t('filmmaker.wsWhySplitTooShort', { segundos: formato.numero(LIMITES.duracionMinimaSec * 2) });
+      const porQueNoEnElCabezal = !editable ? undefined : duracion === undefined ? t('filmmaker.wsWhySplitNoDuration') : t('filmmaker.wsSplitHint');
       const quitar = async () => {
         const ok = await confirmAction(t('filmmaker.removeShotConfirm', { numero: elegido.numeroDePlano ?? 1 }), '', t('filmmaker.remove'), true, t);
         if (!ok) return;
@@ -145,15 +150,15 @@ const ProductionTools: React.FC<{
       };
       return (
         <View style={styles.fila}>
-          <BotonPequeno icono="cut-outline" etiqueta={t('filmmaker.wsSplitAtPlayhead')} conTexto principal disabled={!editable || !cabeDentro(enElCabezal)}
+          <BotonPequeno icono="cut-outline" etiqueta={t('filmmaker.wsSplitAtPlayhead')} conTexto principal disabled={!editable || !cabeDentro(enElCabezal)} porque={porQueNoEnElCabezal}
             onPress={() => { if (enElCabezal !== undefined) onGesto([{ op: 'split_shot', shotId: plano.id, atSec: enElCabezal, newShotId: espacio.ids.plano() }]); }} />
-          <BotonPequeno icono="git-compare-outline" etiqueta={t('filmmaker.splitShot')} conTexto disabled={!editable || !cabeDentro(mitad)}
+          <BotonPequeno icono="git-compare-outline" etiqueta={t('filmmaker.splitShot')} conTexto disabled={!editable || !cabeDentro(mitad)} porque={porQueNoSeDivide}
             onPress={() => { if (mitad !== undefined) onGesto([{ op: 'split_shot', shotId: plano.id, atSec: mitad, newShotId: espacio.ids.plano() }]); }} />
           <BotonPequeno icono="copy-outline" etiqueta={t('filmmaker.duplicate')} conTexto disabled={!editable}
             onPress={() => onGesto([{ op: 'duplicate_shot', shotId: plano.id, newShotId: espacio.ids.plano() }])} />
-          <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={!editable || duracion === undefined}
+          <BotonPequeno icono="remove" etiqueta={t('filmmaker.shorterBy', { segundos: PASO_DE_DURACION_SEC })} disabled={!editable || duracion === undefined} porque={sinDuracion}
             onPress={() => onGesto([{ op: 'shorten_duration', target: { shotId: plano.id }, bySec: PASO_DE_DURACION_SEC }])} />
-          <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={!editable || duracion === undefined}
+          <BotonPequeno icono="add" etiqueta={t('filmmaker.longerBy', { segundos: PASO_DE_DURACION_SEC })} disabled={!editable || duracion === undefined} porque={sinDuracion}
             onPress={() => onGesto([{ op: 'extend_duration', target: { shotId: plano.id }, bySec: PASO_DE_DURACION_SEC }])} />
           <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.removeShot')} disabled={!editable} onPress={() => { void quitar(); }} />
           {!cabeDentro(enElCabezal) && nota(t('filmmaker.wsSplitHint'))}
