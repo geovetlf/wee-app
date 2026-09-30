@@ -71,22 +71,7 @@ Encargo del usuario: 29-09-2026. Trabajo local en `filmmaker/core`, sin push, si
 
 Tripo, Hunyuan 3D, Meshy y World Labs quedan en el registro como **PENDING y sin capacidades**: nada puede elegirlos.
 
-**Canaries 3D propuestos** (cada uno, un pase; céntimos a pocos dólares, precio oficial; nada se ejecuta sin tu autorización):
-
-| Canary | Proveedor | USD aprox. |
-|---|---|---|
-| 3D-1 personaje, imagen → 3D | Tripo o Hunyuan 3D | 0,30 / 0,50 |
-| 3D-2 objeto, texto → 3D | Tripo | 0,20 |
-| 3D-3 riggear el personaje | Tripo | 0,25 |
-| 3D-4 una animación por preset | Tripo | 0,10 |
-| 3D-5 escenario navegable | World Labs | 1,26 |
-| 3D-6 convertir a GLB | Tripo | 0,05 |
-
-Antes de cualquier canary hacen falta:
-- tu elección de proveedor y su cuenta, con la clave en Secret Manager;
-- el adaptador;
-- los precios oficiales en el catálogo de Credits;
-- pasar `3d.*` a enrutable (contrato del motor).
+**Los canaries 3D** (3D-1 a 3D-6), cada uno con su objetivo, capacidad, proveedor, entrada, salida, coste a tarifa oficial publicada, criterio de éxito y condición de activación, y **el camino en orden para poder generar** (proveedor, vocabulario del motor, adaptador, registro, puerta, precio, app, Weë Brain): `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`, §§ 3.1 y 4. Nada se ejecuta sin tu autorización.
 
 ### C.3 El visor (decidido el 2026-09-30: § J)
 
@@ -157,7 +142,7 @@ En el teléfono (360/390) aparecen las mismas piezas en las mismas secciones del
    - Motivo: que se puedan enrutar.
    - ¿Ya? Solo con el proveedor elegido y su adaptador.
 
-**Ninguno hizo falta para lo implementado.**
+**Ninguno hizo falta para lo implementado.** Lo que cada uno cambiaría para GENERAR en 3D, en orden: `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`, § 3.1.
 
 ## H. Lo implementado y lo que queda cerrado
 

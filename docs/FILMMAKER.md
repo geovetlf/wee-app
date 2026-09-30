@@ -1993,6 +1993,27 @@ pide al abrirlo: la entrega de siempre, o la llave temporal de Media Cloud (`mod
 web, `@google/model-viewer` y `three`; en la app nativa, cerrado con su porqué. Pruebas:
 `functions/test/filmmaker-3d-visor.test.mjs` (en la cadena). Detalle en [`docs/FILMMAKER-3D.md`](FILMMAKER-3D.md) § J.
 
+### Fase 39 · Contratos y canaries, preparados
+
+Encargo del usuario (2026-09-30, «CIERRE TOTAL DE FILMMAKER + 3D»): construir todo contrato que pueda hacerse sin romper
+uno cerrado, y preparar los canaries sin ejecutarlos. Todo está en
+[`docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`](FILMMAKER-CONTRATOS-Y-CANARIES.md).
+
+- **Ningún contrato se podía hacer sin tocar uno cerrado.** Se comprobaron uno a uno contra el código: cada uno toca
+  F1-A, F1-B, F1-D, la valla G12 (el precio de una propuesta antes de aplicarla), la regla 10 o el Credit Engine.
+  Quedan especificados y cerrados, cada uno con:
+  - lo de hoy y el cambio mínimo;
+  - el campo exacto y sus consumidores;
+  - las pruebas y la compatibilidad.
+- **Generar en 3D.** El Core ya lo enruta en cuanto una matriz lo cubra. Lo que falta va en orden: proveedor,
+  vocabulario del motor, adaptador, registro, puerta, precio, app, Weë Brain y canaries.
+- **33 canaries**, ninguno ejecutado. Cada uno lleva objetivo, capacidad, proveedor, modelo, entrada, salida esperada,
+  coste estimado, criterio de éxito, condición de activación y riesgo. Los de vídeo se calculan con la fórmula oficial
+  del adaptador: K1-K17 suman USD 23.539.
+- **Ni una línea de código ni una puerta**: solo los documentos y la suite que los ata al código.
+
+Pruebas: `functions/test/filmmaker-contratos-canaries.test.mjs` (en la cadena).
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |
