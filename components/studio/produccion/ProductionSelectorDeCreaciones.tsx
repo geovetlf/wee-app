@@ -12,12 +12,13 @@ import type { ElementoGuardado } from '../../../services/elementsService';
 import { CLAVE_DE_TIPO } from '../../../services/vistaDeAsset';
 import { coincideConLaBusqueda } from '../../../utils/buscarPorNombre';
 import { CLASES_GUARDADAS_COMO_REFERENCIA } from '../../../constants/filmmaker';
+import { capacidadDeCreacion } from '../../../constants/assetsDeFilmmaker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 const CLASES: readonly ClaseDeReferencia[] = ['image', 'video', 'audio'];
-const ICONO: Readonly<Record<ClaseDeReferencia, string>> = { image: 'image-outline', video: 'videocam-outline', audio: 'musical-note-outline' };
+const ICONO: Readonly<Record<ClaseDeReferencia, string>> = { image: 'image-outline', video: 'videocam-outline', audio: 'musical-note-outline', model3d: 'cube-outline' };
 
 /**
  * AÑADIR UNA REFERENCIA (Fase 27 del motor: las referencias, de verdad).
@@ -33,7 +34,15 @@ const ProductionSelectorDeCreaciones: React.FC<{
   onElegirCreacion: (c: CreacionParaReferencia) => void;
   onElegirGuardado: (e: ElementoGuardado) => void;
   onVolver: () => void;
-}> = ({ creaciones, elementos, onElegirCreacion, onElegirGuardado, onVolver }) => {
+  /**
+   * 3D dentro de Filmmaker: qué clases se piden (por defecto, las de una referencia de la toma) y con qué título. Una
+   * referencia no ofrece «Modelo 3D»: se enseña cerrada, con su porqué (ninguna toma recibe 3D todavía).
+   */
+  clases?: readonly ClaseDeReferencia[];
+  titulo?: string;
+  /** Cómo se dice «usar esto» (en «Crear», no es una referencia: es la cosa misma). */
+  claveDeUso?: string;
+}> = ({ creaciones, elementos, onElegirCreacion, onElegirGuardado, onVolver, clases = CLASES, titulo, claveDeUso = 'filmmaker.wsRefUse' }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const [fuente, setFuente] = useState<'creaciones' | 'guardados'>('creaciones');
@@ -68,7 +77,7 @@ const ProductionSelectorDeCreaciones: React.FC<{
   }
 
   return (
-    <Seccion titulo={t('filmmaker.wsReferenceAdd')}>
+    <Seccion titulo={titulo ?? t('filmmaker.wsReferenceAdd')}>
       {!!elementos && (
         <View style={styles.fila} accessibilityRole="tablist">
           {pastilla('creaciones', true, () => undefined, t('filmmaker.wsRefFromCreations'))}
@@ -76,7 +85,10 @@ const ProductionSelectorDeCreaciones: React.FC<{
         </View>
       )}
       <View style={styles.fila} accessibilityRole="tablist">
-        {CLASES.map((c) => pastilla(c, clase === c, () => { setBusqueda(''); cargar(c); }, t(CLAVE_DE_TIPO[c])))}
+        {clases.map((c) => pastilla(c, clase === c, () => { setBusqueda(''); cargar(c); }, t(CLAVE_DE_TIPO[c])))}
+        {!clases.includes('model3d') && (
+          <BotonPequeno icono="cube-outline" etiqueta={t(capacidadDeCreacion('referencia_3d').clave)} onPress={() => undefined} disabled porque={t(capacidadDeCreacion('referencia_3d').porque ?? '')} conTexto />
+        )}
       </View>
       {carga === 'sin_pedir' && nota(t('filmmaker.wsRefPickKind'))}
       {/* Fase 31 del motor: lo que no aparece, y por qué. Un texto o un documento de Mis creaciones no es una referencia de F1-A. */}
@@ -102,7 +114,7 @@ const ProductionSelectorDeCreaciones: React.FC<{
                     key={c.assetId}
                     onPress={() => onElegirCreacion(c)}
                     accessibilityRole="button"
-                    accessibilityLabel={t('filmmaker.wsRefUse', { nombre })}
+                    accessibilityLabel={t(claveDeUso, { nombre })}
                     style={[styles.creacion, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as object)]}
                   >
                     {c.miniatura

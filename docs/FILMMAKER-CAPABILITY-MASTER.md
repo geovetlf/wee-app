@@ -421,15 +421,15 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 <!-- MATRIZ:INICIO -->
 | Estado | Filas |
 |---|---|
-| A — usable | 75 |
+| A — usable | 80 |
 | B — UX | 0 |
 | C — no effect | 2 |
 | D — adapter | 8 |
-| E — canary | 3 |
-| F — contract | 26 |
-| G — nonexistent | 23 |
-| H — intentionally excluded | 10 |
-| Total | 147 |
+| E — canary | 4 |
+| F — contract | 29 |
+| G — nonexistent | 27 |
+| H — intentionally excluded | 9 |
+| Total | 159 |
 
 | ID | CAPABILITY | ENGINE | ADAPTER | F1-A | SERVER | UX | WORKPLACE | STATUS | CANARY | CONTRACT | PROVIDER | COST | TEST | SABOTAGE | MOBILE | NOTES |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -561,7 +561,7 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | N31 | Volver a una toma anterior de un plano | ✘ (`enlazarToma` no pone una toma si hay otra más nueva lista: `take_superseded`) | — | — | ✘ | dicho («el plano usa siempre su última toma lista») | Plano › Toma (historial) | F | no | sí: contrato 3 (`enlazarToma`, F1-D) | — | no | filmmaker-historia | sab-fase24 | — | Control: «Usar esta toma» (cerrado). El historial ya se ve y cada toma se descarga |
 | N30 | Identificador de seguridad por persona | ✘ | ✘ (`safety_identifier`) | — | — | ✘ | — | H | no | no | BytePlus ModelArk (Seedance) | no | filmmaker-capability-master | sab-fase32 | — | Interno; mandar un identificador por persona al proveedor es una decisión de privacidad |
 | I01 | Cobertura: varios ángulos de la misma acción | ✔ F1-A (`duplicate_shot`, `change_camera`) + Weë Brain | — | ✔ | ✔ brainChat | ✔ | Weë AI Director › Proponer planos | A | no | no | Gemini (texto) | sí (la respuesta de Weë Brain) | filmmaker-director | sab-fase34 | ✔ 360/390 | Fase 34: «Cobertura de este plano», con el plano elegido |
-| I02 | Hoja del personaje o del lugar (casting, tres vistas) | ✘ en Filmmaker | ✔ imagen (Gemini, FLUX, Seedream) | — | ✘ | ✘ | Proyecto › Reparto y Lugares | D | sí | sí: `image.generate` en la puerta (regla 10) y su precio | Gemini, BFL, BytePlus | sí | filmmaker-capability-master | sab-fase32 | — | Control: «Crear la hoja» (cerrado) |
+| I02 | Hoja del personaje o del lugar (casting, tres vistas) | ✘ en Filmmaker | ✔ imagen (Gemini, FLUX, Seedream) | — | ✘ | cerrado, con su porqué | Proyecto › Reparto y Lugares | D | sí | sí: `image.generate` en la puerta (regla 10) y su precio | Gemini, BFL, BytePlus | sí | filmmaker-3d-assets | sab-fase3d | — | Control: «Crear la hoja» (cerrado) · 3D dentro de Filmmaker: «Imagen con IA» en Crear de otra forma, cerrada (autorización de la puerta) |
 | I03 | Cámara lenta y rampas de velocidad de la acción | ✘ (se escribe en «Qué pasa») | — | — | — | ✘ | Plano › Qué pasa | F | no | sí: lenguaje creativo v3 | — | no | filmmaker-capability-master | sab-fase32 | — | Control: «Velocidad de la acción» (cerrado) |
 | I04 | Recortar un plano en el montaje sin rehacer el sonido | ✘ (el render no lee el plan de montaje) | — | — | — | ✘ | Línea de tiempo | F | no | sí: el render lee entradas y salidas del plan de montaje (X11) | — | no | filmmaker-capability-master | sab-fase32 | — | Control: «Recortar» (cerrado) |
 | I05 | Convertir un guion escrito en escenas y planos | ✔ Weë Brain + F1-A | — | ✔ | ✔ brainChat | ✔ | Historia › Guion · Weë AI Director | A | no | no | Gemini (texto) | sí (la respuesta de Weë Brain) | filmmaker-director | sab-fase34 | ✔ 360/390 | Fase 34: «Tengo un guion»; en una producción vacía, destacada |
@@ -570,7 +570,7 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | I08 | Elegir el modelo plano a plano | — | — | — | — | ✘ | — | H | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | «El usuario elige el resultado. Weë elige la IA»; vídeo solo Seedance (decisión del 2026-09-07) |
 | I09 | Del enlace de un producto a un anuncio | — | — | — | — | ✘ | — | G | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | No es de Filmmaker; sería una puerta de Weë Business |
 | I10 | Entrenar o clonar la identidad de una persona real (cara o voz) | — | — | — | — | ✘ | — | H | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Biometría de personas reales: necesitaría una decisión expresa, consentimiento y un proveedor |
-| I11 | Escena 3D editable | — | — | — | — | ✘ | — | H | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fuera del mapa aprobado |
+| I11 | Escena 3D editable | — | — | — | — | cerrado, con su porqué | Plano › Puesta en escena en 3D · Lugar › Abrir la escena 3D | F | no | sí: F1-A `staging` (colocación por ID, cámara, luces) + el editor | — | no | filmmaker-3d-assets | sab-fase3d | — | 3D dentro de Filmmaker: deja de estar fuera del mapa (decisión del usuario, 2026-09-29); entradas cerradas con su porqué |
 | I12 | Traducir y doblar el diálogo | — | — | — | — | ✘ | Story › Guion | G | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Ningún proveedor del engine; después de C59 y C60 |
 | I13 | Plugins de editores, CLI, MCP y mercancía | — | — | — | — | ✘ | — | H | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Fuera del mapa aprobado |
 | I14 | Varios agentes con roles y piloto automático sin confirmar | — | — | — | — | ✘ | — | H | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | Un solo Weë Brain (regla 10) y nada se genera sin ver el precio y confirmar |
@@ -580,6 +580,18 @@ el coste antes de generar— Weë ya lo hace, y la revisión automática de cont
 | I18 | Revisar las tomas generadas (continuidad y marca) con visión | ✘ en Filmmaker | ✔ visión (Gemini) | — | — | ✘ | Weë AI Director › Analizar | D | sí | sí: una capacidad más por la puerta (regla 10) y su precio | Gemini | sí | filmmaker-capability-master | sab-fase32 | — | Control: «Revisar las tomas» (cerrado) |
 | I19 | Tope de gasto de una producción | ✘ | — | — | — | ✘ | Weë AI Director › Precio | F | no | sí: una política del Credit Engine por producción | — | no | filmmaker-capability-master | sab-fase32 | — | Control: «Tope de Credits de la producción» (cerrado). Hoy cada gasto se cotiza y se confirma |
 | I20 | Procedencia firmada de lo generado (C2PA) | ✘ | — | — | — | ✘ | Exportar / Publicar | G | no | no | — | no | filmmaker-capability-master | sab-fase32 | — | El Weël ya lleva la marca de Weë |
+| T01 | Guardar una ficha para reutilizarla (personaje, lugar u objeto → Element de la cuenta) | ✔ Elements (`create`/`list`) + Content Core | — | ✔ | ✔ `elements` (sin desplegar en get-wee) · `productions` comprueba el vínculo | ✔ | Proyecto › Reparto / Lugares / Objetos › la ficha | A | no | no | — | no | filmmaker-3d-assets | sab-fase3d | ✔ 360/390 | Apunta a los materiales de sus referencias, sin copiarlos; un producto se guarda como producto. Pide desplegar `elements` |
+| T02 | Crear una ficha desde lo guardado, en un paso | ✔ Elements (`create`/`list`) + Content Core | — | ✔ | ✔ `elements` (sin desplegar en get-wee) · `productions` comprueba el vínculo | ✔ | Proyecto › Reparto / Lugares / Objetos › Crear de otra forma | A | no | no | — | no | filmmaker-3d-assets | sab-fase3d | ✔ 360/390 | Si ya está en la producción, se abre la que había: no se duplica |
+| T03 | Crear una ficha desde Mis creaciones (una imagen o un modelo 3D) | ✔ Elements (`create`/`list`) + Content Core | — | ✔ | ✔ `elements` (sin desplegar en get-wee) · `productions` comprueba el vínculo | ✔ | Proyecto › Reparto / Lugares / Objetos › Crear de otra forma | A | no | no | — | no | filmmaker-3d-assets | sab-fase3d | ✔ 360/390 | Un Element que APUNTA al material; la ficha entra vinculada |
+| T04 | Desde el plano: un personaje, un objeto o un lugar guardado, con el MISMO ID | ✔ Elements (`create`/`list`) + Content Core | — | ✔ | ✔ `elements` (sin desplegar en get-wee) · `productions` comprueba el vínculo | ✔ | Plano › Quién sale / Qué hay / Dónde | A | no | no | — | no | filmmaker-3d-assets | sab-fase3d | ✔ 360/390 | La continuidad por identidad: la ficha que ya estaba, o una nueva vinculada, en un solo gesto |
+| T05 | Detectar el reparto desde la idea y el guion (Weë Brain propone fichas) | ✔ Weë Brain + F1-A (`add_*`) | — | ✔ | ✔ brainChat | ✔ | Weë AI Director › puertas rápidas | A | no | no | Gemini / DeepSeek (texto) | sí (la respuesta de Weë Brain) | filmmaker-3d-assets | sab-fase3d | ✔ 360/390 | Propone; la persona aplica |
+| T06 | Crear en 3D con IA (personaje, escenario u objeto) | ✘ `3d.*` DECLARED en el catálogo | ✘ | — | ✘ | cerrado, con su porqué | Proyecto › Reparto / Lugares / Objetos › Crear de otra forma · la ficha | G | sí | no | pendiente (ver docs/FILMMAKER-3D.md) | sí (tarifa oficial de la matriz) | filmmaker-3d-assets | sab-fase3d | — | Variantes propuestas (personaje, escenario, objeto) esperan autorización del catálogo |
+| T07 | Importar un modelo 3D (GLB, glTF, OBJ) a Mis creaciones | ✔ subida directa (`crearMaterialParaSubida`) | — | — | ✘ Media Cloud inactivo; Storage solo imágenes | cerrado, con su porqué | Proyecto › Reparto / Lugares / Objetos › Crear de otra forma | E | sí, sin gasto (activar la subida) | no | — | no | filmmaker-3d-assets | sab-fase3d | — | Pide activar la subida y el visor |
+| T08 | Ver un modelo 3D (visor contextual) | — | — | — | — | ✘ | Proyecto › la ficha · Plano (en una hoja contextual) | G | no | no; una dependencia nueva (decisión) | — | no | filmmaker-3d-assets | sab-fase3d | — | Se enseña solo cuando exista un modelo; sin él, nada que ver |
+| T09 | Un modelo 3D guiando una toma (sus vistas o un clip de la escena 3D) | ✘ (Seedance no recibe 3D) | — | — | — | cerrado, con su porqué | Proyecto › Referencias | F | sí | sí: contrato 1 (referencias en la toma) + render de vistas | BytePlus ModelArk (Seedance) + el proveedor 3D | sí | filmmaker-3d-assets | sab-fase3d | — | Las vistas renderizadas, como imágenes del MISMO Element, entrarían por la vía de la Fase 18 |
+| T10 | Riggear y animar un personaje 3D | ✘ `3d.*` DECLARED en el catálogo | ✘ | — | ✘ | ✘ | Plano › Puesta en escena en 3D (cuando exista) | G | sí | no | pendiente (ver docs/FILMMAKER-3D.md) | sí (tarifa oficial de la matriz) | filmmaker-3d-assets | sab-fase3d | — | `3d.rig` DECLARED; `3d.animate` propuesto (espera autorización) |
+| T11 | Texturizar o editar un modelo 3D | ✘ `3d.*` DECLARED en el catálogo | ✘ | — | ✘ | ✘ | Proyecto › la ficha (sobre un modelo que ya exista) | G | sí | no | pendiente (ver docs/FILMMAKER-3D.md) | sí (tarifa oficial de la matriz) | filmmaker-3d-assets | sab-fase3d | — | `3d.texture` y `3d.edit` DECLARED |
+| T12 | El tipo de una ficha (humano, criatura, animal, estilizado; habitación, edificio, ciudad, paisaje, fantástico) | ✘ | — | ✔ | — | ✘ | Proyecto › Reparto / Lugares | F | no | sí: F1-A (campo nuevo + espejo; la plantilla de la toma) | — | no | filmmaker-3d-assets | sab-fase3d | — | Hace falta cuando `3d.generate` tenga matriz. Hoy la descripción ya llega a la toma |
 <!-- MATRIZ:FIN -->
 
 ## 5. Las fases que siguen (sin gasto y sin tocar contratos cerrados)

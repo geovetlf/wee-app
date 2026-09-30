@@ -5,12 +5,16 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
 import ProductionSelectorDeGuardados from './ProductionSelectorDeGuardados';
+import ProductionCrearFicha from './ProductionCrearFicha';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import type { EspacioDeFilmmaker } from './espacio';
 import { AMBIENTES, LIMITES, RASGOS, TIPOS_DE_OBJETO } from '../../../services/filmmaker/dominio';
 import type { AppearanceProfile, AppearanceTraitKey, FilmmakerOperation, ProductionCharacter, ProductionLocation, ProductionObject } from '../../../services/filmmaker/dominio';
 import { CLASES_POR_FICHA, CLAVE_DEL_AMBIENTE, CLAVE_DEL_RASGO, CLAVE_DEL_TIPO_DE_OBJETO, RASGOS_POR_FICHA } from '../../../constants/filmmaker';
 import { conRasgo } from '../../../utils/produccionEditable';
+import { TIPO_DEL_CORE_POR_FICHA, capacidadDeCreacion, tipoDelCoreParaObjeto } from '../../../constants/assetsDeFilmmaker';
+import type { ResultadoDeCrearElemento } from '../../../services/elementsService';
+import type { CreacionParaReferencia } from '../../../hooks/useCreacionesParaReferencia';
 import { confirmAction } from '../../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
@@ -119,11 +123,78 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
   /* Fase 31: la apariencia de qué ficha está desplegada, y a quién se está sustituyendo. */
   const [apariencia, setApariencia] = useState<string | null>(null);
   const [sustituyendo, setSustituyendo] = useState<string | null>(null);
+  /* 3D dentro de Filmmaker: crear de otra forma (en el sitio de la lista), y guardar en la cuenta para reutilizar. */
+  const [creando, setCreando] = useState(false);
+  const [guardando, setGuardando] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ readonly texto: string; readonly error?: boolean } | null>(null);
   const textos = TEXTOS[clase];
   const lista: readonly Ficha[] = clase === 'personaje' ? produccion.characters : clase === 'lugar' ? produccion.locations : produccion.objects;
   const cargar = elementos?.cargar;
   /* Lo guardado se pide al abrir el selector, por las clases que encajan con esta ficha. */
   useEffect(() => { if (eligiendo && cargar) cargar(CLASES_POR_FICHA[clase]); }, [eligiendo, clase, cargar]);
+
+  /* Lo que dice cada motivo por el que no se pudo guardar en la cuenta. */
+  const fraseDelMotivo = (r: ResultadoDeCrearElemento) => (r.ok ? '' : t(r.motivo === 'material' ? 'filmmaker.wsSaveFailedMaterial' : r.motivo === 'forma' ? 'filmmaker.wsSaveFailedShape' : 'filmmaker.wsSaveFailedNoAnswer'));
+  const tipoDelCore = (f?: Ficha) => (clase === 'objeto' ? tipoDelCoreParaObjeto((f as ProductionObject | undefined)?.kind) : TIPO_DEL_CORE_POR_FICHA[clase]);
+  const yaVinculada = (elementId: string) => lista.find((f) => (f.element as Vinculo | undefined)?.elementId === elementId);
+
+  /* Desde lo guardado: si ya está en la producción, es LA MISMA ficha (el mismo ID en todos los planos); si no, una nueva vinculada. */
+  const desdeGuardado = (e: { readonly elementId: string; readonly name: string; readonly version: number }) => {
+    const ya = yaVinculada(e.elementId);
+    if (ya) { setAviso({ texto: t('filmmaker.wsCreateAlreadyHere', { nombre: ya.name }) }); setAbierta(ya.id); setCreando(false); return; }
+    if (!nuevoId) return;
+    const id = nuevoId();
+    if (onGesto([anadir(clase, id, e.name), cambiar(clase, id, { element: { elementId: e.elementId, version: e.version } })]).ok) { setAbierta(id); setCreando(false); }
+  };
+
+  /* Desde Mis creaciones: el material se guarda en la cuenta como la cosa (un Element que APUNTA a él, sin copiarlo) y entra vinculada. */
+  const desdeCreacion = async (nombre: string, c: CreacionParaReferencia) => {
+    if (!elementos?.crear || !nuevoId) return;
+    setGuardando('nueva');
+    setAviso(null);
+    const r = await elementos.crear({ type: tipoDelCore(), name: nombre, refs: [{ assetId: c.assetId, role: 'primary', kind: c.clase }] });
+    setGuardando(null);
+    if (!r.ok) { setAviso({ texto: fraseDelMotivo(r), error: true }); return; }
+    const id = nuevoId();
+    if (onGesto([anadir(clase, id, nombre), cambiar(clase, id, { element: { elementId: r.elemento.elementId, version: r.elemento.version } })]).ok) { setAbierta(id); setCreando(false); }
+  };
+
+  /* Guardar una ficha para reutilizarla: un Element de su clase, con su nombre, lo que dice y los materiales de sus referencias. */
+  const guardarParaReutilizar = async (f: Ficha) => {
+    if (!elementos?.crear) return;
+    const descripcion = clase === 'personaje' ? (f as ProductionCharacter).identityDescription : (f as ProductionLocation | ProductionObject).description;
+    const materiales = (f.referenceIds ?? [])
+      .map((id) => produccion.references.find((r) => r.id === id))
+      .filter((r): r is NonNullable<typeof r> => !!r?.assetId)
+      .slice(0, 32)
+      .map((r, i) => ({ assetId: r.assetId as string, role: (i === 0 ? 'primary' : 'reference') as 'primary' | 'reference', kind: r.kind }));
+    setGuardando(f.id);
+    setAviso(null);
+    const r = await elementos.crear({
+      type: tipoDelCore(f), name: f.name,
+      ...(descripcion ? { description: descripcion.slice(0, 500) } : {}),
+      refs: materiales,
+    });
+    setGuardando(null);
+    if (!r.ok) { setAviso({ texto: fraseDelMotivo(r), error: true }); return; }
+    if (onGesto([cambiar(clase, f.id, { element: { elementId: r.elemento.elementId, version: r.elemento.version } })]).ok) {
+      setAviso({ texto: t('filmmaker.wsSaveForReuseDone', { nombre: r.elemento.name }) });
+    }
+  };
+
+  if (creando && elementos) {
+    return (
+      <ProductionCrearFicha
+        clase={clase}
+        espacio={espacio}
+        onDesdeGuardado={desdeGuardado}
+        onDesdeCreacion={(nombre, c) => { void desdeCreacion(nombre, c); }}
+        guardando={guardando === 'nueva'}
+        error={aviso?.error ? aviso.texto : null}
+        onVolver={() => { setCreando(false); setAviso(null); }}
+      />
+    );
+  }
 
   if (eligiendo && elementos) {
     return (
@@ -159,6 +230,7 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
   return (
     <View style={styles.bloque}>
       {lista.length === 0 && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t(textos.vacia)}</Text>}
+      {!!aviso && <Text style={[styles.nota, { color: aviso.error ? theme.colors.error : theme.colors.textSecondary }]} accessibilityLiveRegion="polite">{aviso.texto}</Text>}
       {lista.map((f) => {
         const vinculo = f.element as Vinculo | undefined;
         const nombreDelVinculo = nombreGuardado(vinculo);
@@ -291,6 +363,18 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
                   {!!elementos && (vinculo
                     ? <BotonPequeno icono="close-circle-outline" etiqueta={t('filmmaker.wsElementUnlink')} onPress={() => onGesto([cambiar(clase, f.id, { element: null })])} disabled={!editable} conTexto />
                     : <BotonPequeno icono="link-outline" etiqueta={t('filmmaker.wsElementLink')} onPress={() => setEligiendo(f.id)} disabled={!editable} conTexto />)}
+                  {/* 3D dentro de Filmmaker: guardarla en la cuenta para reutilizarla (en otra producción y, mañana, en Weë Design). */}
+                  {!!elementos?.crear && !vinculo && (
+                    <BotonPequeno icono={capacidadDeCreacion('guardar_para_reutilizar').icono} etiqueta={guardando === f.id ? t('filmmaker.wsCreateSaving') : t('filmmaker.wsSaveForReuse')}
+                      onPress={() => { void guardarParaReutilizar(f); }} disabled={!editable || guardando !== null} conTexto />
+                  )}
+                  {/* Su versión 3D y, en un lugar, su escena 3D: cerradas, con su porqué (ver constants/assetsDeFilmmaker.ts). */}
+                  <BotonPequeno icono={capacidadDeCreacion('crear_en_3d').icono} etiqueta={t('filmmaker.wsCreateVersion3d')} onPress={() => undefined}
+                    disabled porque={t(capacidadDeCreacion('crear_en_3d').porque ?? '')} conTexto />
+                  {clase === 'lugar' && (
+                    <BotonPequeno icono={capacidadDeCreacion('escena_3d').icono} etiqueta={t('filmmaker.wsOpenScene3d')} onPress={() => undefined}
+                      disabled porque={t(capacidadDeCreacion('escena_3d').porque ?? '')} conTexto />
+                  )}
                   <BotonPequeno icono="trash-outline" etiqueta={t('filmmaker.remove')} onPress={() => { void quitarFicha(f); }} disabled={!editable} conTexto />
                 </View>
               </View>
@@ -313,6 +397,10 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
             setVuelta((v) => v + 1);
           }}
         />
+      )}
+      {/* 3D dentro de Filmmaker: las otras formas de crear, en el sitio de la lista (ni una sección ni una pantalla nuevas). */}
+      {editable && !!nuevoId && !!elementos && (
+        <BotonPequeno icono="add-circle-outline" etiqueta={t('filmmaker.wsCreateOther')} onPress={() => { setAviso(null); setCreando(true); }} conTexto />
       )}
     </View>
   );

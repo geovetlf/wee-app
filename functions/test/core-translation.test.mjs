@@ -277,7 +277,8 @@ console.log('\n── G · Preparar esto NO cambió nada de lo que ya funcionaba
   check('47) y ninguna de traducción es enrutable', !routable.some((c) => c.startsWith('translation.')));
   check('48) el catálogo creció en dos y nada más', core.CAPABILITY_CATALOG.length === 68, `${core.CAPABILITY_CATALOG.length} capacidades`);
   check('49) los proveedores, modelos y adaptadores de siempre siguen igual',
-    datos.providers.length === 17 && datos.models.length === 32 && datos.adapters.length === 11,
+    /* 3D dentro de Filmmaker (2026-09-29): dos matrices candidatas más, PENDING y sin capacidades (Meshy, World Labs). */
+    datos.providers.length === 19 && datos.models.length === 32 && datos.adapters.length === 11,
     `${datos.providers.length} prov · ${datos.models.length} mod · ${datos.adapters.length} adap`);
   check('50) el registro real sigue sin errores de integridad', composicion.problemasDelRegistro().filter((p) => p.severity === 'error').length === 0);
   /* Y las matrices que sí estaban pendientes siguen exactamente donde estaban. */

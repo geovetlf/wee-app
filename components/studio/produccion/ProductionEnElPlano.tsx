@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import CampoQueCrece from '../../creator/CampoQueCrece';
-import { Aviso, Seccion } from './ProductionPiezas';
+import { Aviso, BotonPequeno, Seccion } from './ProductionPiezas';
+import ProductionSelectorDeGuardados from './ProductionSelectorDeGuardados';
+import { capacidadDeCreacion } from '../../../constants/assetsDeFilmmaker';
+import type { ElementoGuardado } from '../../../services/elementsService';
 import { EspacioDeFilmmaker, elegidoDe } from './espacio';
 import { LIMITES, estadoEfectivo, repartoDelPlano, requisitosDeProduccion } from '../../../services/filmmaker/dominio';
-import { CLAVE_DE_CAPACIDAD, CLAVE_DEL_PAPEL_DE_REFERENCIA, PAPELES_DEL_PLANO } from '../../../constants/filmmaker';
+import { CLASES_POR_FICHA, CLAVE_DE_CAPACIDAD, CLAVE_DEL_PAPEL_DE_REFERENCIA, PAPELES_DEL_PLANO } from '../../../constants/filmmaker';
 import type { FilmmakerOperation, ProductionReference } from '../../../services/filmmaker/dominio';
 import { conLaDelPapel } from '../../../utils/produccionEditable';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
@@ -63,6 +66,10 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
   const { t } = useIdioma();
   const { produccion, seleccion, editable, onGesto } = espacio;
   const [estadoDe, setEstadoDe] = useState<string | null>(null);
+  /* 3D dentro de Filmmaker: de qué clase se está eligiendo algo guardado (en el sitio de la lista, como en el proyecto). */
+  const [desdeGuardados, setDesdeGuardados] = useState<'personaje' | 'objeto' | 'lugar' | null>(null);
+  const cargarGuardados = espacio.elementos?.cargar;
+  useEffect(() => { if (desdeGuardados && cargarGuardados) cargarGuardados(CLASES_POR_FICHA[desdeGuardados]); }, [desdeGuardados, cargarGuardados]);
   const elegido = elegidoDe(produccion, seleccion);
   if (!elegido) return <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsDirectorNoSelection')}</Text>;
   const { escena, plano } = elegido;
@@ -89,6 +96,42 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
     const c = r.ok ? r.requirements.shots.find((s) => s.unitId === plano.id)?.capability : undefined;
     return c ? CLAVE_DE_CAPACIDAD[c] : undefined;
   })();
+  /*
+   * DESDE LO GUARDADO, EN ESTE PLANO (3D dentro de Filmmaker). La identidad manda: si la producción ya tiene una ficha
+   * vinculada a ese guardado, entra ESA ficha —su ID, el mismo en todos los planos donde sale—; si no, se añade una
+   * ficha con su nombre, vinculada a él en su versión, y entra. Todo en un solo gesto de F1-A.
+   */
+  const puedeDesdeGuardados = !!espacio.elementos && !!espacio.idsDeFichas && editable;
+  const desdeGuardado = (clase: 'personaje' | 'objeto' | 'lugar', e: ElementoGuardado) => {
+    const fichas: readonly { readonly id: string; readonly element?: { readonly elementId: string } }[] = clase === 'personaje' ? produccion.characters : clase === 'objeto' ? produccion.objects : produccion.locations;
+    const ya = fichas.find((f) => f.element?.elementId === e.elementId);
+    const nuevoId = clase === 'personaje' ? espacio.idsDeFichas?.personaje : clase === 'objeto' ? espacio.idsDeFichas?.objeto : espacio.idsDeFichas?.lugar;
+    if (!ya && !nuevoId) return;
+    const id = ya?.id ?? (nuevoId as () => string)();
+    const vinculo = { element: { elementId: e.elementId, version: e.version } };
+    const alta: FilmmakerOperation[] = ya ? [] : clase === 'personaje'
+      ? [{ op: 'add_character', character: { id, name: e.name } }, { op: 'update_character', characterId: id, changes: vinculo } as FilmmakerOperation]
+      : clase === 'objeto'
+        ? [{ op: 'add_object', object: { id, name: e.name } }, { op: 'update_object', objectId: id, changes: vinculo } as FilmmakerOperation]
+        : [{ op: 'add_location', location: { id, name: e.name } }, { op: 'update_location', locationId: id, changes: vinculo } as FilmmakerOperation];
+    let uso: FilmmakerOperation;
+    if (clase === 'lugar') {
+      uso = { op: 'change_location', sceneId: escena.id, locationId: id };
+    } else {
+      const campo = clase === 'personaje' ? 'characterIds' : 'objectIds';
+      const nueva = [...new Set([...(clase === 'personaje' ? reparto : objetos), id])];
+      uso = plano
+        ? { op: 'update_shot', shotId: plano.id, changes: { [campo]: nueva } } as FilmmakerOperation
+        : { op: 'update_scene', sceneId: escena.id, changes: { [campo]: nueva } } as FilmmakerOperation;
+    }
+    if (onGesto([...alta, uso]).ok) setDesdeGuardados(null);
+  };
+  if (desdeGuardados && espacio.elementos) {
+    return <ProductionSelectorDeGuardados elementos={espacio.elementos} onElegir={(e) => desdeGuardado(desdeGuardados, e)} onVolver={() => setDesdeGuardados(null)} />;
+  }
+  const botonDesdeGuardados = (clase: 'personaje' | 'objeto' | 'lugar') => (puedeDesdeGuardados
+    ? <BotonPequeno icono={capacidadDeCreacion('plano_desde_guardados').icono} etiqueta={t('filmmaker.wsShotFromSaved')} onPress={() => setDesdeGuardados(clase)} conTexto />
+    : null);
   const conEstado = estadoDe && reparto.has(estadoDe) ? estadoDe : null;
   const estado = conEstado ? estadoEfectivo(escena, plano, conEstado) : undefined;
   return (
@@ -105,6 +148,7 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
             />
           )}
         {heredado && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsCastInherited')}</Text>}
+        {botonDesdeGuardados('personaje')}
       </Seccion>
 
       {reparto.size > 0 && (
@@ -158,6 +202,7 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
               onCambiar={(id, si) => cambiarLista('objectIds', objetos, id, si)}
             />
           )}
+        {botonDesdeGuardados('objeto')}
       </Seccion>
 
       <Seccion titulo={t('filmmaker.wsLocationOfScene')}>
@@ -171,6 +216,7 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
               onCambiar={(id, si) => onGesto([{ op: 'change_location', sceneId: escena.id, locationId: si ? id : null }])}
             />
           )}
+        {botonDesdeGuardados('lugar')}
       </Seccion>
 
       {!!plano && (
@@ -215,6 +261,9 @@ const ProductionEnElPlano: React.FC<{ espacio: EspacioDeFilmmaker }> = ({ espaci
           {!!capacidad && <Text style={[styles.nota, { color: theme.colors.textSecondary }]}>{t('filmmaker.wsShotWouldNeed', { capacidad: t(capacidad) })}</Text>}
         </Seccion>
       )}
+      {/* 3D dentro de Filmmaker: la puesta en escena en 3D, cerrada con su porqué (le faltan su editor y su sitio en F1-A). */}
+      <BotonPequeno icono={capacidadDeCreacion('escena_3d').icono} etiqueta={t('filmmaker.wsScene3d')} onPress={() => undefined}
+        disabled porque={t(capacidadDeCreacion('escena_3d').porque ?? '')} conTexto />
     </View>
   );
 };

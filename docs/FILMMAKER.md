@@ -1921,6 +1921,38 @@ Encargo del usuario (2026-09-29, punto 11): el montaje, la descarga, el Weël y 
 
 Pruebas: `functions/test/filmmaker-versiones-finales.test.mjs` (en la cadena).
 
+### 3D dentro de Filmmaker · Crear, guardar y reutilizar personajes, lugares y objetos
+
+Encargo del usuario (2026-09-29): «3D vive dentro de Filmmaker; Filmmaker no vive dentro de 3D.» UN WEË · UN ASSET
+ENGINE · UN SISTEMA DE ELEMENTS · UN GRAN MOTOR · MUCHAS EXPERIENCIAS. Auditoría y mapa completos en
+[`docs/FILMMAKER-3D.md`](FILMMAKER-3D.md).
+
+- **Nada nuevo por fuera**: ni una sección, pestaña, pantalla, ruta, biblioteca ni motor 3D. El material es el del
+  Content Core (que ya conocía `model3d`: GLB, glTF, OBJ) y lo guardado es Elements (de la cuenta, versionado,
+  archivable). Filmmaker los consume; Weë Design podrá consumir los mismos.
+- **Crear de otra forma**, dentro de Reparto, Lugares y Objetos, en el sitio de la lista:
+  - desde lo guardado (si ya está en la producción, se abre la ficha que había);
+  - desde Mis creaciones, con una imagen o un modelo 3D: un Element que APUNTA al material, y la ficha vinculada;
+  - cerradas y con su porqué: imagen con IA (autorización de la puerta), en 3D con IA (sin proveedor integrado) e
+    importar un modelo 3D (la subida sin activar y sin visor).
+- **Guardar para reutilizar**, en cada ficha: un Element de su clase (un producto, como producto), con su nombre, lo
+  que dice y los materiales de sus referencias, y la ficha vinculada a él. Su versión 3D y, en un lugar, la escena
+  3D: cerradas, con su porqué.
+- **El plano**: «Desde tus guardados» en quién sale, qué hay y dónde. Si ya está en la producción, entra ESA ficha
+  (su ID): la continuidad por identidad que F1-A ya tenía. La puesta en escena en 3D, cerrada.
+- **Referencias**: el modelo 3D, cerrado como referencia de una toma (Seedance no recibe 3D).
+- **Weë Brain**: «Detectar el reparto» rellena la caja; Weë Brain propone las fichas y la persona decide.
+- **Sin tocar**: ni un contrato de F1, ni el motor, ni Credits, ni reglas. El registro de matrices suma las candidatas
+  3D identificadas, como PENDING y sin capacidades.
+- **Pide autorización**:
+  - desplegar la puerta `elements` (hoy no está en get-wee);
+  - activar la subida de Media Cloud;
+  - el catálogo (`3d.animate` y las variantes de `3d.generate`);
+  - el contrato F1-A `staging` y el tipo de ficha;
+  - la integración y los canaries del proveedor 3D.
+
+Pruebas: `functions/test/filmmaker-3d-assets.test.mjs` (en la cadena). Sabotajes: `sab-fase3d`.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

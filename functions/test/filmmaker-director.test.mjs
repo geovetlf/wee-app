@@ -459,17 +459,18 @@ const { atajosDelDirector } = cargar('utils/atajosDelDirector.ts');
 {
   const ids = (xs) => xs.map((a) => a.id).join(',');
   const vacia = atajosDelDirector({ scenes: [] }, null);
-  check('B1) sin escenas: empezar —proponer las escenas o convertir un guion—, las dos destacadas', ids(vacia) === 'escenas,guion' && vacia.every((a) => a.principal));
+  /* Reanclada con 3D dentro de Filmmaker: «Detectar el reparto» va siempre, al final y sin destacar. */
+  check('B1) sin escenas: empezar —proponer las escenas o convertir un guion—, las dos destacadas; y detectar el reparto', ids(vacia) === 'escenas,guion,reparto' && vacia.slice(0, 2).every((a) => a.principal) && !vacia[2].principal);
   const sinElegir = atajosDelDirector(produccionUI(), null);
-  check('B2) con escenas y nada elegido: escenas, planos, revisar, explicar, continuidad (hay dos planos) y guion', ids(sinElegir) === 'escenas,planos,revisar,explicar,continuidad,guion'
+  check('B2) con escenas y nada elegido: escenas, planos, revisar, explicar, continuidad (hay dos planos) y guion', ids(sinElegir) === 'escenas,planos,revisar,explicar,continuidad,guion,reparto'
     && sinElegir.find((a) => a.id === 'planos').texto === 'filmmaker.wsBrainQuickShotsText');
   const conPlano = atajosDelDirector(produccionUI(), { escena: 1, plano: 2 });
   check('B3) con un plano elegido: también mejorarlo y su cobertura, con su escena y su plano; «planos» es de SU escena',
-    ids(conPlano) === 'escenas,planos,revisar,explicar,continuidad,mejorar,cobertura,guion'
+    ids(conPlano) === 'escenas,planos,revisar,explicar,continuidad,mejorar,cobertura,guion,reparto'
     && JSON.stringify(conPlano.find((a) => a.id === 'mejorar').valores) === JSON.stringify({ escena: 1, plano: 2 })
     && conPlano.find((a) => a.id === 'planos').texto === 'filmmaker.wsBrainQuickShotsSceneText' && conPlano.find((a) => a.id === 'planos').valores.escena === 1);
   const unaSola = atajosDelDirector({ scenes: [{ shots: [] }] }, { escena: 1 });
-  check('B4) con una sola unidad no hay continuidad que revisar; con una escena elegida, sin plano, no hay «mejorar» ni «cobertura»', ids(unaSola) === 'escenas,planos,revisar,explicar,guion');
+  check('B4) con una sola unidad no hay continuidad que revisar; con una escena elegida, sin plano, no hay «mejorar» ni «cobertura»', ids(unaSola) === 'escenas,planos,revisar,explicar,guion,reparto');
   check('B5) cada puerta tiene su etiqueta y su petición en español', [...vacia, ...conPlano].every((a) => ES.filmmaker[a.clave.split('.')[1]] && ES.filmmaker[a.texto.split('.')[1]]));
 }
 

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { elementsService, type ElementoGuardado } from '../services/elementsService';
+import { elementsService, nuevoIdDeElemento, type ElementoGuardado, type NuevoElemento, type ResultadoDeCrearElemento } from '../services/elementsService';
 
 /**
  * WEË FILMMAKER · FASE 20 · LO GUARDADO, PARA VINCULARLO a una ficha de la producción.
@@ -26,6 +26,8 @@ export interface ElementosParaVincular {
   readonly cargandoMas: boolean;
   readonly cargar: (tipos: readonly string[]) => void;
   readonly cargarMas: () => void;
+  /** 3D dentro de Filmmaker: guardar algo en la cuenta para reutilizarlo (Elements, op create); el id lo pone el hook. Opcional para los dobles de antes. */
+  readonly crear?: (nuevo: Omit<NuevoElemento, 'elementId'> & { readonly elementId?: string }) => Promise<ResultadoDeCrearElemento>;
 }
 
 /** Lo cargado de una clase y el cursor de su página siguiente, si la hay. */
@@ -78,6 +80,21 @@ export const useElementosParaVincular = (): ElementosParaVincular => {
     })();
   }, [clases, cargandoMas, carga]);
 
+  /*
+   * GUARDAR ALGO PARA REUTILIZARLO (3D dentro de Filmmaker). Lo pide el servicio de siempre, y lo guardado entra al
+   * principio de su clase si esa clase ya estaba cargada: quien lo acaba de guardar lo ve sin volver a preguntar.
+   */
+  const crear = useCallback(async (nuevo: Omit<NuevoElemento, 'elementId'> & { readonly elementId?: string }): Promise<ResultadoDeCrearElemento> => {
+    /* El id lo pone el hook, una vez por petición: las piezas no hablan con los servicios (regla de la Fase 24). */
+    const r = await elementsService.crear({ ...nuevo, elementId: nuevo.elementId ?? nuevoIdDeElemento() });
+    if (r.ok) {
+      setClases((antes) => antes.map((c) => (c.tipo === r.elemento.type && !c.elementos.some((e) => e.elementId === r.elemento.elementId)
+        ? { ...c, elementos: [r.elemento, ...c.elementos] }
+        : c)));
+    }
+    return r;
+  }, []);
+
   return {
     carga,
     lista: clases.flatMap((c) => c.elementos),
@@ -85,6 +102,7 @@ export const useElementosParaVincular = (): ElementosParaVincular => {
     cargandoMas,
     cargar,
     cargarMas,
+    crear,
   };
 };
 

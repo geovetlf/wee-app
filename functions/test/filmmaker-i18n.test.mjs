@@ -108,6 +108,8 @@ const CODIGO = [
   'utils/describirOperacion.ts',
   /* Fase 34 del motor: las puertas rápidas de Weë AI Director, que eligen según la producción y lo elegido. */
   'utils/atajosDelDirector.ts',
+  /* 3D dentro de Filmmaker: el mapa de las formas de crear, con sus etiquetas y sus porqués. */
+  'constants/assetsDeFilmmaker.ts',
 ];
 const pedidas = [...new Set(CODIGO.flatMap((f) => [...leer(f).matchAll(/'filmmaker\.([A-Za-z][A-Za-z0-9_]*)'/g)].map((m) => m[1])))];
 const sinTexto = pedidas.filter((k) => !ES.has(k) && !ES.has(`${k}_one`));

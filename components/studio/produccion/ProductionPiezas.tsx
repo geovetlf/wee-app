@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
+import { notify } from '../../../utils/notify';
 
 const isWeb = Platform.OS === 'web';
 
@@ -72,12 +73,19 @@ export const BotonPequeno: React.FC<{
   /** Con texto al lado del icono; sin él, solo el icono (la etiqueta sigue siendo lo que oye un lector). */
   conTexto?: boolean;
   principal?: boolean;
-}> = ({ icono, etiqueta, onPress, disabled, conTexto, principal }) => {
+  /**
+   * POR QUÉ está apagado (3D dentro de Filmmaker). Con él, el botón sigue apagado a la vista, pero al tocarlo lo dice (y
+   * quien no ve lo oye como pista): una capacidad cerrada se enseña con su porqué, nunca como un botón muerto.
+   */
+  porque?: string;
+}> = ({ icono, etiqueta, onPress, disabled, conTexto, principal, porque }) => {
   const { theme } = useTheme();
+  const explica = !!disabled && !!porque;
   return (
     <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
+      onPress={explica ? () => notify(etiqueta, porque) : onPress}
+      disabled={!!disabled && !explica}
+      accessibilityHint={disabled ? porque : undefined}
       activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={etiqueta}

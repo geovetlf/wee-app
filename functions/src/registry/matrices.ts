@@ -67,8 +67,11 @@ export const MATRICES_PENDIENTES: readonly RegisteredProvider[] = [
    * deshacer después: `3d.generate` y `render.architecture` son capacidades
    * distintas en el catálogo, y el día que haya un motor de render
    * especializado entra sin tocar nada de 3D. */
-  pendiente('tripo', 'Tripo', 'Candidata para capacidades 3D. Nada verificado todavía: sin modelos ni endpoints en este repositorio.'),
-  pendiente('hunyuan3d', 'Hunyuan 3D (Tencent)', 'Candidata para capacidades 3D. Sin verificar.'),
+  pendiente('tripo', 'Tripo', 'Candidata para capacidades 3D. API oficial verificada (2026-09-29): personaje, criatura, objeto, textura, riggeo de 7 tipos, animación por presets y conversión; sin escenarios. Ver docs/FILMMAKER-3D.md.'),
+  pendiente('hunyuan3d', 'Hunyuan 3D (Tencent)', 'Candidata para capacidades 3D. API oficial de Tencent Cloud verificada (2026-09-29): texto, imagen y multivista a 3D, textura, riggeo en T, animación por presets y conversión; sin escenarios. Exige etiquetar lo publicado como generado con IA. Ver docs/FILMMAKER-3D.md.'),
+  /* 3D dentro de Filmmaker (2026-09-29): las dos que cubren lo que Tripo y Hunyuan 3D no cubren. */
+  pendiente('meshy', 'Meshy', 'Candidata para 3D: la única API oficial de texto a movimiento encontrada, y personaje en pose A/T con riggeo humanoide. Sus imágenes son de otros modelos revendidos: esas NO. Ver docs/FILMMAKER-3D.md.'),
+  pendiente('worldlabs', 'World Labs', 'Candidata para escenarios 3D navegables (Marble), con malla GLB. Ni Tripo ni Hunyuan 3D hacen escenarios. Ver docs/FILMMAKER-3D.md.'),
 
   /* ── VISUAL ──────────────────────────────────────────────────────────── */
   pendiente('qwen', 'Qwen (Alibaba)', 'Candidata para capacidades visuales y de texto. Sin verificar.'),

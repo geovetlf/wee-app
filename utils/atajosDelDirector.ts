@@ -10,7 +10,9 @@
  *   · siempre: proponer escenas, proponer planos (de la escena elegida, si la hay), revisar la producción, explicar
  *     qué le falta, y convertir un guion;
  *   · con dos unidades o más: revisar la continuidad entre ellas;
- *   · con un plano elegido: mejorar ese plano y proponer su cobertura (otros ángulos de la misma acción).
+ *   · con un plano elegido: mejorar ese plano y proponer su cobertura (otros ángulos de la misma acción);
+ *   · siempre (3D dentro de Filmmaker): detectar el reparto —quién sale, dónde y con qué— de la idea y del guion, para
+ *     que Weë Brain PROPONGA las fichas que faltan. Proponer no es crear: aplicar sigue siendo de la persona.
  */
 export interface SitioElegido {
   readonly escena: number;
@@ -18,7 +20,7 @@ export interface SitioElegido {
 }
 
 export interface AtajoDelDirector {
-  readonly id: 'escenas' | 'planos' | 'revisar' | 'explicar' | 'continuidad' | 'mejorar' | 'cobertura' | 'guion';
+  readonly id: 'escenas' | 'planos' | 'revisar' | 'explicar' | 'continuidad' | 'mejorar' | 'cobertura' | 'guion' | 'reparto';
   /** La etiqueta del botón. */
   readonly clave: string;
   /** La petición con la que rellena la caja, y sus valores. */
@@ -35,7 +37,8 @@ export const atajosDelDirector = (
 ): readonly AtajoDelDirector[] => {
   const escenas: AtajoDelDirector = { id: 'escenas', clave: 'filmmaker.wsBrainQuickScenes', texto: 'filmmaker.wsBrainQuickScenesText', icono: 'albums-outline' };
   const guion: AtajoDelDirector = { id: 'guion', clave: 'filmmaker.wsBrainQuickScript', texto: 'filmmaker.wsBrainQuickScriptText', icono: 'document-text-outline' };
-  if (!produccion.scenes.length) return [{ ...escenas, principal: true }, { ...guion, principal: true }];
+  const reparto: AtajoDelDirector = { id: 'reparto', clave: 'filmmaker.wsBrainQuickCast', texto: 'filmmaker.wsBrainQuickCastText', icono: 'people-outline' };
+  if (!produccion.scenes.length) return [{ ...escenas, principal: true }, { ...guion, principal: true }, reparto];
   const unidades = produccion.scenes.reduce((n, s) => n + Math.max(1, s.shots.length), 0);
   return [
     escenas,
@@ -52,5 +55,6 @@ export const atajosDelDirector = (
       ]
       : []),
     guion,
+    reparto,
   ];
 };

@@ -4,8 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { assetsService, vistaDeAsset } from '../services/assetsService';
 import type { AssetDoc } from '../services/assetsService';
 
-/** Las clases de material que una referencia de F1-A puede ser. */
-export type ClaseDeReferencia = 'image' | 'video' | 'audio';
+/**
+ * Las clases de material que se piden aquí. `model3d` (3D dentro de Filmmaker) solo la pide «Crear › Desde Mis
+ * creaciones», para que un modelo tuyo sea la cosa que se guarda; como referencia de una toma sigue cerrada.
+ */
+export type ClaseDeReferencia = 'image' | 'video' | 'audio' | 'model3d';
 
 export interface CreacionParaReferencia {
   readonly assetId: string;

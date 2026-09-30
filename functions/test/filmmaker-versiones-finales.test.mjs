@@ -518,7 +518,8 @@ console.log('\n── F · Los textos, en los once diccionarios ──');
 console.log('\n── G · Las guardas ──');
 {
   const ANTES = git('log --format=%H -n 1 --grep "Phase 37: audio and timeline"').trim();
-  const HASTA = git('log --format=%H -n 1 --grep "Phase 38: final versions and deliveries"').trim();
+  /* El commit se llamó «Phase 38a: …» (el primer paso del cierre real): buscado así, la valla mira SU tramo. */
+  const HASTA = git('log --format=%H -n 1 --grep "Phase 38a: final versions and deliveries"').trim();
   const tramo = HASTA ? `${ANTES} ${HASTA}` : ANTES;
   const tocados = git(`diff --name-only ${tramo}`).trim().split('\n').filter(Boolean).filter((p) => !p.startsWith('functions/lib/'));
   const servidor = tocados.filter((p) => /^functions\/src\/|^services\/filmmaker\/espejo\/|\.rules$|firestore\.indexes\.json$/.test(p));

@@ -72,8 +72,9 @@ check('M2 cada fila tiene exactamente 17 celdas', crudas.every((c) => c.length =
 const ids = filas.map((f) => f.ID);
 check('M3 ningún id se repite', new Set(ids).size === ids.length);
 const serie = (letra, hasta) => Array.from({ length: hasta }, (_, i) => `${letra}${String(i + 1).padStart(2, '0')}`);
-const ESPERADOS = [...serie('C', 76), ...serie('X', 20), ...serie('N', 31), ...serie('I', 20)];
-check('M4 están C01–C76, X01–X20, N01–N31 e I01–I20, y nada más',
+/* 3D dentro de Filmmaker: T01–T12, lo que no existía (lo que ya tenía fila —I02, I11— se actualiza, no se repite). */
+const ESPERADOS = [...serie('C', 76), ...serie('X', 20), ...serie('N', 31), ...serie('I', 20), ...serie('T', 12)];
+check('M4 están C01–C76, X01–X20, N01–N31, I01–I20 y T01–T12, y nada más',
   ESPERADOS.every((id) => porId.has(id)) && ids.length === ESPERADOS.length,
   `faltan ${ESPERADOS.filter((id) => !porId.has(id)).join(',') || '—'}; sobran ${ids.filter((id) => !ESPERADOS.includes(id)).join(',') || '—'}`);
 check('M5 cada STATUS es una de las ocho letras', filas.every((f) => ESTADOS.includes(f.STATUS)),

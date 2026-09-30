@@ -169,6 +169,12 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * E4, reancladas con esta fase, igual que en la Fase 15.
    */
   'functions/src/engine/video.ts',
+  /*
+   * 3D dentro de Filmmaker (encargo del usuario del 2026-09-29): el registro de matrices candidatas verifica Tripo y
+   * Hunyuan 3D contra sus APIs oficiales y suma Meshy y World Labs, todas PENDING y SIN capacidades ni modelos —nada
+   * puede elegirlas; la validación del registro lo impide—. Ni un adaptador, ni una cadena, ni Credits.
+   */
+  'functions/src/registry/matrices.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

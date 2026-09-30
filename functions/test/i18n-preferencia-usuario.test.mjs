@@ -643,7 +643,7 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
    * que un montaje corto también va entero al Wäll (`wsPublishBoth`) y las entregas cerradas con su porqué
    * (`wsExportDeliveries`, `wsExportPosterPick*`, `wsExportMaster*`, `wsExportUpscale*`)—, en los once.
    */
-  const CLAVES_PT = 3650;
+  const CLAVES_PT = 3687;
   check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
     claves('pt') === CLAVES_PT
     && t('pt')('settings.title') === 'Configurações'
