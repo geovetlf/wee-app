@@ -163,6 +163,11 @@ riesgo no es el total sino UNA palabra larga en un botón o una pestaña.
 **Ni se traducen, ni se adaptan, ni se pluralizan.** `Weë Stüdyo`, `Weë Müzik`, `Weë Şef`, `Kredi`, `Krediler` están
 mal aunque suenen naturales: son justo la tentación del turco, porque se escriben casi igual.
 
+**Los nombres de las funciones y los módulos de Weë Business** —Business Plan, Business Coach, Pricing Assistant,
+Brand Kit, Customer Insights, Business Ideas, Business Profile; y My Business, Products & Catalog, Create, Social,
+Analyze, Grow, Promote— son nombres de producto y se escriben igual en todos los idiomas, como Weë Studio (decisión del
+usuario, 2026-09-16). Lo que hace cada uno sí se traduce, en su pista. «SWOT» se queda como sigla: `SWOT analizi`.
+
 **Sufijos.** La TDK pide apóstrofo y que la terminación siga la PRONUNCIACIÓN del nombre (`Cannes'a`, `Photoshop'ta`),
 sin ablandar la consonante (`WeeTalk'a`, no `WeeTalğ'a`). La pronunciación de varias marcas de Weë no está fijada
 («Wäll» ¿vol o vel?, «Travel» ¿travıl o trevıl?), así que solo se usan las terminaciones que salen IGUAL con cualquier
