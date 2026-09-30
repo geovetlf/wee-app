@@ -117,6 +117,10 @@ código: si el código cambia y la tabla no, falla.
 | R20 | cerrado (Fase 33) | Vídeo y audio de referencia compartían un cupo; en 2.0 se dejaba pasar solo audio |
 | R21 | se queda | Semilla y cámara fija cableadas para parámetros que la API solo documenta en 1.x: no hacen daño y no se prometen |
 | R22 | cerrado (Fase 33) | El precio de un vídeo lo abarataba quien llamaba: `-1` se cotizaba como 5 s y los segundos de vídeo de entrada los declaraba el cliente. Ahora, el máximo del modelo (encontrado en la Fase 33). En producción desde el 2026-09-29: solo `generateVideo`, revisión `generatevideo-00010-qes`, el arreglo `7f11d51` sobre `96b3f7a`; ver `docs/FILMMAKER-R22-GENERATEVIDEO.md` |
+| R23 | abierto | En el camino antiguo de `generateVideo` —el de todo el vídeo de Weë Studio mientras `aiSettings/runtime` está cerrada— el sondeo va dentro de la llamada, y CUALQUIER error (una consulta de estado que falla, el plazo, la copia del vídeo) devuelve los Credits aunque ModelArk siga haciendo el vídeo y cobrándolo. En producción (`7f11d51`) y en la rama. Arreglo: con el desenlace desconocido no se devuelve, se reconcilia (lo que ya hace el camino del Core); pide autorización (dinero) y deploy |
+| R24 | abierto | `brainChat`: sin `chatId` cada llamada abre un chat nuevo y el duplicado solo se busca dentro de él, mientras el bloque de doce y el cobro son idempotentes por `messageId`: repetir un `messageId` sin `chatId` genera respuestas nuevas gratis (con búsqueda también). Hace falta un cliente con script. En producción y en la rama. Arreglo: buscar el duplicado por cuenta y `messageId` antes de generar; pide autorización (los Credits de Weë Brain) y deploy |
+| R25 | abierto | Lo «tuyo» (la foto, el documento o el audio de `generateVideo`, `brainChat`, `creatorRun` y el avatar) se comprueba solo por la RUTA (`users/{uid}/…`): cualquier host y cualquier bucket pasan (`parseStorageUrl`), y la descarga no tiene tope antes de leerse. En producción y en la rama. Arreglo: exigir el bucket de Weë y un tope de bytes al leer; pide autorización y deploy |
+| R26 | abierto | Ninguno de los callables pide App Check, y cada cuenta nueva —también la de invitado— recibe 240 Credits de bienvenida: se pueden abrir cuentas en serie. En producción y en la rama. Arreglo: App Check (reCAPTCHA Enterprise en la web; Play Integrity y App Attest en el teléfono) y decidir los Credits del invitado; pide una decisión de producto, la consola y deploy |
 
 #### R3 · Los trabajos de toma que se quedan sin nadie
 
@@ -608,7 +612,7 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 | 37 | Audio y línea de tiempo | La duración de cada sonido (N16); fundido, inicio y «activo» visibles y cerrados (N17); la pista de diálogo en el teléfono (N12); «Generar» en las propiedades del plano (N13). **Hecha** |
 | 38 | Montaje, exportación y publicación | Los montajes anteriores con su fecha, duración y descarga (N02); Weël ≤15 s y Wäll separados y dichos (R9 sigue siendo decisión); cerrados con su porqué: póster elegido (N24), máster para etalonar (N26), escalado (N25). **Hecha** |
 | 39 | Contratos y canaries preparados | Los seis contratos y los cambios menores (R5, R8, N05, N15, N17, N20, N21, N22, N23, I19) con su cambio mínimo exacto, campos, consumidores, pruebas y compatibilidad; cada canary con su objetivo, modelo, entrada, salida, coste estimado, riesgo y la puerta que abre; todo cerrado. **Hecha** (2026-09-30): `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`. Cada contrato se comprobó contra el código y ninguno se podía hacer sin tocar uno cerrado (F1-A, F1-B, F1-D, la valla G12, la regla 10 o el Credit Engine): quedan especificados y cerrados. 33 canaries con sus nueve campos y su coste (los de vídeo, con la fórmula del adaptador), y el camino en orden para generar en 3D |
-| 40 | Cierre de la ronda | La matriz al día, el repaso móvil completo y el informe ejecutivo |
+| 40 | Cierre de la ronda | La matriz al día, el repaso móvil completo y el informe ejecutivo. **Hecha** (2026-09-30): el informe de cierre en el § 7; R23-R26 en la tabla de riesgos con su sonda; el repaso en el navegador a 1280, 390 y 360 px, del que salieron seis textos de lo cerrado reescritos |
 
 ## 6. Lo que necesita una decisión (no se hace sin autorización)
 
@@ -622,10 +626,76 @@ Cada fase actualiza sus filas en esta matriz (el generador vive fuera del repo; 
 | R18: desplegar el parche de la tabla de píxeles del precio de `generateVideo` | Es un deploy: en producción, 1:1 se cotiza un 43,75 % por debajo de lo que factura el proveedor, 4:3 y 3:4 un 25-27 %, la serie 2.0 a 480p un 4,35 %, y 21:9 un 25-31 % por encima. Parche aislado (sin R22), preparado y comprobado: `docs/FILMMAKER-R18-TABLA-DE-PIXELES.md`. El 2026-09-30 se cerró en código —la rama dice lo mismo que el parche— y se comprobó otra vez sobre `7f11d51`; la factura real se valida con el canary K7 | — |
 | R3 (trabajos de toma huérfanos) y R4 (inanición de la reconciliación) | Tocan el runtime cerrado de la Fase 12-D y el barrido desplegado | — |
 | R5 (firma de la toma) y R8 (techo de 1 000 revisiones) | Contratos F1-D y F1-B | — |
-| R23-R26: riesgos hallados el 29-09 en lo desplegado (`generateVideo` `7f11d51` y `brainChat`). R23: en el camino antiguo de Weë Studio se devuelven los Credits con el desenlace desconocido mientras el proveedor sigue. R24: reutilizar un `messageId` sin `chatId` da respuestas gratis. R25: lo «tuyo» se comprueba solo por la ruta, y la descarga no tiene tope. R26: sin App Check, y 240 Credits por cada invitado | Son deploys sobre lo que está en producción, y R26 es además una decisión de producto. Su estado en el código, en el cierre (Fase 40) | — |
+| R23-R26: riesgos hallados el 29-09 en lo desplegado (`generateVideo` `7f11d51` y `brainChat`). R23: en el camino antiguo de Weë Studio se devuelven los Credits con el desenlace desconocido mientras el proveedor sigue. R24: reutilizar un `messageId` sin `chatId` da respuestas gratis. R25: lo «tuyo» se comprueba solo por la ruta, y la descarga no tiene tope. R26: sin App Check, y 240 Credits por cada invitado | Son deploys sobre lo que está en producción, y R26 es además una decisión de producto. Abiertos en producción y en la rama (comprobado el 2026-09-30): cada uno con su arreglo y su sonda en la tabla de riesgos (2.2) | — |
 | R9: cuánto dura un vídeo en el Wäll | Decisión de producto (hoy 600 s; los Weëls, 15 s) | C64 |
 | Los canaries: Alta y Máxima, 4K, primer y último fotograma, referencias, editar, extender, voces, labios, sonido nativo, parar en el proveedor, imagen, visión, Weë Brain real en Filmmaker, 3D, render en la nube, `elements`, importar y ver un modelo 3D | Gastan dinero real o piden un deploy. Los 33, con sus nueve campos y su coste: `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`, § 4 | C49, C67, C50, X18, C51, C52, C59, C60, C53, C54, C71 |
 | Imagen dentro de Filmmaker (boceto, hoja del personaje) y visión sobre las tomas | Una capacidad más por la puerta del Core (regla 10) y su precio | C37, I02, I18 |
 | Personas reales autorizadas (`asset://`) e identificador de seguridad por persona | Privacidad y un proceso con BytePlus | N27, N30 |
-| Las propuestas de disposición del workplace que dejó la auditoría 38b (apartadas) | El workplace está aprobado: cambiar su disposición es decisión tuya. Cuáles son y por qué, en el cierre (Fase 40) | — |
+| Las propuestas de disposición del workplace que dejó la auditoría 38b (apartadas): (1) de 1024 a 1279 px, una barra con el guardado y el proyecto en un cajón —hoy a esos anchos el panel del proyecto no se ve, y con él el guardado y la entrada al storyboard—; (2) quitar los controles que se repiten entre paneles (la descripción en el inspector y al lado, ± en las propiedades y en la barra de corte, la generación en la IA de la línea de tiempo y en el Director, el formato fuera del visor, Exportar, Desarchivar y Versiones repetidos); (3) la pestaña «Velocidad»; (4) en el teléfono, «Lo que se ve» y los toques rápidos en «Director», «Ver el precio» tras una propuesta, volver, duplicar y archivar en «Proyecto», y el visor sin su «+» en «Historia»; (5) «Añadir plano o escena después de este» y una sola pieza para los ± | El workplace está aprobado: cambiar su disposición es decisión tuya. Lo que la auditoría encontró y NO la cambia ya está hecho (`c005e27`, `c190e97`). El parche apartado se conserva fuera del repositorio y se rehace sobre la rama si lo autorizas | — |
 | El 4:5 | Dejar de ofrecerlo o componerlo en el render; la 3:4 sí se generaría (contrato F1-A) | C66, N20 |
+
+## 7. El cierre (Fase 40): dónde queda Filmmaker
+
+> 2026-09-30, rama `filmmaker/core`, trabajo local:
+> - sin push, merge ni deploy;
+> - sin gasto;
+> - ninguna puerta abierta.
+>
+> Quedan sin tocar `main` (`dad0ca2`, con sus cambios sin commitear intactos) y `hotfix/r22-generatevideo` (`7f11d51`).
+
+**En una frase.** Filmmaker está construido dentro de Weë Studio con todo lo que se puede construir sin gasto, sin
+deploy y sin tocar un contrato cerrado. Lo demás está preparado, cerrado en la pantalla con su porqué, y escrito aquí y
+en `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`: qué falta, dónde, cuánto cuesta probarlo y quién lo decide. Lo que queda
+es la fase de pruebas, canaries y despliegue.
+
+**La ronda del cierre, sobre `a861005`.**
+
+| Commit | Qué |
+|---|---|
+| `65fdc6f` | Importar un modelo 3D (GLB) a Mis creaciones: el recorrido entero, preparado y cerrado |
+| `d53cae1` | Ver un modelo 3D desde la ficha y desde Mis creaciones (web) |
+| `fb0fe80` | Weë Brain ante una petición en 3D: propone la ficha y dice que el 3D con IA todavía no está |
+| `c005e27` | Arreglos del workplace que no cambian su disposición |
+| `8cdd9bc` | Fase 39: contratos y canaries preparados |
+| `4ba6d74` | R18 cerrado en código y comprobado otra vez sobre producción |
+| `c190e97` | Estados: ningún botón apagado sin su porqué |
+| `1fefe5f` | Lo cerrado le habla a quien usa Weë |
+| el de esta fase | Fase 40: R23-R26 en la tabla de riesgos, este cierre y la matriz al día |
+
+**La matriz al cierre: 159 capacidades.**
+
+| Estado | Filas | Qué hace falta para cerrarlas |
+|---|---|---|
+| A · usable | 80 | Nada: funcionan en local. Pasan a producción con el merge y el deploy |
+| E · canary | 5 | Están construidas y cerradas; falta encenderlas. C49 y C67 (Alta, Máxima y 4K) con los canaries K9-K12; C71; T07 con INF-2; T08 con INF-3 |
+| D · adaptador | 8 | El proveedor sabe y Filmmaker no lo usa. Contrato 1 (C50, X18), contrato 2 (C51, C52), la 3:4 (N20), y la imagen y la visión dentro de Filmmaker (C37, I02, I18, por la regla 10) |
+| F · contrato | 29 | Especificados en `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`, §§ 1-2 |
+| G · no existe | 26 | Ni motor ni proveedor en Weë hoy. El 3D con IA (T06, T10, T11) espera proveedor: § 3.1 de ese documento |
+| C · sin efecto | 2 | X12 y X13 se guardan, pero todavía no hacen nada en el montaje |
+| H · excluido | 9 | Excluidas a propósito, cada una con su porqué: la regla 10, «Weë elige la IA», la privacidad… |
+
+**Revisado en esta fase.**
+- **Las capacidades.** Cada fila de la matriz está atada a su código por `filmmaker-capability-master`. Lo que dice de contratos y canaries lo ata `filmmaker-contratos-canaries`.
+- **El workplace.** La disposición aprobada no cambió.
+  - Lo que la auditoría 38b encontró y no la cambia ya está hecho (`c005e27`, `c190e97`).
+  - Lo que la cambia está en el § 6, para tu decisión.
+- **El teléfono y el escritorio.** Se repasaron en el navegador a 1280, 390 y 360 px, con el proyecto de demostración local (`demo-wee-filmmaker`, que no toca producción).
+  - Sin desbordes: el editor, «Crear de otra forma» con sus cinco formas y sus candados, el storyboard y la fila de acciones de un plano.
+  - Los porqués se comprobaron en vivo: tocar «Importar un modelo 3D» cerrado, y «Dividir en dos» con un plano de 0,5 s.
+  - Del repaso salieron seis textos de lo cerrado reescritos (`1fefe5f`).
+- **Lo que no se pudo ver en el navegador.** El visor 3D con un modelo: la importación está cerrada y la demostración no tiene almacenamiento. Queda para su canary (INF-3); su suite es `filmmaker-3d-visor`.
+- **La seguridad de lo desplegado.** R23-R26 están abiertos en producción y en la rama. Figuran en la tabla de riesgos (§ 2.2), cada uno con su arreglo y su sonda.
+
+**Lo que pide tu autorización, en un sitio.**
+1. El merge de `filmmaker/core` y el deploy de lo que valida cada canary: `generateVideo`, `shots`, `productions`, `brainChat` con la producción abierta, `elements`, `renders` con `renderWorker`, y `models3d`.
+2. R18: el deploy de su parche aislado. R23-R26: los arreglos sobre lo desplegado; R26 pide además una decisión de producto.
+3. Los 33 canaries, uno a uno (§ 4 del documento de contratos). Antes hay que activar Seedance 2.0 y 2.5 en la consola de BytePlus, y poner la clave de ElevenLabs donde corra el canary de voz.
+4. Los contratos (§§ 1-2 del documento de contratos) y el camino del 3D con IA (§ 3.1): proveedor, vocabulario del motor, tercera capacidad por el conductor, registro y precio.
+5. Las propuestas de disposición de la 38b (§ 6).
+6. Tres decisiones de producto: cuánto dura un vídeo en el Wäll (R9), el 4:5, y las personas reales autorizadas (`asset://`).
+
+**Lo que queda para las pruebas finales.** Ninguna de estas cosas necesita una decisión para ejecutarse:
+- la cadena entera de `npm test`, y el `tsc` de la app y de functions;
+- las baterías de sabotajes de cada fase;
+- las suites del emulador, que están fuera de la cadena;
+- el build nativo de Android, con el visor y el selector de archivos cerrados con su porqué.

@@ -2041,6 +2041,18 @@ lo hay, qué se puede hacer mientras tanto. Otra valla impide que vuelvan.
 
 Pruebas: `functions/test/filmmaker-estados.test.mjs` (en la cadena).
 
+### Fase 40 · El cierre de la ronda
+
+El informe de cierre está en la matriz maestra ([`docs/FILMMAKER-CAPABILITY-MASTER.md`](FILMMAKER-CAPABILITY-MASTER.md),
+§ 7): los commits de la ronda, dónde queda cada una de las 159 capacidades, lo revisado y lo que pide tu autorización.
+
+- **El repaso en el navegador**, a 1280, 390 y 360 px, se hizo con el proyecto de demostración local, que no toca
+  producción. De él salieron los textos de lo cerrado reescritos.
+- **R23-R26**, hallados el 29-09 en lo desplegado, están abiertos también en la rama. Figuran en la tabla de riesgos
+  con su arreglo y una sonda que falla el día que el código cambie sin que la tabla lo diga.
+
+Pruebas: `functions/test/filmmaker-capability-master.test.mjs` (en la cadena), secciones R8 y F.
+
 ## Próximas fases
 
 | Fase | Cómo usa este dominio |

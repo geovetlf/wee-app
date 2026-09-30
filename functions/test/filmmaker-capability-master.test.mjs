@@ -126,8 +126,8 @@ const intento = async (fn) => { try { return { ok: true, valor: await fn() } } c
 
 const RIESGOS = new Map(tabla(seccion('**Estado de los riesgos.**', '### 2.3'), 'Riesgo').filas.map(([id, estado, que]) => [id, { estado, que }]));
 const ESTADOS_DE_RIESGO = /^(abierto|cerrado \(Fase \d+\)|contrato|decisión|se queda)$/;
-check('R1 la tabla de riesgos tiene R2, R3, R4, R5, R8, R9, R15 y R18–R22, cada uno con un estado válido',
-  ['R2', 'R3', 'R4', 'R5', 'R8', 'R9', 'R15', 'R18', 'R19', 'R20', 'R21', 'R22'].every((r) => RIESGOS.has(r) && ESTADOS_DE_RIESGO.test(RIESGOS.get(r).estado)),
+check('R1 la tabla de riesgos tiene R2, R3, R4, R5, R8, R9, R15 y R18–R26, cada uno con un estado válido',
+  ['R2', 'R3', 'R4', 'R5', 'R8', 'R9', 'R15', 'R18', 'R19', 'R20', 'R21', 'R22', 'R23', 'R24', 'R25', 'R26'].every((r) => RIESGOS.has(r) && ESTADOS_DE_RIESGO.test(RIESGOS.get(r).estado)),
   [...RIESGOS].map(([id, r]) => `${id}:${r.estado}`).join(','));
 
 /* Cada sonda dice si el defecto SIGUE en el código. «abierto» ⇔ sigue; «cerrado (Fase N)» ⇔ ya no. */
@@ -159,6 +159,50 @@ for (const [id, sonda] of Object.entries(conDefecto)) {
   const dice = r?.estado === 'abierto' ? true : /^cerrado/.test(r?.estado ?? '') ? false : null;
   check(`R${Object.keys(conDefecto).indexOf(id) + 2} ${id}: la tabla dice «${r?.estado}» y el código ${sigue ? 'todavía tiene' : 'ya no tiene'} el defecto`,
     sigue !== null && dice === sigue, r?.que ?? 'sin fila');
+}
+/*
+ * R23–R26 (Fase 40, el cierre): hallados el 2026-09-29 en lo desplegado y comprobados en la rama el 2026-09-30.
+ * Abiertos en los dos, y se arreglan con autorización. Cada sonda dice si el defecto SIGUE en el código: el día que se
+ * arregle uno, la tabla tiene que decirlo, o esto falla.
+ */
+const enLoDesplegado = {
+  /* El camino antiguo del vídeo devuelve los Credits ante CUALQUIER error, también con el desenlace desconocido. */
+  R23: async () => {
+    const v = sinComentarios(leer('functions/src/creator/video.ts'));
+    const i = v.lastIndexOf('await videoEngine.generate(');
+    return i >= 0 && /\} catch \(error\) \{\s*await creditEngine\.refundCredits\(/.test(v.slice(i));
+  },
+  /* Sin `chatId`, un chat nuevo en cada llamada, y el duplicado solo se busca dentro de él. */
+  R24: async () => {
+    const b = sinComentarios(leer('functions/src/creator/brain.ts'));
+    return /chatRef = db\.collection\('brainChats'\)\.doc\(\);/.test(b) && /const existing = await messages\.doc\(`\$\{messageId\}_wee`\)\.get\(\);/.test(b) && !/collectionGroup\(/.test(b);
+  },
+  /* Una dirección de otro host y otro bucket pasa, porque solo se mira la ruta. */
+  R25: async () => {
+    const ajena = lib('engine/http.js').parseStorageUrl('https://otro.example.com/v0/b/otro-bucket/o/users%2Fu1%2Ffoto.jpg');
+    const inputs = sinComentarios(leer('functions/src/creator/inputs.ts'));
+    const asercion = inputs.slice(inputs.indexOf('export const assertInputImageUrl'), inputs.indexOf('export const needsInputImage'));
+    return !!ajena && ajena.bucket === 'otro-bucket' && asercion.length > 0 && !/bucket/.test(asercion);
+  },
+  /* Ningún callable pide App Check, y la bienvenida da Credits a toda cuenta nueva. */
+  R26: async () => {
+    const fuentes = [];
+    const andar = (d) => {
+      for (const e of fs.readdirSync(path.resolve(RAIZ, d), { withFileTypes: true })) {
+        const p = `${d}/${e.name}`;
+        /* Sin comentarios: que una línea que HABLE de App Check no cuente como pedirlo. */
+        if (e.isDirectory()) andar(p); else if (p.endsWith('.ts')) fuentes.push(sinComentarios(leer(p)));
+      }
+    };
+    andar('functions/src');
+    return fuentes.length > 100 && !fuentes.some((s) => /enforceAppCheck/.test(s)) && lib('credits/creditCosts.js').WELCOME_CREDITS > 0;
+  },
+};
+for (const [id, sonda] of Object.entries(enLoDesplegado)) {
+  const r = RIESGOS.get(id);
+  const sigue = await sonda().catch(() => null);
+  check(`R8 ${id}: la tabla dice «${r?.estado}» y el código ${sigue ? 'todavía tiene' : 'ya no tiene'} el defecto (en producción y en la rama)`,
+    sigue !== null && (r?.estado === 'abierto') === sigue, r?.que ?? 'sin fila');
 }
 const src = sinComentarios(leer('functions/src/engine/providers/seedance.ts'));
 const deLaToma = (() => {
@@ -269,6 +313,31 @@ check('I6 los catorce conceptos de producto están, cada uno con lo que Weë tie
 check('I7 lo que Weë no hace a propósito se clasifica G, no se propone: varios modelos, varios agentes, piloto automático',
   ['Muchos modelos a elegir, plano a plano', 'Agentes con roles y memoria', 'Piloto automático de una pulsación'].every((h) => hallazgos.find((x) => x.Hallazgo === h)?.Clase === 'G'));
 check('I8 Sora se dice cerrado, con fecha', /Sora ya no cuenta: OpenAI cerró la app el 2026-04-26 y la API el 2026-09-24/.test(INV.replace(/\s+/g, ' ')));
+
+/* ═══ F · el cierre (Fase 40) ═════════════════════════════════════════════ */
+console.log('\n— F · el cierre (Fase 40): dónde queda cada cosa, contra la matriz y contra git —');
+{
+  const CIERRE = seccion('## 7. El cierre (Fase 40)');
+  const estados = tabla(CIERRE.slice(CIERRE.indexOf('**La matriz al cierre')), 'Estado').filas;
+  const dice = Object.fromEntries(estados.map(([e, n]) => [e.split(' · ')[0], Number(n)]));
+  const hay = Object.fromEntries(['A', 'C', 'D', 'E', 'F', 'G', 'H'].map((c) => [c, filas.filter((f) => f.STATUS === c).length]));
+  check('F1 el recuento del cierre es el de la matriz, estado a estado, y suma todas sus filas',
+    CIERRE.length > 0 && Object.keys(hay).every((c) => dice[c] === hay[c]) && Object.values(dice).reduce((s, x) => s + x, 0) === filas.length
+    && CIERRE.includes(`**La matriz al cierre: ${filas.length} capacidades.**`), JSON.stringify({ dice, hay, total: filas.length }));
+  const ronda = tabla(CIERRE.slice(CIERRE.indexOf('**La ronda del cierre')), 'Commit').filas.map(([c]) => (c.match(/^`([0-9a-f]{7})`$/) ?? [])[1]).filter(Boolean);
+  const existe = (h) => { try { git(`merge-base --is-ancestor ${h} HEAD`); return true; } catch { return false; } };
+  check('F2 cada commit de la ronda existe y es de esta rama (antecesor de HEAD), en su orden',
+    ronda.length === 8 && ronda.every(existe) && ronda.every((h, i) => i === 0 || existe(`${ronda[i - 1]}`) && git(`rev-list --count ${ronda[i - 1]}..${h}`).trim() !== '0'), ronda.join(' '));
+  const plan = seccion('## 5. Las fases que siguen', '## 6.');
+  check('F3 las Fases 39 y 40, hechas en el plan', /\| 39 \| Contratos y canaries preparados \|[^\n]*\*\*Hecha\*\*/.test(plan) && /\| 40 \| Cierre de la ronda \|[^\n]*\*\*Hecha\*\*/.test(plan));
+  const decisiones = seccion('## 6.', '## 7.');
+  check('F4 lo que espera tu decisión dice las cinco propuestas de disposición de la 38b, y R23-R26 con su estado en el código',
+    ['(1) de 1024 a 1279 px', '(2) quitar los controles que se repiten', '(3) la pestaña «Velocidad»', '(4) en el teléfono', '(5) «Añadir plano o escena después de este»'].every((p) => decisiones.includes(p))
+    && /R23-R26[^\n]*Abiertos en producción y en la rama/.test(decisiones));
+  check('F5 y el cierre dice lo que no se hizo, y qué queda para las pruebas finales',
+    /sin push, merge ni deploy;[\s\S]*sin gasto;[\s\S]*ninguna puerta abierta\./.test(CIERRE) && /Quedan sin tocar `main`[\s\S]*`hotfix\/r22-generatevideo`/.test(CIERRE)
+    && /\*\*Lo que queda para las pruebas finales\.\*\*/.test(CIERRE) && /\*\*Lo que pide tu autorización, en un sitio\.\*\*/.test(CIERRE));
+}
 
 /* ═══ X · las guardas ═════════════════════════════════════════════════════ */
 console.log('\n— X · las guardas —');
