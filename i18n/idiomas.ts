@@ -131,12 +131,6 @@ export const IDIOMAS: readonly Idioma[] = [
     ],
   },
   /*
-   * Primer idioma que necesita MÁS formas de plural que el español: cuatro en
-   * vez de dos. El motor ya lo preveía y el tipo lo permite desde
-   * `textos/ru/plurales.ts`; lo comprueba `functions/test/i18n-plurales-ru.test.mjs`
-   * ejecutando el traductor de verdad con los doce números que importan.
-   */
-  /*
    * Lo propio del turco no es el plural —`Intl.PluralRules('tr')` tiene `one` y
    * `other`, y tras una cifra el sustantivo va en singular, así que las dos
    * formas suelen decir lo mismo— sino la CAJA y los SUFIJOS: la mayúscula de
@@ -146,6 +140,12 @@ export const IDIOMAS: readonly Idioma[] = [
    * `docs/I18N-TURCO.md` y lo vigila `functions/test/i18n-turco.test.mjs`.
    */
   { codigo: 'tr', nombreNativo: 'Türkçe', direccion: 'ltr', listo: true },
+  /*
+   * Primer idioma que necesita MÁS formas de plural que el español: cuatro en
+   * vez de dos. El motor ya lo preveía y el tipo lo permite desde
+   * `textos/ru/plurales.ts`; lo comprueba `functions/test/i18n-plurales-ru.test.mjs`
+   * ejecutando el traductor de verdad con los doce números que importan.
+   */
   { codigo: 'ru', nombreNativo: 'Русский', direccion: 'ltr', listo: true },
   { codigo: 'ar', nombreNativo: 'العربية', direccion: 'rtl', listo: false },
   /*
