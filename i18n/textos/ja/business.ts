@@ -6,9 +6,11 @@
  * «Negocio» es ビジネス (como la ビジネスプロフィール de Google); «cliente» es 顧客, sin 様; «redes sociales» es
  * SNS y conectar una red es 連携; «producto» que se vende es 商品. Los «…Goal» son lo que la persona le pide a
  * Weë Brain y acaban siendo el título del trabajo: forma de diccionario y sin 。, como en writer (投稿を予約する);
- * los que en español son un sustantivo o una pregunta se quedan así. Los nombres de función que el español deja
- * en inglés no son marcas de Weë y van como se dicen en japonés: 事業計画書, 価格設定アシスタント, ブランドキット,
- * SWOT分析, 顧客インサイト. Las métricas usan los nombres de Meta en japonés (リーチした人数, エンゲージメント).
+ * los que en español son un sustantivo o una pregunta se quedan así. Los NOMBRES de las funciones —Business Plan,
+ * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business Ideas y Business Profile— son nombres de
+ * producto y se escriben igual en todos los idiomas, como Weë Studio (decisión del usuario, 2026-09-16; así los
+ * tienen el alemán, el francés, el coreano, el chino y el ruso). Lo que hacen sí se traduce, en sus pistas. «SWOT»
+ * se queda como sigla y lleva detrás 分析. Las métricas usan los nombres de Meta en japonés (リーチした人数, エンゲージメント).
  * La fecha del calendario se escribe a la japonesa: {{fecha}}（{{dia}}） → 9月30日（月）. El gasto «Servicios» es
  * el de los servicios del local (luz, agua, internet; su icono es un rayo): 光熱費・通信費, no サービス.
  */
@@ -78,9 +80,9 @@ export const business: typeof import('../es/business').business = {
   editBusinessGoal: 'ビジネス情報を見直して改善する',
   businessInfo: 'ビジネス情報',
   businessInfoGoal: 'ビジネス情報を整理する：何を誰に売っていて、ほかとどう違うか',
-  businessPlan: '事業計画書',
+  businessPlan: 'Business Plan',
   businessPlanGoal: '投資家向けの事業計画書を書く',
-  businessCoach: 'ビジネスコーチ',
+  businessCoach: 'Business Coach',
   businessCoachGoal: '今週、ビジネスで何をすればいい？',
 
   productsEmpty: '商品はまだありません。',
@@ -92,7 +94,7 @@ export const business: typeof import('../es/business').business = {
   productsCount_one: '商品{{contador}}点',
   productsCount_other: '商品{{contador}}点',
 
-  pricing: '価格設定アシスタント',
+  pricing: 'Pricing Assistant',
   pricingHint: 'かかる費用を入力すると、Weëが目安となる価格を提案します。',
   pricingMaterials: '材料費',
   pricingPackaging: '包装費',
@@ -105,7 +107,7 @@ export const business: typeof import('../es/business').business = {
   pricingProfit: '利益の目安',
   pricingNote: '表示される価格はあくまで目安です。会計や税務に関するアドバイスではありません。',
 
-  brandKit: 'ブランドキット',
+  brandKit: 'Brand Kit',
   brandKitHint: 'コンテンツをいつもブランドらしく見せるためのセットです。',
   brandLogo: 'ロゴ',
   brandColors: 'カラー',
@@ -153,7 +155,7 @@ export const business: typeof import('../es/business').business = {
   shareToWee: 'Weëに共有',
   shareWall: 'マイWäll',
   shareCommunities: 'コミュニティ',
-  shareProfile: 'ビジネスプロフィール',
+  shareProfile: 'Business Profile',
   shareNothing: 'まずは何かを作成してから、ここで共有しましょう。',
   shareText: 'Weë Businessで作成',
 
@@ -184,10 +186,10 @@ export const business: typeof import('../es/business').business = {
   opportunities: 'ビジネスチャンス',
   opportunitiesEmpty: '売上やコンテンツがそろってきたら、見つけたビジネスチャンスをここに表示します。',
   createPromotion: 'プロモーションを作成',
-  customerInsights: '顧客インサイト',
+  customerInsights: 'Customer Insights',
   customerInsightsHint: '誰に売っているのか、その人が何を求めているのかを探ります。',
   customerInsightsGoal: '理想の顧客像と、その人に響くメッセージを明らかにする',
-  businessIdeas: 'ビジネスアイデア',
+  businessIdeas: 'Business Ideas',
   businessIdeasHint: 'ほかに売れるものや、差別化の方法を見つけます。',
   businessIdeasGoal: 'ビジネスのアイデアと、差別化のヒントを得る',
 

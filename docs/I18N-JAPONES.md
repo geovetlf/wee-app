@@ -216,6 +216,10 @@ exime los nombres propios. [MS §3.2] [WCAG 3.1.2]
   § 10.7) y **ËContacts / ẄContacts**, el nombre en plural de la agenda que monta el código y que se ve en el perfil.
 - **Lo descriptivo sí se traduce.** «la comunidad de Weë» es 「Weëのコミュニティ」; «tus Weëls» es 「Weëls」.
 - **Otras marcas** (Google, Instagram, TikTok, YouTube, WhatsApp Business) también van en latino.
+- **Los nombres de las funciones y los módulos de Weë Business** —Business Plan, Business Coach, Pricing Assistant,
+  Brand Kit, Customer Insights, Business Ideas, Business Profile; y My Business, Products & Catalog, Create, Social,
+  Analyze, Grow, Promote— son nombres de producto y se escriben igual en todos los idiomas, como Weë Studio (decisión
+  del usuario, 2026-09-16). Lo que hace cada uno sí se traduce, en su pista. «SWOT» se queda como sigla: 「SWOT分析」.
 - **La firma de marca del Home**, «Imagina · Crea · Conecta» (`LEMA_DE_MARCA` en `components/Header.tsx`), va debajo
   del logo y no se traduce en ningún idioma: es firma, como el logo. (El lema de Weë Brain, `brain.slogan`, sí se
   traduce: es texto de la pantalla.)
