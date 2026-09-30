@@ -494,7 +494,16 @@ await seccion('I', async () => {
   check('I4) ni un porcentaje, ni un «generando», ni una barra de progreso', !/\d\s*%|[Gg]enerando|<progress/.test(todo));
   const fuentes = fs.readdirSync(path.resolve(RAIZ, 'components/studio/produccion')).map((f) => leer(`components/studio/produccion/${f}`)).concat(leer('screens/ProductionScreen.tsx'));
   check('I5) ninguna pieza llama a generar, al motor, a Brain ni a los Credits', fuentes.every((s) => !/generateVideo|creatorRun|brainChat|spendCredits|creditsService|CreditsPill|httpsCallable|firebase\//.test(s)));
-  check('I6) ninguna pieza usa temporizadores ni simula progreso', fuentes.every((s) => !/setTimeout|setInterval|progress|progreso/.test(s.replace(/\/\*[\s\S]*?\*\//g, ''))));
+  /*
+   * Reanclada con 3D dentro de Filmmaker · importar un modelo 3D: la subida de un modelo tiene progreso DE VERDAD —la
+   * fracción que el envío directo al almacén va midiendo (`xhr.upload.onprogress`, en el hook)—, y su barra es la única.
+   * Temporizadores, en ninguna pieza; y la barra no se calcula en la pieza: la lee del hook.
+   */
+  const IMPORTAR_MODELO = leer('components/studio/produccion/ProductionImportarModelo.tsx');
+  check('I6) ninguna pieza usa temporizadores ni simula progreso (la subida de un modelo enseña el suyo, medido por el hook)',
+    fuentes.every((s) => !/setTimeout|setInterval/.test(s.replace(/\/\*[\s\S]*?\*\//g, '')))
+    && fuentes.filter((s) => s !== IMPORTAR_MODELO).every((s) => !/progress|progreso/.test(s.replace(/\/\*[\s\S]*?\*\//g, '')))
+    && /const \{ fase, fallo, archivo, progreso \} = importacion;/.test(IMPORTAR_MODELO) && /xhr\.upload\.onprogress/.test(leer('services/assetsService.ts')));
   check('I7) en todo lo dibujado no faltó ni una clave', faltan.size === 0, [...faltan].join(', '));
   check('I8) esta suite está en la cadena de `npm test`', /filmmaker-ui\.test\.mjs/.test(leer('functions/package.json')));
 });

@@ -57,6 +57,12 @@ export interface CapacidadDeCreacion {
   readonly porque?: string;
   /** Las capacidades del catálogo del Core de las que depende (si depende de alguna). */
   readonly catalogo?: readonly string[];
+  /**
+   * La puerta del SERVIDOR que puede abrirla para una cuenta sin cambiar la app (cerrada por defecto). Mientras el
+   * servidor no diga que sí, se enseña cerrada con su porqué; si dice que sí, se abre para esa cuenta: así se hace el
+   * canary sin publicar otra versión de la app.
+   */
+  readonly puerta?: 'modelos3d';
 }
 
 const CREAR: readonly SitioDeCreacion[] = ['crear_personaje', 'crear_lugar', 'crear_objeto'];
@@ -83,7 +89,7 @@ export const CAPACIDADES_DE_CREACION: readonly CapacidadDeCreacion[] = Object.fr
   {
     id: 'importar_modelo_3d', sitios: CREAR, disponible: false, icono: 'cloud-upload-outline',
     clave: 'filmmaker.wsImport3d', explicacion: 'filmmaker.wsImport3dText',
-    bloqueo: 'activacion', porque: 'filmmaker.wsImport3dWhy',
+    bloqueo: 'activacion', porque: 'filmmaker.wsImport3dWhy', puerta: 'modelos3d',
   },
   {
     id: 'guardar_para_reutilizar', sitios: ['ficha'], disponible: true, icono: 'bookmark-outline',

@@ -32,7 +32,7 @@ Encargo del usuario: 29-09-2026. Trabajo local en `filmmaker/core`, sin push, si
 | `3d.retopology` | DECLARED | — | Tripo, Hunyuan 3D | — | — | **Filmmaker no la necesita**: el vídeo lo hace Seedance |
 | `3d.convert`, `3d.export` | DECLARED | — | Tripo, Hunyuan 3D | ✔ | — | Formatos dentro del adaptador; descargar desde Mis creaciones |
 | `3d.analyze` | DECLARED | — | Gemini (visión, sobre vistas) | — | — | No hace falta ahora |
-| Importar | subida directa inactiva | — | — | ✔ | ✔ | Crear › **Importar un modelo 3D** (cerrada) |
+| Importar | puerta `models3d` (MC-3 + Fase 11), preparada y sin exportar | — | — | ✔ | ✔ | Crear › **Importar un modelo 3D**: el recorrido entero, cerrado hasta que el servidor lo abra (§ I) |
 | Ver | — | — | — (una dependencia: C.3) | ✔ | — | Hoja contextual desde la ficha o el plano |
 
 **Relación con el vídeo, sin inventar compatibilidad.** Seedance no recibe modelos 3D.
@@ -101,7 +101,7 @@ Las dos añaden dependencias. **No se añadió ninguna.** El visor aparecerá en
 
 | Sitio que ya existía | Qué se añadió | Estado |
 |---|---|---|
-| Proyecto › Reparto / Lugares / Objetos | Se queda «Añadir», como antes. Al lado, **«Crear de otra forma»**, que se abre en el sitio de la lista con cinco formas:<br>• Desde tus guardados<br>• Desde Mis creaciones<br>• Imagen con IA<br>• En 3D con IA<br>• Importar un modelo 3D | ✔ · ✔ · cerrada: autorización · cerrada: proveedor · cerrada: activación y visor |
+| Proyecto › Reparto / Lugares / Objetos | Se queda «Añadir», como antes. Al lado, **«Crear de otra forma»**, que se abre en el sitio de la lista con cinco formas:<br>• Desde tus guardados<br>• Desde Mis creaciones<br>• Imagen con IA<br>• En 3D con IA<br>• Importar un modelo 3D | ✔ · ✔ · cerrada: autorización · cerrada: proveedor · construida y cerrada: activación (§ I) |
 | Cada ficha | **«Guardar para reutilizar»** · «Crear su versión 3D» | ✔ · cerrada |
 | Ficha de lugar | «Abrir la escena 3D» | cerrada: editor y contrato |
 | Plano › Quién sale / Qué hay / Dónde | **«Desde tus guardados»**: el MISMO ID si ya está en la producción | ✔ |
@@ -118,7 +118,7 @@ En el teléfono (360/390) aparecen las mismas piezas en las mismas secciones del
 | `elements.create` | Ya alcanzable (Guardar para reutilizar, Desde Mis creaciones) |
 | `elements.update` y `elements.archive` | Siguen sin UI (la biblioteca de Elements no es de Filmmaker) |
 | `model3d` en Mis creaciones | Ya alcanzable al crear |
-| La subida de Media Cloud | Inactiva |
+| La subida de Media Cloud | Inactiva para todos; la puerta de importación (`models3d`) la compone, preparada y sin exportar (§ I) |
 | El catálogo `3d.*` | Visible y cerrado donde toca |
 
 ## F. Duplicaciones evitadas
@@ -168,11 +168,52 @@ En el teléfono (360/390) aparecen las mismas piezas en las mismas secciones del
 - las entradas cerradas con su porqué, en los 11 idiomas;
 - Meshy y World Labs en el registro, PENDING y sin capacidades.
 
+**Implementado después, preparado y cerrado (§ I):**
+- importar un modelo 3D (GLB): la puerta, la comprobación, la subida con su progreso, la confirmación y el reintento sin duplicar.
+
 **Queda cerrado y documentado:**
 - los proveedores y sus canaries;
 - los contratos de la sección G;
 - el visor y su dependencia;
 - el deploy de `elements`;
-- la activación de Media Cloud.
+- la activación de Media Cloud (para importar: § I).
 
 **No se creó ninguna sección, pestaña, pantalla, ruta, workspace, biblioteca ni motor 3D.**
+
+## I. Importar un modelo 3D: preparado y cerrado (2026-09-30)
+
+Encargo del usuario (2026-09-30, «cierre total de Filmmaker», punto 11). Sin almacén nuevo, sin otro camino de subida y
+sin Credits: importar no es una operación de IA.
+
+| Paso | Dónde | Qué hace |
+|---|---|---|
+| 1. Elegir | `utils/elegirArchivo.ts` | El selector del navegador (el mismo `<input type="file">` del compositor). En la app nativa no hay selector de archivos todavía: cerrado, con su porqué |
+| 2. Comprobar | `utils/modelo3d.ts` | La cabecera del GLB (magia, versión 2, largo = archivo, primer trozo JSON) y el JSON de glTF 2.0; cuenta mallas, materiales, animaciones y nodos |
+| 3. Pedir | `models3d` · `pedir_subida` | La cuenta sale de la sesión; la puerta tiene que estar abierta para ella. Tipo `model3d` y formato `model/gltf-binary` los pone el servidor. El material nace en `uploading` con lo que se contó del modelo |
+| 4. Mandar | `assetsService.enviarModelo` | Los bytes van directos al almacén (MC-3), con las cabeceras firmadas y su progreso real |
+| 5. Confirmar | `models3d` · `confirmar_subida` | El servidor MIRA el objeto: lo que pesa de verdad, y el material pasa a `ready` |
+| 6. Entrar | `ProductionFichas` | Lo de siempre: un Element que APUNTA al material y la ficha vinculada |
+
+**Idempotente.** El material se deriva de (cuenta, clave de la operación). Reintentar usa la MISMA clave: el mismo
+material y el mismo destino, que es de una sola escritura. Un corte a mitad no deja dos modelos.
+
+**Lo que se dice.** Comprobando, preparando, subiendo con su porcentaje, terminando, y cada fallo con su frase y su
+salida: elegir otro archivo (si el archivo no vale) o reintentar (si se cortó). Los textos, en los once idiomas.
+
+**Por qué está cerrada, y qué la abre.** La puerta `models3d` existe y está probada, pero NO se exporta en
+`functions/src/index.ts`: Media Cloud sigue sin estar activo para nadie, y encenderlo es una decisión del dueño.
+Abrirla, sin gasto de IA:
+1. exportarla (`export { models3d } from './models3d/puerta'`) y desplegarla;
+2. el CORS del contenedor para el origen de la app: `PUT` con `content-type` e `if-none-match`;
+3. abrir `aiSettings/modelos3d` (`{ habilitado: true, cuentas: [...] }`) para las cuentas del canary.
+
+Mientras el servidor no diga que sí para la cuenta, la app la enseña cerrada con su porqué; cuando lo dice, se abre
+sin publicar otra versión de la app.
+
+**Antes de abrirla a todas las cuentas (`todas: true`):**
+- un límite de importaciones por cuenta;
+- mirar dentro de los bytes en el servidor. Hoy el servidor exige el tipo (va firmado) y mide el tamaño; comprobar la
+  cabecera del GLB pide leer un tramo del objeto, y el puerto de almacenamiento de Media Cloud todavía no lo tiene.
+
+**En la app nativa**: el selector de archivos (`expo-document-picker`) es una dependencia nueva y pide una build.
+

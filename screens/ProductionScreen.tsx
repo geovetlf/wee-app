@@ -15,6 +15,7 @@ import { useVideosDeLaProduccion } from '../hooks/useVideosDeLaProduccion';
 import { useMontajeFinal } from '../hooks/useMontajeFinal';
 import { useHistorialDeProduccion } from '../hooks/useHistorialDeProduccion';
 import { useElementosParaVincular } from '../hooks/useElementosParaVincular';
+import { useImportarModelo3d } from '../hooks/useImportarModelo3d';
 import { useWeeBrainDelEditor } from '../hooks/useWeeBrainDelEditor';
 import CreatorShell from '../components/creator/CreatorShell';
 import ProductionAvisos from '../components/studio/produccion/ProductionAvisos';
@@ -163,7 +164,9 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   const elementos = useElementosParaVincular();
   /* Fase 27 del motor: Mis creaciones, para añadirlas como referencia. Se piden al abrir el selector, no antes. */
   const creaciones = useCreacionesParaReferencia();
-  const brain = useWeeBrainDelEditor(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
+  /* 3D dentro de Filmmaker: importar un modelo 3D a Mis creaciones, desde Reparto, Lugares u Objetos (cerrado mientras el servidor no lo abra). */
+  const importacion = useImportarModelo3d();
+  const brain =useWeeBrainDelEditor(estado.confirmada?.productionId ?? null, estado.confirmada?.revision ?? null);
   const estados = estadosDeLaProduccion(estado, derivado?.lista, derivado?.tarjetas ?? []);
   const gesto = useCallback((ops: readonly FilmmakerOperation[]) => controlador.gesto(ops), [controlador]);
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Production')), [navigation]);
@@ -247,6 +250,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
       onRestaurar: (revision) => { void alRestaurar(revision); },
       elementos,
       creaciones,
+      importacion,
       brain,
       onAplicarPropuesta: controlador.aplicarPropuesta,
       seleccion,

@@ -175,6 +175,14 @@ export const TOCADOS_POR_EL_MOTOR = Object.freeze([
    * puede elegirlas; la validación del registro lo impide—. Ni un adaptador, ni una cadena, ni Credits.
    */
   'functions/src/registry/matrices.ts',
+  /*
+   * 3D dentro de Filmmaker · importar un modelo 3D (encargo del usuario del 2026-09-30, «cierre total de Filmmaker»):
+   * una puerta NUEVA, `models3d`, que compone la subida directa de Media Cloud (MC-3) y la ficha del material de la
+   * Fase 11 para un GLB de la cuenta, sin tocar ninguna de las dos. Nace cerrada (`aiSettings/modelos3d`) y NO se
+   * exporta en `functions/src/index.ts`: Media Cloud sigue sin estar activo para nadie. Ni Credits, ni IA.
+   */
+  'functions/src/models3d/index.ts',
+  'functions/src/models3d/puerta.ts',
 ]);
 
 /** Lo que una valla anterior ve cambiado, sin lo que el motor tiene dicho que toca. */

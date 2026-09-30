@@ -15,6 +15,7 @@ import type { MontajeDeLaProduccion } from '../../../hooks/useMontajeFinal';
 import type { LoteDeTomas } from '../../../hooks/useLoteDeTomas';
 import type { HistorialDeProduccion } from '../../../hooks/useHistorialDeProduccion';
 import type { ElementosParaVincular } from '../../../hooks/useElementosParaVincular';
+import type { ImportacionDeModelo } from '../../../hooks/useImportarModelo3d';
 import type { WeeBrainDelEditor } from '../../../hooks/useWeeBrainDelEditor';
 import type { Seleccion } from './ProductionStoryboard';
 import type { IdsNuevos } from './ProductionShotCard';
@@ -47,6 +48,8 @@ export interface EspacioDeFilmmaker {
   readonly idsDeFichas?: { readonly personaje: () => string; readonly lugar: () => string; readonly objeto: () => string; readonly referencia?: () => string };
   /** Fase 27 · Mis creaciones, para añadirlas como referencia. */
   readonly creaciones?: CreacionesParaReferencia;
+  /** 3D dentro de Filmmaker · importar un modelo 3D a Mis creaciones (la puerta del servidor decide si está abierta). */
+  readonly importacion?: ImportacionDeModelo;
   readonly videos: ReadonlyMap<string, VideoDelPlano>;
   readonly toma: TomaDelPlano;
   /** Fase 24 · las tomas de la unidad elegida, como las cuenta el servidor. Solo lectura. */

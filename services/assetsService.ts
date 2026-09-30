@@ -77,6 +77,28 @@ export interface PaginaDeCreaciones {
 
 export const CREACIONES_POR_PAGINA = 24;
 
+/**
+ * 3D dentro de Filmmaker: el permiso para mandar los bytes de un modelo, tal como lo da la puerta `models3d`. Lleva a
+ * dónde, cómo y con qué cabeceras —van dentro de la firma—, hasta cuándo vale y el material que va a quedar completo.
+ * Ninguna credencial, ningún contenedor y ningún proveedor.
+ */
+export interface SubidaDeModelo {
+  readonly assetId: string;
+  readonly url: string;
+  readonly metodo: 'PUT' | 'POST';
+  readonly cabeceras: Readonly<Record<string, string>>;
+  readonly maxBytes: number;
+  readonly expiraEn: number;
+}
+
+/** Lo que contesta la puerta de los modelos 3D; `sin_respuesta` es que no se pudo preguntar (o que no está desplegada). */
+export type RespuestaDeModelos =
+  | { readonly ok: true; readonly subida: SubidaDeModelo }
+  | { readonly ok: true; readonly assetId: string; readonly bytes: number }
+  | { readonly ok: false; readonly motivo: 'cerrada' | 'no_disponible' | 'pendiente' | 'peticion_invalida' | 'sin_respuesta'; readonly detalle?: string };
+
+export type EnvioDeModelo = 'ok' | 'fallo' | 'cancelado';
+
 const assets = () => collection(db, 'assets');
 
 const call = async <T,>(name: string, data: Record<string, unknown>): Promise<T> => {
@@ -182,4 +204,81 @@ export const assetsService = {
    */
   eliminar: async (assetId: string): Promise<{ assetId: string; status: 'deleted'; already: boolean; pendingPhysicalDeletion?: boolean }> =>
     call('deleteAsset', { assetId }),
+
+  /*
+   * 3D DENTRO DE FILMMAKER · IMPORTAR UN MODELO 3D, por la puerta `models3d` del servidor (preparada y cerrada:
+   * mientras no esté desplegada y abierta para la cuenta, contesta que no, y la app lo enseña cerrado). De aquí solo
+   * sale la clave de la operación, lo que pesa, el nombre y las piezas que se contaron: el tipo, el formato, el dueño
+   * y dónde van los bytes los pone el servidor.
+   */
+
+  /** ¿Puede importar modelos esta cuenta? Cualquier cosa que no sea un «sí» del servidor es un no. */
+  importacionDeModelosAbierta: async (): Promise<boolean> => {
+    try {
+      const r = await call<{ ok?: boolean; importar?: boolean }>('models3d', { op: 'estado' });
+      return r?.ok === true && r.importar === true;
+    } catch {
+      return false;
+    }
+  },
+
+  pedirSubidaDeModelo: async (p: {
+    readonly operationId: string;
+    readonly bytes: number;
+    readonly nombre: string;
+    readonly metadatos: Readonly<Record<string, number>>;
+  }): Promise<RespuestaDeModelos> => {
+    try {
+      const r = await call<Record<string, unknown>>('models3d', { op: 'pedir_subida', ...p });
+      if (r?.ok === true && r.subida && typeof r.subida === 'object') return { ok: true, subida: r.subida as SubidaDeModelo };
+      return respuestaFallida(r);
+    } catch {
+      return { ok: false, motivo: 'sin_respuesta' };
+    }
+  },
+
+  confirmarSubidaDeModelo: async (operationId: string): Promise<RespuestaDeModelos> => {
+    try {
+      const r = await call<Record<string, unknown>>('models3d', { op: 'confirmar_subida', operationId });
+      if (r?.ok === true && typeof r.assetId === 'string') return { ok: true, assetId: r.assetId, bytes: Number(r.bytes) || 0 };
+      return respuestaFallida(r);
+    } catch {
+      return { ok: false, motivo: 'sin_respuesta' };
+    }
+  },
+
+  /**
+   * LOS BYTES, DIRECTOS AL ALMACÉN: no pasan por Weë (MC-3). Con las cabeceras que dio la puerta, tal cual —van
+   * dentro de la firma—, y avisando de cuánto va. Si la subida se corta, se vuelve a pedir con la MISMA clave y el
+   * destino es el mismo: no se duplica nada.
+   */
+  enviarModelo: (
+    subida: SubidaDeModelo,
+    archivo: Blob,
+    alAvanzar: (fraccion: number) => void,
+    senal?: AbortSignal,
+  ): Promise<EnvioDeModelo> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(subida.metodo, subida.url);
+      for (const [nombre, valor] of Object.entries(subida.cabeceras)) xhr.setRequestHeader(nombre, valor);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable && e.total > 0) alAvanzar(e.loaded / e.total); };
+      xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300 ? 'ok' : 'fallo');
+      xhr.onerror = () => resolve('fallo');
+      xhr.onabort = () => resolve('cancelado');
+      if (senal) {
+        if (senal.aborted) { resolve('cancelado'); return; }
+        senal.addEventListener('abort', () => xhr.abort());
+      }
+      xhr.send(archivo);
+    }),
+};
+
+/** Lo que dijo la puerta cuando no fue un sí, con los motivos que la app sabe decir; lo demás, que no se pudo. */
+const respuestaFallida = (r: Record<string, unknown> | undefined): RespuestaDeModelos => {
+  const motivo = r?.motivo;
+  if (motivo === 'cerrada' || motivo === 'no_disponible' || motivo === 'pendiente' || motivo === 'peticion_invalida') {
+    return { ok: false, motivo, ...(typeof r?.detalle === 'string' ? { detalle: r.detalle } : {}) };
+  }
+  return { ok: false, motivo: 'sin_respuesta' };
 };

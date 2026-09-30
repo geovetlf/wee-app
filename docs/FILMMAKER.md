@@ -1933,8 +1933,8 @@ ENGINE · UN SISTEMA DE ELEMENTS · UN GRAN MOTOR · MUCHAS EXPERIENCIAS. Audito
 - **Crear de otra forma**, dentro de Reparto, Lugares y Objetos, en el sitio de la lista:
   - desde lo guardado (si ya está en la producción, se abre la ficha que había);
   - desde Mis creaciones, con una imagen o un modelo 3D: un Element que APUNTA al material, y la ficha vinculada;
-  - cerradas y con su porqué: imagen con IA (autorización de la puerta), en 3D con IA (sin proveedor integrado) e
-    importar un modelo 3D (la subida sin activar y sin visor).
+  - cerradas y con su porqué: imagen con IA (autorización de la puerta) y en 3D con IA (sin proveedor integrado);
+  - **importar un modelo 3D (GLB)**: construida entera y cerrada hasta encender la subida (abajo).
 - **Guardar para reutilizar**, en cada ficha: un Element de su clase (un producto, como producto), con su nombre, lo
   que dice y los materiales de sus referencias, y la ficha vinculada a él. Su versión 3D y, en un lugar, la escena
   3D: cerradas, con su porqué.
@@ -1952,6 +1952,15 @@ ENGINE · UN SISTEMA DE ELEMENTS · UN GRAN MOTOR · MUCHAS EXPERIENCIAS. Audito
   - la integración y los canaries del proveedor 3D.
 
 Pruebas: `functions/test/filmmaker-3d-assets.test.mjs` (en la cadena). Sabotajes: `sab-fase3d`.
+
+**Importar un modelo 3D (2026-09-30).** Desde «Crear de otra forma», con el nombre dado: la app comprueba que el
+archivo es un GLB de glTF 2.0 (cabecera y JSON) y cuenta sus piezas; la puerta `models3d` (nueva: `functions/src/models3d`)
+concede la subida —la cuenta de la sesión, tipo y formato puestos por el servidor—; los bytes van directos al almacén
+(MC-3) con su progreso real; el servidor mira el objeto al confirmar; y lo importado entra como lo de Mis creaciones: un
+Element que apunta a él y la ficha vinculada. Reintentar usa la misma clave y no duplica. Ni Credits, ni IA, ni un
+contrato de F1, ni el workplace tocados. **Cerrada**: la puerta no se exporta (Media Cloud sigue apagado para todos) y
+`aiSettings/modelos3d` la abre por cuenta; cómo encenderla, en [`docs/FILMMAKER-3D.md`](FILMMAKER-3D.md) § I. Pruebas:
+`functions/test/filmmaker-3d-importar.test.mjs` (en la cadena).
 
 ## Próximas fases
 

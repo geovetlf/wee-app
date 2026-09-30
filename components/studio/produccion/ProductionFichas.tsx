@@ -147,8 +147,11 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
     if (onGesto([anadir(clase, id, e.name), cambiar(clase, id, { element: { elementId: e.elementId, version: e.version } })]).ok) { setAbierta(id); setCreando(false); }
   };
 
-  /* Desde Mis creaciones: el material se guarda en la cuenta como la cosa (un Element que APUNTA a él, sin copiarlo) y entra vinculada. */
-  const desdeCreacion = async (nombre: string, c: CreacionParaReferencia) => {
+  /*
+   * Desde Mis creaciones: el material se guarda en la cuenta como la cosa (un Element que APUNTA a él, sin copiarlo) y
+   * entra vinculada. Un modelo recién importado hace exactamente lo mismo: ya es material de Mis creaciones.
+   */
+  const desdeCreacion = async (nombre: string, c: CreacionParaReferencia, importado?: boolean) => {
     if (!elementos?.crear || !nuevoId) return;
     setGuardando('nueva');
     setAviso(null);
@@ -156,7 +159,11 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
     setGuardando(null);
     if (!r.ok) { setAviso({ texto: fraseDelMotivo(r), error: true }); return; }
     const id = nuevoId();
-    if (onGesto([anadir(clase, id, nombre), cambiar(clase, id, { element: { elementId: r.elemento.elementId, version: r.elemento.version } })]).ok) { setAbierta(id); setCreando(false); }
+    if (onGesto([anadir(clase, id, nombre), cambiar(clase, id, { element: { elementId: r.elemento.elementId, version: r.elemento.version } })]).ok) {
+      setAbierta(id);
+      setCreando(false);
+      if (importado) setAviso({ texto: t('filmmaker.wsImport3dDone', { nombre }) });
+    }
   };
 
   /* Guardar una ficha para reutilizarla: un Element de su clase, con su nombre, lo que dice y los materiales de sus referencias. */
@@ -188,7 +195,7 @@ const ProductionFichas: React.FC<{ clase: ClaseDeFicha; espacio: EspacioDeFilmma
         clase={clase}
         espacio={espacio}
         onDesdeGuardado={desdeGuardado}
-        onDesdeCreacion={(nombre, c) => { void desdeCreacion(nombre, c); }}
+        onDesdeCreacion={(nombre, c, importado) => { void desdeCreacion(nombre, c, importado); }}
         guardando={guardando === 'nueva'}
         error={aviso?.error ? aviso.texto : null}
         onVolver={() => { setCreando(false); setAviso(null); }}
