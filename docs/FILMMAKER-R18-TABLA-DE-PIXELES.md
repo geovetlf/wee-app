@@ -1,8 +1,32 @@
 # R18 · La tabla de píxeles del precio de vídeo en producción: preparado, sin desplegar
 
-> 2026-09-29, rama `filmmaker/core`. **Nada de esto está desplegado.** Es un parche aislado —no lleva nada de R22—,
-> preparado, probado y documentado para que se autorice (o no) por separado. No se hizo push, merge ni deploy, no se
-> gastó dinero y no se abrió ninguna puerta.
+> 2026-09-29, rama `filmmaker/core`; cerrado en código y comprobado otra vez el 2026-09-30. **Nada de esto está
+> desplegado.** Es un parche aislado —no lleva nada de R22—, preparado, probado y documentado para que se autorice (o
+> no) por separado. No se hizo push, merge ni deploy, no se gastó dinero y no se abrió ninguna puerta.
+
+## 0. En resumen
+
+- **Qué corrige.** El precio de un vídeo de Seedance en el `generateVideo` de producción. Se aplica a 1:1, 4:3, 3:4 y 21:9, a la serie 2.0 a 480p y a `adaptive`. Con el parche se cotiza con la tabla oficial de píxeles de ModelArk, no con el lado corto (§§ 1 y 3).
+- **Qué cambia.**
+  - Un solo archivo: `functions/src/engine/providers/seedance.ts` (§ 6).
+  - El precio de esas proporciones sube o baja hasta el oficial (§§ 3 y 7).
+- **Qué no cambia.**
+  - La petición que llega al proveedor.
+  - 16:9 y 9:16 a 720p, 1080p y 4K, y 480p en Seedance 2.5.
+  - R22: `-1` y los vídeos de referencia, con su techo.
+  - F1-A, F1-B, F1-D, las reglas, el Credit Engine y las puertas (§§ 6 y 7).
+- **Cerrado en código (2026-09-30).** La rama cotizaba una proporción que la tabla no tiene con la mayor de su resolución. Ahora hace lo mismo que el parche: la cotiza como 16:9, que es lo que el adaptador manda y con lo que estima el libro. La rama y el parche ya dicen lo mismo (§ 7).
+- **Comprobado otra vez (2026-09-30)**, sin red, sin Firebase y sin gastar, sobre tres copias hechas con `git archive` (`96b3f7a`, `7f11d51`, y `7f11d51` con el parche):
+  - el parche aplica limpio y solo cambia `seedance.ts`;
+  - las tres compilan con 0 errores;
+  - `hotfix-r18-verificar`: 13/13;
+  - `hotfix-r18-sabotajes`: 15/15;
+  - `hotfix-r22-verificar`: pasan las diez garantías de R22 (de la 2 a la 11).
+
+  La 1 de R22 («lo normal cuesta lo mismo que en `96b3f7a`») cambia a propósito en dos de sus cinco casos, y los dos son R18: 2.0 fast a 480p en 9:16, y 2.0 mini en 1:1. Sobre `7f11d51` sin el parche, 11/11.
+- **Qué hay que probar después.**
+  - Sin gasto, tras el deploy: § 9, paso 5.
+  - Con gasto y solo con tu autorización: el canary K7 de `docs/FILMMAKER-CONTRATOS-Y-CANARIES.md`. Es una toma 1:1 de 5 s a 720p con Seedance 2.0 fast, por la que el proveedor debe declarar 108 000 tokens (`usage.completion_tokens`), la tabla oficial, y no los 60 750 de la tabla desplegada.
 
 ## 1. Dónde está el error
 
@@ -100,8 +124,9 @@ cambian son idénticas, comprobado).
   un poco, `adaptive`) o baja (21:9) hasta el oficial. Es la regla que ya existe —el precio de un vídeo es la fórmula
   oficial de Seedance × la tarifa del modelo (`docs/AI-ENGINE.md`)—, no una política nueva.
 - No cambia la forma de ninguna petición, ni F1-A, F1-B o F1-D, ni las reglas, ni el Credit Engine, ni ninguna puerta.
-- Una diferencia con la rama: en `filmmaker/core` (Fase 33), una proporción desconocida se cotiza con la mayor de su
-  resolución; aquí, como 16:9, para que ningún precio que hoy es correcto cambie. Conviene alinear la rama con esto.
+- Había una diferencia con la rama. En `filmmaker/core` (Fase 33), una proporción desconocida se cotizaba con la mayor
+  de su resolución; aquí, como 16:9, para que ningún precio que hoy es correcto cambie. **La rama se alineó con esto el
+  2026-09-30**: como 16:9, que es lo que el adaptador manda. Ya no hay diferencia.
 
 ## 8. Cómo se verificó (sin red, sin Firebase, sin gastar)
 
@@ -126,8 +151,9 @@ Sobre dos copias de `7f11d51` fuera del repositorio, una con el parche:
    `git apply -p1 docs/FILMMAKER-R18-TABLA-DE-PIXELES.patch`; commit.
 2. `functions/.env.get-wee` de `main`, copiado solo para el deploy; las dependencias de functions;
    `npm --prefix functions run build`.
-3. Antes: `scripts/hotfix-r18-verificar.cjs` (13/13) y `scripts/hotfix-r22-verificar.cjs` (11/11: R22 sigue) contra
-   esa compilación.
+3. Antes, contra esa compilación:
+   - `scripts/hotfix-r18-verificar.cjs`: 13/13;
+   - `scripts/hotfix-r22-verificar.cjs`, con `96b3f7a` como base: R22 sigue. Pasan sus diez garantías (de la 2 a la 11). La 1 falla a propósito en los dos casos que son R18 (§ 0): 10/11 es lo esperado.
 4. `firebase deploy --only functions:generateVideo --project prod`. Nada más.
 5. Después, sin gastar: la revisión nueva y las demás intactas; la misma configuración; el código descargado de su
    paquete, idéntico al compilado; las dos baterías contra el código desplegado; su registro sin errores. Se borra la

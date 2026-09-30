@@ -1817,7 +1817,10 @@ cerrado de la Fase 12-D y en el barrido desplegado.
   Antes solo se limpiaba el prompt avanzado de un plano.
 - **R18** · el precio sale de la tabla oficial de píxeles: una resolución es un presupuesto de píxeles, no un lado
   corto. Un vídeo 1:1 se cotizaba un 44 % por debajo de lo que factura el proveedor, uno 4:3 un 25 % y uno 21:9 un
-  31 % por encima; 480p en la serie 2.0 es 864×496. `adaptive` se cotiza con la mayor: un techo.
+  31 % por encima; 480p en la serie 2.0 es 864×496. `adaptive` se cotiza con la mayor: un techo. **Cerrado en código
+  el 2026-09-30**: una proporción que la tabla no tiene se cotiza como 16:9, que es lo que el adaptador manda, igual
+  que el parche preparado para producción. Qué corrige, qué cambia, qué no y qué hay que probar:
+  [`docs/FILMMAKER-R18-TABLA-DE-PIXELES.md`](FILMMAKER-R18-TABLA-DE-PIXELES.md) § 0.
 - **R19** · editar y extender piden `adaptive` (obligatorio en Seedance 2.5) y el tipo de tarea solo va a 2.5.
 - **R20** · vídeos y audios de referencia con cupos separados (3 + 3 en la serie 2.0, 10 + 10 en 2.5), y el sonido
   solo, rechazado en la serie 2.0 antes de salir.

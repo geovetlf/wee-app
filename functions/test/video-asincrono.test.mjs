@@ -597,11 +597,15 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * Video Engine (`engine/video.ts`) entra por nombre: pide `adaptive` al editar y extender y deja de reenviar los
    * segundos que declara quien llama (9 añadidas, 2 quitadas). La suite de la fase (`filmmaker-riesgos`) prueba cada
    * cambio con el adaptador compilado y sin red.
+   *
+   * Cierre de R18 (2026-09-30): una proporción que la tabla no tiene se cotiza como 16:9 —lo que el adaptador manda—,
+   * igual que el parche preparado para producción; antes, con la mayor. 177 → 184 añadidas (la explicación y la línea
+   * que cambia, que ya era de la Fase 33); las quitadas, las mismas 25. `filmmaker-riesgos` (B5b, B5c) lo prueba.
    */
   const MOTOR_F1D = {
     'functions/src/engine/ledger.ts': '174\t11',
     'functions/src/engine/limits.ts': '15\t3',
-    'functions/src/engine/providers/seedance.ts': '177\t25',
+    'functions/src/engine/providers/seedance.ts': '184\t25',
     'functions/src/engine/types.ts': '42\t1',
     'functions/src/engine/video.ts': '9\t2',
   };

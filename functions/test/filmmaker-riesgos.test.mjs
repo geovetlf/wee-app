@@ -3,8 +3,9 @@
  *
  *   A · R2: las órdenes del proveedor (`--dur`, `--rs`…) no llegan a Seedance desde NINGÚN texto, y lo demás del texto
  *       —saltos de línea, un guion suelto— se queda como estaba;
- *   B · R18: los píxeles de la tabla oficial de BytePlus, por resolución, proporción y serie; `adaptive` y lo que no
- *       está en la tabla, con la mayor (un techo); el ejemplo de precio publicado sigue dando lo mismo;
+ *   B · R18: los píxeles de la tabla oficial de BytePlus, por resolución, proporción y serie; `adaptive`, con la mayor
+ *       (un techo), y lo que no está en la tabla, como 16:9 —lo que se manda— (cierre de R18, 2026-09-30); el
+ *       ejemplo de precio publicado sigue dando lo mismo;
  *   C · R19: editar y extender piden `adaptive` y el tipo de tarea solo va a Seedance 2.5;
  *   D · R20: videos y audios con cupos separados, y el audio solo, rechazado en la serie 2.0 antes de salir;
  *   E · R22: ni la duración `-1` ni los segundos de entrada que declara el cliente abaratan el precio;
@@ -98,8 +99,18 @@ console.log('\n— B · R18: los píxeles de la tabla oficial —');
   check('B4 9:16 y 3:4 son 16:9 y 4:3 girados: los mismos píxeles',
     ['480p', '720p', '1080p'].every((res) => tokens(res, '9:16', M.SEEDANCE_2_0_FAST) === tokens(res, '16:9', M.SEEDANCE_2_0_FAST) && tokens(res, '3:4', M.SEEDANCE_2_0) === tokens(res, '4:3', M.SEEDANCE_2_0)));
   const mayor720 = Math.max(...Object.values(OFICIAL['720p']).map(([w, h]) => t(w, h)));
-  check('B5 `adaptive` y una proporción que la tabla no tiene (4:5) se cotizan con la mayor de su resolución: un techo',
-    tokens('720p', 'adaptive', M.SEEDANCE_2_5) === mayor720 && tokens('720p', '4:5', M.SEEDANCE_2_5) === mayor720);
+  check('B5 `adaptive` se cotiza con la mayor de su resolución: un techo', tokens('720p', 'adaptive', M.SEEDANCE_2_5) === mayor720);
+  /*
+   * Cierre de R18 (2026-09-30): una proporción que la tabla no tiene se cotiza como 16:9, que es lo que el adaptador
+   * manda en ese caso —y con lo que estima el libro—, igual que el parche preparado para producción. Antes, con la mayor.
+   */
+  check('B5b y una proporción que la tabla no tiene (4:5), como 16:9 —lo que se manda—: a 480p, la medida de cada serie',
+    tokens('720p', '4:5', M.SEEDANCE_2_5) === t(1280, 720) && tokens('480p', '4:5', M.SEEDANCE_2_5) === t(854, 480)
+    && tokens('480p', '4:5', M.SEEDANCE_2_0_FAST) === t(864, 496) && tokens('1080p', '4:5', M.SEEDANCE_2_0) === t(1920, 1080));
+  const desconocida = P.priceVideo({ modelId: M.SEEDANCE_2_5, durationSec: 5, aspectRatio: '4:5', resolution: '480p' }, AJUSTES);
+  check('B5c el precio de una proporción desconocida y lo que el libro estima al mandarla son los mismos tokens',
+    desconocida.detail.estimatedTokens === t(854, 480) && desconocida.usd === S.seedanceCostUsd({ modelId: M.SEEDANCE_2_5, resolution: '480p', durationSec: 5, ratio: '16:9' }).usd,
+    JSON.stringify(desconocida.detail));
   const ejemplo = S.seedanceCostUsd({ modelId: M.SEEDANCE_2_5, resolution: '720p', durationSec: 5, ratio: '16:9' });
   check('B6 el ejemplo de precio publicado sigue igual: 720p 16:9 de 5 s en 2.5 = 108 000 tokens = USD 1.1556',
     ejemplo.tokens === 108000 && Math.abs(ejemplo.usd - 1.1556) < 1e-9, JSON.stringify(ejemplo));

@@ -511,7 +511,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
       /* Tras el canary real: el libro y sus tipos (el coste separado) y el adaptador (tarifa y consumo declarado). Ver video-asincrono H2. */
       /* Y la Fase 15 del Filmmaker Engine (D11): la parada de una tarea en cola, 33 líneas añadidas al adaptador (39 → 72). */
       /* Y la Fase 33 (R2, R18, R19, R20, R22): el adaptador (72 → 177 añadidas, 4 → 25 quitadas) y engine/video.ts (9 y 2). Ver video-asincrono H2. */
-      === '174\t11\tfunctions/src/engine/ledger.ts|15\t3\tfunctions/src/engine/limits.ts|177\t25\tfunctions/src/engine/providers/seedance.ts|42\t1\tfunctions/src/engine/types.ts|9\t2\tfunctions/src/engine/video.ts');
+      /* Y el cierre de R18 (2026-09-30): una proporción desconocida, como 16:9 —lo que se manda— (177 → 184 añadidas). */
+      === '174\t11\tfunctions/src/engine/ledger.ts|15\t3\tfunctions/src/engine/limits.ts|184\t25\tfunctions/src/engine/providers/seedance.ts|42\t1\tfunctions/src/engine/types.ts|9\t2\tfunctions/src/engine/video.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */

@@ -321,7 +321,7 @@ El coste de un canary de vídeo es **la lista oficial de BytePlus**, calculada c
 | K4 | `video.reference` | BytePlus · Seedance 2.0 fast, 720p | USD 0.713 | contrato 1 |
 | K5 | `video.reference` | BytePlus · Seedance 2.0 fast, 720p | USD 0.605 | contrato 1 |
 | K6 | `video.generate` | BytePlus · Seedance 2.0 fast, 720p | USD 0.605 | contrato 6 |
-| K7 | `video.generate` | BytePlus · Seedance 2.0 fast, 720p | USD 0.605 | ninguno |
+| K7 | `video.generate` | BytePlus · Seedance 2.0 fast, 720p | USD 0.605 | ninguno (valida también R18) |
 | K8 | `video.image_to_video` | BytePlus · Seedance 2.0 fast, 720p | USD 0.609 | contrato 1 y N22 |
 | K9 | `video.generate` | BytePlus · Seedance 2.0, 720p | USD 0.756 | la lista de modelos validados |
 | K10 | `video.generate` | BytePlus · Seedance 2.0, 1080p | USD 1.871 | la lista de modelos validados |
@@ -431,17 +431,17 @@ El coste de un canary de vídeo es **la lista oficial de BytePlus**, calculada c
 - **Condición de activación.** Contrato 6, y 2.0 fast en la lista de modelos validados para diálogo.
 - **Riesgo.** Medio: la sincronía y el idioma.
 
-#### K7 · Sonido nativo
+#### K7 · Sonido nativo, en 1:1 (y la tabla de R18)
 
-- **Objetivo.** Que una toma «Con sonido» llegue con su audio y se cobre igual que se cotizó.
+- **Objetivo.** Que una toma «Con sonido» llegue con su audio y se cobre igual que se cotizó. Además, en 1:1, que el proveedor facture lo que dice la tabla oficial de píxeles (R18).
 - **Capacidad.** `video.generate`
 - **Proveedor.** BytePlus ModelArk (Seedance, API oficial)
-- **Modelo.** Seedance 2.0 fast (`dreamina-seedance-2-0-fast-260128`), 720p, 5 s, 16:9, con sonido
-- **Entrada.** Un plano con «Con sonido».
-- **Salida esperada.** Un vídeo con su pista de audio.
-- **Coste estimado.** USD 0.605 (108 000 tokens a 5,6 USD por millón).
-- **Criterio de éxito.** El común, y que el vídeo trae audio.
-- **Condición de activación.** Ninguna de contrato: ya se cotiza con sonido. Basta desplegar lo que se valida.
+- **Modelo.** Seedance 2.0 fast (`dreamina-seedance-2-0-fast-260128`), 720p, 5 s, 1:1, con sonido
+- **Entrada.** Un plano cuadrado con «Con sonido».
+- **Salida esperada.** Un vídeo de 960×960 con su pista de audio.
+- **Coste estimado.** USD 0.605 (108 000 tokens a 5,6 USD por millón). En 1:1, lo mismo que en 16:9.
+- **Criterio de éxito.** El común; que el vídeo trae audio; y que el proveedor declara 108 000 tokens (`usage.completion_tokens`). Esa es la tabla oficial; no deben salir los 60 750 de la tabla que sigue en producción (`docs/FILMMAKER-R18-TABLA-DE-PIXELES.md`).
+- **Condición de activación.** Ninguna de contrato: ya se cotiza con sonido. En producción, desplegar antes lo que se valida, y R18 con ello. Desde los emuladores, la rama ya lo lleva.
 - **Riesgo.** Bajo.
 
 #### K8 · Continuar desde el último fotograma

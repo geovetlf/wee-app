@@ -194,7 +194,7 @@ const deId = (id) => bloques.find((b) => b.id === id);
     const modelId = (m.match(/`(dreamina-[a-z0-9-]+)`/) ?? [])[1];
     const resolution = ((m.match(/(480p|720p|1080p|4K)/) ?? [])[1] ?? '').toLowerCase();
     const durationSec = Number((m.match(/, (\d+) s(?:,|$)/) ?? [])[1]);
-    const ratio = /`adaptive`/.test(m) ? 'adaptive' : (m.match(/(16:9)/) ?? [])[1];
+    const ratio = /`adaptive`/.test(m) ? 'adaptive' : (m.match(/, (16:9|9:16|1:1|4:3|3:4|21:9)(?:,|$)/) ?? [])[1];
     const inputVideoSec = Number((m.match(/con (\d+) s de vídeo de entrada/) ?? [])[1] ?? 0);
     return { modelId, resolution, durationSec, ratio, inputVideoSec };
   };
@@ -265,6 +265,11 @@ const deId = (id) => bloques.find((b) => b.id === id);
   check('K19) el vídeo nuevo llega con su condición: los modelos se validan en `MODELOS_VALIDADOS_PARA_TOMAS`, que hoy solo tiene 2.0 fast',
     /const MODELOS_VALIDADOS_PARA_TOMAS: ReadonlySet<string> = new Set\(\[SEEDANCE_MODEL_IDS\.SEEDANCE_2_0_FAST\]\);/.test(video)
     && ['K9', 'K12'].every((id) => deId(id).campos['Condición de activación'].includes('`MODELOS_VALIDADOS_PARA_TOMAS`')));
+  /* Cierre de R18 (2026-09-30): K7 va en 1:1 para validar también la tabla de píxeles contra la factura. */
+  const tablaDeProduccion = Math.round((5 * 720 * 720 * 24) / 1024);
+  check('K20) K7 valida también R18: en 1:1 la tabla oficial da 108 000 tokens, y la que sigue en producción, los 60 750 que dice',
+    desglose(deId('K7')).ratio === '1:1' && S.seedanceTokens('720p', '1:1', 5, 0, S.SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST) === 108000
+    && tablaDeProduccion === 60750 && deId('K7').campos['Criterio de éxito'].includes('108 000 tokens') && deId('K7').campos['Criterio de éxito'].includes('60 750'));
 }
 
 /* ═══ X · LAS GUARDAS ═════════════════════════════════════════════════════ */

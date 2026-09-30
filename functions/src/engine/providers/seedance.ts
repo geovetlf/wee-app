@@ -143,9 +143,16 @@ const canonicalRatio = (ratio: string): string => (ratio === '9:16' ? '16:9' : r
 /**
  * Los píxeles de salida de una resolución y una proporción, para el modelo que
  * se diga. Sin modelo, o con uno de la serie 2.0, a 480p 16:9 manda la medida
- * mayor. `adaptive` —la proporción la pone la entrada— y cualquier proporción
- * que la tabla no tenga se cotizan con la mayor de esa resolución: un techo,
- * nunca un promedio.
+ * mayor. `adaptive` —la proporción la pone la entrada— se cotiza con la mayor de
+ * esa resolución: un techo, nunca un promedio.
+ *
+ * Una proporción que la tabla no tiene se cotiza como 16:9, porque es lo que el
+ * adaptador MANDA en ese caso (`buildSeedanceBody`) y con lo que estima el
+ * libro: el precio es la fórmula oficial de lo que se genera. Cierre de R18
+ * (2026-09-30): así lo hace el parche preparado para producción
+ * (`docs/FILMMAKER-R18-TABLA-DE-PIXELES.patch`); antes la rama la cotizaba con
+ * la mayor y cobraba un poco más de lo que se pedía (hasta un 4,5 % a 480p en
+ * Seedance 2.5).
  */
 const pixelesDeSalida = (resolution: SeedanceResolution, ratio: string, modelId?: string): number => {
   const fila = PIXELS[resolution] || PIXELS['720p'];
@@ -154,7 +161,7 @@ const pixelesDeSalida = (resolution: SeedanceResolution, ratio: string, modelId?
     return medida ? medida[0] * medida[1] : undefined;
   };
   const mayor = Math.max(...Object.keys(fila).map((r) => de(r) as number));
-  return ratio === 'adaptive' ? mayor : de(canonicalRatio(ratio)) ?? mayor;
+  return ratio === 'adaptive' ? mayor : de(canonicalRatio(ratio)) ?? (de('16:9') as number);
 };
 
 /** Tokens estimados = (entrada + salida en segundos) × ancho × alto × fps / 1024. */
