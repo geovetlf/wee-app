@@ -15,7 +15,9 @@
  *       dice la producción entera);
  *   E · la valla: ningún botón apagado del workplace sin su porqué, salvo lo que se explica solo o ya se explica al
  *       lado —cada excepción, con su motivo—;
- *   F · las guardas: solo esas cuatro piezas, los once diccionarios y las pruebas; F1-A y el espejo, sin tocar.
+ *   F · las guardas: solo esas cuatro piezas, los once diccionarios y las pruebas; F1-A y el espejo, sin tocar;
+ *   G · y, del repaso en el navegador del mismo día, los porqués de lo cerrado le hablan a quien usa Weë —nunca «tu
+ *       autorización» ni «un cambio de contrato», que son cosas del dueño del producto—, en los once idiomas.
  *
  * La app, con dobles de React Native y de Firebase y el traductor con el español de verdad.
  */
@@ -600,6 +602,47 @@ console.log('\n── F · Solo cambian las piezas de los estados, los diccionar
     && LOCALES.every((l) => /  wsWhySplitTooShort: ['"][^'"\n]*\{\{segundos\}\}/.test(leer(`i18n/textos/${l}/filmmaker.ts`))), sinTraducir.join(','));
   check('F4) esta suite está en la cadena de `npm test`', /test\/filmmaker-estados\.test\.mjs/.test(leer('functions/package.json')));
   check('F5) en todo lo dibujado no faltó ni una clave', faltan.size === 0, [...faltan].join(', '));
+}
+
+/* ═══ G · LO CERRADO LE HABLA A QUIEN USA WEË ════════════════════════════ */
+console.log('\n── G · Los porqués de lo cerrado le hablan a quien usa Weë, no al dueño del producto (repaso del cierre) ──');
+{
+  /*
+   * El repaso en el navegador (2026-09-30) encontró tres porqués del paquete 3D que decían «necesita tu autorización»,
+   * «espera tu autorización» o «un cambio de contrato»: frases para el dueño del producto, no para la persona, que no
+   * puede autorizar nada. El encargo admite «requiere autorización» (impersonal); «tu autorización» dicho a la persona
+   * es una promesa falsa, y el contrato o la puerta son jerga de dentro.
+   */
+  const AL_DUENO = {
+    es: /tu autorizaci[oó]n|cambio de contrato|puerta de Filmmaker/i,
+    en: /your authori[sz]ation|contract change|Filmmaker door/i,
+    pt: /sua autoriza[çc][ãa]o|mudan[çc]a de contrato|porta do Filmmaker/i,
+    'pt-PT': /tua autoriza[çc][ãa]o|altera[çc][ãa]o de contrato|porta do Filmmaker/i,
+    de: /deine Freigabe|Vertrags[äa]nderung/i,
+    fr: /ton autorisation|changement de contrat/i,
+    it: /tua autorizzazione|modifica di contratto/i,
+    ko: /승인을 기다리는 계약|계약 변경/,
+    ru: /контракт/i,
+    zh: /等待你授权|合约变更|变更合约/,
+    'zh-TW': /等待你授權|合約變更|變更合約/,
+  };
+  /* Ni el reparto de proveedores de Weë, que es cosa de dentro («El usuario elige el resultado. Weë elige la IA.»). */
+  const REPARTO = {
+    es: /proveedores de (vídeo|3D)|proveedor de 3D/i, en: /(video|3D) providers?\b/i, pt: /provedores? de (vídeo|3D)/i, 'pt-PT': /fornecedores? de (vídeo|3D)/i,
+    de: /Videoanbieter|3D-Anbieter/i, fr: /fournisseurs? (vidéo|de 3D)/i, it: /fornitori video|fornitore di 3D/i, ko: /영상 제공업체|3D 제공업체/,
+    ru: /видеопровайдер|провайдер 3D/i, zh: /视频服务商|3D 服务商/, 'zh-TW': /影片服務商|3D 服務商/,
+  };
+  const hablanAlDueno = Object.entries(AL_DUENO).flatMap(([l, re]) =>
+    leer(`i18n/textos/${l}/filmmaker.ts`).split(/\r?\n/).filter((linea) => re.test(linea)).map((linea) => `${l}: ${linea.trim().slice(0, 70)}`));
+  check('G1) ningún texto de Filmmaker, en los once idiomas, le pide autorización a la persona ni le habla de contratos', hablanAlDueno.length === 0, hablanAlDueno.join(' · '));
+  const conReparto = Object.entries(REPARTO).flatMap(([l, re]) =>
+    leer(`i18n/textos/${l}/filmmaker.ts`).split(/\r?\n/).filter((linea) => re.test(linea)).map((linea) => `${l}: ${linea.trim().slice(0, 70)}`));
+  check('G1b) ni le enseña cómo reparte Weë el trabajo entre proveedores', conReparto.length === 0, conReparto.join(' · '));
+  check('G2) los tres porqués reescritos dicen lo que la persona puede saber y hacer',
+    ES.filmmaker.wsCreateIn3dWhy === 'Crear en 3D con IA todavía no está disponible en Weë.'
+    && /Mis creaciones/.test(ES.filmmaker.wsCreateWithImageWhy) && /^Llegará con el editor de escena\./.test(ES.filmmaker.wsScene3dWhy));
+  /* CONTROL: la valla reconocería el texto de antes. */
+  check('G3) CONTROL · la valla reconocería el texto de antes', AL_DUENO.es.test('el motor de Weë lo tiene reservado y espera tu autorización'));
 }
 
 console.log(failures ? `\n✘ filmmaker-estados: ${n - failures}/${n}` : `\n✔ filmmaker-estados: ${n}/${n}`);

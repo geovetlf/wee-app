@@ -2034,6 +2034,11 @@ Una valla impide volver atrás: ningún botón apagado del workplace sin su porq
 solo (el primero no sube, «Guardando…») o lo que ya se explica al lado (el lote, el saldo, una propuesta desfasada),
 cada una con su motivo.
 
+El repaso en el navegador (1280, 390 y 360 px) encontró seis porqués de lo cerrado que no le hablaban a la persona.
+Decían «necesita tu autorización» o «un cambio de contrato», que son cosas del dueño del producto, o «los proveedores de
+vídeo de Weë», que es cosa de dentro. Se reescribieron en los once idiomas; ahora dicen qué no existe todavía y, cuando
+lo hay, qué se puede hacer mientras tanto. Otra valla impide que vuelvan.
+
 Pruebas: `functions/test/filmmaker-estados.test.mjs` (en la cadena).
 
 ## Próximas fases
