@@ -161,6 +161,13 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['business.typeVideo', '«Video» es la palabra turca (glosario § 10.1)'],
     ['business.brandLogo', '«Logo» es la palabra turca (está en el diccionario de la TDK)'],
     ['business.shareProfile', '«Business Profile» es nombre de producto y no se traduce (decisión del usuario, 2026-09-16; constants/businessModules.ts)'],
+    /* Los nombres de las funciones de Weë Business son de producto, como Weë Studio (decisión del usuario, 2026-09-16). */
+    ['business.businessPlan', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
+    ['business.businessCoach', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
+    ['business.pricing', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
+    ['business.brandKit', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
+    ['business.customerInsights', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
+    ['business.businessIdeas', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
     ['aiAvatar.faceOval', '«Oval» es la palabra turca'],
     ['aiAvatar.accPiercing', '«Piercing» es la palabra turca'],
     ['design.valModern', '«Modern» es la palabra turca'],

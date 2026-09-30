@@ -7,10 +7,11 @@
  * «Negocio» es «işletme», como el İşletme Profili de Google y la cuenta de empresa de Instagram; «cliente» es
  * «müşteri»; conectar una red es «hesap bağlamak». Los nombres de los ocho módulos (My Business, Products & Catalog…)
  * son de producto, viven en `constants/businessModules.ts` y no pasan por el traductor; por eso «Business Profile» se
- * queda igual cuando es un destino para compartir: es el nombre que la persona ve en la tarjeta del módulo. Las
- * funciones de dentro sí se traducen, porque no son marca: «İş planı», «İşletme koçu», «Fiyatlandırma asistanı»,
- * «Marka kiti», «Müşteri içgörüleri», «İş fikirleri», «SWOT analizi». «Crear mi negocio» es «kurmak», como se monta
- * un negocio o una tienda en turco («İşletmeni kur»).
+ * queda igual cuando es un destino para compartir: es el nombre que la persona ve en la tarjeta del módulo. Los
+ * NOMBRES de las funciones de dentro —Business Plan, Business Coach, Pricing Assistant, Brand Kit, Customer
+ * Insights, Business Ideas— también son de producto y se escriben igual en todos los idiomas, como Weë Studio
+ * (decisión del usuario, 2026-09-16); lo que hace cada una sí se traduce, en su pista. «SWOT» se queda como sigla:
+ * «SWOT analizi». «Crear mi negocio» es «kurmak», como se monta un negocio o una tienda en turco («İşletmeni kur»).
  *
  * Los «…Goal» son lo que la persona le pide a Weë Brain: aparecen como su propio mensaje en la conversación y acaban
  * siendo el título del trabajo. En turco se piden como se le piden las cosas a un asistente —imperativo de «sen»:
@@ -93,9 +94,9 @@ export const business: typeof import('../es/business').business = {
   editBusinessGoal: 'İşletme bilgilerimi gözden geçir ve iyileştir',
   businessInfo: 'İşletme bilgileri',
   businessInfoGoal: 'İşletme bilgilerimi toparla: ne sattığım, kime sattığım ve beni farklı kılan şey',
-  businessPlan: 'İş planı',
+  businessPlan: 'Business Plan',
   businessPlanGoal: 'İşletmemi bir yatırımcıya sunmak için iş planı yaz',
-  businessCoach: 'İşletme koçu',
+  businessCoach: 'Business Coach',
   businessCoachGoal: 'Bu hafta işletmem için ne yapmalıyım?',
 
   /* ── Products & Catalog ───────────────────────────────────────────────── */
@@ -109,7 +110,7 @@ export const business: typeof import('../es/business').business = {
   productsCount_other: '{{contador}} ürün',
 
   /* Pricing Assistant */
-  pricing: 'Fiyatlandırma asistanı',
+  pricing: 'Pricing Assistant',
   pricingHint: 'Maliyetlerini gir, Weë sana referans bir fiyat önersin.',
   pricingMaterials: 'Malzeme',
   pricingPackaging: 'Ambalaj',
@@ -123,7 +124,7 @@ export const business: typeof import('../es/business').business = {
   pricingNote: 'Fiyatlar yalnızca bilgi amaçlı bir referanstır; muhasebe veya vergi danışmanlığı yerine geçmez.',
 
   /* Brand Kit */
-  brandKit: 'Marka kiti',
+  brandKit: 'Brand Kit',
   brandKitHint: 'İçeriğinin her zaman sana özgü görünmesini sağlayan her şey.',
   brandLogo: 'Logo',
   brandColors: 'Renkler',
@@ -212,10 +213,10 @@ export const business: typeof import('../es/business').business = {
   opportunities: 'Fırsatlar',
   opportunitiesEmpty: 'Satışların ve içeriklerin olduğunda, fark ettiğim fırsatlar burada görünecek.',
   createPromotion: 'Kampanyayı oluştur',
-  customerInsights: 'Müşteri içgörüleri',
+  customerInsights: 'Customer Insights',
   customerInsightsHint: 'Kime sattığın ve neye ihtiyaç duyduğu.',
   customerInsightsGoal: 'İdeal müşterimi tanımla ve ona hangi mesajların işe yaradığını söyle',
-  businessIdeas: 'İş fikirleri',
+  businessIdeas: 'Business Ideas',
   businessIdeasHint: 'Başka neler satabileceğin ya da nasıl öne çıkabileceğin.',
   businessIdeasGoal: 'İşletmem için fikir ver ve nasıl öne çıkabileceğimi söyle',
 
