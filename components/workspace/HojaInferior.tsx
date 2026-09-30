@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useAlturaDelTeclado } from '../EspacioDeEscritura';
+import { PaginaDeCajas } from '../creator/CajaQueCrece';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -76,9 +77,14 @@ const HojaInferior: React.FC<{
               <Ionicons name="close" size={scale(18)} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.cuerpo} contentContainerStyle={styles.cuerpoDentro} keyboardShouldPersistTaps="handled">
+          {/*
+            * Regla 9 (CLAUDE.md): una caja que crece dentro de una hoja se para en lo que se ve de la hoja, con sus botones a
+            * la vista. La hoja es una página de cajas (la de siempre, `PaginaDeCajas`). Encontrado en la auditoría del
+            * workplace (Fase 38b, apartada) y cerrado aquí.
+            */}
+          <PaginaDeCajas style={styles.cuerpo} contentContainerStyle={styles.cuerpoDentro} keyboardShouldPersistTaps="handled">
             {children}
-          </ScrollView>
+          </PaginaDeCajas>
           {!!pie && <View style={styles.pie}>{pie}</View>}
         </View>
       </View>

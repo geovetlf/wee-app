@@ -13,6 +13,8 @@ import { DURACION_DE_UN_PLANO_NUEVO_SEC, ESTILOS_CANONICOS, esElEstilo, nombreDe
 import MiniaturaDeVideo from './MiniaturaDeVideo';
 import { ORDEN_DE_RESOLUCIONES, EspacioDeFilmmaker, alcanceDeResolucion, elegidoDe, vecinos } from './espacio';
 import { resolucionVisible } from '../../../utils/mensajesDeFilmmaker';
+import { propiosDentro } from '../../../utils/produccionEditable';
+import { confirmAction } from '../../../utils/notify';
 import type { ProductionScene, ProductionShot, ResolutionTarget } from '../../../services/filmmaker/dominio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
@@ -68,7 +70,9 @@ const ProductionViewer: React.FC<{
   onIrAlDirector: () => void;
   onPosicion?: (segundos: number) => void;
   altoMaximo?: number;
-}> = ({ espacio, onIrAlDirector, onPosicion, altoMaximo }) => {
+  /** El momento del vídeo del plano elegido al que lleva el cabezal de la línea de tiempo. */
+  irA?: { segundos: number; vez: number } | null;
+}> = ({ espacio, onIrAlDirector, onPosicion, altoMaximo, irA }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const { produccion, seleccion, videos, tarjetas, editable, toma, onSeleccionar, onGesto, ids } = espacio;
@@ -157,7 +161,18 @@ const ProductionViewer: React.FC<{
                 <TouchableOpacity
                   key={token}
                   disabled={!editable}
-                  onPress={() => { onGesto([{ op: 'change_style', target: { scope: 'production' }, style: esta ? null : token }]); setAbierto(null); }}
+                  onPress={() => {
+                    setAbierto(null);
+                    /*
+                     * Como en «Dirección» (Fase 31): F1-A quita el estilo propio de escenas y planos al fijarlo en toda la
+                     * producción, así que se pregunta antes. Aquí no se preguntaba (auditoría del workplace, 38b apartada).
+                     */
+                    const n = propiosDentro(produccion, 'style');
+                    void (async () => {
+                      if (n > 0 && !(await confirmAction(t('filmmaker.wsOverrideStyleConfirm', { contador: n }), t('filmmaker.wsOverrideDetail'), t('filmmaker.wsOverrideApply'), false, t))) return;
+                      onGesto([{ op: 'change_style', target: { scope: 'production' }, style: esta ? null : token }]);
+                    })();
+                  }}
                   style={[styles.opcion, { backgroundColor: esta ? theme.colors.accent : theme.colors.surface, borderColor: esta ? theme.colors.accent : theme.colors.border }]}
                   accessibilityRole="button"
                   accessibilityState={{ selected: esta, disabled: !editable }}
@@ -224,6 +239,7 @@ const ProductionViewer: React.FC<{
         nombre={t('filmmaker.takePreviewOf', { nombre: miga[miga.length - 1] })}
         altoMaximo={altoMaximo}
         onPosicion={onPosicion ? (s) => onPosicion(s) : undefined}
+        irA={irA}
         sinVideo={!produccion.scenes.length ? (
           /*
            * Una producción recién creada nace vacía (F1-C: la idea se guarda tal

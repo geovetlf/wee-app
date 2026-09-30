@@ -1921,6 +1921,27 @@ Encargo del usuario (2026-09-29, punto 11): el montaje, la descarga, el Weël y 
 
 Pruebas: `functions/test/filmmaker-versiones-finales.test.mjs` (en la cadena).
 
+### Arreglos del workplace que no cambian su disposición (2026-09-30)
+
+La auditoría del workplace (la Fase 38b, que se apartó porque mezclaba arreglos con cambios de disposición) encontró
+fallos que no tocan la disposición aprobada. Cerrados aquí:
+
+- **Regla 9 dentro de las hojas**: el cuerpo de `HojaInferior` es una página de cajas (`PaginaDeCajas`), así que una
+  caja que crece dentro de una hoja se para en lo que se ve de la hoja y sus botones siguen a la vista.
+- **El cabezal mueve el vídeo**: mover el cabezal de la línea de tiempo elegía el plano, pero el vídeo no iba a ese
+  momento. Ahora el reproductor salta a ese segundo dentro del plano (`irA`), también si el vídeo todavía no había
+  cargado.
+- **El estilo de toda la producción pregunta antes**: desde el visor, fijarlo quitaba sin avisar el estilo propio de
+  escenas y planos (F1-A lo hace así); ahora se pregunta, como ya se hacía en «Dirección».
+- **El ejemplo de `change_direction` de Weë Brain** ya no enseña `mood` (en el bloque de Weë Brain y el 3D).
+
+Lo que la 38b traía y **cambia la disposición** —el cajón del proyecto de 1024 a 1279 px, quitar los controles que se
+repiten entre paneles, la pestaña «Velocidad» y los toques rápidos en el teléfono— queda propuesto para tu decisión, y
+lo que **cambia F1-A** —dar duración a un plano que no la tiene, quitar `mood` del tipo de la dirección— espera
+autorización (contratos, en la Fase 39).
+
+Pruebas: `functions/test/filmmaker-workplace-arreglos.test.mjs` (en la cadena).
+
 ### 3D dentro de Filmmaker · Crear, guardar y reutilizar personajes, lugares y objetos
 
 Encargo del usuario (2026-09-29): «3D vive dentro de Filmmaker; Filmmaker no vive dentro de 3D.» UN WEË · UN ASSET

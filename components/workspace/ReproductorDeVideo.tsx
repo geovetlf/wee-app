@@ -98,7 +98,13 @@ const ReproductorDeVideo: React.FC<{
   altoMaximo?: number;
   /** Avisa de dónde va el vídeo, en segundos: la línea de tiempo pinta ahí su cabezal. */
   onPosicion?: (segundos: number, duracion: number) => void;
-}> = ({ url, poster, formato, nombre, sinVideo, procesando, altoMaximo, onPosicion }) => {
+  /**
+   * Ir a un momento del vídeo cuando lo pide otro (el cabezal de la línea de tiempo). `vez` cambia en cada petición,
+   * aunque el segundo sea el mismo. Si el vídeo aún no está cargado, va en cuanto cargue. (Auditoría del workplace,
+   * Fase 38b apartada: el cabezal no movía el vídeo.)
+   */
+  irA?: { segundos: number; vez: number } | null;
+}> = ({ url, poster, formato, nombre, sinVideo, procesando, altoMaximo, onPosicion, irA }) => {
   const { theme } = useTheme();
   const { t } = useIdioma();
   const video = useRef<Video>(null);
@@ -109,6 +115,14 @@ const ReproductorDeVideo: React.FC<{
   const [error, setError] = useState(false);
   /* Cada «Inténtalo de nuevo» monta el vídeo otra vez: así se vuelve a pedir de verdad. */
   const [intento, setIntento] = useState(0);
+  /* El momento que se pidió y todavía no se pudo ir (el vídeo no había cargado). */
+  const pendiente = useRef<number | null>(null);
+  useEffect(() => {
+    if (!irA) return;
+    pendiente.current = Math.max(0, irA.segundos);
+    void video.current?.setPositionAsync(pendiente.current * 1000).then(() => { pendiente.current = null; }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [irA?.vez]);
 
   /* Otro vídeo: se empieza de cero, quieto y sin el error del anterior. */
   useEffect(() => {
@@ -126,6 +140,11 @@ const ReproductorDeVideo: React.FC<{
     setEstado({ reproduciendo: s.isPlaying, posicion, duracion, cargado: true, bufferizando: s.isBuffering === true });
     onPosicion?.(posicion, duracion);
     if (s.didJustFinish) void video.current?.setPositionAsync(0);
+    if (s.isLoaded && pendiente.current !== null) {
+      const destino = pendiente.current;
+      pendiente.current = null;
+      void video.current?.setPositionAsync(destino * 1000).catch(() => undefined);
+    }
   }, [onPosicion]);
 
   const alFallar = useCallback(() => setError(true), []);

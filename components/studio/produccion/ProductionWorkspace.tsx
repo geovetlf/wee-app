@@ -62,6 +62,8 @@ const ProductionWorkspace: React.FC<{
   const [hoja, setHoja] = useState<'guion' | 'escenas' | 'continuidad' | null>(null);
   const [proyecto, setProyecto] = useState<SeccionDelProyecto | null>(null);
   const [cabezal, setCabezal] = useState(0);
+  /* El momento del vídeo del plano al que lleva el cabezal (antes el cabezal no movía el vídeo: auditoría, 38b apartada). */
+  const [irA, setIrA] = useState<{ segundos: number; vez: number } | null>(null);
   const { produccion, linea, seleccion, onSeleccionar } = espacio;
 
   const montaje = useMemo(() => montajeDe(produccion, linea, {
@@ -80,6 +82,8 @@ const ProductionWorkspace: React.FC<{
     if (tramo && tramo.unitId !== elegido?.unitId) {
       onSeleccionar(tramo.shotId ? { tipo: 'plano', id: tramo.shotId } : { tipo: 'escena', id: tramo.sceneId ?? tramo.id });
     }
+    /* Y el vídeo del plano va a ese momento: su segundo dentro del tramo. */
+    if (tramo) setIrA((antes) => ({ segundos: Math.max(0, s - tramo.inicio), vez: (antes?.vez ?? 0) + 1 }));
   }, [montaje.video, elegido?.unitId, onSeleccionar]);
 
   const abrirEstructura = useCallback((e: Estructura) => {
@@ -116,6 +120,7 @@ const ProductionWorkspace: React.FC<{
         onIrAlDirector={() => setPestanaDirector('director')}
         onPosicion={(s) => setCabezal(inicioDelElegido + s)}
         altoMaximo={scale(420)}
+        irA={irA}
       />
     );
 
