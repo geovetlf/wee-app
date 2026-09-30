@@ -197,6 +197,13 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
      * que traducir (glosario, § 10.6).
      */
     'common.accept',
+    /*
+     * Los nombres de las funciones de Weë Business son nombres de producto y se
+     * escriben igual en todos los idiomas, como Weë Studio (decisión del usuario,
+     * 2026-09-16). Lo que hacen se traduce, en sus pistas.
+     */
+    'business.businessPlan', 'business.businessCoach', 'business.pricing', 'business.brandKit',
+    'business.customerInsights', 'business.businessIdeas', 'business.shareProfile',
   ]);
   const sinJapones = JA.filter(([k, v]) => !SIN_TEXTO.has(k) && /\p{L}/u.test(sinLoAjeno(v)) && !JAPONES.test(sinLoAjeno(v)));
   check('17) todo lo que tiene letras está escrito en japonés',
