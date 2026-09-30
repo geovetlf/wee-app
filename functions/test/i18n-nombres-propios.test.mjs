@@ -173,6 +173,16 @@ const DEFORMES = [
   [/(?<![\p{L}])[Kk]redi(?:ler\p{L}*|niz|n|ni|ye|den|de)?(?![\p{L}])(?! kart)/u, 'Credits en turco'],
   [/Weë (?:Stüdyo|Tasarım|Fotoğraf|Yazar|Müzik|Güzellik|Şef|Ev|İş|Seyahat|Gezi|Beyin|Zihin)(?![\p{L}])/u, 'experiencia de Weë traducida al turco'],
   [/(?:Weë|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits)(?:de|da|te|ta|den|dan|ten|tan|ye|ya|yi|yı|nin|nın|in|ın|un|ün|yle|yla)(?![\p{L}])/u, 'marca con un sufijo turco pegado sin apóstrofo'],
+  /*
+   * SUECO. Traducir la moneda —«krediter»— o la experiencia —«Weë Musik»,
+   * «Weë Resor»—; y declinar la marca como un nombre sueco: la forma definida
+   * («WeeTalken», «Creditsen») o un genitivo pegado («Weës»). La marca va con
+   * preposición («på Weë») o en un compuesto con guion («Weë-konto»).
+   * «kreditkort», la tarjeta, sí es sueco corriente.
+   */
+  [/(?<![\p{L}])[Kk]redit(?:er|erna|en)(?![\p{L}])/u, 'Credits en sueco'],
+  [/Weë (?:Musik|Resa|Resor|Kock|Företag|Hjärna|Skribent|Skönhet|Hem)(?![\p{L}])/u, 'experiencia de Weë traducida al sueco'],
+  [/(?:WeeTalk|Credits|Wäll|ËContact|ẄContact)(?:en|et|s|ens|ets)(?![\p{L}])|(?<![\p{L}])Weës(?![\p{L}])/u, 'marca declinada en sueco'],
 ];
 for (const idioma of idiomas) {
   const hallados = [];
@@ -222,6 +232,10 @@ const TRAMPAS = [
   ['Weë Stüdyo ile oluştur', 'turco · experiencia traducida'],
   ['Weëde paylaş', 'turco · sufijo sin apóstrofo'],
   ['WeeTalkta yaz', 'turco · sufijo sin apóstrofo'],
+  ['Du har 12 krediter kvar', 'sueco · moneda traducida'],
+  ['Öppna Weë Musik', 'sueco · experiencia traducida'],
+  ['Skriv i WeeTalken', 'sueco · marca en forma definida'],
+  ['Läs Weës villkor', 'sueco · genitivo pegado a la marca'],
 ];
 const pillada = (texto) => DEFORMES.some(([re]) => re.test(texto));
 const escapadas = TRAMPAS.filter(([t]) => !pillada(t));
@@ -237,7 +251,9 @@ const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls',
   /* Los dos nombres bien escritos, y uno que solo ACABA en «contact» sin serlo. */
   'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄',
   /* Turco: la marca con su apóstrofo, y las palabras corrientes que se le parecen. */
-  '12 Credits kaldı', "Weë'de paylaş", "WeeTalk'ta yaz", 'Kredi kartıyla öde', 'Weë Studio ile oluştur', 'fotoğraf stüdyosu'];
+  '12 Credits kaldı', "Weë'de paylaş", "WeeTalk'ta yaz", 'Kredi kartıyla öde', 'Weë Studio ile oluştur', 'fotoğraf stüdyosu',
+  /* Sueco: la marca con preposición o en un compuesto con guion, y la tarjeta de crédito. */
+  'Du har 12 Credits kvar', 'Öppna Weë Music', 'Skriv i WeeTalk', 'Villkor för Weë', 'ditt Weë-konto', 'Betala med kreditkort'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));
 check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
   falsosPositivos.join(' | ') || 'ninguno');

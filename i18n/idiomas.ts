@@ -20,7 +20,7 @@
 
 /** Los idiomas que Weë contempla. Añadir uno es añadirlo a esta lista. */
 export type CodigoDeIdioma =
-  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr';
+  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv';
 
 /**
  * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
@@ -131,6 +131,15 @@ export const IDIOMAS: readonly Idioma[] = [
     ],
   },
   /*
+   * El sueco se tutea («du») y escribe junto lo que es una sola palabra: una
+   * palabra compuesta partida en dos («profil bild») es el error más visible de
+   * una traducción al sueco. Tiene `one` y `other`, y aquí sí cambian
+   * («1 kommentar», «3 kommentarer»). Las marcas no llevan terminaciones: se
+   * usan con preposición («på Weë»). Todo eso está en `docs/I18N-SUECO.md` y
+   * lo vigila `functions/test/i18n-sueco.test.mjs`.
+   */
+  { codigo: 'sv', nombreNativo: 'Svenska', direccion: 'ltr', listo: true },
+  /*
    * Lo propio del turco no es el plural —`Intl.PluralRules('tr')` tiene `one` y
    * `other`, y tras una cifra el sustantivo va en singular, así que las dos
    * formas suelen decir lo mismo— sino la CAJA y los SUFIJOS: la mayúscula de
@@ -222,6 +231,7 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'fr-FR', 'fr-CA',
   'de-DE',
   'pt-BR', 'pt-PT',
+  'sv-SE',
   'tr-TR',
   'ja-JP',
   'zh-CN', 'zh-TW',

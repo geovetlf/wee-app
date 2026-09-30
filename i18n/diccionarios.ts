@@ -12,6 +12,7 @@ import { zh } from './textos/zh';
 import { zhTW } from './textos/zh-TW';
 import { ja } from './textos/ja';
 import { tr } from './textos/tr';
+import { sv } from './textos/sv';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -89,6 +90,7 @@ export const DICCIONARIOS: Diccionarios = {
   'zh-Hant-MO': zhTW,
   ja,
   tr,
+  sv,
 };
 
 /*
