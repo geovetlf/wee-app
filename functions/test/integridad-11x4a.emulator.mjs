@@ -15,7 +15,7 @@
  * No está en `npm test` a propósito: necesita el emulador y Java 21. Desde la
  * raíz del proyecto:
  *
- *   firebase emulators:exec --only firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only firestore --project demo-wee \
  *     "node functions/test/integridad-11x4a.emulator.mjs firestore.rules"
  */
 import fs from 'node:fs';
@@ -23,8 +23,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { proyectoDeEmulador } from './_emulador.mjs';
 
-const PROY = 'wee-dev-geovet';
+const PROY = proyectoDeEmulador();
 const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 const base = `http://${host}/v1/projects/${PROY}/databases/(default)/documents`;
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');

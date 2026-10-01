@@ -16,18 +16,19 @@
  *
  * No está en `npm test` a propósito: necesita el emulador y Java 21.
  *
- *   firebase emulators:exec --only firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only firestore --project demo-wee \
  *     "node functions/test/runtime-asincrono.emulator.mjs"
  */
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { proyectoDeEmulador } from './_emulador.mjs';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) { console.error('sin FIRESTORE_EMULATOR_HOST: no se ejecuta'); process.exit(2); }
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const admin = require('firebase-admin');
-admin.initializeApp({ projectId: 'wee-dev-geovet' });
+admin.initializeApp({ projectId: proyectoDeEmulador() });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));
 

@@ -15,7 +15,8 @@
     "functions:emulator": "npm --prefix functions run build && node scripts/emulators.mjs",
     "deploy:prod:functions": "firebase deploy --only functions,storage --project prod",
     "deploy:prod:firestore": "firebase deploy --only firestore --project prod",
-    "test:engine": "npm --prefix functions run build && npm --prefix functions test"
+    "test:engine": "npm --prefix functions run build && npm --prefix functions test",
+    "web:demo": "node scripts/web-demo.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

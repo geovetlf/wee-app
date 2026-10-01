@@ -14,10 +14,12 @@
  * Se lanza así, desde la raíz del proyecto (los dos emuladores a la vez,
  * porque la regla de Storage lee Firestore):
  *
- *   firebase emulators:exec --only storage,firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only storage,firestore --project demo-wee \
  *     "node functions/test/fronteras-storage.emulator.mjs"
  */
-const PROY = 'wee-dev-geovet';
+import { proyectoDeEmulador } from './_emulador.mjs';
+
+const PROY = proyectoDeEmulador();
 const BUCKET = `${PROY}.appspot.com`;
 const storageHost = process.env.FIREBASE_STORAGE_EMULATOR_HOST || 'localhost:9199';
 const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080';

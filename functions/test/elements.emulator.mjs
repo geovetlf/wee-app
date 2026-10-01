@@ -15,7 +15,7 @@
  * NO está en `npm test` a propósito: necesita el emulador y Java 21. Desde la
  * raíz del proyecto:
  *
- *   firebase emulators:exec --only firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only firestore --project demo-wee \
  *     "node functions/test/elements.emulator.mjs"
  *
  * NUNCA contra producción: el proyecto va fijo y es el de desarrollo.
@@ -24,8 +24,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { proyectoDeEmulador } from './_emulador.mjs';
 
-const PROY = 'wee-dev-geovet';
+const PROY = proyectoDeEmulador();
 const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 const base = `http://${host}/v1/projects/${PROY}/databases/(default)/documents`;
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');

@@ -21,20 +21,21 @@
  *
  * No está en `npm test` a propósito: necesita el emulador y Java 21.
  *
- *   firebase emulators:exec --only firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only firestore --project demo-wee \
  *     "node functions/test/runtime-conductor.emulator.mjs firestore.rules"
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { proyectoDeEmulador } from './_emulador.mjs';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) { console.error('sin FIRESTORE_EMULATOR_HOST: no se ejecuta'); process.exit(2); }
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../..');
 const admin = require('firebase-admin');
-const PROY = 'wee-dev-geovet';
+const PROY = proyectoDeEmulador();
 admin.initializeApp({ projectId: PROY });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));

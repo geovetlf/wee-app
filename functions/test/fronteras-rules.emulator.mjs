@@ -18,12 +18,13 @@
  * No está en `npm test` a propósito: necesita el emulador y Java. Se lanza así,
  * desde la raíz del proyecto:
  *
- *   firebase emulators:exec --only firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only firestore --project demo-wee \
  *     "node functions/test/fronteras-rules.emulator.mjs firestore.rules"
  */
 import fs from 'node:fs';
+import { proyectoDeEmulador } from './_emulador.mjs';
 
-const PROY = 'wee-dev-geovet';
+const PROY = proyectoDeEmulador();
 const host = process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080';
 const base = `http://${host}/v1/projects/${PROY}/databases/(default)/documents`;
 

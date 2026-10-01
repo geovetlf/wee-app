@@ -10,7 +10,7 @@
  * No está en `npm test` a propósito: necesita los emuladores y Java 21.
  * Se lanza así, desde la raíz del proyecto:
  *
- *   firebase emulators:exec --only auth,firestore --project wee-dev-geovet \
+ *   firebase emulators:exec --only auth,firestore --project demo-wee \
  *     "node functions/test/creacion-de-perfil.emulator.mjs"
  */
 import fs from 'node:fs';
@@ -18,8 +18,9 @@ import { createRequire } from 'node:module';
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, runTransaction, getDocs, getDoc, query, collection, where, limit, setDoc, updateDoc, addDoc } from 'firebase/firestore';
+import { proyectoDeEmulador } from './_emulador.mjs';
 
-const PROY = 'wee-dev-geovet';
+const PROY = proyectoDeEmulador();
 /* `127.0.0.1`, no `localhost`: el `fetch` de Node resuelve `localhost` a `::1` y el emulador de Auth escucha en IPv4. */
 const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
 const [fsHost, fsPort] = (process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080').split(':');
@@ -51,7 +52,7 @@ const sesion = async (modo) => {
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const tokenDe = (uid) => {
   const now = Math.floor(Date.now() / 1000);
-  const cuenta = 'firebase-adminsdk@wee-dev-geovet.iam.gserviceaccount.com';
+  const cuenta = `firebase-adminsdk@${PROY}.iam.gserviceaccount.com`;
   return b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({ iss: cuenta, sub: cuenta, aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit', iat: now, exp: now + 3600, uid }) + '.';
 };
 
