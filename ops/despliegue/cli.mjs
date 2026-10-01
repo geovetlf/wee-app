@@ -72,12 +72,14 @@ const verificar = async () => {
   });
   const checkRuns = r.ok ? ((await r.json()).check_runs || []) : [];
   const motivos = motivosContraElCommit({ sha, enMain, checkRuns });
-  if (objetivo.funciones.length) {
-    /* La regla de no pisar producción (ops/permitido.mjs): sale 1 si pisaría, 2 si no se puede saber. */
-    try {
-      execFileSync(process.execPath, [path.join(RAIZ, 'ops/permitido.mjs'), '--commit', sha, '--funciones', objetivo.funciones.join(',')], { cwd: RAIZ, stdio: 'inherit' });
-    } catch { motivos.push('ops/permitido.mjs: desplegar este commit pisaría código que funciona en producción'); }
-  }
+  /* La regla de no pisar producción (ops/permitido.mjs), para funciones Y para reglas, índices, Storage y Hosting: sale 1 si pisaría, 2 si no se puede saber. */
+  const regla = [
+    ...(objetivo.funciones.length ? ['--funciones', objetivo.funciones.join(',')] : []),
+    ...(objetivo.otros.length ? ['--otros', objetivo.otros.join(',')] : []),
+  ];
+  try {
+    execFileSync(process.execPath, [path.join(RAIZ, 'ops/permitido.mjs'), '--commit', sha, ...regla], { cwd: RAIZ, stdio: 'inherit' });
+  } catch { motivos.push('ops/permitido.mjs: desplegar este commit pisaría lo que funciona en producción'); }
   if (motivos.length) fallar(motivos);
   const sitios = objetivo.otros.filter((o) => o.startsWith('hosting:')).map((o) => o.slice('hosting:'.length));
   salida('solo', objetivo.solo);

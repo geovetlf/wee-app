@@ -81,13 +81,21 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
 
 ```
 node ops/permitido.mjs --commit <sha|ref> --funciones generateVideo,spendCredits
+node ops/permitido.mjs --commit <sha|ref> --otros firestore:rules,hosting:wee-app
 ```
 
-- Sale con **0** si ese commit contiene el código vivo de cada función y los
+- Sale con **0** si ese commit contiene lo que está vivo en cada objetivo y los
   arreglos que exige el mapa.
-- Sale con **1** si pisaría producción, y dice qué rama integrar.
+- Sale con **1** si pisaría producción, y dice qué integrar.
 - Sale con **2** si no se puede saber, por ejemplo si falta historia. En ese
   caso no se despliega.
+
+**Vale igual para las reglas, los índices, Storage y los dos Hosting.** Hoy no
+es teórico: el `main` de GitHub (`bfc622d`) no contiene las reglas de
+moderación que están vivas (`c3515b3`). Desplegar reglas desde él las borraría
+de producción, y la regla lo impide. Con Firestore, además, avisa de qué más se
+publicaría. El `main` local ya lleva 87 líneas de reglas y 6 índices que no
+están vivos; la integración (§2), 31 líneas y 1 índice más.
 
 Solo lee git y el mapa. La prueba `functions/test/produccion-mapa.test.mjs`
 fija el mapa y la regla.

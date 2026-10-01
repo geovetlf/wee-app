@@ -34,7 +34,7 @@ const check = (name, cond, extra = '') => {
 };
 
 const mapa = JSON.parse(leer('ops/produccion.json'));
-const { decidir } = await import(pathToFileURL(path.resolve(RAIZ, 'ops/permitido.mjs')).href);
+const { decidir, DESPLEGABLE_DE } = await import(pathToFileURL(path.resolve(RAIZ, 'ops/permitido.mjs')).href);
 const fns = mapa.funciones || [];
 const por = Object.fromEntries(fns.map((f) => [f.funcion, f]));
 
@@ -80,6 +80,18 @@ const r4 = decidir({ manifiesto: juguete, funciones: ['nueva'], contiene: H, can
 check('10) una función que no está en producción no pisa nada, pero se avisa', r4.permitido && /primera vez/.test(r4.avisos[0] || ''));
 const r5 = decidir({ manifiesto: juguete, funciones: ['x'], contiene: () => null, candidato: 'conTodo' });
 check('11) si no se puede saber (falta historia), NO se despliega', !r5.permitido && r5.desconocido.length === 1);
+const conOtros = { ...juguete, otros: [{ desplegable: 'firestore', commit: VIVO, tag: 'prod/firestore/t' }, { desplegable: 'hosting:wee-app', commit: VIVO, tag: 'prod/hosting/wee-app/t' }] };
+const o1 = decidir({ manifiesto: conOtros, otros: ['firestore:rules', 'hosting:wee-app'], contiene: H, candidato: 'viejo' });
+const o2 = decidir({ manifiesto: conOtros, otros: ['firestore:indexes'], contiene: H, candidato: 'conVivo' });
+check('11b) las reglas, los índices y el Hosting siguen la misma regla: un commit que no contiene lo vivo publicaría una versión anterior',
+  !o1.permitido && o1.bloqueos.length === 2 && o1.bloqueos.every((b) => /versión anterior/.test(b)) && o2.permitido
+  && o2.avisos.some((a) => /git diff a{7} conVivo -- firestore\.rules firestore\.indexes\.json/.test(a)));
+const { OBJETIVOS_FIJOS } = await import(pathToFileURL(path.resolve(RAIZ, 'ops/despliegue/plan.mjs')).href);
+check('11c) cada objetivo fijo del workflow tiene su entrada en el mapa', [...OBJETIVOS_FIJOS].every((o) => (mapa.otros || []).some((x) => x.desplegable === DESPLEGABLE_DE[o])),
+  [...OBJETIVOS_FIJOS].filter((o) => !(mapa.otros || []).some((x) => x.desplegable === DESPLEGABLE_DE[o])).join(', ') || 'todos');
+const verificar = leer('ops/despliegue/cli.mjs');
+check('11d) el workflow pasa a la regla las funciones Y lo demás (reglas, índices, Storage, Hosting)',
+  /'--otros', objetivo\.otros\.join\(','\)/.test(verificar) && /'--funciones', objetivo\.funciones\.join\(','\)/.test(verificar));
 
 /* ── C. Con la historia de verdad, si este clon la tiene ────────────────── */
 const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return null; } };
@@ -101,6 +113,11 @@ if (presentes.length === 0) {
     const base = fns.find((f) => f.funcion === 'getCreditCost').commit;
     const r = correr(base, 'generateVideo');
     check('15) …y no desde un commit anterior que no lo contiene (sale 1 y lo explica)', r.status === 1 && /no lo contiene/.test(r.stdout), r.stdout.trim().split('\n')[0]);
+    const reglas = (commit) => spawnSync(process.execPath, [path.resolve(RAIZ, 'ops/permitido.mjs'), '--commit', commit, '--otros', 'firestore:rules'], { cwd: RAIZ, encoding: 'utf8' });
+    const vivoReglas = otros.firestore.commit;
+    const anterior = git('rev-parse', `${vivoReglas}^`);
+    check('15b) de verdad: las reglas no se despliegan desde un commit anterior a las vivas (las de moderación)',
+      anterior !== null && reglas(anterior).status === 1 && reglas(vivoReglas).status === 0);
   }
 }
 
