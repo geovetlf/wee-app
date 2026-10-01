@@ -18,6 +18,9 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -72,6 +75,10 @@ const plan = await importar('ops/despliegue/plan.mjs');
 const o1 = plan.leerObjetivo('functions:brainChat, functions:creatorRun,firestore:rules,functions:brainChat');
 check('12) el objetivo se lee y se deduplica', o1.errores.length === 0 && o1.solo === 'functions:brainChat,functions:creatorRun,firestore:rules', o1.solo);
 check('13) «functions» a secas (TODAS) se rechaza', /TODAS/.test(plan.leerObjetivo('functions').errores[0] || ''));
+const siete = plan.leerObjetivo(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `functions:${x}`).join(','));
+check('14b) nunca muchas de golpe: más de MAX_FUNCIONES_POR_DESPLIEGUE funciones en un despliegue se rechaza',
+  plan.MAX_FUNCIONES_POR_DESPLIEGUE === 6 && siete.errores.some((e) => /máximo es 6/.test(e))
+  && plan.leerObjetivo(['a', 'b', 'c', 'd', 'e', 'f'].map((x) => `functions:${x}`).join(',')).errores.length === 0);
 check('14) un objetivo desconocido o un nombre raro, también',
   plan.leerObjetivo('database').errores.length === 1 && plan.leerObjetivo('functions:a;rm -rf').errores.length === 1);
 const SHA = 'a'.repeat(40);
@@ -246,6 +253,26 @@ check('46) la marcha atrás pide su PROPIO token nuevo (el de la autenticación 
   /id: auth-marcha-atras[\s\S]*?if: failure\(\)/.test(job('desplegar'))
   && /GCP_TOKEN: \$\{\{ steps\.auth-marcha-atras\.outputs\.access_token \}\}\s*\n\s*run: node ops\/despliegue\/cli\.mjs marcha-atras/.test(job('desplegar'))
   && /GCP_TOKEN: \$\{\{ steps\.auth-observar\.outputs\.access_token \}\}\s*\n(?:\s+[A-Z_]+: .*\n)*\s*run: node ops\/despliegue\/cli\.mjs observar/.test(job('desplegar')));
+
+/* ── H. Los grupos del despliegue gradual (FASE 9) ───────────────────────── */
+const grupos = JSON.parse(leer('ops/despliegue/grupos.json'));
+const enGrupos = grupos.grupos.flatMap((g) => g.funciones);
+const vivas = mapa.funciones.map((f) => f.funcion);
+check('47) cada función viva está en UN grupo, y solo una vez', enGrupos.length === new Set(enGrupos).size
+  && vivas.every((f) => enGrupos.includes(f)) && enGrupos.every((f) => vivas.includes(f)),
+  vivas.filter((f) => !enGrupos.includes(f)).concat(enGrupos.filter((f) => !vivas.includes(f))).join(', ') || `${vivas.length} en ${grupos.grupos.length} grupos`);
+check('48) ningún grupo pasa del máximo por despliegue, y cada uno dice por qué va donde va',
+  grupos.grupos.every((g) => g.funciones.length >= 1 && g.funciones.length <= plan.MAX_FUNCIONES_POR_DESPLIEGUE && g.porque.length > 40 && plan.leerObjetivo(g.funciones.map((f) => `functions:${f}`).join(',')).errores.length === 0));
+const posicion = (f) => grupos.grupos.findIndex((g) => g.funciones.includes(f));
+check('49) el orden: primero spendCredits sola; la IA después de lo social, la lectura y la administración; el dinero real y el nacimiento de cuentas al final',
+  JSON.stringify(grupos.grupos[0].funciones) === JSON.stringify(['spendCredits'])
+  && ['brainChat', 'creatorRun', 'generateVideo', 'generateAvatarWithGemini'].every((f) => posicion(f) > posicion('votePoll') && posicion(f) > posicion('getCreditsBalance') && posicion(f) > posicion('creditsAdmin'))
+  && ['validatePurchase', 'restorePurchase', 'nacimientoDeCuenta'].every((f) => posicion(f) === grupos.grupos.length - 1));
+const exportadas = Object.entries(require(path.resolve(RAIZ, 'functions/lib/index.js'))).filter(([, x]) => x && x.__endpoint).map(([k]) => k);
+const decididas = new Set([...vivas, ...grupos.no_se_despliegan.map((n) => n.funcion)]);
+check('50) toda función que el código exporta está decidida: viva (con su grupo) o, si es nueva, en «no se despliegan» con su porqué',
+  exportadas.every((f) => decididas.has(f)) && grupos.no_se_despliegan.every((n) => !enGrupos.includes(n.funcion) && n.porque.length > 30),
+  exportadas.filter((f) => !decididas.has(f)).join(', ') || `${exportadas.length} exportadas`);
 
 /* ── E. Documentado ─────────────────────────────────────────────────────── */
 const doc = leer('docs/DEPLOYMENT.md');

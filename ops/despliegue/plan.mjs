@@ -10,6 +10,11 @@
 /** Lo que el workflow sabe desplegar. Cualquier otra cosa es un error, no se adivina. */
 export const OBJETIVOS_FIJOS = new Set(['firestore:rules', 'firestore:indexes', 'storage', 'hosting:get-wee', 'hosting:wee-app']);
 const NOMBRE_DE_FUNCION = /^[A-Za-z][A-Za-z0-9]{0,62}$/;
+/**
+ * Nunca las 34 de golpe (orden del dueño, FASE 9): un despliegue lleva como mucho un grupo pequeño. Si algo falla,
+ * se sabe qué fue y la marcha atrás es corta. Los grupos, en ops/despliegue/grupos.json.
+ */
+export const MAX_FUNCIONES_POR_DESPLIEGUE = 6;
 
 /** `functions:a,functions:b,firestore:rules` → qué se despliega, o por qué no. */
 export const leerObjetivo = (texto) => {
@@ -28,6 +33,9 @@ export const leerObjetivo = (texto) => {
     }
     if (OBJETIVOS_FIJOS.has(p)) { if (!otros.includes(p)) otros.push(p); continue; }
     errores.push(`objetivo desconocido: ${p}`);
+  }
+  if (funciones.length > MAX_FUNCIONES_POR_DESPLIEGUE) {
+    errores.push(`${funciones.length} funciones en un despliegue: el máximo es ${MAX_FUNCIONES_POR_DESPLIEGUE} (por grupos pequeños, ops/despliegue/grupos.json)`);
   }
   return { funciones, otros, errores, solo: [...funciones.map((f) => `functions:${f}`), ...otros].join(',') };
 };

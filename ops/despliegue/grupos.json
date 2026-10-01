@@ -1,0 +1,93 @@
+{
+  "regla": "Orden del dueño (FASE 9): por grupos pequeños, nunca las 34 de golpe; primero la seguridad, después lo de menor riesgo, luego la IA y al final lo crítico. Un grupo no se despliega hasta que el anterior pasó su observación. Cada despliegue queda en el registro (función → commit → tag → revisión → digest).",
+  "grupos": [
+    {
+      "id": "g0-seguridad",
+      "porque": "El arreglo de seguridad pendiente (H0 #24, assertAdmin). Ningún cliente lo usa, su humo esperado es 401/403 y su marcha atrás a la revisión sin arreglo está bloqueada por diseño. Recorre el camino entero con el menor riesgo.",
+      "funciones": [
+        "spendCredits"
+      ]
+    },
+    {
+      "id": "g1-social",
+      "porque": "Sin IA y sin mover Credits: encuestas, mensajes efímeros, ËContact, borrar un material propio y leer un precio. Si algo falla, se nota en una acción concreta y se vuelve en segundos.",
+      "funciones": [
+        "votePoll",
+        "burnViewOnce",
+        "acceptEContact",
+        "requestEContact",
+        "deleteAsset",
+        "getCreditCost"
+      ]
+    },
+    {
+      "id": "g2-lectura-y-avisos",
+      "porque": "Lectura del saldo y del historial, la página pública de un post y las notificaciones push. Sin IA; no escriben dinero.",
+      "funciones": [
+        "getCreditsBalance",
+        "getCreditHistory",
+        "publicPostPage",
+        "sendPushNotification",
+        "sendMessagePushNotification"
+      ]
+    },
+    {
+      "id": "g3-administracion",
+      "porque": "Solo para administración (claim admin o WEE_ADMIN_UIDS): Credits a mano, moderación y el panel del motor. Las personas no las llaman; reportContent sí, y solo registra un reporte.",
+      "funciones": [
+        "creditsAdmin",
+        "grantCredits",
+        "refundCredits",
+        "moderationAdmin",
+        "reportContent",
+        "engineAdmin"
+      ]
+    },
+    {
+      "id": "g4-ia-sin-cobro",
+      "porque": "IA que no cobra Credits a la persona: cotizar (brainQuote, creatorQuote: sin llamar a ningún modelo) y planificar (creatorChat sí llama al modelo, con su cupo diario). Primer contacto de los arreglos del motor (interruptor, topes, cupos) con tráfico real, sin mover Credits.",
+      "funciones": [
+        "brainQuote",
+        "creatorQuote",
+        "creatorChat"
+      ]
+    },
+    {
+      "id": "g5-ia-con-gasto",
+      "porque": "IA que cobra Credits: Weë Brain y los trabajos de Weë AI (el reclamo atómico de H0 #9) y el avatar (H0 #11). Aquí se mira el libro: cada cobro con su generación y nada sin liquidar.",
+      "funciones": [
+        "brainChat",
+        "creatorRun",
+        "generateAvatarWithGemini",
+        "avatarReplacement"
+      ]
+    },
+    {
+      "id": "g6-video-y-filmmaker",
+      "porque": "El vídeo y Filmmaker: generateVideo, el aviso del proveedor (H0 #21), el barrido que liquida y las producciones. Es lo más caro por llamada; va junto porque se sostiene entre sí.",
+      "funciones": [
+        "generateVideo",
+        "seedanceCallback",
+        "barridoDeLiquidacion",
+        "productions",
+        "shots"
+      ]
+    },
+    {
+      "id": "g7-critico",
+      "porque": "Lo crítico al final: el nacimiento de las cuentas (la billetera de cada persona nueva), las compras y su restauración (dinero real) y el canario de medios (R2, tras su rotación).",
+      "funciones": [
+        "nacimientoDeCuenta",
+        "validatePurchase",
+        "restorePurchase",
+        "mediaCanary"
+      ]
+    }
+  ],
+  "no_se_despliegan": [
+    {
+      "funcion": "elements",
+      "porque": "Está en el código de main y NO en producción: sería una función nueva. Es una capacidad de producto (Elements de Weë Studio/Filmmaker): se despliega solo con decisión del dueño."
+    }
+  ]
+}
