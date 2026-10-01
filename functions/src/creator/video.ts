@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
@@ -7,14 +8,21 @@ import { chooseSeedanceModel, normalizeVideoRequest, videoEngine, VideoModelPref
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
 import { priceVideo } from '../credits/aiPricing';
+import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
 import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio } from '../runtime';
-import { crearMaterialDesdeUrl } from '../content';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { crearMaterialDesdeUrl, leerMaterial } from '../content';
+import { loadCostOverrides } from '../credits/creditCosts';
+import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
+import { PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
+import {
+  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
+} from './toma';
 
 /**
  * Lo que puede durar esta función, de donde salen los demás plazos.
@@ -50,21 +58,22 @@ const EXPERIENCIA_DE_STUDIO = 'studio';
  * ── QUÉ DESENLACE LE PIDE ESTA PUERTA AL PROVEEDOR ──────────────────────────
  *
  * Encendida, el proveedor coge la tarea y suelta; el desenlace llega después
- * por su aviso. Apagada, el adaptador sondea hasta el final y el desenlace
- * llega dentro de esta llamada. El trabajo, el cobro y el material son los
- * mismos; lo único que cambia es quién espera.
+ * por su aviso o porque el barrido le pregunta. Apagada, el adaptador sondea
+ * hasta el final y el desenlace llega dentro de esta llamada. El trabajo, el
+ * cobro y el material son los mismos; lo único que cambia es quién espera.
+ *
+ * S6-F la apagó para que el canario recorriera el Core con el desenlace dentro
+ * de la llamada. PRE-F1-D la vuelve a encender (decisión del 2026-09-27): con
+ * el sondeo dentro de la llamada, un plazo que vence, un GET de estado que falla
+ * o una descarga que no llega convertían en reembolso una tarea que ModelArk
+ * seguía haciendo —y cobrando—. Aceptada, la tarea ya no depende de esta
+ * llamada: el trabajo guarda cómo la llama el proveedor, y solo lo que él
+ * conteste decide si se cobra o se devuelve.
  *
  * Tiene nombre porque de ella cuelga el reparto de tiempo de abajo: son la
  * misma decisión, y escribirla dos veces sería dejar que se separen.
  */
-const ACEPTA_ASINCRONO: boolean = false;
-
-/**
- * Lo que esta invocación espera antes de irse CUANDO NO ESPERA NADA. Corto a
- * propósito: el camino asíncrono contesta en cuanto el proveedor acusa recibo
- * —segundos—, y quedarse más sería justo lo que este bloque existe para quitar.
- */
-const MARGEN_DEL_CANARY_MS = 120_000;
+const ACEPTA_ASINCRONO: boolean = true;
 
 /**
  * ── Y CUÁNTO PUEDE DURAR UN INTENTO CUANDO SÍ SE ESPERA ─────────────────────
@@ -88,8 +97,37 @@ const MARGEN_DEL_CANARY_MS = 120_000;
  */
 const PRESUPUESTO_DEL_SONDEO_MS = POLITICA_DE_TRABAJO.maxLifetimeMs - MARGEN_DE_CIERRE_MS;
 
-/** El plazo del trabajo, que es lo que deja pasar —o no— al presupuesto de arriba. */
-const PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO ? MARGEN_DEL_CANARY_MS : POLITICA_DE_TRABAJO.maxLifetimeMs;
+/**
+ * EL PLAZO DEL TRABAJO, que es lo que deja pasar —o no— al presupuesto de arriba.
+ *
+ * Con la aceptación encendida, el trabajo vive lo que `plazos.ts` le da a un
+ * vídeo —dos horas y cuarto—, no lo que tarda esta llamada. Antes eran ciento
+ * veinte segundos, el margen de la invocación, y confundir los dos relojes
+ * perdía vídeos: un reintento del cliente pasados dos minutos llegaba al
+ * trabajador, que vencía el trabajo ACEPTADO; vencido, la liquidación lo aparta
+ * como «reconciliar» y nadie vuelve a preguntarle al proveedor. La llamada sigue
+ * contestando en segundos —en cuanto ModelArk acusa recibo—: lo que se alarga es
+ * la vida del trabajo, no la espera de nadie.
+ */
+const PLAZO_DEL_TRABAJO_MS = ACEPTA_ASINCRONO ? PLAZOS_DE_VIDEO.vidaDelTrabajoMs : POLITICA_DE_TRABAJO.maxLifetimeMs;
+
+/**
+ * LA POLÍTICA DEL TRABAJO DE VÍDEO: los relojes de `plazos.ts` y UN intento.
+ *
+ * Un intento, sin reintentos del Job Engine (decisión del 2026-09-27). Reintentar
+ * un vídeo es un segundo POST a ModelArk —otra generación y otro coste— y en
+ * producción no hay nadie que ejecute esos reintentos: un vídeo que el proveedor
+ * daba por fallido volvía a la cola y su dinero se quedaba retenido para siempre
+ * (RUNTIME.md § 21.4). Con un intento, un fallo del proveedor es final y el
+ * barrido desplegado devuelve la reserva exacta.
+ *
+ * Solo para esta puerta: el Job Engine sigue con sus tres intentos para todo lo
+ * demás, y los relojes no se escriben aquí, se leen de `plazos.ts`.
+ */
+const POLITICA_DEL_VIDEO = politicaDe(PLAZOS_DE_VIDEO, {
+  ...POLITICA_DE_TRABAJO,
+  retry: { ...POLITICA_DE_TRABAJO.retry, maxAttempts: 1 },
+});
 
 /**
  * generateVideo — entrada abstracta del Weë Video Engine para la app.
@@ -121,11 +159,149 @@ interface GenerateVideoInput {
   model?: string;
   /** reference (por defecto) · extend (continuar un clip) · edit (editarlo). */
   mode?: string;
+  /**
+   * F1-D · UNA TOMA DE UN PLANO DE WEË FILMMAKER. Con esto, lo de arriba no se
+   * usa: el texto, la duración, el formato y el `requestId` los pone el servidor
+   * a partir del requisito del plano. Lleva `productionId`, `sceneId`,
+   * `unitId`, `revision`, `take`, `quality` —la que la persona eligió— y
+   * `requirement`, el `ShotRequirement` que calculó el espejo de F1-A.
+   */
+  plano?: unknown;
+  /** Solo cotizar: qué costaría y si se puede. Ni cupo, ni reserva, ni generación. */
+  cotizar?: boolean;
+  /** Lo que se le enseñó a la persona. Si el precio cambió desde entonces, no se genera. */
+  creditosCotizados?: number;
 }
+
+/**
+ * ── F1-D · LO QUE HACE FALTA SABER DE UNA TOMA ANTES DE PEDIRLA ─────────────
+ *
+ * Todo lo que la nombra lo calcula el servidor (`creator/toma.ts`) y todo lo que
+ * se genera lo decide el servidor (`creator/plano.ts`). Si algo no cuadra, aquí
+ * no se lanza: se devuelve el motivo, para que la cotización lo pueda enseñar y
+ * la generación lo pueda rechazar.
+ */
+interface TomaPreparada {
+  readonly accountId: string;
+  readonly productionId: string;
+  readonly sceneId: string;
+  readonly unitId: string;
+  readonly revision: number;
+  /** La toma que se pide (generar) o la que se ofrece (cotizar). */
+  readonly toma: number | null;
+  readonly requestId: string | null;
+  readonly tomas: readonly TomaExistente[];
+  readonly unidad: UnidadEnLaProduccion | null;
+  readonly evaluacion: PlanoRepresentable | null;
+  readonly peticion: VideoRequest | null;
+  readonly motivo?: string;
+  readonly detalle?: Readonly<Record<string, unknown>>;
+}
+
+const texto128 = (v: unknown): string | undefined => (typeof v === 'string' && /^[A-Za-z0-9_-]{4,128}$/.test(v) ? v : undefined);
+const enteroNoNegativo = (v: unknown): number | undefined => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : undefined);
+
+const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): Promise<TomaPreparada> => {
+  const d = (crudo && typeof crudo === 'object' && !Array.isArray(crudo) ? crudo : {}) as Record<string, unknown>;
+  const productionId = typeof d.productionId === 'string' && /^[A-Za-z0-9_-]{20,128}$/.test(d.productionId) ? d.productionId : undefined;
+  const sceneId = texto128(d.sceneId);
+  const unitId = texto128(d.unitId);
+  const revision = enteroNoNegativo(d.revision);
+  const pedida = enteroNoNegativo(d.take);
+  if (!productionId || !sceneId || !unitId || revision === undefined || (!soloCotizar && (pedida === undefined || pedida < 1 || pedida > MAX_TOMAS))) {
+    throw new EngineError('INVALID_REQUEST', 'Esa toma no tiene forma válida.', { reason: 'take_invalid' });
+  }
+  const requisito = leerRequisitoDePlano(d.requirement);
+  if (!requisito || requisito.unitId !== unitId || requisito.sceneId !== sceneId) {
+    throw new EngineError('INVALID_REQUEST', 'Ese plano no tiene forma válida.', { reason: 'shot_invalid' });
+  }
+  const db = getFirestore();
+  const cuenta = await cuentaDelPrincipalEnWee(db, uid);
+  if (!cuenta) throw new EngineError('INVALID_REQUEST', 'No encontramos esa producción.', { reason: 'production_not_found' });
+  const accountId = cuenta.accountId;
+  const base = { accountId, productionId, sceneId, unitId, revision };
+
+  const leida = await leerUnidadEnLaProduccion(db, accountId, { productionId, sceneId, unitId, revision });
+  const tomas = await tomasDeLaUnidad(db, uid, accountId, { productionId, unitId });
+  const ultima = tomas[tomas.length - 1];
+  /* Cotizar ofrece la siguiente, si la que hay ya terminó; generar pide una concreta. */
+  const toma = soloCotizar
+    ? (ultima && !tomaTerminada(ultima.estado) ? null : tomas.length + 1)
+    : (pedida as number);
+  const vacia = { ...base, tomas, unidad: leida.ok ? leida.unidad : null, evaluacion: null, peticion: null } as const;
+  if (!leida.ok) return { ...vacia, toma, requestId: null, motivo: leida.motivo };
+  if (toma === null) return { ...vacia, toma, requestId: null, motivo: 'take_in_flight' };
+  const enOrden = puedePedirseLaToma(tomas, toma);
+  if (enOrden) return { ...vacia, toma, requestId: null, motivo: enOrden };
+  const requestId = requestIdDeToma(accountId, productionId, unitId, toma);
+
+  const evaluacion = evaluarPlano(requisito, d.quality);
+  if (!evaluacion.ok) return { ...vacia, toma, requestId, motivo: evaluacion.motivo, ...(evaluacion.detalle ? { detalle: evaluacion.detalle } : {}) };
+  return {
+    ...vacia,
+    toma,
+    requestId,
+    evaluacion,
+    peticion: {
+      prompt: componerPromptDePlano(requisito),
+      durationSec: evaluacion.duracionSec,
+      aspectRatio: evaluacion.proporcion,
+      ...(evaluacion.resolucion ? { resolution: evaluacion.resolucion } : {}),
+      quality: evaluacion.calidad,
+      generateAudio: evaluacion.conSonido,
+      model: 'auto',
+    },
+  };
+};
+
+/** Por qué no, dicho como lo lee la app: el motivo y lo que haga falta para explicarlo. */
+const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detalle = t.detalle): EngineError =>
+  new EngineError('INVALID_REQUEST', 'Esa toma no se puede generar así.', { reason: motivo, ...(detalle ?? {}) });
+
+/** Lo que la cotización cuenta de las tomas que ya existen y del plano del Core. */
+const estadoDeLaToma = async (t: TomaPreparada) => {
+  const ultima = t.tomas[t.tomas.length - 1];
+  return {
+    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado } : null,
+    next: t.toma !== null && t.requestId !== null ? { take: t.toma, requestId: t.requestId } : null,
+    node: await nodoDeLaUnidad(getFirestore(), t.accountId, { productionId: t.productionId, unitId: t.unitId }),
+  };
+};
+
+/**
+ * ¿ESTA OPERACIÓN YA SE RESERVÓ ALGUNA VEZ? Si sí, repetirla no gasta cupo: o es
+ * el mismo vídeo, o el Credit Engine la rechaza. Se lee la reserva por su id, y
+ * solo cuenta si es de quien pregunta.
+ */
+const operacionYaReservada = async (uid: string, requestId: string): Promise<boolean> => {
+  const snap = await getFirestore().collection('creditTransactions').doc(usageTransactionId(requestId)).get();
+  return snap.exists && snap.data()?.userId === uid;
+};
 
 const ownUrls = (values: unknown, uid: string): string[] | undefined => {
   if (!Array.isArray(values) || !values.length) return undefined;
   return values.slice(0, 30).map((value) => assertInputImageUrl(value, uid));
+};
+
+/**
+ * LA HUELLA DEL VÍDEO PEDIDO.
+ *
+ * Con ella el Credit Engine sabe si un `requestId` repetido es de verdad ESTE
+ * vídeo: la misma petición da la misma huella, y cualquier otra —otra
+ * descripción, otra duración, otra referencia— da otra. Sale solo de lo que ya
+ * se validó, y en orden canónico: el orden en que llegaron los campos no la
+ * cambia. Es un resumen: no guarda la descripción ni ninguna URL.
+ */
+const huellaDelVideo = (peticion: VideoRequest): string => {
+  const canonico = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(canonico);
+    if (v && typeof v === 'object') {
+      const o = v as Record<string, unknown>;
+      return Object.fromEntries(Object.keys(o).sort().filter((k) => o[k] !== undefined).map((k) => [k, canonico(o[k])]));
+    }
+    return v;
+  };
+  return createHash('sha256').update(JSON.stringify(canonico({ operacion: 'video', peticion }))).digest('hex');
 };
 
 export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
@@ -134,13 +310,28 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
-    const prompt = assertText(data.prompt, 'la descripción del video', 3000);
-    const requestId = assertRequestId(data.requestId);
-    const inputImage = data.inputImage || data.inputImageUrl;
-    const references = data.references
-      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid), videoSeconds: data.references.videoSeconds ? Number(data.references.videoSeconds) : undefined }
+    /*
+     * ── F1-D · UNA TOMA DE UN PLANO ─────────────────────────────────────────
+     *
+     * Con `plano`, el vídeo lo describe el servidor: la toma se comprueba contra
+     * la producción guardada y contra las reservas de las tomas anteriores, el
+     * texto se compone desde el requisito y el `requestId` se calcula. Lo que el
+     * cliente mande en los campos sueltos de arriba no se usa.
+     */
+    const cotizar = data.cotizar === true;
+    const deToma = data.plano !== undefined ? await prepararToma(uid, data.plano, cotizar) : undefined;
+    if (deToma?.motivo) {
+      if (!cotizar) throw noSeGenera(deToma);
+      return { status: 'QUOTED', allowed: false, reason: deToma.motivo, ...(deToma.detalle ? { detail: deToma.detalle } : {}), takes: await estadoDeLaToma(deToma) };
+    }
+    if (deToma && !deToma.peticion) throw noSeGenera(deToma);
+    const prompt = deToma?.peticion ? deToma.peticion.prompt : assertText(data.prompt, 'la descripción del video', 3000);
+    const requestId = deToma?.requestId ? deToma.requestId : assertRequestId(data.requestId);
+    const inputImage = deToma ? undefined : data.inputImage || data.inputImageUrl;
+    const references = !deToma && data.references
+      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid) }
       : undefined;
-    const videoRequest: VideoRequest = {
+    const videoRequest: VideoRequest = deToma?.peticion ? deToma.peticion : {
       prompt,
       inputImage: inputImage ? assertInputImageUrl(inputImage, uid) : undefined,
       lastFrameImage: data.lastFrameImage ? assertInputImageUrl(data.lastFrameImage, uid) : undefined,
@@ -154,24 +345,110 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       mode: MODES.has(String(data.mode)) ? (data.mode as VideoRequest['mode']) : undefined,
     };
 
-    // Límites y Credits antes de tocar al proveedor
     const { settings } = await loadConfig();
-    await limiter.reserve(uid, { video: 1 }, settings.limits);
-    await ensureAccount(uid);
 
-    // Precio calculado con la tarifa oficial de ByteDance para el modelo que
-    // elegirá el Weë Video Engine; el Credit Engine sigue siendo quien cobra.
+    /*
+     * ── LA PUERTA ────────────────────────────────────────────────────────────
+     *
+     * Una sola decisión, cerrada por defecto, y con la cuenta del PRINCIPAL
+     * autenticado: el cliente no la manda y no podría. Sin configuración, con
+     * una que no se entienda o si Firestore no contesta, esto sale `legacy` y
+     * no cambia absolutamente nada.
+     *
+     * De aquí salen DOS caminos que nunca se cruzan: o el de siempre —sondeo
+     * dentro de la llamada— o el del conductor —el proveedor acepta y suelta—.
+     * Nunca los dos, porque serían dos vídeos y dos cobros.
+     *
+     * Se decide ANTES de reservar (F1-D): una toma de Filmmaker solo va por el
+     * Core, y si no puede ir, se dice sin haber tocado ni el cupo ni los Credits.
+     * Para todo lo demás la decisión es la misma que antes: solo cambia cuándo
+     * se lee, no lo que sale.
+     */
+    const normalizado = normalizeVideoRequest(videoRequest, settings);
+    const puerta = decidirRuntime(await configuracionDeLaPuerta(getFirestore()), {
+      capability: normalizado.capability,
+      userId: uid,
+      experienceId: EXPERIENCIA_DE_STUDIO,
+    });
+    const porElCore = puerta.runtime === 'core' && normalizado.capability === CAPACIDAD_DEL_CANARY;
+    /* Una toma sin el Core no se desvía al camino de siempre: se rechaza, diciendo por qué. */
+    if (deToma && !porElCore) {
+      if (!cotizar) throw noSeGenera(deToma, 'route_unavailable');
+      return { status: 'QUOTED', allowed: false, reason: 'route_unavailable', takes: await estadoDeLaToma(deToma) };
+    }
+
+    /*
+     * Precio calculado con la tarifa oficial de ByteDance para el modelo que
+     * elegirá el Weë Video Engine; el Credit Engine sigue siendo quien cobra.
+     * Las sobreescrituras de `creditCosts` se cargan ANTES: si no, una instancia
+     * recién arrancada cotizaba con el catálogo del código y otra con el de
+     * Firestore, y la misma petición cambiaba de importe —y de identidad—.
+     */
+    await loadCostOverrides();
+    /* R22 · con vídeos de referencia, su entrada se cotiza con el techo del modelo, no con lo que declare quien llama. */
+    const modeloDelPrecio = chooseSeedanceModel(videoRequest, settings);
     const price = priceVideo(
       {
-        modelId: chooseSeedanceModel(videoRequest, settings),
+        modelId: modeloDelPrecio,
         durationSec: videoRequest.durationSec,
         aspectRatio: videoRequest.aspectRatio,
         resolution: videoRequest.resolution,
         quality: videoRequest.quality,
-        inputVideoSec: videoRequest.references?.videoSeconds,
+        inputVideoSec: videoRequest.references?.videos?.length ? techoDeVideoDeEntrada(modeloDelPrecio) : undefined,
       },
       settings,
     );
+
+    if (deToma?.evaluacion) {
+      /*
+       * La calidad elegida tiene que llegar a la resolución de la producción sin
+       * rebajar nada. Si no llega, se dice hasta dónde llega ESA calidad con su
+       * modelo —un precio que no se cobra, solo se lee— para que la persona elija.
+       */
+      const modeloDeLaCalidad = chooseSeedanceModel({ ...videoRequest, resolution: undefined }, settings);
+      const deLaCalidad = modeloDeLaCalidad === price.model ? price : priceVideo(
+        { modelId: modeloDeLaCalidad, durationSec: videoRequest.durationSec, aspectRatio: videoRequest.aspectRatio, resolution: videoRequest.resolution, quality: videoRequest.quality },
+        settings,
+      );
+      const degradada = calidadRepresentable(
+        deToma.evaluacion,
+        { modelo: modeloDeLaCalidad, resolucion: String(deLaCalidad.detail.resolution) },
+        { modelo: price.model, resolucion: String(price.detail.resolution) },
+      );
+      if (degradada) {
+        if (!cotizar) throw noSeGenera(deToma, degradada.motivo, degradada.detalle);
+        return { status: 'QUOTED', allowed: false, reason: degradada.motivo, detail: degradada.detalle, takes: await estadoDeLaToma(deToma) };
+      }
+      if (cotizar) {
+        return {
+          status: 'QUOTED',
+          allowed: true,
+          credits: price.credits,
+          effective: {
+            requestedDurationSec: deToma.evaluacion.duracionPedidaSec,
+            durationSec: deToma.evaluacion.duracionSec,
+            aspectRatio: deToma.evaluacion.proporcion,
+            resolution: String(price.detail.resolution),
+            quality: deToma.evaluacion.calidad,
+            withSound: deToma.evaluacion.conSonido,
+          },
+          takes: await estadoDeLaToma(deToma),
+        };
+      }
+      /* Se genera por lo que se enseñó: si el precio cambió, no se reserva y se vuelve a cotizar. */
+      if (Number(data.creditosCotizados) !== price.credits) throw noSeGenera(deToma, 'price_changed', { credits: price.credits });
+    }
+
+    /*
+     * Límites antes de tocar Credits y proveedor. Repetir una operación que ya
+     * se reservó —un segundo clic, un reintento, otra pestaña— no gasta cupo: o
+     * es el mismo vídeo, o el Credit Engine la rechaza. Y si dos llegan a la vez,
+     * el propio cupo la cuenta UNA vez por su `requestId`.
+     */
+    const repetida = deToma ? (deToma.toma ?? 0) <= deToma.tomas.length : await operacionYaReservada(uid, requestId);
+    if (!repetida) await limiter.reserve(uid, { video: 1 }, settings.limits, requestId);
+    await ensureAccount(uid);
+
     const service = price.service;
     const spend = await creditEngine.spendCredits({
       userId: uid,
@@ -180,7 +457,22 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       requestId,
       reason: 'Weë Studio · video',
       source: 'weë-studio',
-      meta: { model: price.model, estimatedUsd: price.usd, ...price.detail },
+      /* Lo que se pide: así un requestId repetido solo sirve para ESTE vídeo, y el de otra operación no. */
+      fingerprint: huellaDelVideo(videoRequest),
+      /*
+       * Y, de una toma de Filmmaker, DE QUÉ es: producción, unidad, toma, la
+       * revisión y la firma de la unidad cuando se pidió. Es lo que permite
+       * enlazar el resultado a su plano, y no hacerlo si el plano cambió.
+       */
+      meta: {
+        model: price.model, estimatedUsd: price.usd, ...price.detail,
+        ...(deToma?.unidad ? {
+          filmmaker: {
+            productionId: deToma.productionId, sceneId: deToma.sceneId, unitId: deToma.unitId, take: deToma.toma,
+            revision: deToma.revision, firma: deToma.unidad.firma, plantilla: PLANTILLA_DE_PLANO,
+          },
+        } : {}),
+      },
     });
 
     // Mismo requestId: UN REQUEST = UNA GENERACIÓN = UN COBRO
@@ -192,6 +484,36 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         if (doc?.providerMeta?.videoUrl || doc?.videoUrl) {
           return { generationId: previous.docs[0].id, url: doc.videoUrl || doc.providerMeta.videoUrl, durationSec: doc.videoDurationSec ?? null, credits: 0, demo: doc.provider === 'mock', status: 'COMPLETED', duplicate: true };
         }
+        /*
+         * TERMINÓ POR EL CORE: su resultado vive en el MATERIAL, no en el libro.
+         * El trabajo de esta petición lo nombra, el Content Core lo guarda, y se
+         * le devuelve a su dueño sin volver a generar ni a cobrar.
+         */
+        const delCore = await trabajoDelMedioDeWee(getFirestore(), uid, requestId);
+        const hecho = delCore?.state === 'completed' ? delCore.result?.outputRefs?.[0] : undefined;
+        const material = hecho ? await leerMaterial(hecho) : null;
+        if (material && material.ownerAccountId === uid && material.status === 'ready' && material.delivery?.url) {
+          return { generationId: null, assetId: material.assetId, url: material.delivery.url, durationSec: material.durationSec ?? null, credits: 0, demo: false, status: 'COMPLETED', jobId: delCore?.jobId ?? null, duplicate: true };
+        }
+        /*
+         * TERMINÓ Y SE COBRÓ, PERO SU RESULTADO NO ESTÁ AQUÍ.
+         *
+         * Pasa si la anotación se perdió o si el material ya no se puede
+         * entregar. Seguir de largo era generar OTRO vídeo con el cobro del
+         * primero: una generación sin cobro. No se hace.
+         */
+        throw new EngineError('DUPLICATE_REQUEST', 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.', { reason: 'result_not_available' });
+      } else if (await trabajoDelMedioDeWee(getFirestore(), uid, requestId)) {
+        /*
+         * ESTA RESERVA ES DE UN TRABAJO DEL CORE, y de su dinero responde su
+         * liquidación: el barrido le pregunta al proveedor y solo con lo que él
+         * conteste cobra o devuelve. Aquí no se toca, lleve el tiempo que lleve
+         * —un vídeo aceptado puede estar en la cola de ModelArk mucho más de lo
+         * que esta función vive— y esté la puerta abierta o cerrada ahora. Se
+         * pregunta leyendo, sin montar el conductor. Lo de abajo sigue siendo
+         * para lo que nunca tuvo trabajo del Core.
+         */
+        throw new EngineError('DUPLICATE_REQUEST');
       } else if (operacionAbandonada(true, (spend.authorizedAt ?? Infinity) + PLAZO_DE_VIDEO_MS, Date.now())) {
         /*
          * SE QUEDÓ COLGADA. Pasó más tiempo del que esta función puede vivir y
@@ -211,26 +533,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       }
     }
 
-    /*
-     * ── LA PUERTA ────────────────────────────────────────────────────────────
-     *
-     * Una sola decisión, cerrada por defecto, y con la cuenta del PRINCIPAL
-     * autenticado: el cliente no la manda y no podría. Sin configuración, con
-     * una que no se entienda o si Firestore no contesta, esto sale `legacy` y
-     * no cambia absolutamente nada.
-     *
-     * De aquí salen DOS caminos que nunca se cruzan: o el de siempre —sondeo
-     * dentro de la llamada— o el del conductor —el proveedor acepta y suelta—.
-     * Nunca los dos, porque serían dos vídeos y dos cobros.
-     */
-    const normalizado = normalizeVideoRequest(videoRequest, settings);
-    const puerta = decidirRuntime(await configuracionDeLaPuerta(getFirestore()), {
-      capability: normalizado.capability,
-      userId: uid,
-      experienceId: EXPERIENCIA_DE_STUDIO,
-    });
-    const porElCore = puerta.runtime === 'core' && normalizado.capability === CAPACIDAD_DEL_CANARY;
-
+    /* El camino lo decidió LA PUERTA, más arriba y una sola vez: aquí solo se toma. */
     if (porElCore) {
       /*
        * ── EL CAMINO ASÍNCRONO ────────────────────────────────────────────────
@@ -246,13 +549,22 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         db: getFirestore(),
         /* LO ÚNICO que enciende la aceptación asíncrona en todo Weë. */
         aceptaAsincrono: ACEPTA_ASINCRONO,
+        /* Los relojes del vídeo y UN intento: el trabajo nace con ellos y los lleva dentro hasta que se liquida. */
+        politica: POLITICA_DEL_VIDEO,
       });
       const desenlace = await pedirMedio({
         conductor,
         principal: { userId: uid },
         trace: { traceId: requestId, requestId, userId: uid, workplace: EXPERIENCIA_DE_STUDIO },
         capability: normalizado.capability,
-        input: normalizado.input,
+        /*
+         * Y cuánto puede vivir la tarea en el proveedor, de `plazos.ts` y en sus
+         * unidades: dos horas, dentro de las dos horas y cuarto del trabajo. Así
+         * una tarea que se queda colgada en ModelArk la vence ÉL, dice `expired`,
+         * y el barrido la devuelve exacta mientras el trabajo sigue vivo para
+         * oírlo. Solo viaja por este camino: el de siempre no cambia.
+         */
+        input: { ...normalizado.input, vidaEnElProveedorSec: segundosParaElProveedor(PLAZOS_DE_VIDEO) },
         proposito: 'Crear un vídeo',
         ruteo: { modelId: normalizado.modelId, allowedProviders: ['seedance'] },
         /*
@@ -290,6 +602,9 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
           demo: false,
           status: 'ACCEPTED',
           jobId: desenlace.jobId ?? null,
+          /* Con qué se pidió: es con lo que la app sigue su reserva y, si hace falta, repite. */
+          requestId,
+          ...(deToma ? { take: deToma.toma } : {}),
           duplicate: false,
         };
       }

@@ -1,6 +1,6 @@
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { CreditService, getCreditCost, loadCostOverrides, SERVICE_LABEL, WELCOME_CREDITS } from './creditCosts';
-import { assertAmount, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';
+import { assertAmount, assertFingerprint, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from '../social/econtact';
 import {
   adjustmentTransactionId,
@@ -90,6 +90,14 @@ export interface SpendInput {
   source: string;
   generationId?: string;
   meta?: Record<string, unknown>;
+  /**
+   * LA HUELLA DE LA OPERACIÓN. Solo código de servidor, y solo quien sabe
+   * exactamente qué se pide —`generateVideo`: el vídeo pedido—. Se guarda con la
+   * reserva, y entonces un `requestId` repetido solo es la MISMA operación si
+   * trae la misma huella y el mismo importe. Sin huella, la identidad es la
+   * cuenta y el servicio.
+   */
+  fingerprint?: string;
 }
 
 export interface SpendResult {
@@ -328,11 +336,32 @@ export function createCreditEngine(deps: CreditEngineDeps) {
     return balanceOf(snap.docs[0]);
   };
 
+  /**
+   * ¿ES LA RESERVA GUARDADA LA DE ESTA OPERACIÓN?
+   *
+   * El mismo servicio, siempre. Y si alguno de los dos lados trae huella, la
+   * misma huella y el mismo importe autorizado. Es la regla que el Core ya
+   * escribió para la misma clave con otro contenido —`idempotency_conflict` en
+   * el Financial Core y en el Job Engine—, aplicada al motor que cobra de verdad.
+   *
+   * El importe solo cuenta con huella, y a propósito: sin ella, quien cobra no
+   * dice qué operación es, y hay puertas —Weë Brain— donde el precio del mismo
+   * mensaje puede moverse de un intento a otro porque el historial ya lo incluye.
+   */
+  const esLaMismaOperacion = (guardada: Record<string, unknown>, service: CreditService, amount: number, fingerprint: string | undefined): boolean => {
+    if (guardada.service !== service) return false;
+    const suya = typeof guardada.fingerprint === 'string' ? guardada.fingerprint : undefined;
+    if (suya === undefined && fingerprint === undefined) return true;
+    const autorizado = num(guardada.authorizedAmount) || Math.abs(num(guardada.amount));
+    return suya === fingerprint && autorizado === amount;
+  };
+
   // ── Gastar (REQUEST → PENDING → AUTHORIZED) ─────────────────────────────
   const spendCredits = async (input: SpendInput): Promise<SpendResult> => {
     const userId = assertUserId(input.userId);
     const service = assertService(input.service);
     const requestId = assertRequestId(input.requestId);
+    const fingerprint = input.fingerprint !== undefined ? assertFingerprint(input.fingerprint) : undefined;
     await loadCosts();
     const amount = input.amount !== undefined ? assertAmount(input.amount) : assertAmount(getCreditCost(service));
     const reason = cleanText(input.reason, 140, SERVICE_LABEL[service]);
@@ -348,6 +377,18 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         if (data.status === 'REFUNDED' || data.status === 'FAILED') {
           // Un requestId reembolsado no se reutiliza: evita generar gratis con una operación ya devuelta
           throw new CreditError('ALREADY_REFUNDED', 'Esta operación ya fue reembolsada; inicia una nueva', { requestId, status: data.status });
+        }
+        /*
+         * LA MISMA CLAVE TIENE QUE SER LA MISMA OPERACIÓN.
+         *
+         * Antes bastaba con que el `requestId` existiera: una respuesta de Weë
+         * Brain ya cobrada (`brain_<messageId>`, COMPLETED) servía de pase para un
+         * vídeo, porque la reserva decía «ya está pagado» y nadie volvía a cobrar.
+         * Una clave prestada de otra operación no es un reintento: se rechaza sin
+         * tocar nada, ni la reserva de antes ni el saldo.
+         */
+        if (!esLaMismaOperacion(data, service, amount, fingerprint)) {
+          throw new CreditError('INVALID_REQUEST', 'Ese requestId pertenece a otra operación; inicia una nueva', { requestId, reason: 'idempotency_conflict' });
         }
         const creado = data.createdAt;
         const authorizedAt = typeof creado?.toMillis === 'function' ? creado.toMillis()
@@ -388,6 +429,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         statusHistory: ['PENDING', 'AUTHORIZED'],
         requestId,
         authorizedAmount: amount,
+        fingerprint,
         meta: strip(input.meta),
       });
       tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: current.lifetimeSpent + amount, updatedAt: now() });

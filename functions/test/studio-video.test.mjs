@@ -15,14 +15,19 @@
  *     foto», y el plan salía pidiendo una foto que nadie tenía. El nombre de la
  *     experiencia contaminaba lo que Weë entendía.
  *
- * Lo que se vigila: que las doce sigan siendo reales, que las tres sigan
- * diciendo por qué no, y que nadie convierta una en otra inventando una
- * capacidad.
+ * Lo que se vigila: que las doce sigan siendo reales, que las que no se pueden
+ * hacer sigan diciendo por qué no, y que nadie convierta una en otra inventando
+ * una capacidad.
+ *
+ * F1-C (autorizado): «Varias escenas» ya no es una de las bloqueadas. No es un
+ * clip: abre la producción de Weë Filmmaker, que se construye escena a escena y
+ * todavía no genera nada. Quedan dos bloqueadas, con sus motivos.
  *
  *  A. Quince, sin repetidas, y cada una en su sitio.
  *  B. Las doce conectadas hacen un vídeo. (EJECUTADO)
  *  C. Ninguna pide una foto que nadie subió. (EJECUTADO)
- *  D. Las tres bloqueadas se ven, no se abren, y dicen qué falta.
+ *  D. Las dos bloqueadas se ven, no se abren, y dicen qué falta.
+ *  D2. «Varias escenas» abre la producción, y nunca un plan de un solo clip.
  *  E. Lo que no tiene proveedor sigue sin tenerlo. (MEDIDO)
  *  F. Nada inventado, nada duplicado.
  */
@@ -60,6 +65,8 @@ const trozoDe = (id) => {
   return bloqueVideo.slice(i, siguiente > 0 ? siguiente : bloqueVideo.length);
 };
 const pendienteDe = (id) => trozoDe(id).match(/pendiente: '([a-zA-Z.]+)'/)?.[1];
+/* F1-C: la que no es un clip sino una producción de Weë Filmmaker. No es «conectada» —no hace un vídeo— ni «bloqueada». */
+const produccionDe = (id) => /produccion: true/.test(trozoDe(id));
 const tipoDe = (id) => {
   const t = trozoDe(id);
   if (/PARA_REDES/.test(t)) return 'social';
@@ -110,9 +117,10 @@ const GOALS = {
   beforeAfter: 'Antes y después: Mi sala antes y después',
 };
 
-const conectadas = ids.filter((id) => !pendienteDe(id));
-check('doce están conectadas y tres no', conectadas.length === 12 && ids.length - conectadas.length === 3,
-  `${conectadas.length} conectadas`);
+const conectadas = ids.filter((id) => !pendienteDe(id) && !produccionDe(id));
+check('doce están conectadas, una abre la producción y dos no',
+  conectadas.length === 12 && ids.filter(produccionDe).length === 1 && ids.filter((id) => pendienteDe(id)).length === 2,
+  `${conectadas.length} conectadas · ${ids.filter(produccionDe).length} producción · ${ids.filter((id) => pendienteDe(id)).length} bloqueadas`);
 
 const planDe = (id) => {
   const respuestas = {};
@@ -159,13 +167,13 @@ check('y lo que declara es duración y formato, que es lo que el motor acepta',
   `${pasoDeVideo.input.durationSec}s · ${pasoDeVideo.input.aspectRatio}`);
 check('Redes sale vertical porque la experiencia lo dijo', pasoDeVideo.input.aspectRatio === '9:16');
 
-console.log('\n─── D. Las tres bloqueadas se ven, no se abren, y dicen qué falta ───');
+console.log('\n─── D. Las dos bloqueadas se ven, no se abren, y dicen qué falta ───');
 
-const BLOQUEADAS = { musicVideo: 'studio.pendMusic', multiScene: 'studio.pendCompose', beforeAfter: 'studio.pendTwoRefs' };
+const BLOQUEADAS = { musicVideo: 'studio.pendMusic', beforeAfter: 'studio.pendTwoRefs' };
 for (const [id, clave] of Object.entries(BLOQUEADAS)) {
   check(`${id} está bloqueada con su motivo`, pendienteDe(id) === clave, pendienteDe(id) ?? 'sin motivo');
 }
-check('y ninguna otra lo está', ids.filter((id) => pendienteDe(id)).length === 3);
+check('y ninguna otra lo está', ids.filter((id) => pendienteDe(id)).length === 2);
 
 /* El panel las apaga, las sella y NO las abre. */
 check('el panel no abre lo que está pendiente',
@@ -190,8 +198,35 @@ for (const clave of ['pendMusic', 'pendCompose', 'pendTwoRefs']) {
 
 /* CONTROL: desbloquear una sin arreglar lo que falta TIENE que verse. */
 check('CONTROL: quitarle el motivo a una bloqueada sería detectado',
-  !/pendiente: 'studio\.pendCompose'/.test(bloqueVideo.replace("pendiente: 'studio.pendCompose'", '')),
+  !/pendiente: 'studio\.pendMusic'/.test(bloqueVideo.replace("pendiente: 'studio.pendMusic'", '')),
   'si esto pasara, el grupo D no protegería nada');
+
+console.log('\n─── D2. «Varias escenas» abre la producción, y nunca un plan de un solo clip ───');
+
+/*
+ * F1-C. «Varias escenas» no es un clip: lo escrito abre la producción de Weë
+ * Filmmaker. Se vigila que sea ELLA y solo ella, que ya no tenga motivo de
+ * bloqueo, y que el Studio la lleve a la producción ANTES de decidir un destino
+ * de CreatorFlow: así ninguna elección de «Varias escenas» puede acabar en un
+ * plan de un solo clip. El Studio solo navega: la producción la crea su pantalla.
+ */
+check('multiScene abre la producción, y ya no tiene motivo de bloqueo',
+  produccionDe('multiScene') && !pendienteDe('multiScene') && ids.filter(produccionDe).join(',') === 'multiScene',
+  ids.filter(produccionDe).join(',') || 'ninguna');
+check('el catálogo lo dice con una sola regla, que no lee palabras de lo escrito',
+  /export const abreLaProduccion = \(experienciaId\?: string \| null\): boolean =>/.test(capas) && !/matchExperiences|keywords/.test(capas));
+const alCrear = studio.slice(studio.indexOf('const alCrear = useCallback'), studio.indexOf('const alElegir = useCallback'));
+const aLaProduccion = alCrear.search(/if \(abreLaProduccion\(experiencia\?\.id\)\) \{\s*navigation\.navigate\('Production', \{ intencion: texto, creativo: filtrarCreativo\(controles\) \}\);\s*return;\s*\}/);
+check('el Studio la lleva a la producción con lo escrito, y se para ahí',
+  aLaProduccion >= 0, 'navigate(\'Production\', { intencion, creativo }) y return');
+check('antes de elegir un destino de CreatorFlow: un plan de un solo clip no llega a decidirse',
+  aLaProduccion >= 0 && aLaProduccion < alCrear.indexOf('destinoDeIntencion(texto') && aLaProduccion < alCrear.indexOf("navigation.navigate('CreatorFlow'"));
+check('y el Studio no crea la producción ni habla con su servicio: solo navega',
+  !/filmmakerService|crearProduccion|productions'/.test(studio));
+/* CONTROL: una segunda experiencia que abriera la producción TIENE que caer. */
+check('CONTROL: una segunda experiencia que abriera la producción sería detectada',
+  /produccion: true/.test("{ ...x('scene', 'studio.xpScene', 'film-outline'), produccion: true }"),
+  'si esto pasara, el grupo D2 no protegería nada');
 
 console.log('\n─── E. Lo que no tiene proveedor sigue sin tenerlo. MEDIDO ───');
 
@@ -257,5 +292,5 @@ check('CONTROL: una video.cinematic inventada sería detectada',
   INVENTADAS.test("step('clip', 'video.cinematic', '…')"),
   'si esto pasara, el grupo F no protegería nada');
 
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nDoce experiencias de vídeo son reales y tres dicen por qué no');
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nDoce experiencias de vídeo son reales, una abre la producción y dos dicen por qué no');
 process.exit(failures ? 1 : 0);

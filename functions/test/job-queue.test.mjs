@@ -395,8 +395,9 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    * archivo es byte a byte el desplegado»; ahora dice «este archivo ya no tiene
    * un máximo propio». Lo primero era una foto; lo segundo es la regla que la
    * foto protegía, y es la que de verdad importa. El resto de Credits
-   * —`creditEngine`, `creditCosts`, `creditValidation`, `creditTransactions`—
-   * sigue congelado exactamente igual que antes.
+   * —`creditCosts`, `index` y los demás— sigue congelado exactamente igual que
+   * antes; `creditEngine`, `creditValidation` y `creditTransactions` salieron
+   * después, en PRE-F1-D, con una afirmación más estrecha todavía (63p).
    *
    * Lo que sigue a esto NO es la política del techo ni su valor: eso vive en
    * `test/techo-de-propuestas.test.mjs`, que es de quien es el tema. Aquí solo
@@ -413,7 +414,12 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    * de `spendCredits`. `creditEngine` sigue congelado igual que antes.
    */
   const CALLABLES_DE_CREDITS = 'functions/src/credits/index.ts';
-  const fueraDelPermiso = tocados.split('\n').map((l) => l.trim()).filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS);
+  /* Los de la identidad del cobro (PRE-F1-D): qué se les permite lo dice 63p, línea a línea. */
+  const DE_LA_IDENTIDAD = ['functions/src/credits/creditEngine.ts', 'functions/src/credits/creditValidation.ts', 'functions/src/credits/creditTransactions.ts'];
+  /* Un archivo nuevo también es tocar lo cerrado, aunque aún no esté en git: `git diff` no lo ve y esto sí. */
+  const sinSeguir = execSync('git ls-files --others --exclude-standard -- functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
+  const fueraDelPermiso = [...tocados.split('\n'), ...sinSeguir.split('\n')].map((l) => l.trim())
+    .filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS && !DE_LA_IDENTIDAD.includes(l));
   check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y el resto de Credits son los del commit desplegado', fueraDelPermiso.length === 0, fueraDelPermiso.join(' '));
   {
     const delCallable = execSync('git diff -U0 c3515b3 -- ' + CALLABLES_DE_CREDITS, { cwd: RAIZ, encoding: 'utf8' });
@@ -430,10 +436,156 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   }
   const PRECIO = sinComentarios(leer(AI_PRICING));
   const TECHO = /const count = Math\.max\(1, Math\.min\(MAX_PROPUESTAS_POR_PASO, Number\(input\.count \?\? 1\)\)\);/;
-  check('63o) y el único que se tocó ya no guarda un máximo de propuestas propio: lo lee de la autoridad compartida',
+  check('63o) y `aiPricing`, el que se tocó por G13.4, ya no guarda un máximo de propuestas propio: lo lee de la autoridad compartida',
     TECHO.test(PRECIO) && /import \{ MAX_PROPUESTAS_POR_PASO \} from '[^']+';/.test(PRECIO)
     && !/Math\.min\(\s*\d+\s*,\s*Number\(input\.count/.test(PRECIO),
     'G13.4 · el 8 ya no está, y no se ha puesto otro número en su sitio · dónde vive lo vigila `techo-de-propuestas`');
+  /*
+   * PRE-F1-D SACA TRES ARCHIVOS MÁS DE LA LISTA, y con una afirmación más
+   * estrecha que la de `aiPricing`. No dice «este archivo cumple una regla»:
+   * dice «este archivo es el desplegado MÁS exactamente este bloque».
+   *
+   * El Credit Engine daba por repetida cualquier operación cuyo `requestId` ya
+   * existiera. Una respuesta de Weë Brain cobrada y cerrada (`brain_…`,
+   * COMPLETED) servía así de pase para un vídeo: la reserva decía «ya está
+   * pagado», nadie volvía a cobrar y el vídeo salía gratis. Se corrige donde se
+   * decide si una reserva es la de esta operación —dentro de la transacción del
+   * gasto— y con la regla que el Core ya tenía para la misma clave con otro
+   * contenido (`idempotency_conflict`). Para eso hay que tocar tres archivos de
+   * Credits, y lo autorizado (2026-09-27) es exactamente eso: `esLaMismaOperacion`
+   * y su llamada en esa transacción; la huella (`fingerprint`) de la entrada,
+   * validada por `assertFingerprint` y guardada con la reserva; y el rechazo con
+   * INVALID_REQUEST · `idempotency_conflict`. Ni precios, ni reembolsos, ni
+   * cuotas, ni ledger, ni Router, ni `creditCosts`, ni `index`, ni lógica de
+   * vídeo dentro del motor, ni un retoque fuera del bloque.
+   *
+   * Por eso aquí no se mira una propiedad: se RECONSTRUYE cada archivo desde el
+   * commit desplegado aplicándole ese bloque, y el resultado tiene que ser el
+   * archivo de hoy byte a byte. Una línea más, una menos o una distinta —dentro
+   * o fuera del bloque, código o comentario— y 63p cae. Las anclas son líneas
+   * del commit desplegado, que no se mueve, y también se comprueban.
+   */
+  const IDENTIDAD_AUTORIZADA = {
+    'functions/src/credits/creditEngine.ts': [
+      { linea: 3,
+        era: "import { assertAmount, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';",
+        queda: "import { assertAmount, assertFingerprint, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';" },
+      { tras: 92, es: '  meta?: Record<string, unknown>;', añade: [
+        '  /**',
+        '   * LA HUELLA DE LA OPERACIÓN. Solo código de servidor, y solo quien sabe',
+        '   * exactamente qué se pide —`generateVideo`: el vídeo pedido—. Se guarda con la',
+        '   * reserva, y entonces un `requestId` repetido solo es la MISMA operación si',
+        '   * trae la misma huella y el mismo importe. Sin huella, la identidad es la',
+        '   * cuenta y el servicio.',
+        '   */',
+        '  fingerprint?: string;',
+      ] },
+      { tras: 330, es: '', añade: [
+        '  /**',
+        '   * ¿ES LA RESERVA GUARDADA LA DE ESTA OPERACIÓN?',
+        '   *',
+        '   * El mismo servicio, siempre. Y si alguno de los dos lados trae huella, la',
+        '   * misma huella y el mismo importe autorizado. Es la regla que el Core ya',
+        '   * escribió para la misma clave con otro contenido —`idempotency_conflict` en',
+        '   * el Financial Core y en el Job Engine—, aplicada al motor que cobra de verdad.',
+        '   *',
+        '   * El importe solo cuenta con huella, y a propósito: sin ella, quien cobra no',
+        '   * dice qué operación es, y hay puertas —Weë Brain— donde el precio del mismo',
+        '   * mensaje puede moverse de un intento a otro porque el historial ya lo incluye.',
+        '   */',
+        '  const esLaMismaOperacion = (guardada: Record<string, unknown>, service: CreditService, amount: number, fingerprint: string | undefined): boolean => {',
+        '    if (guardada.service !== service) return false;',
+        "    const suya = typeof guardada.fingerprint === 'string' ? guardada.fingerprint : undefined;",
+        '    if (suya === undefined && fingerprint === undefined) return true;',
+        '    const autorizado = num(guardada.authorizedAmount) || Math.abs(num(guardada.amount));',
+        '    return suya === fingerprint && autorizado === amount;',
+        '  };',
+        '',
+      ] },
+      { tras: 335, es: '    const requestId = assertRequestId(input.requestId);', añade: [
+        '    const fingerprint = input.fingerprint !== undefined ? assertFingerprint(input.fingerprint) : undefined;',
+      ] },
+      { tras: 351, es: '        }', añade: [
+        '        /*',
+        '         * LA MISMA CLAVE TIENE QUE SER LA MISMA OPERACIÓN.',
+        '         *',
+        '         * Antes bastaba con que el `requestId` existiera: una respuesta de Weë',
+        '         * Brain ya cobrada (`brain_<messageId>`, COMPLETED) servía de pase para un',
+        '         * vídeo, porque la reserva decía «ya está pagado» y nadie volvía a cobrar.',
+        '         * Una clave prestada de otra operación no es un reintento: se rechaza sin',
+        '         * tocar nada, ni la reserva de antes ni el saldo.',
+        '         */',
+        '        if (!esLaMismaOperacion(data, service, amount, fingerprint)) {',
+        "          throw new CreditError('INVALID_REQUEST', 'Ese requestId pertenece a otra operación; inicia una nueva', { requestId, reason: 'idempotency_conflict' });",
+        '        }',
+      ] },
+      { tras: 390, es: '        authorizedAmount: amount,', añade: [
+        '        fingerprint,',
+      ] },
+    ],
+    'functions/src/credits/creditValidation.ts': [
+      { tras: 88, es: '', añade: [
+        'const FINGERPRINT = /^[a-f0-9]{16,128}$/;',
+        '',
+        '/** La huella de una operación: la calcula el servidor que sabe qué se pide, nunca el cliente. Hexadecimal, 16–128. */',
+        'export const assertFingerprint = (fingerprint: unknown): string => {',
+        "  if (typeof fingerprint !== 'string' || !FINGERPRINT.test(fingerprint)) throw new CreditError('INVALID_REQUEST', 'Huella de operación inválida', { field: 'fingerprint' });",
+        '  return fingerprint;',
+        '};',
+        '',
+      ] },
+    ],
+    'functions/src/credits/creditTransactions.ts': [
+      { tras: 30, es: '  authorizedAmount?: number;', añade: [
+        '  /** Para usage: la huella de la operación, si quien cobró la dio (ver `SpendInput.fingerprint`). */',
+        '  fingerprint?: string;',
+      ] },
+    ],
+  };
+  const desplegado = (p) => execSync('git show c3515b3:' + p, { cwd: RAIZ, encoding: 'utf8' }).replace(/\r\n/g, '\n');
+  const reconstruido = (p) => {
+    const lineas = desplegado(p).split('\n');
+    let anclas = true;
+    /* De abajo arriba, para que cada ancla siga siendo la línea del desplegado que dice ser. */
+    for (const c of [...IDENTIDAD_AUTORIZADA[p]].sort((a, b) => (b.tras ?? b.linea) - (a.tras ?? a.linea))) {
+      if (c.tras === undefined) { anclas = anclas && lineas[c.linea - 1] === c.era; lineas[c.linea - 1] = c.queda; }
+      else { anclas = anclas && lineas[c.tras - 1] === c.es; lineas.splice(c.tras, 0, ...c.añade); }
+    }
+    return { anclas, texto: lineas.join('\n') };
+  };
+  const primeraDistinta = (esperado, hoy) => {
+    const a = esperado.split('\n');
+    const b = hoy.split('\n');
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      if (a[i] !== b[i]) return `línea ${i + 1}: «${String(b[i] ?? '(no está)').trim().slice(0, 70)}»`;
+    }
+    return '';
+  };
+  const deLaIdentidad = DE_LA_IDENTIDAD.map((p) => {
+    const { anclas, texto } = reconstruido(p);
+    const hoy = leer(p).replace(/\r\n/g, '\n');
+    return { archivo: path.basename(p), anclas, exacto: texto === hoy, donde: primeraDistinta(texto, hoy) };
+  });
+  check('63p) de creditEngine, creditValidation y creditTransactions solo cambió la regla de identidad: cada uno es el desplegado MÁS ese bloque, byte a byte',
+    deLaIdentidad.every((x) => x.anclas && x.exacto),
+    deLaIdentidad.filter((x) => !x.anclas || !x.exacto).map((x) => `${x.archivo}: ${x.anclas ? x.donde : 'las anclas del desplegado no cuadran'}`).join(' · ') || 'los tres, exactos');
+  {
+    const MOTOR = sinComentarios(leer('functions/src/credits/creditEngine.ts'));
+    const gasto = MOTOR.slice(MOTOR.indexOf('const spendCredits = async'), MOTOR.indexOf('const completeCredits = async'));
+    const abre = gasto.indexOf('return db().runTransaction(');
+    const transaccion = gasto.slice(abre);
+    const reembolsada = transaccion.indexOf("throw new CreditError('ALREADY_REFUNDED'");
+    const regla = transaccion.indexOf('if (!esLaMismaOperacion(data, service, amount, fingerprint))');
+    const duplicado = transaccion.indexOf('duplicate: true');
+    const valida = gasto.indexOf('assertFingerprint(input.fingerprint)');
+    check('63q) y ese bloque es la regla, donde tiene que estar: dentro de la transacción del gasto, entre «ya reembolsada» y «es un duplicado», y rechazando como el Core',
+      abre > 0 && reembolsada > 0 && reembolsada < regla && regla < duplicado
+      && /throw new CreditError\('INVALID_REQUEST', '[^']+', \{ requestId, reason: 'idempotency_conflict' \}\);/.test(transaccion.slice(regla, duplicado))
+      && valida > 0 && valida < abre
+      && /authorizedAmount: amount,\s*fingerprint,/.test(transaccion)
+      && (MOTOR.match(/\besLaMismaOperacion\b/g) || []).length === 2,
+      'una regla, llamada una vez, dentro de la transacción · qué más cambió lo dice 63p');
+  }
   /*
    * EL WORKFLOW Y EL ORCHESTRATOR SALIERON DE ESA LISTA, y con el mismo trato
    * que recibió el Gateway: algo autorizado, medido y vigilado de otra forma.

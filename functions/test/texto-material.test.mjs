@@ -84,13 +84,13 @@ check('`AssetKind` incluye `text` desde el primer día',
   esTipoDeMaterial('text') && TIPOS_DE_MATERIAL.includes('text'));
 check('y `materialValido` admite un material de texto SIN referencia de almacén',
   materialValido({
-    contract: '1.0', assetId: 'mat_abc', ownerAccountId: 'acc_mia', kind: 'text', status: 'ready',
+    contract: '1.0', assetId: 'asset_00000000000000000000000000000abc', ownerAccountId: 'acc_mia', kind: 'text', status: 'ready',
     provenance: { createdAt: AHORA }, createdAt: AHORA, updatedAt: AHORA,
   }),
   'no hubo que tocar el contrato de la Fase 11');
 check('a una imagen `ready` SÍ se le exige, y eso no ha cambiado',
   !materialValido({
-    contract: '1.0', assetId: 'mat_abc', ownerAccountId: 'acc_mia', kind: 'image', status: 'ready',
+    contract: '1.0', assetId: 'asset_00000000000000000000000000000abc', ownerAccountId: 'acc_mia', kind: 'image', status: 'ready',
     provenance: { createdAt: AHORA }, createdAt: AHORA, updatedAt: AHORA,
   }));
 check('la clase de material la dice EL CATÁLOGO, no el prefijo del nombre',

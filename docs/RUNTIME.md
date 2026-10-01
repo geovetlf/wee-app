@@ -2028,6 +2028,10 @@ Lo que habrá que decidir más adelante, **por capacidad**:
 **No se arregla aquí, y no bloquea el cierre.** Es una decisión de producto —si un vídeo
 que falla se reintenta o no— disfrazada de detalle técnico, y merece decidirse aparte.
 
+> **Decidida para `generateVideo` el 2026-09-27 (PRE-F1-D, § 22):** un vídeo de esa puerta
+> tiene UN intento. Un fallo de ModelArk es final y el barrido devuelve la reserva exacta.
+> Las demás capacidades conservan los tres intentos del Job Engine.
+
 ### 21.5 Lo demás que queda anotado y sin arreglar
 
 - El `seedanceCallback` **legacy** sigue guardando su payload entero en
@@ -2054,3 +2058,275 @@ La regla que la gobierna es la misma que ha gobernado F12-D: **F11 sigue siendo 
 de verdad del material**. El identificador del material es de Weë; el del proveedor nunca
 lo es; la clave de almacenamiento no es identidad; la propiedad sale siempre de la cuenta
 de Weë. Y no se construye un segundo sistema de nada.
+
+## 22. PRE-F1-D · La ruta asíncrona de vídeo, encendida
+
+Autorizado el 2026-09-27. `generateVideo` deja de esperar dentro de la llamada: ModelArk
+acepta la tarea, la llamada contesta `ACCEPTED` en segundos y, desde ese momento, solo lo
+que ModelArk conteste decide el dinero. Lo decide el barrido que ya estaba desplegado.
+
+    generateVideo → reserva (Credit Engine, AUTHORIZED)
+      → conductor → Router → Job Engine → Gateway → adaptador de Seedance
+      → POST aceptado (taskId) → trabajo `waiting` con su `providerRef` → ACCEPTED
+    barridoDeLiquidacion (cada 5 min)
+      → reconciliador → resolutorDeSeedance (GET de la tarea)
+      → atención → materialización (el vídeo a Storage, material F11) → motor de trabajos
+      → liquidación → completeCredits (terminó) · refundCredits (ModelArk dice que falló)
+
+### 22.1 Qué cambió, y solo eso
+
+- `ACEPTA_ASINCRONO = true` (`creator/video.ts`). S6-F la había apagado.
+- El trabajo vive lo que `plazos.ts` le da a un vídeo: **2 h 15 min**
+  (`PLAZOS_DE_VIDEO.vidaDelTrabajoMs`). Antes eran 120 s, el margen de la invocación: un
+  reintento del cliente pasados dos minutos llegaba al trabajador, que vencía el trabajo
+  ACEPTADO, y vencido la liquidación lo aparta como «reconciliar», que nadie resuelve.
+- La política del trabajo de vídeo es `politicaDe(PLAZOS_DE_VIDEO, …)` con
+  **`retry.maxAttempts = 1`**, por la costura `politica` del conductor. Un fallo de ModelArk
+  es final y se devuelve exacto; no hay segundo POST. El Job Engine conserva sus tres
+  intentos para todo lo demás. El Workflow valida `step.retry` pero no lo ejecuta, así que
+  tampoco hay reintento por encima del trabajo.
+- La rama «colgada» de la puerta (reintento pasados 25 min con la reserva AUTHORIZED) ya no
+  devuelve la reserva de un trabajo del Core: lo pregunta leyendo (`trabajoDelMedioDeWee`,
+  solo `porIdempotencia`), esté la puerta abierta o cerrada, y contesta
+  `DUPLICATE_REQUEST`. Para lo que nunca tuvo trabajo del Core sigue igual (legacy).
+- `pedirMedio` nombra su ejecución (`ejecucionDelMedio`: `run_<requestId>`, el mismo nombre
+  que el Workflow le daba por defecto) para que la búsqueda de su trabajo use el mismo.
+- `services/videoService.ts` entiende `ACCEPTED`, con `jobId` y `requestId`, sin URL ni
+  progreso inventados. Se pinta con claves que ya existían (`creaciones.progressWorking`,
+  `creaciones.progressFindLater`): ninguna clave nueva y `CLAVES_PT` sigue en 2682.
+
+### 22.2 Quién mueve cada estado
+
+| Estado | Dónde vive | Quién lo mueve, y nadie más |
+|---|---|---|
+| `AUTHORIZED` · `COMPLETED` · `REFUNDED` | `creditTransactions/usage_<requestId>` | Credit Engine (la puerta reserva; la liquidación cobra o devuelve) |
+| `ACCEPTED` | respuesta de `generateVideo` | la puerta, cuando el proveedor acusa recibo; no se guarda como estado propio |
+| `queued` · `running` · `waiting` · `completed` · `failed` · `timed_out` | `jobs` | Job Engine (transiciones con CAS del almacén) |
+| `queued` · `running` · `succeeded` · `failed` · `expired` · `cancelled` | ModelArk | el proveedor; se lee con `resolutorDeSeedance` |
+| `PROCESSING` | `aiGenerations` | el libro, solo en el camino legacy |
+| «ya estaba» | respuesta del Credit Engine | idempotencia por `requestId` (`duplicate`, `ALREADY_REFUNDED`, `NOT_REFUNDABLE`) |
+| material | `assets` | materialización existente (F11) |
+
+La app solo representa lo que recibe: no marca nada como terminado, no crea material y no
+provoca reembolsos.
+
+### 22.3 Lo que NO cambió
+
+La rama legacy de `generateVideo` (sondeo, reembolso en el `catch`, rama colgada sin
+trabajo del Core), el adaptador, el sondeo, el router del motor, el libro, `creatorRun`,
+el Credit Engine, F1-A, productions y el Core. La puerta `aiSettings/runtime` sigue cerrada
+en producción: ninguna cuenta está migrada.
+
+### 22.4 Pruebas
+
+- `video-asincrono.test.mjs` (en la cadena): la puerta, el conductor, el Job Engine, el
+  almacén, el reconciliador, el barrendero y el Credit Engine de verdad sobre un Firestore
+  en memoria; de mentira solo el adaptador, lo que ModelArk contesta y el almacén de vídeos.
+  Casos A–J, reintentos, el requestId de Brain con la puerta abierta, otra cuenta, campos
+  forjados por el cliente, y los dos controles que reproducen lo de antes (tres intentos →
+  retenido; 120 s → vencido y «reconciliar»).
+- `video-asincrono.emulator.mjs` (fuera de la cadena): contra los emuladores de Firestore y
+  Storage, con el adaptador, el resolutor y el materializador de verdad y un ModelArk falso
+  en 127.0.0.1. Ninguna petición sale de la máquina.
+
+### 22.5 Lo que queda pendiente, dicho
+
+- **`mat_` frente a `asset_`**: la materialización nombra el material `mat_<32 hex>` y
+  `leerMaterial` solo lee `asset_<32 hex>`. El vídeo se guarda y se cobra bien, pero el
+  «¿ya está?» del materializador no lo encuentra (dos reconciliaciones a la vez lo descargan
+  dos veces), `deleteAsset` no puede retirarlo y un reintento de algo terminado por el Core
+  contesta `result_not_available` en vez de devolverlo. Decisión tomada: un solo espacio
+  `asset_`; sin aplicar en esta fase. → **Resuelto en §23.1.**
+- **`liquidacionDeWee`** espera `ALREADY_COMPLETED` y el Credit Engine contesta
+  `NOT_REFUNDABLE`: un reembolso sobre algo ya cobrado sale como fallo del barrendero en vez
+  de «ya estaba». No mueve dinero. Sin aplicar en esta fase. → **Resuelto en §23.2.**
+- **`creatorRun`** (Weë Studio vía CreatorFlow) genera vídeo por su propio camino legacy,
+  con el mismo sondeo y el mismo reembolso al fallar. `generateVideo` no tiene todavía
+  clientes en la app.
+- La fila del libro de un vídeo aceptado se cierra con `providerCost: 0`; el coste real no
+  se anota al terminar.
+- Un POST cuya respuesta se pierde —error de red o plazo agotado después de enviarlo— se
+  informa como fallido y sin referencia, y la reserva se devuelve aunque ModelArk hubiera
+  llegado a crear la tarea. Es la única ventana de reembolso sin preguntar que queda en esta
+  ruta, y es inherente a un POST sin clave de idempotencia del lado del proveedor.
+  → **Cerrada en §23.3**: ya no se devuelve; se aparta para reconciliar.
+
+## 23. PUENTE PRE-F1-D · Un material, un cierre repetible y un POST sin respuesta
+
+Autorizado el 2026-09-27, antes de F1-D. Tres contratos que quedaban abiertos entre la ruta
+asíncrona de vídeo (§22) y lo que viene, cerrados sin un segundo nada: ni conductor, ni
+sistema de Credits, ni reconciliador contable, ni proveedor, ni reintento de vídeo. No se
+tocan el Credit Engine, el Financial Core, el Router, `creditCosts.ts`, `credits/index.ts`,
+el motor (adaptador, registro, Gateway), el Content Core, productions, F1-A, el Core ni
+`creatorRun`/legacy. En el código cambian cuatro archivos: `runtime/materializacion.ts`,
+`runtime/index.ts`, `runtime/ejecutor.ts` y `creator/video.ts`.
+
+### 23.1 El material del Core se llama `asset_`, como todos
+
+`identidadDelMaterial(jobId, attemptId)` devuelve `asset_` y los primeros 32 hexadecimales de
+`sha256(jobId|attemptId)`: la misma forma que el identificador que sortea
+`crearMaterialDesdeUrl`, y la única que `leerMaterial` reconoce. Sigue siendo calculada —dos
+llegadas del mismo desenlace piden el mismo material— y distinta por intento. Cómo nació un
+material lo dice su procedencia, no su prefijo. Con eso:
+
+- el «¿ya está?» de la materialización lo encuentra: una segunda llegada no lo descarga, y
+  un proceso que muere entre guardar el material y cerrar el trabajo se REUTILIZA en la
+  pasada siguiente. Con `mat_` ese caso se aplazaba en cada pasada —descargando el vídeo
+  otra vez— hasta vencer el trabajo: el objeto existía, la escritura `ifGenerationMatch: 0`
+  contestaba 412 y la relectura no lo veía;
+- `deleteAsset` lo retira y borra el objeto; productions lo acepta como referencia;
+- la puerta, ante el reintento de un vídeo que el Core terminó, **devuelve su material**
+  (`COMPLETED`, `duplicate: true`, `credits: 0`, su `assetId`, su URL de entrega y el
+  `jobId`), sin generar ni cobrar. Solo si el material es de quien pregunta, está `ready` y
+  tiene entrega; si no —retirado, o un trabajo que nombrara uno ajeno— contesta
+  `result_not_available` como antes, sin POST y sin cobro.
+
+**Sin compatibilidad con `mat_`.** Ningún código genera ya ese prefijo y `leerMaterial` sigue
+leyendo solo `asset_`, como siempre. Lo que ya exista con `mat_` en producción —al menos el
+material del canario M-1 (§19)— queda como dato huérfano: invisible para `leerMaterial`,
+`deleteAsset` y productions, como lo fue desde que se creó. Migrarlo o retirarlo es una
+operación sobre datos de producción: **no se ha hecho** y necesita su propia autorización.
+
+### 23.2 Un cierre repetido es «ya estaba», dicho como lo dice el Credit Engine
+
+`liquidacionDeWee.reembolsar` sobre una reserva ya cobrada recibe del Credit Engine
+`NOT_REFUNDABLE` con `details.status: 'COMPLETED'`, y ahora lo traduce a
+`{ desenlace: 'ya_estaba', estado: 'COMPLETED' }`. Se esperaba `ALREADY_COMPLETED`, que el
+motor no emite en ningún sitio: el segundo cierre salía como fallo y el barrendero lo volvía
+a intentar en cada pasada sin mover nada. `ALREADY_REFUNDED` sigue igual. `liquidar` no
+cambia: `completeCredits` ya contestaba el estado sin mover nada.
+
+Resultado, medido: el primer cierre liquida una vez; el segundo no mueve Credits, no escribe
+libro (`settle` es idempotente por `settledAt`), no duplica material y no es un fallo; dos
+barrenderos a la vez dejan un cobro. El Credit Engine no se ha tocado.
+
+### 23.3 Un POST que sale y no vuelve es un desenlace desconocido
+
+Solo cuando se pidió aceptar y soltar —la misma bandera `aceptaAsincrono` que lleva el
+Gateway, que `conductorDeWee` ahora también le pasa al ejecutor—, un intento que falla en el
+ADAPTADOR, **sin respuesta HTTP** (sin código del proveedor) y con un `TIMEOUT` o un
+`PROVIDER_ERROR` que el adaptador dio por reintentable, se informa como `unknown`,
+`dispatched: true` y **sin `providerRef`**: la tarea puede existir en ModelArk y aquí no hay
+con qué nombrarla, así que no se inventa. A partir de ahí es lo que ya existía:
+
+- el Job Engine lo deja `waiting` hasta su plazo (2 h 15 min);
+- la liquidación lo clasifica «reconciliar» —salió y no se sabe—: ni cobra ni devuelve, y el
+  barrendero deja de mirarlo;
+- el reconciliador no tiene referencia con la que preguntar, así que no pregunta;
+- un reintento del cliente recibe `DUPLICATE_REQUEST`: no hay segundo POST.
+
+Lo que ModelArk SÍ contestó —un 4xx, un 429, un 5xx— sigue siendo un fallo y se devuelve
+exacto. Un error antes de salir (entrada inválida) llega como no reintentable y también. Un
+plazo del propio Gateway, antes de llamar al adaptador, también. Brain y todo camino sin
+aceptación no cambian: la bandera está apagada para ellos.
+
+Límites, dichos:
+
+- **La puerta sigue contestando `ACCEPTED`** en este caso: todavía no lo sabe. Distinguir
+  en la respuesta «en marcha, con referencia» de «desconocido, sin referencia» es una
+  decisión de producto pendiente.
+- **Del lado prudente**: el ejecutor no distingue un POST sin respuesta de un fallo de red
+  —o un plazo de ejecución— mientras el adaptador lee una imagen de entrada ANTES del POST
+  (`readImage` → `fetchBytes`). Esos casos también se apartan para reconciliar en vez de
+  devolverse. No regala nada, pero retiene lo que podría devolverse; separarlos exige que el
+  adaptador marque lo anterior al POST, un cambio del motor que esta fase no autoriza.
+- **Quién resuelve «reconciliar» sin referencia**: hoy, nadie automáticamente. Sin
+  identificador de tarea no hay GET posible; hace falta una decisión humana (y una
+  herramienta) para cerrarlo. Pendiente.
+
+### 23.4 Pruebas
+
+- `puente-pre-f1d.test.mjs` (en la cadena, detrás de `video-asincrono`): la puerta, el
+  conductor, el Job Engine, el almacén, la atención, el reconciliador, el barrendero, la
+  liquidación, el ejecutor, el materializador, el Content Core, `deleteAsset`, productions y
+  el Credit Engine de verdad sobre un Firestore en memoria. A: identidad `asset_`,
+  `leerMaterial`, `deleteAsset`, productions y un `mat_` existente que nadie lee. B: sin
+  segunda descarga, reinicio a medias, dos reconciliaciones a la vez, reintento que recupera,
+  material ajeno y retirado. C: los cierres repetidos contra el Credit Engine real. D: el POST
+  sin respuesta (plazo y red) y sus controles 5xx/4xx, en la puerta y en el ejecutor. E:
+  idempotencia y proveedor. F: qué archivos se tocan y cuáles no.
+- `video-asincrono.test.mjs`: D2 exige `asset_`; D5, que el reintento de lo terminado
+  devuelva su material.
+- `video-asincrono.emulator.mjs` (fuera de la cadena): además, `asset_` contra el Storage
+  de verdad, `leerMaterial`, reutilización sin descarga, reintento que recupera, productions,
+  `deleteAsset` que borra el objeto, y un ModelArk falso que crea la tarea y corta la
+  conexión sin contestar.
+- Se migraron al contrato `asset_` las fijaciones que solo conocían `mat_`:
+  `runtime-asincrono` (una ficha de prueba y dos comprobaciones de forma), `texto-material`
+  y `upstream-consumidor` (fichas de prueba).
+
+### 23.5 Lo que queda pendiente, dicho
+
+- Los documentos `mat_` que existan en producción (§23.1): no se han tocado.
+- La respuesta de la puerta para un desenlace desconocido sin referencia (§23.3).
+- El camino humano para cerrar «reconciliar» sin referencia (§23.3).
+- Lo anterior al POST en el adaptador (§23.3).
+- Dos reconciliaciones EXACTAMENTE a la vez pueden descargar el mismo vídeo dos veces antes
+  de que ninguna lo guarde: se queda un objeto y una ficha (la segunda escritura la rechaza
+  `ifGenerationMatch: 0`), y cualquier llegada posterior lo encuentra sin descargar.
+- `creatorRun` sigue por su camino legacy, intacto, como se autorizó.
+
+## 24. F1-D · La toma de un plano, por la puerta del vídeo
+
+Weë Filmmaker genera UNA unidad de una producción —un plano, o una escena sin planos— por `generateVideo`, la
+segunda puerta del conductor, sin conductor nuevo, sin tercera puerta, sin otro motor y sin otra contabilidad.
+Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
+
+### 24.1 La entrada
+
+- `generateVideo({ plano, cotizar? , creditosCotizados? })`. `plano` = `productionId`, `sceneId`, `unitId`,
+  `revision`, `take`, `quality` y `requirement` (el `ShotRequirement` del espejo de F1-A). Con `plano`, lo demás
+  de la entrada se ignora: el texto (`creator/plano.ts`), el requestId (`creator/toma.ts`) y la petición los
+  pone el servidor.
+- La puerta (`decidirRuntime`, una llamada) se decide antes de reservar. Una toma solo va por el Core; si no puede,
+  `route_unavailable`, sin cupo ni Credits. Lo demás de la puerta no cambia de resultado: solo se lee antes.
+
+### 24.2 Dinero y cupo
+
+- `loadCostOverrides()` antes de `priceVideo`: la misma petición, el mismo precio en cualquier instancia.
+- Cotizar no reserva; generar exige `creditosCotizados === precio` o `price_changed`. Una reserva, un cobro o un
+  reembolso exacto: lo de siempre del Credit Engine, con la meta `filmmaker` de la toma.
+- `limits.reserve(…, requestId)`: una operación cuenta una vez al día aunque llegue dos veces a la vez; repetir una
+  toma ya reservada no la cuenta.
+
+### 24.3 El plazo en el proveedor
+
+- El trabajo del Core lleva `vidaEnElProveedorSec = segundosParaElProveedor(PLAZOS_DE_VIDEO)` (7 200) y el adaptador
+  lo manda como `execution_expires_after` solo con `acceptAsync`. Vence ModelArk (`expired`) → FAILED → el barrido
+  devuelve exacto, una vez. No hay otro actor de vencimiento.
+
+### 24.4 El resultado, en su plano
+
+- `shots` · `shot.result` (`enlazarToma`): reserva cobrada de esa toma y de esa persona → unidad con la misma firma →
+  material por su procedencia (`traceId` = requestId, `runId` = `run_<requestId>`, de la cuenta, listo, vídeo) →
+  escena y plano del Core `fm_…` → `fijarResultadoVerificado` en una transacción (CAS con la versión vista).
+  Cambió el plano → `stale`, sin enlazar ni cobrar otra vez.
+- Material sin ficha: se adopta el objeto que lleva la marca `weeMaterial` de SU `asset_`, sin segunda descarga.
+
+### 24.5 Vallas reancladas, con autorización
+
+- `video-asincrono` H2 y `puente-pre-f1d` E4: el motor cambia en dos archivos nominales y de tamaño fijo
+  (`engine/limits.ts` +15 −3, `engine/providers/seedance.ts` +10 −0).
+- `puente-pre-f1d` F1 y F3: la lista nominal de archivos de F1-D; del contenido, solo `content/materializador.ts`.
+- `runtime-map` 128: `generateVideo` tiene UN consumidor nominal, `hooks/useTomaDePlano.ts`.
+- `i18n-preferencia-usuario` 57–58: 2 682 → 2 732 claves (50 `filmmaker.take*`).
+- `filmmaker-ui`: un doble del hook nuevo para la pantalla.
+
+### 24.6 Pruebas
+
+- `f1d-generacion.test.mjs` y `f1d-cliente.test.mjs`, en la cadena detrás de `puente-pre-f1d`.
+- `f1d.emulator.mjs` (fuera de la cadena): la toma contra Firestore y Storage emulados, con el cuerpo real del
+  adaptador de Seedance hacia un ModelArk falso local.
+- Guardas sobre todo `functions/src`: un conductor y ningún alias, dos puertas, un Credit Engine, un Job Engine, el
+  motor de vídeo solo en la rama legacy y en `creatorRun`, ModelArk solo en los adaptadores, las cargas dinámicas
+  fijadas una a una, y `productions` y `filmmaker/` sin generar.
+
+### 24.7 Lo que queda pendiente, dicho
+
+- La puerta `aiSettings/runtime` sigue cerrada por defecto; nada de F1-D está desplegado.
+- El requisito lo calcula la app (espejo de F1-A); el servidor verifica identidad, revisión, firma y procedencia,
+  pero no recalcula F1-A.
+- «Aceptado» y «trabajando» se ven igual en la app: solo la reserva es legible por el cliente.
+- El emulador de Storage no aplica `ifGenerationMatch: 0` (medido en `f1d.emulator.mjs`): el 412 del guardado «solo
+  si no existe» se prueba en memoria; la biblioteca sí lo manda en la subida, así que en GCS real se aplica.
+- Varias unidades a la vez, montaje, voz, música, lip-sync, Elements y prompt avanzado: fases siguientes.

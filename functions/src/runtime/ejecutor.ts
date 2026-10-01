@@ -101,7 +101,44 @@ export interface EjecutorDeps {
    * comportamiento por haberse añadido esto.
    */
   material?: PuertoDeMaterializacion;
+  /**
+   * SE LE PIDIÓ AL PROVEEDOR QUE ACEPTE Y SUELTE. Cerrado por defecto, y es la
+   * misma bandera que lleva el Gateway.
+   *
+   * Entonces lo único que sale hacia él es el POST que crea la tarea, y un POST
+   * que se queda SIN respuesta —el plazo que vence con la petición en vuelo, la
+   * conexión que se corta— no dice si la tarea existe. Con esto encendido ese
+   * intento se informa como lo que es: desenlace DESCONOCIDO, sin referencia.
+   * Ni se devuelve el dinero ni se repite el POST: el Job Engine lo deja
+   * esperando y la liquidación lo aparta para reconciliar. Una respuesta del
+   * proveedor —un 4xx, un 429, un 5xx— sigue siendo un fallo: él contestó.
+   */
+  aceptaAsincrono?: boolean;
 }
+
+/**
+ * ¿SALIÓ EL POST Y NO VOLVIÓ NADA?
+ *
+ * Solo un fallo del ADAPTADOR, sin respuesta HTTP —no hay código del proveedor—
+ * y que el propio adaptador dio por reintentable: el plazo que vence con la
+ * petición en vuelo, o la conexión que se corta. Un error antes de salir (una
+ * entrada que no vale) llega como no reintentable, y una respuesta del
+ * proveedor trae su código: ninguno de los dos es un desenlace desconocido.
+ */
+const sinRespuestaDelProveedor = (resultado: GatewayResult): boolean => {
+  const error = resultado.status === 'failed' ? resultado.error : undefined;
+  if (!error || !String(error.source ?? '').startsWith('adapter:') || error.providerCode !== undefined) return false;
+  if (error.code === 'TIMEOUT') return true;
+  return error.code === 'PROVIDER_ERROR' && (error.details as Record<string, unknown> | undefined)?.providerRetryable === true;
+};
+
+/** Salió y no se sabe cómo acabó: sin referencia —no la hay, y no se inventa— y con el error que se vio. */
+const desenlaceDesconocido = (dispatch: JobDispatch, resultado: GatewayResult): AttemptReport => ({
+  attemptId: dispatch.attemptId,
+  outcome: 'unknown',
+  dispatched: true,
+  ...(resultado.error ? { error: resultado.error } : {}),
+});
 
 /**
  * El ejecutor, más el único sitio donde queda lo que el Gateway contestó.
@@ -210,7 +247,10 @@ export const crearEjecutor = (deps: EjecutorDeps): EjecutorDelConductor => {
        */
       const ref = deps.referenciaDeProveedor?.(resultado)
         ?? (resultado.operation ? { providerId: resultado.operation.providerId, operationId: resultado.operation.operationId } : undefined);
-      const informe = informeDelGateway(dispatch, resultado, ref);
+      /* Un POST que no volvió, cuando se pidió aceptar y soltar, no es un fallo: no se sabe. */
+      const informe = deps.aceptaAsincrono === true && sinRespuestaDelProveedor(resultado)
+        ? desenlaceDesconocido(dispatch, resultado)
+        : informeDelGateway(dispatch, resultado, ref);
 
       /*
        * ── EL TEXTO, CONVERTIDO EN MATERIAL ──────────────────────────────────

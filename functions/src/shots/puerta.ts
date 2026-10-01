@@ -22,6 +22,7 @@ import {
   planosDeLaEscena,
 } from './index';
 import { revisarPlanoGuardado } from './validacion';
+import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma } from '../creator/toma';
 
 /**
  * WEË SCENES & SHOTS — LA PUERTA. Y solo eso.
@@ -42,6 +43,11 @@ import { revisarPlanoGuardado } from './validacion';
  *
  * Tampoco `providerId`, `modelId`, `storageRef`, `apiKey` ni un prompt: no
  * existen en un plano, así que no hay dónde ponerlos.
+ *
+ * Y, desde F1-D, tampoco el RESULTADO de un plano: `producedAssetId` ya no se
+ * acepta en `shot.update`. Un resultado solo llega a un plano por `shot.result`,
+ * que comprueba en el servidor que ese material nació de la generación de ese
+ * plano. Los nodos `fm_` son de Filmmaker y solo los escribe esa operación.
  *
  * ── Y una cosa que no hace ──────────────────────────────────────────────────
  *
@@ -129,6 +135,10 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
   const order = entero(data.order);
 
   const noVale: () => never = () => { throw new HttpsError('invalid-argument', 'Faltan datos o no tienen forma válida.'); };
+  /* Los nodos de Filmmaker los escribe el servidor al enlazar una toma. Las demás operaciones no los tocan. */
+  if (/^(scene|shot)\.(create|update|stale)$/.test(op) && (esNodoDeFilmmaker(sceneId) || esNodoDeFilmmaker(shotId))) {
+    throw new HttpsError('permission-denied', 'Ese plano lo gestiona Weë.');
+  }
   const noEsta: () => never = () => { throw new HttpsError('not-found', 'No encontramos eso.'); };
 
   /* ── Escenas ──────────────────────────────────────────────────────────── */
@@ -220,13 +230,25 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
       ...(data.elements !== undefined ? { elements: punteros(data.elements) ?? noVale() } : {}),
       ...(data.continuity !== undefined ? { continuity: requisitos(data.continuity) } : {}),
       ...(texto(data.narrative, 280) ? { narrative: texto(data.narrative, 280) } : {}),
-      ...(texto(data.producedAssetId, 128) ? { producedAssetId: texto(data.producedAssetId, 128) } : {}),
       at,
     }, { db });
     if (r.status === 'no_encontrado' || r.status === 'referencia_rechazada') noEsta();
     if (r.status === 'invalido') throw new HttpsError('invalid-argument', 'Eso no tiene una forma válida.');
     if (r.status === 'transicion_invalida') throw new HttpsError('failed-precondition', 'Ese cambio de estado no se puede hacer.');
     return { status: r.status, shot: r.shot };
+  }
+
+  /*
+   * F1-D · EL RESULTADO DE UNA TOMA, a su plano. La app dice QUÉ toma —producción,
+   * escena, unidad y número—; el servidor comprueba todo lo demás y escribe, o
+   * contesta por qué no. Si el plano cambió mientras se generaba, no se enlaza.
+   */
+  if (op === 'shot.result') {
+    const toma = leerIdentidadDeToma({ productionId: data.productionId, sceneId: data.sceneId, unitId: data.unitId, take: data.take });
+    if (!toma) noVale();
+    const vista = entero(data.expectedVersion);
+    const r = await enlazarToma(db, { uid: request.auth.uid, accountId }, toma as NonNullable<typeof toma>, { at, ...(vista !== undefined ? { expectedVersion: vista } : {}) });
+    return { result: r };
   }
 
   if (op === 'shot.stale') {

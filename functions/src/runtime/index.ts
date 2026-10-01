@@ -6,6 +6,7 @@ import { materializadorDeWee } from '../content/materializador';
 import { resolutorDeSeedance } from '../engine/providers/seedance';
 import {
   CapabilityId,
+  Job,
   JobDispatch,
   JobLimits,
   JobPolicy,
@@ -38,6 +39,7 @@ import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
 import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
 import { PuertoDeLiquidacion } from './liquidacion';
+import { trabajoDelMedio } from './medios';
 import { ReglaDePolitica, SIN_REGLAS, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
 
@@ -279,9 +281,17 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
         await cerrarFila(reserva.transactionId, 0);
         return { desenlace: r.duplicate ? 'ya_estaba' : 'reembolsada', estado: 'REFUNDED' };
       } catch (e) {
-        /* Ya estaba devuelta, o ya se cobró y no se toca sin que lo decida una persona: no es un fallo del barrendero. */
+        /*
+         * Ya estaba devuelta, o ya se cobró y no se toca sin que lo decida una
+         * persona: no es un fallo del barrendero. Dicho como lo dice el Credit
+         * Engine: una reserva ya cobrada contesta `NOT_REFUNDABLE` con su estado
+         * —`COMPLETED`—. Aquí se esperaba `ALREADY_COMPLETED`, que el motor no dice
+         * nunca, y un segundo cierre salía como fallo y se volvía a intentar en
+         * cada pasada sin mover nada.
+         */
         const code = (e as { code?: string })?.code;
-        if (code === 'ALREADY_REFUNDED' || code === 'ALREADY_COMPLETED') return { desenlace: 'ya_estaba', estado: code };
+        if (code === 'NOT_REFUNDABLE') return { desenlace: 'ya_estaba', estado: String((e as { details?: { status?: unknown } }).details?.status ?? 'COMPLETED') };
+        if (code === 'ALREADY_REFUNDED') return { desenlace: 'ya_estaba', estado: code };
         return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
       }
     },
@@ -450,6 +460,18 @@ export const mantenimientoDeWee = (deps: {
   };
 };
 
+/**
+ * ¿TIENE TRABAJO DEL CORE ESTA PETICIÓN DE MEDIO? Sobre el almacén de verdad, y
+ * solo lectura.
+ *
+ * Lo pregunta la puerta de vídeo antes de devolver una reserva que parece
+ * colgada: si hay trabajo, su dinero es de su liquidación —que le pregunta al
+ * proveedor antes de cobrar o devolver—, esté la puerta abierta o cerrada. No
+ * construye el conductor, no crea nada y no toca ningún trabajo.
+ */
+export const trabajoDelMedioDeWee = (db: Firestore, userId: string, requestId: string): Promise<Job | undefined> =>
+  trabajoDelMedio(almacenDeTrabajos(db), userId, requestId);
+
 export interface ConductorDeWeeDeps {
   db: Firestore;
   ahora?: () => number;
@@ -518,6 +540,8 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
     resolver: resolutorPorCadena(router, cadenaViva, politicaPorReglas(deps.reglas ?? SIN_REGLAS)),
     ejecutor: crearEjecutor({
       gateway, libro: deps.libro ?? libroDelMotor(), ahora,
+      /* La misma bandera que el Gateway: con ella, un POST que se queda sin respuesta es un desenlace desconocido. */
+      aceptaAsincrono: deps.aceptaAsincrono === true,
       ...(contexto ? { contexto } : {}),
       /* El dueño, del ALMACÉN. El paquete no lo lleva y la traza no es prueba de quién es nadie. */
       duenoDelTrabajo: async (jobId) => (await trabajos.obtener(jobId))?.owner.userId,
@@ -563,7 +587,7 @@ export { decidirReconciliacion } from './reconciliacion';
 export type { AccionDeReconciliacion, EstadoSegunElProveedor, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor } from './reconciliacion';
 export { reconciliarTrabajos, reconciliarUno } from './reconciliador';
 export type { InformeDelReconciliador, ReconciliadorDeps, VistoAlReconciliar } from './reconciliador';
-export { pedirMedio, interpretarMedio, PASO_DE_MEDIO } from './medios';
+export { pedirMedio, interpretarMedio, PASO_DE_MEDIO, ejecucionDelMedio, trabajoDelMedio } from './medios';
 export type { DesenlaceDelMedio, MotivoDeEsperaDelMedio, PasoDeMedioDeps } from './medios';
 export { identidadDelMaterial, procedenciaDe, tipoDeMaterialDe } from './materializacion';
 export type { DesenlaceDeMaterializacion, PeticionDeMaterializacion, PuertoDeMaterializacion } from './materializacion';

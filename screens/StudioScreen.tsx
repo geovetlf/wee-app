@@ -19,7 +19,7 @@ import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDe
 import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
-import { EntradaDeStudio, entradaPorId } from '../constants/studioExperiences';
+import { EntradaDeStudio, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
 import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
 import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
@@ -184,6 +184,20 @@ const StudioScreen: React.FC = () => {
   const alCrear = useCallback(() => {
     const texto = prompt.trim();
     if (!texto) return;
+
+    /*
+     * ── VARIAS ESCENAS NO ES UN CLIP (Weë Filmmaker, F1-C) ────────────────
+     *
+     * Un solo clip va a `CreatorFlow`, como siempre. «Varias escenas» abre la
+     * producción: lo escrito viaja tal cual como su idea, y los controles de
+     * cámara elegidos, como dirección de toda ella. El Studio sigue siendo una
+     * puerta: no crea la producción ni llama a nadie; la crea la pantalla de
+     * producción, con su servicio.
+     */
+    if (abreLaProduccion(experiencia?.id)) {
+      navigation.navigate('Production', { intencion: texto, creativo: filtrarCreativo(controles) });
+      return;
+    }
 
     const destino = destinoDeIntencion(texto, {
       /*

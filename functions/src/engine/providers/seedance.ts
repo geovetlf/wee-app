@@ -43,6 +43,8 @@ export interface SeedanceSpec {
   maxDurationSec: number;
   maxReferenceImages: number;
   maxReferenceClips: number;
+  /** R22 · segundos de vídeo de entrada como máximo (oficial): con vídeos de referencia se cotiza este techo. */
+  maxReferenceTotalSec: number;
   /** USD por millón de tokens (precio de lista oficial): sin video de entrada / con video de entrada. */
   rates: Partial<Record<SeedanceResolution, { text: number; video: number }>>;
 }
@@ -55,6 +57,7 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 30,
     maxReferenceImages: 30,
     maxReferenceClips: 10,
+    maxReferenceTotalSec: 30,
     rates: { '480p': { text: 10.7, video: 6.4 }, '720p': { text: 10.7, video: 6.4 }, '1080p': { text: 11.7, video: 7.0 } },
   },
   [SEEDANCE_MODEL_IDS.SEEDANCE_2_0]: {
@@ -64,6 +67,7 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 15,
     maxReferenceImages: 9,
     maxReferenceClips: 3,
+    maxReferenceTotalSec: 15,
     rates: { '480p': { text: 7.0, video: 4.3 }, '720p': { text: 7.0, video: 4.3 }, '1080p': { text: 7.7, video: 4.7 }, '4k': { text: 4.0, video: 2.4 } },
   },
   [SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST]: {
@@ -73,6 +77,7 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 15,
     maxReferenceImages: 9,
     maxReferenceClips: 3,
+    maxReferenceTotalSec: 15,
     rates: { '480p': { text: 5.6, video: 3.3 }, '720p': { text: 5.6, video: 3.3 } },
   },
   [SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI]: {
@@ -82,6 +87,7 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
     maxDurationSec: 15,
     maxReferenceImages: 9,
     maxReferenceClips: 3,
+    maxReferenceTotalSec: 15,
     rates: { '480p': { text: 3.5, video: 2.1 }, '720p': { text: 3.5, video: 2.1 } },
   },
 };
@@ -131,13 +137,16 @@ export function seedanceRate(modelId: string, resolution: SeedanceResolution, wi
 
 export const seedanceUsd = (tokens: number, ratePerMillion: number): number => (tokens * ratePerMillion) / 1_000_000;
 
+/** R22 · el techo de vídeo de entrada de un modelo: lo que se cotiza si lleva vídeos de referencia. */
+export const techoDeVideoDeEntrada = (modelId: string): number => specOf(modelId).maxReferenceTotalSec;
+
 /**
  * Coste oficial estimado en USD de una generación, con la fórmula y las tarifas
  * publicadas por BytePlus. Es lo que usa el Credit Engine para fijar el precio
  * antes de generar; el coste real que se registra sale de usage.completion_tokens.
  */
 export function seedanceCostUsd(input: { modelId: string; resolution: SeedanceResolution; durationSec: number; ratio?: string; inputVideoSec?: number }): { usd: number; tokens: number; ratePerMillion: number } {
-  const outputSec = input.durationSec === -1 ? 5 : Math.max(1, input.durationSec);
+  const outputSec = input.durationSec === -1 ? specOf(input.modelId).maxDurationSec : Math.max(1, input.durationSec);
   const inputVideoSec = Math.max(0, Number(input.inputVideoSec ?? 0));
   const tokens = seedanceTokens(input.resolution, input.ratio || '16:9', outputSec, inputVideoSec);
   const ratePerMillion = seedanceRate(input.modelId, input.resolution, inputVideoSec > 0);
@@ -181,6 +190,8 @@ export interface SeedanceRequestBody {
   camera_fixed?: boolean;
   omni_reference_task_type?: 'auto' | 'reference' | 'edit' | 'extend';
   callback_url?: string;
+  /** Cuánto puede estar la tarea en cola o ejecutándose antes de que ModelArk la dé por `expired`. En segundos. */
+  execution_expires_after?: number;
 }
 
 /**
@@ -238,7 +249,7 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
     for (const url of videos) content.push({ type: 'video_url', video_url: { url }, role: 'reference_video' });
     for (const url of audios) content.push({ type: 'audio_url', audio_url: { url }, role: 'reference_audio' });
     withVideoInput = videos.length > 0;
-    inputVideoSec = withVideoInput ? Number(input.referenceVideoSec ?? 5) : 0;
+    inputVideoSec = withVideoInput ? spec.maxReferenceTotalSec : 0;
     taskType = (input.taskType as SeedanceRequestBody['omni_reference_task_type']) || 'reference';
   }
 
@@ -254,10 +265,18 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
   if (Number.isFinite(Number(input.seed))) body.seed = Number(input.seed);
   if (input.cameraFixed === true) body.camera_fixed = true;
   if (taskType) body.omni_reference_task_type = taskType;
+  /*
+   * EL PLAZO DE LA TAREA, solo cuando se acepta y se suelta. Lo decide quien pide
+   * —`plazos.ts`, por la puerta— y aquí solo se traduce a su nombre. Sin él, ModelArk
+   * aplica el suyo, mucho más largo, y una tarea colgada retenía la reserva días.
+   * El sondeo de siempre no lo manda: espera dentro de la llamada y su plazo es otro.
+   */
+  const vidaEnElProveedor = Number(input.vidaEnElProveedorSec);
+  if (request.acceptAsync === true && Number.isInteger(vidaEnElProveedor) && vidaEnElProveedor > 0) body.execution_expires_after = vidaEnElProveedor;
   const callback = env('SEEDANCE_CALLBACK_URL');
   if (callback) body.callback_url = env('SEEDANCE_CALLBACK_TOKEN') ? `${callback}${callback.includes('?') ? '&' : '?'}token=${encodeURIComponent(env('SEEDANCE_CALLBACK_TOKEN') as string)}` : callback;
 
-  const outputSec = duration === -1 ? 5 : duration;
+  const outputSec = duration === -1 ? spec.maxDurationSec : duration;
   const estimatedTokens = seedanceTokens(resolution, ratio, outputSec, inputVideoSec);
   const rate = seedanceRate(model.id, resolution, withVideoInput);
   return { body, estimatedTokens, rate, withVideoInput };

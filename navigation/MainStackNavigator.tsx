@@ -33,6 +33,7 @@ import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
 import StudioScreen from '../screens/StudioScreen';
+import ProductionScreen from '../screens/ProductionScreen';
 import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
@@ -89,6 +90,12 @@ export type MainStackParamList = {
   Specialist: { id: string };
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
+  /**
+   * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
+   * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
+   * controles de cámara elegidos (`creativo`, por ruta del lenguaje creativo).
+   */
+  Production: { productionId?: string; intencion?: string; creativo?: Record<string, string> } | undefined;
   /* Weë Design, igual que Studio: un sitio con pantalla propia. */
   Design: undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
@@ -333,6 +340,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
+      <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />

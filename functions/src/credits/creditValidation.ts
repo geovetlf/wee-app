@@ -86,6 +86,14 @@ export const assertRequestId = (requestId: unknown): string => {
   return requestId;
 };
 
+const FINGERPRINT = /^[a-f0-9]{16,128}$/;
+
+/** La huella de una operación: la calcula el servidor que sabe qué se pide, nunca el cliente. Hexadecimal, 16–128. */
+export const assertFingerprint = (fingerprint: unknown): string => {
+  if (typeof fingerprint !== 'string' || !FINGERPRINT.test(fingerprint)) throw new CreditError('INVALID_REQUEST', 'Huella de operación inválida', { field: 'fingerprint' });
+  return fingerprint;
+};
+
 export const assertService = (service: unknown): CreditService => {
   if (!isCreditService(service)) throw new CreditError('INVALID_SERVICE', `Servicio desconocido: ${String(service)}`, { service });
   return service;

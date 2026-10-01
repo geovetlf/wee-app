@@ -188,6 +188,24 @@ const linking: any = {
       Search: 'search',
       Settings: 'settings',
       Studio: 'studio',
+      Production: {
+        path: 'studio/produccion/:productionId?',
+        parse: {
+          productionId: (productionId: string) => productionId,
+          /* Los controles elegidos en «Varias escenas» viajan como JSON; si al recargar no se pueden leer, no viajan. */
+          creativo: (creativo: string) => {
+            try {
+              const valor = JSON.parse(creativo);
+              return valor && typeof valor === 'object' && !Array.isArray(valor) ? valor : undefined;
+            } catch {
+              return undefined;
+            }
+          },
+        },
+        stringify: {
+          creativo: (creativo: unknown) => JSON.stringify(creativo ?? {}),
+        },
+      },
       Design: 'design',
       PostDetail: {
         path: 'post/:postId',

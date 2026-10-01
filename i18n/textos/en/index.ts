@@ -47,6 +47,7 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
 import { moderation } from './moderation';
+import { filmmaker } from './filmmaker';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
@@ -86,4 +87,5 @@ export const en: FormaDelDiccionario = {
   chef,
   brain,
   moderation,
+  filmmaker,
 };

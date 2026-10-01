@@ -47,6 +47,7 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
 import { moderation } from './moderation';
+import { filmmaker } from './filmmaker';
 export const es = {
   common,
   help,
@@ -84,6 +85,7 @@ export const es = {
   chef,
   brain,
   moderation,
+  filmmaker,
 };
 
 /**
