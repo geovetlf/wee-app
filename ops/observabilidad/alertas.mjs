@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+/*
+ * LAS ALERTAS DE WEË — Weë Agent Harness, FASE 14 (docs/OBSERVABILITY.md).
+ *
+ * La auditoría H0 encontró CERO alertas: producción estuvo caída por
+ * facturación de 12:33Z a 17:53Z sin que nadie se enterara. Aquí están las
+ * pocas que valen la pena, baratas, y cada una apunta a un problema que el
+ * dueño tiene que mirar:
+ *
+ *  · dinero sin cerrar: un reembolso o una liquidación de Credits falló;
+ *  · IA no disponible: muchas peticiones sin proveedor (caída, claves, o el
+ *    interruptor `iaDetenida` encendido);
+ *  · barrido fallando: la reconciliación de tareas no termina;
+ *  · errores 5xx en las Functions;
+ *  · Weë caído: una comprobación externa cada 5 minutos (la caída de H0).
+ *
+ * SOLO IMPRIME los comandos que ejecuta el DUEÑO (Cloud Monitoring es de su
+ * proyecto y de su correo). No ejecuta nada. Las políticas son datos de este
+ * archivo; functions/test/observabilidad.test.mjs comprueba que cada filtro
+ * apunta a un mensaje que el código de verdad escribe (si alguien cambia el
+ * mensaje, la alerta no se queda ciega en silencio).
+ *
+ *   node ops/observabilidad/alertas.mjs              # imprime los comandos
+ *   node ops/observabilidad/alertas.mjs --json <dir> # además escribe las políticas en <dir>
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+export const PROYECTO = 'get-wee';
+
+/** Un texto del log, buscado en las dos formas en que Cloud Logging guarda un console.*. */
+const texto = (t) => `(textPayload:"${t}" OR jsonPayload.message:"${t}")`;
+
+/** Los mensajes de log en los que se apoyan las alertas, y qué archivo los escribe (lo comprueba el test). */
+export const MENSAJES = {
+  'no se pudo reembolsar': ['functions/src/generateAvatar.ts', 'functions/src/creator/brain.ts', 'functions/src/creator/video.ts'],
+  'no se pudo ajustar el trabajo': ['functions/src/creator/credits.ts'],
+  'tampoco se pudo anotar la liquidación pendiente': ['functions/src/creator/credits.ts'],
+  'WEË AI ENGINE: ningún proveedor disponible': ['functions/src/engine/router.ts'],
+  'WEË RECONCILIACIÓN · la pasada no se pudo completar': ['functions/src/settlement/programado.ts'],
+};
+
+/** Métricas basadas en logs (contadores). */
+export const METRICAS = [
+  { nombre: 'wee_ia_no_disponible', descripcion: 'Peticiones de IA sin ningún proveedor disponible', filtro: `resource.type="cloud_run_revision" AND ${texto('WEË AI ENGINE: ningún proveedor disponible')}` },
+  { nombre: 'wee_barrido_incompleto', descripcion: 'Pasadas de la reconciliación que no terminaron', filtro: `resource.type="cloud_run_revision" AND ${texto('WEË RECONCILIACIÓN · la pasada no se pudo completar')}` },
+];
+
+const umbral = (nombre, metrica, valor, ventana, doc, extraFiltro = '') => ({
+  displayName: nombre,
+  documentation: { content: doc, mimeType: 'text/markdown' },
+  combiner: 'OR',
+  conditions: [{
+    displayName: nombre,
+    conditionThreshold: {
+      filter: `metric.type="${metrica}"${extraFiltro}`,
+      comparison: 'COMPARISON_GT',
+      thresholdValue: valor,
+      duration: '0s',
+      aggregations: [{ alignmentPeriod: ventana, perSeriesAligner: 'ALIGN_SUM', crossSeriesReducer: 'REDUCE_SUM' }],
+    },
+  }],
+  alertStrategy: { autoClose: '86400s' },
+});
+
+/** Las políticas de alerta (Cloud Monitoring, API v3). */
+export const POLITICAS = {
+  'dinero-sin-cerrar': {
+    displayName: 'Weë · dinero sin cerrar',
+    documentation: {
+      content: 'Un reembolso o una liquidación de Credits falló. Busca el trabajo (creatorJobs con `liquidacionPendiente`) o la operación (creditTransactions) y ciérrala: el Credit Engine es idempotente, repetir el ajuste no cobra ni devuelve dos veces. docs/OBSERVABILITY.md',
+      mimeType: 'text/markdown',
+    },
+    combiner: 'OR',
+    conditions: [{
+      displayName: 'Reembolso o liquidación fallida',
+      conditionMatchedLog: {
+        filter: `resource.type="cloud_run_revision" AND severity>=ERROR AND (${texto('no se pudo reembolsar')} OR ${texto('no se pudo ajustar el trabajo')} OR ${texto('tampoco se pudo anotar la liquidación pendiente')})`,
+      },
+    }],
+    alertStrategy: { notificationRateLimit: { period: '1800s' }, autoClose: '604800s' },
+  },
+  'ia-no-disponible': umbral('Weë · IA no disponible', 'logging.googleapis.com/user/wee_ia_no_disponible', 5, '600s',
+    'Más de 5 peticiones de IA en 10 minutos sin proveedor: un proveedor caído, una clave mal rotada, o el interruptor `aiSettings/global.iaDetenida` encendido. docs/AI-ENGINE.md § Límites.'),
+  'barrido-fallando': umbral('Weë · el barrido no termina', 'logging.googleapis.com/user/wee_barrido_incompleto', 1, '900s',
+    'Dos o más pasadas seguidas de la reconciliación (cada 5 min) sin terminar: el dinero de tareas ya lanzadas no se está cerrando. docs/RUNTIME.md.'),
+  'errores-5xx': umbral('Weë · errores 5xx en las Functions', 'run.googleapis.com/request_count', 10, '600s',
+    'Más de 10 respuestas 5xx en 10 minutos en los servicios de las Functions. Mira los logs del servicio y, si vino de un despliegue, la marcha atrás (docs/DEPLOYMENT.md §5).',
+    ' AND resource.type="cloud_run_revision" AND metric.label.response_code_class="5xx"'),
+  'wee-caido': {
+    displayName: 'Weë · caído (comprobación externa)',
+    documentation: {
+      content: 'La comprobación externa de https://get-wee.web.app/post/… falla: las Functions no responden. La caída de H0 (12:33Z–17:53Z) fue por facturación: mira primero la cuenta de facturación. docs/OBSERVABILITY.md',
+      mimeType: 'text/markdown',
+    },
+    combiner: 'OR',
+    conditions: [{
+      displayName: 'La comprobación de salud falla',
+      conditionThreshold: {
+        /* Por el host, no por check_id: el id de la comprobación lo genera Cloud Monitoring. */
+        filter: 'metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url" AND resource.label.host="get-wee.web.app"',
+        comparison: 'COMPARISON_GT',
+        thresholdValue: 1,
+        duration: '60s',
+        aggregations: [{ alignmentPeriod: '1200s', perSeriesAligner: 'ALIGN_NEXT_OLDER', crossSeriesReducer: 'REDUCE_COUNT_FALSE', groupByFields: ['resource.label.host'] }],
+      },
+    }],
+    alertStrategy: { autoClose: '86400s' },
+  },
+};
+
+/** La comprobación externa: un post que no existe → 404 = las Functions responden; 5xx o nada = caído. */
+export const SALUD = { id: 'salud-get-wee', host: 'get-wee.web.app', ruta: '/post/salud-del-sistema', codigo: 404, periodoMin: 5 };
+
+export const comandos = (dir = '<carpeta-con-las-politicas>') => [
+  '# 0 · Canal de aviso por correo (pon tu correo; queda en tu proyecto, no en el repositorio)',
+  `gcloud beta monitoring channels create --project=${PROYECTO} --display-name="Dueño de Weë" --type=email --channel-labels=email_address=<TU_CORREO>`,
+  `gcloud beta monitoring channels list --project=${PROYECTO} --format="value(name)"   # copia el nombre del canal: projects/${PROYECTO}/notificationChannels/<ID>`,
+  '',
+  '# 1 · Métricas basadas en logs (contadores)',
+  ...METRICAS.map((m) => `gcloud logging metrics create ${m.nombre} --project=${PROYECTO} --description="${m.descripcion}" --log-filter='${m.filtro}'`),
+  '',
+  '# 2 · Comprobación externa de salud (cada 5 min; un 404 significa que las Functions responden)',
+  `gcloud monitoring uptime create ${SALUD.id} --project=${PROYECTO} --resource-type=uptime-url --resource-labels=host=${SALUD.host},project_id=${PROYECTO} --path=${SALUD.ruta} --protocol=https --status-codes=${SALUD.codigo} --period=${SALUD.periodoMin}`,
+  '',
+  `# 3 · Políticas de alerta (los JSON los escribe: node ops/observabilidad/alertas.mjs --json ${dir})`,
+  ...Object.keys(POLITICAS).map((n) => `gcloud alpha monitoring policies create --project=${PROYECTO} --policy-from-file=${dir}/${n}.json --notification-channels=<CANAL>`),
+  '',
+  '# 4 · Presupuesto: además del aviso que ya existe (100 PEN, solo correo), umbrales al 50 %, 90 % y 100 % en la consola de facturación.',
+];
+
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const i = process.argv.indexOf('--json');
+  const dir = i >= 0 ? process.argv[i + 1] : null;
+  if (dir) {
+    fs.mkdirSync(dir, { recursive: true });
+    for (const [n, p] of Object.entries(POLITICAS)) fs.writeFileSync(path.join(dir, `${n}.json`), JSON.stringify(p, null, 2) + '\n');
+  }
+  console.log('# Weë · alertas. LO EJECUTA EL DUEÑO; este script no ejecuta nada en Google Cloud.\n');
+  for (const l of comandos(dir || undefined)) console.log(l);
+}
