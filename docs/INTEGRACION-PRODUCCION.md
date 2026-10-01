@@ -120,7 +120,7 @@ GitHub.
 
 | Archivo | Por qué choca | Resolución ensayada |
 |---|---|---|
-| `functions/package.json` | Los dos lados añaden suites a la cadena de `npm test` | Unión. Hoy son 212 pasos: los 199 de un lado más los 13 del otro (`idempotencia-de-cobro`, `video-asincrono`, `puente-pre-f1d`, `f1d-generacion`, `f1d-cliente`, `filmmaker-modelo`, `productions-runtime`, `filmmaker-espejo`, `filmmaker-servicio`, `filmmaker-reductor`, `filmmaker-ui`, `filmmaker-i18n`, `filmmaker-navegacion`). Se conserva `test:todas` |
+| `functions/package.json` | Los dos lados añaden suites a la cadena de `npm test` | Unión. Hoy son 213 pasos: los 200 de un lado más los 13 del otro (`idempotencia-de-cobro`, `video-asincrono`, `puente-pre-f1d`, `f1d-generacion`, `f1d-cliente`, `filmmaker-modelo`, `productions-runtime`, `filmmaker-espejo`, `filmmaker-servicio`, `filmmaker-reductor`, `filmmaker-ui`, `filmmaker-i18n`, `filmmaker-navegacion`). Se conserva `test:todas` |
 | `functions/test/job-queue.test.mjs` | Cada lado admite su callable nueva en las listas de la regla #63 | Unión de `CALLABLES_DE_CREDITS` y `DE_LA_IDENTIDAD`, más `sinSeguir` |
 | `functions/test/i18n-preferencia-usuario.test.mjs` | Un lado sube un recuento fijo de claves (2682 → 2732); el otro lo cambió por uno dinámico | El dinámico (`claves('pt') === claves('es')`), que cubre los dos |
 

@@ -58,8 +58,23 @@ const despues = enPaquete ? pasosDe(enPaquete.mas[0]) : [];
 check('3) la unión conserva cada suite del Harness y no duplica ninguna',
   antes.length > 0 && antes.every((p) => despues.includes(p)) && new Set(despues).size === despues.length, `${antes.length} → ${despues.length}`);
 const actuales = JSON.parse(leer('functions/package.json')).scripts.test.split(' && ');
-check('3b) y parte de la cadena de HOY: si functions/package.json cambia, hay que regenerar el parche (unir-cadena.mjs)',
-  JSON.stringify(antes) === JSON.stringify(actuales), `${antes.length} en el parche, ${actuales.length} hoy`);
+/* ¿Ya se integró? El merge trae `functions/src/productions`, que hoy solo vive en la rama de producción. */
+const integrada = fs.existsSync(path.resolve(RAIZ, 'functions/src/productions'));
+if (!integrada) {
+  check('3b) y parte de la cadena de HOY: si functions/package.json cambia, hay que regenerar el parche (unir-cadena.mjs)',
+    JSON.stringify(antes) === JSON.stringify(actuales), `${antes.length} en el parche, ${actuales.length} hoy`);
+} else {
+  /* Después del merge, los parches ya están aplicados: lo que se comprueba es que su efecto está, no su punto de partida. */
+  check('3b) ya integrada: la cadena contiene la unión entera del parche', despues.every((p) => actuales.includes(p)),
+    despues.filter((p) => !actuales.includes(p)).join(', ') || `${despues.length} de ${actuales.length}`);
+  const componentes = ['components/creator/CampoQueCrece.tsx', 'components/studio/produccion/ProductionPiezas.tsx',
+    'components/studio/produccion/ProductionSceneCard.tsx', 'components/studio/produccion/ProductionTimelinePreview.tsx'];
+  const guardas = ['filmmaker-servicio', 'productions-callable', 'productions'].map((s) => leer(`functions/test/${s}.emulator.mjs`));
+  check('3c) ya integrada: los rótulos van con TextoEnMayusculas, las guardas de emulador son las estrictas y las cercas llevan el tamaño de b878068',
+    componentes.every((c) => /import TextoEnMayusculas/.test(leer(c)) && !/textTransform/.test(leer(c)))
+    && guardas.every((g) => /if \(!PROY\.startsWith\('demo-'\)\)/.test(g) && !/get-wee/.test(g))
+    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '14\\t0\\tfunctions\/src\/credits\/index\.ts'/.test(leer(`functions/test/${s}.test.mjs`))));
+}
 
 const ESPERADOS = [
   'components/creator/CampoQueCrece.tsx', 'components/studio/produccion/ProductionPiezas.tsx',
