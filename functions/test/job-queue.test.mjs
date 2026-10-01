@@ -403,8 +403,31 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
    * se comprueba el radio de acción: qué se ha tocado de lo cerrado, y por qué.
    */
   const AI_PRICING = 'functions/src/credits/aiPricing.ts';
-  const fueraDelPermiso = tocados.split('\n').map((l) => l.trim()).filter((l) => l && l !== AI_PRICING);
+  /*
+   * Y `credits/index.ts` (los callables, no el motor) salió con el mismo trato
+   * el 2026-09-30, por el escenario #24 de la auditoría H0: `spendCredits`,
+   * abierto al cliente, dejaba pagar 1 Credit por una operación cara. El
+   * arreglo autorizado es un candado de administración en ese callable, y la
+   * afirmación vuelve a cambiar de forma sin perder fuerza: en ese archivo no
+   * se ha QUITADO nada y la única línea de código nueva es el candado, dentro
+   * de `spendCredits`. `creditEngine` sigue congelado igual que antes.
+   */
+  const CALLABLES_DE_CREDITS = 'functions/src/credits/index.ts';
+  const fueraDelPermiso = tocados.split('\n').map((l) => l.trim()).filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS);
   check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y el resto de Credits son los del commit desplegado', fueraDelPermiso.length === 0, fueraDelPermiso.join(' '));
+  {
+    const delCallable = execSync('git diff -U0 c3515b3 -- ' + CALLABLES_DE_CREDITS, { cwd: RAIZ, encoding: 'utf8' });
+    const quitadas = delCallable.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));
+    const codigoNuevo = delCallable.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+      .map((l) => l.slice(1).trim()).filter((l) => l && !/^(\*|\/\*|\/\/)/.test(l));
+    const fuente = leer(CALLABLES_DE_CREDITS);
+    const cuerpoSpend = fuente.slice(fuente.indexOf('export const spendCredits'), fuente.indexOf('export const grantCredits'));
+    check('63k) y en los callables de Credits lo único nuevo es el candado de administración de spendCredits (#24): nada quitado',
+      quitadas.length === 0
+      && (codigoNuevo.length === 0 || (codigoNuevo.length === 1 && codigoNuevo[0] === 'assertAdmin(request.auth as any);'
+        && cuerpoSpend.includes('assertAdmin(request.auth as any);'))),
+      `${quitadas.length} líneas quitadas · código nuevo: ${codigoNuevo.join(' | ') || 'ninguno'}`);
+  }
   const PRECIO = sinComentarios(leer(AI_PRICING));
   const TECHO = /const count = Math\.max\(1, Math\.min\(MAX_PROPUESTAS_POR_PASO, Number\(input\.count \?\? 1\)\)\);/;
   check('63o) y el único que se tocó ya no guarda un máximo de propuestas propio: lo lee de la autoridad compartida',
