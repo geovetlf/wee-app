@@ -60,7 +60,7 @@ const pantallasDe = (leer) => new Set([...pantallas(leer('navigation/MainStackNa
 export const SUSTITUIDAS = {
   'wall.reportOffensive': { por: 'moderation.reasonHate', porque: 'c3515b3 (vivo desde 2026-09-20): Denunciar de verdad con ReportSheet y reportContent, en lugar del aviso del muro' },
   'wall.reportOther': { por: 'moderation.reasonOther', porque: 'c3515b3: motivos de ReportSheet' },
-  'wall.reportPost': { por: 'moderation.report', porque: 'c3515b3: «Denunciar»' },
+  'wall.reportPost': { por: 'moderation.report', porque: 'c3515b3: el botón «Denunciar» de ReportSheet' },
   'wall.reportSent': { por: 'moderation.successTitle', porque: 'c3515b3: «Reporte recibido»' },
   'wall.reportSpam': { por: 'moderation.reasonSpam', porque: 'c3515b3: motivos de ReportSheet' },
   'wall.reportThanks': { por: 'moderation.successBody', porque: 'c3515b3: el agradecimiento tras denunciar' },
