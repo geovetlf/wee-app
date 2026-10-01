@@ -79,6 +79,41 @@ guardia le deniega `functions:secrets:set` y leer valores.
 Nunca pegues una clave en el chat, en un archivo del repo, en un issue ni en la
 línea de comandos.
 
+### En qué orden, y los comandos exactos
+
+`node ops/secretos/rotacion.mjs` imprime el orden y su porqué.
+`node ops/secretos/rotacion.mjs comandos <grupo> <versión nueva>` imprime, para
+ese grupo, los comandos fase a fase con el nombre de cada servicio.
+
+- El script **solo imprime**: no ejecuta nada ni lee ningún valor.
+- Saca quién monta cada secreto del código compilado.
+- `functions/test/rotacion-secretos.test.mjs` comprueba que eso coincide con lo
+  que H0 vio vivo (§2).
+
+| # | Grupo | Por qué en este lugar | Canario |
+|---|---|---|---|
+| 1 | **R2** (Cloudflare, §5) | El nombre del token está en el registro de auditoría y de él se calcula el secret de R2. Solo lo monta `mediacanary`, que nadie usa: valida el procedimiento sin tocar a ninguna persona | `mediacanary` |
+| 2 | **GEMINI** | La más usada (texto, búsqueda, visión, imagen, avatar). Su gasto va a la cuenta de facturación. Verificarla cuesta un mensaje | `brainchat` |
+| 3 | **ARK** | La más cara por llamada (vídeo). También la monta el barrido, que solo consulta | `generatevideo` |
+| 4 | **BFL** | Imágenes con gasto | `creatorrun` |
+| 5 | **DEEPSEEK** | La menos usada. Es la que gestiona Firebase: aquí está la trampa de `secrets:set` | `brainchat` |
+
+- **Una a una.** Si algo falla, se sabe qué fue. Las cuatro de IA las montan
+  los mismos 9 servicios: cada rotación crea 9 revisiones nuevas, todas con la
+  misma imagen.
+- **No se rotan** ELEVENLABS, ANTHROPIC, OPENAI, MINIMAX ni
+  SEEDANCE_CALLBACK_TOKEN: no estaban en el portátil (H0) y solo viven en
+  Secret Manager.
+- **Después de cada rotación, `ops/produccion.json`.** Las revisiones de antes
+  montan la versión vieja: tras revocarla, volver a ellas deja la función sin
+  proveedor, y tras deshabilitarla, sin arrancar. El mapa se actualiza en un PR
+  con las revisiones nuevas, para que `marcha-atras --al-mapa` vuelva a una
+  posterior.
+- **Por qué `gcloud run services update`.** Google documenta que una función
+  gen2 se puede editar con la API de Cloud Run. Además, no reconstruye el código
+  y deja intactas las cuatro funciones cuyo código no está en `main` y las de
+  los zips Z10 y Z11, que no se pueden reconstruir.
+
 > **La trampa de `firebase functions:secrets:set`.** Con un secreto que gestiona
 > Firebase (hoy, DEEPSEEK), al terminar pregunta *«Do you want to re-deploy the
 > functions and destroy the stale version…?»* y la respuesta por defecto es
