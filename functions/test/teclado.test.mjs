@@ -290,19 +290,40 @@ console.log('\n─── E. La causa de fondo sigue siendo la que se documentó 
  * funcionar en Android y esta pieza sobraría. Mientras siga encendido, la regla
  * de arriba es la correcta.
  */
-const gradle = leer('android/gradle.properties');
-check(
-  'Android sigue dibujando de borde a borde',
-  /^edgeToEdgeEnabled=true$/m.test(gradle),
-  'si esto cambiara, habría que revisar EspacioDeEscritura'
-);
+/*
+ * `android/` lo genera `expo prebuild` y no se versiona (.gitignore): en una
+ * copia limpia —la de CI— no existe. Entonces se mira la fuente de la que sale,
+ * app.json, con la misma regla que aplica Expo 54: borde a borde salvo
+ * `android.edgeToEdgeEnabled: false` (`withEdgeToEdge` de prebuild-config), y
+ * `softwareKeyboardLayoutMode: 'resize'` se escribe como adjustResize.
+ */
+if (fs.existsSync(path.resolve(RAIZ, 'android/gradle.properties'))) {
+  const gradle = leer('android/gradle.properties');
+  check(
+    'Android sigue dibujando de borde a borde',
+    /^edgeToEdgeEnabled=true$/m.test(gradle),
+    'si esto cambiara, habría que revisar EspacioDeEscritura'
+  );
 
-const manifiesto = leer('android/app/src/main/AndroidManifest.xml');
-check(
-  'el manifiesto sigue pidiendo adjustResize (inerte, pero declarado)',
-  /windowSoftInputMode="adjustResize"/.test(manifiesto),
-  'es el valor que escribe softwareKeyboardLayoutMode de app.json'
-);
+  const manifiesto = leer('android/app/src/main/AndroidManifest.xml');
+  check(
+    'el manifiesto sigue pidiendo adjustResize (inerte, pero declarado)',
+    /windowSoftInputMode="adjustResize"/.test(manifiesto),
+    'es el valor que escribe softwareKeyboardLayoutMode de app.json'
+  );
+} else {
+  const android = (JSON.parse(leer('app.json')).expo || {}).android || {};
+  check(
+    'Android sigue dibujando de borde a borde (app.json; android/ no está generado)',
+    android.edgeToEdgeEnabled !== false,
+    'si esto cambiara, habría que revisar EspacioDeEscritura'
+  );
+  check(
+    'app.json sigue pidiendo adjustResize (inerte, pero declarado)',
+    android.softwareKeyboardLayoutMode === 'resize',
+    'es el valor que prebuild escribe en el manifiesto como windowSoftInputMode'
+  );
+}
 
 console.log(
   '\n' + (failures === 0 ? 'Todo en orden.' : `${failures} comprobacion(es) fallaron.`)
