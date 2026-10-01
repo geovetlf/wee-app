@@ -11,7 +11,8 @@
  *  · `_cadena.mjs` lee la cadena de `npm test`: toda suite `*.test.mjs` tiene
  *    que estar en ella (una suite fuera de la cadena no la corre nadie);
  *  · `_emuladores.mjs` lee la cabecera de cada `*.emulator.mjs`: todas tienen
- *    que documentar su lanzamiento con un proyecto demo-* y sin Functions;
+ *    que documentar su lanzamiento con un proyecto demo-*, y el emulador de
+ *    Functions solo se admite sin secretos locales;
  *  · `scripts/ci-sin-secretos.mjs` detecta claves, credenciales y proyectos
  *    reales en el entorno, y nunca repite un valor.
  */
@@ -87,12 +88,19 @@ check('17) con --sin-repetir no hay segunda oportunidad', !estricta[0].ok && lla
 
 const { comandoDeSuite } = await importar('functions/test/_emuladores.mjs');
 const emu = fs.readdirSync(here).filter((f) => f.endsWith('.emulator.mjs'));
-const sinCabecera = emu.filter((f) => comandoDeSuite(fs.readFileSync(path.join(here, f), 'utf8')).error);
-check('18) cada suite de emulador documenta cómo se lanza, con proyecto demo-* y sin Functions',
+const sinCabecera = emu.filter((f) => comandoDeSuite(fs.readFileSync(path.join(here, f), 'utf8'), { sinSecretosLocales: true }).error);
+check('18) cada suite de emulador documenta cómo se lanza, con proyecto demo-* (y Functions, solo sin secretos locales)',
   emu.length >= 14 && sinCabecera.length === 0, sinCabecera.join(', ') || `${emu.length} suites`);
 check('19) el corredor se niega a un proyecto real', /demo-\*/.test(comandoDeSuite('firebase emulators:exec --only firestore --project get-wee "node x.mjs"').error || ''));
-check('20) …y a una suite que pida el emulador de Functions (arrastraría secretos)',
-  /Auth, Firestore y Storage/.test(comandoDeSuite('firebase emulators:exec --only functions,firestore --project demo-x "node x.mjs"').error || ''));
+check('20) …y a una suite que pida el emulador de Functions si hay secretos locales (los arrastraría)',
+  /Functions, solo sin secretos locales/.test(comandoDeSuite('firebase emulators:exec --only functions,firestore --project demo-x "node x.mjs"').error || ''));
+const conFunciones = comandoDeSuite('firebase emulators:exec --only functions,firestore --project demo-x "node x.mjs"', { sinSecretosLocales: true });
+check('20b) sin secretos locales, sí: el emulador de Functions de un proyecto demo-*, y nada más que pida',
+  !conFunciones.error && conFunciones.solo.join(',') === 'functions,firestore'
+  && /demo-\*/.test(comandoDeSuite('firebase emulators:exec --only functions --project get-wee "node x.mjs"', { sinSecretosLocales: true }).error || ''));
+const corredor = fs.readFileSync(path.join(here, '_emuladores.mjs'), 'utf8');
+check('20c) el corredor lo decide con motivosParaNoArrancar (el criterio de npm run functions:emulator) y deja .secret.local vacío antes de emular Functions',
+  /sinSecretosLocales = motivosParaNoArrancar\(/.test(corredor) && /cmd\.solo\.includes\('functions'\) && !fs\.existsSync\(rutaSecretos\)\) fs\.writeFileSync\(rutaSecretos, secretLocalVacio\(\)\)/.test(corredor));
 
 const { motivos } = await importar('scripts/ci-sin-secretos.mjs');
 const limpio = motivos({ PATH: '/usr/bin', GCLOUD_PROJECT: 'demo-wee' }, ['ARK_API_KEY']);

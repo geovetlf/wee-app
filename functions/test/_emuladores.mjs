@@ -7,9 +7,13 @@
  * en una sesión de emuladores nueva, como se escribió, para que el estado de
  * una no contamine a la siguiente.
  *
- * Se niega a lanzar una suite cuyo proyecto no sea `demo-*` o que pida el
- * emulador de Functions (que arrastraría secretos): solo Auth, Firestore y
- * Storage. No llama a nada real.
+ * Se niega a lanzar una suite cuyo proyecto no sea `demo-*`. El emulador de
+ * Functions solo lo admite SIN SECRETOS LOCALES: carga `functions/.env.local`
+ * y `functions/.secret.local`, y con claves de verdad una suite podría llamar
+ * a un proveedor real. Lo decide `motivosParaNoArrancar` (el mismo criterio de
+ * `npm run functions:emulator`), y entonces `.secret.local` va vacío y el
+ * motor de IA cae en `mock`. En CI nunca hay secretos locales. No llama a
+ * nada real.
  *
  *   node functions/test/_emuladores.mjs              # las 14
  *   node functions/test/_emuladores.mjs --solo rules # solo las que contienen «rules»
@@ -27,7 +31,7 @@ const RAIZ = path.resolve(here, '../../');
 const PERMITIDOS = new Set(['auth', 'firestore', 'storage']);
 
 /** El comando que documenta la cabecera de una suite, o el motivo por el que no se lanza. */
-export const comandoDeSuite = (fuente) => {
+export const comandoDeSuite = (fuente, { sinSecretosLocales = false } = {}) => {
   const s = String(fuente).replace(/\\\r?\n\s*\*?\s*/g, ' ');
   const m = s.match(/emulators:exec\s+--only\s+(\S+)\s+--project\s+(\S+)\s+["']node\s+([^"']+)["']/);
   if (!m) return { error: 'la cabecera no documenta un `firebase emulators:exec --only … --project … "node …"`' };
@@ -35,8 +39,8 @@ export const comandoDeSuite = (fuente) => {
   const proyecto = m[2];
   const nodo = m[3].trim().split(/\s+/);
   if (!proyecto.startsWith('demo-')) return { error: `proyecto ${proyecto}: solo se lanzan proyectos demo-*` };
-  const otros = solo.filter((e) => !PERMITIDOS.has(e));
-  if (otros.length) return { error: `pide ${otros.join(',')}: solo Auth, Firestore y Storage` };
+  const otros = solo.filter((e) => !PERMITIDOS.has(e) && !(e === 'functions' && sinSecretosLocales));
+  if (otros.length) return { error: `pide ${otros.join(',')}: solo Auth, Firestore y Storage${otros.includes('functions') ? '; Functions, solo sin secretos locales' : ''}` };
   return { solo, proyecto, nodo };
 };
 
@@ -70,18 +74,26 @@ const principal = async () => {
   const limiteMs = Number(valor('--limite-s') || 300) * 1000;
 
   const env = { ...process.env };
-  const { buscarJava21 } = await import(pathToFileURL(path.join(RAIZ, 'scripts/emulators.mjs')).href);
+  const { buscarJava21, motivosParaNoArrancar, secretLocalVacio } = await import(pathToFileURL(path.join(RAIZ, 'scripts/emulators.mjs')).href);
   const java = buscarJava21(process.platform === 'win32');
   if (!java.listo) { console.error('✘ Hace falta Java 21 o superior (PATH, JAVA21_HOME o %LOCALAPPDATA%\\wee-tools\\jdk-21*).'); process.exit(2); }
   if (java.home) { env.PATH = `${path.join(java.home, 'bin')}${path.delimiter}${env.PATH || ''}`; env.JAVA_HOME = java.home; }
   /* Ni credenciales ni proyecto real heredados del portátil o del runner. */
   for (const k of ['GOOGLE_APPLICATION_CREDENTIALS', 'GCLOUD_PROJECT', 'GOOGLE_CLOUD_PROJECT', 'FIREBASE_PROJECT']) delete env[k];
+  /* ¿Se puede emular Functions? Solo sin claves locales (los NOMBRES se miran; los valores no salen de aquí). */
+  const leerSiExiste = (rel) => { try { return fs.readFileSync(path.join(RAIZ, rel), 'utf8'); } catch { return ''; } };
+  const sinSecretosLocales = motivosParaNoArrancar({
+    proyecto: 'demo-suites', env, envLocal: leerSiExiste('functions/.env.local'), secretLocal: leerSiExiste('functions/.secret.local'),
+  }).length === 0;
 
   const lanzador = firebaseTools();
   const resultados = [];
   for (const suite of suites) {
-    const cmd = comandoDeSuite(fs.readFileSync(path.join(here, suite), 'utf8'));
+    const cmd = comandoDeSuite(fs.readFileSync(path.join(here, suite), 'utf8'), { sinSecretosLocales });
     if (cmd.error) { resultados.push({ suite, ok: false, codigo: null, ms: 0, salida: cmd.error }); console.log(`✘ ${suite} — ${cmd.error}`); continue; }
+    /* Con Functions, los secretos del emulador van declarados y VACÍOS: nunca pregunta a Secret Manager. */
+    const rutaSecretos = path.join(RAIZ, 'functions/.secret.local');
+    if (cmd.solo.includes('functions') && !fs.existsSync(rutaSecretos)) fs.writeFileSync(rutaSecretos, secretLocalVacio());
     const r = await correrUna(lanzador, suite, cmd, env, limiteMs);
     resultados.push(r);
     console.log(`${r.ok ? '✔' : '✘'} ${suite} [${cmd.solo.join(',')} · ${cmd.proyecto}] (${(r.ms / 1000).toFixed(1)} s)`);
