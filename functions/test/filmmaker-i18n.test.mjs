@@ -5,7 +5,8 @@
  * interfaz y una frase por cada código que dicen F1-A y F1-B. Aquí se demuestra
  * que está entero en todos los idiomas y que ningún texto se escapó al código.
  *
- *   A · Existe y está registrado en los once.
+ *   A · Existe y está registrado en todos los idiomas de Weë (los once de F1-C y, desde la integración en main,
+ *       japonés, turco, sueco e hindi).
  *   B · Las mismas claves, con sus huecos, y el plural de cada idioma.
  *   C · Cada código del dominio y de la persistencia tiene su frase.
  *   D · Cada clave que pide el código existe.
@@ -23,7 +24,8 @@ const check = (name, cond, extra = '') => {
   if (!cond) failures++;
 };
 
-const IDIOMAS = ['es', 'en', 'de', 'fr', 'it', 'pt', 'pt-PT', 'ru', 'ko', 'zh', 'zh-TW'];
+const IDIOMAS = ['es', 'en', 'de', 'fr', 'it', 'pt', 'pt-PT', 'ru', 'ko', 'zh', 'zh-TW', 'ja', 'tr', 'sv', 'hi'];
+const TODOS = `los ${IDIOMAS.length}`;
 const existe = (p) => fs.existsSync(path.resolve(RAIZ, p));
 /** Las claves y los valores de un archivo de textos, como los leen las demás suites de i18n: una por línea, comillas simples. */
 const textos = (l) => {
@@ -33,20 +35,20 @@ const textos = (l) => {
 const huecos = (v) => [...(v ?? '').matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]).sort().join(',');
 
 /* ═══ A · EN LOS ONCE ══════════════════════════════════════════════════════ */
-console.log('\n── A · El módulo, en los once diccionarios y registrado ──');
+console.log(`\n── A · El módulo, en ${TODOS} diccionarios y registrado ──`);
 const sinArchivo = IDIOMAS.filter((l) => !existe(`i18n/textos/${l}/filmmaker.ts`));
-check('A1) hay un `filmmaker.ts` en cada uno de los once idiomas', sinArchivo.length === 0, sinArchivo.join(', ') || 'los once');
+check(`A1) hay un \`filmmaker.ts\` en cada uno de ${TODOS} idiomas`, sinArchivo.length === 0, sinArchivo.join(', ') || TODOS);
 const sinRegistro = IDIOMAS.filter((l) => {
   const s = leer(`i18n/textos/${l}/index.ts`);
   return !/^import \{ filmmaker \} from '\.\/filmmaker';$/m.test(s) || !/^ {2}filmmaker,$/m.test(s);
 });
-check('A2) y cada índice lo importa y lo entrega', sinRegistro.length === 0, sinRegistro.join(', ') || 'los once');
+check('A2) y cada índice lo importa y lo entrega', sinRegistro.length === 0, sinRegistro.join(', ') || TODOS);
 const sinTipo = IDIOMAS.filter((l) => l !== 'es' && !/export const filmmaker: (ConPlurales<)?typeof import\('\.\.\/es\/filmmaker'\)\.filmmaker>? = \{/.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
 check('A3) cada idioma se declara con el tipo del español: si falta una clave, no compila', sinTipo.length === 0, sinTipo.join(', ') || 'los diez');
 const cargar = crearCargador();
 const dicc = cargar('i18n/diccionarios.ts').DICCIONARIOS;
 const enTiempoDeEjecucion = IDIOMAS.filter((l) => !dicc[l === 'pt-PT' ? 'pt-PT' : l]?.filmmaker?.sectionName);
-check('A4) y al cargar los diccionarios de verdad, está en todos', enTiempoDeEjecucion.length === 0, enTiempoDeEjecucion.join(', ') || 'los once');
+check('A4) y al cargar los diccionarios de verdad, está en todos', enTiempoDeEjecucion.length === 0, enTiempoDeEjecucion.join(', ') || TODOS);
 
 /* ═══ B · LAS MISMAS CLAVES ════════════════════════════════════════════════ */
 console.log('\n── B · Las mismas claves, los mismos huecos y el plural de cada idioma ──');
@@ -68,7 +70,7 @@ check('B3) ningún `_one` escribe un número a pelo: en francés y portugués el
 const sinPluralesRusos = conPlural.filter((k) => !textos('ru').has(`${k}_few`) || !textos('ru').has(`${k}_many`));
 check('B4) el ruso tiene sus cuatro formas en cada plural', sinPluralesRusos.length === 0 && /ConPlurales<typeof import\('\.\.\/es\/filmmaker'\)\.filmmaker>/.test(leer('i18n/textos/ru/filmmaker.ts')),
   sinPluralesRusos.join(', ') || 'one, few, many y other');
-for (const l of ['ko', 'zh', 'zh-TW']) {
+for (const l of ['ko', 'zh', 'zh-TW', 'ja']) {
   const T = textos(l);
   const distintos = conPlural.filter((k) => T.get(`${k}_one`) !== T.get(`${k}_other`));
   check(`B5) ${l}: una sola forma de plural, así que _one y _other dicen lo mismo`, distintos.length === 0, distintos.join(', '));
@@ -94,7 +96,7 @@ check('C1) los códigos son los de F1-A y F1-B, contados de su fuente: 22 de val
 const sinClave = CODIGOS.filter((c) => !claveDelMensaje(c));
 check('C2) cada `messageKey` se lee como una clave plana de `filmmaker`', sinClave.length === 0, sinClave.join(', '));
 const sinFrase = IDIOMAS.flatMap((l) => CODIGOS.filter((c) => !textos(l).has(String(claveDelMensaje(c)).replace('filmmaker.', ''))).map((c) => `${l}:${c}`));
-check('C3) y cada una tiene su frase en los once idiomas', sinFrase.length === 0, sinFrase.slice(0, 8).join(', '));
+check(`C3) y cada una tiene su frase en ${TODOS} idiomas`, sinFrase.length === 0, sinFrase.slice(0, 8).join(', '));
 check('C4) la clave plana nunca acaba como un plural inventado (`…_many`)', CODIGOS.every((c) => !/_(one|other|few|many|zero|two)$/.test(String(claveDelMensaje(c)))));
 check('C5) lo que no es de Filmmaker no se lee como si lo fuera', claveDelMensaje('moderation.errorOffline') === null && claveDelMensaje('filmmaker.persistence.Nada') === null);
 
@@ -144,8 +146,8 @@ check('F1) «Weë Studio» sigue siendo «Weë Studio» en todos los idiomas', s
 const prohibidas = IDIOMAS.flatMap((l) => [...textos(l)].filter(([, v]) => /\bReels?\b|\bWee\b(?! ?Talk)|(?<![\p{L}])[Cc]r[ée]ditos?(?![\p{L}])|Кредит|크레딧/u.test(v)).map(([k]) => `${l}:${k}`));
 check('F2) ni «Reels», ni «Wee» sin diéresis, ni los Credits traducidos', prohibidas.length === 0, prohibidas.join(', '));
 const nombre = IDIOMAS.filter((l) => textos(l).get('sectionName') !== new Map([...leer(`i18n/textos/${l}/studio.ts`).matchAll(/^ {2}([A-Za-z][A-Za-z0-9_]*): '((?:[^'\\]|\\.)*)',$/gm)].map((m) => [m[1], m[2]])).get('xpMultiScene'));
-check('F3) «Varias escenas» se llama igual que la experiencia del Studio en cada idioma', nombre.length === 0, nombre.join(', ') || 'los once');
+check('F3) «Varias escenas» se llama igual que la experiencia del Studio en cada idioma', nombre.length === 0, nombre.join(', ') || TODOS);
 check('F4) esta suite está en la cadena de `npm test`', /filmmaker-i18n\.test\.mjs/.test(leer('functions/package.json')));
 
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\n✔ Filmmaker F1-C: «Varias escenas» en los once diccionarios (${n} comprobaciones)`);
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\n✔ Filmmaker F1-C: «Varias escenas» en ${TODOS} diccionarios (${n} comprobaciones)`);
 process.exit(failures ? 1 : 0);
