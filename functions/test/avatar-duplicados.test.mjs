@@ -92,6 +92,13 @@ generar = async () => { throw new Error('el proveedor no respondió'); };
 const r7 = await pedir({ ...SEL, requestId: 'avatar_a7' });
 check('9) CONTROL: un fallo de una operación NUEVA se reembolsa una vez', !r7.ok && c.genera === 1 && c.reembolsa === 1 && c.completa === 0, JSON.stringify(c));
 
+/* 6 · Lo que llega al cliente: códigos, nunca frases sin traducir ni detalles del proveedor (i18n, FASE 11). */
+const codigo = (r) => !r.ok && /^[a-z_]+$/.test(String(r.e && r.e.message));
+check('10) los errores de esta puerta llevan un CÓDIGO, no una frase (la pantalla pone su texto traducido)',
+  codigo(r2) && codigo(r4) && codigo(r5) && codigo(r7), [r2, r4, r5, r7].map((r) => r.e && r.e.message).join(' | '));
+check('11) el fallo del proveedor no viaja al cliente: solo «generation_failed»',
+  r7.e.message === 'generation_failed' && !/proveedor no respondió/.test(JSON.stringify({ m: r7.e.message, d: r7.e.details })));
+
 Object.assign(motor, originales);
 vertexMod.generateAvatarWithImagen = originales.gen;
 vertexMod.uploadImageToStorage = originales.subir;

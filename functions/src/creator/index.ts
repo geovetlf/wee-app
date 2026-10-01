@@ -89,20 +89,34 @@ const now = () => Timestamp.now();
  */
 const RECLAMO_VIGENTE_MS = 60_000;
 
-/** Reclama un trabajo `planned`. 'hecho' si otra llamada ya lo terminó; DUPLICATE_REQUEST si alguien lo tiene. */
-const reclamarTrabajo = (ref: DocumentReference, runId: string, ahora: number): Promise<'reclamado' | 'hecho'> =>
-  db().runTransaction(async (tx) => {
+/**
+ * Reclama un trabajo `planned`. 'hecho' si otra llamada ya lo terminó; DUPLICATE_REQUEST si alguien lo tiene.
+ *
+ * Devuelve el trabajo tal como se leyó DENTRO del reclamo: si entre la primera
+ * lectura y el reclamo cambió el presupuesto (la persona eligió otra calidad y
+ * tocó «Crear» enseguida), se reserva y se ejecuta lo vigente, no lo de antes.
+ */
+type Reclamo = { estado: 'hecho' } | { estado: 'reclamado'; trabajo: Partial<CreatorJob> };
+const reclamarTrabajo = (ref: DocumentReference, runId: string, ahora: number): Promise<Reclamo> =>
+  db().runTransaction(async (tx): Promise<Reclamo> => {
     const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
-    if (actual.status === 'done') return 'hecho';
+    if (actual.status === 'done') return { estado: 'hecho' };
     if (actual.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
-    if (actual.status !== 'planned') throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
+    if (actual.status !== 'planned' || !actual.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
     /* Un reclamo viejo sin pasar a `running` es de un proceso que murió antes de reservar: se retoma. */
     if (actual.runId && typeof actual.claimedAt === 'number' && ahora - actual.claimedAt < RECLAMO_VIGENTE_MS) {
       throw new EngineError('DUPLICATE_REQUEST');
     }
     tx.update(ref, { runId, claimedAt: ahora });
-    return 'reclamado';
+    return { estado: 'reclamado', trabajo: actual };
   });
+
+/** Un trabajo que trabaja sobre una foto no arranca sin ella. */
+const exigirFotoSiHaceFalta = (job: CreatorJob): void => {
+  if (needsInputImage(job.steps) && !job.inputImageUrl) {
+    throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
+  }
+};
 
 /** Con el cupo y la reserva hechos: `planned → running`, solo si el reclamo sigue siendo de esta llamada. */
 const arrancarTrabajo = (ref: DocumentReference, runId: string, deadlineAt: number): Promise<void> =>
@@ -515,7 +529,7 @@ export const creatorRun = onCall(
       const ref = jobs().doc(jobId);
       const snap = await ref.get();
       if (!snap.exists) throw new EngineError('INVALID_REQUEST', 'No encontramos este trabajo.');
-      const job = snap.data() as CreatorJob;
+      let job = snap.data() as CreatorJob;
       if (job.userId !== uid) throw new EngineError('UNAUTHORIZED', 'Este trabajo no es tuyo.');
       /*
        * «EN MARCHA» Y «ABANDONADO» SE VEN IGUAL Y SE TRATAN AL REVÉS.
@@ -543,16 +557,19 @@ export const creatorRun = onCall(
       if (job.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
       if (job.status === 'done') return { jobId, status: 'done' };
       if (job.status !== 'planned' || !job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
-      if (needsInputImage(job.steps) && !job.inputImageUrl) {
-        throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
-      }
+      exigirFotoSiHaceFalta(job);
 
       /* Reclamar ANTES de gastar nada: solo una llamada arranca el trabajo (ver `reclamarTrabajo`). */
       const runId = randomUUID();
-      if ((await reclamarTrabajo(ref, runId, empezado)) === 'hecho') return { jobId, status: 'done' };
+      const reclamo = await reclamarTrabajo(ref, runId, empezado);
+      if (reclamo.estado === 'hecho') return { jobId, status: 'done' };
+      /* Desde aquí manda el trabajo leído DENTRO del reclamo (presupuesto, calidad y pasos vigentes). */
+      job = { ...job, ...reclamo.trabajo } as CreatorJob;
+      if (!job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
 
       const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
       try {
+        exigirFotoSiHaceFalta(job);
         // Límites de uso por persona (antes de cobrar y de llamar a la IA)
         const { settings } = await loadConfig();
         await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);

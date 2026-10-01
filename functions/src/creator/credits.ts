@@ -291,7 +291,8 @@ export async function settleCredits(userId: string, jobId: string, held: number,
 
 const anotarLiquidacionPendiente = async (jobId: string, held: number, used: number, error: unknown): Promise<void> => {
   try {
-    await getFirestore().collection('creatorJobs').doc(jobId).set({
+    /* `update`, no `set`: si el trabajo ya no existe no se crea un documento fantasma; el fallo queda en el log. */
+    await getFirestore().collection('creatorJobs').doc(jobId).update({
       liquidacionPendiente: {
         accion: used > 0 ? 'completar' : 'reembolsar',
         retenido: held,
@@ -299,7 +300,7 @@ const anotarLiquidacionPendiente = async (jobId: string, held: number, used: num
         motivo: (error instanceof Error ? error.message : String(error)).slice(0, 300),
         at: Timestamp.now(),
       },
-    }, { merge: true });
+    });
   } catch (fallo) {
     console.error(`Credit Engine: tampoco se pudo anotar la liquidación pendiente del trabajo ${jobId}:`, fallo);
   }

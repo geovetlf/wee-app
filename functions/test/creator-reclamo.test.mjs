@@ -47,9 +47,12 @@ const ref = (p) => ({
   update: async (d) => aplicar(p, d),
 });
 let cola = Promise.resolve();
+/* Lo que pasa justo antes de la PRÓXIMA transacción (una vez): sirve para cambiar el trabajo entre la primera lectura y el reclamo. */
+let antesDeLaTransaccion = null;
 const baseFalsa = {
   collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'nuevo'}`) }),
   runTransaction: (fn) => {
+    if (antesDeLaTransaccion) { const h = antesDeLaTransaccion; antesDeLaTransaccion = null; h(); }
     const turno = cola.then(() => fn({
       get: async (r) => r.get(),
       update: (r, d) => aplicar(r.path, d),
@@ -76,7 +79,9 @@ let eventos = [];
 let respuestaDeReserva = () => ({ duplicate: false, status: 'AUTHORIZED', amount: 12 });
 configMod.loadConfig = async () => ({ settings: { limits: {} } });
 limitesMod.limiter.reserve = async () => { eventos.push('cupo'); };
-creditosMod.holdCredits = async (userId, jobId) => {
+const importesReservados = [];
+creditosMod.holdCredits = async (userId, jobId, plan, importe) => {
+  importesReservados.push(importe);
   eventos.push('reserva');
   /* Lo que el Credit Engine hace con el mismo requestId: la segunda vez contesta duplicate. */
   await new Promise((r) => setTimeout(r, 5));
@@ -149,9 +154,21 @@ reiniciar('huerfano', { runId: 'proceso-muerto', claimedAt: Date.now() - 120_000
 const rg = await resultado(correr('huerfano'));
 check('15) uno de hace dos minutos sin pasar a `running` es de un proceso muerto: se retoma', rg.ok && rg.v.status === 'done');
 
+/* ── D2. El presupuesto cambió entre la primera lectura y el reclamo ─────── */
+reiniciar('cambiado');
+importesReservados.length = 0;
+antesDeLaTransaccion = () => {
+  /* La persona eligió «Alta calidad» (creatorQuote) y tocó «Crear» antes de que la primera lectura caducara. */
+  docs.set('creatorJobs/cambiado', { ...docs.get('creatorJobs/cambiado'), creditsEstimated: 20, quality: 'high' });
+};
+const rc2 = await resultado(correr('cambiado'));
+check('16) si el presupuesto cambió justo antes del reclamo, se reserva el VIGENTE (20), no el leído antes (12)',
+  rc2.ok && importesReservados.join(',') === '20', importesReservados.join(','));
+check('17) …y se liquida por ese mismo importe', eventos.filter((e) => e.startsWith('liquida')).join(',') === 'liquida:20:20', eventos.join(','));
+
 /* ── E. El texto: holdCredits ya no tira la respuesta del Credit Engine ─── */
 const fuente = leer('functions/src/creator/credits.ts');
-check('16) holdCredits devuelve el `duplicate` del Credit Engine en vez de tirarlo',
+check('18) holdCredits devuelve el `duplicate` del Credit Engine en vez de tirarlo',
   /Promise<ReservaDeTrabajo>/.test(fuente) && /return \{ duplicate: reserva\.duplicate, status: reserva\.status, amount: reserva\.amount \}/.test(fuente));
 
 /* ── Limpieza ───────────────────────────────────────────────────────────── */

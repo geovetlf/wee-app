@@ -35,9 +35,14 @@ import {
  */
 const requestIdFrom = (value: unknown): string => {
   if (typeof value === 'string' && /^[A-Za-z0-9_.:-]{4,160}$/.test(value)) return value;
-  throw new HttpsError('invalid-argument', 'Falta el identificador de la operación.', { reason: 'request_id_required' });
+  throw new HttpsError('invalid-argument', 'request_id_required', { reason: 'request_id_required' });
 };
 
+/*
+ * Los errores de esta puerta llevan CÓDIGOS, no frases: la pantalla del avatar
+ * muestra su propio texto traducido (i18n), y una frase del servidor sería un
+ * texto sin traducir —o, peor, el detalle interno de un proveedor— en la red.
+ */
 async function withCredits<T extends { imageUrl: string }>(userId: string, service: CreditService, requestId: string, reason: string, work: () => Promise<T>): Promise<T> {
   /*
    * El interruptor de la IA (H0 #19). El avatar es la única puerta que llama a su
@@ -45,7 +50,7 @@ async function withCredits<T extends { imageUrl: string }>(userId: string, servi
    * cobrar: detenida, no se reserva nada y no se genera nada.
    */
   if ((await loadConfig()).settings.iaDetenida === true) {
-    throw new HttpsError('unavailable', 'Ahora mismo no podemos crear esto. Inténtalo más tarde.', { reason: 'temporarily_unavailable' });
+    throw new HttpsError('unavailable', 'temporarily_unavailable', { reason: 'temporarily_unavailable' });
   }
   let authorized;
   try {
@@ -72,9 +77,9 @@ async function withCredits<T extends { imageUrl: string }>(userId: string, servi
       const previous = await creditEngine.getCreditHistory(userId, 200);
       const stored = previous.find((t) => t.id === authorized.transactionId)?.meta?.imageUrl;
       if (typeof stored === 'string' && stored) return { imageUrl: stored } as T;
-      throw new HttpsError('already-exists', 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.', { reason: 'result_not_available' });
+      throw new HttpsError('already-exists', 'result_not_available', { reason: 'result_not_available' });
     }
-    throw new HttpsError('already-exists', 'Esa creación ya está en marcha.', { reason: 'in_progress' });
+    throw new HttpsError('already-exists', 'in_progress', { reason: 'in_progress' });
   }
   try {
     const result = await work();
@@ -157,7 +162,8 @@ export const generateAvatarWithGemini = onCall(
         return { imageUrl: publicUrl };
       } catch (error: any) {
         console.error('Avatar generation failed:', error);
-        throw new HttpsError('internal', `Avatar generation failed: ${error.message}`);
+        /* El detalle del proveedor se queda en el log de arriba: al cliente solo le llega un código. */
+        throw new HttpsError('internal', 'generation_failed', { reason: 'generation_failed' });
       }
     });
   }
@@ -246,7 +252,8 @@ export const avatarReplacement = onCall(
       return { imageUrl: publicUrl };
     } catch (error: any) {
       console.error('Avatar replacement failed:', error);
-      throw new HttpsError('internal', `Avatar replacement failed: ${error.message}`);
+      /* El detalle del proveedor se queda en el log: al cliente solo le llega un código. */
+      throw new HttpsError('internal', 'replacement_failed', { reason: 'replacement_failed' });
     }
     });
   }

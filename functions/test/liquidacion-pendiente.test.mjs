@@ -31,9 +31,16 @@ let escrituraFalla = false;
 const baseFalsa = {
   collection: (c) => ({
     doc: (id) => ({
+      /* Como Firestore: `set` con merge CREA el documento si no existe… */
       set: async (d) => {
         if (escrituraFalla) throw new Error('Firestore tampoco responde');
         docs.set(`${c}/${id}`, { ...(docs.get(`${c}/${id}`) || {}), ...d });
+      },
+      /* …y `update` falla si no existe (no crea fantasmas). */
+      update: async (d) => {
+        if (escrituraFalla) throw new Error('Firestore tampoco responde');
+        if (!docs.has(`${c}/${id}`)) throw new Error('5 NOT_FOUND: No document to update');
+        docs.set(`${c}/${id}`, { ...docs.get(`${c}/${id}`), ...d });
       },
     }),
   }),
@@ -47,7 +54,15 @@ const { settleCredits } = lib('creator/credits.js');
 const orig = { completa: motor.completeCredits, reembolsa: motor.refundCredits, liquida: libro.settle };
 
 let c = {};
-const reiniciar = () => { c = { completa: 0, reembolsa: 0, libro: 0 }; docs.clear(); escrituraFalla = false; };
+/* Los trabajos existen (los crea creatorChat antes de que nadie liquide). */
+const TRABAJOS = ['job1', 'job2', 'job3', 'job4', 'job5'];
+const reiniciar = () => {
+  c = { completa: 0, reembolsa: 0, libro: 0 };
+  docs.clear();
+  for (const id of TRABAJOS) docs.set(`creatorJobs/${id}`, { status: 'running' });
+  escrituraFalla = false;
+};
+const pendienteDe = (id) => (docs.get(`creatorJobs/${id}`) || {}).liquidacionPendiente;
 libro.settle = async () => { c.libro++; return { credited: 0 }; };
 const intentar = (p) => p.then(() => ({ ok: true }), (e) => ({ ok: false, e }));
 
@@ -56,7 +71,7 @@ reiniciar();
 motor.completeCredits = async () => { c.completa++; return { status: 'COMPLETED', refunded: 0, balanceAfter: 0 }; };
 const r1 = await intentar(settleCredits('u1', 'job1', 12, 10, 'WEË AI · Design'));
 check('1) una liquidación normal completa lo usado y no deja nada pendiente',
-  r1.ok && c.completa === 1 && c.libro === 1 && !docs.has('creatorJobs/job1'));
+  r1.ok && c.completa === 1 && c.libro === 1 && !pendienteDe('job1'));
 
 /* 2 · El Credit Engine falla al completar. */
 reiniciar();
@@ -83,7 +98,13 @@ check('5) si tampoco se puede anotar, se registra en el log y el trabajo sigue',
 /* 5 · Sin reserva no hay nada que liquidar. */
 reiniciar();
 const r5 = await intentar(settleCredits('u1', 'job5', 0, 0, 'WEË AI · Design'));
-check('6) sin nada retenido no se toca nada', r5.ok && c.completa === 0 && c.reembolsa === 0 && docs.size === 0);
+check('6) sin nada retenido no se toca nada', r5.ok && c.completa === 0 && c.reembolsa === 0 && !pendienteDe('job5'));
+
+/* 6 · El trabajo ya no existe: no se crea un documento fantasma. */
+reiniciar();
+motor.refundCredits = async () => { c.reembolsa++; throw new Error('unavailable'); };
+const r6 = await intentar(settleCredits('u1', 'borrado', 12, 0, 'WEË AI · Design'));
+check('7) si el trabajo ya no existe, no se crea un documento fantasma (y no se lanza)', r6.ok && !docs.has('creatorJobs/borrado'));
 
 Object.assign(motor, { completeCredits: orig.completa, refundCredits: orig.reembolsa });
 libro.settle = orig.liquida;
