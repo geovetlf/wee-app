@@ -198,6 +198,19 @@ export interface CreatorJob {
    * para ellos el comportamiento es el de siempre.
    */
   deadlineAt?: number;
+  /**
+   * QUIÉN ESTÁ ARRANCANDO ESTE TRABAJO (auditoría H0, escenario #9).
+   *
+   * `creatorRun` lo reclama en una transacción ANTES de tocar el cupo, el
+   * dinero o el proveedor, así que dos llamadas a la vez no pueden arrancarlo
+   * las dos. Es un campo aparte —no un `status`— para que la pantalla no vea
+   * `running` hasta que la reserva de Credits está hecha, igual que antes.
+   * Se suelta si el cupo o la reserva fallan; un reclamo de más de un minuto
+   * sin pasar a `running` es de un proceso que murió y se puede retomar.
+   */
+  runId?: string | null;
+  /** Cuándo se reclamó (milisegundos). Ver `runId`. */
+  claimedAt?: number | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   finishedAt?: Timestamp;

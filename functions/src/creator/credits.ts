@@ -219,12 +219,24 @@ export async function ensureAccount(userId: string): Promise<void> {
   }
 }
 
-/** Reserva Credits al empezar un trabajo (AUTHORIZED). Lanza failed-precondition/INSUFFICIENT_CREDITS si no alcanza. */
-export async function holdCredits(userId: string, jobId: string, plan: Plan, amount: number, description: string): Promise<void> {
-  if (amount <= 0) return;
+/** Lo que dejó la reserva. `duplicate`: ya existía una con el mismo trabajo (el Credit Engine no cobró otra vez). */
+export interface ReservaDeTrabajo {
+  duplicate: boolean;
+  status?: string;
+  amount?: number;
+}
+
+/**
+ * Reserva Credits al empezar un trabajo (AUTHORIZED). Lanza failed-precondition/INSUFFICIENT_CREDITS si no alcanza.
+ *
+ * Devuelve lo que contestó el Credit Engine: hasta el 2026-09-30 esto se tiraba y
+ * quien llamaba no podía saber que la reserva era de OTRA llamada (H0 #9).
+ */
+export async function holdCredits(userId: string, jobId: string, plan: Plan, amount: number, description: string): Promise<ReservaDeTrabajo> {
+  if (amount <= 0) return { duplicate: false };
   try {
     const estimate = await estimatePlan(plan, userId);
-    await creditEngine.spendCredits({
+    const reserva = await creditEngine.spendCredits({
       userId,
       service: estimate.service,
       requestId: jobId,
@@ -234,6 +246,7 @@ export async function holdCredits(userId: string, jobId: string, plan: Plan, amo
       generationId: jobId,
       meta: { jobId, steps: estimate.steps },
     });
+    return { duplicate: reserva.duplicate, status: reserva.status, amount: reserva.amount };
   } catch (error) {
     throw toHttpsError(error);
   }

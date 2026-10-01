@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import { AI_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
@@ -70,6 +71,60 @@ const EXPERIENCES = new Set<string>(Object.keys(TEMPLATES));
 const db = () => getFirestore();
 const jobs = () => db().collection('creatorJobs');
 const now = () => Timestamp.now();
+
+/**
+ * ── UN TRABAJO SE ARRANCA UNA SOLA VEZ (auditoría H0, escenario #9) ────────
+ *
+ * Dos llamadas a la vez con el mismo trabajo leían las dos `planned`, las dos
+ * consumían cupo, las dos reservaban —el Credit Engine solo cobraba una, pero
+ * la respuesta `duplicate` se tiraba— y las dos ejecutaban el plan entero: la
+ * persona pagaba una vez y Weë pagaba dos veces al proveedor.
+ *
+ * Ahora la llamada RECLAMA el trabajo en una transacción antes de tocar el
+ * cupo, el dinero o el proveedor. La otra contesta «ya está en marcha» —el
+ * mismo mensaje de siempre— sin gastar nada. El reclamo es un campo aparte
+ * (`runId`), no el `status`: la pantalla no ve `running` hasta que la reserva
+ * está hecha, igual que antes, así que un «no te alcanzan los Credits» no hace
+ * parpadear la vista de progreso.
+ */
+const RECLAMO_VIGENTE_MS = 60_000;
+
+/** Reclama un trabajo `planned`. 'hecho' si otra llamada ya lo terminó; DUPLICATE_REQUEST si alguien lo tiene. */
+const reclamarTrabajo = (ref: DocumentReference, runId: string, ahora: number): Promise<'reclamado' | 'hecho'> =>
+  db().runTransaction(async (tx) => {
+    const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+    if (actual.status === 'done') return 'hecho';
+    if (actual.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
+    if (actual.status !== 'planned') throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
+    /* Un reclamo viejo sin pasar a `running` es de un proceso que murió antes de reservar: se retoma. */
+    if (actual.runId && typeof actual.claimedAt === 'number' && ahora - actual.claimedAt < RECLAMO_VIGENTE_MS) {
+      throw new EngineError('DUPLICATE_REQUEST');
+    }
+    tx.update(ref, { runId, claimedAt: ahora });
+    return 'reclamado';
+  });
+
+/** Con el cupo y la reserva hechos: `planned → running`, solo si el reclamo sigue siendo de esta llamada. */
+const arrancarTrabajo = (ref: DocumentReference, runId: string, deadlineAt: number): Promise<void> =>
+  db().runTransaction(async (tx) => {
+    const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+    if (actual.status !== 'planned' || actual.runId !== runId) throw new EngineError('DUPLICATE_REQUEST');
+    /* El plazo se GUARDA: es lo que permite saber después si esto se abandonó. */
+    tx.update(ref, { status: 'running', progressText: 'Empezando…', deadlineAt, updatedAt: now() });
+  });
+
+/** Si el cupo o la reserva fallan, se suelta el reclamo (solo el propio) y el trabajo sigue `planned`, como antes. */
+const soltarReclamo = async (ref: DocumentReference, runId: string): Promise<void> => {
+  try {
+    await db().runTransaction(async (tx) => {
+      const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+      if (actual.status === 'planned' && actual.runId === runId) tx.update(ref, { runId: null, claimedAt: null });
+    });
+  } catch (error) {
+    /* Si no se puede soltar, el reclamo caduca solo en RECLAMO_VIGENTE_MS. */
+    console.error(`No se pudo soltar el reclamo del trabajo ${ref.id}:`, error);
+  }
+};
 
 /** Firestore rechaza `undefined`: se quitan las claves vacías conservando los Timestamps. */
 const clean = <T>(value: T): T => {
@@ -492,14 +547,31 @@ export const creatorRun = onCall(
         throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
       }
 
-      // Límites de uso por persona (antes de cobrar y de llamar a la IA)
-      const { settings } = await loadConfig();
-      await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
+      /* Reclamar ANTES de gastar nada: solo una llamada arranca el trabajo (ver `reclamarTrabajo`). */
+      const runId = randomUUID();
+      if ((await reclamarTrabajo(ref, runId, empezado)) === 'hecho') return { jobId, status: 'done' };
 
       const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
-      await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
-      /* El plazo se GUARDA: es lo que permite saber después si esto se abandonó. */
-      await ref.update({ status: 'running', progressText: 'Empezando…', deadlineAt, updatedAt: now() });
+      try {
+        // Límites de uso por persona (antes de cobrar y de llamar a la IA)
+        const { settings } = await loadConfig();
+        await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
+        const reserva = await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
+        /*
+         * Una reserva que ya existía, con el trabajo reclamado por esta llamada, es
+         * de un intento anterior que no llegó a ejecutar (p. ej. una reserva que se
+         * confirmó aunque su llamada fallara). Si sigue AUTHORIZED y por lo mismo,
+         * este intento la usa y la liquida al final. Si ya se cobró, ejecutar otra
+         * vez sería entregar gratis: duplicado.
+         */
+        if (reserva.duplicate && !(reserva.status === 'AUTHORIZED' && reserva.amount === job.creditsEstimated)) {
+          throw new EngineError('DUPLICATE_REQUEST');
+        }
+        await arrancarTrabajo(ref, runId, deadlineAt);
+      } catch (error) {
+        await soltarReclamo(ref, runId);
+        throw error;
+      }
 
       const steps: JobStep[] = job.steps.map((s) => ({ ...s }));
       const results: JobResult[] = [];
