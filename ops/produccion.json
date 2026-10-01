@@ -1,0 +1,587 @@
+{
+  "proyecto": "get-wee",
+  "region": "us-central1",
+  "verificado": "2026-09-30, auditoría H0 (solo lectura): revisión viva, objeto fuente#generación, md5 del zip y build de cada función",
+  "regla": "Producción solo cambia por el workflow de despliegue (docs/DEPLOYMENT.md). Antes de desplegar una función desde main, comprobar aquí que su código vivo ya está en main.",
+  "funciones": [
+    {
+      "funcion": "acceptEContact",
+      "revision": "acceptecontact-00003-dak",
+      "desde": "2026-09-19T17:29:51Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1729Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z02",
+        "generacion": "1789838990468868",
+        "md5": "i6iK1eaF2UHtatG0JOAb5w=="
+      },
+      "build": "e5e2f7b4-ee6b-467f-8162-6b493d567bd7",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "burnViewOnce",
+      "revision": "burnviewonce-00001-nuk",
+      "desde": "2026-09-19T17:29:50Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1729Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z02",
+        "generacion": "1789838989098444",
+        "md5": "i6iK1eaF2UHtatG0JOAb5w=="
+      },
+      "build": "e5e2f7b4-ee6b-467f-8162-6b493d567bd7",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "deleteAsset",
+      "revision": "deleteasset-00001-tox",
+      "desde": "2026-09-19T17:29:48Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1729Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z02",
+        "generacion": "1789838923364510",
+        "md5": "i6iK1eaF2UHtatG0JOAb5w=="
+      },
+      "build": "e5e2f7b4-ee6b-467f-8162-6b493d567bd7",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "requestEContact",
+      "revision": "requestecontact-00003-cig",
+      "desde": "2026-09-19T17:29:51Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1729Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z02",
+        "generacion": "1789838990354409",
+        "md5": "i6iK1eaF2UHtatG0JOAb5w=="
+      },
+      "build": "e5e2f7b4-ee6b-467f-8162-6b493d567bd7",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "votePoll",
+      "revision": "votepoll-00003-qoh",
+      "desde": "2026-09-19T17:29:51Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1729Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z02",
+        "generacion": "1789838990443743",
+        "md5": "i6iK1eaF2UHtatG0JOAb5w=="
+      },
+      "build": "e5e2f7b4-ee6b-467f-8162-6b493d567bd7",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "brainQuote",
+      "revision": "brainquote-00006-dis",
+      "desde": "2026-09-19T17:32:08Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1732Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z03",
+        "generacion": "1789839127420802",
+        "md5": "uYyV3+hEj2E+3U1AUQU6bw=="
+      },
+      "build": "63feaaa7-6f07-40f0-949a-3eb44feb02ee",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "creatorQuote",
+      "revision": "creatorquote-00004-dos",
+      "desde": "2026-09-19T17:32:08Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1732Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z03",
+        "generacion": "1789839128009097",
+        "md5": "uYyV3+hEj2E+3U1AUQU6bw=="
+      },
+      "build": "63feaaa7-6f07-40f0-949a-3eb44feb02ee",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "engineAdmin",
+      "revision": "engineadmin-00004-cay",
+      "desde": "2026-09-19T17:31:54Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1732Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z03",
+        "generacion": "1789839084709996",
+        "md5": "uYyV3+hEj2E+3U1AUQU6bw=="
+      },
+      "build": "ccda40d5-7443-416a-b7f4-3039b9565058",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "publicPostPage",
+      "revision": "publicpostpage-00004-wul",
+      "desde": "2026-09-19T17:32:08Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1732Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z03",
+        "generacion": "1789839128052774",
+        "md5": "uYyV3+hEj2E+3U1AUQU6bw=="
+      },
+      "build": "63feaaa7-6f07-40f0-949a-3eb44feb02ee",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "seedanceCallback",
+      "revision": "seedancecallback-00004-yim",
+      "desde": "2026-09-19T17:32:08Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/2026-09-19T1732Z-5fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z03",
+        "generacion": "1789839128135329",
+        "md5": "uYyV3+hEj2E+3U1AUQU6bw=="
+      },
+      "build": "63feaaa7-6f07-40f0-949a-3eb44feb02ee",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "getCreditCost",
+      "revision": "getcreditcost-00004-far",
+      "desde": "2026-09-19T17:34:39Z",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/functions/getCreditCost/2026-09-19T1734Z",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z04",
+        "generacion": "1789839278333432",
+        "md5": "bUs+y4LY6ueYv4jOq2sQDw=="
+      },
+      "build": "61d5ac73-6b15-4e08-a9ca-e0727abc7f59",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "creditsAdmin",
+      "revision": "creditsadmin-00005-ciy",
+      "desde": "2026-09-19T21:09:24Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852163596062",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "getCreditHistory",
+      "revision": "getcredithistory-00005-fam",
+      "desde": "2026-09-19T21:09:24Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852163446555",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "getCreditsBalance",
+      "revision": "getcreditsbalance-00005-dah",
+      "desde": "2026-09-19T21:09:15Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852117637191",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "grantCredits",
+      "revision": "grantcredits-00005-qiw",
+      "desde": "2026-09-19T21:09:24Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852163533792",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "refundCredits",
+      "revision": "refundcredits-00005-heb",
+      "desde": "2026-09-19T21:09:23Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852162873442",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "sendMessagePushNotification",
+      "revision": "sendmessagepushnotification-00005-yaj",
+      "desde": "2026-09-19T21:09:24Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852163633351",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "sendPushNotification",
+      "revision": "sendpushnotification-00005-nub",
+      "desde": "2026-09-19T21:09:24Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852163604128",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "spendCredits",
+      "revision": "spendcredits-00005-puz",
+      "desde": "2026-09-19T21:09:24Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "enMain": true,
+      "aviso": "Invocador allUsers retirado a mano el 2026-09-30 (H0 #24) sin nueva revisión. NO volver a desplegar este tag: su código no tiene assertAdmin y firebase deploy reabre el invocador público. La marcha atrás de spendCredits es desde b878068 o posterior.",
+      "requiere": [
+        {
+          "commit": "b878068d181c3d3fe789431468499f266210604c",
+          "motivo": "assertAdmin: spendCredits cerrado al cliente (H0 #24)"
+        }
+      ],
+      "fuente": {
+        "zip": "Z05",
+        "generacion": "1789852163575884",
+        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+      },
+      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "avatarReplacement",
+      "revision": "avatarreplacement-00005-qoj",
+      "desde": "2026-09-19T21:11:59Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2111Z-4fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z06",
+        "generacion": "1789852263457355",
+        "md5": "1eIVAY/qMlqVEq5qC/esgg=="
+      },
+      "build": "fe8581bc-5e64-44dd-87c3-fa6e6a44d663",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "generateAvatarWithGemini",
+      "revision": "generateavatarwithgemini-00005-kov",
+      "desde": "2026-09-19T21:11:40Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2111Z-4fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z06",
+        "generacion": "1789852263447673",
+        "md5": "1eIVAY/qMlqVEq5qC/esgg=="
+      },
+      "build": "9006d228-71bb-4011-aa98-d94d8e02202f",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "restorePurchase",
+      "revision": "restorepurchase-00005-jej",
+      "desde": "2026-09-19T21:11:48Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2111Z-4fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z06",
+        "generacion": "1789852307492894",
+        "md5": "1eIVAY/qMlqVEq5qC/esgg=="
+      },
+      "build": "7b24e476-ecc3-42c3-98f0-a4eadb71d13f",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "validatePurchase",
+      "revision": "validatepurchase-00005-fud",
+      "desde": "2026-09-19T21:11:43Z",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/functions/2026-09-19T2111Z-4fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z06",
+        "generacion": "1789852263400584",
+        "md5": "1eIVAY/qMlqVEq5qC/esgg=="
+      },
+      "build": "7b24e476-ecc3-42c3-98f0-a4eadb71d13f",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "nacimientoDeCuenta",
+      "revision": "nacimientodecuenta-00002-yaz",
+      "desde": "2026-09-20T00:54:02Z",
+      "commit": "0123cdc52126fa6afe56e1322cc7901ba607af46",
+      "tag": "prod/functions/nacimientoDeCuenta/2026-09-20T0054Z",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z08",
+        "generacion": "1789865596684199",
+        "md5": "P8qsdfb1rnfNFBUGlsn/ig=="
+      },
+      "build": "add5911f-5af8-42e8-9301-cdb236ca39a0",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "moderationAdmin",
+      "revision": "moderationadmin-00001-liz",
+      "desde": "2026-09-20T03:30:19Z",
+      "commit": "c3515b3b3fcc3afb02974229b6cac6e0368ab1c0",
+      "tag": "prod/functions/2026-09-20T0330Z-moderation-2fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z09",
+        "generacion": "1789875019008914",
+        "md5": "WRibolTiBGHAeHNbK+twqg=="
+      },
+      "build": "11a9f983-41ee-4ab7-b8b4-bd748df79b2c",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "reportContent",
+      "revision": "reportcontent-00001-loq",
+      "desde": "2026-09-20T03:30:08Z",
+      "commit": "c3515b3b3fcc3afb02974229b6cac6e0368ab1c0",
+      "tag": "prod/functions/2026-09-20T0330Z-moderation-2fn",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z09",
+        "generacion": "1789874961438117",
+        "md5": "WRibolTiBGHAeHNbK+twqg=="
+      },
+      "build": "11a9f983-41ee-4ab7-b8b4-bd748df79b2c",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "brainChat",
+      "revision": "brainchat-00011-joh",
+      "desde": "2026-09-20T09:47:50Z",
+      "commit": "2da2881fd9fe982006e947faf18df7c13f47809e",
+      "tag": "prod/functions/brainChat/2026-09-20T0947Z",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z11",
+        "generacion": "1789897624855838",
+        "md5": "vTaq7+cMIt61OaVJjKMESg=="
+      },
+      "build": "efc8fa1f-7903-4dab-aaef-6ac25bd6f244",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "mediaCanary",
+      "revision": "mediacanary-00008-mam",
+      "desde": "2026-09-21T12:48:07Z",
+      "commit": "4bb099e3674f8cc8204ab3cd0fe3ee889fcd7bd8",
+      "tag": "prod/functions/mediaCanary/2026-09-21T1248Z",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z14",
+        "generacion": "1789994828159545",
+        "md5": "KWJMzfxta48QghF2LWZpbw=="
+      },
+      "build": "db088bc5-6f96-43a1-aa1d-d7de30773c56",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "creatorRun",
+      "revision": "creatorrun-00006-jek",
+      "desde": "2026-09-23T11:44:30Z",
+      "commit": "5d87f1fbb1fe48fa55ff56aa024513efa9ffdbc7",
+      "tag": "prod/functions/creatorRun/2026-09-23T1144Z",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z16",
+        "generacion": "1790163835872516",
+        "md5": "XlInsaMbVzYDhk7+I6qEfw=="
+      },
+      "build": "061f299b-21ad-41dc-a0c8-5e32b9a58f6c",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "creatorChat",
+      "revision": "creatorchat-00008-qow",
+      "desde": "2026-09-24T21:53:39Z",
+      "commit": "05ab31bb27d025fce8a0678c7b3f8d4998bceb06",
+      "tag": "prod/functions/creatorChat/2026-09-24T2153Z",
+      "enMain": true,
+      "fuente": {
+        "zip": "Z17",
+        "generacion": "1790286767656012",
+        "md5": "DgNuVMNnWXwQRdAJzHAUlQ=="
+      },
+      "build": "1fdb7c8c-3ce2-45c6-b1c6-f8d4e234ca78",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "barridoDeLiquidacion",
+      "revision": "barridodeliquidacion-00003-tux",
+      "desde": "2026-09-28T00:56:00Z",
+      "commit": "96b3f7ae844a26959668dc86c1c29d87fdd142ba",
+      "tag": "prod/functions/2026-09-28T0056Z-filmmaker-3fn",
+      "enMain": false,
+      "ramas": [
+        "filmmaker/core",
+        "hotfix/r22-generatevideo"
+      ],
+      "fuente": {
+        "zip": "Z18",
+        "generacion": "1790556959952423",
+        "md5": "C1hBq+TzUAH9BGEi4GHBXw=="
+      },
+      "build": "4aafa1d9-4e42-46cd-bd50-b92dead366b9",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "productions",
+      "revision": "productions-00001-vuv",
+      "desde": "2026-09-28T00:56:12Z",
+      "commit": "96b3f7ae844a26959668dc86c1c29d87fdd142ba",
+      "tag": "prod/functions/2026-09-28T0056Z-filmmaker-3fn",
+      "enMain": false,
+      "ramas": [
+        "filmmaker/core",
+        "hotfix/r22-generatevideo"
+      ],
+      "fuente": {
+        "zip": "Z18",
+        "generacion": "1790556902328625",
+        "md5": "C1hBq+TzUAH9BGEi4GHBXw=="
+      },
+      "build": "d3c770aa-1760-49d6-bc46-55294f00de5b",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "shots",
+      "revision": "shots-00001-meq",
+      "desde": "2026-09-28T00:55:51Z",
+      "commit": "96b3f7ae844a26959668dc86c1c29d87fdd142ba",
+      "tag": "prod/functions/2026-09-28T0056Z-filmmaker-3fn",
+      "enMain": false,
+      "ramas": [
+        "filmmaker/core",
+        "hotfix/r22-generatevideo"
+      ],
+      "fuente": {
+        "zip": "Z18",
+        "generacion": "1790556902328788",
+        "md5": "C1hBq+TzUAH9BGEi4GHBXw=="
+      },
+      "build": "8cb9658b-574e-4552-8182-1c61fac8a04c",
+      "runtime": "nodejs24"
+    },
+    {
+      "funcion": "generateVideo",
+      "revision": "generatevideo-00010-qes",
+      "desde": "2026-09-29T22:24:07Z",
+      "commit": "7f11d51d6621b2b96e33d5f8dd763734ac89ff0f",
+      "tag": "prod/functions/generateVideo/2026-09-29T2224Z",
+      "enMain": false,
+      "ramas": [
+        "hotfix/r22-generatevideo"
+      ],
+      "fuente": {
+        "zip": "Z19",
+        "generacion": "1790720590305877",
+        "md5": "z7Yjpa7+AaTn2CKROdYANg=="
+      },
+      "build": "1c602dab-a706-4b83-a333-dbe02c625695",
+      "runtime": "nodejs24"
+    }
+  ],
+  "otros": [
+    {
+      "desplegable": "firestore",
+      "vivo": "reglas: ruleset 26c4d361-4a8f-4056-886f-75bda49b0cb9 (release cloud.firestore, 2026-09-20T03:25:21Z); índices: 29 compuestos READY",
+      "commit": "c3515b3b3fcc3afb02974229b6cac6e0368ab1c0",
+      "tag": "prod/firestore/2026-09-20T0325Z",
+      "exacto": true,
+      "enMain": true,
+      "evidencia": "Reglas = blob f171bf2 de c3515b3 (byte a byte, CRLF normalizado). Índices 29/29 = firestore.indexes.json de c3515b3."
+    },
+    {
+      "desplegable": "storage-rules",
+      "vivo": "ruleset e01e740c-9701-421f-a7be-2f4ea82a2399 (2026-09-19T17:26:54Z)",
+      "commit": "ced05858e2142f79b8b19fd15a9e54d9723dbf80",
+      "tag": "prod/storage-rules/2026-09-19T1726Z",
+      "exacto": false,
+      "enMain": true,
+      "evidencia": "Contenido exacto (blob f313154, sin cambios desde 01ae0e7 hasta main); el commit se eligió por la hora del despliegue."
+    },
+    {
+      "desplegable": "hosting:get-wee",
+      "vivo": "versión 2076636442960bf0 (12 archivos, 2026-09-20T00:57:47Z)",
+      "commit": "0123cdc52126fa6afe56e1322cc7901ba607af46",
+      "tag": "prod/hosting/get-wee/2026-09-20T0057Z",
+      "exacto": false,
+      "enMain": true,
+      "evidencia": "10/10 archivos propios = public/ de cualquier commit desde 084923e; el commit se eligió por la hora del despliegue."
+    },
+    {
+      "desplegable": "hosting:wee-app",
+      "vivo": "versión 1c33b61bde2b4ef6 (94 archivos, 30,66 MB, 2026-09-20T04:23:43Z)",
+      "commit": "afbc2dfbdbaa4cff9b7bd0fd7b240c2e1aa64282",
+      "tag": "prod/hosting/wee-app/2026-09-20T0423Z-aprox",
+      "exacto": false,
+      "enMain": true,
+      "evidencia": "APROXIMADO: es un build de expo export que no se puede reconstruir. El bundle vivo contiene las cadenas de c3515b3 y ninguna de 4d7eb03; el cliente es idéntico en c3515b3, c22d2d8 y afbc2df, y afbc2df solo cambia firebase.json."
+    },
+    {
+      "desplegable": "vercel (wee.zone)",
+      "vivo": "último despliegue Production de vercel[bot] (2026-09-19T21:02:06Z)",
+      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
+      "tag": "prod/vercel/2026-09-19T2102Z",
+      "exacto": true,
+      "enMain": true,
+      "evidencia": "SHA declarado por Vercel en el entorno Production de GitHub. Cada push a main publica la web."
+    }
+  ]
+}
