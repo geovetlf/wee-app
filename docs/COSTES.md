@@ -26,6 +26,24 @@ Weë Agent Harness, FASE 10 (2026-10-01).
 | **Reconciliación de trabajos desconocidos** | `barridoDeLiquidacion`, cada 5 min | **Sí** (desplegado desde `96b3f7a`) | — |
 | **Deduplicación e idempotencia** | `requestId` en el Credit Engine (`61d2cdf`: misma cuenta y servicio, y con huella, mismo importe); el reclamo atómico de `creatorRun` (H0 #9); el avatar (H0 #11); `messageId` en Weë Brain | En parte: el Credit Engine ya es idempotente y `61d2cdf` vive en `generateVideo`; H0 #9 y #11, con el despliegue | g5–g6 |
 | **Máximo por despliegue** | 6 funciones (`MAX_FUNCIONES_POR_DESPLIEGUE`) | Sí, en el workflow | — |
+| **El coste de lo que falla después de llegar al proveedor** (H0 #22) | El router anota `providerCostStatus: 'desconocido'` y el coste estimado en la fila; el libro lo suma aparte como `aiUsage/{día}.usdEnRiesgo`; los topes cuentan medido + en riesgo (`costeTrasUnFallo`, `functions/test/coste-de-los-fallos.test.mjs`). El coste medido no cambia | No: con el despliegue de g4–g6 | Lo mismo que los topes |
+| **Una pasada del barrido a la vez** (H0 #18) | `barridoDeLiquidacion`: `maxInstances: 1`, `concurrency: 1` | No: con el despliegue de g6 | — |
+
+## Las tarifas: ninguna está verificada (2026-10-01)
+
+Todos los modelos reales del registro (`engine/providers/*.ts`) llevan
+`verified: false`: su tarifa sale de la documentación pública del proveedor y no
+se ha confrontado con una factura. Exigir tarifas verificadas en modo de precios
+real apagaría hoy toda la IA, así que **no se impone**: es parte de la decisión
+pendiente sobre precios ([PRECIO-SIN-PROVEEDOR.md](PRECIO-SIN-PROVEEDOR.md),
+[DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md)). Producción cotiza en modo
+simulado (H0), así que hoy no se cobra con esas tarifas.
+
+El instrumento para medir ya existe: `aiUsage/{día}` acumula llamadas, dólares
+(medidos y, desde H0 #22, en riesgo) y Credits por capacidad y por proveedor, y
+lo enseña el panel de administración (Configuración → Weë AI Engine). Comparar
+eso con la factura del proveedor de la misma semana es lo que convierte una
+tarifa en `verified: true`.
 
 ## Cómo poner cifra a los topes, sin inventarla
 
@@ -50,7 +68,7 @@ el interruptor (tras el despliegue) y las alertas (al activarlas).
 | CI (GitHub Actions) | 0: repositorio público, minutos sin límite |
 | Workflow de despliegue | 0 en GitHub. Cada despliegue usa Cloud Build y Artifact Registry como cualquier `firebase deploy` |
 | Observación posterior | 0: lecturas de Cloud Monitoring dentro de la capa gratuita; unos 13 minutos más de runner |
-| Alertas | 4 métricas basadas en logs, 7 condiciones y 1 comprobación de salud. Las de Cloud Run son gratuitas; el precio por condición se confirma en la consola antes de activarlas |
+| Alertas | 4 métricas basadas en logs, 7 condiciones, 2 comprobaciones de salud (get-wee.web.app y www.wee.zone, unas 100 000 ejecuciones al mes, por debajo del millón gratuito) y 1 panel (gratis). Las de Cloud Run son gratuitas; el precio por condición se confirma en la consola antes de activarlas |
 | Auditoría del canje de WIF (opcional) | Unas líneas por despliegue, dentro de la cuota gratuita de Cloud Logging |
 | Escaneo de secretos | 0: script propio, sin servicios |
 

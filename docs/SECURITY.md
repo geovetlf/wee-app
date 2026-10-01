@@ -283,9 +283,37 @@ igual.
 
 - **Identidad propia de Claude**, sin Owner, sin facturación, sin IAM y sin
   secretos. La autonomía crece por automatización, no por privilegios.
+  - **En GitHub, hoy Claude actúa como el dueño** (2026-10-01): `gh` y `git` en
+    el portátil usan la cuenta `geovetlf`. Lo que lo frena es la guardia de
+    Claude y, cuando el dueño la active, la protección de `main`
+    (`ops/github/`), que ya no admitiría un push directo ni de él. Lo limpio es
+    un token de grano fino para Claude: escribir solo en ramas y abrir PRs, sin
+    administración del repositorio.
 - **IAM de secretos.** Quitar `roles/secretmanager.secretAccessor` a nivel de
   proyecto a la SA de cómputo, porque cada secreto en uso ya tiene su binding.
   Después, cuentas de servicio por grupo de funciones (IA, medios, básicas).
 - **Rotaciones** de §4 y §5, y borrado de versiones viejas solo tras verificar.
 - **App Check**, primero midiendo y después imponiéndolo de forma gradual, sin
-  romper el login ni a los usuarios existentes.
+  romper el login ni a los usuarios existentes. **Preparado y APAGADO**
+  (harness/fase-2, `functions/test/app-check.test.mjs`):
+  - servidor: un solo interruptor, `APP_CHECK_OBLIGATORIO = false` en
+    `functions/src/opciones.ts`; cada callable lo lee al definirse y ninguna lo
+    fija por su cuenta. Apagado, lo que se despliega es idéntico;
+  - web: `config/appCheck.web.ts` solo se activa si el build trae
+    `EXPO_PUBLIC_APP_CHECK_SITE_KEY` (pública). Sin ella no se carga nada;
+  - iOS/Android: `config/appCheck.ts` no hace nada: con el SDK web de Firebase
+    hace falta un módulo nativo (Play Integrity / App Attest) y una build nueva.
+
+  **El orden para encenderlo** (cada paso, decisión del dueño):
+  1. Firebase → App Check → registrar la web con reCAPTCHA Enterprise; poner la
+     clave de sitio en el build de la web (Vercel y el entorno `get-wee`) y
+     publicarla. Las Functions verifican el token pero no lo exigen.
+  2. Medir en App Check cuántas peticiones llegan verificadas. El cupo gratuito
+     de reCAPTCHA Enterprise se confirma en la consola antes del paso 1.
+  3. Las apps nativas, en su propia build.
+  4. Cuando casi todo el tráfico lleve token: exigirlo en Firestore y Storage
+     desde la consola, y en las Functions con `APP_CHECK_OBLIGATORIO = true` en
+     un PR y su despliegue por grupos. Antes de eso, encenderlo dejaría fuera a
+     todo el mundo.
+
+  Está ligado a la bienvenida de las cuentas anónimas (DECISIONES-PENDIENTES).

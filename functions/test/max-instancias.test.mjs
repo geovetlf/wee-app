@@ -34,7 +34,8 @@ const check = (name, cond, extra = '') => {
 
 /* El techo de cada función. Una función nueva sin techo explícito hereda el global (20). */
 const TECHO_GLOBAL = 20;
-const EXCEPCIONES = { publicPostPage: 10 };
+/* barridoDeLiquidacion = 1 (H0 #18): una pasada a la vez; ver su comprobación abajo. */
+const EXCEPCIONES = { publicPostPage: 10, barridoDeLiquidacion: 1 };
 
 /* ── A. El orden importa ────────────────────────────────────────────────── */
 const indice = fs.readFileSync(path.join(LIB, 'index.js'), 'utf8');
@@ -51,7 +52,8 @@ recorrer(path.resolve(here, '../src'));
 const llamadas = fuentes.filter((f) => /setGlobalOptions\s*\(/.test(sinComentarios(fs.readFileSync(f, 'utf8'))));
 check('2) hay exactamente UNA llamada a setGlobalOptions, en opciones.ts (dos llamadas son comportamiento indefinido)',
   llamadas.length === 1 && llamadas[0].endsWith(path.join('src', 'opciones.ts')), llamadas.map((f) => path.basename(f)).join(', '));
-check('3) y fija el techo global en 20', /setGlobalOptions\(\{\s*maxInstances:\s*20\s*\}\)/.test(sinComentarios(leer('functions/src/opciones.ts'))));
+check('3) y fija el techo global en 20 (junto al interruptor de App Check, apagado: functions/test/app-check.test.mjs)',
+  /setGlobalOptions\(\{\s*maxInstances:\s*20\s*(,\s*enforceAppCheck:\s*APP_CHECK_OBLIGATORIO\s*)?\}\)/.test(sinComentarios(leer('functions/src/opciones.ts'))));
 
 /* ── B. Cada función exportada, cargada de verdad ───────────────────────── */
 const exportado = require(path.join(LIB, 'index.js'));
@@ -60,7 +62,10 @@ const sinTecho = funciones.filter(([, v]) => !(Number(v.__endpoint.maxInstances)
 check('4) todas las funciones exportadas tienen techo de instancias', funciones.length >= 30 && sinTecho.length === 0,
   sinTecho.length ? sinTecho.join(', ') : `${funciones.length} funciones`);
 const distintas = funciones.filter(([k, v]) => v.__endpoint.maxInstances !== (EXCEPCIONES[k] ?? TECHO_GLOBAL)).map(([k, v]) => `${k}=${v.__endpoint.maxInstances}`);
-check('5) el techo es el global (20) salvo las excepciones declaradas aquí (publicPostPage = 10)', distintas.length === 0, distintas.join(', '));
+check('5) el techo es el global (20) salvo las excepciones declaradas aquí (publicPostPage = 10, barridoDeLiquidacion = 1)', distintas.length === 0, distintas.join(', '));
+const barrido = funciones.find(([k]) => k === 'barridoDeLiquidacion')?.[1].__endpoint;
+check('5b) el barrido, una pasada a la vez (H0 #18): una instancia y una petición; dura hasta 540 s y sale cada 5 min, así que sin esto dos pasadas se solapaban',
+  barrido && barrido.maxInstances === 1 && barrido.concurrency === 1 && barrido.timeoutSeconds === 540, barrido ? `${barrido.maxInstances}/${barrido.concurrency}` : 'no está');
 const SEIS = ['burnViewOnce', 'deleteAsset', 'moderationAdmin', 'reportContent'];
 check('6) las que en producción no tenían techo lo tendrán en su próximo despliegue',
   SEIS.every((k) => exportado[k] && exportado[k].__endpoint.maxInstances === TECHO_GLOBAL), SEIS.join(', '));

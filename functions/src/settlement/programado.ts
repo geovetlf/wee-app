@@ -104,6 +104,15 @@ export const barridoDeLiquidacion = onSchedule(
     region: 'us-central1',
     timeoutSeconds: 540,
     memory: '1GiB',
+    /*
+     * UNA pasada a la vez (H0 #18). Cada pasada puede durar hasta 540 s y se lanza cada 5 min: con el techo global
+     * de 20 instancias y la concurrencia por defecto (80 peticiones por instancia), dos pasadas podían solaparse y
+     * preguntar dos veces al proveedor por las mismas tareas. Con una instancia y una petición, la llamada que llega
+     * mientras otra trabaja se rechaza y la siguiente sale a su hora (el programador no reintenta). La liquidación ya
+     * era idempotente; esto quita el trabajo doble, no un cobro doble.
+     */
+    maxInstances: 1,
+    concurrency: 1,
     secrets: RECONCILIATION_SECRETS,
   },
   async () => {

@@ -66,7 +66,7 @@ const r = spawnSync(process.execPath, [path.resolve(RAIZ, ALERTAS), '--json', tm
 const archivos = fs.readdirSync(tmp).filter((f) => f.endsWith('.json'));
 let validos = 0;
 for (const f of archivos) { try { const p = JSON.parse(fs.readFileSync(path.join(tmp, f), 'utf8')); if (p.displayName && p.conditions) validos++; } catch { /* inválido */ } }
-check('12) --json escribe las siete políticas como JSON válido, con nombres ASCII', r.status === 0 && archivos.length === 7 && validos === 7 && archivos.every((f) => /^[a-z0-9-]+\.json$/.test(f)), archivos.join(', '));
+check('12) --json escribe las siete políticas (y el panel) como JSON válido, con nombres ASCII', r.status === 0 && archivos.length === 8 && validos === 7 && archivos.includes('panel.json') && archivos.every((f) => /^[a-z0-9-]+\.json$/.test(f)), archivos.join(', '));
 fs.rmSync(tmp, { recursive: true, force: true });
 check('13) docs/OBSERVABILITY.md explica las alertas y cómo se activan', /alertas\.mjs/.test(leer('docs/OBSERVABILITY.md')));
 

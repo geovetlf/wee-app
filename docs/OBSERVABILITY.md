@@ -64,8 +64,21 @@ escribe (`console.error`/`console.warn`).
 - Son unas pocas miles de invocaciones y lecturas al mes, dentro de la capa
   gratuita.
 
+**La web pública también se vigila** (2026-10-01): `https://www.wee.zone/` tiene
+que contestar **200** (`SALUD_WEB`; `wee.zone` sin www redirige ahí). La sirve
+Vercel, no Firebase, así que la de `get-wee.web.app` no la cubría. No añade otra
+alerta: «Weë · caído» mira los dos hosts y dice cuál falla.
+
+**El panel «Weë · producción»** (`PANEL`, `panel.json`): 5xx y peticiones por
+función, generaciones de IA, IA sin proveedor y tope diario, reconciliación sin
+terminar y salud por host. Es lo que se mira en la observación de un despliegue
+y cuando salta una alerta. Solo usa métricas que ya existen o que se crean aquí.
+Los paneles no cuestan.
+
 **Coste.** Son 4 métricas basadas en logs (contadores de poca cardinalidad), 7
-políticas y 1 comprobación de salud.
+políticas, 2 comprobaciones de salud y 1 panel. Las comprobaciones, cada 5
+minutos desde las regiones por defecto, son unas 100 000 ejecuciones al mes: por
+debajo del millón gratuito.
 - Las métricas de Cloud Run (5xx) y de las comprobaciones son gratuitas.
 - Si Cloud Monitoring cobra por condición de alerta, son 7 condiciones. El
   precio vigente hay que confirmarlo en la consola antes de activarlas.
@@ -77,9 +90,16 @@ node ops/observabilidad/alertas.mjs --json alertas-wee
 ```
 
 El comando:
-- escribe las 7 políticas en `alertas-wee/`;
+- escribe las 7 políticas y el panel en `alertas-wee/`;
 - imprime los comandos para crear el canal de correo (con tu correo, que queda
   en tu proyecto y no en el repositorio), las métricas, la comprobación y las
   políticas.
 
 Claude no los ejecuta: Cloud Monitoring y el correo son del dueño.
+
+**Comprobar que está activo:** `node ops/observabilidad/verificar.mjs`. Solo lee
+(`list`) y dice qué falta: cada métrica con SU filtro (si se cambia en la consola,
+la alerta deja de ver lo que dice), las dos comprobaciones con su ruta y su código,
+cada alerta activa y conectada a un canal de correo verificado, y el panel. Una
+alerta sin canal no avisa a nadie. El 2026-10-01, en solo lectura, no había nada
+creado (`functions/test/observabilidad-verificar.test.mjs`).

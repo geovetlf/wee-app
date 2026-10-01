@@ -76,10 +76,15 @@ export const limiter = createLimiter({ db: () => getFirestore() as unknown as Li
  * (el libro los suma al CERRAR cada generación). Es una cuenta aproximada: lo que
  * está en marcha todavía no cuenta y la lectura se cachea un minuto, así que un
  * tope basado en esto es blando: corta en cuanto lo ve, no al céntimo.
+ *
+ * Cuenta también `usdEnRiesgo` (H0 #22): el coste ESTIMADO de los fallos que
+ * llegaron al proveedor y pudieron cobrarse. Sin él, una racha de vídeos aceptados
+ * y fallidos gastaba sin que el tope lo viera.
  */
 export function providerUsdToday(usage: Record<string, any> | undefined, provider: string): number {
-  const usd = usage?.byProvider?.[provider]?.usd;
-  return typeof usd === 'number' && Number.isFinite(usd) ? usd : 0;
+  const fila = usage?.byProvider?.[provider];
+  const numero = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  return numero(fila?.usd) + numero(fila?.usdEnRiesgo);
 }
 
 /** Dólares gastados hoy en todos los proveedores juntos (ver `providerUsdToday`). */

@@ -30,13 +30,30 @@ export const ENTORNO = 'get-wee';
 export const CUENTA = `despliegue-github@${PROYECTO}.iam.gserviceaccount.com`;
 export const CUENTA_DE_EJECUCION = `${NUMERO}-compute@developer.gserviceaccount.com`;
 
-/** La condición que tiene que cumplir el token de GitHub para obtener credencial. */
-export const CONDICION = [
-  `assertion.repository_id == '${REPOSITORIO_ID}'`,
-  `assertion.repository_owner_id == '${DUENO_ID}'`,
-  `assertion.workflow_ref.startsWith('${REPOSITORIO}/.github/workflows/despliegue.yml@refs/heads/main')`,
-  `assertion.environment == '${ENTORNO}'`,
-].join(' && ');
+export const WORKFLOW_REF = `${REPOSITORIO}/.github/workflows/despliegue.yml@refs/heads/main`;
+
+/**
+ * Lo que tiene que decir el token de GitHub para obtener credencial, campo a campo y SIEMPRE con
+ * igualdad exacta. Con `startsWith`, una rama llamada `main-x` (`…despliegue.yml@refs/heads/main-x`)
+ * también pasaba, y lo único que la frenaba era el entorno de GitHub, que se configura a mano. Ahora
+ * la condición no depende de él: este repositorio y este dueño (por id, que no cambia al renombrar),
+ * el workflow despliegue.yml de main, lanzado desde main, a mano (`workflow_dispatch`) y en el entorno
+ * aprobado.
+ */
+export const REQUISITOS = Object.freeze([
+  ['repository_id', REPOSITORIO_ID],
+  ['repository_owner_id', DUENO_ID],
+  ['workflow_ref', WORKFLOW_REF],
+  ['ref', 'refs/heads/main'],
+  ['event_name', 'workflow_dispatch'],
+  ['environment', ENTORNO],
+]);
+
+/** La condición del proveedor: la misma lista, solo igualdades. */
+export const CONDICION = REQUISITOS.map(([campo, valor]) => `assertion.${campo} == '${valor}'`).join(' && ');
+
+/** Pura: ¿obtendría credencial un token de GitHub con estos datos? Sale de la misma lista que la condición. */
+export const admite = (token) => REQUISITOS.every(([campo, valor]) => String(token?.[campo] ?? '') === valor);
 
 /**
  * QUIÉN Y QUÉ WORKFLOW OBTUVO LA IDENTIDAD. El `sub` de GitHub para un job con
@@ -110,6 +127,8 @@ export const comandos = () => {
     '#     Son unas pocas líneas por despliegue: caben de sobra en la cuota gratuita de Cloud Logging. Se activa en la consola:',
     '#     IAM y administración → Registros de auditoría → «Security Token Service API» y «IAM Service Account Credentials API»',
     '#     → marcar «Lectura de datos» y «Escritura de datos». (Es un cambio de la política del proyecto: lo hace el dueño.)',
+    '',
+    '# 6 · Comprueba que lo creado es exactamente esto (solo lectura): node ops/iam/wif-verificar.mjs',
   ];
 };
 

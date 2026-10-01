@@ -29,8 +29,28 @@ Aquí solo se documentan. **Ninguna está tomada ni preparada como cambio.**
 | El umbral de «Uso de IA anómalo» | Depende del tráfico real | `UMBRAL_DE_USO_ANOMALO` (300 en 15 min) |
 | Retirar otra vez el invocador público de `spendCredits` tras desplegarla | Es IAM | [PRIMER-DESPLIEGUE.md](PRIMER-DESPLIEGUE.md) |
 | Activar los registros de auditoría del canje de WIF | Es la política del proyecto | `ops/iam/wif.mjs`, paso 5 |
-| Protección de `main` en GitHub (PR + los 4 checks) | Es configuración del repositorio | [DEPLOYMENT.md](DEPLOYMENT.md) §6 |
+| Protección de `main` en GitHub (PR + los 4 checks, solo merge commits, acciones fijadas por SHA, entorno `get-wee`) | Es configuración del repositorio | [DEPLOYMENT.md](DEPLOYMENT.md) §6, `node ops/github/proteccion.mjs` |
+| Una identidad de GitHub propia para Claude (hoy usa la del dueño en el portátil) | Son credenciales del dueño | [SECURITY.md](SECURITY.md) §7 |
 | *Deployment Protection* de las previews de Vercel | Las previews usan la configuración de Firebase de producción | [DEPLOYMENT.md](DEPLOYMENT.md) §2 |
+
+## Cancelación, idempotencia y reconciliación que esperan al dueño (harness/fase-2)
+
+Lo que la auditoría H0 dejó abierto en este frente y **no** se ha tocado, con su
+porqué. Lo que sí se hizo: el barrido, una pasada a la vez (#18); el coste de lo
+que falla después de llegar al proveedor (#22); y un informe de SOLO LECTURA de
+las reservas colgadas (#15): `node ops/reconciliacion/reservas-colgadas.mjs`, que
+lee datos reales y por eso lo ejecuta el dueño.
+
+| H0 | Qué falta | Por qué espera |
+|---|---|---|
+| #6 | Cancelación real: que el tiempo agotado PARE al proveedor (bucles de propuestas, sondeos) en vez de dejarlo seguir | Cambia los diez adaptadores; la orden fue no reescribir los Provider Adapters. Preparable con su sí, adaptador a adaptador |
+| #5 | Reintentar la descarga de un resultado ya pagado (hoy, 1 intento de 180 s) | Toca `persistRemoteFile` y, para refrescar el enlace, cada adaptador |
+| #4 | Mandar a Seedance la caducidad de la tarea y cancelar las que siguen en cola | Llama al proveedor (DELETE) y el rango oficial está sin verificar |
+| #10, #13 | Weë Brain: un mensaje repetido a la vez llama dos veces al proveedor; con búsqueda, un duplicado regenera gratis | Toca el Brain |
+| #14 | Tras un tiempo agotado SIN respuesta, no probar otro proveedor en imagen, vídeo o voz (podría cobrar dos) | Toca el Core Runtime y la semántica de las puertas |
+| #15b | Que el barrido devuelva solo las reservas legacy vencidas | Toca el Core Runtime (el barrido) y pide un índice nuevo. El informe de arriba las enseña mientras tanto |
+| #17 | Reembolsar lo «desconocido sin referencia» pasadas 2 h | Es una regla de dinero del Core Runtime |
+| #7, #8 | Cobrar solo lo entregado cuando un plan falla a medias | Es D9 (la política de Credits) |
 
 ## Hallazgos del inventario de IA que también esperan al dueño
 

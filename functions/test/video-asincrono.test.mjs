@@ -593,10 +593,11 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»
     'functions/src/engine/gateway.ts': '2\t0', // 0ad8500 (#19)
     'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
-    'functions/src/engine/limits.ts': '33\t3', // F1-D (decisión 14) + 5e87b80 (FASE 8)
+    'functions/src/engine/ledger.ts': '12\t1', // harness/fase-2 (H0 #22): el coste en riesgo de un fallo despachado
+    'functions/src/engine/limits.ts': '38\t3', // F1-D (decisión 14) + 5e87b80 (FASE 8) + harness/fase-2 (H0 #22)
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
     'functions/src/engine/registry.ts': '2\t0', // 0ad8500 (#19)
-    'functions/src/engine/router.ts': '22\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK: «no hay una IA disponible»
+    'functions/src/engine/router.ts': '55\t3', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK: «no hay una IA disponible» · harness/fase-2 (H0 #22)
     'functions/src/engine/types.ts': '19\t0', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
     'functions/src/generateAvatar.ts': '52\t13', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6

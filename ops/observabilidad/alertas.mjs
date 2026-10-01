@@ -77,6 +77,14 @@ const umbral = (nombre, metrica, valor, ventana, doc, extraFiltro = '') => ({
   alertStrategy: { autoClose: '86400s' },
 });
 
+/** La comprobación externa: un post que no existe → 404 = las Functions responden; 5xx o nada = caído. */
+export const SALUD = { id: 'salud-get-wee', host: 'get-wee.web.app', ruta: '/post/salud-del-sistema', codigo: 404, periodoMin: 5 };
+
+/** Y la web pública: www.wee.zone (Vercel) tiene que contestar 200. wee.zone sin www redirige aquí con un 308. */
+export const SALUD_WEB = { id: 'salud-wee-zone', host: 'www.wee.zone', ruta: '/', codigo: 200, periodoMin: 5 };
+
+export const COMPROBACIONES = [SALUD, SALUD_WEB];
+
 /** Las políticas de alerta (Cloud Monitoring, API v3). */
 export const POLITICAS = {
   'dinero-sin-cerrar': {
@@ -108,7 +116,7 @@ export const POLITICAS = {
   'wee-caido': {
     displayName: 'Weë · caído (comprobación externa)',
     documentation: {
-      content: 'La comprobación externa de https://get-wee.web.app/post/… falla: las Functions no responden. La caída de H0 (12:33Z–17:53Z) fue por facturación: mira primero la cuenta de facturación. docs/OBSERVABILITY.md',
+      content: 'Una comprobación externa falla. Si es get-wee.web.app (/post/…), las Functions no responden: la caída de H0 (12:33Z–17:53Z) fue por facturación, mira primero la cuenta de facturación. Si es www.wee.zone, la web pública no carga: mira el despliegue que sirve Vercel (con el freno, un push no lo cambia solo). docs/OBSERVABILITY.md',
       mimeType: 'text/markdown',
     },
     combiner: 'OR',
@@ -116,7 +124,7 @@ export const POLITICAS = {
       displayName: 'La comprobación de salud falla',
       conditionThreshold: {
         /* Por el host, no por check_id: el id de la comprobación lo genera Cloud Monitoring. */
-        filter: 'metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url" AND resource.label.host="get-wee.web.app"',
+        filter: `metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url" AND (${COMPROBACIONES.map((c) => `resource.label.host="${c.host}"`).join(' OR ')})`,
         comparison: 'COMPARISON_GT',
         thresholdValue: 1,
         duration: '60s',
@@ -127,8 +135,34 @@ export const POLITICAS = {
   },
 };
 
-/** La comprobación externa: un post que no existe → 404 = las Functions responden; 5xx o nada = caído. */
-export const SALUD = { id: 'salud-get-wee', host: 'get-wee.web.app', ruta: '/post/salud-del-sistema', codigo: 404, periodoMin: 5 };
+/*
+ * EL PANEL «Weë · producción» (Cloud Monitoring; los paneles no cuestan): lo que se mira en la
+ * observación de un despliegue y cuando salta una alerta. Cada gráfico usa una métrica que ya existe
+ * (Cloud Run, comprobaciones externas) o que se crea aquí (METRICAS): nada nuevo.
+ */
+const grafico = (titulo, conjuntos, x, y) => ({
+  xPos: x, yPos: y, width: 6, height: 4,
+  widget: { title: titulo, xyChart: { dataSets: conjuntos.map(([filtro, alineador, reductor, agrupar]) => ({
+    plotType: 'LINE',
+    timeSeriesQuery: { timeSeriesFilter: { filter: filtro, aggregation: { alignmentPeriod: '300s', perSeriesAligner: alineador, crossSeriesReducer: reductor, ...(agrupar ? { groupByFields: agrupar } : {}) } } },
+  })) } },
+});
+const contador = (nombre) => [`metric.type="logging.googleapis.com/user/${nombre}"`, 'ALIGN_SUM', 'REDUCE_SUM'];
+export const PANEL = {
+  displayName: 'Weë · producción',
+  mosaicLayout: {
+    columns: 12,
+    tiles: [
+      grafico('Errores 5xx por función', [['metric.type="run.googleapis.com/request_count" AND resource.type="cloud_run_revision" AND metric.label.response_code_class="5xx"', 'ALIGN_SUM', 'REDUCE_SUM', ['resource.label.service_name']]], 0, 0),
+      grafico('Peticiones por función', [['metric.type="run.googleapis.com/request_count" AND resource.type="cloud_run_revision"', 'ALIGN_SUM', 'REDUCE_SUM', ['resource.label.service_name']]], 6, 0),
+      grafico('Generaciones de IA', [contador('wee_ia_generaciones')], 0, 4),
+      grafico('IA sin proveedor y tope diario', [contador('wee_ia_no_disponible'), contador('wee_ia_tope_diario')], 6, 4),
+      grafico('Reconciliación sin terminar', [contador('wee_barrido_incompleto')], 0, 8),
+      grafico('Salud: comprobaciones correctas', [['metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url"', 'ALIGN_FRACTION_TRUE', 'REDUCE_MEAN', ['resource.label.host']]], 6, 8),
+    ],
+  },
+};
+
 
 export const comandos = (dir = '<carpeta-con-las-politicas>') => [
   '# 0 · Canal de aviso por correo (pon tu correo; queda en tu proyecto, no en el repositorio)',
@@ -138,13 +172,19 @@ export const comandos = (dir = '<carpeta-con-las-politicas>') => [
   '# 1 · Métricas basadas en logs (contadores)',
   ...METRICAS.map((m) => `gcloud logging metrics create ${m.nombre} --project=${PROYECTO} --description="${m.descripcion}" --log-filter='${m.filtro}'`),
   '',
-  '# 2 · Comprobación externa de salud (cada 5 min; un 404 significa que las Functions responden)',
-  `gcloud monitoring uptime create ${SALUD.id} --project=${PROYECTO} --resource-type=uptime-url --resource-labels=host=${SALUD.host},project_id=${PROYECTO} --path=${SALUD.ruta} --protocol=https --status-codes=${SALUD.codigo} --period=${SALUD.periodoMin}`,
+  '# 2 · Comprobaciones externas de salud, cada 5 min: get-wee.web.app (un 404 = las Functions responden) y www.wee.zone (200)',
+  ...COMPROBACIONES.map((c) => `gcloud monitoring uptime create ${c.id} --project=${PROYECTO} --resource-type=uptime-url --resource-labels=host=${c.host},project_id=${PROYECTO} --path=${c.ruta} --protocol=https --status-codes=${c.codigo} --period=${c.periodoMin}`),
   '',
   `# 3 · Políticas de alerta (los JSON los escribe: node ops/observabilidad/alertas.mjs --json ${dir})`,
-  ...Object.keys(POLITICAS).map((n) => `gcloud alpha monitoring policies create --project=${PROYECTO} --policy-from-file=${dir}/${n}.json --notification-channels=<CANAL>`),
+  ...Object.keys(POLITICAS).map((n) => `gcloud beta monitoring policies create --project=${PROYECTO} --policy-from-file=${dir}/${n}.json --notification-channels=<CANAL>`),
   '',
-  '# 4 · Presupuesto: además del aviso que ya existe (100 PEN, solo correo), umbrales al 50 %, 90 % y 100 % en la consola de facturación.',
+  '',
+  `# 4 · El panel «${PANEL.displayName}» (gratis): lo que se mira tras un despliegue o cuando salta una alerta`,
+  `gcloud monitoring dashboards create --project=${PROYECTO} --config-from-file=${dir}/panel.json`,
+  '',
+  '# 5 · Presupuesto: además del aviso que ya existe (100 PEN, solo correo), umbrales al 50 %, 90 % y 100 % en la consola de facturación.',
+  '',
+  '# 6 · Comprueba que todo existe y que cada alerta avisa a alguien (solo lectura): node ops/observabilidad/verificar.mjs',
 ];
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
@@ -153,6 +193,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   if (dir) {
     fs.mkdirSync(dir, { recursive: true });
     for (const [n, p] of Object.entries(POLITICAS)) fs.writeFileSync(path.join(dir, `${n}.json`), JSON.stringify(p, null, 2) + '\n');
+    fs.writeFileSync(path.join(dir, 'panel.json'), JSON.stringify(PANEL, null, 2) + '\n');
   }
   console.log('# Weë · alertas. LO EJECUTA EL DUEÑO; este script no ejecuta nada en Google Cloud.\n');
   for (const l of comandos(dir || undefined)) console.log(l);

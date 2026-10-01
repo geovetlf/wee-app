@@ -209,9 +209,31 @@ arranca:
    los emuladores aislados.
 
 Para que la CI se ejecute ANTES de entrar en `main`, el dueño activa en GitHub
-la protección de `main` (PR obligatorio con los cuatro checks en verde).
+la protección de `main`. Está escrita en `ops/github/` (lo que se envía, tal cual)
+y `node ops/github/proteccion.mjs` imprime los comandos, en orden:
+- **main**: no se borra, no se reescribe, solo cambia por PR con los cuatro checks
+  de la CI en verde, emitidos por GitHub Actions y con la rama al día; sin
+  excepciones. Sin revisores obligatorios: el dueño trabaja solo y GitHub no deja
+  aprobar tu propio PR.
+- **Solo merge commits.** `ops/permitido.mjs` comprueba por ascendencia que `main`
+  contiene lo que está vivo; un squash o un rebase reescriben los commits y
+  bloquearían todos los despliegues.
+- **Acciones**: solo las de GitHub y `google-github-actions/auth`, siempre fijadas
+  por SHA (todas lo están ya); el token de los workflows, de lectura.
+- **Entorno `get-wee`**: el dueño aprueba cada despliegue, y solo desde `main`.
+
+`node ops/github/proteccion.mjs verificar` solo LEE y dice qué falta. El
+2026-10-01 dio seis diferencias: `main` sin ninguna protección, squash y rebase
+admitidos, cualquier acción admitida, sin exigir SHA y sin entorno `get-wee`
+(`functions/test/proteccion-github.test.mjs`).
 
 Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.mjs`).
+
+**La misma CI, en local:** `node scripts/ci-local.mjs` (`--plan` para verla sin correr nada,
+`--nivel 1|2|3` para uno solo). No es otra CI: lee `ci.yml` y ejecuta sus pasos, en su
+orden, con su `env` y con `bash -eo pipefail` como GitHub; solo se salta las
+instalaciones. Si la CI cambia, la local cambia con ella (`functions/test/ci-local.test.mjs`).
+Sirve para arreglar la CI antes de subir nada.
 
 **Producción** (`.github/workflows/despliegue.yml`) es **el único camino**, y se
 lanza a mano desde Actions con un commit y un objetivo:
@@ -262,8 +284,11 @@ La lógica está en `ops/despliegue/plan.mjs` (pura). Los pasos están en
 
 **Está INACTIVO hasta que el dueño lo active** (IAM y GitHub son suyos):
 1. Ejecutar, línea a línea, lo que imprime `node ops/iam/wif.mjs`:
-   - el pool y el proveedor de WIF, que solo aceptan este workflow, de `main`,
-     en el entorno `get-wee`;
+   - el pool y el proveedor de WIF. Su condición exige, **siempre con igualdad
+     exacta**: este repositorio y este dueño (por id), el workflow
+     `despliegue.yml@refs/heads/main`, lanzado desde `refs/heads/main`, a mano
+     (`workflow_dispatch`) y en el entorno `get-wee`. Con un prefijo, una rama
+     `main-x` también habría pasado (`despliegue-workflow` 26b lo prueba);
    - la cuenta `despliegue-github@get-wee.iam.gserviceaccount.com`, con roles
      mínimos: sin Owner, sin leer secretos y sin IAM. Para observar solo lee
      métricas (`roles/monitoring.viewer`).
@@ -273,7 +298,13 @@ La lógica está en `ops/despliegue/plan.mjs` (pura). Los pasos están en
    - sus variables: `WIF_PROVEEDOR`, `CUENTA_DE_DESPLIEGUE`, `WEE_ADMIN_UIDS`,
      `R2_ACCOUNT_ID`, `R2_BUCKET` y, para `hosting:wee-app`, las
      `EXPO_PUBLIC_FIREBASE_*`. Ningún secreto.
-3. Antes del primer despliegue desde `main`, integrar en `main` el código que
+3. Comprobar que lo creado es exactamente eso: `node ops/iam/wif-verificar.mjs`.
+   Solo lee (`describe`, `get-iam-policy`, `list`) y dice ✔ o qué sobra:
+   la condición y el mapeo de `wif.mjs`, los roles justos y ninguno prohibido,
+   solo este repositorio puede hacerse pasar por la cuenta, solo «actuar como»
+   sobre la cuenta de ejecución y ninguna clave descargable
+   (`functions/test/wif-verificar.test.mjs`).
+4. Antes del primer despliegue desde `main`, integrar en `main` el código que
    ya corre en producción (§2). Hasta entonces, `ops/permitido.mjs` lo impide.
 
 Todo lo que toca IAM, GitHub o la visibilidad del repo espera la aprobación

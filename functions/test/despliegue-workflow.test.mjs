@@ -151,8 +151,23 @@ check('25f) y la versión publicada de un sitio, en la API de Hosting', (await n
 const wif = await importar('ops/iam/wif.mjs');
 check('26) la credencial solo es para ESTE repositorio, el workflow despliegue.yml de main y el entorno aprobado',
   wif.CONDICION.includes("assertion.repository_id == '1357703472'") && wif.CONDICION.includes("assertion.repository_owner_id == '325097307'")
-  && wif.CONDICION.includes("workflow_ref.startsWith('geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main')")
+  && wif.CONDICION.includes("assertion.workflow_ref == 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main'")
+  && wif.CONDICION.includes("assertion.ref == 'refs/heads/main'") && wif.CONDICION.includes("assertion.event_name == 'workflow_dispatch'")
   && wif.CONDICION.includes("assertion.environment == 'get-wee'"));
+/* Un token de GitHub como el del despliegue aprobado, y sus variantes. */
+const tokenBueno = { repository_id: '1357703472', repository_owner_id: '325097307', repository: 'geovetlf/wee-app',
+  workflow_ref: 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main', ref: 'refs/heads/main',
+  event_name: 'workflow_dispatch', environment: 'get-wee', actor: 'geovetlf', run_id: '1', run_attempt: '1' };
+check('26b) y solo con igualdad EXACTA: una rama que EMPIEZA por «main», un push, otro repositorio u otro entorno no obtienen credencial',
+  wif.admite(tokenBueno)
+  && !wif.admite({ ...tokenBueno, workflow_ref: 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main-x', ref: 'refs/heads/main-x' })
+  && !wif.admite({ ...tokenBueno, workflow_ref: 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main-x' })
+  && !wif.admite({ ...tokenBueno, ref: 'refs/heads/otra' })
+  && !wif.admite({ ...tokenBueno, event_name: 'push' })
+  && !wif.admite({ ...tokenBueno, repository_id: '1' })
+  && !wif.admite({ ...tokenBueno, environment: 'Production' })
+  && !wif.admite({ ...tokenBueno, environment: undefined })
+  && !/startsWith|contains|matches|\|\|/.test(wif.CONDICION));
 const roles = wif.ROLES.map(([r]) => r);
 check('27) la cuenta de despliegue no tiene ningún rol de los prohibidos (Owner, Editor, IAM, leer secretos, facturación…)',
   roles.length >= 5 && roles.every((r) => !wif.NUNCA.includes(r)) && !roles.some((r) => /owner|editor|secretAccessor|billing|projectIamAdmin/i.test(r)), roles.join(', '));
@@ -164,8 +179,9 @@ check('28c) cada identidad obtenida dice quién y qué ejecución: el sujeto lle
   && Buffer.byteLength(sujetoMasLargo) <= 127
   && ['attribute.actor=assertion.actor', 'attribute.workflow_ref=assertion.workflow_ref', 'attribute.workflow_sha=assertion.workflow_sha', 'attribute.ref=assertion.ref']
     .every((a) => mapeo.includes(a)) && wif.comandos().some((l) => l.includes(`--attribute-mapping="${wif.MAPEO}"`)));
-check('28d) y la condición de acceso no cambia: este repositorio, este dueño, despliegue.yml de main y el entorno aprobado',
-  wif.CONDICION.split(' && ').length === 4);
+check('28d) y la condición de acceso no cambia: este repositorio, este dueño, despliegue.yml de main, desde main, a mano y en el entorno aprobado',
+  wif.REQUISITOS.length === 6 && wif.CONDICION.split(' && ').length === 6
+  && wif.CONDICION.split(' && ').every((p) => /^assertion\.[a-z_]+ == '[^']+'$/.test(p)));
 
 check('28b) observar los 5xx es solo LEER métricas: monitoring.viewer, nunca un rol que escriba alertas o políticas',
   roles.includes('roles/monitoring.viewer') && !roles.some((r) => /monitoring\.(editor|admin|alertPolicyEditor)/.test(r)));

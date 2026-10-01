@@ -149,7 +149,7 @@ jobs:
       - name: Políticas
         run: |
           fallos=0
-          for suite in escaneo-secretos guardia-claude entrega-configuracion produccion-mapa despliegue-workflow rotacion-secretos emulador-aislado ci-workflow credits-cliente-cerrado integracion-preparada capacidades-conservadas; do
+          for suite in escaneo-secretos guardia-claude entrega-configuracion produccion-mapa despliegue-workflow rotacion-secretos emulador-aislado ci-workflow credits-cliente-cerrado integracion-preparada capacidades-conservadas wif-verificar proteccion-github app-check; do
             node "functions/test/$suite.test.mjs" > "politica-$suite.log" 2>&1 && echo "✔ $suite" || { echo "✘ $suite"; tail -20 "politica-$suite.log"; fallos=1; }
           done
           exit $fallos

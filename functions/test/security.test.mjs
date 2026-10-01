@@ -58,8 +58,12 @@ check('ninguna clave de proveedor aparece en el código del cliente', leaked.len
  * WALL_PREVIEW es un interruptor: enciende el muro de mentira que sirve para
  * juzgar el diseño (utils/previewWall.ts). No es una credencial, no abre nada y
  * apagado no hace absolutamente nada (fase 2E-73).
+ *
+ * EXPO_PUBLIC_APP_CHECK_SITE_KEY es la clave de SITIO de reCAPTCHA Enterprise para
+ * App Check en la web (config/appCheck.web.ts): pública por diseño, va en la página.
+ * Se admite ese nombre exacto, no un patrón: un «…APP_CHECK_SECRET» no pasaría.
  */
-check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v))));
+check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || v === 'EXPO_PUBLIC_APP_CHECK_SITE_KEY')));
 
 // 2) Nada de claves con valor en el código fuente
 const serverFiles = readDir('functions/src');
