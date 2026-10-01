@@ -56,5 +56,5 @@ Actions → «Despliegue a producción» → commit = <SHA de main> · objetivo 
   ya cierra, así que es una capa más, no la cerradura.
 - **Actualizar `ops/produccion.json` en un PR:** revisión nueva, commit y tag.
   La revisión `00005` sigue como prohibida en la historia.
-- **No se pasa al grupo siguiente** (`ops/despliegue/grupos.json`, `g1-social`)
+- **No se pasa al grupo siguiente** (`ops/despliegue/grupos.json`, `g1-cambio-minimo`)
   hasta validar todo lo anterior. Ante cualquier anomalía, se detiene.
