@@ -201,7 +201,10 @@ const registro = async () => {
     try { version = await n.versionDeHosting(h.sitio); } catch (e) { console.error(`· ${h.sitio}: ${e.message}`); }
     sitios.push({ sitio: h.sitio, version, comparados: h.comparados });
   }
-  const texto = mensajeDelRegistro({ commit: valor('--commit'), objetivo: valor('--objetivo'), run: valor('--run'), funciones, sitios });
+  const texto = mensajeDelRegistro({
+    commit: valor('--commit'), objetivo: valor('--objetivo'), run: valor('--run'),
+    quien: process.env.GITHUB_ACTOR, workflow: process.env.GITHUB_WORKFLOW_REF, funciones, sitios,
+  });
   console.log(texto);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Registro del despliegue\n\n\`\`\`\n${texto}\n\`\`\`\n`);
 };

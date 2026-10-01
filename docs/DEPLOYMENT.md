@@ -7,8 +7,7 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
 
 1. **Producción cambia por UN solo camino:** commit en `main` → CI → tag →
    aprobación del dueño → despliegue (§6).
-   - Mientras ese workflow no exista, solo despliega el dueño, a mano, con el
-     procedimiento de §4.
+   - No hay otro: ni a mano, ni desde un portátil, ni desde un worktree (§4).
    - Claude no despliega nunca: la guardia lo deniega ([`SECURITY.md`](SECURITY.md) §6).
 2. **No se pisa lo que funciona.** No se despliega un commit que no CONTIENE el
    código que hoy corre en cada función, ni uno que no lleva un arreglo de
@@ -124,54 +123,44 @@ están vivos; la integración (§2), 31 líneas y 1 índice más.
 Solo lee git y el mapa. La prueba `functions/test/produccion-mapa.test.mjs`
 fija el mapa y la regla.
 
-## 4. Mientras no exista el workflow (solo el dueño)
+## 4. No hay camino manual
 
-1. **Worktree limpio en el commit exacto:**
+Orden del dueño (2026-10-01): «Nunca permitir deploy directo desde el portátil.
+Nunca permitir deploy desde cualquier worktree.» Hasta ese día existía aquí un
+procedimiento a mano; ya no.
 
-   ```
-   git worktree add ../wee-despliegue <commit>
-   ```
+- **`firebase.json` lo impide.** El primer `predeploy` de cada objetivo
+  (functions, firestore, storage y los dos hosting) es
+  `scripts/solo-desde-el-workflow.mjs`. Solo deja pasar el workflow
+  `despliegue.yml` de `main` de `geovetlf/wee-app` en GitHub Actions, hacia
+  `get-wee`. Desde un portátil o un worktree, `firebase deploy` se para antes de
+  subir nada. Lo fija `entrega-configuracion` (18–21) y cumple el esquema de
+  firebase-tools 15.29.
+- **Es una cerradura contra el accidente, no la de seguridad**: esas variables
+  se pueden fingir. La de seguridad es IAM: la cuenta de despliegue solo la
+  obtiene ese workflow, por WIF (§6).
+- **Los atajos de npm ya no despliegan** (`scripts/no-desplegar.mjs`), y la
+  guardia de Claude deniega `firebase deploy` en cualquier forma.
+- **Un despliegue lleva como mucho 6 funciones** (`MAX_FUNCIONES_POR_DESPLIEGUE`),
+  y `functions` a secas, que serían todas, se rechaza. Los grupos y su orden
+  están en `ops/despliegue/grupos.json`.
+- **La marcha atrás sigue a mano**, porque NO es un despliegue: es mover el
+  tráfico a una revisión que ya existe (§5).
+- **Para comprobar lo publicado sin credenciales** (también después del
+  workflow):
 
-   Después, `npm ci` en la raíz y en `functions/`.
-   - Copia `functions/.env.get-wee` a ese worktree. No lleva secretos
-     (`WEE_ADMIN_UIDS`, `R2_ACCOUNT_ID`, `R2_BUCKET`), pero git lo ignora y sin
-     él las funciones pierden esas variables.
-2. **Comprueba** `node ops/permitido.mjs --commit <commit> --funciones <lista>`
-   → 0.
-3. **Prueba:** `npm --prefix functions run build && npm --prefix functions run test:todas`.
-4. **Despliega solo esas funciones:**
+  ```
+  node ops/despliegue/cli.mjs humo --funciones a,b --sin-credenciales
+  node ops/despliegue/cli.mjs hashes --sitio wee-app
+  ```
 
-   ```
-   firebase deploy --only functions:a,functions:b --project prod
-   ```
-
-   Sin claves locales: `functions.ignore` ya deja fuera `.env.local` y
-   `.secret.local`.
-5. **Si era un callable cerrado a mano, vuelve a cerrarlo.** El despliegue le
-   devuelve el invocador público. Cuando el código ya lleva `assertAdmin`, eso
-   no abre nada, pero conviene repetirlo.
-6. **Comprueba, sin credenciales:**
-
-   ```
-   node ops/despliegue/cli.mjs humo --funciones a,b --sin-credenciales
-   node ops/despliegue/cli.mjs hashes --sitio wee-app
-   ```
-
-   - El humo hace una petición sin sesión a la URL pública de cada función:
-     401/403 es «viva y cerrada»; 5xx o no responder es fallo. Las programadas
-     y las de eventos no se pueden llamar: el script lo dice, y se miran en la
-     consola de Cloud Run.
-   - `hashes` compara por sha256 cada archivo que publica el sitio con el de la
-     carpeta local (`dist/` o `public/`). Un 200 no basta: la reescritura de la
-     SPA devuelve `index.html` con 200 para un archivo que falta.
-7. **Etiqueta y anota:**
-
-   ```
-   git tag -a prod/functions/<fn>/<AAAA-MM-DDTHHMMZ> <commit>
-   ```
-
-   Pon en el mensaje la revisión y el build, y actualiza `ops/produccion.json`
-   en un PR.
+  - El humo hace una petición sin sesión a la URL pública de cada función:
+    401/403 es «viva y cerrada»; 5xx o no responder es fallo. Las programadas
+    y las de eventos no se pueden llamar: el script lo dice, y se miran en la
+    consola de Cloud Run.
+  - `hashes` compara por sha256 cada archivo que publica el sitio con el de la
+    carpeta local (`dist/` o `public/`). Un 200 no basta: la reescritura de la
+    SPA devuelve `index.html` con 200 para un archivo que falta.
 
 ## 5. Marcha atrás
 
@@ -208,11 +197,19 @@ fija el mapa y la regla.
 ## 6. CI y el workflow de producción (FASE 5–6 del Harness)
 
 **CI** (`.github/workflows/ci.yml`), en cada PR y en cada push a `main`. Tiene
-tres niveles, y si falla el 1 los otros no arrancan:
-1. TypeScript de la app y build de las Functions;
-2. todas las suites (`npm --prefix functions run test:todas`), sin parar en la
-   primera que falla;
-3. las suites de emulador con proyectos `demo-*`.
+tres niveles, en el orden que pidió el dueño; si uno falla, el siguiente no
+arranca:
+1. **TypeScript y build**: la app con 0 errores, las Functions y la web (lo
+   mismo que construye Vercel);
+2. **pruebas**: todas las suites (`npm --prefix functions run test:todas`), sin
+   parar en la primera que falla, y las de emulador con proyectos `demo-*`;
+3. **seguridad y políticas**: ningún secreto en el repositorio
+   (`scripts/escaneo-secretos.mjs`, sin herramientas externas) y las suites de
+   la guardia, la entrega, el mapa de producción, el despliegue, la rotación y
+   los emuladores aislados.
+
+Para que la CI se ejecute ANTES de entrar en `main`, el dueño activa en GitHub
+la protección de `main` (PR obligatorio con los cuatro checks en verde).
 
 Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.mjs`).
 
@@ -220,7 +217,7 @@ Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.m
 lanza a mano desde Actions con un commit y un objetivo:
 1. **Verificar**, sin credenciales de Google:
    - SHA completo, en `main`;
-   - los tres niveles de la CI en verde en ESE commit;
+   - los tres niveles de la CI (sus cuatro checks) en verde en ESE commit;
    - y `ops/permitido.mjs`, que impide pisar lo que funciona.
 2. **Aprobación del dueño** en el entorno de GitHub `get-wee`. No se llama
    `production`, porque choca con el `Production` de Vercel.

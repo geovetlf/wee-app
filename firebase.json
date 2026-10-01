@@ -1,10 +1,16 @@
 {
   "firestore": {
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "indexes": "firestore.indexes.json",
+    "predeploy": [
+      "node scripts/solo-desde-el-workflow.mjs firestore"
+    ]
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "storage.rules",
+    "predeploy": [
+      "node scripts/solo-desde-el-workflow.mjs storage"
+    ]
   },
   "functions": {
     "source": "functions",
@@ -22,6 +28,7 @@
       "*.tmp.txt"
     ],
     "predeploy": [
+      "node scripts/solo-desde-el-workflow.mjs functions",
       "npm --prefix functions run build"
     ]
   },
@@ -79,6 +86,9 @@
             "region": "us-central1"
           }
         }
+      ],
+      "predeploy": [
+        "node scripts/solo-desde-el-workflow.mjs hosting:get-wee"
       ]
     },
     {
@@ -93,6 +103,9 @@
           "source": "**",
           "destination": "/index.html"
         }
+      ],
+      "predeploy": [
+        "node scripts/solo-desde-el-workflow.mjs hosting:wee-app"
       ]
     }
   ]

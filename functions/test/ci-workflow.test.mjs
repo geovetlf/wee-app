@@ -3,8 +3,8 @@
  *
  * ── Qué vigila ─────────────────────────────────────────────────────────────
  *
- * La CI tiene tres niveles (tipos y build → suites → emuladores demo-*) y una
- * promesa: no toca nada real. No lleva secretos, no pide identidad a Google,
+ * La CI tiene tres niveles, en el orden que pidió el dueño (TypeScript y build →
+ * suites y emuladores demo-* → seguridad y políticas) y una promesa: no toca nada real. No lleva secretos, no pide identidad a Google,
  * su token de GitHub solo lee y las acciones van fijadas por SHA. Esta suite
  * fija esas propiedades en el texto del workflow, y EJECUTA las piezas que la
  * CI usa para no tener una segunda lista que mantener:
@@ -42,13 +42,21 @@ const usos = [...sinComentarios.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]);
 const sueltas = usos.filter((u) => !/@[0-9a-f]{40}$/.test(u));
 check('3) cada acción va fijada por SHA completo', usos.length >= 5 && sueltas.length === 0, sueltas.join(', '));
 check('4) el checkout no deja credenciales en el disco', (sinComentarios.match(/persist-credentials:\s*false/g) || []).length === (sinComentarios.match(/actions\/checkout@/g) || []).length);
-check('5) tres niveles; el 2 y el 3 solo corren si pasa el 1',
-  /nivel-1:/.test(ci) && /nivel-2:[\s\S]*?needs:\s*nivel-1/.test(sinComentarios) && /nivel-3:[\s\S]*?needs:\s*nivel-1/.test(sinComentarios));
-check('6) nivel 1: TypeScript de la app y build de las Functions', /npx tsc --noEmit/.test(sinComentarios) && /npm run build --prefix functions/.test(sinComentarios));
+check('5) tres niveles en orden: el 2 (suites y emuladores) solo si pasa el 1; el 3 solo si pasan los dos del 2',
+  /nivel-1:/.test(ci) && /nivel-2-suites:[\s\S]*?needs:\s*nivel-1\s/.test(sinComentarios) && /nivel-2-emuladores:[\s\S]*?needs:\s*nivel-1\s/.test(sinComentarios)
+  && /nivel-3:[\s\S]*?needs:\s*\[nivel-2-suites, nivel-2-emuladores\]/.test(sinComentarios));
+check('6) nivel 1: TypeScript de la app, build de las Functions y build de la web',
+  /npx tsc --noEmit/.test(sinComentarios) && /npm run build --prefix functions/.test(sinComentarios) && /npx expo export -p web/.test(sinComentarios));
 check('7) nivel 2: todas las suites, sin parar en la primera que falla', /npm run test:todas --prefix functions/.test(sinComentarios));
 check('8) nivel 3: las suites de emulador con Java 21', /node functions\/test\/_emuladores\.mjs/.test(sinComentarios) && /java-version:\s*21/.test(sinComentarios));
-check('9) cada nivel comprueba primero que el entorno no trae nada real',
-  (sinComentarios.match(/node scripts\/ci-sin-secretos\.mjs/g) || []).length === 3);
+check('9) cada job comprueba primero que el entorno no trae nada real',
+  (sinComentarios.match(/node scripts\/ci-sin-secretos\.mjs/g) || []).length === 4);
+const nivel3 = sinComentarios.slice(sinComentarios.indexOf('nivel-3:'));
+const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'entrega-configuracion', 'produccion-mapa', 'despliegue-workflow', 'rotacion-secretos', 'emulador-aislado', 'ci-workflow', 'credits-cliente-cerrado', 'integracion-preparada'];
+check('9b) nivel 3: ningún secreto en el repositorio y las suites de seguridad y políticas, todas',
+  /node scripts\/escaneo-secretos\.mjs/.test(nivel3) && POLITICAS.every((s) => nivel3.includes(` ${s} `) || nivel3.includes(` ${s};`)), POLITICAS.filter((s) => !nivel3.includes(` ${s} `) && !nivel3.includes(` ${s};`)).join(', '));
+const { NIVELES_DE_CI } = await importar('ops/despliegue/plan.mjs');
+check('9c) los niveles que exige el despliegue son exactamente los nombres de los cuatro jobs', NIVELES_DE_CI.length === 4 && NIVELES_DE_CI.every((n) => ci.includes(`name: ${n}`)));
 check('10) nunca despliega ni inicia sesión', !/firebase\s+deploy|functions:delete|gcloud\s|auth\s+login|vercel\s/.test(sinComentarios));
 
 /* ── B. Dependabot ──────────────────────────────────────────────────────── */

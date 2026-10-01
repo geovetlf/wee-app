@@ -18,6 +18,9 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -72,15 +75,19 @@ const plan = await importar('ops/despliegue/plan.mjs');
 const o1 = plan.leerObjetivo('functions:brainChat, functions:creatorRun,firestore:rules,functions:brainChat');
 check('12) el objetivo se lee y se deduplica', o1.errores.length === 0 && o1.solo === 'functions:brainChat,functions:creatorRun,firestore:rules', o1.solo);
 check('13) «functions» a secas (TODAS) se rechaza', /TODAS/.test(plan.leerObjetivo('functions').errores[0] || ''));
+const siete = plan.leerObjetivo(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `functions:${x}`).join(','));
+check('14b) nunca muchas de golpe: más de MAX_FUNCIONES_POR_DESPLIEGUE funciones en un despliegue se rechaza',
+  plan.MAX_FUNCIONES_POR_DESPLIEGUE === 6 && siete.errores.some((e) => /máximo es 6/.test(e))
+  && plan.leerObjetivo(['a', 'b', 'c', 'd', 'e', 'f'].map((x) => `functions:${x}`).join(',')).errores.length === 0);
 check('14) un objetivo desconocido o un nombre raro, también',
   plan.leerObjetivo('database').errores.length === 1 && plan.leerObjetivo('functions:a;rm -rf').errores.length === 1);
 const SHA = 'a'.repeat(40);
 const verde = plan.NIVELES_DE_CI.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
-check('15) commit de main con los tres niveles en verde: se puede', plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: verde }).length === 0);
-check('16) un SHA corto, uno fuera de main o un nivel sin pasar: no',
+check('15) commit de main con los niveles de la CI en verde: se puede', plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: verde }).length === 0);
+check('16) un SHA corto, uno fuera de main o un nivel sin pasar (o sin correr): no',
   plan.motivosContraElCommit({ sha: 'abc1234', enMain: true, checkRuns: verde }).length === 1
   && plan.motivosContraElCommit({ sha: SHA, enMain: false, checkRuns: verde }).length === 1
-  && plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: [{ ...verde[0] }, { ...verde[1], conclusion: 'failure' }] }).length === 2);
+  && plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: [{ ...verde[0] }, { ...verde[1], conclusion: 'failure' }] }).length === 1 + (plan.NIVELES_DE_CI.length - 2));
 const ci = leer('.github/workflows/ci.yml');
 check('17) los niveles que exige son exactamente los nombres de los jobs de ci.yml', plan.NIVELES_DE_CI.every((n) => ci.includes(`name: ${n}`)));
 check('18) humo: 401/403 = viva y cerrada; 5xx o sin respuesta = fallo; programadas y eventos no se llaman',
@@ -150,6 +157,15 @@ const roles = wif.ROLES.map(([r]) => r);
 check('27) la cuenta de despliegue no tiene ningún rol de los prohibidos (Owner, Editor, IAM, leer secretos, facturación…)',
   roles.length >= 5 && roles.every((r) => !wif.NUNCA.includes(r)) && !roles.some((r) => /owner|editor|secretAccessor|billing|projectIamAdmin/i.test(r)), roles.join(', '));
 check('28) el script solo imprime: no ejecuta nada', !/child_process|execSync|spawn|execFile/.test(leer('ops/iam/wif.mjs')));
+const mapeo = wif.MAPEO.split(',');
+const sujetoMasLargo = `gh:${wif.REPOSITORIO}:run:${'9'.repeat(12)}:${'9'.repeat(3)}:actor:${'a'.repeat(39)}`;
+check('28c) cada identidad obtenida dice quién y qué ejecución: el sujeto lleva repositorio, ejecución, intento y persona, y cabe en 127 bytes',
+  mapeo[0].startsWith('google.subject=') && /assertion\.run_id/.test(mapeo[0]) && /assertion\.actor/.test(mapeo[0]) && /assertion\.run_attempt/.test(mapeo[0])
+  && Buffer.byteLength(sujetoMasLargo) <= 127
+  && ['attribute.actor=assertion.actor', 'attribute.workflow_ref=assertion.workflow_ref', 'attribute.workflow_sha=assertion.workflow_sha', 'attribute.ref=assertion.ref']
+    .every((a) => mapeo.includes(a)) && wif.comandos().some((l) => l.includes(`--attribute-mapping="${wif.MAPEO}"`)));
+check('28d) y la condición de acceso no cambia: este repositorio, este dueño, despliegue.yml de main y el entorno aprobado',
+  wif.CONDICION.split(' && ').length === 4);
 
 check('28b) observar los 5xx es solo LEER métricas: monitoring.viewer, nunca un rol que escriba alertas o políticas',
   roles.includes('roles/monitoring.viewer') && !roles.some((r) => /monitoring\.(editor|admin|alertPolicyEditor)/.test(r)));
@@ -219,6 +235,9 @@ check('41) la consulta suma los 5xx de la ventana entera, solo de los servicios 
 check('42) un digest solo vale si es un sha256 completo', plan.digestDeImagen(`x/y@sha256:${'c'.repeat(64)}`) === `sha256:${'c'.repeat(64)}` && plan.digestDeImagen('x/y:latest') === null && plan.digestDeImagen(null) === null);
 const reg = plan.mensajeDelRegistro({ commit: SHA, objetivo: 'functions:brainChat,hosting:wee-app', run: 'https://github.com/x/y/actions/runs/1',
   funciones: [{ funcion: 'brainChat', revision: 'brainchat-00013-xyz', digest: 'repo@sha256:abc' }], sitios: [{ sitio: 'wee-app', version: 'v1', comparados: 140 }] });
+const regQuien = plan.mensajeDelRegistro({ commit: SHA, objetivo: 'functions:brainChat', run: 'r', quien: 'geovetlf', workflow: 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main' });
+check('43b) y quién lo lanzó y con qué workflow', /Lanzado por: geovetlf · geovetlf\/wee-app\/\.github\/workflows\/despliegue\.yml@refs\/heads\/main/.test(regQuien)
+  && /process\.env\.GITHUB_ACTOR/.test(leer('ops/despliegue/cli.mjs')) && /process\.env\.GITHUB_WORKFLOW_REF/.test(leer('ops/despliegue/cli.mjs')));
 check('43) el registro dice qué commit, qué revisión y qué imagen exacta quedaron sirviendo, y qué versión de cada sitio',
   reg.includes(`Commit: ${SHA}`) && reg.includes('función brainChat: revisión brainchat-00013-xyz · imagen repo@sha256:abc') && reg.includes('hosting wee-app: versión v1 · 140 archivos'));
 check('44) el workflow compara la web, observa 10 min, registra y etiqueta con ese registro',
@@ -234,6 +253,26 @@ check('46) la marcha atrás pide su PROPIO token nuevo (el de la autenticación 
   /id: auth-marcha-atras[\s\S]*?if: failure\(\)/.test(job('desplegar'))
   && /GCP_TOKEN: \$\{\{ steps\.auth-marcha-atras\.outputs\.access_token \}\}\s*\n\s*run: node ops\/despliegue\/cli\.mjs marcha-atras/.test(job('desplegar'))
   && /GCP_TOKEN: \$\{\{ steps\.auth-observar\.outputs\.access_token \}\}\s*\n(?:\s+[A-Z_]+: .*\n)*\s*run: node ops\/despliegue\/cli\.mjs observar/.test(job('desplegar')));
+
+/* ── H. Los grupos del despliegue gradual (FASE 9) ───────────────────────── */
+const grupos = JSON.parse(leer('ops/despliegue/grupos.json'));
+const enGrupos = grupos.grupos.flatMap((g) => g.funciones);
+const vivas = mapa.funciones.map((f) => f.funcion);
+check('47) cada función viva está en UN grupo, y solo una vez', enGrupos.length === new Set(enGrupos).size
+  && vivas.every((f) => enGrupos.includes(f)) && enGrupos.every((f) => vivas.includes(f)),
+  vivas.filter((f) => !enGrupos.includes(f)).concat(enGrupos.filter((f) => !vivas.includes(f))).join(', ') || `${vivas.length} en ${grupos.grupos.length} grupos`);
+check('48) ningún grupo pasa del máximo por despliegue, y cada uno dice por qué va donde va',
+  grupos.grupos.every((g) => g.funciones.length >= 1 && g.funciones.length <= plan.MAX_FUNCIONES_POR_DESPLIEGUE && g.porque.length > 40 && plan.leerObjetivo(g.funciones.map((f) => `functions:${f}`).join(',')).errores.length === 0));
+const posicion = (f) => grupos.grupos.findIndex((g) => g.funciones.includes(f));
+check('49) el orden: primero spendCredits sola; la IA después de lo social, la lectura y la administración; el dinero real y el nacimiento de cuentas al final',
+  JSON.stringify(grupos.grupos[0].funciones) === JSON.stringify(['spendCredits'])
+  && ['brainChat', 'creatorRun', 'generateVideo', 'generateAvatarWithGemini'].every((f) => posicion(f) > posicion('votePoll') && posicion(f) > posicion('getCreditsBalance') && posicion(f) > posicion('creditsAdmin'))
+  && ['validatePurchase', 'restorePurchase', 'nacimientoDeCuenta'].every((f) => posicion(f) === grupos.grupos.length - 1));
+const exportadas = Object.entries(require(path.resolve(RAIZ, 'functions/lib/index.js'))).filter(([, x]) => x && x.__endpoint).map(([k]) => k);
+const decididas = new Set([...vivas, ...grupos.no_se_despliegan.map((n) => n.funcion)]);
+check('50) toda función que el código exporta está decidida: viva (con su grupo) o, si es nueva, en «no se despliegan» con su porqué',
+  exportadas.every((f) => decididas.has(f)) && grupos.no_se_despliegan.every((n) => !enGrupos.includes(n.funcion) && n.porque.length > 30),
+  exportadas.filter((f) => !decididas.has(f)).join(', ') || `${exportadas.length} exportadas`);
 
 /* ── E. Documentado ─────────────────────────────────────────────────────── */
 const doc = leer('docs/DEPLOYMENT.md');

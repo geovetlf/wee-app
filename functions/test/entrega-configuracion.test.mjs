@@ -107,5 +107,33 @@ check('16) ningún script de npm despliega ni borra funciones: los atajos dicen 
 check('17) el shell de Functions solo corre con un proyecto demo-* (como los emuladores)',
   /firebase functions:shell --project demo-/.test(JSON.parse(leer('functions/package.json')).scripts.shell || ''));
 
+/* ── E. Solo despliega el workflow ──────────────────────────────────────── */
+/* Orden del dueño (2026-10-01): «Nunca permitir deploy directo desde el portátil. Nunca permitir deploy desde
+   cualquier worktree.» El primer `predeploy` de cada objetivo es la guarda; si sale con error, firebase-tools no sube
+   nada. Es contra el accidente; la cerradura de seguridad es IAM (solo el workflow obtiene la cuenta de despliegue). */
+const objetivos = [['functions', firebase.functions], ['firestore', firebase.firestore], ['storage', firebase.storage],
+  ...[].concat(firebase.hosting || []).map((h) => [`hosting:${h.site}`, h])];
+const sinGuarda = objetivos.filter(([nombre, c]) => (c.predeploy || [])[0] !== `node scripts/solo-desde-el-workflow.mjs ${nombre}`).map(([n]) => n);
+check('18) cada objetivo de firebase.json (functions, firestore, storage y los dos hosting) pasa PRIMERO por la guarda',
+  objetivos.length === 5 && sinGuarda.length === 0, sinGuarda.join(', ') || '5 objetivos');
+const { motivos: motivosDeGuarda, WORKFLOW } = await import(new URL('../../scripts/solo-desde-el-workflow.mjs', import.meta.url).href);
+const BUENO = { GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'geovetlf/wee-app', GITHUB_WORKFLOW_REF: `${WORKFLOW}`, GITHUB_REF: 'refs/heads/main', GCLOUD_PROJECT: 'get-wee' };
+check('19) la guarda deja pasar SOLO el workflow despliegue.yml de main, en geovetlf/wee-app, hacia get-wee',
+  motivosDeGuarda(BUENO).length === 0
+  && motivosDeGuarda({}).length >= 4
+  && motivosDeGuarda({ ...BUENO, GITHUB_REPOSITORY: 'otro/wee-app' }).length === 1
+  && motivosDeGuarda({ ...BUENO, GITHUB_WORKFLOW_REF: 'geovetlf/wee-app/.github/workflows/ci.yml@refs/heads/main' }).length === 1
+  && motivosDeGuarda({ ...BUENO, GITHUB_WORKFLOW_REF: 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/otra' }).length === 1
+  && motivosDeGuarda({ ...BUENO, GITHUB_REF: 'refs/heads/otra' }).length === 1
+  && motivosDeGuarda({ ...BUENO, GCLOUD_PROJECT: 'wee-dev-geovet' }).length === 1);
+const guardaFuente = leer('scripts/solo-desde-el-workflow.mjs');
+const variables = [...new Set([...guardaFuente.matchAll(/env\.([A-Z_]+)/g)].map((m) => m[1]))].sort();
+check('20) y no tiene puerta trasera: solo mira las variables que pone GitHub Actions (y las de su propio registro)',
+  JSON.stringify(variables) === JSON.stringify(['GCLOUD_PROJECT', 'GITHUB_ACTIONS', 'GITHUB_ACTOR', 'GITHUB_REF', 'GITHUB_REPOSITORY', 'GITHUB_RUN_ID', 'GITHUB_WORKFLOW_REF']),
+  variables.join(', '));
+const desdeAqui = (await import('node:child_process')).spawnSync(process.execPath, [path.resolve(RAIZ, 'scripts/solo-desde-el-workflow.mjs'), 'functions'],
+  { cwd: RAIZ, encoding: 'utf8', env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot } });
+check('21) y desde este árbol (un portátil, un worktree, la CI) se niega de verdad', desdeAqui.status === 1 && /aquí no se despliega/.test(desdeAqui.stderr));
+
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);
