@@ -38,10 +38,12 @@ check('A3) y su dirección en la web: studio/produccion, con la producción opci
  * se vuelven a leer; si no se pueden leer, no viajan. Visto en el navegador: sin esto, la dirección decía
  * «[object Object]» y la luz elegida se perdía al recargar.
  */
-const bloqueDeLaRuta = app.slice(app.indexOf('      Production: {'), app.indexOf('      Design:'));
+const bloqueDeLaRuta = app.slice(app.indexOf('Production: {'), app.indexOf('      Design:'));
 check('A3b) y los controles elegidos viajan en la dirección como JSON, y se releen con cuidado',
   /stringify: \{\s*creativo: \(creativo: unknown\) => JSON\.stringify\(creativo \?\? \{\}\),/.test(bloqueDeLaRuta)
   && /creativo: \(creativo: string\) => \{\s*try \{\s*const valor = JSON\.parse\(creativo\);/.test(bloqueDeLaRuta) && /catch \{\s*return undefined;/.test(bloqueDeLaRuta));
+check('A3c) y esa dirección solo existe con la puerta de Filmmaker abierta: cerrada, la producción no tiene enlace',
+  /import \{ FILMMAKER_EN_LA_APP \} from '\.\/constants\/studioExperiences';/.test(app) && /\.\.\.\(FILMMAKER_EN_LA_APP \? \{ Production: \{/.test(app));
 check('A4) al lado de Studio, que sigue igual', /Studio: 'studio',/.test(app) && /<Stack\.Screen name="Studio" component=\{StudioScreen\} \/>/.test(pila));
 const global = leer('navigation/NavegacionGlobal.tsx');
 check('A5) la barra de abajo se queda como en el Studio: no se esconde ni se inventa un destino para ella',
@@ -73,8 +75,18 @@ check('C1) cada puerta sigue llevando a su experiencia de CreatorFlow, declarada
   destinos.map(([id, d]) => `${id}→${d?.experienceId}`).join(' · '));
 const conectadas = video.filter((x) => !x.pendiente && !x.produccion);
 check('C2) las doce experiencias de vídeo conectadas siguen siendo de un clip: ninguna abre la producción', conectadas.length === 12 && conectadas.every((x) => !E.abreLaProduccion(x.id)));
-check('C3) y las dos que no se pueden hacer siguen bloqueadas con su motivo', JSON.stringify(video.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
+/*
+ * LA PUERTA (integración de producción en main, 2026-10-01): el dueño no ha decidido lanzar Filmmaker. Cerrada —que es
+ * como está—, «Varias escenas» se enseña como en main: bloqueada con su motivo y en su sitio. Abierta, todo lo de F1-C.
+ */
+check('C3) con la puerta cerrada, las tres que no se pueden hacer —«Varias escenas» incluida— siguen bloqueadas con su motivo, como en main',
+  E.FILMMAKER_EN_LA_APP === false && JSON.stringify(video.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
+  === JSON.stringify(['musicVideo:studio.pendMusic', 'multiScene:studio.pendCompose', 'beforeAfter:studio.pendTwoRefs']));
+const videoAbierta = E.conLaPuertaDeFilmmaker(E.EXPERIENCIAS_POR_ENTRADA.videos, true);
+check('C3b) con la puerta abierta, solo las dos de siempre', JSON.stringify(videoAbierta.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
   === JSON.stringify(['musicVideo:studio.pendMusic', 'beforeAfter:studio.pendTwoRefs']));
+check('C3c) y cerrada, el orden de la puerta de vídeo es el de main: Videoclip · Varias escenas · Antes y después',
+  video.map((x) => x.id).slice(-3).join() === 'musicVideo,multiScene,beforeAfter' && !video.some((x) => x.produccion));
 const alCrear = studio.slice(studio.indexOf('const alCrear = useCallback'), studio.indexOf('const alElegir = useCallback'));
 check('C4) el Studio sigue yendo a CreatorFlow con el destino de siempre', /const destino = destinoDeIntencion\(texto, \{/.test(alCrear)
   && /navigation\.navigate\('CreatorFlow', contexto\);/.test(alCrear) && /dentroDe: 'studio'/.test(alCrear));
@@ -83,11 +95,13 @@ check('C6) CreatorFlow no sabe nada de producciones', !/Production|filmmaker|pro
 
 /* ═══ D · VARIAS ESCENAS ═══════════════════════════════════════════════════ */
 console.log('\n── D · «Varias escenas» abre la producción ──');
-const multi = video.find((x) => x.id === 'multiScene');
-check('D1) la experiencia declara que abre una producción, y ya no está bloqueada', multi.produccion === true && !multi.pendiente && multi.clave === 'studio.xpMultiScene');
-check('D2) la regla la da el catálogo: solo «Varias escenas» abre la producción',
-  E.abreLaProduccion('multiScene') && !E.abreLaProduccion('scene') && !E.abreLaProduccion(null) && !E.abreLaProduccion(undefined)
-  && Object.values(E.EXPERIENCIAS_POR_ENTRADA).flat().filter((x) => x.produccion).map((x) => x.id).join() === 'multiScene');
+const multi = videoAbierta.find((x) => x.id === 'multiScene');
+check('D1) en el catálogo, la experiencia declara que abre una producción (con la puerta abierta, sin bloqueo)', multi.produccion === true && !multi.pendiente && multi.clave === 'studio.xpMultiScene'
+  && E.EXPERIENCIAS_POR_ENTRADA.videos.find((x) => x.id === 'multiScene').produccion === true);
+check('D2) la regla la da el catálogo: solo «Varias escenas» abre la producción; y con la puerta cerrada, nada la abre',
+  Object.values(E.EXPERIENCIAS_POR_ENTRADA).flat().filter((x) => x.produccion).map((x) => x.id).join() === 'multiScene'
+  && !E.abreLaProduccion('multiScene') && !E.abreLaProduccion('scene') && !E.abreLaProduccion(null) && !E.abreLaProduccion(undefined)
+  && /export const abreLaProduccion = \(experienciaId\?: string \| null\): boolean =>\s*FILMMAKER_EN_LA_APP && !!experienciaId && Object\.values\(EXPERIENCIAS_POR_ENTRADA\)\.some\(\(xs\) => \(xs \?\? \[\]\)\.some\(\(e\) => e\.id === experienciaId && e\.produccion === true\)\);/.test(capas));
 const rama = alCrear.search(/if \(abreLaProduccion\(experiencia\?\.id\)\) \{\s*navigation\.navigate\('Production', \{ intencion: texto, creativo: filtrarCreativo\(controles\) \}\);\s*return;\s*\}/);
 check('D3) el Studio la abre con lo escrito y los controles elegidos, y no sigue', rama >= 0);
 check('D4) antes de decidir ningún destino de un solo clip', rama >= 0 && rama < alCrear.indexOf('destinoDeIntencion(texto') && rama < alCrear.indexOf("navigation.navigate('CreatorFlow'"));

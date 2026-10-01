@@ -59,6 +59,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { crearTraductor } from './i18n/traducir';
 import { DICCIONARIOS } from './i18n/diccionarios';
 import { localeDeEmergencia } from './i18n/emergencia';
+import { FILMMAKER_EN_LA_APP } from './constants/studioExperiences';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
 /*
@@ -188,7 +189,8 @@ const linking: any = {
       Search: 'search',
       Settings: 'settings',
       Studio: 'studio',
-      Production: {
+      /* Con la puerta de Filmmaker cerrada (constants/studioExperiences.ts), la producción no tiene enlace. */
+      ...(FILMMAKER_EN_LA_APP ? { Production: {
         path: 'studio/produccion/:productionId?',
         parse: {
           productionId: (productionId: string) => productionId,
@@ -205,7 +207,7 @@ const linking: any = {
         stringify: {
           creativo: (creativo: unknown) => JSON.stringify(creativo ?? {}),
         },
-      },
+      } } : {}),
       Design: 'design',
       PostDetail: {
         path: 'post/:postId',

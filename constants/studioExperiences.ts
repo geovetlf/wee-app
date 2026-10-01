@@ -379,8 +379,37 @@ export const EXPERIENCIAS_POR_ENTRADA: Readonly<Partial<Record<EntradaDeStudio, 
   fashion: EXPERIENCIAS_DE_FASHION,
 };
 
+/**
+ * LA PUERTA DE WEË FILMMAKER EN LA APP (integración de producción en main, 2026-10-01).
+ *
+ * El servidor de Filmmaker ya corre en producción (`productions`, `shots`, desde
+ * 96b3f7a) y su cliente entra entero en main. Pero el dueño no ha decidido
+ * lanzarlo, así que «Varias escenas» se queda como estaba en main: visible,
+ * bloqueada con su motivo (`studio.pendCompose`), en su sitio de siempre, y sin
+ * abrir la producción, ni desde el Studio ni por enlace.
+ *
+ * Lanzarlo es poner esto a `true`, después de desplegar las reglas y el índice
+ * de `productions` (docs/INTEGRACION-PRODUCCION.md §2 y §7).
+ */
+export const FILMMAKER_EN_LA_APP = false;
+
+/**
+ * Pura: el catálogo tal como se enseña. Con la puerta abierta, el de Filmmaker
+ * tal cual. Cerrada, lo que abre una producción vuelve a estar como en main:
+ * bloqueado con «Weë todavía no sabe unir varias escenas…» y colocado detrás de
+ * la primera bloqueada, que es donde estaba (Videoclip · Varias escenas ·
+ * Antes y después).
+ */
+export const conLaPuertaDeFilmmaker = (xs: ExperienciaDeStudio[], abierta: boolean = FILMMAKER_EN_LA_APP): ExperienciaDeStudio[] => {
+  if (abierta || !xs.some((e) => e.produccion)) return xs;
+  const resto = xs.filter((e) => !e.produccion);
+  const bloqueadas = xs.filter((e) => e.produccion).map(({ produccion: _ignorada, ...e }) => ({ ...e, pendiente: 'studio.pendCompose' }));
+  const i = resto.findIndex((e) => e.pendiente);
+  return i < 0 ? [...resto, ...bloqueadas] : [...resto.slice(0, i + 1), ...bloqueadas, ...resto.slice(i + 1)];
+};
+
 export const experienciasDeLaEntrada = (id: EntradaDeStudio): ExperienciaDeStudio[] =>
-  EXPERIENCIAS_POR_ENTRADA[id] ?? [];
+  conLaPuertaDeFilmmaker(EXPERIENCIAS_POR_ENTRADA[id] ?? []);
 
 /**
  * ¿UN SOLO CLIP O VARIAS ESCENAS? Lo dice el catálogo —la experiencia elegida—,
@@ -388,4 +417,4 @@ export const experienciasDeLaEntrada = (id: EntradaDeStudio): ExperienciaDeStudi
  * cosa de Weë Brain, en otra fase. Hoy solo «Varias escenas» abre la producción.
  */
 export const abreLaProduccion = (experienciaId?: string | null): boolean =>
-  !!experienciaId && Object.values(EXPERIENCIAS_POR_ENTRADA).some((xs) => (xs ?? []).some((e) => e.id === experienciaId && e.produccion === true));
+  FILMMAKER_EN_LA_APP && !!experienciaId && Object.values(EXPERIENCIAS_POR_ENTRADA).some((xs) => (xs ?? []).some((e) => e.id === experienciaId && e.produccion === true));
