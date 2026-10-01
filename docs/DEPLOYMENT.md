@@ -77,16 +77,29 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
 - **La web.**
   - `wee.zone` la sirve Vercel desde GitHub, y **cada push a `main` la
     publica**, saltándose CI, tag y aprobación.
-  - El freno está **preparado y sin activar** (decisión del dueño, 2026-09-30):
-    `ops/vercel/vercel.sin-despliegue-automatico.json` es el `vercel.json` de
-    siempre más `git.deploymentEnabled.main: false`.
-  - El `vercel.json` activo no cambia, así que un push a `main` no lo activa
-    por sorpresa.
-  - Para activarlo, con autorización, se copia ese archivo sobre `vercel.json`
-    en un PR. Desde entonces la web se publica a propósito: desde el panel de
-    Vercel o desde el workflow (§6).
-  - Las ramas siguen generando previsualizaciones, que usan la configuración de
-    Firebase de producción.
+  - **El freno está ACTIVO en el código** (orden del dueño, 2026-10-01):
+    `vercel.json` lleva `git.deploymentEnabled.main: false` y nada más
+    cambia. Lo fija `entrega-configuracion` (14–15) y cumple el esquema
+    oficial de Vercel (`openapi.vercel.sh/vercel.json`).
+  - **Vercel lo lee del `vercel.json` del commit que llega a `main`.** Por eso
+    se hace efectivo con el primer push que lo lleve, y ese mismo push ya no
+    publica nada.
+  - **Ese primer push está preparado:** la rama `harness/freno-vercel` es el
+    `main` de GitHub (`bfc622d`) más un solo commit con ese cambio, para que
+    con él no viaje nada más. Subirla es una autorización del dueño.
+  - **Cómo se comprueba, tras el push:** en GitHub, el commit no tiene
+    despliegue de Producción (`gh api repos/geovetlf/wee-app/deployments?sha=<sha>`
+    devuelve una lista vacía, o solo previews). En el panel de Vercel, la
+    producción sigue siendo la de `bfc622d`.
+  - **Desde entonces la web se publica a propósito**, desde el panel de Vercel
+    (*Deploy* / *Promote*).
+  - **Mientras ese push no ocurra, el freno no protege nada en GitHub.** El
+    único freno inmediato y sin push es el del panel: *Settings → Git →
+    Ignored Build Step* («Don't build anything»).
+  - Las demás ramas siguen generando previsualizaciones, que usan la
+    configuración de Firebase de producción (una URL pública contra datos
+    reales). Conviene comprobar en el panel que la *Deployment Protection* de
+    las previews está activa.
 
 ## 3. Antes de desplegar cualquier cosa
 

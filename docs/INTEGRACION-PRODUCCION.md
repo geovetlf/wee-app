@@ -199,8 +199,9 @@ integrado. Eso añade:
   (`9e11731`).
 
 Es un cambio de UX grande. La FASE 20 manda detenerse y pedir autorización
-específica para algo así. Por eso el freno de Vercel
-(`ops/vercel/vercel.sin-despliegue-automatico.json`) es la primera decisión.
+específica para algo así. Por eso el freno de Vercel va primero. Ya está activo
+en `vercel.json` y preparado como primer push: la rama `harness/freno-vercel`,
+que es `bfc622d` más ese solo cambio ([DEPLOYMENT.md](DEPLOYMENT.md) §2).
 
 ## 7. Estrategias
 
@@ -228,9 +229,8 @@ CÓDIGO REPRODUCIBLE  ← tag integracion/<fecha> sobre el resultado
    ↓     Vercel creará una previsualización de la rama, como con cualquier rama
 PR → main
    ↓  5. CI de tres niveles en el PR (repo público: minutos sin coste)
-   ↓  6. ANTES de fusionar: decidir el freno de Vercel (§6)
-   ↓     · con el freno en el PR, fusionar no publica la web;
-   ↓     · sin él, fusionar publica wee.zone
+   ↓  6. el freno de Vercel ya está en main (primer push: harness/freno-vercel),
+   ↓     así que fusionar no publica la web
 main (GitHub)
    ↓  7. node ops/permitido.mjs --commit <merge> --funciones <las 34> --otros <los 5>  → 0
    ↓  8. WIF y entorno get-wee (node ops/iam/wif.mjs imprime los comandos)
@@ -252,7 +252,7 @@ DEPLOY con humo, observación, registro y tag
 | # | Autorización | Qué incluye |
 |---|---|---|
 | 2 | **Integración producción → main** | Crear la rama, el merge con §3, los arreglos de §4 b–e, re-anclar las cercas de F1-D (que incluye extender `61d2cdf` a todas las funciones en su próximo despliegue), la estrategia de §7 y el encargo de las traducciones de §4 a. Después, el push de la rama y el PR |
-| — | Freno de Vercel | Activarlo antes de fusionar, o aceptar que fusionar publica wee.zone (§6) |
+| 1 | Freno de Vercel | Subir `harness/freno-vercel` a `main` (un solo commit sobre `bfc622d`). Es el primer push |
 | 3 | CI/CD | Que corran los workflows en GitHub |
 | 4 | WIF | Los comandos de `ops/iam/wif.mjs` y el entorno `get-wee` |
 | 5 | Primer despliegue | `functions:spendCredits` desde el commit fusionado |
@@ -291,4 +291,4 @@ git apply ops/integracion/semantica.patch && git commit -am "…§4 b–d…"
   - las traducciones (§4 a), en su propio commit;
   - la puerta de Filmmaker (§7 B), en el suyo;
   - la verificación completa.
-- **Antes de cualquier push**, el freno de Vercel (§6).
+- **El primer push a `main`** es el del freno (`harness/freno-vercel`). Ningún otro va antes.

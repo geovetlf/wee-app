@@ -71,18 +71,27 @@ if (versionados) {
   console.log('· sin git: se saltan las comprobaciones del índice (10–13)');
 }
 
-/* Vercel publica wee.zone en CADA push a main, saltándose CI, tag y aprobación (H0). El freno está PREPARADO y SIN
-   ACTIVAR (decisión del dueño, 2026-09-30: «No desactives todavía el deploy automático»): el vercel.json activo es el de
-   siempre y el freno vive aparte, para aplicarlo cuando lo autorice (docs/DEPLOYMENT.md §2). Así un push a main no lo
-   activa por sorpresa. */
+/* Vercel publicaba wee.zone en CADA push a main, saltándose CI, tag y aprobación (H0). El freno está ACTIVO (orden del
+   dueño, 2026-10-01: «Activa primero el freno de Vercel»): `git.deploymentEnabled.main = false`. Vercel lo lee del
+   vercel.json del commit que llega a main, así que manda desde el primer commit que lo lleve, incluido ese mismo
+   (docs/DEPLOYMENT.md §2). Las demás ramas siguen teniendo previsualización. Y nada más cambia: la web se construye
+   igual que la que sirve hoy wee.zone. */
 const vercel = JSON.parse(leer('vercel.json'));
-const preparado = leer('ops/vercel/vercel.sin-despliegue-automatico.json');
-const conFreno = JSON.parse(preparado);
-check('14) el vercel.json activo NO lleva el freno: el despliegue automático sigue como estaba hasta que el dueño lo autorice',
-  !(vercel.git && vercel.git.deploymentEnabled));
-check('15) el freno está preparado aparte: el mismo vercel.json más git.deploymentEnabled.main = false, y nada más',
-  conFreno.git && conFreno.git.deploymentEnabled && conFreno.git.deploymentEnabled.main === false
-  && JSON.stringify({ ...conFreno, git: undefined }) === JSON.stringify({ ...vercel, git: undefined }));
+const COMO_SE_CONSTRUYE = {
+  buildCommand: 'npx expo export -p web && cp public/privacy-policy.html public/support.html public/terms.html dist/',
+  outputDirectory: 'dist',
+  framework: null,
+  rewrites: [
+    { source: '/privacy', destination: '/privacy-policy.html' },
+    { source: '/terms', destination: '/terms.html' },
+    { source: '/support', destination: '/support.html' },
+    { source: '/(.*)', destination: '/index.html' },
+  ],
+};
+check('14) el freno de Vercel está ACTIVO: un push a main no publica wee.zone',
+  JSON.stringify(vercel.git) === JSON.stringify({ deploymentEnabled: { main: false } }));
+check('15) y es lo único que cambia: la web se construye y se sirve igual que la de wee.zone',
+  JSON.stringify({ ...vercel, git: undefined }) === JSON.stringify(COMO_SE_CONSTRUYE));
 
 /* ── D. Ningún atajo despliega ───────────────────────────────────────────── */
 /* `npm run deploy:prod:functions` desplegaba las 34 funciones y Storage desde cualquier carpeta, y `npm --prefix
