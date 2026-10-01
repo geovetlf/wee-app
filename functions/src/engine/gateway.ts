@@ -238,6 +238,8 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       if (!adapter.supports(capability as CapabilityId)) return rechazo('PROVIDER_UNAVAILABLE', 'adapter_unsupported');
 
       const config = await deps.config();
+      /* El interruptor de la IA (H0 #19): como si todos los proveedores estuvieran desactivados, antes de despachar. */
+      if (config.settings.iaDetenida === true) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled', { iaDetenida: true });
       const providerConfig = config.providers[adapter.id];
       if (providerConfig?.enabled === false) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled');
       const modelo = conAjustesDeAdministracion(spec, providerConfig);

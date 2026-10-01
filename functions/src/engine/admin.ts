@@ -53,6 +53,9 @@ export const validateSettings = (data: Record<string, unknown>): void => {
   if (data.creditsPerUsd !== undefined && (!esNumero(data.creditsPerUsd) || Number(data.creditsPerUsd) <= 0)) {
     throw new HttpsError('invalid-argument', 'creditsPerUsd debe ser mayor que cero');
   }
+  if (data.iaDetenida !== undefined && typeof data.iaDetenida !== 'boolean') {
+    throw new HttpsError('invalid-argument', 'iaDetenida solo admite true (detener la IA) o false');
+  }
 };
 
 export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, secrets: AI_SECRETS }, async (request) => {
@@ -120,8 +123,9 @@ export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, s
 
     case 'setSettings': {
       validateSettings(data);
-      const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker'];
-      const patch: Record<string, unknown> = { updatedAt: Timestamp.now() };
+      const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker', 'iaDetenida'];
+      /* Quién cambió los ajustes queda escrito: el interruptor de la IA, sobre todo, tiene que tener dueño. */
+      const patch: Record<string, unknown> = { updatedAt: Timestamp.now(), updatedBy: request.auth?.uid ?? null };
       for (const key of allowed) if (data[key] !== undefined) patch[key] = data[key];
       await db().collection('aiSettings').doc('global').set(patch, { merge: true });
       invalidateConfig();

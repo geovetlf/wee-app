@@ -119,4 +119,6 @@ export const DEFAULT_SETTINGS: EngineSettings = {
   // frente a 0.15 de Seedance 2.0, con calidad de la misma generación; la calidad alta
   // y la máxima suben a 2.0 y 2.5. Cambiable en aiSettings/global.video.defaultModel.
   video: { defaultModel: 'SEEDANCE_2_0_FAST' },
+  // El interruptor de la IA (ver EngineSettings.iaDetenida): apagado, todo funciona como siempre.
+  iaDetenida: false,
 };

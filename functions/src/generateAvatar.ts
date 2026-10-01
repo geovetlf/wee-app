@@ -11,6 +11,7 @@ import { creditEngine } from './credits/creditEngine';
 import { CreditService } from './credits/creditCosts';
 import { assertInputImageUrl } from './creator/inputs';
 import { toHttpsError } from './credits/creditValidation';
+import { loadConfig } from './engine/config';
 import {
   generateAvatarWithImagen,
   replacePersonWithAvatar,
@@ -38,6 +39,14 @@ const requestIdFrom = (value: unknown): string => {
 };
 
 async function withCredits<T extends { imageUrl: string }>(userId: string, service: CreditService, requestId: string, reason: string, work: () => Promise<T>): Promise<T> {
+  /*
+   * El interruptor de la IA (H0 #19). El avatar es la única puerta que llama a su
+   * proveedor fuera de un adaptador del motor, así que lo mira aquí, ANTES de
+   * cobrar: detenida, no se reserva nada y no se genera nada.
+   */
+  if ((await loadConfig()).settings.iaDetenida === true) {
+    throw new HttpsError('unavailable', 'Ahora mismo no podemos crear esto. Inténtalo más tarde.', { reason: 'temporarily_unavailable' });
+  }
   let authorized;
   try {
     await creditEngine.ensureAccount(userId);

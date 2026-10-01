@@ -358,6 +358,16 @@ export interface EngineSettings {
   limits: UsageLimits;
   /** Weë Video Engine: versión de Seedance por defecto (auto | SEEDANCE_2_5 | SEEDANCE_2_0 | SEEDANCE_2_0_FAST | SEEDANCE_2_0_MINI). */
   video?: { defaultModel?: string };
+  /**
+   * EL INTERRUPTOR DE LA IA (auditoría H0, escenario #19). Apagado por defecto.
+   *
+   * Encendido, ninguna generación NUEVA llama a un proveedor —ni real ni demo—
+   * por ninguna de las puertas (router del motor, ejecutor del Core, avatar): se
+   * contesta «no disponible» antes de abrir el libro, y el llamador reembolsa su
+   * reserva como siempre. Lo ya lanzado sigue liquidándose (el barrido no se
+   * para). Se cambia con engineAdmin → setSettings y queda quién lo hizo.
+   */
+  iaDetenida?: boolean;
 }
 
 export interface RouteCandidate {

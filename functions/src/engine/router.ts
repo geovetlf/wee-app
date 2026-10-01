@@ -188,6 +188,14 @@ export function createRouter(deps: RouterDeps) {
     const prefs: RoutingPrefs = request.prefs || {};
     const quality = resolveQuality(request);
     const { links, policy } = linksFor(capability, config, prefs);
+    /*
+     * EL INTERRUPTOR (H0 #19). Detenida, no hay candidatos —tampoco el demo, que
+     * antes era lo que entraba al «apagar» todos los proveedores, y se cobraba—:
+     * `execute` contesta NOT_AVAILABLE antes de abrir el libro.
+     */
+    if (settings.iaDetenida === true) {
+      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'ia_detenida' }], realProviderAvailable: false };
+    }
     const excluded = new Set(prefs.excludeProviders || []);
     const candidates: InternalCandidate[] = [];
     const skipped: RouteDecision['skipped'] = [];
