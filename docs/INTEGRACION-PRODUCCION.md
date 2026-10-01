@@ -1,9 +1,14 @@
-# Producción → main — el plan de integración (preparado y ensayado, NO ejecutado)
+# Producción → main — la integración (ejecutada en una rama local, sin fusionar en main)
 
 Weë Agent Harness, FASE 4 (2026-09-30).
 
-**Estado: PREPARADO. No se ha creado ninguna rama, no se ha hecho ningún merge
-real y no se ha subido nada.** Ejecutarlo es la autorización 2 del dueño (§9).
+**Estado (2026-10-01): EJECUTADA EN LOCAL, en la rama `integracion/produccion`,
+por orden del dueño (misión H0–H14, FASE 3). No se ha fusionado en `main` —ni
+en el local ni en el de GitHub— y no se ha subido nada.** Fusionar en `main` y
+subir es la autorización 2 del dueño (§9). La ejecución y su validación, en §11.
+
+Lo que sigue hasta §10 es el plan tal como se midió y se ensayó antes de
+ejecutarlo; se conserva porque explica cada paso.
 
 - Todo lo que sigue se midió con `git merge-tree`, que simula sin tocar ramas.
 - Se ensayó en un worktree temporal desligado de cualquier rama, con el merge
@@ -195,8 +200,9 @@ integrado. Eso añade:
 - Weë Studio B3.10–B3.15: la interfaz nueva de Weë Studio, con imagen, vídeo y
   voz reales;
 - cuatro idiomas nuevos: ja, tr, sv, hi;
-- la pantalla de producción de Filmmaker, a la que lleva «Varias escenas»
-  (`9e11731`).
+- ~~la pantalla de producción de Filmmaker, a la que lleva «Varias escenas»
+  (`9e11731`)~~ — **no**: con la puerta de §7 B (`c1262e0`), «Varias escenas»
+  sigue exactamente como en `main` hasta que el dueño lance Filmmaker.
 
 Es un cambio de UX grande. La FASE 20 manda detenerse y pedir autorización
 específica para algo así. Por eso el freno de Vercel va primero. Ya está activo
@@ -292,3 +298,44 @@ git apply ops/integracion/semantica.patch && git commit -am "…§4 b–d…"
   - la puerta de Filmmaker (§7 B), en el suyo;
   - la verificación completa.
 - **El primer push a `main`** es el del freno (`harness/freno-vercel`). Ningún otro va antes.
+
+## 11. La ejecución (2026-10-01)
+
+Rama local `integracion/produccion`, en un worktree aparte, desde
+`harness/fase-1` (`bdb42c4`). **Estrategia B** (§7): el código vivo entra
+entero y la experiencia no cambia por Filmmaker.
+
+| Commit | Qué |
+|---|---|
+| `590b458` | Merge `--no-ff` de `hotfix/r22-generatevideo` (`7f11d51`, el que corre en producción): los 43 commits, con las 3 resoluciones de §3 |
+| `c8f457f` | §4 b–d: cercas de F1-D re-ancladas por nombre y tamaño, mayúsculas turcas, guardas de emulador `demo-*` |
+| `1f4a7e1` | §4 a, primera pasada: `filmmaker` en ja, tr, sv e hi (4 × 305 = 1 220 textos) |
+| `c1262e0` | §7 B: la puerta `FILMMAKER_EN_LA_APP = false`. Con ella cerrada, el catálogo de Weë Studio es **idéntico** al de `main` en todas sus entradas, y la ruta `Production` no existe |
+| `d2b0e67` | `filmmaker-i18n` cubre los 15 idiomas |
+| `e5a3646` | Revisión nativa independiente de las 1 220 traducciones, y las excepciones que justifica, cada una con su porqué |
+| `e27b1bd`, `8f694f0` | `ops/integracion/capacidades.mjs` y su suite: PRODUCCIÓN ACTUAL → MAIN PROPUESTO |
+| `3df5d0e` | Merge del último trabajo del Harness (`527c5e8`) |
+| `6e5bba4` | «No se pierde ninguna capacidad viva» es un control del nivel 3 de la CI |
+| `270493b` | [COMPARACION-PRODUCCION-MAIN.md](COMPARACION-PRODUCCION-MAIN.md) |
+
+**No entra:** ninguno de los 59 commits posteriores a `96b3f7a` en
+`filmmaker/core` (no desplegados). `productions`, `shots` y
+`barridoDeLiquidacion` entran en su versión desplegada.
+
+**Validación** (sin producción, sin red de proveedores, sin claves): ver §12.
+
+## 12. La validación (2026-10-01)
+
+Todo lo que se puede correr sin producción, sobre `270493b`: ni producción, ni
+proveedores de IA, ni claves, y emuladores solo con proyectos `demo-*`.
+
+| Qué | Resultado |
+|---|---|
+| `tsc` de la app | **0 errores** |
+| Build de Functions | **0 errores** |
+| Cadena entera (`node test/_cadena.mjs`) | **215/215** suites, **16 995** comprobaciones ✔ |
+| Suites de emulador (`_emuladores.mjs`) | **19/19**: las 14 del Harness y las 5 de producción; dos sobre el emulador de Functions, sin claves locales |
+| Build web (`expo export -p web`) | **0** |
+| Escaneo de secretos | **Ninguno** en 1 549 archivos versionados (7 admitidos con su porqué) |
+| Capacidades (`ops/integracion/capacidades.mjs`) | **No se pierde ninguna capacidad viva** |
+| Interfaz, en la web de demostración (emuladores `demo-wee-filmmaker`) | Weë Studio → Vídeos, en es y ja, en escritorio y en móvil: «Varias escenas» sale **bloqueada con «Pronto»**, entre Videoclip y Antes y después, como en `main`. Al tocarla no navega. `/studio/produccion/…` vuelve al Home: la ruta no existe con la puerta cerrada. Consola sin errores |
